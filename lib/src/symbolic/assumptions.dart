@@ -66,8 +66,17 @@ final class Assumptions {
 
   /// Resolves the [VariableDomain] of variable [name] by walking the
   /// assumption chain from this context through [parent]s.
-  VariableDomain domainOf(String name) =>
-      domains[name] ?? parent?.domainOf(name) ?? defaultDomain;
+  VariableDomain domainOf(String name) {
+    for (
+      Assumptions? current = this;
+      current != null;
+      current = current.parent
+    ) {
+      final domain = current.domains[name];
+      if (domain != null) return domain;
+    }
+    return defaultDomain;
+  }
 
   /// Returns a child [Assumptions] that overrides specific [domains] or
   /// [defaultDomain] while chaining to `this` as [parent].

@@ -60,6 +60,13 @@ void main() {
         check(chained.domainOf('z')).equals(VariableDomain.real);
         check(chained.domainOf('w')).equals(VariableDomain.complex);
         check(Conjugate(z).simplify(assumptions: chained)).equals(z);
+
+        final positiveDefault = Assumptions.none.copyWith(
+          defaultDomain: VariableDomain.positive,
+        );
+        check(positiveDefault.domainOf('x')).equals(VariableDomain.positive);
+        check(Expr.parse('sqrt(x^2)').simplify(assumptions: positiveDefault))
+            .equals(const Variable('x'));
       },
     );
   });
