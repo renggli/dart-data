@@ -83,10 +83,19 @@ class QRDecomposition<T> {
 
   /// Whether the matrix has full rank.
   bool get isFullRank {
+    if (_n == 0) return true;
     final field = _type.field;
     final zero = field.additiveIdentity;
+    var maxDiag = 0.0;
     for (var j = 0; j < _n; j++) {
-      if (_rdiag[j] == zero || field.norm(_rdiag[j]) < 1e-12) {
+      final norm = field.norm(_rdiag[j]);
+      if (norm > maxDiag) maxDiag = norm;
+    }
+    if (maxDiag == 0.0) return false;
+    final maxDim = math.max(_m, _n);
+    final tol = maxDim * 2.220446049250313e-16 * maxDiag;
+    for (var j = 0; j < _n; j++) {
+      if (_rdiag[j] == zero || field.norm(_rdiag[j]) <= tol) {
         return false;
       }
     }

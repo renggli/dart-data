@@ -112,5 +112,25 @@ void main() {
       check(svdZeroNoVectors.s.length).equals(4);
       check(svdZeroNoVectors.rank).equals(3);
     });
+
+    test('scale invariance of solveVector', () {
+      final aSmall = Matrix<double>.fromRows([
+        [1e-12, 0.0],
+        [0.0, 2e-12],
+      ], type: DataType.float64);
+      final bSmall = Vector<double>.fromList([2e-12, 6e-12]);
+      final xSmall = aSmall.svd.solveVector(bSmall);
+      check(xSmall[0]).isCloseTo(2.0, 1e-6);
+      check(xSmall[1]).isCloseTo(3.0, 1e-6);
+
+      final aLarge = Matrix<double>.fromRows([
+        [1e12, 0.0],
+        [0.0, 2e12],
+      ], type: DataType.float64);
+      final bLarge = Vector<double>.fromList([2e12, 6e12]);
+      final xLarge = aLarge.svd.solveVector(bLarge);
+      check(xLarge[0]).isCloseTo(2.0, 1e-6);
+      check(xLarge[1]).isCloseTo(3.0, 1e-6);
+    });
   });
 }

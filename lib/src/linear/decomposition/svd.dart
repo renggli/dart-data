@@ -142,6 +142,9 @@ class SingularValueDecomposition {
     final cols = vt.colCount;
     final mn = math.min(u.rowCount, cols);
     final tmp = List<double>.filled(cols, 0.0);
+    final maxDim = math.max(u.rowCount, cols);
+    final maxS = s.length > 0 ? s[0].abs() : 0.0;
+    final tol = maxDim * maxS * 2.220446049250313e-16;
 
     for (var j = 0; j < cols; j++) {
       var val = 0.0;
@@ -149,7 +152,7 @@ class SingularValueDecomposition {
         for (var i = 0; i < u.rowCount; i++) {
           val += u.getUnchecked(i, j) * b.getUnchecked(i).toDouble();
         }
-        val = s[j].abs() > 1e-15 ? val / s[j] : 0.0;
+        val = s[j].abs() > tol ? val / s[j] : 0.0;
       }
       tmp[j] = val;
     }

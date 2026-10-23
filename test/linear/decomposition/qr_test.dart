@@ -120,5 +120,39 @@ void main() {
       ], type: DataType.float64);
       check(() => a.qr).throws<ArgumentError>();
     });
+
+    test('scale invariance of isFullRank', () {
+      final base = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ], type: DataType.float64);
+      final small = Matrix<double>.generate(
+        2,
+        2,
+        (r, c) => base.get(r, c) * 1e-15,
+        type: DataType.float64,
+      );
+      check(small.qr.isFullRank).isTrue();
+
+      final large = Matrix<double>.generate(
+        2,
+        2,
+        (r, c) => base.get(r, c) * 1e15,
+        type: DataType.float64,
+      );
+      check(large.qr.isFullRank).isTrue();
+
+      final smallRankDef = Matrix<double>.fromRows([
+        [1e-15, 2e-15],
+        [2e-15, 4e-15],
+      ], type: DataType.float64);
+      check(smallRankDef.qr.isFullRank).isFalse();
+
+      final largeRankDef = Matrix<double>.fromRows([
+        [1e15, 2e15],
+        [2e15, 4e15],
+      ], type: DataType.float64);
+      check(largeRankDef.qr.isFullRank).isFalse();
+    });
   });
 }
