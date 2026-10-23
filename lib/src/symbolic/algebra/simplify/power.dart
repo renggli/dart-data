@@ -136,19 +136,31 @@ Expr simplifyPow(
           if (exponent == FractionNumber.half) {
             return simplifyMul([
               ComplexNumber.i,
-              simplifyPow(base.neg(), FractionNumber.half),
-            ]);
+              simplifyPow(
+                base.neg(),
+                FractionNumber.half,
+                assumptions: assumptions,
+              ),
+            ], assumptions: assumptions);
           }
           if (exponent == FractionNumber.negativeHalf) {
             return simplifyMul([
               ComplexNumber.negativeI,
-              simplifyPow(base.neg(), FractionNumber.negativeHalf),
-            ]);
+              simplifyPow(
+                base.neg(),
+                FractionNumber.negativeHalf,
+                assumptions: assumptions,
+              ),
+            ], assumptions: assumptions);
           }
         } else {
           final folded = base.powNumber(exponent);
           if (folded != null) return folded;
-          final extracted = _extractRationalRadical(base, exponent);
+          final extracted = _extractRationalRadical(
+            base,
+            exponent,
+            assumptions: assumptions,
+          );
           if (extracted != null) return extracted;
         }
       }
@@ -345,7 +357,11 @@ bool _isTwo(Expr expr) =>
 bool _isHalf(Expr expr) =>
     expr == FractionNumber.half || (expr is RealNumber && expr.value == 0.5);
 
-Expr? _extractRationalRadical(RationalNumber base, FractionNumber exponent) {
+Expr? _extractRationalRadical(
+  RationalNumber base,
+  FractionNumber exponent, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final p = exponent.numerator.asInt;
   final q = exponent.denominator.asInt;
   if (p == null || q == null || q <= 1 || q > 64 || p.abs() > 64) {
@@ -359,7 +375,10 @@ Expr? _extractRationalRadical(RationalNumber base, FractionNumber exponent) {
     final intPart = base.powInteger(m);
     if (intPart != null) {
       final remExp = RationalNumber(rem, q);
-      return simplifyMul([intPart, simplifyPow(base, remExp)]);
+      return simplifyMul([
+        intPart,
+        simplifyPow(base, remExp, assumptions: assumptions),
+      ], assumptions: assumptions);
     }
   }
 
@@ -375,7 +394,7 @@ Expr? _extractRationalRadical(RationalNumber base, FractionNumber exponent) {
       final remPow = remBase.isOne
           ? IntegerNumber.one
           : Pow(remBase, exponent, isSimplified: true);
-      return simplifyMul([extractedFactor, remPow]);
+      return simplifyMul([extractedFactor, remPow], assumptions: assumptions);
     }
   }
 

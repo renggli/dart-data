@@ -21,7 +21,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 | R1.8 [COMPLETED] | Medium | `lib/src/symbolic/ast/integral.dart:104` | Verified: indefinite `Integral.substitute('x', y)` substitutes the integrand but keeps `dx`. | Rename the integration variable, or return a lazy node. Mirror FU-1.1. |
 | R1.9 [COMPLETED] | Medium | `power.dart:137-141` | `2.5^2` and `2^0.5` are never evaluated, unlike `Add`. | Use `powNumber` when an operand is a `RealNumber`. |
 | R1.10 [COMPLETED] | Low | `lib/src/symbolic/ast/number.dart:153-156`, `power.dart:19-21`, `multiplicative.dart:41-54` | Float contagion is lost: `(1+i)^2.0 -> 2i`, `x^0.0 -> 1`, `0.0*x -> 0`. | Return a `RealNumber` result when an input was a `RealNumber`. |
-| R1.11 | Low | `multiplicative.dart:280-285`, `power.dart:119,125,331,347` | Recursive `simplify*` calls drop `assumptions`. | Pass `assumptions` through on every call. |
+| R1.11 [COMPLETED] | Low | `multiplicative.dart:280-285`, `power.dart:119,125,331,347` | Recursive `simplify*` calls drop `assumptions`. | Pass `assumptions` through on every call. |
 | R1.12 | Low | `transcendental.dart` (Ln/Abs) | Missing reductions: `log(8,2) -> 1/3`, `ln(8)-3ln(2) -> 0`, `abs(xy) -> abs(x)abs(y)`. | Split integer prime powers in `ln`. Make `abs` multiplicative. |
 
 ## R2. Acceleration: Native vs. Dart Divergence

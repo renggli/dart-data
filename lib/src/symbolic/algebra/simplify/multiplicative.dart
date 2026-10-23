@@ -78,7 +78,11 @@ Expr simplifyMul(
           point: currentOrder.point,
         );
       } else {
-        final merged = _multiplyWithOrderTerm(currentOrder, other);
+        final merged = _multiplyWithOrderTerm(
+          currentOrder,
+          other,
+          assumptions: assumptions,
+        );
         if (merged is OrderTerm) {
           currentOrder = merged;
         } else if (merged != null) {
@@ -171,7 +175,11 @@ Expr simplifyMul(
   }
 
   // Check if an Add factor is cleanly divisible by negative-power factors (e.g. (x^2 + x) / x -> 1 + x)
-  final distributed = _tryDistributeExactDivision(coeff, remainingFactors);
+  final distributed = _tryDistributeExactDivision(
+    coeff,
+    remainingFactors,
+    assumptions: assumptions,
+  );
   if (distributed != null) {
     return distributed;
   }
@@ -345,7 +353,11 @@ RationalNumber _absorbRationalCoeffIntoRadicals(
   return currentCoeff;
 }
 
-Expr? _tryDistributeExactDivision(Number coeff, List<Expr> factors) {
+Expr? _tryDistributeExactDivision(
+  Number coeff,
+  List<Expr> factors, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   if (factors.length < 2) return null;
   var addIndex = -1;
   Add? addNode;
@@ -370,19 +382,26 @@ Expr? _tryDistributeExactDivision(Number coeff, List<Expr> factors) {
 
   final dividedTerms = <Expr>[];
   for (final term in addNode.terms) {
-    final divTerm = simplifyMul([term, ...negFactors]);
+    final divTerm = simplifyMul([
+      term,
+      ...negFactors,
+    ], assumptions: assumptions);
     if (_hasNegativePowerFactor(divTerm)) {
       return null;
     }
     dividedTerms.add(divTerm);
   }
 
-  final sum = simplifyAdd(dividedTerms);
+  final sum = simplifyAdd(dividedTerms, assumptions: assumptions);
   final otherFactors = <Expr>[
     for (var i = 0; i < factors.length; i++)
       if (i != addIndex && !negPowIndices.contains(i)) factors[i],
   ];
-  return simplifyMul([if (!coeff.isOne) coeff, sum, ...otherFactors]);
+  return simplifyMul([
+    if (!coeff.isOne) coeff,
+    sum,
+    ...otherFactors,
+  ], assumptions: assumptions);
 }
 
 bool _hasNegativePowerFactor(Expr expr) => switch (expr) {
@@ -391,7 +410,11 @@ bool _hasNegativePowerFactor(Expr expr) => switch (expr) {
   _ => false,
 };
 
-Expr? _multiplyWithOrderTerm(OrderTerm orderTerm, Expr other) {
+Expr? _multiplyWithOrderTerm(
+  OrderTerm orderTerm,
+  Expr other, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final v = orderTerm.variable;
   final p = orderTerm.point;
   final n = orderTerm.order;
@@ -415,7 +438,7 @@ Expr? _multiplyWithOrderTerm(OrderTerm orderTerm, Expr other) {
   }
 
   if (!isZeroPoint) {
-    final shifted = simplifySub(Variable(v), p);
+    final shifted = simplifySub(Variable(v), p, assumptions: assumptions);
     final rawShifted = Variable(v) - p;
     if (other == shifted || other == rawShifted) {
       return OrderTerm(v, n + 1, point: p);
@@ -428,8 +451,9 @@ Expr? _multiplyWithOrderTerm(OrderTerm orderTerm, Expr other) {
 
   if (other case Add(:final terms)) {
     return simplifyAdd([
-      for (final term in terms) simplifyMul([term, orderTerm]),
-    ]);
+      for (final term in terms)
+        simplifyMul([term, orderTerm], assumptions: assumptions),
+    ], assumptions: assumptions);
   }
 
   return null;

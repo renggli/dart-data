@@ -35,17 +35,23 @@ Expr simplifySub(
   Expr left,
   Expr right, {
   Assumptions assumptions = Assumptions.none,
-}) => simplifyAdd([left, simplifyNeg(right)], assumptions: assumptions);
+}) => simplifyAdd([
+  left,
+  simplifyNeg(right, assumptions: assumptions),
+], assumptions: assumptions);
 
 /// Simplifies a unary negation `-[expr]`.
-Expr simplifyNeg(Expr expr) => switch (expr) {
-  final Number n => n.neg(),
-  OrderTerm() => expr,
-  Add() => () {
-    final acc = MonomialAccumulator(simplify: simplifyExpr);
-    acc.add(expr, IntegerNumber.negativeOne);
-    acc.reduceIdentities();
-    return acc.build();
-  }(),
-  _ => MonomialAccumulator.negateMonomial(expr),
-};
+Expr simplifyNeg(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
+    switch (expr) {
+      final Number n => n.neg(),
+      OrderTerm() => expr,
+      Add() => () {
+        final acc = MonomialAccumulator(
+          simplify: (e) => simplifyExpr(e, assumptions: assumptions),
+        );
+        acc.add(expr, IntegerNumber.negativeOne);
+        acc.reduceIdentities();
+        return acc.build();
+      }(),
+      _ => MonomialAccumulator.negateMonomial(expr),
+    };

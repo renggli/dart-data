@@ -119,6 +119,15 @@ void main() {
           .equals('(1 + x ^ 2) / x');
       check(Expr.parse('(x^2 + y) / x').simplify().toString())
           .equals('(y + x ^ 2) / x');
+      check(
+        Expr.parse('(x^2 * sqrt(y^2) + x) / x')
+            .simplify(
+              assumptions: const Assumptions(
+                domains: {'y': VariableDomain.positive},
+              ),
+            )
+            .toString(),
+      ).equals('1 + x * y');
     });
 
     test('simplifies division and sorts symbolic products with same base', () {
