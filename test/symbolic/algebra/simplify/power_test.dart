@@ -114,6 +114,38 @@ void main() {
       check(simplifyPow(Pow(x, y), IntegerNumber.two).toString())
           .equals('x ^ (2 * y)');
 
+      // (x^3)^(1/3) and (x^2)^(1/3) do not fold without non-negative assumptions
+      check(simplifyPow(Pow(x, IntegerNumber.of(3)), FractionNumber.third))
+          .equals(
+            Pow(
+              Pow(x, IntegerNumber.of(3)),
+              FractionNumber.third,
+              isSimplified: true,
+            ),
+          );
+      check(
+        simplifyPow(
+          Pow(x, IntegerNumber.of(3)),
+          FractionNumber.third,
+          assumptions: Assumptions.positive,
+        ),
+      ).equals(x);
+      check(simplifyPow(Pow(x, IntegerNumber.two), FractionNumber.third))
+          .equals(
+            Pow(
+              Pow(x, IntegerNumber.two),
+              FractionNumber.third,
+              isSimplified: true,
+            ),
+          );
+      check(
+        simplifyPow(
+          Pow(x, IntegerNumber.two),
+          FractionNumber.third,
+          assumptions: Assumptions.positive,
+        ).toString(),
+      ).equals('x ^ (2/3)');
+
       // Product raised to integer power: (2 * x)^3 -> 8 * x^3
       check(
         simplifyPow(

@@ -174,37 +174,40 @@ Expr simplifyPow(
         assumptions: assumptions,
       );
     }
-    if (innerExp is RationalNumber && exponent is RationalNumber) {
-      if (innerExp is IntegerNumber &&
-          innerExp.value.isEven &&
-          exponent is FractionNumber &&
-          exponent.denominator.isEven) {
-        final prod = innerExp.mulRational(exponent);
-        if (isProvenReal(innerBase, assumptions) &&
-            prod is IntegerNumber &&
-            prod.value.isOdd) {
-          return simplifyPow(
-            simplifyAbs(innerBase, assumptions: assumptions),
-            prod,
-            assumptions: assumptions,
-          );
-        }
-        if (!isProvenReal(innerBase, assumptions)) {
-          return Pow(base, exponent, isSimplified: true);
-        }
-      }
-      return simplifyPow(
-        innerBase,
-        innerExp.mulRational(exponent),
-        assumptions: assumptions,
-      );
-    }
     if (exponent is IntegerNumber) {
       return simplifyPow(
         innerBase,
         simplifyMul([innerExp, exponent], assumptions: assumptions),
         assumptions: assumptions,
       );
+    }
+    if (innerExp is RationalNumber && exponent is RationalNumber) {
+      if (innerExp is IntegerNumber &&
+          innerExp.value.isEven &&
+          exponent is FractionNumber &&
+          exponent.denominator.isEven) {
+        final prod = innerExp.mulRational(exponent);
+        if (isProvenReal(innerBase, assumptions)) {
+          if (prod is IntegerNumber && prod.value.isEven) {
+            return simplifyPow(innerBase, prod, assumptions: assumptions);
+          }
+          return simplifyPow(
+            simplifyAbs(innerBase, assumptions: assumptions),
+            prod,
+            assumptions: assumptions,
+          );
+        }
+        return Pow(base, exponent, isSimplified: true);
+      }
+      if (innerExp.numerator > -innerExp.denominator &&
+          innerExp.numerator <= innerExp.denominator) {
+        return simplifyPow(
+          innerBase,
+          innerExp.mulRational(exponent),
+          assumptions: assumptions,
+        );
+      }
+      return Pow(base, exponent, isSimplified: true);
     }
   }
 
