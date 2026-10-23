@@ -73,6 +73,7 @@ double erf(num x) {
 /// final x = erfInv(0.8427007929497149); // ~ 1.0
 /// ```
 double erfInv(num x) {
+  if (x.isNaN) return double.nan;
   if (x < -1.0 || x > 1.0) {
     return double.nan;
   } else if (x == -1.0) {
@@ -83,30 +84,20 @@ double erfInv(num x) {
     return x.toDouble();
   } else {
     const x0 = 0.7;
+    if (x < -x0) {
+      return -erfcInv(1.0 + x);
+    } else if (x > x0) {
+      return erfcInv(1.0 - x);
+    }
     const coeffsA = [0.886226899, -1.645349621, 0.914624893, -0.140543331];
     const coeffsB = [-2.118377725, 1.442710462, -0.329097515, 0.012229801];
-    const coeffsC = [-1.970840454, -1.624906493, 3.429567803, 1.641345311];
-    const coeffsD = [3.543889200, 1.637067800];
-    var result = 0.0;
-    if (x < -x0) {
-      final z = sqrt(-log((1.0 + x) / 2.0));
-      result =
-          -(((coeffsC[3] * z + coeffsC[2]) * z + coeffsC[1]) * z + coeffsC[0]) /
-          ((coeffsD[1] * z + coeffsD[0]) * z + 1.0);
-    } else if (x < x0) {
-      final z = x * x;
-      result =
-          x *
-          (((coeffsA[3] * z + coeffsA[2]) * z + coeffsA[1]) * z + coeffsA[0]) /
-          ((((coeffsB[3] * z + coeffsB[2]) * z + coeffsB[1]) * z + coeffsB[0]) *
-                  z +
-              1.0);
-    } else {
-      final z = sqrt(-log((1.0 - x) / 2.0));
-      result =
-          (((coeffsC[3] * z + coeffsC[2]) * z + coeffsC[1]) * z + coeffsC[0]) /
-          ((coeffsD[1] * z + coeffsD[0]) * z + 1.0);
-    }
+    final z = (x * x).toDouble();
+    var result =
+        x *
+        (((coeffsA[3] * z + coeffsA[2]) * z + coeffsA[1]) * z + coeffsA[0]) /
+        ((((coeffsB[3] * z + coeffsB[2]) * z + coeffsB[1]) * z + coeffsB[0]) *
+                z +
+            1.0);
     for (var i = 0; i < 2; i++) {
       result -= (erf(result) - x) / (2.0 / sqrt(pi) * exp(-result * result));
     }
@@ -169,8 +160,56 @@ double erfc(num x) {
   }
 }
 
-/// Returns the inverse complementary error function.
-double erfcInv(num x) => -erfInv(x - 1.0);
+/// Returns the inverse complementary error function $\operatorname{erfc}^{-1}(x)$.
+double erfcInv(num x) {
+  if (x.isNaN) return double.nan;
+  if (x < 0.0 || x > 2.0) return double.nan;
+  if (x == 0.0) return double.infinity;
+  if (x == 2.0) return double.negativeInfinity;
+  if (x == 1.0) return 0.0;
+
+  final xVal = x.toDouble();
+  if (xVal > 1.0) {
+    return -erfcInv(2.0 - xVal);
+  }
+
+  const coeffsA = [0.886226899, -1.645349621, 0.914624893, -0.140543331];
+  const coeffsB = [-2.118377725, 1.442710462, -0.329097515, 0.012229801];
+  const coeffsC = [-1.970840454, -1.624906493, 3.429567803, 1.641345311];
+  const coeffsD = [3.543889200, 1.637067800];
+
+  var result = 0.0;
+  if (xVal > 0.3) {
+    final u = 1.0 - xVal;
+    final z = u * u;
+    result =
+        u *
+        (((coeffsA[3] * z + coeffsA[2]) * z + coeffsA[1]) * z + coeffsA[0]) /
+        ((((coeffsB[3] * z + coeffsB[2]) * z + coeffsB[1]) * z + coeffsB[0]) *
+                z +
+            1.0);
+  } else {
+    final z = sqrt(-log(xVal / 2.0));
+    result =
+        (((coeffsC[3] * z + coeffsC[2]) * z + coeffsC[1]) * z + coeffsC[0]) /
+        ((coeffsD[1] * z + coeffsD[0]) * z + 1.0);
+  }
+
+  // Refine using Halley's method
+  for (var i = 0; i < 3; i++) {
+    final f = erfc(result) - xVal;
+    final fPrime = -2.0 / sqrt(pi) * exp(-result * result);
+    if (fPrime == 0.0) break;
+    final u = f / fPrime;
+    final denom = 1.0 + result * u;
+    if (denom == 0.0) {
+      result -= u;
+    } else {
+      result -= u / denom;
+    }
+  }
+  return result;
+}
 
 const _sqrPi = 0.56418958354775628695;
 const _thresh = 0.46875;

@@ -35,6 +35,11 @@ void main() {
       check(dist.inverseSurvival(0.5)).isCloseTo(0.0, 1e-6);
       check(dist.inverseCumulativeProbability(0.975)).isCloseTo(1.95996, 1e-4);
       check(dist.inverseCumulativeProbability(0.025)).isCloseTo(-1.95996, 1e-4);
+      // Deep tail quantiles do not floor at -infinity
+      check(dist.inverseCumulativeProbability(1e-20).isFinite).isTrue();
+      check(dist.inverseCumulativeProbability(1e-20)).isLessThan(-8.0);
+      check(dist.inverseSurvival(1e-20).isFinite).isTrue();
+      check(dist.inverseSurvival(1e-20)).isGreaterThan(8.0);
       check(() => dist.inverseCumulativeProbability(-0.1))
           .throws<InvalidProbability>();
       check(() => dist.inverseCumulativeProbability(1.1))

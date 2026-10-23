@@ -99,10 +99,31 @@ class NormalDistribution extends ContinuousDistribution {
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return -1.41421356237309505 *
-            standardDeviation *
-            erfcInv(2.0 * probability) +
-        mean;
+    if (probability == 0.0) return double.negativeInfinity;
+    if (probability == 1.0) return double.infinity;
+    return probability < 0.5
+        ? -1.41421356237309505 *
+                  standardDeviation *
+                  erfcInv(2.0 * probability) +
+              mean
+        : 1.41421356237309505 *
+                  standardDeviation *
+                  erfcInv(2.0 * (1.0 - probability)) +
+              mean;
+  }
+
+  @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0.0) return double.infinity;
+    if (probability == 1.0) return double.negativeInfinity;
+    return probability < 0.5
+        ? 1.41421356237309505 * standardDeviation * erfcInv(2.0 * probability) +
+              mean
+        : -1.41421356237309505 *
+                  standardDeviation *
+                  erfcInv(2.0 * (1.0 - probability)) +
+              mean;
   }
 
   @override

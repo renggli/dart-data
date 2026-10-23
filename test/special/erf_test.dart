@@ -41,9 +41,28 @@ void main() {
       check(erfInv(2.0)).isNaN();
       check(erfInv(-2.0)).isNaN();
 
-      check(erfInv(erf(0.5))).isCloseTo(0.5, 1e-6);
-      check(erfInv(erf(-0.75))).isCloseTo(-0.75, 1e-6);
-      check(erfcInv(erfc(0.5))).isCloseTo(0.5, 1e-6);
+      check(erfInv(erf(0.5))).isCloseTo(0.5, 1e-12);
+      check(erfInv(erf(-0.75))).isCloseTo(-0.75, 1e-12);
+      check(erfcInv(erfc(0.5))).isCloseTo(0.5, 1e-12);
+
+      // Deep tail tests without cancellation or premature overflow
+      check(erfcInv(0.0)).equals(double.infinity);
+      check(erfcInv(2.0)).equals(double.negativeInfinity);
+      check(erfcInv(1.0)).equals(0.0);
+      check(erfcInv(-0.1)).isNaN();
+      check(erfcInv(2.1)).isNaN();
+
+      // For erfc(5.0) ≈ 1.5374597944280348e-12
+      final y5 = erfc(5.0);
+      check(erfcInv(y5)).isCloseTo(5.0, 1e-10);
+
+      // Deep tail: erfc(8.0) ≈ 1.1224421110037894e-29
+      final y8 = erfc(8.0);
+      check(erfcInv(y8)).isCloseTo(8.0, 1e-8);
+
+      // Small probabilities e.g. 1e-20 do not return infinity
+      check(erfcInv(1e-20).isFinite).isTrue();
+      check(erfcInv(1e-20)).isGreaterThan(6.0);
     });
 
     test('erf and erfc near-machine precision (Cody)', () {
