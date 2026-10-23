@@ -315,16 +315,18 @@ OdeSolution _bdf2({
     final yN = yList[yList.length - 1];
     final yPrev = yList[yList.length - 2];
 
-    var yNext = yN.scale(2.0) - yPrev;
-    final gamma = (2.0 / 3.0) * step;
+    final hPrev = tList[tList.length - 1] - tList[tList.length - 2];
+    final omega = step / hPrev;
+    final alpha = (1.0 + omega) * (1.0 + omega) / (1.0 + 2.0 * omega);
+    final beta = (omega * omega) / (1.0 + 2.0 * omega);
+    final gamma = ((1.0 + omega) / (1.0 + 2.0 * omega)) * step;
+
+    var yNext = yN.scale(1.0 + omega) - yPrev.scale(omega);
 
     for (var iter = 0; iter < maxNewtonIters; iter++) {
       final fNext = f(tNext, yNext);
       final residual =
-          yNext -
-          yN.scale(4.0 / 3.0) +
-          yPrev.scale(1.0 / 3.0) -
-          fNext.scale(gamma);
+          yNext - yN.scale(alpha) + yPrev.scale(beta) - fNext.scale(gamma);
       if (residual.norm() < tolerance) break;
 
       final jac = _approximateJacobian(f, tNext, yNext, fNext);

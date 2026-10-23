@@ -121,6 +121,26 @@ void main() {
       check(sol.last[0]).isCloseTo(math.exp(-50.0 * 0.5), 1e-4);
     });
 
+    test('OdeMethod.bdf2 accurately handles truncated last step', () {
+      // dy/dt = -2y, y(0) = 1.0 => y(t) = exp(-2t)
+      // tEnd = 0.503 with stepSize = 0.01 leaves last step h = 0.003
+      Vector<double> derivative(double time, Vector<double> y) =>
+          Vector<double>.fromList([-2.0 * y[0]], type: DataType.float64);
+
+      final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
+      final sol = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 0.503,
+        y0: y0,
+        method: OdeMethod.bdf2,
+        stepSize: 0.01,
+      );
+
+      check(sol.converged).isTrue();
+      check(sol.last[0]).isCloseTo(math.exp(-2.0 * 0.503), 1e-4);
+    });
+
     test('solveOde with tEval dense Hermite interpolation', () {
       // dy/dt = y, y(0) = 1 => y(t) = exp(t)
       Vector<double> derivative(double time, Vector<double> y) =>
