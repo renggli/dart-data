@@ -8,7 +8,7 @@ Run any example directly from the project root using `dart run`:
 
 ### Magic Square (`example/magic_square.dart`)
 
-Generates magic squares of various sizes (odd, doubly-even, and singly-even) and computes their structural properties, condition numbers, matrix norms, eigenvalue spectra, matrix decompositions (LU, QR, SVD, Cholesky), and iterative Krylov subspace solver convergence (GMRES, BiCGSTAB, Conjugate Gradient).
+Generates magic squares of various sizes (odd, doubly-even, and singly-even) and computes their structural properties, condition numbers, matrix norms, eigenvalue spectra, and matrix decompositions (LU, QR, SVD).
 
 ```bash
 dart run example/magic_square.dart

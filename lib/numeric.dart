@@ -20,17 +20,18 @@
 ///   constraints.
 /// - **Curve Fitting & Regression**: [curveFit] and [CurveModels] for
 ///   non-linear models, [leastSquares], [linearRegression],
-///   [polynomialRegression], and [fitNonlinear].
+///   [polynomialRegression], [multipleLinearRegression], and [fitNonlinear].
 /// - **Sampling Grids & Adaptive Curve Sampling**: [linearSpaced],
 ///   [logarithmicSpaced], [geometricSpaced], and [sampleCurve] for generating
 ///   coordinate grids and discontinuity-aware adaptive curve samples.
 /// - **Differential Equations**: [solveOde] with [OdeMethod]
-///   ([OdeMethod.dormandPrince45], [OdeMethod.rk4]).
+///   ([OdeMethod.dormandPrince45], [OdeMethod.rk4], [OdeMethod.bdf2]).
 /// - **Interpolation**: 1D linear ([LinearInterpolation]), cubic spline
 ///   ([CubicSpline]), monotonic cubic ([PchipInterpolation]), and 2D bilinear
 ///   ([BilinearInterpolation]) / bicubic ([BicubicInterpolation]).
-/// - **Fast Fourier Transform**: [fft] for 1D complex
-///   frequency-domain signal processing.
+/// - **Fast Fourier Transform & Signal Processing**: [fft] and [fft2] for
+///   1D and 2D complex frequency-domain signal processing, and [convolve] with
+///   [ConvolutionMode].
 ///
 /// ## Example
 ///

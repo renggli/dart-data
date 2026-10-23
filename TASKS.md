@@ -690,7 +690,7 @@ Each task specifies:
 
 ## 7. Documentation, Examples & Test Suite Alignment
 
-### TASK-7.1: Sync `ARCHITECTURE.md` and `README.md` with Actual Codebase Paths and Symbols
+### TASK-7.1: Sync `ARCHITECTURE.md` and `README.md` with Actual Codebase Paths and Symbols [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
@@ -714,6 +714,13 @@ Each task specifies:
   1. Update all stale file paths and function signatures in `ARCHITECTURE.md` to match the current codebase.
   2. Update `README.md` and `example/README.md` (or add BiCGSTAB to `IterativeMethod`).
   3. List `multipleLinearRegression`, `fft2`, and `convolve` in the library doc comment of `lib/numeric.dart`.
+- **Implementation Report**:
+  - Corrected internal file paths in `ARCHITECTURE.md` (`lib/src/type/utils/memory.dart`, `lib/src/dataframe/json/`, `lib/src/acceleration/utils/library_loader_ffi.dart`).
+  - Updated `ARCHITECTURE.md` Section 4 with `df.typedColumn<T>` and `List<bool>` buffer description for `BoolSeries`.
+  - Updated `ARCHITECTURE.md` Section 6 to document solution-oriented numerical APIs (`minimize` with `OptimizationMethod`, `solveOde` with `OdeMethod`, `derivative`, `gradient`, `jacobian`, `hessian`, in-place arbitrary-length `fft`, `fft2`, `convolve`, and `curveFit`/`fitNonlinear`).
+  - Corrected solver lists in `README.md` and `example/README.md` removing non-existent BiCGSTAB and Cholesky references from magic square demo.
+  - Added `multipleLinearRegression`, `fft2`, `convolve`, and `OdeMethod.bdf2` to `lib/numeric.dart` library documentation comment.
+  - Verified static analysis clean with 0 warnings/infos.
 
 ### TASK-7.2: Mirror `test/` Directory Hierarchy 1:1 with `lib/src/` and Split Single-Group Test Files
 

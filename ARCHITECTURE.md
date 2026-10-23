@@ -19,7 +19,7 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Scientific computations frequently execute operations where target buffers overlap with operand memory (e.g. `a = a + b` or in-place mutations). Without explicit aliasing guards, in-place evaluation silently corrupts unread input elements.
 - **Implementation & Constraints**:
-  - Direct `ByteBuffer` memory inspection utilities reside in `lib/src/type/buffers/memory.dart`.
+  - Direct `ByteBuffer` memory inspection utilities reside in `lib/src/type/utils/memory.dart`.
   - `sharesMemory(List a, List b)` and `hasOverlap(TypedData a, TypedData b)` verify whether two storage arrays share underlying physical RAM via byte buffer pointer arithmetic and byte offset inspection.
   - In `Tensor.unaryOperation`, `binaryOperation`, `matmul`, and `reduction`, memory aliasing between inputs and output targets is detected prior to loop execution.
   - If hazardous overlap is detected (e.g., writing to a broadcast operand's buffer), intermediate calculations automatically route through a temporary copy buffer before writing to the target.
@@ -224,7 +224,7 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Row-oriented tabular storage wastes memory on heterogeneous object headers and exhibits poor cache locality during analytical queries. Columnar storage groups identical types contiguously in memory, enabling vectorization and high-throughput analytical scans.
 - **Implementation & Constraints**:
   - `DataFrame` represents a collection of named `Series<T>` instances of identical length.
-  - Column access (`df['col']`, `df.column<T>('col')`) is $\mathcal{O}(1)$.
+  - Column access (`df['col']`, `df.typedColumn<T>('col')`) is $\mathcal{O}(1)$.
   - Slicing and filtering operate column-by-column across independent series.
 
 ### 4.2 Null Tracking via Validity Bitmasks
@@ -244,7 +244,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - Zero-allocation `slice`: Slices underlying typed array directly via `data.sublist(start, end)` and slices validity mask via `ValidityMask.slice(start, end)`.
     - Zero-overhead scalar access: `getNonNull(int index)` retrieves non-null values (throwing `StateError` on missing entries) without requiring `!` assertions from callers; `getUnchecked(int index)` provides inline raw array access when `hasNulls == false`.
   - `StringSeries`: Backed by string buffers for textual data.
-  - `BoolSeries`: Packed boolean bit series.
+  - `BoolSeries`: Boolean series backed by a `List<bool>` data buffer with an optional `ValidityMask` for null tracking.
   - `ObjectSeries`: General object reference series for complex domain models.
 
 ### 4.4 Relational Hash Joins & GroupBy Aggregations
@@ -283,7 +283,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - Bulk column copy fast-path: For non-null `TypedSeries<double>` columns, single columns are copied via `Float64List.setRange`, while multi-column selections use sequential flat buffer indexing without heap `List<int>` coordinate allocations.
     - Fallback paths preserve compatibility for mixed integer types, nullable columns, and general series.
 
-### 4.6 JSON Import & Export Serialization (`lib/src/dataframe/json.dart`)
+### 4.6 JSON Import & Export Serialization (`lib/src/dataframe/json/`)
 
 - **Reasoning**: Web APIs, cloud data pipelines, and microservices exchange tabular data in standard JSON orientations. High-performance JSON interchange requires robust support for both array-of-objects, split columnar payloads, nested column-map orientations, and pure matrix values with clean null handling and type inference.
 - **Implementation & Constraints**:
@@ -311,14 +311,14 @@ This document describes the achieved architecture across all subsystems of `pack
   - `lib/src/acceleration/lapack/`: Linear system solvers and matrix decompositions in `Lapack`.
   - `lib/src/acceleration/fft/`: In-place 1D and 2D complex and real Fast Fourier Transforms in `Fft`.
   - `lib/src/acceleration/vforce/`: Vectorized transcendental functions, reductions, and 1D convolutions in `Vforce`.
-  - `lib/src/acceleration/ffi/`: Shared dynamic library resolution and platform symbol probing (`library_loader.dart`).
+  - `lib/src/acceleration/utils/`: Shared dynamic library resolution and platform symbol probing (`library_loader.dart`).
 - **Acceleration Coordination**: `AccelerationManager` serves as a lightweight coordinator controlling execution `mode` (`AccelerationMode.auto`, `AccelerationMode.accelerated`, `AccelerationMode.dart`) and reporting active hardware acceleration status (`isAccelerated`). Each domain module exposes its own `isAvailable` boolean flag.
 
 ### 5.2 Dynamic Library Discovery & Platform Detection
 
 - **Reasoning**: High-performance linear algebra transparently leverages hardware-tuned BLAS, LAPACK, and Apple vDSP vendor libraries available on the host OS.
 - **Implementation & Constraints**:
-  - `loadPlatformLibraries()` in `lib/src/acceleration/ffi/library_loader_ffi.dart` dynamically queries system libraries:
+  - `loadPlatformLibraries()` in `lib/src/acceleration/utils/library_loader_ffi.dart` dynamically queries system libraries:
     - macOS: Apple Accelerate framework (`Accelerate.framework/Accelerate`).
     - Linux: `libopenblas.so`, `libblas.so`, `liblapack.so`.
     - Windows: `openblas.dll`.
@@ -377,40 +377,43 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Finding minima of complex objective functions is ubiquitous in machine learning, engineering design, and parameter fitting.
 - **Implementation & Constraints**:
-  - `brentMinimize`: Univariate golden-section search combined with parabolic interpolation, achieving superlinear convergence without derivative requirements.
-  - `nelderMead`: Multivariate derivative-free simplex method, resilient to non-smooth or noisy objective functions.
-  - `bfgs`: Quasi-Newton Broyden-Fletcher-Goldfarb-Shanno method utilizing numerical gradients and Armijo line search to maintain a positive-definite Hessian approximation.
-  - `lbfgs`: Limited-memory BFGS storing a rolling history of $m$ displacement vectors, enabling multivariate optimization over thousands of parameters with $\mathcal{O}(m N)$ memory.
-  - `minimizeConstrained`: Constrained optimization handling box bounds (`BoxBound`), general inequality constraints ($g_i(x) \le 0$), and equality constraints ($h_j(x) = 0$):
+  - `minimize`: Unified entry point for univariate and multivariate optimization selecting algorithms via `OptimizationMethod`:
+    - `OptimizationMethod.brent`: Univariate golden-section search combined with parabolic interpolation, achieving superlinear convergence without derivative requirements.
+    - `OptimizationMethod.nelderMead`: Multivariate derivative-free simplex method, resilient to non-smooth or noisy objective functions.
+    - `OptimizationMethod.bfgs`: Quasi-Newton Broyden-Fletcher-Goldfarb-Shanno method utilizing numerical gradients and Armijo line search with $\mathcal{O}(N^2)$ rank-2 updates to maintain a positive-definite Hessian approximation.
+    - `OptimizationMethod.lbfgs`: Limited-memory BFGS storing a rolling history of $m$ displacement vectors, enabling multivariate optimization over thousands of parameters with $\mathcal{O}(m N)$ memory.
+  - Constrained optimization handling box bounds (`BoxBound`), general inequality constraints ($g_i(x) \le 0$), and equality constraints ($h_j(x) = 0$):
     - Box bounds $[l_i, u_i]$ utilize coordinate-wise smooth sigmoid variable transformations ($x_i = l_i + \frac{u_i - l_i}{1 + e^{-y_i}}$) with chain-rule gradient scaling ($\nabla_y F = \nabla_x L_A \odot \Phi'(y)$), strictly preventing out-of-bounds evaluations and domain violations.
     - General inequality and equality constraints are resolved via the Powell-Hestenes-Rockafellar Augmented Lagrangian Method (ALM) with adaptive penalty parameter scaling ($\mu$) and multiplier updates ($\lambda_j \leftarrow \max(0, \lambda_j + \mu g_j(x))$, $\nu_k \leftarrow \nu_k + \mu h_k(x)$).
     - Accepts objective closures `double Function(Vector<double>)` and constraint functions `List<double Function(Vector<double>)>` (which may be compiled from symbolic expressions via `expr.toVectorFunction()`), supporting both equality ($c(x) = 0$) and inequality ($c(x) \ge 0$) constraints with automatic Lagrange multiplier updates.
 
-### 6.2 Adaptive Ordinary Differential Equation (ODE) Solvers
+### 6.2 Adaptive & Stiff Ordinary Differential Equation (ODE) Solvers
 
-- **Reasoning**: Physical dynamics, chemical kinetics, and orbital mechanics require stable, error-controlled numerical integration.
+- **Reasoning**: Physical dynamics, chemical kinetics, and orbital mechanics require stable, error-controlled numerical integration across non-stiff and stiff systems.
 - **Implementation & Constraints**:
-  - `rk4`: Classical 4th order Runge-Kutta solver with fixed step size.
-  - `rk45`: Dormand-Prince 5(4) embedded adaptive Runge-Kutta solver. Computes 4th and 5th order step estimates with First-Same-As-Last (FSAL) efficiency, dynamically adjusting step size $h$ to maintain local truncation error within user tolerances (`atol`, `rtol`).
+  - `solveOde`: Unified ODE solver interface selecting methods via `OdeMethod`:
+    - `OdeMethod.rk4`: Classical 4th order Runge-Kutta solver with fixed step size.
+    - `OdeMethod.dormandPrince45`: Dormand-Prince 5(4) embedded adaptive Runge-Kutta solver. Computes 4th and 5th order step estimates with First-Same-As-Last (FSAL) efficiency, dynamically adjusting step size $h$ to maintain local truncation error within user tolerances (`atol`, `rtol`).
+    - `OdeMethod.bdf2`: Two-step Backward Differentiation Formula implicit solver for stiff systems using Newton-Raphson iterations and finite-difference Jacobian estimation.
+  - Supports dense continuous evaluation over optional `tEval` coordinate grids via $C^1$-continuous cubic Hermite interpolation.
 
-### 6.3 Numerical Multivariate Calculus
+### 6.3 Numerical Calculus
 
-- **Reasoning**: Many optimization and sensitivity problems require derivatives of black-box functions.
+- **Reasoning**: Many optimization, physics, and sensitivity problems require derivatives of black-box functions.
 - **Implementation & Constraints**:
-  - `numericalDerivative` and `numericalSecondDerivative`: Central difference approximations with adaptive step size selection.
-  - `numericalGradient`: Computes $\nabla f(x) \in \mathbb{R}^N$ for scalar multivariate functions.
-  - `numericalJacobian`: Computes $J \in \mathbb{R}^{M \times N}$ for vector-valued multivariate functions $F: \mathbb{R}^N \to \mathbb{R}^{M}$.
-  - `numericalHessian`: Computes symmetric second-order partial derivative matrix $H \in \mathbb{R}^{N \times N}$.
+  - `derivative`: Univariate differentiation supporting central and high-order finite-difference stencils (orders 1–6, up to 8 points) with adaptive step size selection.
+  - `gradient`: Computes $\nabla f(x) \in \mathbb{R}^N$ for scalar multivariate functions via central differences.
+  - `jacobian`: Computes $J \in \mathbb{R}^{M \times N}$ for vector-valued multivariate functions $F: \mathbb{R}^N \to \mathbb{R}^{M}$.
+  - `hessian`: Computes symmetric second-order partial derivative matrix $H \in \mathbb{R}^{N \times N}$.
 
-### 6.4 Non-Mutating Cooley-Tukey FFT Suite
+### 6.4 Fast Fourier Transform Suite & Signal Processing
 
-- **Reasoning**: Spectral analysis and signal filtering require fast Fourier transformations that preserve original data structures.
+- **Reasoning**: Spectral analysis and signal filtering require fast Fourier transformations and convolutions that efficiently scale to arbitrary signal sizes.
 - **Implementation & Constraints**:
-  - Pure-Dart radix-2 Cooley-Tukey algorithm with bit-reversal sorting.
   - Operations in `lib/src/numeric/fft.dart`:
-    - `fft` and `ifft`: 1D complex-to-complex forward and inverse transforms.
-    - `fft2` and `ifft2`: 2D transforms executing row-column separable passes over 2D matrices.
-  - Immutability constraint: Input vectors/matrices are never modified in place; newly allocated containers are returned.
+    - `fft`: 1D complex-to-complex in-place transform on `List<Complex> buffer` with optional `inverse: true`. Leverages radix-2 Cooley-Tukey for power-of-2 lengths and Bluestein's Chirp-Z transform algorithm for arbitrary non-power-of-2 lengths in $\mathcal{O}(N \log N)$ time.
+    - `fft2`: 2D transforms executing row-column separable passes over 2D complex matrices with optional `inverse: true`.
+    - `convolve`: 1D discrete signal convolution supporting `ConvolutionMode.full`, `ConvolutionMode.same`, and `ConvolutionMode.valid`.
 
 ### 6.5 Stable Interpolation & Curve Fitting
 
@@ -422,7 +425,8 @@ This document describes the achieved architecture across all subsystems of `pack
   - `BicubicInterpolation`: 2D surface interpolation over a rectilinear grid with $C^1$ continuity using 16-coefficient bicubic patches ($A = M F M^T$) with partial derivatives and continuous gradient extraction.
   - `leastSquares`: General linear regression using LAPACK `dgels`, Householder QR, or SVD.
   - `polynomialRegression`: Vandermonde polynomial fitting using QR decomposition with optional Tikhonov / Ridge L2 regularization (`lambda`) suppressing high-frequency Runge oscillations and conditioning rank-deficient systems.
-  - `levenbergMarquardt`: Damped Gauss-Newton nonlinear least-squares curve fitting.
+  - `linearRegression` and `multipleLinearRegression`: Standard univariate and multivariate ordinary least-squares regression.
+  - `curveFit` and `fitNonlinear`: Damped Gauss-Newton / Levenberg-Marquardt nonlinear least-squares curve fitting returning `CurveFitResult` with parameter estimates, parameter covariance matrix ($(J^T J)^{-1} \cdot \text{RSE}^2$), and standard errors.
 
 ### 6.6 Precision in Numerical Solvers
 
