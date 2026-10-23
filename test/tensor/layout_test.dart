@@ -112,5 +112,69 @@ void main() {
         check(result.length).equals(0);
       });
     });
+
+    group('toKey', () {
+      test('rank 0', () {
+        final layout = Layout(shape: const []);
+        check(layout.toKey(0)).deepEquals([]);
+        check(() => layout.toKey(-1)).throws<RangeError>();
+        check(() => layout.toKey(1)).throws<RangeError>();
+      });
+
+      test('rank 1', () {
+        final layout = Layout(shape: [4]);
+        check(layout.toKey(0)).deepEquals([0]);
+        check(layout.toKey(2)).deepEquals([2]);
+        check(layout.toKey(3)).deepEquals([3]);
+        check(() => layout.toKey(-1)).throws<RangeError>();
+        check(() => layout.toKey(4)).throws<RangeError>();
+      });
+
+      test('rank 3', () {
+        final layout = Layout(shape: [2, 3, 4]);
+        check(layout.toKey(0)).deepEquals([0, 0, 0]);
+        check(layout.toKey(14)).deepEquals([1, 0, 2]);
+        check(layout.toKey(23)).deepEquals([1, 2, 3]);
+        for (var i = 0; i < layout.length; i++) {
+          check(layout.toIndex(layout.toKey(i))).equals(i);
+        }
+      });
+    });
+
+    group('indices', () {
+      test('empty layout', () {
+        final layout = Layout(shape: [0, 5]);
+        check(layout.indices.toList()).isEmpty();
+      });
+
+      test('rank 0 layout', () {
+        final layout = Layout(shape: const [], offset: 7);
+        check(layout.indices.toList()).deepEquals([7]);
+      });
+
+      test('contiguous layout', () {
+        final layout = Layout(shape: [2, 3], offset: 10);
+        check(layout.isContiguous).isTrue();
+        check(layout.indices.toList()).deepEquals([10, 11, 12, 13, 14, 15]);
+      });
+
+      test('non-contiguous transposed layout matches keys', () {
+        final layout = Layout(shape: [2, 3, 4], offset: 5).transpose([2, 0, 1]);
+        check(layout.isContiguous).isFalse();
+        final expected = [for (final k in layout.keys) layout.toIndex(k)];
+        check(layout.indices.toList()).deepEquals(expected);
+      });
+
+      test('non-contiguous strided layout with step matches keys', () {
+        final base = Layout(shape: [6, 8], offset: 2);
+        final sliced = base.slice([
+          const Slice(1, 5, 2),
+          const Slice(6, 1, -2),
+        ]);
+        check(sliced.isContiguous).isFalse();
+        final expected = [for (final k in sliced.keys) sliced.toIndex(k)];
+        check(sliced.indices.toList()).deepEquals(expected);
+      });
+    });
   });
 }

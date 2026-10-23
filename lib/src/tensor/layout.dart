@@ -180,13 +180,10 @@ class Layout {
     }
     final key = List<int>.filled(rank, 0);
     var remaining = linearIndex;
-    for (var i = 0; i < rank; i++) {
-      var stride = 1;
-      for (var j = i + 1; j < rank; j++) {
-        stride *= shape[j];
-      }
-      key[i] = remaining ~/ stride;
-      remaining %= stride;
+    for (var i = rank - 1; i >= 0; i--) {
+      final dim = shape[i];
+      key[i] = remaining % dim;
+      remaining ~/= dim;
     }
     return key;
   }
@@ -435,8 +432,28 @@ class Layout {
       yield offset;
       return;
     }
-    for (final key in keys) {
-      yield toIndex(key);
+    if (isContiguous) {
+      for (var i = 0; i < length; i++) {
+        yield offset + i;
+      }
+      return;
+    }
+    final current = List<int>.filled(rank, 0);
+    var currentIndex = offset;
+    while (true) {
+      yield currentIndex;
+      var pos = rank - 1;
+      while (pos >= 0) {
+        current[pos]++;
+        currentIndex += strides[pos];
+        if (current[pos] < shape[pos]) {
+          break;
+        }
+        currentIndex -= current[pos] * strides[pos];
+        current[pos] = 0;
+        pos--;
+      }
+      if (pos < 0) break;
     }
   }
 
