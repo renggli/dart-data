@@ -62,6 +62,25 @@ void main() {
       check(root).isCloseTo(3.0, 1e-9);
     });
 
+    test('Bisection returns endpoint early when f(a) == 0 or f(b) == 0', () {
+      double function(double x) => (x - 2.0) * (x - 5.0);
+      check(solve(function, 2.0, b: 4.0, method: RootMethod.bisection))
+          .equals(2.0);
+      check(solve(function, 0.0, b: 2.0, method: RootMethod.bisection))
+          .equals(2.0);
+    });
+
+    test('Bisection with NaN returns NaN', () {
+      check(
+        solve(
+          (double x) => double.nan,
+          0.0,
+          b: 1.0,
+          method: RootMethod.bisection,
+        ),
+      ).isNaN();
+    });
+
     test('Bracketed methods require bound b', () {
       double function(double x) => x * x - 4.0;
       check(() => solve(function, 1.0, method: RootMethod.brent))

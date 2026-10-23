@@ -196,17 +196,21 @@ double _bisection(
   var fa = fn(a);
   var fb = fn(b);
 
+  if (fa.isNaN || fb.isNaN) return double.nan;
   if (fa * fb > 0.0) {
     throw ArgumentError(
-      'Root is not bracketed: f($a) and f($b) have identical signs.',
+      'Root is not bracketed: f($a) = $fa and f($b) = $fb have identical signs.',
     );
   }
+  if (fa.abs() < tolerance) return a;
+  if (fb.abs() < tolerance) return b;
 
   var xA = a;
   var xB = b;
   for (var i = 0; i < maxIterations; i++) {
     final mid = 0.5 * (xA + xB);
     final fMid = fn(mid);
+    if (fMid.isNaN) return double.nan;
     if (fMid.abs() < tolerance || (xB - xA).abs() < tolerance) {
       return mid;
     }
