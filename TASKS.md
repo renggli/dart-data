@@ -54,7 +54,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 | R4.1 [COMPLETED] | High | `lib/src/numeric/ode/solve_ode.dart:309-327` | BDF2 uses uniform-step coefficients on a truncated last step, which gives an O(h) endpoint error. | Use variable-step coefficients, or a BE/trapezoid last step. |
 | R4.2 [COMPLETED] | High | `lib/src/numeric/root_finding/solve.dart:199-219` | Bisection ignores `f(a)==0`/`f(b)==0` and walks away from the root. NaN is not guarded. | Return the endpoint early. Add the NaN guard from `_brent`. |
 | R4.3 [COMPLETED] | Medium | `lib/src/linear/solvers/iterative.dart:171-178` | GMRES collapses complex dot products to their norm. On breakdown, `krylovBasis[k+1]` throws `RangeError`. | Keep `H` in `T`, or restrict to real types. Break cleanly on breakdown. |
-| R4.4 | Medium | `solve_ode.dart:244-248` | RK45 at `minStep` rejects forever until `maxSteps`. | Accept the step, or abort with `converged=false`. |
+| R4.4 [COMPLETED] | Medium | `solve_ode.dart:244-248` | RK45 at `minStep` rejects forever until `maxSteps`. | Accept the step, or abort with `converged=false`. |
 | R4.5 | Medium | `lib/src/linear/matrix.dart:466-470,515-519` | The docs promise `dgels` for rectangular solves, but the code uses pure-Dart QR. | Route `double` through `Lapack.dgels`. |
 | R4.6 | Medium | `matrix.dart:441-446,490-495` | `dgesv` copies twice. A `Float64List` is stored under a `float32` `DataType`. | Copy once. Use the correct `DataType`. |
 | R4.7 | Medium | `matrix.dart:429` | `S solve<S extends Object>(S b)` uses runtime `as S` casts. | Split into `solve(Matrix<T>)` and `solveVector(Vector<T>)`. |

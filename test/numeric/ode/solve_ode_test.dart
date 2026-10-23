@@ -102,6 +102,29 @@ void main() {
       check(rk45Sol.converged).isFalse();
     });
 
+    test('RK45 aborts with converged=false when step cannot be reduced below minStep', () {
+      Vector<double> derivative(double time, Vector<double> y) =>
+          Vector<double>.fromList([
+            1000.0 * math.cos(1000.0 * time),
+          ], type: DataType.float64);
+
+      final y0 = Vector<double>.fromList([0.0], type: DataType.float64);
+      final sol = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 1.0,
+        y0: y0,
+        method: OdeMethod.dormandPrince45,
+        stepSize: 0.1,
+        minStep: 0.1,
+        relativeTolerance: 1e-12,
+        absoluteTolerance: 1e-12,
+        maxSteps: 100000,
+      );
+      check(sol.converged).isFalse();
+      check(sol.stepCount).isLessThan(10);
+    });
+
     test('OdeMethod.bdf2 solves stiff decay stably', () {
       // Stiff problem: dy/dt = -50y, y(0) = 1.0 => y(t) = exp(-50t)
       Vector<double> derivative(double time, Vector<double> y) =>

@@ -239,6 +239,9 @@ OdeSolution _rk45({
       k1 = k7;
       tList.add(currentTime);
       yList.add(y.copy());
+    } else if (step.abs() <= minStep * (1.0 + 1e-12)) {
+      // Step size cannot be reduced below minStep; abort with converged = false.
+      break;
     }
 
     var factor =
