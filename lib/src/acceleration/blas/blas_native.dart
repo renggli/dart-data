@@ -181,7 +181,7 @@ abstract final class BlasNative {
     required int yOffset,
     required int incY,
   }) {
-    final lenY = transA == cblasTrans ? n : m;
+    final lenY = (transA == cblasTrans || transA == cblasConjTrans) ? n : m;
     if (m <= 0 || n <= 0) {
       if (lenY > 0) {
         if (beta == 0.0) {
@@ -233,7 +233,7 @@ abstract final class BlasNative {
     required int yOffset,
     required int incY,
   }) {
-    final lenY = transA == cblasTrans ? n : m;
+    final lenY = (transA == cblasTrans || transA == cblasConjTrans) ? n : m;
     if (m <= 0 || n <= 0) {
       if (lenY > 0) {
         if (beta == 0.0) {

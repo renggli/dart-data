@@ -287,19 +287,28 @@ abstract final class BlasDart {
   }) {
     final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
     final startY = yOffset + (incY < 0 ? (1 - n) * incY : 0);
-    for (var i = 0; i < n; i++) {
-      final xi = x[startX + i * incX];
-      final yi = y[startY + i * incY];
-      for (var j = i; j < n; j++) {
-        final xj = x[startX + j * incX];
-        final yj = y[startY + j * incY];
-        final val = alpha * (xi * yj + yi * xj);
-        a[aOffset + i * lda + j] += val;
-        if (i != j) {
-          a[aOffset + j * lda + i] += val;
+    if (uplo == cblasUpper) {
+      for (var i = 0; i < n; i++) {
+        final xi = x[startX + i * incX];
+        final yi = y[startY + i * incY];
+        for (var j = i; j < n; j++) {
+          final xj = x[startX + j * incX];
+          final yj = y[startY + j * incY];
+          a[aOffset + i * lda + j] += alpha * (xi * yj + yi * xj);
+        }
+      }
+    } else {
+      for (var i = 0; i < n; i++) {
+        final xi = x[startX + i * incX];
+        final yi = y[startY + i * incY];
+        for (var j = 0; j <= i; j++) {
+          final xj = x[startX + j * incX];
+          final yj = y[startY + j * incY];
+          a[aOffset + i * lda + j] += alpha * (xi * yj + yi * xj);
         }
       }
     }
+    mirrorSymmetricDouble(a, aOffset, n, lda, uplo);
     return true;
   }
 
@@ -321,19 +330,28 @@ abstract final class BlasDart {
   }) {
     final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
     final startY = yOffset + (incY < 0 ? (1 - n) * incY : 0);
-    for (var i = 0; i < n; i++) {
-      final xi = x[startX + i * incX];
-      final yi = y[startY + i * incY];
-      for (var j = i; j < n; j++) {
-        final xj = x[startX + j * incX];
-        final yj = y[startY + j * incY];
-        final val = alpha * (xi * yj + yi * xj);
-        a[aOffset + i * lda + j] += val;
-        if (i != j) {
-          a[aOffset + j * lda + i] += val;
+    if (uplo == cblasUpper) {
+      for (var i = 0; i < n; i++) {
+        final xi = x[startX + i * incX];
+        final yi = y[startY + i * incY];
+        for (var j = i; j < n; j++) {
+          final xj = x[startX + j * incX];
+          final yj = y[startY + j * incY];
+          a[aOffset + i * lda + j] += alpha * (xi * yj + yi * xj);
+        }
+      }
+    } else {
+      for (var i = 0; i < n; i++) {
+        final xi = x[startX + i * incX];
+        final yi = y[startY + i * incY];
+        for (var j = 0; j <= i; j++) {
+          final xj = x[startX + j * incX];
+          final yj = y[startY + j * incY];
+          a[aOffset + i * lda + j] += alpha * (xi * yj + yi * xj);
         }
       }
     }
+    mirrorSymmetricFloat(a, aOffset, n, lda, uplo);
     return true;
   }
 

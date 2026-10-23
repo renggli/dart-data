@@ -322,5 +322,87 @@ void main() {
       check(b[2]).isCloseTo(18.0, 1e-10);
       check(b[3]).isCloseTo(16.0, 1e-10);
     });
+
+    test('dsyr2 with cblasUpper and cblasLower', () {
+      final x = Float64List.fromList([1.0, 2.0]);
+      final y = Float64List.fromList([3.0, 4.0]);
+      // A = [0 0; 0 0]
+      final aUpper = Float64List(4);
+      check(
+        BlasDart.dsyr2(
+          uplo: cblasUpper,
+          n: 2,
+          alpha: 1.0,
+          x: x,
+          xOffset: 0,
+          incX: 1,
+          y: y,
+          yOffset: 0,
+          incY: 1,
+          a: aUpper,
+          aOffset: 0,
+          lda: 2,
+        ),
+      ).isTrue();
+      // x * y^T + y * x^T:
+      // (0,0) = 1*3 + 3*1 = 6
+      // (0,1) = 1*4 + 3*2 = 10
+      // (1,0) = 2*3 + 4*1 = 10
+      // (1,1) = 2*4 + 4*2 = 16
+      check(aUpper[0]).isCloseTo(6.0, 1e-10);
+      check(aUpper[1]).isCloseTo(10.0, 1e-10);
+      check(aUpper[2]).isCloseTo(10.0, 1e-10);
+      check(aUpper[3]).isCloseTo(16.0, 1e-10);
+
+      final aLower = Float64List(4);
+      check(
+        BlasDart.dsyr2(
+          uplo: cblasLower,
+          n: 2,
+          alpha: 1.0,
+          x: x,
+          xOffset: 0,
+          incX: 1,
+          y: y,
+          yOffset: 0,
+          incY: 1,
+          a: aLower,
+          aOffset: 0,
+          lda: 2,
+        ),
+      ).isTrue();
+      check(aLower[0]).isCloseTo(6.0, 1e-10);
+      check(aLower[1]).isCloseTo(10.0, 1e-10);
+      check(aLower[2]).isCloseTo(10.0, 1e-10);
+      check(aLower[3]).isCloseTo(16.0, 1e-10);
+    });
+
+    test('dgemv with zero-size matrix and cblasConjTrans', () {
+      final a = Float64List(0);
+      final x = Float64List.fromList([1.0, 2.0]);
+      final y = Float64List.fromList([3.0, 4.0, 5.0]);
+      // m = 0, n = 3, trans = ConjTrans -> lenY = n = 3
+      check(
+        BlasDart.dgemv(
+          transA: cblasConjTrans,
+          m: 0,
+          n: 3,
+          alpha: 1.0,
+          a: a,
+          aOffset: 0,
+          lda: 3,
+          x: x,
+          xOffset: 0,
+          incX: 1,
+          beta: 2.0,
+          y: y,
+          yOffset: 0,
+          incY: 1,
+        ),
+      ).isTrue();
+      check(y[0]).isCloseTo(6.0, 1e-10);
+      check(y[1]).isCloseTo(8.0, 1e-10);
+      check(y[2]).isCloseTo(10.0, 1e-10);
+    });
   });
 }

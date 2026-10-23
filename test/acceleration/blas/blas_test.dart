@@ -257,6 +257,42 @@ void main() {
       check(x[0]).isCloseTo(8.0, 1e-5);
       check(x[1]).isCloseTo(8.0, 1e-5);
     });
+
+    accelerationTest('dsyr2 symmetric rank-2 update', () {
+      final a = Float64List(4);
+      final x = Float64List.fromList([1.0, 2.0]);
+      final y = Float64List.fromList([3.0, 4.0]);
+      final okUpper = Blas.dsyr2(
+        uplo: cblasUpper,
+        n: 2,
+        alpha: 1.0,
+        x: x,
+        y: y,
+        a: a,
+        lda: 2,
+      );
+      check(okUpper).isTrue();
+      check(a[0]).isCloseTo(6.0, 1e-10);
+      check(a[1]).isCloseTo(10.0, 1e-10);
+      check(a[2]).isCloseTo(10.0, 1e-10);
+      check(a[3]).isCloseTo(16.0, 1e-10);
+
+      final aLower = Float64List(4);
+      final okLower = Blas.dsyr2(
+        uplo: cblasLower,
+        n: 2,
+        alpha: 1.0,
+        x: x,
+        y: y,
+        a: aLower,
+        lda: 2,
+      );
+      check(okLower).isTrue();
+      check(aLower[0]).isCloseTo(6.0, 1e-10);
+      check(aLower[1]).isCloseTo(10.0, 1e-10);
+      check(aLower[2]).isCloseTo(10.0, 1e-10);
+      check(aLower[3]).isCloseTo(16.0, 1e-10);
+    });
   });
 
   group('Blas Level 3: Matrix-Matrix', () {
@@ -622,6 +658,21 @@ void main() {
         check(okGemvScaled).isTrue();
         check(yScaled[0]).isCloseTo(30.0, 1e-10);
         check(yScaled[1]).isCloseTo(60.0, 1e-10);
+
+        final yTrans = Float64List.fromList([10.0, 20.0]);
+        final okGemvTrans = Blas.dgemv(
+          transA: cblasConjTrans,
+          m: 0,
+          n: 2,
+          a: Float64List(0),
+          lda: 2,
+          x: Float64List(0),
+          beta: 2.0,
+          y: yTrans,
+        );
+        check(okGemvTrans).isTrue();
+        check(yTrans[0]).isCloseTo(20.0, 1e-10);
+        check(yTrans[1]).isCloseTo(40.0, 1e-10);
       },
     );
 
