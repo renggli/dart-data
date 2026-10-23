@@ -347,11 +347,13 @@ class _CsvEventSink implements EventSink<String> {
       _outputSink.addError(
         const FormatException('Unterminated quoted field in CSV stream'),
       );
+      _outputSink.close();
       return;
     }
     if (_state == _stateQuoteInQuotes ||
         _state == _stateUnquoted ||
-        _currentField.isNotEmpty) {
+        _currentField.isNotEmpty ||
+        _currentRow.isNotEmpty) {
       _currentRow.add(_currentField.toString());
       _currentField.clear();
     }

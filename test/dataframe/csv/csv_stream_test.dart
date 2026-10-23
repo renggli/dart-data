@@ -195,5 +195,33 @@ void main() {
       check(dfEmptyTyped.rowCount).equals(0);
       check(dfEmptyTyped['x'].dataType).equals(DataType.int32);
     });
+
+    test('handles final row ending with delimiter and no newline', () async {
+      const csv = 'x,y\n10,';
+      final df = await CsvStream.readStream(Stream.value(csv));
+      check(df.rowCount).equals(1);
+      check(df['x'].toList()).deepEquals([10]);
+      check(df['y'].toList()).deepEquals([null]);
+    });
+
+    test('unterminated quote closes sink after emitting error', () async {
+      final input = Stream.value('a,b\n1,"unterminated');
+      final completer = Completer<void>();
+      var errorReceived = false;
+
+      input
+          .transform(const CsvStreamTransformer())
+          .listen(
+            (_) {},
+            onError: (Object e) {
+              errorReceived = true;
+            },
+            onDone: completer.complete,
+            cancelOnError: false,
+          );
+
+      await completer.future;
+      check(errorReceived).isTrue();
+    });
   });
 }
