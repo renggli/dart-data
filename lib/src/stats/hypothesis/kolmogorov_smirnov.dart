@@ -9,11 +9,21 @@ import 'hypothesis_test_result.dart';
 ///
 /// Tests the null hypothesis that [sample] is drawn from the continuous
 /// reference [distribution].
+///
+/// Throws an [ArgumentError] if [sample] is empty or if [distribution] is a
+/// [DiscreteDistribution].
 HypothesisTestResult kolmogorovSmirnovTest(
   Iterable<num> sample,
   Distribution<num> distribution, {
   double alpha = 0.05,
 }) {
+  if (distribution is DiscreteDistribution) {
+    throw ArgumentError.value(
+      distribution,
+      'distribution',
+      'Kolmogorov-Smirnov test requires a continuous distribution',
+    );
+  }
   final list = sample.map((val) => val.toDouble()).toList()..sort();
   final n = list.length;
   if (n == 0) {
@@ -23,12 +33,7 @@ HypothesisTestResult kolmogorovSmirnovTest(
   var dPlus = 0.0;
   var dMinus = 0.0;
   for (var i = 0; i < n; i++) {
-    final double cdfVal;
-    if (distribution is DiscreteDistribution) {
-      cdfVal = distribution.cumulativeProbability(list[i].floor());
-    } else {
-      cdfVal = distribution.cumulativeProbability(list[i]);
-    }
+    final cdfVal = distribution.cumulativeProbability(list[i]);
     final iOverN = (i + 1.0) / n;
     final iMinusOneOverN = i.toDouble() / n;
     final dp = iOverN - cdfVal;
@@ -37,7 +42,9 @@ HypothesisTestResult kolmogorovSmirnovTest(
     if (dm > dMinus) dMinus = dm;
   }
   final dStat = math.max(dPlus, dMinus);
-  final pValue = _kolmogorovPValue(dStat, n.toDouble());
+  final pValue = n <= 100
+      ? (1.0 - _kolmogorovExactCdf(dStat, n)).clamp(0.0, 1.0)
+      : _kolmogorovPValue(dStat, n.toDouble());
 
   return HypothesisTestResult(
     testName: 'One-Sample Kolmogorov-Smirnov Test',
@@ -115,4 +122,64 @@ double _kolmogorovPValue(double d, double n) {
     sign = -sign;
   }
   return sum.clamp(0.0, 1.0);
+}
+
+/// Exact cumulative distribution function $P(D_n < d)$ of the one-sample
+/// Kolmogorov statistic using the Marsaglia-Tsang-Wang (2003) / Carvalho (2015)
+/// transition matrix method.
+double _kolmogorovExactCdf(double d, int n) {
+  if (d <= 0.5 / n) return 0.0;
+  if (d >= 1.0) return 1.0;
+
+  final k = (n * d).ceil();
+  final m = 2 * k - 1;
+  final h = k.toDouble() - n * d;
+
+  final hMat = List<double>.filled(m * m, 0.0);
+  for (var i = 0; i < m; i++) {
+    for (var j = 0; j < m; j++) {
+      if (i - j + 1 >= 0) {
+        hMat[i * m + j] = 1.0;
+      }
+    }
+  }
+
+  for (var i = 0; i < m; i++) {
+    hMat[i * m] -= math.pow(h, i + 1.0);
+    hMat[(m - 1) * m + i] -= math.pow(h, m - i.toDouble());
+  }
+
+  if (2.0 * h - 1.0 > 0.0) {
+    hMat[(m - 1) * m] += math.pow(2.0 * h - 1.0, m.toDouble());
+  }
+
+  for (var i = 0; i < m; i++) {
+    for (var j = 0; j < m; j++) {
+      if (i - j + 1 > 0) {
+        var fact = 1.0;
+        for (var g = 1; g <= i - j + 1; g++) {
+          fact *= g;
+        }
+        hMat[i * m + j] /= fact;
+      }
+    }
+  }
+
+  // Vector multiplication: v_0 = e_{k-1}
+  var v = List<double>.filled(m, 0.0);
+  v[k - 1] = 1.0;
+  for (var t = 1; t <= n; t++) {
+    final vNext = List<double>.filled(m, 0.0);
+    final scale = t / n;
+    for (var j = 0; j < m; j++) {
+      var s = 0.0;
+      for (var i = 0; i < m; i++) {
+        s += v[i] * hMat[i * m + j];
+      }
+      vNext[j] = s * scale;
+    }
+    v = vNext;
+  }
+
+  return v[k - 1].clamp(0.0, 1.0);
 }

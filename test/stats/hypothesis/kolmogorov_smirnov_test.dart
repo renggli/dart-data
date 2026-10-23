@@ -52,12 +52,42 @@ void main() {
           .throws<ArgumentError>();
     });
 
-    test('Kolmogorov-Smirnov with discrete distribution does not throw', () {
+    test('Kolmogorov-Smirnov rejects discrete distributions', () {
       final poisson = PoissonDistribution(3.0);
       final sample = poisson.samples(random: math.Random(42)).take(50).toList();
-      final res = kolmogorovSmirnovTest(sample, poisson);
-      check(res.pValue).isGreaterThan(0.0);
-      check(res.statistic).isGreaterOrEqual(0.0);
+      check(() => kolmogorovSmirnovTest(sample, poisson))
+          .throws<ArgumentError>();
+    });
+
+    test('Kolmogorov-Smirnov exact Marsaglia-Tsang-Wang small n', () {
+      const uniform = UniformDistribution.standard();
+
+      // n = 1: D_1 = max(1 - 0.7, 0.7 - 0) = 0.7
+      // P(D_1 < 0.7) = 2(0.7) - 1 = 0.4 -> p-value = 1 - 0.4 = 0.6
+      final res1 = kolmogorovSmirnovTest([0.7], uniform);
+      check(res1.statistic).isCloseTo(0.7, 1e-10);
+      check(res1.pValue).isCloseTo(0.6, 1e-10);
+
+      // n = 2: sample [0.4, 0.4]
+      // CDF at 0.4 is 0.4
+      // i=0: dp = 1/2 - 0.4 = 0.1, dm = 0.4 - 0 = 0.4
+      // i=1: dp = 1 - 0.4 = 0.6, dm = 0.4 - 1/2 = -0.1
+      // D_2 = 0.6
+      // P(D_2 < 0.6) = 1 - 2*(1 - 0.6)^2 = 1 - 2*0.16 = 0.68 -> p-value = 0.32
+      final res2 = kolmogorovSmirnovTest([0.4, 0.4], uniform);
+      check(res2.statistic).isCloseTo(0.6, 1e-10);
+      check(res2.pValue).isCloseTo(0.32, 1e-10);
+
+      // Sample of size 5 with known exact p-value
+      final sample5 = [0.1, 0.2, 0.3, 0.4, 0.5];
+      // CDF matches iOverN exactly at 0.5:
+      // i=0: cdf=0.1, dp=0.2-0.1=0.1, dm=0.1-0=0.1
+      // i=4: cdf=0.5, dp=1.0-0.5=0.5, dm=0.5-0.8=-0.3
+      // dStat = 0.5
+      final res5 = kolmogorovSmirnovTest(sample5, uniform);
+      check(res5.statistic).isCloseTo(0.5, 1e-10);
+      // For n=5, d=0.5: P(D_5 < 0.5) = 0.888 -> p-value = 0.112
+      check(res5.pValue).isCloseTo(0.112, 1e-10);
     });
   });
 }
