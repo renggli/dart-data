@@ -51,5 +51,13 @@ void main() {
       check(() => kolmogorovSmirnov2Sample(sample1, <double>[]))
           .throws<ArgumentError>();
     });
+
+    test('Kolmogorov-Smirnov with discrete distribution does not throw', () {
+      const poisson = PoissonDistribution(3.0);
+      final sample = poisson.samples(random: math.Random(42)).take(50).toList();
+      final res = kolmogorovSmirnovTest(sample, poisson);
+      check(res.pValue).isGreaterThan(0.0);
+      check(res.statistic).isGreaterOrEqual(0.0);
+    });
   });
 }

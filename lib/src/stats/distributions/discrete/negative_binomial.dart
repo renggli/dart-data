@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
+import '../../../special/beta.dart';
 import '../../../special/gamma.dart';
 import '../continuous/gamma.dart';
 import '../discrete.dart';
@@ -60,6 +61,14 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
     if (p == 0) return k == 0 ? 1 : 0;
     if (p == 1) return 0;
     return exp(combinationLn(k + r - 1, k) + k * log(p) + r * log(q));
+  }
+
+  @override
+  double cumulativeProbability(int k) {
+    if (k < 0) return 0.0;
+    if (p == 0.0) return 1.0;
+    if (p == 1.0) return 0.0;
+    return ibeta(q, r, k + 1);
   }
 
   @override

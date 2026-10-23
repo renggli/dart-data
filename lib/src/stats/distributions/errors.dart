@@ -11,7 +11,7 @@ class InvalidProbability extends ArgumentError {
   /// Validates that [probability] is within the interval
   /// $\lbrack 0, 1 \rbrack$, throwing an [InvalidProbability] otherwise.
   static void check(num probability) {
-    if (probability < 0 || 1 < probability) {
+    if (!(probability >= 0 && probability <= 1)) {
       throw InvalidProbability(probability);
     }
   }

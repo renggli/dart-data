@@ -49,10 +49,21 @@ HypothesisTestResult oneWayAnova(
 
   final msb = ssb / df1;
   final msw = ssw / df2;
-  final fStat = msw > 0.0 ? msb / msw : 0.0;
-
-  final dist = FDistribution(df1, df2);
-  final pValue = dist.survival(fStat).clamp(0.0, 1.0);
+  final double fStat;
+  final double pValue;
+  if (msw <= 0.0) {
+    if (msb > 0.0) {
+      fStat = double.infinity;
+      pValue = 0.0;
+    } else {
+      fStat = 0.0;
+      pValue = 1.0;
+    }
+  } else {
+    fStat = msb / msw;
+    final dist = FDistribution(df1, df2);
+    pValue = dist.survival(fStat).clamp(0.0, 1.0);
+  }
 
   return HypothesisTestResult(
     testName: 'One-Way ANOVA',

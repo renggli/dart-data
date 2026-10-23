@@ -217,10 +217,16 @@ void main() {
       check(dist.cumulativeProbability(7)).equals(1.0);
 
       check(dist.inverseCumulativeProbability(0.0)).equals(1);
-      check(dist.inverseCumulativeProbability(0.5)).equals(4);
+      check(dist.inverseCumulativeProbability(0.5)).equals(3);
       check(dist.inverseCumulativeProbability(1.0)).equals(6);
       check(() => dist.inverseCumulativeProbability(-0.1))
           .throws<InvalidProbability>();
+      check(() => dist.inverseCumulativeProbability(double.nan))
+          .throws<InvalidProbability>();
+
+      const u01 = UniformDiscreteDistribution(0, 1);
+      check(u01.inverseCumulativeProbability(0.5)).equals(0);
+      check(u01.inverseCumulativeProbability(0.51)).equals(1);
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
@@ -507,6 +513,27 @@ void main() {
       final custom = _TestDiscreteDist();
       check(custom.lowerBound).equals(DataType.integer.safeMin);
       check(custom.probability(0)).equals(0.5);
+    });
+
+    test('InvalidProbability.check throws on NaN', () {
+      check(() => InvalidProbability.check(double.nan))
+          .throws<InvalidProbability>();
+    });
+
+    test('Discrete quantiles for large parameters do not hang', () {
+      const pois = PoissonDistribution(1000.0);
+      final pQuant = pois.inverseCumulativeProbability(0.999);
+      check(pQuant).isGreaterThan(1000);
+      check(pois.cumulativeProbability(pQuant)).isGreaterOrEqual(0.999);
+
+      const binom = BinomialDistribution(10000, 0.5);
+      final bQuant = binom.inverseCumulativeProbability(0.5);
+      check(bQuant).equals(5000);
+
+      const nbinom = NegativeBinomialDistribution(50, 0.4);
+      final nbQuant = nbinom.inverseCumulativeProbability(0.95);
+      check(nbQuant).isGreaterThan(0);
+      check(nbinom.cumulativeProbability(nbQuant)).isGreaterOrEqual(0.95);
     });
   });
 }

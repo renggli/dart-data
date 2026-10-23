@@ -30,18 +30,37 @@ HypothesisTestResult tTestOneSample(
   final sampleMean = mean(list);
   final sampleStd = standardDeviation(list);
   final se = sampleStd / math.sqrt(count);
-  final tStat = se > 0.0 ? (sampleMean - mu0) / se : 0.0;
+  final diff = sampleMean - mu0;
   final dof = (count - 1).toDouble();
   final dist = StudentDistribution(dof);
 
+  final double tStat;
   final double pValue;
-  switch (alternative) {
-    case AlternativeHypothesis.twoSided:
-      pValue = (2.0 * dist.survival(tStat.abs())).clamp(0.0, 1.0);
-    case AlternativeHypothesis.less:
-      pValue = dist.cumulativeProbability(tStat).clamp(0.0, 1.0);
-    case AlternativeHypothesis.greater:
-      pValue = dist.survival(tStat).clamp(0.0, 1.0);
+  if (se <= 0.0) {
+    if (diff == 0.0) {
+      tStat = 0.0;
+      pValue = 1.0;
+    } else {
+      tStat = diff > 0.0 ? double.infinity : double.negativeInfinity;
+      switch (alternative) {
+        case AlternativeHypothesis.twoSided:
+          pValue = 0.0;
+        case AlternativeHypothesis.less:
+          pValue = diff < 0.0 ? 0.0 : 1.0;
+        case AlternativeHypothesis.greater:
+          pValue = diff > 0.0 ? 0.0 : 1.0;
+      }
+    }
+  } else {
+    tStat = diff / se;
+    switch (alternative) {
+      case AlternativeHypothesis.twoSided:
+        pValue = (2.0 * dist.survival(tStat.abs())).clamp(0.0, 1.0);
+      case AlternativeHypothesis.less:
+        pValue = dist.cumulativeProbability(tStat).clamp(0.0, 1.0);
+      case AlternativeHypothesis.greater:
+        pValue = dist.survival(tStat).clamp(0.0, 1.0);
+    }
   }
 
   final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
@@ -112,17 +131,35 @@ HypothesisTestResult tTestTwoSample(
   }
 
   final diff = m1 - m2;
-  final tStat = se > 0.0 ? diff / se : 0.0;
   final dist = StudentDistribution(dof);
 
+  final double tStat;
   final double pValue;
-  switch (alternative) {
-    case AlternativeHypothesis.twoSided:
-      pValue = (2.0 * dist.survival(tStat.abs())).clamp(0.0, 1.0);
-    case AlternativeHypothesis.less:
-      pValue = dist.cumulativeProbability(tStat).clamp(0.0, 1.0);
-    case AlternativeHypothesis.greater:
-      pValue = dist.survival(tStat).clamp(0.0, 1.0);
+  if (se <= 0.0) {
+    if (diff == 0.0) {
+      tStat = 0.0;
+      pValue = 1.0;
+    } else {
+      tStat = diff > 0.0 ? double.infinity : double.negativeInfinity;
+      switch (alternative) {
+        case AlternativeHypothesis.twoSided:
+          pValue = 0.0;
+        case AlternativeHypothesis.less:
+          pValue = diff < 0.0 ? 0.0 : 1.0;
+        case AlternativeHypothesis.greater:
+          pValue = diff > 0.0 ? 0.0 : 1.0;
+      }
+    }
+  } else {
+    tStat = diff / se;
+    switch (alternative) {
+      case AlternativeHypothesis.twoSided:
+        pValue = (2.0 * dist.survival(tStat.abs())).clamp(0.0, 1.0);
+      case AlternativeHypothesis.less:
+        pValue = dist.cumulativeProbability(tStat).clamp(0.0, 1.0);
+      case AlternativeHypothesis.greater:
+        pValue = dist.survival(tStat).clamp(0.0, 1.0);
+    }
   }
 
   final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);

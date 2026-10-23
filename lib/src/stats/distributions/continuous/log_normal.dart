@@ -27,9 +27,6 @@ class LogNormalDistribution extends ContinuousDistribution {
   final double sigma;
 
   @override
-  double get lowerBound => double.minPositive;
-
-  @override
   double get mean => exp(mu + sigma * sigma / 2);
 
   @override

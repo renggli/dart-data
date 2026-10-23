@@ -25,5 +25,25 @@ void main() {
         ]),
       ).throws<ArgumentError>();
     });
+
+    test('one-way ANOVA with zero within-group variance', () {
+      // Different means with 0 within-group variance
+      final resDiff = oneWayAnova([
+        [1.0, 1.0],
+        [2.0, 2.0],
+      ]);
+      check(resDiff.statistic).equals(double.infinity);
+      check(resDiff.pValue).equals(0.0);
+      check(resDiff.isSignificant).isTrue();
+
+      // Identical means with 0 within-group variance
+      final resSame = oneWayAnova([
+        [1.0, 1.0],
+        [1.0, 1.0],
+      ]);
+      check(resSame.statistic).equals(0.0);
+      check(resSame.pValue).equals(1.0);
+      check(resSame.isSignificant).isFalse();
+    });
   });
 }

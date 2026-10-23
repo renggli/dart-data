@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../distribution.dart';
+import '../distributions/discrete.dart';
 import 'hypothesis_test_result.dart';
 
 /// One-sample Kolmogorov-Smirnov test comparing [sample] against a theoretical
@@ -22,7 +23,12 @@ HypothesisTestResult kolmogorovSmirnovTest(
   var dPlus = 0.0;
   var dMinus = 0.0;
   for (var i = 0; i < n; i++) {
-    final cdfVal = distribution.cumulativeProbability(list[i]);
+    final double cdfVal;
+    if (distribution is DiscreteDistribution) {
+      cdfVal = distribution.cumulativeProbability(list[i].floor());
+    } else {
+      cdfVal = distribution.cumulativeProbability(list[i]);
+    }
     final iOverN = (i + 1.0) / n;
     final iMinusOneOverN = i.toDouble() / n;
     final dp = iOverN - cdfVal;
@@ -97,7 +103,7 @@ double _kolmogorovPValue(double d, double n) {
   final sqrtN = math.sqrt(n);
   final lambda = (sqrtN + 0.12 + 0.11 / sqrtN) * d;
   if (lambda <= 0.0) return 1.0;
-  if (lambda >= 3.0) return 0.0;
+  if (lambda >= 6.5) return 0.0;
 
   final lambdaSq = lambda * lambda;
   var sum = 0.0;

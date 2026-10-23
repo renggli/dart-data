@@ -99,5 +99,28 @@ void main() {
       check(() => tTestPaired([1.0, 2.0], [1.0, 2.0, 3.0]))
           .throws<ArgumentError>();
     });
+
+    test('t-test with zero variance edge cases', () {
+      // One sample zero variance
+      final constSample = [5.0, 5.0, 5.0];
+      final resEq = tTestOneSample(constSample, mu0: 5.0);
+      check(resEq.statistic).equals(0.0);
+      check(resEq.pValue).equals(1.0);
+
+      final resDiff = tTestOneSample(constSample, mu0: 4.0);
+      check(resDiff.statistic).equals(double.infinity);
+      check(resDiff.pValue).equals(0.0);
+
+      // Two sample zero variance
+      final s1 = [3.0, 3.0];
+      final s2 = [5.0, 5.0];
+      final res2Diff = tTestTwoSample(s1, s2);
+      check(res2Diff.statistic).equals(double.negativeInfinity);
+      check(res2Diff.pValue).equals(0.0);
+
+      final res2Same = tTestTwoSample(s1, [3.0, 3.0]);
+      check(res2Same.statistic).equals(0.0);
+      check(res2Same.pValue).equals(1.0);
+    });
   });
 }

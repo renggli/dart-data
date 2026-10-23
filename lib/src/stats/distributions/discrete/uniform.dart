@@ -86,7 +86,8 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   @override
   int inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return min + (probability * n).floor().clamp(0, n - 1);
+    if (probability == 0) return min;
+    return (min + (probability * n).ceil() - 1).clamp(min, max);
   }
 
   @override
