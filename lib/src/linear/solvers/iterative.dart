@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../../../type.dart';
 import '../operator.dart';
 import '../vector.dart';
 
@@ -40,6 +41,11 @@ Vector<T> solveIterative<T>(
   double tolerance = 1e-10,
   int maxIterations = 1000,
 }) {
+  if (a.type is! DataType<num>) {
+    throw ArgumentError(
+      'Iterative solvers only support real numeric types, got ${a.type}',
+    );
+  }
   switch (method) {
     case IterativeMethod.conjugateGradient:
       return _conjugateGradient(
@@ -168,25 +174,33 @@ Vector<T> _gmres<T>(
       final basisVec = a.apply(krylovBasis[k]);
       for (var i = 0; i <= k; i++) {
         final dotVal = basisVec.dot(krylovBasis[i]);
-        final doubleDot = dotVal is num
-            ? (dotVal as num).toDouble()
-            : field.norm(dotVal);
+        final doubleDot = (dotVal as num).toDouble();
         hessenberg[i][k] = doubleDot;
         basisVec.addScaled(krylovBasis[i], field.neg(dotVal));
       }
       final wNorm = basisVec.norm();
       hessenberg[k + 1][k] = wNorm;
 
-      if (wNorm > 1e-15) {
-        krylovBasis.add(
-          basisVec.scale(
-            field.div(
-              field.multiplicativeIdentity,
-              field.scale(field.multiplicativeIdentity, wNorm),
-            ),
-          ),
-        );
+      if (wNorm <= 1e-15) {
+        // Krylov breakdown: invariant subspace reached.
+        for (var i = 0; i < k; i++) {
+          final temp = cs[i] * hessenberg[i][k] + sn[i] * hessenberg[i + 1][k];
+          hessenberg[i + 1][k] =
+              -sn[i] * hessenberg[i][k] + cs[i] * hessenberg[i + 1][k];
+          hessenberg[i][k] = temp;
+        }
+        k++;
+        break;
       }
+
+      krylovBasis.add(
+        basisVec.scale(
+          field.div(
+            field.multiplicativeIdentity,
+            field.scale(field.multiplicativeIdentity, wNorm),
+          ),
+        ),
+      );
 
       // Apply previous Givens rotations to column k of H
       for (var i = 0; i < k; i++) {
@@ -233,9 +247,10 @@ Vector<T> _gmres<T>(
 
     // Update solution: x = x + sum(y[i] * krylovBasis[i])
     for (var i = 0; i < k; i++) {
-      x =
-          x +
-          krylovBasis[i].scale(field.scale(field.multiplicativeIdentity, y[i]));
+      x.addScaled(
+        krylovBasis[i],
+        field.scale(field.multiplicativeIdentity, y[i]),
+      );
     }
 
     if (rhs[k].abs() < tolerance) {

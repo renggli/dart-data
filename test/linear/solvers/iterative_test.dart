@@ -1,5 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
+import 'package:data/type.dart';
+import 'package:more/number.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -144,6 +146,32 @@ void main() {
           .throws<ArgumentError>();
       check(() => solveIterative(square2, b3, method: IterativeMethod.gmres))
           .throws<ArgumentError>();
+
+      // Non-real type rejected
+      final complexMat = Matrix<Complex>.fromRows([
+        [Complex(1, 0), Complex(0, 0)],
+        [Complex(0, 0), Complex(1, 0)],
+      ], type: DataType.complex);
+      final complexVec = Vector<Complex>.fromList([
+        Complex(1, 0),
+        Complex(2, 0),
+      ], type: DataType.complex);
+      check(() => solveIterative(complexMat, complexVec))
+          .throws<ArgumentError>();
+    });
+
+    test('GMRES handles early breakdown without RangeError', () {
+      // Matrix where vector is an eigenvector:
+      // A = [2, 1; 0, 3], v = [1, 1] => A*v = [3, 3] = 3*v
+      // b = [3, 3], x0 = [0, 0] => initial residual is eigenvector of A
+      final a = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [0.0, 3.0],
+      ]);
+      final b = Vector<double>.fromList([3.0, 3.0]);
+      final x = solveIterative(a, b);
+      check(x[0]).isCloseTo(1.0, 1e-6);
+      check(x[1]).isCloseTo(1.0, 1e-6);
     });
   });
 }
