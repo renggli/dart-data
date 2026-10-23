@@ -276,6 +276,15 @@ void main() {
       );
       final sq = xPlusOne * xPlusOne;
       check(sq[1]).equals(2);
+
+      // Integer ring division where leading term cannot be eliminated
+      final x = CompressedPolynomial<int>.fromMap({1: 1}, type: DataType.int32);
+      final twoX = CompressedPolynomial<int>.fromMap({
+        1: 2,
+      }, type: DataType.int32);
+      final intDiv = x.divide(twoX);
+      check(intDiv.quotient.degree).equals(-1);
+      check(intDiv.remainder).equals(x);
     });
 
     test('composition and power', () {
@@ -333,6 +342,7 @@ void main() {
       }, type: DataType.float64);
       check(pDense == pSparseEquivalent).isTrue();
       check(pSparseEquivalent == pDense).isTrue();
+      check(pDense.hashCode).equals(pSparseEquivalent.hashCode);
 
       // Conversions: toCompressed and toDense
       final convSparse = pDense.toCompressed();

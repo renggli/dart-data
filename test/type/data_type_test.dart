@@ -97,18 +97,19 @@ void main() {
       // Integers
       check(DataType.int8.promoteWith(DataType.int8)).equals(DataType.int8);
       check(DataType.uint8.promoteWith(DataType.uint8)).equals(DataType.uint8);
-      check(DataType.uint8.promoteWith(DataType.int8)).equals(DataType.int8);
+      check(DataType.uint8.promoteWith(DataType.int8)).equals(DataType.int16);
       check(DataType.uint8.promoteWith(DataType.uint16))
           .equals(DataType.uint16);
-      check(DataType.int8.promoteWith(DataType.uint16)).equals(DataType.int16);
+      check(DataType.int8.promoteWith(DataType.uint16)).equals(DataType.int32);
       check(DataType.int16.promoteWith(DataType.int32)).equals(DataType.int32);
       check(DataType.uint16.promoteWith(DataType.uint32))
           .equals(DataType.uint32);
-      check(DataType.int32.promoteWith(DataType.uint32)).equals(DataType.int32);
+      check(DataType.int32.promoteWith(DataType.uint32)).equals(DataType.int64);
       check(DataType.int32.promoteWith(DataType.int64)).equals(DataType.int64);
       check(DataType.uint32.promoteWith(DataType.uint64))
           .equals(DataType.uint64);
-      check(DataType.uint64.promoteWith(DataType.int64)).equals(DataType.int64);
+      check(DataType.uint64.promoteWith(DataType.int64))
+          .equals(DataType.bigInt);
       // Object fallback
       check(DataType.string.promoteWith(DataType.int32))
           .equals(DataType.object);
@@ -129,12 +130,29 @@ void main() {
     test('fromType', () {
       check(DataType.fromType<int>()).equals(DataType.int32);
       check(DataType.fromType<double>()).equals(DataType.float64);
+      check(DataType.fromType<num>()).equals(DataType.numeric);
       check(DataType.fromType<bool>()).equals(DataType.boolean);
       check(DataType.fromType<String>()).equals(DataType.string);
       check(DataType.fromType<Complex>()).equals(DataType.complex);
       check(DataType.fromType<Fraction>()).equals(DataType.fraction);
       check(DataType.fromType<BigInt>()).equals(DataType.bigInt);
       check(DataType.fromType<Object?>()).isA<ObjectDataType<Object?>>();
+    });
+
+    test('NullableDataType metadata delegation', () {
+      check(DataType.int32.nullable.isInteger).isTrue();
+      check(DataType.float64.nullable.isNumeric).isTrue();
+      check(DataType.float32.nullable.isFloat).isTrue();
+      check(DataType.uint8.nullable.isSigned).isFalse();
+      check(DataType.int16.nullable.bits).equals(16);
+    });
+
+    test('Equality isClose with epsilon zero', () {
+      check(DataType.int32.equality.isClose(5, 5, 0.0)).isTrue();
+      check(
+        DataType.bigInt.equality.isClose(BigInt.from(5), BigInt.from(5), 0.0),
+      ).isTrue();
+      check(DataType.string.equality.isClose('hello', 'hello', 0.0)).isTrue();
     });
 
     test('fromIterable', () {

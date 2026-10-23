@@ -26,8 +26,11 @@ final class StringEquality extends NaturalEquality<String> {
   const new();
 
   @override
-  bool isClose(String a, String b, double epsilon) =>
-      editDistance(a, b) < epsilon.ceil();
+  bool isClose(String a, String b, double epsilon) {
+    if (a == b) return epsilon >= 0;
+    if (epsilon < 1) return false;
+    return editDistance(a, b) <= epsilon;
+  }
 }
 
 /// Computes the Levenshtein edit distance between two strings [a] and [b]:

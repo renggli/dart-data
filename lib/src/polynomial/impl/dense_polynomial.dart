@@ -353,9 +353,13 @@ class DensePolynomial<T> extends Polynomial<T> {
   int get hashCode {
     final deg = degree;
     if (deg < 0) return 0;
-    var hash = deg;
+    final zero = type.field.additiveIdentity;
+    var hash = Object.hash(deg, type);
     for (var i = 0; i <= deg; i++) {
-      hash = Object.hash(hash, this[i]);
+      final c = _coefficients[i];
+      if (c != zero) {
+        hash = Object.hash(hash, i, c);
+      }
     }
     return hash;
   }

@@ -425,6 +425,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     }
 
     final field = type.field;
+    final zero = field.additiveIdentity;
     final leadB = compDivisor.leadingCoefficient;
     final qTerms = <int, T>{};
     var rem = this;
@@ -433,10 +434,29 @@ class CompressedPolynomial<T> extends Polynomial<T> {
       final degR = rem.degree;
       final leadR = rem.leadingCoefficient;
       final factor = field.div(leadR, leadB);
+      if (factor == zero) {
+        break;
+      }
       final qExp = degR - degB;
-      qTerms[qExp] = factor;
+      final existing = qTerms[qExp];
+      qTerms[qExp] = existing == null ? factor : field.add(existing, factor);
       final term = CompressedPolynomial<T>._([qExp], [factor], type: type);
       rem = (rem - (term * compDivisor)).toCompressed();
+      if (rem.degree >= degR) {
+        final newExps = <int>[];
+        final newCoeffs = <T>[];
+        for (var k = 0; k < rem._exponents.length; k++) {
+          if (rem._exponents[k] < degR) {
+            newExps.add(rem._exponents[k]);
+            newCoeffs.add(rem._coefficients[k]);
+          }
+        }
+        rem = CompressedPolynomial<T>._(
+          List.unmodifiable(newExps),
+          List.unmodifiable(newCoeffs),
+          type: type,
+        );
+      }
     }
 
     return (

@@ -323,6 +323,34 @@ abstract class Polynomial<T> {
   /// Converts this polynomial to a [DensePolynomial].
   DensePolynomial<T> toDense();
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Polynomial<T>) return false;
+    final deg = degree;
+    if (deg != other.degree) return false;
+    if (deg < 0) return true;
+    for (var i = 0; i <= deg; i++) {
+      if (this[i] != other[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    final deg = degree;
+    if (deg < 0) return 0;
+    final zero = type.field.additiveIdentity;
+    var hash = Object.hash(deg, type);
+    for (var i = 0; i <= deg; i++) {
+      final c = this[i];
+      if (c != zero) {
+        hash = Object.hash(hash, i, c);
+      }
+    }
+    return hash;
+  }
+
   /// Generates the Chebyshev polynomial of the first kind $T_n(x)$.
   static Polynomial<double> chebyshevT(int degree) {
     if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');

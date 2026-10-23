@@ -31,6 +31,7 @@ DataType<T> fromIterable<T>(Iterable<T> iterable) {
 DataType<Object?>? _fromType(Type type) => switch (type) {
   const (int) => DataType.integer,
   const (double) => DataType.float,
+  const (num) => DataType.numeric,
   const (bool) => DataType.boolean,
   const (String) => DataType.string,
   const (Complex) => DataType.complex,

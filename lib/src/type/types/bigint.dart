@@ -41,8 +41,11 @@ final class BigIntEquality extends NaturalEquality<BigInt> {
   const new();
 
   @override
-  bool isClose(BigInt a, BigInt b, double epsilon) =>
-      (a - b).abs() < BigInt.from(epsilon.ceil());
+  bool isClose(BigInt a, BigInt b, double epsilon) {
+    if (a == b) return epsilon >= 0;
+    if (epsilon < 1) return false;
+    return (a - b).abs().toDouble() <= epsilon;
+  }
 }
 
 final class BigIntField implements ExtendedField<BigInt> {

@@ -230,14 +230,40 @@ abstract base class DataType<T> {
       if (self is IntegerDataType) return DataType.float64;
       return DataType.float32;
     }
+    if (self == DataType.bigInt) {
+      if (other is IntegerDataType || other == DataType.bigInt) {
+        return DataType.bigInt;
+      }
+    }
+    if (other == DataType.bigInt) {
+      if (self is IntegerDataType || self == DataType.bigInt) {
+        return DataType.bigInt;
+      }
+    }
     if (self is IntegerDataType && other is IntegerDataType) {
-      final maxBits = math.max(self.bits, other.bits);
-      final signed = self.isSigned || other.isSigned;
-      return switch (maxBits) {
-        <= 8 => signed ? DataType.int8 : DataType.uint8,
-        <= 16 => signed ? DataType.int16 : DataType.uint16,
-        <= 32 => signed ? DataType.int32 : DataType.uint32,
-        _ => signed ? DataType.int64 : DataType.uint64,
+      if (self.isSigned == other.isSigned) {
+        final maxBits = math.max(self.bits, other.bits);
+        return switch (maxBits) {
+          <= 8 => self.isSigned ? DataType.int8 : DataType.uint8,
+          <= 16 => self.isSigned ? DataType.int16 : DataType.uint16,
+          <= 32 => self.isSigned ? DataType.int32 : DataType.uint32,
+          _ => self.isSigned ? DataType.int64 : DataType.uint64,
+        };
+      }
+      final signedBits = self.isSigned ? self.bits : other.bits;
+      final unsignedBits = self.isSigned ? other.bits : self.bits;
+      if (signedBits > unsignedBits) {
+        return switch (signedBits) {
+          <= 16 => DataType.int16,
+          <= 32 => DataType.int32,
+          _ => DataType.int64,
+        };
+      }
+      return switch (unsignedBits) {
+        <= 8 => DataType.int16,
+        <= 16 => DataType.int32,
+        <= 32 => DataType.int64,
+        _ => DataType.bigInt,
       };
     }
     return DataType.object;

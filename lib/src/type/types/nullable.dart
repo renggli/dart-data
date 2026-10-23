@@ -27,6 +27,21 @@ final class NullableDataType<T> extends DataType<T?> {
   bool get isNullable => true;
 
   @override
+  int get bits => delegate.bits;
+
+  @override
+  bool get isFloat => delegate.isFloat;
+
+  @override
+  bool get isInteger => delegate.isInteger;
+
+  @override
+  bool get isNumeric => delegate.isNumeric;
+
+  @override
+  bool get isSigned => delegate.isSigned;
+
+  @override
   T? get defaultValue => null;
 
   @override
