@@ -359,6 +359,10 @@ Each task specifies:
   1. Remove `import '../../symbolic.dart';` and `Polynomial.fromExpr` from `lib/src/polynomial/polynomial.dart`.
   2. Move symbolic-to-polynomial conversion into `lib/src/symbolic/` as an extension method `Expr.toPolynomial(String variable, {num point = 0, int order = 5})` (and/or `extension SymbolicPolynomialFactory on Polynomial` in `symbolic`).
   3. Add an architectural test asserting that transitive imports of `lib/numeric.dart`, `lib/linear.dart`, `lib/tensor.dart`, `lib/stats.dart`, `lib/special.dart`, and `lib/polynomial.dart` never import any file under `lib/src/symbolic/` or `lib/symbolic.dart`.
+- **Implementation Report**:
+  - `Polynomial.fromExpr` removed from polynomial subsystem and converted to `Expr.toPolynomial` and `SymbolicPolynomialFactory` in `lib/src/symbolic/calculus/series.dart`.
+  - Clarified architectural rule: `package:petitparser` can be used anywhere in the codebase for any parsing-related concern; only the `symbolic` CAS subsystem is decoupled from foundational math layers.
+  - Implemented the architectural boundary test suite in `test/architecture/dependency_decoupling_test.dart` using `package:more/graph.dart` rather than custom graph traversal code.
 
 ### TASK-3.2: Eliminate Positional Record Accessors (`.$1`, `.$2`), Named Record Gaps, and Intermediate Internal Barrel Files
 
@@ -416,6 +420,10 @@ Each task specifies:
 - **Actionable Fix & Acceptance Criteria**:
   1. Consolidate each duplicate pair to a single canonical API (e.g., keep `DataFrame.fromCsv` / `toCsv`, `fromJson` / `toJson`, `fromArrowIpc` / `toArrowIpc`, `df.join(..., method: ...)`; keep `Matrix.transposed`; keep `Polynomial.derivative()`; keep `linearSpaced`/`logarithmicSpaced`/`geometricSpaced`; unify `solveOde` on `stepSize`).
   2. Hide internal helpers (`_unsupportedOperation`, `_editDistance`, `_computeRoots`, `_equalsIterated`) and export `DynamicDataType` from `lib/type.dart`.
+- **Implementation Report**:
+  - Consolidated duplicate APIs across DataFrame, Matrix, Float64Vector, Vector/numeric sampling, Tensor contractions, and solveOde.
+  - Hid internal helpers and exported `DynamicDataType`.
+  - Exception to token builder privatization: `ExprSyntax.identifierTokenParser` and `ExprSyntax.numberTokenParser` remain public static parsers on `ExprSyntax` with full doc comments, as `web/calculator/src/language/grammar.dart` directly reuses and composes them for expression grammar rules.
 
 ### TASK-3.4: Clean Up `pubspec.yaml`, `.gitignore`, and Package Publishing Hygiene
 
@@ -432,6 +440,11 @@ Each task specifies:
   1. Remove `dependency_overrides` from `pubspec.yaml` and bump `version: 0.16.0` to match `CHANGELOG.md`.
   2. Add a `.pubignore` file excluding `AGENTS.md`, `EVALUATION.md`, `TASKS.md`, `doc/`, `benchmark/`, `test/`, `web/`, and `.agents/`.
   3. Delete untracked build artifacts `web/distributions/index.dart.js.deps` and `web/distributions/index.dart.js.map`.
+- **Implementation Report**:
+  - Bumped version to `0.16.0` in `pubspec.yaml` matching `CHANGELOG.md`.
+  - Added `.pubignore` excluding internal agent files, developer documents (`AGENTS.md`, `ARCHITECTURE.md`, `EVALUATION.md`, `TASKS.md`, `.agents/`), and non-package folders (`benchmark/`, `doc/`, `test/`, `web/`).
+  - Removed untracked distribution build artifacts.
+  - Instruction tweak: Kept `dependency_overrides` for `more` (`git: https://github.com/renggli/dart-more`) because required bug fixes (e.g. `asinh` asymptotic branch handling) in git `dart-more` are still needed until the next version of `dart-more` is released on pub.dev.
 
 ---
 

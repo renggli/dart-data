@@ -1,0 +1,12 @@
+# Internal development documentation
+.agents/
+AGENTS.md
+ARCHITECTURE.md
+EVALUATION.md
+TASKS.md
+
+# Non-package directories
+benchmark/
+doc/
+test/
+web/
