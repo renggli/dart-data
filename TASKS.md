@@ -13,7 +13,7 @@ Each task specifies:
 
 ## 1. Critical Bugs & Memory / Process Safety Hazards
 
-### TASK-1.1: Prevent Native CBLAS `cblas_xerbla` Process Aborts on Zero-Sized or Invalid Leading Dimensions
+### TASK-1.1: Prevent Native CBLAS `cblas_xerbla` Process Aborts on Zero-Sized or Invalid Leading Dimensions [COMPLETED]
 
 - **Severity**: Critical
 - **Target Files**:
@@ -30,7 +30,7 @@ Each task specifies:
   3. In `lib/src/tensor/operations/matmul.dart`, when the contracted inner dimension `k == 0`, zero-fill `target` (using `type.field. additiveIdentity`) before returning so pre-allocated non-zero targets are not left with stale values.
   4. Verify with `accelerationTest` covering `0x0`, `2x0 * 0x2`, and out-of-bounds buffer views.
 
-### TASK-1.2: Fix `Float64Vector` and `Float64Matrix` Unchecked Buffer Overruns & Silent Write Loss
+### TASK-1.2: Fix `Float64Vector` and `Float64Matrix` Unchecked Buffer Overruns & Silent Write Loss [COMPLETED]
 
 - **Severity**: Critical
 - **Target Files**:
@@ -45,7 +45,7 @@ Each task specifies:
   2. In `Float64Vector.operator []` / `operator []=` and `Float64Matrix.get` / `set` / `operator []`, enforce `RangeError.checkValidIndex(index, this, 'index', length)` (and row/col bounds checks for matrices) before accessing `_list`. Keep unchecked access strictly on `getUnchecked`/`setUnchecked` or `get1D`/`set1D`.
   3. Add unit tests in `test/linear/float64_vector_test.dart` and `test/linear/float64_matrix_test.dart` verifying that out-of-bounds indexing on `subVector(0, k)` throws `RangeError`.
 
-### TASK-1.3: Fix `LUDecomposition` Out-of-Bounds Crash on Rectangular Matrices ($m < n$)
+### TASK-1.3: Fix `LUDecomposition` Out-of-Bounds Crash on Rectangular Matrices ($m < n$) [COMPLETED]
 
 - **Severity**: Critical
 - **Target Files**:
@@ -56,7 +56,7 @@ Each task specifies:
   1. Support general $m \times n$ LU factorization with `minMN = math.min(m, n)`: `lower` has shape $m \times \text{min}(m, n)$ with unit diagonal, and `upper` has shape $\text{min}(m, n) \times n$ (or restrict `LUDecomposition` to $m \ge n$ / square matrices with a clear `ArgumentError` and document it).
   2. Add tests for $2 \times 3$ and $3 \times 2$ matrices in `test/linear/decomposition/lu_test.dart`.
 
-### TASK-1.4: Fix `DataFrame.sortBy` Null Comparator Crash & `DataFrame.toTensor` Silent Null/String Corruption
+### TASK-1.4: Fix `DataFrame.sortBy` Null Comparator Crash & `DataFrame.toTensor` Silent Null/String Corruption [COMPLETED]
 
 - **Severity**: Critical
 - **Target Files**:
@@ -69,7 +69,7 @@ Each task specifies:
   2. In `DataFrame.toTensor`, map null values in numeric columns to `double.nan` (or add `{double nullValue = double.nan}`), and throw `UnsupportedError` if a selected column is non-numeric (`String`, `bool`, arbitrary objects).
   3. Add unit tests for sorting columns with interspersed nulls (`ascending: true/false`, `nullsLast: true/false`) and converting nullable/non-numeric columns to tensors.
 
-### TASK-1.5: Fix Arrow IPC Multi-Batch Data Loss, Unaligned Buffer Views Crash, and Dictionary/Compression Handling
+### TASK-1.5: Fix Arrow IPC Multi-Batch Data Loss, Unaligned Buffer Views Crash, and Dictionary/Compression Handling [COMPLETED]
 
 - **Severity**: Critical
 - **Target Files**:
@@ -84,7 +84,7 @@ Each task specifies:
   3. Detect non-null `dictionary` on `Field` and non-null `compression` on `RecordBatch` and either support them or throw a descriptive `UnsupportedError`.
   4. Add tests in `test/dataframe/arrow/arrow_ipc_test.dart` for multi-batch streams and unaligned `Uint8List.sublistView` inputs.
 
-### TASK-1.6: Fix Arrow C Data Interface Memory Leaks, Missing `offset` Handling, `null_count == -1`, and Charter Signature Mismatch
+### TASK-1.6: Fix Arrow C Data Interface Memory Leaks, Missing `offset` Handling, `null_count == -1`, and Charter Signature Mismatch [COMPLETED]
 
 - **Severity**: Critical
 - **Target Files**:
@@ -102,7 +102,7 @@ Each task specifies:
   4. Invoke the producer's `release` callbacks on `array` and `schema` in a `try`/`finally` block once import finishes.
   5. Guard partial allocations during `exportTo` so an exception on column $k$ releases columns $0 \dots k-1$.
 
-### TASK-1.7: Fix Symbolic Definite Integration Returning Finite Values Across Divergent Singularities & Throwing on Negative Float Powers
+### TASK-1.7: Fix Symbolic Definite Integration Returning Finite Values Across Divergent Singularities & Throwing on Negative Float Powers [COMPLETED]
 
 - **Severity**: Critical
 - **Target Files**:
@@ -116,7 +116,7 @@ Each task specifies:
   1. In `_tryChainRulePower` and `_antiDerivPow`, check `if (n == IntegerNumber.negativeOne || (n is RealNumber && n.value == -1.0))` and return `Ln(u)` (or `Ln(Abs(u))` under real assumptions). Wrap internal simplification in `_symbolicIntegrate` so any domain error falls back to returning an unevaluated `Integral` node rather than throwing.
   2. Before applying $F(b) - F(a)$ on finite intervals $[a, b]$, detect interior poles where denominator factors vanish on $[a, b]$ (e.g., via root solving on denominators of rational/trig expressions) and split the interval at interior singularities or return an unevaluated `Integral` / `Constant.infinity`.
 
-### TASK-1.8: Fix `Derivative.substitute` and `Integral.substitute` Bound-Variable Capture & Point-Evaluation Bug
+### TASK-1.8: Fix `Derivative.substitute` and `Integral.substitute` Bound-Variable Capture & Point-Evaluation Bug [COMPLETED]
 
 - **Severity**: Critical
 - **Target Files**:
@@ -131,7 +131,7 @@ Each task specifies:
   1. In `Definite Integral`, `Limit`, `Sum`, and `Product`, do not substitute the bound variable in the body (only in `lower`/`upper`/`point` bounds), and alpha-rename the bound variable if `replacement.freeVariables.contains(variable)`.
   2. In `Derivative.substitute(v, replacement)`, if `v == variable` and `replacement` is not a simple `Variable`, either evaluate the derivative first (`expr.derivative(variable, order: order).substitute(v, replacement)`) or keep an evaluation node rather than substituting a constant into the differentiation target.
 
-### TASK-1.9: Fix `Integer` Safe-Range Assertion Crash in `RationalNumber` and `_exactIntegerRoot` for Large `BigInt`s
+### TASK-1.9: Fix `Integer` Safe-Range Assertion Crash in `RationalNumber` and `_exactIntegerRoot` for Large `BigInt`s [COMPLETED]
 
 - **Severity**: Critical
 - **Target Files**:
@@ -148,7 +148,7 @@ Each task specifies:
 
 ## 2. High-Severity Correctness & Numerical Bugs
 
-### TASK-2.1: Fix Symbolic Simplification Unsoundness Under `Assumptions.none` and Indeterminate `Infinity` Forms
+### TASK-2.1: Fix Symbolic Simplification Unsoundness Under `Assumptions.none` and Indeterminate `Infinity` Forms [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -175,7 +175,7 @@ Each task specifies:
   4. Remove unconditional `asin(sin(x)) -> x`, `acos(cos(x)) -> x`, `atan(tan(x)) -> x` for arbitrary symbolic `x` (keep `sin(asin(x)) -> x`, `cos(acos(x)) -> x`, `tan(atan(x)) -> x`, and evaluate inverse-of-trig only for numeric constants reduced into the principal branch).
   5. Evaluate `Ln(negative)` to `Ln(abs(x)) + i * pi` and fail-safe `isReal` on `Pow(base, exp)` with non-integer exponent unless `base` is proven non-negative.
 
-### TASK-2.2: Wire Up Unused `exact_constants.dart` & Fix Symbolic Print/Parse Round-Trip Failures
+### TASK-2.2: Wire Up Unused `exact_constants.dart` & Fix Symbolic Print/Parse Round-Trip Failures [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -194,7 +194,7 @@ Each task specifies:
   2. In `parser.dart`, simplify `1 / rhs` directly to `Pow(rhs, IntegerNumber.negativeOne)` when the numerator is `IntegerNumber.one`, parenthesize `FractionNumber` when multiplied on the right in `string.dart` (or give `/` tighter rational binding), and allow `i` (or `e`) as bound variable identifiers in `sum(...)`, `product(...)`, `diff(...)`, `integrate(...)`, and `limit(...)`.
   3. Add property tests verifying `Expr.parse(e.toString()) == e` across all AST node shapes.
 
-### TASK-2.3: Fix Special Functions (`gamma`, `gammap`, `gammapInv`, `combination`, `erf`) Bugs & Precision Limits
+### TASK-2.3: Fix Special Functions (`gamma`, `gammap`, `gammapInv`, `combination`, `erf`) Bugs & Precision Limits [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -212,7 +212,7 @@ Each task specifies:
   3. Handle `x == double.infinity` in `gamma`, `gammaLn`, `lowRegGamma`, and `gammaq`.
   4. Compute `combination(n, k)` and `permutation(n, k)` via exact multiplicative accumulation for moderate integer $k$ and `exp(combinationLn(n, k))` for large arguments so `combination(200, 2) == 19900.0`.
 
-### TASK-2.4: Fix `Blas` & `Lapack` Native/Dart Behavioral Divergences (`cblasConjTrans`, `dpotrf` In-Place Corruption, `dnrm2` Overflow)
+### TASK-2.4: Fix `Blas` & `Lapack` Native/Dart Behavioral Divergences (`cblasConjTrans`, `dpotrf` In-Place Corruption, `dnrm2` Overflow) [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -234,7 +234,7 @@ Each task specifies:
   3. In `Lapack`, distinguish between "native symbol unavailable" (should fall back to Dart in `auto` mode) and "matrix is singular / not positive definite (`info > 0`)" (must return `false` immediately without re-running Dart on the partially mutated buffer).
   4. In `fft_native.dart`, change the `vDSP_DFT_Interleaved_CreateSetupD` FFI signature for `direction` to `@ffi.Int32()` and pass `-1` (`vDSP_DFT_INVERSE`) for inverse transforms.
 
-### TASK-2.5: Fix `Matrix.applyTranspose` Computing Conjugate Transpose $A^H x$ Instead of $A^T x$ for Complex Matrices
+### TASK-2.5: Fix `Matrix.applyTranspose` Computing Conjugate Transpose $A^H x$ Instead of $A^T x$ for Complex Matrices [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -246,7 +246,7 @@ Each task specifies:
   1. Remove `field.conjugate` from `Matrix.applyTranspose` so `m.applyTranspose(v)` always equals `m.transposed.apply(v)`.
   2. If Hermitian adjoint multiplication is desired, provide `applyConjugateTranspose(v)` (or `conjugateTransposed.apply(v)`).
 
-### TASK-2.6: Fix Numerical Optimization, Root-Finding, Integration, and ODE Solver Silent Failure & Convergence Bugs
+### TASK-2.6: Fix Numerical Optimization, Root-Finding, Integration, and ODE Solver Silent Failure & Convergence Bugs [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -269,7 +269,7 @@ Each task specifies:
   3. In `integration.dart`, combine absolute and relative tolerance (`math.max(tolerance / numSubIntervals, relativeTolerance * i2.abs())`) and apply quadratic/tanh-sinh coordinate transformation on intervals adjacent to declared `poles` so integrable algebraic singularities like $x^{-1/2}$ converge cleanly.
   4. In `solve_ode.dart`, validate `stepSize > 0`, enforce `maxSteps` in `rk4`, and add `final bool converged` (or throw `StateError` on step exhaustion) to `OdeSolution`.
 
-### TASK-2.7: Fix Statistics Distribution Quantiles, LogNormal Lower Bound & Hypothesis Test Bugs (`InvalidProbability.check(NaN)`, `LogNormal` Lower Bound, Discrete Quantiles, `ANOVA`, `KS`)
+### TASK-2.7: Fix Statistics Distribution Quantiles, LogNormal Lower Bound & Hypothesis Test Bugs (`InvalidProbability.check(NaN)`, `LogNormal` Lower Bound, Discrete Quantiles, `ANOVA`, `KS`) [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -300,7 +300,7 @@ Each task specifies:
   5. Fix zero-variance edge cases in `oneWayAnova` and `tTest*`: if `msw == 0` (or `se == 0`), return `statistic: diff == 0 ? 0.0 : double.infinity` and `pValue: diff == 0 ? 1.0 : 0.0`.
   6. In `kolmogorovSmirnovTest`, pass `distribution is DiscreteDistribution ? list[i].floor() : list[i]` and replace the `lambda >= 3.0` cutoff with `lambda >= 6.5` (where $2 e^{-2\lambda^2} < 10^{-36}$).
 
-### TASK-2.8: Fix `DataType` Promotion Bugs, `NullableDataType` Delegation, `Equality.isClose(..., 0)`, and `Dense`/`Compressed` Polynomial Hash Contract
+### TASK-2.8: Fix `DataType` Promotion Bugs, `NullableDataType` Delegation, `Equality.isClose(..., 0)`, and `Dense`/`Compressed` Polynomial Hash Contract [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -327,7 +327,7 @@ Each task specifies:
   3. Unify `Polynomial.hashCode` in the base `Polynomial<T>` class (e.g., hashing `Object.hashAll` over canonical `(exponent, coefficient)` pairs of non-zero terms) so equal `DensePolynomial` and `CompressedPolynomial` instances always produce identical `hashCode`s.
   4. In `CompressedPolynomial.divide`, explicitly strip the eliminated leading term from the remainder at each step and guard against zero quotient factors in integer rings.
 
-### TASK-2.9: Fix `Layout` Immutability Breach, Unvalidated `transpose` Permutations, and `0`-Extent Broadcast Bug
+### TASK-2.9: Fix `Layout` Immutability Breach, Unvalidated `transpose` Permutations, and `0`-Extent Broadcast Bug [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -345,7 +345,7 @@ Each task specifies:
 
 ## 3. Architectural & Charter Compliance Fixes
 
-### TASK-3.1: Decouple `package:data/numeric.dart` from `package:data/symbolic.dart`
+### TASK-3.1: Decouple `package:data/numeric.dart` from `package:data/symbolic.dart` [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -364,7 +364,7 @@ Each task specifies:
   - Clarified architectural rule: `package:petitparser` can be used anywhere in the codebase for any parsing-related concern; only the `symbolic` CAS subsystem is decoupled from foundational math layers.
   - Implemented the architectural boundary test suite in `test/architecture/dependency_decoupling_test.dart` using `package:more/graph.dart` rather than custom graph traversal code.
 
-### TASK-3.2: Eliminate Positional Record Accessors (`.$1`, `.$2`), Named Record Gaps, and Intermediate Internal Barrel Files
+### TASK-3.2: Eliminate Positional Record Accessors (`.$1`, `.$2`), Named Record Gaps, and Intermediate Internal Barrel Files [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
@@ -390,7 +390,7 @@ Each task specifies:
   1. Convert `confidenceInterval`, `nonZeroTerms`, `Layout.broadcast`, and `soft_keys.dart` tuples to named records (`({double lower, double upper})`, `({int exponent, T coefficient})`, etc.).
   2. Export leaf files directly from `lib/symbolic.dart`, `lib/dataframe.dart`, and `lib/acceleration.dart`, and remove intermediate `export` directives inside `lib/src/` (keeping only conditional FFI/stub exports).
 
-### TASK-3.3: Remove Redundant Duplicate APIs and Unexported / Leaked Internal Symbols
+### TASK-3.3: Remove Redundant Duplicate APIs and Unexported / Leaked Internal Symbols [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
@@ -425,7 +425,7 @@ Each task specifies:
   - Hid internal helpers and exported `DynamicDataType`.
   - Exception to token builder privatization: `ExprSyntax.identifierTokenParser` and `ExprSyntax.numberTokenParser` remain public static parsers on `ExprSyntax` with full doc comments, as `web/calculator/src/language/grammar.dart` directly reuses and composes them for expression grammar rules.
 
-### TASK-3.4: Clean Up `pubspec.yaml`, `.gitignore`, and Package Publishing Hygiene
+### TASK-3.4: Clean Up `pubspec.yaml`, `.gitignore`, and Package Publishing Hygiene [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
@@ -450,7 +450,7 @@ Each task specifies:
 
 ## 4. Public API Inconsistencies & Design Improvements
 
-### TASK-4.1: Unify Naming, Method Signatures, and UI Label Capitalization Across Subsystems
+### TASK-4.1: Unify Naming, Method Signatures, and UI Label Capitalization Across Subsystems [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
@@ -490,7 +490,7 @@ Each task specifies:
   - Implemented structural value equality and hashing on `Layout`, `Tensor`, `Matrix`, `Vector`, `Series`, and `DataFrame`, verifying `MultivariateNormalDistribution` and `DirichletDistribution` value equality.
   - Standardized `Interpolator2D` on `double call(double x, double y)`, removing duplicate `evaluate`. Verified `Expr.approximate` and `Matrix<Expr>.approximate` alignment.
 
-### TASK-4.2: Improve `Polynomial.toString` and `RationalFunction` Ergonomics
+### TASK-4.2: Improve `Polynomial.toString` and `RationalFunction` Ergonomics [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
@@ -514,7 +514,7 @@ Each task specifies:
 
 ## 5. Performance & Algorithmic Optimizations
 
-### TASK-5.1: Reduce Numerical `jacobian` from $O(m \cdot n)$ to $O(n)$ Vector Function Evaluations & `curveFit` from $O(N^2 p)$ to $O(N p)$
+### TASK-5.1: Reduce Numerical `jacobian` from $O(m \cdot n)$ to $O(n)$ Vector Function Evaluations & `curveFit` from $O(N^2 p)$ to $O(N p)$ [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -538,7 +538,7 @@ Each task specifies:
   - Optimized Levenberg-Marquardt finite-difference Jacobian in `curveFit` and `fitNonlinear` to evaluate perturbed residual vectors once per parameter column in $O(N p)$ instead of $O(N^2 p)$.
   - Added unit tests verifying $O(n)$ Jacobian vector calls, symmetric Hessian evaluation counts, large-coordinate scaling ($|x| \ge 10^8$), and $O(p)$ residual evaluations per LM iteration.
 
-### TASK-5.2: Fix BFGS $O(n^3)$ Matrix Multiply Update to $O(n^2)$ Rank-2 Update & Eliminate Redundant Evaluations
+### TASK-5.2: Fix BFGS $O(n^3)$ Matrix Multiply Update to $O(n^2)$ Rank-2 Update & Eliminate Redundant Evaluations [COMPLETED]
 
 - **Severity**: High
 - **Target Files**:
@@ -554,7 +554,7 @@ Each task specifies:
   - Reused `fxCandidate` from backtracking line search across both `bfgs` and `lbfgs`, eliminating redundant evaluations of $f(x)$ at the step point.
   - Added unit tests verifying convergence on a 10D problem and confirming zero redundant function evaluations across VM, Node.js, and Chrome.
 
-### TASK-5.3: Fix `MatrixNormExtension` Recomputing Full SVD Twice on `norm2` and Every Call
+### TASK-5.3: Fix `MatrixNormExtension` Recomputing Full SVD Twice on `norm2` and Every Call [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
@@ -567,7 +567,7 @@ Each task specifies:
   - Bound `final singularValues = svd.s;` in `MatrixNormExtension.norm2`, eliminating the duplicate SVD recomputation on each spectral 2-norm access.
   - Verified correctness and performance across VM, Node.js, and Chrome.
 
-### TASK-5.4: Dispatch Unaccelerated Operations to `Blas`, `Lapack`, and `Vforce` Facades
+### TASK-5.4: Dispatch Unaccelerated Operations to `Blas`, `Lapack`, and `Vforce` Facades [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
@@ -594,7 +594,7 @@ Each task specifies:
   - Exposed `Fft.nextPowerOf2` on the `Fft` facade, eliminated direct `FftDart` import in `DensePolynomial`, and maintained exact convolution for exact polynomial fields.
   - Verified test suite pass across VM, Node.js, and Chrome.
 
-### TASK-5.5: Eliminate Per-Row Map Allocations & $O(N^2)$ Bottlenecks in `DataFrame` and `DataType.castList`
+### TASK-5.5: Eliminate Per-Row Map Allocations & $O(N^2)$ Bottlenecks in `DataFrame` and `DataType.castList` [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
