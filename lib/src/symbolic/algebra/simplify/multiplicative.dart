@@ -50,6 +50,14 @@ Expr simplifyMul(
 
   // Fast annihilator check: 0 * anything = 0
   if (hasZero) {
+    if (flatFactors.any(
+      (f) =>
+          f is RealNumber ||
+          (f is ComplexNumber &&
+              (f.real is RealNumber || f.imaginary is RealNumber)),
+    )) {
+      return const RealNumber(0.0);
+    }
     return IntegerNumber.zero;
   }
 
@@ -101,7 +109,14 @@ Expr simplifyMul(
   for (final f in flatFactors) {
     if (f is Number) {
       coeff = coeff.mul(f);
-      if (coeff.isZero) return IntegerNumber.zero;
+      if (coeff.isZero) {
+        return (coeff is RealNumber ||
+                (coeff is ComplexNumber &&
+                    (coeff.real is RealNumber ||
+                        coeff.imaginary is RealNumber)))
+            ? const RealNumber(0.0)
+            : IntegerNumber.zero;
+      }
     } else {
       final (base, exp) = decomposeFactor(f);
       final existingExp = baseExponents[base];

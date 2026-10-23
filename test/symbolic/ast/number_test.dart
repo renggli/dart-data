@@ -160,11 +160,11 @@ void main() {
       check(a.divRational(b)).equals(IntegerNumber.two);
 
       check(IntegerNumber.zero.mul(const RealNumber(2.5)))
-          .equals(IntegerNumber.zero);
+          .equals(RealNumber.zero);
       check(const RealNumber(2.5).mul(IntegerNumber.zero))
-          .equals(IntegerNumber.zero);
+          .equals(RealNumber.zero);
       check(IntegerNumber.zero.div(const RealNumber(2.5)))
-          .equals(IntegerNumber.zero);
+          .equals(RealNumber.zero);
       check(const RealNumber(6.0).div(const RealNumber(2.0)))
           .equals(const RealNumber(3.0));
 
@@ -262,7 +262,8 @@ void main() {
         check(twoI.powNumber(IntegerNumber.of(2000))).isNull();
 
         const onePlusI = ComplexNumber(IntegerNumber.one, IntegerNumber.one);
-        check(onePlusI.powNumber(const RealNumber(2.0))).equals(twoI);
+        check(onePlusI.powNumber(const RealNumber(2.0)))
+            .equals(const ComplexNumber(RealNumber(0.0), RealNumber(2.0)));
         check(onePlusI.powNumber(IntegerNumber.of(-2))).equals(
           const ComplexNumber(IntegerNumber.zero, FractionNumber.negativeHalf),
         );
@@ -270,15 +271,15 @@ void main() {
         check(onePlusI.powNumber(const RealNumber(1.5))).isNull();
 
         check(RealNumber.zero.powNumber(RealNumber.zero))
-            .equals(IntegerNumber.one);
+            .equals(const RealNumber(1.0));
         check(RealNumber.zero.powNumber(const RealNumber(2.5)))
             .equals(RealNumber.zero);
         check(IntegerNumber.zero.powNumber(const RealNumber(2.5)))
-            .equals(IntegerNumber.zero);
+            .equals(RealNumber.zero);
         check(() => RealNumber.zero.powNumber(const RealNumber(-1.5)))
             .throws<UnsupportedError>();
         check(RealNumber.one.powNumber(const RealNumber(2.5)))
-            .equals(IntegerNumber.one);
+            .equals(const RealNumber(1.0));
         check(const RealNumber(-2.0).powNumber(const RealNumber(1.5))).isNull();
         check(const RealNumber(4.0).powNumber(const RealNumber(0.5)))
             .equals(const RealNumber(2.0));

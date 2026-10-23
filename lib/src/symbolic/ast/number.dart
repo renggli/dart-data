@@ -157,7 +157,14 @@ sealed class Number extends Expr {
       _ => null,
     };
     if (intExp == null) return null;
-    if (intExp.isZero) return IntegerNumber.one;
+    final isFloat =
+        exponent is RealNumber ||
+        c.real is RealNumber ||
+        c.imaginary is RealNumber;
+    if (intExp.isZero) {
+      return isFloat ? const RealNumber(1.0) : IntegerNumber.one;
+    }
+    Number? result;
     if (c.isPureImaginary) {
       // (b * i)^n = b^n * i^n
       final mod = (intExp % const Integer(4)).toInt();
@@ -167,30 +174,49 @@ sealed class Number extends Expr {
         2 => IntegerNumber.negativeOne,
         _ => ComplexNumber.negativeI,
       };
-      if (c.imaginary.isOne) return iPow;
-      if (c.imaginary.isNegativeOne) {
+      if (c.imaginary.isOne) {
+        result = iPow;
+      } else if (c.imaginary.isNegativeOne) {
         final sign = intExp.isEven
             ? IntegerNumber.one
             : IntegerNumber.negativeOne;
-        return sign.mul(iPow);
+        result = sign.mul(iPow);
+      } else {
+        result = c.imaginary.powNumber(IntegerNumber(intExp))?.mul(iPow);
       }
-      return c.imaginary.powNumber(IntegerNumber(intExp))?.mul(iPow);
+    } else if (intExp.asInt case final expAsInt? when expAsInt.abs() <= 64) {
+      result = _complexIntPow(c, expAsInt);
     }
-    if (intExp.asInt case final expAsInt? when expAsInt.abs() <= 64) {
-      return _complexIntPow(c, expAsInt);
+    if (result == null) return null;
+    if (isFloat) {
+      return switch (result) {
+        final RealNumeric r => RealNumber(r.toDouble()),
+        ComplexNumber(:final real, :final imaginary) => ComplexNumber.of(
+          RealNumber(real.toDouble()),
+          RealNumber(imaginary.toDouble()),
+        ),
+      };
     }
-    return null;
+    return result;
   }
 
   static Number? _powReal(RealNumeric baseReal, RealNumeric exponent) {
     if (baseReal.isZero) {
-      if (exponent.isZero) return IntegerNumber.one;
+      if (exponent.isZero) {
+        return (baseReal is RealNumber || exponent is RealNumber)
+            ? const RealNumber(1.0)
+            : IntegerNumber.one;
+      }
       if (exponent.isNegative) {
         throw UnsupportedError('Division by zero in power: 0 ^ $exponent');
       }
-      return baseReal is RealNumber ? RealNumber.zero : IntegerNumber.zero;
+      return const RealNumber(0.0);
     }
-    if (baseReal.isOne) return IntegerNumber.one;
+    if (baseReal.isOne) {
+      return (baseReal is RealNumber || exponent is RealNumber)
+          ? const RealNumber(1.0)
+          : IntegerNumber.one;
+    }
     final bVal = baseReal.toDouble();
     final eVal = exponent.toDouble();
     if (bVal < 0 && eVal != eVal.roundToDouble()) {
@@ -216,21 +242,18 @@ sealed class Number extends Expr {
       _addReal(a, b.neg());
 
   static RealNumeric _mulReal(RealNumeric a, RealNumeric b) {
-    if ((a is RationalNumber && a.isZero) ||
-        (b is RationalNumber && b.isZero)) {
-      return IntegerNumber.zero;
-    }
     if (a is RationalNumber && b is RationalNumber) {
+      if (a.isZero || b.isZero) {
+        return IntegerNumber.zero;
+      }
       return a.mulRational(b);
     }
     return RealNumber(a.toDouble() * b.toDouble());
   }
 
   static RealNumeric _divReal(RealNumeric a, RealNumeric b) {
-    if (a is RationalNumber && a.isZero) {
-      return IntegerNumber.zero;
-    }
     if (a is RationalNumber && b is RationalNumber) {
+      if (a.isZero) return IntegerNumber.zero;
       return a.divRational(b);
     }
     return RealNumber(a.toDouble() / b.toDouble());

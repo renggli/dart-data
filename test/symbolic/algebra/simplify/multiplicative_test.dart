@@ -13,6 +13,8 @@ void main() {
         check(simplifyMul([Mul(const [])])).equals(IntegerNumber.one);
         check(simplifyMul([x])).equals(x);
         check(simplifyMul([x, IntegerNumber.zero])).equals(IntegerNumber.zero);
+        check(simplifyMul([x, RealNumber.zero])).equals(RealNumber.zero);
+        check(simplifyMul([RealNumber.zero, x])).equals(RealNumber.zero);
       },
     );
 

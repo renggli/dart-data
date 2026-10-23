@@ -18,7 +18,12 @@ Expr simplifyPow(
   // 1. Trivial exponent identities: b^0 = 1, b^1 = b
   if (exponent is Number && exponent.isZero) {
     if (base == Constant.infinity) return Constant.undefined;
-    return IntegerNumber.one;
+    return (base is RealNumber ||
+            exponent is RealNumber ||
+            (base is ComplexNumber &&
+                (base.real is RealNumber || base.imaginary is RealNumber)))
+        ? const RealNumber(1.0)
+        : IntegerNumber.one;
   }
   if (exponent is Number && exponent.isOne) {
     return base;
@@ -36,12 +41,16 @@ Expr simplifyPow(
       return Constant.undefined;
     }
     if (isPositiveExpr(re, assumptions: assumptions)) {
-      return IntegerNumber.zero;
+      return (base is RealNumber || exponent is RealNumber)
+          ? const RealNumber(0.0)
+          : IntegerNumber.zero;
     }
     return Pow(base, exponent, isSimplified: true);
   }
   if (base is Number && base.isOne) {
-    return IntegerNumber.one;
+    return (base is RealNumber || exponent is RealNumber)
+        ? const RealNumber(1.0)
+        : IntegerNumber.one;
   }
   if (base == Constant.infinity) {
     if (exponent

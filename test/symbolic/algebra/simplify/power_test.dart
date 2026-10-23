@@ -10,10 +10,15 @@ void main() {
     test('simplifies zero/unit exponents and zero/unit bases', () {
       const x = Variable('x');
       check(simplifyPow(x, IntegerNumber.zero)).equals(IntegerNumber.one);
+      check(simplifyPow(x, RealNumber.zero)).equals(const RealNumber(1.0));
       check(simplifyPow(x, IntegerNumber.one)).equals(x);
       check(simplifyPow(IntegerNumber.one, x)).equals(IntegerNumber.one);
+      check(simplifyPow(const RealNumber(1.0), x))
+          .equals(const RealNumber(1.0));
       check(simplifyPow(IntegerNumber.zero, IntegerNumber.two))
           .equals(IntegerNumber.zero);
+      check(simplifyPow(RealNumber.zero, IntegerNumber.two))
+          .equals(RealNumber.zero);
 
       check(simplifyPow(IntegerNumber.zero, IntegerNumber.negativeOne))
           .equals(Constant.undefined);
