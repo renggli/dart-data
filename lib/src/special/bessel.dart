@@ -220,7 +220,7 @@ double besselJ0(num x) {
   } else {
     final z = 8.0 / ax;
     final y = z * z;
-    final xx = ax - 0.785398164;
+    final xx = ax - (pi / 4.0);
     final f0 =
         1.0 +
         y *
@@ -314,7 +314,7 @@ double besselY0(num x) {
   } else {
     final z = 8.0 / xd;
     final y = z * z;
-    final xx = xd - 0.785398164;
+    final xx = xd - (pi / 4.0);
     final f0 =
         1.0 +
         y *

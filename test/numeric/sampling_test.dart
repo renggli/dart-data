@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
@@ -303,10 +305,10 @@ double _tan(double x) => _sin(x) / _cos(x);
 
 double _sin(double x) {
   // Reduce x mod 2*pi
-  const twoPi = 6.283185307179586;
+  const twoPi = 2.0 * math.pi;
   var u = x % twoPi;
-  if (u > 3.141592653589793) u -= twoPi;
-  if (u < -3.141592653589793) u += twoPi;
+  if (u > math.pi) u -= twoPi;
+  if (u < -math.pi) u += twoPi;
   var term = u;
   var sum = u;
   for (var i = 1; i <= 10; i++) {
@@ -316,7 +318,7 @@ double _sin(double x) {
   return sum;
 }
 
-double _cos(double x) => _sin(x + 1.5707963267948966);
+double _cos(double x) => _sin(x + math.pi / 2.0);
 
 double _sin10(double x) => _sin(10.0 * x);
 

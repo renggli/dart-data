@@ -102,14 +102,8 @@ class NormalDistribution extends ContinuousDistribution {
     if (probability == 0.0) return double.negativeInfinity;
     if (probability == 1.0) return double.infinity;
     return probability < 0.5
-        ? -1.41421356237309505 *
-                  standardDeviation *
-                  erfcInv(2.0 * probability) +
-              mean
-        : 1.41421356237309505 *
-                  standardDeviation *
-                  erfcInv(2.0 * (1.0 - probability)) +
-              mean;
+        ? -sqrt2 * standardDeviation * erfcInv(2.0 * probability) + mean
+        : sqrt2 * standardDeviation * erfcInv(2.0 * (1.0 - probability)) + mean;
   }
 
   @override
@@ -118,11 +112,8 @@ class NormalDistribution extends ContinuousDistribution {
     if (probability == 0.0) return double.infinity;
     if (probability == 1.0) return double.negativeInfinity;
     return probability < 0.5
-        ? 1.41421356237309505 * standardDeviation * erfcInv(2.0 * probability) +
-              mean
-        : -1.41421356237309505 *
-                  standardDeviation *
-                  erfcInv(2.0 * (1.0 - probability)) +
+        ? sqrt2 * standardDeviation * erfcInv(2.0 * probability) + mean
+        : -sqrt2 * standardDeviation * erfcInv(2.0 * (1.0 - probability)) +
               mean;
   }
 

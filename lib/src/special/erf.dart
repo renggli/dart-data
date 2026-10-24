@@ -211,7 +211,7 @@ double erfcInv(num x) {
   return result;
 }
 
-const _sqrPi = 0.56418958354775628695;
+final _sqrPi = 1.0 / sqrt(pi);
 const _thresh = 0.46875;
 const _xSmall = 1.11e-16;
 const _xBig = 26.543;

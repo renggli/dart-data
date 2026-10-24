@@ -69,7 +69,7 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
   late final Matrix<double> _l;
   late final double _logDetSigma;
 
-  static const double _ln2pi = 1.8378770664093454835606594728112;
+  static final double _ln2pi = log(2.0 * pi);
 
   @override
   double logProbability(Vector<double> x) {

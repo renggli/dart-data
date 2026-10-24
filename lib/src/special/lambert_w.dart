@@ -106,5 +106,5 @@ double lambertW1(num z) {
   return wVal;
 }
 
-const _invE = 0.36787944117144232159587; // 1/e
-const _e = 2.718281828459045235360287; // e
+const _invE = 1.0 / e;
+const _e = e;

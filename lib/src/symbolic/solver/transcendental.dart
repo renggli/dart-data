@@ -278,7 +278,7 @@ bool isRealConstantOutOfRange(Expr c, double maxAbs) {
 
 List<Expr>? _solveLambertWEquation(Expr E, Expr cPrime, String variable) {
   final cVal = _tryEvalReal(cPrime);
-  const invE = 0.36787944117144232159587;
+  const invE = 1.0 / math.e;
   final List<Expr> targets;
   switch (cVal) {
     case final double v when v < -invE - 1e-12:
@@ -437,7 +437,7 @@ List<Expr>? _matchAffineExponential(Expr expr, String variable) {
       .simplify();
 
   final wVal = _tryEvalReal(wArg);
-  const invE = 0.36787944117144232159587;
+  const invE = 1.0 / math.e;
   final List<int> branches;
   switch (wVal) {
     case final double v when v < -invE - 1e-12:
