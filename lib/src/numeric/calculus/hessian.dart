@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 
 /// Computes the Hessian matrix
 /// $H_{i, j} = \frac{\partial^2 f}{\partial x_i \partial x_j}$ of [function] at

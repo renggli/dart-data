@@ -1,4 +1,4 @@
-import '../../../linear.dart';
+import '../../linear/vector.dart';
 
 /// Trajectory of an ODE simulation containing time points [t] and state vectors
 /// [y].

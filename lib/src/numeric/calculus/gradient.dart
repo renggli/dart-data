@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 
 /// Computes the gradient vector $\nabla f(\mathbf{x})$ of multivariate function
 /// [function] at [point].

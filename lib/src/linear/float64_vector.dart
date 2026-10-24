@@ -3,10 +3,10 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
-import '../../type.dart';
 import '../acceleration/blas/blas.dart';
 import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
+import '../type/data_type.dart';
 import 'vector.dart';
 
 /// Zero-cost extension type wrapping [Vector<double>] with direct [Float64List]

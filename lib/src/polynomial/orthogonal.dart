@@ -1,4 +1,4 @@
-import '../../type.dart';
+import '../type/data_type.dart';
 import 'polynomial.dart';
 
 /// Supported orthogonal polynomial families for recurrence generation and

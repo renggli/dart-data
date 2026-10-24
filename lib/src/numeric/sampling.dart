@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
-import '../../linear.dart';
-import '../../type.dart';
+import '../linear/vector.dart';
 import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
+import '../type/data_type.dart';
 
 /// A single continuous polyline segment of a sampled 1D curve.
 typedef CurveSegment = ({Vector<double> x, Vector<double> y});

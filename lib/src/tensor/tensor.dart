@@ -1,6 +1,6 @@
 import 'package:meta/meta.dart';
 
-import '../../type.dart';
+import '../type/data_type.dart';
 import '../type/utils/memory.dart';
 import 'layout.dart';
 import 'operations/operation.dart';

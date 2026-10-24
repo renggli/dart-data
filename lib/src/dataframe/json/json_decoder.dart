@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
-import '../../../type.dart';
+import '../../type/data_type.dart';
 import '../dataframe.dart';
 import '../series.dart';
 import 'json_orient.dart';

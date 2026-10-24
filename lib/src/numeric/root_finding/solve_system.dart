@@ -1,4 +1,5 @@
-import '../../../linear.dart';
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
 
 /// Solves a system of equations $F(\mathbf{x}) = \mathbf{0}$ using multivariate
 /// Newton-Raphson iteration.

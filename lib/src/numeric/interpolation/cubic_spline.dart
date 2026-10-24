@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/solvers/tridiagonal.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 import 'interpolator.dart';
 import 'search.dart';
 

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 import '../calculus/gradient.dart' as calculus;
 import 'nelder_mead.dart';
 import 'optimization_types.dart';

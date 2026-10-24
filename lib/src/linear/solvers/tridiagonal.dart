@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import '../../../type.dart';
 import '../../tensor/layout.dart';
 import '../../tensor/tensor.dart';
+import '../../type/data_type.dart';
 import '../vector.dart';
 
 /// Solves a tridiagonal linear system $A x = d$ in $\mathcal{O}(N)$ time using

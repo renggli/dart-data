@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
-import '../../type.dart';
 import '../linear/decomposition/eigenvalue.dart';
 import '../linear/matrix.dart';
 import '../linear/vector.dart';
+import '../type/data_type.dart';
 import 'descriptive.dart';
 
 /// Result of Principal Component Analysis (PCA).

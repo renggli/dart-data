@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 
-import '../../linear.dart';
-import '../../type.dart';
+import 'package:more/number.dart' show Complex;
+
+import '../linear/decomposition/eigenvalue.dart';
+import '../linear/matrix.dart';
+import '../type/data_type.dart';
 import 'impl/compressed_polynomial.dart';
 import 'impl/dense_polynomial.dart';
 import 'orthogonal.dart' as orthogonal;

@@ -1,4 +1,7 @@
-import '../../../type.dart';
+import 'package:more/number.dart' show Complex;
+
+import '../../type/data_type.dart';
+import '../../type/models/field.dart';
 import '../polynomial.dart';
 import 'dense_polynomial.dart';
 import 'formatting.dart';

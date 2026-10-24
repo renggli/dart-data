@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 import 'ode_method.dart';
 import 'ode_solution.dart';
 

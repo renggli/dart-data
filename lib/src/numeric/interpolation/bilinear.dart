@@ -1,5 +1,6 @@
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 import 'interpolator.dart';
 import 'search.dart';
 

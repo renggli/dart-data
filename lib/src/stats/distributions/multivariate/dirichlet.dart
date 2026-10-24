@@ -2,10 +2,10 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
-import '../../../../type.dart';
 import '../../../linear/matrix.dart';
 import '../../../linear/vector.dart';
 import '../../../special/gamma.dart';
+import '../../../type/data_type.dart';
 import '../continuous/gamma.dart';
 import 'multivariate_distribution.dart';
 

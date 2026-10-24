@@ -26,3 +26,7 @@ dev_dependencies:
   lints: ^6.1.0
   test: ^1.33.0
   web: ^1.1.2
+dependency_overrides:
+  more:
+    git:
+      url: https://github.com/renggli/dart-more.git

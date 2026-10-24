@@ -1,5 +1,6 @@
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 import '../calculus/gradient.dart' as calculus;
 
 /// Quasi-Newton Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm.

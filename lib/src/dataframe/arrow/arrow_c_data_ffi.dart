@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 
-import '../../../type.dart';
+import '../../type/data_type.dart';
 import '../arrow_string_series.dart';
 import '../bitmask.dart';
 import '../dataframe.dart';

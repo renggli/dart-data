@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 
 /// Computes the Jacobian matrix $J_{i, j} = \frac{\partial f_i}{\partial x_j}$
 /// of vector function [function] at [point].

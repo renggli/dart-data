@@ -2,7 +2,7 @@ import 'dart:convert' show utf8;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../type.dart';
+import '../type/data_type.dart';
 import 'bitmask.dart';
 import 'series.dart';
 

@@ -2,10 +2,10 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
-import '../../../../type.dart';
 import '../../../linear/decomposition/cholesky.dart';
 import '../../../linear/matrix.dart';
 import '../../../linear/vector.dart';
+import '../../../type/data_type.dart';
 import '../continuous/normal.dart';
 import 'multivariate_distribution.dart';
 

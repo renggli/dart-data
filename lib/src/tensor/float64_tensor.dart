@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
-import '../../type.dart';
+import '../type/data_type.dart';
 import 'layout.dart';
 import 'operations/operation.dart';
 import 'tensor.dart';

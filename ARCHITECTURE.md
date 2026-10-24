@@ -321,7 +321,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - `lib/src/acceleration/lapack/`: Linear system solvers and matrix decompositions in `Lapack`.
   - `lib/src/acceleration/fft/`: In-place 1D and 2D complex and real Fast Fourier Transforms in `Fft`.
   - `lib/src/acceleration/vforce/`: Vectorized transcendental functions, reductions, and 1D convolutions in `Vforce`.
-  - `lib/src/acceleration/utils/`: Shared dynamic library resolution and platform symbol probing (`library_loader.dart`).
+  - `lib/src/acceleration/utils/`: Shared dynamic library resolution and platform symbol probing (`library_loader_ffi.dart`).
 - **Acceleration Coordination**: `AccelerationManager` serves as a lightweight coordinator controlling execution `mode` (`AccelerationMode.auto`, `AccelerationMode.accelerated`, `AccelerationMode.dart`) and reporting active hardware acceleration status (`isAccelerated`). Each domain module exposes its own `isAvailable` boolean flag.
 
 ### 5.2 Dynamic Library Discovery & Platform Detection

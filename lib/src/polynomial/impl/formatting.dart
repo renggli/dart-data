@@ -1,4 +1,4 @@
-import '../../../type.dart';
+import '../../type/data_type.dart';
 
 /// Formats polynomial terms in descending degree order into a mathematical string.
 String formatPolynomialTerms<T>(

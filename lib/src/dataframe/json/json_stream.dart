@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import '../../../type.dart';
+import '../../type/data_type.dart';
 import '../dataframe.dart';
 import 'json_decoder.dart';
 

@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../../type.dart';
 import '../../acceleration/blas/blas.dart';
 import '../../acceleration/vforce/vforce.dart';
+import '../../type/data_type.dart';
 import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';

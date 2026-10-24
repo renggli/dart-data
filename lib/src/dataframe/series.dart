@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import '../../type.dart';
+import '../type/data_type.dart';
 import 'arrow/arrow_c_data.dart';
 import 'arrow_string_series.dart';
 import 'bitmask.dart';

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
-import '../../../type.dart';
+import '../../type/data_type.dart';
 import '../arrow_string_series.dart';
 import '../bitmask.dart';
 import '../dataframe.dart';

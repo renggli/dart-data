@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
-import '../../../type.dart';
+import 'package:more/number.dart' show Complex;
+
 import '../../acceleration/fft/fft.dart';
+import '../../type/data_type.dart';
 import '../polynomial.dart';
 import 'compressed_polynomial.dart';
 import 'formatting.dart';

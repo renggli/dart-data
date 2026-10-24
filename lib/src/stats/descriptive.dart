@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../type.dart';
 import '../acceleration/vforce/vforce.dart';
 import '../linear/matrix.dart';
 import '../linear/vector.dart';
 import '../tensor/tensor.dart';
+import '../type/data_type.dart';
 
 /// Returns the arithmetic mean of [values], or [double.nan] if empty.
 ///

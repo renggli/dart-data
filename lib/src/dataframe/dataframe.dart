@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../type.dart';
 import '../linear/matrix.dart';
 import '../tensor/tensor.dart';
+import '../type/data_type.dart';
 import 'arrow/arrow_c_data.dart';
 import 'arrow/arrow_ipc.dart';
 import 'csv/csv_reader.dart';

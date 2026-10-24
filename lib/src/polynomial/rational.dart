@@ -1,4 +1,6 @@
-import '../../type.dart';
+import 'package:more/number.dart' show Complex;
+
+import '../type/data_type.dart';
 import 'polynomial.dart';
 
 /// Rational function $R(x) = \frac{P(x)}{Q(x)}$ representing the ratio of two

@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../../type.dart';
+import 'package:more/number.dart' show Complex;
+
 import '../../acceleration/blas/cblas_constants.dart';
 import '../../acceleration/lapack/lapack.dart';
+import '../../type/data_type.dart';
 import '../matrix.dart';
 
 /// Extension methods providing Eigenvalue decomposition on numeric matrices.

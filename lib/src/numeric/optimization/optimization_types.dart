@@ -1,4 +1,4 @@
-import '../../../linear.dart';
+import '../../linear/vector.dart';
 
 /// Method used for numerical optimization.
 enum OptimizationMethod {

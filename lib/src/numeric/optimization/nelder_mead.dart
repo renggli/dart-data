@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 
 /// Derivative-free Nelder-Mead downhill simplex algorithm.
 ({Vector<double> point, double value, int iterations, bool converged})

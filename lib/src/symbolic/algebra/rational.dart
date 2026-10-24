@@ -1,4 +1,4 @@
-import '../../../linear.dart';
+import '../../linear/matrix.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../linear/bareiss.dart';

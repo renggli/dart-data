@@ -1,4 +1,4 @@
-import '../../type.dart';
+import '../type/data_type.dart';
 import 'vector.dart';
 
 /// Extension methods for orthogonal vector projection and rejection.

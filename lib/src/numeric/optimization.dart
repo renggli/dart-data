@@ -1,5 +1,5 @@
-import '../../linear.dart';
-import '../../type.dart';
+import '../linear/vector.dart';
+import '../type/data_type.dart';
 import 'optimization/brent.dart';
 import 'optimization/constrained.dart';
 import 'optimization/nelder_mead.dart';

@@ -69,8 +69,13 @@
 
 ## Architecture
 
-- Keep the root `lib/` directory clean. It should primarily contain the public API exports.
-- Place implementation details in `lib/src/`. Users of the package should not import files from `lib/src/` directly.
+- Keep the root `lib/` directory clean. Root files (`lib/*.dart`) are pure public API export facades and the umbrella `lib/data.dart`. Do not put implementation logic in root `lib/*.dart`.
+- Place implementation details in `lib/src/<library>/`. Users of the package should not import files from `lib/src/` directly.
+- Nothing must depend on the umbrella library `lib/data.dart`.
+- The sub-library dependency graph (the dependencies between `lib/src/<library>/` directories) must form a strict Directed Acyclic Graph (DAG) with zero cycles.
+- Place cross-cutting utilities without domain coupling in `lib/src/shared/` to prevent circular dependencies between sub-libraries.
+- Avoid hyper-fragmenting tightly coupled classes into single-class micro-files (e.g., base classes and private or factory subclasses should be co-located in the same file).
+- Verify dependency structure by running `dart test test/deps_test.dart`.
 - Avoid introducing new external dependencies in `pubspec.yaml` unless absolutely necessary and no alternative exists in the SDK. Justify any addition to the user.
 - Consult [ARCHITECTURE.md](ARCHITECTURE.md) for detailed technical specifications, subsystem architecture, invariants, and design constraints across all subsystems. Always keep [ARCHITECTURE.md](ARCHITECTURE.md) up-to-date when modifying architecture, introducing new subsystems, or altering invariants and contracts.
 

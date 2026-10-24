@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
-import '../../../linear.dart';
-import '../../../type.dart';
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
 import 'interpolator.dart';
 
 /// 2D Bicubic surface interpolation over a rectilinear grid with $C^1$

@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../../type.dart';
+import 'package:more/number.dart' show Complex;
+
+import '../../type/data_type.dart';
 import '../matrix.dart';
 import '../vector.dart';
 

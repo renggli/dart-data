@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../type.dart';
+import 'package:more/number.dart' show Complex;
+
 import '../acceleration/blas/blas.dart';
 import '../acceleration/blas/cblas_constants.dart';
 import '../acceleration/lapack/lapack.dart';
@@ -9,6 +10,7 @@ import '../tensor/layout.dart';
 import '../tensor/operations/matmul.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
+import '../type/data_type.dart';
 import 'decomposition/lu.dart';
 import 'decomposition/qr.dart';
 import 'operator.dart';
