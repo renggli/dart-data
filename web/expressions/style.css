@@ -143,20 +143,6 @@
   display: none;
 }
 
-/* 2-Column Responsive Layout for Expressions Cards */
-.cards-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-@media (min-width: 960px) {
-  .cards-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 /* Subtle Numeric Approximation Icon */
 .numeric-icon {
   display: inline-block;
@@ -175,59 +161,3 @@
   overflow: hidden;
 }
 
-/* Ample Card Interior & Fixed-Size Formula Display */
-.card {
-  padding: 20px 22px;
-}
-
-.card-title {
-  min-height: 36px;
-}
-
-.attributes-list {
-  gap: 10px;
-}
-
-.attr-item {
-  height: 56px;
-  min-height: 56px;
-  max-height: 56px;
-  padding: 0 14px;
-  overflow: hidden;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.attr-value-container {
-  height: 100%;
-}
-
-.attr-value {
-  display: inline-flex;
-  align-items: center;
-  height: 100%;
-  flex: 0 1 auto;
-  max-width: 100%;
-  text-align: left;
-  padding: 0 2px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  text-overflow: clip;
-  white-space: nowrap;
-  scrollbar-width: thin;
-}
-
-.attr-value math {
-  font-size: 18px;
-  line-height: 1.45;
-  padding: 2px 0;
-  max-width: none;
-}
-
-.attr-value::-webkit-scrollbar {
-  height: 3px;
-}
-
-.attr-value::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-}

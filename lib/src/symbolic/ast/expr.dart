@@ -210,7 +210,7 @@ sealed class Expr {
   Expr pow(Object exponent) => Pow(this, Expr.wrap(exponent));
 
   @override
-  String toString() => formatExpr(this);
+  String toString() => toText(decimalPlaces: null);
 
   static Expr _wrapNum(num value) {
     if (!value.isFinite) {

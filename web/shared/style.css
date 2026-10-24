@@ -344,6 +344,23 @@ body {
 }
 
 /* Cards & Glassmorphism */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 800px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card-full {
+  grid-column: 1 / -1 !important;
+}
+
 .card {
   background-color: rgba(30, 41, 59, 0.4);
   border: 1px solid var(--border-color);
@@ -397,15 +414,17 @@ body {
 
 /* Top Analytics Grid */
 .top-analytics-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 24px;
   margin-bottom: 24px;
   transition: all 0.3s ease;
 }
 
-.top-analytics-grid > .card {
-  flex: 1 1 320px;
+@media (min-width: 900px) {
+  .top-analytics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 /* Form Controls */
@@ -523,8 +542,9 @@ body {
 .attr-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 7px 12px;
+  min-height: 36px;
   background-color: rgba(15, 23, 42, 0.2);
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -544,11 +564,21 @@ body {
   color: var(--text-secondary);
   flex-shrink: 0;
   white-space: nowrap;
+  line-height: 20px;
+  padding-top: 1px;
+}
+
+.attr-label math {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 14px;
+  line-height: 1;
+  color: inherit;
 }
 
 .attr-value-container {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   min-width: 0;
   flex: 1;
@@ -564,10 +594,21 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  max-width: 100%;
   text-align: right;
   flex: 1;
+  line-height: 20px;
   user-select: text;
-  cursor: default;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.attr-value:hover {
+  color: var(--accent-purple);
+}
+
+.attr-value.copied {
+  color: var(--accent-emerald) !important;
 }
 
 .attr-value math {
@@ -577,6 +618,67 @@ body {
   line-height: 1.4;
   color: inherit;
   max-width: 100%;
+}
+
+/* Scrollable attribute variation for long content/bytecode */
+.attr-item.attr-scroll {
+  align-items: flex-start;
+}
+
+.attr-item.attr-scroll .attr-value {
+  white-space: pre;
+  text-align: left;
+  max-height: 180px;
+  overflow-y: auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  font-size: 11px;
+  line-height: 1.45;
+  padding: 2px 4px;
+  cursor: text;
+}
+
+.attr-item.attr-scroll .attr-value:hover {
+  color: var(--text-primary);
+}
+
+.attr-item.attr-scroll .attr-value::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.attr-item.attr-scroll .attr-value::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.attr-item .copy-btn {
+  opacity: 0.4;
+}
+
+.attr-item:hover .copy-btn {
+  opacity: 1;
+}
+
+.copy-btn:hover {
+  color: var(--accent-purple);
+  background-color: rgba(168, 85, 247, 0.1);
 }
 
 .copy-btn.copied {
@@ -634,7 +736,7 @@ body {
   transition: all 0.3s ease;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 900px) {
   .charts-layout {
     grid-template-columns: 1fr 1fr;
   }
@@ -915,6 +1017,7 @@ body {
 
   .main-content {
     margin-left: 0;
+    max-width: 100vw;
     padding: 20px;
   }
 }
@@ -934,12 +1037,8 @@ body {
   }
 
   .top-analytics-grid {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     gap: 16px;
-  }
-
-  .top-analytics-grid > .card {
-    flex: 1 1 100%;
   }
 
   .charts-layout {

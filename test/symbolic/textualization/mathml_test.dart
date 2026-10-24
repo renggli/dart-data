@@ -26,6 +26,18 @@ void main() {
             .equals('<mn>1.5</mn>');
         check(const RealNumber(-1.5).toMathMl(root: false))
             .equals('<mrow><mo form="prefix">&minus;</mo><mn>1.5</mn></mrow>');
+        check(const RealNumber(1.875).toMathMl(root: false))
+            .equals('<mn>1.875</mn>');
+        check(const RealNumber(1.0530000000000002).toMathMl(root: false))
+            .equals('<mn>1.053</mn>');
+        check(
+          const RealNumber(1.0530000000000002)
+              .toMathMl(root: false, decimalPlaces: 2),
+        ).equals('<mn>1.05</mn>');
+        check(
+          const RealNumber(1.0530000000000002)
+              .toMathMl(root: false, decimalPlaces: null),
+        ).equals('<mn>1.0530000000000002</mn>');
         check(Constant.pi.toMathMl()).equals('<math><mi>π</mi></math>');
 
         check(ComplexNumber.i.toMathMl(root: false)).equals('<mi>i</mi>');
@@ -89,7 +101,7 @@ void main() {
         check(Mul(const []).toMathMl(root: false)).equals('<mn>1</mn>');
         check(Mul([x]).toMathMl(root: false)).equals('<mi>x</mi>');
         check(Mul([IntegerNumber.of(-2), x]).toMathMl(root: false)).equals(
-          '<mrow><mo form="prefix">&minus;</mo><mn>2</mn><mspace width="0.167em"/><mi>x</mi></mrow>',
+          '<mrow><mo form="prefix">&minus;</mo><mn>2</mn><mi>x</mi></mrow>',
         );
         check(Mul([IntegerNumber.negativeOne, x + y]).toMathMl(root: false))
             .equals(
@@ -99,7 +111,7 @@ void main() {
         check(Expr.parse('sqrt(x)').toMathMl())
             .equals('<math><msqrt><mrow><mi>x</mi></mrow></msqrt></math>');
         check(Expr.parse('1/6 * (2 + 2 * sqrt(13))').toMathMl()).equals(
-          '<math><mfrac><mrow><mn>2</mn><mo>+</mo><mrow><mn>2</mn><mspace width="0.167em"/><msqrt><mrow><mn>13</mn></mrow></msqrt></mrow></mrow><mn>6</mn></mfrac></math>',
+          '<math><mfrac><mrow><mn>2</mn><mo>+</mo><mrow><mn>2</mn><msqrt><mrow><mn>13</mn></mrow></msqrt></mrow></mrow><mn>6</mn></mfrac></math>',
         );
         check(Expr.parse('x^(1/3)').toMathMl()).equals(
           '<math><mroot><mrow><mi>x</mi></mrow><mn>3</mn></mroot></math>',
@@ -232,10 +244,10 @@ void main() {
         ).toMathMl(root: false),
       ).contains('<mo>&minus;</mo>');
       check(Expr.parse('sum(2 * abs(x), x, 1, n)').toMathMl()).equals(
-        '<math><mrow><munderover><mo>&#x2211;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mspace width="0.167em"/><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
+        '<math><mrow><munderover><mo>&#x2211;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
       );
       check(Expr.parse('product(2 * abs(x), x, 1, n)').toMathMl()).equals(
-        '<math><mrow><munderover><mo>&#x220F;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mspace width="0.167em"/><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
+        '<math><mrow><munderover><mo>&#x220F;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
       );
 
       check(Expr.parse('piecewise(x < 0, -x, x)').toMathMl(root: false))
@@ -272,9 +284,8 @@ void main() {
         '<math><mrow><msubsup><mo>&#x222B;</mo><mn>0</mn><mn>1</mn></msubsup><mi>t</mi><mspace width="thinmathspace"/><mi>d</mi><mi>t</mi></mrow></math>',
       );
 
-      check(Expr.parse('2 * x').toMathMl()).equals(
-        '<math><mrow><mn>2</mn><mspace width="0.167em"/><mi>x</mi></mrow></math>',
-      );
+      check(Expr.parse('2 * x').toMathMl())
+          .equals('<math><mrow><mn>2</mn><mi>x</mi></mrow></math>');
       check(Mul([FractionNumber.negativeHalf, x]).toMathMl()).equals(
         '<math><mrow><mo form="prefix">&minus;</mo><mfrac><mi>x</mi><mn>2</mn></mfrac></mrow></math>',
       );
@@ -286,21 +297,19 @@ void main() {
       ).equals(
         '<mrow><mi>x</mi><mo>&minus;</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
       );
-      check(Expr.parse('2 * x * y').toMathMl()).equals(
-        '<math><mrow><mn>2</mn><mspace width="0.167em"/><mi>x</mi><mspace width="0.167em"/><mi>y</mi></mrow></math>',
-      );
-      check(Expr.parse('ab * c').toMathMl()).equals(
-        '<math><mrow><mi>ab</mi><mspace width="0.167em"/><mi>c</mi></mrow></math>',
-      );
+      check(Expr.parse('2 * x * y').toMathMl())
+          .equals('<math><mrow><mn>2</mn><mi>x</mi><mi>y</mi></mrow></math>');
+      check(Expr.parse('ab * c').toMathMl())
+          .equals('<math><mrow><mi>ab</mi><mi>c</mi></mrow></math>');
       check(Mul([IntegerNumber.two, IntegerNumber.of(3)]).toMathMl()).equals(
         '<math><mrow><mn>2</mn><mo>&#x22c5;</mo><mn>3</mn></mrow></math>',
       );
       check(Expr.parse('(x - 1) * (x + 1)').toMathMl()).equals(
-        '<math><mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&minus;</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.167em"/><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></math>',
+        '<math><mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&minus;</mo><mn>1</mn></mrow><mo>)</mo></mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></math>',
       );
       check(Mul([IntegerNumber.negativeOne, x, const Variable('y')]).toMathMl())
           .equals(
-            '<math><mrow><mo form="prefix">&minus;</mo><mrow><mi>x</mi><mspace width="0.167em"/><mi>y</mi></mrow></mrow></math>',
+            '<math><mrow><mo form="prefix">&minus;</mo><mrow><mi>x</mi><mi>y</mi></mrow></mrow></math>',
           );
     });
   });

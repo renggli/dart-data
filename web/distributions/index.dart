@@ -46,14 +46,22 @@ late web.HTMLButtonElement btnSample10;
 late web.HTMLButtonElement btnSample100;
 late web.HTMLButtonElement btnSample1000;
 late web.HTMLButtonElement btnSampleClear;
-late web.HTMLButtonElement btnSampleCopyAll;
 
 late web.HTMLElement sampleCountBadge;
-late web.HTMLElement samplesChipsContainer;
+late web.HTMLElement samplesText;
 
 late web.HTMLElement eMean;
 late web.HTMLElement eVariance;
 late web.HTMLElement eStdDev;
+
+// Quantile & Probability interactive calculator
+late web.HTMLInputElement calcPSlider;
+late web.HTMLInputElement calcPInput;
+late web.HTMLElement valQuantile;
+late web.HTMLElement valCdfEval;
+late web.HTMLElement valSurvivalEval;
+late web.HTMLElement valPdfEval;
+double currentEvalP = 0.50;
 
 /// Prettily formats statistical results.
 String formatVal(num value) => formatNumber(value);
@@ -101,17 +109,40 @@ void main() {
       web.document.querySelector('#btn-sample-1000') as web.HTMLButtonElement;
   btnSampleClear =
       web.document.querySelector('#btn-sample-clear') as web.HTMLButtonElement;
-  btnSampleCopyAll = web.document.querySelector(
-    '#btn-sample-copy-all',
-  ) as web.HTMLButtonElement;
   sampleCountBadge =
       web.document.querySelector('#sample-count-badge') as web.HTMLElement;
-  samplesChipsContainer =
-      web.document.querySelector('#samples-chips') as web.HTMLElement;
+  samplesText = web.document.querySelector('#samples-text') as web.HTMLElement;
 
   eMean = web.document.querySelector('#e-mean') as web.HTMLElement;
   eVariance = web.document.querySelector('#e-variance') as web.HTMLElement;
   eStdDev = web.document.querySelector('#e-stddev') as web.HTMLElement;
+
+  calcPSlider =
+      web.document.querySelector('#calc-p-slider') as web.HTMLInputElement;
+  calcPInput =
+      web.document.querySelector('#calc-p-input') as web.HTMLInputElement;
+  valQuantile = web.document.querySelector('#val-quantile') as web.HTMLElement;
+  valCdfEval = web.document.querySelector('#val-cdf-eval') as web.HTMLElement;
+  valSurvivalEval =
+      web.document.querySelector('#val-survival-eval') as web.HTMLElement;
+  valPdfEval = web.document.querySelector('#val-pdf-eval') as web.HTMLElement;
+
+  void updateEvalP(double p) {
+    currentEvalP = p.clamp(0.0, 1.0);
+    calcPSlider.value = currentEvalP.toString();
+    calcPInput.value = currentEvalP.toStringAsFixed(2);
+    updateQuantileCalculator();
+  }
+
+  calcPSlider.onInput.listen((_) {
+    final val = double.tryParse(calcPSlider.value) ?? 0.50;
+    updateEvalP(val);
+  });
+
+  calcPInput.onInput.listen((_) {
+    final val = double.tryParse(calcPInput.value) ?? 0.50;
+    updateEvalP(val);
+  });
 
   // Initialize universal copy handler
   initGlobalCopyHandler();
@@ -125,23 +156,6 @@ void main() {
   btnSample100.onClick.listen((_) => drawSamples(100));
   btnSample1000.onClick.listen((_) => drawSamples(1000));
   btnSampleClear.onClick.listen((_) => clearSamples());
-  btnSampleCopyAll.onClick.listen((_) {
-    if (generatedSamples.isNotEmpty) {
-      final text = generatedSamples
-          .map(
-            (sample) => activeDef.isContinuous
-                ? sample.toStringAsFixed(4)
-                : sample.toInt().toString(),
-          )
-          .join('\n');
-      copyToClipboard(text);
-      showCopyToast('${generatedSamples.length} samples');
-      btnSampleCopyAll.classList.add('copied');
-      Future.delayed(const Duration(milliseconds: 1200), () {
-        btnSampleCopyAll.classList.remove('copied');
-      });
-    }
-  });
 
   // Listen to Window resizing for responsive graphics redraw
   web.window.addEventListener(
@@ -453,7 +467,7 @@ void loadFromUrlHash() {
   }
 
   final defToLoad =
-      targetDef ?? distributions.firstWhere((d) => d.id == 'normal');
+      targetDef ?? distributions.firstWhere((d) => d.isContinuous);
 
   if (!isAppInitialized) {
     selectDistribution(defToLoad, parameterOverrides: targetOverrides);
@@ -496,6 +510,7 @@ void recreateDistribution() {
   );
   clearSamples(redraw: false);
   updateTelemetry();
+  updateQuantileCalculator();
   drawCharts();
   updateEmpiricalStats();
   updateUrlHash();
@@ -522,6 +537,41 @@ void updateTelemetry() {
     setAttrValue(valBounds, buffer.toString());
   } catch (_) {
     setAttrValue(valBounds, '[-]');
+  }
+}
+
+/// Evaluates probability density (continuous) or mass (discrete) correctly
+/// handling generic type requirements.
+double evalDistProbability(num x) {
+  if (activeDef.isContinuous) {
+    return (activeDist as Distribution<double>).probability(x.toDouble());
+  } else {
+    return (activeDist as Distribution<int>).probability(x.round());
+  }
+}
+
+/// Update quantile and probability evaluation card.
+void updateQuantileCalculator() {
+  try {
+    final q = activeDist.inverseCumulativeProbability(currentEvalP);
+    setAttrValue(valQuantile, formatNumber(q));
+
+    // Evaluate cumulative CDF at q
+    final cdfAtQ = activeDist.cumulativeProbability(q);
+    setAttrValue(valCdfEval, formatNumber(cdfAtQ));
+
+    // Survival at q
+    final survAtQ = activeDist.survival(q);
+    setAttrValue(valSurvivalEval, formatNumber(survAtQ));
+
+    // Density / Mass at q
+    final pdfAtQ = evalDistProbability(q);
+    setAttrValue(valPdfEval, formatNumber(pdfAtQ));
+  } catch (_) {
+    setAttrValue(valQuantile, '-');
+    setAttrValue(valCdfEval, '-');
+    setAttrValue(valSurvivalEval, '-');
+    setAttrValue(valPdfEval, '-');
   }
 }
 
@@ -578,6 +628,18 @@ Map<String, double> getGraphBounds() {
     if (upperFinite) {
       maxX = math.min(maxX, upper.toDouble());
     }
+  }
+
+  // Add padding around bounds so boundary points, lollipops, and jumps are clearly visible
+  final span = maxX - minX;
+  final padding = span > 0 ? span * 0.08 : 1.0;
+  if (!activeDef.isContinuous) {
+    final discretePadding = math.max(1.0, padding);
+    minX -= discretePadding;
+    maxX += discretePadding;
+  } else {
+    minX -= padding;
+    maxX += padding;
   }
 
   // Sanity check
@@ -663,7 +725,7 @@ void renderCanvas(
       final span = iMax - iMin;
       final step = span > 500 ? (span / 500).ceil() : 1;
       for (var k = iMin; k <= iMax; k += step) {
-        final p = activeDist.probability(k.toDouble());
+        final p = evalDistProbability(k);
         if (p.isFinite && p > peak) {
           peak = p;
         }
@@ -938,7 +1000,7 @@ void renderCanvas(
       final step = span > 500 ? (span / 500).ceil() : 1;
 
       for (var k = iMin; k <= iMax; k += step) {
-        final p = activeDist.probability(k.toDouble());
+        final p = evalDistProbability(k);
         if (p.isNaN || p <= 0.0) continue;
 
         final px = toPixelX(k.toDouble());
@@ -1029,7 +1091,7 @@ void renderCanvas(
 
     final yVal = isCdf
         ? activeDist.cumulativeProbability(targetX)
-        : activeDist.probability(targetX);
+        : evalDistProbability(targetX);
     final hasVal = yVal.isFinite && !yVal.isNaN && yVal >= 0.0;
 
     if (hasVal) {
@@ -1067,8 +1129,7 @@ void drawSamples(int count) {
       .toList();
   generatedSamples.addAll(newSamples);
   sampleCountBadge.textContent = generatedSamples.length.toString();
-  btnSampleCopyAll.style.display = 'inline-flex';
-  renderRecentChips(newSamples);
+  updateSamplesDisplay();
   updateEmpiricalStats();
   drawCharts();
 }
@@ -1077,14 +1138,7 @@ void drawSamples(int count) {
 void clearSamples({bool redraw = true}) {
   generatedSamples.clear();
   sampleCountBadge.textContent = '0';
-  btnSampleCopyAll.style.display = 'none';
-  samplesChipsContainer.innerHTML = ''.toJS;
-
-  final noSamplesMsg = web.document.createElement('span') as web.HTMLElement;
-  noSamplesMsg.className = 'samples-empty-msg';
-  noSamplesMsg.textContent =
-      'No samples generated yet. Click a button above to start drawing!';
-  samplesChipsContainer.appendChild(noSamplesMsg);
+  setAttrValue(samplesText, '-');
 
   updateEmpiricalStats();
   if (redraw) {
@@ -1092,55 +1146,22 @@ void clearSamples({bool redraw = true}) {
   }
 }
 
-/// Render samples as chips inside the list. Only shows up to 250.
-void renderRecentChips(List<num> recentDraws) {
-  // If first samples, clear placeholder message
-  if (generatedSamples.length == recentDraws.length) {
-    samplesChipsContainer.innerHTML = ''.toJS;
+/// Update samples field with preview and full clipboard copy data.
+void updateSamplesDisplay() {
+  if (generatedSamples.isEmpty) {
+    setAttrValue(samplesText, '-');
+    return;
   }
 
-  // Add the newly generated ones with a flash animation
-  final int visibleRecent = math.min(recentDraws.length, 60);
-  for (
-    var i = recentDraws.length - visibleRecent;
-    i < recentDraws.length;
-    i++
-  ) {
-    final s = recentDraws[i];
-    final chip = web.document.createElement('span') as web.HTMLElement;
-    chip.className = 'sample-chip new';
-    final formattedVal = activeDef.isContinuous
-        ? s.toStringAsFixed(4)
-        : s.toInt().toString();
-    chip.textContent = formattedVal;
-    chip.style.cursor = 'pointer';
-    chip.title = 'Click to copy: $formattedVal';
-    chip.onClick.listen((_) {
-      copyToClipboard(formattedVal);
-      showCopyToast(formattedVal);
-    });
+  final fullText = generatedSamples
+      .map(
+        (s) => activeDef.isContinuous
+            ? s.toStringAsFixed(4)
+            : s.toInt().toString(),
+      )
+      .join(', ');
 
-    // Prepend to display latest values first
-    if (samplesChipsContainer.firstChild != null) {
-      samplesChipsContainer.insertBefore(
-        chip,
-        samplesChipsContainer.firstChild,
-      );
-    } else {
-      samplesChipsContainer.appendChild(chip);
-    }
-  }
-
-  // Truncate list items inside container to prevent slow rendering
-  final children = samplesChipsContainer.children;
-  if (children.length > 250) {
-    for (var i = children.length - 1; i >= 250; i--) {
-      final child = children.item(i);
-      if (child != null) {
-        samplesChipsContainer.removeChild(child);
-      }
-    }
-  }
+  setAttrValue(samplesText, fullText);
 }
 
 /// Compute empirical statistics of drawn samples and update attributes.

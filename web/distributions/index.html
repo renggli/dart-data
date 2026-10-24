@@ -75,16 +75,16 @@
   <main class="main-content">
     <header class="main-header">
       <div class="header-title-container">
-        <h2 class="page-title" id="dist-title">Normal Distribution</h2>
+        <h2 class="page-title" id="dist-title">Beta Distribution</h2>
         <span class="badge badge-continuous" id="dist-type-badge">Continuous</span>
       </div>
     </header>
     <p class="page-desc" id="dist-description">
-      Normal (or Gaussian) distribution described by the mean or expectation of the distribution and its standard deviation.
+      Defined on the interval [0, 1], characterized by two shape parameters α and β. Extremely useful in Bayesian inference as a conjugate prior for binomial trials.
     </p>
 
     <!-- Top Controls & Analytics Grid -->
-    <section class="top-analytics-grid">
+    <section class="cards-grid">
       <!-- Column 1: Configuration -->
       <div class="card">
         <h3 class="card-title"><span class="card-title-text"><span class="card-icon">⚙️</span> Parameters</span></h3>
@@ -93,7 +93,39 @@
         </div>
       </div>
 
-      <!-- Column 2: Telemetry Stats -->
+      <!-- Column 2: Quantile & Probability -->
+      <div class="card">
+        <h3 class="card-title"><span class="card-title-text"><span class="card-icon">🎯</span> Quantile &amp; Probability</span></h3>
+        <div class="parameter-input-group">
+          <div class="parameter-label-row">
+            <span class="parameter-name">Probability p ∈ [0, 1]</span>
+          </div>
+          <div class="parameter-control-row">
+            <input type="range" class="custom-slider" id="calc-p-slider" min="0" max="1" step="0.01" value="0.5">
+            <input type="number" class="custom-number-input" id="calc-p-input" min="0" max="1" step="0.01" value="0.50">
+          </div>
+        </div>
+        <div class="attributes-list">
+          <div class="attr-item">
+            <span class="attr-label">Quantile Q(p)</span>
+            <span class="attr-value" id="val-quantile">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Cumulative P(X ≤ x)</span>
+            <span class="attr-value" id="val-cdf-eval">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Survival P(X &gt; x)</span>
+            <span class="attr-value" id="val-survival-eval">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Density f(x) / P(k)</span>
+            <span class="attr-value" id="val-pdf-eval">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 3: Mathematical Properties -->
       <div class="card">
         <h3 class="card-title"><span class="card-title-text"><span class="card-icon">📊</span> Mathematical Properties</span></h3>
         <div class="attributes-list">
@@ -132,7 +164,7 @@
         </div>
       </div>
 
-      <!-- Column 3: Sampler -->
+      <!-- Column 4: Sampler -->
       <div class="card">
         <h3 class="card-title"><span class="card-title-text"><span class="card-icon">🎲</span> Random Sampling</span></h3>
         <div class="sampler-controls">
@@ -140,20 +172,14 @@
           <button class="btn btn-primary" id="btn-sample-10">Draw 10</button>
           <button class="btn btn-primary" id="btn-sample-100">Draw 100</button>
           <button class="btn btn-primary" id="btn-sample-1000">Draw 1000</button>
-          <button class="btn btn-secondary" id="btn-sample-clear">Clear Data</button>
-          <div class="sampler-meta">
-            <span>Total: <strong id="sample-count-badge">0</strong></span>
-            <button class="copy-btn" id="btn-sample-copy-all" title="Copy all samples" style="display: none;">
-              <svg class="copy-icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
-          </div>
+          <button class="btn btn-secondary" id="btn-sample-clear">Clear</button>
         </div>
 
-        <!-- Empirical Stats Attributes -->
-        <div class="attributes-list sampler-stats-grid">
+        <div class="attributes-list">
+          <div class="attr-item">
+            <span class="attr-label">Total Drawn</span>
+            <span class="attr-value" id="sample-count-badge">0</span>
+          </div>
           <div class="attr-item">
             <span class="attr-label">Sample Mean</span>
             <span class="attr-value" id="e-mean">-</span>
@@ -166,12 +192,9 @@
             <span class="attr-label">Sample Variance</span>
             <span class="attr-value" id="e-variance">-</span>
           </div>
-        </div>
-
-        <!-- Output View -->
-        <div class="samples-view-container">
-          <div class="samples-chip-container" id="samples-chips">
-            <span class="samples-empty-msg">No samples generated yet. Click a button above to start drawing!</span>
+          <div class="attr-item">
+            <span class="attr-label">Samples</span>
+            <span class="attr-value" id="samples-text" title="Generated samples">-</span>
           </div>
         </div>
       </div>

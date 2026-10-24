@@ -1,6 +1,7 @@
 import 'dart:js_interop';
 import 'dart:math' as math;
 
+import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex;
@@ -46,7 +47,7 @@ int taylorOrder = 3;
 
 bool showFx = true;
 bool showIm = true;
-bool showDfx = false;
+bool showDfx = true;
 bool showD2fx = false;
 bool showD3fx = false;
 bool showTaylor = false;
@@ -107,8 +108,13 @@ late web.HTMLElement toggleLblRoots;
 late web.HTMLElement toggleLblMin;
 late web.HTMLElement toggleLblMax;
 
-// Card 1: Simplification & Normal Forms
-late web.HTMLElement valAlgVerbatim;
+// Card 1: Outputs
+late web.HTMLElement valOutParsed;
+late web.HTMLElement valOutText;
+late web.HTMLElement valOutMathMl;
+late web.HTMLElement valOutLatex;
+
+// Card 2: Simplification & Normal Forms
 late web.HTMLElement valAlgSimplified;
 late web.HTMLElement valAlgExpanded;
 late web.HTMLElement valAlgFactored;
@@ -170,6 +176,20 @@ late web.HTMLElement valCriticalExact;
 late web.HTMLElement valInflectionExact;
 late web.HTMLElement valExtremaMin;
 late web.HTMLElement valExtremaMax;
+
+// Card 12: Bytecode Compilation & VM
+late web.HTMLElement valBcStack;
+late web.HTMLElement valBcRegs;
+late web.HTMLElement bytecodePre;
+
+// Card 11: Multivariable Calculus
+late web.HTMLInputElement inputMvVars;
+late web.HTMLElement valMvFreeVars;
+late web.HTMLElement valMvGrad;
+late web.HTMLElement valMvLaplacian;
+late web.HTMLElement valMvHessian;
+late web.HTMLElement valMvHessianDet;
+late web.HTMLElement valMvStationary;
 
 void main() {
   initDom();
@@ -244,9 +264,15 @@ void initDom() {
   toggleLblMax =
       web.document.querySelector('#toggle-lbl-max') as web.HTMLElement;
 
-  // Card 1
-  valAlgVerbatim =
-      web.document.querySelector('#val-alg-verbatim') as web.HTMLElement;
+  // Card 1: Outputs
+  valOutParsed =
+      web.document.querySelector('#val-out-parsed') as web.HTMLElement;
+  valOutText = web.document.querySelector('#val-out-text') as web.HTMLElement;
+  valOutMathMl =
+      web.document.querySelector('#val-out-mathml') as web.HTMLElement;
+  valOutLatex = web.document.querySelector('#val-out-latex') as web.HTMLElement;
+
+  // Card 2: Simplification & Normal Forms
   valAlgSimplified =
       web.document.querySelector('#val-alg-simplified') as web.HTMLElement;
   valAlgExpanded =
@@ -347,6 +373,26 @@ void initDom() {
       web.document.querySelector('#val-extrema-min') as web.HTMLElement;
   valExtremaMax =
       web.document.querySelector('#val-extrema-max') as web.HTMLElement;
+
+  // Card 12: Bytecode Compilation & VM
+  valBcStack = web.document.querySelector('#val-bc-stack') as web.HTMLElement;
+  valBcRegs = web.document.querySelector('#val-bc-regs') as web.HTMLElement;
+  bytecodePre = web.document.querySelector('#bytecode-pre') as web.HTMLElement;
+
+  // Card 11: Multivariable Calculus
+  inputMvVars =
+      web.document.querySelector('#input-mv-vars') as web.HTMLInputElement;
+  valMvFreeVars =
+      web.document.querySelector('#val-mv-free-vars') as web.HTMLElement;
+  valMvGrad = web.document.querySelector('#val-mv-grad') as web.HTMLElement;
+  valMvLaplacian =
+      web.document.querySelector('#val-mv-laplacian') as web.HTMLElement;
+  valMvHessian =
+      web.document.querySelector('#val-mv-hessian') as web.HTMLElement;
+  valMvHessianDet =
+      web.document.querySelector('#val-mv-hessian-det') as web.HTMLElement;
+  valMvStationary =
+      web.document.querySelector('#val-mv-stationary') as web.HTMLElement;
 }
 
 void buildSidebar() {
@@ -431,6 +477,20 @@ void selectPreset(ExpressionPreset preset) {
   intBStr = preset.defaultIntB;
   inputIntA.value = intAStr;
   inputIntB.value = intBStr;
+
+  if (preset.defaultMvVars != null) {
+    inputMvVars.value = preset.defaultMvVars!;
+  } else {
+    final freeVars =
+        (Expr.tryParse(preset.formula) ?? parsedExpr)?.freeVariables.toList() ??
+        [];
+    if (freeVars.length > 1) {
+      freeVars.sort();
+      inputMvVars.value = freeVars.join(', ');
+    } else {
+      inputMvVars.value = 'x, y';
+    }
+  }
 
   highlightActiveSidebarItem(preset.id);
   updateAll();
@@ -598,6 +658,11 @@ void attachEventListeners() {
     drawCharts();
   });
 
+  // Multivariable variable list input
+  inputMvVars.onInput.listen((_) {
+    updateMultivariableTelemetry();
+  });
+
   // Window resize
   web.window.addEventListener(
     'resize',
@@ -722,8 +787,25 @@ void updateAll() {
   parsedExpr = expr;
   final assumptions = currentAssumptions;
 
-  // Card 1: Simplification & Normal Forms
-  setAttrExpr(valAlgVerbatim, expr);
+  // Card 1: Outputs
+  setAttrExpr(valOutParsed, expr);
+  try {
+    setAttrValue(valOutText, expr.toText());
+  } catch (_) {
+    setAttrValue(valOutText, '-');
+  }
+  try {
+    setAttrValue(valOutMathMl, expr.toMathMl());
+  } catch (_) {
+    setAttrValue(valOutMathMl, '-');
+  }
+  try {
+    setAttrValue(valOutLatex, expr.toLatex());
+  } catch (_) {
+    setAttrValue(valOutLatex, '-');
+  }
+
+  // Card 2: Simplification & Normal Forms
   Expr simplified;
   try {
     simplified = expr.simplify(assumptions: assumptions);
@@ -875,40 +957,45 @@ void updateAll() {
     () => expr!.limit('x', -Constant.infinity, assumptions: assumptions),
   );
 
-  // Compile evaluation closures for plotting
+  // Compile evaluation closures for plotting (slicing auxiliary variables at 1)
+  final plotExpr = _sliceFor1DPlot(expr);
+  final plotD1 = cachedD1 != null ? _sliceFor1DPlot(cachedD1!) : null;
+  final plotD2 = cachedD2 != null ? _sliceFor1DPlot(cachedD2!) : null;
+  final plotD3 = cachedD3 != null ? _sliceFor1DPlot(cachedD3!) : null;
+
   try {
-    fnCompiled = expr.toFunction1D('x');
+    fnCompiled = plotExpr.toFunction1D('x');
   } catch (_) {
     fnCompiled = null;
   }
   try {
-    dfCompiled = cachedD1?.toFunction1D('x');
+    dfCompiled = plotD1?.toFunction1D('x');
   } catch (_) {
     dfCompiled = null;
   }
   try {
-    d2fCompiled = cachedD2?.toFunction1D('x');
+    d2fCompiled = plotD2?.toFunction1D('x');
   } catch (_) {
     d2fCompiled = null;
   }
   try {
-    d3fCompiled = cachedD3?.toFunction1D('x');
+    d3fCompiled = plotD3?.toFunction1D('x');
   } catch (_) {
     d3fCompiled = null;
   }
 
   try {
-    fnComplexCompiled = expr.toComplexFunction1D('x');
+    fnComplexCompiled = plotExpr.toComplexFunction1D('x');
   } catch (_) {
     fnComplexCompiled = null;
   }
   try {
-    dfComplexCompiled = cachedD1?.toComplexFunction1D('x');
+    dfComplexCompiled = plotD1?.toComplexFunction1D('x');
   } catch (_) {
     dfComplexCompiled = null;
   }
   try {
-    d2fComplexCompiled = cachedD2?.toComplexFunction1D('x');
+    d2fComplexCompiled = plotD2?.toComplexFunction1D('x');
   } catch (_) {
     d2fComplexCompiled = null;
   }
@@ -922,6 +1009,8 @@ void updateAll() {
   updatePointTelemetry();
   updateIntegrationTelemetry();
   updateTaylorTelemetry();
+  updateBytecodeTelemetry();
+  updateMultivariableTelemetry();
   detectRootsAndExtrema();
   drawCharts();
 }
@@ -932,7 +1021,10 @@ void clearTelemetry() {
   toggleLblIm.style.display = 'none';
 
   for (final el in [
-    valAlgVerbatim,
+    valOutParsed,
+    valOutText,
+    valOutMathMl,
+    valOutLatex,
     valAlgSimplified,
     valAlgExpanded,
     valAlgFactored,
@@ -974,9 +1066,18 @@ void clearTelemetry() {
     valInflectionExact,
     valExtremaMin,
     valExtremaMax,
+    valBcStack,
+    valBcRegs,
+    valMvFreeVars,
+    valMvGrad,
+    valMvLaplacian,
+    valMvHessian,
+    valMvHessianDet,
+    valMvStationary,
   ]) {
     setAttrExpr(el, null);
   }
+  setAttrValue(bytecodePre, 'No bytecode compiled.');
 }
 
 bool _isUsableSymbolicValue(Expr expr) => !expr.anyNode(
@@ -1162,13 +1263,14 @@ void updateTaylorTelemetry() {
         )
         .simplify(assumptions: assumptions);
     setAttrExpr(taylorPolynomialStr, poly);
+    final plotPoly = _sliceFor1DPlot(poly);
     try {
-      taylorCompiled = poly.toFunction1D('x');
+      taylorCompiled = plotPoly.toFunction1D('x');
     } catch (_) {
       taylorCompiled = null;
     }
     try {
-      taylorComplexCompiled = poly.toComplexFunction1D('x');
+      taylorComplexCompiled = plotPoly.toComplexFunction1D('x');
     } catch (_) {
       taylorComplexCompiled = null;
     }
@@ -1177,6 +1279,173 @@ void updateTaylorTelemetry() {
     setAttrValue(taylorPolynomialStr, 'Undefined');
     taylorCompiled = null;
     taylorComplexCompiled = null;
+  }
+}
+
+String _formatInstruction(int pc, Instruction instr, [List<String>? varNames]) {
+  final opName = instr.op.name.padRight(12);
+  final payload = switch (instr.op) {
+    Op.pushConst =>
+      instr.complexValue.b != 0.0
+          ? '${formatNumber(instr.complexValue.a)} + ${formatNumber(instr.complexValue.b)}i'
+          : formatNumber(instr.realValue),
+    Op.loadVar =>
+      (varNames != null && instr.index < varNames.length)
+          ? 'var[${instr.index}] (${varNames[instr.index]})'
+          : 'var[${instr.index}]',
+    Op.storeReg => 'reg[${instr.index}]',
+    Op.loadReg => 'reg[${instr.index}]',
+    Op.jump => '-> pc ${instr.index}',
+    Op.jumpIfFalse => '-> pc ${instr.index}',
+    Op.evalNode => '${instr.node}',
+    Op.pow when instr.index != 0 => 'mode:${instr.index}',
+    _ => '',
+  };
+  return '${pc.toString().padLeft(3)}: $opName $payload'.trimRight();
+}
+
+void updateBytecodeTelemetry() {
+  final expr = parsedExpr;
+  if (expr == null) {
+    setAttrValue(valBcStack, '-');
+    setAttrValue(valBcRegs, '-');
+    setAttrValue(bytecodePre, 'No bytecode compiled.');
+    return;
+  }
+
+  try {
+    final freeVars = expr.freeVariables.toList()..sort();
+    final evaluator = expr.toBytecode(
+      variables: freeVars.isNotEmpty ? freeVars : ['x'],
+      optimize: true,
+      assumptions: currentAssumptions,
+    );
+    setAttrValue(valBcStack, evaluator.maxStack.toString());
+    setAttrValue(valBcRegs, evaluator.registerCount.toString());
+
+    final buffer = StringBuffer();
+    for (var i = 0; i < evaluator.instructions.length; i++) {
+      buffer.writeln(
+        _formatInstruction(i, evaluator.instructions[i], evaluator.variables),
+      );
+    }
+    final disasm = buffer.toString().trimRight();
+    setAttrValue(
+      bytecodePre,
+      disasm.isNotEmpty ? disasm : '(empty program)',
+      customCopy: disasm.isNotEmpty ? disasm : null,
+    );
+  } catch (e) {
+    setAttrValue(valBcStack, '-');
+    setAttrValue(valBcRegs, '-');
+    setAttrValue(bytecodePre, 'Bytecode compilation failed: $e');
+  }
+}
+
+void updateMultivariableTelemetry() {
+  final expr = parsedExpr;
+  if (expr == null) {
+    setAttrValue(valMvFreeVars, '-');
+    setAttrValue(valMvGrad, '-');
+    setAttrValue(valMvLaplacian, '-');
+    setAttrValue(valMvHessian, '-');
+    setAttrValue(valMvHessianDet, '-');
+    setAttrValue(valMvStationary, '-');
+    return;
+  }
+
+  final freeVars = expr.freeVariables.toList()..sort();
+  setAttrValue(
+    valMvFreeVars,
+    freeVars.isNotEmpty ? freeVars.join(', ') : 'None (constant)',
+  );
+
+  var rawInput = inputMvVars.value.trim();
+  if (rawInput.isEmpty ||
+      (freeVars.length > 1 && !freeVars.any((v) => rawInput.contains(v)))) {
+    rawInput = freeVars.isNotEmpty ? freeVars.join(', ') : 'x';
+    inputMvVars.value = rawInput;
+  }
+
+  final vars = rawInput
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
+
+  if (vars.isEmpty) {
+    setAttrValue(valMvGrad, 'No variables specified');
+    setAttrValue(valMvLaplacian, '-');
+    setAttrValue(valMvHessian, 'No variables specified');
+    setAttrValue(valMvHessianDet, 'No variables specified');
+    setAttrValue(valMvStationary, '-');
+    return;
+  }
+
+  final assumptions = currentAssumptions;
+
+  // Gradient ∇f
+  Vector<Expr>? grad;
+  try {
+    grad = expr.gradient(vars, assumptions: assumptions);
+    setAttrVector(valMvGrad, grad);
+  } catch (_) {
+    setAttrValue(valMvGrad, '-');
+  }
+
+  // Hessian matrix H, determinant |H|, and Laplacian Δf
+  try {
+    final hessian = expr.hessian(vars, assumptions: assumptions);
+
+    // Laplacian Δf = tr(H)
+    try {
+      final diagTerms = <Expr>[
+        for (var i = 0; i < hessian.rowCount; i++) hessian.getUnchecked(i, i),
+      ];
+      final laplacian = Add(diagTerms).simplify(assumptions: assumptions);
+      setAttrExpr(valMvLaplacian, laplacian);
+    } catch (_) {
+      setAttrValue(valMvLaplacian, '-');
+    }
+
+    // Determinant |H|
+    try {
+      final det = hessian.determinant().simplify(assumptions: assumptions);
+      setAttrExpr(valMvHessianDet, det);
+    } catch (_) {
+      setAttrValue(valMvHessianDet, '-');
+    }
+
+    setAttrMatrix(valMvHessian, hessian);
+  } catch (e) {
+    setAttrValue(valMvLaplacian, '-');
+    setAttrValue(valMvHessian, '-');
+    setAttrValue(valMvHessianDet, '-');
+  }
+
+  // Stationary points ∇f = 0
+  if (grad != null) {
+    try {
+      final equations = [for (var i = 0; i < grad.length; i++) grad[i]];
+      final solutions = equations.solve(vars, assumptions: assumptions);
+      if (solutions.isEmpty) {
+        setAttrValue(valMvStationary, 'None found');
+      } else {
+        final formatted = solutions
+            .map((sol) {
+              final entries = sol.entries
+                  .map((e) => '${e.key} = ${e.value.toText()}')
+                  .join(', ');
+              return '($entries)';
+            })
+            .join('; ');
+        setAttrValue(valMvStationary, formatted);
+      }
+    } catch (_) {
+      setAttrValue(valMvStationary, 'Underdetermined');
+    }
+  } else {
+    setAttrValue(valMvStationary, '-');
   }
 }
 
@@ -1891,4 +2160,16 @@ void loadFromUrlHash() {
   );
 
   updateAll();
+}
+
+Expr _sliceFor1DPlot(Expr expr) {
+  final freeVars = expr.freeVariables;
+  if (freeVars.length <= 1) return expr;
+  var sub = expr;
+  for (final v in freeVars) {
+    if (v != 'x') {
+      sub = sub.substitute(v, IntegerNumber.one);
+    }
+  }
+  return sub;
 }

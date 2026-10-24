@@ -67,12 +67,32 @@ extension CompilerExtension on Expr {
     bool optimize = true,
     Assumptions assumptions = Assumptions.none,
   }) {
-    final evaluator = _compileBytecode(
-      variables: [varName],
+    final evaluator = toBytecode(
+      variable: varName,
       optimize: optimize,
       assumptions: assumptions,
     )..checkRealSupported();
     return evaluator.evaluate1D;
+  }
+
+  /// Compiles this expression into an executable [BytecodeEvaluator].
+  BytecodeEvaluator toBytecode({
+    List<String>? variables,
+    String? variable,
+    bool optimize = true,
+    Assumptions assumptions = Assumptions.none,
+  }) {
+    final varList =
+        variables ??
+        (variable != null
+            ? [variable]
+            : (simplify(assumptions: assumptions).freeVariables.toList()
+                ..sort()));
+    return _compileBytecode(
+      variables: varList,
+      optimize: optimize,
+      assumptions: assumptions,
+    );
   }
 
   /// Compiles this expression into a fast complex native Dart function

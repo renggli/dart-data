@@ -13,6 +13,7 @@ class ExpressionPreset {
   final String defaultIntA;
   final String defaultIntB;
   final VariableDomain defaultDomain;
+  final String? defaultMvVars;
 
   const new({
     required this.id,
@@ -26,11 +27,12 @@ class ExpressionPreset {
     this.defaultIntA = '0',
     this.defaultIntB = '2',
     this.defaultDomain = VariableDomain.unknown,
+    this.defaultMvVars,
   });
 }
 
 /// Curated catalog of symbolic mathematical expressions showcasing computer
-/// algebra, exact calculus, series, summations, and equation solving.
+/// algebra, exact calculus, series, summations, multivariable fields, and equation solving.
 final List<ExpressionPreset> expressionPresets = [
   // --- Polynomial & Rational Algebra ---
   const ExpressionPreset(
@@ -58,15 +60,15 @@ final List<ExpressionPreset> expressionPresets = [
     defaultIntB: '1',
   ),
   const ExpressionPreset(
-    id: 'cyclotomic_quartic',
-    name: 'Cyclotomic Quartic Conjugate',
+    id: 'decimal_rationalize',
+    name: 'Floating-Point Rationalization',
     category: 'Polynomial & Rational Algebra',
-    formula: '(x - 1) * (x + 1) * (x^2 + 1)',
-    description: 'Nested conjugate factors expanding to x⁴ - 1 and factoring back, with fourth roots of unity {±1, ±i}.',
+    formula: '1.875 * x^2 + 0.125 * x - 0.33333333',
+    description: 'Demonstrates .rationalize() via continued fractions, converting floating-point approximations into exact rational fractions 15/8 x² + 1/8 x - 1/3.',
     defaultMinX: -2.0,
     defaultMaxX: 2.0,
     defaultPointX: '1',
-    defaultIntA: '-1',
+    defaultIntA: '0',
     defaultIntB: '1',
   ),
   const ExpressionPreset(
@@ -169,17 +171,16 @@ final List<ExpressionPreset> expressionPresets = [
     defaultDomain: VariableDomain.real,
   ),
   const ExpressionPreset(
-    id: 'euler_sine_quotient',
-    name: "Euler's Exponential Sine",
+    id: 'damped_oscillator',
+    name: 'Damped Harmonic Oscillator',
     category: 'Trigonometric & Complex Forms',
-    formula: '(exp(i * x) - exp(-i * x)) / (2 * i)',
-    description: 'Rewrites complex exponential quotient via rewrite(trig) and toRectangular() directly into sin(x).',
-    defaultMinX: -6.5,
-    defaultMaxX: 6.5,
-    defaultPointX: 'pi / 2',
+    formula: 'exp(-x / 4) * cos(2 * x)',
+    description: 'Physics underdamped oscillation exhibiting exponential amplitude decay envelope, infinite sequence of critical extrema, and damped sinusoidal integration.',
+    defaultMinX: -1.0,
+    defaultMaxX: 12.0,
+    defaultPointX: 'pi / 4',
     defaultIntA: '0',
-    defaultIntB: 'pi',
-    defaultDomain: VariableDomain.real,
+    defaultIntB: '2 * pi',
   ),
   const ExpressionPreset(
     id: 'complex_binomial',
@@ -433,6 +434,47 @@ final List<ExpressionPreset> expressionPresets = [
     defaultIntB: '3',
   ),
 
+  // --- Multivariable Calculus ---
+  const ExpressionPreset(
+    id: 'harmonic_saddle',
+    name: 'Harmonic Monkey Saddle',
+    category: 'Multivariable Calculus',
+    formula: 'x^3 - 3*x*y^2',
+    description: 'Harmonic potential satisfying Laplace equation Δf = 0, with Gradient ∇f = [3x² - 3y², -6xy], zero-trace Hessian matrix, and determinant |H| = -36(x² + y²).',
+    defaultMinX: -2.5,
+    defaultMaxX: 2.5,
+    defaultPointX: '1',
+    defaultIntA: '-1',
+    defaultIntB: '1',
+    defaultMvVars: 'x, y',
+  ),
+  const ExpressionPreset(
+    id: 'bivariate_gaussian',
+    name: 'Bivariate 2D Gaussian Bell',
+    category: 'Multivariable Calculus',
+    formula: 'exp(-(x^2 + y^2))',
+    description: 'Radially symmetric bivariate Gaussian bell curve with Gradient ∇f = [-2x·e^(-(x²+y²)), -2y·e^(-(x²+y²))], critical point at (0, 0), and negative definite Hessian.',
+    defaultMinX: -2.5,
+    defaultMaxX: 2.5,
+    defaultPointX: '0',
+    defaultIntA: '-1',
+    defaultIntB: '1',
+    defaultMvVars: 'x, y',
+  ),
+  const ExpressionPreset(
+    id: 'rosenbrock_potential',
+    name: 'Rosenbrock Banana Valley',
+    category: 'Multivariable Calculus',
+    formula: '(1 - x)^2 + 10 * (y - x^2)^2',
+    description: 'Classic non-convex optimization benchmark featuring curved parabolic valley, non-linear mixed partials ∂²f/∂x∂y = -40x, and global minimum at (1, 1).',
+    defaultMinX: -2.0,
+    defaultMaxX: 2.0,
+    defaultPointX: '1',
+    defaultIntA: '0',
+    defaultIntB: '1',
+    defaultMvVars: 'x, y',
+  ),
+
   // --- Transcendental Equations & Special Functions ---
   const ExpressionPreset(
     id: 'lambert_equation',
@@ -457,18 +499,6 @@ final List<ExpressionPreset> expressionPresets = [
     defaultPointX: '1',
     defaultIntA: '1',
     defaultIntB: '2',
-  ),
-  const ExpressionPreset(
-    id: 'affine_exponential',
-    name: 'Affine-Exponential (eˣ = x + 2)',
-    category: 'Equations & Special Functions',
-    formula: 'exp(x) - x - 2',
-    description: 'Solves coupled linear-exponential equation eˣ - x - 2 = 0 in exact closed form using Lambert W branches and finds minimum at x = 0.',
-    defaultMinX: -3.0,
-    defaultMaxX: 2.5,
-    defaultPointX: '0',
-    defaultIntA: '-1',
-    defaultIntB: '1',
   ),
   const ExpressionPreset(
     id: 'lambert_w_branch',

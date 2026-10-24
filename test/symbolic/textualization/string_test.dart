@@ -216,5 +216,22 @@ void main() {
       check(canOmitMulDot(x, IntegerNumber.of(-2))).isFalse();
       check(canOmitMulDot(x, Pow(y, IntegerNumber.negativeOne))).isFalse();
     });
+
+    test('formats real numbers with decimalPlaces parameter', () {
+      const num1 = RealNumber(1.875);
+      const num2 = RealNumber(1.0530000000000002);
+      const num3 = RealNumber(2.0);
+
+      check(num1.toText()).equals('1.875');
+      check(num2.toText()).equals('1.053');
+      check(num3.toText()).equals('2.0');
+
+      check(num2.toText(decimalPlaces: 2)).equals('1.05');
+      check(num2.toString()).equals('1.0530000000000002');
+
+      final expr = const Variable('x') + num2;
+      check(expr.toText()).equals('x + 1.053');
+      check(expr.toText(decimalPlaces: 1)).equals('x + 1.1');
+    });
   });
 }

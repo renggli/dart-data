@@ -128,6 +128,7 @@ export 'src/symbolic/calculus/differentiation.dart'
 export 'src/symbolic/calculus/integration.dart'
     show IntegrationBound, IntegrationExtension;
 export 'src/symbolic/calculus/limit.dart' show LimitExtension;
+export 'src/symbolic/calculus/linear_form.dart' show LinearFormExtension;
 export 'src/symbolic/calculus/multivariable.dart'
     show MultivariableExtension, MultivariableIterableExtension;
 export 'src/symbolic/calculus/series.dart'
@@ -135,6 +136,8 @@ export 'src/symbolic/calculus/series.dart'
 export 'src/symbolic/calculus/summation.dart' show SummationExtension;
 export 'src/symbolic/compiler.dart'
     show CompilerExtension, CompilerIterableExtension;
+export 'src/symbolic/compiler/bytecode.dart' show Instruction, Op;
+export 'src/symbolic/compiler/evaluator.dart' show BytecodeEvaluator;
 export 'src/symbolic/linear/matrix.dart'
     show SymbolicEigenpair, SymbolicMatrixExtension, SymbolicVectorExtension;
 export 'src/symbolic/number/integer.dart' show Integer;
@@ -144,5 +147,6 @@ export 'src/symbolic/solver/system.dart' show SystemSolverExtension;
 export 'src/symbolic/solver/univariate.dart' show SolverExtension;
 export 'src/symbolic/textualization/latex.dart' show LatexExtension;
 export 'src/symbolic/textualization/mathml.dart' show MathMlExtension;
+export 'src/symbolic/textualization/string.dart' show TextExtension;
 export 'src/symbolic/type/expr_data_type.dart'
     show ExprDataType, ExprField, exprDataType;

@@ -1,5 +1,6 @@
 import 'dart:js_interop';
 
+import 'package:data/linear.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
 import 'package:web/web.dart' as web;
@@ -35,23 +36,30 @@ void showCopyToast(String text) {
 }
 
 /// Sets text on an [element] with full title tooltip for hover and data-copy.
-void setAttrValue(web.HTMLElement element, String text) {
+/// If [customCopy] is supplied, copying uses [customCopy] instead of [text].
+void setAttrValue(web.HTMLElement element, String text, {String? customCopy}) {
   element.textContent = text;
   element.title = text;
-  element.setAttribute('data-copy', text);
+  element.setAttribute('data-copy', customCopy ?? text);
 }
 
 /// Renders [expr] using MathML inside [element], setting plain text for copying.
-void setAttrExpr(web.HTMLElement element, Expr? expr) {
+/// If [customCopy] is supplied, copying uses [customCopy] instead.
+void setAttrExpr(
+  web.HTMLElement element,
+  Expr? expr, {
+  int decimalPlaces = 4,
+  String? customCopy,
+}) {
   if (expr == null) {
-    setAttrValue(element, '-');
+    setAttrValue(element, '-', customCopy: customCopy);
     return;
   }
-  final plainText = expr.toString();
+  final plainText = expr.toText(decimalPlaces: decimalPlaces);
   element.title = plainText;
-  element.setAttribute('data-copy', plainText);
+  element.setAttribute('data-copy', customCopy ?? plainText);
   try {
-    final mathMl = expr.toMathMl();
+    final mathMl = expr.toMathMl(decimalPlaces: decimalPlaces);
     element.innerHTML = mathMl.toJS;
   } catch (_) {
     element.textContent = plainText;
@@ -59,21 +67,70 @@ void setAttrExpr(web.HTMLElement element, Expr? expr) {
 }
 
 /// Renders a list of [Expr] separated by commas using MathML inside [element].
+/// If [customCopy] is supplied, copying uses [customCopy] instead.
 void setAttrExprList(
   web.HTMLElement element,
   List<Expr> expressions, {
   String emptyText = 'None found',
+  int decimalPlaces = 4,
+  String? customCopy,
 }) {
   if (expressions.isEmpty) {
-    setAttrValue(element, emptyText);
+    setAttrValue(element, emptyText, customCopy: customCopy);
     return;
   }
-  final plainText = expressions.map((s) => s.toString()).join(', ');
+  final plainText = expressions
+      .map((s) => s.toText(decimalPlaces: decimalPlaces))
+      .join(', ');
   element.title = plainText;
-  element.setAttribute('data-copy', plainText);
+  element.setAttribute('data-copy', customCopy ?? plainText);
   try {
-    final mathList = expressions.map((s) => s.toMathMl()).join(', ');
+    final mathList = expressions
+        .map((s) => s.toMathMl(decimalPlaces: decimalPlaces))
+        .join(', ');
     element.innerHTML = mathList.toJS;
+  } catch (_) {
+    element.textContent = plainText;
+  }
+}
+
+/// Renders a symbolic [Matrix] using MathML inside [element].
+/// If [customCopy] is supplied, copying uses [customCopy] instead.
+void setAttrMatrix(
+  web.HTMLElement element,
+  Matrix<Expr>? matrix, {
+  String? customCopy,
+}) {
+  if (matrix == null) {
+    setAttrValue(element, '-', customCopy: customCopy);
+    return;
+  }
+  final plainText = matrix.format();
+  element.title = plainText;
+  element.setAttribute('data-copy', customCopy ?? plainText);
+  try {
+    element.innerHTML = matrix.toMathMl().toJS;
+  } catch (_) {
+    element.textContent = plainText;
+  }
+}
+
+/// Renders a symbolic [Vector] using MathML inside [element].
+/// If [customCopy] is supplied, copying uses [customCopy] instead.
+void setAttrVector(
+  web.HTMLElement element,
+  Vector<Expr>? vector, {
+  String? customCopy,
+}) {
+  if (vector == null) {
+    setAttrValue(element, '-', customCopy: customCopy);
+    return;
+  }
+  final plainText = vector.format();
+  element.title = plainText;
+  element.setAttribute('data-copy', customCopy ?? plainText);
+  try {
+    element.innerHTML = vector.toMathMl().toJS;
   } catch (_) {
     element.textContent = plainText;
   }
@@ -121,8 +178,8 @@ void injectCopyButtons() {
   }
 }
 
-/// Initializes global event delegation on document body for copy buttons.
-/// Only the copy button triggers clipboard actions.
+/// Initializes global event delegation on document body for copy buttons and copyable values.
+/// Clicking the copy button or a copyable value triggers clipboard actions.
 void initGlobalCopyHandler() {
   injectCopyButtons();
 
@@ -133,17 +190,29 @@ void initGlobalCopyHandler() {
       if (target == null) return;
 
       final copyBtn = target.closest('.copy-btn');
-      if (copyBtn == null) return;
+      final attrValueEl = target.closest('.attr-value');
 
-      final feedbackElement = copyBtn;
+      // Allow either clicking the copy button directly or clicking an .attr-value directly
+      if (copyBtn == null && attrValueEl == null) return;
+
+      if (attrValueEl != null && copyBtn == null) {
+        final selection = web.window.getSelection()?.toString() ?? '';
+        if (selection.trim().isNotEmpty) return;
+      }
+
       final container =
-          copyBtn.closest('.attr-value-container') ??
-          copyBtn.closest('.attr-item') ??
-          copyBtn.parentElement;
+          copyBtn?.closest('.attr-value-container') ??
+          copyBtn?.closest('.attr-item') ??
+          attrValueEl?.closest('.attr-value-container') ??
+          attrValueEl?.closest('.attr-item');
+
       final valEl = container?.querySelector('.attr-value');
+      final activeCopyBtn = container?.querySelector('.copy-btn');
+
       final textToCopy =
-          copyBtn.getAttribute('data-copy') ??
+          copyBtn?.getAttribute('data-copy') ??
           valEl?.getAttribute('data-copy') ??
+          container?.getAttribute('data-copy') ??
           valEl?.textContent;
 
       if (textToCopy != null) {
@@ -153,9 +222,11 @@ void initGlobalCopyHandler() {
             clean.toLowerCase() != 'undefined') {
           copyToClipboard(clean);
           showCopyToast(clean);
-          feedbackElement.classList.add('copied');
+          activeCopyBtn?.classList.add('copied');
+          valEl?.classList.add('copied');
           Future.delayed(const Duration(milliseconds: 1200), () {
-            feedbackElement.classList.remove('copied');
+            activeCopyBtn?.classList.remove('copied');
+            valEl?.classList.remove('copied');
           });
         }
       }

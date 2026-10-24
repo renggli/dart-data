@@ -177,3 +177,26 @@ bool needsNegOperandParens(Expr expr) => switch (expr) {
   _ when startsWithNegative(expr) => true,
   _ => false,
 };
+
+/// Formats a finite floating-point [value] to [decimalPlaces], trimming
+/// redundant trailing zeros while preserving at least one decimal digit for
+/// integer-valued doubles (e.g. `2.0`).
+///
+/// If [decimalPlaces] is `null`, returns standard [double.toString].
+String formatDouble(double value, {int? decimalPlaces = 4}) {
+  if (decimalPlaces == null) return value.toString();
+  final fixed = value.toStringAsFixed(decimalPlaces);
+  if (fixed.contains('.')) {
+    var end = fixed.length;
+    while (end > 0 && fixed[end - 1] == '0') {
+      end--;
+    }
+    if (end > 0 && fixed[end - 1] == '.') {
+      final withZero = '${fixed.substring(0, end)}0';
+      return withZero == '-0.0' ? '0.0' : withZero;
+    }
+    final trimmed = fixed.substring(0, end);
+    return trimmed == '-0.0' ? '0.0' : trimmed;
+  }
+  return fixed == '-0' ? '0' : fixed;
+}

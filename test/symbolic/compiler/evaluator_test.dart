@@ -1,6 +1,5 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/compiler/bytecode.dart';
-import 'package:data/src/symbolic/compiler/evaluator.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';

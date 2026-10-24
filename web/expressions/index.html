@@ -117,12 +117,12 @@
       </div>
     </section>
 
-    <!-- Cards Grid: 8 Symbolic Panels -->
+    <!-- Cards Grid: 12 Symbolic Panels -->
     <section class="cards-grid">
-      <!-- Card 1: Simplification & Normal Forms -->
+      <!-- Card 1: Outputs -->
       <div class="card">
         <h3 class="card-title">
-          <span class="card-title-text"><span class="card-icon">✨</span> Simplification & Normal Forms</span>
+          <span class="card-title-text"><span class="card-icon">📤</span> Outputs</span>
           <span class="card-actions">
             <label class="layer-toggle active" id="toggle-lbl-fx" title="Toggle f(x) curve on plot">
               <input type="checkbox" id="toggle-fx" class="layer-checkbox" checked>
@@ -138,9 +138,30 @@
         </h3>
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label">Parsed AST</span>
-            <span class="attr-value" id="val-alg-verbatim">-</span>
+            <span class="attr-label">Parsed</span>
+            <span class="attr-value" id="val-out-parsed">-</span>
           </div>
+          <div class="attr-item">
+            <span class="attr-label">Text</span>
+            <span class="attr-value" id="val-out-text">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">MathML</span>
+            <span class="attr-value" id="val-out-mathml">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">LaTeX</span>
+            <span class="attr-value" id="val-out-latex">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Simplification & Normal Forms -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">✨</span> Simplification &amp; Normal Forms</span>
+        </h3>
+        <div class="attributes-list">
           <div class="attr-item">
             <span class="attr-label">Simplified</span>
             <span class="attr-value" id="val-alg-simplified">-</span>
@@ -235,8 +256,8 @@
         <h3 class="card-title">
           <span class="card-title-text"><span class="card-icon">📐</span> Differentiation</span>
           <span class="card-actions">
-            <label class="layer-toggle" id="toggle-lbl-dfx" title="Toggle f'(x) derivative on plot">
-              <input type="checkbox" id="toggle-dfx" class="layer-checkbox">
+            <label class="layer-toggle active" id="toggle-lbl-dfx" title="Toggle f'(x) derivative on plot">
+              <input type="checkbox" id="toggle-dfx" class="layer-checkbox" checked>
               <span class="layer-dot" style="background-color: var(--accent-red);"></span>
               <span>f'(x)</span>
             </label>
@@ -308,28 +329,28 @@
 
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label">∫ f(x) dx</span>
+            <span class="attr-label"><math><mo>∫</mo></math> f(x) dx</span>
             <span class="attr-value" id="val-sym-antideriv">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">∫<sub>a</sub><sup>b</sup> f(x) dx</span>
+            <span class="attr-label"><math><msubsup><mo>∫</mo><mi>a</mi><mi>b</mi></msubsup></math> f(x) dx</span>
             <span class="attr-value" id="val-int-definite">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">∫<sub>0</sub><sup>∞</sup> f(x) dx</span>
+            <span class="attr-label"><math><msubsup><mo>∫</mo><mn>0</mn><mi>∞</mi></msubsup></math> f(x) dx</span>
             <span class="attr-value" id="val-int-half-inf">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">∫<sub>-∞</sub><sup>∞</sup> f(x) dx</span>
+            <span class="attr-label"><math><msubsup><mo>∫</mo><mrow><mo>−</mo><mi>∞</mi></mrow><mi>∞</mi></msubsup></math> f(x) dx</span>
             <span class="attr-value" id="val-int-full-inf">-</span>
           </div>
         </div>
       </div>
 
-      <!-- Card 6: Series, Sums & Products -->
+      <!-- Card 7: Taylor Polynomial & Series -->
       <div class="card">
         <h3 class="card-title">
-          <span class="card-title-text"><span class="card-icon">🔬</span> Series, Sums & Products</span>
+          <span class="card-title-text"><span class="card-icon">🔬</span> Taylor Polynomial &amp; Series</span>
           <span class="card-actions">
             <label class="layer-toggle" id="toggle-lbl-taylor" title="Toggle Taylor polynomial on plot">
               <input type="checkbox" id="toggle-taylor" class="layer-checkbox">
@@ -362,22 +383,31 @@
             <span class="attr-label">Taylor P(x)</span>
             <span class="attr-value" id="taylor-polynomial-str">-</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Card 8: Sums & Products -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">∑</span> Sums &amp; Products</span>
+        </h3>
+        <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label">∑<sub>x=1</sub><sup>n</sup> f(x)</span>
+            <span class="attr-label"><math><msubsup><mo>∑</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></msubsup></math> f(x)</span>
             <span class="attr-value" id="val-sym-sum">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Δ<sup>-1</sup> f(x)</span>
+            <span class="attr-label"><math><msup><mi>Δ</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup></math> f(x)</span>
             <span class="attr-value" id="val-sym-antidiff">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">∏<sub>x=1</sub><sup>n</sup> f(x)</span>
+            <span class="attr-label"><math><msubsup><mo>∏</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></msubsup></math> f(x)</span>
             <span class="attr-value" id="val-sym-product">-</span>
           </div>
         </div>
       </div>
 
-      <!-- Card 7: Evaluation & Limits -->
+      <!-- Card 9: Evaluation & Limits -->
       <div class="card">
         <h3 class="card-title">
           <span class="card-title-text"><span class="card-icon">🎯</span> Evaluation & Limits</span>
@@ -417,7 +447,7 @@
         </div>
       </div>
 
-      <!-- Card 8: Equations, Roots & Extrema -->
+      <!-- Card 10: Equations, Roots & Extrema -->
       <div class="card">
         <h3 class="card-title">
           <span class="card-title-text"><span class="card-icon">📍</span> Equations, Roots & Extrema</span>
@@ -459,6 +489,69 @@
           <div class="attr-item">
             <span class="attr-label">Local Maxima</span>
             <span class="attr-value" id="val-extrema-max">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 11: Multivariable Calculus -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">🔀</span> Multivariable Calculus</span>
+        </h3>
+        <div class="parameter-input-group" style="margin-bottom: 12px;">
+          <div class="parameter-label-row" style="margin-bottom: 6px;">
+            <span class="parameter-name">Variable List</span>
+            <span style="font-size: 11px; color: var(--text-muted);">Comma-separated variable names</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="input-mv-vars" class="custom-text-input" value="x, y" style="flex: 1;" aria-label="Multivariable variable names">
+          </div>
+        </div>
+        <div class="attributes-list">
+          <div class="attr-item">
+            <span class="attr-label">Free Variables</span>
+            <span class="attr-value" id="val-mv-free-vars">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Gradient ∇f</span>
+            <span class="attr-value" id="val-mv-grad">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Laplacian Δf</span>
+            <span class="attr-value" id="val-mv-laplacian">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Hessian H</span>
+            <span class="attr-value" id="val-mv-hessian">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Hessian Det |H|</span>
+            <span class="attr-value" id="val-mv-hessian-det">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Stationary ∇f = 0</span>
+            <span class="attr-value" id="val-mv-stationary">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 12: Bytecode Compilation & Virtual Machine -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">⚙️</span> Bytecode Compilation &amp; VM</span>
+        </h3>
+        <div class="attributes-list">
+          <div class="attr-item">
+            <span class="attr-label">Max Stack Depth</span>
+            <span class="attr-value" id="val-bc-stack">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">CSE Registers</span>
+            <span class="attr-value" id="val-bc-regs">-</span>
+          </div>
+          <div class="attr-item attr-scroll">
+            <span class="attr-label">Disassembly</span>
+            <pre class="attr-value" id="bytecode-pre" title="Bytecode Instructions">No bytecode compiled.</pre>
           </div>
         </div>
       </div>

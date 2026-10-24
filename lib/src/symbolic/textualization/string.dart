@@ -2,168 +2,190 @@ import '../ast.dart';
 import '../number/integer.dart';
 import 'formatting.dart';
 
-/// Formats the symbolic [expr] into a clean mathematical string representation
-/// with minimal parentheses based on operator precedence and associativity.
-///
-/// ```dart
-/// final x = Variable('x');
-/// final str = formatExpr(x * x + 1); // 'x * x + 1'
-/// ```
-String formatExpr(Expr expr, [int parentPrec = 0]) {
+/// Plain-text mathematical string serialization extension on [Expr].
+extension TextExtension on Expr {
+  /// Formats this expression into a clean mathematical string representation
+  /// with minimal parentheses based on operator precedence and associativity.
+  ///
+  /// Floating-point numbers are formatted with [decimalPlaces] (default 4).
+  /// If [decimalPlaces] is `null`, full standard precision is preserved.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final str = (x * x + 1).toText(); // 'x * x + 1'
+  /// ```
+  String toText({int? decimalPlaces = 4}) =>
+      _formatExpr(this, 0, decimalPlaces);
+}
+
+String _formatExpr(Expr expr, int parentPrec, int? decimalPlaces) {
   final prec = precedence(expr);
   final formatted = switch (expr) {
     Variable(:final name) => name,
     VariableFunction(:final name, :final arguments) =>
-      '$name(${arguments.map(formatExpr).join(', ')})',
+      '$name(${arguments.map((a) => _formatExpr(a, 0, decimalPlaces)).join(', ')})',
     Constant(:final name) => name,
     IntegerNumber(:final value) => '$value',
     FractionNumber(:final numerator, :final denominator) =>
       '$numerator/$denominator',
-    RealNumber(:final value) => '$value',
-    ComplexNumber() => _formatComplex(expr),
-    Sin(:final expr) => 'sin(${formatExpr(expr)})',
-    Cos(:final expr) => 'cos(${formatExpr(expr)})',
-    Tan(:final expr) => 'tan(${formatExpr(expr)})',
-    Asin(:final expr) => 'asin(${formatExpr(expr)})',
-    Acos(:final expr) => 'acos(${formatExpr(expr)})',
-    Atan(:final expr) => 'atan(${formatExpr(expr)})',
-    Sinh(:final expr) => 'sinh(${formatExpr(expr)})',
-    Cosh(:final expr) => 'cosh(${formatExpr(expr)})',
-    Tanh(:final expr) => 'tanh(${formatExpr(expr)})',
-    Abs(:final expr) => 'abs(${formatExpr(expr)})',
-    Ln(:final expr) => 'ln(${formatExpr(expr)})',
-    Pow(:final base, :final exponent) => _formatPow(base, exponent),
-    Mul(:final factors) => _formatMul(factors),
-    Add(:final terms) => _formatAdd(terms),
+    RealNumber(:final value) => formatDouble(
+      value,
+      decimalPlaces: decimalPlaces,
+    ),
+    ComplexNumber() => _formatComplex(expr, decimalPlaces),
+    Sin(:final expr) => 'sin(${_formatExpr(expr, 0, decimalPlaces)})',
+    Cos(:final expr) => 'cos(${_formatExpr(expr, 0, decimalPlaces)})',
+    Tan(:final expr) => 'tan(${_formatExpr(expr, 0, decimalPlaces)})',
+    Asin(:final expr) => 'asin(${_formatExpr(expr, 0, decimalPlaces)})',
+    Acos(:final expr) => 'acos(${_formatExpr(expr, 0, decimalPlaces)})',
+    Atan(:final expr) => 'atan(${_formatExpr(expr, 0, decimalPlaces)})',
+    Sinh(:final expr) => 'sinh(${_formatExpr(expr, 0, decimalPlaces)})',
+    Cosh(:final expr) => 'cosh(${_formatExpr(expr, 0, decimalPlaces)})',
+    Tanh(:final expr) => 'tanh(${_formatExpr(expr, 0, decimalPlaces)})',
+    Abs(:final expr) => 'abs(${_formatExpr(expr, 0, decimalPlaces)})',
+    Ln(:final expr) => 'ln(${_formatExpr(expr, 0, decimalPlaces)})',
+    Pow(:final base, :final exponent) => _formatPow(
+      base,
+      exponent,
+      decimalPlaces,
+    ),
+    Mul(:final factors) => _formatMul(factors, decimalPlaces),
+    Add(:final terms) => _formatAdd(terms, decimalPlaces),
     OrderTerm(:final variable, :final order, :final point) => _formatOrderTerm(
       variable,
       order,
       point,
+      decimalPlaces,
     ),
     LambertW(:final expr, :final branch) =>
       branch == 0
-          ? 'LambertW(${formatExpr(expr)})'
-          : 'LambertW(${formatExpr(expr)}, $branch)',
-    Erf(:final expr) => 'erf(${formatExpr(expr)})',
-    Erfc(:final expr) => 'erfc(${formatExpr(expr)})',
-    Gamma(:final expr) => 'gamma(${formatExpr(expr)})',
+          ? 'LambertW(${_formatExpr(expr, 0, decimalPlaces)})'
+          : 'LambertW(${_formatExpr(expr, 0, decimalPlaces)}, $branch)',
+    Erf(:final expr) => 'erf(${_formatExpr(expr, 0, decimalPlaces)})',
+    Erfc(:final expr) => 'erfc(${_formatExpr(expr, 0, decimalPlaces)})',
+    Gamma(:final expr) => 'gamma(${_formatExpr(expr, 0, decimalPlaces)})',
     Beta(:final left, :final right) =>
-      'beta(${formatExpr(left)}, ${formatExpr(right)})',
-    Factorial(:final expr) => '${formatExpr(expr, 5)}!',
+      'beta(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
+    Factorial(:final expr) => '${_formatExpr(expr, 5, decimalPlaces)}!',
     Binomial(:final left, :final right) =>
-      'binomial(${formatExpr(left)}, ${formatExpr(right)})',
-    Floor(:final expr) => 'floor(${formatExpr(expr)})',
-    Ceil(:final expr) => 'ceil(${formatExpr(expr)})',
-    Round(:final expr) => 'round(${formatExpr(expr)})',
-    Sign(:final expr) => 'sign(${formatExpr(expr)})',
+      'binomial(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
+    Floor(:final expr) => 'floor(${_formatExpr(expr, 0, decimalPlaces)})',
+    Ceil(:final expr) => 'ceil(${_formatExpr(expr, 0, decimalPlaces)})',
+    Round(:final expr) => 'round(${_formatExpr(expr, 0, decimalPlaces)})',
+    Sign(:final expr) => 'sign(${_formatExpr(expr, 0, decimalPlaces)})',
     Mod(:final left, :final right) =>
-      'mod(${formatExpr(left)}, ${formatExpr(right)})',
-    Re(:final expr) => 're(${formatExpr(expr)})',
-    Im(:final expr) => 'im(${formatExpr(expr)})',
-    Arg(:final expr) => 'arg(${formatExpr(expr)})',
-    Conjugate(:final expr) => 'conj(${formatExpr(expr)})',
-    Asinh(:final expr) => 'asinh(${formatExpr(expr)})',
-    Acosh(:final expr) => 'acosh(${formatExpr(expr)})',
-    Atanh(:final expr) => 'atanh(${formatExpr(expr)})',
+      'mod(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
+    Re(:final expr) => 're(${_formatExpr(expr, 0, decimalPlaces)})',
+    Im(:final expr) => 'im(${_formatExpr(expr, 0, decimalPlaces)})',
+    Arg(:final expr) => 'arg(${_formatExpr(expr, 0, decimalPlaces)})',
+    Conjugate(:final expr) => 'conj(${_formatExpr(expr, 0, decimalPlaces)})',
+    Asinh(:final expr) => 'asinh(${_formatExpr(expr, 0, decimalPlaces)})',
+    Acosh(:final expr) => 'acosh(${_formatExpr(expr, 0, decimalPlaces)})',
+    Atanh(:final expr) => 'atanh(${_formatExpr(expr, 0, decimalPlaces)})',
     LessThan(:final left, :final right) =>
-      '${formatExpr(left, 1)} < ${formatExpr(right, 1)}',
+      '${_formatExpr(left, 1, decimalPlaces)} < ${_formatExpr(right, 1, decimalPlaces)}',
     LessEqual(:final left, :final right) =>
-      '${formatExpr(left, 1)} <= ${formatExpr(right, 1)}',
+      '${_formatExpr(left, 1, decimalPlaces)} <= ${_formatExpr(right, 1, decimalPlaces)}',
     GreaterThan(:final left, :final right) =>
-      '${formatExpr(left, 1)} > ${formatExpr(right, 1)}',
+      '${_formatExpr(left, 1, decimalPlaces)} > ${_formatExpr(right, 1, decimalPlaces)}',
     GreaterEqual(:final left, :final right) =>
-      '${formatExpr(left, 1)} >= ${formatExpr(right, 1)}',
+      '${_formatExpr(left, 1, decimalPlaces)} >= ${_formatExpr(right, 1, decimalPlaces)}',
     Equal(:final left, :final right) =>
-      '${formatExpr(left, 1)} == ${formatExpr(right, 1)}',
+      '${_formatExpr(left, 1, decimalPlaces)} == ${_formatExpr(right, 1, decimalPlaces)}',
     NotEqual(:final left, :final right) =>
-      '${formatExpr(left, 1)} != ${formatExpr(right, 1)}',
+      '${_formatExpr(left, 1, decimalPlaces)} != ${_formatExpr(right, 1, decimalPlaces)}',
     Piecewise(:final branches, :final otherwise) =>
       'piecewise(${[
-        for (final (:relation, :expr) in branches) ...[formatExpr(relation), formatExpr(expr)],
-        if (otherwise != null) formatExpr(otherwise),
+        for (final (:relation, :expr) in branches) ...[_formatExpr(relation, 0, decimalPlaces), _formatExpr(expr, 0, decimalPlaces)],
+        if (otherwise != null) _formatExpr(otherwise, 0, decimalPlaces),
       ].join(', ')})',
     Integral(:final integrand, :final variable, :final lower, :final upper) =>
       lower != null && upper != null
-          ? 'integrate(${formatExpr(integrand)}, $variable, ${formatExpr(lower)}, ${formatExpr(upper)})'
-          : 'integrate(${formatExpr(integrand)}, $variable)',
+          ? 'integrate(${_formatExpr(integrand, 0, decimalPlaces)}, $variable, ${_formatExpr(lower, 0, decimalPlaces)}, ${_formatExpr(upper, 0, decimalPlaces)})'
+          : 'integrate(${_formatExpr(integrand, 0, decimalPlaces)}, $variable)',
     Derivative(:final expr, :final variable, :final order, :final point) =>
       point != null
           ? (order == 1
-                ? 'diff(${formatExpr(expr)}, $variable, ${formatExpr(point)})'
-                : 'diff(${formatExpr(expr)}, $variable, $order, ${formatExpr(point)})')
+                ? 'diff(${_formatExpr(expr, 0, decimalPlaces)}, $variable, ${_formatExpr(point, 0, decimalPlaces)})'
+                : 'diff(${_formatExpr(expr, 0, decimalPlaces)}, $variable, $order, ${_formatExpr(point, 0, decimalPlaces)})')
           : (order == 1
-                ? 'diff(${formatExpr(expr)}, $variable)'
-                : 'diff(${formatExpr(expr)}, $variable, $order)'),
+                ? 'diff(${_formatExpr(expr, 0, decimalPlaces)}, $variable)'
+                : 'diff(${_formatExpr(expr, 0, decimalPlaces)}, $variable, $order)'),
     Limit(:final expr, :final variable, :final point, :final direction) =>
       switch (direction) {
         LimitDirection.both =>
-          'limit(${formatExpr(expr)}, $variable, ${formatExpr(point)})',
+          'limit(${_formatExpr(expr, 0, decimalPlaces)}, $variable, ${_formatExpr(point, 0, decimalPlaces)})',
         LimitDirection.fromAbove =>
-          'limit(${formatExpr(expr)}, $variable, ${formatExpr(point)}, 1)',
+          'limit(${_formatExpr(expr, 0, decimalPlaces)}, $variable, ${_formatExpr(point, 0, decimalPlaces)}, 1)',
         LimitDirection.fromBelow =>
-          'limit(${formatExpr(expr)}, $variable, ${formatExpr(point)}, -1)',
+          'limit(${_formatExpr(expr, 0, decimalPlaces)}, $variable, ${_formatExpr(point, 0, decimalPlaces)}, -1)',
       },
     Sum(:final expr, :final variable, :final lower, :final upper) =>
-      'sum(${formatExpr(expr)}, $variable, ${formatExpr(lower)}, ${formatExpr(upper)})',
+      'sum(${_formatExpr(expr, 0, decimalPlaces)}, $variable, ${_formatExpr(lower, 0, decimalPlaces)}, ${_formatExpr(upper, 0, decimalPlaces)})',
     Product(:final expr, :final variable, :final lower, :final upper) =>
-      'product(${formatExpr(expr)}, $variable, ${formatExpr(lower)}, ${formatExpr(upper)})',
+      'product(${_formatExpr(expr, 0, decimalPlaces)}, $variable, ${_formatExpr(lower, 0, decimalPlaces)}, ${_formatExpr(upper, 0, decimalPlaces)})',
   };
   return prec < parentPrec ? '($formatted)' : formatted;
 }
 
-String _formatComplex(ComplexNumber c) {
+String _formatComplex(ComplexNumber c, int? decimalPlaces) {
   final real = c.real;
   final imag = c.imaginary;
   if (real.isZero) {
     if (imag.isOne) return 'i';
     if (imag.isNegativeOne) return '-i';
-    return '${formatExpr(imag, 2)} * i';
+    return '${_formatExpr(imag, 2, decimalPlaces)} * i';
   }
-  final realStr = formatExpr(real, 1);
+  final realStr = _formatExpr(real, 1, decimalPlaces);
   if (imag.isOne) return '$realStr + i';
   if (imag.isNegativeOne) return '$realStr - i';
   if (imag.isNegative) {
-    return '$realStr - ${formatExpr(imag.neg(), 2)} * i';
+    return '$realStr - ${_formatExpr(imag.neg(), 2, decimalPlaces)} * i';
   }
-  return '$realStr + ${formatExpr(imag, 2)} * i';
+  return '$realStr + ${_formatExpr(imag, 2, decimalPlaces)} * i';
 }
 
-String _formatPow(Expr base, Expr exponent) => switch ((base, exponent)) {
-  (Constant.e, _) => 'exp(${formatExpr(exponent)})',
-  (_, IntegerNumber(isNegativeOne: true)) => '1 / ${formatExpr(base, 3)}',
+String _formatPow(Expr base, Expr exponent, int? decimalPlaces) => switch ((
+  base,
+  exponent,
+)) {
+  (Constant.e, _) => 'exp(${_formatExpr(exponent, 0, decimalPlaces)})',
+  (_, IntegerNumber(isNegativeOne: true)) =>
+    '1 / ${_formatExpr(base, 3, decimalPlaces)}',
   (_, FractionNumber(:final numerator, :final denominator))
       when numerator == Integer.one && denominator == Integer.two =>
-    'sqrt(${formatExpr(base)})',
-  _ => '${formatExpr(base, 5)} ^ ${formatExpr(exponent, 4)}',
+    'sqrt(${_formatExpr(base, 0, decimalPlaces)})',
+  _ =>
+    '${_formatExpr(base, 5, decimalPlaces)} ^ ${_formatExpr(exponent, 4, decimalPlaces)}',
 };
 
-String _formatAdd(List<Expr> terms) {
+String _formatAdd(List<Expr> terms, int? decimalPlaces) {
   switch (terms) {
     case []:
       return '0';
     case [final single]:
-      return formatExpr(single);
+      return _formatExpr(single, 0, decimalPlaces);
     default:
-      final buffer = StringBuffer(formatExpr(terms.first, 1));
+      final buffer = StringBuffer(_formatExpr(terms.first, 1, decimalPlaces));
       for (var i = 1; i < terms.length; i++) {
         final term = terms[i];
         if (stripLeadingNegative(term) case final stripped?) {
-          buffer.write(' - ${formatExpr(stripped, 2)}');
+          buffer.write(' - ${_formatExpr(stripped, 2, decimalPlaces)}');
         } else {
           final prec = term is Add ? 2 : 1;
-          buffer.write(' + ${formatExpr(term, prec)}');
+          buffer.write(' + ${_formatExpr(term, prec, decimalPlaces)}');
         }
       }
       return buffer.toString();
   }
 }
 
-String _formatMul(List<Expr> factors) {
+String _formatMul(List<Expr> factors, int? decimalPlaces) {
   switch (factors) {
     case []:
       return '1';
     case [final single]:
-      return formatExpr(single);
+      return _formatExpr(single, 0, decimalPlaces);
     default:
       final numFactors = <Expr>[];
       final denFactors = <Expr>[];
@@ -180,29 +202,35 @@ String _formatMul(List<Expr> factors) {
       if (denFactors.isNotEmpty) {
         final numStr = numFactors.isEmpty
             ? '1'
-            : _formatMulNumerator(numFactors, 2);
+            : _formatMulNumerator(numFactors, 2, decimalPlaces);
         return switch (denFactors) {
-          [final single] => '$numStr / ${formatExpr(single, 3)}',
-          _ => '$numStr / (${_formatMulNumerator(denFactors, 0)})',
+          [final single] =>
+            '$numStr / ${_formatExpr(single, 3, decimalPlaces)}',
+          _ =>
+            '$numStr / (${_formatMulNumerator(denFactors, 0, decimalPlaces)})',
         };
       }
 
-      return _formatMulNumerator(numFactors, 0);
+      return _formatMulNumerator(numFactors, 0, decimalPlaces);
   }
 }
 
-String _formatMulNumerator(List<Expr> factors, int parentPrec) {
+String _formatMulNumerator(
+  List<Expr> factors,
+  int parentPrec,
+  int? decimalPlaces,
+) {
   switch (factors) {
     case []:
       return '1';
     case [final single]:
-      return formatExpr(single, parentPrec);
+      return _formatExpr(single, parentPrec, decimalPlaces);
     case [IntegerNumber(isNegativeOne: true), ...final rest]:
       final operand = switch (rest) {
         [final single] => single,
         _ => Mul(rest),
       };
-      final formatted = '-${formatExpr(operand, 4)}';
+      final formatted = '-${_formatExpr(operand, 4, decimalPlaces)}';
       return 3 < parentPrec ? '($formatted)' : formatted;
     default:
       final parts = <String>[];
@@ -210,7 +238,13 @@ String _formatMulNumerator(List<Expr> factors, int parentPrec) {
         final f = factors[i];
         if (i > 0 && f == IntegerNumber.negativeOne && i + 1 < factors.length) {
           final next = factors[i + 1];
-          parts.add(formatExpr(Mul([IntegerNumber.negativeOne, next]), 2));
+          parts.add(
+            _formatExpr(
+              Mul([IntegerNumber.negativeOne, next]),
+              2,
+              decimalPlaces,
+            ),
+          );
           i++;
         } else {
           final reqPrec = (i > 0 && f is FractionNumber)
@@ -218,7 +252,7 @@ String _formatMulNumerator(List<Expr> factors, int parentPrec) {
               : (i > 0 && f is Mul && !_isUnaryNegMul(f))
               ? 3
               : 2;
-          parts.add(formatExpr(f, reqPrec));
+          parts.add(_formatExpr(f, reqPrec, decimalPlaces));
         }
       }
       final formatted = parts.join(' * ');
@@ -231,18 +265,25 @@ bool _isUnaryNegMul(Mul expr) => switch (expr.factors) {
   _ => false,
 };
 
-String _formatOrderTerm(String variable, int order, Expr point) {
+String _formatOrderTerm(
+  String variable,
+  int order,
+  Expr point,
+  int? decimalPlaces,
+) {
   final isZero = point is Number && point.isZero;
   if (isZero) {
     if (order == 0) return 'O(1)';
     if (order == 1) return 'O($variable)';
     return 'O($variable^$order)';
   }
-  if (order == 0) return 'O($variable, 0, ${formatExpr(point)})';
+  if (order == 0) {
+    return 'O($variable, 0, ${_formatExpr(point, 0, decimalPlaces)})';
+  }
   final delta = switch (point) {
     final RealNumeric n when n.isNegative =>
-      '$variable + ${formatExpr(n.neg(), 2)}',
-    _ => '$variable - ${formatExpr(point, 2)}',
+      '$variable + ${_formatExpr(n.neg(), 2, decimalPlaces)}',
+    _ => '$variable - ${_formatExpr(point, 2, decimalPlaces)}',
   };
   if (order == 1) return 'O($delta)';
   return 'O(($delta)^$order)';

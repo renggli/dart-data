@@ -247,7 +247,7 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// compatible with `ExprSyntax.parseMatrix`.
   String format() =>
       '[${[
-        for (var r = 0; r < rowCount; r++) '[${[for (var c = 0; c < colCount; c++) formatExpr(getUnchecked(r, c))].join(', ')}]',
+        for (var r = 0; r < rowCount; r++) '[${[for (var c = 0; c < colCount; c++) getUnchecked(r, c).toText()].join(', ')}]',
       ].join(', ')}]';
 
   /// Formats this matrix into LaTeX `\begin{bmatrix} ... \end{bmatrix}` syntax.
@@ -330,7 +330,7 @@ extension SymbolicVectorExtension on Vector<Expr> {
   /// Formats this vector into a canonical literal string `[a, b, c]`
   /// compatible with `ExprSyntax.parseVector`.
   String format() =>
-      '[${[for (var i = 0; i < length; i++) formatExpr(getUnchecked(i))].join(', ')}]';
+      '[${[for (var i = 0; i < length; i++) getUnchecked(i).toText()].join(', ')}]';
 
   /// Formats this vector into a column vector in LaTeX `\begin{bmatrix} ... \end{bmatrix}` syntax.
   String toLatex() =>

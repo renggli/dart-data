@@ -142,7 +142,19 @@ void main() {
             (node) => node is Derivative,
           );
 
-          if (containsImaginary(expr)) {
+          if (preset.defaultMvVars != null) {
+            final vars = preset.defaultMvVars!
+                .split(',')
+                .map((s) => s.trim())
+                .toList();
+            final grad = expr.gradient(vars, assumptions: assumptions);
+            check(grad.length).equals(vars.length);
+            final hessian = expr.hessian(vars, assumptions: assumptions);
+            check(hessian.rowCount).equals(vars.length);
+            check(hessian.colCount).equals(vars.length);
+            final bc = expr.toBytecode(variables: vars);
+            check(bc.instructions.isNotEmpty).isTrue();
+          } else if (containsImaginary(expr)) {
             final cfn = expr.toComplexFunction1D('x');
             final y0 = cfn(Complex(ptDouble, 0));
             check(y0.a.isNaN).isFalse();
