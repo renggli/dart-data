@@ -245,7 +245,10 @@ Expr _computeFiniteLimit(
       rethrow;
     }
   } on ArgumentError {
-  } on StateError {}
+    // Ignored.
+  } on StateError {
+    // Ignored.
+  }
 
   const t = Variable('_t');
   const tAssumptions = Assumptions(domains: {'_t': VariableDomain.positive});

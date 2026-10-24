@@ -221,9 +221,10 @@ class DataFrame {
         combinedVals = <Object?>[...col.values, ...otherCol.values];
       } else {
         combinedVals = <Object?>[
-          for (final v in col.values) v == null ? null : combinedType.cast(v),
+          for (final v in col.values)
+            if (v == null) null else combinedType.cast(v),
           for (final v in otherCol.values)
-            v == null ? null : combinedType.cast(v),
+            if (v == null) null else combinedType.cast(v),
         ];
       }
       newCols.add(Series.fromList(col.name, combinedVals, type: combinedType));

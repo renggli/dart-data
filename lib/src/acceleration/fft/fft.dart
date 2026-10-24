@@ -34,12 +34,7 @@ abstract final class Fft {
         operation: 'fft',
         isAvailable: isAvailable,
         accelerate: () {
-          FftDart.bluestein(
-            buffer: buffer,
-            inverse: inverse,
-            innerFft: ({required buffer, bool inverse = false}) =>
-                fft(buffer: buffer, inverse: inverse),
-          );
+          FftDart.bluestein(buffer: buffer, inverse: inverse, innerFft: fft);
           return true;
         },
         fallback: () => FftDart.fft(buffer: buffer, inverse: inverse),

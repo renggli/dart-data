@@ -189,7 +189,10 @@ bool isZeroExpr(Expr expr) {
         final c = expr.evaluateComplex();
         if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
       } on ArgumentError {
-      } on UnsupportedError {}
+        // Ignored.
+      } on UnsupportedError {
+        // Ignored.
+      }
     case _:
       break;
   }
@@ -215,7 +218,10 @@ List<Expr> deduplicateRoots(List<Expr> list) {
           final c2 = simplified.evaluateComplex();
           return (c1.a - c2.a).abs() < 1e-12 && (c1.b - c2.b).abs() < 1e-12;
         } on ArgumentError {
-        } on UnsupportedError {}
+          // Ignored.
+        } on UnsupportedError {
+          // Ignored.
+        }
       }
       return false;
     });

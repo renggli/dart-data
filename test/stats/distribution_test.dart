@@ -5,7 +5,7 @@ import 'package:data/stats.dart';
 import 'package:test/test.dart';
 
 class _SimpleDistribution extends Distribution<double> {
-  const _SimpleDistribution();
+  const new();
 
   @override
   double get lowerBound => 0.0;
@@ -33,9 +33,6 @@ class _SimpleDistribution extends Distribution<double> {
 
   @override
   double get skewness => 0.0;
-
-  @override
-  double get kurtosis => 3.0;
 
   @override
   double get excessKurtosis => 0.0;
