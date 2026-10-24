@@ -1,3 +1,8 @@
+import 'dart:math' as math;
+
+import '../../../special/erf.dart' as special_erf;
+import '../../../special/gamma.dart' as special_gamma;
+import '../../../special/lambert_w.dart' as special_lambert;
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../calculus/differentiation.dart';
@@ -12,6 +17,9 @@ import 'power.dart';
 
 /// Simplifies a sine expression $\sin(expr)$.
 Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(math.sin(expr.value));
+  }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Involution: sin(asin(u)) = u
@@ -90,6 +98,9 @@ Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies a cosine expression $\cos(expr)$.
 Expr simplifyCos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(math.cos(expr.value));
+  }
   if (expr is Number && expr.isZero) return IntegerNumber.one;
 
   // Involution: cos(acos(u)) = u
@@ -178,6 +189,10 @@ Expr simplifyCos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies a tangent expression $\tan(expr)$.
 Expr simplifyTan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr is RealNumber) {
+    final v = math.tan(expr.value);
+    return v.isFinite ? RealNumber.fromDouble(v) : Constant.undefined;
+  }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Involution: tan(atan(u)) = u
@@ -244,6 +259,11 @@ Expr simplifyTan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies an arcsine expression $\arcsin(expr)$.
 Expr simplifyAsin(Expr expr) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    if (v < -1.0 || v > 1.0) return Constant.undefined;
+    return RealNumber.fromDouble(math.asin(v));
+  }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
   if (expr is Number && expr.isOne) {
     return Mul([FractionNumber.half, Constant.pi], isSimplified: true);
@@ -276,6 +296,11 @@ Expr simplifyAsin(Expr expr) {
 
 /// Simplifies an arccosine expression $\arccos(expr)$.
 Expr simplifyAcos(Expr expr) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    if (v < -1.0 || v > 1.0) return Constant.undefined;
+    return RealNumber.fromDouble(math.acos(v));
+  }
   if (expr is Number && expr.isOne) return IntegerNumber.zero;
   if (expr is Number && expr.isZero) {
     return Mul([FractionNumber.half, Constant.pi], isSimplified: true);
@@ -325,6 +350,9 @@ Expr simplifyAcos(Expr expr) {
 
 /// Simplifies an arctangent expression $\arctan(expr)$.
 Expr simplifyAtan(Expr expr) {
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(math.atan(expr.value));
+  }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
   if (expr is Number && expr.isOne) {
     return Mul([FractionNumber.quarter, Constant.pi], isSimplified: true);
@@ -357,6 +385,10 @@ Expr simplifyAtan(Expr expr) {
 
 /// Simplifies a hyperbolic sine expression $\sinh(expr)$.
 Expr simplifySinh(Expr expr) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    return RealNumber.fromDouble((math.exp(v) - math.exp(-v)) / 2.0);
+  }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Parity: sinh(-u) = -sinh(u)
@@ -370,6 +402,10 @@ Expr simplifySinh(Expr expr) {
 
 /// Simplifies a hyperbolic cosine expression $\cosh(expr)$.
 Expr simplifyCosh(Expr expr) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    return RealNumber.fromDouble((math.exp(v) + math.exp(-v)) / 2.0);
+  }
   if (expr is Number && expr.isZero) return IntegerNumber.one;
 
   // Parity: cosh(-u) = cosh(u)
@@ -383,6 +419,12 @@ Expr simplifyCosh(Expr expr) {
 
 /// Simplifies a hyperbolic tangent expression $\tanh(expr)$.
 Expr simplifyTanh(Expr expr) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    final ep = math.exp(v);
+    final em = math.exp(-v);
+    return RealNumber.fromDouble((ep - em) / (ep + em));
+  }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Parity: tanh(-u) = -tanh(u)
@@ -603,11 +645,19 @@ Expr? _matchIntegerPiMultiple(Expr expr, Assumptions assumptions) {
 }
 
 /// Simplifies an exponential expression $e^{expr}$.
-Expr simplifyExp(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
-    simplifyPow(Constant.e, expr, assumptions: assumptions);
+Expr simplifyExp(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(math.exp(expr.value));
+  }
+  return simplifyPow(Constant.e, expr, assumptions: assumptions);
+}
 
 /// Simplifies a natural logarithm expression $\ln(expr)$.
 Expr simplifyLn(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr is RealNumber) {
+    if (expr.value <= 0.0) return Constant.undefined;
+    return RealNumber.fromDouble(math.log(expr.value));
+  }
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == Constant.e) return IntegerNumber.one;
   if (expr is Number && expr.isZero) {
@@ -730,6 +780,13 @@ RationalNumber? matchPiMultiple(Expr expr) => switch (expr) {
 
 /// Simplifies a Lambert W expression $W_b(expr)$.
 Expr simplifyLambertW(Expr expr, int branch) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    final res = branch == 0
+        ? special_lambert.lambertW0(v)
+        : special_lambert.lambertW1(v);
+    return res.isNaN ? Constant.undefined : RealNumber.fromDouble(res);
+  }
   if (branch == 0) {
     if (expr is Number && expr.isZero) {
       return IntegerNumber.zero;
@@ -752,6 +809,9 @@ Expr simplifyLambertW(Expr expr, int branch) {
 
 /// Simplifies an error function expression $\operatorname{erf}(expr)$.
 Expr simplifyErf(Expr expr) {
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_erf.erf(expr.value));
+  }
   if (expr is Number && expr.isZero) {
     return IntegerNumber.zero;
   }
@@ -767,6 +827,9 @@ Expr simplifyErf(Expr expr) {
 
 /// Simplifies a complementary error function expression $\operatorname{erfc}(expr)$.
 Expr simplifyErfc(Expr expr) {
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_erf.erfc(expr.value));
+  }
   if (expr is Number && expr.isZero) {
     return IntegerNumber.one;
   }
@@ -782,6 +845,11 @@ Expr simplifyErfc(Expr expr) {
 
 /// Simplifies an Euler gamma function expression $\Gamma(expr)$.
 Expr simplifyGamma(Expr expr) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    if (v <= 0.0 && v == v.roundToDouble()) return Constant.undefined;
+    return RealNumber.fromDouble(special_gamma.gamma(v));
+  }
   if (expr case IntegerNumber(asInt: final n?) when n > 0 && n <= 18) {
     return IntegerNumber(Integer.from(n - 1).factorial());
   }
@@ -815,6 +883,10 @@ Expr simplifyBeta(Expr a, Expr b) {
 
 /// Simplifies an inverse hyperbolic sine expression $\operatorname{asinh}(expr)$.
 Expr simplifyAsinh(Expr expr) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    return RealNumber.fromDouble(math.log(v + math.sqrt(v * v + 1.0)));
+  }
   if (expr is Number && expr.isZero) {
     return IntegerNumber.zero;
   }
@@ -828,6 +900,11 @@ Expr simplifyAsinh(Expr expr) {
 
 /// Simplifies an inverse hyperbolic cosine expression $\operatorname{acosh}(expr)$.
 Expr simplifyAcosh(Expr expr) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    if (v < 1.0) return Constant.undefined;
+    return RealNumber.fromDouble(math.log(v + math.sqrt(v * v - 1.0)));
+  }
   if (expr is Number && expr.isOne) {
     return IntegerNumber.zero;
   }
@@ -837,6 +914,11 @@ Expr simplifyAcosh(Expr expr) {
 
 /// Simplifies an inverse hyperbolic tangent expression $\operatorname{atanh}(expr)$.
 Expr simplifyAtanh(Expr expr) {
+  if (expr is RealNumber) {
+    final v = expr.value;
+    if (v.abs() >= 1.0) return Constant.undefined;
+    return RealNumber.fromDouble(0.5 * math.log((1.0 + v) / (1.0 - v)));
+  }
   if (expr is Number && expr.isZero) {
     return IntegerNumber.zero;
   }

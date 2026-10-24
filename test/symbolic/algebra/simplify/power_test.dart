@@ -105,21 +105,31 @@ void main() {
       const y = Variable('y');
 
       // (u^2)^(1/2) -> |u| under real assumptions, stays (x^2)^(1/2) under none
-      check(simplifyPow(Pow(x, const RealNumber(2.0)), const RealNumber(0.5)))
-          .equals(
-            Pow(
-              Pow(x, const RealNumber(2.0)),
-              const RealNumber(0.5),
-              isSimplified: true,
-            ),
-          );
+      check(simplifyPow(Pow(x, IntegerNumber.two), FractionNumber.half)).equals(
+        Pow(Pow(x, IntegerNumber.two), FractionNumber.half, isSimplified: true),
+      );
+      check(
+        simplifyPow(
+          Pow(x, IntegerNumber.two),
+          FractionNumber.half,
+          assumptions: Assumptions.real,
+        ),
+      ).equals(Abs(x));
+
+      // Real numbers are not inferred to exact powers
       check(
         simplifyPow(
           Pow(x, const RealNumber(2.0)),
           const RealNumber(0.5),
           assumptions: Assumptions.real,
         ),
-      ).equals(Abs(x));
+      ).equals(
+        Pow(
+          Pow(x, const RealNumber(2.0)),
+          const RealNumber(0.5),
+          isSimplified: true,
+        ),
+      );
 
       // Nested powers: (e^x)^y -> e^(x*y) under real assumptions or integer exponent
       check(simplifyPow(Pow(Constant.e, x), y))

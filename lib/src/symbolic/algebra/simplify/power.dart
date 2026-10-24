@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/integer.dart';
@@ -25,7 +27,7 @@ Expr simplifyPow(
         ? const RealNumber(1.0)
         : IntegerNumber.one;
   }
-  if (exponent is Number && exponent.isOne) {
+  if (exponent is IntegerNumber && exponent.isOne) {
     return base;
   }
 
@@ -65,6 +67,9 @@ Expr simplifyPow(
 
   // 3. Natural exponential base e: e^(ln(u)) = u, e^(k * ln(u)) = u^k, e^(i * k * pi)
   if (base == Constant.e) {
+    if (exponent is RealNumber) {
+      return RealNumber.fromDouble(math.exp(exponent.value));
+    }
     if (exponent is Ln) {
       return exponent.expr;
     }
@@ -351,11 +356,9 @@ Expr foldRationalPower(Integer num, Integer den, int exp) {
   return folded ?? Pow(rat, expNumber, isSimplified: true);
 }
 
-bool _isTwo(Expr expr) =>
-    expr == IntegerNumber.two || (expr is RealNumber && expr.value == 2.0);
+bool _isTwo(Expr expr) => expr == IntegerNumber.two;
 
-bool _isHalf(Expr expr) =>
-    expr == FractionNumber.half || (expr is RealNumber && expr.value == 0.5);
+bool _isHalf(Expr expr) => expr == FractionNumber.half;
 
 Expr? _extractRationalRadical(
   RationalNumber base,

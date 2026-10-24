@@ -1,30 +1,22 @@
-import 'dart:math' as math;
-
 import '../ast.dart';
-import '../compiler.dart';
 import '../number/integer.dart';
 
 /// Standard special radical values appearing in exact trigonometric evaluations.
 enum SpecialRadical {
   /// $1 / 2 = \sin(\pi/6) = \cos(\pi/3)$.
-  half(0.5),
+  half,
 
   /// $\sqrt{2} / 2 = \sin(\pi/4) = \cos(\pi/4)$.
-  sqrt2Over2(math.sqrt1_2),
+  sqrt2Over2,
 
   /// $\sqrt{3} / 2 = \sin(\pi/3) = \cos(\pi/6)$.
-  sqrt3Over2(0.8660254037844386),
+  sqrt3Over2,
 
   /// $\sqrt{3} / 3 = \tan(\pi/6)$.
-  sqrt3Over3(0.5773502691896257),
+  sqrt3Over3,
 
   /// $\sqrt{3} = \tan(\pi/3)$.
-  sqrt3(1.7320508075688772);
-
-  new(this.numericValue);
-
-  /// Floating-point approximation of this radical.
-  final double numericValue;
+  sqrt3,
 }
 
 /// Constructs the canonical exact [Expr] for [radical] with optional [negative] sign.
@@ -92,7 +84,6 @@ bool isSpecialAngleConstant(
 bool isHalf(Expr expr) => switch (expr) {
   FractionNumber(:final numerator, :final denominator) =>
     numerator.isOne && denominator == Integer.two,
-  RealNumber(:final value) => (value - 0.5).abs() < 1e-12,
   _ => false,
 };
 
@@ -100,7 +91,6 @@ bool isHalf(Expr expr) => switch (expr) {
 bool isNegativeHalf(Expr expr) => switch (expr) {
   FractionNumber(:final numerator, :final denominator) =>
     numerator == Integer.negativeOne && denominator == Integer.two,
-  RealNumber(:final value) => (value + 0.5).abs() < 1e-12,
   _ => false,
 };
 
@@ -116,35 +106,93 @@ bool isSqrt(Expr expr, int n) => switch (expr) {
 
 /// Tests whether [expr] equals $+\sqrt{2}/2 = 1/\sqrt{2}$.
 bool isSqrt2Over2(Expr expr) {
-  if (expr case Pow(base: FractionNumber.half, exponent: FractionNumber.half)) {
-    return true;
+  if (_isRationalTimesSqrt(expr, FractionNumber.half, 2)) return true;
+  if (expr case Pow(
+    base: FractionNumber(:final numerator, :final denominator),
+    exponent: FractionNumber.half,
+  )) {
+    return numerator.isOne && denominator == Integer.two;
   }
-  return _evalClose(expr, math.sqrt1_2);
+  if (expr case Pow(
+    base: IntegerNumber(:final value),
+    exponent: FractionNumber(:final numerator, :final denominator),
+  )) {
+    return value == Integer.two &&
+        numerator == Integer.negativeOne &&
+        denominator == Integer.two;
+  }
+  return false;
 }
 
 /// Tests whether [expr] equals $-\sqrt{2}/2 = -1/\sqrt{2}$.
-bool isNegativeSqrt2Over2(Expr expr) => _evalClose(expr, -math.sqrt1_2);
-
-/// Tests whether [expr] equals $+\sqrt{3}/2$.
-bool isSqrt3Over2(Expr expr) => _evalClose(expr, 0.8660254037844386);
-
-/// Tests whether [expr] equals $-\sqrt{3}/2$.
-bool isNegativeSqrt3Over2(Expr expr) => _evalClose(expr, -0.8660254037844386);
-
-/// Tests whether [expr] equals $+\sqrt{3}/3 = 1/\sqrt{3}$.
-bool isSqrt3Over3(Expr expr) => _evalClose(expr, 0.5773502691896257);
-
-/// Tests whether [expr] equals $-\sqrt{3}/3 = -1/\sqrt{3}$.
-bool isNegativeSqrt3Over3(Expr expr) => _evalClose(expr, -0.5773502691896257);
-
-/// Tests whether [expr] equals $+\sqrt{3}$.
-bool isSqrt3(Expr expr) {
-  if (isSqrt(expr, 3)) return true;
-  return _evalClose(expr, 1.7320508075688772);
+bool isNegativeSqrt2Over2(Expr expr) {
+  if (_isRationalTimesSqrt(expr, FractionNumber.negativeHalf, 2)) return true;
+  if (expr case Mul(
+    factors: [IntegerNumber(isNegativeOne: true), final inner],
+  )) {
+    return isSqrt2Over2(inner);
+  }
+  return false;
 }
 
+/// Tests whether [expr] equals $+\sqrt{3}/2$.
+bool isSqrt3Over2(Expr expr) =>
+    _isRationalTimesSqrt(expr, FractionNumber.half, 3);
+
+/// Tests whether [expr] equals $-\sqrt{3}/2$.
+bool isNegativeSqrt3Over2(Expr expr) {
+  if (_isRationalTimesSqrt(expr, FractionNumber.negativeHalf, 3)) return true;
+  if (expr case Mul(
+    factors: [IntegerNumber(isNegativeOne: true), final inner],
+  )) {
+    return isSqrt3Over2(inner);
+  }
+  return false;
+}
+
+/// Tests whether [expr] equals $+\sqrt{3}/3 = 1/\sqrt{3}$.
+bool isSqrt3Over3(Expr expr) {
+  if (_isRationalTimesSqrt(expr, FractionNumber.third, 3)) return true;
+  if (expr case Pow(
+    base: IntegerNumber(:final value),
+    exponent: FractionNumber(:final numerator, :final denominator),
+  )) {
+    return value == const Integer(3) &&
+        numerator == Integer.negativeOne &&
+        denominator == Integer.two;
+  }
+  return false;
+}
+
+/// Tests whether [expr] equals $-\sqrt{3}/3 = -1/\sqrt{3}$.
+bool isNegativeSqrt3Over3(Expr expr) {
+  if (_isRationalTimesSqrt(
+    expr,
+    const FractionNumber(Integer.negativeOne, Integer(3)),
+    3,
+  )) {
+    return true;
+  }
+  if (expr case Mul(
+    factors: [IntegerNumber(isNegativeOne: true), final inner],
+  )) {
+    return isSqrt3Over3(inner);
+  }
+  return false;
+}
+
+/// Tests whether [expr] equals $+\sqrt{3}$.
+bool isSqrt3(Expr expr) => isSqrt(expr, 3);
+
 /// Tests whether [expr] equals $-\sqrt{3}$.
-bool isNegativeSqrt3(Expr expr) => _evalClose(expr, -1.7320508075688772);
+bool isNegativeSqrt3(Expr expr) {
+  if (expr case Mul(
+    factors: [IntegerNumber(isNegativeOne: true), final inner],
+  )) {
+    return isSqrt3(inner);
+  }
+  return _isRationalTimesSqrt(expr, IntegerNumber.negativeOne, 3);
+}
 
 /// Identifies if [expr] matches any [SpecialRadical] (positive or negative).
 ({SpecialRadical radical, bool isNegative})? identifySpecialRadical(Expr expr) {
@@ -159,13 +207,10 @@ bool isNegativeSqrt3(Expr expr) => _evalClose(expr, -1.7320508075688772);
   return null;
 }
 
-bool _evalClose(Expr expr, double target) {
-  if (expr.freeVariables.isNotEmpty) return false;
-  if (!expr.isReal) return false;
-  try {
-    final v = expr.evaluate(const {});
-    return (v - target).abs() < 1e-12;
-  } on Object {
-    return false;
-  }
-}
+bool _isRationalTimesSqrt(Expr expr, RationalNumber expectedCoeff, int n) =>
+    switch (expr) {
+      Mul(factors: [final a, final b]) =>
+        (a == expectedCoeff && isSqrt(b, n)) ||
+            (isSqrt(a, n) && b == expectedCoeff),
+      _ => false,
+    };
