@@ -34,10 +34,6 @@ void main() {
           const RealNumber(1.0530000000000002)
               .toMathMl(root: false, decimalPlaces: 2),
         ).equals('<mn>1.05</mn>');
-        check(
-          const RealNumber(1.0530000000000002)
-              .toMathMl(root: false, decimalPlaces: null),
-        ).equals('<mn>1.0530000000000002</mn>');
         check(Constant.pi.toMathMl()).equals('<math><mi>π</mi></math>');
 
         check(ComplexNumber.i.toMathMl(root: false)).equals('<mi>i</mi>');

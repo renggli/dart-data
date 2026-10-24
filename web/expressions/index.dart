@@ -790,7 +790,7 @@ void updateAll() {
   // Card 1: Outputs
   setAttrExpr(valOutParsed, expr);
   try {
-    setAttrValue(valOutText, expr.toText());
+    setAttrValue(valOutText, expr.format());
   } catch (_) {
     setAttrValue(valOutText, '-');
   }
@@ -1434,7 +1434,7 @@ void updateMultivariableTelemetry() {
         final formatted = solutions
             .map((sol) {
               final entries = sol.entries
-                  .map((e) => '${e.key} = ${e.value.toText()}')
+                  .map((e) => '${e.key} = ${e.value.format()}')
                   .join(', ');
               return '($entries)';
             })

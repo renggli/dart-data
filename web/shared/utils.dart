@@ -55,7 +55,7 @@ void setAttrExpr(
     setAttrValue(element, '-', customCopy: customCopy);
     return;
   }
-  final plainText = expr.toText(decimalPlaces: decimalPlaces);
+  final plainText = expr.format(decimalPlaces: decimalPlaces);
   element.title = plainText;
   element.setAttribute('data-copy', customCopy ?? plainText);
   try {
@@ -72,22 +72,17 @@ void setAttrExprList(
   web.HTMLElement element,
   List<Expr> expressions, {
   String emptyText = 'None found',
-  int decimalPlaces = 4,
   String? customCopy,
 }) {
   if (expressions.isEmpty) {
     setAttrValue(element, emptyText, customCopy: customCopy);
     return;
   }
-  final plainText = expressions
-      .map((s) => s.toText(decimalPlaces: decimalPlaces))
-      .join(', ');
+  final plainText = expressions.map((s) => s.format()).join(', ');
   element.title = plainText;
   element.setAttribute('data-copy', customCopy ?? plainText);
   try {
-    final mathList = expressions
-        .map((s) => s.toMathMl(decimalPlaces: decimalPlaces))
-        .join(', ');
+    final mathList = expressions.map((s) => s.toMathMl()).join(', ');
     element.innerHTML = mathList.toJS;
   } catch (_) {
     element.textContent = plainText;

@@ -81,8 +81,7 @@ void main() {
       final call = numChip!.buildChipCall(c1.id, c1.value);
       final c2 = eval.evaluateScroll(call);
       check(c2.value.isExact).isFalse();
-      check(double.parse(c2.value.toCanonicalText()))
-          .isCloseTo(0.71478565, 1e-5);
+      check(double.parse(c2.value.toCanonicalText())).isCloseTo(0.7148, 1e-5);
     });
   });
 
@@ -168,8 +167,7 @@ void main() {
 
       // Numeric
       final nsol = eval.evaluateScroll('nsolve(x^2 - 2 = 0, x, 1.5)');
-      check(double.parse(nsol.value.toCanonicalText()))
-          .isCloseTo(1.41421356, 1e-5);
+      check(double.parse(nsol.value.toCanonicalText())).isCloseTo(1.4142, 1e-5);
 
       // Session variables & stale recompute
       final assignCell = eval.evaluateScroll('k := 3');

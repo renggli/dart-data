@@ -14,11 +14,10 @@ extension TextExtension on Expr {
   /// final x = Variable('x');
   /// final str = (x * x + 1).toText(); // 'x * x + 1'
   /// ```
-  String toText({int? decimalPlaces = 4}) =>
-      _formatExpr(this, 0, decimalPlaces);
+  String format({int decimalPlaces = 4}) => _formatExpr(this, 0, decimalPlaces);
 }
 
-String _formatExpr(Expr expr, int parentPrec, int? decimalPlaces) {
+String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
   final prec = precedence(expr);
   final formatted = switch (expr) {
     Variable(:final name) => name,
@@ -28,10 +27,7 @@ String _formatExpr(Expr expr, int parentPrec, int? decimalPlaces) {
     IntegerNumber(:final value) => '$value',
     FractionNumber(:final numerator, :final denominator) =>
       '$numerator/$denominator',
-    RealNumber(:final value) => formatDouble(
-      value,
-      decimalPlaces: decimalPlaces,
-    ),
+    RealNumber(:final value) => formatDouble(value, decimalPlaces),
     ComplexNumber() => _formatComplex(expr, decimalPlaces),
     Sin(:final expr) => 'sin(${_formatExpr(expr, 0, decimalPlaces)})',
     Cos(:final expr) => 'cos(${_formatExpr(expr, 0, decimalPlaces)})',
@@ -128,7 +124,7 @@ String _formatExpr(Expr expr, int parentPrec, int? decimalPlaces) {
   return prec < parentPrec ? '($formatted)' : formatted;
 }
 
-String _formatComplex(ComplexNumber c, int? decimalPlaces) {
+String _formatComplex(ComplexNumber c, int decimalPlaces) {
   final real = c.real;
   final imag = c.imaginary;
   if (real.isZero) {
@@ -145,7 +141,7 @@ String _formatComplex(ComplexNumber c, int? decimalPlaces) {
   return '$realStr + ${_formatExpr(imag, 2, decimalPlaces)} * i';
 }
 
-String _formatPow(Expr base, Expr exponent, int? decimalPlaces) => switch ((
+String _formatPow(Expr base, Expr exponent, int decimalPlaces) => switch ((
   base,
   exponent,
 )) {
@@ -159,7 +155,7 @@ String _formatPow(Expr base, Expr exponent, int? decimalPlaces) => switch ((
     '${_formatExpr(base, 5, decimalPlaces)} ^ ${_formatExpr(exponent, 4, decimalPlaces)}',
 };
 
-String _formatAdd(List<Expr> terms, int? decimalPlaces) {
+String _formatAdd(List<Expr> terms, int decimalPlaces) {
   switch (terms) {
     case []:
       return '0';
@@ -180,7 +176,7 @@ String _formatAdd(List<Expr> terms, int? decimalPlaces) {
   }
 }
 
-String _formatMul(List<Expr> factors, int? decimalPlaces) {
+String _formatMul(List<Expr> factors, int decimalPlaces) {
   switch (factors) {
     case []:
       return '1';
@@ -218,7 +214,7 @@ String _formatMul(List<Expr> factors, int? decimalPlaces) {
 String _formatMulNumerator(
   List<Expr> factors,
   int parentPrec,
-  int? decimalPlaces,
+  int decimalPlaces,
 ) {
   switch (factors) {
     case []:
@@ -269,7 +265,7 @@ String _formatOrderTerm(
   String variable,
   int order,
   Expr point,
-  int? decimalPlaces,
+  int decimalPlaces,
 ) {
   final isZero = point is Number && point.isZero;
   if (isZero) {

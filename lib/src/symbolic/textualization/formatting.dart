@@ -183,8 +183,7 @@ bool needsNegOperandParens(Expr expr) => switch (expr) {
 /// integer-valued doubles (e.g. `2.0`).
 ///
 /// If [decimalPlaces] is `null`, returns standard [double.toString].
-String formatDouble(double value, {int? decimalPlaces = 4}) {
-  if (decimalPlaces == null) return value.toString();
+String formatDouble(double value, int decimalPlaces) {
   final fixed = value.toStringAsFixed(decimalPlaces);
   if (fixed.contains('.')) {
     var end = fixed.length;

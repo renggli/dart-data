@@ -30,8 +30,6 @@ void main() {
       check(const RealNumber(1.0530000000000002).toLatex()).equals('1.053');
       check(const RealNumber(1.0530000000000002).toLatex(decimalPlaces: 2))
           .equals('1.05');
-      check(const RealNumber(1.0530000000000002).toLatex(decimalPlaces: null))
-          .equals('1.0530000000000002');
     });
   });
 

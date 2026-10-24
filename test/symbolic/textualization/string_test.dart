@@ -222,16 +222,16 @@ void main() {
       const num2 = RealNumber(1.0530000000000002);
       const num3 = RealNumber(2.0);
 
-      check(num1.toText()).equals('1.875');
-      check(num2.toText()).equals('1.053');
-      check(num3.toText()).equals('2.0');
+      check(num1.format()).equals('1.875');
+      check(num2.format()).equals('1.053');
+      check(num3.format()).equals('2.0');
 
-      check(num2.toText(decimalPlaces: 2)).equals('1.05');
-      check(num2.toString()).equals('1.0530000000000002');
+      check(num2.format(decimalPlaces: 2)).equals('1.05');
+      check(num2.toString()).equals('1.053');
 
       final expr = const Variable('x') + num2;
-      check(expr.toText()).equals('x + 1.053');
-      check(expr.toText(decimalPlaces: 1)).equals('x + 1.1');
+      check(expr.format()).equals('x + 1.053');
+      check(expr.format(decimalPlaces: 1)).equals('x + 1.1');
     });
   });
 }
