@@ -40,6 +40,11 @@
   padding: 0;
 }
 
+/* MathML Styling Enhancements */
+math msqrt > mrow {
+  padding-top: 0.14em;
+}
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
