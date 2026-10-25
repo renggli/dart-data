@@ -38,9 +38,6 @@ final class CalculatorApp {
 
   late final web.HTMLButtonElement _modeScrollBtn;
   late final web.HTMLButtonElement _modeRpnBtn;
-  late final web.HTMLButtonElement _anglePill;
-  late final web.HTMLButtonElement _exactPill;
-  late final web.HTMLButtonElement _domainPill;
   late final web.HTMLButtonElement _varsPill;
   late final web.HTMLDivElement _varsDrawer;
   late final web.HTMLDivElement _settingsPopover;
@@ -90,11 +87,20 @@ final class CalculatorApp {
       onClearView: () => unawaited(_clearSession()),
       onFunctionKey: (fKey) {
         if (_mode != CalcMode.rpn) return false;
-        return _rpnView.softKeyBar.handleFunctionKey(
-          fKey,
-          environment: _client.environment,
-          session: _client.session,
-        );
+        final cmd = switch (fKey) {
+          'F1' => 'SWAP',
+          'F2' => 'DUP',
+          'F3' => 'DROP',
+          'F4' => 'OVER',
+          'F5' => 'ROT',
+          'F6' => 'CLEAR',
+          _ => null,
+        };
+        if (cmd != null) {
+          unawaited(_executeRpnCommand(cmd));
+          return true;
+        }
+        return false;
       },
     );
 
@@ -108,12 +114,6 @@ final class CalculatorApp {
             as web.HTMLButtonElement;
     _modeRpnBtn =
         web.document.getElementById('mode-rpn-btn')! as web.HTMLButtonElement;
-    _anglePill =
-        web.document.getElementById('pill-angle')! as web.HTMLButtonElement;
-    _exactPill =
-        web.document.getElementById('pill-exact')! as web.HTMLButtonElement;
-    _domainPill =
-        web.document.getElementById('pill-domain')! as web.HTMLButtonElement;
     _varsPill =
         web.document.getElementById('pill-vars')! as web.HTMLButtonElement;
     _varsDrawer =
@@ -129,42 +129,6 @@ final class CalculatorApp {
     _modeRpnBtn.addEventListener(
       'click',
       ((web.Event _) => _setMode(CalcMode.rpn)).toJS,
-    );
-
-    _anglePill.addEventListener(
-      'click',
-      ((web.Event _) {
-        final cur = _client.environment.settings;
-        final next = cur.angleMode == AngleMode.rad
-            ? AngleMode.deg
-            : AngleMode.rad;
-        unawaited(_client.updateSettings(cur.copyWith(angleMode: next)));
-      }).toJS,
-    );
-
-    _exactPill.addEventListener(
-      'click',
-      ((web.Event _) {
-        final cur = _client.environment.settings;
-        unawaited(
-          _client.updateSettings(cur.copyWith(approxMode: !cur.approxMode)),
-        );
-      }).toJS,
-    );
-
-    _domainPill.addEventListener(
-      'click',
-      ((web.Event _) {
-        final cur = _client.environment.settings;
-        final next = switch (cur.domain) {
-          VariableDomain.unknown => VariableDomain.real,
-          VariableDomain.real => VariableDomain.positive,
-          VariableDomain.positive => VariableDomain.integer,
-          VariableDomain.integer => VariableDomain.complex,
-          VariableDomain.complex => VariableDomain.unknown,
-        };
-        unawaited(_client.updateSettings(cur.copyWith(domain: next)));
-      }).toJS,
     );
 
     _varsPill.addEventListener(
@@ -372,22 +336,10 @@ final class CalculatorApp {
       _rpnView.element.classList.remove('hidden');
     }
 
-    // Status pills
-    _anglePill.textContent = settings.angleMode.name.toUpperCase();
-    _exactPill.textContent = settings.approxMode
-        ? 'APPROX (${settings.digits})'
-        : 'EXACT';
-    _domainPill.textContent = switch (settings.domain) {
-      VariableDomain.unknown => 'x ∈ ℂ/ℝ',
-      VariableDomain.real => 'x ∈ ℝ',
-      VariableDomain.positive => 'x > 0',
-      VariableDomain.integer => 'x ∈ ℤ',
-      VariableDomain.complex => 'x ∈ ℂ',
-    };
     final symCount =
         _client.environment.variables.length +
         _client.environment.functions.length;
-    _varsPill.textContent = 'VARS ($symCount)';
+    _varsPill.textContent = 'Vars ($symCount)';
 
     // Views
     _scrollView.render(session: _client.session, digits: settings.digits);
@@ -526,7 +478,76 @@ final class CalculatorApp {
       return row;
     }
 
+    // Angle mode setting
+    final angleRow = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-setting-row';
+    final angleLabel = web.document.createElement('span') as web.HTMLSpanElement
+      ..textContent = 'Angle unit';
+    final angleBtn =
+        web.document.createElement('button') as web.HTMLButtonElement
+          ..type = 'button'
+          ..className = 'calc-chip-btn calc-chip-secondary'
+          ..textContent = s.angleMode == AngleMode.rad
+              ? 'Radians (RAD)'
+              : 'Degrees (DEG)';
+    angleBtn.addEventListener(
+      'click',
+      ((web.Event _) {
+        final next = s.angleMode == AngleMode.rad
+            ? AngleMode.deg
+            : AngleMode.rad;
+        unawaited(
+          _client.updateSettings(s.copyWith(angleMode: next)).then((_) {
+            _renderSettingsPopover();
+          }),
+        );
+      }).toJS,
+    );
+    angleRow
+      ..append(angleLabel)
+      ..append(angleBtn);
+
+    // Variable domain setting
+    final domainRow = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-setting-row';
+    final domainLabel =
+        web.document.createElement('span') as web.HTMLSpanElement
+          ..textContent = 'Variable domain';
+    final domainBtn =
+        web.document.createElement('button') as web.HTMLButtonElement
+          ..type = 'button'
+          ..className = 'calc-chip-btn calc-chip-secondary'
+          ..textContent = switch (s.domain) {
+            VariableDomain.unknown => 'Unknown (x ∈ ℂ/ℝ)',
+            VariableDomain.real => 'Real (x ∈ ℝ)',
+            VariableDomain.positive => 'Positive (x > 0)',
+            VariableDomain.integer => 'Integer (x ∈ ℤ)',
+            VariableDomain.complex => 'Complex (x ∈ ℂ)',
+          };
+    domainBtn.addEventListener(
+      'click',
+      ((web.Event _) {
+        final next = switch (s.domain) {
+          VariableDomain.unknown => VariableDomain.real,
+          VariableDomain.real => VariableDomain.positive,
+          VariableDomain.positive => VariableDomain.integer,
+          VariableDomain.integer => VariableDomain.complex,
+          VariableDomain.complex => VariableDomain.unknown,
+        };
+        unawaited(
+          _client.updateSettings(s.copyWith(domain: next)).then((_) {
+            _renderSettingsPopover();
+          }),
+        );
+      }).toJS,
+    );
+    domainRow
+      ..append(domainLabel)
+      ..append(domainBtn);
+
     _settingsPopover
+      ..append(angleRow)
+      ..append(domainRow)
       ..append(
         toggleRow(
           'Auto-simplify results',

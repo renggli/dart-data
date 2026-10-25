@@ -17,6 +17,58 @@ final class RpnInterpreter {
   final RpnStack stack;
   final CalcEvaluator evaluator;
 
+  static const Map<String, String> _legacyRpnAliases = {
+    'SIMP': 'simplify',
+    'EXPA': 'expand',
+    'FACT': 'factor',
+    'SOLV': 'solve',
+    'SUBS': 'subs',
+    'APRT': 'apart',
+    'TGTH': 'together',
+    'CANC': 'cancel',
+    'COLL': 'collect',
+    'NUMR': 'numer',
+    'DENM': 'denom',
+    'TEXP': 'trigexpand',
+    'TSMP': 'trigreduce',
+    'TAYL': 'taylor',
+    'SERI': 'series',
+    'LIM': 'limit',
+    'GRAD': 'gradient',
+    'HESS': 'hessian',
+    'JACO': 'jacobian',
+    'DET': 'det',
+    'INV': 'inv',
+    'TRN': 'transpose',
+    'TRAC': 'trace',
+    'CPOL': 'charpoly',
+    'RANK': 'rank',
+    'RREF': 'rref',
+    'NULL': 'nullspace',
+    'EGVL': 'eigenvalues',
+    'EGVC': 'eigenvectors',
+    'IDN': 'identity',
+    'ZERO': 'zeros',
+    'DOT': 'dot',
+    'CROS': 'cross',
+    'NORM': 'norm',
+    'DIFF': 'diff',
+    'INT': 'integrate',
+    'POLR': 'polar',
+    'RECT': 'rect',
+    'PRIM?': 'isprime',
+    'COMB': 'binomial',
+    'FLR': 'floor',
+    'CEIL': 'ceil',
+    'RND': 'round',
+    'N∫': 'nintegrate',
+    'NSOL': 'nsolve',
+    'NMIN': 'nmin',
+    'NDER': 'nderivative',
+    'PURG': 'clear',
+    'CLVA': 'clearall',
+  };
+
   Environment get environment => evaluator.environment;
   Session get session => evaluator.session;
 
@@ -157,7 +209,7 @@ final class RpnInterpreter {
         );
         return;
       // 2. Stack manipulation commands
-      case 'ENTER' || 'DUP':
+      case 'ENTER' || 'DUP' || 'DUPLICATE':
         stack.dup();
         return;
       case 'DROP':
@@ -169,7 +221,7 @@ final class RpnInterpreter {
       case 'OVER':
         stack.over();
         return;
-      case 'ROT':
+      case 'ROT' || 'ROTATE':
         stack.rot();
         return;
       case 'PICK':
@@ -189,7 +241,7 @@ final class RpnInterpreter {
       case 'CLEAR':
         stack.clear();
         return;
-      case 'LASTARG':
+      case 'LASTARG' || 'LAST_ARGS':
         stack.recallLastArgs();
         return;
       case 'UNDO':
@@ -199,7 +251,7 @@ final class RpnInterpreter {
         stack.redo();
         return;
       // 3. Variable store / recall: `2: value  1: 'name'  STO`
-      case 'STO':
+      case 'STO' || 'STORE':
         final args = stack.popArgs(2);
         final val = args[0].value;
         final target = args[1].value;
@@ -207,17 +259,23 @@ final class RpnInterpreter {
         environment.setVariable(varName, val);
         session.markDependentsStale(changedSymbols: {varName});
         return;
-      case 'RCL':
+      case 'RCL' || 'RECALL':
         final top = stack.popArgs(1).first.value;
         final varName = _extractSymbolName(top, 'RCL');
         final recalled =
             environment.getVariable(varName) ?? ExprValue(Variable(varName));
         _pushResult(recalled, inputText: 'RCL($varName)', recordUndo: false);
         return;
-      case '→NUM' || '->NUM' || 'NUM':
+      case 'PURGE' || 'DELETE':
+        final top = stack.popArgs(1).first.value;
+        final varName = _extractSymbolName(top, 'DELETE');
+        environment.clearSymbol(varName);
+        session.markDependentsStale(changedSymbols: {varName});
+        return;
+      case '→NUM' || '->NUM' || 'NUM' || 'APPROX':
         _runRegistryCommand(CommandRegistry.byName['approx']!, 1);
         return;
-      case '→Q' || '->Q':
+      case '→Q' || '->Q' || 'EXACT' || 'FRAC':
         _runRegistryCommand(CommandRegistry.byName['exact']!, 1);
         return;
       case 'DEF∫' || 'DEFINT':
@@ -233,11 +291,16 @@ final class RpnInterpreter {
       return;
     }
 
-    // 5. CommandRegistry lookup (including RPN label aliases)
+    // 5. CommandRegistry lookup (including legacy abbreviations and RPN labels)
+    final resolvedName = _legacyRpnAliases[upper] ?? lower;
     final cmd =
-        CommandRegistry.byName[lower] ??
+        CommandRegistry.byName[resolvedName] ??
         CommandRegistry.all
-            .where((c) => c.rpnLabel.toUpperCase() == upper)
+            .where(
+              (c) =>
+                  c.rpnLabel.toUpperCase() == upper ||
+                  c.name.toUpperCase() == upper,
+            )
             .firstOrNull;
     if (cmd != null) {
       _runRegistryCommand(cmd, cmd.rpnArity);

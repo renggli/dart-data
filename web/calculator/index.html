@@ -68,19 +68,13 @@
         <button id="mode-scroll-btn" type="button" class="calc-mode-btn active" title="Notebook Scroll Mode (Ctrl/Cmd+M)">Scroll</button>
         <button id="mode-rpn-btn" type="button" class="calc-mode-btn" title="Reverse Polish Notation Stack Mode (Ctrl/Cmd+M)">RPN</button>
       </div>
-
-      <div class="calc-status-pills">
-        <button id="pill-angle" type="button" class="calc-pill-btn" title="Toggle Angle Unit (RAD / DEG)">RAD</button>
-        <button id="pill-exact" type="button" class="calc-pill-btn" title="Toggle Exact vs Approximate Mode">EXACT</button>
-        <button id="pill-domain" type="button" class="calc-pill-btn" title="Cycle Variable Domain Assumptions">x ∈ ℂ/ℝ</button>
-        <div class="calc-popover-anchor">
-          <button id="pill-vars" type="button" class="calc-pill-btn" title="Assigned Variables &amp; Functions">VARS (0)</button>
-          <div id="vars-drawer" class="calc-popover hidden"></div>
-        </div>
-      </div>
     </div>
 
     <div class="calc-header-right">
+      <div class="calc-popover-anchor">
+        <button id="pill-vars" type="button" class="calc-header-btn" title="Assigned Variables &amp; Functions">Vars (0)</button>
+        <div id="vars-drawer" class="calc-popover hidden"></div>
+      </div>
       <button id="btn-palette" type="button" class="calc-header-btn" title="Command Palette (Ctrl/Cmd+K)">⌘K</button>
       <div class="calc-popover-anchor">
         <button id="btn-settings" type="button" class="calc-header-btn" title="Calculator Settings &amp; Export">⚙</button>

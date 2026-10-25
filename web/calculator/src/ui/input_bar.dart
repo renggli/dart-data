@@ -103,9 +103,15 @@ final class FormulaInputBar {
     if (mode == CalcMode.rpn) {
       _promptBadge.textContent = 'RPN ▸';
       textarea.placeholder = "Enter number, 'expr', or command (e.g. 2 3 + or 'x^2 - 1' factor)...";
+      _evalBtn.textContent = 'Enter ↵';
+      _evalBtn.title = 'Push to stack or DUP (Enter)';
+      _approxBtn.classList.add('hidden');
     } else {
       _promptBadge.textContent = 'in[$nextId] ▸';
       textarea.placeholder = 'Enter expression, equation, or command (e.g. integrate(x * cos(x), x))...';
+      _evalBtn.textContent = 'Eval ↵';
+      _evalBtn.title = 'Evaluate exact (Enter)';
+      _approxBtn.classList.remove('hidden');
     }
   }
 
@@ -161,8 +167,8 @@ final class FormulaInputBar {
       ..append(_highlightLayer)
       ..append(textarea);
 
-    final btnGroup = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-input-actions';
+    final toolsGroup = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-input-tools';
 
     final matrixBtn =
         web.document.createElement('button') as web.HTMLButtonElement
@@ -188,11 +194,18 @@ final class FormulaInputBar {
       ((web.Event _) => onToggleKeypad()).toJS,
     );
 
+    toolsGroup
+      ..append(matrixBtn)
+      ..append(keypadBtn);
+
+    final actionGroup = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-input-actions';
+
     _approxBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-btn-secondary calc-eval-approx-btn'
-      ..textContent = '≈'
-      ..title = 'Evaluate numerically (Alt+Enter)';
+      ..textContent = '≈ Dec'
+      ..title = 'Evaluate decimal approximation (Alt+Enter)';
     _approxBtn.addEventListener(
       'click',
       ((web.Event _) => _submit(forceNumeric: true)).toJS,
@@ -217,9 +230,7 @@ final class FormulaInputBar {
       ((web.Event _) => onCancelBusy()).toJS,
     );
 
-    btnGroup
-      ..append(matrixBtn)
-      ..append(keypadBtn)
+    actionGroup
       ..append(_approxBtn)
       ..append(_evalBtn)
       ..append(_cancelBtn);
@@ -227,13 +238,21 @@ final class FormulaInputBar {
     bar
       ..append(_promptBadge)
       ..append(_statusDot)
+      ..append(toolsGroup)
       ..append(editorContainer)
-      ..append(btnGroup);
+      ..append(actionGroup);
 
     element
       ..append(_sigHintBar)
       ..append(_popupContainer)
       ..append(bar);
+
+    textarea.addEventListener(
+      'scroll',
+      ((web.Event _) {
+        _highlightLayer.scrollLeft = textarea.scrollLeft;
+      }).toJS,
+    );
 
     textarea.addEventListener(
       'input',
@@ -471,6 +490,7 @@ final class FormulaInputBar {
 
     // Highlight layer
     _highlightLayer.innerHTML = _buildHighlightedHtml(raw).toJS;
+    _highlightLayer.scrollLeft = textarea.scrollLeft;
 
     // Live PetitParser syntax validation
     if (raw.trim().isEmpty) {

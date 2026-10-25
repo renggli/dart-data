@@ -25,8 +25,7 @@ final class CommandPaletteModal {
         web.document.createElement('input') as web.HTMLInputElement
           ..type = 'text'
           ..className = 'calc-palette-input'
-          ..placeholder =
-              'Search commands, functions, or variables...';
+          ..placeholder = 'Search commands, functions, or variables...';
     searchWrap.append(searchInput);
 
     final listContainer =

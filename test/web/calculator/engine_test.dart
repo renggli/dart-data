@@ -51,6 +51,41 @@ void main() {
       check(stack.level(1).value).isA<PlotValue>();
     });
 
+    test('RPN accepts humanized command names alongside legacy aliases', () {
+      final eval = createEval();
+      final stack = RpnStack();
+      final rpn = RpnInterpreter(stack: stack, evaluator: eval);
+
+      // Humanized command names
+      check(rpn.executeLine("'x^2 - 1'")).isNull();
+      check(rpn.executeCommand('Factor')).isNull();
+      check(stack.level(1).value.toCanonicalText())
+          .equals('(-1 + x) * (1 + x)');
+
+      check(rpn.executeCommand('Expand')).isNull();
+      check(stack.level(1).value.toCanonicalText()).equals('-1 + x ^ 2');
+
+      // Duplicate and Drop
+      check(rpn.executeCommand('Duplicate')).isNull();
+      check(stack.depth).equals(2);
+      check(rpn.executeCommand('Drop')).isNull();
+      check(stack.depth).equals(1);
+
+      // Store and Recall
+      check(rpn.executeLine("'my_var'")).isNull();
+      check(rpn.executeCommand('Store')).isNull();
+      check(rpn.executeLine("'my_var'")).isNull();
+      check(rpn.executeCommand('Recall')).isNull();
+      check(stack.level(1).value.toCanonicalText()).equals('-1 + x ^ 2');
+
+      // Approx and Exact
+      check(rpn.executeLine("'1/2'")).isNull();
+      check(rpn.executeCommand('Approx')).isNull();
+      check(stack.level(1).value.toCanonicalText()).equals('0.5');
+      check(rpn.executeCommand('Exact')).isNull();
+      check(stack.level(1).value.toCanonicalText()).equals('1/2');
+    });
+
     test('RPN operations are atomic and transactional on error', () {
       final eval = createEval();
       final stack = RpnStack();
