@@ -323,9 +323,11 @@
 }
 
 .calc-cell-icon-btn:hover,
-.calc-icon-btn:hover {
+.calc-icon-btn:hover,
+.calc-icon-btn.active {
   background: var(--border-subtle);
-  color: var(--text-main);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
 }
 
 .calc-cell-out-row {
@@ -1119,45 +1121,67 @@
   color: var(--text-muted);
 }
 
-/* Matrix Grid Builder */
+/* Docked Matrix / Vector Builder Panel */
+.calc-matrix-panel {
+  flex-shrink: 0;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 220px;
+}
+
+.calc-matrix-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
 .calc-matrix-controls {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.65rem 1.1rem;
+  gap: 0.3rem;
   flex-wrap: wrap;
+}
+
+.calc-matrix-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 
 .calc-matrix-dim-label {
   font-family: var(--font-mono);
+  font-size: 0.8rem;
   font-weight: 700;
-  margin-right: 0.4rem;
+  color: var(--accent-color);
+  margin-right: 0.25rem;
 }
 
 .calc-matrix-grid {
   display: grid;
-  gap: 0.4rem;
-  padding: 0.75rem 1.1rem;
+  gap: 0.35rem;
   overflow: auto;
+  padding: 0.15rem 0;
 }
 
 .calc-matrix-cell-input {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   text-align: center;
-  padding: 0.4rem;
+  padding: 0.32rem 0.25rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;
   background: var(--bg-color);
   color: var(--text-main);
-}
-
-.calc-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 0.75rem 1.1rem;
-  border-top: 1px solid var(--border-subtle);
+  min-width: 0;
 }
 
 /* Help Drawer */

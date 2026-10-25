@@ -3,7 +3,6 @@ import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 
 import '../model/environment.dart';
-import 'matrix_editor.dart';
 
 /// Collapsible 6-tab virtual mathematical keypad (`Numbers`, `Algebra`,
 /// `Trig`, `Calculus`, `Matrix`, `Stack`) for touch devices and desktop mouse
@@ -14,6 +13,7 @@ final class VirtualKeypad {
     required this.onEvaluate,
     required this.onBackspace,
     required this.onExecuteRpn,
+    this.onToggleMatrixBuilder,
     this.isInsideCompoundLiteral,
   }) {
     element = web.document.createElement('div') as web.HTMLDivElement
@@ -31,6 +31,7 @@ final class VirtualKeypad {
   final void Function({required bool forceNumeric}) onEvaluate;
   final void Function() onBackspace;
   final void Function(String rpnCommand) onExecuteRpn;
+  final void Function()? onToggleMatrixBuilder;
   final bool Function()? isInsideCompoundLiteral;
 
   late final web.HTMLDivElement element;
@@ -287,9 +288,9 @@ final class VirtualKeypad {
         return [
           _KeySpec(
             label: '⊞ Grid',
-            tooltip: 'Open visual matrix/vector grid builder',
+            tooltip: 'Toggle docked matrix/vector grid builder',
             styleClass: 'calc-key-primary',
-            onTap: () => MatrixEditorModal.open(onInsert: onInsert),
+            onTap: () => onToggleMatrixBuilder?.call(),
           ),
           ins('[v]', '[, ]', back: 3),
           ins('[[M]]', '[[, ], [, ]]', back: 10),

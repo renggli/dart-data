@@ -3,39 +3,54 @@ import 'dart:math' as math;
 
 import 'package:web/web.dart' as web;
 
-/// Visual $m \times n$ matrix & vector grid editor modal that serializes cleanly
-/// to `[[a, b], [c, d]]` or `[a, b, c]` in the formula input bar.
-final class MatrixEditorModal {
-  static void open({
-    required void Function(String literalText) onInsert,
+/// Docked visual $m \times n$ matrix & vector grid builder panel mounted below
+/// the formula input bar, serializing to `[[a, b], [c, d]]` or `[a, b, c]`.
+final class MatrixBuilderPanel {
+  new({
+    required this.onInsert,
+    this.onVisibilityChanged,
     int initialRows = 2,
     int initialCols = 2,
-  }) {
-    var rows = initialRows.clamp(1, 8);
-    var cols = initialCols.clamp(1, 8);
-    final gridValues = <String, String>{};
+  }) : _rows = initialRows.clamp(1, 8),
+       _cols = initialCols.clamp(1, 8) {
+    _buildDom();
+  }
 
-    final backdrop = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-modal-backdrop';
-    final dialog = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-modal-dialog calc-matrix-dialog';
+  final void Function(String literalText) onInsert;
+  final void Function(bool visible)? onVisibilityChanged;
 
-    final header = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-modal-header';
-    final title = web.document.createElement('h3') as web.HTMLHeadingElement
-      ..textContent = 'Matrix / Vector Builder';
-    final closeBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-icon-btn'
-          ..textContent = '✕';
-    header
-      ..append(title)
-      ..append(closeBtn);
+  late final web.HTMLDivElement element;
+  late final web.HTMLSpanElement _dimLabel;
+  late final web.HTMLDivElement _gridContainer;
 
-    final controls = web.document.createElement('div') as web.HTMLDivElement
+  int _rows;
+  int _cols;
+  final Map<String, String> _gridValues = {};
+
+  bool get isVisible => !element.classList.contains('hidden');
+
+  void setVisible(bool visible) {
+    if (visible) {
+      element.classList.remove('hidden');
+      _renderGrid();
+    } else {
+      element.classList.add('hidden');
+    }
+    onVisibilityChanged?.call(visible);
+  }
+
+  void toggle() => setVisible(!isVisible);
+
+  void _buildDom() {
+    element = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-matrix-panel hidden';
+
+    final toolbar = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-matrix-toolbar';
+
+    final controlsLeft = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-matrix-controls';
-    final dimLabel = web.document.createElement('span') as web.HTMLSpanElement
+    _dimLabel = web.document.createElement('span') as web.HTMLSpanElement
       ..className = 'calc-matrix-dim-label';
 
     final addRowBtn =
@@ -69,8 +84,8 @@ final class MatrixEditorModal {
           ..className = 'calc-chip-btn'
           ..textContent = 'Zeros';
 
-    controls
-      ..append(dimLabel)
+    controlsLeft
+      ..append(_dimLabel)
       ..append(addRowBtn)
       ..append(remRowBtn)
       ..append(addColBtn)
@@ -78,117 +93,89 @@ final class MatrixEditorModal {
       ..append(idPresetBtn)
       ..append(zeroPresetBtn);
 
-    final gridContainer =
-        web.document.createElement('div') as web.HTMLDivElement
-          ..className = 'calc-matrix-grid';
-
-    final footer = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-modal-footer';
+    final actionsRight = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-matrix-actions';
     final insertVecBtn =
         web.document.createElement('button') as web.HTMLButtonElement
           ..type = 'button'
-          ..className = 'calc-btn-secondary'
-          ..textContent = 'Insert as Vector [...]';
+          ..className = 'calc-btn-secondary calc-btn-sm'
+          ..textContent = 'Insert Vector [...]';
     final insertMatBtn =
         web.document.createElement('button') as web.HTMLButtonElement
           ..type = 'button'
-          ..className = 'calc-btn-primary'
+          ..className = 'calc-btn-primary calc-btn-sm'
           ..textContent = 'Insert Matrix [[...]]';
-    footer
+    final closeBtn =
+        web.document.createElement('button') as web.HTMLButtonElement
+          ..type = 'button'
+          ..className = 'calc-icon-btn'
+          ..textContent = '✕'
+          ..title = 'Close Matrix Builder';
+
+    actionsRight
       ..append(insertVecBtn)
-      ..append(insertMatBtn);
+      ..append(insertMatBtn)
+      ..append(closeBtn);
 
-    dialog
-      ..append(header)
-      ..append(controls)
-      ..append(gridContainer)
-      ..append(footer);
-    backdrop.append(dialog);
+    toolbar
+      ..append(controlsLeft)
+      ..append(actionsRight);
 
-    void renderGrid() {
-      dimLabel.textContent = '$rows × $cols';
-      gridContainer.innerHTML = ''.toJS;
-      gridContainer.style.gridTemplateColumns =
-          'repeat($cols, minmax(64px, 1fr))';
+    _gridContainer = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-matrix-grid';
 
-      for (var r = 0; r < rows; r++) {
-        for (var c = 0; c < cols; c++) {
-          final key = '$r,$c';
-          final val = gridValues[key] ?? (r == c ? '1' : '0');
-          gridValues[key] = val;
-          final input =
-              web.document.createElement('input') as web.HTMLInputElement
-                ..type = 'text'
-                ..className = 'calc-matrix-cell-input'
-                ..value = val
-                ..placeholder = 'a_${r + 1}${c + 1}';
-          input.addEventListener(
-            'input',
-            ((web.Event _) {
-              gridValues[key] = input.value.trim().isEmpty
-                  ? '0'
-                  : input.value.trim();
-            }).toJS,
-          );
-          input.addEventListener(
-            'focus',
-            ((web.Event _) {
-              input.select();
-            }).toJS,
-          );
-          gridContainer.append(input);
-        }
-      }
-    }
+    element
+      ..append(toolbar)
+      ..append(_gridContainer);
 
     addRowBtn.addEventListener(
       'click',
       ((web.Event _) {
-        rows = math.min(8, rows + 1);
-        renderGrid();
+        _rows = math.min(8, _rows + 1);
+        _renderGrid();
       }).toJS,
     );
     remRowBtn.addEventListener(
       'click',
       ((web.Event _) {
-        rows = math.max(1, rows - 1);
-        renderGrid();
+        _rows = math.max(1, _rows - 1);
+        _renderGrid();
       }).toJS,
     );
     addColBtn.addEventListener(
       'click',
       ((web.Event _) {
-        cols = math.min(8, cols + 1);
-        renderGrid();
+        _cols = math.min(8, _cols + 1);
+        _renderGrid();
       }).toJS,
     );
     remColBtn.addEventListener(
       'click',
       ((web.Event _) {
-        cols = math.max(1, cols - 1);
-        renderGrid();
+        _cols = math.max(1, _cols - 1);
+        _renderGrid();
       }).toJS,
     );
     idPresetBtn.addEventListener(
       'click',
       ((web.Event _) {
-        for (var r = 0; r < rows; r++) {
-          for (var c = 0; c < cols; c++) {
-            gridValues['$r,$c'] = r == c ? '1' : '0';
+        for (var r = 0; r < _rows; r++) {
+          for (var c = 0; c < _cols; c++) {
+            _gridValues['$r,$c'] = r == c ? '1' : '0';
           }
         }
-        renderGrid();
+        _renderGrid();
       }).toJS,
     );
     zeroPresetBtn.addEventListener(
       'click',
       ((web.Event _) {
-        for (var r = 0; r < rows; r++) {
-          for (var c = 0; c < cols; c++) {
-            gridValues['$r,$c'] = '0';
+        for (var r = 0; r < _rows; r++) {
+          for (var c = 0; c < _cols; c++) {
+            _gridValues['$r,$c'] = '0';
           }
         }
-        renderGrid();
+        _renderGrid();
       }).toJS,
     );
 
@@ -196,15 +183,15 @@ final class MatrixEditorModal {
       'click',
       ((web.Event _) {
         final rowStrings = <String>[];
-        for (var r = 0; r < rows; r++) {
+        for (var r = 0; r < _rows; r++) {
           final entries = <String>[];
-          for (var c = 0; c < cols; c++) {
-            final v = gridValues['$r,$c']?.trim() ?? '0';
+          for (var c = 0; c < _cols; c++) {
+            final v = _gridValues['$r,$c']?.trim() ?? '0';
             entries.add(v.isEmpty ? '0' : v);
           }
           rowStrings.add('[${entries.join(', ')}]');
         }
-        backdrop.remove();
+        setVisible(false);
         onInsert('[${rowStrings.join(', ')}]');
       }).toJS,
     );
@@ -213,27 +200,61 @@ final class MatrixEditorModal {
       'click',
       ((web.Event _) {
         final entries = <String>[];
-        for (var c = 0; c < cols; c++) {
-          final v = gridValues['0,$c']?.trim() ?? '0';
+        for (var c = 0; c < _cols; c++) {
+          final v = _gridValues['0,$c']?.trim() ?? '0';
           entries.add(v.isEmpty ? '0' : v);
         }
-        backdrop.remove();
+        setVisible(false);
         onInsert('[${entries.join(', ')}]');
       }).toJS,
     );
 
     closeBtn.addEventListener(
       'click',
-      ((web.Event _) => backdrop.remove()).toJS,
-    );
-    backdrop.addEventListener(
-      'click',
-      ((web.MouseEvent e) {
-        if (e.target == backdrop) backdrop.remove();
-      }).toJS,
+      ((web.Event _) => setVisible(false)).toJS,
     );
 
-    renderGrid();
-    web.document.body?.append(backdrop);
+    _renderGrid();
+  }
+
+  void _renderGrid() {
+    _dimLabel.textContent = '$_rows × $_cols';
+    _gridContainer.innerHTML = ''.toJS;
+    _gridContainer.style.gridTemplateColumns =
+        'repeat($_cols, minmax(56px, 1fr))';
+
+    for (var r = 0; r < _rows; r++) {
+      for (var c = 0; c < _cols; c++) {
+        final key = '$r,$c';
+        final val = _gridValues[key] ?? (r == c ? '1' : '0');
+        _gridValues[key] = val;
+        final input =
+            web.document.createElement('input') as web.HTMLInputElement
+              ..type = 'text'
+              ..name = 'mat-$r-$c'
+              ..className = 'calc-matrix-cell-input'
+              ..value = val
+              ..placeholder = 'a_${r + 1}${c + 1}';
+        input.setAttribute(
+          'aria-label',
+          'Matrix entry row ${r + 1} column ${c + 1}',
+        );
+        input.addEventListener(
+          'input',
+          ((web.Event _) {
+            _gridValues[key] = input.value.trim().isEmpty
+                ? '0'
+                : input.value.trim();
+          }).toJS,
+        );
+        input.addEventListener(
+          'focus',
+          ((web.Event _) {
+            input.select();
+          }).toJS,
+        );
+        _gridContainer.append(input);
+      }
+    }
   }
 }

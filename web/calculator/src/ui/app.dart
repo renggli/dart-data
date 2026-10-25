@@ -10,6 +10,7 @@ import '../worker/engine_client.dart';
 import 'help.dart';
 import 'input_bar.dart';
 import 'keypad.dart';
+import 'matrix_editor.dart';
 import 'palette.dart';
 import 'persistence.dart';
 import 'rpn_view.dart';
@@ -34,6 +35,7 @@ final class CalculatorApp {
   late final ScrollWorksheetView _scrollView;
   late final RpnStackView _rpnView;
   late final FormulaInputBar _inputBar;
+  late final MatrixBuilderPanel _matrixPanel;
   late final VirtualKeypad _keypad;
 
   late final web.HTMLButtonElement _modeScrollBtn;
@@ -240,6 +242,7 @@ final class CalculatorApp {
         _client.cancelActiveComputation();
         _showToast('Computation cancelled');
       },
+      onToggleMatrixBuilder: () => _matrixPanel.toggle(),
       onToggleKeypad: () {
         final cur = _client.environment.settings;
         unawaited(
@@ -251,6 +254,12 @@ final class CalculatorApp {
       getMode: () => _mode,
       getEnvironment: () => _client.environment,
       getSession: () => _client.session,
+    );
+
+    _matrixPanel = MatrixBuilderPanel(
+      onInsert: (text) => _inputBar.insertAtCursor(text),
+      onVisibilityChanged: (visible) =>
+          _inputBar.setMatrixBuilderActive(visible),
     );
 
     _keypad = VirtualKeypad(
@@ -267,6 +276,7 @@ final class CalculatorApp {
       },
       onBackspace: () => _inputBar.backspaceAtCursor(),
       onExecuteRpn: (cmd) => unawaited(_executeRpnCommand(cmd)),
+      onToggleMatrixBuilder: () => _matrixPanel.toggle(),
       isInsideCompoundLiteral: () => _inputBar.isInsideCompoundLiteral,
     );
 
@@ -274,6 +284,7 @@ final class CalculatorApp {
       ..append(_scrollView.element)
       ..append(_rpnView.element)
       ..append(_inputBar.element)
+      ..append(_matrixPanel.element)
       ..append(_keypad.element);
   }
 

@@ -206,7 +206,7 @@ Text inputs never capture global shortcuts other than those listed. Shortcuts ar
 - The input uses `inputmode="none"` while the keypad is visible to suppress the OS keyboard. A keyboard toggle key switches to native text input.
 - Long-press shows the alternate (`sin` → `asin`, `ln` → `exp`). Haptic feedback via `navigator.vibrate(5)` where available.
 - Swipe down collapses the keypad to a one-row strip. The sheet height persists.
-- The **matrix editor** is a modal grid (HP48 MatrixWriter): row and column steppers, `Tab` / `Enter` navigation, cells accept expressions, and the output is a matrix literal.
+- The **matrix builder** (`MatrixBuilderPanel`) is a collapsible docked panel below the formula input bar (matching `VirtualKeypad`), toggled by the `⊞` button: row and column steppers (`+ Row`, `− Row`, `+ Col`, `− Col`), `Identity` and `Zeros` presets, cells accepting arbitrary expressions, and `Insert Vector [...]` / `Insert Matrix [[...]]` actions.
 
 ### 3.9 Plotting
 
@@ -254,7 +254,7 @@ Desktop ≥ 1024 px                                  Mobile < 1024 px
 │ Examples  │                               │      ├───────────────────────┤
 │ Catalog   ├───────────────────────────────┤      │ input bar     [⊞][⌨]  │
 │           │ input bar ▸ autocomplete      │      ├───────────────────────┤
-│           │ keypad (optional, collapsible)│      │ keypad sheet (tabs)   │
+│           │ matrix builder / keypad       │      │ matrix / keypad sheet │
 └───────────┴───────────────────────────────┘      └───────────────────────┘
 ```
 
@@ -405,7 +405,7 @@ web/calculator/
       palette.dart           fuzzy search (subsequence scoring)
       help.dart              cheat sheet + reference rendered from registry/shortcuts
       chips.dart             action chips from Command.appliesTo
-      matrix_editor.dart
+      matrix_editor.dart     docked MatrixBuilderPanel below the input bar
       plot_view.dart         wraps shared/chart.dart; pan/zoom/pinch
       render.dart            CalcValue -> MathML/DOM (uses shared/utils.dart)
       shortcuts.dart         declarative shortcut table

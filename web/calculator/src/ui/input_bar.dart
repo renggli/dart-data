@@ -7,7 +7,6 @@ import '../language/completion.dart';
 import '../language/grammar.dart';
 import '../model/environment.dart';
 import '../model/session.dart';
-import 'matrix_editor.dart';
 
 /// Docked bottom formula input bar with dual-layer syntax/bracket highlighting,
 /// PetitParser live validation indicator, parameter-aware autocomplete popup,
@@ -18,6 +17,7 @@ final class FormulaInputBar {
     required this.onRpnImmediateChar,
     required this.onRpnImmediateStackKey,
     required this.onCancelBusy,
+    required this.onToggleMatrixBuilder,
     required this.onToggleKeypad,
     required this.getMode,
     required this.getEnvironment,
@@ -30,6 +30,7 @@ final class FormulaInputBar {
   final bool Function(String opChar) onRpnImmediateChar;
   final bool Function(String key) onRpnImmediateStackKey;
   final void Function() onCancelBusy;
+  final void Function() onToggleMatrixBuilder;
   final void Function() onToggleKeypad;
   final CalcMode Function() getMode;
   final Environment Function() getEnvironment;
@@ -42,6 +43,7 @@ final class FormulaInputBar {
   late final web.HTMLDivElement _sigHintBar;
   late final web.HTMLSpanElement _promptBadge;
   late final web.HTMLSpanElement _statusDot;
+  late final web.HTMLButtonElement _matrixBtn;
   late final web.HTMLButtonElement _evalBtn;
   late final web.HTMLButtonElement _approxBtn;
   late final web.HTMLButtonElement _cancelBtn;
@@ -153,6 +155,10 @@ final class FormulaInputBar {
     }
   }
 
+  void setMatrixBuilderActive(bool active) {
+    _matrixBtn.className = active ? 'calc-icon-btn active' : 'calc-icon-btn';
+  }
+
   void _buildDom() {
     element = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-input-dock';
@@ -194,17 +200,14 @@ final class FormulaInputBar {
     final toolsGroup = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-input-tools';
 
-    final matrixBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-icon-btn'
-          ..textContent = '⊞'
-          ..title = 'Matrix / Vector grid builder';
-    matrixBtn.addEventListener(
+    _matrixBtn = web.document.createElement('button') as web.HTMLButtonElement
+      ..type = 'button'
+      ..className = 'calc-icon-btn'
+      ..textContent = '⊞'
+      ..title = 'Toggle Matrix / Vector grid builder';
+    _matrixBtn.addEventListener(
       'click',
-      ((web.Event _) {
-        MatrixEditorModal.open(onInsert: insertAtCursor);
-      }).toJS,
+      ((web.Event _) => onToggleMatrixBuilder()).toJS,
     );
 
     final keypadBtn =
@@ -219,7 +222,7 @@ final class FormulaInputBar {
     );
 
     toolsGroup
-      ..append(matrixBtn)
+      ..append(_matrixBtn)
       ..append(keypadBtn);
 
     final actionGroup = web.document.createElement('div') as web.HTMLDivElement
