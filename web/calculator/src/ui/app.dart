@@ -38,6 +38,8 @@ final class CalculatorApp {
 
   late final web.HTMLButtonElement _modeScrollBtn;
   late final web.HTMLButtonElement _modeRpnBtn;
+  late final web.HTMLButtonElement _undoBtn;
+  late final web.HTMLButtonElement _redoBtn;
   late final web.HTMLButtonElement _varsPill;
   late final web.HTMLDivElement _varsDrawer;
   late final web.HTMLDivElement _settingsPopover;
@@ -81,6 +83,8 @@ final class CalculatorApp {
       onOpenPalette: _openCommandPalette,
       onToggleMode: () =>
           _setMode(_mode == CalcMode.scroll ? CalcMode.rpn : CalcMode.scroll),
+      onUndo: () => unawaited(_client.undo()),
+      onRedo: () => unawaited(_client.redo()),
       onOpenHelp: () => HelpDrawerModal.open(
         onRunExample: (ex) => unawaited(_handleSubmit(ex, forceNumeric: false)),
       ),
@@ -114,6 +118,10 @@ final class CalculatorApp {
             as web.HTMLButtonElement;
     _modeRpnBtn =
         web.document.getElementById('mode-rpn-btn')! as web.HTMLButtonElement;
+    _undoBtn =
+        web.document.getElementById('btn-undo')! as web.HTMLButtonElement;
+    _redoBtn =
+        web.document.getElementById('btn-redo')! as web.HTMLButtonElement;
     _varsPill =
         web.document.getElementById('pill-vars')! as web.HTMLButtonElement;
     _varsDrawer =
@@ -129,6 +137,14 @@ final class CalculatorApp {
     _modeRpnBtn.addEventListener(
       'click',
       ((web.Event _) => _setMode(CalcMode.rpn)).toJS,
+    );
+    _undoBtn.addEventListener(
+      'click',
+      ((web.Event _) => unawaited(_client.undo())).toJS,
+    );
+    _redoBtn.addEventListener(
+      'click',
+      ((web.Event _) => unawaited(_client.redo())).toJS,
     );
 
     _varsPill.addEventListener(
@@ -339,6 +355,9 @@ final class CalculatorApp {
       _scrollView.element.classList.add('hidden');
       _rpnView.element.classList.remove('hidden');
     }
+
+    _undoBtn.disabled = !_client.canUndo;
+    _redoBtn.disabled = !_client.canRedo;
 
     final symCount =
         _client.environment.variables.length +

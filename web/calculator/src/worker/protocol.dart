@@ -65,17 +65,9 @@ final class WorkerResponse {
 /// Kept pure-Dart (no `package:web`) so it can be unit-tested directly on VM
 /// and Node.js in addition to running inside `worker.dart`.
 final class WorkerDispatcher {
+  static const int _maxUndoLevels = 64;
+
   new() {
-    _resetState();
-  }
-
-  late Environment environment;
-  late Session session;
-  late RpnStack stack;
-  late CalcEvaluator evaluator;
-  late RpnInterpreter rpn;
-
-  void _resetState() {
     environment = Environment();
     session = Session();
     stack = RpnStack();
@@ -85,6 +77,45 @@ final class WorkerDispatcher {
       stack: stack,
     );
     rpn = RpnInterpreter(stack: stack, evaluator: evaluator);
+  }
+
+  late final Environment environment;
+  late final Session session;
+  late final RpnStack stack;
+  late final CalcEvaluator evaluator;
+  late final RpnInterpreter rpn;
+
+  final List<Map<String, Object?>> _undoStack = [];
+  final List<Map<String, Object?>> _redoStack = [];
+
+  /// Whether at least one undo snapshot is available.
+  bool get canUndo => _undoStack.isNotEmpty;
+
+  /// Whether at least one redo snapshot is available.
+  bool get canRedo => _redoStack.isNotEmpty;
+
+  /// Restores the previous session, environment, and stack snapshot.
+  bool undo() {
+    if (_undoStack.isEmpty) return false;
+    _redoStack.add(_exportCoreState());
+    final prev = _undoStack.removeLast();
+    _importCoreState(prev);
+    return true;
+  }
+
+  /// Reapplies the most recently undone session, environment, and stack snapshot.
+  bool redo() {
+    if (_redoStack.isEmpty) return false;
+    _undoStack.add(_exportCoreState());
+    final next = _redoStack.removeLast();
+    _importCoreState(next);
+    return true;
+  }
+
+  void _resetState() {
+    environment.clearAll();
+    session.clear();
+    stack.clear();
   }
 
   /// Processes a single [request] and returns a [WorkerResponse].
@@ -117,6 +148,7 @@ final class WorkerDispatcher {
   Map<String, Object?> _dispatch(String op, Map<String, Object?> payload) {
     switch (op) {
       case 'evalScroll':
+        final before = _exportCoreState();
         final input = payload['input']! as String;
         final forceNumeric = payload['forceNumeric'] as bool? ?? false;
         final recordHistory = payload['recordHistory'] as bool? ?? true;
@@ -125,12 +157,14 @@ final class WorkerDispatcher {
           forceNumeric: forceNumeric,
           recordHistory: recordHistory,
         );
+        _recordUndoSnapshot(before);
         return {
           'cell': cell.toJson(digits: environment.settings.digits),
           'state': exportStateJson(),
         };
 
       case 'updateScrollCell':
+        final before = _exportCoreState();
         final cellId = (payload['cellId']! as num).toInt();
         final input = payload['input']! as String;
         final forceNumeric = payload['forceNumeric'] as bool? ?? false;
@@ -139,6 +173,7 @@ final class WorkerDispatcher {
           input,
           forceNumeric: forceNumeric,
         );
+        _recordUndoSnapshot(before);
         return {
           'cell': cell.toJson(digits: environment.settings.digits),
           'staleIds': staleIds,
@@ -146,7 +181,11 @@ final class WorkerDispatcher {
         };
 
       case 'recomputeStale':
+        final before = _exportCoreState();
         final updated = evaluator.recomputeStaleCells();
+        if (updated.isNotEmpty) {
+          _recordUndoSnapshot(before);
+        }
         return {
           'updatedCells': [
             for (final c in updated)
@@ -156,9 +195,11 @@ final class WorkerDispatcher {
         };
 
       case 'deleteCell':
+        final before = _exportCoreState();
         final cellId = (payload['cellId']! as num).toInt();
         final staleIds = session.deleteCell(cellId);
         stack.removeResultId(cellId);
+        _recordUndoSnapshot(before);
         return {'staleIds': staleIds, 'state': exportStateJson()};
 
       case 'pushCellToStack':
@@ -168,13 +209,21 @@ final class WorkerDispatcher {
             !cell.deleted &&
             cell.value is! ErrorValue &&
             cell.value is! InfoValue) {
+          final before = _exportCoreState();
           stack.push(StackItem(resultId: cell.id, value: cell.value));
+          _recordUndoSnapshot(before);
         }
         return {'state': exportStateJson()};
 
       case 'evalRpnLine':
+        final before = _exportCoreState();
         final line = payload['line']! as String;
         final err = rpn.executeLine(line);
+        if (err == null) {
+          _recordUndoSnapshot(before);
+        } else {
+          _importCoreState(before);
+        }
         return {
           'error': ?(err != null
               ? CalcSerialization.toJson(
@@ -187,7 +236,22 @@ final class WorkerDispatcher {
 
       case 'execRpnCommand':
         final cmd = payload['command']! as String;
+        final upper = cmd.toUpperCase().trim();
+        if (upper == 'UNDO') {
+          undo();
+          return {'state': exportStateJson()};
+        }
+        if (upper == 'REDO') {
+          redo();
+          return {'state': exportStateJson()};
+        }
+        final before = _exportCoreState();
         final err = rpn.executeCommand(cmd);
+        if (err == null) {
+          _recordUndoSnapshot(before);
+        } else {
+          _importCoreState(before);
+        }
         return {
           'error': ?(err != null
               ? CalcSerialization.toJson(
@@ -198,6 +262,14 @@ final class WorkerDispatcher {
           'state': exportStateJson(),
         };
 
+      case 'undo':
+        final applied = undo();
+        return {'applied': applied, 'state': exportStateJson()};
+
+      case 'redo':
+        final applied = redo();
+        return {'applied': applied, 'state': exportStateJson()};
+
       case 'setSettings':
         environment.settings = CalcSettings.fromJson(
           (payload['settings']! as Map).cast<String, Object?>(),
@@ -205,10 +277,18 @@ final class WorkerDispatcher {
         return {'state': exportStateJson()};
 
       case 'loadState':
+        _undoStack.clear();
+        _redoStack.clear();
         importStateJson((payload['state']! as Map).cast<String, Object?>());
         return {'state': exportStateJson()};
 
       case 'reset':
+        if (session.activeCells.isNotEmpty ||
+            stack.depth > 0 ||
+            environment.variables.isNotEmpty ||
+            environment.functions.isNotEmpty) {
+          _recordUndoSnapshot(_exportCoreState());
+        }
         _resetState();
         return {'state': exportStateJson()};
 
@@ -219,10 +299,32 @@ final class WorkerDispatcher {
 
   /// Exports a full snapshot of the current session, environment, and RPN
   /// stack as a JSON map.
-  Map<String, Object?> exportStateJson() {
+  Map<String, Object?> exportStateJson() => {
+    'settings': environment.settings.toJson(),
+    ..._exportCoreState(),
+    'canUndo': canUndo,
+    'canRedo': canRedo,
+  };
+
+  /// Restores the worker state from a snapshot produced by [exportStateJson].
+  void importStateJson(Map<String, Object?> state) {
+    if (state['settings'] case final Map<Object?, Object?> s) {
+      environment.settings = CalcSettings.fromJson(s.cast<String, Object?>());
+    }
+    _importCoreState(state);
+  }
+
+  void _recordUndoSnapshot(Map<String, Object?> before) {
+    _undoStack.add(before);
+    if (_undoStack.length > _maxUndoLevels) {
+      _undoStack.removeAt(0);
+    }
+    _redoStack.clear();
+  }
+
+  Map<String, Object?> _exportCoreState() {
     final digits = environment.settings.digits;
     return {
-      'settings': environment.settings.toJson(),
       'variables': {
         for (final entry in environment.variables.entries)
           entry.key: CalcSerialization.toJson(entry.value, digits: digits),
@@ -236,11 +338,7 @@ final class WorkerDispatcher {
     };
   }
 
-  /// Restores the worker state from a snapshot produced by [exportStateJson].
-  void importStateJson(Map<String, Object?> state) {
-    if (state['settings'] case final Map<Object?, Object?> s) {
-      environment.settings = CalcSettings.fromJson(s.cast<String, Object?>());
-    }
+  void _importCoreState(Map<String, Object?> state) {
     environment.clearAll();
     if (state['variables'] case final Map<Object?, Object?> vars) {
       for (final entry in vars.entries) {

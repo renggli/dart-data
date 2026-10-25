@@ -52,8 +52,12 @@ final class EngineClient {
   Timer? _busyTicker;
   Stopwatch? _busyStopwatch;
   bool _isBusy = false;
+  bool _canUndo = false;
+  bool _canRedo = false;
 
   bool get isBusy => _isBusy;
+  bool get canUndo => _workerAvailable ? _canUndo : _fallbackDispatcher.canUndo;
+  bool get canRedo => _workerAvailable ? _canRedo : _fallbackDispatcher.canRedo;
 
   void _initLocalMirror() {
     environment = _fallbackDispatcher.environment;
@@ -295,6 +299,28 @@ final class EngineClient {
     return null;
   }
 
+  /// Restores the previous session, environment, and stack snapshot.
+  Future<bool> undo() async {
+    final resp = await _request('undo', const {}, trackBusy: false);
+    if (resp.ok && resp.result != null) {
+      _syncFromWorkerResult(resp.result!);
+      onStateUpdated?.call();
+      return resp.result!['applied'] as bool? ?? false;
+    }
+    return false;
+  }
+
+  /// Reapplies the most recently undone session, environment, and stack snapshot.
+  Future<bool> redo() async {
+    final resp = await _request('redo', const {}, trackBusy: false);
+    if (resp.ok && resp.result != null) {
+      _syncFromWorkerResult(resp.result!);
+      onStateUpdated?.call();
+      return resp.result!['applied'] as bool? ?? false;
+    }
+    return false;
+  }
+
   /// Updates calculator settings on both the local mirror and the worker.
   Future<void> updateSettings(CalcSettings newSettings) async {
     environment.settings = newSettings;
@@ -389,7 +415,12 @@ final class EngineClient {
 
   void _syncFromWorkerResult(Map<String, Object?> result) {
     if (result['state'] case final Map<Object?, Object?> stateMap) {
-      _fallbackDispatcher.importStateJson(stateMap.cast<String, Object?>());
+      final casted = stateMap.cast<String, Object?>();
+      _canUndo = casted['canUndo'] as bool? ?? false;
+      _canRedo = casted['canRedo'] as bool? ?? false;
+      if (_workerAvailable) {
+        _fallbackDispatcher.importStateJson(casted);
+      }
     }
   }
 

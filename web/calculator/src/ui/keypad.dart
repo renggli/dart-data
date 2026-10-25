@@ -349,24 +349,6 @@ final class VirtualKeypad {
             onTap: () => onExecuteRpn('ROT'),
           ),
           _KeySpec(
-            label: 'Undo',
-            tooltip: 'Undo last stack operation',
-            styleClass: 'calc-key-op',
-            onTap: () => onExecuteRpn('UNDO'),
-          ),
-          _KeySpec(
-            label: 'Redo',
-            tooltip: 'Redo last undone operation',
-            styleClass: 'calc-key-op',
-            onTap: () => onExecuteRpn('REDO'),
-          ),
-          _KeySpec(
-            label: 'Last Args',
-            tooltip: 'Recall previous operation arguments',
-            styleClass: 'calc-key-op',
-            onTap: () => onExecuteRpn('LASTARG'),
-          ),
-          _KeySpec(
             label: 'Pick',
             tooltip: 'Copy level n: to top',
             styleClass: 'calc-key-op',

@@ -160,7 +160,6 @@ final class RpnInterpreter {
         _pushResult(
           _postProcessValue(res),
           inputText: '${arg.value.toCanonicalText()}^$exp',
-          recordUndo: false,
         );
         return;
       case '!':
@@ -170,7 +169,6 @@ final class RpnInterpreter {
         _pushResult(
           _postProcessValue(res),
           inputText: '(${arg.value.toCanonicalText()})!',
-          recordUndo: false,
         );
         return;
       case 'NEG' || '±':
@@ -180,7 +178,6 @@ final class RpnInterpreter {
         _pushResult(
           _postProcessValue(res),
           inputText: '-(${arg.value.toCanonicalText()})',
-          recordUndo: false,
         );
         return;
       // 2. Stack manipulation commands
@@ -216,15 +213,6 @@ final class RpnInterpreter {
       case 'CLEAR':
         stack.clear();
         return;
-      case 'LASTARG' || 'LAST_ARGS':
-        stack.recallLastArgs();
-        return;
-      case 'UNDO':
-        stack.undo();
-        return;
-      case 'REDO':
-        stack.redo();
-        return;
       // 3. Variable store / recall: `2: value  1: 'name'  STO`
       case 'STO' || 'STORE':
         final args = stack.popArgs(2);
@@ -246,7 +234,7 @@ final class RpnInterpreter {
         _cleanupPoppedLiterals([popped]);
         final recalled =
             environment.getVariable(varName) ?? ExprValue(Variable(varName));
-        _pushResult(recalled, inputText: varName, recordUndo: false);
+        _pushResult(recalled, inputText: varName);
         return;
       case 'DELETE':
         final popped = stack.popArgs(1).first;
@@ -293,7 +281,6 @@ final class RpnInterpreter {
       _pushResult(
         _postProcessValue(res),
         inputText: '$lower(${arg.value.toCanonicalText()})',
-        recordUndo: false,
       );
       return;
     }
@@ -310,7 +297,6 @@ final class RpnInterpreter {
         _postProcessValue(res),
         inputText:
             '$lower(${args[0].value.toCanonicalText()}, ${args[1].value.toCanonicalText()})',
-        recordUndo: false,
       );
       return;
     }
@@ -334,7 +320,6 @@ final class RpnInterpreter {
         _postProcessValue(res),
         inputText:
             '${userFn.name}(${args.map((a) => a.value.toCanonicalText()).join(', ')})',
-        recordUndo: false,
       );
       return;
     }
@@ -360,7 +345,6 @@ final class RpnInterpreter {
       _postProcessValue(res),
       inputText:
           '${args[0].value.toCanonicalText()} $opSymbol ${args[1].value.toCanonicalText()}',
-      recordUndo: false,
     );
   }
 
@@ -461,7 +445,6 @@ final class RpnInterpreter {
       processed,
       inputText:
           '${cmd.name}(${callArgs.map((a) => a.toCanonicalText()).join(', ')})',
-      recordUndo: false,
     );
   }
 
@@ -477,7 +460,6 @@ final class RpnInterpreter {
   void _pushResult(
     CalcValue value, {
     required String inputText,
-    bool recordUndo = true,
     bool isLiteralPush = false,
   }) {
     final cell = session.addResult(
@@ -487,7 +469,6 @@ final class RpnInterpreter {
     );
     stack.push(
       StackItem(resultId: cell.id, value: value, isLiteralPush: isLiteralPush),
-      recordUndo: recordUndo,
     );
   }
 

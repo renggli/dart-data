@@ -177,7 +177,7 @@ void main() {
   });
 
   group('RpnStack', () {
-    test('supports DUP, DROP, SWAP, OVER, ROT, PICK, ROLL, DEPTH, CLEAR, LASTARG, UNDO, REDO', () {
+    test('supports DUP, DROP, SWAP, OVER, ROT, PICK, ROLL, DEPTH, CLEAR, and checkpoints', () {
       final stack = RpnStack();
       StackItem item(int n) =>
           StackItem(resultId: n, value: ExprValue(IntegerNumber.of(n)));
@@ -214,21 +214,9 @@ void main() {
       stack.pick();
       check(stack.level(1).value).equals(ExprValue(IntegerNumber.of(10)));
 
-      // UNDO and REDO
-      check(stack.undo()).isTrue();
-      check(stack.redo()).isTrue();
-
-      // popArgs & LASTARG
+      // popArgs
       final args = stack.popArgs(2);
       check(args.length).equals(2);
-      stack.recallLastArgs();
-      check(stack.level(1)).equals(args.last);
-
-      // CLEAR and UNDO restore
-      stack.clear();
-      check(stack.isEmpty).isTrue();
-      stack.undo();
-      check(stack.isEmpty).isFalse();
 
       // checkpoint and rollback
       final cp = stack.checkpoint();
@@ -239,6 +227,10 @@ void main() {
       stack.restoreCheckpoint(cp);
       check(stack.depth).equals(cp.items.length);
       check(stack.level(1).value).equals(cp.items.last.value);
+
+      // CLEAR
+      stack.clear();
+      check(stack.isEmpty).isTrue();
     });
   });
 }

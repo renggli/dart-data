@@ -154,7 +154,7 @@ Behavior rules:
 | R1 | An unbounded stack. Levels are labeled `1:` (bottom, nearest the command line), `2:`, `3:`, and so on, and each level renders MathML right-aligned (HP48 layout). When the stack is empty, an interactive RPN Stack Workbench onboarding view with 4 runnable quick-start cards (*Postfix Arithmetic*, *Symbolic Factoring*, *Symbolic Calculus*, *Matrix Eigenvalues*) is displayed. | P0 |
 | R2 | Command line entry: numbers, names, and quoted algebraics `'x^2+1'`. Multiple space-separated tokens are pushed or executed left to right (`2 3 + 'x' *`). | P0 |
 | R3 | Immediate operators: when the command line is empty or holds a single number, `+ - * / ^` push the line and apply the operator at once. | P0 |
-| R4 | Stack operations: `ENTER` (push; `DUP` when the line is empty), `DROP` (Backspace on empty line), `SWAP` (`→` on empty line), `OVER`, `ROT`, `PICK n`, `ROLL n`, `DEPTH`, `CLEAR`, `LASTARG`, `UNDO` (multi-level). | P0 |
+| R4 | Stack operations: `ENTER` (push; `DUP` when the line is empty), `DROP` (Backspace on empty line), `SWAP` (`→` on empty line), `OVER`, `ROT`, `PICK n`, `ROLL n`, `DEPTH`, `CLEAR`. Whole-session multi-level undo/redo (`↶` / `↷` header buttons and `Ctrl/⌘+Z` / `Ctrl+Y` / `Ctrl/⌘+Shift+Z`) restores session cells, variables, functions, and stack levels together across both Scroll and RPN modes. | P0 |
 | R5 | Every command from 3.3 is available in RPN mode using its canonical command name or humanized label. Context-aware stack arity inspection allows commands (`solve`, `diff`, `integrate`, `taylor`, `series`, `limit`, `apart`, `collect`, `charpoly`, `plot`) to operate directly on 1 stack item (inferring the primary variable) or consume explicit variable/bound levels when pushed onto the stack. | P0 |
 | R6 | Keypad `Stack` tab and palette stack commands (`SWAP`, `DUP`, `DROP`, `OVER`, `ROT`, `PICK`, `ROLL`, `DEPTH`, `CLEAR`, `STO`, `RCL`, `DELETE`) are shown exclusively in RPN mode and hidden in Scroll mode. Desktop function keys `F1`–`F6` map to core stack actions (`SWAP`, `DUP`, `DROP`, `OVER`, `ROT`, `CLEAR`). | P0 |
 | R7 | Interactive stack: `↑` on an empty line enters selection mode. Here `Enter` echoes the level to the command line, `E` edits it, `V` opens a large view, `Del` drops it, `P` picks it, and `Esc` exits. | P1 |
@@ -182,7 +182,7 @@ Behavior rules:
 | Global | `Ctrl/⌘+.` | Cancel running computation |
 | Global | `Ctrl/⌘+/` | Help drawer |
 | Global | `Ctrl/⌘+Shift+A` | Toggle Exact / Approx mode |
-| Global | `Ctrl/⌘+Z`, `Ctrl/⌘+Shift+Z` | Undo / redo (history or stack) |
+| Global | `Ctrl/⌘+Z`, `Ctrl/⌘+Shift+Z` / `Ctrl+Y` | Whole-session undo / redo (Scroll worksheet, variables, and RPN stack) |
 | Global | `Esc` | Close overlay, leave selection mode, clear autocomplete |
 | Scroll | `Enter` / `Alt+Enter` / `Shift+Enter` | Evaluate / evaluate numerically / newline |
 | Scroll | `Tab` | Accept completion |
@@ -246,7 +246,7 @@ Text inputs never capture global shortcuts other than those listed. Shortcuts ar
 ```text
 Desktop ≥ 1024 px                                  Mobile < 1024 px
 ┌───────────┬───────────────────────────────┐      ┌───────────────────────┐
-│ Sidebar   │ Header: [Scroll|RPN] Vars ⌕ ⚙ ?│      │ [Scroll|RPN] Vars ⌕ ⚙ ?│
+│ Sidebar   │ Header: [Scroll|RPN] ↶ ↷ Vars ⌕ ⚙ ?│      │ [Scroll|RPN] ↶ ↷ Vars ⌕ ⚙ ?│
 │ ⚡ Calc    ├───────────────────────────────┤      ├───────────────────────┤
 │ app-nav   │                               │      │ worksheet / stack     │
 │ Worksheets│  worksheet cells  /  stack    │      │ (scrolls, newest at   │
@@ -374,7 +374,7 @@ web/calculator/
       serialization.dart     canonical text <-> CalcValue, JSON envelopes
       session.dart           result table (r[n], tombstones), statement log, dependency graph
       environment.dart       variables, user functions, settings snapshot
-      stack.dart             immutable RPN stack + undo ring + LASTARG
+      stack.dart             HP48 RPN stack machine + atomic execution checkpoints
     language/
       grammar.dart           statement grammar extending the core ExprGrammar (E3)
       ast.dart               Statement: Assignment, Definition, ExprStatement, RpnTokens
@@ -394,8 +394,8 @@ web/calculator/
       rpn.dart               RPN interpreter (token stream over stack + registry)
       sampling.dart          adaptive plot sampling + discontinuity detection
     worker/
-      protocol.dart          request/response records, JSON codec (shared by both sides)
-      engine_client.dart     main-thread side: spawn, timeout, cancel, replay
+      protocol.dart          request/response records, JSON codec, whole-session undo/redo ring
+      engine_client.dart     main-thread side: spawn, timeout, cancel, replay, undo/redo
     ui/
       app.dart               shell, mode routing, header badges, drawer
       scroll_view.dart

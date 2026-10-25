@@ -113,6 +113,12 @@
   background: var(--accent-subtle);
 }
 
+.calc-header-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+  pointer-events: none;
+}
+
 .calc-popover-anchor {
   position: relative;
 }

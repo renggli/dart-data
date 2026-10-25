@@ -113,5 +113,64 @@ void main() {
       check(respawned.environment.getVariable('a')?.toCanonicalText())
           .equals('9');
     });
+
+    test('supports unified whole-session undo and redo across Scroll and RPN operations', () {
+      final dispatcher = WorkerDispatcher();
+      check(dispatcher.canUndo).isFalse();
+      check(dispatcher.canRedo).isFalse();
+
+      // 1. Scroll variable assignment: k := 3
+      dispatcher.handle(
+        const WorkerRequest(
+          id: 1,
+          op: 'evalScroll',
+          payload: {'input': 'k := 3'},
+        ),
+      );
+      check(dispatcher.canUndo).isTrue();
+      check(dispatcher.environment.getVariable('k')?.toCanonicalText())
+          .equals('3');
+
+      // 2. RPN line evaluation: 'x^2 - k^2' factor
+      dispatcher.handle(
+        const WorkerRequest(
+          id: 2,
+          op: 'evalRpnLine',
+          payload: {'line': "'x^2 - k^2' factor"},
+        ),
+      );
+      check(dispatcher.stack.depth).equals(2);
+      check(dispatcher.stack.level(1).value.toCanonicalText())
+          .equals('(-3 + x) * (3 + x)');
+      check(dispatcher.session.activeCells.length).equals(2);
+
+      // 3. Undo the RPN line evaluation
+      final u1 = dispatcher.handle(const WorkerRequest(id: 3, op: 'undo'));
+      check(u1.ok).isTrue();
+      check(dispatcher.canRedo).isTrue();
+      check(dispatcher.stack.depth).equals(1);
+      check(dispatcher.stack.level(1).value.toCanonicalText()).equals('3');
+      check(dispatcher.session.activeCells.length).equals(1);
+
+      // 4. Undo the initial Scroll evaluation
+      final u2 = dispatcher.handle(const WorkerRequest(id: 4, op: 'undo'));
+      check(u2.ok).isTrue();
+      check(dispatcher.canUndo).isFalse();
+      check(dispatcher.stack.isEmpty).isTrue();
+      check(dispatcher.session.activeCells).isEmpty();
+      check(dispatcher.environment.getVariable('k')).isNull();
+
+      // 5. Redo both steps
+      dispatcher.handle(const WorkerRequest(id: 5, op: 'redo'));
+      check(dispatcher.environment.getVariable('k')?.toCanonicalText())
+          .equals('3');
+      check(dispatcher.stack.depth).equals(1);
+
+      dispatcher.handle(const WorkerRequest(id: 6, op: 'redo'));
+      check(dispatcher.stack.depth).equals(2);
+      check(dispatcher.stack.level(1).value.toCanonicalText())
+          .equals('(-3 + x) * (3 + x)');
+      check(dispatcher.canRedo).isFalse();
+    });
   });
 }

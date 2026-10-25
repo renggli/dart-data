@@ -58,10 +58,7 @@ final class CalcEvaluator {
     if (stack != null &&
         cell.value is! ErrorValue &&
         cell.value is! InfoValue) {
-      stack!.push(
-        StackItem(resultId: cell.id, value: cell.value),
-        recordUndo: false,
-      );
+      stack!.push(StackItem(resultId: cell.id, value: cell.value));
     }
     return cell;
   }
