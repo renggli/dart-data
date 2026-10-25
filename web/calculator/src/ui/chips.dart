@@ -7,15 +7,67 @@ import '../model/value.dart';
 import 'persistence.dart';
 
 /// Builds the context-aware action chip strip shown beneath a Scroll worksheet
-/// cell (`Simplify`, `Expand`, `Factor`, `d/dx`, `∫ dx`, `Roots`, `Plot`,
-/// `≈`, `Copy`, `⋯`).
+/// cell or RPN stack level (`Simplify`, `Expand`, `Factor`, `d/dx`, `∫ dx`,
+/// `Roots`, `Plot`, `≈`, `Copy`, `⋯`).
 abstract final class ActionChips {
+  static bool _documentListenerRegistered = false;
+
+  static void _ensureDocumentListener() {
+    if (_documentListenerRegistered) return;
+    _documentListenerRegistered = true;
+    web.document.addEventListener(
+      'click',
+      ((web.MouseEvent e) {
+        final target = e.target as web.Element?;
+        if (target == null || target.closest('.calc-chip-more-wrap') == null) {
+          closeAllDropdowns();
+        }
+      }).toJS,
+    );
+  }
+
+  /// Closes all currently open `.calc-chip-dropdown` overflow menus.
+  static void closeAllDropdowns({web.HTMLElement? except}) {
+    final openMenus = web.document.querySelectorAll('.calc-chip-dropdown');
+    for (var i = 0; i < openMenus.length; i++) {
+      final el = openMenus.item(i) as web.HTMLElement?;
+      if (el != null && el != except) {
+        el.classList.add('hidden');
+      }
+    }
+  }
+
+  /// Toggles an overflow dropdown [menu] anchored to [moreBtn], automatically
+  /// flipping downward (`.open-down`) when there is insufficient room above
+  /// inside the scroll/stack container or viewport.
+  static void toggleDropdown(web.HTMLElement moreBtn, web.HTMLElement menu) {
+    _ensureDocumentListener();
+    final wasHidden = menu.classList.contains('hidden');
+    closeAllDropdowns(except: menu);
+    if (!wasHidden) {
+      menu.classList.add('hidden');
+      return;
+    }
+    final btnRect = moreBtn.getBoundingClientRect();
+    final container =
+        moreBtn.closest('.calc-scroll-view') ??
+        moreBtn.closest('.calc-rpn-registers');
+    final containerTop = container?.getBoundingClientRect().top ?? 0.0;
+    if (btnRect.top - containerTop < 220) {
+      menu.classList.add('open-down');
+    } else {
+      menu.classList.remove('open-down');
+    }
+    menu.classList.remove('hidden');
+  }
+
   static web.HTMLElement build({
     required int cellId,
     required CalcValue value,
     required void Function(String commandStatement) onRunStatement,
     required void Function(String message) onToast,
   }) {
+    _ensureDocumentListener();
     final strip = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-chip-strip';
 
@@ -69,7 +121,7 @@ abstract final class ActionChips {
         'click',
         ((web.Event e) {
           e.stopPropagation();
-          menu.classList.toggle('hidden');
+          toggleDropdown(moreBtn, menu);
         }).toJS,
       );
       moreWrap

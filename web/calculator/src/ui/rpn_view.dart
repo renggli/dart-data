@@ -6,6 +6,7 @@ import '../engine/commands.dart';
 import '../model/environment.dart';
 import '../model/session.dart';
 import '../model/stack.dart';
+import 'chips.dart';
 import 'render.dart';
 
 /// Dynamic Reverse Polish Notation (RPN) stack register display showing
@@ -216,7 +217,7 @@ final class RpnStackView {
               'click',
               ((web.Event e) {
                 e.stopPropagation();
-                menu.classList.toggle('hidden');
+                ActionChips.toggleDropdown(moreBtn, menu);
               }).toJS,
             );
             moreWrap

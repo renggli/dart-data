@@ -472,16 +472,24 @@
 .calc-chip-dropdown {
   position: absolute;
   bottom: calc(100% + 4px);
+  top: auto;
   left: 0;
   background: var(--panel-bg-solid);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   box-shadow: var(--shadow-md);
   padding: 0.3rem;
-  z-index: 90;
+  z-index: 150;
   display: flex;
   flex-direction: column;
   min-width: 150px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.calc-chip-dropdown.open-down {
+  top: calc(100% + 4px);
+  bottom: auto;
 }
 
 .calc-dropdown-item {
