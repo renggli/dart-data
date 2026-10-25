@@ -229,6 +229,16 @@ void main() {
       check(stack.isEmpty).isTrue();
       stack.undo();
       check(stack.isEmpty).isFalse();
+
+      // checkpoint and rollback
+      final cp = stack.checkpoint();
+      stack.push(item(999));
+      stack.drop();
+      stack.popArgs(1);
+      check(stack.depth).not((it) => it.equals(cp.items.length));
+      stack.restoreCheckpoint(cp);
+      check(stack.depth).equals(cp.items.length);
+      check(stack.level(1).value).equals(cp.items.last.value);
     });
   });
 }

@@ -51,6 +51,37 @@ void main() {
       check(stack.level(1).value).isA<PlotValue>();
     });
 
+    test('RPN operations are atomic and transactional on error', () {
+      final eval = createEval();
+      final stack = RpnStack();
+      final rpn = RpnInterpreter(stack: stack, evaluator: eval);
+
+      // 1. Singular matrix inversion does not discard the matrix
+      check(rpn.executeLine('[[1, 2], [2, 4]]')).isNull();
+      check(stack.depth).equals(1);
+      final invErr = rpn.executeCommand('inv');
+      check(invErr).isNotNull();
+      check(stack.depth).equals(1);
+      check(stack.level(1).value.toCanonicalText()).equals('[[1, 2], [2, 4]]');
+
+      // 2. Incompatible dimension cross product does not discard vector operands
+      check(rpn.executeLine('[1, 2]')).isNull();
+      check(rpn.executeLine('[3, 4]')).isNull();
+      check(stack.depth).equals(3);
+      final crossErr = rpn.executeCommand('cross');
+      check(crossErr).isNotNull();
+      check(stack.depth).equals(3);
+      check(stack.level(1).value.toCanonicalText()).equals('[3, 4]');
+      check(stack.level(2).value.toCanonicalText()).equals('[1, 2]');
+
+      // 3. Multi-token line with mid-stream error rolls back completely
+      final multiErr = rpn.executeLine('[5, 6] [7, 8] cross');
+      check(multiErr).isNotNull();
+      // Only the 3 previous items remain from before the line
+      check(stack.depth).equals(3);
+      check(stack.level(1).value.toCanonicalText()).equals('[3, 4]');
+    });
+
     test('Flow 4.3.3 (Symbolic matrix determinant and inverse)', () {
       final eval = createEval();
 

@@ -56,6 +56,27 @@ final class RpnStack {
   bool get canUndo => _undoStack.isNotEmpty;
   bool get canRedo => _redoStack.isNotEmpty;
 
+  /// Captures an internal stack checkpoint for transactional execution.
+  ({List<StackItem> items, List<StackItem> lastArgs, int undoDepth})
+  checkpoint() => (
+    items: List<StackItem>.of(_items),
+    lastArgs: List<StackItem>.of(_lastArgs),
+    undoDepth: _undoStack.length,
+  );
+
+  /// Restores stack state and undo ring to [cp].
+  void restoreCheckpoint(
+    ({List<StackItem> items, List<StackItem> lastArgs, int undoDepth}) cp,
+  ) {
+    _items
+      ..clear()
+      ..addAll(cp.items);
+    _lastArgs = cp.lastArgs;
+    while (_undoStack.length > cp.undoDepth) {
+      _undoStack.removeLast();
+    }
+  }
+
   /// Returns the item at 1-based HP48 stack [level] (`1` = top of stack).
   StackItem level(int level) {
     if (level < 1 || level > _items.length) {

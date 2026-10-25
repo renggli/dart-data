@@ -22,19 +22,23 @@ final class RpnInterpreter {
 
   /// Executes an RPN command line (or empty-line `ENTER` = `DUP`).
   ///
-  /// Returns an [ErrorValue] if a syntax or stack underflow error occurs, or
-  /// `null` on success.
+  /// Returns an [ErrorValue] if a syntax or evaluation error occurs, or
+  /// `null` on success. If an error occurs, the stack is atomically rolled
+  /// back to its pre-execution state without losing arguments.
   ErrorValue? executeLine(String rawLine, {bool forceNumeric = false}) {
     final trimmed = rawLine.trim();
     if (trimmed.isEmpty) {
+      final cp = stack.checkpoint();
       try {
         stack.dup();
         return null;
       } catch (e) {
+        stack.restoreCheckpoint(cp);
         return ErrorValue(_cleanMsg(e));
       }
     }
 
+    final cp = stack.checkpoint();
     try {
       final grammar = CalcGrammar(
         implicitMultiplication: environment.settings.implicitMultiplication,
@@ -44,10 +48,11 @@ final class RpnInterpreter {
         _executeToken(token);
       }
       if (forceNumeric && !stack.isEmpty) {
-        executeCommand('approx');
+        _runNamedCommand('approx');
       }
       return null;
     } on CalcParseException catch (e) {
+      stack.restoreCheckpoint(cp);
       return ErrorValue(
         e.message,
         offset: e.offset,
@@ -55,6 +60,7 @@ final class RpnInterpreter {
         source: rawLine,
       );
     } catch (e) {
+      stack.restoreCheckpoint(cp);
       return ErrorValue(_cleanMsg(e), source: rawLine);
     }
   }
@@ -63,11 +69,15 @@ final class RpnInterpreter {
   /// `/`, `^`, `NEG`, `INV`, `DUP`, `DROP`, `SWAP`, `OVER`, `ROT`, `PICK`,
   /// `ROLL`, `DEPTH`, `CLEAR`, `LASTARG`, `UNDO`, `REDO`, `STO`, `RCL`,
   /// `→NUM`, `→Q`, or any canonical command from [CommandRegistry]).
+  ///
+  /// Atomically rolls back stack state if evaluation throws an error.
   ErrorValue? executeCommand(String rawCommand) {
+    final cp = stack.checkpoint();
     try {
       _runNamedCommand(rawCommand);
       return null;
     } catch (e) {
+      stack.restoreCheckpoint(cp);
       return ErrorValue(_cleanMsg(e));
     }
   }
