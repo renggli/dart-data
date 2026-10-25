@@ -625,6 +625,10 @@
 
 .calc-rpn-row-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
 }
 
 .calc-softkey-container {

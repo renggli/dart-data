@@ -117,6 +117,39 @@ void main() {
       check(stack.level(1).value.toCanonicalText()).equals('[3, 4]');
     });
 
+    test('Flow 4.3.2b (Parameterized RPN stack roll, pick, and drop)', () {
+      final eval = createEval();
+      final stack = RpnStack();
+      final rpn = RpnInterpreter(stack: stack, evaluator: eval);
+
+      rpn.executeLine('10 20 30 40');
+      check(stack.depth).equals(4);
+      // Stack is bottom [10, 20, 30, 40] top (level 1 is 40, level 4 is 10)
+      check(stack.level(1).value.toCanonicalText()).equals('40');
+      check(stack.level(4).value.toCanonicalText()).equals('10');
+
+      // '3 ROLL' moves level 3 (20) to level 1
+      check(rpn.executeCommand('3 ROLL')).isNull();
+      check(stack.depth).equals(4);
+      check(stack.level(1).value.toCanonicalText()).equals('20');
+      check(stack.level(2).value.toCanonicalText()).equals('40');
+      check(stack.level(3).value.toCanonicalText()).equals('30');
+      check(stack.level(4).value.toCanonicalText()).equals('10');
+
+      // '2 DROP' removes level 2 (40)
+      check(rpn.executeCommand('2 DROP')).isNull();
+      check(stack.depth).equals(3);
+      check(stack.level(1).value.toCanonicalText()).equals('20');
+      check(stack.level(2).value.toCanonicalText()).equals('30');
+      check(stack.level(3).value.toCanonicalText()).equals('10');
+
+      // '3 PICK' copies level 3 (10) to top
+      check(rpn.executeCommand('3 PICK')).isNull();
+      check(stack.depth).equals(4);
+      check(stack.level(1).value.toCanonicalText()).equals('10');
+      check(stack.level(2).value.toCanonicalText()).equals('20');
+    });
+
     test('Flow 4.3.3 (Symbolic matrix determinant and inverse)', () {
       final eval = createEval();
 

@@ -156,8 +156,28 @@ final class RpnInterpreter {
   }
 
   void _runNamedCommand(String rawName) {
-    final upper = rawName.toUpperCase();
-    final lower = rawName.toLowerCase();
+    final upper = rawName.toUpperCase().trim();
+    final lower = rawName.toLowerCase().trim();
+
+    // 0. Parameterized stack commands (e.g., '3 ROLL', '2 DROP', '4 PICK')
+    final rollMatch = RegExp(r'^(\d+)\s+ROLL$').firstMatch(upper);
+    if (rollMatch != null) {
+      final n = int.parse(rollMatch.group(1)!);
+      stack.roll(n);
+      return;
+    }
+    final pickMatch = RegExp(r'^(\d+)\s+PICK$').firstMatch(upper);
+    if (pickMatch != null) {
+      final n = int.parse(pickMatch.group(1)!);
+      stack.pick(n);
+      return;
+    }
+    final dropMatch = RegExp(r'^(\d+)\s+DROP$').firstMatch(upper);
+    if (dropMatch != null) {
+      final n = int.parse(dropMatch.group(1)!);
+      stack.dropLevel(n);
+      return;
+    }
 
     // 1. Immediate arithmetic operators
     switch (upper) {

@@ -111,19 +111,47 @@ final class RpnStackView {
           'click',
           ((web.Event _) => onExecuteRpnCommand('SWAP')).toJS,
         );
-        rowActions.append(swapBtn);
+
+        final dropBtn =
+            web.document.createElement('button') as web.HTMLButtonElement
+              ..type = 'button'
+              ..className = 'calc-chip-btn calc-btn-danger-outline'
+              ..textContent = 'Drop'
+              ..title = 'Drop level 2:';
+        dropBtn.addEventListener(
+          'click',
+          ((web.Event _) => onExecuteRpnCommand('2 DROP')).toJS,
+        );
+
+        rowActions
+          ..append(swapBtn)
+          ..append(dropBtn);
       } else {
         final rollBtn =
             web.document.createElement('button') as web.HTMLButtonElement
               ..type = 'button'
               ..className = 'calc-chip-btn calc-chip-secondary'
-              ..textContent = '↑ Roll'
-              ..title = 'Roll level $level: to level 1:';
+              ..textContent = '↑ Move to 1'
+              ..title = 'Move level $level: to top of stack (level 1:)';
         rollBtn.addEventListener(
           'click',
           ((web.Event _) => onExecuteRpnCommand('$level ROLL')).toJS,
         );
-        rowActions.append(rollBtn);
+
+        final dropBtn =
+            web.document.createElement('button') as web.HTMLButtonElement
+              ..type = 'button'
+              ..className = 'calc-chip-btn calc-btn-danger-outline'
+              ..textContent = 'Drop'
+              ..title = 'Drop level $level:';
+        dropBtn.addEventListener(
+          'click',
+          ((web.Event _) => onExecuteRpnCommand('$level DROP')).toJS,
+        );
+
+        rowActions
+          ..append(rollBtn)
+          ..append(dropBtn);
       }
 
       row
