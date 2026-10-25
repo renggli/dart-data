@@ -151,7 +151,7 @@ Behavior rules:
 
 | ID | Requirement | Pri |
 | --- | --- | --- |
-| R1 | An unbounded stack. Levels are labeled `1:` (bottom, nearest the command line), `2:`, `3:`, and so on, and each level renders MathML right-aligned (HP48 layout). | P0 |
+| R1 | An unbounded stack. Levels are labeled `1:` (bottom, nearest the command line), `2:`, `3:`, and so on, and each level renders MathML right-aligned (HP48 layout). When the stack is empty, an interactive RPN Stack Workbench onboarding view with 4 runnable quick-start cards (*Postfix Arithmetic*, *Symbolic Factoring*, *Symbolic Calculus*, *Matrix Eigenvalues*) is displayed. | P0 |
 | R2 | Command line entry: numbers, names, and quoted algebraics `'x^2+1'`. Multiple space-separated tokens are pushed or executed left to right (`2 3 + 'x' *`). | P0 |
 | R3 | Immediate operators: when the command line is empty or holds a single number, `+ - * / ^` push the line and apply the operator at once. | P0 |
 | R4 | Stack operations: `ENTER` (push; `DUP` when the line is empty), `DROP` (Backspace on empty line), `SWAP` (`→` on empty line), `OVER`, `ROT`, `PICK n`, `ROLL n`, `DEPTH`, `CLEAR`, `LASTARG`, `UNDO` (multi-level). | P0 |
@@ -170,7 +170,7 @@ Behavior rules:
 | D2 | **Autocomplete** in the input bar: function, command, and variable names, with a signature hint (`integrate(expr, var, [a, b])`) that highlights the active argument. `Tab` accepts. | P0 |
 | D3 | **Action chips**: each command declares an `appliesTo(CalcValue)` predicate. Shown beneath Scroll result cells and beneath RPN stack level `1:`. A polynomial shows Factor · Expand · Roots · d/dx · ∫ · Plot · ≈. A matrix shows det · inv · Aᵀ · eigen · rref. An unevaluated integral shows Numeric ∫. Show at most 6 chips, with an overflow `⋯` dropdown that dynamically flips downward (`.open-down`) when near the top of the scroll/stack container and closes on outside click. | P0 |
 | D4 | **Help drawer** (`Ctrl+/`): the syntax cheat sheet, keyboard map for the active mode, a per-category command reference built from the registry docs, and runnable examples (tap to load). | P0 |
-| D5 | **First-run tour**: three dismissible coach marks (mode switch, palette, action chips) plus a curated example worksheet (sidebar "Examples", like `web/expressions` presets). | P1 |
+| D5 | **Empty-state quick-start cards**: Both Scroll mode (6 cards) and RPN mode (4 cards) display interactive quick-start cards when empty so users can explore arithmetic, algebra, calculus, and linear algebra with a single click. | P1 |
 | D6 | Every button has a tooltip that includes its shortcut. Keypad keys show their alternate function on long-press. | P0 |
 
 ### 3.7 Keyboard Map (desktop)

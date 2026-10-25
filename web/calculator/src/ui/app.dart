@@ -196,6 +196,8 @@ final class CalculatorApp {
     _rpnView = RpnStackView(
       onExecuteRpnCommand: (cmd) => unawaited(_executeRpnCommand(cmd)),
       onInsertText: (snippet) => _inputBar.insertAtCursor(snippet),
+      onQuickStartSelect: (line) =>
+          unawaited(_handleSubmit(line, forceNumeric: false)),
     );
 
     _inputBar = FormulaInputBar(

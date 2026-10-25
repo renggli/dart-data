@@ -635,23 +635,6 @@
   min-width: 28px;
 }
 
-.calc-rpn-empty-slot {
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-}
-
-.calc-rpn-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--text-muted);
-  font-size: 0.88rem;
-  font-style: italic;
-  padding: 1.5rem;
-  text-align: center;
-}
-
 .calc-rpn-row-actions {
   margin-left: auto;
   display: flex;

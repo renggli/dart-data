@@ -12,7 +12,11 @@ import 'render.dart';
 /// Dynamic Reverse Polish Notation (RPN) stack register display showing
 /// active levels `N: … 2: 1:` anchored with contextual actions.
 final class RpnStackView {
-  new({required this.onExecuteRpnCommand, required this.onInsertText}) {
+  new({
+    required this.onExecuteRpnCommand,
+    required this.onInsertText,
+    required this.onQuickStartSelect,
+  }) {
     element = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-rpn-view hidden';
     _registersContainer =
@@ -23,6 +27,7 @@ final class RpnStackView {
 
   final void Function(String command) onExecuteRpnCommand;
   final void Function(String snippet) onInsertText;
+  final void Function(String rpnLine) onQuickStartSelect;
 
   late final web.HTMLDivElement element;
   late final web.HTMLDivElement _registersContainer;
@@ -36,11 +41,7 @@ final class RpnStackView {
     final items = stack.items;
 
     if (items.isEmpty) {
-      final emptyState = web.document.createElement('div') as web.HTMLDivElement
-        ..className = 'calc-rpn-empty-state'
-        ..textContent =
-            'Stack is empty. Enter numbers, expressions, or operators below.';
-      _registersContainer.append(emptyState);
+      _registersContainer.append(_buildEmptyState());
       return;
     }
 
@@ -242,5 +243,72 @@ final class RpnStackView {
         _registersContainer.scrollTop = _registersContainer.scrollHeight;
       }).toJS,
     );
+  }
+
+  web.HTMLElement _buildEmptyState() {
+    final box = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-empty-state';
+
+    final heading = web.document.createElement('h2') as web.HTMLHeadingElement
+      ..textContent = 'RPN Stack Workbench';
+    final subtitle = web.document.createElement('p') as web.HTMLParagraphElement
+      ..textContent =
+          "Push numbers or quoted symbolic expressions ('x^2 - 1'), then apply postfix operators or commands to stack levels.";
+    box
+      ..append(heading)
+      ..append(subtitle);
+
+    final grid = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-quickstart-grid';
+
+    const starters = <({String title, String category, String code})>[
+      (
+        title: 'Postfix Arithmetic',
+        category: 'Push & Operate',
+        code: '12 4 + 3 *',
+      ),
+      (
+        title: 'Symbolic Factoring',
+        category: 'Algebra',
+        code: "'x^3 - x' factor",
+      ),
+      (
+        title: 'Symbolic Calculus',
+        category: 'Calculus',
+        code: "'sin(x)^2' diff",
+      ),
+      (
+        title: 'Matrix Eigenvalues',
+        category: 'Linear Algebra',
+        code: '[[2, 1], [1, 2]] eigenvals',
+      ),
+    ];
+
+    for (final s in starters) {
+      final card = web.document.createElement('button') as web.HTMLButtonElement
+        ..type = 'button'
+        ..className = 'calc-quickstart-card';
+      final cat = web.document.createElement('span') as web.HTMLSpanElement
+        ..className = 'calc-quickstart-cat'
+        ..textContent = s.category;
+      final title = web.document.createElement('strong') as web.HTMLElement
+        ..className = 'calc-quickstart-title'
+        ..textContent = s.title;
+      final code = web.document.createElement('code') as web.HTMLElement
+        ..className = 'calc-quickstart-code'
+        ..textContent = s.code;
+      card
+        ..append(cat)
+        ..append(title)
+        ..append(code);
+      card.addEventListener(
+        'click',
+        ((web.Event _) => onQuickStartSelect(s.code)).toJS,
+      );
+      grid.append(card);
+    }
+
+    box.append(grid);
+    return box;
   }
 }
