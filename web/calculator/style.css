@@ -1004,6 +1004,14 @@
 .calc-plot-canvas-wrap {
   width: 100%;
   height: 260px;
+  position: relative;
+  background: #0f172a;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.calc-plot-canvas-wrap-3d {
+  height: 300px;
 }
 
 .calc-plot-canvas {

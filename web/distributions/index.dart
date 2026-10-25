@@ -897,21 +897,15 @@ void renderCanvas(
     ctx.strokeStyle = '#f59e0b'.toJS; // Amber/Gold color
 
     if (activeDef.isContinuous) {
-      // Continuous CDF - smooth path
-      ctx.beginPath();
-      var first = true;
-      for (var px = 0.0; px <= plotWidth; px += 2.0) {
-        final x = fromPixelX(leftMargin + px);
-        final cdfVal = activeDist.cumulativeProbability(x);
-        final py = toPixelY(cdfVal);
-        if (first) {
-          ctx.moveTo(leftMargin + px, py);
-          first = false;
-        } else {
-          ctx.lineTo(leftMargin + px, py);
-        }
-      }
-      ctx.stroke();
+      // Continuous CDF - WebGL2 GPU-accelerated smooth curve
+      drawCurve(
+        ctx,
+        vp,
+        (x) => activeDist.cumulativeProbability(x),
+        strokeColor: '#f59e0b',
+        lineWidth: 2.2,
+        fillColor: null,
+      );
     } else {
       // Discrete CDF - step function representation (horizontal segments + dots)
       final iMin = minX.floor() - 1;
@@ -953,45 +947,16 @@ void renderCanvas(
   } else {
     // ---------------- PDF PLOTTING ----------------
     if (activeDef.isContinuous) {
-      // Continuous PDF - smooth curve
-      ctx.strokeStyle = '#3b82f6'.toJS; // Ocean Blue
-
-      // Let's create a gorgeous gradient fill under the curve!
-      final gradient = ctx.createLinearGradient(
-        0,
-        topMargin,
-        0,
-        topMargin + plotHeight,
+      // Continuous PDF - WebGL2 GPU-accelerated curve + gradient area fill
+      drawCurve(
+        ctx,
+        vp,
+        (x) => activeDist.probability(x),
+        strokeColor: '#3b82f6',
+        lineWidth: 2.2,
+        fillColor: 'rgba(59, 130, 246, 0.20)',
+        fillBaseY: 0.0,
       );
-      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
-      gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
-
-      ctx.beginPath();
-      var first = true;
-      var lastX = leftMargin;
-
-      for (var px = 0.0; px <= plotWidth; px += 1.5) {
-        final x = fromPixelX(leftMargin + px);
-        final p = activeDist.probability(x);
-        final py = toPixelY(p).clamp(topMargin, topMargin + plotHeight);
-        if (first) {
-          ctx.moveTo(leftMargin + px, py);
-          first = false;
-        } else {
-          ctx.lineTo(leftMargin + px, py);
-        }
-        lastX = leftMargin + px;
-      }
-      ctx.stroke();
-
-      // Complete path to draw gradient fill
-      if (!first) {
-        ctx.lineTo(lastX, topMargin + plotHeight);
-        ctx.lineTo(leftMargin, topMargin + plotHeight);
-        ctx.closePath();
-        ctx.fillStyle = gradient;
-        ctx.fill();
-      }
     } else {
       // Discrete PDF - lollipop lines (vertical line + terminal dot)
       final iMin = minX.floor();

@@ -94,6 +94,66 @@ final class PlotCurveData {
   );
 }
 
+/// Pre-sampled 3D surface grid data for $z = f(x, y)$ over `[minX, maxX] × [minY, maxY]`.
+final class Surface3dData {
+  const new({
+    required this.xVar,
+    required this.yVar,
+    required this.minX,
+    required this.maxX,
+    required this.minY,
+    required this.maxY,
+    required this.minZ,
+    required this.maxZ,
+    required this.gridSize,
+    required this.zValues,
+  });
+
+  final String xVar;
+  final String yVar;
+  final double minX;
+  final double maxX;
+  final double minY;
+  final double maxY;
+  final double minZ;
+  final double maxZ;
+  final int gridSize;
+  final Float64List zValues;
+
+  Map<String, Object?> toJson() => {
+    'xVar': xVar,
+    'yVar': yVar,
+    'minX': minX,
+    'maxX': maxX,
+    'minY': minY,
+    'maxY': maxY,
+    'minZ': minZ,
+    'maxZ': maxZ,
+    'gridSize': gridSize,
+    'zValues': zValues,
+  };
+
+  factory fromJson(Map<String, Object?> json) {
+    final rawZ = json['zValues']! as List<Object?>;
+    return Surface3dData(
+      xVar: json['xVar'] as String? ?? 'x',
+      yVar: json['yVar'] as String? ?? 'y',
+      minX: (json['minX']! as num).toDouble(),
+      maxX: (json['maxX']! as num).toDouble(),
+      minY: (json['minY']! as num).toDouble(),
+      maxY: (json['maxY']! as num).toDouble(),
+      minZ: (json['minZ']! as num).toDouble(),
+      maxZ: (json['maxZ']! as num).toDouble(),
+      gridSize: (json['gridSize']! as num).toInt(),
+      zValues: rawZ is Float64List
+          ? rawZ
+          : Float64List.fromList(
+              rawZ.map((e) => (e! as num).toDouble()).toList(),
+            ),
+    );
+  }
+}
+
 /// Sealed hierarchy representing all calculator values in Scroll and RPN modes.
 sealed class CalcValue {
   const new();
@@ -383,6 +443,7 @@ final class PlotValue extends CalcValue {
     this.curves = const [],
     this.parameters = const [],
     this.isParametric = false,
+    this.surface3d,
   });
 
   final List<Expr> expressions;
@@ -394,6 +455,10 @@ final class PlotValue extends CalcValue {
   final List<PlotCurveData> curves;
   final List<String> parameters;
   final bool isParametric;
+  final Surface3dData? surface3d;
+
+  /// Whether this plot is a 3D surface plot $z = f(x, y)$.
+  bool get is3d => surface3d != null;
 
   @override
   String get kind => 'plot';
@@ -403,6 +468,10 @@ final class PlotValue extends CalcValue {
 
   @override
   String toCanonicalText() {
+    final s3d = surface3d;
+    if (s3d != null && expressions.isNotEmpty) {
+      return 'plot3d(${expressions.first}, ${s3d.xVar}, ${fmtBound(s3d.minX)}, ${fmtBound(s3d.maxX)}, ${s3d.yVar}, ${fmtBound(s3d.minY)}, ${fmtBound(s3d.maxY)})';
+    }
     if (expressions.length == 1) {
       return 'plot(${expressions.first}, $variable, ${fmtBound(minX)}, ${fmtBound(maxX)})';
     }
@@ -433,6 +502,7 @@ final class PlotValue extends CalcValue {
           minX == other.minX &&
           maxX == other.maxX &&
           isParametric == other.isParametric &&
+          is3d == other.is3d &&
           const ListEquality<Expr>().equals(expressions, other.expressions));
 
   @override
@@ -442,6 +512,7 @@ final class PlotValue extends CalcValue {
     minX,
     maxX,
     isParametric,
+    is3d,
     Object.hashAll(expressions),
   );
 }

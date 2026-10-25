@@ -1,8 +1,11 @@
 import 'dart:js_interop';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:data/numeric.dart';
 import 'package:web/web.dart' as web;
+
+import 'webgl_chart.dart';
 
 /// Mathematical plotting viewport defining domain, range, and pixel geometry.
 class PlotViewport {
@@ -86,6 +89,7 @@ class InteractiveChartController {
   double? hoverPixelY;
   bool isDragging = false;
   bool hasUserPannedOrZoomed = false;
+  bool enabled = true;
 
   double _dragStartX = 0.0;
   double _dragStartY = 0.0;
@@ -192,7 +196,7 @@ class InteractiveChartController {
     canvas.addEventListener(
       'mousedown',
       ((web.MouseEvent e) {
-        if (e.button != 0) return;
+        if (!enabled || e.button != 0) return;
         isDragging = true;
         final rect = canvas.getBoundingClientRect();
         _dragStartX = e.clientX - rect.left;
@@ -204,6 +208,7 @@ class InteractiveChartController {
     canvas.addEventListener(
       'mousemove',
       ((web.MouseEvent e) {
+        if (!enabled) return;
         final rect = canvas.getBoundingClientRect();
         final curX = e.clientX - rect.left;
         final curY = e.clientY - rect.top;
@@ -259,6 +264,7 @@ class InteractiveChartController {
     canvas.addEventListener(
       'dblclick',
       ((web.MouseEvent _) {
+        if (!enabled) return;
         reset();
       }).toJS,
     );
@@ -266,6 +272,7 @@ class InteractiveChartController {
     canvas.addEventListener(
       'wheel',
       ((web.WheelEvent e) {
+        if (!enabled) return;
         e.preventDefault();
         final rect = canvas.getBoundingClientRect();
         final curX = e.clientX - rect.left;
@@ -304,6 +311,7 @@ class InteractiveChartController {
     canvas.addEventListener(
       'touchstart',
       ((web.TouchEvent e) {
+        if (!enabled) return;
         if (e.touches.length == 1) {
           final t = e.touches.item(0)!;
           final rect = canvas.getBoundingClientRect();
@@ -408,6 +416,8 @@ String _formatTick(double val) {
   canvas.height = (height * dpr).toInt();
   canvas.style.width = '${width}px';
   canvas.style.height = '${height}px';
+
+  WebGL2ChartLayer.attachAndClear(canvas, width, height, dpr);
 
   final ctx = canvas.context2D;
   ctx.scale(dpr, dpr);
@@ -533,6 +543,68 @@ void drawCurve(
     initialPoints: 97,
   );
 
+  final glLayer = WebGL2ChartLayer.of(ctx.canvas);
+  if (glLayer != null && glLayer.isAvailable) {
+    for (final segment in sample.segments) {
+      if (segment.x.length < 2) continue;
+      final buf = Float32List(segment.x.length * 2);
+      var count = 0;
+
+      void flushRun() {
+        if (count >= 2) {
+          if (fillColor != null && fillBaseY != null) {
+            final basePy = vp
+                .toPixelY(fillBaseY)
+                .clamp(vp.topMargin, vp.topMargin + vp.plotHeight);
+            glLayer.drawAreaFill(
+              buf,
+              count,
+              basePy: basePy,
+              fillColor: fillColor,
+              clipLeft: vp.leftMargin,
+              clipTop: vp.topMargin,
+              clipWidth: vp.plotWidth,
+              clipHeight: vp.plotHeight,
+              verticalGradient: true,
+            );
+          }
+          glLayer.drawPolyline(
+            buf,
+            count,
+            strokeColor: strokeColor,
+            lineWidth: lineWidth,
+            lineDash: lineDash,
+            clipLeft: vp.leftMargin,
+            clipTop: vp.topMargin,
+            clipWidth: vp.plotWidth,
+            clipHeight: vp.plotHeight,
+          );
+        }
+        count = 0;
+      }
+
+      for (var i = 0; i < segment.x.length; i++) {
+        final curPx = vp.toPixelX(segment.x[i]);
+        final py = vp.toPixelY(segment.y[i]);
+        if (!curPx.isFinite || !py.isFinite || py < yMinPx || py > yMaxPx) {
+          if (count > 0 && curPx.isFinite && py.isFinite) {
+            buf[count * 2] = curPx;
+            buf[count * 2 + 1] = py.clamp(yMinPx, yMaxPx);
+            count++;
+          }
+          flushRun();
+          continue;
+        }
+        buf[count * 2] = curPx;
+        buf[count * 2 + 1] = py;
+        count++;
+      }
+      flushRun();
+    }
+    ctx.restore();
+    return;
+  }
+
   for (final segment in sample.segments) {
     var inPath = false;
     var pathStartX = vp.leftMargin;
@@ -604,6 +676,57 @@ void drawSampledSegments(
   ctx.clip();
 
   final cssH = vp.height;
+  final glLayer = WebGL2ChartLayer.of(ctx.canvas);
+  if (glLayer != null && glLayer.isAvailable) {
+    for (final seg in segments) {
+      if (seg.x.length < 2) continue;
+      final buf = Float32List(seg.x.length * 2);
+      var count = 0;
+
+      void flushRun() {
+        if (count >= 2) {
+          glLayer.drawPolyline(
+            buf,
+            count,
+            strokeColor: strokeColor,
+            lineWidth: lineWidth,
+            lineDash: lineDash,
+            clipLeft: vp.leftMargin,
+            clipTop: vp.topMargin,
+            clipWidth: vp.plotWidth,
+            clipHeight: vp.plotHeight,
+          );
+        }
+        count = 0;
+      }
+
+      for (var i = 0; i < seg.x.length; i++) {
+        final x = seg.x[i];
+        final y = seg.y[i];
+        if (!x.isFinite || !y.isFinite) {
+          flushRun();
+          continue;
+        }
+        final sx = vp.toPixelX(x);
+        final sy = vp.toPixelY(y);
+        if (sy < -cssH * 2 || sy > cssH * 3) {
+          flushRun();
+          continue;
+        }
+        buf[count * 2] = sx;
+        buf[count * 2 + 1] = sy;
+        count++;
+        if (i == seg.x.length - 1 ||
+            !seg.y[i + 1].isFinite ||
+            (vp.toPixelY(seg.y[i + 1]) - sy).abs() > cssH * 1.5) {
+          flushRun();
+        }
+      }
+      flushRun();
+    }
+    ctx.restore();
+    return;
+  }
   for (final seg in segments) {
     var started = false;
     for (var i = 0; i < seg.x.length; i++) {
@@ -659,6 +782,52 @@ void drawShadedInterval(
   final basePy = vp
       .toPixelY(baseY)
       .clamp(vp.topMargin, vp.topMargin + vp.plotHeight);
+
+  final glLayer = WebGL2ChartLayer.of(ctx.canvas);
+  if (glLayer != null && glLayer.isAvailable) {
+    final maxPts = ((endPx - startPx) / 1.5).ceil() + 3;
+    final buf = Float32List(maxPts * 2);
+    var count = 0;
+    for (var px = startPx; px <= endPx; px += 1.5) {
+      final x = vp.fromPixelX(px);
+      double y;
+      try {
+        y = fn(x);
+      } catch (_) {
+        y = baseY;
+      }
+      if (!y.isFinite || y.isNaN) y = baseY;
+      final py = vp
+          .toPixelY(y)
+          .clamp(vp.topMargin, vp.topMargin + vp.plotHeight);
+      buf[count * 2] = px;
+      buf[count * 2 + 1] = py;
+      count++;
+    }
+    glLayer.drawAreaFill(
+      buf,
+      count,
+      basePy: basePy,
+      fillColor: fillColor,
+      clipLeft: vp.leftMargin,
+      clipTop: vp.topMargin,
+      clipWidth: vp.plotWidth,
+      clipHeight: vp.plotHeight,
+    );
+    if (strokeColor != null) {
+      glLayer.drawPolyline(
+        buf,
+        count,
+        strokeColor: strokeColor,
+        lineWidth: 1.5,
+        clipLeft: vp.leftMargin,
+        clipTop: vp.topMargin,
+        clipWidth: vp.plotWidth,
+        clipHeight: vp.plotHeight,
+      );
+    }
+    return;
+  }
 
   ctx.save();
   ctx.beginPath();

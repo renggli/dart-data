@@ -223,10 +223,18 @@ abstract final class CommandRegistry {
     if (matching.length <= maxChips) {
       return (primary: matching, overflow: const []);
     }
-    return (
-      primary: matching.sublist(0, maxChips),
-      overflow: matching.sublist(maxChips),
+    final primary = matching.sublist(0, maxChips);
+    final overflow = matching.sublist(maxChips);
+    final plotIdx = overflow.indexWhere(
+      (c) => c.name == 'plot' || c.name == 'plot3d',
     );
+    if (plotIdx != -1) {
+      final plotCmd = overflow.removeAt(plotIdx);
+      final displaced = primary.removeLast();
+      primary.add(plotCmd);
+      overflow.insert(0, displaced);
+    }
+    return (primary: primary, overflow: overflow);
   }
 }
 

@@ -1,6 +1,6 @@
 # Symbolic Calculator PWA — Design Document
 
-Status: Draft · Target: `web/calculator/` · Depends on: `package:data/symbolic.dart`, `package:data/numeric.dart`, `package:data/linear.dart`, `web/shared/`
+Status: Implemented · Target: `web/calculator/` · Depends on: `package:data/symbolic.dart`, `package:data/numeric.dart`, `package:data/linear.dart`, `web/shared/`
 
 ---
 
@@ -28,7 +28,7 @@ Results are exact and symbolic by default (rationals, `π`, `e`, `i`, radicals, 
 ### 1.2 Non-Goals (v1)
 
 - Arbitrary-precision floating point (numeric results use IEEE double).
-- Symbolic ODE solving, assumptions engine, 3D/surface plotting.
+- Symbolic closed-form ODE solving (numerical RK45 `ode` trajectories and 3D WebGL2 `plot3d` surfaces are included in v1).
 - Programmable user programs (HP48 `« »` RPL programs). Section 9 lists this as a later extension.
 - Cloud sync and collaboration.
 
@@ -41,7 +41,7 @@ Results are exact and symbolic by default (rationals, `π`, `e`, `i`, radicals, 
 | Asset | Location | Reuse |
 | --- | --- | --- |
 | Design tokens, sidebar, cards, badges, buttons, inputs, copy toast | `web/shared/style.css` | Imported verbatim. Calculator-specific rules go in `web/calculator/style.css`. |
-| Canvas plotting (`PlotViewport`, `drawGrid`, `drawCurve`, `drawPointMarker`, `drawCrosshairAndTooltip`, `drawShadedInterval`) | `web/shared/chart.dart` | Inline and full-screen plots. |
+| WebGL2 2D/3D + Canvas2D HUD plotting (`PlotViewport`, `drawGrid`, `drawCurve`, `drawSampledSegments`, `WebGL2ChartLayer`, `WebGLSurfaceRenderer`) | `web/shared/chart.dart`, `web/shared/webgl_chart.dart`, `web/shared/webgl_surface.dart` | GPU-accelerated 2D curves, area fills, and interactive 3D surface plots across Calculator, Expressions, and Distributions. |
 | Copy/clipboard helpers, MathML setters (`setAttrExpr`), number formatting | `web/shared/utils.dart` | Result rendering and copying. |
 | Formula bar styling (`.formula-input-bar`, status badges, parse error line) | `web/expressions/style.css` | Moved to `web/shared/style.css` so both apps share it. |
 | Integer factorization (`factorIntegerExpr`), complex formatting | `web/expressions/algebra.dart` | Moved into core (see E8). |
@@ -218,6 +218,7 @@ Text inputs never capture global shortcuts other than those listed. Shortcuts ar
 | P4 | A **`+ Plot`** chip on univariate results overlays the expression onto the most recent plot cell (`plot([existing..., r[id]], x, minX, maxX)`). When a plotted expression contains free symbolic parameters alongside the plot variable (e.g., `plot(sin(a * x + b), x)`), interactive range sliders (`[-5, 5]`) appear beneath the canvas for 60 fps real-time parameter exploration. | P1 |
 | P5 | Export as PNG. In RPN mode, `PLOT` renders an interactive plot card directly in the stack level. | P1 |
 | P6 | 2D parametric curves `plot([x(t), y(t)], t, a, b)` / `parametric([x(t), y(t)], t, a, b)` and numerical initial-value ODE trajectories `ode(rhs, y0[, t0, t1])` via `solveOde` (Dormand–Prince RK45). | P1 |
+| P7 | Interactive 3D WebGL2 surface plots `plot3d(expr[, x, minX, maxX, y, minY, maxY])` with 1-argument automatic 2-variable inference, `Plot 3D` action chip on 2-variable expressions, scientific height colormaps, Blinn–Phong lighting, screen-space `fwidth` mesh/contour lines, and turntable orbit camera. | P1 |
 
 ### 3.10 Exact vs. Numeric
 
@@ -521,7 +522,8 @@ Each milestone ends shippable and tested. Core extensions (Section 8) are schedu
 | `nintegrate` | `integrate(e.toFunction1D('x'), a, b)` from `numeric.dart` | |
 | `nsolve` | `solve(e.toFunction1D('x'), x0, b: x1)` from `numeric.dart` | |
 | `nminimize` | `minimize(...)` from `numeric.dart` | |
-| `plot` | `toFunction1D` / `toComplexFunction1D` + `sampling.dart` | |
+| `plot` | `toFunction1D` / `toComplexFunction1D` + `sampling.dart` | WebGL2 2D curve + Canvas2D HUD |
+| `plot3d` | `toVectorFunction([x, y])` + `buildSurface3dPlotValue` | WebGL2 3D surface mesh + turntable camera |
 
 ---
 

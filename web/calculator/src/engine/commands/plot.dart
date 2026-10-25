@@ -6,7 +6,7 @@ import '../../model/value.dart';
 import '../commands.dart';
 import '../sampling.dart';
 
-/// Builds canonical plotting commands (`plot`, `parametric`, `ode`).
+/// Builds canonical plotting commands (`plot`, `plot3d`, `parametric`, `ode`).
 List<Command> buildPlotCommands() => [
   Command(
     name: 'plot',
@@ -67,6 +67,82 @@ List<Command> buildPlotCommands() => [
         a,
         b,
         angleMode: ctx.settings.angleMode,
+      );
+    },
+  ),
+  Command(
+    name: 'plot3d',
+    category: CommandCategory.plot,
+    signature: 'plot3d(expr, [x, minX, maxX, y, minY, maxY])',
+    paramSpecs: const [
+      ParamSpec.expr('expr'),
+      ParamSpec.symbol('[x]'),
+      ParamSpec.optionalExpr('[minX]'),
+      ParamSpec.optionalExpr('[maxX]'),
+      ParamSpec.symbol('[y]'),
+      ParamSpec.optionalExpr('[minY]'),
+      ParamSpec.optionalExpr('[maxY]'),
+    ],
+    minArity: 1,
+    maxArity: 7,
+    doc: 'Plots an interactive 3D WebGL2 surface z = f(x, y) over [minX, maxX] × [minY, maxY].',
+    examples: const [
+      'plot3d(sin(sqrt(x^2 + y^2)))',
+      'plot3d(x * exp(-x^2 - y^2), x, -3, 3, y, -3, 3)',
+      'plot3d(x^3 - 3 * x * y^2)',
+    ],
+    rpnLabel: 'Plot 3D',
+    rpnArity: 1,
+    appliesTo: (v) =>
+        v is ExprValue && !v.isEquation && v.expr.freeVariables.length == 2,
+    chipLabel: 'Plot 3D',
+    buildChipCall: (id, _) => 'plot3d(r[$id])',
+    run: (args, ctx) {
+      checkCommandArity('plot3d', args, 1, 7);
+      final expr = expectCommandExpr(args[0], 'plot3d');
+      final (:xVar, :yVar) = _inferSurfaceVars(expr);
+
+      var resolvedX = xVar;
+      var minX = -4.0;
+      var maxX = 4.0;
+      var resolvedY = yVar;
+      var minY = -4.0;
+      var maxY = 4.0;
+
+      if (args.length == 3) {
+        resolvedX = expectCommandVarName(args[1], 'plot3d');
+        resolvedY = expectCommandVarName(args[2], 'plot3d');
+      } else if (args.length == 5) {
+        minX = expectCommandDouble(args[1], 'plot3d');
+        maxX = expectCommandDouble(args[2], 'plot3d');
+        minY = expectCommandDouble(args[3], 'plot3d');
+        maxY = expectCommandDouble(args[4], 'plot3d');
+      } else if (args.length >= 4) {
+        resolvedX = expectCommandVarName(args[1], 'plot3d');
+        minX = expectCommandDouble(args[2], 'plot3d');
+        maxX = expectCommandDouble(args[3], 'plot3d');
+        if (args.length >= 5) {
+          resolvedY = expectCommandVarName(args[4], 'plot3d');
+        }
+        if (args.length >= 6) {
+          minY = expectCommandDouble(args[5], 'plot3d');
+        }
+        if (args.length >= 7) {
+          maxY = expectCommandDouble(args[6], 'plot3d');
+        } else {
+          minY = minX;
+          maxY = maxX;
+        }
+      }
+
+      return buildSurface3dPlotValue(
+        expr,
+        resolvedX,
+        minX,
+        maxX,
+        resolvedY,
+        minY,
+        maxY,
       );
     },
   ),
@@ -179,4 +255,19 @@ String _inferPlotVariable(List<Expr> exprs) {
     if (free.isNotEmpty) return free.first;
   }
   return 'x';
+}
+
+({String xVar, String yVar}) _inferSurfaceVars(Expr expr) {
+  final free = expr.freeVariables.toList()..sort();
+  if (free.contains('x') && free.contains('y')) {
+    return (xVar: 'x', yVar: 'y');
+  }
+  if (free.length >= 2) {
+    return (xVar: free[0], yVar: free[1]);
+  }
+  if (free.length == 1) {
+    final v = free.first;
+    return (xVar: v, yVar: v == 'x' ? 'y' : 'x');
+  }
+  return (xVar: 'x', yVar: 'y');
 }

@@ -408,6 +408,26 @@ void main() {
       check(sliderCell.value).isA<PlotValue>();
       final sliderPlot = sliderCell.value as PlotValue;
       check(sliderPlot.parameters).deepEquals(['a', 'b']);
+
+      // 5. 3D Surface plot: plot3d(x^2 - y^2) (1-arg smart variable inference)
+      final surfCell = eval.evaluateScroll('plot3d(x^2 - y^2)');
+      check(surfCell.value).isA<PlotValue>();
+      final surfPlot = surfCell.value as PlotValue;
+      check(surfPlot.is3d).isTrue();
+      check(surfPlot.surface3d!.xVar).equals('x');
+      check(surfPlot.surface3d!.yVar).equals('y');
+      check(surfPlot.surface3d!.gridSize).equals(64);
+      check(surfPlot.surface3d!.zValues.length).equals(64 * 64);
+
+      // 6. RPN plot3d and Plot 3D primary chip on 2-variable ExprValue
+      final bivarCell = eval.evaluateScroll('sin(sqrt(x^2 + y^2))');
+      final chips = CommandRegistry.chipsFor(bivarCell.value);
+      check(chips.primary.map((c) => c.name)).contains('plot3d');
+
+      final rpn = RpnInterpreter(stack: RpnStack(), evaluator: eval);
+      check(rpn.executeLine("'x * exp(-x^2 - y^2)' plot3d")).isNull();
+      check(rpn.stack.level(1).value).isA<PlotValue>();
+      check((rpn.stack.level(1).value as PlotValue).is3d).isTrue();
     });
   });
 }

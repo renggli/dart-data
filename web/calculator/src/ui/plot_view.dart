@@ -3,20 +3,23 @@ import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 
 import '../../../shared/chart.dart';
+import '../../../shared/webgl_chart.dart';
+import '../../../shared/webgl_surface.dart';
 import '../engine/sampling.dart';
 import '../model/value.dart';
 import 'persistence.dart';
 
-/// Interactive HTML5 Canvas 2D plot card widget for [PlotValue] results.
-///
-/// Uses the shared [InteractiveChartController] and drawing primitives from
-/// `web/shared/chart.dart`.
+/// Interactive WebGL2 + Canvas2D HUD plot card widget for 2D and 3D [PlotValue]
+/// results.
 final class PlotView {
   /// Builds a self-contained interactive plot DOM element for [initialPlot].
   static web.HTMLElement create(
     PlotValue initialPlot, {
     void Function(double minX, double maxX)? onResample,
   }) {
+    if (initialPlot.is3d) {
+      return _create3dSurfaceCard(initialPlot);
+    }
     var plot = initialPlot;
     final paramValues = <String, double>{
       for (final p in plot.parameters) p: 1.0,
@@ -107,9 +110,6 @@ final class PlotView {
       final init = initCanvas(canvas);
       if (init == null) return;
       final (ctx, cssW, cssH) = init;
-
-      ctx.fillStyle = '#0f172a'.toJS;
-      ctx.fillRect(0, 0, cssW, cssH);
 
       final vp = controller.viewport(cssW, cssH);
       drawGrid(ctx, vp);
@@ -264,7 +264,7 @@ final class PlotView {
     pngBtn.addEventListener(
       'click',
       ((web.Event _) {
-        final dataUrl = canvas.toDataURL('image/png');
+        final dataUrl = WebGL2ChartLayer.exportPngDataUrl(canvas);
         final a = web.document.createElement('a') as web.HTMLAnchorElement
           ..href = dataUrl
           ..download = 'plot.png';
@@ -272,6 +272,198 @@ final class PlotView {
         a.click();
         a.remove();
         CalcPersistence.triggerHaptic(enabled: true);
+      }).toJS,
+    );
+
+    web.window.addEventListener(
+      'resize',
+      ((web.Event _) {
+        if (canvas.isConnected) draw();
+      }).toJS,
+    );
+
+    web.window.requestAnimationFrame(
+      ((num _) {
+        draw();
+      }).toJS,
+    );
+
+    return container;
+  }
+
+  static web.HTMLElement _create3dSurfaceCard(PlotValue initialPlot) {
+    var plot = initialPlot;
+    final paramValues = <String, double>{
+      for (final p in plot.parameters) p: 1.0,
+    };
+
+    final container = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-plot-card';
+
+    final header = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-plot-header';
+
+    final legend = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-plot-legend';
+    final item = web.document.createElement('span') as web.HTMLSpanElement
+      ..className = 'calc-plot-legend-item';
+    final swatch = web.document.createElement('span') as web.HTMLSpanElement
+      ..className = 'calc-plot-swatch'
+      ..style.background = 'linear-gradient(135deg, #2563eb, #10b981, #fbbf24)';
+    final exprLabel = plot.expressions.isNotEmpty
+        ? 'z = ${plot.expressions.first}'
+        : 'z = f(x, y)';
+    final text = web.document.createElement('span') as web.HTMLSpanElement
+      ..textContent = exprLabel;
+    item
+      ..append(swatch)
+      ..append(text);
+    legend.append(item);
+
+    final actions = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-plot-actions';
+
+    final s3dInitial = plot.surface3d!;
+    final defaultReadout =
+        '${s3dInitial.xVar} ∈ [${formatRealDigits(s3dInitial.minX, 3)}, ${formatRealDigits(s3dInitial.maxX, 3)}], ${s3dInitial.yVar} ∈ [${formatRealDigits(s3dInitial.minY, 3)}, ${formatRealDigits(s3dInitial.maxY, 3)}]';
+    final readout = web.document.createElement('span') as web.HTMLSpanElement
+      ..className = 'calc-plot-readout'
+      ..textContent = defaultReadout;
+
+    final resetBtn =
+        web.document.createElement('button') as web.HTMLButtonElement
+          ..type = 'button'
+          ..className = 'calc-chip-btn'
+          ..textContent = 'Reset Orbit';
+
+    final pngBtn = web.document.createElement('button') as web.HTMLButtonElement
+      ..type = 'button'
+      ..className = 'calc-chip-btn'
+      ..textContent = 'PNG';
+
+    actions
+      ..append(readout)
+      ..append(resetBtn)
+      ..append(pngBtn);
+    header
+      ..append(legend)
+      ..append(actions);
+
+    final canvasWrap = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-plot-canvas-wrap calc-plot-canvas-wrap-3d';
+    final canvas = web.document.createElement('canvas') as web.HTMLCanvasElement
+      ..className = 'calc-plot-canvas'
+      ..width = 680
+      ..height = 310;
+    canvasWrap.append(canvas);
+
+    container
+      ..append(header)
+      ..append(canvasWrap);
+
+    late final WebGLSurfaceRenderer renderer;
+
+    void draw() {
+      final s3d = plot.surface3d;
+      if (s3d == null) return;
+      renderer.renderSurface(
+        gridSize: s3d.gridSize,
+        zValues: s3d.zValues,
+        minX: s3d.minX,
+        maxX: s3d.maxX,
+        minY: s3d.minY,
+        maxY: s3d.maxY,
+        minZ: s3d.minZ,
+        maxZ: s3d.maxZ,
+        xVar: s3d.xVar,
+        yVar: s3d.yVar,
+        title: exprLabel,
+      );
+    }
+
+    renderer = WebGLSurfaceRenderer.forCanvas(
+      canvas,
+      onUpdate: draw,
+      onHoverReadout: (txt) {
+        readout.textContent = txt;
+      },
+    );
+
+    if (plot.parameters.isNotEmpty && plot.expressions.isNotEmpty) {
+      final slidersWrap =
+          web.document.createElement('div') as web.HTMLDivElement
+            ..className = 'calc-plot-sliders';
+      for (final param in plot.parameters) {
+        final row = web.document.createElement('label') as web.HTMLLabelElement
+          ..className = 'calc-plot-slider-row';
+        final valSpan =
+            web.document.createElement('span') as web.HTMLSpanElement
+              ..className = 'calc-plot-slider-label'
+              ..textContent = '$param = 1.00';
+        final slider =
+            web.document.createElement('input') as web.HTMLInputElement
+              ..type = 'range'
+              ..name = 'param3d-$param'
+              ..className = 'calc-plot-slider'
+              ..min = '-5'
+              ..max = '5'
+              ..step = '0.05'
+              ..value = '1';
+        slider.addEventListener(
+          'input',
+          ((web.Event _) {
+            final v = double.tryParse(slider.value) ?? 1.0;
+            paramValues[param] = v;
+            valSpan.textContent = '$param = ${v.toStringAsFixed(2)}';
+            final cur = plot.surface3d!;
+            plot = buildSurface3dPlotValue(
+              plot.expressions.first,
+              cur.xVar,
+              cur.minX,
+              cur.maxX,
+              cur.yVar,
+              cur.minY,
+              cur.maxY,
+              parameterValues: paramValues,
+              gridSize: 48,
+            );
+            draw();
+          }).toJS,
+        );
+        row
+          ..append(valSpan)
+          ..append(slider);
+        slidersWrap.append(row);
+      }
+      container.append(slidersWrap);
+    }
+
+    resetBtn.addEventListener(
+      'click',
+      ((web.Event _) {
+        readout.textContent = defaultReadout;
+        renderer.resetCamera();
+      }).toJS,
+    );
+
+    pngBtn.addEventListener(
+      'click',
+      ((web.Event _) {
+        final dataUrl = WebGLSurfaceRenderer.exportPngDataUrl(canvas);
+        final a = web.document.createElement('a') as web.HTMLAnchorElement
+          ..href = dataUrl
+          ..download = 'plot3d.png';
+        web.document.body?.append(a);
+        a.click();
+        a.remove();
+        CalcPersistence.triggerHaptic(enabled: true);
+      }).toJS,
+    );
+
+    web.window.addEventListener(
+      'resize',
+      ((web.Event _) {
+        if (canvas.isConnected) draw();
       }).toJS,
     );
 

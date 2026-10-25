@@ -1,14 +1,16 @@
 import 'dart:js_interop';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
-import 'package:more/number.dart' show Complex;
+import 'package:data/type.dart';
 import 'package:web/web.dart' as web;
 
 import '../shared/chart.dart';
 import '../shared/utils.dart';
+import '../shared/webgl_surface.dart';
 import 'algebra.dart';
 import 'presets.dart';
 
@@ -586,6 +588,10 @@ void attachEventListeners() {
       asDefault: true,
       clearUserInteraction: true,
     );
+    WebGLSurfaceRenderer.forCanvas(
+      plotCanvas,
+      onUpdate: drawCharts,
+    ).resetCamera();
     updateImaginaryDetection();
     detectRootsAndExtrema();
     drawCharts();
@@ -1765,7 +1771,86 @@ void detectRootsAndExtrema() {
   return (minY, maxY);
 }
 
+String _cached3dKey = '';
+Float64List _cached3dZ = Float64List(0);
+double _cached3dMinZ = -1.0;
+double _cached3dMaxZ = 1.0;
+String _cached3dXVar = 'x';
+String _cached3dYVar = 'y';
+
+void _renderMultivariable3dSurface(Expr expr) {
+  final free = expr.freeVariables.toList()..sort();
+  final xVar = (free.contains('x') && free.contains('y')) ? 'x' : free[0];
+  final yVar = (free.contains('x') && free.contains('y')) ? 'y' : free[1];
+  const gridSize = 64;
+  final key = '${expr.toString()}|$minX|$maxX|$xVar|$yVar';
+
+  if (_cached3dKey != key) {
+    _cached3dKey = key;
+    _cached3dXVar = xVar;
+    _cached3dYVar = yVar;
+    final vecFn = expr.toVectorFunction([xVar, yVar]);
+    final zVals = Float64List(gridSize * gridSize);
+    final finite = <double>[];
+    final vecView = Vector<double>.filled(2, 0.0, type: DataType.float64);
+    for (var iy = 0; iy < gridSize; iy++) {
+      final v = iy / (gridSize - 1);
+      vecView.setUnchecked(1, minX + v * (maxX - minX));
+      for (var ix = 0; ix < gridSize; ix++) {
+        final u = ix / (gridSize - 1);
+        vecView.setUnchecked(0, minX + u * (maxX - minX));
+        double z;
+        try {
+          z = vecFn(vecView);
+        } catch (_) {
+          z = double.nan;
+        }
+        zVals[iy * gridSize + ix] = z;
+        if (z.isFinite) finite.add(z);
+      }
+    }
+    _cached3dZ = zVals;
+    if (finite.isEmpty) {
+      _cached3dMinZ = -1.0;
+      _cached3dMaxZ = 1.0;
+    } else {
+      finite.sort();
+      final lo = finite[(finite.length * 0.02).floor()];
+      final hi = finite[(finite.length * 0.98).floor()];
+      final span = (hi - lo).abs() < 1e-6 ? 1.0 : (hi - lo);
+      _cached3dMinZ = lo - span * 0.08;
+      _cached3dMaxZ = hi + span * 0.08;
+    }
+  }
+
+  chartController.enabled = false;
+  final surfaceRenderer = WebGLSurfaceRenderer.forCanvas(
+    plotCanvas,
+    onUpdate: drawCharts,
+  );
+  surfaceRenderer.renderSurface(
+    gridSize: gridSize,
+    zValues: _cached3dZ,
+    minX: minX,
+    maxX: maxX,
+    minY: minX,
+    maxY: maxX,
+    minZ: _cached3dMinZ,
+    maxZ: _cached3dMaxZ,
+    xVar: _cached3dXVar,
+    yVar: _cached3dYVar,
+    title: 'z = ${expr.toString()}',
+  );
+}
+
 void drawCharts() {
+  if (parsedExpr != null && parsedExpr!.freeVariables.length == 2) {
+    _renderMultivariable3dSurface(parsedExpr!);
+    return;
+  }
+  WebGLSurfaceRenderer.setActive(plotCanvas, false);
+  chartController.enabled = true;
+
   final init = initCanvas(plotCanvas);
   if (init == null) return;
   final (ctx, width, height) = init;

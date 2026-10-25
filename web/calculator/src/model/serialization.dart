@@ -44,6 +44,7 @@ abstract final class CalcSerialization {
         :final curves,
         :final parameters,
         :final isParametric,
+        :final surface3d,
       ) =>
         {
           ...base,
@@ -56,6 +57,7 @@ abstract final class CalcSerialization {
           'curves': [for (final c in curves) c.toJson()],
           if (parameters.isNotEmpty) 'parameters': parameters,
           if (isParametric) 'isParametric': true,
+          if (surface3d != null) 'surface3d': surface3d.toJson(),
         },
       InfoValue(:final message, :final title) => {
         ...base,
@@ -117,6 +119,7 @@ abstract final class CalcSerialization {
         final params = (json['parameters'] as List<Object?>? ?? const [])
             .cast<String>()
             .toList();
+        final rawS3d = json['surface3d'] as Map<String, Object?>?;
         return PlotValue(
           expressions: exprs,
           variable: json['variable'] as String? ?? 'x',
@@ -127,6 +130,7 @@ abstract final class CalcSerialization {
           curves: curves,
           parameters: params,
           isParametric: json['isParametric'] as bool? ?? false,
+          surface3d: rawS3d != null ? Surface3dData.fromJson(rawS3d) : null,
         );
       case 'info':
         return InfoValue(

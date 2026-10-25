@@ -268,6 +268,84 @@ PlotValue buildOdePlotValue(
   );
 }
 
+/// Samples a multivariable expression $z = f(x, y)$ over an $N \times N$
+/// grid on `[minX, maxX] × [minY, maxY]` and returns a 3D [PlotValue].
+PlotValue buildSurface3dPlotValue(
+  Expr expr,
+  String xVar,
+  double minX,
+  double maxX,
+  String yVar,
+  double minY,
+  double maxY, {
+  Map<String, double> parameterValues = const {},
+  int gridSize = 64,
+}) {
+  final freeParams = <String>{
+    for (final v in expr.freeVariables)
+      if (v != xVar && v != yVar) v,
+  };
+  final parameters = freeParams.toList()..sort();
+
+  var evalExpr = expr;
+  for (final p in parameters) {
+    final val = parameterValues[p] ?? 1.0;
+    evalExpr = evalExpr.substitute(p, RealNumber(val));
+  }
+
+  final vecFn = evalExpr.toVectorFunction([xVar, yVar]);
+  final zValues = Float64List(gridSize * gridSize);
+  final finiteZ = <double>[];
+  final loX = math.min(minX, maxX);
+  final hiX = math.max(minX, maxX);
+  final loY = math.min(minY, maxY);
+  final hiY = math.max(minY, maxY);
+
+  final vecView = Vector<double>.filled(2, 0.0, type: DataType.float64);
+
+  for (var iy = 0; iy < gridSize; iy++) {
+    final v = iy / math.max(1, gridSize - 1);
+    vecView.setUnchecked(1, loY + v * (hiY - loY));
+    for (var ix = 0; ix < gridSize; ix++) {
+      final u = ix / math.max(1, gridSize - 1);
+      vecView.setUnchecked(0, loX + u * (hiX - loX));
+      double z;
+      try {
+        z = vecFn(vecView);
+      } catch (_) {
+        z = double.nan;
+      }
+      zValues[iy * gridSize + ix] = z;
+      if (z.isFinite) {
+        finiteZ.add(z);
+      }
+    }
+  }
+
+  final zRange = _computeRobustYRange(finiteZ);
+  return PlotValue(
+    expressions: [expr],
+    variable: '$xVar, $yVar',
+    minX: loX,
+    maxX: hiX,
+    minY: loY,
+    maxY: hiY,
+    parameters: parameters,
+    surface3d: Surface3dData(
+      xVar: xVar,
+      yVar: yVar,
+      minX: loX,
+      maxX: hiX,
+      minY: loY,
+      maxY: hiY,
+      minZ: zRange.minY,
+      maxZ: zRange.maxY,
+      gridSize: gridSize,
+      zValues: zValues,
+    ),
+  );
+}
+
 ({double minY, double maxY}) _computeRobustYRange(List<double> values) {
   if (values.isEmpty) return (minY: -5.0, maxY: 5.0);
   final sorted = List<double>.of(values)..sort();
