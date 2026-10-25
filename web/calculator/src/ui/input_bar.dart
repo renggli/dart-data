@@ -65,6 +65,30 @@ final class FormulaInputBar {
     _onInputChanged();
   }
 
+  /// Returns `true` if the cursor in the input bar is currently inside an
+  /// unclosed single quote (`'...'`) or square bracket (`[...]`).
+  bool get isInsideCompoundLiteral {
+    final pos = textarea.selectionEnd.clamp(0, textarea.value.length);
+    final before = CalcGrammar.normalizeDeadKeys(
+      textarea.value.substring(0, pos),
+    );
+    var quotes = 0;
+    var bracketDepth = 0;
+    for (var i = 0; i < before.length; i++) {
+      final ch = before[i];
+      if (ch == "'") {
+        quotes++;
+      } else if (quotes.isEven) {
+        if (ch == '[') {
+          bracketDepth++;
+        } else if (ch == ']') {
+          if (bracketDepth > 0) bracketDepth--;
+        }
+      }
+    }
+    return quotes.isOdd || bracketDepth > 0;
+  }
+
   void focus() => textarea.focus();
 
   /// Inserts [snippet] at the current cursor position and moves the cursor back

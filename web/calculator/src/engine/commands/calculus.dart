@@ -31,7 +31,7 @@ List<Command> buildCalculusCommands() => [
       checkCommandArity('diff', args, 1, 3);
       final varName = args.length >= 2
           ? expectCommandVarName(args[1], 'diff')
-          : (primaryCommandVar(args[0]) ?? 'x');
+          : ctx.inferPrimaryVariable(args[0]);
       final order = args.length >= 3 ? expectCommandInt(args[2], 'diff') : 1;
       return liftUnaryCommand(
         args[0],
@@ -73,20 +73,25 @@ List<Command> buildCalculusCommands() => [
         'integrate(r[$id], ${primaryCommandVar(v) ?? 'x'})',
     run: (args, ctx) {
       checkCommandArity('integrate', args, 1, 4);
+      final String varName;
+      final Expr? lower;
+      final Expr? upper;
       if (args.length == 3) {
-        throw ArgumentError(
-          'integrate requires 1, 2, or 4 arguments (expr, var, [lower, upper]).',
-        );
+        // 3-arg form: integrate(expr, lower, upper) with inferred variable
+        varName = ctx.inferPrimaryVariable(args[0]);
+        lower = expectCommandExpr(args[1], 'integrate');
+        upper = expectCommandExpr(args[2], 'integrate');
+      } else {
+        varName = args.length >= 2
+            ? expectCommandVarName(args[1], 'integrate')
+            : ctx.inferPrimaryVariable(args[0]);
+        lower = args.length == 4
+            ? expectCommandExpr(args[2], 'integrate')
+            : null;
+        upper = args.length == 4
+            ? expectCommandExpr(args[3], 'integrate')
+            : null;
       }
-      final varName = args.length >= 2
-          ? expectCommandVarName(args[1], 'integrate')
-          : (primaryCommandVar(args[0]) ?? 'x');
-      final lower = args.length == 4
-          ? expectCommandExpr(args[2], 'integrate')
-          : null;
-      final upper = args.length == 4
-          ? expectCommandExpr(args[3], 'integrate')
-          : null;
       return liftUnaryCommand(
         args[0],
         (e) => e.integrate(varName, from: lower, to: upper),
@@ -125,9 +130,23 @@ List<Command> buildCalculusCommands() => [
     run: (args, ctx) {
       checkCommandArity('taylor', args, 1, 4);
       final expr = expectCommandExpr(args[0], 'taylor');
+      if (args.length == 2 &&
+          args[1] is ExprValue &&
+          (args[1] as ExprValue).expr is IntegerNumber) {
+        final varName = ctx.inferPrimaryVariable(args[0]);
+        final degree = expectCommandInt(args[1], 'taylor');
+        return ExprValue(
+          expr.series(
+            varName,
+            point: IntegerNumber.zero,
+            order: degree + 1,
+            includeOrder: false,
+          ),
+        );
+      }
       final varName = args.length >= 2
           ? expectCommandVarName(args[1], 'taylor')
-          : (expr.freeVariables.isNotEmpty ? expr.freeVariables.first : 'x');
+          : ctx.inferPrimaryVariable(args[0]);
       final point = args.length >= 3
           ? expectCommandExpr(args[2], 'taylor')
           : IntegerNumber.zero;
@@ -165,9 +184,18 @@ List<Command> buildCalculusCommands() => [
     run: (args, ctx) {
       checkCommandArity('series', args, 1, 4);
       final expr = expectCommandExpr(args[0], 'series');
+      if (args.length == 2 &&
+          args[1] is ExprValue &&
+          (args[1] as ExprValue).expr is IntegerNumber) {
+        final varName = ctx.inferPrimaryVariable(args[0]);
+        final order = expectCommandInt(args[1], 'series');
+        return SeriesValue(
+          expr.toPowerSeries(varName, point: IntegerNumber.zero, order: order),
+        );
+      }
       final varName = args.length >= 2
           ? expectCommandVarName(args[1], 'series')
-          : (expr.freeVariables.isNotEmpty ? expr.freeVariables.first : 'x');
+          : ctx.inferPrimaryVariable(args[0]);
       final point = args.length >= 3
           ? expectCommandExpr(args[2], 'series')
           : IntegerNumber.zero;
@@ -180,16 +208,16 @@ List<Command> buildCalculusCommands() => [
   Command(
     name: 'limit',
     category: CommandCategory.calculus,
-    signature: 'limit(expr, var, point, [dir])',
+    signature: 'limit(expr, [var], [point], [dir])',
     paramSpecs: const [
       ParamSpec.expr('expr'),
-      ParamSpec.symbol('var'),
-      ParamSpec.expr('point'),
+      ParamSpec.symbol('[var]'),
+      ParamSpec.optionalExpr('[point]'),
       ParamSpec.symbol('[dir]'),
     ],
-    minArity: 3,
+    minArity: 1,
     maxArity: 4,
-    doc: 'Evaluates the symbolic limit as var approaches point.',
+    doc: 'Evaluates the symbolic limit as var approaches point (default 0).',
     examples: const [
       'limit(sin(x) / x, x, 0)',
       'limit((1 + 1 / x)^x, x, infinity)',
@@ -202,8 +230,21 @@ List<Command> buildCalculusCommands() => [
     buildChipCall: (id, v) =>
         'limit(r[$id], ${primaryCommandVar(v) ?? 'x'}, 0)',
     run: (args, ctx) {
-      checkCommandArity('limit', args, 3, 4);
+      checkCommandArity('limit', args, 1, 4);
       final expr = expectCommandExpr(args[0], 'limit');
+      if (args.length == 1) {
+        final varName = ctx.inferPrimaryVariable(args[0]);
+        return ExprValue(expr.limit(varName, IntegerNumber.zero));
+      }
+      if (args.length == 2) {
+        if (args[1] is ExprValue && (args[1] as ExprValue).expr is Variable) {
+          final varName = expectCommandVarName(args[1], 'limit');
+          return ExprValue(expr.limit(varName, IntegerNumber.zero));
+        }
+        final varName = ctx.inferPrimaryVariable(args[0]);
+        final point = expectCommandExpr(args[1], 'limit');
+        return ExprValue(expr.limit(varName, point));
+      }
       final varName = expectCommandVarName(args[1], 'limit');
       final point = expectCommandExpr(args[2], 'limit');
       final dir = args.length == 4

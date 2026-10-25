@@ -127,9 +127,7 @@ List<Command> buildAlgebraCommands() => [
       final target = expectCommandExpr(args[0], 'solve');
       final varName = args.length >= 2
           ? expectCommandVarName(args[1], 'solve')
-          : (target.freeVariables.isNotEmpty
-                ? target.freeVariables.first
-                : 'x');
+          : ctx.inferPrimaryVariable(args[0]);
       final roots = target.solve(varName, assumptions: ctx.assumptions);
       return ListValue([for (final r in roots) ExprValue(r)]);
     },
@@ -198,7 +196,7 @@ List<Command> buildAlgebraCommands() => [
       final expr = expectCommandExpr(args[0], 'apart');
       final v = args.length >= 2
           ? expectCommandVarName(args[1], 'apart')
-          : (expr.freeVariables.isNotEmpty ? expr.freeVariables.first : 'x');
+          : ctx.inferPrimaryVariable(args[0]);
       return ExprValue(expr.apart(v));
     },
   ),
@@ -243,8 +241,8 @@ List<Command> buildAlgebraCommands() => [
   Command(
     name: 'collect',
     category: CommandCategory.algebra,
-    signature: 'collect(expr, var)',
-    paramSpecs: const [ParamSpec.expr('expr'), ParamSpec.symbol('var')],
+    signature: 'collect(expr, [var])',
+    paramSpecs: const [ParamSpec.expr('expr'), ParamSpec.symbol('[var]')],
     minArity: 1,
     maxArity: 2,
     doc: 'Collects additive terms by powers of the given variable.',
@@ -259,7 +257,7 @@ List<Command> buildAlgebraCommands() => [
       final expr = expectCommandExpr(args[0], 'collect');
       final v = args.length >= 2
           ? expectCommandVarName(args[1], 'collect')
-          : (expr.freeVariables.isNotEmpty ? expr.freeVariables.first : 'x');
+          : ctx.inferPrimaryVariable(args[0]);
       return ExprValue(expr.collect(v));
     },
   ),

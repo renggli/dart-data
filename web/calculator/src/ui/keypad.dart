@@ -14,6 +14,7 @@ final class VirtualKeypad {
     required this.onEvaluate,
     required this.onBackspace,
     required this.onExecuteRpn,
+    this.isInsideCompoundLiteral,
   }) {
     element = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-keypad hidden';
@@ -30,6 +31,7 @@ final class VirtualKeypad {
   final void Function({required bool forceNumeric}) onEvaluate;
   final void Function() onBackspace;
   final void Function(String rpnCommand) onExecuteRpn;
+  final bool Function()? isInsideCompoundLiteral;
 
   late final web.HTMLDivElement element;
   late final web.HTMLDivElement _tabsBar;
@@ -105,31 +107,52 @@ final class VirtualKeypad {
       onTap: () => onInsert(text, cursorBack: back),
     );
 
+    _KeySpec cmdKey(
+      String label,
+      String scrollText, {
+      required String rpnCommand,
+      int back = 0,
+      String tip = '',
+      String cls = '',
+    }) => _KeySpec(
+      label: label,
+      tooltip: tip.isEmpty ? scrollText : tip,
+      styleClass: cls,
+      onTap: () {
+        if (mode == CalcMode.rpn &&
+            !(isInsideCompoundLiteral?.call() ?? false)) {
+          onExecuteRpn(rpnCommand);
+        } else {
+          onInsert(scrollText, cursorBack: back);
+        }
+      },
+    );
+
     switch (tab) {
       case 'Numbers':
         return [
           ins('7', '7'),
           ins('8', '8'),
           ins('9', '9'),
-          ins('÷', ' / ', cls: 'calc-key-op'),
+          cmdKey('÷', ' / ', rpnCommand: '/', cls: 'calc-key-op'),
           ins('(', '()', back: 1, cls: 'calc-key-op'),
           ins('x', 'x', cls: 'calc-key-sym'),
           ins('4', '4'),
           ins('5', '5'),
           ins('6', '6'),
-          ins('×', ' * ', cls: 'calc-key-op'),
+          cmdKey('×', ' * ', rpnCommand: '*', cls: 'calc-key-op'),
           ins(')', ')', cls: 'calc-key-op'),
           ins('y', 'y', cls: 'calc-key-sym'),
           ins('1', '1'),
           ins('2', '2'),
           ins('3', '3'),
-          ins('−', ' - ', cls: 'calc-key-op'),
-          ins('^', '^', cls: 'calc-key-op'),
+          cmdKey('−', ' - ', rpnCommand: '-', cls: 'calc-key-op'),
+          cmdKey('^', '^', rpnCommand: '^', cls: 'calc-key-op'),
           ins('π', 'pi', cls: 'calc-key-sym'),
           ins('0', '0'),
           ins('.', '.'),
           ins('i', 'i', cls: 'calc-key-sym'),
-          ins('+', ' + ', cls: 'calc-key-op'),
+          cmdKey('+', ' + ', rpnCommand: '+', cls: 'calc-key-op'),
           _KeySpec(
             label: '⌫',
             tooltip: 'Backspace',
@@ -146,8 +169,8 @@ final class VirtualKeypad {
 
       case 'Algebra':
         return [
-          ins('x²', '^2'),
-          ins('√', 'sqrt()', back: 1),
+          cmdKey('x²', '^2', rpnCommand: '²'),
+          cmdKey('√', 'sqrt()', rpnCommand: 'sqrt', back: 1),
           ins(':=', ' := ', tip: 'Assign variable or function'),
           ins('=', ' = ', tip: 'Symbolic equation'),
           ins('r[-1]', 'r[-1]', tip: 'Previous result'),
@@ -157,62 +180,107 @@ final class VirtualKeypad {
             styleClass: 'calc-key-primary',
             onTap: () => onEvaluate(forceNumeric: true),
           ),
-          ins('simplify', 'simplify()', back: 1),
-          ins('expand', 'expand()', back: 1),
-          ins('factor', 'factor()', back: 1),
-          ins('solve', 'solve(, x)', back: 4),
-          ins('subs', 'subs(, x = )', back: 6),
-          ins('apart', 'apart(, x)', back: 4),
-          ins('together', 'together()', back: 1),
-          ins('cancel', 'cancel()', back: 1),
-          ins('collect', 'collect(, x)', back: 4),
-          ins('abs', 'abs()', back: 1),
-          ins('ln', 'ln()', back: 1),
-          ins('exp', 'exp()', back: 1),
+          cmdKey('simplify', 'simplify()', rpnCommand: 'simplify', back: 1),
+          cmdKey('expand', 'expand()', rpnCommand: 'expand', back: 1),
+          cmdKey('factor', 'factor()', rpnCommand: 'factor', back: 1),
+          cmdKey('solve', 'solve(, x)', rpnCommand: 'solve', back: 4),
+          cmdKey('subs', 'subs(, x = )', rpnCommand: 'subs', back: 6),
+          cmdKey('apart', 'apart(, x)', rpnCommand: 'apart', back: 4),
+          cmdKey('together', 'together()', rpnCommand: 'together', back: 1),
+          cmdKey('cancel', 'cancel()', rpnCommand: 'cancel', back: 1),
+          cmdKey('collect', 'collect(, x)', rpnCommand: 'collect', back: 4),
+          cmdKey('abs', 'abs()', rpnCommand: 'abs', back: 1),
+          cmdKey('ln', 'ln()', rpnCommand: 'ln', back: 1),
+          cmdKey('exp', 'exp()', rpnCommand: 'exp', back: 1),
         ];
 
       case 'Trig':
         return [
-          ins('sin', 'sin()', back: 1),
-          ins('cos', 'cos()', back: 1),
-          ins('tan', 'tan()', back: 1),
-          ins('asin', 'asin()', back: 1),
-          ins('acos', 'acos()', back: 1),
-          ins('atan', 'atan()', back: 1),
-          ins('sinh', 'sinh()', back: 1),
-          ins('cosh', 'cosh()', back: 1),
-          ins('tanh', 'tanh()', back: 1),
-          ins('asinh', 'asinh()', back: 1),
-          ins('acosh', 'acosh()', back: 1),
-          ins('atanh', 'atanh()', back: 1),
-          ins('trigexpand', 'trigexpand()', back: 1),
-          ins('trigsimp', 'trigsimplify()', back: 1),
-          ins('re', 're()', back: 1),
-          ins('im', 'im()', back: 1),
-          ins('conj', 'conj()', back: 1),
-          ins('polar', 'polar()', back: 1),
+          cmdKey('sin', 'sin()', rpnCommand: 'sin', back: 1),
+          cmdKey('cos', 'cos()', rpnCommand: 'cos', back: 1),
+          cmdKey('tan', 'tan()', rpnCommand: 'tan', back: 1),
+          cmdKey('asin', 'asin()', rpnCommand: 'asin', back: 1),
+          cmdKey('acos', 'acos()', rpnCommand: 'acos', back: 1),
+          cmdKey('atan', 'atan()', rpnCommand: 'atan', back: 1),
+          cmdKey('sinh', 'sinh()', rpnCommand: 'sinh', back: 1),
+          cmdKey('cosh', 'cosh()', rpnCommand: 'cosh', back: 1),
+          cmdKey('tanh', 'tanh()', rpnCommand: 'tanh', back: 1),
+          cmdKey('asinh', 'asinh()', rpnCommand: 'asinh', back: 1),
+          cmdKey('acosh', 'acosh()', rpnCommand: 'acosh', back: 1),
+          cmdKey('atanh', 'atanh()', rpnCommand: 'atanh', back: 1),
+          cmdKey(
+            'trigexpand',
+            'trigexpand()',
+            rpnCommand: 'trigexpand',
+            back: 1,
+          ),
+          cmdKey(
+            'trigsimp',
+            'trigsimplify()',
+            rpnCommand: 'trigsimplify',
+            back: 1,
+          ),
+          cmdKey('re', 're()', rpnCommand: 're', back: 1),
+          cmdKey('im', 'im()', rpnCommand: 'im', back: 1),
+          cmdKey('conj', 'conj()', rpnCommand: 'conj', back: 1),
+          cmdKey('polar', 'polar()', rpnCommand: 'polar', back: 1),
         ];
 
       case 'Calculus':
         return [
-          ins('d/dx', 'diff(, x)', back: 4),
-          ins('∫ dx', 'integrate(, x)', back: 4),
-          ins('∫ a..b', 'integrate(, x, 0, 1)', back: 10),
-          ins('limit', 'limit(, x, 0)', back: 7),
-          ins('taylor', 'taylor(, x, 0, 5)', back: 10),
-          ins('series', 'series(, x, 0, 5)', back: 10),
-          ins('∑ sum', 'sum(, k, 1, n)', back: 10),
-          ins('∏ prod', 'product(, k, 1, n)', back: 10),
-          ins('∇ grad', 'gradient(, [x, y])', back: 9),
-          ins('hessian', 'hessian(, [x, y])', back: 9),
-          ins('jacobian', 'jacobian([], [x, y])', back: 10),
-          ins('plot', 'plot(, x, -5, 5)', back: 11),
-          ins('n∫', 'nintegrate(, x, 0, 1)', back: 10),
-          ins('nsolve', 'nsolve(, x, 1)', back: 7),
-          ins('nmin', 'nminimize(, x, -2, 2)', back: 11),
-          ins('erf', 'erf()', back: 1),
-          ins('gamma', 'gamma()', back: 1),
-          ins('W(x)', 'lambertw()', back: 1),
+          cmdKey('d/dx', 'diff(, x)', rpnCommand: 'diff', back: 4),
+          cmdKey('∫ dx', 'integrate(, x)', rpnCommand: 'integrate', back: 4),
+          cmdKey(
+            '∫ a..b',
+            'integrate(, x, 0, 1)',
+            rpnCommand: 'DEF∫',
+            back: 10,
+          ),
+          cmdKey('limit', 'limit(, x, 0)', rpnCommand: 'limit', back: 7),
+          cmdKey('taylor', 'taylor(, x, 0, 5)', rpnCommand: 'taylor', back: 10),
+          cmdKey('series', 'series(, x, 0, 5)', rpnCommand: 'series', back: 10),
+          cmdKey('∑ sum', 'sum(, k, 1, n)', rpnCommand: 'sum', back: 10),
+          cmdKey(
+            '∏ prod',
+            'product(, k, 1, n)',
+            rpnCommand: 'product',
+            back: 10,
+          ),
+          cmdKey(
+            '∇ grad',
+            'gradient(, [x, y])',
+            rpnCommand: 'gradient',
+            back: 9,
+          ),
+          cmdKey(
+            'hessian',
+            'hessian(, [x, y])',
+            rpnCommand: 'hessian',
+            back: 9,
+          ),
+          cmdKey(
+            'jacobian',
+            'jacobian([], [x, y])',
+            rpnCommand: 'jacobian',
+            back: 10,
+          ),
+          cmdKey('plot', 'plot(, x, -5, 5)', rpnCommand: 'plot', back: 11),
+          cmdKey(
+            'n∫',
+            'nintegrate(, x, 0, 1)',
+            rpnCommand: 'nintegrate',
+            back: 10,
+          ),
+          cmdKey('nsolve', 'nsolve(, x, 1)', rpnCommand: 'nsolve', back: 7),
+          cmdKey(
+            'nmin',
+            'nminimize(, x, -2, 2)',
+            rpnCommand: 'nminimize',
+            back: 11,
+          ),
+          cmdKey('erf', 'erf()', rpnCommand: 'erf', back: 1),
+          cmdKey('gamma', 'gamma()', rpnCommand: 'gamma', back: 1),
+          cmdKey('W(x)', 'lambertw()', rpnCommand: 'lambertw', back: 1),
         ];
 
       case 'Matrix':
@@ -225,21 +293,26 @@ final class VirtualKeypad {
           ),
           ins('[v]', '[, ]', back: 3),
           ins('[[M]]', '[[, ], [, ]]', back: 10),
-          ins("A'", "'", tip: 'Matrix transpose'),
-          ins('det', 'det()', back: 1),
-          ins('inv', 'inv()', back: 1),
-          ins('trace', 'trace()', back: 1),
-          ins('rref', 'rref()', back: 1),
-          ins('rank', 'rank()', back: 1),
-          ins('eigenvals', 'eigenvals()', back: 1),
-          ins('eigenvects', 'eigenvects()', back: 1),
-          ins('charpoly', 'charpoly(, x)', back: 4),
-          ins('nullspace', 'nullspace()', back: 1),
-          ins('dot', 'dot(, )', back: 3),
-          ins('cross', 'cross(, )', back: 3),
-          ins('norm', 'norm()', back: 1),
-          ins('I(n)', 'identity(3)', back: 1),
-          ins('zeros', 'zeros(3, 3)', back: 4),
+          cmdKey("A'", "'", rpnCommand: 'transpose', tip: 'Matrix transpose'),
+          cmdKey('det', 'det()', rpnCommand: 'det', back: 1),
+          cmdKey('inv', 'inv()', rpnCommand: 'inv', back: 1),
+          cmdKey('trace', 'trace()', rpnCommand: 'trace', back: 1),
+          cmdKey('rref', 'rref()', rpnCommand: 'rref', back: 1),
+          cmdKey('rank', 'rank()', rpnCommand: 'rank', back: 1),
+          cmdKey('eigenvals', 'eigenvals()', rpnCommand: 'eigenvals', back: 1),
+          cmdKey(
+            'eigenvects',
+            'eigenvects()',
+            rpnCommand: 'eigenvects',
+            back: 1,
+          ),
+          cmdKey('charpoly', 'charpoly(, x)', rpnCommand: 'charpoly', back: 4),
+          cmdKey('nullspace', 'nullspace()', rpnCommand: 'nullspace', back: 1),
+          cmdKey('dot', 'dot(, )', rpnCommand: 'dot', back: 3),
+          cmdKey('cross', 'cross(, )', rpnCommand: 'cross', back: 3),
+          cmdKey('norm', 'norm()', rpnCommand: 'norm', back: 1),
+          cmdKey('I(n)', 'identity(3)', rpnCommand: 'identity', back: 1),
+          cmdKey('zeros', 'zeros(3, 3)', rpnCommand: 'zeros', back: 4),
         ];
 
       case 'Stack':

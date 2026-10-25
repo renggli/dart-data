@@ -73,6 +73,39 @@ final class EvaluatorContext {
 
   CalcSettings get settings => environment.settings;
   Assumptions get assumptions => environment.settings.assumptions;
+
+  /// Infers the primary free variable of [value] (returning [fallback] when
+  /// [value] has no free variables or multiple unrelated variables).
+  String inferPrimaryVariable(CalcValue value, {String fallback = 'x'}) {
+    final free = <String>{};
+    switch (value) {
+      case ExprValue(:final expr):
+        free.addAll(expr.freeVariables);
+      case SeriesValue(:final series):
+        return series.variable;
+      case VectorValue(:final vector):
+        for (var i = 0; i < vector.length; i++) {
+          free.addAll(vector.getUnchecked(i).freeVariables);
+        }
+      case MatrixValue(:final matrix):
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            free.addAll(matrix.getUnchecked(r, c).freeVariables);
+          }
+        }
+      case ListValue(:final elements):
+        for (final elem in elements) {
+          if (elem is ExprValue) free.addAll(elem.expr.freeVariables);
+        }
+      case _:
+        break;
+    }
+    if (free.length == 1) return free.first;
+    if (free.contains('x')) return 'x';
+    if (free.contains('t')) return 't';
+    if (free.isNotEmpty) return free.first;
+    return fallback;
+  }
 }
 
 /// Metadata and execution handler for a canonical calculator command.

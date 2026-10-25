@@ -117,18 +117,19 @@ There is exactly one canonical name per command. Commands are defined in modular
 
 | Category | Commands (canonical name → engine call) | Pri |
 | --- | --- | --- |
-| Algebra | `simplify`, `expand`, `factor`, `subs(e, x = v)`, `solve(eq, x)`, `solve([eqs], [vars])`, `numer`, `denom`, `apart`†, `together`†, `collect(e, x)`† | P0 / †P1 |
-| Calculus | `diff(e, x[, n])`, `integrate(e, x[, a, b])`, `taylor(e, x, a, n)`, `series(e, x, a, n)`, `limit(e, x, a[, dir])`, `gradient(e, [vars])`, `hessian(e, [vars])`, `jacobian([es], [vars])` | P0 |
-| Linear algebra | `det`, `inv`, `transpose` (`A'`), `trace`, `charpoly(A[, λ])`, `rank`†, `rref`†, `nullspace`†, `eigenvals`†, `eigenvects`†, `identity(n)`, `zeros(m, n)`, `dot`, `cross`, `norm` | P0 / †P1 |
+| Algebra | `simplify`, `expand`, `factor`, `subs(e, x = v)`, `solve(eq[, x])`, `solve([eqs][, [vars]])`, `numer`, `denom`, `apart(e[, x])`†, `together`†, `collect(e[, x])`† | P0 / †P1 |
+| Calculus | `diff(e[, x, n])`, `integrate(e[, x, a, b])`, `taylor(e[, x, a, n])`, `series(e[, x, a, n])`, `limit(e[, x, a, dir])`, `gradient(e[, [vars]])`, `hessian(e[, [vars]])`, `jacobian([es][, [vars]])` | P0 |
+| Linear algebra | `det`, `inv`, `transpose` (`A'`), `trace`, `charpoly(A[, λ])`, `rank`†, `rref`†, `nullspace`†, `eigenvals`†, `eigenvects`†, `identity(n)`, `zeros(m[, n])`, `dot`, `cross`, `norm` | P0 / †P1 |
 | Complex | `re`, `im`, `conj`, `arg`, `abs`, `polar`, `rect` | P1 |
 | Numbers | `approx(e[, digits])`, `exact(e)` (rational reconstruction), `gcd`, `lcm`, `mod`, `isprime`, `factorial` (`n!`), `binomial`, `floor`, `ceil`, `round` | P0 (`approx`), P1 rest |
 | Numeric | `nintegrate(e, x, a, b)`, `nsolve(e, x, x0[, x1])`, `nminimize(e, x, x0)`, `nderivative(e, x, x0)` (through `toFunction1D` and `package:data/numeric.dart`) | P1 |
-| Plotting | `plot(e, x[, a, b])`, `plot([e1, e2, …], x, a, b)` | P0 |
-| Session | `clear(a)`, `clearall`, `vars`, `help(cmd)` | P0 |
+| Plotting | `plot(e[, x, a, b])`, `plot([e1, e2, …][, x, a, b])` | P0 |
+| Session | `clear(a)`, `clearall`, `vars`, `help([cmd])` | P0 |
 
 Behavior rules:
 
 - **Auto-simplify**: every result passes through `simplify()` (setting, on by default). `expand` and `factor` are explicit.
+- **Smart 1-argument variable inference**: `solve`, `diff`, `integrate`, `taylor`, `series`, `limit`, `apart`, `collect`, `charpoly`, and `plot` automatically infer the primary free variable when invoked with a single expression argument (`solve(x^2 - 4)`, `diff(sin(t))`, `integrate(x^2)`, `taylor(cos(x))`, `plot(sin(x))`) in both Scroll and RPN modes.
 - **Exact by default**: a result becomes approximate only if the input contained a decimal literal, if you call `approx`, or if Approx mode is active.
 - **Graceful failure**: if `integrate` throws `UnsupportedError`, the result keeps the unevaluated integral (E4) and shows a chip: *"No closed form, compute numerically on \[a, b\]?"*. The same applies to `solve` and `limit`.
 - **Matrix lifting**: scalar-only commands (`simplify`, `expand`, `factor`, `diff`, `integrate`, `approx`, `subs`) map element-wise over vectors and matrices.
@@ -154,7 +155,7 @@ Behavior rules:
 | R2 | Command line entry: numbers, names, and quoted algebraics `'x^2+1'`. Multiple space-separated tokens are pushed or executed left to right (`2 3 + 'x' *`). | P0 |
 | R3 | Immediate operators: when the command line is empty or holds a single number, `+ - * / ^` push the line and apply the operator at once. | P0 |
 | R4 | Stack operations: `ENTER` (push; `DUP` when the line is empty), `DROP` (Backspace on empty line), `SWAP` (`→` on empty line), `OVER`, `ROT`, `PICK n`, `ROLL n`, `DEPTH`, `CLEAR`, `LASTARG`, `UNDO` (multi-level). | P0 |
-| R5 | Every command from 3.3 is available in RPN mode using its canonical command name or humanized label (no cryptic 4-letter HP48 aliases). Arity and the expected kind of each level come from the command registry's `ParamSpec` metadata. | P0 |
+| R5 | Every command from 3.3 is available in RPN mode using its canonical command name or humanized label. Context-aware stack arity inspection allows commands (`solve`, `diff`, `integrate`, `taylor`, `series`, `limit`, `apart`, `collect`, `charpoly`, `plot`) to operate directly on 1 stack item (inferring the primary variable) or consume explicit variable/bound levels when pushed onto the stack. | P0 |
 | R6 | Keypad `Stack` tab and palette stack commands (`SWAP`, `DUP`, `DROP`, `OVER`, `ROT`, `PICK`, `ROLL`, `DEPTH`, `CLEAR`, `STO`, `RCL`, `DELETE`) are shown exclusively in RPN mode and hidden in Scroll mode. Desktop function keys `F1`–`F6` map to core stack actions (`SWAP`, `DUP`, `DROP`, `OVER`, `ROT`, `CLEAR`). | P0 |
 | R7 | Interactive stack: `↑` on an empty line enters selection mode. Here `Enter` echoes the level to the command line, `E` edits it, `V` opens a large view, `Del` drops it, `P` picks it, and `Esc` exits. | P1 |
 | R8 | `STO` / `RCL` and `'name' STO` share the variable environment with Scroll mode. Each stack value also gets an `r[n]` number when created, so the two modes share one history. | P0 |
@@ -165,9 +166,9 @@ Behavior rules:
 
 | ID | Requirement | Pri |
 | --- | --- | --- |
-| D1 | **Command palette** (`Ctrl/⌘+K`, toolbar ⌕ button on mobile): fuzzy search over commands, settings, variables, and results. Each entry shows its signature, a one-line doc, an example, and its shortcut. `Enter` inserts the command in Scroll mode or executes it in RPN mode. | P0 |
+| D1 | **Command palette** (`Ctrl/⌘+K`, toolbar ⌕ button on mobile): fuzzy search over commands, settings, variables, and results. Each entry shows its signature and a one-line doc. `Enter` or clicking inserts the command call in Scroll mode or executes it immediately on the stack in RPN mode. | P0 |
 | D2 | **Autocomplete** in the input bar: function, command, and variable names, with a signature hint (`integrate(expr, var, [a, b])`) that highlights the active argument. `Tab` accepts. | P0 |
-| D3 | **Action chips**: each command declares an `appliesTo(CalcValue)` predicate. A polynomial shows Factor · Expand · Roots · d/dx · ∫ · Plot · ≈. A matrix shows det · inv · Aᵀ · eigen · rref. An unevaluated integral shows Numeric ∫. Show at most 6 chips, with an overflow `⋯`. | P0 |
+| D3 | **Action chips**: each command declares an `appliesTo(CalcValue)` predicate. Shown beneath Scroll result cells and beneath RPN stack level `1:`. A polynomial shows Factor · Expand · Roots · d/dx · ∫ · Plot · ≈. A matrix shows det · inv · Aᵀ · eigen · rref. An unevaluated integral shows Numeric ∫. Show at most 6 chips, with an overflow `⋯`. | P0 |
 | D4 | **Help drawer** (`Ctrl+/`): the syntax cheat sheet, keyboard map for the active mode, a per-category command reference built from the registry docs, and runnable examples (tap to load). | P0 |
 | D5 | **First-run tour**: three dismissible coach marks (mode switch, palette, action chips) plus a curated example worksheet (sidebar "Examples", like `web/expressions` presets). | P1 |
 | D6 | Every button has a tooltip that includes its shortcut. Keypad keys show their alternate function on long-press. | P0 |
@@ -199,8 +200,9 @@ Text inputs never capture global shortcuts other than those listed. Shortcuts ar
 
 ### 3.8 Touch Keypad (mobile and optional on desktop)
 
-- A bottom sheet with tabs: **123** (digits, operators, `( )`, `,`, `^`, `√`, `π`, `i`, `r[ ]`), **f(x)** (trig, hyperbolic, `exp`, `ln`, `log`, `abs`, `!`), **∂∫** (diff, integrate, taylor, limit, series, solve), **Matrix** (matrix editor, det, inv, Aᵀ, rref, eigen), **abc** (variables `x y z t a b c n λ θ`, user variables).
-- In RPN mode, the soft-key bar sits above the keypad, and the `ENTER`, `DROP`, `SWAP`, `±`, `EEX`, `→NUM` keys replace `=`.
+- A bottom sheet with tabs: **Numbers**, **Algebra**, **Trig**, **Calculus**, **Matrix**, and **Stack** (RPN mode only).
+- In **Scroll mode**, tapping a command or function key inserts its prefix call template (`solve(, x)`, `diff(, x)`, `sin()`).
+- In **RPN mode**, tapping any operator or command key on the keypad (unless the cursor is actively inside an unclosed `'...'` or `[...]`) pushes any pending input onto the stack and immediately executes the command on the top stack levels.
 - The input uses `inputmode="none"` while the keypad is visible to suppress the OS keyboard. A keyboard toggle key switches to native text input.
 - Long-press shows the alternate (`sin` → `asin`, `ln` → `exp`). Haptic feedback via `navigator.vibrate(5)` where available.
 - Swipe down collapses the keypad to a one-row strip. The sheet height persists.

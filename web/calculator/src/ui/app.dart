@@ -241,6 +241,7 @@ final class CalculatorApp {
       },
       onBackspace: () => _inputBar.backspaceAtCursor(),
       onExecuteRpn: (cmd) => unawaited(_executeRpnCommand(cmd)),
+      isInsideCompoundLiteral: () => _inputBar.isInsideCompoundLiteral,
     );
 
     workspace
@@ -695,7 +696,11 @@ final class CalculatorApp {
       session: _client.session,
       onSelect: (snippet, {required executeImmediately}) {
         if (executeImmediately) {
-          unawaited(_handleSubmit(snippet, forceNumeric: false));
+          if (_mode == CalcMode.rpn) {
+            unawaited(_executeRpnCommand(snippet));
+          } else {
+            unawaited(_handleSubmit(snippet, forceNumeric: false));
+          }
         } else {
           final back = snippet.endsWith('(') ? 0 : 0;
           _inputBar.insertAtCursor(snippet, cursorBack: back);

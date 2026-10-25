@@ -2,6 +2,7 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
+import '../engine/commands.dart';
 import '../model/environment.dart';
 import '../model/session.dart';
 import '../model/stack.dart';
@@ -159,7 +160,80 @@ final class RpnStackView {
         ..append(valNode)
         ..append(rowActions);
 
-      _registersContainer.append(row);
+      if (level == 1) {
+        final (:primary, :overflow) = CommandRegistry.chipsFor(
+          stackItem.value,
+          maxChips: 6,
+        );
+        if (primary.isNotEmpty || overflow.isNotEmpty) {
+          final card = web.document.createElement('div') as web.HTMLDivElement
+            ..className = 'calc-rpn-level-1-card';
+          row.className = 'calc-rpn-row';
+          final chipStrip =
+              web.document.createElement('div') as web.HTMLDivElement
+                ..className = 'calc-chip-strip calc-rpn-chip-strip';
+          for (final cmd in primary) {
+            final chipBtn =
+                web.document.createElement('button') as web.HTMLButtonElement
+                  ..type = 'button'
+                  ..className = 'calc-chip-btn'
+                  ..textContent = cmd.chipLabel
+                  ..title = '${cmd.signature} — ${cmd.doc}';
+            chipBtn.addEventListener(
+              'click',
+              ((web.Event _) => onExecuteRpnCommand(cmd.name)).toJS,
+            );
+            chipStrip.append(chipBtn);
+          }
+          if (overflow.isNotEmpty) {
+            final moreWrap =
+                web.document.createElement('div') as web.HTMLDivElement
+                  ..className = 'calc-chip-more-wrap';
+            final moreBtn =
+                web.document.createElement('button') as web.HTMLButtonElement
+                  ..type = 'button'
+                  ..className = 'calc-chip-btn'
+                  ..textContent = '⋯'
+                  ..title = 'More operations on level 1:';
+            final menu = web.document.createElement('div') as web.HTMLDivElement
+              ..className = 'calc-chip-dropdown hidden';
+            for (final cmd in overflow) {
+              final item =
+                  web.document.createElement('button') as web.HTMLButtonElement
+                    ..type = 'button'
+                    ..className = 'calc-dropdown-item'
+                    ..textContent = '${cmd.chipLabel} (${cmd.name})';
+              item.addEventListener(
+                'click',
+                ((web.Event _) {
+                  menu.classList.add('hidden');
+                  onExecuteRpnCommand(cmd.name);
+                }).toJS,
+              );
+              menu.append(item);
+            }
+            moreBtn.addEventListener(
+              'click',
+              ((web.Event e) {
+                e.stopPropagation();
+                menu.classList.toggle('hidden');
+              }).toJS,
+            );
+            moreWrap
+              ..append(moreBtn)
+              ..append(menu);
+            chipStrip.append(moreWrap);
+          }
+          card
+            ..append(row)
+            ..append(chipStrip);
+          _registersContainer.append(card);
+        } else {
+          _registersContainer.append(row);
+        }
+      } else {
+        _registersContainer.append(row);
+      }
     }
 
     web.window.requestAnimationFrame(

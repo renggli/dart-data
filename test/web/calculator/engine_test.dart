@@ -295,5 +295,48 @@ void main() {
       // tan(x) on [-5, 5] has 4 vertical asymptotes (±π/2, ±3π/2), splitting into multiple segments
       check(pv.curves.first.segments.length).isGreaterThan(3);
     });
+
+    test(
+      'supports 1-argument smart variable inference in Scroll and RPN modes',
+      () {
+        final eval = createEval();
+        final stack = RpnStack();
+        final rpn = RpnInterpreter(stack: stack, evaluator: eval);
+
+        // Scroll 1-arg calls
+        check(eval.evaluateScroll('solve(x^2 - 9)').value.toCanonicalText())
+            .equals('[3, -3]');
+        check(eval.evaluateScroll('diff(sin(t))').value.toCanonicalText())
+            .equals('cos(t)');
+        check(eval.evaluateScroll('integrate(3 * x^2)').value.toCanonicalText())
+            .equals('x ^ 3');
+        check(eval.evaluateScroll('taylor(exp(x))').value.toCanonicalText())
+            .contains('1/120 * x ^ 5');
+        check(eval.evaluateScroll('limit(sin(x) / x)').value.toCanonicalText())
+            .equals('1');
+        check(eval.evaluateScroll('plot(sin(x))').value).isA<PlotValue>();
+
+        // RPN 1-item stack execution
+        check(rpn.executeLine("'x^2 - 9' solve")).isNull();
+        check(stack.level(1).value.toCanonicalText()).equals('[3, -3]');
+
+        check(rpn.executeLine("'sin(t)' diff")).isNull();
+        check(stack.level(1).value.toCanonicalText()).equals('cos(t)');
+
+        check(rpn.executeLine("'3 * x^2' integrate")).isNull();
+        check(stack.level(1).value.toCanonicalText()).equals('x ^ 3');
+
+        check(rpn.executeLine("'exp(x)' taylor")).isNull();
+        check(stack.level(1).value.toCanonicalText()).contains('1/120 * x ^ 5');
+
+        // RPN 2-item taylor (expr + order)
+        check(rpn.executeLine("'cos(x)' 2 taylor")).isNull();
+        check(stack.level(1).value.toCanonicalText()).equals('1 - 1/2 * x ^ 2');
+
+        // RPN 3-item definite integral (expr, lower, upper)
+        check(rpn.executeLine("'sin(x)' 0 pi DEF∫")).isNull();
+        check(stack.level(1).value.toCanonicalText()).equals('2');
+      },
+    );
   });
 }

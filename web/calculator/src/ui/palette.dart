@@ -76,8 +76,8 @@ final class CommandPaletteModal {
             title: cmd.signature,
             badge: cmd.category.softMenuLabel,
             subtitle: cmd.doc,
-            snippet: '${cmd.name}(',
-            executeImmediately: false,
+            snippet: mode == CalcMode.rpn ? cmd.name : '${cmd.name}(',
+            executeImmediately: mode == CalcMode.rpn,
           ),
         );
       }

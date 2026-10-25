@@ -598,6 +598,27 @@
   border-color: rgba(37, 99, 235, 0.35);
 }
 
+.calc-rpn-level-1-card {
+  background: var(--accent-subtle);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.calc-rpn-level-1-card .calc-rpn-row {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.calc-rpn-chip-strip {
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
 .calc-rpn-level-badge {
   font-family: var(--font-mono);
   font-weight: 700;

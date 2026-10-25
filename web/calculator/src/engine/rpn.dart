@@ -340,17 +340,80 @@ final class RpnInterpreter {
   }
 
   void _runRegistryCommand(Command cmd, int arity) {
-    // Special HP48 argument order handling for taylor/series:
-    // If stack has 3 arguments and level 2 is a Variable ('x') and level 1 is an integer (order),
-    // treat as taylor(expr, 'x', 0, order) so 3-arg HP48 entry works alongside 4-arg entry.
     var effectiveArity = arity;
     var insertZeroPoint = false;
-    if ((cmd.name == 'taylor' || cmd.name == 'series') &&
-        stack.depth >= 3 &&
-        (stack.depth < 4 || !_looksLikeVariable(stack.level(3).value)) &&
-        _looksLikeVariable(stack.level(2).value)) {
-      effectiveArity = 3;
-      insertZeroPoint = true;
+
+    switch (cmd.name) {
+      case 'solve' || 'diff' || 'apart' || 'collect' || 'charpoly':
+        if (stack.depth >= 2 && _looksLikeVariable(stack.level(1).value)) {
+          effectiveArity = 2;
+        } else {
+          effectiveArity = 1;
+        }
+      case 'integrate':
+        if (arity == 4) {
+          // Explicit DEF∫ (4-arg or 3-arg definite integral)
+          if (stack.depth >= 4 && _looksLikeVariable(stack.level(3).value)) {
+            effectiveArity = 4;
+          } else if (stack.depth >= 3) {
+            effectiveArity = 3;
+          } else {
+            effectiveArity = 4;
+          }
+        } else if (stack.depth >= 4 &&
+            _looksLikeVariable(stack.level(3).value)) {
+          effectiveArity = 4;
+        } else if (stack.depth >= 2 &&
+            _looksLikeVariable(stack.level(1).value)) {
+          effectiveArity = 2;
+        } else {
+          effectiveArity = 1;
+        }
+      case 'taylor' || 'series':
+        if (stack.depth >= 4 && _looksLikeVariable(stack.level(3).value)) {
+          effectiveArity = 4;
+        } else if (stack.depth >= 3 &&
+            _looksLikeVariable(stack.level(2).value)) {
+          effectiveArity = 3;
+          insertZeroPoint = true;
+        } else if (stack.depth >= 2 &&
+            _looksLikeInteger(stack.level(1).value) &&
+            stack.level(2).value is ExprValue &&
+            (stack.level(2).value as ExprValue).expr.freeVariables.isNotEmpty) {
+          effectiveArity = 2;
+        } else {
+          effectiveArity = 1;
+        }
+      case 'limit':
+        if (stack.depth >= 4 && _looksLikeVariable(stack.level(3).value)) {
+          effectiveArity = 4;
+        } else if (stack.depth >= 3 &&
+            _looksLikeVariable(stack.level(2).value)) {
+          effectiveArity = 3;
+        } else if (stack.depth >= 2 &&
+            _looksLikeVariable(stack.level(1).value)) {
+          effectiveArity = 2;
+        } else {
+          effectiveArity = 1;
+        }
+      case 'gradient' || 'hessian' || 'jacobian':
+        if (stack.depth >= 2 &&
+            (stack.level(1).value is VectorValue ||
+                stack.level(1).value is ListValue)) {
+          effectiveArity = 2;
+        } else {
+          effectiveArity = 1;
+        }
+      case 'zeros':
+        if (stack.depth >= 2 &&
+            _looksLikeInteger(stack.level(1).value) &&
+            _looksLikeInteger(stack.level(2).value)) {
+          effectiveArity = 2;
+        } else {
+          effectiveArity = 1;
+        }
+      default:
+        break;
     }
 
     final popped = stack.popArgs(effectiveArity);
@@ -418,6 +481,9 @@ final class RpnInterpreter {
 
   static bool _looksLikeVariable(CalcValue v) =>
       v is ExprValue && v.expr is Variable;
+
+  static bool _looksLikeInteger(CalcValue v) =>
+      v is ExprValue && v.expr is IntegerNumber;
 
   static String _extractSymbolName(CalcValue v, String op) {
     if (v case ExprValue(expr: Variable(:final name))) return name;
