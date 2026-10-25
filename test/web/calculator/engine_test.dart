@@ -371,5 +371,43 @@ void main() {
       // Only the final result cell (12 + 4 = 16) remains in Session alongside c1 and c2
       check(session.activeCells.length).equals(3);
     });
+
+    test('supports analyze, parametric plots, ODE plots, and parameterized PlotValue', () {
+      final eval = createEval();
+
+      // 1. analyze(x^3 - 3 * x)
+      final analysis = eval.evaluateScroll('analyze(x^3 - 3 * x)');
+      check(analysis.value).isA<ListValue>();
+      final text = analysis.value.toCanonicalText();
+      check(text).contains('parity == odd');
+      check(text).contains('f0 == 0');
+      check(text).contains('crit == 1');
+      check(text).contains('crit == -1');
+      check(text).contains('infl == 0');
+
+      // 2. Parametric plot: plot([cos(t), sin(t)], t, 0, 6.28)
+      final paramCell = eval.evaluateScroll(
+        'plot([cos(t), sin(t)], t, 0, 6.28)',
+      );
+      check(paramCell.value).isA<PlotValue>();
+      final paramPlot = paramCell.value as PlotValue;
+      check(paramPlot.isParametric).isTrue();
+      check(paramPlot.curves.length).equals(1);
+      check(paramPlot.curves.first.segments).isNotEmpty();
+
+      // 3. ODE plot: ode(-y, 1, 0, 2)
+      final odeCell = eval.evaluateScroll('ode(-y, 1, 0, 2)');
+      check(odeCell.value).isA<PlotValue>();
+      final odePlot = odeCell.value as PlotValue;
+      check(odePlot.curves.length).equals(1);
+      final lastY = odePlot.curves.first.segments.first.y.last;
+      check(lastY).isCloseTo(0.135335, 1e-3); // exp(-2) ≈ 0.135335
+
+      // 4. Parameterized plot: plot(sin(a * x + b), x, -5, 5)
+      final sliderCell = eval.evaluateScroll('plot(sin(a * x + b), x, -5, 5)');
+      check(sliderCell.value).isA<PlotValue>();
+      final sliderPlot = sliderCell.value as PlotValue;
+      check(sliderPlot.parameters).deepEquals(['a', 'b']);
+    });
   });
 }

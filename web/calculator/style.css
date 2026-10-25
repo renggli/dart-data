@@ -1014,6 +1014,37 @@
   cursor: crosshair;
 }
 
+.calc-plot-sliders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0.45rem 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: 6px;
+}
+
+.calc-plot-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 180px;
+}
+
+.calc-plot-slider-label {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  min-width: 64px;
+}
+
+.calc-plot-slider {
+  flex: 1;
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+
 /* Modals (Palette, Matrix Builder, Help Drawer) */
 .calc-modal-backdrop {
   position: fixed;

@@ -67,6 +67,7 @@ abstract final class ActionChips {
     required void Function(String commandStatement) onRunStatement,
     required void Function(String message) onToast,
     void Function()? onPushToStack,
+    String? overlayPlotCall,
   }) {
     _ensureDocumentListener();
     final strip = web.document.createElement('div') as web.HTMLDivElement
@@ -87,6 +88,20 @@ abstract final class ActionChips {
         }).toJS,
       );
       strip.append(btn);
+    }
+
+    if (overlayPlotCall != null) {
+      final overlayBtn =
+          web.document.createElement('button') as web.HTMLButtonElement
+            ..type = 'button'
+            ..className = 'calc-chip-btn'
+            ..textContent = '+ Plot'
+            ..title = 'Overlay r[$cellId] onto the most recent plot';
+      overlayBtn.addEventListener(
+        'click',
+        ((web.Event _) => onRunStatement(overlayPlotCall)).toJS,
+      );
+      strip.append(overlayBtn);
     }
 
     // Overflow "⋯" menu if more commands apply

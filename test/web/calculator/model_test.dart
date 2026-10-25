@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
@@ -55,14 +57,17 @@ void main() {
           maxX: 5,
           minY: -1.2,
           maxY: 1.2,
-          curves: const [
+          curves: [
             PlotCurveData(
               label: 'sin(x)',
               exprText: 'sin(x)',
               segments: [
-                PlotSegmentData(x: [-1.0, 0.0, 1.0], y: [-0.84, 0.0, 0.84]),
+                PlotSegmentData(
+                  x: Float64List.fromList([-1.0, 0.0, 1.0]),
+                  y: Float64List.fromList([-0.84, 0.0, 0.84]),
+                ),
               ],
-              markers: [
+              markers: const [
                 PlotMarkerData(x: 0.0, y: 0.0, label: '(0, 0)', kind: 'root'),
               ],
             ),

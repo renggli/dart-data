@@ -68,8 +68,17 @@ final class ScrollWorksheetView {
       element.append(banner);
     }
 
+    PlotValue? latestPlot;
+    for (final c in activeCells) {
+      if (c.value case final PlotValue pv when !pv.isParametric) {
+        latestPlot = pv;
+      }
+    }
+
     for (final cell in activeCells) {
-      element.append(_buildCellCard(cell, digits: digits));
+      element.append(
+        _buildCellCard(cell, digits: digits, latestPlot: latestPlot),
+      );
     }
 
     // Auto-scroll to bottom
@@ -80,7 +89,11 @@ final class ScrollWorksheetView {
     );
   }
 
-  web.HTMLElement _buildCellCard(WorksheetCell cell, {required int digits}) {
+  web.HTMLElement _buildCellCard(
+    WorksheetCell cell, {
+    required int digits,
+    PlotValue? latestPlot,
+  }) {
     final card = web.document.createElement('article') as web.HTMLElement
       ..className = cell.stale ? 'calc-cell-card stale' : 'calc-cell-card';
 
@@ -153,7 +166,9 @@ final class ScrollWorksheetView {
         ((web.Event _) {
           _editingCellId = cell.id;
           inRow.innerHTML = ''.toJS;
-          card.replaceWith(_buildCellCard(cell, digits: digits));
+          card.replaceWith(
+            _buildCellCard(cell, digits: digits, latestPlot: latestPlot),
+          );
         }).toJS,
       );
 
@@ -229,6 +244,18 @@ final class ScrollWorksheetView {
       ..append(outRow);
 
     // 3. Action chips strip
+    String? overlayPlotCall;
+    if (latestPlot != null &&
+        ((cell.value is ExprValue &&
+                !(cell.value as ExprValue).isEquation &&
+                (cell.value as ExprValue).expr.freeVariables.length <= 1) ||
+            cell.value is SeriesValue)) {
+      final existing = latestPlot.expressions
+          .map((e) => e.toString())
+          .join(', ');
+      overlayPlotCall =
+          'plot([$existing, r[${cell.id}]], ${latestPlot.variable}, ${PlotValue.fmtBound(latestPlot.minX)}, ${PlotValue.fmtBound(latestPlot.maxX)})';
+    }
     final chipStrip = ActionChips.build(
       cellId: cell.id,
       value: cell.value,
@@ -237,6 +264,7 @@ final class ScrollWorksheetView {
       onPushToStack: onPushToStack != null
           ? () => onPushToStack!(cell.id)
           : null,
+      overlayPlotCall: overlayPlotCall,
     );
     if (chipStrip.hasChildNodes()) {
       card.append(chipStrip);

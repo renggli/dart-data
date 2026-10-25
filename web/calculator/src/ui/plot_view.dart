@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 
 import '../../../shared/chart.dart';
+import '../engine/sampling.dart';
 import '../model/value.dart';
 import 'persistence.dart';
 
@@ -16,7 +17,10 @@ final class PlotView {
     PlotValue initialPlot, {
     void Function(double minX, double maxX)? onResample,
   }) {
-    final plot = initialPlot;
+    var plot = initialPlot;
+    final paramValues = <String, double>{
+      for (final p in plot.parameters) p: 1.0,
+    };
 
     final container = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-plot-card';
@@ -169,6 +173,63 @@ final class PlotView {
         readout.textContent =
             '${plot.variable} ∈ [${formatRealDigits(controller.minX, 4)}, ${formatRealDigits(controller.maxX, 4)}]';
       }
+    }
+
+    if (plot.parameters.isNotEmpty) {
+      final slidersWrap =
+          web.document.createElement('div') as web.HTMLDivElement
+            ..className = 'calc-plot-sliders';
+      for (final param in plot.parameters) {
+        final row = web.document.createElement('label') as web.HTMLLabelElement
+          ..className = 'calc-plot-slider-row';
+        final valSpan =
+            web.document.createElement('span') as web.HTMLSpanElement
+              ..className = 'calc-plot-slider-label'
+              ..textContent = '$param = 1.00';
+        final slider =
+            web.document.createElement('input') as web.HTMLInputElement
+              ..type = 'range'
+              ..name = 'param-$param'
+              ..className = 'calc-plot-slider'
+              ..min = '-5'
+              ..max = '5'
+              ..step = '0.05'
+              ..value = '1';
+        slider.addEventListener(
+          'input',
+          ((web.Event _) {
+            final v = double.tryParse(slider.value) ?? 1.0;
+            paramValues[param] = v;
+            valSpan.textContent = '$param = ${v.toStringAsFixed(2)}';
+            if (plot.isParametric && plot.expressions.length == 2) {
+              plot = buildParametricPlotValue(
+                plot.expressions[0],
+                plot.expressions[1],
+                plot.variable,
+                0.0,
+                6.283185307179586,
+                parameterValues: paramValues,
+                steps: 240,
+              );
+            } else {
+              plot = buildPlotValue(
+                plot.expressions,
+                plot.variable,
+                controller.minX,
+                controller.maxX,
+                parameterValues: paramValues,
+                maxPoints: 256,
+              );
+            }
+            draw();
+          }).toJS,
+        );
+        row
+          ..append(valSpan)
+          ..append(slider);
+        slidersWrap.append(row);
+      }
+      container.append(slidersWrap);
     }
 
     controller = InteractiveChartController(

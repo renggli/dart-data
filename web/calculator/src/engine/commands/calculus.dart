@@ -399,6 +399,109 @@ List<Command> buildCalculusCommands() => [
       return MatrixValue(exprs.jacobian(vars));
     },
   ),
+  Command(
+    name: 'analyze',
+    category: CommandCategory.calculus,
+    signature: 'analyze(expr, [var])',
+    paramSpecs: const [ParamSpec.expr('expr'), ParamSpec.symbol('[var]')],
+    minArity: 1,
+    maxArity: 2,
+    doc: 'Analyzes parity, y-intercept, exact roots, critical points, and inflection points.',
+    examples: const ['analyze(x^3 - 3 * x, x)', 'analyze(x^4 - 2 * x^2 + 1)'],
+    rpnLabel: 'Analyze',
+    rpnArity: 1,
+    appliesTo: (v) =>
+        v is ExprValue && !v.isEquation && v.expr.freeVariables.length == 1,
+    chipLabel: 'Analyze',
+    buildChipCall: (id, v) => 'analyze(r[$id], ${primaryCommandVar(v) ?? 'x'})',
+    run: (args, ctx) {
+      checkCommandArity('analyze', args, 1, 2);
+      final expr = expectCommandExpr(
+        args[0],
+        'analyze',
+      ).simplify(assumptions: ctx.assumptions);
+      final varName = args.length == 2
+          ? expectCommandVarName(args[1], 'analyze')
+          : ctx.inferPrimaryVariable(args[0]);
+
+      // 1. Parity: f(-x) vs f(x) and -f(x)
+      final negExpr = expr
+          .substitute(varName, -Variable(varName))
+          .simplify(assumptions: ctx.assumptions);
+      final String parityStr;
+      if ((negExpr - expr).simplify(assumptions: ctx.assumptions) ==
+          IntegerNumber.zero) {
+        parityStr = 'even';
+      } else if ((negExpr + expr).simplify(assumptions: ctx.assumptions) ==
+          IntegerNumber.zero) {
+        parityStr = 'odd';
+      } else {
+        parityStr = 'neither';
+      }
+
+      // 2. Y-intercept f(0)
+      Expr yIntercept;
+      try {
+        yIntercept = expr
+            .substitute(varName, IntegerNumber.zero)
+            .simplify(assumptions: ctx.assumptions);
+      } catch (_) {
+        yIntercept = Constant.undefined;
+      }
+
+      // 3. Roots f(x) = 0
+      List<Expr> roots;
+      try {
+        roots = Equal(
+          expr,
+          IntegerNumber.zero,
+        ).solve(varName, assumptions: ctx.assumptions);
+      } catch (_) {
+        roots = const [];
+      }
+
+      // 4. First derivative & critical points f'(x) = 0
+      final df = expr
+          .derivative(varName)
+          .simplify(assumptions: ctx.assumptions);
+      List<Expr> critical;
+      try {
+        critical = Equal(
+          df,
+          IntegerNumber.zero,
+        ).solve(varName, assumptions: ctx.assumptions);
+      } catch (_) {
+        critical = const [];
+      }
+
+      // 5. Second derivative & inflection points f''(x) = 0
+      final ddf = df.derivative(varName).simplify(assumptions: ctx.assumptions);
+      List<Expr> inflection;
+      try {
+        inflection = Equal(
+          ddf,
+          IntegerNumber.zero,
+        ).solve(varName, assumptions: ctx.assumptions);
+      } catch (_) {
+        inflection = const [];
+      }
+
+      return ListValue([
+        ExprValue(Equal(const Variable('parity'), Variable(parityStr))),
+        ExprValue(Equal(const Variable('f0'), yIntercept)),
+        ListValue([
+          for (final r in roots) ExprValue(Equal(const Variable('root'), r)),
+        ]),
+        ListValue([
+          for (final c in critical) ExprValue(Equal(const Variable('crit'), c)),
+        ]),
+        ListValue([
+          for (final inf in inflection)
+            ExprValue(Equal(const Variable('infl'), inf)),
+        ]),
+      ]);
+    },
+  ),
 ];
 
 LimitDirection _parseLimitDir(CalcValue v) {

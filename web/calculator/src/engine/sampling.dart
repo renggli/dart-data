@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
+import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
@@ -16,6 +18,7 @@ PlotValue buildPlotValue(
   double minX,
   double maxX, {
   AngleMode angleMode = AngleMode.rad,
+  Map<String, double>? parameterValues,
   int maxPoints = 512,
 }) {
   final effectiveMinX = math.min(minX, maxX);
@@ -23,13 +26,22 @@ PlotValue buildPlotValue(
       ? effectiveMinX + 10.0
       : math.max(minX, maxX);
 
+  final paramSet = <String>{
+    for (final expr in expressions) ...expr.freeVariables,
+  }..remove(variable);
+  final parameters = paramSet.toList()..sort();
+  final substMap = <String, Expr>{
+    for (final p in parameters) p: RealNumber(parameterValues?[p] ?? 1.0),
+  };
+
   final curves = <PlotCurveData>[];
-  final allFinanceY = <double>[];
+  final allFiniteY = <double>[];
 
   for (final expr in expressions) {
+    final substituted = _substituteParams(expr, substMap);
     final prepared = angleMode == AngleMode.deg
-        ? _convertTrigArgToDegrees(expr, variable)
-        : expr;
+        ? _convertTrigArgToDegrees(substituted, variable)
+        : substituted;
     final hasImaginary = _containsComplexConst(prepared);
 
     if (hasImaginary) {
@@ -48,17 +60,25 @@ PlotValue buildPlotValue(
       );
       final reSegs = [
         for (final s in reSample.segments)
-          if (s.x.length > 0) PlotSegmentData(x: s.x.toList(), y: s.y.toList()),
+          if (s.x.length > 0)
+            PlotSegmentData(
+              x: Float64List.fromList(s.x.toList()),
+              y: Float64List.fromList(s.y.toList()),
+            ),
       ];
       final imSegs = [
         for (final s in imSample.segments)
-          if (s.x.length > 0) PlotSegmentData(x: s.x.toList(), y: s.y.toList()),
+          if (s.x.length > 0)
+            PlotSegmentData(
+              x: Float64List.fromList(s.x.toList()),
+              y: Float64List.fromList(s.y.toList()),
+            ),
       ];
       for (final s in reSegs) {
-        allFinanceY.addAll(s.y.where((v) => v.isFinite));
+        allFiniteY.addAll(s.y.where((v) => v.isFinite));
       }
       for (final s in imSegs) {
-        allFinanceY.addAll(s.y.where((v) => v.isFinite));
+        allFiniteY.addAll(s.y.where((v) => v.isFinite));
       }
       curves.add(
         PlotCurveData(
@@ -83,10 +103,14 @@ PlotValue buildPlotValue(
       );
       final segs = [
         for (final s in sample.segments)
-          if (s.x.length > 0) PlotSegmentData(x: s.x.toList(), y: s.y.toList()),
+          if (s.x.length > 0)
+            PlotSegmentData(
+              x: Float64List.fromList(s.x.toList()),
+              y: Float64List.fromList(s.y.toList()),
+            ),
       ];
       for (final s in segs) {
-        allFinanceY.addAll(s.y.where((v) => v.isFinite));
+        allFiniteY.addAll(s.y.where((v) => v.isFinite));
       }
       curves.add(
         PlotCurveData(
@@ -99,7 +123,7 @@ PlotValue buildPlotValue(
     }
   }
 
-  final (:minY, :maxY) = _computeRobustYRange(allFinanceY);
+  final (:minY, :maxY) = _computeRobustYRange(allFiniteY);
   return PlotValue(
     expressions: expressions,
     variable: variable,
@@ -108,6 +132,139 @@ PlotValue buildPlotValue(
     minY: minY,
     maxY: maxY,
     curves: curves,
+    parameters: parameters,
+  );
+}
+
+/// Samples a 2D parametric curve $(x(t), y(t))$ over $t \in [\text{minT}, \text{maxT}]$.
+PlotValue buildParametricPlotValue(
+  Expr xExpr,
+  Expr yExpr,
+  String variable,
+  double minT,
+  double maxT, {
+  AngleMode angleMode = AngleMode.rad,
+  Map<String, double>? parameterValues,
+  int steps = 360,
+}) {
+  final t0 = math.min(minT, maxT);
+  final t1 = math.max(minT, maxT) == t0
+      ? t0 + 2 * math.pi
+      : math.max(minT, maxT);
+  final paramSet = <String>{...xExpr.freeVariables, ...yExpr.freeVariables}
+    ..remove(variable);
+  final parameters = paramSet.toList()..sort();
+  final substMap = <String, Expr>{
+    for (final p in parameters) p: RealNumber(parameterValues?[p] ?? 1.0),
+  };
+
+  final subX = _substituteParams(xExpr, substMap);
+  final subY = _substituteParams(yExpr, substMap);
+  final prepX = angleMode == AngleMode.deg
+      ? _convertTrigArgToDegrees(subX, variable)
+      : subX;
+  final prepY = angleMode == AngleMode.deg
+      ? _convertTrigArgToDegrees(subY, variable)
+      : subY;
+
+  final fnX = prepX.toFunction1D(variable);
+  final fnY = prepY.toFunction1D(variable);
+
+  final xs = <double>[];
+  final ys = <double>[];
+  final dt = (t1 - t0) / steps;
+  for (var i = 0; i <= steps; i++) {
+    final t = t0 + i * dt;
+    final x = _safeCall(fnX, t);
+    final y = _safeCall(fnY, t);
+    if (x.isFinite && y.isFinite) {
+      xs.add(x);
+      ys.add(y);
+    }
+  }
+
+  final segs = xs.isEmpty
+      ? const <PlotSegmentData>[]
+      : [
+          PlotSegmentData(
+            x: Float64List.fromList(xs),
+            y: Float64List.fromList(ys),
+          ),
+        ];
+
+  final (:minY, :maxY) = _computeRobustYRange(ys);
+  final xRange = _computeRobustYRange(xs);
+
+  return PlotValue(
+    expressions: [xExpr, yExpr],
+    variable: variable,
+    minX: xRange.minY,
+    maxX: xRange.maxY,
+    minY: minY,
+    maxY: maxY,
+    curves: [
+      PlotCurveData(
+        label: '($xExpr, $yExpr)',
+        exprText: '[$xExpr, $yExpr]',
+        segments: segs,
+      ),
+    ],
+    parameters: parameters,
+    isParametric: true,
+  );
+}
+
+/// Solves a first-order initial value problem $\frac{dy}{dt} = f(t, y), y(t_0) = y_0$
+/// over $[t_0, t_1]$ using Dormand–Prince RK45 (`solveOde`) and returns a [PlotValue].
+PlotValue buildOdePlotValue(
+  Expr rhs,
+  String tVar,
+  String yVar,
+  double y0,
+  double t0,
+  double t1, {
+  int steps = 256,
+}) {
+  final vecFn = rhs.toVectorFunction([tVar, yVar]);
+  final grid = linearSpaced(t0, t1, count: steps);
+  final sol = solveOde(
+    f: (t, y) {
+      final dy = vecFn(
+        Vector<double>.fromList([t, y[0]], type: DataType.float64),
+      );
+      return Vector<double>.fromList([dy], type: DataType.float64);
+    },
+    t0: t0,
+    tEnd: t1,
+    y0: Vector<double>.fromList([y0], type: DataType.float64),
+    tEval: grid.toList(),
+  );
+
+  final xs = Float64List.fromList(sol.t);
+  final ys = Float64List(sol.y.length);
+  final finiteY = <double>[];
+  for (var i = 0; i < sol.y.length; i++) {
+    final v = sol.y[i][0];
+    ys[i] = v;
+    if (v.isFinite) finiteY.add(v);
+  }
+
+  final (:minY, :maxY) = _computeRobustYRange(finiteY);
+  return PlotValue(
+    expressions: [rhs],
+    variable: tVar,
+    minX: math.min(t0, t1),
+    maxX: math.max(t0, t1),
+    minY: minY,
+    maxY: maxY,
+    curves: [
+      PlotCurveData(
+        label:
+            "y' = $rhs, y(${PlotValue.fmtBound(t0)}) = ${PlotValue.fmtBound(y0)}",
+        exprText: rhs.toString(),
+        segments: [PlotSegmentData(x: xs, y: ys)],
+      ),
+    ],
   );
 }
 
@@ -212,6 +369,14 @@ bool _containsComplexConst(Expr expr) => expr.anyNode(
       (n is ComplexNumber && !n.imaginary.isZero) ||
       (n is Constant && !n.isReal),
 );
+
+Expr _substituteParams(Expr expr, Map<String, Expr> substMap) {
+  var cur = expr;
+  for (final entry in substMap.entries) {
+    cur = cur.substitute(entry.key, entry.value);
+  }
+  return cur;
+}
 
 Expr _convertTrigArgToDegrees(Expr expr, String variable) {
   final degFactor = Constant.pi / IntegerNumber.of(180);

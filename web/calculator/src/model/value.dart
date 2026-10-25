@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:data/linear.dart';
@@ -8,14 +9,18 @@ import 'package:data/symbolic.dart';
 final class PlotSegmentData {
   const new({required this.x, required this.y});
 
-  final List<double> x;
-  final List<double> y;
+  final Float64List x;
+  final Float64List y;
 
-  Map<String, Object?> toJson() => {'x': x, 'y': y};
+  Map<String, Object?> toJson() => {'x': x.toList(), 'y': y.toList()};
 
   factory fromJson(Map<String, Object?> json) => PlotSegmentData(
-    x: (json['x'] as List<Object?>).map((e) => (e! as num).toDouble()).toList(),
-    y: (json['y'] as List<Object?>).map((e) => (e! as num).toDouble()).toList(),
+    x: Float64List.fromList(
+      (json['x'] as List<Object?>).map((e) => (e! as num).toDouble()).toList(),
+    ),
+    y: Float64List.fromList(
+      (json['y'] as List<Object?>).map((e) => (e! as num).toDouble()).toList(),
+    ),
   );
 }
 
@@ -376,6 +381,8 @@ final class PlotValue extends CalcValue {
     required this.minY,
     required this.maxY,
     this.curves = const [],
+    this.parameters = const [],
+    this.isParametric = false,
   });
 
   final List<Expr> expressions;
@@ -385,6 +392,8 @@ final class PlotValue extends CalcValue {
   final double minY;
   final double maxY;
   final List<PlotCurveData> curves;
+  final List<String> parameters;
+  final bool isParametric;
 
   @override
   String get kind => 'plot';
@@ -395,9 +404,9 @@ final class PlotValue extends CalcValue {
   @override
   String toCanonicalText() {
     if (expressions.length == 1) {
-      return 'plot(${expressions.first}, $variable, ${_fmtBound(minX)}, ${_fmtBound(maxX)})';
+      return 'plot(${expressions.first}, $variable, ${fmtBound(minX)}, ${fmtBound(maxX)})';
     }
-    return 'plot([${expressions.join(', ')}], $variable, ${_fmtBound(minX)}, ${_fmtBound(maxX)})';
+    return 'plot([${expressions.join(', ')}], $variable, ${fmtBound(minX)}, ${fmtBound(maxX)})';
   }
 
   @override
@@ -413,7 +422,7 @@ final class PlotValue extends CalcValue {
   @override
   String toLatex() => expressions.map((e) => e.toLatex()).join(', ');
 
-  static String _fmtBound(double v) =>
+  static String fmtBound(double v) =>
       (v % 1 == 0 && v.abs() < 1e9) ? v.toInt().toString() : v.toString();
 
   @override
@@ -423,11 +432,18 @@ final class PlotValue extends CalcValue {
           variable == other.variable &&
           minX == other.minX &&
           maxX == other.maxX &&
+          isParametric == other.isParametric &&
           const ListEquality<Expr>().equals(expressions, other.expressions));
 
   @override
-  int get hashCode =>
-      Object.hash(PlotValue, variable, minX, maxX, Object.hashAll(expressions));
+  int get hashCode => Object.hash(
+    PlotValue,
+    variable,
+    minX,
+    maxX,
+    isParametric,
+    Object.hashAll(expressions),
+  );
 }
 
 /// Informational text message value (e.g. from `help`, `vars`, `clear`).

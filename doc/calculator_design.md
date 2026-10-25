@@ -118,12 +118,12 @@ There is exactly one canonical name per command. Commands are defined in modular
 | Category | Commands (canonical name → engine call) | Pri |
 | --- | --- | --- |
 | Algebra | `simplify`, `expand`, `factor`, `subs(e, x = v)`, `solve(eq[, x])`, `solve([eqs][, [vars]])`, `numer`, `denom`, `apart(e[, x])`†, `together`†, `collect(e[, x])`† | P0 / †P1 |
-| Calculus | `diff(e[, x, n])`, `integrate(e[, x, a, b])`, `taylor(e[, x, a, n])`, `series(e[, x, a, n])`, `limit(e[, x, a, dir])`, `gradient(e[, [vars]])`, `hessian(e[, [vars]])`, `jacobian([es][, [vars]])` | P0 |
+| Calculus | `diff(e[, x, n])`, `integrate(e[, x, a, b])`, `taylor(e[, x, a, n])`, `series(e[, x, a, n])`, `limit(e[, x, a, dir])`, `gradient(e[, [vars]])`, `hessian(e[, [vars]])`, `jacobian([es][, [vars]])`, `analyze(e[, x])` | P0 |
 | Linear algebra | `det`, `inv`, `transpose` (`A'`), `trace`, `charpoly(A[, λ])`, `rank`†, `rref`†, `nullspace`†, `eigenvals`†, `eigenvects`†, `identity(n)`, `zeros(m[, n])`, `dot`, `cross`, `norm` | P0 / †P1 |
 | Complex | `re`, `im`, `conj`, `arg`, `abs`, `polar`, `rect` | P1 |
 | Numbers | `approx(e[, digits])`, `exact(e)` (rational reconstruction), `gcd`, `lcm`, `mod`, `isprime`, `factorial` (`n!`), `binomial`, `floor`, `ceil`, `round` | P0 (`approx`), P1 rest |
 | Numeric | `nintegrate(e, x, a, b)`, `nsolve(e, x, x0[, x1])`, `nminimize(e, x, x0)`, `nderivative(e, x, x0)` (through `toFunction1D` and `package:data/numeric.dart`) | P1 |
-| Plotting | `plot(e[, x, a, b])`, `plot([e1, e2, …][, x, a, b])` | P0 |
+| Plotting | `plot(e[, x, a, b])`, `plot([e1, e2, …][, x, a, b])`, `parametric([x(t), y(t)][, t, a, b])`, `ode(rhs, y0[, t0, t1])` | P0 |
 | Session | `clear(a)`, `clearall`, `vars`, `help([cmd])` | P0 |
 
 Behavior rules:
@@ -215,9 +215,9 @@ Text inputs never capture global shortcuts other than those listed. Shortcuts ar
 | P1 | `plot` compiles each expression with `toFunction1D`. If the expression contains `i`, it uses `toComplexFunction1D` and draws Re (solid) and Im (dashed). | P0 |
 | P2 | Adaptive sampling with discontinuity detection, so asymptotes such as `tan` and `1/x` don't draw vertical spikes. The y-range uses robust auto-scaling (clip the 2–98 % quantiles). | P0 |
 | P3 | Interaction: drag to pan, wheel or pinch to zoom, double-tap to reset, crosshair tooltip (`drawCrosshairAndTooltip`), legend toggles (reusing `.layer-toggle`). | P0 |
-| P4 | An **Add to plot** chip adds any univariate result to the most recent plot cell. Markers for roots and extrema reuse the logic from `web/expressions`. | P1 |
-| P5 | Export as PNG or SVG. In RPN mode, `PLOT` opens a full-screen overlay. | P1 |
-| P6 | Parametric `plot([x(t), y(t)], t, a, b)` and implicit plots. | P2 |
+| P4 | A **`+ Plot`** chip on univariate results overlays the expression onto the most recent plot cell (`plot([existing..., r[id]], x, minX, maxX)`). When a plotted expression contains free symbolic parameters alongside the plot variable (e.g., `plot(sin(a * x + b), x)`), interactive range sliders (`[-5, 5]`) appear beneath the canvas for 60 fps real-time parameter exploration. | P1 |
+| P5 | Export as PNG. In RPN mode, `PLOT` renders an interactive plot card directly in the stack level. | P1 |
+| P6 | 2D parametric curves `plot([x(t), y(t)], t, a, b)` / `parametric([x(t), y(t)], t, a, b)` and numerical initial-value ODE trajectories `ode(rhs, y0[, t0, t1])` via `solveOde` (Dormand–Prince RK45). | P1 |
 
 ### 3.10 Exact vs. Numeric
 

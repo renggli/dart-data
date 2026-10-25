@@ -42,6 +42,8 @@ abstract final class CalcSerialization {
         :final minY,
         :final maxY,
         :final curves,
+        :final parameters,
+        :final isParametric,
       ) =>
         {
           ...base,
@@ -52,6 +54,8 @@ abstract final class CalcSerialization {
           'minY': minY,
           'maxY': maxY,
           'curves': [for (final c in curves) c.toJson()],
+          if (parameters.isNotEmpty) 'parameters': parameters,
+          if (isParametric) 'isParametric': true,
         },
       InfoValue(:final message, :final title) => {
         ...base,
@@ -110,6 +114,9 @@ abstract final class CalcSerialization {
         final curves = (json['curves'] as List<Object?>? ?? const [])
             .map((c) => PlotCurveData.fromJson(c! as Map<String, Object?>))
             .toList();
+        final params = (json['parameters'] as List<Object?>? ?? const [])
+            .cast<String>()
+            .toList();
         return PlotValue(
           expressions: exprs,
           variable: json['variable'] as String? ?? 'x',
@@ -118,6 +125,8 @@ abstract final class CalcSerialization {
           minY: (json['minY'] as num?)?.toDouble() ?? -5.0,
           maxY: (json['maxY'] as num?)?.toDouble() ?? 5.0,
           curves: curves,
+          parameters: params,
+          isParametric: json['isParametric'] as bool? ?? false,
         );
       case 'info':
         return InfoValue(
