@@ -183,6 +183,14 @@ final class CalculatorApp {
       onQuickStartSelect: (code) =>
           unawaited(_handleSubmit(code, forceNumeric: false)),
       onToast: _showToast,
+      onPushToStack: (cellId) {
+        unawaited(
+          _client.pushCellToStack(cellId).then((_) {
+            _setMode(CalcMode.rpn);
+            _showToast('Pushed r[$cellId] to RPN stack');
+          }),
+        );
+      },
     );
 
     _rpnView = RpnStackView(
@@ -302,13 +310,6 @@ final class CalculatorApp {
   void _setMode(CalcMode newMode) {
     _mode = newMode;
     CalcPersistence.saveMode(_mode);
-    // If switching to RPN with an empty stack and existing Scroll results, seed Level 1:
-    if (_mode == CalcMode.rpn &&
-        _client.stack.isEmpty &&
-        _client.session.activeCells.isNotEmpty) {
-      final last = _client.session.activeCells.last;
-      unawaited(_client.evaluateRpnLine('r[${last.id}]'));
-    }
     _refreshAllUi();
     _inputBar.focus();
   }

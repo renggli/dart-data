@@ -338,5 +338,38 @@ void main() {
         check(stack.level(1).value.toCanonicalText()).equals('2');
       },
     );
+
+    test('synchronizes Scroll evaluations onto RPN stack and coalesces RPN literal pushes', () {
+      final env = Environment();
+      final session = Session();
+      final stack = RpnStack();
+      final eval = CalcEvaluator(
+        environment: env,
+        session: session,
+        stack: stack,
+      );
+      final rpn = RpnInterpreter(stack: stack, evaluator: eval);
+
+      // Scroll evaluation pushes onto RPN stack
+      final c1 = eval.evaluateScroll('x^2 - 1');
+      check(stack.depth).equals(1);
+      check(stack.level(1).resultId).equals(c1.id);
+      check(stack.level(1).value.toCanonicalText()).equals('-1 + x ^ 2');
+
+      // RPN command operates directly on the Scroll result on stack level 1:
+      // Note: c1 is NOT a literal push, so c1 remains in Session while factor creates c2!
+      check(rpn.executeCommand('factor')).isNull();
+      check(stack.depth).equals(1);
+      check(stack.level(1).value.toCanonicalText())
+          .equals('(-1 + x) * (1 + x)');
+      check(session.activeCells.length).equals(2);
+
+      // RPN literal pushes ('12 4 +') coalesce the literal pushes 12 and 4
+      check(rpn.executeLine('12 4 +')).isNull();
+      check(stack.depth).equals(2);
+      check(stack.level(1).value.toCanonicalText()).equals('16');
+      // Only the final result cell (12 + 4 = 16) remains in Session alongside c1 and c2
+      check(session.activeCells.length).equals(3);
+    });
   });
 }

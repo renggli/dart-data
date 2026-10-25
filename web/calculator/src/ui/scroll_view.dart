@@ -19,6 +19,7 @@ final class ScrollWorksheetView {
     required this.onRecomputeAllStale,
     required this.onQuickStartSelect,
     required this.onToast,
+    this.onPushToStack,
   }) {
     element = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-scroll-view';
@@ -31,6 +32,7 @@ final class ScrollWorksheetView {
   final void Function() onRecomputeAllStale;
   final void Function(String statement) onQuickStartSelect;
   final void Function(String message) onToast;
+  final void Function(int cellId)? onPushToStack;
 
   late final web.HTMLDivElement element;
   int? _editingCellId;
@@ -232,6 +234,9 @@ final class ScrollWorksheetView {
       value: cell.value,
       onRunStatement: onRunStatement,
       onToast: onToast,
+      onPushToStack: onPushToStack != null
+          ? () => onPushToStack!(cell.id)
+          : null,
     );
     if (chipStrip.hasChildNodes()) {
       card.append(chipStrip);

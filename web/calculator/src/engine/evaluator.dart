@@ -5,6 +5,7 @@ import '../language/ast.dart';
 import '../language/grammar.dart';
 import '../model/environment.dart';
 import '../model/session.dart';
+import '../model/stack.dart';
 import '../model/value.dart';
 import 'commands.dart';
 
@@ -23,13 +24,14 @@ final class StatementEvaluationResult {
   final Set<String> referencedSymbols;
 }
 
-/// Evaluates calculator statements and expressions against an [Environment]
-/// and [Session].
+/// Evaluates calculator statements and expressions against an [Environment],
+/// [Session], and optional [RpnStack].
 final class CalcEvaluator {
-  new({required this.environment, required this.session});
+  new({required this.environment, required this.session, this.stack});
 
   final Environment environment;
   final Session session;
+  final RpnStack? stack;
 
   CalcGrammar get _grammar => CalcGrammar(
     implicitMultiplication: environment.settings.implicitMultiplication,
@@ -45,7 +47,7 @@ final class CalcEvaluator {
     bool recordHistory = true,
   }) {
     final result = evaluateRaw(rawInput, forceNumeric: forceNumeric);
-    return session.addResult(
+    final cell = session.addResult(
       input: rawInput,
       value: result.value,
       assignedSymbol: result.assignedSymbol,
@@ -53,6 +55,15 @@ final class CalcEvaluator {
       referencedSymbols: result.referencedSymbols,
       recordHistory: recordHistory,
     );
+    if (stack != null &&
+        cell.value is! ErrorValue &&
+        cell.value is! InfoValue) {
+      stack!.push(
+        StackItem(resultId: cell.id, value: cell.value),
+        recordUndo: false,
+      );
+    }
+    return cell;
   }
 
   /// Re-evaluates an existing cell [cellId] in-place and marks any dependent
@@ -75,6 +86,7 @@ final class CalcEvaluator {
       referencedResults: result.referencedResults,
       referencedSymbols: result.referencedSymbols,
     );
+    stack?.updateResultValue(cellId, result.value);
     return (cell: session.allCells[cellId]!, staleIds: staleIds);
   }
 
@@ -91,7 +103,9 @@ final class CalcEvaluator {
         referencedResults: result.referencedResults,
         referencedSymbols: result.referencedSymbols,
       );
-      updated.add(session.allCells[cell.id]!);
+      final updatedCell = session.allCells[cell.id]!;
+      stack?.updateResultValue(cell.id, updatedCell.value);
+      updated.add(updatedCell);
     }
     return updated;
   }

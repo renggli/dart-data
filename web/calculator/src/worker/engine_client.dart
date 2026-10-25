@@ -233,8 +233,20 @@ final class EngineClient {
       return staleIds;
     }
     final stale = session.deleteCell(cellId);
+    stack.removeResultId(cellId);
     onStateUpdated?.call();
     return stale;
+  }
+
+  /// Pushes an existing Scroll cell [cellId] onto the RPN stack (`1:`).
+  Future<void> pushCellToStack(int cellId) async {
+    final resp = await _request('pushCellToStack', {
+      'cellId': cellId,
+    }, trackBusy: false);
+    if (resp.ok && resp.result != null) {
+      _syncFromWorkerResult(resp.result!);
+      onStateUpdated?.call();
+    }
   }
 
   /// Executes an RPN token line (`2 3 +`).

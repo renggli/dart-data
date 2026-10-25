@@ -79,7 +79,11 @@ final class WorkerDispatcher {
     environment = Environment();
     session = Session();
     stack = RpnStack();
-    evaluator = CalcEvaluator(environment: environment, session: session);
+    evaluator = CalcEvaluator(
+      environment: environment,
+      session: session,
+      stack: stack,
+    );
     rpn = RpnInterpreter(stack: stack, evaluator: evaluator);
   }
 
@@ -154,7 +158,19 @@ final class WorkerDispatcher {
       case 'deleteCell':
         final cellId = (payload['cellId']! as num).toInt();
         final staleIds = session.deleteCell(cellId);
+        stack.removeResultId(cellId);
         return {'staleIds': staleIds, 'state': exportStateJson()};
+
+      case 'pushCellToStack':
+        final cellId = (payload['cellId']! as num).toInt();
+        final cell = session.allCells[cellId];
+        if (cell != null &&
+            !cell.deleted &&
+            cell.value is! ErrorValue &&
+            cell.value is! InfoValue) {
+          stack.push(StackItem(resultId: cell.id, value: cell.value));
+        }
+        return {'state': exportStateJson()};
 
       case 'evalRpnLine':
         final line = payload['line']! as String;

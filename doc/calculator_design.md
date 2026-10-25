@@ -141,9 +141,9 @@ Behavior rules:
 | S1 | A worksheet of cells. Each cell has an input (mono font), an output (MathML), a badge `r[n]` (exact = purple, approximate = amber), and a secondary `≈` line. | P0 |
 | S2 | The input bar is pinned to the bottom. `Enter` evaluates, `Alt+Enter` evaluates numerically, `Shift+Enter` inserts a newline (multi-statement cell). | P0 |
 | S3 | Clicking or tapping a result badge inserts `r[n]` at the caret. Clicking the output copies it, with a menu for *Text / LaTeX / MathML*. | P0 |
-| S4 | Action chips under each output, chosen by applicability (see 3.6). A chip appends a new cell, for example `factor(r[4])`. | P0 |
-| S5 | Edit and re-run any cell. Dependent cells, meaning those that transitively reference the edited `r[n]` or a reassigned variable, are marked stale and can be recomputed with one click (*"Recompute 3 dependent cells"*). | P1 |
-| S6 | Delete or collapse cells and pin favorites. Numbering is stable: `r[n]` never renumbers. Deleted numbers leave tombstones so references fail explicitly. | P0 |
+| S4 | Action chips under each output, chosen by applicability (see 3.6). A chip appends a new cell, for example `factor(r[4])`. A secondary `⤓ Stack` chip pushes `r[n]` onto RPN stack level `1:` and switches to RPN mode. | P0 |
+| S5 | Edit and re-run any cell. Dependent cells, meaning those that transitively reference the edited `r[n]` or a reassigned variable, are marked stale and can be recomputed with one click (*"Recompute 3 dependent cells"*). Re-evaluated cells also update any matching `resultId` entries on the RPN stack in-place. | P1 |
+| S6 | Delete or collapse cells and pin favorites. Numbering is stable: `r[n]` never renumbers. Deleted numbers leave tombstones so references fail explicitly and remove matching `resultId` entries from the RPN stack. | P0 |
 | S7 | `↑` / `↓` in an empty input bar or at the edges recalls input history. `Ctrl+↑` moves focus into the worksheet for keyboard cell navigation. | P0 |
 | S8 | `plot(...)` results render as interactive canvas cells (pan, zoom, pinch, crosshair). | P0 |
 
@@ -158,7 +158,7 @@ Behavior rules:
 | R5 | Every command from 3.3 is available in RPN mode using its canonical command name or humanized label. Context-aware stack arity inspection allows commands (`solve`, `diff`, `integrate`, `taylor`, `series`, `limit`, `apart`, `collect`, `charpoly`, `plot`) to operate directly on 1 stack item (inferring the primary variable) or consume explicit variable/bound levels when pushed onto the stack. | P0 |
 | R6 | Keypad `Stack` tab and palette stack commands (`SWAP`, `DUP`, `DROP`, `OVER`, `ROT`, `PICK`, `ROLL`, `DEPTH`, `CLEAR`, `STO`, `RCL`, `DELETE`) are shown exclusively in RPN mode and hidden in Scroll mode. Desktop function keys `F1`–`F6` map to core stack actions (`SWAP`, `DUP`, `DROP`, `OVER`, `ROT`, `CLEAR`). | P0 |
 | R7 | Interactive stack: `↑` on an empty line enters selection mode. Here `Enter` echoes the level to the command line, `E` edits it, `V` opens a large view, `Del` drops it, `P` picks it, and `Esc` exits. | P1 |
-| R8 | `STO` / `RCL` and `'name' STO` share the variable environment with Scroll mode. Each stack value also gets an `r[n]` number when created, so the two modes share one history. | P0 |
+| R8 | `STO` / `RCL` and `'name' STO` share the variable environment with Scroll mode. Scroll and RPN modes share a single synchronized state: every Scroll evaluation (`evaluateScroll`) pushes its `StackItem(resultId: cell.id, value: cell.value)` onto the RPN stack, and every RPN computation records a `WorksheetCell` in `Session` while automatically coalescing intermediate literal pushes (`isLiteralPush: true`) when consumed by an operator or command so the Scroll worksheet stays clean. | P0 |
 | R9 | `approx` replaces level 1 with its numerical approximation, and `exact` does the reverse. | P0 |
 | R10 | Before running, a ghost preview above the soft keys shows what the selected command would produce from the current stack, for example `factor: (x−1)(x+1)`. | P2 |
 

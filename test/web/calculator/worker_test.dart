@@ -50,6 +50,13 @@ void main() {
           .equals('1 + 9 * x');
 
       // RPN line evaluation and command execution
+      // Note: r1 (r[1]) and r2 (r[2]) were pushed onto stack by evalScroll,
+      // and updated in-place by updateScrollCell / recomputeStale!
+      check(dispatcher.stack.depth).equals(2);
+      check(dispatcher.stack.level(2).value.toCanonicalText()).equals('9');
+      check(dispatcher.stack.level(1).value.toCanonicalText())
+          .equals('1 + 9 * x');
+
       final r5 = dispatcher.handle(
         const WorkerRequest(
           id: 5,
@@ -58,8 +65,10 @@ void main() {
         ),
       );
       check(r5.ok).isTrue();
-      check(dispatcher.stack.depth).equals(1);
+      check(dispatcher.stack.depth).equals(3);
       check(dispatcher.stack.level(1).value.toCanonicalText()).equals('30');
+      // Intermediate literals 10 and 20 were coalesced from Session!
+      check(dispatcher.session.activeCells.length).equals(3);
 
       final r6 = dispatcher.handle(
         const WorkerRequest(
@@ -69,18 +78,38 @@ void main() {
         ),
       );
       check(r6.ok).isTrue();
-      check(dispatcher.stack.depth).equals(2);
+      check(dispatcher.stack.depth).equals(4);
+
+      // Push cell 1 explicitly onto top of RPN stack
+      final rPush = dispatcher.handle(
+        const WorkerRequest(
+          id: 7,
+          op: 'pushCellToStack',
+          payload: {'cellId': 1},
+        ),
+      );
+      check(rPush.ok).isTrue();
+      check(dispatcher.stack.depth).equals(5);
+      check(dispatcher.stack.level(1).resultId).equals(1);
+      check(dispatcher.stack.level(1).value.toCanonicalText()).equals('9');
+
+      // Delete cell 1 removes all entries with resultId == 1 from stack
+      final rDel = dispatcher.handle(
+        const WorkerRequest(id: 8, op: 'deleteCell', payload: {'cellId': 1}),
+      );
+      check(rDel.ok).isTrue();
+      check(dispatcher.stack.depth).equals(3);
 
       // Export and import state into a fresh WorkerDispatcher (simulating respawn after cancel)
       final snapshot = dispatcher.exportStateJson();
       final respawned = WorkerDispatcher();
       final rLoad = respawned.handle(
-        WorkerRequest(id: 7, op: 'loadState', payload: {'state': snapshot}),
+        WorkerRequest(id: 9, op: 'loadState', payload: {'state': snapshot}),
       );
       check(rLoad.ok).isTrue();
       check(respawned.session.activeCells.length)
           .equals(dispatcher.session.activeCells.length);
-      check(respawned.stack.depth).equals(2);
+      check(respawned.stack.depth).equals(3);
       check(respawned.environment.getVariable('a')?.toCanonicalText())
           .equals('9');
     });

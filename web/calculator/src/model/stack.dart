@@ -5,7 +5,11 @@ import 'value.dart';
 
 /// A single entry on the HP48-style RPN stack.
 final class StackItem {
-  const new({required this.resultId, required this.value});
+  const new({
+    required this.resultId,
+    required this.value,
+    this.isLiteralPush = false,
+  });
 
   /// Shared session result identifier `r[resultId]` (or `0` for synthetic
   /// stack-depth values).
@@ -14,14 +18,21 @@ final class StackItem {
   /// Calculator value at this stack level.
   final CalcValue value;
 
+  /// Whether this stack entry originated from a raw literal/symbol push in RPN
+  /// mode (so its cell can be coalesced when popped by an RPN operator or
+  /// command).
+  final bool isLiteralPush;
+
   Map<String, Object?> toJson({int digits = 10}) => {
     'resultId': resultId,
     'value': CalcSerialization.toJson(value, digits: digits),
+    if (isLiteralPush) 'isLiteralPush': true,
   };
 
   factory fromJson(Map<String, Object?> json) => StackItem(
     resultId: (json['resultId'] as num?)?.toInt() ?? 0,
     value: CalcSerialization.fromJson(json['value']! as Map<String, Object?>),
+    isLiteralPush: json['isLiteralPush'] as bool? ?? false,
   );
 }
 
@@ -284,6 +295,26 @@ final class RpnStack {
     }
     snapshot();
     _items[_items.length - level] = item;
+  }
+
+  /// Updates any stack items referencing [resultId] with [newValue].
+  void updateResultValue(int resultId, CalcValue newValue) {
+    for (var i = 0; i < _items.length; i++) {
+      final cur = _items[i];
+      if (cur.resultId == resultId) {
+        _items[i] = StackItem(
+          resultId: resultId,
+          value: newValue,
+          isLiteralPush: cur.isLiteralPush,
+        );
+      }
+    }
+  }
+
+  /// Removes any stack items referencing [resultId] (e.g. when a cell is
+  /// deleted in Scroll mode).
+  void removeResultId(int resultId) {
+    _items.removeWhere((item) => item.resultId == resultId);
   }
 
   /// `UNDO`: Restores the previous stack state.

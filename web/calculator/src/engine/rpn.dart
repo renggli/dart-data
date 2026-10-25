@@ -91,12 +91,12 @@ final class RpnInterpreter {
         if (node case SymbolNode(:final name)) {
           final stdConst = ExprSyntax.standardConstants[name];
           final val = ExprValue(stdConst ?? Variable(name));
-          _pushResult(val, inputText: "'$rawText'");
+          _pushResult(val, inputText: "'$rawText'", isLiteralPush: true);
           return;
         }
         final val = evaluator.evalNode(node);
         final simplified = _postProcessValue(val);
-        _pushResult(simplified, inputText: rawText);
+        _pushResult(simplified, inputText: rawText, isLiteralPush: true);
 
       case RpnCommandToken(:final name):
         _runNamedCommand(name);
@@ -156,6 +156,7 @@ final class RpnInterpreter {
           arg.value,
           ExprValue(exp),
         );
+        _cleanupPoppedLiterals([arg]);
         _pushResult(
           _postProcessValue(res),
           inputText: '${arg.value.toCanonicalText()}^$exp',
@@ -165,14 +166,20 @@ final class RpnInterpreter {
       case '!':
         final arg = stack.popArgs(1).first;
         final res = evaluator.applyUnaryOp(CalcUnaryOp.factorial, arg.value);
-        _pushResult(_postProcessValue(res), inputText: '!', recordUndo: false);
+        _cleanupPoppedLiterals([arg]);
+        _pushResult(
+          _postProcessValue(res),
+          inputText: '(${arg.value.toCanonicalText()})!',
+          recordUndo: false,
+        );
         return;
       case 'NEG' || '±':
         final arg = stack.popArgs(1).first;
         final res = evaluator.applyUnaryOp(CalcUnaryOp.negate, arg.value);
+        _cleanupPoppedLiterals([arg]);
         _pushResult(
           _postProcessValue(res),
-          inputText: 'NEG',
+          inputText: '-(${arg.value.toCanonicalText()})',
           recordUndo: false,
         );
         return;
@@ -224,19 +231,27 @@ final class RpnInterpreter {
         final val = args[0].value;
         final target = args[1].value;
         final varName = _extractSymbolName(target, 'STO');
+        _cleanupPoppedLiterals(args);
         environment.setVariable(varName, val);
-        session.markDependentsStale(changedSymbols: {varName});
+        session.addResult(
+          input: '$varName := ${val.toCanonicalText()}',
+          value: val,
+          assignedSymbol: varName,
+          recordHistory: true,
+        );
         return;
       case 'RCL' || 'RECALL':
-        final top = stack.popArgs(1).first.value;
-        final varName = _extractSymbolName(top, 'RCL');
+        final popped = stack.popArgs(1).first;
+        final varName = _extractSymbolName(popped.value, 'RCL');
+        _cleanupPoppedLiterals([popped]);
         final recalled =
             environment.getVariable(varName) ?? ExprValue(Variable(varName));
-        _pushResult(recalled, inputText: 'RCL($varName)', recordUndo: false);
+        _pushResult(recalled, inputText: varName, recordUndo: false);
         return;
       case 'DELETE':
-        final top = stack.popArgs(1).first.value;
-        final varName = _extractSymbolName(top, 'DELETE');
+        final popped = stack.popArgs(1).first;
+        final varName = _extractSymbolName(popped.value, 'DELETE');
+        _cleanupPoppedLiterals([popped]);
         environment.clearSymbol(varName);
         session.markDependentsStale(changedSymbols: {varName});
         return;
@@ -249,7 +264,7 @@ final class RpnInterpreter {
     // 4. Built-in constants (`pi`, `e`, `i`, `infinity`)
     if (ExprSyntax.standardConstants.containsKey(rawName)) {
       final c = ExprSyntax.standardConstants[rawName]!;
-      _pushResult(ExprValue(c), inputText: rawName);
+      _pushResult(ExprValue(c), inputText: rawName, isLiteralPush: true);
       return;
     }
 
@@ -274,6 +289,7 @@ final class RpnInterpreter {
       final res = evaluator.evalNode(
         CallNode(lower, [_valueToNode(arg.value)]),
       );
+      _cleanupPoppedLiterals([arg]);
       _pushResult(
         _postProcessValue(res),
         inputText: '$lower(${arg.value.toCanonicalText()})',
@@ -289,9 +305,11 @@ final class RpnInterpreter {
           _valueToNode(args[1].value),
         ]),
       );
+      _cleanupPoppedLiterals(args);
       _pushResult(
         _postProcessValue(res),
-        inputText: '$lower(...)',
+        inputText:
+            '$lower(${args[0].value.toCanonicalText()}, ${args[1].value.toCanonicalText()})',
         recordUndo: false,
       );
       return;
@@ -311,9 +329,11 @@ final class RpnInterpreter {
             ),
       ];
       final res = ExprValue(userFn.apply(exprArgs));
+      _cleanupPoppedLiterals(args);
       _pushResult(
         _postProcessValue(res),
-        inputText: '${userFn.name}(...)',
+        inputText:
+            '${userFn.name}(${args.map((a) => a.value.toCanonicalText()).join(', ')})',
         recordUndo: false,
       );
       return;
@@ -322,15 +342,20 @@ final class RpnInterpreter {
     // 8. Assigned variable or free symbolic variable push
     final boundVar = environment.getVariable(rawName);
     if (boundVar != null) {
-      _pushResult(boundVar, inputText: rawName);
+      _pushResult(boundVar, inputText: rawName, isLiteralPush: true);
       return;
     }
-    _pushResult(ExprValue(Variable(rawName)), inputText: rawName);
+    _pushResult(
+      ExprValue(Variable(rawName)),
+      inputText: rawName,
+      isLiteralPush: true,
+    );
   }
 
   void _applyBinaryOp(CalcBinaryOp op, String opSymbol) {
     final args = stack.popArgs(2);
     final res = evaluator.applyBinaryOp(op, args[0].value, args[1].value);
+    _cleanupPoppedLiterals(args);
     _pushResult(
       _postProcessValue(res),
       inputText:
@@ -426,6 +451,7 @@ final class RpnInterpreter {
       callArgs,
       EvaluatorContext(environment: environment, session: session),
     );
+    _cleanupPoppedLiterals(popped);
     final processed = _postProcessValue(res);
     if (processed is InfoValue &&
         (cmd.name == 'clear' || cmd.name == 'clearall')) {
@@ -439,10 +465,20 @@ final class RpnInterpreter {
     );
   }
 
+  void _cleanupPoppedLiterals(List<StackItem> popped) {
+    for (final item in popped) {
+      if (item.isLiteralPush &&
+          !stack.items.any((s) => s.resultId == item.resultId)) {
+        session.removeUnreferencedCell(item.resultId);
+      }
+    }
+  }
+
   void _pushResult(
     CalcValue value, {
     required String inputText,
     bool recordUndo = true,
+    bool isLiteralPush = false,
   }) {
     final cell = session.addResult(
       input: inputText,
@@ -450,7 +486,7 @@ final class RpnInterpreter {
       recordHistory: true,
     );
     stack.push(
-      StackItem(resultId: cell.id, value: value),
+      StackItem(resultId: cell.id, value: value, isLiteralPush: isLiteralPush),
       recordUndo: recordUndo,
     );
   }

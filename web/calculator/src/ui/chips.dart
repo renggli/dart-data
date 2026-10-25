@@ -66,6 +66,7 @@ abstract final class ActionChips {
     required CalcValue value,
     required void Function(String commandStatement) onRunStatement,
     required void Function(String message) onToast,
+    void Function()? onPushToStack,
   }) {
     _ensureDocumentListener();
     final strip = web.document.createElement('div') as web.HTMLDivElement
@@ -130,8 +131,22 @@ abstract final class ActionChips {
       strip.append(moreWrap);
     }
 
-    // Copy split menu (Expr, LaTeX, MathML)
-    if (value is! PlotValue && value is! ErrorValue) {
+    // Copy split menu (Expr, LaTeX) and Push to Stack
+    if (value is! PlotValue && value is! ErrorValue && value is! InfoValue) {
+      if (onPushToStack != null) {
+        final pushBtn =
+            web.document.createElement('button') as web.HTMLButtonElement
+              ..type = 'button'
+              ..className = 'calc-chip-btn calc-chip-secondary'
+              ..textContent = '⤓ Stack'
+              ..title = 'Push r[$cellId] to RPN stack level 1:';
+        pushBtn.addEventListener(
+          'click',
+          ((web.Event _) => onPushToStack()).toJS,
+        );
+        strip.append(pushBtn);
+      }
+
       final copyExprBtn =
           web.document.createElement('button') as web.HTMLButtonElement
             ..type = 'button'

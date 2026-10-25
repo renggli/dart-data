@@ -219,6 +219,24 @@ final class Session {
     );
   }
 
+  /// Returns `true` if any active cell references `r[id]`.
+  bool isResultReferenced(int id) => activeCells.any(
+    (cell) => cell.id != id && cell.referencedResults.contains(id),
+  );
+
+  /// Removes an unreferenced transient cell (such as an RPN literal push that
+  /// was immediately consumed by an operator or command) and rewinds `_nextId`
+  /// if it was the latest allocated cell.
+  void removeUnreferencedCell(int id) {
+    final cell = _cells[id];
+    if (cell == null || cell.deleted || cell.assignedSymbol != null) return;
+    if (isResultReferenced(id)) return;
+    _cells.remove(id);
+    while (_nextId > 1 && !_cells.containsKey(_nextId - 1)) {
+      _nextId--;
+    }
+  }
+
   /// Computes and marks all active cells transitively depending on [changedId]
   /// or [changedSymbols] as stale. Returns their IDs in topological (ascending
   /// `id`) order.
