@@ -26,7 +26,7 @@ final class CommandPaletteModal {
           ..type = 'text'
           ..className = 'calc-palette-input'
           ..placeholder =
-              'Search commands, functions, variables, or examples...';
+              'Search commands, functions, or variables...';
     searchWrap.append(searchInput);
 
     final listContainer =
@@ -69,7 +69,7 @@ final class CommandPaletteModal {
         );
       }
 
-      // Commands & runnable examples
+      // Commands
       for (final cmd in CommandRegistry.all) {
         all.add(
           _PaletteEntry(
@@ -80,17 +80,6 @@ final class CommandPaletteModal {
             executeImmediately: false,
           ),
         );
-        for (final ex in cmd.examples) {
-          all.add(
-            _PaletteEntry(
-              title: ex,
-              badge: 'EXAMPLE',
-              subtitle: '${cmd.name} — ${cmd.doc}',
-              snippet: ex,
-              executeImmediately: true,
-            ),
-          );
-        }
       }
 
       if (q.isEmpty) return all.take(40).toList();
