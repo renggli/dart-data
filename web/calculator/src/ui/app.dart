@@ -690,6 +690,7 @@ final class CalculatorApp {
 
   void _openCommandPalette() {
     CommandPaletteModal.open(
+      mode: _mode,
       environment: _client.environment,
       session: _client.session,
       onSelect: (snippet, {required executeImmediately}) {

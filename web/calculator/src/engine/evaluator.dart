@@ -340,114 +340,48 @@ final class CalcEvaluator {
     Set<String> boundParams = const {},
     int? beforeCellId,
   }) {
-    // Special case: clear(a, b) or help(cmd) should not substitute the symbol
-    // before passing it to the command!
-    if (name == 'clear' || name == 'help') {
-      final rawSymbols = <CalcValue>[];
-      for (final a in rawArgs) {
-        if (a case SymbolNode(:final name)) {
-          rawSymbols.add(ExprValue(Variable(name)));
-        } else {
-          rawSymbols.add(
-            evalNode(
-              a,
-              referencedResults: referencedResults,
-              referencedSymbols: referencedSymbols,
-              boundParams: boundParams,
-              beforeCellId: beforeCellId,
-            ),
-          );
-        }
-      }
-      final cmd = CommandRegistry.byName[name]!;
-      return cmd.run(
-        rawSymbols,
-        EvaluatorContext(environment: environment, session: session),
-      );
-    }
-
-    // Special case: subs(expr, x = val) — the left-hand side of x = val should
-    // remain the unbound symbol x even if x is assigned in the environment.
-    if (name == 'subs' && rawArgs.isNotEmpty) {
-      final targetVal = evalNode(
-        rawArgs.first,
-        referencedResults: referencedResults,
-        referencedSymbols: referencedSymbols,
-        boundParams: boundParams,
-        beforeCellId: beforeCellId,
-      );
-      final evaluatedArgs = <CalcValue>[targetVal];
-      for (var i = 1; i < rawArgs.length; i++) {
-        final argNode = rawArgs[i];
-        if (argNode case BinaryOpNode(
-          op: CalcBinaryOp.eq,
-          left: SymbolNode(name: final varName),
-          :final right,
-        )) {
-          final rhsVal = evalNode(
-            right,
-            referencedResults: referencedResults,
-            referencedSymbols: referencedSymbols,
-            boundParams: boundParams,
-            beforeCellId: beforeCellId,
-          );
-          if (rhsVal is! ExprValue) {
-            throw ArgumentError(
-              'subs replacement for $varName must be a scalar.',
-            );
-          }
-          evaluatedArgs.add(ExprValue(Equal(Variable(varName), rhsVal.expr)));
-        } else {
-          evaluatedArgs.add(
-            evalNode(
-              argNode,
-              referencedResults: referencedResults,
-              referencedSymbols: referencedSymbols,
-              boundParams: boundParams,
-              beforeCellId: beforeCellId,
-            ),
-          );
-        }
-      }
-      return CommandRegistry.byName['subs']!.run(
-        evaluatedArgs,
-        EvaluatorContext(environment: environment, session: session),
-      );
-    }
-
-    // For commands that take a variable identifier as 2nd argument (`diff`,
-    // `integrate`, `taylor`, `series`, `limit`, `sum`, `product`, `solve`,
-    // `apart`, `collect`, `plot`, `nintegrate`, `nsolve`, `nminimize`,
-    // `nderivative`), keep a bare SymbolNode in the variable position unbound!
-    const varAtSecondArg = <String>{
-      'diff',
-      'derivative',
-      'integrate',
-      'integral',
-      'taylor',
-      'series',
-      'limit',
-      'sum',
-      'product',
-      'solve',
-      'apart',
-      'collect',
-      'charpoly',
-      'plot',
-      'nintegrate',
-      'nsolve',
-      'nminimize',
-      'nderivative',
+    final canonicalName = switch (name) {
+      'derivative' => 'diff',
+      'integral' => 'integrate',
+      'conjugate' => 'conj',
+      'arcsin' => 'asin',
+      'arccos' => 'acos',
+      'arctan' => 'atan',
+      'arcsinh' => 'asinh',
+      'arccosh' => 'acosh',
+      'arctanh' => 'atanh',
+      _ => name,
     };
+
+    final userFn = environment.getFunction(name);
+    final cmd = userFn == null ? CommandRegistry.byName[canonicalName] : null;
 
     final evaluatedArgs = <CalcValue>[];
     for (var i = 0; i < rawArgs.length; i++) {
       final argNode = rawArgs[i];
-      if (i == 1 &&
-          varAtSecondArg.contains(name) &&
+      final paramKind = cmd?.paramKindAt(i) ?? ParamKind.expr;
+      if (paramKind == ParamKind.symbol &&
           argNode is SymbolNode &&
           environment.getVariable(argNode.name) is! VectorValue) {
         evaluatedArgs.add(ExprValue(Variable(argNode.name)));
+      } else if (paramKind == ParamKind.equation &&
+          argNode is BinaryOpNode &&
+          argNode.op == CalcBinaryOp.eq &&
+          argNode.left is SymbolNode) {
+        final varName = (argNode.left as SymbolNode).name;
+        final rhsVal = evalNode(
+          argNode.right,
+          referencedResults: referencedResults,
+          referencedSymbols: referencedSymbols,
+          boundParams: boundParams,
+          beforeCellId: beforeCellId,
+        );
+        if (rhsVal is! ExprValue) {
+          throw ArgumentError(
+            '$canonicalName replacement for $varName must be a scalar.',
+          );
+        }
+        evaluatedArgs.add(ExprValue(Equal(Variable(varName), rhsVal.expr)));
       } else {
         evaluatedArgs.add(
           evalNode(
@@ -462,7 +396,6 @@ final class CalcEvaluator {
     }
 
     // 1. User-defined function
-    final userFn = environment.getFunction(name);
     if (userFn != null) {
       referencedSymbols?.add(name);
       final exprArgs = [
@@ -478,19 +411,6 @@ final class CalcEvaluator {
     }
 
     // 2. Canonical calculator command
-    final canonicalName = switch (name) {
-      'derivative' => 'diff',
-      'integral' => 'integrate',
-      'conjugate' => 'conj',
-      'arcsin' => 'asin',
-      'arccos' => 'acos',
-      'arctan' => 'atan',
-      'arcsinh' => 'asinh',
-      'arccosh' => 'acosh',
-      'arctanh' => 'atanh',
-      _ => name,
-    };
-    final cmd = CommandRegistry.byName[canonicalName];
     if (cmd != null) {
       return cmd.run(
         evaluatedArgs,

@@ -56,8 +56,12 @@ final class VirtualKeypad {
   }
 
   void render({required CalcMode mode}) {
+    if (mode == CalcMode.scroll && _activeTab == 'Stack') {
+      _activeTab = 'Numbers';
+    }
     _tabsBar.innerHTML = ''.toJS;
     for (final tab in _tabs) {
+      if (tab == 'Stack' && mode != CalcMode.rpn) continue;
       final btn = web.document.createElement('button') as web.HTMLButtonElement
         ..type = 'button'
         ..className = tab == _activeTab
@@ -332,7 +336,7 @@ final class VirtualKeypad {
           _KeySpec(
             label: 'Delete',
             tooltip: 'Delete variable named on level 1:',
-            onTap: () => onExecuteRpn('PURGE'),
+            onTap: () => onExecuteRpn('DELETE'),
           ),
           _KeySpec(
             label: 'Approx',

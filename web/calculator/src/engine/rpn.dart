@@ -9,65 +9,13 @@ import '../model/value.dart';
 import 'commands.dart';
 import 'evaluator.dart';
 
-/// HP48-style RPN stack interpreter operating over [RpnStack], [Session],
+/// RPN stack interpreter operating over [RpnStack], [Session],
 /// and [Environment].
 final class RpnInterpreter {
   new({required this.stack, required this.evaluator});
 
   final RpnStack stack;
   final CalcEvaluator evaluator;
-
-  static const Map<String, String> _legacyRpnAliases = {
-    'SIMP': 'simplify',
-    'EXPA': 'expand',
-    'FACT': 'factor',
-    'SOLV': 'solve',
-    'SUBS': 'subs',
-    'APRT': 'apart',
-    'TGTH': 'together',
-    'CANC': 'cancel',
-    'COLL': 'collect',
-    'NUMR': 'numer',
-    'DENM': 'denom',
-    'TEXP': 'trigexpand',
-    'TSMP': 'trigreduce',
-    'TAYL': 'taylor',
-    'SERI': 'series',
-    'LIM': 'limit',
-    'GRAD': 'gradient',
-    'HESS': 'hessian',
-    'JACO': 'jacobian',
-    'DET': 'det',
-    'INV': 'inv',
-    'TRN': 'transpose',
-    'TRAC': 'trace',
-    'CPOL': 'charpoly',
-    'RANK': 'rank',
-    'RREF': 'rref',
-    'NULL': 'nullspace',
-    'EGVL': 'eigenvalues',
-    'EGVC': 'eigenvectors',
-    'IDN': 'identity',
-    'ZERO': 'zeros',
-    'DOT': 'dot',
-    'CROS': 'cross',
-    'NORM': 'norm',
-    'DIFF': 'diff',
-    'INT': 'integrate',
-    'POLR': 'polar',
-    'RECT': 'rect',
-    'PRIM?': 'isprime',
-    'COMB': 'binomial',
-    'FLR': 'floor',
-    'CEIL': 'ceil',
-    'RND': 'round',
-    'N∫': 'nintegrate',
-    'NSOL': 'nsolve',
-    'NMIN': 'nmin',
-    'NDER': 'nderivative',
-    'PURG': 'clear',
-    'CLVA': 'clearall',
-  };
 
   Environment get environment => evaluator.environment;
   Session get session => evaluator.session;
@@ -219,7 +167,7 @@ final class RpnInterpreter {
         final res = evaluator.applyUnaryOp(CalcUnaryOp.factorial, arg.value);
         _pushResult(_postProcessValue(res), inputText: '!', recordUndo: false);
         return;
-      case 'NEG' || 'CHS' || '±':
+      case 'NEG' || '±':
         final arg = stack.popArgs(1).first;
         final res = evaluator.applyUnaryOp(CalcUnaryOp.negate, arg.value);
         _pushResult(
@@ -286,17 +234,11 @@ final class RpnInterpreter {
             environment.getVariable(varName) ?? ExprValue(Variable(varName));
         _pushResult(recalled, inputText: 'RCL($varName)', recordUndo: false);
         return;
-      case 'PURGE' || 'DELETE':
+      case 'DELETE':
         final top = stack.popArgs(1).first.value;
         final varName = _extractSymbolName(top, 'DELETE');
         environment.clearSymbol(varName);
         session.markDependentsStale(changedSymbols: {varName});
-        return;
-      case '→NUM' || '->NUM' || 'NUM' || 'APPROX':
-        _runRegistryCommand(CommandRegistry.byName['approx']!, 1);
-        return;
-      case '→Q' || '->Q' || 'EXACT' || 'FRAC':
-        _runRegistryCommand(CommandRegistry.byName['exact']!, 1);
         return;
       case 'DEF∫' || 'DEFINT':
         // 4-argument definite integral from stack: 4: expr, 3: var, 2: a, 1: b
@@ -311,10 +253,9 @@ final class RpnInterpreter {
       return;
     }
 
-    // 5. CommandRegistry lookup (including legacy abbreviations and RPN labels)
-    final resolvedName = _legacyRpnAliases[upper] ?? lower;
+    // 5. CommandRegistry lookup (by canonical name or RPN label)
     final cmd =
-        CommandRegistry.byName[resolvedName] ??
+        CommandRegistry.byName[lower] ??
         CommandRegistry.all
             .where(
               (c) =>

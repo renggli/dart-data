@@ -41,17 +41,17 @@ void main() {
       check(rpn.executeLine("'x'")).isNull();
       check(rpn.executeLine('0')).isNull();
       check(rpn.executeLine('4')).isNull();
-      check(rpn.executeCommand('TAYL')).isNull();
+      check(rpn.executeCommand('taylor')).isNull();
 
       check(stack.depth).equals(1);
       check(stack.level(1).value.toCanonicalText())
           .equals('1 - 1/6 * x ^ 2 + 1/120 * x ^ 4');
 
-      check(rpn.executeCommand('PLOT')).isNull();
+      check(rpn.executeCommand('plot')).isNull();
       check(stack.level(1).value).isA<PlotValue>();
     });
 
-    test('RPN accepts humanized command names alongside legacy aliases', () {
+    test('RPN accepts canonical and humanized command names', () {
       final eval = createEval();
       final stack = RpnStack();
       final rpn = RpnInterpreter(stack: stack, evaluator: eval);
@@ -71,12 +71,16 @@ void main() {
       check(rpn.executeCommand('Drop')).isNull();
       check(stack.depth).equals(1);
 
-      // Store and Recall
+      // Store, Recall, and Delete
       check(rpn.executeLine("'my_var'")).isNull();
       check(rpn.executeCommand('Store')).isNull();
       check(rpn.executeLine("'my_var'")).isNull();
       check(rpn.executeCommand('Recall')).isNull();
       check(stack.level(1).value.toCanonicalText()).equals('-1 + x ^ 2');
+
+      check(rpn.executeLine("'my_var'")).isNull();
+      check(rpn.executeCommand('Delete')).isNull();
+      check(eval.environment.getVariable('my_var')).isNull();
 
       // Approx and Exact
       check(rpn.executeLine("'1/2'")).isNull();

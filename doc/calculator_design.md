@@ -113,7 +113,7 @@ expr        := … Expr grammar …
 
 ### 3.3 Command Catalog
 
-There is exactly one canonical name per command. RPN soft keys show a short label for the same command. Commands are grouped into categories, and the categories drive the palette, keypad tabs, soft-key menus, and help.
+There is exactly one canonical name per command. Commands are defined in modular category files under `web/calculator/src/engine/commands/*.dart` (`algebra.dart`, `calculus.dart`, `linear.dart`, `complex.dart`, `numbers.dart`, `numeric.dart`, `plot.dart`, `session.dart`), with declarative parameter metadata (`ParamSpec`) driving evaluation and signature hints. Commands are grouped into categories, and the categories drive the palette, keypad tabs, and help.
 
 | Category | Commands (canonical name → engine call) | Pri |
 | --- | --- | --- |
@@ -154,11 +154,11 @@ Behavior rules:
 | R2 | Command line entry: numbers, names, and quoted algebraics `'x^2+1'`. Multiple space-separated tokens are pushed or executed left to right (`2 3 + 'x' *`). | P0 |
 | R3 | Immediate operators: when the command line is empty or holds a single number, `+ - * / ^` push the line and apply the operator at once. | P0 |
 | R4 | Stack operations: `ENTER` (push; `DUP` when the line is empty), `DROP` (Backspace on empty line), `SWAP` (`→` on empty line), `OVER`, `ROT`, `PICK n`, `ROLL n`, `DEPTH`, `CLEAR`, `LASTARG`, `UNDO` (multi-level). | P0 |
-| R5 | Every command from 3.3 is available with HP48 argument order. For example, `diff` takes `2: expr 1: 'x'`, `integrate` takes `4: expr 3: 'x' 2: a 1: b`, and `taylor` takes `3: expr 2: 'x' 1: n`. Arity and the expected kind of each level come from the command registry. | P0 |
-| R6 | Soft-key menu bar: 6 keys per page, mapped to `F1`–`F6` (desktop) or tappable (mobile). `PgUp` / `PgDn` or swiping changes the page. Menus: ALG, CALC, MATRIX, CPLX, NUM, PLOT, STACK, VARS (user variables as keys: tap recalls, long-press stores). | P0 |
+| R5 | Every command from 3.3 is available in RPN mode using its canonical command name or humanized label (no cryptic 4-letter HP48 aliases). Arity and the expected kind of each level come from the command registry's `ParamSpec` metadata. | P0 |
+| R6 | Keypad `Stack` tab and palette stack commands (`SWAP`, `DUP`, `DROP`, `OVER`, `ROT`, `PICK`, `ROLL`, `DEPTH`, `CLEAR`, `STO`, `RCL`, `DELETE`) are shown exclusively in RPN mode and hidden in Scroll mode. Desktop function keys `F1`–`F6` map to core stack actions (`SWAP`, `DUP`, `DROP`, `OVER`, `ROT`, `CLEAR`). | P0 |
 | R7 | Interactive stack: `↑` on an empty line enters selection mode. Here `Enter` echoes the level to the command line, `E` edits it, `V` opens a large view, `Del` drops it, `P` picks it, and `Esc` exits. | P1 |
 | R8 | `STO` / `RCL` and `'name' STO` share the variable environment with Scroll mode. Each stack value also gets an `r[n]` number when created, so the two modes share one history. | P0 |
-| R9 | `→NUM` (`Alt+N`) replaces level 1 with its approximation, and `→Q` (`exact`) does the reverse. | P0 |
+| R9 | `approx` replaces level 1 with its numerical approximation, and `exact` does the reverse. | P0 |
 | R10 | Before running, a ghost preview above the soft keys shows what the selected command would produce from the current stack, for example `factor: (x−1)(x+1)`. | P2 |
 
 ### 3.6 Discoverability
@@ -191,9 +191,9 @@ Behavior rules:
 | RPN | `Backspace` (empty line) | DROP |
 | RPN | `→` (empty line) | SWAP |
 | RPN | `'` | Start algebraic entry |
-| RPN | `F1`–`F6`, `PgUp` / `PgDn` | Soft keys and menu pages |
-| RPN | `Alt+N` / `Alt+Q` | →NUM / →Q |
-| RPN | `↑` (empty line) | Interactive stack |
+| RPN | `F1`–`F6` | Stack operations (`SWAP`, `DUP`, `DROP`, `OVER`, `ROT`, `CLEAR`) |
+| RPN | `Alt+Enter` | Numeric approximation (`approx`) |
+| RPN | `↑` (empty line) | `SWAP` |
 
 Text inputs never capture global shortcuts other than those listed. Shortcuts are defined declaratively in one table (`shortcuts.dart`) that also feeds the help drawer, so documentation can't drift.
 
@@ -244,15 +244,14 @@ Text inputs never capture global shortcuts other than those listed. Shortcuts ar
 ```text
 Desktop ≥ 1024 px                                  Mobile < 1024 px
 ┌───────────┬───────────────────────────────┐      ┌───────────────────────┐
-│ Sidebar   │ Header: [Scroll|RPN] EXACT RAD ⌕ ? │      │ ☰  [Scroll|RPN]  ⌕  ⋮ │
+│ Sidebar   │ Header: [Scroll|RPN] Vars ⌕ ⚙ ?│      │ [Scroll|RPN] Vars ⌕ ⚙ ?│
 │ ⚡ Calc    ├───────────────────────────────┤      ├───────────────────────┤
 │ app-nav   │                               │      │ worksheet / stack     │
 │ Worksheets│  worksheet cells  /  stack    │      │ (scrolls, newest at   │
 │ Variables │  (role=log, newest at bottom) │      │  bottom)              │
 │ Examples  │                               │      ├───────────────────────┤
-│ Catalog   ├───────────────────────────────┤      │ input bar     [⌨]     │
+│ Catalog   ├───────────────────────────────┤      │ input bar     [⊞][⌨]  │
 │           │ input bar ▸ autocomplete      │      ├───────────────────────┤
-│           │ [soft keys F1..F6] (RPN)      │      │ soft keys (RPN)       │
 │           │ keypad (optional, collapsible)│      │ keypad sheet (tabs)   │
 └───────────┴───────────────────────────────┘      └───────────────────────┘
 ```
@@ -379,14 +378,16 @@ web/calculator/
       ast.dart               Statement: Assignment, Definition, ExprStatement, RpnTokens
       completion.dart        prefix completion + signature hints (pure Dart)
     engine/
-      commands.dart          CommandRegistry: Command(name, category, params, doc,
-                             examples, rpnLabel, appliesTo, run)
-      commands_algebra.dart  command implementations grouped by category
-      commands_calculus.dart
-      commands_linear.dart
-      commands_complex.dart
-      commands_numeric.dart
-      commands_plot.dart     produces PlotValue (expressions + domain), no rendering
+      commands.dart          CommandRegistry, Command, ParamSpec, shared helpers
+      commands/
+        algebra.dart         algebra command definitions
+        calculus.dart        calculus command definitions
+        linear.dart          linear algebra command definitions
+        complex.dart         complex analysis command definitions
+        numbers.dart         number theory & rounding command definitions
+        numeric.dart         numerical analysis command definitions
+        plot.dart            produces PlotValue (expressions + domain), no rendering
+        session.dart         session management command definitions
       evaluator.dart         resolve → dispatch → auto-simplify → approx policy
       rpn.dart               RPN interpreter (token stream over stack + registry)
       sampling.dart          adaptive plot sampling + discontinuity detection
@@ -398,8 +399,7 @@ web/calculator/
       scroll_view.dart
       rpn_view.dart
       input_bar.dart         contenteditable-free <textarea>, caret mapping, autocomplete
-      keypad.dart            tabbed keypad + long-press alternates
-      soft_keys.dart
+      keypad.dart            tabbed keypad (Stack tab shown only in RPN mode)
       palette.dart           fuzzy search (subsequence scoring)
       help.dart              cheat sheet + reference rendered from registry/shortcuts
       chips.dart             action chips from Command.appliesTo

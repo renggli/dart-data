@@ -9,6 +9,7 @@ import '../model/session.dart';
 /// Fuzzy command, function, variable, and result search palette (`Ctrl/Cmd+K`).
 final class CommandPaletteModal {
   static void open({
+    required CalcMode mode,
     required Environment environment,
     required Session session,
     required void Function(String snippet, {required bool executeImmediately})
@@ -79,6 +80,34 @@ final class CommandPaletteModal {
             executeImmediately: false,
           ),
         );
+      }
+
+      if (mode == CalcMode.rpn) {
+        const stackCommands = <({String name, String doc})>[
+          (name: 'SWAP', doc: 'Swap stack levels 1: and 2:.'),
+          (name: 'DUP', doc: 'Duplicate stack level 1:.'),
+          (name: 'DROP', doc: 'Drop stack level 1:.'),
+          (name: 'OVER', doc: 'Copy stack level 2: to top.'),
+          (name: 'ROT', doc: 'Rotate top 3 stack levels.'),
+          (name: 'PICK', doc: 'Copy stack level n: to top.'),
+          (name: 'ROLL', doc: 'Roll stack level n: to top.'),
+          (name: 'DEPTH', doc: 'Push current stack depth.'),
+          (name: 'CLEAR', doc: 'Clear entire RPN stack.'),
+          (name: 'STO', doc: 'Store level 2: into variable named on level 1:.'),
+          (name: 'RCL', doc: 'Recall variable named on level 1:.'),
+          (name: 'DELETE', doc: 'Delete variable named on level 1:.'),
+        ];
+        for (final sc in stackCommands) {
+          all.add(
+            _PaletteEntry(
+              title: sc.name,
+              badge: 'STACK',
+              subtitle: sc.doc,
+              snippet: sc.name,
+              executeImmediately: true,
+            ),
+          );
+        }
       }
 
       if (q.isEmpty) return all.take(40).toList();
