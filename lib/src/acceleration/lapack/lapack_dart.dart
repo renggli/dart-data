@@ -363,6 +363,17 @@ abstract final class LapackDart {
     required int wOffset,
   }) {
     if (n == 0) return true;
+    for (var i = 0; i < n; i++) {
+      if (uplo == cblasUpper) {
+        for (var j = i; j < n; j++) {
+          if (!a[aOffset + i * lda + j].isFinite) return false;
+        }
+      } else {
+        for (var j = 0; j <= i; j++) {
+          if (!a[aOffset + i * lda + j].isFinite) return false;
+        }
+      }
+    }
     if (n == 1) {
       w[wOffset] = a[aOffset];
       if (jobz.toUpperCase() == 'V') a[aOffset] = 1.0;
@@ -472,8 +483,9 @@ abstract final class LapackDart {
 
     for (var lIdx = 0; lIdx < n; lIdx++) {
       tst1 = math.max(tst1, d[lIdx].abs() + e[lIdx].abs());
+      if (!tst1.isFinite) return false;
       var mIdx = lIdx;
-      while (mIdx < n) {
+      while (mIdx < n - 1) {
         if (e[mIdx].abs() <= eps * tst1) break;
         mIdx++;
       }

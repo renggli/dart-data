@@ -157,6 +157,21 @@ void main() {
       check(
         Lapack.dgels(m: 2, n: 2, nrhs: 1, a: nanMat3, lda: 2, b: b2, ldb: 1),
       ).isFalse();
+
+      final nanSym1 = Float64List.fromList([double.nan]);
+      final w1 = Float64List(1);
+      check(Lapack.dsyev(n: 1, a: nanSym1, lda: 1, w: w1)).isFalse();
+
+      final nanSym2 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
+      final w2 = Float64List(2);
+      check(Lapack.dsyev(n: 2, a: nanSym2, lda: 2, w: w2)).isFalse();
+
+      final infSym2 = Float64List.fromList([double.infinity, 1.0, 1.0, 2.0]);
+      check(Lapack.dsyev(n: 2, a: infSym2, lda: 2, w: w2)).isFalse();
+
+      final nanSym32 = Float32List.fromList([double.nan, 0.0, 0.0, 1.0]);
+      final w2f = Float32List(2);
+      check(Lapack.ssyev(n: 2, a: nanSym32, lda: 2, w: w2f)).isFalse();
     });
 
     test('Lapack routines validate bounds and argument constraints', () {

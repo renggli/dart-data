@@ -184,6 +184,20 @@ void main() {
       final singleEig = single.eigenvalue;
       check(singleEig.realEigenvalues[0]).equals(42.0);
       check(singleEig.v.get(0, 0)).equals(1.0);
+
+      for (final val in [double.nan, double.infinity]) {
+        final nonFinite1 = Matrix<double>.fromRows([
+          [val],
+        ], type: DataType.float64);
+        check(nonFinite1.eigenvalue.realEigenvalues[0].isNaN).isTrue();
+
+        final nonFinite2 = Matrix<double>.fromRows([
+          [val, 1.0],
+          [1.0, 2.0],
+        ], type: DataType.float64);
+        check(nonFinite2.eigenvalue.realEigenvalues.any((x) => x.isNaN))
+            .isTrue();
+      }
     });
 
     accelerationTest('symmetric diagonal matrix scale == 0', () {

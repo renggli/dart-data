@@ -71,29 +71,34 @@ class EigenvalueDecomposition {
     if (_n == 0) return;
     if (_isSymmetric && matrix.type == DataType.float64) {
       final aList = Float64List(_n * _n);
+      var allFinite = true;
       for (var i = 0; i < _n; i++) {
         for (var j = 0; j < _n; j++) {
-          aList[i * _n + j] = matrix.getUnchecked(i, j).toDouble();
+          final val = matrix.getUnchecked(i, j).toDouble();
+          if (!val.isFinite) allFinite = false;
+          aList[i * _n + j] = val;
         }
       }
-      final wList = Float64List(_n);
-      final ok = Lapack.dsyev(
-        jobz: 'V',
-        uplo: cblasUpper,
-        n: _n,
-        a: aList,
-        lda: _n,
-        w: wList,
-      );
-      if (ok) {
-        for (var i = 0; i < _n; i++) {
-          _d[i] = wList[i];
-          _e[i] = 0.0;
-          for (var j = 0; j < _n; j++) {
-            _v.setUnchecked(j, i, aList[j * _n + i]);
+      if (allFinite) {
+        final wList = Float64List(_n);
+        final ok = Lapack.dsyev(
+          jobz: 'V',
+          uplo: cblasUpper,
+          n: _n,
+          a: aList,
+          lda: _n,
+          w: wList,
+        );
+        if (ok) {
+          for (var i = 0; i < _n; i++) {
+            _d[i] = wList[i];
+            _e[i] = 0.0;
+            for (var j = 0; j < _n; j++) {
+              _v.setUnchecked(j, i, aList[j * _n + i]);
+            }
           }
+          return;
         }
-        return;
       }
     }
     if (_isSymmetric) {
@@ -273,8 +278,14 @@ class EigenvalueDecomposition {
     const eps = 2.220446049250313e-16;
     for (var lIdx = 0; lIdx < _n; lIdx++) {
       tst1 = math.max(tst1, _d[lIdx].abs() + _e[lIdx].abs());
+      if (!tst1.isFinite) {
+        for (var i = lIdx; i < _n; i++) {
+          _d[i] = double.nan;
+        }
+        return;
+      }
       var mIdx = lIdx;
-      while (mIdx < _n) {
+      while (mIdx < _n - 1) {
         if (_e[mIdx].abs() <= eps * tst1) break;
         mIdx++;
       }

@@ -53,7 +53,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   4. Add unit tests in `test/acceleration/fft/fft_test.dart` covering odd-offset `Float64List.sublistView` buffers and sizes `n = 2, 4, 8` across all acceleration modes.
 - **Verification**: `dart test test/acceleration/fft/fft_test.dart`
 
-### [ ] TASK-1.3: Fix `Lapack.dsyev` / `ssyev` and `EigenvalueDecomposition._tql2` `RangeError` on `NaN` / `Infinity`
+### [x] TASK-1.3: Fix `Lapack.dsyev` / `ssyev` and `EigenvalueDecomposition._tql2` `RangeError` on `NaN` / `Infinity`
 - **Files**:
   - `lib/src/acceleration/lapack/lapack_dart.dart` (lines 360–520)
   - `lib/src/acceleration/lapack/lapack_native.dart` (lines 415–485, 520–588)

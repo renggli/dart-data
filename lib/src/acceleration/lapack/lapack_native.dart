@@ -402,6 +402,20 @@ abstract final class LapackNative {
     final wRequired = wOffset + n;
     if (a.length < aRequired || w.length < wRequired) return false;
 
+    for (var i = 0; i < n; i++) {
+      if (uplo == cblasUpper) {
+        for (var j = i; j < n; j++) {
+          final v = a[aOffset + i * lda + j];
+          if (v.isNaN || v.isInfinite) return false;
+        }
+      } else {
+        for (var j = 0; j <= i; j++) {
+          final v = a[aOffset + i * lda + j];
+          if (v.isNaN || v.isInfinite) return false;
+        }
+      }
+    }
+
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final wView = wOffset == 0 ? w : Float64List.sublistView(w, wOffset);
 
@@ -416,6 +430,10 @@ abstract final class LapackNative {
         wView.address,
       );
       if (info == 0) {
+        for (var i = 0; i < n; i++) {
+          final wi = w[wOffset + i];
+          if (wi.isNaN || wi.isInfinite) return false;
+        }
         return true;
       }
       return false;
@@ -470,6 +488,10 @@ abstract final class LapackNative {
           info,
         );
         if (info.value == 0) {
+          for (var i = 0; i < n; i++) {
+            final wi = w[wOffset + i];
+            if (wi.isNaN || wi.isInfinite) return false;
+          }
           if (normJobz == 'V') {
             for (var i = 0; i < n; i++) {
               for (var j = 0; j < n; j++) {
@@ -506,6 +528,20 @@ abstract final class LapackNative {
     final wRequired = wOffset + n;
     if (a.length < aRequired || w.length < wRequired) return false;
 
+    for (var i = 0; i < n; i++) {
+      if (uplo == cblasUpper) {
+        for (var j = i; j < n; j++) {
+          final v = a[aOffset + i * lda + j];
+          if (v.isNaN || v.isInfinite) return false;
+        }
+      } else {
+        for (var j = 0; j <= i; j++) {
+          final v = a[aOffset + i * lda + j];
+          if (v.isNaN || v.isInfinite) return false;
+        }
+      }
+    }
+
     final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
     final wView = wOffset == 0 ? w : Float32List.sublistView(w, wOffset);
 
@@ -520,6 +556,10 @@ abstract final class LapackNative {
         wView.address,
       );
       if (info == 0) {
+        for (var i = 0; i < n; i++) {
+          final wi = w[wOffset + i];
+          if (wi.isNaN || wi.isInfinite) return false;
+        }
         return true;
       }
       return false;
@@ -574,6 +614,10 @@ abstract final class LapackNative {
           info,
         );
         if (info.value == 0) {
+          for (var i = 0; i < n; i++) {
+            final wi = w[wOffset + i];
+            if (wi.isNaN || wi.isInfinite) return false;
+          }
           if (normJobz == 'V') {
             for (var i = 0; i < n; i++) {
               for (var j = 0; j < n; j++) {
