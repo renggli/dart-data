@@ -52,8 +52,6 @@ enum ParamKind {
 
 /// Declarative parameter descriptor for a [Command].
 final class ParamSpec {
-  const new(this.name, [this.kind = ParamKind.expr]);
-
   const new expr(this.name) : kind = ParamKind.expr;
   const new symbol(this.name) : kind = ParamKind.symbol;
   const new equation(this.name) : kind = ParamKind.equation;

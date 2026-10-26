@@ -73,9 +73,9 @@ void main() {
           simplifyPow(const IntegerNumber(Integer(2)), const RealNumber(0.5)),
         ).equals(RealNumber(math.sqrt(2)));
 
-        check(foldRationalPower(const Integer(2), const Integer(3), 2))
+        check(simplifyPow(RationalNumber(2, 3), IntegerNumber.two))
             .equals(RationalNumber(4, 9));
-        check(foldRationalPower(const Integer(2), const Integer(3), 2000))
+        check(simplifyPow(RationalNumber(2, 3), IntegerNumber.of(2000)))
             .isA<Pow>();
       },
     );

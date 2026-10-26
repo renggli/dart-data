@@ -987,9 +987,6 @@ Expr? _infiniteSeriesClosedForm(
       assumptions: assumptions,
     );
     if (inner != null) {
-      if (inner == Constant.infinity || inner == -Constant.infinity) {
-        return (constPart * inner).simplify(assumptions: assumptions);
-      }
       return (constPart * inner).simplify(assumptions: assumptions);
     }
   }
@@ -1473,7 +1470,7 @@ Expr? _matchPowerDenominatorSeries(
         );
       }
       if (p >= 2 && p.isEven && p <= 32) {
-        final zetaVal = _evenZetaValue(p);
+        final zetaVal = evenZetaValue(p);
         final canonSum = (totalPrefactor * zetaVal).simplify(
           assumptions: assumptions,
         );
@@ -1507,7 +1504,7 @@ Expr? _matchPowerDenominatorSeries(
       }
       if (p >= 2 && p.isEven && p <= 32) {
         // sum_{n=1..inf} (-1)^n / n^(2s) = -(1 - 2^(1 - p)) * zeta(p)
-        final zetaVal = _evenZetaValue(p);
+        final zetaVal = evenZetaValue(p);
         final twoPow = Pow(
           IntegerNumber.two,
           IntegerNumber.of(1 - p),
@@ -1599,7 +1596,7 @@ Expr? _matchPowerDenominatorSeries(
       }
       if (p >= 2 && p.isEven && p <= 32) {
         // sum_{u=0..inf} 1 / (2u + 1)^(2s) = (1 - 2^(-p)) * zeta(p)
-        final zetaVal = _evenZetaValue(p);
+        final zetaVal = evenZetaValue(p);
         final twoPow = Pow(IntegerNumber.two, IntegerNumber.of(-p)).simplify();
         final oddZeta = ((IntegerNumber.one - twoPow) * zetaVal).simplify();
         final canonSum = (totalPrefactor * oddZeta).simplify(
@@ -1739,7 +1736,7 @@ bool _isStrictlyInsideUnitDisk(Expr r) {
 }
 
 /// Computes $\zeta(2m) = \frac{|B_{2m}| (2\pi)^{2m}}{2 (2m)!}$ for even $p = 2m \ge 2$.
-Expr _evenZetaValue(int p) {
+Expr evenZetaValue(int p) {
   final bernoulli = _bernoulliNumbers(p);
   final bpAbs = bernoulli[p].abs();
   final twoPowP = Integer.big(BigInt.two.pow(p));

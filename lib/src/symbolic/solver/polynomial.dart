@@ -107,17 +107,7 @@ List<Expr> solveBiquadratic(Expr a, Expr b, Expr c, String variable) {
 }
 
 /// Computes the exact square root of rational constant [c] if reducible.
-Expr sqrtConstant(RationalNumber c) {
-  if ((c.numerator.asInt, c.denominator.asInt)
-      case (final int numInt, final int denInt) when numInt >= 0) {
-    final numSqrt = math.sqrt(numInt).round();
-    final denSqrt = math.sqrt(denInt).round();
-    if (numSqrt * numSqrt == numInt && denSqrt * denSqrt == denInt) {
-      return RationalNumber(numSqrt, denSqrt);
-    }
-  }
-  return Pow(c, FractionNumber.half).simplify();
-}
+Expr sqrtConstant(RationalNumber c) => Pow(c, FractionNumber.half).simplify();
 
 /// Computes integer nth root if exact.
 int? integerNthRoot(int val, int n) {

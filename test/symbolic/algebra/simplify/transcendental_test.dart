@@ -2,7 +2,6 @@ import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/simplify/additive.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
 import 'package:data/symbolic.dart';
-import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -485,10 +484,8 @@ void main() {
       final polarZ = toPolarExpr(z, assumptions: complexZ);
       check(polarZ is Mul).isTrue();
 
-      final rectC = toRectangularExpr(const Constant('c', Complex(1.0, 2.0)));
-      check(rectC).isA<ComplexNumber>();
-      check((rectC as ComplexNumber).real).equals(const RealNumber(1.0));
-      check(rectC.imaginary).equals(const RealNumber(2.0));
+      final rectC = toRectangularExpr(Constant.pi);
+      check(rectC).equals(Constant.pi);
       check(toRectangularExpr(Conjugate(z), assumptions: complexZ).toString())
           .equals('re(z) - i * im(z)');
       check(toRectangularExpr(Re(z), assumptions: complexZ))

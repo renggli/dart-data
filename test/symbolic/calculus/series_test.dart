@@ -452,6 +452,9 @@ void main() {
       check(symPoly[0]).equals(IntegerNumber.one);
       check(symPoly[1]).equals(IntegerNumber.zero);
       check(symPoly[2]).equals(RationalNumber(-1, 6));
+
+      check(() => (IntegerNumber.one / x).toPolynomial<double>('x', order: 2))
+          .throws<UnsupportedError>();
     });
   });
 }

@@ -6,16 +6,6 @@ import '../ast.dart';
 import 'transcendental.dart';
 import 'univariate.dart';
 
-Expr _piFraction(int num, int den) =>
-    (RationalNumber(num, den) * Constant.pi).simplify();
-
-List<Expr> _invertAngles(Expr arg, List<Expr> angles, String variable) =>
-    deduplicateRoots([
-      for (final angle in angles)
-        ...(invertEquation(arg, angle, variable) ??
-            solveEquation((arg - angle).simplify(), variable)),
-    ]);
-
 /// Inverts trigonometric sine $\sin(\text{arg}) = c$ for special and general angles.
 List<Expr> invertSin(Expr arg, Expr c, String variable) {
   if (isRealConstantOutOfRange(c, 1.0)) {
@@ -110,3 +100,13 @@ List<Expr> invertTan(Expr arg, Expr c, String variable) {
 
   return _invertAngles(arg, angles, variable);
 }
+
+Expr _piFraction(int num, int den) =>
+    (RationalNumber(num, den) * Constant.pi).simplify();
+
+List<Expr> _invertAngles(Expr arg, List<Expr> angles, String variable) =>
+    deduplicateRoots([
+      for (final angle in angles)
+        ...(invertEquation(arg, angle, variable) ??
+            solveEquation((arg - angle).simplify(), variable)),
+    ]);

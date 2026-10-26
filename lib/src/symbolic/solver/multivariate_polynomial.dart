@@ -185,28 +185,6 @@ class MultivariatePolynomial {
     return (lm, terms[lm] ?? IntegerNumber.zero);
   }
 
-  static Map<Monomial, RationalNumber> _cleanTerms(
-    Map<Monomial, RationalNumber> map,
-  ) {
-    final res = <Monomial, RationalNumber>{};
-    for (final MapEntry(:key, :value) in map.entries) {
-      if (!value.isZero) {
-        res[key] = value;
-      }
-    }
-    return Map.unmodifiable(res);
-  }
-
-  static int _calcInitialSugar(Map<Monomial, RationalNumber> terms) {
-    var maxDeg = 0;
-    for (final MapEntry(key: m, value: c) in terms.entries) {
-      if (!c.isZero && m.totalDegree > maxDeg) {
-        maxDeg = m.totalDegree;
-      }
-    }
-    return maxDeg;
-  }
-
   MultivariatePolynomial operator +(MultivariatePolynomial other) {
     assert(_listEquals(variables, other.variables));
     final newTerms = Map<Monomial, RationalNumber>.of(terms);
@@ -465,6 +443,28 @@ class MultivariatePolynomial {
 
   @override
   String toString() => toExpr().toString();
+
+  static Map<Monomial, RationalNumber> _cleanTerms(
+    Map<Monomial, RationalNumber> map,
+  ) {
+    final res = <Monomial, RationalNumber>{};
+    for (final MapEntry(:key, :value) in map.entries) {
+      if (!value.isZero) {
+        res[key] = value;
+      }
+    }
+    return Map.unmodifiable(res);
+  }
+
+  static int _calcInitialSugar(Map<Monomial, RationalNumber> terms) {
+    var maxDeg = 0;
+    for (final MapEntry(key: m, value: c) in terms.entries) {
+      if (!c.isZero && m.totalDegree > maxDeg) {
+        maxDeg = m.totalDegree;
+      }
+    }
+    return maxDeg;
+  }
 }
 
 bool _listEquals<T>(List<T> a, List<T> b) {

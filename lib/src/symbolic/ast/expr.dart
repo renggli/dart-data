@@ -54,9 +54,6 @@ sealed class Expr {
     if (value is double) {
       return RealNumber.fromDouble(value);
     }
-    if (value is int) {
-      return RealNumber.fromDouble(value.toDouble());
-    }
     if (value is Complex) {
       final a = value.a;
       final b = value.b;

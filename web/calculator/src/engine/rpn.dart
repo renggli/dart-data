@@ -237,7 +237,7 @@ final class RpnInterpreter {
           value: ExprValue(IntegerNumber.of(stack.depth)),
           recordHistory: false,
         );
-        stack.push(StackItem(resultId: cell.id, value: cell.value));
+        stack.pushDepth(resultId: cell.id);
         return;
       case 'CLEAR':
         stack.clear();

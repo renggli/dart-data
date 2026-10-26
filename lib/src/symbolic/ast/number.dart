@@ -203,9 +203,7 @@ sealed class Number extends Expr {
   static Number? _powReal(RealNumeric baseReal, RealNumeric exponent) {
     if (baseReal.isZero) {
       if (exponent.isZero) {
-        return (baseReal is RealNumber || exponent is RealNumber)
-            ? const RealNumber(1.0)
-            : IntegerNumber.one;
+        return const RealNumber(1.0);
       }
       if (exponent.isNegative) {
         throw UnsupportedError('Division by zero in power: 0 ^ $exponent');
@@ -213,9 +211,7 @@ sealed class Number extends Expr {
       return const RealNumber(0.0);
     }
     if (baseReal.isOne) {
-      return (baseReal is RealNumber || exponent is RealNumber)
-          ? const RealNumber(1.0)
-          : IntegerNumber.one;
+      return const RealNumber(1.0);
     }
     final bVal = baseReal.toDouble();
     final eVal = exponent.toDouble();

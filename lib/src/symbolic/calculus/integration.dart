@@ -11,6 +11,7 @@ import '../solver/univariate.dart';
 import 'differentiation.dart';
 import 'limit.dart';
 import 'linear_form.dart';
+import 'summation.dart';
 
 /// Specification of a single integration variable and optional definite bounds
 /// for iterated integration via [IntegrationExtension.integrateMultiple].
@@ -1918,7 +1919,7 @@ Expr? _definiteIntegralZeroToInfinity(
       }
       if (s != null && s.isEven) {
         final factSMinus1 = IntegerNumber(Integer.from(s - 1).factorial());
-        final zetaS = _evenZetaIntegralValue(s);
+        final zetaS = evenZetaValue(s);
         if (constTerm == IntegerNumber.negativeOne) {
           return (factSMinus1 * zetaS).simplify(assumptions: assumptions);
         } else {
@@ -2091,37 +2092,6 @@ Expr? _definiteIntegralUnitInterval(
   }
 
   return null;
-}
-
-Expr _evenZetaIntegralValue(int s) {
-  // Returns zeta(s) for even s in {2, 4, 6, ...}
-  final b = <RationalNumber>[IntegerNumber.one];
-  for (var m = 1; m <= s; m++) {
-    if (m == 1) {
-      b.add(FractionNumber.negativeHalf);
-      continue;
-    }
-    if (m.isOdd) {
-      b.add(IntegerNumber.zero);
-      continue;
-    }
-    var sum = IntegerNumber.zero as RationalNumber;
-    for (var j = 0; j < m; j++) {
-      if (b[j].isZero) continue;
-      final binom = IntegerNumber(
-        Integer.from(m + 1).binomial(Integer.from(j)),
-      );
-      sum = sum.addRational(binom.mulRational(b[j]));
-    }
-    b.add(sum.neg().divRational(IntegerNumber.of(m + 1)));
-  }
-  final bsAbs = b[s].abs();
-  final twoPowS = Integer.big(BigInt.two.pow(s));
-  final factS = Integer.from(s).factorial();
-  final coeff = bsAbs.mulRational(
-    RationalNumber.of(twoPowS, Integer.two * factS),
-  );
-  return (coeff * Pow(Constant.pi, IntegerNumber.of(s))).simplify();
 }
 
 Expr? _extractScaledSquareBase(Expr expr, String variable) {

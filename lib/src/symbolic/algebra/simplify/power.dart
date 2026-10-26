@@ -348,14 +348,6 @@ Expr simplifyPow(
   return Pow(base, exponent, isSimplified: true);
 }
 
-/// Evaluates integer powers of rational numbers.
-Expr foldRationalPower(Integer num, Integer den, int exp) {
-  final rat = RationalNumber.of(num, den);
-  final expNumber = IntegerNumber.of(exp);
-  final folded = rat.powNumber(expNumber);
-  return folded ?? Pow(rat, expNumber, isSimplified: true);
-}
-
 bool _isTwo(Expr expr) => expr == IntegerNumber.two;
 
 bool _isHalf(Expr expr) => expr == FractionNumber.half;

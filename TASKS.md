@@ -400,7 +400,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
      - Remove unused top-level `extractKey(List<Object?> values)` function.
 - **Verification**: `dart analyze && dart test`
 
-### [ ] TASK-5.2: Remove Unreachable & Duplicate Code Across `symbolic` and `web/calculator`
+### [x] TASK-5.2: Remove Unreachable & Duplicate Code Across `symbolic` and `web/calculator`
 - **Files & Exact Targets**:
   1. **`lib/src/symbolic/algebra/simplify/transcendental.dart`**:
      - **Lines 54–64, 73–79, 88–90 (`simplifySin`), lines 136–146, 155–161, 170–174 (`simplifyCos`), lines 223, 232–240, 249–250 (`simplifyTan`)**: `piMult` is a reduced `RationalNumber` ($\gcd(\text{num}, \text{den}) = 1$), so non-coprime remainder cases (`case 2 || 4:`, `case 8 || 10:`, `case 3:`, `case 9:`, `case 0 || 6:` when `den == 6`; `case 2:`, `case 6:`, `case 0 || 4:` when `den == 4`; `case 0 || 3:` when `den == 3`) are 100% mathematically impossible. Remove all non-coprime remainder branches.

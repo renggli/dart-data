@@ -7,7 +7,6 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
 import '../number/integer.dart';
-import 'differentiation.dart';
 
 /// Extension providing formal power series and Laurent expansion on [Expr].
 extension SeriesExtension on Expr {
@@ -61,7 +60,7 @@ extension SeriesExtension on Expr {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final p = Exp(x).toPolynomial('x', order: 2);
+  /// final p = Pow(Constant.e, x).toPolynomial('x', order: 2);
   /// // coefficients: [1.0, 1.0, 0.5]
   /// ```
   Polynomial<T> toPolynomial<T>(
@@ -77,111 +76,56 @@ extension SeriesExtension on Expr {
     }
     final around = point.toDouble();
     final pointExpr = _wrapSeriesPoint(point);
-    try {
-      final ps = toPowerSeries(variable, point: pointExpr, order: order + 1);
-      if (ps.poleOrder == 0) {
-        if (around == 0.0) {
-          final coeffs = List<T>.filled(order + 1, field.additiveIdentity);
-          for (var k = 0; k <= order; k++) {
-            final cExpr = ps.coefficients[k];
-            if (cExpr != null) {
-              if (cExpr is T) {
-                coeffs[k] = effectiveType.cast(cExpr);
-              } else {
-                final val = cExpr is Number
-                    ? cExpr.toDouble()
-                    : cExpr.evaluate(const {});
-                coeffs[k] = effectiveType.cast(val);
-              }
-            }
-          }
-          return Polynomial<T>.fromCoefficients(coeffs, type: effectiveType);
-        } else {
-          var result = Polynomial<T>.zero(type: effectiveType);
-          final negCenter = (-pointExpr).simplify();
-          final negCenterTerm = negCenter is T
-              ? effectiveType.cast(negCenter)
-              : effectiveType.cast(-around);
-          final xMinusA = Polynomial<T>.fromCoefficients([
-            negCenterTerm,
-            field.multiplicativeIdentity,
-          ], type: effectiveType);
-          var currentPower = Polynomial<T>.fromCoefficients([
-            field.multiplicativeIdentity,
-          ], type: effectiveType);
-          for (var k = 0; k <= order; k++) {
-            final cExpr = ps.coefficients[k];
-            if (cExpr != null) {
-              final T coeff;
-              if (cExpr is T) {
-                coeff = effectiveType.cast(cExpr);
-              } else {
-                final val = cExpr is Number
-                    ? cExpr.toDouble()
-                    : cExpr.evaluate(const {});
-                coeff = effectiveType.cast(val);
-              }
-              if (coeff != field.additiveIdentity) {
-                result = result + currentPower.scale(coeff);
-              }
-            }
-            if (k < order) {
-              currentPower = currentPower * xMinusA;
-            }
-          }
-          return result;
-        }
-      }
-    } on UnsupportedError {
-      // Fall back to repeated differentiation
-    } on StateError {
-      // Fall back to repeated differentiation
-    } on ArgumentError {
-      // Fall back to repeated differentiation
+    final ps = toPowerSeries(variable, point: pointExpr, order: order + 1);
+    if (ps.poleOrder > 0) {
+      throw UnsupportedError(
+        'Cannot convert Laurent series with pole to Polynomial',
+      );
     }
     if (around == 0.0) {
       final coeffs = List<T>.filled(order + 1, field.additiveIdentity);
-      var currentDeriv = this;
-      var factorial = 1.0;
       for (var k = 0; k <= order; k++) {
-        if (k > 0) {
-          currentDeriv = currentDeriv.derivative(variable);
-          factorial *= k;
+        final cExpr = ps.coefficients[k];
+        if (cExpr != null) {
+          if (cExpr is T) {
+            coeffs[k] = effectiveType.cast(cExpr);
+          } else {
+            final val = cExpr is Number
+                ? cExpr.toDouble()
+                : cExpr.evaluate(const {});
+            coeffs[k] = effectiveType.cast(val);
+          }
         }
-        final valExpr = currentDeriv
-            .substitute(variable, IntegerNumber.zero)
-            .simplify();
-        final val = valExpr is Number
-            ? valExpr.toDouble()
-            : valExpr.evaluate(const {});
-        coeffs[k] = effectiveType.cast(val / factorial);
       }
       return Polynomial<T>.fromCoefficients(coeffs, type: effectiveType);
     } else {
       var result = Polynomial<T>.zero(type: effectiveType);
+      final negCenter = (-pointExpr).simplify();
+      final negCenterTerm = negCenter is T
+          ? effectiveType.cast(negCenter)
+          : effectiveType.cast(-around);
       final xMinusA = Polynomial<T>.fromCoefficients([
-        effectiveType.cast(-around),
+        negCenterTerm,
         field.multiplicativeIdentity,
       ], type: effectiveType);
       var currentPower = Polynomial<T>.fromCoefficients([
         field.multiplicativeIdentity,
       ], type: effectiveType);
-      var currentDeriv = this;
-      var factorial = 1.0;
       for (var k = 0; k <= order; k++) {
-        if (k > 0) {
-          currentDeriv = currentDeriv.derivative(variable);
-          factorial *= k;
-        }
-        final valExpr = currentDeriv
-            .substitute(variable, _wrapSeriesPoint(point))
-            .simplify();
-        final val = valExpr is Number
-            ? valExpr.toDouble()
-            : valExpr.evaluate(const {});
-        final coeff = effectiveType.cast(val / factorial);
-        if (coeff != field.additiveIdentity) {
-          result = result + currentPower.scale(coeff);
+        final cExpr = ps.coefficients[k];
+        if (cExpr != null) {
+          final T coeff;
+          if (cExpr is T) {
+            coeff = effectiveType.cast(cExpr);
+          } else {
+            final val = cExpr is Number
+                ? cExpr.toDouble()
+                : cExpr.evaluate(const {});
+            coeff = effectiveType.cast(val);
+          }
+          if (coeff != field.additiveIdentity) {
+            result = result + currentPower.scale(coeff);
+          }
         }
         if (k < order) {
           currentPower = currentPower * xMinusA;
@@ -255,19 +199,6 @@ class PowerSeries {
 
   /// Constant term $c_0$, or [IntegerNumber.zero] if absent.
   Expr get constantTerm => coefficients[0] ?? IntegerNumber.zero;
-
-  void _checkCompatible(PowerSeries other) {
-    if (variable != other.variable) {
-      throw ArgumentError(
-        'Cannot combine series with different variables: $variable vs ${other.variable}',
-      );
-    }
-    if (point != other.point) {
-      throw ArgumentError(
-        'Cannot combine series with different expansion points: $point vs ${other.point}',
-      );
-    }
-  }
 
   /// Addition of two power series: remainder order is $\min(N_A, N_B)$.
   PowerSeries operator +(PowerSeries other) {
@@ -560,6 +491,19 @@ class PowerSeries {
       [final single] => single,
       _ => Add(terms),
     };
+  }
+
+  void _checkCompatible(PowerSeries other) {
+    if (variable != other.variable) {
+      throw ArgumentError(
+        'Cannot combine series with different variables: $variable vs ${other.variable}',
+      );
+    }
+    if (point != other.point) {
+      throw ArgumentError(
+        'Cannot combine series with different expansion points: $point vs ${other.point}',
+      );
+    }
   }
 
   static Map<int, Expr> _cleanCoefficients(Map<int, Expr> raw, int order) {

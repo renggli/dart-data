@@ -46,47 +46,29 @@ Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     }
     if (den == const Integer(6)) {
       final rem = (num % const Integer(12)).toInt();
-      switch (rem) {
-        case 1 || 5:
-          return specialRadicalExpr(SpecialRadical.half);
-        case 7 || 11:
-          return specialRadicalExpr(SpecialRadical.half, negative: true);
-        case 2 || 4: // reduced 1/3, 2/3
-          return specialRadicalExpr(SpecialRadical.sqrt3Over2);
-        case 8 || 10: // reduced 4/3, 5/3
-          return specialRadicalExpr(SpecialRadical.sqrt3Over2, negative: true);
-        case 3: // reduced 1/2
-          return IntegerNumber.one;
-        case 9: // reduced 3/2
-          return IntegerNumber.negativeOne;
-        case 0 || 6:
-          return IntegerNumber.zero;
+      if (rem == 1 || rem == 5) {
+        return specialRadicalExpr(SpecialRadical.half);
+      }
+      if (rem == 7 || rem == 11) {
+        return specialRadicalExpr(SpecialRadical.half, negative: true);
       }
     }
     if (den == const Integer(4)) {
       final rem = (num % const Integer(8)).toInt();
-      switch (rem) {
-        case 1 || 3:
-          return specialRadicalExpr(SpecialRadical.sqrt2Over2);
-        case 5 || 7:
-          return specialRadicalExpr(SpecialRadical.sqrt2Over2, negative: true);
-        case 2: // reduced 1/2
-          return IntegerNumber.one;
-        case 6: // reduced 3/2
-          return IntegerNumber.negativeOne;
-        case 0 || 4:
-          return IntegerNumber.zero;
+      if (rem == 1 || rem == 3) {
+        return specialRadicalExpr(SpecialRadical.sqrt2Over2);
+      }
+      if (rem == 5 || rem == 7) {
+        return specialRadicalExpr(SpecialRadical.sqrt2Over2, negative: true);
       }
     }
     if (den == const Integer(3)) {
       final rem = (num % const Integer(6)).toInt();
-      switch (rem) {
-        case 1 || 2:
-          return specialRadicalExpr(SpecialRadical.sqrt3Over2);
-        case 4 || 5:
-          return specialRadicalExpr(SpecialRadical.sqrt3Over2, negative: true);
-        case 0 || 3:
-          return IntegerNumber.zero;
+      if (rem == 1 || rem == 2) {
+        return specialRadicalExpr(SpecialRadical.sqrt3Over2);
+      }
+      if (rem == 4 || rem == 5) {
+        return specialRadicalExpr(SpecialRadical.sqrt3Over2, negative: true);
       }
     }
   }
@@ -128,49 +110,29 @@ Expr simplifyCos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     }
     if (den == const Integer(6)) {
       final rem = (num % const Integer(12)).toInt();
-      switch (rem) {
-        case 1 || 11:
-          return specialRadicalExpr(SpecialRadical.sqrt3Over2);
-        case 5 || 7:
-          return specialRadicalExpr(SpecialRadical.sqrt3Over2, negative: true);
-        case 2 || 10: // reduced 1/3, 5/3
-          return specialRadicalExpr(SpecialRadical.half);
-        case 4 || 8: // reduced 2/3, 4/3
-          return specialRadicalExpr(SpecialRadical.half, negative: true);
-        case 3 || 9: // reduced 1/2, 3/2
-          return IntegerNumber.zero;
-        case 0:
-          return IntegerNumber.one;
-        case 6:
-          return IntegerNumber.negativeOne;
+      if (rem == 1 || rem == 11) {
+        return specialRadicalExpr(SpecialRadical.sqrt3Over2);
+      }
+      if (rem == 5 || rem == 7) {
+        return specialRadicalExpr(SpecialRadical.sqrt3Over2, negative: true);
       }
     }
     if (den == const Integer(4)) {
       final rem = (num % const Integer(8)).toInt();
-      switch (rem) {
-        case 1 || 7:
-          return specialRadicalExpr(SpecialRadical.sqrt2Over2);
-        case 3 || 5:
-          return specialRadicalExpr(SpecialRadical.sqrt2Over2, negative: true);
-        case 2 || 6: // reduced 1/2, 3/2
-          return IntegerNumber.zero;
-        case 0:
-          return IntegerNumber.one;
-        case 4:
-          return IntegerNumber.negativeOne;
+      if (rem == 1 || rem == 7) {
+        return specialRadicalExpr(SpecialRadical.sqrt2Over2);
+      }
+      if (rem == 3 || rem == 5) {
+        return specialRadicalExpr(SpecialRadical.sqrt2Over2, negative: true);
       }
     }
     if (den == const Integer(3)) {
       final rem = (num % const Integer(6)).toInt();
-      switch (rem) {
-        case 1 || 5:
-          return specialRadicalExpr(SpecialRadical.half);
-        case 2 || 4:
-          return specialRadicalExpr(SpecialRadical.half, negative: true);
-        case 0:
-          return IntegerNumber.one;
-        case 3:
-          return IntegerNumber.negativeOne;
+      if (rem == 1 || rem == 5) {
+        return specialRadicalExpr(SpecialRadical.half);
+      }
+      if (rem == 2 || rem == 4) {
+        return specialRadicalExpr(SpecialRadical.half, negative: true);
       }
     }
   }
@@ -220,34 +182,23 @@ Expr simplifyTan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
       final rem = (num % const Integer(4)).toInt();
       if (rem == 1) return IntegerNumber.one;
       if (rem == 3) return IntegerNumber.negativeOne;
-      if (rem == 0 || rem == 2) return IntegerNumber.zero;
     }
     if (den == const Integer(6)) {
       final rem = (num % const Integer(6)).toInt();
-      switch (rem) {
-        case 1:
-          return specialRadicalExpr(SpecialRadical.sqrt3Over3);
-        case 5:
-          return specialRadicalExpr(SpecialRadical.sqrt3Over3, negative: true);
-        case 2: // 2/6 = 1/3
-          return specialRadicalExpr(SpecialRadical.sqrt3);
-        case 4: // 4/6 = 2/3
-          return specialRadicalExpr(SpecialRadical.sqrt3, negative: true);
-        case 3: // 3/6 = 1/2
-          return Constant.undefined;
-        case 0:
-          return IntegerNumber.zero;
+      if (rem == 1) {
+        return specialRadicalExpr(SpecialRadical.sqrt3Over3);
+      }
+      if (rem == 5) {
+        return specialRadicalExpr(SpecialRadical.sqrt3Over3, negative: true);
       }
     }
     if (den == const Integer(3)) {
       final rem = (num % const Integer(3)).toInt();
-      switch (rem) {
-        case 1:
-          return specialRadicalExpr(SpecialRadical.sqrt3);
-        case 2:
-          return specialRadicalExpr(SpecialRadical.sqrt3, negative: true);
-        case 0:
-          return IntegerNumber.zero;
+      if (rem == 1) {
+        return specialRadicalExpr(SpecialRadical.sqrt3);
+      }
+      if (rem == 2) {
+        return specialRadicalExpr(SpecialRadical.sqrt3, negative: true);
       }
     }
   }
@@ -312,7 +263,6 @@ Expr simplifyAcos(Expr expr) {
 
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    if (posExpr is Number && posExpr.isOne) return Constant.pi;
     if (isHalf(posExpr)) {
       return Mul([
         const FractionNumber(Integer.two, Integer(3)),
@@ -1214,8 +1164,6 @@ Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
 Expr simplifyFloor(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
-    case IntegerNumber():
-      return expr;
     case FractionNumber(:final numerator, :final denominator):
       final q = numerator ~/ denominator;
       return IntegerNumber(
@@ -1249,8 +1197,6 @@ Expr simplifyFloor(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 Expr simplifyCeil(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
-    case IntegerNumber():
-      return expr;
     case FractionNumber(:final numerator, :final denominator):
       final q = numerator ~/ denominator;
       return IntegerNumber(
@@ -1284,8 +1230,6 @@ Expr simplifyCeil(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
-    case IntegerNumber():
-      return expr;
     case FractionNumber(:final numerator, :final denominator):
       return IntegerNumber(
         Integer.from((numerator.toDouble() / denominator.toDouble()).round()),
@@ -1598,13 +1542,7 @@ Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
       assumptions: assumptions,
     );
   }
-  if (r is Number && r.isZero) {
-    return r is RealNumber ? const RealNumber(0.0) : IntegerNumber.zero;
-  }
-  var theta = simplifyArg(simplified, assumptions: assumptions);
-  if (theta is Arg && re is RealNumeric && im is RealNumeric && !im.isZero) {
-    theta = simplifyArg(ComplexNumber.of(re, im), assumptions: assumptions);
-  }
+  final theta = simplifyArg(simplified, assumptions: assumptions);
   if (theta is Number && theta.isZero) {
     return r;
   }
@@ -1624,15 +1562,8 @@ Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     return (re: expr, im: IntegerNumber.zero);
   }
   switch (expr) {
-    case RealNumeric():
-      return (re: expr, im: IntegerNumber.zero);
     case ComplexNumber(:final real, :final imaginary):
       return (re: real, im: imaginary);
-    case Constant(:final value):
-      return (
-        re: RealNumber.fromDouble(value.real.toDouble()),
-        im: RealNumber.fromDouble(value.imaginary.toDouble()),
-      );
     case Variable():
       return (
         re: Re(expr, isSimplified: true),
@@ -1641,16 +1572,6 @@ Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     case Conjugate(:final expr):
       final (:re, :im) = _decomposeComplex(expr, assumptions);
       return (re: re, im: simplifyNeg(im));
-    case Re(:final expr):
-      return (
-        re: _decomposeComplex(expr, assumptions).re,
-        im: IntegerNumber.zero,
-      );
-    case Im(:final expr):
-      return (
-        re: _decomposeComplex(expr, assumptions).im,
-        im: IntegerNumber.zero,
-      );
     case Add(:final terms):
       final reTerms = <Expr>[];
       final imTerms = <Expr>[];
