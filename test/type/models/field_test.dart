@@ -74,7 +74,9 @@ void main() {
       check(complexField.infinity.a).equals(double.infinity);
 
       final fracField = DataType.fraction.field;
-      check(fracField.nan.isNaN).isTrue();
+      check(() => fracField.nan).throws<UnsupportedError>();
+      check(() => fracField.infinity).throws<UnsupportedError>();
+      check(() => fracField.negativeInfinity).throws<UnsupportedError>();
 
       final bigIntField = DataType.bigInt.field;
       check(() => bigIntField.nan).throws<UnsupportedError>();

@@ -30,7 +30,7 @@ final class NumericDataType extends DataType<num> {
   int comparator(num a, num b) => a.compareTo(b);
 
   @override
-  num cast(dynamic value) {
+  num cast(Object? value) {
     if (value is num) {
       return value;
     } else if (value is BigInt) {

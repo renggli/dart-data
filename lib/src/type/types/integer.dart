@@ -54,7 +54,7 @@ abstract base class IntegerDataType<L extends List<int>>
   Equality<int> get equality => const IntegerEquality();
 
   @override
-  int cast(dynamic value) {
+  int cast(Object? value) {
     if (value is num) {
       if (bits >= 64) {
         return value.toInt();
@@ -73,7 +73,9 @@ abstract base class IntegerDataType<L extends List<int>>
     } else if (value is Fraction) {
       return cast(value.toInt());
     } else if (value is String) {
-      return int.tryParse(value) ?? super.cast(value);
+      final parsed = int.tryParse(value);
+      if (parsed != null) return cast(parsed);
+      return super.cast(value);
     }
     return super.cast(value);
   }
@@ -235,21 +237,19 @@ final class Int64DataType extends IntegerDataType<List<int>> {
   int get bits => 64;
 
   @override
-  int get min => -4294967296 * 2147483648;
+  int get min => isJavaScript ? -9007199254740991 : -4294967296 * 2147483648;
 
   @override
-  int get max => 454279 * 649657 * 31252369;
+  int get max => isJavaScript ? 9007199254740991 : 454279 * 649657 * 31252369;
 
   @override
   int get safeBits => isJavaScript ? 53 : 63;
 
   @override
-  int get safeMin =>
-      isJavaScript ? -4503599627370496 : -4294967296 * 1073741824;
+  int get safeMin => min;
 
   @override
-  int get safeMax =>
-      isJavaScript ? 4503599627370495 : 4294967296 * 1073741824 - 1;
+  int get safeMax => max;
 
   @override
   bool get isSigned => true;
@@ -283,7 +283,7 @@ final class Uint64DataType extends IntegerDataType<List<int>> {
   int get min => 0;
 
   @override
-  int get max => 4294967296 * 4294967296 - 1;
+  int get max => isJavaScript ? 9007199254740991 : 454279 * 649657 * 31252369;
 
   @override
   int get safeBits => isJavaScript ? 53 : 63;
@@ -293,7 +293,7 @@ final class Uint64DataType extends IntegerDataType<List<int>> {
 
   @override
   int get safeMax =>
-      isJavaScript ? 9007199254740991 : 4294967296 * 2147483648 - 1;
+      isJavaScript ? 9007199254740991 : 454279 * 649657 * 31252369;
 
   @override
   bool get isSigned => false;
@@ -357,7 +357,20 @@ final class IntegerField implements ExtendedField<int> {
   int remainder(int a, int b) => a.remainder(b);
 
   @override
-  int pow(int base, int exponent) => math.pow(base, exponent).truncate();
+  int pow(int base, int exponent) {
+    if (exponent < 0) {
+      throw RangeError.value(exponent, 'exponent', 'Must be non-negative');
+    }
+    var result = 1;
+    var b = base;
+    var e = exponent;
+    while (e > 0) {
+      if (e.isOdd) result *= b;
+      b *= b;
+      e >>= 1;
+    }
+    return result;
+  }
 
   @override
   int modPow(int base, int exponent, int modulus) =>

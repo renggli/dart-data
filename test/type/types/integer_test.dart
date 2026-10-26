@@ -76,24 +76,27 @@ void main() {
       DataType.int64,
       isSigned: true,
       bits: 64,
-      min: -4294967296 * 2147483648,
-      max: 454279 * 649657 * 31252369,
+      min: DataType.int64.min,
+      max: DataType.int64.max,
     );
     testInteger(
       DataType.uint64,
       isSigned: false,
       bits: 64,
       min: 0,
-      max: 4294967296 * 4294967296 - 1,
+      max: DataType.uint64.max,
     );
 
-    test('safeBits, safeMin, safeMax', () {
+    test('safeBits, safeMin, safeMax, and string casting wrap', () {
       check(DataType.int64.safeBits).isGreaterThan(50);
       check(DataType.int64.safeMin).isLessThan(0);
       check(DataType.int64.safeMax).isGreaterThan(0);
       check(DataType.uint64.safeBits).isGreaterThan(50);
       check(DataType.uint64.safeMin).equals(0);
       check(DataType.uint64.safeMax).isGreaterThan(0);
+      check(DataType.uint64.max).isGreaterThan(DataType.uint64.min);
+      check(DataType.int8.cast('200')).equals(-56);
+      check(DataType.uint8.cast('-1')).equals(255);
     });
 
     test('IntegerField extended operations', () {

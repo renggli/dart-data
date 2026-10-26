@@ -21,7 +21,7 @@ final class BigIntDataType extends DataType<BigInt> {
   int comparator(BigInt a, BigInt b) => a.compareTo(b);
 
   @override
-  BigInt cast(dynamic value) {
+  BigInt cast(Object? value) {
     if (value is BigInt) {
       return value;
     } else if (value is num) {
