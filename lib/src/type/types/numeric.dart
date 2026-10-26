@@ -34,7 +34,7 @@ final class NumericDataType extends DataType<num> {
     if (value is num) {
       return value;
     } else if (value is BigInt) {
-      return value.toInt();
+      return value.isValidInt ? value.toInt() : value.toDouble();
     } else if (value is Fraction) {
       return value.toDouble();
     } else if (value is String) {

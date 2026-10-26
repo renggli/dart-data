@@ -488,5 +488,29 @@ void main() {
       check(res).deepEquals([1.0, 2.0, 3.0]);
       check(evalCount).equals(3);
     });
+
+    test('ObjectDataType copyList and castList without defaultValue', () {
+      final dtType = DataType.fromType<DateTime>();
+      final d1 = DateTime.utc(2026, 1, 1);
+      final d2 = DateTime.utc(2026, 1, 2);
+      final copied = dtType.copyList([d1, d2]);
+      check(copied).deepEquals([d1, d2]);
+      final casted = dtType.castList([d1, d2]);
+      check(casted).deepEquals([d1, d2]);
+    });
+
+    test('cast edge cases for integer, bigInt, numeric, and boolean', () {
+      check(DataType.uint64.cast(-1))
+          .equals(DataType.uint64.cast(BigInt.from(-1)));
+      check(DataType.uint64.cast(-1.0))
+          .equals(DataType.uint64.cast(BigInt.from(-1)));
+      check(() => DataType.int32.cast(double.nan)).throws<ArgumentError>();
+      check(() => DataType.int64.cast(double.infinity)).throws<ArgumentError>();
+      check(() => DataType.bigInt.cast(double.nan)).throws<ArgumentError>();
+      check(DataType.bigInt.cast(Fraction(7, 2))).equals(BigInt.from(3));
+      check(DataType.numeric.cast(BigInt.from(42))).equals(42);
+      check(DataType.boolean.cast(' TRUE ')).isTrue();
+      check(DataType.boolean.cast('False')).isFalse();
+    });
   });
 }

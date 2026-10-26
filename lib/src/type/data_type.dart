@@ -190,12 +190,18 @@ abstract base class DataType<T> {
     T? fillValue,
     bool readonly = false,
   }) {
-    final listLength = iterable.length;
-    final result = newList(
-      length ?? listLength,
-      fillValue: fillValue ?? defaultValue,
-    );
-    result.setRange(0, math.min(result.length, listLength), iterable);
+    final list = iterable is List<T>
+        ? iterable
+        : iterable.toList(growable: false);
+    final listLength = list.length;
+    final targetLength = length ?? listLength;
+    final List<T> result;
+    if (targetLength <= listLength && fillValue == null) {
+      result = newList(targetLength, generate: (i) => list[i]);
+    } else {
+      result = newList(targetLength, fillValue: fillValue ?? defaultValue);
+      result.setRange(0, math.min(targetLength, listLength), list);
+    }
     return readonly ? UnmodifiableListView<T>(result) : result;
   }
 
@@ -204,12 +210,7 @@ abstract base class DataType<T> {
     final source = elements is List<Object?>
         ? elements
         : elements.toList(growable: false);
-    final len = source.length;
-    final list = newList(len);
-    for (var i = 0; i < len; i++) {
-      list[i] = cast(source[i]);
-    }
-    return list;
+    return newList(source.length, generate: (i) => cast(source[i]));
   }
 
   /// Returns a default printer for this data type.

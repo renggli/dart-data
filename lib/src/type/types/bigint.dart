@@ -25,7 +25,10 @@ final class BigIntDataType extends DataType<BigInt> {
     if (value is BigInt) {
       return value;
     } else if (value is num) {
+      if (!value.isFinite) return super.cast(value);
       return BigInt.from(value);
+    } else if (value is Fraction) {
+      return BigInt.from(value.toInt());
     } else if (value is String) {
       return BigInt.tryParse(value) ?? super.cast(value);
     }

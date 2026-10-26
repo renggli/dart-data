@@ -73,7 +73,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
 
 ## Phase 2: `type`, `tensor`, `acceleration`, and `linear` Bugs & Cleanups
 
-### [ ] TASK-2.1: Fix `DataType` (`ObjectDataType`, `Uint64DataType`), `memory.dart` Cross-Type Aliasing & `dynamic`
+### [x] TASK-2.1: Fix `DataType` (`ObjectDataType`, `Uint64DataType`), `memory.dart` Cross-Type Aliasing & `dynamic`
 - **Files**:
   - `lib/src/type/data_type.dart` (lines 190–215)
   - `lib/src/type/types/integer.dart` (lines 55–80)

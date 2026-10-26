@@ -36,10 +36,11 @@ final class BooleanDataType extends DataType<bool> {
     } else if (value is num) {
       return value != 0 && !value.isNaN;
     } else if (value is String) {
-      if (_trueStrings.contains(value)) {
+      final normalized = value.trim().toLowerCase();
+      if (_trueStrings.contains(normalized)) {
         return true;
       }
-      if (_falseStrings.contains(value)) {
+      if (_falseStrings.contains(normalized)) {
         return false;
       }
     }

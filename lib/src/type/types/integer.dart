@@ -56,13 +56,17 @@ abstract base class IntegerDataType<L extends List<int>>
   @override
   int cast(Object? value) {
     if (value is num) {
-      if (bits >= 64) {
-        return value.toInt();
-      }
+      if (!value.isFinite) return super.cast(value);
+      final intVal = value.toInt();
       if (isSigned) {
-        return value.toInt().toSigned(bits);
+        return bits >= 64 ? intVal : intVal.toSigned(bits);
       } else {
-        return value.toInt().toUnsigned(bits);
+        if (bits >= 64) {
+          return intVal >= 0
+              ? intVal
+              : BigInt.from(intVal).toUnsigned(bits).toInt();
+        }
+        return intVal.toUnsigned(bits);
       }
     } else if (value is BigInt) {
       if (isSigned) {
