@@ -174,11 +174,14 @@ void main() {
         final syntax = ExprSyntax.standard;
         final u = syntax.parseVector('[1, x, x^2]');
         final w = syntax.parseVector('[x^2, -2 * x, 1]');
-        check(u.dot(w)).equals(IntegerNumber.zero);
+        check(u.dot(w).simplify(assumptions: Assumptions.real))
+            .equals(IntegerNumber.zero);
 
         final c = u.cross(w).simplify();
-        check(c.dot(u).expand().simplify()).equals(IntegerNumber.zero);
-        check(c.dot(w).expand().simplify()).equals(IntegerNumber.zero);
+        check(c.dot(u).expand().simplify(assumptions: Assumptions.real))
+            .equals(IntegerNumber.zero);
+        check(c.dot(w).expand().simplify(assumptions: Assumptions.real))
+            .equals(IntegerNumber.zero);
         check(() => v.cross(dv)).throws<ArgumentError>();
       },
     );

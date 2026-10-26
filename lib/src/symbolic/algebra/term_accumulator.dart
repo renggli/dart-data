@@ -233,6 +233,9 @@ class MonomialAccumulator {
         if (sinCoeff == cosCoeff) {
           terms.remove(sinKey);
           terms.remove(cosKey);
+          if (_hasRealExponent(sinKey) || _hasRealExponent(cosKey)) {
+            hasReal = true;
+          }
           constant = constant.add(sinCoeff);
         } else if (!sinCoeff.isNegative && !cosCoeff.isNegative) {
           final m = sinCoeff.compareTo(cosCoeff) < 0 ? sinCoeff : cosCoeff;
@@ -248,6 +251,9 @@ class MonomialAccumulator {
           } else {
             terms[cosKey] = newCos;
           }
+          if (_hasRealExponent(sinKey) || _hasRealExponent(cosKey)) {
+            hasReal = true;
+          }
           constant = constant.add(m);
         }
       }
@@ -259,9 +265,10 @@ class MonomialAccumulator {
         if (uSin != null && value == IntegerNumber.negativeOne) {
           terms.remove(key);
           constant = IntegerNumber.zero;
+          final exp = key is Pow ? key.exponent : IntegerNumber.two;
           final cos2 = Pow(
             Cos(uSin, isSimplified: true),
-            IntegerNumber.two,
+            exp,
             isSimplified: true,
           );
           final existing = terms[cos2];
@@ -274,9 +281,10 @@ class MonomialAccumulator {
         if (uCos != null && value == IntegerNumber.negativeOne) {
           terms.remove(key);
           constant = IntegerNumber.zero;
+          final exp = key is Pow ? key.exponent : IntegerNumber.two;
           final sin2 = Pow(
             Sin(uCos, isSimplified: true),
-            IntegerNumber.two,
+            exp,
             isSimplified: true,
           );
           final existing = terms[sin2];
@@ -308,6 +316,9 @@ class MonomialAccumulator {
         if (coshCoeff == sinhCoeff.neg() && !coshCoeff.isNegative) {
           terms.remove(coshKey);
           terms.remove(sinhKey);
+          if (_hasRealExponent(coshKey) || _hasRealExponent(sinhKey)) {
+            hasReal = true;
+          }
           constant = constant.add(coshCoeff);
         }
       }
@@ -770,7 +781,7 @@ int? polynomialDegree(Expr expr, String variable) {
 Map<int, Expr>? extractPolynomialCoefficients(Expr expr, String variable) {
   final expanded = expr.expand().simplify();
   if (!expanded.dependsOn(variable)) {
-    return expanded is Number && expanded.isZero
+    return expanded is RationalNumber && expanded.isZero
         ? {0: IntegerNumber.zero}
         : {0: expanded};
   }
@@ -844,6 +855,8 @@ Expr? _isSquareOfCosh(Expr term) => switch (term) {
 bool _isTwo(Expr exp) =>
     exp == IntegerNumber.two || (exp is RealNumber && exp.value == 2.0);
 
+bool _hasRealExponent(Expr expr) => expr is Pow && expr.exponent is RealNumber;
+
 bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
   Ln() => true,
   Pow(base: Sin() || Cos() || Sinh() || Cosh()) => true,
@@ -863,7 +876,12 @@ bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
         when name == variable && !exponent.dependsOn(variable):
       final p = _asPositiveInt(exponent);
       if (p == null) return null;
-      return (power: p, coeff: IntegerNumber.one);
+      return (
+        power: p,
+        coeff: exponent is RealNumber
+            ? const RealNumber(1.0)
+            : IntegerNumber.one,
+      );
 
     case Mul(:final factors):
       var totalPower = 0;
@@ -875,7 +893,7 @@ bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
           final sub = _extractBaseMonomial(f, variable);
           if (sub == null) return null;
           totalPower += sub.power;
-          if (sub.coeff case final c when !(c is Number && c.isOne)) {
+          if (sub.coeff case final c when !(c is RationalNumber && c.isOne)) {
             coeffFactors.add(c);
           }
         }

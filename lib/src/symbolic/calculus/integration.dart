@@ -1514,7 +1514,7 @@ Expr? _extractSquareBase(Expr expr) => switch (expr) {
         : Pow(base, IntegerNumber(value ~/ Integer.two)),
   Pow(:final base, exponent: RealNumber(:final value))
       when value % 2.0 == 0.0 && value > 0 =>
-    value == 2.0 ? base : Pow(base, IntegerNumber.of((value / 2.0).round())),
+    value == 2.0 ? base : Pow(base, RealNumber(value / 2.0)),
   _ => null,
 };
 

@@ -295,7 +295,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   4. Add unit tests for all 4 cases.
 - **Verification**: `dart test test/symbolic/ast/integral_test.dart test/symbolic/calculus/`
 
-### [ ] TASK-4.2: Fix Remaining `RealNumber` Contagion Gaps, `ExprField.conjugate`, `isIntegerExpr` False Positives, Parser Constant Shadowing, and `Derivative.format` Round-Tripping
+### [x] TASK-4.2: Fix Remaining `RealNumber` Contagion Gaps, `ExprField.conjugate`, `isIntegerExpr` False Positives, Parser Constant Shadowing, and `Derivative.format` Round-Tripping
 - **Files**:
   - `lib/src/symbolic/type/expr_data_type.dart` (lines 51, 182–183)
   - `lib/src/symbolic/ast/number.dart` (lines 690–698)

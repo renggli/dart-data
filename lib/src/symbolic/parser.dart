@@ -506,14 +506,19 @@ class ExprSyntax {
   static Expr _parseIntegralArgs(List<Expr> args) => switch (args) {
     [final integrand, Variable(:final name)] => Integral(integrand, name),
     [final integrand, final v] when _asVariableName(v) != null => Integral(
-      integrand,
+      _unbindConstant(integrand, v, _asVariableName(v)!),
       _asVariableName(v)!,
     ),
     [final integrand, Variable(:final name), final lower, final upper] =>
       Integral(integrand, name, lower: lower, upper: upper),
     [final integrand, final v, final lower, final upper]
         when _asVariableName(v) != null =>
-      Integral(integrand, _asVariableName(v)!, lower: lower, upper: upper),
+      Integral(
+        _unbindConstant(integrand, v, _asVariableName(v)!),
+        _asVariableName(v)!,
+        lower: lower,
+        upper: upper,
+      ),
     [_, final invalidVar, ...] => throw FormatException(
       'integrate second argument must be a variable identifier, got: $invalidVar',
     ),
@@ -525,7 +530,7 @@ class ExprSyntax {
   static Expr _parseDerivativeArgs(List<Expr> args) => switch (args) {
     [final expr, Variable(:final name)] => Derivative(expr, name),
     [final expr, final v] when _asVariableName(v) != null => Derivative(
-      expr,
+      _unbindConstant(expr, v, _asVariableName(v)!),
       _asVariableName(v)!,
     ),
     [final expr, Variable(:final name), IntegerNumber(asInt: final order?)]
@@ -533,7 +538,11 @@ class ExprSyntax {
       Derivative(expr, name, order: order),
     [final expr, final v, IntegerNumber(asInt: final order?)]
         when order >= 1 && _asVariableName(v) != null =>
-      Derivative(expr, _asVariableName(v)!, order: order),
+      Derivative(
+        _unbindConstant(expr, v, _asVariableName(v)!),
+        _asVariableName(v)!,
+        order: order,
+      ),
     [
       final expr,
       Variable(:final name),
@@ -544,10 +553,16 @@ class ExprSyntax {
       Derivative(expr, name, order: order, point: point),
     [final expr, final v, IntegerNumber(asInt: final order?), final point]
         when order >= 1 && _asVariableName(v) != null =>
-      Derivative(expr, _asVariableName(v)!, order: order, point: point),
-    [_, Variable(), final invalidOrder] => throw FormatException(
-      'diff order must be a positive integer, got: $invalidOrder',
-    ),
+      Derivative(
+        _unbindConstant(expr, v, _asVariableName(v)!),
+        _asVariableName(v)!,
+        order: order,
+        point: point,
+      ),
+    [_, final v, final invalidOrder] when _asVariableName(v) != null =>
+      throw FormatException(
+        'diff order must be a positive integer, got: $invalidOrder',
+      ),
     [_, final invalidVar, ...] => throw FormatException(
       'diff second argument must be a variable identifier, got: $invalidVar',
     ),
@@ -563,7 +578,7 @@ class ExprSyntax {
       point,
     ),
     [final expr, final v, final point] when _asVariableName(v) != null => Limit(
-      expr,
+      _unbindConstant(expr, v, _asVariableName(v)!),
       _asVariableName(v)!,
       point,
     ),
@@ -576,7 +591,7 @@ class ExprSyntax {
     [final expr, final v, final point, final dirExpr]
         when _asVariableName(v) != null =>
       Limit(
-        expr,
+        _unbindConstant(expr, v, _asVariableName(v)!),
         _asVariableName(v)!,
         point,
         direction: _parseLimitDirection(dirExpr),
@@ -610,7 +625,12 @@ class ExprSyntax {
     ),
     [final expr, final v, final lower, final upper]
         when _asVariableName(v) != null =>
-      Sum(expr, _asVariableName(v)!, lower, upper),
+      Sum(
+        _unbindConstant(expr, v, _asVariableName(v)!),
+        _asVariableName(v)!,
+        lower,
+        upper,
+      ),
     [_, final invalidVar, _, _] => throw FormatException(
       'sum second argument must be a variable identifier, got: $invalidVar',
     ),
@@ -626,7 +646,12 @@ class ExprSyntax {
     ),
     [final expr, final v, final lower, final upper]
         when _asVariableName(v) != null =>
-      Product(expr, _asVariableName(v)!, lower, upper),
+      Product(
+        _unbindConstant(expr, v, _asVariableName(v)!),
+        _asVariableName(v)!,
+        lower,
+        upper,
+      ),
     [_, final invalidVar, _, _] => throw FormatException(
       'product second argument must be a variable identifier, got: $invalidVar',
     ),
@@ -634,6 +659,67 @@ class ExprSyntax {
       'product requires 4 arguments, got ${args.length}',
     ),
   };
+
+  static Expr _unbindConstant(Expr expr, Expr varToken, String varName) {
+    if (varToken is Variable) return expr;
+    Expr visit(Expr node) {
+      if (node == varToken) return Variable(varName);
+      if (node == ComplexNumber.negativeI && varName == 'i') {
+        return -Variable(varName);
+      }
+      if (varName == 'e' &&
+          node is Pow &&
+          node.base == Constant.e &&
+          node.exponent.anyNode((n) => n == Constant.e)) {
+        return Pow(Constant.e, visit(node.exponent));
+      }
+      if (node is Integral && node.isDefinite && node.variable == varName) {
+        return Integral(
+          node.integrand,
+          node.variable,
+          lower: visit(node.lower!),
+          upper: visit(node.upper!),
+        );
+      }
+      if (node is Derivative &&
+          node.point != null &&
+          node.variable == varName) {
+        return Derivative(
+          node.expr,
+          node.variable,
+          order: node.order,
+          point: visit(node.point!),
+        );
+      }
+      if (node is Limit && node.variable == varName) {
+        return Limit(
+          node.expr,
+          node.variable,
+          visit(node.point),
+          direction: node.direction,
+        );
+      }
+      if (node is Sum && node.variable == varName) {
+        return Sum(
+          node.expr,
+          node.variable,
+          visit(node.lower),
+          visit(node.upper),
+        );
+      }
+      if (node is Product && node.variable == varName) {
+        return Product(
+          node.expr,
+          node.variable,
+          visit(node.lower),
+          visit(node.upper),
+        );
+      }
+      return node.mapChildren(visit);
+    }
+
+    return visit(expr);
+  }
 
   static String? _asVariableName(Expr expr) => switch (expr) {
     Variable(:final name) => name,

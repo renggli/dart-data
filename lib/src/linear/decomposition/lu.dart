@@ -116,7 +116,9 @@ class LUDecomposition<T> {
     final zero = field.additiveIdentity;
     for (var j = 0; j < _n; j++) {
       final val = _lu.getUnchecked(j, j);
-      if (field.add(val, zero) == zero || field.norm(val).isNaN) {
+      if (field.add(val, zero) == zero ||
+          (val is num && val.isNaN) ||
+          val != val) {
         return false;
       }
     }

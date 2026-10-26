@@ -286,6 +286,8 @@ void main() {
         check(const RealNumber(1e200).powNumber(const RealNumber(10.0)))
             .isNull();
         check(IntegerNumber.two.powNumber(ComplexNumber.i)).isNull();
+        check(ComplexNumber.of(IntegerNumber.of(3), const RealNumber(0.0)))
+            .equals(const RealNumber(3.0));
       },
     );
   });

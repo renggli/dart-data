@@ -186,20 +186,25 @@ void main() {
             .equals(Derivative(Pow(x, IntegerNumber.of(3)), 'x', order: 2));
         check(syntax.parse('sum(i^2, i, 1, n)')).equals(
           Sum(
-            Pow(ComplexNumber.i, IntegerNumber.two),
+            Pow(const Variable('i'), IntegerNumber.two),
             'i',
             IntegerNumber.one,
             const Variable('n'),
           ),
         );
         check(syntax.parse('product(i, i, 1, n)')).equals(
-          Product(ComplexNumber.i, 'i', IntegerNumber.one, const Variable('n')),
+          Product(
+            const Variable('i'),
+            'i',
+            IntegerNumber.one,
+            const Variable('n'),
+          ),
         );
         check(syntax.parse('integrate(exp(e), e)'))
-            .equals(Integral(Pow(Constant.e, Constant.e), 'e'));
+            .equals(Integral(Pow(Constant.e, const Variable('e')), 'e'));
         check(syntax.parse('limit(1 / i, i, 0)')).equals(
           Limit(
-            Pow(ComplexNumber.i, IntegerNumber.negativeOne),
+            Pow(const Variable('i'), IntegerNumber.negativeOne),
             'i',
             IntegerNumber.zero,
           ),
@@ -370,6 +375,19 @@ void main() {
 
       check(() => Expr.parse('integrate(x)')).throws<FormatException>();
       check(() => Expr.parse('limit(x, y)')).throws<FormatException>();
+
+      // Bound variable shadowing of standard constants (i, e, pi)
+      check(Expr.parse('sum(i, i, 1, 10)').simplify())
+          .equals(IntegerNumber.of(55));
+      check(Expr.parse('product(i, i, 1, 4)').simplify())
+          .equals(IntegerNumber.of(24));
+      check(Expr.parse('diff(e^2, e, 1, 3)').simplify())
+          .equals(IntegerNumber.of(6));
+      check(Expr.parse('integrate(e, e)'))
+          .equals(Integral(const Variable('e'), 'e'));
+      check(Expr.parse('limit(e + 1, e, 2)')).equals(
+        Limit(const Variable('e') + IntegerNumber.one, 'e', IntegerNumber.two),
+      );
     });
   });
 }

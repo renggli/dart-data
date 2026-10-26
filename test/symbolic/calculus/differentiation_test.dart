@@ -179,7 +179,7 @@ void main() {
           'x',
           point: IntegerNumber.one,
         ).derivative('y').toString(),
-      ).equals('diff(diff(f(x, y), y), x, 1)');
+      ).equals('diff(diff(f(x, y), y), x, 1, 1)');
       check(Mod(x * IntegerNumber.two, IntegerNumber.of(5)).derivative('x'))
           .equals(IntegerNumber.two);
       check(Mod(x, x).derivative('x')).equals(Derivative(Mod(x, x), 'x'));

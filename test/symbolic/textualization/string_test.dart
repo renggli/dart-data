@@ -163,6 +163,17 @@ void main() {
           const Variable('x'),
           Pow(const Variable('y'), IntegerNumber.negativeOne),
         ]),
+        Derivative(
+          VariableFunction('f', const [Variable('x')]),
+          'x',
+          point: IntegerNumber.two,
+        ),
+        Derivative(
+          VariableFunction('f', const [Variable('x')]),
+          'x',
+          order: 2,
+          point: const Variable('a'),
+        ),
       ];
       for (final e in directNodes) {
         final rendered = e.toString();

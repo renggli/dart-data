@@ -68,7 +68,7 @@ void main() {
       check(coeffs![0].toString()).equals('3 * e + d');
       check(coeffs[1].toString()).equals('c');
       check(coeffs[2].toString()).equals('a + 2 * b + k');
-      check(coeffs[3]).equals(IntegerNumber.one);
+      check(coeffs[3]).equals(const RealNumber(1.0));
 
       // Non-polynomial cases return null
       for (final bad in [

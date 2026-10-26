@@ -691,8 +691,11 @@ final class ComplexNumber extends Number {
 
   /// Constructs a canonical [Number] from [real] and [imaginary] components,
   /// automatically demoting to [real] when `imaginary.isZero`.
-  static Number of(RealNumeric real, RealNumeric imaginary) =>
-      imaginary.isZero ? real : ComplexNumber(real, imaginary);
+  static Number of(RealNumeric real, RealNumeric imaginary) => imaginary.isZero
+      ? (imaginary is RealNumber && real is! RealNumber
+            ? RealNumber(real.toDouble())
+            : real)
+      : ComplexNumber(real, imaginary);
 
   /// The imaginary unit $i = 0 + 1i$.
   static const i = ComplexNumber(IntegerNumber.zero, IntegerNumber.one);

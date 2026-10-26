@@ -100,9 +100,7 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
           : 'integrate(${_formatExpr(integrand, 0, decimalPlaces)}, $variable)',
     Derivative(:final expr, :final variable, :final order, :final point) =>
       point != null
-          ? (order == 1
-                ? 'diff(${_formatExpr(expr, 0, decimalPlaces)}, $variable, ${_formatExpr(point, 0, decimalPlaces)})'
-                : 'diff(${_formatExpr(expr, 0, decimalPlaces)}, $variable, $order, ${_formatExpr(point, 0, decimalPlaces)})')
+          ? 'diff(${_formatExpr(expr, 0, decimalPlaces)}, $variable, $order, ${_formatExpr(point, 0, decimalPlaces)})'
           : (order == 1
                 ? 'diff(${_formatExpr(expr, 0, decimalPlaces)}, $variable)'
                 : 'diff(${_formatExpr(expr, 0, decimalPlaces)}, $variable, $order)'),

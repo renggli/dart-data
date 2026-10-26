@@ -118,7 +118,7 @@ void main() {
               const OrderTerm('x', 2),
         ),
       ).equals(
-        (x +
+        (Conjugate(x) +
                 ComplexNumber(IntegerNumber.two, IntegerNumber.of(-3)) +
                 const OrderTerm('x', 2))
             .simplify(),

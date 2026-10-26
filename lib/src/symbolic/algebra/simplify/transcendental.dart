@@ -588,13 +588,14 @@ bool isNonNegativeExpr(
 /// Returns `true` if [expr] is syntactically integer-valued under [assumptions].
 bool isIntegerExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
     switch (expr) {
-      IntegerNumber() ||
-      Floor() ||
-      Ceil() ||
-      Round() ||
-      Sign() ||
-      Factorial() ||
-      Binomial() => true,
+      IntegerNumber() || Floor() || Ceil() || Round() => true,
+      Sign(:final expr) => isProvenReal(expr, assumptions),
+      Factorial(:final expr) =>
+        isIntegerExpr(expr, assumptions: assumptions) &&
+            isNonNegativeExpr(expr, assumptions: assumptions),
+      Binomial(:final left, :final right) =>
+        isIntegerExpr(left, assumptions: assumptions) &&
+            isIntegerExpr(right, assumptions: assumptions),
       Variable(:final name) =>
         assumptions.domainOf(name) == VariableDomain.integer,
       Add(:final terms) => terms.every(
@@ -1354,12 +1355,14 @@ Expr simplifyMod(
     return Constant.undefined;
   }
   if (left is Number && left.isZero) {
-    return IntegerNumber.zero;
+    return left is RealNumber || right is RealNumber
+        ? const RealNumber(0.0)
+        : IntegerNumber.zero;
   }
   if (right is Number &&
       right.isOne &&
       isIntegerExpr(left, assumptions: assumptions)) {
-    return IntegerNumber.zero;
+    return right is RealNumber ? const RealNumber(0.0) : IntegerNumber.zero;
   }
   if (left is RationalNumber && right is RationalNumber) {
     final q = simplifyFloor(
@@ -1381,8 +1384,10 @@ Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   switch (expr) {
     case RealNumeric():
       return expr;
-    case ComplexNumber(:final real):
-      return real;
+    case ComplexNumber(:final real, :final imaginary):
+      return imaginary is RealNumber && real is! RealNumber
+          ? RealNumber.fromDouble(real.toDouble())
+          : real;
     case Re() || Im() || Arg() || Abs():
       return expr;
     case Conjugate(:final expr):
@@ -1406,10 +1411,14 @@ Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 /// Simplifies an imaginary-part expression $\Im(z)$.
 Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   switch (expr) {
+    case RealNumber():
+      return const RealNumber(0.0);
     case RealNumeric() || Re() || Im() || Arg() || Abs():
       return IntegerNumber.zero;
-    case ComplexNumber(:final imaginary):
-      return imaginary;
+    case ComplexNumber(:final real, :final imaginary):
+      return real is RealNumber && imaginary is! RealNumber
+          ? RealNumber.fromDouble(imaginary.toDouble())
+          : imaginary;
     case Conjugate(:final expr):
       return simplifyNeg(simplifyIm(expr, assumptions: assumptions));
     case Add(:final terms):
@@ -1431,8 +1440,15 @@ Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 /// Simplifies a complex argument expression $\arg(z)$.
 Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   switch (expr) {
+    case RealNumber(:final value):
+      return RealNumber.fromDouble(math.atan2(0.0, value));
     case RealNumeric(:final isNegative):
       return isNegative ? Constant.pi : IntegerNumber.zero;
+    case ComplexNumber(:final real, :final imaginary)
+        when real is RealNumber || imaginary is RealNumber:
+      return RealNumber.fromDouble(
+        math.atan2(imaginary.toDouble(), real.toDouble()),
+      );
     case ComplexNumber(:final real, :final imaginary):
       if (real.isZero) {
         final coeff = imaginary.isNegative
@@ -1563,7 +1579,12 @@ Expr toRectangularExpr(
 Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   final simplified = simplifyExpr(expr, assumptions: assumptions);
   if (simplified is Number && simplified.isZero) {
-    return IntegerNumber.zero;
+    return simplified is RealNumber ||
+            (simplified is ComplexNumber &&
+                (simplified.real is RealNumber ||
+                    simplified.imaginary is RealNumber))
+        ? const RealNumber(0.0)
+        : IntegerNumber.zero;
   }
   final (:re, :im) = _decomposeComplex(simplified, assumptions);
   var r = simplifyAbs(simplified, assumptions: assumptions);
@@ -1578,7 +1599,7 @@ Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     );
   }
   if (r is Number && r.isZero) {
-    return IntegerNumber.zero;
+    return r is RealNumber ? const RealNumber(0.0) : IntegerNumber.zero;
   }
   var theta = simplifyArg(simplified, assumptions: assumptions);
   if (theta is Arg && re is RealNumeric && im is RealNumeric && !im.isZero) {
@@ -1593,7 +1614,7 @@ Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     isSimplified: true,
   );
   if (r is Number && r.isOne) {
-    return expPart;
+    return r is RealNumber ? Mul([r, expPart], isSimplified: true) : expPart;
   }
   return Mul([r, expPart], isSimplified: true);
 }

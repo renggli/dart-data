@@ -512,6 +512,23 @@ void main() {
           .isTrue();
       check(isEvenIntegerExpr(Pow(IntegerNumber.of(2), IntegerNumber.of(3))))
           .isTrue();
+
+      // isIntegerExpr guards non-integer Factorial, Binomial, and complex Sign
+      check(isIntegerExpr(Factorial(FractionNumber.half))).isFalse();
+      check(isIntegerExpr(Binomial(FractionNumber.half, IntegerNumber.two)))
+          .isFalse();
+      check(isIntegerExpr(Sign(z), assumptions: complexZ)).isFalse();
+      check(isIntegerExpr(Sign(x), assumptions: realAssumptions)).isTrue();
+      check(Floor(Factorial(x)).simplify()).isA<Floor>();
+
+      // RealNumber contagion in Mod, Re, Im, Arg, and toPolarExpr
+      check(simplifyMod(const RealNumber(0.0), IntegerNumber.of(3)))
+          .equals(const RealNumber(0.0));
+      check(simplifyRe(const ComplexNumber(IntegerNumber.two, RealNumber(1.0))))
+          .equals(const RealNumber(2.0));
+      check(simplifyIm(const RealNumber(3.5))).equals(const RealNumber(0.0));
+      check(simplifyArg(const RealNumber(-2.0))).isA<RealNumber>();
+      check(toPolarExpr(const RealNumber(0.0))).equals(const RealNumber(0.0));
     });
   });
 }

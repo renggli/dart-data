@@ -10,7 +10,6 @@ import '../algebra/factor.dart';
 import '../algebra/factor/fraction.dart';
 import '../algebra/simplify.dart';
 import '../algebra/structural_order.dart';
-import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
 
@@ -48,7 +47,7 @@ final class ExprDataType extends DataType<Expr> {
   int comparator(Expr a, Expr b) => compareStructural(a, b);
 
   @override
-  Expr cast(dynamic value) => Expr.tryWrap(value) ?? super.cast(value);
+  Expr cast(Object? value) => Expr.tryWrap(value) ?? super.cast(value);
 
   @override
   Printer<Expr> get printer => const StandardPrinter<Expr>();
@@ -179,8 +178,7 @@ final class ExprField implements ExtendedField<Expr> {
   Expr log(Expr a) => Ln(a).simplify();
 
   @override
-  Expr conjugate(Expr a) =>
-      Conjugate(a).simplify(assumptions: Assumptions.real);
+  Expr conjugate(Expr a) => Conjugate(a).simplify();
 
   @override
   Expr mod(Expr a, Expr b) => unsupportedOperation('mod');
