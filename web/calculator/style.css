@@ -1498,15 +1498,52 @@ body.calc-body {
     gap: 0.3rem;
   }
 
+  .calc-keypad-tabs {
+    gap: 0.2rem;
+    scrollbar-width: none;
+  }
+
+  .calc-keypad-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .calc-keypad-tab {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.45rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
   .calc-keypad-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 0.25rem;
   }
 
   .calc-key-btn {
-    min-height: 34px;
-    font-size: 0.85rem;
-    padding: 0.2rem 0.15rem;
+    min-height: 36px;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.1rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .calc-key-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .calc-key-num {
+    font-size: 1rem;
+  }
+
+  .calc-key-sym {
+    font-size: 1.1rem;
+  }
+
+  .calc-key-op {
+    font-size: 0.88rem;
   }
 }
 
@@ -1552,11 +1589,26 @@ body.calc-body {
   }
 
   .calc-keypad-grid {
-    gap: 0.2rem;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.15rem;
   }
 
   .calc-key-btn {
-    min-height: 30px;
-    font-size: 0.78rem;
+    min-height: 32px;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.05rem;
+  }
+
+  .calc-key-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .calc-key-num {
+    font-size: 0.9rem;
+  }
+
+  .calc-key-sym {
+    font-size: 1rem;
   }
 }
