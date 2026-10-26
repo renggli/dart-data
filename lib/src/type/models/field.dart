@@ -85,24 +85,6 @@ abstract interface class Field<T> {
 /// transcendental functions.
 abstract interface class ExtendedField<T> implements Field<T> {
   const new();
-
-  @override
-  T abs(T a);
-
-  @override
-  double norm(T a);
-
-  @override
-  T sqrt(T a);
-
-  @override
-  T exp(T a);
-
-  @override
-  T log(T a);
-
-  @override
-  T conjugate(T a);
 }
 
 /// Thrown when an operation is not supported.

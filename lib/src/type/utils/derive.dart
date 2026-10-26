@@ -5,7 +5,7 @@ import '../types/object.dart';
 
 /// Derives a fitting [DataType] from [T].
 DataType<T> fromType<T>() =>
-    _fromType(T) as DataType<T>? ?? ObjectDataType<T>(null as T);
+    _fromType(T) as DataType<T>? ?? ObjectDataType<T>();
 
 /// Derives a fitting [DataType] from [instance].
 DataType<T> fromInstance<T>(T instance) {

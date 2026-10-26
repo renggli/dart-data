@@ -1,14 +1,37 @@
 import 'dart:typed_data';
 
 import '../types/complex.dart';
+import '../types/nullable.dart';
 
 /// Returns `true` if [a] and [b] share the same underlying memory buffer.
 bool sharesMemory(List<dynamic> a, List<dynamic> b) {
-  if (identical(a, b)) return true;
-  final aInfo = _viewInfo(a);
-  final bInfo = _viewInfo(b);
+  final ua = _unwrapList(a);
+  final ub = _unwrapList(b);
+  if (identical(ua, ub)) return true;
+  final aInfo = _viewInfo(ua);
+  final bInfo = _viewInfo(ub);
   if (aInfo != null && bInfo != null) {
     return aInfo.buffer == bInfo.buffer;
+  }
+  return false;
+}
+
+/// Returns `true` if [a] at [aOffset] and [b] at [bOffset] point to the exact
+/// same starting memory address.
+bool sameStartAddress(
+  List<dynamic> a,
+  int aOffset,
+  List<dynamic> b,
+  int bOffset,
+) {
+  final ua = _unwrapList(a);
+  final ub = _unwrapList(b);
+  if (identical(ua, ub)) return aOffset == bOffset;
+  final aInfo = _viewInfo(ua);
+  final bInfo = _viewInfo(ub);
+  if (aInfo != null && bInfo != null && aInfo.buffer == bInfo.buffer) {
+    return aInfo.offset + aOffset * aInfo.elemSize ==
+        bInfo.offset + bOffset * bInfo.elemSize;
   }
   return false;
 }
@@ -22,13 +45,15 @@ bool hasOverlap(
   int count,
 ) {
   if (count <= 0) return false;
-  if (identical(a, b)) {
+  final ua = _unwrapList(a);
+  final ub = _unwrapList(b);
+  if (identical(ua, ub)) {
     final aEnd = aOffset + count;
     final bEnd = bOffset + count;
     return aOffset < bEnd && bOffset < aEnd;
   }
-  final aInfo = _viewInfo(a);
-  final bInfo = _viewInfo(b);
+  final aInfo = _viewInfo(ua);
+  final bInfo = _viewInfo(ub);
   if (aInfo != null && bInfo != null && aInfo.buffer == bInfo.buffer) {
     final aStartByte = aInfo.offset + aOffset * aInfo.elemSize;
     final aEndByte = aStartByte + count * aInfo.elemSize;
@@ -37,6 +62,19 @@ bool hasOverlap(
     return aStartByte < bEndByte && bStartByte < aEndByte;
   }
   return false;
+}
+
+List<dynamic> _unwrapList(List<dynamic> list) {
+  var current = list;
+  while (true) {
+    if (current is NullableList) {
+      current = current.delegate;
+    } else if (current is UnmodifiableFloat64ComplexList) {
+      current = current.source;
+    } else {
+      return current;
+    }
+  }
 }
 
 typedef _ViewInfo = ({int offset, int elemSize, ByteBuffer buffer});

@@ -50,7 +50,7 @@ abstract base class FloatDataType<L extends List<double>>
   Equality<double> get equality => const FloatEquality();
 
   @override
-  double cast(dynamic value) {
+  double cast(Object? value) {
     if (value is num) {
       return value.toDouble();
     } else if (value is BigInt) {

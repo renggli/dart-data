@@ -37,7 +37,7 @@ final class ComplexDataType extends TypedDataType<Complex, Float64ComplexList> {
       list.asUnmodifiableView();
 
   @override
-  Complex cast(dynamic value) {
+  Complex cast(Object? value) {
     if (value is Complex) {
       return value;
     } else if (value is num) {
@@ -277,9 +277,12 @@ class Float64ComplexList with ListMixin<Complex> {
 /// An unmodifiable view of a [Float64ComplexList].
 final class UnmodifiableFloat64ComplexList extends Float64ComplexList {
   /// Constructs an unmodifiable view wrapping the provided list.
-  new(this._source) : super.fromData(_source.data.asUnmodifiableView());
+  new(Float64ComplexList source)
+    : _source = source,
+      super.fromData(source.data.asUnmodifiableView());
 
-  final Float64ComplexList _source;
+  /// The wrapped mutable [Float64ComplexList].
+  Float64ComplexList get source => _source;
 
   @override
   ByteBuffer get buffer => _source.buffer;
@@ -306,4 +309,6 @@ final class UnmodifiableFloat64ComplexList extends Float64ComplexList {
 
   @override
   Float64ComplexList asUnmodifiableView() => this;
+
+  final Float64ComplexList _source;
 }

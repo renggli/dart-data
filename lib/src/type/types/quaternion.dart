@@ -16,7 +16,7 @@ final class QuaternionDataType extends DataType<Quaternion> {
   Quaternion get defaultValue => Quaternion.zero;
 
   @override
-  Quaternion cast(dynamic value) {
+  Quaternion cast(Object? value) {
     if (value is Quaternion) {
       return value;
     } else if (value is num) {

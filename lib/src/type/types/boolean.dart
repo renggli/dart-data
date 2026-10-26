@@ -30,7 +30,7 @@ final class BooleanDataType extends DataType<bool> {
   }
 
   @override
-  bool cast(dynamic value) {
+  bool cast(Object? value) {
     if (value is bool) {
       return value;
     } else if (value is num) {

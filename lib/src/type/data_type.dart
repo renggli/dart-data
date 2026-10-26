@@ -163,7 +163,7 @@ abstract base class DataType<T> {
       throw UnsupportedError('No comparator available for $this.');
 
   /// Casts the argument to this data type, otherwise throw an [ArgumentError].
-  T cast(dynamic value) => throw ArgumentError.value(
+  T cast(Object? value) => throw ArgumentError.value(
     value,
     'value',
     'Unable to cast "$value" to $this.',
@@ -219,29 +219,43 @@ abstract base class DataType<T> {
   DataType<Object?> promoteWith(DataType<Object?> other) {
     final self = this as DataType<Object?>;
     if (self == other) return this;
+    if (self is NullableDataType<Object?> ||
+        other is NullableDataType<Object?>) {
+      final baseSelf = self is NullableDataType<Object?> ? self.delegate : self;
+      final baseOther = other is NullableDataType<Object?>
+          ? other.delegate
+          : other;
+      return baseSelf.promoteWith(baseOther).nullable;
+    }
+    bool isAlgebraicNumber(DataType<Object?> t) =>
+        t.isNumeric ||
+        t == DataType.bigInt ||
+        t == DataType.fraction ||
+        t == DataType.complex ||
+        t == DataType.quaternion;
+    if (!isAlgebraicNumber(self) || !isAlgebraicNumber(other)) {
+      return DataType.object;
+    }
+    if (self == DataType.quaternion || other == DataType.quaternion) {
+      return DataType.quaternion;
+    }
     if (self == DataType.complex || other == DataType.complex) {
       return DataType.complex;
+    }
+    if (self == DataType.numeric || other == DataType.numeric) {
+      return DataType.numeric;
     }
     if (self == DataType.float64 || other == DataType.float64) {
       return DataType.float64;
     }
-    if (self == DataType.float32) {
-      if (other is IntegerDataType) return DataType.float64;
-      return DataType.float32;
+    if (self == DataType.float32 || other == DataType.float32) {
+      return DataType.float64;
     }
-    if (other == DataType.float32) {
-      if (self is IntegerDataType) return DataType.float64;
-      return DataType.float32;
+    if (self == DataType.fraction || other == DataType.fraction) {
+      return DataType.fraction;
     }
-    if (self == DataType.bigInt) {
-      if (other is IntegerDataType || other == DataType.bigInt) {
-        return DataType.bigInt;
-      }
-    }
-    if (other == DataType.bigInt) {
-      if (self is IntegerDataType || self == DataType.bigInt) {
-        return DataType.bigInt;
-      }
+    if (self == DataType.bigInt || other == DataType.bigInt) {
+      return DataType.bigInt;
     }
     if (self is IntegerDataType && other is IntegerDataType) {
       if (self.isSigned == other.isSigned) {

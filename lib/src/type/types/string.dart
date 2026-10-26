@@ -21,7 +21,7 @@ final class StringDataType extends DataType<String> {
   Equality<String> get equality => const StringEquality();
 
   @override
-  String cast(dynamic value) => value.toString();
+  String cast(Object? value) => value.toString();
 }
 
 /// Equality relation for [String] values with edit-distance proximity testing.

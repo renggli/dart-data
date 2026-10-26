@@ -20,9 +20,6 @@ final class NullableDataType<T> extends DataType<T?> {
 
   /// Whether null values sort first or last.
   final bool nullsFirst;
-  late final Comparator<T?> _comparator = nullsFirst
-      ? delegate.comparator.nullsFirst
-      : delegate.comparator.nullsLast;
 
   @override
   String get name => '${delegate.name}.nullable';
@@ -52,7 +49,7 @@ final class NullableDataType<T> extends DataType<T?> {
   int comparator(T? a, T? b) => _comparator(a, b);
 
   @override
-  T? cast(dynamic value) => value == null ? null : delegate.cast(value);
+  T? cast(Object? value) => value == null ? null : delegate.cast(value);
 
   @override
   List<T?> newList(
@@ -77,13 +74,19 @@ final class NullableDataType<T> extends DataType<T?> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is NullableDataType<T> && other.delegate == delegate);
+      (other is NullableDataType<T> &&
+          other.delegate == delegate &&
+          other.nullsFirst == nullsFirst);
 
   @override
-  int get hashCode => ~delegate.hashCode;
+  int get hashCode => Object.hash(delegate, nullsFirst);
 
   @override
   Printer<T?> get printer => delegate.printer.ifNull('n/a');
+
+  late final Comparator<T?> _comparator = nullsFirst
+      ? delegate.comparator.nullsFirst
+      : delegate.comparator.nullsLast;
 }
 
 /// A list with null values, where the null values are tracked in a separate

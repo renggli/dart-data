@@ -3,13 +3,19 @@ import '../data_type.dart';
 /// Data type descriptor for generic Dart objects ([Object]).
 final class ObjectDataType<T> extends DataType<T> {
   /// Creates a new [ObjectDataType] instance with a specified [defaultValue].
-  const new(this.defaultValue);
+  const new([T? defaultValue]) : _defaultValue = defaultValue;
+
+  final T? _defaultValue;
 
   @override
-  final T defaultValue;
+  T get defaultValue {
+    final val = _defaultValue;
+    if (val is T) return val;
+    throw StateError('No defaultValue configured for $this');
+  }
 
   @override
-  String get name => T == dynamic || T == Object || defaultValue == null
+  String get name => T == dynamic || T == Object || _defaultValue == null
       ? 'object'
       : 'object<$T>';
 
@@ -20,13 +26,13 @@ final class ObjectDataType<T> extends DataType<T> {
   ObjectDataType<T?> get nullable => ObjectDataType<T?>(null);
 
   @override
-  T cast(dynamic value) => value as T;
+  T cast(Object? value) => value as T;
 
   @override
-  int get hashCode => Object.hash(T, defaultValue);
+  int get hashCode => Object.hash(T, _defaultValue);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ObjectDataType<T> && defaultValue == other.defaultValue);
+      (other is ObjectDataType<T> && _defaultValue == other._defaultValue);
 }

@@ -113,6 +113,16 @@ void main() {
       // Object fallback
       check(DataType.string.promoteWith(DataType.int32))
           .equals(DataType.object);
+      check(DataType.float32.promoteWith(DataType.string))
+          .equals(DataType.object);
+      check(DataType.fraction.promoteWith(DataType.int32))
+          .equals(DataType.fraction);
+      check(DataType.quaternion.promoteWith(DataType.complex))
+          .equals(DataType.quaternion);
+      check(DataType.numeric.promoteWith(DataType.int32))
+          .equals(DataType.numeric);
+      check(DataType.int32.nullable.promoteWith(DataType.float64))
+          .equals(DataType.float64.nullable);
     });
 
     test('fromInstance', () {
@@ -137,14 +147,20 @@ void main() {
       check(DataType.fromType<Fraction>()).equals(DataType.fraction);
       check(DataType.fromType<BigInt>()).equals(DataType.bigInt);
       check(DataType.fromType<Object?>()).isA<ObjectDataType<Object?>>();
+      check(DataType.fromType<DateTime>()).isA<ObjectDataType<DateTime>>();
     });
 
-    test('NullableDataType metadata delegation', () {
+    test('NullableDataType metadata delegation and equality', () {
       check(DataType.int32.nullable.isInteger).isTrue();
       check(DataType.float64.nullable.isNumeric).isTrue();
       check(DataType.float32.nullable.isFloat).isTrue();
       check(DataType.uint8.nullable.isSigned).isFalse();
       check(DataType.int16.nullable.bits).equals(16);
+
+      final nLast = NullableDataType(DataType.int32, nullsFirst: false);
+      final nFirst = NullableDataType(DataType.int32, nullsFirst: true);
+      check(nLast == nFirst).isFalse();
+      check(nLast.hashCode == nFirst.hashCode).isFalse();
     });
 
     test('Equality isClose with epsilon zero', () {
@@ -312,6 +328,9 @@ void main() {
       check(field.inv(1)).equals(1);
       check(field.scale(3, 4)).equals(12);
       check(field.pow(2, 3)).equals(8);
+      check(field.pow(2, 0)).equals(1);
+      check(field.pow(3, 30)).equals(205891132094649);
+      check(() => field.pow(2, -1)).throws<RangeError>();
       check(field.abs(-7)).equals(7);
       check(field.norm(-7)).equals(7.0);
       check(field.sqrt(25)).equals(5);
