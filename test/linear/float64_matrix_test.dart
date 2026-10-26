@@ -191,6 +191,31 @@ void main() {
       check(sumOffset.asTypedList).deepEquals([11.0, 22.0, 33.0, 44.0]);
       final diffOffset = a - offsetMat;
       check(diffOffset.asTypedList).deepEquals([-9.0, -18.0, -27.0, -36.0]);
+
+      // Contiguous subMatrix with non-zero offset (full columns)
+      final fullRows = Float64Matrix.fromList(3, 2, [
+        0.0,
+        0.0,
+        10.0,
+        20.0,
+        30.0,
+        40.0,
+      ]);
+      final contigOffsetMat = fullRows.subMatrix(rowStart: 1, colStart: 0);
+      check((a + contigOffsetMat).asTypedList)
+          .deepEquals([11.0, 22.0, 33.0, 44.0]);
+      check((a - contigOffsetMat).asTypedList)
+          .deepEquals([-9.0, -18.0, -27.0, -36.0]);
+      check((-contigOffsetMat).asTypedList)
+          .deepEquals([-10.0, -20.0, -30.0, -40.0]);
+      check(contigOffsetMat.scale(2.0).asTypedList)
+          .deepEquals([20.0, 40.0, 60.0, 80.0]);
+      check((contigOffsetMat * a).asTypedList)
+          .deepEquals([70.0, 100.0, 150.0, 220.0]);
+      final fullVec = Float64Vector.fromList([0.0, 2.0, 3.0]);
+      final subVec = fullVec.subVector(1, 3);
+      check(contigOffsetMat.apply(subVec).asTypedList)
+          .deepEquals([80.0, 180.0]);
     });
 
     test('subMatrix and row/col out-of-bounds indexing throws RangeError', () {
@@ -235,9 +260,11 @@ void main() {
       check(() => sub[0][2] = 99.0).throws<RangeError>();
 
       check(() => sub.row(2)).throws<RangeError>();
-      check(() => sub.row(-1)).throws<RangeError>();
+      check(() => sub.row(-3)).throws<RangeError>();
       check(() => sub.col(2)).throws<RangeError>();
-      check(() => sub.col(-1)).throws<RangeError>();
+      check(() => sub.col(-3)).throws<RangeError>();
+      check(sub.row(-1).toList()).deepEquals([4.0, 5.0]);
+      check(sub.col(-1).toList()).deepEquals([2.0, 5.0]);
 
       // getUnchecked and setUnchecked bypass bounds checks
       check(sub.getUnchecked(0, 2)).equals(3.0);

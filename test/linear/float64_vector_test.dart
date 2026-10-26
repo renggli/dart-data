@@ -159,6 +159,8 @@ void main() {
       check(prodOffset.asTypedList).deepEquals([10.0, 40.0, 90.0]);
       final divOffset = a / offsetVec;
       check(divOffset[0]).isCloseTo(0.1, 1e-9);
+      check((-offsetVec).asTypedList).deepEquals([-10.0, -20.0, -30.0]);
+      check(offsetVec.scale(2.0).asTypedList).deepEquals([20.0, 40.0, 60.0]);
     });
 
     test('subVector out-of-bounds indexing throws RangeError', () {

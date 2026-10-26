@@ -180,17 +180,21 @@ extension type Float64Vector._(Vector<double> _vector)
     }
     final tA = _vector.tensor;
     final tB = other.tensor;
-    if (tA.isContiguous &&
-        tB.isContiguous &&
-        tA.offset == 0 &&
-        tB.offset == 0) {
+    if (tA.isContiguous && tB.isContiguous) {
       final out = Float64List(length);
       final a = asTypedList;
-      final b = tB.data is Float64List
-          ? tB.data as Float64List
-          : Float64List.fromList(tB.data);
-      for (var i = 0; i < length; i++) {
-        out[i] = a[i] + b[i];
+      final aOff = tA.offset;
+      final bOff = tB.offset;
+      if (tB.data is Float64List) {
+        final b = tB.data as Float64List;
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] + b[bOff + i];
+        }
+      } else {
+        final b = tB.data;
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] + b[bOff + i];
+        }
       }
       return Float64Vector._(
         Vector(
@@ -215,17 +219,21 @@ extension type Float64Vector._(Vector<double> _vector)
     }
     final tA = _vector.tensor;
     final tB = other.tensor;
-    if (tA.isContiguous &&
-        tB.isContiguous &&
-        tA.offset == 0 &&
-        tB.offset == 0) {
+    if (tA.isContiguous && tB.isContiguous) {
       final out = Float64List(length);
       final a = asTypedList;
-      final b = tB.data is Float64List
-          ? tB.data as Float64List
-          : Float64List.fromList(tB.data);
-      for (var i = 0; i < length; i++) {
-        out[i] = a[i] - b[i];
+      final aOff = tA.offset;
+      final bOff = tB.offset;
+      if (tB.data is Float64List) {
+        final b = tB.data as Float64List;
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] - b[bOff + i];
+        }
+      } else {
+        final b = tB.data;
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] - b[bOff + i];
+        }
       }
       return Float64Vector._(
         Vector(
@@ -250,17 +258,21 @@ extension type Float64Vector._(Vector<double> _vector)
     }
     final tA = _vector.tensor;
     final tB = other.tensor;
-    if (tA.isContiguous &&
-        tB.isContiguous &&
-        tA.offset == 0 &&
-        tB.offset == 0) {
+    if (tA.isContiguous && tB.isContiguous) {
       final out = Float64List(length);
       final a = asTypedList;
-      final b = tB.data is Float64List
-          ? tB.data as Float64List
-          : Float64List.fromList(tB.data);
-      for (var i = 0; i < length; i++) {
-        out[i] = a[i] * b[i];
+      final aOff = tA.offset;
+      final bOff = tB.offset;
+      if (tB.data is Float64List) {
+        final b = tB.data as Float64List;
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] * b[bOff + i];
+        }
+      } else {
+        final b = tB.data;
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] * b[bOff + i];
+        }
       }
       return Float64Vector._(
         Vector(
@@ -285,17 +297,21 @@ extension type Float64Vector._(Vector<double> _vector)
     }
     final tA = _vector.tensor;
     final tB = other.tensor;
-    if (tA.isContiguous &&
-        tB.isContiguous &&
-        tA.offset == 0 &&
-        tB.offset == 0) {
+    if (tA.isContiguous && tB.isContiguous) {
       final out = Float64List(length);
       final a = asTypedList;
-      final b = tB.data is Float64List
-          ? tB.data as Float64List
-          : Float64List.fromList(tB.data);
-      for (var i = 0; i < length; i++) {
-        out[i] = a[i] / b[i];
+      final aOff = tA.offset;
+      final bOff = tB.offset;
+      if (tB.data is Float64List) {
+        final b = tB.data as Float64List;
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] / b[bOff + i];
+        }
+      } else {
+        final b = tB.data;
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] / b[bOff + i];
+        }
       }
       return Float64Vector._(
         Vector(
@@ -314,11 +330,12 @@ extension type Float64Vector._(Vector<double> _vector)
   @redeclare
   Float64Vector operator -() {
     final t = _vector.tensor;
-    if (t.isContiguous && t.offset == 0) {
+    if (t.isContiguous) {
       final out = Float64List(length);
       final a = asTypedList;
+      final aOff = t.offset;
       for (var i = 0; i < length; i++) {
-        out[i] = -a[i];
+        out[i] = -a[aOff + i];
       }
       return Float64Vector._(
         Vector(
@@ -337,11 +354,12 @@ extension type Float64Vector._(Vector<double> _vector)
   @redeclare
   Float64Vector scale(double scalar) {
     final t = _vector.tensor;
-    if (t.isContiguous && t.offset == 0) {
+    if (t.isContiguous) {
       final out = Float64List(length);
       final a = asTypedList;
+      final aOff = t.offset;
       for (var i = 0; i < length; i++) {
-        out[i] = a[i] * scalar;
+        out[i] = a[aOff + i] * scalar;
       }
       return Float64Vector._(
         Vector(

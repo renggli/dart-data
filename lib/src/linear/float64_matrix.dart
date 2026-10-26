@@ -170,17 +170,11 @@ extension type Float64Matrix._(Matrix<double> _matrix)
 
   /// Slices [row] index into a 1D [Float64Vector].
   @redeclare
-  Float64Vector row(int row) {
-    RangeError.checkValidIndex(row, this, 'row', rowCount);
-    return Float64Vector(_matrix.row(row));
-  }
+  Float64Vector row(int row) => Float64Vector(_matrix.row(row));
 
   /// Slices [col] index into a 1D [Float64Vector].
   @redeclare
-  Float64Vector col(int col) {
-    RangeError.checkValidIndex(col, this, 'col', colCount);
-    return Float64Vector(_matrix.col(col));
-  }
+  Float64Vector col(int col) => Float64Vector(_matrix.col(col));
 
   /// Returns a zero-copy submatrix view as [Float64Matrix].
   @redeclare
@@ -223,13 +217,13 @@ extension type Float64Matrix._(Matrix<double> _matrix)
     final m = rowCount;
     final n = other.colCount;
     final k = colCount;
+    if (m == 0 || n == 0 || k == 0) {
+      return Float64Matrix.filled(m, n, 0.0);
+    }
     final tA = _matrix.tensor;
     final tB = other.tensor;
 
-    if (tA.isContiguous &&
-        tB.isContiguous &&
-        tA.offset == 0 &&
-        tB.offset == 0) {
+    if (tA.isContiguous && tB.isContiguous) {
       final out = Float64List(m * n);
       final bData = tB.data is Float64List
           ? tB.data as Float64List
@@ -240,8 +234,10 @@ extension type Float64Matrix._(Matrix<double> _matrix)
         k: k,
         alpha: 1.0,
         a: asTypedList,
+        aOffset: tA.offset,
         lda: k,
         b: bData,
+        bOffset: tB.offset,
         ldb: n,
         beta: 0.0,
         c: out,
@@ -273,13 +269,13 @@ extension type Float64Matrix._(Matrix<double> _matrix)
     }
     final m = rowCount;
     final n = colCount;
+    if (m == 0 || n == 0) {
+      return Float64Vector.filled(m, 0.0);
+    }
     final tA = _matrix.tensor;
     final tX = x.tensor;
 
-    if (tA.isContiguous &&
-        tX.isContiguous &&
-        tA.offset == 0 &&
-        tX.offset == 0) {
+    if (tA.isContiguous && tX.isContiguous) {
       final out = Float64List(m);
       final xData = tX.data is Float64List
           ? tX.data as Float64List
@@ -289,8 +285,10 @@ extension type Float64Matrix._(Matrix<double> _matrix)
         n: n,
         alpha: 1.0,
         a: asTypedList,
+        aOffset: tA.offset,
         lda: n,
         x: xData,
+        xOffset: tX.offset,
         incX: 1,
         beta: 0.0,
         y: out,
@@ -316,11 +314,12 @@ extension type Float64Matrix._(Matrix<double> _matrix)
   Float64Matrix scale(double scalar) {
     final t = _matrix.tensor;
     final len = rowCount * colCount;
-    if (t.isContiguous && t.offset == 0) {
+    if (t.isContiguous) {
       final out = Float64List(len);
       final data = asTypedList;
+      final aOff = t.offset;
       for (var i = 0; i < len; i++) {
-        out[i] = data[i] * scalar;
+        out[i] = data[aOff + i] * scalar;
       }
       return Float64Matrix._(
         Matrix(
@@ -346,17 +345,21 @@ extension type Float64Matrix._(Matrix<double> _matrix)
     final tA = _matrix.tensor;
     final tB = other.tensor;
     final len = rowCount * colCount;
-    if (tA.isContiguous &&
-        tB.isContiguous &&
-        tA.offset == 0 &&
-        tB.offset == 0) {
+    if (tA.isContiguous && tB.isContiguous) {
       final out = Float64List(len);
       final a = asTypedList;
-      final b = tB.data is Float64List
-          ? tB.data as Float64List
-          : Float64List.fromList(tB.data);
-      for (var i = 0; i < len; i++) {
-        out[i] = a[i] + b[i];
+      final aOff = tA.offset;
+      final bOff = tB.offset;
+      if (tB.data is Float64List) {
+        final b = tB.data as Float64List;
+        for (var i = 0; i < len; i++) {
+          out[i] = a[aOff + i] + b[bOff + i];
+        }
+      } else {
+        final b = tB.data;
+        for (var i = 0; i < len; i++) {
+          out[i] = a[aOff + i] + b[bOff + i];
+        }
       }
       return Float64Matrix._(
         Matrix(
@@ -382,17 +385,21 @@ extension type Float64Matrix._(Matrix<double> _matrix)
     final tA = _matrix.tensor;
     final tB = other.tensor;
     final len = rowCount * colCount;
-    if (tA.isContiguous &&
-        tB.isContiguous &&
-        tA.offset == 0 &&
-        tB.offset == 0) {
+    if (tA.isContiguous && tB.isContiguous) {
       final out = Float64List(len);
       final a = asTypedList;
-      final b = tB.data is Float64List
-          ? tB.data as Float64List
-          : Float64List.fromList(tB.data);
-      for (var i = 0; i < len; i++) {
-        out[i] = a[i] - b[i];
+      final aOff = tA.offset;
+      final bOff = tB.offset;
+      if (tB.data is Float64List) {
+        final b = tB.data as Float64List;
+        for (var i = 0; i < len; i++) {
+          out[i] = a[aOff + i] - b[bOff + i];
+        }
+      } else {
+        final b = tB.data;
+        for (var i = 0; i < len; i++) {
+          out[i] = a[aOff + i] - b[bOff + i];
+        }
       }
       return Float64Matrix._(
         Matrix(
@@ -412,11 +419,12 @@ extension type Float64Matrix._(Matrix<double> _matrix)
   Float64Matrix operator -() {
     final t = _matrix.tensor;
     final len = rowCount * colCount;
-    if (t.isContiguous && t.offset == 0) {
+    if (t.isContiguous) {
       final out = Float64List(len);
       final a = asTypedList;
+      final aOff = t.offset;
       for (var i = 0; i < len; i++) {
-        out[i] = -a[i];
+        out[i] = -a[aOff + i];
       }
       return Float64Matrix._(
         Matrix(
