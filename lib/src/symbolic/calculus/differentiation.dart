@@ -152,16 +152,58 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     :final upper,
   ) =>
     _differentiateIntegral(integrand, intVar, lower, upper, variable),
-  Derivative(expr: final inner, variable: final dVar, :final order) =>
-    dVar == variable
-        ? Derivative(inner, variable, order: order + 1)
-        : Derivative(expr, variable),
+  Derivative(
+    expr: final inner,
+    variable: final dVar,
+    :final order,
+    :final point,
+  ) =>
+    _differentiateDerivative(expr, inner, dVar, order, point, variable),
   Sum(expr: final inner, variable: final sVar, :final lower, :final upper) =>
     sVar != variable && !lower.dependsOn(variable) && !upper.dependsOn(variable)
         ? Sum(_differentiate(inner, variable), sVar, lower, upper)
         : Derivative(expr, variable),
   Limit() || Product() || VariableFunction() => Derivative(expr, variable),
 };
+
+Expr _differentiateDerivative(
+  Expr expr,
+  Expr inner,
+  String dVar,
+  int order,
+  Expr? point,
+  String variable,
+) {
+  if (point == null) {
+    return dVar == variable
+        ? Derivative(inner, variable, order: order + 1)
+        : Derivative(expr, variable);
+  }
+  final terms = <Expr>[];
+  if (point.dependsOn(variable)) {
+    terms.add(
+      Mul([
+        Derivative(inner, dVar, order: order + 1, point: point),
+        _differentiate(point, variable),
+      ]),
+    );
+  }
+  if (dVar != variable && inner.dependsOn(variable)) {
+    terms.add(
+      Derivative(
+        _differentiate(inner, variable),
+        dVar,
+        order: order,
+        point: point,
+      ),
+    );
+  }
+  return switch (terms) {
+    [] => IntegerNumber.zero,
+    [final single] => single,
+    _ => Add(terms),
+  };
+}
 
 Expr _differentiateIntegral(
   Expr integrand,

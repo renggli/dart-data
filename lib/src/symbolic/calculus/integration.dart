@@ -341,25 +341,7 @@ bool _hasUnevaluatedIntegral(Expr expr, String variable) => expr.anyNode(
   (e) => e is Integral && !e.isDefinite && e.variable == variable,
 );
 
-Expr _boundToExpr(Object bound) => switch (bound) {
-  double() => _doubleToBoundExpr(bound),
-  _ => Expr.wrap(bound),
-};
-
-Expr _doubleToBoundExpr(double d) {
-  final real = RealNumber.fromDouble(d);
-  if (!d.isFinite) return real;
-  if (d == d.truncateToDouble() && d.abs() <= Integer.maxSafe.toDouble()) {
-    return IntegerNumber.of(d.toInt());
-  }
-  if (real is RealNumber) {
-    final rat = real.rationalize(maxDenominator: 64);
-    if (rat is RationalNumber && (d - rat.toDouble()).abs() < 1e-12) {
-      return rat;
-    }
-  }
-  return real;
-}
+Expr _boundToExpr(Object bound) => Expr.wrap(bound);
 
 Expr _antiDerivative(Expr expr, String variable) {
   final node = expr.simplify();
@@ -707,6 +689,12 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
               .simplify();
         }
       }
+      if (base case Tanh(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final xVar = Variable(variable);
+          return (xVar - Tanh(inner) / a).simplify();
+        }
+      }
     }
     // Higher trig/hyperbolic integer powers: sin^n, cos^n, sinh^n, cosh^n (3 <= n <= 10)
     if (exponent case IntegerNumber(asInt: final n?) when n >= 3 && n <= 10) {
@@ -735,6 +723,38 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
               .simplify();
           final rem = _antiDerivative(
             Pow(Cos(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (!_hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 + (nMinus1 / nExpr) * rem).simplify();
+          }
+        }
+      }
+      if (base case Sinh(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final nExpr = IntegerNumber.of(n);
+          final nMinus1 = IntegerNumber.of(n - 1);
+          final nMinus2 = IntegerNumber.of(n - 2);
+          final term1 = (Pow(Sinh(inner), nMinus1) * Cosh(inner) / (nExpr * a))
+              .simplify();
+          final rem = _antiDerivative(
+            Pow(Sinh(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (!_hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 - (nMinus1 / nExpr) * rem).simplify();
+          }
+        }
+      }
+      if (base case Cosh(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final nExpr = IntegerNumber.of(n);
+          final nMinus1 = IntegerNumber.of(n - 1);
+          final nMinus2 = IntegerNumber.of(n - 2);
+          final term1 = (Pow(Cosh(inner), nMinus1) * Sinh(inner) / (nExpr * a))
+              .simplify();
+          final rem = _antiDerivative(
+            Pow(Cosh(inner), nMinus2).simplify(),
             variable,
           );
           if (!_hasUnevaluatedIntegral(rem, variable)) {

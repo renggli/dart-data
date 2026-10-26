@@ -169,14 +169,13 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
 
       if (!exponent.dependsOn(variable)) {
         if (exponent case final RationalNumber expConst when !expConst.isZero) {
-          if (expConst.isNegative && c is Number && c.isZero) {
+          if (expConst.isNegative && isZeroExpr(c)) {
             return const [];
           }
+          final cVal = _tryEvalReal(c);
           if (expConst case IntegerNumber(asInt: final int n) when n > 0) {
             if (n.isEven) {
-              if (c
-                  case RationalNumber(isNegative: true) ||
-                      RealNumber(value: < 0)) {
+              if (cVal != null && cVal < 0.0) {
                 return const [];
               }
               final posRoot = rootConstant(c, n);
@@ -189,16 +188,20 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
               return solveEquation((base - root).simplify(), variable);
             }
           }
-          final invP = expConst.reciprocal();
-          if (expConst.denominator.isEven) {
-            if (c
-                case RationalNumber(isNegative: true) ||
-                    RealNumber(value: < 0)) {
+          if (expConst.denominator.isEven || expConst.numerator.isEven) {
+            if (cVal != null && cVal < 0.0) {
               return const [];
             }
           }
-          final root = Pow(c, invP).simplify();
-          return solveEquation((base - root).simplify(), variable);
+          final invP = expConst.reciprocal();
+          final posRoot = Pow(c, invP).simplify();
+          if (expConst.numerator.isEven && !isZeroExpr(c)) {
+            final negRoot = (-posRoot).simplify();
+            final s1 = solveEquation((base - posRoot).simplify(), variable);
+            final s2 = solveEquation((base - negRoot).simplify(), variable);
+            return deduplicateRoots([...s1, ...s2]);
+          }
+          return solveEquation((base - posRoot).simplify(), variable);
         }
       }
     case _:

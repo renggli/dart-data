@@ -1,5 +1,6 @@
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
+import '../algebra/simplify/transcendental.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
@@ -47,7 +48,7 @@ List<Expr> solveEquation(
 }) {
   final effectiveDomain = assumptions.domainOf(variable);
   final rawRoots = _solveUnfiltered(expr, variable);
-  return _filterByDomain(rawRoots, effectiveDomain);
+  return _filterByDomain(rawRoots, effectiveDomain, assumptions);
 }
 
 List<Expr> _solveUnfiltered(Expr expr, String variable) {
@@ -128,17 +129,21 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
   return const [];
 }
 
-List<Expr> _filterByDomain(List<Expr> roots, VariableDomain domain) {
+List<Expr> _filterByDomain(
+  List<Expr> roots,
+  VariableDomain domain,
+  Assumptions assumptions,
+) {
   if (domain == VariableDomain.unknown || domain == VariableDomain.complex) {
     return roots;
   }
   return roots.where((root) {
-    final s = root.simplify();
+    final s = root.simplify(assumptions: assumptions);
     return switch (domain) {
       VariableDomain.unknown || VariableDomain.complex => true,
       VariableDomain.integer => s is IntegerNumber,
       VariableDomain.real => _isRealRoot(s),
-      VariableDomain.positive => _isPositiveRealRoot(s),
+      VariableDomain.positive => _isPositiveRealRoot(s, assumptions),
     };
   }).toList();
 }
@@ -158,7 +163,10 @@ bool _isRealRoot(Expr expr) {
   return true;
 }
 
-bool _isPositiveRealRoot(Expr expr) {
+bool _isPositiveRealRoot(Expr expr, Assumptions assumptions) {
+  if (isPositiveExpr(expr, assumptions: assumptions)) {
+    return true;
+  }
   switch (expr) {
     case RationalNumber(:final sign):
       return sign > 0;
@@ -181,9 +189,8 @@ bool _isPositiveRealRoot(Expr expr) {
 /// Checks whether a constant symbolic expression [expr] evaluates to zero.
 bool isZeroExpr(Expr expr) {
   switch (expr) {
-    case Number(isZero: true):
-    case RealNumber(:final value) when value.abs() < 1e-10:
-      return true;
+    case Number(:final isZero):
+      return isZero;
     case _ when expr.freeVariables.isEmpty:
       try {
         final c = expr.evaluateComplex();

@@ -155,6 +155,27 @@ void main() {
       check(
         invertEquation(Pow(x, RationalNumber(3, 2)), IntegerNumber.of(8), 'x'),
       ).isNotNull().deepEquals([IntegerNumber.of(4)]);
+
+      // Negative even integer power: x^(-2) = 4 -> x = ±1/2
+      check(
+        invertEquation(Pow(x, IntegerNumber.of(-2)), IntegerNumber.of(4), 'x'),
+      ).isNotNull().unorderedEquals([
+        FractionNumber.half,
+        FractionNumber.negativeHalf,
+      ]);
+
+      // Rational power with even numerator: x^(2/3) = 4 -> x = ±8
+      check(
+        invertEquation(Pow(x, RationalNumber(2, 3)), IntegerNumber.of(4), 'x'),
+      ).isNotNull().unorderedEquals([
+        IntegerNumber.of(8),
+        IntegerNumber.of(-8),
+      ]);
+
+      // Even power equal to negative symbolic constant (-pi) has no real root
+      check(invertEquation(Pow(x, IntegerNumber.two), -Constant.pi, 'x'))
+          .isNotNull()
+          .isEmpty();
     });
   });
 

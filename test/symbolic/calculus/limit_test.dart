@@ -132,6 +132,16 @@ void main() {
     test('evaluates exponential, power, and logarithmic limits', () {
       check(Expr.parse('(1 + 1 / x)^x').limit('x', Constant.infinity))
           .equals(Constant.e);
+      check(Expr.parse('(-2 + x)^(3 + x)').limit('x', IntegerNumber.zero))
+          .equals(IntegerNumber.of(-8));
+      check(
+        Expr.parse('((x + _h + _t)^2 - (_h + _t)^2) / x')
+            .limit('x', IntegerNumber.zero),
+      ).equals(
+        (IntegerNumber.two * const Variable('_h') +
+                IntegerNumber.two * const Variable('_t'))
+            .simplify(),
+      );
       check(Pow(x, x).limit('x', Constant.infinity)).equals(Constant.infinity);
       check(Pow(x, -x).limit('x', Constant.infinity))
           .equals(IntegerNumber.zero);

@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import '../../polynomial/polynomial.dart';
 import '../../type/data_type.dart';
-import '../algebra/approximate.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
@@ -77,6 +76,69 @@ extension SeriesExtension on Expr {
       return Polynomial<T>.zero(type: effectiveType);
     }
     final around = point.toDouble();
+    final pointExpr = _wrapSeriesPoint(point);
+    try {
+      final ps = toPowerSeries(variable, point: pointExpr, order: order + 1);
+      if (ps.poleOrder == 0) {
+        if (around == 0.0) {
+          final coeffs = List<T>.filled(order + 1, field.additiveIdentity);
+          for (var k = 0; k <= order; k++) {
+            final cExpr = ps.coefficients[k];
+            if (cExpr != null) {
+              if (cExpr is T) {
+                coeffs[k] = effectiveType.cast(cExpr);
+              } else {
+                final val = cExpr is Number
+                    ? cExpr.toDouble()
+                    : cExpr.evaluate(const {});
+                coeffs[k] = effectiveType.cast(val);
+              }
+            }
+          }
+          return Polynomial<T>.fromCoefficients(coeffs, type: effectiveType);
+        } else {
+          var result = Polynomial<T>.zero(type: effectiveType);
+          final negCenter = (-pointExpr).simplify();
+          final negCenterTerm = negCenter is T
+              ? effectiveType.cast(negCenter)
+              : effectiveType.cast(-around);
+          final xMinusA = Polynomial<T>.fromCoefficients([
+            negCenterTerm,
+            field.multiplicativeIdentity,
+          ], type: effectiveType);
+          var currentPower = Polynomial<T>.fromCoefficients([
+            field.multiplicativeIdentity,
+          ], type: effectiveType);
+          for (var k = 0; k <= order; k++) {
+            final cExpr = ps.coefficients[k];
+            if (cExpr != null) {
+              final T coeff;
+              if (cExpr is T) {
+                coeff = effectiveType.cast(cExpr);
+              } else {
+                final val = cExpr is Number
+                    ? cExpr.toDouble()
+                    : cExpr.evaluate(const {});
+                coeff = effectiveType.cast(val);
+              }
+              if (coeff != field.additiveIdentity) {
+                result = result + currentPower.scale(coeff);
+              }
+            }
+            if (k < order) {
+              currentPower = currentPower * xMinusA;
+            }
+          }
+          return result;
+        }
+      }
+    } on UnsupportedError {
+      // Fall back to repeated differentiation
+    } on StateError {
+      // Fall back to repeated differentiation
+    } on ArgumentError {
+      // Fall back to repeated differentiation
+    }
     if (around == 0.0) {
       final coeffs = List<T>.filled(order + 1, field.additiveIdentity);
       var currentDeriv = this;
@@ -112,7 +174,7 @@ extension SeriesExtension on Expr {
           factorial *= k;
         }
         final valExpr = currentDeriv
-            .substitute(variable, RealNumber(around).rationalize())
+            .substitute(variable, _wrapSeriesPoint(point))
             .simplify();
         final val = valExpr is Number
             ? valExpr.toDouble()
@@ -143,20 +205,7 @@ extension SymbolicPolynomialFactory<T> on Polynomial<T> {
   }) => expr.toPolynomial<R>(variable, point: point, order: order, type: type);
 }
 
-Expr _wrapSeriesPoint(Object point) => switch (point) {
-  double() => _doubleToPoint(point),
-  _ => Expr.wrap(point),
-};
-
-Expr _doubleToPoint(double value) {
-  final real = RealNumber.fromDouble(value);
-  if (!value.isFinite) return real;
-  if (real.rationalize(maxDenominator: 64) case final RationalNumber rat
-      when (rat.toDouble() - value).abs() < 1e-12) {
-    return rat;
-  }
-  return real;
-}
+Expr _wrapSeriesPoint(Object point) => Expr.wrap(point);
 
 /// Truncated formal Laurent and power series:
 /// $\sum_{k=-p}^{N-1} c_k (x - a)^k + O((x - a)^N)$.

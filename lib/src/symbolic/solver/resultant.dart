@@ -128,12 +128,17 @@ class SylvesterResultantSolver {
       final fAtY = f.substitute(yVar, y0).simplify();
       final gAtY = g.substitute(yVar, y0).simplify();
 
-      final xEq = fAtY.dependsOn(xVar) ? fAtY : gAtY;
-      final checkEq = fAtY.dependsOn(xVar) ? gAtY : fAtY;
-      final xRoots = solveEquation(xEq, xVar);
-      for (final x0 in xRoots) {
-        final checkVal = checkEq.substitute(xVar, x0).simplify();
-        if (isZeroExpr(checkVal)) {
+      if (!fAtY.dependsOn(xVar) && !isZeroExpr(fAtY)) continue;
+      if (!gAtY.dependsOn(xVar) && !isZeroExpr(gAtY)) continue;
+
+      final xCandidates = <Expr>[
+        if (fAtY.dependsOn(xVar)) ...solveEquation(fAtY, xVar),
+        if (gAtY.dependsOn(xVar)) ...solveEquation(gAtY, xVar),
+      ];
+      for (final x0 in deduplicateRoots(xCandidates)) {
+        final fVal = fAtY.substitute(xVar, x0).simplify();
+        final gVal = gAtY.substitute(xVar, x0).simplify();
+        if (isZeroExpr(fVal) && isZeroExpr(gVal)) {
           final key = '${x0.simplify()}|${y0.simplify()}';
           if (seen.add(key)) {
             solutions.add({xVar: x0.simplify(), yVar: y0.simplify()});

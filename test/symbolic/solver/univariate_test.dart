@@ -108,7 +108,16 @@ void main() {
       final symEq = Expr.parse('x - a');
       check(symEq.solve('x', assumptions: Assumptions.real))
           .deepEquals([const Variable('a')]);
-      check(symEq.solve('x', assumptions: Assumptions.positive)).isEmpty();
+      check(
+        symEq.solve(
+          'x',
+          assumptions: const Assumptions(
+            domains: {'x': VariableDomain.positive},
+          ),
+        ),
+      ).isEmpty();
+      check(symEq.solve('x', assumptions: Assumptions.positive))
+          .deepEquals([const Variable('a')]);
       check(imagEq.solve('x', assumptions: Assumptions.positive)).isEmpty();
     });
 
@@ -117,6 +126,7 @@ void main() {
       () {
         check(isZeroExpr(IntegerNumber.zero)).isTrue();
         check(isZeroExpr(const RealNumber(0.0))).isTrue();
+        check(isZeroExpr(const RealNumber(1e-12))).isFalse();
         check(isZeroExpr(Sin(Constant.pi))).isTrue();
         check(isZeroExpr(Constant.pi)).isFalse();
 

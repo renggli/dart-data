@@ -163,6 +163,23 @@ void main() {
       final fxy = Expr.parse('f(x, y)');
       check(Derivative(fxy, 'y').derivative('x'))
           .equals(Derivative(Derivative(fxy, 'y'), 'x'));
+      // Derivative evaluated at a point: constant point -> 0, x-dependent point -> chain rule
+      check(Derivative(fx, 'x', point: IntegerNumber.two).derivative('x'))
+          .equals(IntegerNumber.zero);
+      check(
+        Derivative(
+          fx,
+          'x',
+          point: Pow(x, IntegerNumber.two),
+        ).derivative('x').toString(),
+      ).equals('2 * x * diff(f(x), x, 2, x ^ 2)');
+      check(
+        Derivative(
+          fxy,
+          'x',
+          point: IntegerNumber.one,
+        ).derivative('y').toString(),
+      ).equals('diff(diff(f(x, y), y), x, 1)');
       check(Mod(x * IntegerNumber.two, IntegerNumber.of(5)).derivative('x'))
           .equals(IntegerNumber.two);
       check(Mod(x, x).derivative('x')).equals(Derivative(Mod(x, x), 'x'));

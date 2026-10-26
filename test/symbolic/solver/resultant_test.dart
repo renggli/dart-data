@@ -71,6 +71,13 @@ void main() {
       check(sol2.first['x']).equals(IntegerNumber.of(3));
       check(sol2.first['y']).equals(IntegerNumber.two);
 
+      // System where fAtY vanishes identically at y = 1 while gAtY determines x
+      final f3 = Expr.parse('(y - 1) * (x - 5)');
+      final g3 = Expr.parse('x^2 + y - 2');
+      final sol3 = SylvesterResultantSolver.solve(f3, g3, ['x', 'y']);
+      // At y = 1: x^2 - 1 = 0 -> x = ±1; at x = 5: 25 + y - 2 = 0 -> y = -23
+      check(sol3.length).equals(3);
+
       check(() => SylvesterResultantSolver.solve(p, q, ['x']))
           .throws<ArgumentError>();
     });

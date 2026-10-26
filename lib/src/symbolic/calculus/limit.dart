@@ -1,4 +1,3 @@
-import '../algebra/approximate.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
@@ -54,6 +53,32 @@ Expr computeLimit(
 
   if (expr case Pow(:final base, :final exponent)
       when base.dependsOn(variable) && exponent.dependsOn(variable)) {
+    try {
+      final baseLim = computeLimit(
+        base,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      final expLim = computeLimit(
+        exponent,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      if (_isWellDefinedFinite(baseLim) &&
+          _isWellDefinedFinite(expLim) &&
+          !(baseLim is Number && baseLim.isZero)) {
+        final direct = Pow(baseLim, expLim).simplify(assumptions: assumptions);
+        if (_isWellDefinedFinite(direct)) {
+          return direct;
+        }
+      }
+    } on Object {
+      // Fall through to log-exponential form
+    }
     final logForm = exponent * Ln(base);
     final innerLim = computeLimit(
       logForm,
@@ -186,7 +211,8 @@ Expr _computeFiniteLimit(
     // Falls through to Laurent series expansion
   }
 
-  const h = Variable('_h');
+  final hName = _freshLimitVar('_h', expr, point);
+  final h = Variable(hName);
   final localExpr = expr.substitute(variable, point + h).simplify();
 
   final (numExpr, denExpr) = splitNumeratorDenominator(localExpr);
@@ -194,12 +220,12 @@ Expr _computeFiniteLimit(
     for (final ord in const [6, 14]) {
       try {
         final sNum = numExpr.toPowerSeries(
-          '_h',
+          hName,
           point: IntegerNumber.zero,
           order: ord,
         );
         final sDen = denExpr.toPowerSeries(
-          '_h',
+          hName,
           point: IntegerNumber.zero,
           order: ord,
         );
@@ -226,14 +252,14 @@ Expr _computeFiniteLimit(
 
   try {
     var series = localExpr.toPowerSeries(
-      '_h',
+      hName,
       point: IntegerNumber.zero,
       order: 6,
     );
     var lead = series.leadingTerm;
     if (lead == null) {
       series = localExpr.toPowerSeries(
-        '_h',
+        hName,
         point: IntegerNumber.zero,
         order: 14,
       );
@@ -256,22 +282,23 @@ Expr _computeFiniteLimit(
     // Ignored.
   }
 
-  const t = Variable('_t');
-  const tAssumptions = Assumptions(domains: {'_t': VariableDomain.positive});
+  final tName = _freshLimitVar('_t', expr, point);
+  final t = Variable(tName);
+  final tAssumptions = Assumptions(domains: {tName: VariableDomain.positive});
   final invT = IntegerNumber.one / t;
   return switch (direction) {
     LimitDirection.fromAbove => _computeInfiniteLimit(
       expr
           .substitute(variable, point + invT)
           .simplify(assumptions: tAssumptions),
-      '_t',
+      tName,
       isPositive: true,
     ),
     LimitDirection.fromBelow => _computeInfiniteLimit(
       expr
           .substitute(variable, point - invT)
           .simplify(assumptions: tAssumptions),
-      '_t',
+      tName,
       isPositive: true,
     ),
     LimitDirection.both => () {
@@ -281,8 +308,12 @@ Expr _computeFiniteLimit(
       final leftExpr = expr
           .substitute(variable, point - invT)
           .simplify(assumptions: tAssumptions);
-      final rightLim = _computeInfiniteLimit(rightExpr, '_t', isPositive: true);
-      final leftLim = _computeInfiniteLimit(leftExpr, '_t', isPositive: true);
+      final rightLim = _computeInfiniteLimit(
+        rightExpr,
+        tName,
+        isPositive: true,
+      );
+      final leftLim = _computeInfiniteLimit(leftExpr, tName, isPositive: true);
       if (rightLim == leftLim) return rightLim;
       throw UnsupportedError(
         'Two-sided limit does not exist at $point: left ($leftLim) and right ($rightLim) limits differ',
@@ -497,16 +528,19 @@ Expr _gruntzLimit(Expr expr, String variable) {
   final expScale = _findDominantExpScale(f, variable);
 
   if (expScale == null && _containsLogOfVariable(f, variable)) {
-    const u = Variable('_u');
-    const uAssumptions = Assumptions(domains: {'_u': VariableDomain.real});
+    final uName = _freshLimitVar('_u', f);
+    final u = Variable(uName);
+    final uAssumptions = Assumptions(domains: {uName: VariableDomain.real});
     final transformed = f
         .substitute(variable, Pow(Constant.e, u))
         .simplify(assumptions: uAssumptions);
-    return _computeInfiniteLimit(transformed, '_u', isPositive: true);
+    return _computeInfiniteLimit(transformed, uName, isPositive: true);
   }
 
+  final omegaName = _freshLimitVar('_omega', f);
+  final omega = Variable(omegaName);
+
   if (expScale == null) {
-    const omega = Variable('_omega');
     final rewritten = f
         .substitute(variable, IntegerNumber.one / omega)
         .simplify();
@@ -514,7 +548,7 @@ Expr _gruntzLimit(Expr expr, String variable) {
     for (final ord in const [4, 10]) {
       try {
         final series = rewritten.toPowerSeries(
-          '_omega',
+          omegaName,
           point: IntegerNumber.zero,
           order: ord,
         );
@@ -535,7 +569,6 @@ Expr _gruntzLimit(Expr expr, String variable) {
     );
   }
 
-  const omega = Variable('_omega');
   final rewritten = _rewriteExpInOmega(
     f,
     variable,
@@ -547,7 +580,7 @@ Expr _gruntzLimit(Expr expr, String variable) {
   for (final ord in const [4, 10]) {
     try {
       final series = rewritten.toPowerSeries(
-        '_omega',
+        omegaName,
         point: IntegerNumber.zero,
         order: ord,
       );
@@ -634,20 +667,10 @@ _extractDominantPolynomialTerm(Expr expr, String variable) {
   for (final entry in acc.terms.entries) {
     final deg = _monomialDegree(entry.key, variable);
     if (deg != null && deg > maxDeg) {
-      switch (entry.value) {
-        case final RationalNumber val:
-          maxDeg = deg;
-          leadCoeff = val;
-          leadKey = entry.key;
-        case final RealNumber val:
-          if (val.rationalize(maxDenominator: 64) case final RationalNumber rat
-              when (val.value - rat.toDouble()).abs() < 1e-12) {
-            maxDeg = deg;
-            leadCoeff = rat;
-            leadKey = entry.key;
-          }
-        case ComplexNumber():
-          break;
+      if (entry.value case final RationalNumber val) {
+        maxDeg = deg;
+        leadCoeff = val;
+        leadKey = entry.key;
       }
     }
   }
@@ -951,3 +974,13 @@ bool _isNegativeInfinity(Expr expr) => switch (expr) {
   ) when a.isNegative && _isPositiveInfinity(b) => true,
   _ => false,
 };
+
+String _freshLimitVar(String base, Expr expr, [Expr? point]) {
+  final used = <String>{...expr.freeVariables, ...?point?.freeVariables};
+  if (!used.contains(base)) return base;
+  var i = 1;
+  while (used.contains('${base}_$i')) {
+    i++;
+  }
+  return '${base}_$i';
+}

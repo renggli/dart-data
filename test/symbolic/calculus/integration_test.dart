@@ -26,8 +26,15 @@ void main() {
 
       check(Expr.parse('x^2').integrate('x', from: 0, to: 3))
           .equals(IntegerNumber.of(9));
-      check(x.integrate('x', from: 0.0, to: 2.0)).equals(IntegerNumber.two);
-      check(x.integrate('x', from: 0.0, to: 0.5)).equals(RationalNumber(1, 8));
+      check(
+        x.integrate(
+          'x',
+          from: const RealNumber(0.0),
+          to: const RealNumber(2.0),
+        ),
+      ).equals(const RealNumber(2.0));
+      check(x.integrate('x', from: 0.0, to: 0.5))
+          .equals(const RealNumber(0.125));
       check(x.integrate('x', from: 0.0, to: 0.1234567).evaluate())
           .isCloseTo(0.5 * 0.1234567 * 0.1234567, 1e-12);
       check(x.integrate('x', from: 0.0, to: double.nan).evaluate().isNaN)
@@ -216,6 +223,11 @@ void main() {
         verifyAntiderivative(Pow(Constant.e, lin));
         verifyAntiderivative(Pow(IntegerNumber.two, lin));
         verifyAntiderivative(Pow(const RealNumber(2.5), lin));
+        verifyAntiderivative(Pow(Tanh(lin), IntegerNumber.two));
+        verifyAntiderivative(Pow(Sinh(lin), IntegerNumber.of(3)));
+        verifyAntiderivative(Pow(Cosh(lin), IntegerNumber.of(3)));
+        verifyAntiderivative(Pow(Sinh(lin), IntegerNumber.of(4)));
+        verifyAntiderivative(Pow(Cosh(lin), IntegerNumber.of(4)));
 
         // Negative float powers:
         check(Expr.parse('x^(-1.0)').integrate('x')).equals(Ln(x));

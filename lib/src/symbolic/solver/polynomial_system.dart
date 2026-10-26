@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
@@ -134,38 +137,63 @@ void _backSubstitute(
 
   final currentVar = variables[varIndex];
 
-  // Find a polynomial in lexExprs that depends on currentVar and only already-solved variables
-  Expr? candidateEq;
+  // Collect all polynomials in lexExprs that depend only on variables[varIndex..end]
+  // and substitute already-solved variables.
+  final univariateEqs = <Expr>[];
   for (final expr in lexExprs) {
-    if (expr.dependsOn(currentVar)) {
-      var onlyAllowedVars = true;
-      for (var i = 0; i < varIndex; i++) {
-        if (expr.dependsOn(variables[i])) {
-          onlyAllowedVars = false;
-          break;
-        }
-      }
-      if (onlyAllowedVars) {
-        candidateEq = expr;
+    var onlyAllowedVars = true;
+    for (var i = 0; i < varIndex; i++) {
+      if (expr.dependsOn(variables[i])) {
+        onlyAllowedVars = false;
         break;
       }
     }
+    if (!onlyAllowedVars) continue;
+
+    var instantiated = expr;
+    for (final MapEntry(:key, :value) in currentSolution.entries) {
+      instantiated = instantiated.substitute(key, value);
+    }
+    instantiated = instantiated.expand().simplify();
+
+    if (!instantiated.dependsOn(currentVar)) {
+      if (!isZeroExpr(instantiated)) {
+        return;
+      }
+      continue;
+    }
+    univariateEqs.add(instantiated);
   }
 
-  if (candidateEq == null) {
+  if (univariateEqs.isEmpty) {
     return;
   }
 
-  // Substitute already-solved variables
-  var instantiated = candidateEq;
-  for (final MapEntry(:key, :value) in currentSolution.entries) {
-    instantiated = instantiated.substitute(key, value);
+  // Pick the univariate equation of lowest degree in currentVar
+  var primaryIdx = 0;
+  var minDeg = _degreeIn(univariateEqs.first, currentVar);
+  for (var i = 1; i < univariateEqs.length; i++) {
+    final deg = _degreeIn(univariateEqs[i], currentVar);
+    if (deg > 0 && (minDeg <= 0 || deg < minDeg)) {
+      minDeg = deg;
+      primaryIdx = i;
+    }
   }
-  instantiated = instantiated.simplify();
 
-  final roots = solveEquation(instantiated, currentVar);
+  final roots = solveEquation(univariateEqs[primaryIdx], currentVar);
   for (final r in roots) {
-    currentSolution[currentVar] = r.simplify();
+    final rSimp = r.simplify();
+    var satisfiesAll = true;
+    for (var i = 0; i < univariateEqs.length; i++) {
+      if (i == primaryIdx) continue;
+      final val = univariateEqs[i].substitute(currentVar, rSimp).simplify();
+      if (!isZeroExpr(val)) {
+        satisfiesAll = false;
+        break;
+      }
+    }
+    if (!satisfiesAll) continue;
+    currentSolution[currentVar] = rSimp;
     _backSubstitute(
       lexExprs,
       variables,
@@ -176,4 +204,22 @@ void _backSubstitute(
     );
     currentSolution.remove(currentVar);
   }
+}
+
+int _degreeIn(Expr expr, String variable) {
+  if (!expr.dependsOn(variable)) return 0;
+  return switch (expr) {
+    Variable(:final name) => name == variable ? 1 : 0,
+    Add(:final terms) => terms.fold(
+      0,
+      (maxDeg, t) => math.max(maxDeg, _degreeIn(t, variable)),
+    ),
+    Mul(:final factors) => factors.fold(
+      0,
+      (sumDeg, f) => sumDeg + _degreeIn(f, variable),
+    ),
+    Pow(:final base, exponent: IntegerNumber(:final asInt?)) when asInt >= 0 =>
+      _degreeIn(base, variable) * asInt,
+    _ => 1000,
+  };
 }

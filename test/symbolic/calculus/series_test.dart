@@ -432,5 +432,26 @@ void main() {
       final poly = Pow(Constant.e, x).toPolynomial<double>('x', order: -1);
       check(poly.degree).equals(-1);
     });
+
+    test('handles removable singularities and symbolic Expr coefficients via toPowerSeries', () {
+      const x = Variable('x');
+      final sinc = Sin(x) / x;
+      final poly = sinc.toPolynomial<double>('x', order: 4);
+      check(poly.degree).equals(4);
+      check(poly[0]).isCloseTo(1.0, 1e-12);
+      check(poly[1]).isCloseTo(0.0, 1e-12);
+      check(poly[2]).isCloseTo(-1.0 / 6.0, 1e-12);
+      check(poly[3]).isCloseTo(0.0, 1e-12);
+      check(poly[4]).isCloseTo(1.0 / 120.0, 1e-12);
+
+      final symPoly = sinc.toPolynomial<Expr>(
+        'x',
+        order: 2,
+        type: exprDataType,
+      );
+      check(symPoly[0]).equals(IntegerNumber.one);
+      check(symPoly[1]).equals(IntegerNumber.zero);
+      check(symPoly[2]).equals(RationalNumber(-1, 6));
+    });
   });
 }

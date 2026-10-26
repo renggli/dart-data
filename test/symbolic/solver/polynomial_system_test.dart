@@ -40,6 +40,21 @@ void main() {
       final dValues = sol3.map((s) => s['d']!).toList();
       check(dValues)
           .unorderedEquals([IntegerNumber.zero, FractionNumber.third]);
+
+      // System where a lex basis polynomial vanishes identically on one branch (z = 0)
+      final degSys = [
+        Expr.parse('x - y - z'),
+        Expr.parse('z * (y - 1)'),
+        Expr.parse('y^2 - 1'),
+        Expr.parse('z^2 - z'),
+      ];
+      final degSol = degSys.solve([
+        'x',
+        'y',
+        'z',
+      ], method: PolynomialSystemMethod.groebner);
+      // Solutions: (z=0, y=1, x=1), (z=0, y=-1, x=-1), (z=1, y=1, x=2)
+      check(degSol.length).equals(3);
     });
   });
 
