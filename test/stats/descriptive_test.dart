@@ -131,6 +131,21 @@ void main() {
       check(largeVec.mean()).isCloseTo(49.5, 1e-10);
       check(largeVec.variance()).isGreaterThan(0.0);
 
+      // Sliced vector with non-zero offset and length >= 64
+      final sliceVec = largeVec.subVector(20, 90);
+      // Elements 20..89 (70 elements), sum = 70 * (20 + 89) / 2 = 3815, mean = 54.5
+      check(DescriptiveVectorNumExtension(sliceVec).sum())
+          .isCloseTo(3815.0, 1e-10);
+      check(sliceVec.mean()).isCloseTo(54.5, 1e-10);
+      check(sliceVec.variance())
+          .isCloseTo(variance([for (var i = 20; i < 90; i++) i]), 1e-10);
+
+      // Quantile validation and NaN propagation
+      check(() => quantile([1.0, 2.0], -0.1)).throws<ArgumentError>();
+      check(() => quantile([1.0, 2.0], 1.1)).throws<ArgumentError>();
+      check(() => quantile([1.0, 2.0], double.nan)).throws<ArgumentError>();
+      check(quantile([1.0, double.nan, 3.0], 0.5)).isNaN();
+
       // Invalid matrix data error checking
       check(() => covarianceMatrix('invalid')).throws<ArgumentError>();
       check(() => spearmanCorrelationMatrix('invalid')).throws<ArgumentError>();

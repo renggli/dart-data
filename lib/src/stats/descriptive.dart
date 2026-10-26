@@ -340,7 +340,11 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   double sum() {
     final tData = tensor.data;
     if (tData is Float64List && tensor.layout.isContiguous && length >= 64) {
-      return Vforce.sum(x: tData);
+      final offset = tensor.layout.offset;
+      final view = offset == 0 && tData.length == length
+          ? tData
+          : Float64List.sublistView(tData, offset, offset + length);
+      return Vforce.sum(x: view);
     }
     var total = 0.0;
     for (var i = 0; i < length; i++) {
@@ -353,7 +357,11 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   double mean() {
     final tData = tensor.data;
     if (tData is Float64List && tensor.layout.isContiguous && length >= 64) {
-      return Vforce.mean(x: tData);
+      final offset = tensor.layout.offset;
+      final view = offset == 0 && tData.length == length
+          ? tData
+          : Float64List.sublistView(tData, offset, offset + length);
+      return Vforce.mean(x: view);
     }
     return _mean(toList());
   }
@@ -362,7 +370,11 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   double variance({bool population = false}) {
     final tData = tensor.data;
     if (tData is Float64List && tensor.layout.isContiguous && length >= 64) {
-      return Vforce.variance(x: tData, sample: !population);
+      final offset = tensor.layout.offset;
+      final view = offset == 0 && tData.length == length
+          ? tData
+          : Float64List.sublistView(tData, offset, offset + length);
+      return Vforce.variance(x: view, sample: !population);
     }
     return _variance(toList(), population: population);
   }
@@ -536,11 +548,25 @@ double _standardDeviation(Iterable<num> values, {bool population = false}) =>
     math.sqrt(_variance(values, population: population));
 
 double _quantile(Iterable<num> values, num quantile) {
-  final list = values.map((val) => val.toDouble()).toList()..sort();
+  final q = quantile.toDouble();
+  if (q.isNaN || q < 0.0 || q > 1.0) {
+    throw ArgumentError.value(
+      quantile,
+      'quantile',
+      'Quantile must be between 0.0 and 1.0',
+    );
+  }
+  final list = <double>[];
+  for (final val in values) {
+    final d = val.toDouble();
+    if (d.isNaN) return double.nan;
+    list.add(d);
+  }
   if (list.isEmpty) return double.nan;
-  if (quantile <= 0.0) return list.first;
-  if (quantile >= 1.0) return list.last;
-  final idx = quantile * (list.length - 1);
+  list.sort();
+  if (q <= 0.0) return list.first;
+  if (q >= 1.0) return list.last;
+  final idx = q * (list.length - 1);
   final baseIdx = idx.floor();
   final frac = idx - baseIdx;
   if (baseIdx >= list.length - 1) return list.last;
