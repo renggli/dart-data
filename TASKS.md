@@ -13,7 +13,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
 
 ## Phase 1: `type` & `tensor` Subsystems (`lib/type.dart`, `lib/tensor.dart`)
 
-### [ ] TASK-1.1 (`High`): Fix `Tensor.copy()` on contiguous slices and `Tensor.filled` default shape
+### [x] TASK-1.1 (`High`): Fix `Tensor.copy()` on contiguous slices and `Tensor.filled` default shape
 
 - **Files**: `lib/src/tensor/tensor.dart` (lines 44–55, 262–270), `lib/src/tensor/layout.dart` (lines 58–60), `test/tensor/tensor_test.dart`
 - **Problem**:
@@ -24,7 +24,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   2. In `Layout(...)` (`lib/src/tensor/layout.dart:58–60`), treat `shape == null` identically to `const <int>[]` so a rank-0 scalar layout always has `length == 1`.
   3. Add regression tests in `test/tensor/tensor_test.dart` for `Tensor.filled(42).getValue([])` and `subVector`/`subMatrix` `.copy()` verifying `copy.offset == 0` and `copy.data.length == copy.length`.
 
-### [ ] TASK-1.2 (`High`): Fix aliasing hazard detection on `TypedData.sublistView` in `Tensor` operations
+### [x] TASK-1.2 (`High`): Fix aliasing hazard detection on `TypedData.sublistView` in `Tensor` operations
 
 - **Files**: `lib/src/tensor/operations/operation.dart` (lines 51–54, 127–140, 180–192), `lib/src/type/utils/memory.dart` (lines 6–56), `test/tensor/operations/operation_test.dart`
 - **Problem**:
@@ -35,7 +35,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   2. In `lib/src/type/utils/memory.dart`, unwrap `NullableList` and `UnmodifiableFloat64ComplexList` inside `_viewInfo`.
   3. Add unit tests with overlapping `Float64List.sublistView` tensors and `NullableList`-backed tensors.
 
-### [ ] TASK-1.3 (`High`): Fix `Layout.reshape`, `Layout.flip`, and `Layout.transpose` edge cases
+### [x] TASK-1.3 (`High`): Fix `Layout.reshape`, `Layout.flip`, and `Layout.transpose` edge cases
 
 - **Files**: `lib/src/tensor/layout.dart` (lines 207–280), `test/tensor/layout_test.dart`
 - **Problem**:
@@ -48,7 +48,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   3. In `Layout.transpose`, normalize negative axes via `final normAxis = axis < 0 ? axis + rank : axis;` before bounds checking.
   4. Add unit tests in `test/tensor/layout_test.dart`.
 
-### [ ] TASK-1.4 (`Medium`): Fix `ReductionTensorExtension` and `ManipulationTensorExtension` validation bugs
+### [x] TASK-1.4 (`Medium`): Fix `ReductionTensorExtension` and `ManipulationTensorExtension` validation bugs
 
 - **Files**: `lib/src/tensor/operations/reduction.dart` (lines 32–35, 55–65, 115–132, 232–277, 314–358), `lib/src/tensor/operations/manipulation.dart` (lines 87–188), `test/tensor/operations/reduction_test.dart`, `test/tensor/operations/manipulation_test.dart`
 - **Problem**:
@@ -62,7 +62,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   2. Validate matching shapes in `stackAll` and non-negative parameters in `pad` and `tile`.
   3. Add unit tests covering each validation case.
 
-### [ ] TASK-1.5 (`Medium`): Complete `Float64Tensor` `@redeclare` views and `Float64List` binary fast paths
+### [x] TASK-1.5 (`Medium`): Complete `Float64Tensor` `@redeclare` views and `Float64List` binary fast paths
 
 - **Files**: `lib/src/tensor/float64_tensor.dart` (lines 1–240), `test/tensor/float64_tensor_test.dart`
 - **Problem**:
@@ -74,7 +74,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   2. Specialize the contiguous loops in `operator +`, `-`, `*`, `/` when `other.data` is `Float64List`.
   3. Add unit tests in `test/tensor/float64_tensor_test.dart`.
 
-### [ ] TASK-1.6 (`High`): Fix `DataType` bugs (`fromType`, integer bounds/casting, `IntegerField.pow`, `promoteWith`, `NullableDataType`)
+### [x] TASK-1.6 (`High`): Fix `DataType` bugs (`fromType`, integer bounds/casting, `IntegerField.pow`, `promoteWith`, `NullableDataType`)
 
 - **Files**: `lib/src/type/utils/derive.dart` (lines 7–8), `lib/src/type/types/integer.dart` (lines 61–78, 241, 286, 360), `lib/src/type/types/bigint.dart` (lines 48–52, 82–86), `lib/src/type/types/fraction.dart` (lines 130–136), `lib/src/type/data_type.dart` (lines 156, 219–273), `lib/src/type/types/nullable.dart` (lines 15, 78–84), `lib/src/type/types/complex.dart` (line 282), `lib/src/type/models/field.dart` (lines 58–106), `test/type/data_type_test.dart`
 - **Problem**:
@@ -100,7 +100,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
 
 ## Phase 2: `acceleration` & `linear` Subsystems (`lib/acceleration.dart`, `lib/linear.dart`)
 
-### [ ] TASK-2.1 (`High`): Fix `FftNative` FFTW3 alignment flag (`FFTW_UNALIGNED`) and `AccelerationMode.accelerated` contract
+### [x] TASK-2.1 (`High`): Fix `FftNative` FFTW3 alignment flag (`FFTW_UNALIGNED`) and `AccelerationMode.accelerated` contract
 
 - **Files**: `lib/src/acceleration/fft/fft_native.dart` (lines 17, 102–114, 150–151, 250–315), `test/acceleration/fft/fft_test.dart`
 - **Problem**:
@@ -111,7 +111,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   2. Return `false` from `FftNative` when native library/plan creation fails, and support `log2n in 1..2` in vDSP (or handle trivial `n <= 1` uniformly).
   3. Add unit tests in `test/acceleration/fft/fft_test.dart` using odd-offset `Float64ComplexList` views.
 
-### [ ] TASK-2.2 (`High`): Fix `Blas` and `Lapack` validation, negative-stride, `alpha == 0`, `dgels` mutation, and `LapackDart` `NaN`/convergence bugs
+### [x] TASK-2.2 (`High`): Fix `Blas` and `Lapack` validation, negative-stride, `alpha == 0`, `dgels` mutation, and `LapackDart` `NaN`/convergence bugs
 
 - **Files**: `lib/src/acceleration/blas/blas_validation.dart` (lines 83–98), `lib/src/acceleration/blas/blas_native.dart` (lines 78–198, 237–250, 303, 338, 545–612), `lib/src/acceleration/blas/blas_dart.dart` (lines 63–91, 146–277, 311, 354, 745–1073), `lib/src/acceleration/lapack/lapack.dart` (lines 20–265), `lib/src/acceleration/lapack/lapack_native.dart` (lines 250–261), `lib/src/acceleration/lapack/lapack_dart.dart` (lines 26, 95, 234, 313, 482–525), `test/acceleration/blas/blas_test.dart`, `test/acceleration/lapack/lapack_test.dart`
 - **Problem**:
@@ -128,7 +128,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   4. Use `NaN`-safe pivot checks (`!(val > 0.0)`, `!(maxVal > 0.0)`, `!(abs >= tol)`) in `LapackDart` and add a 30-iteration limit per eigenvalue in `LapackDart.dsyev`.
   5. Add unit tests across `auto`, `dart`, and `accelerated` modes.
 
-### [ ] TASK-2.3 (`High`): Fix `Matrix` underdetermined complex solver, 0-dimension matrix crashes, and `Float32List` decomposition casts
+### [x] TASK-2.3 (`High`): Fix `Matrix` underdetermined complex solver, 0-dimension matrix crashes, and `Float32List` decomposition casts
 
 - **Files**: `lib/src/linear/matrix.dart` (lines 405–431, 488, 538, 628, 678, 781–851), `lib/src/linear/float64_matrix.dart` (lines 173–183, 237–249, 287–298), `lib/src/linear/decomposition/lu.dart` (lines 65–70, 200), `lib/src/linear/decomposition/qr.dart` (lines 67–72, 128, 194, 257), `lib/src/linear/decomposition/cholesky.dart` (line 128), `test/linear/matrix_test.dart`, `test/linear/decomposition/lu_test.dart`, `test/linear/decomposition/qr_test.dart`
 - **Problem**:
@@ -144,7 +144,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   4. Support negative row/column indices in `Float64Matrix.row` and `Float64Matrix.col`, and remove the duplicate doc comment on `Matrix.solveVector`.
   5. Add unit tests for complex underdetermined solves, empty matrices, `DataType.float32` decompositions, and negative row/col indexing on `Float64Matrix`.
 
-### [ ] TASK-2.4 (`High`): Fix `CooMatrix`, `CsrMatrix`, `CscMatrix` duplicate coordinate coalescing and `solveIterative` / `EigenvalueDecomposition` convergence guards
+### [x] TASK-2.4 (`High`): Fix `CooMatrix`, `CsrMatrix`, `CscMatrix` duplicate coordinate coalescing and `solveIterative` / `EigenvalueDecomposition` convergence guards
 
 - **Files**: `lib/src/linear/sparse/coo_matrix.dart` (lines 126–274), `lib/src/linear/sparse/csr_matrix.dart` (lines 73–86, 230–245), `lib/src/linear/sparse/csc_matrix.dart` (lines 72–85, 217–232), `lib/src/linear/solvers/iterative.dart` (lines 70–165), `lib/src/linear/decomposition/eigenvalue.dart` (lines 333, 472), `lib/src/linear/decomposition/svd.dart` (lines 133, 376–390), `test/linear/sparse/sparse_test.dart`, `test/linear/solvers/iterative_test.dart`
 - **Problem**:
@@ -159,7 +159,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   4. Add `Matrix<double> solve(Matrix<num> b, {double? tolerance})` to `SingularValueDecomposition` and remove dead scaling blocks in `_computeSvd`.
   5. Add unit tests for duplicate COO entries, `solveIterative` validation, and `SingularValueDecomposition.solve`.
 
-### [ ] TASK-2.5 (`Medium`): Support non-zero `offset` in `Float64Vector` & `Float64Matrix` fast paths and deduplicate `_extractContiguousFloat64`
+### [x] TASK-2.5 (`Medium`): Support non-zero `offset` in `Float64Vector` & `Float64Matrix` fast paths and deduplicate `_extractContiguousFloat64`
 
 - **Files**: `lib/src/linear/float64_vector.dart` (lines 183–357), `lib/src/linear/float64_matrix.dart` (lines 229–432), `lib/src/linear/matrix.dart` (lines 1196–1215), `lib/src/linear/decomposition/norm.dart` (lines 221–244), `lib/src/linear/solvers/tridiagonal.dart` (lines 116–134)
 - **Problem**:
@@ -173,7 +173,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
 
 ## Phase 3: `special`, `polynomial`, & `numeric` Subsystems (`lib/special.dart`, `lib/polynomial.dart`, `lib/numeric.dart`)
 
-### [ ] TASK-3.1 (`High`): Fix `special` functions edge cases (`Bessel`, `Beta`, `Gamma`, `Hypergeometric`, `LambertW`)
+### [x] TASK-3.1 (`High`): Fix `special` functions edge cases (`Bessel`, `Beta`, `Gamma`, `Hypergeometric`, `LambertW`)
 
 - **Files**: `lib/src/special/bessel.dart` (lines 21–102, 232–374), `lib/src/special/beta.dart` (lines 17, 37, 51, 85, 195), `lib/src/special/gamma.dart` (lines 84, 126, 145, 222, 260, 290), `lib/src/special/hypergeometric.dart` (lines 10–35, 51–80), `lib/src/special/lambert_w.dart` (lines 46–50), `lib/src/special/erf.dart` (line 214), `lib/special.dart`, `test/special/bessel_test.dart`, `test/special/beta_test.dart`, `test/special/gamma_test.dart`, `test/special/hypergeometric_test.dart`, `test/special/lambert_w_test.dart`
 - **Problem**:
@@ -189,7 +189,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   4. Add `if (w1.abs() < 1.0e-15) break;` in `lambertW0`.
   5. Add unit tests for all edge cases.
 
-### [ ] TASK-3.2 (`High`): Fix `Polynomial` and `RationalFunction` bugs (`fromRoots`, `gcd`, `evaluateComplex`, `integrate` exactness, `CompressedPolynomial.compose`, `RationalFunction.hashCode`, `OrthogonalFamily`)
+### [x] TASK-3.2 (`High`): Fix `Polynomial` and `RationalFunction` bugs (`fromRoots`, `gcd`, `evaluateComplex`, `integrate` exactness, `CompressedPolynomial.compose`, `RationalFunction.hashCode`, `OrthogonalFamily`)
 
 - **Files**: `lib/src/polynomial/polynomial.dart` (lines 94, 192–209), `lib/src/polynomial/impl/dense_polynomial.dart` (lines 82–102, 169, 286–321, 343–368), `lib/src/polynomial/impl/compressed_polynomial.dart` (lines 194–218, 400–410, 473–521), `lib/src/polynomial/rational.dart` (lines 23, 162–173), `lib/src/polynomial/orthogonal.dart` (lines 6–21, 121–171), `lib/polynomial.dart`, `test/polynomial/polynomial_test.dart`, `test/polynomial/rational_test.dart`, `test/polynomial/orthogonal_test.dart`
 - **Problem**:
@@ -209,7 +209,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   6. Remove duplicate `==`/`hashCode` in `DensePolynomial` and `dynamicType` cast; fix `RationalFunction` equality/hashCode consistency; unify `laguerreL` into `OrthogonalFamily` and `evaluateOrthogonalSeries`.
   7. Add unit tests across `test/polynomial/`.
 
-### [ ] TASK-3.3 (`High`): Fix `numeric` integration, root-finding, optimization, ODE, and interpolation bugs
+### [x] TASK-3.3 (`High`): Fix `numeric` integration, root-finding, optimization, ODE, and interpolation bugs
 
 - **Files**: `lib/src/numeric/integration.dart` (lines 60, 105, 125, 135, 200–210), `lib/src/numeric/root_finding/solve.dart` (lines 84–85, 157, 170, 207–208, 227), `lib/src/numeric/root_finding/solve_system.dart` (lines 65–72), `lib/src/numeric/optimization.dart` (line 86), `lib/src/numeric/optimization/quasi_newton.dart` (lines 44–48, 127, 146–150), `lib/src/numeric/optimization/nelder_mead.dart` (line 19), `lib/src/numeric/optimization/constrained.dart` (lines 58–416), `lib/src/numeric/ode/solve_ode.dart` (lines 43, 173, 243–252, 388–411, 472), `lib/src/numeric/interpolation/lagrange.dart` (lines 18–26), `lib/src/numeric/interpolation/bilinear.dart` (line 81), `lib/src/numeric/interpolation/bicubic.dart` (lines 58–138, 199, 268), `lib/src/numeric/calculus/derivative.dart` (line 30), `lib/src/numeric/calculus/gradient.dart` (line 20), `lib/src/numeric/calculus/hessian.dart` (line 19), `lib/src/numeric/calculus/jacobian.dart` (line 22), `lib/src/numeric/curve_fit.dart` (lines 177, 253, 468–559, 661–679), `lib/src/numeric/fft.dart` (lines 89–96), `lib/src/numeric/sampling.dart` (line 346)
 - **Problem**:
@@ -234,7 +234,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
 
 ## Phase 4: `stats` & `dataframe` Subsystems (`lib/stats.dart`, `lib/dataframe.dart`)
 
-### [ ] TASK-4.1 (`High`): Fix `DescriptiveVectorNumExtension` (`sum`, `mean`, `variance`) buffer offset bug on sliced vectors and `_quantile` validation
+### [x] TASK-4.1 (`High`): Fix `DescriptiveVectorNumExtension` (`sum`, `mean`, `variance`) buffer offset bug on sliced vectors and `_quantile` validation
 
 - **Files**: `lib/src/stats/descriptive.dart` (lines 342–368, 539–554), `test/stats/descriptive_test.dart`
 - **Problem**:
@@ -245,7 +245,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   2. Validate `quantile` in `[0.0, 1.0]` and return `double.nan` when input data contains `NaN`.
   3. Add unit tests in `test/stats/descriptive_test.dart` with sliced vectors of length $\ge 64$ and matrix rows.
 
-### [ ] TASK-4.2 (`High`): Fix distribution, resampling, and hypothesis test bugs in `stats`
+### [x] TASK-4.2 (`High`): Fix distribution, resampling, and hypothesis test bugs in `stats`
 
 - **Files**: `lib/src/stats/distributions/continuous/log_normal.dart` (lines 48–80), `lib/src/stats/distributions/continuous/degenerate.dart` (lines 27–60), `lib/src/stats/distributions/continuous/inverse_gamma.dart` (line 65), `lib/src/stats/distributions/continuous/student_t.dart` (lines 108, 135), `lib/src/stats/distributions/continuous/chi_squared.dart` (line 70), `lib/src/stats/distributions/continuous/weibull.dart` (line 100), `lib/src/stats/distributions/continuous/pareto.dart` (line 90), `lib/src/stats/distributions/continuous/exponential.dart` (line 20), `lib/src/stats/distributions/discrete.dart` (line 49), `lib/src/stats/distributions/discrete/negative_binomial.dart` (lines 28–82), `lib/src/stats/distributions/discrete/bernoulli.dart` (lines 66, 69), `lib/src/stats/distributions/discrete/binomial.dart` (lines 86, 89), `lib/src/stats/distributions/discrete/uniform.dart` (line 78), `lib/src/stats/distributions/multivariate/dirichlet.dart` (lines 105–119), `lib/src/stats/resampling/jackknife.dart` (lines 16–21, 80–85), `lib/src/stats/resampling/bootstrap.dart` (lines 23–45), `lib/src/stats/hypothesis/chi_squared.dart` (lines 82–99), `lib/src/stats/hypothesis/jarque_bera.dart` (lines 22–24), `lib/src/stats/hypothesis/t_test.dart` (lines 66–70, 165–169, 211), `test/stats/`
 - **Problem**:
@@ -265,7 +265,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   3. Fix `chiSquaredContingency`, `jarqueBeraTest`, and one-sided confidence intervals in `t_test.dart`.
   4. Add unit tests across `test/stats/`.
 
-### [ ] TASK-4.3 (`High`): Fix `DataFrame`, `Series`, `GroupBy`, `Join`, `CsvReader`, and `Arrow` bugs
+### [x] TASK-4.3 (`High`): Fix `DataFrame`, `Series`, `GroupBy`, `Join`, `CsvReader`, and `Arrow` bugs
 
 - **Files**: `lib/src/dataframe/dataframe.dart` (lines 44–56, 69–101, 552), `lib/src/dataframe/series.dart` (lines 207, 315, 375, 444–493, 529, 570–576, 643, 698–704, 763–766), `lib/src/dataframe/arrow_string_series.dart` (lines 30–42, 115, 121), `lib/src/dataframe/groupby.dart` (lines 74, 78, 150, 163, 220, 274), `lib/src/dataframe/join.dart` (lines 115–159), `lib/src/dataframe/csv/csv_reader.dart` (lines 80–87), `lib/src/dataframe/arrow/arrow_ipc.dart` (lines 95, 719, 757), `lib/src/dataframe/arrow/arrow_c_data_ffi.dart` (lines 250–255, 456–622), `test/dataframe/`
 - **Problem**:
@@ -290,7 +290,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
 
 ## Phase 5: `symbolic` Subsystem (`lib/symbolic.dart`, `lib/src/symbolic/`)
 
-### [ ] TASK-5.1 (`High`): Fix `VariableDomain.unknown` treated as real in `isRealExpr` and `_isSyntacticallyReal`
+### [x] TASK-5.1 (`High`): Fix `VariableDomain.unknown` treated as real in `isRealExpr` and `_isSyntacticallyReal`
 
 - **Files**: `lib/src/symbolic/algebra/simplify/transcendental.dart` (lines 547–583, 1533–1577), `lib/src/symbolic/algebra/simplify/additive.dart` (line 611), `test/symbolic/algebra/simplify_test.dart`
 - **Problem**:
@@ -305,7 +305,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   1. Consolidate `isProvenReal` (`additive.dart:611`), `isRealExpr` (`transcendental.dart:547`), and `_isSyntacticallyReal` (`transcendental.dart:1533`) into a single shared predicate that requires `domain == VariableDomain.real || domain == VariableDomain.positive || domain == VariableDomain.integer` for `Variable`.
   2. Add unit tests verifying that `Re(x)`, `Im(x)`, `Conjugate(x)`, `Abs(x^2)`, and `Sqrt(exp(x))` remain unsimplified under `Assumptions.none` and simplify under `Assumptions.real('x')`.
 
-### [ ] TASK-5.2 (`High`): Enforce `RealNumber` contagion and ban implicit `.rationalize()` across `symbolic`
+### [x] TASK-5.2 (`High`): Enforce `RealNumber` contagion and ban implicit `.rationalize()` across `symbolic`
 
 - **Files**: `lib/src/symbolic/ast/expr.dart` (lines 60–76, 215–226), `lib/src/symbolic/type/expr_data_type.dart` (lines 148–164), `lib/src/symbolic/calculus/integration.dart` (lines 349–362), `lib/src/symbolic/calculus/series.dart` (lines 114–116, 151–159), `lib/src/symbolic/calculus/limit.dart` (lines 642–648), `lib/src/symbolic/algebra/expand.dart` (lines 191–201), `lib/src/symbolic/algebra/simplify/multiplicative.dart` (lines 162, 167), `lib/src/symbolic/algebra/simplify/transcendental.dart` (lines 876–919, 1138–1279), `test/symbolic/`
 - **Problem**:
@@ -323,7 +323,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   2. Preserve `RealNumber(0.0)` in `simplifyMul` and return `RealNumber` in `simplifySign`, `simplifyFloor`, `simplifyCeil`, `simplifyRound`, `simplifyBeta`, `simplifyFactorial`, and `simplifyBinomial` when any operand is `RealNumber`.
   3. Add unit tests verifying strict `RealNumber` contagion and no implicit rationalization.
 
-### [ ] TASK-5.3 (`High`): Fix unsound inverse hyperbolic and `Arg(Conjugate)` simplifications, `ComplexNumber` formatting parentheses, and `BytecodeEvaluator`
+### [x] TASK-5.3 (`High`): Fix unsound inverse hyperbolic and `Arg(Conjugate)` simplifications, `ComplexNumber` formatting parentheses, and `BytecodeEvaluator`
 
 - **Files**: `lib/src/symbolic/algebra/simplify/transcendental.dart` (lines 930, 948, 962, 1398), `lib/src/symbolic/textualization/formatting.dart` (lines 11–103), `lib/src/symbolic/textualization/latex.dart` (line 17), `lib/src/symbolic/textualization/mathml.dart` (line 24), `lib/src/symbolic/textualization/string.dart` (lines 15, 22), `lib/src/symbolic/compiler/evaluator.dart` (lines 146–152, 238–241), `test/symbolic/algebra/simplify_test.dart`, `test/symbolic/textualization/textualization_test.dart`, `test/symbolic/compiler/compiler_test.dart`
 - **Problem**:
@@ -338,7 +338,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   3. Fix `string.dart` doc comments, guard `Op.gamma` poles in `BytecodeEvaluator._runReal`, and make `BytecodeEvaluator` reentrant-safe.
   4. Add unit tests for all cases.
 
-### [ ] TASK-5.4 (`High`): Fix symbolic calculus (`Derivative` with `point`, `integration`, `limit`, `series.toPolynomial`) and equation solver bugs
+### [x] TASK-5.4 (`High`): Fix symbolic calculus (`Derivative` with `point`, `integration`, `limit`, `series.toPolynomial`) and equation solver bugs
 
 - **Files**: `lib/src/symbolic/calculus/differentiation.dart` (lines 156–158), `lib/src/symbolic/calculus/integration.dart` (lines 665–745, 1349–1377), `lib/src/symbolic/calculus/limit.dart` (lines 55–68, 189, 500, 509), `lib/src/symbolic/calculus/series.dart` (lines 70–130), `lib/src/symbolic/solver/polynomial_system.dart` (lines 48–60, 138–167), `lib/src/symbolic/solver/resultant.dart` (lines 131–133), `lib/src/symbolic/solver/transcendental.dart` (lines 192–202), `lib/src/symbolic/solver/univariate.dart` (lines 146–190), `test/symbolic/calculus/`, `test/symbolic/solver/`
 - **Problem**:
@@ -363,7 +363,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
 
 ## Phase 6: Web Applications (`web/`)
 
-### [ ] TASK-6.1 (`High`): Fix `PlotValue` JSON serialization crash on `NaN`/`Infinity` and `Float64List` in `Surface3dData`
+### [x] TASK-6.1 (`High`): Fix `PlotValue` JSON serialization crash on `NaN`/`Infinity` and `Float64List` in `Surface3dData`
 
 - **Files**: `web/calculator/src/model/value.dart` (lines 58–75, 130–149, 179–196), `test/web/` (or calculator serialization test)
 - **Problem**:
@@ -372,7 +372,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
 - **Action**:
   1. Encode non-finite doubles (`NaN`, `Infinity`, `-Infinity`) as `null` in `Surface3dData.toJson()` and `PlotSegmentData.toJson()`, and decode `null` back to `double.nan` in `Surface3dData.fromJson()` and `PlotSegmentData.fromJson()`.
 
-### [ ] TASK-6.2 (`High`): Fix Calculator `UserFunction` parameter capture, missing `Assumptions` propagation, `approx` digits, `AngleMode.deg`, and RPN post-processing
+### [x] TASK-6.2 (`High`): Fix Calculator `UserFunction` parameter capture, missing `Assumptions` propagation, `approx` digits, `AngleMode.deg`, and RPN post-processing
 
 - **Files**: `web/calculator/src/model/environment.dart` (lines 121–132), `web/calculator/src/engine/commands/algebra.dart` (lines 17–345), `web/calculator/src/engine/commands/calculus.dart` (lines 38–455), `web/calculator/src/engine/commands/numbers.dart` (lines 13–245), `web/calculator/src/engine/commands/complex.dart` (lines 130–182), `web/calculator/src/engine/commands/linear.dart` (lines 74–106), `web/calculator/src/engine/evaluator.dart` (lines 435–480, 584–801), `web/calculator/src/engine/rpn.dart` (lines 231–238, 525–542)
 - **Problem**:
@@ -390,7 +390,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   4. Fix `AngleMode.deg` for `sec`, `csc`, `cot`, inverse trig functions (`asin`, `acos`, `atan`), and vector/matrix elementwise calls.
   5. Share post-processing between `Evaluator` and `RpnInterpreter`, use `e.toPolar`/`e.toRectangular` in `complex.dart`, and use `m.transposed`/`m.trace` in `linear.dart`.
 
-### [ ] TASK-6.3 (`High`): Fix Calculator `PlotView` parametric slider range, `Re-sample` button, window listener leak, LaTeX escaping, and Service Worker caching
+### [x] TASK-6.3 (`High`): Fix Calculator `PlotView` parametric slider range, `Re-sample` button, window listener leak, LaTeX escaping, and Service Worker caching
 
 - **Files**: `web/calculator/src/ui/plot_view.dart` (lines 204–223, 235–246, 278–283, 384–390, 463–468), `web/calculator/src/ui/scroll_view.dart` (lines 225–235), `web/calculator/src/ui/app.dart` (lines 732, 745–754), `web/calculator/src/model/value.dart` (lines 179–260, 545, 583), `web/calculator/sw.js` (lines 43–57), `web/shared/chart.dart` (lines 548, 560), `web/shared/webgl_surface.dart` (lines 118, 129)
 - **Problem**:
@@ -406,7 +406,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
   3. Remove `window` event listeners automatically when `!canvas.isConnected` (using a self-removing listener wrapper).
   4. Escape all special LaTeX characters in `InfoValue.toLatex` and `ErrorValue.toLatex`, fix `_showToast` timer management and `app.dart:732`, and switch `sw.js` to network-first with offline cache fallback.
 
-### [ ] TASK-6.4 (`Medium`): Fix bugs and Charter violations in `web/index.html`, `web/distributions/`, `web/expressions/`, and `web/shared/`
+### [x] TASK-6.4 (`Medium`): Fix bugs and Charter violations in `web/index.html`, `web/distributions/`, `web/expressions/`, and `web/shared/`
 
 - **Files**: `web/index.html` (lines 347–350), `web/distributions/index.dart` (lines 429, 496–517), `web/expressions/index.dart` (lines 1009, 1719), `web/expressions/algebra.dart` (lines 1–39), `web/shared/chart.dart` (lines 401–427, 918, 963), `web/shared/style.css` (lines 655–687, 808–837, 989–991), `web/expressions/style.css` (lines 142–144)
 - **Problem**:
@@ -426,7 +426,7 @@ This document provides a comprehensive, step-by-step execution plan derived from
 
 ## Phase 7: Documentation & Architecture Synchronization
 
-### [ ] TASK-7.1 (`Low`): Synchronize `ARCHITECTURE.md` with current class and method names
+### [x] TASK-7.1 (`Low`): Synchronize `ARCHITECTURE.md` with current class and method names
 
 - **Files**: `ARCHITECTURE.md` (sections 4.3, 4.4, 4.7, 7.2, 7.3)
 - **Problem**:

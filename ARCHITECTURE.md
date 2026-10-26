@@ -243,7 +243,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - Zero-allocation `filter`: Counts valid entries in `filterMask`, pre-allocates target typed array of exact length (`dataType.newList(count)`), copies unboxed elements directly, and maps the validity bitmask without boxing primitives.
     - Zero-allocation `slice`: Slices underlying typed array directly via `data.sublist(start, end)` and slices validity mask via `ValidityMask.slice(start, end)`.
     - Zero-overhead scalar access: `getNonNull(int index)` retrieves non-null values (throwing `StateError` on missing entries) without requiring `!` assertions from callers; `getUnchecked(int index)` provides inline raw array access when `hasNulls == false`.
-  - `StringSeries`: Backed by string buffers for textual data.
+  - `ArrowStringSeries`: Backed by Arrow-compatible UTF-8 byte and offset buffers for textual data.
   - `BoolSeries`: Boolean series backed by a `List<bool>` data buffer with an optional `ValidityMask` for null tracking.
   - `ObjectSeries`: General object reference series for complex domain models.
 
@@ -260,8 +260,8 @@ This document describes the achieved architecture across all subsystems of `pack
     - Probes index using left table keys to support `inner`, `left`, `right`, and `outer` joins. Null keys never match in joins.
   - `GroupBy` engine (`lib/src/dataframe/groupby.dart`):
     - Partitions row indices into buckets based on composite key objects (`Map<Object?, List<int>>`).
-    - Aggregates groups across columns with `Agg.count`, `Agg.sum`, `Agg.mean`, `Agg.min`, `Agg.max`, `Agg.std`, `Agg.var_`, `Agg.median`, `Agg.first`, and `Agg.last`.
-    - Numerically stable single-pass Welford accumulators for sample variance (`Agg.var_`, with Bessel's correction $n - 1$, returning `null` when $n < 2$) and sample standard deviation (`Agg.std`).
+    - Aggregates groups across columns with `Agg.count`, `Agg.sum`, `Agg.mean`, `Agg.min`, `Agg.max`, `Agg.std`, `Agg.variance`, `Agg.median`, `Agg.first`, and `Agg.last`.
+    - Numerically stable single-pass Welford accumulators for sample variance (`Agg.variance`, with Bessel's correction $n - 1$, returning `null` when $n < 2$) and sample standard deviation (`Agg.std`).
     - In-place Dutch National Flag 3-way Quickselect for median (`Agg.median`) operating on a reused group scratch buffer without temporary heap allocations.
 
 ### 4.5 Tabular Parsing (PetitParser), CSV/TSV Serialization & Container Conversions
@@ -307,7 +307,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - Pointers are typed as `Object` in cross-platform declarations and checked-cast to `ffi.Pointer<ArrowSchema>` / `ffi.Pointer<ArrowArray>` on Dart VM native platforms.
     - Low-level export/import functions are internal; `DataFrame` and `Series` methods form the single canonical entry point.
     - On Web/Wasm targets, invoking FFI Arrow C Data operations throws `UnsupportedError`.
-  - Apache Arrow IPC: Binary streaming and file format serialization via `DataFrame.toArrowIpcBytes()` and `DataFrame.fromArrowIpcBytes()` with full validity bitmask alignment, null tracking, and multi-chunk concatenation.
+  - Apache Arrow IPC: Binary streaming and file format serialization via `DataFrame.toArrowIpc()` and `DataFrame.fromArrowIpc()` with full validity bitmask alignment, null tracking, and multi-chunk concatenation.
 
 ---
 
@@ -470,8 +470,8 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Closed-form probability modeling and parameter inference from data across univariate and multivariate domains.
 - **Implementation & Constraints**:
   - Univariate distributions (12 implemented with `pdf`/`pmf`, `cdf`, quantile/`inverseCdf`, and random sampling):
-    - Continuous: `NormalDistribution`, `StudentTDistribution`, `FDistribution`, `BetaDistribution`, `GammaDistribution`, `ExponentialDistribution`, `ChiSquaredDistribution`, `UniformDistribution`.
-    - Discrete: `BernoulliDistribution`, `BinomialDistribution`, `PoissonDistribution`, `DiscreteUniformDistribution`.
+    - Continuous: `NormalDistribution`, `StudentDistribution`, `FDistribution`, `BetaDistribution`, `GammaDistribution`, `ExponentialDistribution`, `ChiSquaredDistribution`, `UniformDistribution`.
+    - Discrete: `BernoulliDistribution`, `BinomialDistribution`, `PoissonDistribution`, `UniformDiscreteDistribution`.
   - Multivariate distributions (`MultivariateDistribution<T extends num>`):
     - `MultivariateNormalDistribution`: Correlated Gaussian density over $\mathbb{R}^k$ parameterized by mean $\mu \in \mathbb{R}^k$ and covariance matrix $\Sigma \in \mathbb{R}^{k \times k}$. Computes Cholesky factor $\Sigma = L L^T$, evaluates $\ln \text{PDF}$ via forward triangular solve ($L y = x - \mu \implies (x-\mu)^T \Sigma^{-1} (x-\mu) = \|y\|_2^2$), and generates correlated random samples $x = \mu + L z$ with standard normal $z \sim \mathcal{N}(0, I_k)$.
     - `DirichletDistribution`: Continuous probability distribution over the open $(k-1)$-simplex parameterized by concentration vector $\alpha \in \mathbb{R}^k$ ($\alpha_i > 0$). Evaluates log multivariate beta function via `gammaLn`, provides exact covariance matrix, and generates samples via normalized independent Gamma draws $Y_i \sim \text{Gamma}(\alpha_i, 1.0)$.
@@ -489,7 +489,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - `chiSquaredTest` and `chiSquaredContingency`: Goodness-of-fit and contingency table test of independence.
   - `mannWhitneyUTest`: Non-parametric test for equality of two continuous distributions.
   - `kolmogorovSmirnovTest`: One-sample Kolmogorov-Smirnov test evaluating maximum supremum distance $D = \max(D^+, D^-)$ between empirical CDF and continuous theoretical distribution with asymptotic Stephens approximation for $p$-values.
-  - `kolmogorovSmirnov2Sample`: Two-sample Kolmogorov-Smirnov test assessing whether two independent empirical samples originate from the same continuous distribution using effective sample size $n_e = \frac{n_1 n_2}{n_1 + n_2}$.
+  - `kolmogorovSmirnovTwoSample`: Two-sample Kolmogorov-Smirnov test assessing whether two independent empirical samples originate from the same continuous distribution using effective sample size $n_e = \frac{n_1 n_2}{n_1 + n_2}$.
   - `jarqueBeraTest`: Normality test matching sample skewness $S$ and kurtosis $K$ against normal expectations ($S = 0, K = 3$), testing asymptotic statistic $JB = \frac{n}{6}(S^2 + \frac{(K-3)^2}{4}) \sim \chi^2(2)$.
   - `wilcoxonSignedRankTest`: Non-parametric paired signed-rank test (or one-sample median against 0) with rank-sum calculation, tie-corrected variance, and continuity-corrected normal approximation.
 
