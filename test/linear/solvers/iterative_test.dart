@@ -145,6 +145,26 @@ void main() {
           .throws<ArgumentError>();
       check(() => solveIterative(square2, b3, method: IterativeMethod.gmres))
           .throws<ArgumentError>();
+      check(
+        () => solveIterative(
+          square2,
+          b2,
+          x0: b3,
+          method: IterativeMethod.conjugateGradient,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () =>
+            solveIterative(square2, b2, x0: b3, method: IterativeMethod.gmres),
+      ).throws<ArgumentError>();
+      check(
+        () => solveIterative(
+          square2,
+          b2,
+          restart: 0,
+          method: IterativeMethod.gmres,
+        ),
+      ).throws<ArgumentError>();
 
       // Non-real type rejected
       final complexMat = Matrix<Complex>.fromRows([

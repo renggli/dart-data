@@ -130,7 +130,7 @@ class SingularValueDecomposition {
   }
 
   /// Solves the linear system $A x \approx b$ using minimum norm least squares.
-  Vector<double> solveVector(Vector<num> b) {
+  Vector<double> solveVector(Vector<num> b, {double? tolerance}) {
     if (!vectorsComputed) {
       throw StateError('Singular vectors were not computed.');
     }
@@ -144,7 +144,7 @@ class SingularValueDecomposition {
     final tmp = List<double>.filled(cols, 0.0);
     final maxDim = math.max(u.rowCount, cols);
     final maxS = s.length > 0 ? s[0].abs() : 0.0;
-    final tol = maxDim * maxS * 2.220446049250313e-16;
+    final tol = tolerance ?? maxDim * maxS * 2.220446049250313e-16;
 
     for (var j = 0; j < cols; j++) {
       var val = 0.0;
@@ -167,6 +167,55 @@ class SingularValueDecomposition {
     }
 
     return Vector<double>.fromList(result, type: DataType.float64);
+  }
+
+  /// Solves the linear system $A X \approx B$ using minimum norm least squares.
+  Matrix<double> solve(Matrix<num> b, {double? tolerance}) {
+    if (!vectorsComputed) {
+      throw StateError('Singular vectors were not computed.');
+    }
+    if (u.rowCount != b.rowCount) {
+      throw ArgumentError(
+        'Matrix row count (${b.rowCount}) must match rowCount (${u.rowCount}).',
+      );
+    }
+    final cols = vt.colCount;
+    final nrhs = b.colCount;
+    final mn = math.min(u.rowCount, cols);
+    final maxDim = math.max(u.rowCount, cols);
+    final maxS = s.length > 0 ? s[0].abs() : 0.0;
+    final tol = tolerance ?? maxDim * maxS * 2.220446049250313e-16;
+
+    final result = Matrix<double>.filled(
+      cols,
+      nrhs,
+      0.0,
+      type: DataType.float64,
+    );
+    final tmp = List<double>.filled(cols, 0.0);
+
+    for (var col = 0; col < nrhs; col++) {
+      for (var j = 0; j < cols; j++) {
+        var val = 0.0;
+        if (j < mn) {
+          for (var i = 0; i < u.rowCount; i++) {
+            val += u.getUnchecked(i, j) * b.getUnchecked(i, col).toDouble();
+          }
+          val = s[j].abs() > tol ? val / s[j] : 0.0;
+        }
+        tmp[j] = val;
+      }
+
+      for (var j = 0; j < cols; j++) {
+        var val = 0.0;
+        for (var i = 0; i < cols; i++) {
+          val += vt.getUnchecked(i, j) * tmp[i];
+        }
+        result.setUnchecked(j, col, val);
+      }
+    }
+
+    return result;
   }
 
   static ({double da, double db, double cosVal, double sinVal}) _rotg(
@@ -368,32 +417,6 @@ class SingularValueDecomposition {
           vList[lIdx * colsA + i] = 0.0;
         }
         vList[lIdx * colsA + lIdx] = 1.0;
-      }
-    }
-
-    for (var i = 0; i < mDim; i++) {
-      if (stemp[i] != 0.0) {
-        final tVal = stemp[i];
-        final rVal = stemp[i] / tVal;
-        stemp[i] = tVal;
-        if (i < mDim - 1) eList[i] /= rVal;
-        if (computeVectors) {
-          for (var j = 0; j < rowsA; j++) {
-            uVals[i * rowsA + j] *= rVal;
-          }
-        }
-      }
-      if (i == mDim - 1) break;
-      if (eList[i] != 0.0) {
-        final tVal = eList[i];
-        final rVal = tVal / eList[i];
-        eList[i] = tVal;
-        stemp[i + 1] *= rVal;
-        if (computeVectors) {
-          for (var j = 0; j < colsA; j++) {
-            vList[(i + 1) * colsA + j] *= rVal;
-          }
-        }
       }
     }
 

@@ -129,12 +129,14 @@ class CooMatrix<T> implements LinearOperator<T> {
         'Coordinates ($row, $col) out of bounds for matrix ($rowCount x $colCount)',
       );
     }
+    final field = type.field;
+    var sum = field.additiveIdentity;
     for (var k = 0; k < nnz; k++) {
       if (rowIndices[k] == row && colIndices[k] == col) {
-        return values[k];
+        sum = field.add(sum, values[k]);
       }
     }
-    return type.field.additiveIdentity;
+    return sum;
   }
 
   @override
@@ -202,25 +204,42 @@ class CooMatrix<T> implements LinearOperator<T> {
       return cmp != 0 ? cmp : colIndices[a].compareTo(colIndices[b]);
     });
 
+    final field = type.field;
     final rowPointers = List<int>.filled(rowCount + 1, 0);
-    final csrColIndices = List<int>.filled(nnz, 0);
-    final csrValues = type.newList(nnz);
+    final coalescedCols = <int>[];
+    final coalescedVals = <T>[];
 
-    for (var k = 0; k < nnz; k++) {
+    var k = 0;
+    while (k < nnz) {
       final idx = order[k];
-      rowPointers[rowIndices[idx] + 1]++;
-      csrColIndices[k] = colIndices[idx];
-      csrValues[k] = values[idx];
+      final r = rowIndices[idx];
+      final c = colIndices[idx];
+      var sum = values[idx];
+      k++;
+      while (k < nnz) {
+        final nextIdx = order[k];
+        if (rowIndices[nextIdx] != r || colIndices[nextIdx] != c) break;
+        sum = field.add(sum, values[nextIdx]);
+        k++;
+      }
+      rowPointers[r + 1]++;
+      coalescedCols.add(c);
+      coalescedVals.add(sum);
     }
     for (var i = 0; i < rowCount; i++) {
       rowPointers[i + 1] += rowPointers[i];
+    }
+
+    final csrValues = type.newList(coalescedVals.length);
+    for (var i = 0; i < coalescedVals.length; i++) {
+      csrValues[i] = coalescedVals[i];
     }
 
     return CsrMatrix(
       rowCount: rowCount,
       colCount: colCount,
       rowPointers: rowPointers,
-      colIndices: csrColIndices,
+      colIndices: List<int>.of(coalescedCols, growable: false),
       values: csrValues,
       type: type,
     );
@@ -234,25 +253,42 @@ class CooMatrix<T> implements LinearOperator<T> {
       return cmp != 0 ? cmp : rowIndices[a].compareTo(rowIndices[b]);
     });
 
+    final field = type.field;
     final colPointers = List<int>.filled(colCount + 1, 0);
-    final cscRowIndices = List<int>.filled(nnz, 0);
-    final cscValues = type.newList(nnz);
+    final coalescedRows = <int>[];
+    final coalescedVals = <T>[];
 
-    for (var k = 0; k < nnz; k++) {
+    var k = 0;
+    while (k < nnz) {
       final idx = order[k];
-      colPointers[colIndices[idx] + 1]++;
-      cscRowIndices[k] = rowIndices[idx];
-      cscValues[k] = values[idx];
+      final r = rowIndices[idx];
+      final c = colIndices[idx];
+      var sum = values[idx];
+      k++;
+      while (k < nnz) {
+        final nextIdx = order[k];
+        if (colIndices[nextIdx] != c || rowIndices[nextIdx] != r) break;
+        sum = field.add(sum, values[nextIdx]);
+        k++;
+      }
+      colPointers[c + 1]++;
+      coalescedRows.add(r);
+      coalescedVals.add(sum);
     }
     for (var j = 0; j < colCount; j++) {
       colPointers[j + 1] += colPointers[j];
+    }
+
+    final cscValues = type.newList(coalescedVals.length);
+    for (var i = 0; i < coalescedVals.length; i++) {
+      cscValues[i] = coalescedVals[i];
     }
 
     return CscMatrix(
       rowCount: rowCount,
       colCount: colCount,
       colPointers: colPointers,
-      rowIndices: cscRowIndices,
+      rowIndices: List<int>.of(coalescedRows, growable: false),
       values: cscValues,
       type: type,
     );
@@ -260,14 +296,17 @@ class CooMatrix<T> implements LinearOperator<T> {
 
   /// Converts this COO matrix to a dense [Matrix].
   Matrix<T> toDense() {
+    final field = type.field;
     final res = Matrix<T>.filled(
       rowCount,
       colCount,
-      type.field.additiveIdentity,
+      field.additiveIdentity,
       type: type,
     );
     for (var k = 0; k < nnz; k++) {
-      res.set(rowIndices[k], colIndices[k], values[k]);
+      final r = rowIndices[k];
+      final c = colIndices[k];
+      res.set(r, c, field.add(res.get(r, c), values[k]));
     }
     return res;
   }

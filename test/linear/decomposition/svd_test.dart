@@ -57,13 +57,29 @@ void main() {
       check(x[0]).isCloseTo(0.0, 1e-6);
       check(x[1]).isCloseTo(2.0, 1e-6);
 
+      final bMat = Matrix<double>.fromRows([
+        [2.0, 3.0],
+        [4.0, 5.0],
+        [6.0, 7.0],
+      ], type: DataType.float64);
+      final xMat = svd.solve(bMat);
+      check(xMat.rowCount).equals(2);
+      check(xMat.colCount).equals(2);
+      check(xMat.get(0, 0)).isCloseTo(0.0, 1e-6);
+      check(xMat.get(1, 0)).isCloseTo(2.0, 1e-6);
+      check(xMat.get(0, 1)).isCloseTo(1.0, 1e-6);
+      check(xMat.get(1, 1)).isCloseTo(2.0, 1e-6);
+
       // Errors
       check(() => svd.solveVector(Vector<double>.fromList([1.0, 2.0])))
+          .throws<ArgumentError>();
+      check(() => svd.solve(Matrix<double>.filled(2, 1, 1.0)))
           .throws<ArgumentError>();
 
       final noVectors = SingularValueDecomposition(a, computeVectors: false);
       check(noVectors.vectorsComputed).equals(false);
       check(() => noVectors.solveVector(b)).throws<StateError>();
+      check(() => noVectors.solve(bMat)).throws<StateError>();
     });
 
     test('wide matrix SVD (rowCount < colCount)', () {

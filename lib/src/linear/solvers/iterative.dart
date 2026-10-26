@@ -84,6 +84,11 @@ Vector<T> _conjugateGradient<T>(
       'Matrix rowCount (${a.rowCount}) must match vector b length (${b.length})',
     );
   }
+  if (x0 != null && x0.length != b.length) {
+    throw ArgumentError(
+      'Initial guess x0 length (${x0.length}) must match vector b length (${b.length})',
+    );
+  }
 
   final field = a.type.field;
   final x =
@@ -146,6 +151,15 @@ Vector<T> _gmres<T>(
     throw ArgumentError(
       'Matrix rowCount (${a.rowCount}) must match vector b length (${b.length})',
     );
+  }
+  if (x0 != null && x0.length != b.length) {
+    throw ArgumentError(
+      'Initial guess x0 length (${x0.length}) must match vector b length (${b.length})',
+    );
+  }
+
+  if (restart < 1) {
+    throw ArgumentError.value(restart, 'restart', 'Must be >= 1');
   }
 
   final field = a.type.field;

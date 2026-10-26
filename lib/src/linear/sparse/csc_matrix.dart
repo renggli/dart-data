@@ -75,13 +75,18 @@ class CscMatrix<T> implements LinearOperator<T> {
         'Coordinates ($row, $col) out of bounds for matrix ($rowCount x $colCount)',
       );
     }
+    final field = type.field;
+    var sum = field.additiveIdentity;
     final start = colPointers[col];
     final end = colPointers[col + 1];
     for (var ptr = start; ptr < end; ptr++) {
-      if (rowIndices[ptr] == row) return values[ptr];
-      if (rowIndices[ptr] > row) break;
+      if (rowIndices[ptr] == row) {
+        sum = field.add(sum, values[ptr]);
+      } else if (rowIndices[ptr] > row) {
+        break;
+      }
     }
-    return type.field.additiveIdentity;
+    return sum;
   }
 
   @override
@@ -215,17 +220,19 @@ class CscMatrix<T> implements LinearOperator<T> {
 
   /// Converts this CSC matrix to a dense [Matrix].
   Matrix<T> toDense() {
+    final field = type.field;
     final res = Matrix<T>.filled(
       rowCount,
       colCount,
-      type.field.additiveIdentity,
+      field.additiveIdentity,
       type: type,
     );
     for (var j = 0; j < colCount; j++) {
       final start = colPointers[j];
       final end = colPointers[j + 1];
       for (var ptr = start; ptr < end; ptr++) {
-        res.set(rowIndices[ptr], j, values[ptr]);
+        final r = rowIndices[ptr];
+        res.set(r, j, field.add(res.get(r, j), values[ptr]));
       }
     }
     return res;

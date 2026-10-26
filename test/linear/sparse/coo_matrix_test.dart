@@ -28,14 +28,28 @@ void main() {
     test('fromEntries and duplicates handling', () {
       final coo = CooMatrix<double>.fromEntries(2, 2, [
         (0, 0, 1.0),
+        (0, 0, 4.0),
         (0, 1, 2.0),
         (1, 1, 3.0),
       ], type: DataType.float64);
-      check(coo.nnz).equals(3);
-      check(coo.get(0, 0)).equals(1.0);
+      check(coo.nnz).equals(4);
+      check(coo.get(0, 0)).equals(5.0);
       check(coo.get(0, 1)).equals(2.0);
       check(coo.get(1, 0)).equals(0.0);
       check(coo.get(1, 1)).equals(3.0);
+
+      final dense = coo.toDense();
+      check(dense.get(0, 0)).equals(5.0);
+
+      final csr = coo.toCsr();
+      check(csr.nnz).equals(3);
+      check(csr.get(0, 0)).equals(5.0);
+      check(csr.toDense().get(0, 0)).equals(5.0);
+
+      final csc = coo.toCsc();
+      check(csc.nnz).equals(3);
+      check(csc.get(0, 0)).equals(5.0);
+      check(csc.toDense().get(0, 0)).equals(5.0);
     });
   });
 

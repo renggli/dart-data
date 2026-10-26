@@ -76,13 +76,18 @@ class CsrMatrix<T> implements LinearOperator<T> {
         'Coordinates ($row, $col) out of bounds for matrix ($rowCount x $colCount)',
       );
     }
+    final field = type.field;
+    var sum = field.additiveIdentity;
     final start = rowPointers[row];
     final end = rowPointers[row + 1];
     for (var ptr = start; ptr < end; ptr++) {
-      if (colIndices[ptr] == col) return values[ptr];
-      if (colIndices[ptr] > col) break;
+      if (colIndices[ptr] == col) {
+        sum = field.add(sum, values[ptr]);
+      } else if (colIndices[ptr] > col) {
+        break;
+      }
     }
-    return type.field.additiveIdentity;
+    return sum;
   }
 
   @override
@@ -228,17 +233,19 @@ class CsrMatrix<T> implements LinearOperator<T> {
 
   /// Converts this CSR matrix to a dense [Matrix].
   Matrix<T> toDense() {
+    final field = type.field;
     final res = Matrix<T>.filled(
       rowCount,
       colCount,
-      type.field.additiveIdentity,
+      field.additiveIdentity,
       type: type,
     );
     for (var i = 0; i < rowCount; i++) {
       final start = rowPointers[i];
       final end = rowPointers[i + 1];
       for (var ptr = start; ptr < end; ptr++) {
-        res.set(i, colIndices[ptr], values[ptr]);
+        final c = colIndices[ptr];
+        res.set(i, c, field.add(res.get(i, c), values[ptr]));
       }
     }
     return res;
