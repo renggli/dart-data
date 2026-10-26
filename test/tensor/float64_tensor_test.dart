@@ -184,5 +184,34 @@ void main() {
       check((a * b).asTypedList).deepEquals([20.0, 80.0, 150.0]);
       check((a / b).asTypedList).deepEquals([5.0, 5.0, 6.0]);
     });
+
+    test('fromObject and redeclared view methods return Float64Tensor', () {
+      final t = Float64Tensor.fromObject([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0],
+      ]);
+      check(t.shape).deepEquals([2, 3]);
+      check(t.asTypedList).deepEquals([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+
+      final row0 = t[0];
+      check(row0.asTypedList).identicalTo(t.asTypedList);
+      check(row0.toFlatList()).deepEquals([1.0, 2.0, 3.0]);
+
+      final flipped = t.flip(axis: 0);
+      check(flipped.asTypedList).identicalTo(t.asTypedList);
+      check(flipped.toFlatList()).deepEquals([4.0, 5.0, 6.0, 1.0, 2.0, 3.0]);
+
+      final range = t.getRange(axis: 1, start: 1, end: 3);
+      check(range.asTypedList).identicalTo(t.asTypedList);
+      check(range.toFlatList()).deepEquals([2.0, 3.0, 5.0, 6.0]);
+
+      final sliced = t.slice(const [Slice.all, Slice(0, 2)]);
+      check(sliced.asTypedList).identicalTo(t.asTypedList);
+      check(sliced.toFlatList()).deepEquals([1.0, 2.0, 4.0, 5.0]);
+
+      final copied = t[1].copy();
+      check(copied.offset).equals(0);
+      check(copied.asTypedList).deepEquals([4.0, 5.0, 6.0]);
+    });
   });
 }

@@ -89,6 +89,11 @@ extension type Float64Tensor._(Tensor<double> _tensor)
         ),
       );
 
+  /// Constructs a [Float64Tensor] from nested Dart lists or scalar objects.
+  factory fromObject(Object? object) => Float64Tensor._(
+    Tensor<double>.fromObject(object, type: DataType.float64),
+  );
+
   /// Direct zero-copy access to the underlying [Float64List] buffer.
   Float64List get asTypedList => _tensor.data as Float64List;
 
@@ -115,6 +120,10 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   void set2D(int row, int col, double value) =>
       asTypedList[offset + row * strides[0] + col * strides[1]] = value;
 
+  /// Slices the first axis at [index] as [Float64Tensor].
+  @redeclare
+  Float64Tensor operator [](int index) => Float64Tensor._(_tensor[index]);
+
   /// Returns a reshaped view as [Float64Tensor].
   @redeclare
   Float64Tensor reshape(List<int> newShape) =>
@@ -124,6 +133,32 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   @redeclare
   Float64Tensor transpose([List<int>? permutation]) =>
       Float64Tensor._(_tensor.transpose(permutation));
+
+  /// Returns a flipped view along [axis] as [Float64Tensor].
+  @redeclare
+  Float64Tensor flip({int axis = 0}) =>
+      Float64Tensor._(_tensor.flip(axis: axis));
+
+  /// Slices a range along [axis] as [Float64Tensor].
+  @redeclare
+  Float64Tensor getRange({
+    required int axis,
+    int? start,
+    int? end,
+    int step = 1,
+  }) => Float64Tensor._(
+    _tensor.getRange(axis: axis, start: start, end: end, step: step),
+  );
+
+  /// Returns a zero-copy strided multi-axis slice as [Float64Tensor].
+  @redeclare
+  Float64Tensor slice(List<Slice> slices) =>
+      Float64Tensor._(_tensor.slice(slices));
+
+  /// Creates a contiguous deep copy of this tensor as [Float64Tensor].
+  @redeclare
+  Float64Tensor copy({Tensor<double>? target}) =>
+      Float64Tensor.fromDoubleTensor(_tensor.copy(target: target));
 
   /// Inlined contiguous element-wise addition.
   Float64Tensor operator +(Tensor<double> other) {
@@ -135,8 +170,14 @@ extension type Float64Tensor._(Tensor<double> _tensor)
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
-      for (var i = 0; i < length; i++) {
-        out[i] = a[aOff + i] + b[bOff + i];
+      if (b is Float64List) {
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] + b[bOff + i];
+        }
+      } else {
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] + b[bOff + i];
+        }
       }
       return Float64Tensor._(
         Tensor.internal(
@@ -159,8 +200,14 @@ extension type Float64Tensor._(Tensor<double> _tensor)
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
-      for (var i = 0; i < length; i++) {
-        out[i] = a[aOff + i] - b[bOff + i];
+      if (b is Float64List) {
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] - b[bOff + i];
+        }
+      } else {
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] - b[bOff + i];
+        }
       }
       return Float64Tensor._(
         Tensor.internal(
@@ -183,8 +230,14 @@ extension type Float64Tensor._(Tensor<double> _tensor)
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
-      for (var i = 0; i < length; i++) {
-        out[i] = a[aOff + i] * b[bOff + i];
+      if (b is Float64List) {
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] * b[bOff + i];
+        }
+      } else {
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] * b[bOff + i];
+        }
       }
       return Float64Tensor._(
         Tensor.internal(
@@ -207,8 +260,14 @@ extension type Float64Tensor._(Tensor<double> _tensor)
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
-      for (var i = 0; i < length; i++) {
-        out[i] = a[aOff + i] / b[bOff + i];
+      if (b is Float64List) {
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] / b[bOff + i];
+        }
+      } else {
+        for (var i = 0; i < length; i++) {
+          out[i] = a[aOff + i] / b[bOff + i];
+        }
       }
       return Float64Tensor._(
         Tensor.internal(
