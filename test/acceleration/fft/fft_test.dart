@@ -92,11 +92,37 @@ void main() {
         final orig = Float64List.fromList(oddSlice);
 
         Fft.fft(buffer: buffer);
+        if (n == 2) {
+          // X[0] = (1 - i) + (2 - 2i) = 3 - 3i, X[1] = -1 + i
+          check(buffer[0].a).isCloseTo(3.0, 1e-10);
+          check(buffer[0].b).isCloseTo(-3.0, 1e-10);
+          check(buffer[1].a).isCloseTo(-1.0, 1e-10);
+          check(buffer[1].b).isCloseTo(1.0, 1e-10);
+        }
         Fft.fft(buffer: buffer, inverse: true);
 
         for (var i = 0; i < n; i++) {
           check(buffer[i].a).isCloseTo(orig[2 * i], 1e-10);
           check(buffer[i].b).isCloseTo(orig[2 * i + 1], 1e-10);
+        }
+
+        // 2D FFT on odd-offset view for n x n
+        final total = n * n;
+        final raw2d = Float64List(2 * total + 1);
+        for (var i = 0; i < total; i++) {
+          raw2d[1 + 2 * i] = (i + 1).toDouble();
+          raw2d[1 + 2 * i + 1] = -(i + 1).toDouble();
+        }
+        final oddSlice2d = Float64List.sublistView(raw2d, 1, 1 + 2 * total);
+        final buffer2d = Float64ComplexList.fromData(oddSlice2d);
+        final orig2d = Float64List.fromList(oddSlice2d);
+
+        Fft.fft2(buffer: buffer2d, rows: n, cols: n);
+        Fft.fft2(buffer: buffer2d, rows: n, cols: n, inverse: true);
+
+        for (var i = 0; i < total; i++) {
+          check(buffer2d[i].a).isCloseTo(orig2d[2 * i], 1e-10);
+          check(buffer2d[i].b).isCloseTo(orig2d[2 * i + 1], 1e-10);
         }
       }
     }, isSupported: Fft.isAvailable);

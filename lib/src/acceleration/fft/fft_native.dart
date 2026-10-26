@@ -104,6 +104,51 @@ abstract final class FftNative {
     );
   }
 
+  static void _butterfly2or4(
+    Float64List data,
+    int offset,
+    int n,
+    bool inverse,
+  ) {
+    if (n == 2) {
+      final r0 = data[offset];
+      final i0 = data[offset + 1];
+      final r1 = data[offset + 2];
+      final i1 = data[offset + 3];
+      data[offset] = r0 + r1;
+      data[offset + 1] = i0 + i1;
+      data[offset + 2] = r0 - r1;
+      data[offset + 3] = i0 - i1;
+    } else if (n == 4) {
+      final r0 = data[offset];
+      final i0 = data[offset + 1];
+      final r1 = data[offset + 2];
+      final i1 = data[offset + 3];
+      final r2 = data[offset + 4];
+      final i2 = data[offset + 5];
+      final r3 = data[offset + 6];
+      final i3 = data[offset + 7];
+      final er0 = r0 + r2;
+      final ei0 = i0 + i2;
+      final er1 = r0 - r2;
+      final ei1 = i0 - i2;
+      final or0 = r1 + r3;
+      final oi0 = i1 + i3;
+      final or1 = r1 - r3;
+      final oi1 = i1 - i3;
+      final tr = inverse ? -oi1 : oi1;
+      final ti = inverse ? or1 : -or1;
+      data[offset] = er0 + or0;
+      data[offset + 1] = ei0 + oi0;
+      data[offset + 2] = er1 + tr;
+      data[offset + 3] = ei1 + ti;
+      data[offset + 4] = er0 - or0;
+      data[offset + 5] = ei0 - oi0;
+      data[offset + 6] = er1 - tr;
+      data[offset + 7] = ei1 - ti;
+    }
+  }
+
   static bool _fft1dVdsp({
     required Float64ComplexList buffer,
     required int log2n,
@@ -113,16 +158,28 @@ abstract final class FftNative {
     if (buffer.length < n) return false;
     if (n <= 1) return true;
 
-    final setup = _getVdspSetup(n, inverse);
-    if (setup == null || setup == ffi.nullptr) {
-      if (_hasFftw) {
-        return _fft1dFftw(buffer: buffer, log2n: log2n, inverse: inverse);
-      }
-      return false;
-    }
-
     final data = buffer.data;
-    _vdspDftInterleavedExecuteD(setup, data.address, data.address);
+    if (n == 2 || n == 4) {
+      _butterfly2or4(data, 0, n, inverse);
+    } else {
+      final setup = _getVdspSetup(n, inverse);
+      if (setup == null || setup == ffi.nullptr) {
+        if (_hasFftw) {
+          return _fft1dFftw(buffer: buffer, log2n: log2n, inverse: inverse);
+        }
+        return false;
+      }
+
+      if (data.offsetInBytes % 16 == 0) {
+        _vdspDftInterleavedExecuteD(setup, data.address, data.address);
+      } else {
+        final totalFloats = 2 * n;
+        final aligned = Float64List(totalFloats)
+          ..setRange(0, totalFloats, data);
+        _vdspDftInterleavedExecuteD(setup, aligned.address, aligned.address);
+        data.setRange(0, totalFloats, aligned);
+      }
+    }
 
     if (inverse) {
       final factor = 1.0 / n;
@@ -145,10 +202,10 @@ abstract final class FftNative {
     final total = rows * cols;
     if (buffer.length < total) return false;
 
-    final setupCols = cols > 1 ? _getVdspSetup(cols, inverse) : ffi.nullptr;
-    final setupRows = rows > 1 ? _getVdspSetup(rows, inverse) : ffi.nullptr;
-    if ((cols > 1 && (setupCols == null || setupCols == ffi.nullptr)) ||
-        (rows > 1 && (setupRows == null || setupRows == ffi.nullptr))) {
+    final setupCols = cols >= 8 ? _getVdspSetup(cols, inverse) : null;
+    final setupRows = rows >= 8 ? _getVdspSetup(rows, inverse) : null;
+    if ((cols >= 8 && (setupCols == null || setupCols == ffi.nullptr)) ||
+        (rows >= 8 && (setupRows == null || setupRows == ffi.nullptr))) {
       if (_hasFftw) {
         return _fft2dFftw(
           buffer: buffer,
@@ -164,19 +221,38 @@ abstract final class FftNative {
     final rowStride = cols << 1;
 
     // 1. In-place 1D row transforms directly on contiguous row slices
-    if (cols > 1) {
+    if (cols == 2 || cols == 4) {
       var rowOffset = 0;
       for (var r = 0; r < rows; r++, rowOffset += rowStride) {
-        final rowSlice = Float64List.sublistView(
-          data,
-          rowOffset,
-          rowOffset + rowStride,
-        );
-        _vdspDftInterleavedExecuteD(
-          setupCols!,
-          rowSlice.address,
-          rowSlice.address,
-        );
+        _butterfly2or4(data, rowOffset, cols, inverse);
+      }
+    } else if (cols >= 8 && setupCols != null) {
+      if (data.offsetInBytes % 16 == 0) {
+        var rowOffset = 0;
+        for (var r = 0; r < rows; r++, rowOffset += rowStride) {
+          final rowSlice = Float64List.sublistView(
+            data,
+            rowOffset,
+            rowOffset + rowStride,
+          );
+          _vdspDftInterleavedExecuteD(
+            setupCols,
+            rowSlice.address,
+            rowSlice.address,
+          );
+        }
+      } else {
+        final rowBuffer = Float64List(rowStride);
+        var rowOffset = 0;
+        for (var r = 0; r < rows; r++, rowOffset += rowStride) {
+          rowBuffer.setRange(0, rowStride, data, rowOffset);
+          _vdspDftInterleavedExecuteD(
+            setupCols,
+            rowBuffer.address,
+            rowBuffer.address,
+          );
+          data.setRange(rowOffset, rowOffset + rowStride, rowBuffer);
+        }
       }
     }
 
@@ -192,11 +268,15 @@ abstract final class FftNative {
           colIdx += 2;
           srcIdx += rowStride;
         }
-        _vdspDftInterleavedExecuteD(
-          setupRows!,
-          colBuffer.address,
-          colBuffer.address,
-        );
+        if (rows == 2 || rows == 4) {
+          _butterfly2or4(colBuffer, 0, rows, inverse);
+        } else if (setupRows != null) {
+          _vdspDftInterleavedExecuteD(
+            setupRows,
+            colBuffer.address,
+            colBuffer.address,
+          );
+        }
         var dstIdx = c << 1;
         colIdx = 0;
         for (var r = 0; r < rows; r++) {

@@ -38,7 +38,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   3. Add unit tests in `test/symbolic/algebra/factor_test.dart` for factoring unsimplified `Mul([12, 2])` and `Add([20, 4])`, and verify `dart test test/web_examples_test.dart` passes.
 - **Verification**: `dart test test/symbolic/algebra/factor_test.dart test/web_examples_test.dart`
 
-### [ ] TASK-1.2: Fix Apple Accelerate vDSP Small-Size Regression (`n = 2, 4`) & Alignment in `FftNative`
+### [x] TASK-1.2: Fix Apple Accelerate vDSP Small-Size Regression (`n = 2, 4`) & Alignment in `FftNative`
 - **Files**:
   - `lib/src/acceleration/fft/fft_native.dart` (lines 119–215)
   - `test/acceleration/fft/fft_test.dart`
