@@ -193,6 +193,7 @@ void main() {
       check(Expr.parse('sum(k, k, 1, n)').simplify().toString())
           .equals('1/2 * n + 1/2 * n ^ 2');
       check(Expr.parse('product(k, k, 1, n)').simplify()).equals(Factorial(n));
+      check(Pow(Constant.e, Sin(k * k)).product('k', 1, n)).isA<Product>();
     });
 
     test(

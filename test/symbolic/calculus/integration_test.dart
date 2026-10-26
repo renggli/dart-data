@@ -103,6 +103,18 @@ void main() {
       final divergentPole = Expr.parse('1/x^2').integrate('x', from: -1, to: 1);
       check(divergentPole).isA<Integral>();
 
+      final divergentInfPole = Expr.parse('1/x^2')
+          .integrate('x', from: -Constant.infinity, to: Constant.infinity);
+      check(divergentInfPole).isA<Integral>();
+
+      final divergentSemiInfPole = Expr.parse('1/x^2')
+          .integrate('x', from: -1, to: Constant.infinity);
+      check(divergentSemiInfPole).isA<Integral>();
+
+      final divergentLeftSemiInfPole = Expr.parse('1/x^2')
+          .integrate('x', from: -Constant.infinity, to: 1);
+      check(divergentLeftSemiInfPole).isA<Integral>();
+
       final shiftedPole = Expr.parse('1/(x - 1)^2')
           .integrate('x', from: 0, to: 2);
       check(shiftedPole).isA<Integral>();

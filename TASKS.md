@@ -273,7 +273,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
 
 ## Phase 4: `symbolic` and `web` Bugs, Edge Cases & Charter Compliance
 
-### [ ] TASK-4.1: Fix Indefinite `Integral` Free Variables & Differentiation, Definite Pole Detection on Infinite Intervals, and `Summation` Product Fallback
+### [x] TASK-4.1: Fix Indefinite `Integral` Free Variables & Differentiation, Definite Pole Detection on Infinite Intervals, and `Summation` Product Fallback
 - **Files**:
   - `lib/src/symbolic/ast/integral.dart` (lines 85–125)
   - `lib/src/symbolic/calculus/differentiation.dart` (lines 30–35, 210–225)

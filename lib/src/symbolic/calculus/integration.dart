@@ -140,19 +140,17 @@ Expr _symbolicIntegrate(
     ).simplify(assumptions: assumptions);
     if (!_hasUnevaluatedIntegral(antiDeriv, variable)) {
       var hasInteriorPole = false;
-      // Check for interior singularities/poles in finite intervals [a, b]
-      if (!_isInfiniteBound(fromExpr) && !_isInfiniteBound(toExpr)) {
-        final numFrom = _evaluateBoundNumeric(fromExpr);
-        final numTo = _evaluateBoundNumeric(toExpr);
-        if (numFrom != null && numTo != null) {
-          final low = numFrom < numTo ? numFrom : numTo;
-          final high = numFrom < numTo ? numTo : numFrom;
-          final poles = _findDenominatorRoots(function, variable);
-          for (final pole in poles) {
-            if (pole > low && pole < high) {
-              hasInteriorPole = true;
-              break;
-            }
+      // Check for interior singularities/poles in finite or infinite intervals
+      final numFrom = _evaluateBoundNumeric(fromExpr);
+      final numTo = _evaluateBoundNumeric(toExpr);
+      if (numFrom != null && numTo != null && !numFrom.isNaN && !numTo.isNaN) {
+        final low = numFrom < numTo ? numFrom : numTo;
+        final high = numFrom < numTo ? numTo : numFrom;
+        final poles = _findDenominatorRoots(function, variable);
+        for (final pole in poles) {
+          if (pole > low && pole < high) {
+            hasInteriorPole = true;
+            break;
           }
         }
       }
@@ -258,11 +256,15 @@ Expr _symbolicIntegrate(
 }
 
 double? _evaluateBoundNumeric(Expr bound) {
+  if (bound == Constant.infinity) return double.infinity;
+  if (bound == _negInfinity || bound == -Constant.infinity) {
+    return double.negativeInfinity;
+  }
   if (bound is Number) return bound.toDouble();
   if (bound.freeVariables.isEmpty) {
     try {
       final v = bound.evaluate(const {});
-      if (v.isFinite) return v;
+      if (!v.isNaN) return v;
     } on ArgumentError {
       // Ignored.
     } on UnsupportedError {

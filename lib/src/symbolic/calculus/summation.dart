@@ -703,7 +703,7 @@ Expr? _closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
   if (factor case Pow(:final base, :final exponent)
       when !base.dependsOn(variable)) {
     final expSum = computeSum(exponent, variable, a, b);
-    if (expSum is! VariableFunction || expSum.name != 'sum') {
+    if (expSum is! Sum) {
       return Pow(base, expSum).simplify();
     }
   }

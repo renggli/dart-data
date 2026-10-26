@@ -21,6 +21,8 @@ void main() {
           .equals(Integral(IntegerNumber.two * t, 't'));
       const y = Variable('y');
       check(indef.substitute('t', y)).equals(Integral(a * y, 'y'));
+      check(indef.substitute('t', a))
+          .equals(Integral(const Variable('a_1') * a, 'a'));
       check(indef.substitute('t', IntegerNumber.two)).equals(indef);
       final alphaRenamed = indef.substitute('a', t);
       check(alphaRenamed).isA<Integral>();

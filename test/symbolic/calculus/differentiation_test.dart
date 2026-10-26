@@ -183,6 +183,10 @@ void main() {
       check(Mod(x * IntegerNumber.two, IntegerNumber.of(5)).derivative('x'))
           .equals(IntegerNumber.two);
       check(Mod(x, x).derivative('x')).equals(Derivative(Mod(x, x), 'x'));
+      check(Integral(Sin(Pow(x, IntegerNumber.two)), 'x').derivative('x'))
+          .equals(Sin(Pow(x, IntegerNumber.two)).simplify());
+      check(Integral(Sin(x * y), 'x').derivative('y'))
+          .equals(Integral(x * Cos(x * y), 'x').simplify());
       check(
         Sum(
           Sin(x * t),
