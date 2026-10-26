@@ -119,62 +119,128 @@ Expr _symbolicIntegrate(
     if (fromExpr == toExpr) {
       return IntegerNumber.zero;
     }
+
+    // Odd integrand over symmetric interval [-a, a]
+    if ((fromExpr + toExpr).simplify(assumptions: assumptions) ==
+        IntegerNumber.zero) {
+      if (_isOddIntegrandWithoutInteriorPoles(
+        function,
+        variable,
+        fromExpr,
+        toExpr,
+        assumptions: assumptions,
+      )) {
+        return IntegerNumber.zero;
+      }
+    }
+
     final antiDeriv = _antiDerivative(
       function,
       variable,
     ).simplify(assumptions: assumptions);
-    if (_hasUnevaluatedIntegral(antiDeriv, variable)) {
-      return Integral(
-        function.simplify(assumptions: assumptions),
-        variable,
-        lower: fromExpr,
-        upper: toExpr,
-        isSimplified: true,
-      );
-    }
-    // Check for interior singularities/poles in finite intervals [a, b]
-    if (!_isInfiniteBound(fromExpr) && !_isInfiniteBound(toExpr)) {
-      final numFrom = _evaluateBoundNumeric(fromExpr);
-      final numTo = _evaluateBoundNumeric(toExpr);
-      if (numFrom != null && numTo != null) {
-        final low = numFrom < numTo ? numFrom : numTo;
-        final high = numFrom < numTo ? numTo : numFrom;
-        final poles = _findDenominatorRoots(function, variable);
-        for (final pole in poles) {
-          if (pole > low && pole < high) {
-            return Integral(
-              function.simplify(assumptions: assumptions),
-              variable,
-              lower: fromExpr,
-              upper: toExpr,
-              isSimplified: true,
-            );
+    if (!_hasUnevaluatedIntegral(antiDeriv, variable)) {
+      var hasInteriorPole = false;
+      // Check for interior singularities/poles in finite intervals [a, b]
+      if (!_isInfiniteBound(fromExpr) && !_isInfiniteBound(toExpr)) {
+        final numFrom = _evaluateBoundNumeric(fromExpr);
+        final numTo = _evaluateBoundNumeric(toExpr);
+        if (numFrom != null && numTo != null) {
+          final low = numFrom < numTo ? numFrom : numTo;
+          final high = numFrom < numTo ? numTo : numFrom;
+          final poles = _findDenominatorRoots(function, variable);
+          for (final pole in poles) {
+            if (pole > low && pole < high) {
+              hasInteriorPole = true;
+              break;
+            }
           }
         }
       }
+      if (!hasInteriorPole) {
+        final effectiveAntiDeriv = _wrapLnWithAbs(antiDeriv);
+        try {
+          final upper = _isInfiniteBound(toExpr)
+              ? effectiveAntiDeriv.limit(
+                  variable,
+                  toExpr,
+                  assumptions: assumptions,
+                )
+              : effectiveAntiDeriv.substitute(variable, toExpr);
+          final lower = _isInfiniteBound(fromExpr)
+              ? effectiveAntiDeriv.limit(
+                  variable,
+                  fromExpr,
+                  assumptions: assumptions,
+                )
+              : effectiveAntiDeriv.substitute(variable, fromExpr);
+          final diff = (upper - lower).simplify(assumptions: assumptions);
+          if (!diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+            return diff;
+          }
+        } on Object {
+          // Fall through to definite integral special cases or endpoint limit.
+        }
+        // Try one-sided limits at finite endpoints (e.g. int_0^1 ln(x) dx)
+        try {
+          final isAscending =
+              (_evaluateBoundNumeric(fromExpr) ?? 0.0) <=
+              (_evaluateBoundNumeric(toExpr) ?? 1.0);
+          final upper = _isInfiniteBound(toExpr)
+              ? effectiveAntiDeriv.limit(
+                  variable,
+                  toExpr,
+                  assumptions: assumptions,
+                )
+              : effectiveAntiDeriv.limit(
+                  variable,
+                  toExpr,
+                  direction: isAscending
+                      ? LimitDirection.fromBelow
+                      : LimitDirection.fromAbove,
+                  assumptions: assumptions,
+                );
+          final lower = _isInfiniteBound(fromExpr)
+              ? effectiveAntiDeriv.limit(
+                  variable,
+                  fromExpr,
+                  assumptions: assumptions,
+                )
+              : effectiveAntiDeriv.limit(
+                  variable,
+                  fromExpr,
+                  direction: isAscending
+                      ? LimitDirection.fromAbove
+                      : LimitDirection.fromBelow,
+                  assumptions: assumptions,
+                );
+          final diff = (upper - lower).simplify(assumptions: assumptions);
+          if (!diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+            return diff;
+          }
+        } on Object {
+          // Fall through to definite integral special cases.
+        }
+      }
     }
-    final effectiveAntiDeriv = _wrapLnWithAbs(antiDeriv);
-    try {
-      final upper = _isInfiniteBound(toExpr)
-          ? effectiveAntiDeriv.limit(variable, toExpr, assumptions: assumptions)
-          : effectiveAntiDeriv.substitute(variable, toExpr);
-      final lower = _isInfiniteBound(fromExpr)
-          ? effectiveAntiDeriv.limit(
-              variable,
-              fromExpr,
-              assumptions: assumptions,
-            )
-          : effectiveAntiDeriv.substitute(variable, fromExpr);
-      return (upper - lower).simplify(assumptions: assumptions);
-    } on Object {
-      return Integral(
-        function.simplify(assumptions: assumptions),
-        variable,
-        lower: fromExpr,
-        upper: toExpr,
-        isSimplified: true,
-      );
+
+    final specialDef = _definiteIntegralSpecialCases(
+      function.simplify(assumptions: assumptions),
+      variable,
+      fromExpr,
+      toExpr,
+      assumptions: assumptions,
+    );
+    if (specialDef != null) {
+      return specialDef.simplify(assumptions: assumptions);
     }
+
+    return Integral(
+      function.simplify(assumptions: assumptions),
+      variable,
+      lower: fromExpr,
+      upper: toExpr,
+      isSimplified: true,
+    );
   }
 
   try {
@@ -642,6 +708,47 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
         }
       }
     }
+    // Higher trig/hyperbolic integer powers: sin^n, cos^n, sinh^n, cosh^n (3 <= n <= 10)
+    if (exponent case IntegerNumber(asInt: final n?) when n >= 3 && n <= 10) {
+      if (base case Sin(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final nExpr = IntegerNumber.of(n);
+          final nMinus1 = IntegerNumber.of(n - 1);
+          final nMinus2 = IntegerNumber.of(n - 2);
+          final term1 = (-Pow(Sin(inner), nMinus1) * Cos(inner) / (nExpr * a))
+              .simplify();
+          final rem = _antiDerivative(
+            Pow(Sin(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (!_hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 + (nMinus1 / nExpr) * rem).simplify();
+          }
+        }
+      }
+      if (base case Cos(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final nExpr = IntegerNumber.of(n);
+          final nMinus1 = IntegerNumber.of(n - 1);
+          final nMinus2 = IntegerNumber.of(n - 2);
+          final term1 = (Pow(Cos(inner), nMinus1) * Sin(inner) / (nExpr * a))
+              .simplify();
+          final rem = _antiDerivative(
+            Pow(Cos(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (!_hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 + (nMinus1 / nExpr) * rem).simplify();
+          }
+        }
+      }
+    }
+    // Radical quadratic sqrt(a^2 - u^2) or sqrt(u^2 +- a^2)
+    if (exponent == FractionNumber.half ||
+        (exponent is RealNumber && exponent.value == 0.5)) {
+      final radQuad = _tryRadicalQuadratic(base, variable);
+      if (radQuad != null) return radQuad;
+    }
     if (exponent is IntegerNumber && exponent.value > Integer.one) {
       final expanded = original.expand().simplify();
       if (expanded != original) {
@@ -662,7 +769,7 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
     }
   }
 
-  // Form: c^(ax + b) or e^(ax + b)
+  // Form: c^(ax + b) or e^(ax + b) or Gaussian e^(-a*x^2 + b*x + c)
   if (!base.dependsOn(variable)) {
     if (exponent.matchLinear(variable) case (:final a, b: _)) {
       if (base == Constant.e) {
@@ -672,6 +779,10 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
         final denom = (a * Ln(base)).simplify();
         return (original / denom).simplify();
       }
+    }
+    if (base == Constant.e) {
+      final gaussRes = _tryGaussianAntiderivative(exponent, variable);
+      if (gaussRes != null) return gaussRes;
     }
   }
 
@@ -718,6 +829,42 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
         final cscCot = ((IntegerNumber.one + Cos(inner)) / Sin(inner))
             .simplify();
         return ((-left * Ln(Abs(cscCot))) / a).simplify();
+      }
+    }
+
+    // int c / cos(ax + b)^2 dx = (c / a) * tan(ax + b)
+    if (right case Pow(base: Cos(expr: final inner), :final exponent)
+        when exponent == IntegerNumber.two ||
+            (exponent is RealNumber && exponent.value == 2.0)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        return ((left * Tan(inner)) / a).simplify();
+      }
+    }
+
+    // int c / sin(ax + b)^2 dx = -(c / a) * (cos(ax + b) / sin(ax + b))
+    if (right case Pow(base: Sin(expr: final inner), :final exponent)
+        when exponent == IntegerNumber.two ||
+            (exponent is RealNumber && exponent.value == 2.0)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        return ((-left * Cos(inner)) / (a * Sin(inner))).simplify();
+      }
+    }
+
+    // int c / cosh(ax + b)^2 dx = (c / a) * tanh(ax + b)
+    if (right case Pow(base: Cosh(expr: final inner), :final exponent)
+        when exponent == IntegerNumber.two ||
+            (exponent is RealNumber && exponent.value == 2.0)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        return ((left * Tanh(inner)) / a).simplify();
+      }
+    }
+
+    // int c / sinh(ax + b)^2 dx = -(c / a) * (cosh(ax + b) / sinh(ax + b))
+    if (right case Pow(base: Sinh(expr: final inner), :final exponent)
+        when exponent == IntegerNumber.two ||
+            (exponent is RealNumber && exponent.value == 2.0)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        return ((-left * Cosh(inner)) / (a * Sinh(inner))).simplify();
       }
     }
 
@@ -784,20 +931,43 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
   }
 
   // int u'(x) / sqrt(a - u(x)^2) dx = asin(u(x) / sqrt(a))
-  if (right
-      case Pow(base: Add(terms: [final aConst, final t1]), :final exponent)
-      when (exponent == FractionNumber.half ||
-              (exponent is RealNumber && exponent.value == 0.5)) &&
-          !aConst.dependsOn(variable) &&
-          _isPositiveConstant(aConst)) {
-    final negTerm = (-t1).simplify();
-    if (_extractSquareBase(negTerm) case final u? when u.dependsOn(variable)) {
-      final uPrime = u.derivative(variable).simplify();
-      if (left.matchScalarMultiple(uPrime, variable) case final k?) {
+  // int u'(x) / sqrt(a + u(x)^2) dx = asinh(u(x) / sqrt(a))
+  // int u'(x) / sqrt(u(x)^2 - a) dx = ln|u(x) + sqrt(u(x)^2 - a)|
+  if (right case Pow(base: Add(terms: [final t0, final t1]), :final exponent)
+      when exponent == FractionNumber.half ||
+          (exponent is RealNumber && exponent.value == 0.5)) {
+    final aConst = !t0.dependsOn(variable)
+        ? t0
+        : (!t1.dependsOn(variable) ? t1 : null);
+    final varTerm = !t0.dependsOn(variable) ? t1 : t0;
+    if (aConst != null) {
+      if (_isPositiveConstant(aConst)) {
         final sqrtA = aConst == IntegerNumber.one
             ? IntegerNumber.one
             : Pow(aConst, FractionNumber.half).simplify();
-        return Asin(u / sqrtA).scale(k);
+        final negTerm = (-varTerm).simplify();
+        if (_extractScaledSquareBase(negTerm, variable) case final u?
+            when u.dependsOn(variable)) {
+          final uPrime = u.derivative(variable).simplify();
+          if (left.matchScalarMultiple(uPrime, variable) case final k?) {
+            return Asin(u / sqrtA).scale(k);
+          }
+        }
+        if (_extractScaledSquareBase(varTerm, variable) case final u?
+            when u.dependsOn(variable)) {
+          final uPrime = u.derivative(variable).simplify();
+          if (left.matchScalarMultiple(uPrime, variable) case final k?) {
+            return Asinh(u / sqrtA).scale(k);
+          }
+        }
+      } else if (_isPositiveConstant((-aConst).simplify())) {
+        if (_extractScaledSquareBase(varTerm, variable) case final u?
+            when u.dependsOn(variable)) {
+          final uPrime = u.derivative(variable).simplify();
+          if (left.matchScalarMultiple(uPrime, variable) case final k?) {
+            return Ln(Abs((u + right).simplify())).scale(k);
+          }
+        }
       }
     }
   }
@@ -1160,28 +1330,73 @@ Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
     };
   }
 
-  // Higher-degree polynomial P(x) * vExpr (e.g. x^n * exp(ax+b), x^n * sin(ax+b)):
+  // Higher-degree polynomial P(x) * vExpr (e.g. x^n * exp(ax+b), x^n * sin(ax+b), x^n * ln(x), x^n * exp(-a*x^2)):
   final degP = polynomialDegree(pExpr, variable);
-  if (degP != null && degP >= 2 && degP <= 10) {
-    final isIntegrableV = switch (vExpr) {
-      Pow(:final base, :final exponent) when base == Constant.e =>
-        exponent.matchLinear(variable) != null,
-      Sin(:final expr) ||
-      Cos(:final expr) ||
-      Sinh(:final expr) ||
-      Cosh(:final expr) => expr.matchLinear(variable) != null,
-      _ => false,
-    };
-    if (isIntegrableV) {
-      final v = _antiDerivative(vExpr, variable);
-      final pPrime = pExpr.derivative(variable);
-      final remIntegral = _antiDerivative(
-        (pPrime * v).expand().simplify(),
-        variable,
-      );
+  if (degP != null && degP >= 1 && degP <= 10) {
+    // 1. P(x) * ln(a*x + b) where u = ln(a*x + b), dv = P(x) dx
+    if (vExpr case Ln(:final expr)
+        when degP >= 2 && expr.matchLinear(variable) != null) {
+      final v = _antiDerivative(pExpr, variable);
+      final uPrime = vExpr.derivative(variable).simplify();
+      final remIntegrand = (v * uPrime).simplify();
+      final remIntegral = _antiDerivative(remIntegrand, variable);
       if (!_hasUnevaluatedIntegral(v, variable) &&
           !_hasUnevaluatedIntegral(remIntegral, variable)) {
-        return (pExpr * v - remIntegral).simplify();
+        return (v * vExpr - remIntegral).simplify();
+      }
+    }
+
+    // 2. P(x) * exp(-a*x^2 + b*x + c) (Gaussian moments)
+    if (vExpr case Pow(:final base, :final exponent) when base == Constant.e) {
+      final expCoeffs = extractPolynomialCoefficients(exponent, variable);
+      if (expCoeffs != null && maxPolynomialDegree(expCoeffs) == 2) {
+        final a2 = expCoeffs[2] ?? IntegerNumber.zero;
+        final a1 = expCoeffs[1] ?? IntegerNumber.zero;
+        if (degP >= 2 && a1 == IntegerNumber.zero && _isNegativeConstant(a2)) {
+          // Write P(x) = x * Q(x) + p0, and integrate x * Q(x) * exp(a2*x^2) via u = Q(x), dv = x*exp(a2*x^2) dx
+          final xVar = Variable(variable);
+          final (:quotient, :remainder) = pExpr.polynomialDivide(
+            xVar,
+            variable,
+          );
+          final dvAnti = (vExpr / (IntegerNumber.two * a2)).simplify();
+          final qPrime = quotient.derivative(variable).simplify();
+          final ibpRem = _antiDerivative(
+            (qPrime * dvAnti).expand().simplify(),
+            variable,
+          );
+          final rem0 = (remainder is Number && remainder.isZero)
+              ? IntegerNumber.zero
+              : _antiDerivative((remainder * vExpr).simplify(), variable);
+          if (!_hasUnevaluatedIntegral(ibpRem, variable) &&
+              !_hasUnevaluatedIntegral(rem0, variable)) {
+            return (quotient * dvAnti - ibpRem + rem0).simplify();
+          }
+        }
+      }
+    }
+
+    if (degP >= 2) {
+      final isIntegrableV = switch (vExpr) {
+        Pow(:final base, :final exponent) when base == Constant.e =>
+          exponent.matchLinear(variable) != null,
+        Sin(:final expr) ||
+        Cos(:final expr) ||
+        Sinh(:final expr) ||
+        Cosh(:final expr) => expr.matchLinear(variable) != null,
+        _ => false,
+      };
+      if (isIntegrableV) {
+        final v = _antiDerivative(vExpr, variable);
+        final pPrime = pExpr.derivative(variable);
+        final remIntegral = _antiDerivative(
+          (pPrime * v).expand().simplify(),
+          variable,
+        );
+        if (!_hasUnevaluatedIntegral(v, variable) &&
+            !_hasUnevaluatedIntegral(remIntegral, variable)) {
+          return (pExpr * v - remIntegral).simplify();
+        }
       }
     }
   }
@@ -1294,6 +1509,597 @@ bool _isPositiveConstant(Expr expr) {
     }
   }
   return false;
+}
+
+bool _isNegativeConstant(Expr expr) => _isPositiveConstant((-expr).simplify());
+
+Expr? _tryGaussianAntiderivative(Expr exponent, String variable) {
+  final coeffs = extractPolynomialCoefficients(exponent, variable);
+  if (coeffs == null || maxPolynomialDegree(coeffs) != 2) return null;
+  final a2 = coeffs[2] ?? IntegerNumber.zero;
+  final a1 = coeffs[1] ?? IntegerNumber.zero;
+  final a0 = coeffs[0] ?? IntegerNumber.zero;
+
+  // Require negative leading coefficient a2 = -k where k > 0
+  final k = (-a2).simplify();
+  if (!_isPositiveConstant(k)) return null;
+
+  final sqrtK = Pow(k, FractionNumber.half).simplify();
+  final sqrtPi = Pow(Constant.pi, FractionNumber.half).simplify();
+  final xVar = Variable(variable);
+
+  if (a1 == IntegerNumber.zero && a0 == IntegerNumber.zero) {
+    // int e^(-k*x^2) dx = (sqrt(pi) / (2 * sqrt(k))) * erf(sqrt(k) * x)
+    return ((sqrtPi / (IntegerNumber.two * sqrtK)) * Erf(sqrtK * xVar))
+        .simplify();
+  }
+
+  // Complete the square: -k * x^2 + a1 * x + a0 = -(sqrt(k)*x - a1/(2*sqrt(k)))^2 + (a0 + a1^2/(4*k))
+  final shift = (a1 / (IntegerNumber.two * sqrtK)).simplify();
+  final u = (sqrtK * xVar - shift).simplify();
+  final constExp = (a0 + Pow(a1, IntegerNumber.two) / (IntegerNumber.of(4) * k))
+      .simplify();
+  final expScale = Pow(Constant.e, constExp).simplify();
+  return ((expScale * sqrtPi / (IntegerNumber.two * sqrtK)) * Erf(u))
+      .simplify();
+}
+
+Expr? _tryRadicalQuadratic(Expr base, String variable) {
+  if (base case Add(terms: [final t0, final t1])) {
+    final aConst = !t0.dependsOn(variable)
+        ? t0
+        : (!t1.dependsOn(variable) ? t1 : null);
+    final varTerm = !t0.dependsOn(variable) ? t1 : t0;
+    if (aConst == null) return null;
+
+    final rad = Pow(base, FractionNumber.half).simplify();
+    if (_isPositiveConstant(aConst)) {
+      final sqrtA = Pow(aConst, FractionNumber.half).simplify();
+      // 1. sqrt(a - u^2) where u = m*x + b
+      final negVar = (-varTerm).simplify();
+      if (_extractScaledSquareBase(negVar, variable) case final u?) {
+        if (u.matchLinear(variable) case (a: final slope, b: _)) {
+          return ((u * rad / IntegerNumber.two +
+                      (aConst / IntegerNumber.two) * Asin(u / sqrtA)) /
+                  slope)
+              .simplify();
+        }
+      }
+      // 2. sqrt(a + u^2) where u = m*x + b
+      if (_extractScaledSquareBase(varTerm, variable) case final u?) {
+        if (u.matchLinear(variable) case (a: final slope, b: _)) {
+          return ((u * rad / IntegerNumber.two +
+                      (aConst / IntegerNumber.two) * Asinh(u / sqrtA)) /
+                  slope)
+              .simplify();
+        }
+      }
+    } else if (_isPositiveConstant((-aConst).simplify())) {
+      // 3. sqrt(u^2 - a) where a = -aConst > 0 and u = m*x + b
+      final posA = (-aConst).simplify();
+      if (_extractScaledSquareBase(varTerm, variable) case final u?) {
+        if (u.matchLinear(variable) case (a: final slope, b: _)) {
+          return ((u * rad / IntegerNumber.two -
+                      (posA / IntegerNumber.two) *
+                          Ln(Abs((u + rad).simplify()))) /
+                  slope)
+              .simplify();
+        }
+      }
+    }
+  }
+  return null;
+}
+
+bool _isOddIntegrandWithoutInteriorPoles(
+  Expr function,
+  String variable,
+  Expr fromExpr,
+  Expr toExpr, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final sFunc = function.simplify(assumptions: assumptions);
+  final reflected = sFunc
+      .substitute(variable, -Variable(variable))
+      .simplify(assumptions: assumptions);
+  if ((sFunc + reflected).expand().simplify(assumptions: assumptions) !=
+      IntegerNumber.zero) {
+    return false;
+  }
+
+  // Ensure no denominator vanishes on the interval
+  final poles = _findDenominatorRoots(sFunc, variable);
+  if (poles.isNotEmpty) {
+    if (_isInfiniteBound(fromExpr) || _isInfiniteBound(toExpr)) {
+      return false;
+    }
+    final numFrom = _evaluateBoundNumeric(fromExpr);
+    final numTo = _evaluateBoundNumeric(toExpr);
+    if (numFrom == null || numTo == null) return false;
+    final low = numFrom < numTo ? numFrom : numTo;
+    final high = numFrom < numTo ? numTo : numFrom;
+    for (final pole in poles) {
+      if (pole >= low - 1e-12 && pole <= high + 1e-12) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+Expr? _definiteIntegralSpecialCases(
+  Expr function,
+  String variable,
+  Expr fromExpr,
+  Expr toExpr, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  // Flip reversed bounds: int_a^b f(x) dx = -int_b^a f(x) dx when a > b
+  if ((fromExpr == Constant.infinity) ||
+      (toExpr == _negInfinity || toExpr == -Constant.infinity) ||
+      (toExpr == IntegerNumber.zero && _isPositiveConstant(fromExpr))) {
+    final flipped = _definiteIntegralSpecialCases(
+      function,
+      variable,
+      toExpr,
+      fromExpr,
+      assumptions: assumptions,
+    );
+    return flipped != null
+        ? (-flipped).simplify(assumptions: assumptions)
+        : null;
+  }
+
+  // Extract constant factors independent of variable
+  final rawFactors = function is Mul ? function.factors : [function];
+  final (:constFactors, :varFactors) = partitionFactors(rawFactors, variable);
+  if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
+    final constPart = constFactors.length == 1
+        ? constFactors.first
+        : Mul(constFactors).simplify(assumptions: assumptions);
+    final varPart = varFactors.length == 1
+        ? varFactors.first
+        : Mul(varFactors).simplify(assumptions: assumptions);
+    final inner = _definiteIntegralSpecialCases(
+      varPart,
+      variable,
+      fromExpr,
+      toExpr,
+      assumptions: assumptions,
+    );
+    if (inner != null) {
+      return (constPart * inner).simplify(assumptions: assumptions);
+    }
+  }
+
+  // Even integrand over [-infty, infty] -> 2 * int_0^infty f(x) dx
+  if ((fromExpr == _negInfinity || fromExpr == -Constant.infinity) &&
+      toExpr == Constant.infinity) {
+    final reflected = function
+        .substitute(variable, -Variable(variable))
+        .simplify(assumptions: assumptions);
+    if ((function - reflected).expand().simplify(assumptions: assumptions) ==
+        IntegerNumber.zero) {
+      final halfInt = _definiteIntegralZeroToInfinity(
+        function,
+        variable,
+        assumptions: assumptions,
+      );
+      if (halfInt != null) {
+        return (IntegerNumber.two * halfInt).simplify(assumptions: assumptions);
+      }
+    }
+  }
+
+  // Domain [0, infty)
+  if (fromExpr == IntegerNumber.zero && toExpr == Constant.infinity) {
+    final res = _definiteIntegralZeroToInfinity(
+      function,
+      variable,
+      assumptions: assumptions,
+    );
+    if (res != null) return res;
+  }
+
+  // Domain [0, pi/2] or [0, pi]
+  final halfPi = (Constant.pi / IntegerNumber.two).simplify();
+  if (fromExpr == IntegerNumber.zero &&
+      (toExpr == halfPi || toExpr == Constant.pi)) {
+    final trigRes = _definiteIntegralTrigDomain(
+      function,
+      variable,
+      toExpr,
+      assumptions: assumptions,
+    );
+    if (trigRes != null) return trigRes;
+  }
+
+  // Domain [0, 1]
+  if (fromExpr == IntegerNumber.zero && toExpr == IntegerNumber.one) {
+    final unitRes = _definiteIntegralUnitInterval(
+      function,
+      variable,
+      assumptions: assumptions,
+    );
+    if (unitRes != null) return unitRes;
+  }
+
+  return null;
+}
+
+Expr? _definiteIntegralZeroToInfinity(
+  Expr function,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final xVar = Variable(variable);
+  final (num, den) = splitNumeratorDenominator(function);
+
+  // 1. Dirichlet integral: sin(a*x) / x -> pi/2 * sign(a)
+  //    and sin(a*x)^2 / x^2 -> pi/2 * |a|
+  if (den == xVar && num is Sin) {
+    if (num.expr.matchLinear(variable) case (a: final slope, :final b)
+        when b == IntegerNumber.zero) {
+      return (Constant.pi / IntegerNumber.two * Sign(slope)).simplify(
+        assumptions: assumptions,
+      );
+    }
+  }
+  if (den case Pow(base: final b, exponent: IntegerNumber(asInt: 2))
+      when b == xVar) {
+    if (num case Pow(
+      base: Sin(expr: final inner),
+      exponent: IntegerNumber(asInt: 2),
+    )) {
+      if (inner.matchLinear(variable) case (a: final slope, b: final shift)
+          when shift == IntegerNumber.zero) {
+        return (Constant.pi / IntegerNumber.two * Abs(slope)).simplify(
+          assumptions: assumptions,
+        );
+      }
+    }
+  }
+
+  // 2. Fresnel integrals: sin(a*x^2) or cos(a*x^2) -> 1/4 * sqrt(2*pi / |a|)
+  if (function case Sin(expr: final inner) || Cos(expr: final inner)) {
+    final coeffs = extractPolynomialCoefficients(inner, variable);
+    if (coeffs != null &&
+        maxPolynomialDegree(coeffs) == 2 &&
+        (coeffs[1] ?? IntegerNumber.zero) == IntegerNumber.zero &&
+        (coeffs[0] ?? IntegerNumber.zero) == IntegerNumber.zero) {
+      final a2 = coeffs[2] ?? IntegerNumber.zero;
+      final absA = Abs(a2).simplify(assumptions: assumptions);
+      if (_isPositiveConstant(absA)) {
+        final fresnelVal =
+            (FractionNumber.quarter *
+                    Pow(
+                      (IntegerNumber.two * Constant.pi) / absA,
+                      FractionNumber.half,
+                    ))
+                .simplify(assumptions: assumptions);
+        return function is Sin
+            ? (Sign(a2) * fresnelVal).simplify(assumptions: assumptions)
+            : fresnelVal;
+      }
+    }
+  }
+
+  // 3. Euler Gamma integral: x^s * e^(-a*x) -> Gamma(s + 1) / a^(s + 1) for a > 0, s > -1
+  final factors = function is Mul ? function.factors : [function];
+  Expr? expSlope;
+  Expr? xExponent;
+  var validGamma = true;
+  for (final f in factors) {
+    if (expSlope == null && f is Pow && f.base == Constant.e) {
+      if (f.exponent.matchLinear(variable) case (a: final slope, :final b)
+          when b == IntegerNumber.zero) {
+        final posA = (-slope).simplify(assumptions: assumptions);
+        if (_isPositiveConstant(posA) ||
+            (posA is Variable &&
+                assumptions.domainOf(posA.name) == VariableDomain.positive)) {
+          expSlope = posA;
+          continue;
+        }
+      }
+    }
+    if (xExponent == null && f == xVar) {
+      xExponent = IntegerNumber.one;
+      continue;
+    }
+    if (xExponent == null &&
+        f is Pow &&
+        f.base == xVar &&
+        !f.exponent.dependsOn(variable)) {
+      xExponent = f.exponent;
+      continue;
+    }
+    validGamma = false;
+    break;
+  }
+  if (validGamma && expSlope != null) {
+    final s = xExponent ?? IntegerNumber.zero;
+    final sPlus1 = (s + IntegerNumber.one).simplify(assumptions: assumptions);
+    if (_isPositiveConstant(sPlus1) ||
+        (s is Variable &&
+            assumptions.domainOf(s.name) == VariableDomain.positive)) {
+      return (Gamma(sPlus1) / Pow(expSlope, sPlus1)).simplify(
+        assumptions: assumptions,
+      );
+    }
+  }
+
+  // 4. Generalized Gaussian / Gamma integral: x^s * e^(-a*x^2) -> 1/2 * Gamma((s+1)/2) / a^((s+1)/2)
+  Expr? gaussCoeff;
+  Expr? gaussXExp;
+  var validGaussGamma = true;
+  for (final f in factors) {
+    if (gaussCoeff == null && f is Pow && f.base == Constant.e) {
+      final coeffs = extractPolynomialCoefficients(f.exponent, variable);
+      if (coeffs != null &&
+          maxPolynomialDegree(coeffs) == 2 &&
+          (coeffs[1] ?? IntegerNumber.zero) == IntegerNumber.zero &&
+          (coeffs[0] ?? IntegerNumber.zero) == IntegerNumber.zero) {
+        final posA = (-(coeffs[2] ?? IntegerNumber.zero)).simplify(
+          assumptions: assumptions,
+        );
+        if (_isPositiveConstant(posA)) {
+          gaussCoeff = posA;
+          continue;
+        }
+      }
+    }
+    if (gaussXExp == null && f == xVar) {
+      gaussXExp = IntegerNumber.one;
+      continue;
+    }
+    if (gaussXExp == null &&
+        f is Pow &&
+        f.base == xVar &&
+        !f.exponent.dependsOn(variable)) {
+      gaussXExp = f.exponent;
+      continue;
+    }
+    validGaussGamma = false;
+    break;
+  }
+  if (validGaussGamma && gaussCoeff != null) {
+    final s = gaussXExp ?? IntegerNumber.zero;
+    final alpha = ((s + IntegerNumber.one) / IntegerNumber.two).simplify(
+      assumptions: assumptions,
+    );
+    if (_isPositiveConstant(alpha)) {
+      return (FractionNumber.half * Gamma(alpha) / Pow(gaussCoeff, alpha))
+          .simplify(assumptions: assumptions);
+    }
+  }
+
+  // 5. Bose-Einstein & Fermi-Dirac integrals:
+  //    int_0^infty x^(s-1) / (e^x - 1) dx = Gamma(s) * zeta(s)
+  //    int_0^infty x^(s-1) / (e^x + 1) dx = Gamma(s) * eta(s)
+  if (den case Add(terms: [final d0, final d1])) {
+    final expTerm = d0 is Pow && d0.base == Constant.e && d0.exponent == xVar
+        ? d0
+        : (d1 is Pow && d1.base == Constant.e && d1.exponent == xVar
+              ? d1
+              : null);
+    final constTerm = expTerm == d0 ? d1 : d0;
+    if (expTerm != null &&
+        (constTerm == IntegerNumber.negativeOne ||
+            constTerm == IntegerNumber.one)) {
+      int? s;
+      if (num == xVar) {
+        s = 2;
+      } else if (num
+          case Pow(base: final b, exponent: IntegerNumber(asInt: final m?))
+          when b == xVar && m >= 1 && m.isOdd && m <= 15) {
+        s = m + 1;
+      }
+      if (s != null && s.isEven) {
+        final factSMinus1 = IntegerNumber(Integer.from(s - 1).factorial());
+        final zetaS = _evenZetaIntegralValue(s);
+        if (constTerm == IntegerNumber.negativeOne) {
+          return (factSMinus1 * zetaS).simplify(assumptions: assumptions);
+        } else {
+          final etaFactor =
+              (IntegerNumber.one -
+                      Pow(IntegerNumber.two, IntegerNumber.of(1 - s)))
+                  .simplify();
+          return (factSMinus1 * etaFactor * zetaS).simplify(
+            assumptions: assumptions,
+          );
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+Expr? _definiteIntegralTrigDomain(
+  Expr function,
+  String variable,
+  Expr toExpr, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final xVar = Variable(variable);
+  final halfPi = (Constant.pi / IntegerNumber.two).simplify();
+
+  // 1. Euler's log-sine / log-cosine integrals:
+  //    int_0^(pi/2) ln(sin(x)) dx = int_0^(pi/2) ln(cos(x)) dx = -pi/2 * ln(2)
+  //    int_0^pi ln(sin(x)) dx = -pi * ln(2)
+  if (function case Ln(expr: Sin(expr: final inner)) when inner == xVar) {
+    if (toExpr == halfPi) {
+      return (-halfPi * Ln(IntegerNumber.two)).simplify(
+        assumptions: assumptions,
+      );
+    }
+    if (toExpr == Constant.pi) {
+      return (-Constant.pi * Ln(IntegerNumber.two)).simplify(
+        assumptions: assumptions,
+      );
+    }
+  }
+  if (function case Ln(expr: Cos(expr: final inner))
+      when inner == xVar && toExpr == halfPi) {
+    return (-halfPi * Ln(IntegerNumber.two)).simplify(assumptions: assumptions);
+  }
+
+  // 2. Wallis / Beta trigonometric integrals on [0, pi/2]:
+  //    int_0^(pi/2) sin(x)^m * cos(x)^n dx = 1/2 * Beta((m+1)/2, (n+1)/2)
+  if (toExpr == halfPi) {
+    final factors = function is Mul ? function.factors : [function];
+    Expr mExp = IntegerNumber.zero;
+    Expr nExp = IntegerNumber.zero;
+    var validWallis = true;
+    for (final f in factors) {
+      if (f case Sin(expr: final inner) when inner == xVar) {
+        mExp = (mExp + IntegerNumber.one).simplify();
+        continue;
+      }
+      if (f case Cos(expr: final inner) when inner == xVar) {
+        nExp = (nExp + IntegerNumber.one).simplify();
+        continue;
+      }
+      if (f case Pow(base: Sin(expr: final inner), :final exponent)
+          when inner == xVar && !exponent.dependsOn(variable)) {
+        mExp = (mExp + exponent).simplify();
+        continue;
+      }
+      if (f case Pow(base: Cos(expr: final inner), :final exponent)
+          when inner == xVar && !exponent.dependsOn(variable)) {
+        nExp = (nExp + exponent).simplify();
+        continue;
+      }
+      validWallis = false;
+      break;
+    }
+    if (validWallis &&
+        (mExp != IntegerNumber.zero || nExp != IntegerNumber.zero)) {
+      final aArg = ((mExp + IntegerNumber.one) / IntegerNumber.two).simplify();
+      final bArg = ((nExp + IntegerNumber.one) / IntegerNumber.two).simplify();
+      if (_isPositiveConstant(aArg) && _isPositiveConstant(bArg)) {
+        return (FractionNumber.half * Beta(aArg, bArg)).simplify(
+          assumptions: assumptions,
+        );
+      }
+    }
+  }
+
+  return null;
+}
+
+Expr? _definiteIntegralUnitInterval(
+  Expr function,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final xVar = Variable(variable);
+  final (num, den) = splitNumeratorDenominator(function);
+
+  // 1. Logarithmic zeta/eta integrals on [0, 1]:
+  //    int_0^1 ln(x) / (1 - x) dx = -pi^2 / 6
+  //    int_0^1 ln(x) / (1 + x) dx = -pi^2 / 12
+  //    int_0^1 ln(1 + x) / x dx = pi^2 / 12
+  //    int_0^1 ln(1 - x) / x dx = -pi^2 / 6
+  if (num case Ln(expr: final lnArg) when lnArg == xVar) {
+    if ((den - (IntegerNumber.one - xVar)).expand().simplify() ==
+        IntegerNumber.zero) {
+      return (-Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(6))
+          .simplify(assumptions: assumptions);
+    }
+    if ((den - (IntegerNumber.one + xVar)).expand().simplify() ==
+        IntegerNumber.zero) {
+      return (-Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(12))
+          .simplify(assumptions: assumptions);
+    }
+  }
+  if (den == xVar && num is Ln) {
+    if ((num.expr - (IntegerNumber.one + xVar)).expand().simplify() ==
+        IntegerNumber.zero) {
+      return (Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(12))
+          .simplify(assumptions: assumptions);
+    }
+    if ((num.expr - (IntegerNumber.one - xVar)).expand().simplify() ==
+        IntegerNumber.zero) {
+      return (-Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(6))
+          .simplify(assumptions: assumptions);
+    }
+  }
+
+  // 2. Euler Beta integral on [0, 1]:
+  //    int_0^1 x^(a - 1) * (1 - x)^(b - 1) dx = Beta(a, b)
+  final factors = function is Mul ? function.factors : [function];
+  Expr aMinus1 = IntegerNumber.zero;
+  Expr bMinus1 = IntegerNumber.zero;
+  var hasOneMinusX = false;
+  var validBeta = true;
+  for (final f in factors) {
+    if (f == xVar) {
+      aMinus1 = (aMinus1 + IntegerNumber.one).simplify();
+      continue;
+    }
+    if (f case Pow(base: final b, :final exponent)
+        when b == xVar && !exponent.dependsOn(variable)) {
+      aMinus1 = (aMinus1 + exponent).simplify();
+      continue;
+    }
+    if ((f - (IntegerNumber.one - xVar)).expand().simplify() ==
+        IntegerNumber.zero) {
+      bMinus1 = (bMinus1 + IntegerNumber.one).simplify();
+      hasOneMinusX = true;
+      continue;
+    }
+    if (f case Pow(:final base, :final exponent)
+        when !exponent.dependsOn(variable) &&
+            (base - (IntegerNumber.one - xVar)).expand().simplify() ==
+                IntegerNumber.zero) {
+      bMinus1 = (bMinus1 + exponent).simplify();
+      hasOneMinusX = true;
+      continue;
+    }
+    validBeta = false;
+    break;
+  }
+  if (validBeta && hasOneMinusX) {
+    final aArg = (aMinus1 + IntegerNumber.one).simplify();
+    final bArg = (bMinus1 + IntegerNumber.one).simplify();
+    if (_isPositiveConstant(aArg) && _isPositiveConstant(bArg)) {
+      return Beta(aArg, bArg).simplify(assumptions: assumptions);
+    }
+  }
+
+  return null;
+}
+
+Expr _evenZetaIntegralValue(int s) {
+  // Returns zeta(s) for even s in {2, 4, 6, ...}
+  final b = <RationalNumber>[IntegerNumber.one];
+  for (var m = 1; m <= s; m++) {
+    if (m == 1) {
+      b.add(FractionNumber.negativeHalf);
+      continue;
+    }
+    if (m.isOdd) {
+      b.add(IntegerNumber.zero);
+      continue;
+    }
+    var sum = IntegerNumber.zero as RationalNumber;
+    for (var j = 0; j < m; j++) {
+      if (b[j].isZero) continue;
+      final binom = IntegerNumber(
+        Integer.from(m + 1).binomial(Integer.from(j)),
+      );
+      sum = sum.addRational(binom.mulRational(b[j]));
+    }
+    b.add(sum.neg().divRational(IntegerNumber.of(m + 1)));
+  }
+  final bsAbs = b[s].abs();
+  final twoPowS = Integer.big(BigInt.two.pow(s));
+  final factS = Integer.from(s).factorial();
+  final coeff = bsAbs.mulRational(
+    RationalNumber.of(twoPowS, Integer.two * factS),
+  );
+  return (coeff * Pow(Constant.pi, IntegerNumber.of(s))).simplify();
 }
 
 Expr? _extractScaledSquareBase(Expr expr, String variable) {

@@ -94,7 +94,12 @@ List<Command> buildCalculusCommands() => [
       }
       return liftUnaryCommand(
         args[0],
-        (e) => e.integrate(varName, from: lower, to: upper),
+        (e) => e.integrate(
+          varName,
+          from: lower,
+          to: upper,
+          assumptions: ctx.assumptions,
+        ),
         onMatrix: (m) => m.integrate(varName, from: lower, to: upper),
         onVector: (v) => v.integrate(varName, from: lower, to: upper),
       );
@@ -259,23 +264,40 @@ List<Command> buildCalculusCommands() => [
       final expr = expectCommandExpr(args[0], 'limit');
       if (args.length == 1) {
         final varName = ctx.inferPrimaryVariable(args[0]);
-        return ExprValue(expr.limit(varName, IntegerNumber.zero));
+        return ExprValue(
+          expr.limit(varName, IntegerNumber.zero, assumptions: ctx.assumptions),
+        );
       }
       if (args.length == 2) {
         if (args[1] is ExprValue && (args[1] as ExprValue).expr is Variable) {
           final varName = expectCommandVarName(args[1], 'limit');
-          return ExprValue(expr.limit(varName, IntegerNumber.zero));
+          return ExprValue(
+            expr.limit(
+              varName,
+              IntegerNumber.zero,
+              assumptions: ctx.assumptions,
+            ),
+          );
         }
         final varName = ctx.inferPrimaryVariable(args[0]);
         final point = expectCommandExpr(args[1], 'limit');
-        return ExprValue(expr.limit(varName, point));
+        return ExprValue(
+          expr.limit(varName, point, assumptions: ctx.assumptions),
+        );
       }
       final varName = expectCommandVarName(args[1], 'limit');
       final point = expectCommandExpr(args[2], 'limit');
       final dir = args.length == 4
           ? _parseLimitDir(args[3])
           : LimitDirection.both;
-      return ExprValue(expr.limit(varName, point, direction: dir));
+      return ExprValue(
+        expr.limit(
+          varName,
+          point,
+          direction: dir,
+          assumptions: ctx.assumptions,
+        ),
+      );
     },
   ),
   Command(
@@ -304,7 +326,9 @@ List<Command> buildCalculusCommands() => [
       final varName = expectCommandVarName(args[1], 'sum');
       final lower = expectCommandExpr(args[2], 'sum');
       final upper = expectCommandExpr(args[3], 'sum');
-      return ExprValue(expr.sum(varName, lower, upper));
+      return ExprValue(
+        expr.sum(varName, lower, upper, assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -333,7 +357,9 @@ List<Command> buildCalculusCommands() => [
       final varName = expectCommandVarName(args[1], 'product');
       final lower = expectCommandExpr(args[2], 'product');
       final upper = expectCommandExpr(args[3], 'product');
-      return ExprValue(expr.product(varName, lower, upper));
+      return ExprValue(
+        expr.product(varName, lower, upper, assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(

@@ -230,4 +230,191 @@ void main() {
       },
     );
   });
+
+  group('Famous infinite series and binomial sums', () {
+    test(
+      'evaluates Riemann zeta, odd zeta, Dirichlet eta, and beta series',
+      () {
+        // Basel problem and even zeta values:
+        check(Expr.parse('sum(1 / n^2, n, 1, infinity)').simplify())
+            .equals(Expr.parse('pi^2 / 6').simplify());
+        check(Expr.parse('sum(1 / n^4, n, 1, infinity)').simplify())
+            .equals(Expr.parse('pi^4 / 90').simplify());
+        check(Expr.parse('sum(1 / n^6, n, 1, infinity)').simplify())
+            .equals(Expr.parse('pi^6 / 945').simplify());
+
+        // Shifted start index: sum_{n=2..inf} 1/n^2 = pi^2/6 - 1
+        check(Expr.parse('sum(1 / n^2, n, 2, infinity)').simplify())
+            .equals(Expr.parse('pi^2 / 6 - 1').simplify());
+        check(Expr.parse('sum(1 / (n + 1)^2, n, 0, infinity)').simplify())
+            .equals(Expr.parse('pi^2 / 6').simplify());
+
+        // Odd zeta values: sum_{n=0..inf} 1/(2n+1)^2 = pi^2/8
+        check(Expr.parse('sum(1 / (2*n + 1)^2, n, 0, infinity)').simplify())
+            .equals(Expr.parse('pi^2 / 8').simplify());
+        check(Expr.parse('sum(1 / (2*n - 1)^2, n, 1, infinity)').simplify())
+            .equals(Expr.parse('pi^2 / 8').simplify());
+        check(Expr.parse('sum(1 / (2*n + 1)^4, n, 0, infinity)').simplify())
+            .equals(Expr.parse('pi^4 / 96').simplify());
+
+        // Alternating zeta (Dirichlet eta): sum_{n=1..inf} (-1)^(n-1) / n^2 = pi^2 / 12
+        check(Expr.parse('sum((-1)^(n - 1) / n^2, n, 1, infinity)').simplify())
+            .equals(Expr.parse('pi^2 / 12').simplify());
+        check(Expr.parse('sum((-1)^n / n^2, n, 1, infinity)').simplify())
+            .equals(Expr.parse('-pi^2 / 12').simplify());
+        check(Expr.parse('sum((-1)^(n - 1) / n^4, n, 1, infinity)').simplify())
+            .equals(Expr.parse('7 * pi^4 / 720').simplify());
+
+        // Madhava-Leibniz / Dirichlet beta series:
+        check(Expr.parse('sum((-1)^n / (2*n + 1), n, 0, infinity)').simplify())
+            .equals(Expr.parse('pi / 4').simplify());
+        check(
+          Expr.parse('sum((-1)^(n - 1) / (2*n - 1), n, 1, infinity)')
+              .simplify(),
+        ).equals(Expr.parse('pi / 4').simplify());
+        check(Expr.parse('sum((-1)^n / (2*n - 1), n, 1, infinity)').simplify())
+            .equals(Expr.parse('-pi / 4').simplify());
+        check(Expr.parse('sum((-1)^n / (2*n - 1), n, 0, infinity)').simplify())
+            .equals(Expr.parse('-1 - pi / 4').simplify());
+        check(
+          Expr.parse('sum((-1)^n / (2*n + 1)^3, n, 0, infinity)').simplify(),
+        ).equals(Expr.parse('pi^3 / 32').simplify());
+
+        // Harmonic series divergence:
+        check(Expr.parse('sum(1 / n, n, 1, infinity)').simplify())
+            .equals(Constant.infinity);
+      },
+    );
+
+    test('evaluates alternating harmonic, Mercator, dilogarithm, and Gregory series', () {
+      // Alternating harmonic series:
+      check(Expr.parse('sum((-1)^(n - 1) / n, n, 1, infinity)').simplify())
+          .equals(Ln(IntegerNumber.two));
+      check(Expr.parse('sum((-1)^n / n, n, 1, infinity)').simplify())
+          .equals(-Ln(IntegerNumber.two));
+      check(Expr.parse('sum((-1)^n / (n + 1), n, 0, infinity)').simplify())
+          .equals(Ln(IntegerNumber.two));
+
+      // Mercator / polylogarithm Li_1(r) = -ln(1 - r):
+      check(Expr.parse('sum(1 / (2^n * n), n, 1, infinity)').simplify())
+          .equals(Ln(IntegerNumber.two));
+      check(Expr.parse('sum(1 / (3^n * n), n, 1, infinity)').simplify())
+          .equals(Expr.parse('ln(3 / 2)').simplify());
+      check(
+        Expr.parse('sum((-1)^(n - 1) / (2^n * n), n, 1, infinity)').simplify(),
+      ).equals(Expr.parse('ln(3 / 2)').simplify());
+
+      // Euler's dilogarithm Li_2(1/2) = pi^2/12 - ln(2)^2/2:
+      check(Expr.parse('sum(1 / (2^n * n^2), n, 1, infinity)').simplify())
+          .equals(Expr.parse('pi^2 / 12 - 1/2 * ln(2)^2').simplify());
+
+      // Alternating geometric and polynomial-geometric series:
+      check(Expr.parse('sum(1 / 2^n, n, 0, infinity)').simplify())
+          .equals(IntegerNumber.two);
+      check(Expr.parse('sum((-1)^n / 2^n, n, 0, infinity)').simplify())
+          .equals(RationalNumber(2, 3));
+      check(Expr.parse('sum(n / 2^n, n, 1, infinity)').simplify())
+          .equals(IntegerNumber.two);
+      check(Expr.parse('sum(n^2 / 2^n, n, 1, infinity)').simplify())
+          .equals(IntegerNumber.of(6));
+
+      // Gregory arctan / atanh series:
+      check(
+        Expr.parse('sum((-1)^n / ((2*n + 1) * 3^n), n, 0, infinity)')
+            .simplify(),
+      ).equals(Expr.parse('sqrt(3) * pi / 6').simplify());
+    });
+
+    test(
+      'evaluates exponential, Bell-number, and trigonometric factorial series',
+      () {
+        // Exponential series sum_{n=0..inf} x^n / n! = e^x:
+        check(Expr.parse('sum(1 / n!, n, 0, infinity)').simplify())
+            .equals(Constant.e);
+        check(Expr.parse('sum(1 / n!, n, 1, infinity)').simplify())
+            .equals((Constant.e - IntegerNumber.one).simplify());
+        check(Expr.parse('sum((-1)^n / n!, n, 0, infinity)').simplify())
+            .equals(Pow(Constant.e, IntegerNumber.negativeOne));
+        check(Expr.parse('sum(2^n / n!, n, 0, infinity)').simplify())
+            .equals(Pow(Constant.e, IntegerNumber.two));
+        check(Expr.parse('sum(x^n / n!, n, 0, infinity)').simplify())
+            .equals(Pow(Constant.e, const Variable('x')));
+
+        // Dobiński / polynomial-factorial series sum P(n) / n!:
+        check(Expr.parse('sum(n / n!, n, 0, infinity)').simplify())
+            .equals(Constant.e);
+        check(Expr.parse('sum(n^2 / n!, n, 0, infinity)').simplify())
+            .equals((IntegerNumber.two * Constant.e).simplify());
+        check(Expr.parse('sum(n^3 / n!, n, 0, infinity)').simplify())
+            .equals((IntegerNumber.of(5) * Constant.e).simplify());
+
+        // Even/odd factorial series (cos, sin, cosh, sinh):
+        check(Expr.parse('sum((-1)^n / (2*n)!, n, 0, infinity)').simplify())
+            .equals(Cos(IntegerNumber.one));
+        check(Expr.parse('sum((-1)^n / (2*n + 1)!, n, 0, infinity)').simplify())
+            .equals(Sin(IntegerNumber.one));
+        check(Expr.parse('sum(1 / (2*n)!, n, 0, infinity)').simplify())
+            .equals(Cosh(IntegerNumber.one));
+        check(Expr.parse('sum(1 / (2*n + 1)!, n, 0, infinity)').simplify())
+            .equals(Sinh(IntegerNumber.one));
+      },
+    );
+
+    test('evaluates finite binomial sums', () {
+      check(Expr.parse('sum(binomial(n, k), k, 0, n)').simplify())
+          .equals(Expr.parse('2^n').simplify());
+      check(Expr.parse('sum(binomial(n, k) * x^k, k, 0, n)').simplify())
+          .equals(Expr.parse('(1 + x)^n').simplify());
+      check(
+        Expr.parse('sum(binomial(n, k) * x^k * y^(n - k), k, 0, n)').simplify(),
+      ).equals(Expr.parse('(x + y)^n').simplify());
+    });
+  });
+
+  group('Famous infinite and sloped products', () {
+    test('evaluates Wallis, Euler sine/cosine, Viète, and sloped products', () {
+      // Infinite telescoping product: prod_{n=2..inf} (1 - 1/n^2) = 1/2
+      check(Expr.parse('product(1 - 1 / n^2, n, 2, infinity)').simplify())
+          .equals(FractionNumber.half);
+
+      // Wallis product: prod_{n=1..inf} (4*n^2) / (4*n^2 - 1) = pi / 2
+      check(
+        Expr.parse('product((4 * n^2) / (4 * n^2 - 1), n, 1, infinity)')
+            .simplify(),
+      ).equals(Expr.parse('pi / 2').simplify());
+      check(Expr.parse('product(1 - 1 / (4 * n^2), n, 1, infinity)').simplify())
+          .equals(Expr.parse('2 / pi').simplify());
+
+      // Euler's sine & hyperbolic sine infinite products:
+      check(
+        Expr.parse('product(1 - x^2 / (n^2 * pi^2), n, 1, infinity)')
+            .simplify(),
+      ).equals(Expr.parse('sin(x) / x').simplify());
+      check(
+        Expr.parse('product(1 + x^2 / (n^2 * pi^2), n, 1, infinity)')
+            .simplify(),
+      ).equals(Expr.parse('sinh(x) / x').simplify());
+      check(Expr.parse('product(1 - x^2 / n^2, n, 1, infinity)').simplify())
+          .equals(Expr.parse('sin(pi * x) / (pi * x)').simplify());
+
+      // Euler's cosine infinite product:
+      check(
+        Expr.parse(
+          'product(1 - 4 * x^2 / ((2*n - 1)^2 * pi^2), n, 1, infinity)',
+        ).simplify(),
+      ).equals(Expr.parse('cos(x)').simplify());
+
+      // Viète / dyadic cosine infinite product:
+      check(Expr.parse('product(cos(x / 2^n), n, 1, infinity)').simplify())
+          .equals(Expr.parse('sin(x) / x').simplify());
+
+      // Infinite exponential product: prod_{n=1..inf} 2^(1 / 2^n) = 2
+      check(Expr.parse('product(2^(1 / 2^n), n, 1, infinity)').simplify())
+          .equals(IntegerNumber.two);
+
+      // Sloped linear finite product: prod_{k=1..n} (2*k) = 2^n * n!
+      check(Expr.parse('product(2 * k, k, 1, n)').simplify())
+          .equals(Expr.parse('2^n * n!').simplify());
+    });
+  });
 }

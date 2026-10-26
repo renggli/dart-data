@@ -154,6 +154,12 @@ bool isNegativeSqrt3Over2(Expr expr) {
 bool isSqrt3Over3(Expr expr) {
   if (_isRationalTimesSqrt(expr, FractionNumber.third, 3)) return true;
   if (expr case Pow(
+    base: FractionNumber(:final numerator, :final denominator),
+    exponent: FractionNumber.half,
+  )) {
+    return numerator.isOne && denominator == const Integer(3);
+  }
+  if (expr case Pow(
     base: IntegerNumber(:final value),
     exponent: FractionNumber(:final numerator, :final denominator),
   )) {

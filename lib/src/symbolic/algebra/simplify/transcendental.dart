@@ -856,6 +856,20 @@ Expr simplifyGamma(Expr expr) {
   if (expr == FractionNumber.half) {
     return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
   }
+  // Half-integer Gamma(n + 1/2) = (2n)! / (4^n * n!) * sqrt(pi)
+  if (expr case FractionNumber(:final numerator, :final denominator)
+      when denominator == Integer.two && numerator > Integer.one) {
+    final n = ((numerator - Integer.one) ~/ Integer.two).asInt;
+    if (n != null && n >= 1 && n <= 16) {
+      final numFact = Integer.from(2 * n).factorial();
+      final denFact = Integer.from(1 << (2 * n)) * Integer.from(n).factorial();
+      final coeff = RationalNumber.of(numFact, denFact);
+      return simplifyMul([
+        coeff,
+        Pow(Constant.pi, FractionNumber.half, isSimplified: true),
+      ]);
+    }
+  }
   return Gamma(expr, isSimplified: true);
 }
 
@@ -877,6 +891,29 @@ Expr simplifyBeta(Expr a, Expr b) {
   }
   if (b == IntegerNumber.one) {
     return simplifyPow(a, IntegerNumber.negativeOne);
+  }
+  // Rational arguments where Gamma(a), Gamma(b), Gamma(a + b) simplify
+  if (a is RationalNumber &&
+      b is RationalNumber &&
+      !a.isNegative &&
+      !a.isZero &&
+      !b.isNegative &&
+      !b.isZero) {
+    final sum = a.addRational(b);
+    if ((a.denominator == Integer.one || a.denominator == Integer.two) &&
+        (b.denominator == Integer.one || b.denominator == Integer.two) &&
+        (sum.denominator == Integer.one || sum.denominator == Integer.two)) {
+      final ga = simplifyGamma(a);
+      final gb = simplifyGamma(b);
+      final gab = simplifyGamma(sum);
+      if (ga is! Gamma && gb is! Gamma && gab is! Gamma) {
+        return simplifyMul([
+          ga,
+          gb,
+          simplifyPow(gab, IntegerNumber.negativeOne),
+        ]);
+      }
+    }
   }
   return Beta(a, b, isSimplified: true);
 }

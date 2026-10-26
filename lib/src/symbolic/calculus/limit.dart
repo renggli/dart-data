@@ -107,7 +107,9 @@ Expr computeLimit(
       case Sin(expr: final inner) ||
           Cos(expr: final inner) ||
           Atan(expr: final inner) ||
-          Tanh(expr: final inner)) {
+          Tanh(expr: final inner) ||
+          Erf(expr: final inner) ||
+          Erfc(expr: final inner)) {
     try {
       final innerLim = computeLimit(
         inner,
@@ -124,10 +126,14 @@ Expr computeLimit(
             _isPositiveInfinity(innerLim)
                 ? (Constant.pi / IntegerNumber.two).simplify()
                 : (-(Constant.pi / IntegerNumber.two)).simplify(),
-          Tanh() =>
+          Tanh() || Erf() =>
             _isPositiveInfinity(innerLim)
                 ? IntegerNumber.one
                 : IntegerNumber.negativeOne,
+          Erfc() =>
+            _isPositiveInfinity(innerLim)
+                ? IntegerNumber.zero
+                : IntegerNumber.two,
           _ => throw UnsupportedError(
             'Limit does not exist due to oscillation',
           ),
@@ -360,7 +366,7 @@ Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
   }
   if (mapped case Pow(:final base, :final exponent)
       when base is RealNumeric &&
-          base.sign > 0 &&
+          !base.isZero &&
           exponent.dependsOn(variable)) {
     try {
       final expLim = _computeInfiniteLimit(
@@ -368,20 +374,59 @@ Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
         variable,
         isPositive: true,
       );
-      final cmpOne = base.compareTo(IntegerNumber.one);
+      final cmpOne = base.abs().compareTo(IntegerNumber.one);
       if (_isPositiveInfinity(expLim)) {
         if (cmpOne < 0) return IntegerNumber.zero;
-        if (cmpOne > 0) return Constant.infinity;
+        if (cmpOne > 0 && base.sign > 0) return Constant.infinity;
       } else if (_isNegativeInfinity(expLim)) {
         if (cmpOne > 0) return IntegerNumber.zero;
-        if (cmpOne < 0) return Constant.infinity;
+        if (cmpOne < 0 && base.sign > 0) return Constant.infinity;
       }
     } on Object {
       // Keep mapped
     }
   }
+  if (mapped case Mul(:final factors)
+      when factors.contains(IntegerNumber.zero)) {
+    final nonZero = <Expr>[];
+    for (final f in factors) {
+      if (f != IntegerNumber.zero) {
+        if (f == Constant.infinity ||
+            f == _negInfinity ||
+            f == Constant.undefined) {
+          return mapped;
+        }
+        nonZero.add(f);
+      }
+    }
+    if (nonZero.every((f) => _isBoundedFactorAtInfinity(f, variable))) {
+      return IntegerNumber.zero;
+    }
+  }
   return mapped;
 }
+
+bool _isBoundedFactorAtInfinity(Expr expr, String variable) => switch (expr) {
+  _ when !expr.dependsOn(variable) => _isWellDefinedFinite(expr),
+  Sin() || Cos() => true,
+  Pow(base: final RealNumeric b, :final exponent) => () {
+    final cmp = b.abs().compareTo(IntegerNumber.one);
+    if (cmp == 0) return true;
+    try {
+      final expLim = _computeInfiniteLimit(
+        exponent,
+        variable,
+        isPositive: true,
+      );
+      if (cmp < 0 && _isPositiveInfinity(expLim)) return true;
+      if (cmp > 0 && _isNegativeInfinity(expLim)) return true;
+    } on Object {
+      // Ignore
+    }
+    return false;
+  }(),
+  _ => false,
+};
 
 Expr? _rationalFunctionLimitAtInfinity(Expr expr, String variable) {
   final (num, den) = splitNumeratorDenominator(expr);

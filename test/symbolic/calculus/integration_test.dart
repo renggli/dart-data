@@ -508,5 +508,147 @@ void main() {
       verifyAntiderivative(Expr.parse('ln(x) / x'), points: [0.5, 1.0, 2.0]);
       verifyAntiderivative(Expr.parse('sinh(x) * cosh(x)'));
     });
+
+    test('Gaussian antiderivatives, higher trig powers, sec^2/csc^2, and radical quadratics', () {
+      verifyAntiderivative(Expr.parse('exp(-x^2)'));
+      verifyAntiderivative(Expr.parse('exp(-3 * x^2 + 2 * x - 1)'));
+      verifyAntiderivative(Expr.parse('x^2 * exp(-x^2)'));
+      verifyAntiderivative(Expr.parse('x^4 * exp(-x^2)'));
+      verifyAntiderivative(Expr.parse('sin(x)^3'));
+      verifyAntiderivative(Expr.parse('cos(x)^3'));
+      verifyAntiderivative(Expr.parse('sin(x)^4'));
+      verifyAntiderivative(Expr.parse('cos(x)^4'));
+      verifyAntiderivative(
+        Expr.parse('1 / cos(2 * x)^2'),
+        points: const [0.1, 0.2, 0.3],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / sin(2 * x)^2'),
+        points: const [0.2, 0.4, 0.6],
+      );
+      verifyAntiderivative(
+        Expr.parse('sqrt(4 - x^2)'),
+        points: const [0.2, 0.5, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('sqrt(4 + x^2)'),
+        points: const [0.2, 0.5, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('sqrt(x^2 - 4)'),
+        points: const [2.5, 3.0, 4.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / sqrt(4 + x^2)'),
+        points: const [0.2, 0.5, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / sqrt(x^2 - 4)'),
+        points: const [2.5, 3.0, 4.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('x^2 * ln(x)'),
+        points: const [0.5, 1.0, 2.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('x^3 * ln(2 * x + 1)'),
+        points: const [0.5, 1.0, 2.0],
+      );
+    });
+  });
+
+  group('Famous definite and improper integrals', () {
+    test('evaluates Gaussian, Dirichlet, Fresnel, Gamma, Bose-Einstein, Euler log-sine, and Wallis integrals', () {
+      // Gaussian integrals:
+      check(
+        Expr.parse('exp(-x^2)')
+            .integrate('x', from: -Constant.infinity, to: Constant.infinity),
+      ).equals(Expr.parse('sqrt(pi)').simplify());
+      check(
+        Expr.parse('exp(-x^2)').integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('sqrt(pi) / 2').simplify());
+      check(
+        Expr.parse('x^2 * exp(-x^2)')
+            .integrate('x', from: -Constant.infinity, to: Constant.infinity),
+      ).equals(Expr.parse('sqrt(pi) / 2').simplify());
+
+      // Dirichlet integrals:
+      check(
+        Expr.parse('sin(x) / x').integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('pi / 2').simplify());
+      check(
+        Expr.parse('sin(x) / x')
+            .integrate('x', from: -Constant.infinity, to: Constant.infinity),
+      ).equals(Constant.pi);
+      check(
+        Expr.parse('sin(x)^2 / x^2')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('pi / 2').simplify());
+
+      // Fresnel integrals:
+      check(
+        Expr.parse('sin(x^2)').integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('sqrt(2 * pi) / 4').simplify());
+      check(
+        Expr.parse('cos(x^2)').integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('sqrt(2 * pi) / 4').simplify());
+
+      // Gamma and fractional moments:
+      check(
+        Expr.parse('x^(-1/2) * exp(-x)')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('sqrt(pi)').simplify());
+      check(
+        Expr.parse('x^(1/2) * exp(-x)')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('sqrt(pi) / 2').simplify());
+
+      // Bose-Einstein & Fermi-Dirac integrals:
+      check(
+        Expr.parse('x / (exp(x) - 1)')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('pi^2 / 6').simplify());
+      check(
+        Expr.parse('x^3 / (exp(x) - 1)')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('pi^4 / 15').simplify());
+      check(
+        Expr.parse('x / (exp(x) + 1)')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('pi^2 / 12').simplify());
+
+      // Euler log-sine and log-cosine integrals:
+      check(
+        Expr.parse('ln(sin(x))')
+            .integrate('x', from: 0, to: Expr.parse('pi / 2')),
+      ).equals(Expr.parse('-pi / 2 * ln(2)').simplify());
+      check(
+        Expr.parse('ln(cos(x))')
+            .integrate('x', from: 0, to: Expr.parse('pi / 2')),
+      ).equals(Expr.parse('-pi / 2 * ln(2)').simplify());
+      check(Expr.parse('ln(sin(x))').integrate('x', from: 0, to: Constant.pi))
+          .equals(Expr.parse('-pi * ln(2)').simplify());
+
+      // Logarithmic unit-interval integrals:
+      check(Expr.parse('ln(x)').integrate('x', from: 0, to: 1))
+          .equals(IntegerNumber.negativeOne);
+      check(Expr.parse('ln(x) / (1 - x)').integrate('x', from: 0, to: 1))
+          .equals(Expr.parse('-pi^2 / 6').simplify());
+      check(Expr.parse('ln(x) / (1 + x)').integrate('x', from: 0, to: 1))
+          .equals(Expr.parse('-pi^2 / 12').simplify());
+      check(Expr.parse('ln(1 + x) / x').integrate('x', from: 0, to: 1))
+          .equals(Expr.parse('pi^2 / 12').simplify());
+
+      // Wallis / Beta integrals on [0, pi/2]:
+      check(
+        Expr.parse('sin(x)^4 * cos(x)^2')
+            .integrate('x', from: 0, to: Expr.parse('pi / 2')),
+      ).equals(Expr.parse('pi / 32').simplify());
+
+      // Odd function symmetry on [-a, a]:
+      check(
+        Expr.parse('x^3 * cos(x) * exp(-x^2)').integrate('x', from: -2, to: 2),
+      ).equals(IntegerNumber.zero);
+    });
   });
 }
