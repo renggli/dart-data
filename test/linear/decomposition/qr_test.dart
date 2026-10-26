@@ -296,5 +296,19 @@ void main() {
       ], type: DataType.complex);
       check(() => qr.solveVector(b)).throws<StateError>();
     });
+
+    test('NaN and Infinity columns are not full rank', () {
+      final nanMat = Matrix<double>.fromRows([
+        [double.nan, 1.0],
+        [0.0, 1.0],
+      ]);
+      check(nanMat.qr.isFullRank).isFalse();
+
+      final infMat = Matrix<double>.fromRows([
+        [double.infinity, 1.0],
+        [double.infinity, 2.0],
+      ]);
+      check(infMat.qr.isFullRank).isFalse();
+    });
   });
 }

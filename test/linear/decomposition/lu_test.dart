@@ -369,5 +369,13 @@ void main() {
         }
       }
     });
+
+    test('NaN matrix is not nonsingular', () {
+      final nanMat = Matrix<double>.fromRows([
+        [double.nan, 1.0],
+        [0.0, 1.0],
+      ]);
+      check(nanMat.lu.isNonsingular).isFalse();
+    });
   });
 }

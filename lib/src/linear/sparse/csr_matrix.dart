@@ -34,8 +34,23 @@ class CsrMatrix<T> implements LinearOperator<T> {
     required this.colIndices,
     required this.values,
     required this.type,
-  }) : assert(rowPointers.length == rowCount + 1),
-       assert(colIndices.length == values.length);
+  }) {
+    if (rowCount < 0 || colCount < 0) {
+      throw ArgumentError(
+        'Dimensions must be non-negative: ($rowCount x $colCount)',
+      );
+    }
+    if (rowPointers.length != rowCount + 1) {
+      throw ArgumentError(
+        'rowPointers length (${rowPointers.length}) must be rowCount + 1 (${rowCount + 1}).',
+      );
+    }
+    if (colIndices.length != values.length) {
+      throw ArgumentError(
+        'colIndices (${colIndices.length}) and values (${values.length}) must have the same length.',
+      );
+    }
+  }
 
   /// Constructs a CSR matrix from coordinate triplets.
   factory fromEntries(
@@ -83,8 +98,6 @@ class CsrMatrix<T> implements LinearOperator<T> {
     for (var ptr = start; ptr < end; ptr++) {
       if (colIndices[ptr] == col) {
         sum = field.add(sum, values[ptr]);
-      } else if (colIndices[ptr] > col) {
-        break;
       }
     }
     return sum;

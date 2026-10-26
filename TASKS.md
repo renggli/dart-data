@@ -150,7 +150,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   5. Add the missing `@redeclare` methods on `Float64Vector` and `Float64Matrix`.
 - **Verification**: `dart test test/acceleration/blas/ test/linear/ test/tensor/operations/matmul_test.dart`
 
-### [ ] TASK-2.4: Fix `LU`, `QR`, `Cholesky`, `solveIterative`, and Sparse Matrix Validation & `NaN` Handling
+### [x] TASK-2.4: Fix `LU`, `QR`, `Cholesky`, `solveIterative`, and Sparse Matrix Validation & `NaN` Handling
 - **Files**:
   - `lib/src/linear/decomposition/lu.dart` (lines 20–56, 113–123, 184)
   - `lib/src/linear/decomposition/qr.dart` (lines 100–104, 265–275)

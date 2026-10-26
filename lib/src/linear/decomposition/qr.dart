@@ -92,13 +92,14 @@ class QRDecomposition<T> {
     var maxDiag = 0.0;
     for (var j = 0; j < _n; j++) {
       final norm = field.norm(_rdiag[j]);
+      if (norm.isNaN) return false;
       if (norm > maxDiag) maxDiag = norm;
     }
     if (maxDiag == 0.0) return false;
     final maxDim = math.max(_m, _n);
     final tol = maxDim * 2.220446049250313e-16 * maxDiag;
     for (var j = 0; j < _n; j++) {
-      if (_rdiag[j] == zero || field.norm(_rdiag[j]) <= tol) {
+      if (_rdiag[j] == zero || !(field.norm(_rdiag[j]) > tol)) {
         return false;
       }
     }
@@ -264,10 +265,14 @@ class QRDecomposition<T> {
         final val = qrData[i * _n + k];
         if (val != 0.0) {
           final absVal = val.abs();
-          if (scale < absVal) {
+          if (absVal.isNaN) {
+            scale = double.nan;
+          } else if (absVal.isInfinite) {
+            if (!scale.isNaN) scale = double.infinity;
+          } else if (scale < absVal) {
             sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
             scale = absVal;
-          } else {
+          } else if (scale.isFinite) {
             sumsq += (absVal / scale) * (absVal / scale);
           }
         }

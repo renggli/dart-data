@@ -219,5 +219,29 @@ void main() {
       check(x[0]).isCloseTo(1.0, 1e-6);
       check(x[1]).isCloseTo(1.0, 1e-6);
     });
+
+    test('CG and GMRES throw StateError on NaN residual', () {
+      final nanA = Matrix<double>.fromRows([
+        [double.nan, 0.0],
+        [0.0, 1.0],
+      ]);
+      final b = Vector<double>.fromList([1.0, 1.0]);
+      check(
+        () => solveIterative(
+          nanA,
+          b,
+          method: IterativeMethod.conjugateGradient,
+          maxIterations: 2,
+        ),
+      ).throws<StateError>();
+      check(
+        () => solveIterative(
+          nanA,
+          b,
+          method: IterativeMethod.gmres,
+          maxIterations: 2,
+        ),
+      ).throws<StateError>();
+    });
   });
 }

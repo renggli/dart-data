@@ -168,6 +168,12 @@ void main() {
         [const Complex(0.0, 0.0), const Complex(2.0, 0.0)],
       ], type: DataType.complex);
       check(nonPosDef.cholesky.isSymmetricPositiveDefinite).isFalse();
+
+      final zeroDiag = Matrix<Complex>.fromRows([
+        [Complex.zero, Complex.one],
+        [Complex.one, Complex.one],
+      ], type: DataType.complex);
+      check(zeroDiag.cholesky.isSymmetricPositiveDefinite).isFalse();
     });
   });
 }

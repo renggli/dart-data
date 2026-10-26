@@ -32,10 +32,19 @@ class CooMatrix<T> implements LinearOperator<T> {
     required this.colIndices,
     required this.values,
     required this.type,
-  }) : assert(
-         rowIndices.length == colIndices.length &&
-             rowIndices.length == values.length,
-       );
+  }) {
+    if (rowCount < 0 || colCount < 0) {
+      throw ArgumentError(
+        'Dimensions must be non-negative: ($rowCount x $colCount)',
+      );
+    }
+    if (rowIndices.length != colIndices.length ||
+        rowIndices.length != values.length) {
+      throw ArgumentError(
+        'rowIndices (${rowIndices.length}), colIndices (${colIndices.length}), and values (${values.length}) must have the same length.',
+      );
+    }
+  }
 
   /// Constructs a COO matrix from coordinate triplets.
   factory fromEntries(

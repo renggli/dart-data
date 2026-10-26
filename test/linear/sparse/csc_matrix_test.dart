@@ -116,6 +116,38 @@ void main() {
       final vWrong = Vector<double>.fromList([1.0, 2.0, 3.0]);
       check(() => csc.apply(vWrong)).throws<ArgumentError>();
       check(() => csc.applyTranspose(vWrong)).throws<ArgumentError>();
+
+      check(
+        () => CscMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          colPointers: [0, 1],
+          rowIndices: [0],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CscMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          colPointers: [0, 1, 1],
+          rowIndices: [0, 1],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+
+      final unsortedCsc = CscMatrix<double>(
+        rowCount: 3,
+        colCount: 1,
+        colPointers: [0, 2],
+        rowIndices: [2, 0],
+        values: [5.0, 3.0],
+        type: DataType.float64,
+      );
+      check(unsortedCsc.get(0, 0)).equals(3.0);
+      check(unsortedCsc.get(2, 0)).equals(5.0);
     });
   });
 }

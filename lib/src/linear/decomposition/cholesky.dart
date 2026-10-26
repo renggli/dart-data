@@ -179,10 +179,10 @@ class CholeskyDecomposition<T> {
             ),
           );
         }
-        sum = field.div(
-          field.sub(matrix.getUnchecked(j, k), sum),
-          _l.getUnchecked(k, k),
-        );
+        final lkk = _l.getUnchecked(k, k);
+        sum = lkk == zero
+            ? zero
+            : field.div(field.sub(matrix.getUnchecked(j, k), sum), lkk);
         _l.setUnchecked(j, k, sum);
         diagSum = field.add(diagSum, field.mul(sum, field.conjugate(sum)));
 

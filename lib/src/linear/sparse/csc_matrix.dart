@@ -33,8 +33,23 @@ class CscMatrix<T> implements LinearOperator<T> {
     required this.rowIndices,
     required this.values,
     required this.type,
-  }) : assert(colPointers.length == colCount + 1),
-       assert(rowIndices.length == values.length);
+  }) {
+    if (rowCount < 0 || colCount < 0) {
+      throw ArgumentError(
+        'Dimensions must be non-negative: ($rowCount x $colCount)',
+      );
+    }
+    if (colPointers.length != colCount + 1) {
+      throw ArgumentError(
+        'colPointers length (${colPointers.length}) must be colCount + 1 (${colCount + 1}).',
+      );
+    }
+    if (rowIndices.length != values.length) {
+      throw ArgumentError(
+        'rowIndices (${rowIndices.length}) and values (${values.length}) must have the same length.',
+      );
+    }
+  }
 
   /// Constructs a CSC matrix from coordinate triplets.
   factory fromEntries(
@@ -82,8 +97,6 @@ class CscMatrix<T> implements LinearOperator<T> {
     for (var ptr = start; ptr < end; ptr++) {
       if (rowIndices[ptr] == row) {
         sum = field.add(sum, values[ptr]);
-      } else if (rowIndices[ptr] > row) {
-        break;
       }
     }
     return sum;

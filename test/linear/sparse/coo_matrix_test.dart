@@ -113,6 +113,27 @@ void main() {
       final vWrong = Vector<double>.fromList([1.0, 2.0, 3.0]);
       check(() => coo.apply(vWrong)).throws<ArgumentError>();
       check(() => coo.applyTranspose(vWrong)).throws<ArgumentError>();
+
+      check(
+        () => CooMatrix<double>(
+          rowCount: -1,
+          colCount: 2,
+          rowIndices: [],
+          colIndices: [],
+          values: [],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CooMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          rowIndices: [0],
+          colIndices: [],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
     });
   });
 }

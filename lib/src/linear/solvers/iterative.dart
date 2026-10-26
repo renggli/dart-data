@@ -125,7 +125,7 @@ Vector<T> _conjugateGradient<T>(
     rsOld = rsNew;
   }
 
-  if (!converged && field.norm(residual.dot(residual)) > tolSq) {
+  if (!converged && !(field.norm(residual.dot(residual)) <= tolSq)) {
     throw StateError(
       'Conjugate gradient failed to converge after $maxIterations iterations.',
     );
@@ -288,7 +288,7 @@ Vector<T> _gmres<T>(
   }
 
   final finalRes = (b - a.apply(x)).norm();
-  if (finalRes > tolNorm) {
+  if (!(finalRes <= tolNorm)) {
     throw StateError(
       'GMRES failed to converge after $maxIterations iterations.',
     );

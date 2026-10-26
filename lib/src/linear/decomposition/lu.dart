@@ -18,8 +18,8 @@ extension LuMatrixExtension<T extends num> on Matrix<T> {
 
   /// Returns the multiplicative inverse of this square, non-singular matrix.
   ///
-  /// Throws an [ArgumentError] if the matrix is not square. Throws a
-  /// [StateError] if the matrix is singular ($\det = 0$).
+  /// Throws an [ArgumentError] if the matrix is not square or singular
+  /// ($\det = 0$).
   Matrix<double> get inverse {
     if (rowCount != colCount) {
       throw ArgumentError(
@@ -50,8 +50,8 @@ extension LuComplexMatrixExtension on Matrix<Complex> {
   /// Returns the multiplicative inverse of this square, non-singular complex
   /// matrix.
   ///
-  /// Throws an [ArgumentError] if the matrix is not square. Throws a
-  /// [StateError] if the matrix is singular ($\det = 0$).
+  /// Throws an [ArgumentError] if the matrix is not square or singular
+  /// ($\det = 0$).
   Matrix<Complex> get inverse {
     if (rowCount != colCount) {
       throw ArgumentError(
@@ -115,7 +115,8 @@ class LUDecomposition<T> {
     final field = _type.field;
     final zero = field.additiveIdentity;
     for (var j = 0; j < _n; j++) {
-      if (field.add(_lu.getUnchecked(j, j), zero) == zero) {
+      final val = _lu.getUnchecked(j, j);
+      if (field.add(val, zero) == zero || field.norm(val).isNaN) {
         return false;
       }
     }

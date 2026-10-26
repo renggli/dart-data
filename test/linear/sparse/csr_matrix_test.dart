@@ -107,6 +107,38 @@ void main() {
 
       final wrongOp = Matrix<double>.filled(3, 2, 0.0);
       check(() => csr.matmul(wrongOp)).throws<ArgumentError>();
+
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          rowPointers: [0, 1],
+          colIndices: [0],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          rowPointers: [0, 1, 1],
+          colIndices: [0, 1],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+
+      final unsortedCsr = CsrMatrix<double>(
+        rowCount: 1,
+        colCount: 3,
+        rowPointers: [0, 2],
+        colIndices: [2, 0],
+        values: [5.0, 3.0],
+        type: DataType.float64,
+      );
+      check(unsortedCsr.get(0, 0)).equals(3.0);
+      check(unsortedCsr.get(0, 2)).equals(5.0);
     });
   });
 }
