@@ -13,7 +13,7 @@ import 'gamma.dart';
 class ChiSquaredDistribution extends ContinuousDistribution {
   /// A Chi-squared distribution with degrees of freedom [dof] k.
   new(this.dof) {
-    if (dof <= 0) {
+    if (!dof.isFinite || dof <= 0) {
       throw ArgumentError.value(
         dof,
         'dof',
@@ -28,7 +28,7 @@ class ChiSquaredDistribution extends ContinuousDistribution {
     var count = 0;
     var sum = 0.0;
     for (final x in samples) {
-      if (x < 0) {
+      if (!x.isFinite || x < 0) {
         throw ArgumentError.value(
           x,
           'samples',

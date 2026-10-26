@@ -11,6 +11,12 @@ import '../errors.dart';
 class UniformDistribution extends ContinuousDistribution {
   /// Creates a continuous uniform distribution with bounds [min] and [max].
   new(this.min, this.max) {
+    if (!min.isFinite) {
+      throw ArgumentError.value(min, 'min', 'Must be finite');
+    }
+    if (!max.isFinite) {
+      throw ArgumentError.value(max, 'max', 'Must be finite');
+    }
     if (min >= max) {
       throw ArgumentError.value(min, 'min', 'Must be strictly less than max');
     }
@@ -30,6 +36,9 @@ class UniformDistribution extends ContinuousDistribution {
     var maxVal = double.negativeInfinity;
     for (final x in samples) {
       final val = x.toDouble();
+      if (!val.isFinite) {
+        throw ArgumentError.value(x, 'samples', 'Samples must be finite');
+      }
       if (val < minVal) minVal = val;
       if (val > maxVal) maxVal = val;
     }
@@ -77,10 +86,11 @@ class UniformDistribution extends ContinuousDistribution {
 
   @override
   double probability(double x) =>
-      (min <= x && x <= max) ? 1.0 / (max - min) : 0.0;
+      x.isNaN ? double.nan : ((min <= x && x <= max) ? 1.0 / (max - min) : 0.0);
 
   @override
   double cumulativeProbability(double x) {
+    if (x.isNaN) return double.nan;
     if (x < min) {
       return 0.0;
     } else if (x > max) {
@@ -98,7 +108,7 @@ class UniformDistribution extends ContinuousDistribution {
 
   @override
   double sample({Random? random}) {
-    final rng = (random ?? Random()).nextDouble();
+    final rng = (random ?? _random).nextDouble();
     return min + rng * (max - min);
   }
 
@@ -114,3 +124,5 @@ class UniformDistribution extends ContinuousDistribution {
     ..addValue(min, name: 'min')
     ..addValue(max, name: 'max');
 }
+
+final _random = Random();

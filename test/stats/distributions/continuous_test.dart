@@ -80,5 +80,41 @@ void main() {
       check(exp.logProbability(1.0))
           .isCloseTo(math.log(exp.probability(1.0)), 1e-12);
     });
+
+    test('NaN and Infinity validation and evaluation edge cases', () {
+      check(() => BetaDistribution(double.nan, 1.0)).throws<ArgumentError>();
+      check(() => CauchyDistribution(double.nan, 1.0)).throws<ArgumentError>();
+      check(() => ChiSquaredDistribution(double.nan)).throws<ArgumentError>();
+      check(() => ExponentialDistribution(double.nan)).throws<ArgumentError>();
+      check(() => FDistribution(double.nan, 1.0)).throws<ArgumentError>();
+      check(() => GammaDistribution(double.nan, 1.0)).throws<ArgumentError>();
+      check(() => InverseGammaDistribution(double.nan, 1.0))
+          .throws<ArgumentError>();
+      check(() => LaplaceDistribution(double.nan, 1.0)).throws<ArgumentError>();
+      check(() => LogNormalDistribution(double.nan, 1.0))
+          .throws<ArgumentError>();
+      check(() => LogisticDistribution(double.nan, 1.0))
+          .throws<ArgumentError>();
+      check(() => NormalDistribution(double.nan, 1.0)).throws<ArgumentError>();
+      check(() => ParetoDistribution(double.nan, 1.0)).throws<ArgumentError>();
+      check(() => StudentDistribution(double.nan)).throws<ArgumentError>();
+      check(() => UniformDistribution(double.nan, 1.0)).throws<ArgumentError>();
+      check(() => WeibullDistribution(double.nan, 1.0)).throws<ArgumentError>();
+
+      check(const DegenerateDistribution(5.0).probability(double.nan)).isNaN();
+      check(const DegenerateDistribution(5.0).cumulativeProbability(double.nan))
+          .isNaN();
+      check(ExponentialDistribution(1.0).probability(double.nan)).isNaN();
+      check(ExponentialDistribution(1.0).cumulativeProbability(double.nan))
+          .isNaN();
+      check(UniformDistribution(0.0, 1.0).probability(double.nan)).isNaN();
+      check(UniformDistribution(0.0, 1.0).cumulativeProbability(double.nan))
+          .isNaN();
+      check(GammaDistribution(2.0, 1.0).probability(double.infinity))
+          .equals(0.0);
+      check(WeibullDistribution(2.0, 1.0).probability(double.infinity))
+          .equals(0.0);
+      check(FDistribution(2.0, 2.0).probability(double.infinity)).equals(0.0);
+    });
   });
 }

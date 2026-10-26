@@ -37,34 +37,6 @@ class Bootstrap<T> with ToStringPrinter {
     _validateParameters(samples, resamples, confidenceLevel);
   }
 
-  static void _validateParameters(
-    List<Object?> samples,
-    int resamples,
-    double confidenceLevel,
-  ) {
-    if (samples.length < 2) {
-      throw ArgumentError.value(
-        samples,
-        'samples',
-        'At least 2 samples required for bootstrap',
-      );
-    }
-    if (resamples < 10) {
-      throw ArgumentError.value(
-        resamples,
-        'resamples',
-        'At least 10 resamples required',
-      );
-    }
-    if (!(0 < confidenceLevel && confidenceLevel < 1)) {
-      throw ArgumentError.value(
-        confidenceLevel,
-        'confidenceLevel',
-        'Confidence level must be between 0 and 1',
-      );
-    }
-  }
-
   /// Computes parametric bootstrap estimates by drawing synthetic samples
   /// from a fitted probability [distribution].
   static Bootstrap<num> distribution({
@@ -214,5 +186,33 @@ class Bootstrap<T> with ToStringPrinter {
     final bcaUpper = quantile(sortedEstimates, q2);
 
     return (lower: bcaLower, upper: bcaUpper);
+  }
+
+  static void _validateParameters(
+    List<Object?> samples,
+    int resamples,
+    double confidenceLevel,
+  ) {
+    if (samples.length < 2) {
+      throw ArgumentError.value(
+        samples,
+        'samples',
+        'At least 2 samples required for bootstrap',
+      );
+    }
+    if (resamples < 10) {
+      throw ArgumentError.value(
+        resamples,
+        'resamples',
+        'At least 10 resamples required',
+      );
+    }
+    if (!(0 < confidenceLevel && confidenceLevel < 1)) {
+      throw ArgumentError.value(
+        confidenceLevel,
+        'confidenceLevel',
+        'Confidence level must be between 0 and 1',
+      );
+    }
   }
 }

@@ -34,7 +34,7 @@ class MultinomialDistribution extends MultivariateDistribution<int> {
     var sum = 0.0;
     for (var i = 0; i < dimensions; i++) {
       final p = probabilities.getUnchecked(i);
-      if (p < 0.0 || p > 1.0) {
+      if (!p.isFinite || p < 0.0 || p > 1.0) {
         throw ArgumentError.value(
           p,
           'probabilities[$i]',
@@ -115,7 +115,7 @@ class MultinomialDistribution extends MultivariateDistribution<int> {
   @override
   Vector<int> sample({Random? random}) {
     final counts = List<int>.filled(dimensions, 0);
-    final rng = random ?? Random();
+    final rng = random ?? _random;
     for (var t = 0; t < trials; t++) {
       final u = rng.nextDouble();
       var cum = 0.0;
@@ -148,3 +148,5 @@ class MultinomialDistribution extends MultivariateDistribution<int> {
     ..addValue(trials, name: 'trials')
     ..addValue(probabilities, name: 'p');
 }
+
+final _random = Random();

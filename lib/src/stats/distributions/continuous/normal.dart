@@ -15,7 +15,10 @@ class NormalDistribution extends ContinuousDistribution {
   /// A normal distribution with parameters [mean] μ and
   /// [standardDeviation] σ.
   new(this.mean, this.standardDeviation) {
-    if (standardDeviation <= 0) {
+    if (!mean.isFinite) {
+      throw ArgumentError.value(mean, 'mean', 'Mean must be finite');
+    }
+    if (!standardDeviation.isFinite || standardDeviation <= 0) {
       throw ArgumentError.value(
         standardDeviation,
         'standardDeviation',
@@ -36,6 +39,9 @@ class NormalDistribution extends ContinuousDistribution {
     var count = 0;
     var sum = 0.0;
     for (final x in samples) {
+      if (!x.isFinite) {
+        throw ArgumentError.value(x, 'samples', 'Samples must be finite');
+      }
       count++;
       sum += x;
     }

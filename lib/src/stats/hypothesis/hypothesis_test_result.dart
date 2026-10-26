@@ -16,6 +16,7 @@ enum AlternativeHypothesis {
 
 /// Result of a hypothesis test.
 class HypothesisTestResult with ToStringPrinter {
+  /// Creates a [HypothesisTestResult] summarizing a statistical test.
   const new({
     required this.testName,
     required this.statistic,

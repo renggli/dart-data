@@ -22,10 +22,10 @@ import 'poisson.dart';
 class NegativeBinomialDistribution extends DiscreteDistribution {
   /// A negative binomial distribution with parameters [r] and [p].
   new(this.r, this.p) {
-    if (r <= 0) {
+    if (!r.isFinite || r <= 0) {
       throw ArgumentError.value(r, 'r', 'Must be positive');
     }
-    if (p <= 0.0 || p >= 1.0) {
+    if (p.isNaN || p <= 0.0 || p >= 1.0) {
       throw ArgumentError.value(p, 'p', 'Must be strictly between 0.0 and 1.0');
     }
   }

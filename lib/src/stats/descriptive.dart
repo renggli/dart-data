@@ -593,7 +593,7 @@ double _skewness(Iterable<num> values, {bool bias = false}) {
   }
   m2 /= length;
   m3 /= length;
-  if (m2 == 0.0) return 0.0;
+  if (m2 == 0.0) return double.nan;
   final g1 = m3 / math.pow(m2, 1.5);
   if (bias) return g1;
   return (math.sqrt(length * (length - 1.0)) / (length - 2.0)) * g1;
@@ -619,7 +619,7 @@ double _kurtosis(
   }
   m2 /= length;
   m4 /= length;
-  if (m2 == 0.0) return 0.0;
+  if (m2 == 0.0) return double.nan;
   final kurtosisVal = m4 / (m2 * m2);
   if (bias) {
     return excess ? kurtosisVal - 3.0 : kurtosisVal;

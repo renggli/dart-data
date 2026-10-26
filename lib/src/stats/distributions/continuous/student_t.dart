@@ -15,7 +15,7 @@ import 'normal.dart';
 class StudentDistribution extends ContinuousDistribution {
   /// A Student's t-distribution with degrees of freedom [dof] ν.
   new(this.dof) {
-    if (dof <= 0) {
+    if (!dof.isFinite || dof <= 0) {
       throw ArgumentError.value(
         dof,
         'dof',
@@ -27,7 +27,13 @@ class StudentDistribution extends ContinuousDistribution {
   /// Fits a Student's t-distribution to [samples] using maximum likelihood
   /// estimation.
   factory fit(Iterable<num> samples) {
-    final list = samples.map((val) => val.toDouble()).toList();
+    final list = <double>[];
+    for (final val in samples) {
+      if (!val.isFinite) {
+        throw ArgumentError.value(val, 'samples', 'Samples must be finite');
+      }
+      list.add(val.toDouble());
+    }
     if (list.length < 3) {
       throw ArgumentError.value(
         samples,

@@ -8,6 +8,7 @@ import 'descriptive.dart';
 
 /// Result of Principal Component Analysis (PCA).
 class PcaResult {
+  /// Creates a [PcaResult] with the fitted principal axes and variance metrics.
   const new({
     required this.components,
     required this.explainedVariance,
@@ -50,11 +51,12 @@ class PcaResult {
       0.0,
       type: DataType.float64,
     );
+    final stdVec = std;
     for (var i = 0; i < rowCount; i++) {
       for (var j = 0; j < colCount; j++) {
         var val = x.get(i, j).toDouble() - mean[j];
-        if (standardize && std != null && std![j] > 0.0) {
-          val /= std![j];
+        if (standardize && stdVec != null && stdVec[j] > 0.0) {
+          val /= stdVec[j];
         }
         centered.set(i, j, val);
       }
@@ -91,11 +93,12 @@ class PcaResult {
       0.0,
       type: DataType.float64,
     );
+    final stdVec = std;
     for (var i = 0; i < rowCount; i++) {
       for (var j = 0; j < featureCount; j++) {
         var val = recon.get(i, j);
-        if (standardize && std != null) {
-          val *= std![j];
+        if (standardize && stdVec != null) {
+          val *= stdVec[j];
         }
         val += mean[j];
         result.set(i, j, val);

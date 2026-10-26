@@ -18,7 +18,14 @@ import '../errors.dart';
 class CauchyDistribution extends ContinuousDistribution {
   /// A Cauchy distribution with [location] and [scale].
   new([this.location = 0.0, this.scale = 1.0]) {
-    if (scale <= 0) {
+    if (!location.isFinite) {
+      throw ArgumentError.value(
+        location,
+        'location',
+        'Location must be finite',
+      );
+    }
+    if (!scale.isFinite || scale <= 0) {
       throw ArgumentError.value(scale, 'scale', 'Scale must be positive');
     }
   }

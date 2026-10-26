@@ -217,7 +217,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   3. Fix `_BoxTransform.toY` clamping to `1e-12` in `constrained.dart`, use binary search for descending `t` in `_interpolateHermite` (`solve_ode.dart`), guard empty matrices in `leastSquares` (`curve_fit.dart`), add missing `///` doc comments on `IntegrationIssue.new` and `LevenbergMarquardtResult.new`, and create `test/numeric/ode/ode_method_test.dart` and `test/numeric/root_finding/root_method_test.dart`.
 - **Verification**: `dart test test/special/ test/polynomial/ test/numeric/`
 
-### [ ] TASK-3.2: Fix `stats` Distribution `NaN`/`Infinity` Validation, Zero-Variance Skewness/Kurtosis, and Charter Compliance
+### [x] TASK-3.2: Fix `stats` Distribution `NaN`/`Infinity` Validation, Zero-Variance Skewness/Kurtosis, and Charter Compliance
 - **Files**:
   - `lib/src/stats/descriptive.dart` (lines 596, 622)
   - `lib/src/stats/pca.dart` (lines 11, 56–57, 98)

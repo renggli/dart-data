@@ -18,7 +18,7 @@ import '../errors.dart';
 class GeometricDistribution extends DiscreteDistribution {
   /// A geometric distribution with parameter [p].
   new(this.p) {
-    if (p <= 0.0 || p > 1.0) {
+    if (p.isNaN || p <= 0.0 || p > 1.0) {
       throw ArgumentError.value(p, 'p', 'Must be in (0.0, 1.0]');
     }
   }

@@ -16,7 +16,7 @@ class BinomialDistribution extends DiscreteDistribution {
     if (n < 0) {
       throw ArgumentError.value(n, 'n', 'Must be non-negative');
     }
-    if (p < 0.0 || p > 1.0) {
+    if (p.isNaN || p < 0.0 || p > 1.0) {
       throw ArgumentError.value(p, 'p', 'Must be between 0.0 and 1.0');
     }
   }
@@ -31,7 +31,7 @@ class BinomialDistribution extends DiscreteDistribution {
     var sum = 0.0;
     var maxVal = 0;
     for (final x in samples) {
-      if (x < 0 || x.round() != x) {
+      if (!x.isFinite || x < 0 || x.round() != x) {
         throw ArgumentError.value(
           x,
           'samples',
@@ -45,6 +45,13 @@ class BinomialDistribution extends DiscreteDistribution {
     }
     if (count == 0) {
       throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    if (n != null && n < maxVal) {
+      throw ArgumentError.value(
+        n,
+        'n',
+        'Number of trials must be at least maximum sample value ($maxVal)',
+      );
     }
     final actualN = n ?? maxVal;
     if (actualN == 0) {

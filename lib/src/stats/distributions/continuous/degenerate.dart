@@ -51,10 +51,11 @@ class DegenerateDistribution extends ContinuousDistribution {
   double get excessKurtosis => double.nan;
 
   @override
-  double probability(double x) => x != k ? 0 : 1;
+  double probability(double x) => x.isNaN ? double.nan : (x != k ? 0 : 1);
 
   @override
-  double cumulativeProbability(double x) => x < k ? 0 : 1;
+  double cumulativeProbability(double x) =>
+      x.isNaN ? double.nan : (x < k ? 0 : 1);
 
   @override
   double inverseCumulativeProbability(num probability) {

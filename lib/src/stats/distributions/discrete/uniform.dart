@@ -31,6 +31,9 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
     var minVal = DataType.integer.safeMax;
     var maxVal = DataType.integer.safeMin;
     for (final x in samples) {
+      if (!x.isFinite || x.round() != x) {
+        throw ArgumentError.value(x, 'samples', 'Samples must be integers');
+      }
       final intVal = x.round();
       if (intVal < minVal) minVal = intVal;
       if (intVal > maxVal) maxVal = intVal;
@@ -101,7 +104,7 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
 
   @override
   int sample({Random? random}) {
-    final rng = random ?? Random();
+    final rng = random ?? _random;
     return min + rng.nextInt(n);
   }
 
@@ -119,3 +122,5 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
     ..addValue(min, name: 'min')
     ..addValue(max, name: 'max');
 }
+
+final _random = Random();

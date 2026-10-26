@@ -14,10 +14,10 @@ import 'uniform.dart';
 class GammaDistribution extends ContinuousDistribution {
   /// A gamma distribution with parameters [shape] α and [scale] β.
   new(this.shape, this.scale) {
-    if (shape <= 0) {
+    if (!shape.isFinite || shape <= 0) {
       throw ArgumentError.value(shape, 'shape', 'Must be positive');
     }
-    if (scale <= 0) {
+    if (!scale.isFinite || scale <= 0) {
       throw ArgumentError.value(scale, 'scale', 'Must be positive');
     }
   }
@@ -30,7 +30,7 @@ class GammaDistribution extends ContinuousDistribution {
     var count = 0;
     var sum = 0.0;
     for (final x in samples) {
-      if (x <= 0) {
+      if (!x.isFinite || x <= 0) {
         throw ArgumentError.value(x, 'samples', 'All samples must be positive');
       }
       count++;
@@ -83,14 +83,13 @@ class GammaDistribution extends ContinuousDistribution {
   double get excessKurtosis => 6.0 / shape;
 
   @override
-  double probability(double x) => x <= 0.0
-      ? 0.0
-      : exp(
-          (shape - 1.0) * log(x) -
-              x / scale -
-              gammaLn(shape) -
-              shape * log(scale),
-        );
+  double probability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0 || x == double.infinity) return 0.0;
+    return exp(
+      (shape - 1.0) * log(x) - x / scale - gammaLn(shape) - shape * log(scale),
+    );
+  }
 
   @override
   double cumulativeProbability(double x) =>

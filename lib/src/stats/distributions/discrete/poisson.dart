@@ -13,7 +13,7 @@ import '../discrete.dart';
 class PoissonDistribution extends DiscreteDistribution {
   /// A Poisson distribution with expected arrival [rate] $\lambda$.
   new(this.rate) {
-    if (rate <= 0) {
+    if (!rate.isFinite || rate <= 0) {
       throw ArgumentError.value(rate, 'rate', 'Must be positive');
     }
   }
@@ -24,7 +24,7 @@ class PoissonDistribution extends DiscreteDistribution {
     var count = 0;
     var sum = 0.0;
     for (final x in samples) {
-      if (x < 0 || x.round() != x) {
+      if (!x.isFinite || x < 0 || x.round() != x) {
         throw ArgumentError.value(
           x,
           'samples',

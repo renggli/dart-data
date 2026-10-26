@@ -21,10 +21,10 @@ class BetaDistribution extends ContinuousDistribution {
   /// A Beta distribution with shape parameters [alpha] $\alpha$ and [beta]
   /// $\beta$.
   new(this.alpha, this.beta) {
-    if (alpha <= 0) {
+    if (!alpha.isFinite || alpha <= 0) {
       throw ArgumentError.value(alpha, 'alpha', 'Must be positive');
     }
-    if (beta <= 0) {
+    if (!beta.isFinite || beta <= 0) {
       throw ArgumentError.value(beta, 'beta', 'Must be positive');
     }
   }
@@ -34,7 +34,7 @@ class BetaDistribution extends ContinuousDistribution {
     var count = 0;
     var sum = 0.0;
     for (final x in samples) {
-      if (x <= 0 || x >= 1) {
+      if (!x.isFinite || x <= 0 || x >= 1) {
         throw ArgumentError.value(x, 'samples', 'Samples must be in (0, 1)');
       }
       count++;

@@ -14,10 +14,10 @@ class FDistribution extends ContinuousDistribution {
   /// An F-distribution with numerator degrees of freedom [d1] and denominator
   /// degrees of freedom [d2].
   new(this.d1, this.d2) {
-    if (d1 <= 0) {
+    if (!d1.isFinite || d1 <= 0) {
       throw ArgumentError.value(d1, 'd1', 'd1 must be strictly positive');
     }
-    if (d2 <= 0) {
+    if (!d2.isFinite || d2 <= 0) {
       throw ArgumentError.value(d2, 'd2', 'd2 must be strictly positive');
     }
   }
@@ -27,7 +27,7 @@ class FDistribution extends ContinuousDistribution {
     var count = 0;
     var sum = 0.0;
     for (final x in samples) {
-      if (x <= 0) {
+      if (!x.isFinite || x <= 0) {
         throw ArgumentError.value(
           x,
           'samples',
@@ -98,7 +98,8 @@ class FDistribution extends ContinuousDistribution {
 
   @override
   double probability(double x) {
-    if (x <= 0.0) return 0.0;
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0 || x == double.infinity) return 0.0;
     final logPdf =
         0.5 * d1 * log(d1 / d2) +
         (0.5 * d1 - 1.0) * log(x) -

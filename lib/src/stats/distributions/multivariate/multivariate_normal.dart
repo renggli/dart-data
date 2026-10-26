@@ -17,11 +17,34 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
   /// Constructs a multivariate normal distribution with given [mean] and
   /// [covariance].
   new(this.mean, this.covariance) : dimensions = mean.length {
+    if (dimensions <= 0) {
+      throw ArgumentError.value(
+        dimensions,
+        'mean.length',
+        'Dimensions must be positive.',
+      );
+    }
     if (mean.length != covariance.rowCount ||
         covariance.rowCount != covariance.colCount) {
       throw ArgumentError(
         'Mean length (${mean.length}) must match square covariance dimension (${covariance.rowCount}x${covariance.colCount}).',
       );
+    }
+    for (var i = 0; i < dimensions; i++) {
+      final m = mean.getUnchecked(i);
+      if (!m.isFinite) {
+        throw ArgumentError.value(m, 'mean[$i]', 'Mean must be finite.');
+      }
+      for (var j = 0; j < dimensions; j++) {
+        final c = covariance.getUnchecked(i, j);
+        if (!c.isFinite) {
+          throw ArgumentError.value(
+            c,
+            'covariance[$i][$j]',
+            'Covariance entries must be finite.',
+          );
+        }
+      }
     }
     final chol = covariance.cholesky;
     if (!chol.isSymmetricPositiveDefinite) {
@@ -68,8 +91,6 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
 
   late final Matrix<double> _l;
   late final double _logDetSigma;
-
-  static final double _ln2pi = log(2.0 * pi);
 
   @override
   double logProbability(Vector<double> x) {
@@ -131,3 +152,5 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
     ..addValue(mean, name: 'μ')
     ..addValue(covariance, name: 'Σ');
 }
+
+final double _ln2pi = log(2.0 * pi);

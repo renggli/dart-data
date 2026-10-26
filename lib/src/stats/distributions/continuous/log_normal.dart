@@ -19,7 +19,10 @@ import 'normal.dart';
 class LogNormalDistribution extends ContinuousDistribution {
   /// A log-normal distribution with parameters [mu] μ and [sigma] σ.
   new(this.mu, this.sigma) {
-    if (sigma <= 0) {
+    if (!mu.isFinite) {
+      throw ArgumentError.value(mu, 'mu', 'Mu must be finite');
+    }
+    if (!sigma.isFinite || sigma <= 0) {
       throw ArgumentError.value(
         sigma,
         'sigma',

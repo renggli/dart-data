@@ -18,10 +18,10 @@ import '../errors.dart';
 class ParetoDistribution extends ContinuousDistribution {
   /// A Pareto distribution with parameters [shape] and [scale].
   new(this.shape, this.scale) {
-    if (shape <= 0) {
+    if (!shape.isFinite || shape <= 0) {
       throw ArgumentError.value(shape, 'shape', 'Shape must be positive');
     }
-    if (scale <= 0) {
+    if (!scale.isFinite || scale <= 0) {
       throw ArgumentError.value(scale, 'scale', 'Scale must be positive');
     }
   }

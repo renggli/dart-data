@@ -18,10 +18,10 @@ import 'uniform.dart';
 class WeibullDistribution extends ContinuousDistribution {
   /// A weibull distribution with parameters [shape] k and [scale] λ.
   new(this.shape, this.scale) {
-    if (shape <= 0) {
+    if (!shape.isFinite || shape <= 0) {
       throw ArgumentError.value(shape, 'shape', 'Shape must be positive');
     }
-    if (scale <= 0) {
+    if (!scale.isFinite || scale <= 0) {
       throw ArgumentError.value(scale, 'scale', 'Scale must be positive');
     }
   }
@@ -80,9 +80,14 @@ class WeibullDistribution extends ContinuousDistribution {
   }
 
   @override
-  double probability(double x) => x < 0
-      ? 0
-      : shape / scale * pow(x / scale, shape - 1) * exp(-pow(x / scale, shape));
+  double probability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x < 0 || x == double.infinity) return 0;
+    return shape /
+        scale *
+        pow(x / scale, shape - 1) *
+        exp(-pow(x / scale, shape));
+  }
 
   @override
   double cumulativeProbability(double x) =>

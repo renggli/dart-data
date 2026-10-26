@@ -99,12 +99,20 @@ class DirichletDistribution extends MultivariateDistribution<double> {
       );
     }
     var sum = 0.0;
-    var logTerm = 0.0;
     for (var i = 0; i < dimensions; i++) {
       final xi = x.getUnchecked(i);
       if (xi.isNaN) return double.nan;
-      if (xi < 0.0) return double.negativeInfinity;
       sum += xi;
+    }
+    for (var i = 0; i < dimensions; i++) {
+      if (x.getUnchecked(i) < 0.0) return double.negativeInfinity;
+    }
+    if ((sum - 1.0).abs() > 1e-5) {
+      return double.negativeInfinity;
+    }
+    var logTerm = 0.0;
+    for (var i = 0; i < dimensions; i++) {
+      final xi = x.getUnchecked(i);
       final ai = alpha.getUnchecked(i);
       if (xi == 0.0) {
         if (ai < 1.0) return double.infinity;
@@ -112,9 +120,6 @@ class DirichletDistribution extends MultivariateDistribution<double> {
       } else {
         logTerm += (ai - 1.0) * log(xi);
       }
-    }
-    if ((sum - 1.0).abs() > 1e-5) {
-      return double.negativeInfinity;
     }
     return logTerm - _logBeta;
   }

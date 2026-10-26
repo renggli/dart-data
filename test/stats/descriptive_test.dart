@@ -40,6 +40,11 @@ void main() {
       check(kurtosis(skewed, excess: true)).isGreaterThan(0.0);
       check(kurtosis(skewed, excess: false))
           .isCloseTo(kurtosis(skewed, excess: true) + 3.0, 1e-10);
+
+      // Zero-variance data returns double.nan for skewness and kurtosis
+      final constant = [5.0, 5.0, 5.0, 5.0];
+      check(skewness(constant)).isNaN();
+      check(kurtosis(constant)).isNaN();
     });
 
     test('geometric and harmonic means', () {

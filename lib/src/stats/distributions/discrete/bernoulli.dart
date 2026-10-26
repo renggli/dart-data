@@ -12,7 +12,7 @@ import '../errors.dart';
 class BernoulliDistribution extends DiscreteDistribution {
   /// A Bernoulli distribution with success probability [p].
   new(this.p) {
-    if (p < 0.0 || p > 1.0) {
+    if (p.isNaN || p < 0.0 || p > 1.0) {
       throw ArgumentError.value(p, 'p', 'Must be between 0.0 and 1.0');
     }
   }

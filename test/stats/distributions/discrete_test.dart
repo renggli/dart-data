@@ -100,6 +100,21 @@ void main() {
           .equals(0);
       check(UniformDiscreteDistribution(5, 5).skewness).isNaN();
       check(UniformDiscreteDistribution(5, 5).excessKurtosis).isNaN();
+
+      // NaN / Infinity parameter and fit validation
+      check(() => BernoulliDistribution(double.nan)).throws<ArgumentError>();
+      check(() => BinomialDistribution(10, double.nan)).throws<ArgumentError>();
+      check(() => BinomialDistribution.fit(const [double.nan]))
+          .throws<ArgumentError>();
+      check(() => BinomialDistribution.fit(const [1, 5], n: 3))
+          .throws<ArgumentError>();
+      check(() => GeometricDistribution(double.nan)).throws<ArgumentError>();
+      check(() => HypergeometricDistribution(0, 0, 0)).throws<ArgumentError>();
+      check(() => NegativeBinomialDistribution(double.nan, 0.5))
+          .throws<ArgumentError>();
+      check(() => PoissonDistribution(double.nan)).throws<ArgumentError>();
+      check(() => PoissonDistribution.fit(const [double.infinity]))
+          .throws<ArgumentError>();
     });
   });
 

@@ -95,6 +95,15 @@ void main() {
       );
       check(distLarge.logProbability(Vector<double>.fromList([0.0, 1.0])))
           .equals(double.negativeInfinity);
+
+      // Invalid simplex sum or negative or NaN later coordinates take precedence over xi == 0
+      check(distSmall.logProbability(Vector<double>.fromList([0.0, 2.0])))
+          .equals(double.negativeInfinity);
+      check(distSmall.logProbability(Vector<double>.fromList([0.0, -1.0])))
+          .equals(double.negativeInfinity);
+      check(
+        distSmall.logProbability(Vector<double>.fromList([0.0, double.nan])),
+      ).isNaN();
     });
 
     test('equality, hashCode, and toString', () {

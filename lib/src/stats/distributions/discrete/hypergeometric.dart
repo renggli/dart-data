@@ -21,11 +21,11 @@ class HypergeometricDistribution extends DiscreteDistribution {
   /// A hypergeometric distribution with [populationSize], [successStates] in
   /// the population, and number of [draws].
   new(this.populationSize, this.successStates, this.draws) {
-    if (populationSize < 0) {
+    if (populationSize <= 0) {
       throw ArgumentError.value(
         populationSize,
         'populationSize',
-        'Population size must be non-negative',
+        'Population size must be positive',
       );
     }
     if (successStates < 0 || successStates > populationSize) {

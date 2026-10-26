@@ -12,7 +12,7 @@ import 'uniform.dart';
 class ExponentialDistribution extends ContinuousDistribution {
   /// An exponential distribution with [rate] $\lambda$.
   new(this.rate) {
-    if (rate <= 0) {
+    if (!rate.isFinite || rate <= 0) {
       throw ArgumentError.value(rate, 'rate', 'Rate must be strictly positive');
     }
   }
@@ -28,7 +28,7 @@ class ExponentialDistribution extends ContinuousDistribution {
     var count = 0;
     var sum = 0.0;
     for (final x in samples) {
-      if (x < 0) {
+      if (!x.isFinite || x < 0) {
         throw ArgumentError.value(x, 'samples', 'Samples must be non-negative');
       }
       count++;
@@ -66,11 +66,12 @@ class ExponentialDistribution extends ContinuousDistribution {
   double get excessKurtosis => 6.0;
 
   @override
-  double probability(double x) => x >= 0.0 ? rate * exp(-rate * x) : 0.0;
+  double probability(double x) =>
+      x.isNaN ? double.nan : (x >= 0.0 ? rate * exp(-rate * x) : 0.0);
 
   @override
   double cumulativeProbability(double x) =>
-      x >= 0.0 ? 1.0 - exp(-rate * x) : 0.0;
+      x.isNaN ? double.nan : (x >= 0.0 ? 1.0 - exp(-rate * x) : 0.0);
 
   @override
   double inverseCumulativeProbability(num probability) {
