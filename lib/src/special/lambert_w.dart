@@ -45,6 +45,9 @@ double lambertW0(num z) {
       break;
     }
     final w1 = wVal + 1.0;
+    if (w1.abs() < 1.0e-15) {
+      break;
+    }
     final step = fVal / (ew * w1 - (wVal + 2.0) * fVal / (2.0 * w1));
     wVal -= step;
     if (step.abs() < 1.0e-15 * (1.0 + wVal.abs())) {

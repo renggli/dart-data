@@ -15,7 +15,7 @@ import 'gamma.dart';
 /// final val = beta(2, 3); // ~ 0.08333333333333333 (1/12)
 /// ```
 double beta(num x, num y) {
-  if (x <= 0 || y <= 0) {
+  if (x.isNaN || y.isNaN || x <= 0 || y <= 0) {
     return double.nan;
   }
   if (x > 100 || y > 100) {
@@ -34,8 +34,9 @@ double beta(num x, num y) {
 /// ```dart
 /// final val = betaLn(2, 3); // ~ -2.484906649788
 /// ```
-double betaLn(num x, num y) =>
-    x <= 0 || y <= 0 ? double.nan : gammaLn(x) + gammaLn(y) - gammaLn(x + y);
+double betaLn(num x, num y) => x.isNaN || y.isNaN || x <= 0 || y <= 0
+    ? double.nan
+    : gammaLn(x) + gammaLn(y) - gammaLn(x + y);
 
 /// Incomplete beta function $I_x(a, b)$.
 ///
@@ -49,19 +50,15 @@ double betaLn(num x, num y) =>
 /// final p = ibeta(0.5, 2, 3); // 0.6875
 /// ```
 double ibeta(num x, num a, num b) {
-  if (x < 0 || 1 < x || a <= 0 || b <= 0) {
+  if (x.isNaN || a.isNaN || b.isNaN || x < 0 || 1 < x || a <= 0 || b <= 0) {
     return double.nan;
   }
+  if (x == 0) return 0.0;
+  if (x == 1) return 1.0;
   // Factor in front of the continued fraction.
-  final bt = x == 0 || x == 1
-      ? 0.0
-      : exp(
-          gammaLn(a + b) -
-              gammaLn(a) -
-              gammaLn(b) +
-              a * log(x) +
-              b * log(1.0 - x),
-        );
+  final bt = exp(
+    gammaLn(a + b) - gammaLn(a) - gammaLn(b) + a * log(x) + b * log(1.0 - x),
+  );
   if (x < (a + 1.0) / (a + b + 2.0)) {
     // Use continued fraction directly.
     return bt * _betacf(x, a, b) / a;
@@ -83,18 +80,24 @@ double ibeta(num x, num a, num b) {
 /// final x = ibetaInv(0.6875, 2, 3); // ~ 0.5
 /// ```
 double ibetaInv(num probability, num a, num b) {
-  if (a <= 0 || b <= 0) {
+  if (probability.isNaN ||
+      a.isNaN ||
+      b.isNaN ||
+      probability < 0.0 ||
+      probability > 1.0 ||
+      a <= 0 ||
+      b <= 0) {
     return double.nan;
+  }
+  if (probability == 0.0) {
+    return 0.0;
+  }
+  if (probability == 1.0) {
+    return 1.0;
   }
   const epsilon = 1.0e-14;
   final a1 = a - 1.0;
   final b1 = b - 1.0;
-  if (probability <= 0.0) {
-    return 0.0;
-  }
-  if (probability >= 1.0) {
-    return 1.0;
-  }
   var x = 0.0;
   if (a >= 1.0 && b >= 1.0) {
     final pp = (probability < 0.5) ? probability : 1 - probability;
@@ -183,7 +186,7 @@ double _betacf(num x, num a, num b) {
   }
   dVal = 1.0 / dVal;
   var hVal = dVal;
-  final maxIter = max(200, ((a + b) * 2).ceil());
+  final maxIter = qab.isFinite ? max(200, min(100000, (qab * 2).ceil())) : 200;
   for (var stepIdx = 1; stepIdx <= maxIter; stepIdx++) {
     final m2 = 2.0 * stepIdx;
     var aa = stepIdx * (b - stepIdx) * x / ((qam + m2) * (a + m2));

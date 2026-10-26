@@ -103,18 +103,23 @@ void main() {
     test('gammapInv', () {
       check(gammapInv(0.0, 2.0)).equals(0.0);
       check(gammapInv(1.0, 2.0)).equals(double.infinity);
+      check(gammapInv(-0.1, 2.0)).isNaN();
+      check(gammapInv(1.1, 2.0)).isNaN();
+      check(gammapInv(double.nan, 2.0)).isNaN();
+      check(gammapInv(0.5, 0.0)).isNaN();
+      check(gammapInv(0.5, -1.0)).isNaN();
       final prob = lowRegGamma(2.5, 3.0);
-      check(gammapInv(prob, 2.5)).isCloseTo(3.0, 1e-4);
+      check(gammapInv(prob, 2.5)).isCloseTo(3.0, 1e-12);
 
       // a <= 1.0 branches
       final pSmall = lowRegGamma(0.5, 0.2);
-      check(gammapInv(pSmall, 0.5)).isCloseTo(0.2, 1e-3);
+      check(gammapInv(pSmall, 0.5)).isCloseTo(0.2, 1e-12);
       final pLarge = lowRegGamma(0.5, 2.0);
-      check(gammapInv(pLarge, 0.5)).isCloseTo(2.0, 1e-3);
+      check(gammapInv(pLarge, 0.5)).isCloseTo(2.0, 1e-12);
 
       // a > 1.0 with p < 0.5
       final pLow = lowRegGamma(3.0, 0.5);
-      check(gammapInv(pLow, 3.0)).isCloseTo(0.5, 1e-3);
+      check(gammapInv(pLow, 3.0)).isCloseTo(0.5, 1e-12);
     });
 
     test('gamma for large x', () {
@@ -125,12 +130,16 @@ void main() {
       check(factorial(0)).isCloseTo(1.0, 1e-8);
       check(factorial(5)).isCloseTo(120.0, 1e-8);
       check(factorial(-1)).isNaN();
+      check(factorial(double.nan)).isNaN();
       check(factorialLn(5)).isCloseTo(math.log(120.0), 1e-6);
+      check(factorialLn(double.nan)).isNaN();
       check(combination(5, 2)).equals(10.0);
       check(combination(200, 2)).equals(19900.0);
+      check(combination(double.infinity, 2)).equals(double.infinity);
       check(combinationLn(5, 2)).isCloseTo(math.log(10.0), 1e-6);
       check(permutation(5, 2)).equals(20.0);
       check(permutation(200, 2)).equals(39800.0);
+      check(permutation(double.infinity, 2)).equals(double.infinity);
       check(permutationLn(5, 2)).isCloseTo(math.log(20.0), 1e-6);
     });
   });

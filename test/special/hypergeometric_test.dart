@@ -28,6 +28,22 @@ void main() {
       check(hypergeometric2F1(0.5, 0.5, 1.5, 0.95))
           .isCloseTo(1.3802311542699408, 1e-12);
       check(hypergeometric2F1(1.0, 1.0, 3.0, 1.0)).isCloseTo(2.0, 1e-12);
+      // Large negative z with integer b - a: 2F1(1, 2; 3; z) = 2(-ln(1-z) - z)/z^2
+      const zNeg = -20.0;
+      final expected = 2.0 * (-math.log(1.0 - zNeg) - zNeg) / (zNeg * zNeg);
+      check(hypergeometric2F1(1, 2, 3, zNeg)).isCloseTo(expected, 1e-12);
+    });
+
+    test('terminating polynomial cases for 1F1 and 2F1', () {
+      // 1F1(-2; 3; z) = 1 - 2/3 z + 2/24 z^2 = 1 - 2/3 z + 1/12 z^2
+      check(hypergeometric1F1(-2, 3, 6.0)).isCloseTo(0.0, 1e-12);
+      // 1F1(-1; -3; z) = 1 + 1/3 z (terminates before denominator hits 0)
+      check(hypergeometric1F1(-1, -3, 3.0)).isCloseTo(2.0, 1e-12);
+      // 2F1(-2, 1; 2; z) = 1 - z + 1/3 z^2 (valid even for z > 1 and z < -1)
+      check(hypergeometric2F1(-2, 1, 2, 3.0)).isCloseTo(1.0, 1e-12);
+      check(hypergeometric2F1(1, -2, 2, -3.0)).isCloseTo(7.0, 1e-12);
+      check(hypergeometric2F1(-2, 1.5, 3, 0.95))
+          .isCloseTo(1.0 - 0.95 + 0.95 * 0.95 * 5.0 / 16.0, 1e-12);
     });
   });
 }

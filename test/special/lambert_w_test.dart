@@ -34,6 +34,9 @@ void main() {
       final w1 = lambertW1(zNear);
       check(w1).isLessThan(-1.0);
       check(w1 * math.exp(w1)).isCloseTo(zNear, 1e-9);
+
+      const invE = 1.0 / math.e;
+      check(lambertW0(-invE + 2e-15)).isCloseTo(-1.0, 1e-6);
     });
   });
 }

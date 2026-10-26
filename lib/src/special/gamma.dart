@@ -81,9 +81,6 @@ double gammaLn(num x) {
     -0.26190838401581408670e-4,
     0.36899182659531622704e-5,
   ];
-  if (x <= 0.0) {
-    return double.nan;
-  }
   var y = lanczosCoeffs[0];
   for (var i = lanczosCoeffs.length - 1; i > 0; --i) {
     y += lanczosCoeffs[i] / (x + i);
@@ -123,7 +120,10 @@ double gammaq(num a, num x) {
   var cVal = 1.0 / 1.0e-30;
   var dVal = 1.0 / b;
   var hVal = dVal;
-  final maxIter = max(200, (a + x).ceil() * 2);
+  final sumAX = (a + x).toDouble();
+  final maxIter = sumAX.isFinite
+      ? max(200, min(100000, sumAX.ceil() * 2))
+      : 200;
   for (var i = 1; i <= maxIter; i++) {
     final an = -i * (i - a);
     b += 2.0;
@@ -143,18 +143,28 @@ double gammaq(num a, num x) {
 
 /// Returns the inverse of the lower regularized incomplete gamma function.
 double gammapInv(num probability, num a) {
-  const epsilon = 1.0e-8;
+  if (probability.isNaN ||
+      a.isNaN ||
+      probability < 0.0 ||
+      probability > 1.0 ||
+      a <= 0.0 ||
+      a.isInfinite) {
+    return double.nan;
+  }
+  if (probability == 0.0) {
+    return 0.0;
+  }
+  if (probability == 1.0) {
+    return double.infinity;
+  }
+  const epsilon = 1.0e-14;
   final a1 = a - 1.0;
   final gln = gammaLn(a);
   var x = 0.0;
   var afac = 0.0;
   var lna1 = 0.0;
 
-  if (probability >= 1.0) {
-    return double.infinity;
-  } else if (probability <= 0) {
-    return 0.0;
-  } else if (a > 1.0) {
+  if (a > 1.0) {
     lna1 = log(a1);
     afac = exp(a1 * (lna1 - 1.0) - gln);
     final pp = probability < 0.5 ? probability : 1.0 - probability;
@@ -177,14 +187,20 @@ double gammapInv(num probability, num a) {
       x = 1.0 - log(1.0 - (probability - tVal) / (1.0 - tVal));
     }
   }
-  for (var j = 0; j < 12; j++) {
+  for (var j = 0; j < 50; j++) {
     if (x <= 0.0) {
       return 0.0;
     }
     final err = lowRegGamma(a, x) - probability;
+    if (err.abs() <= 1.0e-15) {
+      break;
+    }
     var step = a > 1.0
         ? afac * exp(-(x - a1) + a1 * (log(x) - lna1))
         : exp(-x + a1 * log(x) - gln);
+    if (step <= 0.0 || !step.isFinite) {
+      break;
+    }
     final uVal = err / step;
     step = uVal / (1.0 - 0.5 * min(1.0, uVal * ((a - 1.0) / x - 1.0)));
     x -= step;
@@ -219,7 +235,10 @@ double lowRegGamma(num a, num x) {
   var ap = a;
   var sum = 1.0 / a;
   var del = sum;
-  final maxIter = max(200, (a + x).ceil() * 2);
+  final sumAX = (a + x).toDouble();
+  final maxIter = sumAX.isFinite
+      ? max(200, min(100000, sumAX.ceil() * 2))
+      : 200;
   for (var i = 1; i <= maxIter; i++) {
     del *= x / ++ap;
     sum += del;
@@ -235,11 +254,12 @@ double lowRegGamma(num a, num x) {
 /// ```dart
 /// print(factorial(5));  // 120.0
 /// ```
-double factorial(num value) => value < 0.0 ? double.nan : gamma(1.0 + value);
+double factorial(num value) =>
+    value.isNaN || value < 0.0 ? double.nan : gamma(1.0 + value);
 
 /// Returns the logarithm of the factorial based on the [gammaLn] function.
 double factorialLn(num value) =>
-    value < 0.0 ? double.nan : gammaLn(1.0 + value);
+    value.isNaN || value < 0.0 ? double.nan : gammaLn(1.0 + value);
 
 /// Returns the combinations based on the [gamma] function.
 ///
@@ -253,12 +273,15 @@ double combination(num total, num choose) {
   if (choose == 0 || choose == total) {
     return 1.0;
   }
+  if (total.isInfinite) {
+    return double.infinity;
+  }
   var k = choose;
   if (k > total - k) {
     k = total - k;
   }
-  final isTotalInt = total.roundToDouble() == total;
-  final isChooseInt = k.roundToDouble() == k;
+  final isTotalInt = total.isFinite && total.roundToDouble() == total;
+  final isChooseInt = k.isFinite && k.roundToDouble() == k;
   if (isTotalInt && isChooseInt && k <= 1000) {
     var res = BigInt.one;
     final totalInt = BigInt.from(total);
@@ -287,8 +310,11 @@ double permutation(num total, num count) {
   if (count == 0) {
     return 1.0;
   }
-  final isTotalInt = total.roundToDouble() == total;
-  final isCountInt = count.roundToDouble() == count;
+  if (total.isInfinite) {
+    return count.isInfinite ? double.nan : double.infinity;
+  }
+  final isTotalInt = total.isFinite && total.roundToDouble() == total;
+  final isCountInt = count.isFinite && count.roundToDouble() == count;
   if (isTotalInt && isCountInt && count <= 1000) {
     var res = BigInt.one;
     final totalInt = BigInt.from(total);

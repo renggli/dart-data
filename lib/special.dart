@@ -24,8 +24,9 @@
 /// - **Elliptic Integrals** ([ellipticK], [ellipticE]): Complete Legendre
 ///   elliptic integrals of the 1st and 2nd kinds computed via
 ///   arithmetic-geometric mean.
-/// - **Hypergeometric Functions** ([hypergeometric2F1]): Gauss's generalized
-///   series $_2F_1(a, b; c; z)$.
+/// - **Hypergeometric Functions** ([hypergeometric1F1], [hypergeometric2F1]):
+///   Kummer's confluent series $_1F_1(a; b; z)$ and Gauss's generalized series
+///   $_2F_1(a, b; c; z)$.
 /// - **Lambert W** ([lambertW0], [lambertW1]): The principal and secondary real
 ///   branches of the product log function solving $W(x) e^{W(x)} = x$.
 ///

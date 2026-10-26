@@ -63,6 +63,14 @@ void main() {
         final p = ibeta(x, a, b);
         check(ibetaInv(p, a, b)).isCloseTo(x, 1e-8);
       }
+
+      check(beta(double.nan, 1.0)).isNaN();
+      check(betaLn(double.nan, 1.0)).isNaN();
+      check(ibeta(double.nan, 2.0, 3.0)).isNaN();
+      check(ibeta(0.5, double.nan, 3.0)).isNaN();
+      check(ibetaInv(-0.1, 2.0, 3.0)).isNaN();
+      check(ibetaInv(1.1, 2.0, 3.0)).isNaN();
+      check(ibetaInv(double.nan, 2.0, 3.0)).isNaN();
     });
   });
 }

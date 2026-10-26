@@ -17,6 +17,7 @@ import 'dart:math';
 double besselI0(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 1.0;
+  if (x.isInfinite) return double.infinity;
   final ax = x.abs().toDouble();
   if (ax < 3.75) {
     final tVal = x / 3.75;
@@ -59,6 +60,9 @@ double besselI0(num x) {
 double besselI1(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 0.0;
+  if (x.isInfinite) {
+    return x.isNegative ? double.negativeInfinity : double.infinity;
+  }
   final ax = x.abs().toDouble();
   if (ax < 3.75) {
     final tVal = x / 3.75;
@@ -107,6 +111,7 @@ double besselI1(num x) {
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double besselK0(num x) {
   if (x.isNaN || x <= 0) return double.nan;
+  if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd <= 2.0) {
     final y = xd * xd / 4.0;
@@ -146,6 +151,7 @@ double besselK0(num x) {
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double besselK1(num x) {
   if (x.isNaN || x <= 0) return double.nan;
+  if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd <= 2.0) {
     final y = xd * xd / 4.0;
@@ -199,6 +205,7 @@ double besselK1(num x) {
 double besselJ0(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 1.0;
+  if (x.isInfinite) return 0.0;
   final ax = x.abs().toDouble();
   if (ax < 8.0) {
     final y = ax * ax;
@@ -245,6 +252,7 @@ double besselJ0(num x) {
 double besselJ1(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 0.0;
+  if (x.isInfinite) return 0.0;
   final ax = x.abs().toDouble();
   if (ax < 8.0) {
     final y = ax * ax;
@@ -268,7 +276,7 @@ double besselJ1(num x) {
   } else {
     final z = 8.0 / ax;
     final y = z * z;
-    final xx = ax - 2.356194491;
+    final xx = ax - _threePiOver4;
     final f1 =
         1.0 +
         y *
@@ -293,6 +301,7 @@ double besselJ1(num x) {
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double besselY0(num x) {
   if (x.isNaN || x <= 0) return double.nan;
+  if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd < 8.0) {
     final y = xd * xd;
@@ -338,6 +347,7 @@ double besselY0(num x) {
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double besselY1(num x) {
   if (x.isNaN || x <= 0) return double.nan;
+  if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd < 8.0) {
     final y = xd * xd;
@@ -364,7 +374,7 @@ double besselY1(num x) {
   } else {
     final z = 8.0 / xd;
     final y = z * z;
-    final xx = xd - 2.356194491;
+    final xx = xd - _threePiOver4;
     final f1 =
         1.0 +
         y *
@@ -382,3 +392,5 @@ double besselY1(num x) {
     return sqrt(2.0 / (pi * xd)) * (f1 * sin(xx) + z * g1 * cos(xx));
   }
 }
+
+const _threePiOver4 = 2.356194490192345;

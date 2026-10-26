@@ -52,5 +52,20 @@ void main() {
       check(besselK1(1.0)).isCloseTo(0.6019072301972346, 1e-6);
       check(besselK1(5.0)).isCloseTo(0.00404457497148563, 1e-6);
     });
+
+    test('infinite and NaN arguments', () {
+      check(besselI0(double.infinity)).equals(double.infinity);
+      check(besselI0(double.negativeInfinity)).equals(double.infinity);
+      check(besselI1(double.infinity)).equals(double.infinity);
+      check(besselI1(double.negativeInfinity)).equals(double.negativeInfinity);
+      check(besselK0(double.infinity)).equals(0.0);
+      check(besselK1(double.infinity)).equals(0.0);
+      check(besselJ0(double.infinity)).equals(0.0);
+      check(besselJ0(double.negativeInfinity)).equals(0.0);
+      check(besselJ1(double.infinity)).equals(0.0);
+      check(besselJ1(double.negativeInfinity)).equals(0.0);
+      check(besselY0(double.infinity)).equals(0.0);
+      check(besselY1(double.infinity)).equals(0.0);
+    });
   });
 }
