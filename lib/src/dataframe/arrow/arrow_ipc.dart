@@ -9,34 +9,6 @@ import '../bitmask.dart';
 import '../dataframe.dart';
 import '../series.dart';
 
-int _readInt64(ByteData data, int offset) {
-  final low = data.getUint32(offset, Endian.little);
-  final high = data.getInt32(offset + 4, Endian.little);
-  return high * 0x100000000 + low;
-}
-
-void _writeInt64(ByteData data, int offset, int val) {
-  final high = val < 0
-      ? (val - 0x100000000 + 1) ~/ 0x100000000
-      : val ~/ 0x100000000;
-  final low = val - high * 0x100000000;
-  data.setUint32(offset, low, Endian.little);
-  data.setInt32(offset + 4, high, Endian.little);
-}
-
-int _readUint64(ByteData data, int offset) {
-  final low = data.getUint32(offset, Endian.little);
-  final high = data.getUint32(offset + 4, Endian.little);
-  return high * 0x100000000 + low;
-}
-
-void _writeUint64(ByteData data, int offset, int val) {
-  final high = val ~/ 0x100000000;
-  final low = val - high * 0x100000000;
-  data.setUint32(offset, low, Endian.little);
-  data.setUint32(offset + 4, high, Endian.little);
-}
-
 /// Apache Arrow IPC stream serializer and deserializer.
 ///
 /// Encodes and decodes DataFrames to and from the official Apache Arrow IPC
@@ -312,9 +284,10 @@ class _ArrowIpcStreamWriter {
       nodes.add((col.length, col.nullCount));
 
       // 1. Validity buffer (Buffer 0)
-      if (col.nullCount > 0 && col.mask != null) {
+      final colMask = col.mask;
+      if (col.nullCount > 0 && colMask != null) {
         final maskBytes = (col.length + 7) ~/ 8;
-        addBuffer(Uint8List.sublistView(col.mask!.bytes, 0, maskBytes));
+        addBuffer(Uint8List.sublistView(colMask.bytes, 0, maskBytes));
       } else {
         addBuffer(Uint8List(0));
       }
@@ -386,9 +359,9 @@ class _ArrowIpcStreamWriter {
 
     // Struct vectors for FieldNodes and Buffers
     final nodesVecOffset = fb.addStructVector(nodes, (node, writer) {
-      final (nullCount, length) = node;
-      writer.putInt64(length);
+      final (length, nullCount) = node;
       writer.putInt64(nullCount);
+      writer.putInt64(length);
     }, 16);
 
     final buffersVecOffset = fb.addStructVector(buffers, (b, writer) {
@@ -517,8 +490,8 @@ class _ArrowIpcStreamReader {
 
     if (batches.length == 1) {
       return batches.first;
-    } else if (batches.length > 1) {
-      final fields = schemaFields!;
+    } else if (batches.length > 1 && schemaFields != null) {
+      final fields = schemaFields;
       final columns = <Series<Object?>>[];
       for (var i = 0; i < fields.length; i++) {
         final field = fields[i];
@@ -1582,4 +1555,32 @@ class _FlatBufferReader {
       Uint8List.sublistView(bytes, strPos + 4, strPos + 4 + len),
     );
   }
+}
+
+int _readInt64(ByteData data, int offset) {
+  final low = data.getUint32(offset, Endian.little);
+  final high = data.getInt32(offset + 4, Endian.little);
+  return high * 0x100000000 + low;
+}
+
+void _writeInt64(ByteData data, int offset, int val) {
+  final high = val < 0
+      ? (val - 0x100000000 + 1) ~/ 0x100000000
+      : val ~/ 0x100000000;
+  final low = val - high * 0x100000000;
+  data.setUint32(offset, low, Endian.little);
+  data.setInt32(offset + 4, high, Endian.little);
+}
+
+int _readUint64(ByteData data, int offset) {
+  final low = data.getUint32(offset, Endian.little);
+  final high = data.getUint32(offset + 4, Endian.little);
+  return high * 0x100000000 + low;
+}
+
+void _writeUint64(ByteData data, int offset, int val) {
+  final high = val ~/ 0x100000000;
+  final low = val - high * 0x100000000;
+  data.setUint32(offset, low, Endian.little);
+  data.setUint32(offset + 4, high, Endian.little);
 }

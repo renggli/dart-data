@@ -223,5 +223,16 @@ void main() {
       await completer.future;
       check(errorReceived).isTrue();
     });
+
+    test(
+      'preserves 64-bit integers and empty lines in single-column CSV',
+      () async {
+        const csv64 = 'id\n5000000000\n\n-5000000000\n';
+        final df = await CsvStream.readStream(Stream.value(csv64));
+        check(df.rowCount).equals(3);
+        check(df['id'].dataType).equals(DataType.int64);
+        check(df['id'].toList()).deepEquals([5000000000, null, -5000000000]);
+      },
+    );
   });
 }

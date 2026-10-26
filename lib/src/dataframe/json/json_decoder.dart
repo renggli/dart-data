@@ -281,11 +281,9 @@ abstract final class DataFrameJsonDecoder {
         } else {
           for (var r = 0; r < rowCount; r++) {
             final k = r < rowKeysList.length ? rowKeysList[r] : null;
+            final parsedK = k != null ? int.tryParse(k) : null;
             final raw = k != null
-                ? (colVal[k] ??
-                      (int.tryParse(k) != null
-                          ? colVal[int.tryParse(k)!]
-                          : null))
+                ? (colVal[k] ?? (parsedK != null ? colVal[parsedK] : null))
                 : null;
             values.add(raw != null && type != null ? type.cast(raw) : raw);
           }

@@ -788,6 +788,17 @@ line 2",10
       check(stats['val'][7]).equals(30.0); // max
     });
 
+    test('describe propagates NaN across summary statistics', () {
+      final df = DataFrame.fromColumns({
+        'val': [10.0, double.nan, 30.0],
+      });
+      final stats = df.describe();
+      check(stats['val'][0]).equals(3.0);
+      for (var i = 1; i <= 7; i++) {
+        check((stats['val'][i] as double).isNaN).isTrue();
+      }
+    });
+
     test('concat promotes types without dynamic Series', () {
       final df1 = DataFrame([
         Series.fromList('a', [1, 2], type: DataType.int32),

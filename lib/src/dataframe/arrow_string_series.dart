@@ -44,6 +44,13 @@ class ArrowStringSeries extends Series<String> {
         'Last offset (${offsets.last}) exceeds bytes buffer length (${bytes.length}).',
       );
     }
+    for (var i = 0; i < offsets.length - 1; i++) {
+      if (offsets[i] > offsets[i + 1]) {
+        throw ArgumentError(
+          'Offsets buffer must be monotonically non-decreasing (offsets[$i] = ${offsets[i]} > offsets[${i + 1}] = ${offsets[i + 1]}).',
+        );
+      }
+    }
     final m = mask;
     if (m != null && m.length != offsets.length - 1) {
       throw ArgumentError(
@@ -232,7 +239,7 @@ class ArrowStringSeries extends Series<String> {
       name: name,
       bytes: newBytes,
       offsets: newOffsets,
-      mask: newMask,
+      mask: (newMask != null && newMask.nullCount > 0) ? newMask : null,
     );
   }
 
@@ -317,8 +324,8 @@ class ArrowStringSeries extends Series<String> {
   String? get min {
     String? res;
     for (var i = 0; i < length; i++) {
-      if (!isNull(i)) {
-        final val = this[i]!;
+      final val = this[i];
+      if (val != null) {
         if (res == null || val.compareTo(res) < 0) res = val;
       }
     }
@@ -329,8 +336,8 @@ class ArrowStringSeries extends Series<String> {
   String? get max {
     String? res;
     for (var i = 0; i < length; i++) {
-      if (!isNull(i)) {
-        final val = this[i]!;
+      final val = this[i];
+      if (val != null) {
         if (res == null || val.compareTo(res) > 0) res = val;
       }
     }

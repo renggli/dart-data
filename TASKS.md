@@ -242,7 +242,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   4. Reuse file-private `_random` in `uniform.dart`, `discrete/uniform.dart`, and `multinomial.dart`, and fix charter/ordering/doc issues in `pca.dart`, `bootstrap.dart`, `multivariate_normal.dart`, and `hypothesis_test_result.dart`.
 - **Verification**: `dart test test/stats/`
 
-### [ ] TASK-3.3: Fix `dataframe` 64-Bit Integer Truncation, `GroupBy`/`describe` `NaN` Propagation, `Join` Type Promotion, and Charter Compliance
+### [x] TASK-3.3: Fix `dataframe` 64-Bit Integer Truncation, `GroupBy`/`describe` `NaN` Propagation, `Join` Type Promotion, and Charter Compliance
 - **Files**:
   - `lib/src/dataframe/series.dart` (lines 24, 205, 338–348, 573, 706)
   - `lib/src/dataframe/dataframe.dart` (lines 84, 117–118, 282–335, 581)

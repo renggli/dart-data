@@ -93,6 +93,12 @@ void main() {
       check(sliced.offsets[0]).equals(0);
       check(sliced.offsets.last).equals(sliced.bytes.length);
 
+      // Slice without nulls normalizes mask to null
+      final nonNullSlice = series.slice(0, 2) as ArrowStringSeries;
+      check(nonNullSlice.hasNulls).isFalse();
+      check(nonNullSlice.nullCount).equals(0);
+      check(nonNullSlice.mask).isNull();
+
       // Empty slice
       final empty = series.slice(2, 2) as ArrowStringSeries;
       check(empty.length).equals(0);
@@ -174,6 +180,15 @@ void main() {
           name: 'test',
           bytes: Uint8List(0),
           offsets: Uint32List.fromList([1, 2]),
+        ),
+      ).throws<ArgumentError>();
+
+      // Non-monotonic offsets
+      check(
+        () => ArrowStringSeries(
+          name: 'test',
+          bytes: Uint8List(5),
+          offsets: Uint32List.fromList([0, 4, 2, 5]),
         ),
       ).throws<ArgumentError>();
     });

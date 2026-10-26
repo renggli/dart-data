@@ -14,15 +14,15 @@ abstract final class DataFrameJsonStream {
   static Stream<DataFrame> readNdjsonChunks(
     Stream<String> stream, {
     int chunkSize = 1000,
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) async* {
     final lineStream = stream.transform(const LineSplitter());
-    final buffer = <Map<String, dynamic>>[];
+    final buffer = <Map<String, Object?>>[];
 
     await for (final line in lineStream) {
       final trimmed = line.trim();
       if (trimmed.isEmpty) continue;
-      final dynamic decoded = jsonDecode(trimmed);
+      final Object? decoded = jsonDecode(trimmed);
       if (decoded is! Map) {
         throw FormatException(
           'Expected JSON Map for NDJSON record, got ${decoded.runtimeType}',
@@ -49,15 +49,15 @@ abstract final class DataFrameJsonStream {
   /// Ingests a text [stream] of NDJSON records into a single [DataFrame].
   static Future<DataFrame> readNdjson(
     Stream<String> stream, {
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) async {
     final lineStream = stream.transform(const LineSplitter());
-    final allRecords = <Map<String, dynamic>>[];
+    final allRecords = <Map<String, Object?>>[];
 
     await for (final line in lineStream) {
       final trimmed = line.trim();
       if (trimmed.isEmpty) continue;
-      final dynamic decoded = jsonDecode(trimmed);
+      final Object? decoded = jsonDecode(trimmed);
       if (decoded is! Map) {
         throw FormatException(
           'Expected JSON Map for NDJSON record, got ${decoded.runtimeType}',
@@ -78,7 +78,7 @@ abstract final class DataFrameJsonStream {
   static Stream<DataFrame> readByteChunks(
     Stream<List<int>> stream, {
     int chunkSize = 1000,
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) => readNdjsonChunks(
     stream.cast<List<int>>().transform(utf8.decoder),
     chunkSize: chunkSize,
@@ -88,7 +88,7 @@ abstract final class DataFrameJsonStream {
   /// Reads a byte [stream] of NDJSON records into a single [DataFrame].
   static Future<DataFrame> readByteStream(
     Stream<List<int>> stream, {
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) => readNdjson(
     stream.cast<List<int>>().transform(utf8.decoder),
     columnTypes: columnTypes,

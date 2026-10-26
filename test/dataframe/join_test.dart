@@ -603,20 +603,31 @@ void main() {
       check(joined['id'].toList()).deepEquals([2, 3]);
     });
 
-    test('preserves narrow DataTypes across joins', () {
-      final l = DataFrame([
-        Series<int>.fromList('k', [1, 2], type: DataType.int8),
-        Series<double>.fromList('v1', [1.5, 2.5], type: DataType.float32),
-      ]);
-      final r = DataFrame([
-        Series<int>.fromList('k', [2, 3], type: DataType.int8),
-        Series<int>.fromList('v2', [10, 20], type: DataType.uint16),
-      ]);
-      final j = l.join(r, on: ['k'], type: JoinType.left);
-      check(j['k'].dataType).equals(DataType.int8);
-      check(j['v1'].dataType).equals(DataType.float32);
-      check(j['v2'].dataType).equals(DataType.uint16);
-    });
+    test(
+      'preserves narrow DataTypes across joins and promotes mixed key types',
+      () {
+        final l = DataFrame([
+          Series<int>.fromList('k', [1, 2], type: DataType.int8),
+          Series<double>.fromList('v1', [1.5, 2.5], type: DataType.float32),
+        ]);
+        final r = DataFrame([
+          Series<int>.fromList('k', [2, 3], type: DataType.int8),
+          Series<int>.fromList('v2', [10, 20], type: DataType.uint16),
+        ]);
+        final j = l.join(r, on: ['k'], type: JoinType.left);
+        check(j['k'].dataType).equals(DataType.int8);
+        check(j['v1'].dataType).equals(DataType.float32);
+        check(j['v2'].dataType).equals(DataType.uint16);
+
+        final rWide = DataFrame([
+          Series<int>.fromList('k', [2, 300], type: DataType.int32),
+          Series<int>.fromList('v2', [10, 20], type: DataType.int32),
+        ]);
+        final rightJoined = l.join(rWide, on: ['k'], type: JoinType.right);
+        check(rightJoined['k'].dataType).equals(DataType.int32);
+        check(rightJoined['k'].toList()).deepEquals([2, 300]);
+      },
+    );
 
     test('validation errors for leftOn and rightOn', () {
       check(() => left.join(right)).throws<ArgumentError>();

@@ -121,20 +121,23 @@ extension JoinDataFrameExtension on DataFrame {
       for (final keyCol in on) {
         final leftCol = column(keyCol);
         final rightCol = other.column(keyCol);
+        final combinedType = leftCol.dataType == rightCol.dataType
+            ? leftCol.dataType
+            : leftCol.dataType.promoteWith(rightCol.dataType);
         final vals = <Object?>[];
         for (final (leftIdx, rightIdx) in matchedPairs) {
           if (leftIdx != null) {
-            vals.add(leftCol[leftIdx]);
+            final v = leftCol[leftIdx];
+            vals.add(v == null ? null : combinedType.cast(v));
           } else if (rightIdx != null) {
-            vals.add(rightCol[rightIdx]);
+            final v = rightCol[rightIdx];
+            vals.add(v == null ? null : combinedType.cast(v));
           } else {
             vals.add(null);
           }
         }
         usedNames.add(keyCol);
-        outputColumns.add(
-          Series.fromList(keyCol, vals, type: leftCol.dataType),
-        );
+        outputColumns.add(Series.fromList(keyCol, vals, type: combinedType));
       }
     }
 
@@ -234,13 +237,8 @@ List<(int?, int?)> _sortMergeJoinPairs(
 ) {
   final leftCols = [for (final c in leftOn) left.column(c)];
   final rightCols = [for (final c in rightOn) right.column(c)];
-
-  bool hasNullInKey(List<Series<Object?>> cols, int row) {
-    for (var i = 0; i < cols.length; i++) {
-      if (cols[i].isNull(row)) return true;
-    }
-    return false;
-  }
+  final leftExtractor = RowKeyExtractor(leftCols);
+  final rightExtractor = RowKeyExtractor(rightCols);
 
   int compareRows(
     List<Series<Object?>> colsA,
@@ -303,7 +301,7 @@ List<(int?, int?)> _sortMergeJoinPairs(
     final leftRow = leftOrder[p];
     final rightRow = rightOrder[q];
 
-    if (hasNullInKey(leftCols, leftRow)) {
+    if (leftExtractor.hasNull(leftRow)) {
       if (type == JoinType.left || type == JoinType.outer) {
         matchedPairs.add((leftRow, null));
       }
@@ -311,7 +309,7 @@ List<(int?, int?)> _sortMergeJoinPairs(
       continue;
     }
 
-    if (hasNullInKey(rightCols, rightRow)) {
+    if (rightExtractor.hasNull(rightRow)) {
       if (type == JoinType.right || type == JoinType.outer) {
         matchedPairs.add((null, rightRow));
       }
@@ -334,14 +332,14 @@ List<(int?, int?)> _sortMergeJoinPairs(
       // Find runs of duplicate keys
       var pEnd = p + 1;
       while (pEnd < leftOrder.length &&
-          !hasNullInKey(leftCols, leftOrder[pEnd]) &&
+          !leftExtractor.hasNull(leftOrder[pEnd]) &&
           compareRows(leftCols, leftOrder[p], leftCols, leftOrder[pEnd]) == 0) {
         pEnd++;
       }
 
       var qEnd = q + 1;
       while (qEnd < rightOrder.length &&
-          !hasNullInKey(rightCols, rightOrder[qEnd]) &&
+          !rightExtractor.hasNull(rightOrder[qEnd]) &&
           compareRows(rightCols, rightOrder[q], rightCols, rightOrder[qEnd]) ==
               0) {
         qEnd++;

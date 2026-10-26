@@ -109,11 +109,13 @@ class GroupBy {
     for (final entry in _groups.entries) {
       final key = entry.key;
       final indices = entry.value;
-      final keyVals = _groupKeys[key]!;
+      final keyVals = _groupKeys[key];
+      if (keyVals == null) continue;
 
       // Append group key values
       for (var i = 0; i < byColumns.length; i++) {
-        resultCols[byColumns[i]]!.add(keyVals[i]);
+        final colList = resultCols[byColumns[i]];
+        if (colList != null) colList.add(keyVals[i]);
       }
 
       // Compute aggregations
@@ -124,7 +126,8 @@ class GroupBy {
         for (final agg in aggEntry.value) {
           final outName = '${colName}_${agg.name}';
           final aggResult = _computeAgg(col, indices, agg, medianScratch);
-          resultCols[outName]!.add(aggResult);
+          final outList = resultCols[outName];
+          if (outList != null) outList.add(aggResult);
         }
       }
     }
@@ -144,9 +147,8 @@ class GroupBy {
     final outputSeries = <Series<Object?>>[];
     for (final col in byColumns) {
       final origCol = dataFrame.column(col);
-      outputSeries.add(
-        Series.fromList(col, resultCols[col]!, type: origCol.dataType),
-      );
+      final colVals = resultCols[col] ?? const <Object?>[];
+      outputSeries.add(Series.fromList(col, colVals, type: origCol.dataType));
     }
     for (final entry in resultCols.entries) {
       if (byColumns.contains(entry.key)) continue;
@@ -200,11 +202,11 @@ class GroupBy {
     final extractor = RowKeyExtractor(keyCols);
     for (var rowIdx = 0; rowIdx < dataFrame.rowCount; rowIdx++) {
       final key = extractor.extractKey(rowIdx);
-      if (!_groups.containsKey(key)) {
-        _groups[key] = [];
+      final groupRows = _groups.putIfAbsent(key, () {
         _groupKeys[key] = [for (final col in keyCols) col[rowIdx]];
-      }
-      _groups[key]!.add(rowIdx);
+        return [];
+      });
+      groupRows.add(rowIdx);
     }
   }
 
@@ -255,6 +257,7 @@ class GroupBy {
         Comparable<Object?>? minVal;
         for (var i = 0; i < indices.length; i++) {
           final val = col[indices[i]];
+          if (val is double && val.isNaN) return double.nan;
           if (val is Comparable<Object?>) {
             if (minVal == null || val.compareTo(minVal) < 0) {
               minVal = val;
@@ -266,6 +269,7 @@ class GroupBy {
         Comparable<Object?>? maxVal;
         for (var i = 0; i < indices.length; i++) {
           final val = col[indices[i]];
+          if (val is double && val.isNaN) return double.nan;
           if (val is Comparable<Object?>) {
             if (maxVal == null || val.compareTo(maxVal) > 0) {
               maxVal = val;

@@ -21,7 +21,135 @@ import 'dataframe.dart';
 /// print(series.mean); // ~91.83
 /// ```
 abstract class Series<T> {
+  /// Initializes a [Series] instance.
   const new();
+
+  /// Factory constructor creating appropriate typed series from an iterable or
+  /// list.
+  factory fromList(
+    String name,
+    Iterable<Object?> iterable, {
+    DataType<T>? type,
+  }) {
+    final list = iterable.toList(growable: false);
+    if (type != null) {
+      final isGenericObject = Object() is T;
+      if (T == int || (type is DataType<int> && T != num && !isGenericObject)) {
+        final intList = list
+            .map((element) => element as int?)
+            .toList(growable: false);
+        return TypedSeries<int>.fromList(
+          name,
+          intList,
+          type: type as DataType<int>,
+        ) as Series<T>;
+      } else if (T == double ||
+          (type is DataType<double> && T != num && !isGenericObject)) {
+        final dblList = list
+            .map((element) => element as double?)
+            .toList(growable: false);
+        return TypedSeries<double>.fromList(
+          name,
+          dblList,
+          type: type as DataType<double>,
+        ) as Series<T>;
+      } else if (type is DataType<num>) {
+        final numList = list
+            .map((element) => element as num?)
+            .toList(growable: false);
+        return TypedSeries<num>.fromList(
+          name,
+          numList,
+          type: type as DataType<num>,
+        ) as Series<T>;
+      } else if (type is DataType<String>) {
+        final strList = list
+            .map((element) => element as String?)
+            .toList(growable: false);
+        return StringSeries.fromList(name, strList) as Series<T>;
+      } else if (type is DataType<bool>) {
+        final boolList = list
+            .map((element) => element as bool?)
+            .toList(growable: false);
+        return BoolSeries.fromList(name, boolList) as Series<T>;
+      } else {
+        final objList = list
+            .map((element) => element as T?)
+            .toList(growable: false);
+        return ObjectSeries<T>.fromList(name, objList, type: type);
+      }
+    }
+    Object? firstNonNull;
+    for (final element in list) {
+      if (element != null) {
+        firstNonNull = element;
+        break;
+      }
+    }
+    if (T == int || list is List<int> || list is List<int?>) {
+      final intList = list
+          .map((element) => element as int?)
+          .toList(growable: false);
+      return TypedSeries<int>.fromList(name, intList) as Series<T>;
+    } else if (T == double || list is List<double> || list is List<double?>) {
+      final dblList = list
+          .map((element) => element as double?)
+          .toList(growable: false);
+      return TypedSeries<double>.fromList(name, dblList) as Series<T>;
+    } else if (list is List<String> ||
+        list is List<String?> ||
+        (firstNonNull is String &&
+            list.every((e) => e == null || e is String))) {
+      final strList = list
+          .map((element) => element as String?)
+          .toList(growable: false);
+      return StringSeries.fromList(name, strList) as Series<T>;
+    } else if (list is List<bool> ||
+        list is List<bool?> ||
+        (firstNonNull is bool && list.every((e) => e == null || e is bool))) {
+      final boolList = list
+          .map((element) => element as bool?)
+          .toList(growable: false);
+      return BoolSeries.fromList(name, boolList) as Series<T>;
+    } else if (firstNonNull is num &&
+        list.every((e) => e == null || e is num)) {
+      if (list.every((e) => e == null || e is int)) {
+        final intList = list
+            .map((element) => element as int?)
+            .toList(growable: false);
+        return TypedSeries<int>.fromList(name, intList) as Series<T>;
+      }
+      if (list.every((e) => e == null || e is double)) {
+        final dblList = list
+            .map((element) => element as double?)
+            .toList(growable: false);
+        return TypedSeries<double>.fromList(name, dblList) as Series<T>;
+      }
+      final numList = list
+          .map((element) => element as num?)
+          .toList(growable: false);
+      return TypedSeries<num>.fromList(
+        name,
+        numList,
+        type: type as DataType<num>?,
+      ) as Series<T>;
+    }
+    final objList = list
+        .map((element) => element as T?)
+        .toList(growable: false);
+    return ObjectSeries<T>.fromList(name, objList, type: type);
+  }
+
+  /// Imports a [Series] from Apache Arrow C Data structures.
+  ///
+  /// Consumes [schema] (`Pointer<ArrowSchema>`) and [array]
+  /// (`Pointer<ArrowArray>`). If [release] is true (default), the producer's
+  /// release callbacks are invoked upon import completion.
+  static Series<Object?> importFrom({
+    required Object schema,
+    required Object array,
+    bool release = true,
+  }) => importSeriesFromArrowC(schema: schema, array: array, release: release);
 
   /// The name of this column.
   String get name;
@@ -177,17 +305,6 @@ abstract class Series<T> {
         outArray: outArray,
       );
 
-  /// Imports a [Series] from Apache Arrow C Data structures.
-  ///
-  /// Consumes [schema] (`Pointer<ArrowSchema>`) and [array]
-  /// (`Pointer<ArrowArray>`). If [release] is true (default), the producer's
-  /// release callbacks are invoked upon import completion.
-  static Series<Object?> importFrom({
-    required Object schema,
-    required Object array,
-    bool release = true,
-  }) => importSeriesFromArrowC(schema: schema, array: array, release: release);
-
   /// Minimum value in the series, ignoring nulls.
   T? get min;
 
@@ -199,122 +316,6 @@ abstract class Series<T> {
 
   /// Mean of all values, ignoring nulls.
   double? get mean;
-
-  /// Factory constructor creating appropriate typed series from an iterable or
-  /// list.
-  factory fromList(
-    String name,
-    Iterable<Object?> iterable, {
-    DataType<T>? type,
-  }) {
-    final list = iterable.toList(growable: false);
-    if (type != null) {
-      final isGenericObject = Object() is T;
-      if (T == int || (type is DataType<int> && T != num && !isGenericObject)) {
-        final intList = list
-            .map((element) => element as int?)
-            .toList(growable: false);
-        return TypedSeries<int>.fromList(
-          name,
-          intList,
-          type: type as DataType<int>,
-        ) as Series<T>;
-      } else if (T == double ||
-          (type is DataType<double> && T != num && !isGenericObject)) {
-        final dblList = list
-            .map((element) => element as double?)
-            .toList(growable: false);
-        return TypedSeries<double>.fromList(
-          name,
-          dblList,
-          type: type as DataType<double>,
-        ) as Series<T>;
-      } else if (type is DataType<num>) {
-        final numList = list
-            .map((element) => element as num?)
-            .toList(growable: false);
-        return TypedSeries<num>.fromList(
-          name,
-          numList,
-          type: type as DataType<num>,
-        ) as Series<T>;
-      } else if (type is DataType<String>) {
-        final strList = list
-            .map((element) => element as String?)
-            .toList(growable: false);
-        return StringSeries.fromList(name, strList) as Series<T>;
-      } else if (type is DataType<bool>) {
-        final boolList = list
-            .map((element) => element as bool?)
-            .toList(growable: false);
-        return BoolSeries.fromList(name, boolList) as Series<T>;
-      } else {
-        final objList = list
-            .map((element) => element as T?)
-            .toList(growable: false);
-        return ObjectSeries<T>.fromList(name, objList, type: type);
-      }
-    }
-    Object? firstNonNull;
-    for (final element in list) {
-      if (element != null) {
-        firstNonNull = element;
-        break;
-      }
-    }
-    if (T == int || list is List<int> || list is List<int?>) {
-      final intList = list
-          .map((element) => element as int?)
-          .toList(growable: false);
-      return TypedSeries<int>.fromList(name, intList) as Series<T>;
-    } else if (T == double || list is List<double> || list is List<double?>) {
-      final dblList = list
-          .map((element) => element as double?)
-          .toList(growable: false);
-      return TypedSeries<double>.fromList(name, dblList) as Series<T>;
-    } else if (list is List<String> ||
-        list is List<String?> ||
-        (firstNonNull is String &&
-            list.every((e) => e == null || e is String))) {
-      final strList = list
-          .map((element) => element as String?)
-          .toList(growable: false);
-      return StringSeries.fromList(name, strList) as Series<T>;
-    } else if (list is List<bool> ||
-        list is List<bool?> ||
-        (firstNonNull is bool && list.every((e) => e == null || e is bool))) {
-      final boolList = list
-          .map((element) => element as bool?)
-          .toList(growable: false);
-      return BoolSeries.fromList(name, boolList) as Series<T>;
-    } else if (firstNonNull is num &&
-        list.every((e) => e == null || e is num)) {
-      if (list.every((e) => e == null || e is int)) {
-        final intList = list
-            .map((element) => element as int?)
-            .toList(growable: false);
-        return TypedSeries<int>.fromList(name, intList) as Series<T>;
-      }
-      if (list.every((e) => e == null || e is double)) {
-        final dblList = list
-            .map((element) => element as double?)
-            .toList(growable: false);
-        return TypedSeries<double>.fromList(name, dblList) as Series<T>;
-      }
-      final numList = list
-          .map((element) => element as num?)
-          .toList(growable: false);
-      return TypedSeries<num>.fromList(
-        name,
-        numList,
-        type: type as DataType<num>?,
-      ) as Series<T>;
-    }
-    final objList = list
-        .map((element) => element as T?)
-        .toList(growable: false);
-    return ObjectSeries<T>.fromList(name, objList, type: type);
-  }
 }
 
 /// [Series] backed by typed contiguous buffers for numerical values.
@@ -335,16 +336,22 @@ class TypedSeries<T extends num> extends Series<T> {
     }
   }
 
+  /// Creates a [TypedSeries] from a nullable [list] of numbers.
   factory fromList(String name, List<T?> list, {DataType<T>? type}) {
+    DataType<T> inferIntType() =>
+        list.any((v) => v is int && (v < -0x80000000 || v > 0x7FFFFFFF))
+        ? DataType.int64 as DataType<T>
+        : DataType.int32 as DataType<T>;
+
     final effectiveType =
         type ??
         (T == double
             ? DataType.float64 as DataType<T>
             : (T == int
-                  ? DataType.int32 as DataType<T>
+                  ? inferIntType()
                   : (list.any((element) => element is double)
                         ? DataType.float64 as DataType<T>
-                        : DataType.int32 as DataType<T>)));
+                        : inferIntType())));
     final len = list.length;
     final data = effectiveType.newList(len);
     ValidityMask? mask;
@@ -570,6 +577,7 @@ class BoolSeries extends Series<bool> {
     }
   }
 
+  /// Creates a [BoolSeries] from a nullable [list] of booleans.
   factory fromList(String name, List<bool?> list) {
     final len = list.length;
     final data = List<bool>.filled(len, false);
@@ -703,6 +711,7 @@ class ObjectSeries<T> extends Series<T> {
     }
   }
 
+  /// Creates an [ObjectSeries] from a nullable [list] of objects.
   factory fromList(String name, List<T?> list, {DataType<T>? type}) {
     final effectiveType =
         type ??

@@ -561,16 +561,18 @@ void main() {
       },
     );
 
-    test('propagates NaN in median and variance', () {
+    test('propagates NaN in min, max, median, and variance', () {
       final df = DataFrame.fromColumns({
         'group': ['nan_grp', 'nan_grp', 'nan_grp'],
         'val': [1.0, double.nan, 3.0],
       });
 
       final res = df.groupBy(['group']).aggregate({
-        'val': [Agg.median, Agg.variance],
+        'val': [Agg.min, Agg.max, Agg.median, Agg.variance],
       });
 
+      check((res['val_min'][0] as double).isNaN).isTrue();
+      check((res['val_max'][0] as double).isNaN).isTrue();
       check((res['val_median'][0] as double).isNaN).isTrue();
       check((res['val_variance'][0] as double).isNaN).isTrue();
     });

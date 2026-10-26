@@ -20,7 +20,7 @@ abstract final class CsvStream {
     bool header = true,
     int chunkSize = 1000,
     List<String>? columnNames,
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) async* {
     final rowStream = stream.transform(
       CsvStreamTransformer(separator: separator),
@@ -62,7 +62,7 @@ abstract final class CsvStream {
     String separator = ',',
     bool header = true,
     List<String>? columnNames,
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) async {
     final rowStream = stream.transform(
       CsvStreamTransformer(separator: separator),
@@ -93,7 +93,7 @@ abstract final class CsvStream {
     bool header = true,
     int chunkSize = 1000,
     List<String>? columnNames,
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) => readChunks(
     stream.cast<List<int>>().transform(utf8.decoder),
     separator: separator,
@@ -109,7 +109,7 @@ abstract final class CsvStream {
     String separator = ',',
     bool header = true,
     List<String>? columnNames,
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) => readStream(
     stream.cast<List<int>>().transform(utf8.decoder),
     separator: separator,
@@ -121,7 +121,7 @@ abstract final class CsvStream {
   static DataFrame _buildDataFrame(
     List<String> colNames,
     List<List<String>> dataRows,
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   ) {
     if (dataRows.isEmpty) {
       final cols = <Series<Object?>>[];
@@ -140,7 +140,7 @@ abstract final class CsvStream {
       final explicitType = columnTypes?[name];
 
       if (explicitType != null) {
-        final vals = <dynamic>[];
+        final vals = <Object?>[];
         for (var r = 0; r < rowCount; r++) {
           final row = dataRows[r];
           final raw = colIdx < row.length ? row[colIdx].trim() : '';
@@ -267,15 +267,11 @@ class _CsvEventSink implements EventSink<String> {
             _currentRow.add('');
           } else if (code == 13 /* \r */ ) {
             _sawCarriageReturn = true;
-            if (_currentRow.isNotEmpty) {
-              _currentRow.add('');
-              _emitRow();
-            }
+            _currentRow.add('');
+            _emitRow();
           } else if (code == 10 /* \n */ ) {
-            if (_currentRow.isNotEmpty) {
-              _currentRow.add('');
-              _emitRow();
-            }
+            _currentRow.add('');
+            _emitRow();
           } else {
             _currentField.writeCharCode(code);
             _state = _stateUnquoted;

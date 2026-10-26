@@ -251,5 +251,21 @@ void main() {
       check(sNan.min!.isNaN).isTrue();
       check(sNan.max!.isNaN).isTrue();
     });
+
+    test(
+      'TypedSeries.fromList auto-promotes 64-bit integers to DataType.int64',
+      () {
+        final s64 = TypedSeries<int>.fromList('big', [
+          1,
+          5000000000,
+          -5000000000,
+        ]);
+        check(s64.dataType).equals(DataType.int64);
+        check(s64.toList()).deepEquals([1, 5000000000, -5000000000]);
+
+        final s32 = TypedSeries<int>.fromList('small', [1, 100, -100]);
+        check(s32.dataType).equals(DataType.int32);
+      },
+    );
   });
 }

@@ -41,24 +41,6 @@ class DataFrame {
   new(Iterable<Series<Object?>> columns)
     : this._(columns.toList(growable: false));
 
-  new _(List<Series<Object?>> list)
-    : _columns = list,
-      rowCount = list.isEmpty ? 0 : list[0].length,
-      _columnIndex = {} {
-    for (var i = 0; i < list.length; i++) {
-      final col = list[i];
-      if (_columnIndex.containsKey(col.name)) {
-        throw ArgumentError('Duplicate column name "${col.name}" in DataFrame');
-      }
-      _columnIndex[col.name] = i;
-      if (col.length != rowCount) {
-        throw ArgumentError(
-          'All columns must have identical length ($rowCount), but column "${col.name}" has ${col.length}',
-        );
-      }
-    }
-  }
-
   /// Constructs a [DataFrame] from an ordered mapping of column names to row
   /// values.
   factory fromColumns(Map<String, List<Object?>> data) {
@@ -81,7 +63,8 @@ class DataFrame {
     };
     for (final row in rows) {
       for (final name in colNames) {
-        colData[name]!.add(row[name]);
+        final colList = colData[name];
+        if (colList != null) colList.add(row[name]);
       }
     }
     return DataFrame.fromColumns(colData);
@@ -111,6 +94,36 @@ class DataFrame {
   /// Constructs a [DataFrame] by decoding an Apache Arrow IPC stream byte
   /// buffer.
   factory fromArrowIpc(Uint8List bytes) => ArrowIpc.decode(bytes);
+
+  /// Imports a [DataFrame] from Apache Arrow C Data structures.
+  ///
+  /// Consumes [schema] (`Pointer<ArrowSchema>`) and [array]
+  /// (`Pointer<ArrowArray>`). If [release] is true (default), the producer's
+  /// release callbacks are invoked upon import completion.
+  static DataFrame importFrom({
+    required Object schema,
+    required Object array,
+    bool release = true,
+  }) =>
+      importDataFrameFromArrowC(schema: schema, array: array, release: release);
+
+  new _(List<Series<Object?>> list)
+    : _columns = list,
+      rowCount = list.isEmpty ? 0 : list[0].length,
+      _columnIndex = {} {
+    for (var i = 0; i < list.length; i++) {
+      final col = list[i];
+      if (_columnIndex.containsKey(col.name)) {
+        throw ArgumentError('Duplicate column name "${col.name}" in DataFrame');
+      }
+      _columnIndex[col.name] = i;
+      if (col.length != rowCount) {
+        throw ArgumentError(
+          'All columns must have identical length ($rowCount), but column "${col.name}" has ${col.length}',
+        );
+      }
+    }
+  }
 
   /// Number of rows.
   final int rowCount;
@@ -280,17 +293,19 @@ class DataFrame {
 
     for (final col in numericCols) {
       final nonNulls = <double>[];
+      var hasNaN = false;
       for (var i = 0; i < rowCount; i++) {
         final val = col[i];
         if (val != null) {
-          nonNulls.add((val as num).toDouble());
+          final d = (val as num).toDouble();
+          if (d.isNaN) hasNaN = true;
+          nonNulls.add(d);
         }
       }
-      nonNulls.sort();
       final n = nonNulls.length;
-      if (n == 0) {
+      if (n == 0 || hasNaN) {
         stats[col.name] = [
-          0.0,
+          n.toDouble(),
           double.nan,
           double.nan,
           double.nan,
@@ -300,6 +315,7 @@ class DataFrame {
           double.nan,
         ];
       } else {
+        nonNulls.sort();
         var sum = 0.0;
         for (var i = 0; i < n; i++) {
           sum += nonNulls[i];
@@ -572,18 +588,6 @@ class DataFrame {
         outSchema: outSchema,
         outArray: outArray,
       );
-
-  /// Imports a [DataFrame] from Apache Arrow C Data structures.
-  ///
-  /// Consumes [schema] (`Pointer<ArrowSchema>`) and [array]
-  /// (`Pointer<ArrowArray>`). If [release] is true (default), the producer's
-  /// release callbacks are invoked upon import completion.
-  static DataFrame importFrom({
-    required Object schema,
-    required Object array,
-    bool release = true,
-  }) =>
-      importDataFrameFromArrowC(schema: schema, array: array, release: release);
 
   @override
   bool operator ==(Object other) {
