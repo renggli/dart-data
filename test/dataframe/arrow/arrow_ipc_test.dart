@@ -558,5 +558,85 @@ void main() {
       byteData.setInt32(bodyLenPos, -5, Endian.little);
       check(() => ArrowIpc.decode(bytes)).throws<FormatException>();
     });
+
+    test('multi-batch encodeBatches/decode across all Series types', () {
+      DataFrame makeBatch(int offset, {required bool withNulls}) => DataFrame([
+        Series.fromList('f32', <double?>[
+          offset + 1.5,
+          if (withNulls) null else offset + 2.5,
+        ], type: DataType.float32),
+        Series.fromList('i64', <int?>[
+          offset + 100,
+          if (withNulls) null else offset + 200,
+        ], type: DataType.int64),
+        Series.fromList('i32', <int?>[
+          offset + 10,
+          if (withNulls) null else offset + 20,
+        ], type: DataType.int32),
+        Series.fromList('i16', <int?>[
+          offset + 1,
+          if (withNulls) null else offset + 2,
+        ], type: DataType.int16),
+        Series.fromList('i8', <int?>[
+          offset + 1,
+          if (withNulls) null else offset + 2,
+        ], type: DataType.int8),
+        Series.fromList('u64', <int?>[
+          offset + 100,
+          if (withNulls) null else offset + 200,
+        ], type: DataType.uint64),
+        Series.fromList('u32', <int?>[
+          offset + 10,
+          if (withNulls) null else offset + 20,
+        ], type: DataType.uint32),
+        Series.fromList('u16', <int?>[
+          offset + 1,
+          if (withNulls) null else offset + 2,
+        ], type: DataType.uint16),
+        Series.fromList('u8', <int?>[
+          offset + 1,
+          if (withNulls) null else offset + 2,
+        ], type: DataType.uint8),
+        Series.fromList('bool', <bool?>[
+          true,
+          if (withNulls) null else false,
+        ], type: DataType.boolean),
+        ArrowStringSeries.fromList('astr_no_null', [
+          's${offset}_a',
+          's${offset}_b',
+        ]),
+        ArrowStringSeries.fromList('astr_null', [
+          's${offset}_a',
+          if (withNulls) null else 's${offset}_b',
+        ]),
+        ObjectSeries<String>.fromList('ostr', [
+          'o${offset}_a',
+          if (withNulls) null else 'o${offset}_b',
+        ]),
+      ]);
+
+      final b1 = makeBatch(0, withNulls: false);
+      final b2 = makeBatch(10, withNulls: true);
+      final bytes = ArrowIpc.encodeBatches([b1, b2]);
+      final decoded = ArrowIpc.decode(bytes);
+
+      check(decoded.rowCount).equals(4);
+      check(decoded['f32'].toList()).deepEquals([1.5, 2.5, 11.5, null]);
+      check(decoded['i64'].toList()).deepEquals([100, 200, 110, null]);
+      check(decoded['i32'].toList()).deepEquals([10, 20, 20, null]);
+      check(decoded['i16'].toList()).deepEquals([1, 2, 11, null]);
+      check(decoded['i8'].toList()).deepEquals([1, 2, 11, null]);
+      check(decoded['u64'].toList()).deepEquals([100, 200, 110, null]);
+      check(decoded['u32'].toList()).deepEquals([10, 20, 20, null]);
+      check(decoded['u16'].toList()).deepEquals([1, 2, 11, null]);
+      check(decoded['u8'].toList()).deepEquals([1, 2, 11, null]);
+      check(decoded['bool'].toList()).deepEquals([true, false, true, null]);
+      check(decoded['astr_no_null'].toList())
+          .deepEquals(['s0_a', 's0_b', 's10_a', 's10_b']);
+      check(decoded['astr_null'].toList())
+          .deepEquals(['s0_a', 's0_b', 's10_a', null]);
+      check(decoded['ostr'].toList())
+          .deepEquals(['o0_a', 'o0_b', 'o10_a', null]);
+    });
   });
 }

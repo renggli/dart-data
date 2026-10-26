@@ -267,5 +267,44 @@ void main() {
         check(s32.dataType).equals(DataType.int32);
       },
     );
+
+    test('Series equality, hashCode, mixed num, and mask/filter errors', () {
+      final mixedNum = Series<num>.fromList('mixed', [1, 2.5, 3]);
+      check(mixedNum.dataType).equals(DataType.float64);
+      check(mixedNum.toList()).deepEquals([1.0, 2.5, 3.0]);
+
+      final s1 = Series<int>.fromList('a', [1, null, 3]);
+      final s2 = Series<int>.fromList('a', [1, null, 3]);
+      final sDiffName = Series<int>.fromList('b', [1, null, 3]);
+      final sDiffVal = Series<int>.fromList('a', [1, 2, 3]);
+      final sDiffLen = Series<int>.fromList('a', [1, null]);
+
+      check(s1 == s2).isTrue();
+      check(s1.hashCode).equals(s2.hashCode);
+      check(s1 == sDiffName).isFalse();
+      check(s1 == sDiffVal).isFalse();
+      check(s1 == sDiffLen).isFalse();
+
+      check(() => BoolSeries(name: 'b', data: [true], mask: ValidityMask(2)))
+          .throws<ArgumentError>();
+      check(
+        () => ObjectSeries<String>(
+          name: 'o',
+          data: ['a'],
+          dataType: DataType.string,
+          mask: ValidityMask(2),
+        ),
+      ).throws<ArgumentError>();
+
+      final bSeries = BoolSeries.fromList('b', [true, null, false]);
+      check(() => bSeries.filter([true])).throws<ArgumentError>();
+      check(bSeries.slice(0, 2).toList()).deepEquals(<bool?>[true, null]);
+      check(bSeries.rename('b2').name).equals('b2');
+      check(bSeries.sort(nullsLast: false).toList())
+          .deepEquals(<bool?>[null, false, true]);
+
+      final oSeries = ObjectSeries<String>.fromList('o', ['b', null, 'a']);
+      check(() => oSeries.filter([true])).throws<ArgumentError>();
+    });
   });
 }

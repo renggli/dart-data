@@ -192,9 +192,64 @@ void main() {
         () =>
             DataFrame.fromJson('{"columns": ["a"]}', orient: JsonOrient.split),
       ).throws<FormatException>();
+      check(
+        () => DataFrame.fromJson(
+          '{"columns": "not_a_list", "data": []}',
+          orient: JsonOrient.split,
+        ),
+      ).throws<FormatException>();
+      check(
+        DataFrame.fromJson(
+          '{"columns": ["a", "b"], "data": [[1]]}',
+          orient: JsonOrient.split,
+        )['b'].toList(),
+      ).deepEquals([null]);
+      check(
+        () => DataFrame.fromJson(
+          '{"columns": ["a"], "data": "not_a_list"}',
+          orient: JsonOrient.split,
+        ),
+      ).throws<FormatException>();
+      check(
+        () => DataFrame.fromJson(
+          '{"columns": ["a"], "data": ["not_a_row_list"]}',
+          orient: JsonOrient.split,
+        ),
+      ).throws<FormatException>();
       check(() => DataFrame.fromJson('[123, 456]', orient: JsonOrient.records))
           .throws<FormatException>();
+      check(() => DataFrame.fromJson('{}', orient: JsonOrient.records))
+          .throws<FormatException>();
+      check(() => DataFrame.fromJson('[]', orient: JsonOrient.columns))
+          .throws<FormatException>();
+      check(() => DataFrame.fromJson('{"a": 123}', orient: JsonOrient.columns))
+          .throws<FormatException>();
+      check(
+        DataFrame.fromJson(
+          '{"a": {"r1": 1, "r2": 2}, "b": {"r1": 10}}',
+          orient: JsonOrient.columns,
+        )['b'].toList(),
+      ).deepEquals([10, null]);
+      check(() => DataFrame.fromJson('{}', orient: JsonOrient.array))
+          .throws<FormatException>();
+      check(() => DataFrame.fromJson('[123]', orient: JsonOrient.array))
+          .throws<FormatException>();
       check(() => DataFrame.fromJson('"string"')).throws<FormatException>();
+
+      // Empty inputs without columnTypes
+      check(DataFrame.fromJson('[]', orient: JsonOrient.records).rowCount)
+          .equals(0);
+      check(DataFrame.fromJson('[]', orient: JsonOrient.array).rowCount)
+          .equals(0);
+      check(DataFrame.fromJson('{}', orient: JsonOrient.columns).rowCount)
+          .equals(0);
+      check(
+        DataFrame.fromJson(
+          '{"columns": ["a"], "data": []}',
+          orient: JsonOrient.split,
+          columnTypes: {'a': DataType.int32},
+        ).columnNames,
+      ).deepEquals(['a']);
     });
   });
 }

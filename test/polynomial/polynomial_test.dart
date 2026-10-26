@@ -509,6 +509,26 @@ void main() {
       check(cInt == cFloat).isFalse();
       check(pInt == cInt).isTrue();
       check(pInt.hashCode).equals(cInt.hashCode);
+
+      // CompressedPolynomial monic normalize and roots with complex coefficients
+      final cLead = Polynomial<double>.compressed([0, 2], [4.0, 2.0]);
+      final cOther = Polynomial<double>.compressed([0, 1], [2.0, 1.0]);
+      check(cLead.gcd(cOther).degree).equals(0);
+
+      final quadComplex = Polynomial<Complex>.fromCoefficients([
+        const Complex(1.0, 2.0),
+        const Complex(3.0, -1.0),
+        const Complex(1.0, 1.0),
+      ]);
+      check(quadComplex.roots.length).equals(2);
+
+      final cubicComplex = Polynomial<Complex>.fromCoefficients([
+        Complex.one,
+        Complex.zero,
+        const Complex(0.0, 1.0),
+        Complex.one,
+      ]);
+      check(() => cubicComplex.roots).throws<UnsupportedError>();
     });
   });
 }

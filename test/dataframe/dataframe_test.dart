@@ -850,6 +850,35 @@ line 2",10
       final dfCsv = DataFrame.fromCsv('id\n5000000000\n-5000000000');
       check(dfCsv['id'].dataType).equals(DataType.int64);
       check(dfCsv['id'].toList()).deepEquals([5000000000, -5000000000]);
+
+      // DataFrame equality, hashCode, toRecords, and toTensor edge cases
+      final dfA = DataFrame.fromColumns({
+        'x': [1, 2],
+        'y': ['a', 'b'],
+      });
+      final dfB = DataFrame.fromColumns({
+        'x': [1, 2],
+        'y': ['a', 'b'],
+      });
+      final dfC = DataFrame.fromColumns({
+        'x': [1, 3],
+        'y': ['a', 'b'],
+      });
+      check(dfA == dfB).isTrue();
+      check(dfA.hashCode).equals(dfB.hashCode);
+      check(dfA == dfC).isFalse();
+      check(dfA.toRecords()).deepEquals([
+        {'x': 1, 'y': 'a'},
+        {'x': 2, 'y': 'b'},
+      ]);
+      check(dfA.toTensor).throws<UnsupportedError>();
+
+      final dfObjNum = DataFrame([
+        ObjectSeries<num>.fromList('n', [1.5, null], type: DataType.float64),
+      ]);
+      final tensor = dfObjNum.toTensor();
+      check(tensor.getValue([0, 0])).equals(1.5);
+      check(tensor.getValue([1, 0]).isNaN).isTrue();
     });
   });
 }

@@ -49,6 +49,11 @@ void main() {
       check(hypergeometric2F1(1, -2, 2, -3.0)).isCloseTo(7.0, 1e-12);
       check(hypergeometric2F1(-2, 1.5, 3, 0.95))
           .isCloseTo(1.0 - 0.95 + 0.95 * 0.95 * 5.0 / 16.0, 1e-12);
+      check(hypergeometric2F1(-2, -3, 1, 0.5)).isCloseTo(4.75, 1e-12);
+      check(hypergeometric2F1(-3, 2, -1, 0.5)).isNaN();
+      check(hypergeometric2F1(2, 2, 3, 0.95))
+          .isCloseTo(35.466521277442666, 1e-10);
+      check(hypergeometric2F1(1, 1, 4, 0.95)).isGreaterThan(0.0);
     });
   });
 }

@@ -125,6 +125,32 @@ void main() {
       final res2Same = tTestTwoSample(s1, [3.0, 3.0]);
       check(res2Same.statistic).equals(0.0);
       check(res2Same.pValue).equals(1.0);
+
+      // Zero variance with one-sided alternatives
+      check(
+        tTestOneSample(
+          constSample,
+          mu0: 6.0,
+          alternative: AlternativeHypothesis.less,
+        ).pValue,
+      ).equals(0.0);
+      check(
+        tTestOneSample(
+          constSample,
+          mu0: 4.0,
+          alternative: AlternativeHypothesis.greater,
+        ).pValue,
+      ).equals(0.0);
+      check(
+        tTestTwoSample(s1, s2, alternative: AlternativeHypothesis.less).pValue,
+      ).equals(0.0);
+      check(
+        tTestTwoSample(
+          s2,
+          s1,
+          alternative: AlternativeHypothesis.greater,
+        ).pValue,
+      ).equals(0.0);
     });
   });
 }

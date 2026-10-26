@@ -71,6 +71,9 @@ void main() {
       check(ibetaInv(-0.1, 2.0, 3.0)).isNaN();
       check(ibetaInv(1.1, 2.0, 3.0)).isNaN();
       check(ibetaInv(double.nan, 2.0, 3.0)).isNaN();
+      check(beta(150.0, 2.0)).isCloseTo(math.exp(betaLn(150.0, 2.0)), 1e-12);
+      check(ibetaInv(0.95, 0.3, 0.3))
+          .isCloseTo(1.0 - ibetaInv(0.05, 0.3, 0.3), 1e-8);
     });
   });
 }

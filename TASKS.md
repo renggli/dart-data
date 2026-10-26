@@ -472,7 +472,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
      - Test `Layout` validation errors, `ContractionTensorExtension`, `EinsumTensorExtension`, and `DataType` edge cases (`ComplexDataType`, `DynamicDataType`, `BigIntDataType`, `FloatDataType`).
 - **Verification**: `dart test test/type/ test/tensor/ test/acceleration/ test/linear/`
 
-### [ ] TASK-6.3: Unit Tests for `special`, `polynomial`, `numeric`, `stats`, and `dataframe` Uncovered Branches
+### [x] TASK-6.3: Unit Tests for `special`, `polynomial`, `numeric`, `stats`, and `dataframe` Uncovered Branches
 - **Target Files & Missing Test Cases**:
   1. **`lib/src/dataframe/arrow/arrow_ipc.dart`** (`test/dataframe/arrow/arrow_ipc_test.dart`):
      - Test multi-batch `ArrowIpc.encodeBatches` + `ArrowIpc.decode` round-tripping across **all** series types in `_combineSeries`: `Float32`, `Int64`, `Int32`, `Int16`, `Int8`, `Uint64`, `Uint32`, `Uint16`, `Uint8`, `BoolSeries`, `ArrowStringSeries` (with and without nulls), and `ObjectSeries<String>` (with nulls).
