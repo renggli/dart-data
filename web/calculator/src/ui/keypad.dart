@@ -92,6 +92,10 @@ final class VirtualKeypad {
       } else {
         btn.textContent = key.label;
       }
+      btn.addEventListener(
+        'mousedown',
+        ((web.Event e) => e.preventDefault()).toJS,
+      );
       btn.addEventListener('click', ((web.Event _) => key.onTap()).toJS);
       _grid.append(btn);
     }

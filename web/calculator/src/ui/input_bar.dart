@@ -44,6 +44,7 @@ final class FormulaInputBar {
   late final web.HTMLSpanElement _promptBadge;
   late final web.HTMLSpanElement _statusDot;
   late final web.HTMLButtonElement _matrixBtn;
+  late final web.HTMLButtonElement _keypadBtn;
   late final web.HTMLButtonElement _evalBtn;
   late final web.HTMLButtonElement _approxBtn;
   late final web.HTMLButtonElement _cancelBtn;
@@ -135,15 +136,21 @@ final class FormulaInputBar {
     if (mode == CalcMode.rpn) {
       _promptBadge.textContent = 'RPN ▸';
       textarea.placeholder = 'Enter symbols, numbers, or postfix commands (e.g. x 2 ^ 1 - factor)...';
-      _evalBtn.textContent = 'Enter ↵';
+      _evalBtn.innerHTML = '<span class="calc-btn-text-full">Enter ↵</span><span class="calc-btn-text-short">↵</span>'
+          .toJS;
       _evalBtn.title = 'Push to stack or DUP (Enter)';
+      _approxBtn.innerHTML = '<span class="calc-btn-text-full">≈ Approx</span><span class="calc-btn-text-short">≈</span>'
+          .toJS;
       _approxBtn.title = 'Approximate numerically on stack (Alt+Enter)';
       _approxBtn.classList.remove('hidden');
     } else {
       _promptBadge.textContent = 'in[$nextId] ▸';
       textarea.placeholder = 'Enter expression, equation, or command (e.g. integrate(x * cos(x), x))...';
-      _evalBtn.textContent = 'Eval ↵';
+      _evalBtn.innerHTML = '<span class="calc-btn-text-full">Eval ↵</span><span class="calc-btn-text-short">↵</span>'
+          .toJS;
       _evalBtn.title = 'Evaluate exact (Enter)';
+      _approxBtn.innerHTML = '<span class="calc-btn-text-full">≈ Approx</span><span class="calc-btn-text-short">≈</span>'
+          .toJS;
       _approxBtn.title = 'Approximate numerically (Alt+Enter)';
       _approxBtn.classList.remove('hidden');
     }
@@ -165,6 +172,15 @@ final class FormulaInputBar {
 
   void setMatrixBuilderActive(bool active) {
     _matrixBtn.className = active ? 'calc-icon-btn active' : 'calc-icon-btn';
+  }
+
+  void setKeypadActive(bool active) {
+    _keypadBtn.className = active ? 'calc-icon-btn active' : 'calc-icon-btn';
+    if (active) {
+      textarea.setAttribute('inputmode', 'none');
+    } else {
+      textarea.removeAttribute('inputmode');
+    }
   }
 
   void _buildDom() {
@@ -227,26 +243,25 @@ final class FormulaInputBar {
       ((web.Event _) => onToggleMatrixBuilder()).toJS,
     );
 
-    final keypadBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-icon-btn'
-          ..title = 'Toggle virtual math keypad'
-          ..innerHTML =
-              '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-                      '<rect x="2" y="4" width="20" height="16" rx="2"/>'
-                      '<path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/>'
-                      '</svg>'
-                  .toJS;
-    keypadBtn.setAttribute('aria-label', 'Toggle virtual math keypad');
-    keypadBtn.addEventListener(
+    _keypadBtn = web.document.createElement('button') as web.HTMLButtonElement
+      ..type = 'button'
+      ..className = 'calc-icon-btn'
+      ..title = 'Toggle virtual math keypad'
+      ..innerHTML =
+          '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                  '<rect x="2" y="4" width="20" height="16" rx="2"/>'
+                  '<path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/>'
+                  '</svg>'
+              .toJS;
+    _keypadBtn.setAttribute('aria-label', 'Toggle virtual math keypad');
+    _keypadBtn.addEventListener(
       'click',
       ((web.Event _) => onToggleKeypad()).toJS,
     );
 
     toolsGroup
       ..append(_matrixBtn)
-      ..append(keypadBtn);
+      ..append(_keypadBtn);
 
     final actionGroup = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-input-actions';
@@ -254,7 +269,8 @@ final class FormulaInputBar {
     _approxBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-btn-secondary calc-eval-approx-btn'
-      ..textContent = '≈ Approx'
+      ..innerHTML = '<span class="calc-btn-text-full">≈ Approx</span><span class="calc-btn-text-short">≈</span>'
+          .toJS
       ..title = 'Approximate numerically (Alt+Enter)';
     _approxBtn.addEventListener(
       'click',
@@ -264,7 +280,8 @@ final class FormulaInputBar {
     _evalBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-btn-primary calc-eval-btn'
-      ..textContent = 'Eval ↵'
+      ..innerHTML = '<span class="calc-btn-text-full">Eval ↵</span><span class="calc-btn-text-short">↵</span>'
+          .toJS
       ..title = 'Evaluate exact (Enter)';
     _evalBtn.addEventListener(
       'click',

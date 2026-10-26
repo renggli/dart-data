@@ -111,7 +111,9 @@ final class CalculatorApp {
     );
 
     _refreshAllUi();
-    _inputBar.focus();
+    if (web.window.matchMedia('(pointer: fine)').matches) {
+      _inputBar.focus();
+    }
   }
 
   void _bindHeaderControls() {
@@ -246,11 +248,15 @@ final class CalculatorApp {
       onToggleMatrixBuilder: () => _matrixPanel.toggle(),
       onToggleKeypad: () {
         final cur = _client.environment.settings;
-        unawaited(
-          _client.updateSettings(
-            cur.copyWith(keypadVisible: !cur.keypadVisible),
-          ),
-        );
+        final next = !cur.keypadVisible;
+        if (next) {
+          _inputBar.setKeypadActive(true);
+          _inputBar.textarea.blur();
+          _inputBar.textarea.focus();
+        } else {
+          _inputBar.setKeypadActive(false);
+        }
+        unawaited(_client.updateSettings(cur.copyWith(keypadVisible: next)));
       },
       getMode: () => _mode,
       getEnvironment: () => _client.environment,
@@ -334,7 +340,9 @@ final class CalculatorApp {
     _mode = newMode;
     CalcPersistence.saveMode(_mode);
     _refreshAllUi();
-    _inputBar.focus();
+    if (web.window.matchMedia('(pointer: fine)').matches) {
+      _inputBar.focus();
+    }
   }
 
   void _onStateUpdated() {
@@ -378,6 +386,7 @@ final class CalculatorApp {
     );
     _inputBar.updatePrompt(mode: _mode, nextId: _client.session.nextId);
     _keypad.setVisible(settings.keypadVisible, mode: _mode);
+    _inputBar.setKeypadActive(settings.keypadVisible);
   }
 
   void _renderVarsDrawer() {
