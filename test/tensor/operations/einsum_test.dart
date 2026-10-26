@@ -209,6 +209,7 @@ void main() {
 
       // Duplicate output index
       check(() => einsum('ij,jk->ii', [a, b])).throws<ArgumentError>();
+      check(() => einsum('ij->jk->ik', [a])).throws<ArgumentError>();
     });
   });
 }

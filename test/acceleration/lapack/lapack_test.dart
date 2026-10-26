@@ -199,6 +199,28 @@ void main() {
           .throws<RangeError>();
       check(() => Lapack.dsyev(n: 0, a: a, lda: 1, w: w, wOffset: -1))
           .throws<RangeError>();
+      check(() => Lapack.dpotrf(n: -1, a: a, lda: 2)).throws<ArgumentError>();
+      check(() => Lapack.dgesv(n: -1, nrhs: 1, a: a, lda: 2, b: w, ldb: 1))
+          .throws<ArgumentError>();
+      check(() => Lapack.dgesv(n: 2, nrhs: -1, a: a, lda: 2, b: w, ldb: 1))
+          .throws<ArgumentError>();
+      check(
+        () => Lapack.dgels(m: -1, n: 2, nrhs: 1, a: a, lda: 2, b: w, ldb: 1),
+      ).throws<ArgumentError>();
+      check(
+        () => Lapack.dgels(m: 2, n: -1, nrhs: 1, a: a, lda: 2, b: w, ldb: 1),
+      ).throws<ArgumentError>();
+      check(
+        () => Lapack.dgels(m: 2, n: 2, nrhs: -1, a: a, lda: 2, b: w, ldb: 1),
+      ).throws<ArgumentError>();
+      check(() => Lapack.dsyev(n: -1, a: a, lda: 2, w: w))
+          .throws<ArgumentError>();
+      final af = Float32List(4);
+      final wf = Float32List(2);
+      check(() => Lapack.ssyev(jobz: 'X', n: 2, a: af, lda: 2, w: wf))
+          .throws<ArgumentError>();
+      check(() => Lapack.ssyev(n: -1, a: af, lda: 2, w: wf))
+          .throws<ArgumentError>();
     });
   });
 }

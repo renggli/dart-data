@@ -1182,6 +1182,60 @@ void main() {
       check(f64m.applyTranspose(f64v).length).equals(2);
       check(f64m.applyConjugateTranspose(f64v).length).equals(2);
       check(f64m.syrk().rowCount).equals(2);
+
+      // Additional coverage: rotated(3), unary -, fromColumns mismatch, Float32 solve/syrk/apply, rank-deficient underdetermined
+      check(f64m.rotated(3)[0][0]).equals(1.0);
+      final genericMat = Matrix<int>.fromRows([
+        [1, -2],
+        [3, -4],
+      ]);
+      final negMat = -genericMat;
+      check(negMat[0][0]).equals(-1);
+      check(genericMat.toString()).contains('Matrix(2 x 2');
+      check(genericMat.hashCode).equals(genericMat.tensor.hashCode);
+      check(
+        () => Matrix<int>.fromColumns([
+          [1, 2],
+          [3],
+        ]),
+      ).throws<ArgumentError>();
+
+      final f32Mat = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [1.0, 3.0],
+        [0.0, 1.0],
+      ], type: DataType.float32);
+      final f32B = Matrix<double>.fromRows([
+        [5.0],
+        [7.0],
+        [2.0],
+      ], type: DataType.float32);
+      final f32Sol = f32Mat.solve(f32B);
+      check(f32Sol.rowCount).equals(2);
+      check(f32Mat.syrk().rowCount).equals(3);
+      check(f32Mat.transposed.syrk(transpose: true).rowCount).equals(3);
+      final f32Vec = Vector<double>.fromList([
+        1.0,
+        2.0,
+      ], type: DataType.float32);
+      check(f32Mat.apply(f32Vec).length).equals(3);
+      check(f32Mat.transposed.applyTranspose(f32Vec).length).equals(3);
+
+      final f32Under = Matrix<double>.fromRows([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0],
+      ], type: DataType.float32);
+      final f32UnderB = Matrix<double>.fromRows([
+        [1.0],
+        [2.0],
+      ], type: DataType.float32);
+      check(f32Under.solve(f32UnderB).rowCount).equals(3);
+
+      final rankDefUnder = Matrix<double>.fromRows([
+        [0.0, 0.0, 0.0],
+        [1.0, 2.0, 3.0],
+      ], type: DataType.float32);
+      check(() => rankDefUnder.solve(f32UnderB)).throws<StateError>();
     });
   });
 }

@@ -234,6 +234,27 @@ void main() {
       final eigComp = mComp.eigenvalue;
       check(eigComp.eigenvalues.length).equals(3);
       check(eigComp.v.rowCount).equals(3);
+
+      // Non-Float64 matrix copy path and non-square error
+      final f32Sym = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [1.0, 2.0],
+      ], type: DataType.float32);
+      check(f32Sym.eigenvalue.realEigenvalues.length).equals(2);
+      check(() => Matrix<double>.filled(2, 3, 1.0).eigenvalue)
+          .throws<ArgumentError>();
+
+      // Permutation matrix (x^5 - 1 = 0) triggers exceptional shift at iter == 10
+      final perm5 = Matrix<double>.fromRows([
+        [0.0, 0.0, 0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0, 0.0],
+      ], type: DataType.float64);
+      final eigPerm = perm5.eigenvalue;
+      check(eigPerm.eigenvalues.length).equals(5);
+      check(eigPerm.v.rowCount).equals(5);
     });
   });
 }

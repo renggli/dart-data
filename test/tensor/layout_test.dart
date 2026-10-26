@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
+import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -215,6 +216,27 @@ void main() {
 
         check(() => Layout(shape: [2, 2]).transpose([2, 0]))
             .throws<RangeError>();
+        final l1 = Layout(shape: [2, 3]);
+        final l2 = Layout(shape: [2, 3]);
+        final l3 = Layout(shape: [3, 2]);
+        check(l1 == l2).isTrue();
+        check(l1.hashCode).equals(l2.hashCode);
+        check(l1 == l3).isFalse();
+        check(l1 == Object()).isFalse();
+
+        final t1 = Tensor<int>.fromIterable(List.generate(12, (i) => i));
+        check(t1.hashCode).equals(
+          Tensor<int>.fromIterable(List.generate(12, (i) => i)).hashCode,
+        );
+        check(t1.toString()).contains('...');
+
+        final f32NonContig = Tensor<double>.fromIterable(
+          [1.0, 2.0, 3.0, 4.0],
+          shape: [2, 2],
+          type: DataType.float32,
+        ).transpose();
+        final f64Copied = Float64Tensor.fromDoubleTensor(f32NonContig);
+        check(f64Copied.getValue([0, 1])).equals(3.0);
       });
     });
   });

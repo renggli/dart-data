@@ -287,6 +287,24 @@ void main() {
         copied.set(0, 0, 42.0);
         check(copied.get(0, 0)).equals(42.0);
         check(f32Mat.get(0, 0)).equals(1.0);
+        check(Float64Matrix.fromDoubleMatrix(copied).get(0, 0)).equals(42.0);
+
+        // Non-contiguous and Float32 operand paths in Float64Matrix
+        final nonContig = copied.transposed;
+        check(nonContig.scale(2.0).get(0, 0)).equals(84.0);
+        check((-nonContig).get(0, 0)).equals(-42.0);
+        check((nonContig + f32Mat).get(0, 0)).equals(43.0);
+        check((nonContig - f32Mat).get(0, 0)).equals(41.0);
+        check((nonContig * f32Mat).rowCount).equals(2);
+        check((copied + f32Mat).get(0, 0)).equals(43.0);
+        check((copied - f32Mat).get(0, 0)).equals(41.0);
+        check((copied * f32Mat).rowCount).equals(2);
+        final f32Vec = Vector<double>.fromList([
+          1.0,
+          2.0,
+        ], type: DataType.float32);
+        check(copied.apply(f32Vec).length).equals(2);
+        check(nonContig.apply(f32Vec).length).equals(2);
       },
     );
   });

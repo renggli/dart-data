@@ -21,6 +21,14 @@ void main() {
               Fft.isAvailable ||
               Vforce.isAvailable,
         );
+
+        AccelerationManager.mode = AccelerationMode.accelerated;
+        check(AccelerationManager.isAccelerated).equals(
+          Blas.isAvailable ||
+              Lapack.isAvailable ||
+              Fft.isAvailable ||
+              Vforce.isAvailable,
+        );
       } finally {
         AccelerationManager.mode = prev;
       }

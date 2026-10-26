@@ -451,7 +451,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
     - `lib/src/dataframe/arrow/arrow_c_data_stub.dart`
 - **Verification**: Run coverage collection and verify no FFI/stub files pollute the LCOV report.
 
-### [ ] TASK-6.2: Unit Tests for `type`, `tensor`, `acceleration`, and `linear` Uncovered Branches
+### [x] TASK-6.2: Unit Tests for `type`, `tensor`, `acceleration`, and `linear` Uncovered Branches
 - **Target Files & Missing Test Cases**:
   1. **`lib/src/acceleration/blas/blas_dart.dart`** (`test/acceleration/blas/blas_test.dart`):
      - Test `Blas.sgemm` with blocked matrix dimensions ($M, N, K = 72 \ge 64$) for all 4 transpose combinations (`NoTrans`/`NoTrans`, `Trans`/`NoTrans`, `NoTrans`/`Trans`, `Trans`/`Trans`) and `beta == 0.0` vs `beta != 0.0`.

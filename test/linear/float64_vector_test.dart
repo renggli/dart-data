@@ -196,6 +196,18 @@ void main() {
         copied[0] = 42.0;
         check(copied[0]).equals(42.0);
         check(f32Vec[0]).equals(1.0);
+
+        // Non-contiguous (negative stride) views in Float64Vector
+        final flipped = Float64Vector(Vector<double>(copied.tensor.flip()));
+        check(flipped.dot(copied)).isFinite();
+        check(flipped.norm(2)).isFinite();
+        check(flipped.norm(1)).isFinite();
+        check((flipped + copied).length).equals(3);
+        check((flipped - copied).length).equals(3);
+        check((flipped * copied).length).equals(3);
+        check((flipped / copied).length).equals(3);
+        check((-flipped).length).equals(3);
+        check(flipped.scale(2.0).length).equals(3);
       },
     );
   });

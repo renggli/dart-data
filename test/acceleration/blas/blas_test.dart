@@ -889,5 +889,314 @@ void main() {
       ).isTrue();
       check(y).deepEquals([1.0, 2.0]);
     });
+
+    accelerationTest('blocked sgemm and dgemm, dtrmv/strmv, dsyr2/ssyr2, dsyrk/ssyrk, dsymm/ssymm, and dtrmm/strmm', () {
+      const dim = 72;
+      final a32 = Float32List.fromList(
+        List.generate(dim * dim, (i) => ((i % 7) + 1).toDouble()),
+      );
+      final b32 = Float32List.fromList(
+        List.generate(dim * dim, (i) => ((i % 5) + 1).toDouble()),
+      );
+      for (final transA in [cblasNoTrans, cblasTrans]) {
+        for (final transB in [cblasNoTrans, cblasTrans]) {
+          final c32 = Float32List.fromList(List.filled(dim * dim, 1.0));
+          check(
+            Blas.sgemm(
+              transA: transA,
+              transB: transB,
+              m: dim,
+              n: dim,
+              k: dim,
+              alpha: 1.0,
+              a: a32,
+              lda: dim,
+              b: b32,
+              ldb: dim,
+              beta: transA == cblasNoTrans ? 0.0 : 2.0,
+              c: c32,
+              ldc: dim,
+            ),
+          ).isTrue();
+          check(c32[0].isFinite).isTrue();
+        }
+      }
+
+      final a64 = Float64List.fromList(a32);
+      final b64 = Float64List.fromList(b32);
+      final c64 = Float64List.fromList(List.filled(dim * dim, 1.0));
+      check(
+        Blas.dgemm(
+          transA: cblasNoTrans,
+          transB: cblasTrans,
+          m: dim,
+          n: dim,
+          k: dim,
+          alpha: 1.0,
+          a: a64,
+          lda: dim,
+          b: b64,
+          ldb: dim,
+          beta: 2.0,
+          c: c64,
+          ldc: dim,
+        ),
+      ).isTrue();
+
+      final y32 = Float32List.fromList([2.0, 3.0]);
+      check(
+        Blas.sgemv(
+          transA: cblasTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: Float32List.fromList([1.0, 2.0, 3.0, 4.0]),
+          lda: 2,
+          x: Float32List.fromList([1.0, 1.0]),
+          beta: 0.0,
+          y: y32,
+        ),
+      ).isTrue();
+      check(
+        Blas.sgemv(
+          m: 2,
+          n: 2,
+          alpha: 0.0,
+          a: Float32List(4),
+          lda: 2,
+          x: Float32List(2),
+          beta: 0.0,
+          y: y32,
+        ),
+      ).isTrue();
+      check(
+        Blas.sgemv(
+          m: 2,
+          n: 2,
+          alpha: 0.0,
+          a: Float32List(4),
+          lda: 2,
+          x: Float32List(2),
+          beta: 2.0,
+          y: y32,
+        ),
+      ).isTrue();
+
+      final mat2f = Float32List.fromList([2.0, 3.0, 4.0, 5.0]);
+      final mat2d = Float64List.fromList([2.0, 3.0, 4.0, 5.0]);
+      for (final uplo in [cblasUpper, cblasLower]) {
+        for (final trans in [cblasNoTrans, cblasTrans]) {
+          for (final diag in [cblasNonUnit, cblasUnit]) {
+            final xd = Float64List.fromList([1.0, 2.0]);
+            check(
+              Blas.dtrmv(
+                uplo: uplo,
+                trans: trans,
+                diag: diag,
+                n: 2,
+                a: mat2d,
+                lda: 2,
+                x: xd,
+              ),
+            ).isTrue();
+            final xf = Float32List.fromList([1.0, 2.0]);
+            check(
+              Blas.strmv(
+                uplo: uplo,
+                trans: trans,
+                diag: diag,
+                n: 2,
+                a: mat2f,
+                lda: 2,
+                x: xf,
+              ),
+            ).isTrue();
+
+            final bd = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+            final bf = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+            for (final side in [cblasLeft, cblasRight]) {
+              check(
+                Blas.dtrmm(
+                  side: side,
+                  uplo: uplo,
+                  transA: trans,
+                  diag: diag,
+                  m: 2,
+                  n: 2,
+                  alpha: 2.0,
+                  a: mat2d,
+                  lda: 2,
+                  b: bd,
+                  ldb: 2,
+                ),
+              ).isTrue();
+              check(
+                Blas.strmm(
+                  side: side,
+                  uplo: uplo,
+                  transA: trans,
+                  diag: diag,
+                  m: 2,
+                  n: 2,
+                  alpha: 2.0,
+                  a: mat2f,
+                  lda: 2,
+                  b: bf,
+                  ldb: 2,
+                ),
+              ).isTrue();
+            }
+          }
+        }
+      }
+      check(
+        Blas.strmm(
+          m: 2,
+          n: 2,
+          alpha: 0.0,
+          a: mat2f,
+          lda: 2,
+          b: Float32List(4),
+          ldb: 2,
+        ),
+      ).isTrue();
+
+      final syr2f = Float32List(4);
+      check(
+        Blas.ssyr2(
+          uplo: cblasLower,
+          n: 2,
+          alpha: 2.0,
+          x: Float32List.fromList([1.0, 2.0]),
+          y: Float32List.fromList([3.0, 4.0]),
+          a: syr2f,
+          lda: 2,
+        ),
+      ).isTrue();
+
+      for (final uplo in [cblasUpper, cblasLower]) {
+        for (final trans in [cblasNoTrans, cblasTrans]) {
+          final cf = Float32List.fromList([1.0, 0.0, 0.0, 1.0]);
+          check(
+            Blas.ssyrk(
+              uplo: uplo,
+              trans: trans,
+              n: 2,
+              k: 2,
+              alpha: 1.5,
+              a: mat2f,
+              lda: 2,
+              beta: 0.5,
+              c: cf,
+              ldc: 2,
+            ),
+          ).isTrue();
+          final cd = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
+          check(
+            Blas.dsyrk(
+              uplo: uplo,
+              trans: trans,
+              n: 2,
+              k: 2,
+              alpha: 1.5,
+              a: mat2d,
+              lda: 2,
+              beta: 0.5,
+              c: cd,
+              ldc: 2,
+            ),
+          ).isTrue();
+        }
+        check(
+          Blas.ssyrk(
+            uplo: uplo,
+            n: 2,
+            k: 2,
+            alpha: 0.0,
+            a: mat2f,
+            lda: 2,
+            beta: 2.0,
+            c: Float32List(4),
+            ldc: 2,
+          ),
+        ).isTrue();
+        for (final side in [cblasLeft, cblasRight]) {
+          check(
+            Blas.dsymm(
+              side: side,
+              uplo: uplo,
+              m: 2,
+              n: 2,
+              alpha: 1.0,
+              a: mat2d,
+              lda: 2,
+              b: mat2d,
+              ldb: 2,
+              beta: 0.5,
+              c: Float64List(4),
+              ldc: 2,
+            ),
+          ).isTrue();
+          check(
+            Blas.ssymm(
+              side: side,
+              uplo: uplo,
+              m: 2,
+              n: 2,
+              alpha: 1.0,
+              a: mat2f,
+              lda: 2,
+              b: mat2f,
+              ldb: 2,
+              beta: 0.5,
+              c: Float32List(4),
+              ldc: 2,
+            ),
+          ).isTrue();
+        }
+      }
+      check(
+        Blas.dsymm(
+          m: 2,
+          n: 2,
+          alpha: 0.0,
+          a: mat2d,
+          lda: 2,
+          b: mat2d,
+          ldb: 2,
+          beta: 2.0,
+          c: Float64List(4),
+          ldc: 2,
+        ),
+      ).isTrue();
+      check(
+        Blas.ssymm(
+          m: 2,
+          n: 2,
+          alpha: 0.0,
+          a: mat2f,
+          lda: 2,
+          b: mat2f,
+          ldb: 2,
+          beta: 0.0,
+          c: Float32List(4),
+          ldc: 2,
+        ),
+      ).isTrue();
+      check(
+        Blas.ssymm(
+          m: 2,
+          n: 2,
+          alpha: 0.0,
+          a: mat2f,
+          lda: 2,
+          b: mat2f,
+          ldb: 2,
+          beta: 2.0,
+          c: Float32List(4),
+          ldc: 2,
+        ),
+      ).isTrue();
+    });
   });
 }

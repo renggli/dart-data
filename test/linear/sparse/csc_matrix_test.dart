@@ -148,6 +148,26 @@ void main() {
       );
       check(unsortedCsc.get(0, 0)).equals(3.0);
       check(unsortedCsc.get(2, 0)).equals(5.0);
+
+      final fromDense = CscMatrix<double>.fromDense(Matrix<double>.identity(2));
+      check(fromDense.toCsr().nnz).equals(2);
+      final vFlipped = Vector<double>(
+        Vector<double>.fromList([1.0, 2.0]).tensor.flip(),
+      );
+      check(fromDense.applyConjugateTranspose(vFlipped).toList())
+          .deepEquals([2.0, 1.0]);
+      check(() => fromDense.applyConjugateTranspose(vWrong))
+          .throws<ArgumentError>();
+      check(
+        () => CscMatrix<double>(
+          rowCount: -1,
+          colCount: 2,
+          colPointers: const [0, 0, 0],
+          rowIndices: const [],
+          values: const [],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
     });
   });
 }

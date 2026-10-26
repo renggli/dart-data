@@ -179,6 +179,7 @@ void main() {
       // Duplicate axis in contraction list
       check(() => a.tensordot(b, contractAxes: (self: [1, 1], other: [0, 1])))
           .throws<ArgumentError>();
+      check(() => a.tensordot(b, axes: -1)).throws<ArgumentError>();
     });
   });
 }

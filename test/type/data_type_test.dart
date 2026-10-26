@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
@@ -511,6 +513,23 @@ void main() {
       check(DataType.numeric.cast(BigInt.from(42))).equals(42);
       check(DataType.boolean.cast(' TRUE ')).isTrue();
       check(DataType.boolean.cast('False')).isFalse();
+      check(() => DataType.float64.cast('not-a-float')).throws<ArgumentError>();
+      check(DataType.dynamicType.comparator(1, 2)).isLessThan(0);
+      check(
+        DataType.bigInt.equality.isClose(BigInt.from(5), BigInt.from(6), 1.5),
+      ).isTrue();
+      check(() => const ObjectDataType<int>().defaultValue)
+          .throws<StateError>();
+      check(DataType.int16.promoteWith(DataType.uint8)).equals(DataType.int16);
+      check(DataType.int32.promoteWith(DataType.uint16)).equals(DataType.int32);
+      check(DataType.float64.promoteWith(DataType.int32.nullable))
+          .equals(DataType.float64.nullable);
+      check(DataType.int32.copyList([1, 2].map((x) => x))).deepEquals([1, 2]);
+      check(
+        () => Float64ComplexList.fromBuffers(Float64List(2), Float64List(3)),
+      ).throws<ArgumentError>();
+      check(() => Float64ComplexList(2).setRange(0, 1, [Complex.zero], -1))
+          .throws<ArgumentError>();
     });
   });
 }
