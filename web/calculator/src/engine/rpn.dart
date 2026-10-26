@@ -30,7 +30,11 @@ final class RpnInterpreter {
     if (trimmed.isEmpty) {
       final cp = stack.checkpoint();
       try {
-        stack.dup();
+        if (forceNumeric) {
+          _runNamedCommand('approx');
+        } else {
+          stack.dup();
+        }
         return null;
       } catch (e) {
         stack.restoreCheckpoint(cp);
@@ -39,6 +43,7 @@ final class RpnInterpreter {
     }
 
     final cp = stack.checkpoint();
+    final minNewCellId = session.nextId;
     try {
       final grammar = CalcGrammar(
         implicitMultiplication: environment.settings.implicitMultiplication,
@@ -48,7 +53,28 @@ final class RpnInterpreter {
         _executeToken(token);
       }
       if (forceNumeric && !stack.isEmpty) {
-        _runNamedCommand('approx');
+        final targetIds = <int>{
+          for (final item in stack.items)
+            if (item.resultId >= minNewCellId) item.resultId,
+        };
+        if (targetIds.isEmpty) {
+          targetIds.add(stack.level(1).resultId);
+        }
+        for (final id in targetIds) {
+          final cell = session.allCells[id];
+          if (cell != null && !cell.deleted) {
+            final approxVal = _approximateValue(cell.value);
+            session.updateCell(
+              id,
+              input: cell.input,
+              value: approxVal,
+              assignedSymbol: cell.assignedSymbol,
+              referencedResults: cell.referencedResults,
+              referencedSymbols: cell.referencedSymbols,
+            );
+            stack.updateResultValue(id, approxVal);
+          }
+        }
       }
       return null;
     } on CalcParseException catch (e) {
@@ -385,10 +411,34 @@ final class RpnInterpreter {
             _looksLikeVariable(stack.level(2).value)) {
           effectiveArity = 3;
           insertZeroPoint = true;
+        } else if (stack.depth >= 3 &&
+            _looksLikeInteger(stack.level(1).value) &&
+            stack.level(2).value is ExprValue &&
+            (stack.level(2).value as ExprValue).expr.freeVariables.isEmpty &&
+            stack.level(3).value is ExprValue &&
+            (stack.level(3).value as ExprValue).expr.freeVariables.isNotEmpty) {
+          effectiveArity = 3;
         } else if (stack.depth >= 2 &&
             _looksLikeInteger(stack.level(1).value) &&
             stack.level(2).value is ExprValue &&
             (stack.level(2).value as ExprValue).expr.freeVariables.isNotEmpty) {
+          effectiveArity = 2;
+        } else {
+          effectiveArity = 1;
+        }
+      case 'plot':
+        if (stack.depth >= 4 && _looksLikeVariable(stack.level(3).value)) {
+          effectiveArity = 4;
+        } else if (stack.depth >= 3 &&
+            !_looksLikeVariable(stack.level(2).value) &&
+            !_looksLikeVariable(stack.level(1).value) &&
+            stack.level(1).value is ExprValue &&
+            stack.level(2).value is ExprValue &&
+            (stack.level(1).value as ExprValue).expr.freeVariables.isEmpty &&
+            (stack.level(2).value as ExprValue).expr.freeVariables.isEmpty) {
+          effectiveArity = 3;
+        } else if (stack.depth >= 2 &&
+            _looksLikeVariable(stack.level(1).value)) {
           effectiveArity = 2;
         } else {
           effectiveArity = 1;
@@ -486,15 +536,23 @@ final class RpnInterpreter {
       };
     }
     if (settings.approxMode) {
-      cur = switch (cur) {
-        ExprValue(:final expr) => ExprValue(expr.approximate()),
-        VectorValue(:final vector) => VectorValue(vector.approximate()),
-        MatrixValue(:final matrix) => MatrixValue(matrix.approximate()),
-        _ => cur,
-      };
+      cur = _approximateValue(cur);
     }
     return cur;
   }
+
+  CalcValue _approximateValue(CalcValue value) => switch (value) {
+    ExprValue(:final expr) => ExprValue(expr.approximate()),
+    VectorValue(:final vector) => VectorValue(vector.approximate()),
+    MatrixValue(:final matrix) => MatrixValue(matrix.approximate()),
+    SeriesValue(:final polynomialExpr) => ExprValue(
+      polynomialExpr.approximate(),
+    ),
+    ListValue(:final elements) => ListValue([
+      for (final e in elements) _approximateValue(e),
+    ]),
+    _ => value,
+  };
 
   static bool _looksLikeVariable(CalcValue v) =>
       v is ExprValue && v.expr is Variable;

@@ -254,8 +254,14 @@ final class EngineClient {
   }
 
   /// Executes an RPN token line (`2 3 +`).
-  Future<ErrorValue?> evaluateRpnLine(String line) async {
-    final resp = await _request('evalRpnLine', {'line': line});
+  Future<ErrorValue?> evaluateRpnLine(
+    String line, {
+    bool forceNumeric = false,
+  }) async {
+    final resp = await _request('evalRpnLine', {
+      'line': line,
+      'forceNumeric': forceNumeric,
+    });
     if (!resp.ok) {
       final errMsg =
           resp.error?['message'] as String? ?? 'Computation aborted.';

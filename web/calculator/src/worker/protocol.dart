@@ -218,7 +218,8 @@ final class WorkerDispatcher {
       case 'evalRpnLine':
         final before = _exportCoreState();
         final line = payload['line']! as String;
-        final err = rpn.executeLine(line);
+        final forceNumeric = payload['forceNumeric'] as bool? ?? false;
+        final err = rpn.executeLine(line, forceNumeric: forceNumeric);
         if (err == null) {
           _recordUndoSnapshot(before);
         } else {

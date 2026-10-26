@@ -41,7 +41,7 @@ final class HelpDrawerModal {
         <li><strong>Result References:</strong> <code>r[1]</code> (cell #1), <code>r[-1]</code> (previous result)</li>
         <li><strong>Vectors &amp; Matrices:</strong> <code>[1, x, x^2]</code>, <code>[[a, b], [c, d]]</code>, transpose <code>A'</code></li>
         <li><strong>Constants:</strong> <code>pi</code> (<code>π</code>), <code>e</code>, <code>i</code>, <code>infinity</code> (<code>∞</code>)</li>
-        <li><strong>RPN Mode:</strong> Enter numbers or single-quoted algebraics <code>'x^2 - 1'</code>, then press operators or commands (<code>factor</code>, <code>diff</code>, <code>integrate</code>, <code>SWAP</code>, <code>DUP</code>).</li>
+        <li><strong>RPN Mode:</strong> Enter symbols (<code>x</code>, <code>a</code>), numbers, or matrices directly in postfix order (<code>x 2 ^ 1 - factor</code>), or quote full infix expressions (<code>'x^2 - 1'</code>).</li>
       </ul>
       <h4>Keyboard Shortcuts</h4>
       <ul class="calc-help-list">

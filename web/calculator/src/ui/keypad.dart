@@ -10,7 +10,6 @@ import '../model/environment.dart';
 final class VirtualKeypad {
   new({
     required this.onInsert,
-    required this.onEvaluate,
     required this.onBackspace,
     required this.onExecuteRpn,
     this.onToggleMatrixBuilder,
@@ -28,7 +27,6 @@ final class VirtualKeypad {
   }
 
   final void Function(String text, {int cursorBack}) onInsert;
-  final void Function({required bool forceNumeric}) onEvaluate;
   final void Function() onBackspace;
   final void Function(String rpnCommand) onExecuteRpn;
   final void Function()? onToggleMatrixBuilder;
@@ -86,9 +84,14 @@ final class VirtualKeypad {
     for (final key in keys) {
       final btn = web.document.createElement('button') as web.HTMLButtonElement
         ..type = 'button'
-        ..className = 'calc-key-btn ${key.styleClass}'
-        ..textContent = key.label
+        ..className = 'calc-key-btn ${key.styleClass}'.trim()
         ..title = key.tooltip;
+      if (key.svgHtml != null) {
+        btn.innerHTML = key.svgHtml!.toJS;
+        btn.setAttribute('aria-label', key.label);
+      } else {
+        btn.textContent = key.label;
+      }
       btn.addEventListener('click', ((web.Event _) => key.onTap()).toJS);
       _grid.append(btn);
     }
@@ -115,10 +118,12 @@ final class VirtualKeypad {
       int back = 0,
       String tip = '',
       String cls = '',
+      String? svgHtml,
     }) => _KeySpec(
       label: label,
-      tooltip: tip.isEmpty ? scrollText : tip,
+      tooltip: tip.isEmpty ? scrollText.trim() : tip,
       styleClass: cls,
+      svgHtml: svgHtml,
       onTap: () {
         if (mode == CalcMode.rpn &&
             !(isInsideCompoundLiteral?.call() ?? false)) {
@@ -129,58 +134,208 @@ final class VirtualKeypad {
       },
     );
 
+    const svgDiv =
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<line x1="5" y1="12" x2="19" y2="12"/>'
+        '<circle cx="12" cy="6" r="1.5" fill="currentColor" stroke="none"/>'
+        '<circle cx="12" cy="18" r="1.5" fill="currentColor" stroke="none"/>'
+        '</svg>';
+    const svgMul =
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<line x1="17" y1="7" x2="7" y2="17"/>'
+        '<line x1="7" y1="7" x2="17" y2="17"/>'
+        '</svg>';
+    const svgSub =
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<line x1="5" y1="12" x2="19" y2="12"/>'
+        '</svg>';
+    const svgAdd =
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<line x1="12" y1="5" x2="12" y2="19"/>'
+        '<line x1="5" y1="12" x2="19" y2="12"/>'
+        '</svg>';
+    const svgPlusMinus =
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<line x1="12" y1="4" x2="12" y2="14"/>'
+        '<line x1="7" y1="9" x2="17" y2="9"/>'
+        '<line x1="7" y1="19" x2="17" y2="19"/>'
+        '</svg>';
+    const svgBackspace =
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>'
+        '<line x1="18" y1="9" x2="12" y2="15"/>'
+        '<line x1="12" y1="9" x2="18" y2="15"/>'
+        '</svg>';
+
     switch (tab) {
       case 'Numbers':
+        if (mode == CalcMode.rpn) {
+          return [
+            ins('7', '7', cls: 'calc-key-num'),
+            ins('8', '8', cls: 'calc-key-num'),
+            ins('9', '9', cls: 'calc-key-num'),
+            cmdKey(
+              'Divide (/)',
+              ' / ',
+              rpnCommand: '/',
+              cls: 'calc-key-op',
+              svgHtml: svgDiv,
+            ),
+            cmdKey(
+              'x²',
+              '^2',
+              rpnCommand: '²',
+              tip: 'Square (x²)',
+              cls: 'calc-key-op',
+            ),
+            cmdKey(
+              '√x',
+              'sqrt()',
+              rpnCommand: 'sqrt',
+              back: 1,
+              tip: 'Square root (sqrt)',
+              cls: 'calc-key-op',
+            ),
+            ins('4', '4', cls: 'calc-key-num'),
+            ins('5', '5', cls: 'calc-key-num'),
+            ins('6', '6', cls: 'calc-key-num'),
+            cmdKey(
+              'Multiply (*)',
+              ' * ',
+              rpnCommand: '*',
+              cls: 'calc-key-op',
+              svgHtml: svgMul,
+            ),
+            cmdKey(
+              'xʸ',
+              '^',
+              rpnCommand: '^',
+              tip: 'Power (^)',
+              cls: 'calc-key-op',
+            ),
+            cmdKey(
+              'Negate (±)',
+              '-',
+              rpnCommand: 'NEG',
+              tip: 'Negate (NEG)',
+              cls: 'calc-key-op',
+              svgHtml: svgPlusMinus,
+            ),
+            ins('1', '1', cls: 'calc-key-num'),
+            ins('2', '2', cls: 'calc-key-num'),
+            ins('3', '3', cls: 'calc-key-num'),
+            cmdKey(
+              'Subtract (-)',
+              ' - ',
+              rpnCommand: '-',
+              cls: 'calc-key-op',
+              svgHtml: svgSub,
+            ),
+            ins('x', 'x', tip: 'Symbol x', cls: 'calc-key-sym'),
+            ins('y', 'y', tip: 'Symbol y', cls: 'calc-key-sym'),
+            ins('0', '0', cls: 'calc-key-num'),
+            ins('.', '.', cls: 'calc-key-num'),
+            ins('π', 'pi', tip: 'Constant π (pi)', cls: 'calc-key-sym'),
+            cmdKey(
+              'Add (+)',
+              ' + ',
+              rpnCommand: '+',
+              cls: 'calc-key-op',
+              svgHtml: svgAdd,
+            ),
+            ins(
+              '␣ Space',
+              ' ',
+              tip: 'Space separator between RPN tokens',
+              cls: 'calc-key-op',
+            ),
+            _KeySpec(
+              label: 'Backspace',
+              tooltip: 'Backspace',
+              styleClass: 'calc-key-op',
+              svgHtml: svgBackspace,
+              onTap: onBackspace,
+            ),
+          ];
+        }
         return [
-          ins('7', '7'),
-          ins('8', '8'),
-          ins('9', '9'),
-          cmdKey('÷', ' / ', rpnCommand: '/', cls: 'calc-key-op'),
-          ins('(', '()', back: 1, cls: 'calc-key-op'),
-          ins('x', 'x', cls: 'calc-key-sym'),
-          ins('4', '4'),
-          ins('5', '5'),
-          ins('6', '6'),
-          cmdKey('×', ' * ', rpnCommand: '*', cls: 'calc-key-op'),
-          ins(')', ')', cls: 'calc-key-op'),
-          ins('y', 'y', cls: 'calc-key-sym'),
-          ins('1', '1'),
-          ins('2', '2'),
-          ins('3', '3'),
-          cmdKey('−', ' - ', rpnCommand: '-', cls: 'calc-key-op'),
-          cmdKey('^', '^', rpnCommand: '^', cls: 'calc-key-op'),
-          ins('π', 'pi', cls: 'calc-key-sym'),
-          ins('0', '0'),
-          ins('.', '.'),
-          ins('i', 'i', cls: 'calc-key-sym'),
-          cmdKey('+', ' + ', rpnCommand: '+', cls: 'calc-key-op'),
+          ins('7', '7', cls: 'calc-key-num'),
+          ins('8', '8', cls: 'calc-key-num'),
+          ins('9', '9', cls: 'calc-key-num'),
+          cmdKey(
+            'Divide (/)',
+            ' / ',
+            rpnCommand: '/',
+            cls: 'calc-key-op',
+            svgHtml: svgDiv,
+          ),
+          ins('(', '()', back: 1, tip: 'Parentheses ( )', cls: 'calc-key-op'),
+          ins(')', ')', tip: 'Closing parenthesis )', cls: 'calc-key-op'),
+          ins('4', '4', cls: 'calc-key-num'),
+          ins('5', '5', cls: 'calc-key-num'),
+          ins('6', '6', cls: 'calc-key-num'),
+          cmdKey(
+            'Multiply (*)',
+            ' * ',
+            rpnCommand: '*',
+            cls: 'calc-key-op',
+            svgHtml: svgMul,
+          ),
+          cmdKey(
+            'xʸ',
+            '^',
+            rpnCommand: '^',
+            tip: 'Power (^)',
+            cls: 'calc-key-op',
+          ),
+          cmdKey(
+            '√x',
+            'sqrt()',
+            rpnCommand: 'sqrt',
+            back: 1,
+            tip: 'Square root (sqrt)',
+            cls: 'calc-key-op',
+          ),
+          ins('1', '1', cls: 'calc-key-num'),
+          ins('2', '2', cls: 'calc-key-num'),
+          ins('3', '3', cls: 'calc-key-num'),
+          cmdKey(
+            'Subtract (-)',
+            ' - ',
+            rpnCommand: '-',
+            cls: 'calc-key-op',
+            svgHtml: svgSub,
+          ),
+          ins('x', 'x', tip: 'Symbol x', cls: 'calc-key-sym'),
+          ins('y', 'y', tip: 'Symbol y', cls: 'calc-key-sym'),
+          ins('0', '0', cls: 'calc-key-num'),
+          ins('.', '.', cls: 'calc-key-num'),
+          ins('π', 'pi', tip: 'Constant π (pi)', cls: 'calc-key-sym'),
+          cmdKey(
+            'Add (+)',
+            ' + ',
+            rpnCommand: '+',
+            cls: 'calc-key-op',
+            svgHtml: svgAdd,
+          ),
+          ins('i', 'i', tip: 'Imaginary unit i', cls: 'calc-key-sym'),
           _KeySpec(
-            label: '⌫',
+            label: 'Backspace',
             tooltip: 'Backspace',
             styleClass: 'calc-key-op',
+            svgHtml: svgBackspace,
             onTap: onBackspace,
-          ),
-          _KeySpec(
-            label: mode == CalcMode.rpn ? 'ENTER' : '=',
-            tooltip: 'Evaluate (Enter)',
-            styleClass: 'calc-key-primary',
-            onTap: () => onEvaluate(forceNumeric: false),
           ),
         ];
 
       case 'Algebra':
         return [
           cmdKey('x²', '^2', rpnCommand: '²'),
-          cmdKey('√', 'sqrt()', rpnCommand: 'sqrt', back: 1),
-          ins(':=', ' := ', tip: 'Assign variable or function'),
+          cmdKey('√x', 'sqrt()', rpnCommand: 'sqrt', back: 1),
+          cmdKey('n!', '!', rpnCommand: '!', tip: 'Factorial (!)'),
+          ins('e', 'e', tip: "Euler's constant e", cls: 'calc-key-sym'),
           ins('=', ' = ', tip: 'Symbolic equation'),
           ins('r[-1]', 'r[-1]', tip: 'Previous result'),
-          _KeySpec(
-            label: '≈',
-            tooltip: 'Numeric evaluation (Alt+Enter)',
-            styleClass: 'calc-key-primary',
-            onTap: () => onEvaluate(forceNumeric: true),
-          ),
           cmdKey('simplify', 'simplify()', rpnCommand: 'simplify', back: 1),
           cmdKey('expand', 'expand()', rpnCommand: 'expand', back: 1),
           cmdKey('factor', 'factor()', rpnCommand: 'factor', back: 1),
@@ -417,10 +572,12 @@ final class _KeySpec {
     required this.tooltip,
     required this.onTap,
     this.styleClass = '',
+    this.svgHtml,
   });
 
   final String label;
   final String tooltip;
   final String styleClass;
+  final String? svgHtml;
   final void Function() onTap;
 }

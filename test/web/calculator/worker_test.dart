@@ -70,6 +70,28 @@ void main() {
       // Intermediate literals 10 and 20 were coalesced from Session!
       check(dispatcher.session.activeCells.length).equals(3);
 
+      // RPN line with forceNumeric: true approximates in-place without extra cell
+      final rApprox = dispatcher.handle(
+        const WorkerRequest(
+          id: 50,
+          op: 'evalRpnLine',
+          payload: {'line': 'pi', 'forceNumeric': true},
+        ),
+      );
+      check(rApprox.ok).isTrue();
+      check(dispatcher.stack.depth).equals(4);
+      check(dispatcher.stack.level(1).value.isExact).isFalse();
+      check(dispatcher.session.activeCells.length).equals(4);
+      check(dispatcher.session.activeCells.last.input).equals('pi');
+      dispatcher.handle(
+        const WorkerRequest(
+          id: 51,
+          op: 'execRpnCommand',
+          payload: {'command': 'DROP'},
+        ),
+      );
+      dispatcher.session.deleteCell(dispatcher.session.activeCells.last.id);
+
       final r6 = dispatcher.handle(
         const WorkerRequest(
           id: 6,

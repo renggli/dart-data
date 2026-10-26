@@ -71,18 +71,33 @@
     </div>
 
     <div class="calc-header-right">
-      <button id="btn-undo" type="button" class="calc-header-btn" title="Undo (Ctrl/Cmd+Z)" disabled>↶</button>
-      <button id="btn-redo" type="button" class="calc-header-btn" title="Redo (Ctrl+Y / Cmd+Shift+Z)" disabled>↷</button>
+      <button id="btn-undo" type="button" class="calc-header-btn calc-header-icon-btn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo" disabled>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 14 4 9l5-5"/>
+          <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>
+        </svg>
+      </button>
+      <button id="btn-redo" type="button" class="calc-header-btn calc-header-icon-btn" title="Redo (Ctrl+Y / Cmd+Shift+Z)" aria-label="Redo" disabled>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m15 14 5-5-5-5"/>
+          <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/>
+        </svg>
+      </button>
       <div class="calc-popover-anchor">
         <button id="pill-vars" type="button" class="calc-header-btn" title="Assigned Variables &amp; Functions">Vars (0)</button>
         <div id="vars-drawer" class="calc-popover hidden"></div>
       </div>
       <button id="btn-palette" type="button" class="calc-header-btn" title="Command Palette (Ctrl/Cmd+K)">⌘K</button>
       <div class="calc-popover-anchor">
-        <button id="btn-settings" type="button" class="calc-header-btn" title="Calculator Settings &amp; Export">⚙</button>
+        <button id="btn-settings" type="button" class="calc-header-btn calc-header-icon-btn" title="Calculator Settings &amp; Export" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
         <div id="settings-popover" class="calc-popover calc-settings-popover hidden"></div>
       </div>
-      <button id="btn-help" type="button" class="calc-header-btn" title="Syntax &amp; Command Reference (Ctrl/Cmd+/)">?</button>
+      <button id="btn-help" type="button" class="calc-header-btn calc-header-icon-btn" title="Syntax &amp; Command Reference (Ctrl/Cmd+/)" aria-label="Help">?</button>
     </div>
   </header>
 

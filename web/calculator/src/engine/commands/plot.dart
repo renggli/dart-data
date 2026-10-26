@@ -39,6 +39,29 @@ List<Command> buildPlotCommands() => [
       checkCommandArity('plot', args, 1, 4);
       final exprs = _extractPlotExpressions(args[0]);
       final inferredVar = _inferPlotVariable(exprs);
+      if (args.length == 3 &&
+          args[1] is ExprValue &&
+          (args[1] as ExprValue).expr is! Variable) {
+        final a = expectCommandDouble(args[1], 'plot');
+        final b = expectCommandDouble(args[2], 'plot');
+        if (args[0] is VectorValue && exprs.length == 2 && inferredVar == 't') {
+          return buildParametricPlotValue(
+            exprs[0],
+            exprs[1],
+            inferredVar,
+            a,
+            b,
+            angleMode: ctx.settings.angleMode,
+          );
+        }
+        return buildPlotValue(
+          exprs,
+          inferredVar,
+          a,
+          b,
+          angleMode: ctx.settings.angleMode,
+        );
+      }
       final varName = args.length >= 2
           ? expectCommandVarName(args[1], 'plot')
           : inferredVar;

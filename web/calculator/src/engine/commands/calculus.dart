@@ -144,6 +144,21 @@ List<Command> buildCalculusCommands() => [
           ),
         );
       }
+      if (args.length == 3 &&
+          args[1] is ExprValue &&
+          (args[1] as ExprValue).expr is! Variable) {
+        final varName = ctx.inferPrimaryVariable(args[0]);
+        final point = expectCommandExpr(args[1], 'taylor');
+        final degree = expectCommandInt(args[2], 'taylor');
+        return ExprValue(
+          expr.series(
+            varName,
+            point: point,
+            order: degree + 1,
+            includeOrder: false,
+          ),
+        );
+      }
       final varName = args.length >= 2
           ? expectCommandVarName(args[1], 'taylor')
           : ctx.inferPrimaryVariable(args[0]);
@@ -191,6 +206,16 @@ List<Command> buildCalculusCommands() => [
         final order = expectCommandInt(args[1], 'series');
         return SeriesValue(
           expr.toPowerSeries(varName, point: IntegerNumber.zero, order: order),
+        );
+      }
+      if (args.length == 3 &&
+          args[1] is ExprValue &&
+          (args[1] as ExprValue).expr is! Variable) {
+        final varName = ctx.inferPrimaryVariable(args[0]);
+        final point = expectCommandExpr(args[1], 'series');
+        final order = expectCommandInt(args[2], 'series');
+        return SeriesValue(
+          expr.toPowerSeries(varName, point: point, order: order),
         );
       }
       final varName = args.length >= 2

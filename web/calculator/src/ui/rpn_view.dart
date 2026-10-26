@@ -41,9 +41,11 @@ final class RpnStackView {
     final items = stack.items;
 
     if (items.isEmpty) {
+      _registersContainer.classList.add('empty');
       _registersContainer.append(_buildEmptyState());
       return;
     }
+    _registersContainer.classList.remove('empty');
 
     for (var level = items.length; level >= 1; level--) {
       final row = web.document.createElement('div') as web.HTMLDivElement
@@ -253,7 +255,7 @@ final class RpnStackView {
       ..textContent = 'RPN Stack Workbench';
     final subtitle = web.document.createElement('p') as web.HTMLParagraphElement
       ..textContent =
-          "Push numbers or quoted symbolic expressions ('x^2 - 1'), then apply postfix operators or commands to stack levels.";
+          'Push symbols, numbers, or matrices onto the stack and apply postfix operators or commands. Click any starter card below or type in the formula bar.';
     box
       ..append(heading)
       ..append(subtitle);
@@ -263,24 +265,34 @@ final class RpnStackView {
 
     const starters = <({String title, String category, String code})>[
       (
-        title: 'Postfix Arithmetic',
-        category: 'Push & Operate',
-        code: '12 4 + 3 *',
-      ),
-      (
-        title: 'Symbolic Factoring',
+        title: 'Polynomial Factorization',
         category: 'Algebra',
-        code: "'x^3 - x' factor",
+        code: 'x 6 ^ 1 - factor',
       ),
       (
-        title: 'Symbolic Calculus',
+        title: 'Exact Symbolic Roots',
+        category: 'Solver',
+        code: 'x 3 ^ 6 x 2 ^ * - 11 x * + 6 - solve',
+      ),
+      (
+        title: 'Symbolic Integration',
         category: 'Calculus',
-        code: "'sin(x)^2' diff",
+        code: 'x 2 ^ x cos * integrate',
       ),
       (
-        title: 'Matrix Eigenvalues',
+        title: 'Taylor Series Expansion',
+        category: 'Series',
+        code: 'x sin x / 0 6 taylor',
+      ),
+      (
+        title: 'Symbolic Matrix Inverse',
         category: 'Linear Algebra',
-        code: '[[2, 1], [1, 2]] eigenvals',
+        code: '[[a, b], [c, d]] inv',
+      ),
+      (
+        title: 'Adaptive Function Plot',
+        category: 'Plotting',
+        code: '[sin(x) / x, cos(x)] -10 10 plot',
       ),
     ];
 

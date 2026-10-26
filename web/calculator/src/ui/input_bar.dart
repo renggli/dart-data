@@ -68,7 +68,8 @@ final class FormulaInputBar {
   }
 
   /// Returns `true` if the cursor in the input bar is currently inside an
-  /// unclosed single quote (`'...'`) or square bracket (`[...]`).
+  /// unclosed single quote (`'...'`), parenthesis (`(...)`), or square bracket
+  /// (`[...]`).
   bool get isInsideCompoundLiteral {
     final pos = textarea.selectionEnd.clamp(0, textarea.value.length);
     final before = CalcGrammar.normalizeDeadKeys(
@@ -76,6 +77,7 @@ final class FormulaInputBar {
     );
     var quotes = 0;
     var bracketDepth = 0;
+    var parenDepth = 0;
     for (var i = 0; i < before.length; i++) {
       final ch = before[i];
       if (ch == "'") {
@@ -85,10 +87,14 @@ final class FormulaInputBar {
           bracketDepth++;
         } else if (ch == ']') {
           if (bracketDepth > 0) bracketDepth--;
+        } else if (ch == '(') {
+          parenDepth++;
+        } else if (ch == ')') {
+          if (parenDepth > 0) parenDepth--;
         }
       }
     }
-    return quotes.isOdd || bracketDepth > 0;
+    return quotes.isOdd || bracketDepth > 0 || parenDepth > 0;
   }
 
   void focus() => textarea.focus();
@@ -128,15 +134,17 @@ final class FormulaInputBar {
   void updatePrompt({required CalcMode mode, required int nextId}) {
     if (mode == CalcMode.rpn) {
       _promptBadge.textContent = 'RPN ▸';
-      textarea.placeholder = "Enter number, 'expr', or command (e.g. 2 3 + or 'x^2 - 1' factor)...";
+      textarea.placeholder = 'Enter symbols, numbers, or postfix commands (e.g. x 2 ^ 1 - factor)...';
       _evalBtn.textContent = 'Enter ↵';
       _evalBtn.title = 'Push to stack or DUP (Enter)';
-      _approxBtn.classList.add('hidden');
+      _approxBtn.title = 'Approximate numerically on stack (Alt+Enter)';
+      _approxBtn.classList.remove('hidden');
     } else {
       _promptBadge.textContent = 'in[$nextId] ▸';
       textarea.placeholder = 'Enter expression, equation, or command (e.g. integrate(x * cos(x), x))...';
       _evalBtn.textContent = 'Eval ↵';
       _evalBtn.title = 'Evaluate exact (Enter)';
+      _approxBtn.title = 'Approximate numerically (Alt+Enter)';
       _approxBtn.classList.remove('hidden');
     }
   }
@@ -203,8 +211,17 @@ final class FormulaInputBar {
     _matrixBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-icon-btn'
-      ..textContent = '⊞'
-      ..title = 'Toggle Matrix / Vector grid builder';
+      ..title = 'Toggle Matrix / Vector grid builder'
+      ..innerHTML =
+          '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                  '<rect x="3" y="3" width="18" height="18" rx="2"/>'
+                  '<path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>'
+                  '</svg>'
+              .toJS;
+    _matrixBtn.setAttribute(
+      'aria-label',
+      'Toggle Matrix / Vector grid builder',
+    );
     _matrixBtn.addEventListener(
       'click',
       ((web.Event _) => onToggleMatrixBuilder()).toJS,
@@ -214,8 +231,14 @@ final class FormulaInputBar {
         web.document.createElement('button') as web.HTMLButtonElement
           ..type = 'button'
           ..className = 'calc-icon-btn'
-          ..textContent = '⌨'
-          ..title = 'Toggle virtual math keypad';
+          ..title = 'Toggle virtual math keypad'
+          ..innerHTML =
+              '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                      '<rect x="2" y="4" width="20" height="16" rx="2"/>'
+                      '<path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/>'
+                      '</svg>'
+                  .toJS;
+    keypadBtn.setAttribute('aria-label', 'Toggle virtual math keypad');
     keypadBtn.addEventListener(
       'click',
       ((web.Event _) => onToggleKeypad()).toJS,
@@ -231,8 +254,8 @@ final class FormulaInputBar {
     _approxBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-btn-secondary calc-eval-approx-btn'
-      ..textContent = '≈ Dec'
-      ..title = 'Evaluate decimal approximation (Alt+Enter)';
+      ..textContent = '≈ Approx'
+      ..title = 'Approximate numerically (Alt+Enter)';
     _approxBtn.addEventListener(
       'click',
       ((web.Event _) => _submit(forceNumeric: true)).toJS,
@@ -376,14 +399,12 @@ final class FormulaInputBar {
       }
     }
 
-    // RPN immediate mode keys when not inside single-quoted algebraic '...
+    // RPN immediate mode keys when not inside compound literal ('...', [...], (...))
     if (mode == CalcMode.rpn) {
       final raw = CalcGrammar.normalizeDeadKeys(textarea.value);
-      final singleQuotes = "'".allMatches(raw).length;
-      final insideQuote = singleQuotes.isOdd;
       final normalizedKey = e.key == 'ˆ' ? '^' : e.key;
 
-      if (!insideQuote &&
+      if (!isInsideCompoundLiteral &&
           !e.ctrlKey &&
           !e.metaKey &&
           !e.altKey &&
@@ -458,7 +479,7 @@ final class FormulaInputBar {
     final raw = CalcGrammar.normalizeDeadKeys(textarea.value).trim();
     if (raw.isEmpty) {
       if (getMode() == CalcMode.rpn) {
-        onRpnImmediateStackKey('Enter');
+        onRpnImmediateStackKey(forceNumeric ? 'Approx' : 'Enter');
       }
       return;
     }
@@ -496,11 +517,10 @@ final class FormulaInputBar {
       raw = normalized;
     }
 
-    // In RPN mode outside single quotes, a trailing '^' (from dead-key composition)
+    // In RPN mode outside compound literals, a trailing '^' (from dead-key composition)
     // executes immediately as the RPN power operator.
     if (getMode() == CalcMode.rpn) {
-      final singleQuotes = "'".allMatches(raw).length;
-      if (singleQuotes.isEven && raw.endsWith('^')) {
+      if (!isInsideCompoundLiteral && raw.endsWith('^')) {
         final withoutCaret = raw.substring(0, raw.length - 1);
         _normalizingDeadKey = true;
         textarea.value = withoutCaret;

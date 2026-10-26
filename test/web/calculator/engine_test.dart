@@ -428,6 +428,28 @@ void main() {
       check(rpn.executeLine("'x * exp(-x^2 - y^2)' plot3d")).isNull();
       check(rpn.stack.level(1).value).isA<PlotValue>();
       check((rpn.stack.level(1).value as PlotValue).is3d).isTrue();
+
+      // 7. Unquoted symbolic RPN postfix quick-start lines & forceNumeric
+      check(rpn.executeLine('x 6 ^ 1 - factor')).isNull();
+      check(rpn.stack.level(1).value.toCanonicalText()).contains('-1 + x');
+      check(rpn.executeLine('x 3 ^ 6 x 2 ^ * - 11 x * + 6 - solve')).isNull();
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('[3, 2, 1]');
+      check(rpn.executeLine('x 2 ^ x cos * integrate')).isNull();
+      check(rpn.stack.level(1).value).isA<ExprValue>();
+      check(rpn.executeLine('x sin x / 0 6 taylor')).isNull();
+      check(rpn.stack.level(1).value.toCanonicalText()).contains('x ^ 6');
+      check(rpn.executeLine('[[a, b], [c, d]] inv')).isNull();
+      check(rpn.stack.level(1).value).isA<MatrixValue>();
+      check(rpn.executeLine('[sin(x) / x, cos(x)] -10 10 plot')).isNull();
+      check(rpn.stack.level(1).value).isA<PlotValue>();
+      check((rpn.stack.level(1).value as PlotValue).curves.length).equals(2);
+      final cellsBeforeApprox = eval.session.activeCells.length;
+      check(rpn.executeLine('pi', forceNumeric: true)).isNull();
+      check(rpn.stack.level(1).value.isExact).isFalse();
+      check(rpn.stack.level(1).isLiteralPush).isTrue();
+      // Single cell created for 'pi' (approximated in-place), no extra approx(...) cell
+      check(eval.session.activeCells.length).equals(cellsBeforeApprox + 1);
+      check(eval.session.activeCells.last.input).equals('pi');
     });
   });
 }

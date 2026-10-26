@@ -228,6 +228,7 @@ final class CalculatorApp {
       onRpnImmediateStackKey: (key) {
         final cmd = switch (key) {
           'Enter' => 'DUP',
+          'Approx' => 'approx',
           'Backspace' || 'ArrowDown' => 'DROP',
           'ArrowUp' => 'SWAP',
           _ => null,
@@ -265,15 +266,6 @@ final class CalculatorApp {
     _keypad = VirtualKeypad(
       onInsert: (text, {cursorBack = 0}) =>
           _inputBar.insertAtCursor(text, cursorBack: cursorBack),
-      onEvaluate: ({required forceNumeric}) {
-        final raw = _inputBar.value.trim();
-        if (raw.isNotEmpty) {
-          _inputBar.value = '';
-          unawaited(_handleSubmit(raw, forceNumeric: forceNumeric));
-        } else if (_mode == CalcMode.rpn) {
-          unawaited(_executeRpnCommand(forceNumeric ? 'approx' : 'DUP'));
-        }
-      },
       onBackspace: () => _inputBar.backspaceAtCursor(),
       onExecuteRpn: (cmd) => unawaited(_executeRpnCommand(cmd)),
       onToggleMatrixBuilder: () => _matrixPanel.toggle(),
@@ -296,8 +288,10 @@ final class CalculatorApp {
       enabled: _client.environment.settings.haptics,
     );
     if (_mode == CalcMode.rpn) {
-      final line = forceNumeric ? '$rawInput approx' : rawInput;
-      final err = await _client.evaluateRpnLine(line);
+      final err = await _client.evaluateRpnLine(
+        rawInput,
+        forceNumeric: forceNumeric,
+      );
       if (err != null) {
         _showToast('Error: ${err.message}');
       }
