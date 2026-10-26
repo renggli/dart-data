@@ -133,6 +133,7 @@ PlotValue buildPlotValue(
     maxY: maxY,
     curves: curves,
     parameters: parameters,
+    isDegrees: angleMode == AngleMode.deg,
   );
 }
 
@@ -211,6 +212,9 @@ PlotValue buildParametricPlotValue(
     ],
     parameters: parameters,
     isParametric: true,
+    isDegrees: angleMode == AngleMode.deg,
+    minT: t0,
+    maxT: t1,
   );
 }
 
@@ -265,6 +269,7 @@ PlotValue buildOdePlotValue(
         segments: [PlotSegmentData(x: xs, y: ys)],
       ),
     ],
+    isOde: true,
   );
 }
 

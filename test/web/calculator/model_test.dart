@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
@@ -104,9 +105,66 @@ void main() {
 
       for (final v in values) {
         final json = CalcSerialization.toJson(v);
-        final decoded = CalcSerialization.fromJson(json);
+        final encoded = jsonEncode(json);
+        final decoded = CalcSerialization.fromJson(
+          jsonDecode(encoded) as Map<String, Object?>,
+        );
         check(decoded).equals(v);
       }
+
+      // Non-finite doubles (NaN, Infinity) in Surface3dData and PlotSegmentData
+      // serialize cleanly through jsonEncode and restore as NaN
+      final nanPlot = PlotValue(
+        expressions: [Expr.parse('sqrt(x - y)')],
+        variable: 'x, y',
+        minX: -1,
+        maxX: 1,
+        minY: -1,
+        maxY: 1,
+        curves: [
+          PlotCurveData(
+            label: 'sqrt(x)',
+            exprText: 'sqrt(x)',
+            segments: [
+              PlotSegmentData(
+                x: Float64List.fromList([0.0, 1.0]),
+                y: Float64List.fromList([double.nan, double.infinity]),
+              ),
+            ],
+          ),
+        ],
+        surface3d: Surface3dData(
+          xVar: 'x',
+          yVar: 'y',
+          minX: -1,
+          maxX: 1,
+          minY: -1,
+          maxY: 1,
+          minZ: 0,
+          maxZ: 1,
+          gridSize: 2,
+          zValues: Float64List.fromList([
+            double.nan,
+            0.0,
+            double.infinity,
+            1.0,
+          ]),
+        ),
+      );
+      final nanEncoded = jsonEncode(CalcSerialization.toJson(nanPlot));
+      final nanRestored = CalcSerialization.fromJson(
+        jsonDecode(nanEncoded) as Map<String, Object?>,
+      ) as PlotValue;
+      check(nanRestored.surface3d!.zValues[0].isNaN).isTrue();
+      check(nanRestored.surface3d!.zValues[2].isNaN).isTrue();
+      check(nanRestored.curves.first.segments.first.y[0].isNaN).isTrue();
+      check(nanRestored.curves.first.segments.first.y[1].isNaN).isTrue();
+
+      // LaTeX escaping in InfoValue and ErrorValue
+      check(const InfoValue(r'a_b & c% $1 #2 {x}').toLatex())
+          .equals(r'\text{a\_b \& c\% \$1 \#2 \{x\}}');
+      check(const ErrorValue(r'bad_var & 100%').toLatex())
+          .equals(r'\text{Error: bad\_var \& 100\%}');
 
       check(CalcSerialization.parseCanonical('[[1, 2], [3, 4]]'))
           .isA<MatrixValue>();

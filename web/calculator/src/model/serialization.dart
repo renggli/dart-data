@@ -44,6 +44,10 @@ abstract final class CalcSerialization {
         :final curves,
         :final parameters,
         :final isParametric,
+        :final isOde,
+        :final isDegrees,
+        :final minT,
+        :final maxT,
         :final surface3d,
       ) =>
         {
@@ -57,6 +61,10 @@ abstract final class CalcSerialization {
           'curves': [for (final c in curves) c.toJson()],
           if (parameters.isNotEmpty) 'parameters': parameters,
           if (isParametric) 'isParametric': true,
+          if (isOde) 'isOde': true,
+          if (isDegrees) 'isDegrees': true,
+          'minT': ?minT,
+          'maxT': ?maxT,
           if (surface3d != null) 'surface3d': surface3d.toJson(),
         },
       InfoValue(:final message, :final title) => {
@@ -130,6 +138,10 @@ abstract final class CalcSerialization {
           curves: curves,
           parameters: params,
           isParametric: json['isParametric'] as bool? ?? false,
+          isOde: json['isOde'] as bool? ?? false,
+          isDegrees: json['isDegrees'] as bool? ?? false,
+          minT: (json['minT'] as num?)?.toDouble(),
+          maxT: (json['maxT'] as num?)?.toDouble(),
           surface3d: rawS3d != null ? Surface3dData.fromJson(rawS3d) : null,
         );
       case 'info':

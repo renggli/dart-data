@@ -12,14 +12,27 @@ final class PlotSegmentData {
   final Float64List x;
   final Float64List y;
 
-  Map<String, Object?> toJson() => {'x': x.toList(), 'y': y.toList()};
+  Map<String, Object?> toJson() => {
+    'x': [
+      for (final v in x)
+        if (v.isFinite) v else null,
+    ],
+    'y': [
+      for (final v in y)
+        if (v.isFinite) v else null,
+    ],
+  };
 
   factory fromJson(Map<String, Object?> json) => PlotSegmentData(
     x: Float64List.fromList(
-      (json['x'] as List<Object?>).map((e) => (e! as num).toDouble()).toList(),
+      (json['x'] as List<Object?>)
+          .map((e) => e == null ? double.nan : (e as num).toDouble())
+          .toList(),
     ),
     y: Float64List.fromList(
-      (json['y'] as List<Object?>).map((e) => (e! as num).toDouble()).toList(),
+      (json['y'] as List<Object?>)
+          .map((e) => e == null ? double.nan : (e as num).toDouble())
+          .toList(),
     ),
   );
 }
@@ -39,15 +52,15 @@ final class PlotMarkerData {
   final String kind; // 'root' | 'min' | 'max'
 
   Map<String, Object?> toJson() => {
-    'x': x,
-    'y': y,
+    'x': x.isFinite ? x : null,
+    'y': y.isFinite ? y : null,
     'label': label,
     'kind': kind,
   };
 
   factory fromJson(Map<String, Object?> json) => PlotMarkerData(
-    x: (json['x']! as num).toDouble(),
-    y: (json['y']! as num).toDouble(),
+    x: json['x'] == null ? double.nan : (json['x']! as num).toDouble(),
+    y: json['y'] == null ? double.nan : (json['y']! as num).toDouble(),
     label: json['label']! as String,
     kind: json['kind']! as String,
   );
@@ -130,7 +143,10 @@ final class Surface3dData {
     'minZ': minZ,
     'maxZ': maxZ,
     'gridSize': gridSize,
-    'zValues': zValues,
+    'zValues': [
+      for (final v in zValues)
+        if (v.isFinite) v else null,
+    ],
   };
 
   factory fromJson(Map<String, Object?> json) {
@@ -148,7 +164,9 @@ final class Surface3dData {
       zValues: rawZ is Float64List
           ? rawZ
           : Float64List.fromList(
-              rawZ.map((e) => (e! as num).toDouble()).toList(),
+              rawZ
+                  .map((e) => e == null ? double.nan : (e as num).toDouble())
+                  .toList(),
             ),
     );
   }
@@ -443,6 +461,10 @@ final class PlotValue extends CalcValue {
     this.curves = const [],
     this.parameters = const [],
     this.isParametric = false,
+    this.isOde = false,
+    this.isDegrees = false,
+    this.minT,
+    this.maxT,
     this.surface3d,
   });
 
@@ -455,6 +477,10 @@ final class PlotValue extends CalcValue {
   final List<PlotCurveData> curves;
   final List<String> parameters;
   final bool isParametric;
+  final bool isOde;
+  final bool isDegrees;
+  final double? minT;
+  final double? maxT;
   final Surface3dData? surface3d;
 
   /// Whether this plot is a 3D surface plot $z = f(x, y)$.
@@ -471,6 +497,11 @@ final class PlotValue extends CalcValue {
     final s3d = surface3d;
     if (s3d != null && expressions.isNotEmpty) {
       return 'plot3d(${expressions.first}, ${s3d.xVar}, ${fmtBound(s3d.minX)}, ${fmtBound(s3d.maxX)}, ${s3d.yVar}, ${fmtBound(s3d.minY)}, ${fmtBound(s3d.maxY)})';
+    }
+    if (isParametric && expressions.length >= 2) {
+      final t0 = minT ?? minX;
+      final t1 = maxT ?? maxX;
+      return 'plot([${expressions[0]}, ${expressions[1]}], $variable, ${fmtBound(t0)}, ${fmtBound(t1)})';
     }
     if (expressions.length == 1) {
       return 'plot(${expressions.first}, $variable, ${fmtBound(minX)}, ${fmtBound(maxX)})';
@@ -542,7 +573,7 @@ final class InfoValue extends CalcValue {
   }
 
   @override
-  String toLatex() => '\\text{${message.replaceAll('}', '\\}')}}';
+  String toLatex() => '\\text{${_escapeLatexText(message)}}';
 
   @override
   bool operator ==(Object other) =>
@@ -580,7 +611,7 @@ final class ErrorValue extends CalcValue {
   }
 
   @override
-  String toLatex() => '\\text{Error: ${message.replaceAll('}', '\\}')}}';
+  String toLatex() => '\\text{Error: ${_escapeLatexText(message)}}';
 
   @override
   bool operator ==(Object other) =>
@@ -645,3 +676,15 @@ String _escapeXml(String input) => input
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&apos;');
+
+String _escapeLatexText(String input) => input
+    .replaceAll(r'\', r'\textbackslash{}')
+    .replaceAll('{', r'\{')
+    .replaceAll('}', r'\}')
+    .replaceAll(r'$', r'\$')
+    .replaceAll('&', r'\&')
+    .replaceAll('#', r'\#')
+    .replaceAll('^', r'\textasciicircum{}')
+    .replaceAll('_', r'\_')
+    .replaceAll('~', r'\textasciitilde{}')
+    .replaceAll('%', r'\%');
