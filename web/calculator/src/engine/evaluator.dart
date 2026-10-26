@@ -126,7 +126,7 @@ final class CalcEvaluator {
         referencedSymbols: referencedSymbols,
         beforeCellId: beforeCellId,
       );
-      final finalValue = _postProcess(value, forceNumeric: forceNumeric);
+      final finalValue = postProcess(value, forceNumeric: forceNumeric);
       return StatementEvaluationResult(
         value: finalValue,
         assignedSymbol: assignedSymbol,
@@ -188,7 +188,7 @@ final class CalcEvaluator {
           referencedSymbols: referencedSymbols,
           beforeCellId: beforeCellId,
         );
-        final simplified = _postProcess(val, forceNumeric: false);
+        final simplified = postProcess(val, forceNumeric: false);
         environment.setVariable(name, simplified);
         return (value: simplified, assignedSymbol: name);
 
@@ -432,10 +432,13 @@ final class CalcEvaluator {
     // 3. Standard ExprSyntax unary/binary/variadic functions
     if (evaluatedArgs.every((a) => a is ExprValue)) {
       final exprArgs = [for (final a in evaluatedArgs) (a as ExprValue).expr];
-      if (exprArgs.length == 1 &&
-          ExprSyntax.standardUnaryFunctions.containsKey(name)) {
-        final rawFnExpr = ExprSyntax.standardUnaryFunctions[name]!(exprArgs[0]);
-        return ExprValue(_applyAngleUnitOnTrigConstruct(name, rawFnExpr));
+      final unaryFn =
+          ExprSyntax.standardUnaryFunctions[canonicalName] ??
+          ExprSyntax.standardUnaryFunctions[name];
+      if (exprArgs.length == 1 && unaryFn != null) {
+        return ExprValue(
+          _constructUnaryFunction(canonicalName, unaryFn, exprArgs[0]),
+        );
       }
       if (exprArgs.length == 2 &&
           ExprSyntax.standardBinaryFunctions.containsKey(name)) {
@@ -451,15 +454,20 @@ final class CalcEvaluator {
     }
 
     // Element-wise lifting of standard unary math functions over Vector/Matrix
-    if (evaluatedArgs.length == 1 &&
-        ExprSyntax.standardUnaryFunctions.containsKey(name)) {
-      final fn = ExprSyntax.standardUnaryFunctions[name]!;
+    final unaryFn =
+        ExprSyntax.standardUnaryFunctions[canonicalName] ??
+        ExprSyntax.standardUnaryFunctions[name];
+    if (evaluatedArgs.length == 1 && unaryFn != null) {
       final arg = evaluatedArgs.first;
       if (arg case VectorValue(:final vector)) {
         return VectorValue(
           Vector<Expr>.generate(
             vector.length,
-            (i) => fn(vector.getUnchecked(i)),
+            (i) => _constructUnaryFunction(
+              canonicalName,
+              unaryFn,
+              vector.getUnchecked(i),
+            ),
             type: exprDataType,
           ),
         );
@@ -469,7 +477,11 @@ final class CalcEvaluator {
           Matrix<Expr>.generate(
             matrix.rowCount,
             matrix.colCount,
-            (r, c) => fn(matrix.getUnchecked(r, c)),
+            (r, c) => _constructUnaryFunction(
+              canonicalName,
+              unaryFn,
+              matrix.getUnchecked(r, c),
+            ),
             type: exprDataType,
           ),
         );
@@ -568,6 +580,8 @@ final class CalcEvaluator {
       return ExprValue(res);
     }
 
+    final assumptions = environment.settings.assumptions;
+
     // Vector +/- Vector
     if (left is VectorValue && right is VectorValue) {
       final u = left.vector;
@@ -581,7 +595,9 @@ final class CalcEvaluator {
         return VectorValue(
           Vector<Expr>.generate(
             u.length,
-            (i) => (u.getUnchecked(i) + v.getUnchecked(i)).simplify(),
+            (i) => (u.getUnchecked(i) + v.getUnchecked(i)).simplify(
+              assumptions: assumptions,
+            ),
             type: exprDataType,
           ),
         );
@@ -590,7 +606,9 @@ final class CalcEvaluator {
         return VectorValue(
           Vector<Expr>.generate(
             u.length,
-            (i) => (u.getUnchecked(i) - v.getUnchecked(i)).simplify(),
+            (i) => (u.getUnchecked(i) - v.getUnchecked(i)).simplify(
+              assumptions: assumptions,
+            ),
             type: exprDataType,
           ),
         );
@@ -610,7 +628,7 @@ final class CalcEvaluator {
       return VectorValue(
         Vector<Expr>.generate(
           v.length,
-          (i) => (s * v.getUnchecked(i)).simplify(),
+          (i) => (s * v.getUnchecked(i)).simplify(assumptions: assumptions),
           type: exprDataType,
         ),
       );
@@ -627,7 +645,7 @@ final class CalcEvaluator {
               (op == CalcBinaryOp.mul
                       ? v.getUnchecked(i) * s
                       : v.getUnchecked(i) / s)
-                  .simplify(),
+                  .simplify(assumptions: assumptions),
           type: exprDataType,
         ),
       );
@@ -651,7 +669,7 @@ final class CalcEvaluator {
                 (op == CalcBinaryOp.add
                         ? a.getUnchecked(r, c) + b.getUnchecked(r, c)
                         : a.getUnchecked(r, c) - b.getUnchecked(r, c))
-                    .simplify(),
+                    .simplify(assumptions: assumptions),
             type: exprDataType,
           ),
         );
@@ -662,7 +680,7 @@ final class CalcEvaluator {
             'Matrix multiplication dimension mismatch: ${a.rowCount}×${a.colCount} * ${b.rowCount}×${b.colCount}.',
           );
         }
-        return MatrixValue((a * b).simplify());
+        return MatrixValue((a * b).simplify(assumptions: assumptions));
       }
     }
 
@@ -679,7 +697,9 @@ final class CalcEvaluator {
         Vector<Expr>.generate(a.rowCount, (r) {
           var sum = IntegerNumber.zero as Expr;
           for (var c = 0; c < a.colCount; c++) {
-            sum = (sum + a.getUnchecked(r, c) * v.getUnchecked(c)).simplify();
+            sum = (sum + a.getUnchecked(r, c) * v.getUnchecked(c)).simplify(
+              assumptions: assumptions,
+            );
           }
           return sum;
         }, type: exprDataType),
@@ -694,7 +714,8 @@ final class CalcEvaluator {
         Matrix<Expr>.generate(
           m.rowCount,
           m.colCount,
-          (r, c) => (s * m.getUnchecked(r, c)).simplify(),
+          (r, c) =>
+              (s * m.getUnchecked(r, c)).simplify(assumptions: assumptions),
           type: exprDataType,
         ),
       );
@@ -712,7 +733,7 @@ final class CalcEvaluator {
               (op == CalcBinaryOp.mul
                       ? m.getUnchecked(r, c) * s
                       : m.getUnchecked(r, c) / s)
-                  .simplify(),
+                  .simplify(assumptions: assumptions),
           type: exprDataType,
         ),
       );
@@ -736,7 +757,7 @@ final class CalcEvaluator {
 
   /// Applies auto-simplify, complex display mode, and exact/approx policy to a
   /// computed [CalcValue].
-  CalcValue _postProcess(CalcValue value, {required bool forceNumeric}) {
+  CalcValue postProcess(CalcValue value, {bool forceNumeric = false}) {
     final settings = environment.settings;
     final assumptions = settings.assumptions;
     var current = value;
@@ -746,10 +767,14 @@ final class CalcEvaluator {
         ExprValue(:final expr) => ExprValue(
           expr.simplify(assumptions: assumptions),
         ),
-        VectorValue(:final vector) => VectorValue(vector.simplify()),
-        MatrixValue(:final matrix) => MatrixValue(matrix.simplify()),
+        VectorValue(:final vector) => VectorValue(
+          vector.simplify(assumptions: assumptions),
+        ),
+        MatrixValue(:final matrix) => MatrixValue(
+          matrix.simplify(assumptions: assumptions),
+        ),
         ListValue(:final elements) => ListValue([
-          for (final e in elements) _postProcess(e, forceNumeric: false),
+          for (final e in elements) postProcess(e, forceNumeric: false),
         ]),
         _ => current,
       };
@@ -764,7 +789,7 @@ final class CalcEvaluator {
           polynomialExpr.approximate(),
         ),
         ListValue(:final elements) => ListValue([
-          for (final e in elements) _postProcess(e, forceNumeric: true),
+          for (final e in elements) postProcess(e, forceNumeric: true),
         ]),
         _ => current,
       };
@@ -781,23 +806,24 @@ final class CalcEvaluator {
     return current;
   }
 
-  Expr _applyAngleUnitOnTrigConstruct(String fnName, Expr constructed) {
-    if (environment.settings.angleMode != AngleMode.deg) return constructed;
-    // In DEG mode, closed numeric arguments to sin/cos/tan convert degrees -> radians
+  Expr _constructUnaryFunction(
+    String canonicalName,
+    Expr Function(Expr) fn,
+    Expr arg,
+  ) {
+    if (environment.settings.angleMode != AngleMode.deg ||
+        arg.freeVariables.isNotEmpty) {
+      return fn(arg);
+    }
     const directTrig = {'sin', 'cos', 'tan', 'sec', 'csc', 'cot'};
-    if (!directTrig.contains(fnName)) return constructed;
-    return switch (constructed) {
-      Sin(:final expr) when expr.freeVariables.isEmpty => Sin(
-        expr * Constant.pi / IntegerNumber.of(180),
-      ),
-      Cos(:final expr) when expr.freeVariables.isEmpty => Cos(
-        expr * Constant.pi / IntegerNumber.of(180),
-      ),
-      Tan(:final expr) when expr.freeVariables.isEmpty => Tan(
-        expr * Constant.pi / IntegerNumber.of(180),
-      ),
-      _ => constructed,
-    };
+    if (directTrig.contains(canonicalName)) {
+      return fn(arg * Constant.pi / IntegerNumber.of(180));
+    }
+    const inverseTrig = {'asin', 'acos', 'atan'};
+    if (inverseTrig.contains(canonicalName)) {
+      return fn(arg) * IntegerNumber.of(180) / Constant.pi;
+    }
+    return fn(arg);
   }
 
   static bool _isNonZeroComplexExpr(Expr expr) =>

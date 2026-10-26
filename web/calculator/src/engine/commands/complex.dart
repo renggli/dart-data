@@ -132,7 +132,10 @@ List<Command> buildComplexCommands() => [
     buildChipCall: (id, _) => 'polar(r[$id])',
     run: (args, ctx) {
       checkCommandArity('polar', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) => _toPolarExpr(e, ctx.assumptions));
+      return liftUnaryCommand(
+        args[0],
+        (e) => e.toPolar(assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -151,13 +154,10 @@ List<Command> buildComplexCommands() => [
     buildChipCall: (id, _) => 'rect(r[$id])',
     run: (args, ctx) {
       checkCommandArity('rect', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) {
-        final re = Re(e).simplify(assumptions: ctx.assumptions);
-        final im = Im(e).simplify(assumptions: ctx.assumptions);
-        return (re + ComplexNumber.i * im).simplify(
-          assumptions: ctx.assumptions,
-        );
-      });
+      return liftUnaryCommand(
+        args[0],
+        (e) => e.toRectangular(assumptions: ctx.assumptions),
+      );
     },
   ),
 ];
@@ -167,16 +167,3 @@ bool _hasImaginary(Expr expr) => expr.anyNode(
       (n is ComplexNumber && !n.imaginary.isZero) ||
       (n is Constant && !n.isReal),
 );
-
-Expr _toPolarExpr(Expr expr, Assumptions assumptions) {
-  final r = Abs(expr).simplify(assumptions: assumptions);
-  if (r is Number && r.isZero) return IntegerNumber.zero;
-  final theta = Arg(expr).simplify(assumptions: assumptions);
-  if (theta is Number && theta.isZero) return r;
-  final expPart = Pow(
-    Constant.e,
-    (ComplexNumber.i * theta).simplify(assumptions: assumptions),
-  );
-  if (r is IntegerNumber && r.isOne) return expPart;
-  return Mul([r, expPart]);
-}

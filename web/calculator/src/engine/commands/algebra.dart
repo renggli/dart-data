@@ -29,8 +29,8 @@ List<Command> buildAlgebraCommands() => [
       return liftUnaryCommand(
         args[0],
         (e) => e.simplify(assumptions: ctx.assumptions),
-        onMatrix: (m) => m.simplify(),
-        onVector: (v) => v.simplify(),
+        onMatrix: (m) => m.simplify(assumptions: ctx.assumptions),
+        onVector: (v) => v.simplify(assumptions: ctx.assumptions),
       );
     },
   ),
@@ -55,9 +55,9 @@ List<Command> buildAlgebraCommands() => [
       checkCommandArity('expand', args, 1, 1);
       return liftUnaryCommand(
         args[0],
-        (e) => e.expand(),
-        onMatrix: (m) => m.expand(),
-        onVector: (v) => v.expand(),
+        (e) => e.expand(assumptions: ctx.assumptions),
+        onMatrix: (m) => m.expand(assumptions: ctx.assumptions),
+        onVector: (v) => v.expand(assumptions: ctx.assumptions),
       );
     },
   ),
@@ -82,9 +82,9 @@ List<Command> buildAlgebraCommands() => [
       checkCommandArity('factor', args, 1, 1);
       return liftUnaryCommand(
         args[0],
-        (e) => e.factor(),
-        onMatrix: (m) => m.factor(),
-        onVector: (v) => v.factor(),
+        (e) => e.factor(assumptions: ctx.assumptions),
+        onMatrix: (m) => m.factor(assumptions: ctx.assumptions),
+        onVector: (v) => v.factor(assumptions: ctx.assumptions),
       );
     },
   ),
@@ -115,7 +115,7 @@ List<Command> buildAlgebraCommands() => [
         final vars = args.length >= 2
             ? extractCommandVarNameList(args[1], 'solve')
             : inferSystemVariables(eqs);
-        final solutions = eqs.solve(vars);
+        final solutions = eqs.solve(vars, assumptions: ctx.assumptions);
         return ListValue([
           for (final sol in solutions)
             ListValue([
@@ -197,7 +197,7 @@ List<Command> buildAlgebraCommands() => [
       final v = args.length >= 2
           ? expectCommandVarName(args[1], 'apart')
           : ctx.inferPrimaryVariable(args[0]);
-      return ExprValue(expr.apart(v));
+      return ExprValue(expr.apart(v, assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -216,7 +216,10 @@ List<Command> buildAlgebraCommands() => [
     buildChipCall: (id, _) => 'together(r[$id])',
     run: (args, ctx) {
       checkCommandArity('together', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) => e.together());
+      return liftUnaryCommand(
+        args[0],
+        (e) => e.together(assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -235,7 +238,10 @@ List<Command> buildAlgebraCommands() => [
     buildChipCall: (id, _) => 'cancel(r[$id])',
     run: (args, ctx) {
       checkCommandArity('cancel', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) => e.cancel());
+      return liftUnaryCommand(
+        args[0],
+        (e) => e.cancel(assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -258,7 +264,7 @@ List<Command> buildAlgebraCommands() => [
       final v = args.length >= 2
           ? expectCommandVarName(args[1], 'collect')
           : ctx.inferPrimaryVariable(args[0]);
-      return ExprValue(expr.collect(v));
+      return ExprValue(expr.collect(v, assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -317,7 +323,10 @@ List<Command> buildAlgebraCommands() => [
     buildChipCall: (id, _) => 'trigexpand(r[$id])',
     run: (args, ctx) {
       checkCommandArity('trigexpand', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) => e.expandTrig());
+      return liftUnaryCommand(
+        args[0],
+        (e) => e.expandTrig(assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -336,7 +345,10 @@ List<Command> buildAlgebraCommands() => [
     buildChipCall: (id, _) => 'trigsimplify(r[$id])',
     run: (args, ctx) {
       checkCommandArity('trigsimplify', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) => e.simplifyTrig());
+      return liftUnaryCommand(
+        args[0],
+        (e) => e.simplifyTrig(assumptions: ctx.assumptions),
+      );
     },
   ),
 ];
@@ -356,10 +368,14 @@ CalcValue _applySubstitution(
   },
   onMatrix: (m) {
     final sub = m.substitute(varName, replacement);
-    return ctx.settings.autoSimplify ? sub.simplify() : sub;
+    return ctx.settings.autoSimplify
+        ? sub.simplify(assumptions: ctx.assumptions)
+        : sub;
   },
   onVector: (v) {
     final sub = v.substitute(varName, replacement);
-    return ctx.settings.autoSimplify ? sub.simplify() : sub;
+    return ctx.settings.autoSimplify
+        ? sub.simplify(assumptions: ctx.assumptions)
+        : sub;
   },
 );

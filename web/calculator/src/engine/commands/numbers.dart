@@ -26,12 +26,10 @@ List<Command> buildNumbersCommands() => [
     buildChipCall: (id, _) => 'approx(r[$id])',
     run: (args, ctx) {
       checkCommandArity('approx', args, 1, 2);
-      return liftUnaryCommand(
-        args[0],
-        (e) => e.approximate(),
-        onMatrix: (m) => m.approximate(),
-        onVector: (v) => v.approximate(),
-      );
+      final digits = args.length == 2
+          ? expectCommandInt(args[1], 'approx').clamp(1, 15)
+          : null;
+      return liftUnaryCommand(args[0], (e) => _approxWithDigits(e, digits));
     },
   ),
   Command(
@@ -76,7 +74,9 @@ List<Command> buildNumbersCommands() => [
       checkCommandArity('gcd', args, 2, 16);
       final exprArgs = [for (final a in args) expectCommandExpr(a, 'gcd')];
       return ExprValue(
-        ExprSyntax.standardVariadicFunctions['gcd']!(exprArgs).simplify(),
+        ExprSyntax.standardVariadicFunctions['gcd']!(exprArgs).simplify(
+          assumptions: ctx.assumptions,
+        ),
       );
     },
   ),
@@ -98,7 +98,9 @@ List<Command> buildNumbersCommands() => [
       checkCommandArity('lcm', args, 2, 16);
       final exprArgs = [for (final a in args) expectCommandExpr(a, 'lcm')];
       return ExprValue(
-        ExprSyntax.standardVariadicFunctions['lcm']!(exprArgs).simplify(),
+        ExprSyntax.standardVariadicFunctions['lcm']!(exprArgs).simplify(
+          assumptions: ctx.assumptions,
+        ),
       );
     },
   ),
@@ -120,7 +122,7 @@ List<Command> buildNumbersCommands() => [
       checkCommandArity('mod', args, 2, 2);
       final a = expectCommandExpr(args[0], 'mod');
       final b = expectCommandExpr(args[1], 'mod');
-      return ExprValue(Mod(a, b).simplify());
+      return ExprValue(Mod(a, b).simplify(assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -139,7 +141,10 @@ List<Command> buildNumbersCommands() => [
     buildChipCall: (id, _) => 'isprime(r[$id])',
     run: (args, ctx) {
       checkCommandArity('isprime', args, 1, 1);
-      final e = expectCommandExpr(args[0], 'isprime').simplify();
+      final e = expectCommandExpr(
+        args[0],
+        'isprime',
+      ).simplify(assumptions: ctx.assumptions);
       if (e is IntegerNumber) {
         return ExprValue(e.isPrime ? IntegerNumber.one : IntegerNumber.zero);
       }
@@ -162,7 +167,10 @@ List<Command> buildNumbersCommands() => [
     buildChipCall: (id, _) => 'factorial(r[$id])',
     run: (args, ctx) {
       checkCommandArity('factorial', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) => Factorial(e).simplify());
+      return liftUnaryCommand(
+        args[0],
+        (e) => Factorial(e).simplify(assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -183,7 +191,7 @@ List<Command> buildNumbersCommands() => [
       checkCommandArity('binomial', args, 2, 2);
       final a = expectCommandExpr(args[0], 'binomial');
       final b = expectCommandExpr(args[1], 'binomial');
-      return ExprValue(Binomial(a, b).simplify());
+      return ExprValue(Binomial(a, b).simplify(assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -202,7 +210,10 @@ List<Command> buildNumbersCommands() => [
     buildChipCall: (id, _) => 'floor(r[$id])',
     run: (args, ctx) {
       checkCommandArity('floor', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) => Floor(e).simplify());
+      return liftUnaryCommand(
+        args[0],
+        (e) => Floor(e).simplify(assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -221,7 +232,10 @@ List<Command> buildNumbersCommands() => [
     buildChipCall: (id, _) => 'ceil(r[$id])',
     run: (args, ctx) {
       checkCommandArity('ceil', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) => Ceil(e).simplify());
+      return liftUnaryCommand(
+        args[0],
+        (e) => Ceil(e).simplify(assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -240,7 +254,31 @@ List<Command> buildNumbersCommands() => [
     buildChipCall: (id, _) => 'round(r[$id])',
     run: (args, ctx) {
       checkCommandArity('round', args, 1, 1);
-      return liftUnaryCommand(args[0], (e) => Round(e).simplify());
+      return liftUnaryCommand(
+        args[0],
+        (e) => Round(e).simplify(assumptions: ctx.assumptions),
+      );
     },
   ),
 ];
+
+Expr _approxWithDigits(Expr expr, int? digits) {
+  final approx = expr.approximate();
+  if (digits == null) return approx;
+  return _roundRealDigits(approx, digits);
+}
+
+Expr _roundRealDigits(Expr expr, int digits) => switch (expr) {
+  RealNumber(:final value) when value.isFinite => RealNumber(
+    double.parse(formatRealDigits(value, digits)),
+  ),
+  ComplexNumber(:final real, :final imaginary) => ComplexNumber(
+    real is RealNumber && real.value.isFinite
+        ? RealNumber(double.parse(formatRealDigits(real.value, digits)))
+        : real,
+    imaginary is RealNumber && imaginary.value.isFinite
+        ? RealNumber(double.parse(formatRealDigits(imaginary.value, digits)))
+        : imaginary,
+  ),
+  _ => expr.mapChildren((c) => _roundRealDigits(c, digits)),
+};

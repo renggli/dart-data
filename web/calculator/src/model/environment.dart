@@ -126,7 +126,10 @@ final class UserFunction {
     }
     var result = body;
     for (var i = 0; i < params.length; i++) {
-      result = result.substitute(params[i], args[i]);
+      result = result.substitute(params[i], Variable('\$param_$i'));
+    }
+    for (var i = 0; i < params.length; i++) {
+      result = result.substitute('\$param_$i', args[i]);
     }
     return result;
   }

@@ -38,8 +38,10 @@ List<Command> buildCalculusCommands() => [
         (e) => e
             .derivative(varName, order: order)
             .simplify(assumptions: ctx.assumptions),
-        onMatrix: (m) => m.derivative(varName, order: order),
-        onVector: (v) => v.derivative(varName, order: order),
+        onMatrix: (m) =>
+            m.derivative(varName, order: order, assumptions: ctx.assumptions),
+        onVector: (v) =>
+            v.derivative(varName, order: order, assumptions: ctx.assumptions),
       );
     },
   ),
@@ -100,8 +102,18 @@ List<Command> buildCalculusCommands() => [
           to: upper,
           assumptions: ctx.assumptions,
         ),
-        onMatrix: (m) => m.integrate(varName, from: lower, to: upper),
-        onVector: (v) => v.integrate(varName, from: lower, to: upper),
+        onMatrix: (m) => m.integrate(
+          varName,
+          from: lower,
+          to: upper,
+          assumptions: ctx.assumptions,
+        ),
+        onVector: (v) => v.integrate(
+          varName,
+          from: lower,
+          to: upper,
+          assumptions: ctx.assumptions,
+        ),
       );
     },
   ),
@@ -146,6 +158,7 @@ List<Command> buildCalculusCommands() => [
             point: IntegerNumber.zero,
             order: degree + 1,
             includeOrder: false,
+            assumptions: ctx.assumptions,
           ),
         );
       }
@@ -161,6 +174,7 @@ List<Command> buildCalculusCommands() => [
             point: point,
             order: degree + 1,
             includeOrder: false,
+            assumptions: ctx.assumptions,
           ),
         );
       }
@@ -177,6 +191,7 @@ List<Command> buildCalculusCommands() => [
           point: point,
           order: degree + 1,
           includeOrder: false,
+          assumptions: ctx.assumptions,
         ),
       );
     },
@@ -210,7 +225,12 @@ List<Command> buildCalculusCommands() => [
         final varName = ctx.inferPrimaryVariable(args[0]);
         final order = expectCommandInt(args[1], 'series');
         return SeriesValue(
-          expr.toPowerSeries(varName, point: IntegerNumber.zero, order: order),
+          expr.toPowerSeries(
+            varName,
+            point: IntegerNumber.zero,
+            order: order,
+            assumptions: ctx.assumptions,
+          ),
         );
       }
       if (args.length == 3 &&
@@ -220,7 +240,12 @@ List<Command> buildCalculusCommands() => [
         final point = expectCommandExpr(args[1], 'series');
         final order = expectCommandInt(args[2], 'series');
         return SeriesValue(
-          expr.toPowerSeries(varName, point: point, order: order),
+          expr.toPowerSeries(
+            varName,
+            point: point,
+            order: order,
+            assumptions: ctx.assumptions,
+          ),
         );
       }
       final varName = args.length >= 2
@@ -231,7 +256,12 @@ List<Command> buildCalculusCommands() => [
           : IntegerNumber.zero;
       final order = args.length >= 4 ? expectCommandInt(args[3], 'series') : 5;
       return SeriesValue(
-        expr.toPowerSeries(varName, point: point, order: order),
+        expr.toPowerSeries(
+          varName,
+          point: point,
+          order: order,
+          assumptions: ctx.assumptions,
+        ),
       );
     },
   ),
@@ -390,7 +420,7 @@ List<Command> buildCalculusCommands() => [
           : (expr.freeVariables.isNotEmpty
                 ? expr.freeVariables.toList()
                 : ['x']);
-      return VectorValue(expr.gradient(vars));
+      return VectorValue(expr.gradient(vars, assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -421,7 +451,7 @@ List<Command> buildCalculusCommands() => [
           : (expr.freeVariables.isNotEmpty
                 ? expr.freeVariables.toList()
                 : ['x']);
-      return MatrixValue(expr.hessian(vars));
+      return MatrixValue(expr.hessian(vars, assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -447,7 +477,7 @@ List<Command> buildCalculusCommands() => [
       final vars = args.length == 2
           ? extractCommandVarNameList(args[1], 'jacobian')
           : inferSystemVariables(exprs);
-      return MatrixValue(exprs.jacobian(vars));
+      return MatrixValue(exprs.jacobian(vars, assumptions: ctx.assumptions));
     },
   ),
   Command(

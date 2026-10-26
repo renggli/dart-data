@@ -72,11 +72,7 @@ List<Command> buildLinearCommands() => [
     run: (args, ctx) {
       checkCommandArity('transpose', args, 1, 1);
       final m = expectCommandMatrix(args[0], 'transpose');
-      final rows = [
-        for (var c = 0; c < m.colCount; c++)
-          [for (var r = 0; r < m.rowCount; r++) m.getUnchecked(r, c)],
-      ];
-      return MatrixValue(Matrix<Expr>.fromRows(rows, type: exprDataType));
+      return MatrixValue(m.transposed);
     },
   ),
   Command(
@@ -99,11 +95,7 @@ List<Command> buildLinearCommands() => [
       if (!m.isSquare) {
         throw ArgumentError('trace requires a square matrix.');
       }
-      var sum = IntegerNumber.zero as Expr;
-      for (var i = 0; i < m.rowCount; i++) {
-        sum = (sum + m.getUnchecked(i, i)).simplify();
-      }
-      return ExprValue(sum);
+      return ExprValue(m.trace.simplify(assumptions: ctx.assumptions));
     },
   ),
   Command(

@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
 import '../../../web/calculator/src/engine/commands.dart';
@@ -451,5 +452,45 @@ void main() {
       check(eval.session.activeCells.length).equals(cellsBeforeApprox + 1);
       check(eval.session.activeCells.last.input).equals('pi');
     });
+
+    test(
+      'simultaneous user function substitution, approx digits, and deg mode',
+      () {
+        final env = Environment();
+        final session = Session();
+        final eval = CalcEvaluator(environment: env, session: session);
+
+        // Simultaneous parameter substitution without variable capture
+        eval.evaluateScroll('f(x, y) := x + 2 * y');
+        final swapped = eval.evaluateScroll('f(y, x)');
+        check(swapped.value.toCanonicalText()).equals('2 * x + y');
+
+        // approx(expr, digits)
+        final approx4 = eval.evaluateScroll('approx(pi, 4)');
+        check(approx4.value.toCanonicalText()).equals('3.142');
+
+        // AngleMode.deg on sec/csc/cot and inverse trig
+        env.settings = env.settings.copyWith(angleMode: AngleMode.deg);
+        check(eval.evaluateScroll('sec(60)').value.toCanonicalText())
+            .equals('2');
+        check(eval.evaluateScroll('asin(1 / 2)').value.toCanonicalText())
+            .equals('30');
+        env.settings = env.settings.copyWith(angleMode: AngleMode.rad);
+
+        // Assumptions propagation in Vector/Matrix simplification
+        env.settings = env.settings.copyWith(domain: VariableDomain.positive);
+        check(eval.evaluateScroll('[sqrt(x^2)]').value.toCanonicalText())
+            .equals('[x]');
+        env.settings = env.settings.copyWith(domain: VariableDomain.real);
+
+        // RPN ComplexDisplayMode.polar parity
+        env.settings = env.settings.copyWith(
+          complexDisplay: ComplexDisplayMode.polar,
+        );
+        final rpn = RpnInterpreter(stack: RpnStack(), evaluator: eval);
+        check(rpn.executeLine('1 i +')).isNull();
+        check(rpn.stack.level(1).value.toCanonicalText()).contains('exp(');
+      },
+    );
   });
 }

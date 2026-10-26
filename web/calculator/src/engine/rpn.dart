@@ -63,7 +63,10 @@ final class RpnInterpreter {
         for (final id in targetIds) {
           final cell = session.allCells[id];
           if (cell != null && !cell.deleted) {
-            final approxVal = _approximateValue(cell.value);
+            final approxVal = evaluator.postProcess(
+              cell.value,
+              forceNumeric: true,
+            );
             session.updateCell(
               id,
               input: cell.input,
@@ -522,37 +525,7 @@ final class RpnInterpreter {
     );
   }
 
-  CalcValue _postProcessValue(CalcValue value) {
-    final settings = environment.settings;
-    var cur = value;
-    if (settings.autoSimplify) {
-      cur = switch (cur) {
-        ExprValue(:final expr) => ExprValue(
-          expr.simplify(assumptions: settings.assumptions),
-        ),
-        VectorValue(:final vector) => VectorValue(vector.simplify()),
-        MatrixValue(:final matrix) => MatrixValue(matrix.simplify()),
-        _ => cur,
-      };
-    }
-    if (settings.approxMode) {
-      cur = _approximateValue(cur);
-    }
-    return cur;
-  }
-
-  CalcValue _approximateValue(CalcValue value) => switch (value) {
-    ExprValue(:final expr) => ExprValue(expr.approximate()),
-    VectorValue(:final vector) => VectorValue(vector.approximate()),
-    MatrixValue(:final matrix) => MatrixValue(matrix.approximate()),
-    SeriesValue(:final polynomialExpr) => ExprValue(
-      polynomialExpr.approximate(),
-    ),
-    ListValue(:final elements) => ListValue([
-      for (final e in elements) _approximateValue(e),
-    ]),
-    _ => value,
-  };
+  CalcValue _postProcessValue(CalcValue value) => evaluator.postProcess(value);
 
   static bool _looksLikeVariable(CalcValue v) =>
       v is ExprValue && v.expr is Variable;
