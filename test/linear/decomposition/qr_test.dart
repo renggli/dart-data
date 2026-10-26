@@ -74,6 +74,26 @@ void main() {
       check(x[1]).isCloseTo(3.0, 1e-6);
     });
 
+    test('DataType.float32 matrix QR decomposition and solve', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 1.0],
+        [1.0, 2.0],
+        [1.0, 3.0],
+      ], type: DataType.float32);
+      final b = Vector<double>.fromList([
+        3.0,
+        5.0,
+        7.0,
+      ], type: DataType.float32);
+      final qr = QRDecomposition<double>(a);
+      final q = qr.q;
+      check(q.rowCount).equals(3);
+      check(q.colCount).equals(2);
+      final x = qr.solveVector(b);
+      check(x[0]).isCloseTo(1.0, 1e-5);
+      check(x[1]).isCloseTo(2.0, 1e-5);
+    });
+
     test('solveMatrix least squares solve', () {
       final a = Matrix<double>.fromRows([
         [1.0, 1.0],

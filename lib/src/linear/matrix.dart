@@ -403,33 +403,6 @@ class Matrix<T> implements LinearOperator<T> {
   }
 
   /// Solves the linear system $A x = b$ or linear least-squares problem
-  /// $A x \approx b$.
-  ///
-  /// Conceptually, this solves for the unknown vector or matrix that satisfies
-  /// the system $A x = b$. If the system is overdetermined or underdetermined
-  /// ($m \ne n$), it automatically finds the least-squares solution minimizing
-  /// $\|A x - b\|_2$.
-  ///
-  /// Accepts either a [Vector] or a multi-column [Matrix] right-hand side:
-  /// - When [b] is a [Vector], returns the solution [Vector] of length
-  ///   [colCount].
-  /// - When [b] is a [Matrix], returns the solution [Matrix] of shape
-  ///   `[colCount, b.colCount]`.
-  ///
-  /// For square matrices ($m = n$), the system is solved via LU decomposition
-  /// with partial pivoting (`dgesv` or pure-Dart LU). For rectangular matrices
-  /// ($m \ne n$), the least-squares solution is computed via QR decomposition
-  /// (`dgels` or pure-Dart QR).
-  ///
-  /// ```dart
-  /// final a = Matrix<double>.fromRows([
-  ///   [2.0, 1.0],
-  ///   [1.0, 3.0],
-  /// ]);
-  /// final b = Vector<double>.fromList([4.0, 7.0]);
-  /// final x = a.solve(b); // [1.0, 2.0]
-  /// ```
-  /// Solves the linear system $A x = b$ or linear least-squares problem
   /// $A x \approx b$ for a vector right-hand side [b].
   ///
   /// For square matrices ($m = n$), the system is solved via LU decomposition
@@ -449,6 +422,13 @@ class Matrix<T> implements LinearOperator<T> {
     if (b.length != rowCount) {
       throw ArgumentError(
         'Dimension mismatch: Matrix $rowCount x $colCount, Vector ${b.length}',
+      );
+    }
+    if (rowCount == 0) {
+      return Vector<T>.filled(
+        colCount,
+        type.field.additiveIdentity,
+        type: type,
       );
     }
     if (rowCount == colCount) {
@@ -485,7 +465,7 @@ class Matrix<T> implements LinearOperator<T> {
           n: rowCount,
           nrhs: 1,
           a: aData,
-          lda: colCount,
+          lda: math.max(1, colCount),
           b: bData,
           ldb: 1,
         );
@@ -535,7 +515,7 @@ class Matrix<T> implements LinearOperator<T> {
         n: colCount,
         nrhs: 1,
         a: aData,
-        lda: colCount,
+        lda: math.max(1, colCount),
         b: bData,
         ldb: 1,
       );
@@ -591,6 +571,14 @@ class Matrix<T> implements LinearOperator<T> {
       );
     }
     final nrhs = b.colCount;
+    if (rowCount == 0 || nrhs == 0) {
+      return Matrix<T>.filled(
+        colCount,
+        nrhs,
+        type.field.additiveIdentity,
+        type: type,
+      );
+    }
     if (rowCount == colCount) {
       if ((type as DataType) == DataType.float64) {
         final aData = Float64List(rowCount * colCount);
@@ -625,9 +613,9 @@ class Matrix<T> implements LinearOperator<T> {
           n: rowCount,
           nrhs: nrhs,
           a: aData,
-          lda: colCount,
+          lda: math.max(1, colCount),
           b: bData,
-          ldb: nrhs,
+          ldb: math.max(1, nrhs),
         );
         if (success) {
           return Matrix<T>(
@@ -675,9 +663,9 @@ class Matrix<T> implements LinearOperator<T> {
         n: colCount,
         nrhs: nrhs,
         a: aData,
-        lda: colCount,
+        lda: math.max(1, colCount),
         b: bData,
-        ldb: nrhs,
+        ldb: math.max(1, nrhs),
       );
       if (success) {
         final resultData = maxMN == colCount
@@ -779,7 +767,7 @@ class Matrix<T> implements LinearOperator<T> {
   }
 
   Vector<T> _solveUnderdeterminedVector(Vector<T> b) {
-    final at = transposed;
+    final at = conjugateTranspose;
     final qr = QRDecomposition<T>(at);
     if (!qr.isFullRank) {
       throw StateError('Matrix is rank deficient.');
@@ -792,10 +780,16 @@ class Matrix<T> implements LinearOperator<T> {
       for (var k = 0; k < i; k++) {
         sum = field.sub(
           sum,
-          field.mul(rMat.getUnchecked(k, i), y.getUnchecked(k)),
+          field.mul(
+            field.conjugate(rMat.getUnchecked(k, i)),
+            y.getUnchecked(k),
+          ),
         );
       }
-      y.setUnchecked(i, field.div(sum, rMat.getUnchecked(i, i)));
+      y.setUnchecked(
+        i,
+        field.div(sum, field.conjugate(rMat.getUnchecked(i, i))),
+      );
     }
     final qMat = qr.q;
     return Vector<T>.generate(colCount, (i) {
@@ -811,7 +805,7 @@ class Matrix<T> implements LinearOperator<T> {
   }
 
   Matrix<T> _solveUnderdeterminedMatrix(Matrix<T> b) {
-    final at = transposed;
+    final at = conjugateTranspose;
     final qr = QRDecomposition<T>(at);
     if (!qr.isFullRank) {
       throw StateError('Matrix is rank deficient.');
@@ -831,10 +825,17 @@ class Matrix<T> implements LinearOperator<T> {
         for (var k = 0; k < i; k++) {
           sum = field.sub(
             sum,
-            field.mul(rMat.getUnchecked(k, i), y.getUnchecked(k, j)),
+            field.mul(
+              field.conjugate(rMat.getUnchecked(k, i)),
+              y.getUnchecked(k, j),
+            ),
           );
         }
-        y.setUnchecked(i, j, field.div(sum, rMat.getUnchecked(i, i)));
+        y.setUnchecked(
+          i,
+          j,
+          field.div(sum, field.conjugate(rMat.getUnchecked(i, i))),
+        );
       }
     }
     final qMat = qr.q;

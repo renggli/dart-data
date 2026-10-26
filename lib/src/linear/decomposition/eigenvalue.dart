@@ -279,7 +279,10 @@ class EigenvalueDecomposition {
         mIdx++;
       }
       if (mIdx > lIdx) {
+        var iter = 0;
+        final maxIter = 30 * _n;
         do {
+          if (++iter > maxIter) break;
           var gVal = _d[lIdx];
           var pVal = (_d[lIdx + 1] - gVal) / (2.0 * _e[lIdx]);
           var rVal = _hypot(pVal, 1.0);
@@ -469,7 +472,10 @@ class EigenvalueDecomposition {
     }
 
     var iter = 0;
+    var totalIter = 0;
+    final maxIter = 30 * nn;
     while (nIdx >= low) {
+      if (++totalIter > maxIter) break;
       var lIdx = nIdx;
       while (lIdx > low) {
         sVal =

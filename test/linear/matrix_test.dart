@@ -754,6 +754,72 @@ void main() {
       check(xUnderVec[2]).isCloseTo(0.0, 1e-10);
     });
 
+    test('complex underdetermined solve satisfies A * x = b', () {
+      final a = Matrix<Complex>.fromRows([
+        [
+          const Complex(1.0, 2.0),
+          const Complex(3.0, -1.0),
+          const Complex(0.0, 4.0),
+        ],
+        [
+          const Complex(2.0, -1.0),
+          const Complex(1.0, 1.0),
+          const Complex(-1.0, 2.0),
+        ],
+      ], type: DataType.complex);
+      final b = Vector<Complex>.fromList([
+        const Complex(5.0, 3.0),
+        const Complex(-2.0, 4.0),
+      ], type: DataType.complex);
+      final x = a.solveVector(b);
+      final ax = a.apply(x);
+      check(ax[0].a).isCloseTo(5.0, 1e-9);
+      check(ax[0].b).isCloseTo(3.0, 1e-9);
+      check(ax[1].a).isCloseTo(-2.0, 1e-9);
+      check(ax[1].b).isCloseTo(4.0, 1e-9);
+
+      final bMat = Matrix<Complex>.fromRows([
+        [const Complex(5.0, 3.0), const Complex(1.0, -1.0)],
+        [const Complex(-2.0, 4.0), const Complex(3.0, 2.0)],
+      ], type: DataType.complex);
+      final xMat = a.solve(bMat);
+      final axMat = a * xMat;
+      for (var r = 0; r < 2; r++) {
+        for (var c = 0; c < 2; c++) {
+          check(axMat[r][c].a).isCloseTo(bMat[r][c].a, 1e-9);
+          check(axMat[r][c].b).isCloseTo(bMat[r][c].b, 1e-9);
+        }
+      }
+    });
+
+    test(
+      '0-dimension matrices in solve, multiply, apply, and negative indexing',
+      () {
+        final m0x0 = Float64Matrix.filled(0, 0, 0.0);
+        final v0 = Float64Vector.filled(0, 0.0);
+        check(m0x0.solveVector(v0).length).equals(0);
+        check(m0x0.solve(m0x0).rowCount).equals(0);
+        check((m0x0 * m0x0).rowCount).equals(0);
+        check(m0x0.apply(v0).length).equals(0);
+
+        final m0x2 = Float64Matrix.filled(0, 2, 0.0);
+        final m2x0 = Float64Matrix.filled(2, 0, 0.0);
+        check(m0x2.solveVector(v0).length).equals(2);
+        final prod2x2 = m2x0 * m0x2;
+        check(prod2x2.rowCount).equals(2);
+        check(prod2x2.colCount).equals(2);
+        check(prod2x2[0][0]).equals(0.0);
+        check(m2x0.apply(v0).length).equals(2);
+
+        final m = Float64Matrix.fromRows([
+          [1.0, 2.0],
+          [3.0, 4.0],
+        ]);
+        check(m.row(-1)[0]).equals(3.0);
+        check(m.col(-1)[0]).equals(2.0);
+      },
+    );
+
     test('subMatrix with omitted rowEnd and colEnd', () {
       final m = Matrix<int>.fromRows([
         [1, 2, 3],

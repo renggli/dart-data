@@ -53,6 +53,19 @@ void main() {
       check(lu.det).isCloseTo(6.0, 1e-6);
     });
 
+    test('DataType.float32 matrix LU decomposition and solve', () {
+      final a = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [1.0, 3.0],
+      ], type: DataType.float32);
+      final b = Vector<double>.fromList([4.0, 7.0], type: DataType.float32);
+      final lu = LUDecomposition<double>(a);
+      check(lu.det).isCloseTo(5.0, 1e-5);
+      final x = lu.solveVector(b);
+      check(x[0]).isCloseTo(1.0, 1e-5);
+      check(x[1]).isCloseTo(2.0, 1e-5);
+    });
+
     test('solves linear system A * x = b', () {
       final a = Matrix<double>.fromRows([
         [2.0, 1.0, -1.0],

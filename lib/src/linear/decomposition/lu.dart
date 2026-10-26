@@ -89,7 +89,7 @@ class LUDecomposition<T> {
       _type = matrix.type,
       _lu = matrix.copy(),
       _piv = List<int>.generate(matrix.rowCount, (i) => i) {
-    if (_lu is Matrix<double>) {
+    if (_lu.tensor.data is Float64List) {
       _decomposeFloat64();
     } else {
       _decomposeGeneric();
@@ -183,7 +183,7 @@ class LUDecomposition<T> {
     if (!isNonsingular) {
       throw ArgumentError('Matrix is singular.');
     }
-    if (b is Matrix<double> && _lu is Matrix<double>) {
+    if (b is Matrix<double> && _lu.tensor.data is Float64List) {
       return _solveFloat64(b as Matrix<double>) as Matrix<T>;
     } else {
       return _solveGeneric(b);

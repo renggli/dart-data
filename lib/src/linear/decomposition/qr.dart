@@ -64,8 +64,8 @@ class QRDecomposition<T> {
         'QR decomposition requires rowCount ($m) >= colCount ($n).',
       );
     }
-    if (matrix is Matrix<double>) {
-      _decomposeFloat64(matrix as Matrix<double>);
+    if (_qr.tensor.data is Float64List) {
+      _decomposeFloat64();
     } else {
       _decomposeGeneric();
     }
@@ -125,7 +125,7 @@ class QRDecomposition<T> {
   /// Returns the economy-sized orthogonal (or unitary) factor $Q$ of size
   /// $m \times n$.
   Matrix<T> get q {
-    if (_qr is Matrix<double>) {
+    if (_qr.tensor.data is Float64List) {
       return _qFloat64() as Matrix<T>;
     }
     final field = _type.field;
@@ -191,7 +191,7 @@ class QRDecomposition<T> {
     if (!isFullRank) {
       throw StateError('Matrix is rank deficient.');
     }
-    if (b is Matrix<double> && _qr is Matrix<double>) {
+    if (b is Matrix<double> && _qr.tensor.data is Float64List) {
       return _solveFloat64(b as Matrix<double>) as Matrix<T>;
     }
     final field = _type.field;
@@ -253,7 +253,7 @@ class QRDecomposition<T> {
     return x.subMatrix(rowStart: 0, rowEnd: _n, colStart: 0, colEnd: nx);
   }
 
-  void _decomposeFloat64(Matrix<double> matrix) {
+  void _decomposeFloat64() {
     final qrData = _qr.tensor.data as Float64List;
     final rdiag = _rdiag as List<double>;
 

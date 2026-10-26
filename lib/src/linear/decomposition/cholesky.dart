@@ -139,7 +139,12 @@ class CholeskyDecomposition<T> {
       }
     }
 
-    final success = Lapack.dpotrf(uplo: cblasLower, n: _n, a: aList, lda: _n);
+    final success = Lapack.dpotrf(
+      uplo: cblasLower,
+      n: _n,
+      a: aList,
+      lda: math.max(1, _n),
+    );
 
     if (success) {
       _isSymmetricPositiveDefinite = true;
