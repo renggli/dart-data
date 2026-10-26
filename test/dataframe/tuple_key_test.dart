@@ -34,22 +34,6 @@ void main() {
     });
   });
 
-  group('extractKey', () {
-    test('specialized return types based on length', () {
-      check(extractKey([42])).equals(42);
-      check(extractKey(['a', 'b'])).equals(('a', 'b'));
-      check(extractKey(['a', 1, false])).equals(('a', 1, false));
-
-      final key4 = extractKey([1, 2, 3, 4]);
-      check(key4).isA<TupleKey>();
-      check((key4 as TupleKey).values).deepEquals([1, 2, 3, 4]);
-
-      final key0 = extractKey([]);
-      check(key0).isA<TupleKey>();
-      check((key0 as TupleKey).values).isEmpty();
-    });
-  });
-
   group('RowKeyExtractor', () {
     test('1 column extractor', () {
       final col = Series<num>.fromList('c0', [10, null, 20]);

@@ -111,7 +111,6 @@ extension OperationTensorExtension<T> on Tensor<T> {
       if (target == null) {
         final resultType =
             type ??
-            target?.type ??
             (R == T
                 ? this.type as DataType<R>
                 : (R == O
@@ -160,7 +159,6 @@ extension OperationTensorExtension<T> on Tensor<T> {
     if (target == null) {
       final resultType =
           type ??
-          target?.type ??
           (R == T
               ? this.type as DataType<R>
               : (R == O ? other.type as DataType<R> : DataType.fromType<R>()));

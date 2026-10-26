@@ -82,36 +82,7 @@ OptimizationResult minimize(
       ? OptimizationMethod.bfgs
       : OptimizationMethod.nelderMead;
 
-  if (resolvedMethod == OptimizationMethod.brent) {
-    if (init.length != 1) {
-      throw ArgumentError(
-        'OptimizationMethod.brent only supports 1D problems, got dimension ${init.length}.',
-      );
-    }
-    final low =
-        a ??
-        (bnds != null && bnds.isNotEmpty ? bnds[0].lower : null) ??
-        (init[0] - 1.0);
-    final high =
-        b ??
-        (bnds != null && bnds.isNotEmpty ? bnds[0].upper : null) ??
-        (init[0] + 1.0);
-    final res = brentMinimize(
-      (x) => function(Vector<double>.fromList([x], type: DataType.float64)),
-      a: low,
-      b: high,
-      tolerance: tolerance,
-      maxIterations: maxIterations,
-    );
-    return OptimizationResult(
-      point: Vector<double>.fromList([res.point], type: DataType.float64),
-      value: res.value,
-      iterations: res.iterations,
-      converged: res.converged,
-    );
-  }
-
-  if (hasConstraints) {
+  if (hasConstraints && resolvedMethod != OptimizationMethod.brent) {
     final res = minimizeConstrained(
       function,
       init,
@@ -135,6 +106,33 @@ OptimizationResult minimize(
   }
 
   switch (resolvedMethod) {
+    case OptimizationMethod.brent:
+      if (init.length != 1) {
+        throw ArgumentError(
+          'OptimizationMethod.brent only supports 1D problems, got dimension ${init.length}.',
+        );
+      }
+      final low =
+          a ??
+          (bnds != null && bnds.isNotEmpty ? bnds[0].lower : null) ??
+          (init[0] - 1.0);
+      final high =
+          b ??
+          (bnds != null && bnds.isNotEmpty ? bnds[0].upper : null) ??
+          (init[0] + 1.0);
+      final res = brentMinimize(
+        (x) => function(Vector<double>.fromList([x], type: DataType.float64)),
+        a: low,
+        b: high,
+        tolerance: tolerance,
+        maxIterations: maxIterations,
+      );
+      return OptimizationResult(
+        point: Vector<double>.fromList([res.point], type: DataType.float64),
+        value: res.value,
+        iterations: res.iterations,
+        converged: res.converged,
+      );
     case OptimizationMethod.nelderMead:
       final res = nelderMead(
         function,
@@ -180,7 +178,5 @@ OptimizationResult minimize(
         gradientNorm: res.gradientNorm,
         converged: res.gradientNorm <= tolerance,
       );
-    case OptimizationMethod.brent:
-      throw StateError('Unreachable');
   }
 }

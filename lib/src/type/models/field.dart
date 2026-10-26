@@ -3,8 +3,6 @@ import 'package:meta/meta.dart';
 /// Encapsulates a mathematical field.
 @immutable
 abstract interface class Field<T> {
-  const new();
-
   /// The additive neutral element.
   T get additiveIdentity;
 
@@ -83,9 +81,7 @@ abstract interface class Field<T> {
 
 /// An algebraic field extended with norm, square root, power, and
 /// transcendental functions.
-abstract interface class ExtendedField<T> implements Field<T> {
-  const new();
-}
+abstract interface class ExtendedField<T> implements Field<T>;
 
 /// Thrown when an operation is not supported.
 Never unsupportedOperation(String operation) =>

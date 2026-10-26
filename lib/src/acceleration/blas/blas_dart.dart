@@ -70,8 +70,7 @@ abstract final class BlasDart {
     if (n == 1) return x[xOffset].abs();
     var scale = 0.0;
     var sumsq = 1.0;
-    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
-    for (var i = 0, xi = startX; i < n; i++, xi += incX) {
+    for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
       final val = x[xi];
       if (val != 0.0) {
         final absVal = val.abs();
@@ -100,8 +99,7 @@ abstract final class BlasDart {
     if (n == 1) return x[xOffset].abs();
     var scale = 0.0;
     var sumsq = 1.0;
-    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
-    for (var i = 0, xi = startX; i < n; i++, xi += incX) {
+    for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
       final val = x[xi];
       if (val != 0.0) {
         final absVal = val.abs();
@@ -176,8 +174,7 @@ abstract final class BlasDart {
     required int incX,
   }) {
     if (n <= 0 || incX <= 0) return true;
-    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
-    for (var i = 0, xi = startX; i < n; i++, xi += incX) {
+    for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
       x[xi] *= alpha;
     }
     return true;
@@ -192,8 +189,7 @@ abstract final class BlasDart {
     required int incX,
   }) {
     if (n <= 0 || incX <= 0) return true;
-    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
-    for (var i = 0, xi = startX; i < n; i++, xi += incX) {
+    for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
       x[xi] *= alpha;
     }
     return true;

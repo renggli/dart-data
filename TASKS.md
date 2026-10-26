@@ -382,7 +382,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
 
 >Every line below was identified via coverage analysis and static flow inspection as mathematically or structurally unreachable, unused, or redundant. Remove or simplify these directly so no dead code remains in `lib/` or `web/`.
 
-### [ ] TASK-5.1: Remove Unreachable & Dead Code Across `type`, `tensor`, `acceleration`, `linear`, `numeric`, `stats`, and `dataframe`
+### [x] TASK-5.1: Remove Unreachable & Dead Code Across `type`, `tensor`, `acceleration`, `linear`, `numeric`, `stats`, and `dataframe`
 - **Files & Exact Targets**:
   1. **`lib/src/type/models/field.dart` (lines 6, 87) & `lib/src/type/models/equality.dart` (line 6)**:
      - `Field`, `ExtendedField`, and `Equality` are declared `abstract interface class` (which cannot be extended, only implemented), making their `const new();` constructors 100% unreachable. Remove `const new();` from those three `abstract interface class`es.

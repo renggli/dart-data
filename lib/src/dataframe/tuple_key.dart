@@ -28,20 +28,6 @@ final class TupleKey {
   String toString() => 'TupleKey($values)';
 }
 
-/// Extracts a composite key from a list of [values].
-///
-/// Returns:
-/// - The direct value if [values] has length 1.
-/// - A 2-record `(values[0], values[1])` if [values] has length 2.
-/// - A 3-record `(values[0], values[1], values[2])` if [values] has length 3.
-/// - A [TupleKey] wrapping [values] otherwise.
-Object? extractKey(List<Object?> values) => switch (values.length) {
-  1 => values[0],
-  2 => (values[0], values[1]),
-  3 => (values[0], values[1], values[2]),
-  _ => TupleKey(values),
-};
-
 /// Optimized extractor for row keys across columnar series.
 ///
 /// Provides specialized zero-allocation record-based key extraction for 1, 2,

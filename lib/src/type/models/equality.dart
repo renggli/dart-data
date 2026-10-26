@@ -3,8 +3,6 @@ import 'package:meta/meta.dart';
 /// Encapsulates equality between and the hash code of objects.
 @immutable
 abstract interface class Equality<T> {
-  const new();
-
   /// Returns `true`, if [a] and [b] are the same.
   bool isEqual(T a, T b);
 
