@@ -214,8 +214,13 @@ void main() {
       ).equals('2 * sqrt(3) * abs(x)');
       check(Expr.parse('sqrt(12 * x^2)').simplify().toString())
           .equals('2 * sqrt(3 * x ^ 2)');
+      check(
+        Expr.parse('sqrt(4 * exp(2 * x))')
+            .simplify(assumptions: Assumptions.real)
+            .toString(),
+      ).equals('2 * exp(x)');
       check(Expr.parse('sqrt(4 * exp(2 * x))').simplify().toString())
-          .equals('2 * exp(x)');
+          .equals('2 * sqrt(exp(2 * x))');
 
       // Odd powers in product fractional roots require non-negative base
       check(

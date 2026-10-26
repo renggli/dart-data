@@ -292,7 +292,7 @@ Expr simplifyPow(
         }
         remainingBaseFactors.add(f);
       } else if (f case Pow(base: Constant.e, exponent: final innerExp)
-          when isRealExpr(innerExp, assumptions)) {
+          when isProvenReal(innerExp, assumptions)) {
         extractedFactors.add(
           simplifyPow(
             Constant.e,

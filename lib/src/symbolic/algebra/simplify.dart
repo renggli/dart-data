@@ -168,12 +168,15 @@ Expr simplifyExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     ),
     Asinh(:final expr) => simplifyAsinh(
       simplifyExpr(expr, assumptions: assumptions),
+      assumptions: assumptions,
     ),
     Acosh(:final expr) => simplifyAcosh(
       simplifyExpr(expr, assumptions: assumptions),
+      assumptions: assumptions,
     ),
     Atanh(:final expr) => simplifyAtanh(
       simplifyExpr(expr, assumptions: assumptions),
+      assumptions: assumptions,
     ),
     RelationalExpr() => simplifyRelational(expr, assumptions: assumptions),
     Piecewise() => simplifyPiecewise(expr, assumptions: assumptions),

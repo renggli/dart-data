@@ -115,6 +115,31 @@ void main() {
             .simplify(assumptions: Assumptions.real)
             .toString(),
       ).equals('x ^ 2');
+
+      check(Expr.parse('abs(x^2)').simplify().toString()).equals('abs(x) ^ 2');
+      check(
+        Expr.parse('abs(x^2)')
+            .simplify(assumptions: Assumptions.real)
+            .toString(),
+      ).equals('x ^ 2');
+
+      check(Expr.parse('sqrt(exp(x))').simplify().toString())
+          .equals('sqrt(exp(x))');
+      check(
+        Expr.parse('sqrt(exp(x))')
+            .simplify(assumptions: Assumptions.real)
+            .toString(),
+      ).equals('exp(1/2 * x)');
+
+      check(Expr.parse('re(x)').simplify().toString()).equals('re(x)');
+      check(Expr.parse('re(x)').simplify(assumptions: Assumptions.real))
+          .equals(const Variable('x'));
+      check(Expr.parse('im(x)').simplify().toString()).equals('im(x)');
+      check(Expr.parse('im(x)').simplify(assumptions: Assumptions.real))
+          .equals(IntegerNumber.zero);
+      check(Expr.parse('conj(x)').simplify().toString()).equals('conj(x)');
+      check(Expr.parse('conj(x)').simplify(assumptions: Assumptions.real))
+          .equals(const Variable('x'));
     });
 
     test('logarithm power rules across domains', () {
