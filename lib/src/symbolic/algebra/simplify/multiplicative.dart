@@ -130,6 +130,9 @@ Expr simplifyMul(
           exp,
         ], assumptions: assumptions);
         if (sumExp is Number && sumExp.isZero) {
+          if (sumExp is RealNumber || base is RealNumber) {
+            coeff = coeff.mul(const RealNumber(1.0));
+          }
           baseExponents.remove(base);
         } else {
           baseExponents[base] = sumExp;
@@ -159,12 +162,26 @@ Expr simplifyMul(
     switch (term) {
       case final Number n:
         coeff = coeff.mul(n);
-        if (coeff.isZero) return IntegerNumber.zero;
+        if (coeff.isZero) {
+          return (coeff is RealNumber ||
+                  (coeff is ComplexNumber &&
+                      (coeff.real is RealNumber ||
+                          coeff.imaginary is RealNumber)))
+              ? const RealNumber(0.0)
+              : IntegerNumber.zero;
+        }
       case Mul(:final factors):
         for (final sub in factors) {
           if (sub is Number) {
             coeff = coeff.mul(sub);
-            if (coeff.isZero) return IntegerNumber.zero;
+            if (coeff.isZero) {
+              return (coeff is RealNumber ||
+                      (coeff is ComplexNumber &&
+                          (coeff.real is RealNumber ||
+                              coeff.imaginary is RealNumber)))
+                  ? const RealNumber(0.0)
+                  : IntegerNumber.zero;
+            }
           } else {
             remainingFactors.add(sub);
           }

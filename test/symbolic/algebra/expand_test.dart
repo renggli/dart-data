@@ -75,7 +75,7 @@ void main() {
       check(Pow(base, IntegerNumber.zero).expand()).equals(IntegerNumber.one);
       check(Pow(base, IntegerNumber.one).expand().toString()).equals('1 + x');
       check(Pow(base, const RealNumber(2.0)).expand().toString())
-          .equals('1 + 2 * x + x ^ 2');
+          .equals('(1 + x) ^ 2.0');
 
       final negPow = Expr.parse('(x + 1)^(-2)').expand();
       check(negPow.evaluate({'x': 1.0})).equals(0.25);

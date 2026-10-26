@@ -60,7 +60,7 @@ sealed class Expr {
     if (value is Complex) {
       final a = value.a;
       final b = value.b;
-      if (b == 0) {
+      if (b == 0 && b is int) {
         return a.isFinite ? _wrapNum(a) : RealNumber.fromDouble(a.toDouble());
       }
       final real = a.isFinite
@@ -212,18 +212,9 @@ sealed class Expr {
   @override
   String toString() => format();
 
-  static Expr _wrapNum(num value) {
-    if (!value.isFinite) {
-      return RealNumber.fromDouble(value.toDouble());
-    }
-    if (value is int) {
-      return IntegerNumber(Integer.from(value));
-    }
-    if (value == value.truncateToDouble() && value.abs() < 9007199254740992.0) {
-      return IntegerNumber(Integer.from(value.toInt()));
-    }
-    return RealNumber.fromDouble(value.toDouble());
-  }
+  static Expr _wrapNum(num value) => value is int
+      ? IntegerNumber(Integer.from(value))
+      : RealNumber.fromDouble(value.toDouble());
 
   static bool _isRealSubtree(Expr node) => switch (node) {
     ComplexNumber(:final imaginary) => imaginary.isZero,

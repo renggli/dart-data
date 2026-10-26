@@ -5,15 +5,14 @@ import '../../linear/vector.dart';
 import '../../type/data_type.dart';
 import '../../type/models/equality.dart';
 import '../../type/models/field.dart';
-import '../algebra/approximate.dart';
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/factor/fraction.dart';
 import '../algebra/simplify.dart';
 import '../algebra/structural_order.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
-import '../number/integer.dart';
 
 /// Canonical singleton instance of [ExprDataType].
 const ExprDataType exprDataType = ExprDataType();
@@ -145,23 +144,9 @@ final class ExprField implements ExtendedField<Expr> {
   Expr inv(Expr a) => (IntegerNumber.one / a).simplify();
 
   @override
-  Expr scale(Expr a, num factor) {
-    if (factor is int) {
-      return (a * IntegerNumber.of(factor)).simplify();
-    }
-    final d = factor.toDouble();
-    if (d.isFinite &&
-        d == d.truncateToDouble() &&
-        d.abs() <= Integer.maxSafe.toDouble()) {
-      return (a * IntegerNumber.of(d.toInt())).simplify();
-    }
-    if (RealNumber.fromDouble(d).rationalize(maxDenominator: 64)
-        case final RationalNumber rat
-        when (rat.toDouble() - d).abs() <= 1e-12) {
-      return (a * rat).simplify();
-    }
-    return (a * RealNumber.fromDouble(d)).simplify();
-  }
+  Expr scale(Expr a, num factor) => factor is int
+      ? (a * IntegerNumber.of(factor)).simplify()
+      : (a * RealNumber.fromDouble(factor.toDouble())).simplify();
 
   @override
   Expr pow(Expr base, Expr exponent) => Pow(base, exponent).simplify();
@@ -194,7 +179,8 @@ final class ExprField implements ExtendedField<Expr> {
   Expr log(Expr a) => Ln(a).simplify();
 
   @override
-  Expr conjugate(Expr a) => Conjugate(a).simplify();
+  Expr conjugate(Expr a) =>
+      Conjugate(a).simplify(assumptions: Assumptions.real);
 
   @override
   Expr mod(Expr a, Expr b) => unsupportedOperation('mod');

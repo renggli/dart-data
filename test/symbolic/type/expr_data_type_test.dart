@@ -90,10 +90,10 @@ void main() {
       check(f.neg(x)).equals(-x);
       check(f.inv(IntegerNumber.two)).equals(FractionNumber.half);
 
-      // scale with int, integer double, rationalizable double, and general double
+      // scale with int and double (preserving RealNumber contagion)
       check(f.scale(x, 3)).equals((x * 3).simplify());
-      check(f.scale(x, 3.0)).equals((x * 3).simplify());
-      check(f.scale(x, 0.25)).equals((x * FractionNumber.quarter).simplify());
+      check(f.scale(x, 3.5)).equals((x * const RealNumber(3.5)).simplify());
+      check(f.scale(x, 0.25)).equals((x * const RealNumber(0.25)).simplify());
       check(f.scale(x, math.pi))
           .equals((x * const RealNumber(math.pi)).simplify());
 

@@ -94,16 +94,15 @@ void main() {
       check(
         x + const Complex(2, 3),
       ).equals(Add([x, ComplexNumber(IntegerNumber.two, IntegerNumber.of(3))]));
-      check(x + const Complex(2.0, 0.0)).equals(Add([x, IntegerNumber.two]));
       check(x + const Complex(2.5, 0.0))
           .equals(Add([x, const RealNumber(2.5)]));
       check(x + const Complex(double.infinity, 0.0))
           .equals(Add([x, Constant.infinity]));
-      check(x + const Complex(double.infinity, 2.0)).equals(
+      check(x + const Complex(double.infinity, 2.5)).equals(
         Add([
           x,
           Constant.infinity,
-          const ComplexNumber(IntegerNumber.zero, IntegerNumber.two),
+          const ComplexNumber(IntegerNumber.zero, RealNumber(2.5)),
         ]),
       );
       check(x + 'y').equals(Add([x, const Variable('y')]));

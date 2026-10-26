@@ -4,6 +4,7 @@ import '../algebra/approximate.dart';
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/differentiation.dart';
 import '../calculus/integration.dart';
@@ -196,13 +197,16 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   }
 
   /// Canonically simplifies every entry of this matrix.
-  Matrix<Expr> simplify() => _mapEntries((e) => e.simplify());
+  Matrix<Expr> simplify({Assumptions assumptions = Assumptions.none}) =>
+      _mapEntries((e) => e.simplify(assumptions: assumptions));
 
   /// Expands products and powers in every entry of this matrix.
-  Matrix<Expr> expand() => _mapEntries((e) => e.expand());
+  Matrix<Expr> expand({Assumptions assumptions = Assumptions.none}) =>
+      _mapEntries((e) => e.expand(assumptions: assumptions));
 
   /// Factors every entry of this matrix.
-  Matrix<Expr> factor() => _mapEntries((e) => e.factor());
+  Matrix<Expr> factor({Assumptions assumptions = Assumptions.none}) =>
+      _mapEntries((e) => e.factor(assumptions: assumptions));
 
   /// Substitutes [replacement] for [variable] in every entry of this matrix.
   Matrix<Expr> substitute(String variable, Expr replacement) =>
@@ -235,13 +239,25 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// // dm[0][0] == 2*x, dm[0][1] == Cos(x)
   /// // dm[1][0] == 3,   dm[1][1] == e^x
   /// ```
-  Matrix<Expr> derivative(String variable, {int order = 1}) =>
-      _mapEntries((e) => e.derivative(variable, order: order).simplify());
+  Matrix<Expr> derivative(
+    String variable, {
+    int order = 1,
+    Assumptions assumptions = Assumptions.none,
+  }) => _mapEntries(
+    (e) =>
+        e.derivative(variable, order: order).simplify(assumptions: assumptions),
+  );
 
   /// Computes the element-wise symbolic integral of this matrix with respect
   /// to [variable].
-  Matrix<Expr> integrate(String variable, {Object? from, Object? to}) =>
-      _mapEntries((e) => e.integrate(variable, from: from, to: to));
+  Matrix<Expr> integrate(
+    String variable, {
+    Object? from,
+    Object? to,
+    Assumptions assumptions = Assumptions.none,
+  }) => _mapEntries(
+    (e) => e.integrate(variable, from: from, to: to, assumptions: assumptions),
+  );
 
   /// Formats this matrix into a canonical literal string `[[a, b], [c, d]]`
   /// compatible with `ExprSyntax.parseMatrix`.
@@ -284,13 +300,16 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
 /// Element-wise algebra, calculus, and textualization extensions on symbolic [Vector].
 extension SymbolicVectorExtension on Vector<Expr> {
   /// Canonically simplifies every entry of this vector.
-  Vector<Expr> simplify() => _mapEntries((e) => e.simplify());
+  Vector<Expr> simplify({Assumptions assumptions = Assumptions.none}) =>
+      _mapEntries((e) => e.simplify(assumptions: assumptions));
 
   /// Expands products and powers in every entry of this vector.
-  Vector<Expr> expand() => _mapEntries((e) => e.expand());
+  Vector<Expr> expand({Assumptions assumptions = Assumptions.none}) =>
+      _mapEntries((e) => e.expand(assumptions: assumptions));
 
   /// Factors every entry of this vector.
-  Vector<Expr> factor() => _mapEntries((e) => e.factor());
+  Vector<Expr> factor({Assumptions assumptions = Assumptions.none}) =>
+      _mapEntries((e) => e.factor(assumptions: assumptions));
 
   /// Substitutes [replacement] for [variable] in every entry of this vector.
   Vector<Expr> substitute(String variable, Expr replacement) =>
@@ -319,13 +338,25 @@ extension SymbolicVectorExtension on Vector<Expr> {
   /// final dv = v.derivative('x');
   /// // dv[0] == 2*x, dv[1] == Cos(x)
   /// ```
-  Vector<Expr> derivative(String variable, {int order = 1}) =>
-      _mapEntries((e) => e.derivative(variable, order: order).simplify());
+  Vector<Expr> derivative(
+    String variable, {
+    int order = 1,
+    Assumptions assumptions = Assumptions.none,
+  }) => _mapEntries(
+    (e) =>
+        e.derivative(variable, order: order).simplify(assumptions: assumptions),
+  );
 
   /// Computes the element-wise symbolic integral of this vector with respect
   /// to [variable].
-  Vector<Expr> integrate(String variable, {Object? from, Object? to}) =>
-      _mapEntries((e) => e.integrate(variable, from: from, to: to));
+  Vector<Expr> integrate(
+    String variable, {
+    Object? from,
+    Object? to,
+    Assumptions assumptions = Assumptions.none,
+  }) => _mapEntries(
+    (e) => e.integrate(variable, from: from, to: to, assumptions: assumptions),
+  );
 
   /// Formats this vector into a canonical literal string `[a, b, c]`
   /// compatible with `ExprSyntax.parseVector`.

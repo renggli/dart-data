@@ -88,14 +88,20 @@ void main() {
         check(Expr.parse('arg(i)').simplify().toString()).equals('1/2 * pi');
         check(Expr.parse('arg(-i)').simplify().toString()).equals('-1/2 * pi');
 
-        // Real variables simplify directly
-        check(Re(x).simplify()).equals(x);
-        check(Im(x).simplify()).equals(IntegerNumber.zero);
-        check(Conjugate(x).simplify()).equals(x);
-        check(Expr.parse('re(exp(i * x))').simplify()).equals(Cos(x));
-        check(Expr.parse('im(exp(i * x))').simplify()).equals(Sin(x));
-        check(Expr.parse('abs(exp(i * x))').simplify())
-            .equals(IntegerNumber.one);
+        // Real variables simplify directly under real assumptions
+        check(Re(x).simplify(assumptions: Assumptions.real)).equals(x);
+        check(Im(x).simplify(assumptions: Assumptions.real))
+            .equals(IntegerNumber.zero);
+        check(Conjugate(x).simplify(assumptions: Assumptions.real)).equals(x);
+        check(
+          Expr.parse('re(exp(i * x))').simplify(assumptions: Assumptions.real),
+        ).equals(Cos(x));
+        check(
+          Expr.parse('im(exp(i * x))').simplify(assumptions: Assumptions.real),
+        ).equals(Sin(x));
+        check(
+          Expr.parse('abs(exp(i * x))').simplify(assumptions: Assumptions.real),
+        ).equals(IntegerNumber.one);
 
         // Complex variable remains symbolic
         const complexZ = Assumptions(domains: {'z': VariableDomain.complex});
@@ -164,12 +170,21 @@ void main() {
     );
 
     test('toRectangular and toPolar normal forms', () {
-      check(Expr.parse('(x + i * y)^2').toRectangular().toString())
-          .equals('x ^ 2 - y ^ 2 + 2 * i * x * y');
-      check(Expr.parse('exp(i * x)').toRectangular().toString())
-          .equals('cos(x) + i * sin(x)');
-      check(Expr.parse('1 / (x + i * y)').toRectangular().toString())
-          .equals('x / (x ^ 2 + y ^ 2) - i * y / (x ^ 2 + y ^ 2)');
+      check(
+        Expr.parse('(x + i * y)^2')
+            .toRectangular(assumptions: Assumptions.real)
+            .toString(),
+      ).equals('x ^ 2 - y ^ 2 + 2 * i * x * y');
+      check(
+        Expr.parse('exp(i * x)')
+            .toRectangular(assumptions: Assumptions.real)
+            .toString(),
+      ).equals('cos(x) + i * sin(x)');
+      check(
+        Expr.parse('1 / (x + i * y)')
+            .toRectangular(assumptions: Assumptions.real)
+            .toString(),
+      ).equals('x / (x ^ 2 + y ^ 2) - i * y / (x ^ 2 + y ^ 2)');
 
       check(Expr.parse('1 + i').toPolar().toString())
           .equals('sqrt(2) * exp(1/4 * i * pi)');

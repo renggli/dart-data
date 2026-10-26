@@ -186,19 +186,15 @@ Expr _mergePolyFactors(List<_PolyFactor> a, List<_PolyFactor> b) {
 }
 
 Expr _expandPow(Expr base, Expr exponent) {
-  final intExp = switch (exponent) {
-    IntegerNumber(:final asInt) => asInt,
-    RealNumber(:final value)
-        when value == value.roundToDouble() && value.abs() < 1e9 =>
-      value.round(),
-    _ => null,
-  };
-
-  if (intExp != null) {
+  if (exponent case IntegerNumber(asInt: final intExp?)) {
     if (intExp < 0 && base is Number && base.isZero) {
       throw UnsupportedError('Division by zero in expansion');
     }
-    if (intExp == 0) return IntegerNumber.one;
+    if (intExp == 0) {
+      return base.anyNode((n) => n is RealNumber)
+          ? const RealNumber(1.0)
+          : IntegerNumber.one;
+    }
     if (intExp == 1) return base;
     if (intExp > 1) {
       return _expandPowInteger(base, intExp);

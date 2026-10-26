@@ -45,6 +45,9 @@ void main() {
 
       final simplified = parsed.simplify();
       check(simplified.get(0, 1).toString()).equals('2 * x');
+      final absMat = syntax.parseMatrix('[[abs(x)]]');
+      check(absMat.simplify(assumptions: Assumptions.positive).get(0, 0))
+          .equals(const Variable('x'));
 
       final factored = expanded.factor();
       check(factored.get(1, 0).expand().simplify())
@@ -187,6 +190,11 @@ void main() {
       check(syntax.parseVector(v.format()).toList()).deepEquals(v.toList());
 
       check(v.expand()[0].toString()).equals('1 + 2 * x + x ^ 2');
+      check(
+        syntax
+            .parseVector('[abs(x)]')
+            .simplify(assumptions: Assumptions.positive)[0],
+      ).equals(const Variable('x'));
       check(v.factor()[1].expand().simplify()).equals(v[1].simplify());
       check(v.substitute('x', IntegerNumber.two).simplify()[1])
           .equals(IntegerNumber.of(3));
