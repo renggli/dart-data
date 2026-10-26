@@ -248,6 +248,19 @@ DataFrame importDataFrameFromArrowC({
     );
 
     final columnCount = schemaPtr.ref.n_children;
+    if (arrayPtr.ref.n_children != columnCount) {
+      throw FormatException(
+        'ArrowArray n_children (${arrayPtr.ref.n_children}) does not match '
+        'ArrowSchema n_children ($columnCount).',
+      );
+    }
+    if (columnCount > 0 &&
+        (schemaPtr.ref.children == ffi.nullptr ||
+            arrayPtr.ref.children == ffi.nullptr)) {
+      throw const FormatException(
+        'ArrowSchema or ArrowArray children pointer is null when n_children > 0.',
+      );
+    }
     final columns = <Series<Object?>>[];
 
     for (var i = 0; i < columnCount; i++) {
@@ -451,6 +464,15 @@ Series<Object?> importSeriesFromArrowC({
       length: length,
       nullCount: nullCount,
     );
+
+    final minBuffers = format == 'u' ? 3 : 2;
+    if (arrayPtr.ref.n_buffers < minBuffers ||
+        arrayPtr.ref.buffers == ffi.nullptr ||
+        arrayPtr.ref.buffers[1] == ffi.nullptr) {
+      throw FormatException(
+        'Invalid ArrowArray buffers for format "$format" (n_buffers: ${arrayPtr.ref.n_buffers}).',
+      );
+    }
 
     switch (format) {
       case 'g':

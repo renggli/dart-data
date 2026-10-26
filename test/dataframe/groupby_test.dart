@@ -177,13 +177,13 @@ void main() {
 
       // Group B (only null value)
       check(result['v_count'][1]).equals(0);
-      check(result['v_sum'][1]).equals(0);
+      check(result['v_sum'][1]).equals(0.0);
       check(result['v_mean'][1]).isNull();
       check(result['v_min'][1]).isNull();
       check(result['v_max'][1]).isNull();
       check(result['v_first'][1]).isNull();
       check(result['v_last'][1]).isNull();
-      check(result['v_std'][1]).equals(0.0);
+      check(result['v_std'][1]).isNull();
       check(result['v_variance'][1]).isNull();
       check(result['v_median'][1]).isNull();
     });
@@ -512,7 +512,7 @@ void main() {
           check(res['salary_mean'][row]).equals(90.0);
           check(res['salary_variance'][row]).isNull();
           check(res['salary_median'][row]).equals(90.0);
-          check(res['salary_std'][row]).equals(0.0);
+          check(res['salary_std'][row]).isNull();
         } else if (dept == 'HR' && role == 'recruiter') {
           check(res['salary_count'][row]).equals(2);
           check(res['salary_mean'][row]).equals(60.0);

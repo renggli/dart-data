@@ -44,9 +44,13 @@ class DataFrame {
   new _(List<Series<Object?>> list)
     : _columns = list,
       rowCount = list.isEmpty ? 0 : list[0].length,
-      _columnIndex = {for (var i = 0; i < list.length; i++) list[i].name: i} {
+      _columnIndex = {} {
     for (var i = 0; i < list.length; i++) {
       final col = list[i];
+      if (_columnIndex.containsKey(col.name)) {
+        throw ArgumentError('Duplicate column name "${col.name}" in DataFrame');
+      }
+      _columnIndex[col.name] = i;
       if (col.length != rowCount) {
         throw ArgumentError(
           'All columns must have identical length ($rowCount), but column "${col.name}" has ${col.length}',
@@ -68,7 +72,10 @@ class DataFrame {
   /// Constructs a [DataFrame] from a list of row maps.
   factory fromRows(List<Map<String, Object?>> rows) {
     if (rows.isEmpty) return DataFrame([]);
-    final colNames = rows.first.keys.toList();
+    final colNames = <String>{};
+    for (final row in rows) {
+      colNames.addAll(row.keys);
+    }
     final colData = <String, List<Object?>>{
       for (final name in colNames) name: [],
     };
@@ -88,7 +95,7 @@ class DataFrame {
   factory fromJson(
     String source, {
     JsonOrient? orient,
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) => DataFrameJsonDecoder.decode(
     source,
     orient: orient,
@@ -97,8 +104,8 @@ class DataFrame {
 
   /// Constructs a [DataFrame] from an iterable of record maps.
   factory fromRecords(
-    Iterable<Map<String, dynamic>> records, {
-    Map<String, DataType<dynamic>>? columnTypes,
+    Iterable<Map<String, Object?>> records, {
+    Map<String, DataType<Object?>>? columnTypes,
   }) => DataFrameJsonDecoder.fromRecords(records, columnTypes: columnTypes);
 
   /// Constructs a [DataFrame] by decoding an Apache Arrow IPC stream byte
@@ -549,7 +556,7 @@ class DataFrame {
       DataFrameJsonEncoder.encode(this, orient: orient);
 
   /// Converts this [DataFrame] rows to a list of record maps.
-  List<Map<String, dynamic>> toRecords() =>
+  List<Map<String, Object?>> toRecords() =>
       DataFrameJsonEncoder.toRecords(this);
 
   /// Serializes this [DataFrame] to Apache Arrow IPC stream byte format.

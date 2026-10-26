@@ -819,5 +819,26 @@ line 2",10
       check(() => df.sortBy(['dept'], nullsLast: [true, false]))
           .throws<ArgumentError>();
     });
+
+    test('rejects duplicate column names and unions fromRows keys', () {
+      check(
+        () => DataFrame([
+          Series.fromList('a', [1, 2]),
+          Series.fromList('a', [3, 4]),
+        ]),
+      ).throws<ArgumentError>();
+
+      final dfRows = DataFrame.fromRows([
+        {'a': 1},
+        {'a': 2, 'b': 'hello'},
+      ]);
+      check(dfRows.columnNames).deepEquals(['a', 'b']);
+      check(dfRows['b'].toList()).deepEquals([null, 'hello']);
+
+      // CSV 64-bit integer preservation
+      final dfCsv = DataFrame.fromCsv('id\n5000000000\n-5000000000');
+      check(dfCsv['id'].dataType).equals(DataType.int64);
+      check(dfCsv['id'].toList()).deepEquals([5000000000, -5000000000]);
+    });
   });
 }

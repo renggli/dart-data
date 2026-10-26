@@ -93,6 +93,23 @@ class _ArrowIpcStreamWriter {
 
   Uint8List build() {
     final schemaDf = batches.isNotEmpty ? batches.first : DataFrame([]);
+    for (var b = 1; b < batches.length; b++) {
+      final df = batches[b];
+      if (df.columnCount != schemaDf.columnCount) {
+        throw ArgumentError(
+          'Batch $b column count (${df.columnCount}) does not match schema column count (${schemaDf.columnCount}).',
+        );
+      }
+      for (var c = 0; c < schemaDf.columnCount; c++) {
+        final col0 = schemaDf.columns[c];
+        final colB = df.columns[c];
+        if (colB.name != col0.name || colB.dataType != col0.dataType) {
+          throw ArgumentError(
+            'Batch $b column $c ("${colB.name}", ${colB.dataType}) does not match schema ("${col0.name}", ${col0.dataType}).',
+          );
+        }
+      }
+    }
     // 1. Write Schema Message
     final schemaFb = _buildSchemaFlatBuffer(schemaDf);
     _writeMessage(schemaFb, null);
@@ -716,13 +733,18 @@ class _ArrowIpcStreamReader {
       bufferIdx++;
 
       ValidityMask? mask;
-      if (nullCount > 0 && vLength > 0) {
+      if (nullCount != 0 && vLength > 0 && colLength > 0) {
         final maskBytes = Uint8List.sublistView(
           body,
           vOffset,
           vOffset + vLength,
         );
-        mask = ValidityMask.fromBytes(colLength, maskBytes, nullCount);
+        mask = ValidityMask.fromBytes(
+          colLength,
+          maskBytes,
+          nullCount > 0 ? nullCount : null,
+        );
+        if (!mask.hasNulls) mask = null;
       }
 
       // Read data buffers based on type
@@ -749,14 +771,19 @@ class _ArrowIpcStreamReader {
         bufferIdx++;
 
         final offCount = offLen ~/ 4;
-        final offView = ByteData.sublistView(
-          body,
-          offOffset,
-          offOffset + offLen,
-        );
-        final offsets = Uint32List(offCount);
-        for (var j = 0; j < offCount; j++) {
-          offsets[j] = offView.getUint32(j * 4, Endian.little);
+        final Uint32List offsets;
+        if (offCount == 0) {
+          offsets = Uint32List(colLength + 1);
+        } else {
+          final offView = ByteData.sublistView(
+            body,
+            offOffset,
+            offOffset + offLen,
+          );
+          offsets = Uint32List(offCount);
+          for (var j = 0; j < offCount; j++) {
+            offsets[j] = offView.getUint32(j * 4, Endian.little);
+          }
         }
         final strBytes = bytesLen == 0
             ? Uint8List(0)

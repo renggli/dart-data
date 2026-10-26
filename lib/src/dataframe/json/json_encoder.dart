@@ -10,7 +10,7 @@ abstract final class DataFrameJsonEncoder {
     final names = df.columnNames;
     final cols = [for (final name in names) df.column(name)];
     final rowCount = df.rowCount;
-    final dynamic jsonObject = switch (orient) {
+    final jsonObject = switch (orient) {
       JsonOrient.records => toRecords(df),
       JsonOrient.split => {
         'columns': names,
@@ -31,13 +31,13 @@ abstract final class DataFrameJsonEncoder {
   }
 
   /// Converts [df] into a list of row maps.
-  static List<Map<String, dynamic>> toRecords(DataFrame df) {
+  static List<Map<String, Object?>> toRecords(DataFrame df) {
     final names = df.columnNames;
     final cols = [for (final name in names) df.column(name)];
     final rowCount = df.rowCount;
-    final records = <Map<String, dynamic>>[];
+    final records = <Map<String, Object?>>[];
     for (var r = 0; r < rowCount; r++) {
-      final record = <String, dynamic>{};
+      final record = <String, Object?>{};
       for (var c = 0; c < names.length; c++) {
         record[names[c]] = cols[c][r];
       }

@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -600,6 +601,21 @@ void main() {
       check(joined.rowCount).equals(2);
       check(joined['user_id'].toList()).deepEquals([2, 3]);
       check(joined['id'].toList()).deepEquals([2, 3]);
+    });
+
+    test('preserves narrow DataTypes across joins', () {
+      final l = DataFrame([
+        Series<int>.fromList('k', [1, 2], type: DataType.int8),
+        Series<double>.fromList('v1', [1.5, 2.5], type: DataType.float32),
+      ]);
+      final r = DataFrame([
+        Series<int>.fromList('k', [2, 3], type: DataType.int8),
+        Series<int>.fromList('v2', [10, 20], type: DataType.uint16),
+      ]);
+      final j = l.join(r, on: ['k'], type: JoinType.left);
+      check(j['k'].dataType).equals(DataType.int8);
+      check(j['v1'].dataType).equals(DataType.float32);
+      check(j['v2'].dataType).equals(DataType.uint16);
     });
 
     test('validation errors for leftOn and rightOn', () {

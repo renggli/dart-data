@@ -111,8 +111,9 @@ extension JoinDataFrameExtension on DataFrame {
       ),
     };
 
-    // Build output columns
-    final resultCols = <String, List<dynamic>>{};
+    // Build output columns preserving column DataType
+    final outputColumns = <Series<Object?>>[];
+    final usedNames = <String>{};
     final onSet = on != null ? on.toSet() : const <String>{};
 
     if (on != null) {
@@ -120,7 +121,7 @@ extension JoinDataFrameExtension on DataFrame {
       for (final keyCol in on) {
         final leftCol = column(keyCol);
         final rightCol = other.column(keyCol);
-        final vals = <dynamic>[];
+        final vals = <Object?>[];
         for (final (leftIdx, rightIdx) in matchedPairs) {
           if (leftIdx != null) {
             vals.add(leftCol[leftIdx]);
@@ -130,7 +131,10 @@ extension JoinDataFrameExtension on DataFrame {
             vals.add(null);
           }
         }
-        resultCols[keyCol] = vals;
+        usedNames.add(keyCol);
+        outputColumns.add(
+          Series.fromList(keyCol, vals, type: leftCol.dataType),
+        );
       }
     }
 
@@ -138,24 +142,30 @@ extension JoinDataFrameExtension on DataFrame {
     for (final col in columnNames) {
       if (onSet.contains(col)) continue;
       final leftCol = column(col);
-      resultCols[col] = [
+      final vals = <Object?>[
         for (final (leftIdx, _) in matchedPairs)
           if (leftIdx != null) leftCol[leftIdx] else null,
       ];
+      usedNames.add(col);
+      outputColumns.add(Series.fromList(col, vals, type: leftCol.dataType));
     }
 
     // Non-key columns from right (or all right columns if on == null)
     for (final col in other.columnNames) {
       if (onSet.contains(col)) continue;
-      final outName = resultCols.containsKey(col) ? '$col$suffix' : col;
+      final outName = usedNames.contains(col) ? '$col$suffix' : col;
       final rightCol = other.column(col);
-      resultCols[outName] = [
+      final vals = <Object?>[
         for (final (_, rightIdx) in matchedPairs)
           if (rightIdx != null) rightCol[rightIdx] else null,
       ];
+      usedNames.add(outName);
+      outputColumns.add(
+        Series.fromList(outName, vals, type: rightCol.dataType),
+      );
     }
 
-    return DataFrame.fromColumns(resultCols);
+    return DataFrame(outputColumns);
   }
 }
 

@@ -204,13 +204,13 @@ abstract class Series<T> {
   /// list.
   factory fromList(
     String name,
-    Iterable<dynamic> iterable, {
+    Iterable<Object?> iterable, {
     DataType<T>? type,
   }) {
     final list = iterable.toList(growable: false);
     if (type != null) {
-      if (T == int ||
-          (type is DataType<int> && T != num && T != dynamic && T != Object)) {
+      final isGenericObject = Object() is T;
+      if (T == int || (type is DataType<int> && T != num && !isGenericObject)) {
         final intList = list
             .map((element) => element as int?)
             .toList(growable: false);
@@ -220,10 +220,7 @@ abstract class Series<T> {
           type: type as DataType<int>,
         ) as Series<T>;
       } else if (T == double ||
-          (type is DataType<double> &&
-              T != num &&
-              T != dynamic &&
-              T != Object)) {
+          (type is DataType<double> && T != num && !isGenericObject)) {
         final dblList = list
             .map((element) => element as double?)
             .toList(growable: false);
@@ -292,6 +289,18 @@ abstract class Series<T> {
       return BoolSeries.fromList(name, boolList) as Series<T>;
     } else if (firstNonNull is num &&
         list.every((e) => e == null || e is num)) {
+      if (list.every((e) => e == null || e is int)) {
+        final intList = list
+            .map((element) => element as int?)
+            .toList(growable: false);
+        return TypedSeries<int>.fromList(name, intList) as Series<T>;
+      }
+      if (list.every((e) => e == null || e is double)) {
+        final dblList = list
+            .map((element) => element as double?)
+            .toList(growable: false);
+        return TypedSeries<double>.fromList(name, dblList) as Series<T>;
+      }
       final numList = list
           .map((element) => element as num?)
           .toList(growable: false);
@@ -317,7 +326,14 @@ class TypedSeries<T extends num> extends Series<T> {
     required this.data,
     required this.dataType,
     this.mask,
-  }) : length = data.length;
+  }) : length = data.length {
+    final m = mask;
+    if (m != null && m.length != data.length) {
+      throw ArgumentError(
+        'ValidityMask length (${m.length}) must match data length (${data.length}).',
+      );
+    }
+  }
 
   factory fromList(String name, List<T?> list, {DataType<T>? type}) {
     final effectiveType =
@@ -372,7 +388,10 @@ class TypedSeries<T extends num> extends Series<T> {
   int get nullCount => mask?.nullCount ?? 0;
 
   @override
-  bool isNull(int index) => mask?.isNull(index) ?? false;
+  bool isNull(int index) {
+    RangeError.checkValidIndex(index, this, 'index', length);
+    return mask?.isNull(index) ?? false;
+  }
 
   @override
   T? operator [](int index) {
@@ -453,11 +472,24 @@ class TypedSeries<T extends num> extends Series<T> {
       return ascending ? cmp : -cmp;
     });
 
-    final sortedList = <T?>[];
-    for (final idx in indices) {
-      sortedList.add(this[idx]);
+    final sortedData = dataType.newList(length);
+    ValidityMask? sortedMask;
+    for (var i = 0; i < length; i++) {
+      final idx = indices[i];
+      if (isNull(idx)) {
+        sortedMask ??= ValidityMask(length);
+        sortedMask.setNull(i);
+        sortedData[i] = dataType.defaultValue;
+      } else {
+        sortedData[i] = data[idx];
+      }
     }
-    return TypedSeries<T>.fromList(name, sortedList, type: dataType);
+    return TypedSeries<T>(
+      name: name,
+      data: sortedData,
+      dataType: dataType,
+      mask: sortedMask,
+    );
   }
 
   @override
@@ -470,6 +502,7 @@ class TypedSeries<T extends num> extends Series<T> {
     for (var i = 0; i < length; i++) {
       if (!isNull(i)) {
         final val = data[i];
+        if (val.isNaN) return val;
         if (result == null || val.compareTo(result) < 0) {
           result = val;
         }
@@ -484,6 +517,7 @@ class TypedSeries<T extends num> extends Series<T> {
     for (var i = 0; i < length; i++) {
       if (!isNull(i)) {
         final val = data[i];
+        if (val.isNaN) return val;
         if (result == null || val.compareTo(result) > 0) {
           result = val;
         }
@@ -527,7 +561,14 @@ class BoolSeries extends Series<bool> {
   /// Creates a boolean series with [name], underlying boolean [data], and
   /// optional null [mask].
   new({required this.name, required this.data, this.mask})
-    : length = data.length;
+    : length = data.length {
+    final m = mask;
+    if (m != null && m.length != data.length) {
+      throw ArgumentError(
+        'ValidityMask length (${m.length}) must match data length (${data.length}).',
+      );
+    }
+  }
 
   factory fromList(String name, List<bool?> list) {
     final len = list.length;
@@ -567,13 +608,21 @@ class BoolSeries extends Series<bool> {
   int get nullCount => mask?.nullCount ?? 0;
 
   @override
-  bool isNull(int index) => mask?.isNull(index) ?? false;
+  bool isNull(int index) {
+    RangeError.checkValidIndex(index, this, 'index', length);
+    return mask?.isNull(index) ?? false;
+  }
 
   @override
   bool? operator [](int index) => isNull(index) ? null : data[index];
 
   @override
   Series<bool> filter(List<bool> filterMask) {
+    if (filterMask.length != length) {
+      throw ArgumentError(
+        'Filter mask length (${filterMask.length}) must match series length ($length)',
+      );
+    }
     final filtered = <bool?>[];
     for (var i = 0; i < length; i++) {
       if (filterMask[i]) filtered.add(this[i]);
@@ -645,12 +694,19 @@ class ObjectSeries<T> extends Series<T> {
     required this.data,
     required this.dataType,
     this.mask,
-  }) : length = data.length;
+  }) : length = data.length {
+    final m = mask;
+    if (m != null && m.length != data.length) {
+      throw ArgumentError(
+        'ValidityMask length (${m.length}) must match data length (${data.length}).',
+      );
+    }
+  }
 
   factory fromList(String name, List<T?> list, {DataType<T>? type}) {
     final effectiveType =
         type ??
-        (T == dynamic || T == Object
+        (Object() is T
             ? DataType.object as DataType<T>
             : DataType.fromType<T>());
     final len = list.length;
@@ -695,13 +751,21 @@ class ObjectSeries<T> extends Series<T> {
   int get nullCount => mask?.nullCount ?? 0;
 
   @override
-  bool isNull(int index) => mask?.isNull(index) ?? false;
+  bool isNull(int index) {
+    RangeError.checkValidIndex(index, this, 'index', length);
+    return mask?.isNull(index) ?? false;
+  }
 
   @override
   T? operator [](int index) => isNull(index) ? null : data[index];
 
   @override
   Series<T> filter(List<bool> filterMask) {
+    if (filterMask.length != length) {
+      throw ArgumentError(
+        'Filter mask length (${filterMask.length}) must match series length ($length)',
+      );
+    }
     final filtered = <T?>[];
     for (var i = 0; i < length; i++) {
       if (filterMask[i]) filtered.add(this[i]);

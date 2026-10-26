@@ -39,6 +39,17 @@ class ArrowStringSeries extends Series<String> {
     if (offsets[0] != 0) {
       throw ArgumentError('Offsets buffer must start at 0.');
     }
+    if (offsets.last > bytes.length) {
+      throw ArgumentError(
+        'Last offset (${offsets.last}) exceeds bytes buffer length (${bytes.length}).',
+      );
+    }
+    final m = mask;
+    if (m != null && m.length != offsets.length - 1) {
+      throw ArgumentError(
+        'ValidityMask length (${m.length}) must match series length (${offsets.length - 1}).',
+      );
+    }
   }
 
   /// Constructs an [ArrowStringSeries] from an iterable of nullable strings.
@@ -112,7 +123,10 @@ class ArrowStringSeries extends Series<String> {
   int get nullCount => mask?.nullCount ?? 0;
 
   @override
-  bool isNull(int index) => mask?.isNull(index) ?? false;
+  bool isNull(int index) {
+    RangeError.checkValidIndex(index, this, 'index', length);
+    return mask?.isNull(index) ?? false;
+  }
 
   /// Returns the raw UTF-8 byte view of the string at [index] without
   /// allocating a `String` instance.

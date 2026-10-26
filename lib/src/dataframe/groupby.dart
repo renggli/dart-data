@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../type/data_type.dart';
 import 'dataframe.dart';
 import 'series.dart';
 import 'tuple_key.dart';
@@ -71,22 +72,34 @@ class GroupBy {
   // Group key -> list of row indices
   final Map<Object?, List<int>> _groups = {};
   // Group key -> original key values
-  final Map<Object?, List<dynamic>> _groupKeys = {};
+  final Map<Object?, List<Object?>> _groupKeys = {};
 
   /// Evaluates aggregations across each group and produces a new [DataFrame].
   DataFrame aggregate(Map<String, List<Agg>> aggregations) {
-    final resultCols = <String, List<dynamic>>{};
+    final resultCols = <String, List<Object?>>{};
+    final outTypes = <String, DataType<Object?>>{};
     // Initialize group key columns
     for (final col in byColumns) {
       resultCols[col] = [];
+      outTypes[col] = dataFrame.column(col).dataType;
     }
 
     // Initialize aggregation output columns
     for (final entry in aggregations.entries) {
       final colName = entry.key;
+      final srcCol = dataFrame.column(colName);
       for (final agg in entry.value) {
         final outName = '${colName}_${agg.name}';
         resultCols[outName] = [];
+        outTypes[outName] = switch (agg) {
+          Agg.count => DataType.int32,
+          Agg.mean || Agg.std || Agg.variance || Agg.median => DataType.float64,
+          Agg.sum =>
+            srcCol.dataType is DataType<double>
+                ? DataType.float64
+                : srcCol.dataType,
+          Agg.min || Agg.max || Agg.first || Agg.last => srcCol.dataType,
+        };
       }
     }
 
@@ -119,7 +132,8 @@ class GroupBy {
     for (final entry in resultCols.entries) {
       if (byColumns.contains(entry.key)) continue;
       final list = entry.value;
-      if (list.any((v) => v is double)) {
+      if (outTypes[entry.key] == DataType.float64 ||
+          list.any((v) => v is double)) {
         resultCols[entry.key] = [
           for (final v in list)
             if (v is num) v.toDouble() else v,
@@ -136,7 +150,9 @@ class GroupBy {
     }
     for (final entry in resultCols.entries) {
       if (byColumns.contains(entry.key)) continue;
-      outputSeries.add(Series.fromList(entry.key, entry.value));
+      outputSeries.add(
+        Series.fromList(entry.key, entry.value, type: outTypes[entry.key]),
+      );
     }
 
     return DataFrame(outputSeries);
@@ -218,7 +234,7 @@ class GroupBy {
         }
         return null;
       case Agg.sum:
-        num total = 0;
+        var total = col.dataType is DataType<double> ? 0.0 : 0;
         for (var i = 0; i < indices.length; i++) {
           final val = col[indices[i]];
           if (val is num) total += val;
@@ -271,7 +287,7 @@ class GroupBy {
             m2 += delta * delta2;
           }
         }
-        if (count <= 1) return 0.0;
+        if (count < 2) return null;
         final variance = m2 / (count - 1);
         return math.sqrt(variance < 0.0 ? 0.0 : variance);
       case Agg.variance:

@@ -1,5 +1,7 @@
 import 'package:petitparser/petitparser.dart';
 
+import '../../type/data_type.dart';
+import '../arrow_string_series.dart';
 import '../dataframe.dart';
 import '../series.dart';
 import 'parser.dart';
@@ -78,12 +80,21 @@ class CsvReader {
 
       final nonNullCount = rawVals.where((v) => v != null).length;
       if (nonNullCount == 0) {
-        columns.add(Series.fromList(name, rawVals));
+        columns.add(ArrowStringSeries.fromList(name, rawVals));
       } else if (canBeInt) {
         final intVals = rawVals
             .map((value) => value != null ? int.parse(value.trim()) : null)
             .toList();
-        columns.add(TypedSeries<int>.fromList(name, intVals));
+        final needsInt64 = intVals.any(
+          (v) => v != null && (v < -0x80000000 || v > 0x7FFFFFFF),
+        );
+        columns.add(
+          TypedSeries<int>.fromList(
+            name,
+            intVals,
+            type: needsInt64 ? DataType.int64 : DataType.int32,
+          ),
+        );
       } else if (canBeDouble) {
         final doubleVals = rawVals
             .map((value) => value != null ? double.parse(value.trim()) : null)

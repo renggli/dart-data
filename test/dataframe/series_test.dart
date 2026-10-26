@@ -232,5 +232,24 @@ void main() {
       check(counts['cat'].toList()).deepEquals(['apple', 'banana', 'orange']);
       check(counts['count'].toList()).deepEquals([3, 2, 1]);
     });
+
+    test('validates mask length, isNull bounds, and NaN in min/max', () {
+      check(
+        () => TypedSeries<double>(
+          name: 'x',
+          data: [1.0, 2.0],
+          dataType: DataType.float64,
+          mask: ValidityMask(3),
+        ),
+      ).throws<ArgumentError>();
+
+      final s = Series<double>.fromList('f', [1.0, 2.0]);
+      check(() => s.isNull(-1)).throws<RangeError>();
+      check(() => s.isNull(2)).throws<RangeError>();
+
+      final sNan = Series<double>.fromList('nan', [2.0, double.nan, 1.0]);
+      check(sNan.min!.isNaN).isTrue();
+      check(sNan.max!.isNaN).isTrue();
+    });
   });
 }
