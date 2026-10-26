@@ -430,7 +430,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
 
 >Goal: Reach **≥ 99% line coverage across `lib/`** (and comprehensive coverage across `web/calculator/src/{engine,language,model,worker}/`) by marking native FFI bindings and conditional platform stubs with `// coverage:ignore-file` and writing meaningful unit tests for every remaining uncovered branch.
 
-### [ ] TASK-6.1: Mark Native FFI Bindings & Conditional Platform Stubs with `// coverage:ignore-file` and Test Public Barrel Exports
+### [x] TASK-6.1: Mark Native FFI Bindings & Conditional Platform Stubs with `// coverage:ignore-file` and Test Public Barrel Exports
 - **Files**:
   - Add `// coverage:ignore-file` at the top of FFI binding and conditional platform stub files:
     - `lib/src/acceleration/blas/blas_ffi.dart`

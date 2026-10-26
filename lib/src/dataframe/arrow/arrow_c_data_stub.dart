@@ -1,3 +1,4 @@
+// coverage:ignore-file
 // ignore_for_file: unreachable_from_main
 
 import '../dataframe.dart';

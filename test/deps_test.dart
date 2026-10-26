@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 
 import 'package:checks/checks.dart';
+import 'package:data/data.dart';
 import 'package:more/collection.dart';
 import 'package:more/graph.dart';
 import 'package:test/scaffolding.dart';
@@ -87,6 +88,7 @@ void main() {
     test('exports all public sub-libraries', () {
       check(filesGraph.successorsOf('lib/data.dart'))
           .unorderedEquals(Subsystem.values.map((s) => s.entrypoint).toList());
+      check(DataType.complex.defaultValue).equals(Complex.zero);
     });
   });
 

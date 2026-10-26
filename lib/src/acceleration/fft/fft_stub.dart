@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import '../../type/types/complex.dart';
 
 /// Platform FFT library stub when FFI is unavailable.
