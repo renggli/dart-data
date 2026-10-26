@@ -94,6 +94,14 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
       throw RangeError.value(axis, 'axis', 'Axis out of bounds [0, $newRank)');
     }
 
+    for (final tensor in tensors) {
+      if (!areShapesEqual(tensor.layout.shape, first.layout.shape)) {
+        throw ArgumentError(
+          'All tensors must have matching shape ${first.layout.shape}, got ${tensor.layout.shape}',
+        );
+      }
+    }
+
     final outShape = List<int>.from(first.layout.shape);
     outShape.insert(normalizedAxis, tensors.length);
 
@@ -130,6 +138,11 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
       throw ArgumentError(
         'reps length (${reps.length}) must be >= rank ($rank)',
       );
+    }
+    for (final rep in reps) {
+      if (rep < 0) {
+        throw ArgumentError.value(reps, 'reps', 'Repetitions must be >= 0');
+      }
     }
     final paddedShape = [
       ...List<int>.filled(reps.length - rank, 1),
@@ -172,6 +185,16 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   Tensor<T> pad(List<List<int>> padding, {T? fillValue}) {
     if (padding.length != rank) {
       throw ArgumentError('padding length must match rank $rank');
+    }
+    for (var i = 0; i < rank; i++) {
+      final p = padding[i];
+      if (p.length != 2 || p[0] < 0 || p[1] < 0) {
+        throw ArgumentError.value(
+          padding,
+          'padding',
+          'Each axis padding must be [before, after] with non-negative values',
+        );
+      }
     }
     final padVal = fillValue ?? type.defaultValue;
     final outShape = List<int>.generate(

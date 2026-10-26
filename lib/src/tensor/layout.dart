@@ -67,7 +67,7 @@ class Layout {
       }
     }
     final rank = shapeList.length;
-    var length = rank == 0 ? (shape == null ? 0 : 1) : 1;
+    var length = 1;
     for (var i = 0; i < rank; i++) {
       length *= shapeList[i];
     }
@@ -205,7 +205,9 @@ class Layout {
 
   /// Transposes the layout by permuting the axes.
   Layout transpose([List<int>? axes]) {
-    final perm = axes ?? List<int>.generate(rank, (i) => rank - 1 - i);
+    final perm = axes != null
+        ? List<int>.from(axes)
+        : List<int>.generate(rank, (i) => rank - 1 - i);
     if (perm.length != rank) {
       throw ArgumentError(
         'Permutation length (${perm.length}) must match rank ($rank)',
@@ -214,13 +216,15 @@ class Layout {
     final seen = List<bool>.filled(rank, false);
     for (var i = 0; i < rank; i++) {
       final axis = perm[i];
-      if (axis < 0 || axis >= rank) {
+      final normAxis = axis < 0 ? axis + rank : axis;
+      if (normAxis < 0 || normAxis >= rank) {
         throw ArgumentError('Axis $axis out of bounds for rank $rank');
       }
-      if (seen[axis]) {
-        throw ArgumentError('Duplicate axis $axis in permutation: $perm');
+      if (seen[normAxis]) {
+        throw ArgumentError('Duplicate axis $axis in permutation: $axes');
       }
-      seen[axis] = true;
+      seen[normAxis] = true;
+      perm[i] = normAxis;
     }
     final newShape = List<int>.generate(rank, (i) => shape[perm[i]]);
     final newStrides = List<int>.generate(rank, (i) => strides[perm[i]]);
@@ -248,6 +252,13 @@ class Layout {
     }
     final effectiveShape = List<int>.from(newShape);
     if (inferredIndex != -1) {
+      if (newLength == 0) {
+        throw ArgumentError.value(
+          newShape,
+          'newShape',
+          'Cannot infer dimension (-1) when another dimension is 0',
+        );
+      }
       if (length % newLength != 0) {
         throw ArgumentError(
           'Cannot reshape tensor of length $length into $newShape',
@@ -271,8 +282,9 @@ class Layout {
     if (normAxis < 0 || normAxis >= rank) {
       throw RangeError.value(axis, 'axis', 'Out of bounds [0, $rank)');
     }
-    final newStrides = List<int>.from(strides);
     final dim = shape[normAxis];
+    if (dim <= 1) return this;
+    final newStrides = List<int>.from(strides);
     newStrides[normAxis] = -strides[normAxis];
     final newOffset = offset + (dim - 1) * strides[normAxis];
     return Layout(shape: shape, strides: newStrides, offset: newOffset);

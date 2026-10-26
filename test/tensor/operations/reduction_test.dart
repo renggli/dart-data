@@ -129,7 +129,7 @@ void main() {
       check(t32.norm(2)).isCloseTo(5.0, 1e-5);
     });
 
-    test('edge cases on empty tensors', () {
+    test('edge cases on empty tensors and target validation', () {
       final empty = Tensor<double>.filled(0.0, shape: [0]);
       check(empty.sum().getValue([])).equals(0.0);
       check(empty.norm(2)).equals(0.0);
@@ -139,6 +139,34 @@ void main() {
       check(empty.max).throws<StateError>();
       check(empty.argmin).throws<StateError>();
       check(empty.argmax).throws<StateError>();
+
+      final empty2D = Tensor<double>.filled(0.0, shape: [2, 0]);
+      check(() => empty2D.argmin(axis: 1)).throws<StateError>();
+      check(() => empty2D.argmax(axis: 1)).throws<StateError>();
+      check(() => empty2D.min(axis: 1)).throws<StateError>();
+      check(() => empty2D.max(axis: 1)).throws<StateError>();
+
+      final t = Tensor<double>.fromIterable(
+        [1.0, 2.0, 3.0, 4.0],
+        shape: [2, 2],
+      );
+      check(() => t.mean(axis: 5)).throws<RangeError>();
+      check(() => t.mean(axis: -5)).throws<RangeError>();
+      check(() => t.variance(axis: 5)).throws<RangeError>();
+      check(() => t.variance(axis: -5)).throws<RangeError>();
+
+      final badTarget = Tensor<double>.filled(0.0, shape: [3]);
+      check(() => t.sum(target: badTarget)).throws<ArgumentError>();
+      check(() => t.sum(axis: 0, target: badTarget)).throws<ArgumentError>();
+      check(() => t.min(target: badTarget)).throws<ArgumentError>();
+      check(() => t.max(axis: 0, target: badTarget)).throws<ArgumentError>();
+
+      final fracTensor = Tensor<Fraction>.fromIterable([
+        Fraction(1, 2),
+        Fraction(3, 2),
+      ]);
+      check(fracTensor.mean().getValue([])).equals(1.0);
+      check(fracTensor.variance().getValue([])).equals(0.25);
     });
   });
 }

@@ -14,6 +14,12 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   /// [axis] is null.
   Tensor<T> sum({int? axis, bool keepDims = false, Tensor<T>? target}) {
     if (axis == null && layout.isContiguous && data is Float64List) {
+      final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
+      if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
+        throw ArgumentError(
+          'Target shape ${target.layout.shape} does not match reduced shape $outShape',
+        );
+      }
       final double result;
       if (length == 0) {
         result = 0.0;
@@ -28,7 +34,6 @@ extension ReductionTensorExtension<T> on Tensor<T> {
               );
         result = Vforce.sum(x: view);
       }
-      final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
       if (target != null) {
         target.setValue(List<int>.filled(outShape.length, 0), result as T);
         return target;
@@ -52,14 +57,23 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     bool keepDims = false,
     Tensor<double>? target,
   }) {
-    final count = axis == null
-        ? length
-        : layout.shape[axis < 0 ? axis + rank : axis];
+    final int count;
+    if (axis == null) {
+      count = length;
+    } else {
+      final normAxis = axis < 0 ? axis + rank : axis;
+      if (normAxis < 0 || normAxis >= rank) {
+        throw RangeError.range(axis, -rank, rank - 1, 'axis');
+      }
+      count = layout.shape[normAxis];
+    }
     if (count == 0) throw StateError('Cannot compute mean of empty tensor');
     final sumTensor = sum(axis: axis, keepDims: keepDims);
     const resultType = DataType.float64;
     return sumTensor.unaryOperation<double>(
-      (T value) => (value as num).toDouble() / count,
+      (T value) => value is num
+          ? value.toDouble() / count
+          : resultType.cast(type.field.scale(value, 1.0 / count)),
       type: resultType,
       target: target,
     );
@@ -112,14 +126,22 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     int ddof = 0,
     Tensor<double>? target,
   }) {
-    final count = axis == null
-        ? length
-        : layout.shape[axis < 0 ? axis + rank : axis];
+    final int count;
+    if (axis == null) {
+      count = length;
+    } else {
+      final normAxis = axis < 0 ? axis + rank : axis;
+      if (normAxis < 0 || normAxis >= rank) {
+        throw RangeError.range(axis, -rank, rank - 1, 'axis');
+      }
+      count = layout.shape[normAxis];
+    }
     final denom = count - ddof;
     if (denom <= 0) throw StateError('Degrees of freedom <= 0');
     final meanTensor = mean(axis: axis, keepDims: true);
     final thisDouble = unaryOperation<double>(
-      (T value) => (value as num).toDouble(),
+      (T value) =>
+          value is num ? value.toDouble() : DataType.float64.cast(value),
       type: DataType.float64,
     );
     final diff = thisDouble - meanTensor;
@@ -210,6 +232,12 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     required T Function(T a, T b) combine,
   }) {
     if (axis == null) {
+      final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
+      if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
+        throw ArgumentError(
+          'Target shape ${target.layout.shape} does not match reduced shape $outShape',
+        );
+      }
       T result;
       if (layout.isContiguous && length > 0) {
         final start = layout.offset;
@@ -236,7 +264,6 @@ extension ReductionTensorExtension<T> on Tensor<T> {
           }
         }
       }
-      final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
       if (target != null) {
         target.setValue(List<int>.filled(outShape.length, 0), result);
         return target;
@@ -250,6 +277,9 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     }
 
     final axisLen = layout.shape[normalizedAxis];
+    if (axisLen == 0 && initialValue == null) {
+      throw StateError('Cannot reduce empty axis without initialValue');
+    }
     final outShape = <int>[];
     for (var i = 0; i < rank; i++) {
       if (i == normalizedAxis) {
@@ -257,6 +287,12 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       } else {
         outShape.add(layout.shape[i]);
       }
+    }
+
+    if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
+      throw ArgumentError(
+        'Target shape ${target.layout.shape} does not match reduced shape $outShape',
+      );
     }
 
     final outLayout = Layout(shape: outShape);
@@ -317,6 +353,9 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     }
 
     final axisLen = layout.shape[normalizedAxis];
+    if (axisLen == 0) {
+      throw StateError('Cannot arg-reduce empty axis');
+    }
     final outShape = <int>[];
     for (var i = 0; i < rank; i++) {
       if (i == normalizedAxis) {

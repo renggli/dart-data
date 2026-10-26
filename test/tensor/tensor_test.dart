@@ -18,10 +18,10 @@ void main() {
       check(layout.toKey(3)).deepEquals([3]);
     });
 
-    test('empty layout and parameter validation errors', () {
-      final empty = Layout();
-      check(empty.rank).equals(0);
-      check(empty.length).equals(0);
+    test('default scalar layout and parameter validation errors', () {
+      final scalar = Layout();
+      check(scalar.rank).equals(0);
+      check(scalar.length).equals(1);
 
       check(() => Layout(shape: [-1, 2])).throws<ArgumentError>();
       check(() => Layout(shape: [2, 3], strides: [1])).throws<ArgumentError>();
@@ -137,11 +137,36 @@ void main() {
 
   group('Tensor creation and indexing', () {
     test('filled', () {
+      final scalar = Tensor<int>.filled(42);
+      check(scalar.rank).equals(0);
+      check(scalar.length).equals(1);
+      check(scalar.getValue([])).equals(42);
+
       final tensor = Tensor<double>.filled(42.0, shape: [2, 2]);
       check(tensor.shape).deepEquals([2, 2]);
       check(tensor.length).equals(4);
       check(tensor.getValue([0, 0])).equals(42.0);
       check(tensor.getValue([1, 1])).equals(42.0);
+
+      final vec = Tensor<double>.fromIterable([10.0, 20.0, 30.0, 40.0, 50.0]);
+      final subVec = vec.getRange(axis: 0, start: 2, end: 5);
+      check(subVec.offset).equals(2);
+      final vecCopy = subVec.copy();
+      check(vecCopy.offset).equals(0);
+      check(vecCopy.data.length).equals(vecCopy.length);
+      check(vecCopy.toFlatList()).deepEquals([30.0, 40.0, 50.0]);
+
+      final mat = Tensor<double>.fromIterable(
+        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        shape: [3, 2],
+      );
+      final subMat = mat.getRange(axis: 0, start: 1, end: 3);
+      check(subMat.isContiguous).isTrue();
+      check(subMat.offset).equals(2);
+      final matCopy = subMat.copy();
+      check(matCopy.offset).equals(0);
+      check(matCopy.data.length).equals(matCopy.length);
+      check(matCopy.toFlatList()).deepEquals([3.0, 4.0, 5.0, 6.0]);
     });
 
     test('generate', () {

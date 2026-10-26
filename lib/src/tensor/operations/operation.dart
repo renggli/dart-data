@@ -48,10 +48,13 @@ extension OperationTensorExtension<T> on Tensor<T> {
       final sharesMem = sharesMemory(targetData, data);
       final hasHazard =
           sharesMem &&
-          !(identical(data, targetData) && layout == target.layout) &&
-          !(layout.isContiguous &&
-              target.layout.isContiguous &&
-              layout.offset == target.layout.offset);
+          !(sameStartAddress(
+                targetData,
+                target.layout.offset,
+                data,
+                layout.offset,
+              ) &&
+              areShapesEqual(target.layout.strides, layout.strides));
 
       if (hasHazard) {
         final temp = unaryOperation<R>(function, type: resultType);
@@ -126,9 +129,19 @@ extension OperationTensorExtension<T> on Tensor<T> {
         );
       } else if (target.layout.isContiguous &&
           (!sharesMemory(target.data, thisData) ||
-              target.layout.offset == layout.offset) &&
+              sameStartAddress(
+                target.data,
+                target.layout.offset,
+                thisData,
+                layout.offset,
+              )) &&
           (!sharesMemory(target.data, otherData) ||
-              target.layout.offset == other.layout.offset)) {
+              sameStartAddress(
+                target.data,
+                target.layout.offset,
+                otherData,
+                other.layout.offset,
+              ))) {
         final targetData = target.data;
         final s1 = layout.offset,
             s2 = other.layout.offset,
@@ -181,7 +194,12 @@ extension OperationTensorExtension<T> on Tensor<T> {
         if (!sharesMemory(target.data, op.data)) return false;
         if (target.layout.isContiguous &&
             opLayout.isContiguous &&
-            target.layout.offset == opLayout.offset &&
+            sameStartAddress(
+              target.data,
+              target.layout.offset,
+              op.data,
+              opLayout.offset,
+            ) &&
             areShapesEqual(target.layout.strides, opLayout.strides)) {
           return false;
         }

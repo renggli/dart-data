@@ -531,5 +531,36 @@ void main() {
         check(empty.toNestedList() as List).deepEquals([[], []]);
       },
     );
+
+    test('stackAll, pad, and tile validation errors', () {
+      final t1 = Tensor<int>.fromIterable([1, 2, 3], shape: [3]);
+      final t2 = Tensor<int>.fromIterable([1, 2, 3, 4], shape: [4]);
+      check(() => ManipulationTensorExtension.stackAll([t1, t2]))
+          .throws<ArgumentError>();
+
+      check(() => t1.tile([-1])).throws<ArgumentError>();
+      check(t1.tile([0]).shape).deepEquals([0]);
+
+      check(
+        () => t1.pad([
+          [1],
+        ]),
+      ).throws<ArgumentError>();
+      check(
+        () => t1.pad([
+          [1, 2, 3],
+        ]),
+      ).throws<ArgumentError>();
+      check(
+        () => t1.pad([
+          [-1, 1],
+        ]),
+      ).throws<ArgumentError>();
+      check(
+        () => t1.pad([
+          [1, -1],
+        ]),
+      ).throws<ArgumentError>();
+    });
   });
 }

@@ -324,6 +324,16 @@ class Tensor<T> {
     if (target != null) {
       return unaryOperation<T>((value) => value, target: target, type: type);
     }
+    if (layout.isContiguous) {
+      final len = layout.length;
+      final outData = type.newList(len);
+      outData.setRange(0, len, data, layout.offset);
+      return Tensor<T>.internal(
+        type: type,
+        layout: Layout(shape: layout.shape),
+        data: outData,
+      );
+    }
     final out = Tensor.filled(
       type.defaultValue,
       shape: layout.shape,

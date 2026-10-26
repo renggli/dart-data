@@ -31,15 +31,23 @@ void main() {
         check(transposed.strides).deepEquals([4, 1, 12]);
       });
 
+      test('negative axes permutation succeeds', () {
+        final layout = Layout(shape: [2, 3, 4]);
+        final transposed = layout.transpose([-1, -2, -3]);
+        check(transposed.shape).deepEquals([4, 3, 2]);
+        check(transposed.strides).deepEquals([1, 4, 12]);
+      });
+
       test('throws on duplicate axes', () {
         final layout = Layout(shape: [2, 3]);
         check(() => layout.transpose([0, 0])).throws<ArgumentError>();
+        check(() => layout.transpose([1, -1])).throws<ArgumentError>();
       });
 
       test('throws on out-of-range axis', () {
         final layout = Layout(shape: [2, 3]);
         check(() => layout.transpose([0, 2])).throws<ArgumentError>();
-        check(() => layout.transpose([-1, 0])).throws<ArgumentError>();
+        check(() => layout.transpose([-3, 0])).throws<ArgumentError>();
       });
 
       test('throws on length mismatch', () {
@@ -174,6 +182,25 @@ void main() {
         check(sliced.isContiguous).isFalse();
         final expected = [for (final k in sliced.keys) sliced.toIndex(k)];
         check(sliced.indices.toList()).deepEquals(expected);
+      });
+    });
+
+    group('reshape and flip edge cases', () {
+      test('reshape with -1 and 0 dimension throws ArgumentError', () {
+        final empty = Layout(shape: [0, 4]);
+        check(() => empty.reshape([0, -1])).throws<ArgumentError>();
+        check(empty.reshape([-1, 4]).shape).deepEquals([0, 4]);
+      });
+
+      test('flip on 0 or 1 dimension preserves offset', () {
+        final empty = Layout(shape: [0, 3], offset: 5);
+        final flippedEmpty = empty.flip(axis: 0);
+        check(flippedEmpty.offset).equals(5);
+        check(flippedEmpty.shape).deepEquals([0, 3]);
+
+        final single = Layout(shape: [1, 3], offset: 5);
+        final flippedSingle = single.flip(axis: 0);
+        check(flippedSingle.offset).equals(5);
       });
     });
   });

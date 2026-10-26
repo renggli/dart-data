@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
@@ -609,5 +611,74 @@ void main() {
         check(res).identicalTo(dst);
       },
     );
+
+    test('aliasing hazard with overlapping Float64List.sublistView and NullableList', () {
+      final buf = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0]);
+      final v0 = Float64List.sublistView(buf, 0, 4);
+      final v1 = Float64List.sublistView(buf, 1, 5);
+      final t0 = Tensor<double>.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [4]),
+        data: v0,
+      );
+      final t1 = Tensor<double>.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [4]),
+        data: v1,
+      );
+      check(t0.sharesMemoryWith(t1)).isTrue();
+      t0.unaryOperation((x) => x * 10.0, target: t1);
+      check(buf).deepEquals([1.0, 10.0, 20.0, 30.0, 40.0]);
+
+      final buf2 = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0]);
+      final b0 = Float64List.sublistView(buf2, 0, 4);
+      final b1 = Float64List.sublistView(buf2, 1, 5);
+      final tb0 = Tensor<double>.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [4]),
+        data: b0,
+      );
+      final tb1 = Tensor<double>.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [4]),
+        data: b1,
+      );
+      tb0.binaryOperation<double, double>(tb0, (a, b) => a + b, target: tb1);
+      check(buf2).deepEquals([1.0, 2.0, 4.0, 6.0, 8.0]);
+
+      final nullableType = DataType.int32.nullable;
+      final nList = nullableType.newList(5, fillValue: 1);
+      for (var i = 0; i < 5; i++) {
+        nList[i] = i + 1;
+      }
+      final tn = Tensor<int?>.internal(
+        type: nullableType,
+        layout: Layout(shape: [5]),
+        data: nList,
+      );
+      final tnSrc = tn.getRange(axis: 0, start: 0, end: 4);
+      final tnDst = tn.getRange(axis: 0, start: 1, end: 5);
+      check(tnSrc.sharesMemoryWith(tnDst)).isTrue();
+      tnSrc.unaryOperation((x) => (x ?? 0) * 10, target: tnDst);
+      check(tn.toFlatList()).deepEquals([1, 10, 20, 30, 40]);
+
+      final cList = Float64ComplexList.fromList([
+        const Complex(1, 0),
+        const Complex(2, 0),
+        const Complex(3, 0),
+      ]);
+      final cUnmod = cList.asUnmodifiableView();
+      final tc1 = Tensor<Complex>.internal(
+        type: DataType.complex,
+        layout: Layout(shape: [3]),
+        data: cList,
+      );
+      final tc2 = Tensor<Complex>.internal(
+        type: DataType.complex,
+        layout: Layout(shape: [3]),
+        data: cUnmod,
+      );
+      check(tc1.sharesMemoryWith(tc2)).isTrue();
+    });
   });
 }
