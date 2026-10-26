@@ -48,6 +48,15 @@ void main() {
       check(simplified.denominator.degree).equals(0);
       check(simplified.numerator.degree).equals(1);
       check(simplified.evaluate(3.0)).equals(4.0);
+
+      // Preserves CompressedPolynomial representation when normalizing
+      final sparseNum = Polynomial<double>.compressed([0, 100], [2.0, 4.0]);
+      final sparseDen = Polynomial<double>.compressed([0], [2.0]);
+      final sparseRf = RationalFunction(sparseNum, sparseDen).simplify();
+      check(sparseRf.numerator).isA<CompressedPolynomial<double>>();
+      check(sparseRf.denominator).isA<CompressedPolynomial<double>>();
+      check(sparseRf.numerator[100]).equals(2.0);
+      check(sparseRf.denominator[0]).equals(1.0);
     });
 
     test('arithmetic: addition and subtraction', () {

@@ -106,6 +106,9 @@ double hypergeometric2F1(num a, num b, num cVal, num z) {
     if (diff <= 0.0) {
       return double.infinity;
     }
+    if (_isNonPosInt(cd - ad) || _isNonPosInt(cd - bd)) {
+      return 0.0;
+    }
     return gamma(cd) * gamma(diff) / (gamma(cd - ad) * gamma(cd - bd));
   }
   if (zd >= 0.9) {
@@ -118,11 +121,12 @@ double hypergeometric2F1(num a, num b, num cVal, num z) {
       }
       return _hypergeometric2F1Logarithmic(ad, bd, cd, m, zd);
     }
-    final term1 =
-        gamma(cd) *
-        gamma(diff) /
-        (gamma(cd - ad) * gamma(cd - bd)) *
-        hypergeometric2F1(ad, bd, ad + bd - cd + 1.0, 1.0 - zd);
+    final term1 = (_isNonPosInt(cd - ad) || _isNonPosInt(cd - bd))
+        ? 0.0
+        : gamma(cd) *
+              gamma(diff) /
+              (gamma(cd - ad) * gamma(cd - bd)) *
+              hypergeometric2F1(ad, bd, ad + bd - cd + 1.0, 1.0 - zd);
     final term2 =
         gamma(cd) *
         gamma(-diff) /
@@ -133,6 +137,8 @@ double hypergeometric2F1(num a, num b, num cVal, num z) {
   }
   return _hypergeometric2F1Direct(ad, bd, cd, zd);
 }
+
+bool _isNonPosInt(double x) => x.isFinite && x <= 0.0 && x.roundToDouble() == x;
 
 double _hypergeometric2F1Logarithmic(
   double a,

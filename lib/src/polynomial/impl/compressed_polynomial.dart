@@ -24,9 +24,6 @@ import 'formatting.dart';
 /// final val = p.evaluate(1.0); // 0.0
 /// ```
 class CompressedPolynomial<T> extends Polynomial<T> {
-  /// Internal constructor with pre-validated, unmodifiable parallel arrays.
-  const new _(this._exponents, this._coefficients, {required this.type});
-
   /// Constructs a [CompressedPolynomial] from parallel [exponents] and
   /// [coefficients].
   ///
@@ -69,10 +66,10 @@ class CompressedPolynomial<T> extends Polynomial<T> {
       }
     }
 
-    final sortedExps = terms.keys.toList()..sort();
-    final sortedCoeffs = sortedExps
-        .map((e) => terms[e]!)
-        .toList(growable: false);
+    final sortedEntries = terms.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final sortedExps = [for (final e in sortedEntries) e.key];
+    final sortedCoeffs = [for (final e in sortedEntries) e.value];
 
     return CompressedPolynomial._(
       List.unmodifiable(sortedExps),
@@ -112,6 +109,9 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     final effectiveType = type ?? DataType.fromType<T>();
     return CompressedPolynomial._(const [], const [], type: effectiveType);
   }
+
+  /// Internal constructor with pre-validated, unmodifiable parallel arrays.
+  const new _(this._exponents, this._coefficients, {required this.type});
 
   @override
   final DataType<T> type;
@@ -385,10 +385,10 @@ class CompressedPolynomial<T> extends Polynomial<T> {
         }
       }
     }
-    final sortedExps = terms.keys.toList()..sort();
-    final sortedCoeffs = sortedExps
-        .map((e) => terms[e]!)
-        .toList(growable: false);
+    final sortedEntries = terms.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final sortedExps = [for (final e in sortedEntries) e.key];
+    final sortedCoeffs = [for (final e in sortedEntries) e.value];
     return CompressedPolynomial<T>._(
       List.unmodifiable(sortedExps),
       List.unmodifiable(sortedCoeffs),
@@ -562,7 +562,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! Polynomial<T>) return false;
+    if (other is! Polynomial<T> || type != other.type) return false;
     final deg = degree;
     if (deg != other.degree) return false;
     if (deg < 0) return true;
@@ -585,8 +585,8 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   @override
   int get hashCode {
     final deg = degree;
-    if (deg < 0) return 0;
     var hash = Object.hash(deg, type);
+    if (deg < 0) return hash;
     for (var i = 0; i < _exponents.length; i++) {
       hash = Object.hash(hash, _exponents[i], _coefficients[i]);
     }

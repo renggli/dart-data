@@ -476,8 +476,18 @@ OdeSolution _interpolateHermite({
         evalY.add(yRaw.last.copy());
         continue;
       }
-      while (k < n - 2 && tRaw[k + 1] > t) {
-        k++;
+      var low = 0;
+      var high = n - 2;
+      while (low <= high) {
+        final mid = (low + high) >>> 1;
+        if (tRaw[mid] >= t && t >= tRaw[mid + 1]) {
+          k = mid;
+          break;
+        } else if (t > tRaw[mid]) {
+          high = mid - 1;
+        } else {
+          low = mid + 1;
+        }
       }
     }
 

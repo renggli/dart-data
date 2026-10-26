@@ -43,6 +43,15 @@ void main() {
       check(res.point[0]).isCloseTo(1.0, 1e-4);
       check(res.point[1]).isCloseTo(1.0, 1e-4);
       check(res.value).isCloseTo(5.0, 1e-4);
+
+      // Initial guess very close to boundary (within 1% of lower bound) is preserved
+      final nearBoundRes = minimizeConstrained(
+        (v) => (v[0] - 0.01) * (v[0] - 0.01),
+        Vector<double>.fromList([0.01], type: DataType.float64),
+        bounds: const [BoxBound(lower: 0.0, upper: 1.0)],
+        maxIterations: 1,
+      );
+      check(nearBoundRes.point[0]).isCloseTo(0.01, 1e-6);
     });
 
     test('augmented Lagrangian with equality and inequality constraints', () {

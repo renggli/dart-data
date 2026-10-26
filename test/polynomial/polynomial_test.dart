@@ -484,5 +484,31 @@ void main() {
         check(allNeg.toString()).equals('-2x^2 - 3x - 4');
       },
     );
+
+    test('equality and hashCode respect DataType', () {
+      final pInt = Polynomial<num>.fromCoefficients([
+        1,
+        2,
+      ], type: DataType.int32);
+      final pFloat = Polynomial<num>.fromCoefficients([
+        1.0,
+        2.0,
+      ], type: DataType.float64);
+      check(pInt == pFloat).isFalse();
+
+      final cInt = Polynomial<num>.compressed(
+        [0, 1],
+        [1, 2],
+        type: DataType.int32,
+      );
+      final cFloat = Polynomial<num>.compressed(
+        [0, 1],
+        [1.0, 2.0],
+        type: DataType.float64,
+      );
+      check(cInt == cFloat).isFalse();
+      check(pInt == cInt).isTrue();
+      check(pInt.hashCode).equals(cInt.hashCode);
+    });
   });
 }

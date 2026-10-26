@@ -186,6 +186,21 @@ void main() {
         final expected = math.exp(tGrid[i]);
         check(sol.y[i][0]).isCloseTo(expected, 1e-4);
       }
+
+      // Descending t (tEnd < t0) with tEval dense Hermite interpolation
+      final tGridDesc = [1.0, 0.75, 0.5, 0.25, 0.0];
+      final solDesc = solveOde(
+        f: derivative,
+        t0: 1.0,
+        tEnd: 0.0,
+        y0: Vector<double>.fromList([math.exp(1.0)], type: DataType.float64),
+        stepSize: 0.1,
+        tEval: tGridDesc,
+      );
+      check(solDesc.t).deepEquals(tGridDesc);
+      for (var i = 0; i < tGridDesc.length; i++) {
+        check(solDesc.y[i][0]).isCloseTo(math.exp(tGridDesc[i]), 1e-4);
+      }
     });
 
     test(

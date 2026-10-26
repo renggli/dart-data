@@ -182,7 +182,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
 
 ## Phase 3: `special`, `polynomial`, `numeric`, `stats`, and `dataframe` Bugs & Charter Compliance
 
-### [ ] TASK-3.1: Fix `special`, `polynomial`, and `numeric` Edge Cases
+### [x] TASK-3.1: Fix `special`, `polynomial`, and `numeric` Edge Cases
 - **Files**:
   - `lib/src/special/hypergeometric.dart` (lines 105–130)
   - `lib/src/special/gamma.dart` (lines 270–282)

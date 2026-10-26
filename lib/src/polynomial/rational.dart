@@ -71,22 +71,8 @@ class RationalFunction<T> {
     if (lead != one && lead != field.additiveIdentity) {
       final inv = field.div(one, lead);
       if (inv != field.additiveIdentity) {
-        num = Polynomial<T>.fromCoefficients(
-          List<T>.generate(
-            num.degree + 1,
-            (i) => field.div(num[i], lead),
-            growable: false,
-          ),
-          type: type,
-        );
-        den = Polynomial<T>.fromCoefficients(
-          List<T>.generate(
-            den.degree + 1,
-            (i) => i == den.degree ? one : field.div(den[i], lead),
-            growable: false,
-          ),
-          type: type,
-        );
+        num = num.scale(inv);
+        den = den.scale(inv);
       }
     }
     return RationalFunction(num, den);

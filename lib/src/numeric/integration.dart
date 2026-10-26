@@ -22,6 +22,7 @@ enum IntegrateWarning {
 /// Error thrown when numerical integration fails to converge and no warning
 /// callback handles it.
 class IntegrateError extends Error {
+  /// Creates an [IntegrateError].
   new(this.type, this.x);
 
   /// The integration warning thrown.

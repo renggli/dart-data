@@ -360,13 +360,20 @@ class _BoxTransform {
       final xi = x[i];
       if (lower != null && upper != null) {
         final span = upper - lower;
-        final t = ((xi - lower) / span).clamp(0.05, 0.95);
+        final double t;
+        if (xi <= lower) {
+          t = 0.05;
+        } else if (xi >= upper) {
+          t = 0.95;
+        } else {
+          t = ((xi - lower) / span).clamp(1e-12, 1.0 - 1e-12);
+        }
         y[i] = math.log(t / (1.0 - t));
       } else if (lower != null) {
-        final d = math.max(xi - lower, 1e-4);
+        final d = xi <= lower ? 0.1 : math.max(xi - lower, 1e-12);
         y[i] = math.log(d);
       } else if (upper != null) {
-        final d = math.max(upper - xi, 1e-4);
+        final d = xi >= upper ? 0.1 : math.max(upper - xi, 1e-12);
         y[i] = -math.log(d);
       } else {
         y[i] = xi;

@@ -25,13 +25,13 @@ double lambertW0(num z) {
   final zd = z.toDouble();
   var wVal = 0.0;
   if (zd < -0.3) {
-    final pVal = sqrt(2.0 * (_e * zd + 1.0));
+    final pVal = sqrt(2.0 * (e * zd + 1.0));
     wVal =
         -1.0 +
         pVal -
         (1.0 / 3.0) * pVal * pVal +
         (11.0 / 72.0) * pVal * pVal * pVal;
-  } else if (zd < _e) {
+  } else if (zd < e) {
     wVal = zd / (1.0 + zd * (1.0 + zd * (0.5 - zd / 6.0)));
   } else {
     final lz = log(zd);
@@ -79,7 +79,7 @@ double lambertW1(num z) {
   final zd = z.toDouble();
   var wVal = -1.0;
   if (zd < -0.3) {
-    final pVal = -sqrt(2.0 * (_e * zd + 1.0));
+    final pVal = -sqrt(2.0 * (e * zd + 1.0));
     wVal =
         -1.0 +
         pVal -
@@ -110,4 +110,3 @@ double lambertW1(num z) {
 }
 
 const _invE = 1.0 / e;
-const _e = e;

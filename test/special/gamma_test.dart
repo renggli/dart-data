@@ -136,6 +136,8 @@ void main() {
       check(combination(5, 2)).equals(10.0);
       check(combination(200, 2)).equals(19900.0);
       check(combination(double.infinity, 2)).equals(double.infinity);
+      check(combination(double.infinity, double.infinity)).isNaN();
+      check(combination(double.infinity, 1.5)).isNaN();
       check(combinationLn(5, 2)).isCloseTo(math.log(10.0), 1e-6);
       check(permutation(5, 2)).equals(20.0);
       check(permutation(200, 2)).equals(39800.0);

@@ -27,6 +27,11 @@ void main() {
           .isCloseTo(0.45069385566594444, 1e-12);
       check(hypergeometric2F1(0.5, 0.5, 1.5, 0.95))
           .isCloseTo(1.3802311542699408, 1e-12);
+      // Pole annihilation at z in [0.9, 1.0] when c - b or c - a is a non-positive integer
+      check(hypergeometric2F1(0.5, 1.5, 1.5, 0.95))
+          .isCloseTo(math.pow(1.0 - 0.95, -0.5), 1e-12);
+      check(hypergeometric2F1(1.5, 0.5, 1.5, 0.95))
+          .isCloseTo(math.pow(1.0 - 0.95, -0.5), 1e-12);
       check(hypergeometric2F1(1.0, 1.0, 3.0, 1.0)).isCloseTo(2.0, 1e-12);
       // Large negative z with integer b - a: 2F1(1, 2; 3; z) = 2(-ln(1-z) - z)/z^2
       const zNeg = -20.0;

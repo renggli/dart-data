@@ -39,6 +39,9 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
   }
   final rows = a.rowCount;
   final cols = a.colCount;
+  if (cols == 0 || rows == 0) {
+    return Vector<double>.filled(cols, 0.0, type: DataType.float64);
+  }
   if (rows >= cols) {
     final Float64List aData;
     if (a.type == DataType.float64 &&
@@ -331,6 +334,7 @@ multipleLinearRegression(
 
 /// Result of non-linear parametric curve fitting.
 class CurveFitResult {
+  /// Creates a [CurveFitResult].
   const new({
     required this.parameters,
     required this.predict,

@@ -273,7 +273,7 @@ abstract class Polynomial<T> {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! Polynomial<T>) return false;
+    if (other is! Polynomial<T> || type != other.type) return false;
     final deg = degree;
     if (deg != other.degree) return false;
     if (deg < 0) return true;
@@ -286,9 +286,9 @@ abstract class Polynomial<T> {
   @override
   int get hashCode {
     final deg = degree;
-    if (deg < 0) return 0;
-    final zero = type.field.additiveIdentity;
     var hash = Object.hash(deg, type);
+    if (deg < 0) return hash;
+    final zero = type.field.additiveIdentity;
     for (var i = 0; i <= deg; i++) {
       final c = this[i];
       if (c != zero) {

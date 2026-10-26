@@ -270,11 +270,17 @@ double combination(num total, num choose) {
   if (total.isNaN || choose.isNaN || choose < 0 || choose > total) {
     return 0.0;
   }
-  if (choose == 0 || choose == total) {
+  if (choose == 0) {
     return 1.0;
   }
   if (total.isInfinite) {
+    if (choose.isInfinite || choose.floorToDouble() != choose) {
+      return double.nan;
+    }
     return double.infinity;
+  }
+  if (choose == total) {
+    return 1.0;
   }
   var k = choose;
   if (k > total - k) {

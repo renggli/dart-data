@@ -158,6 +158,16 @@ void main() {
       check(sol[0]).isCloseTo(3.0, 1e-6);
       check(sol[1]).isCloseTo(4.0, 1e-6);
 
+      // Empty matrix leastSquares returns 0-length solution without error
+      final emptyCols = Matrix<double>.generate(3, 0, (_, _) => 0.0);
+      final bEmptyCols = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      check(leastSquares(emptyCols, bEmptyCols).length).equals(0);
+      final emptyRows = Matrix<double>.generate(0, 2, (_, _) => 0.0);
+      final bEmptyRows = Vector<double>.fromList([]);
+      final solEmptyRows = leastSquares(emptyRows, bEmptyRows);
+      check(solEmptyRows.length).equals(2);
+      check(solEmptyRows.toList()).deepEquals([0.0, 0.0]);
+
       // linearRegression errors
       final v1 = Vector<double>.fromList([1.0, 2.0]);
       final v2 = Vector<double>.fromList([1.0]);
