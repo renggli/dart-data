@@ -21,7 +21,7 @@ final class FractionDataType extends DataType<Fraction> {
   int comparator(Fraction a, Fraction b) => a.compareTo(b);
 
   @override
-  Fraction cast(dynamic value) {
+  Fraction cast(Object? value) {
     if (value is Fraction) {
       return value;
     } else if (value is int) {
@@ -79,7 +79,8 @@ final class FractionField implements ExtendedField<Fraction> {
   Fraction mul(Fraction a, Fraction b) => a * b;
 
   @override
-  Fraction scale(Fraction a, num factor) => a * factor;
+  Fraction scale(Fraction a, num factor) =>
+      factor is int ? a * factor : a * Fraction.fromDouble(factor.toDouble());
 
   @override
   Fraction div(Fraction a, Fraction b) => a / b;
@@ -127,11 +128,11 @@ final class FractionField implements ExtendedField<Fraction> {
   Fraction conjugate(Fraction a) => a;
 
   @override
-  Fraction get nan => div(additiveIdentity, additiveIdentity);
+  Fraction get nan => unsupportedOperation('nan');
 
   @override
-  Fraction get infinity => div(multiplicativeIdentity, additiveIdentity);
+  Fraction get infinity => unsupportedOperation('infinity');
 
   @override
-  Fraction get negativeInfinity => neg(infinity);
+  Fraction get negativeInfinity => unsupportedOperation('negativeInfinity');
 }

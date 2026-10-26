@@ -57,9 +57,9 @@ void main() {
       check(field.sqrt(Fraction(4, 9))).equals(Fraction(2, 3));
       check(field.exp(Fraction.zero)).equals(Fraction.one);
       check(field.log(Fraction.one)).equals(Fraction.zero);
-      check(field.nan.isNaN).isTrue();
-      check(field.infinity.isInfinite).isTrue();
-      check(field.negativeInfinity.isInfinite).isTrue();
+      check(() => field.nan).throws<UnsupportedError>();
+      check(() => field.infinity).throws<UnsupportedError>();
+      check(() => field.negativeInfinity).throws<UnsupportedError>();
 
       check(() => field.mod(Fraction(1), Fraction(2)))
           .throws<UnsupportedError>();
