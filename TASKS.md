@@ -119,7 +119,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   4. Add unit tests for all cases.
 - **Verification**: `dart test test/tensor/`
 
-### [ ] TASK-2.3: Fix `Blas` (`dnrm2`/`snrm2` Multi-Infinity `NaN`, `BlasNative` `alpha == 0`) & 0-Dimension `Matrix` / `matmul` Crashes
+### [x] TASK-2.3: Fix `Blas` (`dnrm2`/`snrm2` Multi-Infinity `NaN`, `BlasNative` `alpha == 0`) & 0-Dimension `Matrix` / `matmul` Crashes
 - **Files**:
   - `lib/src/acceleration/blas/blas_dart.dart` (lines 70–120)
   - `lib/src/acceleration/blas/blas_native.dart` (lines 365–405, 485–615, 810–975)

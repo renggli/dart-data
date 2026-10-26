@@ -438,4 +438,66 @@ extension type Float64Matrix._(Matrix<double> _matrix)
     }
     return Float64Matrix._(-_matrix);
   }
+
+  /// Creates a deep contiguous copy of this matrix as [Float64Matrix].
+  @redeclare
+  Float64Matrix copy() => Float64Matrix._(_matrix.copy());
+
+  /// Element-wise Hadamard product as [Float64Matrix].
+  @redeclare
+  Float64Matrix hadamard(Matrix<double> other) =>
+      Float64Matrix._(_matrix.hadamard(other));
+
+  /// Horizontally flipped view of this matrix as [Float64Matrix].
+  @redeclare
+  Float64Matrix flippedHorizontal() =>
+      Float64Matrix._(_matrix.flippedHorizontal());
+
+  /// Vertically flipped view of this matrix as [Float64Matrix].
+  @redeclare
+  Float64Matrix flippedVertical() => Float64Matrix._(_matrix.flippedVertical());
+
+  /// Rotates this matrix clockwise by 90 degrees times [count] as [Float64Matrix].
+  @redeclare
+  Float64Matrix rotated([int count = 1]) =>
+      Float64Matrix._(_matrix.rotated(count));
+
+  /// Concatenates [other] horizontally to the right of this matrix.
+  @redeclare
+  Float64Matrix concatHorizontal(Matrix<double> other) =>
+      Float64Matrix._(_matrix.concatHorizontal(other));
+
+  /// Concatenates [other] vertically to the bottom of this matrix.
+  @redeclare
+  Float64Matrix concatVertical(Matrix<double> other) =>
+      Float64Matrix._(_matrix.concatVertical(other));
+
+  /// Solves $A X = B$ or $A X \approx B$ as [Float64Matrix].
+  @redeclare
+  Float64Matrix solve(Matrix<double> b) => Float64Matrix._(_matrix.solve(b));
+
+  /// Solves $A x = b$ or $A x \approx b$ as [Float64Vector].
+  @redeclare
+  Float64Vector solveVector(Vector<double> b) =>
+      Float64Vector(_matrix.solveVector(b));
+
+  /// Computes $A^T x$ as [Float64Vector].
+  @redeclare
+  Float64Vector applyTranspose(Vector<double> x) =>
+      Float64Vector(_matrix.applyTranspose(x));
+
+  /// Computes $A^H x$ as [Float64Vector].
+  @redeclare
+  Float64Vector applyConjugateTranspose(Vector<double> x) =>
+      Float64Vector(_matrix.applyConjugateTranspose(x));
+
+  /// Computes symmetric rank-k update as [Float64Matrix].
+  @redeclare
+  Float64Matrix syrk({
+    double alpha = 1.0,
+    double beta = 0.0,
+    bool transpose = false,
+  }) => Float64Matrix._(
+    _matrix.syrk(alpha: alpha, beta: beta, transpose: transpose),
+  );
 }

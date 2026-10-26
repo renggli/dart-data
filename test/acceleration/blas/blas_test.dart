@@ -832,5 +832,62 @@ void main() {
         ),
       ).throws<ArgumentError>();
     });
+
+    accelerationTest('dnrm2 and snrm2 with multiple infinities and NaN', () {
+      final infVec = Float64List.fromList([
+        double.infinity,
+        double.infinity,
+        3.0,
+      ]);
+      check(Blas.dnrm2(n: 3, x: infVec)).equals(double.infinity);
+
+      final nanInfVec = Float64List.fromList([
+        double.infinity,
+        double.nan,
+        3.0,
+      ]);
+      check(Blas.dnrm2(n: 3, x: nanInfVec).isNaN).isTrue();
+
+      final infVec32 = Float32List.fromList([
+        double.infinity,
+        double.infinity,
+        3.0,
+      ]);
+      check(Blas.snrm2(n: 3, x: infVec32)).equals(double.infinity);
+
+      final nanInfVec32 = Float32List.fromList([
+        double.infinity,
+        double.nan,
+        3.0,
+      ]);
+      check(Blas.snrm2(n: 3, x: nanInfVec32).isNaN).isTrue();
+    });
+
+    accelerationTest('alpha == 0 short-circuits avoid NaN propagation', () {
+      final nanX = Float64List.fromList([double.nan, double.nan]);
+      final y = Float64List.fromList([1.0, 2.0]);
+      check(Blas.daxpy(n: 2, alpha: 0.0, x: nanX, y: y)).isTrue();
+      check(y).deepEquals([1.0, 2.0]);
+
+      final nanMat = Float64List.fromList([
+        double.nan,
+        double.nan,
+        double.nan,
+        double.nan,
+      ]);
+      check(
+        Blas.dgemv(
+          m: 2,
+          n: 2,
+          alpha: 0.0,
+          a: nanMat,
+          lda: 2,
+          x: nanX,
+          beta: 1.0,
+          y: y,
+        ),
+      ).isTrue();
+      check(y).deepEquals([1.0, 2.0]);
+    });
   });
 }

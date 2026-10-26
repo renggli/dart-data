@@ -31,10 +31,13 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
         final val = getUnchecked(row, col).toDouble();
         if (val != 0.0) {
           final absVal = val.abs();
-          if (scale < absVal) {
+          if (absVal.isNaN) return double.nan;
+          if (absVal.isInfinite) {
+            scale = double.infinity;
+          } else if (scale < absVal) {
             sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
             scale = absVal;
-          } else {
+          } else if (scale.isFinite) {
             sumsq += (absVal / scale) * (absVal / scale);
           }
         }

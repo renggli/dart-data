@@ -373,4 +373,22 @@ extension type Float64Vector._(Vector<double> _vector)
     }
     return Float64Vector._(_vector.scale(scalar));
   }
+
+  /// Returns the unit vector in the same direction as [Float64Vector].
+  @redeclare
+  Float64Vector normalized() => Float64Vector._(_vector.normalized());
+
+  /// Creates a deep contiguous copy of this vector as [Float64Vector].
+  @redeclare
+  Float64Vector copy() => Float64Vector._(_vector.copy());
+
+  /// Computes the cumulative sum (prefix sum) along this vector.
+  @redeclare
+  Float64Vector cumsum({Vector<double>? target}) =>
+      Float64Vector.fromDoubleVector(_vector.cumsum(target: target));
+
+  /// Computes the cumulative product (prefix product) along this vector.
+  @redeclare
+  Float64Vector cumprod({Vector<double>? target}) =>
+      Float64Vector.fromDoubleVector(_vector.cumprod(target: target));
 }

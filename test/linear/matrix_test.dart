@@ -1136,5 +1136,52 @@ void main() {
       check(aH.get(2, 0)).equals(const Complex(0.0, 3.0));
       check(aH.get(2, 1)).equals(const Complex(6.0, -1.0));
     });
+
+    test('0-dimension matrix operations, normFrobenius with multiple infinities, and Float64 redeclares', () {
+      final m20 = Matrix<double>.filled(2, 0, 0.0);
+      final m02 = Matrix<double>.filled(0, 2, 0.0);
+      final prod = m20 * m02;
+      check(prod.rowCount).equals(2);
+      check(prod.colCount).equals(2);
+
+      check(m20.apply(Vector<double>.filled(0, 0.0)).length).equals(2);
+      check(m02.applyTranspose(Vector<double>.filled(0, 0.0)).length).equals(2);
+      check(m02.applyConjugateTranspose(Vector<double>.filled(0, 0.0)).length)
+          .equals(2);
+      check(m20.syrk().rowCount).equals(2);
+      check(m02.syrk().rowCount).equals(0);
+
+      final infMat = Matrix<double>.fromRows([
+        [double.infinity, double.infinity],
+        [1.0, 2.0],
+      ]);
+      check(infMat.normFrobenius).equals(double.infinity);
+
+      final nanVec = Vector<double>.fromList([1.0, double.nan, 3.0]);
+      check(nanVec.norm(double.infinity).isNaN).isTrue();
+
+      final f64v = Float64Vector.fromList([3.0, 4.0]);
+      check(f64v.normalized().norm()).isCloseTo(1.0, 1e-12);
+      check(f64v.copy()).equals(f64v);
+      check(f64v.cumsum().toList()).deepEquals([3.0, 7.0]);
+      check(f64v.cumprod().toList()).deepEquals([3.0, 12.0]);
+
+      final f64m = Float64Matrix.fromRows([
+        [2.0, 1.0],
+        [1.0, 3.0],
+      ]);
+      check(f64m.copy()).equals(f64m);
+      check(f64m.hadamard(f64m)[0][0]).equals(4.0);
+      check(f64m.flippedHorizontal()[0][0]).equals(1.0);
+      check(f64m.flippedVertical()[0][0]).equals(1.0);
+      check(f64m.rotated(1).rowCount).equals(2);
+      check(f64m.concatHorizontal(f64m).colCount).equals(4);
+      check(f64m.concatVertical(f64m).rowCount).equals(4);
+      check(f64m.solveVector(f64v).length).equals(2);
+      check(f64m.solve(f64m).rowCount).equals(2);
+      check(f64m.applyTranspose(f64v).length).equals(2);
+      check(f64m.applyConjugateTranspose(f64v).length).equals(2);
+      check(f64m.syrk().rowCount).equals(2);
+    });
   });
 }

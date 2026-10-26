@@ -431,118 +431,7 @@ class Matrix<T> implements LinearOperator<T> {
         type: type,
       );
     }
-    if (rowCount == colCount) {
-      if ((type as DataType) == DataType.float64) {
-        final aData = Float64List(rowCount * colCount);
-        if (tensor.layout.isContiguous && tensor.data is Float64List) {
-          aData.setRange(
-            0,
-            aData.length,
-            tensor.data as Float64List,
-            tensor.layout.offset,
-          );
-        } else {
-          var i = 0;
-          for (final v in tensor.values) {
-            aData[i++] = (v as num).toDouble();
-          }
-        }
-        final bData = Float64List(colCount);
-        if (b.tensor.layout.isContiguous && b.tensor.data is Float64List) {
-          bData.setRange(
-            0,
-            bData.length,
-            b.tensor.data as Float64List,
-            b.tensor.layout.offset,
-          );
-        } else {
-          var i = 0;
-          for (final v in b.tensor.values) {
-            bData[i++] = (v as num).toDouble();
-          }
-        }
-        final success = Lapack.dgesv(
-          n: rowCount,
-          nrhs: 1,
-          a: aData,
-          lda: math.max(1, colCount),
-          b: bData,
-          ldb: 1,
-        );
-        if (success) {
-          return Vector<T>(
-            Tensor.internal(
-              type: type,
-              layout: Layout(shape: [colCount]),
-              data: bData as List<T>,
-            ),
-          );
-        }
-      }
-      return LUDecomposition<T>(this).solveVector(b);
-    } else if ((type as DataType) == DataType.float64) {
-      final aData = Float64List(rowCount * colCount);
-      if (tensor.layout.isContiguous && tensor.data is Float64List) {
-        aData.setRange(
-          0,
-          aData.length,
-          tensor.data as Float64List,
-          tensor.layout.offset,
-        );
-      } else {
-        var i = 0;
-        for (final v in tensor.values) {
-          aData[i++] = (v as num).toDouble();
-        }
-      }
-      final maxMN = math.max(rowCount, colCount);
-      final bData = Float64List(maxMN);
-      if (b.tensor.layout.isContiguous && b.tensor.data is Float64List) {
-        bData.setRange(
-          0,
-          rowCount,
-          b.tensor.data as Float64List,
-          b.tensor.layout.offset,
-        );
-      } else {
-        var i = 0;
-        for (final v in b.tensor.values) {
-          bData[i++] = (v as num).toDouble();
-        }
-      }
-      final success = Lapack.dgels(
-        m: rowCount,
-        n: colCount,
-        nrhs: 1,
-        a: aData,
-        lda: math.max(1, colCount),
-        b: bData,
-        ldb: 1,
-      );
-      if (success) {
-        final resultData = maxMN == colCount
-            ? bData
-            : bData.sublist(0, colCount);
-        return Vector<T>(
-          Tensor.internal(
-            type: type,
-            layout: Layout(shape: [colCount]),
-            data: resultData as List<T>,
-          ),
-        );
-      }
-      if (rowCount > colCount) {
-        return QRDecomposition<T>(this).solveVector(b);
-      }
-      return _solveUnderdeterminedVector(b);
-    } else if (T == double || T == num || T == Complex) {
-      if (rowCount > colCount) {
-        return QRDecomposition<T>(this).solveVector(b);
-      }
-      return _solveUnderdeterminedVector(b);
-    } else {
-      return _solveRref(b.toMatrix()).col(0).copy();
-    }
+    return solve(b.toMatrix()).col(0).copy();
   }
 
   /// Solves the linear system $A X = B$ or linear least-squares problem
@@ -581,34 +470,8 @@ class Matrix<T> implements LinearOperator<T> {
     }
     if (rowCount == colCount) {
       if ((type as DataType) == DataType.float64) {
-        final aData = Float64List(rowCount * colCount);
-        if (tensor.layout.isContiguous && tensor.data is Float64List) {
-          aData.setRange(
-            0,
-            aData.length,
-            tensor.data as Float64List,
-            tensor.layout.offset,
-          );
-        } else {
-          var i = 0;
-          for (final v in tensor.values) {
-            aData[i++] = (v as num).toDouble();
-          }
-        }
-        final bData = Float64List(rowCount * nrhs);
-        if (b.tensor.layout.isContiguous && b.tensor.data is Float64List) {
-          bData.setRange(
-            0,
-            bData.length,
-            b.tensor.data as Float64List,
-            b.tensor.layout.offset,
-          );
-        } else {
-          var i = 0;
-          for (final v in b.tensor.values) {
-            bData[i++] = (v as num).toDouble();
-          }
-        }
+        final aData = _copyTensorToFloat64List(tensor, rowCount * colCount);
+        final bData = _copyTensorToFloat64List(b.tensor, rowCount * nrhs);
         final success = Lapack.dgesv(
           n: rowCount,
           nrhs: nrhs,
@@ -629,35 +492,9 @@ class Matrix<T> implements LinearOperator<T> {
       }
       return LUDecomposition<T>(this).solve(b);
     } else if ((type as DataType) == DataType.float64) {
-      final aData = Float64List(rowCount * colCount);
-      if (tensor.layout.isContiguous && tensor.data is Float64List) {
-        aData.setRange(
-          0,
-          aData.length,
-          tensor.data as Float64List,
-          tensor.layout.offset,
-        );
-      } else {
-        var i = 0;
-        for (final v in tensor.values) {
-          aData[i++] = (v as num).toDouble();
-        }
-      }
+      final aData = _copyTensorToFloat64List(tensor, rowCount * colCount);
       final maxMN = math.max(rowCount, colCount);
-      final bData = Float64List(maxMN * nrhs);
-      if (b.tensor.layout.isContiguous && b.tensor.data is Float64List) {
-        bData.setRange(
-          0,
-          rowCount * nrhs,
-          b.tensor.data as Float64List,
-          b.tensor.layout.offset,
-        );
-      } else {
-        var i = 0;
-        for (final v in b.tensor.values) {
-          bData[i++] = (v as num).toDouble();
-        }
-      }
+      final bData = _copyTensorToFloat64List(b.tensor, maxMN * nrhs);
       final success = Lapack.dgels(
         m: rowCount,
         n: colCount,
@@ -691,6 +528,19 @@ class Matrix<T> implements LinearOperator<T> {
     } else {
       return _solveRref(b);
     }
+  }
+
+  static Float64List _copyTensorToFloat64List<E>(Tensor<E> t, int allocLength) {
+    final out = Float64List(allocLength);
+    if (t.layout.isContiguous && t.data is Float64List) {
+      out.setRange(0, t.length, t.data as Float64List, t.layout.offset);
+    } else {
+      var i = 0;
+      for (final v in t.values) {
+        out[i++] = (v as num).toDouble();
+      }
+    }
+    return out;
   }
 
   Matrix<T> _solveRref(Matrix<T> b) {
@@ -764,44 +614,6 @@ class Matrix<T> implements LinearOperator<T> {
       }
     }
     return result;
-  }
-
-  Vector<T> _solveUnderdeterminedVector(Vector<T> b) {
-    final at = conjugateTranspose;
-    final qr = QRDecomposition<T>(at);
-    if (!qr.isFullRank) {
-      throw StateError('Matrix is rank deficient.');
-    }
-    final field = type.field;
-    final rMat = qr.r;
-    final y = Vector<T>.filled(rowCount, field.additiveIdentity, type: type);
-    for (var i = 0; i < rowCount; i++) {
-      var sum = b.getUnchecked(i);
-      for (var k = 0; k < i; k++) {
-        sum = field.sub(
-          sum,
-          field.mul(
-            field.conjugate(rMat.getUnchecked(k, i)),
-            y.getUnchecked(k),
-          ),
-        );
-      }
-      y.setUnchecked(
-        i,
-        field.div(sum, field.conjugate(rMat.getUnchecked(i, i))),
-      );
-    }
-    final qMat = qr.q;
-    return Vector<T>.generate(colCount, (i) {
-      var sum = field.additiveIdentity;
-      for (var k = 0; k < rowCount; k++) {
-        sum = field.add(
-          sum,
-          field.mul(qMat.getUnchecked(i, k), y.getUnchecked(k)),
-        );
-      }
-      return sum;
-    }, type: type);
   }
 
   Matrix<T> _solveUnderdeterminedMatrix(Matrix<T> b) {
@@ -938,6 +750,7 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final field = type.field;
     final res = Vector<T>.filled(rowCount, field.additiveIdentity, type: type);
+    if (rowCount == 0 || colCount == 0) return res;
 
     // Fast-path: hardware-accelerated DGEMV / SGEMV
     if (T == double && x.tensor.strides[0] > 0 && res.tensor.strides[0] > 0) {
@@ -1015,6 +828,7 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final field = type.field;
     final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
+    if (rowCount == 0 || colCount == 0) return res;
 
     // Fast-path: hardware-accelerated DGEMV / SGEMV
     if (T == double && x.tensor.strides[0] > 0 && res.tensor.strides[0] > 0) {
@@ -1064,6 +878,9 @@ class Matrix<T> implements LinearOperator<T> {
 
   @override
   Vector<T> applyConjugateTranspose(Vector<T> x) {
+    if (T == double || T == int || T == num) {
+      return applyTranspose(x);
+    }
     if (rowCount != x.length) {
       throw ArgumentError(
         'Vector length (${x.length}) must match rowCount ($rowCount)',
@@ -1071,40 +888,7 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final field = type.field;
     final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
-
-    // Fast-path: hardware-accelerated DGEMV / SGEMV
-    if (T == double && x.tensor.strides[0] > 0 && res.tensor.strides[0] > 0) {
-      final s0 = tensor.strides[0];
-      final s1 = tensor.strides[1];
-      int? transA;
-      int? mVal;
-      int? nVal;
-      int? lda;
-      if (s1 == 1 && (s0 >= colCount || rowCount == 1)) {
-        transA = cblasTrans;
-        mVal = rowCount;
-        nVal = colCount;
-        lda = rowCount == 1 ? (colCount > 0 ? colCount : 1) : s0;
-      } else if (s0 == 1 && (s1 >= rowCount || colCount == 1)) {
-        transA = cblasNoTrans;
-        mVal = colCount;
-        nVal = rowCount;
-        lda = colCount == 1 ? (rowCount > 0 ? rowCount : 1) : s1;
-      }
-
-      if (transA != null && lda != null) {
-        if (_tryAcceleratedGemv(
-          transA: transA,
-          m: mVal!,
-          n: nVal!,
-          lda: lda,
-          x: x,
-          res: res,
-        )) {
-          return res;
-        }
-      }
-    }
+    if (rowCount == 0 || colCount == 0) return res;
 
     for (var i = 0; i < rowCount; i++) {
       final xi = x.getUnchecked(i);
@@ -1137,6 +921,7 @@ class Matrix<T> implements LinearOperator<T> {
       field.additiveIdentity,
       type: type,
     );
+    if (dim == 0 || kDim == 0 || alpha == 0.0) return result;
     if (T == double) {
       final s0 = tensor.strides[0];
       final s1 = tensor.strides[1];

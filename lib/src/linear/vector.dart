@@ -282,6 +282,7 @@ class Vector<T> {
       var maxVal = 0.0;
       for (var i = 0; i < length; i++) {
         final val = field.norm(getUnchecked(i));
+        if (val.isNaN) return double.nan;
         if (val > maxVal) maxVal = val;
       }
       return maxVal;
