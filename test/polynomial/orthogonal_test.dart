@@ -143,6 +143,20 @@ void main() {
         family: OrthogonalFamily.hermiteHe,
       );
       check(heClenshaw).isCloseTo(heDirect, 1e-9);
+
+      // Laguerre L
+      final lDirect =
+          coeffs[0] * Polynomial.laguerreL(0, alpha: 0.5).evaluateDouble(x) +
+          coeffs[1] * Polynomial.laguerreL(1, alpha: 0.5).evaluateDouble(x) +
+          coeffs[2] * Polynomial.laguerreL(2, alpha: 0.5).evaluateDouble(x) +
+          coeffs[3] * Polynomial.laguerreL(3, alpha: 0.5).evaluateDouble(x);
+      final lClenshaw = evaluateOrthogonalSeries(
+        coeffs,
+        x,
+        family: OrthogonalFamily.laguerreL,
+        alpha: 0.5,
+      );
+      check(lClenshaw).isCloseTo(lDirect, 1e-9);
     });
   });
 }

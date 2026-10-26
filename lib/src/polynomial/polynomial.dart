@@ -7,7 +7,6 @@ import '../linear/matrix.dart';
 import '../type/data_type.dart';
 import 'impl/compressed_polynomial.dart';
 import 'impl/dense_polynomial.dart';
-import 'orthogonal.dart' as orthogonal;
 
 /// 1-dimensional algebraic univariate polynomial with coefficients in [T].
 ///
@@ -91,8 +90,8 @@ abstract class Polynomial<T> {
   /// final p = Polynomial<double>.fromRoots([2.0, 3.0]);
   /// // p: 6.0 - 5.0*x + 1.0*x^2
   /// ```
-  factory fromRoots(Iterable<num> roots, {DataType<T>? type}) {
-    final effectiveType = (type ?? DataType.float64) as DataType<T>;
+  factory fromRoots(Iterable<T> roots, {DataType<T>? type}) {
+    final effectiveType = type ?? DataType.fromIterable(roots);
     final field = effectiveType.field;
     var result = Polynomial<T>.fromCoefficients([
       field.multiplicativeIdentity,
@@ -197,15 +196,40 @@ abstract class Polynomial<T> {
       a = b;
       b = remainder;
     }
-    if (a.degree <= 0) {
-      return Polynomial<T>.fromCoefficients([
-        type.field.multiplicativeIdentity,
-      ], type: type);
+    if (a.degree < 0) {
+      return Polynomial<T>.zero(type: type);
+    }
+    final field = type.field;
+    final one = field.multiplicativeIdentity;
+    if (a.degree == 0) {
+      return Polynomial<T>.fromCoefficients([one], type: type);
     }
     // Make monic
     final lead = a.leadingCoefficient;
-    final invLead = type.field.div(type.field.multiplicativeIdentity, lead);
-    return a.scale(invLead);
+    if (lead == one || lead == field.additiveIdentity) {
+      return a;
+    }
+    final invLead = field.div(one, lead);
+    if (invLead == field.additiveIdentity) {
+      return a;
+    }
+    if (a is CompressedPolynomial<T>) {
+      return CompressedPolynomial<T>(
+        a.nonZeroTerms.map((t) => t.exponent),
+        a.nonZeroTerms.map(
+          (t) => t.exponent == a.degree ? one : field.div(t.coefficient, lead),
+        ),
+        type: type,
+      );
+    }
+    return DensePolynomial<T>.fromCoefficients(
+      List<T>.generate(
+        a.degree + 1,
+        (i) => i == a.degree ? one : field.div(a[i], lead),
+        growable: false,
+      ),
+      type: type,
+    );
   }
 
   /// Computes the formal derivative $P'(x) = c_1 + 2 c_2 x + 3 c_3 x^2 + \dots$
@@ -427,8 +451,44 @@ abstract class Polynomial<T> {
   }
 
   /// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$.
-  static Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) =>
-      orthogonal.laguerreL(degree, alpha: alpha);
+  ///
+  /// Conceptually, Laguerre polynomials are orthogonal functions frequently
+  /// used in quantum physics (such as modeling the radial wavefunctions of
+  /// hydrogen atoms) and numerical analysis. Formally, these are classical
+  /// orthogonal polynomials on $[0, \infty)$ with respect to weighting measure
+  /// $w(x) = x^\alpha e^{-x}$.
+  ///
+  /// ```dart
+  /// final l2 = Polynomial.laguerreL(2); // 1 - 2x + 0.5x^2
+  /// ```
+  static Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) {
+    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+    if (degree == 0) {
+      return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+    }
+    if (degree == 1) {
+      return Polynomial<double>.fromCoefficients([
+        1.0 + alpha,
+        -1.0,
+      ], type: DataType.float64);
+    }
+    var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+    var p1 = Polynomial<double>.fromCoefficients([
+      1.0 + alpha,
+      -1.0,
+    ], type: DataType.float64);
+
+    for (var k = 1; k < degree; k++) {
+      final term1 = Polynomial<double>.fromCoefficients([
+        2.0 * k + 1.0 + alpha,
+        -1.0,
+      ], type: DataType.float64);
+      final pNext = (term1 * p1 - p0.scale(k + alpha)).scale(1.0 / (k + 1.0));
+      p0 = p1;
+      p1 = pNext;
+    }
+    return p1;
+  }
 
   /// Computes complex roots for [poly] using closed-form solutions for low degrees
   /// and Frobenius companion matrix eigenvalue decomposition for higher degrees.

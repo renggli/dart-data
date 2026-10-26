@@ -131,6 +131,26 @@ void main() {
 
       check(rf1 == rf2).isTrue();
       check(rf1.hashCode).equals(rf2.hashCode);
+
+      // Non-power-of-two scaling (3 vs 6) preserves == and hashCode consistency
+      final rf3 = RationalFunction(
+        Polynomial<double>.fromCoefficients([2.0, 4.0]),
+        Polynomial<double>.fromCoefficients([1.0, 3.0]),
+      );
+      final rf4 = RationalFunction(
+        Polynomial<double>.fromCoefficients([4.0, 8.0]),
+        Polynomial<double>.fromCoefficients([2.0, 6.0]),
+      );
+      check(rf3 == rf4).isTrue();
+      check(rf3.hashCode).equals(rf4.hashCode);
+
+      // Mismatched DataType throws ArgumentError
+      check(
+        () => RationalFunction<num>(
+          Polynomial<num>.fromCoefficients([1.0], type: DataType.float64),
+          Polynomial<num>.fromCoefficients([1], type: DataType.int32),
+        ),
+      ).throws<ArgumentError>();
     });
 
     test('evaluateComplex with valid values and pole handling', () {

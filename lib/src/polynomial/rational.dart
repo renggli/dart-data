@@ -21,6 +21,12 @@ import 'polynomial.dart';
 class RationalFunction<T> {
   /// Constructs a rational function with [numerator] and [denominator].
   new(this.numerator, this.denominator) : type = numerator.type {
+    if (numerator.type != denominator.type) {
+      throw ArgumentError(
+        'Numerator and denominator must have the same DataType: '
+        '${numerator.type} != ${denominator.type}.',
+      );
+    }
     if (denominator.degree < 0) {
       throw UnsupportedError('Denominator cannot be zero polynomial.');
     }
@@ -61,11 +67,27 @@ class RationalFunction<T> {
     // Make denominator monic if field division is supported
     final lead = den.leadingCoefficient;
     final field = type.field;
-    if (lead != field.multiplicativeIdentity &&
-        lead != field.additiveIdentity) {
-      final inv = field.div(field.multiplicativeIdentity, lead);
-      num = num.scale(inv);
-      den = den.scale(inv);
+    final one = field.multiplicativeIdentity;
+    if (lead != one && lead != field.additiveIdentity) {
+      final inv = field.div(one, lead);
+      if (inv != field.additiveIdentity) {
+        num = Polynomial<T>.fromCoefficients(
+          List<T>.generate(
+            num.degree + 1,
+            (i) => field.div(num[i], lead),
+            growable: false,
+          ),
+          type: type,
+        );
+        den = Polynomial<T>.fromCoefficients(
+          List<T>.generate(
+            den.degree + 1,
+            (i) => i == den.degree ? one : field.div(den[i], lead),
+            growable: false,
+          ),
+          type: type,
+        );
+      }
     }
     return RationalFunction(num, den);
   }
@@ -161,8 +183,10 @@ class RationalFunction<T> {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! RationalFunction<T>) return false;
-    return (numerator * other.denominator) == (other.numerator * denominator);
+    if (other is! RationalFunction<T> || type != other.type) return false;
+    final s1 = simplify();
+    final s2 = other.simplify();
+    return s1.numerator == s2.numerator && s1.denominator == s2.denominator;
   }
 
   @override

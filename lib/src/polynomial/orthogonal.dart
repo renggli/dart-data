@@ -1,6 +1,3 @@
-import '../type/data_type.dart';
-import 'polynomial.dart';
-
 /// Supported orthogonal polynomial families for recurrence generation and
 /// Clenshaw summation.
 enum OrthogonalFamily {
@@ -18,6 +15,9 @@ enum OrthogonalFamily {
 
   /// Probabilists' Hermite polynomials $He_n(x)$.
   hermiteHe,
+
+  /// Generalized Laguerre polynomials $L_n^{(\alpha)}(x)$.
+  laguerreL,
 }
 
 /// Evaluates a linear combination $\sum_{k=0}^n c_k P_k(x)$ of orthogonal
@@ -28,6 +28,9 @@ enum OrthogonalFamily {
 /// minimizing rounding errors. More formally, Clenshaw recurrence evaluates
 /// polynomial sums backwards from degree $n$ to 0 using the 3-term recurrence
 /// relation in $\mathcal{O}(n)$ time and $\mathcal{O}(1)$ auxiliary memory.
+///
+/// When [family] is [OrthogonalFamily.laguerreL], the generalized parameter
+/// [alpha] (defaulting to `0.0`) specifies $L_k^{(\alpha)}(x)$.
 ///
 /// ```dart
 /// final val = evaluateOrthogonalSeries(
@@ -41,6 +44,7 @@ double evaluateOrthogonalSeries(
   List<num> coefficients,
   num x, {
   required OrthogonalFamily family,
+  double alpha = 0.0,
 }) {
   if (coefficients.isEmpty) return 0.0;
   final degree = coefficients.length - 1;
@@ -96,65 +100,17 @@ double evaluateOrthogonalSeries(
         b1 = b0;
       }
       return coefficients[0].toDouble() + xd * b1 - b2;
-  }
-}
 
-/// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$ as a
-/// [Polynomial].
-///
-/// Conceptually, Laguerre polynomials are orthogonal functions frequently used
-/// in quantum physics (such as modeling the radial wavefunctions of hydrogen
-/// atoms) and numerical analysis. Formally, these are classical orthogonal
-/// polynomials on $[0, \infty)$ with respect to weighting measure
-/// $w(x) = x^\alpha e^{-x}$.
-///
-/// ```dart
-/// final l2 = laguerreL(2); // 1 - 2x + 0.5x^2
-/// ```
-Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) {
-  if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
-  if (degree == 0) {
-    return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+    case OrthogonalFamily.laguerreL:
+      for (var k = degree; k >= 1; k--) {
+        final alphaK = (2.0 * k + 1.0 + alpha - xd) / (k + 1.0);
+        final gammaKPlus1 = (k + 1.0 + alpha) / (k + 2.0);
+        final b0 = coefficients[k].toDouble() + alphaK * b1 - gammaKPlus1 * b2;
+        b2 = b1;
+        b1 = b0;
+      }
+      return coefficients[0].toDouble() +
+          (1.0 + alpha - xd) * b1 -
+          0.5 * (1.0 + alpha) * b2;
   }
-  if (degree == 1) {
-    return Polynomial<double>.fromCoefficients([
-      1.0 + alpha,
-      -1.0,
-    ], type: DataType.float64);
-  }
-  var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-  var p1 = Polynomial<double>.fromCoefficients([
-    1.0 + alpha,
-    -1.0,
-  ], type: DataType.float64);
-
-  for (var k = 1; k < degree; k++) {
-    final term1 = Polynomial<double>.fromCoefficients([
-      2.0 * k + 1.0 + alpha,
-      -1.0,
-    ], type: DataType.float64);
-    final pNext = (term1 * p1 - p0.scale(k + alpha)).scale(1.0 / (k + 1.0));
-    p0 = p1;
-    p1 = pNext;
-  }
-  return p1;
-}
-
-/// Evaluates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$ at [x]
-/// using the 3-term recurrence relation.
-double laguerreEvaluate(int n, num x, {double alpha = 0.0}) {
-  if (n < 0) throw ArgumentError('Degree must be non-negative: $n');
-  final xd = x.toDouble();
-  if (n == 0) return 1.0;
-  if (n == 1) return 1.0 + alpha - xd;
-
-  var l0 = 1.0;
-  var l1 = 1.0 + alpha - xd;
-  for (var k = 1; k < n; k++) {
-    final lNext =
-        ((2.0 * k + 1.0 + alpha - xd) * l1 - (k + alpha) * l0) / (k + 1.0);
-    l0 = l1;
-    l1 = lNext;
-  }
-  return l1;
 }

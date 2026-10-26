@@ -152,6 +152,32 @@ void main() {
       check(gcd.degree).equals(1);
       check(gcd[1]).isCloseTo(1.0, 1e-9); // Monic
       check(gcd[0]).isCloseTo(-2.0, 1e-9);
+
+      // gcd(0, 0) = 0
+      final z = Polynomial<double>.zero();
+      check(z.gcd(z).degree).equals(-1);
+
+      // Higher-degree float GCD with non-trivial remainder cancellation
+      final c1 = Polynomial<double>.fromRoots([1.0, 2.0, 3.0]);
+      final c2 = Polynomial<double>.fromRoots([2.0, 3.0, 4.0]);
+      final gcdCubic = c1.gcd(c2);
+      check(gcdCubic.degree).equals(2);
+      check(gcdCubic[2]).isCloseTo(1.0, 1e-9);
+      check(gcdCubic[1]).isCloseTo(-5.0, 1e-9);
+      check(gcdCubic[0]).isCloseTo(6.0, 1e-9);
+
+      // fromRoots for int and Complex
+      final pInt = Polynomial<int>.fromRoots([1, 2]);
+      check(pInt.coefficients).deepEquals([2, -3, 1]);
+      final pComplex = Polynomial<Complex>.fromRoots([
+        const Complex(0.0, 1.0),
+        const Complex(0.0, -1.0),
+      ]);
+      check(pComplex.evaluateComplex(const Complex(0.0, 1.0)).abs())
+          .isCloseTo(0.0, 1e-9);
+      check(
+        pComplex.toCompressed().evaluateComplex(const Complex(0.0, 1.0)).abs(),
+      ).isCloseTo(0.0, 1e-9);
     });
 
     test('differentiation and integration', () {
@@ -170,6 +196,14 @@ void main() {
       // \int P'(x) dx with C=5 gives P(x)
       final anti = deriv.integrate(5.0);
       check(anti.coefficients).deepEquals([5.0, 4.0, 3.0, 2.0]);
+
+      // Symbolic polynomial integration preserves exact rational coefficients
+      final symPoly = Polynomial<Expr>.sparse({
+        99: IntegerNumber.of(1),
+      }, type: exprDataType);
+      final symInt = symPoly.integrate();
+      check(symInt[100])
+          .equals(RationalNumber.of(const Integer(1), const Integer(100)));
     });
 
     test('roots: linear, quadratic real, quadratic complex, cubic', () {
@@ -343,19 +377,31 @@ void main() {
       check(p.compose(zero).degree).equals(0);
     });
 
-    test('generalized Laguerre polynomials laguerreL and laguerreEvaluate', () {
+    test('generalized Laguerre polynomials laguerreL and evaluateOrthogonalSeries', () {
       // L_0(x) = 1
       final l0 = Polynomial.laguerreL(0);
       check(l0.degree).equals(0);
       check(l0[0]).equals(1.0);
-      check(laguerreEvaluate(0, 5.0)).equals(1.0);
+      check(
+        evaluateOrthogonalSeries(
+          [1.0],
+          5.0,
+          family: OrthogonalFamily.laguerreL,
+        ),
+      ).equals(1.0);
 
       // L_1(x) = 1 - x
       final l1 = Polynomial.laguerreL(1);
       check(l1.degree).equals(1);
       check(l1[0]).equals(1.0);
       check(l1[1]).equals(-1.0);
-      check(laguerreEvaluate(1, 2.5)).equals(-1.5);
+      check(
+        evaluateOrthogonalSeries(
+          [0.0, 1.0],
+          2.5,
+          family: OrthogonalFamily.laguerreL,
+        ),
+      ).equals(-1.5);
 
       // L_2(x) = 1 - 2x + 0.5 x^2
       final l2 = Polynomial.laguerreL(2);
@@ -366,7 +412,13 @@ void main() {
 
       // Evaluation consistency
       for (final x in [0.0, 1.0, 2.5, 4.0]) {
-        check(laguerreEvaluate(2, x)).isCloseTo(l2.evaluate(x), 1e-9);
+        check(
+          evaluateOrthogonalSeries(
+            [0.0, 0.0, 1.0],
+            x,
+            family: OrthogonalFamily.laguerreL,
+          ),
+        ).isCloseTo(l2.evaluate(x), 1e-9);
       }
 
       // Generalized L_2^(alpha=1.0)(x)
@@ -376,11 +428,16 @@ void main() {
       check(l2Alpha[0]).isCloseTo(3.0, 1e-9);
       check(l2Alpha[1]).isCloseTo(-3.0, 1e-9);
       check(l2Alpha[2]).isCloseTo(0.5, 1e-9);
-      check(laguerreEvaluate(2, 3.0, alpha: 1.0))
-          .isCloseTo(l2Alpha.evaluate(3.0), 1e-9);
+      check(
+        evaluateOrthogonalSeries(
+          [0.0, 0.0, 1.0],
+          3.0,
+          family: OrthogonalFamily.laguerreL,
+          alpha: 1.0,
+        ),
+      ).isCloseTo(l2Alpha.evaluate(3.0), 1e-9);
 
       check(() => Polynomial.laguerreL(-1)).throws<ArgumentError>();
-      check(() => laguerreEvaluate(-1, 0.0)).throws<ArgumentError>();
     });
 
     test('DensePolynomial strips trailing zeros and exposes unmodifiable coefficients', () {

@@ -94,9 +94,9 @@ class DensePolynomial<T> extends Polynomial<T> {
   Complex evaluateComplex(Complex x) {
     final deg = degree;
     if (deg < 0) return Complex.zero;
-    var acc = Complex((this[deg] as num).toDouble());
+    var acc = _coeffToComplex(this[deg]);
     for (var i = deg - 1; i >= 0; i--) {
-      acc = acc * x + Complex((this[i] as num).toDouble());
+      acc = acc * x + _coeffToComplex(this[i]);
     }
     return acc;
   }
@@ -163,9 +163,7 @@ class DensePolynomial<T> extends Polynomial<T> {
     if (deg1 < 0 || deg2 < 0) return Polynomial<T>.zero(type: type);
 
     final outDegree = deg1 + deg2;
-    final dynamicType = type as DataType<dynamic>;
-    if (outDegree >= 64 &&
-        (dynamicType == DataType.float64 || dynamicType == DataType.float32)) {
+    if (outDegree >= 64 && type.defaultValue is double) {
       final n = Fft.nextPowerOf2(value: outDegree + 1);
       final aList = DataType.complex.newList(n);
       final bList = DataType.complex.newList(n);
@@ -193,10 +191,11 @@ class DensePolynomial<T> extends Polynomial<T> {
       }
       Fft.fft(buffer: aList, inverse: true);
 
-      final resultCoeffs = List<T>.generate(outDegree + 1, (i) {
-        final val = aData[2 * i];
-        return (dynamicType == DataType.float32 ? val.toDouble() : val) as T;
-      }, growable: false);
+      final resultCoeffs = List<T>.generate(
+        outDegree + 1,
+        (i) => aData[2 * i] as T,
+        growable: false,
+      );
 
       return DensePolynomial<T>.fromCoefficients(resultCoeffs, type: type);
     }
@@ -276,6 +275,20 @@ class DensePolynomial<T> extends Polynomial<T> {
       }
     }
 
+    if (type.defaultValue is double) {
+      var maxCoeff = 0.0;
+      for (var i = 0; i <= degA; i++) {
+        final v = (this[i] as num).toDouble().abs();
+        if (v > maxCoeff) maxCoeff = v;
+      }
+      final tol = 1e-12 * maxCoeff;
+      for (var j = 0; j < degB; j++) {
+        if ((rCoeffs[j] as num).toDouble().abs() <= tol) {
+          rCoeffs[j] = field.additiveIdentity;
+        }
+      }
+    }
+
     return (
       quotient: DensePolynomial<T>.fromCoefficients(qCoeffs, type: type),
       remainder: DensePolynomial<T>.fromCoefficients(rCoeffs, type: type),
@@ -290,7 +303,7 @@ class DensePolynomial<T> extends Polynomial<T> {
     final field = type.field;
     final newCoeffs = List<T>.generate(deg, (i) {
       final exp = i + 1;
-      return field.scale(this[exp], exp.toDouble());
+      return field.scale(this[exp], exp);
     }, growable: false);
 
     return DensePolynomial<T>.fromCoefficients(newCoeffs, type: type);
@@ -312,9 +325,8 @@ class DensePolynomial<T> extends Polynomial<T> {
     );
     newCoeffs[0] = c0;
     for (var i = 0; i <= deg; i++) {
-      final denom = (i + 1).toDouble();
-      final scaled = field.scale(this[i], 1.0 / denom);
-      newCoeffs[i + 1] = scaled;
+      final denom = field.scale(field.multiplicativeIdentity, i + 1);
+      newCoeffs[i + 1] = field.div(this[i], denom);
     }
 
     return DensePolynomial<T>.fromCoefficients(newCoeffs, type: type);
@@ -340,34 +352,6 @@ class DensePolynomial<T> extends Polynomial<T> {
   DensePolynomial<T> toDense() => this;
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! Polynomial<T>) return false;
-    final deg = degree;
-    if (deg != other.degree) return false;
-    if (deg < 0) return true;
-    for (var i = 0; i <= deg; i++) {
-      if (this[i] != other[i]) return false;
-    }
-    return true;
-  }
-
-  @override
-  int get hashCode {
-    final deg = degree;
-    if (deg < 0) return 0;
-    final zero = type.field.additiveIdentity;
-    var hash = Object.hash(deg, type);
-    for (var i = 0; i <= deg; i++) {
-      final c = _coefficients[i];
-      if (c != zero) {
-        hash = Object.hash(hash, i, c);
-      }
-    }
-    return hash;
-  }
-
-  @override
   String toString() {
     final deg = degree;
     if (deg < 0) return '0';
@@ -379,5 +363,13 @@ class DensePolynomial<T> extends Polynomial<T> {
       terms.add((exponent: i, coefficient: coeff));
     }
     return formatPolynomialTerms(type, terms);
+  }
+
+  Complex _coeffToComplex(T val) {
+    if (val is Complex) return val;
+    if (val is num) return Complex(val.toDouble());
+    throw UnsupportedError(
+      'Cannot evaluate polynomial of type $type at a Complex point.',
+    );
   }
 }

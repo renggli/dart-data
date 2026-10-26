@@ -46,12 +46,12 @@
 /// ```
 library;
 
-import 'src/polynomial/orthogonal.dart' hide laguerreL;
+import 'src/polynomial/orthogonal.dart';
 import 'src/polynomial/polynomial.dart';
 import 'src/polynomial/rational.dart';
 
 export 'src/polynomial/impl/compressed_polynomial.dart';
 export 'src/polynomial/impl/dense_polynomial.dart';
-export 'src/polynomial/orthogonal.dart' hide laguerreL;
+export 'src/polynomial/orthogonal.dart';
 export 'src/polynomial/polynomial.dart';
 export 'src/polynomial/rational.dart';
