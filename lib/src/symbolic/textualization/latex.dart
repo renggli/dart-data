@@ -13,7 +13,6 @@ extension LatexExtension on Expr {
   /// conventions.
   ///
   /// Floating-point numbers are formatted with [decimalPlaces] (default 4).
-  /// If [decimalPlaces] is `null`, full standard precision is preserved.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -151,18 +150,23 @@ String _formatAddLatex(List<Expr> terms, int decimalPlaces) {
     case [final single]:
       return _toLatex(single, decimalPlaces);
     default:
-      final buffer = StringBuffer(_toLatex(terms.first, decimalPlaces));
+      final buffer = StringBuffer(_formatAddTerm(terms.first, decimalPlaces));
       for (var i = 1; i < terms.length; i++) {
         final term = terms[i];
         if (stripLeadingNegative(term) case final stripped?) {
           buffer.write(' - ${_formatSubRight(stripped, decimalPlaces)}');
         } else {
-          buffer.write(' + ${_toLatex(term, decimalPlaces)}');
+          buffer.write(' + ${_formatAddTerm(term, decimalPlaces)}');
         }
       }
       return buffer.toString();
   }
 }
+
+String _formatAddTerm(Expr term, int decimalPlaces) =>
+    term is Mod || term is RelationalExpr
+    ? '\\left(${_toLatex(term, decimalPlaces)}\\right)'
+    : _toLatex(term, decimalPlaces);
 
 String _formatMulLatex(List<Expr> factors, int decimalPlaces) {
   switch (factors) {

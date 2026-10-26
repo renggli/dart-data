@@ -183,6 +183,27 @@ void main() {
             .equals('<mrow><mi>sgn</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(Mod(x, y).toMathMl(root: false))
             .equals('<mrow><mi>x</mi><mo>mod</mo><mi>y</mi></mrow>');
+        check(Mod(x + y, y).toMathMl(root: false)).equals(
+          '<mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow><mo>mod</mo><mi>y</mi></mrow>',
+        );
+        check((Mod(x, y) + IntegerNumber.one).toMathMl(root: false)).equals(
+          '<mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>mod</mo><mi>y</mi></mrow><mo>)</mo></mrow><mo>+</mo><mn>1</mn></mrow>',
+        );
+        check((LessThan(x, y) + IntegerNumber.one).toMathMl(root: false))
+            .equals(
+              '<mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&lt;</mo><mi>y</mi></mrow><mo>)</mo></mrow><mo>+</mo><mn>1</mn></mrow>',
+            );
+        check(
+          Add([
+            x,
+            Mul([
+              IntegerNumber.negativeOne,
+              const ComplexNumber(IntegerNumber.one, IntegerNumber.two),
+            ]),
+          ]).toMathMl(root: false),
+        ).equals(
+          '<mrow><mi>x</mi><mo>&minus;</mo><mrow><mo>(</mo><mrow><mn>1</mn><mo>+</mo><mrow><mn>2</mn><mi>i</mi></mrow></mrow><mo>)</mo></mrow></mrow>',
+        );
         check(Re(x).toMathMl(root: false))
             .equals('<mrow><mi>Re</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(Im(x).toMathMl(root: false))

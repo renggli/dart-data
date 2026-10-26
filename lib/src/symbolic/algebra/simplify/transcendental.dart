@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../../../special/beta.dart' as special_beta;
 import '../../../special/erf.dart' as special_erf;
 import '../../../special/gamma.dart' as special_gamma;
 import '../../../special/lambert_w.dart' as special_lambert;
@@ -460,12 +461,14 @@ Expr simplifyAbs(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
 
   if (expr case Pow(base: Constant.e, :final exponent)
-      when !isRealExpr(exponent, assumptions)) {
+      when !isProvenReal(exponent, assumptions)) {
     final reExp = simplifyRe(exponent, assumptions: assumptions);
     if (reExp is Number && reExp.isZero) {
       return IntegerNumber.one;
     }
-    return simplifyPow(Constant.e, reExp, assumptions: assumptions);
+    if (reExp is! Re || reExp.expr != exponent) {
+      return simplifyPow(Constant.e, reExp, assumptions: assumptions);
+    }
   }
 
   if (isNonNegativeExpr(expr, assumptions: assumptions)) {
@@ -515,10 +518,28 @@ bool isProvenReal(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
       },
       Add(:final terms) => terms.every((t) => isProvenReal(t, assumptions)),
       Mul(:final factors) => factors.every((f) => isProvenReal(f, assumptions)),
+      Pow(base: Constant.e, :final exponent) => isProvenReal(
+        exponent,
+        assumptions,
+      ),
       Pow(:final base, :final exponent) =>
-        isProvenReal(base, assumptions) &&
-            (exponent is IntegerNumber ||
-                isNonNegativeExpr(base, assumptions: assumptions)),
+        (isProvenReal(base, assumptions) && exponent is IntegerNumber) ||
+            (isNonNegativeExpr(base, assumptions: assumptions) &&
+                isProvenReal(exponent, assumptions)),
+      Sin(:final expr) ||
+      Cos(:final expr) ||
+      Tan(:final expr) ||
+      Atan(:final expr) ||
+      Sinh(:final expr) ||
+      Cosh(:final expr) ||
+      Tanh(:final expr) ||
+      Asinh(:final expr) ||
+      Erf(:final expr) ||
+      Erfc(:final expr) ||
+      Gamma(:final expr) => isProvenReal(expr, assumptions),
+      Ln(:final expr) => isPositiveExpr(expr, assumptions: assumptions),
+      Beta(:final left, :final right) || Mod(:final left, :final right) =>
+        isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
       _ => false,
     };
 
@@ -542,24 +563,6 @@ bool isPositiveExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
       _ => false,
     };
 
-/// Returns `true` if [expr] contains no complex numbers, non-real constants,
-/// or variables assumed [VariableDomain.complex] under [assumptions].
-bool isRealExpr(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
-    switch (expr) {
-      RealNumeric() || Abs() || Re() || Im() || Arg() => true,
-      ComplexNumber(:final imaginary) => imaginary.isZero,
-      Constant(:final isReal) => isReal,
-      Variable(:final name) =>
-        assumptions.domainOf(name) != VariableDomain.complex,
-      _ => !expr.anyNode(
-        (node) =>
-            (node is ComplexNumber && !node.imaginary.isZero) ||
-            (node is Constant && !node.isReal) ||
-            (node is Variable &&
-                assumptions.domainOf(node.name) == VariableDomain.complex),
-      ),
-    };
-
 /// Returns `true` if [expr] is syntactically non-negative under [assumptions].
 bool isNonNegativeExpr(
   Expr expr, {
@@ -570,10 +573,10 @@ bool isNonNegativeExpr(
   Variable(:final name) =>
     assumptions.domainOf(name) == VariableDomain.positive,
   Abs() => true,
-  Pow(base: Constant.e, :final exponent) => isRealExpr(exponent, assumptions),
+  Pow(base: Constant.e, :final exponent) => isProvenReal(exponent, assumptions),
   Pow(:final base, :final exponent) =>
     isNonNegativeExpr(base, assumptions: assumptions) ||
-        (isRealExpr(base, assumptions) &&
+        (isProvenReal(base, assumptions) &&
             exponent is IntegerNumber &&
             exponent.value.isEven),
   Mul(:final factors) => factors.every(
@@ -875,6 +878,15 @@ Expr simplifyGamma(Expr expr) {
 
 /// Simplifies an Euler beta function expression $\operatorname{B}(a, b)$.
 Expr simplifyBeta(Expr a, Expr b) {
+  if (a is RealNumeric &&
+      b is RealNumeric &&
+      (a is RealNumber || b is RealNumber)) {
+    final da = a.toDouble();
+    final db = b.toDouble();
+    if (da <= 0.0 || db <= 0.0) return Constant.undefined;
+    final res = special_beta.beta(da, db);
+    return res.isNaN ? Constant.undefined : RealNumber.fromDouble(res);
+  }
   if (compareStructural(a, b) > 0) {
     return simplifyBeta(b, a);
   }
@@ -919,7 +931,7 @@ Expr simplifyBeta(Expr a, Expr b) {
 }
 
 /// Simplifies an inverse hyperbolic sine expression $\operatorname{asinh}(expr)$.
-Expr simplifyAsinh(Expr expr) {
+Expr simplifyAsinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr is RealNumber) {
     final v = expr.value;
     return RealNumber.fromDouble(math.log(v + math.sqrt(v * v + 1.0)));
@@ -927,16 +939,19 @@ Expr simplifyAsinh(Expr expr) {
   if (expr is Number && expr.isZero) {
     return IntegerNumber.zero;
   }
-  if (expr is Sinh) return expr.expr;
+  if (expr is Sinh && isProvenReal(expr.expr, assumptions)) return expr.expr;
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyAsinh(posExpr));
+    return simplifyNeg(
+      simplifyAsinh(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   return Asinh(expr, isSimplified: true);
 }
 
 /// Simplifies an inverse hyperbolic cosine expression $\operatorname{acosh}(expr)$.
-Expr simplifyAcosh(Expr expr) {
+Expr simplifyAcosh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr is RealNumber) {
     final v = expr.value;
     if (v < 1.0) return Constant.undefined;
@@ -945,12 +960,14 @@ Expr simplifyAcosh(Expr expr) {
   if (expr is Number && expr.isOne) {
     return IntegerNumber.zero;
   }
-  if (expr is Cosh) return expr.expr;
+  if (expr is Cosh && isProvenReal(expr.expr, assumptions)) {
+    return simplifyAbs(expr.expr, assumptions: assumptions);
+  }
   return Acosh(expr, isSimplified: true);
 }
 
 /// Simplifies an inverse hyperbolic tangent expression $\operatorname{atanh}(expr)$.
-Expr simplifyAtanh(Expr expr) {
+Expr simplifyAtanh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr is RealNumber) {
     final v = expr.value;
     if (v.abs() >= 1.0) return Constant.undefined;
@@ -959,10 +976,13 @@ Expr simplifyAtanh(Expr expr) {
   if (expr is Number && expr.isZero) {
     return IntegerNumber.zero;
   }
-  if (expr is Tanh) return expr.expr;
+  if (expr is Tanh && isProvenReal(expr.expr, assumptions)) return expr.expr;
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyAtanh(posExpr));
+    return simplifyNeg(
+      simplifyAtanh(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   return Atanh(expr, isSimplified: true);
 }
@@ -1136,6 +1156,9 @@ Expr simplifyLimit(
 
 /// Simplifies a factorial expression $n!$.
 Expr simplifyFactorial(Expr expr) {
+  if (expr is RealNumber) {
+    return simplifyGamma(RealNumber.fromDouble(expr.value + 1.0));
+  }
   if (expr case IntegerNumber(asInt: final n?) when n >= 0 && n <= 100) {
     return IntegerNumber(Integer.from(n).factorial());
   }
@@ -1147,17 +1170,32 @@ Expr simplifyFactorial(Expr expr) {
 
 /// Simplifies a binomial coefficient $\binom{n}{k}$.
 Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
+  if (nExpr is RealNumeric &&
+      kExpr is RealNumeric &&
+      (nExpr is RealNumber || kExpr is RealNumber)) {
+    final n = nExpr.toDouble();
+    final k = kExpr.toDouble();
+    final gn = special_gamma.gamma(n + 1.0);
+    final gk = special_gamma.gamma(k + 1.0);
+    final gnk = special_gamma.gamma(n - k + 1.0);
+    final res = gn / (gk * gnk);
+    return res.isNaN ? Constant.undefined : RealNumber.fromDouble(res);
+  }
   if (kExpr is Number && kExpr.isZero) {
-    return IntegerNumber.one;
+    return (nExpr is RealNumber || kExpr is RealNumber)
+        ? const RealNumber(1.0)
+        : IntegerNumber.one;
   }
   if (kExpr is Number && kExpr.isOne) {
-    return nExpr;
+    return kExpr is RealNumber
+        ? simplifyMul([const RealNumber(1.0), nExpr])
+        : nExpr;
   }
   if (nExpr == kExpr) {
-    return IntegerNumber.one;
+    return nExpr is RealNumber ? const RealNumber(1.0) : IntegerNumber.one;
   }
   if (kExpr case IntegerNumber(:final value) when value.isNegative) {
-    return IntegerNumber.zero;
+    return nExpr is RealNumber ? const RealNumber(0.0) : IntegerNumber.zero;
   }
   if (nExpr case IntegerNumber(asInt: final n?) when n >= 0) {
     if (kExpr case IntegerNumber(asInt: final k?)) {
@@ -1190,7 +1228,14 @@ Expr simplifyFloor(Expr expr, {Assumptions assumptions = Assumptions.none}) {
       if (expr.freeVariables.isEmpty) {
         try {
           final v = expr.evaluate();
-          if (v.isFinite) return IntegerNumber(Integer.from(v.floor()));
+          if (v.isFinite) {
+            if (expr.anyNode((n) => n is RealNumber)) {
+              return RealNumber.fromDouble(v.floorToDouble());
+            }
+            if ((v - v.roundToDouble()).abs() > 1e-12) {
+              return IntegerNumber(Integer.from(v.floor()));
+            }
+          }
         } on Object {
           // Keep symbolic
         }
@@ -1218,7 +1263,14 @@ Expr simplifyCeil(Expr expr, {Assumptions assumptions = Assumptions.none}) {
       if (expr.freeVariables.isEmpty) {
         try {
           final v = expr.evaluate();
-          if (v.isFinite) return IntegerNumber(Integer.from(v.ceil()));
+          if (v.isFinite) {
+            if (expr.anyNode((n) => n is RealNumber)) {
+              return RealNumber.fromDouble(v.ceilToDouble());
+            }
+            if ((v - v.roundToDouble()).abs() > 1e-12) {
+              return IntegerNumber(Integer.from(v.ceil()));
+            }
+          }
         } on Object {
           // Keep symbolic
         }
@@ -1243,7 +1295,14 @@ Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
       if (expr.freeVariables.isEmpty) {
         try {
           final v = expr.evaluate();
-          if (v.isFinite) return IntegerNumber(Integer.from(v.round()));
+          if (v.isFinite) {
+            if (expr.anyNode((n) => n is RealNumber)) {
+              return RealNumber.fromDouble(v.roundToDouble());
+            }
+            if (((v - v.floorToDouble()).abs() - 0.5).abs() > 1e-12) {
+              return IntegerNumber(Integer.from(v.round()));
+            }
+          }
         } on Object {
           // Keep symbolic
         }
@@ -1254,7 +1313,11 @@ Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies a signum expression $\operatorname{sgn}(x)$.
 Expr simplifySign(Expr expr, {Assumptions assumptions = Assumptions.none}) {
-  if (expr is RealNumeric) {
+  if (expr is RealNumber) {
+    if (expr.value.isNaN) return Constant.undefined;
+    return RealNumber.fromDouble(expr.sign.toDouble());
+  }
+  if (expr is RationalNumber) {
     return IntegerNumber.of(expr.sign);
   }
   if (expr case Variable(:final name)
@@ -1265,11 +1328,14 @@ Expr simplifySign(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (isNeg) {
     return simplifyNeg(simplifySign(posExpr, assumptions: assumptions));
   }
-  if (expr.freeVariables.isEmpty && isRealExpr(expr, assumptions)) {
+  if (expr.freeVariables.isEmpty && isProvenReal(expr, assumptions)) {
     try {
       final v = expr.evaluate();
       if (v.isFinite) {
-        return IntegerNumber.of(v == 0.0 ? 0 : (v > 0.0 ? 1 : -1));
+        final s = v == 0.0 ? 0 : (v > 0.0 ? 1 : -1);
+        return expr.anyNode((n) => n is RealNumber)
+            ? RealNumber.fromDouble(s.toDouble())
+            : IntegerNumber.of(s);
       }
     } on Object {
       // Keep symbolic
@@ -1326,7 +1392,7 @@ Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
         for (final term in terms) simplifyRe(term, assumptions: assumptions),
       ], assumptions: assumptions);
     case _:
-      if (_isSyntacticallyReal(expr, assumptions)) {
+      if (isProvenReal(expr, assumptions)) {
         return expr;
       }
       final (:re, :im) = _decomposeComplex(expr, assumptions);
@@ -1351,7 +1417,7 @@ Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
         for (final term in terms) simplifyIm(term, assumptions: assumptions),
       ], assumptions: assumptions);
     case _:
-      if (_isSyntacticallyReal(expr, assumptions)) {
+      if (isProvenReal(expr, assumptions)) {
         return IntegerNumber.zero;
       }
       final (:re, :im) = _decomposeComplex(expr, assumptions);
@@ -1395,7 +1461,9 @@ Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
           (real.isNegative
               ? (imaginary.isNegative ? -Constant.pi : Constant.pi)
               : IntegerNumber.zero);
-    case Conjugate(:final expr):
+    case Conjugate(:final expr)
+        when isPositiveExpr(expr, assumptions: assumptions) ||
+            (expr is ComplexNumber && !expr.imaginary.isZero):
       return simplifyNeg(simplifyArg(expr, assumptions: assumptions));
     case _:
       if (isNonNegativeExpr(expr, assumptions: assumptions)) {
@@ -1461,7 +1529,7 @@ Expr simplifyConjugate(
     case Tanh(:final expr):
       return simplifyTanh(simplifyConjugate(expr, assumptions: assumptions));
     case _:
-      if (_isSyntacticallyReal(expr, assumptions)) {
+      if (isProvenReal(expr, assumptions)) {
         return expr;
       }
       return Conjugate(expr, isSimplified: true);
@@ -1530,54 +1598,8 @@ Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   return Mul([r, expPart], isSimplified: true);
 }
 
-bool _isSyntacticallyReal(Expr expr, Assumptions assumptions) => switch (expr) {
-  RealNumeric() => true,
-  ComplexNumber() => false,
-  Constant(:final isReal) => isReal,
-  Variable(:final name) => assumptions.domainOf(name) != VariableDomain.complex,
-  Re() ||
-  Im() ||
-  Arg() ||
-  Abs() ||
-  Floor() ||
-  Ceil() ||
-  Round() ||
-  Sign() => true,
-  Add(:final terms) => terms.every((t) => _isSyntacticallyReal(t, assumptions)),
-  Mul(:final factors) => factors.every(
-    (f) => _isSyntacticallyReal(f, assumptions),
-  ),
-  Pow(base: Constant.e, :final exponent) => _isSyntacticallyReal(
-    exponent,
-    assumptions,
-  ),
-  Pow(:final base, :final exponent) =>
-    (_isSyntacticallyReal(base, assumptions) && exponent is IntegerNumber) ||
-        (isNonNegativeExpr(base, assumptions: assumptions) &&
-            _isSyntacticallyReal(exponent, assumptions)),
-  Sin(:final expr) ||
-  Cos(:final expr) ||
-  Tan(:final expr) ||
-  Atan(:final expr) ||
-  Sinh(:final expr) ||
-  Cosh(:final expr) ||
-  Tanh(:final expr) ||
-  Asinh(:final expr) ||
-  Erf(:final expr) ||
-  Erfc(:final expr) ||
-  Gamma(:final expr) ||
-  Factorial(:final expr) => _isSyntacticallyReal(expr, assumptions),
-  Ln(:final expr) => isNonNegativeExpr(expr, assumptions: assumptions),
-  Binomial(:final left, :final right) ||
-  Beta(:final left, :final right) ||
-  Mod(:final left, :final right) =>
-    _isSyntacticallyReal(left, assumptions) &&
-        _isSyntacticallyReal(right, assumptions),
-  _ => false,
-};
-
 ({Expr re, Expr im}) _decomposeComplex(Expr expr, Assumptions assumptions) {
-  if (_isSyntacticallyReal(expr, assumptions)) {
+  if (isProvenReal(expr, assumptions)) {
     return (re: expr, im: IntegerNumber.zero);
   }
   switch (expr) {

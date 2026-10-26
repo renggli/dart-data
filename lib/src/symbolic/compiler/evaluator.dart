@@ -59,6 +59,8 @@ final class BytecodeEvaluator {
     registerCount,
     Complex.zero,
   );
+  var _realBusy = false;
+  var _complexBusy = false;
 
   /// Asserts that this evaluator produces a real value when bound to a
   /// real-valued evaluation target.
@@ -147,431 +149,448 @@ final class BytecodeEvaluator {
     if (hasComplexLiterals) {
       return _runComplex((idx) => Complex(loadVar(idx))).a.toDouble();
     }
-    final stack = _realStack;
-    final regs = _realRegs;
+    final reentrant = _realBusy;
+    if (!reentrant) _realBusy = true;
+    final stack = reentrant ? Float64List(maxStack) : _realStack;
+    final regs = reentrant ? Float64List(registerCount) : _realRegs;
     final instrs = instructions;
     final numInstrs = instrs.length;
     var sp = 0;
     var pc = 0;
 
-    while (pc < numInstrs) {
-      final instr = instrs[pc++];
-      switch (instr.op) {
-        case Op.pushConst:
-          stack[sp++] = instr.realValue;
-        case Op.loadVar:
-          stack[sp++] = loadVar(instr.index);
-        case Op.storeReg:
-          regs[instr.index] = stack[sp - 1];
-        case Op.loadReg:
-          stack[sp++] = regs[instr.index];
-        case Op.jump:
-          pc = instr.index;
-        case Op.jumpIfFalse:
-          final cond = stack[--sp];
-          if (cond == 0.0 || cond.isNaN) {
+    try {
+      while (pc < numInstrs) {
+        final instr = instrs[pc++];
+        switch (instr.op) {
+          case Op.pushConst:
+            stack[sp++] = instr.realValue;
+          case Op.loadVar:
+            stack[sp++] = loadVar(instr.index);
+          case Op.storeReg:
+            regs[instr.index] = stack[sp - 1];
+          case Op.loadReg:
+            stack[sp++] = regs[instr.index];
+          case Op.jump:
             pc = instr.index;
-          }
-        case Op.evalNode:
-          final ctx = <String, double>{
-            for (var i = 0; i < variables.length; i++) variables[i]: loadVar(i),
-          };
-          stack[sp++] = _evalNodeReal(instr.node!, ctx);
-        case Op.add:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a + b;
-        case Op.sub:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a - b;
-        case Op.mul:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a * b;
-        case Op.div:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a / b;
-        case Op.pow:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = _realPow(a, b, instr.index);
-        case Op.neg:
-          stack[sp - 1] = -stack[sp - 1];
-        case Op.sin:
-          stack[sp - 1] = math.sin(stack[sp - 1]);
-        case Op.cos:
-          stack[sp - 1] = math.cos(stack[sp - 1]);
-        case Op.exp:
-          stack[sp - 1] = math.exp(stack[sp - 1]);
-        case Op.ln:
-          stack[sp - 1] = math.log(stack[sp - 1]);
-        case Op.tan:
-          stack[sp - 1] = math.tan(stack[sp - 1]);
-        case Op.asin:
-          stack[sp - 1] = math.asin(stack[sp - 1]);
-        case Op.acos:
-          stack[sp - 1] = math.acos(stack[sp - 1]);
-        case Op.atan:
-          stack[sp - 1] = math.atan(stack[sp - 1]);
-        case Op.sinh:
-          stack[sp - 1] = stack[sp - 1].sinh();
-        case Op.cosh:
-          stack[sp - 1] = stack[sp - 1].cosh();
-        case Op.tanh:
-          stack[sp - 1] = stack[sp - 1].tanh();
-        case Op.abs:
-          stack[sp - 1] = stack[sp - 1].abs();
-        case Op.sqrt:
-          stack[sp - 1] = math.sqrt(stack[sp - 1]);
-        case Op.lambertW0:
-          stack[sp - 1] = special_lambert.lambertW0(stack[sp - 1]);
-        case Op.lambertW1:
-          stack[sp - 1] = special_lambert.lambertW1(stack[sp - 1]);
-        case Op.erf:
-          stack[sp - 1] = special_erf.erf(stack[sp - 1]);
-        case Op.erfc:
-          stack[sp - 1] = special_erf.erfc(stack[sp - 1]);
-        case Op.gamma:
-          final v = stack[sp - 1];
-          if (v <= 0.0 && v == v.roundToDouble()) {
-            throw ArgumentError('Gamma pole at non-positive integer $v');
-          }
-          stack[sp - 1] = special_gamma.gamma(v);
-        case Op.beta:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = special_beta.beta(a, b);
-        case Op.factorial:
-          final v = stack[sp - 1];
-          stack[sp - 1] = special_gamma.gamma(v + 1.0);
-        case Op.binomial:
-          final k = stack[--sp];
-          final n = stack[--sp];
-          stack[sp++] = _evalRealBinomial(n, k);
-        case Op.floor:
-          final v = stack[sp - 1];
-          stack[sp - 1] = v.isFinite ? v.floorToDouble() : v;
-        case Op.ceil:
-          final v = stack[sp - 1];
-          stack[sp - 1] = v.isFinite ? v.ceilToDouble() : v;
-        case Op.round:
-          final v = stack[sp - 1];
-          stack[sp - 1] = v.isFinite ? v.roundToDouble() : v;
-        case Op.sign:
-          final v = stack[sp - 1];
-          stack[sp - 1] = v.isNaN
-              ? double.nan
-              : (v == 0.0 ? 0.0 : (v > 0.0 ? 1.0 : -1.0));
-        case Op.mod:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = (a.isNaN || b.isNaN || b == 0.0)
-              ? double.nan
-              : a - b * (a / b).floorToDouble();
-        case Op.re || Op.conj:
-          break;
-        case Op.im:
-          stack[sp - 1] = stack[sp - 1].isNaN ? double.nan : 0.0;
-        case Op.arg:
-          final v = stack[sp - 1];
-          stack[sp - 1] = v.isNaN ? double.nan : (v < 0.0 ? math.pi : 0.0);
-        case Op.asinh:
-          stack[sp - 1] = stack[sp - 1].asinh();
-        case Op.acosh:
-          stack[sp - 1] = stack[sp - 1].acosh();
-        case Op.atanh:
-          stack[sp - 1] = stack[sp - 1].atanh();
-        case Op.lt:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a < b ? 1.0 : 0.0;
-        case Op.le:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a <= b ? 1.0 : 0.0;
-        case Op.gt:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a > b ? 1.0 : 0.0;
-        case Op.ge:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a >= b ? 1.0 : 0.0;
-        case Op.eq:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a == b ? 1.0 : 0.0;
-        case Op.ne:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a != b ? 1.0 : 0.0;
+          case Op.jumpIfFalse:
+            final cond = stack[--sp];
+            if (cond == 0.0 || cond.isNaN) {
+              pc = instr.index;
+            }
+          case Op.evalNode:
+            final ctx = <String, double>{
+              for (var i = 0; i < variables.length; i++)
+                variables[i]: loadVar(i),
+            };
+            stack[sp++] = _evalNodeReal(instr.node!, ctx);
+          case Op.add:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a + b;
+          case Op.sub:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a - b;
+          case Op.mul:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a * b;
+          case Op.div:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a / b;
+          case Op.pow:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = _realPow(a, b, instr.index);
+          case Op.neg:
+            stack[sp - 1] = -stack[sp - 1];
+          case Op.sin:
+            stack[sp - 1] = math.sin(stack[sp - 1]);
+          case Op.cos:
+            stack[sp - 1] = math.cos(stack[sp - 1]);
+          case Op.exp:
+            stack[sp - 1] = math.exp(stack[sp - 1]);
+          case Op.ln:
+            stack[sp - 1] = math.log(stack[sp - 1]);
+          case Op.tan:
+            stack[sp - 1] = math.tan(stack[sp - 1]);
+          case Op.asin:
+            stack[sp - 1] = math.asin(stack[sp - 1]);
+          case Op.acos:
+            stack[sp - 1] = math.acos(stack[sp - 1]);
+          case Op.atan:
+            stack[sp - 1] = math.atan(stack[sp - 1]);
+          case Op.sinh:
+            stack[sp - 1] = stack[sp - 1].sinh();
+          case Op.cosh:
+            stack[sp - 1] = stack[sp - 1].cosh();
+          case Op.tanh:
+            stack[sp - 1] = stack[sp - 1].tanh();
+          case Op.abs:
+            stack[sp - 1] = stack[sp - 1].abs();
+          case Op.sqrt:
+            stack[sp - 1] = math.sqrt(stack[sp - 1]);
+          case Op.lambertW0:
+            stack[sp - 1] = special_lambert.lambertW0(stack[sp - 1]);
+          case Op.lambertW1:
+            stack[sp - 1] = special_lambert.lambertW1(stack[sp - 1]);
+          case Op.erf:
+            stack[sp - 1] = special_erf.erf(stack[sp - 1]);
+          case Op.erfc:
+            stack[sp - 1] = special_erf.erfc(stack[sp - 1]);
+          case Op.gamma:
+            stack[sp - 1] = special_gamma.gamma(stack[sp - 1]);
+          case Op.beta:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = special_beta.beta(a, b);
+          case Op.factorial:
+            final v = stack[sp - 1];
+            stack[sp - 1] = special_gamma.gamma(v + 1.0);
+          case Op.binomial:
+            final k = stack[--sp];
+            final n = stack[--sp];
+            stack[sp++] = _evalRealBinomial(n, k);
+          case Op.floor:
+            final v = stack[sp - 1];
+            stack[sp - 1] = v.isFinite ? v.floorToDouble() : v;
+          case Op.ceil:
+            final v = stack[sp - 1];
+            stack[sp - 1] = v.isFinite ? v.ceilToDouble() : v;
+          case Op.round:
+            final v = stack[sp - 1];
+            stack[sp - 1] = v.isFinite ? v.roundToDouble() : v;
+          case Op.sign:
+            final v = stack[sp - 1];
+            stack[sp - 1] = v.isNaN
+                ? double.nan
+                : (v == 0.0 ? 0.0 : (v > 0.0 ? 1.0 : -1.0));
+          case Op.mod:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = (a.isNaN || b.isNaN || b == 0.0)
+                ? double.nan
+                : a - b * (a / b).floorToDouble();
+          case Op.re || Op.conj:
+            break;
+          case Op.im:
+            stack[sp - 1] = stack[sp - 1].isNaN ? double.nan : 0.0;
+          case Op.arg:
+            final v = stack[sp - 1];
+            stack[sp - 1] = v.isNaN ? double.nan : (v < 0.0 ? math.pi : 0.0);
+          case Op.asinh:
+            stack[sp - 1] = stack[sp - 1].asinh();
+          case Op.acosh:
+            stack[sp - 1] = stack[sp - 1].acosh();
+          case Op.atanh:
+            stack[sp - 1] = stack[sp - 1].atanh();
+          case Op.lt:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a < b ? 1.0 : 0.0;
+          case Op.le:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a <= b ? 1.0 : 0.0;
+          case Op.gt:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a > b ? 1.0 : 0.0;
+          case Op.ge:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a >= b ? 1.0 : 0.0;
+          case Op.eq:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a == b ? 1.0 : 0.0;
+          case Op.ne:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a != b ? 1.0 : 0.0;
+        }
       }
+      return stack[0];
+    } finally {
+      if (!reentrant) _realBusy = false;
     }
-    return stack[0];
   }
 
   Complex _runComplex(Complex Function(int varIndex) loadVar) {
-    final stack = _complexStack;
-    final regs = _complexRegs;
+    final reentrant = _complexBusy;
+    if (!reentrant) _complexBusy = true;
+    final stack = reentrant
+        ? List<Complex>.filled(maxStack, Complex.zero)
+        : _complexStack;
+    final regs = reentrant
+        ? List<Complex>.filled(registerCount, Complex.zero)
+        : _complexRegs;
     final instrs = instructions;
     final numInstrs = instrs.length;
     var sp = 0;
     var pc = 0;
 
-    while (pc < numInstrs) {
-      final instr = instrs[pc++];
-      switch (instr.op) {
-        case Op.pushConst:
-          stack[sp++] = instr.complexValue;
-        case Op.loadVar:
-          stack[sp++] = loadVar(instr.index);
-        case Op.storeReg:
-          regs[instr.index] = stack[sp - 1];
-        case Op.loadReg:
-          stack[sp++] = regs[instr.index];
-        case Op.jump:
-          pc = instr.index;
-        case Op.jumpIfFalse:
-          final cond = stack[--sp];
-          if (cond.a == 0.0 || cond.a.isNaN) {
+    try {
+      while (pc < numInstrs) {
+        final instr = instrs[pc++];
+        switch (instr.op) {
+          case Op.pushConst:
+            stack[sp++] = instr.complexValue;
+          case Op.loadVar:
+            stack[sp++] = loadVar(instr.index);
+          case Op.storeReg:
+            regs[instr.index] = stack[sp - 1];
+          case Op.loadReg:
+            stack[sp++] = regs[instr.index];
+          case Op.jump:
             pc = instr.index;
-          }
-        case Op.evalNode:
-          if (instr.node case Integral(isDefinite: true)) {
-            var allReal = true;
-            final realCtx = <String, double>{};
-            for (var i = 0; i < variables.length; i++) {
-              final z = loadVar(i);
-              if (z.b != 0.0) {
-                allReal = false;
-                break;
-              }
-              realCtx[variables[i]] = z.a.toDouble();
+          case Op.jumpIfFalse:
+            final cond = stack[--sp];
+            if (cond.a == 0.0 || cond.a.isNaN) {
+              pc = instr.index;
             }
-            stack[sp++] = allReal
-                ? Complex(_evalNodeReal(instr.node!, realCtx))
-                : Complex.nan;
-          } else {
-            stack[sp++] = Complex.nan;
-          }
-        case Op.add:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a + b;
-        case Op.sub:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a - b;
-        case Op.mul:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a * b;
-        case Op.div:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = b == Complex.zero && a.b == 0.0 && a.a != 0.0
-              ? Complex(a.a / 0.0)
-              : a / b;
-        case Op.pow:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = _complexPow(a, b);
-        case Op.neg:
-          stack[sp - 1] = -stack[sp - 1];
-        case Op.sin:
-          stack[sp - 1] = stack[sp - 1].sin();
-        case Op.cos:
-          stack[sp - 1] = stack[sp - 1].cos();
-        case Op.exp:
-          stack[sp - 1] = stack[sp - 1].exp();
-        case Op.ln:
-          stack[sp - 1] = stack[sp - 1].log();
-        case Op.tan:
-          stack[sp - 1] = stack[sp - 1].tan();
-        case Op.asin:
-          stack[sp - 1] = stack[sp - 1].asin();
-        case Op.acos:
-          stack[sp - 1] = stack[sp - 1].acos();
-        case Op.atan:
-          stack[sp - 1] = stack[sp - 1].atan();
-        case Op.sinh:
-          stack[sp - 1] = stack[sp - 1].sinh();
-        case Op.cosh:
-          stack[sp - 1] = stack[sp - 1].cosh();
-        case Op.tanh:
-          stack[sp - 1] = stack[sp - 1].tanh();
-        case Op.abs:
-          stack[sp - 1] = Complex(stack[sp - 1].abs());
-        case Op.sqrt:
-          stack[sp - 1] = stack[sp - 1].sqrt();
-        case Op.lambertW0:
-          final z = stack[sp - 1];
-          if (z.b != 0.0) {
-            throw UnsupportedError(
-              'Complex LambertW evaluation is only supported on R',
+          case Op.evalNode:
+            if (instr.node case Integral(isDefinite: true)) {
+              var allReal = true;
+              final realCtx = <String, double>{};
+              for (var i = 0; i < variables.length; i++) {
+                final z = loadVar(i);
+                if (z.b != 0.0) {
+                  allReal = false;
+                  break;
+                }
+                realCtx[variables[i]] = z.a.toDouble();
+              }
+              stack[sp++] = allReal
+                  ? Complex(_evalNodeReal(instr.node!, realCtx))
+                  : Complex.nan;
+            } else {
+              stack[sp++] = Complex.nan;
+            }
+          case Op.add:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a + b;
+          case Op.sub:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a - b;
+          case Op.mul:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a * b;
+          case Op.div:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = b == Complex.zero && a.b == 0.0 && a.a != 0.0
+                ? Complex(a.a / 0.0)
+                : a / b;
+          case Op.pow:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = _complexPow(a, b);
+          case Op.neg:
+            stack[sp - 1] = -stack[sp - 1];
+          case Op.sin:
+            stack[sp - 1] = stack[sp - 1].sin();
+          case Op.cos:
+            stack[sp - 1] = stack[sp - 1].cos();
+          case Op.exp:
+            stack[sp - 1] = stack[sp - 1].exp();
+          case Op.ln:
+            stack[sp - 1] = stack[sp - 1].log();
+          case Op.tan:
+            stack[sp - 1] = stack[sp - 1].tan();
+          case Op.asin:
+            stack[sp - 1] = stack[sp - 1].asin();
+          case Op.acos:
+            stack[sp - 1] = stack[sp - 1].acos();
+          case Op.atan:
+            stack[sp - 1] = stack[sp - 1].atan();
+          case Op.sinh:
+            stack[sp - 1] = stack[sp - 1].sinh();
+          case Op.cosh:
+            stack[sp - 1] = stack[sp - 1].cosh();
+          case Op.tanh:
+            stack[sp - 1] = stack[sp - 1].tanh();
+          case Op.abs:
+            stack[sp - 1] = Complex(stack[sp - 1].abs());
+          case Op.sqrt:
+            stack[sp - 1] = stack[sp - 1].sqrt();
+          case Op.lambertW0:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex LambertW evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_lambert.lambertW0(z.a.toDouble()));
+          case Op.lambertW1:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex LambertW evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_lambert.lambertW1(z.a.toDouble()));
+          case Op.erf:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Erf evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_erf.erf(z.a.toDouble()));
+          case Op.erfc:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Erfc evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_erf.erfc(z.a.toDouble()));
+          case Op.gamma:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Gamma evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_gamma.gamma(z.a.toDouble()));
+          case Op.beta:
+            final zB = stack[--sp];
+            final zA = stack[--sp];
+            if (zA.b != 0.0 || zB.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Beta evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_beta.beta(zA.a.toDouble(), zB.a.toDouble()),
             );
-          }
-          stack[sp - 1] = Complex(special_lambert.lambertW0(z.a.toDouble()));
-        case Op.lambertW1:
-          final z = stack[sp - 1];
-          if (z.b != 0.0) {
-            throw UnsupportedError(
-              'Complex LambertW evaluation is only supported on R',
+          case Op.factorial:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Factorial evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_gamma.gamma(z.a.toDouble() + 1.0));
+          case Op.binomial:
+            final zK = stack[--sp];
+            final zN = stack[--sp];
+            if (zN.b != 0.0 || zK.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Binomial evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              _evalRealBinomial(zN.a.toDouble(), zK.a.toDouble()),
             );
-          }
-          stack[sp - 1] = Complex(special_lambert.lambertW1(z.a.toDouble()));
-        case Op.erf:
-          final z = stack[sp - 1];
-          if (z.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Erf evaluation is only supported on R',
-            );
-          }
-          stack[sp - 1] = Complex(special_erf.erf(z.a.toDouble()));
-        case Op.erfc:
-          final z = stack[sp - 1];
-          if (z.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Erfc evaluation is only supported on R',
-            );
-          }
-          stack[sp - 1] = Complex(special_erf.erfc(z.a.toDouble()));
-        case Op.gamma:
-          final z = stack[sp - 1];
-          if (z.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Gamma evaluation is only supported on R',
-            );
-          }
-          stack[sp - 1] = Complex(special_gamma.gamma(z.a.toDouble()));
-        case Op.beta:
-          final zB = stack[--sp];
-          final zA = stack[--sp];
-          if (zA.b != 0.0 || zB.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Beta evaluation is only supported on R',
-            );
-          }
-          stack[sp++] = Complex(
-            special_beta.beta(zA.a.toDouble(), zB.a.toDouble()),
-          );
-        case Op.factorial:
-          final z = stack[sp - 1];
-          if (z.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Factorial evaluation is only supported on R',
-            );
-          }
-          stack[sp - 1] = Complex(special_gamma.gamma(z.a.toDouble() + 1.0));
-        case Op.binomial:
-          final zK = stack[--sp];
-          final zN = stack[--sp];
-          if (zN.b != 0.0 || zK.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Binomial evaluation is only supported on R',
-            );
-          }
-          stack[sp++] = Complex(
-            _evalRealBinomial(zN.a.toDouble(), zK.a.toDouble()),
-          );
-        case Op.floor:
-          final z = stack[sp - 1];
-          if (z.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Floor evaluation is only supported on R',
-            );
-          }
-          final v = z.a.toDouble();
-          stack[sp - 1] = Complex(v.isFinite ? v.floorToDouble() : v);
-        case Op.ceil:
-          final z = stack[sp - 1];
-          if (z.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Ceil evaluation is only supported on R',
-            );
-          }
-          final v = z.a.toDouble();
-          stack[sp - 1] = Complex(v.isFinite ? v.ceilToDouble() : v);
-        case Op.round:
-          final z = stack[sp - 1];
-          if (z.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Round evaluation is only supported on R',
-            );
-          }
-          final v = z.a.toDouble();
-          stack[sp - 1] = Complex(v.isFinite ? v.roundToDouble() : v);
-        case Op.sign:
-          final z = stack[sp - 1];
-          if (z == Complex.zero) {
-            stack[sp - 1] = Complex.zero;
-          } else if (z.b == 0.0) {
+          case Op.floor:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Floor evaluation is only supported on R',
+              );
+            }
             final v = z.a.toDouble();
-            stack[sp - 1] = Complex(
-              v.isNaN ? double.nan : (v == 0.0 ? 0.0 : (v > 0.0 ? 1.0 : -1.0)),
+            stack[sp - 1] = Complex(v.isFinite ? v.floorToDouble() : v);
+          case Op.ceil:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Ceil evaluation is only supported on R',
+              );
+            }
+            final v = z.a.toDouble();
+            stack[sp - 1] = Complex(v.isFinite ? v.ceilToDouble() : v);
+          case Op.round:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Round evaluation is only supported on R',
+              );
+            }
+            final v = z.a.toDouble();
+            stack[sp - 1] = Complex(v.isFinite ? v.roundToDouble() : v);
+          case Op.sign:
+            final z = stack[sp - 1];
+            if (z == Complex.zero) {
+              stack[sp - 1] = Complex.zero;
+            } else if (z.b == 0.0) {
+              final v = z.a.toDouble();
+              stack[sp - 1] = Complex(
+                v.isNaN
+                    ? double.nan
+                    : (v == 0.0 ? 0.0 : (v > 0.0 ? 1.0 : -1.0)),
+              );
+            } else {
+              final r = z.abs();
+              stack[sp - 1] = r == 0.0 || r.isNaN
+                  ? Complex.nan
+                  : z / Complex(r);
+            }
+          case Op.mod:
+            final zB = stack[--sp];
+            final zA = stack[--sp];
+            if (zA.b != 0.0 || zB.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Mod evaluation is only supported on R',
+              );
+            }
+            final a = zA.a.toDouble();
+            final b = zB.a.toDouble();
+            stack[sp++] = Complex(
+              (a.isNaN || b.isNaN || b == 0.0)
+                  ? double.nan
+                  : a - b * (a / b).floorToDouble(),
             );
-          } else {
-            final r = z.abs();
-            stack[sp - 1] = r == 0.0 || r.isNaN ? Complex.nan : z / Complex(r);
-          }
-        case Op.mod:
-          final zB = stack[--sp];
-          final zA = stack[--sp];
-          if (zA.b != 0.0 || zB.b != 0.0) {
-            throw UnsupportedError(
-              'Complex Mod evaluation is only supported on R',
-            );
-          }
-          final a = zA.a.toDouble();
-          final b = zB.a.toDouble();
-          stack[sp++] = Complex(
-            (a.isNaN || b.isNaN || b == 0.0)
-                ? double.nan
-                : a - b * (a / b).floorToDouble(),
-          );
-        case Op.re:
-          stack[sp - 1] = Complex(stack[sp - 1].real);
-        case Op.im:
-          stack[sp - 1] = Complex(stack[sp - 1].imaginary);
-        case Op.arg:
-          stack[sp - 1] = Complex(stack[sp - 1].arg());
-        case Op.conj:
-          stack[sp - 1] = stack[sp - 1].conjugate();
-        case Op.asinh:
-          stack[sp - 1] = stack[sp - 1].asinh();
-        case Op.acosh:
-          stack[sp - 1] = stack[sp - 1].acosh();
-        case Op.atanh:
-          stack[sp - 1] = stack[sp - 1].atanh();
-        case Op.lt:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a.a < b.a ? Complex.one : Complex.zero;
-        case Op.le:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a.a <= b.a ? Complex.one : Complex.zero;
-        case Op.gt:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a.a > b.a ? Complex.one : Complex.zero;
-        case Op.ge:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a.a >= b.a ? Complex.one : Complex.zero;
-        case Op.eq:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a == b ? Complex.one : Complex.zero;
-        case Op.ne:
-          final b = stack[--sp];
-          final a = stack[--sp];
-          stack[sp++] = a != b ? Complex.one : Complex.zero;
+          case Op.re:
+            stack[sp - 1] = Complex(stack[sp - 1].real);
+          case Op.im:
+            stack[sp - 1] = Complex(stack[sp - 1].imaginary);
+          case Op.arg:
+            stack[sp - 1] = Complex(stack[sp - 1].arg());
+          case Op.conj:
+            stack[sp - 1] = stack[sp - 1].conjugate();
+          case Op.asinh:
+            stack[sp - 1] = stack[sp - 1].asinh();
+          case Op.acosh:
+            stack[sp - 1] = stack[sp - 1].acosh();
+          case Op.atanh:
+            stack[sp - 1] = stack[sp - 1].atanh();
+          case Op.lt:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a.a < b.a ? Complex.one : Complex.zero;
+          case Op.le:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a.a <= b.a ? Complex.one : Complex.zero;
+          case Op.gt:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a.a > b.a ? Complex.one : Complex.zero;
+          case Op.ge:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a.a >= b.a ? Complex.one : Complex.zero;
+          case Op.eq:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a == b ? Complex.one : Complex.zero;
+          case Op.ne:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a != b ? Complex.one : Complex.zero;
+        }
       }
+      return stack[0];
+    } finally {
+      if (!reentrant) _complexBusy = false;
     }
-    return stack[0];
   }
 }
 

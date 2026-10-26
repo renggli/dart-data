@@ -81,12 +81,18 @@ void main() {
       check(simplifyTanh(Mul([IntegerNumber.negativeOne, x])).toString())
           .equals('-tanh(x)');
 
-      check(simplifyAsinh(Sinh(x))).equals(x);
+      check(simplifyAsinh(Sinh(x))).equals(Asinh(Sinh(x), isSimplified: true));
+      check(simplifyAsinh(Sinh(x), assumptions: Assumptions.real)).equals(x);
       check(simplifyAsinh(Mul([IntegerNumber.negativeOne, x])).toString())
           .equals('-asinh(x)');
-      check(simplifyAcosh(Cosh(x))).equals(x);
+      check(simplifyAcosh(Cosh(x))).equals(Acosh(Cosh(x), isSimplified: true));
+      check(simplifyAcosh(Cosh(x), assumptions: Assumptions.real))
+          .equals(Abs(x, isSimplified: true));
+      check(simplifyAcosh(Cosh(x), assumptions: Assumptions.positive))
+          .equals(x);
       check(simplifyAcosh(x)).equals(Acosh(x, isSimplified: true));
-      check(simplifyAtanh(Tanh(x))).equals(x);
+      check(simplifyAtanh(Tanh(x))).equals(Atanh(Tanh(x), isSimplified: true));
+      check(simplifyAtanh(Tanh(x), assumptions: Assumptions.real)).equals(x);
       check(simplifyAtanh(Mul([IntegerNumber.negativeOne, x])).toString())
           .equals('-atanh(x)');
     });
@@ -139,13 +145,17 @@ void main() {
             .equals('0');
         check(simplifyAbs(Constant.pi)).equals(Constant.pi);
         check(simplifyAbs(Abs(x))).equals(Abs(x));
-        check(simplifyAbs(Pow(Constant.e, x))).equals(Pow(Constant.e, x));
-        const posP = Assumptions(domains: {'p': VariableDomain.positive});
+        check(simplifyAbs(Pow(Constant.e, x), assumptions: Assumptions.real))
+            .equals(Pow(Constant.e, x));
+        const posP = Assumptions(
+          domains: {'p': VariableDomain.positive, 'x': VariableDomain.real},
+        );
         check(simplifyAbs(Pow(p, x), assumptions: posP)).equals(Pow(p, x));
         check(simplifyAbs(Mul([Constant.pi, p]), assumptions: posP))
             .equals(Mul([Constant.pi, p]));
-        check(simplifyAbs(Pow(x, IntegerNumber.two)))
-            .equals(Pow(x, IntegerNumber.two));
+        check(
+          simplifyAbs(Pow(x, IntegerNumber.two), assumptions: Assumptions.real),
+        ).equals(Pow(x, IntegerNumber.two));
       },
     );
   });
@@ -350,10 +360,19 @@ void main() {
           assumptions: complexZ,
         ).toString(),
       ).equals('-atan(4/3) + pi');
-      check(simplifyArg(Conjugate(z), assumptions: complexZ).toString())
-          .equals('-arg(z)');
-      check(simplifyArg(Pow(x, IntegerNumber.two), assumptions: complexZ))
-          .equals(IntegerNumber.zero);
+      check(simplifyArg(Conjugate(z), assumptions: complexZ))
+          .equals(Arg(Conjugate(z), isSimplified: true));
+      check(
+        simplifyArg(
+          Conjugate(z),
+          assumptions: const Assumptions(
+            domains: {'z': VariableDomain.positive},
+          ),
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        simplifyArg(Pow(x, IntegerNumber.two), assumptions: Assumptions.real),
+      ).equals(IntegerNumber.zero);
       check(simplifyArg(z, assumptions: complexZ))
           .equals(Arg(z, isSimplified: true));
 

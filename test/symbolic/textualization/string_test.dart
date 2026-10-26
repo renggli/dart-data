@@ -215,6 +215,18 @@ void main() {
           .isFalse();
       check(canOmitMulDot(x, IntegerNumber.of(-2))).isFalse();
       check(canOmitMulDot(x, Pow(y, IntegerNumber.negativeOne))).isFalse();
+      check(Mod(x + y, y).toString()).equals('mod(x + y, y)');
+      check((LessThan(x, y) + IntegerNumber.one).toString())
+          .equals('(x < y) + 1');
+      check(
+        Add([
+          x,
+          Mul([
+            IntegerNumber.negativeOne,
+            const ComplexNumber(IntegerNumber.one, IntegerNumber.two),
+          ]),
+        ]).toString(),
+      ).equals('x - (1 + 2 * i)');
     });
 
     test('formats real numbers with decimalPlaces parameter', () {

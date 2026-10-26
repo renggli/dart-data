@@ -6,7 +6,7 @@ import '../number/integer.dart';
 /// `null` if [term] does not start with a negative factor.
 Expr? stripLeadingNegative(Expr term) => switch (term) {
   final RealNumeric n when n.isNegative => n.neg(),
-  ComplexNumber(real: RationalNumber(isZero: true), :final imaginary)
+  ComplexNumber(real: RealNumeric(isZero: true), :final imaginary)
       when imaginary.isNegative =>
     ComplexNumber.of(IntegerNumber.zero, imaginary.neg()),
   Mul(factors: [final RealNumeric first, ...final rest])
@@ -18,7 +18,7 @@ Expr? stripLeadingNegative(Expr term) => switch (term) {
     },
   Mul(
     factors: [
-      ComplexNumber(real: RationalNumber(isZero: true), :final imaginary),
+      ComplexNumber(real: RealNumeric(isZero: true), :final imaginary),
       ...final rest,
     ],
   )
@@ -139,7 +139,7 @@ Expr leftmostMulFactor(Expr expr) => switch (expr) {
 
 /// Whether [right] requires parentheses when appearing after a binary `-` sign.
 bool needsSubRightParens(Expr right) => switch (right) {
-  Add() => true,
+  Add() || Mod() || RelationalExpr() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(right) => true,
   _ => false,
@@ -147,14 +147,14 @@ bool needsSubRightParens(Expr right) => switch (right) {
 
 /// Whether [left] requires parentheses as the first factor of a product.
 bool needsMulLeftParens(Expr left) => switch (left) {
-  Add() => true,
+  Add() || Mod() || RelationalExpr() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ => false,
 };
 
 /// Whether [right] requires parentheses as a subsequent factor of a product.
 bool needsMulRightParens(Expr right) => switch (right) {
-  Add() => true,
+  Add() || Mod() || RelationalExpr() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(right) => true,
   _ => false,
@@ -162,7 +162,12 @@ bool needsMulRightParens(Expr right) => switch (right) {
 
 /// Whether [base] requires parentheses when raised to an exponent.
 bool needsPowBaseParens(Expr base) => switch (base) {
-  Add() || Mul() || FractionNumber() || RealNumeric(isNegative: true) => true,
+  Add() ||
+  Mul() ||
+  Mod() ||
+  RelationalExpr() ||
+  FractionNumber() ||
+  RealNumeric(isNegative: true) => true,
   ComplexNumber(:final real, :final imaginary)
       when !real.isZero || !imaginary.isOne =>
     true,
@@ -172,7 +177,7 @@ bool needsPowBaseParens(Expr base) => switch (base) {
 
 /// Whether [expr] requires parentheses when preceded by a unary `-` sign.
 bool needsNegOperandParens(Expr expr) => switch (expr) {
-  Add() => true,
+  Add() || Mod() || RelationalExpr() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(expr) => true,
   _ => false,
@@ -181,8 +186,6 @@ bool needsNegOperandParens(Expr expr) => switch (expr) {
 /// Formats a finite floating-point [value] to [decimalPlaces], trimming
 /// redundant trailing zeros while preserving at least one decimal digit for
 /// integer-valued doubles (e.g. `2.0`).
-///
-/// If [decimalPlaces] is `null`, returns standard [double.toString].
 String formatDouble(double value, int decimalPlaces) {
   final fixed = value.toStringAsFixed(decimalPlaces);
   if (fixed.contains('.')) {

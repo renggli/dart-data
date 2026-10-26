@@ -15,7 +15,6 @@ extension MathMlExtension on Expr {
   /// returns only the inner MathML elements without the enclosing `<math>` tag.
   ///
   /// Floating-point numbers are formatted with [decimalPlaces] (default 4).
-  /// If [decimalPlaces] is `null`, full standard precision is preserved.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -207,7 +206,7 @@ String _formatAddMathMl(List<Expr> terms, int decimalPlaces) {
       return _toMathMl(single, decimalPlaces);
     default:
       final buffer = StringBuffer('<mrow>')
-        ..write(_toMathMl(terms.first, decimalPlaces));
+        ..write(_formatAddTermMathMl(terms.first, decimalPlaces));
       for (var i = 1; i < terms.length; i++) {
         final term = terms[i];
         if (stripLeadingNegative(term) case final stripped?) {
@@ -217,13 +216,18 @@ String _formatAddMathMl(List<Expr> terms, int decimalPlaces) {
         } else {
           buffer
             ..write('<mo>+</mo>')
-            ..write(_toMathMl(term, decimalPlaces));
+            ..write(_formatAddTermMathMl(term, decimalPlaces));
         }
       }
       buffer.write('</mrow>');
       return buffer.toString();
   }
 }
+
+String _formatAddTermMathMl(Expr term, int decimalPlaces) =>
+    term is Mod || term is RelationalExpr
+    ? '<mrow><mo>(</mo>${_toMathMl(term, decimalPlaces)}<mo>)</mo></mrow>'
+    : _toMathMl(term, decimalPlaces);
 
 String _formatMulMathMl(List<Expr> factors, int decimalPlaces) {
   switch (factors) {

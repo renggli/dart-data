@@ -8,11 +8,10 @@ extension TextExtension on Expr {
   /// with minimal parentheses based on operator precedence and associativity.
   ///
   /// Floating-point numbers are formatted with [decimalPlaces] (default 4).
-  /// If [decimalPlaces] is `null`, full standard precision is preserved.
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final str = (x * x + 1).toText(); // 'x * x + 1'
+  /// final str = (x * x + 1).format(); // 'x ^ 2 + 1'
   /// ```
   String format({int decimalPlaces = 4}) => _formatExpr(this, 0, decimalPlaces);
 }

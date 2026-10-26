@@ -71,8 +71,8 @@ void main() {
       const y = Variable('y');
 
       final gammaEval = compileToBytecode(Gamma(x), ['x']);
-      check(() => gammaEval.evaluate1D(0.0)).throws<ArgumentError>();
-      check(() => gammaEval.evaluate1D(-2.0)).throws<ArgumentError>();
+      check(gammaEval.evaluate1D(0.0)).isNaN();
+      check(gammaEval.evaluate1D(-2.0)).isNaN();
       check(() => gammaEval.evaluateComplex1D(const Complex(1, 1)))
           .throws<UnsupportedError>();
 
