@@ -218,7 +218,7 @@ class Layout {
       final axis = perm[i];
       final normAxis = axis < 0 ? axis + rank : axis;
       if (normAxis < 0 || normAxis >= rank) {
-        throw ArgumentError('Axis $axis out of bounds for rank $rank');
+        throw RangeError.range(axis, -rank, rank - 1, 'axes');
       }
       if (seen[normAxis]) {
         throw ArgumentError('Duplicate axis $axis in permutation: $axes');
@@ -355,7 +355,9 @@ class Layout {
     final count = ((endIdx - startIdx) + step - 1) ~/ step;
     newShape[normAxis] = count;
     newStrides[normAxis] = strides[normAxis] * step;
-    final newOffset = offset + startIdx * strides[normAxis];
+    final newOffset = count > 0
+        ? offset + startIdx * strides[normAxis]
+        : offset;
 
     return Layout(shape: newShape, strides: newStrides, offset: newOffset);
   }

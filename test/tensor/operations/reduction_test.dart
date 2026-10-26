@@ -167,6 +167,28 @@ void main() {
       ]);
       check(fracTensor.mean().getValue([])).equals(1.0);
       check(fracTensor.variance().getValue([])).equals(0.25);
+
+      // NaN propagation in min, max, argmin, argmax, and norm(infinity)
+      final nanTensor = Tensor<double>.fromIterable(
+        [1.0, double.nan, 3.0, 4.0],
+        shape: [2, 2],
+      );
+      check(nanTensor.min().getValue([]).isNaN).isTrue();
+      check(nanTensor.max().getValue([]).isNaN).isTrue();
+      check(nanTensor.min(axis: 1).toFlatList()[0].isNaN).isTrue();
+      check(nanTensor.max(axis: 1).toFlatList()[0].isNaN).isTrue();
+      check(nanTensor.argmin().getValue([])).equals(1);
+      check(nanTensor.argmax().getValue([])).equals(1);
+      check(nanTensor.argmin(axis: 1).toFlatList()).deepEquals([1, 0]);
+      check(nanTensor.argmax(axis: 1).toFlatList()).deepEquals([1, 1]);
+      check(nanTensor.norm(double.infinity).isNaN).isTrue();
+
+      // min/max along non-empty axis on [0, 3] tensor returns [0] tensor
+      final emptyRows = Tensor<double>.filled(0.0, shape: [0, 3]);
+      check(emptyRows.min(axis: 1).shape).deepEquals([0]);
+      check(emptyRows.max(axis: 1).shape).deepEquals([0]);
+      check(() => emptyRows.min(axis: 0)).throws<StateError>();
+      check(() => emptyRows.max(axis: 0)).throws<StateError>();
     });
   });
 }

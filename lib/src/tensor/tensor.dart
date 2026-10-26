@@ -327,7 +327,9 @@ class Tensor<T> {
     if (layout.isContiguous) {
       final len = layout.length;
       final outData = type.newList(len);
-      outData.setRange(0, len, data, layout.offset);
+      if (len > 0) {
+        outData.setRange(0, len, data, layout.offset);
+      }
       return Tensor<T>.internal(
         type: type,
         layout: Layout(shape: layout.shape),

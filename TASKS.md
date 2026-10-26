@@ -95,7 +95,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   4. Add unit tests in `test/type/data_type_test.dart`.
 - **Verification**: `dart test test/type/`
 
-### [ ] TASK-2.2: Fix `Tensor` & `Layout` Edge Cases (`getRange` on Empty Flipped Slice, `NaN` Reductions, `Float64Tensor.slice`)
+### [x] TASK-2.2: Fix `Tensor` & `Layout` Edge Cases (`getRange` on Empty Flipped Slice, `NaN` Reductions, `Float64Tensor.slice`)
 - **Files**:
   - `lib/src/tensor/layout.dart` (lines 218–225, 350–365)
   - `lib/src/tensor/tensor.dart` (lines 325–338)

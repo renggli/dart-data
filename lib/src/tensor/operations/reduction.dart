@@ -82,26 +82,38 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   /// Computes the minimum value over the given [axis], or all elements if
   /// [axis] is null.
   Tensor<T> min({int? axis, bool keepDims = false, Tensor<T>? target}) {
-    if (length == 0) throw StateError('Cannot compute min of empty tensor');
+    if (axis == null && length == 0) {
+      throw StateError('Cannot compute min of empty tensor');
+    }
     final cmp = type.comparator;
     return _reduceAxis(
       axis: axis,
       keepDims: keepDims,
       target: target,
-      combine: (a, b) => cmp(a, b) <= 0 ? a : b,
+      combine: (a, b) {
+        if (a is double && a.isNaN) return a;
+        if (b is double && b.isNaN) return b;
+        return cmp(a, b) <= 0 ? a : b;
+      },
     );
   }
 
   /// Computes the maximum value over the given [axis], or all elements if
   /// [axis] is null.
   Tensor<T> max({int? axis, bool keepDims = false, Tensor<T>? target}) {
-    if (length == 0) throw StateError('Cannot compute max of empty tensor');
+    if (axis == null && length == 0) {
+      throw StateError('Cannot compute max of empty tensor');
+    }
     final cmp = type.comparator;
     return _reduceAxis(
       axis: axis,
       keepDims: keepDims,
       target: target,
-      combine: (a, b) => cmp(a, b) >= 0 ? a : b,
+      combine: (a, b) {
+        if (a is double && a.isNaN) return a;
+        if (b is double && b.isNaN) return b;
+        return cmp(a, b) >= 0 ? a : b;
+      },
     );
   }
 
@@ -176,6 +188,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       var maxVal = 0.0;
       for (final val in values) {
         final absVal = type.field.norm(val);
+        if (absVal.isNaN) return double.nan;
         if (absVal > maxVal) maxVal = absVal;
       }
       return maxVal;
@@ -334,6 +347,11 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       var bestVal = values.first;
       var idx = 0;
       for (final val in values) {
+        if (val is double && val.isNaN) {
+          bestVal = val;
+          bestIdx = idx;
+          break;
+        }
         final isBetter = findMin
             ? cmp(val, bestVal) < 0
             : cmp(val, bestVal) > 0;
@@ -380,15 +398,22 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       inKey[normalizedAxis] = 0;
       var bestIdx = 0;
       var bestVal = getValue(inKey);
-      for (var k = 1; k < axisLen; k++) {
-        inKey[normalizedAxis] = k;
-        final currentVal = getValue(inKey);
-        final isBetter = findMin
-            ? cmp(currentVal, bestVal) < 0
-            : cmp(currentVal, bestVal) > 0;
-        if (isBetter) {
-          bestVal = currentVal;
-          bestIdx = k;
+      if (bestVal is! double || !bestVal.isNaN) {
+        for (var k = 1; k < axisLen; k++) {
+          inKey[normalizedAxis] = k;
+          final currentVal = getValue(inKey);
+          if (currentVal is double && currentVal.isNaN) {
+            bestVal = currentVal;
+            bestIdx = k;
+            break;
+          }
+          final isBetter = findMin
+              ? cmp(currentVal, bestVal) < 0
+              : cmp(currentVal, bestVal) > 0;
+          if (isBetter) {
+            bestVal = currentVal;
+            bestIdx = k;
+          }
         }
       }
       outTensor.setValue(key, bestIdx);

@@ -202,6 +202,20 @@ void main() {
         final flippedSingle = single.flip(axis: 0);
         check(flippedSingle.offset).equals(5);
       });
+
+      test('getRange on empty flipped slice preserves valid offset and transpose throws RangeError', () {
+        final flipped = Layout(shape: [3]).flip(axis: 0);
+        final emptyRange = flipped.getRange(axis: 0, start: 3, end: 3);
+        check(emptyRange.shape).deepEquals([0]);
+        check(emptyRange.offset).equals(2);
+
+        final tensor = Tensor<double>.fromIterable([1.0, 2.0, 3.0]).flip();
+        final emptySlice = tensor.getRange(axis: 0, start: 3, end: 3).copy();
+        check(emptySlice.shape).deepEquals([0]);
+
+        check(() => Layout(shape: [2, 2]).transpose([2, 0]))
+            .throws<RangeError>();
+      });
     });
   });
 }
