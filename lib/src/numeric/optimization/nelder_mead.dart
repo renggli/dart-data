@@ -16,7 +16,7 @@ nelderMead(
   final simplex = <Vector<double>>[initialPoint.copy()];
   for (var i = 0; i < dim; i++) {
     final vertex = initialPoint.copy();
-    vertex[i] += vertex[i] == 0.0 ? step : vertex[i] * 0.05 + step;
+    vertex[i] += vertex[i] == 0.0 ? step : vertex[i].abs() * 0.05 + step;
     simplex.add(vertex);
   }
 

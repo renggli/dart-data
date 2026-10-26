@@ -1,3 +1,4 @@
+import '../calculus/derivative.dart' as calculus;
 import 'root_method.dart';
 
 /// Finds a root of $f(x) = 0$ using the specified [method].
@@ -25,6 +26,20 @@ double solve(
   int maxIterations = 100,
   double Function(double)? derivative,
 }) {
+  if (tolerance <= 0 || !tolerance.isFinite) {
+    throw ArgumentError.value(
+      tolerance,
+      'tolerance',
+      'Tolerance must be positive and finite.',
+    );
+  }
+  if (maxIterations <= 0) {
+    throw ArgumentError.value(
+      maxIterations,
+      'maxIterations',
+      'Max iterations must be positive.',
+    );
+  }
   final resolvedMethod =
       method ?? (b != null ? RootMethod.brent : RootMethod.newtonRaphson);
   switch (resolvedMethod) {
@@ -81,8 +96,8 @@ double _brent(
       'Root is not bracketed: f($a) = $fa and f($b) = $fb have identical signs.',
     );
   }
-  if (fa.abs() < tolerance) return a;
-  if (fb.abs() < tolerance) return b;
+  if (fa == 0.0) return a;
+  if (fb == 0.0) return b;
 
   var xA = a;
   var xB = b;
@@ -164,19 +179,15 @@ double _newtonRaphson(
   required double tolerance,
   required int maxIterations,
 }) {
-  final dfn =
-      derivative ??
-      (double x) {
-        const step = 1e-6;
-        return (fn(x + step) - fn(x - step)) / (2.0 * step);
-      };
+  final dfn = derivative ?? (double x) => calculus.derivative(fn, x);
 
   var x = x0;
   for (var i = 0; i < maxIterations; i++) {
     final fx = fn(x);
-    if (fx.abs() < tolerance) return x;
+    if (fx == 0.0) return x;
     final dfx = dfn(x);
     if (dfx.abs() < 1e-15) {
+      if (fx.abs() < tolerance) return x;
       throw StateError('Derivative near zero at x = $x.');
     }
     final step = fx / dfx;
@@ -204,8 +215,8 @@ double _bisection(
       'Root is not bracketed: f($a) = $fa and f($b) = $fb have identical signs.',
     );
   }
-  if (fa.abs() < tolerance) return a;
-  if (fb.abs() < tolerance) return b;
+  if (fa == 0.0) return a;
+  if (fb == 0.0) return b;
 
   var xA = a;
   var xB = b;
@@ -213,7 +224,7 @@ double _bisection(
     final mid = 0.5 * (xA + xB);
     final fMid = fn(mid);
     if (fMid.isNaN) return double.nan;
-    if (fMid.abs() < tolerance || (xB - xA).abs() < tolerance) {
+    if (fMid == 0.0 || 0.5 * (xB - xA).abs() <= tolerance) {
       return mid;
     }
     if (fa * fMid < 0.0) {

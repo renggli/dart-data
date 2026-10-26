@@ -108,5 +108,18 @@ void main() {
       check(() => solve(function, 1.0, b: 2.0, method: RootMethod.bisection))
           .throws<ArgumentError>();
     });
+
+    test(
+      'Tiny-scale function does not prematurely return bracket endpoint',
+      () {
+        double f(double x) => 1e-13 * (x - 5.0);
+        check(solve(f, 0.0, b: 10.0, method: RootMethod.brent))
+            .isCloseTo(5.0, 1e-8);
+        check(solve(f, 0.0, b: 10.0, method: RootMethod.bisection))
+            .isCloseTo(5.0, 1e-8);
+        check(solve(f, 0.0, method: RootMethod.newtonRaphson))
+            .isCloseTo(5.0, 1e-6);
+      },
+    );
   });
 }

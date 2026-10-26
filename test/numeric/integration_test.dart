@@ -79,6 +79,11 @@ void main() {
       double rational(double x) => 1.0 / (1.0 + x * x);
       check(integrate(rational, 0.0, double.infinity))
           .isCloseTo(math.pi / 2.0, 1e-7);
+
+      // Slowly decaying algebraic tail: \int_1^\infty x^(-3/2) dx = 2.0
+      double slowDecay(double x) => math.pow(x, -1.5).toDouble();
+      check(integrate(slowDecay, 1.0, double.infinity, tolerance: 1e-9))
+          .isCloseTo(2.0, 1e-8);
     });
 
     test('integration with singular pole and principal value', () {

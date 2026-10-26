@@ -100,8 +100,12 @@ class BilinearInterpolation implements Interpolator2D {
     final q01 = _values.getUnchecked(i, j + 1);
     final q11 = _values.getUnchecked(i + 1, j + 1);
 
-    final dfDx = ((1.0 - v) * (q10 - q00) + v * (q11 - q01)) / dx;
-    final dfDy = ((1.0 - u) * (q01 - q00) + u * (q11 - q10)) / dy;
+    final dfDx = (x < _xs.first || x > _xs.last)
+        ? 0.0
+        : ((1.0 - v) * (q10 - q00) + v * (q11 - q01)) / dx;
+    final dfDy = (y < _ys.first || y > _ys.last)
+        ? 0.0
+        : ((1.0 - u) * (q01 - q00) + u * (q11 - q10)) / dy;
 
     return Vector<double>.fromList([dfDx, dfDy], type: DataType.float64);
   }

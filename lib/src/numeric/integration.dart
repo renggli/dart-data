@@ -73,6 +73,20 @@ double integrate(
   if (b.isNaN) {
     throw ArgumentError.value(b, 'b', 'Invalid upper bound');
   }
+  if (tolerance <= 0 || !tolerance.isFinite) {
+    throw ArgumentError.value(
+      tolerance,
+      'tolerance',
+      'Tolerance must be positive and finite',
+    );
+  }
+  if (maxDepth < 0) {
+    throw ArgumentError.value(
+      maxDepth,
+      'maxDepth',
+      'Max depth must be non-negative',
+    );
+  }
   if (a == b) return 0.0;
   if (a > b) {
     return -integrate(
@@ -108,7 +122,7 @@ double integrate(
           a,
           0.0,
           method: method,
-          tolerance: tolerance,
+          tolerance: tolerance * 0.5,
           maxDepth: maxDepth,
           onWarning: onWarning,
         ) +
@@ -117,15 +131,19 @@ double integrate(
           0.0,
           b,
           method: method,
-          tolerance: tolerance,
+          tolerance: tolerance * 0.5,
           maxDepth: maxDepth,
           onWarning: onWarning,
         );
   } else if (a == double.negativeInfinity) {
-    final eps = math.max(tolerance * 1e-3, 1e-10);
     return integrate(
-      (t) => function(b - (1.0 - t) / t) / (t * t),
-      eps,
+      (t) {
+        if (t <= 0.0) return 0.0;
+        final t2 = t * t;
+        final res = 2.0 * function(b - (1.0 - t2) / t2) / (t2 * t);
+        return res.isNaN ? 0.0 : res;
+      },
+      0.0,
       1.0,
       method: method,
       tolerance: tolerance,
@@ -133,10 +151,14 @@ double integrate(
       onWarning: onWarning,
     );
   } else if (b == double.infinity) {
-    final eps = math.max(tolerance * 1e-3, 1e-10);
     return integrate(
-      (t) => function(a + (1.0 - t) / t) / (t * t),
-      eps,
+      (t) {
+        if (t <= 0.0) return 0.0;
+        final t2 = t * t;
+        final res = 2.0 * function(a + (1.0 - t2) / t2) / (t2 * t);
+        return res.isNaN ? 0.0 : res;
+      },
+      0.0,
       1.0,
       method: method,
       tolerance: tolerance,

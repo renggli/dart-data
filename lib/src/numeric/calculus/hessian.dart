@@ -23,6 +23,9 @@ Matrix<double> hessian(
   Vector<double> point, {
   double step = 1e-4,
 }) {
+  if (step <= 0.0 || !step.isFinite) {
+    throw ArgumentError.value(step, 'step', 'Step must be positive and finite');
+  }
   final dim = point.length;
   final f0 = function(point);
   final result = Matrix<double>.filled(dim, dim, 0.0, type: DataType.float64);

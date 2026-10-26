@@ -194,7 +194,10 @@ minimizeConstrained(
       return boxTransform.chainRuleGradient(gradX, y);
     }
 
-    final innerMax = math.max(10, remainingIterations);
+    final innerMax = math.min(
+      remainingIterations,
+      math.max(20, maxIterations ~/ 2),
+    );
     final ({Vector<double> point, int iterations, double gradientNorm})
     subResult;
     if (method == OptimizationMethod.nelderMead) {
@@ -293,11 +296,18 @@ minimizeConstrained(
 
 class _BoxTransform {
   new(this.bounds) {
-    if (bounds != null) {
-      for (var i = 0; i < bounds!.length; i++) {
-        final b = bounds![i];
-        final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
-        final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+    final bnds = bounds;
+    if (bnds != null) {
+      for (var i = 0; i < bnds.length; i++) {
+        final b = bnds[i];
+        final rawLower = b.lower;
+        final rawUpper = b.upper;
+        final lower = (rawLower == null || rawLower.isInfinite)
+            ? null
+            : rawLower;
+        final upper = (rawUpper == null || rawUpper.isInfinite)
+            ? null
+            : rawUpper;
         if (lower != null && upper != null && lower >= upper) {
           throw ArgumentError(
             'Lower bound ($lower) must be strictly less than upper bound ($upper) at index $i.',
@@ -310,13 +320,16 @@ class _BoxTransform {
   final List<BoxBound>? bounds;
 
   Vector<double> toX(Vector<double> y) {
-    if (bounds == null) return y.copy();
+    final bnds = bounds;
+    if (bnds == null) return y.copy();
     final dim = y.length;
     final x = Vector<double>.filled(dim, 0.0, type: DataType.float64);
     for (var i = 0; i < dim; i++) {
-      final b = bounds![i];
-      final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
-      final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+      final b = bnds[i];
+      final rawLower = b.lower;
+      final rawUpper = b.upper;
+      final lower = (rawLower == null || rawLower.isInfinite) ? null : rawLower;
+      final upper = (rawUpper == null || rawUpper.isInfinite) ? null : rawUpper;
       final yi = y[i];
       if (lower != null && upper != null) {
         x[i] = lower + (upper - lower) * _sigmoid(yi);
@@ -334,23 +347,26 @@ class _BoxTransform {
   }
 
   Vector<double> toY(Vector<double> x) {
-    if (bounds == null) return x.copy();
+    final bnds = bounds;
+    if (bnds == null) return x.copy();
     final dim = x.length;
     final y = Vector<double>.filled(dim, 0.0, type: DataType.float64);
     for (var i = 0; i < dim; i++) {
-      final b = bounds![i];
-      final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
-      final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+      final b = bnds[i];
+      final rawLower = b.lower;
+      final rawUpper = b.upper;
+      final lower = (rawLower == null || rawLower.isInfinite) ? null : rawLower;
+      final upper = (rawUpper == null || rawUpper.isInfinite) ? null : rawUpper;
       final xi = x[i];
       if (lower != null && upper != null) {
         final span = upper - lower;
-        final t = ((xi - lower) / span).clamp(0.01, 0.99);
+        final t = ((xi - lower) / span).clamp(0.05, 0.95);
         y[i] = math.log(t / (1.0 - t));
       } else if (lower != null) {
-        final d = math.max(xi - lower, 0.1);
+        final d = math.max(xi - lower, 1e-4);
         y[i] = math.log(d);
       } else if (upper != null) {
-        final d = math.max(upper - xi, 0.1);
+        final d = math.max(upper - xi, 1e-4);
         y[i] = -math.log(d);
       } else {
         y[i] = xi;
@@ -360,13 +376,16 @@ class _BoxTransform {
   }
 
   Vector<double> chainRuleGradient(Vector<double> gradX, Vector<double> y) {
-    if (bounds == null) return gradX.copy();
+    final bnds = bounds;
+    if (bnds == null) return gradX.copy();
     final dim = y.length;
     final gradY = Vector<double>.filled(dim, 0.0, type: DataType.float64);
     for (var i = 0; i < dim; i++) {
-      final b = bounds![i];
-      final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
-      final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+      final b = bnds[i];
+      final rawLower = b.lower;
+      final rawUpper = b.upper;
+      final lower = (rawLower == null || rawLower.isInfinite) ? null : rawLower;
+      final upper = (rawUpper == null || rawUpper.isInfinite) ? null : rawUpper;
       final yi = y[i];
       final double dxiDyi;
       if (lower != null && upper != null) {
@@ -390,13 +409,16 @@ class _BoxTransform {
     Vector<double>? gradX,
     double tolerance = 1e-6,
   }) {
-    if (bounds == null) return x.copy();
+    final bnds = bounds;
+    if (bnds == null) return x.copy();
     final dim = x.length;
     final res = Vector<double>.filled(dim, 0.0, type: DataType.float64);
     for (var i = 0; i < dim; i++) {
-      final b = bounds![i];
-      final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
-      final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+      final b = bnds[i];
+      final rawLower = b.lower;
+      final rawUpper = b.upper;
+      final lower = (rawLower == null || rawLower.isInfinite) ? null : rawLower;
+      final upper = (rawUpper == null || rawUpper.isInfinite) ? null : rawUpper;
       var xi = x[i];
       if (lower != null && upper != null) {
         final span = upper - lower;

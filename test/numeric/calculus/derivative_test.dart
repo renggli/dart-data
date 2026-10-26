@@ -25,6 +25,11 @@ void main() {
       check(() => derivative(function, 2.0, order: 7)).throws<ArgumentError>();
       check(() => derivative(function, 2.0, accuracy: 5))
           .throws<ArgumentError>();
+      check(() => derivative(function, 2.0, step: 0.0)).throws<ArgumentError>();
+      check(() => derivative(function, 2.0, step: -1.0))
+          .throws<ArgumentError>();
+      check(() => derivative(function, 2.0, step: double.nan))
+          .throws<ArgumentError>();
     });
 
     test(

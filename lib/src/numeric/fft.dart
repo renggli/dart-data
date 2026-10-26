@@ -86,11 +86,6 @@ void fft2(
   required int cols,
   bool inverse = false,
 }) {
-  if (flat is Float64ComplexList) {
-    acc.Fft.fft2(buffer: flat, rows: rows, cols: cols, inverse: inverse);
-    return;
-  }
-
   if (rows <= 0 || cols <= 0) return;
   if ((rows & (rows - 1)) != 0) {
     throw ArgumentError.value(rows, 'rows', 'Rows must be a power of 2');
@@ -105,6 +100,11 @@ void fft2(
       'flat.length',
       'Buffer length must equal rows * cols ($rows * $cols = $total)',
     );
+  }
+
+  if (flat is Float64ComplexList) {
+    acc.Fft.fft2(buffer: flat, rows: rows, cols: cols, inverse: inverse);
+    return;
   }
 
   final temp = Float64ComplexList(total);

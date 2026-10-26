@@ -19,7 +19,11 @@ class LagrangeInterpolation implements Interpolator {
       var prod = 1.0;
       for (var j = 0; j < _xs.length; j++) {
         if (i != j) {
-          prod *= _xs[i] - _xs[j];
+          final diff = _xs[i] - _xs[j];
+          if (diff == 0.0) {
+            throw ArgumentError('xs must not contain duplicate values.');
+          }
+          prod *= diff;
         }
       }
       _weights[i] = 1.0 / prod;

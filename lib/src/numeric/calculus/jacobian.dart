@@ -25,6 +25,9 @@ Matrix<double> jacobian(
   Vector<double> point, {
   double step = 1e-5,
 }) {
+  if (step <= 0.0 || !step.isFinite) {
+    throw ArgumentError.value(step, 'step', 'Step must be positive and finite');
+  }
   final dim = point.length;
   final f0 = function(point);
   final numFuncs = f0.length;

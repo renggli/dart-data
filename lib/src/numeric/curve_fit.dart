@@ -8,6 +8,7 @@ import '../linear/matrix.dart';
 import '../linear/vector.dart';
 import '../polynomial/polynomial.dart';
 import '../type/data_type.dart';
+import 'calculus/jacobian.dart' as calculus;
 
 /// Curve fitting and regression algorithms using numerically stable QR and SVD
 /// matrix decompositions.
@@ -183,6 +184,9 @@ Polynomial<double> polynomialRegression(
   if (xs.length != ys.length) {
     throw ArgumentError('xs and ys must have the same length.');
   }
+  if (degree < 0) {
+    throw ArgumentError.value(degree, 'degree', 'Degree must be non-negative.');
+  }
   if (lambda < 0.0) {
     throw ArgumentError(
       'Regularization parameter lambda must be non-negative: $lambda',
@@ -260,6 +264,12 @@ multipleLinearRegression(
   }
   final numSamples = x.rowCount;
   final numFeatures = x.colCount;
+  final numParams = fitIntercept ? numFeatures + 1 : numFeatures;
+  if (numSamples < 1 || numSamples < numParams) {
+    throw ArgumentError(
+      'At least ${math.max(1, numParams)} samples are required, got $numSamples.',
+    );
+  }
 
   final designMatrix = fitIntercept
       ? Matrix<double>.generate(
@@ -465,21 +475,7 @@ CurveFitResult curveFit({
   for (; iter < maxIterations; iter++) {
     if (math.sqrt(currentCost) < tolerance) break;
 
-    const step = 1e-7;
-    final j = Matrix<double>.filled(n, numParams, 0.0, type: DataType.float64);
-    final pWork = params.copy();
-    for (var col = 0; col < numParams; col++) {
-      final pj = params[col];
-      final h = step * math.max(1.0, pj.abs());
-      pWork[col] = pj + h;
-      final rForward = computeResiduals(pWork);
-      pWork[col] = pj;
-
-      final invH = 1.0 / h;
-      for (var row = 0; row < n; row++) {
-        j.set(row, col, (rForward[row] - residuals[row]) * invH);
-      }
-    }
+    final j = calculus.jacobian(computeResiduals, params, step: 1e-7);
 
     final jTj = j.syrk(transpose: true);
     final jTr = j.applyTranspose(residuals);
@@ -541,23 +537,7 @@ CurveFitResult curveFit({
   final rse = math.sqrt(ssRes / math.max(df, 1));
 
   final optimalParams = params.copy();
-
-  final j = Matrix<double>.filled(n, numParams, 0.0, type: DataType.float64);
-  final pWork = optimalParams.copy();
-  const step = 1e-7;
-  for (var col = 0; col < numParams; col++) {
-    final pj = optimalParams[col];
-    final h = step * math.max(1.0, pj.abs());
-    pWork[col] = pj + h;
-    final rForward = computeResiduals(pWork);
-    pWork[col] = pj;
-
-    final invH = 1.0 / h;
-    for (var row = 0; row < n; row++) {
-      j.set(row, col, (rForward[row] - residuals[row]) * invH);
-    }
-  }
-
+  final j = calculus.jacobian(computeResiduals, optimalParams, step: 1e-7);
   final jTj = j.syrk(transpose: true);
   final eye = Matrix<double>.identity(numParams, type: DataType.float64);
   final Matrix<double> inv;
@@ -653,30 +633,8 @@ Vector<double> fitNonlinear({
   for (var iter = 0; iter < maxIterations; iter++) {
     if (math.sqrt(currentCost) < tolerance) break;
 
-    // Approximate Jacobian J_ij = dr_i / dp_j via finite differences
-    final numResiduals = residuals.length;
     final numParams = params.length;
-    const step = 1e-7;
-
-    final j = Matrix<double>.filled(
-      numResiduals,
-      numParams,
-      0.0,
-      type: DataType.float64,
-    );
-    final pWork = params.copy();
-    for (var col = 0; col < numParams; col++) {
-      final pj = params[col];
-      final h = step * math.max(1.0, pj.abs());
-      pWork[col] = pj + h;
-      final rForward = residualFunction(pWork);
-      pWork[col] = pj;
-
-      final invH = 1.0 / h;
-      for (var row = 0; row < numResiduals; row++) {
-        j.set(row, col, (rForward[row] - residuals[row]) * invH);
-      }
-    }
+    final j = calculus.jacobian(residualFunction, params, step: 1e-7);
 
     // Augmented normal equations: (J^T J + lambda * diag(J^T J)) delta = -J^T r
     final jTj = j.syrk(transpose: true);

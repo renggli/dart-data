@@ -24,6 +24,9 @@ Vector<double> gradient(
   Vector<double> point, {
   double step = 1e-5,
 }) {
+  if (step <= 0.0 || !step.isFinite) {
+    throw ArgumentError.value(step, 'step', 'Step must be positive and finite');
+  }
   final dim = point.length;
   final result = Vector<double>.filled(dim, 0.0, type: DataType.float64);
   if (dim == 0) return result;

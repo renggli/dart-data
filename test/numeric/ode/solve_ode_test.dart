@@ -187,5 +187,32 @@ void main() {
         check(sol.y[i][0]).isCloseTo(expected, 1e-4);
       }
     });
+
+    test(
+      'RK45 shrinks truncated final step below minStep without aborting',
+      () {
+        // Rapid change near tEnd where the final truncated step < minStep needs
+        // step reduction to meet tight tolerance.
+        Vector<double> derivative(double time, Vector<double> y) =>
+            Vector<double>.fromList([
+              50.0 * math.cos(50.0 * time),
+            ], type: DataType.float64);
+
+        final y0 = Vector<double>.fromList([0.0], type: DataType.float64);
+        final sol = solveOde(
+          f: derivative,
+          t0: 0.0,
+          tEnd: 0.1005,
+          y0: y0,
+          method: OdeMethod.dormandPrince45,
+          stepSize: 0.1,
+          minStep: 0.002,
+          relativeTolerance: 1e-9,
+          absoluteTolerance: 1e-9,
+        );
+        check(sol.converged).isTrue();
+        check(sol.last[0]).isCloseTo(math.sin(50.0 * 0.1005), 1e-6);
+      },
+    );
   });
 }

@@ -83,6 +83,11 @@ OptimizationResult minimize(
       : OptimizationMethod.nelderMead;
 
   if (resolvedMethod == OptimizationMethod.brent) {
+    if (init.length != 1) {
+      throw ArgumentError(
+        'OptimizationMethod.brent only supports 1D problems, got dimension ${init.length}.',
+      );
+    }
     final low =
         a ??
         (bnds != null && bnds.isNotEmpty ? bnds[0].lower : null) ??

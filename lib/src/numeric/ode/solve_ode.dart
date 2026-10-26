@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
 import '../../type/data_type.dart';
+import '../calculus/jacobian.dart' as calculus;
+import '../interpolation/search.dart';
 import 'ode_method.dart';
 import 'ode_solution.dart';
 
@@ -40,11 +42,45 @@ OdeSolution solveOde({
   int maxSteps = 100000,
   Iterable<double>? tEval,
 }) {
-  if (stepSize <= 0) {
+  if (!t0.isFinite) {
+    throw ArgumentError.value(t0, 't0', 'Must be finite');
+  }
+  if (!tEnd.isFinite) {
+    throw ArgumentError.value(tEnd, 'tEnd', 'Must be finite');
+  }
+  if (stepSize <= 0 || !stepSize.isFinite) {
     throw ArgumentError.value(
       stepSize,
       'stepSize',
-      'Step size must be positive',
+      'Step size must be positive and finite',
+    );
+  }
+  if (relativeTolerance <= 0 || !relativeTolerance.isFinite) {
+    throw ArgumentError.value(
+      relativeTolerance,
+      'relativeTolerance',
+      'Relative tolerance must be positive and finite',
+    );
+  }
+  if (absoluteTolerance <= 0 || !absoluteTolerance.isFinite) {
+    throw ArgumentError.value(
+      absoluteTolerance,
+      'absoluteTolerance',
+      'Absolute tolerance must be positive and finite',
+    );
+  }
+  if (minStep <= 0 || !minStep.isFinite) {
+    throw ArgumentError.value(
+      minStep,
+      'minStep',
+      'Min step must be positive and finite',
+    );
+  }
+  if (maxStep < minStep || !maxStep.isFinite) {
+    throw ArgumentError.value(
+      maxStep,
+      'maxStep',
+      'Max step must be finite and >= minStep',
     );
   }
   if (maxSteps <= 0) {
@@ -169,8 +205,10 @@ OdeSolution _rk45({
   var stepCount = 0;
   while ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
     stepCount++;
+    var truncated = false;
     if ((currentTime + step - tEnd) * direction > 0.0) {
       step = tEnd - currentTime;
+      truncated = true;
     }
 
     final k2 = f(
@@ -240,16 +278,20 @@ OdeSolution _rk45({
       k1 = k7;
       tList.add(currentTime);
       yList.add(y.copy());
-    } else if (step.abs() <= minStep * (1.0 + 1e-12)) {
+    } else if (!truncated && step.abs() <= minStep * (1.0 + 1e-12)) {
       // Step size cannot be reduced below minStep; abort with converged = false.
+      break;
+    } else if (truncated && step.abs() <= 1e-15) {
       break;
     }
 
     var factor =
         0.9 * math.pow(maxErrorRatio > 0.0 ? 1.0 / maxErrorRatio : 10.0, 0.2);
     factor = math.max(0.2, math.min(5.0, factor));
+    final lowerStepBound = truncated ? math.min(minStep, 1e-15) : minStep;
     step =
-        direction * math.min(maxStep, math.max(minStep, (step * factor).abs()));
+        direction *
+        math.min(maxStep, math.max(lowerStepBound, (step * factor).abs()));
   }
 
   final converged = (tEnd - currentTime).abs() <= 1e-12;
@@ -299,7 +341,7 @@ OdeSolution _bdf2({
       }
 
       if (mat == null || iter >= 5) {
-        final jac = _approximateJacobian(f, t1, y1, f1);
+        final jac = calculus.jacobian((v) => f(t1, v), y1, step: 1e-6);
         mat = Matrix<double>.generate(dim, dim, (r, c) {
           final id = r == c ? 1.0 : 0.0;
           return id - gamma * jac.get(r, c);
@@ -322,7 +364,6 @@ OdeSolution _bdf2({
   }
 
   // Subsequent steps: BDF2 (Modified Newton with Jacobian reuse)
-  Matrix<double>? cachedJac;
   double? cachedGamma;
   Matrix<double>? cachedMat;
 
@@ -354,11 +395,11 @@ OdeSolution _bdf2({
       }
 
       if (cachedMat == null || cachedGamma != gamma || iter >= 3) {
-        cachedJac = _approximateJacobian(f, tNext, yNext, fNext);
+        final jac = calculus.jacobian((v) => f(tNext, v), yNext, step: 1e-6);
         cachedGamma = gamma;
         cachedMat = Matrix<double>.generate(dim, dim, (r, c) {
           final id = r == c ? 1.0 : 0.0;
-          return id - gamma * cachedJac!.get(r, c);
+          return id - gamma * jac.get(r, c);
         }, type: DataType.float64);
       }
 
@@ -383,31 +424,6 @@ OdeSolution _bdf2({
     y: yList,
     converged: reachedEnd && allStepsConverged,
   );
-}
-
-Matrix<double> _approximateJacobian(
-  Vector<double> Function(double t, Vector<double> y) f,
-  double t,
-  Vector<double> y,
-  Vector<double> fy,
-) {
-  final dim = y.length;
-  final j = Matrix<double>.filled(dim, dim, 0.0, type: DataType.float64);
-  const eps = 1e-8;
-  final yPerturbed = y.copy();
-  for (var col = 0; col < dim; col++) {
-    final yVal = y[col];
-    final h = eps * math.max(1.0, yVal.abs());
-    yPerturbed[col] = yVal + h;
-    final fPerturbed = f(t, yPerturbed);
-    yPerturbed[col] = yVal;
-
-    final invH = 1.0 / h;
-    for (var row = 0; row < dim; row++) {
-      j.set(row, col, (fPerturbed[row] - fy[row]) * invH);
-    }
-  }
-  return j;
 }
 
 OdeSolution _interpolateHermite({
@@ -450,9 +466,7 @@ OdeSolution _interpolateHermite({
         evalY.add(yRaw.last.copy());
         continue;
       }
-      while (k < n - 2 && tRaw[k + 1] < t) {
-        k++;
-      }
+      k = binarySearchInterval(tRaw, t);
     } else {
       if (t >= tRaw.first) {
         evalY.add(yRaw.first.copy());

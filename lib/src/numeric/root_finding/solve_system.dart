@@ -1,5 +1,7 @@
 import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
+import '../../type/data_type.dart';
+import '../calculus/jacobian.dart' as calculus;
 
 /// Solves a system of equations $F(\mathbf{x}) = \mathbf{0}$ using multivariate
 /// Newton-Raphson iteration.
@@ -46,9 +48,22 @@ Vector<double> solveSystem(
       'Max iterations must be positive.',
     );
   }
+  if (step <= 0.0 || !step.isFinite) {
+    throw ArgumentError.value(
+      step,
+      'step',
+      'Step must be positive and finite.',
+    );
+  }
   final x = initialGuess.copy();
+  Vector<double> evalEquations(Vector<double> v) => Vector<double>.generate(
+    n,
+    (i) => equations[i](v),
+    type: DataType.float64,
+  );
+
   for (var iter = 0; iter < maxIterations; iter++) {
-    final residual = Vector<double>.generate(n, (i) => equations[i](x));
+    final residual = evalEquations(x);
     var maxRes = 0.0;
     for (var i = 0; i < n; i++) {
       final val = residual[i];
@@ -62,14 +77,7 @@ Vector<double> solveSystem(
 
     final jac = jacobian != null
         ? jacobian(x)
-        : Matrix<double>.generate(n, n, (row, col) {
-            final xPlus = x.copy();
-            final xMinus = x.copy();
-            xPlus[col] += step;
-            xMinus[col] -= step;
-            return (equations[row](xPlus) - equations[row](xMinus)) /
-                (2.0 * step);
-          });
+        : calculus.jacobian(evalEquations, x, step: step);
 
     Vector<double> delta;
     try {

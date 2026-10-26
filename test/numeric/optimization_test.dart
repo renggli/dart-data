@@ -446,5 +446,45 @@ void main() {
       check(lbfgsRes.point[0]).isCloseTo(1.0, 1e-4);
       check(lbfgsRes.point[1]).isCloseTo(1.0, 1e-4);
     });
+
+    test('Line search rejects NaN steps and Nelder-Mead handles x = -1.0', () {
+      // Domain restricted to x < 1.0; large step produces NaN
+      double fLog(Vector<double> v) {
+        final x = v[0];
+        if (x >= 1.0) return double.nan;
+        return (x - 0.5) * (x - 0.5);
+      }
+
+      final bfgsRes = minimize(
+        fLog,
+        initialPoint: Vector<double>.fromList([0.9], type: DataType.float64),
+        gradient: (v) => Vector<double>.fromList([
+          -10.0 * (0.5 - v[0]),
+        ], type: DataType.float64),
+        method: OptimizationMethod.bfgs,
+      );
+      check(bfgsRes.point[0]).isCloseTo(0.5, 1e-4);
+
+      // Nelder-Mead starting at [-1.0, -1.0] (previously collapsed simplex)
+      final nmRes = minimize(
+        (v) => (v[0] - 2.0) * (v[0] - 2.0) + (v[1] - 3.0) * (v[1] - 3.0),
+        initialPoint: Vector<double>.fromList([
+          -1.0,
+          -1.0,
+        ], type: DataType.float64),
+        method: OptimizationMethod.nelderMead,
+      );
+      check(nmRes.point[0]).isCloseTo(2.0, 1e-3);
+      check(nmRes.point[1]).isCloseTo(3.0, 1e-3);
+
+      // OptimizationMethod.brent rejects multi-dimensional initialPoint
+      check(
+        () => minimize(
+          (v) => 0.0,
+          initialPoint: Vector<double>.fromList([1.0, 2.0]),
+          method: OptimizationMethod.brent,
+        ),
+      ).throws<ArgumentError>();
+    });
   });
 }

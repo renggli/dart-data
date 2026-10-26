@@ -32,6 +32,9 @@ double derivative(
       'Must be one of ${accuracyToWeights.keys.join(', ')} for order $order',
     );
   }
+  if (step != null && (step <= 0.0 || !step.isFinite)) {
+    throw ArgumentError.value(step, 'step', 'Step must be positive and finite');
+  }
   final hBase =
       step ??
       switch (order) {

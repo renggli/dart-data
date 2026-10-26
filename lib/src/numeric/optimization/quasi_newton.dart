@@ -41,7 +41,9 @@ bfgs(
     var alpha = 1.0;
     var xCandidate = x + stepDir.scale(alpha);
     var fxCandidate = fn(xCandidate);
-    while (fxCandidate > fx + c1 * alpha * effectiveSlope && alpha > 1e-12) {
+    while ((!fxCandidate.isFinite ||
+            fxCandidate > fx + c1 * alpha * effectiveSlope) &&
+        alpha > 1e-12) {
       alpha *= 0.5;
       xCandidate = x + stepDir.scale(alpha);
       fxCandidate = fn(xCandidate);
@@ -124,7 +126,10 @@ lbfgs(
     if (histLen > 0) {
       final sLast = sHistory.last;
       final yLast = yHistory.last;
-      gamma = sLast.dot(yLast) / yLast.dot(yLast);
+      final yy = yLast.dot(yLast);
+      if (yy > 0.0) {
+        gamma = sLast.dot(yLast) / yy;
+      }
     }
     final rVec = qVec.scale(gamma);
 
@@ -143,7 +148,9 @@ lbfgs(
 
     var xCandidate = x + dir.scale(alpha);
     var fxCandidate = fn(xCandidate);
-    while (fxCandidate > fx + c1 * alpha * effectiveSlope && alpha > 1e-12) {
+    while ((!fxCandidate.isFinite ||
+            fxCandidate > fx + c1 * alpha * effectiveSlope) &&
+        alpha > 1e-12) {
       alpha *= 0.5;
       xCandidate = x + dir.scale(alpha);
       fxCandidate = fn(xCandidate);

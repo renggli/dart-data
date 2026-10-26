@@ -66,9 +66,11 @@ void main() {
 
       // Outside bottom-left (should clamp to (0, 0))
       check(bilinear(-5.0, -5.0)).isCloseTo(values.getUnchecked(0, 0), 1e-10);
+      check(bilinear.gradient(-5.0, -5.0).toList()).deepEquals([0.0, 0.0]);
 
       // Outside top-right (should clamp to (1, 1))
       check(bilinear(10.0, 10.0)).isCloseTo(values.getUnchecked(1, 1), 1e-10);
+      check(bilinear.gradient(10.0, 10.0).toList()).deepEquals([0.0, 0.0]);
     });
 
     test('error validation', () {

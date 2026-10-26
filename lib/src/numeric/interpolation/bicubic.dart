@@ -4,6 +4,7 @@ import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
 import '../../type/data_type.dart';
 import 'interpolator.dart';
+import 'search.dart';
 
 /// 2D Bicubic surface interpolation over a rectilinear grid with $C^1$
 /// continuity.
@@ -55,14 +56,7 @@ class BicubicInterpolation implements Interpolator2D {
     for (var i = 0; i < nx; i++) {
       for (var j = 0; j < ny; j++) {
         // df/dx
-        if (nx == 2) {
-          _fx.setUnchecked(
-            i,
-            j,
-            (_values.getUnchecked(1, j) - _values.getUnchecked(0, j)) /
-                (_xs[1] - _xs[0]),
-          );
-        } else if (i == 0) {
+        if (i == 0) {
           _fx.setUnchecked(
             i,
             j,
@@ -87,14 +81,7 @@ class BicubicInterpolation implements Interpolator2D {
         }
 
         // df/dy
-        if (ny == 2) {
-          _fy.setUnchecked(
-            i,
-            j,
-            (_values.getUnchecked(i, 1) - _values.getUnchecked(i, 0)) /
-                (_ys[1] - _ys[0]),
-          );
-        } else if (j == 0) {
+        if (j == 0) {
           _fy.setUnchecked(
             i,
             j,
@@ -123,14 +110,7 @@ class BicubicInterpolation implements Interpolator2D {
     // d2f/dxdy
     for (var i = 0; i < nx; i++) {
       for (var j = 0; j < ny; j++) {
-        if (ny == 2) {
-          _fxy.setUnchecked(
-            i,
-            j,
-            (_fx.getUnchecked(i, 1) - _fx.getUnchecked(i, 0)) /
-                (_ys[1] - _ys[0]),
-          );
-        } else if (j == 0) {
+        if (j == 0) {
           _fxy.setUnchecked(
             i,
             j,
@@ -168,8 +148,8 @@ class BicubicInterpolation implements Interpolator2D {
     final xClamped = x.clamp(_xs.first, _xs.last);
     final yClamped = y.clamp(_ys.first, _ys.last);
 
-    final i = _findInterval(_xs, xClamped);
-    final j = _findInterval(_ys, yClamped);
+    final i = binarySearchInterval(_xs, xClamped);
+    final j = binarySearchInterval(_ys, yClamped);
 
     final dx = _xs[i + 1] - _xs[i];
     final dy = _ys[j + 1] - _ys[j];
@@ -199,8 +179,8 @@ class BicubicInterpolation implements Interpolator2D {
     final xClamped = x.clamp(_xs.first, _xs.last);
     final yClamped = y.clamp(_ys.first, _ys.last);
 
-    final i = _findInterval(_xs, xClamped);
-    final j = _findInterval(_ys, yClamped);
+    final i = binarySearchInterval(_xs, xClamped);
+    final j = binarySearchInterval(_ys, yClamped);
 
     final dx = _xs[i + 1] - _xs[i];
     final dy = _ys[j + 1] - _ys[j];
@@ -225,10 +205,10 @@ class BicubicInterpolation implements Interpolator2D {
       }
     }
 
-    return Vector<double>.fromList([
-      dfDu / dx,
-      dfDv / dy,
-    ], type: DataType.float64);
+    final dfDx = (x < _xs.first || x > _xs.last) ? 0.0 : dfDu / dx;
+    final dfDy = (y < _ys.first || y > _ys.last) ? 0.0 : dfDv / dy;
+
+    return Vector<double>.fromList([dfDx, dfDy], type: DataType.float64);
   }
 
   List<List<double>> _computeCoefficients(int i, int j, double dx, double dy) {
@@ -263,25 +243,6 @@ class BicubicInterpolation implements Interpolator2D {
       _multiply4x4(_hermiteMatrix, fMat),
       _hermiteMatrixTransposed,
     );
-  }
-
-  int _findInterval(List<double> list, double value) {
-    if (value <= list.first) return 0;
-    if (value >= list[list.length - 2]) return list.length - 2;
-
-    var low = 0;
-    var high = list.length - 2;
-    while (low <= high) {
-      final mid = (low + high) ~/ 2;
-      if (list[mid] <= value && value <= list[mid + 1]) {
-        return mid;
-      } else if (list[mid] > value) {
-        high = mid - 1;
-      } else {
-        low = mid + 1;
-      }
-    }
-    return low.clamp(0, list.length - 2);
   }
 }
 

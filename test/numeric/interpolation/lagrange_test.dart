@@ -29,6 +29,8 @@ void main() {
       check(() => LagrangeInterpolation(xs2, ys1)).throws<ArgumentError>();
       check(() => LagrangeInterpolation(<double>[], <double>[]))
           .throws<ArgumentError>();
+      check(() => LagrangeInterpolation([1.0, 1.0], [2.0, 3.0]))
+          .throws<ArgumentError>();
     });
   });
 }

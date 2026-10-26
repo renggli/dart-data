@@ -343,7 +343,7 @@ double _evalSafe(double Function(double) f, double x) {
     return double.nan;
   } on UnsupportedError {
     return double.nan;
-  } on Exception {
+  } on FormatException {
     return double.nan;
   }
 }
