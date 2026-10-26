@@ -72,10 +72,11 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double get variance => (n * n - 1.0) / 12.0;
 
   @override
-  double get skewness => 0.0;
+  double get skewness => n <= 1 ? double.nan : 0.0;
 
   @override
-  double get excessKurtosis => -6.0 * (n * n + 1.0) / (5.0 * (n * n - 1.0));
+  double get excessKurtosis =>
+      n <= 1 ? double.nan : -6.0 * (n * n + 1.0) / (5.0 * (n * n - 1.0));
 
   @override
   double probability(int k) => (min <= k && k <= max) ? 1.0 / n : 0.0;

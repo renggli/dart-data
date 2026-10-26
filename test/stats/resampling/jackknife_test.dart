@@ -70,21 +70,23 @@ void main() {
       check(jackknife.toString()).contains('Jackknife');
 
       check(() => Jackknife<int>([], (list) => list.mean()))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
+      check(() => Jackknife<int>([1], (list) => list.mean()))
+          .throws<ArgumentError>();
       check(
         () => Jackknife<int>(
           samples.map((e) => e.toInt()).toList(),
           (list) => list.mean(),
           confidenceLevel: 0.0,
         ),
-      ).throws<AssertionError>();
+      ).throws<ArgumentError>();
       check(
         () => Jackknife<int>(
           samples.map((e) => e.toInt()).toList(),
           (list) => list.mean(),
           confidenceLevel: 1.0,
         ),
-      ).throws<AssertionError>();
+      ).throws<ArgumentError>();
     });
   });
 }

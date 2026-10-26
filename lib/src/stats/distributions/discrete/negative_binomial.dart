@@ -25,8 +25,8 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
     if (r <= 0) {
       throw ArgumentError.value(r, 'r', 'Must be positive');
     }
-    if (p < 0.0 || p > 1.0) {
-      throw ArgumentError.value(p, 'p', 'Must be between 0.0 and 1.0');
+    if (p <= 0.0 || p >= 1.0) {
+      throw ArgumentError.value(p, 'p', 'Must be strictly between 0.0 and 1.0');
     }
   }
 

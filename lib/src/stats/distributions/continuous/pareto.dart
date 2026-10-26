@@ -87,7 +87,7 @@ class ParetoDistribution extends ContinuousDistribution {
   @override
   double sample({Random? random}) {
     final uniform = (random ?? _random).nextDouble();
-    return scale / pow(uniform, 1 / shape).toDouble();
+    return scale / pow(1.0 - uniform, 1 / shape).toDouble();
   }
 
   @override

@@ -53,6 +53,10 @@ void main() {
           .throws<ArgumentError>();
       check(() => NegativeBinomialDistribution(1.0, -0.1))
           .throws<ArgumentError>();
+      check(() => NegativeBinomialDistribution(1.0, 0.0))
+          .throws<ArgumentError>();
+      check(() => NegativeBinomialDistribution(1.0, 1.0))
+          .throws<ArgumentError>();
       check(() => NegativeBinomialDistribution(1.0, 1.1))
           .throws<ArgumentError>();
 

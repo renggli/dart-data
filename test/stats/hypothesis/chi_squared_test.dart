@@ -53,6 +53,18 @@ void main() {
         [10, 20],
       ], type: DataType.int32);
       check(() => chiSquaredContingency(badTable)).throws<ArgumentError>();
+
+      final negTable = Matrix<int>.fromRows([
+        [10, -5],
+        [20, 15],
+      ], type: DataType.int32);
+      check(() => chiSquaredContingency(negTable)).throws<ArgumentError>();
+
+      final zeroRowTable = Matrix<int>.fromRows([
+        [0, 0],
+        [20, 15],
+      ], type: DataType.int32);
+      check(() => chiSquaredContingency(zeroRowTable)).throws<ArgumentError>();
     });
   });
 }

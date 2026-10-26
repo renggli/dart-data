@@ -10,7 +10,7 @@ void main() {
       final dist = LogNormalDistribution(0.0, 1.0);
       check(dist.mu).equals(0.0);
       check(dist.sigma).equals(1.0);
-      check(dist.lowerBound).equals(double.negativeInfinity);
+      check(dist.lowerBound).equals(0.0);
       check(dist.mean).isCloseTo(math.exp(0.5), 1e-6);
       check(dist.median).equals(1.0);
       check(dist.mode).isCloseTo(math.exp(-1.0), 1e-6);

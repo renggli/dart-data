@@ -68,7 +68,13 @@ class ChiSquaredDistribution extends ContinuousDistribution {
 
   @override
   double probability(double x) {
-    if (x <= 0.0) return 0.0;
+    if (x.isNaN) return double.nan;
+    if (x < 0.0 || x == double.infinity) return 0.0;
+    if (x == 0.0) {
+      if (dof < 2.0) return double.infinity;
+      if (dof == 2.0) return 0.5;
+      return 0.0;
+    }
     final kHalf = 0.5 * dof;
     return exp((kHalf - 1.0) * log(x) - 0.5 * x - kHalf * ln2 - gammaLn(kHalf));
   }

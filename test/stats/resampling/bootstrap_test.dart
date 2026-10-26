@@ -121,17 +121,17 @@ void main() {
       check(bootstrap.toString()).contains('Bootstrap');
 
       check(() => Bootstrap<double>([1.0], (list) => list[0]))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
       check(() => Bootstrap<double>(samples, (list) => list[0], resamples: 5))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
       check(
         () =>
             Bootstrap<double>(samples, (list) => list[0], confidenceLevel: 0.0),
-      ).throws<AssertionError>();
+      ).throws<ArgumentError>();
       check(
         () =>
             Bootstrap<double>(samples, (list) => list[0], confidenceLevel: 1.0),
-      ).throws<AssertionError>();
+      ).throws<ArgumentError>();
 
       const norm = NormalDistribution.standard();
       check(
@@ -140,7 +140,7 @@ void main() {
           statistic: (list) => list[0].toDouble(),
           distribution: norm,
         ),
-      ).throws<AssertionError>();
+      ).throws<ArgumentError>();
       check(
         () => Bootstrap.distribution(
           samples: samples,
@@ -148,7 +148,7 @@ void main() {
           distribution: norm,
           resamples: 5,
         ),
-      ).throws<AssertionError>();
+      ).throws<ArgumentError>();
       check(
         () => Bootstrap.distribution(
           samples: samples,
@@ -156,7 +156,7 @@ void main() {
           distribution: norm,
           confidenceLevel: -0.1,
         ),
-      ).throws<AssertionError>();
+      ).throws<ArgumentError>();
     });
   });
 }

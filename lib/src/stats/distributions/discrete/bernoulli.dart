@@ -63,10 +63,11 @@ class BernoulliDistribution extends DiscreteDistribution {
   double get variance => p * q;
 
   @override
-  double get skewness => (q - p) / sqrt(p * q);
+  double get skewness => p * q == 0.0 ? double.nan : (q - p) / sqrt(p * q);
 
   @override
-  double get excessKurtosis => (1.0 - 6.0 * p * q) / (p * q);
+  double get excessKurtosis =>
+      p * q == 0.0 ? double.nan : (1.0 - 6.0 * p * q) / (p * q);
 
   @override
   double probability(int k) => k == 1 ? p : (k == 0 ? q : 0.0);

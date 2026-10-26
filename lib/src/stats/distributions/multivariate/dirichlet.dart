@@ -26,7 +26,7 @@ class DirichletDistribution extends MultivariateDistribution<double> {
     var sumGammaLn = 0.0;
     for (var i = 0; i < dimensions; i++) {
       final a = alpha.getUnchecked(i);
-      if (a <= 0.0) {
+      if (!a.isFinite || a <= 0.0) {
         throw ArgumentError.value(
           a,
           'alpha[$i]',
@@ -50,7 +50,7 @@ class DirichletDistribution extends MultivariateDistribution<double> {
         'Dirichlet distribution requires at least 2 dimensions.',
       );
     }
-    if (alpha <= 0.0) {
+    if (!alpha.isFinite || alpha <= 0.0) {
       throw ArgumentError.value(
         alpha,
         'alpha',
@@ -102,6 +102,7 @@ class DirichletDistribution extends MultivariateDistribution<double> {
     var logTerm = 0.0;
     for (var i = 0; i < dimensions; i++) {
       final xi = x.getUnchecked(i);
+      if (xi.isNaN) return double.nan;
       if (xi < 0.0) return double.negativeInfinity;
       sum += xi;
       final ai = alpha.getUnchecked(i);

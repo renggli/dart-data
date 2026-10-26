@@ -17,6 +17,16 @@ HypothesisTestResult jarqueBeraTest(
     throw ArgumentError('Jarque-Bera test requires at least 4 observations');
   }
 
+  if (variance(list, population: true) == 0.0) {
+    return HypothesisTestResult(
+      testName: 'Jarque-Bera Normality Test',
+      statistic: double.nan,
+      pValue: double.nan,
+      degreesOfFreedom: 2.0,
+      alpha: alpha,
+    );
+  }
+
   final s = skewness(list, bias: true);
   final k = kurtosis(list, excess: true, bias: true);
   final jb = (n / 6.0) * (s * s + 0.25 * k * k);

@@ -29,6 +29,9 @@ void main() {
       check(resUniform.pValue).isLessThan(0.01);
 
       check(() => jarqueBeraTest([1.0, 2.0, 3.0])).throws<ArgumentError>();
+      final constRes = jarqueBeraTest([5.0, 5.0, 5.0, 5.0]);
+      check(constRes.statistic.isNaN).isTrue();
+      check(constRes.pValue.isNaN).isTrue();
     });
   });
 }

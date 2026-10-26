@@ -46,12 +46,14 @@ abstract class DiscreteDistribution extends Distribution<int> {
     InvalidProbability.check(probability);
     if (probability == 0) {
       return lowerBound;
-    } else if (probability == 1) {
+    } else if (probability == 1 && isUpperBoundOpen) {
       return upperBound;
     }
 
     var k0 = 0;
-    if (mean.isFinite && variance.isFinite && variance > 0) {
+    if (probability == 1) {
+      k0 = upperBound;
+    } else if (mean.isFinite && variance.isFinite && variance > 0) {
       final z = const NormalDistribution.standard()
           .inverseCumulativeProbability(probability);
       final guess = (mean + z * sqrt(variance)).round();

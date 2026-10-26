@@ -105,9 +105,16 @@ class StudentDistribution extends ContinuousDistribution {
       : double.nan;
 
   @override
-  double probability(double x) =>
-      exp(gammaLn(0.5 * (dof + 1.0)) - gammaLn(0.5 * dof)) /
-      (sqrt(dof * pi) * pow(1.0 + x * x / dof, 0.5 * (dof + 1.0)));
+  double probability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x.isInfinite) return 0.0;
+    return exp(
+      gammaLn(0.5 * (dof + 1.0)) -
+          gammaLn(0.5 * dof) -
+          0.5 * log(dof * pi) -
+          0.5 * (dof + 1.0) * log(1.0 + x * x / dof),
+    );
+  }
 
   @override
   double cumulativeProbability(double x) {

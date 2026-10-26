@@ -82,9 +82,29 @@ HypothesisTestResult chiSquaredContingency(
   for (var i = 0; i < rowCount; i++) {
     for (var j = 0; j < colCount; j++) {
       final val = table.get(i, j).toDouble();
+      if (val < 0.0 || !val.isFinite) {
+        throw ArgumentError.value(
+          val,
+          'table[$i][$j]',
+          'Contingency table counts must be non-negative and finite',
+        );
+      }
       rowSums[i] += val;
       colSums[j] += val;
       total += val;
+    }
+  }
+  if (total <= 0.0) {
+    throw ArgumentError('Contingency table total count must be positive');
+  }
+  for (var i = 0; i < rowCount; i++) {
+    if (rowSums[i] <= 0.0) {
+      throw ArgumentError('Row $i marginal sum must be positive');
+    }
+  }
+  for (var j = 0; j < colCount; j++) {
+    if (colSums[j] <= 0.0) {
+      throw ArgumentError('Column $j marginal sum must be positive');
     }
   }
 

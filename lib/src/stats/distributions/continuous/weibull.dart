@@ -97,7 +97,7 @@ class WeibullDistribution extends ContinuousDistribution {
   @override
   double sample({Random? random}) {
     const uniform = UniformDistribution.standard();
-    return scale * pow(-log(uniform.sample(random: random)), 1 / shape);
+    return scale * pow(-log(1.0 - uniform.sample(random: random)), 1 / shape);
   }
 
   @override

@@ -63,14 +63,24 @@ void main() {
           .throws<ArgumentError>();
       check(() => DirichletDistribution(Vector<double>.fromList([1.0, -0.5])))
           .throws<ArgumentError>();
+      check(
+        () => DirichletDistribution(Vector<double>.fromList([1.0, double.nan])),
+      ).throws<ArgumentError>();
       check(() => DirichletDistribution.symmetric(1, 1.0))
           .throws<ArgumentError>();
       check(() => DirichletDistribution.symmetric(2, -1.0))
+          .throws<ArgumentError>();
+      check(() => DirichletDistribution.symmetric(2, double.nan))
           .throws<ArgumentError>();
 
       final dist = DirichletDistribution.symmetric(2, 1.0);
       check(() => dist.logProbability(Vector<double>.fromList([1.0])))
           .throws<ArgumentError>();
+      check(
+        dist.logProbability(Vector<double>.fromList([0.5, double.nan])).isNaN,
+      ).isTrue();
+      check(dist.probability(Vector<double>.fromList([0.5, double.nan])).isNaN)
+          .isTrue();
     });
 
     test('boundary evaluations where xi == 0', () {

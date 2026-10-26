@@ -13,12 +13,23 @@ import '../descriptive.dart';
 ///
 /// See https://en.wikipedia.org/wiki/Jackknife_resampling.
 class Jackknife<T> with ToStringPrinter {
-  new(this.samples, this.statistic, {this.confidenceLevel = 0.95})
-    : assert(samples.isNotEmpty, 'empty samples'),
-      assert(
-        0 < confidenceLevel && confidenceLevel < 1,
-        'confidence level out of range',
+  /// Constructs a Jackknife estimator over [samples] for [statistic].
+  new(this.samples, this.statistic, {this.confidenceLevel = 0.95}) {
+    if (samples.length < 2) {
+      throw ArgumentError.value(
+        samples,
+        'samples',
+        'At least 2 samples required for jackknife',
       );
+    }
+    if (!(0 < confidenceLevel && confidenceLevel < 1)) {
+      throw ArgumentError.value(
+        confidenceLevel,
+        'confidenceLevel',
+        'Confidence level must be between 0 and 1',
+      );
+    }
+  }
 
   /// The sample data.
   final List<T> samples;
@@ -77,11 +88,18 @@ class Jackknife<T> with ToStringPrinter {
 
 /// An unmodifiable view of a [List] with the element at [index] omitted.
 class JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
-  new(this.list, this.index)
-    : assert(list.isNotEmpty, 'Non empty list expected'),
-      assert(0 <= index && index < list.length, 'Index out of bounds');
+  /// Constructs a leave-one-out view of [list] omitting [index].
+  new(this.list, this.index) {
+    if (list.isEmpty) {
+      throw ArgumentError.value(list, 'list', 'Non-empty list expected');
+    }
+    RangeError.checkValidIndex(index, list, 'index');
+  }
 
+  /// The underlying list.
   final List<T> list;
+
+  /// The omitted index.
   final int index;
 
   @override

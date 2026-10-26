@@ -27,6 +27,8 @@ void main() {
       );
       check(resLess.isSignificant).isTrue();
       check(resLess.pValue).isLessThan(1e-5);
+      check(resLess.confidenceInterval!.lower).equals(double.negativeInfinity);
+      check(resLess.confidenceInterval!.upper).isFinite();
 
       final resGreater = tTestOneSample(
         sample,
@@ -35,6 +37,8 @@ void main() {
       );
       check(resGreater.isSignificant).isTrue();
       check(resGreater.pValue).isLessThan(1e-5);
+      check(resGreater.confidenceInterval!.lower).isFinite();
+      check(resGreater.confidenceInterval!.upper).equals(double.infinity);
 
       // Errors
       check(() => tTestOneSample([1.0])).throws<ArgumentError>();

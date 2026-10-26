@@ -33,11 +33,26 @@ void main() {
 
       // Degenerate
       const degen = DegenerateDistribution(5.0);
-      check(degen.lowerBound).equals(double.negativeInfinity);
-      check(degen.upperBound).equals(double.infinity);
+      check(degen.lowerBound).equals(5.0);
+      check(degen.upperBound).equals(5.0);
       check(degen == const DegenerateDistribution(5.0)).isTrue();
       check(degen.hashCode).equals(const DegenerateDistribution(5.0).hashCode);
       check(degen.sample()).equals(5.0);
+
+      // LogNormal
+      final logNormal = LogNormalDistribution(0.0, 1.0);
+      check(logNormal.lowerBound).equals(0.0);
+      check(logNormal.cumulativeProbability(1e-10)).isGreaterThan(0.0);
+
+      // Student-t large dof does not underflow to 0
+      final student500 = StudentDistribution(500.0);
+      check(student500.probability(0.0)).isCloseTo(0.39874, 1e-4);
+
+      // ChiSquared at x == 0
+      check(ChiSquaredDistribution(1.0).probability(0.0))
+          .equals(double.infinity);
+      check(ChiSquaredDistribution(2.0).probability(0.0)).equals(0.5);
+      check(ChiSquaredDistribution(3.0).probability(0.0)).equals(0.0);
 
       // Beta
       final beta = BetaDistribution(2.0, 2.0);

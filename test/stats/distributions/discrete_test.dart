@@ -90,6 +90,16 @@ void main() {
       check(u1 == u3).isFalse();
       check(u1.hashCode).equals(u2.hashCode);
       check(u1.sample()).isNotNull();
+
+      // Degenerate skewness/kurtosis and p=0 quantile
+      check(BernoulliDistribution(0.0).skewness).isNaN();
+      check(BernoulliDistribution(0.0).excessKurtosis).isNaN();
+      check(BinomialDistribution(10, 0.0).skewness).isNaN();
+      check(BinomialDistribution(10, 0.0).excessKurtosis).isNaN();
+      check(BinomialDistribution(10, 0.0).inverseCumulativeProbability(1))
+          .equals(0);
+      check(UniformDiscreteDistribution(5, 5).skewness).isNaN();
+      check(UniformDiscreteDistribution(5, 5).excessKurtosis).isNaN();
     });
   });
 

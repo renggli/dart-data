@@ -24,6 +24,12 @@ class DegenerateDistribution extends ContinuousDistribution {
   final double k;
 
   @override
+  double get lowerBound => k;
+
+  @override
+  double get upperBound => k;
+
+  @override
   double get mean => k;
 
   @override

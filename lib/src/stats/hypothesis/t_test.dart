@@ -63,8 +63,20 @@ HypothesisTestResult tTestOneSample(
     }
   }
 
-  final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
-  final ci = (lower: sampleMean - tCrit * se, upper: sampleMean + tCrit * se);
+  final ci = switch (alternative) {
+    AlternativeHypothesis.twoSided => () {
+      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
+      return (lower: sampleMean - tCrit * se, upper: sampleMean + tCrit * se);
+    }(),
+    AlternativeHypothesis.less => () {
+      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha);
+      return (lower: double.negativeInfinity, upper: sampleMean + tCrit * se);
+    }(),
+    AlternativeHypothesis.greater => () {
+      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha);
+      return (lower: sampleMean - tCrit * se, upper: double.infinity);
+    }(),
+  };
 
   return HypothesisTestResult(
     testName: 'One-Sample t-test',
@@ -162,8 +174,20 @@ HypothesisTestResult tTestTwoSample(
     }
   }
 
-  final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
-  final ci = (lower: diff - tCrit * se, upper: diff + tCrit * se);
+  final ci = switch (alternative) {
+    AlternativeHypothesis.twoSided => () {
+      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
+      return (lower: diff - tCrit * se, upper: diff + tCrit * se);
+    }(),
+    AlternativeHypothesis.less => () {
+      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha);
+      return (lower: double.negativeInfinity, upper: diff + tCrit * se);
+    }(),
+    AlternativeHypothesis.greater => () {
+      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha);
+      return (lower: diff - tCrit * se, upper: double.infinity);
+    }(),
+  };
 
   return HypothesisTestResult(
     testName: equalVariance

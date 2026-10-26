@@ -83,10 +83,12 @@ class BinomialDistribution extends DiscreteDistribution {
   double get variance => n * p * q;
 
   @override
-  double get skewness => (q - p) / sqrt(n * p * q);
+  double get skewness =>
+      n * p * q == 0.0 ? double.nan : (q - p) / sqrt(n * p * q);
 
   @override
-  double get excessKurtosis => (1.0 - 6.0 * p * q) / (n * p * q);
+  double get excessKurtosis =>
+      n * p * q == 0.0 ? double.nan : (1.0 - 6.0 * p * q) / (n * p * q);
 
   @override
   double probability(int k) {

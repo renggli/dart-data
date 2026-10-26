@@ -40,6 +40,9 @@ class LogNormalDistribution extends ContinuousDistribution {
   final double sigma;
 
   @override
+  double get lowerBound => 0.0;
+
+  @override
   double get mean => exp(mu + sigma * sigma / 2);
 
   @override
@@ -74,7 +77,7 @@ class LogNormalDistribution extends ContinuousDistribution {
 
   @override
   double cumulativeProbability(double x) =>
-      x < 0 ? 0 : 0.5 * (1 + erf((log(x) - mu) / (sqrt2 * sigma)));
+      x <= 0.0 ? 0.0 : 0.5 * erfc(-(log(x) - mu) / (sqrt2 * sigma));
 
   @override
   double inverseCumulativeProbability(num probability) {

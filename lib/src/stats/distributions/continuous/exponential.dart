@@ -17,6 +17,7 @@ class ExponentialDistribution extends ContinuousDistribution {
     }
   }
 
+  /// A standard exponential distribution with $\lambda = 1$.
   const new standard() : this._(1.0);
 
   const new _(this.rate);
