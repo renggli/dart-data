@@ -137,6 +137,27 @@ void main() {
           IntegerNumber.zero,
         ]);
         check(dedup.length).equals(2);
+
+        // Trigonometric equations with RealNumber RHS
+        final sinReal = Expr.parse('sin(x) - 0.5').solve('x');
+        check(sinReal).isNotEmpty();
+        check(sinReal.first).isA<RealNumber>();
+
+        final cosReal = Expr.parse('cos(x) - 0.5').solve('x');
+        check(cosReal).isNotEmpty();
+        check(cosReal.first).isA<RealNumber>();
+
+        final tanReal = Expr.parse('tan(x) - 1.5').solve('x');
+        check(tanReal).isNotEmpty();
+        check(tanReal.first).isA<RealNumber>();
+
+        final posReal = (const Variable('x') - const RealNumber(2.5)).solve(
+          'x',
+          assumptions: const Assumptions(
+            domains: {'x': VariableDomain.positive},
+          ),
+        );
+        check(posReal).deepEquals([const RealNumber(2.5)]);
       },
     );
   });

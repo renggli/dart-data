@@ -673,6 +673,66 @@ void main() {
       check(
         Expr.parse('x^3 * cos(x) * exp(-x^2)').integrate('x', from: -2, to: 2),
       ).equals(IntegerNumber.zero);
+
+      // Hyperbolic squared integrals (sech^2, csch^2)
+      check(Expr.parse('sech(2 * x + 1)^2').integrate('x'))
+          .equals(Expr.parse('tanh(2 * x + 1) / 2').simplify());
+      check(Expr.parse('csch(3 * x - 1)^2').integrate('x'))
+          .equals(Expr.parse('-coth(3 * x - 1) / 3').simplify());
+
+      // Reversed bounds, constant scaling, Euler Beta, and symbolic Gamma on [0, infty)
+      check(
+        Expr.parse('exp(-x^2)').integrate('x', from: Constant.infinity, to: 0),
+      ).equals(Expr.parse('-sqrt(pi) / 2').simplify());
+      check(
+        Expr.parse('3 * sin(x) / x')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('3 * pi / 2').simplify());
+      check(
+        Expr.parse('x^s * exp(-a * x)').integrate(
+          'x',
+          from: 0,
+          to: Constant.infinity,
+          assumptions: Assumptions.positive,
+        ),
+      ).equals(Expr.parse('gamma(s + 1) / a^(s + 1)').simplify());
+      check(
+        Expr.parse('sin(x) * cos(x)')
+            .integrate('x', from: 0, to: Expr.parse('pi / 2')),
+      ).equals(FractionNumber.half);
+      check(Expr.parse('ln(1 - x) / x').integrate('x', from: 0, to: 1))
+          .equals(Expr.parse('-pi^2 / 6').simplify());
+      check(Expr.parse('x * (1 - x)').integrate('x', from: 0, to: 1))
+          .equals(RationalNumber.of(const Integer(1), const Integer(6)));
+      check(Expr.parse('x^2 * (1 - x)^3').integrate('x', from: 0, to: 1))
+          .equals(RationalNumber.of(const Integer(1), const Integer(60)));
+
+      // Non-elementary Beta/Wallis integrals and odd integrand pole checks
+      check(
+        Expr.parse('x^(1/2) * (1 - x)^(1/2)').integrate('x', from: 0, to: 1),
+      ).equals(Expr.parse('pi / 8').simplify());
+      check(Expr.parse('x * (1 - x)^(1/3)').integrate('x', from: 0, to: 1))
+          .isNotNull();
+      check(Expr.parse('x^(1/3) * (1 - x)').integrate('x', from: 0, to: 1))
+          .isNotNull();
+      check(
+        Expr.parse('sin(x) * cos(x)^(1/2)')
+            .integrate('x', from: 0, to: Expr.parse('pi / 2')),
+      ).isNotNull();
+      check(
+        Expr.parse('sin(x)^(1/2) * cos(x)')
+            .integrate('x', from: 0, to: Expr.parse('pi / 2')),
+      ).isNotNull();
+      check(Expr.parse('sin(x^3) / (x^2 - 4)').integrate('x', from: -1, to: 1))
+          .equals(IntegerNumber.zero);
+      check(Expr.parse('sin(x^3) / x').integrate('x', from: -1, to: 1))
+          .isA<Integral>();
+      check(
+        Expr.parse('sin(x^3) / (x^2 - 4)')
+            .integrate('x', from: -Constant.infinity, to: Constant.infinity),
+      ).isA<Integral>();
+      check(Expr.parse('1 / (x^2 - 2)').integrate('x', from: 0, to: 2))
+          .isA<Integral>();
     });
   });
 }

@@ -189,6 +189,21 @@ void main() {
       check(emptyRows.max(axis: 1).shape).deepEquals([0]);
       check(() => emptyRows.min(axis: 0)).throws<StateError>();
       check(() => emptyRows.max(axis: 0)).throws<StateError>();
+
+      // Complex 2-norm, min with target and memory hazard, and out-of-range axis
+      final cTensor = Tensor<Complex>.fromIterable([
+        const Complex(3, 4),
+      ], type: DataType.complex);
+      check(cTensor.norm(2)).isCloseTo(5.0, 1e-12);
+      final scalarTarget = Tensor<double>.filled(0.0, shape: []);
+      check(t.min(target: scalarTarget)).equals(scalarTarget);
+      check(() => t.min(axis: 5)).throws<RangeError>();
+      final sharedTarget = Tensor<double>.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [2]),
+        data: t.data,
+      );
+      check(t.min(axis: 1, target: sharedTarget)).equals(sharedTarget);
     });
   });
 }

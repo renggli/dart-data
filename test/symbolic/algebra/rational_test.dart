@@ -213,6 +213,10 @@ void main() {
             .apart('x', assumptions: posAssump)
             .toString(),
       ).equals('1/2 * a / (-1 + x) - 1/2 * a / (1 + x)');
+
+      // apart with non-polynomial factor in denominator after factoring
+      check(Expr.parse('1 / (sin(x) * (x - 1))').apart('x').toString())
+          .contains('sin(x)');
     });
   });
 }

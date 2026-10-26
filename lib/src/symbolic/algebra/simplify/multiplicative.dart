@@ -114,12 +114,7 @@ Expr simplifyMul(
     if (f is Number) {
       coeff = coeff.mul(f);
       if (coeff.isZero) {
-        return (coeff is RealNumber ||
-                (coeff is ComplexNumber &&
-                    (coeff.real is RealNumber ||
-                        coeff.imaginary is RealNumber)))
-            ? const RealNumber(0.0)
-            : IntegerNumber.zero;
+        return coeff is RealNumber ? const RealNumber(0.0) : IntegerNumber.zero;
       }
     } else {
       final (base, exp) = decomposeFactor(f);
@@ -163,10 +158,7 @@ Expr simplifyMul(
       case final Number n:
         coeff = coeff.mul(n);
         if (coeff.isZero) {
-          return (coeff is RealNumber ||
-                  (coeff is ComplexNumber &&
-                      (coeff.real is RealNumber ||
-                          coeff.imaginary is RealNumber)))
+          return coeff is RealNumber
               ? const RealNumber(0.0)
               : IntegerNumber.zero;
         }
@@ -175,10 +167,7 @@ Expr simplifyMul(
           if (sub is Number) {
             coeff = coeff.mul(sub);
             if (coeff.isZero) {
-              return (coeff is RealNumber ||
-                      (coeff is ComplexNumber &&
-                          (coeff.real is RealNumber ||
-                              coeff.imaginary is RealNumber)))
+              return coeff is RealNumber
                   ? const RealNumber(0.0)
                   : IntegerNumber.zero;
             }

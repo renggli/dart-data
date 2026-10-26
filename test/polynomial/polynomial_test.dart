@@ -514,6 +514,19 @@ void main() {
       final cLead = Polynomial<double>.compressed([0, 2], [4.0, 2.0]);
       final cOther = Polynomial<double>.compressed([0, 1], [2.0, 1.0]);
       check(cLead.gcd(cOther).degree).equals(0);
+      // gcd where remainder has degree >= 1 and is CompressedPolynomial
+      final cRem1 = Polynomial<double>.compressed([0, 1, 2], [2.0, 4.0, 2.0]);
+      final cRem2 = Polynomial<double>.compressed([0, 1], [2.0, 2.0]);
+      final cGcd = cRem1.gcd(cRem2);
+      check(cGcd.degree).equals(1);
+      check(cGcd[1]).isCloseTo(1.0, 1e-12);
+
+      // Polynomial formatting with non-comparable coefficients (Expr)
+      final exprPoly = Polynomial<Expr>.fromCoefficients([
+        const Variable('a'),
+        const Variable('b'),
+      ], type: exprDataType);
+      check(exprPoly.toString()).contains('x');
 
       final quadComplex = Polynomial<Complex>.fromCoefficients([
         const Complex(1.0, 2.0),

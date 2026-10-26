@@ -1696,8 +1696,7 @@ Expr? _matchPowerDenominatorSeries(
     final mPow = Pow(IntegerNumber.of(m), IntegerNumber.of(p)).simplify();
     final kVar = Variable(variable);
     final reducedTerm =
-        (term *
-                mPow /
+        (term /
                 Pow(mExpr * kVar + dExpr, IntegerNumber.of(-p)) *
                 Pow(kVar + IntegerNumber.of(shift), IntegerNumber.of(-p)))
             .simplify();

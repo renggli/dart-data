@@ -204,6 +204,29 @@ void main() {
       final badTargetShape = Tensor<double>.filled(0.0, shape: [2, 2]);
       check(() => t2D.matmul(t2D, target: badTargetShape))
           .throws<ArgumentError>();
+
+      // Inner dimension 0 (e.g. [2, 0] * [0, 3] -> [2, 3] zeros)
+      final a20 = Tensor<double>.filled(0.0, shape: [2, 0]);
+      final b03 = Tensor<double>.filled(0.0, shape: [0, 3]);
+      final c23 = a20.matmul(b03);
+      check(c23.shape).deepEquals([2, 3]);
+      check(c23.toFlatList()).deepEquals([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+      // Transposed 1-column matrix (innerDim == 1, strides[0] == 1)
+      final a31 = Tensor<double>.fromIterable(
+        [1.0, 2.0, 3.0],
+        shape: [1, 3],
+      ).transpose([1, 0]);
+      final b12 = Tensor<double>.fromIterable([4.0, 5.0], shape: [1, 2]);
+      check(a31.matmul(b12).shape).deepEquals([3, 2]);
+
+      // Non-contiguous target in batched matmul with innerDim == 0
+      final batchA = Tensor<double>.filled(0.0, shape: [2, 2, 0]);
+      final batchB = Tensor<double>.filled(0.0, shape: [2, 0, 2]);
+      final fullTarget = Tensor<double>.filled(1.0, shape: [2, 2, 4]);
+      final slicedTarget = fullTarget.getRange(axis: 2, start: 0, end: 2);
+      batchA.matmul(batchB, target: slicedTarget);
+      check(slicedTarget.toFlatList()).every((it) => it.equals(0.0));
     });
   });
 }

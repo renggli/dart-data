@@ -552,26 +552,19 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
         visit(expr);
       }
       if (otherwise != null) visit(otherwise);
-    case Integral(:final integrand, :final lower, :final upper):
-      visit(integrand);
-      if (lower != null) visit(lower);
-      if (upper != null) visit(upper);
-    case Derivative(:final expr, :final point):
-      visit(expr);
-      if (point != null) visit(point);
-    case Limit(:final expr, :final point):
-      visit(expr);
-      visit(point);
-    case Sum(:final expr, :final lower, :final upper) ||
-        Product(:final expr, :final lower, :final upper):
-      visit(expr);
-      visit(lower);
-      visit(upper);
     case VariableFunction(:final arguments):
       for (final argument in arguments) {
         visit(argument);
       }
-    case Number() || Constant() || Variable() || OrderTerm():
+    case Integral() ||
+        Derivative() ||
+        Limit() ||
+        Sum() ||
+        Product() ||
+        Number() ||
+        Constant() ||
+        Variable() ||
+        OrderTerm():
       break;
   }
 }

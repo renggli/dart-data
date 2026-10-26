@@ -376,6 +376,17 @@ void main() {
         [0.0, 1.0],
       ]);
       check(nanMat.lu.isNonsingular).isFalse();
+
+      // Complex non-square inverse and LU solve row mismatch
+      final rectC = Matrix<Complex>.filled(
+        2,
+        3,
+        Complex.one,
+        type: DataType.complex,
+      );
+      check(() => rectC.inverse).throws<ArgumentError>();
+      check(() => nanMat.lu.solve(Matrix<double>.filled(3, 1, 1.0)))
+          .throws<ArgumentError>();
     });
   });
 }

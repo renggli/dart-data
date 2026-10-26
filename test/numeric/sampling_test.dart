@@ -170,6 +170,25 @@ void main() {
       for (var i = 0; i < 4; i++) {
         check(v[i + 1] / v[i]).isCloseTo(2.0, 1e-12);
       }
+
+      // sampleCurve edge cases: constant curve, all-NaN curve, and exception handling
+      check(sampleCurve((x) => 5.0, 0.0, 1.0).segments).isNotEmpty();
+      check(sampleCurve((x) => double.nan, 0.0, 1.0).segments).isEmpty();
+      check(
+        sampleCurve(
+          (x) => x < 0.2
+              ? (throw ArgumentError())
+              : x < 0.4
+              ? (throw StateError('bad'))
+              : x < 0.6
+              ? (throw UnsupportedError('bad'))
+              : x < 0.8
+              ? (throw const FormatException('bad'))
+              : x,
+          0.0,
+          1.0,
+        ).segments,
+      ).isNotEmpty();
     });
 
     test('endpoint = false excludes stop', () {

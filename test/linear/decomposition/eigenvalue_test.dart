@@ -237,10 +237,12 @@ void main() {
 
       // Non-Float64 matrix copy path and non-square error
       final f32Sym = Matrix<double>.fromRows([
-        [2.0, 1.0],
-        [1.0, 2.0],
+        [1.0, 2.0, 0.0, 0.0],
+        [2.0, 3.0, 4.0, 0.0],
+        [0.0, 4.0, 5.0, 0.0],
+        [0.0, 0.0, 0.0, 6.0],
       ], type: DataType.float32);
-      check(f32Sym.eigenvalue.realEigenvalues.length).equals(2);
+      check(f32Sym.eigenvalue.realEigenvalues.length).equals(4);
       check(() => Matrix<double>.filled(2, 3, 1.0).eigenvalue)
           .throws<ArgumentError>();
 

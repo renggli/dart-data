@@ -107,6 +107,19 @@ void main() {
       // Simplify evaluates point derivative if possible
       final dPointQuad = Derivative(x * x, 'x', point: IntegerNumber.two);
       check(dPointQuad.simplify()).equals(IntegerNumber.of(4));
+
+      // Substituting inside a Derivative with a point
+      final dWithPoint = Derivative(x * y, 'x', point: y);
+      final subPoint = dWithPoint.substitute('y', IntegerNumber.of(3));
+      check(subPoint).equals(
+        Derivative(x * IntegerNumber.of(3), 'x', point: IntegerNumber.of(3)),
+      );
+      check(Derivative(x * y, 'x', point: x).substitute('x', IntegerNumber.two))
+          .equals(Derivative(x * y, 'x', point: IntegerNumber.two));
+      final subPointCapture =
+          Derivative(x * y, 'x', point: y).substitute('y', x) as Derivative;
+      check(subPointCapture.variable).equals('x_1');
+      check(subPointCapture.point).equals(x);
     });
   });
 }

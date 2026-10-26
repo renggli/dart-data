@@ -184,6 +184,15 @@ void main() {
           IntegerNumber.two,
         ).toLatex(),
       ).equals('{(1 + 2 i)}^{2}');
+
+      // NotEqual, Derivative evaluated at a point (orders 1 and 2), and RelationalExpr in Add
+      check(NotEqual(x, IntegerNumber.zero).toLatex()).equals(r'x \ne 0');
+      check(Derivative(x, 'x', order: 1, point: IntegerNumber.one).toLatex())
+          .contains(r'\right|_{x = 1}');
+      check(Derivative(x, 'x', order: 2, point: IntegerNumber.one).toLatex())
+          .contains(r'\right|_{x = 1}');
+      check(Add([x, Mod(x, IntegerNumber.two)]).toLatex())
+          .contains(r'\left(x \bmod 2\right)');
     });
   });
 }

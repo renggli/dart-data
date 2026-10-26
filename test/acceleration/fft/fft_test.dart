@@ -125,6 +125,10 @@ void main() {
           check(buffer2d[i].b).isCloseTo(orig2d[2 * i + 1], 1e-10);
         }
       }
+
+      // Fft.fft2 buffer length mismatch throws ArgumentError
+      check(() => Fft.fft2(buffer: Float64ComplexList(3), rows: 2, cols: 2))
+          .throws<ArgumentError>();
     }, isSupported: Fft.isAvailable);
   });
 }

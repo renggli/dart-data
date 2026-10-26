@@ -160,6 +160,22 @@ void main() {
             .rewrite(RewriteTarget.sinCos, assumptions: Assumptions.positive)
             .toString(),
       ).equals('sin(x) / cos(x)');
+
+      // Multi-factor integer multiple in expandTrig (sin(2 * x * y))
+      check(Expr.parse('sin(2 * x * y)').expandTrig().toString())
+          .equals('2 * cos(x * y) * sin(x * y)');
+
+      // Reverse structural order in product-to-sum contractions (cos(y)*cos(x), sin(y)*sin(x), cosh(y)*cosh(x), sinh(y)*sinh(x))
+      const xVar = Variable('x');
+      const yVar = Variable('y');
+      check(Mul([Cos(yVar), Cos(xVar)]).simplifyTrig().toString())
+          .contains('cos');
+      check(Mul([Sin(yVar), Sin(xVar)]).simplifyTrig().toString())
+          .contains('cos');
+      check(Mul([Cosh(yVar), Cosh(xVar)]).simplifyTrig().toString())
+          .contains('cosh');
+      check(Mul([Sinh(yVar), Sinh(xVar)]).simplifyTrig().toString())
+          .contains('cosh');
     });
   });
 }

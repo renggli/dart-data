@@ -640,6 +640,23 @@ void main() {
           .throws<ArgumentError>();
       check(() => left.join(right, leftOn: ['user_id'], rightOn: ['bad_col']))
           .throws<ArgumentError>();
+
+      // sortMerge join with null keys in left DataFrame under left/outer join
+      final leftWithNull = DataFrame.fromColumns({
+        'k': [1, null, 3],
+        'lv': ['a', 'b', 'c'],
+      });
+      final rightForNull = DataFrame.fromColumns({
+        'k': [1, 2],
+        'rv': ['x', 'y'],
+      });
+      final smLeft = leftWithNull.join(
+        rightForNull,
+        on: ['k'],
+        type: JoinType.left,
+        method: JoinMethod.sortMerge,
+      );
+      check(smLeft.rowCount).equals(3);
     });
   });
 }

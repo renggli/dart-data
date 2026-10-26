@@ -208,6 +208,12 @@ void main() {
         check((flipped / copied).length).equals(3);
         check((-flipped).length).equals(3);
         check(flipped.scale(2.0).length).equals(3);
+
+        // Arithmetic with a Vector<double> backed by Float32List (tB.data is! Float64List)
+        check((copied + f32Vec).toList()).deepEquals([43.0, 2.0, 2.0]);
+        check((copied - f32Vec).toList()).deepEquals([41.0, 0.0, 0.0]);
+        check((copied * f32Vec).toList()).deepEquals([42.0, 1.0, 1.0]);
+        check((copied / f32Vec).toList()).deepEquals([42.0, 1.0, 1.0]);
       },
     );
   });

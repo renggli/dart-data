@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/simplify/additive.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
+import 'package:data/src/symbolic/algebra/structural_order.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
@@ -526,6 +527,116 @@ void main() {
       check(simplifyIm(const RealNumber(3.5))).equals(const RealNumber(0.0));
       check(simplifyArg(const RealNumber(-2.0))).isA<RealNumber>();
       check(toPolarExpr(const RealNumber(0.0))).equals(const RealNumber(0.0));
+
+      // Exact quadrant multiples of pi/6, pi/4, pi/3, pi/2 across sin, cos, tan
+      for (final numVal in [1, 2, 3, 4, 5, 7, 11]) {
+        for (final denVal in [2, 3, 4, 6]) {
+          final angle = Mul([
+            RationalNumber.of(Integer(numVal), Integer(denVal)),
+            Constant.pi,
+          ]);
+          check(simplifySin(angle).evaluate())
+              .isCloseTo(Sin(angle).evaluate(), 1e-12);
+          check(simplifyCos(angle).evaluate())
+              .isCloseTo(Cos(angle).evaluate(), 1e-12);
+          if ((numVal * 12 ~/ denVal) % 12 != 6) {
+            check(simplifyTan(angle).evaluate())
+                .isCloseTo(Tan(angle).evaluate(), 1e-12);
+          } else {
+            check(simplifyTan(angle)).equals(Constant.undefined);
+          }
+        }
+      }
+
+      // Complex decomposition of Sin, Cos, Sinh, Cosh, Pow
+      final cArg = Add([
+        x,
+        Mul([ComplexNumber.i, y]),
+      ]);
+      check(toRectangularExpr(Sin(cArg), assumptions: realAssumptions))
+          .isA<Add>();
+      check(toRectangularExpr(Cos(cArg), assumptions: realAssumptions))
+          .isA<Add>();
+      check(toRectangularExpr(Sinh(cArg), assumptions: realAssumptions))
+          .isA<Add>();
+      check(toRectangularExpr(Cosh(cArg), assumptions: realAssumptions))
+          .isA<Add>();
+      check(
+        toRectangularExpr(
+          Pow(cArg, IntegerNumber.two),
+          assumptions: realAssumptions,
+        ),
+      ).isA<Add>();
+
+      // RealNumber branches across special functions, rounding, and sign
+      check(simplifyLambertW(const RealNumber(0.5), 0)).isA<RealNumber>();
+      check(simplifyLambertW(const RealNumber(-0.2), -1)).isA<RealNumber>();
+      check(simplifyLambertW(const RealNumber(-1.0), 0))
+          .equals(Constant.undefined);
+      check(simplifyErf(const RealNumber(0.5))).isA<RealNumber>();
+      check(simplifyErfc(const RealNumber(0.5))).isA<RealNumber>();
+      check(simplifyGamma(const RealNumber(2.5))).isA<RealNumber>();
+      check(simplifyGamma(const RealNumber(-1.0))).equals(Constant.undefined);
+      check(simplifyBeta(const RealNumber(2.0), const RealNumber(3.0)))
+          .isA<RealNumber>();
+      check(simplifyBeta(const RealNumber(-1.0), const RealNumber(2.0)))
+          .equals(Constant.undefined);
+      check(simplifyAsinh(const RealNumber(1.0))).isA<RealNumber>();
+      check(simplifyAcosh(const RealNumber(2.0))).isA<RealNumber>();
+      check(simplifyAcosh(const RealNumber(0.5))).equals(Constant.undefined);
+      check(simplifyAtanh(const RealNumber(0.5))).isA<RealNumber>();
+      check(simplifyAtanh(const RealNumber(2.0))).equals(Constant.undefined);
+      check(simplifyFactorial(const RealNumber(2.5))).isA<RealNumber>();
+      check(simplifyBinomial(const RealNumber(4.0), const RealNumber(2.0)))
+          .isA<RealNumber>();
+      check(simplifyBinomial(x, const RealNumber(1.0))).equals(x);
+      check(simplifyFloor(Add([const RealNumber(1.2), Constant.pi])))
+          .equals(const RealNumber(4.0));
+      check(simplifyCeil(Add([const RealNumber(1.2), Constant.pi])))
+          .equals(const RealNumber(5.0));
+      check(simplifyRound(Add([const RealNumber(1.2), Constant.pi])))
+          .equals(const RealNumber(4.0));
+      check(simplifySign(const RealNumber(2.5))).equals(const RealNumber(1.0));
+      check(simplifySign(Add([const RealNumber(1.0), Constant.pi])))
+          .equals(const RealNumber(1.0));
+      check(simplifyArg(const ComplexNumber(RealNumber(1.0), RealNumber(1.0))))
+          .isA<RealNumber>();
+      check(simplifyRe(z, assumptions: complexZ))
+          .equals(Re(z, isSimplified: true));
+      check(simplifyIm(z, assumptions: complexZ))
+          .equals(Im(z, isSimplified: true));
+      check(simplifySinh(const RealNumber(1.0))).isA<RealNumber>();
+      check(simplifyCosh(const RealNumber(1.0))).isA<RealNumber>();
+      check(simplifyTanh(const RealNumber(1.0))).isA<RealNumber>();
+      check(simplifyExp(const RealNumber(1.0))).isA<RealNumber>();
+      check(simplifyLn(Pow(x, FractionNumber.half))).isA<Mul>();
+      check(toRectangularExpr(ComplexNumber.i)).equals(ComplexNumber.i);
+      check(toPolarExpr(const RealNumber(-1.0))).isA<Mul>();
+      check(simplifyIm(const ComplexNumber(RealNumber(1.0), IntegerNumber.two)))
+          .equals(const RealNumber(2.0));
+
+      // isProvenReal on non-negative base with real exponent, and isIntegerExpr on Factorial and Binomial
+      check(isProvenReal(Pow(Abs(x), y), realAssumptions)).isTrue();
+      const intAssumptions = Assumptions(
+        domains: {'x': VariableDomain.positive, 'y': VariableDomain.integer},
+      );
+      check(
+        isIntegerExpr(
+          Factorial(IntegerNumber.of(3)),
+          assumptions: intAssumptions,
+        ),
+      ).isTrue();
+      check(isIntegerExpr(Binomial(y, y), assumptions: intAssumptions))
+          .isTrue();
+
+      // Derivative structural comparison with point
+      final d0 = Derivative(x, 'x');
+      final d1 = Derivative(x, 'x', point: IntegerNumber.zero);
+      final d2 = Derivative(x, 'x', point: IntegerNumber.one);
+      check(compareStructural(d0, d0)).equals(0);
+      check(compareStructural(d0, d1)).isLessThan(0);
+      check(compareStructural(d1, d0)).isGreaterThan(0);
+      check(compareStructural(d1, d2)).isLessThan(0);
     });
   });
 }

@@ -412,6 +412,23 @@ void main() {
               'sqrt(x^2) / x',
             ).limit('x', IntegerNumber.zero, assumptions: Assumptions.positive),
           ).equals(IntegerNumber.one);
+
+          // Erfc at +infinity and -infinity, fresh limit variable collision, and power bounded factor
+          check(Erfc(x).limit('x', Constant.infinity))
+              .equals(IntegerNumber.zero);
+          check(Erfc(x).limit('x', -Constant.infinity))
+              .equals(IntegerNumber.two);
+          const hVar = Variable('_h');
+          const h1Var = Variable('_h_1');
+          check((x + hVar + h1Var).limit('x', IntegerNumber.one))
+              .equals((IntegerNumber.one + hVar + h1Var).simplify());
+          final expComposite = Add([
+            Pow(Constant.e, x),
+            Limit(Pow(Constant.e, x), 't', IntegerNumber.zero),
+            Sum(Pow(Constant.e, x), 'k', IntegerNumber.one, IntegerNumber.two),
+          ]);
+          check(expComposite.limit('x', Constant.infinity))
+              .equals(Constant.infinity);
         },
       );
     },

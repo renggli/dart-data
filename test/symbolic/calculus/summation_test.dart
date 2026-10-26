@@ -416,6 +416,92 @@ void main() {
       // Sloped linear finite product: prod_{k=1..n} (2*k) = 2^n * n!
       check(Expr.parse('product(2 * k, k, 1, n)').simplify())
           .equals(Expr.parse('2^n * n!').simplify());
+
+      // Euler cosh infinite product and shifted start indices
+      check(
+        Expr.parse(
+          'product(1 + 4 * x^2 / ((2*n - 1)^2 * pi^2), n, 1, infinity)',
+        ).simplify(),
+      ).equals(Expr.parse('cosh(x)').simplify());
+      check(Expr.parse('sum((1/2)^n, n, 2, infinity)').simplify())
+          .equals(FractionNumber.half);
+      check(Expr.parse('sum(1 / (n * (n + 2)), n, 1, infinity)').simplify())
+          .equals(RationalNumber.of(const Integer(3), const Integer(4)));
+
+      // Binomial sums with shifts, cancellations, and constants
+      check(Expr.parse('sum(2 * binomial(n, k), k, 0, n)').simplify())
+          .equals(Expr.parse('2 * 2^n').simplify());
+      check(
+        Expr.parse(
+          'sum(binomial(n, k) * x^(k + 1) * y^(n - k + 1) * z^(2 * k + 1), k, 0, n)',
+        ).simplify(),
+      ).isNotNull();
+      check(
+        Expr.parse('sum(binomial(3, k) * x^k * (-x)^(3 - k), k, 0, 3)')
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+
+      // Infinite series with constant factors, apart, additive terms, and shifted starts
+      check(Expr.parse('sum(a / (n * (n + 2)), n, 1, infinity)').simplify())
+          .equals(Expr.parse('3 * a / 4').simplify());
+      check(Expr.parse('sum((1/2)^n + (1/3)^n, n, 0, infinity)').simplify())
+          .equals(RationalNumber.of(const Integer(7), const Integer(2)));
+      check(Expr.parse('sum(1 / n, n, 2, infinity)').simplify())
+          .equals(Constant.infinity);
+      check(Expr.parse('sum((1/4)^n / (2 * n + 1), n, 0, infinity)').simplify())
+          .equals(Ln(IntegerNumber.of(3)).simplify());
+      check(Expr.parse('sum((2/9)^n / (2 * n + 1), n, 0, infinity)').simplify())
+          .isNotNull();
+      check(
+        Expr.parse('sum((-2/9)^n / (2 * n + 1), n, 0, infinity)').simplify(),
+      ).isNotNull();
+      check(Expr.parse('sum(1 / (2 * n + 2)^2, n, 0, infinity)').simplify())
+          .equals(Expr.parse('pi^2 / 24').simplify());
+      check(Expr.parse('sum((0.5)^n, n, 0, infinity)').simplify())
+          .equals(const RealNumber(2.0));
+      check(Expr.parse('sum((1 / e)^n, n, 0, infinity)').simplify())
+          .isNotNull();
+
+      // Infinite products with powers, reciprocals, and shifted starts
+      check(Expr.parse('product((1 - 1 / n^2)^2, n, 2, infinity)').simplify())
+          .equals(FractionNumber.quarter);
+      check(
+        Expr.parse(
+          'product(((2 * n - 1)^2 * pi^2) / ((2 * n - 1)^2 * pi^2 - 4 * x^2), n, 1, infinity)',
+        ).simplify(),
+      ).equals(Expr.parse('1 / cos(x)').simplify());
+      check(Expr.parse('product(1 - x^2 / n^2, n, 2, infinity)').simplify())
+          .equals(Expr.parse('sin(pi * x) / (pi * x * (1 - x^2))').simplify());
+      check(
+        Expr.parse(
+          'product(1 - 4 * x^2 / ((2 * n + 1)^2 * pi^2), n, -1, infinity)',
+        ).simplify(),
+      ).isNotNull();
+
+      // Infinite series with no finite partial sum (hitting _infiniteSeriesClosedForm & _infiniteProductClosedForm)
+      check(Expr.parse('sum(a / n^2, n, 1, infinity)').simplify())
+          .equals(Expr.parse('a * pi^2 / 6').simplify());
+      check(Expr.parse('sum(1 / n^2 + 1 / n^4, n, 1, infinity)').simplify())
+          .equals(Expr.parse('pi^2 / 6 + pi^4 / 90').simplify());
+      check(
+        Expr.parse(
+          'sum((2 * n^2 + 2 * n + 1) / (n^2 * (n + 1)^2), n, 1, infinity)',
+        ).simplify(),
+      ).equals(Expr.parse('pi^2 / 3 - 1').simplify());
+      check(Expr.parse('sum(1 / (-2 * n - 1)^2, n, 0, infinity)').simplify())
+          .equals(Expr.parse('pi^2 / 8').simplify());
+      check(Expr.parse('sum(1 / (1/2 * n + 1)^2, n, 0, infinity)').simplify())
+          .isNotNull();
+      check(Expr.parse('sum(1 / (2 * n + 1), n, 0, infinity)').simplify())
+          .equals(Constant.infinity);
+      check(Expr.parse('sum(1 / n^2 - 1 / (n + 1)^2, n, 1, m)').simplify())
+          .isNotNull();
+      check(Expr.parse('sum(sin(k) - sin(k + 1), k, 1, n)').simplify())
+          .equals(Expr.parse('sin(1) - sin(n + 1)').simplify());
+      check(Expr.parse('product((1 - x^2 / n^2)^2, n, 1, infinity)').simplify())
+          .equals(Expr.parse('(sin(pi * x) / (pi * x))^2').simplify());
+      check(Expr.parse('product(2^(1 / n^2), n, 1, infinity)').simplify())
+          .equals(Expr.parse('2^(pi^2 / 6)').simplify());
     });
   });
 }

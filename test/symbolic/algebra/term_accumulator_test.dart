@@ -276,6 +276,31 @@ void main() {
       check(splitNumeratorDenominator(Mul([x, y])))
           .equals((Mul([x, y]), IntegerNumber.one));
       check(splitNumeratorDenominator(x)).equals((x, IntegerNumber.one));
+
+      // RealNumber exponents in Pythagorean identities and polynomialDegree
+      final realTrig = Add([
+        Pow(Sin(x), const RealNumber(2.0)),
+        Pow(Cos(x), const RealNumber(2.0)),
+      ]).simplify();
+      check(realTrig).equals(const RealNumber(1.0));
+
+      final realTrigUnequal = Add([
+        Mul([IntegerNumber.two, Pow(Sin(x), const RealNumber(2.0))]),
+        Pow(Cos(x), const RealNumber(2.0)),
+      ]).simplify();
+      check(realTrigUnequal.toString()).contains('1.0');
+
+      final realHyperbolic = Add([
+        Pow(Cosh(x), const RealNumber(2.0)),
+        Mul([IntegerNumber.negativeOne, Pow(Sinh(x), const RealNumber(2.0))]),
+      ]).simplify();
+      check(realHyperbolic).equals(const RealNumber(1.0));
+
+      check(polynomialDegree(Pow(x, const RealNumber(3.0)), 'x')).equals(3);
+
+      final accUndef = MonomialAccumulator()
+        ..addDecomposed(IntegerNumber.one, Constant.undefined);
+      check(accUndef.build()).equals(Constant.undefined);
     });
   });
 }

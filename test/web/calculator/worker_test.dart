@@ -195,6 +195,30 @@ void main() {
       check(dispatcher.stack.level(1).value.toCanonicalText())
           .equals('(-3 + x) * (3 + x)');
       check(dispatcher.canRedo).isFalse();
+
+      // WorkerRequest and WorkerResponse JSON round-tripping
+      const req = WorkerRequest(
+        id: 42,
+        op: 'evalScroll',
+        payload: {'input': '1 + 1'},
+      );
+      final reqDecoded = WorkerRequest.fromJson(req.toJson());
+      check(reqDecoded.id).equals(42);
+      check(reqDecoded.op).equals('evalScroll');
+
+      const respOk = WorkerResponse(id: 42, ok: true, result: {'val': 2});
+      final respOkDecoded = WorkerResponse.fromJson(respOk.toJson());
+      check(respOkDecoded.ok).isTrue();
+      check(respOkDecoded.id).equals(42);
+
+      const respErr = WorkerResponse(
+        id: 42,
+        ok: false,
+        error: {'message': 'bad input'},
+      );
+      final respErrDecoded = WorkerResponse.fromJson(respErr.toJson());
+      check(respErrDecoded.ok).isFalse();
+      check(respErrDecoded.error!['message']).equals('bad input');
     });
   });
 }

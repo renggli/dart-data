@@ -388,6 +388,20 @@ void main() {
       check(Expr.parse('limit(e + 1, e, 2)')).equals(
         Limit(const Variable('e') + IntegerNumber.one, 'e', IntegerNumber.two),
       );
+      check(Expr.parse('integrate(-i, i, 0, 1)')).isA<Integral>();
+      check(Expr.parse('diff(e^2, e, 2)')).isA<Derivative>();
+      check(Expr.parse('limit(e, e, 0, fromAbove)')).isA<Limit>();
+      check(Expr.parse('sum(integrate(x, x, 0, i), i, 1, 3)')).isA<Sum>();
+      check(Expr.parse('sum(diff(x^2, x, 1, i), i, 1, 3)')).isA<Sum>();
+      check(Expr.parse('sum(limit(x, x, i), i, 1, 3)')).isA<Sum>();
+      check(Expr.parse('sum(sum(k, k, 1, i), i, 1, 3)')).isA<Sum>();
+      check(Expr.parse('sum(product(k, k, 1, i), i, 1, 3)')).isA<Sum>();
+      check(Expr.parse('sum(integrate(i, i, 0, i), i, 1, 3)')).isA<Sum>();
+      check(Expr.parse('sum(diff(i^2, i, 1, i), i, 1, 3)')).isA<Sum>();
+      check(Expr.parse('sum(limit(i, i, i), i, 1, 3)')).isA<Sum>();
+      check(Expr.parse('sum(sum(i, i, 1, i), i, 1, 3)')).isA<Sum>();
+      check(Expr.parse('sum(product(i, i, 1, i), i, 1, 3)')).isA<Sum>();
+      check(() => Expr.parse('limit(x)')).throws<FormatException>();
     });
   });
 }

@@ -194,6 +194,28 @@ void main() {
       );
       check(dfEmptyTyped.rowCount).equals(0);
       check(dfEmptyTyped['x'].dataType).equals(DataType.int32);
+
+      // readChunks with header: false
+      final chunksNoHeader = await CsvStream.readChunks(
+        Stream.value('1,2\n3,4\n'),
+        header: false,
+        chunkSize: 1,
+      ).toList();
+      check(chunksNoHeader.length).equals(2);
+      check(chunksNoHeader[0].columnNames).deepEquals(['col_0', 'col_1']);
+
+      // Unescaped character after quote inside quotes transitions to unquoted
+      final dfAfterQuote = await CsvStream.readStream(
+        Stream.value('a,b\n"hello"world,2\n'),
+      );
+      check(dfAfterQuote['a'][0]).equals('helloworld');
+
+      // Error forwarding through CsvStreamTransformer
+      await check(
+        CsvStream.readStream(
+          Stream<String>.error(StateError('stream failure')),
+        ),
+      ).throws<StateError>();
     });
 
     test('handles final row ending with delimiter and no newline', () async {

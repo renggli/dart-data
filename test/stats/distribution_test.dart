@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:checks/checks.dart';
+import 'package:data/special.dart';
 import 'package:data/stats.dart';
 import 'package:test/test.dart';
 
@@ -73,6 +74,7 @@ void main() {
       check(dist.cumulativeProbability(5.0)).equals(0.5);
       check(dist.inverseCumulativeProbability(0.5)).equals(5.0);
       check(dist.survival(5.0)).equals(0.5);
+      check(dist.inverseSurvival(0.25)).equals(7.5);
     });
 
     test('sampling', () {
@@ -82,6 +84,17 @@ void main() {
 
       final list = dist.samples().take(5).toList();
       check(list.length).equals(5);
+
+      final gammaDist = GammaDistribution(2.0, 1.0);
+      check(gammaDist.survival(-1.0)).equals(1.0);
+      check(gammaDist.survival(1.0)).isGreaterThan(0.0);
+
+      final invGamma = InverseGammaDistribution(5.0, 1.0);
+      check(invGamma.excessKurtosis).isCloseTo(42.0, 1e-12);
+
+      check(combination(5, 4)).equals(5.0);
+      check(combination(5.5, 2.5)).isGreaterThan(10.0);
+      check(permutation(5.5, 2.5)).isGreaterThan(20.0);
     });
   });
 }

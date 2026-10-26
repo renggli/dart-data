@@ -486,7 +486,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
      - Test `stats/hypothesis/t_test.dart`, `chi_squared.dart`, `kolmogorov_smirnov.dart`, `wilcoxon.dart`, `stats/distributions/discrete.dart`, `stats/distribution.dart`, `bootstrap.dart`, and `jackknife.dart`.
 - **Verification**: `dart test test/special/ test/polynomial/ test/numeric/ test/stats/ test/dataframe/`
 
-### [ ] TASK-6.4: Unit Tests for `symbolic` and `web/calculator` Uncovered Branches & Final Coverage Verification
+### [x] TASK-6.4: Unit Tests for `symbolic` and `web/calculator` Uncovered Branches & Final Coverage Verification
 - **Target Files & Missing Test Cases**:
   1. **`lib/src/symbolic/algebra/simplify/transcendental.dart`, `multiplicative.dart`, `power.dart`, `additive.dart`**:
      - Test `simplifySin`, `simplifyCos`, `simplifyTan` across all coprime quadrant multiples of $\pi/6$, $\pi/4$, $\pi/3$, $\pi/2$ (e.g. $7\pi/6$, $5\pi/4$, $4\pi/3$, $5\pi/6$, $3\pi/4$, $2\pi/3$).

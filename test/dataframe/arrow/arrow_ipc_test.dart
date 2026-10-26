@@ -637,6 +637,23 @@ void main() {
           .deepEquals(['s0_a', 's0_b', 's10_a', null]);
       check(decoded['ostr'].toList())
           .deepEquals(['o0_a', 'o0_b', 'o10_a', null]);
+
+      // Unaligned buffer decode (offsetInBytes % 4 != 0 and % 2 != 0)
+      final unalignedBacking = Uint8List(bytes.length + 3);
+      unalignedBacking.setRange(1, 1 + bytes.length, bytes);
+      final unalignedView = Uint8List.sublistView(
+        unalignedBacking,
+        1,
+        1 + bytes.length,
+      );
+      final decodedUnaligned = ArrowIpc.decode(unalignedView);
+      check(decodedUnaligned.rowCount).equals(4);
+      check(decodedUnaligned['f32'].toList())
+          .deepEquals([1.5, 2.5, 11.5, null]);
+      check(decodedUnaligned['i32'].toList()).deepEquals([10, 20, 20, null]);
+      check(decodedUnaligned['i16'].toList()).deepEquals([1, 2, 11, null]);
+      check(decodedUnaligned['u32'].toList()).deepEquals([10, 20, 20, null]);
+      check(decodedUnaligned['u16'].toList()).deepEquals([1, 2, 11, null]);
     });
   });
 }

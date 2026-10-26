@@ -49,6 +49,27 @@ void main() {
       );
       check(df.rowCount).equals(0);
       check(df.columnNames).deepEquals(['id', 'name']);
+
+      final dfEmpty = DataFrameJsonDecoder.fromRecords(const []);
+      check(dfEmpty.rowCount).equals(0);
+
+      final dfRecEmptyTyped = DataFrameJsonDecoder.decode(
+        '[]',
+        orient: JsonOrient.records,
+        columnTypes: {'id': DataType.int32},
+      );
+      check(dfRecEmptyTyped.columnNames).deepEquals(['id']);
+
+      check(() => DataFrameJsonDecoder.detectOrient([123]))
+          .throws<FormatException>();
+
+      // Array format with columnTypes key 'col_0' and extra column triggering collision loop
+      final dfColCollision = DataFrameJsonDecoder.decode(
+        '[[1, 2, 3]]',
+        orient: JsonOrient.array,
+        columnTypes: {'a': DataType.int32, 'col_2': DataType.int32},
+      );
+      check(dfColCollision.columnNames).deepEquals(['a', 'col_2', 'col_3']);
     });
 
     test('detectOrient detects formats accurately', () {

@@ -191,6 +191,29 @@ void main() {
           offsets: Uint32List.fromList([0, 4, 2, 5]),
         ),
       ).throws<ArgumentError>();
+
+      // Last offset exceeds bytes length
+      check(
+        () => ArrowStringSeries(
+          name: 'test',
+          bytes: Uint8List(3),
+          offsets: Uint32List.fromList([0, 5]),
+        ),
+      ).throws<ArgumentError>();
+
+      // ValidityMask length mismatch
+      check(
+        () => ArrowStringSeries(
+          name: 'test',
+          bytes: Uint8List(5),
+          offsets: Uint32List.fromList([0, 5]),
+          mask: ValidityMask(3),
+        ),
+      ).throws<ArgumentError>();
+
+      // Filter mask length mismatch
+      final validSeries = ArrowStringSeries.fromList('s', ['a', 'b']);
+      check(() => validSeries.filter([true])).throws<ArgumentError>();
     });
   });
 }

@@ -76,6 +76,13 @@ void main() {
             [Expr.parse('x - 1')]
                 .solve(['x'], method: PolynomialSystemMethod.resultant),
       ).throws<ArgumentError>();
+
+      // Positive dimensional ideal returns empty via Groebner FGLM fallback
+      final posDim = [
+        Expr.parse('x + y - 1'),
+        Expr.parse('2*x + 2*y - 2'),
+      ].solve(['x', 'y'], method: PolynomialSystemMethod.groebner);
+      check(posDim).isEmpty();
     });
   });
 }

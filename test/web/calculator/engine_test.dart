@@ -512,6 +512,45 @@ void main() {
       final asinPlot =
           eval.evaluateScroll('plot(asin(x), x, 0, 1)').value as PlotValue;
       check(asinPlot.curves.first.segments.first.y.last).isCloseTo(90.0, 1e-4);
+
+      // CommandRegistry appliesTo, buildChipCall, inferPrimaryVariable, RPN postfix ops
+      env.settings = env.settings.copyWith(angleMode: AngleMode.rad);
+      final sampleValues = <CalcValue>[
+        ExprValue(Expr.parse('x^2 + 1')),
+        ExprValue(Expr.parse('x^2 + y^2')),
+        ExprValue(IntegerNumber.of(12)),
+        eval.evaluateScroll('[x, 2 * x]').value,
+        eval.evaluateScroll('[[1, 2], [3, 4]]').value,
+        const ListValue([
+          ExprValue(IntegerNumber.one),
+          ExprValue(IntegerNumber.two),
+        ]),
+      ];
+      for (final cmd in CommandRegistry.all) {
+        for (final val in sampleValues) {
+          if (cmd.appliesTo(val)) {
+            check(cmd.buildChipCall(1, val).isNotEmpty).isTrue();
+          }
+        }
+      }
+
+      // RPN postfix operators (², ³, ⁴, !) and stack underflow recovery
+      check(rpn.executeLine('3 ²')).isNull();
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('9');
+      check(rpn.executeLine('2 ³')).isNull();
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('8');
+      check(rpn.executeLine('2 ⁴')).isNull();
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('16');
+      check(rpn.executeLine('4 !')).isNull();
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('24');
+
+      rpn.stack.clear();
+      check(rpn.executeCommand('SWAP')).isNotNull();
+
+      // Relative result indexing r[-1]
+      final prevCell = session.activeCells.last;
+      check(eval.evaluateScroll('r[-1]').value.toCanonicalText())
+          .equals(prevCell.value.toCanonicalText());
     });
   });
 }

@@ -47,12 +47,22 @@ void main() {
 
       check(df.rowCount).equals(2);
       check(df['a'].toList()).deepEquals([10, 20]);
+
+      final byteChunks = await DataFrameJsonStream.readByteChunks(
+        Stream.value(utf8.encode(raw)),
+        chunkSize: 1,
+      ).toList();
+      check(byteChunks.length).equals(2);
     });
 
     test('throws FormatException on malformed non-object JSON line', () async {
       final stream = Stream.value('[1, 2, 3]\n');
       await check(DataFrameJsonStream.readNdjson(stream))
           .throws<FormatException>();
+      await check(
+        DataFrameJsonStream.readNdjsonChunks(Stream.value('[1, 2, 3]\n'))
+            .toList(),
+      ).throws<FormatException>();
     });
   });
 }

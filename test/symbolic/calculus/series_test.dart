@@ -455,6 +455,26 @@ void main() {
 
       check(() => (IntegerNumber.one / x).toPolynomial<double>('x', order: 2))
           .throws<UnsupportedError>();
+
+      // toPolynomial<double> with non-Number constant coefficients (Constant.pi) around 0 and 1
+      final piPoly0 = (Constant.pi * x).toPolynomial<double>('x', order: 1);
+      check(piPoly0[1]).isCloseTo(3.141592653589793, 1e-12);
+      final piPoly1 = (Constant.pi * x).toPolynomial<double>(
+        'x',
+        point: 1.0,
+        order: 1,
+      );
+      check(piPoly1[1]).isCloseTo(3.141592653589793, 1e-12);
+
+      // toPolynomial<Expr> around non-zero point = 1
+      final symPoly1 = (x + IntegerNumber.one).toPolynomial<Expr>(
+        'x',
+        point: 1,
+        order: 1,
+        type: exprDataType,
+      );
+      check(symPoly1[0]).equals(IntegerNumber.one);
+      check(symPoly1[1]).equals(IntegerNumber.one);
     });
   });
 }

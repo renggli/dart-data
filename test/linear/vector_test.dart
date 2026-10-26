@@ -371,6 +371,19 @@ void main() {
 
       f32_1.scaleInPlace(0.5);
       check(f32_1.toList()[0]).isCloseTo(4.5, 1e-4);
+
+      // Non-contiguous dot and non-contiguous cumsum/cumprod target
+      final mat = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+        [5, 6],
+      ]);
+      final col0 = mat.col(0);
+      final col1 = mat.col(1);
+      check(col0.dot(col1)).equals(1 * 2 + 3 * 4 + 5 * 6);
+      final targetCol = Matrix<int>.filled(3, 2, 0).col(0);
+      col0.cumsum(target: targetCol);
+      check(targetCol.toList()).deepEquals([1, 4, 9]);
     });
   });
 }

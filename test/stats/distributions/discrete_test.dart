@@ -11,6 +11,14 @@ void main() {
       final custom = _TestDiscreteDist();
       check(custom.lowerBound).equals(DataType.integer.safeMin);
       check(custom.probability(0)).equals(0.5);
+      check(custom.inverseCumulativeProbability(1)).equals(custom.upperBound);
+      check(custom.inverseCumulativeProbability(0.75)).equals(0);
+
+      const posLower = _BoundedDiscreteDist(lower: 5, upper: 100);
+      check(posLower.inverseCumulativeProbability(0.8)).equals(15);
+
+      const negUpper = _BoundedDiscreteDist(lower: -100, upper: -5);
+      check(negUpper.inverseCumulativeProbability(0.2)).equals(-15);
     });
 
     test('equality, hashCode, default random, and sampling branches', () {
@@ -179,4 +187,41 @@ class _TestDiscreteDist extends DiscreteDistribution {
   double get skewness => 0.0;
   @override
   double get excessKurtosis => 0.0;
+}
+
+class _BoundedDiscreteDist extends DiscreteDistribution {
+  const new({required this.lower, required this.upper});
+
+  final int lower;
+  final int upper;
+
+  @override
+  int get lowerBound => lower;
+
+  @override
+  int get upperBound => upper;
+
+  @override
+  double cumulativeProbability(int k) {
+    if (lower > 0) {
+      return k >= 15 ? 1.0 : 0.1;
+    }
+    return k >= -15 ? 0.9 : 0.0;
+  }
+
+  @override
+  int sample({math.Random? random}) => lower;
+
+  @override
+  double get mean => double.nan;
+  @override
+  double get median => double.nan;
+  @override
+  double get mode => double.nan;
+  @override
+  double get variance => double.nan;
+  @override
+  double get skewness => double.nan;
+  @override
+  double get excessKurtosis => double.nan;
 }

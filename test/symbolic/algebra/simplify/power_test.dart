@@ -256,6 +256,38 @@ void main() {
       // OrderTerm^k -> OrderTerm(var, order * k)
       check(simplifyPow(const OrderTerm('x', 2), IntegerNumber.of(3)))
           .equals(const OrderTerm('x', 6));
+
+      // ComplexNumber with RealNumber component raised to 0 -> RealNumber(1.0)
+      check(
+        simplifyPow(
+          const ComplexNumber(RealNumber(1.0), RealNumber(2.0)),
+          IntegerNumber.zero,
+        ),
+      ).equals(const RealNumber(1.0));
+
+      // Constant.infinity raised to negative, negative Mul, and positive exponents
+      check(simplifyPow(Constant.infinity, IntegerNumber.negativeOne))
+          .equals(IntegerNumber.zero);
+      check(simplifyPow(Constant.infinity, Mul([IntegerNumber.negativeOne, x])))
+          .equals(IntegerNumber.zero);
+      check(simplifyPow(Constant.infinity, IntegerNumber.two))
+          .equals(Constant.infinity);
+
+      // Higher even root involution: (x^4)^(1/4) -> |x| and (x^4)^(1/2) -> x^2 under real assumptions
+      check(
+        simplifyPow(
+          Pow(x, IntegerNumber.of(4)),
+          RationalNumber(1, 4),
+          assumptions: Assumptions.real,
+        ).toString(),
+      ).equals('abs(x)');
+      check(
+        simplifyPow(
+          Pow(x, IntegerNumber.of(4)),
+          FractionNumber.half,
+          assumptions: Assumptions.real,
+        ).toString(),
+      ).equals('x ^ 2');
     });
   });
 }

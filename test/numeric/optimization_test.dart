@@ -485,6 +485,38 @@ void main() {
           method: OptimizationMethod.brent,
         ),
       ).throws<ArgumentError>();
+
+      // OptimizationMethod.brent with 1D initialPoint and no explicit a/b or bounds
+      final brent1d = minimize(
+        (v) => (v[0] - 0.5) * (v[0] - 0.5),
+        initialPoint: Vector<double>.fromList([0.2]),
+        method: OptimizationMethod.brent,
+      );
+      check(brent1d.point[0]).isCloseTo(0.5, 1e-5);
+
+      // Constrained optimization with equalities only (triggers hasConstraints via equalities)
+      final eqOnly = minimize(
+        (v) => v[0] * v[0] + v[1] * v[1],
+        initialPoint: Vector<double>.fromList([0.5, 0.5]),
+        equalities: [(v) => v[0] + v[1] - 2.0],
+      );
+      check(eqOnly.point[0]).isCloseTo(1.0, 1e-2);
+
+      final eqNm = minimize(
+        (v) => v[0] * v[0] + v[1] * v[1],
+        initialPoint: Vector<double>.fromList([0.5, 0.5]),
+        equalities: [(v) => v[0] + v[1] - 2.0],
+        method: OptimizationMethod.nelderMead,
+      );
+      check(eqNm.point[0]).isCloseTo(1.0, 0.1);
+
+      final eqLbfgs = minimize(
+        (v) => v[0] * v[0] + v[1] * v[1],
+        initialPoint: Vector<double>.fromList([0.5, 0.5]),
+        equalities: [(v) => v[0] + v[1] - 2.0],
+        method: OptimizationMethod.lbfgs,
+      );
+      check(eqLbfgs.point[0]).isCloseTo(1.0, 1e-2);
     });
   });
 }

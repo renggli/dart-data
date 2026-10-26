@@ -879,6 +879,19 @@ line 2",10
       final tensor = dfObjNum.toTensor();
       check(tensor.getValue([0, 0])).equals(1.5);
       check(tensor.getValue([1, 0]).isNaN).isTrue();
+
+      // DataFrame.fromRecords, fillNull on column without nulls, sortBy invalid by
+      final dfRec = DataFrame.fromRecords([
+        {'a': 1, 'b': 2},
+      ]);
+      check(dfRec.rowCount).equals(1);
+      final dfFilled = DataFrame([
+        Series<int>.fromList('no_nulls', [1, 2]),
+        Series<int>.fromList('with_nulls', [null, 4]),
+      ]).fillNull(0);
+      check(dfFilled['no_nulls'].toList()).deepEquals([1, 2]);
+      check(dfFilled['with_nulls'].toList()).deepEquals([0, 4]);
+      check(() => dfRec.sortBy(123)).throws<ArgumentError>();
     });
   });
 }

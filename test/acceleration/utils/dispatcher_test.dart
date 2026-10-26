@@ -113,6 +113,44 @@ void main() {
         },
       );
       check(ranFallback).isTrue();
+
+      AccelerationManager.mode = AccelerationMode.accelerated;
+      check(
+        () => executeAcceleratedOperation(
+          feature: 'Test',
+          operation: 'op',
+          isAvailable: false,
+          accelerate: () => true,
+          fallback: () => false,
+        ),
+      ).throws<AccelerationError>();
+      check(
+        () => executeAcceleratedOperation(
+          feature: 'Test',
+          operation: 'op',
+          isAvailable: true,
+          accelerate: () => false,
+          fallback: () => false,
+        ),
+      ).throws<AccelerationError>();
+      check(
+        () => executeAcceleratedVoid(
+          feature: 'Test',
+          operation: 'op',
+          isAvailable: false,
+          accelerate: () => true,
+          fallback: () {},
+        ),
+      ).throws<AccelerationError>();
+      check(
+        () => executeAcceleratedVoid(
+          feature: 'Test',
+          operation: 'op',
+          isAvailable: true,
+          accelerate: () => false,
+          fallback: () {},
+        ),
+      ).throws<AccelerationError>();
     });
   });
 }

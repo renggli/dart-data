@@ -163,5 +163,15 @@ void main() {
       check(result[2]).isCloseTo(11.0, 1e-9);
       check(result[3]).isCloseTo(14.0, 1e-9);
     });
+
+    test(
+      'fft2 validation errors for non-power-of-two and mismatched length',
+      () {
+        final buf = Float64ComplexList(4);
+        check(() => fft2(buf, rows: 3, cols: 2)).throws<ArgumentError>();
+        check(() => fft2(buf, rows: 2, cols: 3)).throws<ArgumentError>();
+        check(() => fft2(buf, rows: 2, cols: 4)).throws<ArgumentError>();
+      },
+    );
   });
 }

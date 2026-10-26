@@ -119,6 +119,29 @@ void main() {
             .isCloseTo(5.0, 1e-8);
         check(solve(f, 0.0, method: RootMethod.newtonRaphson))
             .isCloseTo(5.0, 1e-6);
+
+        // Validation errors and iteration exhaustion
+        check(() => solve(f, 0.0, b: 10.0, tolerance: 0.0))
+            .throws<ArgumentError>();
+        check(() => solve(f, 0.0, b: 10.0, maxIterations: 0))
+            .throws<ArgumentError>();
+        check(
+          () => solve(
+            (x) => x * x - 4.0,
+            100.0,
+            method: RootMethod.newtonRaphson,
+            maxIterations: 1,
+          ),
+        ).throws<StateError>();
+        check(
+          solve(
+            (x) => x * x - 4.0,
+            0.0,
+            b: 10.0,
+            method: RootMethod.bisection,
+            maxIterations: 2,
+          ),
+        ).isCloseTo(1.25, 1e-9);
       },
     );
   });

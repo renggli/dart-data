@@ -228,6 +228,35 @@ void main() {
           x == 1.0 ? double.infinity : 1.0 / math.pow(1.0 - x, 2);
       check(() => integrate(divX2, 0.0, 1.0, poles: [1.0]))
           .throws<IntegrateError>();
+
+      // Validation errors, multiple distinct interior poles, and Simpson depthTooShallow
+      check(() => integrate((x) => x, 0.0, 1.0, tolerance: 0.0))
+          .throws<ArgumentError>();
+      check(() => integrate((x) => x, 0.0, 1.0, maxDepth: -1))
+          .throws<ArgumentError>();
+      check(integrate((x) => 1.0, 0.0, 2.0, poles: [0.5, 1.5]))
+          .isCloseTo(2.0, 1e-8);
+      check(
+        () => integrate(
+          math.sin,
+          0.0,
+          10.0,
+          method: IntegrationMethod.simpson,
+          maxDepth: 0,
+          tolerance: 1e-15,
+        ),
+      ).throws<IntegrateError>();
+      var simpWarned = false;
+      integrate(
+        math.sin,
+        0.0,
+        10.0,
+        method: IntegrationMethod.simpson,
+        maxDepth: 0,
+        tolerance: 1e-15,
+        onWarning: (w, x) => simpWarned = true,
+      );
+      check(simpWarned).isTrue();
     });
   });
 }

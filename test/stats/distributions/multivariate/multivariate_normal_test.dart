@@ -74,6 +74,29 @@ void main() {
       check(() => MultivariateNormalDistribution.standard(0))
           .throws<ArgumentError>();
 
+      // Empty mean, non-finite mean, and non-finite covariance entries
+      check(
+        () => MultivariateNormalDistribution(
+          Vector<double>.fromList([]),
+          Matrix<double>.filled(0, 0, 0.0),
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => MultivariateNormalDistribution(
+          Vector<double>.fromList([double.nan, 0.0]),
+          Matrix<double>.identity(2),
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => MultivariateNormalDistribution(
+          Vector<double>.fromList([0.0, 0.0]),
+          Matrix<double>.fromRows([
+            [1.0, double.infinity],
+            [double.infinity, 1.0],
+          ]),
+        ),
+      ).throws<ArgumentError>();
+
       final dist = MultivariateNormalDistribution.standard(2);
       check(() => dist.logProbability(Vector.fromList([1.0])))
           .throws<ArgumentError>();

@@ -1344,11 +1344,8 @@ Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
       if (isProvenReal(expr, assumptions)) {
         return expr;
       }
-      final (:re, :im) = _decomposeComplex(expr, assumptions);
-      if (re is! Re || re.expr != expr || im != IntegerNumber.zero) {
-        return re;
-      }
-      return Re(expr, isSimplified: true);
+      final (:re, im: _) = _decomposeComplex(expr, assumptions);
+      return re;
   }
 }
 
@@ -1373,11 +1370,8 @@ Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
       if (isProvenReal(expr, assumptions)) {
         return IntegerNumber.zero;
       }
-      final (:re, :im) = _decomposeComplex(expr, assumptions);
-      if (im is! Im || im.expr != expr || re != IntegerNumber.zero) {
-        return im;
-      }
-      return Im(expr, isSimplified: true);
+      final (re: _, :im) = _decomposeComplex(expr, assumptions);
+      return im;
   }
 }
 
@@ -1523,10 +1517,7 @@ Expr toRectangularExpr(
 Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   final simplified = simplifyExpr(expr, assumptions: assumptions);
   if (simplified is Number && simplified.isZero) {
-    return simplified is RealNumber ||
-            (simplified is ComplexNumber &&
-                (simplified.real is RealNumber ||
-                    simplified.imaginary is RealNumber))
+    return simplified is RealNumber
         ? const RealNumber(0.0)
         : IntegerNumber.zero;
   }

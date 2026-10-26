@@ -114,6 +114,8 @@ void main() {
           .throws<ArgumentError>();
       check(() => solveSystem(eq, Vector.fromList([0.0]), maxIterations: 0))
           .throws<ArgumentError>();
+      check(() => solveSystem(eq, Vector.fromList([0.0]), step: 0.0))
+          .throws<ArgumentError>();
     });
   });
 }

@@ -1236,6 +1236,74 @@ void main() {
         [1.0, 2.0, 3.0],
       ], type: DataType.float32);
       check(() => rankDefUnder.solve(f32UnderB)).throws<StateError>();
+
+      // Rank-deficient float64 rectangular matrices falling back from Lapack.dgels
+      final rankDefRectTall = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [2.0, 4.0],
+        [3.0, 6.0],
+      ]);
+      final rectTallB = Matrix<double>.fromRows([
+        [1.0],
+        [2.0],
+        [3.0],
+      ]);
+      check(() => rankDefRectTall.solve(rectTallB)).throws<StateError>();
+
+      final rankDefRectWide = Matrix<double>.fromRows([
+        [1.0, 2.0, 3.0],
+        [2.0, 4.0, 6.0],
+      ]);
+      final rectWideB = Matrix<double>.fromRows([
+        [1.0],
+        [2.0],
+      ]);
+      check(() => rankDefRectWide.solve(rectWideB)).throws<StateError>();
+
+      // Non-contiguous float64 matrix solve (exercises _copyTensorToFloat64List non-contiguous branch)
+      final subMatA = Matrix<double>.fromRows([
+        [2.0, 1.0, 9.0],
+        [1.0, 3.0, 9.0],
+      ]).subMatrix(rowStart: 0, rowEnd: 2, colStart: 0, colEnd: 2);
+      final subMatB = Matrix<double>.fromRows([
+        [5.0, 9.0],
+        [5.0, 9.0],
+      ]).subMatrix(rowStart: 0, rowEnd: 2, colStart: 0, colEnd: 1);
+      final subSol = subMatA.solve(subMatB);
+      check(subSol[0][0]).isCloseTo(2.0, 1e-12);
+      check(subSol[1][0]).isCloseTo(1.0, 1e-12);
+
+      // RREF solver with row swap (Fraction matrix where row 0 has 0 in col 0)
+      final rrefSwapA = Matrix<Fraction>.fromRows([
+        [Fraction.zero, Fraction.one],
+        [Fraction.one, Fraction(2)],
+      ], type: DataType.fraction);
+      final rrefSwapB = Matrix<Fraction>.fromRows([
+        [Fraction(3)],
+        [Fraction(7)],
+      ], type: DataType.fraction);
+      final rrefSwapSol = rrefSwapA.solve(rrefSwapB);
+      check(rrefSwapSol[0][0]).equals(Fraction.one);
+      check(rrefSwapSol[1][0]).equals(Fraction(3));
+
+      // Dimension mismatch in apply, applyTranspose, and applyConjugateTranspose
+      final badLenVec = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      check(() => f64m.apply(badLenVec)).throws<ArgumentError>();
+      check(() => f64m.applyTranspose(badLenVec)).throws<ArgumentError>();
+      final cMat2 = Matrix<Complex>.fromRows([
+        [Complex.one, Complex.zero],
+        [Complex.zero, Complex.one],
+      ], type: DataType.complex);
+      final badComplexVec = Vector<Complex>.fromList([
+        Complex.one,
+      ], type: DataType.complex);
+      check(() => cMat2.applyConjugateTranspose(badComplexVec))
+          .throws<ArgumentError>();
+
+      // Generic syrk fallback (on Fraction matrix)
+      final ratSyrk = rrefSwapA.syrk();
+      check(ratSyrk.rowCount).equals(2);
+      check(ratSyrk[0][0]).equals(Fraction.one);
     });
   });
 }

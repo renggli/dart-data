@@ -174,6 +174,14 @@ void main() {
         [Complex.one, Complex.one],
       ], type: DataType.complex);
       check(zeroDiag.cholesky.isSymmetricPositiveDefinite).isFalse();
+
+      // Row dimension mismatch in Cholesky.solve
+      final spd = Matrix<double>.fromRows([
+        [4.0, 1.0],
+        [1.0, 3.0],
+      ]);
+      check(() => spd.cholesky.solve(Matrix<double>.filled(3, 1, 1.0)))
+          .throws<ArgumentError>();
     });
   });
 }

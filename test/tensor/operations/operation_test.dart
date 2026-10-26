@@ -646,6 +646,35 @@ void main() {
       tb0.binaryOperation<double, double>(tb0, (a, b) => a + b, target: tb1);
       check(buf2).deepEquals([1.0, 2.0, 4.0, 6.0, 8.0]);
 
+      // In-place binaryOperation where target == other (sameStartAddress with otherData)
+      final inPlaceTarget = Tensor<int>.fromIterable(
+        [10, 20, 30],
+        shape: [3],
+        type: DataType.int32,
+      );
+      final leftDouble = Tensor<double>.fromIterable(
+        [1.0, 2.0, 3.0],
+        shape: [3],
+      );
+      // R == O (int == int, while T is double) without explicit type, and target == other
+      final inferredRight = leftDouble.binaryOperation<int, int>(
+        inPlaceTarget,
+        (a, b) => a.toInt() + b,
+      );
+      check(inferredRight.toFlatList()).deepEquals([11, 22, 33]);
+      // R != T and R != O (String) without explicit type
+      final inferredThird = leftDouble.binaryOperation<int, String>(
+        inPlaceTarget,
+        (a, b) => '${a.toInt()}:$b',
+      );
+      check(inferredThird.toFlatList()).deepEquals(['1:10', '2:20', '3:30']);
+      leftDouble.binaryOperation<int, int>(
+        inPlaceTarget,
+        (a, b) => a.toInt() + b,
+        target: inPlaceTarget,
+      );
+      check(inPlaceTarget.toFlatList()).deepEquals([11, 22, 33]);
+
       final nullableType = DataType.int32.nullable;
       final nList = nullableType.newList(5, fillValue: 1);
       for (var i = 0; i < 5; i++) {

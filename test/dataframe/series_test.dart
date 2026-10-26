@@ -305,6 +305,22 @@ void main() {
 
       final oSeries = ObjectSeries<String>.fromList('o', ['b', null, 'a']);
       check(() => oSeries.filter([true])).throws<ArgumentError>();
+
+      // map without explicit name, TypedSeries.sort with two nulls, ObjectSeries.sort with non-Comparable objects
+      final mapped = s1.map((v) => v * 10);
+      check(mapped.name).equals('a');
+      check(mapped.toList()).deepEquals([10, null, 30]);
+
+      final twoNulls = Series<int>.fromList('n', [null, 2, null, 1]);
+      check(twoNulls.sort().toList()).deepEquals([1, 2, null, null]);
+
+      final nonCompSeries = ObjectSeries<Object?>.fromList('obj', [
+        Object(),
+        null,
+        Object(),
+      ]);
+      check(nonCompSeries.mask).isNotNull();
+      check(nonCompSeries.sort().length).equals(3);
     });
   });
 }

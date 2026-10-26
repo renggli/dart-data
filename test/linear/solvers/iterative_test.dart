@@ -218,6 +218,18 @@ void main() {
       final x = solveIterative(a, b);
       check(x[0]).isCloseTo(1.0, 1e-6);
       check(x[1]).isCloseTo(1.0, 1e-6);
+
+      // GMRES breakdown at k = 2 (degree-2 invariant subspace in 3x3 diagonal matrix)
+      final a3 = Matrix<double>.fromRows([
+        [1.0, 0.0, 0.0],
+        [0.0, 2.0, 0.0],
+        [0.0, 0.0, 2.0],
+      ]);
+      final b3 = Vector<double>.fromList([1.0, 2.0, 2.0]);
+      final x3 = solveIterative(a3, b3, method: IterativeMethod.gmres);
+      check(x3[0]).isCloseTo(1.0, 1e-6);
+      check(x3[1]).isCloseTo(1.0, 1e-6);
+      check(x3[2]).isCloseTo(1.0, 1e-6);
     });
 
     test('CG and GMRES throw StateError on NaN residual', () {
@@ -242,6 +254,13 @@ void main() {
           maxIterations: 2,
         ),
       ).throws<StateError>();
+
+      check(DataType.int32.safeBits).equals(32);
+      final emptyCoo = CooMatrix<double>.fromEntries(2, 2, const []);
+      check(emptyCoo.nnz).equals(0);
+      check(
+        () => emptyCoo.applyConjugateTranspose(Vector<double>.fromList([1.0])),
+      ).throws<ArgumentError>();
     });
   });
 }

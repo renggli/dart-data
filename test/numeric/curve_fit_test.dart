@@ -486,6 +486,39 @@ void main() {
       check(res.covariance.get(1, 1)).equals(double.infinity);
       check(res.standardErrors[0]).equals(double.infinity);
       check(res.standardErrors[1]).equals(double.infinity);
+
+      // Partially identifiable 3-parameter model: p[0]*x + p[1]*x + p[2]
+      // Here p[2] is identifiable while p[0] and p[1] are collinear, so sInv has > 0 entries
+      // and covariance has finite entry for (2, 2).
+      final resPartial = curveFit(
+        xs: xs,
+        ys: ys,
+        model: (x, p) => p[0] * x + p[1] * x + p[2],
+        initialParams: Vector<double>.fromList([1.0, 1.0, 0.0]),
+      );
+      check(resPartial.covariance.get(2, 2).isFinite).isTrue();
+
+      // Full-rank overdetermined leastSquares via QR fallback (in pure Dart mode or non-float64)
+      final qrA = Matrix<double>.fromRows([
+        [1.0, 0.0, 9.0],
+        [0.0, 1.0, 9.0],
+        [1.0, 1.0, 9.0],
+      ]).subMatrix(rowStart: 0, rowEnd: 3, colStart: 0, colEnd: 2);
+      final qrB = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final qrSol = leastSquares(qrA, qrB);
+      check(qrSol[0]).isCloseTo(1.0, 1e-10);
+      check(qrSol[1]).isCloseTo(2.0, 1e-10);
+
+      check(() => polynomialRegression(xs, ys, degree: -1))
+          .throws<ArgumentError>();
+      check(
+        () => multipleLinearRegression(
+          Matrix<double>.fromRows([
+            [1.0, 2.0],
+          ]),
+          Vector<double>.fromList([1.0]),
+        ),
+      ).throws<ArgumentError>();
     });
   });
 }
