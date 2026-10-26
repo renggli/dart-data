@@ -729,8 +729,7 @@ final class CalculatorApp {
             unawaited(_handleSubmit(snippet, forceNumeric: false));
           }
         } else {
-          final back = snippet.endsWith('(') ? 0 : 0;
-          _inputBar.insertAtCursor(snippet, cursorBack: back);
+          _inputBar.insertAtCursor(snippet);
         }
       },
     );
@@ -742,11 +741,17 @@ final class CalculatorApp {
     _showToast('Session cleared');
   }
 
+  int? _toastTimerId;
+
   void _showToast(String message) {
+    if (_toastTimerId != null) {
+      web.window.clearTimeout(_toastTimerId!);
+    }
     _toastEl.textContent = message;
     _toastEl.classList.remove('hidden');
-    web.window.setTimeout(
+    _toastTimerId = web.window.setTimeout(
       (() {
+        _toastTimerId = null;
         _toastEl.classList.add('hidden');
       }).toJS,
       2400.toJS,

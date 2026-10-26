@@ -6,6 +6,7 @@ import '../../../shared/chart.dart';
 import '../../../shared/webgl_chart.dart';
 import '../../../shared/webgl_surface.dart';
 import '../engine/sampling.dart';
+import '../model/environment.dart';
 import '../model/value.dart';
 import 'persistence.dart';
 
@@ -85,9 +86,11 @@ final class PlotView {
 
     actions
       ..append(readout)
-      ..append(resetBtn)
-      ..append(resampleBtn)
-      ..append(pngBtn);
+      ..append(resetBtn);
+    if (!plot.isParametric && !plot.isOde && onResample != null) {
+      actions.append(resampleBtn);
+    }
+    actions.append(pngBtn);
     header
       ..append(legend)
       ..append(actions);
@@ -109,7 +112,7 @@ final class PlotView {
     void draw() {
       final init = initCanvas(canvas);
       if (init == null) return;
-      final (ctx, cssW, cssH) = init;
+      final (:ctx, width: cssW, height: cssH) = init;
 
       final vp = controller.viewport(cssW, cssH);
       drawGrid(ctx, vp);
@@ -206,8 +209,8 @@ final class PlotView {
                 plot.expressions[0],
                 plot.expressions[1],
                 plot.variable,
-                0.0,
-                6.283185307179586,
+                plot.minT ?? 0.0,
+                plot.maxT ?? 6.283185307179586,
                 parameterValues: paramValues,
                 steps: 240,
               );
@@ -219,6 +222,7 @@ final class PlotView {
                 controller.maxX,
                 parameterValues: paramValues,
                 maxPoints: 256,
+                angleMode: plot.isDegrees ? AngleMode.deg : AngleMode.rad,
               );
             }
             draw();
@@ -275,12 +279,15 @@ final class PlotView {
       }).toJS,
     );
 
-    web.window.addEventListener(
-      'resize',
-      ((web.Event _) {
-        if (canvas.isConnected) draw();
-      }).toJS,
-    );
+    late final web.EventListener resizeListener;
+    resizeListener = ((web.Event _) {
+      if (!canvas.isConnected) {
+        web.window.removeEventListener('resize', resizeListener);
+        return;
+      }
+      draw();
+    }).toJS;
+    web.window.addEventListener('resize', resizeListener);
 
     web.window.requestAnimationFrame(
       ((num _) {
@@ -460,12 +467,15 @@ final class PlotView {
       }).toJS,
     );
 
-    web.window.addEventListener(
-      'resize',
-      ((web.Event _) {
-        if (canvas.isConnected) draw();
-      }).toJS,
-    );
+    late final web.EventListener resizeListener;
+    resizeListener = ((web.Event _) {
+      if (!canvas.isConnected) {
+        web.window.removeEventListener('resize', resizeListener);
+        return;
+      }
+      draw();
+    }).toJS;
+    web.window.addEventListener('resize', resizeListener);
 
     web.window.requestAnimationFrame(
       ((num _) {

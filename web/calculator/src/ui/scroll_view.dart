@@ -223,7 +223,15 @@ final class ScrollWorksheetView {
       cell.value,
       digits: digits,
       onPlotResample: (minX, maxX) {
-        if (cell.value case PlotValue(:final expressions, :final variable)) {
+        if (cell.value
+            case PlotValue(
+              :final expressions,
+              :final variable,
+              :final isParametric,
+              :final isOde,
+              :final is3d,
+            )
+            when !isParametric && !isOde && !is3d) {
           final exprArg = expressions.length == 1
               ? expressions.first.toString()
               : '[${expressions.map((e) => e.toString()).join(', ')}]';
