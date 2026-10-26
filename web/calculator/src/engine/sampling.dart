@@ -38,10 +38,10 @@ PlotValue buildPlotValue(
   final allFiniteY = <double>[];
 
   for (final expr in expressions) {
-    final substituted = _substituteParams(expr, substMap);
-    final prepared = angleMode == AngleMode.deg
-        ? _convertTrigArgToDegrees(substituted, variable)
-        : substituted;
+    final degAdjusted = angleMode == AngleMode.deg
+        ? _convertTrigArgToDegrees(expr)
+        : expr;
+    final prepared = _substituteParams(degAdjusted, substMap);
     final hasImaginary = _containsComplexConst(prepared);
 
     if (hasImaginary) {
@@ -159,14 +159,14 @@ PlotValue buildParametricPlotValue(
     for (final p in parameters) p: RealNumber(parameterValues?[p] ?? 1.0),
   };
 
-  final subX = _substituteParams(xExpr, substMap);
-  final subY = _substituteParams(yExpr, substMap);
-  final prepX = angleMode == AngleMode.deg
-      ? _convertTrigArgToDegrees(subX, variable)
-      : subX;
-  final prepY = angleMode == AngleMode.deg
-      ? _convertTrigArgToDegrees(subY, variable)
-      : subY;
+  final degX = angleMode == AngleMode.deg
+      ? _convertTrigArgToDegrees(xExpr)
+      : xExpr;
+  final degY = angleMode == AngleMode.deg
+      ? _convertTrigArgToDegrees(yExpr)
+      : yExpr;
+  final prepX = _substituteParams(degX, substMap);
+  final prepY = _substituteParams(degY, substMap);
 
   final fnX = prepX.toFunction1D(variable);
   final fnY = prepY.toFunction1D(variable);
@@ -461,15 +461,20 @@ Expr _substituteParams(Expr expr, Map<String, Expr> substMap) {
   return cur;
 }
 
-Expr _convertTrigArgToDegrees(Expr expr, String variable) {
+Expr _convertTrigArgToDegrees(Expr expr) {
   final degFactor = Constant.pi / IntegerNumber.of(180);
-  final mapped = expr.mapChildren(
-    (child) => _convertTrigArgToDegrees(child, variable),
-  );
+  final radToDeg = IntegerNumber.of(180) / Constant.pi;
+  final mapped = expr.mapChildren(_convertTrigArgToDegrees);
+  if (expr.freeVariables.isEmpty) {
+    return mapped;
+  }
   return switch (mapped) {
     Sin(:final expr) => Sin(expr * degFactor),
     Cos(:final expr) => Cos(expr * degFactor),
     Tan(:final expr) => Tan(expr * degFactor),
+    Asin(:final expr) => Asin(expr) * radToDeg,
+    Acos(:final expr) => Acos(expr) * radToDeg,
+    Atan(:final expr) => Atan(expr) * radToDeg,
     _ => mapped,
   };
 }

@@ -135,7 +135,9 @@ void main() {
       check(respawned.environment.getVariable('a')?.toCanonicalText())
           .equals('9');
     });
+  });
 
+  group('WorkerDispatcher undo and redo', () {
     test('supports unified whole-session undo and redo across Scroll and RPN operations', () {
       final dispatcher = WorkerDispatcher();
       check(dispatcher.canUndo).isFalse();

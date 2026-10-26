@@ -158,8 +158,6 @@ class CalcGrammarDefinition extends GrammarDefinition<CalcStatement> {
             .optional(),
       ).map2((name, args) {
         if (args != null) return CallNode(name, args);
-        final stdConst = ExprSyntax.standardConstants[name];
-        if (stdConst != null) return ExprLeafNode(stdConst);
         return SymbolNode(name);
       });
 

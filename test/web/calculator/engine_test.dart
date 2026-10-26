@@ -453,44 +453,65 @@ void main() {
       check(eval.session.activeCells.last.input).equals('pi');
     });
 
-    test(
-      'simultaneous user function substitution, approx digits, and deg mode',
-      () {
-        final env = Environment();
-        final session = Session();
-        final eval = CalcEvaluator(environment: env, session: session);
+    test('simultaneous user function substitution, approx digits, and deg mode', () {
+      final env = Environment();
+      final session = Session();
+      final eval = CalcEvaluator(environment: env, session: session);
 
-        // Simultaneous parameter substitution without variable capture
-        eval.evaluateScroll('f(x, y) := x + 2 * y');
-        final swapped = eval.evaluateScroll('f(y, x)');
-        check(swapped.value.toCanonicalText()).equals('2 * x + y');
+      // Simultaneous parameter substitution without variable capture
+      eval.evaluateScroll('f(x, y) := x + 2 * y');
+      final swapped = eval.evaluateScroll('f(y, x)');
+      check(swapped.value.toCanonicalText()).equals('2 * x + y');
 
-        // approx(expr, digits)
-        final approx4 = eval.evaluateScroll('approx(pi, 4)');
-        check(approx4.value.toCanonicalText()).equals('3.142');
+      // approx(expr, digits)
+      final approx4 = eval.evaluateScroll('approx(pi, 4)');
+      check(approx4.value.toCanonicalText()).equals('3.142');
 
-        // AngleMode.deg on sec/csc/cot and inverse trig
-        env.settings = env.settings.copyWith(angleMode: AngleMode.deg);
-        check(eval.evaluateScroll('sec(60)').value.toCanonicalText())
-            .equals('2');
-        check(eval.evaluateScroll('asin(1 / 2)').value.toCanonicalText())
-            .equals('30');
-        env.settings = env.settings.copyWith(angleMode: AngleMode.rad);
+      // AngleMode.deg on sec/csc/cot and inverse trig
+      env.settings = env.settings.copyWith(angleMode: AngleMode.deg);
+      check(eval.evaluateScroll('sec(60)').value.toCanonicalText()).equals('2');
+      check(eval.evaluateScroll('asin(1 / 2)').value.toCanonicalText())
+          .equals('30');
+      env.settings = env.settings.copyWith(angleMode: AngleMode.rad);
 
-        // Assumptions propagation in Vector/Matrix simplification
-        env.settings = env.settings.copyWith(domain: VariableDomain.positive);
-        check(eval.evaluateScroll('[sqrt(x^2)]').value.toCanonicalText())
-            .equals('[x]');
-        env.settings = env.settings.copyWith(domain: VariableDomain.real);
+      // Assumptions propagation in Vector/Matrix simplification
+      env.settings = env.settings.copyWith(domain: VariableDomain.positive);
+      check(eval.evaluateScroll('[sqrt(x^2)]').value.toCanonicalText())
+          .equals('[x]');
+      env.settings = env.settings.copyWith(domain: VariableDomain.real);
 
-        // RPN ComplexDisplayMode.polar parity
-        env.settings = env.settings.copyWith(
-          complexDisplay: ComplexDisplayMode.polar,
-        );
-        final rpn = RpnInterpreter(stack: RpnStack(), evaluator: eval);
-        check(rpn.executeLine('1 i +')).isNull();
-        check(rpn.stack.level(1).value.toCanonicalText()).contains('exp(');
-      },
-    );
+      // RPN ComplexDisplayMode.polar parity
+      env.settings = env.settings.copyWith(
+        complexDisplay: ComplexDisplayMode.polar,
+      );
+      final rpn = RpnInterpreter(stack: RpnStack(), evaluator: eval);
+      check(rpn.executeLine('1 i +')).isNull();
+      check(rpn.stack.level(1).value.toCanonicalText()).contains('exp(');
+      env.settings = env.settings.copyWith(
+        complexDisplay: ComplexDisplayMode.rect,
+      );
+
+      // Bound parameter and dummy variable shadowing of i, e, pi
+      eval.evaluateScroll('sq(i) := i^2');
+      check(eval.evaluateScroll('sq(5)').value.toCanonicalText()).equals('25');
+      check(eval.evaluateScroll('sum(i, i, 1, 10)').value.toCanonicalText())
+          .equals('55');
+      check(eval.evaluateScroll('diff(e^2, e)').value.toCanonicalText())
+          .equals('2 * e');
+
+      // AngleMode.deg plotting does not double-scale constant trig subexpressions
+      env.settings = env.settings.copyWith(angleMode: AngleMode.deg);
+      final degPlot =
+          eval.evaluateScroll('plot(sin(x) + sin(30), x, 0, 90)').value
+              as PlotValue;
+      final seg = degPlot.curves.first.segments.first;
+      // At x = 0, sin(0) + sin(30°) = 0.5; at x = 90, sin(90°) + sin(30°) = 1.5
+      check(seg.y.first).isCloseTo(0.5, 1e-6);
+      check(seg.y.last).isCloseTo(1.5, 1e-6);
+
+      final asinPlot =
+          eval.evaluateScroll('plot(asin(x), x, 0, 1)').value as PlotValue;
+      check(asinPlot.curves.first.segments.first.y.last).isCloseTo(90.0, 1e-4);
+    });
   });
 }

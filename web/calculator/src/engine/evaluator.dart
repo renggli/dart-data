@@ -250,6 +250,10 @@ final class CalcEvaluator {
         if (boundParams.contains(name)) {
           return ExprValue(Variable(name));
         }
+        final stdConst = ExprSyntax.standardConstants[name];
+        if (stdConst != null) {
+          return ExprValue(stdConst);
+        }
         referencedSymbols?.add(name);
         final bound = environment.getVariable(name);
         if (bound != null) return bound;
@@ -394,12 +398,26 @@ final class CalcEvaluator {
         }
         evaluatedArgs.add(ExprValue(Equal(Variable(varName), rhsVal.expr)));
       } else {
+        var effectiveBound = boundParams;
+        if (cmd != null) {
+          for (var j = i + 1; j < rawArgs.length; j++) {
+            if (cmd.paramKindAt(j) == ParamKind.symbol &&
+                (j >= cmd.paramSpecs.length ||
+                    cmd.paramSpecs[j].name != '[dir]')) {
+              final symArg = rawArgs[j];
+              if (symArg is SymbolNode &&
+                  environment.getVariable(symArg.name) is! VectorValue) {
+                effectiveBound = {...effectiveBound, symArg.name};
+              }
+            }
+          }
+        }
         evaluatedArgs.add(
           evalNode(
             argNode,
             referencedResults: referencedResults,
             referencedSymbols: referencedSymbols,
-            boundParams: boundParams,
+            boundParams: effectiveBound,
             beforeCellId: beforeCellId,
           ),
         );

@@ -213,6 +213,7 @@ final class PlotView {
                 plot.maxT ?? 6.283185307179586,
                 parameterValues: paramValues,
                 steps: 240,
+                angleMode: plot.isDegrees ? AngleMode.deg : AngleMode.rad,
               );
             } else {
               plot = buildPlotValue(

@@ -349,7 +349,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   4. Add unit tests verifying domain-dependent behavior (e.g. `Sqrt(x^2)` under `Assumptions.positive`, real/positive filtering in `solveEquations`).
 - **Verification**: `dart test test/symbolic/ test/web/calculator/`
 
-### [ ] TASK-4.4: Fix Web Calculator `AngleMode.deg` Plotting Bugs, Bound Parameter `i`/`e`/`pi` Shadowing, Window Listener Leaks, and `sw.js` Network-First Navigation
+### [x] TASK-4.4: Fix Web Calculator `AngleMode.deg` Plotting Bugs, Bound Parameter `i`/`e`/`pi` Shadowing, Window Listener Leaks, and `sw.js` Network-First Navigation
 - **Files**:
   - `web/calculator/src/engine/sampling.dart` (lines 45–55, 160–170, 464–475)
   - `web/calculator/src/ui/plot_view.dart` (lines 208–218)
