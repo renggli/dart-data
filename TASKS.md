@@ -22,7 +22,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
 
 ## Phase 1: Immediate Regressions & Broken Test Suite (`8052bea..HEAD`)
 
-### [ ] TASK-1.1: Fix `factorExpr` on Unsimplified Constant Products/Sums & Restore `test/web_examples_test.dart`
+### [x] TASK-1.1: Fix `factorExpr` on Unsimplified Constant Products/Sums & Restore `test/web_examples_test.dart`
 - **Files**:
   - `lib/src/symbolic/algebra/factor.dart` (lines 36–101)
   - `test/symbolic/algebra/factor_test.dart`

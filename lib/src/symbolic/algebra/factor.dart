@@ -25,7 +25,7 @@ extension FactorExtension on Expr {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final expr = x * x - const IntegerNumber.from(5) * x + const IntegerNumber.from(6);
+  /// final expr = x * x - const IntegerNumber.of(5) * x + const IntegerNumber.of(6);
   /// print(expr.factor()); // (-3 + x) * (-2 + x)
   /// ```
   Expr factor({Assumptions assumptions = Assumptions.none}) =>
@@ -35,16 +35,7 @@ extension FactorExtension on Expr {
 /// Recursively factors [expr] into irreducible products and groups like powers.
 Expr factorExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   // 1. Structural base cases
-  if (expr is IntegerNumber) return _factorInteger(expr.value);
-  if (expr is FractionNumber) {
-    final numFact = _factorInteger(expr.numerator);
-    final denFact = _factorPositiveIntegerFactors(expr.denominator);
-    return Mul([
-      if (numFact != IntegerNumber.one || denFact.isEmpty) numFact,
-      for (final (:prime, :exponent) in denFact)
-        Pow(IntegerNumber(prime), IntegerNumber.of(-exponent)),
-    ]);
-  }
+  if (expr is RationalNumber) return _factorRational(expr);
   if (expr is Number || expr is Constant || expr is Variable) return expr;
 
   // 2. Pure power: factor base
@@ -53,17 +44,19 @@ Expr factorExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     exponent: RationalNumber(asInt: final intExp?),
   )) {
     if (intExp > 0) {
-      return distributePower(
+      final res = distributePower(
         factorExpr(base, assumptions: assumptions),
         intExp,
       );
+      return res is RationalNumber ? _factorRational(res) : res;
     }
     if (intExp < 0) {
       final den = distributePower(
         factorExpr(base, assumptions: assumptions),
         -intExp,
       );
-      return cancelFactoredFraction(IntegerNumber.one, den);
+      final res = cancelFactoredFraction(IntegerNumber.one, den);
+      return res is RationalNumber ? _factorRational(res) : res;
     }
   }
 
@@ -84,18 +77,22 @@ Expr factorExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
         numFactored.add(factorExpr(factor, assumptions: assumptions));
       }
     }
-    if (denFactored.isNotEmpty) {
-      final num = numFactored.isEmpty
-          ? IntegerNumber.one
-          : combineFactoredProducts(numFactored);
-      final den = combineFactoredProducts(denFactored);
-      return cancelFactoredFraction(num, den);
-    }
-    return combineFactoredProducts(numFactored);
+    final combined = denFactored.isNotEmpty
+        ? cancelFactoredFraction(
+            numFactored.isEmpty
+                ? IntegerNumber.one
+                : combineFactoredProducts(numFactored),
+            combineFactoredProducts(denFactored),
+          )
+        : combineFactoredProducts(numFactored);
+    return combined is RationalNumber ? _factorRational(combined) : combined;
   }
 
   // 4. Expand additive sums into canonical polynomial form
   final expanded = expr.expand().simplify(assumptions: assumptions);
+  if (expanded is RationalNumber) {
+    return _factorRational(expanded);
+  }
   if (expanded is Number || expanded is Constant || expanded is Variable) {
     return expanded;
   }
@@ -172,6 +169,20 @@ Expr factorExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
 
   return expr.simplify(assumptions: assumptions);
+}
+
+Expr _factorRational(RationalNumber expr) {
+  if (expr is IntegerNumber) return _factorInteger(expr.value);
+  if (expr is FractionNumber) {
+    final numFact = _factorInteger(expr.numerator);
+    final denFact = _factorPositiveIntegerFactors(expr.denominator);
+    return Mul([
+      if (numFact != IntegerNumber.one || denFact.isEmpty) numFact,
+      for (final (:prime, :exponent) in denFact)
+        Pow(IntegerNumber(prime), IntegerNumber.of(-exponent)),
+    ]);
+  }
+  return expr;
 }
 
 Expr _factorInteger(Integer n) {

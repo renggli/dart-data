@@ -79,6 +79,14 @@ void main() {
         final fRat = RationalNumber(12, 25).factor();
         check(fRat.toString()).equals('2 ^ 2 * 3 / 5 ^ 2');
         check(fRat.simplify()).equals(RationalNumber(12, 25));
+
+        final unsimplifiedMul = Mul([IntegerNumber.of(12), IntegerNumber.of(2)])
+            .factor();
+        check(unsimplifiedMul.toString()).equals('2 ^ 3 * 3');
+
+        final unsimplifiedAdd = Add([IntegerNumber.of(20), IntegerNumber.of(4)])
+            .factor();
+        check(unsimplifiedAdd.toString()).equals('2 ^ 3 * 3');
       },
     );
   });
