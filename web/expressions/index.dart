@@ -1006,7 +1006,7 @@ void updateAll() {
     d2fComplexCompiled = null;
   }
   try {
-    d3fComplexCompiled = cachedD3?.toComplexFunction1D('x');
+    d3fComplexCompiled = plotD3?.toComplexFunction1D('x');
   } catch (_) {
     d3fComplexCompiled = null;
   }
@@ -1716,7 +1716,7 @@ void detectRootsAndExtrema() {
 }
 
 /// Dynamic bounds estimation for graphing X and Y windows.
-(double, double) estimateYBounds(
+({double minY, double maxY}) estimateYBounds(
   double Function(double) fnReal, [
   double Function(double)? fnImag,
 ]) {
@@ -1753,7 +1753,7 @@ void detectRootsAndExtrema() {
   }
 
   if (!hasSamples) {
-    return (-5.0, 5.0);
+    return (minY: -5.0, maxY: 5.0);
   }
 
   final range = maxY - minY;
@@ -1768,7 +1768,7 @@ void detectRootsAndExtrema() {
   minY = math.max(-100.0, minY);
   maxY = math.min(100.0, maxY);
 
-  return (minY, maxY);
+  return (minY: minY, maxY: maxY);
 }
 
 String _cached3dKey = '';
@@ -1853,7 +1853,7 @@ void drawCharts() {
 
   final init = initCanvas(plotCanvas);
   if (init == null) return;
-  final (ctx, width, height) = init;
+  final (:ctx, :width, :height) = init;
 
   final realFn =
       fnCompiled ??
@@ -1927,7 +1927,7 @@ void drawCharts() {
   if (realFn == null) return;
 
   if (!chartController.hasUserPannedOrZoomed) {
-    final (autoMinY, autoMaxY) = estimateYBounds(realFn, imagFn);
+    final (minY: autoMinY, maxY: autoMaxY) = estimateYBounds(realFn, imagFn);
     chartController.setBounds(
       minX: minX,
       maxX: maxX,

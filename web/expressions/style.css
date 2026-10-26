@@ -139,10 +139,6 @@
   opacity: 0.85;
 }
 
-.layer-checkbox {
-  display: none;
-}
-
 /* Subtle Numeric Approximation Icon */
 .numeric-icon {
   display: inline-block;

@@ -426,7 +426,11 @@ void updateUrlHash() {
     );
   }
   final queryString = queryParams.isEmpty ? '' : '?${queryParams.join('&')}';
-  web.window.location.hash = '${Uri.encodeComponent(id)}$queryString';
+  web.window.history.replaceState(
+    null,
+    '',
+    '#${Uri.encodeComponent(id)}$queryString',
+  );
 }
 
 /// Parses the URL hash and loads the saved distribution and parameters safely.
@@ -698,7 +702,7 @@ void renderCanvas(
 }) {
   final setup = initCanvas(canvas);
   if (setup == null) return;
-  final (ctx, width, height) = setup;
+  final (:ctx, :width, :height) = setup;
 
   // Calculate dynamic Y-axis maximum bounds
   const minY = 0.0;

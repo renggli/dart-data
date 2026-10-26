@@ -804,34 +804,6 @@ body {
   border-color: var(--border-hover);
 }
 
-/* Copy Button */
-.copy-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.attr-item .copy-btn {
-  opacity: 0.4;
-}
-
-.attr-item:hover .copy-btn {
-  opacity: 1;
-}
-
-.copy-btn:hover {
-  color: var(--accent-purple);
-  background-color: rgba(168, 85, 247, 0.1);
-}
-
 .copy-icon {
   pointer-events: none;
 }

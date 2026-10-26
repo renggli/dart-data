@@ -398,7 +398,7 @@ String _formatTick(double val) {
 }
 
 /// Sets up a high-DPI crisp canvas backing store. Returns null if dimensions are zero.
-(web.CanvasRenderingContext2D, double, double)? initCanvas(
+({web.CanvasRenderingContext2D ctx, double width, double height})? initCanvas(
   web.HTMLCanvasElement canvas,
 ) {
   final parentRect = canvas.parentElement?.getBoundingClientRect();
@@ -423,7 +423,7 @@ String _formatTick(double val) {
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, width, height);
 
-  return (ctx, width, height);
+  return (ctx: ctx, width: width, height: height);
 }
 
 /// Draws Cartesian grid lines, nice tick labels, and zero axes.
@@ -915,13 +915,14 @@ void drawPointMarker(
   ctx.save();
 
   // Halo
-  ctx.fillStyle = '${color}33'.toJS;
+  ctx.fillStyle = color.toJS;
+  ctx.globalAlpha = 0.2;
   ctx.beginPath();
   ctx.arc(px, py, radius + 3.0, 0.0, 2 * math.pi);
   ctx.fill();
 
   // Core dot
-  ctx.fillStyle = color.toJS;
+  ctx.globalAlpha = 1.0;
   ctx.beginPath();
   ctx.arc(px, py, radius, 0.0, 2 * math.pi);
   ctx.fill();
@@ -960,12 +961,13 @@ void drawCrosshairAndTooltip(
   ctx.stroke();
 
   // 2. Highlight dot
-  ctx.fillStyle = '${color}3b'.toJS;
+  ctx.fillStyle = color.toJS;
+  ctx.globalAlpha = 0.23;
   ctx.beginPath();
   ctx.arc(px, py, 6.0, 0.0, 2 * math.pi);
   ctx.fill();
 
-  ctx.fillStyle = color.toJS;
+  ctx.globalAlpha = 1.0;
   ctx.beginPath();
   ctx.arc(px, py, 3.0, 0.0, 2 * math.pi);
   ctx.fill();
