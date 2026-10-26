@@ -79,5 +79,26 @@ void main() {
       },
       isSupported: Fft.isAvailable,
     );
+
+    accelerationTest('1D and 2D FFT on odd-offset Float64ComplexList views and small powers of 2', () {
+      for (final n in [2, 4, 8]) {
+        final raw = Float64List(2 * n + 1);
+        for (var i = 0; i < n; i++) {
+          raw[1 + 2 * i] = (i + 1).toDouble();
+          raw[1 + 2 * i + 1] = -(i + 1).toDouble();
+        }
+        final oddSlice = Float64List.sublistView(raw, 1, 1 + 2 * n);
+        final buffer = Float64ComplexList.fromData(oddSlice);
+        final orig = Float64List.fromList(oddSlice);
+
+        Fft.fft(buffer: buffer);
+        Fft.fft(buffer: buffer, inverse: true);
+
+        for (var i = 0; i < n; i++) {
+          check(buffer[i].a).isCloseTo(orig[2 * i], 1e-10);
+          check(buffer[i].b).isCloseTo(orig[2 * i + 1], 1e-10);
+        }
+      }
+    }, isSupported: Fft.isAvailable);
   });
 }

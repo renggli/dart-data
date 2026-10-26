@@ -673,6 +673,102 @@ void main() {
         check(okGemvTrans).isTrue();
         check(yTrans[0]).isCloseTo(20.0, 1e-10);
         check(yTrans[1]).isCloseTo(40.0, 1e-10);
+
+        final yNegStride = Float64List.fromList([10.0, 20.0]);
+        final okGemvNeg = Blas.dgemv(
+          m: 2,
+          n: 0,
+          a: Float64List(0),
+          lda: 1,
+          x: Float64List(0),
+          beta: 3.0,
+          y: yNegStride,
+          incY: -1,
+        );
+        check(okGemvNeg).isTrue();
+        check(yNegStride[0]).isCloseTo(30.0, 1e-10);
+        check(yNegStride[1]).isCloseTo(60.0, 1e-10);
+      },
+    );
+
+    accelerationTest('1-vector routines with incX < 0 are no-op / 0.0', () {
+      final x64 = Float64List.fromList([3.0, 4.0]);
+      check(Blas.dnrm2(n: 2, x: x64, incX: -1)).equals(0.0);
+      check(Blas.dscal(n: 2, alpha: 2.0, x: x64, incX: -1)).isTrue();
+      check(x64[0]).equals(3.0);
+      check(x64[1]).equals(4.0);
+
+      final x32 = Float32List.fromList([3.0, 4.0]);
+      check(Blas.snrm2(n: 2, x: x32, incX: -1)).equals(0.0);
+      check(Blas.sscal(n: 2, alpha: 2.0, x: x32, incX: -1)).isTrue();
+      check(x32[0]).equals(3.0);
+      check(x32[1]).equals(4.0);
+    });
+
+    accelerationTest(
+      'alpha == 0.0 short-circuits without NaN contamination',
+      () {
+        final nan64 = Float64List.fromList([
+          double.nan,
+          double.nan,
+          double.nan,
+          double.nan,
+        ]);
+        final y64 = Float64List.fromList([1.0, 2.0]);
+        check(
+          Blas.dgemv(
+            m: 2,
+            n: 2,
+            alpha: 0.0,
+            a: nan64,
+            lda: 2,
+            x: nan64,
+            beta: 2.0,
+            y: y64,
+          ),
+        ).isTrue();
+        check(y64[0]).equals(2.0);
+        check(y64[1]).equals(4.0);
+
+        final c64 = Float64List.fromList([1.0, 2.0, 2.0, 3.0]);
+        check(
+          Blas.dsyrk(
+            n: 2,
+            k: 2,
+            alpha: 0.0,
+            a: nan64,
+            lda: 2,
+            beta: 2.0,
+            c: c64,
+            ldc: 2,
+          ),
+        ).isTrue();
+        check(c64[0]).equals(2.0);
+        check(c64[3]).equals(6.0);
+
+        check(
+          Blas.dsymm(
+            m: 2,
+            n: 2,
+            alpha: 0.0,
+            a: nan64,
+            lda: 2,
+            b: nan64,
+            ldb: 2,
+            beta: 0.0,
+            c: c64,
+            ldc: 2,
+          ),
+        ).isTrue();
+        check(c64[0]).equals(0.0);
+        check(c64[3]).equals(0.0);
+
+        final b64 = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+        check(
+          Blas.dtrmm(m: 2, n: 2, alpha: 0.0, a: nan64, lda: 2, b: b64, ldb: 2),
+        ).isTrue();
+        check(b64[0]).equals(0.0);
+        check(b64[3]).equals(0.0);
       },
     );
 

@@ -28,6 +28,7 @@ abstract final class Lapack {
     if (n < 0) {
       throw ArgumentError.value(n, 'n', 'Matrix size must be non-negative');
     }
+    checkBlasOffset(aOffset, a.length, 'aOffset');
     checkBlasMatrixLeadingDim(lda, 'lda', n);
     checkBlasMatrixBounds(a.length, n, n, aOffset, lda, 'a');
 
@@ -69,6 +70,8 @@ abstract final class Lapack {
         'Number of right-hand sides must be non-negative',
       );
     }
+    checkBlasOffset(aOffset, a.length, 'aOffset');
+    checkBlasOffset(bOffset, b.length, 'bOffset');
     checkBlasMatrixLeadingDim(lda, 'lda', n);
     checkBlasMatrixBounds(a.length, n, n, aOffset, lda, 'a');
     checkBlasMatrixLeadingDim(ldb, 'ldb', nrhs);
@@ -127,6 +130,8 @@ abstract final class Lapack {
         'Number of right-hand sides must be non-negative',
       );
     }
+    checkBlasOffset(aOffset, a.length, 'aOffset');
+    checkBlasOffset(bOffset, b.length, 'bOffset');
     checkBlasMatrixLeadingDim(lda, 'lda', n);
     checkBlasMatrixBounds(a.length, m, n, aOffset, lda, 'a');
     final maxMN = m > n ? m : n;
@@ -182,6 +187,8 @@ abstract final class Lapack {
     if (n < 0) {
       throw ArgumentError.value(n, 'n', 'Matrix size must be non-negative');
     }
+    checkBlasOffset(aOffset, a.length, 'aOffset');
+    checkBlasOffset(wOffset, w.length, 'wOffset');
     checkBlasMatrixLeadingDim(lda, 'lda', n);
     checkBlasMatrixBounds(a.length, n, n, aOffset, lda, 'a');
     checkBlasVectorBounds(w.length, n, wOffset, 1, 'w');
@@ -233,6 +240,8 @@ abstract final class Lapack {
     if (n < 0) {
       throw ArgumentError.value(n, 'n', 'Matrix size must be non-negative');
     }
+    checkBlasOffset(aOffset, a.length, 'aOffset');
+    checkBlasOffset(wOffset, w.length, 'wOffset');
     checkBlasMatrixLeadingDim(lda, 'lda', n);
     checkBlasMatrixBounds(a.length, n, n, aOffset, lda, 'a');
     checkBlasVectorBounds(w.length, n, wOffset, 1, 'w');

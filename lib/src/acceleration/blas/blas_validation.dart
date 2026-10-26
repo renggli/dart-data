@@ -58,9 +58,10 @@ void checkBlasVectorBounds(
   int inc,
   String name,
 ) {
+  checkBlasOffset(offset, bufferLength, name);
   if (n <= 0) return;
   final maxIdx = offset + (n - 1) * inc.abs();
-  if (offset < 0 || maxIdx >= bufferLength) {
+  if (maxIdx >= bufferLength) {
     throw RangeError(
       'Vector $name bounds check failed: indices [$offset, $maxIdx] exceed buffer length $bufferLength',
     );
@@ -88,6 +89,7 @@ void checkBlasMatrixBounds(
   int ld,
   String name,
 ) {
+  checkBlasOffset(offset, bufferLength, name);
   if (rows <= 0 || cols <= 0) return;
   final requiredLength = offset + (rows - 1) * ld + cols;
   if (requiredLength > bufferLength) {

@@ -63,7 +63,11 @@ abstract final class LapackNative {
         aView.address,
         lda,
       );
-      return info == 0;
+      if (info != 0) return false;
+      for (var i = 0; i < n; i++) {
+        if (!(aView[i * lda + i] > 0.0)) return false;
+      }
+      return true;
     }
 
     if (_hasDpotrf) {
@@ -75,7 +79,11 @@ abstract final class LapackNative {
         final info = arena<ffi.Int32>();
 
         _fortranDpotrf(uploPtr, nPtr, aView.address, ldaPtr, info);
-        return info.value == 0;
+        if (info.value != 0) return false;
+        for (var i = 0; i < n; i++) {
+          if (!(aView[i * lda + i] > 0.0)) return false;
+        }
+        return true;
       });
     }
 
@@ -139,7 +147,11 @@ abstract final class LapackNative {
                   bView.address,
                   ldb,
                 );
-          return info == 0;
+          if (info != 0) return false;
+          for (var i = 0; i < n; i++) {
+            if (aPtr[i * lda + i].isNaN) return false;
+          }
+          return true;
         } else {
           final bLen = n * ldb;
           final bPtr = arena<ffi.Double>(bLen);
@@ -170,6 +182,9 @@ abstract final class LapackNative {
                   ldb,
                 );
           if (info == 0) {
+            for (var i = 0; i < n; i++) {
+              if (aPtr[i * lda + i].isNaN) return false;
+            }
             for (var i = 0; i < n; i++) {
               for (var j = 0; j < nrhs; j++) {
                 b[bOffset + i * ldb + j] = bPtr[i * ldb + j];
@@ -218,6 +233,9 @@ abstract final class LapackNative {
 
         if (info.value == 0) {
           for (var i = 0; i < n; i++) {
+            if (aFortran[i * n + i].isNaN) return false;
+          }
+          for (var i = 0; i < n; i++) {
             for (var j = 0; j < nrhs; j++) {
               b[bOffset + i * ldb + j] = bFortran[j * n + i];
             }
@@ -248,13 +266,14 @@ abstract final class LapackNative {
     final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
 
     if (_hasLapackeDgels) {
+      final aCopy = Float64List.fromList(aView);
       final info = _lapackeDgels(
         cblasRowMajor,
         78, // 'N'
         m,
         n,
         nrhs,
-        aView.address,
+        aCopy.address,
         lda,
         bView.address,
         ldb,
@@ -264,12 +283,12 @@ abstract final class LapackNative {
         final maxMN = m > n ? m : n;
         var maxDiag = 0.0;
         for (var k = 0; k < minMN; k++) {
-          final d = aView[k * lda + k].abs();
+          final d = aCopy[k * lda + k].abs();
           if (d > maxDiag) maxDiag = d;
         }
         final tol = math.max(1e-12, maxMN * 2.220446049250313e-16 * maxDiag);
         for (var k = 0; k < minMN; k++) {
-          if (aView[k * lda + k].abs() < tol) return false;
+          if (!(aCopy[k * lda + k].abs() >= tol)) return false;
         }
         return true;
       }
@@ -347,7 +366,7 @@ abstract final class LapackNative {
           }
           final tol = math.max(1e-12, maxMN * 2.220446049250313e-16 * maxDiag);
           for (var k = 0; k < minMN; k++) {
-            if (fA[k * m + k].abs() < tol) return false;
+            if (!(fA[k * m + k].abs() >= tol)) return false;
           }
           for (var i = 0; i < maxMN; i++) {
             for (var j = 0; j < nrhs; j++) {

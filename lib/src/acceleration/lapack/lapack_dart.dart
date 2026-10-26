@@ -23,11 +23,11 @@ abstract final class LapackDart {
         }
         if (i == j) {
           final val = a[aOffset + i * lda + i] - sum;
-          if (val <= 0.0) return false;
+          if (!(val > 0.0)) return false;
           lower[i * n + j] = math.sqrt(val);
         } else {
           final denom = lower[j * n + j];
-          if (denom == 0.0) return false;
+          if (!(denom > 0.0)) return false;
           final aij = uplo == cblasUpper
               ? a[aOffset + j * lda + i]
               : a[aOffset + i * lda + j];
@@ -92,7 +92,7 @@ abstract final class LapackDart {
           maxRow = row;
         }
       }
-      if (maxVal == 0.0) return false;
+      if (!(maxVal > 0.0)) return false;
 
       if (maxRow != i) {
         for (var k = 0; k < n; k++) {
@@ -175,7 +175,7 @@ abstract final class LapackDart {
           if (absVal > scale) scale = absVal;
         }
 
-        if (scale == 0.0) {
+        if (!(scale > 0.0)) {
           return false;
         }
 
@@ -231,7 +231,7 @@ abstract final class LapackDart {
       }
       final tol = math.max(1e-12, m * 2.220446049250313e-16 * maxDiag);
       for (var k = 0; k < n; k++) {
-        if (qr[k * n + k].abs() < tol) return false;
+        if (!(qr[k * n + k].abs() >= tol)) return false;
       }
 
       // Back-substitution: R[0:n, 0:n] * X = bx[0:n, :]
@@ -268,7 +268,7 @@ abstract final class LapackDart {
           if (absVal > scale) scale = absVal;
         }
 
-        if (scale == 0.0) {
+        if (!(scale > 0.0)) {
           return false;
         }
 
@@ -310,7 +310,7 @@ abstract final class LapackDart {
       }
       final tol = math.max(1e-12, n * 2.220446049250313e-16 * maxDiag);
       for (var k = 0; k < m; k++) {
-        if (lq[k * n + k].abs() < tol) return false;
+        if (!(lq[k * n + k].abs() >= tol)) return false;
       }
 
       // Forward-substitution: L[0:m, 0:m] * Y = B[0:m, :]
@@ -479,7 +479,9 @@ abstract final class LapackDart {
       }
 
       if (mIdx > lIdx) {
+        var iter = 0;
         do {
+          if (++iter > 30) return false;
           var gVal = d[lIdx];
           var pVal = (d[lIdx + 1] - gVal) / (2.0 * e[lIdx]);
           var rVal = _hypot(pVal, 1.0);

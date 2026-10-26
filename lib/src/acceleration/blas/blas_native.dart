@@ -81,7 +81,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
-    if (n <= 0) return 0.0;
+    if (n <= 0 || incX <= 0) return 0.0;
     if (!_hasDnrm2) return null;
     final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
     return _cblasDnrm2(n, xView.address, incX);
@@ -93,7 +93,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
-    if (n <= 0) return 0.0;
+    if (n <= 0 || incX <= 0) return 0.0;
     if (!_hasSnrm2) return null;
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
     return _cblasSnrm2(n, xView.address, incX);
@@ -142,7 +142,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
-    if (n <= 0) return true;
+    if (n <= 0 || incX <= 0) return true;
     if (!_hasDscal) return false;
     final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
     _cblasDscal(n, alpha, xView.address, incX);
@@ -156,7 +156,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
-    if (n <= 0) return true;
+    if (n <= 0 || incX <= 0) return true;
     if (!_hasSscal) return false;
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
     _cblasSscal(n, alpha, xView.address, incX);
@@ -184,13 +184,14 @@ abstract final class BlasNative {
     final lenY = (transA == cblasTrans || transA == cblasConjTrans) ? n : m;
     if (m <= 0 || n <= 0) {
       if (lenY > 0) {
+        final startY = yOffset + (incY < 0 ? (1 - lenY) * incY : 0);
         if (beta == 0.0) {
           for (var i = 0; i < lenY; i++) {
-            y[yOffset + i * incY] = 0.0;
+            y[startY + i * incY] = 0.0;
           }
         } else if (beta != 1.0) {
           for (var i = 0; i < lenY; i++) {
-            y[yOffset + i * incY] *= beta;
+            y[startY + i * incY] *= beta;
           }
         }
       }
@@ -236,13 +237,14 @@ abstract final class BlasNative {
     final lenY = (transA == cblasTrans || transA == cblasConjTrans) ? n : m;
     if (m <= 0 || n <= 0) {
       if (lenY > 0) {
+        final startY = yOffset + (incY < 0 ? (1 - lenY) * incY : 0);
         if (beta == 0.0) {
           for (var i = 0; i < lenY; i++) {
-            y[yOffset + i * incY] = 0.0;
+            y[startY + i * incY] = 0.0;
           }
         } else if (beta != 1.0) {
           for (var i = 0; i < lenY; i++) {
-            y[yOffset + i * incY] *= beta;
+            y[startY + i * incY] *= beta;
           }
         }
       }

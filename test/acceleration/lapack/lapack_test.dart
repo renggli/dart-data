@@ -135,12 +135,38 @@ void main() {
       check(Lapack.ssyev(n: 0, a: empty32, lda: 1, w: empty32)).isTrue();
     });
 
+    accelerationTest('dgels does not mutate input matrix a', () {
+      final a = Float64List.fromList([1.0, 1.0, 1.0, 2.0, 1.0, 3.0]);
+      final aExpected = Float64List.fromList(a);
+      final b = Float64List.fromList([1.0, 2.0, 3.0]);
+      final ok = Lapack.dgels(m: 3, n: 2, nrhs: 1, a: a, lda: 2, b: b, ldb: 1);
+      check(ok).isTrue();
+      check(a).deepEquals(aExpected);
+    });
+
+    accelerationTest('Lapack returns false on NaN inputs', () {
+      final nanMat1 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
+      check(Lapack.dpotrf(uplo: cblasUpper, n: 2, a: nanMat1, lda: 2))
+          .isFalse();
+      final nanMat2 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
+      final b1 = Float64List.fromList([1.0, 1.0]);
+      check(Lapack.dgesv(n: 2, nrhs: 1, a: nanMat2, lda: 2, b: b1, ldb: 1))
+          .isFalse();
+      final nanMat3 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
+      final b2 = Float64List.fromList([1.0, 1.0]);
+      check(
+        Lapack.dgels(m: 2, n: 2, nrhs: 1, a: nanMat3, lda: 2, b: b2, ldb: 1),
+      ).isFalse();
+    });
+
     test('Lapack routines validate bounds and argument constraints', () {
       final a = Float64List(4);
       final w = Float64List(2);
       check(() => Lapack.dpotrf(uplo: 999, n: 2, a: a, lda: 2))
           .throws<ArgumentError>();
       check(() => Lapack.dpotrf(n: 2, a: Float64List(2), lda: 2))
+          .throws<RangeError>();
+      check(() => Lapack.dpotrf(n: 0, a: a, aOffset: -1, lda: 1))
           .throws<RangeError>();
       check(
         () => Lapack.dgesv(
@@ -155,6 +181,8 @@ void main() {
       check(() => Lapack.dsyev(jobz: 'X', n: 2, a: a, lda: 2, w: w))
           .throws<ArgumentError>();
       check(() => Lapack.dsyev(n: 2, a: a, lda: 2, w: Float64List(1)))
+          .throws<RangeError>();
+      check(() => Lapack.dsyev(n: 0, a: a, lda: 1, w: w, wOffset: -1))
           .throws<RangeError>();
     });
   });

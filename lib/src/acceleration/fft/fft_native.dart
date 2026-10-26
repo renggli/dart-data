@@ -4,7 +4,6 @@ import 'dart:typed_data';
 
 import '../../type/types/complex.dart';
 import '../utils/library_loader_ffi.dart';
-import 'fft_dart.dart';
 
 enum _FftBackend { none, vdsp, fftw }
 
@@ -14,6 +13,7 @@ const int _vDspDftInterleavedComplextoComplex = 0;
 
 const int _fftwForward = -1;
 const int _fftwBackward = 1;
+const int _fftwUnaligned = 1 << 1;
 const int _fftwEstimate = 1 << 6;
 
 /// Native FFT bindings via dart:ffi supporting Apple vDSP (macOS/iOS) and
@@ -111,18 +111,14 @@ abstract final class FftNative {
   }) {
     final n = 1 << log2n;
     if (buffer.length < n) return false;
-    if (n < 8) {
-      FftDart.fft(buffer: buffer, inverse: inverse);
-      return true;
-    }
+    if (n <= 1) return true;
 
     final setup = _getVdspSetup(n, inverse);
     if (setup == null || setup == ffi.nullptr) {
       if (_hasFftw) {
         return _fft1dFftw(buffer: buffer, log2n: log2n, inverse: inverse);
       }
-      FftDart.fft(buffer: buffer, inverse: inverse);
-      return true;
+      return false;
     }
 
     final data = buffer.data;
@@ -149,7 +145,10 @@ abstract final class FftNative {
     final total = rows * cols;
     if (buffer.length < total) return false;
 
-    if (rows < 8 || cols < 8 || rows > 4096 || cols > 4096) {
+    final setupCols = cols > 1 ? _getVdspSetup(cols, inverse) : ffi.nullptr;
+    final setupRows = rows > 1 ? _getVdspSetup(rows, inverse) : ffi.nullptr;
+    if ((cols > 1 && (setupCols == null || setupCols == ffi.nullptr)) ||
+        (rows > 1 && (setupRows == null || setupRows == ffi.nullptr))) {
       if (_hasFftw) {
         return _fft2dFftw(
           buffer: buffer,
@@ -158,70 +157,54 @@ abstract final class FftNative {
           inverse: inverse,
         );
       }
-      FftDart.fft2(buffer: buffer, rows: rows, cols: cols, inverse: inverse);
-      return true;
-    }
-
-    final setupCols = _getVdspSetup(cols, inverse);
-    final setupRows = _getVdspSetup(rows, inverse);
-    if (setupCols == null ||
-        setupCols == ffi.nullptr ||
-        setupRows == null ||
-        setupRows == ffi.nullptr) {
-      if (_hasFftw) {
-        return _fft2dFftw(
-          buffer: buffer,
-          log2rows: log2rows,
-          log2cols: log2cols,
-          inverse: inverse,
-        );
-      }
-      FftDart.fft2(buffer: buffer, rows: rows, cols: cols, inverse: inverse);
-      return true;
+      return false;
     }
 
     final data = buffer.data;
-
     final rowStride = cols << 1;
 
     // 1. In-place 1D row transforms directly on contiguous row slices
-    var rowOffset = 0;
-    for (var r = 0; r < rows; r++, rowOffset += rowStride) {
-      final rowSlice = Float64List.sublistView(
-        data,
-        rowOffset,
-        rowOffset + rowStride,
-      );
-      _vdspDftInterleavedExecuteD(
-        setupCols,
-        rowSlice.address,
-        rowSlice.address,
-      );
+    if (cols > 1) {
+      var rowOffset = 0;
+      for (var r = 0; r < rows; r++, rowOffset += rowStride) {
+        final rowSlice = Float64List.sublistView(
+          data,
+          rowOffset,
+          rowOffset + rowStride,
+        );
+        _vdspDftInterleavedExecuteD(
+          setupCols!,
+          rowSlice.address,
+          rowSlice.address,
+        );
+      }
     }
 
     // 2. In-place 1D column transforms with pointer stepping
-    final colBuffer = Float64List(rows << 1);
-    for (var c = 0; c < cols; c++) {
-      var srcIdx = c << 1;
-      var colIdx = 0;
-      for (var r = 0; r < rows; r++) {
-        colBuffer[colIdx] = data[srcIdx];
-        colBuffer[colIdx + 1] = data[srcIdx + 1];
-        colIdx += 2;
-        srcIdx += rowStride;
-      }
-      _vdspDftInterleavedExecuteD(
-        setupRows,
-        colBuffer.address,
-        colBuffer.address,
-      );
-      var dstIdx = c << 1;
-      colIdx = 0;
-      for (var r = 0; r < rows; r++) {
-        data[dstIdx] = colBuffer[colIdx];
-        data[dstIdx + 1] = colBuffer[colIdx + 1];
-        colIdx += 2;
-        dstIdx += rowStride;
+    if (rows > 1) {
+      final colBuffer = Float64List(rows << 1);
+      for (var c = 0; c < cols; c++) {
+        var srcIdx = c << 1;
+        var colIdx = 0;
+        for (var r = 0; r < rows; r++) {
+          colBuffer[colIdx] = data[srcIdx];
+          colBuffer[colIdx + 1] = data[srcIdx + 1];
+          colIdx += 2;
+          srcIdx += rowStride;
+        }
+        _vdspDftInterleavedExecuteD(
+          setupRows!,
+          colBuffer.address,
+          colBuffer.address,
+        );
+        var dstIdx = c << 1;
+        colIdx = 0;
+        for (var r = 0; r < rows; r++) {
+          data[dstIdx] = colBuffer[colIdx];
+          data[dstIdx + 1] = colBuffer[colIdx + 1];
+          colIdx += 2;
+          dstIdx += rowStride;
+        }
       }
     }
 
@@ -247,7 +230,7 @@ abstract final class FftNative {
         ffi.nullptr,
         ffi.nullptr,
         inverse ? _fftwBackward : _fftwForward,
-        _fftwEstimate,
+        _fftwEstimate | _fftwUnaligned,
       ),
     );
   }
@@ -268,7 +251,7 @@ abstract final class FftNative {
         ffi.nullptr,
         ffi.nullptr,
         inverse ? _fftwBackward : _fftwForward,
-        _fftwEstimate,
+        _fftwEstimate | _fftwUnaligned,
       ),
     );
   }
@@ -281,11 +264,11 @@ abstract final class FftNative {
     if (!_hasFftw) return false;
     final n = 1 << log2n;
     if (buffer.length < n) return false;
+    if (n <= 1) return true;
 
     final plan = _getFftw1dPlan(n, inverse);
     if (plan == null || plan == ffi.nullptr) {
-      FftDart.fft(buffer: buffer, inverse: inverse);
-      return true;
+      return false;
     }
 
     final data = buffer.data;
@@ -312,11 +295,11 @@ abstract final class FftNative {
     final cols = 1 << log2cols;
     final total = rows * cols;
     if (buffer.length < total) return false;
+    if (total <= 1) return true;
 
     final plan = _getFftw2dPlan(rows, cols, inverse);
     if (plan == null || plan == ffi.nullptr) {
-      FftDart.fft2(buffer: buffer, rows: rows, cols: cols, inverse: inverse);
-      return true;
+      return false;
     }
 
     final data = buffer.data;
