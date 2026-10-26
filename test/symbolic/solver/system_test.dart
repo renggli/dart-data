@@ -83,5 +83,26 @@ void main() {
       ].solve(['x', 'y']);
       check(singular).isEmpty();
     });
+
+    test('filters multivariate system solutions by Assumptions', () {
+      // x^2 + y - 1 = 0, x - y - 1 = 0 -> (1, 0) and (-2, -3)
+      final posSols = [Expr.parse('x^2 + y - 1'), Expr.parse('x - y - 1')]
+          .solve(
+            ['x', 'y'],
+            assumptions: const Assumptions(
+              domains: {'x': VariableDomain.positive},
+            ),
+          );
+      check(posSols.length).equals(1);
+      check(posSols.first['x']).equals(IntegerNumber.one);
+      check(posSols.first['y']).equals(IntegerNumber.zero);
+
+      // Complex roots filtered out under Assumptions.real
+      final realSols = [
+        Expr.parse('x^2 + 1'),
+        Expr.parse('y - 2'),
+      ].solve(['x', 'y'], assumptions: Assumptions.real);
+      check(realSols).isEmpty();
+    });
   });
 }

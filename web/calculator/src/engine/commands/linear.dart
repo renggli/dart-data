@@ -28,7 +28,7 @@ List<Command> buildLinearCommands() => [
     run: (args, ctx) {
       checkCommandArity('det', args, 1, 1);
       final m = expectCommandMatrix(args[0], 'det');
-      return ExprValue(m.determinant());
+      return ExprValue(m.determinant().simplify(assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -52,7 +52,7 @@ List<Command> buildLinearCommands() => [
       if (inv == null) {
         throw StateError('Matrix is singular (determinant is 0).');
       }
-      return MatrixValue(inv);
+      return MatrixValue(inv.simplify(assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -118,7 +118,9 @@ List<Command> buildLinearCommands() => [
       final v = args.length == 2
           ? expectCommandVarName(args[1], 'charpoly')
           : 'x';
-      return ExprValue(m.characteristicPolynomial(v));
+      return ExprValue(
+        m.characteristicPolynomial(v).simplify(assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -160,7 +162,7 @@ List<Command> buildLinearCommands() => [
     run: (args, ctx) {
       checkCommandArity('rref', args, 1, 1);
       final m = expectCommandMatrix(args[0], 'rref');
-      return MatrixValue(m.rowEchelon());
+      return MatrixValue(m.rowEchelon().simplify(assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -181,7 +183,10 @@ List<Command> buildLinearCommands() => [
       checkCommandArity('nullspace', args, 1, 1);
       final m = expectCommandMatrix(args[0], 'nullspace');
       final basis = m.nullSpace();
-      return ListValue([for (final v in basis) VectorValue(v)]);
+      return ListValue([
+        for (final v in basis)
+          VectorValue(v.simplify(assumptions: ctx.assumptions)),
+      ]);
     },
   ),
   Command(
@@ -204,7 +209,7 @@ List<Command> buildLinearCommands() => [
     run: (args, ctx) {
       checkCommandArity('eigenvals', args, 1, 1);
       final m = expectCommandMatrix(args[0], 'eigenvals');
-      final vals = m.eigenvalues();
+      final vals = m.eigenvalues(assumptions: ctx.assumptions);
       return ListValue([for (final e in vals) ExprValue(e)]);
     },
   ),
@@ -225,7 +230,7 @@ List<Command> buildLinearCommands() => [
     run: (args, ctx) {
       checkCommandArity('eigenvects', args, 1, 1);
       final m = expectCommandMatrix(args[0], 'eigenvects');
-      final pairs = m.eigenvectors();
+      final pairs = m.eigenvectors(assumptions: ctx.assumptions);
       return ListValue([
         for (final p in pairs)
           ListValue([
@@ -321,7 +326,9 @@ List<Command> buildLinearCommands() => [
       }
       var sum = IntegerNumber.zero as Expr;
       for (var i = 0; i < u.length; i++) {
-        sum = (sum + u.getUnchecked(i) * v.getUnchecked(i)).simplify();
+        sum = (sum + u.getUnchecked(i) * v.getUnchecked(i)).simplify(
+          assumptions: ctx.assumptions,
+        );
       }
       return ExprValue(sum);
     },
@@ -347,9 +354,15 @@ List<Command> buildLinearCommands() => [
       if (u.length != 3 || v.length != 3) {
         throw ArgumentError('cross product is only defined for 3D vectors.');
       }
-      final c0 = (u[1] * v[2] - u[2] * v[1]).simplify();
-      final c1 = (u[2] * v[0] - u[0] * v[2]).simplify();
-      final c2 = (u[0] * v[1] - u[1] * v[0]).simplify();
+      final c0 = (u[1] * v[2] - u[2] * v[1]).simplify(
+        assumptions: ctx.assumptions,
+      );
+      final c1 = (u[2] * v[0] - u[0] * v[2]).simplify(
+        assumptions: ctx.assumptions,
+      );
+      final c2 = (u[0] * v[1] - u[1] * v[0]).simplify(
+        assumptions: ctx.assumptions,
+      );
       return VectorValue(
         Vector<Expr>.fromList([c0, c1, c2], type: exprDataType),
       );
@@ -375,7 +388,7 @@ List<Command> buildLinearCommands() => [
         var sumSq = IntegerNumber.zero as Expr;
         for (var i = 0; i < vector.length; i++) {
           final item = vector.getUnchecked(i);
-          sumSq = (sumSq + item * item).simplify();
+          sumSq = (sumSq + item * item).simplify(assumptions: ctx.assumptions);
         }
         return ExprValue(
           Pow(
@@ -389,7 +402,9 @@ List<Command> buildLinearCommands() => [
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
             final item = matrix.getUnchecked(r, c);
-            sumSq = (sumSq + item * item).simplify();
+            sumSq = (sumSq + item * item).simplify(
+              assumptions: ctx.assumptions,
+            );
           }
         }
         return ExprValue(

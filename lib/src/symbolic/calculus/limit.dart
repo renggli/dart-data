@@ -49,6 +49,9 @@ Expr computeLimit(
   LimitDirection direction = LimitDirection.both,
   Assumptions assumptions = Assumptions.none,
 }) {
+  if (!assumptions.isEmpty) {
+    expr = expr.simplify(assumptions: assumptions);
+  }
   if (!expr.dependsOn(variable)) return expr.simplify(assumptions: assumptions);
 
   if (expr case Pow(:final base, :final exponent)
@@ -99,10 +102,11 @@ Expr computeLimit(
         variable,
         point,
         direction: direction,
+        assumptions: assumptions,
       );
       if (_isPositiveInfinity(innerLim)) return Constant.infinity;
       if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
-      return Pow(Constant.e, innerLim).simplify();
+      return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
     } on Object {
       // Fall through
     }
@@ -115,13 +119,14 @@ Expr computeLimit(
         variable,
         point,
         direction: direction,
+        assumptions: assumptions,
       );
       if (_isPositiveInfinity(innerLim)) return Constant.infinity;
       if (innerLim is Number && innerLim.isZero) {
         return _negInfinity;
       }
       if (_isWellDefinedFinite(innerLim)) {
-        return Ln(innerLim).simplify();
+        return Ln(innerLim).simplify(assumptions: assumptions);
       }
     } on Object {
       // Fall through
@@ -141,16 +146,23 @@ Expr computeLimit(
         variable,
         point,
         direction: direction,
+        assumptions: assumptions,
       );
       if (_isWellDefinedFinite(innerLim)) {
-        return expr.mapChildren((_) => innerLim).simplify();
+        return expr
+            .mapChildren((_) => innerLim)
+            .simplify(assumptions: assumptions);
       }
       if (_isPositiveInfinity(innerLim) || _isNegativeInfinity(innerLim)) {
         return switch (expr) {
           Atan() =>
             _isPositiveInfinity(innerLim)
-                ? (Constant.pi / IntegerNumber.two).simplify()
-                : (-(Constant.pi / IntegerNumber.two)).simplify(),
+                ? (Constant.pi / IntegerNumber.two).simplify(
+                    assumptions: assumptions,
+                  )
+                : (-(Constant.pi / IntegerNumber.two)).simplify(
+                    assumptions: assumptions,
+                  ),
           Tanh() || Erf() =>
             _isPositiveInfinity(innerLim)
                 ? IntegerNumber.one
@@ -173,21 +185,37 @@ Expr computeLimit(
 
   try {
     if (_isPositiveInfinity(point)) {
-      return _computeInfiniteLimit(expr, variable, isPositive: true);
+      return _computeInfiniteLimit(
+        expr,
+        variable,
+        isPositive: true,
+        assumptions: assumptions,
+      );
     }
     if (_isNegativeInfinity(point)) {
-      return _computeInfiniteLimit(expr, variable, isPositive: false);
+      return _computeInfiniteLimit(
+        expr,
+        variable,
+        isPositive: false,
+        assumptions: assumptions,
+      );
     }
 
-    return _computeFiniteLimit(expr, variable, point, direction: direction);
+    return _computeFiniteLimit(
+      expr,
+      variable,
+      point,
+      direction: direction,
+      assumptions: assumptions,
+    );
   } on UnsupportedError catch (e) {
     if (e.message?.contains('does not exist') ?? false) {
       rethrow;
     }
     return Limit(
-      expr.simplify(),
+      expr.simplify(assumptions: assumptions),
       variable,
-      point.simplify(),
+      point.simplify(assumptions: assumptions),
       direction: direction,
       isSimplified: true,
     );
@@ -199,9 +227,12 @@ Expr _computeFiniteLimit(
   String variable,
   Expr point, {
   LimitDirection direction = LimitDirection.both,
+  Assumptions assumptions = Assumptions.none,
 }) {
   try {
-    final sub = expr.substitute(variable, point).simplify();
+    final sub = expr
+        .substitute(variable, point)
+        .simplify(assumptions: assumptions);
     if (_isWellDefinedFinite(sub)) {
       if (_isEverywhereContinuous(expr, variable)) {
         return sub;
@@ -213,7 +244,9 @@ Expr _computeFiniteLimit(
 
   final hName = _freshLimitVar('_h', expr, point);
   final h = Variable(hName);
-  final localExpr = expr.substitute(variable, point + h).simplify();
+  final localExpr = expr
+      .substitute(variable, point + h)
+      .simplify(assumptions: assumptions);
 
   final (numExpr, denExpr) = splitNumeratorDenominator(localExpr);
   if (denExpr != IntegerNumber.one) {
@@ -234,7 +267,9 @@ Expr _computeFiniteLimit(
           final leadDen?,
         )) {
           final m = leadNum.exponent - leadDen.exponent;
-          final cm = (leadNum.coefficient / leadDen.coefficient).simplify();
+          final cm = (leadNum.coefficient / leadDen.coefficient).simplify(
+            assumptions: assumptions,
+          );
           return _deduceLimitFromLaurentLeading(m, cm, direction, point);
         }
       } on UnsupportedError catch (e) {
@@ -268,7 +303,7 @@ Expr _computeFiniteLimit(
     if (lead == null) return IntegerNumber.zero;
     return _deduceLimitFromLaurentLeading(
       lead.exponent,
-      lead.coefficient,
+      lead.coefficient.simplify(assumptions: assumptions),
       direction,
       point,
     );
@@ -284,7 +319,9 @@ Expr _computeFiniteLimit(
 
   final tName = _freshLimitVar('_t', expr, point);
   final t = Variable(tName);
-  final tAssumptions = Assumptions(domains: {tName: VariableDomain.positive});
+  final tAssumptions = assumptions.copyWith(
+    domains: {tName: VariableDomain.positive},
+  );
   final invT = IntegerNumber.one / t;
   return switch (direction) {
     LimitDirection.fromAbove => _computeInfiniteLimit(
@@ -293,6 +330,7 @@ Expr _computeFiniteLimit(
           .simplify(assumptions: tAssumptions),
       tName,
       isPositive: true,
+      assumptions: tAssumptions,
     ),
     LimitDirection.fromBelow => _computeInfiniteLimit(
       expr
@@ -300,6 +338,7 @@ Expr _computeFiniteLimit(
           .simplify(assumptions: tAssumptions),
       tName,
       isPositive: true,
+      assumptions: tAssumptions,
     ),
     LimitDirection.both => () {
       final rightExpr = expr
@@ -312,8 +351,14 @@ Expr _computeFiniteLimit(
         rightExpr,
         tName,
         isPositive: true,
+        assumptions: tAssumptions,
       );
-      final leftLim = _computeInfiniteLimit(leftExpr, tName, isPositive: true);
+      final leftLim = _computeInfiniteLimit(
+        leftExpr,
+        tName,
+        isPositive: true,
+        assumptions: tAssumptions,
+      );
       if (rightLim == leftLim) return rightLim;
       throw UnsupportedError(
         'Two-sided limit does not exist at $point: left ($leftLim) and right ($rightLim) limits differ',
@@ -351,13 +396,24 @@ Expr _computeInfiniteLimit(
   Expr expr,
   String variable, {
   required bool isPositive,
+  Assumptions assumptions = Assumptions.none,
 }) {
   if (!isPositive) {
-    final reflected = expr.substitute(variable, -Variable(variable)).simplify();
-    return _computeInfiniteLimit(reflected, variable, isPositive: true);
+    final posAssumptions = assumptions.copyWith(
+      domains: {variable: VariableDomain.positive},
+    );
+    final reflected = expr
+        .substitute(variable, -Variable(variable))
+        .simplify(assumptions: posAssumptions);
+    return _computeInfiniteLimit(
+      reflected,
+      variable,
+      isPositive: true,
+      assumptions: posAssumptions,
+    );
   }
 
-  final posAssumptions = Assumptions(
+  final posAssumptions = assumptions.copyWith(
     domains: {variable: VariableDomain.positive},
   );
   final resolved = _resolveAsymptoticAbsAndPiecewise(
@@ -367,9 +423,9 @@ Expr _computeInfiniteLimit(
   if (!resolved.dependsOn(variable)) return resolved;
 
   final ratLim = _rationalFunctionLimitAtInfinity(resolved, variable);
-  if (ratLim != null) return ratLim;
+  if (ratLim != null) return ratLim.simplify(assumptions: posAssumptions);
 
-  return _gruntzLimit(resolved, variable);
+  return _gruntzLimit(resolved, variable, posAssumptions);
 }
 
 Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
@@ -513,8 +569,12 @@ int? _monomialDegree(Expr base, String variable) => switch (base) {
   _ => null,
 };
 
-Expr _gruntzLimit(Expr expr, String variable) {
-  var f = expr.simplify();
+Expr _gruntzLimit(
+  Expr expr,
+  String variable, [
+  Assumptions assumptions = Assumptions.none,
+]) {
+  var f = expr.simplify(assumptions: assumptions);
   if (!f.dependsOn(variable)) return f;
 
   if (_containsUnboundedOscillation(f, variable)) {
@@ -530,11 +590,18 @@ Expr _gruntzLimit(Expr expr, String variable) {
   if (expScale == null && _containsLogOfVariable(f, variable)) {
     final uName = _freshLimitVar('_u', f);
     final u = Variable(uName);
-    final uAssumptions = Assumptions(domains: {uName: VariableDomain.real});
+    final uAssumptions = assumptions.copyWith(
+      domains: {uName: VariableDomain.real},
+    );
     final transformed = f
         .substitute(variable, Pow(Constant.e, u))
         .simplify(assumptions: uAssumptions);
-    return _computeInfiniteLimit(transformed, uName, isPositive: true);
+    return _computeInfiniteLimit(
+      transformed,
+      uName,
+      isPositive: true,
+      assumptions: uAssumptions,
+    );
   }
 
   final omegaName = _freshLimitVar('_omega', f);
@@ -543,7 +610,7 @@ Expr _gruntzLimit(Expr expr, String variable) {
   if (expScale == null) {
     final rewritten = f
         .substitute(variable, IntegerNumber.one / omega)
-        .simplify();
+        .simplify(assumptions: assumptions);
 
     for (final ord in const [4, 10]) {
       try {
@@ -555,7 +622,9 @@ Expr _gruntzLimit(Expr expr, String variable) {
         final lead = series.leadingTerm;
         if (lead != null) {
           if (lead.exponent > 0) return IntegerNumber.zero;
-          if (lead.exponent == 0) return lead.coefficient;
+          if (lead.exponent == 0) {
+            return lead.coefficient.simplify(assumptions: assumptions);
+          }
           final sign = _asymptoticSignAtInfinity(lead.coefficient, variable);
           return sign > 0 ? Constant.infinity : _negInfinity;
         }
@@ -575,7 +644,7 @@ Expr _gruntzLimit(Expr expr, String variable) {
     omega,
     expScale.degree,
     expScale.alpha,
-  ).simplify();
+  ).simplify(assumptions: assumptions);
 
   for (final ord in const [4, 10]) {
     try {
@@ -591,7 +660,12 @@ Expr _gruntzLimit(Expr expr, String variable) {
           final sign = _asymptoticSignAtInfinity(lead.coefficient, variable);
           return sign > 0 ? Constant.infinity : _negInfinity;
         }
-        return computeLimit(lead.coefficient, variable, Constant.infinity);
+        return computeLimit(
+          lead.coefficient,
+          variable,
+          Constant.infinity,
+          assumptions: assumptions,
+        );
       }
     } on Object {
       break;

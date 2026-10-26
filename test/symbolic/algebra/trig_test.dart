@@ -143,6 +143,23 @@ void main() {
           .equals('cos(y) * sin(x) ^ 2');
       check(Expr.parse('sinh(x)^2 * cosh(y)').simplifyTrig().toString())
           .equals('sinh(x) ^ 2 * cosh(y)');
+
+      // Assumptions propagation in expandTrig, simplifyTrig, rewrite
+      check(
+        Expr.parse('sin(2 * sqrt(x^2))')
+            .expandTrig(assumptions: Assumptions.positive)
+            .toString(),
+      ).equals('2 * cos(x) * sin(x)');
+      check(
+        Expr.parse('2 * sin(sqrt(x^2)) * cos(sqrt(x^2))')
+            .simplifyTrig(assumptions: Assumptions.positive)
+            .toString(),
+      ).equals('sin(2 * x)');
+      check(
+        Expr.parse('tan(sqrt(x^2))')
+            .rewrite(RewriteTarget.sinCos, assumptions: Assumptions.positive)
+            .toString(),
+      ).equals('sin(x) / cos(x)');
     });
   });
 }

@@ -81,7 +81,7 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// polynomial $\det(\lambda I - A) = 0$.
   ///
   /// Throws [ArgumentError] if the matrix is not square.
-  List<Expr> eigenvalues() {
+  List<Expr> eigenvalues({Assumptions assumptions = Assumptions.none}) {
     if (!isSquare) {
       throw ArgumentError(
         'Matrix must be square to compute eigenvalues, got $rowCount x $colCount.',
@@ -89,13 +89,14 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
     }
     if (rowCount == 0) return const [];
     const lambdaVar = '_lambda';
-    final charPoly = characteristicPolynomial(lambdaVar);
-    final distinctRoots = charPoly.solve(lambdaVar);
+    final charPoly = characteristicPolynomial(lambdaVar)
+        .simplify(assumptions: assumptions);
+    final distinctRoots = charPoly.solve(lambdaVar, assumptions: assumptions);
     final result = <Expr>[];
     for (final root in distinctRoots) {
       final mult = _algebraicMultiplicity(charPoly, lambdaVar, root, rowCount);
       for (var i = 0; i < mult; i++) {
-        result.add(root);
+        result.add(root.simplify(assumptions: assumptions));
       }
     }
     return result;
@@ -105,7 +106,9 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// and a basis for each eigenspace $\ker(A - \lambda I)$ of this square matrix.
   ///
   /// Throws [ArgumentError] if the matrix is not square.
-  List<SymbolicEigenpair> eigenvectors() {
+  List<SymbolicEigenpair> eigenvectors({
+    Assumptions assumptions = Assumptions.none,
+  }) {
     if (!isSquare) {
       throw ArgumentError(
         'Matrix must be square to compute eigenvectors, got $rowCount x $colCount.',
@@ -113,8 +116,9 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
     }
     if (rowCount == 0) return const [];
     const lambdaVar = '_lambda';
-    final charPoly = characteristicPolynomial(lambdaVar);
-    final distinctRoots = charPoly.solve(lambdaVar);
+    final charPoly = characteristicPolynomial(lambdaVar)
+        .simplify(assumptions: assumptions);
+    final distinctRoots = charPoly.solve(lambdaVar, assumptions: assumptions);
     final effectiveType = type is ExprDataType ? type : exprDataType;
     final pairs = <SymbolicEigenpair>[];
 
@@ -124,14 +128,17 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
         rowCount,
         colCount,
         (r, c) => r == c
-            ? (getUnchecked(r, c) - root).simplify()
+            ? (getUnchecked(r, c) - root).simplify(assumptions: assumptions)
             : getUnchecked(r, c),
         type: effectiveType,
       );
       pairs.add((
-        eigenvalue: root,
+        eigenvalue: root.simplify(assumptions: assumptions),
         algebraicMultiplicity: mult,
-        eigenvectors: shifted.nullSpace(),
+        eigenvectors: [
+          for (final v in shifted.nullSpace())
+            v.simplify(assumptions: assumptions),
+        ],
       ));
     }
     return pairs;

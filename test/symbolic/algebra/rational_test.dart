@@ -195,6 +195,24 @@ void main() {
       // together with negative and fractional denominators
       final eNegDen = Expr.parse('x / (-2 * y) + 3 / (y / 3)');
       check(eNegDen.together().toString()).contains('y');
+
+      // assumptions propagation through together, collect, cancel, apart
+      const posAssump = Assumptions(domains: {'a': VariableDomain.positive});
+      check(
+        Expr.parse('sqrt(a^2) / x + 1 / x')
+            .together(assumptions: posAssump)
+            .toString(),
+      ).equals('(1 + a) / x');
+      check(
+        Expr.parse('sqrt(a^2) * x + x')
+            .collect('x', assumptions: posAssump)
+            .toString(),
+      ).equals('(1 + a) * x');
+      check(
+        Expr.parse('sqrt(a^2) / (x^2 - 1)')
+            .apart('x', assumptions: posAssump)
+            .toString(),
+      ).equals('1/2 * a / (-1 + x) - 1/2 * a / (1 + x)');
     });
   });
 }

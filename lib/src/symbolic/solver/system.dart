@@ -110,8 +110,14 @@ List<Map<String, Expr>> solveEquations(
     if (numEquations.length != variables.length) {
       rawSolutions = const [];
     } else {
-      final linearSol = solveSystemEquations(numEquations, variables);
-      rawSolutions = linearSol != null ? [linearSol] : const [];
+      final linearSol = solveSystemEquations(
+        numEquations,
+        variables,
+        assumptions: assumptions,
+      );
+      rawSolutions = linearSol != null
+          ? filterSolutionsByAssumptions([linearSol], assumptions)
+          : const [];
     }
   } else {
     rawSolutions = solvePolynomialSystemEquations(
@@ -188,8 +194,9 @@ bool _isLinearSystem(List<Expr> equations, List<String> variables) {
 /// elimination.
 Map<String, Expr>? solveSystemEquations(
   List<Expr> equations,
-  List<String> variables,
-) {
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final n = variables.length;
   if (equations.length != n || n == 0) {
     return null;
@@ -207,9 +214,11 @@ Map<String, Expr>? solveSystemEquations(
     final eq = (switch (rawEq) {
       Equal(:final left, :final right) => left - right,
       _ => rawEq,
-    }).expand().simplify();
+    }).expand(assumptions: assumptions).simplify(assumptions: assumptions);
     for (var j = 0; j < n; j++) {
-      final aij = eq.derivative(variables[j]).simplify();
+      final aij = eq
+          .derivative(variables[j])
+          .simplify(assumptions: assumptions);
       // Ensure linearity: derivative must not depend on any variable
       for (final v in variables) {
         if (aij.dependsOn(v)) return null;
@@ -222,7 +231,7 @@ Map<String, Expr>? solveSystemEquations(
     for (final v in variables) {
       cTerm = cTerm.substitute(v, IntegerNumber.zero);
     }
-    b[i] = (-cTerm).simplify();
+    b[i] = (-cTerm).simplify(assumptions: assumptions);
   }
 
   // Fraction-free Gaussian elimination with non-zero pivot selection
@@ -253,9 +262,13 @@ Map<String, Expr>? solveSystemEquations(
       if (!isZeroExpr(aik)) {
         a[i][k] = IntegerNumber.zero;
         for (var j = k + 1; j < n; j++) {
-          a[i][j] = (pivot * a[i][j] - aik * a[k][j]).expand().simplify();
+          a[i][j] = (pivot * a[i][j] - aik * a[k][j])
+              .expand(assumptions: assumptions)
+              .simplify(assumptions: assumptions);
         }
-        b[i] = (pivot * b[i] - aik * b[k]).expand().simplify();
+        b[i] = (pivot * b[i] - aik * b[k])
+            .expand(assumptions: assumptions)
+            .simplify(assumptions: assumptions);
       }
     }
   }
@@ -270,12 +283,20 @@ Map<String, Expr>? solveSystemEquations(
     for (var j = i + 1; j < n; j++) {
       final aij = a[i][j];
       if (!isZeroExpr(aij) && !isZeroExpr(xNum[j])) {
-        numSum = (numSum * xDen[j] - aij * xNum[j]).expand().simplify();
-        denSum = (denSum * xDen[j]).expand().simplify();
+        numSum = (numSum * xDen[j] - aij * xNum[j])
+            .expand(assumptions: assumptions)
+            .simplify(assumptions: assumptions);
+        denSum = (denSum * xDen[j])
+            .expand(assumptions: assumptions)
+            .simplify(assumptions: assumptions);
       }
     }
-    final rawDen = (denSum * a[i][i]).expand().simplify();
-    final sol = (numSum / rawDen).factor().simplify();
+    final rawDen = (denSum * a[i][i])
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+    final sol = (numSum / rawDen)
+        .factor(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
     x[i] = sol;
     final (numPart, denPart) = splitNumeratorDenominator(sol);
     xNum[i] = numPart;

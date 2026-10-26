@@ -323,7 +323,7 @@ Step-by-step execution plan for an autonomous agent to resolve all regressions, 
   6. Add unit tests covering all cases.
 - **Verification**: `dart test test/symbolic/`
 
-### [ ] TASK-4.3: Propagate `Assumptions` Completely Across `rational.dart`, `trig.dart`, `limit.dart`, `solver/`, and Calculator `linear.dart`
+### [x] TASK-4.3: Propagate `Assumptions` Completely Across `rational.dart`, `trig.dart`, `limit.dart`, `solver/`, and Calculator `linear.dart`
 - **Files**:
   - `lib/src/symbolic/algebra/rational.dart` (lines 62, 101, 232, 250–572)
   - `lib/src/symbolic/algebra/trig.dart` (lines 42–85, 90–450)

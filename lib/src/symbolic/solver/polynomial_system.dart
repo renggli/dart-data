@@ -39,19 +39,22 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
       }).simplify(assumptions: assumptions),
   ];
 
+  final List<Map<String, Expr>> rawSolutions;
   switch (method) {
     case PolynomialSystemMethod.resultant:
       if (normalizedEqs case [final f, final g] when variables.length == 2) {
-        return SylvesterResultantSolver.solve(f, g, variables);
+        rawSolutions = SylvesterResultantSolver.solve(f, g, variables);
+      } else {
+        throw ArgumentError(
+          'Resultant method requires exactly 2 equations and 2 variables',
+        );
       }
-      throw ArgumentError(
-        'Resultant method requires exactly 2 equations and 2 variables',
-      );
     case PolynomialSystemMethod.auto:
+      List<Map<String, Expr>>? resSolutions;
       if (normalizedEqs case [final f, final g] when variables.length == 2) {
         try {
           final res = SylvesterResultantSolver.solve(f, g, variables);
-          if (res.isNotEmpty) return res;
+          if (res.isNotEmpty) resSolutions = res;
         } on ArgumentError {
           // Fall back to Gröbner basis
         } on UnsupportedError {
@@ -60,10 +63,39 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
           // Fall back to Gröbner basis
         }
       }
-      return _solveViaGroebner(normalizedEqs, variables);
+      rawSolutions =
+          resSolutions ?? _solveViaGroebner(normalizedEqs, variables);
     case PolynomialSystemMethod.groebner:
-      return _solveViaGroebner(normalizedEqs, variables);
+      rawSolutions = _solveViaGroebner(normalizedEqs, variables);
   }
+
+  return filterSolutionsByAssumptions(rawSolutions, assumptions);
+}
+
+/// Filters multivariate [solutions] by checking each variable assignment
+/// against its domain in [assumptions].
+List<Map<String, Expr>> filterSolutionsByAssumptions(
+  List<Map<String, Expr>> solutions,
+  Assumptions assumptions,
+) {
+  if (assumptions.isEmpty || solutions.isEmpty) return solutions;
+  final filtered = <Map<String, Expr>>[];
+  for (final sol in solutions) {
+    var matches = true;
+    final simplifiedSol = <String, Expr>{};
+    for (final MapEntry(:key, :value) in sol.entries) {
+      final s = value.simplify(assumptions: assumptions);
+      if (!satisfiesVariableDomain(s, assumptions.domainOf(key), assumptions)) {
+        matches = false;
+        break;
+      }
+      simplifiedSol[key] = s;
+    }
+    if (matches) {
+      filtered.add(simplifiedSol);
+    }
+  }
+  return filtered;
 }
 
 List<Map<String, Expr>> _solveViaGroebner(

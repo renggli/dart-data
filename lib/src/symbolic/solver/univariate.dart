@@ -47,15 +47,19 @@ List<Expr> solveEquation(
   Assumptions assumptions = Assumptions.none,
 }) {
   final effectiveDomain = assumptions.domainOf(variable);
-  final rawRoots = _solveUnfiltered(expr, variable);
+  final rawRoots = _solveUnfiltered(expr, variable, assumptions);
   return _filterByDomain(rawRoots, effectiveDomain, assumptions);
 }
 
-List<Expr> _solveUnfiltered(Expr expr, String variable) {
+List<Expr> _solveUnfiltered(
+  Expr expr,
+  String variable,
+  Assumptions assumptions,
+) {
   if (expr case Equal(:final left, :final right)) {
     expr = left - right;
   }
-  expr = expr.simplify();
+  expr = expr.simplify(assumptions: assumptions);
 
   if (!expr.dependsOn(variable)) {
     return const [];
@@ -67,13 +71,15 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
     if (!num.dependsOn(variable)) {
       return const [];
     }
-    final candidates = _solveUnfiltered(num, variable);
-    return candidates.where((r) => !_isZeroAt(den, variable, r)).toList();
+    final candidates = _solveUnfiltered(num, variable, assumptions);
+    return candidates
+        .where((r) => !_isZeroAt(den, variable, r, assumptions))
+        .toList();
   }
 
   // Linear form: a * x + b = 0
   if (expr.matchLinear(variable) case (:final a, :final b)) {
-    return [((-b) / a).simplify()];
+    return [((-b) / a).simplify(assumptions: assumptions)];
   }
 
   // Quadratic form: a * x^2 + b * x + c = 0
@@ -93,13 +99,13 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
   if (varFactors.length > 1) {
     final allRoots = <Expr>[];
     for (final factor in varFactors) {
-      allRoots.addAll(_solveUnfiltered(factor, variable));
+      allRoots.addAll(_solveUnfiltered(factor, variable, assumptions));
     }
     return deduplicateRoots(allRoots);
   }
 
   // Polynomial factoring step (degree > 2 or multi-term polynomials):
-  final factored = expr.factor();
+  final factored = expr.factor(assumptions: assumptions);
   if (factored != expr) {
     final factoredList = <Expr>[];
     collectFactors(factored, factoredList);
@@ -107,14 +113,14 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
         .where((f) => f.dependsOn(variable))
         .toList();
     final shouldSolveFactors = switch (varFactored) {
-      [final single] => single.simplify() != expr,
+      [final single] => single.simplify(assumptions: assumptions) != expr,
       [_, _, ...] => true,
       _ => false,
     };
     if (shouldSolveFactors) {
       final allRoots = <Expr>[];
       for (final factor in varFactored) {
-        allRoots.addAll(_solveUnfiltered(factor, variable));
+        allRoots.addAll(_solveUnfiltered(factor, variable, assumptions));
       }
       return deduplicateRoots(allRoots);
     }
@@ -129,6 +135,24 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
   return const [];
 }
 
+/// Checks whether [root] satisfies [domain] under [assumptions].
+bool satisfiesVariableDomain(
+  Expr root,
+  VariableDomain domain,
+  Assumptions assumptions,
+) {
+  if (domain == VariableDomain.unknown || domain == VariableDomain.complex) {
+    return true;
+  }
+  final s = root.simplify(assumptions: assumptions);
+  return switch (domain) {
+    VariableDomain.unknown || VariableDomain.complex => true,
+    VariableDomain.integer => s is IntegerNumber,
+    VariableDomain.real => _isRealRoot(s),
+    VariableDomain.positive => _isPositiveRealRoot(s, assumptions),
+  };
+}
+
 List<Expr> _filterByDomain(
   List<Expr> roots,
   VariableDomain domain,
@@ -137,15 +161,9 @@ List<Expr> _filterByDomain(
   if (domain == VariableDomain.unknown || domain == VariableDomain.complex) {
     return roots;
   }
-  return roots.where((root) {
-    final s = root.simplify(assumptions: assumptions);
-    return switch (domain) {
-      VariableDomain.unknown || VariableDomain.complex => true,
-      VariableDomain.integer => s is IntegerNumber,
-      VariableDomain.real => _isRealRoot(s),
-      VariableDomain.positive => _isPositiveRealRoot(s, assumptions),
-    };
-  }).toList();
+  return roots
+      .where((root) => satisfiesVariableDomain(root, domain, assumptions))
+      .toList();
 }
 
 bool _isRealRoot(Expr expr) {
@@ -259,9 +277,16 @@ void collectFactors(Expr expr, List<Expr> target) {
   }
 }
 
-bool _isZeroAt(Expr expr, String variable, Expr value) {
+bool _isZeroAt(
+  Expr expr,
+  String variable,
+  Expr value, [
+  Assumptions assumptions = Assumptions.none,
+]) {
   try {
-    final sub = expr.substitute(variable, value).simplify();
+    final sub = expr
+        .substitute(variable, value)
+        .simplify(assumptions: assumptions);
     return isZeroExpr(sub);
   } on ArgumentError {
     // If evaluating the denominator at value throws (e.g. pole), exclude value.

@@ -60,7 +60,7 @@ extension RationalFunctionExtension on Expr {
   /// print(e.together()); // (1 + 2 * x) / (x * (1 + x))
   /// ```
   Expr together({Assumptions assumptions = Assumptions.none}) =>
-      _togetherExpr(simplify(assumptions: assumptions));
+      _togetherExpr(simplify(assumptions: assumptions), assumptions);
 
   /// Cancels common polynomial and numeric factors between the numerator and
   /// denominator of this rational expression.
@@ -79,11 +79,15 @@ extension RationalFunctionExtension on Expr {
     if (denPart == IntegerNumber.one) {
       return numPart.simplify(assumptions: assumptions);
     }
-    final expNum = numPart.expand().simplify(assumptions: assumptions);
-    final expDen = denPart.expand().simplify(assumptions: assumptions);
+    final expNum = numPart
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+    final expDen = denPart
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
     return cancelFactoredFraction(
-      _factorPolynomial(expNum),
-      _factorPolynomial(expDen),
+      _factorPolynomial(expNum, assumptions),
+      _factorPolynomial(expDen, assumptions),
     ).simplify(assumptions: assumptions);
   }
 
@@ -102,11 +106,11 @@ extension RationalFunctionExtension on Expr {
     final simplified = simplify(assumptions: assumptions);
     final (numPart, denPart) = splitNumeratorDenominator(simplified);
     if (denPart != IntegerNumber.one) {
-      final colNum = _collectAdditive(numPart, variable);
-      final colDen = _collectAdditive(denPart, variable);
+      final colNum = _collectAdditive(numPart, variable, assumptions);
+      final colDen = _collectAdditive(denPart, variable, assumptions);
       return simplifyDiv(colNum, colDen, assumptions: assumptions);
     }
-    return _collectAdditive(simplified, variable);
+    return _collectAdditive(simplified, variable, assumptions);
   }
 
   /// Performs univariate polynomial long division of this expression by
@@ -251,7 +255,7 @@ extension RationalFunctionExtension on Expr {
       return quotient;
     }
 
-    final factoredDen = _factorPolynomial(denExpr);
+    final factoredDen = _factorPolynomial(denExpr, assumptions);
     final rawFactors = <Expr, int>{};
     RationalNumber scalar = IntegerNumber.one;
     flattenFactored(factoredDen, rawFactors, (s) {
@@ -286,15 +290,17 @@ extension RationalFunctionExtension on Expr {
 
     if (polyFactors.length == 1 && polyFactors.first.multiplicity == 1) {
       final frac = cancelFactoredFraction(
-        _factorPolynomial(remainder),
+        _factorPolynomial(remainder, assumptions),
         factoredDen,
-      ).simplify();
-      return field.isZero(quotient) ? frac : (quotient + frac).simplify();
+      ).simplify(assumptions: assumptions);
+      return field.isZero(quotient)
+          ? frac
+          : (quotient + frac).simplify(assumptions: assumptions);
     }
 
     final c0 = constFactors.isEmpty
         ? IntegerNumber.one
-        : simplifyMul(constFactors);
+        : simplifyMul(constFactors, assumptions: assumptions);
     final totalDegree = polyFactors.fold<int>(
       0,
       (sum, f) => sum + f.multiplicity * f.degree,
@@ -323,7 +329,9 @@ extension RationalFunctionExtension on Expr {
         }
         final cofactorExpr = cofactorParts.isEmpty
             ? IntegerNumber.one
-            : simplifyMul(cofactorParts).expand().simplify();
+            : simplifyMul(cofactorParts, assumptions: assumptions)
+                  .expand(assumptions: assumptions)
+                  .simplify(assumptions: assumptions);
         final cofactorCoeffs = extractPolynomialCoefficients(
           cofactorExpr,
           variable,
@@ -368,28 +376,34 @@ extension RationalFunctionExtension on Expr {
       for (var k = 1; k <= fI.multiplicity; k++) {
         final numTerms = <Expr>[];
         for (var m = 0; m < fI.degree; m++) {
-          final coeff = uMat.getUnchecked(uIdx++, 0).simplify();
+          final coeff = uMat
+              .getUnchecked(uIdx++, 0)
+              .simplify(assumptions: assumptions);
           if (!field.isZero(coeff)) {
             final xPow = m == 0
                 ? IntegerNumber.one
                 : m == 1
                 ? xVar
                 : Pow(xVar, IntegerNumber.of(m));
-            numTerms.add(m == 0 ? coeff : (coeff * xPow).simplify());
+            numTerms.add(
+              m == 0
+                  ? coeff
+                  : (coeff * xPow).simplify(assumptions: assumptions),
+            );
           }
         }
         if (numTerms.isNotEmpty) {
           final numPoly = numTerms.length == 1
               ? numTerms.first
-              : Add(numTerms).simplify();
+              : Add(numTerms).simplify(assumptions: assumptions);
           final denPow = k == 1
               ? fI.base
               : Pow(fI.base, IntegerNumber.of(k), isSimplified: true);
           pfTerms.add(
             cancelFactoredFraction(
-              _factorPolynomial(numPoly),
+              _factorPolynomial(numPoly, assumptions),
               denPow,
-            ).simplify(),
+            ).simplify(assumptions: assumptions),
           );
         }
       }
@@ -398,24 +412,29 @@ extension RationalFunctionExtension on Expr {
     return switch (pfTerms) {
       [] => IntegerNumber.zero,
       [final single] => single,
-      _ => Add(pfTerms).simplify(),
+      _ => Add(pfTerms).simplify(assumptions: assumptions),
     };
   }
 }
 
-Expr _factorPolynomial(Expr expr) => expr is Number ? expr : expr.factor();
+Expr _factorPolynomial(Expr expr, Assumptions assumptions) =>
+    expr is Number ? expr : expr.factor(assumptions: assumptions);
 
-Expr _togetherExpr(Expr expr) {
-  final mapped = expr.mapChildren(_togetherExpr);
+Expr _togetherExpr(Expr expr, Assumptions assumptions) {
+  final mapped = expr.mapChildren((c) => _togetherExpr(c, assumptions));
   return switch (mapped) {
-    Add(:final terms) => _togetherAdd(terms),
-    Mul(:final factors) => _togetherMul(factors),
-    Pow(:final base, :final exponent) => _togetherPow(base, exponent),
-    _ => mapped.simplify(),
+    Add(:final terms) => _togetherAdd(terms, assumptions),
+    Mul(:final factors) => _togetherMul(factors, assumptions),
+    Pow(:final base, :final exponent) => _togetherPow(
+      base,
+      exponent,
+      assumptions,
+    ),
+    _ => mapped.simplify(assumptions: assumptions),
   };
 }
 
-Expr _togetherMul(List<Expr> factors) {
+Expr _togetherMul(List<Expr> factors, Assumptions assumptions) {
   final numParts = <Expr>[];
   final denParts = <Expr>[];
   for (final f in factors) {
@@ -424,34 +443,44 @@ Expr _togetherMul(List<Expr> factors) {
     if (d != IntegerNumber.one) denParts.add(d);
   }
   if (denParts.isEmpty) {
-    return simplifyMul(factors);
+    return simplifyMul(factors, assumptions: assumptions);
   }
-  final numExpr = numParts.isEmpty ? IntegerNumber.one : simplifyMul(numParts);
-  final denExpr = simplifyMul(denParts);
+  final numExpr = numParts.isEmpty
+      ? IntegerNumber.one
+      : simplifyMul(numParts, assumptions: assumptions);
+  final denExpr = simplifyMul(denParts, assumptions: assumptions);
   return cancelFactoredFraction(
-    _factorPolynomial(numExpr),
-    _factorPolynomial(denExpr),
-  ).simplify();
+    _factorPolynomial(numExpr, assumptions),
+    _factorPolynomial(denExpr, assumptions),
+  ).simplify(assumptions: assumptions);
 }
 
-Expr _togetherPow(Expr base, Expr exponent) {
+Expr _togetherPow(Expr base, Expr exponent, Assumptions assumptions) {
   final (n, d) = splitNumeratorDenominator(base);
   if (d == IntegerNumber.one) {
-    return simplifyPow(base, exponent);
+    return simplifyPow(base, exponent, assumptions: assumptions);
   }
   if (exponent case IntegerNumber(asInt: final exp?)) {
     if (exp < 0) {
       final posExp = IntegerNumber.of(-exp);
-      return simplifyDiv(simplifyPow(d, posExp), simplifyPow(n, posExp));
+      return simplifyDiv(
+        simplifyPow(d, posExp, assumptions: assumptions),
+        simplifyPow(n, posExp, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     }
     if (exp > 0) {
-      return simplifyDiv(simplifyPow(n, exponent), simplifyPow(d, exponent));
+      return simplifyDiv(
+        simplifyPow(n, exponent, assumptions: assumptions),
+        simplifyPow(d, exponent, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     }
   }
-  return simplifyPow(base, exponent);
+  return simplifyPow(base, exponent, assumptions: assumptions);
 }
 
-Expr _togetherAdd(List<Expr> terms) {
+Expr _togetherAdd(List<Expr> terms, Assumptions assumptions) {
   final decomposed = <({Expr num, Integer denScalar, Map<Expr, int> denMap})>[];
   var hasDenominator = false;
 
@@ -460,7 +489,7 @@ Expr _togetherAdd(List<Expr> terms) {
     if (rawDen != IntegerNumber.one) {
       hasDenominator = true;
     }
-    final factoredDen = _factorPolynomial(rawDen);
+    final factoredDen = _factorPolynomial(rawDen, assumptions);
     final denMap = <Expr, int>{};
     RationalNumber scalar = IntegerNumber.one;
     flattenFactored(factoredDen, denMap, (s) {
@@ -469,19 +498,22 @@ Expr _togetherAdd(List<Expr> terms) {
 
     var adjNum = rawNum;
     if (scalar.isNegative) {
-      adjNum = simplifyNeg(adjNum);
+      adjNum = simplifyNeg(adjNum, assumptions: assumptions);
       scalar = scalar.neg();
     }
     final q = scalar.denominator;
     if (!q.isOne) {
-      adjNum = simplifyMul([IntegerNumber(q), adjNum]);
+      adjNum = simplifyMul([
+        IntegerNumber(q),
+        adjNum,
+      ], assumptions: assumptions);
     }
     final p = scalar.numerator;
     decomposed.add((num: adjNum, denScalar: p, denMap: denMap));
   }
 
   if (!hasDenominator) {
-    return simplifyAdd(terms);
+    return simplifyAdd(terms, assumptions: assumptions);
   }
 
   // Compute LCM of denominator scalars and symbolic factor exponents.
@@ -514,22 +546,30 @@ Expr _togetherAdd(List<Expr> terms) {
       scalar: multScalar,
       factors: diffFactors,
     );
-    scaledNumerators.add((item.num * multiplier).expand().simplify());
+    scaledNumerators.add(
+      (item.num * multiplier)
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions),
+    );
   }
 
-  final totalNum = Add(scaledNumerators).expand().simplify();
+  final totalNum = Add(scaledNumerators)
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
   final totalDen = buildFactoredExpr(
     scalar: IntegerNumber(lcmScalar),
     factors: lcmFactors,
   );
   return cancelFactoredFraction(
-    _factorPolynomial(totalNum),
+    _factorPolynomial(totalNum, assumptions),
     totalDen,
-  ).simplify();
+  ).simplify(assumptions: assumptions);
 }
 
-Expr _collectAdditive(Expr expr, String variable) {
-  final expanded = expr.expand().simplify();
+Expr _collectAdditive(Expr expr, String variable, Assumptions assumptions) {
+  final expanded = expr
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
   if (!expanded.dependsOn(variable)) return expanded;
 
   final rawTerms = <Expr>[];
@@ -537,7 +577,11 @@ Expr _collectAdditive(Expr expr, String variable) {
 
   final groups = <Expr, List<Expr>>{};
   for (final term in rawTerms) {
-    final (:varPart, :coeffPart) = _splitByVariable(term, variable);
+    final (:varPart, :coeffPart) = _splitByVariable(
+      term,
+      variable,
+      assumptions,
+    );
     groups.putIfAbsent(varPart, () => []).add(coeffPart);
   }
 
@@ -547,7 +591,9 @@ Expr _collectAdditive(Expr expr, String variable) {
     final coeffs = groups[varPart]!;
     final sumCoeff = coeffs.length == 1
         ? coeffs.first
-        : Add(coeffs).expand().simplify();
+        : Add(coeffs)
+              .expand(assumptions: assumptions)
+              .simplify(assumptions: assumptions);
     if (sumCoeff is Number && sumCoeff.isZero) continue;
     if (varPart == IntegerNumber.one) {
       collectedTerms.add(sumCoeff);
@@ -571,7 +617,11 @@ Expr _collectAdditive(Expr expr, String variable) {
   };
 }
 
-({Expr varPart, Expr coeffPart}) _splitByVariable(Expr term, String variable) {
+({Expr varPart, Expr coeffPart}) _splitByVariable(
+  Expr term,
+  String variable,
+  Assumptions assumptions,
+) {
   if (!term.dependsOn(variable)) {
     return (varPart: IntegerNumber.one, coeffPart: term);
   }
@@ -588,12 +638,12 @@ Expr _collectAdditive(Expr expr, String variable) {
     final varPart = switch (varFactors) {
       [] => IntegerNumber.one,
       [final single] => single,
-      _ => simplifyMul(varFactors),
+      _ => simplifyMul(varFactors, assumptions: assumptions),
     };
     final coeffPart = switch (coeffFactors) {
       [] => IntegerNumber.one,
       [final single] => single,
-      _ => simplifyMul(coeffFactors),
+      _ => simplifyMul(coeffFactors, assumptions: assumptions),
     };
     return (varPart: varPart, coeffPart: coeffPart);
   }

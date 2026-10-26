@@ -405,6 +405,13 @@ void main() {
             VariableFunction('f', [x]),
           ]);
           check(compositeExpr.limit('x', Constant.infinity)).isNotNull();
+
+          // Assumptions propagation in limit
+          check(
+            Expr.parse(
+              'sqrt(x^2) / x',
+            ).limit('x', IntegerNumber.zero, assumptions: Assumptions.positive),
+          ).equals(IntegerNumber.one);
         },
       );
     },
