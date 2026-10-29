@@ -216,7 +216,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Unlike `ibetaInv`, `gammapInv` does not maintain `[xMin, xMax]` bounds and breaks immediately if a trial step overshoots $\le 0$, returning an unrefined guess.
   - **Fix**: Track `[xMin, xMax]` bounds from the sign of `err` and bisect when the Halley step jumps out of bounds.
 
-- [ ] **1.5.7 Slow convergence of `hypergeometric2F1` for $z \in (-1.0, -0.5]$**
+- [x] **1.5.7 Slow convergence of `hypergeometric2F1` for $z \in (-1.0, -0.5]$**
   - **Severity**: Suggestion
   - **Location**: `lib/src/special/hypergeometric.dart:100-138`
   - **Problem**: Pfaff's transformation $w = z / (z - 1)$ is only applied for `zd <= -1.0`, leaving $z \in (-1.0, -0.5]$ to run 2,000 terms of a slowly converging alternating series.

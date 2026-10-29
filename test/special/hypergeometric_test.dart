@@ -29,6 +29,11 @@ void main() {
     test('Gauss hypergeometric 2F1 transformations and boundaries', () {
       check(hypergeometric2F1(1, 2, 3, -2.0))
           .isCloseTo(0.45069385566594444, 1e-12);
+      // z in (-1.0, -0.5]: 2F1(1, 2; 3; z) = 2(-ln(1-z) - z)/z^2 for z = -0.75
+      const zPfaff = -0.75;
+      final expectedPfaff =
+          2.0 * (-math.log(1.0 - zPfaff) - zPfaff) / (zPfaff * zPfaff);
+      check(hypergeometric2F1(1, 2, 3, zPfaff)).isCloseTo(expectedPfaff, 1e-12);
       check(hypergeometric2F1(0.5, 0.5, 1.5, 0.95))
           .isCloseTo(1.3802311542699408, 1e-12);
       // Pole annihilation at z in [0.9, 1.0] when c - b or c - a is a non-positive integer

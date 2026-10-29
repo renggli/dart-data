@@ -104,7 +104,7 @@ double hypergeometric2F1(num a, num b, num cVal, num z) {
   if (zd > 1.0) {
     return double.nan;
   }
-  if (zd <= -1.0) {
+  if (zd < -0.5) {
     final wVal = zd / (zd - 1.0);
     return pow(1.0 - zd, -ad) * hypergeometric2F1(ad, cd - bd, cd, wVal);
   }
