@@ -336,7 +336,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `WeibullDistribution.probability` multiplies `pow(x / scale, shape - 1)` by `exp(-pow(x / scale, shape))`, producing `Infinity * 0.0 = NaN` in the tail. `ParetoDistribution.probability` divides `pow(scale, shape)` by `pow(x, shape + 1)`, producing `Infinity / Infinity = NaN` for large `shape`.
   - **Fix**: Compute `logProbability(x)` in log-space and evaluate `probability(x)` via `exp(logProbability(x))`.
 
-- [ ] **1.8.5 `DirichletDistribution.sample` returns `NaN` vector when small concentration parameters underflow**
+- [x] **1.8.5 `DirichletDistribution.sample` returns `NaN` vector when small concentration parameters underflow**
   - **Severity**: Warning
   - **Location**: `lib/src/stats/distributions/multivariate/dirichlet.dart:134-150`
   - **Problem**: For small `alpha` (e.g. `0.005`), all `GammaDistribution(alpha[i], 1.0).sample()` draws can underflow to `0.0`, causing `0.0 / 0.0 = NaN` when normalizing by `sum`.

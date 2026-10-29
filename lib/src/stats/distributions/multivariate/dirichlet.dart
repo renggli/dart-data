@@ -7,6 +7,7 @@ import '../../../linear/vector.dart';
 import '../../../special/gamma.dart';
 import '../../../type/data_type.dart';
 import '../continuous/gamma.dart';
+import '../continuous/uniform.dart';
 import 'multivariate_distribution.dart';
 
 /// Dirichlet distribution parameterized by concentration vector [alpha] α.
@@ -142,9 +143,37 @@ class DirichletDistribution extends MultivariateDistribution<double> {
     for (var i = 0; i < dimensions; i++) {
       sum += gammas[i];
     }
+    if (sum > 0.0) {
+      return Vector<double>.generate(
+        dimensions,
+        (i) => gammas[i] / sum,
+        type: DataType.float64,
+      );
+    }
+    // If all gamma samples underflowed to 0.0 due to small alpha,
+    // approximate drawing in log-space: log(Gamma(a, 1)) approx (1/a)*log(U).
+    const uniform = UniformDistribution.standard();
+    final logGammas = List<double>.generate(dimensions, (i) {
+      final a = alpha.getUnchecked(i);
+      var u = uniform.sample(random: random);
+      while (u == 0.0) {
+        u = uniform.sample(random: random);
+      }
+      return log(u) / a;
+    });
+    var maxLog = logGammas[0];
+    for (var i = 1; i < dimensions; i++) {
+      if (logGammas[i] > maxLog) maxLog = logGammas[i];
+    }
+    var expSum = 0.0;
+    final expShifted = List<double>.generate(dimensions, (i) {
+      final e = exp(logGammas[i] - maxLog);
+      expSum += e;
+      return e;
+    });
     return Vector<double>.generate(
       dimensions,
-      (i) => gammas[i] / sum,
+      (i) => expShifted[i] / expSum,
       type: DataType.float64,
     );
   }

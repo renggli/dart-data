@@ -118,5 +118,15 @@ void main() {
       check(dist1.hashCode).equals(dist2.hashCode);
       check(dist1.toString()).contains('DirichletDistribution');
     });
+
+    test('sample with very small alpha does not yield NaN', () {
+      final dist = DirichletDistribution.symmetric(3, 1e-4);
+      final s = dist.sample(random: Random(42));
+      check(s.getUnchecked(0).isNaN).isFalse();
+      check(s.getUnchecked(1).isNaN).isFalse();
+      check(s.getUnchecked(2).isNaN).isFalse();
+      check(s.getUnchecked(0) + s.getUnchecked(1) + s.getUnchecked(2))
+          .isCloseTo(1.0, 1e-6);
+    });
   });
 }
