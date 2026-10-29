@@ -35,22 +35,24 @@ double derivative(
   if (step != null && (step <= 0.0 || !step.isFinite)) {
     throw ArgumentError.value(step, 'step', 'Step must be positive and finite');
   }
-  final hBase =
+  final h =
       step ??
       switch (order) {
-        1 => 1e-5,
-        2 => 1e-4,
-        3 => 1e-2,
-        4 => 5e-2,
-        5 => 1e-1,
-        6 => 2e-1,
-        _ => 1e-3,
-      };
-  final h = hBase * math.max(1.0, x.abs());
+            1 => 1e-5,
+            2 => 1e-4,
+            3 => 1e-2,
+            4 => 5e-2,
+            5 => 1e-1,
+            6 => 2e-1,
+            _ => 1e-3,
+          } *
+          math.max(1.0, x.abs());
   final offset = weights.length ~/ 2;
   var result = 0.0;
   for (var i = 0; i < weights.length; i++) {
-    result += weights[i] * function(x + (i - offset) * h);
+    final w = weights[i];
+    if (w == 0.0) continue;
+    result += w * function(x + (i - offset) * h);
   }
   return result / math.pow(h, order);
 }

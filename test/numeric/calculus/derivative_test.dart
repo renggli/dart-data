@@ -39,6 +39,22 @@ void main() {
         // d/dx(x^2) at x = 1e9 is 2e9
         final d = derivative(poly, 1e9);
         check((d - 2e9).abs() / 2e9).isLessThan(1e-4);
+
+        // Explicit step is respected without rescaling by |x|
+        var evaluatedH = 0.0;
+        derivative(
+          (x) {
+            evaluatedH = (x - 100.0).abs();
+            return x * x;
+          },
+          100.0,
+          step: 0.05,
+        );
+        check(evaluatedH).isCloseTo(0.05, 1e-12);
+
+        // Function with removable or infinite singularity at x is not evaluated at center node for order 1
+        double fSingularAt0(double x) => x == 0.0 ? double.infinity : x * x;
+        check(derivative(fSingularAt0, 0.0, order: 1)).isCloseTo(0.0, 1e-5);
       },
     );
   });

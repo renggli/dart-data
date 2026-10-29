@@ -296,7 +296,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `_newtonRaphson` throws `StateError` on non-convergence after `maxIterations` (without checking if the final iterate converged), whereas `_brent` and `_bisection` silently return the unconverged iterate. Additionally, `_brent` does not check `if (fb.isNaN) return double.nan;` inside its loop.
   - **Fix**: Check `if (fb.isNaN) return double.nan;` in `_brent`, check `if (fn(x).abs() <= tolerance) return x;` after the loop in `_newtonRaphson`, and unify non-convergence handling.
 
-- [ ] **1.7.8 `derivative` evaluates zero-weight stencil nodes and rescales explicit `step`**
+- [x] **1.7.8 `derivative` evaluates zero-weight stencil nodes and rescales explicit `step`**
   - **Severity**: Warning
   - **Location**: `lib/src/numeric/calculus/derivative.dart:48-55`
   - **Problem**: Line 49 scales `final h = hBase * math.max(1.0, x.abs());` even when the caller explicitly passes `step`. Line 53 evaluates `weights[i] * function(x + (i - offset) * h)` even when `weights[i] == 0.0` (the center node for all odd derivative orders 1, 3, 5), wasting an evaluation and returning `NaN` (`0.0 * Infinity`) if `function` has a singularity at `x`.
