@@ -140,6 +140,23 @@ void main() {
         }
         check(pProd[k]).isCloseTo(expected, 1e-9);
       }
+
+      // (x^40 - 1) * (x^40 + 1) = x^80 - 1 (sparse-structured product cleaned of FFT rounding noise)
+      final sparseA = List<double>.filled(41, 0.0);
+      sparseA[0] = -1.0;
+      sparseA[40] = 1.0;
+      final sparseB = List<double>.filled(41, 0.0);
+      sparseB[0] = 1.0;
+      sparseB[40] = 1.0;
+      final pSparseA = Polynomial<double>.fromCoefficients(sparseA);
+      final pSparseB = Polynomial<double>.fromCoefficients(sparseB);
+      final sparseProd = pSparseA * pSparseB;
+      check(sparseProd.degree).equals(80);
+      check(sparseProd[0]).isCloseTo(-1.0, 1e-12);
+      check(sparseProd[80]).isCloseTo(1.0, 1e-12);
+      for (var k = 1; k < 80; k++) {
+        check(sparseProd[k]).equals(0.0);
+      }
     });
 
     test('division and modulo', () {

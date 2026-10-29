@@ -191,11 +191,17 @@ class DensePolynomial<T> extends Polynomial<T> {
       }
       Fft.fft(buffer: aList, inverse: true);
 
-      final resultCoeffs = List<T>.generate(
-        outDegree + 1,
-        (i) => aData[2 * i] as T,
-        growable: false,
-      );
+      var maxCoeff = 0.0;
+      for (var i = 0; i <= outDegree; i++) {
+        final v = aData[2 * i].abs();
+        if (v > maxCoeff) maxCoeff = v;
+      }
+      final tol = 1e-14 * maxCoeff;
+      final resultCoeffs = List<T>.generate(outDegree + 1, (i) {
+        final val = aData[2 * i];
+        final cleaned = val.abs() <= tol ? 0.0 : val;
+        return cleaned as T;
+      }, growable: false);
 
       return DensePolynomial<T>.fromCoefficients(resultCoeffs, type: type);
     }

@@ -244,7 +244,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Remainder truncation in `divide` uses `tol = 1e-12 * maxCoeff` based only on the dividend. During Euclidean `gcd` over `double`, a residual rounding error of `1e-11` survives truncation and becomes `leadB` in the next division step, amplifying noise by $10^{11}$ and causing `gcd` and `RationalFunction.simplify()` to fail to cancel common factors.
   - **Fix**: Zero out floating-point remainder coefficients in `Polynomial.gcd` below a relative tolerance scaled to the current step norms.
 
-- [ ] **1.6.4 Uncleaned FFT rounding noise in `DensePolynomial.operator *`**
+- [x] **1.6.4 Uncleaned FFT rounding noise in `DensePolynomial.operator *`**
   - **Severity**: Warning
   - **Location**: `lib/src/polynomial/impl/dense_polynomial.dart:166-201`
   - **Problem**: For `outDegree >= 64` with `double` coefficients, FFT convolution leaves $\mathcal{O}(10^{-16})$ rounding noise in zero coefficients, turning sparse-structured products like $(x^{40} - 1)(x^{40} + 1)$ into dense polynomials with 79 non-zero $\sim 10^{-16}$ terms.
