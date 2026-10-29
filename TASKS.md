@@ -152,7 +152,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Two overlapping `Float64List.sublistView` instances or `Tensor` views over the same `ByteBuffer` are not `identical(tensor.data, target.tensor.data)`, allowing in-place `_scan` to overwrite source elements before reading them. Furthermore, if `identical(this, target)` is true on a reversed view (`strides: [-1]`), `_scan` does not copy and overwrites elements in-place.
   - **Fix**: Use `sharesMemory(tensor.data, target.tensor.data)` and require `target.tensor.strides[0] > 0 && sameStartAddress(...)` when avoiding a temporary copy.
 
-- [ ] **1.4.4 `Matrix.solve` on inconsistent systems with `colCount == 0` silently returns an empty matrix instead of throwing `StateError`**
+- [x] **1.4.4 `Matrix.solve` on inconsistent systems with `colCount == 0` silently returns an empty matrix instead of throwing `StateError`**
   - **Severity**: Critical
   - **Location**: `lib/src/linear/matrix.dart:494-522`
   - **Problem**: When $A$ has shape $m \times 0$ ($m > 0$) and $B$ has shape $m \times k$ with non-zero entries, `Lapack.dgels(m: m, n: 0, ...)` returns `true` immediately because `n == 0`, and `Matrix.solve` returns a $0 \times k$ matrix instead of throwing `StateError('Linear system is inconsistent.')`.

@@ -468,6 +468,15 @@ class Matrix<T> implements LinearOperator<T> {
         type: type,
       );
     }
+    if (colCount == 0) {
+      final zero = type.field.additiveIdentity;
+      for (final val in b.values) {
+        if (val != zero) {
+          throw StateError('Linear system is inconsistent.');
+        }
+      }
+      return Matrix<T>.filled(0, nrhs, zero, type: type);
+    }
     if (rowCount == colCount) {
       if ((type as DataType) == DataType.float64) {
         final aData = _copyTensorToFloat64List(tensor, rowCount * colCount);

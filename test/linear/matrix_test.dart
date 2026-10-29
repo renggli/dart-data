@@ -805,6 +805,22 @@ void main() {
         final m0x2 = Float64Matrix.filled(0, 2, 0.0);
         final m2x0 = Float64Matrix.filled(2, 0, 0.0);
         check(m0x2.solveVector(v0).length).equals(2);
+
+        // m2x0 with zero-RHS succeeds
+        final v2Zero = Float64Vector.filled(2, 0.0);
+        check(m2x0.solveVector(v2Zero).length).equals(0);
+        final m2x1Zero = Float64Matrix.filled(2, 1, 0.0);
+        check(m2x0.solve(m2x1Zero).rowCount).equals(0);
+
+        // m2x0 with non-zero RHS throws StateError (inconsistent system)
+        final v2NonZero = Float64Vector.fromList([1.0, 2.0]);
+        check(() => m2x0.solveVector(v2NonZero)).throws<StateError>();
+        final m2x1NonZero = Float64Matrix.fromRows([
+          [1.0],
+          [2.0],
+        ]);
+        check(() => m2x0.solve(m2x1NonZero)).throws<StateError>();
+
         final prod2x2 = m2x0 * m0x2;
         check(prod2x2.rowCount).equals(2);
         check(prod2x2.colCount).equals(2);
