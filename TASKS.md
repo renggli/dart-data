@@ -140,7 +140,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `CooMatrix(...)` does not check `0 <= rowIndices[k] < rowCount` or `0 <= colIndices[k] < colCount`. `CsrMatrix(...)` and `CscMatrix(...)` do not check `pointers.first == 0`, `pointers.last == values.length`, pointer monotonicity `pointers[i] <= pointers[i + 1]`, or coordinate bounds. Malformed arrays cause silent wrong answers in `get()` and out-of-bounds crashes in `apply()`, `toCsr()`, `toCsc()`, and `toDense()`.
   - **Fix**: Validate pointer boundary invariants, monotonicity, and index bounds in the primary constructors of `CooMatrix`, `CsrMatrix`, and `CscMatrix`.
 
-- [ ] **1.4.2 `SingularValueDecomposition` enters an infinite loop or returns unconverged results on `NaN`/`Infinity` inputs**
+- [x] **1.4.2 `SingularValueDecomposition` enters an infinite loop or returns unconverged results on `NaN`/`Infinity` inputs**
   - **Severity**: Critical
   - **Location**: `lib/src/linear/decomposition/svd.dart:425-617`
   - **Problem**: Unlike `EigenvalueDecomposition`, `_computeSvd` never checks if the input matrix contains `NaN` or `Infinity`. In `while (mDim > 0)`, `iter` is only incremented in `case 3` (`line 581`), so repeated `case 1` or `case 2` transitions never increment `iter`, and breaking on `iter >= 1000` leaves raw unconverged/unsorted values in `sVals`.

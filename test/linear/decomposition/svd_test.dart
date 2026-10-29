@@ -129,6 +129,26 @@ void main() {
       check(svdZeroNoVectors.rank).equals(3);
     });
 
+    test('NaN and Infinity inputs return NaNs without hanging', () {
+      final aNan = Matrix<double>.fromRows([
+        [1.0, double.nan],
+        [3.0, 4.0],
+      ], type: DataType.float64);
+      final svdNan = aNan.svd;
+      check(svdNan.s[0]).isNaN();
+      check(svdNan.u.get(0, 0)).isNaN();
+      check(svdNan.vt.get(0, 0)).isNaN();
+
+      final aInf = Matrix<double>.fromRows([
+        [double.infinity, 2.0],
+        [3.0, 4.0],
+      ], type: DataType.float64);
+      final svdInf = aInf.svd;
+      check(svdInf.s[0]).isNaN();
+      check(svdInf.u.get(0, 0)).isNaN();
+      check(svdInf.vt.get(0, 0)).isNaN();
+    });
+
     test('scale invariance of solveVector', () {
       final aSmall = Matrix<double>.fromRows([
         [1e-12, 0.0],

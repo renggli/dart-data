@@ -46,17 +46,28 @@ class SingularValueDecomposition {
     final colsA = matrix.colCount;
     final nm = math.min(rowsA, colsA);
 
+    var allFinite = true;
     final aVals = List<double>.generate(rowsA * colsA, (idx) {
       final col = idx ~/ rowsA;
       final row = idx % rowsA;
-      return matrix.getUnchecked(row, col).toDouble();
+      final val = matrix.getUnchecked(row, col).toDouble();
+      if (!val.isFinite) allFinite = false;
+      return val;
     });
 
-    final uVals = List<double>.filled(rowsA * rowsA, 0.0);
-    final sVals = List<double>.filled(nm, 0.0);
-    final vtVals = List<double>.filled(colsA * colsA, 0.0);
+    final uVals = List<double>.filled(
+      rowsA * rowsA,
+      allFinite ? 0.0 : double.nan,
+    );
+    final sVals = List<double>.filled(nm, allFinite ? 0.0 : double.nan);
+    final vtVals = List<double>.filled(
+      colsA * colsA,
+      allFinite ? 0.0 : double.nan,
+    );
 
-    _computeSvd(computeVectors, aVals, rowsA, colsA, sVals, uVals, vtVals);
+    if (allFinite) {
+      _computeSvd(computeVectors, aVals, rowsA, colsA, sVals, uVals, vtVals);
+    }
 
     final uMatrix = Matrix<double>.generate(
       rowsA,
@@ -490,6 +501,7 @@ class SingularValueDecomposition {
               }
             }
           }
+          iter++;
         case 2:
           var fVal = eList[lIdx - 1];
           eList[lIdx - 1] = 0.0;
@@ -515,6 +527,7 @@ class SingularValueDecomposition {
               }
             }
           }
+          iter++;
         case 3:
           var scale = 0.0;
           scale = math.max(scale, stemp[mDim - 1].abs());
