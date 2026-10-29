@@ -272,7 +272,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: When `poles` is non-empty and `a` or `b` is infinite (e.g. `integrate(f, -double.infinity, double.infinity, poles: [0.0])`), `_integratePoles` runs before infinite-bound splitting. On `[-Infinity, 0.0]`, `vIsPole` is `true`, so line 284 computes `length = v - u = +Infinity` and `limit = math.sqrt(length) = +Infinity`, applying $x = v - t^2$ on $[0, \infty)$ followed by $t = (1 - s^2)/s^2$, which overflows and fails.
   - **Fix**: Split off semi-infinite tails $(-\infty, p_{\min} - 1]$ and $[p_{\max} + 1, \infty)$ before running finite-interval pole substitutions in `_integratePoles`.
 
-- [ ] **1.7.4 Semi-infinite `integrate` masks interior `NaN`s as `0.0`**
+- [x] **1.7.4 Semi-infinite `integrate` masks interior `NaN`s as `0.0`**
   - **Severity**: Warning
   - **Location**: `lib/src/numeric/integration.dart:145, 160`
   - **Problem**: In semi-infinite coordinate transformations (`a == double.negativeInfinity` and `b == double.infinity`), `return res.isNaN ? 0.0 : res;` coerces any `NaN` across the entire domain into `0.0`, so `integrate((x) => double.nan, 0.0, double.infinity)` silently returns `(value: 0.0, error: 0.0)`.

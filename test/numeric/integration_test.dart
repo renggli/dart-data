@@ -130,6 +130,11 @@ void main() {
       // NaN bounds throw ArgumentError
       check(() => integrate((x) => x, double.nan, 1.0)).throws<ArgumentError>();
       check(() => integrate((x) => x, 0.0, double.nan)).throws<ArgumentError>();
+
+      // NaN inside semi-infinite integrand throws IntegrateError or produces NaN
+      check(
+        () => integrate((x) => double.nan, 0.0, double.infinity, maxDepth: 1),
+      ).throws<IntegrateError>();
     });
 
     test('IntegrateError formatting and edge cases', () {

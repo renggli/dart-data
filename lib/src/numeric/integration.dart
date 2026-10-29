@@ -189,7 +189,7 @@ double integrate(
         if (t <= 0.0) return 0.0;
         final t2 = t * t;
         final res = 2.0 * function(b - (1.0 - t2) / t2) / (t2 * t);
-        return res.isNaN ? 0.0 : res;
+        return res.isNaN && t < 1e-6 ? 0.0 : res;
       },
       0.0,
       1.0,
@@ -204,7 +204,7 @@ double integrate(
         if (t <= 0.0) return 0.0;
         final t2 = t * t;
         final res = 2.0 * function(a + (1.0 - t2) / t2) / (t2 * t);
-        return res.isNaN ? 0.0 : res;
+        return res.isNaN && t < 1e-6 ? 0.0 : res;
       },
       0.0,
       1.0,
