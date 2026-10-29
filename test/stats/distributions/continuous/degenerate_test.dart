@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 void main() {
   group('DegenerateDistribution moments and probabilities', () {
     test('moments, pdf, cdf, and quantile', () {
-      const dist = DegenerateDistribution(5.0);
+      final dist = DegenerateDistribution(5.0);
       check(dist.k).equals(5.0);
       check(dist.mean).equals(5.0);
       check(dist.median).equals(5.0);
@@ -24,23 +24,29 @@ void main() {
       check(() => dist.inverseCumulativeProbability(-0.1))
           .throws<InvalidProbability>();
 
-      // Default constructor
-      const defaultDegenerate = DegenerateDistribution();
+      // Default constructor and standard
+      final defaultDegenerate = DegenerateDistribution();
       check(defaultDegenerate.k).equals(0.0);
+      const standardDegenerate = DegenerateDistribution.standard();
+      check(standardDegenerate.k).equals(0.0);
     });
   });
 
   group('DegenerateDistribution estimation and validation', () {
     test('samples, fit, errors, and equality', () {
-      const dist = DegenerateDistribution(5.0);
+      final dist = DegenerateDistribution(5.0);
       // Samples
       final samples = dist.samples().take(10).toList();
       check(samples.every((sample) => sample == 5.0)).isTrue();
 
       // Equality and toString
-      check(dist == const DegenerateDistribution(5.0)).isTrue();
-      check(dist.hashCode).equals(const DegenerateDistribution(5.0).hashCode);
+      check(dist == DegenerateDistribution(5.0)).isTrue();
+      check(dist.hashCode).equals(DegenerateDistribution(5.0).hashCode);
       check(dist.toString()).contains('DegenerateDistribution');
+
+      check(() => DegenerateDistribution(double.nan)).throws<ArgumentError>();
+      check(() => DegenerateDistribution(double.infinity))
+          .throws<ArgumentError>();
     });
   });
 }

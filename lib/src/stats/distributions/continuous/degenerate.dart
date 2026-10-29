@@ -18,7 +18,16 @@ import '../errors.dart';
 /// ```
 class DegenerateDistribution extends ContinuousDistribution {
   /// A degenerate distribution with parameter [k].
-  const new([this.k = 0]);
+  new([this.k = 0]) {
+    if (!k.isFinite) {
+      throw ArgumentError.value(k, 'k', 'Parameter k must be finite');
+    }
+  }
+
+  /// A standard degenerate distribution with $k = 0$.
+  const new standard() : this._(0.0);
+
+  const new _(this.k);
 
   /// The parameter k.
   final double k;

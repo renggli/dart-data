@@ -342,7 +342,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: For small `alpha` (e.g. `0.005`), all `GammaDistribution(alpha[i], 1.0).sample()` draws can underflow to `0.0`, causing `0.0 / 0.0 = NaN` when normalizing by `sum`.
   - **Fix**: Sample in log-gamma space (or fall back to log-space normalization when `sum == 0.0`).
 
-- [ ] **1.8.6 `DegenerateDistribution` does not validate finite `k` and `JackknifeResampling.operator []` lacks index check**
+- [x] **1.8.6 `DegenerateDistribution` does not validate finite `k` and `JackknifeResampling.operator []` lacks index check**
   - **Severity**: Warning
   - **Location**: `lib/src/stats/distributions/continuous/degenerate.dart:21`, `lib/src/stats/resampling/jackknife.dart:109-110`
   - **Problem**: `DegenerateDistribution` allows `double.nan` or `double.infinity` for `k`. `JackknifeResampling.operator []` does not call `RangeError.checkValidIndex(index, this)`, producing misleading `RangeError` bounds from the underlying `list`.

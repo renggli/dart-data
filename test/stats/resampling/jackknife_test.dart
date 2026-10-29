@@ -87,6 +87,10 @@ void main() {
           confidenceLevel: 1.0,
         ),
       ).throws<ArgumentError>();
+
+      final resample = jackknife.resamples[0];
+      check(() => resample[-1]).throws<RangeError>();
+      check(() => resample[resample.length]).throws<RangeError>();
     });
   });
 }

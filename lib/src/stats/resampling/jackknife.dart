@@ -106,8 +106,10 @@ class JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
   int get length => list.length - 1;
 
   @override
-  T operator [](int index) =>
-      index < this.index ? list[index] : list[index + 1];
+  T operator [](int index) {
+    RangeError.checkValidIndex(index, this, 'index');
+    return index < this.index ? list[index] : list[index + 1];
+  }
 
   @override
   void operator []=(int index, T value) =>

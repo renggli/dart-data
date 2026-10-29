@@ -32,11 +32,11 @@ void main() {
       check(logistic.sample().isFinite).isTrue();
 
       // Degenerate
-      const degen = DegenerateDistribution(5.0);
+      final degen = DegenerateDistribution(5.0);
       check(degen.lowerBound).equals(5.0);
       check(degen.upperBound).equals(5.0);
-      check(degen == const DegenerateDistribution(5.0)).isTrue();
-      check(degen.hashCode).equals(const DegenerateDistribution(5.0).hashCode);
+      check(degen == DegenerateDistribution(5.0)).isTrue();
+      check(degen.hashCode).equals(DegenerateDistribution(5.0).hashCode);
       check(degen.sample()).equals(5.0);
 
       // LogNormal
@@ -101,8 +101,8 @@ void main() {
       check(() => UniformDistribution(double.nan, 1.0)).throws<ArgumentError>();
       check(() => WeibullDistribution(double.nan, 1.0)).throws<ArgumentError>();
 
-      check(const DegenerateDistribution(5.0).probability(double.nan)).isNaN();
-      check(const DegenerateDistribution(5.0).cumulativeProbability(double.nan))
+      check(DegenerateDistribution(5.0).probability(double.nan)).isNaN();
+      check(DegenerateDistribution(5.0).cumulativeProbability(double.nan))
           .isNaN();
       check(ExponentialDistribution(1.0).probability(double.nan)).isNaN();
       check(ExponentialDistribution(1.0).cumulativeProbability(double.nan))
