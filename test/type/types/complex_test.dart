@@ -210,6 +210,10 @@ void main() {
           .throws<UnsupportedError>();
       check(() => view.setAll(0, [Complex.zero])).throws<UnsupportedError>();
       check(view.asUnmodifiableView()).identicalTo(view);
+
+      final subView = view.sublistView(0, 1);
+      check(subView).isA<UnmodifiableFloat64ComplexList>();
+      check(() => subView[0] = const Complex(3, 4)).throws<UnsupportedError>();
     });
 
     test('sharesMemory and hasOverlap', () {

@@ -281,6 +281,8 @@ final class UnmodifiableFloat64ComplexList extends Float64ComplexList {
     : _source = source,
       super.fromData(source.data.asUnmodifiableView());
 
+  final Float64ComplexList _source;
+
   /// The wrapped mutable [Float64ComplexList].
   Float64ComplexList get source => _source;
 
@@ -308,7 +310,9 @@ final class UnmodifiableFloat64ComplexList extends Float64ComplexList {
       throw UnsupportedError('Cannot modify an unmodifiable list');
 
   @override
-  Float64ComplexList asUnmodifiableView() => this;
+  Float64ComplexList sublistView(int start, [int? end]) =>
+      UnmodifiableFloat64ComplexList(super.sublistView(start, end));
 
-  final Float64ComplexList _source;
+  @override
+  Float64ComplexList asUnmodifiableView() => this;
 }
