@@ -1564,12 +1564,10 @@ int _readInt64(ByteData data, int offset) {
 }
 
 void _writeInt64(ByteData data, int offset, int val) {
-  final high = val < 0
-      ? (val - 0x100000000 + 1) ~/ 0x100000000
-      : val ~/ 0x100000000;
-  final low = val - high * 0x100000000;
+  final low = val & 0xFFFFFFFF;
+  final high = ((val - low) ~/ 0x100000000) & 0xFFFFFFFF;
   data.setUint32(offset, low, Endian.little);
-  data.setInt32(offset + 4, high, Endian.little);
+  data.setUint32(offset + 4, high, Endian.little);
 }
 
 int _readUint64(ByteData data, int offset) {
@@ -1579,8 +1577,8 @@ int _readUint64(ByteData data, int offset) {
 }
 
 void _writeUint64(ByteData data, int offset, int val) {
-  final high = val ~/ 0x100000000;
-  final low = val - high * 0x100000000;
+  final low = val & 0xFFFFFFFF;
+  final high = ((val - low) ~/ 0x100000000) & 0xFFFFFFFF;
   data.setUint32(offset, low, Endian.little);
   data.setUint32(offset + 4, high, Endian.little);
 }

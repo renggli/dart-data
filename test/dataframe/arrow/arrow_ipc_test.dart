@@ -72,6 +72,29 @@ void main() {
       check(imported['f64'][0] as double).isCloseTo(3.14159, 1e-10);
     });
 
+    test('round-trips extreme int64 and uint64 boundary values', () {
+      const isVm = 1 is! double;
+      final int64Values = isVm
+          ? <int>[
+              int.parse('-9223372036854775808'),
+              int.parse('-9223372032559808513'),
+              -1,
+              int.parse('9223372036854775807'),
+            ]
+          : <int>[-9007199254740991, -1, 9007199254740991];
+      final uint64Values = isVm
+          ? <int>[-1, 0, 1000000000, int.parse('9223372036854775807')]
+          : <int>[0, 1000000000, 9007199254740991];
+      final df = DataFrame([
+        ObjectSeries<int>.fromList('i64', int64Values, type: DataType.int64),
+        ObjectSeries<int>.fromList('u64', uint64Values, type: DataType.uint64),
+      ]);
+      final ipcBytes = df.toArrowIpc();
+      final imported = DataFrame.fromArrowIpc(ipcBytes);
+      check(imported['i64'].toList()).deepEquals(int64Values);
+      check(imported['u64'].toList()).deepEquals(uint64Values);
+    });
+
     test('round-trips empty DataFrame with all schema types', () {
       final df = DataFrame([
         Series.fromList('str', <String>[], type: DataType.string),

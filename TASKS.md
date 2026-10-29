@@ -364,7 +364,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Because `double.nan.compareTo(x)` and `x.compareTo(double.nan)` both return `0` for any finite `x`, `List.sort()` in `TypedSeries.sort` and `DataFrame.sortBy` violates comparator transitivity when `NaN` is present. Worse, in `_sortMergeJoinPairs` (`join.dart:256`), `compareRows` returns `0` whenever either row has `double.nan`, matching `NaN` keys with arbitrary finite keys.
   - **Fix**: Explicitly order `double.nan` after `+Infinity` in `TypedSeries.sort` and `DataFrame.sortBy`, and treat `NaN` keys as non-matching (like nulls) in `_sortMergeJoinPairs` and hash joins.
 
-- [ ] **1.9.3 64-bit integer overflow/sign corruption in `ArrowIpc` (`_writeInt64` and `_writeUint64`)**
+- [x] **1.9.3 64-bit integer overflow/sign corruption in `ArrowIpc` (`_writeInt64` and `_writeUint64`)**
   - **Severity**: Critical
   - **Location**: `lib/src/dataframe/arrow/arrow_ipc.dart:1566-1586`
   - **Problem**: In `_writeInt64`, `val - 0x100000000 + 1` underflows 64-bit signed `int` on the Dart VM for `val < -9223372032559808513`, wrapping around to a positive number and corrupting both 32-bit words. In `_writeUint64`, `val ~/ 0x100000000` uses signed division on unsigned 64-bit values $\ge 2^{63}$, corrupting the output bytes.
