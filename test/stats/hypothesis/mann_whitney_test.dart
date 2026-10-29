@@ -32,6 +32,12 @@ void main() {
       check(() => mannWhitneyUTest(x, <double>[])).throws<ArgumentError>();
     });
 
+    test('Mann-Whitney U test with NaN returns NaN', () {
+      final res = mannWhitneyUTest([1.0, double.nan, 3.0], [4.0, 5.0]);
+      check(res.statistic.isNaN).isTrue();
+      check(res.pValue.isNaN).isTrue();
+    });
+
     test('Mann-Whitney U test with ties and continuity correction', () {
       final x = [1.0, 2.0, 2.0, 3.0];
       final y = [1.0, 2.0, 3.0, 4.0];

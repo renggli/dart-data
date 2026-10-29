@@ -40,5 +40,18 @@ void main() {
       check(() => wilcoxonSignedRankTest([1.0, 2.0], y: [1.0, 2.0]))
           .throws<ArgumentError>();
     });
+
+    test('Wilcoxon signed-rank test with NaN returns NaN', () {
+      final res = wilcoxonSignedRankTest([1.0, double.nan, 3.0]);
+      check(res.statistic.isNaN).isTrue();
+      check(res.pValue.isNaN).isTrue();
+
+      final resPaired = wilcoxonSignedRankTest(
+        [1.0, 2.0],
+        y: [double.nan, 5.0],
+      );
+      check(resPaired.statistic.isNaN).isTrue();
+      check(resPaired.pValue.isNaN).isTrue();
+    });
   });
 }

@@ -318,7 +318,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: In `kolmogorovSmirnovTwoSample`, if either sample contains `double.nan`, `x = math.min(list1[i], list2[j])` evaluates to `double.nan`. Both inner loops `while (i < n1 && list1[i] <= x)` and `while (j < n2 && list2[j] <= x)` evaluate `<= double.nan` as `false`, so neither `i` nor `j` advances and the outer `while` loop hangs forever. In `kolmogorovSmirnovTest`, `NaN` entries produce `cdfVal = NaN` and are silently ignored (`dStat: 0.0, pValue: 1.0`).
   - **Fix**: Check for `NaN` values upfront in `kolmogorovSmirnovTest` and `kolmogorovSmirnovTwoSample` and return `statistic: double.nan, pValue: double.nan`.
 
-- [ ] **1.8.2 `rankData`, `spearmanCorrelation`, `mannWhitneyUTest`, and `wilcoxonSignedRankTest` produce corrupt finite results on `NaN` inputs**
+- [x] **1.8.2 `rankData`, `spearmanCorrelation`, `mannWhitneyUTest`, and `wilcoxonSignedRankTest` produce corrupt finite results on `NaN` inputs**
   - **Severity**: Critical
   - **Location**: `lib/src/stats/descriptive.dart:150-169`, `lib/src/stats/hypothesis/mann_whitney.dart:28-30`, `lib/src/stats/hypothesis/wilcoxon.dart:29-46`
   - **Problem**: `rankData` sorts via `list[a].compareTo(list[b])` (which returns `0` for `NaN`) and assigns finite ranks `1.0 .. n` to `NaN` elements, causing `spearmanCorrelation` and `mannWhitneyUTest` to return finite statistics and p-values on `NaN` data. In `wilcoxonSignedRankTest`, `diffs.where((d) => d != 0.0)` keeps `double.nan` and counts every `NaN` as a negative rank difference (`wMinus += ranks[i]`).

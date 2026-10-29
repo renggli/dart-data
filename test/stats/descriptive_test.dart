@@ -47,6 +47,15 @@ void main() {
       check(kurtosis(constant)).isNaN();
     });
 
+    test('rankData and spearmanCorrelation with NaN returns NaN', () {
+      final data = [1.0, double.nan, 3.0];
+      final ranks = rankData(data);
+      check(ranks.any((r) => r.isNaN)).isTrue();
+
+      final corr = spearmanCorrelation([1.0, 2.0, 3.0], [1.0, double.nan, 2.0]);
+      check(corr.isNaN).isTrue();
+    });
+
     test('geometric and harmonic means', () {
       final values = [2.0, 8.0];
       check(values.geometricMean()).isCloseTo(4.0, 1e-10);

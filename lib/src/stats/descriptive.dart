@@ -147,9 +147,16 @@ double pearsonCorrelation(Iterable<num> x, Iterable<num> y) =>
     _pearsonCorrelation(x, y);
 
 /// Returns fractional ranks of [values], handling ties by averaging ranks.
+///
+/// If any value in [values] is `NaN`, all ranks are returned as `double.nan`.
 List<double> rankData(Iterable<num> values) {
   final list = values.map((value) => value.toDouble()).toList();
   final length = list.length;
+  for (var i = 0; i < length; i++) {
+    if (list[i].isNaN) {
+      return List<double>.filled(length, double.nan);
+    }
+  }
   final indices = List.generate(length, (i) => i)
     ..sort((a, b) => list[a].compareTo(list[b]));
   final ranks = List<double>.filled(length, 0.0);

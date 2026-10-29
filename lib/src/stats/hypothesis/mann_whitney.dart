@@ -25,6 +25,27 @@ HypothesisTestResult mannWhitneyUTest(
     throw ArgumentError('Groups cannot be empty');
   }
 
+  for (var i = 0; i < n1; i++) {
+    if (xList[i].isNaN) {
+      return HypothesisTestResult(
+        testName: 'Mann-Whitney U Test',
+        statistic: double.nan,
+        pValue: double.nan,
+        alpha: alpha,
+      );
+    }
+  }
+  for (var i = 0; i < n2; i++) {
+    if (yList[i].isNaN) {
+      return HypothesisTestResult(
+        testName: 'Mann-Whitney U Test',
+        statistic: double.nan,
+        pValue: double.nan,
+        alpha: alpha,
+      );
+    }
+  }
+
   final combined = [...xList, ...yList];
   final ranks = rankData(combined);
 

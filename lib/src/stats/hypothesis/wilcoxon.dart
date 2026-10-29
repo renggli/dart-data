@@ -26,6 +26,17 @@ HypothesisTestResult wilcoxonSignedRankTest(
     diffs = xList;
   }
 
+  for (var i = 0; i < diffs.length; i++) {
+    if (diffs[i].isNaN) {
+      return HypothesisTestResult(
+        testName: 'Wilcoxon Signed-Rank Test',
+        statistic: double.nan,
+        pValue: double.nan,
+        alpha: alpha,
+      );
+    }
+  }
+
   final nonZeroDiffs = diffs.where((d) => d != 0.0).toList();
   final n = nonZeroDiffs.length;
   if (n == 0) {
