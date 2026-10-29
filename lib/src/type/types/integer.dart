@@ -62,9 +62,14 @@ abstract base class IntegerDataType<L extends List<int>>
         return bits >= 64 ? intVal : intVal.toSigned(bits);
       } else {
         if (bits >= 64) {
+          if (isJavaScript) {
+            return intVal >= 0
+                ? intVal
+                : BigInt.from(intVal).toUnsigned(bits).toInt();
+          }
           return intVal >= 0
               ? intVal
-              : BigInt.from(intVal).toUnsigned(bits).toInt();
+              : BigInt.from(intVal).toUnsigned(safeBits).toInt();
         }
         return intVal.toUnsigned(bits);
       }
@@ -72,6 +77,9 @@ abstract base class IntegerDataType<L extends List<int>>
       if (isSigned) {
         return value.toSigned(bits).toInt();
       } else {
+        if (!isJavaScript && bits >= 64) {
+          return value.toUnsigned(safeBits).toInt();
+        }
         return value.toUnsigned(bits).toInt();
       }
     } else if (value is Fraction) {
@@ -287,7 +295,7 @@ final class Uint64DataType extends IntegerDataType<List<int>> {
   int get min => 0;
 
   @override
-  int get max => isJavaScript ? 9007199254740991 : 454279 * 649657 * 31252369;
+  int get max => safeMax;
 
   @override
   int get safeBits => isJavaScript ? 53 : 63;

@@ -14,7 +14,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `UnmodifiableFloat64ComplexList` extends `Float64ComplexList` and inherits `sublistView`, which wraps `Float64List.sublistView(data, 2 * start, 2 * end)` in a mutable `Float64ComplexList._`. In the Dart SDK, calling `Float64List.sublistView` on an `UnmodifiableFloat64ListView` accesses `.buffer.asFloat64List(...)`, returning a mutable `Float64List` over the underlying buffer. Mutating the returned `sublistView` mutates the backing storage of the `UnmodifiableFloat64ComplexList`.
   - **Fix**: Override `sublistView` in `UnmodifiableFloat64ComplexList` to return `UnmodifiableFloat64ComplexList(super.sublistView(start, end))`.
 
-- [ ] **1.1.2 `Uint64DataType` max bound is wrong ($2^{63}-1$ instead of $2^{64}-1$) and `cast`/`Uint64List` wrap to negative `int` on Dart VM**
+- [x] **1.1.2 `Uint64DataType` max bound is wrong ($2^{63}-1$ instead of $2^{64}-1$) and `cast`/`Uint64List` wrap to negative `int` on Dart VM**
   - **Severity**: Critical
   - **Location**: `lib/src/type/types/integer.dart:64-68, 285-312`
   - **Problem**: `Uint64DataType.max` (`line 300`) computes `BigInt.from(454279) * BigInt.from(649657) * BigInt.from(31252369) == 9223372036854775807` ($2^{63} - 1$, signed 64-bit max) instead of $2^{64} - 1$. Meanwhile, `safeBits` (`line 295`) is `isJavaScript ? 53 : 63` while `bits` (`line 292`) is `64`. In `IntegerDataType.cast` (`lines 64-68`), `BigInt.from(intVal).toUnsigned(64).toInt()` converts values in $[2^{63}, 2^{64}-1]$ (or negative `intVal`) back to a negative 64-bit signed `int` on the Dart VM.

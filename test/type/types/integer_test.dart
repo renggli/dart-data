@@ -97,6 +97,9 @@ void main() {
       check(DataType.uint64.max).isGreaterThan(DataType.uint64.min);
       check(DataType.int8.cast('200')).equals(-56);
       check(DataType.uint8.cast('-1')).equals(255);
+      check(DataType.uint64.cast(-1)).isGreaterThan(0);
+      check(DataType.uint64.cast(BigInt.parse('18446744073709551615')))
+          .isGreaterThan(0);
     });
 
     test('IntegerField extended operations', () {
