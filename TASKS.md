@@ -50,7 +50,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Line 18 checks `_defaultValue == null` to return `'object'`, so `DataType.nullableObject<String>().name` returns `'object'` instead of `'object<String?>'`. Line 26 (`ObjectDataType<T?> get nullable => ObjectDataType<T?>(null);`) discards `_defaultValue`.
   - **Fix**: Check `T == dynamic || T == Object || T == Object?` for `'object'`, and preserve `_defaultValue` in `get nullable`.
 
-- [ ] **1.1.8 `NullableDataType<T>` does not override `equality`**
+- [x] **1.1.8 `NullableDataType<T>` does not override `equality`**
   - **Severity**: Warning
   - **Location**: `lib/src/type/types/nullable.dart:11-90`
   - **Problem**: `NullableDataType<T>` inherits `DataType.equality` (`const NaturalEquality()`), so `DataType.float64.nullable.equality.isClose(1.0, 1.0 + 1e-12, 1e-6)` uses `a == b` (`false`) and `isEqual(double.nan, double.nan)` returns `false` instead of delegating to `delegate.equality`.

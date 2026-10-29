@@ -7,6 +7,7 @@ import 'package:more/functional.dart';
 import 'package:more/printer.dart' show NullPrinterExtension, Printer;
 
 import '../data_type.dart';
+import '../models/equality.dart';
 
 /// Some [DataType] instances do not support `null` values in the way they
 /// represent their data. This wrapper turns those types into nullable ones.
@@ -49,6 +50,9 @@ final class NullableDataType<T> extends DataType<T?> {
   int comparator(T? a, T? b) => _comparator(a, b);
 
   @override
+  Equality<T?> get equality => _equality;
+
+  @override
   T? cast(Object? value) => value == null ? null : delegate.cast(value);
 
   @override
@@ -87,6 +91,37 @@ final class NullableDataType<T> extends DataType<T?> {
   late final Comparator<T?> _comparator = nullsFirst
       ? delegate.comparator.nullsFirst
       : delegate.comparator.nullsLast;
+
+  late final Equality<T?> _equality = NullableEquality<T>(delegate.equality);
+}
+
+/// Equality relation for nullable data types delegating to an underlying [Equality].
+final class NullableEquality<T> implements Equality<T?> {
+  /// Creates a new [NullableEquality] wrapping [delegate].
+  const new(this.delegate);
+
+  /// The delegate equality for non-null elements.
+  final Equality<T> delegate;
+
+  @override
+  bool isEqual(T? a, T? b) =>
+      identical(a, b) || (a != null && b != null && delegate.isEqual(a, b));
+
+  @override
+  bool isClose(T? a, T? b, double epsilon) =>
+      identical(a, b) ||
+      (a != null && b != null && delegate.isClose(a, b, epsilon));
+
+  @override
+  int hash(T? a) => a == null ? 0 : delegate.hash(a);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NullableEquality<T> && delegate == other.delegate);
+
+  @override
+  int get hashCode => delegate.hashCode;
 }
 
 /// A list with null values, where the null values are tracked in a separate
