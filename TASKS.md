@@ -192,7 +192,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `hypergeometric1F1(a, b, z)` sums the alternating power series directly for negative $z$. For `hypergeometric1F1(1.0, 2.0, -50.0)`, intermediate terms reach $10^{20}$ while the true value is $\approx 0.02$, returning garbage ($\sim \pm 10^{26}$) due to 53-bit cancellation. Additionally, when `z` is `±Infinity`, `term` becomes `NaN` and the loop runs all 1,500 iterations.
   - **Fix**: Handle `!zd.isFinite` upfront, and for `zd < 0` apply Kummer's first transformation $_1F_1(a; b; z) = e^z \, _1F_1(b - a; b; -z)$ (or asymptotic expansion for large $|z|$).
 
-- [ ] **1.5.3 `trigamma(double.negativeInfinity)` returns `0.0` instead of `double.nan`**
+- [x] **1.5.3 `trigamma(double.negativeInfinity)` returns `0.0` instead of `double.nan`**
   - **Severity**: Warning
   - **Location**: `lib/src/special/digamma.dart:69-71`
   - **Problem**: `if (x.isInfinite) return 0.0;` returns `0.0` for `trigamma(double.negativeInfinity)`, even though $\psi_1(x)$ has poles at every non-positive integer and no limit as $x \to -\infty$ (unlike `digamma(double.negativeInfinity)` at line 22 which returns `double.nan`).

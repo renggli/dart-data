@@ -67,7 +67,7 @@ double digamma(num x) {
 double trigamma(num x) {
   if (x.isNaN) return double.nan;
   if (x.isInfinite) {
-    return 0.0;
+    return x.isNegative ? double.nan : 0.0;
   }
   var value = x.toDouble();
   if (value <= 0.0) {

@@ -23,6 +23,7 @@ void main() {
       check(trigamma(0)).isNaN();
       check(trigamma(-1)).isNaN();
       check(trigamma(double.infinity)).equals(0.0);
+      check(trigamma(double.negativeInfinity)).isNaN();
       check(trigamma(-1.5).isFinite).isTrue();
     });
   });
