@@ -118,7 +118,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: In `VforceDart.convolve` and `VforceDart.correlate`, `output[n]` is overwritten in-place during the outer loop while subsequent iterations read `signal[n + p]`. If `output` aliases `signal` or `filter`, inputs are clobbered mid-loop. Additionally, when `rLen <= 0`, `Vforce.convolve` and `Vforce.correlate` return a new `Float64List(0)` before validating or returning a caller-supplied `output`.
   - **Fix**: Validate `output` before early returns, and if `sharesMemory(output, signal) || sharesMemory(output, filter)`, accumulate into a temporary buffer before copying into `output`.
 
-- [ ] **1.3.3 Unbounded native memory leak in FFTW plan and vDSP setup caches**
+- [x] **1.3.3 Unbounded native memory leak in FFTW plan and vDSP setup caches**
   - **Severity**: Warning
   - **Location**: `lib/src/acceleration/fft/fft_native.dart:38-44, 247-343`
   - **Problem**: `_vdspFwdSetups`, `_vdspInvSetups`, `_fftw1dFwdPlans`, `_fftw1dInvPlans`, `_fftw2dFwdPlans`, and `_fftw2dInvPlans` cache native pointers keyed by signal dimensions with no capacity bound and never call `vDSP_DFT_DestroySetupD` or `fftw_destroy_plan`.

@@ -27,13 +27,16 @@ abstract final class FftNative {
 
   static final bool _hasFftw =
       hasSymbol('fftw_plan_dft_1d', _libs) &&
-      hasSymbol('fftw_execute_dft', _libs);
+      hasSymbol('fftw_execute_dft', _libs) &&
+      hasSymbol('fftw_destroy_plan', _libs);
 
   static final _FftBackend _backend = () {
     if (_hasVdsp) return _FftBackend.vdsp;
     if (_hasFftw) return _FftBackend.fftw;
     return _FftBackend.none;
   }();
+
+  static const int _maxCacheSize = 64;
 
   static final Map<int, ffi.Pointer<ffi.Void>> _vdspFwdSetups = {};
   static final Map<int, ffi.Pointer<ffi.Void>> _vdspInvSetups = {};
@@ -93,15 +96,25 @@ abstract final class FftNative {
   static ffi.Pointer<ffi.Void>? _getVdspSetup(int n, bool inverse) {
     if (!_hasVdsp) return null;
     final cache = inverse ? _vdspInvSetups : _vdspFwdSetups;
-    return cache.putIfAbsent(
+    final existing = cache[n];
+    if (existing != null) return existing;
+    if (cache.length >= _maxCacheSize) {
+      final oldestKey = cache.keys.first;
+      final evicted = cache.remove(oldestKey);
+      if (evicted != null && evicted != ffi.nullptr) {
+        _vdspDftDestroySetupD(evicted);
+      }
+    }
+    final created = _vdspDftInterleavedCreateSetupD(
+      ffi.nullptr,
       n,
-      () => _vdspDftInterleavedCreateSetupD(
-        ffi.nullptr,
-        n,
-        inverse ? _vDspDftInverse : _vDspDftForward,
-        _vDspDftInterleavedComplextoComplex,
-      ),
+      inverse ? _vDspDftInverse : _vDspDftForward,
+      _vDspDftInterleavedComplextoComplex,
     );
+    if (created != ffi.nullptr) {
+      cache[n] = created;
+    }
+    return created;
   }
 
   static void _butterfly2or4(
@@ -303,16 +316,26 @@ abstract final class FftNative {
   static ffi.Pointer<ffi.Void>? _getFftw1dPlan(int n, bool inverse) {
     if (!_hasFftw) return null;
     final cache = inverse ? _fftw1dInvPlans : _fftw1dFwdPlans;
-    return cache.putIfAbsent(
+    final existing = cache[n];
+    if (existing != null) return existing;
+    if (cache.length >= _maxCacheSize) {
+      final oldestKey = cache.keys.first;
+      final evicted = cache.remove(oldestKey);
+      if (evicted != null && evicted != ffi.nullptr) {
+        _fftwDestroyPlan(evicted);
+      }
+    }
+    final created = _fftwPlanDft1d(
       n,
-      () => _fftwPlanDft1d(
-        n,
-        ffi.nullptr,
-        ffi.nullptr,
-        inverse ? _fftwBackward : _fftwForward,
-        _fftwEstimate | _fftwUnaligned,
-      ),
+      ffi.nullptr,
+      ffi.nullptr,
+      inverse ? _fftwBackward : _fftwForward,
+      _fftwEstimate | _fftwUnaligned,
     );
+    if (created != ffi.nullptr) {
+      cache[n] = created;
+    }
+    return created;
   }
 
   static ffi.Pointer<ffi.Void>? _getFftw2dPlan(
@@ -323,17 +346,27 @@ abstract final class FftNative {
     if (!_hasFftw) return null;
     final key = (rows << 32) | cols;
     final cache = inverse ? _fftw2dInvPlans : _fftw2dFwdPlans;
-    return cache.putIfAbsent(
-      key,
-      () => _fftwPlanDft2d(
-        rows,
-        cols,
-        ffi.nullptr,
-        ffi.nullptr,
-        inverse ? _fftwBackward : _fftwForward,
-        _fftwEstimate | _fftwUnaligned,
-      ),
+    final existing = cache[key];
+    if (existing != null) return existing;
+    if (cache.length >= _maxCacheSize) {
+      final oldestKey = cache.keys.first;
+      final evicted = cache.remove(oldestKey);
+      if (evicted != null && evicted != ffi.nullptr) {
+        _fftwDestroyPlan(evicted);
+      }
+    }
+    final created = _fftwPlanDft2d(
+      rows,
+      cols,
+      ffi.nullptr,
+      ffi.nullptr,
+      inverse ? _fftwBackward : _fftwForward,
+      _fftwEstimate | _fftwUnaligned,
     );
+    if (created != ffi.nullptr) {
+      cache[key] = created;
+    }
+    return created;
   }
 
   static bool _fft1dFftw({
@@ -398,6 +431,12 @@ abstract final class FftNative {
 
 // --- FFI Function Bindings ---
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(
+  symbol: 'vDSP_DFT_DestroySetupD',
+  isLeaf: true,
+)
+external void _vdspDftDestroySetupD(ffi.Pointer<ffi.Void> setup);
+
 @ffi.Native<
   ffi.Pointer<ffi.Void> Function(
     ffi.Pointer<ffi.Void>,
@@ -461,6 +500,12 @@ external ffi.Pointer<ffi.Void> _fftwPlanDft2d(
   int sign,
   int flags,
 );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(
+  symbol: 'fftw_destroy_plan',
+  isLeaf: true,
+)
+external void _fftwDestroyPlan(ffi.Pointer<ffi.Void> plan);
 
 @ffi.Native<
   ffi.Void Function(
