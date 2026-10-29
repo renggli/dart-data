@@ -154,6 +154,17 @@ void main() {
       check(sliceVec.variance())
           .isCloseTo(variance([for (var i = 20; i < 90; i++) i]), 1e-10);
 
+      // Constant column in pearsonCorrelationMatrix yields NaN
+      final constMatrix = Matrix<double>.fromRows([
+        [1.0, 5.0],
+        [2.0, 5.0],
+        [3.0, 5.0],
+      ]);
+      final constCorr = constMatrix.pearsonCorrelationMatrix();
+      check(constCorr.get(0, 0)).isCloseTo(1.0, 1e-10);
+      check(constCorr.get(1, 1).isNaN).isTrue();
+      check(constCorr.get(0, 1).isNaN).isTrue();
+
       // Quantile validation and NaN propagation
       check(() => quantile([1.0, 2.0], -0.1)).throws<ArgumentError>();
       check(() => quantile([1.0, 2.0], 1.1)).throws<ArgumentError>();

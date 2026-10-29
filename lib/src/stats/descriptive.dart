@@ -740,12 +740,12 @@ Matrix<double> _pearsonCorrelationMatrix(Object data, {bool rowVar = false}) {
   final std = List<double>.generate(dim, (i) => math.sqrt(cov.get(i, i)));
   final corr = Matrix<double>.filled(dim, dim, 0.0, type: DataType.float64);
   for (var i = 0; i < dim; i++) {
-    corr.set(i, i, 1.0);
+    corr.set(i, i, std[i] > 0.0 ? 1.0 : double.nan);
     for (var j = i + 1; j < dim; j++) {
       final denom = std[i] * std[j];
       final correlation = denom > 0.0
           ? (cov.get(i, j) / denom).clamp(-1.0, 1.0)
-          : 0.0;
+          : double.nan;
       corr.set(i, j, correlation);
       corr.set(j, i, correlation);
     }

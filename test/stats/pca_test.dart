@@ -75,5 +75,21 @@ void main() {
       check(() => model.inverseTransform(Matrix<double>.filled(2, 5, 1.0)))
           .throws<ArgumentError>();
     });
+
+    test('Standardized PCA with constant zero-variance feature', () {
+      final rows = [
+        [1.0, 5.0],
+        [2.0, 5.0],
+        [3.0, 5.0],
+        [4.0, 5.0],
+        [5.0, 5.0],
+      ];
+      final data = Matrix<double>.fromRows(rows, type: DataType.float64);
+
+      final model = pca(data, nComponents: 2, standardize: true);
+      // The variable feature should explain all non-zero variance (1.0), zero-variance feature gives 0.0
+      check(model.explainedVarianceRatio[0]).isCloseTo(1.0, 1e-10);
+      check(model.explainedVarianceRatio[1]).isCloseTo(0.0, 1e-10);
+    });
   });
 }

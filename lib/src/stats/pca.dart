@@ -145,9 +145,36 @@ PcaResult pca(Matrix<num> data, {int? nComponents, bool standardize = false}) {
     }
   }
 
-  final cov = standardize
-      ? pearsonCorrelationMatrix(data, rowVar: false)
-      : covarianceMatrix(data, rowVar: false);
+  final Matrix<double> cov;
+  if (standardize) {
+    cov = Matrix<double>.filled(
+      nFeatures,
+      nFeatures,
+      0.0,
+      type: DataType.float64,
+    );
+    final rawCov = covarianceMatrix(data, rowVar: false);
+    for (var i = 0; i < nFeatures; i++) {
+      final sI = stdVec[i];
+      final varI = rawCov.get(i, i);
+      if (varI > 0.0) {
+        cov.set(i, i, 1.0);
+      }
+      for (var j = i + 1; j < nFeatures; j++) {
+        final varJ = rawCov.get(j, j);
+        if (varI > 0.0 && varJ > 0.0) {
+          final correlation = (rawCov.get(i, j) / (sI * stdVec[j])).clamp(
+            -1.0,
+            1.0,
+          );
+          cov.set(i, j, correlation);
+          cov.set(j, i, correlation);
+        }
+      }
+    }
+  } else {
+    cov = covarianceMatrix(data, rowVar: false);
+  }
 
   final eig = EigenvalueDecomposition(cov);
   final rawEigenvalues = eig.realEigenvalues;

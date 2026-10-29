@@ -324,7 +324,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `rankData` sorts via `list[a].compareTo(list[b])` (which returns `0` for `NaN`) and assigns finite ranks `1.0 .. n` to `NaN` elements, causing `spearmanCorrelation` and `mannWhitneyUTest` to return finite statistics and p-values on `NaN` data. In `wilcoxonSignedRankTest`, `diffs.where((d) => d != 0.0)` keeps `double.nan` and counts every `NaN` as a negative rank difference (`wMinus += ranks[i]`).
   - **Fix**: Detect `NaN` in `rankData`, `spearmanCorrelation`, `mannWhitneyUTest`, and `wilcoxonSignedRankTest`, returning `double.nan`.
 
-- [ ] **1.8.3 `pca(standardize: true)` assigns unit variance (`1.0`) to constant zero-variance features**
+- [x] **1.8.3 `pca(standardize: true)` assigns unit variance (`1.0`) to constant zero-variance features**
   - **Severity**: Critical
   - **Location**: `lib/src/stats/pca.dart:144-150`, `lib/src/stats/descriptive.dart:730-747`
   - **Problem**: When `standardize: true`, `pca` delegates to `_pearsonCorrelationMatrix(centered)`. In `_pearsonCorrelationMatrix` (`descriptive.dart:736`), every diagonal entry is unconditionally set to `1.0` even when a column is constant (`stdDevs[i] == 0.0`), giving zero-variance features an eigenvalue of `1.0` and corrupting PCA components and `explainedVarianceRatio`.
