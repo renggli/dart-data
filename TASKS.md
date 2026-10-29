@@ -56,7 +56,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `NullableDataType<T>` inherits `DataType.equality` (`const NaturalEquality()`), so `DataType.float64.nullable.equality.isClose(1.0, 1.0 + 1e-12, 1e-6)` uses `a == b` (`false`) and `isEqual(double.nan, double.nan)` returns `false` instead of delegating to `delegate.equality`.
   - **Fix**: Override `Equality<T?> get equality` in `NullableDataType<T>` to handle `null` values and delegate non-null comparisons/hashes to `delegate.equality`.
 
-- [ ] **1.1.9 `TypedDataType.copyList` evaluates single-pass `Iterable`s twice**
+- [x] **1.1.9 `TypedDataType.copyList` evaluates single-pass `Iterable`s twice**
   - **Severity**: Warning
   - **Location**: `lib/src/type/types/typed.dart:44-55`
   - **Problem**: `copyList` reads `final listLength = iterable.length;` (`line 48`) and then calls `result.setRange(..., iterable)` (`line 53`), iterating lazy/single-pass iterables twice.

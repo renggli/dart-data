@@ -22,5 +22,21 @@ void main() {
       check(copy).isA<Float64List>();
       check(copy).length.equals(3);
     });
+
+    test('copyList evaluates single-pass iterable only once', () {
+      var callCount = 0;
+      Iterable<double> generator() sync* {
+        callCount++;
+        yield 1.0;
+        yield 2.0;
+        yield 3.0;
+      }
+
+      final iterable = generator();
+      final copy = DataType.float64.copyList(iterable);
+      check(copy).isA<Float64List>();
+      check(copy).which((it) => it.deepEquals([1.0, 2.0, 3.0]));
+      check(callCount).equals(1);
+    });
   });
 }
