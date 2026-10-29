@@ -914,5 +914,48 @@ void main() {
       // toString
       check(t2d.toString()).contains('Tensor(');
     });
+
+    test('Tensor.operator == and hashCode respect type.equality', () {
+      const customType = _CaseInsensitiveStringDataType();
+      final t1 = Tensor<String>.fromIterable([
+        'Hello',
+        'World',
+      ], type: customType);
+      final t2 = Tensor<String>.fromIterable([
+        'hello',
+        'world',
+      ], type: customType);
+      final t3 = Tensor<String>.fromIterable([
+        'hello',
+        'other',
+      ], type: customType);
+
+      check(t1 == t2).isTrue();
+      check(t1 == t3).isFalse();
+      check(t1.hashCode).equals(t2.hashCode);
+    });
   });
+}
+
+final class _CaseInsensitiveStringDataType extends DataType<String> {
+  const new();
+
+  @override
+  String get name => 'case_insensitive_string';
+
+  @override
+  String get defaultValue => '';
+
+  @override
+  Equality<String> get equality => const _CaseInsensitiveStringEquality();
+}
+
+final class _CaseInsensitiveStringEquality extends NaturalEquality<String> {
+  const new();
+
+  @override
+  bool isEqual(String a, String b) => a.toLowerCase() == b.toLowerCase();
+
+  @override
+  int hash(String a) => a.toLowerCase().hashCode;
 }

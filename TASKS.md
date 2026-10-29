@@ -96,7 +96,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Passing `pNorm <= 0` or `pNorm.isNaN` is not rejected (`norm(0)` returns `Infinity`, `norm(double.negativeInfinity)` returns `NaN`). Additionally, the non-BLAS `norm(2)` loop computes unscaled `sumSq += normVal * normVal`, overflowing to `Infinity` for elements $\ge 10^{155}$ even when the Euclidean norm is finite.
   - **Fix**: Validate `if (pNorm.isNaN || pNorm < 1) throw ArgumentError.value(pNorm, 'pNorm', 'Must be >= 1');` and use Blue's/LAPACK scaled summation for `pNorm == 2`.
 
-- [ ] **1.2.6 `Tensor.operator ==` ignores `type.equality`**
+- [x] **1.2.6 `Tensor.operator ==` ignores `type.equality`**
   - **Severity**: Warning
   - **Location**: `lib/src/tensor/tensor.dart:348-363`
   - **Problem**: `Tensor.operator ==` compares elements via `it1.current != it2.current` instead of `type.equality.isEqual(it1.current, it2.current)`, violating `==` reflexivity for tensors containing `double.nan` when compared with a copy of themselves.

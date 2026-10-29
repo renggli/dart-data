@@ -374,7 +374,8 @@ class Tensor<T> {
     final it1 = values.iterator;
     final it2 = other.values.iterator;
     while (it1.moveNext() && it2.moveNext()) {
-      if (it1.current != it2.current) return false;
+      final v2 = it2.current;
+      if (v2 is! T || !type.equality.isEqual(it1.current, v2)) return false;
     }
     return true;
   }
@@ -386,7 +387,7 @@ class Tensor<T> {
       hash = Object.hash(hash, layout.shape[i]);
     }
     for (final v in values) {
-      hash = Object.hash(hash, v);
+      hash = Object.hash(hash, type.equality.hash(v));
     }
     return hash;
   }
