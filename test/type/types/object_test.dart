@@ -24,15 +24,18 @@ void main() {
 
     test('nullableObject', () {
       final nullable = DataType.nullableObject<String>();
+      check(nullable.name).equals('object<String?>');
       check(nullable.defaultValue).isNull();
       check(nullable.isNullable).isTrue();
+      check(nullable.nullable).identicalTo(nullable);
     });
 
     test('name, nullable, equality, and hashCode', () {
       final custom = DataType.createObject<String>('hello');
       check(custom.name).equals('object<String>');
       check(custom.nullable.isNullable).isTrue();
-      check(custom.nullable.defaultValue).isNull();
+      check(custom.nullable.name).equals('object<String?>');
+      check(custom.nullable.defaultValue).equals('hello');
       check(custom == DataType.createObject<String>('hello')).isTrue();
       check(custom == DataType.createObject<String>('other')).isFalse();
       check(custom.hashCode)

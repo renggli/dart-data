@@ -44,7 +44,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `BigIntEquality.isClose` computes `(a - b).abs().toDouble() <= epsilon`, which loses precision above $2^{53}$ and overflows to `double.infinity` above $1.8 \times 10^{308}$. `BigIntField.scale` calls `Fraction.fromDouble(factor.toDouble())`, which throws `ArgumentError` if `factor` is `NaN` or `Infinity`.
   - **Fix**: In `BigIntEquality.isClose`, guard `epsilon.isNaN` and `epsilon < 0`, return `true` if `epsilon == double.infinity`, and compare `(a - b).abs()` using `BigInt` when `epsilon >= 1.0`.
 
-- [ ] **1.1.7 `ObjectDataType.name` loses type parameter `T` when `_defaultValue == null`, and `.nullable` drops `_defaultValue`**
+- [x] **1.1.7 `ObjectDataType.name` loses type parameter `T` when `_defaultValue == null`, and `.nullable` drops `_defaultValue`**
   - **Severity**: Warning
   - **Location**: `lib/src/type/types/object.dart:18-20, 26`
   - **Problem**: Line 18 checks `_defaultValue == null` to return `'object'`, so `DataType.nullableObject<String>().name` returns `'object'` instead of `'object<String?>'`. Line 26 (`ObjectDataType<T?> get nullable => ObjectDataType<T?>(null);`) discards `_defaultValue`.

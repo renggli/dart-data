@@ -15,15 +15,15 @@ final class ObjectDataType<T> extends DataType<T> {
   }
 
   @override
-  String get name => T == dynamic || T == Object || _defaultValue == null
-      ? 'object'
-      : 'object<$T>';
+  String get name => _isGeneralType<T>() ? 'object' : 'object<$T>';
 
   @override
   bool get isNullable => null is T;
 
   @override
-  ObjectDataType<T?> get nullable => ObjectDataType<T?>(null);
+  ObjectDataType<T?> get nullable => isNullable
+      ? this as ObjectDataType<T?>
+      : ObjectDataType<T?>(_defaultValue);
 
   @override
   T cast(Object? value) => value as T;
@@ -36,3 +36,8 @@ final class ObjectDataType<T> extends DataType<T> {
       identical(this, other) ||
       (other is ObjectDataType<T> && _defaultValue == other._defaultValue);
 }
+
+Type _typeOf<T>() => T;
+
+bool _isGeneralType<T>() =>
+    T == dynamic || T == Object || _typeOf<T>() == _typeOf<Object?>();
