@@ -14,6 +14,15 @@ void main() {
       check(result.point1D).isCloseTo(3.0, 1e-6);
       check(result.value).isCloseTo(5.0, 1e-6);
       check(result.converged).isTrue();
+
+      // Constrained 1D interval: min (x - 3)^2 subject to x <= 2.0 (x - 2 <= 0)
+      final constrainedResult = minimize(
+        function,
+        a: 0.0,
+        b: 6.0,
+        inequalities: [(v) => v[0] - 2.0],
+      );
+      check(constrainedResult.point1D).isCloseTo(2.0, 1e-2);
     });
 
     test('1D Brent minimization with initialPoint and bounds', () {

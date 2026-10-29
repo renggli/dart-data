@@ -61,7 +61,12 @@ OptimizationResult minimize(
     if (a != null && b != null) {
       init = Vector<double>.fromList([(a + b) / 2.0], type: DataType.float64);
       bnds ??= [BoxBound(lower: a, upper: b)];
-      resolvedMethod ??= OptimizationMethod.brent;
+      final hasExtraConstraints =
+          (inequalities != null && inequalities.isNotEmpty) ||
+          (equalities != null && equalities.isNotEmpty);
+      if (!hasExtraConstraints) {
+        resolvedMethod ??= OptimizationMethod.brent;
+      }
     } else {
       throw ArgumentError(
         'Either initialPoint or both interval bounds a and b must be provided.',

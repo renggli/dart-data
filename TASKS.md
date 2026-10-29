@@ -278,7 +278,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: In semi-infinite coordinate transformations (`a == double.negativeInfinity` and `b == double.infinity`), `return res.isNaN ? 0.0 : res;` coerces any `NaN` across the entire domain into `0.0`, so `integrate((x) => double.nan, 0.0, double.infinity)` silently returns `(value: 0.0, error: 0.0)`.
   - **Fix**: Only coerce `res.isNaN` to `0.0` near the transformation boundary $t \to 0^+$ (`t < 1e-6`).
 
-- [ ] **1.7.5 `minimize` silently ignores constraints when `a` and `b` are provided without `method`**
+- [x] **1.7.5 `minimize` silently ignores constraints when `a` and `b` are provided without `method`**
   - **Severity**: Warning
   - **Location**: `lib/src/numeric/optimization.dart:60-65, 85`
   - **Problem**: When `a` and `b` are passed without `initialPoint`, `resolvedMethod` defaults to `OptimizationMethod.brent`. Line 85 checks `if (hasConstraints && resolvedMethod != OptimizationMethod.brent)`, silently ignoring `inequalities` and `equalities`.
