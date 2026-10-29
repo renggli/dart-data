@@ -100,6 +100,9 @@ abstract final class Blas {
   }
 
   /// Computes Euclidean norm of [Float64List] vector: $\|x\|_2$.
+  ///
+  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
+  /// return `0.0`.
   static double dnrm2({
     required int n,
     required Float64List x,
@@ -120,6 +123,9 @@ abstract final class Blas {
   }
 
   /// Computes Euclidean norm of [Float32List] vector: $\|x\|_2$.
+  ///
+  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
+  /// return `0.0`.
   static double snrm2({
     required int n,
     required Float32List x,
@@ -228,6 +234,9 @@ abstract final class Blas {
   }
 
   /// Scales [Float64List] vector: $x \leftarrow \alpha x$.
+  ///
+  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
+  /// are a no-op.
   static bool dscal({
     required int n,
     required double alpha,
@@ -260,6 +269,9 @@ abstract final class Blas {
   }
 
   /// Scales [Float32List] vector: $x \leftarrow \alpha x$.
+  ///
+  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
+  /// are a no-op.
   static bool sscal({
     required int n,
     required double alpha,

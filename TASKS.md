@@ -106,7 +106,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ### 1.3 `acceleration` Subsystem
 
-- [ ] **1.3.1 `BlasDart.dnrm2`, `snrm2`, `dscal`, and `sscal` silently return `0.0` or no-op for negative `incX`**
+- [x] **1.3.1 `BlasDart.dnrm2`, `snrm2`, `dscal`, and `sscal` silently return `0.0` or no-op for negative `incX`**
   - **Severity**: Critical
   - **Location**: `lib/src/acceleration/blas/blas_dart.dart:69, 98, 176, 191`, `lib/src/acceleration/blas/blas_validation.dart:33-41`
   - **Problem**: `checkBlasInc` only rejects `inc == 0` and allows `incX < 0`. `BlasDart.ddot`, `daxpy`, `dgemv`, `dsyr2`, and `dtrmv` handle `incX < 0`, whereas `dnrm2`, `snrm2`, `dscal`, and `sscal` check `if (n <= 0 || incX <= 0) return ...;`, silently returning `0.0` or doing nothing for negative strides.
