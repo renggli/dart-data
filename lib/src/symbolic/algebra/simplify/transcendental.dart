@@ -447,17 +447,30 @@ Expr simplifyAbs(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 /// Returns `true` if [expr] is known to be real-valued under [assumptions].
 bool isProvenReal(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
     switch (expr) {
-      RealNumeric() ||
-      Abs() ||
-      Re() ||
-      Im() ||
-      Arg() ||
-      Floor() ||
-      Ceil() ||
-      Round() ||
-      Sign() ||
-      Factorial() ||
-      Binomial() => true,
+      RealNumeric() || Abs() || Re() || Im() || Arg() => true,
+      Floor(:final expr) ||
+      Ceil(:final expr) ||
+      Round(:final expr) ||
+      Sign(:final expr) ||
+      Factorial(:final expr) => isProvenReal(expr, assumptions),
+      Binomial(:final left, :final right) =>
+        isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
+      LambertW(:final expr, :final branch) => switch (branch) {
+        0 =>
+          isProvenReal(expr, assumptions) &&
+              (isNonNegativeExpr(expr, assumptions: assumptions) ||
+                  switch (_tryStaticRealValue(expr)) {
+                    final v? => v >= -1.0 / math.e - 1e-12,
+                    _ => false,
+                  }),
+        -1 =>
+          isProvenReal(expr, assumptions) &&
+              switch (_tryStaticRealValue(expr)) {
+                final v? => v >= -1.0 / math.e - 1e-12 && v < 0.0,
+                _ => false,
+              },
+        _ => false,
+      },
       ComplexNumber(:final imaginary) => imaginary.isZero,
       Constant(:final isReal) => isReal,
       Variable(:final name) => switch (assumptions.domainOf(name)) {
@@ -487,11 +500,50 @@ bool isProvenReal(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
       Erf(:final expr) ||
       Erfc(:final expr) ||
       Gamma(:final expr) => isProvenReal(expr, assumptions),
+      Asin(:final expr) || Acos(:final expr) =>
+        isProvenReal(expr, assumptions) &&
+            switch (_tryStaticRealValue(expr)) {
+              final v? => v.abs() <= 1.0 + 1e-12,
+              _ => false,
+            },
+      Acosh(:final expr) =>
+        isProvenReal(expr, assumptions) &&
+            switch (_tryStaticRealValue(expr)) {
+              final v? => v >= 1.0 - 1e-12,
+              _ => false,
+            },
+      Atanh(:final expr) =>
+        isProvenReal(expr, assumptions) &&
+            switch (_tryStaticRealValue(expr)) {
+              final v? => v.abs() < 1.0 - 1e-12,
+              _ => false,
+            },
       Ln(:final expr) => isPositiveExpr(expr, assumptions: assumptions),
       Beta(:final left, :final right) || Mod(:final left, :final right) =>
         isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
       _ => false,
     };
+
+double? _tryStaticRealValue(Expr expr) {
+  switch (expr) {
+    case RealNumeric():
+      return expr.toDouble();
+    case Constant(:final isReal, :final value) when isReal:
+      return value.a.toDouble();
+    case _ when expr.freeVariables.isEmpty:
+      try {
+        final c = expr.evaluateComplex();
+        if (c.b.abs() < 1e-12 && c.a.isFinite) {
+          return c.a.toDouble();
+        }
+      } on Object {
+        // Fall back to null if evaluation fails.
+      }
+      return null;
+    case _:
+      return null;
+  }
+}
 
 /// Returns `true` if [expr] is known to be strictly positive under [assumptions].
 bool isPositiveExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) =>

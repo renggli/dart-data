@@ -617,6 +617,22 @@ void main() {
 
       // isProvenReal on non-negative base with real exponent, and isIntegerExpr on Factorial and Binomial
       check(isProvenReal(Pow(Abs(x), y), realAssumptions)).isTrue();
+      check(isProvenReal(Factorial(ComplexNumber.i))).isFalse();
+      check(isProvenReal(Binomial(ComplexNumber.i, IntegerNumber.one)))
+          .isFalse();
+      check(isProvenReal(Floor(ComplexNumber.i))).isFalse();
+      check(isProvenReal(Ceil(ComplexNumber.i))).isFalse();
+      check(isProvenReal(Round(ComplexNumber.i))).isFalse();
+      check(isProvenReal(Sign(ComplexNumber.i))).isFalse();
+      check(Im(Factorial(ComplexNumber.i)).simplify())
+          .not((it) => it.equals(IntegerNumber.zero));
+      check(isProvenReal(LambertW(IntegerNumber.of(-1)))).isFalse();
+      check(isProvenReal(LambertW(IntegerNumber.one, branch: -1))).isFalse();
+      check(isProvenReal(LambertW(IntegerNumber.one))).isTrue();
+      check(isProvenReal(Asin(Constant.pi))).isFalse();
+      check(isProvenReal(Acos(Constant.pi))).isFalse();
+      check(isProvenReal(Atanh(Constant.e))).isFalse();
+      check(isProvenReal(Acosh(IntegerNumber.zero))).isFalse();
       const intAssumptions = Assumptions(
         domains: {'x': VariableDomain.positive, 'y': VariableDomain.integer},
       );

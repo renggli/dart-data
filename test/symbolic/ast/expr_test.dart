@@ -151,6 +151,14 @@ void main() {
       check((x + IntegerNumber.two).isReal).isTrue();
       check((x + ComplexNumber.i).isReal).isFalse();
       check(Sin(ComplexNumber.i).isReal).isFalse();
+      check(Asin(Constant.pi).isReal).isFalse();
+      check(Acos(Constant.pi).isReal).isFalse();
+      check(Atanh(Constant.e).isReal).isFalse();
+      check(Acosh(IntegerNumber.zero).isReal).isFalse();
+      check(LambertW(IntegerNumber.of(-1)).isReal).isFalse();
+      check(LambertW(IntegerNumber.one, branch: -1).isReal).isFalse();
+      check(LambertW(IntegerNumber.one).isReal).isTrue();
+      check(Ln(IntegerNumber.of(-2)).isReal).isFalse();
     });
   });
 }

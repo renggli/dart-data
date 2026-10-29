@@ -227,15 +227,38 @@ sealed class Expr {
               base is Abs),
     Ln(:final expr) =>
       _isRealSubtree(expr) &&
-          !(expr is RealNumeric && (expr.isNegative || expr.isZero)),
+          !(expr is RealNumeric && (expr.isNegative || expr.isZero)) &&
+          !(expr is Constant && (expr.value.b != 0.0 || expr.value.a <= 0.0)),
     Asin(:final expr) || Acos(:final expr) =>
       _isRealSubtree(expr) &&
-          !(expr is RealNumeric && expr.toDouble().abs() > 1.0),
+          !(expr is RealNumeric && expr.toDouble().abs() > 1.0) &&
+          !(expr is Constant &&
+              (expr.value.b != 0.0 || expr.value.a.abs() > 1.0)),
     Acosh(:final expr) =>
-      _isRealSubtree(expr) && !(expr is RealNumeric && expr.toDouble() < 1.0),
+      _isRealSubtree(expr) &&
+          !(expr is RealNumeric && expr.toDouble() < 1.0) &&
+          !(expr is Constant && (expr.value.b != 0.0 || expr.value.a < 1.0)),
     Atanh(:final expr) =>
       _isRealSubtree(expr) &&
-          !(expr is RealNumeric && expr.toDouble().abs() >= 1.0),
+          !(expr is RealNumeric && expr.toDouble().abs() >= 1.0) &&
+          !(expr is Constant &&
+              (expr.value.b != 0.0 || expr.value.a.abs() >= 1.0)),
+    LambertW(:final expr, :final branch) => switch (branch) {
+      0 =>
+        _isRealSubtree(expr) &&
+            !(expr is RealNumeric && expr.toDouble() < -1.0 / math.e) &&
+            !(expr is Constant &&
+                (expr.value.b != 0.0 || expr.value.a < -1.0 / math.e)),
+      -1 =>
+        _isRealSubtree(expr) &&
+            !(expr is RealNumeric &&
+                (expr.toDouble() < -1.0 / math.e || expr.toDouble() >= 0.0)) &&
+            !(expr is Constant &&
+                (expr.value.b != 0.0 ||
+                    expr.value.a < -1.0 / math.e ||
+                    expr.value.a >= 0.0)),
+      _ => false,
+    },
     BinaryExpr(:final left, :final right) =>
       _isRealSubtree(left) && _isRealSubtree(right),
     UnaryExpr(:final expr) => _isRealSubtree(expr),
