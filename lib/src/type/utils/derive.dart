@@ -22,11 +22,34 @@ DataType<T> fromInstance<T>(T instance) {
 DataType<T> fromIterable<T>(Iterable<T> iterable) {
   if (T == int) return DataType.integer as DataType<T>;
   if (T == double) return DataType.float as DataType<T>;
+  if (_isGeneralType<T>()) {
+    DataType<Object?>? candidate;
+    for (final element in iterable) {
+      if (element == null) {
+        if (candidate != null) candidate = candidate.nullable;
+        continue;
+      }
+      final elemType =
+          _fromType(element.runtimeType) ?? ObjectDataType<Object?>(element);
+      if (candidate == null) {
+        candidate = elemType;
+      } else if (candidate != elemType) {
+        return ObjectDataType<T>();
+      }
+    }
+    if (candidate != null) return candidate as DataType<T>;
+    return ObjectDataType<T>();
+  }
   if (iterable.isNotEmpty) {
     return fromInstance<T>(iterable.first);
   }
   return fromType<T>();
 }
+
+bool _isGeneralType<T>() =>
+    T == Object || T == dynamic || _typeOf<T>() == _typeOf<Object?>();
+
+Type _typeOf<T>() => T;
 
 DataType<Object?>? _fromType(Type type) => switch (type) {
   const (int) => DataType.integer,

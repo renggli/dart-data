@@ -51,6 +51,12 @@ void main() {
       check(fromIterable([true, false])).equals(DataType.boolean);
     });
 
+    test('heterogeneous Object/Object? elements fall back to object type', () {
+      final heterogeneous = <Object?>[1.0, 'a'];
+      check(fromIterable(heterogeneous))
+          .equals(DataType.nullableObject<Object?>());
+    });
+
     test('empty iterable uses type parameter', () {
       check(fromIterable(<String>[])).equals(DataType.string);
       check(fromIterable(<bool>[])).equals(DataType.boolean);

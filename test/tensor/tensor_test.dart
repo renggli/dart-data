@@ -202,6 +202,11 @@ void main() {
         [3, 4],
       ]);
 
+      final tHeterogeneous = Tensor<Object?>.fromObject([1.0, 'a']);
+      check(tHeterogeneous.shape).deepEquals([2]);
+      check(tHeterogeneous.getValue([0])).equals(1.0);
+      check(tHeterogeneous.getValue([1])).equals('a');
+
       // Ragged nested lists throw ArgumentError
       check(
         () => Tensor<int>.fromObject([
