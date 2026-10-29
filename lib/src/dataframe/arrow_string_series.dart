@@ -140,7 +140,8 @@ class ArrowStringSeries extends Series<String> {
   ///
   /// Returns an empty view if the entry is null or empty.
   Uint8List getBytes(int index) {
-    if (index < 0 || index >= length || isNull(index)) {
+    RangeError.checkValidIndex(index, this, 'index', length);
+    if (isNull(index)) {
       return Uint8List(0);
     }
     final start = offsets[index];

@@ -46,9 +46,9 @@ void main() {
       final b3 = series.getBytes(3); // empty
       check(b3.isEmpty).isTrue();
 
-      // Out of bounds
-      check(series.getBytes(-1).isEmpty).isTrue();
-      check(series.getBytes(10).isEmpty).isTrue();
+      // Out of bounds throws RangeError
+      check(() => series.getBytes(-1)).throws<RangeError>();
+      check(() => series.getBytes(10)).throws<RangeError>();
     });
 
     test('filter subsets bytes and offsets correctly', () {

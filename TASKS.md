@@ -400,7 +400,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Quoted strings `"null"`, `"NA"`, and `""` are coerced to `null`, `CsvStream._buildDataFrame` trims whitespace from string columns when `columnTypes` is supplied, and `CsvStream.readChunks` infers column types independently per chunk.
   - **Fix**: Preserve quoted strings and untrimmed `DataType.string` values, and maintain consistent column types across `CsvStream.readChunks`.
 
-- [ ] **1.9.9 `ArrowStringSeries.getBytes` silently returns empty `Uint8List` on out-of-bounds index**
+- [x] **1.9.9 `ArrowStringSeries.getBytes` silently returns empty `Uint8List` on out-of-bounds index**
   - **Severity**: Warning
   - **Location**: `lib/src/dataframe/arrow_string_series.dart:142-150`
   - **Problem**: `getBytes(int index)` returns `Uint8List(0)` when `index < 0 || index >= length` instead of throwing `RangeError` (unlike `operator []` and `isNull`).
