@@ -370,7 +370,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: In `_writeInt64`, `val - 0x100000000 + 1` underflows 64-bit signed `int` on the Dart VM for `val < -9223372032559808513`, wrapping around to a positive number and corrupting both 32-bit words. In `_writeUint64`, `val ~/ 0x100000000` uses signed division on unsigned 64-bit values $\ge 2^{63}$, corrupting the output bytes.
   - **Fix**: Compute `final low = val & 0xFFFFFFFF;` and `final high = ((val - low) ~/ 0x100000000) & 0xFFFFFFFF;` in both `_writeInt64` and `_writeUint64`.
 
-- [ ] **1.9.4 `exportSeriesToArrowC` throws `TypeError` when `TypedSeries.data` is not `TypedData` or uses `DataType.numeric`**
+- [x] **1.9.4 `exportSeriesToArrowC` throws `TypeError` when `TypedSeries.data` is not `TypedData` or uses `DataType.numeric`**
   - **Severity**: Critical
   - **Location**: `lib/src/dataframe/arrow/arrow_c_data_ffi.dart:406-420, 793-808`
   - **Problem**: Line 411 casts `series.data as TypedData`, which throws `TypeError` if `TypedSeries` was constructed with a regular `List<double>`/`List<int>` or `DataType.numeric` (`Series.fromList('x', <num>[1, 2.5])`).

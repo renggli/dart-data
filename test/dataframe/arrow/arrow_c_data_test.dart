@@ -134,6 +134,73 @@ void main() {
       }
     });
 
+    test('exports Series with DataType.numeric and non-TypedData list', () {
+      final numSeries = TypedSeries<num>(
+        name: 'x',
+        data: <num>[1, 2.5, 0, 42],
+        dataType: DataType.numeric,
+      );
+      final outArray = calloc<ArrowArray>();
+      final outSchema = calloc<ArrowSchema>();
+      try {
+        numSeries.exportTo(outSchema: outSchema, outArray: outArray);
+        check(outSchema.ref.format.toDartString()).equals('g');
+        check(outArray.ref.length).equals(4);
+
+        final imported = Series.importFrom(schema: outSchema, array: outArray);
+        check(imported.name).equals('x');
+        check(imported.length).equals(4);
+        check(imported.toList()).deepEquals([1.0, 2.5, 0.0, 42.0]);
+      } finally {
+        if (outSchema.ref.release != ffi.nullptr) {
+          outSchema.ref.release
+              .asFunction<void Function(ffi.Pointer<ArrowSchema>)>()(outSchema);
+        }
+        if (outArray.ref.release != ffi.nullptr) {
+          outArray.ref.release
+              .asFunction<void Function(ffi.Pointer<ArrowArray>)>()(outArray);
+        }
+        calloc.free(outSchema);
+        calloc.free(outArray);
+      }
+
+      final regularListSeries = TypedSeries<double>(
+        name: 'y',
+        data: <double>[10.0, 20.0, 0.0],
+        dataType: DataType.float64,
+        mask: ValidityMask(3)..setNull(2),
+      );
+      final outArrayY = calloc<ArrowArray>();
+      final outSchemaY = calloc<ArrowSchema>();
+      try {
+        regularListSeries.exportTo(outSchema: outSchemaY, outArray: outArrayY);
+        check(outSchemaY.ref.format.toDartString()).equals('g');
+        check(outArrayY.ref.length).equals(3);
+        check(outArrayY.ref.null_count).equals(1);
+
+        final imported = Series.importFrom(
+          schema: outSchemaY,
+          array: outArrayY,
+        );
+        check(imported.name).equals('y');
+        check(imported.length).equals(3);
+        check(imported.toList()).deepEquals([10.0, 20.0, null]);
+      } finally {
+        if (outSchemaY.ref.release != ffi.nullptr) {
+          outSchemaY.ref.release
+              .asFunction<void Function(ffi.Pointer<ArrowSchema>)>()(
+            outSchemaY,
+          );
+        }
+        if (outArrayY.ref.release != ffi.nullptr) {
+          outArrayY.ref.release
+              .asFunction<void Function(ffi.Pointer<ArrowArray>)>()(outArrayY);
+        }
+        calloc.free(outSchemaY);
+        calloc.free(outArrayY);
+      }
+    });
+
     test('Throws StateError on already released structures', () {
       final outArray = calloc<ArrowArray>();
       final outSchema = calloc<ArrowSchema>();

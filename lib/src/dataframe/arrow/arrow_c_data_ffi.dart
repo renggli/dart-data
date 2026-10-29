@@ -408,7 +408,20 @@ void exportSeriesToArrowC({
       final buffers = calloc<ffi.Pointer<ffi.Void>>(2);
       buffers[0] = maskBuffer;
 
-      final typedData = series.data as TypedData;
+      final TypedData typedData;
+      if (series.data is TypedData) {
+        typedData = series.data as TypedData;
+      } else {
+        final targetType = series.dataType == DataType.numeric
+            ? DataType.float64
+            : series.dataType;
+        final list = targetType.newList(series.length);
+        for (var i = 0; i < series.length; i++) {
+          list[i] = targetType.cast(series.data[i]);
+        }
+        typedData = list as TypedData;
+      }
+
       final byteLength = typedData.lengthInBytes;
       final dataPtr = calloc<ffi.Uint8>(byteLength == 0 ? 1 : byteLength);
       if (byteLength > 0) {
@@ -792,7 +805,7 @@ String _getFormatCode(Series<Object?> series) {
   if (series is BoolSeries) return 'b';
   if (series is TypedSeries) {
     final type = series.dataType;
-    if (type == DataType.float64) return 'g';
+    if (type == DataType.float64 || type == DataType.numeric) return 'g';
     if (type == DataType.float32) return 'f';
     if (type == DataType.int64) return 'l';
     if (type == DataType.int32) return 'i';
