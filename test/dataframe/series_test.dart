@@ -322,5 +322,31 @@ void main() {
       check(nonCompSeries.mask).isNotNull();
       check(nonCompSeries.sort().length).equals(3);
     });
+    test('sort orders double.nan after +Infinity and respects nullsLast', () {
+      final s = Series<double?>.fromList('v', [
+        double.nan,
+        2.0,
+        double.infinity,
+        -double.infinity,
+        1.0,
+        null,
+      ]);
+
+      final asc = s.sort(ascending: true, nullsLast: true);
+      check(asc[0]).equals(-double.infinity);
+      check(asc[1]).equals(1.0);
+      check(asc[2]).equals(2.0);
+      check(asc[3]).equals(double.infinity);
+      check(asc[4]!.isNaN).isTrue();
+      check(asc[5]).isNull();
+
+      final desc = s.sort(ascending: false, nullsLast: true);
+      check(desc[0]!.isNaN).isTrue();
+      check(desc[1]).equals(double.infinity);
+      check(desc[2]).equals(2.0);
+      check(desc[3]).equals(1.0);
+      check(desc[4]).equals(-double.infinity);
+      check(desc[5]).isNull();
+    });
   });
 }

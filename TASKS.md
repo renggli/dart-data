@@ -358,7 +358,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `DataFrame.fillNull(Object value)` calls `col.fillNull(value)` on every column with nulls. Because `col` is `Series<T>`, `col.fillNull(value)` performs a runtime covariance check `value as T`. If a `DataFrame` has both a `double` column and a `String` column with nulls, `df.fillNull(0.0)` throws `TypeError: 0.0 is not a subtype of type 'String'`. Even on a single `TypedSeries<double>` column, `df.fillNull(0)` throws `TypeError: 0 is not a subtype of type 'double'`.
   - **Fix**: Check type compatibility per column (coercing `int` to `double` for `TypedSeries<double>` and skipping incompatible columns, or accepting an optional `Map<String, Object>?` / column filter).
 
-- [ ] **1.9.2 Broken `double.nan` ordering in `TypedSeries.sort`, `DataFrame.sortBy`, and `JoinMethod.sortMerge`**
+- [x] **1.9.2 Broken `double.nan` ordering in `TypedSeries.sort`, `DataFrame.sortBy`, and `JoinMethod.sortMerge`**
   - **Severity**: Critical
   - **Location**: `lib/src/dataframe/series.dart:470-480`, `lib/src/dataframe/dataframe.dart:427-449`, `lib/src/dataframe/join.dart:243-267, 320-357`
   - **Problem**: Because `double.nan.compareTo(x)` and `x.compareTo(double.nan)` both return `0` for any finite `x`, `List.sort()` in `TypedSeries.sort` and `DataFrame.sortBy` violates comparator transitivity when `NaN` is present. Worse, in `_sortMergeJoinPairs` (`join.dart:256`), `compareRows` returns `0` whenever either row has `double.nan`, matching `NaN` keys with arbitrary finite keys.

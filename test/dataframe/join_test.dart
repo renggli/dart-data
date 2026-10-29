@@ -658,6 +658,38 @@ void main() {
       );
       check(smLeft.rowCount).equals(3);
     });
+
+    test('treats NaN keys as non-matching in hash and sortMerge joins', () {
+      final left = DataFrame.fromColumns({
+        'k': [1.0, double.nan, 2.0],
+        'lv': ['a', 'nan_left', 'b'],
+      });
+      final right = DataFrame.fromColumns({
+        'k': [double.nan, 2.0, 3.0],
+        'rv': ['nan_right', 'x', 'y'],
+      });
+
+      for (final method in [JoinMethod.hash, JoinMethod.sortMerge]) {
+        final inner = left.join(
+          right,
+          on: ['k'],
+          type: JoinType.inner,
+          method: method,
+        );
+        check(inner.rowCount).equals(1);
+        check(inner['k'][0]).equals(2.0);
+        check(inner['lv'][0]).equals('b');
+        check(inner['rv'][0]).equals('x');
+
+        final outer = left.join(
+          right,
+          on: ['k'],
+          type: JoinType.outer,
+          method: method,
+        );
+        check(outer.rowCount).equals(5);
+      }
+    });
   });
 }
 

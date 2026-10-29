@@ -183,7 +183,7 @@ List<(int?, int?)> _hashJoinPairs(
   final rightExtractor = RowKeyExtractor(rightOn.map(right.column).toList());
   final rightIndex = <Object?, List<int>>{};
   for (var rightRow = 0; rightRow < right.rowCount; rightRow++) {
-    final key = rightExtractor.extractKeyOrNull(rightRow);
+    final key = rightExtractor.extractJoinKeyOrNull(rightRow);
     if (key == null) continue;
     rightIndex.putIfAbsent(key, () => []).add(rightRow);
   }
@@ -194,7 +194,7 @@ List<(int?, int?)> _hashJoinPairs(
   // Scan left DataFrame
   final leftExtractor = RowKeyExtractor(leftOn.map(left.column).toList());
   for (var leftRow = 0; leftRow < left.rowCount; leftRow++) {
-    final key = leftExtractor.extractKeyOrNull(leftRow);
+    final key = leftExtractor.extractJoinKeyOrNull(leftRow);
     if (key == null) {
       if (type == JoinType.left || type == JoinType.outer) {
         matchedPairs.add((leftRow, null));
@@ -252,6 +252,11 @@ List<(int?, int?)> _sortMergeJoinPairs(
       if (valA == null && valB == null) continue;
       if (valA == null) return 1;
       if (valB == null) return -1;
+      final isNanA = valA is num && valA.isNaN;
+      final isNanB = valB is num && valB.isNaN;
+      if (isNanA && isNanB) continue;
+      if (isNanA) return 1;
+      if (isNanB) return -1;
       if (valA is num && valB is num) {
         final diff = valA.compareTo(valB);
         if (diff != 0) return diff;
@@ -301,7 +306,7 @@ List<(int?, int?)> _sortMergeJoinPairs(
     final leftRow = leftOrder[p];
     final rightRow = rightOrder[q];
 
-    if (leftExtractor.hasNull(leftRow)) {
+    if (leftExtractor.hasNullOrNan(leftRow)) {
       if (type == JoinType.left || type == JoinType.outer) {
         matchedPairs.add((leftRow, null));
       }
@@ -309,7 +314,7 @@ List<(int?, int?)> _sortMergeJoinPairs(
       continue;
     }
 
-    if (rightExtractor.hasNull(rightRow)) {
+    if (rightExtractor.hasNullOrNan(rightRow)) {
       if (type == JoinType.right || type == JoinType.outer) {
         matchedPairs.add((null, rightRow));
       }
@@ -332,14 +337,14 @@ List<(int?, int?)> _sortMergeJoinPairs(
       // Find runs of duplicate keys
       var pEnd = p + 1;
       while (pEnd < leftOrder.length &&
-          !leftExtractor.hasNull(leftOrder[pEnd]) &&
+          !leftExtractor.hasNullOrNan(leftOrder[pEnd]) &&
           compareRows(leftCols, leftOrder[p], leftCols, leftOrder[pEnd]) == 0) {
         pEnd++;
       }
 
       var qEnd = q + 1;
       while (qEnd < rightOrder.length &&
-          !rightExtractor.hasNull(rightOrder[qEnd]) &&
+          !rightExtractor.hasNullOrNan(rightOrder[qEnd]) &&
           compareRows(rightCols, rightOrder[q], rightCols, rightOrder[qEnd]) ==
               0) {
         qEnd++;

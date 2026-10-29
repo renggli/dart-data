@@ -475,7 +475,20 @@ class TypedSeries<T extends num> extends Series<T> {
       if (aNull && bNull) return 0;
       if (aNull) return nullsLast ? 1 : -1;
       if (bNull) return nullsLast ? -1 : 1;
-      final cmp = data[a].compareTo(data[b]);
+      final valA = data[a];
+      final valB = data[b];
+      final isNanA = valA.isNaN;
+      final isNanB = valB.isNaN;
+      final int cmp;
+      if (isNanA && isNanB) {
+        cmp = 0;
+      } else if (isNanA) {
+        cmp = 1;
+      } else if (isNanB) {
+        cmp = -1;
+      } else {
+        cmp = valA.compareTo(valB);
+      }
       return ascending ? cmp : -cmp;
     });
 
@@ -821,7 +834,24 @@ class ObjectSeries<T> extends Series<T> {
       if (aNull && bNull) return 0;
       if (aNull) return nullsLast ? 1 : -1;
       if (bNull) return nullsLast ? -1 : 1;
-      final comparison = cmp(data[a], data[b]);
+      final valA = data[a];
+      final valB = data[b];
+      final int comparison;
+      if (valA is num && valB is num) {
+        final isNanA = valA.isNaN;
+        final isNanB = valB.isNaN;
+        if (isNanA && isNanB) {
+          comparison = 0;
+        } else if (isNanA) {
+          comparison = 1;
+        } else if (isNanB) {
+          comparison = -1;
+        } else {
+          comparison = cmp(valA, valB);
+        }
+      } else {
+        comparison = cmp(valA, valB);
+      }
       return ascending ? comparison : -comparison;
     });
     return ObjectSeries<T>.fromList(name, [

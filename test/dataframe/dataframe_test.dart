@@ -303,6 +303,26 @@ void main() {
       );
       check(sortDescNullsFirst['x'].toList()).deepEquals([null, null, 3, 2, 1]);
 
+      // NaN ordering in sortBy
+      final nanDf = DataFrame.fromColumns({
+        'v': [double.nan, 2.0, double.infinity, -double.infinity, 1.0, null],
+      });
+      final nanAsc = nanDf.sortBy('v', ascending: true, nullsLast: true);
+      check(nanAsc['v'][0]).equals(-double.infinity);
+      check(nanAsc['v'][1]).equals(1.0);
+      check(nanAsc['v'][2]).equals(2.0);
+      check(nanAsc['v'][3]).equals(double.infinity);
+      check((nanAsc['v'][4] as num).isNaN).isTrue();
+      check(nanAsc['v'][5]).isNull();
+
+      final nanDesc = nanDf.sortBy('v', ascending: false, nullsLast: true);
+      check((nanDesc['v'][0] as num).isNaN).isTrue();
+      check(nanDesc['v'][1]).equals(double.infinity);
+      check(nanDesc['v'][2]).equals(2.0);
+      check(nanDesc['v'][3]).equals(1.0);
+      check(nanDesc['v'][4]).equals(-double.infinity);
+      check(nanDesc['v'][5]).isNull();
+
       final head2 = sorted.head(2);
       check(head2.rowCount).equals(2);
       check(head2['val'].toList()).deepEquals([10, 20]);

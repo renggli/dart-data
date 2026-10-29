@@ -48,8 +48,15 @@ abstract interface class RowKeyExtractor {
   /// any key column at [rowIndex] is null.
   Object? extractKeyOrNull(int rowIndex);
 
+  /// Extracts the composite join key for the row at [rowIndex], or returns
+  /// `null` if any key column at [rowIndex] is null or [double.nan].
+  Object? extractJoinKeyOrNull(int rowIndex);
+
   /// Returns `true` if any key column at [rowIndex] is null.
   bool hasNull(int rowIndex);
+
+  /// Returns `true` if any key column at [rowIndex] is null or [double.nan].
+  bool hasNullOrNan(int rowIndex);
 }
 
 final class _SingleKeyExtractor implements RowKeyExtractor {
@@ -64,7 +71,16 @@ final class _SingleKeyExtractor implements RowKeyExtractor {
   Object? extractKeyOrNull(int rowIndex) => _col[rowIndex];
 
   @override
+  Object? extractJoinKeyOrNull(int rowIndex) {
+    final v = _col[rowIndex];
+    return _isMissingOrNan(v) ? null : v;
+  }
+
+  @override
   bool hasNull(int rowIndex) => _col[rowIndex] == null;
+
+  @override
+  bool hasNullOrNan(int rowIndex) => _isMissingOrNan(_col[rowIndex]);
 }
 
 final class _PairKeyExtractor implements RowKeyExtractor {
@@ -86,8 +102,21 @@ final class _PairKeyExtractor implements RowKeyExtractor {
   }
 
   @override
+  Object? extractJoinKeyOrNull(int rowIndex) {
+    final v0 = _col0[rowIndex];
+    if (_isMissingOrNan(v0)) return null;
+    final v1 = _col1[rowIndex];
+    if (_isMissingOrNan(v1)) return null;
+    return (v0, v1);
+  }
+
+  @override
   bool hasNull(int rowIndex) =>
       _col0[rowIndex] == null || _col1[rowIndex] == null;
+
+  @override
+  bool hasNullOrNan(int rowIndex) =>
+      _isMissingOrNan(_col0[rowIndex]) || _isMissingOrNan(_col1[rowIndex]);
 }
 
 final class _TripleKeyExtractor implements RowKeyExtractor {
@@ -113,10 +142,27 @@ final class _TripleKeyExtractor implements RowKeyExtractor {
   }
 
   @override
+  Object? extractJoinKeyOrNull(int rowIndex) {
+    final v0 = _col0[rowIndex];
+    if (_isMissingOrNan(v0)) return null;
+    final v1 = _col1[rowIndex];
+    if (_isMissingOrNan(v1)) return null;
+    final v2 = _col2[rowIndex];
+    if (_isMissingOrNan(v2)) return null;
+    return (v0, v1, v2);
+  }
+
+  @override
   bool hasNull(int rowIndex) =>
       _col0[rowIndex] == null ||
       _col1[rowIndex] == null ||
       _col2[rowIndex] == null;
+
+  @override
+  bool hasNullOrNan(int rowIndex) =>
+      _isMissingOrNan(_col0[rowIndex]) ||
+      _isMissingOrNan(_col1[rowIndex]) ||
+      _isMissingOrNan(_col2[rowIndex]);
 }
 
 final class _MultiKeyExtractor implements RowKeyExtractor {
@@ -140,10 +186,31 @@ final class _MultiKeyExtractor implements RowKeyExtractor {
   }
 
   @override
+  Object? extractJoinKeyOrNull(int rowIndex) {
+    final values = List<Object?>.filled(_columns.length, null);
+    for (var i = 0; i < _columns.length; i++) {
+      final val = _columns[i][rowIndex];
+      if (_isMissingOrNan(val)) return null;
+      values[i] = val;
+    }
+    return TupleKey(values);
+  }
+
+  @override
   bool hasNull(int rowIndex) {
     for (var i = 0; i < _columns.length; i++) {
       if (_columns[i][rowIndex] == null) return true;
     }
     return false;
   }
+
+  @override
+  bool hasNullOrNan(int rowIndex) {
+    for (var i = 0; i < _columns.length; i++) {
+      if (_isMissingOrNan(_columns[i][rowIndex])) return true;
+    }
+    return false;
+  }
 }
+
+bool _isMissingOrNan(Object? val) => val == null || (val is num && val.isNaN);

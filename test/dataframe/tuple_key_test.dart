@@ -36,20 +36,32 @@ void main() {
 
   group('RowKeyExtractor', () {
     test('1 column extractor', () {
-      final col = Series<num>.fromList('c0', [10, null, 20]);
+      final col = Series<num?>.fromList('c0', [10, null, 20, double.nan]);
       final extractor = RowKeyExtractor([col]);
 
       check(extractor.extractKey(0)).equals(10);
       check(extractor.extractKeyOrNull(0)).equals(10);
+      check(extractor.extractJoinKeyOrNull(0)).equals(10);
       check(extractor.hasNull(0)).isFalse();
+      check(extractor.hasNullOrNan(0)).isFalse();
 
       check(extractor.extractKey(1)).isNull();
       check(extractor.extractKeyOrNull(1)).isNull();
+      check(extractor.extractJoinKeyOrNull(1)).isNull();
       check(extractor.hasNull(1)).isTrue();
+      check(extractor.hasNullOrNan(1)).isTrue();
 
       check(extractor.extractKey(2)).equals(20);
       check(extractor.extractKeyOrNull(2)).equals(20);
+      check(extractor.extractJoinKeyOrNull(2)).equals(20);
       check(extractor.hasNull(2)).isFalse();
+      check(extractor.hasNullOrNan(2)).isFalse();
+
+      check(extractor.extractKey(3) as num).isNaN();
+      check(extractor.extractKeyOrNull(3) as num).isNaN();
+      check(extractor.extractJoinKeyOrNull(3)).isNull();
+      check(extractor.hasNull(3)).isFalse();
+      check(extractor.hasNullOrNan(3)).isTrue();
     });
 
     test('2 column extractor', () {

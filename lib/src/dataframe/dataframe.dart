@@ -473,6 +473,18 @@ class DataFrame {
         final int cmp;
         if (valA is bool && valB is bool) {
           cmp = (valA ? 1 : 0).compareTo(valB ? 1 : 0);
+        } else if (valA is num && valB is num) {
+          final isNanA = valA.isNaN;
+          final isNanB = valB.isNaN;
+          if (isNanA && isNanB) {
+            cmp = 0;
+          } else if (isNanA) {
+            cmp = 1;
+          } else if (isNanB) {
+            cmp = -1;
+          } else {
+            cmp = valA.compareTo(valB);
+          }
         } else if (valA is Comparable) {
           cmp = valA.compareTo(valB);
         } else {
