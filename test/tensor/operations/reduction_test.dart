@@ -205,5 +205,23 @@ void main() {
       );
       check(t.min(axis: 1, target: sharedTarget)).equals(sharedTarget);
     });
+
+    test(
+      'norm validates pNorm >= 1 and scaled summation prevents overflow',
+      () {
+        final t = Tensor<double>.fromIterable([3.0, 4.0]);
+        check(() => t.norm(0)).throws<ArgumentError>();
+        check(() => t.norm(-1)).throws<ArgumentError>();
+        check(() => t.norm(double.nan)).throws<ArgumentError>();
+
+        // Non-contiguous tensor falls back to non-BLAS loop, where scaled summation prevents overflow
+        final largeStrided = Tensor<double>.internal(
+          type: DataType.float64,
+          layout: Layout(shape: [2], strides: [2]),
+          data: [3e160, 0.0, 4e160, 0.0],
+        );
+        check(largeStrided.norm(2)).isCloseTo(5e160, 1e148);
+      },
+    );
   });
 }

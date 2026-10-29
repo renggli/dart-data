@@ -277,6 +277,9 @@ class Vector<T> {
   /// final length = v.norm(); // 5.0
   /// ```
   double norm([num pNorm = 2]) {
+    if (pNorm.isNaN || pNorm < 1) {
+      throw ArgumentError.value(pNorm, 'pNorm', 'pNorm must be >= 1');
+    }
     final field = type.field;
     if (pNorm == double.infinity) {
       var maxVal = 0.0;
@@ -313,12 +316,23 @@ class Vector<T> {
         );
       }
 
-      var sumSq = 0.0;
+      var scale = 0.0;
+      var sumsq = 1.0;
       for (var i = 0; i < length; i++) {
-        final val = field.norm(getUnchecked(i));
-        sumSq += val * val;
+        final absVal = field.norm(getUnchecked(i));
+        if (absVal != 0.0) {
+          if (absVal.isNaN) return double.nan;
+          if (absVal.isInfinite) {
+            scale = double.infinity;
+          } else if (scale < absVal) {
+            sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
+            scale = absVal;
+          } else if (scale.isFinite) {
+            sumsq += (absVal / scale) * (absVal / scale);
+          }
+        }
       }
-      return math.sqrt(sumSq);
+      return scale * math.sqrt(sumsq);
     }
     var sumP = 0.0;
     for (var i = 0; i < length; i++) {

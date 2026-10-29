@@ -90,7 +90,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: These methods accept `{Tensor<double>? target}` / `{Vector<double>? target}` / `{Matrix<double>? target}` and wrap the result with `Float64Tensor.fromDoubleTensor(...)`. If `target` is backed by a `Float32List` or `List<double>`, `fromDoubleTensor` allocates a new `Float64List` copy, breaking the return-target identity contract.
   - **Fix**: Narrow the parameter types to `Float64Tensor? target`, `Float64Vector? target`, and `Float64Matrix? target` (or throw `ArgumentError` if `target.data is! Float64List`).
 
-- [ ] **1.2.5 `Tensor.norm` and `Vector.norm` do not reject `pNorm < 1` or `NaN`, and unscaled `norm(2)` fallback overflows to `Infinity`**
+- [x] **1.2.5 `Tensor.norm` and `Vector.norm` do not reject `pNorm < 1` or `NaN`, and unscaled `norm(2)` fallback overflows to `Infinity`**
   - **Severity**: Warning
   - **Location**: `lib/src/tensor/operations/reduction.dart:185-230`, `lib/src/linear/vector.dart:279-328`
   - **Problem**: Passing `pNorm <= 0` or `pNorm.isNaN` is not rejected (`norm(0)` returns `Infinity`, `norm(double.negativeInfinity)` returns `NaN`). Additionally, the non-BLAS `norm(2)` loop computes unscaled `sumSq += normVal * normVal`, overflowing to `Infinity` for elements $\ge 10^{155}$ even when the Euclidean norm is finite.

@@ -336,6 +336,15 @@ void main() {
 
       final intNormVec = Vector<int>.fromList([3, 4]);
       check(intNormVec.norm(2)).equals(5.0);
+      check(() => vector.norm(0)).throws<ArgumentError>();
+      check(() => vector.norm(-1)).throws<ArgumentError>();
+      check(() => vector.norm(double.nan)).throws<ArgumentError>();
+
+      final largeNumVec = Vector<num>.fromList([
+        3e160,
+        4e160,
+      ], type: DataType.numeric);
+      check(largeNumVec.norm(2)).isCloseTo(5e160, 1e148);
 
       final zeroVec = Vector<double>.fromList([0.0, 0.0]);
       check(zeroVec.normalized).throws<StateError>();

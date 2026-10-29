@@ -183,6 +183,9 @@ extension ReductionTensorExtension<T> on Tensor<T> {
 
   /// Computes the $L_p$ norm of this tensor.
   double norm([num pNorm = 2]) {
+    if (pNorm.isNaN || pNorm < 1) {
+      throw ArgumentError.value(pNorm, 'pNorm', 'pNorm must be >= 1');
+    }
     if (length == 0) return 0.0;
     if (pNorm == double.infinity) {
       var maxVal = 0.0;
@@ -214,12 +217,23 @@ extension ReductionTensorExtension<T> on Tensor<T> {
           incX: 1,
         );
       }
-      var sumSq = 0.0;
+      var scale = 0.0;
+      var sumsq = 1.0;
       for (final val in values) {
-        final normVal = type.field.norm(val);
-        sumSq += normVal * normVal;
+        final absVal = type.field.norm(val);
+        if (absVal != 0.0) {
+          if (absVal.isNaN) return double.nan;
+          if (absVal.isInfinite) {
+            scale = double.infinity;
+          } else if (scale < absVal) {
+            sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
+            scale = absVal;
+          } else if (scale.isFinite) {
+            sumsq += (absVal / scale) * (absVal / scale);
+          }
+        }
       }
-      return math.sqrt(sumSq);
+      return scale * math.sqrt(sumsq);
     } else {
       var sum = 0.0;
       for (final val in values) {
