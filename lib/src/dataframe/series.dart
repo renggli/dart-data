@@ -206,7 +206,12 @@ abstract class Series<T> {
       return false;
     }
     for (var i = 0; i < length; i++) {
-      if (this[i] != other[i]) return false;
+      final a = this[i];
+      final b = other[i];
+      if (a == null && b == null) continue;
+      if (a == null || b == null) return false;
+      if (a is num && b is num && a.isNaN && b.isNaN) continue;
+      if (!dataType.equality.isEqual(a as T, b as T)) return false;
     }
     return true;
   }
@@ -452,7 +457,7 @@ class TypedSeries<T extends num> extends Series<T> {
 
   @override
   Series<T> slice(int start, int end) {
-    final startIndex = math.max(0, start);
+    final startIndex = start.clamp(0, length);
     final endIndex = math.min(length, math.max(startIndex, end));
     final slicedData = data.sublist(startIndex, endIndex);
     final slicedMask = mask?.slice(startIndex, endIndex);

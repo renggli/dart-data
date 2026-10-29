@@ -382,7 +382,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `GroupBy` assigns `outTypes[outName] = srcCol.dataType` for `Agg.sum`, causing narrow integer sums to wrap modulo $2^8$ or $2^{16}$, and returns `0` (instead of `null`) when all values in a group are `null` (and `BoolSeries.sum` similarly returns `0` instead of `null` when all values are `null`).
   - **Fix**: Widen integer `Agg.sum` output columns to `DataType.int64` and return `null` when a group or `BoolSeries` has zero non-null values.
 
-- [ ] **1.9.6 `Series.operator ==` fails on `double.nan` and `TypedSeries.slice` throws `RangeError` when `start > length`**
+- [x] **1.9.6 `Series.operator ==` fails on `double.nan` and `TypedSeries.slice` throws `RangeError` when `start > length`**
   - **Severity**: Warning
   - **Location**: `lib/src/dataframe/series.dart:200-221, 454-457`
   - **Problem**: `Series.operator ==` uses `this[i] != other[i]` instead of `dataType.equality.isEqual`, so a `Series` containing `double.nan` is not equal to a slice of itself. Additionally, `TypedSeries.slice(10, 12)` on a 5-element series calls `data.sublist(10, 5)` and throws `RangeError`, whereas `ArrowStringSeries.slice`, `BoolSeries.slice`, and `ObjectSeries.slice` clamp `startIndex` and return an empty `Series`.

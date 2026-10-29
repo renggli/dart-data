@@ -348,5 +348,24 @@ void main() {
       check(desc[4]).equals(-double.infinity);
       check(desc[5]).isNull();
     });
+
+    test('Series equality handles NaN correctly', () {
+      final s1 = Series<double?>.fromList('s', [1.0, double.nan, null, 2.0]);
+      final s2 = Series<double?>.fromList('s', [1.0, double.nan, null, 2.0]);
+      check(s1 == s2).isTrue();
+      check(s1 == s1.slice(0, 4)).isTrue();
+    });
+
+    test(
+      'TypedSeries.slice handles start >= length without throwing RangeError',
+      () {
+        final s = Series<int>.fromList('s', [1, 2, 3, 4, 5]);
+        final sliced = s.slice(10, 12);
+        check(sliced.length).equals(0);
+
+        final sliced2 = s.slice(3, 1);
+        check(sliced2.length).equals(0);
+      },
+    );
   });
 }
