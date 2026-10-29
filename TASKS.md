@@ -180,7 +180,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ### 1.5 `special` Subsystem
 
-- [ ] **1.5.1 `beta(x, y)` overflows intermediate `gamma(x + y)` and returns `0.0` or `NaN` for $x, y \le 100$ with $x + y > 171.6$**
+- [x] **1.5.1 `beta(x, y)` overflows intermediate `gamma(x + y)` and returns `0.0` or `NaN` for $x, y \le 100$ with $x + y > 171.6$**
   - **Severity**: Critical
   - **Location**: `lib/src/special/beta.dart:21-24`
   - **Problem**: `beta(x, y)` checks `if (x > 100 || y > 100) return exp(betaLn(x, y));` and otherwise computes `gamma(x) * gamma(y) / gamma(x + y)`. Because `gamma(z)` overflows IEEE 754 `double` at $z > 171.6$, `beta(90, 90)` evaluates `finite / Infinity = 0.0` (instead of `5.284e-55`) and `beta(100, 100)` evaluates `Infinity / Infinity = NaN` (instead of `2.208e-60`).

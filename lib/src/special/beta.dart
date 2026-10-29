@@ -18,7 +18,7 @@ double beta(num x, num y) {
   if (x.isNaN || y.isNaN || x <= 0 || y <= 0) {
     return double.nan;
   }
-  if (x > 100 || y > 100) {
+  if (x + y > 170) {
     return exp(betaLn(x, y));
   }
   return gamma(x) * gamma(y) / gamma(x + y);

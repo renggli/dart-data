@@ -28,6 +28,9 @@ void main() {
           check(because: 'beta($a, $b)', beta(a, b)).isCloseTo(expected, 1e-6);
         }
       }
+      // Sum > 171.6 where gamma(x + y) overflows
+      check(beta(90, 90)).isGreaterThan(0.0);
+      check(beta(100, 100)).isGreaterThan(0.0);
     });
 
     test('betaLn', () {
