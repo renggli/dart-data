@@ -20,7 +20,7 @@ class PchipInterpolation implements Interpolator {
       );
     }
     for (var i = 0; i < count - 1; i++) {
-      if (_xs[i] >= _xs[i + 1]) {
+      if (!(_xs[i] < _xs[i + 1])) {
         throw ArgumentError('xs must be strictly monotonically increasing.');
       }
     }

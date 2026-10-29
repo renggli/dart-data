@@ -15,7 +15,7 @@ class NearestInterpolation implements Interpolator {
       throw ArgumentError('At least 1 point required for interpolation.');
     }
     for (var i = 0; i < _xs.length - 1; i++) {
-      if (_xs[i] >= _xs[i + 1]) {
+      if (!(_xs[i] < _xs[i + 1])) {
         throw ArgumentError('xs must be strictly monotonically increasing.');
       }
     }
@@ -30,6 +30,7 @@ class NearestInterpolation implements Interpolator {
   @override
   double call(num x) {
     final xd = x.toDouble();
+    if (xd.isNaN) return double.nan;
     if (xd <= _xs.first) return _ys.first;
     if (xd >= _xs.last) return _ys.last;
     final idx = binarySearchInterval(_xs, xd);
@@ -57,7 +58,7 @@ class PreviousInterpolation implements Interpolator {
       throw ArgumentError('At least 1 point required for interpolation.');
     }
     for (var i = 0; i < _xs.length - 1; i++) {
-      if (_xs[i] >= _xs[i + 1]) {
+      if (!(_xs[i] < _xs[i + 1])) {
         throw ArgumentError('xs must be strictly monotonically increasing.');
       }
     }
@@ -71,6 +72,7 @@ class PreviousInterpolation implements Interpolator {
   @override
   double call(num x) {
     final xd = x.toDouble();
+    if (xd.isNaN) return double.nan;
     if (xd < _xs.first) return left;
     if (xd >= _xs.last) return _ys.last;
     final idx = binarySearchInterval(_xs, xd);
@@ -92,7 +94,7 @@ class NextInterpolation implements Interpolator {
       throw ArgumentError('At least 1 point required for interpolation.');
     }
     for (var i = 0; i < _xs.length - 1; i++) {
-      if (_xs[i] >= _xs[i + 1]) {
+      if (!(_xs[i] < _xs[i + 1])) {
         throw ArgumentError('xs must be strictly monotonically increasing.');
       }
     }
@@ -106,6 +108,7 @@ class NextInterpolation implements Interpolator {
   @override
   double call(num x) {
     final xd = x.toDouble();
+    if (xd.isNaN) return double.nan;
     if (xd <= _xs.first) return _ys.first;
     if (xd > _xs.last) return right;
     final idx = binarySearchInterval(_xs, xd);

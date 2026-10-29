@@ -260,7 +260,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `_rk45` accumulates step error via `if (ratio > maxErrorRatio) maxErrorRatio = ratio;`. When a trial step is too large and `f` or `y5` evaluates to `NaN` (e.g. `sqrt(y)` overshooting below zero), `ratio` is `NaN`, so `ratio > maxErrorRatio` is `false` for all components and `maxErrorRatio` stays `0.0`. Then `if (maxErrorRatio <= 1.0)` evaluates to `true`, accepting the `NaN` state and multiplying step size by $5\times$.
   - **Fix**: Check `if (ratio.isNaN || !y5[i].isFinite) { maxErrorRatio = double.infinity; break; }` in `_rk45`.
 
-- [ ] **1.7.2 Step interpolators return finite values for `double.nan` and grid monotonicity checks miss `NaN` knots**
+- [x] **1.7.2 Step interpolators return finite values for `double.nan` and grid monotonicity checks miss `NaN` knots**
   - **Severity**: Critical
   - **Location**: `lib/src/numeric/interpolation/step.dart:18, 31-43, 60, 72-78, 95, 107-113`, `lib/src/numeric/interpolation/linear.dart:29`, `lib/src/numeric/interpolation/cubic_spline.dart:51`, `lib/src/numeric/interpolation/pchip.dart:23`, `lib/src/numeric/interpolation/bilinear.dart:23, 28`, `lib/src/numeric/interpolation/bicubic.dart:28, 33`
   - **Problem**: In `NearestInterpolation`, `PreviousInterpolation`, and `NextInterpolation`, `xd <= _xs.first`, `xd >= _xs.last`, and `dLo < dHi` all evaluate to `false` when `x` is `double.nan`, returning `_ys[1]` or `_ys[0]` instead of `double.nan`. Furthermore, `if (_xs[i] >= _xs[i + 1])` across all 1D/2D interpolator constructors evaluates to `false` when `_xs` contains `double.nan`, silently accepting `NaN` knot coordinates.

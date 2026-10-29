@@ -25,12 +25,12 @@ class BicubicInterpolation implements Interpolator2D {
       throw ArgumentError('ys must contain at least 2 points.');
     }
     for (var i = 0; i < nx - 1; i++) {
-      if (_xs[i] >= _xs[i + 1]) {
+      if (!(_xs[i] < _xs[i + 1])) {
         throw ArgumentError('xs must be strictly monotonically increasing.');
       }
     }
     for (var j = 0; j < ny - 1; j++) {
-      if (_ys[j] >= _ys[j + 1]) {
+      if (!(_ys[j] < _ys[j + 1])) {
         throw ArgumentError('ys must be strictly monotonically increasing.');
       }
     }

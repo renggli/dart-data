@@ -17,6 +17,9 @@ void main() {
 
       final preferHigher = NearestInterpolation(xs, ys, preferLower: false);
       check(preferHigher(0.5)).isCloseTo(10.0, 1e-9);
+
+      check(interp(double.nan)).isNaN();
+      check(preferHigher(double.nan)).isNaN();
     });
 
     test('previous step interpolation', () {
@@ -31,6 +34,7 @@ void main() {
       check(interp(3.5)).isCloseTo(20.0, 1e-9);
       check(interp(4.0)).isCloseTo(40.0, 1e-9);
       check(interp(5.0)).isCloseTo(40.0, 1e-9);
+      check(interp(double.nan)).isNaN();
     });
 
     test('next step interpolation', () {
@@ -45,6 +49,7 @@ void main() {
       check(interp(3.0)).isCloseTo(40.0, 1e-9);
       check(interp(4.0)).isCloseTo(40.0, 1e-9);
       check(interp(4.1)).isCloseTo(99.0, 1e-9);
+      check(interp(double.nan)).isNaN();
     });
 
     test('constructor errors', () {
@@ -58,18 +63,24 @@ void main() {
       check(() => NearestInterpolation(<double>[], <double>[]))
           .throws<ArgumentError>();
       check(() => NearestInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
+      check(() => NearestInterpolation([1.0, double.nan], ys2))
+          .throws<ArgumentError>();
 
       // Previous
       check(() => PreviousInterpolation(xs2, ys1)).throws<ArgumentError>();
       check(() => PreviousInterpolation(<double>[], <double>[]))
           .throws<ArgumentError>();
       check(() => PreviousInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
+      check(() => PreviousInterpolation([1.0, double.nan], ys2))
+          .throws<ArgumentError>();
 
       // Next
       check(() => NextInterpolation(xs2, ys1)).throws<ArgumentError>();
       check(() => NextInterpolation(<double>[], <double>[]))
           .throws<ArgumentError>();
       check(() => NextInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
+      check(() => NextInterpolation([1.0, double.nan], ys2))
+          .throws<ArgumentError>();
     });
   });
 }
