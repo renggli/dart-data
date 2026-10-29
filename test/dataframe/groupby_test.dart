@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -177,7 +178,7 @@ void main() {
 
       // Group B (only null value)
       check(result['v_count'][1]).equals(0);
-      check(result['v_sum'][1]).equals(0.0);
+      check(result['v_sum'][1]).isNull();
       check(result['v_mean'][1]).isNull();
       check(result['v_min'][1]).isNull();
       check(result['v_max'][1]).isNull();
@@ -217,6 +218,23 @@ void main() {
       check(countDf.columnNames).deepEquals(['group', 'v1_count', 'v2_count']);
       check(countDf['v1_count'].toList()).deepEquals([1, 1]);
       check(countDf['v2_count'].toList()).deepEquals([2, 1]);
+    });
+
+    test('Agg.sum widens narrow integers to int64 and returns null for all-null groups', () {
+      final df = DataFrame([
+        Series.fromList('grp', ['g1', 'g1', 'g2', 'g2']),
+        Series.fromList('i8', [100, 100, null, null], type: DataType.int8),
+        Series.fromList('u8', [200, 100, null, null], type: DataType.uint8),
+      ]);
+      final res = df.groupBy(['grp']).aggregate({
+        'i8': [Agg.sum],
+        'u8': [Agg.sum],
+      });
+
+      check(res['i8_sum'].dataType).equals(DataType.int64);
+      check(res['u8_sum'].dataType).equals(DataType.int64);
+      check(res['i8_sum'].toList()).deepEquals([200, null]);
+      check(res['u8_sum'].toList()).deepEquals([300, null]);
     });
   });
 

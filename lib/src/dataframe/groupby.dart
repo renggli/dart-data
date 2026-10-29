@@ -97,7 +97,7 @@ class GroupBy {
           Agg.sum =>
             srcCol.dataType is DataType<double>
                 ? DataType.float64
-                : srcCol.dataType,
+                : DataType.int64,
           Agg.min || Agg.max || Agg.first || Agg.last => srcCol.dataType,
         };
       }
@@ -237,11 +237,15 @@ class GroupBy {
         return null;
       case Agg.sum:
         var total = col.dataType is DataType<double> ? 0.0 : 0;
+        var hasValid = false;
         for (var i = 0; i < indices.length; i++) {
           final val = col[indices[i]];
-          if (val is num) total += val;
+          if (val is num) {
+            total += val;
+            hasValid = true;
+          }
         }
-        return total;
+        return hasValid ? total : null;
       case Agg.mean:
         num total = 0;
         var count = 0;

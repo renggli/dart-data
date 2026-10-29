@@ -376,7 +376,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Line 411 casts `series.data as TypedData`, which throws `TypeError` if `TypedSeries` was constructed with a regular `List<double>`/`List<int>` or `DataType.numeric` (`Series.fromList('x', <num>[1, 2.5])`).
   - **Fix**: Handle `DataType.numeric` and copy `series.data` into a `TypedData` buffer if `series.data is! TypedData`.
 
-- [ ] **1.9.5 `GroupBy` `Agg.sum` overflows narrow integer types (`int8`/`int16`/`uint8`/`uint16`) and returns `0` for all-null groups**
+- [x] **1.9.5 `GroupBy` `Agg.sum` overflows narrow integer types (`int8`/`int16`/`uint8`/`uint16`) and returns `0` for all-null groups**
   - **Severity**: Warning
   - **Location**: `lib/src/dataframe/groupby.dart:97-100, 238-244`, `lib/src/dataframe/series.dart:678-693`
   - **Problem**: `GroupBy` assigns `outTypes[outName] = srcCol.dataType` for `Agg.sum`, causing narrow integer sums to wrap modulo $2^8$ or $2^{16}$, and returns `0` (instead of `null`) when all values in a group are `null` (and `BoolSeries.sum` similarly returns `0` instead of `null` when all values are `null`).

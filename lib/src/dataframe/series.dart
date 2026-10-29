@@ -689,6 +689,8 @@ class BoolSeries extends Series<bool> {
 
   @override
   num? get sum {
+    final valid = length - nullCount;
+    if (valid == 0) return null;
     var count = 0;
     for (var i = 0; i < length; i++) {
       if (!isNull(i) && data[i]) count++;

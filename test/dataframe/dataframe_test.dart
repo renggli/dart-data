@@ -128,6 +128,10 @@ void main() {
       check(boolCol.sum).equals(2);
       check(boolCol.mean).isNotNull().isCloseTo(2.0 / 3.0, 1e-4);
 
+      final allNullBool = BoolSeries.fromList('nulls', [null, null]);
+      check(allNullBool.sum).isNull();
+      check(allNullBool.mean).isNull();
+
       final boolFiltered = boolCol.filter([true, false, true, false]);
       check(boolFiltered.length).equals(2);
       final boolSliced = boolCol.slice(0, 2);
