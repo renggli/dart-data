@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
+import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
@@ -393,6 +396,34 @@ void main() {
       final targetCol = Matrix<int>.filled(3, 2, 0).col(0);
       col0.cumsum(target: targetCol);
       check(targetCol.toList()).deepEquals([1, 4, 9]);
+
+      // Reversed in-place cumsum
+      final vRev = Vector<int>.fromList([1, 2, 3, 4]);
+      // Reversed view: flip(axis: 0) gives elements [4, 3, 2, 1]
+      final revView = Vector<int>(vRev.tensor.flip());
+      revView.cumsum(target: revView);
+      check(revView.toList()).which((it) => it.deepEquals([4, 7, 9, 10]));
+
+      // Overlapping sublistView cumsum
+      final bufferData = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0]);
+      final vSrc = Vector<double>(
+        Tensor<double>.internal(
+          type: DataType.float64,
+          layout: Layout(shape: [4], offset: 0),
+          data: Float64List.sublistView(bufferData, 0, 4),
+        ),
+      );
+      final vDst = Vector<double>(
+        Tensor<double>.internal(
+          type: DataType.float64,
+          layout: Layout(shape: [4], offset: 0),
+          data: Float64List.sublistView(bufferData, 1, 5),
+        ),
+      );
+      // vSrc is [1, 2, 3, 4]
+      // cumsum into vDst should produce [1, 3, 6, 10] in bufferData[1..5]
+      vSrc.cumsum(target: vDst);
+      check(vDst.toList()).which((it) => it.deepEquals([1.0, 3.0, 6.0, 10.0]));
     });
   });
 }

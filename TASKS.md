@@ -146,7 +146,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Unlike `EigenvalueDecomposition`, `_computeSvd` never checks if the input matrix contains `NaN` or `Infinity`. In `while (mDim > 0)`, `iter` is only incremented in `case 3` (`line 581`), so repeated `case 1` or `case 2` transitions never increment `iter`, and breaking on `iter >= 1000` leaves raw unconverged/unsorted values in `sVals`.
   - **Fix**: Check for `NaN`/`Infinity` upfront (filling `s`, `u`, `vt` with `double.nan` and returning immediately), and increment `iter` across all non-deflating cases.
 
-- [ ] **1.4.3 `Vector._scan` (`cumsum` / `cumprod`) checks `identical(tensor.data, target.tensor.data)` instead of `sharesMemory`**
+- [x] **1.4.3 `Vector._scan` (`cumsum` / `cumprod`) checks `identical(tensor.data, target.tensor.data)` instead of `sharesMemory`**
   - **Severity**: Critical
   - **Location**: `lib/src/linear/vector.dart:514-521`
   - **Problem**: Two overlapping `Float64List.sublistView` instances or `Tensor` views over the same `ByteBuffer` are not `identical(tensor.data, target.tensor.data)`, allowing in-place `_scan` to overwrite source elements before reading them. Furthermore, if `identical(this, target)` is true on a reversed view (`strides: [-1]`), `_scan` does not copy and overwrites elements in-place.

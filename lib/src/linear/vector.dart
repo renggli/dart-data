@@ -533,8 +533,10 @@ class Vector<T> {
     if (length == 0) return result;
     final Vector<T> effectiveSource;
     if (target != null &&
-        !identical(this, target) &&
-        identical(tensor.data, target.tensor.data)) {
+        (target.tensor.sharesMemoryWith(tensor) &&
+            (!identical(this, target) ||
+                tensor.strides[0] <= 0 ||
+                target.tensor.strides[0] <= 0))) {
       effectiveSource = copy();
     } else {
       effectiveSource = this;
