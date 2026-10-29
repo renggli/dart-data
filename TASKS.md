@@ -428,7 +428,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Only `simplifyLn` (`line 615`) checks `if (expr == Constant.undefined) return Constant.undefined;`. The other 25 `simplify*` functions wrap `Constant.undefined` in simplified AST nodes (e.g. `Sin(Asin(RealNumber(2.0))).simplify()` returns `Sin(Constant.undefined)` instead of `Constant.undefined`).
   - **Fix**: Propagate `Constant.undefined` at the entry of every `simplify*` function in `transcendental.dart`.
 
-- [ ] **1.10.4 Bytecode compiler CSE register bug across `Piecewise` conditional branches reads uninitialized or stale registers**
+- [x] **1.10.4 Bytecode compiler CSE register bug across `Piecewise` conditional branches reads uninitialized or stale registers**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/compiler/bytecode.dart:244-265, 467-488, 510-513`
   - **Problem**: `countSubtrees` counts duplicate subexpressions across all branches of a `Piecewise` node. During `emit`, the first occurrence of a shared subexpression inside branch 0 emits `storeReg(regIdx)` inside branch 0's conditionally jumped block and marks `emittedRegs.add(regIdx)` globally. Later branches emit `loadReg(regIdx)`. When branch 0 is not taken at runtime, `storeReg(regIdx)` is skipped and the taken branch reads `0.0` or stale register state (e.g. `Expr.parse('piecewise(x > 0, sin(x) + 1, sin(x) - 1)').toFunction1D('x')(-pi / 2)` returns `-1.0` or `0.0` instead of `-2.0`).

@@ -466,11 +466,18 @@ BytecodeEvaluator compileToBytecode(
         instructions.add(const Instruction.op(Op.ne));
       case Piecewise(:final branches, :final otherwise):
         final endJumps = <int>[];
+        final initialRegs = Set<int>.of(emittedRegs);
+        final branchEmittedRegs = <Set<int>>[];
         for (final (:relation, :expr) in branches) {
           emit(relation);
           final jFalseIdx = instructions.length;
           instructions.add(const Instruction.jumpIfFalse(0));
+          final preBranchRegs = Set<int>.of(emittedRegs);
           emit(expr);
+          branchEmittedRegs.add(Set<int>.of(emittedRegs));
+          emittedRegs
+            ..clear()
+            ..addAll(preBranchRegs);
           endJumps.add(instructions.length);
           instructions.add(const Instruction.jump(0));
           instructions[jFalseIdx] = Instruction.jumpIfFalse(
@@ -478,13 +485,27 @@ BytecodeEvaluator compileToBytecode(
           );
         }
         if (otherwise != null) {
+          final preOtherwiseRegs = Set<int>.of(emittedRegs);
           emit(otherwise);
+          branchEmittedRegs.add(Set<int>.of(emittedRegs));
+          emittedRegs
+            ..clear()
+            ..addAll(preOtherwiseRegs);
         } else {
           instructions.add(Instruction.pushReal(double.nan));
         }
         final endPc = instructions.length;
         for (final jmpIdx in endJumps) {
           instructions[jmpIdx] = Instruction.jump(endPc);
+        }
+        if (branchEmittedRegs.isNotEmpty) {
+          final commonRegs = branchEmittedRegs.first.toSet();
+          for (final regs in branchEmittedRegs.skip(1)) {
+            commonRegs.retainAll(regs);
+          }
+          emittedRegs.addAll(commonRegs);
+        } else {
+          emittedRegs.addAll(initialRegs);
         }
       case Integral() || Derivative() || Limit() || Sum() || Product():
         for (final freeVar in expr.freeVariables) {

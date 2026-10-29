@@ -652,7 +652,8 @@ void main() {
           .equals(Constant.undefined);
       check(simplifyMod(IntegerNumber.one, Constant.undefined))
           .equals(Constant.undefined);
-      check(Sin(Asin(RealNumber(2.0))).simplify()).equals(Constant.undefined);
+      check(Sin(Asin(const RealNumber(2.0))).simplify())
+          .equals(Constant.undefined);
 
       // isProvenReal on non-negative base with real exponent, and isIntegerExpr on Factorial and Binomial
       check(isProvenReal(Pow(Abs(x), y), realAssumptions)).isTrue();

@@ -43,6 +43,15 @@ void main() {
       }
     });
 
+    test('CSE registers in Piecewise branches are not assumed initialized across branches', () {
+      final pwExpr = Expr.parse('piecewise(x > 0, sin(x) + 1, sin(x) - 1)');
+      final fn = pwExpr.toFunction1D('x');
+      final valPos = fn(math.pi / 2);
+      check(valPos).isCloseTo(2.0, 1e-12);
+      final valNeg = fn(-math.pi / 2);
+      check(valNeg).isCloseTo(-2.0, 1e-12);
+    });
+
     test('dynamic variable discovery and unbound variable errors', () {
       const x = Variable('x');
       final dynEval = compileToBytecode(
