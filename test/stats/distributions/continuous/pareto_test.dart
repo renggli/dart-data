@@ -40,6 +40,14 @@ void main() {
       check(() => dist.inverseCumulativeProbability(-0.1))
           .throws<InvalidProbability>();
     });
+
+    test('Pareto probability and logProbability with large shape do not evaluate to NaN', () {
+      final dist = ParetoDistribution(500.0, 10.0);
+      final p = dist.probability(15.0);
+      check(p.isNaN).isFalse();
+      final logP = dist.logProbability(15.0);
+      check(logP.isNaN).isFalse();
+    });
   });
 
   group('ParetoDistribution estimation and validation', () {

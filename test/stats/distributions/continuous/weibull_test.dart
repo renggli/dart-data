@@ -32,6 +32,16 @@ void main() {
       check(() => dist.inverseCumulativeProbability(-0.1))
           .throws<InvalidProbability>();
     });
+
+    test('Weibull probability and logProbability in extreme tail do not evaluate to NaN', () {
+      final dist = WeibullDistribution(1.5, 1.0);
+      final pTail = dist.probability(1e200);
+      check(pTail.isNaN).isFalse();
+      check(pTail).equals(0.0);
+      final logPTail = dist.logProbability(1e200);
+      check(logPTail.isNaN).isFalse();
+      check(logPTail.isNegative).isTrue();
+    });
   });
 
   group('WeibullDistribution estimation and validation', () {

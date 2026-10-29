@@ -70,9 +70,28 @@ class ParetoDistribution extends ContinuousDistribution {
       : double.nan;
 
   @override
-  double probability(double x) => x < scale
-      ? 0.0
-      : shape * pow(scale, shape).toDouble() / pow(x, shape + 1).toDouble();
+  double probability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x < scale) return 0.0;
+    if (shape <= 50.0 && scale <= 1e10 && x <= 1e10) {
+      final numVal = shape * pow(scale, shape).toDouble();
+      final denVal = pow(x, shape + 1).toDouble();
+      if (numVal.isFinite && denVal.isFinite && denVal > 0.0) {
+        return numVal / denVal;
+      }
+    }
+    final logP = logProbability(x);
+    if (logP.isNaN) return double.nan;
+    if (logP <= -745.0) return 0.0;
+    return exp(logP);
+  }
+
+  @override
+  double logProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x < scale) return double.negativeInfinity;
+    return log(shape) + shape * log(scale) - (shape + 1) * log(x);
+  }
 
   @override
   double cumulativeProbability(double x) =>

@@ -330,7 +330,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: When `standardize: true`, `pca` delegates to `_pearsonCorrelationMatrix(centered)`. In `_pearsonCorrelationMatrix` (`descriptive.dart:736`), every diagonal entry is unconditionally set to `1.0` even when a column is constant (`stdDevs[i] == 0.0`), giving zero-variance features an eigenvalue of `1.0` and corrupting PCA components and `explainedVarianceRatio`.
   - **Fix**: Set the diagonal entry in `pca(standardize: true)` to `0.0` when `stdDevs[i] == 0.0`, and return `double.nan` in `pearsonCorrelationMatrix` for zero-variance columns to match `pearsonCorrelation`.
 
-- [ ] **1.8.4 `WeibullDistribution.probability` and `ParetoDistribution.probability` overflow to `NaN` for large parameters**
+- [x] **1.8.4 `WeibullDistribution.probability` and `ParetoDistribution.probability` overflow to `NaN` for large parameters**
   - **Severity**: Warning
   - **Location**: `lib/src/stats/distributions/continuous/weibull.dart:83-90`, `lib/src/stats/distributions/continuous/pareto.dart:73-75`
   - **Problem**: `WeibullDistribution.probability` multiplies `pow(x / scale, shape - 1)` by `exp(-pow(x / scale, shape))`, producing `Infinity * 0.0 = NaN` in the tail. `ParetoDistribution.probability` divides `pow(scale, shape)` by `pow(x, shape + 1)`, producing `Infinity / Infinity = NaN` for large `shape`.
