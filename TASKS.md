@@ -204,7 +204,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `if (total.isNaN || choose.isNaN || choose < 0 || choose > total) return 0.0;` returns `0.0` on `NaN` inputs, whereas `combinationLn` and `permutationLn` return `double.nan`.
   - **Fix**: Check `if (total.isNaN || choose.isNaN) return double.nan;` before the range check.
 
-- [ ] **1.5.5 `lambertW1` corrupts solution via `exp` underflow for small negative $z$, and `lambertW0` overflows Halley denominator for large $z$**
+- [x] **1.5.5 `lambertW1` corrupts solution via `exp` underflow for small negative $z$, and `lambertW0` overflows Halley denominator for large $z$**
   - **Severity**: Warning
   - **Location**: `lib/src/special/lambert_w.dart:41-56, 92-108`
   - **Problem**: In `lambertW1(z)` for $z \in [-10^{-300}, 0)$, `ew = exp(wVal)` underflows to `0.0` inside the Halley loop, causing each iteration to add $+2.0$ and drift $+50$ away from the already-accurate asymptotic initial guess. In `lambertW0(z)` for $z \approx 10^{307}$, `(wVal + 2.0) * fVal` overflows to `Infinity` in the Halley denominator.

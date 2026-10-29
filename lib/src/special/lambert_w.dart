@@ -40,6 +40,9 @@ double lambertW0(num z) {
   }
   for (var i = 0; i < 25; i++) {
     final ew = exp(wVal);
+    if (ew == 0.0 || !ew.isFinite) {
+      break;
+    }
     final fVal = wVal * ew - zd;
     if (fVal.abs() < 1.0e-15 * (1.0 + wVal.abs()) * ew) {
       break;
@@ -48,7 +51,11 @@ double lambertW0(num z) {
     if (w1.abs() < 1.0e-15) {
       break;
     }
-    final step = fVal / (ew * w1 - (wVal + 2.0) * fVal / (2.0 * w1));
+    final denom = ew * w1 - (wVal + 2.0) * fVal / (2.0 * w1);
+    if (denom == 0.0 || !denom.isFinite) {
+      break;
+    }
+    final step = fVal / denom;
     wVal -= step;
     if (step.abs() < 1.0e-15 * (1.0 + wVal.abs())) {
       break;
@@ -92,6 +99,9 @@ double lambertW1(num z) {
   }
   for (var i = 0; i < 25; i++) {
     final ew = exp(wVal);
+    if (ew == 0.0 || !ew.isFinite) {
+      break;
+    }
     final fVal = wVal * ew - zd;
     if (fVal.abs() < 1.0e-15 * (1.0 + wVal.abs()) * ew) {
       break;
@@ -100,7 +110,11 @@ double lambertW1(num z) {
     if (w1.abs() < 1.0e-15) {
       break;
     }
-    final step = fVal / (ew * w1 - (wVal + 2.0) * fVal / (2.0 * w1));
+    final denom = ew * w1 - (wVal + 2.0) * fVal / (2.0 * w1);
+    if (denom == 0.0 || !denom.isFinite) {
+      break;
+    }
+    final step = fVal / denom;
     wVal -= step;
     if (step.abs() < 1.0e-15 * (1.0 + wVal.abs())) {
       break;

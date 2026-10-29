@@ -12,6 +12,7 @@ void main() {
       check(lambertW0(-1.0 / math.e)).isCloseTo(-1.0, 1e-6);
       check(lambertW0(-0.5)).isNaN(); // < -1/e
       check(lambertW0(double.infinity)).equals(double.infinity);
+      check(lambertW0(1e307).isFinite).isTrue();
 
       final wVal = lambertW0(2.0);
       check(wVal * math.exp(wVal)).isCloseTo(2.0, 1e-9);
@@ -23,6 +24,10 @@ void main() {
       check(lambertW1(-1.0 / math.e)).isCloseTo(-1.0, 1e-5);
       final wVal = lambertW1(-0.1);
       check(wVal * math.exp(wVal)).isCloseTo(-0.1, 1e-7);
+      // Small negative z where exp(w) underflows: W1(-1e-200) ~ ln(1e-200) ~ -460.5
+      final wSmall = lambertW1(-1e-200);
+      check(wSmall).isLessThan(-450.0);
+      check(wSmall).isGreaterThan(-500.0);
     });
 
     test('Lambert W branch near branch point (-1/e < z < -0.3)', () {
