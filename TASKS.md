@@ -124,7 +124,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `_vdspFwdSetups`, `_vdspInvSetups`, `_fftw1dFwdPlans`, `_fftw1dInvPlans`, `_fftw2dFwdPlans`, and `_fftw2dInvPlans` cache native pointers keyed by signal dimensions with no capacity bound and never call `vDSP_DFT_DestroySetupD` or `fftw_destroy_plan`.
   - **Fix**: Bind `vDSP_DFT_DestroySetupD` and `fftw_destroy_plan` and enforce an LRU capacity limit (e.g. 64 entries per cache), destroying evicted native plans/setups.
 
-- [ ] **1.3.4 `Lapack` methods skip `lda`/`ldb` and matrix bounds validation when `n == 0` or `nrhs == 0`**
+- [x] **1.3.4 `Lapack` methods skip `lda`/`ldb` and matrix bounds validation when `n == 0` or `nrhs == 0`**
   - **Severity**: Warning
   - **Location**: `lib/src/acceleration/lapack/lapack.dart:28-30, 56-58, 86-88, 120-123, 152-154`
   - **Problem**: In `Lapack.dpotrf`, `dsyev`, `dgesv`, `dgels`, and `dgesvd`, the early return `if (n == 0) return true;` occurs before `checkBlasMatrixBounds` and `lda` validation (unlike `Blas`, which validates `lda` before early return).
