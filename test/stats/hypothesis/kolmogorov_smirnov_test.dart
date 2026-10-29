@@ -89,5 +89,16 @@ void main() {
       // For n=5, d=0.5: P(D_5 < 0.5) = 0.888 -> p-value = 0.112
       check(res5.pValue).isCloseTo(0.112, 1e-10);
     });
+
+    test('Kolmogorov-Smirnov returns NaN on NaN inputs', () {
+      const normal = NormalDistribution.standard();
+      final res1 = kolmogorovSmirnovTest([1.0, double.nan, 2.0], normal);
+      check(res1.statistic.isNaN).isTrue();
+      check(res1.pValue.isNaN).isTrue();
+
+      final res2 = kolmogorovSmirnovTwoSample([1.0, 2.0], [double.nan, 3.0]);
+      check(res2.statistic.isNaN).isTrue();
+      check(res2.pValue.isNaN).isTrue();
+    });
   });
 }

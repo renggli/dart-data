@@ -312,7 +312,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ### 1.8 `stats` Subsystem
 
-- [ ] **1.8.1 Infinite loop in `kolmogorovSmirnovTwoSample` and silent `0.0` statistic in `kolmogorovSmirnovTest` on `NaN` input**
+- [x] **1.8.1 Infinite loop in `kolmogorovSmirnovTwoSample` and silent `0.0` statistic in `kolmogorovSmirnovTest` on `NaN` input**
   - **Severity**: Critical
   - **Location**: `lib/src/stats/hypothesis/kolmogorov_smirnov.dart:27-44, 67-95`
   - **Problem**: In `kolmogorovSmirnovTwoSample`, if either sample contains `double.nan`, `x = math.min(list1[i], list2[j])` evaluates to `double.nan`. Both inner loops `while (i < n1 && list1[i] <= x)` and `while (j < n2 && list2[j] <= x)` evaluate `<= double.nan` as `false`, so neither `i` nor `j` advances and the outer `while` loop hangs forever. In `kolmogorovSmirnovTest`, `NaN` entries produce `cdfVal = NaN` and are silently ignored (`dStat: 0.0, pValue: 1.0`).

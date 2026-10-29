@@ -29,6 +29,16 @@ HypothesisTestResult kolmogorovSmirnovTest(
   if (n == 0) {
     throw ArgumentError('Sample cannot be empty');
   }
+  for (var i = 0; i < n; i++) {
+    if (list[i].isNaN) {
+      return HypothesisTestResult(
+        testName: 'One-Sample Kolmogorov-Smirnov Test',
+        statistic: double.nan,
+        pValue: double.nan,
+        alpha: alpha,
+      );
+    }
+  }
 
   var dPlus = 0.0;
   var dMinus = 0.0;
@@ -70,6 +80,26 @@ HypothesisTestResult kolmogorovSmirnovTwoSample(
   final n2 = list2.length;
   if (n1 == 0 || n2 == 0) {
     throw ArgumentError('Samples cannot be empty');
+  }
+  for (var k = 0; k < n1; k++) {
+    if (list1[k].isNaN) {
+      return HypothesisTestResult(
+        testName: 'Two-Sample Kolmogorov-Smirnov Test',
+        statistic: double.nan,
+        pValue: double.nan,
+        alpha: alpha,
+      );
+    }
+  }
+  for (var k = 0; k < n2; k++) {
+    if (list2[k].isNaN) {
+      return HypothesisTestResult(
+        testName: 'Two-Sample Kolmogorov-Smirnov Test',
+        statistic: double.nan,
+        pValue: double.nan,
+        alpha: alpha,
+      );
+    }
   }
 
   var i = 0;
