@@ -45,16 +45,13 @@ extension OperationTensorExtension<T> on Tensor<T> {
       }
       final len = layout.length;
       final targetData = target.data;
-      final sharesMem = sharesMemory(targetData, data);
-      final hasHazard =
-          sharesMem &&
-          !(sameStartAddress(
-                targetData,
-                target.layout.offset,
-                data,
-                layout.offset,
-              ) &&
-              areShapesEqual(target.layout.strides, layout.strides));
+      final hasHazard = _hasMemoryHazard(
+        targetData,
+        target.layout,
+        data,
+        layout,
+        len,
+      );
 
       if (hasHazard) {
         final temp = unaryOperation<R>(function, type: resultType);
@@ -127,20 +124,20 @@ extension OperationTensorExtension<T> on Tensor<T> {
           data: resultData,
         );
       } else if (target.layout.isContiguous &&
-          (!sharesMemory(target.data, thisData) ||
-              sameStartAddress(
-                target.data,
-                target.layout.offset,
-                thisData,
-                layout.offset,
-              )) &&
-          (!sharesMemory(target.data, otherData) ||
-              sameStartAddress(
-                target.data,
-                target.layout.offset,
-                otherData,
-                other.layout.offset,
-              ))) {
+          !_hasMemoryHazard(
+            target.data,
+            target.layout,
+            thisData,
+            layout,
+            len,
+          ) &&
+          !_hasMemoryHazard(
+            target.data,
+            target.layout,
+            otherData,
+            other.layout,
+            len,
+          )) {
         final targetData = target.data;
         final s1 = layout.offset,
             s2 = other.layout.offset,
@@ -188,24 +185,21 @@ extension OperationTensorExtension<T> on Tensor<T> {
         );
       }
 
-      bool hasHazardFor(Tensor<dynamic> op, Layout opLayout) {
-        if (!sharesMemory(target.data, op.data)) return false;
-        if (target.layout.isContiguous &&
-            opLayout.isContiguous &&
-            sameStartAddress(
-              target.data,
-              target.layout.offset,
-              op.data,
-              opLayout.offset,
-            ) &&
-            areShapesEqual(target.layout.strides, opLayout.strides)) {
-          return false;
-        }
-        return true;
-      }
-
       final hasHazard =
-          hasHazardFor(this, thisLayout) || hasHazardFor(other, otherLayout);
+          _hasMemoryHazard(
+            target.data,
+            target.layout,
+            data,
+            thisLayout,
+            target.layout.length,
+          ) ||
+          _hasMemoryHazard(
+            target.data,
+            target.layout,
+            other.data,
+            otherLayout,
+            target.layout.length,
+          );
 
       if (hasHazard) {
         final temp = binaryOperation<O, R>(
@@ -315,4 +309,32 @@ extension LogicalTensorExtension on Tensor<bool> {
   /// Computes element-wise logical OR $(A \lor B)$ supporting broadcasting.
   Tensor<bool> operator |(Tensor<bool> other) =>
       binaryOperation<bool, bool>(other, (a, b) => a || b, type: type);
+}
+
+bool _hasMemoryHazard(
+  List<Object?> targetData,
+  Layout targetLayout,
+  List<Object?> opData,
+  Layout opLayout,
+  int count,
+) {
+  if (!sharesMemory(targetData, opData)) return false;
+  if (!hasOverlap(
+    targetData,
+    targetLayout.offset,
+    opData,
+    opLayout.offset,
+    count,
+  )) {
+    return false;
+  }
+  return !(targetLayout.isContiguous &&
+      opLayout.isContiguous &&
+      sameStartAddress(
+        targetData,
+        targetLayout.offset,
+        opData,
+        opLayout.offset,
+      ) &&
+      areShapesEqual(targetLayout.strides, opLayout.strides));
 }

@@ -734,5 +734,42 @@ void main() {
       check((posZeroTensor <= negZeroTensor).toFlatList()).deepEquals([true]);
       check((posZeroTensor >= negZeroTensor).toFlatList()).deepEquals([true]);
     });
+
+    test('binaryOperation with disjoint slices of the same buffer in contiguous fast-path', () {
+      final big = Tensor<int>.fromIterable(
+        [1, 2, 3, 10, 20, 30, 0, 0, 0],
+        shape: [9],
+        type: DataType.int32,
+      );
+      final s1 = big.getRange(axis: 0, start: 0, end: 3);
+      final s2 = big.getRange(axis: 0, start: 3, end: 6);
+      final target = big.getRange(axis: 0, start: 6, end: 9);
+
+      check(s1.sharesMemoryWith(target)).isTrue();
+      check(s2.sharesMemoryWith(target)).isTrue();
+
+      s1.binaryOperation<int, int>(s2, (a, b) => a + b, target: target);
+      check(target.toFlatList()).deepEquals([11, 22, 33]);
+      check(big.toFlatList()).deepEquals([1, 2, 3, 10, 20, 30, 11, 22, 33]);
+    });
+
+    test('binaryOperation with matching start address but differing strides is guarded', () {
+      final data = [1, 2, 3];
+      // Layout with shape [1, 3] and non-standard stride [10, 1] vs [3, 1]
+      final t1 = Tensor<int>.internal(
+        type: DataType.int32,
+        layout: Layout(shape: [1, 3], strides: [10, 1]),
+        data: data,
+      );
+      final target = Tensor<int>.internal(
+        type: DataType.int32,
+        layout: Layout(shape: [1, 3], strides: [3, 1]),
+        data: [0, 0, 0],
+      );
+      check(t1.layout.isContiguous).isTrue();
+      check(target.layout.isContiguous).isTrue();
+      t1.binaryOperation<int, int>(t1, (a, b) => a + b, target: target);
+      check(target.toFlatList()).deepEquals([2, 4, 6]);
+    });
   });
 }

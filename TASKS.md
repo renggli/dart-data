@@ -72,7 +72,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `Tensor.operator <`, `<=`, `>`, and `>=` delegate to `type.comparator(a, b)`. For `FloatDataType`, `comparator` is `a.compareTo(b)`. In Dart, `double.nan.compareTo(1.0)` is `1` (`> 0`) and `(-0.0).compareTo(0.0)` is `-1` (`< 0`). Consequently, `Tensor.fromIterable([double.nan]) > Tensor.fromIterable([1.0])` evaluates to `[true]` and `Tensor.fromIterable([-0.0]) < Tensor.fromIterable([0.0])` evaluates to `[true]`, violating IEEE 754 semantics.
   - **Fix**: In `OperationTensorExtension.<`, `<=`, `>`, and `>=`, when `a is num && b is num`, use `a < b`, `a <= b`, `a > b`, and `a >= b` directly instead of `type.comparator`.
 
-- [ ] **1.2.2 `binaryOperation` in-place contiguous fast path omits stride equality check**
+- [x] **1.2.2 `binaryOperation` in-place contiguous fast path omits stride equality check**
   - **Severity**: Critical
   - **Location**: `lib/src/tensor/operations/operation.dart:105-153`
   - **Problem**: Unlike `unaryOperation` (`line 57`, which checks `areShapesEqual(target.layout.strides, layout.strides)`), `binaryOperation` (`lines 129-152`) checks `sameStartAddress(...)` and `isContiguous` without checking `areShapesEqual(target.layout.strides, layout.strides)`. For layouts with singleton dimensions (`shape[i] == 1`) where `Layout` marks non-canonical strides as `isContiguous = true`, in-place binary operations can mis-index or alias when strides differ, while disjoint views of the same buffer fall back to allocating a full temporary tensor even when `!hasOverlap(...)`.
