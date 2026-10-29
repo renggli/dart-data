@@ -526,6 +526,21 @@ void main() {
         method: OptimizationMethod.lbfgs,
       );
       check(eqLbfgs.point[0]).isCloseTo(1.0, 1e-2);
+
+      // Nelder-Mead with objective that returns NaN in invalid region
+      double fWithNan(Vector<double> v) {
+        if (v[0] <= 0.0) return double.nan;
+        return (v[0] - 0.2) * (v[0] - 0.2) + (v[1] - 0.2) * (v[1] - 0.2);
+      }
+
+      final nmNanRes = minimize(
+        fWithNan,
+        initialPoint: Vector<double>.fromList([0.05, 0.05]),
+        method: OptimizationMethod.nelderMead,
+        step: 0.2,
+      );
+      check(nmNanRes.point[0]).isCloseTo(0.2, 1e-2);
+      check(nmNanRes.point[1]).isCloseTo(0.2, 1e-2);
     });
   });
 }

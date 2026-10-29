@@ -30,7 +30,11 @@ nelderMead(
   var iter = 0;
   for (; iter < maxIterations; iter++) {
     final indices = List<int>.generate(dim + 1, (i) => i)
-      ..sort((a, b) => values[a].compareTo(values[b]));
+      ..sort((a, b) {
+        final va = values[a].isNaN ? double.infinity : values[a];
+        final vb = values[b].isNaN ? double.infinity : values[b];
+        return va.compareTo(vb);
+      });
 
     final bestIdx = indices[0];
     final worstIdx = indices[dim];

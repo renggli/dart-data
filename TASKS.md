@@ -284,7 +284,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: When `a` and `b` are passed without `initialPoint`, `resolvedMethod` defaults to `OptimizationMethod.brent`. Line 85 checks `if (hasConstraints && resolvedMethod != OptimizationMethod.brent)`, silently ignoring `inequalities` and `equalities`.
   - **Fix**: Only default to unconstrained `brentMinimize` when `inequalities` and `equalities` are empty/null.
 
-- [ ] **1.7.6 `nelderMead` vertex sorting breaks on `NaN` objective evaluations**
+- [x] **1.7.6 `nelderMead` vertex sorting breaks on `NaN` objective evaluations**
   - **Severity**: Warning
   - **Location**: `lib/src/numeric/optimization/nelder_mead.dart:33`
   - **Problem**: `values[a].compareTo(values[b])` returns `0` when comparing `double.nan` with any number, corrupting simplex vertex ordering if the objective returns `NaN` at a trial step.
