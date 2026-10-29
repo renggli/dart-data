@@ -266,7 +266,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: In `NearestInterpolation`, `PreviousInterpolation`, and `NextInterpolation`, `xd <= _xs.first`, `xd >= _xs.last`, and `dLo < dHi` all evaluate to `false` when `x` is `double.nan`, returning `_ys[1]` or `_ys[0]` instead of `double.nan`. Furthermore, `if (_xs[i] >= _xs[i + 1])` across all 1D/2D interpolator constructors evaluates to `false` when `_xs` contains `double.nan`, silently accepting `NaN` knot coordinates.
   - **Fix**: Add `if (xd.isNaN) return double.nan;` at the start of `call` in `step.dart`, and replace `if (_xs[i] >= _xs[i + 1])` with `if (!(_xs[i] < _xs[i + 1]))` across all interpolator constructors.
 
-- [ ] **1.7.3 `integrate` fails when `poles` are combined with infinite bounds**
+- [x] **1.7.3 `integrate` fails when `poles` are combined with infinite bounds**
   - **Severity**: Critical
   - **Location**: `lib/src/numeric/integration.dart:106-117, 232-323`
   - **Problem**: When `poles` is non-empty and `a` or `b` is infinite (e.g. `integrate(f, -double.infinity, double.infinity, poles: [0.0])`), `_integratePoles` runs before infinite-bound splitting. On `[-Infinity, 0.0]`, `vIsPole` is `true`, so line 284 computes `length = v - u = +Infinity` and `limit = math.sqrt(length) = +Infinity`, applying $x = v - t^2$ on $[0, \infty)$ followed by $t = (1 - s^2)/s^2$, which overflows and fails.

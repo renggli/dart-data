@@ -257,6 +257,15 @@ void main() {
         onWarning: (w, x) => simpWarned = true,
       );
       check(simpWarned).isTrue();
+
+      // \int_{-\infty}^0 1 / (sqrt(-x) * (1 + x^2)) dx = pi / sqrt(2)
+      final resNegInfinite = integrate(
+        (x) => 1.0 / (math.sqrt(-x) * (1.0 + x * x)),
+        double.negativeInfinity,
+        0.0,
+        poles: [0.0],
+      );
+      check(resNegInfinite).isCloseTo(math.pi / math.sqrt(2.0), 1e-4);
     });
   });
 }
