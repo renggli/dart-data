@@ -32,6 +32,11 @@ void main() {
     test('cast error', () {
       check(() => type.cast('abc')).throws<ArgumentError>();
       check(() => type.cast(null)).throws<ArgumentError>();
+      check(
+        () => type.cast(
+          BigInt.parse('10000000000000000000000000000000000000000'),
+        ),
+      ).throws<ArgumentError>();
     });
 
     checkListOperations(type, <List<Fraction>>[

@@ -32,7 +32,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `FloatField.division(double a, double b)` executes `(a ~/ b).roundToDouble()`. In Dart, `double ~/ double` converts the quotient to a 64-bit `int` first, which throws `UnsupportedError` when `b == 0.0`, when `a` or `b` is `NaN`/`Infinity`, or when `|a / b| > 2^{63} - 1` (e.g. `1e25 ~/ 1.0`).
   - **Fix**: Replace `(a ~/ b).roundToDouble()` with `(a / b).truncateToDouble()`.
 
-- [ ] **1.1.5 `FractionDataType.cast(BigInt)` truncates arbitrary-precision `BigInt` via `.toInt()`**
+- [x] **1.1.5 `FractionDataType.cast(BigInt)` truncates arbitrary-precision `BigInt` via `.toInt()`**
   - **Severity**: Warning
   - **Location**: `lib/src/type/types/fraction.dart:31-32`
   - **Problem**: `else if (value is BigInt) { return Fraction(value.toInt()); }` converts `BigInt` via `.toInt()`, wrapping to 64-bit signed `int` on the VM even though `Fraction(BigInt, [BigInt])` natively accepts arbitrary-precision `BigInt` numerators.

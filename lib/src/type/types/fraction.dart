@@ -29,7 +29,10 @@ final class FractionDataType extends DataType<Fraction> {
     } else if (value is double) {
       return Fraction.fromDouble(value);
     } else if (value is BigInt) {
-      return Fraction(value.toInt());
+      if (value.isValidInt) {
+        return Fraction(value.toInt());
+      }
+      return super.cast(value);
     } else if (value is String) {
       return Fraction.tryParse(value) ?? super.cast(value);
     }
