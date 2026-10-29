@@ -441,7 +441,13 @@ extension type Float64Matrix._(Matrix<double> _matrix)
 
   /// Creates a deep contiguous copy of this matrix as [Float64Matrix].
   @redeclare
-  Float64Matrix copy() => Float64Matrix._(_matrix.copy());
+  Float64Matrix copy({Float64Matrix? target}) {
+    if (target != null) {
+      _matrix.copy(target: target._matrix);
+      return target;
+    }
+    return Float64Matrix._(_matrix.copy());
+  }
 
   /// Element-wise Hadamard product as [Float64Matrix].
   @redeclare

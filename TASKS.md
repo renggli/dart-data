@@ -84,7 +84,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `Layout(shape: [3], offset: -5)` succeeds with `isContiguous == true`. Passing such a layout to `Tensor.fromList` or `Float64Tensor` causes out-of-bounds buffer access or native FFI memory corruption on contiguous fast paths.
   - **Fix**: Validate `offset >= 0` in `Layout(...)`, require canonical positive strides or normalize singleton strides for `isContiguous`, and verify reachable index bounds against `data.length` in `Tensor.fromList`.
 
-- [ ] **1.2.4 `Float64Tensor.copy`, `Float64Vector.copy`/`cumsum`/`cumprod`, and `Float64Matrix.copy` silently detach from `target` if `target` is not backed by `Float64List`**
+- [x] **1.2.4 `Float64Tensor.copy`, `Float64Vector.copy`/`cumsum`/`cumprod`, and `Float64Matrix.copy` silently detach from `target` if `target` is not backed by `Float64List`**
   - **Severity**: Critical
   - **Location**: `lib/src/tensor/float64_tensor.dart:160-161`, `lib/src/linear/float64_vector.dart:332-333, 387-393`, `lib/src/linear/float64_matrix.dart:429-430`
   - **Problem**: These methods accept `{Tensor<double>? target}` / `{Vector<double>? target}` / `{Matrix<double>? target}` and wrap the result with `Float64Tensor.fromDoubleTensor(...)`. If `target` is backed by a `Float32List` or `List<double>`, `fromDoubleTensor` allocates a new `Float64List` copy, breaking the return-target identity contract.

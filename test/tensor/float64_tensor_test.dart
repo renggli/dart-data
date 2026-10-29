@@ -213,5 +213,13 @@ void main() {
       check(copied.offset).equals(0);
       check(copied.asTypedList).deepEquals([4.0, 5.0, 6.0]);
     });
+
+    test('copy into Float64Tensor target retains identity', () {
+      final source = Float64Tensor.fromIterable([1.0, 2.0, 3.0]);
+      final target = Float64Tensor.fromIterable([0.0, 0.0, 0.0]);
+      final result = source.copy(target: target);
+      check(identical(result, target)).isTrue();
+      check(target.toFlatList()).deepEquals([1.0, 2.0, 3.0]);
+    });
   });
 }

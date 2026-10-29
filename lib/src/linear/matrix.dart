@@ -980,7 +980,13 @@ class Matrix<T> implements LinearOperator<T> {
   }
 
   /// Creates a deep contiguous copy of this matrix.
-  Matrix<T> copy() => Matrix(tensor.copy());
+  Matrix<T> copy({Matrix<T>? target}) {
+    if (target != null) {
+      tensor.copy(target: target.tensor);
+      return target;
+    }
+    return Matrix(tensor.copy());
+  }
 
   /// Converts this matrix into nested rows.
   List<List<T>> toNestedList() => List<List<T>>.generate(

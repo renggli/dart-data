@@ -380,15 +380,31 @@ extension type Float64Vector._(Vector<double> _vector)
 
   /// Creates a deep contiguous copy of this vector as [Float64Vector].
   @redeclare
-  Float64Vector copy() => Float64Vector._(_vector.copy());
+  Float64Vector copy({Float64Vector? target}) {
+    if (target != null) {
+      _vector.copy(target: target._vector);
+      return target;
+    }
+    return Float64Vector._(_vector.copy());
+  }
 
   /// Computes the cumulative sum (prefix sum) along this vector.
   @redeclare
-  Float64Vector cumsum({Vector<double>? target}) =>
-      Float64Vector.fromDoubleVector(_vector.cumsum(target: target));
+  Float64Vector cumsum({Float64Vector? target}) {
+    if (target != null) {
+      _vector.cumsum(target: target._vector);
+      return target;
+    }
+    return Float64Vector._(_vector.cumsum());
+  }
 
   /// Computes the cumulative product (prefix product) along this vector.
   @redeclare
-  Float64Vector cumprod({Vector<double>? target}) =>
-      Float64Vector.fromDoubleVector(_vector.cumprod(target: target));
+  Float64Vector cumprod({Float64Vector? target}) {
+    if (target != null) {
+      _vector.cumprod(target: target._vector);
+      return target;
+    }
+    return Float64Vector._(_vector.cumprod());
+  }
 }

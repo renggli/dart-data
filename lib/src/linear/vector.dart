@@ -444,7 +444,13 @@ class Vector<T> {
   }
 
   /// Creates a deep contiguous copy of this vector.
-  Vector<T> copy() => Vector(tensor.copy());
+  Vector<T> copy({Vector<T>? target}) {
+    if (target != null) {
+      tensor.copy(target: target.tensor);
+      return target;
+    }
+    return Vector(tensor.copy());
+  }
 
   /// Sum of all elements in this vector.
   T get sum {

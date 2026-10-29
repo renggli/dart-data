@@ -305,6 +305,14 @@ void main() {
         ], type: DataType.float32);
         check(copied.apply(f32Vec).length).equals(2);
         check(nonContig.apply(f32Vec).length).equals(2);
+
+        final targetCopy = Float64Matrix.fromList(2, 2, [0.0, 0.0, 0.0, 0.0]);
+        final resCopy = copied.copy(target: targetCopy);
+        check(identical(resCopy, targetCopy)).isTrue();
+        check(targetCopy.toNestedList()).deepEquals([
+          [42.0, 1.0],
+          [1.0, 1.0],
+        ]);
       },
     );
   });

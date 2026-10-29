@@ -214,6 +214,22 @@ void main() {
         check((copied - f32Vec).toList()).deepEquals([41.0, 0.0, 0.0]);
         check((copied * f32Vec).toList()).deepEquals([42.0, 1.0, 1.0]);
         check((copied / f32Vec).toList()).deepEquals([42.0, 1.0, 1.0]);
+
+        final targetCopy = Float64Vector.fromIterable([0.0, 0.0, 0.0]);
+        final targetCumsum = Float64Vector.fromIterable([0.0, 0.0, 0.0]);
+        final targetCumprod = Float64Vector.fromIterable([0.0, 0.0, 0.0]);
+
+        final resCopy = copied.copy(target: targetCopy);
+        check(identical(resCopy, targetCopy)).isTrue();
+        check(targetCopy.toList()).deepEquals([42.0, 1.0, 1.0]);
+
+        final resCumsum = copied.cumsum(target: targetCumsum);
+        check(identical(resCumsum, targetCumsum)).isTrue();
+        check(targetCumsum.toList()).deepEquals([42.0, 43.0, 44.0]);
+
+        final resCumprod = copied.cumprod(target: targetCumprod);
+        check(identical(resCumprod, targetCumprod)).isTrue();
+        check(targetCumprod.toList()).deepEquals([42.0, 42.0, 42.0]);
       },
     );
   });

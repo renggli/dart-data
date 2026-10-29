@@ -157,8 +157,13 @@ extension type Float64Tensor._(Tensor<double> _tensor)
 
   /// Creates a contiguous deep copy of this tensor as [Float64Tensor].
   @redeclare
-  Float64Tensor copy({Tensor<double>? target}) =>
-      Float64Tensor.fromDoubleTensor(_tensor.copy(target: target));
+  Float64Tensor copy({Float64Tensor? target}) {
+    if (target != null) {
+      _tensor.copy(target: target._tensor);
+      return target;
+    }
+    return Float64Tensor._(_tensor.copy());
+  }
 
   /// Inlined contiguous element-wise addition.
   Float64Tensor operator +(Tensor<double> other) {
