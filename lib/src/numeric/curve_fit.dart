@@ -165,7 +165,9 @@ linearRegression(Vector<num> xs, Vector<num> ys) {
     ssTot += totDiff * totDiff;
     ssRes += resDiff * resDiff;
   }
-  final rSquared = ssTot > 0.0 ? 1.0 - (ssRes / ssTot) : 1.0;
+  final rSquared = ssTot > 0.0
+      ? 1.0 - (ssRes / ssTot)
+      : (ssRes == 0.0 ? 1.0 : 0.0);
 
   return (
     slope: slope,
@@ -311,7 +313,9 @@ multipleLinearRegression(
     ssTot += totDiff * totDiff;
     ssRes += resDiff * resDiff;
   }
-  final rSquared = ssTot > 0.0 ? 1.0 - (ssRes / ssTot) : 1.0;
+  final rSquared = ssTot > 0.0
+      ? 1.0 - (ssRes / ssTot)
+      : (ssRes == 0.0 ? 1.0 : 0.0);
 
   return (
     coefficients: coefs,
@@ -538,7 +542,7 @@ CurveFitResult curveFit({
       ? 1.0 - (ssRes / ssTot)
       : (ssRes == 0.0 ? 1.0 : 0.0);
   final df = n - numParams;
-  final rse = math.sqrt(ssRes / math.max(df, 1));
+  final rse = df > 0 ? math.sqrt(ssRes / df) : double.nan;
 
   final optimalParams = params.copy();
   final j = calculus.jacobian(computeResiduals, optimalParams, step: 1e-7);

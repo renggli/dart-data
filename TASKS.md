@@ -302,7 +302,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Line 49 scales `final h = hBase * math.max(1.0, x.abs());` even when the caller explicitly passes `step`. Line 53 evaluates `weights[i] * function(x + (i - offset) * h)` even when `weights[i] == 0.0` (the center node for all odd derivative orders 1, 3, 5), wasting an evaluation and returning `NaN` (`0.0 * Infinity`) if `function` has a singularity at `x`.
   - **Fix**: Scale default `hBase` by `math.max(1.0, x.abs())` only when `step == null`, and skip stencil points with `weights[i] == 0.0`.
 
-- [ ] **1.7.9 `curveFit` standard errors when `df == 0` and `rSquared` when `ssTot == 0`**
+- [x] **1.7.9 `curveFit` standard errors when `df == 0` and `rSquared` when `ssTot == 0`**
   - **Severity**: Warning
   - **Location**: `lib/src/numeric/curve_fit.dart:168, 314, 539-541`
   - **Problem**: In `linearRegression` (line 168) and `multipleLinearRegression` (line 314), when `ssTot == 0.0` and `ssRes > 0.0`, `rSquared` returns `1.0` instead of `0.0`. In `curveFit` (lines 540–541), when `n == numParams` (`df == 0`), `math.max(df, 1)` divides by `1` instead of returning `double.nan` for `rse` and `standardErrors`.

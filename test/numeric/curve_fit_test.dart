@@ -520,5 +520,44 @@ void main() {
         ),
       ).throws<ArgumentError>();
     });
+
+    test(
+      'linear regression and multiple linear regression with constant y',
+      () {
+        final xs = Vector<double>.fromList([1.0, 2.0, 3.0]);
+        final ys = Vector<double>.fromList([5.0, 5.0, 5.0]);
+        final res = linearRegression(xs, ys);
+        check(res.slope).isCloseTo(0.0, 1e-10);
+        check(res.intercept).isCloseTo(5.0, 1e-10);
+        check(res.rSquared).equals(1.0);
+
+        // Fit without intercept where X * beta cannot match non-zero constant y exactly
+        final matX = Matrix<double>.fromRows([
+          [1.0],
+          [2.0],
+          [3.0],
+        ]);
+        final resMulti = multipleLinearRegression(
+          matX,
+          ys,
+          fitIntercept: false,
+        );
+        check(resMulti.rSquared).equals(0.0);
+      },
+    );
+
+    test('curveFit with df <= 0 yields NaN for rse and standard errors', () {
+      final xs = Vector<double>.fromList([1.0, 2.0]);
+      final ys = Vector<double>.fromList([3.0, 5.0]);
+      final res = curveFit(
+        xs: xs,
+        ys: ys,
+        model: (x, p) => p[0] * x + p[1],
+        initialParams: Vector<double>.fromList([1.0, 1.0]),
+      );
+      check(res.residualStandardError.isNaN).isTrue();
+      check(res.standardErrors[0].isNaN).isTrue();
+      check(res.standardErrors[1].isNaN).isTrue();
+    });
   });
 }
