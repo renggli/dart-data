@@ -66,7 +66,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ### 1.2 `tensor` Subsystem
 
-- [ ] **1.2.1 `Tensor` comparison operators `<`, `<=`, `>`, `>=` return `true` for `NaN > x` and `-0.0 < 0.0`**
+- [x] **1.2.1 `Tensor` comparison operators `<`, `<=`, `>`, `>=` return `true` for `NaN > x` and `-0.0 < 0.0`**
   - **Severity**: Critical
   - **Location**: `lib/src/tensor/operations/operation.dart:275-295`
   - **Problem**: `Tensor.operator <`, `<=`, `>`, and `>=` delegate to `type.comparator(a, b)`. For `FloatDataType`, `comparator` is `a.compareTo(b)`. In Dart, `double.nan.compareTo(1.0)` is `1` (`> 0`) and `(-0.0).compareTo(0.0)` is `-1` (`< 0`). Consequently, `Tensor.fromIterable([double.nan]) > Tensor.fromIterable([1.0])` evaluates to `[true]` and `Tensor.fromIterable([-0.0]) < Tensor.fromIterable([0.0])` evaluates to `[true]`, violating IEEE 754 semantics.

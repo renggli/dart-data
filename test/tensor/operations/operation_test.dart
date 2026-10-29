@@ -709,5 +709,30 @@ void main() {
       );
       check(tc1.sharesMemoryWith(tc2)).isTrue();
     });
+
+    test('relational operators adhere to IEEE 754 with NaN and -0.0', () {
+      final nanTensor = Tensor.fromIterable([
+        double.nan,
+      ], type: DataType.float64);
+      final oneTensor = Tensor.fromIterable([1.0], type: DataType.float64);
+      final negZeroTensor = Tensor.fromIterable([-0.0], type: DataType.float64);
+      final posZeroTensor = Tensor.fromIterable([0.0], type: DataType.float64);
+
+      // NaN comparisons must always be false
+      check((nanTensor > oneTensor).toFlatList()).deepEquals([false]);
+      check((nanTensor < oneTensor).toFlatList()).deepEquals([false]);
+      check((nanTensor >= oneTensor).toFlatList()).deepEquals([false]);
+      check((nanTensor <= oneTensor).toFlatList()).deepEquals([false]);
+      check((oneTensor > nanTensor).toFlatList()).deepEquals([false]);
+      check((oneTensor < nanTensor).toFlatList()).deepEquals([false]);
+
+      // -0.0 and 0.0 must be equal
+      check((negZeroTensor < posZeroTensor).toFlatList()).deepEquals([false]);
+      check((negZeroTensor > posZeroTensor).toFlatList()).deepEquals([false]);
+      check((negZeroTensor <= posZeroTensor).toFlatList()).deepEquals([true]);
+      check((negZeroTensor >= posZeroTensor).toFlatList()).deepEquals([true]);
+      check((posZeroTensor <= negZeroTensor).toFlatList()).deepEquals([true]);
+      check((posZeroTensor >= negZeroTensor).toFlatList()).deepEquals([true]);
+    });
   });
 }

@@ -272,23 +272,31 @@ extension OperationTensorExtension<T> on Tensor<T> {
 
   /// Computes element-wise strictly less-than $(A < B)$ producing a boolean
   /// tensor.
-  Tensor<bool> operator <(Tensor<T> other) =>
-      binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) < 0);
+  Tensor<bool> operator <(Tensor<T> other) => binaryOperation<T, bool>(
+    other,
+    (a, b) => a is num && b is num ? a < b : type.comparator(a, b) < 0,
+  );
 
   /// Computes element-wise less-than or equal-to $(A \le B)$ producing a
   /// boolean tensor.
-  Tensor<bool> operator <=(Tensor<T> other) =>
-      binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) <= 0);
+  Tensor<bool> operator <=(Tensor<T> other) => binaryOperation<T, bool>(
+    other,
+    (a, b) => a is num && b is num ? a <= b : type.comparator(a, b) <= 0,
+  );
 
   /// Computes element-wise strictly greater-than $(A > B)$ producing a boolean
   /// tensor.
-  Tensor<bool> operator >(Tensor<T> other) =>
-      binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) > 0);
+  Tensor<bool> operator >(Tensor<T> other) => binaryOperation<T, bool>(
+    other,
+    (a, b) => a is num && b is num ? a > b : type.comparator(a, b) > 0,
+  );
 
   /// Computes element-wise greater-than or equal-to $(A \ge B)$ producing a
   /// boolean tensor.
-  Tensor<bool> operator >=(Tensor<T> other) =>
-      binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) >= 0);
+  Tensor<bool> operator >=(Tensor<T> other) => binaryOperation<T, bool>(
+    other,
+    (a, b) => a is num && b is num ? a >= b : type.comparator(a, b) >= 0,
+  );
 
   /// Computes element-wise equality $(A == B)$ producing a boolean tensor.
   Tensor<bool> equalTo(Tensor<T> other) =>
