@@ -265,10 +265,18 @@ OdeSolution _rk45({
 
     var maxErrorRatio = 0.0;
     for (var i = 0; i < y.length; i++) {
+      if (!y5[i].isFinite) {
+        maxErrorRatio = double.infinity;
+        break;
+      }
       final sc =
           absoluteTolerance +
           relativeTolerance * math.max(y[i].abs(), y5[i].abs());
       final ratio = errorVec[i].abs() / sc;
+      if (ratio.isNaN) {
+        maxErrorRatio = double.infinity;
+        break;
+      }
       if (ratio > maxErrorRatio) maxErrorRatio = ratio;
     }
 

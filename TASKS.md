@@ -254,7 +254,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ### 1.7 `numeric` Subsystem
 
-- [ ] **1.7.1 Dormand-Prince ODE solver (`_rk45`) accepts `NaN` trial steps as converged (`maxErrorRatio == 0.0`)**
+- [x] **1.7.1 Dormand-Prince ODE solver (`_rk45`) accepts `NaN` trial steps as converged (`maxErrorRatio == 0.0`)**
   - **Severity**: Critical
   - **Location**: `lib/src/numeric/ode/solve_ode.dart:266-280`
   - **Problem**: `_rk45` accumulates step error via `if (ratio > maxErrorRatio) maxErrorRatio = ratio;`. When a trial step is too large and `f` or `y5` evaluates to `NaN` (e.g. `sqrt(y)` overshooting below zero), `ratio` is `NaN`, so `ratio > maxErrorRatio` is `false` for all components and `maxErrorRatio` stays `0.0`. Then `if (maxErrorRatio <= 1.0)` evaluates to `true`, accepting the `NaN` state and multiplying step size by $5\times$.

@@ -229,5 +229,28 @@ void main() {
         check(sol.last[0]).isCloseTo(math.sin(50.0 * 0.1005), 1e-6);
       },
     );
+
+    test('RK45 rejects NaN trial steps and marks converged false', () {
+      // dy/dt = sqrt(y) with y(0) = 0.05. If step is too big, y < 0 produces NaN
+      Vector<double> derivative(double time, Vector<double> y) {
+        if (y[0] < 0.0) {
+          return Vector<double>.fromList([double.nan], type: DataType.float64);
+        }
+        return Vector<double>.fromList([
+          -100.0 * math.sqrt(y[0]),
+        ], type: DataType.float64);
+      }
+
+      final sol = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 1.0,
+        y0: Vector<double>.fromList([0.05], type: DataType.float64),
+        method: OdeMethod.dormandPrince45,
+        stepSize: 0.1,
+        minStep: 0.05,
+      );
+      check(sol.converged).isFalse();
+    });
   });
 }
