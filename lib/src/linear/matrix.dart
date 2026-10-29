@@ -920,17 +920,28 @@ class Matrix<T> implements LinearOperator<T> {
     double alpha = 1.0,
     double beta = 0.0,
     bool transpose = false,
+    Matrix<T>? target,
   }) {
     final dim = transpose ? colCount : rowCount;
     final kDim = transpose ? rowCount : colCount;
     final field = type.field;
-    final result = Matrix<T>.filled(
-      dim,
-      dim,
-      field.additiveIdentity,
-      type: type,
-    );
-    if (dim == 0 || kDim == 0 || alpha == 0.0) return result;
+    if (target != null && (target.rowCount != dim || target.colCount != dim)) {
+      throw ArgumentError(
+        'Target matrix dimensions must match $dim x $dim, got ${target.rowCount} x ${target.colCount}',
+      );
+    }
+    final result =
+        target ??
+        Matrix<T>.filled(dim, dim, field.additiveIdentity, type: type);
+    if (dim == 0 || kDim == 0 || alpha == 0.0) {
+      if (beta != 1.0) {
+        final scaled = result.scale(
+          field.scale(field.multiplicativeIdentity, beta),
+        );
+        result.tensor.copy(target: scaled.tensor);
+      }
+      return result;
+    }
     if (T == double) {
       final s0 = tensor.strides[0];
       final s1 = tensor.strides[1];
@@ -983,9 +994,22 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final aOp = transpose ? transposed : this;
     final aOther = transpose ? this : transposed;
-    return (aOp * aOther).scale(
+    final prod = (aOp * aOther).scale(
       field.scale(field.multiplicativeIdentity, alpha),
     );
+    if (target != null) {
+      if (beta != 0.0) {
+        final scaledTarget = result.scale(
+          field.scale(field.multiplicativeIdentity, beta),
+        );
+        final combined = prod + scaledTarget;
+        combined.copy(target: result);
+      } else {
+        prod.copy(target: result);
+      }
+      return result;
+    }
+    return prod;
   }
 
   /// Creates a deep contiguous copy of this matrix.

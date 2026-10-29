@@ -158,7 +158,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: When $A$ has shape $m \times 0$ ($m > 0$) and $B$ has shape $m \times k$ with non-zero entries, `Lapack.dgels(m: m, n: 0, ...)` returns `true` immediately because `n == 0`, and `Matrix.solve` returns a $0 \times k$ matrix instead of throwing `StateError('Linear system is inconsistent.')`.
   - **Fix**: Explicitly check `colCount == 0` in `Matrix.solve` and throw `StateError` if any entry of `b` is non-zero.
 
-- [ ] **1.4.5 `Matrix.syrk` accepts a `beta` parameter with no target `C` matrix and ignores `beta` in its pure-Dart fallback**
+- [x] **1.4.5 `Matrix.syrk` accepts a `beta` parameter with no target `C` matrix and ignores `beta` in its pure-Dart fallback**
   - **Severity**: Warning
   - **Location**: `lib/src/linear/matrix.dart:910-980`
   - **Problem**: `Matrix.syrk({double alpha = 1.0, double beta = 0.0, bool transpose = false})` allocates a fresh zero matrix `result` rather than accepting a target matrix `C`. Passing `beta` to `Blas.dsyrk` multiplies the zero matrix by `beta`, while the pure-Dart fallback (`lines 975-979`) ignores `beta` completely.

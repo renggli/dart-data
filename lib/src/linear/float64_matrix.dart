@@ -503,7 +503,19 @@ extension type Float64Matrix._(Matrix<double> _matrix)
     double alpha = 1.0,
     double beta = 0.0,
     bool transpose = false,
-  }) => Float64Matrix._(
-    _matrix.syrk(alpha: alpha, beta: beta, transpose: transpose),
-  );
+    Float64Matrix? target,
+  }) {
+    if (target != null) {
+      _matrix.syrk(
+        alpha: alpha,
+        beta: beta,
+        transpose: transpose,
+        target: target._matrix,
+      );
+      return target;
+    }
+    return Float64Matrix._(
+      _matrix.syrk(alpha: alpha, beta: beta, transpose: transpose),
+    );
+  }
 }

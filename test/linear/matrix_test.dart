@@ -877,6 +877,35 @@ void main() {
       final res = m.syrk();
       check(res.rowCount).equals(2);
       check(res.colCount).equals(2);
+
+      // Fallback with beta and target
+      final cTarget = Matrix<int>.fromRows([
+        [1, 1],
+        [1, 1],
+      ]);
+      final resTarget = m.syrk(alpha: 2, beta: 3, target: cTarget);
+      check(resTarget).identicalTo(cTarget);
+      check(resTarget.get(0, 0)).equals(2 * 5 + 3 * 1);
+      check(resTarget.get(0, 1)).equals(2 * 11 + 3 * 1);
+      check(resTarget.get(1, 0)).equals(2 * 11 + 3 * 1);
+      check(resTarget.get(1, 1)).equals(2 * 25 + 3 * 1);
+    });
+
+    test('syrk with float64 target matrix C applies beta', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final cTarget = Matrix<double>.fromRows([
+        [10.0, 10.0],
+        [10.0, 10.0],
+      ]);
+      final res = a.syrk(alpha: 2.0, beta: 3.0, target: cTarget);
+      check(res).identicalTo(cTarget);
+      check(res.get(0, 0)).equals(40.0);
+      check(res.get(0, 1)).equals(52.0);
+      check(res.get(1, 0)).equals(52.0);
+      check(res.get(1, 1)).equals(80.0);
     });
 
     test('applyTranspose vs applyConjugateTranspose on complex matrix', () {
