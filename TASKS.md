@@ -394,7 +394,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `final outName = usedNames.contains(col) ? '$col$suffix' : col;` throws `ArgumentError('Duplicate column name ...')` if `'$col$suffix'` is already in `usedNames` or `suffix` is empty. Also, `leftOn: ['id'], rightOn: ['id']` duplicates the key column instead of coalescing it like `on: ['id']`.
   - **Fix**: Disambiguate colliding column names iteratively until unique, and coalesce identical `leftOn`/`rightOn` key names.
 
-- [ ] **1.9.8 CSV string trimming and null coercion break round-trip and chunk schema consistency**
+- [x] **1.9.8 CSV string trimming and null coercion break round-trip and chunk schema consistency**
   - **Severity**: Warning
   - **Location**: `lib/src/dataframe/csv/csv_reader.dart:65-69`, `lib/src/dataframe/csv/csv_stream.dart:44-46, 146-152, 165-169`
   - **Problem**: Quoted strings `"null"`, `"NA"`, and `""` are coerced to `null`, `CsvStream._buildDataFrame` trims whitespace from string columns when `columnTypes` is supplied, and `CsvStream.readChunks` infers column types independently per chunk.

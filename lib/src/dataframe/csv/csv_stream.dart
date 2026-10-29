@@ -26,6 +26,9 @@ abstract final class CsvStream {
       CsvStreamTransformer(separator: separator),
     );
     var headers = columnNames;
+    var resolvedTypes = columnTypes != null
+        ? Map<String, DataType<Object?>>.of(columnTypes)
+        : null;
     final buffer = <List<String>>[];
 
     var totalRows = 0;
@@ -42,16 +45,22 @@ abstract final class CsvStream {
       buffer.add(row);
       totalRows++;
       if (buffer.length >= chunkSize) {
-        yield _buildDataFrame(headers, buffer, columnTypes);
+        final df = _buildDataFrame(headers, buffer, resolvedTypes);
+        resolvedTypes ??= {
+          for (final col in df.columns) col.name: col.dataType,
+        };
+        yield df;
         buffer.clear();
       }
     }
 
     if (buffer.isNotEmpty && headers != null) {
-      yield _buildDataFrame(headers, buffer, columnTypes);
+      final df = _buildDataFrame(headers, buffer, resolvedTypes);
+      resolvedTypes ??= {for (final col in df.columns) col.name: col.dataType};
+      yield df;
       buffer.clear();
     } else if (headers != null && totalRows == 0) {
-      yield _buildDataFrame(headers, const [], columnTypes);
+      yield _buildDataFrame(headers, const [], resolvedTypes);
     }
   }
 
@@ -141,13 +150,25 @@ abstract final class CsvStream {
 
       if (explicitType != null) {
         final vals = <Object?>[];
+        final isStringType =
+            explicitType == DataType.string ||
+            explicitType == DataType.string.nullable;
         for (var r = 0; r < rowCount; r++) {
           final row = dataRows[r];
-          final raw = colIdx < row.length ? row[colIdx].trim() : '';
-          if (raw.isEmpty || raw == 'null' || raw == 'NA') {
+          if (colIdx >= row.length) {
             vals.add(null);
+            continue;
+          }
+          final raw = row[colIdx];
+          if (isStringType) {
+            vals.add(raw);
           } else {
-            vals.add(explicitType.cast(raw));
+            final trimmed = raw.trim();
+            if (trimmed.isEmpty || trimmed == 'null' || trimmed == 'NA') {
+              vals.add(null);
+            } else {
+              vals.add(explicitType.cast(trimmed));
+            }
           }
         }
         columns.add(Series.fromList(name, vals, type: explicitType));

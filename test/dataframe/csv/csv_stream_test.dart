@@ -256,5 +256,35 @@ void main() {
         check(df['id'].toList()).deepEquals([5000000000, null, -5000000000]);
       },
     );
+
+    test(
+      'preserves untrimmed strings when DataType.string is specified',
+      () async {
+        const csv = 'text\n  hello  \n  world\n\tindented\t\n';
+        final df = await CsvStream.readStream(
+          Stream.value(csv),
+          columnTypes: {'text': DataType.string},
+        );
+        check(df.rowCount).equals(3);
+        check(df['text'].toList())
+            .deepEquals(['  hello  ', '  world', '\tindented\t']);
+      },
+    );
+
+    test(
+      'readChunks maintains consistent column types across chunks',
+      () async {
+        // Chunk 0 has only integers, chunk 1 introduces a string
+        final rows = ['val\n', '1\n', '2\n', '3\n', '4\n'];
+        final stream = Stream.fromIterable(rows);
+        final chunks = await CsvStream.readChunks(
+          stream,
+          chunkSize: 2,
+        ).toList();
+        check(chunks.length).equals(2);
+        check(chunks[0]['val'].dataType).equals(DataType.int32);
+        check(chunks[1]['val'].dataType).equals(DataType.int32);
+      },
+    );
   });
 }
