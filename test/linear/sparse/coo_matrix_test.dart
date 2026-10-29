@@ -48,6 +48,22 @@ void main() {
 
       final csc = coo.toCsc();
       check(csc.nnz).equals(3);
+
+      // Duplicate entries canceling out to zero
+      final cancelingCoo = CooMatrix<double>.fromEntries(2, 2, [
+        (0, 0, 3.0),
+        (0, 0, -3.0),
+        (0, 1, 2.0),
+      ], type: DataType.float64);
+      final cancelingCsr = cancelingCoo.toCsr();
+      check(cancelingCsr.nnz).equals(1);
+      check(cancelingCsr.get(0, 0)).equals(0.0);
+      check(cancelingCsr.get(0, 1)).equals(2.0);
+
+      final cancelingCsc = cancelingCoo.toCsc();
+      check(cancelingCsc.nnz).equals(1);
+      check(cancelingCsc.get(0, 0)).equals(0.0);
+      check(cancelingCsc.get(0, 1)).equals(2.0);
       check(csc.get(0, 0)).equals(5.0);
       check(csc.toDense().get(0, 0)).equals(5.0);
     });

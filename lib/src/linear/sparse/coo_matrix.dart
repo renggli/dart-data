@@ -224,6 +224,8 @@ class CooMatrix<T> implements LinearOperator<T> {
     });
 
     final field = type.field;
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
     final rowPointers = List<int>.filled(rowCount + 1, 0);
     final coalescedCols = <int>[];
     final coalescedVals = <T>[];
@@ -241,9 +243,11 @@ class CooMatrix<T> implements LinearOperator<T> {
         sum = field.add(sum, values[nextIdx]);
         k++;
       }
-      rowPointers[r + 1]++;
-      coalescedCols.add(c);
-      coalescedVals.add(sum);
+      if (!equality.isEqual(sum, zero)) {
+        rowPointers[r + 1]++;
+        coalescedCols.add(c);
+        coalescedVals.add(sum);
+      }
     }
     for (var i = 0; i < rowCount; i++) {
       rowPointers[i + 1] += rowPointers[i];
@@ -273,6 +277,8 @@ class CooMatrix<T> implements LinearOperator<T> {
     });
 
     final field = type.field;
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
     final colPointers = List<int>.filled(colCount + 1, 0);
     final coalescedRows = <int>[];
     final coalescedVals = <T>[];
@@ -290,9 +296,11 @@ class CooMatrix<T> implements LinearOperator<T> {
         sum = field.add(sum, values[nextIdx]);
         k++;
       }
-      colPointers[c + 1]++;
-      coalescedRows.add(r);
-      coalescedVals.add(sum);
+      if (!equality.isEqual(sum, zero)) {
+        colPointers[c + 1]++;
+        coalescedRows.add(r);
+        coalescedVals.add(sum);
+      }
     }
     for (var j = 0; j < colCount; j++) {
       colPointers[j + 1] += colPointers[j];

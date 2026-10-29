@@ -170,7 +170,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `_decomposeFloat64` (`cholesky.dart:128`) and `_checkSymmetry` (`eigenvalue.dart:890`) use exact `!=`, rejecting `a.transposed * a` when $10^{-16}$ rounding asymmetry exists, whereas `_decomposeGeneric` (`cholesky.dart:194`) uses `equality.isClose(..., 1e-6)`. Furthermore, in `_decomposeGeneric` (`line 200`), `_ => field.norm(diagVal) > 0.0` treats negative values in custom fields (such as `Fraction(-4)`) as positive because `field.norm` returns absolute magnitude.
   - **Fix**: Check `_type.comparator(diagVal, zero) > 0` for ordered fields in `_decomposeGeneric`, and use relative tolerance symmetry checks consistently.
 
-- [ ] **1.4.7 `CooMatrix.toCsr()` and `CooMatrix.toCsc()` retain explicit zero entries when duplicate coordinates cancel out**
+- [x] **1.4.7 `CooMatrix.toCsr()` and `CooMatrix.toCsc()` retain explicit zero entries when duplicate coordinates cancel out**
   - **Severity**: Warning
   - **Location**: `lib/src/linear/sparse/coo_matrix.dart:209-304`
   - **Problem**: When coalescing duplicate `(r, c)` entries that sum to `field.additiveIdentity` (e.g. `+3.0` and `-3.0`), the zero entry is still stored in `coalescedVals` and counted in `nnz`.
