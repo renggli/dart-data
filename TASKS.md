@@ -38,7 +38,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `else if (value is BigInt) { return Fraction(value.toInt()); }` converts `BigInt` via `.toInt()`, wrapping to 64-bit signed `int` on the VM even though `Fraction(BigInt, [BigInt])` natively accepts arbitrary-precision `BigInt` numerators.
   - **Fix**: Return `Fraction(value)` directly without calling `.toInt()`.
 
-- [ ] **1.1.6 `BigIntEquality.isClose` overflows `double` and `BigIntField.scale` throws on `NaN`/`Infinity`**
+- [x] **1.1.6 `BigIntEquality.isClose` overflows `double` and `BigIntField.scale` throws on `NaN`/`Infinity`**
   - **Severity**: Warning
   - **Location**: `lib/src/type/types/bigint.dart:54, 87`
   - **Problem**: `BigIntEquality.isClose` computes `(a - b).abs().toDouble() <= epsilon`, which loses precision above $2^{53}$ and overflows to `double.infinity` above $1.8 \times 10^{308}$. `BigIntField.scale` calls `Fraction.fromDouble(factor.toDouble())`, which throws `ArgumentError` if `factor` is `NaN` or `Infinity`.

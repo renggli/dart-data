@@ -49,9 +49,16 @@ final class BigIntEquality extends NaturalEquality<BigInt> {
 
   @override
   bool isClose(BigInt a, BigInt b, double epsilon) {
-    if (a == b) return epsilon >= 0;
+    if (epsilon.isNaN || epsilon < 0) return false;
+    if (a == b) return true;
+    if (epsilon.isInfinite) return true;
     if (epsilon < 1) return false;
-    return (a - b).abs().toDouble() <= epsilon;
+    final diff = (a - b).abs();
+    if (epsilon <= 9007199254740991.0) {
+      final epsBig = BigInt.from(epsilon.floor());
+      return diff <= epsBig;
+    }
+    return diff.toDouble() <= epsilon;
   }
 }
 
@@ -83,8 +90,10 @@ final class BigIntField implements ExtendedField<BigInt> {
 
   @override
   BigInt scale(BigInt a, num factor) {
+    if (!factor.isFinite) return BigInt.zero;
     if (factor is int) return a * BigInt.from(factor);
     final frac = Fraction.fromDouble(factor.toDouble());
+    if (frac.denominator == 0) return BigInt.zero;
     return (a * BigInt.from(frac.numerator)) ~/ BigInt.from(frac.denominator);
   }
 

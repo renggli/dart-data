@@ -44,6 +44,23 @@ void main() {
       BigInt.from(10),
     ]);
 
+    test('BigIntEquality isClose and BigIntField scale', () {
+      final equality = type.equality;
+      final bigA = BigInt.parse(
+        '100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+      );
+      final bigB = bigA + BigInt.one;
+      check(equality.isClose(bigA, bigB, 2.0)).isTrue();
+      check(equality.isClose(bigA, bigB, 0.5)).isFalse();
+      check(equality.isClose(bigA, bigB, double.infinity)).isTrue();
+      check(equality.isClose(bigA, bigB, double.nan)).isFalse();
+      check(equality.isClose(bigA, bigB, -1.0)).isFalse();
+
+      final field = type.field;
+      check(field.scale(BigInt.from(10), double.nan)).equals(BigInt.zero);
+      check(field.scale(BigInt.from(10), double.infinity)).equals(BigInt.zero);
+    });
+
     test('BigIntField extended operations', () {
       final field = type.field;
       check(field.inv(BigInt.two)).equals(BigInt.zero);
