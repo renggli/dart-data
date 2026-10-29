@@ -290,7 +290,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `values[a].compareTo(values[b])` returns `0` when comparing `double.nan` with any number, corrupting simplex vertex ordering if the objective returns `NaN` at a trial step.
   - **Fix**: Treat `NaN` objective evaluations as `double.infinity` when sorting simplex vertices.
 
-- [ ] **1.7.7 Inconsistent non-convergence handling and missing `NaN` check in root finding (`solve`)**
+- [x] **1.7.7 Inconsistent non-convergence handling and missing `NaN` check in root finding (`solve`)**
   - **Severity**: Warning
   - **Location**: `lib/src/numeric/root_finding/solve.dart:148-174, 185-200, 224-239`
   - **Problem**: `_newtonRaphson` throws `StateError` on non-convergence after `maxIterations` (without checking if the final iterate converged), whereas `_brent` and `_bisection` silently return the unconverged iterate. Additionally, `_brent` does not check `if (fb.isNaN) return double.nan;` inside its loop.

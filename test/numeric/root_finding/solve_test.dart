@@ -25,6 +25,10 @@ void main() {
 
     test('Brent-Dekker with NaN returns NaN', () {
       check(solve((double x) => double.nan, 0.0, b: 1.0)).isNaN();
+
+      // Function that returns NaN inside the iteration loop
+      double fNanLoop(double x) => x < 0.5 ? -1.0 : double.nan;
+      check(solve(fNanLoop, 0.0, b: 1.0)).isNaN();
     });
 
     test('Newton-Raphson root solver (method: RootMethod.newtonRaphson)', () {
@@ -33,6 +37,16 @@ void main() {
 
       final root = solve(function, 1.0, method: RootMethod.newtonRaphson);
       check(root).isCloseTo(math.sqrt(2.0), 1e-10);
+
+      // Final step reaches root tolerance within maxIterations
+      final root2 = solve(
+        function,
+        1.414,
+        method: RootMethod.newtonRaphson,
+        maxIterations: 1,
+        tolerance: 1e-4,
+      );
+      check(root2).isCloseTo(math.sqrt(2.0), 1e-4);
     });
 
     test('Newton-Raphson throws StateError when maxIterations is exceeded', () {

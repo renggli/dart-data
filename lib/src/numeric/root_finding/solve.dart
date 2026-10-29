@@ -167,6 +167,7 @@ double _brent(
       xB += xm >= 0.0 ? tol1 : -tol1;
     }
     fb = fn(xB);
+    if (fb.isNaN) return double.nan;
   }
 
   return xB;
@@ -193,6 +194,10 @@ double _newtonRaphson(
     final step = fx / dfx;
     x -= step;
     if (step.abs() < tolerance) return x;
+  }
+  final finalFx = fn(x);
+  if (finalFx == 0.0 || finalFx.abs() <= tolerance) {
+    return x;
   }
   throw StateError(
     'Newton-Raphson failed to converge after $maxIterations iterations.',
