@@ -277,10 +277,10 @@ BytecodeEvaluator compileToBytecode(
     }
 
     switch (expr) {
-      case Constant(isReal: false, :final value):
+      case Constant(value: Complex(:final b)) when b != 0.0:
         hasComplexLiterals = true;
         firstComplexLiteral ??= expr;
-        instructions.add(Instruction.pushComplex(value));
+        instructions.add(Instruction.pushComplex(expr.value));
       case Constant(:final value):
         instructions.add(Instruction.pushReal(value.a.toDouble()));
       case ComplexNumber():
@@ -521,7 +521,11 @@ BytecodeEvaluator compileToBytecode(
     maxStack: _computeMaxStack(instructions),
     registerCount: regMap.length,
     hasComplexLiterals: hasComplexLiterals,
-    isRealOutput: !hasComplexLiterals || simplified.isReal,
+    isRealOutput:
+        !hasComplexLiterals ||
+        simplified.isReal ||
+        simplified == Constant.infinity ||
+        simplified == Constant.undefined,
     firstComplexLiteral: firstComplexLiteral,
   );
 }

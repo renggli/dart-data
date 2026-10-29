@@ -215,7 +215,7 @@ sealed class Expr {
 
   static bool _isRealSubtree(Expr node) => switch (node) {
     ComplexNumber(:final imaginary) => imaginary.isZero,
-    Constant(:final value) => value.b == 0.0 || value.isNaN,
+    Constant(:final isReal) => isReal,
     Abs() || Re() || Im() || Arg() => true,
     RealNumeric() || Variable() || OrderTerm() => true,
     Add(:final terms) => terms.every(_isRealSubtree),

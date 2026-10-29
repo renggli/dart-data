@@ -55,7 +55,7 @@ final class Constant extends Expr {
 
   /// Whether this constant is strictly real-valued ($\Im(\text{value}) = 0$).
   @override
-  bool get isReal => value.b == 0.0 || value.isNaN;
+  bool get isReal => !value.isNaN && !value.isInfinite && value.b == 0.0;
 
   @override
   bool operator ==(Object other) =>

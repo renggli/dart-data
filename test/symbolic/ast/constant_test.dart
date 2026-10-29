@@ -14,8 +14,15 @@ void main() {
       check(Constant.pi.evaluate()).isCloseTo(math.pi, 1e-15);
       check(Constant.e.evaluate()).isCloseTo(math.e, 1e-15);
       check(Constant.infinity.evaluate()).equals(double.infinity);
+      check(Constant.infinity.isReal).isFalse();
       check(Constant.undefined.evaluate().isNaN).isTrue();
-      check(Constant.undefined.isReal).isTrue();
+      check(Constant.undefined.isReal).isFalse();
+
+      check(Im(Constant.undefined).simplify()).equals(Constant.undefined);
+      check(Re(Constant.undefined).simplify()).equals(Constant.undefined);
+      check(Conjugate(Constant.undefined).simplify())
+          .equals(Constant.undefined);
+      check(Arg(Constant.undefined).simplify()).equals(Constant.undefined);
     });
   });
 

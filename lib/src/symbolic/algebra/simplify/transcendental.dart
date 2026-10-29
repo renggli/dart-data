@@ -1325,6 +1325,7 @@ Expr simplifyMod(
 
 /// Simplifies a real-part expression $\Re(z)$.
 Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
     case RealNumeric():
       return expr;
@@ -1351,6 +1352,7 @@ Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies an imaginary-part expression $\Im(z)$.
 Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
     case RealNumber():
       return const RealNumber(0.0);
@@ -1377,6 +1379,7 @@ Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies a complex argument expression $\arg(z)$.
 Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
     case RealNumber(:final value):
       return RealNumber.fromDouble(math.atan2(0.0, value));
@@ -1432,6 +1435,7 @@ Expr simplifyConjugate(
   Expr expr, {
   Assumptions assumptions = Assumptions.none,
 }) {
+  if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
     case RealNumeric() || Re() || Im() || Arg() || Abs() || OrderTerm():
       return expr;

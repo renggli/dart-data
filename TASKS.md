@@ -410,7 +410,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ### 1.10 `symbolic` Subsystem & `web/`
 
-- [ ] **1.10.1 `Constant.undefined.isReal` and `Constant.infinity.isReal` evaluate to `true`**
+- [x] **1.10.1 `Constant.undefined.isReal` and `Constant.infinity.isReal` evaluate to `true`**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/ast/constant.dart:58`, `lib/src/symbolic/ast/expr.dart:218`, `lib/src/symbolic/algebra/simplify/transcendental.dart:462, 1350-1491`, `lib/src/symbolic/compiler/bytecode.dart:284`
   - **Problem**: `Constant.isReal` evaluates `value.b == 0.0 || value.isNaN`. Because `Constant.undefined` has `value = Complex.nan`, `Constant.undefined.isReal` and `isProvenReal(Constant.undefined, ...)` return `true`. Consequently, `Im(Constant.undefined).simplify()` and `Im(Constant.infinity).simplify()` return `0` instead of `Constant.undefined`, and `Re(Constant.undefined).simplify()` / `Conjugate(Constant.undefined).simplify()` treat `Constant.undefined` as real.
