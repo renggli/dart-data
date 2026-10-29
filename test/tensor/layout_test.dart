@@ -15,6 +15,21 @@ void main() {
         final layout = Layout(shape: [2, 3]);
         check(() => layout.strides[0] = 999).throws<UnsupportedError>();
       });
+
+      test('rejects negative offset', () {
+        check(() => Layout(shape: [3], offset: -5)).throws<ArgumentError>();
+      });
+
+      test('contiguous layout normalizes singleton strides to canonical', () {
+        final layout = Layout(shape: [1, 3], strides: [100, 1]);
+        check(layout.isContiguous).isTrue();
+        check(layout.strides).deepEquals([3, 1]);
+      });
+
+      test('layout with non-positive strides is not contiguous', () {
+        final layout = Layout(shape: [1, 3], strides: [0, 1]);
+        check(layout.isContiguous).isFalse();
+      });
     });
 
     group('transpose', () {

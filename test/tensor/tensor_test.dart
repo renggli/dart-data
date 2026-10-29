@@ -79,6 +79,26 @@ void main() {
       check(sliced.toIndex([0, 0])).equals(4);
     });
 
+    test('internal validates reachable bounds against data length', () {
+      final layout = Layout(shape: [5], offset: 2);
+      final shortData = [1, 2, 3, 4, 5, 6];
+      check(
+        () => Tensor.internal(
+          type: DataType.int32,
+          layout: layout,
+          data: shortData,
+        ),
+      ).throws<ArgumentError>();
+      final validData = [1, 2, 3, 4, 5, 6, 7];
+      check(
+        () => Tensor.internal(
+          type: DataType.int32,
+          layout: layout,
+          data: validData,
+        ),
+      ).returnsNormally();
+    });
+
     test('rank 0 scalar layout and toString', () {
       final scalarLayout = Layout(shape: []);
       check(scalarLayout.rank).equals(0);

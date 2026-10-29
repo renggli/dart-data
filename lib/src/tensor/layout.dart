@@ -56,6 +56,13 @@ class Layout {
   /// // layout.rank == 2, layout.length == 6, layout.strides == [3, 1]
   /// ```
   factory({Iterable<int>? shape, Iterable<int>? strides, int offset = 0}) {
+    if (offset < 0) {
+      throw ArgumentError.value(
+        offset,
+        'offset',
+        'Offset must be non-negative',
+      );
+    }
     final shapeList = shape == null
         ? Int32List(0)
         : Int32List.fromList(shape.toList());
@@ -92,11 +99,20 @@ class Layout {
     if (rank > 0 && length > 0) {
       var expectedStride = 1;
       for (var i = rank - 1; i >= 0; i--) {
-        if (shapeList[i] > 1 && str[i] != expectedStride) {
+        if (str[i] <= 0 || (shapeList[i] > 1 && str[i] != expectedStride)) {
           isContiguous = false;
           break;
         }
         expectedStride *= shapeList[i];
+      }
+      if (isContiguous) {
+        var canonicalStride = 1;
+        for (var i = rank - 1; i >= 0; i--) {
+          if (shapeList[i] <= 1) {
+            str[i] = canonicalStride;
+          }
+          canonicalStride *= shapeList[i];
+        }
       }
     }
 

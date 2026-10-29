@@ -78,7 +78,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Unlike `unaryOperation` (`line 57`, which checks `areShapesEqual(target.layout.strides, layout.strides)`), `binaryOperation` (`lines 129-152`) checks `sameStartAddress(...)` and `isContiguous` without checking `areShapesEqual(target.layout.strides, layout.strides)`. For layouts with singleton dimensions (`shape[i] == 1`) where `Layout` marks non-canonical strides as `isContiguous = true`, in-place binary operations can mis-index or alias when strides differ, while disjoint views of the same buffer fall back to allocating a full temporary tensor even when `!hasOverlap(...)`.
   - **Fix**: Verify `areShapesEqual(target.layout.strides, layout.strides)` in the contiguous fast path and use `!hasOverlap(...)` when start addresses differ.
 
-- [ ] **1.2.3 `Layout` constructor allows negative `offset` and `Tensor.fromList` does not validate buffer bounds**
+- [x] **1.2.3 `Layout` constructor allows negative `offset` and `Tensor.fromList` does not validate buffer bounds**
   - **Severity**: Critical
   - **Location**: `lib/src/tensor/layout.dart:61-109`, `lib/src/tensor/tensor.dart:93-105`
   - **Problem**: `Layout(shape: [3], offset: -5)` succeeds with `isContiguous == true`. Passing such a layout to `Tensor.fromList` or `Float64Tensor` causes out-of-bounds buffer access or native FFI memory corruption on contiguous fast paths.
