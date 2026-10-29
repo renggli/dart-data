@@ -690,6 +690,53 @@ void main() {
         check(outer.rowCount).equals(5);
       }
     });
+
+    test('coalesces identical leftOn and rightOn key columns', () {
+      final left = DataFrame.fromColumns({
+        'id': [1, 2],
+        'name': ['Alice', 'Bob'],
+      });
+      final right = DataFrame.fromColumns({
+        'id': [2, 3],
+        'score': [100, 90],
+      });
+
+      final joined = left.join(
+        right,
+        leftOn: ['id'],
+        rightOn: ['id'],
+        type: JoinType.inner,
+      );
+
+      check(joined.columnNames).deepEquals(['id', 'name', 'score']);
+      check(joined.rowCount).equals(1);
+      check(joined['id'].toList()).deepEquals([2]);
+      check(joined['name'].toList()).deepEquals(['Bob']);
+      check(joined['score'].toList()).deepEquals([100]);
+    });
+
+    test('disambiguates colliding column names iteratively', () {
+      final left = DataFrame.fromColumns({
+        'id': [1],
+        'val': ['a'],
+        'val_other': ['b'],
+      });
+      final right = DataFrame.fromColumns({
+        'id': [1],
+        'val': ['c'],
+      });
+
+      // Left already has 'val_other', so right's 'val' becomes 'val_other2'
+      final joined = left.join(right, on: ['id']);
+      check(joined.columnNames)
+          .deepEquals(['id', 'val', 'val_other', 'val_other2']);
+      check(joined['val_other2'].toList()).deepEquals(['c']);
+
+      // Empty suffix falls back to non-colliding suffix
+      final joinedEmptySuffix = left.join(right, on: ['id'], suffix: '');
+      check(joinedEmptySuffix.columnNames)
+          .deepEquals(['id', 'val', 'val_other', 'val_other2']);
+    });
   });
 }
 

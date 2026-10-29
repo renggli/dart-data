@@ -65,9 +65,11 @@ extension JoinDataFrameExtension on DataFrame {
   }) {
     final List<String> effectiveLeftOn;
     final List<String> effectiveRightOn;
+    final List<String>? effectiveOn;
     if (on != null) {
       effectiveLeftOn = on;
       effectiveRightOn = on;
+      effectiveOn = on;
     } else if (leftOn != null && rightOn != null) {
       if (leftOn.length != rightOn.length) {
         throw ArgumentError(
@@ -76,6 +78,14 @@ extension JoinDataFrameExtension on DataFrame {
       }
       effectiveLeftOn = leftOn;
       effectiveRightOn = rightOn;
+      var areKeysIdentical = true;
+      for (var i = 0; i < leftOn.length; i++) {
+        if (leftOn[i] != rightOn[i]) {
+          areKeysIdentical = false;
+          break;
+        }
+      }
+      effectiveOn = areKeysIdentical ? leftOn : null;
     } else {
       throw ArgumentError(
         'Must specify either "on" or both "leftOn" and "rightOn".',
@@ -114,11 +124,23 @@ extension JoinDataFrameExtension on DataFrame {
     // Build output columns preserving column DataType
     final outputColumns = <Series<Object?>>[];
     final usedNames = <String>{};
-    final onSet = on != null ? on.toSet() : const <String>{};
+    final onSet = effectiveOn != null ? effectiveOn.toSet() : const <String>{};
 
-    if (on != null) {
+    String disambiguate(String baseName) {
+      if (!usedNames.contains(baseName)) return baseName;
+      final effectiveSuffix = suffix.isNotEmpty ? suffix : '_other';
+      var candidate = '$baseName$effectiveSuffix';
+      var counter = 2;
+      while (usedNames.contains(candidate)) {
+        candidate = '$baseName$effectiveSuffix$counter';
+        counter++;
+      }
+      return candidate;
+    }
+
+    if (effectiveOn != null) {
       // Key columns
-      for (final keyCol in on) {
+      for (final keyCol in effectiveOn) {
         final leftCol = column(keyCol);
         final rightCol = other.column(keyCol);
         final combinedType = leftCol.dataType == rightCol.dataType
@@ -136,8 +158,9 @@ extension JoinDataFrameExtension on DataFrame {
             vals.add(null);
           }
         }
-        usedNames.add(keyCol);
-        outputColumns.add(Series.fromList(keyCol, vals, type: combinedType));
+        final outName = disambiguate(keyCol);
+        usedNames.add(outName);
+        outputColumns.add(Series.fromList(outName, vals, type: combinedType));
       }
     }
 
@@ -149,14 +172,15 @@ extension JoinDataFrameExtension on DataFrame {
         for (final (leftIdx, _) in matchedPairs)
           if (leftIdx != null) leftCol[leftIdx] else null,
       ];
-      usedNames.add(col);
-      outputColumns.add(Series.fromList(col, vals, type: leftCol.dataType));
+      final outName = disambiguate(col);
+      usedNames.add(outName);
+      outputColumns.add(Series.fromList(outName, vals, type: leftCol.dataType));
     }
 
     // Non-key columns from right (or all right columns if on == null)
     for (final col in other.columnNames) {
       if (onSet.contains(col)) continue;
-      final outName = usedNames.contains(col) ? '$col$suffix' : col;
+      final outName = disambiguate(col);
       final rightCol = other.column(col);
       final vals = <Object?>[
         for (final (_, rightIdx) in matchedPairs)

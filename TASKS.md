@@ -388,7 +388,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `Series.operator ==` uses `this[i] != other[i]` instead of `dataType.equality.isEqual`, so a `Series` containing `double.nan` is not equal to a slice of itself. Additionally, `TypedSeries.slice(10, 12)` on a 5-element series calls `data.sublist(10, 5)` and throws `RangeError`, whereas `ArrowStringSeries.slice`, `BoolSeries.slice`, and `ObjectSeries.slice` clamp `startIndex` and return an empty `Series`.
   - **Fix**: Use `dataType.equality.isEqual` in `Series.operator ==` and clamp `startIndex = start.clamp(0, length)` in `TypedSeries.slice`.
 
-- [ ] **1.9.7 `JoinDataFrameExtension.join` column name collision and `leftOn`/`rightOn` key duplication**
+- [x] **1.9.7 `JoinDataFrameExtension.join` column name collision and `leftOn`/`rightOn` key duplication**
   - **Severity**: Warning
   - **Location**: `lib/src/dataframe/join.dart:119-170`
   - **Problem**: `final outName = usedNames.contains(col) ? '$col$suffix' : col;` throws `ArgumentError('Duplicate column name ...')` if `'$col$suffix'` is already in `usedNames` or `suffix` is empty. Also, `leftOn: ['id'], rightOn: ['id']` duplicates the key column instead of coalescing it like `on: ['id']`.
