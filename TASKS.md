@@ -26,7 +26,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: When `T` is `Object`, `Object?`, or `dynamic` (e.g. `Tensor<Object?>.fromObject([1.0, 'a'])`), `_fromType(T)` returns `null`. `fromInstance<T>(instance)` then inspects the first element (`1.0`), resolves `Float64DataType` (`DataType<double>`), and casts it via `as DataType<T>`, which succeeds due to generic covariance (`DataType<double>` is a subtype of `DataType<Object?>`). `effectiveType.newList(...)` then allocates a `Float64List`, and writing `'a'` into `data` throws a runtime `TypeError`.
   - **Fix**: In `fromIterable<T>`, inspect all elements (or when `T == Object` / `T == Object?` / `T == dynamic` and elements have mixed runtime types, fall back to `DataType.object<T>()` / `DataType.nullableObject()` / `DataType.dynamicType`).
 
-- [ ] **1.1.4 `FloatField.division` throws `UnsupportedError` on `b == 0.0`, `NaN`, `Infinity`, or quotients $> 2^{63}-1$**
+- [x] **1.1.4 `FloatField.division` throws `UnsupportedError` on `b == 0.0`, `NaN`, `Infinity`, or quotients $> 2^{63}-1$**
   - **Severity**: Warning
   - **Location**: `lib/src/type/types/float.dart:170`
   - **Problem**: `FloatField.division(double a, double b)` executes `(a ~/ b).roundToDouble()`. In Dart, `double ~/ double` converts the quotient to a 64-bit `int` first, which throws `UnsupportedError` when `b == 0.0`, when `a` or `b` is `NaN`/`Infinity`, or when `|a / b| > 2^{63} - 1` (e.g. `1e25 ~/ 1.0`).

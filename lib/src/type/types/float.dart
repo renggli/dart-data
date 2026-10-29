@@ -167,7 +167,7 @@ final class FloatField implements ExtendedField<double> {
   double mod(double a, double b) => a % b;
 
   @override
-  double division(double a, double b) => (a ~/ b).roundToDouble();
+  double division(double a, double b) => (a / b).truncateToDouble();
 
   @override
   double remainder(double a, double b) => a.remainder(b);

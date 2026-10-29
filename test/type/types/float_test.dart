@@ -82,6 +82,8 @@ void main() {
       check(field.div(7.5, 2.5)).equals(3.0);
       check(field.mod(7.5, 2.0)).equals(1.5);
       check(field.division(7.5, 2.0)).equals(3.0);
+      check(field.division(1e25, 1.0)).equals(1e25);
+      check(field.division(1.0, 0.0).isInfinite).isTrue();
       check(field.remainder(7.5, 2.0)).equals(1.5);
       check(field.pow(2.0, 3.0)).equals(8.0);
       check(field.modPow(2.0, 3.0, 5.0)).equals(3.0);
