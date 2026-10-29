@@ -615,6 +615,45 @@ void main() {
       check(simplifyIm(const ComplexNumber(RealNumber(1.0), IntegerNumber.two)))
           .equals(const RealNumber(2.0));
 
+      // Propagation of Constant.undefined across simplify* functions
+      check(simplifySin(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyCos(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyTan(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyAsin(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyAcos(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyAtan(Constant.undefined)).equals(Constant.undefined);
+      check(simplifySinh(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyCosh(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyTanh(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyAbs(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyExp(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyLn(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyLambertW(Constant.undefined, 0)).equals(Constant.undefined);
+      check(simplifyErf(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyErfc(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyGamma(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyBeta(Constant.undefined, IntegerNumber.one))
+          .equals(Constant.undefined);
+      check(simplifyBeta(IntegerNumber.one, Constant.undefined))
+          .equals(Constant.undefined);
+      check(simplifyAsinh(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyAcosh(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyAtanh(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyFactorial(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyBinomial(Constant.undefined, IntegerNumber.one))
+          .equals(Constant.undefined);
+      check(simplifyBinomial(IntegerNumber.one, Constant.undefined))
+          .equals(Constant.undefined);
+      check(simplifyFloor(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyCeil(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyRound(Constant.undefined)).equals(Constant.undefined);
+      check(simplifySign(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyMod(Constant.undefined, IntegerNumber.one))
+          .equals(Constant.undefined);
+      check(simplifyMod(IntegerNumber.one, Constant.undefined))
+          .equals(Constant.undefined);
+      check(Sin(Asin(RealNumber(2.0))).simplify()).equals(Constant.undefined);
+
       // isProvenReal on non-negative base with real exponent, and isIntegerExpr on Factorial and Binomial
       check(isProvenReal(Pow(Abs(x), y), realAssumptions)).isTrue();
       check(isProvenReal(Factorial(ComplexNumber.i))).isFalse();

@@ -422,7 +422,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: In `expr.dart:228-238`, `Ln`, `Asin`, `Acos`, `Acosh`, and `Atanh` only check domain bounds when `expr is RealNumeric`, returning `true` for `Asin(Constant.pi).isReal`, `Atanh(Constant.e).isReal`, `Acosh(IntegerNumber.zero).isReal`, and `Ln(-Variable('x')^2 - 1).isReal`. `LambertW` (`line 241`) falls through to `UnaryExpr`, returning `true` for `LambertW(IntegerNumber.of(-1))` and `LambertW(IntegerNumber.one, branch: -1)`. In `transcendental.dart:450-460`, `isProvenReal` unconditionally returns `true` for `Factorial`, `Binomial`, `Floor`, `Ceil`, `Round`, and `Sign` without checking their arguments (so `Im(Factorial(ComplexNumber.i)).simplify()` returns `0`).
   - **Fix**: Check argument realness for `Factorial`, `Binomial`, `Floor`, `Ceil`, `Round`, and `Sign` in `isProvenReal`, add `LambertW` domain/branch checks, and unify `Expr.isReal` with `isProvenReal(this, Assumptions.real)`.
 
-- [ ] **1.10.3 `Constant.undefined` is not propagated by 25 of 26 `simplify*` functions in `transcendental.dart`**
+- [x] **1.10.3 `Constant.undefined` is not propagated by 25 of 26 `simplify*` functions in `transcendental.dart`**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/algebra/simplify/transcendental.dart:20-388, 735-1491`
   - **Problem**: Only `simplifyLn` (`line 615`) checks `if (expr == Constant.undefined) return Constant.undefined;`. The other 25 `simplify*` functions wrap `Constant.undefined` in simplified AST nodes (e.g. `Sin(Asin(RealNumber(2.0))).simplify()` returns `Sin(Constant.undefined)` instead of `Constant.undefined`).

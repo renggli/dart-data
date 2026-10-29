@@ -18,6 +18,7 @@ import 'power.dart';
 
 /// Simplifies a sine expression $\sin(expr)$.
 Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.sin(expr.value));
   }
@@ -81,6 +82,7 @@ Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies a cosine expression $\cos(expr)$.
 Expr simplifyCos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.cos(expr.value));
   }
@@ -152,6 +154,7 @@ Expr simplifyCos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies a tangent expression $\tan(expr)$.
 Expr simplifyTan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = math.tan(expr.value);
     return v.isFinite ? RealNumber.fromDouble(v) : Constant.undefined;
@@ -211,6 +214,7 @@ Expr simplifyTan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies an arcsine expression $\arcsin(expr)$.
 Expr simplifyAsin(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     if (v < -1.0 || v > 1.0) return Constant.undefined;
@@ -248,6 +252,7 @@ Expr simplifyAsin(Expr expr) {
 
 /// Simplifies an arccosine expression $\arccos(expr)$.
 Expr simplifyAcos(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     if (v < -1.0 || v > 1.0) return Constant.undefined;
@@ -301,6 +306,7 @@ Expr simplifyAcos(Expr expr) {
 
 /// Simplifies an arctangent expression $\arctan(expr)$.
 Expr simplifyAtan(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.atan(expr.value));
   }
@@ -336,6 +342,7 @@ Expr simplifyAtan(Expr expr) {
 
 /// Simplifies a hyperbolic sine expression $\sinh(expr)$.
 Expr simplifySinh(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     return RealNumber.fromDouble((math.exp(v) - math.exp(-v)) / 2.0);
@@ -353,6 +360,7 @@ Expr simplifySinh(Expr expr) {
 
 /// Simplifies a hyperbolic cosine expression $\cosh(expr)$.
 Expr simplifyCosh(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     return RealNumber.fromDouble((math.exp(v) + math.exp(-v)) / 2.0);
@@ -370,6 +378,7 @@ Expr simplifyCosh(Expr expr) {
 
 /// Simplifies a hyperbolic tangent expression $\tanh(expr)$.
 Expr simplifyTanh(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     final ep = math.exp(v);
@@ -389,6 +398,7 @@ Expr simplifyTanh(Expr expr) {
 
 /// Simplifies an absolute value expression $|expr|$.
 Expr simplifyAbs(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RationalNumber) {
     return expr.isNegative ? expr.neg() : expr;
   }
@@ -652,6 +662,7 @@ Expr? _matchIntegerPiMultiple(Expr expr, Assumptions assumptions) {
 
 /// Simplifies an exponential expression $e^{expr}$.
 Expr simplifyExp(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.exp(expr.value));
   }
@@ -786,6 +797,7 @@ RationalNumber? matchPiMultiple(Expr expr) => switch (expr) {
 
 /// Simplifies a Lambert W expression $W_b(expr)$.
 Expr simplifyLambertW(Expr expr, int branch) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     final res = branch == 0
@@ -815,6 +827,7 @@ Expr simplifyLambertW(Expr expr, int branch) {
 
 /// Simplifies an error function expression $\operatorname{erf}(expr)$.
 Expr simplifyErf(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_erf.erf(expr.value));
   }
@@ -833,6 +846,7 @@ Expr simplifyErf(Expr expr) {
 
 /// Simplifies a complementary error function expression $\operatorname{erfc}(expr)$.
 Expr simplifyErfc(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_erf.erfc(expr.value));
   }
@@ -851,6 +865,7 @@ Expr simplifyErfc(Expr expr) {
 
 /// Simplifies an Euler gamma function expression $\Gamma(expr)$.
 Expr simplifyGamma(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     if (v <= 0.0 && v == v.roundToDouble()) return Constant.undefined;
@@ -881,6 +896,9 @@ Expr simplifyGamma(Expr expr) {
 
 /// Simplifies an Euler beta function expression $\operatorname{B}(a, b)$.
 Expr simplifyBeta(Expr a, Expr b) {
+  if (a == Constant.undefined || b == Constant.undefined) {
+    return Constant.undefined;
+  }
   if (a is RealNumeric &&
       b is RealNumeric &&
       (a is RealNumber || b is RealNumber)) {
@@ -935,6 +953,7 @@ Expr simplifyBeta(Expr a, Expr b) {
 
 /// Simplifies an inverse hyperbolic sine expression $\operatorname{asinh}(expr)$.
 Expr simplifyAsinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     return RealNumber.fromDouble(math.log(v + math.sqrt(v * v + 1.0)));
@@ -955,6 +974,7 @@ Expr simplifyAsinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies an inverse hyperbolic cosine expression $\operatorname{acosh}(expr)$.
 Expr simplifyAcosh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     if (v < 1.0) return Constant.undefined;
@@ -971,6 +991,7 @@ Expr simplifyAcosh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies an inverse hyperbolic tangent expression $\operatorname{atanh}(expr)$.
 Expr simplifyAtanh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     if (v.abs() >= 1.0) return Constant.undefined;
@@ -1159,6 +1180,7 @@ Expr simplifyLimit(
 
 /// Simplifies a factorial expression $n!$.
 Expr simplifyFactorial(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return simplifyGamma(RealNumber.fromDouble(expr.value + 1.0));
   }
@@ -1173,6 +1195,9 @@ Expr simplifyFactorial(Expr expr) {
 
 /// Simplifies a binomial coefficient $\binom{n}{k}$.
 Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
+  if (nExpr == Constant.undefined || kExpr == Constant.undefined) {
+    return Constant.undefined;
+  }
   if (nExpr is RealNumeric &&
       kExpr is RealNumeric &&
       (nExpr is RealNumber || kExpr is RealNumber)) {
@@ -1214,6 +1239,7 @@ Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
 
 /// Simplifies a floor expression $\lfloor x \rfloor$.
 Expr simplifyFloor(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
     case FractionNumber(:final numerator, :final denominator):
@@ -1247,6 +1273,7 @@ Expr simplifyFloor(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies a ceiling expression $\lceil x \rceil$.
 Expr simplifyCeil(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
     case FractionNumber(:final numerator, :final denominator):
@@ -1280,6 +1307,7 @@ Expr simplifyCeil(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies a rounding expression $\operatorname{round}(x)$.
 Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
     case FractionNumber(:final numerator, :final denominator):
@@ -1310,6 +1338,7 @@ Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
 /// Simplifies a signum expression $\operatorname{sgn}(x)$.
 Expr simplifySign(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     if (expr.value.isNaN) return Constant.undefined;
     return RealNumber.fromDouble(expr.sign.toDouble());
@@ -1347,6 +1376,9 @@ Expr simplifyMod(
   Expr right, {
   Assumptions assumptions = Assumptions.none,
 }) {
+  if (left == Constant.undefined || right == Constant.undefined) {
+    return Constant.undefined;
+  }
   if (right is Number && right.isZero) {
     return Constant.undefined;
   }
