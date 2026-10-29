@@ -138,6 +138,37 @@ void main() {
         ),
       ).throws<ArgumentError>();
 
+      check(
+        () => CscMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          colPointers: [1, 1, 1],
+          rowIndices: [],
+          values: [],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CscMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          colPointers: [0, 2, 1],
+          rowIndices: [0],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CscMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          colPointers: [0, 1, 2],
+          rowIndices: [0, 2],
+          values: [1.0, 2.0],
+          type: DataType.float64,
+        ),
+      ).throws<RangeError>();
+
       final unsortedCsc = CscMatrix<double>(
         rowCount: 3,
         colCount: 1,

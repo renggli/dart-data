@@ -134,6 +134,26 @@ void main() {
           type: DataType.float64,
         ),
       ).throws<ArgumentError>();
+      check(
+        () => CooMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          rowIndices: [2],
+          colIndices: [0],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<RangeError>();
+      check(
+        () => CooMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          rowIndices: [0],
+          colIndices: [-1],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<RangeError>();
     });
   });
 }

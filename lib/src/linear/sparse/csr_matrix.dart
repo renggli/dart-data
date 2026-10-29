@@ -50,6 +50,35 @@ class CsrMatrix<T> implements LinearOperator<T> {
         'colIndices (${colIndices.length}) and values (${values.length}) must have the same length.',
       );
     }
+    if (rowPointers.first != 0) {
+      throw ArgumentError.value(
+        rowPointers.first,
+        'rowPointers[0]',
+        'First row pointer must be 0.',
+      );
+    }
+    if (rowPointers.last != values.length) {
+      throw ArgumentError.value(
+        rowPointers.last,
+        'rowPointers.last',
+        'Last row pointer must equal values length (${values.length}).',
+      );
+    }
+    for (var i = 0; i < rowCount; i++) {
+      final start = rowPointers[i];
+      final end = rowPointers[i + 1];
+      if (start > end) {
+        throw ArgumentError(
+          'rowPointers must be non-decreasing: rowPointers[$i] ($start) > rowPointers[${i + 1}] ($end).',
+        );
+      }
+    }
+    for (var i = 0; i < colIndices.length; i++) {
+      final c = colIndices[i];
+      if (c < 0 || c >= colCount) {
+        throw RangeError.range(c, 0, colCount - 1, 'colIndices[$i]');
+      }
+    }
   }
 
   /// Constructs a CSR matrix from coordinate triplets.

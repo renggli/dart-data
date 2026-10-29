@@ -129,6 +129,37 @@ void main() {
         ),
       ).throws<ArgumentError>();
 
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          rowPointers: [1, 1, 1],
+          colIndices: [],
+          values: [],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          rowPointers: [0, 2, 1],
+          colIndices: [0],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          rowPointers: [0, 1, 2],
+          colIndices: [0, 2],
+          values: [1.0, 2.0],
+          type: DataType.float64,
+        ),
+      ).throws<RangeError>();
+
       final unsortedCsr = CsrMatrix<double>(
         rowCount: 1,
         colCount: 3,

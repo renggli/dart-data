@@ -49,6 +49,35 @@ class CscMatrix<T> implements LinearOperator<T> {
         'rowIndices (${rowIndices.length}) and values (${values.length}) must have the same length.',
       );
     }
+    if (colPointers.first != 0) {
+      throw ArgumentError.value(
+        colPointers.first,
+        'colPointers[0]',
+        'First col pointer must be 0.',
+      );
+    }
+    if (colPointers.last != values.length) {
+      throw ArgumentError.value(
+        colPointers.last,
+        'colPointers.last',
+        'Last col pointer must equal values length (${values.length}).',
+      );
+    }
+    for (var j = 0; j < colCount; j++) {
+      final start = colPointers[j];
+      final end = colPointers[j + 1];
+      if (start > end) {
+        throw ArgumentError(
+          'colPointers must be non-decreasing: colPointers[$j] ($start) > colPointers[${j + 1}] ($end).',
+        );
+      }
+    }
+    for (var i = 0; i < rowIndices.length; i++) {
+      final r = rowIndices[i];
+      if (r < 0 || r >= rowCount) {
+        throw RangeError.range(r, 0, rowCount - 1, 'rowIndices[$i]');
+      }
+    }
   }
 
   /// Constructs a CSC matrix from coordinate triplets.

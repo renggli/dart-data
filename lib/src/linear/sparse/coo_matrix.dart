@@ -44,6 +44,16 @@ class CooMatrix<T> implements LinearOperator<T> {
         'rowIndices (${rowIndices.length}), colIndices (${colIndices.length}), and values (${values.length}) must have the same length.',
       );
     }
+    for (var i = 0; i < rowIndices.length; i++) {
+      final r = rowIndices[i];
+      final c = colIndices[i];
+      if (r < 0 || r >= rowCount) {
+        throw RangeError.range(r, 0, rowCount - 1, 'rowIndices[$i]');
+      }
+      if (c < 0 || c >= colCount) {
+        throw RangeError.range(c, 0, colCount - 1, 'colIndices[$i]');
+      }
+    }
   }
 
   /// Constructs a COO matrix from coordinate triplets.

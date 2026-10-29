@@ -134,7 +134,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ### 1.4 `linear` Subsystem
 
-- [ ] **1.4.1 Sparse matrix constructors (`CooMatrix`, `CsrMatrix`, `CscMatrix`) do not validate index bounds or pointer invariants**
+- [x] **1.4.1 Sparse matrix constructors (`CooMatrix`, `CsrMatrix`, `CscMatrix`) do not validate index bounds or pointer invariants**
   - **Severity**: Critical
   - **Location**: `lib/src/linear/sparse/coo_matrix.dart:28-47`, `lib/src/linear/sparse/csr_matrix.dart:30-53`, `lib/src/linear/sparse/csc_matrix.dart:29-52`
   - **Problem**: `CooMatrix(...)` does not check `0 <= rowIndices[k] < rowCount` or `0 <= colIndices[k] < colCount`. `CsrMatrix(...)` and `CscMatrix(...)` do not check `pointers.first == 0`, `pointers.last == values.length`, pointer monotonicity `pointers[i] <= pointers[i + 1]`, or coordinate bounds. Malformed arrays cause silent wrong answers in `get()` and out-of-bounds crashes in `apply()`, `toCsr()`, `toCsc()`, and `toDense()`.
