@@ -135,13 +135,18 @@ void main() {
       check(factorialLn(double.nan)).isNaN();
       check(combination(5, 2)).equals(10.0);
       check(combination(200, 2)).equals(19900.0);
+      check(combination(double.nan, 2)).isNaN();
+      check(combination(5, double.nan)).isNaN();
       check(combination(double.infinity, 2)).equals(double.infinity);
       check(combination(double.infinity, double.infinity)).isNaN();
       check(combination(double.infinity, 1.5)).isNaN();
       check(combinationLn(5, 2)).isCloseTo(math.log(10.0), 1e-6);
       check(permutation(5, 2)).equals(20.0);
       check(permutation(200, 2)).equals(39800.0);
+      check(permutation(double.nan, 2)).isNaN();
+      check(permutation(5, double.nan)).isNaN();
       check(permutation(double.infinity, 2)).equals(double.infinity);
+      check(permutation(double.infinity, double.infinity)).isNaN();
       check(permutationLn(5, 2)).isCloseTo(math.log(20.0), 1e-6);
     });
   });

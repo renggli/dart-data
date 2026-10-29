@@ -198,7 +198,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `if (x.isInfinite) return 0.0;` returns `0.0` for `trigamma(double.negativeInfinity)`, even though $\psi_1(x)$ has poles at every non-positive integer and no limit as $x \to -\infty$ (unlike `digamma(double.negativeInfinity)` at line 22 which returns `double.nan`).
   - **Fix**: Change line 69 to `if (x.isInfinite) return x.isNegative ? double.nan : 0.0;`.
 
-- [ ] **1.5.4 `combination` and `permutation` return `0.0` instead of `double.nan` on `NaN` inputs**
+- [x] **1.5.4 `combination` and `permutation` return `0.0` instead of `double.nan` on `NaN` inputs**
   - **Severity**: Warning
   - **Location**: `lib/src/special/gamma.dart:270-272, 313-315`
   - **Problem**: `if (total.isNaN || choose.isNaN || choose < 0 || choose > total) return 0.0;` returns `0.0` on `NaN` inputs, whereas `combinationLn` and `permutationLn` return `double.nan`.

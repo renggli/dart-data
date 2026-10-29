@@ -267,7 +267,10 @@ double factorialLn(num value) =>
 /// print(combination(5, 2));  // 10.0
 /// ```
 double combination(num total, num choose) {
-  if (total.isNaN || choose.isNaN || choose < 0 || choose > total) {
+  if (total.isNaN || choose.isNaN) {
+    return double.nan;
+  }
+  if (choose < 0 || choose > total) {
     return 0.0;
   }
   if (choose == 0) {
@@ -310,7 +313,10 @@ double combinationLn(num total, num choose) =>
 /// print(permutation(5, 2));  // 20.0
 /// ```
 double permutation(num total, num count) {
-  if (total.isNaN || count.isNaN || count < 0 || count > total) {
+  if (total.isNaN || count.isNaN) {
+    return double.nan;
+  }
+  if (count < 0 || count > total) {
     return 0.0;
   }
   if (count == 0) {
