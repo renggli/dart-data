@@ -269,13 +269,50 @@ class DataFrame {
     return filter(mask);
   }
 
-  /// Returns a new [DataFrame] with null values replaced by [value] in all columns.
-  DataFrame fillNull(Object value) {
+  /// Returns a new [DataFrame] with null values replaced by [value] in specified [columns] (or all columns).
+  ///
+  /// [value] can be a single replacement value, or a [Map<String, Object?>] mapping column names
+  /// to their respective replacement values. If a single [value] is not compatible with a column's
+  /// data type, that column is left unmodified instead of throwing a type error.
+  DataFrame fillNull(Object value, {List<String>? columns}) {
+    final colSet = columns?.toSet();
     final newCols = <Series<Object?>>[];
     for (final col in _columns) {
-      if (col.hasNulls) {
-        newCols.add(col.fillNull(value));
+      if (colSet != null && !colSet.contains(col.name)) {
+        newCols.add(col);
+        continue;
+      }
+      if (!col.hasNulls) {
+        newCols.add(col);
+        continue;
+      }
+      final Object? replacement;
+      if (value is Map<String, Object?>) {
+        if (!value.containsKey(col.name)) {
+          newCols.add(col);
+          continue;
+        }
+        replacement = value[col.name];
       } else {
+        replacement = value;
+      }
+      if (replacement == null) {
+        newCols.add(col);
+        continue;
+      }
+      final Object? castValue;
+      if (col.dataType.isNumeric && replacement is num) {
+        castValue = col.dataType.cast(replacement);
+      } else {
+        castValue = replacement;
+      }
+      if (castValue == null) {
+        newCols.add(col);
+        continue;
+      }
+      try {
+        newCols.add(col.fillNull(castValue));
+      } on TypeError {
         newCols.add(col);
       }
     }

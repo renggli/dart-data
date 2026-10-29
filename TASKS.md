@@ -352,7 +352,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ### 1.9 `dataframe` Subsystem
 
-- [ ] **1.9.1 `DataFrame.fillNull` throws `TypeError` on heterogeneous DataFrames**
+- [x] **1.9.1 `DataFrame.fillNull` throws `TypeError` on heterogeneous DataFrames**
   - **Severity**: Critical
   - **Location**: `lib/src/dataframe/dataframe.dart:273-283`
   - **Problem**: `DataFrame.fillNull(Object value)` calls `col.fillNull(value)` on every column with nulls. Because `col` is `Series<T>`, `col.fillNull(value)` performs a runtime covariance check `value as T`. If a `DataFrame` has both a `double` column and a `String` column with nulls, `df.fillNull(0.0)` throws `TypeError: 0.0 is not a subtype of type 'String'`. Even on a single `TypedSeries<double>` column, `df.fillNull(0)` throws `TypeError: 0 is not a subtype of type 'double'`.

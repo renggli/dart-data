@@ -758,6 +758,26 @@ line 2",10
       check(filled['b'].toList()).deepEquals([10, 20, 0]);
     });
 
+    test('fillNull on heterogeneous DataFrame and map of values', () {
+      final df = DataFrame.fromColumns({
+        'num': [1.5, null, 3.5],
+        'str': ['a', null, 'c'],
+      });
+      // Single value that is compatible with num or str, or Map of column values:
+      final filledMap = df.fillNull({'num': 0.0, 'str': 'missing'});
+      check(filledMap['num'].toList()).deepEquals([1.5, 0.0, 3.5]);
+      check(filledMap['str'].toList()).deepEquals(['a', 'missing', 'c']);
+
+      // Int to double coercion on double column
+      final filledDouble = df.fillNull(0, columns: ['num']);
+      check(filledDouble['num'].toList()).deepEquals([1.5, 0.0, 3.5]);
+
+      // Global fillNull with value only replaces compatible columns
+      final filledStr = df.fillNull('missing');
+      check(filledStr['num'].toList()).deepEquals([1.5, null, 3.5]);
+      check(filledStr['str'].toList()).deepEquals(['a', 'missing', 'c']);
+    });
+
     test('describe computes summary statistics for numeric columns', () {
       final df = DataFrame.fromColumns({
         'name': ['Alice', 'Bob', 'Charlie', 'David'],
