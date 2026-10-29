@@ -232,7 +232,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Over `DataType.int32` / `int`, `field.div(curCoeff, leadB)` uses integer truncating division `~/`. When `curCoeff.abs() < leadB.abs()`, `factor` is `0` and `rCoeffs[i]` is never reduced, returning a remainder with $\deg(r) \ge \deg(b)$ and causing `Polynomial.gcd` (e.g. `Polynomial<int>.fromCoefficients([0, 1, 1]).gcd(Polynomial<int>.fromCoefficients([0, 2]))`) and `RationalFunction<int>` to hang in an infinite loop.
   - **Fix**: In `DensePolynomial.divide`, check `if (field.mul(factor, leadB) != curCoeff)` for exact integer rings and throw `UnsupportedError`, or use pseudo-division / primitive polynomial GCD over integer rings.
 
-- [ ] **1.6.2 `evaluateDouble`, `roots`, and `_coeffToComplex` throw `TypeError` for `BigInt`, `Fraction`, and `Complex` polynomials**
+- [x] **1.6.2 `evaluateDouble`, `roots`, and `_coeffToComplex` throw `TypeError` for `BigInt`, `Fraction`, and `Complex` polynomials**
   - **Severity**: Warning
   - **Location**: `lib/src/polynomial/impl/dense_polynomial.dart:82-91, 368-374`, `lib/src/polynomial/impl/compressed_polynomial.dart:195-206, 607-613`, `lib/src/polynomial/polynomial.dart:502-508`
   - **Problem**: Casts `(this[i] as num).toDouble()`, which throws a `TypeError` when `T` is `BigInt`, `Fraction`, or `Complex` (none of which subtype `num`).

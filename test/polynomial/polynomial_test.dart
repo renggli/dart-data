@@ -44,6 +44,35 @@ void main() {
       // P(1 + i) = (1 + i - 1)(1 + i - 2) = i * (i - 1) = -1 - i
       check(complexVal.a).isCloseTo(-1.0, 1e-9);
       check(complexVal.b).isCloseTo(-1.0, 1e-9);
+
+      // BigInt and Fraction evaluateDouble, evaluateComplex, and roots
+      final pBig = Polynomial<BigInt>.fromCoefficients([
+        BigInt.from(2),
+        BigInt.from(-3),
+        BigInt.one,
+      ], type: DataType.bigInt);
+      check(pBig.evaluateDouble(4)).equals(6.0);
+      check(pBig.evaluateComplex(const Complex(1.0, 1.0)).a)
+          .isCloseTo(-1.0, 1e-9);
+      check(pBig.roots.length).equals(2);
+
+      final pFrac = Polynomial<Fraction>.fromCoefficients([
+        Fraction(2),
+        Fraction(-3),
+        Fraction(1),
+      ], type: DataType.fraction);
+      check(pFrac.evaluateDouble(4)).equals(6.0);
+      check(pFrac.evaluateComplex(const Complex(1.0, 1.0)).a)
+          .isCloseTo(-1.0, 1e-9);
+      check(pFrac.roots.length).equals(2);
+
+      final pComp = Polynomial<Complex>.fromCoefficients([
+        const Complex(2.0),
+        const Complex(-3.0),
+        const Complex(1.0),
+      ], type: DataType.complex);
+      check(pComp.evaluateDouble(4)).equals(6.0);
+      check(pComp.roots.length).equals(2);
     });
 
     test(

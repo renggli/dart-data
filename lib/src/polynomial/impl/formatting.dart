@@ -1,3 +1,5 @@
+import 'package:more/number.dart' show Complex, Fraction;
+
 import '../../type/data_type.dart';
 
 /// Formats polynomial terms in descending degree order into a mathematical string.
@@ -36,6 +38,24 @@ String formatPolynomialTerms<T>(
     }
   }
   return buffer.toString();
+}
+
+/// Converts a coefficient value [val] to [double].
+double coeffToDouble(Object? val) {
+  if (val is num) return val.toDouble();
+  if (val is BigInt) return val.toDouble();
+  if (val is Fraction) return val.toDouble();
+  if (val is Complex) return val.a.toDouble();
+  throw UnsupportedError('Cannot convert coefficient $val to double.');
+}
+
+/// Converts a coefficient value [val] to [Complex].
+Complex coeffToComplex(Object? val) {
+  if (val is Complex) return val;
+  if (val is num) return Complex(val.toDouble());
+  if (val is BigInt) return Complex(val.toDouble());
+  if (val is Fraction) return Complex(val.toDouble());
+  throw UnsupportedError('Cannot convert coefficient $val to Complex.');
 }
 
 bool _isNegativeCoefficient<T>(DataType<T> type, T value) {

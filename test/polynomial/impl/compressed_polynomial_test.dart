@@ -439,6 +439,26 @@ void main() {
 
       // Companion roots error on degree > 1000
       check(() => p.roots).throws<UnsupportedError>();
+
+      final pBig = CompressedPolynomial<BigInt>.fromMap({
+        0: BigInt.from(2),
+        1: BigInt.from(-3),
+        2: BigInt.one,
+      }, type: DataType.bigInt);
+      check(pBig.evaluateDouble(4)).equals(6.0);
+      check(pBig.evaluateComplex(const Complex(1.0, 1.0)).a)
+          .isCloseTo(-1.0, 1e-9);
+      check(pBig.roots.length).equals(2);
+
+      final pFrac = CompressedPolynomial<Fraction>.fromMap({
+        0: Fraction(2),
+        1: Fraction(-3),
+        2: Fraction(1),
+      }, type: DataType.fraction);
+      check(pFrac.evaluateDouble(4)).equals(6.0);
+      check(pFrac.evaluateComplex(const Complex(1.0, 1.0)).a)
+          .isCloseTo(-1.0, 1e-9);
+      check(pFrac.roots.length).equals(2);
     });
 
     test('RationalFunction integration with CompressedPolynomial', () {

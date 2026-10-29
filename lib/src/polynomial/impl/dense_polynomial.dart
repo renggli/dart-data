@@ -83,9 +83,9 @@ class DensePolynomial<T> extends Polynomial<T> {
     final deg = degree;
     if (deg < 0) return 0.0;
     final xd = x.toDouble();
-    var acc = (this[deg] as num).toDouble();
+    var acc = coeffToDouble(this[deg]);
     for (var i = deg - 1; i >= 0; i--) {
-      acc = acc * xd + (this[i] as num).toDouble();
+      acc = acc * xd + coeffToDouble(this[i]);
     }
     return acc;
   }
@@ -365,11 +365,5 @@ class DensePolynomial<T> extends Polynomial<T> {
     return formatPolynomialTerms(type, terms);
   }
 
-  Complex _coeffToComplex(T val) {
-    if (val is Complex) return val;
-    if (val is num) return Complex(val.toDouble());
-    throw UnsupportedError(
-      'Cannot evaluate polynomial of type $type at a Complex point.',
-    );
-  }
+  Complex _coeffToComplex(T val) => coeffToComplex(val);
 }

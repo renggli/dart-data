@@ -198,7 +198,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     var sum = 0.0;
     for (var i = 0; i < _exponents.length; i++) {
       final exp = _exponents[i];
-      final coeff = (_coefficients[i] as num).toDouble();
+      final coeff = coeffToDouble(_coefficients[i]);
       final p = _doublePower(xd, exp);
       sum += coeff * p;
     }
@@ -604,13 +604,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     return formatPolynomialTerms(type, terms);
   }
 
-  Complex _coeffToComplex(T val) {
-    if (val is Complex) return val;
-    if (val is num) return Complex(val.toDouble());
-    throw UnsupportedError(
-      'Cannot evaluate polynomial of type $type at a Complex point.',
-    );
-  }
+  Complex _coeffToComplex(T val) => coeffToComplex(val);
 }
 
 T _fieldPower<T>(Field<T> field, T base, int exponent) {

@@ -7,6 +7,7 @@ import '../linear/matrix.dart';
 import '../type/data_type.dart';
 import 'impl/compressed_polynomial.dart';
 import 'impl/dense_polynomial.dart';
+import 'impl/formatting.dart';
 
 /// 1-dimensional algebraic univariate polynomial with coefficients in [T].
 ///
@@ -526,11 +527,13 @@ abstract class Polynomial<T> {
     if (deg <= 0) return const [];
 
     Complex toComplex(T val) {
-      if (val is num) return Complex(val.toDouble());
-      if (val is Complex) return val;
-      throw ArgumentError(
-        'Polynomial roots require numeric or complex coefficients, but found ${poly.type}.',
-      );
+      try {
+        return coeffToComplex(val);
+      } on UnsupportedError {
+        throw ArgumentError(
+          'Polynomial roots require numeric or complex coefficients, but found ${poly.type}.',
+        );
+      }
     }
 
     if (deg == 1) {
