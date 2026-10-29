@@ -15,6 +15,9 @@ double hypergeometric1F1(num a, num b, num z) {
   final ad = a.toDouble();
   final bd = b.toDouble();
   final zd = z.toDouble();
+  if (zd.isInfinite) {
+    return double.nan;
+  }
   final isANonPosInt = ad.isFinite && ad <= 0.0 && ad.roundToDouble() == ad;
   final isBNonPosInt = bd.isFinite && bd <= 0.0 && bd.roundToDouble() == bd;
   if (isANonPosInt) {
@@ -35,6 +38,10 @@ double hypergeometric1F1(num a, num b, num z) {
     return double.nan;
   }
   if (zd == 0.0) return 1.0;
+  if (zd < 0.0) {
+    // Kummer's first transformation: 1F1(a, b, z) = exp(z) * 1F1(b - a, b, -z)
+    return exp(zd) * hypergeometric1F1(bd - ad, bd, -zd);
+  }
   var sum = 1.0;
   var term = 1.0;
   for (var stepIdx = 1; stepIdx <= 1500; stepIdx++) {

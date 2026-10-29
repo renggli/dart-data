@@ -186,7 +186,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `beta(x, y)` checks `if (x > 100 || y > 100) return exp(betaLn(x, y));` and otherwise computes `gamma(x) * gamma(y) / gamma(x + y)`. Because `gamma(z)` overflows IEEE 754 `double` at $z > 171.6$, `beta(90, 90)` evaluates `finite / Infinity = 0.0` (instead of `5.284e-55`) and `beta(100, 100)` evaluates `Infinity / Infinity = NaN` (instead of `2.208e-60`).
   - **Fix**: Change line 21 to `if (x + y > 170) return exp(betaLn(x, y));`.
 
-- [ ] **1.5.2 Catastrophic cancellation and infinite-input loop in `hypergeometric1F1`**
+- [x] **1.5.2 Catastrophic cancellation and infinite-input loop in `hypergeometric1F1`**
   - **Severity**: Critical
   - **Location**: `lib/src/special/hypergeometric.dart:30-49`
   - **Problem**: `hypergeometric1F1(a, b, z)` sums the alternating power series directly for negative $z$. For `hypergeometric1F1(1.0, 2.0, -50.0)`, intermediate terms reach $10^{20}$ while the true value is $\approx 0.02$, returning garbage ($\sim \pm 10^{26}$) due to 53-bit cancellation. Additionally, when `z` is `±Infinity`, `term` becomes `NaN` and the loop runs all 1,500 iterations.

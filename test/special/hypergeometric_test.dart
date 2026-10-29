@@ -12,6 +12,10 @@ void main() {
       check(hypergeometric1F1(0, 3.5, 2.5)).equals(1.0);
       check(hypergeometric1F1(1, 0, 0.5)).isNaN();
       check(hypergeometric1F1(1, -2, 0.5)).isNaN();
+      check(hypergeometric1F1(1, 2, double.infinity)).isNaN();
+      check(hypergeometric1F1(1, 2, double.negativeInfinity)).isNaN();
+      // 1F1(1, 2, z) = (exp(z) - 1)/z. For z = -50, (exp(-50) - 1)/(-50) = 1/50 = 0.02
+      check(hypergeometric1F1(1, 2, -50.0)).isCloseTo(0.02, 1e-12);
     });
 
     test('Gauss hypergeometric 2F1 standard cases', () {
