@@ -187,28 +187,49 @@ double gammapInv(num probability, num a) {
       x = 1.0 - log(1.0 - (probability - tVal) / (1.0 - tVal));
     }
   }
-  for (var j = 0; j < 50; j++) {
-    if (x <= 0.0) {
-      return 0.0;
+  var xMin = 0.0;
+  var xMax = double.infinity;
+  if (x <= 0.0 || x.isNaN) {
+    x = 1.0;
+  }
+  for (var j = 0; j < 60; j++) {
+    if (x <= xMin || x >= xMax) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
     }
-    final err = lowRegGamma(a, x) - probability;
-    if (err.abs() <= 1.0e-15) {
+    final curProb = lowRegGamma(a, x);
+    final err = curProb - probability;
+    if (err > 0) {
+      if (x < xMax) xMax = x;
+    } else {
+      if (x > xMin) xMin = x;
+    }
+    if (err.abs() <= 1.0e-15 ||
+        (xMax.isFinite && (xMax - xMin) <= epsilon * x)) {
       break;
     }
-    var step = a > 1.0
+    final tVal = a > 1.0
         ? afac * exp(-(x - a1) + a1 * (log(x) - lna1))
         : exp(-x + a1 * log(x) - gln);
-    if (step <= 0.0 || !step.isFinite) {
-      break;
+    if (tVal <= 0.0 || !tVal.isFinite) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+      continue;
     }
-    final uVal = err / step;
-    step = uVal / (1.0 - 0.5 * min(1.0, uVal * ((a - 1.0) / x - 1.0)));
-    x -= step;
-    if (x <= 0.0) {
-      x = 0.5 * (x + step);
+    final uVal = err / tVal;
+    final denom = 1.0 - 0.5 * min(1.0, uVal * ((a - 1.0) / x - 1.0));
+    if (denom <= 0.0 || denom.isNaN) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+      continue;
     }
-    if (step.abs() < epsilon * x) {
-      break;
+    final step = uVal / denom;
+    final nextX = x - step;
+    if (nextX <= xMin || nextX >= xMax || nextX.isNaN) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+    } else {
+      final change = (x - nextX).abs();
+      x = nextX;
+      if (change < epsilon * x) {
+        break;
+      }
     }
   }
   return x;

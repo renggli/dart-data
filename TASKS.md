@@ -210,7 +210,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: In `lambertW1(z)` for $z \in [-10^{-300}, 0)$, `ew = exp(wVal)` underflows to `0.0` inside the Halley loop, causing each iteration to add $+2.0$ and drift $+50$ away from the already-accurate asymptotic initial guess. In `lambertW0(z)` for $z \approx 10^{307}$, `(wVal + 2.0) * fVal` overflows to `Infinity` in the Halley denominator.
   - **Fix**: Break out of the Halley loop when `ew == 0.0 || !ew.isFinite`, and formulate the Halley update using $r = w - z e^{-w}$ to avoid overflow.
 
-- [ ] **1.5.6 `gammapInv` lacks bracket safeguard when Halley step overshoots or underflows**
+- [x] **1.5.6 `gammapInv` lacks bracket safeguard when Halley step overshoots or underflows**
   - **Severity**: Warning
   - **Location**: `lib/src/special/gamma.dart:190-214`
   - **Problem**: Unlike `ibetaInv`, `gammapInv` does not maintain `[xMin, xMax]` bounds and breaks immediately if a trial step overshoots $\le 0$, returning an unrefined guess.
