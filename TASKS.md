@@ -164,7 +164,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `Matrix.syrk({double alpha = 1.0, double beta = 0.0, bool transpose = false})` allocates a fresh zero matrix `result` rather than accepting a target matrix `C`. Passing `beta` to `Blas.dsyrk` multiplies the zero matrix by `beta`, while the pure-Dart fallback (`lines 975-979`) ignores `beta` completely.
   - **Fix**: Either add `{Matrix<T>? target}` to `syrk` (applying `beta * target` in both BLAS and fallback paths) or remove the unused `beta` parameter.
 
-- [ ] **1.4.6 Inconsistent symmetry checks and broken positivity check in `CholeskyDecomposition` and `EigenvalueDecomposition`**
+- [x] **1.4.6 Inconsistent symmetry checks and broken positivity check in `CholeskyDecomposition` and `EigenvalueDecomposition`**
   - **Severity**: Warning
   - **Location**: `lib/src/linear/decomposition/cholesky.dart:126-133, 189-203`, `lib/src/linear/decomposition/eigenvalue.dart:885-894`
   - **Problem**: `_decomposeFloat64` (`cholesky.dart:128`) and `_checkSymmetry` (`eigenvalue.dart:890`) use exact `!=`, rejecting `a.transposed * a` when $10^{-16}$ rounding asymmetry exists, whereas `_decomposeGeneric` (`cholesky.dart:194`) uses `equality.isClose(..., 1e-6)`. Furthermore, in `_decomposeGeneric` (`line 200`), `_ => field.norm(diagVal) > 0.0` treats negative values in custom fields (such as `Fraction(-4)`) as positive because `field.norm` returns absolute magnitude.

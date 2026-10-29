@@ -887,7 +887,13 @@ class EigenvalueDecomposition {
     final count = a.rowCount;
     for (var i = 0; i < count; i++) {
       for (var j = i + 1; j < count; j++) {
-        if (a.getUnchecked(i, j) != a.getUnchecked(j, i)) return false;
+        final aij = a.getUnchecked(i, j).toDouble();
+        final aji = a.getUnchecked(j, i).toDouble();
+        final diff = (aij - aji).abs();
+        final maxVal = math.max(aij.abs(), aji.abs());
+        if (diff > 1e-12 && (maxVal == 0.0 || diff / maxVal > 1e-12)) {
+          return false;
+        }
       }
     }
     return true;

@@ -175,6 +175,23 @@ void main() {
       ], type: DataType.complex);
       check(zeroDiag.cholesky.isSymmetricPositiveDefinite).isFalse();
 
+      // Negative value in Fraction field should NOT be considered positive-definite
+      final nonPosFraction = Matrix<Fraction>.fromRows([
+        [Fraction(-4), Fraction(0)],
+        [Fraction(0), Fraction(2)],
+      ], type: DataType.fraction);
+      check(
+        CholeskyDecomposition<Fraction>(nonPosFraction)
+            .isSymmetricPositiveDefinite,
+      ).isFalse();
+
+      // Floating-point rounding asymmetry in transposed product should remain SPD
+      final nearSym = Matrix<double>.fromRows([
+        [2.0, 1.0 + 1e-15],
+        [1.0, 2.0],
+      ], type: DataType.float64);
+      check(nearSym.cholesky.isSymmetricPositiveDefinite).isTrue();
+
       // Row dimension mismatch in Cholesky.solve
       final spd = Matrix<double>.fromRows([
         [4.0, 1.0],

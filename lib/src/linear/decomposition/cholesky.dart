@@ -125,7 +125,11 @@ class CholeskyDecomposition<T> {
     // Check symmetry
     for (var i = 0; i < _n; i++) {
       for (var j = i + 1; j < _n; j++) {
-        if (matrix.getUnchecked(i, j) != matrix.getUnchecked(j, i)) {
+        final aij = matrix.getUnchecked(i, j);
+        final aji = matrix.getUnchecked(j, i);
+        final diff = (aij - aji).abs();
+        final maxVal = math.max(aij.abs(), aji.abs());
+        if (diff > 1e-12 && (maxVal == 0.0 || diff / maxVal > 1e-12)) {
           _isSymmetricPositiveDefinite = false;
           return;
         }
@@ -197,7 +201,7 @@ class CholeskyDecomposition<T> {
       final isPos = switch (diagVal) {
         final num val => val > 0.0,
         final Complex c => c.real > 0.0 && c.imaginary.abs() < 1e-6,
-        _ => field.norm(diagVal) > 0.0,
+        _ => _type.comparator(diagVal, zero) > 0,
       };
       _isSymmetricPositiveDefinite = _isSymmetricPositiveDefinite && isPos;
 
