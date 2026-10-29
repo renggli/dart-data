@@ -112,7 +112,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `checkBlasInc` only rejects `inc == 0` and allows `incX < 0`. `BlasDart.ddot`, `daxpy`, `dgemv`, `dsyr2`, and `dtrmv` handle `incX < 0`, whereas `dnrm2`, `snrm2`, `dscal`, and `sscal` check `if (n <= 0 || incX <= 0) return ...;`, silently returning `0.0` or doing nothing for negative strides.
   - **Fix**: Either handle `incX < 0` in `Blas.dnrm2`, `snrm2`, `dscal`, and `sscal` (using `incX.abs()` since norm and scaling are order-independent) or reject `incX < 0` in parameter validation.
 
-- [ ] **1.3.2 `Vforce.convolve` and `Vforce.correlate` corrupt results when `output` aliases `signal` or `filter`, and ignore `output` when `rLen <= 0`**
+- [x] **1.3.2 `Vforce.convolve` and `Vforce.correlate` corrupt results when `output` aliases `signal` or `filter`, and ignore `output` when `rLen <= 0`**
   - **Severity**: Critical
   - **Location**: `lib/src/acceleration/vforce/vforce_dart.dart:107-139`, `lib/src/acceleration/vforce/vforce.dart:210, 244`
   - **Problem**: In `VforceDart.convolve` and `VforceDart.correlate`, `output[n]` is overwritten in-place during the outer loop while subsequent iterations read `signal[n + p]`. If `output` aliases `signal` or `filter`, inputs are clobbered mid-loop. Additionally, when `rLen <= 0`, `Vforce.convolve` and `Vforce.correlate` return a new `Float64List(0)` before validating or returning a caller-supplied `output`.

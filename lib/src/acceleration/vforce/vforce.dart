@@ -207,13 +207,13 @@ abstract final class Vforce {
     final sLen = signal.length;
     final fLen = filter.length;
     final rLen = fLen == 0 ? 0 : sLen - fLen + 1;
-    if (rLen <= 0) return Float64List(0);
     if (output != null && output.length < rLen) {
       throw RangeError(
         'Output buffer length (${output.length}) must be at least result length ($rLen)',
       );
     }
-    final dest = output ?? Float64List(rLen);
+    final dest = output ?? Float64List(rLen < 0 ? 0 : rLen);
+    if (rLen <= 0) return dest;
 
     executeAcceleratedVoid(
       feature: 'vDSP',
@@ -241,13 +241,13 @@ abstract final class Vforce {
     final sLen = signal.length;
     final fLen = filter.length;
     final rLen = fLen == 0 ? 0 : sLen - fLen + 1;
-    if (rLen <= 0) return Float64List(0);
     if (output != null && output.length < rLen) {
       throw RangeError(
         'Output buffer length (${output.length}) must be at least result length ($rLen)',
       );
     }
-    final dest = output ?? Float64List(rLen);
+    final dest = output ?? Float64List(rLen < 0 ? 0 : rLen);
+    if (rLen <= 0) return dest;
 
     executeAcceleratedVoid(
       feature: 'vDSP',

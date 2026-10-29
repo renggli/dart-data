@@ -83,6 +83,46 @@ void main() {
       final emptyFilter = Float64List(0);
       check(Vforce.convolve(signal: signal, filter: emptyFilter)).isEmpty();
       check(Vforce.correlate(signal: signal, filter: emptyFilter)).isEmpty();
+
+      final providedOut = Float64List(5);
+      final emptyConv = Vforce.convolve(
+        signal: signal,
+        filter: emptyFilter,
+        output: providedOut,
+      );
+      check(emptyConv).identicalTo(providedOut);
+      final emptyCorr = Vforce.correlate(
+        signal: signal,
+        filter: emptyFilter,
+        output: providedOut,
+      );
+      check(emptyCorr).identicalTo(providedOut);
+    });
+
+    accelerationTest('convolve and correlate with memory aliasing', () {
+      // Signal length 4, filter length 3. Result length = 4 - 3 + 1 = 2.
+      // Aliasing output in buffer:
+      final buffer = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final filter = Float64List.fromList([1.0, 2.0, 3.0]);
+      // Convolve:
+      // n=0: signal[0]*filter[2] + signal[1]*filter[1] + signal[2]*filter[0] = 1*3 + 2*2 + 3*1 = 10
+      // n=1: signal[1]*filter[2] + signal[2]*filter[1] + signal[3]*filter[0] = 2*3 + 3*2 + 4*1 = 16
+      // If output aliases signal, buffer[0] becomes 10. When n=1 is calculated, if not using a copy,
+      // signal[0] is not read, but what if output is offset?
+      // With output at sublistView(buffer, 1):
+      final subOut = Float64List.sublistView(buffer, 1, 3);
+      // n=0 writes to buffer[1]!
+      // n=0: signal[0]*3 + signal[1]*2 + signal[2]*1 = 1*3 + 2*2 + 3*1 = 10. Writes to buffer[1] = 10.
+      // n=1: signal[1]*3 + signal[2]*2 + signal[3]*1. If buffer[1] was clobbered to 10,
+      // then 10*3 + 3*2 + 4*1 = 40 (wrong!) instead of 2*3 + 3*2 + 4*1 = 16.
+      final resConv = Vforce.convolve(
+        signal: buffer,
+        filter: filter,
+        output: subOut,
+      );
+      check(resConv).identicalTo(subOut);
+      check(subOut[0]).isCloseTo(10.0, 1e-9);
+      check(subOut[1]).isCloseTo(16.0, 1e-9);
     });
 
     test('validates buffer lengths', () {

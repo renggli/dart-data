@@ -110,13 +110,21 @@ abstract final class VforceDart {
     required Float64List output,
     required int resultLength,
   }) {
+    if (resultLength <= 0) return;
     final fLen = filter.length;
+    final target =
+        (output.buffer == signal.buffer || output.buffer == filter.buffer)
+        ? Float64List(resultLength)
+        : output;
     for (var n = 0; n < resultLength; n++) {
       var s = 0.0;
       for (var p = 0; p < fLen; p++) {
         s += signal[n + p] * filter[fLen - 1 - p];
       }
-      output[n] = s;
+      target[n] = s;
+    }
+    if (!identical(target, output)) {
+      output.setRange(0, resultLength, target);
     }
   }
 
@@ -128,13 +136,21 @@ abstract final class VforceDart {
     required Float64List output,
     required int resultLength,
   }) {
+    if (resultLength <= 0) return;
     final fLen = filter.length;
+    final target =
+        (output.buffer == signal.buffer || output.buffer == filter.buffer)
+        ? Float64List(resultLength)
+        : output;
     for (var n = 0; n < resultLength; n++) {
       var s = 0.0;
       for (var p = 0; p < fLen; p++) {
         s += signal[n + p] * filter[p];
       }
-      output[n] = s;
+      target[n] = s;
+    }
+    if (!identical(target, output)) {
+      output.setRange(0, resultLength, target);
     }
   }
 }
