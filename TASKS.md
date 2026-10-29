@@ -226,7 +226,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ### 1.6 `polynomial` Subsystem
 
-- [ ] **1.6.1 `DensePolynomial.divide` fails to reduce remainder over `int` ring, causing an infinite loop in `Polynomial.gcd` and `RationalFunction<int>`**
+- [x] **1.6.1 `DensePolynomial.divide` fails to reduce remainder over `int` ring, causing an infinite loop in `Polynomial.gcd` and `RationalFunction<int>`**
   - **Severity**: Critical
   - **Location**: `lib/src/polynomial/impl/dense_polynomial.dart:265-276`, `lib/src/polynomial/polynomial.dart:191-201`
   - **Problem**: Over `DataType.int32` / `int`, `field.div(curCoeff, leadB)` uses integer truncating division `~/`. When `curCoeff.abs() < leadB.abs()`, `factor` is `0` and `rCoeffs[i]` is never reduced, returning a remainder with $\deg(r) \ge \deg(b)$ and causing `Polynomial.gcd` (e.g. `Polynomial<int>.fromCoefficients([0, 1, 1]).gcd(Polynomial<int>.fromCoefficients([0, 2]))`) and `RationalFunction<int>` to hang in an infinite loop.
@@ -238,7 +238,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Casts `(this[i] as num).toDouble()`, which throws a `TypeError` when `T` is `BigInt`, `Fraction`, or `Complex` (none of which subtype `num`).
   - **Fix**: Convert coefficients via a helper supporting `num`, `BigInt`, `Fraction`, and `Complex`.
 
-- [ ] **1.6.3 Floating-point remainder instability in `Polynomial.gcd` and `RationalFunction` arithmetic**
+- [x] **1.6.3 Floating-point remainder instability in `Polynomial.gcd` and `RationalFunction` arithmetic**
   - **Severity**: Warning
   - **Location**: `lib/src/polynomial/polynomial.dart:191-233`, `lib/src/polynomial/impl/dense_polynomial.dart:283-289`, `lib/src/polynomial/rational.dart:59-79`
   - **Problem**: Remainder truncation in `divide` uses `tol = 1e-12 * maxCoeff` based only on the dividend. During Euclidean `gcd` over `double`, a residual rounding error of `1e-11` survives truncation and becomes `leadB` in the next division step, amplifying noise by $10^{11}$ and causing `gcd` and `RationalFunction.simplify()` to fail to cancel common factors.

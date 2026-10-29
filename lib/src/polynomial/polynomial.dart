@@ -192,9 +192,35 @@ abstract class Polynomial<T> {
     var a = this;
     var b = other;
     while (b.degree >= 0) {
-      final remainder = a % b;
+      final rem = a % b;
+      var cleanRem = rem;
+      if (type.defaultValue is double && rem.degree >= 0) {
+        var maxA = 0.0;
+        for (var i = 0; i <= a.degree; i++) {
+          final v = (a[i] as num).toDouble().abs();
+          if (v > maxA) maxA = v;
+        }
+        var maxB = 0.0;
+        for (var i = 0; i <= b.degree; i++) {
+          final v = (b[i] as num).toDouble().abs();
+          if (v > maxB) maxB = v;
+        }
+        final tol = 1e-12 * (maxA > maxB ? maxA : maxB);
+        final field = type.field;
+        final zero = field.additiveIdentity;
+        final cleanCoeffs = List<T>.generate(rem.degree + 1, (i) {
+          final c = rem[i];
+          return (c as num).toDouble().abs() <= tol ? zero : c;
+        });
+        cleanRem = Polynomial<T>.fromCoefficients(cleanCoeffs, type: type);
+      }
+      if (cleanRem.degree >= b.degree) {
+        throw UnsupportedError(
+          'Polynomial GCD requires exact division or pseudo-division over field/ring.',
+        );
+      }
       a = b;
-      b = remainder;
+      b = cleanRem;
     }
     if (a.degree < 0) {
       return Polynomial<T>.zero(type: type);

@@ -166,6 +166,19 @@ void main() {
       check(gcdCubic[1]).isCloseTo(-5.0, 1e-9);
       check(gcdCubic[0]).isCloseTo(6.0, 1e-9);
 
+      // Inexact division over integer ring throws UnsupportedError in GCD
+      final intA = Polynomial<int>.fromCoefficients([
+        0,
+        1,
+        1,
+      ], type: DataType.int32);
+      final intB = Polynomial<int>.fromCoefficients([
+        0,
+        2,
+      ], type: DataType.int32);
+      check(() => intA.gcd(intB)).throws<UnsupportedError>();
+      check(() => intA.toCompressed().gcd(intB)).throws<UnsupportedError>();
+
       // fromRoots for int and Complex
       final pInt = Polynomial<int>.fromRoots([1, 2]);
       check(pInt.coefficients).deepEquals([2, -3, 1]);
