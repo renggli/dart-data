@@ -136,21 +136,17 @@ final class FormulaInputBar {
     if (mode == CalcMode.rpn) {
       _promptBadge.textContent = 'RPN ▸';
       textarea.placeholder = 'Enter symbols, numbers, or postfix commands (e.g. x 2 ^ 1 - factor)...';
-      _evalBtn.innerHTML = '<span class="calc-btn-text-full">Enter ↵</span><span class="calc-btn-text-short">↵</span>'
-          .toJS;
+      _evalBtn.textContent = '↵';
       _evalBtn.title = 'Push to stack or DUP (Enter)';
-      _approxBtn.innerHTML = '<span class="calc-btn-text-full">≈ Approx</span><span class="calc-btn-text-short">≈</span>'
-          .toJS;
+      _approxBtn.textContent = '≈';
       _approxBtn.title = 'Approximate numerically on stack (Alt+Enter)';
       _approxBtn.classList.remove('hidden');
     } else {
       _promptBadge.textContent = 'in[$nextId] ▸';
       textarea.placeholder = 'Enter expression, equation, or command (e.g. integrate(x * cos(x), x))...';
-      _evalBtn.innerHTML = '<span class="calc-btn-text-full">Eval ↵</span><span class="calc-btn-text-short">↵</span>'
-          .toJS;
+      _evalBtn.textContent = '↵';
       _evalBtn.title = 'Evaluate exact (Enter)';
-      _approxBtn.innerHTML = '<span class="calc-btn-text-full">≈ Approx</span><span class="calc-btn-text-short">≈</span>'
-          .toJS;
+      _approxBtn.textContent = '≈';
       _approxBtn.title = 'Approximate numerically (Alt+Enter)';
       _approxBtn.classList.remove('hidden');
     }
@@ -269,8 +265,7 @@ final class FormulaInputBar {
     _approxBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-btn-secondary calc-eval-approx-btn'
-      ..innerHTML = '<span class="calc-btn-text-full">≈ Approx</span><span class="calc-btn-text-short">≈</span>'
-          .toJS
+      ..textContent = '≈'
       ..title = 'Approximate numerically (Alt+Enter)';
     _approxBtn.addEventListener(
       'click',
@@ -280,8 +275,7 @@ final class FormulaInputBar {
     _evalBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-btn-primary calc-eval-btn'
-      ..innerHTML = '<span class="calc-btn-text-full">Eval ↵</span><span class="calc-btn-text-short">↵</span>'
-          .toJS
+      ..textContent = '↵'
       ..title = 'Evaluate exact (Enter)';
     _evalBtn.addEventListener(
       'click',

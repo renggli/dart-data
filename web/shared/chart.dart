@@ -527,9 +527,15 @@ void drawCurve(
     ctx.setLineDash(lineDash.map((d) => d.toJS).toList().toJS);
   }
 
-  // Clip to inner plot box so curves don't bleed into margins
+  // Clip to inner plot box with stroke padding so top/bottom boundary curves aren't clipped thin
+  final pad = (lineWidth / 2.0 + 1.0).ceilToDouble();
   ctx.beginPath();
-  ctx.rect(vp.leftMargin, vp.topMargin, vp.plotWidth, vp.plotHeight);
+  ctx.rect(
+    vp.leftMargin,
+    vp.topMargin - pad,
+    vp.plotWidth,
+    vp.plotHeight + pad * 2.0,
+  );
   ctx.clip();
 
   final yMinPx = vp.topMargin - 50.0;
@@ -671,8 +677,14 @@ void drawSampledSegments(
         : <JSNumber>[].toJS,
   );
 
+  final pad = (lineWidth / 2.0 + 1.0).ceilToDouble();
   ctx.beginPath();
-  ctx.rect(vp.leftMargin, vp.topMargin, vp.plotWidth, vp.plotHeight);
+  ctx.rect(
+    vp.leftMargin,
+    vp.topMargin - pad,
+    vp.plotWidth,
+    vp.plotHeight + pad * 2.0,
+  );
   ctx.clip();
 
   final cssH = vp.height;
@@ -830,8 +842,14 @@ void drawShadedInterval(
   }
 
   ctx.save();
+  const pad = 2.0;
   ctx.beginPath();
-  ctx.rect(vp.leftMargin, vp.topMargin, vp.plotWidth, vp.plotHeight);
+  ctx.rect(
+    vp.leftMargin,
+    vp.topMargin - pad,
+    vp.plotWidth,
+    vp.plotHeight + pad * 2.0,
+  );
   ctx.clip();
 
   ctx.beginPath();

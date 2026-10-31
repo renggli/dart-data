@@ -213,7 +213,14 @@ final class WebGL2ChartLayer {
       verts[outIdx++] = arcLen;
     }
 
-    _applyScissor(gl, clipLeft, clipTop, clipWidth, clipHeight);
+    final pad = (lineWidth * 0.5 + 1.5).ceilToDouble();
+    _applyScissor(
+      gl,
+      clipLeft,
+      clipTop - pad,
+      clipWidth,
+      clipHeight + pad * 2.0,
+    );
     gl.useProgram(prog);
     gl.bindBuffer(web.WebGLRenderingContext.ARRAY_BUFFER, vbo);
     gl.bufferData(

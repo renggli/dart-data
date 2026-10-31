@@ -61,6 +61,7 @@
           </a>
         </nav>
       </details>
+      <button class="sidebar-toggle-btn" id="sidebar-collapse-btn" title="Close sidebar" aria-label="Close sidebar">◀</button>
     </div>
     <nav class="sidebar-list" id="dist-list">
       <div class="group-heading">Continuous Distributions</div>
@@ -75,6 +76,7 @@
   <main class="main-content">
     <header class="main-header">
       <div class="header-title-container">
+        <button class="sidebar-toggle-btn sidebar-expand-btn" id="sidebar-expand-btn" title="Open sidebar" aria-label="Open sidebar">☰</button>
         <h2 class="page-title" id="dist-title">Beta Distribution</h2>
         <span class="badge badge-continuous" id="dist-type-badge">Continuous</span>
       </div>
@@ -168,11 +170,11 @@
       <div class="card">
         <h3 class="card-title"><span class="card-title-text"><span class="card-icon">🎲</span> Random Sampling</span></h3>
         <div class="sampler-controls">
-          <button class="btn btn-primary" id="btn-sample-1">Draw 1</button>
-          <button class="btn btn-primary" id="btn-sample-10">Draw 10</button>
-          <button class="btn btn-primary" id="btn-sample-100">Draw 100</button>
-          <button class="btn btn-primary" id="btn-sample-1000">Draw 1000</button>
-          <button class="btn btn-secondary" id="btn-sample-clear">Clear</button>
+          <button class="btn btn-primary btn-compact" id="btn-sample-1" title="Draw 1 sample">+1</button>
+          <button class="btn btn-primary btn-compact" id="btn-sample-10" title="Draw 10 samples">+10</button>
+          <button class="btn btn-primary btn-compact" id="btn-sample-100" title="Draw 100 samples">+100</button>
+          <button class="btn btn-primary btn-compact" id="btn-sample-1000" title="Draw 1000 samples">+1000</button>
+          <button class="btn btn-secondary btn-compact" id="btn-sample-clear" title="Clear samples">Clear</button>
         </div>
 
         <div class="attributes-list">
@@ -204,10 +206,12 @@
     <section class="charts-layout">
       <!-- Probability Density Function -->
       <div class="card chart-card">
-        <h3 class="card-title">
-          <span class="card-title-text"><span class="card-icon">📈</span> Probability Density (PDF)</span>
-          <button class="btn btn-secondary btn-compact" id="btn-pdf-reset" style="margin-left:auto;" title="Reset zoom (or double-click chart)">Reset</button>
-        </h3>
+        <div class="chart-card-header">
+          <h3 class="card-title">
+            <span class="card-title-text"><span class="card-icon">📈</span> Probability Density (PDF)</span>
+          </h3>
+          <button class="btn btn-secondary btn-compact" id="btn-pdf-reset" title="Reset zoom (or double-click chart)">Reset</button>
+        </div>
         <div class="canvas-container">
           <canvas id="pdf-canvas" class="chart-canvas"></canvas>
         </div>
@@ -215,10 +219,12 @@
 
       <!-- Cumulative Distribution Function -->
       <div class="card chart-card">
-        <h3 class="card-title">
-          <span class="card-title-text"><span class="card-icon">📉</span> Cumulative Probability (CDF)</span>
-          <button class="btn btn-secondary btn-compact" id="btn-cdf-reset" style="margin-left:auto;" title="Reset zoom (or double-click chart)">Reset</button>
-        </h3>
+        <div class="chart-card-header">
+          <h3 class="card-title">
+            <span class="card-title-text"><span class="card-icon">📉</span> Cumulative Probability (CDF)</span>
+          </h3>
+          <button class="btn btn-secondary btn-compact" id="btn-cdf-reset" title="Reset zoom (or double-click chart)">Reset</button>
+        </div>
         <div class="canvas-container">
           <canvas id="cdf-canvas" class="chart-canvas"></canvas>
         </div>

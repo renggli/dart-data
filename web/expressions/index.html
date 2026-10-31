@@ -61,6 +61,7 @@
           </a>
         </nav>
       </details>
+      <button class="sidebar-toggle-btn" id="sidebar-collapse-btn" title="Close sidebar" aria-label="Close sidebar">◀</button>
     </div>
     <nav class="sidebar-list" id="presets-list">
       <!-- Injected dynamically from presets -->
@@ -71,6 +72,7 @@
   <main class="main-content">
     <header class="main-header">
       <div class="header-title-container">
+        <button class="sidebar-toggle-btn sidebar-expand-btn" id="sidebar-expand-btn" title="Open sidebar" aria-label="Open sidebar">☰</button>
         <h2 class="page-title" id="display-title">Factored Cubic Polynomial</h2>
         <span class="badge badge-symbolic" id="category-badge">Polynomial & Rational Algebra</span>
       </div>
@@ -100,15 +102,15 @@
     </section>
 
     <!-- Central Interactive Visualization Deck -->
-    <section class="card chart-card" style="margin-bottom: 24px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 12px;">
-        <h3 class="card-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;"><span class="card-title-text"><span class="card-icon">📈</span> Symbolic Function & Calculus Plot</span></h3>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 12px; color: var(--text-muted);">Range:</span>
+    <section class="card chart-card">
+      <div class="chart-card-header">
+        <h3 class="card-title"><span class="card-title-text"><span class="card-icon">📈</span> Symbolic Function &amp; Calculus Plot</span></h3>
+        <div class="chart-card-controls">
+          <span class="chart-control-label">Range:</span>
           <input type="number" id="range-min-x" class="custom-number-input" value="-3.0" step="0.5" title="Min X">
-          <span style="color: var(--text-muted); font-size: 12px;">to</span>
+          <span class="chart-control-label">to</span>
           <input type="number" id="range-max-x" class="custom-number-input" value="3.0" step="0.5" title="Max X">
-          <button class="btn btn-secondary" id="btn-zoom-reset" style="padding: 4px 10px; font-size: 12px;">Reset</button>
+          <button class="btn btn-secondary btn-compact" id="btn-zoom-reset">Reset</button>
         </div>
       </div>
 

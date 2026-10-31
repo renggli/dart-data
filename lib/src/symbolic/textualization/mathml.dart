@@ -143,7 +143,7 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
         '</mtable></mrow>',
   Integral(:final integrand, :final variable, :final lower, :final upper) =>
     lower != null && upper != null
-        ? '<mrow><msubsup><mo>&#x222B;</mo>${_toMathMl(lower, decimalPlaces)}${_toMathMl(upper, decimalPlaces)}</msubsup>${_toMathMl(integrand, decimalPlaces)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>'
+        ? '<mrow><munderover><mo>&#x222B;</mo>${_toMathMl(lower, decimalPlaces)}${_toMathMl(upper, decimalPlaces)}</munderover>${_toMathMl(integrand, decimalPlaces)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>'
         : '<mrow><mo>&#x222B;</mo>${_toMathMl(integrand, decimalPlaces)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>',
   Derivative(:final expr, :final variable, :final order, :final point) => () {
     final vXml = _escapeXml(variable);

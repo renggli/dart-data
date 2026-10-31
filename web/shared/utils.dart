@@ -260,3 +260,37 @@ String formatProperty(num Function() getter, {int precision = 4}) {
     return 'Undefined';
   }
 }
+
+/// Initializes sidebar collapse/expand toggle controls with localStorage persistence.
+void setupSidebarToggle({void Function()? onToggled}) {
+  final collapseBtn = web.document.querySelector('#sidebar-collapse-btn');
+  final expandBtn = web.document.querySelector('#sidebar-expand-btn');
+
+  void setCollapsed(bool collapsed) {
+    if (collapsed) {
+      web.document.body?.classList.add('sidebar-collapsed');
+      web.window.localStorage.setItem('data_sidebar_collapsed', 'true');
+    } else {
+      web.document.body?.classList.remove('sidebar-collapsed');
+      web.window.localStorage.setItem('data_sidebar_collapsed', 'false');
+    }
+    onToggled?.call();
+    Future<void>.delayed(const Duration(milliseconds: 280), () {
+      onToggled?.call();
+    });
+  }
+
+  final stored = web.window.localStorage.getItem('data_sidebar_collapsed');
+  if (stored == 'true') {
+    web.document.body?.classList.add('sidebar-collapsed');
+  }
+
+  collapseBtn?.addEventListener(
+    'click',
+    ((web.Event _) => setCollapsed(true)).toJS,
+  );
+  expandBtn?.addEventListener(
+    'click',
+    ((web.Event _) => setCollapsed(false)).toJS,
+  );
+}

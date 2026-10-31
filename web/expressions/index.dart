@@ -197,6 +197,7 @@ void main() {
   initDom();
   initGlobalCopyHandler();
   buildSidebar();
+  setupSidebarToggle(onToggled: drawCharts);
   attachEventListeners();
   loadFromUrlHash();
 }

@@ -394,6 +394,7 @@ body.calc-body {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .calc-math-row {
@@ -401,6 +402,7 @@ body.calc-body {
   align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
+  overflow-y: hidden;
 }
 
 .calc-badge {
@@ -426,6 +428,8 @@ body.calc-body {
   font-size: 1.15rem;
   line-height: 1.45;
   overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
 }
 
 .calc-approx-subtitle {
@@ -824,6 +828,19 @@ body.calc-body {
 
 .calc-btn-primary:hover {
   background: var(--accent-hover);
+}
+
+.calc-eval-btn,
+.calc-eval-approx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 34px;
+  padding: 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .calc-btn-secondary {
@@ -1470,20 +1487,12 @@ body.calc-body {
     padding: 0.25rem 0.35rem;
   }
 
-  .calc-btn-text-full {
-    display: none;
-  }
-
-  .calc-btn-text-short {
-    display: inline;
-    font-weight: 700;
-  }
-
   .calc-eval-btn,
   .calc-eval-approx-btn {
-    padding: 0.35rem 0.55rem;
+    padding: 0 0.35rem;
     min-width: 32px;
-    font-size: 0.85rem;
+    height: 32px;
+    font-size: 0.95rem;
   }
 
   .calc-icon-btn {
@@ -1577,9 +1586,10 @@ body.calc-body {
 
   .calc-eval-btn,
   .calc-eval-approx-btn {
-    padding: 0.25rem 0.4rem;
+    padding: 0 0.25rem;
     min-width: 28px;
-    font-size: 0.78rem;
+    height: 28px;
+    font-size: 0.85rem;
   }
 
   .calc-icon-btn {

@@ -147,8 +147,9 @@ void main() {
   // Initialize universal copy handler
   initGlobalCopyHandler();
 
-  // Render Sidebar
+  // Render Sidebar & Setup Collapse Toggle
   buildSidebar();
+  setupSidebarToggle(onToggled: drawCharts);
 
   // Random Sampler Button bindings
   btnSample1.onClick.listen((_) => drawSamples(1));
@@ -811,10 +812,18 @@ void renderCanvas(
   // ==================== DRAW GRID & LABELS ====================
   drawGrid(ctx, vp, drawZeroAxes: false);
 
-  // Clip inner plotting region so dragged/zoomed curves stay inside the axes box
+  // Clip inner plotting region so dragged/zoomed curves stay inside the axes box,
+  // with padding for stroke thickness so boundary-adjacent curves (e.g. CDF at 0 and 1,
+  // or PDF at 0) don't get their strokes clipped in half.
+  const strokePad = 2.0;
   ctx.save();
   ctx.beginPath();
-  ctx.rect(leftMargin, topMargin, plotWidth, plotHeight);
+  ctx.rect(
+    leftMargin,
+    topMargin - strokePad,
+    plotWidth,
+    plotHeight + strokePad * 2.0,
+  );
   ctx.clip();
 
   // ==================== OVERLAY EMPIRICAL HISTOGRAM ====================

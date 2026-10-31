@@ -219,29 +219,7 @@ final class ScrollWorksheetView {
       ((web.Event _) => onInsertText('r[${cell.id}]')).toJS,
     );
 
-    final renderedValue = ValueRenderer.renderValue(
-      cell.value,
-      digits: digits,
-      onPlotResample: (minX, maxX) {
-        if (cell.value
-            case PlotValue(
-              :final expressions,
-              :final variable,
-              :final isParametric,
-              :final isOde,
-              :final is3d,
-            )
-            when !isParametric && !isOde && !is3d) {
-          final exprArg = expressions.length == 1
-              ? expressions.first.toString()
-              : '[${expressions.map((e) => e.toString()).join(', ')}]';
-          onUpdateCell(
-            cell.id,
-            'plot($exprArg, $variable, ${minX.toStringAsFixed(3)}, ${maxX.toStringAsFixed(3)})',
-          );
-        }
-      },
-    );
+    final renderedValue = ValueRenderer.renderValue(cell.value, digits: digits);
 
     outRow
       ..append(rBadge)

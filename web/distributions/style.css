@@ -2,23 +2,26 @@
 .sampler-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 6px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+
+.sampler-controls .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 6px;
+  font-size: 11px;
 }
 
 @media (max-width: 767px) {
   .sampler-controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .sampler-controls .btn {
-    width: 100%;
-  }
-
-  #btn-sample-clear {
-    grid-column: span 2;
+    flex: 1 1 auto;
   }
 }

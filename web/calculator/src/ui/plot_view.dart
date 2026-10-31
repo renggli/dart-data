@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
@@ -14,10 +15,7 @@ import 'persistence.dart';
 /// results.
 final class PlotView {
   /// Builds a self-contained interactive plot DOM element for [initialPlot].
-  static web.HTMLElement create(
-    PlotValue initialPlot, {
-    void Function(double minX, double maxX)? onResample,
-  }) {
+  static web.HTMLElement create(PlotValue initialPlot) {
     if (initialPlot.is3d) {
       return _create3dSurfaceCard(initialPlot);
     }
@@ -73,12 +71,6 @@ final class PlotView {
           ..className = 'calc-chip-btn'
           ..textContent = 'Reset View';
 
-    final resampleBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn'
-          ..textContent = 'Re-sample';
-
     final pngBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-chip-btn'
@@ -86,11 +78,8 @@ final class PlotView {
 
     actions
       ..append(readout)
-      ..append(resetBtn);
-    if (!plot.isParametric && !plot.isOde && onResample != null) {
-      actions.append(resampleBtn);
-    }
-    actions.append(pngBtn);
+      ..append(resetBtn)
+      ..append(pngBtn);
     header
       ..append(legend)
       ..append(actions);
@@ -237,6 +226,33 @@ final class PlotView {
       container.append(slidersWrap);
     }
 
+    Timer? resampleTimer;
+    void scheduleAutoResample() {
+      if (plot.isParametric || plot.isOde || plot.expressions.isEmpty) return;
+      resampleTimer?.cancel();
+      resampleTimer = Timer(const Duration(milliseconds: 120), () {
+        if (!canvas.isConnected) return;
+        final curSpan = controller.maxX - controller.minX;
+        final origSpan = plot.maxX - plot.minX;
+        final needsResample =
+            controller.minX < plot.minX ||
+            controller.maxX > plot.maxX ||
+            curSpan < origSpan * 0.6;
+        if (needsResample) {
+          plot = buildPlotValue(
+            plot.expressions,
+            plot.variable,
+            controller.minX,
+            controller.maxX,
+            parameterValues: paramValues,
+            maxPoints: 300,
+            angleMode: plot.isDegrees ? AngleMode.deg : AngleMode.rad,
+          );
+          draw();
+        }
+      });
+    }
+
     controller = InteractiveChartController(
       canvas,
       minX: plot.minX,
@@ -248,21 +264,17 @@ final class PlotView {
       topMargin: 14.0,
       bottomMargin: 26.0,
       onUpdate: draw,
+      onViewportChanged: (minX, maxX, minY, maxY) => scheduleAutoResample(),
+      onReset: () {
+        plot = initialPlot;
+        draw();
+      },
     );
 
     resetBtn.addEventListener(
       'click',
       ((web.Event _) {
         controller.reset();
-      }).toJS,
-    );
-
-    resampleBtn.addEventListener(
-      'click',
-      ((web.Event _) {
-        if (onResample != null) {
-          onResample(controller.minX, controller.maxX);
-        }
       }).toJS,
     );
 

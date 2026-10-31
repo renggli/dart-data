@@ -298,7 +298,7 @@ void main() {
           upper: IntegerNumber.one,
         ).toMathMl(),
       ).equals(
-        '<math><mrow><msubsup><mo>&#x222B;</mo><mn>0</mn><mn>1</mn></msubsup><mi>t</mi><mspace width="thinmathspace"/><mi>d</mi><mi>t</mi></mrow></math>',
+        '<math><mrow><munderover><mo>&#x222B;</mo><mn>0</mn><mn>1</mn></munderover><mi>t</mi><mspace width="thinmathspace"/><mi>d</mi><mi>t</mi></mrow></math>',
       );
 
       check(Expr.parse('2 * x').toMathMl())

@@ -9,17 +9,13 @@ import 'plot_view.dart';
 /// Scroll worksheet cells or RPN stack rows.
 abstract final class ValueRenderer {
   /// Builds the primary rendered DOM node for [value].
-  static web.HTMLElement renderValue(
-    CalcValue value, {
-    int digits = 10,
-    void Function(double minX, double maxX)? onPlotResample,
-  }) {
+  static web.HTMLElement renderValue(CalcValue value, {int digits = 10}) {
     final wrap = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-value-render calc-value-${value.kind}';
 
     switch (value) {
       case PlotValue():
-        wrap.append(PlotView.create(value, onResample: onPlotResample));
+        wrap.append(PlotView.create(value));
         return wrap;
 
       case ErrorValue(
