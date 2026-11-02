@@ -41,12 +41,13 @@
 }
 
 /* MathML Styling Enhancements */
-math {
-  math-style: normal;
-}
-
 math msqrt > mrow {
   padding-top: 0.14em;
+}
+
+math munder,
+math munderover {
+  math-style: normal;
 }
 
 body {
@@ -594,9 +595,9 @@ body.sidebar-collapsed .sidebar-expand-btn {
 .attr-item {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   padding: 7px 12px;
-  min-height: 36px;
+  min-height: 38px;
   background-color: rgba(15, 23, 42, 0.2);
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -616,21 +617,22 @@ body.sidebar-collapsed .sidebar-expand-btn {
   color: var(--text-secondary);
   flex-shrink: 0;
   white-space: nowrap;
-  line-height: 20px;
-  padding-top: 1px;
+  line-height: normal;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .attr-label math {
-  display: inline-block;
   vertical-align: middle;
   font-size: 14px;
-  line-height: 1;
+  line-height: normal;
   color: inherit;
 }
 
 .attr-value-container {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   min-width: 0;
   flex: 1;
@@ -649,7 +651,7 @@ body.sidebar-collapsed .sidebar-expand-btn {
   max-width: 100%;
   text-align: right;
   flex: 1;
-  line-height: 20px;
+  line-height: normal;
   user-select: text;
   cursor: pointer;
   transition: color 0.15s ease;
@@ -664,19 +666,20 @@ body.sidebar-collapsed .sidebar-expand-btn {
 }
 
 .attr-value math {
-  display: inline-block;
   vertical-align: middle;
   font-size: 18px;
-  line-height: 1.4;
+  line-height: normal;
   color: inherit;
   max-width: 100%;
 }
 
 /* Scrollable attribute variation for long content/bytecode */
 .attr-item.attr-scroll,
-.attr-item.attr-block {
+.attr-item.attr-block,
+.attr-item.attr-wrap {
   flex-direction: column;
   align-items: stretch;
+  justify-content: flex-start;
   gap: 6px;
 }
 
@@ -697,6 +700,23 @@ body.sidebar-collapsed .sidebar-expand-btn {
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 4px;
   cursor: text;
+}
+
+.attr-item.attr-wrap .attr-value {
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+  word-break: break-word;
+  text-overflow: clip;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
 }
 
 .attr-item.attr-scroll .attr-value:hover,
@@ -927,8 +947,7 @@ body.sidebar-collapsed .sidebar-expand-btn {
 
 .formula-input-bar {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
   background-color: rgba(15, 23, 42, 0.7);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
@@ -942,16 +961,31 @@ body.sidebar-collapsed .sidebar-expand-btn {
   box-shadow: 0 0 0 2px var(--accent-blue-glow);
 }
 
+.formula-input-bar.invalid {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25);
+}
+
+.formula-main-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
 .formula-prefix {
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
   color: var(--accent-blue);
   user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .formula-input {
   flex: 1;
+  min-width: 140px;
   background: transparent;
   border: none;
   outline: none;
@@ -970,6 +1004,7 @@ body.sidebar-collapsed .sidebar-expand-btn {
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-valid {
@@ -985,17 +1020,17 @@ body.sidebar-collapsed .sidebar-expand-btn {
 }
 
 .parse-error-message {
-  position: absolute;
-  bottom: -22px;
-  left: 4px;
-  right: 4px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: 6px;
   color: var(--accent-red);
   font-size: 12px;
   font-family: var(--font-mono);
-  padding: 2px 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.45;
+  white-space: normal;
+  word-break: break-word;
   display: none;
 }
 

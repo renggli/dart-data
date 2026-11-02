@@ -349,7 +349,8 @@ void main() {
           check(limNode).isA<Limit>();
           check(Expr.parse(limNode.toString())).equals(limNode);
           check(limNode.toLatex()).contains(r'\lim_{x \to \infty}');
-          check(limNode.toMathMl(root: false)).contains('<munder><mo>lim</mo>');
+          check(limNode.toMathMl(root: false))
+              .contains('<munder><mo movablelimits="false">lim</mo>');
 
           final limAbove = Expr.parse('limit(f(x), x, 0, 1)');
           check(limAbove).equals(
@@ -363,7 +364,7 @@ void main() {
           check(Expr.parse(limAbove.toString())).equals(limAbove);
           check(limAbove.toLatex()).equals(r'\lim_{x \to 0^+} f(x)');
           check(limAbove.toMathMl(root: false)).equals(
-            '<mrow><munder><mo>lim</mo><mrow><mi>x</mi><mo>&#x2192;</mo><msup><mn>0</mn><mo>+</mo></msup></mrow></munder><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mrow>',
+            '<mrow><munder><mo movablelimits="false">lim</mo><mrow><mi>x</mi><mo>&#x2192;</mo><msup><mn>0</mn><mo>+</mo></msup></mrow></munder><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mrow>',
           );
 
           final limBelow = Expr.parse('limit(f(x), x, 0, -1)');

@@ -17,11 +17,14 @@ import 'presets.dart';
 // Current Application State
 ExpressionPreset? activePreset;
 String currentFormula = '(x - 1) * (x - 2) * (x + 2)';
-VariableDomain currentDomain = VariableDomain.unknown;
+final Map<String, VariableDomain> currentVariableDomains = {
+  'x': VariableDomain.unknown,
+};
 
-Assumptions get currentAssumptions => currentDomain == VariableDomain.unknown
+Assumptions get currentAssumptions =>
+    currentVariableDomains.values.every((d) => d == VariableDomain.unknown)
     ? Assumptions.none
-    : Assumptions(defaultDomain: currentDomain);
+    : Assumptions(domains: Map.of(currentVariableDomains));
 
 Expr? parsedExpr;
 Expr? cachedD1;
@@ -75,8 +78,10 @@ late web.HTMLElement displayTitle;
 late web.HTMLElement categoryBadge;
 late web.HTMLElement displayDesc;
 
+late web.HTMLElement formulaInputBar;
+late web.HTMLElement formulaPrefix;
 late web.HTMLInputElement exprInput;
-late web.HTMLSelectElement selectDomain;
+late web.HTMLElement domainSelectorsContainer;
 late web.HTMLElement statusBadge;
 late web.HTMLElement parseErrorMessage;
 
@@ -210,9 +215,14 @@ void initDom() {
       web.document.querySelector('#category-badge') as web.HTMLElement;
   displayDesc = web.document.querySelector('#display-desc') as web.HTMLElement;
 
+  formulaInputBar =
+      web.document.querySelector('#formula-input-bar') as web.HTMLElement;
+  formulaPrefix =
+      web.document.querySelector('#formula-prefix') as web.HTMLElement;
   exprInput = web.document.querySelector('#expr-input') as web.HTMLInputElement;
-  selectDomain =
-      web.document.querySelector('#select-domain') as web.HTMLSelectElement;
+  domainSelectorsContainer = web.document.querySelector(
+    '#domain-selectors-container',
+  ) as web.HTMLElement;
   statusBadge = web.document.querySelector('#status-badge') as web.HTMLElement;
   parseErrorMessage =
       web.document.querySelector('#parse-error-message') as web.HTMLElement;
@@ -455,8 +465,16 @@ void selectPreset(ExpressionPreset preset) {
   currentFormula = preset.formula;
   exprInput.value = preset.formula;
 
-  currentDomain = preset.defaultDomain;
-  selectDomain.value = _domainToString(currentDomain);
+  final expr = Expr.tryParse(preset.formula);
+  final vars = expr != null && expr.freeVariables.isNotEmpty
+      ? (expr.freeVariables.toList()..sort())
+      : ['x'];
+  currentVariableDomains.clear();
+  for (final v in vars) {
+    currentVariableDomains[v] = preset.defaultDomain;
+  }
+  formulaPrefix.textContent = 'f(${vars.join(', ')}) =';
+  updateDomainSelectors(vars);
 
   displayTitle.textContent = preset.name;
   categoryBadge.textContent = preset.category;
@@ -538,12 +556,6 @@ void attachEventListeners() {
         'Interactive symbolic algebra and calculus exploration.';
     highlightActiveSidebarItem(null);
     chartController.hasUserPannedOrZoomed = false;
-    updateAll();
-    updateUrlHash();
-  });
-
-  selectDomain.onChange.listen((_) {
-    currentDomain = _parseDomain(selectDomain.value);
     updateAll();
     updateUrlHash();
   });
@@ -747,6 +759,86 @@ void _setDirectionalLimits(web.HTMLElement element, Expr? left, Expr? right) {
   }
 }
 
+void updateDomainSelectors(List<String> vars) {
+  final existingGroups = domainSelectorsContainer.querySelectorAll(
+    '.domain-selector-group',
+  );
+  final existingVars = <String>[];
+  for (var i = 0; i < existingGroups.length; i++) {
+    final el = existingGroups.item(i) as web.HTMLElement;
+    final v = el.getAttribute('data-var');
+    if (v != null) existingVars.add(v);
+  }
+
+  var isSame = existingVars.length == vars.length;
+  if (isSame) {
+    for (var i = 0; i < vars.length; i++) {
+      if (existingVars[i] != vars[i]) {
+        isSame = false;
+        break;
+      }
+    }
+  }
+
+  if (!isSame) {
+    domainSelectorsContainer.textContent = '';
+    for (final v in vars) {
+      final domain = currentVariableDomains[v] ?? VariableDomain.unknown;
+      currentVariableDomains[v] = domain;
+
+      final group = web.document.createElement('div') as web.HTMLDivElement
+        ..className = 'domain-selector-group'
+        ..setAttribute('data-var', v)
+        ..title = 'Variable domain assumption for $v';
+
+      final prefix = web.document.createElement('span') as web.HTMLSpanElement
+        ..className = 'domain-prefix'
+        ..innerHTML = '<math><mi>$v</mi><mo>∈</mo></math>'.toJS;
+
+      final select =
+          web.document.createElement('select') as web.HTMLSelectElement
+            ..className = 'custom-select domain-select'
+            ..setAttribute('data-var', v)
+            ..setAttribute('aria-label', 'Domain assumption for $v');
+
+      for (final option in const [
+        (value: 'unknown', label: 'Unknown'),
+        (value: 'complex', label: 'ℂ (Complex)'),
+        (value: 'real', label: 'ℝ (Real)'),
+        (value: 'positive', label: 'ℝ⁺ (Positive)'),
+        (value: 'integer', label: 'ℤ (Integer)'),
+      ]) {
+        final opt =
+            web.document.createElement('option') as web.HTMLOptionElement
+              ..value = option.value
+              ..textContent = option.label;
+        select.append(opt);
+      }
+
+      select.value = _domainToString(domain);
+      select.onChange.listen((_) {
+        currentVariableDomains[v] = _parseDomain(select.value);
+        updateAll();
+        updateUrlHash();
+      });
+
+      group.append(prefix);
+      group.append(select);
+      domainSelectorsContainer.append(group);
+    }
+  } else {
+    for (final v in vars) {
+      final select = domainSelectorsContainer.querySelector(
+        'select[data-var="$v"]',
+      ) as web.HTMLSelectElement?;
+      if (select != null) {
+        final domain = currentVariableDomains[v] ?? VariableDomain.unknown;
+        select.value = _domainToString(domain);
+      }
+    }
+  }
+}
+
 void updateAll() {
   Expr? expr;
   try {
@@ -756,6 +848,7 @@ void updateAll() {
   }
 
   if (expr == null) {
+    formulaInputBar.classList.add('invalid');
     statusBadge.className = 'formula-status-badge status-invalid';
     statusBadge.textContent = '✗ Invalid Syntax';
     parseErrorMessage.style.display = 'block';
@@ -788,10 +881,17 @@ void updateAll() {
     return;
   }
 
+  formulaInputBar.classList.remove('invalid');
   statusBadge.className = 'formula-status-badge status-valid';
   statusBadge.textContent = '✓ Valid';
   parseErrorMessage.style.display = 'none';
   parsedExpr = expr;
+
+  final vars = expr.freeVariables.toList()..sort();
+  final effectiveVars = vars.isNotEmpty ? vars : ['x'];
+  formulaPrefix.textContent = 'f(${effectiveVars.join(', ')}) =';
+  updateDomainSelectors(effectiveVars);
+
   final assumptions = currentAssumptions;
 
   // Card 1: Outputs
@@ -2163,8 +2263,9 @@ void drawCharts() {
 void updateUrlHash() {
   final queryParams = <String>[
     'expr=${Uri.encodeComponent(currentFormula)}',
-    if (currentDomain != VariableDomain.unknown)
-      'domain=${_domainToString(currentDomain)}',
+    for (final entry in currentVariableDomains.entries)
+      if (entry.value != VariableDomain.unknown)
+        'domain_${entry.key}=${_domainToString(entry.value)}',
     'minx=$minX',
     'maxx=$maxX',
     'x0=${Uri.encodeComponent(pointXStr)}',
@@ -2187,27 +2288,31 @@ void loadFromUrlHash() {
       if (kv.length == 2) {
         final key = kv[0];
         final val = Uri.decodeComponent(kv[1]);
-        switch (key) {
-          case 'expr':
-            currentFormula = val;
-            if (web.document.activeElement != exprInput) {
-              exprInput.value = val;
-            }
-          case 'domain':
-            currentDomain = _parseDomain(val);
-            selectDomain.value = _domainToString(currentDomain);
-          case 'minx':
-            final parsed = double.tryParse(val);
-            if (parsed != null) minX = parsed;
-          case 'maxx':
-            final parsed = double.tryParse(val);
-            if (parsed != null) maxX = parsed;
-          case 'x0':
-            pointXStr = val;
-          case 'a':
-            intAStr = val;
-          case 'b':
-            intBStr = val;
+        if (key.startsWith('domain_')) {
+          final v = key.substring('domain_'.length);
+          currentVariableDomains[v] = _parseDomain(val);
+        } else {
+          switch (key) {
+            case 'expr':
+              currentFormula = val;
+              if (web.document.activeElement != exprInput) {
+                exprInput.value = val;
+              }
+            case 'domain':
+              currentVariableDomains['x'] = _parseDomain(val);
+            case 'minx':
+              final parsed = double.tryParse(val);
+              if (parsed != null) minX = parsed;
+            case 'maxx':
+              final parsed = double.tryParse(val);
+              if (parsed != null) maxX = parsed;
+            case 'x0':
+              pointXStr = val;
+            case 'a':
+              intAStr = val;
+            case 'b':
+              intBStr = val;
+          }
         }
       }
     }

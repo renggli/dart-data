@@ -143,7 +143,7 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
         '</mtable></mrow>',
   Integral(:final integrand, :final variable, :final lower, :final upper) =>
     lower != null && upper != null
-        ? '<mrow><munderover><mo>&#x222B;</mo>${_toMathMl(lower, decimalPlaces)}${_toMathMl(upper, decimalPlaces)}</munderover>${_toMathMl(integrand, decimalPlaces)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>'
+        ? '<mrow><msubsup><mo>&#x222B;</mo>${_toMathMl(lower, decimalPlaces)}${_toMathMl(upper, decimalPlaces)}</msubsup>${_toMathMl(integrand, decimalPlaces)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>'
         : '<mrow><mo>&#x222B;</mo>${_toMathMl(integrand, decimalPlaces)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>',
   Derivative(:final expr, :final variable, :final order, :final point) => () {
     final vXml = _escapeXml(variable);
@@ -165,12 +165,12 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
       LimitDirection.fromBelow =>
         '<msup>${_toMathMl(point, decimalPlaces)}<mo>&minus;</mo></msup>',
     };
-    return '<mrow><munder><mo>lim</mo><mrow><mi>$vXml</mi><mo>&#x2192;</mo>$ptMathMl</mrow></munder>${_formatMulRight(expr, decimalPlaces)}</mrow>';
+    return '<mrow><munder><mo movablelimits="false">lim</mo><mrow><mi>$vXml</mi><mo>&#x2192;</mo>$ptMathMl</mrow></munder>${_formatMulRight(expr, decimalPlaces)}</mrow>';
   }(),
   Sum(:final expr, :final variable, :final lower, :final upper) =>
-    '<mrow><munderover><mo>&#x2211;</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
+    '<mrow><munderover><mo movablelimits="false">&#x2211;</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
   Product(:final expr, :final variable, :final lower, :final upper) =>
-    '<mrow><munderover><mo>&#x220F;</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
+    '<mrow><munderover><mo movablelimits="false">&#x220F;</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
 };
 
 String _formatComplexMathMl(ComplexNumber c, int decimalPlaces) {

@@ -14,6 +14,39 @@
   font-size: 11px;
 }
 
+.sampler-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.sampler-card .attributes-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.sampler-card .samples-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 80px;
+}
+
+.sampler-card .samples-box .attr-value {
+  flex: 1;
+  min-height: 54px;
+  max-height: 150px;
+  display: block;
+  cursor: pointer;
+  user-select: text;
+}
+
+.sampler-card .samples-box .attr-value:hover {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 @media (max-width: 767px) {
   .sampler-controls {
     display: flex;

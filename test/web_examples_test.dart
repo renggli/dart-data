@@ -97,6 +97,15 @@ void main() {
       }
     });
 
+    test('supports multivariable assumptions and domains', () {
+      final expr = Expr.parse('sqrt(x^2) + sqrt(y^2)');
+      const assumptions = Assumptions(
+        domains: {'x': VariableDomain.positive, 'y': VariableDomain.real},
+      );
+      final simplified = expr.simplify(assumptions: assumptions);
+      check(simplified.format()).equals('x + abs(y)');
+    });
+
     test(
       'all presets support symbolic differentiation, limits, and compilation',
       () {

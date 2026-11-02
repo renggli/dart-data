@@ -243,7 +243,7 @@ void main() {
       check(Derivative(x, 'x', order: 2).toMathMl(root: false))
           .contains('<msup><mi>d</mi><mn>2</mn></msup>');
       check(Limit(x, 'x', IntegerNumber.zero).toMathMl(root: false))
-          .contains('<munder><mo>lim</mo>');
+          .contains('<munder><mo movablelimits="false">lim</mo>');
       check(
         Limit(
           x,
@@ -261,10 +261,10 @@ void main() {
         ).toMathMl(root: false),
       ).contains('<mo>&minus;</mo>');
       check(Expr.parse('sum(2 * abs(x), x, 1, n)').toMathMl()).equals(
-        '<math><mrow><munderover><mo>&#x2211;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
+        '<math><mrow><munderover><mo movablelimits="false">&#x2211;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
       );
       check(Expr.parse('product(2 * abs(x), x, 1, n)').toMathMl()).equals(
-        '<math><mrow><munderover><mo>&#x220F;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
+        '<math><mrow><munderover><mo movablelimits="false">&#x220F;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
       );
 
       check(Expr.parse('piecewise(x < 0, -x, x)').toMathMl(root: false))
@@ -298,7 +298,7 @@ void main() {
           upper: IntegerNumber.one,
         ).toMathMl(),
       ).equals(
-        '<math><mrow><munderover><mo>&#x222B;</mo><mn>0</mn><mn>1</mn></munderover><mi>t</mi><mspace width="thinmathspace"/><mi>d</mi><mi>t</mi></mrow></math>',
+        '<math><mrow><msubsup><mo>&#x222B;</mo><mn>0</mn><mn>1</mn></msubsup><mi>t</mi><mspace width="thinmathspace"/><mi>d</mi><mi>t</mi></mrow></math>',
       );
 
       check(Expr.parse('2 * x').toMathMl())

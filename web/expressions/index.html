@@ -83,22 +83,26 @@
 
     <!-- Formula Editor Bar & Domain Assumptions -->
     <section class="editor-container">
-      <div class="formula-input-bar">
-        <span class="formula-prefix">f(x) =</span>
-        <input type="text" id="expr-input" class="formula-input" value="(x - 1) * (x - 2) * (x + 2)" placeholder="Enter symbolic formula, e.g. (3*x + 5) / (x^3 - x)" aria-label="Mathematical formula">
-        <div class="domain-selector-group" title="Variable domain assumption for x">
-          <span class="domain-prefix">x ∈</span>
-          <select id="select-domain" class="custom-select domain-select" aria-label="Domain assumption for x">
-            <option value="unknown" selected>Unknown</option>
-            <option value="complex">ℂ (Complex)</option>
-            <option value="real">ℝ (Real)</option>
-            <option value="positive">ℝ⁺ (Positive)</option>
-            <option value="integer">ℤ (Integer)</option>
-          </select>
+      <div class="formula-input-bar" id="formula-input-bar">
+        <div class="formula-main-row">
+          <span class="formula-prefix" id="formula-prefix">f(x) =</span>
+          <input type="text" id="expr-input" class="formula-input" value="(x - 1) * (x - 2) * (x + 2)" placeholder="Enter symbolic formula, e.g. (3*x + 5) / (x^3 - x)" aria-label="Mathematical formula">
+          <div id="domain-selectors-container" class="domain-selectors-container">
+            <div class="domain-selector-group" data-var="x" title="Variable domain assumption for x">
+              <span class="domain-prefix"><math><mi>x</mi><mo>∈</mo></math></span>
+              <select id="select-domain" class="custom-select domain-select" data-var="x" aria-label="Domain assumption for x">
+                <option value="unknown" selected>Unknown</option>
+                <option value="complex">ℂ (Complex)</option>
+                <option value="real">ℝ (Real)</option>
+                <option value="positive">ℝ⁺ (Positive)</option>
+                <option value="integer">ℤ (Integer)</option>
+              </select>
+            </div>
+          </div>
+          <span id="status-badge" class="formula-status-badge status-valid">✓ Valid</span>
         </div>
-        <span id="status-badge" class="formula-status-badge status-valid">✓ Valid</span>
+        <div id="parse-error-message" class="parse-error-message"></div>
       </div>
-      <div id="parse-error-message" class="parse-error-message"></div>
     </section>
 
     <!-- Central Interactive Visualization Deck -->
@@ -258,20 +262,20 @@
         <h3 class="card-title">
           <span class="card-title-text"><span class="card-icon">📐</span> Differentiation</span>
           <span class="card-actions">
-            <label class="layer-toggle active" id="toggle-lbl-dfx" title="Toggle f'(x) derivative on plot">
+            <label class="layer-toggle active" id="toggle-lbl-dfx" title="Toggle df/dx derivative on plot">
               <input type="checkbox" id="toggle-dfx" class="layer-checkbox" checked>
               <span class="layer-dot" style="background-color: var(--accent-red);"></span>
-              <span>f'(x)</span>
+              <span>df/dx</span>
             </label>
-            <label class="layer-toggle" id="toggle-lbl-d2fx" title="Toggle f''(x) curvature on plot">
+            <label class="layer-toggle" id="toggle-lbl-d2fx" title="Toggle d²f/dx² curvature on plot">
               <input type="checkbox" id="toggle-d2fx" class="layer-checkbox">
               <span class="layer-dot" style="background-color: var(--accent-purple);"></span>
-              <span>f''(x)</span>
+              <span>d²f/dx²</span>
             </label>
-            <label class="layer-toggle" id="toggle-lbl-d3fx" title="Toggle f'''(x) 3rd derivative on plot">
+            <label class="layer-toggle" id="toggle-lbl-d3fx" title="Toggle d³f/dx³ 3rd derivative on plot">
               <input type="checkbox" id="toggle-d3fx" class="layer-checkbox">
               <span class="layer-dot" style="background-color: var(--accent-pink);"></span>
-              <span>f'''(x)</span>
+              <span>d³f/dx³</span>
             </label>
             <label class="layer-toggle" id="toggle-lbl-tangent" title="Toggle tangent line at x₀ on plot">
               <input type="checkbox" id="toggle-tangent" class="layer-checkbox">
@@ -282,23 +286,23 @@
         </h3>
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label">f'(x)</span>
+            <span class="attr-label"><math><mrow><mfrac><mrow><mi>d</mi><mi>f</mi></mrow><mrow><mi>d</mi><mi>x</mi></mrow></mfrac></mrow></math></span>
             <span class="attr-value" id="val-sym-df">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">f''(x)</span>
+            <span class="attr-label"><math><mrow><mfrac><mrow><msup><mi>d</mi><mn>2</mn></msup><mi>f</mi></mrow><mrow><mi>d</mi><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac></mrow></math></span>
             <span class="attr-value" id="val-sym-d2f">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">f'''(x)</span>
+            <span class="attr-label"><math><mrow><mfrac><mrow><msup><mi>d</mi><mn>3</mn></msup><mi>f</mi></mrow><mrow><mi>d</mi><msup><mi>x</mi><mn>3</mn></msup></mrow></mfrac></mrow></math></span>
             <span class="attr-value" id="val-sym-d3f">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">f'(x<sub>0</sub>)</span>
+            <span class="attr-label"><math><mrow><msub><mrow><mfrac><mrow><mi>d</mi><mi>f</mi></mrow><mrow><mi>d</mi><mi>x</mi></mrow></mfrac><mo>|</mo></mrow><msub><mi>x</mi><mn>0</mn></msub></msub></mrow></math></span>
             <span class="attr-value" id="val-sym-df-at-x0">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Tangent at x<sub>0</sub></span>
+            <span class="attr-label">Tangent at <math><msub><mi>x</mi><mn>0</mn></msub></math></span>
             <span class="attr-value" id="val-tangent-eq">-</span>
           </div>
         </div>
@@ -331,19 +335,19 @@
 
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label"><math><mo>∫</mo></math> f(x) dx</span>
+            <span class="attr-label"><math><mrow><mo>&#x222B;</mo></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><mspace width="thinmathspace"/><mi>d</mi><mi>x</mi></math></span>
             <span class="attr-value" id="val-sym-antideriv">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label"><math><msubsup><mo>∫</mo><mi>a</mi><mi>b</mi></msubsup></math> f(x) dx</span>
+            <span class="attr-label"><math><mrow><msubsup><mo>&#x222B;</mo><mi>a</mi><mi>b</mi></msubsup></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><mspace width="thinmathspace"/><mi>d</mi><mi>x</mi></math></span>
             <span class="attr-value" id="val-int-definite">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label"><math><msubsup><mo>∫</mo><mn>0</mn><mi>∞</mi></msubsup></math> f(x) dx</span>
+            <span class="attr-label"><math><mrow><msubsup><mo>&#x222B;</mo><mn>0</mn><mi>∞</mi></msubsup></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><mspace width="thinmathspace"/><mi>d</mi><mi>x</mi></math></span>
             <span class="attr-value" id="val-int-half-inf">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label"><math><msubsup><mo>∫</mo><mrow><mo>−</mo><mi>∞</mi></mrow><mi>∞</mi></msubsup></math> f(x) dx</span>
+            <span class="attr-label"><math><mrow><msubsup><mo>&#x222B;</mo><mrow><mo>−</mo><mi>∞</mi></mrow><mi>∞</mi></msubsup></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><mspace width="thinmathspace"/><mi>d</mi><mi>x</mi></math></span>
             <span class="attr-value" id="val-int-full-inf">-</span>
           </div>
         </div>
@@ -395,15 +399,15 @@
         </h3>
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label"><math><msubsup><mo>∑</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></msubsup></math> f(x)</span>
+            <span class="attr-label"><math><mrow><munderover><mo movablelimits="false">&#x2211;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow></math></span>
             <span class="attr-value" id="val-sym-sum">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label"><math><msup><mi>Δ</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup></math> f(x)</span>
+            <span class="attr-label"><math><mrow><msup><mi>Δ</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow></math></span>
             <span class="attr-value" id="val-sym-antidiff">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label"><math><msubsup><mo>∏</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></msubsup></math> f(x)</span>
+            <span class="attr-label"><math><mrow><munderover><mo movablelimits="false">&#x220F;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow></math></span>
             <span class="attr-value" id="val-sym-product">-</span>
           </div>
         </div>
@@ -427,23 +431,23 @@
 
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label">f(x<sub>0</sub>)</span>
+            <span class="attr-label"><math><mrow><mi>f</mi><mo stretchy="false">(</mo><msub><mi>x</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow></math></span>
             <span class="attr-value" id="val-eval-fx">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">lim <sub>x→x₀</sub></span>
+            <span class="attr-label"><math><mrow><munder><mo movablelimits="false">lim</mo><mrow><mi>x</mi><mo>→</mo><msub><mi>x</mi><mn>0</mn></msub></mrow></munder></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow></math></span>
             <span class="attr-value" id="val-eval-lim">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">lim <sub>x→x₀⁻ | x₀⁺</sub></span>
+            <span class="attr-label"><math><mrow><munder><mo movablelimits="false">lim</mo><mrow><mi>x</mi><mo>→</mo><msubsup><mi>x</mi><mn>0</mn><mo>±</mo></msubsup></mrow></munder></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow></math></span>
             <span class="attr-value" id="val-eval-lim-dir">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">lim <sub>x→+∞</sub></span>
+            <span class="attr-label"><math><mrow><munder><mo movablelimits="false">lim</mo><mrow><mi>x</mi><mo>→</mo><mo>+</mo><mi>∞</mi></mrow></munder></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow></math></span>
             <span class="attr-value" id="val-eval-lim-pos-inf">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">lim <sub>x→-∞</sub></span>
+            <span class="attr-label"><math><mrow><munder><mo movablelimits="false">lim</mo><mrow><mi>x</mi><mo>→</mo><mo>−</mo><mi>∞</mi></mrow></munder></mrow><mspace width="thinmathspace"/><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow></math></span>
             <span class="attr-value" id="val-eval-lim-neg-inf">-</span>
           </div>
         </div>
@@ -473,15 +477,15 @@
         </h3>
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label">Roots f(x) = 0</span>
+            <span class="attr-label">Roots <math><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo>=</mo><mn>0</mn></mrow></math></span>
             <span class="attr-value" id="val-roots-exact">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Critical f'(x) = 0</span>
+            <span class="attr-label">Critical <math><mrow><mfrac><mrow><mi>d</mi><mi>f</mi></mrow><mrow><mi>d</mi><mi>x</mi></mrow></mfrac><mo>=</mo><mn>0</mn></mrow></math></span>
             <span class="attr-value" id="val-critical-exact">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Inflection f''(x) = 0</span>
+            <span class="attr-label">Inflection <math><mrow><mfrac><mrow><msup><mi>d</mi><mn>2</mn></msup><mi>f</mi></mrow><mrow><mi>d</mi><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac><mo>=</mo><mn>0</mn></mrow></math></span>
             <span class="attr-value" id="val-inflection-exact">-</span>
           </div>
           <div class="attr-item">
@@ -515,23 +519,23 @@
             <span class="attr-value" id="val-mv-free-vars">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Gradient ∇f</span>
+            <span class="attr-label">Gradient <math><mrow><mo>∇</mo><mi>f</mi></mrow></math></span>
             <span class="attr-value" id="val-mv-grad">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Laplacian Δf</span>
+            <span class="attr-label">Laplacian <math><mrow><mi>Δ</mi><mi>f</mi></mrow></math></span>
             <span class="attr-value" id="val-mv-laplacian">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Hessian H</span>
+            <span class="attr-label">Hessian <math><mi>H</mi></math></span>
             <span class="attr-value" id="val-mv-hessian">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Hessian Det |H|</span>
+            <span class="attr-label">Hessian Det <math><mrow><mo>|</mo><mi>H</mi><mo>|</mo></mrow></math></span>
             <span class="attr-value" id="val-mv-hessian-det">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Stationary ∇f = 0</span>
+            <span class="attr-label">Stationary <math><mrow><mo>∇</mo><mi>f</mi><mo>=</mo><mn>0</mn></mrow></math></span>
             <span class="attr-value" id="val-mv-stationary">-</span>
           </div>
         </div>

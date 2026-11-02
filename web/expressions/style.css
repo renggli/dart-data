@@ -1,20 +1,52 @@
 /* Expressions Specific Styling */
 
-.domain-selector-group {
+.domain-selectors-container {
   display: flex;
   align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.domain-selector-group {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
-  padding-left: 12px;
+  padding-left: 10px;
   border-left: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
 .domain-prefix {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
   color: var(--accent-cyan);
   white-space: nowrap;
   user-select: none;
+  display: inline-flex;
+  align-items: center;
+  line-height: normal;
+  overflow: visible;
+  padding: 0 1px;
+}
+
+.domain-prefix math {
+  font-size: 14px;
+  vertical-align: middle;
+  line-height: normal;
+  overflow: visible;
+  color: inherit;
+}
+
+.domain-prefix math mi {
+  font-family: inherit;
+  font-style: italic;
+  padding-right: 2px;
+}
+
+.domain-prefix math mo {
+  font-family: inherit;
+  padding: 0 1px;
+  overflow: visible;
 }
 
 .domain-select {
