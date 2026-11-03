@@ -281,7 +281,6 @@ final class WebGLSurfaceRenderer {
       spanZ: spanZ,
       xVar: xVar,
       yVar: yVar,
-      title: title,
     );
   }
 
@@ -572,7 +571,6 @@ final class WebGLSurfaceRenderer {
     required double spanZ,
     required String xVar,
     required String yVar,
-    String? title,
   }) {
     ctx.save();
 
@@ -643,28 +641,7 @@ final class WebGLSurfaceRenderer {
     ctx.fillText(_fmt(maxZ), pzTop.px, pzTop.py);
     ctx.fillText(_fmt(minZ), pzBot.px, pzBot.py);
 
-    // 3. Top-left 3D Badge & Controls Hint
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.78)'.toJS;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'.toJS;
-    var badgeText = title != null
-        ? '3D WebGL2 · $title'
-        : '3D WebGL2 · Drag to orbit · Scroll to zoom';
-    final maxChars = ((cssW - 36.0) / 6.2).floor();
-    if (maxChars > 6 && badgeText.length > maxChars) {
-      badgeText = '${badgeText.substring(0, maxChars - 1)}…';
-    }
-    ctx.font = '11px Inter, sans-serif';
-    final badgeW = math.min(cssW - 20.0, badgeText.length * 6.2 + 20.0);
-    ctx.beginPath();
-    ctx.rect(10.0, 10.0, badgeW, 24.0);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#e2e8f0'.toJS;
-    ctx.textAlign = 'left';
-    ctx.fillText(badgeText, 18.0, 26.0);
-
-    // 4. Hover Vertex Readout & Highlight Dot
+    // 3. Hover Vertex Readout & Highlight Dot
     final hx = _hoverPx;
     final hy = _hoverPy;
     if (hx != null && hy != null) {

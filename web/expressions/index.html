@@ -87,21 +87,39 @@
         <div class="formula-main-row">
           <span class="formula-prefix" id="formula-prefix">f(x) =</span>
           <input type="text" id="expr-input" class="formula-input" value="(x - 1) * (x - 2) * (x + 2)" placeholder="Enter symbolic formula, e.g. (3*x + 5) / (x^3 - x)" aria-label="Mathematical formula">
-          <div id="domain-selectors-container" class="domain-selectors-container">
-            <div class="domain-selector-group" data-var="x" title="Variable domain assumption for x">
-              <span class="domain-prefix"><math><mi>x</mi><mo>∈</mo></math></span>
-              <select id="select-domain" class="custom-select domain-select" data-var="x" aria-label="Domain assumption for x">
-                <option value="unknown" selected>Unknown</option>
-                <option value="complex">ℂ (Complex)</option>
-                <option value="real">ℝ (Real)</option>
-                <option value="positive">ℝ⁺ (Positive)</option>
-                <option value="integer">ℤ (Integer)</option>
-              </select>
+          <div class="domain-menu-container" id="domain-menu-container">
+            <button type="button" class="domain-menu-btn" id="domain-menu-btn" title="Variable domain assumptions" aria-label="Variable domain assumptions" aria-haspopup="true" aria-expanded="false">
+              <span class="domain-btn-icon"><math><mo>∈</mo></math></span>
+              <span class="domain-btn-label">Domain</span>
+              <span class="domain-btn-arrow">▾</span>
+            </button>
+            <div class="domain-dropdown-menu" id="domain-dropdown-menu" hidden>
+              <div class="domain-dropdown-header">
+                <span class="domain-dropdown-title">Variable Domains</span>
+                <button type="button" class="domain-dropdown-close" id="domain-dropdown-close" aria-label="Close domain menu">✕</button>
+              </div>
+              <div class="domain-dropdown-list" id="domain-dropdown-list">
+                <div class="domain-dropdown-row" data-var="x">
+                  <span class="domain-var-label"><math><mi>x</mi><mo>∈</mo></math></span>
+                  <select id="select-domain" class="custom-select domain-select" data-var="x" aria-label="Domain assumption for x">
+                    <option value="unknown" selected>Unknown</option>
+                    <option value="complex">ℂ (Complex)</option>
+                    <option value="real">ℝ (Real)</option>
+                    <option value="positive">ℝ⁺ (Positive)</option>
+                    <option value="integer">ℤ (Integer)</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
-          <span id="status-badge" class="formula-status-badge status-valid">✓ Valid</span>
         </div>
-        <div id="parse-error-message" class="parse-error-message"></div>
+        <div id="parse-error-popup" class="parse-error-popup" hidden>
+          <div class="parse-error-caret" id="parse-error-caret"></div>
+          <div class="parse-error-body">
+            <span class="parse-error-icon">⚠</span>
+            <span id="parse-error-text" class="parse-error-text"></span>
+          </div>
+        </div>
       </div>
     </section>
 

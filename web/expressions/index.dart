@@ -81,9 +81,14 @@ late web.HTMLElement displayDesc;
 late web.HTMLElement formulaInputBar;
 late web.HTMLElement formulaPrefix;
 late web.HTMLInputElement exprInput;
-late web.HTMLElement domainSelectorsContainer;
-late web.HTMLElement statusBadge;
-late web.HTMLElement parseErrorMessage;
+late web.HTMLElement domainMenuContainer;
+late web.HTMLButtonElement domainMenuBtn;
+late web.HTMLElement domainDropdownMenu;
+late web.HTMLButtonElement domainDropdownClose;
+late web.HTMLElement domainDropdownList;
+late web.HTMLElement parseErrorPopup;
+late web.HTMLElement parseErrorCaret;
+late web.HTMLElement parseErrorText;
 
 late web.HTMLCanvasElement plotCanvas;
 late web.HTMLInputElement rangeMinX;
@@ -220,12 +225,23 @@ void initDom() {
   formulaPrefix =
       web.document.querySelector('#formula-prefix') as web.HTMLElement;
   exprInput = web.document.querySelector('#expr-input') as web.HTMLInputElement;
-  domainSelectorsContainer = web.document.querySelector(
-    '#domain-selectors-container',
-  ) as web.HTMLElement;
-  statusBadge = web.document.querySelector('#status-badge') as web.HTMLElement;
-  parseErrorMessage =
-      web.document.querySelector('#parse-error-message') as web.HTMLElement;
+  domainMenuContainer =
+      web.document.querySelector('#domain-menu-container') as web.HTMLElement;
+  domainMenuBtn =
+      web.document.querySelector('#domain-menu-btn') as web.HTMLButtonElement;
+  domainDropdownMenu =
+      web.document.querySelector('#domain-dropdown-menu') as web.HTMLElement;
+  domainDropdownClose = web.document.querySelector(
+    '#domain-dropdown-close',
+  ) as web.HTMLButtonElement;
+  domainDropdownList =
+      web.document.querySelector('#domain-dropdown-list') as web.HTMLElement;
+  parseErrorPopup =
+      web.document.querySelector('#parse-error-popup') as web.HTMLElement;
+  parseErrorCaret =
+      web.document.querySelector('#parse-error-caret') as web.HTMLElement;
+  parseErrorText =
+      web.document.querySelector('#parse-error-text') as web.HTMLElement;
 
   plotCanvas =
       web.document.querySelector('#plot-canvas') as web.HTMLCanvasElement;
@@ -560,6 +576,60 @@ void attachEventListeners() {
     updateUrlHash();
   });
 
+  exprInput.onScroll.listen((_) {
+    if (!_isHidden(parseErrorPopup)) {
+      positionParseErrorPopup();
+    }
+  });
+
+  domainMenuBtn.onClick.listen((e) {
+    e.stopPropagation();
+    final isOpen = !_isHidden(domainDropdownMenu);
+    if (isOpen) {
+      _setHidden(domainDropdownMenu, true);
+      domainMenuBtn.classList.remove('active');
+      domainMenuBtn.setAttribute('aria-expanded', 'false');
+    } else {
+      _setHidden(domainDropdownMenu, false);
+      domainMenuBtn.classList.add('active');
+      domainMenuBtn.setAttribute('aria-expanded', 'true');
+    }
+  });
+
+  domainDropdownClose.onClick.listen((e) {
+    e.stopPropagation();
+    _setHidden(domainDropdownMenu, true);
+    domainMenuBtn.classList.remove('active');
+    domainMenuBtn.setAttribute('aria-expanded', 'false');
+  });
+
+  domainDropdownMenu.onClick.listen((e) {
+    e.stopPropagation();
+  });
+
+  web.document.addEventListener(
+    'click',
+    (web.Event _) {
+      if (!_isHidden(domainDropdownMenu)) {
+        _setHidden(domainDropdownMenu, true);
+        domainMenuBtn.classList.remove('active');
+        domainMenuBtn.setAttribute('aria-expanded', 'false');
+      }
+    }.toJS,
+  );
+
+  web.document.addEventListener(
+    'keydown',
+    (web.Event event) {
+      final keyEvent = event as web.KeyboardEvent;
+      if (keyEvent.key == 'Escape' && !_isHidden(domainDropdownMenu)) {
+        _setHidden(domainDropdownMenu, true);
+        domainMenuBtn.classList.remove('active');
+        domainMenuBtn.setAttribute('aria-expanded', 'false');
+      }
+    }.toJS,
+  );
+
   // Range inputs
   rangeMinX.onChange.listen((_) {
     final val = double.tryParse(rangeMinX.value);
@@ -687,6 +757,9 @@ void attachEventListeners() {
     'resize',
     (web.Event event) {
       drawCharts();
+      if (!_isHidden(parseErrorPopup)) {
+        positionParseErrorPopup();
+      }
     }.toJS,
   );
 
@@ -759,13 +832,113 @@ void _setDirectionalLimits(web.HTMLElement element, Expr? left, Expr? right) {
   }
 }
 
+int? _lastErrorOffset;
+web.HTMLSpanElement? _textRuler;
+
+double _measureTextWidth(String text, web.HTMLInputElement input) {
+  var ruler = _textRuler;
+  if (ruler == null) {
+    ruler = web.document.createElement('span') as web.HTMLSpanElement
+      ..id = 'formula-text-ruler'
+      ..style.position = 'fixed'
+      ..style.left = '-99999px'
+      ..style.top = '-99999px'
+      ..style.visibility = 'hidden'
+      ..style.whiteSpace = 'pre'
+      ..style.pointerEvents = 'none';
+    web.document.body!.append(ruler);
+    _textRuler = ruler;
+  }
+  final computed = web.window.getComputedStyle(input);
+  ruler.style.fontFamily = computed.fontFamily;
+  ruler.style.fontSize = computed.fontSize;
+  ruler.style.fontWeight = computed.fontWeight;
+  ruler.style.letterSpacing = computed.letterSpacing;
+  ruler.textContent = text;
+  return ruler.getBoundingClientRect().width.toDouble();
+}
+
+bool _isHidden(web.HTMLElement el) => el.hasAttribute('hidden');
+
+void _setHidden(web.HTMLElement el, bool hidden) {
+  if (hidden) {
+    el.setAttribute('hidden', '');
+  } else {
+    el.removeAttribute('hidden');
+  }
+}
+
+void positionParseErrorPopup([int? offset]) {
+  if (_isHidden(parseErrorPopup)) return;
+  final effectiveOffset = (offset ?? _lastErrorOffset ?? exprInput.value.length)
+      .clamp(0, exprInput.value.length);
+  _lastErrorOffset = effectiveOffset;
+
+  final barRect = formulaInputBar.getBoundingClientRect();
+  final inputRect = exprInput.getBoundingClientRect();
+
+  final inputLeftInBar = inputRect.left - barRect.left;
+  final sub = exprInput.value.substring(0, effectiveOffset);
+  final textWidth = _measureTextWidth(sub, exprInput);
+
+  final computed = web.window.getComputedStyle(exprInput);
+  final paddingLeft =
+      double.tryParse(computed.paddingLeft.replaceAll('px', '')) ?? 0.0;
+
+  final charX = inputLeftInBar + paddingLeft + textWidth - exprInput.scrollLeft;
+
+  final minCaretX = inputLeftInBar + 6.0;
+  final maxCaretX = inputLeftInBar + inputRect.width - 6.0;
+  final clampedCaretX = charX.clamp(minCaretX, maxCaretX);
+
+  final popupRect = parseErrorPopup.getBoundingClientRect();
+  final popupWidth = popupRect.width > 0 ? popupRect.width.toDouble() : 180.0;
+  final barWidth = barRect.width.toDouble();
+
+  var popupLeft = clampedCaretX - popupWidth / 2.0;
+  popupLeft = popupLeft.clamp(
+    4.0,
+    (barWidth - popupWidth - 4.0).clamp(4.0, double.infinity),
+  );
+
+  final arrowLeft = (clampedCaretX - popupLeft).clamp(
+    8.0,
+    (popupWidth - 8.0).clamp(8.0, double.infinity),
+  );
+
+  parseErrorPopup.style.left = '${popupLeft.toStringAsFixed(1)}px';
+  parseErrorCaret.style.left = '${arrowLeft.toStringAsFixed(1)}px';
+}
+
+void showParseError(String message, int? offset) {
+  formulaInputBar.classList.add('invalid');
+  parseErrorText.textContent = message;
+  _setHidden(parseErrorPopup, false);
+  positionParseErrorPopup(offset);
+}
+
+void hideParseError() {
+  formulaInputBar.classList.remove('invalid');
+  _setHidden(parseErrorPopup, true);
+  _lastErrorOffset = null;
+}
+
 void updateDomainSelectors(List<String> vars) {
-  final existingGroups = domainSelectorsContainer.querySelectorAll(
-    '.domain-selector-group',
+  final hasAssumptions = currentVariableDomains.entries.any(
+    (e) => vars.contains(e.key) && e.value != VariableDomain.unknown,
+  );
+  if (hasAssumptions) {
+    domainMenuBtn.classList.add('has-assumptions');
+  } else {
+    domainMenuBtn.classList.remove('has-assumptions');
+  }
+
+  final existingRows = domainDropdownList.querySelectorAll(
+    '.domain-dropdown-row',
   );
   final existingVars = <String>[];
-  for (var i = 0; i < existingGroups.length; i++) {
-    final el = existingGroups.item(i) as web.HTMLElement;
+  for (var i = 0; i < existingRows.length; i++) {
+    final el = existingRows.item(i) as web.HTMLElement;
     final v = el.getAttribute('data-var');
     if (v != null) existingVars.add(v);
   }
@@ -781,18 +954,17 @@ void updateDomainSelectors(List<String> vars) {
   }
 
   if (!isSame) {
-    domainSelectorsContainer.textContent = '';
+    domainDropdownList.textContent = '';
     for (final v in vars) {
       final domain = currentVariableDomains[v] ?? VariableDomain.unknown;
       currentVariableDomains[v] = domain;
 
-      final group = web.document.createElement('div') as web.HTMLDivElement
-        ..className = 'domain-selector-group'
-        ..setAttribute('data-var', v)
-        ..title = 'Variable domain assumption for $v';
+      final row = web.document.createElement('div') as web.HTMLDivElement
+        ..className = 'domain-dropdown-row'
+        ..setAttribute('data-var', v);
 
-      final prefix = web.document.createElement('span') as web.HTMLSpanElement
-        ..className = 'domain-prefix'
+      final label = web.document.createElement('span') as web.HTMLSpanElement
+        ..className = 'domain-var-label'
         ..innerHTML = '<math><mi>$v</mi><mo>∈</mo></math>'.toJS;
 
       final select =
@@ -818,17 +990,18 @@ void updateDomainSelectors(List<String> vars) {
       select.value = _domainToString(domain);
       select.onChange.listen((_) {
         currentVariableDomains[v] = _parseDomain(select.value);
+        updateDomainSelectors(vars);
         updateAll();
         updateUrlHash();
       });
 
-      group.append(prefix);
-      group.append(select);
-      domainSelectorsContainer.append(group);
+      row.append(label);
+      row.append(select);
+      domainDropdownList.append(row);
     }
   } else {
     for (final v in vars) {
-      final select = domainSelectorsContainer.querySelector(
+      final select = domainDropdownList.querySelector(
         'select[data-var="$v"]',
       ) as web.HTMLSelectElement?;
       if (select != null) {
@@ -848,18 +1021,18 @@ void updateAll() {
   }
 
   if (expr == null) {
-    formulaInputBar.classList.add('invalid');
-    statusBadge.className = 'formula-status-badge status-invalid';
-    statusBadge.textContent = '✗ Invalid Syntax';
-    parseErrorMessage.style.display = 'block';
-
+    var errorMsg = 'Invalid expression syntax';
+    int? errorPos;
     try {
       Expr.parse(currentFormula);
     } on FormatException catch (e) {
-      parseErrorMessage.textContent = e.message;
+      errorMsg = e.message;
+      errorPos = e.offset;
     } catch (e) {
-      parseErrorMessage.textContent = e.toString();
+      errorMsg = e.toString();
     }
+
+    showParseError(errorMsg, errorPos);
 
     parsedExpr = null;
     cachedD1 = null;
@@ -881,10 +1054,7 @@ void updateAll() {
     return;
   }
 
-  formulaInputBar.classList.remove('invalid');
-  statusBadge.className = 'formula-status-badge status-valid';
-  statusBadge.textContent = '✓ Valid';
-  parseErrorMessage.style.display = 'none';
+  hideParseError();
   parsedExpr = expr;
 
   final vars = expr.freeVariables.toList()..sort();
@@ -1940,7 +2110,6 @@ void _renderMultivariable3dSurface(Expr expr) {
     maxZ: _cached3dMaxZ,
     xVar: _cached3dXVar,
     yVar: _cached3dYVar,
-    title: 'z = ${expr.toString()}',
   );
 }
 

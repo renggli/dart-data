@@ -946,6 +946,7 @@ body.sidebar-collapsed .sidebar-expand-btn {
 }
 
 .formula-input-bar {
+  position: relative;
   display: flex;
   flex-direction: column;
   background-color: rgba(15, 23, 42, 0.7);
@@ -962,8 +963,8 @@ body.sidebar-collapsed .sidebar-expand-btn {
 }
 
 .formula-input-bar.invalid {
-  border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.7);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.35);
 }
 
 .formula-main-row {
@@ -985,7 +986,7 @@ body.sidebar-collapsed .sidebar-expand-btn {
 
 .formula-input {
   flex: 1;
-  min-width: 140px;
+  min-width: 100px;
   background: transparent;
   border: none;
   outline: none;
@@ -995,43 +996,62 @@ body.sidebar-collapsed .sidebar-expand-btn {
   color: var(--text-primary);
 }
 
-.formula-status-badge {
+/* Floating Parse Error Popup */
+.parse-error-popup {
+  position: absolute;
+  top: calc(100% + 7px);
+  z-index: 1000;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  pointer-events: none;
+  max-width: min(420px, calc(100vw - 32px));
+  transition: opacity 0.15s ease;
+}
+
+.parse-error-popup[hidden] {
+  display: none !important;
+}
+
+.parse-error-caret {
+  position: absolute;
+  top: -5px;
+  width: 9px;
+  height: 9px;
+  background: #1e1114;
+  border-left: 1px solid rgba(239, 68, 68, 0.7);
+  border-top: 1px solid rgba(239, 68, 68, 0.7);
+  transform: translateX(-50%) rotate(45deg);
+  z-index: 2;
+}
+
+.parse-error-body {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1e1114;
+  border: 1px solid rgba(239, 68, 68, 0.7);
   border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
+  padding: 6px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(239, 68, 68, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.parse-error-icon {
+  color: var(--accent-red);
+  font-size: 13px;
+  line-height: 1;
   flex-shrink: 0;
 }
 
-.status-valid {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: var(--accent-emerald);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.status-invalid {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: var(--accent-red);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.parse-error-message {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background-color: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.28);
-  border-radius: 6px;
-  color: var(--accent-red);
-  font-size: 12px;
+.parse-error-text {
   font-family: var(--font-mono);
-  line-height: 1.45;
-  white-space: normal;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fca5a5;
+  line-height: 1.4;
   word-break: break-word;
-  display: none;
 }
 
 /* Card Layer Toggles */

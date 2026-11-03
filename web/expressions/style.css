@@ -1,35 +1,161 @@
 /* Expressions Specific Styling */
 
-.domain-selectors-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
-.domain-selector-group {
+.domain-menu-container {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding-left: 10px;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
 
-.domain-prefix {
+.domain-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.domain-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: var(--text-primary);
+}
+
+.domain-menu-btn.active,
+.domain-menu-btn.has-assumptions {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: var(--accent-blue);
+}
+
+.domain-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-cyan);
+  font-size: 14px;
+  line-height: normal;
+  overflow: visible;
+}
+
+.domain-btn-icon math {
+  overflow: visible;
+}
+
+.domain-btn-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.domain-btn-arrow {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+  .domain-btn-label {
+    display: none;
+  }
+  .domain-menu-btn {
+    padding: 4px 6px;
+    gap: 3px;
+  }
+}
+
+/* Dropdown Menu */
+.domain-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 8px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.domain-dropdown-menu[hidden] {
+  display: none !important;
+}
+
+.domain-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.domain-dropdown-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 12px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.domain-dropdown-close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.domain-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.domain-dropdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.domain-dropdown-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.domain-var-label {
   font-size: 14px;
   color: var(--accent-cyan);
   white-space: nowrap;
-  user-select: none;
   display: inline-flex;
   align-items: center;
   line-height: normal;
   overflow: visible;
-  padding: 0 1px;
 }
 
-.domain-prefix math {
+.domain-var-label math {
   font-size: 14px;
   vertical-align: middle;
   line-height: normal;
@@ -37,13 +163,13 @@
   color: inherit;
 }
 
-.domain-prefix math mi {
+.domain-var-label math mi {
   font-family: inherit;
   font-style: italic;
   padding-right: 2px;
 }
 
-.domain-prefix math mo {
+.domain-var-label math mo {
   font-family: inherit;
   padding: 0 1px;
   overflow: visible;
