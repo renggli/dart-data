@@ -1311,9 +1311,10 @@ Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
     case FractionNumber(:final numerator, :final denominator):
-      return IntegerNumber(
-        Integer.from((numerator.toDouble() / denominator.toDouble()).round()),
-      );
+      final absNum = numerator.abs();
+      final q2 = denominator * Integer.two;
+      final rounded = (absNum * Integer.two + denominator) ~/ q2;
+      return IntegerNumber(numerator.isNegative ? -rounded : rounded);
     case RealNumber(:final value):
       return RealNumber.fromDouble(value.roundToDouble());
     default:
@@ -1779,6 +1780,14 @@ Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
           simplifySinh(re),
           simplifySin(im, assumptions: assumptions),
         ], assumptions: assumptions),
+      );
+    case Ln(:final expr):
+      return (
+        re: simplifyLn(
+          simplifyAbs(expr, assumptions: assumptions),
+          assumptions: assumptions,
+        ),
+        im: simplifyArg(expr, assumptions: assumptions),
       );
     default:
       return (

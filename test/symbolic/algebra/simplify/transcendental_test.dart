@@ -302,6 +302,20 @@ void main() {
       check(simplifyCeil(Constant.pi)).equals(IntegerNumber.of(4));
       check(simplifyRound(const RealNumber(3.6))).equals(const RealNumber(4.0));
       check(simplifyRound(Constant.pi)).equals(IntegerNumber.of(3));
+      check(simplifyRound(FractionNumber.half)).equals(IntegerNumber.one);
+      check(simplifyRound(FractionNumber.negativeHalf))
+          .equals(IntegerNumber.negativeOne);
+      check(simplifyRound(RationalNumber(1, 3))).equals(IntegerNumber.zero);
+      check(simplifyRound(RationalNumber(2, 3))).equals(IntegerNumber.one);
+      final big = BigInt.from(10).pow(400);
+      final bigHalf = FractionNumber(
+        Integer.big(big * BigInt.two + BigInt.one),
+        Integer.two,
+      );
+      check(simplifyRound(bigHalf))
+          .equals(IntegerNumber(Integer.big(big + BigInt.one)));
+      check(simplifyRound(-bigHalf))
+          .equals(IntegerNumber(Integer.big(-(big + BigInt.one))));
       check(simplifySign(Mul([IntegerNumber.negativeOne, x]))).equals(
         Mul([
           IntegerNumber.negativeOne,
@@ -420,6 +434,19 @@ void main() {
           .equals('cos(im(z)) * cosh(re(z)) + i * sin(im(z)) * sinh(re(z))');
       check(toRectangularExpr(Tan(z), assumptions: complexZ).toString())
           .equals('re(tan(z)) + i * im(tan(z))');
+      check(toRectangularExpr(Ln(z), assumptions: complexZ).toString())
+          .equals('ln(abs(z)) + i * arg(z)');
+      check(toRectangularExpr(Ln(ComplexNumber.i))).equals(
+        Mul([
+          ComplexNumber(IntegerNumber.zero, FractionNumber.half),
+          Constant.pi,
+        ], isSimplified: true),
+      );
+      check(simplifyRe(Ln(ComplexNumber.i))).equals(IntegerNumber.zero);
+      check(simplifyIm(Ln(ComplexNumber.i)))
+          .equals(Mul([FractionNumber.half, Constant.pi]));
+      check(simplifyRe(Ln(z), assumptions: complexZ)).equals(Ln(Abs(z)));
+      check(simplifyIm(Ln(z), assumptions: complexZ)).equals(Arg(z));
       check(toRectangularExpr(Re(z), assumptions: complexZ))
           .equals(Re(z, isSimplified: true));
       check(toRectangularExpr(Im(z), assumptions: complexZ))

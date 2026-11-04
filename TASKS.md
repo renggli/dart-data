@@ -494,7 +494,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `OrderTerm.substitute` substitutes the bound variable inside `point` and fails to simplify to `0` when evaluated at `replacement == point`; `'undefined'` is missing from `ExprSyntax.standardConstants`; and `OrderTerm('x', 0, point: IntegerNumber.one)` renders as `O((x - 1)^{0})` instead of `O(1)` in LaTeX/MathML.
   - **Fix**: Fix `OrderTerm.substitute`, add `'undefined': Constant.undefined` to `ExprSyntax.standardConstants`, and check `if (order == 0)` before checking `point` in `latex.dart` and `mathml.dart`.
 
-- [ ] **1.10.15 `simplifyRound` precision loss/crash on large `BigInt` fractions and missing `Ln` case in `_decomposeComplex`**
+- [x] **1.10.15 `simplifyRound` precision loss/crash on large `BigInt` fractions and missing `Ln` case in `_decomposeComplex`**
   - **Severity**: Warning
   - **Location**: `lib/src/symbolic/algebra/simplify/transcendental.dart:1233-1236, 1551-1701`
   - **Problem**: `simplifyRound` converts `numerator` and `denominator` to `double`, losing precision above $2^{53}$ and throwing `UnsupportedError` above $10^{308}$. `_decomposeComplex` lacks a `case Ln(:final expr):` branch, so `Re(Ln(z))`, `Im(Ln(z))`, and `Ln(z).toRectangular()` do not simplify.
