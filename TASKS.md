@@ -657,7 +657,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ## 4. Missing or Broken Documentation
 
-- [ ] **4.1 Broken code example in `README.md` (`matrix.solve(b)` with a `Vector` argument does not compile)**
+- [x] **4.1 Broken code example in `README.md` (`matrix.solve(b)` with a `Vector` argument does not compile)**
   - **Severity**: Critical
   - **Location**: `README.md:69-70`
   - **Problem**: `README.md` shows `final b = Vector<double>.fromList([8.0, -11.0, -3.0]); final x = matrix.solve(b);`. However, `Matrix.solve` (`lib/src/linear/matrix.dart:456`) only accepts `Matrix<T> b`; solving for a vector requires `matrix.solveVector(b)`.

@@ -67,7 +67,7 @@ final matrix = Matrix<double>.fromRows([
 final b = Vector<double>.fromList([10.0, 11.0]);
 
 // Solve Ax = b
-final x = matrix.solve(b);
+final x = matrix.solveVector(b);
 print(x); // Vector([1.75, 1.5])
 
 // Cholesky decomposition (for symmetric positive-definite matrices)
