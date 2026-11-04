@@ -58,6 +58,14 @@ void main() {
         );
         check(chained.isEmpty).isFalse();
         check(chained.domainOf('z')).equals(VariableDomain.real);
+
+        // assume preserves existing domains while adding new ones
+        const posX = Assumptions(domains: {'x': VariableDomain.positive});
+        final assumed = posX.assume('y', VariableDomain.real);
+        check(assumed.domainOf('x')).equals(VariableDomain.positive);
+        check(assumed.domainOf('y')).equals(VariableDomain.real);
+        check(assumed.domains['x']).equals(VariableDomain.positive);
+        check(assumed.domains['y']).equals(VariableDomain.real);
         check(chained.domainOf('w')).equals(VariableDomain.complex);
         check(Conjugate(z).simplify(assumptions: chained)).equals(z);
 

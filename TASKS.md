@@ -458,7 +458,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: When `right` has a pole of order `q > 0`, `_expandSeriesTimesExpr` calls `sLeft.toExpr(includeOrder: false).toPowerSeries(..., order: sLeft.order + q)`. Because `sLeft` was already truncated at `sLeft.order`, re-expanding its polynomial AST pads higher degrees with zeros. Thus `Expr.parse('exp(x) * sin(x) / x').series('x', order: 3)` returns `1 + x + O(x^3)` instead of `1 + x + 1/3 * x^2 + O(x^3)`.
   - **Fix**: Track the original untruncated left factor product (or pre-sum pole orders across all factors in `_expandMulFactors`) so `boostedLeft` expands the original expression to `sLeft.order + q`.
 
-- [ ] **1.10.9 `assumptions.copyWith(domains: ...)` in `summation.dart` wipes out caller's variable domain assumptions**
+- [x] **1.10.9 `assumptions.copyWith(domains: ...)` in `summation.dart` wipes out caller's variable domain assumptions**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/calculus/summation.dart:113-115, 225-227`
   - **Problem**: `computeSum` and `computeProduct` call `assumptions.copyWith(domains: {limitVarName: VariableDomain.integer})`, which replaces the entire `_domains` map and erases all per-variable assumptions supplied by the caller.

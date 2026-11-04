@@ -110,8 +110,9 @@ Expr computeSum(
   if (b == Constant.infinity) {
     const limitVarName = '__sum_N';
     const limitVar = Variable(limitVarName);
-    final mergedAssumptions = assumptions.copyWith(
-      domains: {limitVarName: VariableDomain.integer},
+    final mergedAssumptions = assumptions.assume(
+      limitVarName,
+      VariableDomain.integer,
     );
     final finite = computeSum(
       simplifiedTerm,
@@ -222,8 +223,9 @@ Expr computeProduct(
   if (b == Constant.infinity) {
     const limitVarName = '__prod_N';
     const limitVar = Variable(limitVarName);
-    final mergedAssumptions = assumptions.copyWith(
-      domains: {limitVarName: VariableDomain.integer},
+    final mergedAssumptions = assumptions.assume(
+      limitVarName,
+      VariableDomain.integer,
     );
     final finite = computeProduct(
       simplifiedFactor,

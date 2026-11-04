@@ -48,6 +48,20 @@ void main() {
       final infGeom = FractionNumber.half.pow(k).sum('k', 0, Constant.infinity);
       check(infGeom).equals(IntegerNumber.two);
 
+      // Caller assumptions preservation across infinite sum
+      const posAssumptions = Assumptions(
+        domains: {'x': VariableDomain.positive},
+      );
+      final infGeomWithAssumption =
+          (Expr.parse('sqrt(x^2)') * FractionNumber.half.pow(k)).sum(
+            'k',
+            0,
+            Constant.infinity,
+            assumptions: posAssumptions,
+          );
+      check(infGeomWithAssumption)
+          .equals(IntegerNumber.two * const Variable('x'));
+
       // Gosper polynomial-geometric: sum_{k=1..n} k * 2^k = (n - 1) * 2^(n + 1) + 2
       final polyGeom = (k * IntegerNumber.two.pow(k)).sum('k', 1, n);
       check(polyGeom.substitute('n', IntegerNumber.of(3)).simplify())

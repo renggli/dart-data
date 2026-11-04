@@ -78,6 +78,23 @@ final class Assumptions {
     return defaultDomain;
   }
 
+  /// Returns a new [Assumptions] context that associates [name] with [domain],
+  /// preserving all existing domain assignments from this context and its parents.
+  Assumptions assume(String name, VariableDomain domain) {
+    final merged = <String, VariableDomain>{};
+    for (
+      Assumptions? current = this;
+      current != null;
+      current = current.parent
+    ) {
+      for (final entry in current.domains.entries) {
+        merged.putIfAbsent(entry.key, () => entry.value);
+      }
+    }
+    merged[name] = domain;
+    return Assumptions(domains: merged, defaultDomain: defaultDomain);
+  }
+
   /// Returns a child [Assumptions] that overrides specific [domains] or
   /// [defaultDomain] while chaining to `this` as [parent].
   Assumptions copyWith({
