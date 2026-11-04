@@ -233,21 +233,7 @@ class DataFrame {
     final newCols = <Series<Object?>>[];
     for (final col in _columns) {
       final otherCol = other.column(col.name);
-      final combinedType = col.dataType == otherCol.dataType
-          ? col.dataType
-          : col.dataType.promoteWith(otherCol.dataType);
-      final List<Object?> combinedVals;
-      if (combinedType == col.dataType && combinedType == otherCol.dataType) {
-        combinedVals = <Object?>[...col.values, ...otherCol.values];
-      } else {
-        combinedVals = <Object?>[
-          for (final v in col.values)
-            if (v == null) null else combinedType.cast(v),
-          for (final v in otherCol.values)
-            if (v == null) null else combinedType.cast(v),
-        ];
-      }
-      newCols.add(Series.fromList(col.name, combinedVals, type: combinedType));
+      newCols.add(col.concat(otherCol));
     }
     return DataFrame(newCols);
   }
@@ -499,8 +485,7 @@ class DataFrame {
 
     final sortedCols = <Series<Object?>>[];
     for (final col in _columns) {
-      final sortedVals = [for (final idx in indices) col[idx]];
-      sortedCols.add(Series.fromList(col.name, sortedVals, type: col.dataType));
+      sortedCols.add(col.permute(indices));
     }
     return DataFrame(sortedCols);
   }

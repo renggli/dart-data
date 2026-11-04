@@ -367,5 +367,55 @@ void main() {
         check(sliced2.length).equals(0);
       },
     );
+
+    test(
+      'Series permute and concat across TypedSeries, BoolSeries, ObjectSeries',
+      () {
+        // TypedSeries permute
+        final iSeries = TypedSeries<int>.fromList('i', [10, null, 30, 40]);
+        final iPerm = iSeries.permute([2, 0, 1]) as TypedSeries<int>;
+        check(iPerm.length).equals(3);
+        check(iPerm.toList()).deepEquals([30, 10, null]);
+        check(iPerm.data).isA<Int32List>();
+
+        // TypedSeries concat
+        final iConcat = iSeries.concat(
+          TypedSeries<int>.fromList('i', [50, null]),
+        );
+        check(iConcat.length).equals(6);
+        check(iConcat.toList()).deepEquals([10, null, 30, 40, 50, null]);
+        check((iConcat as TypedSeries<int>).data).isA<Int32List>();
+
+        // BoolSeries permute & concat
+        final bSeries = BoolSeries.fromList('b', [true, false, null, true]);
+        final bPerm = bSeries.permute([3, 1, 2]) as BoolSeries;
+        check(bPerm.length).equals(3);
+        check(bPerm.toList()).deepEquals(<bool?>[true, false, null]);
+
+        final bConcat = bSeries.concat(BoolSeries.fromList('b', [false, true]));
+        check(bConcat.length).equals(6);
+        check(bConcat.toList())
+            .deepEquals(<bool?>[true, false, null, true, false, true]);
+
+        // ObjectSeries permute & concat
+        final oSeries = ObjectSeries<String>.fromList('o', ['a', null, 'c']);
+        final oPerm = oSeries.permute([2, 0, 1]) as ObjectSeries<String>;
+        check(oPerm.length).equals(3);
+        check(oPerm.toList()).deepEquals(['c', 'a', null]);
+
+        final oConcat = oSeries.concat(
+          ObjectSeries<String>.fromList('o', ['d', null]),
+        );
+        check(oConcat.length).equals(5);
+        check(oConcat.toList()).deepEquals(['a', null, 'c', 'd', null]);
+
+        // Mismatched type concat falls back gracefully to ObjectSeries
+        final mixed = iSeries.concat(bSeries);
+        check(mixed).isA<ObjectSeries<Object?>>();
+        check(mixed.length).equals(8);
+        check(mixed.toList())
+            .deepEquals(<Object?>[10, null, 30, 40, true, false, null, true]);
+      },
+    );
   });
 }

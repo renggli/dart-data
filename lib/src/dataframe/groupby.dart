@@ -220,7 +220,7 @@ class GroupBy {
       case Agg.count:
         var count = 0;
         for (var i = 0; i < indices.length; i++) {
-          if (col[indices[i]] != null) count++;
+          if (!col.isNull(indices[i])) count++;
         }
         return count;
       case Agg.first:

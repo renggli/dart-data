@@ -231,6 +231,12 @@ abstract class Series<T> {
   /// Slices rows in range [[start], [end]).
   Series<T> slice(int start, int end);
 
+  /// Permutes elements of this series according to [indices].
+  Series<T> permute(List<int> indices);
+
+  /// Returns a new series with [other] concatenated to the end.
+  Series<Object?> concat(Series<Object?> other);
+
   /// Sorts this series.
   Series<T> sort({bool ascending = true, bool nullsLast = true});
 
@@ -472,6 +478,59 @@ class TypedSeries<T extends num> extends Series<T> {
   }
 
   @override
+  Series<T> permute(List<int> indices) {
+    final count = indices.length;
+    final permutedData = dataType.newList(count);
+    ValidityMask? permutedMask;
+    for (var i = 0; i < count; i++) {
+      final idx = indices[i];
+      if (isNull(idx)) {
+        permutedMask ??= ValidityMask(count);
+        permutedMask.setNull(i);
+        permutedData[i] = dataType.defaultValue;
+      } else {
+        permutedData[i] = data[idx];
+      }
+    }
+    return TypedSeries<T>(
+      name: name,
+      data: permutedData,
+      dataType: dataType,
+      mask: permutedMask,
+    );
+  }
+
+  @override
+  Series<Object?> concat(Series<Object?> other) {
+    if (other is TypedSeries<T> && other.dataType == dataType) {
+      final newLen = length + other.length;
+      final newData = dataType.newList(newLen);
+      newData.setRange(0, length, data);
+      newData.setRange(length, newLen, other.data);
+      final newMask = ValidityMask.concatMasks(
+        mask,
+        length,
+        other.mask,
+        other.length,
+      );
+      return TypedSeries<T>(
+        name: name,
+        data: newData,
+        dataType: dataType,
+        mask: newMask,
+      );
+    }
+    final combinedType = dataType.promoteWith(other.dataType);
+    final combinedVals = <Object?>[
+      for (var i = 0; i < length; i++)
+        if (isNull(i)) null else combinedType.cast(data[i]),
+      for (var i = 0; i < other.length; i++)
+        if (other.isNull(i)) null else combinedType.cast(other[i]),
+    ];
+    return Series.fromList(name, combinedVals, type: combinedType);
+  }
+
+  @override
   Series<T> sort({bool ascending = true, bool nullsLast = true}) {
     final indices = List<int>.generate(length, (i) => i);
     indices.sort((a, b) {
@@ -497,24 +556,7 @@ class TypedSeries<T extends num> extends Series<T> {
       return ascending ? cmp : -cmp;
     });
 
-    final sortedData = dataType.newList(length);
-    ValidityMask? sortedMask;
-    for (var i = 0; i < length; i++) {
-      final idx = indices[i];
-      if (isNull(idx)) {
-        sortedMask ??= ValidityMask(length);
-        sortedMask.setNull(i);
-        sortedData[i] = dataType.defaultValue;
-      } else {
-        sortedData[i] = data[idx];
-      }
-    }
-    return TypedSeries<T>(
-      name: name,
-      data: sortedData,
-      dataType: dataType,
-      mask: sortedMask,
-    );
+    return permute(indices);
   }
 
   @override
@@ -649,22 +691,81 @@ class BoolSeries extends Series<bool> {
         'Filter mask length (${filterMask.length}) must match series length ($length)',
       );
     }
-    final filtered = <bool?>[];
+    var count = 0;
     for (var i = 0; i < length; i++) {
-      if (filterMask[i]) filtered.add(this[i]);
+      if (filterMask[i]) count++;
     }
-    return BoolSeries.fromList(name, filtered);
+    final targetData = List<bool>.filled(count, false);
+    ValidityMask? targetMask;
+    var targetIndex = 0;
+    for (var i = 0; i < length; i++) {
+      if (filterMask[i]) {
+        targetData[targetIndex] = data[i];
+        if (isNull(i)) {
+          targetMask ??= ValidityMask(count);
+          targetMask.setNull(targetIndex);
+        }
+        targetIndex++;
+      }
+    }
+    return BoolSeries(name: name, data: targetData, mask: targetMask);
   }
 
   @override
   Series<bool> slice(int start, int end) {
-    final startIndex = math.max(0, start);
-    final endIndex = math.min(length, end);
-    final sliced = <bool?>[];
-    for (var i = startIndex; i < endIndex; i++) {
-      sliced.add(this[i]);
+    final startIndex = start.clamp(0, length);
+    final endIndex = math.min(length, math.max(startIndex, end));
+    final slicedData = data.sublist(startIndex, endIndex);
+    final slicedMask = mask?.slice(startIndex, endIndex);
+    return BoolSeries(
+      name: name,
+      data: slicedData,
+      mask: (slicedMask != null && slicedMask.nullCount > 0)
+          ? slicedMask
+          : null,
+    );
+  }
+
+  @override
+  Series<bool> permute(List<int> indices) {
+    final count = indices.length;
+    final permutedData = List<bool>.filled(count, false);
+    ValidityMask? permutedMask;
+    for (var i = 0; i < count; i++) {
+      final idx = indices[i];
+      if (isNull(idx)) {
+        permutedMask ??= ValidityMask(count);
+        permutedMask.setNull(i);
+      } else {
+        permutedData[i] = data[idx];
+      }
     }
-    return BoolSeries.fromList(name, sliced);
+    return BoolSeries(name: name, data: permutedData, mask: permutedMask);
+  }
+
+  @override
+  Series<Object?> concat(Series<Object?> other) {
+    if (other is BoolSeries) {
+      final newLen = length + other.length;
+      final newData = List<bool>.filled(newLen, false);
+      newData.setRange(0, length, data);
+      newData.setRange(length, newLen, other.data);
+      final newMask = ValidityMask.concatMasks(
+        mask,
+        length,
+        other.mask,
+        other.length,
+      );
+      return BoolSeries(name: name, data: newData, mask: newMask);
+    }
+    final combinedType = dataType.promoteWith(other.dataType);
+    final combinedVals = <Object?>[
+      for (var i = 0; i < length; i++)
+        if (isNull(i)) null else combinedType.cast(data[i]),
+      for (var i = 0; i < other.length; i++)
+        if (other.isNull(i)) null else combinedType.cast(other[i]),
+    ];
+    return Series.fromList(name, combinedVals, type: combinedType);
   }
 
   @override
@@ -679,7 +780,7 @@ class BoolSeries extends Series<bool> {
       final cmp = (data[a] ? 1 : 0).compareTo(data[b] ? 1 : 0);
       return ascending ? cmp : -cmp;
     });
-    return BoolSeries.fromList(name, [for (final idx in indices) this[idx]]);
+    return permute(indices);
   }
 
   @override
@@ -795,22 +896,97 @@ class ObjectSeries<T> extends Series<T> {
         'Filter mask length (${filterMask.length}) must match series length ($length)',
       );
     }
-    final filtered = <T?>[];
+    var count = 0;
     for (var i = 0; i < length; i++) {
-      if (filterMask[i]) filtered.add(this[i]);
+      if (filterMask[i]) count++;
     }
-    return ObjectSeries<T>.fromList(name, filtered, type: dataType);
+    final targetData = List<T>.filled(count, dataType.defaultValue);
+    ValidityMask? targetMask;
+    var targetIndex = 0;
+    for (var i = 0; i < length; i++) {
+      if (filterMask[i]) {
+        targetData[targetIndex] = data[i];
+        if (isNull(i)) {
+          targetMask ??= ValidityMask(count);
+          targetMask.setNull(targetIndex);
+        }
+        targetIndex++;
+      }
+    }
+    return ObjectSeries<T>(
+      name: name,
+      data: targetData,
+      dataType: dataType,
+      mask: targetMask,
+    );
   }
 
   @override
   Series<T> slice(int start, int end) {
-    final startIndex = math.max(0, start);
-    final endIndex = math.min(length, end);
-    final sliced = <T?>[];
-    for (var i = startIndex; i < endIndex; i++) {
-      sliced.add(this[i]);
+    final startIndex = start.clamp(0, length);
+    final endIndex = math.min(length, math.max(startIndex, end));
+    final slicedData = data.sublist(startIndex, endIndex);
+    final slicedMask = mask?.slice(startIndex, endIndex);
+    return ObjectSeries<T>(
+      name: name,
+      data: slicedData,
+      dataType: dataType,
+      mask: (slicedMask != null && slicedMask.nullCount > 0)
+          ? slicedMask
+          : null,
+    );
+  }
+
+  @override
+  Series<T> permute(List<int> indices) {
+    final count = indices.length;
+    final permutedData = List<T>.filled(count, dataType.defaultValue);
+    ValidityMask? permutedMask;
+    for (var i = 0; i < count; i++) {
+      final idx = indices[i];
+      if (isNull(idx)) {
+        permutedMask ??= ValidityMask(count);
+        permutedMask.setNull(i);
+      } else {
+        permutedData[i] = data[idx];
+      }
     }
-    return ObjectSeries<T>.fromList(name, sliced, type: dataType);
+    return ObjectSeries<T>(
+      name: name,
+      data: permutedData,
+      dataType: dataType,
+      mask: permutedMask,
+    );
+  }
+
+  @override
+  Series<Object?> concat(Series<Object?> other) {
+    if (other is ObjectSeries<T> && other.dataType == dataType) {
+      final newLen = length + other.length;
+      final newData = List<T>.filled(newLen, dataType.defaultValue);
+      newData.setRange(0, length, data);
+      newData.setRange(length, newLen, other.data);
+      final newMask = ValidityMask.concatMasks(
+        mask,
+        length,
+        other.mask,
+        other.length,
+      );
+      return ObjectSeries<T>(
+        name: name,
+        data: newData,
+        dataType: dataType,
+        mask: newMask,
+      );
+    }
+    final combinedType = dataType.promoteWith(other.dataType);
+    final combinedVals = <Object?>[
+      for (var i = 0; i < length; i++)
+        if (isNull(i)) null else combinedType.cast(data[i]),
+      for (var i = 0; i < other.length; i++)
+        if (other.isNull(i)) null else combinedType.cast(other[i]),
+    ];
+    return Series.fromList(name, combinedVals, type: combinedType);
   }
 
   @override
@@ -861,9 +1037,7 @@ class ObjectSeries<T> extends Series<T> {
       }
       return ascending ? comparison : -comparison;
     });
-    return ObjectSeries<T>.fromList(name, [
-      for (final idx in indices) this[idx],
-    ], type: dataType);
+    return permute(indices);
   }
 
   @override

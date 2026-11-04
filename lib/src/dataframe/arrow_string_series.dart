@@ -245,38 +245,8 @@ class ArrowStringSeries extends Series<String> {
   }
 
   @override
-  Series<String> sort({bool ascending = true, bool nullsLast = true}) {
-    final indices = List<int>.generate(length, (i) => i);
-    indices.sort((a, b) {
-      final aNull = isNull(a);
-      final bNull = isNull(b);
-      if (aNull && bNull) return 0;
-      if (aNull) return nullsLast ? 1 : -1;
-      if (bNull) return nullsLast ? -1 : 1;
-
-      final startA = offsets[a];
-      final endA = offsets[a + 1];
-      final startB = offsets[b];
-      final endB = offsets[b + 1];
-      final lenA = endA - startA;
-      final lenB = endB - startB;
-      final minLen = lenA < lenB ? lenA : lenB;
-      var cmp = 0;
-      for (var k = 0; k < minLen; k++) {
-        final byteA = bytes[startA + k];
-        final byteB = bytes[startB + k];
-        if (byteA != byteB) {
-          cmp = byteA.compareTo(byteB);
-          break;
-        }
-      }
-      if (cmp == 0) {
-        cmp = lenA.compareTo(lenB);
-      }
-      return ascending ? cmp : -cmp;
-    });
-
-    final count = length;
+  Series<String> permute(List<int> indices) {
+    final count = indices.length;
     var totalBytes = 0;
     ValidityMask? newMask;
     for (var i = 0; i < count; i++) {
@@ -314,6 +284,68 @@ class ArrowStringSeries extends Series<String> {
   }
 
   @override
+  Series<Object?> concat(Series<Object?> other) {
+    if (other is ArrowStringSeries) {
+      final newLen = length + other.length;
+      final totalBytes = bytes.length + other.bytes.length;
+      final newBytes = Uint8List(totalBytes);
+      newBytes.setRange(0, bytes.length, bytes);
+      newBytes.setRange(bytes.length, totalBytes, other.bytes);
+
+      final newOffsets = Uint32List(newLen + 1);
+      newOffsets.setRange(0, length + 1, offsets);
+      final byteOffset = bytes.length;
+      for (var i = 1; i <= other.length; i++) {
+        newOffsets[length + i] = byteOffset + other.offsets[i];
+      }
+
+      final newMask = ValidityMask.concatMasks(
+        mask,
+        length,
+        other.mask,
+        other.length,
+      );
+      return ArrowStringSeries(
+        name: name,
+        bytes: newBytes,
+        offsets: newOffsets,
+        mask: newMask,
+      );
+    }
+    final combinedType = dataType.promoteWith(other.dataType);
+    final combinedVals = <Object?>[
+      for (var i = 0; i < length; i++)
+        if (isNull(i)) null else combinedType.cast(this[i]),
+      for (var i = 0; i < other.length; i++)
+        if (other.isNull(i)) null else combinedType.cast(other[i]),
+    ];
+    return Series.fromList(name, combinedVals, type: combinedType);
+  }
+
+  @override
+  Series<String> sort({bool ascending = true, bool nullsLast = true}) {
+    final indices = List<int>.generate(length, (i) => i);
+    indices.sort((a, b) {
+      final aNull = isNull(a);
+      final bNull = isNull(b);
+      if (aNull && bNull) return 0;
+      if (aNull) return nullsLast ? 1 : -1;
+      if (bNull) return nullsLast ? -1 : 1;
+
+      final cmp = _compareBytes(
+        bytes,
+        offsets[a],
+        offsets[a + 1],
+        offsets[b],
+        offsets[b + 1],
+      );
+      return ascending ? cmp : -cmp;
+    });
+
+    return permute(indices);
+  }
+
+  @override
   Series<String> rename(String newName) => ArrowStringSeries(
     name: newName,
     bytes: bytes,
@@ -321,28 +353,64 @@ class ArrowStringSeries extends Series<String> {
     mask: mask,
   );
 
+  static int _compareBytes(
+    Uint8List bytes,
+    int startA,
+    int endA,
+    int startB,
+    int endB,
+  ) {
+    final lenA = endA - startA;
+    final lenB = endB - startB;
+    final minLen = lenA < lenB ? lenA : lenB;
+    for (var k = 0; k < minLen; k++) {
+      final byteA = bytes[startA + k];
+      final byteB = bytes[startB + k];
+      if (byteA != byteB) return byteA.compareTo(byteB);
+    }
+    return lenA.compareTo(lenB);
+  }
+
   @override
   String? get min {
-    String? res;
+    int? bestIdx;
     for (var i = 0; i < length; i++) {
-      final val = this[i];
-      if (val != null) {
-        if (res == null || val.compareTo(res) < 0) res = val;
+      if (!isNull(i)) {
+        if (bestIdx == null) {
+          bestIdx = i;
+        } else {
+          final s = offsets[i];
+          final e = offsets[i + 1];
+          final bestS = offsets[bestIdx];
+          final bestE = offsets[bestIdx + 1];
+          if (_compareBytes(bytes, s, e, bestS, bestE) < 0) {
+            bestIdx = i;
+          }
+        }
       }
     }
-    return res;
+    return bestIdx == null ? null : this[bestIdx];
   }
 
   @override
   String? get max {
-    String? res;
+    int? bestIdx;
     for (var i = 0; i < length; i++) {
-      final val = this[i];
-      if (val != null) {
-        if (res == null || val.compareTo(res) > 0) res = val;
+      if (!isNull(i)) {
+        if (bestIdx == null) {
+          bestIdx = i;
+        } else {
+          final s = offsets[i];
+          final e = offsets[i + 1];
+          final bestS = offsets[bestIdx];
+          final bestE = offsets[bestIdx + 1];
+          if (_compareBytes(bytes, s, e, bestS, bestE) > 0) {
+            bestIdx = i;
+          }
+        }
       }
     }
-    return res;
+    return bestIdx == null ? null : this[bestIdx];
   }
 
   @override

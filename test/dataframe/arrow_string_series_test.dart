@@ -155,6 +155,57 @@ void main() {
       check(series.max).equals('cherry');
       check(series.sum).isNull();
       check(series.mean).isNull();
+
+      final emptySeries = ArrowStringSeries.fromList('empty', <String>[]);
+      check(emptySeries.min).isNull();
+      check(emptySeries.max).isNull();
+
+      final allNullSeries = ArrowStringSeries.fromList('all_null', <String?>[
+        null,
+        null,
+      ]);
+      check(allNullSeries.min).isNull();
+      check(allNullSeries.max).isNull();
+    });
+
+    test('permute subsets and reorders bytes and offsets', () {
+      final series = ArrowStringSeries.fromList('words', [
+        'alpha',
+        'beta',
+        null,
+        'gamma',
+      ]);
+      final permuted = series.permute([3, 1, 2, 0]) as ArrowStringSeries;
+      check(permuted.length).equals(4);
+      check(permuted.toList()).deepEquals(['gamma', 'beta', null, 'alpha']);
+      check(permuted.nullCount).equals(1);
+      check(permuted.isNull(2)).isTrue();
+      check(permuted.isNull(0)).isFalse();
+    });
+
+    test('concat joins raw byte buffers and validity masks', () {
+      final s1 = ArrowStringSeries.fromList('a', ['one', null, 'two']);
+      final s2 = ArrowStringSeries.fromList('a', ['three', 'four', null]);
+      final concatenated = s1.concat(s2) as ArrowStringSeries;
+
+      check(concatenated.length).equals(6);
+      check(concatenated.nullCount).equals(2);
+      check(concatenated.toList())
+          .deepEquals(['one', null, 'two', 'three', 'four', null]);
+
+      // Concat without nulls produces series without mask
+      final nonNull1 = ArrowStringSeries.fromList('b', ['x', 'y']);
+      final nonNull2 = ArrowStringSeries.fromList('b', ['z']);
+      final nonNullConcat = nonNull1.concat(nonNull2) as ArrowStringSeries;
+      check(nonNullConcat.hasNulls).isFalse();
+      check(nonNullConcat.mask).isNull();
+      check(nonNullConcat.toList()).deepEquals(['x', 'y', 'z']);
+
+      // Concat with incompatible series falls back to ObjectSeries
+      final typed = TypedSeries<int>.fromList('b', [1, 2]);
+      final mixed = s1.concat(typed);
+      check(mixed).isA<ObjectSeries<Object?>>();
+      check(mixed.toList()).deepEquals(['one', null, 'two', 1, 2]);
     });
 
     test('rename', () {

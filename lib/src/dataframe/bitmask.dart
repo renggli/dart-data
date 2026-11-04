@@ -167,6 +167,53 @@ class ValidityMask {
   ValidityMask copy() =>
       ValidityMask._(length, Uint8List.fromList(_bytes), _nullCount);
 
+  /// Concatenates [other] to the end of this validity mask.
+  ValidityMask concat(ValidityMask other) {
+    final newLen = length + other.length;
+    if (_nullCount == 0 && other._nullCount == 0) {
+      return ValidityMask(newLen);
+    }
+    if (_nullCount == length && other._nullCount == other.length) {
+      return ValidityMask.allNull(newLen);
+    }
+    final result = ValidityMask(newLen);
+    if (_nullCount > 0) {
+      for (var i = 0; i < length; i++) {
+        if (isNull(i)) {
+          result._bytes[i >> 3] &= ~(1 << (i & 7));
+        }
+      }
+    }
+    if (other._nullCount > 0) {
+      for (var i = 0; i < other.length; i++) {
+        if (other.isNull(i)) {
+          final idx = length + i;
+          result._bytes[idx >> 3] &= ~(1 << (idx & 7));
+        }
+      }
+    }
+    result._nullCount = _nullCount + other._nullCount;
+    return result;
+  }
+
+  /// Concatenates two optional validity masks. Returns `null` if the combined
+  /// mask has no nulls.
+  static ValidityMask? concatMasks(
+    ValidityMask? maskA,
+    int lenA,
+    ValidityMask? maskB,
+    int lenB,
+  ) {
+    if ((maskA == null || !maskA.hasNulls) &&
+        (maskB == null || !maskB.hasNulls)) {
+      return null;
+    }
+    final a = maskA ?? ValidityMask(lenA);
+    final b = maskB ?? ValidityMask(lenB);
+    final combined = a.concat(b);
+    return combined.hasNulls ? combined : null;
+  }
+
   /// Computes the population count (number of set 1-bits) across [bytes].
   static int _popCountBytes(Uint8List bytes) {
     var count = 0;

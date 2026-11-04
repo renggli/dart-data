@@ -558,7 +558,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `Tensor.generate` iterates `effectiveLayout.keys` and calls `tensor.setValue(key, generator(key))` (recomputing `toIndex(key)` on a newly allocated contiguous layout). `concatenateAll`, `stackAll`, `tile`, and `pad` allocate two `List<int>` coordinate lists and call `getValue`/`setValue` on every single element.
   - **Fix**: Write `data[i++] = generator(key)` directly in `Tensor.generate`, and use stride-based flat loops (with `setRange` for contiguous axis-0 concatenation/stacking) in `manipulation.dart`.
 
-- [ ] **2.6 `DataFrame.concat`, `DataFrame.sortBy`, `BoolSeries`, `ObjectSeries`, `ArrowStringSeries.min`/`max`, and `GroupBy` box elements unnecessarily**
+- [x] **2.6 `DataFrame.concat`, `DataFrame.sortBy`, `BoolSeries`, `ObjectSeries`, `ArrowStringSeries.min`/`max`, and `GroupBy` box elements unnecessarily**
   - **Severity**: Warning
   - **Location**: `lib/src/dataframe/dataframe.dart:239-250, 451-455`, `lib/src/dataframe/series.dart:628-665, 772-794`, `lib/src/dataframe/arrow_string_series.dart:324-345`, `lib/src/dataframe/groupby.dart:220-225`
   - **Problem**:
