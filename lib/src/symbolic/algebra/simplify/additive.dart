@@ -48,6 +48,7 @@ Expr simplifyNeg(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
       Add() => () {
         final acc = MonomialAccumulator(
           simplify: (e) => simplifyExpr(e, assumptions: assumptions),
+          assumptions: assumptions,
         );
         acc.add(expr, IntegerNumber.negativeOne);
         acc.reduceIdentities();

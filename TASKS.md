@@ -464,7 +464,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `computeSum` and `computeProduct` call `assumptions.copyWith(domains: {limitVarName: VariableDomain.integer})`, which replaces the entire `_domains` map and erases all per-variable assumptions supplied by the caller.
   - **Fix**: Use `assumptions.assume(limitVarName, VariableDomain.integer)`.
 
-- [ ] **1.10.10 `MonomialAccumulator._reduceLogarithms` performs invalid branch-cut contractions and drops `assumptions`**
+- [x] **1.10.10 `MonomialAccumulator._reduceLogarithms` performs invalid branch-cut contractions and drops `assumptions`**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/algebra/term_accumulator.dart:368-415, 565-582`, `lib/src/symbolic/algebra/simplify/additive.dart:49-51`
   - **Problem**: `_reduceLogarithms` contracts `Ln(a) + Ln(b) -> Ln(a * b)` without checking `isPositiveExpr`, which is invalid for negative/complex arguments, and neither `_reduceLogarithms`, `_doCombineFractions`, nor `simplifyNeg` forwards `assumptions: assumptions` to inner `simplify*` calls.

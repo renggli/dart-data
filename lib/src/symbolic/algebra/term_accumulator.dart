@@ -176,7 +176,10 @@ class MonomialAccumulator {
 
     void addCoeff(int power, Expr value) {
       if (coeffMap.containsKey(power)) {
-        coeffMap[power] = simplifyAdd([coeffMap[power]!, value]);
+        coeffMap[power] = simplifyAdd([
+          coeffMap[power]!,
+          value,
+        ], assumptions: assumptions);
       } else {
         coeffMap[power] = value;
       }
@@ -186,13 +189,18 @@ class MonomialAccumulator {
       if (coeff.isZero) continue;
 
       if (!base.dependsOn(variable)) {
-        addCoeff(0, coeff.isOne ? base : simplifyMul([coeff, base]));
+        addCoeff(
+          0,
+          coeff.isOne
+              ? base
+              : simplifyMul([coeff, base], assumptions: assumptions),
+        );
       } else {
         final monomial = _extractBaseMonomial(base, variable);
         if (monomial == null) return null;
         final totalCoeff = coeff.isOne
             ? monomial.coeff
-            : simplifyMul([coeff, monomial.coeff]);
+            : simplifyMul([coeff, monomial.coeff], assumptions: assumptions);
         addCoeff(monomial.power, totalCoeff);
       }
     }
@@ -370,7 +378,8 @@ class MonomialAccumulator {
       for (final e in terms.entries)
         if (e.key is Ln &&
             e.value is RationalNumber &&
-            (e.value.isOne || e.value.isNegativeOne))
+            (e.value.isOne || e.value.isNegativeOne) &&
+            isPositiveExpr((e.key as Ln).expr, assumptions: assumptions))
           e,
     ];
 
@@ -381,34 +390,31 @@ class MonomialAccumulator {
       for (final MapEntry(key: lnKey, :value) in lnEntries) {
         final inner = (lnKey as Ln).expr;
         if (value.isOne) {
-          num = num == null ? inner : simplifyMul([num, inner]);
+          num = num == null
+              ? inner
+              : simplifyMul([num, inner], assumptions: assumptions);
         } else {
-          den = den == null ? inner : simplifyMul([den, inner]);
+          den = den == null
+              ? inner
+              : simplifyMul([den, inner], assumptions: assumptions);
         }
         terms.remove(lnKey);
       }
 
       if (num != null && den != null) {
-        final ratio = simplifyDiv(num, den);
-        final isNonPositiveRatio = switch (ratio) {
-          RealNumeric(:final isNegative, :final isZero) => isNegative || isZero,
-          Mul(factors: [RealNumeric(isNegative: true), ...]) => true,
-          _ => false,
-        };
-        if (isNonPositiveRatio) {
-          for (final MapEntry(:key, :value) in lnEntries) {
-            terms[key] = value;
-          }
-        } else {
-          final combined = simplifyLn(ratio);
-          add(combined, IntegerNumber.one);
-        }
+        final ratio = simplifyDiv(num, den, assumptions: assumptions);
+        final combined = simplifyLn(ratio, assumptions: assumptions);
+        add(combined, IntegerNumber.one);
       } else if (num != null) {
-        final combined = simplifyLn(num);
+        final combined = simplifyLn(num, assumptions: assumptions);
         add(combined, IntegerNumber.one);
       } else if (den != null) {
-        final inv = simplifyPow(den, IntegerNumber.negativeOne);
-        final combined = simplifyLn(inv);
+        final inv = simplifyPow(
+          den,
+          IntegerNumber.negativeOne,
+          assumptions: assumptions,
+        );
+        final combined = simplifyLn(inv, assumptions: assumptions);
         add(combined, IntegerNumber.one);
       }
     }
@@ -562,24 +568,36 @@ class MonomialAccumulator {
         if (coeff.isOne) {
           numerators.add(numPart);
         } else if (coeff.isNegativeOne) {
-          numerators.add(simplifyNeg(numPart));
+          numerators.add(simplifyNeg(numPart, assumptions: assumptions));
         } else {
-          numerators.add(simplifyMul([coeff, numPart]));
+          numerators.add(
+            simplifyMul([coeff, numPart], assumptions: assumptions),
+          );
         }
       }
 
       final totalNum = Add(numerators);
-      final simplifiedNum = totalNum.expand().simplify();
+      final simplifiedNum = totalNum
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
 
       if (simplifiedNum is Number && simplifiedNum.isZero) {
         // Combined numerator is 0: sum is 0, nothing added.
       } else if (simplifiedNum == den ||
-          _isAlgebraicallyZero(simplifySub(simplifiedNum, den))) {
+          _isAlgebraicallyZero(
+            simplifySub(simplifiedNum, den, assumptions: assumptions),
+          )) {
         add(IntegerNumber.one);
-      } else if (_isAlgebraicallyZero(simplifyAdd([simplifiedNum, den]))) {
+      } else if (_isAlgebraicallyZero(
+        simplifyAdd([simplifiedNum, den], assumptions: assumptions),
+      )) {
         add(IntegerNumber.negativeOne);
       } else {
-        final combined = simplifyDiv(simplifiedNum, den);
+        final combined = simplifyDiv(
+          simplifiedNum,
+          den,
+          assumptions: assumptions,
+        );
         add(combined);
       }
     }

@@ -156,24 +156,38 @@ void main() {
     test(
       'reduces logarithm sums and differences and guards negative ratios',
       () {
-        check(Expr.parse('ln(x) + ln(y)').simplify().toString())
-            .equals('ln(x * y)');
-        check(Expr.parse('-ln(x) - ln(y)').simplify().toString())
-            .equals('ln(1 / (x * y))');
-        check(Expr.parse('ln(x) - ln(y)').simplify().toString())
-            .equals('ln(x / y)');
+        const posAssumptions = Assumptions.positive;
+        check(
+          Expr.parse('ln(x) + ln(y)')
+              .simplify(assumptions: posAssumptions)
+              .toString(),
+        ).equals('ln(x * y)');
+        check(
+          Expr.parse('-ln(x) - ln(y)')
+              .simplify(assumptions: posAssumptions)
+              .toString(),
+        ).equals('ln(1 / (x * y))');
+        check(
+          Expr.parse('ln(x) - ln(y)')
+              .simplify(assumptions: posAssumptions)
+              .toString(),
+        ).equals('ln(x / y)');
+
+        // Without positive assumptions, logs are not contracted across branch cuts
+        check(Expr.parse('ln(x) + ln(y)').simplify()).isA<Add>();
+        check(Expr.parse('ln(x) - ln(y)').simplify()).isA<Add>();
 
         // When num/den simplifies to a negative ratio (scalar or Mul), logs are not merged
         final negRatioLogs1 =
             (Ln(const Variable('x')) -
                     Ln(IntegerNumber.of(-2) * const Variable('x')))
-                .simplify();
+                .simplify(assumptions: posAssumptions);
         check(negRatioLogs1).isA<Add>();
 
         final negRatioLogs2 =
             (Ln(const Variable('x')) -
                     Ln(IntegerNumber.of(-2) * const Variable('y')))
-                .simplify();
+                .simplify(assumptions: posAssumptions);
         check(negRatioLogs2).isA<Add>();
       },
     );
