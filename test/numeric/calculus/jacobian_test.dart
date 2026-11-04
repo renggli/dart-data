@@ -43,8 +43,8 @@ void main() {
       final jac = jacobian(function, pt);
       check(jac.rowCount).equals(10);
       check(jac.colCount).equals(3);
-      // Exactly 1 (initial f0) + 2 * n (3 inputs) = 7 evaluations
-      check(evalCount).equals(7);
+      // Exactly 2 * n (3 inputs) = 6 evaluations (f0 is not evaluated)
+      check(evalCount).equals(6);
     });
 
     test(

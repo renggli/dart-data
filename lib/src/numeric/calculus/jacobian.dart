@@ -29,16 +29,12 @@ Matrix<double> jacobian(
     throw ArgumentError.value(step, 'step', 'Step must be positive and finite');
   }
   final dim = point.length;
-  final f0 = function(point);
-  final numFuncs = f0.length;
-  final result = Matrix<double>.filled(
-    numFuncs,
-    dim,
-    0.0,
-    type: DataType.float64,
-  );
-  if (dim == 0 || numFuncs == 0) return result;
+  if (dim == 0) {
+    final numFuncs = function(point).length;
+    return Matrix<double>.filled(numFuncs, 0, 0.0, type: DataType.float64);
+  }
 
+  Matrix<double>? result;
   final xWork = point.copy();
   for (var col = 0; col < dim; col++) {
     final original = point[col];
@@ -49,10 +45,21 @@ Matrix<double> jacobian(
     final fMinus = function(xWork);
     xWork[col] = original;
 
+    if (result == null) {
+      final numFuncs = fPlus.length;
+      result = Matrix<double>.filled(
+        numFuncs,
+        dim,
+        0.0,
+        type: DataType.float64,
+      );
+      if (numFuncs == 0) return result;
+    }
+
     final invTwoH = 1.0 / (2.0 * h);
-    for (var row = 0; row < numFuncs; row++) {
+    for (var row = 0; row < result.rowCount; row++) {
       result.set(row, col, (fPlus[row] - fMinus[row]) * invTwoH);
     }
   }
-  return result;
+  return result!;
 }
