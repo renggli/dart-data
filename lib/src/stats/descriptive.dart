@@ -188,16 +188,20 @@ double spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
 ///
 /// Transparently uses [Matrix.syrk] BLAS acceleration for large matrix
 /// multiplications.
-Matrix<double> covarianceMatrix(Object data, {bool rowVar = false}) =>
+Matrix<double> covarianceMatrix(Matrix<num> data, {bool rowVar = false}) =>
     _covarianceMatrix(data, rowVar: rowVar);
 
 /// Computes the Pearson correlation matrix of [data].
-Matrix<double> pearsonCorrelationMatrix(Object data, {bool rowVar = false}) =>
-    _pearsonCorrelationMatrix(data, rowVar: rowVar);
+Matrix<double> pearsonCorrelationMatrix(
+  Matrix<num> data, {
+  bool rowVar = false,
+}) => _pearsonCorrelationMatrix(data, rowVar: rowVar);
 
 /// Computes the Spearman rank correlation matrix of [data].
-Matrix<double> spearmanCorrelationMatrix(Object data, {bool rowVar = false}) =>
-    _spearmanCorrelationMatrix(data, rowVar: rowVar);
+Matrix<double> spearmanCorrelationMatrix(
+  Matrix<num> data, {
+  bool rowVar = false,
+}) => _spearmanCorrelationMatrix(data, rowVar: rowVar);
 
 /// Returns the weighted mean of [values] weighted by [weights].
 double weightedMean(Iterable<num> values, Iterable<num> weights) =>
@@ -472,16 +476,28 @@ extension DescriptiveTensorNumExtension on Tensor<num> {
       _kurtosis(values, excess: excess, bias: bias);
 
   /// Computes the covariance matrix of a rank-2 tensor.
-  Matrix<double> covarianceMatrix({bool rowVar = false}) =>
-      _covarianceMatrix(this, rowVar: rowVar);
+  Matrix<double> covarianceMatrix({bool rowVar = false}) {
+    if (rank != 2) {
+      throw ArgumentError.value(rank, 'rank', 'Expected rank-2 tensor');
+    }
+    return _covarianceMatrix(Matrix(this), rowVar: rowVar);
+  }
 
   /// Computes the Pearson correlation matrix of a rank-2 tensor.
-  Matrix<double> pearsonCorrelationMatrix({bool rowVar = false}) =>
-      _pearsonCorrelationMatrix(this, rowVar: rowVar);
+  Matrix<double> pearsonCorrelationMatrix({bool rowVar = false}) {
+    if (rank != 2) {
+      throw ArgumentError.value(rank, 'rank', 'Expected rank-2 tensor');
+    }
+    return _pearsonCorrelationMatrix(Matrix(this), rowVar: rowVar);
+  }
 
   /// Computes the Spearman rank correlation matrix of a rank-2 tensor.
-  Matrix<double> spearmanCorrelationMatrix({bool rowVar = false}) =>
-      _spearmanCorrelationMatrix(this, rowVar: rowVar);
+  Matrix<double> spearmanCorrelationMatrix({bool rowVar = false}) {
+    if (rank != 2) {
+      throw ArgumentError.value(rank, 'rank', 'Expected rank-2 tensor');
+    }
+    return _spearmanCorrelationMatrix(Matrix(this), rowVar: rowVar);
+  }
 }
 
 /// Statistics extensions on [Matrix<num>].
@@ -699,17 +715,7 @@ double _pearsonCorrelation(Iterable<num> x, Iterable<num> y) {
 double _spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
     _pearsonCorrelation(rankData(x), rankData(y));
 
-Matrix<double> _covarianceMatrix(Object data, {bool rowVar = false}) {
-  final matrix = switch (data) {
-    Matrix<num>() => data,
-    Tensor<num>() => Matrix(data),
-    _ => throw ArgumentError.value(
-      data,
-      'data',
-      'Expected Matrix<num> or Tensor<num>',
-    ),
-  };
-
+Matrix<double> _covarianceMatrix(Matrix<num> matrix, {bool rowVar = false}) {
   final numRows = matrix.rowCount;
   final numCols = matrix.colCount;
   final nSamples = rowVar ? numCols : numRows;
@@ -747,8 +753,11 @@ Matrix<double> _covarianceMatrix(Object data, {bool rowVar = false}) {
   return xc.syrk(transpose: true, alpha: scale);
 }
 
-Matrix<double> _pearsonCorrelationMatrix(Object data, {bool rowVar = false}) {
-  final cov = _covarianceMatrix(data, rowVar: rowVar);
+Matrix<double> _pearsonCorrelationMatrix(
+  Matrix<num> matrix, {
+  bool rowVar = false,
+}) {
+  final cov = _covarianceMatrix(matrix, rowVar: rowVar);
   final dim = cov.rowCount;
   final std = List<double>.generate(dim, (i) => math.sqrt(cov.get(i, i)));
   final corr = Matrix<double>.filled(dim, dim, 0.0, type: DataType.float64);
@@ -766,17 +775,10 @@ Matrix<double> _pearsonCorrelationMatrix(Object data, {bool rowVar = false}) {
   return corr;
 }
 
-Matrix<double> _spearmanCorrelationMatrix(Object data, {bool rowVar = false}) {
-  final matrix = switch (data) {
-    Matrix<num>() => data,
-    Tensor<num>() => Matrix(data),
-    _ => throw ArgumentError.value(
-      data,
-      'data',
-      'Expected Matrix<num> or Tensor<num>',
-    ),
-  };
-
+Matrix<double> _spearmanCorrelationMatrix(
+  Matrix<num> matrix, {
+  bool rowVar = false,
+}) {
   final numRows = matrix.rowCount;
   final numCols = matrix.colCount;
   final nSamples = rowVar ? numCols : numRows;

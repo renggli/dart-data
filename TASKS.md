@@ -726,7 +726,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
     3. `LuMatrixExtension`, `QrMatrixExtension`, and `CholeskyMatrixExtension` are duplicated for `Matrix<T extends num>` and `Matrix<Complex>`, excluding `Matrix<Fraction>` and `Matrix<Expr>` even though the underlying decomposition classes are generic in `T`.
   - **Fix**: Add unary `operator -()` to `Float64Vector` and `Float64Matrix`; standardize singular/non-SPD solve failures on `StateError`; and unify `.lu`, `.qr`, `.cholesky`, `.det`, and `.inverse` into a single generic extension on `Matrix<T>`.
 
-- [ ] **5.4 Untyped `Object data` parameter on `covarianceMatrix`, `pearsonCorrelationMatrix`, and `spearmanCorrelationMatrix`**
+- [x] **5.4 Untyped `Object data` parameter on `covarianceMatrix`, `pearsonCorrelationMatrix`, and `spearmanCorrelationMatrix`**
   - **Severity**: Warning
   - **Location**: `lib/src/stats/descriptive.dart:184, 188, 192`
   - **Problem**: Top-level matrix correlation/covariance functions accept `Object data` instead of `Matrix<num> data`, sacrificing static type safety.

@@ -172,8 +172,19 @@ void main() {
       check(quantile([1.0, double.nan, 3.0], 0.5)).isNaN();
 
       // Invalid matrix data error checking
-      check(() => covarianceMatrix('invalid')).throws<ArgumentError>();
-      check(() => spearmanCorrelationMatrix('invalid')).throws<ArgumentError>();
+      final tooFewRows = Matrix<double>.fromRows([
+        [1.0, 2.0],
+      ]);
+      check(() => covarianceMatrix(tooFewRows)).throws<ArgumentError>();
+      check(() => pearsonCorrelationMatrix(tooFewRows)).throws<ArgumentError>();
+      check(() => spearmanCorrelationMatrix(tooFewRows))
+          .throws<ArgumentError>();
+
+      // Invalid rank-1 tensor error checking
+      final rank1Tensor = Tensor<double>.fromIterable([1.0, 2.0, 3.0]);
+      check(rank1Tensor.covarianceMatrix).throws<ArgumentError>();
+      check(rank1Tensor.pearsonCorrelationMatrix).throws<ArgumentError>();
+      check(rank1Tensor.spearmanCorrelationMatrix).throws<ArgumentError>();
     });
 
     test('Pearson and Spearman correlations', () {
