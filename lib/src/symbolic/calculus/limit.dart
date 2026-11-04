@@ -84,16 +84,22 @@ Expr computeLimit(
       // Fall through to log-exponential form
     }
     final logForm = exponent * Ln(base);
-    final innerLim = computeLimit(
-      logForm,
-      variable,
-      point,
-      direction: direction,
-      assumptions: assumptions,
-    );
-    if (_isPositiveInfinity(innerLim)) return Constant.infinity;
-    if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
-    return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
+    try {
+      final innerLim = computeLimit(
+        logForm,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      if (_isPositiveInfinity(innerLim)) return Constant.infinity;
+      if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
+      if (!innerLim.anyNode((n) => n is Limit)) {
+        return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
+      }
+    } on Object {
+      // Fall through to general limit pipeline
+    }
   }
 
   if (expr case Pow(base: Constant.e, :final exponent)) {
@@ -107,7 +113,9 @@ Expr computeLimit(
       );
       if (_isPositiveInfinity(innerLim)) return Constant.infinity;
       if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
-      return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
+      if (!innerLim.anyNode((n) => n is Limit)) {
+        return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
+      }
     } on Object {
       // Fall through
     }
@@ -124,10 +132,31 @@ Expr computeLimit(
       );
       if (_isPositiveInfinity(innerLim)) return Constant.infinity;
       if (innerLim is Number && innerLim.isZero) {
-        return _negInfinity;
+        final recip = (IntegerNumber.one / inner).simplify(
+          assumptions: assumptions,
+        );
+        final recipLim = computeLimit(
+          recip,
+          variable,
+          point,
+          direction: direction,
+          assumptions: assumptions,
+        );
+        if (_isPositiveInfinity(recipLim)) {
+          return _negInfinity;
+        }
+        if (_isNegativeInfinity(recipLim)) {
+          throw UnsupportedError(
+            'Limit of Ln($inner) does not exist as $variable -> $point: argument approaches 0 from below',
+          );
+        }
       }
       if (_isWellDefinedFinite(innerLim)) {
         return Ln(innerLim).simplify(assumptions: assumptions);
+      }
+    } on UnsupportedError catch (e) {
+      if (e.message?.contains('does not exist') ?? false) {
+        rethrow;
       }
     } on Object {
       // Fall through

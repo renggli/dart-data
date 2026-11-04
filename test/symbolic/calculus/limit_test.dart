@@ -159,7 +159,34 @@ void main() {
           x,
         ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromAbove),
       ).equals(-Constant.infinity);
+      check(
+        () => Ln(
+          x,
+        ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromBelow),
+      ).throws<UnsupportedError>();
+      check(() => Ln(x).limit('x', IntegerNumber.zero))
+          .throws<UnsupportedError>();
+      check(Ln(Pow(x, IntegerNumber.two)).limit('x', IntegerNumber.zero))
+          .equals(-Constant.infinity);
       check(Ln(x).limit('x', IntegerNumber.one)).equals(IntegerNumber.zero);
+
+      // Unevaluated Limit fall-through in Pow / exp
+      final pwExp = Pow(
+        Constant.e,
+        Piecewise([
+          (
+            relation: LessThan(const Variable('y'), IntegerNumber.zero),
+            expr: x,
+          ),
+        ]),
+      );
+      final limPw = pwExp.limit('x', Constant.infinity);
+      check(limPw).isA<Limit>();
+      check(
+        limPw.anyNode(
+          (n) => n is Pow && n.base == Constant.e && n.exponent is Limit,
+        ),
+      ).isFalse();
     });
 
     test('evaluates Sin, Cos, Atan, and Tanh limits', () {

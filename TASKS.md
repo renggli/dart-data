@@ -446,7 +446,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Neither function expands `expr` before inspecting `MonomialAccumulator` keys, and `_extractDominantPolynomialTerm` places any unexpanded term depending on `variable` (such as `(x + 1)^2` or `x * (x + 1)`) into `remainingTerms`. Consequently, `Expr.parse('exp((x + 1)^2) / exp(x^2 + 2*x)').limit('x', Constant.infinity)` returns `0` instead of `e`, and `Expr.parse('exp(x * (x + 1) - x^2)').limit('x', Constant.infinity)` returns `0` instead of `infinity`.
   - **Fix**: Call `expr.expand().simplify()` at the start of `_extractDominantPolynomialTerm` and `_polynomialDegreeAndLead`, and return `null` from `_extractDominantPolynomialTerm` if any term depending on `variable` has `_monomialDegree == null`.
 
-- [ ] **1.10.7 Unevaluated `Limit` leakage in recursive `computeLimit` and wrong `Ln` limit at $0^-$**
+- [x] **1.10.7 Unevaluated `Limit` leakage in recursive `computeLimit` and wrong `Ln` limit at $0^-$**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/calculus/limit.dart:57-134, 211-222`
   - **Problem**: Recursive `computeLimit` calls for `Pow(base, exponent)` (`line 86`) and `Pow(Constant.e, exponent)` (`line 100`) receive an unevaluated `Limit` node when inner evaluation fails and return `Pow(Constant.e, Limit(...))` instead of reaching `_computeInfiniteLimit` / `_gruntzLimit`. Also, `Ln(inner)` (`lines 125-127`) returns `-Constant.infinity` whenever `innerLim == 0` without checking that `inner` approaches $0^+$.
