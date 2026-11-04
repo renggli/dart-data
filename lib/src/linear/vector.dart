@@ -521,6 +521,13 @@ class Vector<T> {
   @override
   String toString() => 'Vector(${toList()})';
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is Vector && other.tensor == tensor;
+
+  @override
+  int get hashCode => tensor.hashCode;
+
   Vector<T> _scan(
     T initial,
     T Function(T acc, T value) combine, {
@@ -565,11 +572,4 @@ class Vector<T> {
     }
     return result;
   }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is Vector && other.tensor == tensor;
-
-  @override
-  int get hashCode => tensor.hashCode;
 }

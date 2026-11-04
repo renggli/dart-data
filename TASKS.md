@@ -621,7 +621,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Violates `AGENTS.md` ("All public members, methods, functions, variables, and constants must be placed at the top of classes and files... Private methods, functions, variables, and constants must be placed at the bottom of their respective classes and files").
   - **Fix**: Move all private top-level declarations below all public top-level declarations in each listed file.
 
-- [ ] **3.2 Class member ordering violations (private fields/methods/constructors placed before public members, or fields placed at bottom of class)**
+- [x] **3.2 Class member ordering violations (private fields/methods/constructors placed before public members, or fields placed at bottom of class)**
   - **Severity**: Warning
   - **Location**:
     - `lib/src/type/types/complex.dart:313` (`_source` field placed at bottom of `UnmodifiableFloat64ComplexList`)

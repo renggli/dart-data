@@ -22,6 +22,12 @@ final class NullableDataType<T> extends DataType<T?> {
   /// Whether null values sort first or last.
   final bool nullsFirst;
 
+  late final Comparator<T?> _comparator = nullsFirst
+      ? delegate.comparator.nullsFirst
+      : delegate.comparator.nullsLast;
+
+  late final Equality<T?> _equality = NullableEquality<T>(delegate.equality);
+
   @override
   String get name => '${delegate.name}.nullable';
 
@@ -87,12 +93,6 @@ final class NullableDataType<T> extends DataType<T?> {
 
   @override
   Printer<T?> get printer => delegate.printer.ifNull('n/a');
-
-  late final Comparator<T?> _comparator = nullsFirst
-      ? delegate.comparator.nullsFirst
-      : delegate.comparator.nullsLast;
-
-  late final Equality<T?> _equality = NullableEquality<T>(delegate.equality);
 }
 
 /// Equality relation for nullable data types delegating to an underlying [Equality].

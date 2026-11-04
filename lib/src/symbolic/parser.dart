@@ -181,9 +181,6 @@ class ExprSyntax {
     },
   );
 
-  static const String _mathSymbols =
-      '+-*/^ˆ\u0302‸＾()[]{},;:.=<>!&|~?@#\$%\\\'"`´¨˜−–×·÷≤≥≠²³⁴√';
-
   /// Registered named constants.
   final Map<String, Expr> constants;
 
@@ -207,26 +204,8 @@ class ExprSyntax {
   /// Parser for number literal tokens without whitespace trimming.
   static final Parser<Expr> numberTokenParser = _buildNumberTokenParser();
 
-  late final Parser<String> _identifierParser = identifierTokenParser.trim();
-  late final Parser<Expr> _numberParser = numberTokenParser.trim();
-  late final Parser<Expr> _expressionParser = _buildExprParser();
-
   /// Underlying anchored PetitParser [Parser] for [Expr] strings.
   late final Parser<Expr> parser = _expressionParser.end();
-
-  late final Parser<Vector<Expr>> _vectorElementParser =
-      _buildBracketedExprList().map(
-        (elements) => Vector<Expr>.fromList(elements, type: exprDataType),
-      );
-  late final Parser<Vector<Expr>> _vectorParser = _vectorElementParser.end();
-
-  late final Parser<Matrix<Expr>> _matrixElementParser =
-      _buildBracketedExprList()
-          .plusSeparated(char(',').trim())
-          .map((list) => list.elements)
-          .skip(before: char('[').trim(), after: char(']').trim())
-          .map(_createMatrix);
-  late final Parser<Matrix<Expr>> _matrixParser = _matrixElementParser.end();
 
   /// Parses [input] into an [Expr], throwing [FormatException] on syntax error.
   Expr parse(String input) => switch (parser.parse(input)) {
@@ -299,6 +278,27 @@ class ExprSyntax {
       return null;
     }
   }
+
+  static const String _mathSymbols =
+      '+-*/^ˆ\u0302‸＾()[]{},;:.=<>!&|~?@#\$%\\\'"`´¨˜−–×·÷≤≥≠²³⁴√';
+
+  late final Parser<String> _identifierParser = identifierTokenParser.trim();
+  late final Parser<Expr> _numberParser = numberTokenParser.trim();
+  late final Parser<Expr> _expressionParser = _buildExprParser();
+
+  late final Parser<Vector<Expr>> _vectorElementParser =
+      _buildBracketedExprList().map(
+        (elements) => Vector<Expr>.fromList(elements, type: exprDataType),
+      );
+  late final Parser<Vector<Expr>> _vectorParser = _vectorElementParser.end();
+
+  late final Parser<Matrix<Expr>> _matrixElementParser =
+      _buildBracketedExprList()
+          .plusSeparated(char(',').trim())
+          .map((list) => list.elements)
+          .skip(before: char('[').trim(), after: char(']').trim())
+          .map(_createMatrix);
+  late final Parser<Matrix<Expr>> _matrixParser = _matrixElementParser.end();
 
   Parser<List<Expr>> _buildBracketedExprList() => _expressionParser
       .starSeparated(char(',').trim())

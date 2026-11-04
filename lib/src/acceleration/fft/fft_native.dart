@@ -8,33 +8,6 @@ import '../utils/library_loader_ffi.dart';
 /// Native FFT bindings via dart:ffi supporting Apple vDSP (macOS/iOS) and
 /// FFTW3 (Linux/Android/Windows) using direct leaf typed data addresses.
 abstract final class FftNative {
-  static final List<ffi.DynamicLibrary> _libs = platformFftLibraries;
-
-  static final bool _hasVdsp =
-      hasSymbol('vDSP_DFT_Interleaved_CreateSetupD', _libs) &&
-      hasSymbol('vDSP_DFT_Interleaved_ExecuteD', _libs);
-
-  static final bool _hasFftw =
-      hasSymbol('fftw_plan_dft_1d', _libs) &&
-      hasSymbol('fftw_execute_dft', _libs) &&
-      hasSymbol('fftw_destroy_plan', _libs);
-
-  static final _FftBackend _backend = () {
-    if (_hasVdsp) return _FftBackend.vdsp;
-    if (_hasFftw) return _FftBackend.fftw;
-    return _FftBackend.none;
-  }();
-
-  static const int _maxCacheSize = 64;
-
-  static final Map<int, ffi.Pointer<ffi.Void>> _vdspFwdSetups = {};
-  static final Map<int, ffi.Pointer<ffi.Void>> _vdspInvSetups = {};
-
-  static final Map<int, ffi.Pointer<ffi.Void>> _fftw1dFwdPlans = {};
-  static final Map<int, ffi.Pointer<ffi.Void>> _fftw1dInvPlans = {};
-  static final Map<int, ffi.Pointer<ffi.Void>> _fftw2dFwdPlans = {};
-  static final Map<int, ffi.Pointer<ffi.Void>> _fftw2dInvPlans = {};
-
   /// Whether native FFT is available.
   static bool get isAvailable => _backend != _FftBackend.none;
 
@@ -416,6 +389,33 @@ abstract final class FftNative {
     }
     return true;
   }
+
+  static final List<ffi.DynamicLibrary> _libs = platformFftLibraries;
+
+  static final bool _hasVdsp =
+      hasSymbol('vDSP_DFT_Interleaved_CreateSetupD', _libs) &&
+      hasSymbol('vDSP_DFT_Interleaved_ExecuteD', _libs);
+
+  static final bool _hasFftw =
+      hasSymbol('fftw_plan_dft_1d', _libs) &&
+      hasSymbol('fftw_execute_dft', _libs) &&
+      hasSymbol('fftw_destroy_plan', _libs);
+
+  static final _FftBackend _backend = () {
+    if (_hasVdsp) return _FftBackend.vdsp;
+    if (_hasFftw) return _FftBackend.fftw;
+    return _FftBackend.none;
+  }();
+
+  static const int _maxCacheSize = 64;
+
+  static final Map<int, ffi.Pointer<ffi.Void>> _vdspFwdSetups = {};
+  static final Map<int, ffi.Pointer<ffi.Void>> _vdspInvSetups = {};
+
+  static final Map<int, ffi.Pointer<ffi.Void>> _fftw1dFwdPlans = {};
+  static final Map<int, ffi.Pointer<ffi.Void>> _fftw1dInvPlans = {};
+  static final Map<int, ffi.Pointer<ffi.Void>> _fftw2dFwdPlans = {};
+  static final Map<int, ffi.Pointer<ffi.Void>> _fftw2dInvPlans = {};
 }
 
 // --- FFI Function Bindings ---

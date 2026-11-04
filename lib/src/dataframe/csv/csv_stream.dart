@@ -353,11 +353,6 @@ class _CsvEventSink implements EventSink<String> {
     }
   }
 
-  void _emitRow() {
-    _outputSink.add(List<String>.from(_currentRow));
-    _currentRow.clear();
-  }
-
   @override
   void close() {
     if (_state == _stateInQuotes) {
@@ -383,5 +378,10 @@ class _CsvEventSink implements EventSink<String> {
   @override
   void addError(Object error, [StackTrace? stackTrace]) {
     _outputSink.addError(error, stackTrace);
+  }
+
+  void _emitRow() {
+    _outputSink.add(List<String>.from(_currentRow));
+    _currentRow.clear();
   }
 }

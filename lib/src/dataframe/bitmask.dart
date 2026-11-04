@@ -76,8 +76,6 @@ class ValidityMask {
     return mask;
   }
 
-  new _(this.length, this._bytes, this._nullCount);
-
   /// The number of entries tracked by this mask.
   final int length;
 
@@ -213,6 +211,8 @@ class ValidityMask {
     final combined = a.concat(b);
     return combined.hasNulls ? combined : null;
   }
+
+  new _(this.length, this._bytes, this._nullCount);
 
   /// Computes the population count (number of set 1-bits) across [bytes].
   static int _popCountBytes(Uint8List bytes) {

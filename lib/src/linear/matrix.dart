@@ -539,139 +539,6 @@ class Matrix<T> implements LinearOperator<T> {
     }
   }
 
-  static Float64List _copyTensorToFloat64List<E>(Tensor<E> t, int allocLength) {
-    final out = Float64List(allocLength);
-    if (t.layout.isContiguous && t.data is Float64List) {
-      out.setRange(0, t.length, t.data as Float64List, t.layout.offset);
-    } else {
-      var i = 0;
-      for (final v in t.values) {
-        out[i++] = (v as num).toDouble();
-      }
-    }
-    return out;
-  }
-
-  Matrix<T> _solveRref(Matrix<T> b) {
-    final field = type.field;
-    final zero = field.additiveIdentity;
-    final one = field.multiplicativeIdentity;
-    final m = rowCount;
-    final n = colCount;
-    final k = b.colCount;
-    final totalCols = n + k;
-    final grid = [
-      for (var r = 0; r < m; r++)
-        [
-          for (var c = 0; c < n; c++) getUnchecked(r, c),
-          for (var c = 0; c < k; c++) b.getUnchecked(r, c),
-        ],
-    ];
-    final pivotColumns = <int>[];
-    var pivotRow = 0;
-
-    for (var col = 0; col < totalCols && pivotRow < m; col++) {
-      var found = -1;
-      for (var r = pivotRow; r < m; r++) {
-        if (field.add(grid[r][col], zero) != zero) {
-          found = r;
-          break;
-        }
-      }
-      if (found == -1) continue;
-      if (found != pivotRow) {
-        final temp = grid[pivotRow];
-        grid[pivotRow] = grid[found];
-        grid[found] = temp;
-      }
-      pivotColumns.add(col);
-      final pivot = grid[pivotRow][col];
-      grid[pivotRow][col] = one;
-      for (var c = col + 1; c < totalCols; c++) {
-        grid[pivotRow][c] = field.div(grid[pivotRow][c], pivot);
-      }
-      for (var r = 0; r < m; r++) {
-        if (r == pivotRow) continue;
-        final factor = grid[r][col];
-        if (field.add(factor, zero) == zero) {
-          grid[r][col] = zero;
-          continue;
-        }
-        grid[r][col] = zero;
-        for (var c = col + 1; c < totalCols; c++) {
-          grid[r][c] = field.sub(
-            grid[r][c],
-            field.mul(factor, grid[pivotRow][c]),
-          );
-        }
-      }
-      pivotRow++;
-    }
-
-    if (pivotColumns.any((p) => p >= n)) {
-      throw StateError('Linear system is inconsistent.');
-    }
-    if (m >= n && pivotColumns.length < n) {
-      throw StateError('Matrix is rank deficient.');
-    }
-
-    final result = Matrix<T>.filled(n, k, zero, type: type);
-    for (var pIdx = 0; pIdx < pivotColumns.length; pIdx++) {
-      final pCol = pivotColumns[pIdx];
-      for (var c = 0; c < k; c++) {
-        result.setUnchecked(pCol, c, grid[pIdx][n + c]);
-      }
-    }
-    return result;
-  }
-
-  Matrix<T> _solveUnderdeterminedMatrix(Matrix<T> b) {
-    final at = conjugateTranspose;
-    final qr = QRDecomposition<T>(at);
-    if (!qr.isFullRank) {
-      throw StateError('Matrix is rank deficient.');
-    }
-    final field = type.field;
-    final rMat = qr.r;
-    final nx = b.colCount;
-    final y = Matrix<T>.generate(
-      rowCount,
-      nx,
-      (r, c) => field.additiveIdentity,
-      type: type,
-    );
-    for (var j = 0; j < nx; j++) {
-      for (var i = 0; i < rowCount; i++) {
-        var sum = b.getUnchecked(i, j);
-        for (var k = 0; k < i; k++) {
-          sum = field.sub(
-            sum,
-            field.mul(
-              field.conjugate(rMat.getUnchecked(k, i)),
-              y.getUnchecked(k, j),
-            ),
-          );
-        }
-        y.setUnchecked(
-          i,
-          j,
-          field.div(sum, field.conjugate(rMat.getUnchecked(i, i))),
-        );
-      }
-    }
-    final qMat = qr.q;
-    return Matrix<T>.generate(colCount, nx, (i, j) {
-      var sum = field.additiveIdentity;
-      for (var k = 0; k < rowCount; k++) {
-        sum = field.add(
-          sum,
-          field.mul(qMat.getUnchecked(i, k), y.getUnchecked(k, j)),
-        );
-      }
-      return sum;
-    }, type: type);
-  }
-
   /// Slices a submatrix over the given row and column ranges.
   Matrix<T> subMatrix({
     required int rowStart,
@@ -1030,6 +897,146 @@ class Matrix<T> implements LinearOperator<T> {
   @override
   String toString() => 'Matrix($rowCount x $colCount, ${toNestedList()})';
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is Matrix && other.tensor == tensor;
+
+  @override
+  int get hashCode => tensor.hashCode;
+
+  static Float64List _copyTensorToFloat64List<E>(Tensor<E> t, int allocLength) {
+    final out = Float64List(allocLength);
+    if (t.layout.isContiguous && t.data is Float64List) {
+      out.setRange(0, t.length, t.data as Float64List, t.layout.offset);
+    } else {
+      var i = 0;
+      for (final v in t.values) {
+        out[i++] = (v as num).toDouble();
+      }
+    }
+    return out;
+  }
+
+  Matrix<T> _solveRref(Matrix<T> b) {
+    final field = type.field;
+    final zero = field.additiveIdentity;
+    final one = field.multiplicativeIdentity;
+    final m = rowCount;
+    final n = colCount;
+    final k = b.colCount;
+    final totalCols = n + k;
+    final grid = [
+      for (var r = 0; r < m; r++)
+        [
+          for (var c = 0; c < n; c++) getUnchecked(r, c),
+          for (var c = 0; c < k; c++) b.getUnchecked(r, c),
+        ],
+    ];
+    final pivotColumns = <int>[];
+    var pivotRow = 0;
+
+    for (var col = 0; col < totalCols && pivotRow < m; col++) {
+      var found = -1;
+      for (var r = pivotRow; r < m; r++) {
+        if (field.add(grid[r][col], zero) != zero) {
+          found = r;
+          break;
+        }
+      }
+      if (found == -1) continue;
+      if (found != pivotRow) {
+        final temp = grid[pivotRow];
+        grid[pivotRow] = grid[found];
+        grid[found] = temp;
+      }
+      pivotColumns.add(col);
+      final pivot = grid[pivotRow][col];
+      grid[pivotRow][col] = one;
+      for (var c = col + 1; c < totalCols; c++) {
+        grid[pivotRow][c] = field.div(grid[pivotRow][c], pivot);
+      }
+      for (var r = 0; r < m; r++) {
+        if (r == pivotRow) continue;
+        final factor = grid[r][col];
+        if (field.add(factor, zero) == zero) {
+          grid[r][col] = zero;
+          continue;
+        }
+        grid[r][col] = zero;
+        for (var c = col + 1; c < totalCols; c++) {
+          grid[r][c] = field.sub(
+            grid[r][c],
+            field.mul(factor, grid[pivotRow][c]),
+          );
+        }
+      }
+      pivotRow++;
+    }
+
+    if (pivotColumns.any((p) => p >= n)) {
+      throw StateError('Linear system is inconsistent.');
+    }
+    if (m >= n && pivotColumns.length < n) {
+      throw StateError('Matrix is rank deficient.');
+    }
+
+    final result = Matrix<T>.filled(n, k, zero, type: type);
+    for (var pIdx = 0; pIdx < pivotColumns.length; pIdx++) {
+      final pCol = pivotColumns[pIdx];
+      for (var c = 0; c < k; c++) {
+        result.setUnchecked(pCol, c, grid[pIdx][n + c]);
+      }
+    }
+    return result;
+  }
+
+  Matrix<T> _solveUnderdeterminedMatrix(Matrix<T> b) {
+    final at = conjugateTranspose;
+    final qr = QRDecomposition<T>(at);
+    if (!qr.isFullRank) {
+      throw StateError('Matrix is rank deficient.');
+    }
+    final field = type.field;
+    final rMat = qr.r;
+    final nx = b.colCount;
+    final y = Matrix<T>.generate(
+      rowCount,
+      nx,
+      (r, c) => field.additiveIdentity,
+      type: type,
+    );
+    for (var j = 0; j < nx; j++) {
+      for (var i = 0; i < rowCount; i++) {
+        var sum = b.getUnchecked(i, j);
+        for (var k = 0; k < i; k++) {
+          sum = field.sub(
+            sum,
+            field.mul(
+              field.conjugate(rMat.getUnchecked(k, i)),
+              y.getUnchecked(k, j),
+            ),
+          );
+        }
+        y.setUnchecked(
+          i,
+          j,
+          field.div(sum, field.conjugate(rMat.getUnchecked(i, i))),
+        );
+      }
+    }
+    final qMat = qr.q;
+    return Matrix<T>.generate(colCount, nx, (i, j) {
+      var sum = field.additiveIdentity;
+      for (var k = 0; k < rowCount; k++) {
+        sum = field.add(
+          sum,
+          field.mul(qMat.getUnchecked(i, k), y.getUnchecked(k, j)),
+        );
+      }
+      return sum;
+    }, type: type);
+  }
+
   bool _tryAcceleratedGemv({
     required int transA,
     required int m,
@@ -1079,11 +1086,4 @@ class Matrix<T> implements LinearOperator<T> {
     }
     return false;
   }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is Matrix && other.tensor == tensor;
-
-  @override
-  int get hashCode => tensor.hashCode;
 }

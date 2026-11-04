@@ -47,6 +47,8 @@ class MonomialAccumulator {
   /// Direction of infinity: +1 for +inf, -1 for -inf.
   int? infinitySign;
 
+  bool _isCombiningFractions = false;
+
   /// Recursively flattens and accumulates [expr] multiplied by [scale].
   void add(Expr expr, [Number scale = IntegerNumber.one]) {
     if (_containsRealNumber(scale)) {
@@ -76,11 +78,6 @@ class MonomialAccumulator {
       default:
         _addMonomialTerm(expr, scale);
     }
-  }
-
-  void _addMonomialTerm(Expr expr, Number scale) {
-    final (c, base) = decomposeTerm(expr);
-    addDecomposed(scale.mul(c), base);
   }
 
   /// Directly accumulates a pre-decomposed [coeff] and canonical symbolic [base].
@@ -220,6 +217,80 @@ class MonomialAccumulator {
     _reducePythagorean();
     _reduceHyperbolicPythagorean();
     _reduceLogarithms();
+  }
+
+  /// Combines fractions with identical denominators.
+  void combineFractions() {
+    if (_isCombiningFractions) return;
+    _isCombiningFractions = true;
+    try {
+      _doCombineFractions();
+    } finally {
+      _isCombiningFractions = false;
+    }
+  }
+
+  /// Reconstructs the canonical [Expr] AST tree from accumulated terms and constants.
+  Expr build() {
+    if (hasUndefined) return Constant.undefined;
+    _absorbOrderTerms();
+    if (simplify != null) {
+      combineFractions();
+    }
+    terms.removeWhere((_, coeff) => coeff.isZero);
+
+    final sortedKeys = terms.keys.toList()..sort(compareStructural);
+    final resultTerms = <Expr>[];
+
+    // 1. Non-zero numeric constant first (Number has nodeTag == 0)
+    if (!constant.isZero) {
+      resultTerms.add(
+        hasReal && constant is RationalNumber
+            ? RealNumber(constant.toDouble())
+            : constant,
+      );
+    }
+
+    // 2. Symbolic terms in canonical structural order
+    for (final base in sortedKeys) {
+      final coeff = terms[base]!;
+      if (coeff.isOne) {
+        resultTerms.add(base);
+      } else if (base case Mul(:final factors)) {
+        resultTerms.add(Mul([coeff, ...factors], isSimplified: true));
+      } else {
+        resultTerms.add(Mul([coeff, base], isSimplified: true));
+      }
+    }
+
+    // 3. Trailing OrderTerm instances (OrderTerm has nodeTag == 31)
+    if (orderTerms.isNotEmpty) {
+      final sortedOrderEntries = orderTerms.entries.toList()
+        ..sort((a, b) {
+          final (varA, pointA) = a.key;
+          final (varB, pointB) = b.key;
+          final cmpVar = varA.compareTo(varB);
+          if (cmpVar != 0) return cmpVar;
+          final cmpOrd = a.value.compareTo(b.value);
+          if (cmpOrd != 0) return cmpOrd;
+          return compareStructural(pointA, pointB);
+        });
+      for (final MapEntry(key: (variable, point), value: order)
+          in sortedOrderEntries) {
+        resultTerms.add(OrderTerm(variable, order, point: point));
+      }
+    }
+
+    return switch (resultTerms) {
+      [] => hasReal ? RealNumber.zero : IntegerNumber.zero,
+      [final single] => single,
+      _ => Add(resultTerms, isSimplified: true),
+    };
+  }
+
+  void _addMonomialTerm(Expr expr, Number scale) {
+    final (c, base) = decomposeTerm(expr);
+    addDecomposed(scale.mul(c), base);
   }
 
   void _reducePythagorean() {
@@ -420,64 +491,6 @@ class MonomialAccumulator {
     }
   }
 
-  /// Reconstructs the canonical [Expr] AST tree from accumulated terms and constants.
-  Expr build() {
-    if (hasUndefined) return Constant.undefined;
-    _absorbOrderTerms();
-    if (simplify != null) {
-      combineFractions();
-    }
-    terms.removeWhere((_, coeff) => coeff.isZero);
-
-    final sortedKeys = terms.keys.toList()..sort(compareStructural);
-    final resultTerms = <Expr>[];
-
-    // 1. Non-zero numeric constant first (Number has nodeTag == 0)
-    if (!constant.isZero) {
-      resultTerms.add(
-        hasReal && constant is RationalNumber
-            ? RealNumber(constant.toDouble())
-            : constant,
-      );
-    }
-
-    // 2. Symbolic terms in canonical structural order
-    for (final base in sortedKeys) {
-      final coeff = terms[base]!;
-      if (coeff.isOne) {
-        resultTerms.add(base);
-      } else if (base case Mul(:final factors)) {
-        resultTerms.add(Mul([coeff, ...factors], isSimplified: true));
-      } else {
-        resultTerms.add(Mul([coeff, base], isSimplified: true));
-      }
-    }
-
-    // 3. Trailing OrderTerm instances (OrderTerm has nodeTag == 31)
-    if (orderTerms.isNotEmpty) {
-      final sortedOrderEntries = orderTerms.entries.toList()
-        ..sort((a, b) {
-          final (varA, pointA) = a.key;
-          final (varB, pointB) = b.key;
-          final cmpVar = varA.compareTo(varB);
-          if (cmpVar != 0) return cmpVar;
-          final cmpOrd = a.value.compareTo(b.value);
-          if (cmpOrd != 0) return cmpOrd;
-          return compareStructural(pointA, pointB);
-        });
-      for (final MapEntry(key: (variable, point), value: order)
-          in sortedOrderEntries) {
-        resultTerms.add(OrderTerm(variable, order, point: point));
-      }
-    }
-
-    return switch (resultTerms) {
-      [] => hasReal ? RealNumber.zero : IntegerNumber.zero,
-      [final single] => single,
-      _ => Add(resultTerms, isSimplified: true),
-    };
-  }
-
   void _absorbOrderTerms() {
     if (orderTerms.isEmpty) return;
     for (final MapEntry(key: (variable, point), value: order)
@@ -523,19 +536,6 @@ class MonomialAccumulator {
       ),
       _ => false,
     };
-  }
-
-  bool _isCombiningFractions = false;
-
-  /// Combines fractions with identical denominators.
-  void combineFractions() {
-    if (_isCombiningFractions) return;
-    _isCombiningFractions = true;
-    try {
-      _doCombineFractions();
-    } finally {
-      _isCombiningFractions = false;
-    }
   }
 
   void _doCombineFractions() {
