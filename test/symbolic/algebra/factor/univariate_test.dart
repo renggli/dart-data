@@ -37,14 +37,26 @@ void main() {
       check(factorUnivariatePoly(pureMonomial, 'x').toString())
           .equals('3 * x ^ 2');
 
-      // BigInt coefficients exceeding 64-bit int return unfactored polynomial expression
+      // BigInt coefficients exceeding 64-bit int are preserved and factored
       final bigInt = Integer.big(BigInt.two.pow(70));
       final bigNum = IntegerNumber(bigInt);
       final bigDen = RationalNumber.of(Integer.one, bigInt);
       check(factorUnivariatePoly(PolyQ([IntegerNumber.one, bigNum]), 'x'))
           .isA<Add>();
       check(factorUnivariatePoly(PolyQ([IntegerNumber.one, bigDen]), 'x'))
-          .isA<Add>();
+          .isA<Mul>();
+
+      // Large quadratic difference of squares with BigInt coefficients
+      final big140 = Integer.big(BigInt.two.pow(140));
+      final polyBigSq = PolyQ([
+        IntegerNumber(-big140),
+        IntegerNumber.zero,
+        IntegerNumber.one,
+      ]);
+      final factoredBigSq = factorUnivariatePoly(polyBigSq, 'x');
+      check(
+        factoredBigSq.toString(),
+      ).equals('(-1180591620717411303424 + x) * (1180591620717411303424 + x)');
 
       // Cubic reducing to linear after root extraction: x^2 * (2*x - 3)
       check(Expr.parse('2 * x^3 - 3 * x^2').factor().toString())
@@ -65,7 +77,11 @@ void main() {
           .equals('(1 + x ^ 2) * (2 + x ^ 2)');
 
       // Direct factorQuadraticInX with perfect-square discriminant
-      final quadFactors = factorQuadraticInX(1, -4, 'x');
+      final quadFactors = factorQuadraticInX(
+        Integer.one,
+        const Integer(-4),
+        'x',
+      );
       check(quadFactors.length).equals(2);
 
       // Irreducible degree 5 with content 1 and content 2
@@ -76,15 +92,22 @@ void main() {
     });
 
     test('number-theoretic helpers (gcd, lcm, integerSqrt, divisors)', () {
-      check(gcd(12, 18)).equals(6);
-      check(lcm(0, 5)).equals(0);
-      check(lcm(4, 6)).equals(12);
-      check(integerSqrt(-4)).isNull();
-      check(integerSqrt(0)).equals(0);
-      check(integerSqrt(16)).equals(4);
-      check(integerSqrt(15)).isNull();
-      check(divisors(0)).isEmpty();
-      check(divisors(12)).deepEquals([1, 2, 3, 4, 6, 12]);
+      check(gcd(const Integer(12), const Integer(18))).equals(const Integer(6));
+      check(lcm(Integer.zero, const Integer(5))).equals(Integer.zero);
+      check(lcm(const Integer(4), const Integer(6))).equals(const Integer(12));
+      check(integerSqrt(const Integer(-4))).isNull();
+      check(integerSqrt(Integer.zero)).equals(Integer.zero);
+      check(integerSqrt(const Integer(16))).equals(const Integer(4));
+      check(integerSqrt(const Integer(15))).isNull();
+      check(divisors(Integer.zero)).isEmpty();
+      check(divisors(const Integer(12))).deepEquals([
+        const Integer(1),
+        const Integer(2),
+        const Integer(3),
+        const Integer(4),
+        const Integer(6),
+        const Integer(12),
+      ]);
     });
   });
 }

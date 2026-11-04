@@ -500,7 +500,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `simplifyRound` converts `numerator` and `denominator` to `double`, losing precision above $2^{53}$ and throwing `UnsupportedError` above $10^{308}$. `_decomposeComplex` lacks a `case Ln(:final expr):` branch, so `Re(Ln(z))`, `Im(Ln(z))`, and `Ln(z).toRectangular()` do not simplify.
   - **Fix**: Implement `simplifyRound` using exact `Integer` division/remainder, and add `case Ln(:final expr):` to `_decomposeComplex`.
 
-- [ ] **1.10.16 Raw `int` overflow in polynomial factorization (`factor/univariate.dart` and `factor/multivariate.dart`)**
+- [x] **1.10.16 Raw `int` overflow in polynomial factorization (`factor/univariate.dart` and `factor/multivariate.dart`)**
   - **Severity**: Warning
   - **Location**: `lib/src/symbolic/algebra/factor/univariate.dart:68-83, 176, 213, 371-391, 397, 430-447`, `lib/src/symbolic/algebra/factor/multivariate.dart:194-207, 264-277`
   - **Problem**: Converts `RationalNumber` coefficients to raw `int` (`asInt`), overflowing 64-bit `int` on VM (or 53-bit `int` on Web) during discriminant and synthetic division calculations.

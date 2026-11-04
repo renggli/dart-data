@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../ast.dart';
+import '../../number/integer.dart';
 import '../factor.dart';
 import '../simplify/additive.dart';
 import '../simplify/multiplicative.dart';
@@ -17,31 +18,26 @@ void collectAdditiveTerms(Expr expr, int sign, List<Expr> result) {
 /// Extracts common monomial GCD from [terms].
 Expr? extractMonomialGcd(List<Expr> terms) {
   if (terms.isEmpty) return null;
-  var lcmDen = 1;
+  var lcmDen = Integer.one;
   final termCoeffs = <RationalNumber>[];
   final varPowers = <Map<String, int>>[];
 
   for (final t in terms) {
     final (c, base) = decomposeTerm(t);
     if (c is! RationalNumber) return null;
-    final den = c.denominator.asInt;
-    if (den == null) return null;
-    lcmDen = lcm(lcmDen, den);
+    lcmDen = lcmDen.lcm(c.denominator);
     termCoeffs.add(c);
     final powers = <String, int>{};
     collectVariablePowers(base, powers);
     varPowers.add(powers);
   }
 
-  var content = 0;
+  var content = Integer.zero;
   for (final c in termCoeffs) {
-    final num = c.numerator.asInt;
-    final den = c.denominator.asInt;
-    if (num == null || den == null) return null;
-    final intVal = (num * (lcmDen ~/ den)).abs();
-    if (intVal != 0) content = gcd(content, intVal);
+    final intVal = (c.numerator * (lcmDen ~/ c.denominator)).abs();
+    if (!intVal.isZero) content = content.gcd(intVal);
   }
-  if (content == 0) content = 1;
+  if (content.isZero) content = Integer.one;
 
   final commonVars = <String, int>{};
   for (final v in varPowers.first.keys) {
@@ -60,7 +56,7 @@ Expr? extractMonomialGcd(List<Expr> terms) {
     }
   }
 
-  final scalarGcd = RationalNumber(content, lcmDen);
+  final scalarGcd = RationalNumber.of(content, lcmDen);
   if (scalarGcd.isOne && commonVars.isEmpty) return null;
 
   final factors = <Expr>[];
@@ -192,13 +188,10 @@ Expr? factorByGrouping4(List<Expr> terms) {
 
 /// Computes the square root of monomial term $coeff \cdot base$.
 Expr? monomialSquareRoot(RationalNumber coeff, Expr base) {
-  final numInt = coeff.numerator.asInt;
-  final denInt = coeff.denominator.asInt;
-  if (numInt == null || denInt == null) return null;
-  final numSqrt = integerSqrt(numInt);
-  final denSqrt = integerSqrt(denInt);
+  final numSqrt = integerSqrt(coeff.numerator);
+  final denSqrt = integerSqrt(coeff.denominator);
   if (numSqrt == null || denSqrt == null) return null;
-  final scalar = RationalNumber(numSqrt, denSqrt);
+  final scalar = RationalNumber.of(numSqrt, denSqrt);
 
   final baseSqrt = extractBaseSquareRoot(base);
   if (baseSqrt == null) return null;
@@ -262,13 +255,10 @@ Expr? extractBaseSquareRoot(Expr expr) => switch (expr) {
 
 /// Computes the cube root of monomial term $coeff \cdot base$.
 Expr? monomialCubeRoot(RationalNumber coeff, Expr base) {
-  final numInt = coeff.numerator.asInt;
-  final denInt = coeff.denominator.asInt;
-  if (numInt == null || denInt == null) return null;
-  final numCbrt = integerCbrt(numInt);
-  final denCbrt = integerCbrt(denInt);
+  final numCbrt = integerCbrt(coeff.numerator);
+  final denCbrt = integerCbrt(coeff.denominator);
   if (numCbrt == null || denCbrt == null) return null;
-  final scalar = RationalNumber(numCbrt, denCbrt);
+  final scalar = RationalNumber.of(numCbrt, denCbrt);
 
   final baseCbrt = extractBaseCubeRoot(base);
   if (baseCbrt == null) return null;
@@ -296,15 +286,6 @@ Expr? extractBaseCubeRoot(Expr expr) => switch (expr) {
   }(),
   _ => null,
 };
-
-/// Computes exact integer cube root of [n] if perfect cube, or `null`.
-int? integerCbrt(int n) {
-  if (n == 0) return 0;
-  final sign = n < 0 ? -1 : 1;
-  final r = math.pow(n.abs(), 1.0 / 3.0).round() * sign;
-  if (r * r * r == n) return r;
-  return null;
-}
 
 /// Tests whether [expr] equals scalar $1$.
 bool isOne(Expr expr) => expr is Number && expr.isOne;

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../ast.dart';
+import '../../number/integer.dart';
 import '../simplify/additive.dart';
 import '../simplify/multiplicative.dart';
 import '../term_accumulator.dart';
@@ -65,41 +66,34 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   }
 
   // 1. Clear denominators
-  var lcmDen = 1;
+  var lcmDen = Integer.one;
   for (final c in poly.coeffs) {
-    final den = c.denominator.asInt;
-    if (den == null) return buildPolyExprFromRational(poly.coeffs, variable);
-    lcmDen = lcm(lcmDen, den);
+    lcmDen = lcmDen.lcm(c.denominator);
   }
 
-  final intCoeffs = <int>[];
+  final intCoeffs = <Integer>[];
   for (final c in poly.coeffs) {
-    final num = c.numerator.asInt;
-    final den = c.denominator.asInt;
-    if (num == null || den == null) {
-      return buildPolyExprFromRational(poly.coeffs, variable);
-    }
-    intCoeffs.add(num * (lcmDen ~/ den));
+    intCoeffs.add(c.numerator * (lcmDen ~/ c.denominator));
   }
 
   // 2. Extract content GCD
-  var content = 0;
+  var content = Integer.zero;
   for (final a in intCoeffs) {
-    if (a != 0) content = gcd(content, a);
+    if (!a.isZero) content = content.gcd(a);
   }
-  if (content == 0) content = 1;
+  if (content.isZero) content = Integer.one;
 
   final lead = intCoeffs[poly.degree];
-  final sign = lead < 0 ? -1 : 1;
+  final sign = lead.isNegative ? Integer.negativeOne : Integer.one;
 
   var primitiveCoeffs = intCoeffs.map((a) => (a * sign) ~/ content).toList();
 
-  final scalar = RationalNumber(content * sign, lcmDen);
+  final scalar = RationalNumber.of(content * sign, lcmDen);
   final factors = <Expr, int>{};
 
   // 3. Zero roots: factor out x^m
   var m = 0;
-  while (m < primitiveCoeffs.length && primitiveCoeffs[m] == 0) {
+  while (m < primitiveCoeffs.length && primitiveCoeffs[m].isZero) {
     m++;
   }
   if (m > 0) {
@@ -113,7 +107,7 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   }
 
   if (currentDeg == 1) {
-    if (factors.isEmpty && content == 1 && lcmDen == 1) {
+    if (factors.isEmpty && content.isOne && lcmDen.isOne) {
       return buildPolyExpr(intCoeffs, variable);
     }
     final linFactor = buildLinearFactor(
@@ -133,11 +127,11 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     final qDivs = divisors(ad);
 
     // Candidates (p, q) where root is p / q
-    final candidates = <(int, int)>[];
+    final candidates = <(Integer, Integer)>[];
     for (final q in qDivs) {
       for (final pAbs in pDivs) {
         for (final p in [pAbs, -pAbs]) {
-          if (gcd(p.abs(), q) == 1) {
+          if (p.abs().gcd(q).isOne) {
             candidates.add((p, q));
           }
         }
@@ -147,8 +141,8 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     candidates.sort((c1, c2) {
       final (p1, q1) = c1;
       final (p2, q2) = c2;
-      final v1 = (p1 / q1).abs();
-      final v2 = (p2 / q2).abs();
+      final v1 = (p1.toDouble() / q1.toDouble()).abs();
+      final v2 = (p2.toDouble() / q2.toDouble()).abs();
       return v1.compareTo(v2);
     });
 
@@ -173,30 +167,23 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     final a = primitiveCoeffs[2];
     final b = primitiveCoeffs[1];
     final c = primitiveCoeffs[0];
-    final disc = b * b - 4 * a * c;
+    final disc = b * b - const Integer(4) * a * c;
 
-    if (disc >= 0) {
+    if (!disc.isNegative) {
       final s = integerSqrt(disc);
       if (s != null) {
-        final r1 = RationalNumber(-b + s, 2 * a);
-        final r2 = RationalNumber(-b - s, 2 * a);
-        final f1 = buildLinearFactor(
-          r1.denominator.toInt(),
-          r1.numerator.toInt(),
-          variable,
-        );
-        final f2 = buildLinearFactor(
-          r2.denominator.toInt(),
-          r2.numerator.toInt(),
-          variable,
-        );
+        final twoA = a * Integer.two;
+        final r1 = RationalNumber.of(-b + s, twoA);
+        final r2 = RationalNumber.of(-b - s, twoA);
+        final f1 = buildLinearFactor(r1.denominator, r1.numerator, variable);
+        final f2 = buildLinearFactor(r2.denominator, r2.numerator, variable);
         factors[f1] = (factors[f1] ?? 0) + 1;
         factors[f2] = (factors[f2] ?? 0) + 1;
         return buildFactoredExpr(scalar: scalar, factors: factors);
       }
     }
     // Irreducible quadratic
-    if (factors.isEmpty && content == 1 && lcmDen == 1) {
+    if (factors.isEmpty && content.isOne && lcmDen.isOne) {
       return buildPolyExpr(intCoeffs, variable);
     }
     final quadExpr = buildPolyExpr(primitiveCoeffs, variable);
@@ -205,26 +192,21 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   }
 
   // 6. Biquadratic check if degree 4
-  if (currentDeg == 4 && primitiveCoeffs[3] == 0 && primitiveCoeffs[1] == 0) {
+  if (currentDeg == 4 &&
+      primitiveCoeffs[3].isZero &&
+      primitiveCoeffs[1].isZero) {
     final a = primitiveCoeffs[4];
     final b = primitiveCoeffs[2];
     final c = primitiveCoeffs[0];
-    final disc = b * b - 4 * a * c;
-    if (disc >= 0) {
+    final disc = b * b - const Integer(4) * a * c;
+    if (!disc.isNegative) {
       final s = integerSqrt(disc);
       if (s != null) {
-        final u1 = RationalNumber(-b + s, 2 * a);
-        final u2 = RationalNumber(-b - s, 2 * a);
-        final q1 = factorQuadraticInX(
-          u1.denominator.toInt(),
-          -u1.numerator.toInt(),
-          variable,
-        );
-        final q2 = factorQuadraticInX(
-          u2.denominator.toInt(),
-          -u2.numerator.toInt(),
-          variable,
-        );
+        final twoA = a * Integer.two;
+        final u1 = RationalNumber.of(-b + s, twoA);
+        final u2 = RationalNumber.of(-b - s, twoA);
+        final q1 = factorQuadraticInX(u1.denominator, -u1.numerator, variable);
+        final q2 = factorQuadraticInX(u2.denominator, -u2.numerator, variable);
         mergeFactorsInto(factors, q1);
         mergeFactorsInto(factors, q2);
         return buildFactoredExpr(scalar: scalar, factors: factors);
@@ -233,12 +215,12 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
 
     // Sophie Germain / cyclotomic difference of squares:
     // a x^4 + b x^2 + c = (sA x^2 + sC)^2 - (k x)^2 = (sA x^2 - k x + sC)(sA x^2 + k x + sC)
-    if (a > 0 && c > 0) {
+    if (!a.isNegative && !a.isZero && !c.isNegative && !c.isZero) {
       final sA = integerSqrt(a);
       final sC = integerSqrt(c);
       if (sA != null && sC != null) {
-        final mid = 2 * sA * sC - b;
-        if (mid > 0) {
+        final mid = Integer.two * sA * sC - b;
+        if (!mid.isNegative && !mid.isZero) {
           final k = integerSqrt(mid);
           if (k != null) {
             final q1 = buildPolyExpr([sC, -k, sA], variable);
@@ -265,7 +247,7 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   }
 
   // Irreducible higher degree
-  if (factors.isEmpty && content == 1 && lcmDen == 1) {
+  if (factors.isEmpty && content.isOne && lcmDen.isOne) {
     return buildPolyExpr(intCoeffs, variable);
   }
   final polyExpr = buildPolyExpr(primitiveCoeffs, variable);
@@ -273,8 +255,10 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   return buildFactoredExpr(scalar: scalar, factors: factors);
 }
 
-List<(List<int>, int)>? _decomposeSquareFree(List<int> primitiveCoeffs) {
-  final pRat = [for (final c in primitiveCoeffs) IntegerNumber.of(c)];
+List<(List<Integer>, int)>? _decomposeSquareFree(
+  List<Integer> primitiveCoeffs,
+) {
+  final pRat = [for (final c in primitiveCoeffs) IntegerNumber(c)];
   final dRat = _polyDerivative(pRat);
   final g = _polyGcd(pRat, dRat);
   if (g.length <= 1 || g.length >= pRat.length) {
@@ -285,7 +269,7 @@ List<(List<int>, int)>? _decomposeSquareFree(List<int> primitiveCoeffs) {
   var d = _polyExactDiv(pRat, g);
   if (d == null) return null;
 
-  final components = <(List<int>, int)>[];
+  final components = <(List<Integer>, int)>[];
   var mult = 1;
   while (d != null && d.length > 1) {
     final y = _polyGcd(c, d);
@@ -368,53 +352,41 @@ List<RationalNumber> _polyGcd(List<RationalNumber> a, List<RationalNumber> b) {
   return _makeMonic(x);
 }
 
-List<int>? _toPrimitiveIntCoeffs(List<RationalNumber> coeffs) {
-  var lcmDen = 1;
+List<Integer>? _toPrimitiveIntCoeffs(List<RationalNumber> coeffs) {
+  var lcmDen = Integer.one;
   for (final c in coeffs) {
-    final den = c.denominator.asInt;
-    if (den == null) return null;
-    lcmDen = lcm(lcmDen, den);
+    lcmDen = lcmDen.lcm(c.denominator);
   }
-  final intCoeffs = <int>[];
-  var content = 0;
+  final intCoeffs = <Integer>[];
+  var content = Integer.zero;
   for (final c in coeffs) {
-    final num = c.numerator.asInt;
-    final den = c.denominator.asInt;
-    if (num == null || den == null) return null;
-    final scaled = num * (lcmDen ~/ den);
+    final scaled = c.numerator * (lcmDen ~/ c.denominator);
     intCoeffs.add(scaled);
-    if (scaled != 0) content = gcd(content, scaled.abs());
+    if (!scaled.isZero) content = content.gcd(scaled.abs());
   }
-  if (content == 0) content = 1;
-  final sign = intCoeffs.last < 0 ? -1 : 1;
+  if (content.isZero) content = Integer.one;
+  final sign = intCoeffs.last.isNegative ? Integer.negativeOne : Integer.one;
   return [for (final a in intCoeffs) (a * sign) ~/ content];
 }
 
 /// Factors quadratic $a \cdot x^2 + c$.
-Map<Expr, int> factorQuadraticInX(int a, int c, String variable) {
+Map<Expr, int> factorQuadraticInX(Integer a, Integer c, String variable) {
   final res = <Expr, int>{};
-  final disc = -4 * a * c;
-  if (disc >= 0) {
+  final disc = -const Integer(4) * a * c;
+  if (!disc.isNegative) {
     final s = integerSqrt(disc);
     if (s != null) {
-      final r1 = RationalNumber(s, 2 * a);
-      final r2 = RationalNumber(-s, 2 * a);
-      final f1 = buildLinearFactor(
-        r1.denominator.toInt(),
-        r1.numerator.toInt(),
-        variable,
-      );
-      final f2 = buildLinearFactor(
-        r2.denominator.toInt(),
-        r2.numerator.toInt(),
-        variable,
-      );
+      final twoA = a * Integer.two;
+      final r1 = RationalNumber.of(s, twoA);
+      final r2 = RationalNumber.of(-s, twoA);
+      final f1 = buildLinearFactor(r1.denominator, r1.numerator, variable);
+      final f2 = buildLinearFactor(r2.denominator, r2.numerator, variable);
       res[f1] = (res[f1] ?? 0) + 1;
       res[f2] = (res[f2] ?? 0) + 1;
       return res;
     }
   }
-  final quad = buildPolyExpr([c, 0, a], variable);
+  final quad = buildPolyExpr([c, Integer.zero, a], variable);
   res[quad] = 1;
   return res;
 }
@@ -427,33 +399,33 @@ void mergeFactorsInto(Map<Expr, int> target, Map<Expr, int> source) {
 }
 
 /// Performs synthetic division of [coeffs] by linear factor $q \cdot x - p$.
-List<int>? syntheticDivide(List<int> coeffs, int p, int q) {
+List<Integer>? syntheticDivide(List<Integer> coeffs, Integer p, Integer q) {
   final n = coeffs.length - 1;
   if (n <= 0) return null;
-  if (coeffs[n] % q != 0) return null;
+  if (!(coeffs[n] % q).isZero) return null;
 
-  final b = List<int>.filled(n, 0);
+  final b = List<Integer>.filled(n, Integer.zero);
   b[n - 1] = coeffs[n] ~/ q;
 
   for (var k = n - 1; k >= 1; k--) {
     final num = coeffs[k] + p * b[k];
-    if (num % q != 0) return null;
+    if (!(num % q).isZero) return null;
     b[k - 1] = num ~/ q;
   }
 
   final rem = coeffs[0] + p * b[0];
-  if (rem != 0) return null;
+  if (!rem.isZero) return null;
   return b;
 }
 
 /// Builds linear factor $q \cdot x - p$ in canonical simplified order.
-Expr buildLinearFactor(int q, int p, String variable) =>
+Expr buildLinearFactor(Integer q, Integer p, String variable) =>
     buildPolyExpr([-p, q], variable);
 
 /// Builds expression from polynomial integer [coeffs] in canonical simplified order.
-Expr buildPolyExpr(List<int> coeffs, String variable) =>
+Expr buildPolyExpr(List<Integer> coeffs, String variable) =>
     buildPolyExprFromRational([
-      for (final a in coeffs) IntegerNumber.of(a),
+      for (final a in coeffs) IntegerNumber(a),
     ], variable);
 
 /// Builds expression from rational polynomial [coeffs] in canonical simplified order.
@@ -474,47 +446,83 @@ Expr buildPolyExprFromRational(List<RationalNumber> coeffs, String variable) {
 }
 
 /// Computes the greatest common divisor of [a] and [b].
-int gcd(int a, int b) {
-  var x = a.abs();
-  var y = b.abs();
-  while (y != 0) {
-    final t = y;
-    y = x % y;
-    x = t;
-  }
-  return x;
-}
+Integer gcd(Integer a, Integer b) => a.gcd(b);
 
 /// Computes the least common multiple of [a] and [b].
-int lcm(int a, int b) {
-  if (a == 0 || b == 0) return 0;
-  return (a.abs() ~/ gcd(a, b)) * b.abs();
-}
+Integer lcm(Integer a, Integer b) => a.lcm(b);
 
 /// Computes exact integer square root of [n] if perfect square, or `null`.
-int? integerSqrt(int n) {
-  if (n < 0) return null;
-  if (n == 0) return 0;
-  final r = math.sqrt(n).round();
-  if (r * r == n) return r;
+Integer? integerSqrt(Integer n) {
+  if (n.isNegative) return null;
+  if (n.isZero) return Integer.zero;
+  if (n.isOne) return Integer.one;
+  if (n.bitLength <= 52) {
+    final v = n.asInt;
+    if (v != null) {
+      final r = math.sqrt(v.toDouble()).round();
+      if (r * r == v) return Integer.from(r);
+      return null;
+    }
+  }
+  final b = n.toBigInt();
+  var x0 = BigInt.one << ((b.bitLength + 1) ~/ 2);
+  while (true) {
+    final x1 = (x0 + b ~/ x0) >> 1;
+    if (x1 >= x0) break;
+    x0 = x1;
+  }
+  if (x0 * x0 == b) return Integer.big(x0);
   return null;
 }
 
-/// Computes all positive integer divisors of [n].
-List<int> divisors(int n) {
-  final val = n.abs();
-  if (val == 0) return const [];
-  final small = <int>[];
-  final large = <int>[];
-  final limit = math.sqrt(val).floor();
-  for (var i = 1; i <= limit; i++) {
-    if (val % i == 0) {
-      small.add(i);
-      final other = val ~/ i;
-      if (other != i) {
-        large.add(other);
-      }
+/// Computes exact integer cube root of [n] if perfect cube, or `null`.
+Integer? integerCbrt(Integer n) {
+  if (n.isZero) return Integer.zero;
+  if (n.isNegative) {
+    final r = integerCbrt(-n);
+    return r == null ? null : -r;
+  }
+  if (n.isOne) return Integer.one;
+  if (n.bitLength <= 52) {
+    final v = n.asInt;
+    if (v != null) {
+      final r = math.pow(v.toDouble(), 1.0 / 3.0).round();
+      if (r * r * r == v) return Integer.from(r);
+      return null;
     }
   }
-  return [...small, ...large.reversed];
+  final b = n.toBigInt();
+  var x0 = BigInt.one << ((b.bitLength + 2) ~/ 3);
+  final two = BigInt.two;
+  final three = BigInt.from(3);
+  while (true) {
+    final x1 = (two * x0 + b ~/ (x0 * x0)) ~/ three;
+    if (x1 >= x0) break;
+    x0 = x1;
+  }
+  if (x0 * x0 * x0 == b) return Integer.big(x0);
+  return null;
+}
+
+/// Computes positive integer divisors of [n].
+List<Integer> divisors(Integer n) {
+  final val = n.abs();
+  if (val.isZero) return const [];
+  final valInt = val.asInt;
+  if (valInt != null && val.bitLength <= 30) {
+    final small = <Integer>[];
+    final large = <Integer>[];
+    final limit = math.sqrt(valInt.toDouble()).floor();
+    for (var i = 1; i <= limit; i++) {
+      if (valInt % i == 0) {
+        small.add(Integer.from(i));
+        final other = valInt ~/ i;
+        if (other != i) {
+          large.add(Integer.from(other));
+        }
+      }
+    }
+    return [...small, ...large.reversed];
+  }
+  return [Integer.one, val];
 }

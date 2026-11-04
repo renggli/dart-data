@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/factor/multivariate.dart';
+import 'package:data/src/symbolic/algebra/factor/univariate.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
@@ -135,9 +136,14 @@ void main() {
 
         check(extractBaseCubeRoot(IntegerNumber.one)).equals(IntegerNumber.one);
         check(extractBaseCubeRoot(x)).isNull();
-        check(integerCbrt(0)).equals(0);
-        check(integerCbrt(-27)).equals(-3);
-        check(integerCbrt(10)).isNull();
+        check(integerCbrt(Integer.zero)).equals(Integer.zero);
+        check(integerCbrt(const Integer(-27))).equals(const Integer(-3));
+        check(integerCbrt(const Integer(10))).isNull();
+        final bigCube = Integer.big(BigInt.from(10).pow(60));
+        check(integerCbrt(bigCube))
+            .equals(Integer.big(BigInt.from(10).pow(20)));
+        final bigSq = Integer.big(BigInt.from(10).pow(60));
+        check(integerSqrt(bigSq)).equals(Integer.big(BigInt.from(10).pow(30)));
         check(isOne(IntegerNumber.one)).isTrue();
         check(isOne(x)).isFalse();
       },
