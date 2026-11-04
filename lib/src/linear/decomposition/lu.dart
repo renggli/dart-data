@@ -1,64 +1,30 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:more/number.dart' show Complex;
-
 import '../../type/data_type.dart';
 import '../../type/models/field.dart';
 import '../matrix.dart';
 import '../vector.dart';
 
-/// Extension methods providing LU decomposition on numeric matrices.
-extension LuMatrixExtension<T extends num> on Matrix<T> {
+/// Extension methods providing LU decomposition on matrices.
+extension LuMatrixExtension<T> on Matrix<T> {
   /// Computes the LU decomposition of this matrix.
-  LUDecomposition<double> get lu => LUDecomposition<double>(_toDoubleMatrix());
+  LUDecomposition<T> get lu => LUDecomposition<T>(this);
 
   /// Returns the determinant of this matrix.
-  double get det => lu.det;
+  T get det => lu.det;
 
   /// Returns the multiplicative inverse of this square, non-singular matrix.
   ///
-  /// Throws an [ArgumentError] if the matrix is not square or singular
-  /// ($\det = 0$).
-  Matrix<double> get inverse {
+  /// Throws an [ArgumentError] if the matrix is not square, or a [StateError]
+  /// if singular ($\det = 0$).
+  Matrix<T> get inverse {
     if (rowCount != colCount) {
       throw ArgumentError(
         'Matrix must be square to be inverted, got $rowCount x $colCount.',
       );
     }
-    return lu.solve(Matrix<double>.identity(rowCount, type: DataType.float64));
-  }
-
-  Matrix<double> _toDoubleMatrix() => this is Matrix<double>
-      ? this as Matrix<double>
-      : Matrix<double>.generate(
-          rowCount,
-          colCount,
-          (r, c) => getUnchecked(r, c).toDouble(),
-          type: DataType.float64,
-        );
-}
-
-/// Extension methods providing LU decomposition on complex matrices.
-extension LuComplexMatrixExtension on Matrix<Complex> {
-  /// Computes the LU decomposition of this complex matrix.
-  LUDecomposition<Complex> get lu => LUDecomposition<Complex>(this);
-
-  /// Returns the determinant of this complex matrix.
-  Complex get det => lu.det;
-
-  /// Returns the multiplicative inverse of this square, non-singular complex
-  /// matrix.
-  ///
-  /// Throws an [ArgumentError] if the matrix is not square or singular
-  /// ($\det = 0$).
-  Matrix<Complex> get inverse {
-    if (rowCount != colCount) {
-      throw ArgumentError(
-        'Matrix must be square to be inverted, got $rowCount x $colCount.',
-      );
-    }
-    return lu.solve(Matrix<Complex>.identity(rowCount, type: DataType.complex));
+    return lu.solve(Matrix<T>.identity(rowCount, type: type));
   }
 }
 
@@ -184,7 +150,7 @@ class LUDecomposition<T> {
       );
     }
     if (!isNonsingular) {
-      throw ArgumentError('Matrix is singular.');
+      throw StateError('Matrix is singular.');
     }
     if (b is Matrix<double> && _lu.tensor.data is Float64List) {
       return _solveFloat64(b as Matrix<double>) as Matrix<T>;

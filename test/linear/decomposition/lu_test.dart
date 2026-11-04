@@ -139,7 +139,7 @@ void main() {
 
       final lu = a.lu;
       check(lu.isNonsingular).isFalse();
-      check(() => lu.solve(a)).throws<ArgumentError>();
+      check(() => lu.solve(a)).throws<StateError>();
     });
 
     test('rectangular matrix decomposition 2x3 (m < n)', () {
@@ -300,7 +300,7 @@ void main() {
         const Complex(1.0, 0.0),
         const Complex(2.0, 0.0),
       ], type: DataType.complex);
-      check(() => lu.solveVector(b)).throws<ArgumentError>();
+      check(() => lu.solveVector(b)).throws<StateError>();
     });
 
     test('rectangular complex matrix decomposition 2x3 (m < n)', () {
@@ -387,6 +387,8 @@ void main() {
       check(() => rectC.inverse).throws<ArgumentError>();
       check(() => nanMat.lu.solve(Matrix<double>.filled(3, 1, 1.0)))
           .throws<ArgumentError>();
+      check(() => nanMat.lu.solve(Matrix<double>.filled(2, 1, 1.0)))
+          .throws<StateError>();
     });
   });
 }

@@ -9,29 +9,11 @@ import '../../type/data_type.dart';
 import '../matrix.dart';
 import '../vector.dart';
 
-/// Extension methods providing Cholesky decomposition on numeric matrices.
-extension CholeskyMatrixExtension<T extends num> on Matrix<T> {
+/// Extension methods providing Cholesky decomposition on matrices.
+extension CholeskyMatrixExtension<T> on Matrix<T> {
   /// Computes the Cholesky decomposition of this symmetric positive-definite
-  /// matrix.
-  CholeskyDecomposition<double> get cholesky =>
-      CholeskyDecomposition<double>(_toDoubleMatrix());
-
-  Matrix<double> _toDoubleMatrix() => this is Matrix<double>
-      ? this as Matrix<double>
-      : Matrix<double>.generate(
-          rowCount,
-          colCount,
-          (r, c) => getUnchecked(r, c).toDouble(),
-          type: DataType.float64,
-        );
-}
-
-/// Extension methods providing Cholesky decomposition on complex matrices.
-extension CholeskyComplexMatrixExtension on Matrix<Complex> {
-  /// Computes the Cholesky decomposition of this Hermitian positive-definite
-  /// matrix.
-  CholeskyDecomposition<Complex> get cholesky =>
-      CholeskyDecomposition<Complex>(this);
+  /// (or Hermitian positive-definite) matrix.
+  CholeskyDecomposition<T> get cholesky => CholeskyDecomposition<T>(this);
 }
 
 /// Cholesky Decomposition of a symmetric (or Hermitian) positive-definite
@@ -88,7 +70,7 @@ class CholeskyDecomposition<T> {
   /// Returns the determinant of $A = (\prod L_{ii})^2$.
   T get det {
     if (!_isSymmetricPositiveDefinite) {
-      throw ArgumentError('Matrix is not symmetric positive definite.');
+      throw StateError('Matrix is not symmetric positive definite.');
     }
     final field = _type.field;
     var detVal = field.multiplicativeIdentity;
@@ -106,7 +88,7 @@ class CholeskyDecomposition<T> {
       );
     }
     if (!_isSymmetricPositiveDefinite) {
-      throw ArgumentError('Matrix is not symmetric positive definite.');
+      throw StateError('Matrix is not symmetric positive definite.');
     }
     if (b is Matrix<double> && _l is Matrix<double>) {
       return _solveFloat64(b as Matrix<double>) as Matrix<T>;

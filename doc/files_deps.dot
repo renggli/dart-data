@@ -205,12 +205,12 @@ digraph {
   201 [label="json/json_decoder.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   202 [label="json/json_encoder.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   203 [label="csv/parser.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
-  204 [label="optimization/brent.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
-  205 [label="optimization/constrained.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
-  206 [label="optimization/nelder_mead.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
-  207 [label="optimization/quasi_newton.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
-  208 [label="interpolation/search.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
-  209 [label="utils/memory.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
+  204 [label="utils/memory.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
+  205 [label="optimization/brent.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
+  206 [label="optimization/constrained.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
+  207 [label="optimization/nelder_mead.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
+  208 [label="optimization/quasi_newton.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
+  209 [label="interpolation/search.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   210 [label="utils/derive.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   211 [label="number/rational.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   212 [label="ast/constant.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
@@ -353,6 +353,7 @@ digraph {
   24 -> 165 [color="#888888", arrowsize="0.7"];
   24 -> 172 [color="#888888", arrowsize="0.7"];
   24 -> 1 [color="#888888", arrowsize="0.7"];
+  24 -> 204 [color="#888888", arrowsize="0.7"];
   24 -> 20 [color="#888888", arrowsize="0.7"];
   24 -> 25 [color="#888888", arrowsize="0.7"];
   24 -> 26 [color="#888888", arrowsize="0.7"];
@@ -370,6 +371,7 @@ digraph {
   26 -> 170 [color="#888888", arrowsize="0.7"];
   26 -> 172 [color="#888888", arrowsize="0.7"];
   26 -> 1 [color="#888888", arrowsize="0.7"];
+  26 -> 204 [color="#888888", arrowsize="0.7"];
   26 -> 20 [color="#888888", arrowsize="0.7"];
   26 -> 22 [color="#888888", arrowsize="0.7"];
   26 -> 27 [color="#888888", arrowsize="0.7"];
@@ -641,35 +643,35 @@ digraph {
   88 -> 34 [color="#888888", arrowsize="0.7"];
   88 -> 1 [color="#888888", arrowsize="0.7"];
   88 -> 101 [color="#888888", arrowsize="0.7"];
-  88 -> 208 [color="#888888", arrowsize="0.7"];
+  88 -> 209 [color="#888888", arrowsize="0.7"];
   89 -> 26 [color="#888888", arrowsize="0.7"];
   89 -> 34 [color="#888888", arrowsize="0.7"];
   89 -> 1 [color="#888888", arrowsize="0.7"];
   89 -> 101 [color="#888888", arrowsize="0.7"];
-  89 -> 208 [color="#888888", arrowsize="0.7"];
+  89 -> 209 [color="#888888", arrowsize="0.7"];
   90 -> 30 [color="#888888", arrowsize="0.7"];
   90 -> 34 [color="#888888", arrowsize="0.7"];
   90 -> 1 [color="#888888", arrowsize="0.7"];
   90 -> 101 [color="#888888", arrowsize="0.7"];
-  90 -> 208 [color="#888888", arrowsize="0.7"];
+  90 -> 209 [color="#888888", arrowsize="0.7"];
   91 -> 101 [color="#888888", arrowsize="0.7"];
-  91 -> 208 [color="#888888", arrowsize="0.7"];
+  91 -> 209 [color="#888888", arrowsize="0.7"];
   92 -> 101 [color="#888888", arrowsize="0.7"];
-  92 -> 208 [color="#888888", arrowsize="0.7"];
+  92 -> 209 [color="#888888", arrowsize="0.7"];
   94 -> 26 [color="#888888", arrowsize="0.7"];
   94 -> 34 [color="#888888", arrowsize="0.7"];
   94 -> 1 [color="#888888", arrowsize="0.7"];
   94 -> 84 [color="#888888", arrowsize="0.7"];
-  94 -> 208 [color="#888888", arrowsize="0.7"];
+  94 -> 209 [color="#888888", arrowsize="0.7"];
   94 -> 93 [color="#888888", arrowsize="0.7"];
   94 -> 104 [color="#888888", arrowsize="0.7"];
   95 -> 34 [color="#888888", arrowsize="0.7"];
   95 -> 1 [color="#888888", arrowsize="0.7"];
-  95 -> 204 [color="#888888", arrowsize="0.7"];
   95 -> 205 [color="#888888", arrowsize="0.7"];
   95 -> 206 [color="#888888", arrowsize="0.7"];
-  95 -> 96 [color="#888888", arrowsize="0.7"];
   95 -> 207 [color="#888888", arrowsize="0.7"];
+  95 -> 96 [color="#888888", arrowsize="0.7"];
+  95 -> 208 [color="#888888", arrowsize="0.7"];
   96 -> 34 [color="#888888", arrowsize="0.7"];
   98 -> 81 [color="#888888", arrowsize="0.7"];
   98 -> 97 [color="#888888", arrowsize="0.7"];
@@ -683,7 +685,7 @@ digraph {
   100 -> 1 [color="#888888", arrowsize="0.7"];
   102 -> 101 [color="#888888", arrowsize="0.7"];
   103 -> 101 [color="#888888", arrowsize="0.7"];
-  103 -> 208 [color="#888888", arrowsize="0.7"];
+  103 -> 209 [color="#888888", arrowsize="0.7"];
   104 -> 34 [color="#888888", arrowsize="0.7"];
   105 -> 106 [color="#888888", arrowsize="0.7"];
   105 -> 107 [color="#888888", arrowsize="0.7"];
@@ -1063,22 +1065,22 @@ digraph {
   169 -> 176 [color="#888888", arrowsize="0.7"];
   169 -> 180 [color="#888888", arrowsize="0.7"];
   169 -> 3 [color="#888888", arrowsize="0.7"];
-  169 -> 209 [color="#888888", arrowsize="0.7"];
+  169 -> 204 [color="#888888", arrowsize="0.7"];
   169 -> 165 [color="#888888", arrowsize="0.7"];
   169 -> 172 [color="#888888", arrowsize="0.7"];
   170 -> 1 [color="#888888", arrowsize="0.7"];
-  170 -> 209 [color="#888888", arrowsize="0.7"];
+  170 -> 204 [color="#888888", arrowsize="0.7"];
   170 -> 165 [color="#888888", arrowsize="0.7"];
   170 -> 172 [color="#888888", arrowsize="0.7"];
   171 -> 176 [color="#888888", arrowsize="0.7"];
   171 -> 179 [color="#888888", arrowsize="0.7"];
   171 -> 1 [color="#888888", arrowsize="0.7"];
-  171 -> 209 [color="#888888", arrowsize="0.7"];
+  171 -> 204 [color="#888888", arrowsize="0.7"];
   171 -> 165 [color="#888888", arrowsize="0.7"];
   171 -> 172 [color="#888888", arrowsize="0.7"];
   171 -> 170 [color="#888888", arrowsize="0.7"];
   172 -> 1 [color="#888888", arrowsize="0.7"];
-  172 -> 209 [color="#888888", arrowsize="0.7"];
+  172 -> 204 [color="#888888", arrowsize="0.7"];
   172 -> 165 [color="#888888", arrowsize="0.7"];
   172 -> 170 [color="#888888", arrowsize="0.7"];
   173 -> 175 [color="#888888", arrowsize="0.7"];
@@ -1087,6 +1089,7 @@ digraph {
   174 -> 177 [color="#888888", arrowsize="0.7"];
   174 -> 178 [color="#888888", arrowsize="0.7"];
   174 -> 179 [color="#888888", arrowsize="0.7"];
+  175 -> 173 [color="#888888", arrowsize="0.7"];
   176 -> 186 [color="#888888", arrowsize="0.7"];
   176 -> 182 [color="#888888", arrowsize="0.7"];
   176 -> 185 [color="#888888", arrowsize="0.7"];
@@ -1145,20 +1148,20 @@ digraph {
   201 -> 117 [color="#888888", arrowsize="0.7"];
   202 -> 114 [color="#888888", arrowsize="0.7"];
   202 -> 117 [color="#888888", arrowsize="0.7"];
-  205 -> 34 [color="#888888", arrowsize="0.7"];
-  205 -> 1 [color="#888888", arrowsize="0.7"];
-  205 -> 82 [color="#888888", arrowsize="0.7"];
-  205 -> 206 [color="#888888", arrowsize="0.7"];
-  205 -> 96 [color="#888888", arrowsize="0.7"];
-  205 -> 207 [color="#888888", arrowsize="0.7"];
+  204 -> 6 [color="#888888", arrowsize="0.7"];
+  204 -> 11 [color="#888888", arrowsize="0.7"];
   206 -> 34 [color="#888888", arrowsize="0.7"];
   206 -> 1 [color="#888888", arrowsize="0.7"];
-  207 -> 26 [color="#888888", arrowsize="0.7"];
+  206 -> 82 [color="#888888", arrowsize="0.7"];
+  206 -> 207 [color="#888888", arrowsize="0.7"];
+  206 -> 96 [color="#888888", arrowsize="0.7"];
+  206 -> 208 [color="#888888", arrowsize="0.7"];
   207 -> 34 [color="#888888", arrowsize="0.7"];
   207 -> 1 [color="#888888", arrowsize="0.7"];
-  207 -> 82 [color="#888888", arrowsize="0.7"];
-  209 -> 6 [color="#888888", arrowsize="0.7"];
-  209 -> 11 [color="#888888", arrowsize="0.7"];
+  208 -> 26 [color="#888888", arrowsize="0.7"];
+  208 -> 34 [color="#888888", arrowsize="0.7"];
+  208 -> 1 [color="#888888", arrowsize="0.7"];
+  208 -> 82 [color="#888888", arrowsize="0.7"];
   210 -> 1 [color="#888888", arrowsize="0.7"];
   210 -> 13 [color="#888888", arrowsize="0.7"];
   211 -> 144 [color="#888888", arrowsize="0.7"];
@@ -1281,10 +1284,10 @@ digraph {
   245 -> 228 [color="#888888", arrowsize="0.7"];
   245 -> 234 [color="#888888", arrowsize="0.7"];
   246 -> 1 [color="#888888", arrowsize="0.7"];
-  subgraph cluster_type { label=type; style="rounded,filled"; fillcolor="#e8f4f8"; 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15; 16; 209; 210; }
+  subgraph cluster_type { label=type; style="rounded,filled"; fillcolor="#e8f4f8"; 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15; 16; 204; 210; }
   subgraph cluster_linear { label=linear; style="rounded,filled"; fillcolor="#fdedec"; 17; 18; 19; 20; 21; 22; 23; 24; 25; 26; 27; 28; 29; 30; 31; 32; 33; 34; }
   subgraph cluster_stats { label=stats; style="rounded,filled"; fillcolor="#ebf5fb"; 35; 36; 37; 38; 39; 40; 41; 42; 43; 44; 45; 46; 47; 48; 49; 50; 51; 52; 53; 54; 55; 56; 57; 58; 59; 60; 61; 62; 63; 64; 65; 66; 67; 68; 69; 70; 71; 72; 73; 74; 75; 76; 77; 78; 79; }
-  subgraph cluster_numeric { label=numeric; style="rounded,filled"; fillcolor="#e8f8f5"; 80; 81; 82; 83; 84; 85; 86; 87; 88; 89; 90; 91; 92; 93; 94; 95; 96; 97; 98; 99; 100; 101; 102; 103; 104; 204; 205; 206; 207; 208; }
+  subgraph cluster_numeric { label=numeric; style="rounded,filled"; fillcolor="#e8f8f5"; 80; 81; 82; 83; 84; 85; 86; 87; 88; 89; 90; 91; 92; 93; 94; 95; 96; 97; 98; 99; 100; 101; 102; 103; 104; 205; 206; 207; 208; 209; }
   subgraph cluster_acceleration { label=acceleration; style="rounded,filled"; fillcolor="#eafaf1"; 106; 173; 174; 175; 176; 177; 178; 179; 180; 181; 182; 183; 184; 185; 186; 187; 188; 189; 190; 191; 192; 193; 194; 195; }
   subgraph cluster_dataframe { label=dataframe; style="rounded,filled"; fillcolor="#f5eef8"; 107; 112; 113; 114; 115; 116; 117; 118; 119; 120; 121; 122; 196; 197; 198; 199; 200; 201; 202; 203; }
   subgraph cluster_polynomial { label=polynomial; style="rounded,filled"; fillcolor="#fcf3cf"; 108; 123; 124; 125; 126; 127; 246; }

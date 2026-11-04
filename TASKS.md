@@ -717,7 +717,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `gammap(num a, num x) => lowRegGamma(a, x);` is a duplicate alias for `lowRegGamma`, violating `AGENTS.md` ("Provide a single canonical way to perform an operation; avoid redundant convenience aliases").
   - **Fix**: Keep `gammap` (matching `gammaq` and `gammapInv`) as the single canonical function and remove `lowRegGamma`.
 
-- [ ] **5.3 Inconsistent API surface between `Tensor`, `Matrix`, `Vector`, and their `Float64*` counterparts**
+- [x] **5.3 Inconsistent API surface between `Tensor`, `Matrix`, `Vector`, and their `Float64*` counterparts**
   - **Severity**: Warning
   - **Location**: `lib/src/linear/float64_vector.dart`, `lib/src/linear/float64_matrix.dart`, `lib/src/linear/decomposition/{cholesky,lu,qr,svd}.dart`
   - **Problem**:

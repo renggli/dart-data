@@ -190,9 +190,9 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Direct matrix factorizations provide exact solutions, determinants, inverses, and condition numbers for dense linear systems. Defining decompositions via modular typed extensions at the top of each algorithm file guarantees compile-time type safety while eliminating unsafe runtime downcasts and keeping `matrix.dart` decoupled from specific decomposition algorithms.
 - **Implementation & Constraints**:
   - **Modular Type-Safe Extensions**: Factorization entry points are declared at the top of their dedicated decomposition files in `lib/src/linear/decomposition/` and exported via `package:data/linear.dart`:
-    - `CholeskyMatrixExtension<T extends num>`, `CholeskyComplexMatrixExtension` in `cholesky.dart` (`.cholesky`)
-    - `LuMatrixExtension<T extends num>`, `LuComplexMatrixExtension` in `lu.dart` (`.lu`)
-    - `QrMatrixExtension<T extends num>`, `QrComplexMatrixExtension` in `qr.dart` (`.qr`)
+    - `CholeskyMatrixExtension<T>` in `cholesky.dart` (`.cholesky`)
+    - `LuMatrixExtension<T>` in `lu.dart` (`.lu`, `.det`, `.inverse`)
+    - `QrMatrixExtension<T>` in `qr.dart` (`.qr`)
     - `SvdMatrixExtension<T extends num>` in `svd.dart` (`.svd`)
     - `EigenvalueMatrixExtension<T extends num>` in `eigenvalue.dart` (`.eigenvalue`)
   - **Generic Decomposition Classes**: `LUDecomposition<T>`, `QRDecomposition<T>`, and `CholeskyDecomposition<T>` execute specialized primitive double fast-paths when `type == DataType.float64` and generic algebraic field operations via `type.field` for general scalar fields (including `Complex`).

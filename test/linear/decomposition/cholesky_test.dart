@@ -69,7 +69,7 @@ void main() {
 
       final cholesky = a.cholesky;
       check(cholesky.isSymmetricPositiveDefinite).isFalse();
-      check(() => cholesky.solve(a)).throws<ArgumentError>();
+      check(() => cholesky.solve(a)).throws<StateError>();
     });
   });
 
@@ -156,12 +156,12 @@ void main() {
       ], type: DataType.complex);
       final cholNonHerm = nonHermitian.cholesky;
       check(cholNonHerm.isSymmetricPositiveDefinite).isFalse();
-      check(() => cholNonHerm.det).throws<ArgumentError>();
+      check(() => cholNonHerm.det).throws<StateError>();
       check(
         () => cholNonHerm.solve(
           Matrix<Complex>.identity(2, type: DataType.complex),
         ),
-      ).throws<ArgumentError>();
+      ).throws<StateError>();
 
       final nonPosDef = Matrix<Complex>.fromRows([
         [const Complex(-1.0, 0.0), const Complex(0.0, 0.0)],

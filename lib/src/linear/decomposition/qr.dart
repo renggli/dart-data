@@ -1,31 +1,14 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:more/number.dart' show Complex;
-
 import '../../type/data_type.dart';
 import '../matrix.dart';
 import '../vector.dart';
 
-/// Extension methods providing QR decomposition on numeric matrices.
-extension QrMatrixExtension<T extends num> on Matrix<T> {
+/// Extension methods providing QR decomposition on matrices.
+extension QrMatrixExtension<T> on Matrix<T> {
   /// Computes the QR decomposition of this matrix.
-  QRDecomposition<double> get qr => QRDecomposition<double>(_toDoubleMatrix());
-
-  Matrix<double> _toDoubleMatrix() => this is Matrix<double>
-      ? this as Matrix<double>
-      : Matrix<double>.generate(
-          rowCount,
-          colCount,
-          (r, c) => getUnchecked(r, c).toDouble(),
-          type: DataType.float64,
-        );
-}
-
-/// Extension methods providing QR decomposition on complex matrices.
-extension QrComplexMatrixExtension on Matrix<Complex> {
-  /// Computes the QR decomposition of this complex matrix.
-  QRDecomposition<Complex> get qr => QRDecomposition<Complex>(this);
+  QRDecomposition<T> get qr => QRDecomposition<T>(this);
 }
 
 /// QR Decomposition of an $m \times n$ matrix $A$ with $m \ge n$.
@@ -256,7 +239,6 @@ class QRDecomposition<T> {
 
   void _decomposeFloat64() {
     final qrData = _qr.tensor.data as Float64List;
-    final rdiag = _rdiag as List<double>;
 
     for (var k = 0; k < _n; k++) {
       var scale = 0.0;
@@ -300,7 +282,7 @@ class QRDecomposition<T> {
           }
         }
       }
-      rdiag[k] = -nrm;
+      _rdiag[k] = (-nrm) as T;
     }
   }
 
@@ -394,7 +376,7 @@ class QRDecomposition<T> {
 
   Matrix<double> _solveFloat64(Matrix<double> b) {
     final qrData = _qr.tensor.data as Float64List;
-    final rdiag = _rdiag as List<double>;
+    final rdiag = _rdiag;
     final nx = b.colCount;
     final x = Matrix<double>.generate(
       _m,
@@ -421,7 +403,7 @@ class QRDecomposition<T> {
 
     // Solve R * X = Y
     for (var k = _n - 1; k >= 0; k--) {
-      final rk = rdiag[k];
+      final rk = (rdiag[k] as num).toDouble();
       final kOffset = k * nx;
       for (var j = 0; j < nx; j++) {
         xData[kOffset + j] /= rk;

@@ -89,6 +89,14 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
       );
     }
   }
+  final aDouble = a is Matrix<double>
+      ? a
+      : Matrix<double>.generate(
+          rows,
+          cols,
+          (r, c) => a.getUnchecked(r, c).toDouble(),
+          type: DataType.float64,
+        );
   final bDouble = b is Vector<double>
       ? b
       : Vector<double>.generate(
@@ -97,12 +105,12 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
           type: DataType.float64,
         );
   if (rows >= cols) {
-    final qr = a.qr;
+    final qr = aDouble.qr;
     if (qr.isFullRank) {
       return qr.solveVector(bDouble);
     }
   }
-  return a.svd.solveVector(bDouble);
+  return aDouble.svd.solveVector(bDouble);
 }
 
 /// Simple univariate linear regression fitting

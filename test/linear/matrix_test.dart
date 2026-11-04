@@ -390,6 +390,33 @@ void main() {
       check(eig.realEigenvalues.length).equals(2);
     });
 
+    test('generic decompositions on Matrix<Fraction>', () {
+      final a = Matrix<Fraction>.fromRows([
+        [Fraction(4), Fraction(2)],
+        [Fraction(2), Fraction(5)],
+      ], type: DataType.fraction);
+
+      final lu = a.lu;
+      check(lu.isNonsingular).isTrue();
+      check(lu.det).equals(Fraction(16));
+      check(a.det).equals(Fraction(16));
+
+      final inv = a.inverse;
+      check(inv.rowCount).equals(2);
+      check(inv.colCount).equals(2);
+      final ident = a * inv;
+      check(ident.get(0, 0)).equals(Fraction.one);
+      check(ident.get(1, 1)).equals(Fraction.one);
+      check(ident.get(0, 1)).equals(Fraction.zero);
+      check(ident.get(1, 0)).equals(Fraction.zero);
+
+      final chol = a.cholesky;
+      check(chol.isSymmetricPositiveDefinite).isTrue();
+
+      final qr = a.qr;
+      check(qr.isFullRank).isTrue();
+    });
+
     test('non-numeric matrices have no decomposition getters and avoid downcast TypeError', () {
       final strMat = Matrix<String>.fromRows([
         ['a', 'b'],
@@ -651,7 +678,7 @@ void main() {
         [1.0, 2.0],
         [2.0, 4.0],
       ]);
-      check(() => singular.inverse).throws<ArgumentError>();
+      check(() => singular.inverse).throws<StateError>();
     });
 
     test('Float64Matrix det and inverse', () {
