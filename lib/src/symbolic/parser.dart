@@ -70,6 +70,7 @@ class ExprSyntax {
       'i': ComplexNumber.i,
       'infinity': Constant.infinity,
       '∞': Constant.infinity,
+      'undefined': Constant.undefined,
     },
   );
 

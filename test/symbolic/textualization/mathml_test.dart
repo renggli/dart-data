@@ -217,6 +217,9 @@ void main() {
       const x = Variable('x');
       check(const OrderTerm('x', 0).toMathMl(root: false))
           .equals('<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>');
+      check(
+        const OrderTerm('x', 0, point: IntegerNumber.one).toMathMl(root: false),
+      ).equals('<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>');
       check(const OrderTerm('x', 1).toMathMl(root: false))
           .equals('<mrow><mi>O</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
       check(const OrderTerm('x', 4).toMathMl()).contains('<mi>O</mi>');

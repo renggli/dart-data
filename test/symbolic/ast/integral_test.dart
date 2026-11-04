@@ -53,6 +53,33 @@ void main() {
       final subT = defParam.substitute('t', IntegerNumber.of(5));
       check(subT).equals(defParam);
 
+      final subTtoU = defParam.substitute('t', const Variable('u'));
+      check(subTtoU).equals(
+        Integral(
+          const Variable('u') * const Variable('x'),
+          'u',
+          lower: IntegerNumber.zero,
+          upper: const Variable('x'),
+        ),
+      );
+
+      // Alpha-renaming of inner conflicting variable when renaming dummy variable to existing free variable
+      final defConflict = Integral(
+        t * const Variable('u'),
+        't',
+        lower: IntegerNumber.zero,
+        upper: IntegerNumber.one,
+      );
+      final subRenamed = defConflict.substitute('t', const Variable('u'));
+      check(subRenamed).equals(
+        Integral(
+          const Variable('u') * const Variable('u_1'),
+          'u',
+          lower: IntegerNumber.zero,
+          upper: IntegerNumber.one,
+        ),
+      );
+
       final subX = defParam.substitute('x', IntegerNumber.two);
       check(subX).equals(
         Integral(

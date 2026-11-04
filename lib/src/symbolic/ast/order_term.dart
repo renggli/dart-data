@@ -32,10 +32,16 @@ final class OrderTerm extends Expr {
 
   @override
   Expr substitute(String variable, Expr replacement) {
-    final newPoint = point.substitute(variable, replacement);
-    if (this.variable == variable && replacement is Variable) {
-      return OrderTerm(replacement.name, order, point: newPoint);
+    if (this.variable == variable) {
+      if (replacement == point) {
+        return order > 0 ? IntegerNumber.zero : this;
+      }
+      if (replacement is Variable) {
+        return OrderTerm(replacement.name, order, point: point);
+      }
+      return this;
     }
+    final newPoint = point.substitute(variable, replacement);
     return OrderTerm(this.variable, order, point: newPoint);
   }
 

@@ -26,8 +26,11 @@ void main() {
         check(shifted.freeVariables).unorderedEquals(['x', 'a']);
         check(shifted.substitute('x', u))
             .equals(const OrderTerm('u', 2, point: a));
+        check(shifted.substitute('x', a)).equals(IntegerNumber.zero);
         check(shifted.substitute('x', IntegerNumber.two))
             .equals(const OrderTerm('x', 2, point: a));
+        check(const OrderTerm('x', 0, point: a).substitute('x', a))
+            .equals(const OrderTerm('x', 0, point: a));
         check(shifted.substitute('a', IntegerNumber.one))
             .equals(const OrderTerm('x', 2, point: IntegerNumber.one));
         check(shifted.mapChildren((_) => IntegerNumber.one))

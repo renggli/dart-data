@@ -88,6 +88,8 @@ void main() {
     test('renders OrderTerm, Piecewise, RelationalExpr, and Integral', () {
       const x = Variable('x');
       check(const OrderTerm('x', 0).toLatex()).equals('O(1)');
+      check(const OrderTerm('x', 0, point: IntegerNumber.one).toLatex())
+          .equals('O(1)');
       check(const OrderTerm('x', 1).toLatex()).equals('O(x)');
       check(const OrderTerm('x', 3).toLatex()).equals('O(x^{3})');
       check(const OrderTerm('x', 1, point: IntegerNumber.one).toLatex())

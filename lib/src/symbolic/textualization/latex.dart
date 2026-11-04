@@ -220,9 +220,9 @@ String _formatOrderTermLatex(
   Expr point,
   int decimalPlaces,
 ) {
+  if (order == 0) return 'O(1)';
   final isZero = point is Number && point.isZero;
   if (isZero) {
-    if (order == 0) return 'O(1)';
     if (order == 1) return 'O($variable)';
     return 'O($variable^{$order})';
   }

@@ -488,7 +488,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `2 + i` folds to `ComplexNumber(2, 1)` while `i + 2` returns `Add([i, 2])`; `2 * i` folds to `ComplexNumber(0, 2)` while `i * 2` returns `Mul([i, 2])`; and `RealNumber(2.0) * ComplexNumber.i` creates `ComplexNumber(IntegerNumber(0), RealNumber(2.0))` with mixed exact/inexact parts.
   - **Fix**: Fold `ComplexNumber` symmetrically on both sides of `+`, `-`, `*`, `/` and match `RealNumber` precision across real and imaginary parts.
 
-- [ ] **1.10.14 `OrderTerm.substitute` and `Integral.substitute` bugs on bound variables, `Constant.undefined` parser round-trip, and `OrderTerm` degree-0 rendering**
+- [x] **1.10.14 `OrderTerm.substitute` and `Integral.substitute` bugs on bound variables, `Constant.undefined` parser round-trip, and `OrderTerm` degree-0 rendering**
   - **Severity**: Warning
   - **Location**: `lib/src/symbolic/ast/order_term.dart:34-40`, `lib/src/symbolic/ast/integral.dart:104-123`, `lib/src/symbolic/parser.dart:65-74`, `lib/src/symbolic/textualization/latex.dart:223-232`, `lib/src/symbolic/textualization/mathml.dart:296-310`
   - **Problem**: `OrderTerm.substitute` substitutes the bound variable inside `point` and fails to simplify to `0` when evaluated at `replacement == point`; `'undefined'` is missing from `ExprSyntax.standardConstants`; and `OrderTerm('x', 0, point: IntegerNumber.one)` renders as `O((x - 1)^{0})` instead of `O(1)` in LaTeX/MathML.

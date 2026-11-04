@@ -293,11 +293,11 @@ String _formatOrderTermMathMl(
   Expr point,
   int decimalPlaces,
 ) {
+  if (order == 0) {
+    return '<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>';
+  }
   final isZero = point is Number && point.isZero;
   if (isZero) {
-    if (order == 0) {
-      return '<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>';
-    }
     if (order == 1) {
       return '<mrow><mi>O</mi><mo>(</mo><mi>${_escapeXml(variable)}</mi><mo>)</mo></mrow>';
     }

@@ -33,6 +33,7 @@ void main() {
       check(Expr.parse('i')).equals(ComplexNumber.i);
       check(Expr.parse('infinity')).equals(Constant.infinity);
       check(Expr.parse('∞')).equals(Constant.infinity);
+      check(Expr.parse('undefined')).equals(Constant.undefined);
 
       // Identifiers are strictly case-sensitive; uppercase PI, E, I parse as Variables
       check(Expr.parse('PI')).equals(const Variable('PI'));
