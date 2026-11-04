@@ -89,7 +89,9 @@ class LogNormalDistribution extends ContinuousDistribution {
   }
 
   @override
-  double sample({Random? random}) => samples(random: random).first;
+  double sample({Random? random}) => exp(
+    const NormalDistribution.standard().sample(random: random) * sigma + mu,
+  );
 
   @override
   Iterable<double> samples({Random? random}) {

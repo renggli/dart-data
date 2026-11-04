@@ -50,7 +50,19 @@ void main() {
   group('NormalDistribution estimation and validation', () {
     test('samples, fit, errors, and equality', () {
       const dist = NormalDistribution.standard();
-      // Sample & fit
+      // Single sample without random and with random
+      final sDefault = dist.sample();
+      check(sDefault.isFinite).isTrue();
+      final rng = math.Random(123);
+      final singleSamples = List.generate(
+        1000,
+        (_) => dist.sample(random: rng),
+      );
+      final singleFitted = NormalDistribution.fit(singleSamples);
+      check(singleFitted.mean).isCloseTo(0.0, 0.1);
+      check(singleFitted.standardDeviation).isCloseTo(1.0, 0.1);
+
+      // Sample & fit from samples() generator
       final samples = dist.samples(random: math.Random(42)).take(1000).toList();
       final fitted = NormalDistribution.fit(samples);
       check(fitted.mean).isCloseTo(0.0, 0.1);

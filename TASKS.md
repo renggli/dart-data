@@ -569,7 +569,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
     5. `GroupBy._computeAgg` for `Agg.count` calls `col[indices[i]] != null` instead of `!col.isNull(indices[i])`.
   - **Fix**: Add buffer-level `concat` and `permute(List<int> indices)` methods on `Series` subclasses, slice `data`/`mask` directly in `BoolSeries` and `ObjectSeries`, compare UTF-8 byte ranges in `ArrowStringSeries.min`/`max`, and use `!col.isNull(...)` in `GroupBy`.
 
-- [ ] **2.7 `NormalDistribution.sample` allocates a `sync*` generator and `UniformDistribution` on every call**
+- [x] **2.7 `NormalDistribution.sample` allocates a `sync*` generator and `UniformDistribution` on every call**
   - **Severity**: Warning
   - **Location**: `lib/src/stats/distributions/continuous/normal.dart:127-143`, `lib/src/stats/distributions/continuous/log_normal.dart:92`
   - **Problem**: `NormalDistribution.sample` calls `samples(random: random).first`, allocating a generator state machine and a `UniformDistribution(-1.0, 1.0)` on every call, generating two variates, and discarding one. This also slows down `GammaDistribution`, `StudentDistribution`, `PoissonDistribution`, and `MultivariateNormalDistribution` which call `normal.sample()` in their inner loops.

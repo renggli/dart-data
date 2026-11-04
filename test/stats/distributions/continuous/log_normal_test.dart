@@ -33,6 +33,8 @@ void main() {
     test('samples, fit, errors, and equality', () {
       final dist = LogNormalDistribution(0.0, 1.0);
       // Samples
+      final sampleDefault = dist.sample();
+      check(sampleDefault).isGreaterThan(0.0);
       final sample = dist.sample(random: math.Random(42));
       check(sample).isGreaterThan(0.0);
 

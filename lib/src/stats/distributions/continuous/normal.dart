@@ -5,7 +5,6 @@ import 'package:more/printer.dart';
 import '../../../special/erf.dart';
 import '../continuous.dart';
 import '../errors.dart';
-import 'uniform.dart';
 
 /// Normal (or Gaussian) distribution described by [mean] μ and
 /// [standardDeviation] σ.
@@ -124,16 +123,25 @@ class NormalDistribution extends ContinuousDistribution {
   }
 
   @override
-  double sample({Random? random}) => samples(random: random).first;
+  double sample({Random? random}) {
+    final rng = random ?? _random;
+    double xVal, yVal, rSq;
+    do {
+      xVal = 2.0 * rng.nextDouble() - 1.0;
+      yVal = 2.0 * rng.nextDouble() - 1.0;
+      rSq = xVal * xVal + yVal * yVal;
+    } while (rSq >= 1.0 || rSq == 0.0);
+    return mean + standardDeviation * xVal * sqrt(-2.0 * log(rSq) / rSq);
+  }
 
   @override
   Iterable<double> samples({Random? random}) sync* {
-    final uniform = UniformDistribution(-1.0, 1.0);
+    final rng = random ?? _random;
     for (;;) {
       double xVal, yVal, rSq;
       do {
-        xVal = uniform.sample(random: random);
-        yVal = uniform.sample(random: random);
+        xVal = 2.0 * rng.nextDouble() - 1.0;
+        yVal = 2.0 * rng.nextDouble() - 1.0;
         rSq = xVal * xVal + yVal * yVal;
       } while (rSq >= 1.0 || rSq == 0.0);
       final factor = standardDeviation * sqrt(-2.0 * log(rSq) / rSq);
@@ -156,3 +164,5 @@ class NormalDistribution extends ContinuousDistribution {
     ..addValue(mean, name: 'μ')
     ..addValue(standardDeviation, name: 'σ');
 }
+
+final _random = Random();
