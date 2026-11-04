@@ -664,13 +664,15 @@ class ExprSyntax {
     if (varToken is Variable) return expr;
     Expr visit(Expr node) {
       if (node == varToken) return Variable(varName);
-      if (node == ComplexNumber.negativeI && varName == 'i') {
-        return -Variable(varName);
+      if (varName == 'i' && node is ComplexNumber) {
+        final imagExpr = switch (node.imaginary) {
+          IntegerNumber(isOne: true) => Variable(varName),
+          IntegerNumber(isNegativeOne: true) => -Variable(varName),
+          _ => node.imaginary * Variable(varName),
+        };
+        return node.real.isZero ? imagExpr : node.real + imagExpr;
       }
-      if (varName == 'e' &&
-          node is Pow &&
-          node.base == Constant.e &&
-          node.exponent.anyNode((n) => n == Constant.e)) {
+      if (varName == 'e' && node is Pow && node.base == Constant.e) {
         return Pow(Constant.e, visit(node.exponent));
       }
       if (node is Integral && node.isDefinite && node.variable == varName) {

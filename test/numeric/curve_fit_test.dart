@@ -427,7 +427,7 @@ void main() {
     });
 
     test(
-      'curveFit with constant values yields rSquared 0.0 (ssTot == 0.0)',
+      'curveFit with constant values yields rSquared 1.0 when exact (ssTot == 0.0)',
       () {
         final xs = Vector<double>.fromList([1.0, 2.0, 3.0]);
         final ys = Vector<double>.fromList([5.0, 5.0, 5.0]);
@@ -437,7 +437,7 @@ void main() {
           model: (x, p) => p[0],
           initialParams: Vector<double>.fromList([1.0]),
         );
-        check(res.rSquared).equals(0.0);
+        check(res.rSquared).equals(1.0);
       },
     );
 

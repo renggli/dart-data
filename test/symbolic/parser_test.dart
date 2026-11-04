@@ -379,17 +379,40 @@ void main() {
       // Bound variable shadowing of standard constants (i, e, pi)
       check(Expr.parse('sum(i, i, 1, 10)').simplify())
           .equals(IntegerNumber.of(55));
+      check(Expr.parse('sum(2 * i, i, 1, 5)').simplify())
+          .equals(IntegerNumber.of(30));
+      check(Expr.parse('sum(2 * i + 1, i, 1, 3)').simplify())
+          .equals(IntegerNumber.of(15));
+      check(Expr.parse('sum(3 - i, i, 1, 3)').simplify())
+          .equals(IntegerNumber.of(3));
       check(Expr.parse('product(i, i, 1, 4)').simplify())
           .equals(IntegerNumber.of(24));
-      check(Expr.parse('diff(e^2, e, 1, 3)').simplify())
-          .equals(IntegerNumber.of(6));
+      check(Expr.parse('product(2 * i, i, 1, 3)').simplify())
+          .equals(IntegerNumber.of(48));
+      check(Expr.parse('diff(2 * e, e, 1, 3)').simplify())
+          .equals(IntegerNumber.two);
       check(Expr.parse('integrate(e, e)'))
           .equals(Integral(const Variable('e'), 'e'));
+      check(Expr.parse('integrate(exp(x) * e, e)')).equals(
+        Integral(
+          Pow(Constant.e, const Variable('x')) * const Variable('e'),
+          'e',
+        ),
+      );
+      check(Expr.parse('integrate(exp(e), e)'))
+          .equals(Integral(Pow(Constant.e, const Variable('e')), 'e'));
       check(Expr.parse('limit(e + 1, e, 2)')).equals(
         Limit(const Variable('e') + IntegerNumber.one, 'e', IntegerNumber.two),
       );
+      check(Expr.parse('limit(exp(x) + e, e, 0)')).equals(
+        Limit(
+          Pow(Constant.e, const Variable('x')) + const Variable('e'),
+          'e',
+          IntegerNumber.zero,
+        ),
+      );
       check(Expr.parse('integrate(-i, i, 0, 1)')).isA<Integral>();
-      check(Expr.parse('diff(e^2, e, 2)')).isA<Derivative>();
+      check(Expr.parse('diff(2 * e, e, 2)')).isA<Derivative>();
       check(Expr.parse('limit(e, e, 0, fromAbove)')).isA<Limit>();
       check(Expr.parse('sum(integrate(x, x, 0, i), i, 1, 3)')).isA<Sum>();
       check(Expr.parse('sum(diff(x^2, x, 1, i), i, 1, 3)')).isA<Sum>();

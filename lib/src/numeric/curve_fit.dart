@@ -167,7 +167,7 @@ linearRegression(Vector<num> xs, Vector<num> ys) {
   }
   final rSquared = ssTot > 0.0
       ? 1.0 - (ssRes / ssTot)
-      : (ssRes == 0.0 ? 1.0 : 0.0);
+      : (ssRes <= 1e-12 ? 1.0 : 0.0);
 
   return (
     slope: slope,
@@ -315,7 +315,7 @@ multipleLinearRegression(
   }
   final rSquared = ssTot > 0.0
       ? 1.0 - (ssRes / ssTot)
-      : (ssRes == 0.0 ? 1.0 : 0.0);
+      : (ssRes <= 1e-12 ? 1.0 : 0.0);
 
   return (
     coefficients: coefs,
@@ -540,7 +540,7 @@ CurveFitResult curveFit({
 
   final rSquared = ssTot > 0.0
       ? 1.0 - (ssRes / ssTot)
-      : (ssRes == 0.0 ? 1.0 : 0.0);
+      : (ssRes <= 1e-12 ? 1.0 : 0.0);
   final df = n - numParams;
   final rse = df > 0 ? math.sqrt(ssRes / df) : double.nan;
 
