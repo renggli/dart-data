@@ -2,6 +2,7 @@ import 'acceleration_mode.dart';
 
 /// Base class for errors thrown by the acceleration subsystem.
 abstract class AccelerationError extends StateError {
+  /// Constructs an [AccelerationError] with a descriptive [message].
   new(super.message);
 
   /// Constructs an [AccelerationUnavailableError] indicating that native

@@ -682,7 +682,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
     13. `benchmark/symbolic_benchmark.dart:5` claims Gröbner basis uses F4 (actual: Buchberger with Sugar strategy + FGLM).
   - **Fix**: Update `ARCHITECTURE.md`, `README.md`, and `benchmark/symbolic_benchmark.dart` to accurately reflect the codebase.
 
-- [ ] **4.3 Missing `///` documentation comments on public classes, extensions, constructors, and methods**
+- [x] **4.3 Missing `///` documentation comments on public classes, extensions, constructors, and methods**
   - **Severity**: Warning
   - **Location**:
     - `lib/src/symbolic/solver/multivariate_polynomial.dart:10-446` (30+ undocumented public members on `Monomial`, `MonomialOrder`, and `MultivariatePolynomial`, which are exported by `lib/symbolic.dart`)

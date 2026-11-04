@@ -3,6 +3,7 @@ import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';
 
+/// Element-wise unary and binary operations, mapping, and broadcasting on tensors.
 extension OperationTensorExtension<T> on Tensor<T> {
   /// Element-wise unary operation evaluated into [target] or a new tensor.
   ///

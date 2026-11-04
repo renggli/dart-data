@@ -15,6 +15,7 @@ abstract interface class Equality<T> {
 
 /// The natural and canonical equality of objects.
 base class NaturalEquality<T> implements Equality<T> {
+  /// Creates a canonical natural equality comparator using standard `==` and [Object.hashCode].
   const new();
 
   @override

@@ -7,6 +7,7 @@ import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';
 
+/// Matrix multiplication and batched matrix multiplication operations on tensors.
 extension MatmulTensorExtension<T> on Tensor<T> {
   /// Multiplies this tensor with [other] using matrix multiplication semantics.
   ///

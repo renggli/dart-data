@@ -8,20 +8,30 @@ import '../ast.dart';
 
 /// Represents a monomial exponent vector over an ordered list of variables.
 class Monomial {
+  /// Creates a monomial from an ordered list of non-negative integer [exponents].
   new(List<int> exponents)
     : exponents = List.unmodifiable(exponents),
       totalDegree = exponents.fold(0, (sum, e) => sum + e);
 
+  /// Creates a zero monomial of degree 0 for [numVariables] variables.
   factory zero(int numVariables) => Monomial(List<int>.filled(numVariables, 0));
 
+  /// The non-negative exponent vector for each variable.
   final List<int> exponents;
+
+  /// The sum of exponents across all variables.
   final int totalDegree;
 
+  /// The number of variables in this monomial.
   int get length => exponents.length;
+
+  /// Returns the exponent of the variable at [index].
   int operator [](int index) => exponents[index];
 
+  /// Whether all exponents are zero (degree 0).
   bool get isZero => totalDegree == 0;
 
+  /// Multiplies this monomial with [other] by adding exponent vectors.
   Monomial operator *(Monomial other) {
     assert(length == other.length, 'Variable counts must match');
     final result = List<int>.generate(
@@ -31,6 +41,7 @@ class Monomial {
     return Monomial(result);
   }
 
+  /// Returns `true` if this monomial divides [other] (all exponents $\le$ other exponents).
   bool divides(Monomial other) {
     assert(length == other.length, 'Variable counts must match');
     for (var i = 0; i < length; i++) {
@@ -39,6 +50,7 @@ class Monomial {
     return true;
   }
 
+  /// Divides this monomial by [other], throwing [ArgumentError] if [other] does not divide this.
   Monomial divide(Monomial other) {
     assert(length == other.length, 'Variable counts must match');
     final result = List<int>.generate(length, (i) {
@@ -51,6 +63,7 @@ class Monomial {
     return Monomial(result);
   }
 
+  /// Computes the least common multiple of this monomial and [other] (element-wise maximum).
   Monomial lcm(Monomial other) {
     assert(length == other.length, 'Variable counts must match');
     final result = List<int>.generate(
@@ -60,6 +73,7 @@ class Monomial {
     return Monomial(result);
   }
 
+  /// Computes the greatest common divisor of this monomial and [other] (element-wise minimum).
   Monomial gcd(Monomial other) {
     assert(length == other.length, 'Variable counts must match');
     final result = List<int>.generate(
@@ -69,6 +83,7 @@ class Monomial {
     return Monomial(result);
   }
 
+  /// Returns `true` if this monomial shares no common variable factors with [other].
   bool isCoprime(Monomial other) {
     assert(length == other.length, 'Variable counts must match');
     for (var i = 0; i < length; i++) {
@@ -77,6 +92,7 @@ class Monomial {
     return true;
   }
 
+  /// Returns `true` if only the variable at [varIndex] has a positive exponent.
   bool isPurePower(int varIndex) {
     if (exponents[varIndex] == 0) return false;
     for (var i = 0; i < length; i++) {
@@ -107,6 +123,7 @@ enum MonomialOrder {
   /// Pure lexicographical order.
   lex;
 
+  /// Compares monomials [a] and [b] according to this ordering.
   int compare(Monomial a, Monomial b) {
     assert(a.length == b.length, 'Variable counts must match');
     switch (this) {
@@ -133,6 +150,7 @@ enum MonomialOrder {
 
 /// Represents a polynomial in multiple variables with exact rational coefficients.
 class MultivariatePolynomial {
+  /// Creates a multivariate polynomial over [variables] with rational coefficient [terms] and optional [sugar] degree bound.
   new(this.variables, Map<Monomial, RationalNumber> terms, {int? sugar})
     : terms = _cleanTerms(terms),
       sugar = sugar ?? _calcInitialSugar(terms) {
@@ -145,20 +163,31 @@ class MultivariatePolynomial {
     }
   }
 
+  /// Creates the zero polynomial over [variables].
   factory zero(List<String> variables) =>
       MultivariatePolynomial(variables, const {});
 
+  /// The ordered variable names defining the polynomial ring.
   final List<String> variables;
+
+  /// The non-zero terms mapping each [Monomial] to its [RationalNumber] coefficient.
   final Map<Monomial, RationalNumber> terms;
+
+  /// The sugar degree bound used by the Sugar selection strategy in Buchberger's algorithm.
   final int sugar;
 
+  /// Whether this polynomial is identically zero.
   bool get isZero => terms.isEmpty;
+
+  /// The number of variables in the polynomial ring.
   int get length => variables.length;
 
+  /// The maximum total degree among all non-zero monomials, or 0 if zero.
   int get totalDegree => terms.isEmpty
       ? 0
       : terms.keys.fold(0, (max, m) => math.max(max, m.totalDegree));
 
+  /// Returns the leading monomial under the specified monomial [order].
   Monomial leadingMonomial([MonomialOrder order = MonomialOrder.grevlex]) {
     if (terms.isEmpty) return Monomial.zero(variables.length);
     Monomial? lead;
@@ -170,6 +199,7 @@ class MultivariatePolynomial {
     return lead!;
   }
 
+  /// Returns the leading coefficient under the specified monomial [order].
   RationalNumber leadingCoefficient([
     MonomialOrder order = MonomialOrder.grevlex,
   ]) {
@@ -178,6 +208,7 @@ class MultivariatePolynomial {
     return terms[lm]!;
   }
 
+  /// Returns the leading term pair (monomial, coefficient) under [order].
   (Monomial, RationalNumber) leadingTerm([
     MonomialOrder order = MonomialOrder.grevlex,
   ]) {
@@ -185,6 +216,7 @@ class MultivariatePolynomial {
     return (lm, terms[lm] ?? IntegerNumber.zero);
   }
 
+  /// Adds [other] polynomial to this polynomial.
   MultivariatePolynomial operator +(MultivariatePolynomial other) {
     assert(_listEquals(variables, other.variables));
     final newTerms = Map<Monomial, RationalNumber>.of(terms);
@@ -204,6 +236,7 @@ class MultivariatePolynomial {
     );
   }
 
+  /// Subtracts [other] polynomial from this polynomial.
   MultivariatePolynomial operator -(MultivariatePolynomial other) {
     assert(_listEquals(variables, other.variables));
     final newTerms = Map<Monomial, RationalNumber>.of(terms);
@@ -223,6 +256,7 @@ class MultivariatePolynomial {
     );
   }
 
+  /// Scales all coefficients of this polynomial by [scalar].
   MultivariatePolynomial scale(RationalNumber scalar, {int? newSugar}) {
     if (scalar.isZero || terms.isEmpty) {
       return MultivariatePolynomial.zero(variables);
@@ -238,6 +272,7 @@ class MultivariatePolynomial {
     );
   }
 
+  /// Multiplies this polynomial by a single monomial term [monomial] * [coeff].
   MultivariatePolynomial multiplyMonomial(
     Monomial monomial,
     RationalNumber coeff, {
@@ -257,6 +292,7 @@ class MultivariatePolynomial {
     );
   }
 
+  /// Multiplies this polynomial by [other] polynomial.
   MultivariatePolynomial operator *(MultivariatePolynomial other) {
     assert(_listEquals(variables, other.variables));
     if (isZero || other.isZero) {
@@ -283,6 +319,7 @@ class MultivariatePolynomial {
     );
   }
 
+  /// Returns a monic scalar multiple of this polynomial (leading coefficient 1) under [order].
   MultivariatePolynomial monic([MonomialOrder order = MonomialOrder.grevlex]) {
     if (isZero) return this;
     final lc = leadingCoefficient(order);

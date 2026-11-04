@@ -1,6 +1,7 @@
 import '../layout.dart';
 import '../tensor.dart';
 
+/// Structural tensor manipulation and concatenation operations.
 extension ManipulationTensorExtension<T> on Tensor<T> {
   /// Concatenates this tensor with [other] along [axis].
   ///

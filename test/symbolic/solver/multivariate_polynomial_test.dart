@@ -65,6 +65,9 @@ void main() {
         check(zero.totalDegree).equals(0);
         check(zero.leadingMonomial()).equals(Monomial.zero(2));
         check(zero.leadingCoefficient()).equals(IntegerNumber.zero);
+        final (zLm, zLc) = zero.leadingTerm();
+        check(zLm).equals(Monomial.zero(2));
+        check(zLc).equals(IntegerNumber.zero);
         check(zero.monic()).equals(zero);
         check(zero.scale(IntegerNumber.two)).equals(zero);
         check(zero.multiplyMonomial(Monomial([1, 0]), IntegerNumber.two))
@@ -79,6 +82,9 @@ void main() {
         final q = MultivariatePolynomial.fromExpr(Expr.parse('x - y'), vars);
 
         check(p.totalDegree).equals(1);
+        final (pLm, pLc) = p.leadingTerm();
+        check(pLm).equals(Monomial([1, 0]));
+        check(pLc).equals(IntegerNumber.two);
         check(p.scale(IntegerNumber.zero)).equals(zero);
         check(p.multiplyMonomial(Monomial([1, 0]), IntegerNumber.zero))
             .equals(zero);

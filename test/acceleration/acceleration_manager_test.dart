@@ -41,10 +41,20 @@ void main() {
       check(unavail.toString())
           .contains('Native vForce acceleration is unavailable');
 
+      final unavailFactory = AccelerationError.unavailable('BLAS');
+      check(unavailFactory).isA<AccelerationUnavailableError>();
+      check((unavailFactory as AccelerationUnavailableError).feature)
+          .equals('BLAS');
+
       final failed = AccelerationFailedError('dgemm');
       check(failed).isA<AccelerationFailedError>();
       check(failed.operation).equals('dgemm');
       check(failed.toString()).contains('Native dgemm execution failed');
+
+      final failedFactory = AccelerationError.failed('dgesv');
+      check(failedFactory).isA<AccelerationFailedError>();
+      check((failedFactory as AccelerationFailedError).operation)
+          .equals('dgesv');
     });
   });
 }

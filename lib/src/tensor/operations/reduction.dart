@@ -9,6 +9,7 @@ import '../layout.dart';
 import '../tensor.dart';
 import 'operation.dart';
 
+/// Multi-axis reduction and aggregation operations on tensors.
 extension ReductionTensorExtension<T> on Tensor<T> {
   /// Computes the sum of elements over the given [axis], or all elements if
   /// [axis] is null.
