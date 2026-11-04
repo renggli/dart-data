@@ -1,4 +1,5 @@
 import '../../linear/matrix.dart';
+import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
@@ -10,13 +11,15 @@ import 'univariate.dart';
 class SylvesterResultantSolver {
   /// Constructs the Sylvester resultant matrix $S_x(f, g)$ eliminating [elimVariable].
   static Matrix<Expr> sylvesterMatrix(Expr f, Expr g, String elimVariable) {
+    final expF = f.expand().simplify();
+    final expG = g.expand().simplify();
     final fCoeffs =
-        extractPolynomialCoefficients(f, elimVariable) ??
+        extractPolynomialCoefficients(expF, elimVariable) ??
         (throw ArgumentError(
           'Expression f is not polynomial in $elimVariable: $f',
         ));
     final gCoeffs =
-        extractPolynomialCoefficients(g, elimVariable) ??
+        extractPolynomialCoefficients(expG, elimVariable) ??
         (throw ArgumentError(
           'Expression g is not polynomial in $elimVariable: $g',
         ));
@@ -102,7 +105,7 @@ class SylvesterResultantSolver {
   /// Computes the resultant Res_x(f, g) by evaluating the determinant of the Sylvester matrix.
   static Expr resultant(Expr f, Expr g, String elimVariable) {
     final mat = sylvesterMatrix(f, g, elimVariable);
-    return const BareissEngine().determinant(mat).simplify();
+    return const BareissEngine().determinant(mat).expand().simplify();
   }
 
   /// Solves a bivariate polynomial system `f = 0, g = 0` for [variables] via Sylvester resultant elimination.
@@ -118,15 +121,17 @@ class SylvesterResultantSolver {
       );
     }
 
-    final resY = resultant(f, g, xVar);
+    final expF = f.expand().simplify();
+    final expG = g.expand().simplify();
+    final resY = resultant(expF, expG, xVar);
     final yRoots = solveEquation(resY, yVar);
 
     final solutions = <Map<String, Expr>>[];
     final seen = <String>{};
 
     for (final y0 in yRoots) {
-      final fAtY = f.substitute(yVar, y0).simplify();
-      final gAtY = g.substitute(yVar, y0).simplify();
+      final fAtY = expF.substitute(yVar, y0).expand().simplify();
+      final gAtY = expG.substitute(yVar, y0).expand().simplify();
 
       if (!fAtY.dependsOn(xVar) && !isZeroExpr(fAtY)) continue;
       if (!gAtY.dependsOn(xVar) && !isZeroExpr(gAtY)) continue;
@@ -136,8 +141,8 @@ class SylvesterResultantSolver {
         if (gAtY.dependsOn(xVar)) ...solveEquation(gAtY, xVar),
       ];
       for (final x0 in deduplicateRoots(xCandidates)) {
-        final fVal = fAtY.substitute(xVar, x0).simplify();
-        final gVal = gAtY.substitute(xVar, x0).simplify();
+        final fVal = fAtY.substitute(xVar, x0).expand().simplify();
+        final gVal = gAtY.substitute(xVar, x0).expand().simplify();
         if (isZeroExpr(fVal) && isZeroExpr(gVal)) {
           final key = '${x0.simplify()}|${y0.simplify()}';
           if (seen.add(key)) {

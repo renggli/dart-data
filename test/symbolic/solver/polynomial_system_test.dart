@@ -18,6 +18,19 @@ void main() {
         final xValues = solutions.map((s) => s['x']!).toList();
         check(xValues).unorderedEquals([IntegerNumber.one, IntegerNumber.two]);
       }
+
+      // Unexpanded equations across all methods
+      final unexpEqs = [
+        Equal(Expr.parse('(x + y)^2'), IntegerNumber.of(4)),
+        Expr.parse('x - y'),
+      ];
+      for (final method in PolynomialSystemMethod.values) {
+        final solutions = unexpEqs.solve(['x', 'y'], method: method);
+        check(solutions.length).equals(2);
+        final xValues = solutions.map((s) => s['x']!).toList();
+        check(xValues)
+            .unorderedEquals([IntegerNumber.one, IntegerNumber.negativeOne]);
+      }
     });
 
     test('solves Katsura-2 and Katsura-3 systems without integer overflow', () {

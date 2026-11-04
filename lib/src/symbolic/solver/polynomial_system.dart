@@ -36,7 +36,7 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
       (switch (e) {
         Equal(:final left, :final right) => left - right,
         _ => e,
-      }).simplify(assumptions: assumptions),
+      }).expand(assumptions: assumptions).simplify(assumptions: assumptions),
   ];
 
   final List<Map<String, Expr>> rawSolutions;

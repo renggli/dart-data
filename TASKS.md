@@ -470,7 +470,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `_reduceLogarithms` contracts `Ln(a) + Ln(b) -> Ln(a * b)` without checking `isPositiveExpr`, which is invalid for negative/complex arguments, and neither `_reduceLogarithms`, `_doCombineFractions`, nor `simplifyNeg` forwards `assumptions: assumptions` to inner `simplify*` calls.
   - **Fix**: Require `isPositiveExpr` in `_reduceLogarithms` and thread `assumptions: assumptions` through all `simplify*` calls in `term_accumulator.dart` and `additive.dart`.
 
-- [ ] **1.10.11 `SylvesterResultantSolver`, `solvePolynomialSystemEquations`, `matchQuadratic`, and `matchBiquadratic` fail on unexpanded polynomials**
+- [x] **1.10.11 `SylvesterResultantSolver`, `solvePolynomialSystemEquations`, `matchQuadratic`, and `matchBiquadratic` fail on unexpanded polynomials**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/solver/resultant.dart:12-22`, `lib/src/symbolic/solver/polynomial_system.dart:34-67`, `lib/src/symbolic/solver/polynomial.dart:9-20, 74-85`
   - **Problem**: `extractPolynomialCoefficients` returns `null` on unexpanded expressions such as `(x + y)^2 - 4`, causing `SylvesterResultantSolver.sylvesterMatrix` and `solvePolynomialSystemEquations(..., method: PolynomialSystemMethod.resultant)` to throw `ArgumentError` and `matchQuadratic`/`matchBiquadratic` to return `null`.

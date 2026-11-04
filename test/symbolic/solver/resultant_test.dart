@@ -53,6 +53,19 @@ void main() {
           'x',
         ),
       ).throws<ArgumentError>();
+
+      // Unexpanded polynomials are correctly expanded
+      final unexpF = Expr.parse('(x + y)^2 - 4');
+      final unexpG = Expr.parse('x - y');
+      final unexpMat = SylvesterResultantSolver.sylvesterMatrix(
+        unexpF,
+        unexpG,
+        'x',
+      );
+      check(unexpMat.rowCount).equals(3);
+      check(unexpMat.colCount).equals(3);
+      final unexpRes = SylvesterResultantSolver.resultant(unexpF, unexpG, 'x');
+      check(unexpRes.toString()).equals('-4 + 4 * y ^ 2');
     });
   });
 
@@ -77,6 +90,17 @@ void main() {
       final sol3 = SylvesterResultantSolver.solve(f3, g3, ['x', 'y']);
       // At y = 1: x^2 - 1 = 0 -> x = ±1; at x = 5: 25 + y - 2 = 0 -> y = -23
       check(sol3.length).equals(3);
+
+      // Unexpanded bivariate system
+      final unexpSol = SylvesterResultantSolver.solve(
+        Expr.parse('(x + y)^2 - 4'),
+        Expr.parse('x - y'),
+        ['x', 'y'],
+      );
+      check(unexpSol.length).equals(2);
+      final unexpX = unexpSol.map((s) => s['x']!).toList();
+      check(unexpX)
+          .unorderedEquals([IntegerNumber.one, IntegerNumber.negativeOne]);
 
       check(() => SylvesterResultantSolver.solve(p, q, ['x']))
           .throws<ArgumentError>();

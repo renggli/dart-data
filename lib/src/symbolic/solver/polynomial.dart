@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
@@ -7,7 +8,8 @@ import 'univariate.dart';
 
 /// Matches quadratic form $a x^2 + b x + c = 0$.
 ({Expr a, Expr b, Expr c})? matchQuadratic(Expr expr, String variable) {
-  final coeffs = extractPolynomialCoefficients(expr, variable);
+  final expExpr = expr.expand().simplify();
+  final coeffs = extractPolynomialCoefficients(expExpr, variable);
   if (coeffs == null) return null;
   if (coeffs.keys.any((deg) => deg > 2 || deg < 0)) return null;
 
@@ -72,7 +74,8 @@ List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
 
 /// Matches biquadratic form $a x^4 + b x^2 + c = 0$.
 ({Expr a, Expr b, Expr c})? matchBiquadratic(Expr expr, String variable) {
-  final coeffs = extractPolynomialCoefficients(expr, variable);
+  final expExpr = expr.expand().simplify();
+  final coeffs = extractPolynomialCoefficients(expExpr, variable);
   if (coeffs == null) return null;
   if (coeffs.keys.any((deg) => deg != 0 && deg != 2 && deg != 4)) return null;
 

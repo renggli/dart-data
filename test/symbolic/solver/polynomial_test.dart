@@ -18,6 +18,12 @@ void main() {
         check(m!.a).equals(IntegerNumber.of(3));
         check(m.b).equals(IntegerNumber.of(-4));
         check(m.c).equals(IntegerNumber.of(5));
+
+        final unexpM = matchQuadratic(Expr.parse('(x + 1)^2 - 4'), 'x');
+        check(unexpM).isNotNull();
+        check(unexpM!.a).equals(IntegerNumber.one);
+        check(unexpM.b).equals(IntegerNumber.two);
+        check(unexpM.c).equals(IntegerNumber.of(-3));
       },
     );
 
@@ -104,6 +110,12 @@ void main() {
 
         final bq = matchBiquadratic(Expr.parse('2*x^4 - 10*x^2 + 8'), 'x');
         check(bq).isNotNull();
+
+        final unexpBq = matchBiquadratic(Expr.parse('(x^2 + 1)^2 - 9'), 'x');
+        check(unexpBq).isNotNull();
+        check(unexpBq!.a).equals(IntegerNumber.one);
+        check(unexpBq.b).equals(IntegerNumber.two);
+        check(unexpBq.c).equals(IntegerNumber.of(-8));
 
         // Variable named '_u' to exercise internal variable renaming
         final rootsU = solveBiquadratic(
