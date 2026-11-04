@@ -7,7 +7,7 @@
 /// ## Implemented Function Families
 ///
 /// - **Gamma & Factorial Functions** ([gamma], [gammaLn], [gammap],
-///   [gammaq], [gammapInv], [lowRegGamma]): The continuous extension of the factorial
+///   [gammaq], [gammapInv]): The continuous extension of the factorial
 ///   $\Gamma(n) = (n - 1)!$, implemented via Lanczos approximation with 15
 ///   digits of numerical precision.
 /// - **Beta Functions** ([beta], [betaLn], [ibeta], [ibetaInv]): Euler's

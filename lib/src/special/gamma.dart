@@ -89,12 +89,6 @@ double gammaLn(num x) {
   return 0.5 * log(2.0 * pi) + (x + 0.5) * log(tVal) - tVal + log(y) - log(x);
 }
 
-/// Returns the lower regularized incomplete gamma function $P(a, x)$.
-///
-/// Follows standard numerical conventions (e.g. SciPy `gammainc` and Numerical
-/// Recipes $P(a, x) = \frac{\gamma(a, x)}{\Gamma(a)}$).
-double gammap(num a, num x) => lowRegGamma(a, x);
-
 /// Returns the upper regularized incomplete gamma function $Q(a, x) = 1 - P(a, x)$.
 ///
 /// Follows standard numerical conventions (e.g. SciPy `gammaincc` and Numerical
@@ -114,7 +108,7 @@ double gammaq(num a, num x) {
   }
   final aln = gammaLn(a);
   if (x < a + 1.0) {
-    return 1.0 - lowRegGamma(a, x);
+    return 1.0 - gammap(a, x);
   }
   var b = x + 1.0 - a;
   var cVal = 1.0 / 1.0e-30;
@@ -196,7 +190,7 @@ double gammapInv(num probability, num a) {
     if (x <= xMin || x >= xMax) {
       x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
     }
-    final curProb = lowRegGamma(a, x);
+    final curProb = gammap(a, x);
     final err = curProb - probability;
     if (err > 0) {
       if (x < xMax) xMax = x;
@@ -236,7 +230,10 @@ double gammapInv(num probability, num a) {
 }
 
 /// Returns the lower regularized incomplete gamma function $P(a, x)$.
-double lowRegGamma(num a, num x) {
+///
+/// Follows standard numerical conventions (e.g. SciPy `gammainc` and Numerical
+/// Recipes $P(a, x) = \frac{\gamma(a, x)}{\Gamma(a)}$).
+double gammap(num a, num x) {
   if (x.isNaN || a.isNaN || x < 0 || a <= 0) {
     return double.nan;
   }

@@ -81,7 +81,7 @@ class ChiSquaredDistribution extends ContinuousDistribution {
 
   @override
   double cumulativeProbability(double x) =>
-      x <= 0.0 ? 0.0 : lowRegGamma(0.5 * dof, 0.5 * x);
+      x <= 0.0 ? 0.0 : gammap(0.5 * dof, 0.5 * x);
 
   @override
   double survival(double x) => x <= 0.0 ? 1.0 : gammaq(0.5 * dof, 0.5 * x);

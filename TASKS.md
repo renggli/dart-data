@@ -711,7 +711,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `matrix[r]` (`Vector<T> operator [](int row)`) takes an `int` row index, enabling `matrix[r][c]` for both reading and writing (`matrix[r][c] = value`). However, `Matrix` and `Float64Matrix` define `void operator []=((int row, int col) pos, T value)` taking a record `(int, int)`, so `matrix[(r, c)] = value` compiles while `matrix[(r, c)]` does not compile, and `final row = matrix[r]` compiles while `matrix[r] = rowVec` does not compile.
   - **Fix**: Replace `operator []=((int row, int col) pos, T value)` with `operator []=(int row, Vector<T> values)` (while `matrix[r][c] = value` and `set(r, c, value)` handle 2D element assignment), restoring `[]` / `[]=` symmetry.
 
-- [ ] **5.2 Redundant public alias `gammap` vs `lowRegGamma` in `special`**
+- [x] **5.2 Redundant public alias `gammap` vs `lowRegGamma` in `special`**
   - **Severity**: Warning
   - **Location**: `lib/src/special/gamma.dart:96, 218`, `lib/special.dart:56, 61`
   - **Problem**: `gammap(num a, num x) => lowRegGamma(a, x);` is a duplicate alias for `lowRegGamma`, violating `AGENTS.md` ("Provide a single canonical way to perform an operation; avoid redundant convenience aliases").

@@ -266,9 +266,8 @@ void main() {
       check(assignMat[0].toList()).deepEquals([10.0, 20.0]);
       check(() => assignMat[-1] = newRow).throws<RangeError>();
       check(() => assignMat[2] = newRow).throws<RangeError>();
-      check(
-        () => assignMat[0] = Float64Vector.fromList([1.0, 2.0, 3.0]),
-      ).throws<ArgumentError>();
+      check(() => assignMat[0] = Float64Vector.fromList([1.0, 2.0, 3.0]))
+          .throws<ArgumentError>();
       assignMat[1] = assignMat[0];
       check(assignMat[1].toList()).deepEquals([10.0, 20.0]);
 

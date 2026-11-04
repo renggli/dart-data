@@ -76,8 +76,7 @@ void main() {
       check(gammaLn(-1)).isNaN();
     });
 
-    test('gammap, gammaq, and lowRegGamma', () {
-      check(lowRegGamma(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-14);
+    test('gammap and gammaq', () {
       check(gammap(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-14);
       check(gammaq(1, 1)).isCloseTo(math.exp(-1), 1e-14);
       // High-precision partition and convergence tests across x < a+1 and x >= a+1
@@ -89,13 +88,12 @@ void main() {
       ]) {
         check(gammap(a, x) + gammaq(a, x)).isCloseTo(1.0, 1e-14);
       }
-      check(lowRegGamma(-1, 1)).isNaN();
-      check(lowRegGamma(1, -1)).isNaN();
+      check(gammap(-1, 1)).isNaN();
+      check(gammap(1, -1)).isNaN();
       check(gammaq(-1, 1)).isNaN();
       check(gammaq(1, -1)).isNaN();
       check(gamma(double.infinity)).equals(double.infinity);
       check(gammaLn(double.infinity)).equals(double.infinity);
-      check(lowRegGamma(2.0, double.infinity)).equals(1.0);
       check(gammap(2.0, double.infinity)).equals(1.0);
       check(gammaq(2.0, double.infinity)).equals(0.0);
     });
@@ -108,17 +106,17 @@ void main() {
       check(gammapInv(double.nan, 2.0)).isNaN();
       check(gammapInv(0.5, 0.0)).isNaN();
       check(gammapInv(0.5, -1.0)).isNaN();
-      final prob = lowRegGamma(2.5, 3.0);
+      final prob = gammap(2.5, 3.0);
       check(gammapInv(prob, 2.5)).isCloseTo(3.0, 1e-12);
 
       // a <= 1.0 branches
-      final pSmall = lowRegGamma(0.5, 0.2);
+      final pSmall = gammap(0.5, 0.2);
       check(gammapInv(pSmall, 0.5)).isCloseTo(0.2, 1e-12);
-      final pLarge = lowRegGamma(0.5, 2.0);
+      final pLarge = gammap(0.5, 2.0);
       check(gammapInv(pLarge, 0.5)).isCloseTo(2.0, 1e-12);
 
       // a > 1.0 with p < 0.5
-      final pLow = lowRegGamma(3.0, 0.5);
+      final pLow = gammap(3.0, 0.5);
       check(gammapInv(pLow, 3.0)).isCloseTo(0.5, 1e-12);
     });
 
