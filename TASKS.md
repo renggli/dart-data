@@ -528,7 +528,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ## 2. Performance Issues
 
-- [ ] **2.1 `SingularValueDecomposition` ignores hardware-accelerated `Lapack.dgesvd` and allocates full $m \times m$ and $n \times n$ boxed `List<double>` arrays even when `computeVectors == false`**
+- [x] **2.1 `SingularValueDecomposition` ignores hardware-accelerated `Lapack.dgesvd` and allocates full $m \times m$ and $n \times n$ boxed `List<double>` arrays even when `computeVectors == false`**
   - **Severity**: Critical
   - **Location**: `lib/src/linear/decomposition/svd.dart:44-81, 252-265`, `lib/src/linear/decomposition/norm.dart:91, 143, 170`
   - **Problem**: `Lapack.dgesvd` is implemented across all platforms in `lib/src/acceleration/lapack/`, yet `SingularValueDecomposition` never calls it and instead runs a pure-Dart loop over boxed `List<double>` arrays (`aVals`, `uVals`, `sVals`, `vtVals`, `work`, `eList`, `vList`). Furthermore, even when `computeVectors: false` is passed—or when `matrix.norm2`, `matrix.cond`, and `matrix.rank` only need singular values `s`—`svd.dart` allocates $m \times m$ and $n \times n$ vector buffers and computes full singular vectors.

@@ -9,6 +9,7 @@ abstract final class LapackNative {
   static bool get hasDgels => false;
   static bool get hasDsyev => false;
   static bool get hasSsyev => false;
+  static bool get hasDgesvd => false;
 
   static bool? dpotrf({
     required int uplo,
@@ -61,5 +62,23 @@ abstract final class LapackNative {
     required int lda,
     required Float32List w,
     required int wOffset,
+  }) => null;
+
+  static bool? dgesvd({
+    required String jobu,
+    required String jobvt,
+    required int m,
+    required int n,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List s,
+    required int sOffset,
+    Float64List? u,
+    int uOffset = 0,
+    int? ldu,
+    Float64List? vt,
+    int vtOffset = 0,
+    int? ldvt,
   }) => null;
 }

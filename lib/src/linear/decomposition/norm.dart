@@ -88,7 +88,10 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// ```
   double get norm2 {
     if (rowCount == 0 || colCount == 0) return 0.0;
-    final singularValues = svd.s;
+    final singularValues = SingularValueDecomposition(
+      this,
+      computeVectors: false,
+    ).s;
     return singularValues.length == 0 ? 0.0 : singularValues[0];
   }
 
@@ -140,10 +143,15 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// ```
   double get cond {
     if (rowCount == 0 || colCount == 0) return 0.0;
-    final singularValues = svd.s;
+    final singularValues = SingularValueDecomposition(
+      this,
+      computeVectors: false,
+    ).s;
     if (singularValues.length == 0) return 0.0;
+    final maxDim = math.max(rowCount, colCount);
+    final tol = maxDim * singularValues[0] * 2.220446049250313e-16;
     final minSingular = singularValues[singularValues.length - 1];
-    return minSingular == 0.0
+    return minSingular <= tol
         ? double.infinity
         : singularValues[0] / minSingular;
   }
@@ -167,7 +175,10 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// ```
   int get rank {
     if (rowCount == 0 || colCount == 0) return 0;
-    final singularValues = svd.s;
+    final singularValues = SingularValueDecomposition(
+      this,
+      computeVectors: false,
+    ).s;
     if (singularValues.length == 0) return 0;
     final eps = math.pow(2.0, -52).toDouble();
     final tol = math.max(rowCount, colCount) * singularValues[0] * eps;

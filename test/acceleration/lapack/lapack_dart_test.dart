@@ -238,5 +238,163 @@ void main() {
         check(b[2]).isCloseTo(3.0, 1e-10);
       },
     );
+
+    test('dgesvd invalid arguments and edge cases in pure Dart', () {
+      final a = Float64List(4);
+      final s = Float64List(2);
+      final u = Float64List(4);
+      final vt = Float64List(4);
+
+      // Invalid dimensions and leading dimensions
+      check(
+        LapackDart.dgesvd(
+          jobu: 'A',
+          jobvt: 'A',
+          m: -1,
+          n: 2,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          s: s,
+          sOffset: 0,
+          u: u,
+          vt: vt,
+        ),
+      ).isFalse();
+      check(
+        LapackDart.dgesvd(
+          jobu: 'A',
+          jobvt: 'A',
+          m: 2,
+          n: 2,
+          a: a,
+          aOffset: 0,
+          lda: 1,
+          s: s,
+          sOffset: 0,
+          u: u,
+          vt: vt,
+        ),
+      ).isFalse();
+      check(
+        LapackDart.dgesvd(
+          jobu: 'INVALID',
+          jobvt: 'A',
+          m: 2,
+          n: 2,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          s: s,
+          sOffset: 0,
+          u: u,
+          vt: vt,
+        ),
+      ).isFalse();
+      check(
+        LapackDart.dgesvd(
+          jobu: 'A',
+          jobvt: 'INVALID',
+          m: 2,
+          n: 2,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          s: s,
+          sOffset: 0,
+          u: u,
+          vt: vt,
+        ),
+      ).isFalse();
+      check(
+        LapackDart.dgesvd(
+          jobu: 'A',
+          jobvt: 'A',
+          m: 2,
+          n: 2,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          s: s,
+          sOffset: 0,
+          u: null,
+          vt: vt,
+        ),
+      ).isFalse();
+      check(
+        LapackDart.dgesvd(
+          jobu: 'A',
+          jobvt: 'A',
+          m: 2,
+          n: 2,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          s: s,
+          sOffset: 0,
+          u: u,
+          vt: null,
+        ),
+      ).isFalse();
+
+      // m = 0 or n = 0
+      check(
+        LapackDart.dgesvd(
+          jobu: 'N',
+          jobvt: 'N',
+          m: 0,
+          n: 2,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          s: s,
+          sOffset: 0,
+        ),
+      ).isTrue();
+
+      // Buffer bounds
+      check(
+        LapackDart.dgesvd(
+          jobu: 'N',
+          jobvt: 'N',
+          m: 2,
+          n: 2,
+          a: Float64List(2),
+          aOffset: 0,
+          lda: 2,
+          s: s,
+          sOffset: 0,
+        ),
+      ).isFalse();
+      check(
+        LapackDart.dgesvd(
+          jobu: 'N',
+          jobvt: 'N',
+          m: 2,
+          n: 2,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          s: Float64List(1),
+          sOffset: 0,
+        ),
+      ).isFalse();
+
+      // NaN in input
+      final nanA = Float64List.fromList([double.nan, 1.0, 2.0, 3.0]);
+      check(
+        LapackDart.dgesvd(
+          jobu: 'N',
+          jobvt: 'N',
+          m: 2,
+          n: 2,
+          a: nanA,
+          aOffset: 0,
+          lda: 2,
+          s: s,
+          sOffset: 0,
+        ),
+      ).isFalse();
+    });
   });
 }

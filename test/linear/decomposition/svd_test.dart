@@ -78,6 +78,14 @@ void main() {
 
       final noVectors = SingularValueDecomposition(a, computeVectors: false);
       check(noVectors.vectorsComputed).equals(false);
+      check(() => noVectors.u).throws<StateError>();
+      check(() => noVectors.vt).throws<StateError>();
+      check(() => noVectors.v).throws<StateError>();
+      check(noVectors.s[0]).isCloseTo(svd.s[0], 1e-6);
+      check(noVectors.s[1]).isCloseTo(svd.s[1], 1e-6);
+      check(noVectors.norm2).isCloseTo(svd.norm2, 1e-6);
+      check(noVectors.cond).isCloseTo(svd.cond, 1e-6);
+      check(noVectors.rank).equals(svd.rank);
       check(() => noVectors.solveVector(b)).throws<StateError>();
       check(() => noVectors.solve(bMat)).throws<StateError>();
     });

@@ -114,6 +114,120 @@ void main() {
       }
     });
 
+    accelerationTest('dgesvd singular value decomposition', () {
+      // 3x2 matrix A:
+      // [1, 2]
+      // [3, 4]
+      // [5, 6]
+      final a0 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+      final a = Float64List.fromList(a0);
+      final s = Float64List(2);
+      final u = Float64List(3 * 3);
+      final vt = Float64List(2 * 2);
+
+      final ok = Lapack.dgesvd(
+        m: 3,
+        n: 2,
+        a: a,
+        lda: 2,
+        s: s,
+        u: u,
+        ldu: 3,
+        vt: vt,
+        ldvt: 2,
+      );
+      check(ok).isTrue();
+
+      // Singular values descending
+      check(s[0]).isGreaterThan(s[1]);
+      check(s[0]).isCloseTo(9.525518, 1e-4);
+      check(s[1]).isCloseTo(0.514300, 1e-4);
+
+      // Verify A = U * S * VT
+      // U is 3x3 (ldu=3), VT is 2x2 (ldvt=2)
+      for (var r = 0; r < 3; r++) {
+        for (var c = 0; c < 2; c++) {
+          var sum = 0.0;
+          for (var k = 0; k < 2; k++) {
+            sum += u[r * 3 + k] * s[k] * vt[k * 2 + c];
+          }
+          check(sum).isCloseTo(a0[r * 2 + c], 1e-5);
+        }
+      }
+
+      // Check U is orthogonal: U^T * U = I_3
+      for (var r = 0; r < 3; r++) {
+        for (var c = 0; c < 3; c++) {
+          var dot = 0.0;
+          for (var k = 0; k < 3; k++) {
+            dot += u[k * 3 + r] * u[k * 3 + c];
+          }
+          check(dot).isCloseTo(r == c ? 1.0 : 0.0, 1e-5);
+        }
+      }
+
+      // Check VT is orthogonal: VT * VT^T = I_2
+      for (var r = 0; r < 2; r++) {
+        for (var c = 0; c < 2; c++) {
+          var dot = 0.0;
+          for (var k = 0; k < 2; k++) {
+            dot += vt[r * 2 + k] * vt[c * 2 + k];
+          }
+          check(dot).isCloseTo(r == c ? 1.0 : 0.0, 1e-5);
+        }
+      }
+    });
+
+    accelerationTest('dgesvd values-only with jobu: N, jobvt: N', () {
+      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+      final s = Float64List(2);
+
+      final ok = Lapack.dgesvd(
+        jobu: 'N',
+        jobvt: 'N',
+        m: 3,
+        n: 2,
+        a: a,
+        lda: 2,
+        s: s,
+      );
+      check(ok).isTrue();
+      check(s[0]).isCloseTo(9.525518, 1e-4);
+      check(s[1]).isCloseTo(0.514300, 1e-4);
+    });
+
+    accelerationTest('dgesvd wide matrix (m < n)', () {
+      final a0 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+      final a = Float64List.fromList(a0);
+      final s = Float64List(2);
+      final u = Float64List(2 * 2);
+      final vt = Float64List(3 * 3);
+
+      final ok = Lapack.dgesvd(
+        m: 2,
+        n: 3,
+        a: a,
+        lda: 3,
+        s: s,
+        u: u,
+        ldu: 2,
+        vt: vt,
+        ldvt: 3,
+      );
+      check(ok).isTrue();
+
+      // Verify A = U * S * VT
+      for (var r = 0; r < 2; r++) {
+        for (var c = 0; c < 3; c++) {
+          var sum = 0.0;
+          for (var k = 0; k < 2; k++) {
+            sum += u[r * 2 + k] * s[k] * vt[k * 3 + c];
+          }
+          check(sum).isCloseTo(a0[r * 3 + c], 1e-5);
+        }
+      }
+    });
+
     accelerationTest('Lapack routines handle n = 0 without error', () {
       final empty64 = Float64List(0);
       final empty32 = Float32List(0);
@@ -133,6 +247,34 @@ void main() {
       ).isTrue();
       check(Lapack.dsyev(n: 0, a: empty64, lda: 1, w: empty64)).isTrue();
       check(Lapack.ssyev(n: 0, a: empty32, lda: 1, w: empty32)).isTrue();
+      check(
+        Lapack.dgesvd(
+          m: 0,
+          n: 0,
+          a: empty64,
+          lda: 1,
+          s: empty64,
+          jobu: 'N',
+          jobvt: 'N',
+        ),
+      ).isTrue();
+    });
+
+    accelerationTest('dgesvd does not mutate input matrix a', () {
+      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+      final aExpected = Float64List.fromList(a);
+      final s = Float64List(2);
+      final ok = Lapack.dgesvd(
+        jobu: 'N',
+        jobvt: 'N',
+        m: 3,
+        n: 2,
+        a: a,
+        lda: 2,
+        s: s,
+      );
+      check(ok).isTrue();
+      check(a).deepEquals(aExpected);
     });
 
     accelerationTest('dgels does not mutate input matrix a', () {
@@ -172,6 +314,20 @@ void main() {
       final nanSym32 = Float32List.fromList([double.nan, 0.0, 0.0, 1.0]);
       final w2f = Float32List(2);
       check(Lapack.ssyev(n: 2, a: nanSym32, lda: 2, w: w2f)).isFalse();
+
+      final nanSvd = Float64List.fromList([double.nan, 1.0, 2.0, 3.0]);
+      final sSvd = Float64List(2);
+      check(
+        Lapack.dgesvd(
+          m: 2,
+          n: 2,
+          a: nanSvd,
+          lda: 2,
+          s: sSvd,
+          jobu: 'N',
+          jobvt: 'N',
+        ),
+      ).isFalse();
     });
 
     test('Lapack routines validate bounds and argument constraints', () {
@@ -221,6 +377,25 @@ void main() {
           .throws<ArgumentError>();
       check(() => Lapack.ssyev(n: -1, a: af, lda: 2, w: wf))
           .throws<ArgumentError>();
+      check(() => Lapack.dgesvd(jobu: 'X', m: 2, n: 2, a: a, lda: 2, s: w))
+          .throws<ArgumentError>();
+      check(() => Lapack.dgesvd(jobvt: 'X', m: 2, n: 2, a: a, lda: 2, s: w))
+          .throws<ArgumentError>();
+      check(() => Lapack.dgesvd(m: -1, n: 2, a: a, lda: 2, s: w))
+          .throws<ArgumentError>();
+      check(() => Lapack.dgesvd(m: 2, n: -1, a: a, lda: 2, s: w))
+          .throws<ArgumentError>();
+      check(() => Lapack.dgesvd(m: 2, n: 2, a: a, lda: 1, s: w))
+          .throws<ArgumentError>();
+      check(() => Lapack.dgesvd(m: 2, n: 2, a: a, lda: 2, s: Float64List(1)))
+          .throws<RangeError>();
+      check(
+        () => Lapack.dgesvd(m: 2, n: 2, a: a, lda: 2, s: w, jobu: 'A', u: null),
+      ).throws<ArgumentError>();
+      check(
+        () =>
+            Lapack.dgesvd(m: 2, n: 2, a: a, lda: 2, s: w, jobvt: 'A', vt: null),
+      ).throws<ArgumentError>();
     });
   });
 }

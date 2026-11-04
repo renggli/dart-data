@@ -23,6 +23,8 @@ abstract final class LapackNative {
   static final bool _hasDsyev = hasSymbol('dsyev_', _libs);
   static final bool _hasLapackeSsyev = hasSymbol('LAPACKE_ssyev', _libs);
   static final bool _hasSsyev = hasSymbol('ssyev_', _libs);
+  static final bool _hasLapackeDgesvd = hasSymbol('LAPACKE_dgesvd', _libs);
+  static final bool _hasDgesvd = hasSymbol('dgesvd_', _libs);
 
   /// Whether native LAPACK is available.
   static bool get isAvailable =>
@@ -31,13 +33,16 @@ abstract final class LapackNative {
           _hasDpotrf ||
           _hasDgesv ||
           _hasLapackeDgesv ||
-          _hasClapackDgesv);
+          _hasClapackDgesv ||
+          _hasLapackeDgesvd ||
+          _hasDgesvd);
 
   static bool get hasDpotrf => _hasLapackeDpotrf || _hasDpotrf;
   static bool get hasDgesv => _hasLapackeDgesv || _hasClapackDgesv || _hasDgesv;
   static bool get hasDgels => _hasLapackeDgels || _hasDgels;
   static bool get hasDsyev => _hasLapackeDsyev || _hasDsyev;
   static bool get hasSsyev => _hasLapackeSsyev || _hasSsyev;
+  static bool get hasDgesvd => _hasLapackeDgesvd || _hasDgesvd;
 
   static bool? dpotrf({
     required int uplo,
@@ -633,6 +638,190 @@ abstract final class LapackNative {
 
     return false;
   }
+
+  static bool? dgesvd({
+    required String jobu,
+    required String jobvt,
+    required int m,
+    required int n,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List s,
+    required int sOffset,
+    Float64List? u,
+    int uOffset = 0,
+    int? ldu,
+    Float64List? vt,
+    int vtOffset = 0,
+    int? ldvt,
+  }) {
+    if (!hasDgesvd) return null;
+    if (m < 0 || n < 0 || lda < n) return false;
+    final normJobu = jobu.toUpperCase();
+    final normJobvt = jobvt.toUpperCase();
+    if (normJobu != 'A' && normJobu != 'N') return false;
+    if (normJobvt != 'A' && normJobvt != 'N') return false;
+    final effLdu = ldu ?? m;
+    final effLdvt = ldvt ?? n;
+    if (normJobu == 'A' && (u == null || effLdu < m)) return false;
+    if (normJobvt == 'A' && (vt == null || effLdvt < n)) return false;
+    if (m == 0 || n == 0) return true;
+
+    final minMN = math.min(m, n);
+    final aRequired = aOffset + (m - 1) * lda + n;
+    final sRequired = sOffset + minMN;
+    if (a.length < aRequired || s.length < sRequired) return false;
+    if (normJobu == 'A' && u!.length < uOffset + (m - 1) * effLdu + m) {
+      return false;
+    }
+    if (normJobvt == 'A' && vt!.length < vtOffset + (n - 1) * effLdvt + n) {
+      return false;
+    }
+
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        final v = a[aOffset + i * lda + j];
+        if (v.isNaN || v.isInfinite) return false;
+      }
+    }
+
+    if (_hasLapackeDgesvd) {
+      return using((arena) {
+        final aCopy = arena<ffi.Double>(m * n);
+        for (var i = 0; i < m; i++) {
+          for (var j = 0; j < n; j++) {
+            aCopy[i * n + j] = a[aOffset + i * lda + j];
+          }
+        }
+        final sView = sOffset == 0 ? s : Float64List.sublistView(s, sOffset);
+        final dummy = Float64List(1);
+        final uView = normJobu == 'A'
+            ? (uOffset == 0 ? u! : Float64List.sublistView(u!, uOffset))
+            : dummy;
+        final vtView = normJobvt == 'A'
+            ? (vtOffset == 0 ? vt! : Float64List.sublistView(vt!, vtOffset))
+            : dummy;
+        final superb = arena<ffi.Double>(math.max(1, minMN));
+
+        final info = _lapackeDgesvd(
+          cblasRowMajor,
+          normJobu.codeUnitAt(0),
+          normJobvt.codeUnitAt(0),
+          m,
+          n,
+          aCopy,
+          n,
+          sView.address,
+          uView.address,
+          normJobu == 'A' ? effLdu : 1,
+          vtView.address,
+          normJobvt == 'A' ? effLdvt : 1,
+          superb,
+        );
+
+        if (info == 0) {
+          for (var i = 0; i < minMN; i++) {
+            final si = s[sOffset + i];
+            if (si.isNaN || si.isInfinite) return false;
+          }
+          return true;
+        }
+        return false;
+      });
+    }
+
+    if (_hasDgesvd) {
+      return using((arena) {
+        final fA = arena<ffi.Double>(m * n);
+        for (var i = 0; i < m; i++) {
+          for (var j = 0; j < n; j++) {
+            fA[j * m + i] = a[aOffset + i * lda + j];
+          }
+        }
+        final jobuPtr = arena<ffi.Uint8>()..value = normJobu.codeUnitAt(0);
+        final jobvtPtr = arena<ffi.Uint8>()..value = normJobvt.codeUnitAt(0);
+        final mPtr = arena<ffi.Int32>()..value = m;
+        final nPtr = arena<ffi.Int32>()..value = n;
+        final ldaPtr = arena<ffi.Int32>()..value = m;
+        final fS = arena<ffi.Double>(minMN);
+        final fU = normJobu == 'A'
+            ? arena<ffi.Double>(m * m)
+            : arena<ffi.Double>(1);
+        final lduPtr = arena<ffi.Int32>()..value = normJobu == 'A' ? m : 1;
+        final fVt = normJobvt == 'A'
+            ? arena<ffi.Double>(n * n)
+            : arena<ffi.Double>(1);
+        final ldvtPtr = arena<ffi.Int32>()..value = normJobvt == 'A' ? n : 1;
+        final info = arena<ffi.Int32>();
+
+        final lworkQuery = arena<ffi.Int32>()..value = -1;
+        final workQuery = arena<ffi.Double>(1);
+        _fortranDgesvd(
+          jobuPtr,
+          jobvtPtr,
+          mPtr,
+          nPtr,
+          fA,
+          ldaPtr,
+          fS,
+          fU,
+          lduPtr,
+          fVt,
+          ldvtPtr,
+          workQuery,
+          lworkQuery,
+          info,
+        );
+        final optLwork = math.max(1, workQuery[0].toInt());
+        final work = arena<ffi.Double>(optLwork);
+        final lworkPtr = arena<ffi.Int32>()..value = optLwork;
+
+        _fortranDgesvd(
+          jobuPtr,
+          jobvtPtr,
+          mPtr,
+          nPtr,
+          fA,
+          ldaPtr,
+          fS,
+          fU,
+          lduPtr,
+          fVt,
+          ldvtPtr,
+          work,
+          lworkPtr,
+          info,
+        );
+
+        if (info.value == 0) {
+          for (var i = 0; i < minMN; i++) {
+            final si = fS[i];
+            if (si.isNaN || si.isInfinite) return false;
+            s[sOffset + i] = si;
+          }
+          if (normJobu == 'A') {
+            for (var i = 0; i < m; i++) {
+              for (var j = 0; j < m; j++) {
+                u![uOffset + i * effLdu + j] = fU[j * m + i];
+              }
+            }
+          }
+          if (normJobvt == 'A') {
+            for (var i = 0; i < n; i++) {
+              for (var j = 0; j < n; j++) {
+                vt![vtOffset + i * effLdvt + j] = fVt[j * n + i];
+              }
+            }
+          }
+          return true;
+        }
+        return false;
+      });
+    }
+
+    return false;
+  }
 }
 
 // --- LAPACK Native FFI Declarations ---
@@ -882,6 +1071,74 @@ external void _fortranSsyev(
   ffi.Pointer<ffi.Int32> lda,
   ffi.Pointer<ffi.Float> w,
   ffi.Pointer<ffi.Float> work,
+  ffi.Pointer<ffi.Int32> lwork,
+  ffi.Pointer<ffi.Int32> info,
+);
+
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Int32,
+    ffi.Uint8,
+    ffi.Uint8,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+  )
+>(symbol: 'LAPACKE_dgesvd', isLeaf: true)
+external int _lapackeDgesvd(
+  int matrixLayout,
+  int jobu,
+  int jobvt,
+  int m,
+  int n,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  ffi.Pointer<ffi.Double> s,
+  ffi.Pointer<ffi.Double> u,
+  int ldu,
+  ffi.Pointer<ffi.Double> vt,
+  int ldvt,
+  ffi.Pointer<ffi.Double> superb,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+  )
+>(symbol: 'dgesvd_', isLeaf: true)
+external void _fortranDgesvd(
+  ffi.Pointer<ffi.Uint8> jobu,
+  ffi.Pointer<ffi.Uint8> jobvt,
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Double> s,
+  ffi.Pointer<ffi.Double> u,
+  ffi.Pointer<ffi.Int32> ldu,
+  ffi.Pointer<ffi.Double> vt,
+  ffi.Pointer<ffi.Int32> ldvt,
+  ffi.Pointer<ffi.Double> work,
   ffi.Pointer<ffi.Int32> lwork,
   ffi.Pointer<ffi.Int32> info,
 );

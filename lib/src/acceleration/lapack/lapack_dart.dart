@@ -627,6 +627,506 @@ abstract final class LapackDart {
     return true;
   }
 
+  /// Computes the Singular Value Decomposition (SVD) of an $m \times n$ matrix
+  /// for [Float64List].
+  static bool dgesvd({
+    required String jobu,
+    required String jobvt,
+    required int m,
+    required int n,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List s,
+    required int sOffset,
+    Float64List? u,
+    int uOffset = 0,
+    int? ldu,
+    Float64List? vt,
+    int vtOffset = 0,
+    int? ldvt,
+  }) {
+    if (m < 0 || n < 0 || lda < n) return false;
+    final normJobu = jobu.toUpperCase();
+    final normJobvt = jobvt.toUpperCase();
+    if (normJobu != 'A' && normJobu != 'N') return false;
+    if (normJobvt != 'A' && normJobvt != 'N') return false;
+    final effLdu = ldu ?? m;
+    final effLdvt = ldvt ?? n;
+    if (normJobu == 'A' && (u == null || effLdu < m)) return false;
+    if (normJobvt == 'A' && (vt == null || effLdvt < n)) return false;
+    if (m == 0 || n == 0) return true;
+
+    final minMN = math.min(m, n);
+    final aRequired = aOffset + (m - 1) * lda + n;
+    final sRequired = sOffset + minMN;
+    if (a.length < aRequired || s.length < sRequired) return false;
+    if (normJobu == 'A' && u!.length < uOffset + (m - 1) * effLdu + m) {
+      return false;
+    }
+    if (normJobvt == 'A' && vt!.length < vtOffset + (n - 1) * effLdvt + n) {
+      return false;
+    }
+
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        final val = a[aOffset + i * lda + j];
+        if (!val.isFinite) return false;
+      }
+    }
+
+    final computeU = normJobu == 'A';
+    final computeVt = normJobvt == 'A';
+
+    final aCol = Float64List(m * n);
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        aCol[j * m + i] = a[aOffset + i * lda + j];
+      }
+    }
+
+    final uCol = computeU ? Float64List(m * m) : Float64List(0);
+    final vList = computeVt ? Float64List(n * n) : Float64List(0);
+    final sVals = Float64List(minMN);
+
+    _computeSvd(
+      computeU: computeU,
+      computeVt: computeVt,
+      a: aCol,
+      rowsA: m,
+      colsA: n,
+      sVals: sVals,
+      uVals: uCol,
+      vList: vList,
+    );
+
+    for (var i = 0; i < minMN; i++) {
+      s[sOffset + i] = sVals[i];
+    }
+    if (computeU) {
+      for (var i = 0; i < m; i++) {
+        for (var j = 0; j < m; j++) {
+          u![uOffset + i * effLdu + j] = uCol[j * m + i];
+        }
+      }
+    }
+    if (computeVt) {
+      for (var i = 0; i < n; i++) {
+        for (var j = 0; j < n; j++) {
+          vt![vtOffset + i * effLdvt + j] = vList[i * n + j];
+        }
+      }
+    }
+    return true;
+  }
+
+  static ({double da, double db, double cosVal, double sinVal}) _rotg(
+    double da,
+    double db,
+  ) {
+    final absda = da.abs();
+    final absdb = db.abs();
+    final roe = (absda > absdb) ? da : db;
+    final scale = absda + absdb;
+
+    double rVal, zVal, cosVal, sinVal;
+    if (scale == 0.0) {
+      cosVal = 1.0;
+      sinVal = 0.0;
+      rVal = 0.0;
+      zVal = 0.0;
+    } else {
+      final sda = da / scale;
+      final sdb = db / scale;
+      rVal = scale * math.sqrt(sda * sda + sdb * sdb);
+      if (roe < 0.0) rVal = -rVal;
+      cosVal = da / rVal;
+      sinVal = db / rVal;
+      zVal = 1.0;
+      if (absda > absdb) zVal = sinVal;
+      if (absdb >= absda && cosVal != 0.0) zVal = 1.0 / cosVal;
+    }
+    return (da: rVal, db: zVal, cosVal: cosVal, sinVal: sinVal);
+  }
+
+  static void _computeSvd({
+    required bool computeU,
+    required bool computeVt,
+    required Float64List a,
+    required int rowsA,
+    required int colsA,
+    required Float64List sVals,
+    required Float64List uVals,
+    required Float64List vList,
+  }) {
+    final work = Float64List(rowsA);
+    final eList = Float64List(colsA);
+    final stemp = Float64List(math.min(rowsA + 1, colsA));
+
+    final ncu = rowsA;
+    final nct = math.min(rowsA - 1, colsA);
+    final nrt = math.max(0, math.min(colsA - 2, rowsA));
+    final lu = math.max(nct, nrt);
+
+    for (var lIdx = 0; lIdx < lu; lIdx++) {
+      final lp1 = lIdx + 1;
+      if (lIdx < nct) {
+        var sum = 0.0;
+        for (var i = lIdx; i < rowsA; i++) {
+          final val = a[lIdx * rowsA + i];
+          sum += val * val;
+        }
+        stemp[lIdx] = math.sqrt(sum);
+        if (stemp[lIdx] != 0.0) {
+          if (a[lIdx * rowsA + lIdx] != 0.0) {
+            stemp[lIdx] =
+                stemp[lIdx].abs() *
+                (a[lIdx * rowsA + lIdx] / a[lIdx * rowsA + lIdx].abs());
+          }
+          for (var i = lIdx; i < rowsA; i++) {
+            a[lIdx * rowsA + i] /= stemp[lIdx];
+          }
+          a[lIdx * rowsA + lIdx] += 1.0;
+        }
+        stemp[lIdx] = -stemp[lIdx];
+      }
+
+      for (var j = lp1; j < colsA; j++) {
+        if (lIdx < nct && stemp[lIdx] != 0.0) {
+          var tVal = 0.0;
+          for (var i = lIdx; i < rowsA; i++) {
+            tVal += a[j * rowsA + i] * a[lIdx * rowsA + i];
+          }
+          tVal = -tVal / a[lIdx * rowsA + lIdx];
+          for (var ii = lIdx; ii < rowsA; ii++) {
+            a[j * rowsA + ii] += tVal * a[lIdx * rowsA + ii];
+          }
+        }
+        eList[j] = a[j * rowsA + lIdx];
+      }
+
+      if (computeU && lIdx < nct) {
+        for (var i = lIdx; i < rowsA; i++) {
+          uVals[lIdx * rowsA + i] = a[lIdx * rowsA + i];
+        }
+      }
+
+      if (lIdx < nrt) {
+        var enorm = 0.0;
+        for (var i = lp1; i < eList.length; i++) {
+          enorm += eList[i] * eList[i];
+        }
+        eList[lIdx] = math.sqrt(enorm);
+        if (eList[lIdx] != 0.0) {
+          if (eList[lp1] != 0.0) {
+            eList[lIdx] = eList[lIdx].abs() * (eList[lp1] / eList[lp1].abs());
+          }
+          for (var i = lp1; i < eList.length; i++) {
+            eList[i] /= eList[lIdx];
+          }
+          eList[lp1] += 1.0;
+        }
+        eList[lIdx] = -eList[lIdx];
+
+        if (lp1 < rowsA && eList[lIdx] != 0.0) {
+          for (var i = lp1; i < rowsA; i++) {
+            work[i] = 0.0;
+          }
+          for (var j = lp1; j < colsA; j++) {
+            for (var ii = lp1; ii < rowsA; ii++) {
+              work[ii] += eList[j] * a[j * rowsA + ii];
+            }
+          }
+          for (var j = lp1; j < colsA; j++) {
+            final ww = -eList[j] / eList[lp1];
+            for (var ii = lp1; ii < rowsA; ii++) {
+              a[j * rowsA + ii] += ww * work[ii];
+            }
+          }
+        }
+
+        if (computeVt) {
+          for (var i = lp1; i < colsA; i++) {
+            vList[lIdx * colsA + i] = eList[i];
+          }
+        }
+      }
+    }
+
+    var mDim = math.min(colsA, rowsA + 1);
+    final nctp1 = nct + 1;
+    final nrtp1 = nrt + 1;
+    if (nct < colsA) {
+      stemp[nctp1 - 1] = a[(nctp1 - 1) * rowsA + (nctp1 - 1)];
+    }
+    if (rowsA < mDim) {
+      stemp[mDim - 1] = 0.0;
+    }
+    if (nrtp1 < mDim) {
+      eList[nrtp1 - 1] = a[(mDim - 1) * rowsA + (nrtp1 - 1)];
+    }
+    eList[mDim - 1] = 0.0;
+
+    if (computeU) {
+      for (var j = nctp1 - 1; j < ncu; j++) {
+        for (var i = 0; i < rowsA; i++) {
+          uVals[j * rowsA + i] = 0.0;
+        }
+        uVals[j * rowsA + j] = 1.0;
+      }
+      for (var lIdx = nct - 1; lIdx >= 0; lIdx--) {
+        if (stemp[lIdx] != 0.0) {
+          for (var j = lIdx + 1; j < ncu; j++) {
+            var tVal = 0.0;
+            for (var i = lIdx; i < rowsA; i++) {
+              tVal += uVals[j * rowsA + i] * uVals[lIdx * rowsA + i];
+            }
+            tVal = -tVal / uVals[lIdx * rowsA + lIdx];
+            for (var ii = lIdx; ii < rowsA; ii++) {
+              uVals[j * rowsA + ii] += tVal * uVals[lIdx * rowsA + ii];
+            }
+          }
+          for (var i = lIdx; i < rowsA; i++) {
+            uVals[lIdx * rowsA + i] = -uVals[lIdx * rowsA + i];
+          }
+          uVals[lIdx * rowsA + lIdx] = 1.0 + uVals[lIdx * rowsA + lIdx];
+          for (var i = 0; i < lIdx; i++) {
+            uVals[lIdx * rowsA + i] = 0.0;
+          }
+        } else {
+          for (var i = 0; i < rowsA; i++) {
+            uVals[lIdx * rowsA + i] = 0.0;
+          }
+          uVals[lIdx * rowsA + lIdx] = 1.0;
+        }
+      }
+    }
+
+    if (computeVt) {
+      for (var lIdx = colsA - 1; lIdx >= 0; lIdx--) {
+        final lp1 = lIdx + 1;
+        if (lIdx < nrt && eList[lIdx] != 0.0) {
+          for (var j = lp1; j < colsA; j++) {
+            var tVal = 0.0;
+            for (var i = lp1; i < colsA; i++) {
+              tVal += vList[j * colsA + i] * vList[lIdx * colsA + i];
+            }
+            tVal = -tVal / vList[lIdx * colsA + lp1];
+            for (var ii = lIdx; ii < colsA; ii++) {
+              vList[j * colsA + ii] += tVal * vList[lIdx * colsA + ii];
+            }
+          }
+        }
+        for (var i = 0; i < colsA; i++) {
+          vList[lIdx * colsA + i] = 0.0;
+        }
+        vList[lIdx * colsA + lIdx] = 1.0;
+      }
+    }
+
+    final mn = mDim;
+    var iter = 0;
+    while (mDim > 0) {
+      if (iter >= 1000) break;
+
+      int lIdx;
+      for (lIdx = mDim - 2; lIdx >= 0; lIdx--) {
+        final test = stemp[lIdx].abs() + stemp[lIdx + 1].abs();
+        final ztest = test + eList[lIdx].abs();
+        if ((ztest - test).abs() < 1e-15 * test) {
+          eList[lIdx] = 0.0;
+          break;
+        }
+      }
+
+      int kase;
+      if (lIdx == mDim - 2) {
+        kase = 4;
+      } else {
+        int lsIdx;
+        for (lsIdx = mDim - 1; lsIdx > lIdx; lsIdx--) {
+          var test = 0.0;
+          if (lsIdx != mDim - 1) test += eList[lsIdx].abs();
+          if (lsIdx != lIdx + 1) test += eList[lsIdx - 1].abs();
+          final ztest = test + stemp[lsIdx].abs();
+          if ((ztest - test).abs() < 1e-15 * test) {
+            stemp[lsIdx] = 0.0;
+            break;
+          }
+        }
+        if (lsIdx == lIdx) {
+          kase = 3;
+        } else if (lsIdx == mDim - 1) {
+          kase = 1;
+        } else {
+          kase = 2;
+          lIdx = lsIdx;
+        }
+      }
+      lIdx = lIdx + 1;
+
+      switch (kase) {
+        case 1:
+          var fVal = eList[mDim - 2];
+          eList[mDim - 2] = 0.0;
+          for (var kk = lIdx; kk < mDim - 1; kk++) {
+            final k = mDim - 2 - kk + lIdx;
+            var t1 = stemp[k];
+            final rotg = _rotg(t1, fVal);
+            t1 = rotg.da;
+            fVal = rotg.db;
+            final cs = rotg.cosVal;
+            final sn = rotg.sinVal;
+            stemp[k] = t1;
+            if (k != lIdx) {
+              fVal = -sn * eList[k - 1];
+              eList[k - 1] = cs * eList[k - 1];
+            }
+            if (computeVt) {
+              for (var i = 0; i < colsA; i++) {
+                final z =
+                    cs * vList[k * colsA + i] +
+                    sn * vList[(mDim - 1) * colsA + i];
+                vList[(mDim - 1) * colsA + i] =
+                    cs * vList[(mDim - 1) * colsA + i] -
+                    sn * vList[k * colsA + i];
+                vList[k * colsA + i] = z;
+              }
+            }
+          }
+          iter++;
+        case 2:
+          var fVal = eList[lIdx - 1];
+          eList[lIdx - 1] = 0.0;
+          for (var k = lIdx; k < mDim; k++) {
+            var t1 = stemp[k];
+            final rotg = _rotg(t1, fVal);
+            t1 = rotg.da;
+            fVal = rotg.db;
+            final cs = rotg.cosVal;
+            final sn = rotg.sinVal;
+            stemp[k] = t1;
+            fVal = -sn * eList[k];
+            eList[k] = cs * eList[k];
+            if (computeU) {
+              for (var i = 0; i < rowsA; i++) {
+                final z =
+                    cs * uVals[k * rowsA + i] +
+                    sn * uVals[(lIdx - 1) * rowsA + i];
+                uVals[(lIdx - 1) * rowsA + i] =
+                    cs * uVals[(lIdx - 1) * rowsA + i] -
+                    sn * uVals[k * rowsA + i];
+                uVals[k * rowsA + i] = z;
+              }
+            }
+          }
+          iter++;
+        case 3:
+          var scale = 0.0;
+          scale = math.max(scale, stemp[mDim - 1].abs());
+          scale = math.max(scale, stemp[mDim - 2].abs());
+          scale = math.max(scale, eList[mDim - 2].abs());
+          scale = math.max(scale, stemp[lIdx].abs());
+          scale = math.max(scale, eList[lIdx].abs());
+          final sm = stemp[mDim - 1] / scale;
+          final smm1 = stemp[mDim - 2] / scale;
+          final emm1 = eList[mDim - 2] / scale;
+          final sl = stemp[lIdx] / scale;
+          final el = eList[lIdx] / scale;
+          final b = ((smm1 + sm) * (smm1 - sm) + emm1 * emm1) / 2.0;
+          final cVal = (sm * emm1) * (sm * emm1);
+          var shift = 0.0;
+          if (b != 0.0 || cVal != 0.0) {
+            shift = math.sqrt(b * b + cVal);
+            if (b < 0.0) shift = -shift;
+            shift = cVal / (b + shift);
+          }
+          var fVal = (sl + sm) * (sl - sm) + shift;
+          var gVal = sl * el;
+          for (var k = lIdx; k < mDim - 1; k++) {
+            var rotg = _rotg(fVal, gVal);
+            fVal = rotg.da;
+            gVal = rotg.db;
+            var cs = rotg.cosVal;
+            var sn = rotg.sinVal;
+            if (k != lIdx) eList[k - 1] = fVal;
+            fVal = cs * stemp[k] + sn * eList[k];
+            eList[k] = cs * eList[k] - sn * stemp[k];
+            gVal = sn * stemp[k + 1];
+            stemp[k + 1] = cs * stemp[k + 1];
+            if (computeVt) {
+              for (var i = 0; i < colsA; i++) {
+                final z =
+                    cs * vList[k * colsA + i] + sn * vList[(k + 1) * colsA + i];
+                vList[(k + 1) * colsA + i] =
+                    cs * vList[(k + 1) * colsA + i] - sn * vList[k * colsA + i];
+                vList[k * colsA + i] = z;
+              }
+            }
+            rotg = _rotg(fVal, gVal);
+            fVal = rotg.da;
+            gVal = rotg.db;
+            cs = rotg.cosVal;
+            sn = rotg.sinVal;
+            stemp[k] = fVal;
+            fVal = cs * eList[k] + sn * stemp[k + 1];
+            stemp[k + 1] = -sn * eList[k] + cs * stemp[k + 1];
+            gVal = sn * eList[k + 1];
+            eList[k + 1] = cs * eList[k + 1];
+            if (computeU && k < rowsA) {
+              for (var i = 0; i < rowsA; i++) {
+                final z =
+                    cs * uVals[k * rowsA + i] + sn * uVals[(k + 1) * rowsA + i];
+                uVals[(k + 1) * rowsA + i] =
+                    cs * uVals[(k + 1) * rowsA + i] - sn * uVals[k * rowsA + i];
+                uVals[k * rowsA + i] = z;
+              }
+            }
+          }
+          eList[mDim - 2] = fVal;
+          iter++;
+        case 4:
+          if (stemp[lIdx] < 0.0) {
+            stemp[lIdx] = -stemp[lIdx];
+            if (computeVt) {
+              for (var i = 0; i < colsA; i++) {
+                vList[lIdx * colsA + i] = -vList[lIdx * colsA + i];
+              }
+            }
+          }
+          while (lIdx != mn - 1) {
+            if (stemp[lIdx] >= stemp[lIdx + 1]) break;
+            final temp = stemp[lIdx];
+            stemp[lIdx] = stemp[lIdx + 1];
+            stemp[lIdx + 1] = temp;
+            if (computeVt && lIdx < colsA) {
+              for (var i = 0; i < colsA; i++) {
+                final aVal = vList[(lIdx + 1) * colsA + i];
+                final bVal = vList[lIdx * colsA + i];
+                vList[lIdx * colsA + i] = aVal;
+                vList[(lIdx + 1) * colsA + i] = bVal;
+              }
+            }
+            if (computeU && lIdx < rowsA) {
+              for (var i = 0; i < rowsA; i++) {
+                final aVal = uVals[(lIdx + 1) * rowsA + i];
+                final bVal = uVals[lIdx * rowsA + i];
+                uVals[lIdx * rowsA + i] = aVal;
+                uVals[(lIdx + 1) * rowsA + i] = bVal;
+              }
+            }
+            lIdx++;
+          }
+          iter = 0;
+          mDim--;
+      }
+    }
+
+    for (var i = 0; i < math.min(rowsA, colsA); i++) {
+      sVals[i] = stemp[i];
+    }
+  }
+
   static double _hypot(double a, double b) {
     if (a.abs() > b.abs()) {
       final ratio = b / a;

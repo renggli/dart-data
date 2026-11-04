@@ -1,5 +1,9 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
+import '../../acceleration/lapack/lapack.dart';
+import '../../tensor/layout.dart';
+import '../../tensor/tensor.dart';
 import '../../type/data_type.dart';
 import '../matrix.dart';
 import '../vector.dart';
@@ -46,73 +50,152 @@ class SingularValueDecomposition {
     final colsA = matrix.colCount;
     final nm = math.min(rowsA, colsA);
 
-    var allFinite = true;
-    final aVals = List<double>.generate(rowsA * colsA, (idx) {
-      final col = idx ~/ rowsA;
-      final row = idx % rowsA;
-      final val = matrix.getUnchecked(row, col).toDouble();
-      if (!val.isFinite) allFinite = false;
-      return val;
-    });
-
-    final uVals = List<double>.filled(
-      rowsA * rowsA,
-      allFinite ? 0.0 : double.nan,
-    );
-    final sVals = List<double>.filled(nm, allFinite ? 0.0 : double.nan);
-    final vtVals = List<double>.filled(
-      colsA * colsA,
-      allFinite ? 0.0 : double.nan,
-    );
-
-    if (allFinite) {
-      _computeSvd(computeVectors, aVals, rowsA, colsA, sVals, uVals, vtVals);
+    if (rowsA == 0 || colsA == 0) {
+      return SingularValueDecomposition._(
+        Vector<double>(
+          Tensor.internal(
+            type: DataType.float64,
+            layout: Layout(shape: [0]),
+            data: Float64List(0),
+          ),
+        ),
+        computeVectors
+            ? Matrix<double>(
+                Tensor.internal(
+                  type: DataType.float64,
+                  layout: Layout(shape: [rowsA, rowsA]),
+                  data: Float64List(0),
+                ),
+              )
+            : null,
+        computeVectors
+            ? Matrix<double>(
+                Tensor.internal(
+                  type: DataType.float64,
+                  layout: Layout(shape: [colsA, colsA]),
+                  data: Float64List(0),
+                ),
+              )
+            : null,
+        computeVectors,
+        rowsA,
+        colsA,
+      );
     }
 
-    final uMatrix = Matrix<double>.generate(
-      rowsA,
-      rowsA,
-      (row, col) => uVals[col * rowsA + row],
-      type: DataType.float64,
+    var allFinite = true;
+    final aVals = Float64List(rowsA * colsA);
+    var idx = 0;
+    for (var r = 0; r < rowsA; r++) {
+      for (var c = 0; c < colsA; c++) {
+        final val = matrix.getUnchecked(r, c).toDouble();
+        if (!val.isFinite) allFinite = false;
+        aVals[idx++] = val;
+      }
+    }
+
+    final sVals = Float64List(nm);
+    final uVals = computeVectors ? Float64List(rowsA * rowsA) : null;
+    final vtVals = computeVectors ? Float64List(colsA * colsA) : null;
+
+    if (!allFinite) {
+      sVals.fillRange(0, nm, double.nan);
+      uVals?.fillRange(0, rowsA * rowsA, double.nan);
+      vtVals?.fillRange(0, colsA * colsA, double.nan);
+    } else {
+      final ok = Lapack.dgesvd(
+        jobu: computeVectors ? 'A' : 'N',
+        jobvt: computeVectors ? 'A' : 'N',
+        m: rowsA,
+        n: colsA,
+        a: aVals,
+        lda: colsA,
+        s: sVals,
+        u: uVals,
+        ldu: rowsA,
+        vt: vtVals,
+        ldvt: colsA,
+      );
+      if (!ok) {
+        sVals.fillRange(0, nm, double.nan);
+        uVals?.fillRange(0, rowsA * rowsA, double.nan);
+        vtVals?.fillRange(0, colsA * colsA, double.nan);
+      }
+    }
+
+    final sVector = Vector<double>(
+      Tensor.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [nm]),
+        data: sVals,
+      ),
     );
-    final sVector = Vector<double>.fromList(sVals, type: DataType.float64);
-    final vtMatrix = Matrix<double>.generate(
-      colsA,
-      colsA,
-      (row, col) => vtVals[col * colsA + row],
-      type: DataType.float64,
-    );
+    final uMatrix = computeVectors
+        ? Matrix<double>(
+            Tensor.internal(
+              type: DataType.float64,
+              layout: Layout(shape: [rowsA, rowsA]),
+              data: uVals!,
+            ),
+          )
+        : null;
+    final vtMatrix = computeVectors
+        ? Matrix<double>(
+            Tensor.internal(
+              type: DataType.float64,
+              layout: Layout(shape: [colsA, colsA]),
+              data: vtVals!,
+            ),
+          )
+        : null;
 
     return SingularValueDecomposition._(
       sVector,
       uMatrix,
       vtMatrix,
       computeVectors,
+      rowsA,
+      colsA,
     );
   }
 
-  const new _(this.s, this.u, this.vt, this.vectorsComputed);
+  const new _(
+    this.s,
+    this._u,
+    this._vt,
+    this.vectorsComputed,
+    this._rowCount,
+    this._colCount,
+  );
 
   /// The singular values in descending order.
   final Vector<double> s;
 
-  /// The left singular vectors as an $m \times m$ orthogonal matrix.
-  final Matrix<double> u;
-
-  /// The transpose of right singular vectors as an $n \times n$ orthogonal
-  /// matrix.
-  final Matrix<double> vt;
+  final Matrix<double>? _u;
+  final Matrix<double>? _vt;
 
   /// Whether singular vectors were computed.
   final bool vectorsComputed;
+
+  final int _rowCount;
+  final int _colCount;
+
+  /// The left singular vectors as an $m \times m$ orthogonal matrix.
+  Matrix<double> get u =>
+      _u ?? (throw StateError('Singular vectors were not computed.'));
+
+  /// The transpose of right singular vectors as an $n \times n$ orthogonal
+  /// matrix.
+  Matrix<double> get vt =>
+      _vt ?? (throw StateError('Singular vectors were not computed.'));
 
   /// The right singular vectors as an $n \times n$ orthogonal matrix.
   Matrix<double> get v => vt.transposed;
 
   /// Returns the diagonal matrix of singular values of size $m \times n$.
   Matrix<double> get sigma => Matrix<double>.generate(
-    u.rowCount,
-    vt.colCount,
+    _rowCount,
+    _colCount,
     (row, col) => row == col && row < s.length ? s[row] : 0.0,
     type: DataType.float64,
   );
@@ -120,7 +203,7 @@ class SingularValueDecomposition {
   /// The effective numerical rank of the matrix.
   int get rank {
     if (s.length == 0) return 0;
-    final maxDim = math.max(u.rowCount, vt.colCount);
+    final maxDim = math.max(_rowCount, _colCount);
     final maxS = s[0].abs();
     final tol = maxDim * maxS * 2.220446049250313e-16;
     var count = 0;
@@ -136,8 +219,10 @@ class SingularValueDecomposition {
   /// Condition number $\sigma_{\max} / \sigma_{\min}$.
   double get cond {
     if (s.length == 0) return 0.0;
+    final maxDim = math.max(_rowCount, _colCount);
+    final tol = maxDim * s[0].abs() * 2.220446049250313e-16;
     final minS = s[s.length - 1].abs();
-    return minS == 0.0 ? double.infinity : s[0].abs() / minS;
+    return minS <= tol ? double.infinity : s[0].abs() / minS;
   }
 
   /// Solves the linear system $A x \approx b$ using minimum norm least squares.
@@ -152,7 +237,7 @@ class SingularValueDecomposition {
     }
     final cols = vt.colCount;
     final mn = math.min(u.rowCount, cols);
-    final tmp = List<double>.filled(cols, 0.0);
+    final tmp = Float64List(cols);
     final maxDim = math.max(u.rowCount, cols);
     final maxS = s.length > 0 ? s[0].abs() : 0.0;
     final tol = tolerance ?? maxDim * maxS * 2.220446049250313e-16;
@@ -168,7 +253,7 @@ class SingularValueDecomposition {
       tmp[j] = val;
     }
 
-    final result = List<double>.filled(cols, 0.0);
+    final result = Float64List(cols);
     for (var j = 0; j < cols; j++) {
       var val = 0.0;
       for (var i = 0; i < cols; i++) {
@@ -177,7 +262,13 @@ class SingularValueDecomposition {
       result[j] = val;
     }
 
-    return Vector<double>.fromList(result, type: DataType.float64);
+    return Vector<double>(
+      Tensor.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [cols]),
+        data: result,
+      ),
+    );
   }
 
   /// Solves the linear system $A X \approx B$ using minimum norm least squares.
@@ -203,7 +294,7 @@ class SingularValueDecomposition {
       0.0,
       type: DataType.float64,
     );
-    final tmp = List<double>.filled(cols, 0.0);
+    final tmp = Float64List(cols);
 
     for (var col = 0; col < nrhs; col++) {
       for (var j = 0; j < cols; j++) {
@@ -227,418 +318,5 @@ class SingularValueDecomposition {
     }
 
     return result;
-  }
-
-  static ({double da, double db, double cosVal, double sinVal}) _rotg(
-    double da,
-    double db,
-  ) {
-    final absda = da.abs();
-    final absdb = db.abs();
-    final roe = (absda > absdb) ? da : db;
-    final scale = absda + absdb;
-
-    double rVal, zVal, cosVal, sinVal;
-    if (scale == 0.0) {
-      cosVal = 1.0;
-      sinVal = 0.0;
-      rVal = 0.0;
-      zVal = 0.0;
-    } else {
-      final sda = da / scale;
-      final sdb = db / scale;
-      rVal = scale * math.sqrt(sda * sda + sdb * sdb);
-      if (roe < 0.0) rVal = -rVal;
-      cosVal = da / rVal;
-      sinVal = db / rVal;
-      zVal = 1.0;
-      if (absda > absdb) zVal = sinVal;
-      if (absdb >= absda && cosVal != 0.0) zVal = 1.0 / cosVal;
-    }
-    return (da: rVal, db: zVal, cosVal: cosVal, sinVal: sinVal);
-  }
-
-  static void _computeSvd(
-    bool computeVectors,
-    List<double> a,
-    int rowsA,
-    int colsA,
-    List<double> sVals,
-    List<double> uVals,
-    List<double> vtVals,
-  ) {
-    final work = List<double>.filled(rowsA, 0.0);
-    final eList = List<double>.filled(colsA, 0.0);
-    final vList = List<double>.filled(colsA * colsA, 0.0);
-    final stemp = List<double>.filled(math.min(rowsA + 1, colsA), 0.0);
-
-    final ncu = rowsA;
-    final nct = math.min(rowsA - 1, colsA);
-    final nrt = math.max(0, math.min(colsA - 2, rowsA));
-    final lu = math.max(nct, nrt);
-
-    for (var lIdx = 0; lIdx < lu; lIdx++) {
-      final lp1 = lIdx + 1;
-      if (lIdx < nct) {
-        var sum = 0.0;
-        for (var i = lIdx; i < rowsA; i++) {
-          final val = a[lIdx * rowsA + i];
-          sum += val * val;
-        }
-        stemp[lIdx] = math.sqrt(sum);
-        if (stemp[lIdx] != 0.0) {
-          if (a[lIdx * rowsA + lIdx] != 0.0) {
-            stemp[lIdx] =
-                stemp[lIdx].abs() *
-                (a[lIdx * rowsA + lIdx] / a[lIdx * rowsA + lIdx].abs());
-          }
-          for (var i = lIdx; i < rowsA; i++) {
-            a[lIdx * rowsA + i] /= stemp[lIdx];
-          }
-          a[lIdx * rowsA + lIdx] += 1.0;
-        }
-        stemp[lIdx] = -stemp[lIdx];
-      }
-
-      for (var j = lp1; j < colsA; j++) {
-        if (lIdx < nct && stemp[lIdx] != 0.0) {
-          var tVal = 0.0;
-          for (var i = lIdx; i < rowsA; i++) {
-            tVal += a[j * rowsA + i] * a[lIdx * rowsA + i];
-          }
-          tVal = -tVal / a[lIdx * rowsA + lIdx];
-          for (var ii = lIdx; ii < rowsA; ii++) {
-            a[j * rowsA + ii] += tVal * a[lIdx * rowsA + ii];
-          }
-        }
-        eList[j] = a[j * rowsA + lIdx];
-      }
-
-      if (computeVectors && lIdx < nct) {
-        for (var i = lIdx; i < rowsA; i++) {
-          uVals[lIdx * rowsA + i] = a[lIdx * rowsA + i];
-        }
-      }
-
-      if (lIdx < nrt) {
-        var enorm = 0.0;
-        for (var i = lp1; i < eList.length; i++) {
-          enorm += eList[i] * eList[i];
-        }
-        eList[lIdx] = math.sqrt(enorm);
-        if (eList[lIdx] != 0.0) {
-          if (eList[lp1] != 0.0) {
-            eList[lIdx] = eList[lIdx].abs() * (eList[lp1] / eList[lp1].abs());
-          }
-          for (var i = lp1; i < eList.length; i++) {
-            eList[i] /= eList[lIdx];
-          }
-          eList[lp1] += 1.0;
-        }
-        eList[lIdx] = -eList[lIdx];
-
-        if (lp1 < rowsA && eList[lIdx] != 0.0) {
-          for (var i = lp1; i < rowsA; i++) {
-            work[i] = 0.0;
-          }
-          for (var j = lp1; j < colsA; j++) {
-            for (var ii = lp1; ii < rowsA; ii++) {
-              work[ii] += eList[j] * a[j * rowsA + ii];
-            }
-          }
-          for (var j = lp1; j < colsA; j++) {
-            final ww = -eList[j] / eList[lp1];
-            for (var ii = lp1; ii < rowsA; ii++) {
-              a[j * rowsA + ii] += ww * work[ii];
-            }
-          }
-        }
-
-        if (computeVectors) {
-          for (var i = lp1; i < colsA; i++) {
-            vList[lIdx * colsA + i] = eList[i];
-          }
-        }
-      }
-    }
-
-    var mDim = math.min(colsA, rowsA + 1);
-    final nctp1 = nct + 1;
-    final nrtp1 = nrt + 1;
-    if (nct < colsA) {
-      stemp[nctp1 - 1] = a[(nctp1 - 1) * rowsA + (nctp1 - 1)];
-    }
-    if (rowsA < mDim) {
-      stemp[mDim - 1] = 0.0;
-    }
-    if (nrtp1 < mDim) {
-      eList[nrtp1 - 1] = a[(mDim - 1) * rowsA + (nrtp1 - 1)];
-    }
-    eList[mDim - 1] = 0.0;
-
-    if (computeVectors) {
-      for (var j = nctp1 - 1; j < ncu; j++) {
-        for (var i = 0; i < rowsA; i++) {
-          uVals[j * rowsA + i] = 0.0;
-        }
-        uVals[j * rowsA + j] = 1.0;
-      }
-      for (var lIdx = nct - 1; lIdx >= 0; lIdx--) {
-        if (stemp[lIdx] != 0.0) {
-          for (var j = lIdx + 1; j < ncu; j++) {
-            var tVal = 0.0;
-            for (var i = lIdx; i < rowsA; i++) {
-              tVal += uVals[j * rowsA + i] * uVals[lIdx * rowsA + i];
-            }
-            tVal = -tVal / uVals[lIdx * rowsA + lIdx];
-            for (var ii = lIdx; ii < rowsA; ii++) {
-              uVals[j * rowsA + ii] += tVal * uVals[lIdx * rowsA + ii];
-            }
-          }
-          for (var i = lIdx; i < rowsA; i++) {
-            uVals[lIdx * rowsA + i] = -uVals[lIdx * rowsA + i];
-          }
-          uVals[lIdx * rowsA + lIdx] = 1.0 + uVals[lIdx * rowsA + lIdx];
-          for (var i = 0; i < lIdx; i++) {
-            uVals[lIdx * rowsA + i] = 0.0;
-          }
-        } else {
-          for (var i = 0; i < rowsA; i++) {
-            uVals[lIdx * rowsA + i] = 0.0;
-          }
-          uVals[lIdx * rowsA + lIdx] = 1.0;
-        }
-      }
-
-      for (var lIdx = colsA - 1; lIdx >= 0; lIdx--) {
-        final lp1 = lIdx + 1;
-        if (lIdx < nrt && eList[lIdx] != 0.0) {
-          for (var j = lp1; j < colsA; j++) {
-            var tVal = 0.0;
-            for (var i = lp1; i < colsA; i++) {
-              tVal += vList[j * colsA + i] * vList[lIdx * colsA + i];
-            }
-            tVal = -tVal / vList[lIdx * colsA + lp1];
-            for (var ii = lIdx; ii < colsA; ii++) {
-              vList[j * colsA + ii] += tVal * vList[lIdx * colsA + ii];
-            }
-          }
-        }
-        for (var i = 0; i < colsA; i++) {
-          vList[lIdx * colsA + i] = 0.0;
-        }
-        vList[lIdx * colsA + lIdx] = 1.0;
-      }
-    }
-
-    final mn = mDim;
-    var iter = 0;
-    while (mDim > 0) {
-      if (iter >= 1000) break;
-
-      int lIdx;
-      for (lIdx = mDim - 2; lIdx >= 0; lIdx--) {
-        final test = stemp[lIdx].abs() + stemp[lIdx + 1].abs();
-        final ztest = test + eList[lIdx].abs();
-        if ((ztest - test).abs() < 1e-15 * test) {
-          eList[lIdx] = 0.0;
-          break;
-        }
-      }
-
-      int kase;
-      if (lIdx == mDim - 2) {
-        kase = 4;
-      } else {
-        int lsIdx;
-        for (lsIdx = mDim - 1; lsIdx > lIdx; lsIdx--) {
-          var test = 0.0;
-          if (lsIdx != mDim - 1) test += eList[lsIdx].abs();
-          if (lsIdx != lIdx + 1) test += eList[lsIdx - 1].abs();
-          final ztest = test + stemp[lsIdx].abs();
-          if ((ztest - test).abs() < 1e-15 * test) {
-            stemp[lsIdx] = 0.0;
-            break;
-          }
-        }
-        if (lsIdx == lIdx) {
-          kase = 3;
-        } else if (lsIdx == mDim - 1) {
-          kase = 1;
-        } else {
-          kase = 2;
-          lIdx = lsIdx;
-        }
-      }
-      lIdx = lIdx + 1;
-
-      switch (kase) {
-        case 1:
-          var fVal = eList[mDim - 2];
-          eList[mDim - 2] = 0.0;
-          for (var kk = lIdx; kk < mDim - 1; kk++) {
-            final k = mDim - 2 - kk + lIdx;
-            var t1 = stemp[k];
-            final rotg = _rotg(t1, fVal);
-            t1 = rotg.da;
-            fVal = rotg.db;
-            final cs = rotg.cosVal;
-            final sn = rotg.sinVal;
-            stemp[k] = t1;
-            if (k != lIdx) {
-              fVal = -sn * eList[k - 1];
-              eList[k - 1] = cs * eList[k - 1];
-            }
-            if (computeVectors) {
-              for (var i = 0; i < colsA; i++) {
-                final z =
-                    cs * vList[k * colsA + i] +
-                    sn * vList[(mDim - 1) * colsA + i];
-                vList[(mDim - 1) * colsA + i] =
-                    cs * vList[(mDim - 1) * colsA + i] -
-                    sn * vList[k * colsA + i];
-                vList[k * colsA + i] = z;
-              }
-            }
-          }
-          iter++;
-        case 2:
-          var fVal = eList[lIdx - 1];
-          eList[lIdx - 1] = 0.0;
-          for (var k = lIdx; k < mDim; k++) {
-            var t1 = stemp[k];
-            final rotg = _rotg(t1, fVal);
-            t1 = rotg.da;
-            fVal = rotg.db;
-            final cs = rotg.cosVal;
-            final sn = rotg.sinVal;
-            stemp[k] = t1;
-            fVal = -sn * eList[k];
-            eList[k] = cs * eList[k];
-            if (computeVectors) {
-              for (var i = 0; i < rowsA; i++) {
-                final z =
-                    cs * uVals[k * rowsA + i] +
-                    sn * uVals[(lIdx - 1) * rowsA + i];
-                uVals[(lIdx - 1) * rowsA + i] =
-                    cs * uVals[(lIdx - 1) * rowsA + i] -
-                    sn * uVals[k * rowsA + i];
-                uVals[k * rowsA + i] = z;
-              }
-            }
-          }
-          iter++;
-        case 3:
-          var scale = 0.0;
-          scale = math.max(scale, stemp[mDim - 1].abs());
-          scale = math.max(scale, stemp[mDim - 2].abs());
-          scale = math.max(scale, eList[mDim - 2].abs());
-          scale = math.max(scale, stemp[lIdx].abs());
-          scale = math.max(scale, eList[lIdx].abs());
-          final sm = stemp[mDim - 1] / scale;
-          final smm1 = stemp[mDim - 2] / scale;
-          final emm1 = eList[mDim - 2] / scale;
-          final sl = stemp[lIdx] / scale;
-          final el = eList[lIdx] / scale;
-          final b = ((smm1 + sm) * (smm1 - sm) + emm1 * emm1) / 2.0;
-          final cVal = (sm * emm1) * (sm * emm1);
-          var shift = 0.0;
-          if (b != 0.0 || cVal != 0.0) {
-            shift = math.sqrt(b * b + cVal);
-            if (b < 0.0) shift = -shift;
-            shift = cVal / (b + shift);
-          }
-          var fVal = (sl + sm) * (sl - sm) + shift;
-          var gVal = sl * el;
-          for (var k = lIdx; k < mDim - 1; k++) {
-            var rotg = _rotg(fVal, gVal);
-            fVal = rotg.da;
-            gVal = rotg.db;
-            var cs = rotg.cosVal;
-            var sn = rotg.sinVal;
-            if (k != lIdx) eList[k - 1] = fVal;
-            fVal = cs * stemp[k] + sn * eList[k];
-            eList[k] = cs * eList[k] - sn * stemp[k];
-            gVal = sn * stemp[k + 1];
-            stemp[k + 1] = cs * stemp[k + 1];
-            if (computeVectors) {
-              for (var i = 0; i < colsA; i++) {
-                final z =
-                    cs * vList[k * colsA + i] + sn * vList[(k + 1) * colsA + i];
-                vList[(k + 1) * colsA + i] =
-                    cs * vList[(k + 1) * colsA + i] - sn * vList[k * colsA + i];
-                vList[k * colsA + i] = z;
-              }
-            }
-            rotg = _rotg(fVal, gVal);
-            fVal = rotg.da;
-            gVal = rotg.db;
-            cs = rotg.cosVal;
-            sn = rotg.sinVal;
-            stemp[k] = fVal;
-            fVal = cs * eList[k] + sn * stemp[k + 1];
-            stemp[k + 1] = -sn * eList[k] + cs * stemp[k + 1];
-            gVal = sn * eList[k + 1];
-            eList[k + 1] = cs * eList[k + 1];
-            if (computeVectors && k < rowsA) {
-              for (var i = 0; i < rowsA; i++) {
-                final z =
-                    cs * uVals[k * rowsA + i] + sn * uVals[(k + 1) * rowsA + i];
-                uVals[(k + 1) * rowsA + i] =
-                    cs * uVals[(k + 1) * rowsA + i] - sn * uVals[k * rowsA + i];
-                uVals[k * rowsA + i] = z;
-              }
-            }
-          }
-          eList[mDim - 2] = fVal;
-          iter++;
-        case 4:
-          if (stemp[lIdx] < 0.0) {
-            stemp[lIdx] = -stemp[lIdx];
-            if (computeVectors) {
-              for (var i = 0; i < colsA; i++) {
-                vList[lIdx * colsA + i] = -vList[lIdx * colsA + i];
-              }
-            }
-          }
-          while (lIdx != mn - 1) {
-            if (stemp[lIdx] >= stemp[lIdx + 1]) break;
-            final temp = stemp[lIdx];
-            stemp[lIdx] = stemp[lIdx + 1];
-            stemp[lIdx + 1] = temp;
-            if (computeVectors && lIdx < colsA) {
-              for (var i = 0; i < colsA; i++) {
-                final aVal = vList[(lIdx + 1) * colsA + i];
-                final bVal = vList[lIdx * colsA + i];
-                vList[lIdx * colsA + i] = aVal;
-                vList[(lIdx + 1) * colsA + i] = bVal;
-              }
-            }
-            if (computeVectors && lIdx < rowsA) {
-              for (var i = 0; i < rowsA; i++) {
-                final aVal = uVals[(lIdx + 1) * rowsA + i];
-                final bVal = uVals[lIdx * rowsA + i];
-                uVals[lIdx * rowsA + i] = aVal;
-                uVals[(lIdx + 1) * rowsA + i] = bVal;
-              }
-            }
-            lIdx++;
-          }
-          iter = 0;
-          mDim--;
-      }
-    }
-
-    if (computeVectors) {
-      for (var i = 0; i < colsA; i++) {
-        for (var j = 0; j < colsA; j++) {
-          vtVals[j * colsA + i] = vList[i * colsA + j];
-        }
-      }
-    }
-
-    for (var i = 0; i < math.min(rowsA, colsA); i++) {
-      sVals[i] = stemp[i];
-    }
   }
 }
