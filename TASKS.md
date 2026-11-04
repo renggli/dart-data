@@ -639,7 +639,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Violates `AGENTS.md` class member ordering conventions.
   - **Fix**: Place constructors first, class fields second, public getters/methods/operators third, and private constructors/methods at the bottom of each class.
 
-- [ ] **3.3 Avoidable non-null assertions (`!`) and `dynamic` type annotations**
+- [x] **3.3 Avoidable non-null assertions (`!`) and `dynamic` type annotations**
   - **Severity**: Suggestion
   - **Location**:
     - `lib/src/tensor/tensor.dart:113, 207` (`list!.length`, `Tensor<dynamic>`)

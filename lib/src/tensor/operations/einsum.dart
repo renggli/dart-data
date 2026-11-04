@@ -109,8 +109,10 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
     }
   }
 
+  int dimOf(String label) => dimMap[label] ?? 0;
+
   final outShape = [
-    for (var i = 0; i < outputPart.length; i++) dimMap[outputPart[i]]!,
+    for (var i = 0; i < outputPart.length; i++) dimOf(outputPart[i]),
   ];
 
   // Fast path: single operand
@@ -179,10 +181,10 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
             labelB.indexOf(c),
         ];
 
-        final batchShape = [for (final c in batchList) dimMap[c]!];
-        final shapeFreeA = [for (final c in freeAList) dimMap[c]!];
-        final shapeFreeB = [for (final c in freeBList) dimMap[c]!];
-        final shapeContracted = [for (final c in contractedList) dimMap[c]!];
+        final batchShape = [for (final c in batchList) dimOf(c)];
+        final shapeFreeA = [for (final c in freeAList) dimOf(c)];
+        final shapeFreeB = [for (final c in freeBList) dimOf(c)];
+        final shapeContracted = [for (final c in contractedList) dimOf(c)];
 
         final sizeFreeA = shapeFreeA.fold(1, (prod, d) => prod * d);
         final sizeFreeB = shapeFreeB.fold(1, (prod, d) => prod * d);
@@ -238,7 +240,7 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
     }
   }
 
-  final varDims = [for (final v in uniqueLabels) dimMap[v]!];
+  final varDims = [for (final v in uniqueLabels) dimOf(v)];
   final totalSteps = varDims.isEmpty
       ? 1
       : varDims.fold(1, (prod, d) => prod * d);

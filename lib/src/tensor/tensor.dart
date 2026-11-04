@@ -225,7 +225,7 @@ class Tensor<T> {
   final List<T> data;
 
   /// Checks whether this tensor shares underlying memory with [other].
-  bool sharesMemoryWith(Tensor<dynamic> other) =>
+  bool sharesMemoryWith(Tensor<Object?> other) =>
       sharesMemory(data, other.data);
 
   /// The number of dimensions (axes) in this tensor.

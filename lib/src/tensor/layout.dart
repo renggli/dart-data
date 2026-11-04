@@ -402,41 +402,43 @@ class Layout {
 
       final dim = shape[i];
       final stride = strides[i];
+      final start = slice.start;
+      final end = slice.end;
       int startIdx;
       int endIdx;
       int count;
 
       if (step > 0) {
-        if (slice.start == null) {
+        if (start == null) {
           startIdx = 0;
         } else {
-          startIdx = slice.start! < 0 ? slice.start! + dim : slice.start!;
+          startIdx = start < 0 ? start + dim : start;
           if (startIdx < 0) startIdx = 0;
           if (startIdx > dim) startIdx = dim;
         }
 
-        if (slice.end == null) {
+        if (end == null) {
           endIdx = dim;
         } else {
-          endIdx = slice.end! < 0 ? slice.end! + dim : slice.end!;
+          endIdx = end < 0 ? end + dim : end;
           if (endIdx < 0) endIdx = 0;
           if (endIdx > dim) endIdx = dim;
         }
 
         count = startIdx >= endIdx ? 0 : (endIdx - startIdx + step - 1) ~/ step;
       } else {
-        if (slice.start == null) {
+        if (start == null) {
           startIdx = dim - 1;
         } else {
-          startIdx = slice.start! < 0 ? slice.start! + dim : slice.start!;
+          startIdx = start < 0 ? start + dim : start;
           if (startIdx < -1) startIdx = -1;
           if (startIdx >= dim) startIdx = dim - 1;
         }
 
-        if (slice.end == null) {
+        if (end == null) {
           endIdx = -1;
         } else {
-          endIdx = slice.end! < 0 ? slice.end! + dim : slice.end!;
+          endIdx = end < 0 ? end + dim : end;
           if (endIdx < -1) endIdx = -1;
           if (endIdx >= dim) endIdx = dim - 1;
         }

@@ -648,11 +648,11 @@ class Matrix<T> implements LinearOperator<T> {
         lda = colCount == 1 ? (rowCount > 0 ? rowCount : 1) : s1;
       }
 
-      if (transA != null && lda != null) {
+      if (transA != null && lda != null && mVal != null && nVal != null) {
         if (_tryAcceleratedGemv(
           transA: transA,
-          m: mVal!,
-          n: nVal!,
+          m: mVal,
+          n: nVal,
           lda: lda,
           x: x,
           res: res,
@@ -726,11 +726,11 @@ class Matrix<T> implements LinearOperator<T> {
         lda = colCount == 1 ? (rowCount > 0 ? rowCount : 1) : s1;
       }
 
-      if (transA != null && lda != null) {
+      if (transA != null && lda != null && mVal != null && nVal != null) {
         if (_tryAcceleratedGemv(
           transA: transA,
-          m: mVal!,
-          n: nVal!,
+          m: mVal,
+          n: nVal,
           lda: lda,
           x: x,
           res: res,

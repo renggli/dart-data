@@ -180,7 +180,11 @@ extension MatmulTensorExtension<T> on Tensor<T> {
           : (tensorC.layout.strides[0] > 0 ? tensorC.layout.strides[0] : 1);
     }
 
-    if (transA != null && transB != null && ldc != null) {
+    if (transA != null &&
+        lda != null &&
+        transB != null &&
+        ldb != null &&
+        ldc != null) {
       if (tensorA.data is Float64List &&
           tensorB.data is Float64List &&
           tensorC.data is Float64List) {
@@ -193,10 +197,10 @@ extension MatmulTensorExtension<T> on Tensor<T> {
           alpha: 1.0,
           a: tensorA.data as Float64List,
           aOffset: tensorA.offset,
-          lda: lda!,
+          lda: lda,
           b: tensorB.data as Float64List,
           bOffset: tensorB.offset,
-          ldb: ldb!,
+          ldb: ldb,
           beta: 0.0,
           c: tensorC.data as Float64List,
           cOffset: tensorC.offset,
@@ -215,10 +219,10 @@ extension MatmulTensorExtension<T> on Tensor<T> {
           alpha: 1.0,
           a: tensorA.data as Float32List,
           aOffset: tensorA.offset,
-          lda: lda!,
+          lda: lda,
           b: tensorB.data as Float32List,
           bOffset: tensorB.offset,
-          ldb: ldb!,
+          ldb: ldb,
           beta: 0.0,
           c: tensorC.data as Float32List,
           cOffset: tensorC.offset,

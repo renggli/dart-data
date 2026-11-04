@@ -504,106 +504,111 @@ class ExprSyntax {
     return Piecewise(branches, otherwise: otherwise);
   }
 
-  static Expr _parseIntegralArgs(List<Expr> args) => switch (args) {
-    [final integrand, Variable(:final name)] => Integral(integrand, name),
-    [final integrand, final v] when _asVariableName(v) != null => Integral(
-      _unbindConstant(integrand, v, _asVariableName(v)!),
-      _asVariableName(v)!,
-    ),
-    [final integrand, Variable(:final name), final lower, final upper] =>
-      Integral(integrand, name, lower: lower, upper: upper),
-    [final integrand, final v, final lower, final upper]
-        when _asVariableName(v) != null =>
-      Integral(
-        _unbindConstant(integrand, v, _asVariableName(v)!),
-        _asVariableName(v)!,
-        lower: lower,
-        upper: upper,
-      ),
-    [_, final invalidVar, ...] => throw FormatException(
-      'integrate second argument must be a variable identifier, got: $invalidVar',
-    ),
-    _ => throw FormatException(
-      'integrate requires 2 or 4 arguments, got ${args.length}',
-    ),
-  };
-
-  static Expr _parseDerivativeArgs(List<Expr> args) => switch (args) {
-    [final expr, Variable(:final name)] => Derivative(expr, name),
-    [final expr, final v] when _asVariableName(v) != null => Derivative(
-      _unbindConstant(expr, v, _asVariableName(v)!),
-      _asVariableName(v)!,
-    ),
-    [final expr, Variable(:final name), IntegerNumber(asInt: final order?)]
-        when order >= 1 =>
-      Derivative(expr, name, order: order),
-    [final expr, final v, IntegerNumber(asInt: final order?)]
-        when order >= 1 && _asVariableName(v) != null =>
-      Derivative(
-        _unbindConstant(expr, v, _asVariableName(v)!),
-        _asVariableName(v)!,
-        order: order,
-      ),
-    [
-      final expr,
-      Variable(:final name),
-      IntegerNumber(asInt: final order?),
-      final point,
-    ]
-        when order >= 1 =>
-      Derivative(expr, name, order: order, point: point),
-    [final expr, final v, IntegerNumber(asInt: final order?), final point]
-        when order >= 1 && _asVariableName(v) != null =>
-      Derivative(
-        _unbindConstant(expr, v, _asVariableName(v)!),
-        _asVariableName(v)!,
-        order: order,
-        point: point,
-      ),
-    [_, final v, final invalidOrder] when _asVariableName(v) != null =>
+  static Expr _parseIntegralArgs(List<Expr> args) {
+    if (args case [final integrand, final v]) {
+      final vName = _asVariableName(v);
+      if (vName != null) {
+        return Integral(_unbindConstant(integrand, v, vName), vName);
+      }
       throw FormatException(
-        'diff order must be a positive integer, got: $invalidOrder',
-      ),
-    [_, final invalidVar, ...] => throw FormatException(
-      'diff second argument must be a variable identifier, got: $invalidVar',
-    ),
-    _ => throw FormatException(
-      'diff requires 2, 3, or 4 arguments, got ${args.length}',
-    ),
-  };
+        'integrate second argument must be a variable identifier, got: $v',
+      );
+    }
+    if (args case [final integrand, final v, final lower, final upper]) {
+      final vName = _asVariableName(v);
+      if (vName != null) {
+        return Integral(
+          _unbindConstant(integrand, v, vName),
+          vName,
+          lower: lower,
+          upper: upper,
+        );
+      }
+      throw FormatException(
+        'integrate second argument must be a variable identifier, got: $v',
+      );
+    }
+    throw FormatException(
+      'integrate requires 2 or 4 arguments, got ${args.length}',
+    );
+  }
 
-  static Expr _parseLimitArgs(List<Expr> args) => switch (args) {
-    [final expr, Variable(:final name), final point] => Limit(
-      expr,
-      name,
-      point,
-    ),
-    [final expr, final v, final point] when _asVariableName(v) != null => Limit(
-      _unbindConstant(expr, v, _asVariableName(v)!),
-      _asVariableName(v)!,
-      point,
-    ),
-    [final expr, Variable(:final name), final point, final dirExpr] => Limit(
-      expr,
-      name,
-      point,
-      direction: _parseLimitDirection(dirExpr),
-    ),
-    [final expr, final v, final point, final dirExpr]
-        when _asVariableName(v) != null =>
-      Limit(
-        _unbindConstant(expr, v, _asVariableName(v)!),
-        _asVariableName(v)!,
-        point,
-        direction: _parseLimitDirection(dirExpr),
-      ),
-    [_, final invalidVar, ...] => throw FormatException(
-      'limit second argument must be a variable identifier, got: $invalidVar',
-    ),
-    _ => throw FormatException(
+  static Expr _parseDerivativeArgs(List<Expr> args) {
+    if (args case [final expr, final v]) {
+      final vName = _asVariableName(v);
+      if (vName != null) {
+        return Derivative(_unbindConstant(expr, v, vName), vName);
+      }
+      throw FormatException(
+        'diff second argument must be a variable identifier, got: $v',
+      );
+    }
+    if (args case [final expr, final v, final orderExpr]) {
+      final vName = _asVariableName(v);
+      if (vName == null) {
+        throw FormatException(
+          'diff second argument must be a variable identifier, got: $v',
+        );
+      }
+      if (orderExpr case IntegerNumber(asInt: final order?) when order >= 1) {
+        return Derivative(_unbindConstant(expr, v, vName), vName, order: order);
+      }
+      throw FormatException(
+        'diff order must be a positive integer, got: $orderExpr',
+      );
+    }
+    if (args case [final expr, final v, final orderExpr, final point]) {
+      final vName = _asVariableName(v);
+      if (vName == null) {
+        throw FormatException(
+          'diff second argument must be a variable identifier, got: $v',
+        );
+      }
+      if (orderExpr case IntegerNumber(asInt: final order?) when order >= 1) {
+        return Derivative(
+          _unbindConstant(expr, v, vName),
+          vName,
+          order: order,
+          point: point,
+        );
+      }
+      throw FormatException(
+        'diff order must be a positive integer, got: $orderExpr',
+      );
+    }
+    throw FormatException(
+      'diff requires 2, 3, or 4 arguments, got ${args.length}',
+    );
+  }
+
+  static Expr _parseLimitArgs(List<Expr> args) {
+    if (args case [final expr, final v, final point]) {
+      final vName = _asVariableName(v);
+      if (vName != null) {
+        return Limit(_unbindConstant(expr, v, vName), vName, point);
+      }
+      throw FormatException(
+        'limit second argument must be a variable identifier, got: $v',
+      );
+    }
+    if (args case [final expr, final v, final point, final dirExpr]) {
+      final vName = _asVariableName(v);
+      if (vName != null) {
+        return Limit(
+          _unbindConstant(expr, v, vName),
+          vName,
+          point,
+          direction: _parseLimitDirection(dirExpr),
+        );
+      }
+      throw FormatException(
+        'limit second argument must be a variable identifier, got: $v',
+      );
+    }
+    throw FormatException(
       'limit requires 3 or 4 arguments, got ${args.length}',
-    ),
-  };
+    );
+  }
 
   static LimitDirection _parseLimitDirection(Expr dirExpr) => switch (dirExpr) {
     IntegerNumber(isZero: true) ||
@@ -617,49 +622,31 @@ class ExprSyntax {
     ),
   };
 
-  static Expr _parseSumArgs(List<Expr> args) => switch (args) {
-    [final expr, Variable(:final name), final lower, final upper] => Sum(
-      expr,
-      name,
-      lower,
-      upper,
-    ),
-    [final expr, final v, final lower, final upper]
-        when _asVariableName(v) != null =>
-      Sum(
-        _unbindConstant(expr, v, _asVariableName(v)!),
-        _asVariableName(v)!,
-        lower,
-        upper,
-      ),
-    [_, final invalidVar, _, _] => throw FormatException(
-      'sum second argument must be a variable identifier, got: $invalidVar',
-    ),
-    _ => throw FormatException('sum requires 4 arguments, got ${args.length}'),
-  };
+  static Expr _parseSumArgs(List<Expr> args) {
+    if (args case [final expr, final v, final lower, final upper]) {
+      final vName = _asVariableName(v);
+      if (vName != null) {
+        return Sum(_unbindConstant(expr, v, vName), vName, lower, upper);
+      }
+      throw FormatException(
+        'sum second argument must be a variable identifier, got: $v',
+      );
+    }
+    throw FormatException('sum requires 4 arguments, got ${args.length}');
+  }
 
-  static Expr _parseProductArgs(List<Expr> args) => switch (args) {
-    [final expr, Variable(:final name), final lower, final upper] => Product(
-      expr,
-      name,
-      lower,
-      upper,
-    ),
-    [final expr, final v, final lower, final upper]
-        when _asVariableName(v) != null =>
-      Product(
-        _unbindConstant(expr, v, _asVariableName(v)!),
-        _asVariableName(v)!,
-        lower,
-        upper,
-      ),
-    [_, final invalidVar, _, _] => throw FormatException(
-      'product second argument must be a variable identifier, got: $invalidVar',
-    ),
-    _ => throw FormatException(
-      'product requires 4 arguments, got ${args.length}',
-    ),
-  };
+  static Expr _parseProductArgs(List<Expr> args) {
+    if (args case [final expr, final v, final lower, final upper]) {
+      final vName = _asVariableName(v);
+      if (vName != null) {
+        return Product(_unbindConstant(expr, v, vName), vName, lower, upper);
+      }
+      throw FormatException(
+        'product second argument must be a variable identifier, got: $v',
+      );
+    }
+    throw FormatException('product requires 4 arguments, got ${args.length}');
+  }
 
   static Expr _unbindConstant(Expr expr, Expr varToken, String varName) {
     if (varToken is Variable) return expr;
@@ -676,23 +663,30 @@ class ExprSyntax {
       if (varName == 'e' && node is Pow && node.base == Constant.e) {
         return Pow(Constant.e, visit(node.exponent));
       }
-      if (node is Integral && node.isDefinite && node.variable == varName) {
+      if (node
+          case Integral(
+            :final integrand,
+            :final variable,
+            lower: final low?,
+            upper: final up?,
+          )
+          when variable == varName) {
         return Integral(
-          node.integrand,
-          node.variable,
-          lower: visit(node.lower!),
-          upper: visit(node.upper!),
+          integrand,
+          variable,
+          lower: visit(low),
+          upper: visit(up),
         );
       }
-      if (node is Derivative &&
-          node.point != null &&
-          node.variable == varName) {
-        return Derivative(
-          node.expr,
-          node.variable,
-          order: node.order,
-          point: visit(node.point!),
-        );
+      if (node
+          case Derivative(
+            :final expr,
+            :final variable,
+            :final order,
+            point: final pt?,
+          )
+          when variable == varName) {
+        return Derivative(expr, variable, order: order, point: visit(pt));
       }
       if (node is Limit && node.variable == varName) {
         return Limit(
