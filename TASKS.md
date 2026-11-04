@@ -512,7 +512,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `_expandPow` does not boost base order when $m < 0, n > 1$; `_closedFormProduct` divides by `Gamma(0)` when linear products start at or cross $0$; `_antiDerivative` drops `assumptions` and `_wrapLnWithAbs` wraps all `Ln` nodes indiscriminately; and `_differentiateIntegral` lacks `[] => IntegerNumber.zero`.
   - **Fix**: Boost `_expandPow` order by $(n - 1)|m|$; handle non-positive integer roots in `_closedFormProduct`; forward `assumptions` into `_antiDerivative`; and add `[] => IntegerNumber.zero` in `_differentiateIntegral`.
 
-- [ ] **1.10.18 `evaluate()` throws on unsimplified real-valued complex expressions, `Op.evalNode` returns `NaN` for `Derivative`/`Limit`/`Sum`/`Product`, and solver edge cases**
+- [x] **1.10.18 `evaluate()` throws on unsimplified real-valued complex expressions, `Op.evalNode` returns `NaN` for `Derivative`/`Limit`/`Sum`/`Product`, and solver edge cases**
   - **Severity**: Warning
   - **Location**: `lib/src/symbolic/compiler/evaluator.dart:149-151, 607-645`, `lib/src/symbolic/solver/univariate.dart:96-105`, `lib/src/symbolic/solver/transcendental.dart:13, 48, 315-338`, `lib/src/symbolic/solver/system.dart:109-121`
   - **Problem**: `(ComplexNumber.i * ComplexNumber.i).evaluate()` throws `UnsupportedError`; `_evalNodeReal` returns `double.nan` for `Derivative`, `Limit`, `Sum`, and `Product`; `_solveUnfiltered` does not filter product roots that make co-factors `undefined`/`infinity`; `isolateAndInvert` drops `assumptions` and misses non-unit Lambert W ratios; and `solveEquations` returns `[]` on consistent overdetermined linear systems.

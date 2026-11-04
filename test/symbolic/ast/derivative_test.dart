@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
@@ -32,9 +34,9 @@ void main() {
   });
 
   group('Derivative evaluation and tree operations', () {
-    test('evaluate returns NaN', () {
+    test('evaluates analytically at specified variable value', () {
       final d = Derivative(Sin(x), 'x');
-      check(d.evaluate({'x': 1.0})).isNaN();
+      check(d.evaluate({'x': 1.0})).isCloseTo(math.cos(1.0), 1e-12);
     });
 
     test('freeVariables and dependsOn', () {

@@ -2,12 +2,18 @@ import 'dart:math' as math;
 
 import '../algebra/exact_constants.dart';
 import '../algebra/simplify.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import 'transcendental.dart';
 import 'univariate.dart';
 
 /// Inverts trigonometric sine $\sin(\text{arg}) = c$ for special and general angles.
-List<Expr> invertSin(Expr arg, Expr c, String variable) {
+List<Expr> invertSin(
+  Expr arg,
+  Expr c,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   if (isRealConstantOutOfRange(c, 1.0)) {
     return const [];
   }
@@ -32,14 +38,22 @@ List<Expr> invertSin(Expr arg, Expr c, String variable) {
     _ when isNegativeSqrt2Over2(c) => [_piFraction(5, 4), _piFraction(7, 4)],
     _ when isSqrt3Over2(c) => [_piFraction(1, 3), _piFraction(2, 3)],
     _ when isNegativeSqrt3Over2(c) => [_piFraction(4, 3), _piFraction(5, 3)],
-    _ => [Asin(c).simplify(), (Constant.pi - Asin(c)).simplify()],
+    _ => [
+      Asin(c).simplify(assumptions: assumptions),
+      (Constant.pi - Asin(c)).simplify(assumptions: assumptions),
+    ],
   };
 
-  return _invertAngles(arg, angles, variable);
+  return _invertAngles(arg, angles, variable, assumptions: assumptions);
 }
 
 /// Inverts trigonometric cosine $\cos(\text{arg}) = c$ for special and general angles.
-List<Expr> invertCos(Expr arg, Expr c, String variable) {
+List<Expr> invertCos(
+  Expr arg,
+  Expr c,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   if (isRealConstantOutOfRange(c, 1.0)) {
     return const [];
   }
@@ -64,16 +78,23 @@ List<Expr> invertCos(Expr arg, Expr c, String variable) {
     _ when isSqrt3Over2(c) => [_piFraction(1, 6), _piFraction(11, 6)],
     _ when isNegativeSqrt3Over2(c) => [_piFraction(5, 6), _piFraction(7, 6)],
     _ => [
-      Acos(c).simplify(),
-      ((IntegerNumber.two * Constant.pi) - Acos(c)).simplify(),
+      Acos(c).simplify(assumptions: assumptions),
+      ((IntegerNumber.two * Constant.pi) - Acos(c)).simplify(
+        assumptions: assumptions,
+      ),
     ],
   };
 
-  return _invertAngles(arg, angles, variable);
+  return _invertAngles(arg, angles, variable, assumptions: assumptions);
 }
 
 /// Inverts trigonometric tangent $\tan(\text{arg}) = c$ for special and general angles.
-List<Expr> invertTan(Expr arg, Expr c, String variable) {
+List<Expr> invertTan(
+  Expr arg,
+  Expr c,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final angles = switch (c) {
     RealNumber() => () {
       final atanC = math.atan(c.value);
@@ -95,18 +116,29 @@ List<Expr> invertTan(Expr arg, Expr c, String variable) {
     _ when isNegativeSqrt3Over3(c) => [_piFraction(5, 6), _piFraction(11, 6)],
     _ when isSqrt3(c) => [_piFraction(1, 3), _piFraction(4, 3)],
     _ when isNegativeSqrt3(c) => [_piFraction(2, 3), _piFraction(5, 3)],
-    _ => [Atan(c).simplify(), (Constant.pi + Atan(c)).simplify()],
+    _ => [
+      Atan(c).simplify(assumptions: assumptions),
+      (Constant.pi + Atan(c)).simplify(assumptions: assumptions),
+    ],
   };
 
-  return _invertAngles(arg, angles, variable);
+  return _invertAngles(arg, angles, variable, assumptions: assumptions);
 }
 
 Expr _piFraction(int num, int den) =>
     (RationalNumber(num, den) * Constant.pi).simplify();
 
-List<Expr> _invertAngles(Expr arg, List<Expr> angles, String variable) =>
-    deduplicateRoots([
-      for (final angle in angles)
-        ...(invertEquation(arg, angle, variable) ??
-            solveEquation((arg - angle).simplify(), variable)),
-    ]);
+List<Expr> _invertAngles(
+  Expr arg,
+  List<Expr> angles,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) => deduplicateRoots([
+  for (final angle in angles)
+    ...(invertEquation(arg, angle, variable, assumptions: assumptions) ??
+        solveEquation(
+          (arg - angle).simplify(assumptions: assumptions),
+          variable,
+          assumptions: assumptions,
+        )),
+]);

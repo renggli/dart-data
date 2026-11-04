@@ -101,7 +101,26 @@ List<Expr> _solveUnfiltered(
     for (final factor in varFactors) {
       allRoots.addAll(_solveUnfiltered(factor, variable, assumptions));
     }
-    return deduplicateRoots(allRoots);
+    final validRoots = allRoots.where((root) {
+      for (final other in factors) {
+        final sub = other
+            .substitute(variable, root)
+            .simplify(assumptions: assumptions);
+        if (sub == Constant.undefined ||
+            sub == Constant.infinity ||
+            sub == -Constant.infinity ||
+            sub.anyNode(
+              (n) =>
+                  n == Constant.undefined ||
+                  n == Constant.infinity ||
+                  (n is RealNumber && !n.value.isFinite),
+            )) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+    return deduplicateRoots(validRoots);
   }
 
   // Polynomial factoring step (degree > 2 or multi-term polynomials):
@@ -122,12 +141,31 @@ List<Expr> _solveUnfiltered(
       for (final factor in varFactored) {
         allRoots.addAll(_solveUnfiltered(factor, variable, assumptions));
       }
-      return deduplicateRoots(allRoots);
+      final validRoots = allRoots.where((root) {
+        for (final other in factoredList) {
+          final sub = other
+              .substitute(variable, root)
+              .simplify(assumptions: assumptions);
+          if (sub == Constant.undefined ||
+              sub == Constant.infinity ||
+              sub == -Constant.infinity ||
+              sub.anyNode(
+                (n) =>
+                    n == Constant.undefined ||
+                    n == Constant.infinity ||
+                    (n is RealNumber && !n.value.isFinite),
+              )) {
+            return false;
+          }
+        }
+        return true;
+      }).toList();
+      return deduplicateRoots(validRoots);
     }
   }
 
   // Transcendental isolation: f(u(x)) = C
-  final trans = isolateAndInvert(expr, variable);
+  final trans = isolateAndInvert(expr, variable, assumptions: assumptions);
   if (trans != null) {
     return deduplicateRoots(trans);
   }

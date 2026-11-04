@@ -51,10 +51,25 @@ void main() {
     );
 
     test('solves rational equations and filters denominator poles', () {
+      const x = Variable('x');
       check(Expr.parse('1 / (x - 1)').solve('x')).isEmpty();
 
       final rat = Expr.parse('(x^2 - 1) / (x^2 - 3*x + 2)').solve('x');
       check(rat).deepEquals([IntegerNumber.negativeOne]);
+
+      // Product factor roots that make co-factors undefined or poles are filtered:
+      check((x * (IntegerNumber.one / x)).solve('x')).isEmpty();
+      check(
+        ((x - IntegerNumber.two) *
+                (IntegerNumber.one / (x - IntegerNumber.two)))
+            .solve('x'),
+      ).isEmpty();
+      check(
+        ((x - IntegerNumber.one) *
+                (x - IntegerNumber.two) *
+                (IntegerNumber.one / (x - IntegerNumber.two)))
+            .solve('x'),
+      ).deepEquals([IntegerNumber.one]);
     });
 
     test('solves exponential, logarithmic, and Lambert W equations', () {

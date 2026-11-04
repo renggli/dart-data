@@ -1,11 +1,14 @@
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
 import '../algebra/expand.dart';
-import '../algebra/factor.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/differentiation.dart';
+import '../linear/bareiss.dart';
+import '../type/expr_data_type.dart';
 import 'polynomial_system.dart';
 import 'univariate.dart';
 
@@ -107,18 +110,14 @@ List<Map<String, Expr>> solveEquations(
       for (final r in roots) {v: r.simplify(assumptions: assumptions)},
     ];
   } else if (_isLinearSystem(numEquations, variables)) {
-    if (numEquations.length != variables.length) {
-      rawSolutions = const [];
-    } else {
-      final linearSol = solveSystemEquations(
-        numEquations,
-        variables,
-        assumptions: assumptions,
-      );
-      rawSolutions = linearSol != null
-          ? filterSolutionsByAssumptions([linearSol], assumptions)
-          : const [];
-    }
+    final linearSol = solveSystemEquations(
+      numEquations,
+      variables,
+      assumptions: assumptions,
+    );
+    rawSolutions = linearSol != null
+        ? filterSolutionsByAssumptions([linearSol], assumptions)
+        : const [];
   } else {
     rawSolutions = solvePolynomialSystemEquations(
       numEquations,
@@ -190,26 +189,33 @@ bool _isLinearSystem(List<Expr> equations, List<String> variables) {
   return true;
 }
 
-/// Solves a linear system of [equations] in [variables] via exact Gaussian
-/// elimination.
+/// Solves a linear system of [equations] in [variables] via exact fraction-free
+/// Gaussian elimination with pivoting.
 Map<String, Expr>? solveSystemEquations(
   List<Expr> equations,
   List<String> variables, {
   Assumptions assumptions = Assumptions.none,
 }) {
+  final m = equations.length;
   final n = variables.length;
-  if (equations.length != n || n == 0) {
+  if (m < n || n == 0) {
     return null;
   }
 
   // Extract coefficient matrix A and right-hand side b
-  final a = List<List<Expr>>.generate(
+  final a = Matrix<Expr>.generate(
+    m,
     n,
-    (_) => List<Expr>.filled(n, IntegerNumber.zero),
+    (r, c) => IntegerNumber.zero,
+    type: exprDataType,
   );
-  final b = List<Expr>.filled(n, IntegerNumber.zero);
+  final b = Vector<Expr>.generate(
+    m,
+    (r) => IntegerNumber.zero,
+    type: exprDataType,
+  );
 
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < m; i++) {
     final rawEq = equations[i];
     final eq = (switch (rawEq) {
       Equal(:final left, :final right) => left - right,
@@ -223,7 +229,7 @@ Map<String, Expr>? solveSystemEquations(
       for (final v in variables) {
         if (aij.dependsOn(v)) return null;
       }
-      a[i][j] = aij;
+      a.setUnchecked(i, j, aij);
     }
 
     // Constant term: evaluate with all variables set to 0
@@ -234,78 +240,13 @@ Map<String, Expr>? solveSystemEquations(
     b[i] = (-cTerm).simplify(assumptions: assumptions);
   }
 
-  // Fraction-free Gaussian elimination with non-zero pivot selection
-  for (var k = 0; k < n; k++) {
-    var pivotRow = -1;
-    for (var i = k; i < n; i++) {
-      if (!isZeroExpr(a[i][k])) {
-        pivotRow = i;
-        break;
-      }
-    }
-    if (pivotRow == -1) {
-      return null; // Singular matrix
-    }
-
-    if (pivotRow != k) {
-      final tempRow = a[k];
-      a[k] = a[pivotRow];
-      a[pivotRow] = tempRow;
-      final tempB = b[k];
-      b[k] = b[pivotRow];
-      b[pivotRow] = tempB;
-    }
-
-    final pivot = a[k][k];
-    for (var i = k + 1; i < n; i++) {
-      final aik = a[i][k];
-      if (!isZeroExpr(aik)) {
-        a[i][k] = IntegerNumber.zero;
-        for (var j = k + 1; j < n; j++) {
-          a[i][j] = (pivot * a[i][j] - aik * a[k][j])
-              .expand(assumptions: assumptions)
-              .simplify(assumptions: assumptions);
-        }
-        b[i] = (pivot * b[i] - aik * b[k])
-            .expand(assumptions: assumptions)
-            .simplify(assumptions: assumptions);
-      }
-    }
+  final solVector = const BareissEngine().solve<Vector<Expr>>(a, b);
+  if (solVector == null) {
+    return null;
   }
 
-  // Back-substitution keeping numerator/denominator rational form
-  final xNum = List<Expr>.filled(n, IntegerNumber.zero);
-  final xDen = List<Expr>.filled(n, IntegerNumber.one);
-  final x = List<Expr>.filled(n, IntegerNumber.zero);
-  for (var i = n - 1; i >= 0; i--) {
-    var numSum = b[i];
-    Expr denSum = IntegerNumber.one;
-    for (var j = i + 1; j < n; j++) {
-      final aij = a[i][j];
-      if (!isZeroExpr(aij) && !isZeroExpr(xNum[j])) {
-        numSum = (numSum * xDen[j] - aij * xNum[j])
-            .expand(assumptions: assumptions)
-            .simplify(assumptions: assumptions);
-        denSum = (denSum * xDen[j])
-            .expand(assumptions: assumptions)
-            .simplify(assumptions: assumptions);
-      }
-    }
-    final rawDen = (denSum * a[i][i])
-        .expand(assumptions: assumptions)
-        .simplify(assumptions: assumptions);
-    final sol = (numSum / rawDen)
-        .factor(assumptions: assumptions)
-        .simplify(assumptions: assumptions);
-    x[i] = sol;
-    final (numPart, denPart) = splitNumeratorDenominator(sol);
-    xNum[i] = numPart;
-    xDen[i] = denPart;
-  }
-
-  final result = <String, Expr>{};
-  for (var i = 0; i < n; i++) {
-    result[variables[i]] = x[i];
-  }
-  return result;
+  return {
+    for (var j = 0; j < n; j++)
+      variables[j]: solVector[j].simplify(assumptions: assumptions),
+  };
 }

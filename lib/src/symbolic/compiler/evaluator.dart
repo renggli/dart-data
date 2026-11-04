@@ -10,6 +10,9 @@ import '../../special/erf.dart' as special_erf;
 import '../../special/gamma.dart' as special_gamma;
 import '../../special/lambert_w.dart' as special_lambert;
 import '../ast.dart';
+import '../calculus/differentiation.dart';
+import '../calculus/limit.dart';
+import '../calculus/summation.dart';
 import 'bytecode.dart';
 
 /// Unified bytecode virtual machine evaluator supporting real (`double`),
@@ -74,35 +77,24 @@ final class BytecodeEvaluator {
   }
 
   /// Evaluates a single-variable real expression at [x].
-  double evaluate1D(double x) {
-    checkRealSupported();
-    return _runReal((_) => x);
-  }
+  double evaluate1D(double x) => _runReal((_) => x);
 
   /// Evaluates a multivariable real expression at positional [args].
-  double evaluateList(List<double> args) {
-    checkRealSupported();
-    return _runReal((idx) => args[idx]);
-  }
+  double evaluateList(List<double> args) => _runReal((idx) => args[idx]);
 
   /// Evaluates a multivariable real expression at [vector].
-  double evaluateVector(Vector<double> vector) {
-    checkRealSupported();
-    return _runReal((idx) => vector[idx]);
-  }
+  double evaluateVector(Vector<double> vector) =>
+      _runReal((idx) => vector[idx]);
 
   /// Evaluates a multivariable real expression using named bindings in [context].
-  double evaluateMap(Map<String, double> context) {
-    checkRealSupported();
-    return _runReal((idx) {
-      final name = variables[idx];
-      final val = context[name];
-      if (val == null) {
-        throw ArgumentError('Variable "$name" not provided in context');
-      }
-      return val;
-    });
-  }
+  double evaluateMap(Map<String, double> context) => _runReal((idx) {
+    final name = variables[idx];
+    final val = context[name];
+    if (val == null) {
+      throw ArgumentError('Variable "$name" not provided in context');
+    }
+    return val;
+  });
 
   /// Evaluates a single-variable complex expression at [x].
   Complex evaluateComplex1D(Complex x) => _runComplex((_) => x);
@@ -147,7 +139,16 @@ final class BytecodeEvaluator {
 
   double _runReal(double Function(int varIndex) loadVar) {
     if (hasComplexLiterals) {
-      return _runComplex((idx) => Complex(loadVar(idx))).a.toDouble();
+      final res = _runComplex((idx) => Complex(loadVar(idx)));
+      if (res.b == 0.0) {
+        return res.a.toDouble();
+      }
+      if (res.isNaN) {
+        return double.nan;
+      }
+      throw UnsupportedError(
+        'Expression evaluated to complex value $res; use complex evaluation instead.',
+      );
     }
     final reentrant = _realBusy;
     if (!reentrant) _realBusy = true;
@@ -640,6 +641,163 @@ double _evalNodeReal(Expr node, Map<String, double> context) {
       a,
       b,
     );
+  }
+  if (node case Derivative(
+    :final expr,
+    :final variable,
+    :final order,
+    :final point,
+  )) {
+    var substituted = expr;
+    for (final MapEntry(:key, :value) in context.entries) {
+      if (key != variable) {
+        substituted = substituted.substitute(key, Expr.wrap(value));
+      }
+    }
+    final d = substituted.derivative(variable, order: order);
+    final evalPt = point != null
+        ? compileToBytecode(
+            point,
+            const [],
+            optimize: false,
+            allowDynamicVars: true,
+          ).evaluateMap(context)
+        : context[variable];
+    if (evalPt == null || evalPt.isNaN) return double.nan;
+    final evalContext = Map<String, double>.of(context)..[variable] = evalPt;
+    return compileToBytecode(
+      d,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    ).evaluateMap(evalContext);
+  }
+  if (node case Limit(
+    :final expr,
+    :final variable,
+    :final point,
+    :final direction,
+  )) {
+    var substituted = expr;
+    for (final MapEntry(:key, :value) in context.entries) {
+      if (key != variable) {
+        substituted = substituted.substitute(key, Expr.wrap(value));
+      }
+    }
+    final ptVal = compileToBytecode(
+      point,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    ).evaluateMap(context);
+    if (ptVal.isNaN) return double.nan;
+    final ptExpr = Expr.wrap(ptVal);
+    final lim = substituted.limit(variable, ptExpr, direction: direction);
+    return compileToBytecode(
+      lim,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    ).evaluateMap(context);
+  }
+  if (node case Sum(:final expr, :final variable, :final lower, :final upper)) {
+    final a = compileToBytecode(
+      lower,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    ).evaluateMap(context);
+    final b = compileToBytecode(
+      upper,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    ).evaluateMap(context);
+    if (a.isNaN || b.isNaN) return double.nan;
+    if (b < a) return 0.0;
+    if (a.isFinite &&
+        b.isFinite &&
+        a == a.roundToDouble() &&
+        b == b.roundToDouble() &&
+        (b - a) <= 100000) {
+      final start = a.round();
+      final end = b.round();
+      final eval = compileToBytecode(
+        expr,
+        const [],
+        optimize: false,
+        allowDynamicVars: true,
+      );
+      final localCtx = Map<String, double>.of(context);
+      var total = 0.0;
+      for (var k = start; k <= end; k++) {
+        localCtx[variable] = k.toDouble();
+        total += eval.evaluateMap(localCtx);
+      }
+      return total;
+    }
+    final s = expr.sum(variable, Expr.wrap(a), Expr.wrap(b));
+    if (s is! Sum) {
+      return compileToBytecode(
+        s,
+        const [],
+        optimize: false,
+        allowDynamicVars: true,
+      ).evaluateMap(context);
+    }
+    return double.nan;
+  }
+  if (node case Product(
+    :final expr,
+    :final variable,
+    :final lower,
+    :final upper,
+  )) {
+    final a = compileToBytecode(
+      lower,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    ).evaluateMap(context);
+    final b = compileToBytecode(
+      upper,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    ).evaluateMap(context);
+    if (a.isNaN || b.isNaN) return double.nan;
+    if (b < a) return 1.0;
+    if (a.isFinite &&
+        b.isFinite &&
+        a == a.roundToDouble() &&
+        b == b.roundToDouble() &&
+        (b - a) <= 100000) {
+      final start = a.round();
+      final end = b.round();
+      final eval = compileToBytecode(
+        expr,
+        const [],
+        optimize: false,
+        allowDynamicVars: true,
+      );
+      final localCtx = Map<String, double>.of(context);
+      var total = 1.0;
+      for (var k = start; k <= end; k++) {
+        localCtx[variable] = k.toDouble();
+        total *= eval.evaluateMap(localCtx);
+      }
+      return total;
+    }
+    final p = expr.product(variable, Expr.wrap(a), Expr.wrap(b));
+    if (p is! Product) {
+      return compileToBytecode(
+        p,
+        const [],
+        optimize: false,
+        allowDynamicVars: true,
+      ).evaluateMap(context);
+    }
+    return double.nan;
   }
   return double.nan;
 }

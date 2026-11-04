@@ -60,9 +60,9 @@ void main() {
   });
 
   group('Limit evaluation and tree operations', () {
-    test('evaluate returns NaN', () {
+    test('evaluates symbolically/numerically', () {
       final lim = Limit(Sin(x) / x, 'x', IntegerNumber.zero);
-      check(lim.evaluate({'x': 1.0})).isNaN();
+      check(lim.evaluate({'x': 1.0})).isCloseTo(1.0, 1e-12);
     });
 
     test(

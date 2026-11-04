@@ -233,6 +233,27 @@ void main() {
 
         final addLn2 = invertEquation(Add([x, Ln(x)]), IntegerNumber.one, 'x');
         check(addLn2).isNotNull().deepEquals([IntegerNumber.one]);
+
+        // Non-unit Lambert W ratios in product and sum:
+        final nonUnitMul = (x * Ln(IntegerNumber.two * x) - IntegerNumber.two)
+            .solve('x');
+        check(nonUnitMul.length).equals(1);
+        final rNonUnitMul = nonUnitMul.first.evaluate();
+        check(rNonUnitMul * math.log(2.0 * rNonUnitMul)).isCloseTo(2.0, 1e-12);
+
+        final nonUnitAdd1 =
+            (Ln(IntegerNumber.two * x) + x - IntegerNumber.of(3)).solve('x');
+        check(nonUnitAdd1.length).equals(1);
+        final rNonUnitAdd1 = nonUnitAdd1.first.evaluate();
+        check(math.log(2.0 * rNonUnitAdd1) + rNonUnitAdd1)
+            .isCloseTo(3.0, 1e-12);
+
+        final nonUnitAdd2 =
+            (Ln(x) + IntegerNumber.two * x - IntegerNumber.of(3)).solve('x');
+        check(nonUnitAdd2.length).equals(1);
+        final rNonUnitAdd2 = nonUnitAdd2.first.evaluate();
+        check(math.log(rNonUnitAdd2) + 2.0 * rNonUnitAdd2)
+            .isCloseTo(3.0, 1e-12);
       },
     );
 

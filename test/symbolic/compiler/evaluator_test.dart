@@ -383,9 +383,42 @@ void main() {
         );
         check(defInt.evaluateComplex().a).isCloseTo(2.0, 1e-12);
         check(Integral(x, 'x').evaluateComplex().isNaN).isTrue();
-        check(Derivative(x, 'x').evaluateComplex().isNaN).isTrue();
-        check(Limit(x, 'x', IntegerNumber.zero).evaluateComplex().isNaN)
-            .isTrue();
+
+        // Node evaluation in real mode for calculus and iterated nodes:
+        final derivNode = Derivative(
+          Pow(x, IntegerNumber.two),
+          'x',
+          point: IntegerNumber.of(3),
+        );
+        check(derivNode.evaluate()).isCloseTo(6.0, 1e-12);
+
+        final limitNode = Limit(Sin(x) / x, 'x', IntegerNumber.zero);
+        check(limitNode.evaluate()).isCloseTo(1.0, 1e-12);
+
+        final sumNode = Sum(
+          const Variable('k'),
+          'k',
+          IntegerNumber.one,
+          IntegerNumber.of(5),
+        );
+        check(sumNode.evaluate()).isCloseTo(15.0, 1e-12);
+
+        final prodNode = Product(
+          const Variable('k'),
+          'k',
+          IntegerNumber.one,
+          IntegerNumber.of(4),
+        );
+        check(prodNode.evaluate()).isCloseTo(24.0, 1e-12);
+
+        // Real evaluation with complex literals evaluating to real values:
+        final complexMul = ComplexNumber.i * ComplexNumber.i;
+        check(complexMul.evaluate()).equals(-1.0);
+        check((x * ComplexNumber.i * ComplexNumber.i).evaluate({'x': 5.0}))
+            .equals(-5.0);
+        check(() => (x + ComplexNumber.i).evaluate({'x': 1.0}))
+            .throws<UnsupportedError>();
+
         check(const OrderTerm('x', 3).evaluateComplex()).equals(Complex.zero);
       },
     );

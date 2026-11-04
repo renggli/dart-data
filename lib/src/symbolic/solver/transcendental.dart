@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
 import '../compiler.dart';
@@ -10,7 +11,11 @@ import 'trigonometric.dart';
 import 'univariate.dart';
 
 /// Isolates variable in additive expression or equates to 0, then inverts.
-List<Expr>? isolateAndInvert(Expr expr, String variable) {
+List<Expr>? isolateAndInvert(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   // Case 1: expr is Add(terms)
   if (expr case Add(:final terms)) {
     final varTerms = <Expr>[];
@@ -25,89 +30,143 @@ List<Expr>? isolateAndInvert(Expr expr, String variable) {
     if (varTerms.isNotEmpty && constTerms.isNotEmpty) {
       final u = switch (varTerms) {
         [final single] => single,
-        _ => Add(varTerms).simplify(),
+        _ => Add(varTerms).simplify(assumptions: assumptions),
       };
       final c = (-(switch (constTerms) {
         [final single] => single,
         _ => Add(constTerms),
-      })).simplify();
-      final res = invertEquation(u, c, variable);
+      })).simplify(assumptions: assumptions);
+      final res = invertEquation(u, c, variable, assumptions: assumptions);
       if (res != null) return res;
     }
   }
 
   // Case 2: Affine exponential matching (e.g. a^x = bx + c)
-  final affineExp = _matchAffineExponential(expr, variable);
+  final affineExp = _matchAffineExponential(
+    expr,
+    variable,
+    assumptions: assumptions,
+  );
   if (affineExp != null) return affineExp;
 
   // Case 3: expr is alone (equated to 0)
-  return invertEquation(expr, IntegerNumber.zero, variable);
+  return invertEquation(
+    expr,
+    IntegerNumber.zero,
+    variable,
+    assumptions: assumptions,
+  );
 }
 
 /// Inverts elementary and transcendental operations for equation $u = c$.
-List<Expr>? invertEquation(Expr u, Expr c, String variable) {
-  u = u.simplify();
-  c = c.simplify();
+List<Expr>? invertEquation(
+  Expr u,
+  Expr c,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  u = u.simplify(assumptions: assumptions);
+  c = c.simplify(assumptions: assumptions);
 
   switch (u) {
     case Variable(:final name) when name == variable:
       return [c];
     case Ln(:final expr):
-      final expC = Pow(Constant.e, c).simplify();
-      return solveEquation((expr - expC).simplify(), variable);
+      final expC = Pow(Constant.e, c).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - expC).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Sin(:final expr):
-      return invertSin(expr, c, variable);
+      return invertSin(expr, c, variable, assumptions: assumptions);
     case Cos(:final expr):
-      return invertCos(expr, c, variable);
+      return invertCos(expr, c, variable, assumptions: assumptions);
     case Tan(:final expr):
-      return invertTan(expr, c, variable);
+      return invertTan(expr, c, variable, assumptions: assumptions);
     case Asin(:final expr):
       if (isRealConstantOutOfRange(c, math.pi / 2)) return const [];
-      final sinC = Sin(c).simplify();
-      return solveEquation((expr - sinC).simplify(), variable);
+      final sinC = Sin(c).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - sinC).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Acos(:final expr):
       final cNum = _tryEvalReal(c);
       if (cNum != null && (cNum < -1e-12 || cNum > math.pi + 1e-12)) {
         return const [];
       }
-      final cosC = Cos(c).simplify();
-      return solveEquation((expr - cosC).simplify(), variable);
+      final cosC = Cos(c).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - cosC).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Atan(:final expr):
       final cNum = _tryEvalReal(c);
       if (cNum != null && cNum.abs() >= math.pi / 2 - 1e-12) {
         return const [];
       }
-      final tanC = Tan(c).simplify();
-      return solveEquation((expr - tanC).simplify(), variable);
+      final tanC = Tan(c).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - tanC).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Sinh(:final expr):
-      final rhs = Asinh(c).simplify();
-      return solveEquation((expr - rhs).simplify(), variable);
+      final rhs = Asinh(c).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - rhs).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Cosh(:final expr):
       final cNum = _tryEvalReal(c);
       if (cNum != null && cNum < 1.0 - 1e-12) return const [];
       if (c is Number && c.isOne) {
-        return solveEquation(expr, variable);
+        return solveEquation(expr, variable, assumptions: assumptions);
       }
-      final pos = Acosh(c).simplify();
-      final neg = (-pos).simplify();
+      final pos = Acosh(c).simplify(assumptions: assumptions);
+      final neg = (-pos).simplify(assumptions: assumptions);
       return deduplicateRoots([
-        ...solveEquation((expr - pos).simplify(), variable),
-        ...solveEquation((expr - neg).simplify(), variable),
+        ...solveEquation(
+          (expr - pos).simplify(assumptions: assumptions),
+          variable,
+          assumptions: assumptions,
+        ),
+        ...solveEquation(
+          (expr - neg).simplify(assumptions: assumptions),
+          variable,
+          assumptions: assumptions,
+        ),
       ]);
     case Tanh(:final expr):
       final cNum = _tryEvalReal(c);
       if (cNum != null && cNum.abs() >= 1.0 - 1e-12) return const [];
-      final rhs = Atanh(c).simplify();
-      return solveEquation((expr - rhs).simplify(), variable);
+      final rhs = Atanh(c).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - rhs).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Abs(:final expr):
       final cNum = _tryEvalReal(c);
       if (cNum != null && cNum < -1e-12) return const [];
       if (c is Number && c.isZero) {
-        return solveEquation(expr, variable);
+        return solveEquation(expr, variable, assumptions: assumptions);
       }
       return deduplicateRoots([
-        ...solveEquation((expr - c).simplify(), variable),
-        ...solveEquation((expr + c).simplify(), variable),
+        ...solveEquation(
+          (expr - c).simplify(assumptions: assumptions),
+          variable,
+          assumptions: assumptions,
+        ),
+        ...solveEquation(
+          (expr + c).simplify(assumptions: assumptions),
+          variable,
+          assumptions: assumptions,
+        ),
       ]);
     case LambertW(:final expr, :final branch):
       final cNum = _tryEvalReal(c);
@@ -115,27 +174,48 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
         if (branch == 0 && cNum < -1.0 - 1e-12) return const [];
         if (branch == -1 && cNum > -1.0 + 1e-12) return const [];
       }
-      final rhs = (c * Pow(Constant.e, c)).simplify();
-      return solveEquation((expr - rhs).simplify(), variable);
+      final rhs = (c * Pow(Constant.e, c)).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - rhs).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Asinh(:final expr):
-      final rhs = Sinh(c).simplify();
-      return solveEquation((expr - rhs).simplify(), variable);
+      final rhs = Sinh(c).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - rhs).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Acosh(:final expr):
       final cNum = _tryEvalReal(c);
       if (cNum != null && cNum < -1e-12) return const [];
-      final rhs = Cosh(c).simplify();
-      return solveEquation((expr - rhs).simplify(), variable);
+      final rhs = Cosh(c).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - rhs).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Atanh(:final expr):
-      final rhs = Tanh(c).simplify();
-      return solveEquation((expr - rhs).simplify(), variable);
+      final rhs = Tanh(c).simplify(assumptions: assumptions);
+      return solveEquation(
+        (expr - rhs).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     case Erf(:final expr):
       if (c is Number && c.isZero) {
-        return solveEquation(expr, variable);
+        return solveEquation(expr, variable, assumptions: assumptions);
       }
       final cNum = _tryEvalReal(c);
       if (cNum != null && cNum.abs() > 1.0 + 1e-12) return const [];
     case Add():
-      final res = _solveAddTranscendental(u, c, variable);
+      final res = _solveAddTranscendental(
+        u,
+        c,
+        variable,
+        assumptions: assumptions,
+      );
       if (res != null) return res;
     case Pow(:final base, :final exponent):
       // Exponential form: e^arg = c or b^arg = c
@@ -150,19 +230,25 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
         if (bNum == null || (bNum > 0.0 && bNum != 1.0)) {
           final cNum = _tryEvalReal(c);
           if (cNum != null && cNum <= 0.0) return const [];
-          final rhs = (Ln(c) / Ln(base)).simplify();
-          return solveEquation((exponent - rhs).simplify(), variable);
+          final rhs = (Ln(c) / Ln(base)).simplify(assumptions: assumptions);
+          return solveEquation(
+            (exponent - rhs).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
         }
       }
 
       if (base.dependsOn(variable) && exponent.dependsOn(variable)) {
-        if ((exponent / base).simplify() == IntegerNumber.one) {
+        if ((exponent / base).simplify(assumptions: assumptions) ==
+            IntegerNumber.one) {
           final cNum = _tryEvalReal(c);
           if (cNum != null && cNum <= 0.0) return const [];
           return _solveLambertWEquation(
-            Ln(base).simplify(),
-            Ln(c).simplify(),
+            Ln(base).simplify(assumptions: assumptions),
+            Ln(c).simplify(assumptions: assumptions),
             variable,
+            assumptions: assumptions,
           );
         }
       }
@@ -179,13 +265,25 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
                 return const [];
               }
               final posRoot = rootConstant(c, n);
-              final negRoot = (-posRoot).simplify();
-              final s1 = solveEquation((base - posRoot).simplify(), variable);
-              final s2 = solveEquation((base - negRoot).simplify(), variable);
+              final negRoot = (-posRoot).simplify(assumptions: assumptions);
+              final s1 = solveEquation(
+                (base - posRoot).simplify(assumptions: assumptions),
+                variable,
+                assumptions: assumptions,
+              );
+              final s2 = solveEquation(
+                (base - negRoot).simplify(assumptions: assumptions),
+                variable,
+                assumptions: assumptions,
+              );
               return deduplicateRoots([...s1, ...s2]);
             } else {
               final root = rootConstant(c, n);
-              return solveEquation((base - root).simplify(), variable);
+              return solveEquation(
+                (base - root).simplify(assumptions: assumptions),
+                variable,
+                assumptions: assumptions,
+              );
             }
           }
           if (expConst.denominator.isEven || expConst.numerator.isEven) {
@@ -194,14 +292,26 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
             }
           }
           final invP = expConst.reciprocal();
-          final posRoot = Pow(c, invP).simplify();
+          final posRoot = Pow(c, invP).simplify(assumptions: assumptions);
           if (expConst.numerator.isEven && !isZeroExpr(c)) {
-            final negRoot = (-posRoot).simplify();
-            final s1 = solveEquation((base - posRoot).simplify(), variable);
-            final s2 = solveEquation((base - negRoot).simplify(), variable);
+            final negRoot = (-posRoot).simplify(assumptions: assumptions);
+            final s1 = solveEquation(
+              (base - posRoot).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+            );
+            final s2 = solveEquation(
+              (base - negRoot).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+            );
             return deduplicateRoots([...s1, ...s2]);
           }
-          return solveEquation((base - posRoot).simplify(), variable);
+          return solveEquation(
+            (base - posRoot).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
         }
       }
     case _:
@@ -212,16 +322,34 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
   final (num, den) = splitNumeratorDenominator(u);
   if (den != IntegerNumber.one) {
     if (!den.dependsOn(variable)) {
-      return invertEquation(num, (c * den).simplify(), variable);
+      return invertEquation(
+        num,
+        (c * den).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     } else if (!num.dependsOn(variable)) {
       if (c is Number && c.isZero) {
         return const [];
       }
-      return invertEquation(den, (num / c).simplify(), variable);
+      return invertEquation(
+        den,
+        (num / c).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     } else if (!c.dependsOn(variable)) {
-      final candidates = solveEquation((num - c * den).simplify(), variable);
+      final candidates = solveEquation(
+        (num - c * den).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
       return candidates
-          .where((r) => !isZeroExpr(den.substitute(variable, r).simplify()))
+          .where(
+            (r) => !isZeroExpr(
+              den.substitute(variable, r).simplify(assumptions: assumptions),
+            ),
+          )
           .toList();
     }
   }
@@ -239,15 +367,25 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
     if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
       final constPart = switch (constFactors) {
         [final single] => single,
-        _ => Mul(constFactors).simplify(),
+        _ => Mul(constFactors).simplify(assumptions: assumptions),
       };
       final varPart = switch (varFactors) {
         [final single] => single,
-        _ => Mul(varFactors).simplify(),
+        _ => Mul(varFactors).simplify(assumptions: assumptions),
       };
-      return invertEquation(varPart, (c / constPart).simplify(), variable);
+      return invertEquation(
+        varPart,
+        (c / constPart).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+      );
     } else {
-      final res = _solveProductTranscendental(u, c, variable);
+      final res = _solveProductTranscendental(
+        u,
+        c,
+        variable,
+        assumptions: assumptions,
+      );
       if (res != null) return res;
     }
   }
@@ -279,7 +417,12 @@ bool isRealConstantOutOfRange(Expr c, double maxAbs) {
   return false;
 }
 
-List<Expr>? _solveLambertWEquation(Expr E, Expr cPrime, String variable) {
+List<Expr>? _solveLambertWEquation(
+  Expr E,
+  Expr cPrime,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final cVal = _tryEvalReal(cPrime);
   const invE = 1.0 / math.e;
   final List<Expr> targets;
@@ -296,41 +439,74 @@ List<Expr>? _solveLambertWEquation(Expr E, Expr cPrime, String variable) {
 
   final solutions = <Expr>[];
   for (final w in targets) {
-    final subSolutions = solveEquation((E - w).simplify(), variable);
+    final subSolutions = solveEquation(
+      (E - w).simplify(assumptions: assumptions),
+      variable,
+      assumptions: assumptions,
+    );
     solutions.addAll(subSolutions);
   }
   return deduplicateRoots(solutions);
 }
 
-List<Expr>? _solveProductTranscendental(Mul u, Expr c, String variable) {
+List<Expr>? _solveProductTranscendental(
+  Mul u,
+  Expr c,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   if (u.factors case [final f0, final f1]) {
     for (final (a, b) in [(f0, f1), (f1, f0)]) {
       if (a case Pow(:final base, :final exponent) when base == Constant.e) {
-        final ratio = (exponent / b).simplify();
+        final ratio = (exponent / b).simplify(assumptions: assumptions);
         if (!ratio.dependsOn(variable) && !(ratio is Number && ratio.isZero)) {
-          final cPrime = (c * ratio).simplify();
-          return _solveLambertWEquation(exponent, cPrime, variable);
+          final cPrime = (c * ratio).simplify(assumptions: assumptions);
+          return _solveLambertWEquation(
+            exponent,
+            cPrime,
+            variable,
+            assumptions: assumptions,
+          );
         }
       }
-      if (a case Ln(:final expr)
-          when (expr / b).simplify() == IntegerNumber.one) {
-        return _solveLambertWEquation(Ln(b).simplify(), c, variable);
+      if (a case Ln(:final expr)) {
+        final ratio = (expr / b).simplify(assumptions: assumptions);
+        if (!ratio.dependsOn(variable) && !(ratio is Number && ratio.isZero)) {
+          final cPrime = (c * ratio).simplify(assumptions: assumptions);
+          return _solveLambertWEquation(
+            Ln(expr).simplify(assumptions: assumptions),
+            cPrime,
+            variable,
+            assumptions: assumptions,
+          );
+        }
       }
     }
   }
   return null;
 }
 
-List<Expr>? _solveAddTranscendental(Add u, Expr c, String variable) {
+List<Expr>? _solveAddTranscendental(
+  Add u,
+  Expr c,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   if (u.terms case [final t0, final t1]) {
     for (final (a, b) in [(t0, t1), (t1, t0)]) {
-      if (a case Ln(:final expr)
-          when b is! Ln && (expr / b).simplify() == IntegerNumber.one) {
-        return _solveLambertWEquation(
-          b,
-          Pow(Constant.e, c).simplify(),
-          variable,
-        );
+      if (a case Ln(:final expr) when b is! Ln) {
+        final ratio = (b / expr).simplify(assumptions: assumptions);
+        if (!ratio.dependsOn(variable) && !(ratio is Number && ratio.isZero)) {
+          final cPrime = (ratio * Pow(Constant.e, c)).simplify(
+            assumptions: assumptions,
+          );
+          return _solveLambertWEquation(
+            b,
+            cPrime,
+            variable,
+            assumptions: assumptions,
+          );
+        }
       }
     }
   }
@@ -387,7 +563,11 @@ void _collectAdditiveTerms(Expr expr, List<Expr> terms) {
   return null;
 }
 
-List<Expr>? _matchAffineExponential(Expr expr, String variable) {
+List<Expr>? _matchAffineExponential(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final terms = <Expr>[];
   _collectAdditiveTerms(expr, terms);
   if (terms.length < 2) return null;
@@ -398,7 +578,7 @@ List<Expr>? _matchAffineExponential(Expr expr, String variable) {
 
   for (final t in terms) {
     if (!t.dependsOn(variable)) {
-      constSum = (constSum + t).simplify();
+      constSum = (constSum + t).simplify(assumptions: assumptions);
       continue;
     }
 
@@ -423,7 +603,7 @@ List<Expr>? _matchAffineExponential(Expr expr, String variable) {
 
   final (base, exponent, k1) = expTerm;
   final (k2, linConst) = linTerm;
-  final k3 = (constSum + linConst).simplify();
+  final k3 = (constSum + linConst).simplify(assumptions: assumptions);
 
   final expLin = exponent.matchLinear(variable);
   if (expLin == null) {
@@ -431,13 +611,20 @@ List<Expr>? _matchAffineExponential(Expr expr, String variable) {
   }
   final (a: alpha, b: beta) = expLin;
 
-  final B = (-k2 / (k1 * alpha)).simplify();
-  final C = (-(k3 - (k2 * beta / alpha)) / k1).simplify();
+  final B = (-k2 / (k1 * alpha)).simplify(assumptions: assumptions);
+  final C = (-(k3 - (k2 * beta / alpha)) / k1).simplify(
+    assumptions: assumptions,
+  );
 
-  final lnBase = Ln(base).simplify();
-  final negCdivB = (-C / B).simplify();
-  final wArg = ((-lnBase / B) * Pow(Constant.e, (-C * lnBase / B).simplify()))
-      .simplify();
+  final lnBase = Ln(base).simplify(assumptions: assumptions);
+  final negCdivB = (-C / B).simplify(assumptions: assumptions);
+  final wArg =
+      ((-lnBase / B) *
+              Pow(
+                Constant.e,
+                (-C * lnBase / B).simplify(assumptions: assumptions),
+              ))
+          .simplify(assumptions: assumptions);
 
   final wVal = _tryEvalReal(wArg);
   const invE = 1.0 / math.e;
@@ -456,8 +643,8 @@ List<Expr>? _matchAffineExponential(Expr expr, String variable) {
     final wTerm = branch == 0 && wVal != null && (wVal - (-invE)).abs() <= 1e-12
         ? IntegerNumber.negativeOne
         : LambertW(wArg, branch: branch);
-    final y = (negCdivB - (wTerm / lnBase)).simplify();
-    final x = ((y - beta) / alpha).simplify();
+    final y = (negCdivB - (wTerm / lnBase)).simplify(assumptions: assumptions);
+    final x = ((y - beta) / alpha).simplify(assumptions: assumptions);
     roots.add(x);
   }
   return deduplicateRoots(roots);

@@ -26,6 +26,24 @@ void main() {
         check(sol3.first['x']).equals(IntegerNumber.one);
         check(sol3.first['y']).equals(IntegerNumber.two);
         check(sol3.first['z']).equals(IntegerNumber.of(3));
+
+        // Overdetermined consistent rectangular linear system (3 equations, 2 variables)
+        final overdet = [
+          Expr.parse('x + y - 3'),
+          Expr.parse('x - y - 1'),
+          Expr.parse('2*x + y - 5'),
+        ].solve(['x', 'y']);
+        check(overdet.length).equals(1);
+        check(overdet.first['x']).equals(IntegerNumber.two);
+        check(overdet.first['y']).equals(IntegerNumber.one);
+
+        // Overdetermined inconsistent rectangular linear system
+        final overdetInconsistent = [
+          Expr.parse('x + y - 3'),
+          Expr.parse('x - y - 1'),
+          Expr.parse('2*x + y - 6'),
+        ].solve(['x', 'y']);
+        check(overdetInconsistent).isEmpty();
       },
     );
   });
