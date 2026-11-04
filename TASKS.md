@@ -540,7 +540,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `CsrMatrix.matmul` multiplies column-by-column by allocating a dense unit vector `eJ`, calling `other.apply(eJ)`, and calling `this.apply(otherCol)`, performing $N$ full matrix-vector multiplications just to extract columns of `other` and materializing a dense `Matrix<T>`.
   - **Fix**: Implement Gustavson's row-wise sparse-sparse matrix multiplication when `other` is sparse (returning a `CsrMatrix<T>`) and direct sparse-dense row accumulation when `other` is a dense `Matrix<T>`.
 
-- [ ] **2.3 `einsum` excludes batched matrix multiplication (`bij,bjk->bik`) from its BLAS fast path and allocates `List<int>` per inner-loop step**
+- [x] **2.3 `einsum` excludes batched matrix multiplication (`bij,bjk->bik`) from its BLAS fast path and allocates `List<int>` per inner-loop step**
   - **Severity**: Warning
   - **Location**: `lib/src/tensor/operations/einsum.dart:144-179, 223-251`
   - **Problem**: Line 145 (`if (batch.isEmpty)`) disables the `matmul` fast path whenever a batch index is present, even though `Tensor.matmul` natively supports batched 3D+ matrix multiplication via BLAS. In the fallback loop (`lines 223-251`), every inner iteration calls `getValue`/`setValue` with full coordinate validation and `toIndex` recomputation.

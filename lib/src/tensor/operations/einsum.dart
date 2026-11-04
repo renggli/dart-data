@@ -1,5 +1,5 @@
 import '../tensor.dart';
-import 'contraction.dart';
+import 'matmul.dart';
 
 /// Evaluates Einstein summation convention on [operands] according to
 /// [equation].
@@ -130,8 +130,7 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
     }
   }
 
-  // Fast path: two operands without duplicate labels within an operand and
-  // without batching
+  // Fast path: two operands without duplicate labels within an operand
   if (operands.length == 2) {
     final labelA = inputLabels[0];
     final labelB = inputLabels[1];
@@ -142,36 +141,83 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
     if (setA.length == labelA.length && setB.length == labelB.length) {
       final common = setA.intersection(setB);
       final batch = common.intersection(outSet);
-      if (batch.isEmpty) {
-        // Pure tensordot candidate
-        final contractedA = [for (final c in common) labelA.indexOf(c)];
-        final contractedB = [for (final c in common) labelB.indexOf(c)];
-        final freeA = [
-          for (var i = 0; i < labelA.length; i++)
-            if (!common.contains(labelA[i])) labelA[i],
-        ];
-        final freeB = [
-          for (var i = 0; i < labelB.length; i++)
-            if (!common.contains(labelB[i])) labelB[i],
-        ];
-        final tdOutputLabels = [...freeA, ...freeB].join();
+      final contracted = common.difference(outSet);
+      final freeA = setA.difference(common);
+      final freeB = setB.difference(common);
 
-        if (tdOutputLabels == outputPart) {
-          return operands[0].tensordot(
-            operands[1],
-            contractAxes: (self: contractedA, other: contractedB),
-          );
-        } else if (tdOutputLabels.length == outputPart.length &&
-            tdOutputLabels.split('').toSet().containsAll(outSet)) {
-          final td = operands[0].tensordot(
-            operands[1],
-            contractAxes: (self: contractedA, other: contractedB),
-          );
-          final perm = [
+      if (freeA.every(outSet.contains) &&
+          freeB.every(outSet.contains) &&
+          outSet.length == batch.length + freeA.length + freeB.length &&
+          (contracted.isNotEmpty || freeA.isNotEmpty || freeB.isNotEmpty)) {
+        final opA = operands[0];
+        final opB = operands[1];
+
+        // Maintain consistent batch order matching outputPart
+        final batchList = [
+          for (var i = 0; i < outputPart.length; i++)
+            if (batch.contains(outputPart[i])) outputPart[i],
+        ];
+        final freeAList = [
+          for (var i = 0; i < labelA.length; i++)
+            if (freeA.contains(labelA[i])) labelA[i],
+        ];
+        final freeBList = [
+          for (var i = 0; i < labelB.length; i++)
+            if (freeB.contains(labelB[i])) labelB[i],
+        ];
+        final contractedList = [
+          for (var i = 0; i < labelA.length; i++)
+            if (contracted.contains(labelA[i])) labelA[i],
+        ];
+
+        final permA = [
+          for (final c in [...batchList, ...freeAList, ...contractedList])
+            labelA.indexOf(c),
+        ];
+        final permB = [
+          for (final c in [...batchList, ...contractedList, ...freeBList])
+            labelB.indexOf(c),
+        ];
+
+        final batchShape = [for (final c in batchList) dimMap[c]!];
+        final shapeFreeA = [for (final c in freeAList) dimMap[c]!];
+        final shapeFreeB = [for (final c in freeBList) dimMap[c]!];
+        final shapeContracted = [for (final c in contractedList) dimMap[c]!];
+
+        final sizeFreeA = shapeFreeA.fold(1, (prod, d) => prod * d);
+        final sizeFreeB = shapeFreeB.fold(1, (prod, d) => prod * d);
+        final sizeContracted = shapeContracted.fold(1, (prod, d) => prod * d);
+
+        final transA = _isIdentityPermutation(permA)
+            ? opA
+            : opA.transpose(permA);
+        final transB = _isIdentityPermutation(permB)
+            ? opB
+            : opB.transpose(permB);
+
+        final matA = transA.reshape([...batchShape, sizeFreeA, sizeContracted]);
+        final matB = transB.reshape([...batchShape, sizeContracted, sizeFreeB]);
+
+        final prodMat = matA.matmul(matB);
+        final reshaped = prodMat.reshape([
+          ...batchShape,
+          ...shapeFreeA,
+          ...shapeFreeB,
+        ]);
+
+        final intermediateLabels = [
+          ...batchList,
+          ...freeAList,
+          ...freeBList,
+        ].join();
+        if (intermediateLabels == outputPart) {
+          return reshaped;
+        } else {
+          final outPerm = [
             for (var i = 0; i < outputPart.length; i++)
-              tdOutputLabels.indexOf(outputPart[i]),
+              intermediateLabels.indexOf(outputPart[i]),
           ];
-          return td.transpose(perm);
+          return reshaped.transpose(outPerm);
         }
       }
     }
@@ -207,48 +253,87 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
 
   if (totalSteps == 0) return outTensor;
 
-  final opVarIndices = [
-    for (final label in inputLabels)
-      [for (var i = 0; i < label.length; i++) uniqueLabels.indexOf(label[i])],
-  ];
-  final outVarIndices = [
-    for (var i = 0; i < outputPart.length; i++)
-      uniqueLabels.indexOf(outputPart[i]),
-  ];
+  final numVars = uniqueLabels.length;
+  final numOps = operands.length;
 
-  final currentCoords = List<int>.filled(uniqueLabels.length, 0);
-  final opCoords = [for (final op in operands) List<int>.filled(op.rank, 0)];
-  final outCoord = List<int>.filled(outShape.length, 0);
+  final outStrideDelta = List<int>.filled(numVars, 0);
+  final outStrideReset = List<int>.filled(numVars, 0);
+  for (var d = 0; d < numVars; d++) {
+    final v = uniqueLabels[d];
+    var delta = 0;
+    for (var a = 0; a < outputPart.length; a++) {
+      if (outputPart[a] == v) {
+        delta += outTensor.layout.strides[a];
+      }
+    }
+    outStrideDelta[d] = delta;
+    outStrideReset[d] = -(varDims[d] - 1) * delta;
+  }
+
+  final opStrideDelta = [
+    for (var opIdx = 0; opIdx < numOps; opIdx++) List<int>.filled(numVars, 0),
+  ];
+  final opStrideReset = [
+    for (var opIdx = 0; opIdx < numOps; opIdx++) List<int>.filled(numVars, 0),
+  ];
+  for (var opIdx = 0; opIdx < numOps; opIdx++) {
+    final op = operands[opIdx];
+    final label = inputLabels[opIdx];
+    for (var d = 0; d < numVars; d++) {
+      final v = uniqueLabels[d];
+      var delta = 0;
+      for (var a = 0; a < label.length; a++) {
+        if (label[a] == v) {
+          delta += op.layout.strides[a];
+        }
+      }
+      opStrideDelta[opIdx][d] = delta;
+      opStrideReset[opIdx][d] = -(varDims[d] - 1) * delta;
+    }
+  }
+
+  var outOffset = outTensor.layout.offset;
+  final opOffsets = [for (final op in operands) op.layout.offset];
+
+  final outData = outTensor.data;
+  final opData = [for (final op in operands) op.data];
+
+  final currentCoords = List<int>.filled(numVars, 0);
 
   for (var step = 0; step < totalSteps; step++) {
     // Compute operand product
-    var prod = field.multiplicativeIdentity;
-    for (var opIdx = 0; opIdx < operands.length; opIdx++) {
-      final op = operands[opIdx];
-      final coord = opCoords[opIdx];
-      final indices = opVarIndices[opIdx];
-      for (var a = 0; a < op.rank; a++) {
-        coord[a] = currentCoords[indices[a]];
-      }
-      prod = field.mul(prod, op.getValue(coord));
+    var prod = opData[0][opOffsets[0]];
+    for (var opIdx = 1; opIdx < numOps; opIdx++) {
+      prod = field.mul(prod, opData[opIdx][opOffsets[opIdx]]);
     }
 
     // Accumulate into output
-    for (var a = 0; a < outShape.length; a++) {
-      outCoord[a] = currentCoords[outVarIndices[a]];
-    }
-    final existing = outTensor.getValue(outCoord);
-    outTensor.setValue(outCoord, field.add(existing, prod));
+    outData[outOffset] = field.add(outData[outOffset], prod);
 
     // Advance odometer
-    for (var d = uniqueLabels.length - 1; d >= 0; d--) {
+    for (var d = numVars - 1; d >= 0; d--) {
       currentCoords[d]++;
       if (currentCoords[d] < varDims[d]) {
+        outOffset += outStrideDelta[d];
+        for (var opIdx = 0; opIdx < numOps; opIdx++) {
+          opOffsets[opIdx] += opStrideDelta[opIdx][d];
+        }
         break;
       }
       currentCoords[d] = 0;
+      outOffset += outStrideReset[d];
+      for (var opIdx = 0; opIdx < numOps; opIdx++) {
+        opOffsets[opIdx] += opStrideReset[opIdx][d];
+      }
     }
   }
 
   return outTensor;
+}
+
+bool _isIdentityPermutation(List<int> perm) {
+  for (var i = 0; i < perm.length; i++) {
+    if (perm[i] != i) return false;
+  }
+  return true;
 }
