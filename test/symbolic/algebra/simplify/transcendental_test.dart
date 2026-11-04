@@ -522,7 +522,7 @@ void main() {
       // RealNumber contagion in Mod, Re, Im, Arg, and toPolarExpr
       check(simplifyMod(const RealNumber(0.0), IntegerNumber.of(3)))
           .equals(const RealNumber(0.0));
-      check(simplifyRe(const ComplexNumber(IntegerNumber.two, RealNumber(1.0))))
+      check(simplifyRe(ComplexNumber(IntegerNumber.two, const RealNumber(1.0))))
           .equals(const RealNumber(2.0));
       check(simplifyIm(const RealNumber(3.5))).equals(const RealNumber(0.0));
       check(simplifyArg(const RealNumber(-2.0))).isA<RealNumber>();
@@ -599,8 +599,11 @@ void main() {
       check(simplifySign(const RealNumber(2.5))).equals(const RealNumber(1.0));
       check(simplifySign(Add([const RealNumber(1.0), Constant.pi])))
           .equals(const RealNumber(1.0));
-      check(simplifyArg(const ComplexNumber(RealNumber(1.0), RealNumber(1.0))))
-          .isA<RealNumber>();
+      check(
+        simplifyArg(
+          ComplexNumber(const RealNumber(1.0), const RealNumber(1.0)),
+        ),
+      ).isA<RealNumber>();
       check(simplifyRe(z, assumptions: complexZ))
           .equals(Re(z, isSimplified: true));
       check(simplifyIm(z, assumptions: complexZ))
@@ -612,7 +615,7 @@ void main() {
       check(simplifyLn(Pow(x, FractionNumber.half))).isA<Mul>();
       check(toRectangularExpr(ComplexNumber.i)).equals(ComplexNumber.i);
       check(toPolarExpr(const RealNumber(-1.0))).isA<Mul>();
-      check(simplifyIm(const ComplexNumber(RealNumber(1.0), IntegerNumber.two)))
+      check(simplifyIm(ComplexNumber(const RealNumber(1.0), IntegerNumber.two)))
           .equals(const RealNumber(2.0));
 
       // Propagation of Constant.undefined across simplify* functions

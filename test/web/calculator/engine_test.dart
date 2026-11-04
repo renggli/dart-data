@@ -467,6 +467,10 @@ void main() {
       final approx4 = eval.evaluateScroll('approx(pi, 4)');
       check(approx4.value.toCanonicalText()).equals('3.142');
 
+      // approx with digits rounding imaginary part to zero demotes to RealNumber
+      final approxZeroIm = eval.evaluateScroll('approx(2 + 0.0001*i, 2)');
+      check(approxZeroIm.value.toCanonicalText()).equals('2.0');
+
       // AngleMode.deg on sec/csc/cot and inverse trig
       env.settings = env.settings.copyWith(angleMode: AngleMode.deg);
       check(eval.evaluateScroll('sec(60)').value.toCanonicalText()).equals('2');

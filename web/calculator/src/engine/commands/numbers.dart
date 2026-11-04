@@ -272,7 +272,7 @@ Expr _roundRealDigits(Expr expr, int digits) => switch (expr) {
   RealNumber(:final value) when value.isFinite => RealNumber(
     double.parse(formatRealDigits(value, digits)),
   ),
-  ComplexNumber(:final real, :final imaginary) => ComplexNumber(
+  ComplexNumber(:final real, :final imaginary) => ComplexNumber.of(
     real is RealNumber && real.value.isFinite
         ? RealNumber(double.parse(formatRealDigits(real.value, digits)))
         : real,

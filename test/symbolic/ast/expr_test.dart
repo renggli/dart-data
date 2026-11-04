@@ -102,7 +102,7 @@ void main() {
         Add([
           x,
           Constant.infinity,
-          const ComplexNumber(IntegerNumber.zero, RealNumber(2.5)),
+          ComplexNumber(IntegerNumber.zero, const RealNumber(2.5)),
         ]),
       );
       check(x + 'y').equals(Add([x, const Variable('y')]));
@@ -116,9 +116,8 @@ void main() {
       check(x.pow(2)).equals(Pow(x, IntegerNumber.two));
       check(x.pow(big)).equals(Pow(x, IntegerNumber(Integer.big(big))));
       check(x.pow(0.5)).equals(Pow(x, const RealNumber(0.5)));
-      check(x.pow(const Complex(1, 1))).equals(
-        Pow(x, const ComplexNumber(IntegerNumber.one, IntegerNumber.one)),
-      );
+      check(x.pow(const Complex(1, 1)))
+          .equals(Pow(x, ComplexNumber(IntegerNumber.one, IntegerNumber.one)));
       check(x.pow('n')).equals(Pow(x, const Variable('n')));
 
       check(() => x + Object()).throws<ArgumentError>();

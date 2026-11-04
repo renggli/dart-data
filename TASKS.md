@@ -476,7 +476,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `extractPolynomialCoefficients` returns `null` on unexpanded expressions such as `(x + y)^2 - 4`, causing `SylvesterResultantSolver.sylvesterMatrix` and `solvePolynomialSystemEquations(..., method: PolynomialSystemMethod.resultant)` to throw `ArgumentError` and `matchQuadratic`/`matchBiquadratic` to return `null`.
   - **Fix**: Expand input expressions (`expr.expand().simplify()`) before calling `extractPolynomialCoefficients`.
 
-- [ ] **1.10.12 `Piecewise` stores mutable `branches` list and `ComplexNumber` constructor allows zero imaginary part**
+- [x] **1.10.12 `Piecewise` stores mutable `branches` list and `ComplexNumber` constructor allows zero imaginary part**
   - **Severity**: Warning
   - **Location**: `lib/src/symbolic/ast/piecewise.dart:113`, `lib/src/symbolic/ast/number.dart:686`, `web/calculator/src/engine/commands/numbers.dart:275`
   - **Problem**: `Piecewise` stores the caller's `List<PiecewiseBranch>` directly without `List.unmodifiable`. `ComplexNumber` lacks `assert(!imaginary.isZero)` (unlike `FractionNumber`), and `web/calculator/src/engine/commands/numbers.dart:275` calls `ComplexNumber(...)` directly instead of `ComplexNumber.of(...)`.

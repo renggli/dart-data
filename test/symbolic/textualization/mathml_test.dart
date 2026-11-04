@@ -54,13 +54,13 @@ void main() {
           ).toMathMl(root: false),
         ).equals('<mrow><mn>3</mn><mi>i</mi></mrow>');
         check(
-          const ComplexNumber(
+          ComplexNumber(
             IntegerNumber.two,
             IntegerNumber.one,
           ).toMathMl(root: false),
         ).equals('<mrow><mn>2</mn><mo>+</mo><mi>i</mi></mrow>');
         check(
-          const ComplexNumber(
+          ComplexNumber(
             IntegerNumber.two,
             IntegerNumber.negativeOne,
           ).toMathMl(root: false),
@@ -198,7 +198,7 @@ void main() {
             x,
             Mul([
               IntegerNumber.negativeOne,
-              const ComplexNumber(IntegerNumber.one, IntegerNumber.two),
+              ComplexNumber(IntegerNumber.one, IntegerNumber.two),
             ]),
           ]).toMathMl(root: false),
         ).equals(

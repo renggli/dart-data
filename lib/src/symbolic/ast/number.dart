@@ -681,9 +681,21 @@ final class RealNumber extends RealNumeric {
 /// Atomic complex number $a + b i$ with [RealNumeric] real and non-zero
 /// imaginary parts.
 final class ComplexNumber extends Number {
+  /// Internal const constructor for canonical constants.
+  const new _(this.real, this.imaginary)
+    : assert(
+        !identical(imaginary, IntegerNumber.zero) &&
+            !identical(imaginary, RealNumber.zero),
+        'ComplexNumber imaginary component must be non-zero; use ComplexNumber.of instead',
+      );
+
   /// Creates an atomic complex number with [real] part $a$ and non-zero
   /// [imaginary] part $b$.
-  const new(this.real, this.imaginary);
+  new(this.real, this.imaginary)
+    : assert(
+        !imaginary.isZero,
+        'ComplexNumber imaginary component must be non-zero; use ComplexNumber.of instead',
+      );
 
   /// Constructs a canonical [Number] from [real] and [imaginary] components,
   /// automatically demoting to [real] when `imaginary.isZero`.
@@ -694,10 +706,10 @@ final class ComplexNumber extends Number {
       : ComplexNumber(real, imaginary);
 
   /// The imaginary unit $i = 0 + 1i$.
-  static const i = ComplexNumber(IntegerNumber.zero, IntegerNumber.one);
+  static const i = ComplexNumber._(IntegerNumber.zero, IntegerNumber.one);
 
   /// The negated imaginary unit $-i = 0 - 1i$.
-  static const negativeI = ComplexNumber(
+  static const negativeI = ComplexNumber._(
     IntegerNumber.zero,
     IntegerNumber.negativeOne,
   );

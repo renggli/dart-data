@@ -191,7 +191,7 @@ void main() {
       ]);
       check(leftmostMulFactor(nestedMul)).equals(x);
 
-      const cFull = ComplexNumber(IntegerNumber.one, IntegerNumber.two);
+      final cFull = ComplexNumber(IntegerNumber.one, IntegerNumber.two);
       check(needsSubRightParens(cFull)).isTrue();
       check(needsSubRightParens(IntegerNumber.of(-2))).isTrue();
       check(needsMulLeftParens(cFull)).isTrue();
@@ -218,9 +218,7 @@ void main() {
       check(canOmitMulDot(Pow(x, IntegerNumber.two), y)).isTrue();
       check(canOmitMulDot(Pow(x, FractionNumber.half), y)).isTrue();
       check(
-        startsWithNumber(
-          const ComplexNumber(IntegerNumber.zero, IntegerNumber.two),
-        ),
+        startsWithNumber(ComplexNumber(IntegerNumber.zero, IntegerNumber.two)),
       ).isTrue();
       check(startsWithNumber(Pow(IntegerNumber.two, FractionNumber.half)))
           .isFalse();
@@ -234,7 +232,7 @@ void main() {
           x,
           Mul([
             IntegerNumber.negativeOne,
-            const ComplexNumber(IntegerNumber.one, IntegerNumber.two),
+            ComplexNumber(IntegerNumber.one, IntegerNumber.two),
           ]),
         ]).toString(),
       ).equals('x - (1 + 2 * i)');

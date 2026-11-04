@@ -55,7 +55,7 @@ void main() {
           .isFalse();
       check(
         eq.isClose(
-          const ComplexNumber(IntegerNumber.one, RealNumber(1e-5)),
+          ComplexNumber(IntegerNumber.one, const RealNumber(1e-5)),
           IntegerNumber.one,
           1e-3,
         ),

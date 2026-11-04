@@ -94,6 +94,23 @@ void main() {
           .equals(IntegerNumber.zero);
       check(pw.substitute('x', IntegerNumber.of(3)).simplify())
           .equals(IntegerNumber.one);
+
+      // Piecewise branches list is unmodifiable
+      final mutableBranches = <PiecewiseBranch>[
+        (relation: LessThan(x, IntegerNumber.zero), expr: y),
+      ];
+      final pwUnmodifiable = Piecewise(mutableBranches);
+      mutableBranches.add((
+        relation: GreaterThan(x, IntegerNumber.zero),
+        expr: z,
+      ));
+      check(pwUnmodifiable.branches.length).equals(1);
+      check(
+        () => pwUnmodifiable.branches.add((
+          relation: GreaterThan(x, IntegerNumber.zero),
+          expr: z,
+        )),
+      ).throws<UnsupportedError>();
     });
   });
 }

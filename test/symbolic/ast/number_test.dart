@@ -117,6 +117,11 @@ void main() {
       check(demoted).isA<IntegerNumber>();
       check(demoted).equals(IntegerNumber.two);
 
+      check(() => ComplexNumber(IntegerNumber.two, IntegerNumber.zero))
+          .throws<AssertionError>();
+      check(() => ComplexNumber(IntegerNumber.two, RealNumber.zero))
+          .throws<AssertionError>();
+
       final gaussian = ComplexNumber.of(
         IntegerNumber.of(3),
         RationalNumber(-1, 2),
@@ -186,7 +191,10 @@ void main() {
           .equals(ComplexNumber(RationalNumber(-3, 10), RationalNumber(2, 5)));
 
       check(() => a.div(IntegerNumber.zero)).throws<UnsupportedError>();
-      const tinyComplex = ComplexNumber(RealNumber.zero, RealNumber(1e-200));
+      final tinyComplex = ComplexNumber(
+        RealNumber.zero,
+        const RealNumber(1e-200),
+      );
       check(() => IntegerNumber.one.div(tinyComplex))
           .throws<UnsupportedError>();
     });
@@ -256,16 +264,17 @@ void main() {
         check(ComplexNumber.negativeI.powNumber(IntegerNumber.of(3)))
             .equals(ComplexNumber.i);
 
-        const twoI = ComplexNumber(IntegerNumber.zero, IntegerNumber.two);
+        final twoI = ComplexNumber(IntegerNumber.zero, IntegerNumber.two);
         check(twoI.powNumber(IntegerNumber.of(3)))
             .equals(ComplexNumber(IntegerNumber.zero, IntegerNumber.of(-8)));
         check(twoI.powNumber(IntegerNumber.of(2000))).isNull();
 
-        const onePlusI = ComplexNumber(IntegerNumber.one, IntegerNumber.one);
-        check(onePlusI.powNumber(const RealNumber(2.0)))
-            .equals(const ComplexNumber(RealNumber(0.0), RealNumber(2.0)));
+        final onePlusI = ComplexNumber(IntegerNumber.one, IntegerNumber.one);
+        check(
+          onePlusI.powNumber(const RealNumber(2.0)),
+        ).equals(ComplexNumber(const RealNumber(0.0), const RealNumber(2.0)));
         check(onePlusI.powNumber(IntegerNumber.of(-2))).equals(
-          const ComplexNumber(IntegerNumber.zero, FractionNumber.negativeHalf),
+          ComplexNumber(IntegerNumber.zero, FractionNumber.negativeHalf),
         );
         check(onePlusI.powNumber(IntegerNumber.of(100))).isNull();
         check(onePlusI.powNumber(const RealNumber(1.5))).isNull();

@@ -260,7 +260,7 @@ void main() {
       // ComplexNumber with RealNumber component raised to 0 -> RealNumber(1.0)
       check(
         simplifyPow(
-          const ComplexNumber(RealNumber(1.0), RealNumber(2.0)),
+          ComplexNumber(const RealNumber(1.0), const RealNumber(2.0)),
           IntegerNumber.zero,
         ),
       ).equals(const RealNumber(1.0));

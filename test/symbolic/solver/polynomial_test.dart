@@ -35,8 +35,8 @@ void main() {
         IntegerNumber.of(4),
       );
       check(pureImag).unorderedEquals([
-        const ComplexNumber(IntegerNumber.zero, IntegerNumber.two),
-        const ComplexNumber(IntegerNumber.zero, IntegerNumber(Integer(-2))),
+        ComplexNumber(IntegerNumber.zero, IntegerNumber.two),
+        ComplexNumber(IntegerNumber.zero, const IntegerNumber(Integer(-2))),
       ]);
 
       final complexRational = solveQuadratic(
@@ -45,10 +45,10 @@ void main() {
         IntegerNumber.of(5),
       );
       check(complexRational).unorderedEquals([
-        const ComplexNumber(IntegerNumber.negativeOne, IntegerNumber.two),
-        const ComplexNumber(
+        ComplexNumber(IntegerNumber.negativeOne, IntegerNumber.two),
+        ComplexNumber(
           IntegerNumber.negativeOne,
-          IntegerNumber(Integer(-2)),
+          const IntegerNumber(Integer(-2)),
         ),
       ]);
 

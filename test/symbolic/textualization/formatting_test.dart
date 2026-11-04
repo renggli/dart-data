@@ -55,7 +55,7 @@ void main() {
     test('parenthesization predicates for sub, mul, pow, and neg', () {
       const x = Variable('x');
       const y = Variable('y');
-      const comp = ComplexNumber(IntegerNumber.one, IntegerNumber.one);
+      final comp = ComplexNumber(IntegerNumber.one, IntegerNumber.one);
 
       check(needsSubRightParens(x + y)).isTrue();
       check(needsSubRightParens(comp)).isTrue();

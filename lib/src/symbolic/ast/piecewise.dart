@@ -110,7 +110,11 @@ typedef PiecewiseBranch = ({RelationalExpr relation, Expr expr});
 final class Piecewise extends Expr {
   /// Creates a piecewise expression from guarded [branches] and an optional
   /// fallback [otherwise] expression.
-  new(this.branches, {this.otherwise, this.isSimplified = false});
+  new(
+    List<PiecewiseBranch> branches, {
+    this.otherwise,
+    this.isSimplified = false,
+  }) : branches = List.unmodifiable(branches);
 
   /// Ordered list of [PiecewiseBranch] entries evaluated top-to-bottom.
   final List<PiecewiseBranch> branches;

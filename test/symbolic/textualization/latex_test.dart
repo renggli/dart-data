@@ -159,7 +159,7 @@ void main() {
       check(Expr.parse('1 / (pi * (1 + x^2))').toLatex())
           .equals(r'\frac{1}{\pi (1 + {x}^{2})}');
 
-      const c12 = ComplexNumber(IntegerNumber.one, IntegerNumber.two);
+      final c12 = ComplexNumber(IntegerNumber.one, IntegerNumber.two);
       check(Pow(c12, IntegerNumber.two).toLatex()).equals('{(1 + 2 i)}^{2}');
       check(Mul([c12, x]).toLatex()).equals('(1 + 2 i) x');
       check(
@@ -180,7 +180,7 @@ void main() {
           .equals(r'2 \cdot 3');
       check(
         Pow(
-          const ComplexNumber(IntegerNumber.one, IntegerNumber.two),
+          ComplexNumber(IntegerNumber.one, IntegerNumber.two),
           IntegerNumber.two,
         ).toLatex(),
       ).equals('{(1 + 2 i)}^{2}');

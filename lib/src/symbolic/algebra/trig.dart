@@ -686,7 +686,7 @@ Expr _rewriteToSinCos(Expr expr, Assumptions assumptions) {
 Expr _rewriteToExp(Expr expr, Assumptions assumptions) {
   final mapped = expr.mapChildren((c) => _rewriteToExp(c, assumptions));
   const i = ComplexNumber.i;
-  const negHalfI = ComplexNumber(
+  final negHalfI = ComplexNumber(
     IntegerNumber.zero,
     FractionNumber.negativeHalf,
   );
