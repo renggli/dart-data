@@ -575,7 +575,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `NormalDistribution.sample` calls `samples(random: random).first`, allocating a generator state machine and a `UniformDistribution(-1.0, 1.0)` on every call, generating two variates, and discarding one. This also slows down `GammaDistribution`, `StudentDistribution`, `PoissonDistribution`, and `MultivariateNormalDistribution` which call `normal.sample()` in their inner loops.
   - **Fix**: Implement `NormalDistribution.sample` directly using the Marsaglia polar method on `(random ?? _random).nextDouble()`.
 
-- [ ] **2.8 Redundant `toList()` copies and double sorting in `stats/descriptive.dart`**
+- [x] **2.8 Redundant `toList()` copies and double sorting in `stats/descriptive.dart`**
   - **Severity**: Warning
   - **Location**: `lib/src/stats/descriptive.dart:357-436, 578-579`
   - **Problem**: `DescriptiveVectorNumExtension` calls `toList()` before calling top-level functions that immediately call `.map((v) => v.toDouble()).toList()` a second time, and `_iqr` copies and sorts the input list twice.

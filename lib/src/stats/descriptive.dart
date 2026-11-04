@@ -370,7 +370,7 @@ extension DescriptiveVectorNumExtension on Vector<num> {
           : Float64List.sublistView(tData, offset, offset + length);
       return Vforce.mean(x: view);
     }
-    return _mean(toList());
+    return _mean(values);
   }
 
   /// Returns the variance of vector elements.
@@ -383,7 +383,7 @@ extension DescriptiveVectorNumExtension on Vector<num> {
           : Float64List.sublistView(tData, offset, offset + length);
       return Vforce.variance(x: view, sample: !population);
     }
-    return _variance(toList(), population: population);
+    return _variance(values, population: population);
   }
 
   /// Returns the standard deviation of vector elements.
@@ -391,33 +391,33 @@ extension DescriptiveVectorNumExtension on Vector<num> {
       math.sqrt(variance(population: population));
 
   /// Returns the median of vector elements.
-  double median() => _median(toList());
+  double median() => _median(values);
 
   /// Returns the empirical quantile for [quantile] in `[0.0, 1.0]`.
-  double quantile(num quantile) => _quantile(toList(), quantile);
+  double quantile(num quantile) => _quantile(values, quantile);
 
   /// Returns the interquartile range (IQR).
-  double iqr() => _iqr(toList());
+  double iqr() => _iqr(values);
 
   /// Returns the skewness of vector elements.
-  double skewness({bool bias = false}) => _skewness(toList(), bias: bias);
+  double skewness({bool bias = false}) => _skewness(values, bias: bias);
 
   /// Returns the kurtosis of vector elements.
   double kurtosis({bool excess = true, bool bias = false}) =>
-      _kurtosis(toList(), excess: excess, bias: bias);
+      _kurtosis(values, excess: excess, bias: bias);
 
   /// Returns the weighted mean of vector elements using [weights].
   double weightedMean(Vector<num> weights) =>
-      _weightedMean(toList(), weights.toList());
+      _weightedMean(values, weights.values);
 
   /// Returns the weighted variance of vector elements using [weights].
   double weightedVariance(Vector<num> weights, {bool unbiased = true}) =>
-      _weightedVariance(toList(), weights.toList(), unbiased: unbiased);
+      _weightedVariance(values, weights.values, unbiased: unbiased);
 
   /// Computes the simple moving average (SMA) over a rolling window of
   /// [windowSize].
   Vector<double> movingAverage(int windowSize) => Vector<double>.fromList(
-    _movingAverage(toList(), windowSize),
+    _movingAverage(values, windowSize),
     type: DataType.float64,
   );
 
@@ -425,21 +425,21 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   /// [alpha].
   Vector<double> exponentialMovingAverage(double alpha) =>
       Vector<double>.fromList(
-        _exponentialMovingAverage(toList(), alpha),
+        _exponentialMovingAverage(values, alpha),
         type: DataType.float64,
       );
 
   /// Computes the sample or population covariance with [other].
   double covariance(Vector<num> other, {bool population = false}) =>
-      _covariance(toList(), other.toList(), population: population);
+      _covariance(values, other.values, population: population);
 
   /// Computes the Pearson correlation coefficient with [other].
   double pearsonCorrelation(Vector<num> other) =>
-      _pearsonCorrelation(toList(), other.toList());
+      _pearsonCorrelation(values, other.values);
 
   /// Computes the Spearman rank correlation coefficient with [other].
   double spearmanCorrelation(Vector<num> other) =>
-      _spearmanCorrelation(toList(), other.toList());
+      _spearmanCorrelation(values, other.values);
 }
 
 /// Statistics extensions on [Tensor<num>].
@@ -554,6 +554,16 @@ double _variance(Iterable<num> values, {bool population = false}) {
 double _standardDeviation(Iterable<num> values, {bool population = false}) =>
     math.sqrt(_variance(values, population: population));
 
+double _quantileFromSorted(List<double> sorted, double q) {
+  if (q <= 0.0) return sorted.first;
+  if (q >= 1.0) return sorted.last;
+  final idx = q * (sorted.length - 1);
+  final baseIdx = idx.floor();
+  final frac = idx - baseIdx;
+  if (baseIdx >= sorted.length - 1) return sorted.last;
+  return sorted[baseIdx] + frac * (sorted[baseIdx + 1] - sorted[baseIdx]);
+}
+
 double _quantile(Iterable<num> values, num quantile) {
   final q = quantile.toDouble();
   if (q.isNaN || q < 0.0 || q > 1.0) {
@@ -571,19 +581,22 @@ double _quantile(Iterable<num> values, num quantile) {
   }
   if (list.isEmpty) return double.nan;
   list.sort();
-  if (q <= 0.0) return list.first;
-  if (q >= 1.0) return list.last;
-  final idx = q * (list.length - 1);
-  final baseIdx = idx.floor();
-  final frac = idx - baseIdx;
-  if (baseIdx >= list.length - 1) return list.last;
-  return list[baseIdx] + frac * (list[baseIdx + 1] - list[baseIdx]);
+  return _quantileFromSorted(list, q);
 }
 
 double _median(Iterable<num> values) => _quantile(values, 0.5);
 
-double _iqr(Iterable<num> values) =>
-    _quantile(values, 0.75) - _quantile(values, 0.25);
+double _iqr(Iterable<num> values) {
+  final list = <double>[];
+  for (final val in values) {
+    final d = val.toDouble();
+    if (d.isNaN) return double.nan;
+    list.add(d);
+  }
+  if (list.isEmpty) return double.nan;
+  list.sort();
+  return _quantileFromSorted(list, 0.75) - _quantileFromSorted(list, 0.25);
+}
 
 double _skewness(Iterable<num> values, {bool bias = false}) {
   final list = values.map((val) => val.toDouble()).toList();

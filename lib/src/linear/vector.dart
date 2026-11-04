@@ -84,6 +84,9 @@ class Vector<T> {
   /// The data type of the elements.
   DataType<T> get type => tensor.type;
 
+  /// Returns an iterable over the elements of this vector.
+  Iterable<T> get values => tensor.values;
+
   /// Gets the element at [index] without bounds checks.
   @pragma('vm:prefer-inline')
   T getUnchecked(int index) => tensor.get1D(index);

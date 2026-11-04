@@ -326,6 +326,7 @@ void main() {
 
       final fromIter = Vector<int>.fromIterable([10, 20, 30]);
       check(fromIter.toList()).deepEquals([10, 20, 30]);
+      check(fromIter.values).deepEquals([10, 20, 30]);
 
       final copyVec = fromIter.copy();
       check(copyVec.toList()).deepEquals(fromIter.toList());
