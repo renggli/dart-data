@@ -291,6 +291,18 @@ Expr computeProduct(
   return Product(simplifiedFactor, variable, a, b, isSimplified: true);
 }
 
+/// Computes $\zeta(2m) = \frac{|B_{2m}| (2\pi)^{2m}}{2 (2m)!}$ for even $p = 2m \ge 2$.
+Expr evenZetaValue(int p) {
+  final bernoulli = _bernoulliNumbers(p);
+  final bpAbs = bernoulli[p].abs();
+  final twoPowP = Integer.big(BigInt.two.pow(p));
+  final factP = Integer.from(p).factorial();
+  final coeff = bpAbs.mulRational(
+    RationalNumber.of(twoPowP, Integer.two * factP),
+  );
+  return (coeff * Pow(Constant.pi, IntegerNumber.of(p))).simplify();
+}
+
 Expr? _antidifference(Expr expr, String variable) {
   if (!expr.dependsOn(variable)) {
     return (expr * Variable(variable)).simplify();
@@ -1760,18 +1772,6 @@ bool _isStrictlyInsideUnitDisk(Expr r) {
     }
   }
   return false;
-}
-
-/// Computes $\zeta(2m) = \frac{|B_{2m}| (2\pi)^{2m}}{2 (2m)!}$ for even $p = 2m \ge 2$.
-Expr evenZetaValue(int p) {
-  final bernoulli = _bernoulliNumbers(p);
-  final bpAbs = bernoulli[p].abs();
-  final twoPowP = Integer.big(BigInt.two.pow(p));
-  final factP = Integer.from(p).factorial();
-  final coeff = bpAbs.mulRational(
-    RationalNumber.of(twoPowP, Integer.two * factP),
-  );
-  return (coeff * Pow(Constant.pi, IntegerNumber.of(p))).simplify();
 }
 
 /// Computes the Dirichlet beta value $\beta(2m + 1) = \sum_{n=0}^\infty \frac{(-1)^n}{(2n+1)^{2m+1}} = \frac{|E_{2m}| \pi^{2m+1}}{2^{2m+2} (2m)!}$

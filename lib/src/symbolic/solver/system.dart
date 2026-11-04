@@ -137,58 +137,6 @@ List<Map<String, Expr>> solveEquations(
   ];
 }
 
-void _collectDenominatorBases(
-  Expr expr,
-  Set<String> variables,
-  List<Expr> target,
-) {
-  expr.anyNode((node) {
-    if (node case Pow(:final base, exponent: RealNumeric(isNegative: true))) {
-      if (base.freeVariables.any(variables.contains)) {
-        target.add(base);
-      }
-    }
-    return false;
-  });
-}
-
-bool _vanishesAnyDenominator(
-  List<Expr> denominators,
-  Map<String, Expr> solution,
-) {
-  for (final den in denominators) {
-    var sub = den;
-    for (final MapEntry(:key, :value) in solution.entries) {
-      sub = sub.substitute(key, value);
-    }
-    if (isZeroExpr(sub.expand().simplify())) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool _isLinearSystem(List<Expr> equations, List<String> variables) {
-  for (final eq in equations) {
-    var reconstructed = IntegerNumber.zero as Expr;
-    for (final v in variables) {
-      final deriv = eq.derivative(v).simplify();
-      for (final otherV in variables) {
-        if (deriv.dependsOn(otherV)) return false;
-      }
-      reconstructed = reconstructed + deriv * Variable(v);
-    }
-    var cTerm = eq;
-    for (final v in variables) {
-      cTerm = cTerm.substitute(v, IntegerNumber.zero);
-    }
-    reconstructed = (reconstructed + cTerm).expand().simplify();
-    final residual = (eq - reconstructed).expand().simplify();
-    if (!isZeroExpr(residual)) return false;
-  }
-  return true;
-}
-
 /// Solves a linear system of [equations] in [variables] via exact fraction-free
 /// Gaussian elimination with pivoting.
 Map<String, Expr>? solveSystemEquations(
@@ -249,4 +197,56 @@ Map<String, Expr>? solveSystemEquations(
     for (var j = 0; j < n; j++)
       variables[j]: solVector[j].simplify(assumptions: assumptions),
   };
+}
+
+void _collectDenominatorBases(
+  Expr expr,
+  Set<String> variables,
+  List<Expr> target,
+) {
+  expr.anyNode((node) {
+    if (node case Pow(:final base, exponent: RealNumeric(isNegative: true))) {
+      if (base.freeVariables.any(variables.contains)) {
+        target.add(base);
+      }
+    }
+    return false;
+  });
+}
+
+bool _vanishesAnyDenominator(
+  List<Expr> denominators,
+  Map<String, Expr> solution,
+) {
+  for (final den in denominators) {
+    var sub = den;
+    for (final MapEntry(:key, :value) in solution.entries) {
+      sub = sub.substitute(key, value);
+    }
+    if (isZeroExpr(sub.expand().simplify())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _isLinearSystem(List<Expr> equations, List<String> variables) {
+  for (final eq in equations) {
+    var reconstructed = IntegerNumber.zero as Expr;
+    for (final v in variables) {
+      final deriv = eq.derivative(v).simplify();
+      for (final otherV in variables) {
+        if (deriv.dependsOn(otherV)) return false;
+      }
+      reconstructed = reconstructed + deriv * Variable(v);
+    }
+    var cTerm = eq;
+    for (final v in variables) {
+      cTerm = cTerm.substitute(v, IntegerNumber.zero);
+    }
+    reconstructed = (reconstructed + cTerm).expand().simplify();
+    final residual = (eq - reconstructed).expand().simplify();
+    if (!isZeroExpr(residual)) return false;
+  }
+  return true;
 }

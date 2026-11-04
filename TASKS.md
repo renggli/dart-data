@@ -597,7 +597,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ## 3. Code Style and Readability
 
-- [ ] **3.1 Top-level private declarations placed before public declarations (`AGENTS.md` Ordering Rule)**
+- [x] **3.1 Top-level private declarations placed before public declarations (`AGENTS.md` Ordering Rule)**
   - **Severity**: Warning
   - **Location**:
     - `lib/src/acceleration/blas/blas_dart.dart:8` (`_gemmBlockSize` before `BlasDart`)

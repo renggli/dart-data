@@ -16,6 +16,37 @@ extension TextExtension on Expr {
   String format({int decimalPlaces = 4}) => _formatExpr(this, 0, decimalPlaces);
 }
 
+/// Returns the operator precedence level for the given [expr].
+///
+/// Higher values indicate tighter binding.
+int precedence(Expr expr) => switch (expr) {
+  RelationalExpr() => 0,
+  Piecewise() => 0,
+  Add() => 1,
+  ComplexNumber(:final real, :final imaginary) =>
+    !real.isZero
+        ? 1
+        : imaginary.isOne
+        ? 5
+        : imaginary.isNegativeOne
+        ? 3
+        : 2,
+  Mul(:final factors) => _mulPrecedence(factors),
+  FractionNumber() => 2,
+  IntegerNumber(isNegative: true) || RealNumber(isNegative: true) => 3,
+  Pow(:final base, :final exponent) =>
+    base == Constant.e
+        ? 5
+        : exponent == IntegerNumber.negativeOne
+        ? 2
+        : exponent is FractionNumber &&
+              exponent.numerator == Integer.one &&
+              exponent.denominator == Integer.two
+        ? 5
+        : 4,
+  _ => 5,
+};
+
 String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
   final prec = precedence(expr);
   final formatted = switch (expr) {
@@ -281,37 +312,6 @@ String _formatOrderTerm(
   if (order == 1) return 'O($delta)';
   return 'O(($delta)^$order)';
 }
-
-/// Returns the operator precedence level for the given [expr].
-///
-/// Higher values indicate tighter binding.
-int precedence(Expr expr) => switch (expr) {
-  RelationalExpr() => 0,
-  Piecewise() => 0,
-  Add() => 1,
-  ComplexNumber(:final real, :final imaginary) =>
-    !real.isZero
-        ? 1
-        : imaginary.isOne
-        ? 5
-        : imaginary.isNegativeOne
-        ? 3
-        : 2,
-  Mul(:final factors) => _mulPrecedence(factors),
-  FractionNumber() => 2,
-  IntegerNumber(isNegative: true) || RealNumber(isNegative: true) => 3,
-  Pow(:final base, :final exponent) =>
-    base == Constant.e
-        ? 5
-        : exponent == IntegerNumber.negativeOne
-        ? 2
-        : exponent is FractionNumber &&
-              exponent.numerator == Integer.one &&
-              exponent.denominator == Integer.two
-        ? 5
-        : 4,
-  _ => 5,
-};
 
 int _mulPrecedence(List<Expr> factors) {
   if (factors.isEmpty) return 5;

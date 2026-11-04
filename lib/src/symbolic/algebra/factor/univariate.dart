@@ -255,120 +255,6 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   return buildFactoredExpr(scalar: scalar, factors: factors);
 }
 
-List<(List<Integer>, int)>? _decomposeSquareFree(
-  List<Integer> primitiveCoeffs,
-) {
-  final pRat = [for (final c in primitiveCoeffs) IntegerNumber(c)];
-  final dRat = _polyDerivative(pRat);
-  final g = _polyGcd(pRat, dRat);
-  if (g.length <= 1 || g.length >= pRat.length) {
-    return null;
-  }
-
-  var c = g;
-  var d = _polyExactDiv(pRat, g);
-  if (d == null) return null;
-
-  final components = <(List<Integer>, int)>[];
-  var mult = 1;
-  while (d != null && d.length > 1) {
-    final y = _polyGcd(c, d);
-    final z = _polyExactDiv(d, y);
-    if (z == null) return null;
-    if (z.length > 1) {
-      final primZ = _toPrimitiveIntCoeffs(z);
-      if (primZ == null) return null;
-      components.add((primZ, mult));
-    }
-    final nextC = _polyExactDiv(c, y);
-    if (nextC == null) return null;
-    c = nextC;
-    d = y;
-    mult++;
-  }
-  return components.isEmpty ? null : components;
-}
-
-List<RationalNumber> _makeMonic(List<RationalNumber> coeffs) {
-  final lead = coeffs.last;
-  if (lead.isZero || lead.isOne) return coeffs;
-  return [for (final c in coeffs) c.divRational(lead)];
-}
-
-List<RationalNumber> _polyDerivative(List<RationalNumber> coeffs) {
-  if (coeffs.length <= 1) return [IntegerNumber.zero];
-  return [
-    for (var i = 1; i < coeffs.length; i++)
-      coeffs[i].mulRational(IntegerNumber.of(i)),
-  ];
-}
-
-(List<RationalNumber>, List<RationalNumber>)? _polyDivMod(
-  List<RationalNumber> num,
-  List<RationalNumber> den,
-) {
-  final a = List<RationalNumber>.of(num);
-  final b = den;
-  final degB = b.length - 1;
-  if (b.last.isZero) return null;
-  var degA = a.length - 1;
-  if (degA < degB) {
-    return ([IntegerNumber.zero], a);
-  }
-  final quot = List<RationalNumber>.filled(degA - degB + 1, IntegerNumber.zero);
-  final leadB = b.last;
-  while (degA >= degB && !(degA == 0 && a[0].isZero)) {
-    final shift = degA - degB;
-    final factor = a[degA].divRational(leadB);
-    quot[shift] = factor;
-    for (var i = 0; i <= degB; i++) {
-      a[shift + i] = a[shift + i].subRational(factor.mulRational(b[i]));
-    }
-    while (degA > 0 && a[degA].isZero) {
-      degA--;
-    }
-  }
-  return (quot, a.sublist(0, degA + 1));
-}
-
-List<RationalNumber>? _polyExactDiv(
-  List<RationalNumber> a,
-  List<RationalNumber> b,
-) => switch (_polyDivMod(a, b)) {
-  (final q, [RationalNumber(isZero: true)]) => q,
-  _ => null,
-};
-
-List<RationalNumber> _polyGcd(List<RationalNumber> a, List<RationalNumber> b) {
-  var x = a;
-  var y = b;
-  while (!(y.length == 1 && y[0].isZero)) {
-    final dm = _polyDivMod(x, y);
-    if (dm == null) break;
-    final (_, rem) = dm;
-    x = y;
-    y = rem;
-  }
-  return _makeMonic(x);
-}
-
-List<Integer>? _toPrimitiveIntCoeffs(List<RationalNumber> coeffs) {
-  var lcmDen = Integer.one;
-  for (final c in coeffs) {
-    lcmDen = lcmDen.lcm(c.denominator);
-  }
-  final intCoeffs = <Integer>[];
-  var content = Integer.zero;
-  for (final c in coeffs) {
-    final scaled = c.numerator * (lcmDen ~/ c.denominator);
-    intCoeffs.add(scaled);
-    if (!scaled.isZero) content = content.gcd(scaled.abs());
-  }
-  if (content.isZero) content = Integer.one;
-  final sign = intCoeffs.last.isNegative ? Integer.negativeOne : Integer.one;
-  return [for (final a in intCoeffs) (a * sign) ~/ content];
-}
-
 /// Factors quadratic $a \cdot x^2 + c$.
 Map<Expr, int> factorQuadraticInX(Integer a, Integer c, String variable) {
   final res = <Expr, int>{};
@@ -525,4 +411,118 @@ List<Integer> divisors(Integer n) {
     return [...small, ...large.reversed];
   }
   return [Integer.one, val];
+}
+
+List<(List<Integer>, int)>? _decomposeSquareFree(
+  List<Integer> primitiveCoeffs,
+) {
+  final pRat = [for (final c in primitiveCoeffs) IntegerNumber(c)];
+  final dRat = _polyDerivative(pRat);
+  final g = _polyGcd(pRat, dRat);
+  if (g.length <= 1 || g.length >= pRat.length) {
+    return null;
+  }
+
+  var c = g;
+  var d = _polyExactDiv(pRat, g);
+  if (d == null) return null;
+
+  final components = <(List<Integer>, int)>[];
+  var mult = 1;
+  while (d != null && d.length > 1) {
+    final y = _polyGcd(c, d);
+    final z = _polyExactDiv(d, y);
+    if (z == null) return null;
+    if (z.length > 1) {
+      final primZ = _toPrimitiveIntCoeffs(z);
+      if (primZ == null) return null;
+      components.add((primZ, mult));
+    }
+    final nextC = _polyExactDiv(c, y);
+    if (nextC == null) return null;
+    c = nextC;
+    d = y;
+    mult++;
+  }
+  return components.isEmpty ? null : components;
+}
+
+List<RationalNumber> _makeMonic(List<RationalNumber> coeffs) {
+  final lead = coeffs.last;
+  if (lead.isZero || lead.isOne) return coeffs;
+  return [for (final c in coeffs) c.divRational(lead)];
+}
+
+List<RationalNumber> _polyDerivative(List<RationalNumber> coeffs) {
+  if (coeffs.length <= 1) return [IntegerNumber.zero];
+  return [
+    for (var i = 1; i < coeffs.length; i++)
+      coeffs[i].mulRational(IntegerNumber.of(i)),
+  ];
+}
+
+(List<RationalNumber>, List<RationalNumber>)? _polyDivMod(
+  List<RationalNumber> num,
+  List<RationalNumber> den,
+) {
+  final a = List<RationalNumber>.of(num);
+  final b = den;
+  final degB = b.length - 1;
+  if (b.last.isZero) return null;
+  var degA = a.length - 1;
+  if (degA < degB) {
+    return ([IntegerNumber.zero], a);
+  }
+  final quot = List<RationalNumber>.filled(degA - degB + 1, IntegerNumber.zero);
+  final leadB = b.last;
+  while (degA >= degB && !(degA == 0 && a[0].isZero)) {
+    final shift = degA - degB;
+    final factor = a[degA].divRational(leadB);
+    quot[shift] = factor;
+    for (var i = 0; i <= degB; i++) {
+      a[shift + i] = a[shift + i].subRational(factor.mulRational(b[i]));
+    }
+    while (degA > 0 && a[degA].isZero) {
+      degA--;
+    }
+  }
+  return (quot, a.sublist(0, degA + 1));
+}
+
+List<RationalNumber>? _polyExactDiv(
+  List<RationalNumber> a,
+  List<RationalNumber> b,
+) => switch (_polyDivMod(a, b)) {
+  (final q, [RationalNumber(isZero: true)]) => q,
+  _ => null,
+};
+
+List<RationalNumber> _polyGcd(List<RationalNumber> a, List<RationalNumber> b) {
+  var x = a;
+  var y = b;
+  while (!(y.length == 1 && y[0].isZero)) {
+    final dm = _polyDivMod(x, y);
+    if (dm == null) break;
+    final (_, rem) = dm;
+    x = y;
+    y = rem;
+  }
+  return _makeMonic(x);
+}
+
+List<Integer>? _toPrimitiveIntCoeffs(List<RationalNumber> coeffs) {
+  var lcmDen = Integer.one;
+  for (final c in coeffs) {
+    lcmDen = lcmDen.lcm(c.denominator);
+  }
+  final intCoeffs = <Integer>[];
+  var content = Integer.zero;
+  for (final c in coeffs) {
+    final scaled = c.numerator * (lcmDen ~/ c.denominator);
+    intCoeffs.add(scaled);
+    if (!scaled.isZero) content = content.gcd(scaled.abs());
+  }
+  if (content.isZero) content = Integer.one;
+  final sign = intCoeffs.last.isNegative ? Integer.negativeOne : Integer.one;
+  return [for (final a in intCoeffs) (a * sign) ~/ content];
 }

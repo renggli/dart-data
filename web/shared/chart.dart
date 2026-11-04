@@ -385,18 +385,6 @@ List<double> niceTicks(double min, double max, int count) {
   return ticks;
 }
 
-String _formatTick(double val) {
-  if (val.abs() < 1e-10) return '0';
-  if ((val - val.roundToDouble()).abs() < 1e-9 && val.abs() < 1e6) {
-    return val.round().toString();
-  }
-  final s = val.toStringAsPrecision(4);
-  if (s.contains('.') && !s.contains('e')) {
-    return s.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
-  }
-  return s;
-}
-
 /// Sets up a high-DPI crisp canvas backing store. Returns null if dimensions are zero.
 ({web.CanvasRenderingContext2D ctx, double width, double height})? initCanvas(
   web.HTMLCanvasElement canvas,
@@ -1029,4 +1017,16 @@ void drawCrosshairAndTooltip(
   }
 
   ctx.restore();
+}
+
+String _formatTick(double val) {
+  if (val.abs() < 1e-10) return '0';
+  if ((val - val.roundToDouble()).abs() < 1e-9 && val.abs() < 1e6) {
+    return val.round().toString();
+  }
+  final s = val.toStringAsPrecision(4);
+  if (s.contains('.') && !s.contains('e')) {
+    return s.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+  }
+  return s;
 }

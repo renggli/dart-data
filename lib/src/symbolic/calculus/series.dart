@@ -149,8 +149,6 @@ extension SymbolicPolynomialFactory<T> on Polynomial<T> {
   }) => expr.toPolynomial<R>(variable, point: point, order: order, type: type);
 }
 
-Expr _wrapSeriesPoint(Object point) => Expr.wrap(point);
-
 /// Truncated formal Laurent and power series:
 /// $\sum_{k=-p}^{N-1} c_k (x - a)^k + O((x - a)^N)$.
 ///
@@ -1128,3 +1126,5 @@ PowerSeries _expandPiecewise(
     'Power series expansion not supported for Piecewise at $point',
   );
 }
+
+Expr _wrapSeriesPoint(Object point) => Expr.wrap(point);

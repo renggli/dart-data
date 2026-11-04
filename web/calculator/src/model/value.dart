@@ -625,8 +625,6 @@ final class ErrorValue extends CalcValue {
   int get hashCode => Object.hash(ErrorValue, message, offset, suggestion);
 }
 
-bool _containsRealNumber(Expr expr) => expr.anyNode((n) => n is RealNumber);
-
 /// Formats a floating-point [value] to [digits] significant digits without
 /// trailing fractional zeros.
 String formatRealDigits(double value, int digits) {
@@ -656,6 +654,8 @@ String formatRealDigits(double value, int digits) {
   }
   return s;
 }
+
+bool _containsRealNumber(Expr expr) => expr.anyNode((n) => n is RealNumber);
 
 String _formatComplexDigits(double re, double im, int digits) {
   final reZero = re.abs() < 1e-15;

@@ -51,6 +51,97 @@ List<Expr> solveEquation(
   return _filterByDomain(rawRoots, effectiveDomain, assumptions);
 }
 
+/// Checks whether [root] satisfies [domain] under [assumptions].
+bool satisfiesVariableDomain(
+  Expr root,
+  VariableDomain domain,
+  Assumptions assumptions,
+) {
+  if (domain == VariableDomain.unknown || domain == VariableDomain.complex) {
+    return true;
+  }
+  final s = root.simplify(assumptions: assumptions);
+  return switch (domain) {
+    VariableDomain.unknown || VariableDomain.complex => true,
+    VariableDomain.integer => s is IntegerNumber,
+    VariableDomain.real => _isRealRoot(s),
+    VariableDomain.positive => _isPositiveRealRoot(s, assumptions),
+  };
+}
+
+/// Checks whether a constant symbolic expression [expr] evaluates to zero.
+bool isZeroExpr(Expr expr) {
+  switch (expr) {
+    case Number(:final isZero):
+      return isZero;
+    case _ when expr.freeVariables.isEmpty:
+      try {
+        final c = expr.evaluateComplex();
+        if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
+      } on ArgumentError {
+        // Ignored.
+      } on UnsupportedError {
+        // Ignored.
+      }
+    case _:
+      break;
+  }
+  return false;
+}
+
+/// Deduplicates roots analytically and numerically.
+List<Expr> deduplicateRoots(List<Expr> list) {
+  final result = <Expr>[];
+  for (final item in list) {
+    final simplified = item.simplify();
+    final isDup = result.any((existing) {
+      if (existing == simplified) return true;
+      if ((existing, simplified) case (
+        final RealNumeric a,
+        final RealNumeric b,
+      )) {
+        return (a.toDouble() - b.toDouble()).abs() < 1e-12;
+      }
+      if (existing.freeVariables.isEmpty && simplified.freeVariables.isEmpty) {
+        try {
+          final c1 = existing.evaluateComplex();
+          final c2 = simplified.evaluateComplex();
+          return (c1.a - c2.a).abs() < 1e-12 && (c1.b - c2.b).abs() < 1e-12;
+        } on ArgumentError {
+          // Ignored.
+        } on UnsupportedError {
+          // Ignored.
+        }
+      }
+      return false;
+    });
+    if (!isDup) {
+      result.add(simplified);
+    }
+  }
+  return result;
+}
+
+/// Collects factors of [expr] unrolling multiplication and positive power.
+void collectFactors(Expr expr, List<Expr> target) {
+  switch (expr) {
+    case Mul(:final factors):
+      for (final f in factors) {
+        collectFactors(f, target);
+      }
+    case Pow(
+          :final base,
+          exponent: RationalNumber(:final isNegative, :final isZero),
+        )
+        when !isNegative && !isZero:
+      collectFactors(base, target);
+    default:
+      if (expr is! Number && expr is! Constant) {
+        target.add(expr);
+      }
+  }
+}
+
 List<Expr> _solveUnfiltered(
   Expr expr,
   String variable,
@@ -173,24 +264,6 @@ List<Expr> _solveUnfiltered(
   return const [];
 }
 
-/// Checks whether [root] satisfies [domain] under [assumptions].
-bool satisfiesVariableDomain(
-  Expr root,
-  VariableDomain domain,
-  Assumptions assumptions,
-) {
-  if (domain == VariableDomain.unknown || domain == VariableDomain.complex) {
-    return true;
-  }
-  final s = root.simplify(assumptions: assumptions);
-  return switch (domain) {
-    VariableDomain.unknown || VariableDomain.complex => true,
-    VariableDomain.integer => s is IntegerNumber,
-    VariableDomain.real => _isRealRoot(s),
-    VariableDomain.positive => _isPositiveRealRoot(s, assumptions),
-  };
-}
-
 List<Expr> _filterByDomain(
   List<Expr> roots,
   VariableDomain domain,
@@ -239,79 +312,6 @@ bool _isPositiveRealRoot(Expr expr, Assumptions assumptions) {
       }
     case _:
       return false;
-  }
-}
-
-/// Checks whether a constant symbolic expression [expr] evaluates to zero.
-bool isZeroExpr(Expr expr) {
-  switch (expr) {
-    case Number(:final isZero):
-      return isZero;
-    case _ when expr.freeVariables.isEmpty:
-      try {
-        final c = expr.evaluateComplex();
-        if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
-      } on ArgumentError {
-        // Ignored.
-      } on UnsupportedError {
-        // Ignored.
-      }
-    case _:
-      break;
-  }
-  return false;
-}
-
-/// Deduplicates roots analytically and numerically.
-List<Expr> deduplicateRoots(List<Expr> list) {
-  final result = <Expr>[];
-  for (final item in list) {
-    final simplified = item.simplify();
-    final isDup = result.any((existing) {
-      if (existing == simplified) return true;
-      if ((existing, simplified) case (
-        final RealNumeric a,
-        final RealNumeric b,
-      )) {
-        return (a.toDouble() - b.toDouble()).abs() < 1e-12;
-      }
-      if (existing.freeVariables.isEmpty && simplified.freeVariables.isEmpty) {
-        try {
-          final c1 = existing.evaluateComplex();
-          final c2 = simplified.evaluateComplex();
-          return (c1.a - c2.a).abs() < 1e-12 && (c1.b - c2.b).abs() < 1e-12;
-        } on ArgumentError {
-          // Ignored.
-        } on UnsupportedError {
-          // Ignored.
-        }
-      }
-      return false;
-    });
-    if (!isDup) {
-      result.add(simplified);
-    }
-  }
-  return result;
-}
-
-/// Collects factors of [expr] unrolling multiplication and positive power.
-void collectFactors(Expr expr, List<Expr> target) {
-  switch (expr) {
-    case Mul(:final factors):
-      for (final f in factors) {
-        collectFactors(f, target);
-      }
-    case Pow(
-          :final base,
-          exponent: RationalNumber(:final isNegative, :final isZero),
-        )
-        when !isNegative && !isZero:
-      collectFactors(base, target);
-    default:
-      if (expr is! Number && expr is! Constant) {
-        target.add(expr);
-      }
   }
 }
 

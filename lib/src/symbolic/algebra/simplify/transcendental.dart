@@ -534,27 +534,6 @@ bool isProvenReal(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
       _ => false,
     };
 
-double? _tryStaticRealValue(Expr expr) {
-  switch (expr) {
-    case RealNumeric():
-      return expr.toDouble();
-    case Constant(:final isReal, :final value) when isReal:
-      return value.a.toDouble();
-    case _ when expr.freeVariables.isEmpty:
-      try {
-        final c = expr.evaluateComplex();
-        if (c.b.abs() < 1e-12 && c.a.isFinite) {
-          return c.a.toDouble();
-        }
-      } on Object {
-        // Fall back to null if evaluation fails.
-      }
-      return null;
-    case _:
-      return null;
-  }
-}
-
 /// Returns `true` if [expr] is known to be strictly positive under [assumptions].
 bool isPositiveExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
     switch (expr) {
@@ -641,24 +620,6 @@ bool isEvenIntegerExpr(
         exponent.value > Integer.zero,
   _ => false,
 };
-
-Expr? _matchIntegerPiMultiple(Expr expr, Assumptions assumptions) {
-  if (expr == Constant.pi) return IntegerNumber.one;
-  if (expr case Mul(:final factors)) {
-    final piIdx = factors.indexOf(Constant.pi);
-    if (piIdx != -1) {
-      final other = <Expr>[
-        for (var i = 0; i < factors.length; i++)
-          if (i != piIdx) factors[i],
-      ];
-      if (other.isNotEmpty &&
-          other.every((f) => isIntegerExpr(f, assumptions: assumptions))) {
-        return other.length == 1 ? other.first : Mul(other, isSimplified: true);
-      }
-    }
-  }
-  return null;
-}
 
 /// Simplifies an exponential expression $e^{expr}$.
 Expr simplifyExp(Expr expr, {Assumptions assumptions = Assumptions.none}) {
@@ -1795,4 +1756,43 @@ Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
         im: Im(expr, isSimplified: true),
       );
   }
+}
+
+double? _tryStaticRealValue(Expr expr) {
+  switch (expr) {
+    case RealNumeric():
+      return expr.toDouble();
+    case Constant(:final isReal, :final value) when isReal:
+      return value.a.toDouble();
+    case _ when expr.freeVariables.isEmpty:
+      try {
+        final c = expr.evaluateComplex();
+        if (c.b.abs() < 1e-12 && c.a.isFinite) {
+          return c.a.toDouble();
+        }
+      } on Object {
+        // Fall back to null if evaluation fails.
+      }
+      return null;
+    case _:
+      return null;
+  }
+}
+
+Expr? _matchIntegerPiMultiple(Expr expr, Assumptions assumptions) {
+  if (expr == Constant.pi) return IntegerNumber.one;
+  if (expr case Mul(:final factors)) {
+    final piIdx = factors.indexOf(Constant.pi);
+    if (piIdx != -1) {
+      final other = <Expr>[
+        for (var i = 0; i < factors.length; i++)
+          if (i != piIdx) factors[i],
+      ];
+      if (other.isNotEmpty &&
+          other.every((f) => isIntegerExpr(f, assumptions: assumptions))) {
+        return other.length == 1 ? other.first : Mul(other, isSimplified: true);
+      }
+    }
+  }
+  return null;
 }

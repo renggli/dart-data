@@ -5,17 +5,6 @@ import 'dart:typed_data';
 import '../../type/types/complex.dart';
 import '../utils/library_loader_ffi.dart';
 
-enum _FftBackend { none, vdsp, fftw }
-
-const int _vDspDftForward = 1;
-const int _vDspDftInverse = -1;
-const int _vDspDftInterleavedComplextoComplex = 0;
-
-const int _fftwForward = -1;
-const int _fftwBackward = 1;
-const int _fftwUnaligned = 1 << 1;
-const int _fftwEstimate = 1 << 6;
-
 /// Native FFT bindings via dart:ffi supporting Apple vDSP (macOS/iOS) and
 /// FFTW3 (Linux/Android/Windows) using direct leaf typed data addresses.
 abstract final class FftNative {
@@ -519,3 +508,14 @@ external void _fftwExecuteDft(
   ffi.Pointer<ffi.Double> inBuf,
   ffi.Pointer<ffi.Double> outBuf,
 );
+
+enum _FftBackend { none, vdsp, fftw }
+
+const int _vDspDftForward = 1;
+const int _vDspDftInverse = -1;
+const int _vDspDftInterleavedComplextoComplex = 0;
+
+const int _fftwForward = -1;
+const int _fftwBackward = 1;
+const int _fftwUnaligned = 1 << 1;
+const int _fftwEstimate = 1 << 6;

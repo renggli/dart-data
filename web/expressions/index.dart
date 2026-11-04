@@ -460,22 +460,6 @@ void buildSidebar() {
   }
 }
 
-VariableDomain _parseDomain(String value) => switch (value) {
-  'complex' => VariableDomain.complex,
-  'real' => VariableDomain.real,
-  'positive' => VariableDomain.positive,
-  'integer' => VariableDomain.integer,
-  _ => VariableDomain.unknown,
-};
-
-String _domainToString(VariableDomain domain) => switch (domain) {
-  VariableDomain.complex => 'complex',
-  VariableDomain.real => 'real',
-  VariableDomain.positive => 'positive',
-  VariableDomain.integer => 'integer',
-  VariableDomain.unknown => 'unknown',
-};
-
 void selectPreset(ExpressionPreset preset) {
   activePreset = preset;
   currentFormula = preset.formula;
@@ -801,70 +785,6 @@ void updateImaginaryDetection() {
   } else {
     toggleLblFxText.textContent = 'f(x)';
     toggleLblIm.style.display = 'none';
-  }
-}
-
-void _trySetExpr(web.HTMLElement element, Expr? Function() compute) {
-  try {
-    final result = compute();
-    setAttrExpr(element, result);
-  } catch (_) {
-    setAttrValue(element, 'Undefined');
-  }
-}
-
-void _setDirectionalLimits(web.HTMLElement element, Expr? left, Expr? right) {
-  if (left == null && right == null) {
-    setAttrValue(element, '-');
-    return;
-  }
-  final lExpr = left ?? Constant.undefined;
-  final rExpr = right ?? Constant.undefined;
-  final plainText = 'x→x₀⁻: $lExpr | x→x₀⁺: $rExpr';
-  element.title = plainText;
-  element.setAttribute('data-copy', plainText);
-  try {
-    final html =
-        '${lExpr.toMathMl()} <span style="opacity:0.4;padding:0 6px;">|</span> ${rExpr.toMathMl()}';
-    element.innerHTML = html.toJS;
-  } catch (_) {
-    element.textContent = plainText;
-  }
-}
-
-int? _lastErrorOffset;
-web.HTMLSpanElement? _textRuler;
-
-double _measureTextWidth(String text, web.HTMLInputElement input) {
-  var ruler = _textRuler;
-  if (ruler == null) {
-    ruler = web.document.createElement('span') as web.HTMLSpanElement
-      ..id = 'formula-text-ruler'
-      ..style.position = 'fixed'
-      ..style.left = '-99999px'
-      ..style.top = '-99999px'
-      ..style.visibility = 'hidden'
-      ..style.whiteSpace = 'pre'
-      ..style.pointerEvents = 'none';
-    web.document.body!.append(ruler);
-    _textRuler = ruler;
-  }
-  final computed = web.window.getComputedStyle(input);
-  ruler.style.fontFamily = computed.fontFamily;
-  ruler.style.fontSize = computed.fontSize;
-  ruler.style.fontWeight = computed.fontWeight;
-  ruler.style.letterSpacing = computed.letterSpacing;
-  ruler.textContent = text;
-  return ruler.getBoundingClientRect().width.toDouble();
-}
-
-bool _isHidden(web.HTMLElement el) => el.hasAttribute('hidden');
-
-void _setHidden(web.HTMLElement el, bool hidden) {
-  if (hidden) {
-    el.setAttribute('hidden', '');
-  } else {
-    el.removeAttribute('hidden');
   }
 }
 
@@ -1357,43 +1277,6 @@ void clearTelemetry() {
   setAttrValue(bytecodePre, 'No bytecode compiled.');
 }
 
-bool _isUsableSymbolicValue(Expr expr) => !expr.anyNode(
-  (n) =>
-      n == Constant.undefined ||
-      n == Constant.infinity ||
-      n is Integral ||
-      n is Derivative ||
-      n is Limit ||
-      n is Sum ||
-      n is Product,
-);
-
-Expr? _parsePointExpr(String raw) {
-  final trimmed = raw.trim();
-  if (trimmed.isEmpty) return null;
-  if (trimmed == '-infinity' || trimmed == '-∞' || trimmed == '-inf') {
-    return -Constant.infinity;
-  }
-  if (trimmed == 'infinity' ||
-      trimmed == '+infinity' ||
-      trimmed == '∞' ||
-      trimmed == '+∞' ||
-      trimmed == 'inf') {
-    return Constant.infinity;
-  }
-  return Expr.tryParse(trimmed);
-}
-
-double? _currentPointPlotX() {
-  final x0Expr = _parsePointExpr(pointXStr);
-  if (x0Expr == null) return null;
-  try {
-    final c = x0Expr.evaluateComplex();
-    if (c.b.abs() < 1e-9 && c.a.isFinite) return c.a.toDouble();
-  } catch (_) {}
-  return null;
-}
-
 void updatePointTelemetry() {
   final expr = parsedExpr;
   if (expr == null) return;
@@ -1479,20 +1362,6 @@ void updatePointTelemetry() {
   _setDirectionalLimits(valEvalLimDir, limLeft, limRight);
 }
 
-double? _boundToPlotCoordinate(Expr? boundExpr) {
-  if (boundExpr == null) return null;
-  if (boundExpr == Constant.infinity) return maxX;
-  if (boundExpr == -Constant.infinity) return minX;
-  try {
-    final c = boundExpr.evaluateComplex();
-    if (c.b.abs() < 1e-9) {
-      if (c.a.isInfinite) return c.a.isNegative ? minX : maxX;
-      if (c.a.isFinite) return c.a.toDouble();
-    }
-  } catch (_) {}
-  return null;
-}
-
 void updateIntegrationTelemetry() {
   final expr = parsedExpr;
   if (expr == null) return;
@@ -1557,28 +1426,6 @@ void updateTaylorTelemetry() {
     taylorCompiled = null;
     taylorComplexCompiled = null;
   }
-}
-
-String _formatInstruction(int pc, Instruction instr, [List<String>? varNames]) {
-  final opName = instr.op.name.padRight(12);
-  final payload = switch (instr.op) {
-    Op.pushConst =>
-      instr.complexValue.b != 0.0
-          ? '${formatNumber(instr.complexValue.a)} + ${formatNumber(instr.complexValue.b)}i'
-          : formatNumber(instr.realValue),
-    Op.loadVar =>
-      (varNames != null && instr.index < varNames.length)
-          ? 'var[${instr.index}] (${varNames[instr.index]})'
-          : 'var[${instr.index}]',
-    Op.storeReg => 'reg[${instr.index}]',
-    Op.loadReg => 'reg[${instr.index}]',
-    Op.jump => '-> pc ${instr.index}',
-    Op.jumpIfFalse => '-> pc ${instr.index}',
-    Op.evalNode => '${instr.node}',
-    Op.pow when instr.index != 0 => 'mode:${instr.index}',
-    _ => '',
-  };
-  return '${pc.toString().padLeft(3)}: $opName $payload'.trimRight();
 }
 
 void updateBytecodeTelemetry() {
@@ -2042,77 +1889,6 @@ void detectRootsAndExtrema() {
   return (minY: minY, maxY: maxY);
 }
 
-String _cached3dKey = '';
-Float64List _cached3dZ = Float64List(0);
-double _cached3dMinZ = -1.0;
-double _cached3dMaxZ = 1.0;
-String _cached3dXVar = 'x';
-String _cached3dYVar = 'y';
-
-void _renderMultivariable3dSurface(Expr expr) {
-  final free = expr.freeVariables.toList()..sort();
-  final xVar = (free.contains('x') && free.contains('y')) ? 'x' : free[0];
-  final yVar = (free.contains('x') && free.contains('y')) ? 'y' : free[1];
-  const gridSize = 64;
-  final key = '${expr.toString()}|$minX|$maxX|$xVar|$yVar';
-
-  if (_cached3dKey != key) {
-    _cached3dKey = key;
-    _cached3dXVar = xVar;
-    _cached3dYVar = yVar;
-    final vecFn = expr.toVectorFunction([xVar, yVar]);
-    final zVals = Float64List(gridSize * gridSize);
-    final finite = <double>[];
-    final vecView = Vector<double>.filled(2, 0.0, type: DataType.float64);
-    for (var iy = 0; iy < gridSize; iy++) {
-      final v = iy / (gridSize - 1);
-      vecView.setUnchecked(1, minX + v * (maxX - minX));
-      for (var ix = 0; ix < gridSize; ix++) {
-        final u = ix / (gridSize - 1);
-        vecView.setUnchecked(0, minX + u * (maxX - minX));
-        double z;
-        try {
-          z = vecFn(vecView);
-        } catch (_) {
-          z = double.nan;
-        }
-        zVals[iy * gridSize + ix] = z;
-        if (z.isFinite) finite.add(z);
-      }
-    }
-    _cached3dZ = zVals;
-    if (finite.isEmpty) {
-      _cached3dMinZ = -1.0;
-      _cached3dMaxZ = 1.0;
-    } else {
-      finite.sort();
-      final lo = finite[(finite.length * 0.02).floor()];
-      final hi = finite[(finite.length * 0.98).floor()];
-      final span = (hi - lo).abs() < 1e-6 ? 1.0 : (hi - lo);
-      _cached3dMinZ = lo - span * 0.08;
-      _cached3dMaxZ = hi + span * 0.08;
-    }
-  }
-
-  chartController.enabled = false;
-  final surfaceRenderer = WebGLSurfaceRenderer.forCanvas(
-    plotCanvas,
-    onUpdate: drawCharts,
-  );
-  surfaceRenderer.renderSurface(
-    gridSize: gridSize,
-    zValues: _cached3dZ,
-    minX: minX,
-    maxX: maxX,
-    minY: minX,
-    maxY: maxX,
-    minZ: _cached3dMinZ,
-    maxZ: _cached3dMaxZ,
-    xVar: _cached3dXVar,
-    yVar: _cached3dYVar,
-  );
-}
-
 void drawCharts() {
   if (parsedExpr != null && parsedExpr!.freeVariables.length == 2) {
     _renderMultivariable3dSurface(parsedExpr!);
@@ -2532,4 +2308,228 @@ Expr _sliceFor1DPlot(Expr expr) {
     }
   }
   return sub;
+}
+
+VariableDomain _parseDomain(String value) => switch (value) {
+  'complex' => VariableDomain.complex,
+  'real' => VariableDomain.real,
+  'positive' => VariableDomain.positive,
+  'integer' => VariableDomain.integer,
+  _ => VariableDomain.unknown,
+};
+
+String _domainToString(VariableDomain domain) => switch (domain) {
+  VariableDomain.complex => 'complex',
+  VariableDomain.real => 'real',
+  VariableDomain.positive => 'positive',
+  VariableDomain.integer => 'integer',
+  VariableDomain.unknown => 'unknown',
+};
+
+void _trySetExpr(web.HTMLElement element, Expr? Function() compute) {
+  try {
+    final result = compute();
+    setAttrExpr(element, result);
+  } catch (_) {
+    setAttrValue(element, 'Undefined');
+  }
+}
+
+void _setDirectionalLimits(web.HTMLElement element, Expr? left, Expr? right) {
+  if (left == null && right == null) {
+    setAttrValue(element, '-');
+    return;
+  }
+  final lExpr = left ?? Constant.undefined;
+  final rExpr = right ?? Constant.undefined;
+  final plainText = 'x→x₀⁻: $lExpr | x→x₀⁺: $rExpr';
+  element.title = plainText;
+  element.setAttribute('data-copy', plainText);
+  try {
+    final html =
+        '${lExpr.toMathMl()} <span style="opacity:0.4;padding:0 6px;">|</span> ${rExpr.toMathMl()}';
+    element.innerHTML = html.toJS;
+  } catch (_) {
+    element.textContent = plainText;
+  }
+}
+
+int? _lastErrorOffset;
+web.HTMLSpanElement? _textRuler;
+
+double _measureTextWidth(String text, web.HTMLInputElement input) {
+  var ruler = _textRuler;
+  if (ruler == null) {
+    ruler = web.document.createElement('span') as web.HTMLSpanElement
+      ..id = 'formula-text-ruler'
+      ..style.position = 'fixed'
+      ..style.left = '-99999px'
+      ..style.top = '-99999px'
+      ..style.visibility = 'hidden'
+      ..style.whiteSpace = 'pre'
+      ..style.pointerEvents = 'none';
+    web.document.body!.append(ruler);
+    _textRuler = ruler;
+  }
+  final computed = web.window.getComputedStyle(input);
+  ruler.style.fontFamily = computed.fontFamily;
+  ruler.style.fontSize = computed.fontSize;
+  ruler.style.fontWeight = computed.fontWeight;
+  ruler.style.letterSpacing = computed.letterSpacing;
+  ruler.textContent = text;
+  return ruler.getBoundingClientRect().width.toDouble();
+}
+
+bool _isHidden(web.HTMLElement el) => el.hasAttribute('hidden');
+
+void _setHidden(web.HTMLElement el, bool hidden) {
+  if (hidden) {
+    el.setAttribute('hidden', '');
+  } else {
+    el.removeAttribute('hidden');
+  }
+}
+
+bool _isUsableSymbolicValue(Expr expr) => !expr.anyNode(
+  (n) =>
+      n == Constant.undefined ||
+      n == Constant.infinity ||
+      n is Integral ||
+      n is Derivative ||
+      n is Limit ||
+      n is Sum ||
+      n is Product,
+);
+
+Expr? _parsePointExpr(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
+  if (trimmed == '-infinity' || trimmed == '-∞' || trimmed == '-inf') {
+    return -Constant.infinity;
+  }
+  if (trimmed == 'infinity' ||
+      trimmed == '+infinity' ||
+      trimmed == '∞' ||
+      trimmed == '+∞' ||
+      trimmed == 'inf') {
+    return Constant.infinity;
+  }
+  return Expr.tryParse(trimmed);
+}
+
+double? _currentPointPlotX() {
+  final x0Expr = _parsePointExpr(pointXStr);
+  if (x0Expr == null) return null;
+  try {
+    final c = x0Expr.evaluateComplex();
+    if (c.b.abs() < 1e-9 && c.a.isFinite) return c.a.toDouble();
+  } catch (_) {}
+  return null;
+}
+
+double? _boundToPlotCoordinate(Expr? boundExpr) {
+  if (boundExpr == null) return null;
+  if (boundExpr == Constant.infinity) return maxX;
+  if (boundExpr == -Constant.infinity) return minX;
+  try {
+    final c = boundExpr.evaluateComplex();
+    if (c.b.abs() < 1e-9) {
+      if (c.a.isInfinite) return c.a.isNegative ? minX : maxX;
+      if (c.a.isFinite) return c.a.toDouble();
+    }
+  } catch (_) {}
+  return null;
+}
+
+String _formatInstruction(int pc, Instruction instr, [List<String>? varNames]) {
+  final opName = instr.op.name.padRight(12);
+  final payload = switch (instr.op) {
+    Op.pushConst =>
+      instr.complexValue.b != 0.0
+          ? '${formatNumber(instr.complexValue.a)} + ${formatNumber(instr.complexValue.b)}i'
+          : formatNumber(instr.realValue),
+    Op.loadVar =>
+      (varNames != null && instr.index < varNames.length)
+          ? 'var[${instr.index}] (${varNames[instr.index]})'
+          : 'var[${instr.index}]',
+    Op.storeReg => 'reg[${instr.index}]',
+    Op.loadReg => 'reg[${instr.index}]',
+    Op.jump => '-> pc ${instr.index}',
+    Op.jumpIfFalse => '-> pc ${instr.index}',
+    Op.evalNode => '${instr.node}',
+    Op.pow when instr.index != 0 => 'mode:${instr.index}',
+    _ => '',
+  };
+  return '${pc.toString().padLeft(3)}: $opName $payload'.trimRight();
+}
+
+String _cached3dKey = '';
+Float64List _cached3dZ = Float64List(0);
+double _cached3dMinZ = -1.0;
+double _cached3dMaxZ = 1.0;
+String _cached3dXVar = 'x';
+String _cached3dYVar = 'y';
+
+void _renderMultivariable3dSurface(Expr expr) {
+  final free = expr.freeVariables.toList()..sort();
+  final xVar = (free.contains('x') && free.contains('y')) ? 'x' : free[0];
+  final yVar = (free.contains('x') && free.contains('y')) ? 'y' : free[1];
+  const gridSize = 64;
+  final key = '${expr.toString()}|$minX|$maxX|$xVar|$yVar';
+
+  if (_cached3dKey != key) {
+    _cached3dKey = key;
+    _cached3dXVar = xVar;
+    _cached3dYVar = yVar;
+    final vecFn = expr.toVectorFunction([xVar, yVar]);
+    final zVals = Float64List(gridSize * gridSize);
+    final finite = <double>[];
+    final vecView = Vector<double>.filled(2, 0.0, type: DataType.float64);
+    for (var iy = 0; iy < gridSize; iy++) {
+      final v = iy / (gridSize - 1);
+      vecView.setUnchecked(1, minX + v * (maxX - minX));
+      for (var ix = 0; ix < gridSize; ix++) {
+        final u = ix / (gridSize - 1);
+        vecView.setUnchecked(0, minX + u * (maxX - minX));
+        double z;
+        try {
+          z = vecFn(vecView);
+        } catch (_) {
+          z = double.nan;
+        }
+        zVals[iy * gridSize + ix] = z;
+        if (z.isFinite) finite.add(z);
+      }
+    }
+    _cached3dZ = zVals;
+    if (finite.isEmpty) {
+      _cached3dMinZ = -1.0;
+      _cached3dMaxZ = 1.0;
+    } else {
+      finite.sort();
+      final lo = finite[(finite.length * 0.02).floor()];
+      final hi = finite[(finite.length * 0.98).floor()];
+      final span = (hi - lo).abs() < 1e-6 ? 1.0 : (hi - lo);
+      _cached3dMinZ = lo - span * 0.08;
+      _cached3dMaxZ = hi + span * 0.08;
+    }
+  }
+
+  chartController.enabled = false;
+  final surfaceRenderer = WebGLSurfaceRenderer.forCanvas(
+    plotCanvas,
+    onUpdate: drawCharts,
+  );
+  surfaceRenderer.renderSurface(
+    gridSize: gridSize,
+    zValues: _cached3dZ,
+    minX: minX,
+    maxX: maxX,
+    minY: minX,
+    maxY: maxX,
+    minZ: _cached3dMinZ,
+    maxZ: _cached3dMaxZ,
+    xVar: _cached3dXVar,
+    yVar: _cached3dYVar,
+  );
 }

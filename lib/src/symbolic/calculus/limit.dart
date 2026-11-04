@@ -37,11 +37,6 @@ extension LimitExtension on Expr {
   );
 }
 
-final Expr _negInfinity = Mul(const [
-  IntegerNumber.negativeOne,
-  Constant.infinity,
-], isSimplified: true);
-
 /// Computes the symbolic limit of [expr] as [variable] approaches [point].
 Expr computeLimit(
   Expr expr,
@@ -1091,3 +1086,8 @@ String _freshLimitVar(String base, Expr expr, [Expr? point]) {
   }
   return '${base}_$i';
 }
+
+final Expr _negInfinity = Mul(const [
+  IntegerNumber.negativeOne,
+  Constant.infinity,
+], isSimplified: true);

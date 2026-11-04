@@ -4,9 +4,6 @@ import 'dart:typed_data';
 import 'blas_validation.dart';
 import 'cblas_constants.dart';
 
-/// Block tile size for cache-blocked GEMM.
-const int _gemmBlockSize = 32;
-
 /// Pure Dart reference implementation of BLAS routines.
 abstract final class BlasDart {
   // --- BLAS Level 1: Vector-Vector Operations ---
@@ -1175,3 +1172,6 @@ abstract final class BlasDart {
     return true;
   }
 }
+
+/// Block tile size for cache-blocked GEMM.
+const int _gemmBlockSize = 32;
