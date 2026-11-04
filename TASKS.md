@@ -518,7 +518,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `(ComplexNumber.i * ComplexNumber.i).evaluate()` throws `UnsupportedError`; `_evalNodeReal` returns `double.nan` for `Derivative`, `Limit`, `Sum`, and `Product`; `_solveUnfiltered` does not filter product roots that make co-factors `undefined`/`infinity`; `isolateAndInvert` drops `assumptions` and misses non-unit Lambert W ratios; and `solveEquations` returns `[]` on consistent overdetermined linear systems.
   - **Fix**: Fallback to `_runComplex` when `hasComplexLiterals` is true and return `res.a` if `res.b == 0`; evaluate `Derivative`/`Limit`/`Sum`/`Product` via substitution in `_evalNodeReal`; filter extraneous pole roots in `_solveUnfiltered`; generalize Lambert W ratio matching; and use `BareissEngine().rowEchelonWithPivots` for rectangular linear systems.
 
-- [ ] **1.10.19 Inconsistent degree-mode conversion for trig functions in `web/calculator`**
+- [x] **1.10.19 Inconsistent degree-mode conversion for trig functions in `web/calculator`**
   - **Severity**: Warning
   - **Location**: `web/calculator/src/engine/evaluator.dart:832-844`, `web/calculator/src/engine/sampling.dart:464-480`
   - **Problem**: In `AngleMode.deg`, `_convertTrigArgToDegrees` checks `expr.freeVariables.isEmpty` on the root expression instead of `inner.freeVariables.isNotEmpty` on the trig argument `inner`, causing `sin(30) + x` to convert `30` to radians twice during plotting while `subs(sin(x), x = 30)` evaluates in radians.

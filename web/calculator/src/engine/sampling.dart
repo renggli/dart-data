@@ -465,16 +465,22 @@ Expr _convertTrigArgToDegrees(Expr expr) {
   final degFactor = Constant.pi / IntegerNumber.of(180);
   final radToDeg = IntegerNumber.of(180) / Constant.pi;
   final mapped = expr.mapChildren(_convertTrigArgToDegrees);
-  if (expr.freeVariables.isEmpty) {
-    return mapped;
-  }
   return switch (mapped) {
-    Sin(:final expr) => Sin(expr * degFactor),
-    Cos(:final expr) => Cos(expr * degFactor),
-    Tan(:final expr) => Tan(expr * degFactor),
-    Asin(:final expr) => Asin(expr) * radToDeg,
-    Acos(:final expr) => Acos(expr) * radToDeg,
-    Atan(:final expr) => Atan(expr) * radToDeg,
+    Sin(expr: final inner) when inner.freeVariables.isNotEmpty => Sin(
+      inner * degFactor,
+    ),
+    Cos(expr: final inner) when inner.freeVariables.isNotEmpty => Cos(
+      inner * degFactor,
+    ),
+    Tan(expr: final inner) when inner.freeVariables.isNotEmpty => Tan(
+      inner * degFactor,
+    ),
+    Asin(expr: final inner) when inner.freeVariables.isNotEmpty =>
+      Asin(inner) * radToDeg,
+    Acos(expr: final inner) when inner.freeVariables.isNotEmpty =>
+      Acos(inner) * radToDeg,
+    Atan(expr: final inner) when inner.freeVariables.isNotEmpty =>
+      Atan(inner) * radToDeg,
     _ => mapped,
   };
 }

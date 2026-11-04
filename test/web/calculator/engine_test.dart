@@ -513,6 +513,12 @@ void main() {
       check(seg.y.first).isCloseTo(0.5, 1e-6);
       check(seg.y.last).isCloseTo(1.5, 1e-6);
 
+      final degPlot2 =
+          eval.evaluateScroll('plot(sin(30) + x, x, 0, 90)').value as PlotValue;
+      final seg2 = degPlot2.curves.first.segments.first;
+      check(seg2.y.first).isCloseTo(0.5, 1e-6);
+      check(seg2.y.last).isCloseTo(90.5, 1e-6);
+
       final asinPlot =
           eval.evaluateScroll('plot(asin(x), x, 0, 1)').value as PlotValue;
       check(asinPlot.curves.first.segments.first.y.last).isCloseTo(90.0, 1e-4);
