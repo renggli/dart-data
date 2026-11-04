@@ -59,7 +59,7 @@ void main() {
     test('element access and mutation', () {
       final m = Float64Matrix.filled(2, 2, 0.0);
       m.set(0, 1, 4.5);
-      m[(1, 0)] = 8.5;
+      m[1][0] = 8.5;
       check(m.get(0, 1)).equals(4.5);
       check(m[0][1]).equals(4.5);
       check(m.get(1, 0)).equals(8.5);
@@ -258,6 +258,19 @@ void main() {
       check(() => sub[0][2]).throws<RangeError>();
       check(() => sub[0][-1]).throws<RangeError>();
       check(() => sub[0][2] = 99.0).throws<RangeError>();
+
+      // operator []= row assignment
+      final assignMat = Float64Matrix.filled(2, 2, 0.0);
+      final newRow = Float64Vector.fromList([10.0, 20.0]);
+      assignMat[0] = newRow;
+      check(assignMat[0].toList()).deepEquals([10.0, 20.0]);
+      check(() => assignMat[-1] = newRow).throws<RangeError>();
+      check(() => assignMat[2] = newRow).throws<RangeError>();
+      check(
+        () => assignMat[0] = Float64Vector.fromList([1.0, 2.0, 3.0]),
+      ).throws<ArgumentError>();
+      assignMat[1] = assignMat[0];
+      check(assignMat[1].toList()).deepEquals([10.0, 20.0]);
 
       check(() => sub.row(2)).throws<RangeError>();
       check(() => sub.row(-3)).throws<RangeError>();

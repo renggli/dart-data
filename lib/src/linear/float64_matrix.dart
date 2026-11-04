@@ -6,6 +6,7 @@ import '../acceleration/blas/blas.dart';
 import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
 import '../type/data_type.dart';
+import '../type/utils/memory.dart';
 import 'decomposition/lu.dart';
 import 'float64_vector.dart';
 import 'matrix.dart';
@@ -160,12 +161,28 @@ extension type Float64Matrix._(Matrix<double> _matrix)
     return this.row(row);
   }
 
-  /// Sets the element at [pos] `(row, col)` to [value].
+  /// Sets the contents of the specified [row] to the elements of [values].
+  ///
+  /// Throws a [RangeError] if [row] is out of bounds, and an [ArgumentError] if
+  /// [values] length does not match [colCount].
   @pragma('vm:prefer-inline')
   @redeclare
-  void operator []=((int row, int col) pos, double value) {
-    final (row, col) = pos;
-    set(row, col, value);
+  void operator []=(int row, Vector<double> values) {
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    if (values.length != colCount) {
+      throw ArgumentError.value(
+        values.length,
+        'values.length',
+        'Length must match column count ($colCount)',
+      );
+    }
+    final targetRow = this.row(row);
+    final src = sharesMemory(_matrix.tensor.data, values.tensor.data)
+        ? values.copy()
+        : values;
+    for (var col = 0; col < colCount; col++) {
+      targetRow.setUnchecked(col, src.getUnchecked(col));
+    }
   }
 
   /// Slices [row] index into a 1D [Float64Vector].

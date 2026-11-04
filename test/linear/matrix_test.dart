@@ -34,27 +34,36 @@ void main() {
       check(matrix.getUnchecked(2, 3)).equals(123.0);
     });
 
-    test('natural 2D indexing syntax [r][c] and record write [(r, c)]', () {
-      final matrix = Matrix<int>.generate(
-        2,
-        3,
-        (r, c) => r + c,
-        type: DataType.int32,
-      );
+    test(
+      'natural 2D indexing syntax [r][c] and row assignment [r] = values',
+      () {
+        final matrix = Matrix<int>.generate(
+          2,
+          3,
+          (r, c) => r + c,
+          type: DataType.int32,
+        );
 
-      check(matrix[0][0]).equals(0);
-      check(matrix[0][2]).equals(2);
-      check(matrix[1][1]).equals(2);
-      check(matrix[1][2]).equals(3);
+        check(matrix[0][0]).equals(0);
+        check(matrix[0][2]).equals(2);
+        check(matrix[1][1]).equals(2);
+        check(matrix[1][2]).equals(3);
 
-      matrix[0][1] = 42;
-      check(matrix[0][1]).equals(42);
-      check(matrix.get(0, 1)).equals(42);
-      check(matrix.getUnchecked(0, 1)).equals(42);
+        matrix[0][1] = 42;
+        check(matrix[0][1]).equals(42);
+        check(matrix.get(0, 1)).equals(42);
+        check(matrix.getUnchecked(0, 1)).equals(42);
 
-      matrix[(0, 1)] = 99;
-      check(matrix[0][1]).equals(99);
-    });
+        // Row assignment with Vector
+        final newRow = Vector<int>.fromList([10, 20, 30], type: DataType.int32);
+        matrix[0] = newRow;
+        check(matrix[0].toList()).deepEquals([10, 20, 30]);
+
+        // Row assignment copying from another row (aliased memory safety)
+        matrix[1] = matrix[0];
+        check(matrix[1].toList()).deepEquals([10, 20, 30]);
+      },
+    );
 
     test('bounds validation throws RangeError', () {
       final matrix = Matrix<double>.generate(
@@ -79,10 +88,11 @@ void main() {
       check(() => matrix[0][-1]).throws<RangeError>();
       check(() => matrix[0][3]).throws<RangeError>();
 
-      check(() => matrix[(-1, 0)] = 0.0).throws<RangeError>();
-      check(() => matrix[(0, -1)] = 0.0).throws<RangeError>();
-      check(() => matrix[(2, 0)] = 0.0).throws<RangeError>();
-      check(() => matrix[(0, 3)] = 0.0).throws<RangeError>();
+      final validRow = Vector<double>.filled(3, 0.0, type: DataType.float64);
+      final invalidRow = Vector<double>.filled(2, 0.0, type: DataType.float64);
+      check(() => matrix[-1] = validRow).throws<RangeError>();
+      check(() => matrix[2] = validRow).throws<RangeError>();
+      check(() => matrix[0] = invalidRow).throws<ArgumentError>();
     });
 
     test('transposed view indexing preserves correctness', () {
@@ -105,7 +115,7 @@ void main() {
         }
       }
 
-      trans[(1, 0)] = 88;
+      trans[1][0] = 88;
       check(matrix.get(0, 1)).equals(88);
       check(trans.getUnchecked(1, 0)).equals(88);
     });

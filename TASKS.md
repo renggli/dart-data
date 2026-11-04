@@ -705,7 +705,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ## 5. Simplicity and Cleanness of Public APIs
 
-- [ ] **5.1 Asymmetric `operator []` vs `operator []=` on `Matrix` and `Float64Matrix`**
+- [x] **5.1 Asymmetric `operator []` vs `operator []=` on `Matrix` and `Float64Matrix`**
   - **Severity**: Critical
   - **Location**: `lib/src/linear/matrix.dart:278-298`, `lib/src/linear/float64_matrix.dart:273-294`
   - **Problem**: `matrix[r]` (`Vector<T> operator [](int row)`) takes an `int` row index, enabling `matrix[r][c]` for both reading and writing (`matrix[r][c] = value`). However, `Matrix` and `Float64Matrix` define `void operator []=((int row, int col) pos, T value)` taking a record `(int, int)`, so `matrix[(r, c)] = value` compiles while `matrix[(r, c)]` does not compile, and `final row = matrix[r]` compiles while `matrix[r] = rowVec` does not compile.

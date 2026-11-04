@@ -139,7 +139,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - `matrix.conjugateTranspose` computes the Hermitian adjoint $A^* = (\bar{A})^T$ mapping elements through `type.field.conjugate`.
   - **Direct Fast-Path Indexing**:
     - `Tensor.get2D(r, c)`, `Tensor.set2D(r, c, v)`, `Tensor.get1D(idx)`, and `Tensor.set1D(idx, v)` provide `@pragma('vm:prefer-inline')` unchecked scalar access without heap `List<int>` coordinate allocations.
-    - `Matrix<T>` provides `getUnchecked(row, col)` and `setUnchecked(row, col, value)` for performance-critical inner loops (factorizations, transformations), alongside 2D indexing `matrix[r][c]`, bounds-checked `get(row, col)`, `set(row, col, value)`, and record setter `operator []=((int, int), value)`.
+    - `Matrix<T>` provides `getUnchecked(row, col)` and `setUnchecked(row, col, value)` for performance-critical inner loops (factorizations, transformations), alongside 2D indexing `matrix[r][c]`, bounds-checked `get(row, col)`, `set(row, col, value)`, and row assignment `operator []=(int, Vector<T>)`.
     - `Vector<T>` provides `getUnchecked(index)` and `setUnchecked(index, value)` alongside bounds-checked `operator [](index)` and `operator []=(index, value)`.
     - Direct linear buffer initialization in `Matrix.generate` and `Vector.generate` avoids coordinate list allocations.
 
