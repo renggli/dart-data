@@ -70,10 +70,130 @@ void main() {
       ]);
       final csr = CooMatrix.fromDense(dense).toCsr();
       final matmulRes = csr.matmul(dense);
+      check(matmulRes).isA<Matrix<double>>();
       check(matmulRes.rowCount).equals(2);
       check(matmulRes.colCount).equals(2);
       final x = Vector<double>.fromList([1.0, 0.0]);
       check(matmulRes.apply(x).toList()).deepEquals([1.0, 0.0]);
+
+      // Check dense-sparse equivalence with larger rectangular matrices
+      final denseA = Matrix<double>.fromRows([
+        [2.0, 0.0, 1.0],
+        [0.0, 3.0, 0.0],
+      ]);
+      final denseB = Matrix<double>.fromRows([
+        [1.0, 2.0, 0.0, 4.0],
+        [0.0, 1.0, 3.0, 0.0],
+        [5.0, 0.0, 2.0, 1.0],
+      ]);
+      final csrA = CooMatrix.fromDense(denseA).toCsr();
+      final denseAB = csrA.matmul(denseB);
+      check(denseAB).isA<Matrix<double>>();
+      final expectedAB = denseA * denseB;
+      for (var r = 0; r < 2; r++) {
+        for (var c = 0; c < 4; c++) {
+          check(
+            denseAB.apply(
+              Vector<double>.fromList([
+                for (var i = 0; i < 4; i++)
+                  if (i == c) 1.0 else 0.0,
+              ]),
+            )[r],
+          ).isCloseTo(expectedAB.get(r, c), 1e-10);
+        }
+      }
+    });
+
+    test('matmul with CsrMatrix produces sparse CsrMatrix', () {
+      final denseA = Matrix<double>.fromRows([
+        [10.0, 0.0, 0.0, 2.0],
+        [0.0, 3.0, 0.0, 0.0],
+        [1.0, 0.0, 4.0, 5.0],
+      ]);
+      final denseB = Matrix<double>.fromRows([
+        [1.0, 0.0],
+        [0.0, 2.0],
+        [3.0, 1.0],
+        [0.0, 4.0],
+      ]);
+
+      final csrA = CooMatrix.fromDense(denseA).toCsr();
+      final csrB = CooMatrix.fromDense(denseB).toCsr();
+
+      final res = csrA.matmul(csrB);
+      check(res).isA<CsrMatrix<double>>();
+      final csrRes = res as CsrMatrix<double>;
+
+      final expected = denseA * denseB;
+      final denseRes = csrRes.toDense();
+      for (var r = 0; r < 3; r++) {
+        for (var c = 0; c < 2; c++) {
+          check(denseRes.get(r, c)).isCloseTo(expected.get(r, c), 1e-10);
+        }
+      }
+    });
+
+    test('matmul with CooMatrix and CscMatrix', () {
+      final denseA = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final denseB = Matrix<double>.fromRows([
+        [5.0, 6.0],
+        [7.0, 8.0],
+      ]);
+      final csrA = CooMatrix.fromDense(denseA).toCsr();
+      final cooB = CooMatrix.fromDense(denseB);
+      final cscB = cooB.toCsc();
+
+      final resFromCoo = csrA.matmul(cooB);
+      check(resFromCoo).isA<CsrMatrix<double>>();
+      final resFromCsc = csrA.matmul(cscB);
+      check(resFromCsc).isA<CsrMatrix<double>>();
+
+      final expected = denseA * denseB;
+      for (var r = 0; r < 2; r++) {
+        for (var c = 0; c < 2; c++) {
+          check((resFromCoo as CsrMatrix<double>).toDense().get(r, c))
+              .isCloseTo(expected.get(r, c), 1e-10);
+          check((resFromCsc as CsrMatrix<double>).toDense().get(r, c))
+              .isCloseTo(expected.get(r, c), 1e-10);
+        }
+      }
+    });
+
+    test('matmul sparse cancellation drops exact zeros', () {
+      final denseA = Matrix<double>.fromRows([
+        [1.0, 1.0],
+      ]);
+      final denseB = Matrix<double>.fromRows([
+        [2.0],
+        [-2.0],
+      ]);
+      final csrA = CooMatrix.fromDense(denseA).toCsr();
+      final csrB = CooMatrix.fromDense(denseB).toCsr();
+
+      final res = csrA.matmul(csrB) as CsrMatrix<double>;
+      check(res.rowCount).equals(1);
+      check(res.colCount).equals(1);
+      check(res.nnz).equals(0);
+      check(res.toDense().get(0, 0)).equals(0.0);
+    });
+
+    test('matmul with custom LinearOperator', () {
+      final denseA = Matrix<double>.fromRows([
+        [2.0, 0.0],
+        [0.0, 3.0],
+      ]);
+      final csrA = CooMatrix.fromDense(denseA).toCsr();
+      final customOp = _CustomScaleOperator(2, 2, DataType.float64, 5.0);
+
+      final res = csrA.matmul(customOp);
+      check(res).isA<Matrix<double>>();
+      check(res.rowCount).equals(2);
+      check(res.colCount).equals(2);
+      final x = Vector<double>.fromList([1.0, 2.0]);
+      check(res.apply(x).toList()).deepEquals([10.0, 30.0]);
     });
 
     test('complex applyTranspose vs applyConjugateTranspose', () {
@@ -191,4 +311,33 @@ void main() {
       ).throws<ArgumentError>();
     });
   });
+}
+
+class _CustomScaleOperator implements LinearOperator<double> {
+  new(this.rowCount, this.colCount, this.type, this.scale);
+
+  @override
+  final int rowCount;
+
+  @override
+  final int colCount;
+
+  @override
+  final DataType<double> type;
+
+  final double scale;
+
+  @override
+  Vector<double> apply(Vector<double> x) =>
+      Vector<double>.generate(rowCount, (i) => x[i] * scale, type: type);
+
+  @override
+  Vector<double> applyTranspose(Vector<double> x) => apply(x);
+
+  @override
+  Vector<double> applyConjugateTranspose(Vector<double> x) => apply(x);
+
+  @override
+  LinearOperator<double> matmul(LinearOperator<double> other) =>
+      throw UnimplementedError();
 }

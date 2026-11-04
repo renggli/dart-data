@@ -218,28 +218,17 @@ class CsrMatrix<T> implements LinearOperator<T> {
         'Dimension mismatch: CsrMatrix ($rowCount x $colCount) * Operator (${other.rowCount} x ${other.colCount})',
       );
     }
-    final field = type.field;
-    final res = Matrix<T>.filled(
-      rowCount,
-      other.colCount,
-      field.additiveIdentity,
-      type: type,
-    );
-    final eJ = Vector<T>.filled(
-      other.colCount,
-      field.additiveIdentity,
-      type: type,
-    );
-    for (var j = 0; j < other.colCount; j++) {
-      if (j > 0) eJ[j - 1] = field.additiveIdentity;
-      eJ[j] = field.multiplicativeIdentity;
-      final otherCol = other.apply(eJ);
-      final thisCol = apply(otherCol);
-      for (var i = 0; i < rowCount; i++) {
-        res.set(i, j, thisCol[i]);
-      }
+    if (other is CsrMatrix<T>) {
+      return _matmulSparse(other);
+    } else if (other is CooMatrix<T>) {
+      return _matmulSparse(other.toCsr());
+    } else if (other is CscMatrix<T>) {
+      return _matmulSparse(other.toCsr());
+    } else if (other is Matrix<T>) {
+      return _matmulDense(other);
+    } else {
+      return _matmulOperator(other);
     }
-    return res;
   }
 
   /// Converts this CSR matrix to Coordinate (COO) format.
@@ -288,6 +277,117 @@ class CsrMatrix<T> implements LinearOperator<T> {
       for (var ptr = start; ptr < end; ptr++) {
         final c = colIndices[ptr];
         res.set(i, c, field.add(res.get(i, c), values[ptr]));
+      }
+    }
+    return res;
+  }
+
+  CsrMatrix<T> _matmulSparse(CsrMatrix<T> other) {
+    final field = type.field;
+    final m = rowCount;
+    final n = other.colCount;
+
+    final cRowPointers = List<int>.filled(m + 1, 0);
+    final cColIndices = <int>[];
+    final cValuesList = <T>[];
+
+    final marker = List<int>.filled(n, -1);
+    final x = type.newList(n, fillValue: field.additiveIdentity);
+    final rowCols = <int>[];
+
+    for (var i = 0; i < m; i++) {
+      final aStart = rowPointers[i];
+      final aEnd = rowPointers[i + 1];
+
+      for (var aPtr = aStart; aPtr < aEnd; aPtr++) {
+        final aVal = values[aPtr];
+        final k = colIndices[aPtr];
+
+        final bStart = other.rowPointers[k];
+        final bEnd = other.rowPointers[k + 1];
+
+        for (var bPtr = bStart; bPtr < bEnd; bPtr++) {
+          final col = other.colIndices[bPtr];
+          final bVal = other.values[bPtr];
+          final prod = field.mul(aVal, bVal);
+
+          if (marker[col] != i) {
+            marker[col] = i;
+            x[col] = prod;
+            rowCols.add(col);
+          } else {
+            x[col] = field.add(x[col], prod);
+          }
+        }
+      }
+
+      if (rowCols.isNotEmpty) {
+        rowCols.sort();
+        for (var cIdx = 0; cIdx < rowCols.length; cIdx++) {
+          final c = rowCols[cIdx];
+          final val = x[c];
+          if (!type.equality.isEqual(val, field.additiveIdentity)) {
+            cColIndices.add(c);
+            cValuesList.add(val);
+          }
+        }
+        rowCols.clear();
+      }
+      cRowPointers[i + 1] = cColIndices.length;
+    }
+
+    final cValues = type.newList(cValuesList.length);
+    for (var i = 0; i < cValuesList.length; i++) {
+      cValues[i] = cValuesList[i];
+    }
+
+    return CsrMatrix<T>(
+      rowCount: m,
+      colCount: n,
+      rowPointers: cRowPointers,
+      colIndices: cColIndices,
+      values: cValues,
+      type: type,
+    );
+  }
+
+  Matrix<T> _matmulDense(Matrix<T> other) {
+    final field = type.field;
+    final m = rowCount;
+    final n = other.colCount;
+
+    final res = Matrix<T>.filled(m, n, field.additiveIdentity, type: type);
+
+    for (var i = 0; i < m; i++) {
+      final start = rowPointers[i];
+      final end = rowPointers[i + 1];
+      for (var ptr = start; ptr < end; ptr++) {
+        final aVal = values[ptr];
+        final k = colIndices[ptr];
+
+        for (var j = 0; j < n; j++) {
+          final prod = field.mul(aVal, other.getUnchecked(k, j));
+          res.setUnchecked(i, j, field.add(res.getUnchecked(i, j), prod));
+        }
+      }
+    }
+    return res;
+  }
+
+  Matrix<T> _matmulOperator(LinearOperator<T> other) {
+    final field = type.field;
+    final m = rowCount;
+    final n = other.colCount;
+
+    final res = Matrix<T>.filled(m, n, field.additiveIdentity, type: type);
+    final eJ = Vector<T>.filled(n, field.additiveIdentity, type: type);
+    for (var j = 0; j < n; j++) {
+      if (j > 0) eJ[j - 1] = field.additiveIdentity;
+      eJ[j] = field.multiplicativeIdentity;
+      final otherCol = other.apply(eJ);
+      final thisCol = apply(otherCol);
+      for (var i = 0; i < m; i++) {
+        res.setUnchecked(i, j, thisCol[i]);
       }
     }
     return res;

@@ -534,7 +534,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `Lapack.dgesvd` is implemented across all platforms in `lib/src/acceleration/lapack/`, yet `SingularValueDecomposition` never calls it and instead runs a pure-Dart loop over boxed `List<double>` arrays (`aVals`, `uVals`, `sVals`, `vtVals`, `work`, `eList`, `vList`). Furthermore, even when `computeVectors: false` is passed—or when `matrix.norm2`, `matrix.cond`, and `matrix.rank` only need singular values `s`—`svd.dart` allocates $m \times m$ and $n \times n$ vector buffers and computes full singular vectors.
   - **Fix**: Route finite matrices in `SingularValueDecomposition` to `Lapack.dgesvd(jobu: computeVectors ? 'A' : 'N', jobvt: computeVectors ? 'A' : 'N', ...)`, replace all `List<double>` buffers in `svd.dart` with `Float64List`, skip allocating `uVals`/`vtVals` when `computeVectors == false`, and call `SingularValueDecomposition(this, computeVectors: false).s` in `norm2`, `cond`, and `rank`.
 
-- [ ] **2.2 `CsrMatrix.matmul` has $\mathcal{O}(N \cdot (\text{nnz}(B) + \text{nnz}(A) + M))$ time and dense $\mathcal{O}(M \cdot N)$ space complexity**
+- [x] **2.2 `CsrMatrix.matmul` has $\mathcal{O}(N \cdot (\text{nnz}(B) + \text{nnz}(A) + M))$ time and dense $\mathcal{O}(M \cdot N)$ space complexity**
   - **Severity**: Critical
   - **Location**: `lib/src/linear/sparse/csr_matrix.dart:186-214`
   - **Problem**: `CsrMatrix.matmul` multiplies column-by-column by allocating a dense unit vector `eJ`, calling `other.apply(eJ)`, and calling `this.apply(otherCol)`, performing $N$ full matrix-vector multiplications just to extract columns of `other` and materializing a dense `Matrix<T>`.
