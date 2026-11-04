@@ -452,7 +452,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Recursive `computeLimit` calls for `Pow(base, exponent)` (`line 86`) and `Pow(Constant.e, exponent)` (`line 100`) receive an unevaluated `Limit` node when inner evaluation fails and return `Pow(Constant.e, Limit(...))` instead of reaching `_computeInfiniteLimit` / `_gruntzLimit`. Also, `Ln(inner)` (`lines 125-127`) returns `-Constant.infinity` whenever `innerLim == 0` without checking that `inner` approaches $0^+$.
   - **Fix**: Fall through to the general limit pipeline when recursive `baseLim` or `expLim` is an unevaluated `Limit`, and verify `inner` approaches $0^+$ before returning `-Constant.infinity` for `Ln(inner)`.
 
-- [ ] **1.10.8 `_expandSeriesTimesExpr` re-expands already-truncated `sLeft` polynomial, losing terms on multi-factor products with poles**
+- [x] **1.10.8 `_expandSeriesTimesExpr` re-expands already-truncated `sLeft` polynomial, losing terms on multi-factor products with poles**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/calculus/series.dart:677-726`
   - **Problem**: When `right` has a pole of order `q > 0`, `_expandSeriesTimesExpr` calls `sLeft.toExpr(includeOrder: false).toPowerSeries(..., order: sLeft.order + q)`. Because `sLeft` was already truncated at `sLeft.order`, re-expanding its polynomial AST pads higher degrees with zeros. Thus `Expr.parse('exp(x) * sin(x) / x').series('x', order: 3)` returns `1 + x + O(x^3)` instead of `1 + x + 1/3 * x^2 + O(x^3)`.

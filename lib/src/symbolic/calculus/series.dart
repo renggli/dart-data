@@ -680,9 +680,51 @@ PowerSeries _expandMulFactors(
   Expr point,
   int order,
 ) {
-  var res = _expandBinaryMul(factors[0], factors[1], variable, point, order);
-  for (var j = 2; j < factors.length; j++) {
-    res = _expandSeriesTimesExpr(res, factors[j], variable, point, order);
+  if (factors.isEmpty) {
+    return PowerSeries(variable, point, const {}, order);
+  }
+  if (factors.length == 1) {
+    return _expandToPowerSeries(factors[0], variable, point, order);
+  }
+  if (factors.length == 2) {
+    return _expandBinaryMul(factors[0], factors[1], variable, point, order);
+  }
+
+  final seriesList = <PowerSeries>[];
+  final poleOrders = <int>[];
+  var totalPoleOrder = 0;
+
+  for (final factor in factors) {
+    final s = _expandToPowerSeries(factor, variable, point, order);
+    final p = s.poleOrder;
+    seriesList.add(s);
+    poleOrders.add(p);
+    totalPoleOrder += p;
+  }
+
+  if (totalPoleOrder == 0) {
+    var res = seriesList[0];
+    for (var i = 1; i < seriesList.length; i++) {
+      res = res * seriesList[i];
+    }
+    return res;
+  }
+
+  final boostedSeriesList = <PowerSeries>[];
+  for (var i = 0; i < factors.length; i++) {
+    final otherPoles = totalPoleOrder - poleOrders[i];
+    if (otherPoles == 0) {
+      boostedSeriesList.add(seriesList[i]);
+    } else {
+      boostedSeriesList.add(
+        _expandToPowerSeries(factors[i], variable, point, order + otherPoles),
+      );
+    }
+  }
+
+  var res = boostedSeriesList[0];
+  for (var i = 1; i < boostedSeriesList.length; i++) {
+    res = res * boostedSeriesList[i];
   }
   return res;
 }
@@ -706,23 +748,6 @@ PowerSeries _expandBinaryMul(
       ? sRight
       : _expandToPowerSeries(right, variable, point, order + p);
   return boostedLeft * boostedRight;
-}
-
-PowerSeries _expandSeriesTimesExpr(
-  PowerSeries sLeft,
-  Expr right,
-  String variable,
-  Expr point,
-  int order,
-) {
-  final p = sLeft.poleOrder;
-  final sRight = _expandToPowerSeries(right, variable, point, order + p);
-  final q = sRight.poleOrder;
-  if (q == 0) return sLeft * sRight;
-  final boostedLeft = sLeft
-      .toExpr(includeOrder: false)
-      .toPowerSeries(variable, point: point, order: sLeft.order + q);
-  return boostedLeft * sRight;
 }
 
 PowerSeries _expandExp(Expr inner, String variable, Expr point, int order) {

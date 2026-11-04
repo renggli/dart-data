@@ -165,6 +165,11 @@ void main() {
               .series('x', order: 3);
       check(tripleWithPole.removeOrder().evaluate({'x': 0.1}))
           .isCloseTo(0.1 - 0.01, 1e-12);
+
+      // Multi-factor product with pole order loss regression test
+      final ps = Expr.parse('exp(x) * sin(x) / x').toPowerSeries('x', order: 3);
+      check(ps.toExpr().toString()).equals('1 + x + 1/3 * x ^ 2 + O(x^3)');
+      check(ps.poleOrder).equals(0);
     });
 
     test('expands exponentials, logarithms, and powers', () {
