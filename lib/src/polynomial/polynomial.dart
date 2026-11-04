@@ -121,6 +121,9 @@ abstract class Polynomial<T> {
   /// The number of non-zero terms in this polynomial.
   int get termCount;
 
+  /// Returns the non-zero terms as `(exponent, coefficient)` pairs.
+  Iterable<({int exponent, T coefficient})> get nonZeroTerms;
+
   /// Returns the coefficient for $x^{exponent}$, or zero if beyond the stored
   /// degree.
   T operator [](int exponent);
@@ -303,9 +306,10 @@ abstract class Polynomial<T> {
     if (other is! Polynomial<T> || type != other.type) return false;
     final deg = degree;
     if (deg != other.degree) return false;
+    if (termCount != other.termCount) return false;
     if (deg < 0) return true;
-    for (var i = 0; i <= deg; i++) {
-      if (this[i] != other[i]) return false;
+    for (final term in nonZeroTerms) {
+      if (term.coefficient != other[term.exponent]) return false;
     }
     return true;
   }
@@ -315,12 +319,8 @@ abstract class Polynomial<T> {
     final deg = degree;
     var hash = Object.hash(deg, type);
     if (deg < 0) return hash;
-    final zero = type.field.additiveIdentity;
-    for (var i = 0; i <= deg; i++) {
-      final c = this[i];
-      if (c != zero) {
-        hash = Object.hash(hash, i, c);
-      }
+    for (final term in nonZeroTerms) {
+      hash = Object.hash(hash, term.exponent, term.coefficient);
     }
     return hash;
   }

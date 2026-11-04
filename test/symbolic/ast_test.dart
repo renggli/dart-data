@@ -18,6 +18,12 @@ void main() {
       final expr2 = Expr.parse('sin(x^2 + 1) + 3 * x * cos(x)');
       check(expr1.hashCode).equals(expr2.hashCode);
       check(expr1).equals(expr2);
+
+      // Free variables caching
+      final free1 = expr1.freeVariables;
+      final free2 = expr1.freeVariables;
+      check(identical(free1, free2)).isTrue();
+      check(free1).unorderedEquals(['x']);
     });
   });
 

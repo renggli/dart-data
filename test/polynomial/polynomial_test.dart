@@ -601,6 +601,27 @@ void main() {
         Complex.one,
       ]);
       check(() => cubicComplex.roots).throws<UnsupportedError>();
+
+      // High degree sparse equality and nonZeroTerms
+      final highDeg1 = Polynomial<int>.compressed([0, 100000], [-1, 1]);
+      final highDeg2 = Polynomial<int>.compressed([0, 100000], [-1, 1]);
+      final highDeg3 = Polynomial<int>.compressed(
+        [0, 50000, 100000],
+        [-1, 1, 1],
+      );
+      check(highDeg1 == highDeg2).isTrue();
+      check(highDeg1.hashCode).equals(highDeg2.hashCode);
+      check(highDeg1 == highDeg3).isFalse();
+
+      final denseP = Polynomial<int>.fromCoefficients([1, 0, 3]);
+      final compP = Polynomial<int>.compressed([0, 2], [1, 3]);
+      check(denseP == compP).isTrue();
+      check(compP == denseP).isTrue();
+      check(
+        denseP.nonZeroTerms.map((t) => (t.exponent, t.coefficient)).toList(),
+      ).deepEquals([(0, 1), (2, 3)]);
+      check(compP.nonZeroTerms.map((t) => (t.exponent, t.coefficient)).toList())
+          .deepEquals([(0, 1), (2, 3)]);
     });
   });
 }

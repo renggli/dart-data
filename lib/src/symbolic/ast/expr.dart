@@ -82,19 +82,10 @@ sealed class Expr {
   bool get isSimplified;
 
   /// Returns the set of all free variable names appearing in this expression.
-  ///
-  /// Accumulates variables in a single shared [Set] in $O(N)$ time without
-  /// allocating intermediate sets at each interior node.
-  Set<String> get freeVariables {
-    final result = <String>{};
-    _collectFreeVariables(result);
-    return result;
-  }
-
-  void _collectFreeVariables(Set<String> target) {}
+  Set<String> get freeVariables => const {};
 
   /// Whether this expression contains [variable] as a free variable.
-  bool dependsOn(String variable) => false;
+  bool dependsOn(String variable) => freeVariables.contains(variable);
 
   /// Whether this expression is real-valued when all free variables are real.
   bool get isReal => _isRealSubtree(this);

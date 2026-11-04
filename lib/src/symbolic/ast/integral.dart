@@ -45,29 +45,14 @@ final class Integral extends Expr {
   );
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    if (isDefinite) {
-      final innerVars = <String>{};
-      integrand._collectFreeVariables(innerVars);
-      innerVars.remove(variable);
-      target.addAll(innerVars);
-      lower!._collectFreeVariables(target);
-      upper!._collectFreeVariables(target);
-    } else {
-      integrand._collectFreeVariables(target);
-      target.add(variable);
-    }
-  }
-
-  @override
-  bool dependsOn(String variable) {
-    if (isDefinite) {
-      return (variable != this.variable && integrand.dependsOn(variable)) ||
-          lower!.dependsOn(variable) ||
-          upper!.dependsOn(variable);
-    }
-    return variable == this.variable || integrand.dependsOn(variable);
-  }
+  late final Set<String> freeVariables = Set.unmodifiable(
+    isDefinite
+        ? ({...integrand.freeVariables}
+            ..remove(variable)
+            ..addAll(lower!.freeVariables)
+            ..addAll(upper!.freeVariables))
+        : {...integrand.freeVariables, variable},
+  );
 
   @override
   Expr substitute(String variable, Expr replacement) {

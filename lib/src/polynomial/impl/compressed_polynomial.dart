@@ -130,6 +130,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   int get termCount => _exponents.length;
 
   /// Returns the non-zero terms as `(exponent, coefficient)` pairs.
+  @override
   Iterable<({int exponent, T coefficient})> get nonZeroTerms sync* {
     for (var i = 0; i < _exponents.length; i++) {
       yield (exponent: _exponents[i], coefficient: _coefficients[i]);
@@ -576,8 +577,9 @@ class CompressedPolynomial<T> extends Polynomial<T> {
       }
       return true;
     }
-    for (var i = 0; i <= deg; i++) {
-      if (this[i] != other[i]) return false;
+    if (_exponents.length != other.termCount) return false;
+    for (var i = 0; i < _exponents.length; i++) {
+      if (_coefficients[i] != other[_exponents[i]]) return false;
     }
     return true;
   }

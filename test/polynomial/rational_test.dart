@@ -198,6 +198,12 @@ void main() {
       check(rf.denominator.degree).equals(0);
       check(rf.numerator.degree).equals(1);
       check(rf.evaluate(3.0)).equals(4.0);
+
+      // Equality and cached simplify
+      final unsimplified = RationalFunction(num, den);
+      check(unsimplified == rf).isTrue();
+      check(unsimplified.hashCode).equals(rf.hashCode);
+      check(identical(rf.simplify(), rf)).isTrue();
     });
   });
 }

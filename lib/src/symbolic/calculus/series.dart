@@ -348,11 +348,19 @@ class PowerSeries {
       }
       if (n == 1) return this;
       if (n > 1) {
-        var result = this;
-        for (var i = 1; i < n; i++) {
-          result = result * this;
+        var base = this;
+        var exp = n;
+        PowerSeries? result;
+        while (exp > 0) {
+          if (exp.isOdd) {
+            result = result == null ? base : result * base;
+          }
+          exp >>= 1;
+          if (exp > 0) {
+            base = base * base;
+          }
         }
-        return result;
+        return result!;
       }
       return reciprocal().pow(IntegerNumber.of(-n));
     }

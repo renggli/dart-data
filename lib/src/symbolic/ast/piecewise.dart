@@ -133,21 +133,13 @@ final class Piecewise extends Expr {
   );
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    for (final (:relation, :expr) in branches) {
-      relation._collectFreeVariables(target);
-      expr._collectFreeVariables(target);
-    }
-    otherwise?._collectFreeVariables(target);
-  }
-
-  @override
-  bool dependsOn(String variable) {
-    for (final (:relation, :expr) in branches) {
-      if (relation.dependsOn(variable) || expr.dependsOn(variable)) return true;
-    }
-    return otherwise?.dependsOn(variable) ?? false;
-  }
+  late final Set<String> freeVariables = Set.unmodifiable({
+    for (final (:relation, :expr) in branches) ...[
+      ...relation.freeVariables,
+      ...expr.freeVariables,
+    ],
+    if (otherwise case final o?) ...o.freeVariables,
+  });
 
   @override
   Expr substitute(String variable, Expr replacement) => Piecewise([

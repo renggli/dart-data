@@ -55,6 +55,17 @@ class DensePolynomial<T> extends Polynomial<T> {
   }
 
   @override
+  Iterable<({int exponent, T coefficient})> get nonZeroTerms sync* {
+    final zero = type.field.additiveIdentity;
+    for (var i = 0; i < _coefficients.length; i++) {
+      final c = _coefficients[i];
+      if (c != zero) {
+        yield (exponent: i, coefficient: c);
+      }
+    }
+  }
+
+  @override
   T operator [](int exponent) {
     if (exponent < 0 || exponent >= _coefficients.length) {
       return type.field.additiveIdentity;
@@ -356,6 +367,41 @@ class DensePolynomial<T> extends Polynomial<T> {
 
   @override
   DensePolynomial<T> toDense() => this;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Polynomial<T> || type != other.type) return false;
+    final deg = degree;
+    if (deg != other.degree) return false;
+    if (deg < 0) return true;
+    if (other is DensePolynomial<T>) {
+      for (var i = 0; i <= deg; i++) {
+        if (_coefficients[i] != other._coefficients[i]) return false;
+      }
+      return true;
+    }
+    if (termCount != other.termCount) return false;
+    for (final term in nonZeroTerms) {
+      if (term.coefficient != other[term.exponent]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    final deg = degree;
+    var hash = Object.hash(deg, type);
+    if (deg < 0) return hash;
+    final zero = type.field.additiveIdentity;
+    for (var i = 0; i <= deg; i++) {
+      final c = _coefficients[i];
+      if (c != zero) {
+        hash = Object.hash(hash, i, c);
+      }
+    }
+    return hash;
+  }
 
   @override
   String toString() {

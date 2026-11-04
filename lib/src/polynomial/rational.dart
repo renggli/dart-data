@@ -54,6 +54,9 @@ class RationalFunction<T> {
   /// The data type of the polynomial coefficients.
   final DataType<T> type;
 
+  /// Cached canonical simplified rational function.
+  late final RationalFunction<T> _canonical = simplify();
+
   /// Simplifies this rational function by cancelling the greatest common
   /// divisor $\gcd(P, Q)$.
   RationalFunction<T> simplify() {
@@ -74,6 +77,9 @@ class RationalFunction<T> {
         num = num.scale(inv);
         den = den.scale(inv);
       }
+    }
+    if (num == numerator && den == denominator) {
+      return this;
     }
     return RationalFunction(num, den);
   }
@@ -170,14 +176,14 @@ class RationalFunction<T> {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! RationalFunction<T> || type != other.type) return false;
-    final s1 = simplify();
-    final s2 = other.simplify();
+    final s1 = _canonical;
+    final s2 = other._canonical;
     return s1.numerator == s2.numerator && s1.denominator == s2.denominator;
   }
 
   @override
   int get hashCode {
-    final s = simplify();
+    final s = _canonical;
     return Object.hash(RationalFunction, s.numerator, s.denominator);
   }
 

@@ -26,20 +26,10 @@ sealed class IteratedExpr extends Expr {
   final bool isSimplified;
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    final innerVars = <String>{};
-    expr._collectFreeVariables(innerVars);
-    innerVars.remove(variable);
-    target.addAll(innerVars);
-    lower._collectFreeVariables(target);
-    upper._collectFreeVariables(target);
-  }
-
-  @override
-  bool dependsOn(String variable) =>
-      (variable != this.variable && expr.dependsOn(variable)) ||
-      lower.dependsOn(variable) ||
-      upper.dependsOn(variable);
+  Set<String> get freeVariables => {...expr.freeVariables}
+    ..remove(variable)
+    ..addAll(lower.freeVariables)
+    ..addAll(upper.freeVariables);
 
   @override
   bool anyNode(bool Function(Expr) predicate) =>

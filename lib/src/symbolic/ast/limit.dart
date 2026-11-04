@@ -50,18 +50,11 @@ final class Limit extends Expr {
   );
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    final innerVars = <String>{};
-    expr._collectFreeVariables(innerVars);
-    innerVars.remove(variable);
-    target.addAll(innerVars);
-    point._collectFreeVariables(target);
-  }
-
-  @override
-  bool dependsOn(String variable) =>
-      (variable != this.variable && expr.dependsOn(variable)) ||
-      point.dependsOn(variable);
+  late final Set<String> freeVariables = Set.unmodifiable(
+    {...expr.freeVariables}
+      ..remove(variable)
+      ..addAll(point.freeVariables),
+  );
 
   @override
   Expr substitute(String variable, Expr replacement) {

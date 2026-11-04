@@ -21,14 +21,7 @@ final class OrderTerm extends Expr {
   bool get isSimplified => point.isSimplified;
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    target.add(variable);
-    point._collectFreeVariables(target);
-  }
-
-  @override
-  bool dependsOn(String variable) =>
-      this.variable == variable || point.dependsOn(variable);
+  Set<String> get freeVariables => {variable, ...point.freeVariables};
 
   @override
   Expr substitute(String variable, Expr replacement) {

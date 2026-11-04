@@ -33,11 +33,6 @@ final class Variable extends Expr {
   Set<String> get freeVariables => {name};
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    target.add(name);
-  }
-
-  @override
   bool dependsOn(String variable) => name == variable;
 
   @override
@@ -68,15 +63,12 @@ final class VariableFunction extends Expr {
   final bool isSimplified;
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    for (final arg in arguments) {
-      arg._collectFreeVariables(target);
-    }
-  }
+  late final Set<String> freeVariables = Set.unmodifiable({
+    for (final arg in arguments) ...arg.freeVariables,
+  });
 
   @override
-  bool dependsOn(String variable) =>
-      arguments.any((arg) => arg.dependsOn(variable));
+  bool dependsOn(String variable) => freeVariables.contains(variable);
 
   @override
   Expr substitute(String variable, Expr replacement) => VariableFunction(name, [

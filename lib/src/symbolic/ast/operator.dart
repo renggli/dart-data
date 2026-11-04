@@ -15,12 +15,7 @@ sealed class UnaryExpr extends Expr {
   late final int hashCode = _computeHash();
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    expr._collectFreeVariables(target);
-  }
-
-  @override
-  bool dependsOn(String variable) => expr.dependsOn(variable);
+  late final Set<String> freeVariables = expr.freeVariables;
 
   @override
   bool anyNode(bool Function(Expr) predicate) =>
@@ -58,14 +53,10 @@ sealed class BinaryExpr extends Expr {
   late final int hashCode = Object.hash(runtimeType, left, right);
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    left._collectFreeVariables(target);
-    right._collectFreeVariables(target);
-  }
-
-  @override
-  bool dependsOn(String variable) =>
-      left.dependsOn(variable) || right.dependsOn(variable);
+  late final Set<String> freeVariables = Set.unmodifiable({
+    ...left.freeVariables,
+    ...right.freeVariables,
+  });
 
   @override
   bool anyNode(bool Function(Expr) predicate) =>
@@ -97,19 +88,9 @@ final class Add extends Expr {
   late final int hashCode = Object.hash(Add, Object.hashAll(terms));
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    for (var i = 0; i < terms.length; i++) {
-      terms[i]._collectFreeVariables(target);
-    }
-  }
-
-  @override
-  bool dependsOn(String variable) {
-    for (var i = 0; i < terms.length; i++) {
-      if (terms[i].dependsOn(variable)) return true;
-    }
-    return false;
-  }
+  late final Set<String> freeVariables = Set.unmodifiable({
+    for (var i = 0; i < terms.length; i++) ...terms[i].freeVariables,
+  });
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -159,19 +140,9 @@ final class Mul extends Expr {
   late final int hashCode = Object.hash(Mul, Object.hashAll(factors));
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    for (var i = 0; i < factors.length; i++) {
-      factors[i]._collectFreeVariables(target);
-    }
-  }
-
-  @override
-  bool dependsOn(String variable) {
-    for (var i = 0; i < factors.length; i++) {
-      if (factors[i].dependsOn(variable)) return true;
-    }
-    return false;
-  }
+  late final Set<String> freeVariables = Set.unmodifiable({
+    for (var i = 0; i < factors.length; i++) ...factors[i].freeVariables,
+  });
 
   @override
   Expr substitute(String variable, Expr replacement) =>

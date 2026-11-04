@@ -38,27 +38,13 @@ final class Derivative extends Expr {
   );
 
   @override
-  void _collectFreeVariables(Set<String> target) {
-    if (point case final pt?) {
-      final innerVars = <String>{};
-      expr._collectFreeVariables(innerVars);
-      innerVars.remove(variable);
-      target.addAll(innerVars);
-      pt._collectFreeVariables(target);
-    } else {
-      expr._collectFreeVariables(target);
-      target.add(variable);
-    }
-  }
-
-  @override
-  bool dependsOn(String variable) {
-    if (point case final pt?) {
-      return pt.dependsOn(variable) ||
-          (variable != this.variable && expr.dependsOn(variable));
-    }
-    return variable == this.variable || expr.dependsOn(variable);
-  }
+  late final Set<String> freeVariables = Set.unmodifiable(
+    point != null
+        ? ({...expr.freeVariables}
+            ..remove(variable)
+            ..addAll(point!.freeVariables))
+        : {...expr.freeVariables, variable},
+  );
 
   @override
   Expr substitute(String variable, Expr replacement) {
