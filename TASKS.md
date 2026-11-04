@@ -546,7 +546,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Line 145 (`if (batch.isEmpty)`) disables the `matmul` fast path whenever a batch index is present, even though `Tensor.matmul` natively supports batched 3D+ matrix multiplication via BLAS. In the fallback loop (`lines 223-251`), every inner iteration calls `getValue`/`setValue` with full coordinate validation and `toIndex` recomputation.
   - **Fix**: Route 2-operand batched contractions through permute + reshape + `Tensor.matmul`, and advance flat buffer offsets via precomputed stride deltas in the general odometer loop.
 
-- [ ] **2.4 `Tensor.variance` and `Tensor.std` allocate 6–7 intermediate tensors and bypass `Vforce.mean` / `Vforce.variance`**
+- [x] **2.4 `Tensor.variance` and `Tensor.std` allocate 6–7 intermediate tensors and bypass `Vforce.mean` / `Vforce.variance`**
   - **Severity**: Warning
   - **Location**: `lib/src/tensor/operations/reduction.dart:133-177`
   - **Problem**: `variance()` allocates `thisDouble`, `meanTensor`, `diff = thisDouble - meanTensor`, `sq = diff * diff`, and `sumSq = sq.sum(...)`, traversing memory 5–6 times and never calling `Vforce.mean` or `Vforce.variance` on contiguous `Float64List` tensors.

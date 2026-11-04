@@ -40,7 +40,7 @@ void main() {
       check(sumAxis1.getValue([1])).isCloseTo(15.0, 1e-10);
     });
 
-    test('mean along axis and global', () {
+    accelerationTest('mean along axis and global', () {
       final t = Tensor<double>.fromIterable(
         [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
         shape: [2, 3],
@@ -51,14 +51,34 @@ void main() {
       check(m.shape).isEmpty();
       check(m.getValue([])).isCloseTo(3.5, 1e-10);
 
+      final mKeep = t.mean(keepDims: true);
+      check(mKeep.shape).deepEquals([1, 1]);
+      check(mKeep.getValue([0, 0])).isCloseTo(3.5, 1e-10);
+
       final m0 = t.mean(axis: 0);
       check(m0.shape).deepEquals([3]);
       check(m0.getValue([0])).isCloseTo(2.5, 1e-10);
       check(m0.getValue([1])).isCloseTo(3.5, 1e-10);
       check(m0.getValue([2])).isCloseTo(4.5, 1e-10);
+
+      final m1Keep = t.mean(axis: 1, keepDims: true);
+      check(m1Keep.shape).deepEquals([2, 1]);
+      check(m1Keep.getValue([0, 0])).isCloseTo(2.0, 1e-10);
+      check(m1Keep.getValue([1, 0])).isCloseTo(5.0, 1e-10);
+
+      // Target support
+      final target = Tensor<double>.filled(0.0, shape: [3]);
+      final ret = t.mean(axis: 0, target: target);
+      check(ret).equals(target);
+      check(target.getValue([0])).isCloseTo(2.5, 1e-10);
+
+      // Non-contiguous transposed view
+      final tTrans = t.transpose([1, 0]);
+      final mTrans = tTrans.mean();
+      check(mTrans.getValue([])).isCloseTo(3.5, 1e-10);
     });
 
-    test('variance and std', () {
+    accelerationTest('variance and std', () {
       final t = Tensor<double>.fromIterable([
         2.0,
         4.0,
@@ -78,9 +98,59 @@ void main() {
       final vSamp = t.variance(ddof: 1);
       check(vSamp.getValue([])).isCloseTo(32.0 / 7.0, 1e-10);
 
+      // Custom ddof=2: 32.0 / 6 = 5.3333333333
+      final vD2 = t.variance(ddof: 2);
+      check(vD2.getValue([])).isCloseTo(32.0 / 6.0, 1e-10);
+
       // std: sqrt(4.0) = 2.0
       final sPop = t.std(ddof: 0);
       check(sPop.getValue([])).isCloseTo(2.0, 1e-10);
+
+      // Multi-dimensional axis variance and std
+      final t2D = Tensor<double>.fromIterable(
+        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        shape: [2, 3],
+        type: DataType.float64,
+      );
+      // Axis 1: row 0 is [1, 2, 3], mean 2, diffs [-1, 0, 1], sumsq 2, ddof=0 -> 2/3
+      //         row 1 is [4, 5, 6], mean 5, diffs [-1, 0, 1], sumsq 2, ddof=0 -> 2/3
+      final vAxis1 = t2D.variance(axis: 1, ddof: 0);
+      check(vAxis1.shape).deepEquals([2]);
+      check(vAxis1.getValue([0])).isCloseTo(2.0 / 3.0, 1e-10);
+      check(vAxis1.getValue([1])).isCloseTo(2.0 / 3.0, 1e-10);
+
+      final sAxis1 = t2D.std(axis: 1, ddof: 0);
+      check(sAxis1.getValue([0])).isCloseTo(math.sqrt(2.0 / 3.0), 1e-10);
+      check(sAxis1.getValue([1])).isCloseTo(math.sqrt(2.0 / 3.0), 1e-10);
+
+      // keepDims = true
+      final vKeep = t2D.variance(axis: 1, keepDims: true);
+      check(vKeep.shape).deepEquals([2, 1]);
+      check(vKeep.getValue([0, 0])).isCloseTo(2.0 / 3.0, 1e-10);
+
+      // Target with memory hazard
+      final targetHazard = Tensor<double>.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [2]),
+        data: t2D.data,
+      );
+      final vTarget = t2D.variance(axis: 1, target: targetHazard);
+      check(vTarget).equals(targetHazard);
+      check(targetHazard.getValue([0])).isCloseTo(2.0 / 3.0, 1e-10);
+
+      // Int tensor variance
+      final intTensor = Tensor<int>.fromIterable([
+        2,
+        4,
+        4,
+        4,
+        5,
+        5,
+        7,
+        9,
+      ], type: DataType.int32);
+      check(intTensor.variance(ddof: 0).getValue([])).isCloseTo(4.0, 1e-10);
+      check(intTensor.std(ddof: 0).getValue([])).isCloseTo(2.0, 1e-10);
     });
 
     test('min, max, argmin, argmax', () {

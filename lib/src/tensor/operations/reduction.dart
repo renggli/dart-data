@@ -57,26 +57,96 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     bool keepDims = false,
     Tensor<double>? target,
   }) {
-    final int count;
     if (axis == null) {
-      count = length;
-    } else {
-      final normAxis = axis < 0 ? axis + rank : axis;
-      if (normAxis < 0 || normAxis >= rank) {
-        throw RangeError.range(axis, -rank, rank - 1, 'axis');
+      final count = length;
+      if (count == 0) throw StateError('Cannot compute mean of empty tensor');
+      final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
+      if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
+        throw ArgumentError(
+          'Target shape ${target.layout.shape} does not match reduced shape $outShape',
+        );
       }
-      count = layout.shape[normAxis];
+      final double result;
+      if (data is Float64List && layout.isContiguous) {
+        final f64Data = data as Float64List;
+        final view = (layout.offset == 0 && count == f64Data.length)
+            ? f64Data
+            : Float64List.sublistView(
+                f64Data,
+                layout.offset,
+                layout.offset + count,
+              );
+        result = Vforce.mean(x: view);
+      } else {
+        var sum = 0.0;
+        for (final val in values) {
+          sum += _toDouble(val);
+        }
+        result = sum / count;
+      }
+      if (target != null) {
+        target.setValue(List<int>.filled(outShape.length, 0), result);
+        return target;
+      }
+      return Tensor<double>.filled(
+        result,
+        shape: outShape,
+        type: DataType.float64,
+      );
     }
+
+    final normalizedAxis = axis < 0 ? axis + rank : axis;
+    if (normalizedAxis < 0 || normalizedAxis >= rank) {
+      throw RangeError.range(axis, -rank, rank - 1, 'axis');
+    }
+    final count = layout.shape[normalizedAxis];
     if (count == 0) throw StateError('Cannot compute mean of empty tensor');
-    final sumTensor = sum(axis: axis, keepDims: keepDims);
-    const resultType = DataType.float64;
-    return sumTensor.unaryOperation<double>(
-      (T value) => value is num
-          ? value.toDouble() / count
-          : resultType.cast(type.field.scale(value, 1.0 / count)),
-      type: resultType,
-      target: target,
-    );
+
+    final outShape = <int>[];
+    for (var i = 0; i < rank; i++) {
+      if (i == normalizedAxis) {
+        if (keepDims) outShape.add(1);
+      } else {
+        outShape.add(layout.shape[i]);
+      }
+    }
+
+    if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
+      throw ArgumentError(
+        'Target shape ${target.layout.shape} does not match reduced shape $outShape',
+      );
+    }
+
+    final hasHazard = target != null && sharesMemory(target.data, data);
+    final outTensor = (target != null && !hasHazard)
+        ? target
+        : Tensor<double>.filled(0.0, shape: outShape, type: DataType.float64);
+
+    final outLayout = Layout(shape: outShape);
+    final axisStride = layout.strides[normalizedAxis];
+
+    for (final key in outLayout.keys) {
+      final inKey = List<int>.from(key);
+      if (!keepDims) {
+        inKey.insert(normalizedAxis, 0);
+      }
+      inKey[normalizedAxis] = 0;
+      final baseOffset = layout.toIndex(inKey);
+
+      var sum = 0.0;
+      var offset = baseOffset;
+      for (var k = 0; k < count; k++) {
+        sum += _toDouble(data[offset]);
+        offset += axisStride;
+      }
+      outTensor.setValue(key, sum / count);
+    }
+
+    if (hasHazard) {
+      outTensor.copy(target: target);
+      return target;
+    }
+    return outTensor;
   }
 
   /// Computes the minimum value over the given [axis], or all elements if
@@ -138,32 +208,120 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     int ddof = 0,
     Tensor<double>? target,
   }) {
-    final int count;
     if (axis == null) {
-      count = length;
-    } else {
-      final normAxis = axis < 0 ? axis + rank : axis;
-      if (normAxis < 0 || normAxis >= rank) {
-        throw RangeError.range(axis, -rank, rank - 1, 'axis');
+      final count = length;
+      final denom = count - ddof;
+      if (denom <= 0) throw StateError('Degrees of freedom <= 0');
+
+      final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
+      if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
+        throw ArgumentError(
+          'Target shape ${target.layout.shape} does not match reduced shape $outShape',
+        );
       }
-      count = layout.shape[normAxis];
+
+      final double v;
+      if (data is Float64List && layout.isContiguous) {
+        final f64Data = data as Float64List;
+        final view = (layout.offset == 0 && count == f64Data.length)
+            ? f64Data
+            : Float64List.sublistView(
+                f64Data,
+                layout.offset,
+                layout.offset + count,
+              );
+        if (ddof == 0) {
+          v = Vforce.variance(x: view, sample: false);
+        } else if (ddof == 1) {
+          v = Vforce.variance(x: view, sample: true);
+        } else {
+          final popVar = Vforce.variance(x: view, sample: false);
+          v = (popVar * count) / denom;
+        }
+      } else {
+        var sum = 0.0;
+        for (final val in values) {
+          sum += _toDouble(val);
+        }
+        final meanVal = sum / count;
+
+        var sumSq = 0.0;
+        for (final val in values) {
+          final diff = _toDouble(val) - meanVal;
+          sumSq += diff * diff;
+        }
+        v = sumSq / denom;
+      }
+
+      if (target != null) {
+        target.setValue(List<int>.filled(outShape.length, 0), v);
+        return target;
+      }
+      return Tensor<double>.filled(v, shape: outShape, type: DataType.float64);
     }
+
+    final normalizedAxis = axis < 0 ? axis + rank : axis;
+    if (normalizedAxis < 0 || normalizedAxis >= rank) {
+      throw RangeError.range(axis, -rank, rank - 1, 'axis');
+    }
+    final count = layout.shape[normalizedAxis];
     final denom = count - ddof;
     if (denom <= 0) throw StateError('Degrees of freedom <= 0');
-    final meanTensor = mean(axis: axis, keepDims: true);
-    final thisDouble = unaryOperation<double>(
-      (T value) =>
-          value is num ? value.toDouble() : DataType.float64.cast(value),
-      type: DataType.float64,
-    );
-    final diff = thisDouble - meanTensor;
-    final sq = diff * diff;
-    final sumSq = sq.sum(axis: axis, keepDims: keepDims);
-    return sumSq.unaryOperation<double>(
-      (double value) => value / denom,
-      type: DataType.float64,
-      target: target,
-    );
+
+    final outShape = <int>[];
+    for (var i = 0; i < rank; i++) {
+      if (i == normalizedAxis) {
+        if (keepDims) outShape.add(1);
+      } else {
+        outShape.add(layout.shape[i]);
+      }
+    }
+
+    if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
+      throw ArgumentError(
+        'Target shape ${target.layout.shape} does not match reduced shape $outShape',
+      );
+    }
+
+    final hasHazard = target != null && sharesMemory(target.data, data);
+    final outTensor = (target != null && !hasHazard)
+        ? target
+        : Tensor<double>.filled(0.0, shape: outShape, type: DataType.float64);
+
+    final outLayout = Layout(shape: outShape);
+    final axisStride = layout.strides[normalizedAxis];
+
+    for (final key in outLayout.keys) {
+      final inKey = List<int>.from(key);
+      if (!keepDims) {
+        inKey.insert(normalizedAxis, 0);
+      }
+      inKey[normalizedAxis] = 0;
+      final baseOffset = layout.toIndex(inKey);
+
+      var sum = 0.0;
+      var offset = baseOffset;
+      for (var k = 0; k < count; k++) {
+        sum += _toDouble(data[offset]);
+        offset += axisStride;
+      }
+      final meanVal = sum / count;
+
+      var sumSq = 0.0;
+      offset = baseOffset;
+      for (var k = 0; k < count; k++) {
+        final diff = _toDouble(data[offset]) - meanVal;
+        sumSq += diff * diff;
+        offset += axisStride;
+      }
+      outTensor.setValue(key, sumSq / denom);
+    }
+
+    if (hasHazard) {
+      outTensor.copy(target: target);
+      return target;
+    }
+    return outTensor;
   }
 
   /// Computes the standard deviation over the given [axis].
@@ -173,11 +331,16 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     int ddof = 0,
     Tensor<double>? target,
   }) {
-    final varTensor = variance(axis: axis, keepDims: keepDims, ddof: ddof);
+    final varTensor = variance(
+      axis: axis,
+      keepDims: keepDims,
+      ddof: ddof,
+      target: target,
+    );
     return varTensor.unaryOperation<double>(
       math.sqrt,
       type: DataType.float64,
-      target: target,
+      target: varTensor,
     );
   }
 
@@ -434,4 +597,9 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     }
     return outTensor;
   }
+}
+
+double _toDouble(Object? value) {
+  if (value is num) return value.toDouble();
+  return DataType.float64.cast(value);
 }
