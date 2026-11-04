@@ -426,20 +426,17 @@ void main() {
       check(res[1]).isCloseTo(2.0, 1e-6);
     });
 
-    test(
-      'curveFit with constant values yields rSquared 1.0 when exact (ssTot == 0.0)',
-      () {
-        final xs = Vector<double>.fromList([1.0, 2.0, 3.0]);
-        final ys = Vector<double>.fromList([5.0, 5.0, 5.0]);
-        final res = curveFit(
-          xs: xs,
-          ys: ys,
-          model: (x, p) => p[0],
-          initialParams: Vector<double>.fromList([1.0]),
-        );
-        check(res.rSquared).equals(1.0);
-      },
-    );
+    test('curveFit with constant values yields rSquared 1.0 when exact (ssTot == 0.0)', () {
+      final xs = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final ys = Vector<double>.fromList([5.0, 5.0, 5.0]);
+      final res = curveFit(
+        xs: xs,
+        ys: ys,
+        model: (x, p) => p[0],
+        initialParams: Vector<double>.fromList([1.0]),
+      );
+      check(res.rSquared).equals(1.0);
+    });
 
     test('fitNonlinear step rejection', () {
       final p = fitNonlinear(

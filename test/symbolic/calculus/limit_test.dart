@@ -329,6 +329,19 @@ void main() {
           check(
             (Pow(Cos(x), IntegerNumber.two) / x).limit('x', Constant.infinity),
           ).equals(IntegerNumber.zero);
+
+          // Unexpanded polynomial exponents and terms in Gruntz and rational limits
+          check(
+            Expr.parse('exp((x + 1)^2) / exp(x^2 + 2 * x)')
+                .limit('x', Constant.infinity),
+          ).equals(Constant.e);
+          check(
+            Expr.parse('exp(x * (x + 1) - x^2)').limit('x', Constant.infinity),
+          ).equals(Constant.infinity);
+          check(
+            Expr.parse('((x + 1)^2 - x^2) / (2 * x + 5)')
+                .limit('x', Constant.infinity),
+          ).equals(IntegerNumber.one);
           check(() => (x * Sin(x)).limit('x', Constant.infinity))
               .throws<UnsupportedError>();
 

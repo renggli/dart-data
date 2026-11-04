@@ -440,7 +440,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: When parsing `sum`, `product`, `integrate`, `diff`, or `limit` with dummy variable `'i'`, `2 * i` eagerly folds into `ComplexNumber(0, 2)` during parsing. `_unbindConstant` only checks `node == ComplexNumber.i` and `node == ComplexNumber.negativeI`, ignoring general `ComplexNumber` nodes, so `Expr.parse('sum(2 * i, i, 1, 5)').simplify()` returns `10*i` instead of `30`. Additionally, when `varName == 'e'`, lines 670–675 rewrite `Pow(Constant.e, exponent)` as `Pow(Variable('e'), ...)`, corrupting `exp(x)` inside `integrate(exp(x) * e, e)`.
   - **Fix**: Deconstruct `ComplexNumber(:final real, :final imaginary)` into `real + imaginary * Variable('i')` when `varName == 'i'`, and remove the `node.base == Constant.e` rewrite when `varName == 'e'`.
 
-- [ ] **1.10.6 `_extractDominantPolynomialTerm` and `_polynomialDegreeAndLead` in `limit.dart` ignore unexpanded polynomial terms**
+- [x] **1.10.6 `_extractDominantPolynomialTerm` and `_polynomialDegreeAndLead` in `limit.dart` ignore unexpanded polynomial terms**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/calculus/limit.dart:539-570, 732-774`
   - **Problem**: Neither function expands `expr` before inspecting `MonomialAccumulator` keys, and `_extractDominantPolynomialTerm` places any unexpanded term depending on `variable` (such as `(x + 1)^2` or `x * (x + 1)`) into `remainingTerms`. Consequently, `Expr.parse('exp((x + 1)^2) / exp(x^2 + 2*x)').limit('x', Constant.infinity)` returns `0` instead of `e`, and `Expr.parse('exp(x * (x + 1) - x^2)').limit('x', Constant.infinity)` returns `0` instead of `infinity`.

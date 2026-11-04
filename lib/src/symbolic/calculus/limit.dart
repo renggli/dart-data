@@ -1,3 +1,4 @@
+import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
@@ -537,12 +538,13 @@ Expr? _rationalFunctionLimitAtInfinity(Expr expr, String variable) {
 }
 
 (int, Expr)? _polynomialDegreeAndLead(Expr expr, String variable) {
-  if (!expr.dependsOn(variable)) {
-    return (0, expr.simplify());
+  final expanded = expr.expand().simplify();
+  if (!expanded.dependsOn(variable)) {
+    return (0, expanded);
   }
 
   final acc = MonomialAccumulator();
-  acc.add(expr.simplify());
+  acc.add(expanded);
 
   var maxDegree = -1;
   Expr? leadCoeff;
@@ -731,8 +733,9 @@ Expr _rewriteSingleExp(
 
 ({int degree, RationalNumber coeff, Expr remainder})?
 _extractDominantPolynomialTerm(Expr expr, String variable) {
+  final expanded = expr.expand().simplify();
   final acc = MonomialAccumulator();
-  acc.add(expr.simplify());
+  acc.add(expanded);
 
   var maxDeg = 0;
   RationalNumber leadCoeff = IntegerNumber.zero;
@@ -740,7 +743,8 @@ _extractDominantPolynomialTerm(Expr expr, String variable) {
 
   for (final entry in acc.terms.entries) {
     final deg = _monomialDegree(entry.key, variable);
-    if (deg != null && deg > maxDeg) {
+    if (deg == null) return null;
+    if (deg > maxDeg) {
       if (entry.value case final RationalNumber val) {
         maxDeg = deg;
         leadCoeff = val;
