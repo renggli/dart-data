@@ -117,6 +117,20 @@ void main() {
       check(demoted).isA<IntegerNumber>();
       check(demoted).equals(IntegerNumber.two);
 
+      // ComplexNumber.of matches RealNumber precision across components
+      final realIm = ComplexNumber.of(IntegerNumber.two, const RealNumber(3.0));
+      check(realIm).isA<ComplexNumber>();
+      check((realIm as ComplexNumber).real).equals(const RealNumber(2.0));
+      check(realIm.imaginary).equals(const RealNumber(3.0));
+
+      final realRe = ComplexNumber.of(
+        const RealNumber(2.0),
+        IntegerNumber.of(3),
+      );
+      check(realRe).isA<ComplexNumber>();
+      check((realRe as ComplexNumber).real).equals(const RealNumber(2.0));
+      check(realRe.imaginary).equals(const RealNumber(3.0));
+
       check(() => ComplexNumber(IntegerNumber.two, IntegerNumber.zero))
           .throws<AssertionError>();
       check(() => ComplexNumber(IntegerNumber.two, RealNumber.zero))

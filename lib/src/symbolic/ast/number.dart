@@ -223,7 +223,10 @@ sealed class Number extends Expr {
   }
 
   static (RealNumeric, RealNumeric) _components(Number n) => switch (n) {
-    RealNumeric() => (n, IntegerNumber.zero),
+    RealNumeric() => (
+      n,
+      n is RealNumber ? RealNumber.zero : IntegerNumber.zero,
+    ),
     ComplexNumber(:final real, :final imaginary) => (real, imaginary),
   };
 
@@ -698,12 +701,21 @@ final class ComplexNumber extends Number {
       );
 
   /// Constructs a canonical [Number] from [real] and [imaginary] components,
-  /// automatically demoting to [real] when `imaginary.isZero`.
-  static Number of(RealNumeric real, RealNumeric imaginary) => imaginary.isZero
-      ? (imaginary is RealNumber && real is! RealNumber
-            ? RealNumber(real.toDouble())
-            : real)
-      : ComplexNumber(real, imaginary);
+  /// automatically demoting to [real] when `imaginary.isZero` and matching
+  /// [RealNumber] precision across both components.
+  static Number of(RealNumeric real, RealNumeric imaginary) {
+    if (imaginary.isZero) {
+      return (imaginary is RealNumber && real is! RealNumber)
+          ? RealNumber(real.toDouble())
+          : real;
+    }
+    if (real is RealNumber && imaginary is! RealNumber) {
+      return ComplexNumber(real, RealNumber(imaginary.toDouble()));
+    } else if (imaginary is RealNumber && real is! RealNumber) {
+      return ComplexNumber(RealNumber(real.toDouble()), imaginary);
+    }
+    return ComplexNumber(real, imaginary);
+  }
 
   /// The imaginary unit $i = 0 + 1i$.
   static const i = ComplexNumber._(IntegerNumber.zero, IntegerNumber.one);

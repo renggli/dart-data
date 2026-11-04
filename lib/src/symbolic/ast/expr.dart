@@ -117,11 +117,11 @@ sealed class Expr {
   /// operands in exact input order.
   Expr operator +(Object other) {
     final rhs = Expr.wrap(other);
-    if ((this, rhs) case (
-      final RealNumeric real,
-      ComplexNumber(real: IntegerNumber(isZero: true), :final imaginary),
-    )) {
-      return ComplexNumber.of(real, imaginary);
+    if ((this, rhs) case (final ComplexNumber a, final Number b)) {
+      return a.add(b);
+    }
+    if ((this, rhs) case (final Number a, final ComplexNumber b)) {
+      return b.add(a);
     }
     return Add([
       if (this case Add(:final terms, isSimplified: false)) ...terms else this,
@@ -142,13 +142,11 @@ sealed class Expr {
   /// operands in exact input order.
   Expr operator *(Object other) {
     final rhs = Expr.wrap(other);
-    if ((this, rhs) case (
-      final RealNumeric scale,
-      ComplexNumber(real: IntegerNumber(isZero: true), :final imaginary),
-    )) {
-      if (scale.mul(imaginary) case final RealNumeric prod) {
-        return ComplexNumber.of(IntegerNumber.zero, prod);
-      }
+    if ((this, rhs) case (final ComplexNumber a, final Number b)) {
+      return a.mul(b);
+    }
+    if ((this, rhs) case (final Number a, final ComplexNumber b)) {
+      return a.mul(b);
     }
     final isRhsUnaryNeg = switch (rhs) {
       Mul(factors: [IntegerNumber.negativeOne, _]) => true,
@@ -176,6 +174,14 @@ sealed class Expr {
     if ((this, rhs) case (final RationalNumber a, final RationalNumber b)
         when !b.isZero) {
       return a.divRational(b);
+    }
+    if ((this, rhs) case (final ComplexNumber a, final RealNumeric b)
+        when !b.isZero) {
+      return a.div(b);
+    }
+    if ((this, rhs) case (final ComplexNumber a, final ComplexNumber b)
+        when !b.isZero) {
+      return a.div(b);
     }
     if (this is IntegerNumber && (this as IntegerNumber).isOne) {
       return Pow(rhs, IntegerNumber.negativeOne);

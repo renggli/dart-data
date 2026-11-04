@@ -482,7 +482,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `Piecewise` stores the caller's `List<PiecewiseBranch>` directly without `List.unmodifiable`. `ComplexNumber` lacks `assert(!imaginary.isZero)` (unlike `FractionNumber`), and `web/calculator/src/engine/commands/numbers.dart:275` calls `ComplexNumber(...)` directly instead of `ComplexNumber.of(...)`.
   - **Fix**: Wrap `branches` in `List.unmodifiable` in `Piecewise`, add `assert(!imaginary.isZero)` to `ComplexNumber`, and use `ComplexNumber.of` in `numbers.dart:275`.
 
-- [ ] **1.10.13 Asymmetric `ComplexNumber` operator folding and mixed-precision `ComplexNumber`**
+- [x] **1.10.13 Asymmetric `ComplexNumber` operator folding and mixed-precision `ComplexNumber`**
   - **Severity**: Warning
   - **Location**: `lib/src/symbolic/ast/expr.dart:120-125, 145-152`
   - **Problem**: `2 + i` folds to `ComplexNumber(2, 1)` while `i + 2` returns `Add([i, 2])`; `2 * i` folds to `ComplexNumber(0, 2)` while `i * 2` returns `Mul([i, 2])`; and `RealNumber(2.0) * ComplexNumber.i` creates `ComplexNumber(IntegerNumber(0), RealNumber(2.0))` with mixed exact/inexact parts.

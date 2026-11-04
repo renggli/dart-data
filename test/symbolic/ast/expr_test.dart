@@ -102,7 +102,7 @@ void main() {
         Add([
           x,
           Constant.infinity,
-          ComplexNumber(IntegerNumber.zero, const RealNumber(2.5)),
+          ComplexNumber(const RealNumber(0.0), const RealNumber(2.5)),
         ]),
       );
       check(x + 'y').equals(Add([x, const Variable('y')]));
@@ -122,6 +122,50 @@ void main() {
 
       check(() => x + Object()).throws<ArgumentError>();
       check(() => x.pow(Object())).throws<ArgumentError>();
+    });
+
+    test('symmetric ComplexNumber operator folding and precision matching', () {
+      const i = ComplexNumber.i;
+      const two = IntegerNumber.two;
+      const realTwo = RealNumber(2.0);
+
+      // Symmetric addition
+      check(two + i).equals(ComplexNumber(two, IntegerNumber.one));
+      check(i + two).equals(ComplexNumber(two, IntegerNumber.one));
+      check(i + i).equals(ComplexNumber(IntegerNumber.zero, two));
+
+      // Symmetric subtraction
+      check(two - i).equals(ComplexNumber(two, IntegerNumber.negativeOne));
+      check(i - two)
+          .equals(ComplexNumber(IntegerNumber.of(-2), IntegerNumber.one));
+      check(i - i).equals(IntegerNumber.zero);
+
+      // Symmetric multiplication
+      check(two * i).equals(ComplexNumber(IntegerNumber.zero, two));
+      check(i * two).equals(ComplexNumber(IntegerNumber.zero, two));
+      check(i * i).equals(IntegerNumber.negativeOne);
+
+      // Division with ComplexNumber
+      check(i / 2)
+          .equals(ComplexNumber(IntegerNumber.zero, FractionNumber.half));
+      check(i / i).equals(IntegerNumber.one);
+      check((two * i) / i).equals(two);
+
+      // RealNumber precision matching across operators
+      check(realTwo * i)
+          .equals(ComplexNumber(const RealNumber(0.0), const RealNumber(2.0)));
+      check(i * realTwo)
+          .equals(ComplexNumber(const RealNumber(0.0), const RealNumber(2.0)));
+      check(realTwo + i)
+          .equals(ComplexNumber(const RealNumber(2.0), const RealNumber(1.0)));
+      check(i + realTwo)
+          .equals(ComplexNumber(const RealNumber(2.0), const RealNumber(1.0)));
+      check(realTwo - i)
+          .equals(ComplexNumber(const RealNumber(2.0), const RealNumber(-1.0)));
+      check(i - realTwo)
+          .equals(ComplexNumber(const RealNumber(-2.0), const RealNumber(1.0)));
+      check(i / realTwo)
+          .equals(ComplexNumber(const RealNumber(0.0), const RealNumber(0.5)));
     });
 
     test('unary negation on numbers, products, and general expressions', () {
