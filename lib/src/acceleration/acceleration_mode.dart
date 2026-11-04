@@ -1,3 +1,5 @@
+import 'acceleration_error.dart';
+
 /// Execution mode for numerical backend acceleration.
 enum AccelerationMode {
   /// Automatically selects the fastest available approach on current platform
@@ -10,9 +12,9 @@ enum AccelerationMode {
 
   /// Forces the use of native accelerated hardware backends (BLAS/LAPACK/SIMD).
   ///
-  /// Explicitly throws [StateError] if native acceleration is unavailable on
-  /// the platform or encounters an execution failure (no silent fallback to
-  /// software).
+  /// Explicitly throws [AccelerationUnavailableError] if native acceleration is
+  /// unavailable on the current platform, or [AccelerationFailedError] if native
+  /// execution fails (no silent fallback to software).
   accelerated,
 
   /// Forces the use of pure Dart software algorithms.

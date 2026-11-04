@@ -695,7 +695,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Violates `AGENTS.md` ("Use triple-slash (`///`) doc comments for all public members").
   - **Fix**: Add `///` documentation comments to all listed public declarations.
 
-- [ ] **4.4 Contradictory exception documentation for `AccelerationMode.accelerated`**
+- [x] **4.4 Contradictory exception documentation for `AccelerationMode.accelerated`**
   - **Severity**: Warning
   - **Location**: `lib/acceleration.dart:13, 30-36`, `lib/src/acceleration/acceleration_mode.dart:13`
   - **Problem**: `lib/acceleration.dart:13` states `AccelerationMode.accelerated` throws `[AccelerationUnavailableError]`, whereas `lib/src/acceleration/acceleration_mode.dart:13` states it throws `[StateError]`.
