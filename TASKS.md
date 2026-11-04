@@ -506,7 +506,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Converts `RationalNumber` coefficients to raw `int` (`asInt`), overflowing 64-bit `int` on VM (or 53-bit `int` on Web) during discriminant and synthetic division calculations.
   - **Fix**: Use `Integer` (`int | BigInt`) instead of raw `int`.
 
-- [ ] **1.10.17 `PowerSeries` pole order loss in `_expandPow`, `_closedFormProduct` pole at 0, `_antiDerivative` dropping `assumptions`, and empty `terms` in `_differentiateIntegral`**
+- [x] **1.10.17 `PowerSeries` pole order loss in `_expandPow`, `_closedFormProduct` pole at 0, `_antiDerivative` dropping `assumptions`, and empty `terms` in `_differentiateIntegral`**
   - **Severity**: Warning
   - **Location**: `lib/src/symbolic/calculus/series.dart:908-922`, `lib/src/symbolic/calculus/summation.dart:741-762`, `lib/src/symbolic/calculus/integration.dart:159, 349-410, 2093-2116`, `lib/src/symbolic/calculus/differentiation.dart:250-252`
   - **Problem**: `_expandPow` does not boost base order when $m < 0, n > 1$; `_closedFormProduct` divides by `Gamma(0)` when linear products start at or cross $0$; `_antiDerivative` drops `assumptions` and `_wrapLnWithAbs` wraps all `Ln` nodes indiscriminately; and `_differentiateIntegral` lacks `[] => IntegerNumber.zero`.

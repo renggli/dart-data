@@ -198,6 +198,13 @@ void main() {
         ).series('x', order: 1).removeOrder().evaluate({'x': 0.1}),
       ).isCloseTo(100.0 + 1.0 / 3.0, 1e-12);
 
+      // Pole base raised to positive power preserves requested order:
+      final polePow = Pow(
+        IntegerNumber.one / x + x,
+        IntegerNumber.two,
+      ).series('x', order: 3);
+      check(polePow.toString()).equals('x ^ (-2) + 2 + x ^ 2 + O(x^3)');
+
       check(
         Pow(
           IntegerNumber.one + x,

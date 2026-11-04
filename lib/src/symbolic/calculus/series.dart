@@ -931,17 +931,31 @@ PowerSeries _expandPow(
   if (!exponent.dependsOn(variable)) {
     final expSimp = exponent.simplify();
     final sBase = _expandToPowerSeries(base, variable, point, order);
-    if (expSimp is IntegerNumber && expSimp.isNegative) {
-      final k = -(expSimp.asInt ?? 1);
-      final m = sBase.valuation;
-      if (m > 0) {
-        final boostedBase = _expandToPowerSeries(
-          base,
-          variable,
-          point,
-          order + 2 * k * m,
-        );
-        return boostedBase.pow(expSimp);
+    if (expSimp is IntegerNumber) {
+      if (expSimp.isNegative) {
+        final k = -(expSimp.asInt ?? 1);
+        final m = sBase.valuation;
+        if (m > 0) {
+          final boostedBase = _expandToPowerSeries(
+            base,
+            variable,
+            point,
+            order + 2 * k * m,
+          );
+          return boostedBase.pow(expSimp);
+        }
+      } else {
+        final n = expSimp.asInt;
+        final m = sBase.valuation;
+        if (n != null && n > 1 && m < 0) {
+          final boostedBase = _expandToPowerSeries(
+            base,
+            variable,
+            point,
+            order + (n - 1) * (-m),
+          );
+          return boostedBase.pow(expSimp);
+        }
       }
     }
     return sBase.pow(expSimp);

@@ -247,6 +247,7 @@ Expr _differentiateIntegral(
     );
   }
   return switch (terms) {
+    [] => IntegerNumber.zero,
     [final single] => single,
     _ => Add(terms),
   };

@@ -751,6 +751,32 @@ Expr? _closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
     if (lowerShifted == IntegerNumber.one) {
       return (slopePow * Factorial(upperShifted)).simplify();
     }
+    if ((lowerShifted, upperShifted) case (
+      IntegerNumber(asInt: final l?),
+      IntegerNumber(asInt: final u?),
+    )) {
+      if (l <= 0 && u >= 0) {
+        return IntegerNumber.zero;
+      }
+      if (u < 0) {
+        final nTerms = u - l + 1;
+        final sign = nTerms.isOdd
+            ? IntegerNumber.negativeOne
+            : IntegerNumber.one;
+        final numFact = Factorial(IntegerNumber.of(-l));
+        final denFact = Factorial(IntegerNumber.of(-u - 1));
+        return (slopePow * sign * numFact / denFact).simplify();
+      }
+      if (l > 1) {
+        return (slopePow *
+                Factorial(upperShifted) /
+                Factorial(IntegerNumber.of(l - 1)))
+            .simplify();
+      }
+    }
+    if (lowerShifted is IntegerNumber && lowerShifted.isZero) {
+      return IntegerNumber.zero;
+    }
     if (lowerShifted case IntegerNumber(asInt: final l?) when l > 1) {
       return (slopePow *
               Factorial(upperShifted) /

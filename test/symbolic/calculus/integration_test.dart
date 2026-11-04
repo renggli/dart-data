@@ -126,6 +126,22 @@ void main() {
       // Negative bounds for logarithmic antiderivatives:
       final negBoundsLog = Expr.parse('1/x').integrate('x', from: -2, to: -1);
       check(negBoundsLog).equals(-Ln(IntegerNumber.two));
+
+      // Domain assumptions preserved during antiderivative construction:
+      const posAssumptions = Assumptions(
+        domains: {'x': VariableDomain.positive},
+      );
+      final sqrtSqInt = Expr.parse('sqrt(x^2)')
+          .integrate('x', assumptions: posAssumptions);
+      check(sqrtSqInt).equals(FractionNumber.half * Pow(x, IntegerNumber.two));
+
+      final posDefInt = (IntegerNumber.one / x).integrate(
+        'x',
+        from: 1,
+        to: 2,
+        assumptions: posAssumptions,
+      );
+      check(posDefInt).equals(Ln(IntegerNumber.two));
     });
   });
 

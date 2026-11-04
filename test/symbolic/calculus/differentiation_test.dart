@@ -238,6 +238,14 @@ void main() {
     test(
       'differentiates Integral nodes via Fundamental Theorem and Leibniz rule',
       () {
+        final constInt = Integral(
+          Sin(t),
+          't',
+          lower: IntegerNumber.zero,
+          upper: IntegerNumber.one,
+        );
+        check(constInt.derivative('x')).equals(IntegerNumber.zero);
+
         final indefSame = Integral(Expr.parse('sin(x^2)'), 'x');
         check(indefSame.derivative('x'))
             .equals(Expr.parse('sin(x^2)').simplify());

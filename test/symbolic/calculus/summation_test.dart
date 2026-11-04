@@ -102,6 +102,10 @@ void main() {
       // Concrete products
       check(k.product('k', 1, 5)).equals(IntegerNumber.of(120));
       check(k.product('k', 5, 2)).equals(IntegerNumber.one);
+      check(k.product('k', -2, 2)).equals(IntegerNumber.zero);
+      check(k.product('k', -4, -2)).equals(IntegerNumber.of(-24));
+      check((k + 2).product('k', -2, 2)).equals(IntegerNumber.zero);
+      check((k + 2).product('k', -5, -3)).equals(IntegerNumber.of(-6));
 
       // Constant product: prod_{k=1..n} 2 = 2^n
       check(IntegerNumber.two.product('k', 1, n).toString()).equals('2 ^ n');

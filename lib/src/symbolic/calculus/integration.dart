@@ -2,6 +2,7 @@ import '../algebra/approximate.dart';
 import '../algebra/expand.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
+import '../algebra/simplify/transcendental.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
@@ -138,6 +139,7 @@ Expr _symbolicIntegrate(
     final antiDeriv = _antiDerivative(
       function,
       variable,
+      assumptions: assumptions,
     ).simplify(assumptions: assumptions);
     if (!_hasUnevaluatedIntegral(antiDeriv, variable)) {
       var hasInteriorPole = false;
@@ -156,7 +158,7 @@ Expr _symbolicIntegrate(
         }
       }
       if (!hasInteriorPole) {
-        final effectiveAntiDeriv = _wrapLnWithAbs(antiDeriv);
+        final effectiveAntiDeriv = _wrapLnWithAbs(antiDeriv, assumptions);
         try {
           final upper = _isInfiniteBound(toExpr)
               ? effectiveAntiDeriv.limit(
@@ -246,6 +248,7 @@ Expr _symbolicIntegrate(
     return _antiDerivative(
       function,
       variable,
+      assumptions: assumptions,
     ).simplify(assumptions: assumptions);
   } on Object {
     return Integral(
@@ -332,12 +335,16 @@ List<double> _findDenominatorRoots(Expr expr, String variable) {
   return roots.toList();
 }
 
-Expr _wrapLnWithAbs(Expr expr) {
+Expr _wrapLnWithAbs(Expr expr, [Assumptions assumptions = Assumptions.none]) {
   if (expr is Ln) {
-    if (expr.expr is Abs) return expr;
-    return Ln(Abs(_wrapLnWithAbs(expr.expr)));
+    if (expr.expr is Abs ||
+        _isPositiveConstant(expr.expr) ||
+        isPositiveExpr(expr.expr, assumptions: assumptions)) {
+      return Ln(_wrapLnWithAbs(expr.expr, assumptions));
+    }
+    return Ln(Abs(_wrapLnWithAbs(expr.expr, assumptions)));
   }
-  return expr.mapChildren(_wrapLnWithAbs);
+  return expr.mapChildren((e) => _wrapLnWithAbs(e, assumptions));
 }
 
 bool _hasUnevaluatedIntegral(Expr expr, String variable) => expr.anyNode(
@@ -346,22 +353,29 @@ bool _hasUnevaluatedIntegral(Expr expr, String variable) => expr.anyNode(
 
 Expr _boundToExpr(Object bound) => Expr.wrap(bound);
 
-Expr _antiDerivative(Expr expr, String variable) {
-  final node = expr.simplify();
+Expr _antiDerivative(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final node = expr.simplify(assumptions: assumptions);
 
   if (!node.dependsOn(variable)) {
     if (node is Number && node.isZero) {
       return IntegerNumber.zero;
     }
-    return (node * Variable(variable)).simplify();
+    return (node * Variable(variable)).simplify(assumptions: assumptions);
   }
 
   return switch (node) {
     Variable(:final name) when name == variable =>
-      (Pow(node, IntegerNumber.two) / IntegerNumber.two).simplify(),
+      (Pow(node, IntegerNumber.two) / IntegerNumber.two).simplify(
+        assumptions: assumptions,
+      ),
     Add(:final terms) => Add([
-      for (final term in terms) _antiDerivative(term, variable),
-    ]).simplify(),
+      for (final term in terms)
+        _antiDerivative(term, variable, assumptions: assumptions),
+    ]).simplify(assumptions: assumptions),
     Sin(expr: final inner) =>
       _antiDerivSin(inner, variable) ?? _unsupported(node, variable),
     Cos(expr: final inner) =>
@@ -397,14 +411,19 @@ Expr _antiDerivative(Expr expr, String variable) {
       _antiDerivAcosh(inner, variable) ?? _unsupported(node, variable),
     Atanh(expr: final inner) =>
       _antiDerivAtanh(inner, variable) ?? _unsupported(node, variable),
-    Piecewise() => _antiDerivPiecewise(node, variable),
+    Piecewise() => _antiDerivPiecewise(
+      node,
+      variable,
+      assumptions: assumptions,
+    ),
     Pow(:final base, :final exponent) => _antiDerivPow(
       base,
       exponent,
       node,
       variable,
+      assumptions: assumptions,
     ),
-    Mul() => _antiDerivMul(node, variable),
+    Mul() => _antiDerivMul(node, variable, assumptions: assumptions),
     _ => _unsupported(node, variable),
   };
 }
@@ -567,14 +586,22 @@ Expr? _antiDerivAtanh(Expr inner, String variable) =>
       null => null,
     };
 
-Expr _antiDerivPiecewise(Piecewise expr, String variable) {
+Expr _antiDerivPiecewise(
+  Piecewise expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final m = expr.branches.length;
   final rawG = <Expr>[
     for (var i = 0; i < m; i++)
-      _antiDerivative(expr.branches[i].expr, variable),
+      _antiDerivative(
+        expr.branches[i].expr,
+        variable,
+        assumptions: assumptions,
+      ),
   ];
   final rawOth = expr.otherwise != null
-      ? _antiDerivative(expr.otherwise!, variable)
+      ? _antiDerivative(expr.otherwise!, variable, assumptions: assumptions)
       : null;
 
   final constants = <Expr>[IntegerNumber.zero];
@@ -634,7 +661,13 @@ bool _isValidExponentialBase(Expr base) => switch (base) {
   _ => true,
 };
 
-Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
+Expr _antiDerivPow(
+  Expr base,
+  Expr exponent,
+  Expr original,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   // Form: (ax + b)^n
   if (!exponent.dependsOn(variable)) {
     if (base.matchLinear(variable) case (:final a, b: _)) {
@@ -773,9 +806,9 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
       if (radQuad != null) return radQuad;
     }
     if (exponent is IntegerNumber && exponent.value > Integer.one) {
-      final expanded = original.expand().simplify();
+      final expanded = original.expand().simplify(assumptions: assumptions);
       if (expanded != original) {
-        return _antiDerivative(expanded, variable);
+        return _antiDerivative(expanded, variable, assumptions: assumptions);
       }
     }
     // Check if this is 1 / g(x) represented as g(x)^(-n)
@@ -1042,7 +1075,11 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
   return null;
 }
 
-Expr _antiDerivMul(Mul original, String variable) {
+Expr _antiDerivMul(
+  Mul original,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   // 1. Check if this product represents a quotient f(x) / g(x) where g depends on variable
   final (numExpr, denExpr) = splitNumeratorDenominator(original);
   if (denExpr != IntegerNumber.one && denExpr.dependsOn(variable)) {
@@ -1059,11 +1096,15 @@ Expr _antiDerivMul(Mul original, String variable) {
   if (constFactors.isNotEmpty) {
     final constPart = constFactors.length == 1
         ? constFactors.first
-        : Mul(constFactors).simplify();
+        : Mul(constFactors).simplify(assumptions: assumptions);
     final varPart = varFactors.length == 1
         ? varFactors.first
-        : Mul(varFactors).simplify();
-    return _antiDerivative(varPart, variable).scale(constPart);
+        : Mul(varFactors).simplify(assumptions: assumptions);
+    return _antiDerivative(
+      varPart,
+      variable,
+      assumptions: assumptions,
+    ).scale(constPart);
   }
 
   // 3. Chain-rule substitution across any factor as candidate and remaining product as factor:
@@ -1124,19 +1165,23 @@ Expr _antiDerivMul(Mul original, String variable) {
       ];
       final otherExpr = others.length == 1
           ? others.first
-          : Mul(others).simplify();
+          : Mul(others).simplify(assumptions: assumptions);
       return Add([
         for (final t in terms)
-          _antiDerivative((t * otherExpr).simplify(), variable),
-      ]).simplify();
+          _antiDerivative(
+            (t * otherExpr).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          ),
+      ]).simplify(assumptions: assumptions);
     }
   }
 
   // 6. Full polynomial expansion fallback (e.g. factored polynomials like (x-1)*(x-2)*(x+2)):
   if (polynomialDegree(original, variable) != null) {
-    final expanded = original.expand().simplify();
+    final expanded = original.expand().simplify(assumptions: assumptions);
     if (expanded != original) {
-      return _antiDerivative(expanded, variable);
+      return _antiDerivative(expanded, variable, assumptions: assumptions);
     }
   }
 
