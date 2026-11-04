@@ -562,5 +562,121 @@ void main() {
         ]),
       ).throws<ArgumentError>();
     });
+
+    test('concatenateAll and stackAll with contiguous and strided inputs', () {
+      final a = Tensor<int>.fromIterable([1, 2, 3, 4], shape: [2, 2]);
+      final b = Tensor<int>.fromIterable([5, 6, 7, 8], shape: [2, 2]);
+      final bT = b.transpose([1, 0]); // non-contiguous view: [[5, 7], [6, 8]]
+
+      // Concatenate along axis 0
+      final cat0 = ManipulationTensorExtension.concatenateAll([a, bT], axis: 0);
+      check(cat0.shape).deepEquals([4, 2]);
+      check(cat0.toNestedList() as List).deepEquals([
+        [1, 2],
+        [3, 4],
+        [5, 7],
+        [6, 8],
+      ]);
+
+      // Concatenate along axis 1
+      final cat1 = ManipulationTensorExtension.concatenateAll([a, bT], axis: 1);
+      check(cat1.shape).deepEquals([2, 4]);
+      check(cat1.toNestedList() as List).deepEquals([
+        [1, 2, 5, 7],
+        [3, 4, 6, 8],
+      ]);
+
+      // Stack along axis 0
+      final stack0 = ManipulationTensorExtension.stackAll([a, bT], axis: 0);
+      check(stack0.shape).deepEquals([2, 2, 2]);
+      check(stack0.toNestedList() as List).deepEquals([
+        [
+          [1, 2],
+          [3, 4],
+        ],
+        [
+          [5, 7],
+          [6, 8],
+        ],
+      ]);
+
+      // Stack along axis 1
+      final stack1 = ManipulationTensorExtension.stackAll([a, bT], axis: 1);
+      check(stack1.shape).deepEquals([2, 2, 2]);
+      check(stack1.toNestedList() as List).deepEquals([
+        [
+          [1, 2],
+          [5, 7],
+        ],
+        [
+          [3, 4],
+          [6, 8],
+        ],
+      ]);
+
+      // Stacking 0D scalars
+      final s1 = Tensor<int>.filled(42, shape: []);
+      final s2 = Tensor<int>.filled(99, shape: []);
+      final sStacked = ManipulationTensorExtension.stackAll([s1, s2]);
+      check(sStacked.shape).deepEquals([2]);
+      check(sStacked.toFlatList()).deepEquals([42, 99]);
+    });
+
+    test('tile with rank expansion and non-contiguous inputs', () {
+      final a = Tensor<int>.fromIterable([1, 2, 3, 4], shape: [2, 2]);
+      final aT = a.transpose([1, 0]); // [[1, 3], [2, 4]]
+
+      // Tile 2D with reps [2, 3] -> [4, 6]
+      final tiled = aT.tile([2, 3]);
+      check(tiled.shape).deepEquals([4, 6]);
+      check(tiled.getValue([0, 0])).equals(1);
+      check(tiled.getValue([0, 1])).equals(3);
+      check(tiled.getValue([0, 2])).equals(1);
+      check(tiled.getValue([1, 0])).equals(2);
+      check(tiled.getValue([1, 1])).equals(4);
+
+      // Rank expansion: reps [2, 1, 1] on shape [2, 2] -> [2, 2, 2]
+      final expanded = a.tile([2, 1, 1]);
+      check(expanded.shape).deepEquals([2, 2, 2]);
+      check(expanded.getValue([0, 0, 0])).equals(1);
+      check(expanded.getValue([1, 0, 0])).equals(1);
+    });
+
+    test('pad on multidimensional and strided tensors', () {
+      final a = Tensor<int>.fromIterable([1, 2, 3, 4], shape: [2, 2]);
+      final aT = a.transpose([1, 0]); // [[1, 3], [2, 4]]
+
+      final padded = aT.pad([
+        [1, 1],
+        [2, 1],
+      ], fillValue: 0);
+      check(padded.shape).deepEquals([4, 5]);
+      // Row 0 is pad
+      check(padded.getValue([0, 0])).equals(0);
+      // Row 1 has padded [[1, 3]] starting at col 2
+      check(padded.getValue([1, 2])).equals(1);
+      check(padded.getValue([1, 3])).equals(3);
+      // Row 2 has padded [[2, 4]] starting at col 2
+      check(padded.getValue([2, 2])).equals(2);
+      check(padded.getValue([2, 3])).equals(4);
+    });
+
+    test('Tensor.generate population order and flat buffer', () {
+      final t = Tensor<int>.generate(
+        (key) => key[0] * 100 + key[1] * 10 + key[2],
+        shape: [2, 3, 4],
+      );
+      check(t.shape).deepEquals([2, 3, 4]);
+      check(t.length).equals(24);
+      check(t.getValue([0, 0, 0])).equals(0);
+      check(t.getValue([1, 2, 3])).equals(123);
+      check(t.toFlatList().first).equals(0);
+      check(t.toFlatList().last).equals(123);
+
+      // Scalar generate
+      final scalar = Tensor<int>.generate((key) => 42, shape: []);
+      check(scalar.shape).isEmpty();
+      check(scalar.getValue([])).equals(42);
+    });
   });
 }

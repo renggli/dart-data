@@ -552,7 +552,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `variance()` allocates `thisDouble`, `meanTensor`, `diff = thisDouble - meanTensor`, `sq = diff * diff`, and `sumSq = sq.sum(...)`, traversing memory 5–6 times and never calling `Vforce.mean` or `Vforce.variance` on contiguous `Float64List` tensors.
   - **Fix**: Dispatch full-tensor contiguous `Float64List` `mean` and `variance` to `Vforce.mean` and `Vforce.variance`, and compute axis reductions in a two-pass scalar accumulator without allocating full-rank `diff` and `sq` tensors.
 
-- [ ] **2.5 `Tensor.generate` and `concatenateAll`/`stackAll`/`tile`/`pad` allocate `List<int>` per element and recompute `toIndex`**
+- [x] **2.5 `Tensor.generate` and `concatenateAll`/`stackAll`/`tile`/`pad` allocate `List<int>` per element and recompute `toIndex`**
   - **Severity**: Warning
   - **Location**: `lib/src/tensor/tensor.dart:74-90`, `lib/src/tensor/operations/manipulation.dart:58-66, 113-120, 162-168, 206-209`
   - **Problem**: `Tensor.generate` iterates `effectiveLayout.keys` and calls `tensor.setValue(key, generator(key))` (recomputing `toIndex(key)` on a newly allocated contiguous layout). `concatenateAll`, `stackAll`, `tile`, and `pad` allocate two `List<int>` coordinate lists and call `getValue`/`setValue` on every single element.

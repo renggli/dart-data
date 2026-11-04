@@ -100,15 +100,15 @@ class Tensor<T> {
     final effectiveLayout = Layout(shape: shape);
     final effectiveType = type ?? DataType.fromType<T>();
     final data = effectiveType.newList(effectiveLayout.length);
-    final tensor = Tensor.internal(
+    var i = 0;
+    for (final key in effectiveLayout.keys) {
+      data[i++] = generator(key);
+    }
+    return Tensor.internal(
       type: effectiveType,
       layout: effectiveLayout,
       data: data,
     );
-    for (final key in effectiveLayout.keys) {
-      tensor.setValue(key, generator(key));
-    }
-    return tensor;
   }
 
   /// Constructs a [Tensor] by copying elements from a 1D [iterable].

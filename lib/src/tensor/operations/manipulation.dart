@@ -54,13 +54,44 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
       shape: outShape,
       type: first.type,
     );
+    final resultData = result.data;
+    final outerDim = outShape
+        .sublist(0, normalizedAxis)
+        .fold(1, (prod, d) => prod * d);
+    final innerDim = outShape
+        .sublist(normalizedAxis + 1)
+        .fold(1, (prod, d) => prod * d);
+    final resultOuterStride = outShape[normalizedAxis] * innerDim;
+    final resultStrides = result.layout.strides;
+
     var axisOffset = 0;
     for (final tensor in tensors) {
       final tLen = tensor.layout.shape[normalizedAxis];
-      for (final key in tensor.layout.keys) {
-        final outKey = List<int>.from(key);
-        outKey[normalizedAxis] += axisOffset;
-        result.setValue(outKey, tensor.getValue(key));
+      if (tLen == 0 || tensor.length == 0) {
+        axisOffset += tLen;
+        continue;
+      }
+      if (tensor.layout.isContiguous) {
+        final tData = tensor.data;
+        final tOffset = tensor.layout.offset;
+        final sliceLen = tLen * innerDim;
+        final tOuterStride = sliceLen;
+        for (var o = 0; o < outerDim; o++) {
+          final rStart = o * resultOuterStride + axisOffset * innerDim;
+          final tStart = tOffset + o * tOuterStride;
+          resultData.setRange(rStart, rStart + sliceLen, tData, tStart);
+        }
+      } else {
+        final tData = tensor.data;
+        final tLayout = tensor.layout;
+        for (final key in tLayout.keys) {
+          var rIdx = 0;
+          for (var a = 0; a < rank; a++) {
+            final coord = a == normalizedAxis ? key[a] + axisOffset : key[a];
+            rIdx += coord * resultStrides[a];
+          }
+          resultData[rIdx] = tData[tLayout.toIndex(key)];
+        }
       }
       axisOffset += tLen;
     }
@@ -110,12 +141,42 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
       shape: outShape,
       type: first.type,
     );
+    final resultData = result.data;
+    final outerDim = outShape
+        .sublist(0, normalizedAxis)
+        .fold(1, (prod, d) => prod * d);
+    final innerDim = outShape
+        .sublist(normalizedAxis + 1)
+        .fold(1, (prod, d) => prod * d);
+    final resultOuterStride = tensors.length * innerDim;
+    final resultStrides = result.layout.strides;
+
     for (var i = 0; i < tensors.length; i++) {
       final tensor = tensors[i];
-      for (final key in tensor.layout.keys) {
-        final outKey = List<int>.from(key);
-        outKey.insert(normalizedAxis, i);
-        result.setValue(outKey, tensor.getValue(key));
+      if (tensor.length == 0) {
+        continue;
+      }
+      if (tensor.layout.isContiguous) {
+        final tData = tensor.data;
+        final tOffset = tensor.layout.offset;
+        final sliceLen = innerDim;
+        for (var o = 0; o < outerDim; o++) {
+          final rStart = o * resultOuterStride + i * innerDim;
+          final tStart = tOffset + o * sliceLen;
+          resultData.setRange(rStart, rStart + sliceLen, tData, tStart);
+        }
+      } else {
+        final tData = tensor.data;
+        final tLayout = tensor.layout;
+        for (final key in tLayout.keys) {
+          var rIdx = 0;
+          for (var a = 0; a < rank; a++) {
+            final outAxis = a < normalizedAxis ? a : a + 1;
+            rIdx += key[a] * resultStrides[outAxis];
+          }
+          rIdx += i * resultStrides[normalizedAxis];
+          resultData[rIdx] = tData[tLayout.toIndex(key)];
+        }
       }
     }
     return result;
@@ -157,14 +218,40 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
       shape: outShape,
       type: type,
     );
-    final outLayout = Layout(shape: outShape);
+    final numDims = reps.length;
+    final totalElements = result.length;
+    if (totalElements == 0) return result;
 
-    for (final outKey in outLayout.keys) {
-      final inKey = List<int>.generate(rank, (i) {
-        final repIdx = i + (reps.length - rank);
-        return outKey[repIdx] % layout.shape[i];
-      });
-      result.setValue(outKey, getValue(inKey));
+    final inDims = paddedShape;
+    final inStrides = [
+      ...List<int>.filled(reps.length - rank, 0),
+      ...layout.strides,
+    ];
+    final inReset = [
+      for (var d = 0; d < numDims; d++) -(inDims[d] - 1) * inStrides[d],
+    ];
+
+    final resultData = result.data;
+    final thisData = data;
+    var inOffset = layout.offset;
+    final inCoords = List<int>.filled(numDims, 0);
+    final outCoords = List<int>.filled(numDims, 0);
+
+    for (var outOffset = 0; outOffset < totalElements; outOffset++) {
+      resultData[outOffset] = thisData[inOffset];
+      for (var d = numDims - 1; d >= 0; d--) {
+        outCoords[d]++;
+        if (++inCoords[d] == inDims[d]) {
+          inCoords[d] = 0;
+          inOffset += inReset[d];
+        } else {
+          inOffset += inStrides[d];
+        }
+        if (outCoords[d] < outShape[d]) {
+          break;
+        }
+        outCoords[d] = 0;
+      }
     }
     return result;
   }
@@ -202,10 +289,46 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
       (i) => layout.shape[i] + padding[i][0] + padding[i][1],
     );
     final result = Tensor<T>.filled(padVal, shape: outShape, type: type);
+    final totalElements = length;
+    if (totalElements == 0) return result;
 
-    for (final key in layout.keys) {
-      final outKey = List<int>.generate(rank, (i) => key[i] + padding[i][0]);
-      result.setValue(outKey, getValue(key));
+    final resultData = result.data;
+    final thisData = data;
+    final resultStrides = result.layout.strides;
+    final inStrides = layout.strides;
+    final shape = layout.shape;
+
+    var resultBaseOffset = 0;
+    for (var i = 0; i < rank; i++) {
+      resultBaseOffset += padding[i][0] * resultStrides[i];
+    }
+
+    var outOffset = resultBaseOffset;
+    var inOffset = layout.offset;
+
+    final outDelta = resultStrides;
+    final outReset = [
+      for (var d = 0; d < rank; d++) -(shape[d] - 1) * resultStrides[d],
+    ];
+    final inDelta = inStrides;
+    final inReset = [
+      for (var d = 0; d < rank; d++) -(shape[d] - 1) * inStrides[d],
+    ];
+
+    final coords = List<int>.filled(rank, 0);
+
+    for (var step = 0; step < totalElements; step++) {
+      resultData[outOffset] = thisData[inOffset];
+      for (var d = rank - 1; d >= 0; d--) {
+        if (++coords[d] < shape[d]) {
+          outOffset += outDelta[d];
+          inOffset += inDelta[d];
+          break;
+        }
+        coords[d] = 0;
+        outOffset += outReset[d];
+        inOffset += inReset[d];
+      }
     }
     return result;
   }
