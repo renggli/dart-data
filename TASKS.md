@@ -581,7 +581,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `DescriptiveVectorNumExtension` calls `toList()` before calling top-level functions that immediately call `.map((v) => v.toDouble()).toList()` a second time, and `_iqr` copies and sorts the input list twice.
   - **Fix**: Pass `this` directly as an `Iterable<num>` in `DescriptiveVectorNumExtension` and sort once in `_iqr`.
 
-- [ ] **2.9 Unnecessary `BigInt` allocations in `combination`/`permutation` and per-call matrix allocations in `BicubicInterpolation`**
+- [x] **2.9 Unnecessary `BigInt` allocations in `combination`/`permutation` and per-call matrix allocations in `BicubicInterpolation`**
   - **Severity**: Warning
   - **Location**: `lib/src/special/gamma.dart:287-300, 320-332`, `lib/src/numeric/interpolation/bicubic.dart:160, 191, 214-275`, `lib/src/numeric/calculus/jacobian.dart:31`
   - **Problem**: `combination` and `permutation` allocate up to 1,000 `BigInt`s in a loop only to convert to `double` (and enter the `BigInt` branch for any float $\ge 2^{52}$ because `n.roundToDouble() == n`). `BicubicInterpolation` allocates 15 `List` objects per point evaluation. `jacobian` evaluates `function(point)` at the center only to read `.length`.

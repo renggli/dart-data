@@ -313,13 +313,32 @@ double combination(num total, num choose) {
   final isTotalInt = total.isFinite && total.roundToDouble() == total;
   final isChooseInt = k.isFinite && k.roundToDouble() == k;
   if (isTotalInt && isChooseInt && k <= 1000) {
-    var res = BigInt.one;
-    final totalInt = BigInt.from(total);
+    final totalInt = total.toInt();
     final kInt = k.toInt();
+    const maxSafe = 9007199254740991; // 2^53 - 1, exact across VM and Web
+    var res = 1;
+    var canUseInt = true;
     for (var i = 1; i <= kInt; i++) {
-      res = (res * (totalInt - BigInt.from(kInt - i))) ~/ BigInt.from(i);
+      final term = totalInt - i + 1;
+      final g = term.gcd(i);
+      final numPart = term ~/ g;
+      final denPart = i ~/ g;
+      res = res ~/ denPart;
+      if (res > maxSafe ~/ numPart) {
+        canUseInt = false;
+        break;
+      }
+      res *= numPart;
     }
-    return res.toDouble();
+    if (canUseInt) {
+      return res.toDouble();
+    }
+    var bigRes = BigInt.one;
+    final totalBig = BigInt.from(total);
+    for (var i = 1; i <= kInt; i++) {
+      bigRes = (bigRes * (totalBig - BigInt.from(kInt - i))) ~/ BigInt.from(i);
+    }
+    return bigRes.toDouble();
   }
   return exp(combinationLn(total, choose));
 }
@@ -349,13 +368,28 @@ double permutation(num total, num count) {
   final isTotalInt = total.isFinite && total.roundToDouble() == total;
   final isCountInt = count.isFinite && count.roundToDouble() == count;
   if (isTotalInt && isCountInt && count <= 1000) {
-    var res = BigInt.one;
-    final totalInt = BigInt.from(total);
+    final totalInt = total.toInt();
     final countInt = count.toInt();
+    const maxSafe = 9007199254740991; // 2^53 - 1, exact across VM and Web
+    var res = 1;
+    var canUseInt = true;
     for (var i = 0; i < countInt; i++) {
-      res *= totalInt - BigInt.from(i);
+      final term = totalInt - i;
+      if (res > maxSafe ~/ term) {
+        canUseInt = false;
+        break;
+      }
+      res *= term;
     }
-    return res.toDouble();
+    if (canUseInt) {
+      return res.toDouble();
+    }
+    var bigRes = BigInt.one;
+    final totalBig = BigInt.from(total);
+    for (var i = 0; i < countInt; i++) {
+      bigRes *= totalBig - BigInt.from(i);
+    }
+    return bigRes.toDouble();
   }
   return exp(permutationLn(total, count));
 }
