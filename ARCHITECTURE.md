@@ -33,8 +33,8 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - Container constructors (`Tensor`, `Matrix`, `Vector`) and `DataType.newList` automatically respect `DataType.float` and `DataType.integer` when no explicit type is specified.
   - `Field<T>` and `ExtendedField<T>` in `lib/src/type/models/field.dart` define strict algebraic contracts:
-    - Standard operations: `additiveIdentity`, `multiplicativeIdentity`, `add`, `sub`, `mul`, `div`, `neg`, `inv`, `scale`.
-    - Extended operations: `abs`, `norm`, `sqrt`, `exp`, `log`, `conjugate`.
+    - `Field<T>` defines all algebraic and analytic operations: identities (`additiveIdentity`, `multiplicativeIdentity`), arithmetic (`add`, `sub`, `mul`, `div`, `neg`, `inv`, `scale`), discrete algebra (`mod`, `division`, `remainder`, `pow`, `modPow`, `modInverse`, `gcd`), analytic functions (`abs`, `norm`, `sqrt`, `exp`, `log`, `conjugate`), and limits (`nan`, `infinity`, `negativeInfinity`).
+    - `ExtendedField<T>` is an empty marker interface reserved for fields with extended analytical domains.
   - Implemented across 18 specialized data types: floating-point (`Float32DataType`, `Float64DataType`), integers (`Int8DataType` through `Int64DataType`, unsigned variants), `BigIntDataType`, `ComplexDataType`, `FractionDataType`, `StringDataType`, `BooleanDataType`, and `ObjectDataType`.
   - Exact fractional scaling: `IntegerField.scale` uses `(a * f).round()`, and `BigIntField.scale` uses exact `Fraction.fromDouble` multiplication before truncation, eliminating rounding drift.
   - **Dart 3 Class Modifiers & Subsystem Encapsulation**:
@@ -53,7 +53,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - Fast contiguous element access: inlined indexers bypass generic checks and bounds-checking cascades.
     - Implement inlined arithmetic operators (`+`, `-`, `*`, `/`, `-()`, `scale`) that bypass generic field abstraction and execute contiguous vector loops directly on `Float64List` buffers.
     - On `Float64Matrix`: matrix multiplication (`*`) routes directly to native BLAS `dgemm` when operands are contiguous, while vector multiplication (`apply`) routes directly to BLAS `dgemv`.
-    - On `Float64Vector`: algebraic inner product (`dot`) routes directly to BLAS `ddot`, and Euclidean norm (`norm2`) routes directly to BLAS `dnrm2`.
+    - On `Float64Vector`: algebraic inner product (`dot`) routes directly to BLAS `ddot`, and Euclidean norm (`norm([pNorm = 2])`) routes directly to BLAS `dnrm2` when $p = 2$.
     - Seamless subtyping: `Float64Tensor implements Tensor<double>`, `Float64Matrix implements Matrix<double>`, and `Float64Vector implements Vector<double>`, enabling them to pass transparently into any existing API accepting generic floating-point containers.
 
 ---
@@ -68,7 +68,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - Zero-copy transformations produce new `Layout` instances referencing the same underlying `data` buffer:
     - `transpose(axes)`: Reorders shape and strides arrays.
     - `reshape(newShape)`: Recomputes contiguous strides if layout permits; otherwise triggers a contiguous buffer copy.
-    - `getRange(start, end, {axis})`: Offsets the start pointer and truncates the dimension along `axis`.
+    - `getRange({required int axis, int? start, int? end, int step = 1})`: Offsets the start pointer and truncates the dimension along `axis`.
     - `flip(axis)`: Negates the stride along `axis` and offsets the pointer to the end of the axis.
 
 ### 2.2 Contiguous Fast-Path Loops vs. Strided Iterators
@@ -93,7 +93,7 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Data science workflows require flexible axis aggregations and structural reshaping.
 - **Implementation & Constraints**:
-  - Reductions in `lib/src/tensor/operations/reduction.dart` (`sum`, `mean`, `min`, `max`, `std`, `var`, `argmin`, `argmax`) support arbitrary `axis` and `keepDims` options.
+  - Reductions in `lib/src/tensor/operations/reduction.dart` (`sum`, `mean`, `min`, `max`, `std`, `variance`, `argmin`, `argmax`) support arbitrary `axis` and `keepDims` options.
   - Axis reductions maintain accumulator buffers indexed by outer/inner layout strides.
   - Structural operations in `lib/src/tensor/operations/manipulation.dart`:
     - `concatenate` / `concatenateAll`: Joins tensors along an existing axis.
@@ -131,15 +131,15 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Rather than maintaining duplicate storage hierarchies, dense matrices and vectors are thin, zero-copy, rank-constrained wrappers around `Tensor<T>`.
 - **Implementation & Constraints**:
   - `Matrix<T>` wraps a `Tensor<T>` where `rank == 2`. Dimensions are `rowCount = shape[0]` and `colCount = shape[1]`.
-  - `Vector<T>` wraps a `Tensor<T>` where `rank == 1`. Dimension is `count = shape[0]`.
-  - Operations like `matrix.transpose()`, `matrix.conjugateTranspose`, `matrix.row(i)`, `matrix.col(j)`, and `matrix.diagonal()` return views or conjugated adjoints backed by the underlying tensor elements.
+  - `Vector<T>` wraps a `Tensor<T>` where `rank == 1`. Dimension is `length = shape[0]`.
+  - Operations like `matrix.transposed`, `matrix.conjugateTranspose`, `matrix.row(i)`, `matrix.col(j)`, and `matrix.diagonal()` return views or conjugated adjoints backed by the underlying tensor elements.
   - **Trace & Diagonal Extraction**:
     - `matrix.diagonal()` returns a zero-copy 1D view of the main diagonal.
     - `matrix.trace` sums main diagonal elements $A_{ii}$ for square matrices, returning `T` via `type.field.add` and throwing `ArgumentError` if non-square ($M \ne N$). The property is unified strictly on `Matrix<T>`, eliminating shadowing from `MatrixNormExtension`.
     - `matrix.conjugateTranspose` computes the Hermitian adjoint $A^* = (\bar{A})^T$ mapping elements through `type.field.conjugate`.
   - **Direct Fast-Path Indexing**:
     - `Tensor.get2D(r, c)`, `Tensor.set2D(r, c, v)`, `Tensor.get1D(idx)`, and `Tensor.set1D(idx, v)` provide `@pragma('vm:prefer-inline')` unchecked scalar access without heap `List<int>` coordinate allocations.
-    - `Matrix<T>` provides `getUnchecked(row, col)` and `setUnchecked(row, col, value)` for performance-critical inner loops (factorizations, transformations), alongside bounds-checked `get(row, col)`, `set(row, col, value)`, and Dart 3 record indexing `operator []((int, int))` / `operator []=((int, int), value)`.
+    - `Matrix<T>` provides `getUnchecked(row, col)` and `setUnchecked(row, col, value)` for performance-critical inner loops (factorizations, transformations), alongside 2D indexing `matrix[r][c]`, bounds-checked `get(row, col)`, `set(row, col, value)`, and record setter `operator []=((int, int), value)`.
     - `Vector<T>` provides `getUnchecked(index)` and `setUnchecked(index, value)` alongside bounds-checked `operator [](index)` and `operator []=(index, value)`.
     - Direct linear buffer initialization in `Matrix.generate` and `Vector.generate` avoids coordinate list allocations.
 
@@ -154,10 +154,10 @@ This document describes the achieved architecture across all subsystems of `pack
       int get rowCount;
       int get colCount;
       DataType<T> get type;
-      Vector<T> apply(Vector<T> x, {Vector<T>? target});
-      Vector<T> applyTranspose(Vector<T> x, {Vector<T>? target});
-      Vector<T> applyConjugateTranspose(Vector<T> x, {Vector<T>? target});
-      Matrix<T> matmul(Matrix<T> other, {Matrix<T>? target});
+      Vector<T> apply(Vector<T> x);
+      Vector<T> applyTranspose(Vector<T> x);
+      Vector<T> applyConjugateTranspose(Vector<T> x);
+      Matrix<T> matmul(Matrix<T> other);
     }
     ```
 
@@ -319,7 +319,7 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Sub-Package Layout**: The acceleration subsystem is decomposed into focused mathematical domains, each following a uniform structure (`<domain>.dart` containing the public dispatch interface, `<domain>_dart.dart` for pure Dart fallbacks, and conditional FFI bindings via `<domain>_native.dart` and `<domain>_stub.dart`):
   - `lib/src/acceleration/blas/`: Unified Basic Linear Algebra Subprograms (Levels 1, 2, and 3) in `Blas`.
   - `lib/src/acceleration/lapack/`: Linear system solvers and matrix decompositions in `Lapack`.
-  - `lib/src/acceleration/fft/`: In-place 1D and 2D complex and real Fast Fourier Transforms in `Fft`.
+  - `lib/src/acceleration/fft/`: In-place 1D and 2D complex Fast Fourier Transforms on interleaved complex `Float64ComplexList` buffers in `Fft`.
   - `lib/src/acceleration/vforce/`: Vectorized transcendental functions, reductions, and 1D convolutions in `Vforce`.
   - `lib/src/acceleration/utils/`: Shared dynamic library resolution and platform symbol probing (`library_loader_ffi.dart`).
 - **Acceleration Coordination**: `AccelerationManager` serves as a lightweight coordinator controlling execution `mode` (`AccelerationMode.auto`, `AccelerationMode.accelerated`, `AccelerationMode.dart`) and reporting active hardware acceleration status (`isAccelerated`). Each domain module exposes its own `isAvailable` boolean flag.
@@ -366,8 +366,8 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Bulk element-wise math and reductions benefit dramatically from vectorized hardware pipelines.
 - **Routines**:
-  - Element-wise Transcendental Math: `sin`, `cos`, `exp`, `log`, `sqrt`, `pow` operating directly across input/output `Float64List` buffers.
-  - Vector Reductions: `sum`, `mean`, `meanSquared`, `variance` (sample and population) operating in-place with native Apple vDSP vector reductions (`vDSP_sveD`, `vDSP_meanvD`, `vDSP_measqvD`).
+  - Element-wise Transcendental Math: `vsin`, `vcos`, `vexp`, `vlog`, `vsqrt`, `vpow` operating directly across input/output `Float64List` buffers.
+  - Vector Reductions: `sum`, `mean`, `variance` (sample and population) operating in-place with native Apple vDSP vector reductions (`vDSP_sveD`, `vDSP_meanvD`).
   - 1D Signal Processing: `convolve` (linear convolution) and `correlate` (cross-correlation).
 
 ### 5.7 Zero-Copy Direct Memory Address & Leaf Calls
@@ -395,7 +395,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - Constrained optimization handling box bounds (`BoxBound`), general inequality constraints ($g_i(x) \le 0$), and equality constraints ($h_j(x) = 0$):
     - Box bounds $[l_i, u_i]$ utilize coordinate-wise smooth sigmoid variable transformations ($x_i = l_i + \frac{u_i - l_i}{1 + e^{-y_i}}$) with chain-rule gradient scaling ($\nabla_y F = \nabla_x L_A \odot \Phi'(y)$), strictly preventing out-of-bounds evaluations and domain violations.
     - General inequality and equality constraints are resolved via the Powell-Hestenes-Rockafellar Augmented Lagrangian Method (ALM) with adaptive penalty parameter scaling ($\mu$) and multiplier updates ($\lambda_j \leftarrow \max(0, \lambda_j + \mu g_j(x))$, $\nu_k \leftarrow \nu_k + \mu h_k(x)$).
-    - Accepts objective closures `double Function(Vector<double>)` and constraint functions `List<double Function(Vector<double>)>` (which may be compiled from symbolic expressions via `expr.toVectorFunction()`), supporting both equality ($c(x) = 0$) and inequality ($c(x) \ge 0$) constraints with automatic Lagrange multiplier updates.
+    - Accepts objective closures `double Function(Vector<double>)` and constraint functions `List<double Function(Vector<double>)>` (which may be compiled from symbolic expressions via `expr.toVectorFunction()`), supporting both equality ($h(x) = 0$) and inequality ($g(x) \le 0$) constraints with automatic Lagrange multiplier updates.
 
 ### 6.2 Adaptive & Stiff Ordinary Differential Equation (ODE) Solvers
 
@@ -469,14 +469,14 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Closed-form probability modeling and parameter inference from data across univariate and multivariate domains.
 - **Implementation & Constraints**:
-  - Univariate distributions (12 implemented with `pdf`/`pmf`, `cdf`, quantile/`inverseCdf`, and random sampling):
-    - Continuous: `NormalDistribution`, `StudentDistribution`, `FDistribution`, `BetaDistribution`, `GammaDistribution`, `ExponentialDistribution`, `ChiSquaredDistribution`, `UniformDistribution`.
-    - Discrete: `BernoulliDistribution`, `BinomialDistribution`, `PoissonDistribution`, `UniformDiscreteDistribution`.
+  - 23 univariate distributions (16 continuous, 7 discrete) with `probability`, `cumulativeProbability`, `inverseCumulativeProbability`, and random sampling (`sample`, `samples`):
+    - Continuous: `NormalDistribution`, `StudentDistribution`, `FDistribution`, `BetaDistribution`, `GammaDistribution`, `ExponentialDistribution`, `ChiSquaredDistribution`, `UniformDistribution`, `CauchyDistribution`, `GumbelDistribution`, `LaplaceDistribution`, `LogisticDistribution`, `LogNormalDistribution`, `ParetoDistribution`, `RayleighDistribution`, `WeibullDistribution`.
+    - Discrete: `BernoulliDistribution`, `BinomialDistribution`, `GeometricDistribution`, `HypergeometricDistribution`, `NegativeBinomialDistribution`, `PoissonDistribution`, `UniformDiscreteDistribution`.
   - Multivariate distributions (`MultivariateDistribution<T extends num>`):
     - `MultivariateNormalDistribution`: Correlated Gaussian density over $\mathbb{R}^k$ parameterized by mean $\mu \in \mathbb{R}^k$ and covariance matrix $\Sigma \in \mathbb{R}^{k \times k}$. Computes Cholesky factor $\Sigma = L L^T$, evaluates $\ln \text{PDF}$ via forward triangular solve ($L y = x - \mu \implies (x-\mu)^T \Sigma^{-1} (x-\mu) = \|y\|_2^2$), and generates correlated random samples $x = \mu + L z$ with standard normal $z \sim \mathcal{N}(0, I_k)$.
     - `DirichletDistribution`: Continuous probability distribution over the open $(k-1)$-simplex parameterized by concentration vector $\alpha \in \mathbb{R}^k$ ($\alpha_i > 0$). Evaluates log multivariate beta function via `gammaLn`, provides exact covariance matrix, and generates samples via normalized independent Gamma draws $Y_i \sim \text{Gamma}(\alpha_i, 1.0)$.
     - `MultinomialDistribution`: Discrete distribution over $k$ categories across $n$ trials parameterized by probability vector $p \in [0, 1]^k$ ($\sum p_i = 1$). Evaluates log PMF via log-factorials (`factorialLn`), provides exact covariance matrix, and draws samples via categorical accumulation.
-  - Univariate distributions support analytical or numerical MLE fitting via `factory .fit(data)` constructors.
+  - 12 univariate distributions support analytical or numerical MLE fitting via `factory .fit(data)` constructors (`BernoulliDistribution`, `BetaDistribution`, `ExponentialDistribution`, `GammaDistribution`, `GeometricDistribution`, `GumbelDistribution`, `LogNormalDistribution`, `NormalDistribution`, `ParetoDistribution`, `PoissonDistribution`, `RayleighDistribution`, `UniformDistribution`).
 
 ### 7.3 Hypothesis Testing Suite
 
@@ -523,7 +523,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - Chebyshev polynomials of the first kind ($T_n(x)$) and second kind ($U_n(x)$).
     - Legendre polynomials ($P_n(x)$).
     - Hermite polynomials (physicist $H_n(x)$ and probabilist $He_n(x)$).
-    - Generalized Laguerre polynomials ($L_n^{(\alpha)}(x)$ via `Polynomial.laguerreL` / `laguerreL` in `lib/src/polynomial/orthogonal.dart`) computed via 3-term recurrence: $L_{k+1}^{(\alpha)}(x) = \frac{1}{k+1} ((2k + 1 + \alpha - x) L_k^{(\alpha)}(x) - (k + \alpha) L_{k-1}^{(\alpha)}(x))$. Direct point evaluation available via `laguerreEvaluate(n, x, {alpha})`.
+    - Generalized Laguerre polynomials ($L_n^{(\alpha)}(x)$ via `Polynomial.laguerreL`) computed via 3-term recurrence: $L_{k+1}^{(\alpha)}(x) = \frac{1}{k+1} ((2k + 1 + \alpha - x) L_k^{(\alpha)}(x) - (k + \alpha) L_{k-1}^{(\alpha)}(x))$. Direct point evaluation available via `evaluateOrthogonalSeries(OrthogonalFamily.laguerreL, n, x, alpha: alpha)`.
   - Evaluated via `evaluateOrthogonalSeries` (`lib/src/polynomial/orthogonal.dart`), which evaluates three-term recurrence relations stably without expanding polynomial coefficients.
 
 ### 8.3 Formal Polynomial Arithmetic, Composition & Root Isolation
@@ -663,4 +663,70 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Symbolic operations often depend on mathematical domain assumptions (`positive`, `real`, `integer`, `complex`) for variables without mutating AST nodes or relying on async zone state.
 - **Implementation & Constraints**:
-  - `Assumptions` (`lib/src/symbolic/assumptions.dart`) is an immutable `const` value class (`Assumptions({domains, defaultDomain, parent})`, with presets `Assumptions.none`, `Assumptions.real`, `Assumptions.positive`, `Assumptions.complex`, `domainOf(name)`, and `copyWith(...)` parent chaining) passed via optional named `{Assumptions assumptions = Assumptions.none}` parameters to symbolic transformation, calculus, and solver methods. When `assumptions` are provided, simplification (`sqrt(x^2) -> x`, `abs(x) -> x`, `sign(x) -> 1`, `arg(x) -> 0` for `positive`; `conj(x) -> x`, `re(x) -> x`, `im(x) -> 0` for `real`/`positive`/`integer`; `floor(n) -> n`, `ceil(n) -> n`, `round(n) -> n`, `sin(n * pi) -> 0`, `cos(2 * n * pi) -> 1`, `(-1)^(2 * n) -> 1` for `integer`) and equation solving (`solve`) respect the specified domain assumptions.
+  - `Assumptions` (`lib/src/symbolic/assumptions.dart`) is an immutable `const` value class (`Assumptions({domains, defaultDomain, parent})`, with presets `Assumptions.none`, `Assumptions.real`, `Assumptions.positive`, `Assumptions.complex`, `domainOf(name)`, `assume(name, domain)`, and `copyWith(...)` hierarchical parent chaining) passed via optional named `{Assumptions assumptions = Assumptions.none}` parameters to symbolic transformation, calculus, and solver methods. When `assumptions` are provided, simplification (`sqrt(x^2) -> x`, `abs(x) -> x`, `sign(x) -> 1`, `arg(x) -> 0` for `positive`; `conj(x) -> x`, `re(x) -> x`, `im(x) -> 0` for `real`/`positive`/`integer`; `floor(n) -> n`, `ceil(n) -> n`, `round(n) -> n`, `sin(n * pi) -> 0`, `cos(2 * n * pi) -> 1`, `(-1)^(2 * n) -> 1` for `integer`) and equation solving (`solve`) respect the specified domain assumptions.
+
+---
+
+## 10. Special Functions Subsystem (`package:data/special.dart`)
+
+### 10.1 High-Precision Transcendental Function Architecture
+
+- **Reasoning**: Applied physics, engineering, and probability theory require numerically stable implementations of non-elementary transcendental functions that avoid underflow/overflow and preserve 15 digits (53-bit IEEE-754) of precision.
+- **Implementation & Constraints**:
+  - Pure Dart mathematical functions in `lib/src/special/`, exported directly via `lib/special.dart`.
+  - Zero external dependencies: routines rely strictly on IEEE-754 floating-point operations with analytical reflection formulas, continued fractions, and asymptotic expansions.
+
+### 10.2 Gamma, Beta & Factorial Families (`lib/src/special/gamma.dart`, `beta.dart`, `digamma.dart`)
+
+- **Gamma Functions**:
+  - `gamma(x)`: Complete gamma function $\Gamma(x)$ computed via Lanczos approximation ($g=7, n=9$) yielding 15 digits of relative precision, with Euler's reflection formula $\Gamma(1-z)\Gamma(z) = \frac{\pi}{\sin(\pi z)}$ handling negative non-integer poles.
+  - `gammaLn(x)`: Logarithm of the absolute value of $\Gamma(x)$, preventing overflow for large inputs up to $x \approx 10^{300}$.
+  - `gammap(a, x)` and `gammaq(a, x)`: Lower $P(a, x) = \frac{\gamma(a, x)}{\Gamma(a)}$ and upper $Q(a, x) = \frac{\Gamma(a, x)}{\Gamma(a)}$ regularized incomplete gamma functions. Evaluated via rapidly converging power series when $x < a + 1$, and via Legendre's continued fraction using Lentz's method when $x \ge a + 1$.
+  - `gammapInv(a, p)`: Inverse of the regularized incomplete gamma function via initial rational approximation refined by Halley iterations.
+- **Beta Functions**:
+  - `beta(a, b)` and `betaLn(a, b)`: Euler's beta function $B(a, b) = \frac{\Gamma(a)\Gamma(b)}{\Gamma(a+b)}$ and log-beta $\ln B(a, b) = \ln\Gamma(a) + \ln\Gamma(b) - \ln\Gamma(a+b)$.
+  - `ibeta(a, b, x)`: Regularized incomplete beta function $I_x(a, b) = \frac{B(x; a, b)}{B(a, b)}$, evaluated via continued fraction expansion with symmetry transformation $I_x(a, b) = 1 - I_{1-x}(b, a)$ when $x > \frac{a+1}{a+b+2}$.
+  - `ibetaInv(a, b, p)`: Inverse incomplete beta function using Carter's normal approximation refined by Newton-Raphson/Halley steps.
+- **Logarithmic Derivatives (Psi Functions)**:
+  - `digamma(x)`: First derivative of $\ln\Gamma(x)$, $\psi(x) = \frac{\Gamma'(x)}{\Gamma(x)}$, evaluated via recurrence $\psi(x+1) = \psi(x) + \frac{1}{x}$ shifted to $x \ge 8$ and Bernoulli asymptotic expansion.
+  - `trigamma(x)`: Second derivative $\psi'(x) = \frac{d^2}{dx^2}\ln\Gamma(x)$ evaluated via shifted recurrence and asymptotic series.
+- **Combinatorics**:
+  - Exact and floating-point combinatorics: `factorial`, `factorialLn`, `combination`, `combinationLn`, `permutation`, and `permutationLn`.
+
+### 10.3 Gaussian Error Functions (`lib/src/special/erf.dart`)
+
+- **Reasoning**: Fundamental to cumulative normal distributions, Brownian motion, and diffusion equations.
+- **Implementation & Constraints**:
+  - `erf(x)`: Error function $\frac{2}{\sqrt{\pi}} \int_0^x e^{-t^2} dt$, computed via rational Chebyshev approximations across partitioned intervals.
+  - `erfc(x)`: Complementary error function $1 - \mathrm{erf}(x)$, maintaining high relative precision without catastrophic cancellation for large $x > 0$.
+  - `erfInv(p)` and `erfcInv(p)`: Inverse error functions combining rational polynomial approximations with Halley root refinement.
+
+### 10.4 Cylindrical & Modified Bessel Functions (`lib/src/special/bessel.dart`)
+
+- **Reasoning**: Solutions to Bessel's differential equation $x^2 y'' + x y' + (x^2 - \nu^2) y = 0$ in cylindrical wave propagation and heat conduction.
+- **Implementation & Constraints**:
+  - `besselJ0(x)` and `besselJ1(x)`: Bessel functions of the first kind (order 0 and 1) computed using minimax rational approximations for $|x| \le 8$ and Hankel asymptotic series for $|x| > 8$.
+  - `besselY0(x)` and `besselY1(x)`: Bessel functions of the second kind (Neumann functions, order 0 and 1).
+  - `besselI0(x)` and `besselI1(x)`: Modified Bessel functions of the first kind (order 0 and 1) computed with exponentially scaled Chebyshev expansions.
+  - `besselK0(x)` and `besselK1(x)`: Modified Bessel functions of the second kind (Macdonald functions, order 0 and 1).
+
+### 10.5 Complete Elliptic Integrals (`lib/src/special/elliptic.dart`)
+
+- **Reasoning**: Exact arc length of ellipses, planetary orbits, and pendulum periods.
+- **Implementation & Constraints**:
+  - `ellipticK(m)`: Complete Legendre elliptic integral of the first kind $K(m) = \int_0^{\pi/2} \frac{d\theta}{\sqrt{1 - m \sin^2\theta}}$, evaluated via the Arithmetic-Geometric Mean (AGM) algorithm ($a_{n+1} = \frac{a_n + b_n}{2}, b_{n+1} = \sqrt{a_n b_n}$) converging quadratically to machine precision.
+  - `ellipticE(m)`: Complete Legendre elliptic integral of the second kind $E(m) = \int_0^{\pi/2} \sqrt{1 - m \sin^2\theta} \, d\theta$, evaluated via simultaneous AGM progression and quadratic recurrence sums.
+
+### 10.6 Generalized Hypergeometric Series (`lib/src/special/hypergeometric.dart`)
+
+- **Reasoning**: Unifying framework subsuming exponential, trigonometric, Bessel, and orthogonal polynomial series.
+- **Implementation & Constraints**:
+  - `hypergeometric1F1(a, b, z)`: Kummer confluent hypergeometric function $_1F_1(a; b; z) = \sum_{n=0}^\infty \frac{(a)_n}{(b)_n} \frac{z^n}{n!}$.
+  - `hypergeometric2F1(a, b, c, z)`: Gauss hypergeometric function $_2F_1(a, b; c; z) = \sum_{n=0}^\infty \frac{(a)_n (b)_n}{(c)_n} \frac{z^n}{n!}$, utilizing Euler/Pfaff linear transformations to map $|z| \ge 1$ into the unit disk $|z| < 1$.
+
+### 10.7 Lambert W Function (`lib/src/special/lambert_w.dart`)
+
+- **Reasoning**: Solutions to transcendental equations of the form $W(x) e^{W(x)} = x$, appearing in tree enumeration, diode physics, enzyme kinetics, and delay differential equations.
+- **Implementation & Constraints**:
+  - `lambertW0(x)`: Principal real branch defined for $x \ge -1/e \approx -0.367879$. Initialized via Taylor expansion near branch point $-1/e$, Fritsch approximation for intermediate $x$, or asymptotic logarithmic expansion $\ln(x) - \ln(\ln(x))$ for large $x$, followed by cubic Halley iteration.
+  - `lambertW1(x)`: Secondary real branch defined for $-1/e \le x < 0$, taking values $W_{-1}(x) \in (-\infty, -1]$.

@@ -2,7 +2,8 @@
 ///
 /// Measures execution time for algebraic expansion, Taylor series,
 /// determinants, integration, simplification, polynomial factorization, and
-/// multivariate polynomial system solving (Gröbner basis via F4 and FGLM).
+/// multivariate polynomial system solving (Gröbner basis via Buchberger with
+/// Sugar strategy and FGLM).
 ///
 /// Run with:
 /// ```sh

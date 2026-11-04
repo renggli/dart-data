@@ -663,7 +663,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `README.md` shows `final b = Vector<double>.fromList([8.0, -11.0, -3.0]); final x = matrix.solve(b);`. However, `Matrix.solve` (`lib/src/linear/matrix.dart:456`) only accepts `Matrix<T> b`; solving for a vector requires `matrix.solveVector(b)`.
   - **Fix**: Update `README.md:70` to `final x = matrix.solveVector(b);`.
 
-- [ ] **4.2 Factual discrepancies and missing `special` subsystem in `ARCHITECTURE.md` and `README.md`**
+- [x] **4.2 Factual discrepancies and missing `special` subsystem in `ARCHITECTURE.md` and `README.md`**
   - **Severity**: Warning
   - **Location**: `ARCHITECTURE.md:35-37, 54, 72, 96, 133, 135, 142, 151-161, 319, 323, 369-376, 397-398, 423, 665-666`, `README.md:20-21, 30, 128`, `benchmark/symbolic_benchmark.dart:5`
   - **Problem**:
