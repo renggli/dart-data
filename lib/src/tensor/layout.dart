@@ -156,6 +156,26 @@ class Layout {
   /// Whether the layout visits elements in contiguous row-major memory order.
   final bool isContiguous;
 
+  /// The minimum and maximum linear buffer indices reachable by this layout.
+  ({int minOffset, int maxOffset}) get memorySpan {
+    var minIdx = offset;
+    var maxIdx = offset;
+    if (length > 0) {
+      for (var i = 0; i < rank; i++) {
+        final dim = shape[i];
+        if (dim > 1) {
+          final s = strides[i];
+          if (s > 0) {
+            maxIdx += (dim - 1) * s;
+          } else if (s < 0) {
+            minIdx += (dim - 1) * s;
+          }
+        }
+      }
+    }
+    return (minOffset: minIdx, maxOffset: maxIdx);
+  }
+
   /// Converts an $N$-dimensional key into a flat buffer index.
   ///
   /// Conceptually, this maps an $N$-dimensional coordinate (such as

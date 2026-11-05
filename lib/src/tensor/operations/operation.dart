@@ -51,7 +51,6 @@ extension OperationTensorExtension<T> on Tensor<T> {
         target.layout,
         data,
         layout,
-        len,
       );
 
       if (hasHazard) {
@@ -125,19 +124,12 @@ extension OperationTensorExtension<T> on Tensor<T> {
           data: resultData,
         );
       } else if (target.layout.isContiguous &&
-          !_hasMemoryHazard(
-            target.data,
-            target.layout,
-            thisData,
-            layout,
-            len,
-          ) &&
+          !_hasMemoryHazard(target.data, target.layout, thisData, layout) &&
           !_hasMemoryHazard(
             target.data,
             target.layout,
             otherData,
             other.layout,
-            len,
           )) {
         final targetData = target.data;
         final s1 = layout.offset,
@@ -187,20 +179,8 @@ extension OperationTensorExtension<T> on Tensor<T> {
       }
 
       final hasHazard =
-          _hasMemoryHazard(
-            target.data,
-            target.layout,
-            data,
-            thisLayout,
-            target.layout.length,
-          ) ||
-          _hasMemoryHazard(
-            target.data,
-            target.layout,
-            other.data,
-            otherLayout,
-            target.layout.length,
-          );
+          _hasMemoryHazard(target.data, target.layout, data, thisLayout) ||
+          _hasMemoryHazard(target.data, target.layout, other.data, otherLayout);
 
       if (hasHazard) {
         final temp = binaryOperation<O, R>(
@@ -317,15 +297,17 @@ bool _hasMemoryHazard(
   Layout targetLayout,
   List<Object?> opData,
   Layout opLayout,
-  int count,
 ) {
   if (!sharesMemory(targetData, opData)) return false;
+  final targetSpan = targetLayout.memorySpan;
+  final opSpan = opLayout.memorySpan;
   if (!hasOverlap(
     targetData,
-    targetLayout.offset,
+    targetSpan.minOffset,
     opData,
-    opLayout.offset,
-    count,
+    opSpan.minOffset,
+    targetSpan.maxOffset - targetSpan.minOffset + 1,
+    opSpan.maxOffset - opSpan.minOffset + 1,
   )) {
     return false;
   }

@@ -49,6 +49,24 @@ void main() {
       check(transposed.toIndex([2, 1])).equals(layout.toIndex([1, 2]));
     });
 
+    test('memorySpan for contiguous, strided, and flipped layouts', () {
+      final contiguous = Layout(shape: [2, 3], offset: 5);
+      check(contiguous.memorySpan.minOffset).equals(5);
+      check(contiguous.memorySpan.maxOffset).equals(10);
+
+      final strided = Layout(shape: [3], strides: [4], offset: 2);
+      check(strided.memorySpan.minOffset).equals(2);
+      check(strided.memorySpan.maxOffset).equals(10);
+
+      final flipped = strided.flip(axis: 0);
+      check(flipped.memorySpan.minOffset).equals(2);
+      check(flipped.memorySpan.maxOffset).equals(10);
+
+      final empty = Layout.empty;
+      check(empty.memorySpan.minOffset).equals(0);
+      check(empty.memorySpan.maxOffset).equals(0);
+    });
+
     test('reshape layout', () {
       final layout = Layout(shape: [2, 3]);
       final reshaped = layout.reshape([6]);
@@ -611,6 +629,22 @@ void main() {
 
       src.copy(target: dst);
       check(a.toFlatList()).deepEquals([1, 1, 2, 3, 4]);
+    });
+
+    test('strided view memory hazard with step > 1', () {
+      final t = Tensor.fromIterable([1, 2, 3, 4]);
+      final src = t.getRange(axis: 0, start: 0, end: 3, step: 2);
+      final dst = t.getRange(axis: 0, start: 2, end: 4);
+      src.unaryOperation((x) => x * 10, target: dst);
+      check(dst.toFlatList()).deepEquals([10, 30]);
+    });
+
+    test('flipped view negative stride memory hazard', () {
+      final t = Tensor.fromIterable([1, 2, 3, 4]);
+      final src = t.getRange(axis: 0, start: 0, end: 3, step: 2).flip();
+      final dst = t.getRange(axis: 0, start: 0, end: 2);
+      src.unaryOperation((x) => x * 10, target: dst);
+      check(dst.toFlatList()).deepEquals([30, 10]);
     });
 
     test('matmul into aliased operand target computes safely', () {

@@ -35,6 +35,8 @@ void main() {
       check(hasOverlap(v2, 0, v3, 0, 5)).isFalse();
       check(hasOverlap(v2, 7, v3, 0, 3)).isTrue();
       check(hasOverlap(v1, 0, v2, 0, 0)).isFalse();
+      check(hasOverlap(v1, 0, v2, 0, 2, 5)).isFalse();
+      check(hasOverlap(v1, 0, v2, 0, 6, 2)).isTrue();
     });
 
     test('non-typed list overlap detection', () {
@@ -43,6 +45,8 @@ void main() {
 
       check(hasOverlap(list1, 0, list1, 2, 3)).isTrue();
       check(hasOverlap(list1, 0, list1, 3, 2)).isFalse();
+      check(hasOverlap(list1, 0, list1, 1, 2, 1)).isTrue();
+      check(hasOverlap(list1, 0, list1, 3, 1, 1)).isFalse();
       check(hasOverlap(list1, 0, list2, 0, 5)).isFalse();
       check(hasOverlap(list1, 0, list1, 0, 0)).isFalse();
     });

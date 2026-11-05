@@ -45,23 +45,25 @@ bool hasOverlap(
   int aOffset,
   List<Object?> b,
   int bOffset,
-  int count,
-) {
-  if (count <= 0) return false;
+  int aCount, [
+  int? bCount,
+]) {
+  final countB = bCount ?? aCount;
+  if (aCount <= 0 || countB <= 0) return false;
   final ua = _unwrapList(a);
   final ub = _unwrapList(b);
   if (identical(ua, ub)) {
-    final aEnd = aOffset + count;
-    final bEnd = bOffset + count;
+    final aEnd = aOffset + aCount;
+    final bEnd = bOffset + countB;
     return aOffset < bEnd && bOffset < aEnd;
   }
   final aInfo = _viewInfo(ua);
   final bInfo = _viewInfo(ub);
   if (aInfo != null && bInfo != null && aInfo.buffer == bInfo.buffer) {
     final aStartByte = aInfo.offset + aOffset * aInfo.elemSize;
-    final aEndByte = aStartByte + count * aInfo.elemSize;
+    final aEndByte = aStartByte + aCount * aInfo.elemSize;
     final bStartByte = bInfo.offset + bOffset * bInfo.elemSize;
-    final bEndByte = bStartByte + count * bInfo.elemSize;
+    final bEndByte = bStartByte + countB * bInfo.elemSize;
     return aStartByte < bEndByte && bStartByte < aEndByte;
   }
   return false;

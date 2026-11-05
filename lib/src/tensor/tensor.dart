@@ -29,22 +29,10 @@ class Tensor<T> {
   @internal
   new internal({required this.type, required this.layout, required this.data}) {
     if (layout.length > 0) {
-      var minIdx = layout.offset;
-      var maxIdx = layout.offset;
-      for (var i = 0; i < layout.rank; i++) {
-        final dim = layout.shape[i];
-        if (dim > 1) {
-          final s = layout.strides[i];
-          if (s > 0) {
-            maxIdx += (dim - 1) * s;
-          } else if (s < 0) {
-            minIdx += (dim - 1) * s;
-          }
-        }
-      }
-      if (minIdx < 0 || maxIdx >= data.length) {
+      final span = layout.memorySpan;
+      if (span.minOffset < 0 || span.maxOffset >= data.length) {
         throw ArgumentError(
-          'Layout reachable index range [$minIdx, $maxIdx] exceeds data length ${data.length}',
+          'Layout reachable index range [${span.minOffset}, ${span.maxOffset}] exceeds data length ${data.length}',
         );
       }
     }

@@ -50,7 +50,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.2 `tensor` Subsystem
 
-- [ ] **1.2.1 `_hasMemoryHazard` and `TensorCopyExtension.copy` miss memory aliasing on strided (`step > 1`) and negative-stride (`flip`) views**
+- [x] **1.2.1 `_hasMemoryHazard` and `TensorCopyExtension.copy` miss memory aliasing on strided (`step > 1`) and negative-stride (`flip`) views**
   - **Severity**: Critical
   - **Location**: `lib/src/tensor/operations/operation.dart:190-203, 315-341`, `lib/src/tensor/layout.dart`
   - **Problem**: `_hasMemoryHazard` and `TensorCopyExtension.copy` call `hasOverlap(targetData, targetLayout.offset, opData, opLayout.offset, count)` where `count` is `layout.length`. `hasOverlap` (`lib/src/type/utils/memory.dart:43-68`) checks whether `[aOffset, aOffset + count)` overlaps `[bOffset, bOffset + count)`, which is only valid when all strides are `+1`.
