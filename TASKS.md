@@ -326,7 +326,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. Read exactly `colLength + 1` offsets in `ArrowIpc._readRecordBatch` (validating `offLen >= (colLength + 1) * 4` when `colLength > 0`) and validate buffer offsets/lengths against `body.length`.
     3. In `arrow_c_data_ffi.dart`, check pointer alignment (`ptr.address % elemBytes == 0`); if unaligned, copy bytes via `ptr.cast<ffi.Uint8>().asTypedList(byteLen)` into an aligned typed list. Also release `schema.ref.dictionary` and `array.ref.dictionary` if non-null in `_releaseArrowSchema` / `_releaseArrowArray`.
 
-- [ ] **1.9.5 Edge cases in `DataFrame.withColumn`, `DataFrame.melt`, `DataFrame.pivot`, `DataFrame.slice`/`head`/`tail`, `CsvStreamTransformer`, and `Series.hashCode`**
+- [x] **1.9.5 Edge cases in `DataFrame.withColumn`, `DataFrame.melt`, `DataFrame.pivot`, `DataFrame.slice`/`head`/`tail`, `CsvStreamTransformer`, and `Series.hashCode`**
   - **Severity**: Warning
   - **Location**: `lib/src/dataframe/dataframe.dart:219-232, 355-482, 626-645`, `lib/src/dataframe/csv/csv_stream.dart:48-52, 250-255`, `lib/src/dataframe/series.dart:200-226`
   - **Problem**:

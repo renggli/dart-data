@@ -232,7 +232,7 @@ void main() {
       var errorReceived = false;
 
       input
-          .transform(const CsvStreamTransformer())
+          .transform(CsvStreamTransformer())
           .listen(
             (_) {},
             onError: (Object e) {
@@ -286,5 +286,38 @@ void main() {
         check(chunks[1]['val'].dataType).equals(DataType.int32);
       },
     );
+
+    test('validates separator and quoteChar in CsvStreamTransformer', () async {
+      check(() => CsvStreamTransformer(separator: ',,'))
+          .throws<ArgumentError>();
+      check(() => CsvStreamTransformer(separator: '')).throws<ArgumentError>();
+      check(() => CsvStreamTransformer(quoteChar: '""'))
+          .throws<ArgumentError>();
+      check(() => CsvStreamTransformer(quoteChar: '')).throws<ArgumentError>();
+      await check(CsvStream.readStream(Stream.value(''), separator: ',,'))
+          .throws<ArgumentError>();
+    });
+
+    test('readChunks does not lock all-null chunk into string and widens int to float64', () async {
+      // Column 'a' is all null in chunk 1, then integers in chunk 2
+      // Column 'b' is integers in chunk 1, then float in chunk 2
+      const csv = 'a,b\n,\n,10\n42,20.5\n';
+      final chunks = await CsvStream.readChunks(
+        Stream.value(csv),
+        chunkSize: 2,
+      ).toList();
+      check(chunks.length).equals(2);
+
+      // Chunk 1: a is nulls, b has [null, 10] (int32)
+      check(chunks[0]['a'].toList()).deepEquals([null, null]);
+      check(chunks[0]['b'].dataType).equals(DataType.int32);
+      check(chunks[0]['b'].toList()).deepEquals([null, 10]);
+
+      // Chunk 2: a should infer int32 (not locked to string), b widens to float64
+      check(chunks[1]['a'].dataType).equals(DataType.int32);
+      check(chunks[1]['a'].toList()).deepEquals([42]);
+      check(chunks[1]['b'].dataType).equals(DataType.float64);
+      check(chunks[1]['b'].toList()).deepEquals([20.5]);
+    });
   });
 }

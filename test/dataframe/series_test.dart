@@ -312,6 +312,16 @@ void main() {
       check(s1 == sDiffVal).isFalse();
       check(s1 == sDiffLen).isFalse();
 
+      final sNan1 = Series<double>.fromList('nan', [double.nan, 1.0]);
+      final sNan2 = Series<double>.fromList('nan', [double.nan, 1.0]);
+      check(sNan1 == sNan2).isTrue();
+      check(sNan1.hashCode).equals(sNan2.hashCode);
+
+      final sZero1 = Series<double>.fromList('zero', [0.0, 1.0]);
+      final sZero2 = Series<double>.fromList('zero', [-0.0, 1.0]);
+      check(sZero1 == sZero2).isTrue();
+      check(sZero1.hashCode).equals(sZero2.hashCode);
+
       check(() => BoolSeries(name: 'b', data: [true], mask: ValidityMask(2)))
           .throws<ArgumentError>();
       check(

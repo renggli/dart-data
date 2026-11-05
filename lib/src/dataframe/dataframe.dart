@@ -217,6 +217,13 @@ class DataFrame {
 
   /// Adds or replaces [series] in this [DataFrame].
   DataFrame withColumn(Series<Object?> series) {
+    if (_columns.isNotEmpty && series.length != rowCount) {
+      throw ArgumentError.value(
+        series.length,
+        'series.length',
+        'Series length (${series.length}) must match DataFrame row count ($rowCount).',
+      );
+    }
     final newCols = <Series<Object?>>[];
     var replaced = false;
     for (final col in _columns) {
@@ -352,12 +359,20 @@ class DataFrame {
     final numValCols = valCols.length;
     final totalRows = rowCount * numValCols;
 
+    DataType<Object?>? valueDataType;
+    if (valCols.isNotEmpty) {
+      valueDataType = valCols.first.dataType;
+      for (var i = 1; i < valCols.length; i++) {
+        valueDataType = valueDataType!.promoteWith(valCols[i].dataType);
+      }
+    }
+
     if (totalRows == 0) {
       final newCols = <Series<Object?>>[
         for (final idCol in idCols)
           Series.fromList(idCol.name, const [], type: idCol.dataType),
         Series<String>.fromList(varName, const []),
-        Series.fromList(valueName, const []),
+        Series.fromList(valueName, const [], type: valueDataType),
       ];
       return DataFrame(newCols);
     }
@@ -377,14 +392,6 @@ class DataFrame {
         newVarData[writeIdx] = valCol.name;
         newValData[writeIdx] = valCol[r];
         writeIdx++;
-      }
-    }
-
-    DataType<Object?>? valueDataType;
-    if (valCols.isNotEmpty) {
-      final firstType = valCols.first.dataType;
-      if (valCols.every((c) => c.dataType == firstType)) {
-        valueDataType = firstType;
       }
     }
 
@@ -480,7 +487,13 @@ class DataFrame {
           cellValues.add(list.first);
         }
       }
-      newCols.add(Series.fromList(colName, cellValues));
+      newCols.add(
+        Series.fromList(
+          colName,
+          cellValues,
+          type: aggregate == null ? valCol.dataType : null,
+        ),
+      );
     }
 
     return DataFrame(newCols);
@@ -630,16 +643,21 @@ class DataFrame {
   /// Slices rows from [start] to [end].
   DataFrame slice(int start, int end) {
     final startIndex = math.max(0, start);
-    final endIndex = math.min(rowCount, end);
+    final endIndex = math.max(startIndex, math.min(rowCount, end));
     return DataFrame(_columns.map((col) => col.slice(startIndex, endIndex)));
   }
 
   /// Returns the first [count] rows.
-  DataFrame head([int count = 5]) => slice(0, count);
+  DataFrame head([int count = 5]) {
+    RangeError.checkNotNegative(count, 'count');
+    return slice(0, count);
+  }
 
   /// Returns the last [count] rows.
-  DataFrame tail([int count = 5]) =>
-      slice(math.max(0, rowCount - count), rowCount);
+  DataFrame tail([int count = 5]) {
+    RangeError.checkNotNegative(count, 'count');
+    return slice(math.max(0, rowCount - count), rowCount);
+  }
 
   /// Sorts rows by the values in [by] (column name or list of column names).
   ///

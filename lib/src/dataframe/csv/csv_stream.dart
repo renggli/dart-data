@@ -22,13 +22,21 @@ abstract final class CsvStream {
     List<String>? columnNames,
     Map<String, DataType<Object?>>? columnTypes,
   }) async* {
+    if (separator.length != 1) {
+      throw ArgumentError.value(
+        separator,
+        'separator',
+        'Separator must be a single character.',
+      );
+    }
     final rowStream = stream.transform(
       CsvStreamTransformer(separator: separator),
     );
     var headers = columnNames;
-    var resolvedTypes = columnTypes != null
+    final explicitTypes = columnTypes != null
         ? Map<String, DataType<Object?>>.of(columnTypes)
         : null;
+    final inferredTypes = <String, DataType<Object?>>{};
     final buffer = <List<String>>[];
 
     var totalRows = 0;
@@ -45,22 +53,33 @@ abstract final class CsvStream {
       buffer.add(row);
       totalRows++;
       if (buffer.length >= chunkSize) {
-        final df = _buildDataFrame(headers, buffer, resolvedTypes);
-        resolvedTypes ??= {
-          for (final col in df.columns) col.name: col.dataType,
-        };
+        final df = _buildDataFrame(
+          headers,
+          buffer,
+          explicitTypes: explicitTypes,
+          inferredTypes: inferredTypes,
+        );
         yield df;
         buffer.clear();
       }
     }
 
     if (buffer.isNotEmpty && headers != null) {
-      final df = _buildDataFrame(headers, buffer, resolvedTypes);
-      resolvedTypes ??= {for (final col in df.columns) col.name: col.dataType};
+      final df = _buildDataFrame(
+        headers,
+        buffer,
+        explicitTypes: explicitTypes,
+        inferredTypes: inferredTypes,
+      );
       yield df;
       buffer.clear();
     } else if (headers != null && totalRows == 0) {
-      yield _buildDataFrame(headers, const [], resolvedTypes);
+      yield _buildDataFrame(
+        headers,
+        const [],
+        explicitTypes: explicitTypes,
+        inferredTypes: inferredTypes,
+      );
     }
   }
 
@@ -73,6 +92,13 @@ abstract final class CsvStream {
     List<String>? columnNames,
     Map<String, DataType<Object?>>? columnTypes,
   }) async {
+    if (separator.length != 1) {
+      throw ArgumentError.value(
+        separator,
+        'separator',
+        'Separator must be a single character.',
+      );
+    }
     final rowStream = stream.transform(
       CsvStreamTransformer(separator: separator),
     );
@@ -92,7 +118,7 @@ abstract final class CsvStream {
     }
 
     if (headers == null) return DataFrame([]);
-    return _buildDataFrame(headers, allRows, columnTypes);
+    return _buildDataFrame(headers, allRows, explicitTypes: columnTypes);
   }
 
   /// Reads a byte [stream] into chunked [DataFrame] instances.
@@ -129,13 +155,14 @@ abstract final class CsvStream {
 
   static DataFrame _buildDataFrame(
     List<String> colNames,
-    List<List<String>> dataRows,
-    Map<String, DataType<Object?>>? columnTypes,
-  ) {
+    List<List<String>> dataRows, {
+    Map<String, DataType<Object?>>? explicitTypes,
+    Map<String, DataType<Object?>>? inferredTypes,
+  }) {
     if (dataRows.isEmpty) {
       final cols = <Series<Object?>>[];
       for (final name in colNames) {
-        final type = columnTypes?[name];
+        final type = explicitTypes?[name] ?? inferredTypes?[name];
         cols.add(Series.fromList(name, const [], type: type));
       }
       return DataFrame(cols);
@@ -146,7 +173,7 @@ abstract final class CsvStream {
 
     for (var colIdx = 0; colIdx < colNames.length; colIdx++) {
       final name = colNames[colIdx];
-      final explicitType = columnTypes?[name];
+      final explicitType = explicitTypes?[name];
 
       if (explicitType != null) {
         final vals = <Object?>[];
@@ -201,18 +228,49 @@ abstract final class CsvStream {
 
       final nonNullCount = rawVals.where((v) => v != null).length;
       if (nonNullCount == 0) {
-        columns.add(ArrowStringSeries.fromList(name, rawVals));
-      } else if (canBeInt) {
-        final intVals = rawVals
-            .map((v) => v != null ? int.parse(v.trim()) : null)
-            .toList(growable: false);
-        columns.add(TypedSeries<int>.fromList(name, intVals));
+        final prevType = inferredTypes?[name];
+        if (prevType != null) {
+          columns.add(Series.fromList(name, rawVals, type: prevType));
+        } else {
+          columns.add(ArrowStringSeries.fromList(name, rawVals));
+        }
+        continue;
+      }
+
+      final DataType<Object?> chunkType;
+      if (canBeInt) {
+        chunkType = DataType.int32;
       } else if (canBeDouble) {
+        chunkType = DataType.float64;
+      } else if (canBeBool) {
+        chunkType = DataType.boolean;
+      } else {
+        chunkType = DataType.string;
+      }
+
+      final prevType = inferredTypes?[name];
+      final DataType<Object?> resolvedType;
+      if (prevType == null || prevType == chunkType) {
+        resolvedType = chunkType;
+      } else if (prevType.isNumeric && chunkType.isNumeric) {
+        resolvedType = prevType.promoteWith(chunkType);
+      } else {
+        resolvedType = DataType.string;
+      }
+      inferredTypes?[name] = resolvedType;
+
+      if (resolvedType == DataType.float64 ||
+          resolvedType == DataType.float32) {
         final dblVals = rawVals
             .map((v) => v != null ? double.parse(v.trim()) : null)
             .toList(growable: false);
         columns.add(TypedSeries<double>.fromList(name, dblVals));
-      } else if (canBeBool) {
+      } else if (resolvedType.isInteger) {
+        final intVals = rawVals
+            .map((v) => v != null ? int.parse(v.trim()) : null)
+            .toList(growable: false);
+        columns.add(TypedSeries<int>.fromList(name, intVals));
+      } else if (resolvedType == DataType.boolean) {
         final boolVals = rawVals
             .map((v) => v != null ? v.trim().toLowerCase() == 'true' : null)
             .toList(growable: false);
@@ -231,7 +289,22 @@ abstract final class CsvStream {
 class CsvStreamTransformer extends StreamTransformerBase<String, List<String>> {
   /// Creates a [CsvStreamTransformer] with configured [separator] and
   /// [quoteChar].
-  const new({this.separator = ',', this.quoteChar = '"'});
+  new({this.separator = ',', this.quoteChar = '"'}) {
+    if (separator.length != 1) {
+      throw ArgumentError.value(
+        separator,
+        'separator',
+        'Separator must be a single character.',
+      );
+    }
+    if (quoteChar.length != 1) {
+      throw ArgumentError.value(
+        quoteChar,
+        'quoteChar',
+        'Quote character must be a single character.',
+      );
+    }
+  }
 
   /// Field delimiter character.
   final String separator;

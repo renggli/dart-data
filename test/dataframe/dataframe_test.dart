@@ -256,6 +256,15 @@ void main() {
       final replaced = df.withColumn(Series.fromList('a', [10, 20]));
       check(replaced.columnCount).equals(3);
       check(replaced['a'][0]).equals(10);
+
+      // Replacing column with mismatched length throws ArgumentError
+      final singleColDf = DataFrame([
+        Series.fromList('x', [1, 2, 3]),
+      ]);
+      check(() => singleColDf.withColumn(Series.fromList('x', [10, 20])))
+          .throws<ArgumentError>();
+      check(() => df.withColumn(Series.fromList('a', [10])))
+          .throws<ArgumentError>();
     });
 
     test('filtering, slicing, sorting, and toString', () {
@@ -336,6 +345,14 @@ void main() {
       final tail2 = sorted.tail(2);
       check(tail2.rowCount).equals(2);
       check(tail2['val'].toList()).deepEquals([50, 60]);
+
+      // slice with end < start clamps to empty
+      final slicedInverted = df.slice(4, 2);
+      check(slicedInverted.rowCount).equals(0);
+
+      // head and tail with negative count throw RangeError
+      check(() => df.head(-1)).throws<RangeError>();
+      check(() => df.tail(-1)).throws<RangeError>();
 
       // toString with > 5 rows
       final repr = df.toString();
@@ -1073,6 +1090,29 @@ line 2",10
         check(() => df.melt(idVars: ['nonexistent'])).throws<ArgumentError>();
         check(() => df.melt(idVars: ['id'], valueVars: ['nonexistent']))
             .throws<ArgumentError>();
+
+        // 0-row DataFrame preserves value DataType
+        final emptyDf = DataFrame([
+          Series.fromList('id', <int>[], type: DataType.int32),
+          Series.fromList('height', <double>[], type: DataType.float64),
+        ]);
+        final emptyMelted = emptyDf.melt(idVars: ['id']);
+        check(emptyMelted.rowCount).equals(0);
+        check(emptyMelted['value'].dataType).equals(DataType.float64);
+
+        // Mixed integer and float value columns promote to float64
+        final mixedDf = DataFrame([
+          Series.fromList('id', [1, 2]),
+          Series.fromList('i_val', [10, 20], type: DataType.int32),
+          Series.fromList('f_val', [1.5, 2.5], type: DataType.float64),
+        ]);
+        final mixedMelted = mixedDf.melt(
+          idVars: ['id'],
+          valueVars: ['i_val', 'f_val'],
+        );
+        check(mixedMelted.rowCount).equals(4);
+        check(mixedMelted['value'].dataType).equals(DataType.float64);
+        check(mixedMelted['value'].toList()).deepEquals([10.0, 20.0, 1.5, 2.5]);
       });
 
       test('pivot reshapes long dataframe to wide format', () {
@@ -1133,6 +1173,22 @@ line 2",10
         );
         check(pivoted.rowCount).equals(2);
         check(pivoted['a'].toList().sublist(0, 1)).deepEquals([30]);
+      });
+
+      test('pivot preserves valCol.dataType when aggregate is null on all-null cells', () {
+        final df = DataFrame([
+          Series.fromList('id', [1, 2]),
+          Series.fromList('category', ['A', 'B']),
+          Series.fromList('val', <int?>[null, null], type: DataType.int32),
+        ]);
+        final pivoted = df.pivot(
+          index: 'id',
+          columns: 'category',
+          values: 'val',
+        );
+        check(pivoted.columnCount).equals(3);
+        check(pivoted['A'].dataType).equals(DataType.int32);
+        check(pivoted['B'].dataType).equals(DataType.int32);
       });
     });
   });

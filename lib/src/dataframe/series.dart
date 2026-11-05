@@ -245,7 +245,22 @@ abstract class Series<T> {
   int get hashCode {
     var hash = Object.hash(name, length, dataType);
     for (var i = 0; i < length; i++) {
-      hash = Object.hash(hash, this[i]);
+      final val = this[i];
+      final Object? elem;
+      if (val is num) {
+        if (val.isNaN) {
+          elem = 0x7fc00000;
+        } else if (val is double && val == 0.0) {
+          elem = 0.0;
+        } else {
+          elem = dataType.equality.hash(val as T);
+        }
+      } else if (val != null) {
+        elem = dataType.equality.hash(val);
+      } else {
+        elem = null;
+      }
+      hash = Object.hash(hash, elem);
     }
     return hash;
   }
