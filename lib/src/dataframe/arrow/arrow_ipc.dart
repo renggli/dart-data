@@ -200,7 +200,7 @@ class _ArrowIpcStreamWriter {
       final typeOffset = fb.addTable([], []);
       return (6, typeOffset); // 6 = Bool
     } else {
-      if (dt == DataType.float64) {
+      if (dt == DataType.float64 || dt == DataType.numeric) {
         final typeOffset = fb.addTable([2], [FbFieldType.int16]); // 2 = Double
         return (3, typeOffset); // 3 = FloatingPoint
       } else if (dt == DataType.float32) {
@@ -324,6 +324,13 @@ class _ArrowIpcStreamWriter {
           }
         }
         addBuffer(boolBuf);
+      } else if (col.dataType == DataType.numeric) {
+        final f64 = Float64List(col.length);
+        for (var i = 0; i < col.length; i++) {
+          final v = col[i];
+          if (v is num) f64[i] = v.toDouble();
+        }
+        addBuffer(Uint8List.sublistView(f64));
       } else if (col is TypedSeries && col.data is TypedData) {
         final td = col.data as TypedData;
         addBuffer(Uint8List.sublistView(td));
@@ -706,6 +713,12 @@ class _ArrowIpcStreamReader {
       final vLength = readInt64LE(buf0Data, 8);
       bufferIdx++;
 
+      if (vLength > 0 && (vOffset < 0 || vOffset + vLength > body.length)) {
+        throw const FormatException(
+          'Validity buffer bounds exceed Arrow IPC body length',
+        );
+      }
+
       ValidityMask? mask;
       if (nullCount != 0 && vLength > 0 && colLength > 0) {
         final maskBytes = Uint8List.sublistView(
@@ -744,18 +757,35 @@ class _ArrowIpcStreamReader {
         final bytesLen = readInt64LE(buf2Data, 8);
         bufferIdx++;
 
-        final offCount = offLen ~/ 4;
+        if (offLen > 0 && (offOffset < 0 || offOffset + offLen > body.length)) {
+          throw const FormatException(
+            'String offsets buffer bounds exceed Arrow IPC body length',
+          );
+        }
+        if (bytesLen > 0 &&
+            (bytesOffset < 0 || bytesOffset + bytesLen > body.length)) {
+          throw const FormatException(
+            'String data buffer bounds exceed Arrow IPC body length',
+          );
+        }
+
+        final requiredOffsets = colLength + 1;
         final Uint32List offsets;
-        if (offCount == 0) {
-          offsets = Uint32List(colLength + 1);
+        if (colLength == 0) {
+          offsets = Uint32List(1);
         } else {
+          if (offLen < requiredOffsets * 4) {
+            throw FormatException(
+              'String offsets buffer length ($offLen) is less than required (${requiredOffsets * 4})',
+            );
+          }
           final offView = ByteData.sublistView(
             body,
             offOffset,
-            offOffset + offLen,
+            offOffset + requiredOffsets * 4,
           );
-          offsets = Uint32List(offCount);
-          for (var j = 0; j < offCount; j++) {
+          offsets = Uint32List(requiredOffsets);
+          for (var j = 0; j < requiredOffsets; j++) {
             offsets[j] = offView.getUint32(j * 4, Endian.little);
           }
         }
@@ -788,6 +818,14 @@ class _ArrowIpcStreamReader {
         final bOffset = readInt64LE(buf1Data, 0);
         bufferIdx++;
 
+        final boolByteLen = (colLength + 7) ~/ 8;
+        if (colLength > 0 &&
+            (bOffset < 0 || bOffset + boolByteLen > body.length)) {
+          throw const FormatException(
+            'Bool buffer bounds exceed Arrow IPC body length',
+          );
+        }
+
         final boolData = List<bool>.generate(colLength, (idx) {
           final byte = body[bOffset + (idx >> 3)];
           return ((byte >> (idx & 7)) & 1) == 1;
@@ -804,6 +842,14 @@ class _ArrowIpcStreamReader {
         );
         final dOffset = readInt64LE(buf1Data, 0);
         bufferIdx++;
+
+        final elemBytes = _elemBytesForTypeCode(field.typeCode);
+        if (colLength > 0 &&
+            (dOffset < 0 || dOffset + colLength * elemBytes > body.length)) {
+          throw const FormatException(
+            'Data buffer bounds exceed Arrow IPC body length',
+          );
+        }
 
         columns.add(
           _createTypedSeries(
@@ -1006,6 +1052,14 @@ class _ArrowIpcStreamReader {
     aligned.setRange(0, byteLength, body, offset);
     return Uint16List.sublistView(aligned);
   }
+
+  static int _elemBytesForTypeCode(int code) => switch (code) {
+    302 || 264 || 164 => 8,
+    301 || 232 || 132 => 4,
+    216 || 116 => 2,
+    208 || 108 => 1,
+    _ => 1,
+  };
 
   Series<Object?> _concatSeries(
     String name,

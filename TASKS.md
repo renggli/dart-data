@@ -314,7 +314,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. If `byColumns` contains `'a_count'` and `aggregations` contains `{'a': [Agg.count]}`, `outName = 'a_count'` collides with the group key column in `resultCols`, appending both group keys and aggregated counts into the same list (`2 * numGroups` elements).
   - **Fix**: In `GroupBy.aggregate`, update `outTypes[entry.key] = DataType.float64` whenever line 139 promotes a column list to `double` (and map `DataType.numeric` to `DataType.float64` for `Agg.sum`), and disambiguate `outName` if it collides with `byColumns`.
 
-- [ ] **1.9.4 `ArrowIpc` fails on `DataType.numeric`, string offset padding, and unvalidated FlatBuffer bounds, and `ArrowCData` crashes on unaligned FFI pointers**
+- [x] **1.9.4 `ArrowIpc` fails on `DataType.numeric`, string offset padding, and unvalidated FlatBuffer bounds, and `ArrowCData` crashes on unaligned FFI pointers**
   - **Severity**: Critical
   - **Location**: `lib/src/dataframe/arrow/arrow_ipc.dart:194-260, 327-353, 689-807`, `lib/src/dataframe/arrow/arrow_c_data_ffi.dart:491-658, 878-941`
   - **Problem**:

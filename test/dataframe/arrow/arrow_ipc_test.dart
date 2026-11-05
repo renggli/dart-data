@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
+import 'package:data/src/dataframe/arrow/flatbuffer.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
@@ -677,6 +678,116 @@ void main() {
       check(decodedUnaligned['i16'].toList()).deepEquals([1, 2, 11, null]);
       check(decodedUnaligned['u32'].toList()).deepEquals([10, 20, 20, null]);
       check(decodedUnaligned['u16'].toList()).deepEquals([1, 2, 11, null]);
+    });
+
+    test('round-trips DataFrame with DataType.numeric', () {
+      final df = DataFrame([
+        Series.fromList('num_col', <num?>[
+          10,
+          20.5,
+          -30,
+          null,
+        ], type: DataType.numeric),
+      ]);
+      final ipcBytes = df.toArrowIpc();
+      final imported = DataFrame.fromArrowIpc(ipcBytes);
+      check(imported.rowCount).equals(4);
+      check(imported['num_col'].toList()).deepEquals([10.0, 20.5, -30.0, null]);
+    });
+
+    test('decodes string offsets with padded buffer length', () {
+      final df = DataFrame.fromColumns({
+        's': ['apple', 'banana'],
+      });
+      final bytes = Uint8List.fromList(df.toArrowIpc());
+      final byteData = ByteData.sublistView(bytes);
+
+      // Locate second message (RecordBatch)
+      final meta1Len = byteData.getUint32(4, Endian.little);
+      final msg2Pos = 8 + meta1Len;
+      final meta2Len = byteData.getUint32(msg2Pos + 4, Endian.little);
+
+      final fbBytes2 = Uint8List.sublistView(
+        bytes,
+        msg2Pos + 8,
+        msg2Pos + 8 + meta2Len,
+      );
+      final fbReader = FlatBufferReader(fbBytes2);
+      final rootPos = fbReader.rootTableOffset;
+      final headerPos = fbReader.readTableOffset(rootPos, 2)!;
+      final buffersVecPos = fbReader.readVectorOffset(headerPos, 2)!;
+
+      // buffers[0] is validity (16 bytes), buffers[1] is offsets (16 bytes)
+      // Buffer struct: offset at +0, length at +8
+      final offLenPos = msg2Pos + 8 + buffersVecPos + 4 + 16 + 8;
+      final currentOffLen = byteData.getInt32(offLenPos, Endian.little);
+      check(currentOffLen).equals(12);
+
+      // Pad offLen to 16 bytes (within padded body length)
+      byteData.setInt32(offLenPos, 16, Endian.little);
+
+      final imported = DataFrame.fromArrowIpc(bytes);
+      check(imported.rowCount).equals(2);
+      check(imported['s'].toList()).deepEquals(['apple', 'banana']);
+    });
+
+    test('throws FormatException when string offsets buffer is too short', () {
+      final df = DataFrame.fromColumns({
+        's': ['apple', 'banana'],
+      });
+      final bytes = Uint8List.fromList(df.toArrowIpc());
+      final byteData = ByteData.sublistView(bytes);
+
+      final meta1Len = byteData.getUint32(4, Endian.little);
+      final msg2Pos = 8 + meta1Len;
+      final meta2Len = byteData.getUint32(msg2Pos + 4, Endian.little);
+
+      final fbBytes2 = Uint8List.sublistView(
+        bytes,
+        msg2Pos + 8,
+        msg2Pos + 8 + meta2Len,
+      );
+      final fbReader = FlatBufferReader(fbBytes2);
+      final rootPos = fbReader.rootTableOffset;
+      final headerPos = fbReader.readTableOffset(rootPos, 2)!;
+      final buffersVecPos = fbReader.readVectorOffset(headerPos, 2)!;
+
+      // buffers[1] is offsets
+      final offLenPos = msg2Pos + 8 + buffersVecPos + 4 + 16 + 8;
+      // Set offLen to 8 bytes (needs 12 bytes for 3 offsets)
+      byteData.setInt32(offLenPos, 8, Endian.little);
+
+      check(() => DataFrame.fromArrowIpc(bytes)).throws<FormatException>();
+    });
+
+    test('throws FormatException when buffer bounds exceed body length', () {
+      final df = DataFrame.fromColumns({
+        'num': [1, 2, 3],
+        'str': ['a', 'b', 'c'],
+        'flag': [true, false, true],
+      });
+      final bytes = Uint8List.fromList(df.toArrowIpc());
+      final byteData = ByteData.sublistView(bytes);
+
+      final meta1Len = byteData.getUint32(4, Endian.little);
+      final msg2Pos = 8 + meta1Len;
+      final meta2Len = byteData.getUint32(msg2Pos + 4, Endian.little);
+
+      final fbBytes2 = Uint8List.sublistView(
+        bytes,
+        msg2Pos + 8,
+        msg2Pos + 8 + meta2Len,
+      );
+      final fbReader = FlatBufferReader(fbBytes2);
+      final rootPos = fbReader.rootTableOffset;
+      final headerPos = fbReader.readTableOffset(rootPos, 2)!;
+      final buffersVecPos = fbReader.readVectorOffset(headerPos, 2)!;
+
+      // Corrupt buffer 1 (num data buffer) offset to exceed body
+      final bufOffsetPos = msg2Pos + 8 + buffersVecPos + 4 + 16 + 0;
+      byteData.setInt32(bufOffsetPos, 999999, Endian.little);
+
+      check(() => DataFrame.fromArrowIpc(bytes)).throws<FormatException>();
     });
   });
 }

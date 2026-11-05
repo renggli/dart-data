@@ -2,6 +2,7 @@
 library;
 
 import 'dart:ffi' as ffi;
+import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart'
@@ -552,8 +553,183 @@ void main() {
         calloc.free(outArray);
       }
     });
+
+    test('imports Series with unaligned buffer pointer', () {
+      final schema = calloc<ArrowSchema>();
+      final array = calloc<ArrowArray>();
+
+      schema.ref.format = 'g'.toNativeUtf8();
+      schema.ref.name = 'unaligned_double'.toNativeUtf8();
+      schema.ref.flags = 0;
+      schema.ref.n_children = 0;
+      schema.ref.children = ffi.nullptr;
+      schema.ref.dictionary = ffi.nullptr;
+      schema.ref.release = _mockReleaseSchemaPtr;
+
+      array.ref.length = 3;
+      array.ref.offset = 0;
+      array.ref.null_count = 0;
+      array.ref.n_buffers = 2;
+      final buffers = calloc<ffi.Pointer<ffi.Void>>(2);
+      buffers[0] = ffi.nullptr;
+
+      // Allocate byte buffer with extra space to ensure unaligned address
+      final rawAlloc = calloc<ffi.Uint8>(3 * 8 + 7);
+      final unalignedOffset = ((8 - (rawAlloc.address % 8)) % 8) + 1;
+      final unalignedPtr = rawAlloc + unalignedOffset;
+      check(unalignedPtr.address % 8).not((c) => c.equals(0));
+
+      final byteData = ByteData.sublistView(
+        rawAlloc.asTypedList(3 * 8 + 7),
+        unalignedOffset,
+        unalignedOffset + 3 * 8,
+      );
+      byteData.setFloat64(0, 1.25, Endian.little);
+      byteData.setFloat64(8, 2.5, Endian.little);
+      byteData.setFloat64(16, 3.75, Endian.little);
+
+      buffers[1] = unalignedPtr.cast();
+
+      array.ref.buffers = buffers;
+      array.ref.n_children = 0;
+      array.ref.children = ffi.nullptr;
+      array.ref.dictionary = ffi.nullptr;
+      array.ref.release = _mockReleaseArrayPtr;
+
+      _lastReleasedBuffers = buffers;
+      _lastReleasedData = rawAlloc.cast();
+
+      final imported = Series.importFrom(schema: schema, array: array);
+      check(imported.name).equals('unaligned_double');
+      check(imported.length).equals(3);
+      check(imported.toList()).deepEquals([1.25, 2.5, 3.75]);
+      check(schema.ref.release).equals(ffi.nullptr);
+      check(array.ref.release).equals(ffi.nullptr);
+    });
+
+    test('imports Utf8 Series with unaligned offsets buffer pointer', () {
+      final schema = calloc<ArrowSchema>();
+      final array = calloc<ArrowArray>();
+
+      schema.ref.format = 'u'.toNativeUtf8();
+      schema.ref.name = 'unaligned_utf8'.toNativeUtf8();
+      schema.ref.flags = 0;
+      schema.ref.n_children = 0;
+      schema.ref.children = ffi.nullptr;
+      schema.ref.dictionary = ffi.nullptr;
+      schema.ref.release = _mockReleaseSchemaPtr;
+
+      array.ref.length = 2;
+      array.ref.offset = 0;
+      array.ref.null_count = 0;
+      array.ref.n_buffers = 3;
+      final buffers = calloc<ffi.Pointer<ffi.Void>>(3);
+      buffers[0] = ffi.nullptr;
+
+      // Unaligned offsets buffer (length = 2, so 3 uint32 offsets)
+      final rawOffsets = calloc<ffi.Uint8>(3 * 4 + 7);
+      final unalignedOffset = ((4 - (rawOffsets.address % 4)) % 4) + 1;
+      final unalignedOffsetsPtr = rawOffsets + unalignedOffset;
+      check(unalignedOffsetsPtr.address % 4).not((c) => c.equals(0));
+
+      final offByteData = ByteData.sublistView(
+        rawOffsets.asTypedList(3 * 4 + 7),
+        unalignedOffset,
+        unalignedOffset + 3 * 4,
+      );
+      offByteData.setUint32(0, 0, Endian.little);
+      offByteData.setUint32(4, 2, Endian.little);
+      offByteData.setUint32(8, 5, Endian.little);
+      buffers[1] = unalignedOffsetsPtr.cast();
+
+      // String data: "hi" + "bye" = 5 bytes
+      final rawData = calloc<ffi.Uint8>(5);
+      final dataList = rawData.asTypedList(5);
+      dataList.setRange(0, 5, 'hibye'.codeUnits);
+      buffers[2] = rawData.cast();
+
+      array.ref.buffers = buffers;
+      array.ref.n_children = 0;
+      array.ref.children = ffi.nullptr;
+      array.ref.dictionary = ffi.nullptr;
+      array.ref.release = _mockReleaseArrayPtr;
+
+      _lastReleasedBuffers = buffers;
+      _lastReleasedData = rawOffsets.cast();
+      _lastReleasedExtra = rawData.cast();
+
+      final imported = Series.importFrom(schema: schema, array: array);
+      check(imported.name).equals('unaligned_utf8');
+      check(imported.length).equals(2);
+      check(imported.toList()).deepEquals(['hi', 'bye']);
+      check(schema.ref.release).equals(ffi.nullptr);
+      check(array.ref.release).equals(ffi.nullptr);
+    });
+
+    test(
+      'producer release callbacks clean up dictionary pointers if present',
+      () {
+        final df = DataFrame.fromColumns({
+          'a': [1, 2],
+        });
+        final schema = calloc<ArrowSchema>();
+        final array = calloc<ArrowArray>();
+        df.exportTo(outSchema: schema, outArray: array);
+
+        _schemaDictReleasedCount = 0;
+        _arrayDictReleasedCount = 0;
+
+        // Allocate mock dictionary for schema
+        final schemaDict = calloc<ArrowSchema>();
+        schemaDict.ref.release = _recordSchemaDictReleasePtr;
+        schema.ref.dictionary = schemaDict;
+
+        // Allocate mock dictionary for array
+        final arrayDict = calloc<ArrowArray>();
+        arrayDict.ref.release = _recordArrayDictReleasePtr;
+        array.ref.dictionary = arrayDict;
+
+        // Release top-level schema and array
+        schema.ref.release
+            .asFunction<void Function(ffi.Pointer<ArrowSchema>)>()(schema);
+        array.ref.release.asFunction<void Function(ffi.Pointer<ArrowArray>)>()(
+          array,
+        );
+
+        check(schema.ref.dictionary).equals(ffi.nullptr);
+        check(array.ref.dictionary).equals(ffi.nullptr);
+        check(_schemaDictReleasedCount).equals(1);
+        check(_arrayDictReleasedCount).equals(1);
+
+        calloc.free(schema);
+        calloc.free(array);
+      },
+    );
   });
 }
+
+int _schemaDictReleasedCount = 0;
+int _arrayDictReleasedCount = 0;
+
+void _recordSchemaDictRelease(ffi.Pointer<ArrowSchema> schema) {
+  _schemaDictReleasedCount++;
+  schema.ref.release = ffi.nullptr;
+}
+
+void _recordArrayDictRelease(ffi.Pointer<ArrowArray> array) {
+  _arrayDictReleasedCount++;
+  array.ref.release = ffi.nullptr;
+}
+
+final _recordSchemaDictReleasePtr =
+    ffi.Pointer.fromFunction<ffi.Void Function(ffi.Pointer<ArrowSchema>)>(
+      _recordSchemaDictRelease,
+    );
+
+final _recordArrayDictReleasePtr =
+    ffi.Pointer.fromFunction<ffi.Void Function(ffi.Pointer<ArrowArray>)>(
+      _recordArrayDictRelease,
+    );
 
 ffi.Pointer<ffi.Pointer<ffi.Void>> _lastReleasedBuffers = ffi.nullptr;
 ffi.Pointer<ffi.Void> _lastReleasedData = ffi.nullptr;

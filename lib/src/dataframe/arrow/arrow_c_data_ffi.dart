@@ -490,11 +490,10 @@ Series<Object?> importSeriesFromArrowC({
 
     switch (format) {
       case 'g':
-        final raw = arrayPtr.ref.buffers[1].cast<ffi.Double>().asTypedList(
-          offset + length,
-        );
-        final data = Float64List.fromList(
-          Float64List.sublistView(raw, offset, offset + length),
+        final data = _readAlignedFloat64(
+          arrayPtr.ref.buffers[1],
+          offset,
+          length,
         );
         return TypedSeries<double>(
           name: name,
@@ -503,11 +502,10 @@ Series<Object?> importSeriesFromArrowC({
           dataType: DataType.float64,
         );
       case 'f':
-        final raw = arrayPtr.ref.buffers[1].cast<ffi.Float>().asTypedList(
-          offset + length,
-        );
-        final data = Float32List.fromList(
-          Float32List.sublistView(raw, offset, offset + length),
+        final data = _readAlignedFloat32(
+          arrayPtr.ref.buffers[1],
+          offset,
+          length,
         );
         return TypedSeries<double>(
           name: name,
@@ -516,12 +514,7 @@ Series<Object?> importSeriesFromArrowC({
           dataType: DataType.float32,
         );
       case 'i':
-        final raw = arrayPtr.ref.buffers[1].cast<ffi.Int32>().asTypedList(
-          offset + length,
-        );
-        final data = Int32List.fromList(
-          Int32List.sublistView(raw, offset, offset + length),
-        );
+        final data = _readAlignedInt32(arrayPtr.ref.buffers[1], offset, length);
         return TypedSeries<int>(
           name: name,
           data: data,
@@ -529,12 +522,7 @@ Series<Object?> importSeriesFromArrowC({
           dataType: DataType.int32,
         );
       case 'l':
-        final raw = arrayPtr.ref.buffers[1].cast<ffi.Int64>().asTypedList(
-          offset + length,
-        );
-        final data = Int64List.fromList(
-          Int64List.sublistView(raw, offset, offset + length),
-        );
+        final data = _readAlignedInt64(arrayPtr.ref.buffers[1], offset, length);
         return TypedSeries<int>(
           name: name,
           data: data,
@@ -542,12 +530,7 @@ Series<Object?> importSeriesFromArrowC({
           dataType: DataType.int64,
         );
       case 's':
-        final raw = arrayPtr.ref.buffers[1].cast<ffi.Int16>().asTypedList(
-          offset + length,
-        );
-        final data = Int16List.fromList(
-          Int16List.sublistView(raw, offset, offset + length),
-        );
+        final data = _readAlignedInt16(arrayPtr.ref.buffers[1], offset, length);
         return TypedSeries<int>(
           name: name,
           data: data,
@@ -568,11 +551,10 @@ Series<Object?> importSeriesFromArrowC({
           dataType: DataType.int8,
         );
       case 'I':
-        final raw = arrayPtr.ref.buffers[1].cast<ffi.Uint32>().asTypedList(
-          offset + length,
-        );
-        final data = Uint32List.fromList(
-          Uint32List.sublistView(raw, offset, offset + length),
+        final data = _readAlignedUint32(
+          arrayPtr.ref.buffers[1],
+          offset,
+          length,
         );
         return TypedSeries<int>(
           name: name,
@@ -581,11 +563,10 @@ Series<Object?> importSeriesFromArrowC({
           dataType: DataType.uint32,
         );
       case 'L':
-        final raw = arrayPtr.ref.buffers[1].cast<ffi.Uint64>().asTypedList(
-          offset + length,
-        );
-        final data = Uint64List.fromList(
-          Uint64List.sublistView(raw, offset, offset + length),
+        final data = _readAlignedUint64(
+          arrayPtr.ref.buffers[1],
+          offset,
+          length,
         );
         return TypedSeries<int>(
           name: name,
@@ -594,11 +575,10 @@ Series<Object?> importSeriesFromArrowC({
           dataType: DataType.uint64,
         );
       case 'S':
-        final raw = arrayPtr.ref.buffers[1].cast<ffi.Uint16>().asTypedList(
-          offset + length,
-        );
-        final data = Uint16List.fromList(
-          Uint16List.sublistView(raw, offset, offset + length),
+        final data = _readAlignedUint16(
+          arrayPtr.ref.buffers[1],
+          offset,
+          length,
         );
         return TypedSeries<int>(
           name: name,
@@ -620,9 +600,11 @@ Series<Object?> importSeriesFromArrowC({
           dataType: DataType.uint8,
         );
       case 'u':
-        final rawOffsets = arrayPtr.ref.buffers[1]
-            .cast<ffi.Uint32>()
-            .asTypedList(offset + length + 1);
+        final rawOffsets = _readAlignedUint32(
+          arrayPtr.ref.buffers[1],
+          0,
+          offset + length + 1,
+        );
         final baseByte = rawOffsets[offset];
         final totalBytes = rawOffsets[offset + length] - baseByte;
         final sliceOffsets = Uint32List(length + 1);
@@ -894,6 +876,17 @@ void _releaseArrowSchema(ffi.Pointer<ArrowSchema> schema) {
     calloc.free(schema.ref.children);
   }
 
+  final dict = schema.ref.dictionary;
+  if (dict != ffi.nullptr) {
+    if (dict.ref.release != ffi.nullptr) {
+      final dictRelease = dict.ref.release
+          .asFunction<void Function(ffi.Pointer<ArrowSchema>)>();
+      dictRelease(dict);
+    }
+    calloc.free(dict);
+    schema.ref.dictionary = ffi.nullptr;
+  }
+
   if (schema.ref.format != ffi.nullptr) {
     calloc.free(schema.ref.format);
   }
@@ -926,6 +919,17 @@ void _releaseArrowArray(ffi.Pointer<ArrowArray> array) {
     calloc.free(array.ref.children);
   }
 
+  final dict = array.ref.dictionary;
+  if (dict != ffi.nullptr) {
+    if (dict.ref.release != ffi.nullptr) {
+      final dictRelease = dict.ref.release
+          .asFunction<void Function(ffi.Pointer<ArrowArray>)>();
+      dictRelease(dict);
+    }
+    calloc.free(dict);
+    array.ref.dictionary = ffi.nullptr;
+  }
+
   final nBuffers = array.ref.n_buffers;
   if (nBuffers > 0 && array.ref.buffers != ffi.nullptr) {
     for (var i = 0; i < nBuffers; i++) {
@@ -949,3 +953,119 @@ final _releaseArrowArrayPtr =
     ffi.Pointer.fromFunction<ffi.Void Function(ffi.Pointer<ArrowArray>)>(
       _releaseArrowArray,
     );
+
+Float64List _readAlignedFloat64(
+  ffi.Pointer<ffi.Void> ptr,
+  int offset,
+  int length,
+) {
+  final count = offset + length;
+  if (ptr.address % 8 == 0) {
+    final raw = ptr.cast<ffi.Double>().asTypedList(count);
+    return Float64List.fromList(Float64List.sublistView(raw, offset, count));
+  }
+  final bytes = ptr.cast<ffi.Uint8>().asTypedList(count * 8);
+  final copy = Float64List(length);
+  Uint8List.sublistView(copy).setRange(0, length * 8, bytes, offset * 8);
+  return copy;
+}
+
+Float32List _readAlignedFloat32(
+  ffi.Pointer<ffi.Void> ptr,
+  int offset,
+  int length,
+) {
+  final count = offset + length;
+  if (ptr.address % 4 == 0) {
+    final raw = ptr.cast<ffi.Float>().asTypedList(count);
+    return Float32List.fromList(Float32List.sublistView(raw, offset, count));
+  }
+  final bytes = ptr.cast<ffi.Uint8>().asTypedList(count * 4);
+  final copy = Float32List(length);
+  Uint8List.sublistView(copy).setRange(0, length * 4, bytes, offset * 4);
+  return copy;
+}
+
+Int64List _readAlignedInt64(ffi.Pointer<ffi.Void> ptr, int offset, int length) {
+  final count = offset + length;
+  if (ptr.address % 8 == 0) {
+    final raw = ptr.cast<ffi.Int64>().asTypedList(count);
+    return Int64List.fromList(Int64List.sublistView(raw, offset, count));
+  }
+  final bytes = ptr.cast<ffi.Uint8>().asTypedList(count * 8);
+  final copy = Int64List(length);
+  Uint8List.sublistView(copy).setRange(0, length * 8, bytes, offset * 8);
+  return copy;
+}
+
+Int32List _readAlignedInt32(ffi.Pointer<ffi.Void> ptr, int offset, int length) {
+  final count = offset + length;
+  if (ptr.address % 4 == 0) {
+    final raw = ptr.cast<ffi.Int32>().asTypedList(count);
+    return Int32List.fromList(Int32List.sublistView(raw, offset, count));
+  }
+  final bytes = ptr.cast<ffi.Uint8>().asTypedList(count * 4);
+  final copy = Int32List(length);
+  Uint8List.sublistView(copy).setRange(0, length * 4, bytes, offset * 4);
+  return copy;
+}
+
+Int16List _readAlignedInt16(ffi.Pointer<ffi.Void> ptr, int offset, int length) {
+  final count = offset + length;
+  if (ptr.address % 2 == 0) {
+    final raw = ptr.cast<ffi.Int16>().asTypedList(count);
+    return Int16List.fromList(Int16List.sublistView(raw, offset, count));
+  }
+  final bytes = ptr.cast<ffi.Uint8>().asTypedList(count * 2);
+  final copy = Int16List(length);
+  Uint8List.sublistView(copy).setRange(0, length * 2, bytes, offset * 2);
+  return copy;
+}
+
+Uint64List _readAlignedUint64(
+  ffi.Pointer<ffi.Void> ptr,
+  int offset,
+  int length,
+) {
+  final count = offset + length;
+  if (ptr.address % 8 == 0) {
+    final raw = ptr.cast<ffi.Uint64>().asTypedList(count);
+    return Uint64List.fromList(Uint64List.sublistView(raw, offset, count));
+  }
+  final bytes = ptr.cast<ffi.Uint8>().asTypedList(count * 8);
+  final copy = Uint64List(length);
+  Uint8List.sublistView(copy).setRange(0, length * 8, bytes, offset * 8);
+  return copy;
+}
+
+Uint32List _readAlignedUint32(
+  ffi.Pointer<ffi.Void> ptr,
+  int offset,
+  int length,
+) {
+  final count = offset + length;
+  if (ptr.address % 4 == 0) {
+    final raw = ptr.cast<ffi.Uint32>().asTypedList(count);
+    return Uint32List.fromList(Uint32List.sublistView(raw, offset, count));
+  }
+  final bytes = ptr.cast<ffi.Uint8>().asTypedList(count * 4);
+  final copy = Uint32List(length);
+  Uint8List.sublistView(copy).setRange(0, length * 4, bytes, offset * 4);
+  return copy;
+}
+
+Uint16List _readAlignedUint16(
+  ffi.Pointer<ffi.Void> ptr,
+  int offset,
+  int length,
+) {
+  final count = offset + length;
+  if (ptr.address % 2 == 0) {
+    final raw = ptr.cast<ffi.Uint16>().asTypedList(count);
+    return Uint16List.fromList(Uint16List.sublistView(raw, offset, count));
+  }
+  final bytes = ptr.cast<ffi.Uint8>().asTypedList(count * 2);
+  final copy = Uint16List(length);
+  Uint8List.sublistView(copy).setRange(0, length * 2, bytes, offset * 2);
+  return copy;
+}
