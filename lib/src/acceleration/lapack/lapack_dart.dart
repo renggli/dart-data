@@ -72,13 +72,17 @@ abstract final class LapackDart {
     final aCopy = Float64List(n * n);
     for (var i = 0; i < n; i++) {
       for (var j = 0; j < n; j++) {
-        aCopy[i * n + j] = a[aOffset + i * lda + j];
+        final val = a[aOffset + i * lda + j];
+        if (!val.isFinite) return false;
+        aCopy[i * n + j] = val;
       }
     }
     final bCopy = Float64List(n * nrhs);
     for (var i = 0; i < n; i++) {
       for (var j = 0; j < nrhs; j++) {
-        bCopy[i * nrhs + j] = b[bOffset + i * ldb + j];
+        final val = b[bOffset + i * ldb + j];
+        if (!val.isFinite) return false;
+        bCopy[i * nrhs + j] = val;
       }
     }
 
@@ -150,6 +154,17 @@ abstract final class LapackDart {
     required int ldb,
   }) {
     if (m == 0 || n == 0 || nrhs == 0) return true;
+
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        if (!a[aOffset + i * lda + j].isFinite) return false;
+      }
+    }
+    for (var i = 0; i < m; i++) {
+      for (var col = 0; col < nrhs; col++) {
+        if (!b[bOffset + i * ldb + col].isFinite) return false;
+      }
+    }
 
     if (m >= n) {
       // Overdetermined system: QR factorization via Householder reflections.

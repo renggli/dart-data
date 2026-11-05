@@ -112,6 +112,17 @@ abstract final class LapackNative {
     final bRequired = bOffset + (n - 1) * ldb + nrhs;
     if (a.length < aRequired || b.length < bRequired) return false;
 
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < n; j++) {
+        if (!a[aOffset + i * lda + j].isFinite) return false;
+      }
+    }
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < nrhs; j++) {
+        if (!b[bOffset + i * ldb + j].isFinite) return false;
+      }
+    }
+
     if (_hasLapackeDgesv || _hasClapackDgesv) {
       return using((arena) {
         final aLen = n * lda;
@@ -267,6 +278,18 @@ abstract final class LapackNative {
   }) {
     if (!hasDgels) return null;
     if (m == 0 || n == 0 || nrhs == 0) return true;
+
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        if (!a[aOffset + i * lda + j].isFinite) return false;
+      }
+    }
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < nrhs; j++) {
+        if (!b[bOffset + i * ldb + j].isFinite) return false;
+      }
+    }
+
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
 
@@ -313,9 +336,7 @@ abstract final class LapackNative {
         final fB = arena<ffi.Double>(maxMN * nrhs);
         for (var i = 0; i < maxMN; i++) {
           for (var j = 0; j < nrhs; j++) {
-            fB[j * maxMN + i] = (i < m || i < n)
-                ? b[bOffset + i * ldb + j]
-                : 0.0;
+            fB[j * maxMN + i] = i < m ? b[bOffset + i * ldb + j] : 0.0;
           }
         }
 

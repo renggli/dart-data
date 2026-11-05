@@ -294,10 +294,19 @@ void main() {
       final b1 = Float64List.fromList([1.0, 1.0]);
       check(Lapack.dgesv(n: 2, nrhs: 1, a: nanMat2, lda: 2, b: b1, ldb: 1))
           .isFalse();
+      final validA1 = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
+      final nanB1 = Float64List.fromList([double.nan, 1.0]);
+      check(Lapack.dgesv(n: 2, nrhs: 1, a: validA1, lda: 2, b: nanB1, ldb: 1))
+          .isFalse();
       final nanMat3 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
       final b2 = Float64List.fromList([1.0, 1.0]);
       check(
         Lapack.dgels(m: 2, n: 2, nrhs: 1, a: nanMat3, lda: 2, b: b2, ldb: 1),
+      ).isFalse();
+      final validA2 = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
+      final nanB2 = Float64List.fromList([double.nan, 1.0]);
+      check(
+        Lapack.dgels(m: 2, n: 2, nrhs: 1, a: validA2, lda: 2, b: nanB2, ldb: 1),
       ).isFalse();
 
       final nanSym1 = Float64List.fromList([double.nan]);

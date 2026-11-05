@@ -85,7 +85,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. At lines 1025–1035 (`case 3` shift calculation), when `scale == 0.0`, `final sm = stemp[mDim - 1] / scale;` evaluates `0.0 / 0.0 = NaN`, corrupting singular values and vectors with `NaN`.
   - **Fix**: Make `_computeSvd` return `bool` (`false` when `iter >= 1000`), propagate that return value from `LapackDart.dgesvd`, and guard `if (scale == 0.0)` in `case 3` by setting `shift = 0.0, f = 0.0, g = e[lIdx]`.
 
-- [ ] **1.3.3 `LapackNative.dgels` (Fortran `dgels_` path) reads out-of-range rows of `b` when $m < n$, and `dgesv`/`dgels` do not check `b` for `NaN`/`Infinity`**
+- [x] **1.3.3 `LapackNative.dgels` (Fortran `dgels_` path) reads out-of-range rows of `b` when $m < n$, and `dgesv`/`dgels` do not check `b` for `NaN`/`Infinity`**
   - **Severity**: Warning
   - **Location**: `lib/src/acceleration/lapack/lapack_native.dart:118-120, 273-385`, `lib/src/acceleration/lapack/lapack_dart.dart:80-82, 200-202`
   - **Problem**:
