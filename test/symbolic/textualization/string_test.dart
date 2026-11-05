@@ -72,6 +72,11 @@ void main() {
           .equals('O(x - 1)');
       check(const OrderTerm('x', 3, point: IntegerNumber.one).toString())
           .equals('O((x - 1)^3)');
+      check(OrderTerm('x', 2, point: -const Variable('a')).toString())
+          .equals('O((x + a)^2)');
+      check(
+        const OrderTerm('x', 2, point: IntegerNumber.negativeOne).toString(),
+      ).equals('O((x + 1)^2)');
 
       check(LessThan(x, y).toString()).equals('x < y');
       check(LessEqual(x, y).toString()).equals('x <= y');

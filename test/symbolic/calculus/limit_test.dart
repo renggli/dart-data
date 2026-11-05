@@ -510,6 +510,24 @@ void main() {
           ]);
           check(expComposite.limit('x', Constant.infinity))
               .equals(Constant.infinity);
+
+          // LambertW limits
+          check(
+            LambertW(x, branch: -1).limit(
+              'x',
+              IntegerNumber.zero,
+              direction: LimitDirection.fromBelow,
+            ),
+          ).equals(-Constant.infinity);
+          check(
+            () => LambertW(x, branch: -1).limit(
+              'x',
+              IntegerNumber.zero,
+              direction: LimitDirection.fromAbove,
+            ),
+          ).throws<UnsupportedError>();
+          check(LambertW(x).limit('x', Constant.infinity))
+              .equals(Constant.infinity);
         },
       );
     },

@@ -392,7 +392,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: `extractDenominatorFactors` only inspects `Pow` nodes with negative exponents and misses `Tan(u)` ($\frac{\sin u}{\cos u}$, which has poles where $\cos u = 0$) and `Ln(u)` (singular at $u = 0$). Consequently, `Pow(Tan(x), 2).integrate('x', from: 0, to: Constant.pi)` fails to detect the order-2 pole at $x = \pi/2$, plugs $0$ and $\pi$ into the antiderivative $\tan(x) - x$, and returns $-\pi$ for a strictly non-negative integrand!
   - **Fix**: In `extractDenominatorFactors` / `hasInteriorPole`, treat `Tan(arg)` as having denominator factor `Cos(arg)` and check whether `arg` crosses $(k + \frac{1}{2})\pi$ inside `(low, high)` (and check `Ln(arg)` for `arg <= 0` inside `[low, high]`).
 
-- [ ] **1.10.7 `LambertW(x, branch: -1)` series/limit at `0`, `summation.dart` `sqrt(x^2)` in even factorial series, `factorUnivariatePoly` square-free recursion, `solveSystemEquations` linearity check, `BytecodeEvaluator` complex subexpressions under `Re`/`Im`, and `_formatOrderTerm` double minus**
+- [x] **1.10.7 `LambertW(x, branch: -1)` series/limit at `0`, `summation.dart` `sqrt(x^2)` in even factorial series, `factorUnivariatePoly` square-free recursion, `solveSystemEquations` linearity check, `BytecodeEvaluator` complex subexpressions under `Re`/`Im`, and `_formatOrderTerm` double minus**
   - **Severity**: Warning
   - **Location**:
     - `lib/src/symbolic/calculus/series.dart:612-613` & `lib/src/symbolic/calculus/limit.dart:161-209`

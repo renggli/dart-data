@@ -186,6 +186,16 @@ Map<String, Expr>? solveSystemEquations(
       cTerm = cTerm.substitute(v, IntegerNumber.zero);
     }
     b[i] = (-cTerm).simplify(assumptions: assumptions);
+
+    // Verify linearity: eq must equal sum(a_ij * v_j) + cTerm
+    final reconstructed = Add([
+      for (var j = 0; j < n; j++) a.getUnchecked(i, j) * Variable(variables[j]),
+      cTerm,
+    ]);
+    final diff = (eq - reconstructed)
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+    if (!isZeroExpr(diff)) return null;
   }
 
   final solVector = const BareissEngine().solve<Vector<Expr>>(a, b);

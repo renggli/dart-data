@@ -223,8 +223,12 @@ List<Expr>? invertEquation(
         if (base == Constant.e) {
           final cNum = _tryEvalReal(c);
           if (cNum != null && cNum <= 0.0) return const [];
-          final lnC = Ln(c).simplify();
-          return solveEquation((exponent - lnC).simplify(), variable);
+          final lnC = Ln(c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (exponent - lnC).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
         }
         final bNum = _tryEvalReal(base);
         if (bNum == null || (bNum > 0.0 && bNum != 1.0)) {

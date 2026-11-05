@@ -144,7 +144,7 @@ final class BytecodeEvaluator {
   double _runReal(double Function(int varIndex) loadVar) {
     if (hasComplexLiterals) {
       final res = _runComplex((idx) => Complex(loadVar(idx)));
-      if (res.b == 0.0) {
+      if (res.b == 0.0 || (res.b.abs() <= 1e-15 * (res.a.abs() + 1.0))) {
         return res.a.toDouble();
       }
       if (res.isNaN) {
@@ -306,12 +306,44 @@ final class BytecodeEvaluator {
                 ? double.nan
                 : a - b * (a / b).floorToDouble();
           case Op.re || Op.conj:
-            break;
+            if (stack[sp - 1].isNaN) {
+              final res = _runComplex((idx) => Complex(loadVar(idx)));
+              if (res.b == 0.0 ||
+                  (res.b.abs() <= 1e-15 * (res.a.abs() + 1.0))) {
+                return res.a.toDouble();
+              }
+              if (res.isNaN) return double.nan;
+              throw UnsupportedError(
+                'Expression evaluated to complex value $res; use complex evaluation instead.',
+              );
+            }
           case Op.im:
-            stack[sp - 1] = stack[sp - 1].isNaN ? double.nan : 0.0;
+            if (stack[sp - 1].isNaN) {
+              final res = _runComplex((idx) => Complex(loadVar(idx)));
+              if (res.b == 0.0 ||
+                  (res.b.abs() <= 1e-15 * (res.a.abs() + 1.0))) {
+                return res.a.toDouble();
+              }
+              if (res.isNaN) return double.nan;
+              throw UnsupportedError(
+                'Expression evaluated to complex value $res; use complex evaluation instead.',
+              );
+            }
+            stack[sp - 1] = 0.0;
           case Op.arg:
+            if (stack[sp - 1].isNaN) {
+              final res = _runComplex((idx) => Complex(loadVar(idx)));
+              if (res.b == 0.0 ||
+                  (res.b.abs() <= 1e-15 * (res.a.abs() + 1.0))) {
+                return res.a.toDouble();
+              }
+              if (res.isNaN) return double.nan;
+              throw UnsupportedError(
+                'Expression evaluated to complex value $res; use complex evaluation instead.',
+              );
+            }
             final v = stack[sp - 1];
-            stack[sp - 1] = v.isNaN ? double.nan : (v < 0.0 ? math.pi : 0.0);
+            stack[sp - 1] = v < 0.0 ? math.pi : 0.0;
           case Op.asinh:
             stack[sp - 1] = stack[sp - 1].asinh();
           case Op.acosh:

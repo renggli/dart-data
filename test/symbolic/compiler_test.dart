@@ -54,6 +54,19 @@ void main() {
         check(v[1]).equals(3.0);
       },
     );
+
+    test(
+      'evaluates Re and Im on expressions with complex intermediate branches',
+      () {
+        const x = Variable('x');
+        final imSqrt = Im(Pow(x, FractionNumber.half));
+        final reSqrt = Re(Pow(x, FractionNumber.half));
+        check(imSqrt.evaluate({'x': -4.0})).equals(2.0);
+        check(reSqrt.evaluate({'x': -4.0})).equals(0.0);
+        check(imSqrt.toFunction1D('x')(-4.0)).equals(2.0);
+        check(reSqrt.toFunction1D('x')(-4.0)).equals(0.0);
+      },
+    );
   });
 
   group('Compiler error handling', () {

@@ -44,6 +44,11 @@ void main() {
           Expr.parse('2*x + y - 6'),
         ].solve(['x', 'y']);
         check(overdetInconsistent).isEmpty();
+
+        // Rejects non-linear equations containing zero-derivative functions like Floor
+        const x = Variable('x');
+        check([Floor(x) + x - IntegerNumber.two].solve(['x'])).isEmpty();
+        check([Floor(x)].solve(['x'])).isEmpty();
       },
     );
   });

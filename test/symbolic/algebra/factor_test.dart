@@ -17,6 +17,13 @@ void main() {
       final biquad = Expr.parse('x^4 - 5*x^2 + 4').factor();
       check((biquad.expand() - Expr.parse('x^4 - 5*x^2 + 4')).simplify())
           .equals(IntegerNumber.zero);
+
+      final repeatedSophieGermain = Expr.parse('(x^4 + 4)^2').expand().factor();
+      check(
+        (repeatedSophieGermain.expand() - Expr.parse('(x^4 + 4)^2').expand())
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(repeatedSophieGermain).isA<Mul>();
     });
 
     test('factors multivariate polynomials and cancels rational fractions', () {
@@ -137,6 +144,11 @@ void main() {
 
         final sqFree2 = Expr.parse('x^4 + 2*x^3 + 3*x^2 + 2*x + 1').factor();
         check(sqFree2).equals(Expr.parse('(1 + x + x^2)^2').simplify());
+
+        final sqFree3 = Expr.parse('(x^4 + 4)^2').expand().factor();
+        check(sqFree3).equals(
+          Expr.parse('(x^2 - 2*x + 2)^2 * (x^2 + 2*x + 2)^2').simplify(),
+        );
       },
     );
 

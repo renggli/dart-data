@@ -262,6 +262,60 @@ Expr computeLimit(
     }
   }
 
+  if (expr case LambertW(expr: final inner, :final branch)) {
+    try {
+      final innerLim = computeLimit(
+        inner,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      if (branch == -1) {
+        if (innerLim is Number && innerLim.isZero) {
+          final recip = (IntegerNumber.one / inner).simplify(
+            assumptions: assumptions,
+          );
+          final recipLim = computeLimit(
+            recip,
+            variable,
+            point,
+            direction: direction,
+            assumptions: assumptions,
+          );
+          if (_isNegativeInfinity(recipLim)) {
+            return _negInfinity;
+          }
+          if (_isPositiveInfinity(recipLim)) {
+            throw UnsupportedError(
+              'Limit of LambertW($inner, branch: -1) does not exist as $variable -> $point: argument approaches 0 from above',
+            );
+          }
+        }
+        if (_isWellDefinedFinite(innerLim)) {
+          return LambertW(
+            innerLim,
+            branch: branch,
+          ).simplify(assumptions: assumptions);
+        }
+      } else if (branch == 0) {
+        if (_isPositiveInfinity(innerLim)) return Constant.infinity;
+        if (_isWellDefinedFinite(innerLim)) {
+          return LambertW(
+            innerLim,
+            branch: branch,
+          ).simplify(assumptions: assumptions);
+        }
+      }
+    } on UnsupportedError catch (e) {
+      if (e.message?.contains('does not exist') ?? false) {
+        rethrow;
+      }
+    } on Object {
+      // Fall through
+    }
+  }
+
   if (expr
       case Sin(expr: final inner) ||
           Cos(expr: final inner) ||

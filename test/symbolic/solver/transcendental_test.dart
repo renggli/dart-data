@@ -291,6 +291,14 @@ void main() {
         check((Pow(Constant.e, x * x) + x + IntegerNumber.one).solve('x'))
             .isEmpty();
         check((Sin(x) + Cos(x) - IntegerNumber.one).solve('x')).isEmpty();
+
+        // Exponential form e^exponent = c forwards assumptions
+        check(
+          (Pow(Constant.e, x * x) - Constant.e).solve(
+            'x',
+            assumptions: Assumptions.positive,
+          ),
+        ).deepEquals([IntegerNumber.one]);
       },
     );
 

@@ -406,15 +406,19 @@ BytecodeEvaluator compileToBytecode(
         emit(expr);
         instructions.add(const Instruction.op(Op.abs));
       case Re(:final expr):
+        hasComplexLiterals = true;
         emit(expr);
         instructions.add(const Instruction.op(Op.re));
       case Im(:final expr):
+        hasComplexLiterals = true;
         emit(expr);
         instructions.add(const Instruction.op(Op.im));
       case Arg(:final expr):
+        hasComplexLiterals = true;
         emit(expr);
         instructions.add(const Instruction.op(Op.arg));
       case Conjugate(:final expr):
+        hasComplexLiterals = true;
         emit(expr);
         instructions.add(const Instruction.op(Op.conj));
       case LambertW(:final expr, :final branch):

@@ -416,6 +416,18 @@ void main() {
           .equals(IntegerNumber.of(48));
       check(Expr.parse('diff(2 * e, e, 1, 3)').simplify())
           .equals(IntegerNumber.two);
+      check(Expr.parse('diff(e^2, e, 1, 3)').simplify())
+          .equals(IntegerNumber.of(6));
+      final parsedDiffE2 = Expr.parse('diff(e^2, e)') as Derivative;
+      check(parsedDiffE2.expr)
+          .equals(Pow(const Variable('e'), IntegerNumber.two));
+      check(parsedDiffE2.expr.derivative('e'))
+          .equals(IntegerNumber.two * const Variable('e'));
+
+      final parsedDiffExpE = Expr.parse('diff(exp(e), e)') as Derivative;
+      check(parsedDiffExpE.expr).equals(Pow(Constant.e, const Variable('e')));
+      check(parsedDiffExpE.expr.derivative('e'))
+          .equals(Pow(Constant.e, const Variable('e')));
       check(Expr.parse('integrate(e, e)'))
           .equals(Integral(const Variable('e'), 'e'));
       check(Expr.parse('integrate(exp(x) * e, e)')).equals(

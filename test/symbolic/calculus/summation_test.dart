@@ -376,6 +376,22 @@ void main() {
             .equals(Cosh(IntegerNumber.one));
         check(Expr.parse('sum(1 / (2*n + 1)!, n, 0, infinity)').simplify())
             .equals(Sinh(IntegerNumber.one));
+
+        // Parametric even/odd factorial series without spurious sqrt(x^2):
+        check(
+          Expr.parse('sum((-1)^n * x^(2*n + 1) / (2*n + 1)!, n, 0, infinity)')
+              .simplify(),
+        ).equals(Sin(const Variable('x')));
+        check(
+          Expr.parse('sum((-1)^n * x^(2*n) / (2*n)!, n, 0, infinity)')
+              .simplify(),
+        ).equals(Cos(const Variable('x')));
+        check(
+          Expr.parse('sum(x^(2*n + 1) / (2*n + 1)!, n, 0, infinity)')
+              .simplify(),
+        ).equals(Sinh(const Variable('x')));
+        check(Expr.parse('sum(x^(2*n) / (2*n)!, n, 0, infinity)').simplify())
+            .equals(Cosh(const Variable('x')));
       },
     );
 

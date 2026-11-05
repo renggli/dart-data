@@ -320,11 +320,10 @@ String _formatOrderTerm(
   if (order == 0) {
     return 'O($variable, 0, ${_formatExpr(point, 0, decimalPlaces)})';
   }
-  final delta = switch (point) {
-    final RealNumeric n when n.isNegative =>
-      '$variable + ${_formatExpr(n.neg(), 2, decimalPlaces)}',
-    _ => '$variable - ${_formatExpr(point, 2, decimalPlaces)}',
-  };
+  final stripped = stripLeadingNegative(point);
+  final delta = stripped != null
+      ? '$variable + ${_formatExpr(stripped, 2, decimalPlaces)}'
+      : '$variable - ${_formatExpr(point, 2, decimalPlaces)}';
   if (order == 1) return 'O($delta)';
   return 'O(($delta)^$order)';
 }

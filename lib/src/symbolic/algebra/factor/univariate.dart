@@ -88,7 +88,7 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
 
   var primitiveCoeffs = intCoeffs.map((a) => (a * sign) ~/ content).toList();
 
-  final scalar = RationalNumber.of(content * sign, lcmDen);
+  var scalar = RationalNumber.of(content * sign, lcmDen);
   final factors = <Expr, int>{};
 
   // 3. Zero roots: factor out x^m
@@ -239,8 +239,22 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     final sqFree = _decomposeSquareFree(primitiveCoeffs);
     if (sqFree != null) {
       for (final (partCoeffs, mult) in sqFree) {
-        final partExpr = buildPolyExpr(partCoeffs, variable);
-        factors[partExpr] = (factors[partExpr] ?? 0) + mult;
+        final partPoly = PolyQ(
+          partCoeffs.map<RationalNumber>(IntegerNumber.new).toList(),
+        );
+        final subExpr = factorUnivariatePoly(partPoly, variable);
+        final subFactors = <Expr, int>{};
+        var subScalar = IntegerNumber.one as RationalNumber;
+        flattenFactored(subExpr, subFactors, (s) {
+          subScalar = subScalar.mulRational(s);
+        });
+        if (!subScalar.isOne) {
+          final powScalar = subScalar.powInteger(mult)!;
+          scalar = scalar.mulRational(powScalar);
+        }
+        for (final MapEntry(:key, :value) in subFactors.entries) {
+          factors[key] = (factors[key] ?? 0) + value * mult;
+        }
       }
       return buildFactoredExpr(scalar: scalar, factors: factors);
     }

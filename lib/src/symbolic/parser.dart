@@ -61,6 +61,8 @@ class ExprSyntax {
   /// Standard symbolic syntax with built-in constants and functions.
   static final ExprSyntax standard = ExprSyntax();
 
+  static final _isExpFunction = Expando<bool>();
+
   /// Standard mathematical constants.
   static final Map<String, Expr> standardConstants = Map.unmodifiable(
     <String, Expr>{
@@ -115,7 +117,11 @@ class ExprSyntax {
         'arccoth': (a) => Atanh(Pow(a, IntegerNumber.negativeOne)),
         'abs': Abs.new,
         'sqrt': (a) => Pow(a, FractionNumber.half),
-        'exp': (a) => Pow(Constant.e, a),
+        'exp': (a) {
+          final p = Pow(Constant.e, a);
+          _isExpFunction[p] = true;
+          return p;
+        },
         'ln': Ln.new,
         'log': Ln.new,
         'log2': (a) => Ln(a) / Ln(IntegerNumber.two),
@@ -687,7 +693,12 @@ class ExprSyntax {
         return node.real.isZero ? imagExpr : node.real + imagExpr;
       }
       if (varName == 'e' && node is Pow && node.base == Constant.e) {
-        return Pow(Constant.e, visit(node.exponent));
+        if (_isExpFunction[node] == true) {
+          final res = Pow(Constant.e, visit(node.exponent));
+          _isExpFunction[res] = true;
+          return res;
+        }
+        return Pow(visit(node.base), visit(node.exponent));
       }
       if (node
           case Integral(

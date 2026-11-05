@@ -1019,7 +1019,7 @@ Expr? _matchFactorialSeries(
 
     // Check if ratio = -x^2 (trig) or +x^2 (hyperbolic)
     final (posRatio, isAlternating) = extractSign(ratio);
-    final xVal = Pow(posRatio, FractionNumber.half).simplify();
+    final xVal = _extractEvenRoot(posRatio);
 
     if (c == 0) {
       // sum_{k=0..inf} ratio^k / (2k)! = cos(sqrt(-ratio)) or cosh(sqrt(ratio))
@@ -1064,6 +1064,45 @@ Expr? _matchFactorialSeries(
   }
 
   return null;
+}
+
+Expr _extractEvenRoot(Expr expr) {
+  if (expr case Pow(:final base, exponent: IntegerNumber(:final value))
+      when value.isEven) {
+    final halfExp = value ~/ Integer.two;
+    return halfExp.isOne ? base : Pow(base, IntegerNumber(halfExp)).simplify();
+  }
+  if (expr is Mul) {
+    final factors = <Expr>[];
+    for (final factor in expr.factors) {
+      if (factor case Pow(:final base, exponent: IntegerNumber(:final value))
+          when value.isEven) {
+        final halfExp = value ~/ Integer.two;
+        factors.add(
+          halfExp.isOne ? base : Pow(base, IntegerNumber(halfExp)).simplify(),
+        );
+      } else if (factor is RationalNumber && factor.sign > 0) {
+        final numSqrt = factor.numerator.isqrt();
+        final denSqrt = factor.denominator.isqrt();
+        if (numSqrt != null && denSqrt != null) {
+          factors.add(RationalNumber.of(numSqrt, denSqrt));
+        } else {
+          factors.add(Pow(factor, FractionNumber.half).simplify());
+        }
+      } else {
+        factors.add(Pow(factor, FractionNumber.half).simplify());
+      }
+    }
+    return simplifyMul(factors);
+  }
+  if (expr is RationalNumber && expr.sign > 0) {
+    final numSqrt = expr.numerator.isqrt();
+    final denSqrt = expr.denominator.isqrt();
+    if (numSqrt != null && denSqrt != null) {
+      return RationalNumber.of(numSqrt, denSqrt);
+    }
+  }
+  return Pow(expr, FractionNumber.half).simplify();
 }
 
 /// Converts standard power basis polynomial coefficients $\sum_{i=0}^d p_i k^i$
