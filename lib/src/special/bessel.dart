@@ -11,11 +11,16 @@ double besselJ(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
   final xd = x.toDouble();
+  if (!nud.isFinite) return double.nan;
+  if (xd.isInfinite) {
+    if (xd.isNegative) return double.nan;
+    return 0.0;
+  }
   if (nud == 0.0) return besselJ0(xd);
   if (nud == 1.0) return besselJ1(xd);
 
   // Integer order branch
-  if (nud.roundToDouble() == nud) {
+  if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
     final n = nud.toInt();
     if (n < 0) {
       final jPos = besselJ(-n, xd);
@@ -25,6 +30,21 @@ double besselJ(num nu, num x) {
     if (xd < 0.0) {
       final jPos = besselJ(n, -xd);
       return n.isOdd ? -jPos : jPos;
+    }
+    if (xd < 1e-4) {
+      final halfX = 0.5 * xd;
+      var term = pow(halfX, n) / gamma(n + 1.0);
+      var sum = term;
+      final halfX2 = -halfX * halfX;
+      for (var m = 1; m <= 20; m++) {
+        term *= halfX2 / (m * (m + n));
+        sum += term;
+        if (term.abs() <= 1.0e-15 * sum.abs()) break;
+      }
+      return sum;
+    }
+    if (xd > max(25.0, n * n.toDouble())) {
+      return _hankelAsymptotic(nud, xd).j;
     }
     if (xd > n) {
       // Forward recurrence
@@ -47,6 +67,12 @@ double besselJ(num nu, num x) {
         final fPrev = (2.0 * k / xd) * fCur - fNext;
         fNext = fCur;
         fCur = fPrev;
+        if (fCur.abs() > 1e100) {
+          fCur *= 1e-100;
+          fNext *= 1e-100;
+          fn *= 1e-100;
+          sum *= 1e-100;
+        }
         if (k - 1 == n) fn = fCur;
         if ((k - 1).isEven) {
           sum += (k - 1 == 0) ? fCur : 2.0 * fCur;
@@ -59,6 +85,9 @@ double besselJ(num nu, num x) {
   // Non-integer order branch
   if (xd < 0.0) return double.nan;
   if (xd == 0.0) return nud == 0.0 ? 1.0 : 0.0;
+  if (xd > max(25.0, nud * nud)) {
+    return _hankelAsymptotic(nud, xd).j;
+  }
 
   final halfX = 0.5 * xd;
   final gammaVal = gamma(nud + 1.0);
@@ -79,12 +108,16 @@ double besselY(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
   final xd = x.toDouble();
-  if (xd <= 0.0) return double.nan;
+  if (!nud.isFinite || xd <= 0.0) return double.nan;
+  if (xd.isInfinite) return 0.0;
   if (nud == 0.0) return besselY0(xd);
   if (nud == 1.0) return besselY1(xd);
+  if (xd > max(25.0, nud * nud)) {
+    return _hankelAsymptotic(nud, xd).y;
+  }
 
   // Integer order branch via forward recurrence
-  if (nud.roundToDouble() == nud) {
+  if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
     final n = nud.toInt();
     if (n < 0) {
       final yPos = besselY(-n, xd);
@@ -113,11 +146,21 @@ double besselI(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
   final xd = x.toDouble();
+  if (!nud.isFinite) return double.nan;
+  if (xd.isInfinite) {
+    if (xd.isNegative) {
+      if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
+        return nud.toInt().isOdd ? double.negativeInfinity : double.infinity;
+      }
+      return double.nan;
+    }
+    return double.infinity;
+  }
   if (nud == 0.0) return besselI0(xd);
   if (nud == 1.0) return besselI1(xd);
 
   // Integer order branch
-  if (nud.roundToDouble() == nud) {
+  if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
     final n = nud.toInt();
     if (n < 0) {
       return besselI(-n, xd);
@@ -129,6 +172,21 @@ double besselI(num nu, num x) {
       final iPos = besselI(n, -xd);
       return n.isOdd ? -iPos : iPos;
     }
+    if (xd < 1e-4) {
+      final halfX = 0.5 * xd;
+      var term = pow(halfX, n) / gamma(n + 1.0);
+      var sum = term;
+      final halfX2 = halfX * halfX;
+      for (var m = 1; m <= 20; m++) {
+        term *= halfX2 / (m * (m + n));
+        sum += term;
+        if (term.abs() <= 1.0e-15 * sum.abs()) break;
+      }
+      return sum;
+    }
+    if (xd > max(25.0, n * n.toDouble())) {
+      return _modifiedBesselAsymptotic(nud, xd).i;
+    }
     final m = 2 * (n + sqrt(40.0 * n).toInt() + 10);
     var fNext = 0.0;
     var fCur = 1.0e-30;
@@ -137,6 +195,11 @@ double besselI(num nu, num x) {
       final fPrev = (2.0 * k / xd) * fCur + fNext;
       fNext = fCur;
       fCur = fPrev;
+      if (fCur.abs() > 1e100) {
+        fCur *= 1e-100;
+        fNext *= 1e-100;
+        fn *= 1e-100;
+      }
       if (k - 1 == n) fn = fCur;
     }
     final trueI0 = besselI0(xd);
@@ -146,6 +209,9 @@ double besselI(num nu, num x) {
   // Non-integer order branch
   if (xd < 0.0) return double.nan;
   if (xd == 0.0) return nud == 0.0 ? 1.0 : 0.0;
+  if (xd > max(25.0, nud * nud)) {
+    return _modifiedBesselAsymptotic(nud, xd).i;
+  }
 
   final halfX = 0.5 * xd;
   final gammaVal = gamma(nud + 1.0);
@@ -166,14 +232,18 @@ double besselK(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
   final xd = x.toDouble();
-  if (xd <= 0.0) return double.nan;
+  if (!nud.isFinite || xd <= 0.0) return double.nan;
+  if (xd.isInfinite) return 0.0;
   if (nud == 0.0) return besselK0(xd);
   if (nud == 1.0) return besselK1(xd);
 
   final absNu = nud.abs();
+  if (xd > max(25.0, absNu * absNu)) {
+    return _modifiedBesselAsymptotic(absNu, xd).k;
+  }
 
   // Integer order branch via forward recurrence
-  if (absNu.roundToDouble() == absNu) {
+  if (absNu <= 1e7 && absNu.roundToDouble() == absNu) {
     final n = absNu.toInt();
     var kPrev = besselK0(xd);
     var kCur = besselK1(xd);
@@ -191,6 +261,67 @@ double besselK(num nu, num x) {
     return besselK(absNu.round(), xd);
   }
   return (pi / 2.0) * (besselI(-absNu, xd) - besselI(absNu, xd)) / sinPiNu;
+}
+
+({double j, double y}) _hankelAsymptotic(double nu, double x) {
+  final mu = 4.0 * nu * nu;
+  final eightX = 8.0 * x;
+  var p = 1.0;
+  var q = 0.0;
+  var a = 1.0;
+  var pSign = -1.0;
+  var qSign = 1.0;
+
+  for (var k = 1; k <= 30; k++) {
+    final prevA = a.abs();
+    a *= (mu - (2 * k - 1) * (2 * k - 1)) / (k * eightX);
+    if (a.abs() >= prevA) break;
+    if (k.isOdd) {
+      q += qSign * a;
+      qSign = -qSign;
+    } else {
+      p += pSign * a;
+      pSign = -pSign;
+    }
+    if (a.abs() < 1e-16 * (p.abs() + q.abs())) break;
+  }
+
+  final theta = x - (2.0 * nu + 1.0) * pi / 4.0;
+  final cosTheta = cos(theta);
+  final sinTheta = sin(theta);
+  final factor = sqrt(2.0 / (pi * x));
+
+  return (
+    j: factor * (p * cosTheta - q * sinTheta),
+    y: factor * (p * sinTheta + q * cosTheta),
+  );
+}
+
+({double i, double k}) _modifiedBesselAsymptotic(double nu, double x) {
+  final mu = 4.0 * nu * nu;
+  final eightX = 8.0 * x;
+  var sumI = 1.0;
+  var sumK = 1.0;
+  var termI = 1.0;
+  var termK = 1.0;
+
+  for (var k = 1; k <= 30; k++) {
+    final prevTerm = termI.abs();
+    final factor = (mu - (2 * k - 1) * (2 * k - 1)) / (k * eightX);
+    termI *= factor;
+    termK *= -factor;
+    if (k > 2 && termI.abs() >= prevTerm) break;
+    sumI += termI;
+    sumK += termK;
+    if (termI.abs() < 1e-16 * sumI.abs() && termK.abs() < 1e-16 * sumK.abs()) {
+      break;
+    }
+  }
+
+  final factorI = exp(x) / sqrt(2.0 * pi * x);
+  final factorK = sqrt(pi / (2.0 * x)) * exp(-x);
+
+  return (i: factorI * sumI, k: factorK * sumK);
 }
 
 /// Returns the modified Bessel function $I_0(x)$ of the first kind of order 0.

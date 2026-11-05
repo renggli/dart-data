@@ -175,7 +175,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: Unlike `digamma` (`line 29`) and `trigamma` (`line 78`), `polygamma(m, x)` for $m \ge 2$ only checks `if (value <= 0.0 && value.truncateToDouble() == value)` and then enters `while (value < 8.0) { shift += ...; value += 1.0; }`. For $x = -10^8 - 0.5$, it loops $10^8$ times; for $x = -10^{16} - 0.5$, `value + 1.0 == value` in IEEE 754 `double`, causing an infinite loop.
   - **Fix**: For `value <= 0.0`, apply the reflection relation $\psi^{(m)}(1 - x) + (-1)^{m+1} \psi^{(m)}(x) = (-1)^m \pi \frac{d^m}{dx^m} \cot(\pi x)$ by evaluating the $m$-th derivative of $\cot(\pi x)$ via polynomial recurrence in $u = \cot(\pi x)$ ($P_0(u) = u$, $P_{k+1}(u) = -(1 + u^2) P_k'(u)$).
 
-- [ ] **1.5.3 `besselJ`, `besselY`, `besselI`, `besselK` throw `UnsupportedError` on infinite `nu`, return `NaN` on small/infinite `x`, and suffer catastrophic cancellation for non-integer `nu` at large `x`**
+- [x] **1.5.3 `besselJ`, `besselY`, `besselI`, `besselK` throw `UnsupportedError` on infinite `nu`, return `NaN` on small/infinite `x`, and suffer catastrophic cancellation for non-integer `nu` at large `x`**
   - **Severity**: Critical
   - **Location**: `lib/src/special/bessel.dart:18, 41-74, 87, 120, 136-161, 176`
   - **Problem**:

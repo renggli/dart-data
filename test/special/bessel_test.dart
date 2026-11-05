@@ -68,6 +68,39 @@ void main() {
       check(besselJ1(double.negativeInfinity)).equals(0.0);
       check(besselY0(double.infinity)).equals(0.0);
       check(besselY1(double.infinity)).equals(0.0);
+
+      // Infinite nu returns NaN
+      check(besselJ(double.infinity, 5.0)).isNaN();
+      check(besselJ(double.negativeInfinity, 5.0)).isNaN();
+      check(besselY(double.infinity, 5.0)).isNaN();
+      check(besselY(double.negativeInfinity, 5.0)).isNaN();
+      check(besselI(double.infinity, 5.0)).isNaN();
+      check(besselI(double.negativeInfinity, 5.0)).isNaN();
+      check(besselK(double.infinity, 5.0)).isNaN();
+      check(besselK(double.negativeInfinity, 5.0)).isNaN();
+
+      // Infinite x
+      check(besselJ(2.5, double.infinity)).equals(0.0);
+      check(besselY(2.5, double.infinity)).equals(0.0);
+      check(besselI(2.5, double.infinity)).equals(double.infinity);
+      check(besselK(2.5, double.infinity)).equals(0.0);
+
+      // Small x in integer Miller recurrence
+      check(besselJ(5, 1e-100).isFinite).isTrue();
+      check(besselI(10, 1e-10).isFinite).isTrue();
+
+      // Large x asymptotic accuracy for non-integer orders
+      final expectedJHalf50 =
+          math.sqrt(2.0 / (math.pi * 50.0)) * math.sin(50.0);
+      check(besselJ(0.5, 50.0)).isCloseTo(expectedJHalf50, 1e-12);
+
+      final expectedYHalf50 =
+          -math.sqrt(2.0 / (math.pi * 50.0)) * math.cos(50.0);
+      check(besselY(0.5, 50.0)).isCloseTo(expectedYHalf50, 1e-12);
+
+      final expectedKHalf50 =
+          math.sqrt(math.pi / (2.0 * 50.0)) * math.exp(-50.0);
+      check(besselK(0.5, 50.0)).isCloseTo(expectedKHalf50, 1e-25);
     });
 
     test('general-order besselJ', () {
