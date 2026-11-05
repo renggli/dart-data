@@ -133,6 +133,17 @@ void main() {
       ).isEmpty();
       check(symEq.solve('x', assumptions: Assumptions.positive))
           .deepEquals([const Variable('a')]);
+
+      final symQuad = Expr.parse('x^2 - a');
+      const posA = Assumptions(
+        domains: {'x': VariableDomain.real, 'a': VariableDomain.positive},
+      );
+      final symRoots = symQuad.solve('x', assumptions: posA);
+      check(symRoots.length).equals(2);
+      check(symRoots).unorderedEquals([
+        -Pow(const Variable('a'), FractionNumber.half),
+        Pow(const Variable('a'), FractionNumber.half),
+      ]);
       check(imagEq.solve('x', assumptions: Assumptions.positive)).isEmpty();
     });
 

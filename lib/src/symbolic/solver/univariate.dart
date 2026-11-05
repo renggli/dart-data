@@ -1,5 +1,6 @@
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
+import '../algebra/simplify/domain.dart';
 import '../algebra/simplify/transcendental.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
@@ -64,7 +65,7 @@ bool satisfiesVariableDomain(
   return switch (domain) {
     VariableDomain.unknown || VariableDomain.complex => true,
     VariableDomain.integer => s is IntegerNumber,
-    VariableDomain.real => _isRealRoot(s),
+    VariableDomain.real => _isRealRoot(s, assumptions),
     VariableDomain.positive => _isPositiveRealRoot(s, assumptions),
   };
 }
@@ -277,7 +278,8 @@ List<Expr> _filterByDomain(
       .toList();
 }
 
-bool _isRealRoot(Expr expr) {
+bool _isRealRoot(Expr expr, Assumptions assumptions) {
+  if (isProvenReal(expr, assumptions)) return true;
   if (!expr.isReal) return false;
   if (expr.freeVariables.isEmpty) {
     try {

@@ -378,7 +378,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     4. `_collectAdditive` (`rational.dart:605-617`) wraps `sumCoeff` in `Mul(factors, isSimplified: true)` without flattening when `sumCoeff is Mul`.
   - **Fix**: Return `atanTerm` directly when `!real.isNegative` and use `simplifyAdd` in `simplifyArg`; unpack `r` in `toPolarExpr` and `sumCoeff` in `_collectAdditive` when they are `Mul`; and use `simplifyAdd` in `toRectangularExpr`.
 
-- [ ] **1.10.5 `Expr._isRealSubtree` ignores complex exponents on `Pow`, and `_isRealRoot` in `univariate.dart` ignores `Assumptions` on symbolic parameters**
+- [x] **1.10.5 `Expr._isRealSubtree` ignores complex exponents on `Pow`, and `_isRealRoot` in `univariate.dart` ignores `Assumptions` on symbolic parameters**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/ast/expr.dart:220-224`, `lib/src/symbolic/solver/univariate.dart:67, 280-293`
   - **Problem**:

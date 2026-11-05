@@ -219,6 +219,7 @@ sealed class Expr {
     Mul(:final factors) => factors.every(_isRealSubtree),
     Pow(:final base, :final exponent) =>
       _isRealSubtree(base) &&
+          _isRealSubtree(exponent) &&
           (exponent is IntegerNumber ||
               (base is RealNumeric && !base.isNegative) ||
               base is Abs),

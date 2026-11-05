@@ -61,6 +61,8 @@ void main() {
       check(Product(x, 'x', IntegerNumber.one, const Variable('n')).isReal)
           .isTrue();
       check(VariableFunction('f', const [x]).isReal).isTrue();
+      check(Pow(IntegerNumber.two, ComplexNumber.i).isReal).isFalse();
+      check(Pow(IntegerNumber.two, IntegerNumber.two).isReal).isTrue();
     });
   });
 }
