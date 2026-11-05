@@ -245,68 +245,6 @@ void main() {
   });
 
   group('Web Expressions Algebra Utilities', () {
-    group('formatComplex', () {
-      test('formats real values without imaginary component', () {
-        check(formatComplex(const Complex(5, 0))).equals('5');
-        check(formatComplex(const Complex(3.14159, 0), precision: 2))
-            .equals('3.14');
-        check(formatComplex(const Complex(0, 0))).equals('0');
-      });
-
-      test('formats pure imaginary values', () {
-        check(formatComplex(const Complex(0, 1))).equals('i');
-        check(formatComplex(const Complex(0, -1))).equals('-i');
-        check(formatComplex(const Complex(0, 4))).equals('4i');
-        check(formatComplex(const Complex(0, -2.5), precision: 1))
-            .equals('-2.5i');
-      });
-
-      test('formats mixed complex numbers', () {
-        check(formatComplex(const Complex(1, 1))).equals('1 + i');
-        check(formatComplex(const Complex(1, -1))).equals('1 - i');
-        check(formatComplex(const Complex(3, 4))).equals('3 + 4i');
-        check(formatComplex(const Complex(3, -4))).equals('3 - 4i');
-        check(formatComplex(const Complex(-2, 5))).equals('-2 + 5i');
-        check(formatComplex(const Complex(-2, -5))).equals('-2 - 5i');
-      });
-
-      test('handles NaN and undefined inputs safely', () {
-        check(formatComplex(const Complex(double.nan, 0))).equals('Undefined');
-        check(formatComplex(const Complex(0, double.nan))).equals('Undefined');
-        check(formatComplex(const Complex(double.nan, double.nan)))
-            .equals('Undefined');
-      });
-
-      test('handles infinite values', () {
-        check(formatComplex(const Complex(double.infinity, 0))).equals('∞');
-        check(formatComplex(const Complex(double.negativeInfinity, 0)))
-            .equals('-∞');
-        check(formatComplex(const Complex(0, double.infinity))).equals('∞i');
-      });
-    });
-
-    group('integer & expression factoring', () {
-      test('factorExpr factors polynomials and integer numbers', () {
-        check(factorExpr(IntegerNumber.zero)).equals(IntegerNumber.zero);
-        check(factorExpr(IntegerNumber.one)).equals(IntegerNumber.one);
-        check(factorExpr(IntegerNumber.negativeOne))
-            .equals(IntegerNumber.negativeOne);
-        check(factorExpr(IntegerNumber.of(7))).equals(IntegerNumber.of(7));
-
-        final poly = Expr.parse('x^2 - 4');
-        check(factorExpr(poly).toString()).equals('(-2 + x) * (2 + x)');
-
-        final intExpr = Expr.parse('24');
-        check(factorExpr(intExpr).toString()).equals('2 ^ 3 * 3');
-
-        final negIntExpr = Expr.parse('-60');
-        check(factorExpr(negIntExpr).toString()).equals('-(2 ^ 2 * 3 * 5)');
-
-        final calcExpr = Mul([IntegerNumber.of(12), IntegerNumber.of(2)]);
-        check(factorExpr(calcExpr).toString()).equals('2 ^ 3 * 3');
-      });
-    });
-
     group('containsImaginary', () {
       test(
         'detects presence of imaginary constant i in various AST locations',

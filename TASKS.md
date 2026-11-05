@@ -781,7 +781,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ## 7. Large Files, Complex Structure, Distributed Responsibility, and Dead Code
 
-- [ ] **7.1 Dead code: `AccelerationFailedError` and unused functions in `web/expressions/algebra.dart`**
+- [x] **7.1 Dead code: `AccelerationFailedError` and unused functions in `web/expressions/algebra.dart`**
   - **Severity**: Warning
   - **Location**: `lib/src/acceleration/acceleration_error.dart:22-26`, `web/expressions/algebra.dart:5-13, 25-33, 38-39`
   - **Problem**: `AccelerationFailedError` is never instantiated or thrown anywhere in the codebase. In `web/expressions/algebra.dart`, `formatRealNumber` and `formatComplex` are dead code (never referenced), and `factorExpr` is a trivial 1-line pass-through.

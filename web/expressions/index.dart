@@ -1011,10 +1011,7 @@ void updateAll() {
   }
   setAttrExpr(valAlgSimplified, simplified);
   _trySetExpr(valAlgExpanded, () => expr!.expand(assumptions: assumptions));
-  _trySetExpr(
-    valAlgFactored,
-    () => factorExpr(expr!, assumptions: assumptions),
-  );
+  _trySetExpr(valAlgFactored, () => expr!.factor(assumptions: assumptions));
   _trySetExpr(valAlgApproximated, () => simplified.approximate());
   _trySetExpr(valAlgRationalized, () => expr!.rationalize());
 
