@@ -593,6 +593,12 @@ void main() {
         const Complex(1.0, 1.0),
       ]);
       check(quadComplex.roots.length).equals(2);
+      check(quadComplex.toString()).matchesPattern(
+        RegExp(
+          r'^\(1(\.0)? \+ 1(\.0)?i\)x\^2 \+ \(3(\.0)? - 1(\.0)?i\)x \+ 1(\.0)? \+ 2(\.0)?i$',
+        ),
+      );
+      check(() => quadComplex.evaluateDouble(1.0)).throws<UnsupportedError>();
 
       final cubicComplex = Polynomial<Complex>.fromCoefficients([
         Complex.one,

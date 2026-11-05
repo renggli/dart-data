@@ -220,7 +220,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: Inside the Euclidean loop (`lines 204-224`), `gcd` loops `for (var i = 0; i <= a.degree; i++)` and `for (var i = 0; i <= rem.degree; i++)`, allocates a dense `List<T>.generate(rem.degree + 1, ...)`, and constructs a `DensePolynomial`. For two sparse `CompressedPolynomial<double>` of degree $100,000$, `gcd` allocates dense $100,001$-element lists on every step. Also, at line 235 (`a.degree == 0`), it returns a `DensePolynomial` even when `this is CompressedPolynomial<T>`.
   - **Fix**: Iterate `a.coefficients.values` and `rem.coefficients.values` to compute `maxA` and `maxB`, filter `rem.coefficients.entries` via `Polynomial.fromMap` when `rem is CompressedPolynomial<T>`, and preserve `CompressedPolynomial` at line 235.
 
-- [ ] **1.6.2 `coeffToDouble` silently drops the imaginary part of `Complex`, `formatPolynomialTerms` omits parentheses around `Complex` coefficients, and `RationalFunction` operators skip `_checkType`**
+- [x] **1.6.2 `coeffToDouble` silently drops the imaginary part of `Complex`, `formatPolynomialTerms` omits parentheses around `Complex` coefficients, and `RationalFunction` operators skip `_checkType`**
   - **Severity**: Warning
   - **Location**: `lib/src/polynomial/impl/formatting.dart:25-32, 48`, `lib/src/polynomial/rational.dart:128-163`
   - **Problem**:

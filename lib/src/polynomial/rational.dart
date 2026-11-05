@@ -126,6 +126,7 @@ class RationalFunction<T> {
   /// Addition:
   /// $\frac{P_1}{Q_1} + \frac{P_2}{Q_2} = \frac{P_1 Q_2 + P_2 Q_1}{Q_1 Q_2}$.
   RationalFunction<T> operator +(RationalFunction<T> other) {
+    _checkType(other);
     final numVal =
         (numerator * other.denominator) + (other.numerator * denominator);
     final denVal = denominator * other.denominator;
@@ -135,6 +136,7 @@ class RationalFunction<T> {
   /// Subtraction:
   /// $\frac{P_1}{Q_1} - \frac{P_2}{Q_2} = \frac{P_1 Q_2 - P_2 Q_1}{Q_1 Q_2}$.
   RationalFunction<T> operator -(RationalFunction<T> other) {
+    _checkType(other);
     final numVal =
         (numerator * other.denominator) - (other.numerator * denominator);
     final denVal = denominator * other.denominator;
@@ -147,6 +149,7 @@ class RationalFunction<T> {
   /// Multiplication:
   /// $\frac{P_1}{Q_1} \cdot \frac{P_2}{Q_2} = \frac{P_1 P_2}{Q_1 Q_2}$.
   RationalFunction<T> operator *(RationalFunction<T> other) {
+    _checkType(other);
     final numVal = numerator * other.numerator;
     final denVal = denominator * other.denominator;
     return RationalFunction(numVal, denVal).simplify();
@@ -154,6 +157,7 @@ class RationalFunction<T> {
 
   /// Division: $\frac{P_1}{Q_1} / \frac{P_2}{Q_2} = \frac{P_1 Q_2}{Q_1 P_2}$.
   RationalFunction<T> operator /(RationalFunction<T> other) {
+    _checkType(other);
     if (other.numerator.degree < 0) {
       throw UnsupportedError('Division by zero rational function.');
     }
@@ -189,4 +193,13 @@ class RationalFunction<T> {
 
   @override
   String toString() => '($numerator) / ($denominator)';
+
+  void _checkType(RationalFunction<T> other) {
+    if (type != other.type) {
+      throw ArgumentError(
+        'Rational functions must have the same DataType: '
+        '$type != ${other.type}.',
+      );
+    }
+  }
 }

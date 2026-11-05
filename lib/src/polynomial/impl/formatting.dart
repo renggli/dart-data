@@ -22,11 +22,16 @@ String formatPolynomialTerms<T>(
 
     final String body;
     if (exp == 0) {
-      body = '$absCoeff';
-    } else if (exp == 1) {
-      body = isOne ? 'x' : '${absCoeff}x';
+      body = _formatCoefficient(absCoeff);
     } else {
-      body = isOne ? 'x^$exp' : '${absCoeff}x^$exp';
+      final coeffStr = _formatCoefficient(absCoeff);
+      final isMultiTerm = _isMultiTerm(coeffStr);
+      final formattedCoeff = isMultiTerm ? '($coeffStr)' : coeffStr;
+      if (exp == 1) {
+        body = isOne ? 'x' : '${formattedCoeff}x';
+      } else {
+        body = isOne ? 'x^$exp' : '${formattedCoeff}x^$exp';
+      }
     }
 
     if (i == 0) {
@@ -45,7 +50,14 @@ double coeffToDouble(Object? val) {
   if (val is num) return val.toDouble();
   if (val is BigInt) return val.toDouble();
   if (val is Fraction) return val.toDouble();
-  if (val is Complex) return val.a.toDouble();
+  if (val is Complex) {
+    if (val.b != 0.0) {
+      throw UnsupportedError(
+        'Cannot convert complex number with non-zero imaginary part ($val) to double.',
+      );
+    }
+    return val.a.toDouble();
+  }
   throw UnsupportedError('Cannot convert coefficient $val to double.');
 }
 
@@ -56,6 +68,36 @@ Complex coeffToComplex(Object? val) {
   if (val is BigInt) return Complex(val.toDouble());
   if (val is Fraction) return Complex(val.toDouble());
   throw UnsupportedError('Cannot convert coefficient $val to Complex.');
+}
+
+String _formatCoefficient(Object? coeff) {
+  if (coeff is Complex) {
+    if (coeff.b == 0.0) {
+      return '${coeff.a}';
+    } else if (coeff.a == 0.0) {
+      return '${coeff.b}i';
+    } else if (coeff.b < 0) {
+      return '${coeff.a} - ${-coeff.b}i';
+    } else {
+      return '${coeff.a} + ${coeff.b}i';
+    }
+  }
+  return '$coeff';
+}
+
+bool _isMultiTerm(String s) {
+  if (s.isEmpty) return false;
+  if (s.startsWith('(') && s.endsWith(')')) return false;
+  for (var i = 1; i < s.length; i++) {
+    final char = s[i];
+    if (char == '+' || char == '-') {
+      final prev = s[i - 1];
+      if (prev != 'e' && prev != 'E') {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool _isNegativeCoefficient<T>(DataType<T> type, T value) {

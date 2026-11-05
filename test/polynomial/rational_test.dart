@@ -80,6 +80,20 @@ void main() {
       // Negation
       final neg = -r1;
       check(neg.evaluate(2.0)).equals(-0.5);
+
+      // Type mismatch throws ArgumentError
+      final rInt32 = RationalFunction(
+        Polynomial<int>.fromCoefficients([1, 1], type: DataType.int32),
+        Polynomial<int>.fromCoefficients([2, 1], type: DataType.int32),
+      );
+      final rInt64 = RationalFunction(
+        Polynomial<int>.fromCoefficients([1, 1], type: DataType.int64),
+        Polynomial<int>.fromCoefficients([2, 1], type: DataType.int64),
+      );
+      check(() => rInt32 + rInt64).throws<ArgumentError>();
+      check(() => rInt32 - rInt64).throws<ArgumentError>();
+      check(() => rInt32 * rInt64).throws<ArgumentError>();
+      check(() => rInt32 / rInt64).throws<ArgumentError>();
     });
 
     test('arithmetic: multiplication and division', () {
