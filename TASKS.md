@@ -25,7 +25,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: `IntegerEquality.isClose` evaluates `(a - b).abs() <= epsilon`. On the 64-bit Dart VM, `a - b` wraps around on signed 64-bit overflow. When `a = 4611686018427387904` ($2^{62}$) and `b = -4611686018427387904` ($-2^{62}$), `a - b` overflows to `-9223372036854775808` ($-2^{63}$), whose `.abs()` is still `-9223372036854775808 <= 0.0`, returning `true` for two integers $2^{63}$ apart (even when `epsilon` is `0.0` or negative).
   - **Fix**: Guard `if (epsilon.isNaN || epsilon < 0) return false; if (a == b) return true;`, compute `final diff = a > b ? a - b : b - a;`, and when `diff < 0` (signed overflow), fall back to `(BigInt.from(a) - BigInt.from(b)).abs().toDouble() <= epsilon`.
 
-- [ ] **1.1.3 `FractionField.pow` silently truncates non-integer exponents to `int`**
+- [x] **1.1.3 `FractionField.pow` silently truncates non-integer exponents to `int`**
   - **Severity**: Warning
   - **Location**: `lib/src/type/types/fraction.dart:92`
   - **Problem**: `Fraction pow(Fraction base, Fraction exponent) => base.pow(exponent.toInt());` calls `exponent.toInt()`, so `DataType.fraction.field.pow(Fraction(4), Fraction(1, 2))` truncates `1/2` to `0` and returns `Fraction(1)` instead of `Fraction(2)`.

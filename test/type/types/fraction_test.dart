@@ -56,6 +56,10 @@ void main() {
       check(field.scale(Fraction(2, 3), 3)).equals(Fraction(2));
       check(field.div(Fraction(1, 2), Fraction(1, 4))).equals(Fraction(2));
       check(field.pow(Fraction(2, 3), Fraction(2))).equals(Fraction(4, 9));
+      check(field.pow(Fraction(2, 3), Fraction(-2))).equals(Fraction(9, 4));
+      check(field.pow(Fraction(4), Fraction(1, 2))).equals(Fraction(2));
+      check(field.pow(Fraction(8), Fraction(1, 3))).equals(Fraction(2));
+      check(field.pow(Fraction(27, 8), Fraction(-1, 3))).equals(Fraction(2, 3));
       check(field.abs(Fraction(-2, 3))).equals(Fraction(2, 3));
       check(field.norm(Fraction(-2, 3))).isCloseTo(2 / 3, 1e-10);
       check(field.conjugate(Fraction(2, 3))).equals(Fraction(2, 3));

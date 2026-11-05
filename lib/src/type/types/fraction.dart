@@ -89,7 +89,11 @@ final class FractionField extends ExtendedField<Fraction> {
   Fraction div(Fraction a, Fraction b) => a / b;
 
   @override
-  Fraction pow(Fraction base, Fraction exponent) => base.pow(exponent.toInt());
+  Fraction pow(Fraction base, Fraction exponent) => exponent.denominator == 1
+      ? base.pow(exponent.numerator)
+      : Fraction.fromDouble(
+          math.pow(base.toDouble(), exponent.toDouble()).toDouble(),
+        );
 
   @override
   Fraction abs(Fraction a) => a.abs();
