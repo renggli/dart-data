@@ -416,5 +416,13 @@ final class IntegerEquality extends NaturalEquality<int> {
   const new();
 
   @override
-  bool isClose(int a, int b, double epsilon) => (a - b).abs() <= epsilon;
+  bool isClose(int a, int b, double epsilon) {
+    if (epsilon.isNaN || epsilon < 0) return false;
+    if (a == b) return true;
+    final diff = a > b ? a - b : b - a;
+    if (diff < 0) {
+      return (BigInt.from(a) - BigInt.from(b)).abs().toDouble() <= epsilon;
+    }
+    return diff <= epsilon;
+  }
 }

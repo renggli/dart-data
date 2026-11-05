@@ -19,7 +19,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     1. In `_fromType`, add cases for `const (bool?)`, `const (int?)`, `const (double?)`, `const (num?)`, `const (BigInt?)`, `const (Fraction?)`, `const (Complex?)`, `const (Quaternion?)`, and `const (String?)` returning `.nullable`.
     2. In `fromIterable`, track `var hasNull = _isNullableType<T>();`, set `hasNull = true` whenever `element == null`, maintain `candidate` as the unwrapped non-null `DataType`, and wrap with `candidate.nullable` at the end when `hasNull` is `true`.
 
-- [ ] **1.1.2 64-bit signed integer overflow in `IntegerEquality.isClose`**
+- [x] **1.1.2 64-bit signed integer overflow in `IntegerEquality.isClose`**
   - **Severity**: Critical
   - **Location**: `lib/src/type/types/integer.dart:419`
   - **Problem**: `IntegerEquality.isClose` evaluates `(a - b).abs() <= epsilon`. On the 64-bit Dart VM, `a - b` wraps around on signed 64-bit overflow. When `a = 4611686018427387904` ($2^{62}$) and `b = -4611686018427387904` ($-2^{62}$), `a - b` overflows to `-9223372036854775808` ($-2^{63}$), whose `.abs()` is still `-9223372036854775808 <= 0.0`, returning `true` for two integers $2^{63}$ apart (even when `epsilon` is `0.0` or negative).
