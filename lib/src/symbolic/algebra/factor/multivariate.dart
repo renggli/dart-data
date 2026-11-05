@@ -188,8 +188,8 @@ Expr? factorByGrouping4(List<Expr> terms) {
 
 /// Computes the square root of monomial term $coeff \cdot base$.
 Expr? monomialSquareRoot(RationalNumber coeff, Expr base) {
-  final numSqrt = integerSqrt(coeff.numerator);
-  final denSqrt = integerSqrt(coeff.denominator);
+  final numSqrt = coeff.numerator.isqrt();
+  final denSqrt = coeff.denominator.isqrt();
   if (numSqrt == null || denSqrt == null) return null;
   final scalar = RationalNumber.of(numSqrt, denSqrt);
 

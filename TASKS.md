@@ -793,7 +793,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: In `Float64Vector` and `Float64Matrix`, `if (other.tensor.data is Float64List)` and `else` contain identical loop bodies because `final b = other.tensor.data;` is declared outside the `if` and never type-promoted to `Float64List`. Furthermore, the same 30-line target validation and memory-hazard block is copy-pasted 10 times across `+`, `-`, `*`, `/` in `Float64Tensor`, `Float64Vector`, and `Float64Matrix`.
   - **Fix**: Promote `b` properly to `Float64List` and delegate contiguous binary elementwise operations in `Float64Vector` and `Float64Matrix` to `Float64Tensor`.
 
-- [ ] **7.3 Duplicated Gaussian elimination (`system.dart` vs `bareiss.dart`), duplicated Levenberg-Marquardt (`curveFit` vs `fitNonlinear`), duplicated `_toDoubleMatrix`, and duplicated integer helpers**
+- [x] **7.3 Duplicated Gaussian elimination (`system.dart` vs `bareiss.dart`), duplicated Levenberg-Marquardt (`curveFit` vs `fitNonlinear`), duplicated `_toDoubleMatrix`, and duplicated integer helpers**
   - **Severity**: Warning
   - **Location**:
     - `lib/src/symbolic/solver/system.dart:195-311` vs `lib/src/symbolic/linear/bareiss.dart:196-243`

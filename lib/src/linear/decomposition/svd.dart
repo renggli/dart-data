@@ -13,20 +13,11 @@ import '../vector.dart';
 extension SvdMatrixExtension<T extends num> on Matrix<T> {
   /// Computes the Singular Value Decomposition (SVD) of this matrix.
   SingularValueDecomposition get svd =>
-      SingularValueDecomposition(_toDoubleMatrix());
+      SingularValueDecomposition(toDoubleMatrix());
 
   /// Computes the Moore-Penrose pseudoinverse $A^+$ of this matrix using SVD.
   Matrix<double> pseudoinverse({double rcond = 1e-15}) =>
       svd.pseudoinverse(rcond: rcond);
-
-  Matrix<double> _toDoubleMatrix() => this is Matrix<double>
-      ? this as Matrix<double>
-      : Matrix<double>.generate(
-          rowCount,
-          colCount,
-          (r, c) => getUnchecked(r, c).toDouble(),
-          type: DataType.float64,
-        );
 }
 
 /// Singular Value Decomposition (SVD) of an $m \times n$ matrix $A$.

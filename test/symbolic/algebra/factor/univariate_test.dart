@@ -91,14 +91,14 @@ void main() {
           .equals('2 * (1 + x + x ^ 5)');
     });
 
-    test('number-theoretic helpers (gcd, lcm, integerSqrt, divisors)', () {
-      check(gcd(const Integer(12), const Integer(18))).equals(const Integer(6));
-      check(lcm(Integer.zero, const Integer(5))).equals(Integer.zero);
-      check(lcm(const Integer(4), const Integer(6))).equals(const Integer(12));
-      check(integerSqrt(const Integer(-4))).isNull();
-      check(integerSqrt(Integer.zero)).equals(Integer.zero);
-      check(integerSqrt(const Integer(16))).equals(const Integer(4));
-      check(integerSqrt(const Integer(15))).isNull();
+    test('number-theoretic helpers (divisors)', () {
+      check(const Integer(12).gcd(const Integer(18))).equals(const Integer(6));
+      check(Integer.zero.lcm(const Integer(5))).equals(Integer.zero);
+      check(const Integer(4).lcm(const Integer(6))).equals(const Integer(12));
+      check(const Integer(-4).isqrt()).isNull();
+      check(Integer.zero.isqrt()).equals(Integer.zero);
+      check(const Integer(16).isqrt()).equals(const Integer(4));
+      check(const Integer(15).isqrt()).isNull();
       check(divisors(Integer.zero)).isEmpty();
       check(divisors(const Integer(12))).deepEquals([
         const Integer(1),

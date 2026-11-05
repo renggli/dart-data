@@ -143,7 +143,7 @@ void main() {
         check(integerCbrt(bigCube))
             .equals(Integer.big(BigInt.from(10).pow(20)));
         final bigSq = Integer.big(BigInt.from(10).pow(60));
-        check(integerSqrt(bigSq)).equals(Integer.big(BigInt.from(10).pow(30)));
+        check(bigSq.isqrt()).equals(Integer.big(BigInt.from(10).pow(30)));
         check(isOne(IntegerNumber.one)).isTrue();
         check(isOne(x)).isFalse();
       },

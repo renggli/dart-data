@@ -470,65 +470,26 @@ CurveFitResult curveFit({
     );
   }
 
-  final params = initialParams.copy();
-  for (var k = 0; k < numParams; k++) {
-    final lo = lowerBounds?[k] ?? double.negativeInfinity;
-    final hi = upperBounds?[k] ?? double.infinity;
-    params[k] = params[k].clamp(lo, hi);
-  }
-
   Vector<double> computeResiduals(Vector<double> p) => Vector<double>.generate(
     n,
     (i) => model(xs[i].toDouble(), p) - ys[i].toDouble(),
     type: DataType.float64,
   );
 
-  var residuals = computeResiduals(params);
-  var currentCost = residuals.dot(residuals);
-  var lambda = damping;
-  var iter = 0;
-
-  for (; iter < maxIterations; iter++) {
-    if (math.sqrt(currentCost) < tolerance) break;
-
-    final j = calculus.jacobian(computeResiduals, params, step: 1e-7);
-
-    final jTj = j.syrk(transpose: true);
-    final jTr = j.applyTranspose(residuals);
-
-    final a = Matrix<double>.generate(numParams, numParams, (row, col) {
-      var val = jTj.get(row, col);
-      if (row == col) {
-        val += lambda * (val.abs() > 1e-6 ? val.abs() : 1.0);
-      }
-      return val;
-    }, type: DataType.float64);
-
-    final rhs = -jTr;
-    final delta = leastSquares(a, rhs);
-    if (delta.norm() < tolerance) break;
-
-    final pCandidate = params + delta;
-    for (var k = 0; k < numParams; k++) {
-      final lo = lowerBounds?[k] ?? double.negativeInfinity;
-      final hi = upperBounds?[k] ?? double.infinity;
-      pCandidate[k] = pCandidate[k].clamp(lo, hi);
-    }
-
-    final rCandidate = computeResiduals(pCandidate);
-    final candidateCost = rCandidate.dot(rCandidate);
-
-    if (candidateCost < currentCost) {
-      for (var k = 0; k < numParams; k++) {
-        params[k] = pCandidate[k];
-      }
-      residuals = rCandidate;
-      currentCost = candidateCost;
-      lambda *= dampingStepDown;
-    } else {
-      lambda *= dampingStepUp;
-    }
-  }
+  final opt = _levenbergMarquardt(
+    residualFunction: computeResiduals,
+    initialParams: initialParams,
+    lowerBounds: lowerBounds,
+    upperBounds: upperBounds,
+    tolerance: tolerance,
+    maxIterations: maxIterations,
+    damping: damping,
+    dampingStepUp: dampingStepUp,
+    dampingStepDown: dampingStepDown,
+  );
+  final optimalParams = opt.params;
+  final residuals = opt.residuals;
+  final iter = opt.iterations;
 
   var ySum = 0.0;
   for (var i = 0; i < n; i++) {
@@ -552,7 +513,6 @@ CurveFitResult curveFit({
   final df = n - numParams;
   final rse = df > 0 ? math.sqrt(ssRes / df) : double.nan;
 
-  final optimalParams = params.copy();
   final j = calculus.jacobian(computeResiduals, optimalParams, step: 1e-7);
   final jTj = j.syrk(transpose: true);
   final eye = Matrix<double>.identity(numParams, type: DataType.float64);
@@ -640,16 +600,46 @@ Vector<double> fitNonlinear({
   double dampingStepDown = 0.1,
   double tolerance = 1e-7,
   int maxIterations = 100,
+}) => _levenbergMarquardt(
+  residualFunction: residualFunction,
+  initialParams: initialParams,
+  damping: damping,
+  dampingStepUp: dampingStepUp,
+  dampingStepDown: dampingStepDown,
+  tolerance: tolerance,
+  maxIterations: maxIterations,
+).params;
+
+({Vector<double> params, Vector<double> residuals, int iterations})
+_levenbergMarquardt({
+  required Vector<double> Function(Vector<double> params) residualFunction,
+  required Vector<double> initialParams,
+  Vector<double>? lowerBounds,
+  Vector<double>? upperBounds,
+  double damping = 1e-2,
+  double dampingStepUp = 10.0,
+  double dampingStepDown = 0.1,
+  double tolerance = 1e-7,
+  int maxIterations = 100,
 }) {
-  var params = initialParams.copy();
+  final numParams = initialParams.length;
+  final params = initialParams.copy();
+  if (lowerBounds != null || upperBounds != null) {
+    for (var k = 0; k < numParams; k++) {
+      final lo = lowerBounds?[k] ?? double.negativeInfinity;
+      final hi = upperBounds?[k] ?? double.infinity;
+      params[k] = params[k].clamp(lo, hi);
+    }
+  }
+
   var residuals = residualFunction(params);
   var currentCost = residuals.dot(residuals);
   var lambda = damping;
+  var iter = 0;
 
-  for (var iter = 0; iter < maxIterations; iter++) {
+  for (; iter < maxIterations; iter++) {
     if (math.sqrt(currentCost) < tolerance) break;
 
-    final numParams = params.length;
     final j = calculus.jacobian(residualFunction, params, step: 1e-7);
 
     // Augmented normal equations: (J^T J + lambda * diag(J^T J)) delta = -J^T r
@@ -670,11 +660,21 @@ Vector<double> fitNonlinear({
     if (delta.norm() < tolerance) break;
 
     final pCandidate = params + delta;
+    if (lowerBounds != null || upperBounds != null) {
+      for (var k = 0; k < numParams; k++) {
+        final lo = lowerBounds?[k] ?? double.negativeInfinity;
+        final hi = upperBounds?[k] ?? double.infinity;
+        pCandidate[k] = pCandidate[k].clamp(lo, hi);
+      }
+    }
+
     final rCandidate = residualFunction(pCandidate);
     final candidateCost = rCandidate.dot(rCandidate);
 
     if (candidateCost < currentCost) {
-      params = pCandidate;
+      for (var k = 0; k < numParams; k++) {
+        params[k] = pCandidate[k];
+      }
       residuals = rCandidate;
       currentCost = candidateCost;
       lambda *= dampingStepDown;
@@ -683,5 +683,5 @@ Vector<double> fitNonlinear({
     }
   }
 
-  return params;
+  return (params: params, residuals: residuals, iterations: iter);
 }

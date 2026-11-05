@@ -12,16 +12,7 @@ import '../matrix.dart';
 extension EigenvalueMatrixExtension<T extends num> on Matrix<T> {
   /// Computes the Eigenvalue decomposition of this square matrix.
   EigenvalueDecomposition get eigenvalue =>
-      EigenvalueDecomposition(_toDoubleMatrix());
-
-  Matrix<double> _toDoubleMatrix() => this is Matrix<double>
-      ? this as Matrix<double>
-      : Matrix<double>.generate(
-          rowCount,
-          colCount,
-          (r, c) => getUnchecked(r, c).toDouble(),
-          type: DataType.float64,
-        );
+      EigenvalueDecomposition(toDoubleMatrix());
 }
 
 /// Eigenvalues and eigenvectors of a real square matrix.

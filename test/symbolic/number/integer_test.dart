@@ -295,6 +295,19 @@ void main() {
       check(IntegerNumber.of(15).isPrime).isFalse();
       check(RationalNumber(3, 2).isPrime).isFalse();
     });
+    test('isqrt', () {
+      check(const Integer(-5).isqrt()).isNull();
+      check(Integer.zero.isqrt()).equals(Integer.zero);
+      check(Integer.one.isqrt()).equals(Integer.one);
+      check(const Integer(4).isqrt()).equals(Integer.two);
+      check(const Integer(9).isqrt()).equals(const Integer(3));
+      check(const Integer(10).isqrt()).isNull();
+      check(const Integer(144).isqrt()).equals(const Integer(12));
+      final bigSquare = Integer.big(BigInt.from(10).pow(60));
+      check(bigSquare.isqrt()).equals(Integer.big(BigInt.from(10).pow(30)));
+      final nonSquare = Integer.big(BigInt.from(10).pow(60) + BigInt.one);
+      check(nonSquare.isqrt()).isNull();
+    });
     test('factorial', () {
       check(Integer.zero.factorial()).equals(Integer.one);
       check(Integer.one.factorial()).equals(Integer.one);

@@ -170,7 +170,7 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     final disc = b * b - const Integer(4) * a * c;
 
     if (!disc.isNegative) {
-      final s = integerSqrt(disc);
+      final s = disc.isqrt();
       if (s != null) {
         final twoA = a * Integer.two;
         final r1 = RationalNumber.of(-b + s, twoA);
@@ -200,7 +200,7 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     final c = primitiveCoeffs[0];
     final disc = b * b - const Integer(4) * a * c;
     if (!disc.isNegative) {
-      final s = integerSqrt(disc);
+      final s = disc.isqrt();
       if (s != null) {
         final twoA = a * Integer.two;
         final u1 = RationalNumber.of(-b + s, twoA);
@@ -216,12 +216,12 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     // Sophie Germain / cyclotomic difference of squares:
     // a x^4 + b x^2 + c = (sA x^2 + sC)^2 - (k x)^2 = (sA x^2 - k x + sC)(sA x^2 + k x + sC)
     if (!a.isNegative && !a.isZero && !c.isNegative && !c.isZero) {
-      final sA = integerSqrt(a);
-      final sC = integerSqrt(c);
+      final sA = a.isqrt();
+      final sC = c.isqrt();
       if (sA != null && sC != null) {
         final mid = Integer.two * sA * sC - b;
         if (!mid.isNegative && !mid.isZero) {
-          final k = integerSqrt(mid);
+          final k = mid.isqrt();
           if (k != null) {
             final q1 = buildPolyExpr([sC, -k, sA], variable);
             final q2 = buildPolyExpr([sC, k, sA], variable);
@@ -260,7 +260,7 @@ Map<Expr, int> factorQuadraticInX(Integer a, Integer c, String variable) {
   final res = <Expr, int>{};
   final disc = -const Integer(4) * a * c;
   if (!disc.isNegative) {
-    final s = integerSqrt(disc);
+    final s = disc.isqrt();
     if (s != null) {
       final twoA = a * Integer.two;
       final r1 = RationalNumber.of(s, twoA);
@@ -329,36 +329,6 @@ Expr buildPolyExprFromRational(List<RationalNumber> coeffs, String variable) {
           ]),
         },
   ]);
-}
-
-/// Computes the greatest common divisor of [a] and [b].
-Integer gcd(Integer a, Integer b) => a.gcd(b);
-
-/// Computes the least common multiple of [a] and [b].
-Integer lcm(Integer a, Integer b) => a.lcm(b);
-
-/// Computes exact integer square root of [n] if perfect square, or `null`.
-Integer? integerSqrt(Integer n) {
-  if (n.isNegative) return null;
-  if (n.isZero) return Integer.zero;
-  if (n.isOne) return Integer.one;
-  if (n.bitLength <= 52) {
-    final v = n.asInt;
-    if (v != null) {
-      final r = math.sqrt(v.toDouble()).round();
-      if (r * r == v) return Integer.from(r);
-      return null;
-    }
-  }
-  final b = n.toBigInt();
-  var x0 = BigInt.one << ((b.bitLength + 1) ~/ 2);
-  while (true) {
-    final x1 = (x0 + b ~/ x0) >> 1;
-    if (x1 >= x0) break;
-    x0 = x1;
-  }
-  if (x0 * x0 == b) return Integer.big(x0);
-  return null;
 }
 
 /// Computes exact integer cube root of [n] if perfect cube, or `null`.

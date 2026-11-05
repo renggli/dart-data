@@ -1469,5 +1469,24 @@ void main() {
       check(empty.pseudoinverse().rowCount).equals(0);
       check(empty.pseudoinverse().colCount).equals(0);
     });
+
+    test('toDoubleMatrix', () {
+      final doubleMat = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      check(doubleMat.toDoubleMatrix()).identicalTo(doubleMat);
+
+      final intMat = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+      final converted = intMat.toDoubleMatrix();
+      check(converted.rowCount).equals(2);
+      check(converted.colCount).equals(2);
+      check(converted.get(0, 0)).equals(1.0);
+      check(converted.get(1, 1)).equals(4.0);
+      check(converted.type).equals(DataType.float64);
+    });
   });
 }

@@ -1,6 +1,8 @@
 /// Exact arbitrary-precision integers with a small-value fast path.
 library;
 
+import 'dart:math' as math;
+
 import 'package:more/feature.dart' show isJavaScript;
 import 'package:more/math.dart';
 
@@ -219,6 +221,31 @@ extension type const Integer._(Object _value) {
     if (isZero || other.isZero) return zero;
     final g = gcd(other);
     return (abs() ~/ g) * other.abs();
+  }
+
+  /// Returns the exact integer square root if this is a perfect square, or
+  /// `null` if not. Returns `null` if negative.
+  Integer? isqrt() {
+    if (isNegative) return null;
+    if (isZero) return zero;
+    if (isOne) return one;
+    if (bitLength <= 52) {
+      final v = asInt;
+      if (v != null) {
+        final r = math.sqrt(v.toDouble()).round();
+        if (r * r == v) return Integer.from(r);
+        return null;
+      }
+    }
+    final b = toBigInt();
+    var x0 = BigInt.one << ((b.bitLength + 1) ~/ 2);
+    while (true) {
+      final x1 = (x0 + b ~/ x0) >> 1;
+      if (x1 >= x0) break;
+      x0 = x1;
+    }
+    if (x0 * x0 == b) return Integer.big(x0);
+    return null;
   }
 
   /// Whether this integer is a prime number ($p \ge 2$).
