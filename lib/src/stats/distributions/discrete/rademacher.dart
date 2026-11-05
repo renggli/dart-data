@@ -15,6 +15,26 @@ class RademacherDistribution extends DiscreteDistribution {
   /// A Rademacher distribution.
   const new();
 
+  /// Validates that [samples] consist of values in {-1, 1} and returns a
+  /// [RademacherDistribution].
+  factory fit(Iterable<num> samples) {
+    var count = 0;
+    for (final x in samples) {
+      if (x != -1 && x != 1) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Rademacher samples must be -1 or 1',
+        );
+      }
+      count++;
+    }
+    if (count == 0) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    return const RademacherDistribution();
+  }
+
   @override
   int get lowerBound => -1;
 

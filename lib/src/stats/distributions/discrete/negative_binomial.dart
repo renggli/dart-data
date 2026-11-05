@@ -30,6 +30,51 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
     }
   }
 
+  /// Fits a negative binomial distribution to non-negative integer [samples]
+  /// using method of moments, with optional pre-specified [r].
+  factory fit(Iterable<num> samples, {num? r}) {
+    var count = 0;
+    var sum = 0.0;
+    for (final x in samples) {
+      if (x < 0 || x.roundToDouble() != x) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Negative binomial samples must be non-negative integers',
+        );
+      }
+      count++;
+      sum += x;
+    }
+    if (count == 0) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    final mean = sum / count;
+    if (r != null) {
+      final rd = r.toDouble();
+      if (rd <= 0.0 || !rd.isFinite) {
+        throw ArgumentError.value(r, 'r', 'Must be positive and finite');
+      }
+      final p = mean / (mean + rd);
+      final pClamped = p.clamp(1e-6, 1.0 - 1e-6);
+      return NegativeBinomialDistribution(rd, pClamped);
+    }
+    var sumSq = 0.0;
+    for (final x in samples) {
+      final diff = x.toDouble() - mean;
+      sumSq += diff * diff;
+    }
+    final variance = count > 1 ? sumSq / (count - 1) : 0.0;
+    if (variance > mean) {
+      final p = (1.0 - mean / variance).clamp(1e-6, 1.0 - 1e-6);
+      final rEst = (mean * (1.0 - p) / p).clamp(1e-6, 1e9);
+      return NegativeBinomialDistribution(rEst, p);
+    } else {
+      final p = (mean / (mean + 1.0)).clamp(1e-6, 1.0 - 1e-6);
+      return NegativeBinomialDistribution(1.0, p);
+    }
+  }
+
   /// Number of failures until the experiment is stopped.
   final double r;
 

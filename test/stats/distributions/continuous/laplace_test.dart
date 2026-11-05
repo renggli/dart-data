@@ -47,6 +47,14 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.isNotEmpty).isTrue();
 
+      // Fit
+      final fitted = LaplaceDistribution.fit(const [-1.0, 0.0, 1.0]);
+      check(fitted.location).equals(0.0);
+      check(fitted.scale).isCloseTo(2.0 / 3.0, 1e-6);
+      check(() => LaplaceDistribution.fit(const [])).throws<ArgumentError>();
+      check(() => LaplaceDistribution.fit(const [double.nan]))
+          .throws<ArgumentError>();
+
       // Constructor validation
       check(() => LaplaceDistribution(0.0, 0.0)).throws<ArgumentError>();
 

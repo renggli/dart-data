@@ -31,6 +31,44 @@ class WeibullDistribution extends ContinuousDistribution {
 
   const new _(this.shape, this.scale);
 
+  /// Fits a Weibull distribution to positive [samples] using log-moments estimation.
+  factory fit(Iterable<num> samples) {
+    var count = 0;
+    var sumLog = 0.0;
+    final logVals = <double>[];
+    for (final x in samples) {
+      final val = x.toDouble();
+      if (!val.isFinite || val <= 0.0) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Weibull samples must be positive and finite',
+        );
+      }
+      final lVal = log(val);
+      logVals.add(lVal);
+      sumLog += lVal;
+      count++;
+    }
+    if (count == 0) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    final meanLog = sumLog / count;
+    var sumSq = 0.0;
+    for (final lVal in logVals) {
+      final diff = lVal - meanLog;
+      sumSq += diff * diff;
+    }
+    final varLog = count > 1 ? sumSq / (count - 1) : 0.0;
+    final stdLog = sqrt(varLog);
+    var shape = stdLog > 1e-12 ? (pi / (sqrt(6.0) * stdLog)) : 1.0;
+    if (shape <= 0.0 || !shape.isFinite) shape = 1.0;
+    const eulerGamma = 0.5772156649015329;
+    var scale = exp(meanLog + eulerGamma / shape);
+    if (scale <= 0.0 || !scale.isFinite) scale = 1.0;
+    return WeibullDistribution(shape, scale);
+  }
+
   /// The shape parameter k.
   final double shape;
 

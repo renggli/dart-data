@@ -46,6 +46,18 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample >= 0)).isTrue();
 
+      // Fit with and without specified r
+      final fitted1 = NegativeBinomialDistribution.fit(const [1, 2, 3]);
+      check(fitted1.r).isGreaterThan(0.0);
+      check(fitted1.p).isGreaterThan(0.0);
+      final fitted2 = NegativeBinomialDistribution.fit(const [1, 2, 3], r: 2.0);
+      check(fitted2.r).equals(2.0);
+      check(fitted2.p).isGreaterThan(0.0);
+      check(() => NegativeBinomialDistribution.fit(const []))
+          .throws<ArgumentError>();
+      check(() => NegativeBinomialDistribution.fit(const [-1, 2]))
+          .throws<ArgumentError>();
+
       // Constructor validation
       check(() => NegativeBinomialDistribution(0.0, 0.5))
           .throws<ArgumentError>();

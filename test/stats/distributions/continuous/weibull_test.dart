@@ -51,6 +51,14 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample >= 0.0)).isTrue();
 
+      // Fit
+      final fitted = WeibullDistribution.fit(const [0.5, 1.0, 2.0]);
+      check(fitted.shape).isGreaterThan(0.0);
+      check(fitted.scale).isGreaterThan(0.0);
+      check(() => WeibullDistribution.fit(const [])).throws<ArgumentError>();
+      check(() => WeibullDistribution.fit(const [-1.0, 1.0]))
+          .throws<ArgumentError>();
+
       // Constructor validation
       check(() => WeibullDistribution(0.0, 1.0)).throws<ArgumentError>();
       check(() => WeibullDistribution(1.0, 0.0)).throws<ArgumentError>();

@@ -49,6 +49,13 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample == -1 || sample == 1)).isTrue();
 
+      // Fit
+      final fitted = RademacherDistribution.fit(const [-1, 1, -1, 1]);
+      check(fitted).equals(const RademacherDistribution());
+      check(() => RademacherDistribution.fit(const [])).throws<ArgumentError>();
+      check(() => RademacherDistribution.fit(const [-1, 0, 1]))
+          .throws<ArgumentError>();
+
       check(dist.toString()).contains('RademacherDistribution');
     });
   });

@@ -35,6 +35,36 @@ class LogisticDistribution extends ContinuousDistribution {
 
   const new _(this.location, this.scale);
 
+  /// Fits a Logistic distribution to [samples] using the method of moments.
+  factory fit(Iterable<num> samples) {
+    var count = 0;
+    var sum = 0.0;
+    for (final x in samples) {
+      final val = x.toDouble();
+      if (!val.isFinite) {
+        throw ArgumentError.value(x, 'samples', 'Samples must be finite');
+      }
+      count++;
+      sum += val;
+    }
+    if (count == 0) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    final mean = sum / count;
+    var sumSqDiff = 0.0;
+    for (final x in samples) {
+      final diff = x.toDouble() - mean;
+      sumSqDiff += diff * diff;
+    }
+    final variance = count > 1 ? sumSqDiff / (count - 1) : 0.0;
+    final stdDev = sqrt(variance);
+    var scale = (sqrt(3.0) / pi) * stdDev;
+    if (scale <= 0.0 || !scale.isFinite) {
+      scale = 1.0;
+    }
+    return LogisticDistribution(mean, scale);
+  }
+
   /// The location parameter.
   final double location;
 

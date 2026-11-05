@@ -36,6 +36,40 @@ class LogNormalDistribution extends ContinuousDistribution {
 
   const new _(this.mu, this.sigma);
 
+  /// Fits a log-normal distribution to positive [samples] using maximum likelihood estimation.
+  factory fit(Iterable<num> samples) {
+    var count = 0;
+    var sumLog = 0.0;
+    final logVals = <double>[];
+    for (final x in samples) {
+      final val = x.toDouble();
+      if (!val.isFinite || val <= 0.0) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'LogNormal samples must be strictly positive and finite',
+        );
+      }
+      final lVal = log(val);
+      logVals.add(lVal);
+      sumLog += lVal;
+      count++;
+    }
+    if (count == 0) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    final mu = sumLog / count;
+    var sumSq = 0.0;
+    for (final lVal in logVals) {
+      final diff = lVal - mu;
+      sumSq += diff * diff;
+    }
+    final variance = count > 1 ? sumSq / (count - 1) : 0.0;
+    var sigma = sqrt(variance);
+    if (sigma <= 0.0 || !sigma.isFinite) sigma = 1.0;
+    return LogNormalDistribution(mu, sigma);
+  }
+
   /// The parameter μ (mean of logarithm).
   final double mu;
 

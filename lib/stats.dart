@@ -29,7 +29,8 @@
 ///   Welch's $t$-tests), [tTestPaired], [oneWayAnova] ($F$-test),
 ///   [chiSquaredTest], [chiSquaredContingency], [mannWhitneyUTest],
 ///   [wilcoxonSignedRankTest], [kolmogorovSmirnovTest],
-///   [kolmogorovSmirnovTwoSample], and [jarqueBeraTest].
+///   [kolmogorovSmirnovTwoSample], [jarqueBeraTest], [shapiroWilkTest], and
+///   [fisherExactTest].
 /// - **Resampling & Inference**: [Bootstrap] (non-parametric confidence
 ///   intervals and distributions) and [Jackknife].
 /// - **Distribution Infrastructure**: [Distribution] abstract contract and
@@ -94,9 +95,11 @@ import 'src/stats/distributions/multivariate/multivariate_distribution.dart';
 import 'src/stats/distributions/multivariate/multivariate_normal.dart';
 import 'src/stats/hypothesis/anova.dart';
 import 'src/stats/hypothesis/chi_squared.dart';
+import 'src/stats/hypothesis/fisher_exact.dart';
 import 'src/stats/hypothesis/jarque_bera.dart';
 import 'src/stats/hypothesis/kolmogorov_smirnov.dart';
 import 'src/stats/hypothesis/mann_whitney.dart';
+import 'src/stats/hypothesis/shapiro_wilk.dart';
 import 'src/stats/hypothesis/t_test.dart';
 import 'src/stats/hypothesis/wilcoxon.dart';
 import 'src/stats/pca.dart';
@@ -138,10 +141,12 @@ export 'src/stats/distributions/multivariate/multivariate_distribution.dart';
 export 'src/stats/distributions/multivariate/multivariate_normal.dart';
 export 'src/stats/hypothesis/anova.dart';
 export 'src/stats/hypothesis/chi_squared.dart';
+export 'src/stats/hypothesis/fisher_exact.dart';
 export 'src/stats/hypothesis/hypothesis_test_result.dart';
 export 'src/stats/hypothesis/jarque_bera.dart';
 export 'src/stats/hypothesis/kolmogorov_smirnov.dart';
 export 'src/stats/hypothesis/mann_whitney.dart';
+export 'src/stats/hypothesis/shapiro_wilk.dart';
 export 'src/stats/hypothesis/t_test.dart';
 export 'src/stats/hypothesis/wilcoxon.dart';
 export 'src/stats/pca.dart';

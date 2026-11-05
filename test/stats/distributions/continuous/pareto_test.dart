@@ -57,6 +57,14 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample >= 1.0)).isTrue();
 
+      // Fit
+      final fitted = ParetoDistribution.fit(const [2.0, 4.0, 8.0]);
+      check(fitted.scale).equals(2.0);
+      check(fitted.shape).isGreaterThan(0.0);
+      check(() => ParetoDistribution.fit(const [])).throws<ArgumentError>();
+      check(() => ParetoDistribution.fit(const [-1.0, 2.0]))
+          .throws<ArgumentError>();
+
       // Constructor validation
       check(() => ParetoDistribution(0.0, 1.0)).throws<ArgumentError>();
       check(() => ParetoDistribution(1.0, 0.0)).throws<ArgumentError>();

@@ -164,6 +164,36 @@ void main() {
       check(sol.last[0]).isCloseTo(math.exp(-2.0 * 0.503), 1e-4);
     });
 
+    test('OdeMethod.bdf2 adaptively controls step size based on tolerance', () {
+      Vector<double> derivative(double time, Vector<double> y) =>
+          Vector<double>.fromList([-y[0]], type: DataType.float64);
+
+      final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
+      final solLoose = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 2.0,
+        y0: y0,
+        method: OdeMethod.bdf2,
+        relativeTolerance: 1e-2,
+        absoluteTolerance: 1e-3,
+      );
+      final solTight = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 2.0,
+        y0: y0,
+        method: OdeMethod.bdf2,
+        relativeTolerance: 1e-6,
+        absoluteTolerance: 1e-8,
+      );
+
+      check(solLoose.converged).isTrue();
+      check(solTight.converged).isTrue();
+      check(solLoose.stepCount).isLessThan(solTight.stepCount);
+      check(solTight.last[0]).isCloseTo(math.exp(-2.0), 1e-4);
+    });
+
     test('solveOde with tEval dense Hermite interpolation', () {
       // dy/dt = y, y(0) = 1 => y(t) = exp(t)
       Vector<double> derivative(double time, Vector<double> y) =>

@@ -58,6 +58,15 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample > 0)).isTrue();
 
+      // Fit
+      final fitted = InverseGammaDistribution.fit(const [1.0, 2.0, 3.0]);
+      check(fitted.shape).isGreaterThan(0.0);
+      check(fitted.scale).isGreaterThan(0.0);
+      check(() => InverseGammaDistribution.fit(const [1.0]))
+          .throws<ArgumentError>();
+      check(() => InverseGammaDistribution.fit(const [-1.0, 2.0]))
+          .throws<ArgumentError>();
+
       // Constructor validation
       check(() => InverseGammaDistribution(0.0, 1.0)).throws<ArgumentError>();
       check(() => InverseGammaDistribution(1.0, 0.0)).throws<ArgumentError>();

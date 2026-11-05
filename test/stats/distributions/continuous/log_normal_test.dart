@@ -38,6 +38,18 @@ void main() {
       final sample = dist.sample(random: math.Random(42));
       check(sample).isGreaterThan(0.0);
 
+      // Fit
+      final fitted = LogNormalDistribution.fit(const [
+        1.0,
+        2.718281828,
+        7.389056,
+      ]);
+      check(fitted.mu).isCloseTo(1.0, 0.1);
+      check(fitted.sigma).isGreaterThan(0.0);
+      check(() => LogNormalDistribution.fit(const [])).throws<ArgumentError>();
+      check(() => LogNormalDistribution.fit(const [-1.0, 2.0]))
+          .throws<ArgumentError>();
+
       // Constructor validation
       check(() => LogNormalDistribution(0.0, 0.0)).throws<ArgumentError>();
 

@@ -23,6 +23,29 @@ class GeometricDistribution extends DiscreteDistribution {
     }
   }
 
+  /// Fits a geometric distribution to non-negative integer [samples].
+  factory fit(Iterable<num> samples) {
+    var count = 0;
+    var sum = 0.0;
+    for (final x in samples) {
+      if (x < 0 || x.roundToDouble() != x) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Geometric samples must be non-negative integers',
+        );
+      }
+      count++;
+      sum += x;
+    }
+    if (count == 0) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    final mean = sum / count;
+    final p = 1.0 / (1.0 + mean);
+    return GeometricDistribution(p);
+  }
+
   /// Success probability of each trial (0..1].
   final double p;
 

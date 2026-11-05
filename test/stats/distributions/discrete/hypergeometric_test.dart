@@ -46,6 +46,21 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample >= 0 && sample <= 5)).isTrue();
 
+      // Fit
+      final fitted = HypergeometricDistribution.fit(
+        const [1, 2, 1],
+        populationSize: 50,
+        draws: 5,
+      );
+      check(fitted.populationSize).equals(50);
+      check(fitted.draws).equals(5);
+      check(fitted.successStates).isGreaterThan(0);
+      check(() => HypergeometricDistribution.fit(const [], populationSize: 50))
+          .throws<ArgumentError>();
+      check(
+        () => HypergeometricDistribution.fit(const [-1], populationSize: 50),
+      ).throws<ArgumentError>();
+
       // Constructor validation
       check(() => HypergeometricDistribution(0, 5, 2)).throws<ArgumentError>();
       check(() => HypergeometricDistribution(10, -1, 2))

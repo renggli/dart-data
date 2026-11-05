@@ -21,6 +21,43 @@ class InverseGammaDistribution extends ContinuousDistribution {
     }
   }
 
+  /// Fits an inverse gamma distribution to positive [samples] using method of moments.
+  factory fit(Iterable<num> samples) {
+    var count = 0;
+    var sum = 0.0;
+    for (final x in samples) {
+      final val = x.toDouble();
+      if (!val.isFinite || val <= 0.0) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Inverse gamma samples must be strictly positive and finite',
+        );
+      }
+      count++;
+      sum += val;
+    }
+    if (count < 2) {
+      throw ArgumentError.value(
+        samples,
+        'samples',
+        'At least 2 samples required',
+      );
+    }
+    final mean = sum / count;
+    var sumSqDiff = 0.0;
+    for (final x in samples) {
+      final diff = x.toDouble() - mean;
+      sumSqDiff += diff * diff;
+    }
+    final variance = sumSqDiff / (count - 1);
+    var shape = variance > 1e-12 ? (mean * mean / variance + 2.0) : 3.0;
+    if (shape <= 0.0 || !shape.isFinite) shape = 3.0;
+    var scale = mean * (shape - 1.0);
+    if (scale <= 0.0 || !scale.isFinite) scale = 1.0;
+    return InverseGammaDistribution(shape, scale);
+  }
+
   /// The shape parameter α.
   final double shape;
 

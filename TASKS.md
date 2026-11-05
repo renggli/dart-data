@@ -758,7 +758,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `special` only implements order-0 and order-1 Bessel functions (`besselJ0`, `besselJ1`, etc.) and complete elliptic integrals (`ellipticK`, `ellipticE`), lacking general-order `besselJ(nu, x)`, `besselY(nu, x)`, `besselI(nu, x)`, `besselK(nu, x)`, incomplete elliptic integrals `ellipticF(phi, k)` / `ellipticEIncomplete(phi, k)`, Riemann `zeta(s)`, `polygamma(m, x)`, and `gammaqInv(a, q)`. `polynomial` lacks `laguerreEvaluate(n, x, {alpha})` advertised in `ARCHITECTURE.md`.
   - **Fix**: Add general-order Bessel functions, incomplete elliptic integrals, `zeta`, `polygamma`, `gammaqInv`, and `laguerreEvaluate`.
 
-- [ ] **6.3 `numeric` & `stats`: Adaptive `bdf2` ODE step control, bound-constrained `minimize`, remaining distribution `.fit()` factories, and normality/contingency tests**
+- [x] **6.3 `numeric` & `stats`: Adaptive `bdf2` ODE step control, bound-constrained `minimize`, remaining distribution `.fit()` factories, and normality/contingency tests**
   - **Severity**: Suggestion
   - **Location**: `lib/src/numeric/ode/solve_ode.dart:335-419`, `lib/src/numeric/optimization.dart`, `lib/src/stats/distributions/`, `lib/src/stats/hypothesis/`
   - **Problem**:

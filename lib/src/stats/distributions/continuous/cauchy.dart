@@ -35,6 +35,33 @@ class CauchyDistribution extends ContinuousDistribution {
 
   const new _(this.location, this.scale);
 
+  /// Fits a Cauchy distribution to [samples] using median and interquartile range.
+  factory fit(Iterable<num> samples) {
+    final list = <double>[];
+    for (final x in samples) {
+      final val = x.toDouble();
+      if (!val.isFinite) {
+        throw ArgumentError.value(x, 'samples', 'Samples must be finite');
+      }
+      list.add(val);
+    }
+    if (list.isEmpty) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    list.sort();
+    final n = list.length;
+    final median = n.isOdd
+        ? list[n ~/ 2]
+        : 0.5 * (list[n ~/ 2 - 1] + list[n ~/ 2]);
+    final q1 = list[(0.25 * (n - 1)).round()];
+    final q3 = list[(0.75 * (n - 1)).round()];
+    var scale = 0.5 * (q3 - q1);
+    if (scale <= 0.0) {
+      scale = 1.0;
+    }
+    return CauchyDistribution(median, scale);
+  }
+
   /// The location parameter.
   final double location;
 

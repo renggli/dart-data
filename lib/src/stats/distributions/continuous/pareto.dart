@@ -31,6 +31,34 @@ class ParetoDistribution extends ContinuousDistribution {
 
   const new _(this.shape, this.scale);
 
+  /// Fits a Pareto distribution to positive [samples] using maximum likelihood estimation.
+  factory fit(Iterable<num> samples) {
+    var minVal = double.infinity;
+    final list = <double>[];
+    for (final x in samples) {
+      final val = x.toDouble();
+      if (!val.isFinite || val <= 0.0) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Pareto samples must be strictly positive and finite',
+        );
+      }
+      list.add(val);
+      if (val < minVal) minVal = val;
+    }
+    if (list.isEmpty) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    var sumLogRatio = 0.0;
+    for (final val in list) {
+      sumLogRatio += log(val / minVal);
+    }
+    var shape = sumLogRatio > 0.0 ? list.length / sumLogRatio : 1.0;
+    if (shape <= 0.0 || !shape.isFinite) shape = 1.0;
+    return ParetoDistribution(shape, minVal);
+  }
+
   /// The shape parameter (α).
   final double shape;
 

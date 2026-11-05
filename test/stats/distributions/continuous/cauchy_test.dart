@@ -40,6 +40,14 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.isNotEmpty).isTrue();
 
+      // Fit
+      final fitted = CauchyDistribution.fit(const [-1.0, 0.0, 1.0]);
+      check(fitted.location).equals(0.0);
+      check(fitted.scale).isGreaterThan(0.0);
+      check(() => CauchyDistribution.fit(const [])).throws<ArgumentError>();
+      check(() => CauchyDistribution.fit(const [double.nan]))
+          .throws<ArgumentError>();
+
       // Constructor validation
       check(() => CauchyDistribution(0.0, 0.0)).throws<ArgumentError>();
 

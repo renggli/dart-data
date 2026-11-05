@@ -44,6 +44,39 @@ class HypergeometricDistribution extends DiscreteDistribution {
     }
   }
 
+  /// Fits a hypergeometric distribution to non-negative integer [samples]
+  /// given [populationSize] and optional [draws] (defaulting to the maximum
+  /// observed sample).
+  factory fit(
+    Iterable<num> samples, {
+    required int populationSize,
+    int? draws,
+  }) {
+    var count = 0;
+    var sum = 0.0;
+    var maxVal = 0;
+    for (final x in samples) {
+      if (x < 0 || x.roundToDouble() != x) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Hypergeometric samples must be non-negative integers',
+        );
+      }
+      final xi = x.toInt();
+      if (xi > maxVal) maxVal = xi;
+      count++;
+      sum += xi;
+    }
+    if (count == 0) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    final nDraws = draws ?? (maxVal > 0 ? maxVal : 1);
+    final mean = sum / count;
+    final k = (mean * populationSize / nDraws).round().clamp(0, populationSize);
+    return HypergeometricDistribution(populationSize, k, nDraws);
+  }
+
   /// Population size.
   final int populationSize;
 

@@ -117,8 +117,11 @@ OdeSolution solveOde({
       t0: t0,
       tEnd: tEnd,
       y0: y0,
-      stepSize: stepSize,
-      tolerance: absoluteTolerance,
+      initialStep: stepSize,
+      relativeTolerance: relativeTolerance,
+      absoluteTolerance: absoluteTolerance,
+      minStep: minStep,
+      maxStep: maxStep,
       maxSteps: maxSteps,
     ),
   };
@@ -311,8 +314,11 @@ OdeSolution _bdf2({
   required double t0,
   required double tEnd,
   required Vector<double> y0,
-  double stepSize = 0.01,
-  double tolerance = 1e-8,
+  double initialStep = 0.01,
+  double relativeTolerance = 1e-6,
+  double absoluteTolerance = 1e-8,
+  double minStep = 1e-12,
+  double maxStep = 1.0,
   int maxNewtonIters = 20,
   int maxSteps = 100000,
 }) {
@@ -320,7 +326,8 @@ OdeSolution _bdf2({
   final yList = <Vector<double>>[y0.copy()];
 
   final direction = tEnd >= t0 ? 1.0 : -1.0;
-  final h = direction * stepSize.abs();
+  var step =
+      direction * math.min(maxStep, math.max(minStep, initialStep.abs()));
   final dim = y0.length;
 
   var currentTime = t0;
@@ -329,21 +336,20 @@ OdeSolution _bdf2({
 
   // Step 1: implicit trapezoidal rule
   if ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
-    var step1 = h;
-    if ((currentTime + step1 - tEnd) * direction > 0.0) {
-      step1 = tEnd - currentTime;
+    if ((currentTime + step - tEnd) * direction > 0.0) {
+      step = tEnd - currentTime;
     }
-    final t1 = currentTime + step1;
+    final t1 = currentTime + step;
     final f0 = f(currentTime, y0);
-    var y1 = y0 + f0.scale(step1);
-    final gamma = step1 * 0.5;
+    var y1 = y0 + f0.scale(step);
+    final gamma = step * 0.5;
 
     var stepConverged = false;
     Matrix<double>? mat;
     for (var iter = 0; iter < maxNewtonIters; iter++) {
       final f1 = f(t1, y1);
       final residual = y1 - y0 - (f0 + f1).scale(gamma);
-      if (residual.norm() < tolerance) {
+      if (residual.norm() < absoluteTolerance) {
         stepConverged = true;
         break;
       }
@@ -358,7 +364,7 @@ OdeSolution _bdf2({
 
       final delta = mat.solveVector(-residual);
       y1 += delta;
-      if (delta.norm() < tolerance) {
+      if (delta.norm() < absoluteTolerance) {
         stepConverged = true;
         break;
       }
@@ -371,14 +377,16 @@ OdeSolution _bdf2({
     stepCount++;
   }
 
-  // Subsequent steps: BDF2 (Modified Newton with Jacobian reuse)
+  // Subsequent steps: adaptive BDF2 (Modified Newton with local truncation error control)
   double? cachedGamma;
   Matrix<double>? cachedMat;
 
   while ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
-    var step = h;
+    stepCount++;
+    var truncated = false;
     if ((currentTime + step - tEnd) * direction > 0.0) {
       step = tEnd - currentTime;
+      truncated = true;
     }
     final tNext = currentTime + step;
     final yN = yList[yList.length - 1];
@@ -390,19 +398,26 @@ OdeSolution _bdf2({
     final beta = (omega * omega) / (1.0 + 2.0 * omega);
     final gamma = ((1.0 + omega) / (1.0 + 2.0 * omega)) * step;
 
-    var yNext = yN.scale(1.0 + omega) - yPrev.scale(omega);
+    // Linear predictor
+    final yPredictor = yN.scale(1.0 + omega) - yPrev.scale(omega);
+    var yNext = yPredictor.copy();
 
     var stepConverged = false;
     for (var iter = 0; iter < maxNewtonIters; iter++) {
       final fNext = f(tNext, yNext);
       final residual =
           yNext - yN.scale(alpha) + yPrev.scale(beta) - fNext.scale(gamma);
-      if (residual.norm() < tolerance) {
+      if (residual.norm() < absoluteTolerance) {
         stepConverged = true;
         break;
       }
 
-      if (cachedMat == null || cachedGamma != gamma || iter >= 3) {
+      final needJacobian =
+          cachedMat == null ||
+          cachedGamma == null ||
+          (cachedGamma - gamma).abs() > 0.2 * gamma.abs() ||
+          iter >= 3;
+      if (needJacobian) {
         final jac = calculus.jacobian((v) => f(tNext, v), yNext, step: 1e-6);
         cachedGamma = gamma;
         cachedMat = Matrix<double>.generate(dim, dim, (r, c) {
@@ -413,17 +428,66 @@ OdeSolution _bdf2({
 
       final delta = cachedMat.solveVector(-residual);
       yNext += delta;
-      if (delta.norm() < tolerance) {
+      if (delta.norm() < absoluteTolerance) {
         stepConverged = true;
         break;
       }
     }
-    if (!stepConverged) allStepsConverged = false;
 
-    currentTime = tNext;
-    tList.add(currentTime);
-    yList.add(yNext.copy());
-    stepCount++;
+    if (!stepConverged) {
+      allStepsConverged = false;
+      step = direction * math.max(minStep, step.abs() * 0.5);
+      cachedMat = null;
+      if (step.abs() <= minStep * (1.0 + 1e-12)) {
+        break;
+      }
+      continue;
+    }
+
+    // Local truncation error estimate for BDF2 via second backward difference of f:
+    // LTE ~= (2/9) * step * (f(t_next) - (1 + omega)*f(t_n) + omega*f(t_{n-1}))
+    final fNextFinal = f(tNext, yNext);
+    final fN = f(currentTime, yN);
+    final fPrev = f(tList[tList.length - 2], yPrev);
+    final d2f = fNextFinal - fN.scale(1.0 + omega) + fPrev.scale(omega);
+    final errorVec = d2f..scaleInPlace((2.0 / 9.0) * step.abs());
+
+    var maxErrorRatio = 0.0;
+    for (var i = 0; i < dim; i++) {
+      if (!yNext[i].isFinite) {
+        maxErrorRatio = double.infinity;
+        break;
+      }
+      final sc =
+          absoluteTolerance +
+          relativeTolerance * math.max(yN[i].abs(), yNext[i].abs());
+      final ratio = errorVec[i].abs() / sc;
+      if (ratio.isNaN) {
+        maxErrorRatio = double.infinity;
+        break;
+      }
+      if (ratio > maxErrorRatio) maxErrorRatio = ratio;
+    }
+
+    if (maxErrorRatio <= 1.0) {
+      currentTime = tNext;
+      tList.add(currentTime);
+      yList.add(yNext.copy());
+    } else if (!truncated && step.abs() <= minStep * (1.0 + 1e-12)) {
+      allStepsConverged = false;
+      break;
+    } else if (truncated && step.abs() <= 1e-15) {
+      break;
+    }
+
+    var factor =
+        0.9 *
+        math.pow(maxErrorRatio > 0.0 ? 1.0 / maxErrorRatio : 10.0, 1.0 / 3.0);
+    factor = math.max(0.2, math.min(5.0, factor));
+    final lowerStepBound = truncated ? math.min(minStep, 1e-15) : minStep;
+    step =
+        direction *
+        math.min(maxStep, math.max(lowerStepBound, step.abs() * factor));
   }
 
   final reachedEnd = (tEnd - currentTime).abs() <= 1e-12;

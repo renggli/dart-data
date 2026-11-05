@@ -40,6 +40,14 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.isNotEmpty).isTrue();
 
+      // Fit
+      final fitted = LogisticDistribution.fit(const [-2.0, 0.0, 2.0]);
+      check(fitted.location).equals(0.0);
+      check(fitted.scale).isGreaterThan(0.0);
+      check(() => LogisticDistribution.fit(const [])).throws<ArgumentError>();
+      check(() => LogisticDistribution.fit(const [double.nan]))
+          .throws<ArgumentError>();
+
       // Constructor validation
       check(() => LogisticDistribution(0.0, 0.0)).throws<ArgumentError>();
 

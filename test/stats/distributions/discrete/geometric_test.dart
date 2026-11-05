@@ -46,6 +46,13 @@ void main() {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample >= 0)).isTrue();
 
+      // Fit
+      final fitted = GeometricDistribution.fit(const [0, 1, 2]);
+      check(fitted.p).equals(0.5);
+      check(() => GeometricDistribution.fit(const [])).throws<ArgumentError>();
+      check(() => GeometricDistribution.fit(const [-1, 2]))
+          .throws<ArgumentError>();
+
       // Constructor validation
       check(() => GeometricDistribution(0.0)).throws<ArgumentError>();
       check(() => GeometricDistribution(-0.5)).throws<ArgumentError>();
