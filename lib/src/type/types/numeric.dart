@@ -45,7 +45,7 @@ final class NumericDataType extends DataType<num> {
 }
 
 /// Algebraic field operations over generic numeric values ([num]).
-final class NumericField implements ExtendedField<num> {
+final class NumericField extends ExtendedField<num> {
   /// Creates a new [NumericField] instance.
   const new();
 
@@ -93,12 +93,6 @@ final class NumericField implements ExtendedField<num> {
       mod(pow(base, exponent), modulus);
 
   @override
-  num modInverse(num base, num modulus) => unsupportedOperation('modInverse');
-
-  @override
-  num gcd(num a, num b) => unsupportedOperation('gcd');
-
-  @override
   num abs(num a) => a.abs();
 
   @override
@@ -112,9 +106,6 @@ final class NumericField implements ExtendedField<num> {
 
   @override
   num log(num a) => math.log(a);
-
-  @override
-  num conjugate(num a) => a;
 
   @override
   num get nan => double.nan;

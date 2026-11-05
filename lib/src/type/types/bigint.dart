@@ -63,7 +63,7 @@ final class BigIntEquality extends NaturalEquality<BigInt> {
 }
 
 /// Algebraic field operations over arbitrary precision integers ([BigInt]).
-final class BigIntField implements ExtendedField<BigInt> {
+final class BigIntField extends ExtendedField<BigInt> {
   /// Creates a new [BigIntField] instance.
   const new();
 
@@ -149,16 +149,4 @@ final class BigIntField implements ExtendedField<BigInt> {
 
   @override
   BigInt log(BigInt a) => BigInt.from(math.log(a.toDouble()).round());
-
-  @override
-  BigInt conjugate(BigInt a) => a;
-
-  @override
-  BigInt get nan => unsupportedOperation('nan');
-
-  @override
-  BigInt get infinity => unsupportedOperation('infinity');
-
-  @override
-  BigInt get negativeInfinity => unsupportedOperation('negativeInfinity');
 }

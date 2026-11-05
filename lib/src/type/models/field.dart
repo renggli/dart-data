@@ -2,7 +2,10 @@ import 'package:meta/meta.dart';
 
 /// Encapsulates a mathematical field.
 @immutable
-abstract interface class Field<T> {
+abstract class Field<T> {
+  /// Default const constructor for subclasses.
+  const new();
+
   /// The additive neutral element.
   T get additiveIdentity;
 
@@ -31,57 +34,60 @@ abstract interface class Field<T> {
   T div(T a, T b);
 
   /// Computes the remainder of the Euclidean division `a % b`.
-  T mod(T a, T b);
+  T mod(T a, T b) => unsupportedOperation('mod');
 
   /// Computes a truncating division: `a ~/ b`.
-  T division(T a, T b);
+  T division(T a, T b) => unsupportedOperation('division');
 
   /// Computes the remainder of the truncating division.
-  T remainder(T a, T b);
+  T remainder(T a, T b) => unsupportedOperation('remainder');
 
   /// Computes [base] to the power of [exponent].
-  T pow(T base, T exponent);
+  T pow(T base, T exponent) => unsupportedOperation('pow');
 
   /// Computes [base] to the power of [exponent] modulo [modulus].
-  T modPow(T base, T exponent, T modulus);
+  T modPow(T base, T exponent, T modulus) => unsupportedOperation('modPow');
 
   /// Computes the modular multiplicative inverse of [base] modulo [modulus].
-  T modInverse(T base, T modulus);
+  T modInverse(T base, T modulus) => unsupportedOperation('modInverse');
 
   /// Computes the greatest common divisor: `gcd(a, b)`.
-  T gcd(T a, T b);
+  T gcd(T a, T b) => unsupportedOperation('gcd');
 
   /// Computes the absolute value: `|a|`.
-  T abs(T a);
+  T abs(T a) => unsupportedOperation('abs');
 
   /// Computes the Euclidean norm: `||a||`.
-  double norm(T a);
+  double norm(T a) => unsupportedOperation('norm');
 
   /// Computes the square root: `sqrt(a)`.
-  T sqrt(T a);
+  T sqrt(T a) => unsupportedOperation('sqrt');
 
   /// Computes the exponential function: `exp(a)`.
-  T exp(T a);
+  T exp(T a) => unsupportedOperation('exp');
 
   /// Computes the natural logarithm: `ln(a)`.
-  T log(T a);
+  T log(T a) => unsupportedOperation('log');
 
   /// Computes the complex conjugate: `a*` (identity for real types).
-  T conjugate(T a);
+  T conjugate(T a) => a;
 
   /// Not a number.
-  T get nan;
+  T get nan => unsupportedOperation('nan');
 
   /// Positive infinity.
-  T get infinity;
+  T get infinity => unsupportedOperation('infinity');
 
   /// Negative infinity.
-  T get negativeInfinity;
+  T get negativeInfinity => unsupportedOperation('negativeInfinity');
 }
 
 /// An algebraic field extended with norm, square root, power, and
 /// transcendental functions.
-abstract interface class ExtendedField<T> implements Field<T>;
+abstract class ExtendedField<T> extends Field<T> {
+  /// Default const constructor for subclasses.
+  const new();
+}
 
 /// Thrown when an operation is not supported.
 Never unsupportedOperation(String operation) =>

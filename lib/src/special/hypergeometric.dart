@@ -60,13 +60,13 @@ double hypergeometric1F1(num a, num b, num z) {
 /// convergence.
 ///
 /// See https://en.wikipedia.org/wiki/Hypergeometric_function for details.
-double hypergeometric2F1(num a, num b, num cVal, num z) {
-  if (a.isNaN || b.isNaN || cVal.isNaN || z.isNaN) {
+double hypergeometric2F1(num a, num b, num c, num z) {
+  if (a.isNaN || b.isNaN || c.isNaN || z.isNaN) {
     return double.nan;
   }
   final ad = a.toDouble();
   final bd = b.toDouble();
-  final cd = cVal.toDouble();
+  final cd = c.toDouble();
   final zd = z.toDouble();
   final isANonPosInt = ad.isFinite && ad <= 0.0 && ad.roundToDouble() == ad;
   final isBNonPosInt = bd.isFinite && bd <= 0.0 && bd.roundToDouble() == bd;
@@ -198,16 +198,12 @@ double _hypergeometric2F1Logarithmic(
   return finiteSum + infPrefactor * infSum;
 }
 
-double _hypergeometric2F1Direct(double a, double b, double cVal, double z) {
+double _hypergeometric2F1Direct(double a, double b, double c, double z) {
   var sum = 1.0;
   var term = 1.0;
   for (var stepIdx = 1; stepIdx <= 2000; stepIdx++) {
     term *=
-        (a + stepIdx - 1) *
-        (b + stepIdx - 1) /
-        (cVal + stepIdx - 1) *
-        z /
-        stepIdx;
+        (a + stepIdx - 1) * (b + stepIdx - 1) / (c + stepIdx - 1) * z / stepIdx;
     sum += term;
     if (term.abs() < 1.0e-15 * sum.abs()) {
       break;

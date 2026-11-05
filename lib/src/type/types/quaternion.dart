@@ -51,7 +51,7 @@ final class QuaternionEquality extends NaturalEquality<Quaternion> {
 }
 
 /// Algebraic field operations over [Quaternion] numbers.
-final class QuaternionField implements Field<Quaternion> {
+final class QuaternionField extends Field<Quaternion> {
   /// Creates a new [QuaternionField] instance.
   const new();
 
@@ -83,29 +83,7 @@ final class QuaternionField implements Field<Quaternion> {
   Quaternion div(Quaternion a, Quaternion b) => a / b;
 
   @override
-  Quaternion mod(Quaternion a, Quaternion b) => unsupportedOperation('mod');
-
-  @override
-  Quaternion division(Quaternion a, Quaternion b) =>
-      unsupportedOperation('division');
-
-  @override
-  Quaternion remainder(Quaternion a, Quaternion b) =>
-      unsupportedOperation('remainder');
-
-  @override
   Quaternion pow(Quaternion base, Quaternion exponent) => base.pow(exponent);
-
-  @override
-  Quaternion modPow(Quaternion base, Quaternion exponent, Quaternion modulus) =>
-      unsupportedOperation('modPow');
-
-  @override
-  Quaternion modInverse(Quaternion base, Quaternion modulus) =>
-      unsupportedOperation('modInverse');
-
-  @override
-  Quaternion gcd(Quaternion a, Quaternion b) => unsupportedOperation('gcd');
 
   @override
   Quaternion abs(Quaternion a) => Quaternion(a.abs());
@@ -115,22 +93,4 @@ final class QuaternionField implements Field<Quaternion> {
 
   @override
   Quaternion conjugate(Quaternion a) => a.conjugate();
-
-  @override
-  Quaternion sqrt(Quaternion a) => unsupportedOperation('sqrt');
-
-  @override
-  Quaternion exp(Quaternion a) => unsupportedOperation('exp');
-
-  @override
-  Quaternion log(Quaternion a) => unsupportedOperation('log');
-
-  @override
-  Quaternion get nan => unsupportedOperation('nan');
-
-  @override
-  Quaternion get infinity => unsupportedOperation('infinity');
-
-  @override
-  Quaternion get negativeInfinity => unsupportedOperation('negativeInfinity');
 }

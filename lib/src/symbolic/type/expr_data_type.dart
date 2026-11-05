@@ -90,7 +90,7 @@ final class ExprEquality extends NaturalEquality<Expr> {
 }
 
 /// Exact algebraic field and extended functions over symbolic expressions.
-final class ExprField implements ExtendedField<Expr> {
+final class ExprField extends ExtendedField<Expr> {
   /// Const constructor for [ExprField].
   const new();
 
@@ -179,26 +179,6 @@ final class ExprField implements ExtendedField<Expr> {
 
   @override
   Expr conjugate(Expr a) => Conjugate(a).simplify();
-
-  @override
-  Expr mod(Expr a, Expr b) => unsupportedOperation('mod');
-
-  @override
-  Expr division(Expr a, Expr b) => unsupportedOperation('division');
-
-  @override
-  Expr remainder(Expr a, Expr b) => unsupportedOperation('remainder');
-
-  @override
-  Expr modPow(Expr base, Expr exponent, Expr modulus) =>
-      unsupportedOperation('modPow');
-
-  @override
-  Expr modInverse(Expr base, Expr modulus) =>
-      unsupportedOperation('modInverse');
-
-  @override
-  Expr gcd(Expr a, Expr b) => unsupportedOperation('gcd');
 
   @override
   Expr get infinity => Constant.infinity;

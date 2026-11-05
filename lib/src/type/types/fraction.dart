@@ -56,7 +56,7 @@ final class FractionEquality extends NaturalEquality<Fraction> {
 }
 
 /// Algebraic field operations over [Fraction] numbers.
-final class FractionField implements ExtendedField<Fraction> {
+final class FractionField extends ExtendedField<Fraction> {
   /// Creates a new [FractionField] instance.
   const new();
 
@@ -89,28 +89,7 @@ final class FractionField implements ExtendedField<Fraction> {
   Fraction div(Fraction a, Fraction b) => a / b;
 
   @override
-  Fraction mod(Fraction a, Fraction b) => unsupportedOperation('mod');
-
-  @override
-  Fraction division(Fraction a, Fraction b) => unsupportedOperation('division');
-
-  @override
-  Fraction remainder(Fraction a, Fraction b) =>
-      unsupportedOperation('remainder');
-
-  @override
   Fraction pow(Fraction base, Fraction exponent) => base.pow(exponent.toInt());
-
-  @override
-  Fraction modPow(Fraction base, Fraction exponent, Fraction modulus) =>
-      unsupportedOperation('modPow');
-
-  @override
-  Fraction modInverse(Fraction base, Fraction modulus) =>
-      unsupportedOperation('modInverse');
-
-  @override
-  Fraction gcd(Fraction a, Fraction b) => unsupportedOperation('gcd');
 
   @override
   Fraction abs(Fraction a) => a.abs();
@@ -126,16 +105,4 @@ final class FractionField implements ExtendedField<Fraction> {
 
   @override
   Fraction log(Fraction a) => Fraction.fromDouble(math.log(a.toDouble()));
-
-  @override
-  Fraction conjugate(Fraction a) => a;
-
-  @override
-  Fraction get nan => unsupportedOperation('nan');
-
-  @override
-  Fraction get infinity => unsupportedOperation('infinity');
-
-  @override
-  Fraction get negativeInfinity => unsupportedOperation('negativeInfinity');
 }

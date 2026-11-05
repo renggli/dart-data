@@ -69,7 +69,7 @@ final class ComplexEquality extends NaturalEquality<Complex> {
 }
 
 /// Algebraic field operations over [Complex] numbers.
-final class ComplexField implements ExtendedField<Complex> {
+final class ComplexField extends ExtendedField<Complex> {
   /// Creates a new [ComplexField] instance.
   const new();
 
@@ -101,27 +101,7 @@ final class ComplexField implements ExtendedField<Complex> {
   Complex div(Complex a, Complex b) => a / b;
 
   @override
-  Complex mod(Complex a, Complex b) => unsupportedOperation('mod');
-
-  @override
-  Complex division(Complex a, Complex b) => unsupportedOperation('division');
-
-  @override
-  Complex remainder(Complex a, Complex b) => unsupportedOperation('remainder');
-
-  @override
   Complex pow(Complex base, Complex exponent) => base.pow(exponent);
-
-  @override
-  Complex modPow(Complex base, Complex exponent, Complex modulus) =>
-      unsupportedOperation('modPow');
-
-  @override
-  Complex modInverse(Complex base, Complex modulus) =>
-      unsupportedOperation('modInverse');
-
-  @override
-  Complex gcd(Complex a, Complex b) => unsupportedOperation('gcd');
 
   @override
   Complex abs(Complex a) => Complex(a.abs());

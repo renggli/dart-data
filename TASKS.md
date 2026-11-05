@@ -732,7 +732,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Top-level matrix correlation/covariance functions accept `Object data` instead of `Matrix<num> data`, sacrificing static type safety.
   - **Fix**: Change parameter type to `Matrix<num> data` (since `Tensor<num>` already has extension methods `.covarianceMatrix()`, etc.).
 
-- [ ] **5.5 `Field<T>` interface bloat vs empty `ExtendedField<T>`, parameter naming in `hypergeometric2F1`, and low-level exports in `symbolic`**
+- [x] **5.5 `Field<T>` interface bloat vs empty `ExtendedField<T>`, parameter naming in `hypergeometric2F1`, and low-level exports in `symbolic`**
   - **Severity**: Suggestion
   - **Location**: `lib/src/type/models/field.dart:5-84`, `lib/src/special/hypergeometric.dart:56`, `lib/src/symbolic/solver/multivariate_polynomial.dart:170`, `lib/symbolic.dart:138-151`
   - **Problem**: `Field<T>` requires 23 methods while `ExtendedField<T>` is empty; `hypergeometric2F1(num a, num b, num cVal, num z)` names its third parameter `cVal` instead of `c`; `MultivariatePolynomial` exposes abbreviated `lm`, `lc`, `lt` getters; and `lib/symbolic.dart` exports internal solver engines (`BuchbergerEngine`, `FglmEngine`, `SylvesterResultantSolver`).

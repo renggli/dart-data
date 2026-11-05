@@ -328,7 +328,7 @@ final class Uint64DataType extends IntegerDataType<List<int>> {
 }
 
 /// Algebraic field operations over integers ([int]).
-final class IntegerField implements ExtendedField<int> {
+final class IntegerField extends ExtendedField<int> {
   /// Creates a new [IntegerField] instance.
   const new();
 
@@ -408,18 +408,6 @@ final class IntegerField implements ExtendedField<int> {
 
   @override
   int log(int a) => math.log(a).truncate();
-
-  @override
-  int conjugate(int a) => a;
-
-  @override
-  int get nan => unsupportedOperation('nan');
-
-  @override
-  int get infinity => unsupportedOperation('infinity');
-
-  @override
-  int get negativeInfinity => unsupportedOperation('negativeInfinity');
 }
 
 /// Equality relation for integer values with proximity testing.

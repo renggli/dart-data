@@ -132,7 +132,7 @@ final class Float64DataType extends FloatDataType<Float64List> {
 }
 
 /// Algebraic field operations over floating-point numbers ([double]).
-final class FloatField implements ExtendedField<double> {
+final class FloatField extends ExtendedField<double> {
   /// Creates a new [FloatField] instance.
   const new();
 
@@ -181,13 +181,6 @@ final class FloatField implements ExtendedField<double> {
       mod(pow(base, exponent), modulus);
 
   @override
-  double modInverse(double base, double modulus) =>
-      unsupportedOperation('modInverse');
-
-  @override
-  double gcd(double a, double b) => unsupportedOperation('gcd');
-
-  @override
   double abs(double a) => a.abs();
 
   @override
@@ -201,9 +194,6 @@ final class FloatField implements ExtendedField<double> {
 
   @override
   double log(double a) => math.log(a);
-
-  @override
-  double conjugate(double a) => a;
 
   @override
   double get nan => double.nan;
