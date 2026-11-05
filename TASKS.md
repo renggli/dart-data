@@ -352,7 +352,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     1. In `Integral.collectFreeVariables`, only remove `variable` when `isDefinite`; when `isIndefinite`, keep `variable` in `target`.
     2. In `differentiation.dart:237-241`, add `upperTerm - lowerTerm` ($f(u(x), x) u'(x) - f(l(x), x) l'(x)$) to the inner integral term.
 
-- [ ] **1.10.2 `computeLimit` prematurely collapses $b^{u(x)}$ to `0`/`infinity` before Gruntz MRV analysis and fails on `Sinh`/`Cosh`/`Tanh` at infinity**
+- [x] **1.10.2 `computeLimit` prematurely collapses $b^{u(x)}$ to `0`/`infinity` before Gruntz MRV analysis and fails on `Sinh`/`Cosh`/`Tanh` at infinity**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/calculus/limit.dart:161-209, 479-500, 577-695`
   - **Problem**:

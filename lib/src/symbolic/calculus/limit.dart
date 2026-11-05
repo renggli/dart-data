@@ -50,6 +50,86 @@ Expr computeLimit(
   }
   if (!expr.dependsOn(variable)) return expr.simplify(assumptions: assumptions);
 
+  if (expr case Add(:final terms)) {
+    final termLims = <Expr>[];
+    var indeterminate = false;
+    var hasInfinity = false;
+    var hasNegInfinity = false;
+    for (final t in terms) {
+      final tLim = computeLimit(
+        t,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      if (tLim.anyNode((n) => n is Limit)) {
+        indeterminate = true;
+        break;
+      }
+      if (_isPositiveInfinity(tLim)) {
+        hasInfinity = true;
+      } else if (_isNegativeInfinity(tLim)) {
+        hasNegInfinity = true;
+      }
+      termLims.add(tLim);
+    }
+    if (!indeterminate && !(hasInfinity && hasNegInfinity)) {
+      if (hasInfinity) return Constant.infinity;
+      if (hasNegInfinity) return _negInfinity;
+      final combinedSum = Add(termLims).simplify(assumptions: assumptions);
+      if (!combinedSum.dependsOn(variable) &&
+          !combinedSum.anyNode((n) => n is Limit) &&
+          combinedSum != Constant.undefined) {
+        return combinedSum;
+      }
+    }
+  }
+
+  if (expr case Mul(:final factors)) {
+    final constFactors = <Expr>[];
+    final varFactors = <Expr>[];
+    for (final f in factors) {
+      if (f.dependsOn(variable)) {
+        varFactors.add(f);
+      } else {
+        constFactors.add(f);
+      }
+    }
+    if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
+      final constMul = Mul(constFactors).simplify(assumptions: assumptions);
+      final varMul = Mul(varFactors).simplify(assumptions: assumptions);
+      final varLim = computeLimit(
+        varMul,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      if (_isPositiveInfinity(varLim)) {
+        final sign = _getSign(constMul);
+        return sign > 0 ? Constant.infinity : _negInfinity;
+      }
+      if (_isNegativeInfinity(varLim)) {
+        final sign = _getSign(constMul);
+        return sign > 0 ? _negInfinity : Constant.infinity;
+      }
+      if (!varLim.dependsOn(variable) &&
+          !varLim.anyNode((n) => n is Limit) &&
+          varLim != Constant.undefined) {
+        return (constMul * varLim).simplify(assumptions: assumptions);
+      }
+      if (_isPositiveInfinity(varLim)) {
+        final sign = _getSign(constMul);
+        return sign > 0 ? Constant.infinity : _negInfinity;
+      }
+      if (_isNegativeInfinity(varLim)) {
+        final sign = _getSign(constMul);
+        return sign > 0 ? _negInfinity : Constant.infinity;
+      }
+    }
+  }
+
   if (expr case Pow(:final base, :final exponent)
       when base.dependsOn(variable) && exponent.dependsOn(variable)) {
     try {
@@ -97,7 +177,8 @@ Expr computeLimit(
     }
   }
 
-  if (expr case Pow(base: Constant.e, :final exponent)) {
+  if (expr case Pow(:final base, :final exponent)
+      when (base == Constant.e || base is RealNumeric)) {
     try {
       final innerLim = computeLimit(
         exponent,
@@ -106,10 +187,33 @@ Expr computeLimit(
         direction: direction,
         assumptions: assumptions,
       );
-      if (_isPositiveInfinity(innerLim)) return Constant.infinity;
-      if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
-      if (!innerLim.anyNode((n) => n is Limit)) {
-        return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
+      if (base == Constant.e) {
+        if (_isPositiveInfinity(innerLim)) return Constant.infinity;
+        if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
+        if (!innerLim.anyNode((n) => n is Limit)) {
+          return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
+        }
+      } else if (base is RealNumeric) {
+        final cmpOne = base.abs().compareTo(IntegerNumber.one);
+        if (_isPositiveInfinity(innerLim)) {
+          if (cmpOne < 0) return IntegerNumber.zero;
+          if (cmpOne > 0) {
+            if (base.sign > 0) return Constant.infinity;
+            throw UnsupportedError('Limit does not exist due to oscillation');
+          }
+          return IntegerNumber.one;
+        }
+        if (_isNegativeInfinity(innerLim)) {
+          if (cmpOne > 0) return IntegerNumber.zero;
+          if (cmpOne < 0) {
+            if (base.sign > 0) return Constant.infinity;
+            throw UnsupportedError('Limit does not exist due to oscillation');
+          }
+          return IntegerNumber.one;
+        }
+        if (!innerLim.anyNode((n) => n is Limit)) {
+          return Pow(base, innerLim).simplify(assumptions: assumptions);
+        }
       }
     } on Object {
       // Fall through
@@ -163,6 +267,10 @@ Expr computeLimit(
           Cos(expr: final inner) ||
           Atan(expr: final inner) ||
           Tanh(expr: final inner) ||
+          Sinh(expr: final inner) ||
+          Cosh(expr: final inner) ||
+          Asinh(expr: final inner) ||
+          Acosh(expr: final inner) ||
           Erf(expr: final inner) ||
           Erfc(expr: final inner)) {
     try {
@@ -196,6 +304,13 @@ Expr computeLimit(
             _isPositiveInfinity(innerLim)
                 ? IntegerNumber.zero
                 : IntegerNumber.two,
+          Sinh() || Asinh() =>
+            _isPositiveInfinity(innerLim) ? Constant.infinity : _negInfinity,
+          Cosh() => Constant.infinity,
+          Acosh() =>
+            _isPositiveInfinity(innerLim)
+                ? Constant.infinity
+                : Constant.undefined,
           _ => throw UnsupportedError(
             'Limit does not exist due to oscillation',
           ),
@@ -447,10 +562,84 @@ Expr _computeInfiniteLimit(
   ).simplify(assumptions: posAssumptions);
   if (!resolved.dependsOn(variable)) return resolved;
 
-  final ratLim = _rationalFunctionLimitAtInfinity(resolved, variable);
+  final combined = _combineNumericPowers(resolved, variable, posAssumptions);
+  if (!combined.dependsOn(variable)) return combined;
+
+  if (combined != resolved) {
+    return computeLimit(
+      combined,
+      variable,
+      Constant.infinity,
+      assumptions: posAssumptions,
+    );
+  }
+
+  final ratLim = _rationalFunctionLimitAtInfinity(combined, variable);
   if (ratLim != null) return ratLim.simplify(assumptions: posAssumptions);
 
-  return _gruntzLimit(resolved, variable, posAssumptions);
+  final expPolyLim = _exponentialPolynomialLimitAtInfinity(combined, variable);
+  if (expPolyLim != null) {
+    return expPolyLim.simplify(assumptions: posAssumptions);
+  }
+
+  return _gruntzLimit(combined, variable, posAssumptions);
+}
+
+Expr _combineNumericPowers(
+  Expr expr,
+  String variable,
+  Assumptions assumptions,
+) {
+  final mapped = expr.mapChildren(
+    (c) => _combineNumericPowers(c, variable, assumptions),
+  );
+  if (mapped case Mul(:final factors)) {
+    final numericPowers = <(RealNumeric base, RationalNumber k, Expr rem)>[];
+    final otherFactors = <Expr>[];
+
+    for (final f in factors) {
+      if (f case Pow(:final base, :final exponent)
+          when base is RealNumeric &&
+              !base.isZero &&
+              !base.isOne &&
+              exponent.dependsOn(variable)) {
+        final dom = _extractDominantPolynomialTerm(exponent, variable);
+        if (dom != null &&
+            dom.degree == 1 &&
+            (base.sign > 0 || dom.coeff.denominator == 1)) {
+          numericPowers.add((base, dom.coeff, dom.remainder));
+          continue;
+        }
+      }
+      otherFactors.add(f);
+    }
+
+    if (numericPowers.isNotEmpty) {
+      Expr combinedBase = IntegerNumber.one;
+      final remFactors = <Expr>[];
+
+      for (final (base, k, rem) in numericPowers) {
+        final powered = base.pow(k);
+        combinedBase = (combinedBase * powered).simplify(
+          assumptions: assumptions,
+        );
+        if (rem != IntegerNumber.zero) {
+          remFactors.add(Pow(base, rem).simplify(assumptions: assumptions));
+        }
+      }
+
+      final combinedPow = combinedBase == IntegerNumber.one
+          ? IntegerNumber.one
+          : Pow(
+              combinedBase,
+              Variable(variable),
+            ).simplify(assumptions: assumptions);
+
+      return Mul([...otherFactors, ...remFactors, combinedPow])
+          .simplify(assumptions: assumptions);
+    }
+  }
+  return mapped.simplify(assumptions: assumptions);
 }
 
 Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
@@ -474,28 +663,6 @@ Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
     }
     if (otherwise != null) {
       return otherwise;
-    }
-  }
-  if (mapped case Pow(:final base, :final exponent)
-      when base is RealNumeric &&
-          !base.isZero &&
-          exponent.dependsOn(variable)) {
-    try {
-      final expLim = _computeInfiniteLimit(
-        exponent,
-        variable,
-        isPositive: true,
-      );
-      final cmpOne = base.abs().compareTo(IntegerNumber.one);
-      if (_isPositiveInfinity(expLim)) {
-        if (cmpOne < 0) return IntegerNumber.zero;
-        if (cmpOne > 0 && base.sign > 0) return Constant.infinity;
-      } else if (_isNegativeInfinity(expLim)) {
-        if (cmpOne > 0) return IntegerNumber.zero;
-        if (cmpOne < 0 && base.sign > 0) return Constant.infinity;
-      }
-    } on Object {
-      // Keep mapped
     }
   }
   if (mapped case Mul(:final factors)
@@ -561,6 +728,41 @@ Expr? _rationalFunctionLimitAtInfinity(Expr expr, String variable) {
   return null;
 }
 
+Expr? _exponentialPolynomialLimitAtInfinity(Expr expr, String variable) {
+  if (expr case Mul(:final factors)) {
+    Expr? expFactor;
+    final polyFactors = <Expr>[];
+    for (final f in factors) {
+      if (f case Pow(:final base, exponent: Variable(name: final v))
+          when v == variable && base is RealNumeric && !base.isZero) {
+        if (expFactor == null) {
+          expFactor = f;
+          continue;
+        }
+      }
+      polyFactors.add(f);
+    }
+    if (expFactor case Pow(:final RealNumeric base, exponent: _)) {
+      final poly = polyFactors.isEmpty
+          ? IntegerNumber.one
+          : Mul(polyFactors).simplify();
+      final polyDeg = _polynomialDegreeAndLead(poly, variable);
+      if (polyDeg != null) {
+        final (deg, lead) = polyDeg;
+        final cmpOne = base.abs().compareTo(IntegerNumber.one);
+        if (cmpOne < 0) {
+          return IntegerNumber.zero;
+        }
+        if (cmpOne > 0 && base.sign > 0) {
+          final sign = _getSign(lead);
+          return sign > 0 ? Constant.infinity : _negInfinity;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 (int, Expr)? _polynomialDegreeAndLead(Expr expr, String variable) {
   final expanded = expr.expand().simplify();
   if (!expanded.dependsOn(variable)) {
@@ -595,12 +797,55 @@ int? _monomialDegree(Expr base, String variable) => switch (base) {
   _ => null,
 };
 
+Expr _rewriteHyperbolicsToExp(Expr expr, Assumptions assumptions) {
+  final mapped = expr.mapChildren(
+    (c) => _rewriteHyperbolicsToExp(c, assumptions),
+  );
+  return switch (mapped) {
+    Sinh(expr: final u) =>
+      (FractionNumber.half *
+              (Pow(Constant.e, u) -
+                  Pow(Constant.e, (-u).simplify(assumptions: assumptions))))
+          .simplify(assumptions: assumptions),
+    Cosh(expr: final u) =>
+      (FractionNumber.half *
+              (Pow(Constant.e, u) +
+                  Pow(Constant.e, (-u).simplify(assumptions: assumptions))))
+          .simplify(assumptions: assumptions),
+    Tanh(expr: final u) => () {
+      final ePos = Pow(Constant.e, u);
+      final eNeg = Pow(Constant.e, (-u).simplify(assumptions: assumptions));
+      return ((ePos - eNeg) / (ePos + eNeg)).simplify(assumptions: assumptions);
+    }(),
+    Asinh(expr: final u) => Ln(
+      u +
+          Pow(
+            Pow(u, IntegerNumber.two) + IntegerNumber.one,
+            FractionNumber.half,
+          ),
+    ).simplify(assumptions: assumptions),
+    Acosh(expr: final u) => Ln(
+      u +
+          Pow(u - IntegerNumber.one, FractionNumber.half) *
+              Pow(u + IntegerNumber.one, FractionNumber.half),
+    ).simplify(assumptions: assumptions),
+    Atanh(expr: final u) =>
+      (FractionNumber.half *
+              Ln((IntegerNumber.one + u) / (IntegerNumber.one - u)))
+          .simplify(assumptions: assumptions),
+    _ => mapped.simplify(assumptions: assumptions),
+  };
+}
+
 Expr _gruntzLimit(
   Expr expr,
   String variable, [
   Assumptions assumptions = Assumptions.none,
 ]) {
-  var f = expr.simplify(assumptions: assumptions);
+  var f = _rewriteHyperbolicsToExp(
+    expr.simplify(assumptions: assumptions),
+    assumptions,
+  );
   if (!f.dependsOn(variable)) return f;
 
   if (_containsUnboundedOscillation(f, variable)) {

@@ -208,6 +208,14 @@ void main() {
       check(Tanh(x).limit('x', Constant.infinity)).equals(IntegerNumber.one);
       check(Tanh(x).limit('x', -Constant.infinity))
           .equals(IntegerNumber.negativeOne);
+      check(Sinh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
+      check(Sinh(x).limit('x', -Constant.infinity)).equals(-Constant.infinity);
+      check(Cosh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
+      check(Cosh(x).limit('x', -Constant.infinity)).equals(Constant.infinity);
+      check(Asinh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
+      check(Asinh(x).limit('x', -Constant.infinity)).equals(-Constant.infinity);
+      check(Acosh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
+      check(Acosh(x).limit('x', -Constant.infinity)).equals(Constant.undefined);
 
       check(() => Sin(x).limit('x', Constant.infinity))
           .throws<UnsupportedError>();
@@ -347,6 +355,38 @@ void main() {
               (Pow(Constant.e, const RealNumber(0.5) * x) + IntegerNumber.one) /
               Pow(Constant.e, x);
           check(realExp.limit('x', Constant.infinity))
+              .equals(IntegerNumber.zero);
+
+          check(
+            (Pow(IntegerNumber.two, x) / Pow(IntegerNumber.of(3), x)).limit(
+              'x',
+              Constant.infinity,
+            ),
+          ).equals(IntegerNumber.zero);
+          check(
+            (Pow(IntegerNumber.of(3), x) / Pow(IntegerNumber.two, x)).limit(
+              'x',
+              Constant.infinity,
+            ),
+          ).equals(Constant.infinity);
+          check(
+            (Pow(IntegerNumber.two, x + IntegerNumber.one) /
+                    Pow(IntegerNumber.two, x))
+                .limit('x', Constant.infinity),
+          ).equals(IntegerNumber.two);
+          check(
+            ((x + IntegerNumber.one) * Pow(IntegerNumber.two, -x)).limit(
+              'x',
+              Constant.infinity,
+            ),
+          ).equals(IntegerNumber.zero);
+          check(
+            ((Pow(x, IntegerNumber.two) + x) * Pow(FractionNumber.half, x))
+                .limit('x', Constant.infinity),
+          ).equals(IntegerNumber.zero);
+          check((Sinh(x) / Cosh(x)).limit('x', Constant.infinity))
+              .equals(IntegerNumber.one);
+          check((Sinh(x) - Cosh(x)).limit('x', Constant.infinity))
               .equals(IntegerNumber.zero);
 
           check((Sin(x) / x).limit('x', Constant.infinity))
