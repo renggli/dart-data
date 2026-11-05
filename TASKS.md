@@ -31,7 +31,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: `Fraction pow(Fraction base, Fraction exponent) => base.pow(exponent.toInt());` calls `exponent.toInt()`, so `DataType.fraction.field.pow(Fraction(4), Fraction(1, 2))` truncates `1/2` to `0` and returns `Fraction(1)` instead of `Fraction(2)`.
   - **Fix**: When `exponent.denominator == BigInt.one`, use `base.pow(exponent.numerator.toInt())`; otherwise evaluate `Fraction.fromDouble(math.pow(base.toDouble(), exponent.toDouble()).toDouble())` (matching `sqrt`, `exp`, and `log` in `FractionField` at lines 101–107).
 
-- [ ] **1.1.4 `StringEquality.isClose` runs full $\mathcal{O}(|a|\cdot|b|)$ Levenshtein DP on `NaN`, `Infinity`, and large length differences**
+- [x] **1.1.4 `StringEquality.isClose` runs full $\mathcal{O}(|a|\cdot|b|)$ Levenshtein DP on `NaN`, `Infinity`, and large length differences**
   - **Severity**: Warning
   - **Location**: `lib/src/type/types/string.dart:33-37`
   - **Problem**: When `a != b` and `epsilon` is `double.nan`, `epsilon < 1` is `false`, so `_editDistance(a, b)` executes the full dynamic programming matrix before `<= double.nan` evaluates to `false`. It also runs `_editDistance` when `epsilon == double.infinity` or when `(a.length - b.length).abs() > epsilon`.

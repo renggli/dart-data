@@ -31,8 +31,11 @@ final class StringEquality extends NaturalEquality<String> {
 
   @override
   bool isClose(String a, String b, double epsilon) {
-    if (a == b) return epsilon >= 0;
+    if (epsilon.isNaN || epsilon < 0) return false;
+    if (a == b) return true;
     if (epsilon < 1) return false;
+    if (epsilon.isInfinite) return true;
+    if ((a.length - b.length).abs() > epsilon) return false;
     return _editDistance(a, b) <= epsilon;
   }
 }
