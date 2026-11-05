@@ -787,7 +787,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `AccelerationFailedError` is never instantiated or thrown anywhere in the codebase. In `web/expressions/algebra.dart`, `formatRealNumber` and `formatComplex` are dead code (never referenced), and `factorExpr` is a trivial 1-line pass-through.
   - **Fix**: Remove `AccelerationFailedError` (or throw it when native routines fail in `AccelerationMode.accelerated`) and remove the unused functions in `web/expressions/algebra.dart`.
 
-- [ ] **7.2 Dead/identical branches and duplicated binary operator boilerplate across `Float64Tensor`, `Float64Vector`, and `Float64Matrix`**
+- [x] **7.2 Dead/identical branches and duplicated binary operator boilerplate across `Float64Tensor`, `Float64Vector`, and `Float64Matrix`**
   - **Severity**: Warning
   - **Location**: `lib/src/tensor/float64_tensor.dart:173-271`, `lib/src/linear/float64_vector.dart:188-315`, `lib/src/linear/float64_matrix.dart:353-402`
   - **Problem**: In `Float64Vector` and `Float64Matrix`, `if (other.tensor.data is Float64List)` and `else` contain identical loop bodies because `final b = other.tensor.data;` is declared outside the `if` and never type-promoted to `Float64List`. Furthermore, the same 30-line target validation and memory-hazard block is copy-pasted 10 times across `+`, `-`, `*`, `/` in `Float64Tensor`, `Float64Vector`, and `Float64Matrix`.

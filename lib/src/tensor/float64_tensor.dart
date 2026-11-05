@@ -166,112 +166,73 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   }
 
   /// Inlined contiguous element-wise addition.
-  Float64Tensor operator +(Tensor<double> other) {
-    if (isContiguous &&
-        other.isContiguous &&
-        areShapesEqual(shape, other.shape)) {
-      final a = asTypedList;
-      final b = other.data;
-      final out = Float64List(length);
-      final aOff = offset;
-      final bOff = other.offset;
-      if (b is Float64List) {
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] + b[bOff + i];
-        }
-      } else {
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] + b[bOff + i];
-        }
-      }
-      return Float64Tensor._(
-        Tensor.internal(
-          type: DataType.float64,
-          layout: Layout(shape: shape),
-          data: out,
-        ),
-      );
-    }
-    return Float64Tensor._(_tensor + other);
-  }
+  Float64Tensor operator +(Tensor<double> other) =>
+      _binaryOp(other, 0, (a, b) => a + b);
 
   /// Inlined contiguous element-wise subtraction.
-  Float64Tensor operator -(Tensor<double> other) {
-    if (isContiguous &&
-        other.isContiguous &&
-        areShapesEqual(shape, other.shape)) {
-      final a = asTypedList;
-      final b = other.data;
-      final out = Float64List(length);
-      final aOff = offset;
-      final bOff = other.offset;
-      if (b is Float64List) {
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] - b[bOff + i];
-        }
-      } else {
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] - b[bOff + i];
-        }
-      }
-      return Float64Tensor._(
-        Tensor.internal(
-          type: DataType.float64,
-          layout: Layout(shape: shape),
-          data: out,
-        ),
-      );
-    }
-    return Float64Tensor._(_tensor - other);
-  }
+  Float64Tensor operator -(Tensor<double> other) =>
+      _binaryOp(other, 1, (a, b) => a - b);
 
   /// Inlined contiguous element-wise multiplication.
-  Float64Tensor operator *(Tensor<double> other) {
-    if (isContiguous &&
-        other.isContiguous &&
-        areShapesEqual(shape, other.shape)) {
-      final a = asTypedList;
-      final b = other.data;
-      final out = Float64List(length);
-      final aOff = offset;
-      final bOff = other.offset;
-      if (b is Float64List) {
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] * b[bOff + i];
-        }
-      } else {
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] * b[bOff + i];
-        }
-      }
-      return Float64Tensor._(
-        Tensor.internal(
-          type: DataType.float64,
-          layout: Layout(shape: shape),
-          data: out,
-        ),
-      );
-    }
-    return Float64Tensor._(_tensor * other);
-  }
+  Float64Tensor operator *(Tensor<double> other) =>
+      _binaryOp(other, 2, (a, b) => a * b);
 
   /// Inlined contiguous element-wise division.
-  Float64Tensor operator /(Tensor<double> other) {
+  Float64Tensor operator /(Tensor<double> other) =>
+      _binaryOp(other, 3, (a, b) => a / b);
+
+  Float64Tensor _binaryOp(
+    Tensor<double> other,
+    int op,
+    Tensor<double> Function(Tensor<double> a, Tensor<double> b) fallback,
+  ) {
     if (isContiguous &&
         other.isContiguous &&
         areShapesEqual(shape, other.shape)) {
       final a = asTypedList;
-      final b = other.data;
+      final otherData = other.data;
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
-      if (b is Float64List) {
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] / b[bOff + i];
+      if (otherData is Float64List) {
+        final b = otherData;
+        switch (op) {
+          case 0:
+            for (var i = 0; i < length; i++) {
+              out[i] = a[aOff + i] + b[bOff + i];
+            }
+          case 1:
+            for (var i = 0; i < length; i++) {
+              out[i] = a[aOff + i] - b[bOff + i];
+            }
+          case 2:
+            for (var i = 0; i < length; i++) {
+              out[i] = a[aOff + i] * b[bOff + i];
+            }
+          case 3:
+            for (var i = 0; i < length; i++) {
+              out[i] = a[aOff + i] / b[bOff + i];
+            }
         }
       } else {
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] / b[bOff + i];
+        final b = otherData;
+        switch (op) {
+          case 0:
+            for (var i = 0; i < length; i++) {
+              out[i] = a[aOff + i] + b[bOff + i];
+            }
+          case 1:
+            for (var i = 0; i < length; i++) {
+              out[i] = a[aOff + i] - b[bOff + i];
+            }
+          case 2:
+            for (var i = 0; i < length; i++) {
+              out[i] = a[aOff + i] * b[bOff + i];
+            }
+          case 3:
+            for (var i = 0; i < length; i++) {
+              out[i] = a[aOff + i] / b[bOff + i];
+            }
         }
       }
       return Float64Tensor._(
@@ -282,7 +243,7 @@ extension type Float64Tensor._(Tensor<double> _tensor)
         ),
       );
     }
-    return Float64Tensor._(_tensor / other);
+    return Float64Tensor._(fallback(_tensor, other));
   }
 
   /// Inlined unary negation.

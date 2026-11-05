@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:meta/meta.dart';
 
 import '../acceleration/blas/blas.dart';
+import '../tensor/float64_tensor.dart';
 import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
 import '../type/data_type.dart';
@@ -178,35 +179,9 @@ extension type Float64Vector._(Vector<double> _vector)
         'Vector lengths must match: $length vs ${other.length}',
       );
     }
-    final tA = _vector.tensor;
-    final tB = other.tensor;
-    if (tA.isContiguous && tB.isContiguous) {
-      final out = Float64List(length);
-      final a = asTypedList;
-      final aOff = tA.offset;
-      final bOff = tB.offset;
-      if (tB.data is Float64List) {
-        final b = tB.data as Float64List;
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] + b[bOff + i];
-        }
-      } else {
-        final b = tB.data;
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] + b[bOff + i];
-        }
-      }
-      return Float64Vector._(
-        Vector(
-          Tensor.internal(
-            type: DataType.float64,
-            layout: Layout(shape: [length]),
-            data: out,
-          ),
-        ),
-      );
-    }
-    return Float64Vector._(_vector + other);
+    return Float64Vector._(
+      Vector(Float64Tensor(_vector.tensor) + other.tensor),
+    );
   }
 
   /// Inlined vector subtraction.
@@ -217,35 +192,9 @@ extension type Float64Vector._(Vector<double> _vector)
         'Vector lengths must match: $length vs ${other.length}',
       );
     }
-    final tA = _vector.tensor;
-    final tB = other.tensor;
-    if (tA.isContiguous && tB.isContiguous) {
-      final out = Float64List(length);
-      final a = asTypedList;
-      final aOff = tA.offset;
-      final bOff = tB.offset;
-      if (tB.data is Float64List) {
-        final b = tB.data as Float64List;
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] - b[bOff + i];
-        }
-      } else {
-        final b = tB.data;
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] - b[bOff + i];
-        }
-      }
-      return Float64Vector._(
-        Vector(
-          Tensor.internal(
-            type: DataType.float64,
-            layout: Layout(shape: [length]),
-            data: out,
-          ),
-        ),
-      );
-    }
-    return Float64Vector._(_vector - other);
+    return Float64Vector._(
+      Vector(Float64Tensor(_vector.tensor) - other.tensor),
+    );
   }
 
   /// Inlined Hadamard (element-wise) multiplication.
@@ -256,35 +205,9 @@ extension type Float64Vector._(Vector<double> _vector)
         'Vector lengths must match: $length vs ${other.length}',
       );
     }
-    final tA = _vector.tensor;
-    final tB = other.tensor;
-    if (tA.isContiguous && tB.isContiguous) {
-      final out = Float64List(length);
-      final a = asTypedList;
-      final aOff = tA.offset;
-      final bOff = tB.offset;
-      if (tB.data is Float64List) {
-        final b = tB.data as Float64List;
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] * b[bOff + i];
-        }
-      } else {
-        final b = tB.data;
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] * b[bOff + i];
-        }
-      }
-      return Float64Vector._(
-        Vector(
-          Tensor.internal(
-            type: DataType.float64,
-            layout: Layout(shape: [length]),
-            data: out,
-          ),
-        ),
-      );
-    }
-    return Float64Vector._(_vector * other);
+    return Float64Vector._(
+      Vector(Float64Tensor(_vector.tensor) * other.tensor),
+    );
   }
 
   /// Inlined element-wise division.
@@ -295,35 +218,9 @@ extension type Float64Vector._(Vector<double> _vector)
         'Vector lengths must match: $length vs ${other.length}',
       );
     }
-    final tA = _vector.tensor;
-    final tB = other.tensor;
-    if (tA.isContiguous && tB.isContiguous) {
-      final out = Float64List(length);
-      final a = asTypedList;
-      final aOff = tA.offset;
-      final bOff = tB.offset;
-      if (tB.data is Float64List) {
-        final b = tB.data as Float64List;
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] / b[bOff + i];
-        }
-      } else {
-        final b = tB.data;
-        for (var i = 0; i < length; i++) {
-          out[i] = a[aOff + i] / b[bOff + i];
-        }
-      }
-      return Float64Vector._(
-        Vector(
-          Tensor.internal(
-            type: DataType.float64,
-            layout: Layout(shape: [length]),
-            data: out,
-          ),
-        ),
-      );
-    }
-    return Float64Vector._(_vector / other);
+    return Float64Vector._(
+      Vector(Float64Tensor(_vector.tensor) / other.tensor),
+    );
   }
 
   /// Inlined vector negation.

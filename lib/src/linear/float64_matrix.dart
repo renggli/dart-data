@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:meta/meta.dart';
 
 import '../acceleration/blas/blas.dart';
+import '../tensor/float64_tensor.dart';
 import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
 import '../type/data_type.dart';
@@ -360,36 +361,9 @@ extension type Float64Matrix._(Matrix<double> _matrix)
         'Matrix shape mismatch: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
       );
     }
-    final tA = _matrix.tensor;
-    final tB = other.tensor;
-    final len = rowCount * colCount;
-    if (tA.isContiguous && tB.isContiguous) {
-      final out = Float64List(len);
-      final a = asTypedList;
-      final aOff = tA.offset;
-      final bOff = tB.offset;
-      if (tB.data is Float64List) {
-        final b = tB.data as Float64List;
-        for (var i = 0; i < len; i++) {
-          out[i] = a[aOff + i] + b[bOff + i];
-        }
-      } else {
-        final b = tB.data;
-        for (var i = 0; i < len; i++) {
-          out[i] = a[aOff + i] + b[bOff + i];
-        }
-      }
-      return Float64Matrix._(
-        Matrix(
-          Tensor.internal(
-            type: DataType.float64,
-            layout: Layout(shape: [rowCount, colCount]),
-            data: out,
-          ),
-        ),
-      );
-    }
-    return Float64Matrix._(_matrix + other);
+    return Float64Matrix._(
+      Matrix(Float64Tensor(_matrix.tensor) + other.tensor),
+    );
   }
 
   /// Inlined matrix subtraction.
@@ -400,36 +374,9 @@ extension type Float64Matrix._(Matrix<double> _matrix)
         'Matrix shape mismatch: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
       );
     }
-    final tA = _matrix.tensor;
-    final tB = other.tensor;
-    final len = rowCount * colCount;
-    if (tA.isContiguous && tB.isContiguous) {
-      final out = Float64List(len);
-      final a = asTypedList;
-      final aOff = tA.offset;
-      final bOff = tB.offset;
-      if (tB.data is Float64List) {
-        final b = tB.data as Float64List;
-        for (var i = 0; i < len; i++) {
-          out[i] = a[aOff + i] - b[bOff + i];
-        }
-      } else {
-        final b = tB.data;
-        for (var i = 0; i < len; i++) {
-          out[i] = a[aOff + i] - b[bOff + i];
-        }
-      }
-      return Float64Matrix._(
-        Matrix(
-          Tensor.internal(
-            type: DataType.float64,
-            layout: Layout(shape: [rowCount, colCount]),
-            data: out,
-          ),
-        ),
-      );
-    }
-    return Float64Matrix._(_matrix - other);
+    return Float64Matrix._(
+      Matrix(Float64Tensor(_matrix.tensor) - other.tensor),
+    );
   }
 
   /// Inlined matrix negation.
