@@ -42,6 +42,12 @@ void main() {
 
       // Errors
       check(() => tTestOneSample([1.0])).throws<ArgumentError>();
+
+      // NaN handling
+      final nanRes = tTestOneSample([1.0, double.nan, 3.0]);
+      check(nanRes.statistic.isNaN).isTrue();
+      check(nanRes.pValue.isNaN).isTrue();
+      check(nanRes.degreesOfFreedom?.isNaN).equals(true);
     });
 
     test('two-sample t-test (Student and Welch)', () {
@@ -73,6 +79,16 @@ void main() {
       // Errors
       check(() => tTestTwoSample([1.0], groupB)).throws<ArgumentError>();
       check(() => tTestTwoSample(groupA, [1.0])).throws<ArgumentError>();
+
+      // NaN handling
+      final nanRes = tTestTwoSample(
+        [1.0, 2.0, double.nan],
+        groupB,
+        equalVariance: false,
+      );
+      check(nanRes.statistic.isNaN).isTrue();
+      check(nanRes.pValue.isNaN).isTrue();
+      check(nanRes.degreesOfFreedom?.isNaN).equals(true);
     });
 
     test('paired t-test', () {
@@ -102,6 +118,11 @@ void main() {
       check(() => tTestPaired([1.0], after)).throws<ArgumentError>();
       check(() => tTestPaired([1.0, 2.0], [1.0, 2.0, 3.0]))
           .throws<ArgumentError>();
+
+      // NaN handling
+      final nanPaired = tTestPaired([1.0, double.nan], [3.0, 4.0]);
+      check(nanPaired.statistic.isNaN).isTrue();
+      check(nanPaired.pValue.isNaN).isTrue();
     });
 
     test('t-test with zero variance edge cases', () {

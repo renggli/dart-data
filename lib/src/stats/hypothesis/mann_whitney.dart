@@ -74,7 +74,8 @@ HypothesisTestResult mannWhitneyUTest(
   var tieTerm = 0.0;
   for (final count in tieCounts.values) {
     if (count > 1) {
-      tieTerm += count * count * count - count;
+      final c = count.toDouble();
+      tieTerm += c * c * c - c;
     }
   }
 

@@ -40,7 +40,12 @@ HypothesisTestResult wilcoxonSignedRankTest(
   final nonZeroDiffs = diffs.where((d) => d != 0.0).toList();
   final n = nonZeroDiffs.length;
   if (n == 0) {
-    throw ArgumentError('All sample differences are zero');
+    return HypothesisTestResult(
+      testName: 'Wilcoxon Signed-Rank Test',
+      statistic: 0.0,
+      pValue: 1.0,
+      alpha: alpha,
+    );
   }
 
   final absDiffs = nonZeroDiffs.map((d) => d.abs()).toList();
@@ -73,7 +78,8 @@ HypothesisTestResult wilcoxonSignedRankTest(
   var tieTerm = 0.0;
   for (final count in tieCounts.values) {
     if (count > 1) {
-      tieTerm += count * count * count - count;
+      final c = count.toDouble();
+      tieTerm += c * c * c - c;
     }
   }
 

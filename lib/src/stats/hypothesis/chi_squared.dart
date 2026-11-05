@@ -1,5 +1,4 @@
 import '../../linear/matrix.dart';
-import '../descriptive.dart';
 import '../distributions/continuous/chi_squared.dart';
 import 'hypothesis_test_result.dart';
 
@@ -12,24 +11,51 @@ HypothesisTestResult chiSquaredTest(
   int ddof = 0,
   double alpha = 0.05,
 }) {
-  final obs = observed.map((val) => val.toDouble()).toList();
+  final obs = <double>[];
+  var obsSum = 0.0;
+  for (final val in observed) {
+    final v = val.toDouble();
+    if (!v.isFinite || v < 0.0) {
+      throw ArgumentError.value(
+        val,
+        'observed',
+        'Observed counts must be non-negative and finite',
+      );
+    }
+    obs.add(v);
+    obsSum += v;
+  }
   final numCategories = obs.length;
   if (numCategories < 2) {
     throw ArgumentError('At least 2 observed categories required');
   }
+  if (obsSum <= 0.0) {
+    throw ArgumentError('Observed counts must sum to a positive number');
+  }
 
-  final obsSum = obs.sum();
   final List<double> exp;
 
   if (expected == null) {
     final uniformExp = obsSum / numCategories;
     exp = List<double>.filled(numCategories, uniformExp);
   } else {
-    exp = expected.map((val) => val.toDouble()).toList();
+    exp = <double>[];
+    var expSum = 0.0;
+    for (final val in expected) {
+      final v = val.toDouble();
+      if (!v.isFinite || v <= 0.0) {
+        throw ArgumentError.value(
+          val,
+          'expected',
+          'Expected counts must be positive and finite',
+        );
+      }
+      exp.add(v);
+      expSum += v;
+    }
     if (exp.length != numCategories) {
       throw ArgumentError('Expected length must match observed length');
     }
-    final expSum = exp.sum();
     if ((expSum - obsSum).abs() > 1e-7 && expSum > 0.0) {
       final factor = obsSum / expSum;
       for (var i = 0; i < numCategories; i++) {

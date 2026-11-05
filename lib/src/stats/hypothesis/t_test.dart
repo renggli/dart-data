@@ -22,7 +22,21 @@ HypothesisTestResult tTestOneSample(
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  final list = sample.map((val) => val.toDouble()).toList();
+  final list = <double>[];
+  for (final val in sample) {
+    final v = val.toDouble();
+    if (v.isNaN) {
+      return HypothesisTestResult(
+        testName: 'One-Sample t-test',
+        statistic: double.nan,
+        pValue: double.nan,
+        degreesOfFreedom: double.nan,
+        alpha: alpha,
+        alternative: alternative,
+      );
+    }
+    list.add(v);
+  }
   final count = list.length;
   if (count < 2) {
     throw ArgumentError('Sample must contain at least 2 observations');
@@ -113,8 +127,40 @@ HypothesisTestResult tTestTwoSample(
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  final list1 = sample1.map((val) => val.toDouble()).toList();
-  final list2 = sample2.map((val) => val.toDouble()).toList();
+  final list1 = <double>[];
+  for (final val in sample1) {
+    final v = val.toDouble();
+    if (v.isNaN) {
+      return HypothesisTestResult(
+        testName: equalVariance
+            ? "Student's Two-Sample t-test"
+            : "Welch's Two-Sample t-test",
+        statistic: double.nan,
+        pValue: double.nan,
+        degreesOfFreedom: double.nan,
+        alpha: alpha,
+        alternative: alternative,
+      );
+    }
+    list1.add(v);
+  }
+  final list2 = <double>[];
+  for (final val in sample2) {
+    final v = val.toDouble();
+    if (v.isNaN) {
+      return HypothesisTestResult(
+        testName: equalVariance
+            ? "Student's Two-Sample t-test"
+            : "Welch's Two-Sample t-test",
+        statistic: double.nan,
+        pValue: double.nan,
+        degreesOfFreedom: double.nan,
+        alpha: alpha,
+        alternative: alternative,
+      );
+    }
+    list2.add(v);
+  }
   final n1 = list1.length;
   final n2 = list2.length;
   if (n1 < 2 || n2 < 2) {
@@ -139,7 +185,7 @@ HypothesisTestResult tTestTwoSample(
     se = math.sqrt(se1Sq + se2Sq);
     final num = (se1Sq + se2Sq) * (se1Sq + se2Sq);
     final den = (se1Sq * se1Sq) / (n1 - 1.0) + (se2Sq * se2Sq) / (n2 - 1.0);
-    dof = den > 0.0 ? num / den : 1.0;
+    dof = (den.isNaN || num.isNaN) ? double.nan : (den > 0.0 ? num / den : 1.0);
   }
 
   final diff = m1 - m2;

@@ -274,7 +274,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. `BinomialDistribution`, `HypergeometricDistribution`, and `NegativeBinomialDistribution` define `median => mean.roundToDouble()` instead of `inverseCumulativeProbability(0.5).toDouble()` (e.g., `NegativeBinomialDistribution(1, 0.9)` returns `median = 9.0` whereas the true median where $\text{CDF}(k) \ge 0.5$ is `6.0`).
   - **Fix**: Handle `x == 0.0` in `GammaDistribution`, `WeibullDistribution`, and `FDistribution` matching `ChiSquaredDistribution`; and define `double get median => inverseCumulativeProbability(0.5).toDouble();` in `BinomialDistribution`, `HypergeometricDistribution`, and `NegativeBinomialDistribution`.
 
-- [ ] **1.8.3 Edge cases in `chiSquaredTest`, `wilcoxonSignedRankTest`, `mannWhitneyUTest`, and `tTestTwoSample`**
+- [x] **1.8.3 Edge cases in `chiSquaredTest`, `wilcoxonSignedRankTest`, `mannWhitneyUTest`, and `tTestTwoSample`**
   - **Severity**: Warning
   - **Location**: `lib/src/stats/hypothesis/chi_squared.dart:15-48`, `lib/src/stats/hypothesis/wilcoxon.dart:42-44, 69-78`, `lib/src/stats/hypothesis/mann_whitney.dart:70-82`, `lib/src/stats/hypothesis/t_test.dart:140-143`
   - **Problem**:

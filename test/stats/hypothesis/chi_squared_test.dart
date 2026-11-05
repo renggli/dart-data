@@ -26,6 +26,11 @@ void main() {
 
       // Errors
       check(() => chiSquaredTest([5])).throws<ArgumentError>();
+      check(() => chiSquaredTest([5, -1])).throws<ArgumentError>();
+      check(() => chiSquaredTest([5, double.nan])).throws<ArgumentError>();
+      check(() => chiSquaredTest([0, 0])).throws<ArgumentError>();
+      check(() => chiSquaredTest([0, 0], expected: [5, 5]))
+          .throws<ArgumentError>();
       check(() => chiSquaredTest([5, 5], expected: [1, 2, 3]))
           .throws<ArgumentError>();
       check(() => chiSquaredTest([5, 5], expected: [0, 5]))

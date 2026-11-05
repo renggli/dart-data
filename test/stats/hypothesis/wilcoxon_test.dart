@@ -37,8 +37,17 @@ void main() {
       // Errors
       check(() => wilcoxonSignedRankTest([1.0], y: [1.0, 2.0]))
           .throws<ArgumentError>();
-      check(() => wilcoxonSignedRankTest([1.0, 2.0], y: [1.0, 2.0]))
-          .throws<ArgumentError>();
+
+      // All differences zero returns statistic: 0.0, pValue: 1.0
+      final resZeroDiff = wilcoxonSignedRankTest([1.0, 2.0], y: [1.0, 2.0]);
+      check(resZeroDiff.statistic).equals(0.0);
+      check(resZeroDiff.pValue).equals(1.0);
+
+      // Tied differences
+      final tiedX = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+      final tiedY = [1.0, 2.0, 3.0, 3.5, 4.5, 5.5];
+      final resTied = wilcoxonSignedRankTest(tiedX, y: tiedY);
+      check(resTied.statistic).equals(0.0);
     });
 
     test('Wilcoxon signed-rank test with NaN returns NaN', () {
