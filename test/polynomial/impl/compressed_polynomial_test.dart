@@ -246,6 +246,43 @@ void main() {
       check(gcd[10000]).equals(1.0);
       check(gcd[0]).equals(-1.0);
 
+      // Sparse high-degree GCD preserves CompressedPolynomial without dense allocation
+      final highA = CompressedPolynomial<double>.fromMap({
+        0: -2.0,
+        1: -1.0,
+        150000: 2.0,
+        150001: 1.0,
+      }, type: DataType.float64);
+      final highB = CompressedPolynomial<double>.fromMap({
+        0: -3.0,
+        1: -1.0,
+        150000: 3.0,
+        150001: 1.0,
+      }, type: DataType.float64);
+      final highGcd = highA.gcd(highB);
+      check(highGcd).isA<CompressedPolynomial<double>>();
+      check(highGcd.degree).equals(150000);
+      check(highGcd[150000]).equals(1.0);
+      check(highGcd[0]).equals(-1.0);
+
+      // Coprime high-degree returns CompressedPolynomial of degree 0
+      final coprimeA = CompressedPolynomial<double>.fromMap({
+        0: -1.0,
+        150000: 1.0,
+      }, type: DataType.float64);
+      final coprimeB = CompressedPolynomial<double>.fromMap({
+        0: -2.0,
+        150000: 1.0,
+      }, type: DataType.float64);
+      final coprimeGcd = coprimeA.gcd(coprimeB);
+      check(coprimeGcd).isA<CompressedPolynomial<double>>();
+      check(coprimeGcd.degree).equals(0);
+      check(coprimeGcd[0]).equals(1.0);
+
+      // Zero gcd returns CompressedPolynomial
+      final compZero = CompressedPolynomial<double>.zero();
+      check(compZero.gcd(compZero)).isA<CompressedPolynomial<double>>();
+
       // Division by zero throws
       final zero = CompressedPolynomial<double>.zero();
       check(() => a.divide(zero)).throws<UnsupportedError>();

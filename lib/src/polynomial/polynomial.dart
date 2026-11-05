@@ -201,23 +201,33 @@ abstract class Polynomial<T> {
       var cleanRem = rem;
       if (type.defaultValue is double && rem.degree >= 0) {
         var maxA = 0.0;
-        for (var i = 0; i <= a.degree; i++) {
-          final v = (a[i] as num).toDouble().abs();
+        for (final term in a.nonZeroTerms) {
+          final v = (term.coefficient as num).toDouble().abs();
           if (v > maxA) maxA = v;
         }
         var maxB = 0.0;
-        for (var i = 0; i <= b.degree; i++) {
-          final v = (b[i] as num).toDouble().abs();
+        for (final term in b.nonZeroTerms) {
+          final v = (term.coefficient as num).toDouble().abs();
           if (v > maxB) maxB = v;
         }
         final tol = 1e-12 * (maxA > maxB ? maxA : maxB);
         final field = type.field;
         final zero = field.additiveIdentity;
-        final cleanCoeffs = List<T>.generate(rem.degree + 1, (i) {
-          final c = rem[i];
-          return (c as num).toDouble().abs() <= tol ? zero : c;
-        });
-        cleanRem = Polynomial<T>.fromCoefficients(cleanCoeffs, type: type);
+        if (rem is CompressedPolynomial<T>) {
+          final terms = <int, T>{};
+          for (final term in rem.nonZeroTerms) {
+            if ((term.coefficient as num).toDouble().abs() > tol) {
+              terms[term.exponent] = term.coefficient;
+            }
+          }
+          cleanRem = CompressedPolynomial<T>.fromMap(terms, type: type);
+        } else {
+          final cleanCoeffs = List<T>.generate(rem.degree + 1, (i) {
+            final c = rem[i];
+            return (c as num).toDouble().abs() <= tol ? zero : c;
+          });
+          cleanRem = Polynomial<T>.fromCoefficients(cleanCoeffs, type: type);
+        }
       }
       if (cleanRem.degree >= b.degree) {
         throw UnsupportedError(
@@ -228,21 +238,29 @@ abstract class Polynomial<T> {
       b = cleanRem;
     }
     if (a.degree < 0) {
-      return Polynomial<T>.zero(type: type);
+      return this is CompressedPolynomial<T>
+          ? CompressedPolynomial<T>.zero(type: type)
+          : Polynomial<T>.zero(type: type);
     }
     final field = type.field;
     final one = field.multiplicativeIdentity;
     if (a.degree == 0) {
-      return Polynomial<T>.fromCoefficients([one], type: type);
+      return this is CompressedPolynomial<T>
+          ? CompressedPolynomial<T>([0], [one], type: type)
+          : Polynomial<T>.fromCoefficients([one], type: type);
     }
     // Make monic
     final lead = a.leadingCoefficient;
     if (lead == one || lead == field.additiveIdentity) {
-      return a;
+      return this is CompressedPolynomial<T> && a is! CompressedPolynomial<T>
+          ? a.toCompressed()
+          : a;
     }
     final invLead = field.div(one, lead);
     if (invLead == field.additiveIdentity) {
-      return a;
+      return this is CompressedPolynomial<T> && a is! CompressedPolynomial<T>
+          ? a.toCompressed()
+          : a;
     }
     if (a is CompressedPolynomial<T>) {
       return CompressedPolynomial<T>(
@@ -253,7 +271,7 @@ abstract class Polynomial<T> {
         type: type,
       );
     }
-    return DensePolynomial<T>.fromCoefficients(
+    final monic = DensePolynomial<T>.fromCoefficients(
       List<T>.generate(
         a.degree + 1,
         (i) => i == a.degree ? one : field.div(a[i], lead),
@@ -261,6 +279,7 @@ abstract class Polynomial<T> {
       ),
       type: type,
     );
+    return this is CompressedPolynomial<T> ? monic.toCompressed() : monic;
   }
 
   /// Computes the formal derivative $P'(x) = c_1 + 2 c_2 x + 3 c_3 x^2 + \dots$

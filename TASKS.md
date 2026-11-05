@@ -214,7 +214,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.6 `polynomial` Subsystem
 
-- [ ] **1.6.1 `Polynomial.gcd` densifies sparse `CompressedPolynomial` instances into $\mathcal{O}(\text{degree})$ arrays**
+- [x] **1.6.1 `Polynomial.gcd` densifies sparse `CompressedPolynomial` instances into $\mathcal{O}(\text{degree})$ arrays**
   - **Severity**: Warning
   - **Location**: `lib/src/polynomial/polynomial.dart:196-264`
   - **Problem**: Inside the Euclidean loop (`lines 204-224`), `gcd` loops `for (var i = 0; i <= a.degree; i++)` and `for (var i = 0; i <= rem.degree; i++)`, allocates a dense `List<T>.generate(rem.degree + 1, ...)`, and constructs a `DensePolynomial`. For two sparse `CompressedPolynomial<double>` of degree $100,000$, `gcd` allocates dense $100,001$-element lists on every step. Also, at line 235 (`a.degree == 0`), it returns a `DensePolynomial` even when `this is CompressedPolynomial<T>`.
