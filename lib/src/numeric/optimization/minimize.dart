@@ -1,10 +1,10 @@
-import '../linear/vector.dart';
-import '../type/data_type.dart';
-import 'optimization/brent.dart';
-import 'optimization/constrained.dart';
-import 'optimization/nelder_mead.dart';
-import 'optimization/optimization_types.dart';
-import 'optimization/quasi_newton.dart';
+import '../../linear/vector.dart';
+import '../../type/data_type.dart';
+import 'brent.dart';
+import 'constrained.dart';
+import 'nelder_mead.dart';
+import 'optimization_types.dart';
+import 'quasi_newton.dart';
 
 /// 1D and multivariate numerical optimization algorithms.
 

@@ -2,9 +2,9 @@ import 'dart:typed_data';
 
 import 'package:more/number.dart' show Complex;
 
-import '../acceleration/fft/fft.dart' as acc;
-import '../acceleration/vforce/vforce.dart';
-import '../type/types/complex.dart';
+import '../../acceleration/fft/fft.dart' as acc;
+import '../../acceleration/vforce/vforce.dart';
+import '../../type/types/complex.dart';
 
 /// Computes the 1-dimensional Discrete Fourier Transform (FFT) in-place on
 /// [buffer].

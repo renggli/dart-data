@@ -1,14 +1,14 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../acceleration/lapack/lapack.dart';
-import '../linear/decomposition/qr.dart';
-import '../linear/decomposition/svd.dart';
-import '../linear/matrix.dart';
-import '../linear/vector.dart';
-import '../polynomial/polynomial.dart';
-import '../type/data_type.dart';
-import 'calculus/jacobian.dart' as calculus;
+import '../../acceleration/lapack/lapack.dart';
+import '../../linear/decomposition/qr.dart';
+import '../../linear/decomposition/svd.dart';
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
+import '../../polynomial/polynomial.dart';
+import '../../type/data_type.dart';
+import '../calculus/jacobian.dart' as calculus;
 
 /// Curve fitting and regression algorithms using numerically stable QR and SVD
 /// matrix decompositions.

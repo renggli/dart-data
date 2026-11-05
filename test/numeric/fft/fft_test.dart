@@ -1,5 +1,5 @@
 import 'package:checks/checks.dart';
-import 'package:data/src/numeric/fft.dart';
+import 'package:data/src/numeric/fft/fft.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 

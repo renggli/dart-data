@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
-import 'package:data/src/numeric/curve_fit.dart';
+import 'package:data/src/numeric/curve_fit/curve_fit.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 

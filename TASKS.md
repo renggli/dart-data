@@ -803,7 +803,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: Multiple subsystems maintain duplicate implementations of the same algorithms and helpers.
   - **Fix**: Delegate `solveSystemEquations` in `system.dart` to `BareissEngine`; delegate `curveFit` optimization to `fitNonlinear`; share a single `toDoubleMatrix` helper in `linear`; and use `Integer.gcd`, `Integer.lcm`, and `Integer.isqrt` in `univariate.dart` and `multivariate.dart`.
 
-- [ ] **7.4 Top-level files in `lib/src/numeric/` and orthogonal polynomial builders in `polynomial.dart` violate sub-package modularization**
+- [x] **7.4 Top-level files in `lib/src/numeric/` and orthogonal polynomial builders in `polynomial.dart` violate sub-package modularization**
   - **Severity**: Warning
   - **Location**: `lib/src/numeric/{curve_fit.dart, integration.dart, sampling.dart, fft.dart, optimization.dart}`, `lib/src/polynomial/polynomial.dart:302-491`
   - **Problem**: `curve_fit.dart` (676 lines), `integration.dart` (511 lines), `sampling.dart` (458 lines), `fft.dart` (196 lines), and `optimization.dart` (183 lines) sit at the root of `lib/src/numeric/` instead of feature sub-packages (`AGENTS.md`: "Functional modules must be decomposed into dedicated sub-packages within `lib/src/<subsystem>/<feature>/`"). Similarly, `chebyshevT`, `chebyshevU`, `legendreP`, `hermiteH`, `hermiteHe`, and `laguerreL` are implemented inside `polynomial.dart` instead of `orthogonal.dart`.

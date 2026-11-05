@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
-import 'package:data/src/numeric/integration.dart';
+import 'package:data/src/numeric/integration/integration.dart';
 import 'package:test/test.dart';
 
 void main() {

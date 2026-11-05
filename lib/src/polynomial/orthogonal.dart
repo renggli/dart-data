@@ -1,3 +1,6 @@
+import '../type/data_type.dart';
+import 'polynomial.dart';
+
 /// Evaluates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$ of degree [n]
 /// at [x] with parameter [alpha] (defaulting to `0.0` for standard Laguerre polynomials).
 double laguerreEvaluate(int n, num x, {num alpha = 0.0}) {
@@ -133,4 +136,196 @@ double evaluateOrthogonalSeries(
           (1.0 + alpha - xd) * b1 -
           0.5 * (1.0 + alpha) * b2;
   }
+}
+
+/// Generates the Chebyshev polynomial of the first kind $T_n(x)$.
+Polynomial<double> chebyshevT(int degree) {
+  if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+  if (degree == 0) {
+    return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  }
+  if (degree == 1) {
+    return Polynomial<double>.fromCoefficients([
+      0.0,
+      1.0,
+    ], type: DataType.float64);
+  }
+  var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  var p1 = Polynomial<double>.fromCoefficients([
+    0.0,
+    1.0,
+  ], type: DataType.float64);
+  final twoX = Polynomial<double>.fromCoefficients([
+    0.0,
+    2.0,
+  ], type: DataType.float64);
+
+  for (var k = 2; k <= degree; k++) {
+    final pNext = twoX * p1 - p0;
+    p0 = p1;
+    p1 = pNext;
+  }
+  return p1;
+}
+
+/// Generates the Chebyshev polynomial of the second kind $U_n(x)$.
+Polynomial<double> chebyshevU(int degree) {
+  if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+  if (degree == 0) {
+    return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  }
+  if (degree == 1) {
+    return Polynomial<double>.fromCoefficients([
+      0.0,
+      2.0,
+    ], type: DataType.float64);
+  }
+  var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  var p1 = Polynomial<double>.fromCoefficients([
+    0.0,
+    2.0,
+  ], type: DataType.float64);
+  final twoX = Polynomial<double>.fromCoefficients([
+    0.0,
+    2.0,
+  ], type: DataType.float64);
+
+  for (var k = 2; k <= degree; k++) {
+    final pNext = twoX * p1 - p0;
+    p0 = p1;
+    p1 = pNext;
+  }
+  return p1;
+}
+
+/// Generates the Legendre polynomial $P_n(x)$.
+Polynomial<double> legendreP(int degree) {
+  if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+  if (degree == 0) {
+    return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  }
+  if (degree == 1) {
+    return Polynomial<double>.fromCoefficients([
+      0.0,
+      1.0,
+    ], type: DataType.float64);
+  }
+  var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  var p1 = Polynomial<double>.fromCoefficients([
+    0.0,
+    1.0,
+  ], type: DataType.float64);
+
+  for (var k = 1; k < degree; k++) {
+    final alpha = (2.0 * k + 1.0) / (k + 1.0);
+    final gamma = k.toDouble() / (k + 1.0);
+    final alphaX = Polynomial<double>.fromCoefficients([
+      0.0,
+      alpha,
+    ], type: DataType.float64);
+    final pNext = alphaX * p1 - p0.scale(gamma);
+    p0 = p1;
+    p1 = pNext;
+  }
+  return p1;
+}
+
+/// Generates the Physicists' Hermite polynomial $H_n(x)$.
+Polynomial<double> hermiteH(int degree) {
+  if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+  if (degree == 0) {
+    return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  }
+  if (degree == 1) {
+    return Polynomial<double>.fromCoefficients([
+      0.0,
+      2.0,
+    ], type: DataType.float64);
+  }
+  var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  var p1 = Polynomial<double>.fromCoefficients([
+    0.0,
+    2.0,
+  ], type: DataType.float64);
+  final twoX = Polynomial<double>.fromCoefficients([
+    0.0,
+    2.0,
+  ], type: DataType.float64);
+
+  for (var k = 1; k < degree; k++) {
+    final pNext = twoX * p1 - p0.scale(2.0 * k);
+    p0 = p1;
+    p1 = pNext;
+  }
+  return p1;
+}
+
+/// Generates the Probabilists' Hermite polynomial $He_n(x)$.
+Polynomial<double> hermiteHe(int degree) {
+  if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+  if (degree == 0) {
+    return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  }
+  if (degree == 1) {
+    return Polynomial<double>.fromCoefficients([
+      0.0,
+      1.0,
+    ], type: DataType.float64);
+  }
+  var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  var p1 = Polynomial<double>.fromCoefficients([
+    0.0,
+    1.0,
+  ], type: DataType.float64);
+  final x = Polynomial<double>.fromCoefficients([
+    0.0,
+    1.0,
+  ], type: DataType.float64);
+
+  for (var k = 1; k < degree; k++) {
+    final pNext = x * p1 - p0.scale(k.toDouble());
+    p0 = p1;
+    p1 = pNext;
+  }
+  return p1;
+}
+
+/// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$.
+///
+/// Conceptually, Laguerre polynomials are orthogonal functions frequently
+/// used in quantum physics (such as modeling the radial wavefunctions of
+/// hydrogen atoms) and numerical analysis. Formally, these are classical
+/// orthogonal polynomials on $[0, \infty)$ with respect to weighting measure
+/// $w(x) = x^\alpha e^{-x}$.
+///
+/// ```dart
+/// final l2 = laguerreL(2); // 1 - 2x + 0.5x^2
+/// ```
+Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) {
+  if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+  if (degree == 0) {
+    return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  }
+  if (degree == 1) {
+    return Polynomial<double>.fromCoefficients([
+      1.0 + alpha,
+      -1.0,
+    ], type: DataType.float64);
+  }
+  var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  var p1 = Polynomial<double>.fromCoefficients([
+    1.0 + alpha,
+    -1.0,
+  ], type: DataType.float64);
+
+  for (var k = 1; k < degree; k++) {
+    final term1 = Polynomial<double>.fromCoefficients([
+      2.0 * k + 1.0 + alpha,
+      -1.0,
+    ], type: DataType.float64);
+    final pNext = (term1 * p1 - p0.scale(k + alpha)).scale(1.0 / (k + 1.0));
+    p0 = p1;
+    p1 = pNext;
+  }
+  return p1;
 }

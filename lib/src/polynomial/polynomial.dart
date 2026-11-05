@@ -8,6 +8,7 @@ import '../type/data_type.dart';
 import 'impl/compressed_polynomial.dart';
 import 'impl/dense_polynomial.dart';
 import 'impl/formatting.dart';
+import 'orthogonal.dart' as orthogonal;
 
 /// 1-dimensional algebraic univariate polynomial with coefficients in [T].
 ///
@@ -326,156 +327,23 @@ abstract class Polynomial<T> {
   }
 
   /// Generates the Chebyshev polynomial of the first kind $T_n(x)$.
-  static Polynomial<double> chebyshevT(int degree) {
-    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
-    if (degree == 0) {
-      return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    }
-    if (degree == 1) {
-      return Polynomial<double>.fromCoefficients([
-        0.0,
-        1.0,
-      ], type: DataType.float64);
-    }
-    var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([
-      0.0,
-      1.0,
-    ], type: DataType.float64);
-    final twoX = Polynomial<double>.fromCoefficients([
-      0.0,
-      2.0,
-    ], type: DataType.float64);
-
-    for (var k = 2; k <= degree; k++) {
-      final pNext = twoX * p1 - p0;
-      p0 = p1;
-      p1 = pNext;
-    }
-    return p1;
-  }
+  static Polynomial<double> chebyshevT(int degree) =>
+      orthogonal.chebyshevT(degree);
 
   /// Generates the Chebyshev polynomial of the second kind $U_n(x)$.
-  static Polynomial<double> chebyshevU(int degree) {
-    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
-    if (degree == 0) {
-      return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    }
-    if (degree == 1) {
-      return Polynomial<double>.fromCoefficients([
-        0.0,
-        2.0,
-      ], type: DataType.float64);
-    }
-    var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([
-      0.0,
-      2.0,
-    ], type: DataType.float64);
-    final twoX = Polynomial<double>.fromCoefficients([
-      0.0,
-      2.0,
-    ], type: DataType.float64);
-
-    for (var k = 2; k <= degree; k++) {
-      final pNext = twoX * p1 - p0;
-      p0 = p1;
-      p1 = pNext;
-    }
-    return p1;
-  }
+  static Polynomial<double> chebyshevU(int degree) =>
+      orthogonal.chebyshevU(degree);
 
   /// Generates the Legendre polynomial $P_n(x)$.
-  static Polynomial<double> legendreP(int degree) {
-    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
-    if (degree == 0) {
-      return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    }
-    if (degree == 1) {
-      return Polynomial<double>.fromCoefficients([
-        0.0,
-        1.0,
-      ], type: DataType.float64);
-    }
-    var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([
-      0.0,
-      1.0,
-    ], type: DataType.float64);
-
-    for (var k = 1; k < degree; k++) {
-      final alpha = (2.0 * k + 1.0) / (k + 1.0);
-      final gamma = k.toDouble() / (k + 1.0);
-      final alphaX = Polynomial<double>.fromCoefficients([
-        0.0,
-        alpha,
-      ], type: DataType.float64);
-      final pNext = alphaX * p1 - p0.scale(gamma);
-      p0 = p1;
-      p1 = pNext;
-    }
-    return p1;
-  }
+  static Polynomial<double> legendreP(int degree) =>
+      orthogonal.legendreP(degree);
 
   /// Generates the Physicists' Hermite polynomial $H_n(x)$.
-  static Polynomial<double> hermiteH(int degree) {
-    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
-    if (degree == 0) {
-      return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    }
-    if (degree == 1) {
-      return Polynomial<double>.fromCoefficients([
-        0.0,
-        2.0,
-      ], type: DataType.float64);
-    }
-    var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([
-      0.0,
-      2.0,
-    ], type: DataType.float64);
-    final twoX = Polynomial<double>.fromCoefficients([
-      0.0,
-      2.0,
-    ], type: DataType.float64);
-
-    for (var k = 1; k < degree; k++) {
-      final pNext = twoX * p1 - p0.scale(2.0 * k);
-      p0 = p1;
-      p1 = pNext;
-    }
-    return p1;
-  }
+  static Polynomial<double> hermiteH(int degree) => orthogonal.hermiteH(degree);
 
   /// Generates the Probabilists' Hermite polynomial $He_n(x)$.
-  static Polynomial<double> hermiteHe(int degree) {
-    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
-    if (degree == 0) {
-      return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    }
-    if (degree == 1) {
-      return Polynomial<double>.fromCoefficients([
-        0.0,
-        1.0,
-      ], type: DataType.float64);
-    }
-    var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([
-      0.0,
-      1.0,
-    ], type: DataType.float64);
-    final x = Polynomial<double>.fromCoefficients([
-      0.0,
-      1.0,
-    ], type: DataType.float64);
-
-    for (var k = 1; k < degree; k++) {
-      final pNext = x * p1 - p0.scale(k.toDouble());
-      p0 = p1;
-      p1 = pNext;
-    }
-    return p1;
-  }
+  static Polynomial<double> hermiteHe(int degree) =>
+      orthogonal.hermiteHe(degree);
 
   /// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$.
   ///
@@ -488,34 +356,8 @@ abstract class Polynomial<T> {
   /// ```dart
   /// final l2 = Polynomial.laguerreL(2); // 1 - 2x + 0.5x^2
   /// ```
-  static Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) {
-    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
-    if (degree == 0) {
-      return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    }
-    if (degree == 1) {
-      return Polynomial<double>.fromCoefficients([
-        1.0 + alpha,
-        -1.0,
-      ], type: DataType.float64);
-    }
-    var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([
-      1.0 + alpha,
-      -1.0,
-    ], type: DataType.float64);
-
-    for (var k = 1; k < degree; k++) {
-      final term1 = Polynomial<double>.fromCoefficients([
-        2.0 * k + 1.0 + alpha,
-        -1.0,
-      ], type: DataType.float64);
-      final pNext = (term1 * p1 - p0.scale(k + alpha)).scale(1.0 / (k + 1.0));
-      p0 = p1;
-      p1 = pNext;
-    }
-    return p1;
-  }
+  static Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) =>
+      orthogonal.laguerreL(degree, alpha: alpha);
 
   /// Computes complex roots for [poly] using closed-form solutions for low degrees
   /// and Frobenius companion matrix eigenvalue decomposition for higher degrees.
