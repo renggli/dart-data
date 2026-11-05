@@ -180,4 +180,174 @@ void main() {
       check(Expr.parse('mod(x, 5)').toFunction1D('x')(-7.0)).equals(3.0);
     });
   });
+
+  group('Riemann Zeta function (Zeta)', () {
+    test('exact values, evaluation, substitution, and mapChildren', () {
+      const x = Variable('x');
+      const y = Variable('y');
+
+      // Exact special values
+      check(Zeta(IntegerNumber.zero).simplify())
+          .equals(FractionNumber.negativeHalf);
+      check(Zeta(IntegerNumber.of(-1)).simplify())
+          .equals(RationalNumber(-1, 12));
+      check(Zeta(IntegerNumber.of(-2)).simplify()).equals(IntegerNumber.zero);
+      check(Zeta(IntegerNumber.of(-3)).simplify())
+          .equals(RationalNumber(1, 120));
+      check(Zeta(IntegerNumber.of(-4)).simplify()).equals(IntegerNumber.zero);
+
+      check(Zeta(IntegerNumber.two).simplify())
+          .equals(RationalNumber(1, 6) * Pow(Constant.pi, IntegerNumber.two));
+      check(
+        Zeta(IntegerNumber.of(4)).simplify(),
+      ).equals(RationalNumber(1, 90) * Pow(Constant.pi, IntegerNumber.of(4)));
+
+      // Evaluation
+      check(Zeta(x).evaluate({'x': 2.0})).isCloseTo(1.6449340668482264, 1e-12);
+      check(Zeta(x).evaluate({'x': 3.0})).isCloseTo(1.202056903159594, 1e-12);
+
+      // AST substitution and child mapping
+      check(Zeta(x).substitute('x', y)).equals(Zeta(y));
+      check(Zeta(x).mapChildren((_) => y)).equals(Zeta(y));
+
+      // Parsing and toFunction1D
+      check(Expr.parse('zeta(2)').simplify())
+          .equals(RationalNumber(1, 6) * Pow(Constant.pi, IntegerNumber.two));
+      check(Expr.parse('zeta(x)').toFunction1D('x')(2.0))
+          .isCloseTo(1.6449340668482264, 1e-12);
+    });
+  });
+
+  group('Digamma and Polygamma functions', () {
+    test('exact values, evaluation, substitution, and mapChildren', () {
+      const x = Variable('x');
+      const y = Variable('y');
+
+      // Simplification and exact values
+      check(Digamma(IntegerNumber.one).simplify())
+          .equals(Digamma(IntegerNumber.one));
+      check(Digamma(IntegerNumber.two).simplify())
+          .equals(Digamma(IntegerNumber.two));
+      check((Digamma(const RealNumber(1.0)).simplify() as RealNumber).value)
+          .isCloseTo(-0.5772156649015329, 1e-12);
+
+      check(Polygamma(IntegerNumber.one, IntegerNumber.one).simplify())
+          .equals(Polygamma(IntegerNumber.one, IntegerNumber.one));
+      check(
+        (Polygamma(IntegerNumber.one, const RealNumber(1.0)).simplify()
+                as RealNumber)
+            .value,
+      ).isCloseTo(1.6449340668482264, 1e-12);
+
+      // Evaluation
+      check(Digamma(IntegerNumber.one).evaluate())
+          .isCloseTo(-0.5772156649015329, 1e-12);
+      check(Digamma(x).evaluate({'x': 1.0}))
+          .isCloseTo(-0.5772156649015329, 1e-12);
+      check(Digamma(x).evaluate({'x': 2.0}))
+          .isCloseTo(1.0 - 0.5772156649015329, 1e-12);
+      check(Polygamma(IntegerNumber.one, x).evaluate({'x': 1.0}))
+          .isCloseTo(1.6449340668482264, 1e-12);
+
+      // AST substitution and child mapping
+      check(Digamma(x).substitute('x', y)).equals(Digamma(y));
+      check(Digamma(x).mapChildren((_) => y)).equals(Digamma(y));
+
+      check(Polygamma(IntegerNumber.one, x).substitute('x', y))
+          .equals(Polygamma(IntegerNumber.one, y));
+      check(Polygamma(x, y).mapChildren((e) => e == x ? IntegerNumber.two : e))
+          .equals(Polygamma(IntegerNumber.two, y));
+
+      // Parsing and toFunction1D
+      check(Expr.parse('digamma(1)').simplify())
+          .equals(Digamma(IntegerNumber.one));
+      check(Expr.parse('psi(1)').simplify()).equals(Digamma(IntegerNumber.one));
+      check(Expr.parse('digamma(x)').toFunction1D('x')(1.0))
+          .isCloseTo(-0.5772156649015329, 1e-12);
+      check(Expr.parse('polygamma(1, x)').toFunction1D('x')(1.0))
+          .isCloseTo(1.6449340668482264, 1e-12);
+    });
+  });
+
+  group('Bessel functions (BesselJ, BesselY, BesselI, BesselK)', () {
+    test('special values, evaluation, substitution, and mapChildren', () {
+      const x = Variable('x');
+      const y = Variable('y');
+
+      // Exact special values
+      check(BesselJ(IntegerNumber.zero, IntegerNumber.zero).simplify())
+          .equals(IntegerNumber.one);
+      check(BesselJ(IntegerNumber.one, IntegerNumber.zero).simplify())
+          .equals(IntegerNumber.zero);
+      check(BesselI(IntegerNumber.zero, IntegerNumber.zero).simplify())
+          .equals(IntegerNumber.one);
+      check(BesselI(IntegerNumber.one, IntegerNumber.zero).simplify())
+          .equals(IntegerNumber.zero);
+
+      // Evaluation
+      check(BesselJ(IntegerNumber.zero, x).evaluate({'x': 1.0}))
+          .isCloseTo(0.7651976865579666, 1e-7);
+      check(BesselJ(IntegerNumber.one, x).evaluate({'x': 1.0}))
+          .isCloseTo(0.4400505857449335, 1e-7);
+      check(BesselY(IntegerNumber.zero, x).evaluate({'x': 1.0}))
+          .isCloseTo(0.08825696421567697, 1e-7);
+      check(BesselI(IntegerNumber.zero, x).evaluate({'x': 1.0}))
+          .isCloseTo(1.2660658777520084, 1e-7);
+      check(BesselK(IntegerNumber.zero, x).evaluate({'x': 1.0}))
+          .isCloseTo(0.42102443824070834, 1e-7);
+
+      // Substitution and mapping
+      for (final (node, expected) in [
+        (BesselJ(IntegerNumber.zero, x), BesselJ(IntegerNumber.zero, y)),
+        (BesselY(IntegerNumber.zero, x), BesselY(IntegerNumber.zero, y)),
+        (BesselI(IntegerNumber.zero, x), BesselI(IntegerNumber.zero, y)),
+        (BesselK(IntegerNumber.zero, x), BesselK(IntegerNumber.zero, y)),
+      ]) {
+        check(node.substitute('x', y)).equals(expected);
+        check(node.mapChildren((e) => e == x ? y : e)).equals(expected);
+      }
+
+      // Parsing and toFunction1D
+      check(Expr.parse('besselj(0, x)').toFunction1D('x')(1.0))
+          .isCloseTo(0.7651976865579666, 1e-7);
+      check(Expr.parse('besselj0(x)').toFunction1D('x')(1.0))
+          .isCloseTo(0.7651976865579666, 1e-7);
+      check(Expr.parse('besselj1(x)').toFunction1D('x')(1.0))
+          .isCloseTo(0.4400505857449335, 1e-7);
+    });
+  });
+
+  group('Complete elliptic integrals (EllipticK, EllipticE)', () {
+    test('special values, evaluation, substitution, and mapChildren', () {
+      const k = Variable('k');
+      const m = Variable('m');
+
+      // Special values
+      check(EllipticK(IntegerNumber.zero).simplify())
+          .equals(FractionNumber.half * Constant.pi);
+      check(EllipticE(IntegerNumber.zero).simplify())
+          .equals(FractionNumber.half * Constant.pi);
+      check(EllipticE(IntegerNumber.one).simplify()).equals(IntegerNumber.one);
+
+      // Evaluation
+      check(EllipticK(k).evaluate({'k': 0.5}))
+          .isCloseTo(1.685750354812596, 1e-12);
+      check(EllipticE(k).evaluate({'k': 0.5}))
+          .isCloseTo(1.4674622093394272, 1e-12);
+
+      // Substitution and mapping
+      check(EllipticK(k).substitute('k', m)).equals(EllipticK(m));
+      check(EllipticK(k).mapChildren((_) => m)).equals(EllipticK(m));
+      check(EllipticE(k).substitute('k', m)).equals(EllipticE(m));
+      check(EllipticE(k).mapChildren((_) => m)).equals(EllipticE(m));
+
+      // Parsing and toFunction1D
+      check(Expr.parse('elliptick(0)').simplify())
+          .equals(FractionNumber.half * Constant.pi);
+      check(Expr.parse('elliptick(k)').toFunction1D('k')(0.5))
+          .isCloseTo(1.685750354812596, 1e-12);
+      check(Expr.parse('elliptice(k)').toFunction1D('k')(0.5))
+          .isCloseTo(1.4674622093394272, 1e-12);
+    });
+  });
 }

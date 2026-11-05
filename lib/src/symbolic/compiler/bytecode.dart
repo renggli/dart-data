@@ -100,6 +100,33 @@ enum Op {
   /// Gamma function (`Gamma(a)`).
   gamma,
 
+  /// Riemann zeta function (`zeta(a)`).
+  zeta,
+
+  /// Digamma function (`digamma(a)`).
+  digamma,
+
+  /// Polygamma function (`polygamma(m, a)`).
+  polygamma,
+
+  /// Bessel J function (`besselJ(nu, a)`).
+  besselJ,
+
+  /// Bessel Y function (`besselY(nu, a)`).
+  besselY,
+
+  /// Bessel I function (`besselI(nu, a)`).
+  besselI,
+
+  /// Bessel K function (`besselK(nu, a)`).
+  besselK,
+
+  /// Complete elliptic integral of the first kind (`ellipticK(a)`).
+  ellipticK,
+
+  /// Complete elliptic integral of the second kind (`ellipticE(a)`).
+  ellipticE,
+
   /// Beta function (`B(a, b)`).
   beta,
 
@@ -404,6 +431,38 @@ BytecodeEvaluator compileToBytecode(
       case Gamma(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.gamma));
+      case Zeta(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.zeta));
+      case Digamma(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.digamma));
+      case Polygamma(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.polygamma));
+      case BesselJ(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.besselJ));
+      case BesselY(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.besselY));
+      case BesselI(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.besselI));
+      case BesselK(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.besselK));
+      case EllipticK(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.ellipticK));
+      case EllipticE(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.ellipticE));
       case Beta(:final left, :final right):
         emit(left);
         emit(right);
@@ -608,6 +667,11 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.pow ||
           Op.beta ||
           Op.binomial ||
+          Op.polygamma ||
+          Op.besselJ ||
+          Op.besselY ||
+          Op.besselI ||
+          Op.besselK ||
           Op.mod ||
           Op.lt ||
           Op.le ||
@@ -638,6 +702,10 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.erf ||
           Op.erfc ||
           Op.gamma ||
+          Op.zeta ||
+          Op.digamma ||
+          Op.ellipticK ||
+          Op.ellipticE ||
           Op.factorial ||
           Op.floor ||
           Op.ceil ||

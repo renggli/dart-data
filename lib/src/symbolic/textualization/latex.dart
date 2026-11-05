@@ -61,6 +61,20 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
   Erf(:final expr) => '\\operatorname{erf}(${_toLatex(expr, decimalPlaces)})',
   Erfc(:final expr) => '\\operatorname{erfc}(${_toLatex(expr, decimalPlaces)})',
   Gamma(:final expr) => '\\Gamma(${_toLatex(expr, decimalPlaces)})',
+  Zeta(:final expr) => '\\zeta(${_toLatex(expr, decimalPlaces)})',
+  Digamma(:final expr) => '\\psi(${_toLatex(expr, decimalPlaces)})',
+  Polygamma(:final left, :final right) =>
+    '\\psi^{(${_toLatex(left, decimalPlaces)})}(${_toLatex(right, decimalPlaces)})',
+  BesselJ(:final left, :final right) =>
+    'J_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
+  BesselY(:final left, :final right) =>
+    'Y_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
+  BesselI(:final left, :final right) =>
+    'I_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
+  BesselK(:final left, :final right) =>
+    'K_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
+  EllipticK(:final expr) => 'K(${_toLatex(expr, decimalPlaces)})',
+  EllipticE(:final expr) => 'E(${_toLatex(expr, decimalPlaces)})',
   Beta(:final left, :final right) =>
     '\\operatorname{B}(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   Factorial(:final expr) => '${_formatPowBase(expr, decimalPlaces)}!',

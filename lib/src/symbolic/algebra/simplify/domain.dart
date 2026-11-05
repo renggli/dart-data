@@ -64,7 +64,21 @@ bool isProvenReal(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
       Asinh(:final expr) ||
       Erf(:final expr) ||
       Erfc(:final expr) ||
-      Gamma(:final expr) => isProvenReal(expr, assumptions),
+      Gamma(:final expr) ||
+      Zeta(:final expr) ||
+      Digamma(:final expr) => isProvenReal(expr, assumptions),
+      EllipticK(:final expr) || EllipticE(:final expr) =>
+        expr is RealNumeric
+            ? expr.toDouble().abs() <= 1.0
+            : isProvenReal(expr, assumptions),
+      Polygamma(:final left, :final right) ||
+      BesselJ(:final left, :final right) ||
+      BesselY(:final left, :final right) ||
+      BesselI(:final left, :final right) ||
+      BesselK(
+        :final left,
+        :final right,
+      ) => isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
       Asin(:final expr) || Acos(:final expr) =>
         isProvenReal(expr, assumptions) &&
             switch (tryStaticRealValue(expr)) {

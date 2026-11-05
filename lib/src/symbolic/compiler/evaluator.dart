@@ -5,10 +5,14 @@ import 'package:more/math.dart';
 import 'package:more/number.dart' show Complex;
 
 import '../../linear/vector.dart';
+import '../../special/bessel.dart' as special_bessel;
 import '../../special/beta.dart' as special_beta;
+import '../../special/digamma.dart' as special_digamma;
+import '../../special/elliptic.dart' as special_elliptic;
 import '../../special/erf.dart' as special_erf;
 import '../../special/gamma.dart' as special_gamma;
 import '../../special/lambert_w.dart' as special_lambert;
+import '../../special/zeta.dart' as special_zeta;
 import '../ast.dart';
 import '../calculus/differentiation.dart';
 import '../calculus/limit.dart';
@@ -242,6 +246,34 @@ final class BytecodeEvaluator {
             stack[sp - 1] = special_erf.erfc(stack[sp - 1]);
           case Op.gamma:
             stack[sp - 1] = special_gamma.gamma(stack[sp - 1]);
+          case Op.zeta:
+            stack[sp - 1] = special_zeta.zeta(stack[sp - 1]);
+          case Op.digamma:
+            stack[sp - 1] = special_digamma.digamma(stack[sp - 1]);
+          case Op.polygamma:
+            final x = stack[--sp];
+            final m = stack[--sp];
+            stack[sp++] = special_digamma.polygamma(m.toInt(), x);
+          case Op.besselJ:
+            final x = stack[--sp];
+            final nu = stack[--sp];
+            stack[sp++] = special_bessel.besselJ(nu, x);
+          case Op.besselY:
+            final x = stack[--sp];
+            final nu = stack[--sp];
+            stack[sp++] = special_bessel.besselY(nu, x);
+          case Op.besselI:
+            final x = stack[--sp];
+            final nu = stack[--sp];
+            stack[sp++] = special_bessel.besselI(nu, x);
+          case Op.besselK:
+            final x = stack[--sp];
+            final nu = stack[--sp];
+            stack[sp++] = special_bessel.besselK(nu, x);
+          case Op.ellipticK:
+            stack[sp - 1] = special_elliptic.ellipticK(stack[sp - 1]);
+          case Op.ellipticE:
+            stack[sp - 1] = special_elliptic.ellipticE(stack[sp - 1]);
           case Op.beta:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -459,6 +491,93 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp - 1] = Complex(special_gamma.gamma(z.a.toDouble()));
+          case Op.zeta:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Zeta evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_zeta.zeta(z.a.toDouble()));
+          case Op.digamma:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Digamma evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_digamma.digamma(z.a.toDouble()));
+          case Op.polygamma:
+            final zX = stack[--sp];
+            final zM = stack[--sp];
+            if (zM.b != 0.0 || zX.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Polygamma evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_digamma.polygamma(zM.a.toInt(), zX.a.toDouble()),
+            );
+          case Op.besselJ:
+            final zX = stack[--sp];
+            final zNu = stack[--sp];
+            if (zNu.b != 0.0 || zX.b != 0.0) {
+              throw UnsupportedError(
+                'Complex BesselJ evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_bessel.besselJ(zNu.a.toDouble(), zX.a.toDouble()),
+            );
+          case Op.besselY:
+            final zX = stack[--sp];
+            final zNu = stack[--sp];
+            if (zNu.b != 0.0 || zX.b != 0.0) {
+              throw UnsupportedError(
+                'Complex BesselY evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_bessel.besselY(zNu.a.toDouble(), zX.a.toDouble()),
+            );
+          case Op.besselI:
+            final zX = stack[--sp];
+            final zNu = stack[--sp];
+            if (zNu.b != 0.0 || zX.b != 0.0) {
+              throw UnsupportedError(
+                'Complex BesselI evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_bessel.besselI(zNu.a.toDouble(), zX.a.toDouble()),
+            );
+          case Op.besselK:
+            final zX = stack[--sp];
+            final zNu = stack[--sp];
+            if (zNu.b != 0.0 || zX.b != 0.0) {
+              throw UnsupportedError(
+                'Complex BesselK evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_bessel.besselK(zNu.a.toDouble(), zX.a.toDouble()),
+            );
+          case Op.ellipticK:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex EllipticK evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_elliptic.ellipticK(z.a.toDouble()));
+          case Op.ellipticE:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex EllipticE evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_elliptic.ellipticE(z.a.toDouble()));
           case Op.beta:
             final zB = stack[--sp];
             final zA = stack[--sp];

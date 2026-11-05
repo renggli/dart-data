@@ -95,6 +95,30 @@ void main() {
       check(Expr.parse('lambertw(x, 0)')).equals(LambertW(x));
       check(Expr.parse('LambertW(x)')).equals(LambertW(x));
 
+      // Special functions
+      check(Expr.parse('zeta(x)')).equals(Zeta(x));
+      check(Expr.parse('Zeta(x)')).equals(Zeta(x));
+      check(Expr.parse('digamma(x)')).equals(Digamma(x));
+      check(Expr.parse('psi(x)')).equals(Digamma(x));
+      check(Expr.parse('polygamma(1, x)'))
+          .equals(Polygamma(IntegerNumber.one, x));
+      check(Expr.parse('elliptick(x)')).equals(EllipticK(x));
+      check(Expr.parse('ellipticK(x)')).equals(EllipticK(x));
+      check(Expr.parse('elliptice(x)')).equals(EllipticE(x));
+      check(Expr.parse('ellipticE(x)')).equals(EllipticE(x));
+      check(Expr.parse('besselj0(x)')).equals(BesselJ(IntegerNumber.zero, x));
+      check(Expr.parse('besselj1(x)')).equals(BesselJ(IntegerNumber.one, x));
+      check(Expr.parse('besselj(0, x)')).equals(BesselJ(IntegerNumber.zero, x));
+      check(Expr.parse('BesselJ(0, x)')).equals(BesselJ(IntegerNumber.zero, x));
+      check(Expr.parse('bessely0(x)')).equals(BesselY(IntegerNumber.zero, x));
+      check(Expr.parse('bessely1(x)')).equals(BesselY(IntegerNumber.one, x));
+      check(Expr.parse('bessely(0, x)')).equals(BesselY(IntegerNumber.zero, x));
+      check(Expr.parse('BesselY(0, x)')).equals(BesselY(IntegerNumber.zero, x));
+      check(Expr.parse('besseli(0, x)')).equals(BesselI(IntegerNumber.zero, x));
+      check(Expr.parse('BesselI(0, x)')).equals(BesselI(IntegerNumber.zero, x));
+      check(Expr.parse('besselk(0, x)')).equals(BesselK(IntegerNumber.zero, x));
+      check(Expr.parse('BesselK(0, x)')).equals(BesselK(IntegerNumber.zero, x));
+
       // 2-argument and 4-argument integrate
       check(Expr.parse('integrate(sin(x), x)')).equals(Integral(Sin(x), 'x'));
       check(Expr.parse('integrate(sin(x), x, 0, pi)')).equals(

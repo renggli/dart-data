@@ -95,10 +95,9 @@ void main() {
       check(subFreeD.expr).equals(const Variable('x_1') * x);
 
       // Point evaluation for expressions without closed form derivative
-      final dGamma = Derivative(Gamma(x), 'x');
-      final subGamma = dGamma.substitute('x', IntegerNumber.two);
-      check(subGamma)
-          .equals(Derivative(Gamma(x), 'x', point: IntegerNumber.two));
+      final dZeta = Derivative(Zeta(x), 'x');
+      final subZeta = dZeta.substitute('x', IntegerNumber.two);
+      check(subZeta).equals(Derivative(Zeta(x), 'x', point: IntegerNumber.two));
 
       // Point properties: variable is bound, only point and other free variables remain
       final dPoint = Derivative(x * y, 'x', point: IntegerNumber.two);

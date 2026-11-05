@@ -57,6 +57,15 @@ int nodeTag(Expr expr) => switch (expr) {
   Product() => 47,
   OrderTerm() => 48,
   VariableFunction() => 49,
+  Zeta() => 50,
+  Digamma() => 51,
+  Polygamma() => 52,
+  BesselJ() => 53,
+  BesselY() => 54,
+  BesselI() => 55,
+  BesselK() => 56,
+  EllipticK() => 57,
+  EllipticE() => 58,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.

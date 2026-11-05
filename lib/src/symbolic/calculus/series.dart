@@ -644,6 +644,15 @@ PowerSeries _expandToPowerSeries(
   Beta() ||
   Factorial() ||
   Binomial() ||
+  Zeta() ||
+  Digamma() ||
+  Polygamma() ||
+  BesselJ() ||
+  BesselY() ||
+  BesselI() ||
+  BesselK() ||
+  EllipticK() ||
+  EllipticE() ||
   Floor() ||
   Ceil() ||
   Round() ||

@@ -94,6 +94,24 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><mi>erfc</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Gamma(:final expr) =>
     '<mrow><mi>Γ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  Zeta(:final expr) =>
+    '<mrow><mi>ζ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  Digamma(:final expr) =>
+    '<mrow><mi>ψ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  Polygamma(:final left, :final right) =>
+    '<mrow><msup><mi>ψ</mi><mrow><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>)</mo></mrow></msup><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  BesselJ(:final left, :final right) =>
+    '<mrow><msub><mi>J</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  BesselY(:final left, :final right) =>
+    '<mrow><msub><mi>Y</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  BesselI(:final left, :final right) =>
+    '<mrow><msub><mi>I</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  BesselK(:final left, :final right) =>
+    '<mrow><msub><mi>K</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  EllipticK(:final expr) =>
+    '<mrow><mi>K</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  EllipticE(:final expr) =>
+    '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Beta(:final left, :final right) =>
     '<mrow><mi>B</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   Factorial(:final expr) =>

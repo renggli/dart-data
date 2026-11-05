@@ -17,13 +17,17 @@
 /// - **Expression AST & Exact Numbers**: [Expr] base tree, [Variable],
 ///   [Constant] ([Constant.pi], [Constant.e], [Constant.infinity],
 ///   [Constant.undefined]), exact [IntegerNumber], [FractionNumber],
-///   [RealNumber], [ComplexNumber] (including [ComplexNumber.i]), and
+///   [RealNumber], [ComplexNumber] (including [ComplexNumber.i]),
+///   special functions ([Zeta], [Digamma], [Polygamma], [BesselJ],
+///   [BesselY], [BesselI], [BesselK], [EllipticK], [EllipticE]), and
 ///   [Integer]. Mathematical string parsing via [Expr.parse] with [ExprSyntax].
 /// - **Algebraic Simplification & Rewriting**: Canonical simplification
 ///   ([SimplifierExtension.simplify]) combining terms and extracting radicals
 ///   under [Assumptions], polynomial expansion ([ExpandExtension.expand]),
 ///   factorization ([FactorExtension.factor]), rational function cancellation
-///   ([RationalFunctionExtension.cancel], [PolynomialDivisionResult]), and
+///   ([RationalFunctionExtension.cancel], [PolynomialDivisionResult]),
+///   orthogonal polynomials ([chebyshevT], [chebyshevU], [legendreP],
+///   [hermiteH], [hermiteHe], [laguerreL]), and
 ///   trigonometric rewriting ([TrigRewriteExtension.rewrite],
 ///   [RewriteTarget], [TrigRewriteExtension.expandTrig],
 ///   [TrigRewriteExtension.simplifyTrig]).
@@ -91,6 +95,7 @@ import 'src/linear/vector.dart';
 import 'src/symbolic/algebra/approximate.dart';
 import 'src/symbolic/algebra/expand.dart';
 import 'src/symbolic/algebra/factor.dart';
+import 'src/symbolic/algebra/orthogonal.dart';
 import 'src/symbolic/algebra/rational.dart';
 import 'src/symbolic/algebra/simplify.dart';
 import 'src/symbolic/algebra/trig.dart';
@@ -116,6 +121,8 @@ import 'src/symbolic/type/expr_data_type.dart';
 export 'src/symbolic/algebra/approximate.dart' show ApproximationExtension;
 export 'src/symbolic/algebra/expand.dart' show ExpandExtension;
 export 'src/symbolic/algebra/factor.dart' show FactorExtension;
+export 'src/symbolic/algebra/orthogonal.dart'
+    show chebyshevT, chebyshevU, hermiteH, hermiteHe, laguerreL, legendreP;
 export 'src/symbolic/algebra/rational.dart'
     show PolynomialDivisionResult, RationalFunctionExtension;
 export 'src/symbolic/algebra/simplify.dart' show SimplifierExtension;

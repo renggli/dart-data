@@ -52,6 +52,7 @@ import 'src/polynomial/rational.dart';
 
 export 'src/polynomial/impl/compressed_polynomial.dart';
 export 'src/polynomial/impl/dense_polynomial.dart';
-export 'src/polynomial/orthogonal.dart';
+export 'src/polynomial/orthogonal.dart'
+    show OrthogonalFamily, evaluateOrthogonalSeries, laguerreEvaluate;
 export 'src/polynomial/polynomial.dart';
 export 'src/polynomial/rational.dart';

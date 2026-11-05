@@ -54,6 +54,16 @@ void main() {
       check(Acosh(x).toString()).equals('acosh(x)');
       check(Atanh(x).toString()).equals('atanh(x)');
       check(Abs(x).toString()).equals('abs(x)');
+      check(Zeta(x).toString()).equals('zeta(x)');
+      check(Digamma(x).toString()).equals('digamma(x)');
+      check(Polygamma(IntegerNumber.one, x).toString())
+          .equals('polygamma(1, x)');
+      check(BesselJ(IntegerNumber.zero, x).toString()).equals('besselj(0, x)');
+      check(BesselY(IntegerNumber.one, x).toString()).equals('bessely(1, x)');
+      check(BesselI(IntegerNumber.zero, x).toString()).equals('besseli(0, x)');
+      check(BesselK(IntegerNumber.one, x).toString()).equals('besselk(1, x)');
+      check(EllipticK(x).toString()).equals('elliptick(x)');
+      check(EllipticE(x).toString()).equals('elliptice(x)');
 
       check(const OrderTerm('x', 0).toString()).equals('O(1)');
       check(const OrderTerm('x', 1).toString()).equals('O(x)');

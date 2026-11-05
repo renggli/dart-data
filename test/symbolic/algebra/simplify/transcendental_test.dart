@@ -723,6 +723,66 @@ void main() {
       check(compareStructural(d0, d1)).isLessThan(0);
       check(compareStructural(d1, d0)).isGreaterThan(0);
       check(compareStructural(d1, d2)).isLessThan(0);
+
+      // Special functions: Zeta, Digamma, Polygamma, Bessel, Elliptic simplification and domain
+      check(simplifyZeta(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyDigamma(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyPolygamma(Constant.undefined, x))
+          .equals(Constant.undefined);
+      check(simplifyPolygamma(IntegerNumber.one, Constant.undefined))
+          .equals(Constant.undefined);
+      check(simplifyBesselJ(Constant.undefined, x)).equals(Constant.undefined);
+      check(simplifyBesselJ(IntegerNumber.zero, Constant.undefined))
+          .equals(Constant.undefined);
+      check(simplifyBesselY(Constant.undefined, x)).equals(Constant.undefined);
+      check(simplifyBesselI(Constant.undefined, x)).equals(Constant.undefined);
+      check(simplifyBesselK(Constant.undefined, x)).equals(Constant.undefined);
+      check(simplifyEllipticK(Constant.undefined)).equals(Constant.undefined);
+      check(simplifyEllipticE(Constant.undefined)).equals(Constant.undefined);
+
+      // Real domain checks
+      check(isProvenReal(Zeta(IntegerNumber.two), realAssumptions)).isTrue();
+      check(isProvenReal(Zeta(ComplexNumber.i), realAssumptions)).isFalse();
+      check(isProvenReal(Digamma(IntegerNumber.two), realAssumptions)).isTrue();
+      check(isProvenReal(Digamma(ComplexNumber.i), realAssumptions)).isFalse();
+      check(
+        isProvenReal(
+          Polygamma(IntegerNumber.one, IntegerNumber.two),
+          realAssumptions,
+        ),
+      ).isTrue();
+      check(
+        isProvenReal(
+          BesselJ(IntegerNumber.zero, IntegerNumber.one),
+          realAssumptions,
+        ),
+      ).isTrue();
+      check(
+        isProvenReal(
+          BesselY(IntegerNumber.zero, IntegerNumber.one),
+          realAssumptions,
+        ),
+      ).isTrue();
+      check(
+        isProvenReal(
+          BesselI(IntegerNumber.zero, IntegerNumber.one),
+          realAssumptions,
+        ),
+      ).isTrue();
+      check(
+        isProvenReal(
+          BesselK(IntegerNumber.zero, IntegerNumber.one),
+          realAssumptions,
+        ),
+      ).isTrue();
+      check(isProvenReal(EllipticK(FractionNumber.half), realAssumptions))
+          .isTrue();
+      check(isProvenReal(EllipticK(IntegerNumber.two), realAssumptions))
+          .isFalse();
+      check(isProvenReal(EllipticE(FractionNumber.half), realAssumptions))
+          .isTrue();
+      check(isProvenReal(EllipticE(IntegerNumber.two), realAssumptions))
+          .isFalse();
     });
   });
 }

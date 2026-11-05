@@ -134,6 +134,38 @@ Expr simplifyExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     Gamma(:final expr) => simplifyGamma(
       simplifyExpr(expr, assumptions: assumptions),
     ),
+    Zeta(:final expr) => simplifyZeta(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    Digamma(:final expr) => simplifyDigamma(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    Polygamma(:final left, :final right) => simplifyPolygamma(
+      simplifyExpr(left, assumptions: assumptions),
+      simplifyExpr(right, assumptions: assumptions),
+    ),
+    BesselJ(:final left, :final right) => simplifyBesselJ(
+      simplifyExpr(left, assumptions: assumptions),
+      simplifyExpr(right, assumptions: assumptions),
+    ),
+    BesselY(:final left, :final right) => simplifyBesselY(
+      simplifyExpr(left, assumptions: assumptions),
+      simplifyExpr(right, assumptions: assumptions),
+    ),
+    BesselI(:final left, :final right) => simplifyBesselI(
+      simplifyExpr(left, assumptions: assumptions),
+      simplifyExpr(right, assumptions: assumptions),
+    ),
+    BesselK(:final left, :final right) => simplifyBesselK(
+      simplifyExpr(left, assumptions: assumptions),
+      simplifyExpr(right, assumptions: assumptions),
+    ),
+    EllipticK(:final expr) => simplifyEllipticK(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    EllipticE(:final expr) => simplifyEllipticE(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
     Beta(:final left, :final right) => simplifyBeta(
       simplifyExpr(left, assumptions: assumptions),
       simplifyExpr(right, assumptions: assumptions),

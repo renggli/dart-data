@@ -39,6 +39,10 @@ void main() {
         (Erf(x), 0.5, const Complex(0.5)),
         (Erfc(x), 0.5, const Complex(0.5)),
         (Gamma(x), 3.5, const Complex(3.5)),
+        (Zeta(x), 2.5, const Complex(2.5)),
+        (Digamma(x), 2.5, const Complex(2.5)),
+        (EllipticK(x), 0.5, const Complex(0.5)),
+        (EllipticE(x), 0.5, const Complex(0.5)),
         (const OrderTerm('x', 3), 2.0, const Complex(2.0, 1.0)),
       ];
 
@@ -62,6 +66,31 @@ void main() {
           const Complex(3.0),
         ]).a,
       ).isCloseTo(1.0 / 12.0, 1e-12);
+
+      final polygammaNode = Polygamma(x, y);
+      final polygammaEval = compileToBytecode(polygammaNode, ['x', 'y']);
+      check(polygammaEval.evaluateList([1.0, 1.0]))
+          .isCloseTo(1.6449340668482264, 1e-12);
+
+      final besselJNode = BesselJ(x, y);
+      final besselJEval = compileToBytecode(besselJNode, ['x', 'y']);
+      check(besselJEval.evaluateList([0.0, 1.0]))
+          .isCloseTo(0.7651976865579666, 1e-7);
+
+      final besselYNode = BesselY(x, y);
+      final besselYEval = compileToBytecode(besselYNode, ['x', 'y']);
+      check(besselYEval.evaluateList([0.0, 1.0]))
+          .isCloseTo(0.08825696421567697, 1e-7);
+
+      final besselINode = BesselI(x, y);
+      final besselIEval = compileToBytecode(besselINode, ['x', 'y']);
+      check(besselIEval.evaluateList([0.0, 1.0]))
+          .isCloseTo(1.2660658777520084, 1e-7);
+
+      final besselKNode = BesselK(x, y);
+      final besselKEval = compileToBytecode(besselKNode, ['x', 'y']);
+      check(besselKEval.evaluateList([0.0, 1.0]))
+          .isCloseTo(0.42102443824070834, 1e-7);
     });
   });
 
@@ -110,6 +139,26 @@ void main() {
           'x',
           'y',
         ]).evaluateComplexList([const Complex(1, 1), const Complex(2, 0)]),
+      ).throws<UnsupportedError>();
+      check(
+        () => compileToBytecode(Zeta(x), [
+          'x',
+        ]).evaluateComplex1D(const Complex(1, 1)),
+      ).throws<UnsupportedError>();
+      check(
+        () => compileToBytecode(Digamma(x), [
+          'x',
+        ]).evaluateComplex1D(const Complex(1, 1)),
+      ).throws<UnsupportedError>();
+      check(
+        () => compileToBytecode(BesselJ(IntegerNumber.zero, x), [
+          'x',
+        ]).evaluateComplex1D(const Complex(1, 1)),
+      ).throws<UnsupportedError>();
+      check(
+        () => compileToBytecode(EllipticK(x), [
+          'x',
+        ]).evaluateComplex1D(const Complex(1, 1)),
       ).throws<UnsupportedError>();
 
       final powEval = compileToBytecode(Pow(x, y), ['x', 'y'], optimize: false);

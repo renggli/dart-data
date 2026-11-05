@@ -90,6 +90,22 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
     Erf(:final expr) => 'erf(${_formatExpr(expr, 0, decimalPlaces)})',
     Erfc(:final expr) => 'erfc(${_formatExpr(expr, 0, decimalPlaces)})',
     Gamma(:final expr) => 'gamma(${_formatExpr(expr, 0, decimalPlaces)})',
+    Zeta(:final expr) => 'zeta(${_formatExpr(expr, 0, decimalPlaces)})',
+    Digamma(:final expr) => 'digamma(${_formatExpr(expr, 0, decimalPlaces)})',
+    Polygamma(:final left, :final right) =>
+      'polygamma(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
+    BesselJ(:final left, :final right) =>
+      'besselj(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
+    BesselY(:final left, :final right) =>
+      'bessely(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
+    BesselI(:final left, :final right) =>
+      'besseli(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
+    BesselK(:final left, :final right) =>
+      'besselk(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
+    EllipticK(:final expr) =>
+      'elliptick(${_formatExpr(expr, 0, decimalPlaces)})',
+    EllipticE(:final expr) =>
+      'elliptice(${_formatExpr(expr, 0, decimalPlaces)})',
     Beta(:final left, :final right) =>
       'beta(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     Factorial(:final expr) => '${_formatExpr(expr, 5, decimalPlaces)}!',

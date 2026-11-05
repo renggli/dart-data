@@ -122,28 +122,21 @@ void main() {
   });
 
   group('Special functions, Piecewise, OrderTerm, and Integral', () {
-    test('differentiates Erf, Erfc, LambertW, and returns unevaluated Derivative for Gamma, Beta, and VariableFunction', () {
+    test('differentiates Erf, Erfc, LambertW, and returns unevaluated Derivative for Zeta and VariableFunction', () {
       check(Erf(x).derivative('x').evaluate({'x': 0.0}))
           .isCloseTo(2.0 / math.sqrt(math.pi), 1e-12);
       check(Erfc(x).derivative('x').evaluate({'x': 0.0}))
           .isCloseTo(-2.0 / math.sqrt(math.pi), 1e-12);
       check(LambertW(x).derivative('x').evaluate({'x': 1.0}))
           .isCloseTo(0.3618962566348892, 1e-12);
-      check(Gamma(x).derivative('x')).equals(
-        Derivative(Gamma(x, isSimplified: true), 'x', isSimplified: true),
+      check(Zeta(x).derivative('x')).equals(
+        Derivative(Zeta(x, isSimplified: true), 'x', isSimplified: true),
       );
-      check(Gamma(x).derivative('x', order: 2)).equals(
+      check(Zeta(x).derivative('x', order: 2)).equals(
         Derivative(
-          Gamma(x, isSimplified: true),
+          Zeta(x, isSimplified: true),
           'x',
           order: 2,
-          isSimplified: true,
-        ),
-      );
-      check(Beta(x, IntegerNumber.two).derivative('x')).equals(
-        Derivative(
-          Beta(IntegerNumber.two, x, isSimplified: true),
-          'x',
           isSimplified: true,
         ),
       );
@@ -282,5 +275,63 @@ void main() {
         );
       },
     );
+  });
+
+  group('Special functions analytical differentiation', () {
+    test('differentiates Gamma, Digamma, Polygamma, Beta, and Factorial', () {
+      check(Gamma(x).derivative('x')).equals(Gamma(x) * Digamma(x));
+      check(Digamma(x).derivative('x')).equals(Polygamma(IntegerNumber.one, x));
+      check(Polygamma(IntegerNumber.one, x).derivative('x'))
+          .equals(Polygamma(IntegerNumber.two, x));
+      check(Factorial(x).derivative('x'))
+          .equals(Factorial(x) * Digamma(IntegerNumber.one + x));
+
+      final dBetaX = Beta(x, y).derivative('x');
+      check(dBetaX).isA<Mul>();
+
+      // Chain rule
+      check(Gamma(Pow(x, IntegerNumber.two)).derivative('x').toString())
+          .equals('2 * x * gamma(x ^ 2) * digamma(x ^ 2)');
+    });
+
+    test('differentiates Bessel functions J, Y, I, K', () {
+      check(BesselJ(IntegerNumber.zero, x).derivative('x'))
+          .equals(-BesselJ(IntegerNumber.one, x));
+      check(BesselJ(IntegerNumber.one, x).derivative('x')).isA<Mul>();
+
+      check(BesselY(IntegerNumber.zero, x).derivative('x'))
+          .equals(-BesselY(IntegerNumber.one, x));
+      check(BesselY(IntegerNumber.one, x).derivative('x')).isA<Mul>();
+
+      check(BesselI(IntegerNumber.zero, x).derivative('x'))
+          .equals(BesselI(IntegerNumber.one, x));
+      check(BesselI(IntegerNumber.one, x).derivative('x')).isA<Mul>();
+
+      check(BesselK(IntegerNumber.zero, x).derivative('x'))
+          .equals(-BesselK(IntegerNumber.one, x));
+      check(BesselK(IntegerNumber.one, x).derivative('x')).isA<Mul>();
+    });
+
+    test('differentiates complete elliptic integrals K and E', () {
+      final dK = EllipticK(x).derivative('x');
+      check(dK).isA<Mul>();
+      final dE = EllipticE(x).derivative('x');
+      check(dE).isA<Mul>();
+
+      // Numerical verification of elliptic derivative against finite differences
+      const x0 = 0.5;
+      const h = 1e-6;
+      final kNum =
+          (EllipticK(x).evaluate({'x': x0 + h}) -
+              EllipticK(x).evaluate({'x': x0 - h})) /
+          (2 * h);
+      check(dK.evaluate({'x': x0})).isCloseTo(kNum, 1e-6);
+
+      final eNum =
+          (EllipticE(x).evaluate({'x': x0 + h}) -
+              EllipticE(x).evaluate({'x': x0 - h})) /
+          (2 * h);
+      check(dE.evaluate({'x': x0})).isCloseTo(eNum, 1e-6);
+    });
   });
 }

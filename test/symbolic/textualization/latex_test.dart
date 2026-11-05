@@ -83,6 +83,15 @@ void main() {
       check(Erfc(x).toLatex()).equals(r'\operatorname{erfc}(x)');
       check(Gamma(x).toLatex()).equals(r'\Gamma(x)');
       check(Beta(x, y).toLatex()).equals(r'\operatorname{B}(x, y)');
+      check(Zeta(x).toLatex()).equals(r'\zeta(x)');
+      check(Digamma(x).toLatex()).equals(r'\psi(x)');
+      check(Polygamma(IntegerNumber.one, x).toLatex()).equals(r'\psi^{(1)}(x)');
+      check(BesselJ(IntegerNumber.zero, x).toLatex()).equals(r'J_{0}(x)');
+      check(BesselY(IntegerNumber.one, x).toLatex()).equals(r'Y_{1}(x)');
+      check(BesselI(IntegerNumber.zero, x).toLatex()).equals(r'I_{0}(x)');
+      check(BesselK(IntegerNumber.one, x).toLatex()).equals(r'K_{1}(x)');
+      check(EllipticK(x).toLatex()).equals(r'K(x)');
+      check(EllipticE(x).toLatex()).equals(r'E(x)');
     });
 
     test('renders OrderTerm, Piecewise, RelationalExpr, and Integral', () {

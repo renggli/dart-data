@@ -113,9 +113,113 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     Pow(Constant.e, -Pow(inner, IntegerNumber.two)),
     _differentiate(inner, variable),
   ]),
-  Gamma() ||
-  Beta() ||
-  Factorial() ||
+  Gamma(expr: final inner) => Mul([
+    Gamma(inner),
+    Digamma(inner),
+    _differentiate(inner, variable),
+  ]),
+  Digamma(expr: final inner) => Mul([
+    Polygamma(IntegerNumber.one, inner),
+    _differentiate(inner, variable),
+  ]),
+  Polygamma(:final left, :final right) when !left.dependsOn(variable) => Mul([
+    Polygamma(left + IntegerNumber.one, right),
+    _differentiate(right, variable),
+  ]),
+  Beta(:final left, :final right) => Mul([
+    Beta(left, right),
+    Add([
+      Mul([
+        _differentiate(left, variable),
+        Add([Digamma(left), -Digamma(left + right)]),
+      ]),
+      Mul([
+        _differentiate(right, variable),
+        Add([Digamma(right), -Digamma(left + right)]),
+      ]),
+    ]),
+  ]),
+  Factorial(expr: final inner) => Mul([
+    Factorial(inner),
+    Digamma(inner + IntegerNumber.one),
+    _differentiate(inner, variable),
+  ]),
+  BesselJ(:final left, :final right) when !left.dependsOn(variable) =>
+    left == IntegerNumber.zero
+        ? Mul([
+            IntegerNumber.negativeOne,
+            BesselJ(IntegerNumber.one, right),
+            _differentiate(right, variable),
+          ])
+        : Mul([
+            FractionNumber.half,
+            Add([
+              BesselJ(left - IntegerNumber.one, right),
+              -BesselJ(left + IntegerNumber.one, right),
+            ]),
+            _differentiate(right, variable),
+          ]),
+  BesselY(:final left, :final right) when !left.dependsOn(variable) =>
+    left == IntegerNumber.zero
+        ? Mul([
+            IntegerNumber.negativeOne,
+            BesselY(IntegerNumber.one, right),
+            _differentiate(right, variable),
+          ])
+        : Mul([
+            FractionNumber.half,
+            Add([
+              BesselY(left - IntegerNumber.one, right),
+              -BesselY(left + IntegerNumber.one, right),
+            ]),
+            _differentiate(right, variable),
+          ]),
+  BesselI(:final left, :final right) when !left.dependsOn(variable) =>
+    left == IntegerNumber.zero
+        ? Mul([
+            BesselI(IntegerNumber.one, right),
+            _differentiate(right, variable),
+          ])
+        : Mul([
+            FractionNumber.half,
+            Add([
+              BesselI(left - IntegerNumber.one, right),
+              BesselI(left + IntegerNumber.one, right),
+            ]),
+            _differentiate(right, variable),
+          ]),
+  BesselK(:final left, :final right) when !left.dependsOn(variable) =>
+    left == IntegerNumber.zero
+        ? Mul([
+            IntegerNumber.negativeOne,
+            BesselK(IntegerNumber.one, right),
+            _differentiate(right, variable),
+          ])
+        : Mul([
+            FractionNumber.negativeHalf,
+            Add([
+              BesselK(left - IntegerNumber.one, right),
+              BesselK(left + IntegerNumber.one, right),
+            ]),
+            _differentiate(right, variable),
+          ]),
+  EllipticK(expr: final inner) => Mul([
+    (EllipticE(inner) -
+            (IntegerNumber.one - Pow(inner, IntegerNumber.two)) *
+                EllipticK(inner)) /
+        (inner * (IntegerNumber.one - Pow(inner, IntegerNumber.two))),
+    _differentiate(inner, variable),
+  ]),
+  EllipticE(expr: final inner) => Mul([
+    (EllipticE(inner) - EllipticK(inner)) / inner,
+    _differentiate(inner, variable),
+  ]),
+  Polygamma() ||
+  BesselJ() ||
+  BesselY() ||
+  BesselI() ||
+  BesselK() ||
+  Zeta() ||
   Binomial() ||
   Arg() => Derivative(expr, variable),
   Re(expr: final inner) => Re(_differentiate(inner, variable)),

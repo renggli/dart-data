@@ -1,12 +1,17 @@
 import 'dart:math' as math;
 
+import '../../../special/bessel.dart' as special_bessel;
 import '../../../special/beta.dart' as special_beta;
+import '../../../special/digamma.dart' as special_digamma;
+import '../../../special/elliptic.dart' as special_elliptic;
 import '../../../special/erf.dart' as special_erf;
 import '../../../special/gamma.dart' as special_gamma;
 import '../../../special/lambert_w.dart' as special_lambert;
+import '../../../special/zeta.dart' as special_zeta;
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../calculus/differentiation.dart';
+import '../../calculus/summation.dart' show evenZetaValue;
 import '../../compiler.dart';
 import '../../number/integer.dart';
 import '../exact_constants.dart';
@@ -689,6 +694,165 @@ Expr simplifyGamma(Expr expr) {
     }
   }
   return Gamma(expr, isSimplified: true);
+}
+
+/// Simplifies a Riemann zeta function expression $\zeta(s)$.
+Expr simplifyZeta(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_zeta.zeta(expr.value));
+  }
+  if (expr == IntegerNumber.zero) {
+    return FractionNumber.negativeHalf;
+  }
+  if (expr == IntegerNumber.one) {
+    return Constant.undefined;
+  }
+  if (expr case IntegerNumber(asInt: final n?) when n < 0 && n.isEven) {
+    return IntegerNumber.zero;
+  }
+  if (expr case IntegerNumber(asInt: final n?) when n < 0 && n.isOdd) {
+    return switch (n) {
+      -1 => RationalNumber(-1, 12),
+      -3 => RationalNumber(1, 120),
+      -5 => RationalNumber(-1, 252),
+      -7 => RationalNumber(1, 240),
+      -9 => RationalNumber(-1, 132),
+      -11 => RationalNumber(691, 32760),
+      -13 => RationalNumber(-1, 12),
+      -15 => RationalNumber(3617, 8160),
+      _ => Zeta(expr, isSimplified: true),
+    };
+  }
+  if (expr case IntegerNumber(asInt: final n?)
+      when n > 0 && n.isEven && n <= 16) {
+    return evenZetaValue(n);
+  }
+  return Zeta(expr, isSimplified: true);
+}
+
+/// Simplifies a digamma function expression $\psi(x)$.
+Expr simplifyDigamma(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr is RealNumber) {
+    final v = expr.value;
+    if (v <= 0.0 && v == v.roundToDouble()) return Constant.undefined;
+    return RealNumber.fromDouble(special_digamma.digamma(v));
+  }
+  return Digamma(expr, isSimplified: true);
+}
+
+/// Simplifies a polygamma function expression $\psi^{(m)}(x)$.
+Expr simplifyPolygamma(Expr m, Expr x) {
+  if (m == Constant.undefined || x == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (m is RealNumeric &&
+      x is RealNumeric &&
+      (m is RealNumber || x is RealNumber)) {
+    final dm = m.toDouble().toInt();
+    final dx = x.toDouble();
+    if (dm < 0 || (dx <= 0.0 && dx == dx.roundToDouble())) {
+      return Constant.undefined;
+    }
+    return RealNumber.fromDouble(special_digamma.polygamma(dm, dx));
+  }
+  return Polygamma(m, x, isSimplified: true);
+}
+
+/// Simplifies a Bessel function of the first kind $J_\nu(x)$.
+Expr simplifyBesselJ(Expr nu, Expr x) {
+  if (nu == Constant.undefined || x == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (x == IntegerNumber.zero) {
+    if (nu == IntegerNumber.zero) return IntegerNumber.one;
+    if (nu is RealNumeric && !nu.isNegative) return IntegerNumber.zero;
+  }
+  if (nu is RealNumeric &&
+      x is RealNumeric &&
+      (nu is RealNumber || x is RealNumber)) {
+    return RealNumber.fromDouble(
+      special_bessel.besselJ(nu.toDouble(), x.toDouble()),
+    );
+  }
+  return BesselJ(nu, x, isSimplified: true);
+}
+
+/// Simplifies a Bessel function of the second kind $Y_\nu(x)$.
+Expr simplifyBesselY(Expr nu, Expr x) {
+  if (nu == Constant.undefined || x == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (nu is RealNumeric &&
+      x is RealNumeric &&
+      (nu is RealNumber || x is RealNumber)) {
+    return RealNumber.fromDouble(
+      special_bessel.besselY(nu.toDouble(), x.toDouble()),
+    );
+  }
+  return BesselY(nu, x, isSimplified: true);
+}
+
+/// Simplifies a modified Bessel function of the first kind $I_\nu(x)$.
+Expr simplifyBesselI(Expr nu, Expr x) {
+  if (nu == Constant.undefined || x == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (x == IntegerNumber.zero) {
+    if (nu == IntegerNumber.zero) return IntegerNumber.one;
+    if (nu is RealNumeric && !nu.isNegative) return IntegerNumber.zero;
+  }
+  if (nu is RealNumeric &&
+      x is RealNumeric &&
+      (nu is RealNumber || x is RealNumber)) {
+    return RealNumber.fromDouble(
+      special_bessel.besselI(nu.toDouble(), x.toDouble()),
+    );
+  }
+  return BesselI(nu, x, isSimplified: true);
+}
+
+/// Simplifies a modified Bessel function of the second kind $K_\nu(x)$.
+Expr simplifyBesselK(Expr nu, Expr x) {
+  if (nu == Constant.undefined || x == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (nu is RealNumeric &&
+      x is RealNumeric &&
+      (nu is RealNumber || x is RealNumber)) {
+    return RealNumber.fromDouble(
+      special_bessel.besselK(nu.toDouble(), x.toDouble()),
+    );
+  }
+  return BesselK(nu, x, isSimplified: true);
+}
+
+/// Simplifies a complete elliptic integral of the first kind $K(k)$.
+Expr simplifyEllipticK(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr == IntegerNumber.zero) {
+    return simplifyMul([FractionNumber.half, Constant.pi]);
+  }
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_elliptic.ellipticK(expr.value));
+  }
+  return EllipticK(expr, isSimplified: true);
+}
+
+/// Simplifies a complete elliptic integral of the second kind $E(k)$.
+Expr simplifyEllipticE(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr == IntegerNumber.zero) {
+    return simplifyMul([FractionNumber.half, Constant.pi]);
+  }
+  if (expr == IntegerNumber.one) {
+    return IntegerNumber.one;
+  }
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_elliptic.ellipticE(expr.value));
+  }
+  return EllipticE(expr, isSimplified: true);
 }
 
 /// Simplifies an Euler beta function expression $\operatorname{B}(a, b)$.

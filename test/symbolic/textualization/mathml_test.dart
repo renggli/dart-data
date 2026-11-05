@@ -164,6 +164,18 @@ void main() {
             .equals('<mrow><mi>erfc</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(Gamma(x).toMathMl(root: false))
             .equals('<mrow><mi>Γ</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        check(Zeta(x).toMathMl(root: false))
+            .equals('<mrow><mi>ζ</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        check(Digamma(x).toMathMl(root: false))
+            .equals('<mrow><mi>ψ</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        check(Polygamma(IntegerNumber.one, x).toMathMl(root: false)).equals(
+          '<mrow><msup><mi>ψ</mi><mrow><mo>(</mo><mn>1</mn><mo>)</mo></mrow></msup><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+        );
+        check(BesselJ(IntegerNumber.zero, x).toMathMl(root: false)).equals(
+          '<mrow><msub><mi>J</mi><mn>0</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+        );
+        check(EllipticK(x).toMathMl(root: false))
+            .equals('<mrow><mi>K</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(Beta(x, y).toMathMl(root: false)).equals(
           '<mrow><mi>B</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo></mrow>',
         );
