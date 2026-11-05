@@ -211,6 +211,18 @@ void main() {
       check(() => Tensor<int>.fromIterable([1, 2, 3, 4, 5], shape: [2, 2]))
           .throws<ArgumentError>();
 
+      final tNullableLeading = Tensor.fromIterable([null, 1, 2]);
+      check(tNullableLeading.type).equals(DataType.integer.nullable);
+      check(tNullableLeading.getValue([0])).isNull();
+      check(tNullableLeading.getValue([1])).equals(1);
+      check(tNullableLeading.getValue([2])).equals(2);
+
+      final tNullableInterleaved = Tensor.fromIterable([1, null, 2]);
+      check(tNullableInterleaved.type).equals(DataType.integer.nullable);
+      check(tNullableInterleaved.getValue([0])).equals(1);
+      check(tNullableInterleaved.getValue([1])).isNull();
+      check(tNullableInterleaved.getValue([2])).equals(2);
+
       final t2 = Tensor<int>.fromObject([
         [1, 2],
         [3, 4],

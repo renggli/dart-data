@@ -8,7 +8,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.1 `type` Subsystem
 
-- [ ] **1.1.1 `DataType.fromIterable` and `DataType.fromInstance` fail on leading/interleaved `null` elements and static nullable types**
+- [x] **1.1.1 `DataType.fromIterable` and `DataType.fromInstance` fail on leading/interleaved `null` elements and static nullable types**
   - **Severity**: Critical
   - **Location**: `lib/src/type/utils/derive.dart:11-66`
   - **Problem**:

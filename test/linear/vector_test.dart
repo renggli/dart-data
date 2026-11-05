@@ -448,5 +448,14 @@ void main() {
       check(a.isClose(c, epsilon: 0.2)).isTrue();
       check(a.isClose(v2)).isFalse();
     });
+
+    test('Vector with nullable type derived from list', () {
+      final v = Vector<int?>.fromList([1, null, 2]);
+      check(v.type).equals(DataType.integer.nullable);
+      check(v[0]).equals(1);
+      check(v[1]).isNull();
+      check(v[2]).equals(2);
+      check(v.toList()).deepEquals([1, null, 2]);
+    });
   });
 }
