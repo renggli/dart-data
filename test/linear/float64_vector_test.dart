@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
@@ -247,6 +248,13 @@ void main() {
       final crossProd = u.cross(w);
       check(crossProd).isA<Float64Vector>();
       check(crossProd.asTypedList).deepEquals([0.0, 0.0, 1.0]);
+    });
+
+    test('norm(2) does not overflow on flipped large vector', () {
+      final largeVec = Float64Vector.fromIterable([1e200, 1e200]);
+      final flipped = Float64Vector(Vector<double>(largeVec.tensor.flip()));
+      check(flipped.norm(2)).isCloseTo(math.sqrt(2) * 1e200, 1e190);
+      check(Float64Vector.fromIterable([]).norm(2)).equals(0.0);
     });
 
     test('normalizes vector.type to DataType.float64', () {

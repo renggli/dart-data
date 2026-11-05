@@ -301,21 +301,25 @@ class Vector<T> {
       return sum;
     }
     if (pNorm == 2) {
-      if (T == double && tensor.strides[0] > 0 && tensor.data is Float64List) {
+      if (length == 0) return 0.0;
+      final stride = tensor.strides[0];
+      if (T == double && stride != 0 && tensor.data is Float64List) {
         return Blas.dnrm2(
           n: length,
           x: tensor.data as Float64List,
-          xOffset: tensor.offset,
-          incX: tensor.strides[0],
+          xOffset: stride > 0
+              ? tensor.offset
+              : tensor.offset + (length - 1) * stride,
+          incX: stride.abs(),
         );
-      } else if (T == double &&
-          tensor.strides[0] > 0 &&
-          tensor.data is Float32List) {
+      } else if (T == double && stride != 0 && tensor.data is Float32List) {
         return Blas.snrm2(
           n: length,
           x: tensor.data as Float32List,
-          xOffset: tensor.offset,
-          incX: tensor.strides[0],
+          xOffset: stride > 0
+              ? tensor.offset
+              : tensor.offset + (length - 1) * stride,
+          incX: stride.abs(),
         );
       }
 

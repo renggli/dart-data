@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
@@ -166,16 +165,24 @@ extension type Float64Vector._(Vector<double> _vector)
   @redeclare
   double norm([num pNorm = 2]) {
     if (pNorm == 2) {
+      if (length == 0) return 0.0;
       final t = _vector.tensor;
-      if (t.strides[0] > 0) {
+      final stride = t.strides[0];
+      if (stride > 0) {
         return Blas.dnrm2(
           n: length,
           x: asTypedList,
           xOffset: t.offset,
-          incX: t.strides[0],
+          incX: stride,
+        );
+      } else if (stride < 0) {
+        return Blas.dnrm2(
+          n: length,
+          x: asTypedList,
+          xOffset: t.offset + (length - 1) * stride,
+          incX: -stride,
         );
       }
-      return math.sqrt(dot(this));
     }
     return _vector.norm(pNorm);
   }

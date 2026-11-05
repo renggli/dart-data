@@ -132,7 +132,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     1. In `CsrMatrix` and `CscMatrix` constructors, validate that `colIndices` within each row (and `rowIndices` within each column) are strictly increasing (`indices[ptr] < indices[ptr + 1]`).
     2. Compute `hashCode` from `(row, col, value)` triplets of non-zero entries (`!type.equality.isEqual(val, field.additiveIdentity)`), and implement `operator ==` by comparing non-zero entries directly in $\mathcal{O}(\text{nnz})$ without allocating dense matrices via `toDense()`.
 
-- [ ] **1.4.3 `Float64Vector.norm(2)` overflows/underflows on negative-stride (flipped) vectors**
+- [x] **1.4.3 `Float64Vector.norm(2)` overflows/underflows on negative-stride (flipped) vectors**
   - **Severity**: Warning
   - **Location**: `lib/src/linear/float64_vector.dart:158-172`
   - **Problem**: When `pNorm == 2` and `t.strides[0] <= 0` (e.g., a flipped `Float64Vector`), line 169 executes `return math.sqrt(dot(this));` instead of delegating to `_vector.norm(pNorm)`. Because `dot(this)` computes unscaled `sum += v[i] * v[i]`, `Float64Vector.fromList([1e200, 1e200]).flipped.norm(2)` overflows to `Infinity`, whereas `_vector.norm(2)` uses Blue's scaled summation and returns `1.4142135623730951e200`.

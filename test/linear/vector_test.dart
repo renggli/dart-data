@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
@@ -349,6 +350,20 @@ void main() {
         4e160,
       ], type: DataType.numeric);
       check(largeNumVec.norm(2)).isCloseTo(5e160, 1e148);
+
+      final largeFlippedF64 = Vector<double>(
+        Vector<double>.fromList([1e200, 1e200]).tensor.flip(),
+      );
+      check(largeFlippedF64.norm(2)).isCloseTo(math.sqrt(2) * 1e200, 1e190);
+
+      final flippedF32 = Vector<double>(
+        Vector<double>.fromList([
+          3.0,
+          4.0,
+        ], type: DataType.float32).tensor.flip(),
+      );
+      check(flippedF32.norm(2)).isCloseTo(5.0, 1e-5);
+      check(Vector<double>.fromList([]).norm(2)).equals(0.0);
 
       final zeroVec = Vector<double>.fromList([0.0, 0.0]);
       check(zeroVec.normalized).throws<StateError>();
