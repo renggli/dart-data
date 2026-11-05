@@ -107,16 +107,20 @@ void main() {
   });
 
   group('CscMatrix error validation', () {
-    test('bounds and dimension validation', () {
-      final csc = CooMatrix<double>.fromDense(Matrix<double>.identity(2))
-          .toCsc();
+    final csc = CooMatrix<double>.fromDense(Matrix<double>.identity(2)).toCsc();
+
+    test('out of bounds index throws RangeError', () {
       check(() => csc.get(-1, 0)).throws<RangeError>();
       check(() => csc.get(0, 5)).throws<RangeError>();
+    });
 
+    test('incompatible operator dimension throws ArgumentError', () {
       final vWrong = Vector<double>.fromList([1.0, 2.0, 3.0]);
       check(() => csc.apply(vWrong)).throws<ArgumentError>();
       check(() => csc.applyTranspose(vWrong)).throws<ArgumentError>();
+    });
 
+    test('invalid internal buffer length or indexing throws', () {
       check(
         () => CscMatrix<double>(
           rowCount: 2,
@@ -137,7 +141,6 @@ void main() {
           type: DataType.float64,
         ),
       ).throws<ArgumentError>();
-
       check(
         () => CscMatrix<double>(
           rowCount: 2,
@@ -168,27 +171,6 @@ void main() {
           type: DataType.float64,
         ),
       ).throws<RangeError>();
-
-      final unsortedCsc = CscMatrix<double>(
-        rowCount: 3,
-        colCount: 1,
-        colPointers: [0, 2],
-        rowIndices: [2, 0],
-        values: [5.0, 3.0],
-        type: DataType.float64,
-      );
-      check(unsortedCsc.get(0, 0)).equals(3.0);
-      check(unsortedCsc.get(2, 0)).equals(5.0);
-
-      final fromDense = CscMatrix<double>.fromDense(Matrix<double>.identity(2));
-      check(fromDense.toCsr().nnz).equals(2);
-      final vFlipped = Vector<double>(
-        Vector<double>.fromList([1.0, 2.0]).tensor.flip(),
-      );
-      check(fromDense.applyConjugateTranspose(vFlipped).toList())
-          .deepEquals([2.0, 1.0]);
-      check(() => fromDense.applyConjugateTranspose(vWrong))
-          .throws<ArgumentError>();
       check(
         () => CscMatrix<double>(
           rowCount: -1,
@@ -200,16 +182,48 @@ void main() {
         ),
       ).throws<ArgumentError>();
     });
+
+    test('unsorted row indices access', () {
+      final unsortedCsc = CscMatrix<double>(
+        rowCount: 3,
+        colCount: 1,
+        colPointers: [0, 2],
+        rowIndices: [2, 0],
+        values: [5.0, 3.0],
+        type: DataType.float64,
+      );
+      check(unsortedCsc.get(0, 0)).equals(3.0);
+      check(unsortedCsc.get(2, 0)).equals(5.0);
+    });
+
+    test('conversions and vector operations', () {
+      final fromDense = CscMatrix<double>.fromDense(Matrix<double>.identity(2));
+      check(fromDense.toCsr().nnz).equals(2);
+      final vFlipped = Vector<double>(
+        Vector<double>.fromList([1.0, 2.0]).tensor.flip(),
+      );
+      check(fromDense.applyConjugateTranspose(vFlipped).toList())
+          .deepEquals([2.0, 1.0]);
+      final vWrong = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      check(() => fromDense.applyConjugateTranspose(vWrong))
+          .throws<ArgumentError>();
+    });
   });
 
   group('CscMatrix algebra', () {
-    test('transposed, scale, +, -, ==, hashCode, and toString', () {
-      final a = CooMatrix<double>.fromEntries(2, 3, [
-        (0, 0, 1.0),
-        (0, 2, 2.0),
-        (1, 1, 3.0),
-      ]).toCsc();
+    final a = CooMatrix<double>.fromEntries(2, 3, [
+      (0, 0, 1.0),
+      (0, 2, 2.0),
+      (1, 1, 3.0),
+    ]).toCsc();
 
+    final b = CooMatrix<double>.fromEntries(2, 3, [
+      (0, 0, 10.0),
+      (1, 1, -3.0),
+      (1, 2, 5.0),
+    ]).toCsc();
+
+    test('transposed', () {
       final at = a.transposed;
       check(at.rowCount).equals(3);
       check(at.colCount).equals(2);
@@ -217,18 +231,16 @@ void main() {
       check(at.get(2, 0)).equals(2.0);
       check(at.get(1, 1)).equals(3.0);
       check(at.transposed == a).isTrue();
+    });
 
+    test('scale', () {
       final scaled = a.scale(2.0);
       check(scaled.get(0, 0)).equals(2.0);
       check(scaled.get(0, 2)).equals(4.0);
       check(scaled.get(1, 1)).equals(6.0);
+    });
 
-      final b = CooMatrix<double>.fromEntries(2, 3, [
-        (0, 0, 10.0),
-        (1, 1, -3.0),
-        (1, 2, 5.0),
-      ]).toCsc();
-
+    test('addition and subtraction', () {
       final sum = a + b;
       check(sum.rowCount).equals(2);
       check(sum.colCount).equals(3);
@@ -239,11 +251,15 @@ void main() {
       final diff = a - b;
       check(diff.get(0, 0)).equals(-9.0);
       check(diff.get(1, 1)).equals(6.0);
+    });
 
+    test('dimension mismatch throws ArgumentError', () {
       final badDim = CooMatrix<double>.fromEntries(3, 2, []).toCsc();
       check(() => a + badDim).throws<ArgumentError>();
       check(() => a - badDim).throws<ArgumentError>();
+    });
 
+    test('equality and hashCode', () {
       final a2 = CooMatrix<double>.fromEntries(2, 3, [
         (0, 2, 2.0),
         (1, 1, 3.0),
@@ -252,7 +268,9 @@ void main() {
       check(a == a2).isTrue();
       check(a.hashCode).equals(a2.hashCode);
       check(a == b).isFalse();
+    });
 
+    test('string conversion', () {
       check(a.toString()).contains('CscMatrix<double>(2 x 3, nnz: 3)');
     });
   });

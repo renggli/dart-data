@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 
 void main() {
   group('InverseGammaDistribution moments and probabilities', () {
-    test('moments, pdf, cdf, and quantile', () {
-      final dist = InverseGammaDistribution(4.0, 6.0);
+    final dist = InverseGammaDistribution(4.0, 6.0);
+
+    test('moments and parameters', () {
       check(dist.shape).equals(4.0);
       check(dist.scale).equals(6.0);
       check(dist.lowerBound).equals(0.0);
@@ -17,14 +18,9 @@ void main() {
       check(dist.variance).isCloseTo(2.0, 1e-6);
       check(dist.skewness).isCloseTo(4.0 * math.sqrt(2.0), 1e-6);
       check(dist.excessKurtosis).isA<double>();
+    });
 
-      check(dist.probability(-1.0)).equals(0.0);
-      check(dist.probability(0.0)).equals(0.0);
-      check(dist.probability(1.2)).isGreaterThan(0.0);
-      check(dist.cumulativeProbability(-1.0)).equals(0.0);
-      check(dist.cumulativeProbability(0.0)).equals(0.0);
-
-      // Moments edge cases for small shape
+    test('moments edge cases for small shape', () {
       final distSmall1 = InverseGammaDistribution(0.5, 1.0);
       check(distSmall1.mean.isNaN).isTrue();
       check(distSmall1.variance.isNaN).isTrue();
@@ -42,7 +38,20 @@ void main() {
       final distSmall4 = InverseGammaDistribution(3.5, 1.0);
       check(distSmall4.skewness).isGreaterThan(0.0);
       check(distSmall4.excessKurtosis.isNaN).isTrue();
+    });
 
+    test('probability density function', () {
+      check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(0.0)).equals(0.0);
+      check(dist.probability(1.2)).isGreaterThan(0.0);
+    });
+
+    test('cumulative probability', () {
+      check(dist.cumulativeProbability(-1.0)).equals(0.0);
+      check(dist.cumulativeProbability(0.0)).equals(0.0);
+    });
+
+    test('inverse cumulative probability', () {
       const prob = 0.5;
       final quant = dist.inverseCumulativeProbability(prob);
       check(dist.cumulativeProbability(quant)).isCloseTo(prob, 1e-5);
@@ -52,28 +61,37 @@ void main() {
   });
 
   group('InverseGammaDistribution estimation and validation', () {
-    test('samples, fit, errors, and equality', () {
-      final dist = InverseGammaDistribution(4.0, 6.0);
-      // Samples
+    final dist = InverseGammaDistribution(4.0, 6.0);
+
+    test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample > 0)).isTrue();
+    });
 
-      // Fit
+    test('fit', () {
       final fitted = InverseGammaDistribution.fit(const [1.0, 2.0, 3.0]);
       check(fitted.shape).isGreaterThan(0.0);
       check(fitted.scale).isGreaterThan(0.0);
+    });
+
+    test('fit errors', () {
       check(() => InverseGammaDistribution.fit(const [1.0]))
           .throws<ArgumentError>();
       check(() => InverseGammaDistribution.fit(const [-1.0, 2.0]))
           .throws<ArgumentError>();
+    });
 
-      // Constructor validation
+    test('constructor validation', () {
       check(() => InverseGammaDistribution(0.0, 1.0)).throws<ArgumentError>();
       check(() => InverseGammaDistribution(1.0, 0.0)).throws<ArgumentError>();
+    });
 
-      // Equality and toString
+    test('equality and hashCode', () {
       check(dist == InverseGammaDistribution(4.0, 6.0)).isTrue();
       check(dist.hashCode).equals(InverseGammaDistribution(4.0, 6.0).hashCode);
+    });
+
+    test('string conversion', () {
       check(dist.toString()).contains('InverseGammaDistribution');
     });
   });

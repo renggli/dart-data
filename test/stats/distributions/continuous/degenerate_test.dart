@@ -4,8 +4,9 @@ import 'package:test/test.dart';
 
 void main() {
   group('DegenerateDistribution moments and probabilities', () {
-    test('moments, pdf, cdf, and quantile', () {
-      final dist = DegenerateDistribution(5.0);
+    final dist = DegenerateDistribution(5.0);
+
+    test('moments and parameters', () {
       check(dist.k).equals(5.0);
       check(dist.mean).equals(5.0);
       check(dist.median).equals(5.0);
@@ -14,17 +15,26 @@ void main() {
       check(dist.standardDeviation).equals(0.0);
       check(dist.skewness.isNaN).isTrue();
       check(dist.excessKurtosis.isNaN).isTrue();
+    });
 
+    test('probability density function', () {
       check(dist.probability(5.0)).equals(1.0);
       check(dist.probability(3.0)).equals(0.0);
+    });
+
+    test('cumulative probability', () {
       check(dist.cumulativeProbability(4.0)).equals(0.0);
       check(dist.cumulativeProbability(5.0)).equals(1.0);
       check(dist.cumulativeProbability(6.0)).equals(1.0);
+    });
+
+    test('inverse cumulative probability', () {
       check(dist.inverseCumulativeProbability(0.5)).equals(5.0);
       check(() => dist.inverseCumulativeProbability(-0.1))
           .throws<InvalidProbability>();
+    });
 
-      // Default constructor and standard
+    test('default and standard constructors', () {
       final defaultDegenerate = DegenerateDistribution();
       check(defaultDegenerate.k).equals(0.0);
       const standardDegenerate = DegenerateDistribution.standard();
@@ -33,17 +43,23 @@ void main() {
   });
 
   group('DegenerateDistribution estimation and validation', () {
-    test('samples, fit, errors, and equality', () {
-      final dist = DegenerateDistribution(5.0);
-      // Samples
+    final dist = DegenerateDistribution(5.0);
+
+    test('samples', () {
       final samples = dist.samples().take(10).toList();
       check(samples.every((sample) => sample == 5.0)).isTrue();
+    });
 
-      // Equality and toString
+    test('equality and hashCode', () {
       check(dist == DegenerateDistribution(5.0)).isTrue();
       check(dist.hashCode).equals(DegenerateDistribution(5.0).hashCode);
-      check(dist.toString()).contains('DegenerateDistribution');
+    });
 
+    test('string conversion', () {
+      check(dist.toString()).contains('DegenerateDistribution');
+    });
+
+    test('constructor validation', () {
       check(() => DegenerateDistribution(double.nan)).throws<ArgumentError>();
       check(() => DegenerateDistribution(double.infinity))
           .throws<ArgumentError>();

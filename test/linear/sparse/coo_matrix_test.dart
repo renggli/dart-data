@@ -119,17 +119,22 @@ void main() {
   });
 
   group('CooMatrix error validation', () {
-    test('bounds and dimension validation', () {
-      final coo = CooMatrix<double>.fromDense(Matrix<double>.identity(2));
+    final coo = CooMatrix<double>.fromDense(Matrix<double>.identity(2));
+
+    test('out of bounds index throws RangeError', () {
       check(() => coo.get(-1, 0)).throws<RangeError>();
       check(() => coo.get(0, 5)).throws<RangeError>();
       check(() => CooMatrix<double>.fromEntries(2, 2, [(-1, 0, 1.0)]))
           .throws<RangeError>();
+    });
 
+    test('incompatible operator dimension throws ArgumentError', () {
       final vWrong = Vector<double>.fromList([1.0, 2.0, 3.0]);
       check(() => coo.apply(vWrong)).throws<ArgumentError>();
       check(() => coo.applyTranspose(vWrong)).throws<ArgumentError>();
+    });
 
+    test('invalid internal buffer length or indexing throws', () {
       check(
         () => CooMatrix<double>(
           rowCount: -1,
@@ -174,12 +179,19 @@ void main() {
   });
 
   group('CooMatrix algebra', () {
-    test('transposed, scale, +, -, ==, hashCode, and toString', () {
-      final a = CooMatrix<double>.fromEntries(2, 3, [
-        (0, 0, 1.0),
-        (0, 2, 2.0),
-        (1, 1, 3.0),
-      ]);
+    final a = CooMatrix<double>.fromEntries(2, 3, [
+      (0, 0, 1.0),
+      (0, 2, 2.0),
+      (1, 1, 3.0),
+    ]);
+
+    final b = CooMatrix<double>.fromEntries(2, 3, [
+      (0, 0, 10.0),
+      (1, 1, -3.0),
+      (1, 2, 5.0),
+    ]);
+
+    test('transposed', () {
       final at = a.transposed;
       check(at.rowCount).equals(3);
       check(at.colCount).equals(2);
@@ -187,17 +199,16 @@ void main() {
       check(at.get(2, 0)).equals(2.0);
       check(at.get(1, 1)).equals(3.0);
       check(at.transposed == a).isTrue();
+    });
 
+    test('scale', () {
       final scaled = a.scale(2.0);
       check(scaled.get(0, 0)).equals(2.0);
       check(scaled.get(0, 2)).equals(4.0);
       check(scaled.get(1, 1)).equals(6.0);
+    });
 
-      final b = CooMatrix<double>.fromEntries(2, 3, [
-        (0, 0, 10.0),
-        (1, 1, -3.0),
-        (1, 2, 5.0),
-      ]);
+    test('addition and subtraction', () {
       final sum = a + b;
       check(sum.rowCount).equals(2);
       check(sum.colCount).equals(3);
@@ -208,11 +219,15 @@ void main() {
       final diff = a - b;
       check(diff.get(0, 0)).equals(-9.0);
       check(diff.get(1, 1)).equals(6.0);
+    });
 
+    test('dimension mismatch throws ArgumentError', () {
       final badDim = CooMatrix<double>.fromEntries(3, 2, []);
       check(() => a + badDim).throws<ArgumentError>();
       check(() => a - badDim).throws<ArgumentError>();
+    });
 
+    test('equality and hashCode', () {
       final a2 = CooMatrix<double>.fromEntries(2, 3, [
         (0, 2, 2.0),
         (1, 1, 3.0),
@@ -221,7 +236,9 @@ void main() {
       check(a == a2).isTrue();
       check(a.hashCode).equals(a2.hashCode);
       check(a == b).isFalse();
+    });
 
+    test('string conversion', () {
       check(a.toString()).contains('CooMatrix<double>(2 x 3, nnz: 3)');
     });
   });

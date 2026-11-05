@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 
 void main() {
   group('BetaDistribution moments and probabilities', () {
-    test('moments, pdf, cdf, and quantile', () {
-      final dist = BetaDistribution(2.0, 5.0);
+    final dist = BetaDistribution(2.0, 5.0);
+
+    test('moments and bounds', () {
       check(dist.alpha).equals(2.0);
       check(dist.beta).equals(5.0);
       check(dist.lowerBound).equals(0.0);
@@ -20,16 +21,17 @@ void main() {
       check(dist.variance).isCloseTo(10.0 / (49.0 * 8.0), 1e-6);
       check(dist.skewness).isGreaterThan(0.0);
       check(dist.excessKurtosis).isA<double>();
+    });
 
-      // Symmetric beta
+    test('symmetric and flat distribution moments', () {
       final distSym = BetaDistribution(3.0, 3.0);
       check(distSym.median).equals(0.5);
 
-      // Mode when alpha <= 1 or beta <= 1
       final distFlat = BetaDistribution(0.5, 0.5);
       check(distFlat.mode.isNaN).isTrue();
+    });
 
-      // PDF boundary checks
+    test('probability density function', () {
       check(dist.probability(-0.5)).equals(0.0);
       check(dist.probability(1.5)).equals(0.0);
       check(dist.probability(0.0)).equals(0.0);
@@ -45,13 +47,16 @@ void main() {
       check(distAlphaSmall.probability(0.0).isInfinite).isTrue();
       final distBetaSmall = BetaDistribution(2.0, 0.5);
       check(distBetaSmall.probability(1.0).isInfinite).isTrue();
+    });
 
+    test('cumulative probability', () {
       check(dist.cumulativeProbability(-0.5)).equals(0.0);
       check(dist.cumulativeProbability(0.0)).equals(0.0);
       check(dist.cumulativeProbability(1.0)).equals(1.0);
       check(dist.cumulativeProbability(1.5)).equals(1.0);
+    });
 
-      // Quantile roundtrip
+    test('inverse cumulative probability', () {
       const prob = 0.75;
       final quant = dist.inverseCumulativeProbability(prob);
       check(dist.cumulativeProbability(quant)).isCloseTo(prob, 1e-5);
@@ -61,26 +66,34 @@ void main() {
   });
 
   group('BetaDistribution estimation and validation', () {
-    test('samples, fit, errors, and equality', () {
-      final dist = BetaDistribution(2.0, 5.0);
-      // Fit
+    final dist = BetaDistribution(2.0, 5.0);
+
+    test('sample generator and fit', () {
       final samples = dist.samples(random: math.Random(42)).take(1000).toList();
       final fitted = BetaDistribution.fit(samples);
       check(fitted.alpha).isCloseTo(2.0, 0.4);
       check(fitted.beta).isCloseTo(5.0, 1.0);
+    });
+
+    test('fit errors', () {
       check(() => BetaDistribution.fit(const [0.5])).throws<ArgumentError>();
       check(() => BetaDistribution.fit(const [0.0, 0.5]))
           .throws<ArgumentError>();
       check(() => BetaDistribution.fit(const [0.5, 1.0]))
           .throws<ArgumentError>();
+    });
 
-      // Constructor validation
+    test('constructor validation', () {
       check(() => BetaDistribution(0.0, 1.0)).throws<ArgumentError>();
       check(() => BetaDistribution(1.0, 0.0)).throws<ArgumentError>();
+    });
 
-      // Equality and toString
+    test('equality and hashCode', () {
       check(dist == BetaDistribution(2.0, 5.0)).isTrue();
       check(dist.hashCode).equals(BetaDistribution(2.0, 5.0).hashCode);
+    });
+
+    test('string conversion', () {
       check(dist.toString()).contains('BetaDistribution');
     });
   });

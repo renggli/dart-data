@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 
 void main() {
   group('ExponentialDistribution moments and probabilities', () {
-    test('moments, pdf, cdf, and quantile', () {
-      final dist = ExponentialDistribution(2.0);
+    final dist = ExponentialDistribution(2.0);
+
+    test('moments and parameters', () {
       check(dist.rate).equals(2.0);
       check(dist.lowerBound).equals(0.0);
       check(dist.mean).equals(0.5);
@@ -16,13 +17,21 @@ void main() {
       check(dist.variance).equals(0.25);
       check(dist.skewness).equals(2.0);
       check(dist.excessKurtosis).equals(6.0);
+    });
 
+    test('probability density function', () {
       check(dist.probability(-1.0)).equals(0.0);
       check(dist.probability(0.0)).equals(2.0);
+    });
+
+    test('cumulative probability', () {
       check(dist.cumulativeProbability(-1.0)).equals(0.0);
       check(dist.cumulativeProbability(0.0)).equals(0.0);
       check(dist.cumulativeProbability(0.5))
           .isCloseTo(1.0 - math.exp(-1.0), 1e-6);
+    });
+
+    test('inverse cumulative probability', () {
       check(dist.inverseCumulativeProbability(0.5))
           .isCloseTo(dist.median, 1e-6);
       check(() => dist.inverseCumulativeProbability(-0.1))
@@ -31,23 +40,31 @@ void main() {
   });
 
   group('ExponentialDistribution estimation and validation', () {
-    test('samples, fit, errors, and equality', () {
-      final dist = ExponentialDistribution(2.0);
-      // Fit
+    final dist = ExponentialDistribution(2.0);
+
+    test('sample generator and fit', () {
       final samples = dist.samples(random: math.Random(42)).take(1000).toList();
       final fitted = ExponentialDistribution.fit(samples);
       check(fitted.rate).isCloseTo(2.0, 0.2);
+    });
+
+    test('fit errors', () {
       check(() => ExponentialDistribution.fit(const []))
           .throws<ArgumentError>();
       check(() => ExponentialDistribution.fit(const [-1.0]))
           .throws<ArgumentError>();
+    });
 
-      // Constructor validation
+    test('constructor validation', () {
       check(() => ExponentialDistribution(0.0)).throws<ArgumentError>();
+    });
 
-      // Equality and toString
+    test('equality and hashCode', () {
       check(dist == ExponentialDistribution(2.0)).isTrue();
       check(dist.hashCode).equals(ExponentialDistribution(2.0).hashCode);
+    });
+
+    test('string conversion', () {
       check(dist.toString()).contains('ExponentialDistribution');
     });
   });

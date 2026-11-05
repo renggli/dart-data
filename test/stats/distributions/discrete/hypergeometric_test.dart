@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 
 void main() {
   group('HypergeometricDistribution moments and probabilities', () {
-    test('moments, pdf, cdf, and quantile', () {
-      final dist = HypergeometricDistribution(50, 10, 5);
+    final dist = HypergeometricDistribution(50, 10, 5);
+
+    test('moments and parameters', () {
       check(dist.populationSize).equals(50);
       check(dist.successStates).equals(10);
       check(dist.draws).equals(5);
@@ -15,7 +16,6 @@ void main() {
       check(dist.upperBound).equals(5);
       check(dist.isLowerBoundOpen).isFalse();
       check(dist.isUpperBoundOpen).isFalse();
-
       check(dist.mean).equals(1.0);
       check(dist.variance)
           .isCloseTo(5.0 * (10.0 / 50.0) * (40.0 / 50.0) * (45.0 / 49.0), 1e-6);
@@ -24,14 +24,20 @@ void main() {
       check(dist.median).isA<double>();
       check(dist.skewness).isA<double>();
       check(dist.excessKurtosis).isA<double>();
+    });
 
+    test('probability mass function', () {
       check(dist.probability(-1)).equals(0.0);
       check(dist.probability(0)).isGreaterThan(0.3);
       check(dist.probability(6)).equals(0.0);
+    });
 
+    test('cumulative probability', () {
       check(dist.cumulativeProbability(-1)).equals(0.0);
       check(dist.cumulativeProbability(5)).equals(1.0);
+    });
 
+    test('inverse cumulative probability', () {
       check(dist.inverseCumulativeProbability(0.0)).equals(0);
       check(dist.inverseCumulativeProbability(1.0)).equals(5);
       check(() => dist.inverseCumulativeProbability(-0.1))
@@ -40,13 +46,14 @@ void main() {
   });
 
   group('HypergeometricDistribution estimation and validation', () {
-    test('samples, fit, errors, and equality', () {
-      final dist = HypergeometricDistribution(50, 10, 5);
-      // Samples
+    final dist = HypergeometricDistribution(50, 10, 5);
+
+    test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample >= 0 && sample <= 5)).isTrue();
+    });
 
-      // Fit
+    test('fit', () {
       final fitted = HypergeometricDistribution.fit(
         const [1, 2, 1],
         populationSize: 50,
@@ -55,13 +62,17 @@ void main() {
       check(fitted.populationSize).equals(50);
       check(fitted.draws).equals(5);
       check(fitted.successStates).isGreaterThan(0);
+    });
+
+    test('fit errors', () {
       check(() => HypergeometricDistribution.fit(const [], populationSize: 50))
           .throws<ArgumentError>();
       check(
         () => HypergeometricDistribution.fit(const [-1], populationSize: 50),
       ).throws<ArgumentError>();
+    });
 
-      // Constructor validation
+    test('constructor validation', () {
       check(() => HypergeometricDistribution(0, 5, 2)).throws<ArgumentError>();
       check(() => HypergeometricDistribution(10, -1, 2))
           .throws<ArgumentError>();
@@ -71,7 +82,9 @@ void main() {
           .throws<ArgumentError>();
       check(() => HypergeometricDistribution(10, 5, 11))
           .throws<ArgumentError>();
+    });
 
+    test('string conversion', () {
       check(dist.toString()).contains('HypergeometricDistribution');
     });
   });

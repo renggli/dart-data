@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 
 void main() {
   group('ChiSquaredDistribution moments and probabilities', () {
-    test('moments, pdf, cdf, and quantile', () {
-      final dist = ChiSquaredDistribution(5.0);
+    final dist = ChiSquaredDistribution(5.0);
+
+    test('moments and bounds', () {
       check(dist.dof).equals(5.0);
       check(dist.lowerBound).equals(0.0);
       check(dist.isLowerBoundOpen).isFalse();
@@ -18,18 +19,23 @@ void main() {
       check(dist.skewness).isCloseTo(math.sqrt(8.0 / 5.0), 1e-6);
       check(dist.excessKurtosis).isCloseTo(12.0 / 5.0, 1e-6);
 
+      final distSmall = ChiSquaredDistribution(1.0);
+      check(distSmall.mode).equals(0.0);
+    });
+
+    test('probability density function', () {
       check(dist.probability(-1.0)).equals(0.0);
       check(dist.probability(2.0)).isGreaterThan(0.0);
+    });
+
+    test('cumulative probability', () {
       check(dist.cumulativeProbability(0.0)).equals(0.0);
       check(dist.cumulativeProbability(-1.0)).equals(0.0);
       check(dist.cumulativeProbability(5.0)).isGreaterThan(0.4);
       check(dist.cumulativeProbability(5.0)).isLessThan(0.6);
+    });
 
-      // Mode when dof < 2
-      final distSmall = ChiSquaredDistribution(1.0);
-      check(distSmall.mode).equals(0.0);
-
-      // Quantile roundtrip
+    test('inverse cumulative probability', () {
       const prob = 0.95;
       final quant = dist.inverseCumulativeProbability(prob);
       check(dist.cumulativeProbability(quant)).isCloseTo(prob, 1e-5);
@@ -39,22 +45,30 @@ void main() {
   });
 
   group('ChiSquaredDistribution estimation and validation', () {
-    test('samples, fit, errors, and equality', () {
-      final dist = ChiSquaredDistribution(5.0);
-      // Fit
+    final dist = ChiSquaredDistribution(5.0);
+
+    test('sample generator and fit', () {
       final samples = dist.samples(random: math.Random(42)).take(1000).toList();
       final fitted = ChiSquaredDistribution.fit(samples);
       check(fitted.dof).isCloseTo(5.0, 0.5);
+    });
+
+    test('fit errors', () {
       check(() => ChiSquaredDistribution.fit(const [])).throws<ArgumentError>();
       check(() => ChiSquaredDistribution.fit(const [-1.0]))
           .throws<ArgumentError>();
+    });
 
-      // Constructor validation
+    test('constructor validation', () {
       check(() => ChiSquaredDistribution(0.0)).throws<ArgumentError>();
+    });
 
-      // Equality and toString
+    test('equality and hashCode', () {
       check(dist == ChiSquaredDistribution(5.0)).isTrue();
       check(dist.hashCode).equals(ChiSquaredDistribution(5.0).hashCode);
+    });
+
+    test('string conversion', () {
       check(dist.toString()).contains('ChiSquaredDistribution');
     });
   });

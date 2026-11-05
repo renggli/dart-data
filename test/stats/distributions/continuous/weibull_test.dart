@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 
 void main() {
   group('WeibullDistribution moments and probabilities', () {
-    test('moments, pdf, cdf, and quantile', () {
-      final dist = WeibullDistribution(1.0, 1.0);
+    final dist = WeibullDistribution(1.0, 1.0);
+
+    test('moments and parameters', () {
       check(dist.scale).equals(1.0);
       check(dist.shape).equals(1.0);
       check(dist.lowerBound).equals(0.0);
@@ -20,52 +21,72 @@ void main() {
 
       final distShape2 = WeibullDistribution(2.0, 1.0);
       check(distShape2.mode).isGreaterThan(0.0);
+    });
 
+    test('probability density function', () {
       check(dist.probability(-1.0)).equals(0.0);
       check(dist.probability(1.0)).isGreaterThan(0.0);
+    });
+
+    test('cumulative probability', () {
       check(dist.cumulativeProbability(-1.0)).equals(0.0);
       check(dist.cumulativeProbability(0.0)).equals(0.0);
       check(dist.cumulativeProbability(1.0))
           .isCloseTo(1.0 - math.exp(-1.0), 1e-6);
+    });
+
+    test('inverse cumulative probability', () {
       check(dist.inverseCumulativeProbability(0.5))
           .isCloseTo(dist.median, 1e-6);
       check(() => dist.inverseCumulativeProbability(-0.1))
           .throws<InvalidProbability>();
     });
 
-    test('Weibull probability and logProbability in extreme tail do not evaluate to NaN', () {
-      final dist = WeibullDistribution(1.5, 1.0);
-      final pTail = dist.probability(1e200);
-      check(pTail.isNaN).isFalse();
-      check(pTail).equals(0.0);
-      final logPTail = dist.logProbability(1e200);
-      check(logPTail.isNaN).isFalse();
-      check(logPTail.isNegative).isTrue();
-    });
+    test(
+      'probability and logProbability in extreme tail do not evaluate to NaN',
+      () {
+        final distShape15 = WeibullDistribution(1.5, 1.0);
+        final pTail = distShape15.probability(1e200);
+        check(pTail.isNaN).isFalse();
+        check(pTail).equals(0.0);
+        final logPTail = distShape15.logProbability(1e200);
+        check(logPTail.isNaN).isFalse();
+        check(logPTail.isNegative).isTrue();
+      },
+    );
   });
 
   group('WeibullDistribution estimation and validation', () {
-    test('samples, fit, errors, and equality', () {
-      final dist = WeibullDistribution(1.0, 1.0);
-      // Samples
+    final dist = WeibullDistribution(1.0, 1.0);
+
+    test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
       check(samples.every((sample) => sample >= 0.0)).isTrue();
+    });
 
-      // Fit
+    test('fit', () {
       final fitted = WeibullDistribution.fit(const [0.5, 1.0, 2.0]);
       check(fitted.shape).isGreaterThan(0.0);
       check(fitted.scale).isGreaterThan(0.0);
+    });
+
+    test('fit errors', () {
       check(() => WeibullDistribution.fit(const [])).throws<ArgumentError>();
       check(() => WeibullDistribution.fit(const [-1.0, 1.0]))
           .throws<ArgumentError>();
+    });
 
-      // Constructor validation
+    test('constructor validation', () {
       check(() => WeibullDistribution(0.0, 1.0)).throws<ArgumentError>();
       check(() => WeibullDistribution(1.0, 0.0)).throws<ArgumentError>();
+    });
 
-      // Equality and toString
+    test('equality and hashCode', () {
       check(dist == WeibullDistribution(1.0, 1.0)).isTrue();
       check(dist.hashCode).equals(WeibullDistribution(1.0, 1.0).hashCode);
+    });
+
+    test('string conversion', () {
       check(dist.toString()).contains('WeibullDistribution');
     });
   });
