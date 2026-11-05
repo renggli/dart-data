@@ -160,7 +160,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.5 `special` Subsystem
 
-- [ ] **1.5.1 `gammaqInv` has an inverted sign in `afac` and an inverted Halley second-order correction**
+- [x] **1.5.1 `gammaqInv` has an inverted sign in `afac` and an inverted Halley second-order correction**
   - **Severity**: Critical
   - **Location**: `lib/src/special/gamma.dart:254-295`
   - **Problem**:

@@ -130,10 +130,10 @@ void main() {
       check(gammaqInv(0.5, -1.0)).isNaN();
 
       // Invertibility: gammaq(a, gammaqInv(q, a)) == q
-      for (final a in [0.5, 1.0, 2.5, 5.0]) {
-        for (final q in [0.01, 0.1, 0.25, 0.5, 0.8, 0.99]) {
+      for (final a in [0.5, 1.0, 2.5, 5.0, 10.0, 50.0]) {
+        for (final q in [0.001, 0.01, 0.1, 0.2, 0.25, 0.5, 0.8, 0.99]) {
           final x = gammaqInv(q, a);
-          check(gammaq(a, x)).isCloseTo(q, 1e-6);
+          check(gammaq(a, x)).isCloseTo(q, 1e-11);
         }
       }
     });

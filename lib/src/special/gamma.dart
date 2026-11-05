@@ -251,11 +251,11 @@ double gammaqInv(num probability, num a) {
   }
   final ad = a.toDouble();
   final qd = probability.toDouble();
-  const epsilon = 1.0e-8;
+  const epsilon = 1.0e-14;
   final gln = gammaLn(ad);
   final a1 = ad - 1.0;
   final lna1 = log(a1 > 0 ? a1 : 1.0);
-  final afac = exp(a1 * (1.0 - lna1) - gln);
+  final afac = exp(a1 * (lna1 - 1.0) - gln);
 
   var x = gammapInv(1.0 - qd, ad);
   var xMin = 0.0;
@@ -286,7 +286,7 @@ double gammaqInv(num probability, num a) {
       continue;
     }
     final uVal = err / tVal;
-    final denom = 1.0 - 0.5 * min(1.0, uVal * ((ad - 1.0) / x - 1.0));
+    final denom = 1.0 + 0.5 * max(-1.0, uVal * ((ad - 1.0) / x - 1.0));
     if (denom <= 0.0 || denom.isNaN) {
       x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
       continue;
