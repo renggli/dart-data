@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/domain.dart';
@@ -94,13 +96,7 @@ Expr evaluateDefiniteIntegral(
     if (numFrom != null && numTo != null && !numFrom.isNaN && !numTo.isNaN) {
       final low = numFrom < numTo ? numFrom : numTo;
       final high = numFrom < numTo ? numTo : numFrom;
-      final poles = findDenominatorRoots(function, variable);
-      for (final pole in poles) {
-        if (pole > low && pole < high) {
-          hasInteriorPole = true;
-          break;
-        }
-      }
+      hasInteriorPole = _hasInteriorPole(function, variable, low, high);
     }
 
     if (!hasInteriorPole) {
@@ -212,6 +208,47 @@ double? evaluateBoundNumeric(Expr bound) {
   return null;
 }
 
+bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
+  final poles = findDenominatorRoots(expr, variable);
+  for (final pole in poles) {
+    if (pole > low && pole < high) {
+      return true;
+    }
+  }
+
+  return expr.anyNode((node) {
+    if (node case Tan(expr: final arg) when arg.dependsOn(variable)) {
+      try {
+        final u1 = arg.evaluate({variable: low});
+        final u2 = arg.evaluate({variable: high});
+        if (u1.isFinite && u2.isFinite) {
+          final uMin = math.min(u1, u2);
+          final uMax = math.max(u1, u2);
+          final kMin = ((uMin + 1e-9) / math.pi - 0.5).ceil();
+          final kMax = ((uMax - 1e-9) / math.pi - 0.5).floor();
+          if (kMin <= kMax) return true;
+        }
+      } on Object {
+        // Fall back to root checking
+      }
+    }
+    if (node case Ln(expr: final arg) when arg.dependsOn(variable)) {
+      try {
+        final u1 = arg.evaluate({variable: low});
+        final u2 = arg.evaluate({variable: high});
+        if (u1.isFinite && u2.isFinite) {
+          final uMin = math.min(u1, u2);
+          final uMax = math.max(u1, u2);
+          if (uMin < 0 || (uMin == 0 && uMax == 0)) return true;
+        }
+      } on Object {
+        // Ignored.
+      }
+    }
+    return false;
+  });
+}
+
 /// Extracts all subexpressions that appear in negative power denominators.
 List<Expr> extractDenominatorFactors(Expr expr) {
   final factors = <Expr>[];
@@ -220,6 +257,8 @@ List<Expr> extractDenominatorFactors(Expr expr) {
       final exp = e.exponent;
       if (exp is Number && exp.toDouble() < 0) {
         factors.add(e.base);
+      } else {
+        visit(e.base);
       }
     } else if (e is Mul) {
       for (final f in e.factors) {
@@ -229,6 +268,12 @@ List<Expr> extractDenominatorFactors(Expr expr) {
       for (final t in e.terms) {
         visit(t);
       }
+    } else if (e case Tan(expr: final arg)) {
+      factors.add(Cos(arg));
+      visit(arg);
+    } else if (e case Ln(expr: final arg)) {
+      factors.add(arg);
+      visit(arg);
     }
   }
 

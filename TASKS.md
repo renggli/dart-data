@@ -386,7 +386,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. In `univariate.dart:280-293`, `_isRealRoot(expr)` checks `expr.isReal` without passing `assumptions` to `isProvenReal(expr, assumptions)`. Solving `x^2 - a = 0` for `x` with `Assumptions(domains: {'x': VariableDomain.real, 'a': VariableDomain.positive})` discards `-sqrt(a)` and `sqrt(a)` and returns `[]`!
   - **Fix**: Require `_isRealSubtree(exponent)` in `Expr._isRealSubtree`, and check `isProvenReal(expr, assumptions)` in `_isRealRoot` / `satisfiesVariableDomain`.
 
-- [ ] **1.10.6 `evaluateDefiniteIntegral` misses interior poles of `Tan(u)` (returning $-\pi$ for $\int_0^\pi \tan^2(x)\,dx$)**
+- [x] **1.10.6 `evaluateDefiniteIntegral` misses interior poles of `Tan(u)` (returning $-\pi$ for $\int_0^\pi \tan^2(x)\,dx$)**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/calculus/definite_integration.dart:216-267`
   - **Problem**: `extractDenominatorFactors` only inspects `Pow` nodes with negative exponents and misses `Tan(u)` ($\frac{\sin u}{\cos u}$, which has poles where $\cos u = 0$) and `Ln(u)` (singular at $u = 0$). Consequently, `Pow(Tan(x), 2).integrate('x', from: 0, to: Constant.pi)` fails to detect the order-2 pole at $x = \pi/2$, plugs $0$ and $\pi$ into the antiderivative $\tan(x) - x$, and returns $-\pi$ for a strictly non-negative integrand!

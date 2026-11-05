@@ -169,6 +169,25 @@ void main() {
           .integrate('x', from: 0, to: 2);
       check(shiftedPole).isA<Integral>();
 
+      // Interior pole detection for Tan(u) and Ln(u):
+      final tanSquarePole = Pow(
+        Tan(x),
+        IntegerNumber.two,
+      ).integrate('x', from: IntegerNumber.zero, to: Constant.pi);
+      check(tanSquarePole).isA<Integral>();
+
+      final tanSquareNoPole = Pow(Tan(x), IntegerNumber.two).integrate(
+        'x',
+        from: IntegerNumber.zero,
+        to: (Constant.pi / IntegerNumber.of(4)).simplify(),
+      );
+      check(tanSquareNoPole).equals(
+        (IntegerNumber.one - Constant.pi / IntegerNumber.of(4)).simplify(),
+      );
+
+      final lnCrossingZero = Ln(x).integrate('x', from: -1, to: 1);
+      check(lnCrossingZero).isA<Integral>();
+
       // Non-overlapping interval with pole outside [1, 2] evaluates cleanly:
       final outsidePole = Expr.parse('1/x^2').integrate('x', from: 1, to: 2);
       check(outsidePole).equals(RationalNumber(1, 2));
