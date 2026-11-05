@@ -74,11 +74,12 @@ double ellipticE(num modulus) {
 ///
 /// Evaluated via Carlson's symmetric form $R_F$.
 double ellipticF(num phi, num k) {
-  if (phi.isNaN || k.isNaN || k.abs() > 1.0) {
-    return double.nan;
-  }
   final phiD = phi.toDouble();
   final kd = k.toDouble();
+  if (phiD.isNaN || kd.isNaN || kd.abs() > 1.0) {
+    return double.nan;
+  }
+  if (phiD.isInfinite) return phiD;
   if (phiD == 0.0) return 0.0;
   if (kd == 0.0) return phiD;
 
@@ -87,6 +88,10 @@ double ellipticF(num phi, num k) {
   final psi = phiD - m * pi;
   final sign = psi >= 0 ? 1.0 : -1.0;
   final absPsi = psi.abs();
+
+  if (kd.abs() == 1.0 && (absPsi >= pi / 2.0 - 1e-15 || m != 0)) {
+    return double.infinity * phiD.sign;
+  }
 
   final s = sin(absPsi);
   final c = cos(absPsi);
@@ -103,11 +108,12 @@ double ellipticF(num phi, num k) {
 ///
 /// Evaluated via Carlson's symmetric forms $R_F$ and $R_D$.
 double ellipticEIncomplete(num phi, num k) {
-  if (phi.isNaN || k.isNaN || k.abs() > 1.0) {
-    return double.nan;
-  }
   final phiD = phi.toDouble();
   final kd = k.toDouble();
+  if (phiD.isNaN || kd.isNaN || kd.abs() > 1.0) {
+    return double.nan;
+  }
+  if (phiD.isInfinite) return phiD;
   if (phiD == 0.0) return 0.0;
   if (kd == 0.0) return phiD;
 

@@ -187,7 +187,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. In Miller's backward recurrence, rescale `fPrev`, `fCur`, and `sum` by `1e-100` whenever `fPrev.abs() > 1e100`, and use the power series directly when `xd.abs() < 1e-4`.
     3. Use Hankel's asymptotic expansion for `besselJ(nu, x)` / `besselY(nu, x)` and the large-$x$ asymptotic expansion for `besselI(nu, x)` / `besselK(nu, x)` when `xd > math.max(25.0, nud * nud)`.
 
-- [ ] **1.5.4 `ellipticF` and `ellipticEIncomplete` throw on `phi = ±Infinity` and `ellipticF(pi / 2, 1.0)` returns `~19.06` instead of `Infinity`**
+- [x] **1.5.4 `ellipticF` and `ellipticEIncomplete` throw on `phi = ±Infinity` and `ellipticF(pi / 2, 1.0)` returns `~19.06` instead of `Infinity`**
   - **Severity**: Warning
   - **Location**: `lib/src/special/elliptic.dart:86, 91-101, 114`
   - **Problem**:

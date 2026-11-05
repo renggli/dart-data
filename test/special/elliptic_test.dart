@@ -50,6 +50,11 @@ void main() {
 
       check(ellipticF(0.5, 1.2)).isNaN();
       check(ellipticF(double.nan, 0.5)).isNaN();
+      check(ellipticF(double.infinity, 0.5)).equals(double.infinity);
+      check(ellipticF(double.negativeInfinity, 0.5))
+          .equals(double.negativeInfinity);
+      check(ellipticF(math.pi / 2.0, 1.0)).equals(double.infinity);
+      check(ellipticF(-math.pi / 2.0, 1.0)).equals(double.negativeInfinity);
     });
 
     test('incomplete elliptic E', () {
@@ -69,6 +74,9 @@ void main() {
 
       check(ellipticEIncomplete(0.5, 1.2)).isNaN();
       check(ellipticEIncomplete(double.nan, 0.5)).isNaN();
+      check(ellipticEIncomplete(double.infinity, 0.5)).equals(double.infinity);
+      check(ellipticEIncomplete(double.negativeInfinity, 0.5))
+          .equals(double.negativeInfinity);
     });
   });
 }
