@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
+import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
@@ -246,6 +247,19 @@ void main() {
       final crossProd = u.cross(w);
       check(crossProd).isA<Float64Vector>();
       check(crossProd.asTypedList).deepEquals([0.0, 0.0, 1.0]);
+    });
+
+    test('normalizes vector.type to DataType.float64', () {
+      final raw = Vector<double>(
+        Tensor<double>.internal(
+          type: const ObjectDataType<double>(),
+          layout: Layout(shape: [3]),
+          data: Float64List.fromList([1.0, 2.0, 3.0]),
+        ),
+      );
+      final f64 = Float64Vector(raw);
+      check(f64.type).equals(DataType.float64);
+      check(f64.tensor.type).equals(DataType.float64);
     });
   });
 }

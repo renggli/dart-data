@@ -34,7 +34,14 @@ extension type Float64Tensor._(Tensor<double> _tensor)
         'Float64Tensor requires underlying data to be Float64List, got ${tensor.data.runtimeType}',
       );
     }
-    return Float64Tensor._(tensor);
+    final normalized = tensor.type == DataType.float64
+        ? tensor
+        : Tensor.internal(
+            type: DataType.float64,
+            layout: tensor.layout,
+            data: tensor.data,
+          );
+    return Float64Tensor._(normalized);
   }
 
   /// Constructs a [Float64Tensor] from any [Tensor<double>], copying elements

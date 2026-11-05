@@ -36,7 +36,16 @@ extension type Float64Vector._(Vector<double> _vector)
         'Float64Vector requires underlying data to be Float64List, got ${vector.tensor.data.runtimeType}',
       );
     }
-    return Float64Vector._(vector);
+    final normalized = vector.type == DataType.float64
+        ? vector
+        : Vector(
+            Tensor.internal(
+              type: DataType.float64,
+              layout: vector.tensor.layout,
+              data: vector.tensor.data,
+            ),
+          );
+    return Float64Vector._(normalized);
   }
 
   /// Constructs a [Float64Vector] from any [Vector<double>], copying elements

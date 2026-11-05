@@ -58,7 +58,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     - Similarly, on a flipped view (`offset: 2, strides: [-2], length: 2`, touching indices `{2, 0}`), `[offset, offset + length)` checks `[2, 4)` instead of `[0, 3)`, missing overlap with `dst` at `[0, 2)`.
   - **Fix**: Add a `({int minOffset, int maxOffset}) get memorySpan` getter on `Layout` computing the exact reachable `[minIdx, maxIdx]` buffer span from `offset`, `shape`, and signed `strides` (the same arithmetic used in `Tensor.internal` at `lib/src/tensor/tensor.dart:32-44`), and pass `span.minOffset` and `span.maxOffset - span.minOffset + 1` to `hasOverlap`.
 
-- [ ] **1.2.2 `Float64Tensor`, `Float64Vector`, and `Float64Matrix` constructors do not normalize `tensor.type` to `DataType.float64`**
+- [x] **1.2.2 `Float64Tensor`, `Float64Vector`, and `Float64Matrix` constructors do not normalize `tensor.type` to `DataType.float64`**
   - **Severity**: Warning
   - **Location**: `lib/src/tensor/float64_tensor.dart:29-38, 246`, `lib/src/linear/float64_vector.dart:30-35`, `lib/src/linear/float64_matrix.dart:30-35`
   - **Problem**: If a `Tensor<double>` is constructed with `type: DataType.numeric` or `ObjectDataType<double>()` over a `Float64List` buffer, `Float64Tensor(tensor)` accepts it because it only checks `tensor.data is! Float64List`. When a non-contiguous operation falls back to `_tensor + other` (`line 246`), `OperationTensorExtension` allocates the output via `type.newList(len)`, creating a `List<num>` or `List<double>` instead of a `Float64List`, and wraps it via `Float64Tensor._(...)`. Subsequent `.asTypedList` calls throw a `TypeError`.

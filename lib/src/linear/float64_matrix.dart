@@ -40,14 +40,23 @@ extension type Float64Matrix._(Matrix<double> _matrix)
         'Float64Matrix requires underlying data to be Float64List, got ${matrix.tensor.data.runtimeType}',
       );
     }
-    return Float64Matrix._(matrix);
+    final normalized = matrix.type == DataType.float64
+        ? matrix
+        : Matrix(
+            Tensor.internal(
+              type: DataType.float64,
+              layout: matrix.tensor.layout,
+              data: matrix.tensor.data,
+            ),
+          );
+    return Float64Matrix._(normalized);
   }
 
   /// Constructs a [Float64Matrix] from any [Matrix<double>], copying elements
   /// to a [Float64List] if not already backed by one.
   factory fromDoubleMatrix(Matrix<double> matrix) {
     if (matrix.tensor.data is Float64List) {
-      return Float64Matrix._(matrix);
+      return Float64Matrix(matrix);
     }
     return Float64Matrix._(
       Matrix<double>.generate(

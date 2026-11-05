@@ -221,5 +221,21 @@ void main() {
       check(identical(result, target)).isTrue();
       check(target.toFlatList()).deepEquals([1.0, 2.0, 3.0]);
     });
+
+    test('normalizes tensor.type to DataType.float64', () {
+      final raw = Tensor<double>.internal(
+        type: const ObjectDataType<double>(),
+        layout: Layout(shape: [2, 2]),
+        data: Float64List.fromList([1.0, 2.0, 3.0, 4.0]),
+      );
+      final f64 = Float64Tensor(raw);
+      check(f64.type).equals(DataType.float64);
+
+      final tr = f64.transpose();
+      final sum = tr + tr;
+      check(sum.type).equals(DataType.float64);
+      check(sum.asTypedList).isA<Float64List>();
+      check(sum.toFlatList()).deepEquals([2.0, 6.0, 4.0, 8.0]);
+    });
   });
 }
