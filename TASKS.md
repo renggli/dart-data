@@ -233,7 +233,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.7 `numeric` Subsystem
 
-- [ ] **1.7.1 `_bdf2` marks the entire ODE solution `converged: false` whenever any single trial step is rejected and halved**
+- [x] **1.7.1 `_bdf2` marks the entire ODE solution `converged: false` whenever any single trial step is rejected and halved**
   - **Severity**: Critical
   - **Location**: `lib/src/numeric/ode/solve_ode.dart:338-378, 437-445`
   - **Problem**: In `_bdf2` (`lines 437-445`), when Newton iteration does not converge on a trial step (`!stepConverged`), it sets `allStepsConverged = false;` *before* halving `step` and retrying (`continue`). Even when the halved step converges cleanly and integration reaches `tEnd` within tolerance, `solveOde` returns `OdeSolution(..., converged: false)`. Additionally, the startup trapezoidal step (`lines 338-378`) does not halve `initialStep` if Newton fails to converge or LTE exceeds tolerance.

@@ -144,6 +144,47 @@ void main() {
       check(sol.last[0]).isCloseTo(math.exp(-50.0 * 0.5), 1e-4);
     });
 
+    test('OdeMethod.bdf2 reports converged: true when trial steps are rejected and halved', () {
+      // Non-linear problem dy/dt = y^2, y(0) = 1.0 => y(t) = 1 / (1 - t)
+      // With stepSize = 0.45, startup step fails Newton and halves adaptively to reach 0.5
+      Vector<double> derivative(double time, Vector<double> y) =>
+          Vector<double>.fromList([y[0] * y[0]], type: DataType.float64);
+
+      final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
+      final sol = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 0.5,
+        y0: y0,
+        method: OdeMethod.bdf2,
+        stepSize: 0.45,
+      );
+
+      check(sol.converged).isTrue();
+      check(sol.last[0]).isCloseTo(1.0 / (1.0 - 0.5), 1e-3);
+    });
+
+    test(
+      'OdeMethod.bdf2 aborts with converged: false when minStep is exhausted',
+      () {
+        Vector<double> derivative(double time, Vector<double> y) =>
+            Vector<double>.fromList([y[0] * y[0]], type: DataType.float64);
+
+        final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
+        final sol = solveOde(
+          f: derivative,
+          t0: 0.0,
+          tEnd: 0.5,
+          y0: y0,
+          method: OdeMethod.bdf2,
+          stepSize: 0.45,
+          minStep: 0.45,
+        );
+
+        check(sol.converged).isFalse();
+      },
+    );
+
     test('OdeMethod.bdf2 accurately handles truncated last step', () {
       // dy/dt = -2y, y(0) = 1.0 => y(t) = exp(-2t)
       // tEnd = 0.503 with stepSize = 0.01 leaves last step h = 0.003

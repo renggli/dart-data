@@ -335,7 +335,10 @@ OdeSolution _bdf2({
   var allStepsConverged = true;
 
   // Step 1: implicit trapezoidal rule
-  if ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
+  while ((tEnd - currentTime) * direction > 1e-12 &&
+      stepCount < maxSteps &&
+      tList.length < 2) {
+    stepCount++;
     if ((currentTime + step - tEnd) * direction > 0.0) {
       step = tEnd - currentTime;
     }
@@ -369,12 +372,62 @@ OdeSolution _bdf2({
         break;
       }
     }
-    if (!stepConverged) allStepsConverged = false;
 
-    currentTime = t1;
-    tList.add(currentTime);
-    yList.add(y1.copy());
-    stepCount++;
+    if (!stepConverged) {
+      if (step.abs() <= minStep * (1.0 + 1e-12)) {
+        allStepsConverged = false;
+        break;
+      }
+      step = direction * math.max(minStep, step.abs() * 0.5);
+      continue;
+    }
+
+    // Local truncation error estimate for trapezoidal rule vs explicit Euler:
+    final f1Final = f(t1, y1);
+    final errorVec = (f1Final - f0)..scaleInPlace(0.5 * step.abs());
+    var maxErrorRatio = 0.0;
+    for (var i = 0; i < dim; i++) {
+      if (!y1[i].isFinite) {
+        maxErrorRatio = double.infinity;
+        break;
+      }
+      final sc =
+          absoluteTolerance +
+          relativeTolerance * math.max(y0[i].abs(), y1[i].abs());
+      final ratio = errorVec[i].abs() / sc;
+      if (ratio.isNaN) {
+        maxErrorRatio = double.infinity;
+        break;
+      }
+      if (ratio > maxErrorRatio) maxErrorRatio = ratio;
+    }
+
+    if (maxErrorRatio <= 1.0) {
+      currentTime = t1;
+      tList.add(currentTime);
+      yList.add(y1.copy());
+      var factor =
+          0.9 *
+          math.pow(maxErrorRatio > 0.0 ? 1.0 / maxErrorRatio : 10.0, 1.0 / 2.0);
+      factor = math.max(0.2, math.min(5.0, factor));
+      step =
+          direction * math.min(maxStep, math.max(minStep, step.abs() * factor));
+    } else {
+      if (step.abs() <= minStep * (1.0 + 1e-12)) {
+        allStepsConverged = false;
+        break;
+      }
+      step = direction * math.max(minStep, step.abs() * 0.5);
+    }
+  }
+
+  if (tList.length < 2) {
+    final reachedEnd = (tEnd - currentTime).abs() <= 1e-12;
+    return OdeSolution(
+      t: tList,
+      y: yList,
+      converged: reachedEnd && allStepsConverged,
+    );
   }
 
   // Subsequent steps: adaptive BDF2 (Modified Newton with local truncation error control)
@@ -435,12 +488,12 @@ OdeSolution _bdf2({
     }
 
     if (!stepConverged) {
-      allStepsConverged = false;
-      step = direction * math.max(minStep, step.abs() * 0.5);
-      cachedMat = null;
       if (step.abs() <= minStep * (1.0 + 1e-12)) {
+        allStepsConverged = false;
         break;
       }
+      step = direction * math.max(minStep, step.abs() * 0.5);
+      cachedMat = null;
       continue;
     }
 
