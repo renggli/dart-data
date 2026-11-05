@@ -183,17 +183,17 @@ void main() {
       ).throws<ArgumentError>();
     });
 
-    test('unsorted row indices access', () {
-      final unsortedCsc = CscMatrix<double>(
-        rowCount: 3,
-        colCount: 1,
-        colPointers: [0, 2],
-        rowIndices: [2, 0],
-        values: [5.0, 3.0],
-        type: DataType.float64,
-      );
-      check(unsortedCsc.get(0, 0)).equals(3.0);
-      check(unsortedCsc.get(2, 0)).equals(5.0);
+    test('unsorted row indices throw ArgumentError', () {
+      check(
+        () => CscMatrix<double>(
+          rowCount: 3,
+          colCount: 1,
+          colPointers: [0, 2],
+          rowIndices: [2, 0],
+          values: [5.0, 3.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
     });
 
     test('conversions and vector operations', () {
@@ -268,6 +268,51 @@ void main() {
       check(a == a2).isTrue();
       check(a.hashCode).equals(a2.hashCode);
       check(a == b).isFalse();
+
+      // Explicit zero element does not violate hashCode contract
+      final withExplicitZero = CscMatrix<double>(
+        rowCount: 2,
+        colCount: 3,
+        colPointers: [0, 1, 3, 4],
+        rowIndices: [0, 0, 1, 0],
+        values: [1.0, 0.0, 3.0, 2.0],
+        type: DataType.float64,
+      );
+      check(a == withExplicitZero).isTrue();
+      check(a.hashCode).equals(withExplicitZero.hashCode);
+
+      // Different column for same non-zero value produces different hashCode
+      final mCol0 = CscMatrix<double>(
+        rowCount: 2,
+        colCount: 2,
+        colPointers: [0, 1, 1],
+        rowIndices: [0],
+        values: [5.0],
+        type: DataType.float64,
+      );
+      final mCol1 = CscMatrix<double>(
+        rowCount: 2,
+        colCount: 2,
+        colPointers: [0, 0, 1],
+        rowIndices: [0],
+        values: [5.0],
+        type: DataType.float64,
+      );
+      check(mCol0 == mCol1).isFalse();
+      check(mCol0.hashCode == mCol1.hashCode).isFalse();
+    });
+
+    test('constructor rejects duplicate rowIndices in column', () {
+      check(
+        () => CscMatrix<double>(
+          rowCount: 3,
+          colCount: 1,
+          colPointers: [0, 2],
+          rowIndices: [1, 1],
+          values: [1.0, 2.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
     });
 
     test('string conversion', () {

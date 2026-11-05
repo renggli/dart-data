@@ -121,7 +121,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. Require `result.tensor.isContiguous && !sharesMemory(tensor.data, result.tensor.data)` on the BLAS fast path.
     3. Mirror the upper triangle into the lower triangle in `BlasNative.dsyrk` / `BlasNative.ssyrk` (matching `BlasDart.dsyrk` and `ARCHITECTURE.md` Section 5.3: *"dsyrk, ssyrk (symmetric rank-k update with automatic upper/lower triangle mirroring)"*) or in `Matrix.syrk`.
 
-- [ ] **1.4.2 `CsrMatrix` and `CscMatrix` violate the `==` / `hashCode` contract and corrupt `+` / `-` when constructed with unsorted or duplicate indices**
+- [x] **1.4.2 `CsrMatrix` and `CscMatrix` violate the `==` / `hashCode` contract and corrupt `+` / `-` when constructed with unsorted or duplicate indices**
   - **Severity**: Critical
   - **Location**: `lib/src/linear/sparse/csr_matrix.dart:28-82, 268-306, 393-431`, `lib/src/linear/sparse/csc_matrix.dart:29-81, 266-304, 391-429`
   - **Problem**:

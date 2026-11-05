@@ -71,6 +71,14 @@ class CscMatrix<T> implements LinearOperator<T> {
           'colPointers must be non-decreasing: colPointers[$j] ($start) > colPointers[${j + 1}] ($end).',
         );
       }
+      for (var p = start; p < end - 1; p++) {
+        if (rowIndices[p] >= rowIndices[p + 1]) {
+          throw ArgumentError(
+            'rowIndices within column $j must be strictly increasing: '
+            'rowIndices[$p] (${rowIndices[p]}) >= rowIndices[${p + 1}] (${rowIndices[p + 1]}).',
+          );
+        }
+      }
     }
     for (var i = 0; i < rowIndices.length; i++) {
       final r = rowIndices[i];
@@ -416,14 +424,54 @@ class CscMatrix<T> implements LinearOperator<T> {
         if (exactMatch) return true;
       }
     }
-    return toDense() == other.toDense();
+
+    final zero = type.field.additiveIdentity;
+    for (var c = 0; c < colCount; c++) {
+      var pA = colPointers[c];
+      final endA = colPointers[c + 1];
+      var pB = other.colPointers[c];
+      final endB = other.colPointers[c + 1];
+
+      while (pA < endA || pB < endB) {
+        while (pA < endA && type.equality.isEqual(values[pA], zero)) {
+          pA++;
+        }
+        while (pB < endB &&
+            (other.values[pB] is! T ||
+                type.equality.isEqual(other.values[pB] as T, zero))) {
+          pB++;
+        }
+        if (pA >= endA && pB >= endB) break;
+        if (pA >= endA || pB >= endB) return false;
+
+        final rowA = rowIndices[pA];
+        final rowB = other.rowIndices[pB];
+        if (rowA != rowB) return false;
+
+        final valB = other.values[pB];
+        if (valB is! T || !type.equality.isEqual(values[pA], valB)) {
+          return false;
+        }
+        pA++;
+        pB++;
+      }
+    }
+    return true;
   }
 
   @override
   int get hashCode {
+    final zero = type.field.additiveIdentity;
     var hash = Object.hash(rowCount, colCount);
-    for (var i = 0; i < nnz; i++) {
-      hash = Object.hash(hash, rowIndices[i], type.equality.hash(values[i]));
+    for (var c = 0; c < colCount; c++) {
+      final start = colPointers[c];
+      final end = colPointers[c + 1];
+      for (var p = start; p < end; p++) {
+        final val = values[p];
+        if (!type.equality.isEqual(val, zero)) {
+          hash = Object.hash(hash, rowIndices[p], c, type.equality.hash(val));
+        }
+      }
     }
     return hash;
   }

@@ -294,17 +294,17 @@ void main() {
       ).throws<ArgumentError>();
     });
 
-    test('unsorted column indices access', () {
-      final unsortedCsr = CsrMatrix<double>(
-        rowCount: 1,
-        colCount: 3,
-        rowPointers: [0, 2],
-        colIndices: [2, 0],
-        values: [5.0, 3.0],
-        type: DataType.float64,
-      );
-      check(unsortedCsr.get(0, 0)).equals(3.0);
-      check(unsortedCsr.get(0, 2)).equals(5.0);
+    test('unsorted column indices throw ArgumentError', () {
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 1,
+          colCount: 3,
+          rowPointers: [0, 2],
+          colIndices: [2, 0],
+          values: [5.0, 3.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
     });
 
     test('conversions and vector operations', () {
@@ -378,6 +378,61 @@ void main() {
       check(a == a2).isTrue();
       check(a.hashCode).equals(a2.hashCode);
       check(a == b).isFalse();
+
+      // Explicit zero element does not violate hashCode contract
+      final withExplicitZero = CsrMatrix<double>(
+        rowCount: 2,
+        colCount: 3,
+        rowPointers: [0, 3, 4],
+        colIndices: [0, 1, 2, 1],
+        values: [1.0, 0.0, 2.0, 3.0],
+        type: DataType.float64,
+      );
+      check(a == withExplicitZero).isTrue();
+      check(a.hashCode).equals(withExplicitZero.hashCode);
+
+      // Different row for same non-zero value produces different hashCode
+      final mRow0 = CsrMatrix<double>(
+        rowCount: 2,
+        colCount: 2,
+        rowPointers: [0, 1, 1],
+        colIndices: [0],
+        values: [5.0],
+        type: DataType.float64,
+      );
+      final mRow1 = CsrMatrix<double>(
+        rowCount: 2,
+        colCount: 2,
+        rowPointers: [0, 0, 1],
+        colIndices: [0],
+        values: [5.0],
+        type: DataType.float64,
+      );
+      check(mRow0 == mRow1).isFalse();
+      check(mRow0.hashCode == mRow1.hashCode).isFalse();
+    });
+
+    test('constructor rejects unsorted or duplicate colIndices', () {
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 1,
+          colCount: 3,
+          rowPointers: [0, 2],
+          colIndices: [2, 1],
+          values: [1.0, 2.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 1,
+          colCount: 3,
+          rowPointers: [0, 2],
+          colIndices: [1, 1],
+          values: [1.0, 2.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
     });
 
     test('string conversion', () {
