@@ -20,7 +20,8 @@ void main() {
       check(dist.variance).equals(2.0);
       check(dist.standardDeviation).isCloseTo(math.sqrt(2.0), 1e-6);
       check(dist.mode).isA<double>();
-      check(dist.median).isA<double>();
+      check(dist.median).equals(0.0);
+      check(NegativeBinomialDistribution(1.0, 0.9).median).equals(6.0);
       check(dist.skewness).isCloseTo((2.0 - 0.5) / math.sqrt(1.0 * 0.5), 1e-6);
       check(dist.excessKurtosis).isCloseTo(6.0 / 1.0 + 0.25 / 0.5, 1e-6);
     });

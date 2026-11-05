@@ -25,7 +25,17 @@ void main() {
 
     test('probability density function', () {
       check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(0.0)).equals(0.0);
+      check(dist.logProbability(0.0)).equals(double.negativeInfinity);
       check(dist.probability(4.0)).isGreaterThan(0.0);
+
+      final distShape1 = GammaDistribution(1.0, 2.0);
+      check(distShape1.probability(0.0)).equals(0.5);
+      check(distShape1.logProbability(0.0)).isCloseTo(math.log(0.5), 1e-12);
+
+      final distShapeHalf = GammaDistribution(0.5, 2.0);
+      check(distShapeHalf.probability(0.0)).equals(double.infinity);
+      check(distShapeHalf.logProbability(0.0)).equals(double.infinity);
     });
 
     test('cumulative probability', () {

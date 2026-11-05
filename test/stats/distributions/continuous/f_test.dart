@@ -29,7 +29,17 @@ void main() {
 
     test('probability density function', () {
       check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(0.0)).equals(0.0);
+      check(dist.logProbability(0.0)).equals(double.negativeInfinity);
       check(dist.probability(1.0)).isGreaterThan(0.0);
+
+      final distD1Two = FDistribution(2.0, 10.0);
+      check(distD1Two.probability(0.0)).equals(1.0);
+      check(distD1Two.logProbability(0.0)).equals(0.0);
+
+      final distD1One = FDistribution(1.0, 10.0);
+      check(distD1One.probability(0.0)).equals(double.infinity);
+      check(distD1One.logProbability(0.0)).equals(double.infinity);
     });
 
     test('cumulative probability and survival', () {

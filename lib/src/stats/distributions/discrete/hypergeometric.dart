@@ -96,7 +96,7 @@ class HypergeometricDistribution extends DiscreteDistribution {
   double get mean => draws * successStates / populationSize;
 
   @override
-  double get median => mean.roundToDouble();
+  double get median => inverseCumulativeProbability(0.5).toDouble();
 
   @override
   double get mode => ((draws + 1) * (successStates + 1) / (populationSize + 2))

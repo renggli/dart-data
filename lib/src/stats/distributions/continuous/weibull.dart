@@ -121,6 +121,11 @@ class WeibullDistribution extends ContinuousDistribution {
   double probability(double x) {
     if (x.isNaN) return double.nan;
     if (x < 0 || x == double.infinity) return 0;
+    if (x == 0) {
+      if (shape < 1.0) return double.infinity;
+      if (shape == 1.0) return 1.0 / scale;
+      return 0.0;
+    }
     final logP = logProbability(x);
     if (logP.isNaN) return double.nan;
     if (logP <= -745.0) return 0.0;
@@ -130,7 +135,12 @@ class WeibullDistribution extends ContinuousDistribution {
   @override
   double logProbability(double x) {
     if (x.isNaN) return double.nan;
-    if (x <= 0 || x == double.infinity) return double.negativeInfinity;
+    if (x < 0 || x == double.infinity) return double.negativeInfinity;
+    if (x == 0) {
+      if (shape < 1.0) return double.infinity;
+      if (shape == 1.0) return -log(scale);
+      return double.negativeInfinity;
+    }
     final xOverScale = x / scale;
     final term = pow(xOverScale, shape).toDouble();
     if (term.isInfinite) return double.negativeInfinity;

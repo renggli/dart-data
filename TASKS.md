@@ -266,7 +266,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. At lines 85–89, the weights $a_i$ are set to unadjusted $m_i / \|m\|$ without Royston's polynomial adjustments for $a_n$ (for $n \ge 4$) and $a_{n-1}$ (for $n \ge 6$) in $u = 1/\sqrt{n}$.
   - **Fix**: Implement Royston's (1992 / AS R94) weight adjustments for $a_n$ and $a_{n-1}$ and the exact $4 \le n \le 11$ transformation $(\gamma, y, \mu, \sigma)$.
 
-- [ ] **1.8.2 Boundary PDF/logPDF at `x == 0.0` in `GammaDistribution`, `WeibullDistribution`, and `FDistribution`, and `median` in skewed discrete distributions**
+- [x] **1.8.2 Boundary PDF/logPDF at `x == 0.0` in `GammaDistribution`, `WeibullDistribution`, and `FDistribution`, and `median` in skewed discrete distributions**
   - **Severity**: Warning
   - **Location**: `lib/src/stats/distributions/continuous/gamma.dart:86-96`, `lib/src/stats/distributions/continuous/weibull.dart:121-135`, `lib/src/stats/distributions/continuous/f.dart:100-112`, `lib/src/stats/distributions/discrete/binomial.dart:84`, `lib/src/stats/distributions/discrete/hypergeometric.dart:99`, `lib/src/stats/distributions/discrete/negative_binomial.dart:94`
   - **Problem**:

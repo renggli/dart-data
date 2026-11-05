@@ -22,6 +22,8 @@ void main() {
       check(dist.standardDeviation).isGreaterThan(0.0);
       check(dist.mode).isA<double>();
       check(dist.median).isA<double>();
+      check(dist.median).equals(1.0);
+      check(HypergeometricDistribution(100, 10, 5).median).equals(0.0);
       check(dist.skewness).isA<double>();
       check(dist.excessKurtosis).isA<double>();
     });

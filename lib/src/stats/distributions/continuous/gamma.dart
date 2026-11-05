@@ -85,10 +85,28 @@ class GammaDistribution extends ContinuousDistribution {
   @override
   double probability(double x) {
     if (x.isNaN) return double.nan;
-    if (x <= 0.0 || x == double.infinity) return 0.0;
-    return exp(
-      (shape - 1.0) * log(x) - x / scale - gammaLn(shape) - shape * log(scale),
-    );
+    if (x < 0.0 || x == double.infinity) return 0.0;
+    if (x == 0.0) {
+      if (shape < 1.0) return double.infinity;
+      if (shape == 1.0) return 1.0 / scale;
+      return 0.0;
+    }
+    return exp(logProbability(x));
+  }
+
+  @override
+  double logProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x < 0.0 || x == double.infinity) return double.negativeInfinity;
+    if (x == 0.0) {
+      if (shape < 1.0) return double.infinity;
+      if (shape == 1.0) return -log(scale);
+      return double.negativeInfinity;
+    }
+    return (shape - 1.0) * log(x) -
+        x / scale -
+        gammaLn(shape) -
+        shape * log(scale);
   }
 
   @override

@@ -26,6 +26,16 @@ void main() {
     test('probability density function', () {
       check(dist.probability(-1.0)).equals(0.0);
       check(dist.probability(1.0)).isGreaterThan(0.0);
+      check(dist.probability(0.0)).equals(1.0);
+      check(dist.logProbability(0.0)).equals(0.0);
+
+      final distShape2 = WeibullDistribution(2.0, 2.0);
+      check(distShape2.probability(0.0)).equals(0.0);
+      check(distShape2.logProbability(0.0)).equals(double.negativeInfinity);
+
+      final distShapeHalf = WeibullDistribution(0.5, 2.0);
+      check(distShapeHalf.probability(0.0)).equals(double.infinity);
+      check(distShapeHalf.logProbability(0.0)).equals(double.infinity);
     });
 
     test('cumulative probability', () {

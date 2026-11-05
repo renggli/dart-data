@@ -81,7 +81,7 @@ class BinomialDistribution extends DiscreteDistribution {
   double get mean => n * p;
 
   @override
-  double get median => mean.roundToDouble();
+  double get median => inverseCumulativeProbability(0.5).toDouble();
 
   @override
   double get mode => ((n + 1) * p).floorToDouble();

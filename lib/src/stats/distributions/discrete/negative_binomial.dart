@@ -91,7 +91,7 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
   double get mean => p * r / q;
 
   @override
-  double get median => mean.roundToDouble();
+  double get median => inverseCumulativeProbability(0.5).toDouble();
 
   @override
   double get mode => r > 1 ? (p * (r - 1) / q).floorToDouble() : 0;

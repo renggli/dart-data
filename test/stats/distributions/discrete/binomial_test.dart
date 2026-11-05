@@ -17,6 +17,7 @@ void main() {
       check(dist.isUpperBoundOpen).isFalse();
       check(dist.mean).equals(5.0);
       check(dist.median).equals(5.0);
+      check(BinomialDistribution(3, 0.2).median).equals(0.0);
       check(dist.mode).equals(5.0);
       check(dist.variance).equals(2.5);
       check(dist.standardDeviation).isCloseTo(math.sqrt(2.5), 1e-6);

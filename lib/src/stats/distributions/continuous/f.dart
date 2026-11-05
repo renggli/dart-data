@@ -99,13 +99,28 @@ class FDistribution extends ContinuousDistribution {
   @override
   double probability(double x) {
     if (x.isNaN) return double.nan;
-    if (x <= 0.0 || x == double.infinity) return 0.0;
-    final logPdf =
-        0.5 * d1 * log(d1 / d2) +
+    if (x < 0.0 || x == double.infinity) return 0.0;
+    if (x == 0.0) {
+      if (d1 < 2.0) return double.infinity;
+      if (d1 == 2.0) return 1.0;
+      return 0.0;
+    }
+    return exp(logProbability(x));
+  }
+
+  @override
+  double logProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x < 0.0 || x == double.infinity) return double.negativeInfinity;
+    if (x == 0.0) {
+      if (d1 < 2.0) return double.infinity;
+      if (d1 == 2.0) return 0.0;
+      return double.negativeInfinity;
+    }
+    return 0.5 * d1 * log(d1 / d2) +
         (0.5 * d1 - 1.0) * log(x) -
         0.5 * (d1 + d2) * log(1.0 + (d1 / d2) * x) -
         betaLn(0.5 * d1, 0.5 * d2);
-    return exp(logPdf);
   }
 
   @override
