@@ -290,7 +290,14 @@ void selectDistribution(
   currentParamValues = [];
   for (final p in def.parameters) {
     if (parameterOverrides != null && parameterOverrides.containsKey(p.name)) {
-      currentParamValues.add(parameterOverrides[p.name]!);
+      var val = parameterOverrides[p.name]!;
+      if (!val.isFinite) {
+        val = p.defaultValue;
+      } else {
+        val = val.clamp(p.min, p.max);
+        if (p.isInt) val = val.roundToDouble();
+      }
+      currentParamValues.add(val);
     } else {
       currentParamValues.add(p.defaultValue);
     }
@@ -483,7 +490,13 @@ void loadFromUrlHash() {
       for (var i = 0; i < activeDef.parameters.length; i++) {
         final p = activeDef.parameters[i];
         final currentVal = currentParamValues[i];
-        final targetVal = targetOverrides?[p.name] ?? p.defaultValue;
+        var targetVal = targetOverrides?[p.name] ?? p.defaultValue;
+        if (!targetVal.isFinite) {
+          targetVal = p.defaultValue;
+        } else {
+          targetVal = targetVal.clamp(p.min, p.max);
+          if (p.isInt) targetVal = targetVal.roundToDouble();
+        }
         if ((currentVal - targetVal).abs() > 1e-6) {
           isDifferent = true;
           break;
@@ -555,6 +568,27 @@ double evalDistProbability(num x) {
   }
 }
 
+/// Evaluates cumulative probability distribution (CDF) correctly
+/// handling generic type requirements.
+double evalDistCumulativeProbability(num x) {
+  if (activeDef.isContinuous) {
+    return (activeDist as Distribution<double>).cumulativeProbability(
+      x.toDouble(),
+    );
+  } else {
+    return (activeDist as Distribution<int>).cumulativeProbability(x.floor());
+  }
+}
+
+/// Evaluates survival function correctly handling generic type requirements.
+double evalDistSurvival(num x) {
+  if (activeDef.isContinuous) {
+    return (activeDist as Distribution<double>).survival(x.toDouble());
+  } else {
+    return (activeDist as Distribution<int>).survival(x.floor());
+  }
+}
+
 /// Update quantile and probability evaluation card.
 void updateQuantileCalculator() {
   try {
@@ -562,11 +596,11 @@ void updateQuantileCalculator() {
     setAttrValue(valQuantile, formatNumber(q));
 
     // Evaluate cumulative CDF at q
-    final cdfAtQ = activeDist.cumulativeProbability(q);
+    final cdfAtQ = evalDistCumulativeProbability(q);
     setAttrValue(valCdfEval, formatNumber(cdfAtQ));
 
     // Survival at q
-    final survAtQ = activeDist.survival(q);
+    final survAtQ = evalDistSurvival(q);
     setAttrValue(valSurvivalEval, formatNumber(survAtQ));
 
     // Density / Mass at q
@@ -914,7 +948,7 @@ void renderCanvas(
       drawCurve(
         ctx,
         vp,
-        (x) => activeDist.cumulativeProbability(x),
+        evalDistCumulativeProbability,
         strokeColor: '#f59e0b',
         lineWidth: 2.2,
         fillColor: null,
@@ -927,7 +961,7 @@ void renderCanvas(
       final step = span > 500 ? (span / 500).ceil() : 1;
 
       for (var k = iMin; k <= iMax; k += step) {
-        final cdfVal = activeDist.cumulativeProbability(k.toDouble());
+        final cdfVal = evalDistCumulativeProbability(k);
         final pxStart = toPixelX(k.toDouble());
         final pxEnd = toPixelX((k + step).toDouble());
         final py = toPixelY(cdfVal);
@@ -940,9 +974,7 @@ void renderCanvas(
 
         // Connect vertical jump
         if (k > iMin) {
-          final prevCdfVal = activeDist.cumulativeProbability(
-            (k - step).toDouble(),
-          );
+          final prevCdfVal = evalDistCumulativeProbability(k - step);
           final pyPrev = toPixelY(prevCdfVal);
           ctx.strokeStyle =
               'rgba(245, 158, 11, 0.35)'.toJS; // Faint vertical jump line
@@ -1068,7 +1100,7 @@ void renderCanvas(
     final targetX = activeDef.isContinuous ? xVal : k.toDouble();
 
     final yVal = isCdf
-        ? activeDist.cumulativeProbability(targetX)
+        ? evalDistCumulativeProbability(targetX)
         : evalDistProbability(targetX);
     final hasVal = yVal.isFinite && !yVal.isNaN && yVal >= 0.0;
 

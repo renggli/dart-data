@@ -414,7 +414,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.11 `web/` Applications
 
-- [ ] **1.11.1 `web/distributions` passes `double` to `DiscreteDistribution.cumulativeProbability(int)` and crashes on invalid URL hash parameters**
+- [x] **1.11.1 `web/distributions` passes `double` to `DiscreteDistribution.cumulativeProbability(int)` and crashes on invalid URL hash parameters**
   - **Severity**: Critical
   - **Location**: `web/distributions/index.dart:291-297, 462-466, 930, 943, 1071`
   - **Problem**:
