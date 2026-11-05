@@ -245,7 +245,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: At line 108, `final finitePoles = poles.where((p) => p.isFinite).toList()..sort();` does not filter `poles` to those inside `[min(a, b), max(a, b)]` (unlike line 153 for finite bounds). When integrating on `[0.0, double.infinity)` with `poles: [-5.0, 0.0]`, `pMax` is `0.0`, `pMin` is `-5.0`, and for `(a: -Infinity, b: 0)` with `poles: [5.0]`, `leftBound = pMin - 1.0 = 4.0 > b`, causing `integrate` to evaluate `function(x)` outside `[a, b]`.
   - **Fix**: Filter `finitePoles` at line 108 to `poles.where((p) => p.isFinite && p >= minAB && p <= maxAB).toList()..sort()`, and clamp `leftBound = a.isFinite ? a : math.min(b, pMin - 1.0)` and `rightBound = b.isFinite ? b : math.max(a, pMax + 1.0)`.
 
-- [ ] **1.7.3 `minimize` silently ignores `inequalities` and `equalities` when `method: OptimizationMethod.brent` is passed, and `nelderMead` post-loop `reduce` picks `NaN`**
+- [x] **1.7.3 `minimize` silently ignores `inequalities` and `equalities` when `method: OptimizationMethod.brent` is passed, and `nelderMead` post-loop `reduce` picks `NaN`**
   - **Severity**: Warning
   - **Location**: `lib/src/numeric/optimization/minimize.dart:90`, `lib/src/numeric/optimization/nelder_mead.dart:132-135`, `lib/src/numeric/root_finding/solve.dart:196`
   - **Problem**:

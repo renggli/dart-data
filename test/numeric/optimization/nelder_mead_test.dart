@@ -54,5 +54,16 @@ void main() {
       final res = nelderMead(f, start, maxIterations: 5);
       check(res.iterations).isLessOrEqual(5);
     });
+
+    test('does not select NaN vertex on maxIterations exhaustion', () {
+      double f(Vector<double> v) {
+        if (v[0] < 0.0) return double.nan;
+        return (v[0] - 1.0) * (v[0] - 1.0) + (v[1] - 1.0) * (v[1] - 1.0);
+      }
+
+      final start = Vector<double>.fromList([0.1, 0.1], type: DataType.float64);
+      final res = nelderMead(f, start, step: 0.5, maxIterations: 1);
+      check(res.value.isNaN).isFalse();
+    });
   });
 }

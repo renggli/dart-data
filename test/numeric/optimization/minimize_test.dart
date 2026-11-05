@@ -38,6 +38,19 @@ void main() {
       check(result.value).isCloseTo(-4.0, 1e-6);
     });
 
+    test('1D Brent minimization with general constraints routes to constrained solver', () {
+      // f(x) = (x - 5)^2, subject to x <= 3.0 (i.e. x - 3 <= 0)
+      double f(Vector<double> v) => (v[0] - 5.0) * (v[0] - 5.0);
+      final result = minimize(
+        f,
+        initialPoint: Vector<double>.fromList([0.0]),
+        method: OptimizationMethod.brent,
+        inequalities: [(v) => v[0] - 3.0],
+      );
+      check(result.point1D).isCloseTo(3.0, 0.05);
+      check(result.value).isCloseTo(4.0, 0.2);
+    });
+
     test('Nelder-Mead simplex optimization on Rosenbrock banana function', () {
       // Rosenbrock: f(x, y) = (1 - x)^2 + 100*(y - x^2)^2
       // Global minimum at (1, 1), f(1, 1) = 0

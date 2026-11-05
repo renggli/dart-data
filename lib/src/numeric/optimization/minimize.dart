@@ -78,16 +78,18 @@ OptimizationResult minimize(
     throw ArgumentError('Initial point cannot be empty.');
   }
 
-  final hasConstraints =
-      (bnds != null && bnds.isNotEmpty) ||
+  final hasGeneralConstraints =
       (inequalities != null && inequalities.isNotEmpty) ||
       (equalities != null && equalities.isNotEmpty);
+  final hasBoxBounds = bnds != null && bnds.isNotEmpty;
+  final hasConstraints = hasBoxBounds || hasGeneralConstraints;
 
   resolvedMethod ??= hasConstraints
       ? OptimizationMethod.bfgs
       : OptimizationMethod.nelderMead;
 
-  if (hasConstraints && resolvedMethod != OptimizationMethod.brent) {
+  if (hasConstraints &&
+      (resolvedMethod != OptimizationMethod.brent || hasGeneralConstraints)) {
     final res = minimizeConstrained(
       function,
       init,
@@ -95,7 +97,9 @@ OptimizationResult minimize(
       bounds: bnds,
       inequalities: inequalities,
       equalities: equalities,
-      method: resolvedMethod,
+      method: resolvedMethod == OptimizationMethod.brent
+          ? OptimizationMethod.bfgs
+          : resolvedMethod,
       step: step,
       memorySize: memorySize,
       tolerance: tolerance,

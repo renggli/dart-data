@@ -82,6 +82,21 @@ void main() {
       },
     );
 
+    test('Newton-Raphson does not terminate prematurely on tiny step with large residual', () {
+      double f(double x) => 10.0;
+      double df(double x) => 1e15; // step = 10 / 1e15 = 1e-14 < tolerance
+      check(
+        () => solve(
+          f,
+          0.0,
+          method: RootMethod.newtonRaphson,
+          derivative: df,
+          tolerance: 1e-8,
+          maxIterations: 5,
+        ),
+      ).throws<StateError>();
+    });
+
     test('Bisection root solver (method: RootMethod.bisection)', () {
       double function(double x) => x * x * x - 27.0; // root at 3.0
       final root = solve(function, 0.0, b: 5.0, method: RootMethod.bisection);

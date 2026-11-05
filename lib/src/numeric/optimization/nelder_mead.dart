@@ -129,10 +129,14 @@ nelderMead(
     }
   }
 
-  final bestIdx = List<int>.generate(
-    dim + 1,
-    (i) => i,
-  ).reduce((a, b) => values[a] < values[b] ? a : b);
+  var bestIdx = 0;
+  for (var i = 1; i <= dim; i++) {
+    final vi = values[i];
+    final vb = values[bestIdx];
+    if (!vi.isNaN && (vb.isNaN || vi < vb)) {
+      bestIdx = i;
+    }
+  }
   return (
     point: simplex[bestIdx],
     value: values[bestIdx],

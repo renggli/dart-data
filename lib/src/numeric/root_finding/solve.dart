@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../calculus/derivative.dart' as calculus;
 import 'root_method.dart';
 
@@ -193,7 +195,12 @@ double _newtonRaphson(
     }
     final step = fx / dfx;
     x -= step;
-    if (step.abs() < tolerance) return x;
+    if (step.abs() < tolerance) {
+      final newFx = fn(x);
+      if (newFx.abs() <= math.max(tolerance, 1e-6)) {
+        return x;
+      }
+    }
   }
   final finalFx = fn(x);
   if (finalFx == 0.0 || finalFx.abs() <= tolerance) {
