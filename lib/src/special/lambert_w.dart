@@ -38,6 +38,17 @@ double lambertW0(num z) {
     final llz = log(lz);
     wVal = lz - llz + llz / lz;
   }
+  if (wVal > 100.0) {
+    final lz = log(zd);
+    for (var i = 0; i < 20; i++) {
+      final r = wVal + log(wVal) - lz;
+      final w1 = wVal + 1.0;
+      final step = (r * wVal / w1) / (1.0 - r / (2.0 * w1 * w1));
+      wVal -= step;
+      if (step.abs() <= 1e-15 * wVal) break;
+    }
+    return wVal;
+  }
   for (var i = 0; i < 25; i++) {
     final ew = exp(wVal);
     if (ew == 0.0 || !ew.isFinite) {
@@ -96,6 +107,17 @@ double lambertW1(num z) {
     final lz = log(-zd);
     final llz = log(-lz);
     wVal = lz - llz + llz / lz;
+  }
+  if (wVal < -100.0) {
+    final lnNegZ = log(-zd);
+    for (var i = 0; i < 20; i++) {
+      final r = wVal + log(-wVal) - lnNegZ;
+      final w1 = wVal + 1.0;
+      final step = (r * wVal / w1) / (1.0 - r / (2.0 * w1 * w1));
+      wVal -= step;
+      if (step.abs() <= 1e-15 * wVal.abs()) break;
+    }
+    return wVal;
   }
   for (var i = 0; i < 25; i++) {
     final ew = exp(wVal);

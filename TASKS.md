@@ -195,7 +195,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. In `ellipticF(pi / 2, 1.0)` (`line 97`), `c = cos(pi / 2) ≈ 6.123e-17` is slightly non-zero in IEEE 754 float, so `_carlsonRF(c * c, 0.0, 1.0)` returns `~19.06` instead of `double.infinity` (inconsistent with `ellipticK(1.0) == double.infinity`).
   - **Fix**: Handle `phiD.isInfinite` before `(phiD / pi).round()`, and in `ellipticF` return `double.infinity * phiD.sign` when `kd.abs() == 1.0 && (absPsi >= pi / 2.0 - 1e-15 || n != 0)`.
 
-- [ ] **1.5.5 `lambertW0` overflows Halley terms for $z > 10^{290}$ and `lambertW1` underflows `exp(wVal)` for $z \in [-10^{-320}, 0)$**
+- [x] **1.5.5 `lambertW0` overflows Halley terms for $z > 10^{290}$ and `lambertW1` underflows `exp(wVal)` for $z \in [-10^{-320}, 0)$**
   - **Severity**: Warning
   - **Location**: `lib/src/special/lambert_w.dart:41-59, 97-115`
   - **Problem**: For `lambertW0(1e300)`, `wVal ≈ 684`, so `ew * w1` overflows to `Infinity` on iteration 0 and breaks out of the loop unrefined (leaving $10^{-3}$ relative error). For `lambertW1(-1e-320)`, `wVal < -736`, so `ew = exp(wVal)` underflows to `0.0` on iteration 0 and breaks unrefined.

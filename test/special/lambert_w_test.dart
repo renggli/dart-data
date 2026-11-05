@@ -14,6 +14,9 @@ void main() {
       check(lambertW0(double.infinity)).equals(double.infinity);
       check(lambertW0(1e307).isFinite).isTrue();
 
+      final wLarge = lambertW0(1e300);
+      check(wLarge + math.log(wLarge)).isCloseTo(math.log(1e300), 1e-12);
+
       final wVal = lambertW0(2.0);
       check(wVal * math.exp(wVal)).isCloseTo(2.0, 1e-9);
     });
@@ -28,6 +31,10 @@ void main() {
       final wSmall = lambertW1(-1e-200);
       check(wSmall).isLessThan(-450.0);
       check(wSmall).isGreaterThan(-500.0);
+      check(wSmall + math.log(-wSmall)).isCloseTo(math.log(1e-200), 1e-12);
+
+      final wTiny = lambertW1(-1e-320);
+      check(wTiny + math.log(-wTiny)).isCloseTo(math.log(1e-320), 1e-12);
     });
 
     test('Lambert W branch near branch point (-1/e < z < -0.3)', () {
