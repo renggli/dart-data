@@ -281,6 +281,7 @@ List<(int?, int?)> _sortMergeJoinPairs(
       if (isNanA && isNanB) continue;
       if (isNanA) return 1;
       if (isNanB) return -1;
+      if (valA == valB) continue;
       if (valA is num && valB is num) {
         final diff = valA.compareTo(valB);
         if (diff != 0) return diff;

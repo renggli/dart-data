@@ -215,6 +215,21 @@ void main() {
 
       final allUnique = Series<String>.fromList('words', ['a', 'b', 'c']);
       check(allUnique.unique().toList()).deepEquals(['a', 'b', 'c']);
+
+      final nanSeries = Series<double>.fromList('floats', [
+        1.0,
+        double.nan,
+        2.0,
+        double.nan,
+        -0.0,
+        0.0,
+      ]);
+      final uNan = nanSeries.unique();
+      check(uNan.length).equals(4);
+      check(uNan[0]).equals(1.0);
+      check(uNan[1]!.isNaN).isTrue();
+      check(uNan[2]).equals(2.0);
+      check(uNan[3]).equals(0.0);
     });
 
     test('valueCounts aggregates and sorts descending', () {
@@ -231,6 +246,18 @@ void main() {
       check(counts.rowCount).equals(3);
       check(counts['cat'].toList()).deepEquals(['apple', 'banana', 'orange']);
       check(counts['count'].toList()).deepEquals([3, 2, 1]);
+
+      final nanSeries = Series<double>.fromList('f', [
+        double.nan,
+        1.0,
+        double.nan,
+        -0.0,
+        0.0,
+        double.nan,
+      ]);
+      final nanCounts = nanSeries.valueCounts();
+      check(nanCounts.rowCount).equals(3);
+      check(nanCounts['count'].toList()).deepEquals([3, 2, 1]);
     });
 
     test('validates mask length, isNull bounds, and NaN in min/max', () {

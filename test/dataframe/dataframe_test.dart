@@ -1030,6 +1030,16 @@ line 2",10
         final dfEmpty = DataFrame([]);
         check(dfEmpty.dropDuplicates().rowCount).equals(0);
       });
+
+      test('removes duplicate rows containing NaN and -0.0', () {
+        final df = DataFrame.fromColumns({
+          'a': [double.nan, double.nan, -0.0, 0.0, 1.0],
+          'b': ['x', 'x', 'y', 'y', 'z'],
+        });
+        final dedup = df.dropDuplicates();
+        check(dedup.rowCount).equals(3);
+        check(dedup['b'].toList()).deepEquals(['x', 'y', 'z']);
+      });
     });
 
     group('melt & pivot', () {
@@ -1107,6 +1117,22 @@ line 2",10
         check(aggregated['item'].toList()).deepEquals(['apple', 'banana']);
         check(aggregated['A'].toList()).deepEquals([30, 5]);
         check(aggregated['B'].toList()).deepEquals([15, null]);
+      });
+
+      test('pivot groups duplicate NaN and -0.0 index and column keys', () {
+        final df = DataFrame.fromColumns({
+          'idx': [double.nan, double.nan, 1.0],
+          'col': ['a', 'a', 'b'],
+          'val': [10, 20, 30],
+        });
+        final pivoted = df.pivot(
+          index: 'idx',
+          columns: 'col',
+          values: 'val',
+          aggregate: (values) => values.cast<num>().reduce((a, b) => a + b),
+        );
+        check(pivoted.rowCount).equals(2);
+        check(pivoted['a'].toList().sublist(0, 1)).deepEquals([30]);
       });
     });
   });

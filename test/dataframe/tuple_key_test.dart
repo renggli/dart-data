@@ -57,11 +57,40 @@ void main() {
       check(extractor.hasNull(2)).isFalse();
       check(extractor.hasNullOrNan(2)).isFalse();
 
-      check(extractor.extractKey(3) as num).isNaN();
-      check(extractor.extractKeyOrNull(3) as num).isNaN();
+      check(extractor.extractKey(3)).equals(nanKey);
+      check(extractor.extractKeyOrNull(3)).equals(nanKey);
       check(extractor.extractJoinKeyOrNull(3)).isNull();
       check(extractor.hasNull(3)).isFalse();
       check(extractor.hasNullOrNan(3)).isTrue();
+    });
+
+    test('canonicalizes NaN and -0.0 in TupleKey and extractors', () {
+      final keyNan1 = TupleKey(['a', double.nan, true]);
+      final keyNan2 = TupleKey(['a', double.nan, true]);
+      check(keyNan1 == keyNan2).isTrue();
+      check(keyNan1.hashCode).equals(keyNan2.hashCode);
+
+      final keyNegZero = TupleKey(['a', -0.0, true]);
+      final keyPosZero = TupleKey(['a', 0.0, true]);
+      check(keyNegZero == keyPosZero).isTrue();
+      check(keyNegZero.hashCode).equals(keyPosZero.hashCode);
+
+      final col = Series<double>.fromList('c', [
+        -0.0,
+        0.0,
+        double.nan,
+        double.nan,
+      ]);
+      final ext = RowKeyExtractor([col]);
+      check(ext.extractKey(0)).equals(0.0);
+      check(ext.extractKey(1)).equals(0.0);
+      check(ext.extractKey(0) == ext.extractKey(1)).isTrue();
+      check(ext.extractKey(0).hashCode).equals(ext.extractKey(1).hashCode);
+
+      check(ext.extractKey(2)).equals(nanKey);
+      check(ext.extractKey(3)).equals(nanKey);
+      check(ext.extractKey(2) == ext.extractKey(3)).isTrue();
+      check(ext.extractKey(2).hashCode).equals(ext.extractKey(3).hashCode);
     });
 
     test('2 column extractor', () {

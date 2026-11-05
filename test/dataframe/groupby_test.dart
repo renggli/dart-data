@@ -293,6 +293,16 @@ void main() {
       check(result['v_sum'].toList()).deepEquals([40, 20]);
     });
 
+    test('groups duplicate NaN and -0.0 keys into single groups', () {
+      final df = DataFrame.fromColumns({
+        'k': [double.nan, 1.0, double.nan, -0.0, 0.0],
+        'v': [10, 20, 30, 40, 50],
+      });
+      final res = df.groupBy(['k']).sum();
+      check(res.rowCount).equals(3); // NaN, 1.0, 0.0
+      check(res['v_sum'].toList()).deepEquals([40, 20, 90]);
+    });
+
     test('handles empty DataFrame grouping', () {
       final emptyDf = DataFrame.fromColumns({'k': [], 'v': []});
       final grouped = emptyDf.groupBy(['k']);

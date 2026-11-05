@@ -295,7 +295,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. When `type: DataType.float64` is passed to `Series.fromList('x', [1, 2.5], type: DataType.float64)`, line 49 executes `list.map((element) => element as double?)`, throwing `TypeError: 1 is not a subtype of type 'double?'` before reaching `TypedSeries.fromList`'s `effectiveType.cast(val)`!
   - **Fix**: Unwrap `final effectiveType = type is NullableDataType ? (type as NullableDataType).delegate : type;` at the top of `Series.fromList`, and coerce non-null elements via `effectiveType.cast(element)` instead of hard `as int?` / `as double?` / `as String?` / `as bool?` casts.
 
-- [ ] **1.9.2 `NaN` and `-0.0` key handling in `Series.unique()`, `Series.valueCounts()`, `DataFrame.dropDuplicates()`, `DataFrame.pivot()`, `GroupBy`, and `JoinMethod.sortMerge`**
+- [x] **1.9.2 `NaN` and `-0.0` key handling in `Series.unique()`, `Series.valueCounts()`, `DataFrame.dropDuplicates()`, `DataFrame.pivot()`, `GroupBy`, and `JoinMethod.sortMerge`**
   - **Severity**: Critical
   - **Location**: `lib/src/dataframe/tuple_key.dart:62-215`, `lib/src/dataframe/series.dart:278-306`, `lib/src/dataframe/dataframe.dart:294-317, 412-482`, `lib/src/dataframe/groupby.dart:200-211`, `lib/src/dataframe/join.dart:267-315`
   - **Problem**:

@@ -691,6 +691,29 @@ void main() {
       }
     });
 
+    test('matches -0.0 and 0.0 join keys across hash and sortMerge joins', () {
+      final left = DataFrame.fromColumns({
+        'k': [-0.0, 1.0],
+        'lv': ['zero_left', 'one_left'],
+      });
+      final right = DataFrame.fromColumns({
+        'k': [0.0, 2.0],
+        'rv': ['zero_right', 'two_right'],
+      });
+
+      for (final method in [JoinMethod.hash, JoinMethod.sortMerge]) {
+        final inner = left.join(
+          right,
+          on: ['k'],
+          type: JoinType.inner,
+          method: method,
+        );
+        check(inner.rowCount).equals(1);
+        check(inner['lv'][0]).equals('zero_left');
+        check(inner['rv'][0]).equals('zero_right');
+      }
+    });
+
     test('coalesces identical leftOn and rightOn key columns', () {
       final left = DataFrame.fromColumns({
         'id': [1, 2],

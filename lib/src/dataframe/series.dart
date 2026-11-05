@@ -6,6 +6,7 @@ import 'arrow/arrow_c_data.dart';
 import 'arrow_string_series.dart';
 import 'bitmask.dart';
 import 'dataframe.dart';
+import 'tuple_key.dart';
 
 /// 1-dimensional columnar series with optional Apache Arrow validity bitmask.
 ///
@@ -40,52 +41,38 @@ abstract class Series<T> {
       if (effectiveType is DataType<int>) {
         final intList = list
             .map(
-              (element) =>
-                  element == null ? null : effectiveType.cast(element),
+              (element) => element == null ? null : effectiveType.cast(element),
             )
             .toList(growable: false);
-        return TypedSeries<int>.fromList(
-          name,
-          intList,
-          type: effectiveType,
-        ) as Series<T>;
+        return TypedSeries<int>.fromList(name, intList, type: effectiveType)
+            as Series<T>;
       } else if (effectiveType is DataType<double>) {
         final dblList = list
             .map(
-              (element) =>
-                  element == null ? null : effectiveType.cast(element),
+              (element) => element == null ? null : effectiveType.cast(element),
             )
             .toList(growable: false);
-        return TypedSeries<double>.fromList(
-          name,
-          dblList,
-          type: effectiveType,
-        ) as Series<T>;
+        return TypedSeries<double>.fromList(name, dblList, type: effectiveType)
+            as Series<T>;
       } else if (effectiveType is DataType<num>) {
         final numList = list
             .map(
-              (element) =>
-                  element == null ? null : effectiveType.cast(element),
+              (element) => element == null ? null : effectiveType.cast(element),
             )
             .toList(growable: false);
-        return TypedSeries<num>.fromList(
-          name,
-          numList,
-          type: effectiveType,
-        ) as Series<T>;
+        return TypedSeries<num>.fromList(name, numList, type: effectiveType)
+            as Series<T>;
       } else if (effectiveType is DataType<String>) {
         final strList = list
             .map(
-              (element) =>
-                  element == null ? null : effectiveType.cast(element),
+              (element) => element == null ? null : effectiveType.cast(element),
             )
             .toList(growable: false);
         return StringSeries.fromList(name, strList) as Series<T>;
       } else if (effectiveType is DataType<bool>) {
         final boolList = list
             .map(
-              (element) =>
-                  element == null ? null : effectiveType.cast(element),
+              (element) => element == null ? null : effectiveType.cast(element),
             )
             .toList(growable: false);
         return BoolSeries.fromList(name, boolList) as Series<T>;
@@ -314,28 +301,31 @@ abstract class Series<T> {
 
   /// Returns a series containing only unique values in order of appearance.
   Series<T> unique() {
-    final seen = <T?>{};
+    final seen = <Object?>{};
     final mask = <bool>[];
     for (var i = 0; i < length; i++) {
-      mask.add(seen.add(this[i]));
+      mask.add(seen.add(canonicalizeKey(this[i])));
     }
     return filter(mask);
   }
 
   /// Returns a [DataFrame] containing unique values and their occurrence counts.
   DataFrame valueCounts({bool ascending = false, bool dropNulls = false}) {
-    final counts = <T?, int>{};
+    final counts = <Object?, int>{};
+    final keyToValue = <Object?, T?>{};
     for (var i = 0; i < length; i++) {
       final val = this[i];
       if (dropNulls && val == null) continue;
-      counts[val] = (counts[val] ?? 0) + 1;
+      final key = canonicalizeKey(val);
+      counts[key] = (counts[key] ?? 0) + 1;
+      keyToValue.putIfAbsent(key, () => val);
     }
     final entries = counts.entries.toList();
     entries.sort(
       (a, b) =>
           ascending ? a.value.compareTo(b.value) : b.value.compareTo(a.value),
     );
-    final valueList = [for (final e in entries) e.key];
+    final valueList = [for (final e in entries) keyToValue[e.key]];
     final countList = [for (final e in entries) e.value];
     return DataFrame([
       Series.fromList(name, valueList, type: dataType),

@@ -431,16 +431,19 @@ class DataFrame {
       final colVal = colCol[r];
       final val = valCol[r];
 
-      if (seenIndices.add(idxVal)) {
+      final idxKey = canonicalizeKey(idxVal);
+      final colKey = canonicalizeKey(colVal);
+
+      if (seenIndices.add(idxKey)) {
         orderedIndexValues.add(idxVal);
       }
-      if (seenCols.add(colVal)) {
+      if (seenCols.add(colKey)) {
         orderedColValues.add(colVal);
       }
 
       table
-          .putIfAbsent(idxVal, () => {})
-          .putIfAbsent(colVal, () => [])
+          .putIfAbsent(idxKey, () => {})
+          .putIfAbsent(colKey, () => [])
           .add(val);
     }
 
@@ -463,10 +466,12 @@ class DataFrame {
     );
 
     for (final colVal in orderedColValues) {
+      final colKey = canonicalizeKey(colVal);
       final colName = colVal?.toString() ?? 'null';
       final cellValues = <Object?>[];
       for (final idxVal in orderedIndexValues) {
-        final list = table[idxVal]?[colVal];
+        final idxKey = canonicalizeKey(idxVal);
+        final list = table[idxKey]?[colKey];
         if (list == null || list.isEmpty) {
           cellValues.add(null);
         } else if (aggregate != null) {
