@@ -46,6 +46,23 @@ Vector<T> solveIterative<T>(
       'Iterative solvers only support real numeric types, got ${a.type}',
     );
   }
+  if (tolerance.isNaN || tolerance < 0.0) {
+    throw ArgumentError.value(
+      tolerance,
+      'tolerance',
+      'Tolerance must be non-negative and non-NaN',
+    );
+  }
+  if (maxIterations < 0) {
+    throw ArgumentError.value(
+      maxIterations,
+      'maxIterations',
+      'maxIterations must be non-negative',
+    );
+  }
+  if (restart <= 0) {
+    throw ArgumentError.value(restart, 'restart', 'restart must be positive');
+  }
   switch (method) {
     case IterativeMethod.conjugateGradient:
       return _conjugateGradient(
@@ -110,7 +127,7 @@ Vector<T> _conjugateGradient<T>(
   for (var i = 0; i < maxIterations; i++) {
     final ap = a.apply(direction);
     final pap = direction.dot(ap);
-    if (field.norm(pap) == 0.0) break;
+    if (!(field.norm(pap) > 0.0)) break;
     final alpha = field.div(rsOld, pap);
     x.addScaled(direction, alpha);
     residual.addScaled(ap, field.neg(alpha));

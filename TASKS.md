@@ -150,7 +150,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: `_checkSymmetry` checks `if (diff > 1e-12 && (maxVal == 0.0 || diff / maxVal > 1e-12))`, requiring BOTH absolute difference `> 1e-12` AND relative difference `> 1e-12`. For a skew-symmetric matrix with entries of magnitude `1e-13` (e.g., `[[0.0, 1e-13], [-1e-13, 0.0]]`), `diff = 2e-13 <= 1e-12`, so `_checkSymmetry` returns `true` and `EigenvalueDecomposition` returns real eigenvalues `[-1e-13, 1e-13]` instead of imaginary `[0 + 1e-13i, 0 - 1e-13i]`. Similarly, `CholeskyDecomposition._decomposeGeneric` (`line 180`) uses a fixed absolute tolerance `1e-6`.
   - **Fix**: Check `diff > 1e-12 * maxVal` ( purely relative to matrix norm `maxVal`), without an unconditional `1e-12` or `1e-6` absolute threshold.
 
-- [ ] **1.4.6 `solveIterative` (`_conjugateGradient`) runs all `maxIterations` when `pap` is `NaN` and lacks parameter validation**
+- [x] **1.4.6 `solveIterative` (`_conjugateGradient`) runs all `maxIterations` when `pap` is `NaN` and lacks parameter validation**
   - **Severity**: Warning
   - **Location**: `lib/src/linear/solvers/iterative.dart:43-68, 113`
   - **Problem**: Line 113 (`if (field.norm(pap) == 0.0) break;`) evaluates to `false` when `pap` is `NaN`, running all `maxIterations` steps with `NaN`. Also, `solveIterative` does not validate `tolerance >= 0 && !tolerance.isNaN`, `maxIterations >= 0`, or `restart > 0`.

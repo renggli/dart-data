@@ -255,6 +255,17 @@ void main() {
         ),
       ).throws<StateError>();
 
+      // Parameter validation
+      final eye = Matrix<double>.identity(2);
+      check(() => solveIterative(eye, b, tolerance: -1.0))
+          .throws<ArgumentError>();
+      check(() => solveIterative(eye, b, tolerance: double.nan))
+          .throws<ArgumentError>();
+      check(() => solveIterative(eye, b, maxIterations: -1))
+          .throws<ArgumentError>();
+      check(() => solveIterative(eye, b, restart: 0)).throws<ArgumentError>();
+      check(() => solveIterative(eye, b, restart: -5)).throws<ArgumentError>();
+
       check(DataType.int32.safeBits).equals(32);
       final emptyCoo = CooMatrix<double>.fromEntries(2, 2, const []);
       check(emptyCoo.nnz).equals(0);
