@@ -239,7 +239,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: In `_bdf2` (`lines 437-445`), when Newton iteration does not converge on a trial step (`!stepConverged`), it sets `allStepsConverged = false;` *before* halving `step` and retrying (`continue`). Even when the halved step converges cleanly and integration reaches `tEnd` within tolerance, `solveOde` returns `OdeSolution(..., converged: false)`. Additionally, the startup trapezoidal step (`lines 338-378`) does not halve `initialStep` if Newton fails to converge or LTE exceeds tolerance.
   - **Fix**: Only set `allStepsConverged = false` when `step.abs() <= minStep * (1.0 + 1e-12)` (when step-size reduction is exhausted and the solver breaks), and make the startup step adaptive.
 
-- [ ] **1.7.2 `integrate` with infinite bounds and finite `poles` outside `[a, b]` integrates outside the user's domain `[a, b]`**
+- [x] **1.7.2 `integrate` with infinite bounds and finite `poles` outside `[a, b]` integrates outside the user's domain `[a, b]`**
   - **Severity**: Critical
   - **Location**: `lib/src/numeric/integration/integration.dart:107-150`
   - **Problem**: At line 108, `final finitePoles = poles.where((p) => p.isFinite).toList()..sort();` does not filter `poles` to those inside `[min(a, b), max(a, b)]` (unlike line 153 for finite bounds). When integrating on `[0.0, double.infinity)` with `poles: [-5.0, 0.0]`, `pMax` is `0.0`, `pMin` is `-5.0`, and for `(a: -Infinity, b: 0)` with `poles: [5.0]`, `leftBound = pMin - 1.0 = 4.0 > b`, causing `integrate` to evaluate `function(x)` outside `[a, b]`.

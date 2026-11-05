@@ -180,6 +180,34 @@ void main() {
       // Exterior poles are ignored
       final extRes = integrate((x) => x, 0.0, 1.0, poles: [5.0, -2.0]);
       check(extRes).isCloseTo(0.5, 1e-8);
+
+      // Infinite domain with exterior poles outside [0, infinity)
+      double nonNegFunc(double x) {
+        if (x < 0.0) throw StateError('x must be non-negative: $x');
+        return math.exp(-x);
+      }
+
+      final infResPos = integrate(
+        nonNegFunc,
+        0.0,
+        double.infinity,
+        poles: [-5.0, -2.0],
+      );
+      check(infResPos).isCloseTo(1.0, 1e-4);
+
+      // Infinite domain with exterior poles outside (-infinity, 0]
+      double nonPosFunc(double x) {
+        if (x > 0.0) throw StateError('x must be non-positive: $x');
+        return math.exp(x);
+      }
+
+      final infResNeg = integrate(
+        nonPosFunc,
+        double.negativeInfinity,
+        0.0,
+        poles: [2.0, 5.0],
+      );
+      check(infResNeg).isCloseTo(1.0, 1e-4);
     });
 
     test('algebraic pole transformation converges accurately', () {

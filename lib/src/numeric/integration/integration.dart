@@ -105,12 +105,15 @@ double integrate(
   // Split off infinite bounds before processing interior poles on finite intervals
   if (a == double.negativeInfinity || b == double.infinity) {
     if (poles.isNotEmpty) {
-      final finitePoles = poles.where((p) => p.isFinite).toList()..sort();
+      final finitePoles =
+          poles.where((p) => p.isFinite && p >= a && p <= b).toList()..sort();
       if (finitePoles.isNotEmpty) {
         final pMin = finitePoles.first;
         final pMax = finitePoles.last;
-        final leftBound = a == double.negativeInfinity ? pMin - 1.0 : a;
-        final rightBound = b == double.infinity ? pMax + 1.0 : b;
+        final leftBound = a == double.negativeInfinity
+            ? math.min(b, pMin - 1.0)
+            : a;
+        final rightBound = b == double.infinity ? math.max(a, pMax + 1.0) : b;
         var sum = 0.0;
         if (a == double.negativeInfinity) {
           sum += integrate(
