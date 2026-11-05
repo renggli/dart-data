@@ -258,7 +258,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.8 `stats` Subsystem
 
-- [ ] **1.8.1 `shapiroWilkTest` uses unadjusted Shapiro-Francia weights and a corrupted Royston (1992) transformation for $4 \le n \le 11$**
+- [x] **1.8.1 `shapiroWilkTest` uses unadjusted Shapiro-Francia weights and a corrupted Royston (1992) transformation for $4 \le n \le 11$**
   - **Severity**: Critical
   - **Location**: `lib/src/stats/hypothesis/shapiro_wilk.dart:66-124`
   - **Problem**:

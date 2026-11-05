@@ -83,8 +83,34 @@ HypothesisTestResult shapiroWilkTest(
     a[1] = 0.0;
     a[2] = 1.0 / sqrt(2.0);
   } else {
-    for (var i = 0; i < n; i++) {
-      a[i] = m[i] / mNorm;
+    final u = 1.0 / sqrt(n);
+    final a1 = _poly(_c1, u) + m[n - 1] / mNorm;
+    if (n > 5) {
+      final a2 = _poly(_c2, u) + m[n - 2] / mNorm;
+      final fac = sqrt(
+        (mNormSq - 2.0 * m[n - 1] * m[n - 1] - 2.0 * m[n - 2] * m[n - 2]) /
+            (1.0 - 2.0 * a1 * a1 - 2.0 * a2 * a2),
+      );
+      a[n - 1] = a1;
+      a[0] = -a1;
+      a[n - 2] = a2;
+      a[1] = -a2;
+      for (var i = 2; i < n ~/ 2; i++) {
+        final val = m[n - 1 - i] / fac;
+        a[n - 1 - i] = val;
+        a[i] = -val;
+      }
+    } else {
+      final fac = sqrt(
+        (mNormSq - 2.0 * m[n - 1] * m[n - 1]) / (1.0 - 2.0 * a1 * a1),
+      );
+      a[n - 1] = a1;
+      a[0] = -a1;
+      for (var i = 1; i < n ~/ 2; i++) {
+        final val = m[n - 1 - i] / fac;
+        a[n - 1 - i] = val;
+        a[i] = -val;
+      }
     }
   }
 
@@ -93,32 +119,37 @@ HypothesisTestResult shapiroWilkTest(
   for (var i = 0; i < n; i++) {
     sumA += a[i] * list[i];
   }
-  final w = ((sumA * sumA) / ssTot).clamp(0.0, 1.0);
+  final rawW = (sumA * sumA) / ssTot;
+  final w = (1.0 - rawW).abs() <= 1e-12 ? 1.0 : rawW.clamp(0.0, 1.0);
 
   // p-value calculation via Royston's normalizing transformation
   final double pValue;
   if (n == 3) {
-    const piConst = pi;
-    final pVal = (6.0 / piConst) * (asin(sqrt(w)) - asin(sqrt(0.75)));
-    pValue = pVal.clamp(0.0, 1.0);
+    if (w >= 1.0) {
+      pValue = 1.0;
+    } else {
+      final pVal = (6.0 / pi) * (asin(sqrt(w)) - asin(sqrt(0.75)));
+      pValue = pVal.clamp(0.0, 1.0);
+    }
+  } else if (w >= 1.0) {
+    pValue = 1.0;
+  } else if (n <= 11) {
+    final gamma = _g[0] + _g[1] * n;
+    final log1MinusW = log(1.0 - w);
+    if (log1MinusW >= gamma) {
+      pValue = 0.0;
+    } else {
+      final y = -log(gamma - log1MinusW);
+      final mu = _poly(_c3, n.toDouble());
+      final sigma = exp(_poly(_c4, n.toDouble()));
+      final z = (y - mu) / sigma;
+      pValue = norm.survival(z).clamp(0.0, 1.0);
+    }
   } else {
     final y = log(1.0 - w);
     final logN = log(n.toDouble());
-    final double mu;
-    final double sigma;
-
-    if (n <= 11) {
-      mu = -2.273 + 0.459 * logN;
-      sigma = exp(0.544 - 0.3997 * logN);
-    } else {
-      mu =
-          -1.5861 -
-          0.31082 * logN -
-          0.083751 * logN * logN +
-          0.0038915 * logN * logN * logN;
-      sigma = exp(-0.4803 - 0.082676 * logN + 0.0030302 * logN * logN);
-    }
-
+    final mu = _poly(_c5, logN);
+    final sigma = exp(_poly(_c6, logN));
     final z = (y - mu) / sigma;
     pValue = norm.survival(z).clamp(0.0, 1.0);
   }
@@ -131,3 +162,19 @@ HypothesisTestResult shapiroWilkTest(
     alpha: alpha,
   );
 }
+
+double _poly(List<double> cc, double x) {
+  var p = x * cc.last;
+  for (var i = cc.length - 2; i >= 1; i--) {
+    p = (p + cc[i]) * x;
+  }
+  return cc[0] + p;
+}
+
+const _c1 = [0.0, 0.221157, -0.147981, -2.07119, 4.434685, -2.706056];
+const _c2 = [0.0, 0.042981, -0.293762, -1.752461, 5.682633, -3.582633];
+const _c3 = [0.544, -0.39978, 0.025054, -0.0006714];
+const _c4 = [1.3822, -0.77857, 0.062767, -0.0020322];
+const _c5 = [-1.5861, -0.31082, -0.083751, 0.0038915];
+const _c6 = [-0.4803, -0.082676, 0.0030302];
+const _g = [-2.273, 0.459];
