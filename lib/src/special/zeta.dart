@@ -32,6 +32,22 @@ double zeta(num s) {
 
   // Reflection formula for negative s
   if (sd < 0.0) {
+    if (sd < -100.0) {
+      final oneMinusS = 1.0 - sd;
+      final sinVal = sin(0.5 * pi * sd);
+      if (sinVal == 0.0) return 0.0;
+      final sign = sinVal > 0.0 ? 1.0 : -1.0;
+      final logMag =
+          sd * ln2 +
+          (sd - 1.0) * _lnPi +
+          log(sinVal.abs()) +
+          gammaLn(oneMinusS) +
+          log(zeta(oneMinusS));
+      if (logMag > 709.782712893384) {
+        return sign * double.infinity;
+      }
+      return sign * exp(logMag);
+    }
     final oneMinusS = 1.0 - sd;
     final term =
         pow(2.0, sd) *
@@ -83,3 +99,5 @@ double zeta(num s) {
   final denom = dn * (1.0 - pow(2.0, 1.0 - sd));
   return -sum / denom;
 }
+
+const _lnPi = 1.1447298858494002;

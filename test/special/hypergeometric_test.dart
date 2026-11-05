@@ -16,6 +16,9 @@ void main() {
       check(hypergeometric1F1(1, 2, double.negativeInfinity)).isNaN();
       // 1F1(1, 2, z) = (exp(z) - 1)/z. For z = -50, (exp(-50) - 1)/(-50) = 1/50 = 0.02
       check(hypergeometric1F1(1, 2, -50.0)).isCloseTo(0.02, 1e-12);
+      check(hypergeometric1F1(1, 2, -750.0)).isCloseTo(1.0 / 750.0, 1e-6);
+      check(hypergeometric1F1(1, 2, -1000.0)).isCloseTo(0.001, 1e-6);
+      check(hypergeometric1F1(2, 4, -800.0).isFinite).isTrue();
     });
 
     test('Gauss hypergeometric 2F1 standard cases', () {
@@ -46,6 +49,7 @@ void main() {
       const zNeg = -20.0;
       final expected = 2.0 * (-math.log(1.0 - zNeg) - zNeg) / (zNeg * zNeg);
       check(hypergeometric2F1(1, 2, 3, zNeg)).isCloseTo(expected, 1e-12);
+      check(hypergeometric2F1(1, 2, 3, double.negativeInfinity)).equals(0.0);
     });
 
     test('terminating polynomial cases for 1F1 and 2F1', () {

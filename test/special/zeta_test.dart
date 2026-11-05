@@ -23,6 +23,12 @@ void main() {
       check(zeta(-4)).isCloseTo(0.0, 1e-10);
       check(zeta(-5)).isCloseTo(-1.0 / 252.0, 1e-10);
       check(zeta(-6)).isCloseTo(0.0, 1e-10);
+
+      // s < -170 avoids overflow in gamma
+      check(zeta(-170)).equals(0.0);
+      check(zeta(-171).isFinite).isTrue();
+      check(zeta(-170.5).isFinite).isTrue();
+      check(zeta(-301).isInfinite).isTrue();
     });
 
     test('zeta edge cases', () {

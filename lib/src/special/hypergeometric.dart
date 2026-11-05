@@ -39,6 +39,25 @@ double hypergeometric1F1(num a, num b, num z) {
   }
   if (zd == 0.0) return 1.0;
   if (zd < 0.0) {
+    if (zd < -100.0) {
+      final bMinusA = bd - ad;
+      if (bMinusA <= 0.0 && bMinusA.roundToDouble() == bMinusA) {
+        if (zd <= -710.0) return 0.0;
+        return exp(zd) * hypergeometric1F1(bMinusA, bd, -zd);
+      }
+      // Asymptotic expansion for z -> -infinity:
+      // 1F1(a, b, z) ~ Gamma(b) / Gamma(b - a) * (-z)^(-a) * Sum_n (a)_n (1 + a - b)_n / (n! (-z)^n)
+      final invNegZ = 1.0 / (-zd);
+      var term = 1.0;
+      var sum = 1.0;
+      for (var n = 1; n <= 100; n++) {
+        term *= (ad + n - 1) * (1.0 + ad - bd + n - 1) * invNegZ / n;
+        sum += term;
+        if (term.abs() < 1e-15 * sum.abs()) break;
+      }
+      final gammaRatio = gamma(bd) / gamma(bMinusA);
+      return gammaRatio * pow(-zd, -ad) * sum;
+    }
     // Kummer's first transformation: 1F1(a, b, z) = exp(z) * 1F1(b - a, b, -z)
     return exp(zd) * hypergeometric1F1(bd - ad, bd, -zd);
   }
@@ -105,6 +124,17 @@ double hypergeometric2F1(num a, num b, num c, num z) {
     return double.nan;
   }
   if (zd < -0.5) {
+    if (zd == double.negativeInfinity) {
+      if (ad == 0.0 || bd == 0.0) return 1.0;
+      final f1 = hypergeometric2F1(ad, cd - bd, cd, 1.0);
+      if (ad > 0.0) {
+        return f1.isFinite ? 0.0 : double.nan;
+      } else {
+        return f1 == 0.0
+            ? 0.0
+            : (f1 > 0 ? double.infinity : double.negativeInfinity);
+      }
+    }
     final wVal = zd / (zd - 1.0);
     return pow(1.0 - zd, -ad) * hypergeometric2F1(ad, cd - bd, cd, wVal);
   }

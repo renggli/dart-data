@@ -201,7 +201,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: For `lambertW0(1e300)`, `wVal ≈ 684`, so `ew * w1` overflows to `Infinity` on iteration 0 and breaks out of the loop unrefined (leaving $10^{-3}$ relative error). For `lambertW1(-1e-320)`, `wVal < -736`, so `ew = exp(wVal)` underflows to `0.0` on iteration 0 and breaks unrefined.
   - **Fix**: When `!ew.isFinite || ew == 0.0` (or `wVal.abs() > 100.0`), refine $w + \ln|w| = \ln|z|$ in log-space via the overflow-free Halley/Newton update $r = w + \ln|w| - \ln|z|$, $\Delta w = \frac{r}{1 + 1/w}$.
 
-- [ ] **1.5.6 `hypergeometric1F1` returns `NaN` for large negative `z` ($z \le -710$), `hypergeometric2F1` returns `NaN` for `z = -Infinity`, and `zeta(s)` overflows for $s < -170$**
+- [x] **1.5.6 `hypergeometric1F1` returns `NaN` for large negative `z` ($z \le -710$), `hypergeometric2F1` returns `NaN` for `z = -Infinity`, and `zeta(s)` overflows for $s < -170$**
   - **Severity**: Warning
   - **Location**: `lib/src/special/hypergeometric.dart:41-44, 107-110`, `lib/src/special/zeta.dart:34-43`
   - **Problem**:
