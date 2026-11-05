@@ -418,4 +418,47 @@ void main() {
       },
     );
   });
+
+  group('Series.fromList explicit type and coercion', () {
+    test('coerces ints to double when type is float64', () {
+      final s = Series.fromList('x', [1, 2.5], type: DataType.float64);
+      check(s).isA<TypedSeries<double>>();
+      check(s.toList()).deepEquals([1.0, 2.5]);
+    });
+
+    test('supports NullableDataType without falling back to ObjectSeries', () {
+      final s1 = Series.fromList('x', [
+        1,
+        null,
+        2,
+      ], type: DataType.int32.nullable);
+      check(s1).isA<TypedSeries<int>>();
+      check(s1.toList()).deepEquals([1, null, 2]);
+
+      final s2 = Series<int?>.fromList('x', [
+        1,
+        2,
+      ], type: DataType.int32.nullable);
+      check(s2).isA<TypedSeries<int>>();
+      check(s2.toList()).deepEquals([1, 2]);
+
+      final s3 = Series<double?>.fromList('y', [
+        1,
+        null,
+        2.5,
+      ], type: DataType.float64.nullable);
+      check(s3).isA<TypedSeries<double>>();
+      check(s3.toList()).deepEquals([1.0, null, 2.5]);
+    });
+
+    test('coerces values for string and boolean series', () {
+      final sStr = Series.fromList('s', [123, 'abc'], type: DataType.string);
+      check(sStr).isA<StringSeries>();
+      check(sStr.toList()).deepEquals(['123', 'abc']);
+
+      final sBool = Series.fromList('b', [true, false], type: DataType.boolean);
+      check(sBool).isA<BoolSeries>();
+      check(sBool.toList()).deepEquals([true, false]);
+    });
+  });
 }

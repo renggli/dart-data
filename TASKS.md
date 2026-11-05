@@ -287,13 +287,13 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.9 `dataframe` Subsystem
 
-- [ ] **1.9.1 `Series.fromList` throws `TypeError` or degrades to `ObjectSeries` when `NullableDataType` or coercible values (e.g. `int` in `float64`) are passed with an explicit `type`**
+- [x] **1.9.1 `Series.fromList` throws `TypeError` or degrades to `ObjectSeries` when `NullableDataType` or coercible values (e.g. `int` in `float64`) are passed with an explicit `type`**
   - **Severity**: Critical
   - **Location**: `lib/src/dataframe/series.dart:35-81`
   - **Problem**:
     1. When `type` is a `NullableDataType` (e.g. `DataType.int32.nullable` or `DataType.float64.nullable`), `type is DataType<int>` / `type is DataType<double>` is `false` (because `DataType<int?>` is not a subtype of `DataType<int>`). `Series.fromList` either falls through to a boxed `ObjectSeries` (which then fails in `toArrowIpc` / `exportTo`) or, when `T` is statically `int`, crashes on `type as DataType<int>` at line 44.
     2. When `type: DataType.float64` is passed to `Series.fromList('x', [1, 2.5], type: DataType.float64)`, line 49 executes `list.map((element) => element as double?)`, throwing `TypeError: 1 is not a subtype of type 'double?'` before reaching `TypedSeries.fromList`'s `effectiveType.cast(val)`!
-  - **Fix**: Unwrap `final effectiveType = type is NullableDataType ? type.delegate : type;` at the top of `Series.fromList`, and coerce non-null elements via `effectiveType.cast(element)` instead of hard `as int?` / `as double?` / `as String?` / `as bool?` casts.
+  - **Fix**: Unwrap `final effectiveType = type is NullableDataType ? (type as NullableDataType).delegate : type;` at the top of `Series.fromList`, and coerce non-null elements via `effectiveType.cast(element)` instead of hard `as int?` / `as double?` / `as String?` / `as bool?` casts.
 
 - [ ] **1.9.2 `NaN` and `-0.0` key handling in `Series.unique()`, `Series.valueCounts()`, `DataFrame.dropDuplicates()`, `DataFrame.pivot()`, `GroupBy`, and `JoinMethod.sortMerge`**
   - **Severity**: Critical
