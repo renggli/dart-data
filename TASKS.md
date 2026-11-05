@@ -138,7 +138,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: When `pNorm == 2` and `t.strides[0] <= 0` (e.g., a flipped `Float64Vector`), line 169 executes `return math.sqrt(dot(this));` instead of delegating to `_vector.norm(pNorm)`. Because `dot(this)` computes unscaled `sum += v[i] * v[i]`, `Float64Vector.fromList([1e200, 1e200]).flipped.norm(2)` overflows to `Infinity`, whereas `_vector.norm(2)` uses Blue's scaled summation and returns `1.4142135623730951e200`.
   - **Fix**: Remove `return math.sqrt(dot(this));` (or pass `incX: t.strides[0].abs()` to `Blas.dnrm2` since Euclidean norm is order-independent).
 
-- [ ] **1.4.4 `QRDecomposition._decomposeGeneric` uses unscaled norm summation that overflows on large `Complex` matrices**
+- [x] **1.4.4 `QRDecomposition._decomposeGeneric` uses unscaled norm summation that overflows on large `Complex` matrices**
   - **Severity**: Warning
   - **Location**: `lib/src/linear/decomposition/qr.dart:293-300`
   - **Problem**: `_decomposeGeneric` computes `sumsq += norm * norm; final nrm = math.sqrt(sumsq);` without scaling (unlike `_decomposeFloat64` at lines 244–262). For `Matrix<Complex>` with entries around `1e200`, `sumsq` overflows to `Infinity`, causing `tau = (Infinity + normXk) / Infinity = NaN`.

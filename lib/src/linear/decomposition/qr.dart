@@ -291,12 +291,24 @@ class QRDecomposition<T> {
     final zero = field.additiveIdentity;
 
     for (var k = 0; k < _n; k++) {
-      var sumsq = 0.0;
+      var scale = 0.0;
+      var sumsq = 1.0;
       for (var i = k; i < _m; i++) {
         final norm = field.norm(_qr.getUnchecked(i, k));
-        sumsq += norm * norm;
+        if (norm != 0.0) {
+          if (norm.isNaN) {
+            scale = double.nan;
+          } else if (norm.isInfinite) {
+            if (!scale.isNaN) scale = double.infinity;
+          } else if (scale < norm) {
+            sumsq = 1.0 + sumsq * (scale / norm) * (scale / norm);
+            scale = norm;
+          } else if (scale.isFinite) {
+            sumsq += (norm / scale) * (norm / scale);
+          }
+        }
       }
-      final nrm = math.sqrt(sumsq);
+      final nrm = scale * math.sqrt(sumsq);
 
       if (nrm != 0.0) {
         final xk = _qr.getUnchecked(k, k);

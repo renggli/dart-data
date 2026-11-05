@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:more/number.dart';
@@ -89,7 +90,7 @@ final class ComplexField extends ExtendedField<Complex> {
   Complex get multiplicativeIdentity => Complex.one;
 
   @override
-  Complex inv(Complex a) => a.reciprocal();
+  Complex inv(Complex a) => div(Complex.one, a);
 
   @override
   Complex mul(Complex a, Complex b) => a * b;
@@ -98,16 +99,43 @@ final class ComplexField extends ExtendedField<Complex> {
   Complex scale(Complex a, num factor) => a * factor;
 
   @override
-  Complex div(Complex a, Complex b) => a / b;
+  Complex div(Complex a, Complex b) {
+    if (b.b == 0.0) {
+      return Complex(a.a / b.a, a.b / b.a);
+    }
+    final absBr = b.a.abs();
+    final absBi = b.b.abs();
+    if (absBr >= absBi) {
+      final ratio = b.b / b.a;
+      final denom = b.a + b.b * ratio;
+      return Complex((a.a + a.b * ratio) / denom, (a.b - a.a * ratio) / denom);
+    } else {
+      final ratio = b.a / b.b;
+      final denom = b.a * ratio + b.b;
+      return Complex((a.a * ratio + a.b) / denom, (a.b * ratio - a.a) / denom);
+    }
+  }
 
   @override
   Complex pow(Complex base, Complex exponent) => base.pow(exponent);
 
   @override
-  Complex abs(Complex a) => Complex(a.abs());
+  Complex abs(Complex a) => Complex(norm(a));
 
   @override
-  double norm(Complex a) => a.abs();
+  double norm(Complex a) {
+    final absA = a.a.abs();
+    final absB = a.b.abs();
+    if (absA > absB) {
+      final r = a.b / a.a;
+      return absA * math.sqrt(1.0 + r * r);
+    } else if (absB == 0.0) {
+      return 0.0;
+    } else {
+      final r = a.a / a.b;
+      return absB * math.sqrt(1.0 + r * r);
+    }
+  }
 
   @override
   Complex sqrt(Complex a) => a.sqrt();

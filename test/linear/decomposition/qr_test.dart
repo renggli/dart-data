@@ -297,6 +297,31 @@ void main() {
       check(() => qr.solveVector(b)).throws<StateError>();
     });
 
+    test('decomposition does not overflow on large Complex matrix', () {
+      final a = Matrix<Complex>.fromRows([
+        [const Complex(1e200, 0.0), const Complex(0.0, 1e200)],
+        [const Complex(1e200, 0.0), const Complex(1e200, 0.0)],
+      ], type: DataType.complex);
+      final qr = a.qr;
+      check(qr.isFullRank).isTrue();
+
+      final q = qr.q;
+      final r = qr.r;
+      check(q.get(0, 0).a.isNaN).isFalse();
+      check(q.get(0, 0).b.isNaN).isFalse();
+      check(r.get(0, 0).a.isNaN).isFalse();
+      check(r.get(0, 0).b.isNaN).isFalse();
+
+      // Q must be unitary: Q^H * Q == I
+      final qHq = q.conjugateTranspose * q;
+      for (var i = 0; i < 2; i++) {
+        for (var j = 0; j < 2; j++) {
+          final expected = i == j ? Complex.one : Complex.zero;
+          check(qHq.get(i, j)).isCloseTo(expected, 1e-6);
+        }
+      }
+    });
+
     test('NaN and Infinity columns are not full rank', () {
       final nanMat = Matrix<double>.fromRows([
         [double.nan, 1.0],

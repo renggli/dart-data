@@ -62,6 +62,16 @@ void main() {
           .equals(const Complex(4, 0));
       check(field.abs(const Complex(3, 4))).equals(const Complex(5, 0));
       check(field.norm(const Complex(3, 4))).equals(5.0);
+      check(field.norm(const Complex(1e200, 0.0))).equals(1e200);
+      check(field.norm(const Complex(0.0, 1e200))).equals(1e200);
+      check(field.abs(const Complex(1e200, 0.0)))
+          .equals(const Complex(1e200, 0.0));
+      check(field.div(const Complex(1e200, 0.0), const Complex(1e200, 0.0)))
+          .equals(const Complex(1.0, 0.0));
+      check(field.div(const Complex(0.0, 1e200), const Complex(1e200, 0.0)))
+          .equals(const Complex(0.0, 1.0));
+      check(field.inv(const Complex(1e200, 0.0)))
+          .equals(const Complex(1e-200, 0.0));
       check(field.conjugate(const Complex(2, 3))).equals(const Complex(2, -3));
       check(field.sqrt(const Complex(4, 0))).equals(const Complex(2, 0));
       check(field.exp(Complex.zero)).equals(const Complex(1, 0));
