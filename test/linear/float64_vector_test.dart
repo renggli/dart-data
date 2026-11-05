@@ -232,5 +232,20 @@ void main() {
         check(targetCumprod.toList()).deepEquals([42.0, 42.0, 42.0]);
       },
     );
+
+    test('normalized and cross product', () {
+      final v = Float64Vector.fromList([3.0, 4.0, 0.0]);
+      final normV = v.normalized();
+      check(normV).isA<Float64Vector>();
+      check(normV.norm()).isCloseTo(1.0, 1e-10);
+      check(normV[0]).isCloseTo(0.6, 1e-10);
+      check(normV[1]).isCloseTo(0.8, 1e-10);
+
+      final u = Float64Vector.fromList([1.0, 0.0, 0.0]);
+      final w = Float64Vector.fromList([0.0, 1.0, 0.0]);
+      final crossProd = u.cross(w);
+      check(crossProd).isA<Float64Vector>();
+      check(crossProd.asTypedList).deepEquals([0.0, 0.0, 1.0]);
+    });
   });
 }

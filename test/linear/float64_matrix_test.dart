@@ -327,5 +327,30 @@ void main() {
         ]);
       },
     );
+
+    test('kronecker and pseudoinverse', () {
+      final a = Float64Matrix.fromList(2, 2, [1.0, 2.0, 3.0, 4.0]);
+      final b = Float64Matrix.fromList(2, 2, [0.0, 5.0, 6.0, 7.0]);
+      final kron = a.kronecker(b);
+      check(kron).isA<Float64Matrix>();
+      check(kron.rowCount).equals(4);
+      check(kron.colCount).equals(4);
+      check(kron.toNestedList()).deepEquals([
+        [0.0, 5.0, 0.0, 10.0],
+        [6.0, 7.0, 12.0, 14.0],
+        [0.0, 15.0, 0.0, 20.0],
+        [18.0, 21.0, 24.0, 28.0],
+      ]);
+
+      final pinv = a.pseudoinverse();
+      check(pinv).isA<Float64Matrix>();
+      final prod = a * pinv;
+      check(
+        prod.isClose(
+          Float64Matrix.fromList(2, 2, [1.0, 0.0, 0.0, 1.0]),
+          epsilon: 1e-10,
+        ),
+      ).isTrue();
+    });
   });
 }

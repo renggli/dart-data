@@ -311,6 +311,61 @@ void main() {
       ).throws<ArgumentError>();
     });
   });
+
+  group('CsrMatrix algebra', () {
+    test('transposed, scale, +, -, ==, hashCode, and toString', () {
+      final a = CooMatrix<double>.fromEntries(2, 3, [
+        (0, 0, 1.0),
+        (0, 2, 2.0),
+        (1, 1, 3.0),
+      ]).toCsr();
+
+      final at = a.transposed;
+      check(at.rowCount).equals(3);
+      check(at.colCount).equals(2);
+      check(at.get(0, 0)).equals(1.0);
+      check(at.get(2, 0)).equals(2.0);
+      check(at.get(1, 1)).equals(3.0);
+      check(at.transposed == a).isTrue();
+
+      final scaled = a.scale(2.0);
+      check(scaled.get(0, 0)).equals(2.0);
+      check(scaled.get(0, 2)).equals(4.0);
+      check(scaled.get(1, 1)).equals(6.0);
+
+      final b = CooMatrix<double>.fromEntries(2, 3, [
+        (0, 0, 10.0),
+        (1, 1, -3.0),
+        (1, 2, 5.0),
+      ]).toCsr();
+
+      final sum = a + b;
+      check(sum.rowCount).equals(2);
+      check(sum.colCount).equals(3);
+      check(sum.get(0, 0)).equals(11.0);
+      check(sum.get(1, 1)).equals(0.0);
+      check(sum.get(1, 2)).equals(5.0);
+
+      final diff = a - b;
+      check(diff.get(0, 0)).equals(-9.0);
+      check(diff.get(1, 1)).equals(6.0);
+
+      final badDim = CooMatrix<double>.fromEntries(3, 2, []).toCsr();
+      check(() => a + badDim).throws<ArgumentError>();
+      check(() => a - badDim).throws<ArgumentError>();
+
+      final a2 = CooMatrix<double>.fromEntries(2, 3, [
+        (0, 2, 2.0),
+        (1, 1, 3.0),
+        (0, 0, 1.0),
+      ]).toCsr();
+      check(a == a2).isTrue();
+      check(a.hashCode).equals(a2.hashCode);
+      check(a == b).isFalse();
+
+      check(a.toString()).contains('CsrMatrix<double>(2 x 3, nnz: 3)');
+    });
+  });
 }
 
 class _CustomScaleOperator implements LinearOperator<double> {

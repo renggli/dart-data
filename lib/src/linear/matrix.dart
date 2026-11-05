@@ -596,6 +596,45 @@ class Matrix<T> implements LinearOperator<T> {
   /// Element-wise Hadamard product.
   Matrix<T> hadamard(Matrix<T> other) => Matrix(tensor * other.tensor);
 
+  /// Computes the Kronecker product $A \otimes B$ with [other].
+  ///
+  /// Conceptually, the Kronecker product replaces each element $a_{i,j}$ of
+  /// this matrix with the block $a_{i,j} B$. If this matrix is $m \times n$ and
+  /// [other] is $p \times q$, the resulting matrix has size
+  /// $(m \cdot p) \times (n \cdot q)$.
+  Matrix<T> kronecker(Matrix<T> other) {
+    final m = rowCount;
+    final n = colCount;
+    final p = other.rowCount;
+    final q = other.colCount;
+    final outRows = m * p;
+    final outCols = n * q;
+    final field = type.field;
+    final res = Matrix<T>.filled(
+      outRows,
+      outCols,
+      field.additiveIdentity,
+      type: type,
+    );
+    for (var i = 0; i < m; i++) {
+      final rowOffset = i * p;
+      for (var j = 0; j < n; j++) {
+        final aVal = getUnchecked(i, j);
+        final colOffset = j * q;
+        for (var k = 0; k < p; k++) {
+          for (var l = 0; l < q; l++) {
+            res.setUnchecked(
+              rowOffset + k,
+              colOffset + l,
+              field.mul(aVal, other.getUnchecked(k, l)),
+            );
+          }
+        }
+      }
+    }
+    return res;
+  }
+
   /// Computes matrix multiplication (or operator composition) A * B.
   Matrix<T> operator *(Matrix<T> other) => matmul(other) as Matrix<T>;
 
@@ -910,6 +949,11 @@ class Matrix<T> implements LinearOperator<T> {
     rowCount,
     (row) => List<T>.generate(colCount, (col) => getUnchecked(row, col)),
   );
+
+  /// Returns whether this matrix is element-wise close to [other] within
+  /// absolute tolerance [epsilon].
+  bool isClose(Matrix<Object?> other, {double epsilon = 1e-9}) =>
+      tensor.isClose(other.tensor, epsilon: epsilon);
 
   @override
   String toString() => 'Matrix($rowCount x $colCount, ${toNestedList()})';

@@ -1388,4 +1388,86 @@ void main() {
       check(ratSyrk[0][0]).equals(Fraction.one);
     });
   });
+
+  group('Matrix.kronecker, pseudoinverse, and isClose', () {
+    test('isClose compares element-wise with tolerance', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final b = Matrix<double>.fromRows([
+        [1.0000000001, 1.9999999999],
+        [3.0, 4.0],
+      ]);
+      final c = Matrix<double>.fromRows([
+        [1.1, 2.0],
+        [3.0, 4.0],
+      ]);
+      final diffDim = Matrix<double>.filled(2, 3, 1.0);
+
+      check(a.isClose(b)).isTrue();
+      check(a.isClose(c)).isFalse();
+      check(a.isClose(c, epsilon: 0.2)).isTrue();
+      check(a.isClose(diffDim)).isFalse();
+    });
+
+    test('kronecker product computes block multiplication', () {
+      final a = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+      final b = Matrix<int>.fromRows([
+        [0, 5],
+        [6, 7],
+      ]);
+      final kron = a.kronecker(b);
+      check(kron.rowCount).equals(4);
+      check(kron.colCount).equals(4);
+      check(kron.toNestedList()).deepEquals([
+        [0, 5, 0, 10],
+        [6, 7, 12, 14],
+        [0, 15, 0, 20],
+        [18, 21, 24, 28],
+      ]);
+    });
+
+    test('pseudoinverse satisfies Moore-Penrose conditions', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+        [5.0, 6.0],
+      ]);
+      final pinv = a.pseudoinverse();
+      check(pinv.rowCount).equals(2);
+      check(pinv.colCount).equals(3);
+
+      // Condition 1: A * A^+ * A = A
+      final cond1 = a * pinv * a;
+      check(cond1.isClose(a, epsilon: 1e-10)).isTrue();
+
+      // Condition 2: A^+ * A * A^+ = A^+
+      final cond2 = pinv * a * pinv;
+      check(cond2.isClose(pinv, epsilon: 1e-10)).isTrue();
+
+      // Condition 3: (A * A^+)^T = A * A^+
+      final aPinv = a * pinv;
+      check(aPinv.transposed.isClose(aPinv, epsilon: 1e-10)).isTrue();
+
+      // Condition 4: (A^+ * A)^T = A^+ * A
+      final pinvA = pinv * a;
+      check(pinvA.transposed.isClose(pinvA, epsilon: 1e-10)).isTrue();
+
+      // Square invertible matrix: pinv == inverse
+      final sq = Matrix<double>.fromRows([
+        [4.0, 7.0],
+        [2.0, 6.0],
+      ]);
+      check(sq.pseudoinverse().isClose(sq.inverse, epsilon: 1e-10)).isTrue();
+
+      // Empty matrix
+      final empty = Matrix<double>.filled(0, 0, 0.0);
+      check(empty.pseudoinverse().rowCount).equals(0);
+      check(empty.pseudoinverse().colCount).equals(0);
+    });
+  });
 }

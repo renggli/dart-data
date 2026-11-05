@@ -350,6 +350,15 @@ extension type Float64Vector._(Vector<double> _vector)
     return Float64Vector._(-_vector);
   }
 
+  /// Returns the unit vector in the same direction.
+  @redeclare
+  Float64Vector normalized() => Float64Vector._(_vector.normalized());
+
+  /// Computes the 3-dimensional vector cross product $u \times v$ with [other].
+  @redeclare
+  Float64Vector cross(Vector<double> other) =>
+      Float64Vector._(_vector.cross(other));
+
   /// Inlined vector scaling.
   @redeclare
   Float64Vector scale(double scalar) {
@@ -373,10 +382,6 @@ extension type Float64Vector._(Vector<double> _vector)
     }
     return Float64Vector._(_vector.scale(scalar));
   }
-
-  /// Returns the unit vector in the same direction as [Float64Vector].
-  @redeclare
-  Float64Vector normalized() => Float64Vector._(_vector.normalized());
 
   /// Creates a deep contiguous copy of this vector as [Float64Vector].
   @redeclare

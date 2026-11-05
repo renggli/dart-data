@@ -518,6 +518,11 @@ class Vector<T> {
   /// Returns a flat list of elements.
   List<T> toList() => tensor.toFlatList();
 
+  /// Returns whether this vector is element-wise close to [other] within
+  /// absolute tolerance [epsilon].
+  bool isClose(Vector<Object?> other, {double epsilon = 1e-9}) =>
+      tensor.isClose(other.tensor, epsilon: epsilon);
+
   @override
   String toString() => 'Vector(${toList()})';
 

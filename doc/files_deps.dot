@@ -355,6 +355,7 @@ digraph {
   24 -> 1 [color="#888888", arrowsize="0.7"];
   24 -> 204 [color="#888888", arrowsize="0.7"];
   24 -> 20 [color="#888888", arrowsize="0.7"];
+  24 -> 23 [color="#888888", arrowsize="0.7"];
   24 -> 25 [color="#888888", arrowsize="0.7"];
   24 -> 26 [color="#888888", arrowsize="0.7"];
   24 -> 34 [color="#888888", arrowsize="0.7"];

@@ -15,6 +15,10 @@ extension SvdMatrixExtension<T extends num> on Matrix<T> {
   SingularValueDecomposition get svd =>
       SingularValueDecomposition(_toDoubleMatrix());
 
+  /// Computes the Moore-Penrose pseudoinverse $A^+$ of this matrix using SVD.
+  Matrix<double> pseudoinverse({double rcond = 1e-15}) =>
+      svd.pseudoinverse(rcond: rcond);
+
   Matrix<double> _toDoubleMatrix() => this is Matrix<double>
       ? this as Matrix<double>
       : Matrix<double>.generate(
@@ -317,6 +321,39 @@ class SingularValueDecomposition {
       }
     }
 
+    return result;
+  }
+
+  /// Computes the Moore-Penrose pseudoinverse $A^+$ of size $n \times m$.
+  Matrix<double> pseudoinverse({double rcond = 1e-15}) {
+    if (!vectorsComputed) {
+      throw StateError('Singular vectors were not computed.');
+    }
+    final m = _rowCount;
+    final n = _colCount;
+    final result = Matrix<double>.filled(n, m, 0.0, type: DataType.float64);
+    final k = s.length;
+    if (k == 0) return result;
+    final maxS = s[0].abs();
+    if (maxS == 0.0 || !maxS.isFinite) return result;
+    final tol = rcond * maxS;
+
+    for (var i = 0; i < k; i++) {
+      final sVal = s[i];
+      if (sVal.abs() > tol) {
+        final invS = 1.0 / sVal;
+        for (var r = 0; r < n; r++) {
+          final vVal = vt.getUnchecked(i, r) * invS;
+          for (var c = 0; c < m; c++) {
+            result.setUnchecked(
+              r,
+              c,
+              result.getUnchecked(r, c) + vVal * u.getUnchecked(c, i),
+            );
+          }
+        }
+      }
+    }
     return result;
   }
 }

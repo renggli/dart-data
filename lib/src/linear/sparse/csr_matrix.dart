@@ -231,6 +231,208 @@ class CsrMatrix<T> implements LinearOperator<T> {
     }
   }
 
+  /// Returns the transposed sparse matrix.
+  CsrMatrix<T> get transposed => toCoo().transposed.toCsr();
+
+  /// Scales every element by [scalar].
+  CsrMatrix<T> scale(T scalar) {
+    final field = type.field;
+    final newValues = type.newList(values.length);
+    for (var i = 0; i < values.length; i++) {
+      newValues[i] = field.mul(values[i], scalar);
+    }
+    return CsrMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowPointers: List<int>.of(rowPointers, growable: false),
+      colIndices: List<int>.of(colIndices, growable: false),
+      values: newValues,
+      type: type,
+    );
+  }
+
+  /// Adds [other] sparse matrix to this matrix.
+  CsrMatrix<T> operator +(CsrMatrix<T> other) {
+    if (rowCount != other.rowCount || colCount != other.colCount) {
+      throw ArgumentError(
+        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
+      );
+    }
+    final field = type.field;
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
+    final newRowPointers = List<int>.filled(rowCount + 1, 0);
+    final newCols = <int>[];
+    final newVals = <T>[];
+
+    for (var r = 0; r < rowCount; r++) {
+      var p1 = rowPointers[r];
+      final end1 = rowPointers[r + 1];
+      var p2 = other.rowPointers[r];
+      final end2 = other.rowPointers[r + 1];
+
+      while (p1 < end1 && p2 < end2) {
+        final c1 = colIndices[p1];
+        final c2 = other.colIndices[p2];
+        if (c1 < c2) {
+          newCols.add(c1);
+          newVals.add(values[p1]);
+          p1++;
+        } else if (c2 < c1) {
+          newCols.add(c2);
+          newVals.add(other.values[p2]);
+          p2++;
+        } else {
+          final sum = field.add(values[p1], other.values[p2]);
+          if (!equality.isEqual(sum, zero)) {
+            newCols.add(c1);
+            newVals.add(sum);
+          }
+          p1++;
+          p2++;
+        }
+      }
+      while (p1 < end1) {
+        newCols.add(colIndices[p1]);
+        newVals.add(values[p1]);
+        p1++;
+      }
+      while (p2 < end2) {
+        newCols.add(other.colIndices[p2]);
+        newVals.add(other.values[p2]);
+        p2++;
+      }
+      newRowPointers[r + 1] = newCols.length;
+    }
+
+    final valList = type.newList(newVals.length);
+    for (var i = 0; i < newVals.length; i++) {
+      valList[i] = newVals[i];
+    }
+
+    return CsrMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowPointers: newRowPointers,
+      colIndices: List<int>.of(newCols, growable: false),
+      values: valList,
+      type: type,
+    );
+  }
+
+  /// Subtracts [other] sparse matrix from this matrix.
+  CsrMatrix<T> operator -(CsrMatrix<T> other) {
+    if (rowCount != other.rowCount || colCount != other.colCount) {
+      throw ArgumentError(
+        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
+      );
+    }
+    final field = type.field;
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
+    final newRowPointers = List<int>.filled(rowCount + 1, 0);
+    final newCols = <int>[];
+    final newVals = <T>[];
+
+    for (var r = 0; r < rowCount; r++) {
+      var p1 = rowPointers[r];
+      final end1 = rowPointers[r + 1];
+      var p2 = other.rowPointers[r];
+      final end2 = other.rowPointers[r + 1];
+
+      while (p1 < end1 && p2 < end2) {
+        final c1 = colIndices[p1];
+        final c2 = other.colIndices[p2];
+        if (c1 < c2) {
+          newCols.add(c1);
+          newVals.add(values[p1]);
+          p1++;
+        } else if (c2 < c1) {
+          newCols.add(c2);
+          newVals.add(field.neg(other.values[p2]));
+          p2++;
+        } else {
+          final diff = field.sub(values[p1], other.values[p2]);
+          if (!equality.isEqual(diff, zero)) {
+            newCols.add(c1);
+            newVals.add(diff);
+          }
+          p1++;
+          p2++;
+        }
+      }
+      while (p1 < end1) {
+        newCols.add(colIndices[p1]);
+        newVals.add(values[p1]);
+        p1++;
+      }
+      while (p2 < end2) {
+        newCols.add(other.colIndices[p2]);
+        newVals.add(field.neg(other.values[p2]));
+        p2++;
+      }
+      newRowPointers[r + 1] = newCols.length;
+    }
+
+    final valList = type.newList(newVals.length);
+    for (var i = 0; i < newVals.length; i++) {
+      valList[i] = newVals[i];
+    }
+
+    return CsrMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowPointers: newRowPointers,
+      colIndices: List<int>.of(newCols, growable: false),
+      values: valList,
+      type: type,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CsrMatrix ||
+        rowCount != other.rowCount ||
+        colCount != other.colCount) {
+      return false;
+    }
+    if (nnz == other.nnz) {
+      var exactMatch = true;
+      for (var i = 0; i <= rowCount; i++) {
+        if (rowPointers[i] != other.rowPointers[i]) {
+          exactMatch = false;
+          break;
+        }
+      }
+      if (exactMatch) {
+        for (var i = 0; i < nnz; i++) {
+          final otherVal = other.values[i];
+          if (colIndices[i] != other.colIndices[i] ||
+              otherVal is! T ||
+              !type.equality.isEqual(values[i], otherVal)) {
+            exactMatch = false;
+            break;
+          }
+        }
+        if (exactMatch) return true;
+      }
+    }
+    return toDense() == other.toDense();
+  }
+
+  @override
+  int get hashCode {
+    var hash = Object.hash(rowCount, colCount);
+    for (var i = 0; i < nnz; i++) {
+      hash = Object.hash(hash, colIndices[i], type.equality.hash(values[i]));
+    }
+    return hash;
+  }
+
+  @override
+  String toString() => 'CsrMatrix<$T>($rowCount x $colCount, nnz: $nnz)';
+
   /// Converts this CSR matrix to Coordinate (COO) format.
   CooMatrix<T> toCoo() {
     final rIdx = List<int>.filled(nnz, 0);

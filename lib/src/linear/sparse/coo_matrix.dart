@@ -212,6 +212,86 @@ class CooMatrix<T> implements LinearOperator<T> {
     return res;
   }
 
+  /// Returns the transposed sparse matrix.
+  CooMatrix<T> get transposed => CooMatrix(
+    rowCount: colCount,
+    colCount: rowCount,
+    rowIndices: List<int>.of(colIndices, growable: false),
+    colIndices: List<int>.of(rowIndices, growable: false),
+    values: type.copyList(values),
+    type: type,
+  );
+
+  /// Scales every element by [scalar].
+  CooMatrix<T> scale(T scalar) {
+    final field = type.field;
+    final newValues = type.newList(values.length);
+    for (var i = 0; i < values.length; i++) {
+      newValues[i] = field.mul(values[i], scalar);
+    }
+    return CooMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowIndices: List<int>.of(rowIndices, growable: false),
+      colIndices: List<int>.of(colIndices, growable: false),
+      values: newValues,
+      type: type,
+    );
+  }
+
+  /// Adds [other] sparse matrix to this matrix.
+  CooMatrix<T> operator +(CooMatrix<T> other) {
+    if (rowCount != other.rowCount || colCount != other.colCount) {
+      throw ArgumentError(
+        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
+      );
+    }
+    return CooMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowIndices: [...rowIndices, ...other.rowIndices],
+      colIndices: [...colIndices, ...other.colIndices],
+      values: [...values, ...other.values],
+      type: type,
+    );
+  }
+
+  /// Subtracts [other] sparse matrix from this matrix.
+  CooMatrix<T> operator -(CooMatrix<T> other) {
+    if (rowCount != other.rowCount || colCount != other.colCount) {
+      throw ArgumentError(
+        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
+      );
+    }
+    final field = type.field;
+    final negatedOtherValues = [for (final v in other.values) field.neg(v)];
+    return CooMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowIndices: [...rowIndices, ...other.rowIndices],
+      colIndices: [...colIndices, ...other.colIndices],
+      values: [...values, ...negatedOtherValues],
+      type: type,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CooMatrix ||
+        rowCount != other.rowCount ||
+        colCount != other.colCount) {
+      return false;
+    }
+    return toCsr() == other.toCsr();
+  }
+
+  @override
+  int get hashCode => toCsr().hashCode;
+
+  @override
+  String toString() => 'CooMatrix<$T>($rowCount x $colCount, nnz: $nnz)';
+
   @override
   LinearOperator<T> matmul(LinearOperator<T> other) => toCsr().matmul(other);
 

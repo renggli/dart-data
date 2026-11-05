@@ -742,7 +742,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
 
 ## 6. Missing Features
 
-- [ ] **6.1 `linear` & `tensor`: `isClose`, `Vector.normalized`, `Vector.cross`, `Matrix.kronecker`, `Matrix.pseudoinverse`, and sparse matrix algebra**
+- [x] **6.1 `linear` & `tensor`: `isClose`, `Vector.normalized`, `Vector.cross`, `Matrix.kronecker`, `Matrix.pseudoinverse`, and sparse matrix algebra**
   - **Severity**: Suggestion
   - **Location**: `lib/src/tensor/`, `lib/src/linear/`, `lib/src/linear/sparse/`
   - **Problem**:

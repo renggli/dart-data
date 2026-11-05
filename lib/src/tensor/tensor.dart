@@ -365,6 +365,23 @@ class Tensor<T> {
     return unaryOperation<T>((value) => value, target: out, type: type);
   }
 
+  /// Returns whether this tensor is element-wise close to [other] within
+  /// absolute tolerance [epsilon].
+  bool isClose(Tensor<Object?> other, {double epsilon = 1e-9}) {
+    if (identical(this, other)) return true;
+    if (!areShapesEqual(layout.shape, other.layout.shape)) return false;
+    if (length == 0) return true;
+    final it1 = values.iterator;
+    final it2 = other.values.iterator;
+    while (it1.moveNext() && it2.moveNext()) {
+      final v2 = it2.current;
+      if (v2 is! T || !type.equality.isClose(it1.current, v2, epsilon)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;

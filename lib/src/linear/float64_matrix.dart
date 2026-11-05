@@ -8,6 +8,7 @@ import '../tensor/tensor.dart';
 import '../type/data_type.dart';
 import '../type/utils/memory.dart';
 import 'decomposition/lu.dart';
+import 'decomposition/svd.dart';
 import 'float64_vector.dart';
 import 'matrix.dart';
 import 'vector.dart';
@@ -470,6 +471,15 @@ extension type Float64Matrix._(Matrix<double> _matrix)
   @redeclare
   Float64Matrix hadamard(Matrix<double> other) =>
       Float64Matrix._(_matrix.hadamard(other));
+
+  /// Computes the Kronecker product $A \otimes B$ with [other] as [Float64Matrix].
+  @redeclare
+  Float64Matrix kronecker(Matrix<double> other) =>
+      Float64Matrix._(_matrix.kronecker(other));
+
+  /// Computes the Moore-Penrose pseudoinverse $A^+$ using SVD as [Float64Matrix].
+  Float64Matrix pseudoinverse({double rcond = 1e-15}) =>
+      Float64Matrix._(_matrix.pseudoinverse(rcond: rcond));
 
   /// Horizontally flipped view of this matrix as [Float64Matrix].
   @redeclare

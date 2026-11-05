@@ -934,6 +934,28 @@ void main() {
       check(t1 == t3).isFalse();
       check(t1.hashCode).equals(t2.hashCode);
     });
+
+    test('Tensor.isClose compares element-wise with tolerance', () {
+      final t1 = Tensor<double>.fromIterable([1.0, 2.0, 3.0], shape: [3]);
+      final t2 = Tensor<double>.fromIterable(
+        [1.0000000001, 1.9999999999, 3.0],
+        shape: [3],
+      );
+      final t3 = Tensor<double>.fromIterable([1.1, 2.0, 3.0], shape: [3]);
+      final tDiffShape = Tensor<double>.fromIterable(
+        [1.0, 2.0, 3.0],
+        shape: [3, 1],
+      );
+      final empty1 = Tensor<double>.fromIterable([]);
+      final empty2 = Tensor<double>.fromIterable([]);
+
+      check(t1.isClose(t1)).isTrue();
+      check(t1.isClose(t2)).isTrue();
+      check(t1.isClose(t3)).isFalse();
+      check(t1.isClose(t3, epsilon: 0.2)).isTrue();
+      check(t1.isClose(tDiffShape)).isFalse();
+      check(empty1.isClose(empty2)).isTrue();
+    });
   });
 }
 

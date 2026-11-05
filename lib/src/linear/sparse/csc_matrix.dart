@@ -229,6 +229,208 @@ class CscMatrix<T> implements LinearOperator<T> {
   @override
   LinearOperator<T> matmul(LinearOperator<T> other) => toCsr().matmul(other);
 
+  /// Returns the transposed sparse matrix.
+  CscMatrix<T> get transposed => toCoo().transposed.toCsc();
+
+  /// Scales every element by [scalar].
+  CscMatrix<T> scale(T scalar) {
+    final field = type.field;
+    final newValues = type.newList(values.length);
+    for (var i = 0; i < values.length; i++) {
+      newValues[i] = field.mul(values[i], scalar);
+    }
+    return CscMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      colPointers: List<int>.of(colPointers, growable: false),
+      rowIndices: List<int>.of(rowIndices, growable: false),
+      values: newValues,
+      type: type,
+    );
+  }
+
+  /// Adds [other] sparse matrix to this matrix.
+  CscMatrix<T> operator +(CscMatrix<T> other) {
+    if (rowCount != other.rowCount || colCount != other.colCount) {
+      throw ArgumentError(
+        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
+      );
+    }
+    final field = type.field;
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
+    final newColPointers = List<int>.filled(colCount + 1, 0);
+    final newRows = <int>[];
+    final newVals = <T>[];
+
+    for (var c = 0; c < colCount; c++) {
+      var p1 = colPointers[c];
+      final end1 = colPointers[c + 1];
+      var p2 = other.colPointers[c];
+      final end2 = other.colPointers[c + 1];
+
+      while (p1 < end1 && p2 < end2) {
+        final r1 = rowIndices[p1];
+        final r2 = other.rowIndices[p2];
+        if (r1 < r2) {
+          newRows.add(r1);
+          newVals.add(values[p1]);
+          p1++;
+        } else if (r2 < r1) {
+          newRows.add(r2);
+          newVals.add(other.values[p2]);
+          p2++;
+        } else {
+          final sum = field.add(values[p1], other.values[p2]);
+          if (!equality.isEqual(sum, zero)) {
+            newRows.add(r1);
+            newVals.add(sum);
+          }
+          p1++;
+          p2++;
+        }
+      }
+      while (p1 < end1) {
+        newRows.add(rowIndices[p1]);
+        newVals.add(values[p1]);
+        p1++;
+      }
+      while (p2 < end2) {
+        newRows.add(other.rowIndices[p2]);
+        newVals.add(other.values[p2]);
+        p2++;
+      }
+      newColPointers[c + 1] = newRows.length;
+    }
+
+    final valList = type.newList(newVals.length);
+    for (var i = 0; i < newVals.length; i++) {
+      valList[i] = newVals[i];
+    }
+
+    return CscMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      colPointers: newColPointers,
+      rowIndices: List<int>.of(newRows, growable: false),
+      values: valList,
+      type: type,
+    );
+  }
+
+  /// Subtracts [other] sparse matrix from this matrix.
+  CscMatrix<T> operator -(CscMatrix<T> other) {
+    if (rowCount != other.rowCount || colCount != other.colCount) {
+      throw ArgumentError(
+        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
+      );
+    }
+    final field = type.field;
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
+    final newColPointers = List<int>.filled(colCount + 1, 0);
+    final newRows = <int>[];
+    final newVals = <T>[];
+
+    for (var c = 0; c < colCount; c++) {
+      var p1 = colPointers[c];
+      final end1 = colPointers[c + 1];
+      var p2 = other.colPointers[c];
+      final end2 = other.colPointers[c + 1];
+
+      while (p1 < end1 && p2 < end2) {
+        final r1 = rowIndices[p1];
+        final r2 = other.rowIndices[p2];
+        if (r1 < r2) {
+          newRows.add(r1);
+          newVals.add(values[p1]);
+          p1++;
+        } else if (r2 < r1) {
+          newRows.add(r2);
+          newVals.add(field.neg(other.values[p2]));
+          p2++;
+        } else {
+          final diff = field.sub(values[p1], other.values[p2]);
+          if (!equality.isEqual(diff, zero)) {
+            newRows.add(r1);
+            newVals.add(diff);
+          }
+          p1++;
+          p2++;
+        }
+      }
+      while (p1 < end1) {
+        newRows.add(rowIndices[p1]);
+        newVals.add(values[p1]);
+        p1++;
+      }
+      while (p2 < end2) {
+        newRows.add(other.rowIndices[p2]);
+        newVals.add(field.neg(other.values[p2]));
+        p2++;
+      }
+      newColPointers[c + 1] = newRows.length;
+    }
+
+    final valList = type.newList(newVals.length);
+    for (var i = 0; i < newVals.length; i++) {
+      valList[i] = newVals[i];
+    }
+
+    return CscMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      colPointers: newColPointers,
+      rowIndices: List<int>.of(newRows, growable: false),
+      values: valList,
+      type: type,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CscMatrix ||
+        rowCount != other.rowCount ||
+        colCount != other.colCount) {
+      return false;
+    }
+    if (nnz == other.nnz) {
+      var exactMatch = true;
+      for (var j = 0; j <= colCount; j++) {
+        if (colPointers[j] != other.colPointers[j]) {
+          exactMatch = false;
+          break;
+        }
+      }
+      if (exactMatch) {
+        for (var i = 0; i < nnz; i++) {
+          final otherVal = other.values[i];
+          if (rowIndices[i] != other.rowIndices[i] ||
+              otherVal is! T ||
+              !type.equality.isEqual(values[i], otherVal)) {
+            exactMatch = false;
+            break;
+          }
+        }
+        if (exactMatch) return true;
+      }
+    }
+    return toDense() == other.toDense();
+  }
+
+  @override
+  int get hashCode {
+    var hash = Object.hash(rowCount, colCount);
+    for (var i = 0; i < nnz; i++) {
+      hash = Object.hash(hash, rowIndices[i], type.equality.hash(values[i]));
+    }
+    return hash;
+  }
+
+  @override
+  String toString() => 'CscMatrix<$T>($rowCount x $colCount, nnz: $nnz)';
+
   /// Converts this CSC matrix to Coordinate (COO) format.
   CooMatrix<T> toCoo() {
     final rIdx = List<int>.filled(nnz, 0);

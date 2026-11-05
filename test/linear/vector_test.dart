@@ -426,5 +426,27 @@ void main() {
       vSrc.cumsum(target: vDst);
       check(vDst.toList()).which((it) => it.deepEquals([1.0, 3.0, 6.0, 10.0]));
     });
+
+    test('cross product and isClose', () {
+      final u = Vector<double>.fromList([1.0, 0.0, 0.0]);
+      final v = Vector<double>.fromList([0.0, 1.0, 0.0]);
+      final w = u.cross(v);
+      check(w.toList()).deepEquals([0.0, 0.0, 1.0]);
+
+      final w2 = v.cross(u);
+      check(w2.toList()).deepEquals([0.0, 0.0, -1.0]);
+
+      final v2 = Vector<double>.fromList([1.0, 0.0]);
+      check(() => u.cross(v2)).throws<ArgumentError>();
+      check(() => v2.cross(u)).throws<ArgumentError>();
+
+      final a = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final b = Vector<double>.fromList([1.0000000001, 1.9999999999, 3.0]);
+      final c = Vector<double>.fromList([1.1, 2.0, 3.0]);
+      check(a.isClose(b)).isTrue();
+      check(a.isClose(c)).isFalse();
+      check(a.isClose(c, epsilon: 0.2)).isTrue();
+      check(a.isClose(v2)).isFalse();
+    });
   });
 }

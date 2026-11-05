@@ -176,5 +176,23 @@ void main() {
       check(xLarge[0]).isCloseTo(2.0, 1e-6);
       check(xLarge[1]).isCloseTo(3.0, 1e-6);
     });
+
+    test('svd.pseudoinverse computes Moore-Penrose pseudoinverse', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 0.0],
+        [0.0, 2.0],
+        [0.0, 0.0],
+      ]);
+      final svd = a.svd;
+      final pinv = svd.pseudoinverse();
+      check(pinv.rowCount).equals(2);
+      check(pinv.colCount).equals(3);
+      check(pinv.get(0, 0)).isCloseTo(1.0, 1e-10);
+      check(pinv.get(1, 1)).isCloseTo(0.5, 1e-10);
+      check(pinv.get(0, 2)).isCloseTo(0.0, 1e-10);
+
+      final noVectors = SingularValueDecomposition(a, computeVectors: false);
+      check(noVectors.pseudoinverse).throws<StateError>();
+    });
   });
 }
