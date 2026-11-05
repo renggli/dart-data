@@ -833,6 +833,43 @@ void main() {
       ).throws<ArgumentError>();
     });
 
+    test('negative dimensions throw ArgumentError', () {
+      final mat = Float64List(4);
+      final vec = Float64List(2);
+      check(() => Blas.ddot(n: -1, x: vec, y: vec)).throws<ArgumentError>();
+      check(() => Blas.dnrm2(n: -1, x: vec)).throws<ArgumentError>();
+      check(() => Blas.dgemv(m: -1, n: 2, a: mat, lda: 2, x: vec, y: vec))
+          .throws<ArgumentError>();
+      check(() => Blas.dgemv(m: 2, n: -1, a: mat, lda: 2, x: vec, y: vec))
+          .throws<ArgumentError>();
+      check(
+        () => Blas.dgemm(
+          m: -1,
+          n: 2,
+          k: 2,
+          a: mat,
+          lda: 2,
+          b: mat,
+          ldb: 2,
+          c: mat,
+          ldc: 2,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => Blas.dgemm(
+          m: 2,
+          n: 2,
+          k: -1,
+          a: mat,
+          lda: 2,
+          b: mat,
+          ldb: 2,
+          c: mat,
+          ldc: 2,
+        ),
+      ).throws<ArgumentError>();
+    });
+
     accelerationTest('dnrm2 and snrm2 with multiple infinities and NaN', () {
       final infVec = Float64List.fromList([
         double.infinity,

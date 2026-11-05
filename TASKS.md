@@ -99,7 +99,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: `VforceDart.convolve` and `VforceDart.correlate` allocate a temporary buffer when `output` shares memory with `signal` or `filter`, whereas `VforceNative.convolve` and `VforceNative.correlate` pass `signal.address`, `filter.address`, and `output.address` directly to `vDSP_convD`, corrupting output when `output` overlaps `signal` or `filter`.
   - **Fix**: Centralize the `hasOverlap` / buffer aliasing guard in `Vforce.convolve` and `Vforce.correlate` (or in `VforceNative`) so both native and Dart paths are protected.
 
-- [ ] **1.3.5 `Blas` validation functions do not reject negative dimensions (`n < 0`, `m < 0`, `k < 0`)**
+- [x] **1.3.5 `Blas` validation functions do not reject negative dimensions (`n < 0`, `m < 0`, `k < 0`)**
   - **Severity**: Warning
   - **Location**: `lib/src/acceleration/blas/blas_validation.dart:54-230`
   - **Problem**: Unlike `Lapack` (which throws `ArgumentError` when `n < 0` or `m < 0`), `checkBlasVectorBounds`, `checkBlasGemvBounds`, `checkBlasSyr2Bounds`, `checkBlasTrmvBounds`, `checkBlasGemmBounds`, `checkBlasSyrkBounds`, `checkBlasSymmBounds`, and `checkBlasTrmmBounds` begin with `if (n <= 0) return;` (or `if (m <= 0 || n <= 0) return;`), silently accepting negative dimensions such as `n = -5`.

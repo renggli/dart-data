@@ -58,8 +58,11 @@ void checkBlasVectorBounds(
   int inc,
   String name,
 ) {
+  if (n < 0) {
+    throw ArgumentError.value(n, 'n', 'Must be non-negative');
+  }
   checkBlasOffset(offset, bufferLength, name);
-  if (n <= 0) return;
+  if (n == 0) return;
   final maxIdx = offset + (n - 1) * inc.abs();
   if (maxIdx >= bufferLength) {
     throw RangeError(
@@ -70,6 +73,9 @@ void checkBlasVectorBounds(
 
 /// Validates leading dimension for row-major layout.
 void checkBlasMatrixLeadingDim(int ld, String name, int minCols) {
+  if (minCols < 0) {
+    throw ArgumentError.value(minCols, 'minCols', 'Must be non-negative');
+  }
   final minAllowed = minCols > 1 ? minCols : 1;
   if (ld < minAllowed) {
     throw ArgumentError.value(
@@ -89,8 +95,14 @@ void checkBlasMatrixBounds(
   int ld,
   String name,
 ) {
+  if (rows < 0) {
+    throw ArgumentError.value(rows, 'rows', 'Must be non-negative');
+  }
+  if (cols < 0) {
+    throw ArgumentError.value(cols, 'cols', 'Must be non-negative');
+  }
   checkBlasOffset(offset, bufferLength, name);
-  if (rows <= 0 || cols <= 0) return;
+  if (rows == 0 || cols == 0) return;
   final requiredLength = offset + (rows - 1) * ld + cols;
   if (requiredLength > bufferLength) {
     throw RangeError(

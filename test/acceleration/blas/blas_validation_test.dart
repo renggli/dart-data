@@ -52,18 +52,26 @@ void main() {
       check(() => checkBlasVectorBounds(10, 6, 0, 2, 'x')).throws<RangeError>();
       check(() => checkBlasVectorBounds(10, 5, -1, 1, 'x'))
           .throws<RangeError>();
+      check(() => checkBlasVectorBounds(10, -1, 0, 1, 'x'))
+          .throws<ArgumentError>();
     });
 
     test('checkBlasMatrixLeadingDim validates ld', () {
       checkBlasMatrixLeadingDim(5, 'A', 3);
       checkBlasMatrixLeadingDim(3, 'A', 3);
       check(() => checkBlasMatrixLeadingDim(2, 'A', 3)).throws<ArgumentError>();
+      check(() => checkBlasMatrixLeadingDim(5, 'A', -1))
+          .throws<ArgumentError>();
     });
 
     test('checkBlasMatrixBounds validates 2D buffer capacity', () {
       checkBlasMatrixBounds(12, 3, 4, 0, 4, 'A');
       check(() => checkBlasMatrixBounds(10, 3, 4, 0, 4, 'A'))
           .throws<RangeError>();
+      check(() => checkBlasMatrixBounds(12, -1, 4, 0, 4, 'A'))
+          .throws<ArgumentError>();
+      check(() => checkBlasMatrixBounds(12, 3, -1, 0, 4, 'A'))
+          .throws<ArgumentError>();
     });
 
     test('mirrorSymmetricDouble mirrors upper to lower', () {
