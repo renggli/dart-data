@@ -306,7 +306,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     1. In `RowKeyExtractor` / `TupleKey` (and `unique`, `valueCounts`, `pivot`), canonicalize floating-point keys by mapping any `num` where `v.isNaN` to a constant `_NaNKey` sentinel (with reflexive `==` and constant `hashCode`) and normalizing `-0.0` to `0.0`.
     2. In `_sortMergeJoinPairs` (`join.dart:290`), check `if (valA == valB) continue;` before `valA.compareTo(valB)` so `-0.0` and `0.0` compare equal (`0`).
 
-- [ ] **1.9.3 `GroupBy.aggregate` crashes on `DataType.numeric` sum promotion and when output column names collide with `byColumns`**
+- [x] **1.9.3 `GroupBy.aggregate` crashes on `DataType.numeric` sum promotion and when output column names collide with `byColumns`**
   - **Severity**: Critical
   - **Location**: `lib/src/dataframe/groupby.dart:88-160`
   - **Problem**:

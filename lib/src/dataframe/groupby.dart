@@ -85,17 +85,25 @@ class GroupBy {
     }
 
     // Initialize aggregation output columns
+    final aggOutNames = <(String, Agg), String>{};
     for (final entry in aggregations.entries) {
       final colName = entry.key;
       final srcCol = dataFrame.column(colName);
       for (final agg in entry.value) {
-        final outName = '${colName}_${agg.name}';
+        var outName = '${colName}_${agg.name}';
+        var counter = 1;
+        while (resultCols.containsKey(outName) || byColumns.contains(outName)) {
+          outName = '${colName}_${agg.name}_$counter';
+          counter++;
+        }
+        aggOutNames[(colName, agg)] = outName;
         resultCols[outName] = [];
         outTypes[outName] = switch (agg) {
           Agg.count => DataType.int32,
           Agg.mean || Agg.std || Agg.variance || Agg.median => DataType.float64,
           Agg.sum =>
-            srcCol.dataType is DataType<double>
+            srcCol.dataType is DataType<double> ||
+                    srcCol.dataType == DataType.numeric
                 ? DataType.float64
                 : DataType.int64,
           Agg.min || Agg.max || Agg.first || Agg.last => srcCol.dataType,
@@ -124,7 +132,7 @@ class GroupBy {
         final col = dataFrame.column(colName);
 
         for (final agg in aggEntry.value) {
-          final outName = '${colName}_${agg.name}';
+          final outName = aggOutNames[(colName, agg)]!;
           final aggResult = _computeAgg(col, indices, agg, medianScratch);
           final outList = resultCols[outName];
           if (outList != null) outList.add(aggResult);
@@ -136,7 +144,8 @@ class GroupBy {
       if (byColumns.contains(entry.key)) continue;
       final list = entry.value;
       if (outTypes[entry.key] == DataType.float64 ||
-          list.any((v) => v is double)) {
+          list.any((v) => v is num && v is! int)) {
+        outTypes[entry.key] = DataType.float64;
         resultCols[entry.key] = [
           for (final v in list)
             if (v is num) v.toDouble() else v,
@@ -236,7 +245,10 @@ class GroupBy {
         }
         return null;
       case Agg.sum:
-        var total = col.dataType is DataType<double> ? 0.0 : 0;
+        var total =
+            col.dataType is DataType<double> || col.dataType == DataType.numeric
+            ? 0.0
+            : 0;
         var hasValid = false;
         for (var i = 0; i < indices.length; i++) {
           final val = col[indices[i]];

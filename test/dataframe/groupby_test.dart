@@ -236,6 +236,35 @@ void main() {
       check(res['i8_sum'].toList()).deepEquals([200, null]);
       check(res['u8_sum'].toList()).deepEquals([300, null]);
     });
+
+    test('Agg.sum promotes DataType.numeric and double sums to float64 without crash', () {
+      final df = DataFrame([
+        Series.fromList('grp', ['g1', 'g1', 'g2', 'g2']),
+        Series.fromList('num_col', [1, 2.5, 3, 4], type: DataType.numeric),
+      ]);
+      final res = df.groupBy(['grp']).aggregate({
+        'num_col': [Agg.sum],
+      });
+      check(res['num_col_sum'].dataType).equals(DataType.float64);
+      check(res['num_col_sum'].toList()).deepEquals([3.5, 7.0]);
+    });
+
+    test(
+      'disambiguates aggregation output column name colliding with byColumns',
+      () {
+        final df = DataFrame.fromColumns({
+          'a_count': ['x', 'y'],
+          'a': [10, 20],
+        });
+        final res = df.groupBy(['a_count']).aggregate({
+          'a': [Agg.count],
+        });
+        check(res.columnNames).deepEquals(['a_count', 'a_count_1']);
+        check(res.rowCount).equals(2);
+        check(res['a_count'].toList()).deepEquals(['x', 'y']);
+        check(res['a_count_1'].toList()).deepEquals([1, 1]);
+      },
+    );
   });
 
   group('GroupBy - Validation & Errors', () {

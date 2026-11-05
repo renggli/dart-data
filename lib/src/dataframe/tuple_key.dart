@@ -39,8 +39,7 @@ final class TupleKey {
   new(Iterable<Object?> values)
     : this._(values.map(canonicalizeKey).toList(growable: false));
 
-  new _(this.values)
-    : _hashCode = const DeepCollectionEquality().hash(values);
+  new _(this.values) : _hashCode = const DeepCollectionEquality().hash(values);
 
   /// The values comprising this composite key.
   final List<Object?> values;
