@@ -105,6 +105,21 @@ void main() {
       check(eig.v.rowCount).equals(3);
     });
 
+    test('small-magnitude skew-symmetric matrix has imaginary eigenvalues', () {
+      final a = Matrix<double>.fromRows([
+        [0.0, -1e-13],
+        [1e-13, 0.0],
+      ], type: DataType.float64);
+
+      final eig = a.eigenvalue;
+      final complexEigs = eig.eigenvalues;
+      check(complexEigs.length).equals(2);
+      check(complexEigs[0].a).isCloseTo(0.0, 1e-20);
+      check(complexEigs[0].b.abs()).isCloseTo(1e-13, 1e-20);
+      check(complexEigs[1].a).isCloseTo(0.0, 1e-20);
+      check(complexEigs[1].b.abs()).isCloseTo(1e-13, 1e-20);
+    });
+
     accelerationTest('symmetric matrix decomposition', () {
       final a = Matrix<double>.fromRows([
         [5.0, 2.0, -1.0, 0.0],

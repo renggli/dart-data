@@ -876,13 +876,22 @@ class EigenvalueDecomposition {
   static bool _checkSymmetry(Matrix<num> a) {
     if (a.rowCount != a.colCount) return false;
     final count = a.rowCount;
+    if (count <= 1) return true;
+    var maxVal = 0.0;
+    for (var i = 0; i < count; i++) {
+      for (var j = 0; j < count; j++) {
+        final val = a.getUnchecked(i, j).toDouble().abs();
+        if (val.isNaN) return false;
+        if (val > maxVal) maxVal = val;
+      }
+    }
+    if (maxVal == 0.0) return true;
+    final tol = 1e-12 * maxVal;
     for (var i = 0; i < count; i++) {
       for (var j = i + 1; j < count; j++) {
         final aij = a.getUnchecked(i, j).toDouble();
         final aji = a.getUnchecked(j, i).toDouble();
-        final diff = (aij - aji).abs();
-        final maxVal = math.max(aij.abs(), aji.abs());
-        if (diff > 1e-12 && (maxVal == 0.0 || diff / maxVal > 1e-12)) {
+        if ((aij - aji).abs() > tol) {
           return false;
         }
       }

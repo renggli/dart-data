@@ -144,7 +144,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: `_decomposeGeneric` computes `sumsq += norm * norm; final nrm = math.sqrt(sumsq);` without scaling (unlike `_decomposeFloat64` at lines 244–262). For `Matrix<Complex>` with entries around `1e200`, `sumsq` overflows to `Infinity`, causing `tau = (Infinity + normXk) / Infinity = NaN`.
   - **Fix**: Use the same scaled `scale * math.sqrt(sumsq)` accumulation in `_decomposeGeneric` as in `_decomposeFloat64`.
 
-- [ ] **1.4.5 `EigenvalueDecomposition._checkSymmetry` and `CholeskyDecomposition` misclassify small-magnitude skew-symmetric matrices as symmetric**
+- [x] **1.4.5 `EigenvalueDecomposition._checkSymmetry` and `CholeskyDecomposition` misclassify small-magnitude skew-symmetric matrices as symmetric**
   - **Severity**: Warning
   - **Location**: `lib/src/linear/decomposition/eigenvalue.dart:876-891`, `lib/src/linear/decomposition/cholesky.dart:108-119, 175-181`
   - **Problem**: `_checkSymmetry` checks `if (diff > 1e-12 && (maxVal == 0.0 || diff / maxVal > 1e-12))`, requiring BOTH absolute difference `> 1e-12` AND relative difference `> 1e-12`. For a skew-symmetric matrix with entries of magnitude `1e-13` (e.g., `[[0.0, 1e-13], [-1e-13, 0.0]]`), `diff = 2e-13 <= 1e-12`, so `_checkSymmetry` returns `true` and `EigenvalueDecomposition` returns real eigenvalues `[-1e-13, 1e-13]` instead of imaginary `[0 + 1e-13i, 0 - 1e-13i]`. Similarly, `CholeskyDecomposition._decomposeGeneric` (`line 180`) uses a fixed absolute tolerance `1e-6`.

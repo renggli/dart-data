@@ -104,14 +104,29 @@ class CholeskyDecomposition<T> {
   }
 
   void _decomposeFloat64(Matrix<double> matrix, Matrix<double> l) {
+    if (_n == 0) return;
     // Check symmetry
+    var maxVal = 0.0;
+    for (var i = 0; i < _n; i++) {
+      for (var j = 0; j < _n; j++) {
+        final val = matrix.getUnchecked(i, j).abs();
+        if (val.isNaN) {
+          _isSymmetricPositiveDefinite = false;
+          return;
+        }
+        if (val > maxVal) maxVal = val;
+      }
+    }
+    if (maxVal == 0.0) {
+      _isSymmetricPositiveDefinite = false;
+      return;
+    }
+    final tol = 1e-12 * maxVal;
     for (var i = 0; i < _n; i++) {
       for (var j = i + 1; j < _n; j++) {
         final aij = matrix.getUnchecked(i, j);
         final aji = matrix.getUnchecked(j, i);
-        final diff = (aij - aji).abs();
-        final maxVal = math.max(aij.abs(), aji.abs());
-        if (diff > 1e-12 && (maxVal == 0.0 || diff / maxVal > 1e-12)) {
+        if ((aij - aji).abs() > tol) {
           _isSymmetricPositiveDefinite = false;
           return;
         }
@@ -148,9 +163,27 @@ class CholeskyDecomposition<T> {
   }
 
   void _decomposeGeneric(Matrix<T> matrix) {
+    if (_n == 0) return;
     final field = _type.field;
     final equality = _type.equality;
     final zero = field.additiveIdentity;
+
+    var maxNorm = 0.0;
+    for (var i = 0; i < _n; i++) {
+      for (var j = 0; j < _n; j++) {
+        final norm = field.norm(matrix.getUnchecked(i, j));
+        if (norm.isNaN) {
+          _isSymmetricPositiveDefinite = false;
+          return;
+        }
+        if (norm > maxNorm) maxNorm = norm;
+      }
+    }
+    if (maxNorm == 0.0) {
+      _isSymmetricPositiveDefinite = false;
+      return;
+    }
+    final tol = 1e-12 * maxNorm;
 
     for (var j = 0; j < _n; j++) {
       var diagSum = zero;
@@ -176,13 +209,12 @@ class CholeskyDecomposition<T> {
         final akj = matrix.getUnchecked(k, j);
         final ajkConj = field.conjugate(matrix.getUnchecked(j, k));
         _isSymmetricPositiveDefinite =
-            _isSymmetricPositiveDefinite &&
-            equality.isClose(akj, ajkConj, 1e-6);
+            _isSymmetricPositiveDefinite && equality.isClose(akj, ajkConj, tol);
       }
       final diagVal = field.sub(matrix.getUnchecked(j, j), diagSum);
       final isPos = switch (diagVal) {
         final num val => val > 0.0,
-        final Complex c => c.real > 0.0 && c.imaginary.abs() < 1e-6,
+        final Complex c => c.real > 0.0 && c.imaginary.abs() < tol,
         _ => _type.comparator(diagVal, zero) > 0,
       };
       _isSymmetricPositiveDefinite = _isSymmetricPositiveDefinite && isPos;

@@ -70,6 +70,12 @@ void main() {
       final cholesky = a.cholesky;
       check(cholesky.isSymmetricPositiveDefinite).isFalse();
       check(() => cholesky.solve(a)).throws<StateError>();
+
+      final smallNonSymmetric = Matrix<double>.fromRows([
+        [1e-13, 1e-13],
+        [-1e-13, 1e-13],
+      ], type: DataType.float64);
+      check(smallNonSymmetric.cholesky.isSymmetricPositiveDefinite).isFalse();
     });
   });
 
@@ -168,6 +174,12 @@ void main() {
         [const Complex(0.0, 0.0), const Complex(2.0, 0.0)],
       ], type: DataType.complex);
       check(nonPosDef.cholesky.isSymmetricPositiveDefinite).isFalse();
+
+      final smallNonHermitian = Matrix<Complex>.fromRows([
+        [const Complex(1e-13, 0.0), const Complex(0.0, 1e-13)],
+        [const Complex(0.0, 1e-13), const Complex(1e-13, 0.0)],
+      ], type: DataType.complex);
+      check(smallNonHermitian.cholesky.isSymmetricPositiveDefinite).isFalse();
 
       final zeroDiag = Matrix<Complex>.fromRows([
         [Complex.zero, Complex.one],
