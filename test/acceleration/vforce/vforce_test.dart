@@ -123,6 +123,32 @@ void main() {
       check(resConv).identicalTo(subOut);
       check(subOut[0]).isCloseTo(10.0, 1e-9);
       check(subOut[1]).isCloseTo(16.0, 1e-9);
+
+      // Correlate with aliased signal:
+      final buffer2 = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final subOut2 = Float64List.sublistView(buffer2, 1, 3);
+      // n=0: 1*1 + 2*2 + 3*3 = 14
+      // n=1: 2*1 + 3*2 + 4*3 = 20
+      final resCorr = Vforce.correlate(
+        signal: buffer2,
+        filter: filter,
+        output: subOut2,
+      );
+      check(resCorr).identicalTo(subOut2);
+      check(subOut2[0]).isCloseTo(14.0, 1e-9);
+      check(subOut2[1]).isCloseTo(20.0, 1e-9);
+
+      // Aliasing on filter buffer:
+      final filterBuf = Float64List.fromList([1.0, 2.0, 3.0]);
+      final signalBuf = Float64List.fromList([1.0, 2.0, 3.0]);
+      final filterOut = Float64List.sublistView(filterBuf, 0, 1);
+      final resFilter = Vforce.convolve(
+        signal: signalBuf,
+        filter: filterBuf,
+        output: filterOut,
+      );
+      check(resFilter).identicalTo(filterOut);
+      check(filterOut[0]).isCloseTo(10.0, 1e-9);
     });
 
     test('validates buffer lengths', () {

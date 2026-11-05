@@ -215,19 +215,26 @@ abstract final class Vforce {
     final dest = output ?? Float64List(rLen < 0 ? 0 : rLen);
     if (rLen <= 0) return dest;
 
+    final needsCopy =
+        dest.buffer == signal.buffer || dest.buffer == filter.buffer;
+    final target = needsCopy ? Float64List(rLen) : dest;
+
     executeAcceleratedVoid(
       feature: 'vDSP',
       operation: 'convolve',
       isAvailable: VforceNative.hasConvolution,
       accelerate: () =>
-          VforceNative.convolve(signal: signal, filter: filter, output: dest),
+          VforceNative.convolve(signal: signal, filter: filter, output: target),
       fallback: () => VforceDart.convolve(
         signal: signal,
         filter: filter,
-        output: dest,
+        output: target,
         resultLength: rLen,
       ),
     );
+    if (needsCopy) {
+      dest.setRange(0, rLen, target);
+    }
     return dest;
   }
 
@@ -249,19 +256,29 @@ abstract final class Vforce {
     final dest = output ?? Float64List(rLen < 0 ? 0 : rLen);
     if (rLen <= 0) return dest;
 
+    final needsCopy =
+        dest.buffer == signal.buffer || dest.buffer == filter.buffer;
+    final target = needsCopy ? Float64List(rLen) : dest;
+
     executeAcceleratedVoid(
       feature: 'vDSP',
       operation: 'correlate',
       isAvailable: VforceNative.hasConvolution,
-      accelerate: () =>
-          VforceNative.correlate(signal: signal, filter: filter, output: dest),
+      accelerate: () => VforceNative.correlate(
+        signal: signal,
+        filter: filter,
+        output: target,
+      ),
       fallback: () => VforceDart.correlate(
         signal: signal,
         filter: filter,
-        output: dest,
+        output: target,
         resultLength: rLen,
       ),
     );
+    if (needsCopy) {
+      dest.setRange(0, rLen, target);
+    }
     return dest;
   }
 }

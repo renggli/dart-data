@@ -93,7 +93,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. Both `dgesv` and `dgels` check `a` for `NaN`/`Infinity` and return `false`, but neither checks input rows `0 <= i < m` of `b` for `NaN`/`Infinity`.
   - **Fix**: Change line 316 of `lapack_native.dart` to `fB[j * maxMN + i] = i < m ? b[bOffset + i * ldb + j] : 0.0;`, and check input elements of `b` (`0 <= i < m`, `0 <= j < nrhs`) for `NaN`/`Infinity` in `dgesv` and `dgels`.
 
-- [ ] **1.3.4 `VforceNative.convolve` and `VforceNative.correlate` lack the in-place buffer aliasing guard present in `VforceDart`**
+- [x] **1.3.4 `VforceNative.convolve` and `VforceNative.correlate` lack the in-place buffer aliasing guard present in `VforceDart`**
   - **Severity**: Warning
   - **Location**: `lib/src/acceleration/vforce/vforce_native.dart:181-232`, `lib/src/acceleration/vforce/vforce.dart:210-260`
   - **Problem**: `VforceDart.convolve` and `VforceDart.correlate` allocate a temporary buffer when `output` shares memory with `signal` or `filter`, whereas `VforceNative.convolve` and `VforceNative.correlate` pass `signal.address`, `filter.address`, and `output.address` directly to `vDSP_convD`, corrupting output when `output` overlaps `signal` or `filter`.

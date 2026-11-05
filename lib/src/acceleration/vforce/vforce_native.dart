@@ -192,16 +192,22 @@ abstract final class VforceNative {
     if (resultLen <= 0 || output.length < resultLen) return false;
 
     final filterEndView = Float64List.sublistView(filter, filterLen - 1);
+    final needsCopy =
+        output.buffer == signal.buffer || output.buffer == filter.buffer;
+    final target = needsCopy ? Float64List(resultLen) : output;
     _vdspConvD(
       signal.address,
       1,
       filterEndView.address,
       -1,
-      output.address,
+      target.address,
       1,
       resultLen,
       filterLen,
     );
+    if (needsCopy) {
+      output.setRange(0, resultLen, target);
+    }
     return true;
   }
 
@@ -218,16 +224,22 @@ abstract final class VforceNative {
     final resultLen = signalLen - filterLen + 1;
     if (resultLen <= 0 || output.length < resultLen) return false;
 
+    final needsCopy =
+        output.buffer == signal.buffer || output.buffer == filter.buffer;
+    final target = needsCopy ? Float64List(resultLen) : output;
     _vdspConvD(
       signal.address,
       1,
       filter.address,
       1,
-      output.address,
+      target.address,
       1,
       resultLen,
       filterLen,
     );
+    if (needsCopy) {
+      output.setRange(0, resultLen, target);
+    }
     return true;
   }
 }
