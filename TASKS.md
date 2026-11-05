@@ -368,7 +368,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: During `BareissEngine.rowEchelonWithPivots`, row elimination produces rational function entries with different polynomial denominators (e.g. `x` and `x - 1`). `_simplifyDifference` (`line 264`) only calls `(a - b).simplify()` when `_hasDiv(diff)` is `true`, and `_isExprZero` (`line 404`) only calls `expr.expand().simplify()` without combining fractions over a common denominator. Consequently, algebraically zero pivot expressions such as `4 - (2*x + 1)/x - (3 - (2*x + 1)/x)*(2*x - 1)/(x - 1)` are not recognized as zero, causing `Matrix<Expr>.rank()` to return `3` instead of `2` and `nullSpace()` to return `[]` on singular symbolic matrices.
   - **Fix**: Call `diff.cancel()` in `_simplifyDifference` when `_hasDiv(diff)` is `true`, and check `s.together()` in `_isExprZero` when `_hasDiv(s)` is `true`.
 
-- [ ] **1.10.4 `simplifyArg` leaves literal `+ 0`, and `toPolarExpr`, `toRectangularExpr`, and `_collectAdditive` construct non-canonical AST nodes with `isSimplified: true`**
+- [x] **1.10.4 `simplifyArg` leaves literal `+ 0`, and `toPolarExpr`, `toRectangularExpr`, and `_collectAdditive` construct non-canonical AST nodes with `isSimplified: true`**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/algebra/simplify/transcendental.dart:1456-1467, 1560-1563, 1590-1598`, `lib/src/symbolic/algebra/rational.dart:605-617`
   - **Problem**:

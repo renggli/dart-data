@@ -1455,15 +1455,21 @@ Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
             : RationalNumber(-1, 4);
         return Mul([coeff, Constant.pi], isSimplified: true);
       }
-      return simplifyAtan(
-            simplifyMul([
-              imaginary,
-              simplifyPow(real, IntegerNumber.negativeOne),
-            ]),
-          ) +
-          (real.isNegative
-              ? (imaginary.isNegative ? -Constant.pi : Constant.pi)
-              : IntegerNumber.zero);
+      final atanTerm = simplifyAtan(
+        simplifyMul([
+          imaginary,
+          simplifyPow(
+            real,
+            IntegerNumber.negativeOne,
+            assumptions: assumptions,
+          ),
+        ], assumptions: assumptions),
+      );
+      if (!real.isNegative) {
+        return atanTerm;
+      }
+      final piTerm = imaginary.isNegative ? -Constant.pi : Constant.pi;
+      return simplifyAdd([atanTerm, piTerm], assumptions: assumptions);
     case Conjugate(:final expr)
         when isPositiveExpr(expr, assumptions: assumptions) ||
             (expr is ComplexNumber && !expr.imaginary.isZero):
@@ -1557,10 +1563,7 @@ Expr toRectangularExpr(
   if (re is Number && re.isZero) {
     return imTerm;
   }
-  return Add([
-    if (re case Add(:final terms)) ...terms else re,
-    if (imTerm case Add(:final terms)) ...terms else imTerm,
-  ], isSimplified: true);
+  return simplifyAdd([re, imTerm], assumptions: assumptions);
 }
 
 /// Rewrites [expr] into polar normal form $r e^{i \theta}$.
@@ -1595,7 +1598,11 @@ Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (r is Number && r.isOne) {
     return r is RealNumber ? Mul([r, expPart], isSimplified: true) : expPart;
   }
-  return Mul([r, expPart], isSimplified: true);
+  final factors = <Expr>[
+    if (r case Mul(factors: final rf)) ...rf else r,
+    expPart,
+  ];
+  return Mul(factors, isSimplified: true);
 }
 
 Expr? _matchIntegerPiMultiple(Expr expr, Assumptions assumptions) {

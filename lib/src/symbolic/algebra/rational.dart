@@ -603,7 +603,7 @@ Expr _collectAdditive(Expr expr, String variable, Assumptions assumptions) {
       collectedTerms.add(MonomialAccumulator.negateMonomial(varPart));
     } else {
       final factors = <Expr>[
-        sumCoeff,
+        if (sumCoeff case Mul(factors: final cf)) ...cf else sumCoeff,
         if (varPart case Mul(factors: final vf)) ...vf else varPart,
       ];
       collectedTerms.add(Mul(factors, isSimplified: true));

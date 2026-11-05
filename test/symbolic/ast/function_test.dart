@@ -184,7 +184,7 @@ void main() {
         Expr.parse('1 / (x + i * y)')
             .toRectangular(assumptions: Assumptions.real)
             .toString(),
-      ).equals('x / (x ^ 2 + y ^ 2) - i * y / (x ^ 2 + y ^ 2)');
+      ).equals('(x - i * y) / (x ^ 2 + y ^ 2)');
 
       check(Expr.parse('1 + i').toPolar().toString())
           .equals('sqrt(2) * exp(1/4 * i * pi)');

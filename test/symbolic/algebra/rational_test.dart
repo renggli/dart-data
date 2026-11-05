@@ -74,6 +74,12 @@ void main() {
       final e3 = Expr.parse('(a*x + b*x) / (c*x^2 + d*x^2 + 1)');
       check(e3.collect('x').toString())
           .equals('x * (a + b) / (1 + (c + d) * x ^ 2)');
+
+      final e4 = Expr.parse('2 * y * x + 3 * y * x');
+      final col4 = e4.collect('x');
+      check(col4.toString()).equals('5 * y * x');
+      check(col4.anyNode((n) => n is Mul && n.factors.any((f) => f is Mul)))
+          .isFalse();
     });
   });
 

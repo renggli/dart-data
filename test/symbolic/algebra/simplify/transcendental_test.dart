@@ -367,13 +367,19 @@ void main() {
           ComplexNumber.of(IntegerNumber.of(-3), IntegerNumber.of(-4)),
           assumptions: complexZ,
         ).toString(),
-      ).equals('atan(4/3) - pi');
+      ).equals('-pi + atan(4/3)');
       check(
         simplifyArg(
           ComplexNumber.of(IntegerNumber.of(-3), IntegerNumber.of(4)),
           assumptions: complexZ,
         ).toString(),
-      ).equals('-atan(4/3) + pi');
+      ).equals('pi - atan(4/3)');
+      final posArg = simplifyArg(
+        ComplexNumber.of(IntegerNumber.two, IntegerNumber.of(3)),
+      );
+      check(posArg).isA<Atan>();
+      check(posArg.toString()).equals('atan(3/2)');
+      check(posArg.anyNode((n) => n is Add)).isFalse();
       check(simplifyArg(Conjugate(z), assumptions: complexZ))
           .equals(Arg(Conjugate(z), isSimplified: true));
       check(
@@ -425,7 +431,7 @@ void main() {
           .equals('tanh(conj(z))');
 
       check(toRectangularExpr(Sin(z), assumptions: complexZ).toString())
-          .equals('sin(re(z)) * cosh(im(z)) + i * cos(re(z)) * sinh(im(z))');
+          .equals('i * cos(re(z)) * sinh(im(z)) + sin(re(z)) * cosh(im(z))');
       check(toRectangularExpr(Cos(z), assumptions: complexZ).toString())
           .equals('cos(re(z)) * cosh(im(z)) - i * sin(re(z)) * sinh(im(z))');
       check(toRectangularExpr(Sinh(z), assumptions: complexZ).toString())
@@ -512,8 +518,22 @@ void main() {
       final polarZ = toPolarExpr(z, assumptions: complexZ);
       check(polarZ is Mul).isTrue();
 
+      final polar22 = toPolarExpr(
+        ComplexNumber.of(IntegerNumber.two, IntegerNumber.two),
+      );
+      check(polar22.toString()).equals('2 * sqrt(2) * exp(1/4 * i * pi)');
+      check(polar22.anyNode((n) => n is Mul && n.factors.any((f) => f is Mul)))
+          .isFalse();
+
       final rectC = toRectangularExpr(Constant.pi);
       check(rectC).equals(Constant.pi);
+      final rectExpr = toRectangularExpr(
+        Add([
+          IntegerNumber.one,
+          Mul([ComplexNumber.i, IntegerNumber.two]),
+        ]),
+      );
+      check(rectExpr.toString()).equals('1 + 2 * i');
       check(toRectangularExpr(Conjugate(z), assumptions: complexZ).toString())
           .equals('re(z) - i * im(z)');
       check(toRectangularExpr(Re(z), assumptions: complexZ))
