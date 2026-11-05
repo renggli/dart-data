@@ -342,7 +342,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.10 `symbolic` Subsystem
 
-- [ ] **1.10.1 Indefinite `Integral` drops its variable from `freeVariables` (causing `derivative` to return `0`) and definite `Integral` differentiation omits Leibniz boundary terms**
+- [x] **1.10.1 Indefinite `Integral` drops its variable from `freeVariables` (causing `derivative` to return `0`) and definite `Integral` differentiation omits Leibniz boundary terms**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/ast/integral.dart:54-61`, `lib/src/symbolic/calculus/differentiation.dart:52-55, 231-244`
   - **Problem**:
