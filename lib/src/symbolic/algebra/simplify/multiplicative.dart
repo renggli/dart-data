@@ -217,6 +217,9 @@ Expr simplifyDiv(
 /// Canonically sorts [remainingFactors] and combines with [coeff] into a
 /// simplified product expression.
 Expr simplifySymbolicProduct(Number coeff, List<Expr> remainingFactors) {
+  if (coeff.isZero) {
+    return coeff;
+  }
   if (remainingFactors.isEmpty) {
     return coeff;
   }

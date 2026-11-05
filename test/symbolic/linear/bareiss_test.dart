@@ -172,5 +172,43 @@ void main() {
           .throws<ArgumentError>();
       check(() => engine.solve(a, 'invalid')).throws<ArgumentError>();
     });
+
+    test('detects zero rational pivots and evaluates rank and rowEchelon', () {
+      const x = Variable('x');
+      const engine = BareissEngine();
+
+      // Matrix with rational function entries where row 3 is row 1 + row 2
+      final r1 = [IntegerNumber.one, x, IntegerNumber.two];
+      final r2 = [
+        (IntegerNumber.two * x + IntegerNumber.one) / x,
+        IntegerNumber.of(3),
+        IntegerNumber.of(4),
+      ];
+      final r3 = [
+        (r1[0] + r2[0]).simplify(),
+        (r1[1] + r2[1]).simplify(),
+        (r1[2] + r2[2]).simplify(),
+      ];
+      final m = Matrix<Expr>.fromRows([r1, r2, r3], type: exprDataType);
+
+      final rref = engine.rowEchelonWithPivots(m);
+      check(rref.pivotColumns).deepEquals([0, 1]);
+      check(m.rank()).equals(2);
+      check(m.nullSpace().length).equals(1);
+
+      // Algebraic zero rational pivot directly
+      final zeroRat = Expr.parse(
+        '4 - (2*x + 1)/x - (3 - (2*x + 1)/x)*(2*x - 1)/(x - 1)',
+      );
+      final mZeroPivot = Matrix<Expr>.fromRows([
+        [IntegerNumber.one, IntegerNumber.zero, IntegerNumber.one],
+        [IntegerNumber.zero, IntegerNumber.one, IntegerNumber.one],
+        [IntegerNumber.zero, IntegerNumber.zero, zeroRat],
+      ], type: exprDataType);
+      final rrefZero = engine.rowEchelonWithPivots(mZeroPivot);
+      check(rrefZero.pivotColumns).deepEquals([0, 1]);
+      check(mZeroPivot.rank()).equals(2);
+      check(mZeroPivot.nullSpace().length).equals(1);
+    });
   });
 }

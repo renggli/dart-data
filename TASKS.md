@@ -362,7 +362,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     1. Remove the premature `Pow(base, exponent)` collapse in `_resolveAsymptoticAbsAndPiecewise`.
     2. In `_gruntzLimit`, rewrite hyperbolic functions (`Sinh`, `Cosh`, `Tanh`, `Asinh`, `Acosh`, `Atanh`) via `.rewrite(RewriteTarget.exp, assumptions: assumptions)` and rewrite positive numeric-base powers `Pow(base, exp)` (where `base is RealNumeric && base.sign > 0 && !base.isOne && exp.dependsOn(variable)`) as `Pow(Constant.e, exp * Ln(base))`, and add `Sinh`, `Cosh`, `Asinh`, `Acosh` to the fast-path elementary limit table (`lines 161-209`).
 
-- [ ] **1.10.3 `BareissEngine` fails to detect zero rational pivots, producing wrong `rank()`, `rowEchelon()`, `nullSpace()`, and `eigenvectors()` on symbolic matrices**
+- [x] **1.10.3 `BareissEngine` fails to detect zero rational pivots, producing wrong `rank()`, `rowEchelon()`, `nullSpace()`, and `eigenvectors()` on symbolic matrices**
   - **Severity**: Critical
   - **Location**: `lib/src/symbolic/linear/bareiss.dart:264-268, 404-408`
   - **Problem**: During `BareissEngine.rowEchelonWithPivots`, row elimination produces rational function entries with different polynomial denominators (e.g. `x` and `x - 1`). `_simplifyDifference` (`line 264`) only calls `(a - b).simplify()` when `_hasDiv(diff)` is `true`, and `_isExprZero` (`line 404`) only calls `expr.expand().simplify()` without combining fractions over a common denominator. Consequently, algebraically zero pivot expressions such as `4 - (2*x + 1)/x - (3 - (2*x + 1)/x)*(2*x - 1)/(x - 1)` are not recognized as zero, causing `Matrix<Expr>.rank()` to return `3` instead of `2` and `nullSpace()` to return `[]` on singular symbolic matrices.

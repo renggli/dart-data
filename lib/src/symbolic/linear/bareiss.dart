@@ -3,6 +3,7 @@ import '../../linear/vector.dart';
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/factor/fraction.dart';
+import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
@@ -264,7 +265,7 @@ class BareissEngine {
   static Expr _simplifyDifference(Expr a, Expr b) {
     final diff = (a - b).simplify();
     if (!_hasDiv(diff)) return diff.expand().simplify();
-    return diff;
+    return diff.cancel().simplify();
   }
 
   /// Divides [num] by [den] with guaranteed zero remainder.
@@ -404,6 +405,11 @@ class BareissEngine {
   static bool _isExprZero(Expr expr) {
     if (expr is Number && expr.isZero) return true;
     final s = expr.expand().simplify();
-    return s is Number && s.isZero;
+    if (s is Number && s.isZero) return true;
+    if (_hasDiv(s)) {
+      final combined = s.together().simplify();
+      return combined is Number && combined.isZero;
+    }
+    return false;
   }
 }
