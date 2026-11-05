@@ -264,7 +264,7 @@ PlotValue buildOdePlotValue(
     curves: [
       PlotCurveData(
         label:
-            "y' = $rhs, y(${PlotValue.fmtBound(t0)}) = ${PlotValue.fmtBound(y0)}",
+            'dy/dt = $rhs, y(${PlotValue.fmtBound(t0)}) = ${PlotValue.fmtBound(y0)}',
         exprText: rhs.toString(),
         segments: [PlotSegmentData(x: xs, y: ys)],
       ),

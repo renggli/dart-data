@@ -422,7 +422,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. `selectDistribution` (`lines 462-466`) assigns URL query overrides directly into `currentParamValues` without clamping to `[p.min, p.max]`, checking `.isFinite`, or rounding when `p.isInt` is `true`, crashing app initialization on URLs like `#normal?sigma=-1` or `#binomial?p=2`.
   - **Fix**: Add `double evalDistCumulativeProbability(num x)` (calling `(activeDist as Distribution<int>).cumulativeProbability(x.floor())` when `!activeDef.isContinuous`) and clamp/validate `parameterOverrides` in `selectDistribution`.
 
-- [ ] **1.11.2 Mathematical typography violations in `web/index.html`, `web/expressions`, and `web/calculator` (`AGENTS.md`)**
+- [x] **1.11.2 Mathematical typography violations in `web/index.html`, `web/expressions`, and `web/calculator` (`AGENTS.md`)**
   - **Severity**: Critical
   - **Location**: `web/index.html:567, 608, 664, 693, 749`, `web/expressions/index.dart:2098, 2186-2191`, `web/calculator/src/engine/sampling.dart:267`, `web/calculator/src/engine/commands/plot.dart:233`
   - **Problem**:

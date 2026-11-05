@@ -401,6 +401,7 @@ void main() {
       check(odeCell.value).isA<PlotValue>();
       final odePlot = odeCell.value as PlotValue;
       check(odePlot.curves.length).equals(1);
+      check(odePlot.curves.first.label).equals('dy/dt = -y, y(0) = 1');
       final lastY = odePlot.curves.first.segments.first.y.last;
       check(lastY).isCloseTo(0.135335, 1e-3); // exp(-2) ≈ 0.135335
 

@@ -230,7 +230,7 @@ List<Command> buildPlotCommands() => [
     ],
     minArity: 2,
     maxArity: 4,
-    doc: "Integrates and plots y'(t) = f(t, y) with initial value y(t0) = y0 using RK45.",
+    doc: 'Integrates and plots dy/dt = f(t, y) with initial value y(t0) = y0 using RK45.',
     examples: const [
       'ode(-y + sin(t), 1, 0, 10)',
       'ode(y * (1 - y), 0.1, 0, 8)',

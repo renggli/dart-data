@@ -2095,7 +2095,7 @@ void drawCharts() {
         y0,
         color: '#f8fafc',
         radius: 3.5,
-        label: 'x0',
+        label: 'x₀',
       );
     }
   }
@@ -2184,11 +2184,11 @@ void drawCharts() {
         ] else
           'f(x): ${formatNumber(hyReal, precision: 4)}',
         if (hSlope != null && hSlope.isFinite)
-          '${hasImaginary ? "Re " : ""}f\'(x): ${formatNumber(hSlope, precision: 4)}',
+          '${hasImaginary ? "Re " : ""}df/dx: ${formatNumber(hSlope, precision: 4)}',
         if (showD2fx && hCurv != null && hCurv.isFinite)
-          '${hasImaginary ? "Re " : ""}f\'\'(x): ${formatNumber(hCurv, precision: 4)}',
+          '${hasImaginary ? "Re " : ""}d²f/dx²: ${formatNumber(hCurv, precision: 4)}',
         if (showD3fx && hJerk != null && hJerk.isFinite)
-          '${hasImaginary ? "Re " : ""}f\'\'\'(x): ${formatNumber(hJerk, precision: 4)}',
+          '${hasImaginary ? "Re " : ""}d³f/dx³: ${formatNumber(hJerk, precision: 4)}',
       ];
       drawCrosshairAndTooltip(
         ctx,
