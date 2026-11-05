@@ -57,8 +57,10 @@ void main() {
       check(equality.isClose(bigA, bigB, -1.0)).isFalse();
 
       final field = type.field;
-      check(field.scale(BigInt.from(10), double.nan)).equals(BigInt.zero);
-      check(field.scale(BigInt.from(10), double.infinity)).equals(BigInt.zero);
+      check(() => field.scale(BigInt.from(10), double.nan))
+          .throws<ArgumentError>();
+      check(() => field.scale(BigInt.from(10), double.infinity))
+          .throws<ArgumentError>();
     });
 
     test('BigIntField extended operations', () {
@@ -84,7 +86,15 @@ void main() {
       check(field.sqrt(BigInt.one)).equals(BigInt.one);
       check(() => field.sqrt(BigInt.from(-1))).throws<ArgumentError>();
       check(field.exp(BigInt.zero)).equals(BigInt.one);
+      check(field.exp(BigInt.one)).equals(BigInt.from(3));
       check(field.log(BigInt.one)).equals(BigInt.zero);
+      check(field.log(BigInt.two)).equals(BigInt.one);
+      check(() => field.log(BigInt.zero)).throws<ArgumentError>();
+      check(() => field.log(BigInt.from(-5))).throws<ArgumentError>();
+      check(() => field.scale(BigInt.from(5), double.nan))
+          .throws<ArgumentError>();
+      check(() => field.scale(BigInt.from(5), double.infinity))
+          .throws<ArgumentError>();
       check(field.conjugate(BigInt.from(42))).equals(BigInt.from(42));
       check(() => field.nan).throws<UnsupportedError>();
       check(() => field.infinity).throws<UnsupportedError>();

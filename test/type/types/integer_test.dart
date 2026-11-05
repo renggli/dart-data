@@ -117,8 +117,15 @@ void main() {
       check(field.abs(-5)).equals(5);
       check(field.norm(-5)).equals(5.0);
       check(field.sqrt(16)).equals(4);
+      check(() => field.sqrt(-1)).throws<ArgumentError>();
+      check(field.exp(1)).equals(3);
       check(field.exp(2)).equals(7);
+      check(field.log(2)).equals(1);
       check(field.log(10)).equals(2);
+      check(() => field.log(0)).throws<ArgumentError>();
+      check(() => field.log(-5)).throws<ArgumentError>();
+      check(() => field.scale(5, double.nan)).throws<ArgumentError>();
+      check(() => field.scale(5, double.infinity)).throws<ArgumentError>();
       check(field.conjugate(5)).equals(5);
       check(() => field.nan).throws<UnsupportedError>();
       check(() => field.infinity).throws<UnsupportedError>();

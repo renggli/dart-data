@@ -90,7 +90,9 @@ final class BigIntField extends ExtendedField<BigInt> {
 
   @override
   BigInt scale(BigInt a, num factor) {
-    if (!factor.isFinite) return BigInt.zero;
+    if (!factor.isFinite) {
+      throw ArgumentError.value(factor, 'factor', 'Must be finite');
+    }
     if (factor is int) return a * BigInt.from(factor);
     final frac = Fraction.fromDouble(factor.toDouble());
     if (frac.denominator == 0) return BigInt.zero;
@@ -148,5 +150,10 @@ final class BigIntField extends ExtendedField<BigInt> {
   BigInt exp(BigInt a) => BigInt.from(math.exp(a.toDouble()).round());
 
   @override
-  BigInt log(BigInt a) => BigInt.from(math.log(a.toDouble()).round());
+  BigInt log(BigInt a) {
+    if (a <= BigInt.zero) {
+      throw ArgumentError.value(a, 'a', 'Non-positive value');
+    }
+    return BigInt.from(math.log(a.toDouble()).round());
+  }
 }

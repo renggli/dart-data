@@ -354,7 +354,12 @@ final class IntegerField extends ExtendedField<int> {
   int mul(int a, int b) => a * b;
 
   @override
-  int scale(int a, num factor) => (a * factor).round();
+  int scale(int a, num factor) {
+    if (!factor.isFinite) {
+      throw ArgumentError.value(factor, 'factor', 'Must be finite');
+    }
+    return (a * factor).round();
+  }
 
   @override
   int div(int a, int b) => a ~/ b;
@@ -401,13 +406,19 @@ final class IntegerField extends ExtendedField<int> {
   double norm(int a) => a.abs().toDouble();
 
   @override
-  int sqrt(int a) => math.sqrt(a).truncate();
+  int sqrt(int a) {
+    if (a < 0) throw ArgumentError.value(a, 'a', 'Negative value');
+    return math.sqrt(a).round();
+  }
 
   @override
-  int exp(int a) => math.exp(a).truncate();
+  int exp(int a) => math.exp(a).round();
 
   @override
-  int log(int a) => math.log(a).truncate();
+  int log(int a) {
+    if (a <= 0) throw ArgumentError.value(a, 'a', 'Non-positive value');
+    return math.log(a).round();
+  }
 }
 
 /// Equality relation for integer values with proximity testing.

@@ -37,7 +37,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: When `a != b` and `epsilon` is `double.nan`, `epsilon < 1` is `false`, so `_editDistance(a, b)` executes the full dynamic programming matrix before `<= double.nan` evaluates to `false`. It also runs `_editDistance` when `epsilon == double.infinity` or when `(a.length - b.length).abs() > epsilon`.
   - **Fix**: Guard `if (epsilon.isNaN || epsilon < 0) return false; if (a == b) return true; if (epsilon < 1) return false; if (epsilon.isInfinite) return true; if ((a.length - b.length).abs() > epsilon) return false;` before calling `_editDistance(a, b)`.
 
-- [ ] **1.1.5 Domain validation and rounding inconsistencies between `IntegerField` and `BigIntField`**
+- [x] **1.1.5 Domain validation and rounding inconsistencies between `IntegerField` and `BigIntField`**
   - **Severity**: Warning
   - **Location**: `lib/src/type/types/integer.dart:357, 404-410`, `lib/src/type/types/bigint.dart:92-98, 132-151`
   - **Problem**:
