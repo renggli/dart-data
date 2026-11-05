@@ -1073,7 +1073,7 @@ abstract final class LapackDart {
             stemp[k + 1] = -sn * eList[k] + cs * stemp[k + 1];
             gVal = sn * eList[k + 1];
             eList[k + 1] = cs * eList[k + 1];
-            if (computeU && k < rowsA) {
+            if (computeU && k < rowsA - 1) {
               for (var i = 0; i < rowsA; i++) {
                 final z =
                     cs * uVals[k * rowsA + i] + sn * uVals[(k + 1) * rowsA + i];
@@ -1099,7 +1099,7 @@ abstract final class LapackDart {
             final temp = stemp[lIdx];
             stemp[lIdx] = stemp[lIdx + 1];
             stemp[lIdx + 1] = temp;
-            if (computeVt && lIdx < colsA) {
+            if (computeVt && lIdx < colsA - 1) {
               for (var i = 0; i < colsA; i++) {
                 final aVal = vList[(lIdx + 1) * colsA + i];
                 final bVal = vList[lIdx * colsA + i];
@@ -1107,7 +1107,7 @@ abstract final class LapackDart {
                 vList[(lIdx + 1) * colsA + i] = bVal;
               }
             }
-            if (computeU && lIdx < rowsA) {
+            if (computeU && lIdx < rowsA - 1) {
               for (var i = 0; i < rowsA; i++) {
                 final aVal = uVals[(lIdx + 1) * rowsA + i];
                 final bVal = uVals[lIdx * rowsA + i];

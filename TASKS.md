@@ -68,7 +68,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.3 `acceleration` Subsystem
 
-- [ ] **1.3.1 `LapackDart.dgesvd` throws `RangeError` for any wide matrix ($m < n$) when `jobu: 'A'`**
+- [x] **1.3.1 `LapackDart.dgesvd` throws `RangeError` for any wide matrix ($m < n$) when `jobu: 'A'`**
   - **Severity**: Critical
   - **Location**: `lib/src/acceleration/lapack/lapack_dart.dart:1076, 1110`
   - **Problem**: When `m < n` (e.g., $2 \times 4$, so `rowsA = 2, colsA = 4`) and `jobu == 'A'` (`computeU == true`), `uCol` has length `rowsA * rowsA = 4` (`line 688`), while `mDim = math.min(colsA, rowsA + 1) = 3` (`line 856`).

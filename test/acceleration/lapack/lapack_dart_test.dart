@@ -396,5 +396,28 @@ void main() {
         ),
       ).isFalse();
     });
+
+    test('dgesvd wide matrix m < n with jobu A in pure Dart', () {
+      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
+      final s = Float64List(2);
+      final u = Float64List(4);
+      final vt = Float64List(16);
+      final success = LapackDart.dgesvd(
+        jobu: 'A',
+        jobvt: 'A',
+        m: 2,
+        n: 4,
+        a: a,
+        aOffset: 0,
+        lda: 4,
+        s: s,
+        sOffset: 0,
+        u: u,
+        ldu: 2,
+        vt: vt,
+        ldvt: 4,
+      );
+      check(success).isTrue();
+    });
   });
 }

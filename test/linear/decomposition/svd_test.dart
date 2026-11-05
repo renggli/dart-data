@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
@@ -32,6 +33,35 @@ void main() {
         for (var j = 0; j < a.colCount; j++) {
           check(reconstructed.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
         }
+      }
+    });
+
+    test('svd wide matrix in pure dart mode', () {
+      final prev = AccelerationManager.mode;
+      AccelerationManager.mode = AccelerationMode.dart;
+      try {
+        final a = Matrix<double>.fromRows([
+          [1.0, 2.0, 3.0, 4.0],
+          [5.0, 6.0, 7.0, 8.0],
+        ]);
+        final svd = a.svd;
+        check(svd.s.length).equals(2);
+        check(svd.u.rowCount).equals(2);
+        check(svd.u.colCount).equals(2);
+        check(svd.v.rowCount).equals(4);
+        check(svd.v.colCount).equals(4);
+
+        final uMat = svd.u;
+        final sigma = svd.sigma;
+        final vtMat = svd.vt;
+        final reconstructed = uMat * sigma * vtMat;
+        for (var i = 0; i < a.rowCount; i++) {
+          for (var j = 0; j < a.colCount; j++) {
+            check(reconstructed.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
+          }
+        }
+      } finally {
+        AccelerationManager.mode = prev;
       }
     });
 
