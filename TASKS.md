@@ -169,7 +169,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     3. Line 254 uses `const epsilon = 1.0e-8;` instead of `1.0e-14` (`gammapInv` line 154), terminating 6 orders of magnitude early.
   - **Fix**: Change line 254 to `const epsilon = 1.0e-14;`, line 258 to `final afac = exp(a1 * (lna1 - 1.0) - gln);`, and line 289 to `final h = uVal / (1.0 + 0.5 * max(-1.0, uVal * ((a - 1.0) / x - 1.0)));` with bracket bounds `[xMin, xMax]` matching `gammapInv`.
 
-- [ ] **1.5.2 `polygamma(m, x)` ($m \ge 2$) lacks reflection formula for $x < 0$, causing $\mathcal{O}(|x|)$ loops or infinite loops**
+- [x] **1.5.2 `polygamma(m, x)` ($m \ge 2$) lacks reflection formula for $x < 0$, causing $\mathcal{O}(|x|)$ loops or infinite loops**
   - **Severity**: Critical
   - **Location**: `lib/src/special/digamma.dart:118-137`
   - **Problem**: Unlike `digamma` (`line 29`) and `trigamma` (`line 78`), `polygamma(m, x)` for $m \ge 2$ only checks `if (value <= 0.0 && value.truncateToDouble() == value)` and then enters `while (value < 8.0) { shift += ...; value += 1.0; }`. For $x = -10^8 - 0.5$, it loops $10^8$ times; for $x = -10^{16} - 0.5$, `value + 1.0 == value` in IEEE 754 `double`, causing an infinite loop.

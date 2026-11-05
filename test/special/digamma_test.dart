@@ -51,8 +51,15 @@ void main() {
       check(polygamma(2, -2)).isNaN();
 
       // Negative non-integers are finite via reflection
-      check(polygamma(2, -0.5).isFinite).isTrue();
-      check(polygamma(2, -1.5).isFinite).isTrue();
+      check(polygamma(2, -0.5)).isCloseTo(polygamma(2, 1.5), 1e-10);
+      check(polygamma(2, -1.5)).isCloseTo(polygamma(2, 2.5), 1e-10);
+      check(polygamma(3, -0.5))
+          .isCloseTo(2 * math.pow(math.pi, 4) - polygamma(3, 1.5), 1e-8);
+
+      // Large negative values evaluate instantly via reflection without looping
+      check(polygamma(2, -1e8 - 0.5).isFinite).isTrue();
+      check(polygamma(2, -1e14 - 0.5).isFinite).isTrue();
+      check(polygamma(3, -1e8 - 0.5).isFinite).isTrue();
     });
   });
 }

@@ -116,8 +116,14 @@ double polygamma(int m, num x) {
     return x.isNegative ? double.nan : 0.0;
   }
   var value = x.toDouble();
-  if (value <= 0.0 && value.roundToDouble() == value) {
-    return double.nan;
+  if (value <= 0.0) {
+    if (value.roundToDouble() == value) {
+      return double.nan;
+    }
+    final refl = polygamma(m, 1.0 - value);
+    final signM = m.isEven ? 1.0 : -1.0;
+    final term = pow(pi, m + 1) * _cotDerivative(m, value);
+    return signM * refl - term;
   }
   var mFact = 1.0;
   for (var i = 1; i <= m; i++) {
@@ -158,4 +164,32 @@ double polygamma(int m, num x) {
   }
 
   return sign * asymptotic + shift;
+}
+
+double _cotDerivative(int m, double x) {
+  final rem = x - x.floorToDouble();
+  final px = pi * rem;
+  final sinVal = sin(px);
+  final cosVal = cos(px);
+  final t = cosVal / sinVal;
+
+  var poly = <double>[0.0, 1.0]; // P_0(t) = t
+  for (var k = 0; k < m; k++) {
+    final next = List<double>.filled(k + 3, 0.0);
+    for (var j = 1; j < poly.length; j++) {
+      final c = poly[j];
+      if (c != 0.0) {
+        final d = j * c;
+        next[j - 1] -= d;
+        next[j + 1] -= d;
+      }
+    }
+    poly = next;
+  }
+
+  var val = 0.0;
+  for (var i = poly.length - 1; i >= 0; i--) {
+    val = val * t + poly[i];
+  }
+  return val;
 }
