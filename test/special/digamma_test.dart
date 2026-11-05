@@ -26,5 +26,33 @@ void main() {
       check(trigamma(double.negativeInfinity)).isNaN();
       check(trigamma(-1.5).isFinite).isTrue();
     });
+
+    test('polygamma known values', () {
+      check(() => polygamma(-1, 1.0)).throws<ArgumentError>();
+
+      // polygamma(0, x) == digamma(x)
+      for (final x in [0.5, 1.0, 2.0, 3.5]) {
+        check(polygamma(0, x)).isCloseTo(digamma(x), 1e-10);
+      }
+
+      // polygamma(1, x) == trigamma(x)
+      for (final x in [0.5, 1.0, 2.0, 3.5]) {
+        check(polygamma(1, x)).isCloseTo(trigamma(x), 1e-10);
+      }
+
+      // polygamma(2, 1) = -2 * zeta(3) ~= -2.4041138063
+      check(polygamma(2, 1)).isCloseTo(-2.4041138063191885, 1e-8);
+      // polygamma(2, 2) = -2 * zeta(3) + 2 ~= -0.4041138063
+      check(polygamma(2, 2)).isCloseTo(-0.4041138063191885, 1e-8);
+
+      // Non-positive integers return NaN
+      check(polygamma(2, 0)).isNaN();
+      check(polygamma(2, -1)).isNaN();
+      check(polygamma(2, -2)).isNaN();
+
+      // Negative non-integers are finite via reflection
+      check(polygamma(2, -0.5).isFinite).isTrue();
+      check(polygamma(2, -1.5).isFinite).isTrue();
+    });
   });
 }

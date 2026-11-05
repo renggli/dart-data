@@ -1,5 +1,198 @@
 import 'dart:math';
 
+import 'gamma.dart';
+
+/// Returns the Bessel function of the first kind $J_\nu(x)$ of real order [nu].
+///
+/// For integer order [nu], this evaluates $J_n(x)$ via Miller's backward
+/// recurrence or forward recurrence. For non-integer order, evaluates via
+/// the series definition $\sum_{m=0}^\infty \frac{(-1)^m}{m! \Gamma(m + \nu + 1)} (x/2)^{2m + \nu}$.
+double besselJ(num nu, num x) {
+  if (nu.isNaN || x.isNaN) return double.nan;
+  final nud = nu.toDouble();
+  final xd = x.toDouble();
+  if (nud == 0.0) return besselJ0(xd);
+  if (nud == 1.0) return besselJ1(xd);
+
+  // Integer order branch
+  if (nud.roundToDouble() == nud) {
+    final n = nud.toInt();
+    if (n < 0) {
+      final jPos = besselJ(-n, xd);
+      return n.isOdd ? -jPos : jPos;
+    }
+    if (xd == 0.0) return n == 0 ? 1.0 : 0.0;
+    if (xd < 0.0) {
+      final jPos = besselJ(n, -xd);
+      return n.isOdd ? -jPos : jPos;
+    }
+    if (xd > n) {
+      // Forward recurrence
+      var jPrev = besselJ0(xd);
+      var jCur = besselJ1(xd);
+      for (var k = 1; k < n; k++) {
+        final jNext = (2.0 * k / xd) * jCur - jPrev;
+        jPrev = jCur;
+        jCur = jNext;
+      }
+      return jCur;
+    } else {
+      // Backward recurrence (Miller's algorithm)
+      final m = 2 * (n + sqrt(40.0 * n).toInt() + 10);
+      var fNext = 0.0;
+      var fCur = 1.0e-30;
+      var fn = 0.0;
+      var sum = 0.0;
+      for (var k = m; k > 0; k--) {
+        final fPrev = (2.0 * k / xd) * fCur - fNext;
+        fNext = fCur;
+        fCur = fPrev;
+        if (k - 1 == n) fn = fCur;
+        if ((k - 1).isEven) {
+          sum += (k - 1 == 0) ? fCur : 2.0 * fCur;
+        }
+      }
+      return (sum == 0.0) ? 0.0 : (fn / sum);
+    }
+  }
+
+  // Non-integer order branch
+  if (xd < 0.0) return double.nan;
+  if (xd == 0.0) return nud == 0.0 ? 1.0 : 0.0;
+
+  final halfX = 0.5 * xd;
+  final gammaVal = gamma(nud + 1.0);
+  if (gammaVal.isInfinite) return 0.0;
+  var term = pow(halfX, nud) / gammaVal;
+  var sum = term;
+  final halfX2 = -halfX * halfX;
+  for (var m = 1; m <= 100; m++) {
+    term *= halfX2 / (m * (m + nud));
+    sum += term;
+    if (term.abs() <= 1.0e-15 * sum.abs()) break;
+  }
+  return sum;
+}
+
+/// Returns the Bessel function of the second kind $Y_\nu(x)$ of real order [nu].
+double besselY(num nu, num x) {
+  if (nu.isNaN || x.isNaN) return double.nan;
+  final nud = nu.toDouble();
+  final xd = x.toDouble();
+  if (xd <= 0.0) return double.nan;
+  if (nud == 0.0) return besselY0(xd);
+  if (nud == 1.0) return besselY1(xd);
+
+  // Integer order branch via forward recurrence
+  if (nud.roundToDouble() == nud) {
+    final n = nud.toInt();
+    if (n < 0) {
+      final yPos = besselY(-n, xd);
+      return n.isOdd ? -yPos : yPos;
+    }
+    var yPrev = besselY0(xd);
+    var yCur = besselY1(xd);
+    for (var k = 1; k < n; k++) {
+      final yNext = (2.0 * k / xd) * yCur - yPrev;
+      yPrev = yCur;
+      yCur = yNext;
+    }
+    return yCur;
+  }
+
+  // Non-integer order via relation to J_nu and J_{-nu}
+  final sinPiNu = sin(pi * nud);
+  if (sinPiNu.abs() < 1e-15) {
+    return besselY(nud.round(), xd);
+  }
+  return (besselJ(nud, xd) * cos(pi * nud) - besselJ(-nud, xd)) / sinPiNu;
+}
+
+/// Returns the modified Bessel function of the first kind $I_\nu(x)$ of real order [nu].
+double besselI(num nu, num x) {
+  if (nu.isNaN || x.isNaN) return double.nan;
+  final nud = nu.toDouble();
+  final xd = x.toDouble();
+  if (nud == 0.0) return besselI0(xd);
+  if (nud == 1.0) return besselI1(xd);
+
+  // Integer order branch
+  if (nud.roundToDouble() == nud) {
+    final n = nud.toInt();
+    if (n < 0) {
+      return besselI(-n, xd);
+    }
+    if (n == 0) return besselI0(xd);
+    if (n == 1) return besselI1(xd);
+    if (xd == 0.0) return 0.0;
+    if (xd < 0.0) {
+      final iPos = besselI(n, -xd);
+      return n.isOdd ? -iPos : iPos;
+    }
+    final m = 2 * (n + sqrt(40.0 * n).toInt() + 10);
+    var fNext = 0.0;
+    var fCur = 1.0e-30;
+    var fn = 0.0;
+    for (var k = m; k > 0; k--) {
+      final fPrev = (2.0 * k / xd) * fCur + fNext;
+      fNext = fCur;
+      fCur = fPrev;
+      if (k - 1 == n) fn = fCur;
+    }
+    final trueI0 = besselI0(xd);
+    return fCur == 0.0 ? 0.0 : fn * (trueI0 / fCur);
+  }
+
+  // Non-integer order branch
+  if (xd < 0.0) return double.nan;
+  if (xd == 0.0) return nud == 0.0 ? 1.0 : 0.0;
+
+  final halfX = 0.5 * xd;
+  final gammaVal = gamma(nud + 1.0);
+  if (gammaVal.isInfinite) return 0.0;
+  var term = pow(halfX, nud) / gammaVal;
+  var sum = term;
+  final halfX2 = halfX * halfX;
+  for (var m = 1; m <= 100; m++) {
+    term *= halfX2 / (m * (m + nud));
+    sum += term;
+    if (term.abs() <= 1.0e-15 * sum.abs()) break;
+  }
+  return sum;
+}
+
+/// Returns the modified Bessel function of the second kind $K_\nu(x)$ of real order [nu].
+double besselK(num nu, num x) {
+  if (nu.isNaN || x.isNaN) return double.nan;
+  final nud = nu.toDouble();
+  final xd = x.toDouble();
+  if (xd <= 0.0) return double.nan;
+  if (nud == 0.0) return besselK0(xd);
+  if (nud == 1.0) return besselK1(xd);
+
+  final absNu = nud.abs();
+
+  // Integer order branch via forward recurrence
+  if (absNu.roundToDouble() == absNu) {
+    final n = absNu.toInt();
+    var kPrev = besselK0(xd);
+    var kCur = besselK1(xd);
+    for (var k = 1; k < n; k++) {
+      final kNext = (2.0 * k / xd) * kCur + kPrev;
+      kPrev = kCur;
+      kCur = kNext;
+    }
+    return kCur;
+  }
+
+  // Non-integer order via relation to I_{-nu} and I_{nu}
+  final sinPiNu = sin(pi * absNu);
+  if (sinPiNu.abs() < 1e-15) {
+    return besselK(absNu.round(), xd);
+  }
+  return (pi / 2.0) * (besselI(-absNu, xd) - besselI(absNu, xd)) / sinPiNu;
+}
+
 /// Returns the modified Bessel function $I_0(x)$ of the first kind of order 0.
 ///
 /// Conceptually, modified Bessel functions describe physical diffusion

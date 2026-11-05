@@ -1,3 +1,23 @@
+/// Evaluates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$ of degree [n]
+/// at [x] with parameter [alpha] (defaulting to `0.0` for standard Laguerre polynomials).
+double laguerreEvaluate(int n, num x, {num alpha = 0.0}) {
+  if (n < 0) {
+    throw ArgumentError.value(n, 'n', 'Degree must be non-negative');
+  }
+  if (n == 0) return 1.0;
+  final xd = x.toDouble();
+  final a = alpha.toDouble();
+  var l0 = 1.0;
+  var l1 = 1.0 + a - xd;
+  if (n == 1) return l1;
+  for (var k = 1; k < n; k++) {
+    final next = ((2.0 * k + 1.0 + a - xd) * l1 - (k + a) * l0) / (k + 1.0);
+    l0 = l1;
+    l1 = next;
+  }
+  return l1;
+}
+
 /// Supported orthogonal polynomial families for recurrence generation and
 /// Clenshaw summation.
 enum OrthogonalFamily {

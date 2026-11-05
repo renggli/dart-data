@@ -752,7 +752,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
     4. Sparse matrices (`CooMatrix`, `CsrMatrix`, `CscMatrix`) lack `transposed`, `scale`, `+`, `-`, `==`, `hashCode`, and `toString`.
   - **Fix**: Implement `isClose` on `Tensor`/`Vector`/`Matrix`, `normalized` and `cross` on `Vector`, `kronecker` and `pseudoinverse` on `Matrix`, and basic algebraic/structural operations on sparse matrices.
 
-- [ ] **6.2 `special` & `polynomial`: General-order Bessel functions, incomplete elliptic integrals, `zeta`, `polygamma`, and `laguerreEvaluate`**
+- [x] **6.2 `special` & `polynomial`: General-order Bessel functions, incomplete elliptic integrals, `zeta`, `polygamma`, and `laguerreEvaluate`**
   - **Severity**: Suggestion
   - **Location**: `lib/src/special/`, `lib/src/polynomial/orthogonal.dart`
   - **Problem**: `special` only implements order-0 and order-1 Bessel functions (`besselJ0`, `besselJ1`, etc.) and complete elliptic integrals (`ellipticK`, `ellipticE`), lacking general-order `besselJ(nu, x)`, `besselY(nu, x)`, `besselI(nu, x)`, `besselK(nu, x)`, incomplete elliptic integrals `ellipticF(phi, k)` / `ellipticEIncomplete(phi, k)`, Riemann `zeta(s)`, `polygamma(m, x)`, and `gammaqInv(a, q)`. `polynomial` lacks `laguerreEvaluate(n, x, {alpha})` advertised in `ARCHITECTURE.md`.

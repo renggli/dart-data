@@ -7,23 +7,25 @@
 /// ## Implemented Function Families
 ///
 /// - **Gamma & Factorial Functions** ([gamma], [gammaLn], [gammap],
-///   [gammaq], [gammapInv]): The continuous extension of the factorial
+///   [gammaq], [gammapInv], [gammaqInv]): The continuous extension of the factorial
 ///   $\Gamma(n) = (n - 1)!$, implemented via Lanczos approximation with 15
 ///   digits of numerical precision.
 /// - **Beta Functions** ([beta], [betaLn], [ibeta], [ibetaInv]): Euler's
 ///   integral of the first kind $B(a, b)$, and the regularized incomplete beta
 ///   function.
-/// - **Psi / Digamma** ([digamma], [trigamma]): Logarithmic derivatives of the
-///   gamma function $\psi(x) = \frac{d}{dx} \ln \Gamma(x)$.
+/// - **Psi & Zeta Functions** ([digamma], [trigamma], [polygamma], [zeta]): Logarithmic
+///   derivatives of the gamma function $\psi^{(m)}(x)$ and the Riemann zeta
+///   function $\zeta(s)$.
 /// - **Error Functions** ([erf], [erfc], [erfInv], [erfcInv]): Gaussian error
 ///   integrals fundamental to normal distributions and diffusion processes.
-/// - **Bessel Functions** ([besselJ0], [besselJ1], [besselY0], [besselY1],
+/// - **Bessel Functions** ([besselJ], [besselY], [besselI], [besselK],
+///   [besselJ0], [besselJ1], [besselY0], [besselY1],
 ///   [besselI0], [besselI1], [besselK0], [besselK1]): Solutions to Bessel's
 ///   differential equation describing radial and wave behavior in cylindrical
 ///   geometries.
-/// - **Elliptic Integrals** ([ellipticK], [ellipticE]): Complete Legendre
-///   elliptic integrals of the 1st and 2nd kinds computed via
-///   arithmetic-geometric mean.
+/// - **Elliptic Integrals** ([ellipticK], [ellipticE], [ellipticF],
+///   [ellipticEIncomplete]): Complete and incomplete Legendre elliptic integrals
+///   of the 1st and 2nd kinds.
 /// - **Hypergeometric Functions** ([hypergeometric1F1], [hypergeometric2F1]):
 ///   Kummer's confluent series $_1F_1(a; b; z)$ and Gauss's generalized series
 ///   $_2F_1(a, b; c; z)$.
@@ -56,6 +58,7 @@ import 'src/special/erf.dart';
 import 'src/special/gamma.dart';
 import 'src/special/hypergeometric.dart';
 import 'src/special/lambert_w.dart';
+import 'src/special/zeta.dart';
 
 export 'src/special/bessel.dart';
 export 'src/special/beta.dart';
@@ -65,3 +68,4 @@ export 'src/special/erf.dart';
 export 'src/special/gamma.dart';
 export 'src/special/hypergeometric.dart';
 export 'src/special/lambert_w.dart';
+export 'src/special/zeta.dart';

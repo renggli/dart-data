@@ -158,5 +158,20 @@ void main() {
       );
       check(lClenshaw).isCloseTo(lDirect, 1e-9);
     });
+
+    test('laguerreEvaluate matches explicit polynomial evaluations', () {
+      check(() => laguerreEvaluate(-1, 0.5)).throws<ArgumentError>();
+
+      for (final alpha in [0.0, 0.5, 2.0]) {
+        for (var n = 0; n <= 6; n++) {
+          final poly = Polynomial.laguerreL(n, alpha: alpha);
+          for (final x in [0.0, 0.5, 1.2, 3.5]) {
+            final expected = poly.evaluateDouble(x);
+            final actual = laguerreEvaluate(n, x, alpha: alpha);
+            check(actual).isCloseTo(expected, 1e-9);
+          }
+        }
+      }
+    });
   });
 }

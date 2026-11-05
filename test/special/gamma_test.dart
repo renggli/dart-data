@@ -120,6 +120,24 @@ void main() {
       check(gammapInv(pLow, 3.0)).isCloseTo(0.5, 1e-12);
     });
 
+    test('gammaqInv', () {
+      check(gammaqInv(0.0, 2.0)).equals(double.infinity);
+      check(gammaqInv(1.0, 2.0)).equals(0.0);
+      check(gammaqInv(-0.1, 2.0)).isNaN();
+      check(gammaqInv(1.1, 2.0)).isNaN();
+      check(gammaqInv(double.nan, 2.0)).isNaN();
+      check(gammaqInv(0.5, 0.0)).isNaN();
+      check(gammaqInv(0.5, -1.0)).isNaN();
+
+      // Invertibility: gammaq(a, gammaqInv(q, a)) == q
+      for (final a in [0.5, 1.0, 2.5, 5.0]) {
+        for (final q in [0.01, 0.1, 0.25, 0.5, 0.8, 0.99]) {
+          final x = gammaqInv(q, a);
+          check(gammaq(a, x)).isCloseTo(q, 1e-6);
+        }
+      }
+    });
+
     test('gamma for large x', () {
       check(gamma(105.0).isFinite).isTrue();
     });

@@ -99,3 +99,63 @@ double trigamma(num x) {
       (5.0 / 66.0) * r11;
   return result + shift;
 }
+
+/// Returns the polygamma function of order [m], which is the $(m+1)$-th
+/// derivative of the logarithm of the gamma function:
+/// $\psi^{(m)}(x) = \frac{d^{m+1}}{dx^{m+1}} \ln \Gamma(x)$.
+///
+/// For $m = 0$, this equals [digamma]. For $m = 1$, this equals [trigamma].
+double polygamma(int m, num x) {
+  if (m < 0) {
+    throw ArgumentError.value(m, 'm', 'Order must be non-negative');
+  }
+  if (m == 0) return digamma(x);
+  if (m == 1) return trigamma(x);
+  if (x.isNaN) return double.nan;
+  if (x.isInfinite) {
+    return x.isNegative ? double.nan : 0.0;
+  }
+  var value = x.toDouble();
+  if (value <= 0.0 && value.roundToDouble() == value) {
+    return double.nan;
+  }
+  var mFact = 1.0;
+  for (var i = 1; i <= m; i++) {
+    mFact *= i;
+  }
+  final mMinus1Fact = mFact / m;
+  final sign = m.isOdd ? 1.0 : -1.0;
+  final shiftSign = m.isEven ? -1.0 : 1.0;
+
+  var shift = 0.0;
+  while (value < 8.0) {
+    shift += shiftSign * mFact / pow(value, m + 1);
+    value += 1.0;
+  }
+
+  final invVal = 1.0 / value;
+  var asymptotic =
+      mMinus1Fact * pow(invVal, m) + 0.5 * mFact * pow(invVal, m + 1);
+
+  const bCoeffs = [
+    1.0 / 12.0,
+    -1.0 / 720.0,
+    1.0 / 30240.0,
+    -1.0 / 1209600.0,
+    1.0 / 47900160.0,
+    -691.0 / 1307674368000.0,
+    1.0 / 74724249600.0,
+  ];
+
+  for (var k = 1; k <= bCoeffs.length; k++) {
+    var factor = 1.0;
+    for (var j = 1; j <= 2 * k + m - 1; j++) {
+      factor *= j;
+    }
+    final term = bCoeffs[k - 1] * factor * pow(invVal, 2 * k + m);
+    asymptotic += term;
+    if (term.abs() < 1e-15 * asymptotic.abs()) break;
+  }
+
+  return sign * asymptotic + shift;
+}

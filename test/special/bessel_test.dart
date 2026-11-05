@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
 import 'package:test/test.dart';
@@ -66,6 +68,72 @@ void main() {
       check(besselJ1(double.negativeInfinity)).equals(0.0);
       check(besselY0(double.infinity)).equals(0.0);
       check(besselY1(double.infinity)).equals(0.0);
+    });
+
+    test('general-order besselJ', () {
+      for (final x in [0.5, 1.0, 2.5, 5.0]) {
+        check(besselJ(0, x)).isCloseTo(besselJ0(x), 1e-10);
+        check(besselJ(1, x)).isCloseTo(besselJ1(x), 1e-10);
+        check(besselJ(-1, x)).isCloseTo(-besselJ1(x), 1e-10);
+        check(besselJ(-2, x)).isCloseTo(besselJ(2, x), 1e-10);
+
+        // Recurrence: J_{n-1}(x) + J_{n+1}(x) = (2n / x) * J_n(x)
+        final j0 = besselJ(0, x);
+        final j1 = besselJ(1, x);
+        final j2 = besselJ(2, x);
+        check(j0 + j2).isCloseTo((2.0 / x) * j1, 1e-8);
+
+        // Half-integer: J_{1/2}(x) = sqrt(2 / (pi * x)) * sin(x)
+        final expectedHalf = math.sqrt(2.0 / (math.pi * x)) * math.sin(x);
+        check(besselJ(0.5, x)).isCloseTo(expectedHalf, 1e-6);
+      }
+    });
+
+    test('general-order besselY', () {
+      for (final x in [0.5, 1.0, 2.5, 5.0]) {
+        check(besselY(0, x)).isCloseTo(besselY0(x), 1e-10);
+        check(besselY(1, x)).isCloseTo(besselY1(x), 1e-10);
+        check(besselY(-1, x)).isCloseTo(-besselY1(x), 1e-10);
+
+        // Recurrence: Y_{n-1}(x) + Y_{n+1}(x) = (2n / x) * Y_n(x)
+        final y0 = besselY(0, x);
+        final y1 = besselY(1, x);
+        final y2 = besselY(2, x);
+        check(y0 + y2).isCloseTo((2.0 / x) * y1, 1e-8);
+      }
+    });
+
+    test('general-order besselI', () {
+      for (final x in [0.5, 1.0, 2.5, 5.0]) {
+        check(besselI(0, x)).isCloseTo(besselI0(x), 1e-10);
+        check(besselI(1, x)).isCloseTo(besselI1(x), 1e-10);
+        check(besselI(-1, x)).isCloseTo(besselI1(x), 1e-10);
+
+        // Recurrence: I_{n-1}(x) - I_{n+1}(x) = (2n / x) * I_n(x)
+        final i0 = besselI(0, x);
+        final i1 = besselI(1, x);
+        final i2 = besselI(2, x);
+        check(i0 - i2).isCloseTo((2.0 / x) * i1, 1e-6);
+
+        // Half-integer: I_{1/2}(x) = sqrt(2 / (pi * x)) * sinh(x)
+        final sinhVal = 0.5 * (math.exp(x) - math.exp(-x));
+        final expectedHalf = math.sqrt(2.0 / (math.pi * x)) * sinhVal;
+        check(besselI(0.5, x)).isCloseTo(expectedHalf, 1e-6);
+      }
+    });
+
+    test('general-order besselK', () {
+      for (final x in [0.5, 1.0, 2.5, 5.0]) {
+        check(besselK(0, x)).isCloseTo(besselK0(x), 1e-10);
+        check(besselK(1, x)).isCloseTo(besselK1(x), 1e-10);
+        check(besselK(-1, x)).isCloseTo(besselK1(x), 1e-10);
+
+        // Recurrence: K_{n+1}(x) - K_{n-1}(x) = (2n / x) * K_n(x)
+        final k0 = besselK(0, x);
+        final k1 = besselK(1, x);
+        final k2 = besselK(2, x);
+        check(k2 - k0).isCloseTo((2.0 / x) * k1, 1e-8);
+      }
     });
   });
 }

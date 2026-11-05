@@ -229,6 +229,83 @@ double gammapInv(num probability, num a) {
   return x;
 }
 
+/// Returns the inverse of the upper regularized incomplete gamma function
+/// $x = Q^{-1}(a, q)$ such that $Q(a, x) = q$.
+double gammaqInv(num probability, num a) {
+  if (probability.isNaN ||
+      a.isNaN ||
+      probability < 0.0 ||
+      probability > 1.0 ||
+      a <= 0.0 ||
+      a.isInfinite) {
+    return double.nan;
+  }
+  if (probability == 0.0) {
+    return double.infinity;
+  }
+  if (probability == 1.0) {
+    return 0.0;
+  }
+  if (probability > 0.25) {
+    return gammapInv(1.0 - probability, a);
+  }
+  final ad = a.toDouble();
+  final qd = probability.toDouble();
+  const epsilon = 1.0e-8;
+  final gln = gammaLn(ad);
+  final a1 = ad - 1.0;
+  final lna1 = log(a1 > 0 ? a1 : 1.0);
+  final afac = exp(a1 * (1.0 - lna1) - gln);
+
+  var x = gammapInv(1.0 - qd, ad);
+  var xMin = 0.0;
+  var xMax = double.infinity;
+  if (x <= 0.0 || !x.isFinite) {
+    x = ad > 1.0 ? ad + sqrt(ad) : 1.0;
+  }
+  for (var j = 0; j < 60; j++) {
+    if (x <= xMin || x >= xMax) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+    }
+    final curQ = gammaq(ad, x);
+    final err = curQ - qd;
+    if (err > 0) {
+      if (x > xMin) xMin = x;
+    } else {
+      if (x < xMax) xMax = x;
+    }
+    if (err.abs() <= 1.0e-15 ||
+        (xMax.isFinite && (xMax - xMin) <= epsilon * x)) {
+      break;
+    }
+    final tVal = ad > 1.0
+        ? afac * exp(-(x - a1) + a1 * (log(x) - lna1))
+        : exp(-x + a1 * log(x) - gln);
+    if (tVal <= 0.0 || !tVal.isFinite) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+      continue;
+    }
+    final uVal = err / tVal;
+    final denom = 1.0 - 0.5 * min(1.0, uVal * ((ad - 1.0) / x - 1.0));
+    if (denom <= 0.0 || denom.isNaN) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+      continue;
+    }
+    final step = uVal / denom;
+    final nextX = x + step;
+    if (nextX <= xMin || nextX >= xMax || nextX.isNaN) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+    } else {
+      final change = (x - nextX).abs();
+      x = nextX;
+      if (change < epsilon * x) {
+        break;
+      }
+    }
+  }
+  return x;
+}
+
 /// Returns the lower regularized incomplete gamma function $P(a, x)$.
 ///
 /// Follows standard numerical conventions (e.g. SciPy `gammainc` and Numerical
