@@ -768,7 +768,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
     4. `stats` lacks `shapiroWilkTest` and `fisherExactTest`.
   - **Fix**: Add adaptive error-controlled step sizing to `bdf2`, box `bounds` support to `minimize`, `.fit()` factories to remaining univariate distributions, and `shapiroWilkTest` / `fisherExactTest` to `stats`.
 
-- [ ] **6.4 `dataframe` & `symbolic`: `DataFrame.pivot`/`dropDuplicates`/`fromMatrix`, vector calculus operators (`divergence`, `curl`, `laplacian`), symbolic ODE solver (`solveOde`), and `example/symbolic_demo.dart`**
+- [x] **6.4 `dataframe` & `symbolic`: `DataFrame.pivot`/`dropDuplicates`/`fromMatrix`, vector calculus operators (`divergence`, `curl`, `laplacian`), symbolic ODE solver (`solveOde`), and `example/symbolic_demo.dart`**
   - **Severity**: Suggestion
   - **Location**: `lib/src/dataframe/`, `lib/src/symbolic/calculus/`, `example/`
   - **Problem**:

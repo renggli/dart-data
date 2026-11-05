@@ -1,5 +1,6 @@
 import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
+import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../type/expr_data_type.dart';
@@ -52,6 +53,25 @@ extension MultivariableExtension on Expr {
     List<String> variables, {
     Assumptions assumptions = Assumptions.none,
   }) => _multivariableHessian(this, variables, assumptions: assumptions);
+
+  /// Computes the analytical Laplacian scalar field:
+  /// $\Delta f = \nabla^2 f = \sum_{i=1}^n \frac{\partial^2 f}{\partial x_i^2}$.
+  ///
+  /// Conceptually, the Laplacian measures the difference between the value of
+  /// the function at a point and the average value in its infinitesimal
+  /// neighborhood. Formally, it is the divergence of the gradient
+  /// ($\text{div}(\nabla f)$) or the trace of the Hessian matrix.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final y = Variable('y');
+  /// final lap = (x * x * x + y * y * y).laplacian(['x', 'y']);
+  /// // lap: 6 * x + 6 * y
+  /// ```
+  Expr laplacian(
+    List<String> variables, {
+    Assumptions assumptions = Assumptions.none,
+  }) => _multivariableLaplacian(this, variables, assumptions: assumptions);
 }
 
 /// Multivariable calculus extensions on collections of [Expr].
@@ -76,7 +96,78 @@ extension MultivariableIterableExtension on Iterable<Expr> {
     List<String> variables, {
     Assumptions assumptions = Assumptions.none,
   }) => _multivariableJacobian(toList(), variables, assumptions: assumptions);
+
+  /// Computes the analytical divergence of this vector field:
+  /// $\text{div}(F) = \nabla \cdot F = \sum_{i=1}^n \frac{\partial F_i}{\partial x_i}$.
+  ///
+  /// Conceptually, divergence measures the outgoing flux density of a vector
+  /// field from an infinitesimal volume around a point (source vs sink).
+  /// Formally, it is the trace of the Jacobian matrix.
+  ///
+  /// Throws [ArgumentError] if the number of vector field components does not
+  /// equal the number of [variables].
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final y = Variable('y');
+  /// final div = [x * x * y, x * y * y].divergence(['x', 'y']);
+  /// // div: 2 * x * y + 2 * x * y = 4 * x * y
+  /// ```
+  Expr divergence(
+    List<String> variables, {
+    Assumptions assumptions = Assumptions.none,
+  }) => _multivariableDivergence(toList(), variables, assumptions: assumptions);
+
+  /// Computes the analytical curl of this 3-dimensional vector field:
+  /// $\text{curl}(F) = \nabla \times F = \left(\frac{\partial F_z}{\partial y} - \frac{\partial F_y}{\partial z}, \frac{\partial F_x}{\partial z} - \frac{\partial F_z}{\partial x}, \frac{\partial F_y}{\partial x} - \frac{\partial F_x}{\partial y}\right)$.
+  ///
+  /// Conceptually, curl measures the microscopic rotation or circulation
+  /// density of a vector field around a point.
+  ///
+  /// Throws [ArgumentError] if the vector field does not have exactly 3 components
+  /// or if [variables] does not have exactly 3 elements.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final y = Variable('y');
+  /// final z = Variable('z');
+  /// final c = [-y, x, IntegerNumber.zero].curl(['x', 'y', 'z']);
+  /// // c: [0, 0, 2]
+  /// ```
+  Vector<Expr> curl(
+    List<String> variables, {
+    Assumptions assumptions = Assumptions.none,
+  }) => _multivariableCurl(toList(), variables, assumptions: assumptions);
 }
+
+/// Computes the analytical Laplacian scalar field $\Delta f = \nabla^2 f$.
+Expr laplacian(
+  Expr function,
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) => _multivariableLaplacian(function, variables, assumptions: assumptions);
+
+/// Computes the analytical divergence $\text{div}(F) = \nabla \cdot F$.
+Expr divergence(
+  Iterable<Expr> vectorField,
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) => _multivariableDivergence(
+  vectorField.toList(),
+  variables,
+  assumptions: assumptions,
+);
+
+/// Computes the analytical curl $\text{curl}(F) = \nabla \times F$.
+Vector<Expr> curl(
+  Iterable<Expr> vectorField,
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) => _multivariableCurl(
+  vectorField.toList(),
+  variables,
+  assumptions: assumptions,
+);
 
 Vector<Expr> _multivariableGradient(
   Expr function,
@@ -129,4 +220,73 @@ Matrix<Expr> _multivariableHessian(
     (r, c) => entries[r * n + c]!,
     type: exprDataType,
   );
+}
+
+Expr _multivariableLaplacian(
+  Expr function,
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  if (variables.isEmpty) return IntegerNumber.zero;
+  final terms = <Expr>[];
+  for (final v in variables) {
+    final d2f = function
+        .derivative(v, assumptions: assumptions)
+        .derivative(v, assumptions: assumptions);
+    terms.add(d2f);
+  }
+  return Add(terms).simplify(assumptions: assumptions);
+}
+
+Expr _multivariableDivergence(
+  List<Expr> vectorField,
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  if (vectorField.length != variables.length) {
+    throw ArgumentError(
+      'Vector field dimension (${vectorField.length}) must match variable count (${variables.length}).',
+    );
+  }
+  if (vectorField.isEmpty) return IntegerNumber.zero;
+  final terms = <Expr>[];
+  for (var i = 0; i < vectorField.length; i++) {
+    terms.add(
+      vectorField[i].derivative(variables[i], assumptions: assumptions),
+    );
+  }
+  return Add(terms).simplify(assumptions: assumptions);
+}
+
+Vector<Expr> _multivariableCurl(
+  List<Expr> vectorField,
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  if (vectorField.length != 3 || variables.length != 3) {
+    throw ArgumentError(
+      'Curl is defined for 3-dimensional vector fields with 3 variables (got ${vectorField.length} components and ${variables.length} variables).',
+    );
+  }
+  final fx = vectorField[0];
+  final fy = vectorField[1];
+  final fz = vectorField[2];
+  final x = variables[0];
+  final y = variables[1];
+  final z = variables[2];
+
+  final cx =
+      (fz.derivative(y, assumptions: assumptions) -
+              fy.derivative(z, assumptions: assumptions))
+          .simplify(assumptions: assumptions);
+  final cy =
+      (fx.derivative(z, assumptions: assumptions) -
+              fz.derivative(x, assumptions: assumptions))
+          .simplify(assumptions: assumptions);
+  final cz =
+      (fy.derivative(x, assumptions: assumptions) -
+              fx.derivative(y, assumptions: assumptions))
+          .simplify(assumptions: assumptions);
+
+  return Vector<Expr>.fromList([cx, cy, cz], type: exprDataType);
 }

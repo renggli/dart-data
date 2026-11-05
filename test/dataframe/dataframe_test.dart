@@ -1,5 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
+import 'package:data/linear.dart';
+import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
@@ -936,6 +938,176 @@ line 2",10
       check(dfFilled['no_nulls'].toList()).deepEquals([1, 2]);
       check(dfFilled['with_nulls'].toList()).deepEquals([0, 4]);
       check(() => dfRec.sortBy(123)).throws<ArgumentError>();
+    });
+
+    group('fromMatrix & fromTensor', () {
+      test('fromMatrix with default and custom column names', () {
+        final mat = Matrix<int>.fromRows([
+          [1, 2, 3],
+          [4, 5, 6],
+        ]);
+        final dfDefault = DataFrame.fromMatrix(mat);
+        check(dfDefault.rowCount).equals(2);
+        check(dfDefault.columnCount).equals(3);
+        check(dfDefault.columnNames).deepEquals(['col_0', 'col_1', 'col_2']);
+        check(dfDefault['col_0'].toList()).deepEquals([1, 4]);
+        check(dfDefault['col_1'].toList()).deepEquals([2, 5]);
+        check(dfDefault['col_2'].toList()).deepEquals([3, 6]);
+
+        final dfCustom = DataFrame.fromMatrix(
+          mat,
+          columnNames: ['a', 'b', 'c'],
+        );
+        check(dfCustom.columnNames).deepEquals(['a', 'b', 'c']);
+        check(dfCustom['a'].toList()).deepEquals([1, 4]);
+
+        check(() => DataFrame.fromMatrix(mat, columnNames: ['a']))
+            .throws<ArgumentError>();
+      });
+
+      test('fromTensor with default and custom column names', () {
+        final tensor = Tensor<double>.fromObject([
+          [10.0, 20.0],
+          [30.0, 40.0],
+          [50.0, 60.0],
+        ]);
+        final df = DataFrame.fromTensor(tensor);
+        check(df.rowCount).equals(3);
+        check(df.columnCount).equals(2);
+        check(df.columnNames).deepEquals(['col_0', 'col_1']);
+        check(df['col_0'].toList()).deepEquals([10.0, 30.0, 50.0]);
+        check(df['col_1'].toList()).deepEquals([20.0, 40.0, 60.0]);
+
+        final dfNamed = DataFrame.fromTensor(tensor, columnNames: ['x', 'y']);
+        check(dfNamed.columnNames).deepEquals(['x', 'y']);
+
+        check(() => DataFrame.fromTensor(tensor, columnNames: ['x']))
+            .throws<ArgumentError>();
+
+        final rank1Tensor = Tensor<int>.fromObject([1, 2, 3]);
+        check(() => DataFrame.fromTensor(rank1Tensor)).throws<ArgumentError>();
+      });
+    });
+
+    group('dropDuplicates', () {
+      test('removes full row duplicates keeping first or last', () {
+        final df = DataFrame.fromColumns({
+          'a': [1, 1, 2, 1],
+          'b': ['x', 'x', 'y', 'x'],
+        });
+        final dfFirst = df.dropDuplicates();
+        check(dfFirst.rowCount).equals(2);
+        check(dfFirst['a'].toList()).deepEquals([1, 2]);
+        check(dfFirst['b'].toList()).deepEquals(['x', 'y']);
+
+        final dfLast = df.dropDuplicates(keepFirst: false);
+        check(dfLast.rowCount).equals(2);
+        check(dfLast['a'].toList()).deepEquals([2, 1]);
+        check(dfLast['b'].toList()).deepEquals(['y', 'x']);
+      });
+
+      test('removes duplicates considering subset of columns', () {
+        final df = DataFrame.fromColumns({
+          'name': ['Alice', 'Bob', 'Alice', 'Charlie'],
+          'age': [25, 30, 26, 35],
+        });
+        final dfUniqueNames = df.dropDuplicates(subset: ['name']);
+        check(dfUniqueNames.rowCount).equals(3);
+        check(dfUniqueNames['name'].toList())
+            .deepEquals(['Alice', 'Bob', 'Charlie']);
+        check(dfUniqueNames['age'].toList()).deepEquals([25, 30, 35]);
+
+        final dfUniqueLast = df.dropDuplicates(
+          subset: ['name'],
+          keepFirst: false,
+        );
+        check(dfUniqueLast['name'].toList())
+            .deepEquals(['Bob', 'Alice', 'Charlie']);
+        check(dfUniqueLast['age'].toList()).deepEquals([30, 26, 35]);
+      });
+
+      test('empty dataframe edge case', () {
+        final dfEmpty = DataFrame([]);
+        check(dfEmpty.dropDuplicates().rowCount).equals(0);
+      });
+    });
+
+    group('melt & pivot', () {
+      test('melt unpivots wide dataframe to long format', () {
+        final df = DataFrame.fromColumns({
+          'id': [1, 2],
+          'height': [170, 180],
+          'weight': [65, 80],
+        });
+        final melted = df.melt(idVars: ['id']);
+        check(melted.rowCount).equals(4);
+        check(melted.columnNames).deepEquals(['id', 'variable', 'value']);
+        check(melted['id'].toList()).deepEquals([1, 2, 1, 2]);
+        check(melted['variable'].toList())
+            .deepEquals(['height', 'height', 'weight', 'weight']);
+        check(melted['value'].toList()).deepEquals([170, 180, 65, 80]);
+
+        // Explicit valueVars and custom names
+        final meltedCustom = df.melt(
+          idVars: ['id'],
+          valueVars: ['height'],
+          varName: 'metric',
+          valueName: 'measurement',
+        );
+        check(meltedCustom.rowCount).equals(2);
+        check(meltedCustom.columnNames)
+            .deepEquals(['id', 'metric', 'measurement']);
+        check(meltedCustom['measurement'].toList()).deepEquals([170, 180]);
+
+        // Missing column throws ArgumentError
+        check(() => df.melt(idVars: ['nonexistent'])).throws<ArgumentError>();
+        check(() => df.melt(idVars: ['id'], valueVars: ['nonexistent']))
+            .throws<ArgumentError>();
+      });
+
+      test('pivot reshapes long dataframe to wide format', () {
+        final df = DataFrame.fromColumns({
+          'date': ['2026-01-01', '2026-01-01', '2026-01-02', '2026-01-02'],
+          'city': ['NYC', 'LA', 'NYC', 'LA'],
+          'temp': [32, 65, 35, 68],
+        });
+        final pivoted = df.pivot(
+          index: 'date',
+          columns: 'city',
+          values: 'temp',
+        );
+        check(pivoted.rowCount).equals(2);
+        check(pivoted.columnNames).deepEquals(['date', 'NYC', 'LA']);
+        check(pivoted['date'].toList())
+            .deepEquals(['2026-01-01', '2026-01-02']);
+        check(pivoted['NYC'].toList()).deepEquals([32, 35]);
+        check(pivoted['LA'].toList()).deepEquals([65, 68]);
+      });
+
+      test('pivot with aggregation on duplicate index-column combinations', () {
+        final df = DataFrame.fromColumns({
+          'item': ['apple', 'apple', 'banana', 'apple'],
+          'store': ['A', 'A', 'A', 'B'],
+          'sales': [10, 20, 5, 15],
+        });
+
+        // Without aggregation, duplicates throw ArgumentError
+        check(() => df.pivot(index: 'item', columns: 'store', values: 'sales'))
+            .throws<ArgumentError>();
+
+        // With aggregation (sum)
+        final aggregated = df.pivot(
+          index: 'item',
+          columns: 'store',
+          values: 'sales',
+          aggregate: (values) => values.cast<num>().reduce((a, b) => a + b),
+        );
+        check(aggregated.rowCount).equals(2);
+        check(aggregated.columnNames).deepEquals(['item', 'A', 'B']);
+        check(aggregated['item'].toList()).deepEquals(['apple', 'banana']);
+        check(aggregated['A'].toList()).deepEquals([30, 5]);
+        check(aggregated['B'].toList()).deepEquals([15, null]);
+      });
     });
   });
 }

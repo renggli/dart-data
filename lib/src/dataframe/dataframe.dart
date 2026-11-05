@@ -13,6 +13,7 @@ import 'json/json_decoder.dart';
 import 'json/json_encoder.dart';
 import 'json/json_orient.dart';
 import 'series.dart';
+import 'tuple_key.dart';
 
 /// 2-dimensional heterogeneous tabular data structure.
 ///
@@ -90,6 +91,53 @@ class DataFrame {
     Iterable<Map<String, Object?>> records, {
     Map<String, DataType<Object?>>? columnTypes,
   }) => DataFrameJsonDecoder.fromRecords(records, columnTypes: columnTypes);
+
+  /// Constructs a [DataFrame] from a 2-dimensional [matrix].
+  ///
+  /// Column names default to `'col_0'`, `'col_1'`, etc., unless [columnNames]
+  /// is specified.
+  factory fromMatrix(Matrix<Object?> matrix, {List<String>? columnNames}) {
+    final cols = matrix.colCount;
+    final rows = matrix.rowCount;
+    if (columnNames != null && columnNames.length != cols) {
+      throw ArgumentError(
+        'Length of columnNames (${columnNames.length}) must match matrix column count ($cols).',
+      );
+    }
+    final seriesList = <Series<Object?>>[];
+    for (var c = 0; c < cols; c++) {
+      final name = columnNames != null ? columnNames[c] : 'col_$c';
+      final values = List<Object?>.generate(rows, (r) => matrix.get(r, c));
+      seriesList.add(Series.fromList(name, values, type: matrix.type));
+    }
+    return DataFrame(seriesList);
+  }
+
+  /// Constructs a [DataFrame] from a rank-2 [tensor].
+  ///
+  /// Column names default to `'col_0'`, `'col_1'`, etc., unless [columnNames]
+  /// is specified. Throws [ArgumentError] if [tensor] is not rank-2.
+  factory fromTensor(Tensor<Object?> tensor, {List<String>? columnNames}) {
+    if (tensor.rank != 2) {
+      throw ArgumentError(
+        'Tensor must have rank 2 to convert to DataFrame, but got rank ${tensor.rank}.',
+      );
+    }
+    final rows = tensor.shape[0];
+    final cols = tensor.shape[1];
+    if (columnNames != null && columnNames.length != cols) {
+      throw ArgumentError(
+        'Length of columnNames (${columnNames.length}) must match tensor column count ($cols).',
+      );
+    }
+    final seriesList = <Series<Object?>>[];
+    for (var c = 0; c < cols; c++) {
+      final name = columnNames != null ? columnNames[c] : 'col_$c';
+      final values = List<Object?>.generate(rows, (r) => tensor.get2D(r, c));
+      seriesList.add(Series.fromList(name, values, type: tensor.type));
+    }
+    return DataFrame(seriesList);
+  }
 
   /// Constructs a [DataFrame] by decoding an Apache Arrow IPC stream byte
   /// buffer.
@@ -235,6 +283,202 @@ class DataFrame {
       mask.add(keep);
     }
     return filter(mask);
+  }
+
+  /// Returns a new [DataFrame] with duplicate rows removed.
+  ///
+  /// If [subset] is provided, only the specified columns are considered when
+  /// identifying duplicates. Otherwise, all columns are compared.
+  /// If [keepFirst] is `true` (default), the first occurrence is kept;
+  /// otherwise, the last occurrence is kept.
+  DataFrame dropDuplicates({List<String>? subset, bool keepFirst = true}) {
+    if (rowCount == 0) return this;
+    final targetCols = subset != null ? subset.map(column).toList() : _columns;
+    final extractor = RowKeyExtractor(targetCols);
+    final seen = <Object?>{};
+    final mask = List<bool>.filled(rowCount, false);
+
+    if (keepFirst) {
+      for (var r = 0; r < rowCount; r++) {
+        final key = extractor.extractKey(r);
+        if (seen.add(key)) {
+          mask[r] = true;
+        }
+      }
+    } else {
+      for (var r = rowCount - 1; r >= 0; r--) {
+        final key = extractor.extractKey(r);
+        if (seen.add(key)) {
+          mask[r] = true;
+        }
+      }
+    }
+    return filter(mask);
+  }
+
+  /// Unpivots this [DataFrame] from wide to long format.
+  ///
+  /// [idVars] specifies columns to use as identifier variables.
+  /// [valueVars] specifies columns to unpivot. If omitted, all columns not in
+  /// [idVars] are used.
+  /// [varName] is the name of the column storing the unpivoted variable names (default: `'variable'`).
+  /// [valueName] is the name of the column storing the values (default: `'value'`).
+  DataFrame melt({
+    required List<String> idVars,
+    List<String>? valueVars,
+    String varName = 'variable',
+    String valueName = 'value',
+  }) {
+    for (final id in idVars) {
+      if (!_columnIndex.containsKey(id)) {
+        throw ArgumentError('Identifier column "$id" not found in DataFrame.');
+      }
+    }
+    final effectiveValueVars =
+        valueVars ??
+        _columns
+            .map((c) => c.name)
+            .where((name) => !idVars.contains(name))
+            .toList();
+
+    for (final val in effectiveValueVars) {
+      if (!_columnIndex.containsKey(val)) {
+        throw ArgumentError('Value column "$val" not found in DataFrame.');
+      }
+    }
+
+    final idCols = idVars.map(column).toList();
+    final valCols = effectiveValueVars.map(column).toList();
+    final numValCols = valCols.length;
+    final totalRows = rowCount * numValCols;
+
+    if (totalRows == 0) {
+      final newCols = <Series<Object?>>[
+        for (final idCol in idCols)
+          Series.fromList(idCol.name, const [], type: idCol.dataType),
+        Series<String>.fromList(varName, const []),
+        Series.fromList(valueName, const []),
+      ];
+      return DataFrame(newCols);
+    }
+
+    final newIdData = <String, List<Object?>>{
+      for (final id in idVars) id: List<Object?>.filled(totalRows, null),
+    };
+    final newVarData = List<String>.filled(totalRows, '');
+    final newValData = List<Object?>.filled(totalRows, null);
+
+    var writeIdx = 0;
+    for (final valCol in valCols) {
+      for (var r = 0; r < rowCount; r++) {
+        for (final idCol in idCols) {
+          newIdData[idCol.name]![writeIdx] = idCol[r];
+        }
+        newVarData[writeIdx] = valCol.name;
+        newValData[writeIdx] = valCol[r];
+        writeIdx++;
+      }
+    }
+
+    DataType<Object?>? valueDataType;
+    if (valCols.isNotEmpty) {
+      final firstType = valCols.first.dataType;
+      if (valCols.every((c) => c.dataType == firstType)) {
+        valueDataType = firstType;
+      }
+    }
+
+    final newCols = <Series<Object?>>[
+      for (final idCol in idCols)
+        Series.fromList(
+          idCol.name,
+          newIdData[idCol.name]!,
+          type: idCol.dataType,
+        ),
+      Series<String>.fromList(varName, newVarData),
+      Series.fromList(valueName, newValData, type: valueDataType),
+    ];
+    return DataFrame(newCols);
+  }
+
+  /// Reshapes this [DataFrame] from long to wide format.
+  ///
+  /// [index] specifies the column to use as row identifiers.
+  /// [columns] specifies the column whose unique values become the new column names.
+  /// [values] specifies the column providing values for the new cells.
+  /// If multiple rows have the same [index] and [columns] combination, [aggregate]
+  /// must be provided to reduce the list of values to a single value; otherwise,
+  /// an [ArgumentError] is thrown.
+  DataFrame pivot({
+    required String index,
+    required String columns,
+    required String values,
+    Object? Function(List<Object?> values)? aggregate,
+  }) {
+    final indexCol = column(index);
+    final colCol = column(columns);
+    final valCol = column(values);
+
+    final orderedIndexValues = <Object?>[];
+    final seenIndices = <Object?>{};
+    final orderedColValues = <Object?>[];
+    final seenCols = <Object?>{};
+
+    final table = <Object?, Map<Object?, List<Object?>>>{};
+
+    for (var r = 0; r < rowCount; r++) {
+      final idxVal = indexCol[r];
+      final colVal = colCol[r];
+      final val = valCol[r];
+
+      if (seenIndices.add(idxVal)) {
+        orderedIndexValues.add(idxVal);
+      }
+      if (seenCols.add(colVal)) {
+        orderedColValues.add(colVal);
+      }
+
+      table
+          .putIfAbsent(idxVal, () => {})
+          .putIfAbsent(colVal, () => [])
+          .add(val);
+    }
+
+    if (aggregate == null) {
+      for (final entry in table.entries) {
+        for (final colEntry in entry.value.entries) {
+          if (colEntry.value.length > 1) {
+            throw ArgumentError(
+              'Duplicate entries for index "${entry.key}" and column "${colEntry.key}" '
+              'without aggregate function.',
+            );
+          }
+        }
+      }
+    }
+
+    final newCols = <Series<Object?>>[];
+    newCols.add(
+      Series.fromList(index, orderedIndexValues, type: indexCol.dataType),
+    );
+
+    for (final colVal in orderedColValues) {
+      final colName = colVal?.toString() ?? 'null';
+      final cellValues = <Object?>[];
+      for (final idxVal in orderedIndexValues) {
+        final list = table[idxVal]?[colVal];
+        if (list == null || list.isEmpty) {
+          cellValues.add(null);
+        } else if (aggregate != null) {
+          cellValues.add(aggregate(list));
+        } else {
+          cellValues.add(list.first);
+        }
+      }
+      newCols.add(Series.fromList(colName, cellValues));
+    }
+
+    return DataFrame(newCols);
   }
 
   /// Returns a new [DataFrame] with null values replaced by [value] in specified [columns] (or all columns).
