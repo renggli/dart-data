@@ -77,7 +77,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     - Reproduction: In `AccelerationMode.dart`, calling `Matrix<double>.fromRows([[1, 2, 3, 4], [5, 6, 7, 8]]).svd` throws `RangeError`.
   - **Fix**: Change line 1076 from `if (computeU && k < rowsA)` to `if (computeU && k < rowsA - 1)` and line 1110 from `if (computeU && lIdx < rowsA)` to `if (computeU && lIdx < rowsA - 1)`.
 
-- [ ] **1.3.2 `LapackDart.dgesvd` unconditionally returns `true` on QR non-convergence and divides `0.0 / 0.0` when `scale == 0.0` in `case 3`**
+- [x] **1.3.2 `LapackDart.dgesvd` unconditionally returns `true` on QR non-convergence and divides `0.0 / 0.0` when `scale == 0.0` in `case 3`**
   - **Severity**: Critical
   - **Location**: `lib/src/acceleration/lapack/lapack_dart.dart:720, 930, 1025-1035`
   - **Problem**:

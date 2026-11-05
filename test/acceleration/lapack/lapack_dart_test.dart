@@ -419,5 +419,34 @@ void main() {
       );
       check(success).isTrue();
     });
+
+    test('dgesvd all-zero matrix does not produce NaNs', () {
+      final a = Float64List(4);
+      final s = Float64List(2);
+      final u = Float64List(4);
+      final vt = Float64List(4);
+      final ok = LapackDart.dgesvd(
+        jobu: 'A',
+        jobvt: 'A',
+        m: 2,
+        n: 2,
+        a: a,
+        aOffset: 0,
+        lda: 2,
+        s: s,
+        sOffset: 0,
+        u: u,
+        ldu: 2,
+        vt: vt,
+        ldvt: 2,
+      );
+      check(ok).isTrue();
+      check(s[0]).equals(0.0);
+      check(s[1]).equals(0.0);
+      for (var i = 0; i < 4; i++) {
+        check(u[i].isNaN).isFalse();
+        check(vt[i].isNaN).isFalse();
+      }
+    });
   });
 }

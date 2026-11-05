@@ -65,6 +65,25 @@ void main() {
       }
     });
 
+    test('zero matrix SVD in pure dart mode', () {
+      final prev = AccelerationManager.mode;
+      AccelerationManager.mode = AccelerationMode.dart;
+      try {
+        final a = Matrix<double>.fromRows([
+          [0.0, 0.0],
+          [0.0, 0.0],
+        ]);
+        final svd = a.svd;
+        check(svd.s[0]).equals(0.0);
+        check(svd.s[1]).equals(0.0);
+        check(svd.rank).equals(0);
+        check(svd.u.get(0, 0).isNaN).isFalse();
+        check(svd.vt.get(0, 0).isNaN).isFalse();
+      } finally {
+        AccelerationManager.mode = prev;
+      }
+    });
+
     test('least squares solve with SVD', () {
       final a = Matrix<double>.fromRows([
         [1.0, 1.0],

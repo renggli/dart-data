@@ -689,7 +689,7 @@ abstract final class LapackDart {
     final vList = computeVt ? Float64List(n * n) : Float64List(0);
     final sVals = Float64List(minMN);
 
-    _computeSvd(
+    final converged = _computeSvd(
       computeU: computeU,
       computeVt: computeVt,
       a: aCol,
@@ -699,6 +699,7 @@ abstract final class LapackDart {
       uVals: uCol,
       vList: vList,
     );
+    if (!converged) return false;
 
     for (var i = 0; i < minMN; i++) {
       s[sOffset + i] = sVals[i];
@@ -749,7 +750,7 @@ abstract final class LapackDart {
     return (da: rVal, db: zVal, cosVal: cosVal, sinVal: sinVal);
   }
 
-  static void _computeSvd({
+  static bool _computeSvd({
     required bool computeU,
     required bool computeVt,
     required Float64List a,
@@ -927,13 +928,13 @@ abstract final class LapackDart {
     final mn = mDim;
     var iter = 0;
     while (mDim > 0) {
-      if (iter >= 1000) break;
+      if (iter >= 1000) return false;
 
       int lIdx;
       for (lIdx = mDim - 2; lIdx >= 0; lIdx--) {
         final test = stemp[lIdx].abs() + stemp[lIdx + 1].abs();
         final ztest = test + eList[lIdx].abs();
-        if ((ztest - test).abs() < 1e-15 * test) {
+        if (eList[lIdx] == 0.0 || (ztest - test).abs() <= 1e-15 * test) {
           eList[lIdx] = 0.0;
           break;
         }
@@ -949,7 +950,7 @@ abstract final class LapackDart {
           if (lsIdx != mDim - 1) test += eList[lsIdx].abs();
           if (lsIdx != lIdx + 1) test += eList[lsIdx - 1].abs();
           final ztest = test + stemp[lsIdx].abs();
-          if ((ztest - test).abs() < 1e-15 * test) {
+          if (stemp[lsIdx] == 0.0 || (ztest - test).abs() <= 1e-15 * test) {
             stemp[lsIdx] = 0.0;
             break;
           }
@@ -1028,21 +1029,27 @@ abstract final class LapackDart {
           scale = math.max(scale, eList[mDim - 2].abs());
           scale = math.max(scale, stemp[lIdx].abs());
           scale = math.max(scale, eList[lIdx].abs());
-          final sm = stemp[mDim - 1] / scale;
-          final smm1 = stemp[mDim - 2] / scale;
-          final emm1 = eList[mDim - 2] / scale;
-          final sl = stemp[lIdx] / scale;
-          final el = eList[lIdx] / scale;
-          final b = ((smm1 + sm) * (smm1 - sm) + emm1 * emm1) / 2.0;
-          final cVal = (sm * emm1) * (sm * emm1);
-          var shift = 0.0;
-          if (b != 0.0 || cVal != 0.0) {
-            shift = math.sqrt(b * b + cVal);
-            if (b < 0.0) shift = -shift;
-            shift = cVal / (b + shift);
+          double fVal, gVal;
+          if (scale == 0.0) {
+            fVal = 0.0;
+            gVal = 0.0;
+          } else {
+            final sm = stemp[mDim - 1] / scale;
+            final smm1 = stemp[mDim - 2] / scale;
+            final emm1 = eList[mDim - 2] / scale;
+            final sl = stemp[lIdx] / scale;
+            final el = eList[lIdx] / scale;
+            final b = ((smm1 + sm) * (smm1 - sm) + emm1 * emm1) / 2.0;
+            final cVal = (sm * emm1) * (sm * emm1);
+            var shift = 0.0;
+            if (b != 0.0 || cVal != 0.0) {
+              shift = math.sqrt(b * b + cVal);
+              if (b < 0.0) shift = -shift;
+              shift = cVal / (b + shift);
+            }
+            fVal = (sl + sm) * (sl - sm) + shift;
+            gVal = sl * el;
           }
-          var fVal = (sl + sm) * (sl - sm) + shift;
-          var gVal = sl * el;
           for (var k = lIdx; k < mDim - 1; k++) {
             var rotg = _rotg(fVal, gVal);
             fVal = rotg.da;
@@ -1123,8 +1130,9 @@ abstract final class LapackDart {
     }
 
     for (var i = 0; i < math.min(rowsA, colsA); i++) {
-      sVals[i] = stemp[i];
+      sVals[i] = stemp[i] == 0.0 ? 0.0 : stemp[i];
     }
+    return true;
   }
 
   static double _hypot(double a, double b) {
