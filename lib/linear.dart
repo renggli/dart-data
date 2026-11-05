@@ -92,6 +92,7 @@ export 'src/linear/float64_vector.dart';
 export 'src/linear/matrix.dart';
 export 'src/linear/operator.dart';
 export 'src/linear/projection.dart';
+export 'src/linear/solvers/direct.dart';
 export 'src/linear/solvers/iterative.dart';
 export 'src/linear/solvers/tridiagonal.dart';
 export 'src/linear/sparse/coo_matrix.dart';

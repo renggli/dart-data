@@ -809,7 +809,7 @@ Actionable review items across all subsystems (`type`, `tensor`, `acceleration`,
   - **Problem**: `curve_fit.dart` (676 lines), `integration.dart` (511 lines), `sampling.dart` (458 lines), `fft.dart` (196 lines), and `optimization.dart` (183 lines) sit at the root of `lib/src/numeric/` instead of feature sub-packages (`AGENTS.md`: "Functional modules must be decomposed into dedicated sub-packages within `lib/src/<subsystem>/<feature>/`"). Similarly, `chebyshevT`, `chebyshevU`, `legendreP`, `hermiteH`, `hermiteHe`, and `laguerreL` are implemented inside `polynomial.dart` instead of `orthogonal.dart`.
   - **Fix**: Organize `lib/src/numeric/` modules into feature sub-packages (mirroring in `test/numeric/`) and move orthogonal polynomial recurrence builders into `lib/src/polynomial/orthogonal.dart`.
 
-- [ ] **7.5 Oversized monolithic files (`integration.dart`: 2,163 lines, `summation.dart`: 1,829 lines, `transcendental.dart`: 1,702 lines, `arrow_ipc.dart`: 1,587 lines, `matrix.dart`: 1,051 lines)**
+- [x] **7.5 Oversized monolithic files (`integration.dart`: 2,163 lines, `summation.dart`: 1,829 lines, `transcendental.dart`: 1,702 lines, `arrow_ipc.dart`: 1,587 lines, `matrix.dart`: 1,051 lines)**
   - **Severity**: Suggestion
   - **Location**: `lib/src/symbolic/calculus/integration.dart`, `lib/src/symbolic/calculus/summation.dart`, `lib/src/symbolic/algebra/simplify/transcendental.dart`, `lib/src/dataframe/arrow/arrow_ipc.dart`, `lib/src/linear/matrix.dart`
   - **Problem**:

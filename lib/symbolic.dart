@@ -123,6 +123,8 @@ export 'src/symbolic/algebra/trig.dart'
     show RewriteTarget, TrigRewriteExtension;
 export 'src/symbolic/assumptions.dart' show Assumptions;
 export 'src/symbolic/ast.dart';
+export 'src/symbolic/calculus/definite_integration.dart'
+    show evaluateDefiniteIntegral;
 export 'src/symbolic/calculus/differentiation.dart'
     show DifferentiationExtension;
 export 'src/symbolic/calculus/integration.dart'
@@ -136,6 +138,7 @@ export 'src/symbolic/calculus/multivariable.dart'
         curl,
         divergence,
         laplacian;
+export 'src/symbolic/calculus/product.dart' show computeProduct;
 export 'src/symbolic/calculus/series.dart'
     show PowerSeries, SeriesExtension, SymbolicPolynomialFactory;
 export 'src/symbolic/calculus/summation.dart' show SummationExtension;
