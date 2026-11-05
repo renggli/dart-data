@@ -772,7 +772,7 @@ class Matrix<T> implements LinearOperator<T> {
         final scaled = result.scale(
           field.scale(field.multiplicativeIdentity, beta),
         );
-        result.tensor.copy(target: scaled.tensor);
+        scaled.tensor.copy(target: result.tensor);
       }
       return result;
     }
@@ -789,7 +789,10 @@ class Matrix<T> implements LinearOperator<T> {
         lda = colCount == 1 ? (rowCount > 0 ? rowCount : 1) : s1;
       }
 
-      if (effectiveTrans != null && lda != null) {
+      if (effectiveTrans != null &&
+          lda != null &&
+          result.tensor.isContiguous &&
+          !sharesMemory(tensor.data, result.tensor.data)) {
         if (tensor.data is Float64List && result.tensor.data is Float64List) {
           final success = Blas.dsyrk(
             uplo: cblasUpper,

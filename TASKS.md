@@ -109,7 +109,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ### 1.4 `linear` Subsystem
 
-- [ ] **1.4.1 `Matrix.syrk` has swapped `copy` target on early return, unvalidated `target` layout/aliasing on the BLAS path, and upper-triangle vs full-matrix discrepancy**
+- [x] **1.4.1 `Matrix.syrk` has swapped `copy` target on early return, unvalidated `target` layout/aliasing on the BLAS path, and upper-triangle vs full-matrix discrepancy**
   - **Severity**: Critical
   - **Location**: `lib/src/linear/matrix.dart:753-847`
   - **Problem**:

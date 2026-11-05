@@ -945,6 +945,47 @@ void main() {
       check(res.get(1, 1)).equals(80.0);
     });
 
+    test('syrk early return with alpha 0.0 and beta != 1.0 scales target', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final cTarget = Matrix<double>.fromRows([
+        [10.0, 20.0],
+        [30.0, 40.0],
+      ]);
+      final res = a.syrk(alpha: 0.0, beta: 2.0, target: cTarget);
+      check(res).identicalTo(cTarget);
+      check(cTarget.get(0, 0)).equals(20.0);
+      check(cTarget.get(0, 1)).equals(40.0);
+      check(cTarget.get(1, 0)).equals(60.0);
+      check(cTarget.get(1, 1)).equals(80.0);
+    });
+
+    test('syrk with strided submatrix target', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      // 4x4 parent matrix, target is 2x2 submatrix
+      final parent = Matrix<double>.filled(4, 4, 0.0, type: DataType.float64);
+      final subTarget = parent.subMatrix(
+        rowStart: 0,
+        rowEnd: 2,
+        colStart: 0,
+        colEnd: 2,
+      );
+      a.syrk(alpha: 1.0, beta: 0.0, target: subTarget);
+      // a * a^T = [[5, 11], [11, 25]]
+      check(subTarget.get(0, 0)).equals(5.0);
+      check(subTarget.get(0, 1)).equals(11.0);
+      check(subTarget.get(1, 0)).equals(11.0);
+      check(subTarget.get(1, 1)).equals(25.0);
+      // Remaining entries in parent must remain 0
+      check(parent.get(2, 2)).equals(0.0);
+      check(parent.get(3, 3)).equals(0.0);
+    });
+
     test('applyTranspose vs applyConjugateTranspose on complex matrix', () {
       final a = Matrix<Complex>.fromRows([
         [const Complex(1, 2), const Complex(3, 4)],
