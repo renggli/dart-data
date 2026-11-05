@@ -128,11 +128,16 @@ List<Command> buildNumericCommands() => [
       final expr = expectCommandExpr(args[0], 'nminimize');
       final varName = expectCommandVarName(args[1], 'nminimize');
       final a = expectCommandDouble(args[2], 'nminimize');
-      final b = args.length == 4
-          ? expectCommandDouble(args[3], 'nminimize')
-          : a + 2.0;
-      final minBound = math.min(a, b - 1.0);
-      final maxBound = math.max(a + 1.0, b);
+      final double minBound;
+      final double maxBound;
+      if (args.length == 4) {
+        final b = expectCommandDouble(args[3], 'nminimize');
+        minBound = math.min(a, b);
+        maxBound = math.max(a, b);
+      } else {
+        minBound = a - 1.0;
+        maxBound = a + 1.0;
+      }
       final fn = expr.toFunction1D(varName);
       final pt = numeric.minimize(
         (v) => fn(v[0]),

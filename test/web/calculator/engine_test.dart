@@ -273,6 +273,16 @@ void main() {
       final nsol = eval.evaluateScroll('nsolve(x^2 - 2 = 0, x, 1.5)');
       check(double.parse(nsol.value.toCanonicalText())).isCloseTo(1.4142, 1e-5);
 
+      final nmin3 = eval.evaluateScroll('nminimize((x - 2)^2, x, 2)');
+      check(nmin3.value).isA<VectorValue>();
+      final nmin3Vec = (nmin3.value as VectorValue).vector;
+      check(nmin3Vec[0].evaluate()).isCloseTo(2.0, 1e-4);
+
+      final nmin4 = eval.evaluateScroll('nminimize(x - ln(x), x, 0.5, 0.9)');
+      check(nmin4.value).isA<VectorValue>();
+      final nmin4Vec = (nmin4.value as VectorValue).vector;
+      check(nmin4Vec[0].evaluate()).isCloseTo(0.9, 1e-4);
+
       // Session variables & stale recompute
       final assignCell = eval.evaluateScroll('k := 3');
       final depCell = eval.evaluateScroll('k * x');

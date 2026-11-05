@@ -431,7 +431,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     3. `web/calculator/src/engine/sampling.dart:267` and `plot.dart:233` format ODE labels with prime notation (`"y' = $rhs, ..."`).
   - **Fix**: Add `movablelimits="false"` to `<mo>∑</mo>` in `web/index.html`, and replace all prime notation (`f'(x)`, `y'`) with Leibniz notation (`df/dx`, `dy/dt`).
 
-- [ ] **1.11.3 Mobile `.calc-header { overflow-x: auto }` clips popovers, autocomplete keyboard navigation selects hidden items (`> 8`), and `nminimize` corrupts narrow user brackets `[a, b]`**
+- [x] **1.11.3 Mobile `.calc-header { overflow-x: auto }` clips popovers, autocomplete keyboard navigation selects hidden items (`> 8`), and `nminimize` corrupts narrow user brackets `[a, b]`**
   - **Severity**: Critical
   - **Location**: `web/calculator/style.css:1411-1417`, `web/calculator/src/ui/input_bar.dart:368-378, 637`, `web/calculator/src/engine/commands/numeric.dart:130-136`
   - **Problem**:

@@ -1410,14 +1410,14 @@ body.calc-body {
 @media (max-width: 640px) {
   .calc-header {
     flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
     gap: 0.35rem;
     padding: calc(0.35rem + env(safe-area-inset-top, 0px)) calc(0.5rem + env(safe-area-inset-right, 0px)) 0.35rem calc(0.5rem + env(safe-area-inset-left, 0px));
   }
 
-  .calc-header::-webkit-scrollbar {
-    display: none;
+  .calc-popover {
+    position: fixed;
+    top: calc(44px + env(safe-area-inset-top, 0px) + 6px);
+    right: 0.5rem;
   }
 
   #btn-palette {

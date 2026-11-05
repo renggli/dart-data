@@ -363,19 +363,18 @@ final class FormulaInputBar {
     }
 
     // Autocomplete navigation when popup is visible
-    if (_popupOpen && _currentCompletion.items.isNotEmpty) {
+    final itemCount = math.min(8, _currentCompletion.items.length);
+    if (_popupOpen && itemCount > 0) {
       if (e.key == 'ArrowDown') {
         e.preventDefault();
-        _selectedCompletionIdx =
-            (_selectedCompletionIdx + 1) % _currentCompletion.items.length;
+        _selectedCompletionIdx = (_selectedCompletionIdx + 1) % itemCount;
         _renderPopup();
         return;
       }
       if (e.key == 'ArrowUp') {
         e.preventDefault();
         _selectedCompletionIdx =
-            (_selectedCompletionIdx - 1 + _currentCompletion.items.length) %
-            _currentCompletion.items.length;
+            (_selectedCompletionIdx - 1 + itemCount) % itemCount;
         _renderPopup();
         return;
       }
@@ -635,6 +634,9 @@ final class FormulaInputBar {
   void _renderPopup() {
     _popupContainer.innerHTML = ''.toJS;
     final items = _currentCompletion.items.take(8).toList();
+    if (_selectedCompletionIdx >= items.length) {
+      _selectedCompletionIdx = items.isEmpty ? 0 : items.length - 1;
+    }
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
       final row = web.document.createElement('button') as web.HTMLButtonElement
