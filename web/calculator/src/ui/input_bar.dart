@@ -190,7 +190,7 @@ final class FormulaInputBar {
       ..className = 'calc-autocomplete-popup hidden';
 
     final bar = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'formula-input-bar calc-formula-bar';
+      ..className = 'calc-formula-bar';
 
     _promptBadge = web.document.createElement('span') as web.HTMLSpanElement
       ..className = 'calc-prompt-badge'
