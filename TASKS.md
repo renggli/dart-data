@@ -477,7 +477,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ## 2. Duplicated Code, Simplification, Optimization & Cleanup
 
-- [ ] **2.1 Eliminate duplicated `_tred2`/`_tql2` in `EigenvalueDecomposition`, duplicated BLAS dispatch in `Float64Matrix`/`Float64Vector`, and duplicated branches in `Float64Tensor._binaryOp`**
+- [x] **2.1 Eliminate duplicated `_tred2`/`_tql2` in `EigenvalueDecomposition`, duplicated BLAS dispatch in `Float64Matrix`/`Float64Vector`, and duplicated branches in `Float64Tensor._binaryOp`**
   - **Severity**: Warning
   - **Location**: `lib/src/linear/decomposition/eigenvalue.dart:63-103, 164-363`, `lib/src/linear/float64_matrix.dart:230-329`, `lib/src/linear/float64_vector.dart:127-155`, `lib/src/tensor/float64_tensor.dart:197-237`, `lib/src/linear/decomposition/qr.dart:44`
   - **Problem**:

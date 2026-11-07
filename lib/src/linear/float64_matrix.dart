@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
-import '../acceleration/blas/blas.dart';
 import '../tensor/float64_tensor.dart';
 import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
@@ -234,108 +233,14 @@ extension type Float64Matrix._(Matrix<double> _matrix)
   /// Computes the multiplicative inverse of this square, non-singular matrix.
   Float64Matrix get inverse => Float64Matrix._(_matrix.inverse);
 
-  /// High-performance matrix multiplication routing directly to BLAS `dgemm`.
+  /// High-performance matrix multiplication routing to BLAS `dgemm`.
   @redeclare
-  Float64Matrix operator *(Matrix<double> other) {
-    if (colCount != other.rowCount) {
-      throw ArgumentError(
-        'Matrix dimension mismatch for multiplication: ($rowCount x $colCount) * (${other.rowCount} x ${other.colCount})',
-      );
-    }
-    final m = rowCount;
-    final n = other.colCount;
-    final k = colCount;
-    if (m == 0 || n == 0 || k == 0) {
-      return Float64Matrix.filled(m, n, 0.0);
-    }
-    final tA = _matrix.tensor;
-    final tB = other.tensor;
+  Float64Matrix operator *(Matrix<double> other) =>
+      Float64Matrix._(_matrix * other);
 
-    if (tA.isContiguous && tB.isContiguous) {
-      final out = Float64List(m * n);
-      final bData = tB.data is Float64List
-          ? tB.data as Float64List
-          : Float64List.fromList(tB.data);
-      final success = Blas.dgemm(
-        m: m,
-        n: n,
-        k: k,
-        alpha: 1.0,
-        a: asTypedList,
-        aOffset: tA.offset,
-        lda: k,
-        b: bData,
-        bOffset: tB.offset,
-        ldb: n,
-        beta: 0.0,
-        c: out,
-        ldc: n,
-      );
-      if (success) {
-        return Float64Matrix._(
-          Matrix(
-            Tensor.internal(
-              type: DataType.float64,
-              layout: Layout(shape: [m, n]),
-              data: out,
-            ),
-          ),
-        );
-      }
-    }
-    return Float64Matrix._(_matrix * other);
-  }
-
-  /// High-performance matrix-vector multiplication routing directly to BLAS
-  /// `dgemv`.
+  /// High-performance matrix-vector multiplication routing to BLAS `dgemv`.
   @redeclare
-  Float64Vector apply(Vector<double> x) {
-    if (colCount != x.length) {
-      throw ArgumentError(
-        'Dimension mismatch for matrix-vector multiplication: ($rowCount x $colCount) * (${x.length})',
-      );
-    }
-    final m = rowCount;
-    final n = colCount;
-    if (m == 0 || n == 0) {
-      return Float64Vector.filled(m, 0.0);
-    }
-    final tA = _matrix.tensor;
-    final tX = x.tensor;
-
-    if (tA.isContiguous && tX.isContiguous) {
-      final out = Float64List(m);
-      final xData = tX.data is Float64List
-          ? tX.data as Float64List
-          : Float64List.fromList(tX.data);
-      final success = Blas.dgemv(
-        m: m,
-        n: n,
-        alpha: 1.0,
-        a: asTypedList,
-        aOffset: tA.offset,
-        lda: n,
-        x: xData,
-        xOffset: tX.offset,
-        incX: 1,
-        beta: 0.0,
-        y: out,
-        incY: 1,
-      );
-      if (success) {
-        return Float64Vector(
-          Vector(
-            Tensor.internal(
-              type: DataType.float64,
-              layout: Layout(shape: [m]),
-              data: out,
-            ),
-          ),
-        );
-      }
-    }
-    return Float64Vector(_matrix.apply(x));
-  }
+  Float64Vector apply(Vector<double> x) => Float64Vector(_matrix.apply(x));
 
   /// Inlined matrix scaling.
   @redeclare

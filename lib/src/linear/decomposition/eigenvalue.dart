@@ -60,7 +60,7 @@ class EigenvalueDecomposition {
       );
     }
     if (_n == 0) return;
-    if (_isSymmetric && matrix.type == DataType.float64) {
+    if (_isSymmetric) {
       final aList = Float64List(_n * _n);
       var allFinite = true;
       for (var i = 0; i < _n; i++) {
@@ -91,15 +91,14 @@ class EigenvalueDecomposition {
           return;
         }
       }
-    }
-    if (_isSymmetric) {
       for (var i = 0; i < _n; i++) {
+        _d[i] = double.nan;
+        _e[i] = double.nan;
         for (var j = 0; j < _n; j++) {
-          _v.setUnchecked(i, j, matrix.getUnchecked(i, j).toDouble());
+          _v.setUnchecked(j, i, double.nan);
         }
       }
-      _tred2();
-      _tql2();
+      return;
     } else {
       for (var j = 0; j < _n; j++) {
         for (var i = 0; i < _n; i++) {
@@ -148,219 +147,6 @@ class EigenvalueDecomposition {
   List<Complex> get eigenvalues => [
     for (var i = 0; i < _n; i++) Complex(_d[i], _e[i]),
   ];
-
-  static double _hypot(double a, double b) {
-    if (a.abs() > b.abs()) {
-      final ratio = b / a;
-      return a.abs() * math.sqrt(1 + ratio * ratio);
-    } else if (b != 0) {
-      final ratio = a / b;
-      return b.abs() * math.sqrt(1 + ratio * ratio);
-    } else {
-      return 0.0;
-    }
-  }
-
-  void _tred2() {
-    for (var j = 0; j < _n; j++) {
-      _d[j] = _v.getUnchecked(_n - 1, j);
-    }
-    for (var i = _n - 1; i > 0; i--) {
-      var scale = 0.0;
-      var hVal = 0.0;
-      for (var k = 0; k < i; k++) {
-        scale += _d[k].abs();
-      }
-      if (scale == 0.0) {
-        _e[i] = _d[i - 1];
-        for (var j = 0; j < i; j++) {
-          _d[j] = _v.getUnchecked(i - 1, j);
-          _v.setUnchecked(i, j, 0.0);
-          _v.setUnchecked(j, i, 0.0);
-        }
-      } else {
-        for (var k = 0; k < i; k++) {
-          _d[k] /= scale;
-          hVal += _d[k] * _d[k];
-        }
-        var fVal = _d[i - 1];
-        var gVal = math.sqrt(hVal);
-        if (fVal > 0) gVal = -gVal;
-        _e[i] = scale * gVal;
-        hVal -= fVal * gVal;
-        _d[i - 1] = fVal - gVal;
-        for (var j = 0; j < i; j++) {
-          _e[j] = 0.0;
-        }
-        for (var j = 0; j < i; j++) {
-          fVal = _d[j];
-          _v.setUnchecked(j, i, fVal);
-          gVal = _e[j] + _v.getUnchecked(j, j) * fVal;
-          for (var k = j + 1; k <= i - 1; k++) {
-            gVal += _v.getUnchecked(k, j) * _d[k];
-            _e[k] += _v.getUnchecked(k, j) * fVal;
-          }
-          _e[j] = gVal;
-        }
-        fVal = 0.0;
-        for (var j = 0; j < i; j++) {
-          _e[j] /= hVal;
-          fVal += _e[j] * _d[j];
-        }
-        final hh = fVal / (hVal + hVal);
-        for (var j = 0; j < i; j++) {
-          _e[j] -= hh * _d[j];
-        }
-        for (var j = 0; j < i; j++) {
-          fVal = _d[j];
-          gVal = _e[j];
-          for (var k = j; k <= i - 1; k++) {
-            _v.setUnchecked(
-              k,
-              j,
-              _v.getUnchecked(k, j) - (fVal * _e[k] + gVal * _d[k]),
-            );
-          }
-          _d[j] = _v.getUnchecked(i - 1, j);
-          _v.setUnchecked(i, j, 0.0);
-        }
-      }
-      _d[i] = hVal;
-    }
-
-    for (var i = 0; i < _n - 1; i++) {
-      _v.setUnchecked(_n - 1, i, _v.getUnchecked(i, i));
-      _v.setUnchecked(i, i, 1.0);
-      final hVal = _d[i + 1];
-      if (hVal != 0.0) {
-        for (var k = 0; k <= i; k++) {
-          _d[k] = _v.getUnchecked(k, i + 1) / hVal;
-        }
-        for (var j = 0; j <= i; j++) {
-          var gVal = 0.0;
-          for (var k = 0; k <= i; k++) {
-            gVal += _v.getUnchecked(k, i + 1) * _v.getUnchecked(k, j);
-          }
-          for (var k = 0; k <= i; k++) {
-            _v.setUnchecked(k, j, _v.getUnchecked(k, j) - gVal * _d[k]);
-          }
-        }
-      }
-      for (var k = 0; k <= i; k++) {
-        _v.setUnchecked(k, i + 1, 0.0);
-      }
-    }
-    for (var j = 0; j < _n; j++) {
-      _d[j] = _v.getUnchecked(_n - 1, j);
-      _v.setUnchecked(_n - 1, j, 0.0);
-    }
-    _v.setUnchecked(_n - 1, _n - 1, 1.0);
-    _e[0] = 0.0;
-  }
-
-  void _tql2() {
-    for (var i = 1; i < _n; i++) {
-      _e[i - 1] = _e[i];
-    }
-    _e[_n - 1] = 0.0;
-
-    var fVal = 0.0;
-    var tst1 = 0.0;
-    const eps = 2.220446049250313e-16;
-    for (var lIdx = 0; lIdx < _n; lIdx++) {
-      tst1 = math.max(tst1, _d[lIdx].abs() + _e[lIdx].abs());
-      if (!tst1.isFinite) {
-        for (var i = lIdx; i < _n; i++) {
-          _d[i] = double.nan;
-        }
-        return;
-      }
-      var mIdx = lIdx;
-      while (mIdx < _n - 1) {
-        if (_e[mIdx].abs() <= eps * tst1) break;
-        mIdx++;
-      }
-      if (mIdx > lIdx) {
-        var iter = 0;
-        final maxIter = 30 * _n;
-        do {
-          if (++iter > maxIter) break;
-          var gVal = _d[lIdx];
-          var pVal = (_d[lIdx + 1] - gVal) / (2.0 * _e[lIdx]);
-          var rVal = _hypot(pVal, 1.0);
-          if (pVal < 0) rVal = -rVal;
-          _d[lIdx] = _e[lIdx] / (pVal + rVal);
-          _d[lIdx + 1] = _e[lIdx] * (pVal + rVal);
-          final dl1 = _d[lIdx + 1];
-          var hVal = gVal - _d[lIdx];
-          for (var i = lIdx + 2; i < _n; i++) {
-            _d[i] -= hVal;
-          }
-          fVal += hVal;
-
-          pVal = _d[mIdx];
-          var cosVal = 1.0;
-          var cos2Val = cosVal;
-          var cos3Val = cosVal;
-          final el1 = _e[lIdx + 1];
-          var sinVal = 0.0;
-          var sin2Val = 0.0;
-          for (var i = mIdx - 1; i >= lIdx; i--) {
-            cos3Val = cos2Val;
-            cos2Val = cosVal;
-            sin2Val = sinVal;
-            gVal = cosVal * _e[i];
-            hVal = cosVal * pVal;
-            rVal = _hypot(pVal, _e[i]);
-            _e[i + 1] = sinVal * rVal;
-            sinVal = _e[i] / rVal;
-            cosVal = pVal / rVal;
-            pVal = cosVal * _d[i] - sinVal * gVal;
-            _d[i + 1] = hVal + sinVal * (cosVal * gVal + sinVal * _d[i]);
-
-            for (var k = 0; k < _n; k++) {
-              hVal = _v.getUnchecked(k, i + 1);
-              _v.setUnchecked(
-                k,
-                i + 1,
-                sinVal * _v.getUnchecked(k, i) + cosVal * hVal,
-              );
-              _v.setUnchecked(
-                k,
-                i,
-                cosVal * _v.getUnchecked(k, i) - sinVal * hVal,
-              );
-            }
-          }
-          pVal = -sinVal * sin2Val * cos3Val * el1 * _e[lIdx] / dl1;
-          _e[lIdx] = sinVal * pVal;
-          _d[lIdx] = cosVal * pVal;
-        } while (_e[lIdx].abs() > eps * tst1);
-      }
-      _d[lIdx] += fVal;
-      _e[lIdx] = 0.0;
-    }
-
-    for (var i = 0; i < _n - 1; i++) {
-      var k = i;
-      var pVal = _d[i];
-      for (var j = i + 1; j < _n; j++) {
-        if (_d[j] < pVal) {
-          k = j;
-          pVal = _d[j];
-        }
-      }
-      if (k != i) {
-        _d[k] = _d[i];
-        _d[i] = pVal;
-        for (var j = 0; j < _n; j++) {
-          pVal = _v.getUnchecked(j, i);
-          _v.setUnchecked(j, i, _v.getUnchecked(j, k));
-          _v.setUnchecked(j, k, pVal);
-        }
-      }
-    }
-  }
 
   void _orthes() {
     final high = _n - 1;

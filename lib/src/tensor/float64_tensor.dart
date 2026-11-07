@@ -197,50 +197,27 @@ extension type Float64Tensor._(Tensor<double> _tensor)
         other.isContiguous &&
         areShapesEqual(shape, other.shape)) {
       final a = asTypedList;
-      final otherData = other.data;
+      final b = other.data;
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
-      if (otherData is Float64List) {
-        final b = otherData;
-        switch (op) {
-          case 0:
-            for (var i = 0; i < length; i++) {
-              out[i] = a[aOff + i] + b[bOff + i];
-            }
-          case 1:
-            for (var i = 0; i < length; i++) {
-              out[i] = a[aOff + i] - b[bOff + i];
-            }
-          case 2:
-            for (var i = 0; i < length; i++) {
-              out[i] = a[aOff + i] * b[bOff + i];
-            }
-          case 3:
-            for (var i = 0; i < length; i++) {
-              out[i] = a[aOff + i] / b[bOff + i];
-            }
-        }
-      } else {
-        final b = otherData;
-        switch (op) {
-          case 0:
-            for (var i = 0; i < length; i++) {
-              out[i] = a[aOff + i] + b[bOff + i];
-            }
-          case 1:
-            for (var i = 0; i < length; i++) {
-              out[i] = a[aOff + i] - b[bOff + i];
-            }
-          case 2:
-            for (var i = 0; i < length; i++) {
-              out[i] = a[aOff + i] * b[bOff + i];
-            }
-          case 3:
-            for (var i = 0; i < length; i++) {
-              out[i] = a[aOff + i] / b[bOff + i];
-            }
-        }
+      switch (op) {
+        case 0:
+          for (var i = 0; i < length; i++) {
+            out[i] = a[aOff + i] + b[bOff + i];
+          }
+        case 1:
+          for (var i = 0; i < length; i++) {
+            out[i] = a[aOff + i] - b[bOff + i];
+          }
+        case 2:
+          for (var i = 0; i < length; i++) {
+            out[i] = a[aOff + i] * b[bOff + i];
+          }
+        case 3:
+          for (var i = 0; i < length; i++) {
+            out[i] = a[aOff + i] / b[bOff + i];
+          }
       }
       return Float64Tensor._(
         Tensor.internal(

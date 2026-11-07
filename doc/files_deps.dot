@@ -360,7 +360,6 @@ digraph {
   23 -> 1 [color="#888888", arrowsize="0.7"];
   23 -> 26 [color="#888888", arrowsize="0.7"];
   23 -> 34 [color="#888888", arrowsize="0.7"];
-  24 -> 184 [color="#888888", arrowsize="0.7"];
   24 -> 172 [color="#888888", arrowsize="0.7"];
   24 -> 173 [color="#888888", arrowsize="0.7"];
   24 -> 180 [color="#888888", arrowsize="0.7"];

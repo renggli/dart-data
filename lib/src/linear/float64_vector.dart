@@ -122,42 +122,9 @@ extension type Float64Vector._(Vector<double> _vector)
   Float64Vector subVector(int start, [int? end]) =>
       Float64Vector._(_vector.subVector(start, end));
 
-  /// Algebraic inner dot product routing directly to BLAS `ddot`.
+  /// Algebraic inner dot product routing to BLAS `ddot`.
   @redeclare
-  double dot(Vector<double> other) {
-    if (length != other.length) {
-      throw ArgumentError(
-        'Vector lengths must match: $length vs ${other.length}',
-      );
-    }
-    final tA = _vector.tensor;
-    final tB = other.tensor;
-    final bData = tB.data is Float64List
-        ? tB.data as Float64List
-        : Float64List.fromList(tB.data);
-    if (tA.strides[0] > 0 && tB.strides[0] > 0) {
-      return Blas.ddot(
-        n: length,
-        x: asTypedList,
-        xOffset: tA.offset,
-        incX: tA.strides[0],
-        y: bData,
-        yOffset: tB.offset,
-        incY: tB.strides[0],
-      );
-    }
-    // Fallback inlined loop
-    final a = asTypedList;
-    final aOff = tA.offset;
-    final bOff = tB.offset;
-    final aStr = tA.strides[0];
-    final bStr = tB.strides[0];
-    var sum = 0.0;
-    for (var i = 0; i < length; i++) {
-      sum += a[aOff + i * aStr] * bData[bOff + i * bStr];
-    }
-    return sum;
-  }
+  double dot(Vector<double> other) => _vector.dot(other);
 
   /// Computes the $p$-norm of this vector.
   ///

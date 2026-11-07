@@ -41,7 +41,9 @@ class QRDecomposition<T> {
         matrix.colCount,
         matrix.type.field.additiveIdentity,
       ),
-      _tau = List<double>.filled(matrix.colCount, 0.0) {
+      _tau = matrix.tensor.data is Float64List
+          ? null
+          : List<double>.filled(matrix.colCount, 0.0) {
     if (_m < _n) {
       throw ArgumentError(
         'QR decomposition requires rowCount ($m) >= colCount ($n).',
@@ -59,7 +61,7 @@ class QRDecomposition<T> {
   final DataType<T> _type;
   final Matrix<T> _qr;
   final List<T> _rdiag;
-  final List<double> _tau;
+  final List<double>? _tau;
 
   /// Number of rows.
   int get m => _m;
@@ -120,7 +122,7 @@ class QRDecomposition<T> {
       result.setUnchecked(i, i, one);
     }
     for (var k = _n - 1; k >= 0; k--) {
-      final tauK = _tau[k];
+      final tauK = _tau![k];
       if (tauK == 0.0) continue;
       final tauT = _type.cast(tauK);
       for (var j = k; j < _n; j++) {
@@ -184,7 +186,7 @@ class QRDecomposition<T> {
 
     // Compute Y = Q^* * B
     for (var k = 0; k < _n; k++) {
-      final tauK = _tau[k];
+      final tauK = _tau![k];
       if (tauK == 0.0) continue;
       final tauT = _type.cast(tauK);
       for (var j = 0; j < nx; j++) {
@@ -325,7 +327,7 @@ class QRDecomposition<T> {
           _qr.setUnchecked(i, k, field.div(_qr.getUnchecked(i, k), vk));
         }
         final tau = (nrm + normXk) / nrm;
-        _tau[k] = tau;
+        _tau![k] = tau;
         final tauT = _type.cast(tau);
 
         for (var j = k + 1; j < _n; j++) {
@@ -355,7 +357,7 @@ class QRDecomposition<T> {
         _rdiag[k] = field.neg(field.mul(mu, _type.cast(nrm)));
       } else {
         _rdiag[k] = zero;
-        _tau[k] = 0.0;
+        _tau![k] = 0.0;
       }
     }
   }
