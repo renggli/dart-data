@@ -245,15 +245,43 @@ class CsrMatrix<T> implements LinearOperator<T> {
   /// Scales every element by [scalar].
   CsrMatrix<T> scale(T scalar) {
     final field = type.field;
-    final newValues = type.newList(values.length);
-    for (var i = 0; i < values.length; i++) {
-      newValues[i] = field.mul(values[i], scalar);
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
+    if (equality.isEqual(scalar, zero)) {
+      return CsrMatrix(
+        rowCount: rowCount,
+        colCount: colCount,
+        rowPointers: List<int>.filled(rowCount + 1, 0),
+        colIndices: const [],
+        values: type.newList(0),
+        type: type,
+      );
+    }
+    final newRowPointers = List<int>.filled(rowCount + 1, 0);
+    final newColIndices = <int>[];
+    final newValuesList = <T>[];
+    for (var r = 0; r < rowCount; r++) {
+      newRowPointers[r] = newValuesList.length;
+      final start = rowPointers[r];
+      final end = rowPointers[r + 1];
+      for (var i = start; i < end; i++) {
+        final scaled = field.mul(values[i], scalar);
+        if (!equality.isEqual(scaled, zero)) {
+          newColIndices.add(colIndices[i]);
+          newValuesList.add(scaled);
+        }
+      }
+    }
+    newRowPointers[rowCount] = newValuesList.length;
+    final newValues = type.newList(newValuesList.length);
+    for (var i = 0; i < newValuesList.length; i++) {
+      newValues[i] = newValuesList[i];
     }
     return CsrMatrix(
       rowCount: rowCount,
       colCount: colCount,
-      rowPointers: List<int>.of(rowPointers, growable: false),
-      colIndices: List<int>.of(colIndices, growable: false),
+      rowPointers: newRowPointers,
+      colIndices: newColIndices,
       values: newValues,
       type: type,
     );
@@ -393,6 +421,23 @@ class CsrMatrix<T> implements LinearOperator<T> {
       rowPointers: newRowPointers,
       colIndices: List<int>.of(newCols, growable: false),
       values: valList,
+      type: type,
+    );
+  }
+
+  /// Unary matrix negation.
+  CsrMatrix<T> operator -() {
+    final field = type.field;
+    final negatedValues = type.newList(values.length);
+    for (var i = 0; i < values.length; i++) {
+      negatedValues[i] = field.neg(values[i]);
+    }
+    return CsrMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowPointers: List<int>.of(rowPointers, growable: false),
+      colIndices: List<int>.of(colIndices, growable: false),
+      values: negatedValues,
       type: type,
     );
   }

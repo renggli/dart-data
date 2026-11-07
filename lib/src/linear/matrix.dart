@@ -161,6 +161,16 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
+  /// Constructs a [Matrix] from a flat list in row-major order.
+  factory fromList(
+    int rowCount,
+    int colCount,
+    List<T> values, {
+    DataType<T>? type,
+  }) => Matrix(
+    Tensor<T>.fromIterable(values, shape: [rowCount, colCount], type: type),
+  );
+
   /// Constructs a diagonal [Matrix] from [diagonal] vector.
   factory diagonal(Vector<T> diagonal) {
     final dim = diagonal.length;
@@ -469,9 +479,9 @@ class Matrix<T> implements LinearOperator<T> {
 
   /// Slices a submatrix over the given row and column ranges.
   Matrix<T> subMatrix({
-    required int rowStart,
+    int rowStart = 0,
     int? rowEnd,
-    required int colStart,
+    int colStart = 0,
     int? colEnd,
   }) {
     final rEnd = rowEnd ?? rowCount;

@@ -97,12 +97,11 @@ extension type Float64Matrix._(Matrix<double> _matrix)
   /// Constructs a matrix from a flat list in row-major order.
   factory fromList(int rowCount, int colCount, List<double> values) =>
       Float64Matrix._(
-        Matrix<double>(
-          Tensor<double>.fromIterable(
-            values,
-            shape: [rowCount, colCount],
-            type: DataType.float64,
-          ),
+        Matrix<double>.fromList(
+          rowCount,
+          colCount,
+          values,
+          type: DataType.float64,
         ),
       );
 

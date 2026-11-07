@@ -208,17 +208,16 @@ void main() {
           .throws<ArgumentError>();
     });
 
-    test('throws ArgumentError when initial pivot is 0', () {
+    test('throws StateError when initial pivot is 0', () {
       final sub = Vector<double>.fromList([1.0]);
       final diag = Vector<double>.fromList([0.0, 3.0]);
       final sup = Vector<double>.fromList([1.0]);
       final rhs = Vector<double>.fromList([5.0, 5.0]);
 
-      check(() => solveTridiagonal(sub, diag, sup, rhs))
-          .throws<ArgumentError>();
+      check(() => solveTridiagonal(sub, diag, sup, rhs)).throws<StateError>();
     });
 
-    test('throws ArgumentError when intermediate pivot becomes 0', () {
+    test('throws StateError when intermediate pivot becomes 0', () {
       // For N = 3: b = [2, 1, 3], a = [1, 2], c = [2, 1]
       // w0 = 2
       // cp0 = 2 / 2 = 1
@@ -228,21 +227,19 @@ void main() {
       final sup = Vector<double>.fromList([2.0, 1.0]);
       final rhs = Vector<double>.fromList([1.0, 2.0, 3.0]);
 
-      check(() => solveTridiagonal(sub, diag, sup, rhs))
-          .throws<ArgumentError>();
+      check(() => solveTridiagonal(sub, diag, sup, rhs)).throws<StateError>();
     });
 
-    test('throws ArgumentError when final pivot becomes 0', () {
+    test('throws StateError when final pivot becomes 0', () {
       final sub = Vector<double>.fromList([1.0, 1.0]);
       final diag = Vector<double>.fromList([2.0, 3.0, 1.0]);
       final sup = Vector<double>.fromList([2.0, 2.0]);
       final rhs = Vector<double>.fromList([1.0, 2.0, 3.0]);
 
-      check(() => solveTridiagonal(sub, diag, sup, rhs))
-          .throws<ArgumentError>();
+      check(() => solveTridiagonal(sub, diag, sup, rhs)).throws<StateError>();
     });
 
-    test('throws ArgumentError with non-contiguous zero pivot', () {
+    test('throws StateError with non-contiguous zero pivot', () {
       final sub = Vector<double>(
         Tensor<double>.fromIterable([2.0, 1.0]).flip(),
       );
@@ -257,8 +254,7 @@ void main() {
       );
 
       check(diag.tensor.isContiguous).isFalse();
-      check(() => solveTridiagonal(sub, diag, sup, rhs))
-          .throws<ArgumentError>();
+      check(() => solveTridiagonal(sub, diag, sup, rhs)).throws<StateError>();
     });
   });
 }

@@ -243,15 +243,43 @@ class CscMatrix<T> implements LinearOperator<T> {
   /// Scales every element by [scalar].
   CscMatrix<T> scale(T scalar) {
     final field = type.field;
-    final newValues = type.newList(values.length);
-    for (var i = 0; i < values.length; i++) {
-      newValues[i] = field.mul(values[i], scalar);
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
+    if (equality.isEqual(scalar, zero)) {
+      return CscMatrix(
+        rowCount: rowCount,
+        colCount: colCount,
+        colPointers: List<int>.filled(colCount + 1, 0),
+        rowIndices: const [],
+        values: type.newList(0),
+        type: type,
+      );
+    }
+    final newColPointers = List<int>.filled(colCount + 1, 0);
+    final newRowIndices = <int>[];
+    final newValuesList = <T>[];
+    for (var c = 0; c < colCount; c++) {
+      newColPointers[c] = newValuesList.length;
+      final start = colPointers[c];
+      final end = colPointers[c + 1];
+      for (var i = start; i < end; i++) {
+        final scaled = field.mul(values[i], scalar);
+        if (!equality.isEqual(scaled, zero)) {
+          newRowIndices.add(rowIndices[i]);
+          newValuesList.add(scaled);
+        }
+      }
+    }
+    newColPointers[colCount] = newValuesList.length;
+    final newValues = type.newList(newValuesList.length);
+    for (var i = 0; i < newValuesList.length; i++) {
+      newValues[i] = newValuesList[i];
     }
     return CscMatrix(
       rowCount: rowCount,
       colCount: colCount,
-      colPointers: List<int>.of(colPointers, growable: false),
-      rowIndices: List<int>.of(rowIndices, growable: false),
+      colPointers: newColPointers,
+      rowIndices: newRowIndices,
       values: newValues,
       type: type,
     );
@@ -391,6 +419,23 @@ class CscMatrix<T> implements LinearOperator<T> {
       colPointers: newColPointers,
       rowIndices: List<int>.of(newRows, growable: false),
       values: valList,
+      type: type,
+    );
+  }
+
+  /// Unary matrix negation.
+  CscMatrix<T> operator -() {
+    final field = type.field;
+    final negatedValues = type.newList(values.length);
+    for (var i = 0; i < values.length; i++) {
+      negatedValues[i] = field.neg(values[i]);
+    }
+    return CscMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      colPointers: List<int>.of(colPointers, growable: false),
+      rowIndices: List<int>.of(rowIndices, growable: false),
+      values: negatedValues,
       type: type,
     );
   }

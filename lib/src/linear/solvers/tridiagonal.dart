@@ -30,8 +30,9 @@ import '../vector.dart';
 /// print(x); // Vector([1.0588..., 1.8823..., 2.4117...])
 /// ```
 ///
-/// Throws an [ArgumentError] if vector lengths are inconsistent, or if the
-/// matrix is singular (a zero pivot is encountered during elimination).
+/// Throws an [ArgumentError] if vector lengths are inconsistent, or a
+/// [StateError] if the matrix is singular (a zero pivot is encountered during
+/// elimination).
 Vector<double> solveTridiagonal(
   Vector<num> sub,
   Vector<num> diag,
@@ -61,7 +62,7 @@ Vector<double> solveTridiagonal(
   if (n == 1) {
     final b0 = diag.getUnchecked(0).toDouble();
     if (b0 == 0.0 || b0.isNaN) {
-      throw ArgumentError('Matrix is singular (zero pivot at index 0).');
+      throw StateError('Matrix is singular (zero pivot at index 0).');
     }
     return Vector<double>.fromList([
       rhs.getUnchecked(0).toDouble() / b0,
@@ -78,7 +79,7 @@ Vector<double> solveTridiagonal(
 
   var w = diagData[0];
   if (w == 0.0 || w.isNaN) {
-    throw ArgumentError('Matrix is singular (zero pivot at index 0).');
+    throw StateError('Matrix is singular (zero pivot at index 0).');
   }
   cp[0] = supData[0] / w;
   xData[0] = rhsData[0] / w;
@@ -87,7 +88,7 @@ Vector<double> solveTridiagonal(
     final ai = subData[i - 1];
     w = diagData[i] - ai * cp[i - 1];
     if (w == 0.0 || w.isNaN) {
-      throw ArgumentError('Matrix is singular (zero pivot at index $i).');
+      throw StateError('Matrix is singular (zero pivot at index $i).');
     }
     cp[i] = supData[i] / w;
     xData[i] = (rhsData[i] - ai * xData[i - 1]) / w;
@@ -96,7 +97,7 @@ Vector<double> solveTridiagonal(
   final an = subData[n - 2];
   w = diagData[n - 1] - an * cp[n - 2];
   if (w == 0.0 || w.isNaN) {
-    throw ArgumentError('Matrix is singular (zero pivot at index ${n - 1}).');
+    throw StateError('Matrix is singular (zero pivot at index ${n - 1}).');
   }
   xData[n - 1] = (rhsData[n - 1] - an * xData[n - 2]) / w;
 

@@ -578,7 +578,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ## 4. Missing Features & API Consistency
 
-- [ ] **4.1 Align `Matrix`, `Float64Matrix`, `SparseMatrix`, and `solveTridiagonal` APIs**
+- [x] **4.1 Align `Matrix`, `Float64Matrix`, `SparseMatrix`, and `solveTridiagonal` APIs**
   - **Severity**: Suggestion
   - **Location**: `lib/src/linear/matrix.dart:471-476`, `lib/src/linear/float64_matrix.dart:90-99`, `lib/src/linear/sparse/{coo_matrix,csr_matrix,csc_matrix}.dart`, `lib/src/linear/solvers/tridiagonal.dart:64, 81, 90, 99`
   - **Problem**:

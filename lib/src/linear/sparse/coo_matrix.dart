@@ -225,15 +225,38 @@ class CooMatrix<T> implements LinearOperator<T> {
   /// Scales every element by [scalar].
   CooMatrix<T> scale(T scalar) {
     final field = type.field;
-    final newValues = type.newList(values.length);
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
+    if (equality.isEqual(scalar, zero)) {
+      return CooMatrix(
+        rowCount: rowCount,
+        colCount: colCount,
+        rowIndices: const [],
+        colIndices: const [],
+        values: type.newList(0),
+        type: type,
+      );
+    }
+    final newRowIndices = <int>[];
+    final newColIndices = <int>[];
+    final newValuesList = <T>[];
     for (var i = 0; i < values.length; i++) {
-      newValues[i] = field.mul(values[i], scalar);
+      final scaled = field.mul(values[i], scalar);
+      if (!equality.isEqual(scaled, zero)) {
+        newRowIndices.add(rowIndices[i]);
+        newColIndices.add(colIndices[i]);
+        newValuesList.add(scaled);
+      }
+    }
+    final newValues = type.newList(newValuesList.length);
+    for (var i = 0; i < newValuesList.length; i++) {
+      newValues[i] = newValuesList[i];
     }
     return CooMatrix(
       rowCount: rowCount,
       colCount: colCount,
-      rowIndices: List<int>.of(rowIndices, growable: false),
-      colIndices: List<int>.of(colIndices, growable: false),
+      rowIndices: newRowIndices,
+      colIndices: newColIndices,
       values: newValues,
       type: type,
     );
@@ -271,6 +294,23 @@ class CooMatrix<T> implements LinearOperator<T> {
       rowIndices: [...rowIndices, ...other.rowIndices],
       colIndices: [...colIndices, ...other.colIndices],
       values: [...values, ...negatedOtherValues],
+      type: type,
+    );
+  }
+
+  /// Unary matrix negation.
+  CooMatrix<T> operator -() {
+    final field = type.field;
+    final negatedValues = type.newList(values.length);
+    for (var i = 0; i < values.length; i++) {
+      negatedValues[i] = field.neg(values[i]);
+    }
+    return CooMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowIndices: List<int>.of(rowIndices, growable: false),
+      colIndices: List<int>.of(colIndices, growable: false),
+      values: negatedValues,
       type: type,
     );
   }

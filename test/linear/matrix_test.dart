@@ -1035,6 +1035,12 @@ void main() {
       check(diag.get(0, 0)).equals(2.0);
       check(diag.get(1, 1)).equals(5.0);
       check(diag.get(0, 1)).equals(0.0);
+
+      final fromList = Matrix<int>.fromList(2, 3, [1, 2, 3, 4, 5, 6]);
+      check(fromList.rowCount).equals(2);
+      check(fromList.colCount).equals(3);
+      check(fromList.get(0, 0)).equals(1);
+      check(fromList.get(1, 2)).equals(6);
     });
 
     test('views: row, col, transpose, subMatrix', () {
@@ -1056,6 +1062,13 @@ void main() {
       check(sub.toNestedList() as List).deepEquals([
         [2, 3],
         [5, 6],
+      ]);
+
+      final subDefault = m.subMatrix(rowEnd: 1, colEnd: 2);
+      check(subDefault.rowCount).equals(1);
+      check(subDefault.colCount).equals(2);
+      check(subDefault.toNestedList() as List).deepEquals([
+        [1, 2],
       ]);
     });
 

@@ -238,6 +238,18 @@ void main() {
       check(scaled.get(0, 0)).equals(2.0);
       check(scaled.get(0, 2)).equals(4.0);
       check(scaled.get(1, 1)).equals(6.0);
+
+      final zeroScaled = a.scale(0.0);
+      check(zeroScaled.nnz).equals(0);
+      check(zeroScaled.get(0, 0)).equals(0.0);
+    });
+
+    test('unary negation', () {
+      final neg = -a;
+      check(neg.get(0, 0)).equals(-1.0);
+      check(neg.get(0, 2)).equals(-2.0);
+      check(neg.get(1, 1)).equals(-3.0);
+      check((-neg) == a).isTrue();
     });
 
     test('addition and subtraction', () {
