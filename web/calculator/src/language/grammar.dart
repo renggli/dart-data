@@ -296,6 +296,7 @@ class CalcGrammarDefinition extends GrammarDefinition<CalcStatement> {
     ref0(rpnQuotedAlgebraic),
     ref0(rpnResultRef),
     ref0(rpnBracketLiteral),
+    ref0(rpnRadicalPrefix),
     ref0(rpnFunctionCall),
     ref0(rpnSignedNumber),
     ref0(rpnOperatorChar),
@@ -344,16 +345,27 @@ class CalcGrammarDefinition extends GrammarDefinition<CalcStatement> {
           .token()
           .map((t) => RpnPushNodeToken(t.value, t.input.trim()));
 
+  /// `√2` or `√(x)` token in RPN mode.
+  Parser<RpnPushNodeToken> rpnRadicalPrefix() =>
+      ref0(radicalPrefix)
+          .token()
+          .map((t) => RpnPushNodeToken(t.value, t.input.trim()));
+
   /// Signed or unsigned numeric literal in RPN mode (reusing
   /// `ExprSyntax.numberTokenParser`, not immediately followed by identifier
   /// characters).
   Parser<RpnPushNodeToken> rpnSignedNumber() =>
       seq3(
-            anyOf('+-').optional(),
+            anyOf('+-\u2212\u2013').optional(),
             ExprSyntax.numberTokenParser,
             ExprSyntax.identifierTokenParser.not(),
           )
-          .map3((sign, numExpr, _) => sign == '-' ? -numExpr : numExpr)
+          .map3(
+            (sign, numExpr, _) =>
+                (sign == '-' || sign == '\u2212' || sign == '\u2013')
+                ? -numExpr
+                : numExpr,
+          )
           .token()
           .trim()
           .map((t) => RpnPushNodeToken(ExprLeafNode(t.value), t.input.trim()));

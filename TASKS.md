@@ -440,7 +440,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     3. In `numeric.dart:130-135`, `nminimize(expr, x, a, b)` computes `minBound = math.min(a, b - 1.0)` and `maxBound = math.max(a + 1.0, b)`, expanding any bracket narrower than `1.0` (e.g. `[0.5, 0.9]` on `x - ln(x)`) outside `[a, b]` into `x < 0`!
   - **Fix**: Remove `overflow-x: auto` from `.calc-header` on mobile (or position `.calc-popover` with `position: fixed`); cap completion items to 8 in `CalcCompletion.complete` / `_onKeyDown`; and use `[math.min(a, b), math.max(a, b)]` directly when 4 arguments are passed to `nminimize` (and `[a - 1.0, a + 1.0]` when 3 arguments are passed).
 
-- [ ] **1.11.4 Degree mode (`AngleMode.deg`), stale cell tracking, RPN Vars/Help actions, worker undo sync, RPN Unicode minus, and `+ Plot` chip in `web/calculator`**
+- [x] **1.11.4 Degree mode (`AngleMode.deg`), stale cell tracking, RPN Vars/Help actions, worker undo sync, RPN Unicode minus, and `+ Plot` chip in `web/calculator`**
   - **Severity**: Warning
   - **Location**:
     - `web/calculator/src/engine/evaluator.dart:169-182, 827-845` & `web/calculator/src/engine/sampling.dart:464-486`

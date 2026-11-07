@@ -829,8 +829,7 @@ final class CalcEvaluator {
     Expr Function(Expr) fn,
     Expr arg,
   ) {
-    if (environment.settings.angleMode != AngleMode.deg ||
-        arg.freeVariables.isNotEmpty) {
+    if (environment.settings.angleMode != AngleMode.deg) {
       return fn(arg);
     }
     const directTrig = {'sin', 'cos', 'tan', 'sec', 'csc', 'cot'};

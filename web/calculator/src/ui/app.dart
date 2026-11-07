@@ -88,7 +88,8 @@ final class CalculatorApp {
       onUndo: () => unawaited(_client.undo()),
       onRedo: () => unawaited(_client.redo()),
       onOpenHelp: () => HelpDrawerModal.open(
-        onRunExample: (ex) => unawaited(_handleSubmit(ex, forceNumeric: false)),
+        onRunExample: (ex) =>
+            unawaited(_client.evaluateScroll(ex, forceNumeric: false)),
       ),
       onClearView: () => unawaited(_clearSession()),
       onFunctionKey: (fKey) {
@@ -183,7 +184,8 @@ final class CalculatorApp {
     helpBtn.addEventListener(
       'click',
       ((web.Event _) => HelpDrawerModal.open(
-        onRunExample: (ex) => unawaited(_handleSubmit(ex, forceNumeric: false)),
+        onRunExample: (ex) =>
+            unawaited(_client.evaluateScroll(ex, forceNumeric: false)),
       )).toJS,
     );
   }
@@ -404,7 +406,7 @@ final class CalculatorApp {
       'click',
       ((web.Event _) {
         _varsDrawer.classList.add('hidden');
-        unawaited(_handleSubmit('clearall()', forceNumeric: false));
+        unawaited(_client.evaluateScroll('clearall()', forceNumeric: false));
       }).toJS,
     );
     header
@@ -445,7 +447,9 @@ final class CalculatorApp {
       delBtn.addEventListener(
         'click',
         ((web.Event _) {
-          unawaited(_handleSubmit('clear(${entry.key})', forceNumeric: false));
+          unawaited(
+            _client.evaluateScroll('clear(${entry.key})', forceNumeric: false),
+          );
           _renderVarsDrawer();
         }).toJS,
       );
@@ -478,7 +482,9 @@ final class CalculatorApp {
       delBtn.addEventListener(
         'click',
         ((web.Event _) {
-          unawaited(_handleSubmit('clear(${fn.name})', forceNumeric: false));
+          unawaited(
+            _client.evaluateScroll('clear(${fn.name})', forceNumeric: false),
+          );
           _renderVarsDrawer();
         }).toJS,
       );

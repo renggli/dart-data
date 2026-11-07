@@ -482,11 +482,16 @@ void main() {
       final approxZeroIm = eval.evaluateScroll('approx(2 + 0.0001*i, 2)');
       check(approxZeroIm.value.toCanonicalText()).equals('2.0');
 
-      // AngleMode.deg on sec/csc/cot and inverse trig
+      // AngleMode.deg on sec/csc/cot and inverse trig, user functions, and subs
       env.settings = env.settings.copyWith(angleMode: AngleMode.deg);
       check(eval.evaluateScroll('sec(60)').value.toCanonicalText()).equals('2');
       check(eval.evaluateScroll('asin(1 / 2)').value.toCanonicalText())
           .equals('30');
+      eval.evaluateScroll('fdeg(x) := sin(x)');
+      check(eval.evaluateScroll('fdeg(90)').value.toCanonicalText())
+          .equals('1');
+      check(eval.evaluateScroll('subs(sin(x), x = 90)').value.toCanonicalText())
+          .equals('1');
       env.settings = env.settings.copyWith(angleMode: AngleMode.rad);
 
       // Assumptions propagation in Vector/Matrix simplification

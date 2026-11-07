@@ -252,6 +252,28 @@ void main() {
       check(session.activeCells.map((c) => c.id)).deepEquals([1, 3]);
       check(() => session.resolveResult(2)).throws<StateError>();
 
+      // addResult with assignedSymbol marks earlier transitively dependent cells stale
+      final session2 = Session();
+      final s1 = session2.addResult(
+        input: 'b := a + 1',
+        value: ExprValue(IntegerNumber.of(2)),
+        assignedSymbol: 'b',
+        referencedSymbols: {'a'},
+      );
+      final s2 = session2.addResult(
+        input: 'c := b * 2',
+        value: ExprValue(IntegerNumber.of(4)),
+        assignedSymbol: 'c',
+        referencedSymbols: {'b'},
+      );
+      check(session2.staleCells).isEmpty();
+      session2.addResult(
+        input: 'a := 5',
+        value: ExprValue(IntegerNumber.of(5)),
+        assignedSymbol: 'a',
+      );
+      check(session2.staleCells.map((c) => c.id)).deepEquals([s1.id, s2.id]);
+
       // Round-trip session JSON
       final clone = Session()..loadFromJson(session.toJson());
       check(clone.activeCells.map((c) => c.id)).deepEquals([1, 3]);

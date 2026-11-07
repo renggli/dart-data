@@ -38,10 +38,7 @@ PlotValue buildPlotValue(
   final allFiniteY = <double>[];
 
   for (final expr in expressions) {
-    final degAdjusted = angleMode == AngleMode.deg
-        ? _convertTrigArgToDegrees(expr)
-        : expr;
-    final prepared = _substituteParams(degAdjusted, substMap);
+    final prepared = _substituteParams(expr, substMap);
     final hasImaginary = _containsComplexConst(prepared);
 
     if (hasImaginary) {
@@ -159,14 +156,8 @@ PlotValue buildParametricPlotValue(
     for (final p in parameters) p: RealNumber(parameterValues?[p] ?? 1.0),
   };
 
-  final degX = angleMode == AngleMode.deg
-      ? _convertTrigArgToDegrees(xExpr)
-      : xExpr;
-  final degY = angleMode == AngleMode.deg
-      ? _convertTrigArgToDegrees(yExpr)
-      : yExpr;
-  final prepX = _substituteParams(degX, substMap);
-  final prepY = _substituteParams(degY, substMap);
+  final prepX = _substituteParams(xExpr, substMap);
+  final prepY = _substituteParams(yExpr, substMap);
 
   final fnX = prepX.toFunction1D(variable);
   final fnY = prepY.toFunction1D(variable);
@@ -459,28 +450,4 @@ Expr _substituteParams(Expr expr, Map<String, Expr> substMap) {
     cur = cur.substitute(entry.key, entry.value);
   }
   return cur;
-}
-
-Expr _convertTrigArgToDegrees(Expr expr) {
-  final degFactor = Constant.pi / IntegerNumber.of(180);
-  final radToDeg = IntegerNumber.of(180) / Constant.pi;
-  final mapped = expr.mapChildren(_convertTrigArgToDegrees);
-  return switch (mapped) {
-    Sin(expr: final inner) when inner.freeVariables.isNotEmpty => Sin(
-      inner * degFactor,
-    ),
-    Cos(expr: final inner) when inner.freeVariables.isNotEmpty => Cos(
-      inner * degFactor,
-    ),
-    Tan(expr: final inner) when inner.freeVariables.isNotEmpty => Tan(
-      inner * degFactor,
-    ),
-    Asin(expr: final inner) when inner.freeVariables.isNotEmpty =>
-      Asin(inner) * radToDeg,
-    Acos(expr: final inner) when inner.freeVariables.isNotEmpty =>
-      Acos(inner) * radToDeg,
-    Atan(expr: final inner) when inner.freeVariables.isNotEmpty =>
-      Atan(inner) * radToDeg,
-    _ => mapped,
-  };
 }

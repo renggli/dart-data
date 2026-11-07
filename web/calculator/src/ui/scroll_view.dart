@@ -36,8 +36,12 @@ final class ScrollWorksheetView {
 
   late final web.HTMLDivElement element;
   int? _editingCellId;
+  Session? _lastSession;
+  int _lastDigits = 10;
 
   void render({required Session session, required int digits}) {
+    _lastSession = session;
+    _lastDigits = digits;
     element.innerHTML = ''.toJS;
 
     final activeCells = session.activeCells;
@@ -70,7 +74,8 @@ final class ScrollWorksheetView {
 
     PlotValue? latestPlot;
     for (final c in activeCells) {
-      if (c.value case final PlotValue pv when !pv.isParametric) {
+      if (c.value case final PlotValue pv
+          when !pv.isParametric && !pv.is3d && !pv.isOde) {
         latestPlot = pv;
       }
     }
@@ -138,18 +143,14 @@ final class ScrollWorksheetView {
             commitEdit();
           } else if (e.key == 'Escape') {
             e.preventDefault();
-            _editingCellId = null;
-            onUpdateCell(cell.id, cell.input);
+            _cancelEdit();
           }
         }).toJS,
       );
       saveBtn.addEventListener('click', ((web.Event _) => commitEdit()).toJS);
       cancelBtn.addEventListener(
         'click',
-        ((web.Event _) {
-          _editingCellId = null;
-          onUpdateCell(cell.id, cell.input);
-        }).toJS,
+        ((web.Event _) => _cancelEdit()).toJS,
       );
 
       inRow
@@ -334,5 +335,12 @@ final class ScrollWorksheetView {
 
     box.append(grid);
     return box;
+  }
+
+  void _cancelEdit() {
+    _editingCellId = null;
+    if (_lastSession != null) {
+      render(session: _lastSession!, digits: _lastDigits);
+    }
   }
 }

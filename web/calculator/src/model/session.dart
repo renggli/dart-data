@@ -126,7 +126,7 @@ final class Session {
       }
     }
     if (assignedSymbol != null) {
-      _markDependentsOfSymbolStale(assignedSymbol, excludeCellId: id);
+      markDependentsStale(changedSymbols: {assignedSymbol}, excludeId: id);
     }
     return cell;
   }
@@ -243,12 +243,14 @@ final class Session {
   List<int> markDependentsStale({
     int? changedId,
     Set<String> changedSymbols = const {},
+    int? excludeId,
   }) {
     final affectedIds = <int>{?changedId};
     final affectedSymbols = <String>{...changedSymbols};
     final staleList = <int>[];
 
     for (final cell in activeCells) {
+      if (excludeId != null && cell.id == excludeId) continue;
       if (changedId != null && cell.id <= changedId) continue;
       final dependsOnResult = cell.referencedResults.any(affectedIds.contains);
       final dependsOnSymbol = cell.referencedSymbols.any(
@@ -271,18 +273,6 @@ final class Session {
     for (final cell in activeCells)
       if (cell.stale) cell,
   ];
-
-  void _markDependentsOfSymbolStale(
-    String symbol, {
-    required int excludeCellId,
-  }) {
-    for (final cell in activeCells) {
-      if (cell.id == excludeCellId) continue;
-      if (cell.referencedSymbols.contains(symbol)) {
-        cell.stale = true;
-      }
-    }
-  }
 
   /// Clears all cells and resets numbering to `r[1]`.
   void clear() {

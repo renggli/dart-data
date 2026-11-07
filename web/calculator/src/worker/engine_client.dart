@@ -68,6 +68,9 @@ final class EngineClient {
   }
 
   void _spawnWorker() {
+    _workerAvailable = false;
+    _canUndo = _fallbackDispatcher.canUndo;
+    _canRedo = _fallbackDispatcher.canRedo;
     // In DDC edit-refresh mode (webdev serve), $dartLoader is defined on window
     // and entrypoints require DOM window bootstrap. Skip worker and use local mirror.
     if (_dartLoader != null) {
@@ -84,6 +87,8 @@ final class EngineClient {
         final response = WorkerResponse.fromJson(map);
         if (response.id == handshakeId && response.ok) {
           _workerAvailable = true;
+          _canUndo = _fallbackDispatcher.canUndo;
+          _canRedo = _fallbackDispatcher.canRedo;
           // Push any state changes that happened before handshake completed
           final syncReq = WorkerRequest(
             id: _nextRequestId++,
@@ -356,7 +361,13 @@ final class EngineClient {
   Future<void> resetAll() async {
     _fallbackDispatcher.handle(const WorkerRequest(id: 0, op: 'reset'));
     if (_workerAvailable) {
-      await _sendToWorker('reset', const {}, trackBusy: false);
+      final res = await _sendToWorker('reset', const {}, trackBusy: false);
+      if (res.ok && res.result != null) {
+        _syncFromWorkerResult(res.result!);
+      }
+    } else {
+      _canUndo = _fallbackDispatcher.canUndo;
+      _canRedo = _fallbackDispatcher.canRedo;
     }
     onStateUpdated?.call();
   }

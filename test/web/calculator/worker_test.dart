@@ -196,6 +196,20 @@ void main() {
           .equals('(-3 + x) * (3 + x)');
       check(dispatcher.canRedo).isFalse();
 
+      // 6. Reset records undo snapshot so canUndo is true and state can be undone
+      final rReset = dispatcher.handle(const WorkerRequest(id: 7, op: 'reset'));
+      check(rReset.ok).isTrue();
+      check(dispatcher.canUndo).isTrue();
+      check((rReset.result!['state'] as Map)['canUndo']).equals(true);
+      check(dispatcher.session.activeCells).isEmpty();
+      check(dispatcher.stack.isEmpty).isTrue();
+
+      // Undo the reset restores previous state
+      dispatcher.handle(const WorkerRequest(id: 8, op: 'undo'));
+      check(dispatcher.stack.depth).equals(2);
+      check(dispatcher.environment.getVariable('k')?.toCanonicalText())
+          .equals('3');
+
       // WorkerRequest and WorkerResponse JSON round-tripping
       const req = WorkerRequest(
         id: 42,

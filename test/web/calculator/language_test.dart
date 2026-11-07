@@ -92,9 +92,9 @@ void main() {
     test('parses numbers, quoted algebraics, vectors, matrices, r[n], and operators', () {
       final grammar = CalcGrammar();
       final tokens = grammar.parseRpnTokens(
-        "2 3 + 'x^2 - 1' factor [1, 2] [[1, 0], [0, 1]] r[1] SWAP",
+        "2 3 + 'x^2 - 1' factor [1, 2] [[1, 0], [0, 1]] r[1] SWAP −5 –2 √2",
       );
-      check(tokens.length).equals(9);
+      check(tokens.length).equals(12);
       check(tokens[0]).isA<RpnPushNodeToken>();
       check(tokens[2]).isA<RpnCommandToken>();
       check(tokens[3]).isA<RpnPushNodeToken>();
@@ -103,6 +103,18 @@ void main() {
       check(tokens[6]).isA<RpnPushNodeToken>();
       check(tokens[7]).isA<RpnPushNodeToken>();
       check(tokens[8]).isA<RpnCommandToken>();
+      check(tokens[9])
+          .isA<RpnPushNodeToken>()
+          .has((t) => t.rawText, 'rawText')
+          .equals('−5');
+      check(tokens[10])
+          .isA<RpnPushNodeToken>()
+          .has((t) => t.rawText, 'rawText')
+          .equals('–2');
+      check(tokens[11])
+          .isA<RpnPushNodeToken>()
+          .has((t) => t.rawText, 'rawText')
+          .equals('√2');
     });
 
     test('normalizes US International dead-key circumflex (ˆ) and acute quotes (´)', () {
