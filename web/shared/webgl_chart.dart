@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
 
+import 'webgl_utils.dart';
+
 /// Zero-dependency WebGL2 2D curve and area fill renderer paired with a crisp
 /// Canvas2D HUD overlay.
 ///
@@ -119,8 +121,8 @@ final class WebGL2ChartLayer {
       return WebGL2ChartLayer._(hudCanvas, glCanvas, null, null, null, null);
     }
 
-    final lineProg = _compileProgram(gl, _lineVertSrc, _lineFragSrc);
-    final fillProg = _compileProgram(gl, _fillVertSrc, _fillFragSrc);
+    final lineProg = compileProgram(gl, _lineVertSrc, _lineFragSrc);
+    final fillProg = compileProgram(gl, _fillVertSrc, _fillFragSrc);
     final vbo = gl.createBuffer();
 
     return WebGL2ChartLayer._(hudCanvas, glCanvas, gl, lineProg, fillProg, vbo);
@@ -529,63 +531,6 @@ void main() {
   outColor = vec4(u_color.rgb, u_color.a * v_alpha);
 }
 ''';
-
-  static web.WebGLProgram? _compileProgram(
-    web.WebGL2RenderingContext gl,
-    String vertSrc,
-    String fragSrc,
-  ) {
-    final vs = _compileShader(
-      gl,
-      web.WebGLRenderingContext.VERTEX_SHADER,
-      vertSrc,
-    );
-    final fs = _compileShader(
-      gl,
-      web.WebGLRenderingContext.FRAGMENT_SHADER,
-      fragSrc,
-    );
-    if (vs == null || fs == null) return null;
-
-    final prog = gl.createProgram();
-    if (prog == null) return null;
-    gl.attachShader(prog, vs);
-    gl.attachShader(prog, fs);
-    gl.linkProgram(prog);
-    final ok =
-        (gl.getProgramParameter(
-          prog,
-          web.WebGLRenderingContext.LINK_STATUS,
-        ) as JSBoolean?)?.toDart ??
-        false;
-    if (!ok) {
-      gl.deleteProgram(prog);
-      return null;
-    }
-    return prog;
-  }
-
-  static web.WebGLShader? _compileShader(
-    web.WebGL2RenderingContext gl,
-    int type,
-    String src,
-  ) {
-    final shader = gl.createShader(type);
-    if (shader == null) return null;
-    gl.shaderSource(shader, src);
-    gl.compileShader(shader);
-    final ok =
-        (gl.getShaderParameter(
-          shader,
-          web.WebGLRenderingContext.COMPILE_STATUS,
-        ) as JSBoolean?)?.toDart ??
-        false;
-    if (!ok) {
-      gl.deleteShader(shader);
-      return null;
-    }
-    return shader;
-  }
 
   static ({double r, double g, double b, double a}) _parseCssColor(String raw) {
     final s = raw.trim();

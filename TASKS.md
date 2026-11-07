@@ -516,7 +516,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     3. `_bdf2` (`solve_ode.dart:449-453`) re-evaluates `f(currentTime, yN)` and `f(tPrev, yPrev)` on every step instead of reusing cached evaluations from the previous steps.
   - **Fix**: Unify symbolic zero-testing into `isZeroExpr` (with rational `.together()` fallback); share `collectAdditiveTerms` and `collectFactors`; delegate `rootConstant` to `Pow(c, RationalNumber(1, n)).simplify()`; simplify net exponent cancellation in `fraction.dart`; and cache `fN`/`fPrev` across steps in `_bdf2`.
 
-- [ ] **2.4 Deduplicate WebGL shader compilation, trig degree conversion, and redundant HTML/CSS rules in `web/`**
+- [x] **2.4 Deduplicate WebGL shader compilation, trig degree conversion, and redundant HTML/CSS rules in `web/`**
   - **Severity**: Suggestion
   - **Location**: `web/shared/webgl_chart.dart:527-582`, `web/shared/webgl_surface.dart:1080-1134`, `web/expressions/index.dart:2362-2394`, `web/calculator/src/engine/sampling.dart:450-486`, `web/index.html:15, 231-233, 552`, `web/distributions/index.html:15`, `web/expressions/index.html:15`
   - **Problem**:

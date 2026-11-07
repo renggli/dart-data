@@ -5,6 +5,18 @@ import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
 import 'package:web/web.dart' as web;
 
+/// Checks whether an [element] is currently hidden.
+bool isHidden(web.HTMLElement element) => element.hasAttribute('hidden');
+
+/// Sets or removes the `hidden` attribute on an [element].
+void setHidden(web.HTMLElement element, bool hidden) {
+  if (hidden) {
+    element.setAttribute('hidden', '');
+  } else {
+    element.removeAttribute('hidden');
+  }
+}
+
 /// Copies a given [text] to the system clipboard using the Web Clipboard API.
 void copyToClipboard(String text) {
   final navigator = web.window.navigator;

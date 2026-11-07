@@ -561,20 +561,20 @@ void attachEventListeners() {
   });
 
   exprInput.onScroll.listen((_) {
-    if (!_isHidden(parseErrorPopup)) {
+    if (!isHidden(parseErrorPopup)) {
       positionParseErrorPopup();
     }
   });
 
   domainMenuBtn.onClick.listen((e) {
     e.stopPropagation();
-    final isOpen = !_isHidden(domainDropdownMenu);
+    final isOpen = !isHidden(domainDropdownMenu);
     if (isOpen) {
-      _setHidden(domainDropdownMenu, true);
+      setHidden(domainDropdownMenu, true);
       domainMenuBtn.classList.remove('active');
       domainMenuBtn.setAttribute('aria-expanded', 'false');
     } else {
-      _setHidden(domainDropdownMenu, false);
+      setHidden(domainDropdownMenu, false);
       domainMenuBtn.classList.add('active');
       domainMenuBtn.setAttribute('aria-expanded', 'true');
     }
@@ -582,7 +582,7 @@ void attachEventListeners() {
 
   domainDropdownClose.onClick.listen((e) {
     e.stopPropagation();
-    _setHidden(domainDropdownMenu, true);
+    setHidden(domainDropdownMenu, true);
     domainMenuBtn.classList.remove('active');
     domainMenuBtn.setAttribute('aria-expanded', 'false');
   });
@@ -594,8 +594,8 @@ void attachEventListeners() {
   web.document.addEventListener(
     'click',
     (web.Event _) {
-      if (!_isHidden(domainDropdownMenu)) {
-        _setHidden(domainDropdownMenu, true);
+      if (!isHidden(domainDropdownMenu)) {
+        setHidden(domainDropdownMenu, true);
         domainMenuBtn.classList.remove('active');
         domainMenuBtn.setAttribute('aria-expanded', 'false');
       }
@@ -606,8 +606,8 @@ void attachEventListeners() {
     'keydown',
     (web.Event event) {
       final keyEvent = event as web.KeyboardEvent;
-      if (keyEvent.key == 'Escape' && !_isHidden(domainDropdownMenu)) {
-        _setHidden(domainDropdownMenu, true);
+      if (keyEvent.key == 'Escape' && !isHidden(domainDropdownMenu)) {
+        setHidden(domainDropdownMenu, true);
         domainMenuBtn.classList.remove('active');
         domainMenuBtn.setAttribute('aria-expanded', 'false');
       }
@@ -741,7 +741,7 @@ void attachEventListeners() {
     'resize',
     (web.Event event) {
       drawCharts();
-      if (!_isHidden(parseErrorPopup)) {
+      if (!isHidden(parseErrorPopup)) {
         positionParseErrorPopup();
       }
     }.toJS,
@@ -789,7 +789,7 @@ void updateImaginaryDetection() {
 }
 
 void positionParseErrorPopup([int? offset]) {
-  if (_isHidden(parseErrorPopup)) return;
+  if (isHidden(parseErrorPopup)) return;
   final effectiveOffset = (offset ?? _lastErrorOffset ?? exprInput.value.length)
       .clamp(0, exprInput.value.length);
   _lastErrorOffset = effectiveOffset;
@@ -833,13 +833,13 @@ void positionParseErrorPopup([int? offset]) {
 void showParseError(String message, int? offset) {
   formulaInputBar.classList.add('invalid');
   parseErrorText.textContent = message;
-  _setHidden(parseErrorPopup, false);
+  setHidden(parseErrorPopup, false);
   positionParseErrorPopup(offset);
 }
 
 void hideParseError() {
   formulaInputBar.classList.remove('invalid');
-  _setHidden(parseErrorPopup, true);
+  setHidden(parseErrorPopup, true);
   _lastErrorOffset = null;
 }
 
@@ -2380,16 +2380,6 @@ double _measureTextWidth(String text, web.HTMLInputElement input) {
   ruler.style.letterSpacing = computed.letterSpacing;
   ruler.textContent = text;
   return ruler.getBoundingClientRect().width.toDouble();
-}
-
-bool _isHidden(web.HTMLElement el) => el.hasAttribute('hidden');
-
-void _setHidden(web.HTMLElement el, bool hidden) {
-  if (hidden) {
-    el.setAttribute('hidden', '');
-  } else {
-    el.removeAttribute('hidden');
-  }
 }
 
 bool _isUsableSymbolicValue(Expr expr) => !expr.anyNode(

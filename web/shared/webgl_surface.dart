@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:web/web.dart' as web;
 
 import 'webgl_chart.dart';
+import 'webgl_utils.dart';
 
 /// Interactive WebGL2 3D surface mesh renderer for multivariable functions
 /// $z = f(x, y)$ paired with a crisp Canvas2D HUD overlay for axes, bounding
@@ -124,7 +125,7 @@ final class WebGLSurfaceRenderer {
     web.WebGLBuffer? vbo;
     web.WebGLBuffer? ibo;
     if (gl != null) {
-      prog = _compileProgram(gl, _vertSrc, _fragSrc);
+      prog = compileProgram(gl, _vertSrc, _fragSrc);
       vbo = gl.createBuffer();
       ibo = gl.createBuffer();
     }
@@ -1080,61 +1081,5 @@ void main() {
       }
     }
     return out;
-  }
-
-  static web.WebGLProgram? _compileProgram(
-    web.WebGL2RenderingContext gl,
-    String vertSrc,
-    String fragSrc,
-  ) {
-    final vs = _compileShader(
-      gl,
-      web.WebGLRenderingContext.VERTEX_SHADER,
-      vertSrc,
-    );
-    final fs = _compileShader(
-      gl,
-      web.WebGLRenderingContext.FRAGMENT_SHADER,
-      fragSrc,
-    );
-    if (vs == null || fs == null) return null;
-    final prog = gl.createProgram();
-    if (prog == null) return null;
-    gl.attachShader(prog, vs);
-    gl.attachShader(prog, fs);
-    gl.linkProgram(prog);
-    final ok =
-        (gl.getProgramParameter(
-          prog,
-          web.WebGLRenderingContext.LINK_STATUS,
-        ) as JSBoolean?)?.toDart ??
-        false;
-    if (!ok) {
-      gl.deleteProgram(prog);
-      return null;
-    }
-    return prog;
-  }
-
-  static web.WebGLShader? _compileShader(
-    web.WebGL2RenderingContext gl,
-    int type,
-    String src,
-  ) {
-    final shader = gl.createShader(type);
-    if (shader == null) return null;
-    gl.shaderSource(shader, src);
-    gl.compileShader(shader);
-    final ok =
-        (gl.getShaderParameter(
-          shader,
-          web.WebGLRenderingContext.COMPILE_STATUS,
-        ) as JSBoolean?)?.toDart ??
-        false;
-    if (!ok) {
-      gl.deleteShader(shader);
-      return null;
-    }
-    return shader;
   }
 }
