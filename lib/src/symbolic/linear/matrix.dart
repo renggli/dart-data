@@ -43,7 +43,10 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// ], type: exprDataType);
   /// print(m.determinant()); // -2 + x^2
   /// ```
-  Expr determinant() => const BareissEngine().determinant(this);
+  Expr determinant({Assumptions assumptions = Assumptions.none}) {
+    final det = const BareissEngine().determinant(this);
+    return assumptions.isEmpty ? det : det.simplify(assumptions: assumptions);
+  }
 
   /// Computes the Reduced Row Echelon Form (RREF) of this matrix using
   /// exact symbolic Gauss-Jordan elimination.
@@ -73,8 +76,16 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// ], type: exprDataType);
   /// print(a.characteristicPolynomial('lambda')); // 6 - 5 * lambda + lambda^2
   /// ```
-  Expr characteristicPolynomial([String lambda = 'lambda']) =>
-      const FaddeevLeVerrierEngine().characteristicPolynomial(this, lambda);
+  Expr characteristicPolynomial([
+    String lambda = 'lambda',
+    Assumptions assumptions = Assumptions.none,
+  ]) {
+    final poly = const FaddeevLeVerrierEngine().characteristicPolynomial(
+      this,
+      lambda,
+    );
+    return assumptions.isEmpty ? poly : poly.simplify(assumptions: assumptions);
+  }
 
   /// Computes the symbolic eigenvalues of this square matrix (repeated
   /// according to their algebraic multiplicity) by solving the characteristic
@@ -89,12 +100,17 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
     }
     if (rowCount == 0) return const [];
     const lambdaVar = '_lambda';
-    final charPoly = characteristicPolynomial(lambdaVar)
-        .simplify(assumptions: assumptions);
+    final charPoly = characteristicPolynomial(lambdaVar, assumptions);
     final distinctRoots = charPoly.solve(lambdaVar, assumptions: assumptions);
     final result = <Expr>[];
     for (final root in distinctRoots) {
-      final mult = _algebraicMultiplicity(charPoly, lambdaVar, root, rowCount);
+      final mult = _algebraicMultiplicity(
+        charPoly,
+        lambdaVar,
+        root,
+        rowCount,
+        assumptions: assumptions,
+      );
       for (var i = 0; i < mult; i++) {
         result.add(root.simplify(assumptions: assumptions));
       }
@@ -116,14 +132,19 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
     }
     if (rowCount == 0) return const [];
     const lambdaVar = '_lambda';
-    final charPoly = characteristicPolynomial(lambdaVar)
-        .simplify(assumptions: assumptions);
+    final charPoly = characteristicPolynomial(lambdaVar, assumptions);
     final distinctRoots = charPoly.solve(lambdaVar, assumptions: assumptions);
     final effectiveType = type is ExprDataType ? type : exprDataType;
     final pairs = <SymbolicEigenpair>[];
 
     for (final root in distinctRoots) {
-      final mult = _algebraicMultiplicity(charPoly, lambdaVar, root, rowCount);
+      final mult = _algebraicMultiplicity(
+        charPoly,
+        lambdaVar,
+        root,
+        rowCount,
+        assumptions: assumptions,
+      );
       final shifted = Matrix<Expr>.generate(
         rowCount,
         colCount,
@@ -159,7 +180,11 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// final inv = a.inverse();
   /// // inv[0][0] == 1/2, inv[1][1] == 1/4
   /// ```
-  Matrix<Expr>? inverse() => const FaddeevLeVerrierEngine().inverse(this);
+  Matrix<Expr>? inverse({Assumptions assumptions = Assumptions.none}) {
+    final inv = const FaddeevLeVerrierEngine().inverse(this);
+    if (inv == null) return null;
+    return assumptions.isEmpty ? inv : inv.simplify(assumptions: assumptions);
+  }
 
   /// Computes the integer matrix power $A^n$ of this square matrix using
   /// binary exponentiation.
@@ -167,7 +192,10 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// Supports $n = 0$ (returning $I$), positive $n > 0$, and negative $n < 0$
   /// (via `(inverse())^{-n}`). Throws [ArgumentError] if this matrix is not
   /// square, or [StateError] if $n < 0$ and this matrix is singular.
-  Matrix<Expr> power(int exponent) {
+  Matrix<Expr> power(
+    int exponent, {
+    Assumptions assumptions = Assumptions.none,
+  }) {
     if (!isSquare) {
       throw ArgumentError(
         'Matrix must be square to compute matrix power, got $rowCount x $colCount.',
@@ -178,26 +206,26 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
       return Matrix<Expr>.identity(rowCount, type: effectiveType);
     }
     if (exponent < 0) {
-      final inv = inverse();
+      final inv = inverse(assumptions: assumptions);
       if (inv == null) {
         throw StateError(
           'Cannot raise singular matrix to negative power ($exponent).',
         );
       }
-      return inv.power(-exponent);
+      return inv.power(-exponent, assumptions: assumptions);
     }
-    if (exponent == 1) return simplify();
+    if (exponent == 1) return simplify(assumptions: assumptions);
 
     var result = Matrix<Expr>.identity(rowCount, type: effectiveType);
-    var base = simplify();
+    var base = simplify(assumptions: assumptions);
     var exp = exponent;
     while (exp > 0) {
       if (exp.isOdd) {
-        result = (result * base).simplify();
+        result = (result * base).simplify(assumptions: assumptions);
       }
       exp ~/= 2;
       if (exp > 0) {
-        base = (base * base).simplify();
+        base = (base * base).simplify(assumptions: assumptions);
       }
     }
     return result;
@@ -400,15 +428,19 @@ int _algebraicMultiplicity(
   Expr charPoly,
   String lambdaVar,
   Expr root,
-  int maxDegree,
-) {
+  int maxDegree, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   var multiplicity = 1;
-  var deriv = charPoly.derivative(lambdaVar).simplify();
+  var deriv = charPoly.derivative(lambdaVar).simplify(assumptions: assumptions);
   while (multiplicity < maxDegree) {
-    final val = deriv.substitute(lambdaVar, root).expand().simplify();
-    if (!(val is Number && val.isZero)) break;
+    final val = deriv
+        .substitute(lambdaVar, root)
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+    if (!isZeroExpr(val) && !(val is Number && val.isZero)) break;
     multiplicity++;
-    deriv = deriv.derivative(lambdaVar).simplify();
+    deriv = deriv.derivative(lambdaVar).simplify(assumptions: assumptions);
   }
   return multiplicity;
 }

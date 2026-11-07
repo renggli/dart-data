@@ -37,7 +37,7 @@ extension OdeExtension on Expr {
     Object? at,
     Object? initialValue,
     Assumptions assumptions = Assumptions.none,
-  }) => solveOdeEquation(
+  }) => _solveOde(
     this,
     dependent: dependent,
     independent: independent,
@@ -48,28 +48,7 @@ extension OdeExtension on Expr {
   );
 }
 
-/// Solves symbolic ordinary differential equation [equation] for [dependent]
-/// with respect to [independent].
-Expr solveOde(
-  Expr equation, {
-  required String dependent,
-  required String independent,
-  String constant = 'C1',
-  Object? at,
-  Object? initialValue,
-  Assumptions assumptions = Assumptions.none,
-}) => solveOdeEquation(
-  equation,
-  dependent: dependent,
-  independent: independent,
-  constant: constant,
-  at: at,
-  initialValue: initialValue,
-  assumptions: assumptions,
-);
-
-/// Solves first-order ordinary differential equation [equation] analytically.
-Expr solveOdeEquation(
+Expr _solveOde(
   Expr equation, {
   required String dependent,
   required String independent,

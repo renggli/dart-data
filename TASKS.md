@@ -606,7 +606,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     4. `DataFrame` lacks `sample(int count, {bool replace = false, Random? random})` and `DataFrame.fromCsv` lacks `columnTypes`.
   - **Fix**: Add `count`, `std`, `variance`, `median`, and `quantile` to `Series`; implement `min`/`max` on `BoolSeries` and `ObjectSeries`; return `double.nan` for `std` when `n == 1` in `describe()`; and add `DataFrame.sample` and `columnTypes` on `DataFrame.fromCsv`.
 
-- [ ] **4.4 Clean up redundant procedural exports in `lib/symbolic.dart`, extend `simplifyConjugate` and `toPowerSeries`, and forward `assumptions` in `SymbolicMatrixExtension`**
+- [x] **4.4 Clean up redundant procedural exports in `lib/symbolic.dart`, extend `simplifyConjugate` and `toPowerSeries`, and forward `assumptions` in `SymbolicMatrixExtension`**
   - **Severity**: Suggestion
   - **Location**: `lib/symbolic.dart:133-161`, `lib/src/symbolic/solver/ode.dart:53-79`, `lib/src/symbolic/algebra/simplify/transcendental.dart:1508-1538`, `lib/src/symbolic/calculus/series.dart:548-654`, `lib/src/symbolic/linear/matrix.dart:84-145, 399-414`
   - **Problem**:

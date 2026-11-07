@@ -430,6 +430,24 @@ void main() {
           .equals('cosh(conj(z))');
       check(simplifyConjugate(Tanh(z), assumptions: complexZ).toString())
           .equals('tanh(conj(z))');
+      check(simplifyConjugate(Erf(z), assumptions: complexZ).toString())
+          .equals('erf(conj(z))');
+      check(simplifyConjugate(Erfc(z), assumptions: complexZ).toString())
+          .equals('erfc(conj(z))');
+      check(simplifyConjugate(Atan(z), assumptions: complexZ).toString())
+          .equals('atan(conj(z))');
+      check(simplifyConjugate(Asinh(z), assumptions: complexZ).toString())
+          .equals('asinh(conj(z))');
+      const posA = Variable('a');
+      const assumptionsPosA = Assumptions(
+        domains: {'a': VariableDomain.positive, 'z': VariableDomain.complex},
+      );
+      check(
+        simplifyConjugate(
+          Pow(posA, z),
+          assumptions: assumptionsPosA,
+        ).toString(),
+      ).equals('a ^ conj(z)');
 
       check(toRectangularExpr(Sin(z), assumptions: complexZ).toString())
           .equals('i * cos(re(z)) * sinh(im(z)) + sin(re(z)) * cosh(im(z))');

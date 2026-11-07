@@ -228,5 +228,40 @@ void main() {
       check(syntax.tryParseVector('[1, 2')).isNull();
       check(() => syntax.parseVector('[1, 2')).throws<FormatException>();
     });
+
+    test('forwards assumptions in determinant, characteristicPolynomial, eigenvalues, eigenvectors, inverse, and power', () {
+      const x = Variable('x');
+      const posAssumptions = Assumptions(
+        domains: {'x': VariableDomain.positive},
+      );
+
+      final m = Matrix<Expr>.fromRows([
+        [Expr.parse('sqrt(x^2)'), IntegerNumber.zero],
+        [IntegerNumber.zero, IntegerNumber.zero],
+      ], type: exprDataType);
+
+      check(m.determinant().toString()).equals('0');
+
+      check(m.characteristicPolynomial('lambda', posAssumptions).toString())
+          .equals('lambda ^ 2 - lambda * x');
+
+      final eigs = m.eigenvalues(assumptions: posAssumptions);
+      check(eigs).deepEquals([x, IntegerNumber.zero]);
+
+      final pairs = m.eigenvectors(assumptions: posAssumptions);
+      check(pairs.map((p) => p.eigenvalue)).deepEquals([x, IntegerNumber.zero]);
+
+      final p2 = m.power(2, assumptions: posAssumptions);
+      check(p2.get(0, 0).toString()).equals('x ^ 2');
+
+      final invMat = Matrix<Expr>.fromRows([
+        [Expr.parse('sqrt(x^2)'), IntegerNumber.zero],
+        [IntegerNumber.zero, IntegerNumber.one],
+      ], type: exprDataType);
+      check(invMat.determinant().toString()).equals('sqrt(x ^ 2)');
+      check(invMat.determinant(assumptions: posAssumptions)).equals(x);
+      check(invMat.inverse(assumptions: posAssumptions)!.get(0, 0).toString())
+          .equals('1 / x');
+    });
   });
 }

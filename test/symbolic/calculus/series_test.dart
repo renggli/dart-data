@@ -281,6 +281,46 @@ void main() {
             .removeOrder()
             .evaluate({'x': 2.0}),
       ).equals(4.0);
+
+      // Sign, Floor, Ceil, Round at non-singular points
+      check(
+        Sign(x).series('x', point: IntegerNumber.two, order: 3).removeOrder(),
+      ).equals(IntegerNumber.one);
+      check(
+        Sign(x)
+            .series('x', point: IntegerNumber.negativeOne, order: 3)
+            .removeOrder(),
+      ).equals(IntegerNumber.negativeOne);
+      check(
+        Floor(x)
+            .series('x', point: RationalNumber(3, 2), order: 3)
+            .removeOrder(),
+      ).equals(IntegerNumber.one);
+      check(
+        Ceil(x)
+            .series('x', point: RationalNumber(6, 5), order: 3)
+            .removeOrder(),
+      ).equals(IntegerNumber.two);
+      check(
+        Round(x)
+            .series('x', point: RationalNumber(6, 5), order: 3)
+            .removeOrder(),
+      ).equals(IntegerNumber.one);
+
+      // Gamma, Digamma, Polygamma, Zeta, BesselJ at analytic points
+      final gammaS =
+          Gamma(x).toPowerSeries('x', point: IntegerNumber.one, order: 2);
+      check(gammaS.coefficients[0]).equals(IntegerNumber.one);
+      check(gammaS.coefficients[1]).equals(Digamma(IntegerNumber.one));
+
+      final zetaS =
+          Zeta(x).toPowerSeries('x', point: IntegerNumber.two, order: 1);
+      check(zetaS.coefficients[0]).equals(Zeta(IntegerNumber.two).simplify());
+
+      check(BesselJ(IntegerNumber.zero, x).series('x', order: 5).toString())
+          .equals('1 - 1/4 * x ^ 2 + 1/64 * x ^ 4 + O(x^5)');
+      check(BesselJ(IntegerNumber.one, x).series('x', order: 5).toString())
+          .equals('1/2 * x - 1/16 * x ^ 3 + O(x^5)');
     });
 
     test('throws UnsupportedError on singularities and unsupported nodes', () {
@@ -308,6 +348,24 @@ void main() {
           .throws<UnsupportedError>();
 
       check(() => Gamma(x).series('x')).throws<UnsupportedError>();
+      check(() => Gamma(x).series('x', point: IntegerNumber.negativeOne))
+          .throws<UnsupportedError>();
+      check(() => Zeta(x).series('x', point: IntegerNumber.one))
+          .throws<UnsupportedError>();
+      check(() => Sign(x).series('x', point: IntegerNumber.zero))
+          .throws<UnsupportedError>();
+      check(() => Floor(x).series('x', point: IntegerNumber.one))
+          .throws<UnsupportedError>();
+      check(() => Ceil(x).series('x', point: IntegerNumber.one))
+          .throws<UnsupportedError>();
+      check(() => Round(x).series('x', point: RealNumber.fromDouble(1.5)))
+          .throws<UnsupportedError>();
+      check(
+        () => BesselJ(
+          FractionNumber.half,
+          x,
+        ).series('x', point: IntegerNumber.zero),
+      ).throws<UnsupportedError>();
       check(() => Beta(x, IntegerNumber.two).series('x'))
           .throws<UnsupportedError>();
       check(() => LessThan(x, IntegerNumber.zero).series('x'))

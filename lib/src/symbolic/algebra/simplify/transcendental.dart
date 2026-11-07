@@ -1509,6 +1509,13 @@ Expr simplifyConjugate(
         simplifyConjugate(exponent, assumptions: assumptions),
         assumptions: assumptions,
       );
+    case Pow(:final base, :final exponent)
+        when isPositiveExpr(base, assumptions: assumptions):
+      return simplifyPow(
+        base,
+        simplifyConjugate(exponent, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case Pow(:final base, :final exponent) when exponent is IntegerNumber:
       return simplifyPow(
         simplifyConjugate(base, assumptions: assumptions),
@@ -1536,6 +1543,17 @@ Expr simplifyConjugate(
       return simplifyCosh(simplifyConjugate(expr, assumptions: assumptions));
     case Tanh(:final expr):
       return simplifyTanh(simplifyConjugate(expr, assumptions: assumptions));
+    case Erf(:final expr):
+      return simplifyErf(simplifyConjugate(expr, assumptions: assumptions));
+    case Erfc(:final expr):
+      return simplifyErfc(simplifyConjugate(expr, assumptions: assumptions));
+    case Atan(:final expr):
+      return simplifyAtan(simplifyConjugate(expr, assumptions: assumptions));
+    case Asinh(:final expr):
+      return simplifyAsinh(
+        simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case _:
       if (isProvenReal(expr, assumptions)) {
         return expr;

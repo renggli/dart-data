@@ -130,8 +130,6 @@ export 'src/symbolic/algebra/trig.dart'
     show RewriteTarget, TrigRewriteExtension;
 export 'src/symbolic/assumptions.dart' show Assumptions;
 export 'src/symbolic/ast.dart';
-export 'src/symbolic/calculus/definite_integration.dart'
-    show evaluateDefiniteIntegral;
 export 'src/symbolic/calculus/differentiation.dart'
     show DifferentiationExtension;
 export 'src/symbolic/calculus/integration.dart'
@@ -145,7 +143,6 @@ export 'src/symbolic/calculus/multivariable.dart'
         curl,
         divergence,
         laplacian;
-export 'src/symbolic/calculus/product.dart' show computeProduct;
 export 'src/symbolic/calculus/series.dart'
     show PowerSeries, SeriesExtension, SymbolicPolynomialFactory;
 export 'src/symbolic/calculus/summation.dart' show SummationExtension;
@@ -157,7 +154,7 @@ export 'src/symbolic/linear/matrix.dart'
     show SymbolicEigenpair, SymbolicMatrixExtension, SymbolicVectorExtension;
 export 'src/symbolic/number/integer.dart' show Integer;
 export 'src/symbolic/parser.dart' show ExprSyntax;
-export 'src/symbolic/solver/ode.dart' show OdeExtension, solveOdeEquation;
+export 'src/symbolic/solver/ode.dart' show OdeExtension;
 export 'src/symbolic/solver/polynomial_system.dart' show PolynomialSystemMethod;
 export 'src/symbolic/solver/system.dart' show SystemSolverExtension;
 export 'src/symbolic/solver/univariate.dart' show SolverExtension;
