@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/simplify/additive.dart';
+import 'package:data/src/symbolic/algebra/simplify/domain.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
 import 'package:data/src/symbolic/algebra/structural_order.dart';
 import 'package:data/symbolic.dart';

@@ -1,5 +1,6 @@
 import '../assumptions.dart';
 import '../ast.dart';
+import '../calculus/product.dart';
 import '../calculus/summation.dart';
 import 'simplify/additive.dart';
 import 'simplify/multiplicative.dart';

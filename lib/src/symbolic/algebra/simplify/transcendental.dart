@@ -22,8 +22,6 @@ import 'domain.dart';
 import 'multiplicative.dart';
 import 'power.dart';
 
-export 'domain.dart';
-
 /// Simplifies a sine expression $\sin(expr)$.
 Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;

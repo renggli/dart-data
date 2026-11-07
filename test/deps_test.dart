@@ -113,6 +113,29 @@ void main() {
         ),
       ).isEmpty();
     });
+
+    test(
+      'no internal exports in lib/src/ except conditional platform selectors',
+      () {
+        const allowedExports = {'lib/src/dataframe/arrow/arrow_c_data.dart'};
+        final internalExports = <String>[];
+        for (final file in Directory(
+          'lib/src',
+        ).listSync(recursive: true).whereType<File>()) {
+          if (!file.path.endsWith('.dart')) continue;
+          final relPath = file.path.replaceAll(r'\', '/');
+          if (allowedExports.contains(relPath)) continue;
+          final content = file.readAsStringSync();
+          for (final match in RegExp(
+            r'''^\s*export\b[^;]+;''',
+            multiLine: true,
+          ).allMatches(content)) {
+            internalExports.add('$relPath: ${match.group(0)!.trim()}');
+          }
+        }
+        check(internalExports).isEmpty();
+      },
+    );
   });
 
   group('reachability', () {

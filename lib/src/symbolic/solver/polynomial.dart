@@ -4,6 +4,7 @@ import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
+import '../type/expr_data_type.dart';
 import 'univariate.dart';
 
 /// Matches quadratic form $a x^2 + b x + c = 0$.

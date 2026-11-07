@@ -4,8 +4,8 @@ import '../../number/integer.dart';
 import '../structural_order.dart';
 import '../term_accumulator.dart';
 import 'additive.dart';
+import 'domain.dart';
 import 'power.dart';
-import 'transcendental.dart';
 
 /// Simplifies an N-ary multiplication expression across [factors].
 Expr simplifyMul(

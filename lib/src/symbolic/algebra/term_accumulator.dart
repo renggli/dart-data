@@ -6,6 +6,7 @@ import '../number/integer.dart';
 import 'expand.dart';
 import 'simplify.dart';
 import 'simplify/additive.dart';
+import 'simplify/domain.dart';
 import 'simplify/multiplicative.dart';
 import 'simplify/power.dart';
 import 'simplify/transcendental.dart';

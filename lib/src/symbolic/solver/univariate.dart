@@ -1,7 +1,6 @@
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/domain.dart';
-import '../algebra/simplify/transcendental.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
@@ -10,8 +9,6 @@ import '../compiler.dart';
 import '../type/expr_data_type.dart';
 import 'polynomial.dart';
 import 'transcendental.dart';
-
-export '../type/expr_data_type.dart' show isZeroExpr;
 
 /// Extension providing analytical equation solving on [Expr].
 extension SolverExtension on Expr {

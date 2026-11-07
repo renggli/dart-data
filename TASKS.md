@@ -528,7 +528,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
 
 ## 3. Code Style, Architecture & Documentation
 
-- [ ] **3.1 Remove internal `export` directives inside `lib/src/symbolic/` and enforce in `test/deps_test.dart` (`AGENTS.md`)**
+- [x] **3.1 Remove internal `export` directives inside `lib/src/symbolic/` and enforce in `test/deps_test.dart` (`AGENTS.md`)**
   - **Severity**: Warning
   - **Location**: `lib/src/symbolic/calculus/summation.dart:16`, `lib/src/symbolic/algebra/simplify/transcendental.dart:25`, `test/deps_test.dart`
   - **Problem**: `AGENTS.md` states: *"Intermediate internal barrel files inside `lib/src/` are prohibited; root `lib/<subsystem>.dart` files must export public declarations directly (conditional platform export selectors such as `library_loader.dart` and `arrow_c_data.dart` are allowed exceptions)."* Currently, `summation.dart:16` contains `export 'product.dart';` and `transcendental.dart:25` contains `export 'domain.dart';`.

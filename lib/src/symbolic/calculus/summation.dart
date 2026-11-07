@@ -13,8 +13,6 @@ import 'limit.dart';
 import 'linear_form.dart';
 import 'product.dart';
 
-export 'product.dart';
-
 /// Closed-form symbolic summation and product extension on [Expr].
 extension SummationExtension on Expr {
   /// Computes the definite sum $\sum_{\text{variable}=\text{from}}^{\text{to}} \text{this}$.

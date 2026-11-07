@@ -165,4 +165,4 @@ export 'src/symbolic/textualization/latex.dart' show LatexExtension;
 export 'src/symbolic/textualization/mathml.dart' show MathMlExtension;
 export 'src/symbolic/textualization/string.dart' show TextExtension;
 export 'src/symbolic/type/expr_data_type.dart'
-    show ExprDataType, ExprField, exprDataType;
+    show ExprDataType, ExprField, exprDataType, isZeroExpr;
