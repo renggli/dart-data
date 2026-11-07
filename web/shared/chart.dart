@@ -589,6 +589,15 @@ void drawCurve(
           flushRun();
           continue;
         }
+        if (count == 0 && i > 0 && curPx.isFinite && py.isFinite) {
+          final prevPx = vp.toPixelX(segment.x[i - 1]);
+          final prevPy = vp.toPixelY(segment.y[i - 1]);
+          if (prevPx.isFinite && prevPy.isFinite) {
+            buf[count * 2] = prevPx;
+            buf[count * 2 + 1] = prevPy.clamp(yMinPx, yMaxPx);
+            count++;
+          }
+        }
         buf[count * 2] = curPx;
         buf[count * 2 + 1] = py;
         count++;
@@ -619,7 +628,18 @@ void drawCurve(
 
       if (!inPath) {
         ctx.beginPath();
-        ctx.moveTo(curPx, py);
+        if (i > 0) {
+          final prevPx = vp.toPixelX(segment.x[i - 1]);
+          final prevPy = vp.toPixelY(segment.y[i - 1]);
+          if (prevPx.isFinite && prevPy.isFinite) {
+            ctx.moveTo(prevPx, prevPy.clamp(yMinPx, yMaxPx));
+            ctx.lineTo(curPx, py);
+          } else {
+            ctx.moveTo(curPx, py);
+          }
+        } else {
+          ctx.moveTo(curPx, py);
+        }
         inPath = true;
         pathStartX = curPx;
       } else {
@@ -804,6 +824,22 @@ void drawShadedInterval(
       buf[count * 2 + 1] = py;
       count++;
     }
+    if (count > 0 && buf[(count - 1) * 2] < endPx) {
+      final x = vp.fromPixelX(endPx);
+      double y;
+      try {
+        y = fn(x);
+      } catch (_) {
+        y = baseY;
+      }
+      if (!y.isFinite || y.isNaN) y = baseY;
+      final py = vp
+          .toPixelY(y)
+          .clamp(vp.topMargin, vp.topMargin + vp.plotHeight);
+      buf[count * 2] = endPx;
+      buf[count * 2 + 1] = py;
+      count++;
+    }
     glLayer.drawAreaFill(
       buf,
       count,
@@ -843,6 +879,7 @@ void drawShadedInterval(
   ctx.beginPath();
   ctx.moveTo(startPx, basePy);
 
+  var lastPx = startPx;
   for (var px = startPx; px <= endPx; px += 1.5) {
     final x = vp.fromPixelX(px);
     double y;
@@ -854,6 +891,19 @@ void drawShadedInterval(
     if (!y.isFinite || y.isNaN) y = baseY;
     final py = vp.toPixelY(y).clamp(vp.topMargin, vp.topMargin + vp.plotHeight);
     ctx.lineTo(px, py);
+    lastPx = px;
+  }
+  if (lastPx < endPx) {
+    final x = vp.fromPixelX(endPx);
+    double y;
+    try {
+      y = fn(x);
+    } catch (_) {
+      y = baseY;
+    }
+    if (!y.isFinite || y.isNaN) y = baseY;
+    final py = vp.toPixelY(y).clamp(vp.topMargin, vp.topMargin + vp.plotHeight);
+    ctx.lineTo(endPx, py);
   }
 
   ctx.lineTo(endPx, basePy);
@@ -881,7 +931,7 @@ void drawReferenceLine(
   bool topLabel = true,
   double labelYOffset = 0.0,
 }) {
-  if (x < vp.minX || x > vp.maxX) return;
+  if (!x.isFinite || x < vp.minX || x > vp.maxX) return;
   final px = vp.toPixelX(x);
 
   ctx.save();
@@ -914,7 +964,14 @@ void drawPointMarker(
   double radius = 4.0,
   String? label,
 }) {
-  if (x < vp.minX || x > vp.maxX || y < vp.minY || y > vp.maxY) return;
+  if (!x.isFinite ||
+      !y.isFinite ||
+      x < vp.minX ||
+      x > vp.maxX ||
+      y < vp.minY ||
+      y > vp.maxY) {
+    return;
+  }
   final px = vp.toPixelX(x);
   final py = vp.toPixelY(y);
 

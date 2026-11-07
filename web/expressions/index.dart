@@ -2223,6 +2223,7 @@ void loadFromUrlHash() {
     hash = hash.substring(1);
   }
 
+  currentVariableDomains.clear();
   if (hash.isNotEmpty) {
     final pairs = hash.split('&');
     for (final pair in pairs) {
@@ -2297,7 +2298,11 @@ void loadFromUrlHash() {
 
 Expr _sliceFor1DPlot(Expr expr) {
   final freeVars = expr.freeVariables;
-  if (freeVars.length <= 1) return expr;
+  if (freeVars.length == 1) {
+    final v = freeVars.first;
+    return v == 'x' ? expr : expr.substitute(v, const Variable('x'));
+  }
+  if (freeVars.isEmpty) return expr;
   var sub = expr;
   for (final v in freeVars) {
     if (v != 'x') {

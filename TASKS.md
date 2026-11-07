@@ -458,7 +458,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     6. `scroll_view.dart:72-76` shows the 1D `+ Plot` overlay chip when the latest plot is a 3D surface (`pv.is3d`) or ODE plot (`pv.isOde`), and canceling inline cell edit triggers a full worker re-evaluation.
   - **Fix**: Apply degree scaling uniformly in `_constructUnaryFunction` and remove `_convertTrigArgToDegrees` in `sampling.dart`; call `markDependentsStale` in `Session.addResult`; route Vars Drawer clear and Help Drawer examples through `evaluateScroll`; sync undo state in `resetAll()` and `_spawnWorker()`; support `−`/`–` and `√` in RPN grammar; and guard `latestPlot` with `!pv.isParametric && !pv.is3d && !pv.isOde` while restoring canceled cell edits locally.
 
-- [ ] **1.11.5 Chart clipping, shaded interval endpoint, WebGL vertex attribute bleed, and state resets in `web/shared`, `web/expressions`, and `web/distributions`**
+- [x] **1.11.5 Chart clipping, shaded interval endpoint, WebGL vertex attribute bleed, and state resets in `web/shared`, `web/expressions`, and `web/distributions`**
   - **Severity**: Warning
   - **Location**:
     - `web/shared/chart.dart:580-630, 788-860, 884, 917`

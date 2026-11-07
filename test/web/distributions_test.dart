@@ -62,5 +62,50 @@ void main() {
         check(dist).isNotNull();
       }
     });
+
+    test('infinite bounds quantile evaluation at p = 0 and p = 1', () {
+      const normal = NormalDistribution.standard();
+      check(normal.isLowerBoundOpen).equals(true);
+      check(normal.isUpperBoundOpen).equals(true);
+      check(normal.lowerBound).equals(double.negativeInfinity);
+      check(normal.upperBound).equals(double.infinity);
+
+      const cauchy = CauchyDistribution.standard();
+      check(cauchy.isLowerBoundOpen).equals(true);
+      check(cauchy.isUpperBoundOpen).equals(true);
+      check(cauchy.lowerBound).equals(double.negativeInfinity);
+      check(cauchy.upperBound).equals(double.infinity);
+
+      final exp = ExponentialDistribution(1.0);
+      check(exp.isLowerBoundOpen).equals(false);
+      check(exp.isUpperBoundOpen).equals(true);
+      check(exp.lowerBound).equals(0.0);
+      check(exp.upperBound).equals(double.infinity);
+    });
+
+    test('cross-parameter constraints in uniform, uniform_discrete, and hypergeometric', () {
+      final uniformDef = distributions.firstWhere(
+        (d) => d.id == 'uniform_continuous',
+      );
+      final uDist = uniformDef.creator([5.0, 2.0]);
+      check(uDist).isA<UniformDistribution>();
+      check((uDist as UniformDistribution).upperBound).isGreaterThan(5.0);
+
+      final uniformDiscDef = distributions.firstWhere(
+        (d) => d.id == 'uniform_discrete',
+      );
+      final udDist = uniformDiscDef.creator([10.0, 3.0]);
+      check(udDist).isA<UniformDiscreteDistribution>();
+      check((udDist as UniformDiscreteDistribution).upperBound).equals(10);
+
+      final hyperDef = distributions.firstWhere(
+        (d) => d.id == 'hypergeometric',
+      );
+      final hDist = hyperDef.creator([10.0, 20.0, 15.0]);
+      check(hDist).isA<HypergeometricDistribution>();
+      final hd = hDist as HypergeometricDistribution;
+      check(hd.successStates).equals(10);
+      check(hd.draws).equals(10);
+    });
   });
 }

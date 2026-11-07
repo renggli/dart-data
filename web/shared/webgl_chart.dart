@@ -305,6 +305,10 @@ final class WebGL2ChartLayer {
 
     gl.drawArrays(web.WebGLRenderingContext.TRIANGLE_STRIP, 0, pointCount * 2);
     gl.disable(web.WebGLRenderingContext.SCISSOR_TEST);
+    if (posLoc >= 0) gl.disableVertexAttribArray(posLoc);
+    if (normLoc >= 0) gl.disableVertexAttribArray(normLoc);
+    if (sideLoc >= 0) gl.disableVertexAttribArray(sideLoc);
+    if (arcLoc >= 0) gl.disableVertexAttribArray(arcLoc);
     return true;
   }
 
@@ -395,6 +399,8 @@ final class WebGL2ChartLayer {
 
     gl.drawArrays(web.WebGLRenderingContext.TRIANGLE_STRIP, 0, pointCount * 2);
     gl.disable(web.WebGLRenderingContext.SCISSOR_TEST);
+    if (posLoc >= 0) gl.disableVertexAttribArray(posLoc);
+    if (alphaLoc >= 0) gl.disableVertexAttribArray(alphaLoc);
     return true;
   }
 

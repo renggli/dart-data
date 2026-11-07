@@ -717,7 +717,11 @@ final class WebGLSurfaceRenderer {
         ctx.font = 'bold 10.5px Inter, ui-monospace, sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(readoutStr, tipX + 8.0, tipY + 17.0);
+      } else {
+        _onHoverReadout?.call('');
       }
+    } else {
+      _onHoverReadout?.call('');
     }
 
     ctx.restore();
@@ -827,6 +831,7 @@ final class WebGLSurfaceRenderer {
         endDrag();
         _hoverPx = null;
         _hoverPy = null;
+        _onHoverReadout?.call('');
         _scheduleUpdate();
       }).toJS,
     );

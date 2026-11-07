@@ -13,6 +13,7 @@ late DistributionConfig activeDef;
 late Distribution<num> activeDist;
 List<double> currentParamValues = [];
 final List<num> generatedSamples = [];
+final List<void Function()> _paramSyncCallbacks = [];
 bool isAppInitialized = false;
 
 // Interactive chart controllers
@@ -317,6 +318,7 @@ void selectDistribution(
 /// Rebuild configuration slider and text nodes inside panel.
 void rebuildConfigInputs() {
   configInputsContainer.innerHTML = ''.toJS;
+  _paramSyncCallbacks.clear();
 
   if (activeDef.parameters.isEmpty) {
     final emptyMsg = web.document.createElement('div') as web.HTMLElement;
@@ -389,6 +391,13 @@ void rebuildConfigInputs() {
     numInput.step = param.step.toString();
     numInput.value = currentParamValues[index].toString();
     controlsRow.appendChild(numInput);
+
+    _paramSyncCallbacks.add(() {
+      final val = currentParamValues[index];
+      slider.value = val.toString();
+      numInput.value = val.toString();
+      updateCopyData();
+    });
 
     group.appendChild(controlsRow);
     configInputsContainer.appendChild(group);
@@ -510,8 +519,36 @@ void loadFromUrlHash() {
   }
 }
 
+void _syncCrossParameters() {
+  if (activeDef.id == 'uniform_continuous' && currentParamValues.length >= 2) {
+    if (currentParamValues[1] < currentParamValues[0] + 0.1) {
+      currentParamValues[1] = (currentParamValues[0] + 0.1).clamp(
+        activeDef.parameters[1].min,
+        activeDef.parameters[1].max,
+      );
+    }
+  } else if (activeDef.id == 'uniform_discrete' &&
+      currentParamValues.length >= 2) {
+    if (currentParamValues[1] < currentParamValues[0]) {
+      currentParamValues[1] = currentParamValues[0].clamp(
+        activeDef.parameters[1].min,
+        activeDef.parameters[1].max,
+      );
+    }
+  } else if (activeDef.id == 'hypergeometric' &&
+      currentParamValues.length >= 3) {
+    final pop = currentParamValues[0];
+    if (currentParamValues[1] > pop) currentParamValues[1] = pop;
+    if (currentParamValues[2] > pop) currentParamValues[2] = pop;
+  }
+}
+
 /// Recreate the stats distribution using configured inputs.
 void recreateDistribution() {
+  _syncCrossParameters();
+  for (final cb in _paramSyncCallbacks) {
+    cb();
+  }
   activeDist = activeDef.creator(currentParamValues);
   final bounds = getGraphBounds();
   pdfController.setBounds(
@@ -561,9 +598,12 @@ void updateTelemetry() {
 /// Evaluates probability density (continuous) or mass (discrete) correctly
 /// handling generic type requirements.
 double evalDistProbability(num x) {
+  if (x == double.negativeInfinity || x == double.infinity) return 0.0;
   if (activeDef.isContinuous) {
-    return (activeDist as Distribution<double>).probability(x.toDouble());
+    final val = (activeDist as Distribution<double>).probability(x.toDouble());
+    return val.isNaN ? 0.0 : val;
   } else {
+    if (!x.isFinite) return 0.0;
     return (activeDist as Distribution<int>).probability(x.round());
   }
 }
@@ -571,20 +611,28 @@ double evalDistProbability(num x) {
 /// Evaluates cumulative probability distribution (CDF) correctly
 /// handling generic type requirements.
 double evalDistCumulativeProbability(num x) {
+  if (x == double.negativeInfinity) return 0.0;
+  if (x == double.infinity) return 1.0;
   if (activeDef.isContinuous) {
-    return (activeDist as Distribution<double>).cumulativeProbability(
+    final val = (activeDist as Distribution<double>).cumulativeProbability(
       x.toDouble(),
     );
+    return val.isNaN ? (x < 0 ? 0.0 : 1.0) : val;
   } else {
+    if (!x.isFinite) return x < 0 ? 0.0 : 1.0;
     return (activeDist as Distribution<int>).cumulativeProbability(x.floor());
   }
 }
 
 /// Evaluates survival function correctly handling generic type requirements.
 double evalDistSurvival(num x) {
+  if (x == double.negativeInfinity) return 1.0;
+  if (x == double.infinity) return 0.0;
   if (activeDef.isContinuous) {
-    return (activeDist as Distribution<double>).survival(x.toDouble());
+    final val = (activeDist as Distribution<double>).survival(x.toDouble());
+    return val.isNaN ? (x < 0 ? 1.0 : 0.0) : val;
   } else {
+    if (!x.isFinite) return x < 0 ? 1.0 : 0.0;
     return (activeDist as Distribution<int>).survival(x.floor());
   }
 }
@@ -592,7 +640,14 @@ double evalDistSurvival(num x) {
 /// Update quantile and probability evaluation card.
 void updateQuantileCalculator() {
   try {
-    final q = activeDist.inverseCumulativeProbability(currentEvalP);
+    num q;
+    if (currentEvalP == 0.0 && activeDist.isLowerBoundOpen) {
+      q = activeDist.lowerBound;
+    } else if (currentEvalP == 1.0 && activeDist.isUpperBoundOpen) {
+      q = activeDist.upperBound;
+    } else {
+      q = activeDist.inverseCumulativeProbability(currentEvalP);
+    }
     setAttrValue(valQuantile, formatNumber(q));
 
     // Evaluate cumulative CDF at q
@@ -748,7 +803,9 @@ void renderCanvas(
   } else {
     // Scan X intervals to capture maximum probability density peak
     var peak = 0.0;
-    if (activeDef.isContinuous) {
+    if (activeDef.id == 'degenerate_continuous') {
+      peak = 1.0;
+    } else if (activeDef.isContinuous) {
       const steps = 100;
       for (var s = 0; s <= steps; s++) {
         final x = minX + s * (maxX - minX) / steps;
@@ -991,7 +1048,24 @@ void renderCanvas(
     }
   } else {
     // ---------------- PDF PLOTTING ----------------
-    if (activeDef.isContinuous) {
+    if (activeDef.id == 'degenerate_continuous') {
+      final k = activeDist.lowerBound.toDouble();
+      if (k >= minX && k <= maxX) {
+        final px = toPixelX(k);
+        final py = toPixelY(1.0);
+        ctx.strokeStyle = '#3b82f6'.toJS;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(px, topMargin + plotHeight);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+
+        ctx.fillStyle = '#3b82f6'.toJS;
+        ctx.beginPath();
+        ctx.arc(px, py, 4.0, 0.0, 2 * math.pi);
+        ctx.fill();
+      }
+    } else if (activeDef.isContinuous) {
       // Continuous PDF - WebGL2 GPU-accelerated curve + gradient area fill
       drawCurve(
         ctx,
