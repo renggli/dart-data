@@ -1,5 +1,6 @@
 import 'package:petitparser/petitparser.dart';
 
+import '../../type/data_type.dart';
 import '../dataframe.dart';
 import 'csv_stream.dart';
 import 'parser.dart';
@@ -11,20 +12,31 @@ class CsvReader {
     String csv, {
     String separator = ',',
     bool header = true,
+    Map<String, DataType<Object?>>? columnTypes,
   }) => _parse(
     csv,
     parser: TabularDefinition.csv(delimiter: separator.toParser()).build(),
     header: header,
+    columnTypes: columnTypes,
   );
 
   /// Parses TSV string into a [DataFrame].
-  static DataFrame parseTsv(String tsv, {bool header = true}) =>
-      _parse(tsv, parser: TabularDefinition.tsv().build(), header: header);
+  static DataFrame parseTsv(
+    String tsv, {
+    bool header = true,
+    Map<String, DataType<Object?>>? columnTypes,
+  }) => _parse(
+    tsv,
+    parser: TabularDefinition.tsv().build(),
+    header: header,
+    columnTypes: columnTypes,
+  );
 
   static DataFrame _parse(
     String text, {
     required Parser<List<List<String>>> parser,
     required bool header,
+    Map<String, DataType<Object?>>? columnTypes,
   }) {
     if (text.trim().isEmpty) return DataFrame([]);
 
@@ -47,6 +59,10 @@ class CsvReader {
       dataRows = parsedRows;
     }
 
-    return CsvStream.buildDataFrame(colNames, dataRows);
+    return CsvStream.buildDataFrame(
+      colNames,
+      dataRows,
+      explicitTypes: columnTypes,
+    );
   }
 }

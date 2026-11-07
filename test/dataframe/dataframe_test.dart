@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
@@ -127,8 +128,8 @@ void main() {
       check(boolCol.nullCount).equals(1);
       check(boolCol[0]).equals(true);
       check(boolCol[1]).equals(false);
-      check(boolCol.min).isNull();
-      check(boolCol.max).isNull();
+      check(boolCol.min).equals(false);
+      check(boolCol.max).equals(true);
       check(boolCol.sum).equals(2);
       check(boolCol.mean).isNotNull().isCloseTo(2.0 / 3.0, 1e-4);
 
@@ -160,8 +161,8 @@ void main() {
       ]);
       check(objSeries.length).equals(3);
       check(objSeries.nullCount).equals(1);
-      check(objSeries.min).isNull();
-      check(objSeries.max).isNull();
+      check(objSeries.min).equals(DateTime(2025, 1, 1));
+      check(objSeries.max).equals(DateTime(2025, 1, 3));
       check(objSeries.sum).isNull();
       check(objSeries.mean).isNull();
 
@@ -861,6 +862,46 @@ line 2",10
       check(stats['val'][0]).equals(3.0);
       for (var i = 1; i <= 7; i++) {
         check((stats['val'][i] as double).isNaN).isTrue();
+      }
+    });
+
+    test('describe returns double.nan for std when n == 1', () {
+      final df = DataFrame.fromColumns({
+        'val': [42.0],
+      });
+      final stats = df.describe();
+      check(stats['val'][0]).equals(1.0);
+      check(stats['val'][1]).equals(42.0);
+      check((stats['val'][2] as double).isNaN).isTrue();
+    });
+
+    test('sample without replacement', () {
+      final df = DataFrame.fromColumns({
+        'a': [1, 2, 3, 4, 5],
+        'b': ['u', 'v', 'w', 'x', 'y'],
+      });
+      final s = df.sample(3, random: math.Random(42));
+      check(s.rowCount).equals(3);
+      check(s.columnCount).equals(2);
+
+      final fullSample = df.sample(5, random: math.Random(42));
+      check(fullSample.rowCount).equals(5);
+
+      final emptySample = df.sample(0);
+      check(emptySample.rowCount).equals(0);
+
+      check(() => df.sample(6)).throws<ArgumentError>();
+      check(() => df.sample(-1)).throws<RangeError>();
+    });
+
+    test('sample with replacement', () {
+      final df = DataFrame.fromColumns({
+        'a': [1, 2],
+      });
+      final s = df.sample(10, replace: true, random: math.Random(42));
+      check(s.rowCount).equals(10);
+      for (var i = 0; i < 10; i++) {
+        check([1, 2]).contains(s['a'][i] as int);
       }
     });
 

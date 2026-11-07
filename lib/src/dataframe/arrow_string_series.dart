@@ -421,4 +421,16 @@ class ArrowStringSeries extends Series<String> {
 
   @override
   double? get mean => null;
+
+  @override
+  double? variance({bool population = false}) => null;
+
+  @override
+  double? std({bool population = false}) => null;
+
+  @override
+  double? median() => null;
+
+  @override
+  double? quantile(double p) => null;
 }

@@ -1,5 +1,7 @@
 import 'package:checks/checks.dart';
+import 'package:data/dataframe.dart' show DataFrame;
 import 'package:data/src/dataframe/csv/csv_reader.dart';
+import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -144,6 +146,14 @@ void main() {
       check(df.rowCount).equals(2);
       check(df['a'].toList()).deepEquals(['quoted\tfield', 'tab\tinside']);
       check(df['b'].toList()).deepEquals(['plain\tfield', '123']);
+    });
+
+    test('parses CSV with explicit columnTypes', () {
+      const csv = 'id,code\n01,007\n02,042';
+      final df = DataFrame.fromCsv(csv, columnTypes: {'code': DataType.string});
+      check(df['id'].toList()).deepEquals([1, 2]);
+      check(df['code'].toList()).deepEquals(['007', '042']);
+      check(df['code'].dataType).equals(DataType.string);
     });
   });
 }

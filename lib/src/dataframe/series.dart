@@ -371,6 +371,9 @@ abstract class Series<T> {
         outArray: outArray,
       );
 
+  /// Number of non-null elements in this series.
+  int get count => length - nullCount;
+
   /// Minimum value in the series, ignoring nulls.
   T? get min;
 
@@ -382,6 +385,29 @@ abstract class Series<T> {
 
   /// Mean of all values, ignoring nulls.
   double? get mean;
+
+  /// Sample or population variance of values, ignoring nulls.
+  ///
+  /// Returns `null` if the series has fewer than 2 elements (or fewer than 1
+  /// for [population] variance), or if the series is non-numeric.
+  double? variance({bool population = false});
+
+  /// Sample or population standard deviation of values, ignoring nulls.
+  ///
+  /// Returns `null` if the series has fewer than 2 elements (or fewer than 1
+  /// for [population] variance), or if the series is non-numeric.
+  double? std({bool population = false});
+
+  /// Median value in the series, ignoring nulls.
+  ///
+  /// Returns `null` if the series has no non-null elements or is non-numeric.
+  double? median();
+
+  /// Empirical quantile of values for fraction [p] in `[0.0, 1.0]`, ignoring
+  /// nulls, using linear interpolation.
+  ///
+  /// Returns `null` if the series has no non-null elements or is non-numeric.
+  double? quantile(double p);
 }
 
 /// [Series] backed by typed contiguous buffers for numerical values.
@@ -684,6 +710,60 @@ class TypedSeries<T extends num> extends Series<T> {
         ? currentSum.toDouble() / validCount
         : null;
   }
+
+  @override
+  double? variance({bool population = false}) {
+    var validCount = 0;
+    var mean = 0.0;
+    var m2 = 0.0;
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        final val = data[i].toDouble();
+        if (val.isNaN) return double.nan;
+        validCount++;
+        final delta = val - mean;
+        mean += delta / validCount;
+        final delta2 = val - mean;
+        m2 += delta * delta2;
+      }
+    }
+    final divisor = population ? validCount : validCount - 1;
+    if (divisor <= 0) return null;
+    final v = m2 / divisor;
+    return v < 0.0 ? 0.0 : v;
+  }
+
+  @override
+  double? std({bool population = false}) {
+    final v = variance(population: population);
+    return v != null ? math.sqrt(v) : null;
+  }
+
+  @override
+  double? median() => quantile(0.5);
+
+  @override
+  double? quantile(double p) {
+    if (p < 0.0 || p > 1.0 || p.isNaN) {
+      throw RangeError.value(p, 'p', 'Must be between 0.0 and 1.0');
+    }
+    final nonNulls = <double>[];
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        final val = data[i].toDouble();
+        if (val.isNaN) return double.nan;
+        nonNulls.add(val);
+      }
+    }
+    final n = nonNulls.length;
+    if (n == 0) return null;
+    nonNulls.sort();
+    final idx = p * (n - 1);
+    final low = idx.floor();
+    final frac = idx - low;
+    if (low >= n - 1) return nonNulls.last;
+    return nonNulls[low] + frac * (nonNulls[low + 1] - nonNulls[low]);
+  }
 }
 
 /// String [Series] column representation backed by Apache Arrow-compliant
@@ -863,10 +943,40 @@ class BoolSeries extends Series<bool> {
       BoolSeries(name: newName, data: data, mask: mask);
 
   @override
-  bool? get min => null;
+  bool? get min {
+    var hasTrue = false;
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        if (!data[i]) return false;
+        hasTrue = true;
+      }
+    }
+    return hasTrue ? true : null;
+  }
 
   @override
-  bool? get max => null;
+  bool? get max {
+    var hasFalse = false;
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        if (data[i]) return true;
+        hasFalse = true;
+      }
+    }
+    return hasFalse ? false : null;
+  }
+
+  @override
+  double? variance({bool population = false}) => null;
+
+  @override
+  double? std({bool population = false}) => null;
+
+  @override
+  double? median() => null;
+
+  @override
+  double? quantile(double p) => null;
 
   @override
   num? get sum {
@@ -1133,16 +1243,122 @@ class ObjectSeries<T> extends Series<T> {
       ObjectSeries(name: newName, data: data, dataType: dataType, mask: mask);
 
   @override
-  T? get min => null;
+  T? get min {
+    T? result;
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        final val = data[i];
+        if (val == null) continue;
+        if (result == null) {
+          result = val;
+        } else if (val is Comparable) {
+          if (val.compareTo(result) < 0) result = val;
+        } else {
+          return null;
+        }
+      }
+    }
+    return result;
+  }
 
   @override
-  T? get max => null;
+  T? get max {
+    T? result;
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        final val = data[i];
+        if (val == null) continue;
+        if (result == null) {
+          result = val;
+        } else if (val is Comparable) {
+          if (val.compareTo(result) > 0) result = val;
+        } else {
+          return null;
+        }
+      }
+    }
+    return result;
+  }
 
   @override
-  num? get sum => null;
+  num? get sum {
+    num total = 0;
+    var count = 0;
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        final val = data[i];
+        if (val is! num) return null;
+        total += val;
+        count++;
+      }
+    }
+    return count > 0 ? total : null;
+  }
 
   @override
-  double? get mean => null;
+  double? get mean {
+    final s = sum;
+    final valid = length - nullCount;
+    return (s != null && valid > 0) ? s.toDouble() / valid : null;
+  }
+
+  @override
+  double? variance({bool population = false}) {
+    var validCount = 0;
+    var mean = 0.0;
+    var m2 = 0.0;
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        final raw = data[i];
+        if (raw is! num) return null;
+        final val = raw.toDouble();
+        if (val.isNaN) return double.nan;
+        validCount++;
+        final delta = val - mean;
+        mean += delta / validCount;
+        final delta2 = val - mean;
+        m2 += delta * delta2;
+      }
+    }
+    final divisor = population ? validCount : validCount - 1;
+    if (divisor <= 0) return null;
+    final v = m2 / divisor;
+    return v < 0.0 ? 0.0 : v;
+  }
+
+  @override
+  double? std({bool population = false}) {
+    final v = variance(population: population);
+    return v != null ? math.sqrt(v) : null;
+  }
+
+  @override
+  double? median() => quantile(0.5);
+
+  @override
+  double? quantile(double p) {
+    if (p < 0.0 || p > 1.0 || p.isNaN) {
+      throw RangeError.value(p, 'p', 'Must be between 0.0 and 1.0');
+    }
+    final nonNulls = <double>[];
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        final raw = data[i];
+        if (raw is! num) return null;
+        final val = raw.toDouble();
+        if (val.isNaN) return double.nan;
+        nonNulls.add(val);
+      }
+    }
+    final n = nonNulls.length;
+    if (n == 0) return null;
+    nonNulls.sort();
+    final idx = p * (n - 1);
+    final low = idx.floor();
+    final frac = idx - low;
+    if (low >= n - 1) return nonNulls.last;
+    return nonNulls[low] + frac * (nonNulls[low + 1] - nonNulls[low]);
+  }
 }
 
 Type _typeOf<X>() => X;

@@ -74,8 +74,17 @@ class DataFrame {
   }
 
   /// Parses a CSV string into a [DataFrame].
-  factory fromCsv(String csv, {String separator = ',', bool header = true}) =>
-      CsvReader.parse(csv, separator: separator, header: header);
+  factory fromCsv(
+    String csv, {
+    String separator = ',',
+    bool header = true,
+    Map<String, DataType<Object?>>? columnTypes,
+  }) => CsvReader.parse(
+    csv,
+    separator: separator,
+    header: header,
+    columnTypes: columnTypes,
+  );
 
   /// Parses a JSON string into a [DataFrame].
   factory fromJson(
@@ -611,7 +620,7 @@ class DataFrame {
           final diff = nonNulls[i] - mean;
           varSum += diff * diff;
         }
-        final std = n > 1 ? math.sqrt(varSum / (n - 1)) : 0.0;
+        final std = n > 1 ? math.sqrt(varSum / (n - 1)) : double.nan;
         final min = nonNulls.first;
         final max = nonNulls.last;
 
@@ -675,6 +684,44 @@ class DataFrame {
   DataFrame tail([int count = 5]) {
     RangeError.checkNotNegative(count, 'count');
     return slice(math.max(0, rowCount - count), rowCount);
+  }
+
+  /// Randomly samples [count] rows from this DataFrame.
+  ///
+  /// If [replace] is true, sampling is performed with replacement (rows may be
+  /// selected multiple times). If [replace] is false (default), sampling is
+  /// performed without replacement and [count] must not exceed [rowCount].
+  ///
+  /// An optional [random] generator can be supplied for reproducible sampling.
+  DataFrame sample(int count, {bool replace = false, math.Random? random}) {
+    RangeError.checkNotNegative(count, 'count');
+    if (!replace && count > rowCount) {
+      throw ArgumentError.value(
+        count,
+        'count',
+        'Cannot sample more rows than rowCount ($rowCount) without replacement.',
+      );
+    }
+    if (count == 0) {
+      return slice(0, 0);
+    }
+    final rng = random ?? math.Random();
+    final List<int> indices;
+    if (replace) {
+      indices = List<int>.generate(count, (_) => rng.nextInt(rowCount));
+    } else if (count == rowCount) {
+      indices = List<int>.generate(rowCount, (i) => i)..shuffle(rng);
+    } else {
+      final pool = List<int>.generate(rowCount, (i) => i);
+      for (var i = 0; i < count; i++) {
+        final j = i + rng.nextInt(rowCount - i);
+        final temp = pool[i];
+        pool[i] = pool[j];
+        pool[j] = temp;
+      }
+      indices = pool.sublist(0, count);
+    }
+    return DataFrame([for (final col in _columns) col.permute(indices)]);
   }
 
   /// Sorts rows by the values in [by] (column name or list of column names).

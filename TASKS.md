@@ -596,7 +596,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     2. `mannWhitneyUTest` exposes `{bool continuityCorrection = true}`, whereas `wilcoxonSignedRankTest` hardcodes continuity correction without a `bool continuityCorrection = true` parameter.
   - **Fix**: Accept `Object table` (`Matrix<num>` or `List<List<num>>`) or `Matrix<num>` in `fisherExactTest`, and add `{bool continuityCorrection = true}` to `wilcoxonSignedRankTest`.
 
-- [ ] **4.3 Complete `Series` statistical methods (`std`, `variance`, `median`, `quantile`, `count`) and `DataFrame.sample` / `fromCsv(columnTypes: ...)`**
+- [x] **4.3 Complete `Series` statistical methods (`std`, `variance`, `median`, `quantile`, `count`) and `DataFrame.sample` / `fromCsv(columnTypes: ...)`**
   - **Severity**: Suggestion
   - **Location**: `lib/src/dataframe/series.dart:320-329, 791-794, 1048-1051`, `lib/src/dataframe/dataframe.dart:75, 578`
   - **Problem**:

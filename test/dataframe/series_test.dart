@@ -590,4 +590,121 @@ void main() {
       },
     );
   });
+
+  group('Series statistical methods', () {
+    test('TypedSeries stats with complete data', () {
+      final s = TypedSeries<double>.fromList('x', [1.0, 2.0, 3.0, 4.0, 5.0]);
+      check(s.count).equals(5);
+      check(s.min).equals(1.0);
+      check(s.max).equals(5.0);
+      check(s.sum).equals(15.0);
+      check(s.mean).equals(3.0);
+      check(s.variance()!)
+          .isCloseTo(2.5, 1e-12); // sample var: sum((x-3)^2)/4 = 10/4 = 2.5
+      check(s.variance(population: true)!)
+          .isCloseTo(2.0, 1e-12); // pop var: 10/5 = 2.0
+      check(s.std()!).isCloseTo(1.5811388300841898, 1e-12);
+      check(s.median()).equals(3.0);
+      check(s.quantile(0.0)).equals(1.0);
+      check(s.quantile(0.5)).equals(3.0);
+      check(s.quantile(1.0)).equals(5.0);
+      check(s.quantile(0.25)).equals(2.0);
+    });
+
+    test('TypedSeries stats with nulls, NaN, and single element', () {
+      final withNulls = TypedSeries<double>.fromList('x', [
+        10.0,
+        null,
+        20.0,
+        30.0,
+      ]);
+      check(withNulls.count).equals(3);
+      check(withNulls.min).equals(10.0);
+      check(withNulls.max).equals(30.0);
+      check(withNulls.mean).equals(20.0);
+      check(withNulls.variance()!).isCloseTo(100.0, 1e-12);
+      check(withNulls.std()!).isCloseTo(10.0, 1e-12);
+      check(withNulls.median()).equals(20.0);
+
+      final withNaN = TypedSeries<double>.fromList('x', [1.0, double.nan, 3.0]);
+      check(withNaN.variance()!.isNaN).isTrue();
+      check(withNaN.std()!.isNaN).isTrue();
+      check(withNaN.median()!.isNaN).isTrue();
+      check(withNaN.quantile(0.5)!.isNaN).isTrue();
+
+      final single = TypedSeries<double>.fromList('x', [42.0]);
+      check(single.count).equals(1);
+      check(single.variance()).isNull(); // sample variance requires n >= 2
+      check(single.variance(population: true)).equals(0.0);
+      check(single.std()).isNull();
+      check(single.std(population: true)).equals(0.0);
+      check(single.median()).equals(42.0);
+
+      final empty = TypedSeries<double>.fromList('x', []);
+      check(empty.count).equals(0);
+      check(empty.min).isNull();
+      check(empty.max).isNull();
+      check(empty.variance()).isNull();
+      check(empty.std()).isNull();
+      check(empty.median()).isNull();
+      check(empty.quantile(0.5)).isNull();
+
+      check(() => withNulls.quantile(-0.1)).throws<RangeError>();
+      check(() => withNulls.quantile(1.1)).throws<RangeError>();
+    });
+
+    test('BoolSeries min, max, count, and statistical nulls', () {
+      final sMixed = BoolSeries.fromList('b', [true, false]);
+      check(sMixed.count).equals(2);
+      check(sMixed.min).equals(false);
+      check(sMixed.max).equals(true);
+      check(sMixed.variance()).isNull();
+      check(sMixed.std()).isNull();
+      check(sMixed.median()).isNull();
+      check(sMixed.quantile(0.5)).isNull();
+
+      final sAllTrue = BoolSeries.fromList('b', [true, true]);
+      check(sAllTrue.min).equals(true);
+      check(sAllTrue.max).equals(true);
+
+      final sAllFalse = BoolSeries.fromList('b', [false, false]);
+      check(sAllFalse.min).equals(false);
+      check(sAllFalse.max).equals(false);
+
+      final sWithNull = BoolSeries.fromList('b', [true, null]);
+      check(sWithNull.count).equals(1);
+      check(sWithNull.min).equals(true);
+      check(sWithNull.max).equals(true);
+
+      final sAllNull = BoolSeries.fromList('b', [null, null]);
+      check(sAllNull.count).equals(0);
+      check(sAllNull.min).isNull();
+      check(sAllNull.max).isNull();
+    });
+
+    test('ObjectSeries min, max, and stats', () {
+      final sStr = Series<String>.fromList('s', ['banana', 'apple', 'cherry']);
+      check(sStr.count).equals(3);
+      check(sStr.min).equals('apple');
+      check(sStr.max).equals('cherry');
+      check(sStr.variance()).isNull();
+
+      final sNum = Series<Object?>.fromList('n', [10, 20, 30]);
+      check(sNum.count).equals(3);
+      check(sNum.min).equals(10);
+      check(sNum.max).equals(30);
+      check(sNum.sum).equals(60);
+      check(sNum.mean).equals(20.0);
+      check(sNum.variance()!).isCloseTo(100.0, 1e-12);
+      check(sNum.std()!).isCloseTo(10.0, 1e-12);
+      check(sNum.median()).equals(20.0);
+      check(sNum.quantile(0.5)).equals(20.0);
+
+      final sArrow = ArrowStringSeries.fromList('a', ['x', 'y']);
+      check(sArrow.variance()).isNull();
+      check(sArrow.std()).isNull();
+      check(sArrow.median()).isNull();
+      check(sArrow.quantile(0.5)).isNull();
+    });
+  });
 }
