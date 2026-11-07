@@ -2,10 +2,12 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../linear/matrix.dart';
+import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
 import '../type/data_type.dart';
 import 'arrow/arrow_c_data.dart';
 import 'arrow/arrow_ipc.dart';
+import 'arrow_string_series.dart';
 import 'csv/csv_reader.dart';
 import 'csv/csv_writer.dart';
 import 'groupby.dart';
@@ -107,8 +109,7 @@ class DataFrame {
     final seriesList = <Series<Object?>>[];
     for (var c = 0; c < cols; c++) {
       final name = columnNames != null ? columnNames[c] : 'col_$c';
-      final values = List<Object?>.generate(rows, (r) => matrix.get(r, c));
-      seriesList.add(Series.fromList(name, values, type: matrix.type));
+      seriesList.add(_seriesFromMatrixColumn(matrix, c, name, rows));
     }
     return DataFrame(seriesList);
   }
@@ -133,8 +134,7 @@ class DataFrame {
     final seriesList = <Series<Object?>>[];
     for (var c = 0; c < cols; c++) {
       final name = columnNames != null ? columnNames[c] : 'col_$c';
-      final values = List<Object?>.generate(rows, (r) => tensor.get2D(r, c));
-      seriesList.add(Series.fromList(name, values, type: tensor.type));
+      seriesList.add(_seriesFromTensorColumn(tensor, c, name, rows));
     }
     return DataFrame(seriesList);
   }
@@ -775,15 +775,16 @@ class DataFrame {
     final effType = type ?? DataType.float64;
     final rows = rowCount;
     final cols = targetCols.length;
-    final tensor = Tensor<double>.filled(
-      effType.defaultValue,
-      shape: [rows, cols],
+    final layout = Layout(shape: [rows, cols]);
+    final tensorData = effType.newList(layout.length);
+    final tensor = Tensor<double>.internal(
       type: effType,
+      layout: layout,
+      data: tensorData,
     );
 
     if (rows == 0 || cols == 0) return tensor;
 
-    final tensorData = tensor.data;
     final offset = tensor.layout.offset;
     final rowStride = tensor.layout.strides[0];
     final colStride = cols > 1 ? tensor.layout.strides[1] : 1;
@@ -926,6 +927,89 @@ class DataFrame {
           'All columns must have identical length ($rowCount), but column "${col.name}" has ${col.length}',
         );
       }
+    }
+  }
+
+  static Series<Object?> _seriesFromMatrixColumn(
+    Matrix<Object?> matrix,
+    int col,
+    String name,
+    int rows,
+  ) {
+    final type = matrix.type;
+    if (type is DataType<double>) {
+      final data = type.newList(rows);
+      for (var r = 0; r < rows; r++) {
+        data[r] = matrix.get(r, col) as double;
+      }
+      return TypedSeries<double>(name: name, data: data, dataType: type);
+    } else if (type is DataType<int>) {
+      final data = type.newList(rows);
+      for (var r = 0; r < rows; r++) {
+        data[r] = matrix.get(r, col) as int;
+      }
+      return TypedSeries<int>(name: name, data: data, dataType: type);
+    } else if (type is DataType<num>) {
+      final data = type.newList(rows);
+      for (var r = 0; r < rows; r++) {
+        data[r] = matrix.get(r, col) as num;
+      }
+      return TypedSeries<num>(name: name, data: data, dataType: type);
+    } else if (type is DataType<bool>) {
+      final data = List<bool>.generate(rows, (r) => matrix.get(r, col) as bool);
+      return BoolSeries(name: name, data: data);
+    } else if (type is DataType<String>) {
+      final data = List<String>.generate(
+        rows,
+        (r) => matrix.get(r, col) as String,
+      );
+      return ArrowStringSeries.fromList(name, data);
+    } else {
+      final values = List<Object?>.generate(rows, (r) => matrix.get(r, col));
+      return Series.fromList(name, values, type: type);
+    }
+  }
+
+  static Series<Object?> _seriesFromTensorColumn(
+    Tensor<Object?> tensor,
+    int col,
+    String name,
+    int rows,
+  ) {
+    final type = tensor.type;
+    if (type is DataType<double>) {
+      final data = type.newList(rows);
+      for (var r = 0; r < rows; r++) {
+        data[r] = tensor.get2D(r, col) as double;
+      }
+      return TypedSeries<double>(name: name, data: data, dataType: type);
+    } else if (type is DataType<int>) {
+      final data = type.newList(rows);
+      for (var r = 0; r < rows; r++) {
+        data[r] = tensor.get2D(r, col) as int;
+      }
+      return TypedSeries<int>(name: name, data: data, dataType: type);
+    } else if (type is DataType<num>) {
+      final data = type.newList(rows);
+      for (var r = 0; r < rows; r++) {
+        data[r] = tensor.get2D(r, col) as num;
+      }
+      return TypedSeries<num>(name: name, data: data, dataType: type);
+    } else if (type is DataType<bool>) {
+      final data = List<bool>.generate(
+        rows,
+        (r) => tensor.get2D(r, col) as bool,
+      );
+      return BoolSeries(name: name, data: data);
+    } else if (type is DataType<String>) {
+      final data = List<String>.generate(
+        rows,
+        (r) => tensor.get2D(r, col) as String,
+      );
+      return ArrowStringSeries.fromList(name, data);
+    } else {
+      final values = List<Object?>.generate(rows, (r) => tensor.get2D(r, col));
+      return Series.fromList(name, values, type: type);
     }
   }
 }

@@ -61,12 +61,12 @@ class ArrowStringSeries extends Series<String> {
 
   /// Constructs an [ArrowStringSeries] from an iterable of nullable strings.
   factory fromList(String name, Iterable<String?> list) {
-    final strList = list.toList(growable: false);
+    final strList = list is List<String?> ? list : list.toList(growable: false);
     final count = strList.length;
-
-    // First pass: compute byte lengths and null mask
-    final encodedList = List<Uint8List?>.filled(count, null);
-    var totalBytes = 0;
+    final builder = BytesBuilder(copy: false);
+    final outOffsets = Uint32List(count + 1);
+    var currentOffset = 0;
+    outOffsets[0] = 0;
     ValidityMask? validity;
 
     for (var i = 0; i < count; i++) {
@@ -76,24 +76,7 @@ class ArrowStringSeries extends Series<String> {
         validity.setNull(i);
       } else {
         final encoded = utf8.encode(s);
-        encodedList[i] = encoded;
-        totalBytes += encoded.length;
-      }
-    }
-
-    final outBytes = Uint8List(totalBytes);
-    final outOffsets = Uint32List(count + 1);
-    var currentOffset = 0;
-    outOffsets[0] = 0;
-
-    for (var i = 0; i < count; i++) {
-      final encoded = encodedList[i];
-      if (encoded != null) {
-        outBytes.setRange(
-          currentOffset,
-          currentOffset + encoded.length,
-          encoded,
-        );
+        builder.add(encoded);
         currentOffset += encoded.length;
       }
       outOffsets[i + 1] = currentOffset;
@@ -101,7 +84,7 @@ class ArrowStringSeries extends Series<String> {
 
     return ArrowStringSeries(
       name: name,
-      bytes: outBytes,
+      bytes: builder.takeBytes(),
       offsets: outOffsets,
       mask: validity,
     );
@@ -312,14 +295,34 @@ class ArrowStringSeries extends Series<String> {
         mask: newMask,
       );
     }
-    final combinedType = dataType.promoteWith(other.dataType);
-    final combinedVals = <Object?>[
-      for (var i = 0; i < length; i++)
-        if (isNull(i)) null else combinedType.cast(this[i]),
-      for (var i = 0; i < other.length; i++)
-        if (other.isNull(i)) null else combinedType.cast(other[i]),
-    ];
-    return Series.fromList(name, combinedVals, type: combinedType);
+    return super.concat(other);
+  }
+
+  @override
+  ArrowStringSeries fillNull(String value) {
+    if (!hasNulls) return this;
+    final builder = BytesBuilder(copy: false);
+    final outOffsets = Uint32List(length + 1);
+    final valBytes = utf8.encode(value);
+    var currentOffset = 0;
+    outOffsets[0] = 0;
+    for (var i = 0; i < length; i++) {
+      if (isNull(i)) {
+        builder.add(valBytes);
+        currentOffset += valBytes.length;
+      } else {
+        final b = getBytes(i);
+        builder.add(b);
+        currentOffset += b.length;
+      }
+      outOffsets[i + 1] = currentOffset;
+    }
+    return ArrowStringSeries(
+      name: name,
+      bytes: builder.takeBytes(),
+      offsets: outOffsets,
+      mask: null,
+    );
   }
 
   @override

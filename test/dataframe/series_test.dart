@@ -498,4 +498,96 @@ void main() {
       check(sBool.toList()).deepEquals([true, false]);
     });
   });
+
+  group('Series fillNull unboxed and zero-copy', () {
+    test('TypedSeries.fillNull replaces nulls and preserves buffer type', () {
+      final s = TypedSeries<double>.fromList('x', [1.0, null, 3.0]);
+      check(s.hasNulls).isTrue();
+      final filled = s.fillNull(0.0);
+      check(filled).isA<TypedSeries<double>>();
+      check(filled.hasNulls).isFalse();
+      check(filled.data).isA<Float64List>();
+      check(filled.toList()).deepEquals([1.0, 0.0, 3.0]);
+
+      // Returns same instance if no nulls
+      check(identical(filled.fillNull(42.0), filled)).isTrue();
+    });
+
+    test('BoolSeries.fillNull replaces nulls', () {
+      final s = BoolSeries.fromList('b', [true, null, false]);
+      check(s.hasNulls).isTrue();
+      final filled = s.fillNull(false);
+      check(filled.hasNulls).isFalse();
+      check(filled.toList()).deepEquals([true, false, false]);
+      check(identical(filled.fillNull(true), filled)).isTrue();
+    });
+
+    test('ObjectSeries.fillNull replaces nulls', () {
+      final s = ObjectSeries<DateTime?>.fromList('d', [
+        DateTime(2020),
+        null,
+        DateTime(2022),
+      ]);
+      check(s.hasNulls).isTrue();
+      final fallback = DateTime(2000);
+      final filled = s.fillNull(fallback);
+      check(filled.hasNulls).isFalse();
+      check(filled.toList())
+          .deepEquals([DateTime(2020), fallback, DateTime(2022)]);
+      check(identical(filled.fillNull(fallback), filled)).isTrue();
+    });
+
+    test(
+      'ArrowStringSeries.fillNull replaces nulls without decoding strings',
+      () {
+        final s = ArrowStringSeries.fromList('str', ['hello', null, 'world']);
+        check(s.hasNulls).isTrue();
+        final filled = s.fillNull('N/A');
+        check(filled.hasNulls).isFalse();
+        check(filled.toList()).deepEquals(['hello', 'N/A', 'world']);
+        check(identical(filled.fillNull('xyz'), filled)).isTrue();
+      },
+    );
+  });
+
+  group('Series.toString implementation', () {
+    test('formats toString consistently across all Series types', () {
+      final tSeries = TypedSeries<int>.fromList('nums', [1, null, 3]);
+      check(tSeries.toString())
+          .equals('Series<int>(nums, length: 3, nulls: 1)');
+
+      final bSeries = BoolSeries.fromList('flags', [true, false]);
+      check(bSeries.toString())
+          .equals('Series<bool>(flags, length: 2, nulls: 0)');
+
+      final oSeries = ObjectSeries<Object?>.fromList('pats', [RegExp('a')]);
+      check(oSeries.toString())
+          .equals('Series<Object?>(pats, length: 1, nulls: 0)');
+
+      final sSeries = ArrowStringSeries.fromList('words', ['hi', null]);
+      check(sSeries.toString())
+          .equals('Series<String>(words, length: 2, nulls: 1)');
+    });
+  });
+
+  group('Series.concat fallback delegation', () {
+    test('BoolSeries concats with TypedSeries using promoted fallback', () {
+      final bSeries = BoolSeries.fromList('a', [true, false]);
+      final iSeries = TypedSeries<int>.fromList('b', [10, 20]);
+      final concat = bSeries.concat(iSeries);
+      check(concat.length).equals(4);
+      check(concat.toList()).deepEquals(<Object?>[true, false, 10, 20]);
+    });
+
+    test(
+      'ArrowStringSeries concats with BoolSeries using promoted fallback',
+      () {
+        final sSeries = ArrowStringSeries.fromList('s', ['abc']);
+        final bSeries = BoolSeries.fromList('b', [true]);
+        final concat = sSeries.concat(bSeries);
+        check(concat.length).equals(2);
+        check(concat.toList()).deepEquals(<Object?>['abc', true]);
+      },
+    );
+  });
 }

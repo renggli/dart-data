@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
 import 'package:data/linear.dart';
@@ -1003,6 +1005,32 @@ line 2",10
 
         final rank1Tensor = Tensor<int>.fromObject([1, 2, 3]);
         check(() => DataFrame.fromTensor(rank1Tensor)).throws<ArgumentError>();
+      });
+
+      test('fromMatrix and fromTensor construct unboxed TypedSeries, BoolSeries, and ArrowStringSeries', () {
+        final f64Mat = Matrix<double>.fromRows([
+          [1.5, 2.5],
+          [3.5, 4.5],
+        ]);
+        final dfF64 = DataFrame.fromMatrix(f64Mat);
+        check(dfF64['col_0']).isA<TypedSeries<double>>();
+        check((dfF64['col_0'] as TypedSeries<double>).data).isA<Float64List>();
+
+        final boolTensor = Tensor<bool>.fromObject([
+          [true, false],
+          [false, true],
+        ]);
+        final dfBool = DataFrame.fromTensor(boolTensor);
+        check(dfBool['col_0']).isA<BoolSeries>();
+        check(dfBool['col_0'].toList()).deepEquals([true, false]);
+
+        final strMat = Matrix<String>.fromRows([
+          ['foo', 'bar'],
+          ['baz', 'qux'],
+        ]);
+        final dfStr = DataFrame.fromMatrix(strMat);
+        check(dfStr['col_0']).isA<ArrowStringSeries>();
+        check(dfStr['col_0'].toList()).deepEquals(['foo', 'baz']);
       });
     });
 

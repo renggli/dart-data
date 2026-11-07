@@ -1,9 +1,7 @@
 import 'package:petitparser/petitparser.dart';
 
-import '../../type/data_type.dart';
-import '../arrow_string_series.dart';
 import '../dataframe.dart';
-import '../series.dart';
+import 'csv_stream.dart';
 import 'parser.dart';
 
 /// Fast CSV parser with automatic column type inference.
@@ -37,8 +35,8 @@ class CsvReader {
     final parsedRows = result.value;
     if (parsedRows.isEmpty) return DataFrame([]);
 
-    List<String> colNames;
-    List<List<String>> dataRows;
+    final List<String> colNames;
+    final List<List<String>> dataRows;
 
     if (header) {
       colNames = parsedRows.first;
@@ -49,70 +47,6 @@ class CsvReader {
       dataRows = parsedRows;
     }
 
-    final rowCount = dataRows.length;
-    final columns = <Series<Object?>>[];
-
-    for (var colIdx = 0; colIdx < colNames.length; colIdx++) {
-      final name = colNames[colIdx];
-      var canBeInt = true;
-      var canBeDouble = true;
-      var canBeBool = true;
-      final rawVals = <String?>[];
-
-      for (var rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-        final row = dataRows[rowIdx];
-        final val = colIdx < row.length ? row[colIdx] : '';
-        final trimmed = val.trim();
-        if (trimmed.isEmpty || trimmed == 'null' || trimmed == 'NA') {
-          rawVals.add(null);
-        } else {
-          rawVals.add(val);
-          if (canBeInt && int.tryParse(trimmed) == null) canBeInt = false;
-          if (canBeDouble && double.tryParse(trimmed) == null) {
-            canBeDouble = false;
-          }
-          final lower = trimmed.toLowerCase();
-          if (canBeBool && lower != 'true' && lower != 'false') {
-            canBeBool = false;
-          }
-        }
-      }
-
-      final nonNullCount = rawVals.where((v) => v != null).length;
-      if (nonNullCount == 0) {
-        columns.add(ArrowStringSeries.fromList(name, rawVals));
-      } else if (canBeInt) {
-        final intVals = rawVals
-            .map((value) => value != null ? int.parse(value.trim()) : null)
-            .toList();
-        final needsInt64 = intVals.any(
-          (v) => v != null && (v < -0x80000000 || v > 0x7FFFFFFF),
-        );
-        columns.add(
-          TypedSeries<int>.fromList(
-            name,
-            intVals,
-            type: needsInt64 ? DataType.int64 : DataType.int32,
-          ),
-        );
-      } else if (canBeDouble) {
-        final doubleVals = rawVals
-            .map((value) => value != null ? double.parse(value.trim()) : null)
-            .toList();
-        columns.add(TypedSeries<double>.fromList(name, doubleVals));
-      } else if (canBeBool) {
-        final boolVals = rawVals
-            .map(
-              (value) =>
-                  value != null ? value.trim().toLowerCase() == 'true' : null,
-            )
-            .toList();
-        columns.add(BoolSeries.fromList(name, boolVals));
-      } else {
-        columns.add(Series.fromList(name, rawVals));
-      }
-    }
-
-    return DataFrame(columns);
+    return CsvStream.buildDataFrame(colNames, dataRows);
   }
 }

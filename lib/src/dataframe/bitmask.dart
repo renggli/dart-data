@@ -175,7 +175,9 @@ class ValidityMask {
       return ValidityMask.allNull(newLen);
     }
     final result = ValidityMask(newLen);
-    if (_nullCount > 0) {
+    if ((length & 7) == 0) {
+      result._bytes.setRange(0, _bytes.length, _bytes);
+    } else if (_nullCount > 0) {
       for (var i = 0; i < length; i++) {
         if (isNull(i)) {
           result._bytes[i >> 3] &= ~(1 << (i & 7));

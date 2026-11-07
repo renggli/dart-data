@@ -53,7 +53,7 @@ abstract final class CsvStream {
       buffer.add(row);
       totalRows++;
       if (buffer.length >= chunkSize) {
-        final df = _buildDataFrame(
+        final df = buildDataFrame(
           headers,
           buffer,
           explicitTypes: explicitTypes,
@@ -65,7 +65,7 @@ abstract final class CsvStream {
     }
 
     if (buffer.isNotEmpty && headers != null) {
-      final df = _buildDataFrame(
+      final df = buildDataFrame(
         headers,
         buffer,
         explicitTypes: explicitTypes,
@@ -74,7 +74,7 @@ abstract final class CsvStream {
       yield df;
       buffer.clear();
     } else if (headers != null && totalRows == 0) {
-      yield _buildDataFrame(
+      yield buildDataFrame(
         headers,
         const [],
         explicitTypes: explicitTypes,
@@ -118,7 +118,7 @@ abstract final class CsvStream {
     }
 
     if (headers == null) return DataFrame([]);
-    return _buildDataFrame(headers, allRows, explicitTypes: columnTypes);
+    return buildDataFrame(headers, allRows, explicitTypes: columnTypes);
   }
 
   /// Reads a byte [stream] into chunked [DataFrame] instances.
@@ -153,7 +153,9 @@ abstract final class CsvStream {
     columnTypes: columnTypes,
   );
 
-  static DataFrame _buildDataFrame(
+  /// Builds a [DataFrame] from [colNames] and [dataRows] with optional
+  /// [explicitTypes] and [inferredTypes] state.
+  static DataFrame buildDataFrame(
     List<String> colNames,
     List<List<String>> dataRows, {
     Map<String, DataType<Object?>>? explicitTypes,

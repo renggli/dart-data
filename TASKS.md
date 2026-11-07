@@ -487,7 +487,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     4. `QRDecomposition` (`qr.dart:44`) allocates `_tau = List<double>.filled(matrix.colCount, 0.0)` unconditionally even on the `Float64List` path where `_tau` is unused.
   - **Fix**: Route all symmetric `Matrix<num>` in `EigenvalueDecomposition` through `Lapack.dsyev` and delete `_tred2`/`_tql2`; delegate `Float64Matrix.operator *` and `apply` to `_matrix`; deduplicate `Float64Tensor._binaryOp`; and only allocate `_tau` when needed.
 
-- [ ] **2.2 Eliminate boxing and duplicated logic in `DataFrame`, `Series`, `ValidityMask`, `CsvReader`/`CsvStream`, and `ArrowStringSeries`**
+- [x] **2.2 Eliminate boxing and duplicated logic in `DataFrame`, `Series`, `ValidityMask`, `CsvReader`/`CsvStream`, and `ArrowStringSeries`**
   - **Severity**: Warning
   - **Location**:
     - `lib/src/dataframe/dataframe.dart:99-140, 676-710, 755-788`

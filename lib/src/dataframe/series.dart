@@ -265,6 +265,9 @@ abstract class Series<T> {
     return hash;
   }
 
+  @override
+  String toString() => 'Series<$T>($name, length: $length, nulls: $nullCount)';
+
   /// Filters this series using a boolean [mask].
   Series<T> filter(List<bool> mask);
 
@@ -275,7 +278,16 @@ abstract class Series<T> {
   Series<T> permute(List<int> indices);
 
   /// Returns a new series with [other] concatenated to the end.
-  Series<Object?> concat(Series<Object?> other);
+  Series<Object?> concat(Series<Object?> other) {
+    final combinedType = dataType.promoteWith(other.dataType);
+    final combinedVals = <Object?>[
+      for (var i = 0; i < length; i++)
+        if (isNull(i)) null else combinedType.cast(this[i]),
+      for (var i = 0; i < other.length; i++)
+        if (other.isNull(i)) null else combinedType.cast(other[i]),
+    ];
+    return Series.fromList(name, combinedVals, type: combinedType);
+  }
 
   /// Sorts this series.
   Series<T> sort({bool ascending = true, bool nullsLast = true});
@@ -544,6 +556,28 @@ class TypedSeries<T extends num> extends Series<T> {
   }
 
   @override
+  TypedSeries<T> fillNull(T value) {
+    if (!hasNulls) return this;
+    final castValue = dataType.cast(value);
+    final newData = dataType.newList(length);
+    newData.setRange(0, length, data);
+    final m = mask;
+    if (m != null) {
+      for (var i = 0; i < length; i++) {
+        if (m.isNull(i)) {
+          newData[i] = castValue;
+        }
+      }
+    }
+    return TypedSeries<T>(
+      name: name,
+      data: newData,
+      dataType: dataType,
+      mask: null,
+    );
+  }
+
+  @override
   Series<Object?> concat(Series<Object?> other) {
     if (other is TypedSeries<T> && other.dataType == dataType) {
       final newLen = length + other.length;
@@ -563,14 +597,7 @@ class TypedSeries<T extends num> extends Series<T> {
         mask: newMask,
       );
     }
-    final combinedType = dataType.promoteWith(other.dataType);
-    final combinedVals = <Object?>[
-      for (var i = 0; i < length; i++)
-        if (isNull(i)) null else combinedType.cast(data[i]),
-      for (var i = 0; i < other.length; i++)
-        if (other.isNull(i)) null else combinedType.cast(other[i]),
-    ];
-    return Series.fromList(name, combinedVals, type: combinedType);
+    return super.concat(other);
   }
 
   @override
@@ -657,9 +684,6 @@ class TypedSeries<T extends num> extends Series<T> {
         ? currentSum.toDouble() / validCount
         : null;
   }
-
-  @override
-  String toString() => 'Series<$T>($name, length: $length, nulls: $nullCount)';
 }
 
 /// String [Series] column representation backed by Apache Arrow-compliant
@@ -787,6 +811,21 @@ class BoolSeries extends Series<bool> {
   }
 
   @override
+  BoolSeries fillNull(bool value) {
+    if (!hasNulls) return this;
+    final newData = List<bool>.of(data);
+    final m = mask;
+    if (m != null) {
+      for (var i = 0; i < length; i++) {
+        if (m.isNull(i)) {
+          newData[i] = value;
+        }
+      }
+    }
+    return BoolSeries(name: name, data: newData, mask: null);
+  }
+
+  @override
   Series<Object?> concat(Series<Object?> other) {
     if (other is BoolSeries) {
       final newLen = length + other.length;
@@ -801,14 +840,7 @@ class BoolSeries extends Series<bool> {
       );
       return BoolSeries(name: name, data: newData, mask: newMask);
     }
-    final combinedType = dataType.promoteWith(other.dataType);
-    final combinedVals = <Object?>[
-      for (var i = 0; i < length; i++)
-        if (isNull(i)) null else combinedType.cast(data[i]),
-      for (var i = 0; i < other.length; i++)
-        if (other.isNull(i)) null else combinedType.cast(other[i]),
-    ];
-    return Series.fromList(name, combinedVals, type: combinedType);
+    return super.concat(other);
   }
 
   @override
@@ -1003,6 +1035,26 @@ class ObjectSeries<T> extends Series<T> {
   }
 
   @override
+  ObjectSeries<T> fillNull(T value) {
+    if (!hasNulls) return this;
+    final newData = List<T>.of(data);
+    final m = mask;
+    if (m != null) {
+      for (var i = 0; i < length; i++) {
+        if (m.isNull(i)) {
+          newData[i] = value;
+        }
+      }
+    }
+    return ObjectSeries<T>(
+      name: name,
+      data: newData,
+      dataType: dataType,
+      mask: null,
+    );
+  }
+
+  @override
   Series<Object?> concat(Series<Object?> other) {
     if (other is ObjectSeries<T> && other.dataType == dataType) {
       final newLen = length + other.length;
@@ -1022,14 +1074,7 @@ class ObjectSeries<T> extends Series<T> {
         mask: newMask,
       );
     }
-    final combinedType = dataType.promoteWith(other.dataType);
-    final combinedVals = <Object?>[
-      for (var i = 0; i < length; i++)
-        if (isNull(i)) null else combinedType.cast(data[i]),
-      for (var i = 0; i < other.length; i++)
-        if (other.isNull(i)) null else combinedType.cast(other[i]),
-    ];
-    return Series.fromList(name, combinedVals, type: combinedType);
+    return super.concat(other);
   }
 
   @override
