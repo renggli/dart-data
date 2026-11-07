@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../../linear/matrix.dart';
 import '../../special/gamma.dart';
 import 'hypothesis_test_result.dart';
 
@@ -13,22 +14,71 @@ import 'hypothesis_test_result.dart';
 /// The computed [HypothesisTestResult.statistic] is the sample odds ratio
 /// $\frac{a \cdot d}{b \cdot c}$.
 HypothesisTestResult fisherExactTest(
-  List<List<int>> table, {
+  Object table, {
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  if (table.length != 2 || table[0].length != 2 || table[1].length != 2) {
+  final int a, b, c, d;
+  if (table is Matrix<num>) {
+    if (table.rowCount != 2 || table.colCount != 2) {
+      throw ArgumentError.value(
+        table,
+        'table',
+        'Fisher exact test requires a 2x2 contingency table',
+      );
+    }
+    a = table.get(0, 0).round();
+    b = table.get(0, 1).round();
+    c = table.get(1, 0).round();
+    d = table.get(1, 1).round();
+  } else if (table is Iterable) {
+    final rows = table.toList();
+    if (rows.length != 2) {
+      throw ArgumentError.value(
+        table,
+        'table',
+        'Fisher exact test requires a 2x2 contingency table',
+      );
+    }
+    final r0 = rows[0];
+    final r1 = rows[1];
+    if (r0 is! Iterable || r1 is! Iterable) {
+      throw ArgumentError.value(
+        table,
+        'table',
+        'Fisher exact test requires a 2x2 contingency table',
+      );
+    }
+    final row0 = r0.toList();
+    final row1 = r1.toList();
+    if (row0.length != 2 || row1.length != 2) {
+      throw ArgumentError.value(
+        table,
+        'table',
+        'Fisher exact test requires a 2x2 contingency table',
+      );
+    }
+    if (row0[0] is! num ||
+        row0[1] is! num ||
+        row1[0] is! num ||
+        row1[1] is! num) {
+      throw ArgumentError.value(
+        table,
+        'table',
+        'Table entries must be non-negative integers',
+      );
+    }
+    a = (row0[0] as num).round();
+    b = (row0[1] as num).round();
+    c = (row1[0] as num).round();
+    d = (row1[1] as num).round();
+  } else {
     throw ArgumentError.value(
       table,
       'table',
       'Fisher exact test requires a 2x2 contingency table',
     );
   }
-
-  final a = table[0][0];
-  final b = table[0][1];
-  final c = table[1][0];
-  final d = table[1][1];
 
   if (a < 0 || b < 0 || c < 0 || d < 0) {
     throw ArgumentError('Table entries must be non-negative integers');

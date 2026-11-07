@@ -588,7 +588,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     4. `solveTridiagonal` throws `ArgumentError` on singular matrices (zero pivot), whereas `Matrix.solve`, `Matrix.inverse`, `LUDecomposition.solve`, `QRDecomposition.solve`, and `CholeskyDecomposition.solve` all throw `StateError`.
   - **Fix**: Default `rowStart = 0, colStart = 0` in `Matrix.subMatrix`; add `Matrix.fromList`; add `operator -()` and zero-pruning in `scale` on sparse matrices; and throw `StateError` on singular matrices in `solveTridiagonal`.
 
-- [ ] **4.2 Align `fisherExactTest` and `wilcoxonSignedRankTest` signatures in `stats`**
+- [x] **4.2 Align `fisherExactTest` and `wilcoxonSignedRankTest` signatures in `stats`**
   - **Severity**: Suggestion
   - **Location**: `lib/src/stats/hypothesis/fisher_exact.dart:16`, `lib/src/stats/hypothesis/wilcoxon.dart:11-16`
   - **Problem**:

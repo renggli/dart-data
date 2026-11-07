@@ -8,11 +8,15 @@ import 'hypothesis_test_result.dart';
 ///
 /// If [y] is provided, tests paired differences $x_i - y_i$. If [y] is omitted,
 /// tests $x_i$ directly against a symmetric median of 0.
+///
+/// Uses the asymptotic normal approximation with tie correction and optional
+/// [continuityCorrection] (defaults to `true`).
 HypothesisTestResult wilcoxonSignedRankTest(
   Iterable<num> x, {
   Iterable<num>? y,
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
+  bool continuityCorrection = true,
 }) {
   final xList = x.map((val) => val.toDouble()).toList();
   final List<double> diffs;
@@ -90,13 +94,21 @@ HypothesisTestResult wilcoxonSignedRankTest(
   final double pValue;
   switch (alternative) {
     case AlternativeHypothesis.twoSided:
-      final z = math.max(0.0, (wPlus - muW).abs() - 0.5) / sigmaW;
+      final diff = (wPlus - muW).abs();
+      final adjustedDiff = continuityCorrection
+          ? math.max(0.0, diff - 0.5)
+          : diff;
+      final z = adjustedDiff / sigmaW;
       pValue = (2.0 * normal.survival(z)).clamp(0.0, 1.0);
     case AlternativeHypothesis.greater:
-      final z = (wPlus - muW - 0.5) / sigmaW;
+      final diff = wPlus - muW;
+      final adjustedDiff = continuityCorrection ? diff - 0.5 : diff;
+      final z = adjustedDiff / sigmaW;
       pValue = normal.survival(z).clamp(0.0, 1.0);
     case AlternativeHypothesis.less:
-      final z = (wPlus - muW + 0.5) / sigmaW;
+      final diff = wPlus - muW;
+      final adjustedDiff = continuityCorrection ? diff + 0.5 : diff;
+      final z = adjustedDiff / sigmaW;
       pValue = normal.cumulativeProbability(z).clamp(0.0, 1.0);
   }
 

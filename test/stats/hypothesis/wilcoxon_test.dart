@@ -18,6 +18,14 @@ void main() {
       check(resPaired.isSignificant).isTrue();
       check(resPaired.pValue).isLessThan(0.05);
 
+      final resNoCorrection = wilcoxonSignedRankTest(
+        before,
+        y: after,
+        continuityCorrection: false,
+      );
+      check(resNoCorrection.pValue).not((it) => it.equals(resPaired.pValue));
+      check(resNoCorrection.pValue).isLessThan(resPaired.pValue);
+
       // Directional alternatives
       final resGreater = wilcoxonSignedRankTest(
         before,
@@ -27,12 +35,29 @@ void main() {
       check(resGreater.isSignificant).isTrue();
       check(resGreater.pValue).isLessThan(0.05);
 
+      final resGreaterNoCorrection = wilcoxonSignedRankTest(
+        before,
+        y: after,
+        alternative: AlternativeHypothesis.greater,
+        continuityCorrection: false,
+      );
+      check(resGreaterNoCorrection.pValue)
+          .not((it) => it.equals(resGreater.pValue));
+
       final resLess = wilcoxonSignedRankTest(
         before,
         y: after,
         alternative: AlternativeHypothesis.less,
       );
       check(resLess.pValue).isGreaterThan(0.95);
+
+      final resLessNoCorrection = wilcoxonSignedRankTest(
+        before,
+        y: after,
+        alternative: AlternativeHypothesis.less,
+        continuityCorrection: false,
+      );
+      check(resLessNoCorrection.pValue).not((it) => it.equals(resLess.pValue));
 
       // Errors
       check(() => wilcoxonSignedRankTest([1.0], y: [1.0, 2.0]))

@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/linear.dart';
 import 'package:data/stats.dart';
 import 'package:test/test.dart';
 
@@ -16,6 +17,14 @@ void main() {
       check(twoSided.testName).equals("Fisher's Exact Test");
       check(twoSided.statistic).isCloseTo(9.0, 1e-6);
       check(twoSided.pValue).isCloseTo(34.0 / 70.0, 1e-4);
+
+      final matTable = Matrix<int>.fromRows([
+        [3, 1],
+        [1, 3],
+      ]);
+      final matRes = fisherExactTest(matTable);
+      check(matRes.statistic).isCloseTo(9.0, 1e-6);
+      check(matRes.pValue).isCloseTo(34.0 / 70.0, 1e-4);
 
       final greater = fisherExactTest(
         table,
@@ -63,6 +72,15 @@ void main() {
           [3, 4],
         ]),
       ).throws<ArgumentError>();
+      check(
+        () => fisherExactTest(
+          Matrix<int>.fromRows([
+            [1, 2, 3],
+            [4, 5, 6],
+          ]),
+        ),
+      ).throws<ArgumentError>();
+      check(() => fisherExactTest('invalid')).throws<ArgumentError>();
 
       final emptyRes = fisherExactTest([
         [0, 0],
