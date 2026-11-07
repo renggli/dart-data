@@ -37,22 +37,6 @@ extension LinearFormExtension on Expr {
   Expr scale(Expr factor) => _scaleExpr(this, factor);
 }
 
-({Expr a, Expr b})? _matchLinear(Expr expr, String variable) {
-  expr = expr.simplify();
-  if (!expr.dependsOn(variable)) {
-    return null;
-  }
-  return switch (expr) {
-    Variable(:final name) when name == variable => (
-      a: IntegerNumber.one,
-      b: IntegerNumber.zero,
-    ),
-    Mul(:final factors) => _matchLinearMul(factors, variable),
-    Add(:final terms) => _matchLinearAdd(terms, variable),
-    _ => null,
-  };
-}
-
 /// Partitions [factors] into constant factors and variable-dependent factors
 /// with respect to [variable].
 ({List<Expr> constFactors, List<Expr> varFactors}) partitionFactors(
@@ -69,6 +53,22 @@ extension LinearFormExtension on Expr {
     }
   }
   return (constFactors: constFactors, varFactors: varFactors);
+}
+
+({Expr a, Expr b})? _matchLinear(Expr expr, String variable) {
+  expr = expr.simplify();
+  if (!expr.dependsOn(variable)) {
+    return null;
+  }
+  return switch (expr) {
+    Variable(:final name) when name == variable => (
+      a: IntegerNumber.one,
+      b: IntegerNumber.zero,
+    ),
+    Mul(:final factors) => _matchLinearMul(factors, variable),
+    Add(:final terms) => _matchLinearAdd(terms, variable),
+    _ => null,
+  };
 }
 
 ({Expr a, Expr b})? _matchLinearMul(List<Expr> factors, String variable) {

@@ -9,17 +9,6 @@ import 'webgl_chart.dart';
 
 /// Mathematical plotting viewport defining domain, range, and pixel geometry.
 class PlotViewport {
-  final double minX;
-  final double maxX;
-  final double minY;
-  final double maxY;
-  final double width;
-  final double height;
-  final double leftMargin;
-  final double rightMargin;
-  final double topMargin;
-  final double bottomMargin;
-
   const new({
     required this.minX,
     required this.maxX,
@@ -32,6 +21,17 @@ class PlotViewport {
     this.topMargin = 20.0,
     this.bottomMargin = 36.0,
   });
+
+  final double minX;
+  final double maxX;
+  final double minY;
+  final double maxY;
+  final double width;
+  final double height;
+  final double leftMargin;
+  final double rightMargin;
+  final double topMargin;
+  final double bottomMargin;
 
   double get plotWidth => math.max(10.0, width - leftMargin - rightMargin);
   double get plotHeight => math.max(10.0, height - topMargin - bottomMargin);
@@ -63,6 +63,28 @@ class PlotViewport {
 /// - Double-click on the plot area to reset the view.
 /// - Hover coordinate tracking (`hoverPixelX`, `hoverPixelY`) with `requestAnimationFrame` throttling.
 class InteractiveChartController {
+  new(
+    this.canvas, {
+    required this.minX,
+    required this.maxX,
+    this.minY = -5.0,
+    this.maxY = 5.0,
+    this.leftMargin = 55.0,
+    this.rightMargin = 20.0,
+    this.topMargin = 20.0,
+    this.bottomMargin = 36.0,
+    this.panY = true,
+    this.zoomY = true,
+    required this.onUpdate,
+    this.onViewportChanged,
+    this.onReset,
+  }) : _defaultMinX = minX,
+       _defaultMaxX = maxX,
+       _defaultMinY = minY,
+       _defaultMaxY = maxY {
+    _attachListeners();
+  }
+
   final web.HTMLCanvasElement canvas;
   final double leftMargin;
   final double rightMargin;
@@ -94,28 +116,6 @@ class InteractiveChartController {
   double _dragStartX = 0.0;
   double _dragStartY = 0.0;
   bool _rafPending = false;
-
-  new(
-    this.canvas, {
-    required this.minX,
-    required this.maxX,
-    this.minY = -5.0,
-    this.maxY = 5.0,
-    this.leftMargin = 55.0,
-    this.rightMargin = 20.0,
-    this.topMargin = 20.0,
-    this.bottomMargin = 36.0,
-    this.panY = true,
-    this.zoomY = true,
-    required this.onUpdate,
-    this.onViewportChanged,
-    this.onReset,
-  }) : _defaultMinX = minX,
-       _defaultMaxX = maxX,
-       _defaultMinY = minY,
-       _defaultMaxY = maxY {
-    _attachListeners();
-  }
 
   /// Updates the current bounds (and optionally the default reset bounds).
   void setBounds({

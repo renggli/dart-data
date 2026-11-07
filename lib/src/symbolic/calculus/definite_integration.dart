@@ -13,11 +13,6 @@ import 'limit.dart';
 import 'linear_form.dart';
 import 'summation.dart';
 
-final Expr _negInfinity = Mul(const [
-  IntegerNumber.negativeOne,
-  Constant.infinity,
-], isSimplified: true);
-
 /// Returns `true` if [bound] represents positive or negative infinity.
 bool isInfiniteBound(Expr bound) =>
     bound == Constant.infinity ||
@@ -206,47 +201,6 @@ double? evaluateBoundNumeric(Expr bound) {
     }
   }
   return null;
-}
-
-bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
-  final poles = findDenominatorRoots(expr, variable);
-  for (final pole in poles) {
-    if (pole > low && pole < high) {
-      return true;
-    }
-  }
-
-  return expr.anyNode((node) {
-    if (node case Tan(expr: final arg) when arg.dependsOn(variable)) {
-      try {
-        final u1 = arg.evaluate({variable: low});
-        final u2 = arg.evaluate({variable: high});
-        if (u1.isFinite && u2.isFinite) {
-          final uMin = math.min(u1, u2);
-          final uMax = math.max(u1, u2);
-          final kMin = ((uMin + 1e-9) / math.pi - 0.5).ceil();
-          final kMax = ((uMax - 1e-9) / math.pi - 0.5).floor();
-          if (kMin <= kMax) return true;
-        }
-      } on Object {
-        // Fall back to root checking
-      }
-    }
-    if (node case Ln(expr: final arg) when arg.dependsOn(variable)) {
-      try {
-        final u1 = arg.evaluate({variable: low});
-        final u2 = arg.evaluate({variable: high});
-        if (u1.isFinite && u2.isFinite) {
-          final uMin = math.min(u1, u2);
-          final uMax = math.max(u1, u2);
-          if (uMin < 0 || (uMin == 0 && uMax == 0)) return true;
-        }
-      } on Object {
-        // Ignored.
-      }
-    }
-    return false;
-  });
 }
 
 /// Extracts all subexpressions that appear in negative power denominators.
@@ -820,4 +774,50 @@ Expr? definiteIntegralUnitInterval(
   }
 
   return null;
+}
+
+final Expr _negInfinity = Mul(const [
+  IntegerNumber.negativeOne,
+  Constant.infinity,
+], isSimplified: true);
+
+bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
+  final poles = findDenominatorRoots(expr, variable);
+  for (final pole in poles) {
+    if (pole > low && pole < high) {
+      return true;
+    }
+  }
+
+  return expr.anyNode((node) {
+    if (node case Tan(expr: final arg) when arg.dependsOn(variable)) {
+      try {
+        final u1 = arg.evaluate({variable: low});
+        final u2 = arg.evaluate({variable: high});
+        if (u1.isFinite && u2.isFinite) {
+          final uMin = math.min(u1, u2);
+          final uMax = math.max(u1, u2);
+          final kMin = ((uMin + 1e-9) / math.pi - 0.5).ceil();
+          final kMax = ((uMax - 1e-9) / math.pi - 0.5).floor();
+          if (kMin <= kMax) return true;
+        }
+      } on Object {
+        // Fall back to root checking
+      }
+    }
+    if (node case Ln(expr: final arg) when arg.dependsOn(variable)) {
+      try {
+        final u1 = arg.evaluate({variable: low});
+        final u2 = arg.evaluate({variable: high});
+        if (u1.isFinite && u2.isFinite) {
+          final uMin = math.min(u1, u2);
+          final uMax = math.max(u1, u2);
+          if (uMin < 0 || (uMin == 0 && uMax == 0)) return true;
+        }
+      } on Object {
+        // Ignored.
+      }
+    }
+    return false;
+  });
 }

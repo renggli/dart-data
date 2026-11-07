@@ -12,9 +12,6 @@ import '../model/stack.dart';
 import '../model/value.dart';
 import 'protocol.dart';
 
-@JS(r'$dartLoader')
-external JSAny? get _dartLoader;
-
 /// Client that manages the dedicated symbolic computation `Worker` (`worker.dart.js`),
 /// handling request correlation, busy timers, timeout cancellation (`terminate()`),
 /// and seamless state replay on respawn.
@@ -463,3 +460,6 @@ final class EngineClient {
     }
   }
 }
+
+@JS(r'$dartLoader')
+external JSAny? get _dartLoader;

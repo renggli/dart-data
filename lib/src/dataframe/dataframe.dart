@@ -143,6 +143,24 @@ class DataFrame {
   /// buffer.
   factory fromArrowIpc(Uint8List bytes) => ArrowIpc.decode(bytes);
 
+  new _(List<Series<Object?>> list)
+    : _columns = list,
+      rowCount = list.isEmpty ? 0 : list[0].length,
+      _columnIndex = {} {
+    for (var i = 0; i < list.length; i++) {
+      final col = list[i];
+      if (_columnIndex.containsKey(col.name)) {
+        throw ArgumentError('Duplicate column name "${col.name}" in DataFrame');
+      }
+      _columnIndex[col.name] = i;
+      if (col.length != rowCount) {
+        throw ArgumentError(
+          'All columns must have identical length ($rowCount), but column "${col.name}" has ${col.length}',
+        );
+      }
+    }
+  }
+
   /// Imports a [DataFrame] from Apache Arrow C Data structures.
   ///
   /// Consumes [schema] (`Pointer<ArrowSchema>`) and [array]
@@ -910,24 +928,6 @@ class DataFrame {
     }
     if (rowCount > 5) buffer.writeln('... and ${rowCount - 5} more rows');
     return buffer.toString();
-  }
-
-  new _(List<Series<Object?>> list)
-    : _columns = list,
-      rowCount = list.isEmpty ? 0 : list[0].length,
-      _columnIndex = {} {
-    for (var i = 0; i < list.length; i++) {
-      final col = list[i];
-      if (_columnIndex.containsKey(col.name)) {
-        throw ArgumentError('Duplicate column name "${col.name}" in DataFrame');
-      }
-      _columnIndex[col.name] = i;
-      if (col.length != rowCount) {
-        throw ArgumentError(
-          'All columns must have identical length ($rowCount), but column "${col.name}" has ${col.length}',
-        );
-      }
-    }
   }
 
   static Series<Object?> _seriesFromMatrixColumn(

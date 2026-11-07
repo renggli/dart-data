@@ -36,18 +36,6 @@ class CalcGrammarDefinition extends GrammarDefinition<CalcStatement> {
 
   final bool implicitMultiplication;
 
-  static const Set<String> _reservedNames = {
-    'pi',
-    'π',
-    'e',
-    'i',
-    'infinity',
-    '∞',
-    'r',
-  };
-
-  static Parser<String> get _hWs => anyOf(' \t');
-
   @override
   Parser<CalcStatement> start() => ref0(multiStatement).end();
 
@@ -415,6 +403,18 @@ class CalcGrammarDefinition extends GrammarDefinition<CalcStatement> {
     }
     return VectorLiteralNode(elements);
   }
+
+  static const Set<String> _reservedNames = {
+    'pi',
+    'π',
+    'e',
+    'i',
+    'infinity',
+    '∞',
+    'r',
+  };
+
+  static Parser<String> get _hWs => anyOf(' \t');
 }
 
 /// High-level facade over [CalcGrammarDefinition] providing statement, node,

@@ -534,7 +534,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: `AGENTS.md` states: *"Intermediate internal barrel files inside `lib/src/` are prohibited; root `lib/<subsystem>.dart` files must export public declarations directly (conditional platform export selectors such as `library_loader.dart` and `arrow_c_data.dart` are allowed exceptions)."* Currently, `summation.dart:16` contains `export 'product.dart';` and `transcendental.dart:25` contains `export 'domain.dart';`.
   - **Fix**: Remove `export 'product.dart';` from `summation.dart` and `export 'domain.dart';` from `transcendental.dart`, import `product.dart` / `domain.dart` directly where needed, and add an assertion in `test/deps_test.dart` verifying that no file in `lib/src/` (other than conditional platform selectors) contains an `export` directive.
 
-- [ ] **3.2 Fix top-level and class member ordering violations across `lib/` and `web/` (`AGENTS.md`)**
+- [x] **3.2 Fix top-level and class member ordering violations across `lib/` and `web/` (`AGENTS.md`)**
   - **Severity**: Warning
   - **Location**:
     - `lib/src/dataframe/arrow/arrow_c_data_ffi.dart:210` (`_releaseArrowSchema`, `_releaseArrowArray` before public functions)

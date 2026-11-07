@@ -195,6 +195,11 @@ int compareStructural(Expr a, Expr b) {
   };
 }
 
+/// Extracts the numerical `double` value if [expr] is a [RealNumeric],
+/// or `null` otherwise.
+double? realScalarValue(Expr expr) =>
+    expr is RealNumeric ? expr.toDouble() : null;
+
 int _compareList(List<Expr> listA, List<Expr> listB) {
   final minLen = math.min(listA.length, listB.length);
   for (var i = 0; i < minLen; i++) {
@@ -240,8 +245,3 @@ int _compareDoubleWithNaN(double a, double b) {
   if (nanB) return -1;
   return a.compareTo(b);
 }
-
-/// Extracts the numerical `double` value if [expr] is a [RealNumeric],
-/// or `null` otherwise.
-double? realScalarValue(Expr expr) =>
-    expr is RealNumeric ? expr.toDouble() : null;

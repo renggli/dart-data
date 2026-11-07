@@ -24,9 +24,6 @@ void copyToClipboard(String text) {
   clipboard.writeText(text);
 }
 
-/// Floating copy notification toast reference.
-web.HTMLDivElement? _copyToast;
-
 /// Shows a non-intrusive floating toast notifying that [text] was copied.
 void showCopyToast(String text) {
   var toast = _copyToast;
@@ -306,3 +303,6 @@ void setupSidebarToggle({void Function()? onToggled}) {
     ((web.Event _) => setCollapsed(false)).toJS,
   );
 }
+
+/// Floating copy notification toast reference.
+web.HTMLDivElement? _copyToast;
