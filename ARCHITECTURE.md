@@ -469,14 +469,14 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Closed-form probability modeling and parameter inference from data across univariate and multivariate domains.
 - **Implementation & Constraints**:
-  - 23 univariate distributions (16 continuous, 7 discrete) with `probability`, `cumulativeProbability`, `inverseCumulativeProbability`, and random sampling (`sample`, `samples`):
-    - Continuous: `NormalDistribution`, `StudentDistribution`, `FDistribution`, `BetaDistribution`, `GammaDistribution`, `ExponentialDistribution`, `ChiSquaredDistribution`, `UniformDistribution`, `CauchyDistribution`, `GumbelDistribution`, `LaplaceDistribution`, `LogisticDistribution`, `LogNormalDistribution`, `ParetoDistribution`, `RayleighDistribution`, `WeibullDistribution`.
-    - Discrete: `BernoulliDistribution`, `BinomialDistribution`, `GeometricDistribution`, `HypergeometricDistribution`, `NegativeBinomialDistribution`, `PoissonDistribution`, `UniformDiscreteDistribution`.
+  - 24 univariate distributions (16 continuous, 8 discrete) with `probability`, `cumulativeProbability`, `inverseCumulativeProbability`, and random sampling (`sample`, `samples`):
+    - Continuous: `NormalDistribution`, `StudentDistribution`, `FDistribution`, `BetaDistribution`, `GammaDistribution`, `InverseGammaDistribution`, `ExponentialDistribution`, `ChiSquaredDistribution`, `UniformDistribution`, `CauchyDistribution`, `LaplaceDistribution`, `LogisticDistribution`, `LogNormalDistribution`, `ParetoDistribution`, `WeibullDistribution`, `DegenerateDistribution`.
+    - Discrete: `BernoulliDistribution`, `BinomialDistribution`, `GeometricDistribution`, `HypergeometricDistribution`, `NegativeBinomialDistribution`, `PoissonDistribution`, `RademacherDistribution`, `UniformDiscreteDistribution`.
   - Multivariate distributions (`MultivariateDistribution<T extends num>`):
     - `MultivariateNormalDistribution`: Correlated Gaussian density over $\mathbb{R}^k$ parameterized by mean $\mu \in \mathbb{R}^k$ and covariance matrix $\Sigma \in \mathbb{R}^{k \times k}$. Computes Cholesky factor $\Sigma = L L^T$, evaluates $\ln \text{PDF}$ via forward triangular solve ($L y = x - \mu \implies (x-\mu)^T \Sigma^{-1} (x-\mu) = \|y\|_2^2$), and generates correlated random samples $x = \mu + L z$ with standard normal $z \sim \mathcal{N}(0, I_k)$.
     - `DirichletDistribution`: Continuous probability distribution over the open $(k-1)$-simplex parameterized by concentration vector $\alpha \in \mathbb{R}^k$ ($\alpha_i > 0$). Evaluates log multivariate beta function via `gammaLn`, provides exact covariance matrix, and generates samples via normalized independent Gamma draws $Y_i \sim \text{Gamma}(\alpha_i, 1.0)$.
     - `MultinomialDistribution`: Discrete distribution over $k$ categories across $n$ trials parameterized by probability vector $p \in [0, 1]^k$ ($\sum p_i = 1$). Evaluates log PMF via log-factorials (`factorialLn`), provides exact covariance matrix, and draws samples via categorical accumulation.
-  - 12 univariate distributions support analytical or numerical MLE fitting via `factory .fit(data)` constructors (`BernoulliDistribution`, `BetaDistribution`, `ExponentialDistribution`, `GammaDistribution`, `GeometricDistribution`, `GumbelDistribution`, `LogNormalDistribution`, `NormalDistribution`, `ParetoDistribution`, `PoissonDistribution`, `RayleighDistribution`, `UniformDistribution`).
+  - 23 of 24 univariate distributions support analytical or numerical MLE fitting via `factory .fit(data)` constructors (`BernoulliDistribution`, `BetaDistribution`, `BinomialDistribution`, `CauchyDistribution`, `ChiSquaredDistribution`, `ExponentialDistribution`, `FDistribution`, `GammaDistribution`, `GeometricDistribution`, `HypergeometricDistribution`, `InverseGammaDistribution`, `LaplaceDistribution`, `LogisticDistribution`, `LogNormalDistribution`, `NegativeBinomialDistribution`, `NormalDistribution`, `ParetoDistribution`, `PoissonDistribution`, `RademacherDistribution`, `StudentDistribution`, `UniformDistribution`, `UniformDiscreteDistribution`, `WeibullDistribution`).
 
 ### 7.3 Hypothesis Testing Suite
 
@@ -487,6 +487,8 @@ This document describes the achieved architecture across all subsystems of `pack
   - `tTestPaired`: Paired-difference t-test.
   - `oneWayAnova`: One-way Analysis of Variance testing equality of three or more group means.
   - `chiSquaredTest` and `chiSquaredContingency`: Goodness-of-fit and contingency table test of independence.
+  - `fisherExactTest`: Exact test for independence in $2 \times 2$ contingency tables based on hypergeometric distribution without large-sample approximations.
+  - `shapiroWilkTest`: Normality test based on correlation between ordered sample data and theoretical normal order statistics.
   - `mannWhitneyUTest`: Non-parametric test for equality of two continuous distributions.
   - `kolmogorovSmirnovTest`: One-sample Kolmogorov-Smirnov test evaluating maximum supremum distance $D = \max(D^+, D^-)$ between empirical CDF and continuous theoretical distribution with asymptotic Stephens approximation for $p$-values.
   - `kolmogorovSmirnovTwoSample`: Two-sample Kolmogorov-Smirnov test assessing whether two independent empirical samples originate from the same continuous distribution using effective sample size $n_e = \frac{n_1 n_2}{n_1 + n_2}$.
@@ -500,6 +502,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - `Bootstrap`: Generates $B$ resampled datasets with replacement.
   - `Bootstrap.parametric`: Generates synthetic resamples using a generative sampler.
   - `Bootstrap.distribution`: Generates synthetic resamples from a theoretical probability distribution.
+  - `Jackknife`: Leave-one-out resampling generating $n$ jackknife pseudo-values to estimate parameter bias, variance, and individual observation influence values.
   - Confidence interval algorithms:
     - Percentile interval: Direct empirical quantiles of the bootstrap distribution.
     - BCa (Bias-Corrected and Accelerated) interval: Corrects for both median bias and skewness (acceleration parameter $a$ computed via jackknife influence values).
@@ -676,20 +679,22 @@ This document describes the achieved architecture across all subsystems of `pack
   - Pure Dart mathematical functions in `lib/src/special/`, exported directly via `lib/special.dart`.
   - Zero external dependencies: routines rely strictly on IEEE-754 floating-point operations with analytical reflection formulas, continued fractions, and asymptotic expansions.
 
-### 10.2 Gamma, Beta & Factorial Families (`lib/src/special/gamma.dart`, `beta.dart`, `digamma.dart`)
+### 10.2 Gamma, Beta & Factorial Families (`lib/src/special/gamma.dart`, `beta.dart`, `digamma.dart`, `zeta.dart`)
 
 - **Gamma Functions**:
   - `gamma(x)`: Complete gamma function $\Gamma(x)$ computed via Lanczos approximation ($g=7, n=9$) yielding 15 digits of relative precision, with Euler's reflection formula $\Gamma(1-z)\Gamma(z) = \frac{\pi}{\sin(\pi z)}$ handling negative non-integer poles.
   - `gammaLn(x)`: Logarithm of the absolute value of $\Gamma(x)$, preventing overflow for large inputs up to $x \approx 10^{300}$.
   - `gammap(a, x)` and `gammaq(a, x)`: Lower $P(a, x) = \frac{\gamma(a, x)}{\Gamma(a)}$ and upper $Q(a, x) = \frac{\Gamma(a, x)}{\Gamma(a)}$ regularized incomplete gamma functions. Evaluated via rapidly converging power series when $x < a + 1$, and via Legendre's continued fraction using Lentz's method when $x \ge a + 1$.
-  - `gammapInv(a, p)`: Inverse of the regularized incomplete gamma function via initial rational approximation refined by Halley iterations.
+  - `gammapInv(a, p)` and `gammaqInv(a, q)`: Inverses of the regularized incomplete lower and upper gamma functions via initial rational approximations refined by Halley iterations.
 - **Beta Functions**:
   - `beta(a, b)` and `betaLn(a, b)`: Euler's beta function $B(a, b) = \frac{\Gamma(a)\Gamma(b)}{\Gamma(a+b)}$ and log-beta $\ln B(a, b) = \ln\Gamma(a) + \ln\Gamma(b) - \ln\Gamma(a+b)$.
   - `ibeta(a, b, x)`: Regularized incomplete beta function $I_x(a, b) = \frac{B(x; a, b)}{B(a, b)}$, evaluated via continued fraction expansion with symmetry transformation $I_x(a, b) = 1 - I_{1-x}(b, a)$ when $x > \frac{a+1}{a+b+2}$.
   - `ibetaInv(a, b, p)`: Inverse incomplete beta function using Carter's normal approximation refined by Newton-Raphson/Halley steps.
-- **Logarithmic Derivatives (Psi Functions)**:
+- **Logarithmic Derivatives & Zeta Functions**:
   - `digamma(x)`: First derivative of $\ln\Gamma(x)$, $\psi(x) = \frac{\Gamma'(x)}{\Gamma(x)}$, evaluated via recurrence $\psi(x+1) = \psi(x) + \frac{1}{x}$ shifted to $x \ge 8$ and Bernoulli asymptotic expansion.
   - `trigamma(x)`: Second derivative $\psi'(x) = \frac{d^2}{dx^2}\ln\Gamma(x)$ evaluated via shifted recurrence and asymptotic series.
+  - `polygamma(m, x)`: Order-$m$ logarithmic derivative $\psi^{(m)}(x) = \frac{d^{m+1}}{dx^{m+1}}\ln\Gamma(x)$.
+  - `zeta(s)`: Riemann zeta function $\zeta(s) = \sum_{n=1}^\infty n^{-s}$, computed via Borwein's accelerated alternating Dirichlet eta method for $\text{Re}(s) > 0$ and Riemann reflection for $\text{Re}(s) < 0$.
 - **Combinatorics**:
   - Exact and floating-point combinatorics: `factorial`, `factorialLn`, `combination`, `combinationLn`, `permutation`, and `permutationLn`.
 
@@ -705,17 +710,21 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Solutions to Bessel's differential equation $x^2 y'' + x y' + (x^2 - \nu^2) y = 0$ in cylindrical wave propagation and heat conduction.
 - **Implementation & Constraints**:
+  - `besselJ(nu, x)` and `besselY(nu, x)`: Bessel functions of the first and second kinds of arbitrary real order $\nu$.
+  - `besselI(nu, x)` and `besselK(nu, x)`: Modified Bessel functions of the first and second kinds of arbitrary real order $\nu$.
   - `besselJ0(x)` and `besselJ1(x)`: Bessel functions of the first kind (order 0 and 1) computed using minimax rational approximations for $|x| \le 8$ and Hankel asymptotic series for $|x| > 8$.
   - `besselY0(x)` and `besselY1(x)`: Bessel functions of the second kind (Neumann functions, order 0 and 1).
   - `besselI0(x)` and `besselI1(x)`: Modified Bessel functions of the first kind (order 0 and 1) computed with exponentially scaled Chebyshev expansions.
   - `besselK0(x)` and `besselK1(x)`: Modified Bessel functions of the second kind (Macdonald functions, order 0 and 1).
 
-### 10.5 Complete Elliptic Integrals (`lib/src/special/elliptic.dart`)
+### 10.5 Complete & Incomplete Elliptic Integrals (`lib/src/special/elliptic.dart`)
 
 - **Reasoning**: Exact arc length of ellipses, planetary orbits, and pendulum periods.
 - **Implementation & Constraints**:
   - `ellipticK(m)`: Complete Legendre elliptic integral of the first kind $K(m) = \int_0^{\pi/2} \frac{d\theta}{\sqrt{1 - m \sin^2\theta}}$, evaluated via the Arithmetic-Geometric Mean (AGM) algorithm ($a_{n+1} = \frac{a_n + b_n}{2}, b_{n+1} = \sqrt{a_n b_n}$) converging quadratically to machine precision.
   - `ellipticE(m)`: Complete Legendre elliptic integral of the second kind $E(m) = \int_0^{\pi/2} \sqrt{1 - m \sin^2\theta} \, d\theta$, evaluated via simultaneous AGM progression and quadratic recurrence sums.
+  - `ellipticF(phi, m)`: Incomplete Legendre elliptic integral of the first kind $F(\phi, m) = \int_0^\phi \frac{d\theta}{\sqrt{1 - m \sin^2\theta}}$, evaluated via Carlson symmetric elliptic integral $R_F$.
+  - `ellipticEIncomplete(phi, m)`: Incomplete Legendre elliptic integral of the second kind $E(\phi, m) = \int_0^\phi \sqrt{1 - m \sin^2\theta} \, d\theta$, evaluated via Carlson symmetric elliptic integrals $R_F$ and $R_D$.
 
 ### 10.6 Generalized Hypergeometric Series (`lib/src/special/hypergeometric.dart`)
 

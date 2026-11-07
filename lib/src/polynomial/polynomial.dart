@@ -90,7 +90,7 @@ abstract class Polynomial<T> {
   ///
   /// ```dart
   /// final p = Polynomial<double>.fromRoots([2.0, 3.0]);
-  /// // p: 6.0 - 5.0*x + 1.0*x^2
+  /// // p: x^2 - 5.0x + 6.0
   /// ```
   factory fromRoots(Iterable<T> roots, {DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromIterable(roots);

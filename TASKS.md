@@ -564,7 +564,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
   - **Problem**: Violates `AGENTS.md` (*"All public members, methods, functions, variables, and constants must be placed at the top of classes and files. Class fields (both public and private) must be placed after constructors (or together with their accessors). Private methods, functions, variables, and constants must be placed at the bottom of their respective classes and files"*).
   - **Fix**: Move all private top-level declarations below all public top-level declarations, and place private constructors immediately after public constructors at the top of `DataFrame` and `ValidityMask`.
 
-- [ ] **3.3 Update `ARCHITECTURE.md` and outdated doc comments to match the current implementation**
+- [x] **3.3 Update `ARCHITECTURE.md` and outdated doc comments to match the current implementation**
   - **Severity**: Warning
   - **Location**: `ARCHITECTURE.md:472-495, 679-725`, `lib/src/polynomial/polynomial.dart:93`
   - **Problem**:
