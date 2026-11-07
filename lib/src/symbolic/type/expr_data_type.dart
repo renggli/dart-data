@@ -193,8 +193,25 @@ final class ExprField extends ExtendedField<Expr> {
   Expr get nan => Constant.undefined;
 
   /// Checks whether [a] symbolically simplifies to zero.
-  bool isZero(Expr a) =>
-      a == IntegerNumber.zero ||
-      (a is Number && a.isZero) ||
-      a.simplify() == IntegerNumber.zero;
+  bool isZero(Expr a) => isZeroExpr(a);
+}
+
+/// Checks whether a symbolic expression [expr] simplifies or evaluates to zero.
+bool isZeroExpr(Expr expr) {
+  if (expr is Number) return expr.isZero;
+  final s = expr.simplify();
+  if (s is Number && s.isZero) return true;
+  final exp = expr.expand().simplify();
+  if (exp is Number && exp.isZero) return true;
+  if (expr.freeVariables.isEmpty) {
+    try {
+      final c = expr.evaluateComplex();
+      if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
+    } on ArgumentError {
+      // Ignored.
+    } on UnsupportedError {
+      // Ignored.
+    }
+  }
+  return false;
 }

@@ -143,17 +143,10 @@ void main() {
       check(extractPolynomialCoefficients(Expr.parse('1 / x'), 'x')).isNull();
     });
 
-    test('sqrtConstant, integerNthRoot, and rootConstant cover all cases', () {
+    test('sqrtConstant and rootConstant cover all cases', () {
       check(sqrtConstant(RationalNumber(4, 9))).equals(RationalNumber(2, 3));
       check(sqrtConstant(RationalNumber(2, 3)))
           .equals(Pow(RationalNumber(2, 3), FractionNumber.half).simplify());
-
-      check(integerNthRoot(-8, 3)).isNull();
-      check(integerNthRoot(0, 3)).equals(0);
-      check(integerNthRoot(1, 3)).equals(1);
-      check(integerNthRoot(27, 3)).equals(3);
-      check(integerNthRoot(26, 3)).isNull();
-      check(integerNthRoot(28, 3)).isNull();
 
       check(rootConstant(RationalNumber(-8, 27), 3))
           .equals(RationalNumber(-2, 3));

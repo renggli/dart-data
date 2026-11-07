@@ -7,8 +7,11 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
 import '../compiler.dart';
+import '../type/expr_data_type.dart';
 import 'polynomial.dart';
 import 'transcendental.dart';
+
+export '../type/expr_data_type.dart' show isZeroExpr;
 
 /// Extension providing analytical equation solving on [Expr].
 extension SolverExtension on Expr {
@@ -70,26 +73,6 @@ bool satisfiesVariableDomain(
   };
 }
 
-/// Checks whether a constant symbolic expression [expr] evaluates to zero.
-bool isZeroExpr(Expr expr) {
-  switch (expr) {
-    case Number(:final isZero):
-      return isZero;
-    case _ when expr.freeVariables.isEmpty:
-      try {
-        final c = expr.evaluateComplex();
-        if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
-      } on ArgumentError {
-        // Ignored.
-      } on UnsupportedError {
-        // Ignored.
-      }
-    case _:
-      break;
-  }
-  return false;
-}
-
 /// Deduplicates roots analytically and numerically.
 List<Expr> deduplicateRoots(List<Expr> list) {
   final result = <Expr>[];
@@ -121,26 +104,6 @@ List<Expr> deduplicateRoots(List<Expr> list) {
     }
   }
   return result;
-}
-
-/// Collects factors of [expr] unrolling multiplication and positive power.
-void collectFactors(Expr expr, List<Expr> target) {
-  switch (expr) {
-    case Mul(:final factors):
-      for (final f in factors) {
-        collectFactors(f, target);
-      }
-    case Pow(
-          :final base,
-          exponent: RationalNumber(:final isNegative, :final isZero),
-        )
-        when !isNegative && !isZero:
-      collectFactors(base, target);
-    default:
-      if (expr is! Number && expr is! Constant) {
-        target.add(expr);
-      }
-  }
 }
 
 List<Expr> _solveUnfiltered(

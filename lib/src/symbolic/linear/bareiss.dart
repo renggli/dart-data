@@ -286,7 +286,8 @@ class BareissEngine {
     if (!_hasDiv(cancelled)) return cancelled;
 
     // Sequential factor division: if den factors into multiple factors, divide sequentially
-    final denFactors = _collectFactors(den.factor());
+    final denFactors = <Expr>[];
+    collectFactors(den.factor(), denFactors);
     if (denFactors.length > 1) {
       var current = num;
       var allClean = true;
@@ -388,13 +389,6 @@ class BareissEngine {
     return null;
   }
 
-  static List<Expr> _collectFactors(Expr expr) => switch (expr) {
-    Mul(:final factors) => [for (final f in factors) ..._collectFactors(f)],
-    Pow(:final base, exponent: IntegerNumber(asInt: final int n)) when n > 0 =>
-      List.filled(n, base),
-    _ => [expr],
-  };
-
   static bool _hasDiv(Expr e) => e.anyNode(
     (node) => switch (node) {
       Pow(exponent: RealNumeric(isNegative: true)) => true,
@@ -403,12 +397,10 @@ class BareissEngine {
   );
 
   static bool _isExprZero(Expr expr) {
-    if (expr is Number && expr.isZero) return true;
-    final s = expr.expand().simplify();
-    if (s is Number && s.isZero) return true;
-    if (_hasDiv(s)) {
-      final combined = s.together().simplify();
-      return combined is Number && combined.isZero;
+    if (isZeroExpr(expr)) return true;
+    if (_hasDiv(expr)) {
+      final combined = expr.together().simplify();
+      return isZeroExpr(combined);
     }
     return false;
   }

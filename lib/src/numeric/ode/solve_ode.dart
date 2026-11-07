@@ -455,6 +455,19 @@ OdeSolution _bdf2({
     final yPredictor = yN.scale(1.0 + omega) - yPrev.scale(omega);
     var yNext = yPredictor.copy();
 
+    final needJacobian =
+        cachedMat == null ||
+        cachedGamma == null ||
+        (cachedGamma - gamma).abs() > 0.2 * gamma.abs();
+    if (needJacobian) {
+      final jac = calculus.jacobian((v) => f(tNext, v), yPredictor, step: 1e-6);
+      cachedGamma = gamma;
+      cachedMat = Matrix<double>.generate(dim, dim, (r, c) {
+        final id = r == c ? 1.0 : 0.0;
+        return id - gamma * jac.get(r, c);
+      }, type: DataType.float64);
+    }
+
     var stepConverged = false;
     for (var iter = 0; iter < maxNewtonIters; iter++) {
       final fNext = f(tNext, yNext);
@@ -465,21 +478,15 @@ OdeSolution _bdf2({
         break;
       }
 
-      final needJacobian =
-          cachedMat == null ||
-          cachedGamma == null ||
-          (cachedGamma - gamma).abs() > 0.2 * gamma.abs() ||
-          iter >= 3;
-      if (needJacobian) {
+      if (iter >= 3) {
         final jac = calculus.jacobian((v) => f(tNext, v), yNext, step: 1e-6);
-        cachedGamma = gamma;
         cachedMat = Matrix<double>.generate(dim, dim, (r, c) {
           final id = r == c ? 1.0 : 0.0;
           return id - gamma * jac.get(r, c);
         }, type: DataType.float64);
       }
 
-      final delta = cachedMat.solveVector(-residual);
+      final delta = cachedMat!.solveVector(-residual);
       yNext += delta;
       if (delta.norm() < absoluteTolerance) {
         stepConverged = true;

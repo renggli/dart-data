@@ -203,6 +203,24 @@ Expr _factorInteger(Integer n) {
   };
 }
 
+/// Recursively collects all irreducible base factors of [expr] into [target],
+/// expanding positive integer powers.
+void collectFactors(Expr expr, List<Expr> target) {
+  switch (expr) {
+    case Mul(:final factors):
+      for (final f in factors) {
+        collectFactors(f, target);
+      }
+    case Pow(:final base, exponent: IntegerNumber(asInt: final n))
+        when n != null && n > 0:
+      for (var i = 0; i < n; i++) {
+        collectFactors(base, target);
+      }
+    case _:
+      target.add(expr);
+  }
+}
+
 List<({Integer prime, int exponent})> _factorPositiveIntegerFactors(Integer n) {
   final result = <({Integer prime, int exponent})>[];
   var rem = n;

@@ -7,6 +7,7 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
 import '../number/integer.dart';
+import '../type/expr_data_type.dart';
 
 /// Extension providing formal power series and Laurent expansion on [Expr].
 extension SeriesExtension on Expr {
@@ -525,11 +526,7 @@ class PowerSeries {
     return Map.unmodifiable(result);
   }
 
-  static bool _isZero(Expr expr) {
-    if (expr is Number) return expr.isZero;
-    final s = expr.simplify();
-    return s is Number && s.isZero;
-  }
+  static bool _isZero(Expr expr) => isZeroExpr(expr);
 }
 
 PowerSeries _expandToPowerSeries(

@@ -504,7 +504,7 @@ Actionable step-by-step tasks across all subsystems (`type`, `tensor`, `accelera
     6. All four `Series` subclasses duplicate the same `concat` fallback and `BoolSeries`/`ObjectSeries`/`ArrowStringSeries` lack `toString()` (defined only on `TypedSeries`).
   - **Fix**: Construct `TypedSeries` directly in `DataFrame.fromMatrix`/`fromTensor`; allocate uninitialized typed storage in `toTensor`; implement unboxed `fillNull` on `TypedSeries`/`BoolSeries`/`ObjectSeries`; use `BytesBuilder` in `ArrowStringSeries.fromList`; share the DataFrame column builder between `CsvReader` and `CsvStream`; and move base `concat` and `toString()` to `Series<T>`.
 
-- [ ] **2.3 Consolidate duplicated symbolic zero-testing, AST term/factor collection, `rootConstant`, and `_bdf2` derivative caching**
+- [x] **2.3 Consolidate duplicated symbolic zero-testing, AST term/factor collection, `rootConstant`, and `_bdf2` derivative caching**
   - **Severity**: Suggestion
   - **Location**:
     - `lib/src/symbolic/solver/univariate.dart:73-90, 126-143`, `lib/src/symbolic/type/expr_data_type.dart:196-199`, `lib/src/symbolic/linear/bareiss.dart:390-408`, `lib/src/symbolic/linear/faddeev_leverrier.dart:186-190`, `lib/src/symbolic/solver/polynomial.dart:115-153`, `lib/src/symbolic/solver/resultant.dart:158`

@@ -112,42 +112,15 @@ List<Expr> solveBiquadratic(Expr a, Expr b, Expr c, String variable) {
 /// Computes the exact square root of rational constant [c] if reducible.
 Expr sqrtConstant(RationalNumber c) => Pow(c, FractionNumber.half).simplify();
 
-/// Computes integer nth root if exact.
-int? integerNthRoot(int val, int n) {
-  if (val < 0) return null;
-  if (val == 0) return 0;
-  if (val == 1) return 1;
-  final r = math.pow(val, 1.0 / n).round();
-  var p = 1;
-  for (var i = 0; i < n; i++) {
-    if (val ~/ r < p) return null;
-    p *= r;
-  }
-  return p == val ? r : null;
-}
-
 /// Computes nth root of constant [c].
 Expr rootConstant(Expr c, int n) {
-  switch (c) {
-    case RationalNumber(isNegative: true) when n.isOdd:
-      final posRoot = rootConstant(c.neg(), n);
-      return (-posRoot).simplify();
-    case RationalNumber(:final numerator, :final denominator):
-      if ((numerator.asInt, denominator.asInt)
-          case (final int numInt, final int denInt) when numInt >= 0) {
-        if ((integerNthRoot(numInt, n), integerNthRoot(denInt, n)) case (
-          final int numR,
-          final int denR,
-        )) {
-          return RationalNumber(numR, denR);
-        }
-      }
-    case RealNumber(:final value) when n.isOdd && value < 0:
-      return RealNumber(-math.pow(-value, 1.0 / n).toDouble());
-    case _:
-      break;
+  if (n.isOdd && c is RationalNumber && c.isNegative) {
+    return (-Pow(c.neg(), RationalNumber(1, n)).simplify()).simplify();
+  }
+  if (n.isOdd && c is RealNumber && c.value < 0) {
+    return RealNumber(-math.pow(-c.value, 1.0 / n).toDouble());
   }
   return Pow(c, RationalNumber(1, n)).simplify();
 }
 
-bool _isZero(Expr expr) => expr is Number && expr.isZero;
+bool _isZero(Expr expr) => isZeroExpr(expr);

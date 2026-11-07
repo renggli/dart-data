@@ -120,7 +120,7 @@ class FaddeevLeVerrierEngine {
 
     for (var k = 1; k <= n; k++) {
       final ck = c[k - 1];
-      if (_isZero(ck)) continue;
+      if (isZeroExpr(ck)) continue;
       final power = n - k;
       final term = power == 0
           ? ck
@@ -152,7 +152,7 @@ class FaddeevLeVerrierEngine {
     }
     if (n == 1) {
       final a00 = matrix.getUnchecked(0, 0).simplify();
-      if (_isZero(a00)) return null;
+      if (isZeroExpr(a00)) return null;
       return Matrix<Expr>.generate(
         1,
         1,
@@ -163,7 +163,7 @@ class FaddeevLeVerrierEngine {
 
     final result = compute(matrix);
     final cn = result.coefficients.last;
-    if (_isZero(cn)) return null;
+    if (isZeroExpr(cn)) return null;
 
     final bnMinus1 = result.bMatrices.last;
     return Matrix<Expr>.generate(n, n, (r, c) {
@@ -181,11 +181,5 @@ class FaddeevLeVerrierEngine {
         cn.factor(),
       ).expand().simplify();
     }, type: effectiveType);
-  }
-
-  static bool _isZero(Expr expr) {
-    if (expr is Number && expr.isZero) return true;
-    final s = expr.expand().simplify();
-    return s is Number && s.isZero;
   }
 }

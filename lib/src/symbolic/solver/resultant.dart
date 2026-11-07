@@ -26,11 +26,11 @@ class SylvesterResultantSolver {
 
     var degF = 0;
     for (final p in fCoeffs.keys) {
-      if (p > degF && !_isZeroCoeff(fCoeffs[p]!)) degF = p;
+      if (p > degF && !isZeroExpr(fCoeffs[p]!)) degF = p;
     }
     var degG = 0;
     for (final p in gCoeffs.keys) {
-      if (p > degG && !_isZeroCoeff(gCoeffs[p]!)) degG = p;
+      if (p > degG && !isZeroExpr(gCoeffs[p]!)) degG = p;
     }
 
     if (degF == 0 && degG == 0) {
@@ -154,6 +154,4 @@ class SylvesterResultantSolver {
 
     return solutions;
   }
-
-  static bool _isZeroCoeff(Expr expr) => expr is Number && expr.isZero;
 }
