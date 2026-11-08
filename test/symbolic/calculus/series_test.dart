@@ -308,13 +308,13 @@ void main() {
       ).equals(IntegerNumber.one);
 
       // Gamma, Digamma, Polygamma, Zeta, BesselJ at analytic points
-      final gammaS =
-          Gamma(x).toPowerSeries('x', point: IntegerNumber.one, order: 2);
+      final gammaS = Gamma(x)
+          .toPowerSeries('x', point: IntegerNumber.one, order: 2);
       check(gammaS.coefficients[0]).equals(IntegerNumber.one);
       check(gammaS.coefficients[1]).equals(Digamma(IntegerNumber.one));
 
-      final zetaS =
-          Zeta(x).toPowerSeries('x', point: IntegerNumber.two, order: 1);
+      final zetaS = Zeta(x)
+          .toPowerSeries('x', point: IntegerNumber.two, order: 1);
       check(zetaS.coefficients[0]).equals(Zeta(IntegerNumber.two).simplify());
 
       check(BesselJ(IntegerNumber.zero, x).series('x', order: 5).toString())
