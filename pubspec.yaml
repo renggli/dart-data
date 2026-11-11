@@ -11,7 +11,7 @@ topics:
   - tensor
 
 environment:
-  sdk: ^3.13.0
+  sdk: ^3.14.0
 dependencies:
   collection: ^1.19.1
   ffi: ^2.2.0
