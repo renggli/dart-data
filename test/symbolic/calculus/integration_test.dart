@@ -565,4 +565,47 @@ void main() {
       },
     );
   });
+
+  group('General u-substitution', () {
+    test(
+      'integrates composite trig, log, exp, and symbolic power integrands',
+      () {
+        verifyAntiderivative(
+          Expr.parse('sin(x) / sqrt(cos(x)^3)'),
+          points: const [0.2, 0.5, 1.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('sqrt(3 * cos(x)^2 + 1) * sin(2 * x)'),
+          points: const [0.2, 0.5, 1.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('ln(x) / (x * sqrt(ln(x) + 1))'),
+          points: const [1.2, 2.0, 3.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('exp(x) / (exp(2 * x) + 1)'),
+          points: const [0.2, 0.5, 1.0],
+        );
+
+        final expHyper = Expr.parse('1 / (2 * exp(m * x) - 5 * exp(-m * x))');
+        final expHyperInt = expHyper.integrate('x');
+        check(expHyperInt).isNotA<Integral>();
+        final expHyperDiff = expHyperInt.derivative('x');
+        for (final pt in const [0.3, 0.7, 1.2]) {
+          final env = {'m': 1.5, 'x': pt};
+          check(expHyperDiff.evaluate(env))
+              .isCloseTo(expHyper.evaluate(env), 1e-8);
+        }
+
+        final symPow = Expr.parse('x^(n - 1) * sin(x^n)');
+        final symPowInt = symPow.integrate('x');
+        check(symPowInt).isNotA<Integral>();
+        final symPowDiff = symPowInt.derivative('x');
+        for (final pt in const [0.4, 0.9, 1.5]) {
+          final env = {'n': 2.5, 'x': pt};
+          check(symPowDiff.evaluate(env)).isCloseTo(symPow.evaluate(env), 1e-8);
+        }
+      },
+    );
+  });
 }

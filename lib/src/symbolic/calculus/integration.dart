@@ -132,6 +132,7 @@ Expr _antiDerivative(
   Expr expr,
   String variable, {
   Assumptions assumptions = Assumptions.none,
+  int depth = 0,
 }) {
   final node = expr.simplify(assumptions: assumptions);
 
@@ -202,16 +203,33 @@ Expr _antiDerivative(
     _ => _unsupported(node, variable),
   };
 
-  if (variable != '_u' &&
-      node is! Add &&
-      _hasUnevaluatedIntegral(result, variable)) {
-    if (_tryAffineRadicalSubstitution(node, variable, assumptions: assumptions)
+  if (depth < 2 && node is! Add && _hasUnevaluatedIntegral(result, variable)) {
+    if (_tryAffineRadicalSubstitution(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
         case final affineRes?) {
       return affineRes;
     }
-    if (_tryChebyshevBinomial(node, variable, assumptions: assumptions)
+    if (_tryChebyshevBinomial(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
         case final chebRes?) {
       return chebRes;
+    }
+    if (_tryUSubstitution(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final uSubRes?) {
+      return uSubRes;
     }
   }
   return result;
@@ -1727,6 +1745,7 @@ Expr? _tryAffineRadicalSubstitution(
   Expr expr,
   String variable, {
   Assumptions assumptions = Assumptions.none,
+  int depth = 0,
 }) {
   final radicals = <({Expr base, int p, int q})>[];
   _collectAffineRadicals(expr, variable, radicals);
@@ -1745,8 +1764,8 @@ Expr? _tryAffineRadicalSubstitution(
   }
   if (n < 2) return null;
 
-  const uName = '_u';
-  const uVar = Variable(uName);
+  final uName = '_u$depth';
+  final uVar = Variable(uName);
   final replaced = _replaceAffineRadical(
     expr,
     firstBase,
@@ -1766,6 +1785,7 @@ Expr? _tryAffineRadicalSubstitution(
     transformed,
     uName,
     assumptions: assumptions,
+    depth: depth + 1,
   );
   if (_hasUnevaluatedIntegral(uAntideriv, uName)) return null;
 
@@ -1779,6 +1799,7 @@ Expr? _tryChebyshevBinomial(
   Expr expr,
   String variable, {
   Assumptions assumptions = Assumptions.none,
+  int depth = 0,
 }) {
   final factors = expr is Mul ? expr.factors : [expr];
   var constScale = IntegerNumber.one as Expr;
@@ -1827,8 +1848,8 @@ Expr? _tryChebyshevBinomial(
   final b = baseCoeffs[n] ?? IntegerNumber.zero;
   if (a == IntegerNumber.zero || b == IntegerNumber.zero) return null;
 
-  const uName = '_u';
-  const uVar = Variable(uName);
+  final uName = '_u$depth';
+  final uVar = Variable(uName);
 
   // Case 1: (m + 1) / n is a positive integer k
   if ((m + 1) > 0 && (m + 1) % n == 0) {
@@ -1845,6 +1866,7 @@ Expr? _tryChebyshevBinomial(
         transformed,
         uName,
         assumptions: assumptions,
+        depth: depth + 1,
       );
       if (!_hasUnevaluatedIntegral(uAntideriv, uName)) {
         return uAntideriv
@@ -1874,6 +1896,7 @@ Expr? _tryChebyshevBinomial(
         transformed,
         uName,
         assumptions: assumptions,
+        depth: depth + 1,
       );
       if (!_hasUnevaluatedIntegral(uAntideriv, uName)) {
         final backSub = Pow(
@@ -1882,6 +1905,155 @@ Expr? _tryChebyshevBinomial(
         );
         return uAntideriv
             .substitute(uName, backSub)
+            .simplify(assumptions: assumptions);
+      }
+    }
+  }
+
+  return null;
+}
+
+void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
+  if (!node.dependsOn(variable)) return;
+  switch (node) {
+    case Sin(:final expr) ||
+        Cos(:final expr) ||
+        Tan(:final expr) ||
+        Asin(:final expr) ||
+        Acos(:final expr) ||
+        Atan(:final expr) ||
+        Sinh(:final expr) ||
+        Cosh(:final expr) ||
+        Tanh(:final expr) ||
+        Asinh(:final expr) ||
+        Acosh(:final expr) ||
+        Atanh(:final expr) ||
+        Ln(:final expr) ||
+        Erf(:final expr) ||
+        Erfc(:final expr):
+      if (node is Sin ||
+          node is Cos ||
+          node is Tan ||
+          node is Ln ||
+          node is Atan ||
+          node is Asin ||
+          node is Acos) {
+        out.add(node);
+      }
+      if (expr is! Variable || expr.name != variable) {
+        out.add(expr);
+      }
+      _collectUCandidates(expr, variable, out);
+    case Pow(:final base, :final exponent):
+      if (base == Constant.e && exponent.dependsOn(variable)) {
+        out.add(node);
+        if (exponent is! Variable || exponent.name != variable) {
+          out.add(exponent);
+        }
+      } else {
+        if (base.dependsOn(variable) &&
+            (base is! Variable || base.name != variable)) {
+          out.add(base);
+        }
+        if (exponent.dependsOn(variable) &&
+            (base.dependsOn(variable) || _isValidExponentialBase(base))) {
+          out.add(node);
+        }
+      }
+      _collectUCandidates(base, variable, out);
+      _collectUCandidates(exponent, variable, out);
+    default:
+      node.mapChildren((child) {
+        _collectUCandidates(child, variable, out);
+        return child;
+      });
+  }
+}
+
+Expr _expandDoubleAngleTrig(Expr node) {
+  if (node case Sin(:final expr)) {
+    if (expr case Mul(factors: [IntegerNumber(asInt: 2), final inner])) {
+      return IntegerNumber.two * Sin(inner) * Cos(inner);
+    }
+  }
+  return node.mapChildren(_expandDoubleAngleTrig);
+}
+
+Expr _replaceUCandidate(
+  Expr node,
+  Expr candidate,
+  Variable uVar,
+  String variable,
+) {
+  if (node == candidate) return uVar;
+  if (candidate case Pow(base: final cBase, exponent: final cExp)) {
+    if (node case Pow(base: final nBase, exponent: final nExp)
+        when nBase == cBase) {
+      final ratio = (nExp / cExp).simplify();
+      if (!ratio.dependsOn(variable)) {
+        return Pow(uVar, ratio);
+      }
+    }
+  }
+  if (candidate is Sin && node is Pow) {
+    if (node.base == Cos(candidate.expr) &&
+        node.exponent == IntegerNumber.two) {
+      return IntegerNumber.one - Pow(uVar, IntegerNumber.two);
+    }
+  }
+  if (candidate is Cos && node is Pow) {
+    if (node.base == Sin(candidate.expr) &&
+        node.exponent == IntegerNumber.two) {
+      return IntegerNumber.one - Pow(uVar, IntegerNumber.two);
+    }
+  }
+  return node.mapChildren(
+    (child) => _replaceUCandidate(child, candidate, uVar, variable),
+  );
+}
+
+Expr? _tryUSubstitution(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+  int depth = 0,
+}) {
+  final candidates = <Expr>{};
+  _collectUCandidates(expr, variable, candidates);
+  if (candidates.isEmpty) return null;
+
+  final expandedTrig = _expandDoubleAngleTrig(expr);
+  final exprVariants = expandedTrig != expr ? [expr, expandedTrig] : [expr];
+
+  final uName = '_u$depth';
+  final uVar = Variable(uName);
+
+  for (final candidate in candidates) {
+    if (!candidate.dependsOn(variable)) continue;
+    if (candidate is Variable && candidate.name == variable) continue;
+    final gPrime = candidate
+        .derivative(variable)
+        .simplify(assumptions: assumptions);
+    if (gPrime is Number && gPrime.isZero) continue;
+
+    for (final variant in exprVariants) {
+      final quot = (variant / gPrime).simplify(assumptions: assumptions);
+      final replaced = _replaceUCandidate(quot, candidate, uVar, variable);
+      var fU = replaced.simplify(assumptions: assumptions);
+      if (fU.dependsOn(variable)) {
+        fU = replaced.expand().simplify(assumptions: assumptions);
+      }
+      if (fU.dependsOn(variable)) continue;
+
+      final uAntideriv = _antiDerivative(
+        fU,
+        uName,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!_hasUnevaluatedIntegral(uAntideriv, uName)) {
+        return uAntideriv
+            .substitute(uName, candidate)
             .simplify(assumptions: assumptions);
       }
     }

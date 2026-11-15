@@ -1,3 +1,4 @@
+import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../ast.dart';
 
@@ -144,6 +145,10 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
   final quot = (expr / target).simplify();
   if (!quot.dependsOn(variable)) {
     return quot;
+  }
+  final expandedQuot = quot.expand().simplify();
+  if (!expandedQuot.dependsOn(variable)) {
+    return expandedQuot;
   }
   return null;
 }
