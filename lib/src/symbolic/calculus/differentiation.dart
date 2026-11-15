@@ -267,7 +267,9 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     sVar != variable && !lower.dependsOn(variable) && !upper.dependsOn(variable)
         ? Sum(_differentiate(inner, variable), sVar, lower, upper)
         : Derivative(expr, variable),
-  Limit() || Product() || VariableFunction() => Derivative(expr, variable),
+  Limit() || Product() => Derivative(expr, variable),
+  VariableFunction(:final name, :final arguments) =>
+    _differentiateVariableFunction(expr, name, arguments, variable),
 };
 
 Expr _differentiateDerivative(
@@ -433,4 +435,54 @@ Expr _differentiatePow(Expr expr, Expr base, Expr exponent, String variable) {
       (exponent * _differentiate(base, variable)) / base,
     ]),
   ]);
+}
+
+Expr _differentiateVariableFunction(
+  Expr expr,
+  String name,
+  List<Expr> arguments,
+  String variable,
+) {
+  if (arguments case [final u]) {
+    final uPrime = _differentiate(u, variable);
+    return switch (name) {
+      'Ei' => Pow(Constant.e, u) * uPrime / u,
+      'li' || 'Li' => uPrime / Ln(u),
+      'Si' => Sin(u) * uPrime / u,
+      'Ci' => Cos(u) * uPrime / u,
+      'Shi' => Sinh(u) * uPrime / u,
+      'Chi' => Cosh(u) * uPrime / u,
+      'erfi' =>
+        (IntegerNumber.two / Pow(Constant.pi, FractionNumber.half)) *
+            Pow(Constant.e, Pow(u, IntegerNumber.two)) *
+            uPrime,
+      'fresnels' =>
+        Sin(Constant.pi * Pow(u, IntegerNumber.two) / IntegerNumber.two) *
+            uPrime,
+      'fresnelc' =>
+        Cos(Constant.pi * Pow(u, IntegerNumber.two) / IntegerNumber.two) *
+            uPrime,
+      _ => Derivative(expr, variable),
+    };
+  }
+  if (arguments case [final p, final u] when !p.dependsOn(variable)) {
+    final uPrime = _differentiate(u, variable);
+    return switch (name) {
+      'polylog' =>
+        p == IntegerNumber.one
+            ? uPrime / (IntegerNumber.one - u)
+            : VariableFunction('polylog', [
+                    (p - IntegerNumber.one).simplify(),
+                    u,
+                  ]) *
+                  uPrime /
+                  u,
+      'uppergamma' =>
+        -Pow(u, (p - IntegerNumber.one).simplify()) *
+            Pow(Constant.e, -u) *
+            uPrime,
+      _ => Derivative(expr, variable),
+    };
+  }
+  return Derivative(expr, variable);
 }
