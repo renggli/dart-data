@@ -166,6 +166,12 @@ final class PlotView {
       }
     }
 
+    int targetMaxPoints() {
+      final w = canvas.clientWidth;
+      if (w <= 0) return 1536;
+      return (w * 2).clamp(1024, 4096);
+    }
+
     if (plot.parameters.isNotEmpty) {
       final slidersWrap =
           web.document.createElement('div') as web.HTMLDivElement
@@ -200,7 +206,7 @@ final class PlotView {
                 plot.minT ?? 0.0,
                 plot.maxT ?? 6.283185307179586,
                 parameterValues: paramValues,
-                steps: 240,
+                steps: 720,
               );
             } else {
               plot = buildPlotValue(
@@ -209,7 +215,7 @@ final class PlotView {
                 controller.minX,
                 controller.maxX,
                 parameterValues: paramValues,
-                maxPoints: 256,
+                maxPoints: targetMaxPoints(),
               );
             }
             draw();
@@ -221,12 +227,6 @@ final class PlotView {
         slidersWrap.append(row);
       }
       container.append(slidersWrap);
-    }
-
-    int targetMaxPoints() {
-      final w = canvas.clientWidth;
-      if (w <= 0) return 1536;
-      return (w * 2).clamp(1024, 4096);
     }
 
     Timer? resampleTimer;

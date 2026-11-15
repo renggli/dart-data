@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:test/test.dart';
 
+import '../../../web/calculator/src/model/session.dart';
 import '../../../web/calculator/src/worker/protocol.dart';
 
 void main() {
@@ -288,5 +289,23 @@ void main() {
       check(dispatcher.session.activeCells).isEmpty();
       check(dispatcher.stack.isEmpty).isTrue();
     });
+
+    test(
+      'round-trips solve([x + y = 3, x - y = 1], [x, y]) via evalScroll',
+      () {
+        final dispatcher = WorkerDispatcher();
+        final resp = dispatcher.handle(
+          const WorkerRequest(
+            id: 1,
+            op: 'evalScroll',
+            payload: {'input': 'solve([x + y = 3, x - y = 1], [x, y])'},
+          ),
+        );
+        check(resp.ok).isTrue();
+        final cellMap = (resp.result!['cell']! as Map).cast<String, Object?>();
+        final cell = WorksheetCell.fromJson(cellMap);
+        check(cell.value.toCanonicalText()).equals('[[x == 2, y == 1]]');
+      },
+    );
   });
 }

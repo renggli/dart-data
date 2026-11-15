@@ -126,7 +126,16 @@ final class CalcEvaluator {
         referencedSymbols: referencedSymbols,
         beforeCellId: beforeCellId,
       );
-      final finalValue = postProcess(value, forceNumeric: forceNumeric);
+      final skipAutoSimplify = switch (stmt) {
+        EvalStatement(node: CallNode(:final name)) =>
+          CommandRegistry.byName[name.toLowerCase()]?.preserveForm ?? false,
+        _ => false,
+      };
+      final finalValue = postProcess(
+        value,
+        forceNumeric: forceNumeric,
+        skipAutoSimplify: skipAutoSimplify,
+      );
       return StatementEvaluationResult(
         value: finalValue,
         assignedSymbol: assignedSymbol,
@@ -765,12 +774,16 @@ final class CalcEvaluator {
 
   /// Applies auto-simplify, complex display mode, and exact/approx policy to a
   /// computed [CalcValue].
-  CalcValue postProcess(CalcValue value, {bool forceNumeric = false}) {
+  CalcValue postProcess(
+    CalcValue value, {
+    bool forceNumeric = false,
+    bool skipAutoSimplify = false,
+  }) {
     final settings = environment.settings;
     final assumptions = settings.assumptions;
     var current = value;
 
-    if (settings.autoSimplify) {
+    if (settings.autoSimplify && !skipAutoSimplify) {
       current = switch (current) {
         ExprValue(:final expr) => ExprValue(
           expr.simplify(assumptions: assumptions),

@@ -549,5 +549,27 @@ void main() {
             .equals(prevCell.value.toCanonicalText());
       },
     );
+
+    test('solves linear system [x + y = 3, x - y = 1] in [x, y]', () {
+      final eval = createEval();
+      final cell = eval.evaluateScroll('solve([x + y = 3, x - y = 1], [x, y])');
+      check(cell.value.toCanonicalText()).equals('[[x == 2, y == 1]]');
+    });
+
+    test('handles simplify, factor, and polar help examples', () {
+      final eval = createEval();
+      check(
+        eval
+            .evaluateScroll('simplify((x^2 - 1) / (x - 1))')
+            .value
+            .toCanonicalText(),
+      ).equals('1 + x');
+      check(eval.evaluateScroll('factor(360)').value.toCanonicalText())
+          .equals('2 ^ 3 * 3 ^ 2 * 5');
+      check(eval.evaluateScroll('polar(1 + i)').value.toCanonicalText())
+          .equals('sqrt(2) * exp(1/4 * i * pi)');
+      check(eval.evaluateScroll('polar(-2 * i)').value.toCanonicalText())
+          .equals('2 * exp(-1/2 * i * pi)');
+    });
   });
 }

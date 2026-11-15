@@ -163,18 +163,6 @@
   color: inherit;
 }
 
-.domain-var-label math mi {
-  font-family: inherit;
-  font-style: italic;
-  padding-right: 2px;
-}
-
-.domain-var-label math mo {
-  font-family: inherit;
-  padding: 0 1px;
-  overflow: visible;
-}
-
 .domain-select {
   font-size: 12px;
   padding: 4px 8px;

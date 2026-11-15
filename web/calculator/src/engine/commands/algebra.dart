@@ -28,7 +28,21 @@ List<Command> buildAlgebraCommands() => [
       checkCommandArity('simplify', args, 1, 1);
       return liftUnaryCommand(
         args[0],
-        (e) => e.simplify(assumptions: ctx.assumptions),
+        (e) {
+          final simplified = e.simplify(assumptions: ctx.assumptions);
+          if (simplified.anyNode(
+            (n) =>
+                n is Pow &&
+                n.exponent is IntegerNumber &&
+                ((n.exponent as IntegerNumber).asInt ?? 0) < 0,
+          )) {
+            final canceled = simplified.cancel(assumptions: ctx.assumptions);
+            if (canceled.toString().length <= simplified.toString().length) {
+              return canceled;
+            }
+          }
+          return simplified;
+        },
         onMatrix: (m) => m.simplify(assumptions: ctx.assumptions),
         onVector: (v) => v.simplify(assumptions: ctx.assumptions),
       );
@@ -41,6 +55,7 @@ List<Command> buildAlgebraCommands() => [
     paramSpecs: const [ParamSpec.expr('expr')],
     minArity: 1,
     maxArity: 1,
+    preserveForm: true,
     doc: 'Expands products and positive integer powers.',
     examples: const ['expand((x + 1)^3)', 'expand((x - 1) * (x + 2))'],
     rpnLabel: 'Expand',
@@ -68,6 +83,7 @@ List<Command> buildAlgebraCommands() => [
     paramSpecs: const [ParamSpec.expr('expr')],
     minArity: 1,
     maxArity: 1,
+    preserveForm: true,
     doc: 'Factors polynomials over Q[x] and integers into prime powers.',
     examples: const ['factor(x^4 - 1)', 'factor(360)'],
     rpnLabel: 'Factor',

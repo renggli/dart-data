@@ -1697,6 +1697,8 @@ body.calc-body {
   padding: 0.18rem 0.45rem;
   font-family: var(--font-mono);
   font-size: 0.74rem;
+  line-height: 1.35;
+  text-align: left;
   color: var(--accent-color);
   cursor: pointer;
   transition: background-color 0.15s ease;

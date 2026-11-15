@@ -489,7 +489,10 @@ final class RpnInterpreter {
       EvaluatorContext(environment: environment, session: session),
     );
     _cleanupPoppedLiterals(popped);
-    final processed = _postProcessValue(res);
+    final processed = _postProcessValue(
+      res,
+      skipAutoSimplify: cmd.preserveForm,
+    );
     if (processed is InfoValue &&
         (cmd.name == 'clear' || cmd.name == 'clearall')) {
       return;
@@ -525,7 +528,10 @@ final class RpnInterpreter {
     );
   }
 
-  CalcValue _postProcessValue(CalcValue value) => evaluator.postProcess(value);
+  CalcValue _postProcessValue(
+    CalcValue value, {
+    bool skipAutoSimplify = false,
+  }) => evaluator.postProcess(value, skipAutoSimplify: skipAutoSimplify);
 
   static bool _looksLikeVariable(CalcValue v) =>
       v is ExprValue && v.expr is Variable;

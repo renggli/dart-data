@@ -233,8 +233,8 @@ class Layout {
       throw RangeError.range(index, 0, dim - 1, 'index');
     }
     return Layout(
-      shape: shape.sublist(1),
-      strides: strides.sublist(1),
+      shape: shape.skip(1),
+      strides: strides.skip(1),
       offset: offset + normalized * strides[0],
     );
   }

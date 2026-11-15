@@ -123,7 +123,13 @@ final class Command {
     required this.chipLabel,
     required this.buildChipCall,
     required this.run,
+    this.preserveForm = false,
   });
+
+  /// Whether post-processing should skip `autoSimplify` on the result so
+  /// structural commands (`factor`, `expand`, `polar`, ...) keep their
+  /// requested form.
+  final bool preserveForm;
 
   /// Canonical command name (`simplify`, `integrate`, `det`, ...).
   final String name;
