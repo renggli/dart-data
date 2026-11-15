@@ -396,7 +396,10 @@ class ExprSyntax {
     );
 
     // Exponentiation (right-associative)
-    final caretOp = anyOf('^ˆ\u0302‸＾').trim();
+    final caretOp = <Parser<String>>[
+      string('**'),
+      anyOf('^ˆ\u0302‸＾'),
+    ].toChoiceParser().trim();
     builder.group()
       ..right(seq2(caretOp, char('-').trim()), (a, _, b) => Pow(a, -b))
       ..right(seq2(caretOp, char('+').trim()), (a, _, b) => Pow(a, b))

@@ -172,6 +172,11 @@ void main() {
         final rightAssoc = Expr.parse('2^3^2').simplify();
         check(rightAssoc).equals(IntegerNumber.of(512));
 
+        // Double-asterisk exponentiation: x**2, x**-2, 2**3**2
+        check(Expr.parse('x**2')).equals(Pow(x, IntegerNumber.two));
+        check(Expr.parse('x**-2')).equals(Pow(x, IntegerNumber.of(-2)));
+        check(Expr.parse('2**3**2').simplify()).equals(IntegerNumber.of(512));
+
         // Syntax and function errors (including case sensitivity and arity mismatch)
         final syntax = ExprSyntax.standard;
         check(syntax.parse('SIN(x)'))
