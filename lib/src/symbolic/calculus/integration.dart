@@ -142,7 +142,7 @@ Expr _antiDerivative(
     return (node * Variable(variable)).simplify(assumptions: assumptions);
   }
 
-  return switch (node) {
+  final result = switch (node) {
     Variable(:final name) when name == variable =>
       (Pow(node, IntegerNumber.two) / IntegerNumber.two).simplify(
         assumptions: assumptions,
@@ -201,6 +201,20 @@ Expr _antiDerivative(
     Mul() => _antiDerivMul(node, variable, assumptions: assumptions),
     _ => _unsupported(node, variable),
   };
+
+  if (variable != '_u' &&
+      node is! Add &&
+      _hasUnevaluatedIntegral(result, variable)) {
+    if (_tryAffineRadicalSubstitution(node, variable, assumptions: assumptions)
+        case final affineRes?) {
+      return affineRes;
+    }
+    if (_tryChebyshevBinomial(node, variable, assumptions: assumptions)
+        case final chebRes?) {
+      return chebRes;
+    }
+  }
+  return result;
 }
 
 Expr _unsupported(Expr expr, String variable) =>
@@ -1637,6 +1651,240 @@ Expr? _tryQuadraticRadicalConst(
             (const IntegerNumber(Integer(4)) * a * nPlus1)) *
         prev;
     return (term1 + term2).simplify();
+  }
+
+  return null;
+}
+
+int _gcdInt(int a, int b) {
+  var x = a.abs();
+  var y = b.abs();
+  while (y != 0) {
+    final t = x % y;
+    x = y;
+    y = t;
+  }
+  return x;
+}
+
+int _lcmInt(int a, int b) => (a * b) ~/ _gcdInt(a, b);
+
+({int p, int q})? _fractionalExponent(Expr exponent) {
+  if (exponent case FractionNumber(:final numerator, :final denominator)) {
+    final p = numerator.asInt;
+    final q = denominator.asInt;
+    if (p != null && q != null && q >= 2 && q <= 6) return (p: p, q: q);
+  }
+  if (exponent is RealNumber && exponent.value.abs() == 0.5) {
+    return (p: exponent.value > 0 ? 1 : -1, q: 2);
+  }
+  return null;
+}
+
+void _collectAffineRadicals(
+  Expr node,
+  String variable,
+  List<({Expr base, int p, int q})> out,
+) {
+  if (node case Pow(:final base, :final exponent)) {
+    if (base.dependsOn(variable) && base.matchLinear(variable) != null) {
+      if (_fractionalExponent(exponent) case (:final p, :final q)) {
+        out.add((base: base, p: p, q: q));
+        return;
+      }
+    }
+  }
+  node.mapChildren((child) {
+    _collectAffineRadicals(child, variable, out);
+    return child;
+  });
+}
+
+Expr _replaceAffineRadical(
+  Expr node,
+  Expr targetBase,
+  String variable,
+  Variable uVar,
+  int n,
+  Expr a,
+  Expr b,
+) {
+  if (node case Pow(:final base, :final exponent) when base == targetBase) {
+    if (_fractionalExponent(exponent) case (:final p, :final q)) {
+      return Pow(uVar, IntegerNumber.of((p * n) ~/ q));
+    }
+  }
+  if (node is Variable && node.name == variable) {
+    return ((Pow(uVar, IntegerNumber.of(n)) - b) / a).simplify();
+  }
+  return node.mapChildren(
+    (child) =>
+        _replaceAffineRadical(child, targetBase, variable, uVar, n, a, b),
+  );
+}
+
+Expr? _tryAffineRadicalSubstitution(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final radicals = <({Expr base, int p, int q})>[];
+  _collectAffineRadicals(expr, variable, radicals);
+  if (radicals.isEmpty) return null;
+
+  final firstBase = radicals.first.base;
+  if (!radicals.every((r) => r.base == firstBase)) return null;
+  final linear = firstBase.matchLinear(variable);
+  if (linear == null) return null;
+  final (:a, :b) = linear;
+
+  var n = 1;
+  for (final r in radicals) {
+    n = _lcmInt(n, r.q);
+    if (n > 6) return null;
+  }
+  if (n < 2) return null;
+
+  const uName = '_u';
+  const uVar = Variable(uName);
+  final replaced = _replaceAffineRadical(
+    expr,
+    firstBase,
+    variable,
+    uVar,
+    n,
+    a,
+    b,
+  );
+  final dx = (IntegerNumber.of(n) * Pow(uVar, IntegerNumber.of(n - 1))) / a;
+  final transformed = (replaced * dx).expand().simplify(
+    assumptions: assumptions,
+  );
+  if (transformed.dependsOn(variable)) return null;
+
+  final uAntideriv = _antiDerivative(
+    transformed,
+    uName,
+    assumptions: assumptions,
+  );
+  if (_hasUnevaluatedIntegral(uAntideriv, uName)) return null;
+
+  final backSub = Pow(firstBase, FractionNumber(Integer.one, Integer(n)));
+  return uAntideriv
+      .substitute(uName, backSub)
+      .simplify(assumptions: assumptions);
+}
+
+Expr? _tryChebyshevBinomial(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final factors = expr is Mul ? expr.factors : [expr];
+  var constScale = IntegerNumber.one as Expr;
+  var m = 0;
+  Pow? binomPow;
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      constScale = (constScale * f).simplify();
+      continue;
+    }
+    if (f is Variable && f.name == variable) {
+      m += 1;
+      continue;
+    }
+    if (f case Pow(base: Variable(:final name), :final exponent)
+        when name == variable) {
+      if (exponent case IntegerNumber(:final asInt) when asInt != null) {
+        m += asInt;
+        continue;
+      }
+      return null;
+    }
+    if (f is Pow && binomPow == null) {
+      binomPow = f;
+      continue;
+    }
+    return null;
+  }
+
+  if (binomPow == null) return null;
+  final fracExp = _fractionalExponent(binomPow.exponent);
+  if (fracExp == null) return null;
+  final (:p, :q) = fracExp;
+
+  final baseCoeffs = extractPolynomialCoefficients(binomPow.base, variable);
+  if (baseCoeffs == null) return null;
+  final n = maxPolynomialDegree(baseCoeffs);
+  if (n < 2) return null;
+  for (var deg = 1; deg < n; deg++) {
+    if (baseCoeffs[deg] != null && baseCoeffs[deg] != IntegerNumber.zero) {
+      return null;
+    }
+  }
+  final a = baseCoeffs[0] ?? IntegerNumber.zero;
+  final b = baseCoeffs[n] ?? IntegerNumber.zero;
+  if (a == IntegerNumber.zero || b == IntegerNumber.zero) return null;
+
+  const uName = '_u';
+  const uVar = Variable(uName);
+
+  // Case 1: (m + 1) / n is a positive integer k
+  if ((m + 1) > 0 && (m + 1) % n == 0) {
+    final k = (m + 1) ~/ n;
+    if (k <= 8) {
+      final transformed =
+          (constScale *
+                  (IntegerNumber.one / (IntegerNumber.of(n) * b)) *
+                  Pow((uVar - a) / b, IntegerNumber.of(k - 1)) *
+                  Pow(uVar, FractionNumber(Integer(p), Integer(q))))
+              .expand()
+              .simplify(assumptions: assumptions);
+      final uAntideriv = _antiDerivative(
+        transformed,
+        uName,
+        assumptions: assumptions,
+      );
+      if (!_hasUnevaluatedIntegral(uAntideriv, uName)) {
+        return uAntideriv
+            .substitute(uName, binomPow.base)
+            .simplify(assumptions: assumptions);
+      }
+    }
+  }
+
+  // Case 2: (m + 1) / n + p / q is an integer r
+  final numSum = (m + 1) * q + p * n;
+  final denProd = n * q;
+  if (numSum % denProd == 0) {
+    final r = numSum ~/ denProd;
+    if (r.abs() <= 6) {
+      final transformed =
+          (constScale *
+                  (-IntegerNumber.of(q) / (IntegerNumber.of(n) * a)) *
+                  Pow(uVar, IntegerNumber.of(q - 1 + p)) *
+                  Pow(
+                    (Pow(uVar, IntegerNumber.of(q)) - b) / a,
+                    IntegerNumber.of(-(r + 1)),
+                  ))
+              .expand()
+              .simplify(assumptions: assumptions);
+      final uAntideriv = _antiDerivative(
+        transformed,
+        uName,
+        assumptions: assumptions,
+      );
+      if (!_hasUnevaluatedIntegral(uAntideriv, uName)) {
+        final backSub = Pow(
+          (a * Pow(Variable(variable), IntegerNumber.of(-n)) + b).simplify(),
+          FractionNumber(Integer.one, Integer(q)),
+        );
+        return uAntideriv
+            .substitute(uName, backSub)
+            .simplify(assumptions: assumptions);
+      }
+    }
   }
 
   return null;

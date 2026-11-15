@@ -522,4 +522,47 @@ void main() {
       },
     );
   });
+
+  group('Affine radical and binomial substitutions', () {
+    test('integrates affine radical products and quotients', () {
+      verifyAntiderivative(
+        Expr.parse('x * sqrt(3 * x + 1)'),
+        points: const [0.3, 1.0, 2.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('x^2 * sqrt(x + 1)'),
+        points: const [0.3, 1.0, 2.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('x / sqrt(2 - 3 * x)'),
+        points: const [-1.0, -0.5, 0.2],
+      );
+      verifyAntiderivative(
+        Expr.parse('x * (x - 1)^(1/3)'),
+        points: const [1.5, 2.0, 3.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('(3 * x - 5)^2 / (2 * x - 1)^(7/2)'),
+        points: const [1.0, 1.5, 2.5],
+      );
+    });
+
+    test(
+      'integrates Chebyshev binomials and transcendental affine radicals',
+      () {
+        verifyAntiderivative(
+          Expr.parse('x^5 / sqrt(x^2 + 5)'),
+          points: const [0.4, 1.0, 2.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('exp(sqrt(x))'),
+          points: const [0.4, 1.0, 2.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('sin((x - 1)^(1/4))'),
+          points: const [1.5, 2.0, 3.0],
+        );
+      },
+    );
+  });
 }
