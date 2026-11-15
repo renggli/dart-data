@@ -277,6 +277,59 @@ final class WorkerDispatcher {
         );
         return {'state': exportStateJson()};
 
+      case 'defineSymbol':
+        final before = _exportCoreState();
+        final input = payload['input']! as String;
+        final result = evaluator.evaluateRaw(input);
+        if (result.value is ErrorValue) {
+          _importCoreState(before);
+          return {
+            'error': CalcSerialization.toJson(
+              result.value,
+              digits: environment.settings.digits,
+            ),
+            'state': exportStateJson(),
+          };
+        }
+        final symbol = result.assignedSymbol;
+        if (symbol == null) {
+          _importCoreState(before);
+          return {
+            'error': CalcSerialization.toJson(
+              const ErrorValue(
+                'Expected an assignment such as "a := 5" or "f(x) := x^2".',
+              ),
+              digits: environment.settings.digits,
+            ),
+            'state': exportStateJson(),
+          };
+        }
+        session.markDependentsStale(changedSymbols: {symbol});
+        _recordUndoSnapshot(before);
+        return {'state': exportStateJson()};
+
+      case 'clearSymbol':
+        final name = payload['name']! as String;
+        final before = _exportCoreState();
+        if (environment.clearSymbol(name)) {
+          session.markDependentsStale(changedSymbols: {name});
+          _recordUndoSnapshot(before);
+        }
+        return {'state': exportStateJson()};
+
+      case 'clearAllSymbols':
+        final names = {
+          ...environment.variables.keys,
+          ...environment.functions.keys,
+        };
+        if (names.isNotEmpty) {
+          final before = _exportCoreState();
+          environment.clearAll();
+          session.markDependentsStale(changedSymbols: names);
+          _recordUndoSnapshot(before);
+        }
+        return {'state': exportStateJson()};
+
       case 'loadState':
         _undoStack.clear();
         _redoStack.clear();

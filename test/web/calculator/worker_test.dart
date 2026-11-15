@@ -234,5 +234,59 @@ void main() {
       check(respErrDecoded.ok).isFalse();
       check(respErrDecoded.error!['message']).equals('bad input');
     });
+
+    test('defineSymbol, clearSymbol, and clearAllSymbols mutate environment without adding scroll cells or RPN stack items', () {
+      final dispatcher = WorkerDispatcher();
+
+      final defVar = dispatcher.handle(
+        const WorkerRequest(
+          id: 1,
+          op: 'defineSymbol',
+          payload: {'input': 'a := 5'},
+        ),
+      );
+      check(defVar.ok).isTrue();
+      check(defVar.result!['error']).isNull();
+      check(dispatcher.environment.getVariable('a')?.toCanonicalText())
+          .equals('5');
+      check(dispatcher.session.activeCells).isEmpty();
+      check(dispatcher.stack.isEmpty).isTrue();
+
+      final defFn = dispatcher.handle(
+        const WorkerRequest(
+          id: 2,
+          op: 'defineSymbol',
+          payload: {'input': 'f(x) := x^2'},
+        ),
+      );
+      check(defFn.ok).isTrue();
+      check(dispatcher.environment.getFunction('f')).isNotNull();
+      check(dispatcher.session.activeCells).isEmpty();
+      check(dispatcher.stack.isEmpty).isTrue();
+
+      final nonAssign = dispatcher.handle(
+        const WorkerRequest(
+          id: 3,
+          op: 'defineSymbol',
+          payload: {'input': '2 + 2'},
+        ),
+      );
+      check(nonAssign.ok).isTrue();
+      check(nonAssign.result!['error']).isNotNull();
+      check(dispatcher.session.activeCells).isEmpty();
+      check(dispatcher.stack.isEmpty).isTrue();
+
+      dispatcher.handle(
+        const WorkerRequest(id: 4, op: 'clearSymbol', payload: {'name': 'a'}),
+      );
+      check(dispatcher.environment.getVariable('a')).isNull();
+      check(dispatcher.environment.getFunction('f')).isNotNull();
+
+      dispatcher.handle(const WorkerRequest(id: 5, op: 'clearAllSymbols'));
+      check(dispatcher.environment.variables).isEmpty();
+      check(dispatcher.environment.functions).isEmpty();
+      check(dispatcher.session.activeCells).isEmpty();
+      check(dispatcher.stack.isEmpty).isTrue();
+    });
   });
 }

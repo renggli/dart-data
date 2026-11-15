@@ -462,7 +462,6 @@ final class PlotValue extends CalcValue {
     this.parameters = const [],
     this.isParametric = false,
     this.isOde = false,
-    this.isDegrees = false,
     this.minT,
     this.maxT,
     this.surface3d,
@@ -478,7 +477,6 @@ final class PlotValue extends CalcValue {
   final List<String> parameters;
   final bool isParametric;
   final bool isOde;
-  final bool isDegrees;
   final double? minT;
   final double? maxT;
   final Surface3dData? surface3d;

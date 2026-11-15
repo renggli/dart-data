@@ -51,16 +51,9 @@ List<Command> buildPlotCommands() => [
             inferredVar,
             a,
             b,
-            angleMode: ctx.settings.angleMode,
           );
         }
-        return buildPlotValue(
-          exprs,
-          inferredVar,
-          a,
-          b,
-          angleMode: ctx.settings.angleMode,
-        );
+        return buildPlotValue(exprs, inferredVar, a, b);
       }
       final varName = args.length >= 2
           ? expectCommandVarName(args[1], 'plot')
@@ -79,18 +72,11 @@ List<Command> buildPlotCommands() => [
           varName,
           tMin,
           tMax,
-          angleMode: ctx.settings.angleMode,
         );
       }
       final a = args.length >= 3 ? expectCommandDouble(args[2], 'plot') : -5.0;
       final b = args.length >= 4 ? expectCommandDouble(args[3], 'plot') : 5.0;
-      return buildPlotValue(
-        exprs,
-        varName,
-        a,
-        b,
-        angleMode: ctx.settings.angleMode,
-      );
+      return buildPlotValue(exprs, varName, a, b);
     },
   ),
   Command(
@@ -208,14 +194,7 @@ List<Command> buildPlotCommands() => [
       final tMax = args.length >= 4
           ? expectCommandDouble(args[3], 'parametric')
           : 2 * math.pi;
-      return buildParametricPlotValue(
-        exprs[0],
-        exprs[1],
-        varName,
-        tMin,
-        tMax,
-        angleMode: ctx.settings.angleMode,
-      );
+      return buildParametricPlotValue(exprs[0], exprs[1], varName, tMin, tMax);
     },
   ),
   Command(

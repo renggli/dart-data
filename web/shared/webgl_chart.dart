@@ -66,20 +66,13 @@ final class WebGL2ChartLayer {
     return out.toDataURL('image/png');
   }
 
-  new _(
-    this._hudCanvas,
-    this._glCanvas,
-    this._gl,
-    this._lineProgram,
-    this._fillProgram,
-    this._vbo,
-  );
+  new _(this._hudCanvas, this._glCanvas, this._underlayCtx, this._shared);
 
   factory _create(web.HTMLCanvasElement hudCanvas) {
-    final glCanvas =
+    final underlayCanvas =
         web.document.createElement('canvas') as web.HTMLCanvasElement
           ..className = 'webgl2-underlay';
-    glCanvas.style
+    underlayCanvas.style
       ..position = 'absolute'
       ..top = '0'
       ..left = '0'
@@ -96,55 +89,30 @@ final class WebGL2ChartLayer {
       hudCanvas.style
         ..position = 'relative'
         ..zIndex = '1';
-      htmlParent.insertBefore(glCanvas, hudCanvas);
+      htmlParent.insertBefore(underlayCanvas, hudCanvas);
     }
 
-    web.WebGL2RenderingContext? gl;
-    try {
-      final ctx = glCanvas.getContext(
-        'webgl2',
-        {
-          'alpha': true,
-          'antialias': true,
-          'premultipliedAlpha': false,
-          'preserveDrawingBuffer': true,
-        }.jsify(),
-      );
-      if (ctx != null && ctx.isA<web.WebGL2RenderingContext>()) {
-        gl = ctx as web.WebGL2RenderingContext;
-      }
-    } catch (_) {
-      gl = null;
-    }
-
-    if (gl == null) {
-      return WebGL2ChartLayer._(hudCanvas, glCanvas, null, null, null, null);
-    }
-
-    final lineProg = compileProgram(gl, _lineVertSrc, _lineFragSrc);
-    final fillProg = compileProgram(gl, _fillVertSrc, _fillFragSrc);
-    final vbo = gl.createBuffer();
-
-    return WebGL2ChartLayer._(hudCanvas, glCanvas, gl, lineProg, fillProg, vbo);
+    final shared = _SharedWebGL2ChartContext.instance;
+    final underlayCtx = shared.isAvailable ? underlayCanvas.context2D : null;
+    return WebGL2ChartLayer._(hudCanvas, underlayCanvas, underlayCtx, shared);
   }
 
   final web.HTMLCanvasElement _hudCanvas;
   final web.HTMLCanvasElement _glCanvas;
-  final web.WebGL2RenderingContext? _gl;
-  final web.WebGLProgram? _lineProgram;
-  final web.WebGLProgram? _fillProgram;
-  final web.WebGLBuffer? _vbo;
+  final web.CanvasRenderingContext2D? _underlayCtx;
+  final _SharedWebGL2ChartContext _shared;
+
+  web.WebGL2RenderingContext? get _gl => _shared.gl;
+  web.WebGLProgram? get _lineProgram => _shared.lineProgram;
+  web.WebGLProgram? get _fillProgram => _shared.fillProgram;
+  web.WebGLBuffer? get _vbo => _shared.vbo;
 
   double _cssWidth = 0.0;
   double _cssHeight = 0.0;
   double _dpr = 1.0;
 
   /// Whether WebGL2 context and shader programs initialized cleanly.
-  bool get isAvailable =>
-      _gl != null &&
-      _lineProgram != null &&
-      _fillProgram != null &&
-      _vbo != null;
+  bool get isAvailable => _shared.isAvailable && _underlayCtx != null;
 
   /// Draws an anti-aliased polyline from pixel coordinates `[x0, y0, x1, y1, ...]`
   /// clipped to `[clipLeft, clipTop, clipWidth, clipHeight]`.
@@ -311,6 +279,7 @@ final class WebGL2ChartLayer {
     if (normLoc >= 0) gl.disableVertexAttribArray(normLoc);
     if (sideLoc >= 0) gl.disableVertexAttribArray(sideLoc);
     if (arcLoc >= 0) gl.disableVertexAttribArray(arcLoc);
+    _syncToUnderlay();
     return true;
   }
 
@@ -403,7 +372,17 @@ final class WebGL2ChartLayer {
     gl.disable(web.WebGLRenderingContext.SCISSOR_TEST);
     if (posLoc >= 0) gl.disableVertexAttribArray(posLoc);
     if (alphaLoc >= 0) gl.disableVertexAttribArray(alphaLoc);
+    _syncToUnderlay();
     return true;
+  }
+
+  void _syncToUnderlay() {
+    final ctx = _underlayCtx;
+    if (ctx == null) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'copy';
+    ctx.drawImage(_shared.canvas, 0, 0);
+    ctx.restore();
   }
 
   void _prepareFrame(double cssWidth, double cssHeight, double dpr) {
@@ -424,8 +403,12 @@ final class WebGL2ChartLayer {
       _hudCanvas.parentElement!.insertBefore(_glCanvas, _hudCanvas);
     }
 
+    _underlayCtx?.clearRect(0, 0, targetW.toDouble(), targetH.toDouble());
+
     final gl = _gl;
     if (gl == null) return;
+    if (_shared.canvas.width != targetW) _shared.canvas.width = targetW;
+    if (_shared.canvas.height != targetH) _shared.canvas.height = targetH;
     gl.viewport(0, 0, targetW, targetH);
     gl.disable(web.WebGLRenderingContext.SCISSOR_TEST);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -563,4 +546,63 @@ void main() {
     }
     return (r: 0.23, g: 0.51, b: 0.96, a: 1.0);
   }
+}
+
+final class _SharedWebGL2ChartContext {
+  new _(this.canvas, this.gl, this.lineProgram, this.fillProgram, this.vbo);
+
+  factory _create() {
+    final canvas =
+        web.document.createElement('canvas') as web.HTMLCanvasElement;
+    web.WebGL2RenderingContext? gl;
+    try {
+      final ctx = canvas.getContext(
+        'webgl2',
+        {
+          'alpha': true,
+          'antialias': true,
+          'premultipliedAlpha': false,
+          'preserveDrawingBuffer': true,
+        }.jsify(),
+      );
+      if (ctx != null && ctx.isA<web.WebGL2RenderingContext>()) {
+        gl = ctx as web.WebGL2RenderingContext;
+      }
+    } catch (_) {
+      gl = null;
+    }
+
+    if (gl == null) {
+      return _SharedWebGL2ChartContext._(canvas, null, null, null, null);
+    }
+
+    final lineProg = compileProgram(
+      gl,
+      WebGL2ChartLayer._lineVertSrc,
+      WebGL2ChartLayer._lineFragSrc,
+    );
+    final fillProg = compileProgram(
+      gl,
+      WebGL2ChartLayer._fillVertSrc,
+      WebGL2ChartLayer._fillFragSrc,
+    );
+    final vbo = gl.createBuffer();
+    return _SharedWebGL2ChartContext._(canvas, gl, lineProg, fillProg, vbo);
+  }
+
+  static final _SharedWebGL2ChartContext instance =
+      _SharedWebGL2ChartContext._create();
+
+  final web.HTMLCanvasElement canvas;
+  final web.WebGL2RenderingContext? gl;
+  final web.WebGLProgram? lineProgram;
+  final web.WebGLProgram? fillProgram;
+  final web.WebGLBuffer? vbo;
+
+  bool get isAvailable =>
+      gl != null &&
+      !gl!.isContextLost() &&
+      lineProgram != null &&
+      fillProgram != null &&
+      vbo != null;
 }

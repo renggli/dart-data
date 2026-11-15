@@ -6,7 +6,6 @@ import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
 
-import '../model/environment.dart';
 import '../model/value.dart';
 
 /// Samples one or more symbolic [expressions] over `[minX, maxX]` using
@@ -17,14 +16,14 @@ PlotValue buildPlotValue(
   String variable,
   double minX,
   double maxX, {
-  AngleMode angleMode = AngleMode.rad,
   Map<String, double>? parameterValues,
-  int maxPoints = 512,
+  int maxPoints = 1536,
 }) {
   final effectiveMinX = math.min(minX, maxX);
   final effectiveMaxX = math.max(minX, maxX) == effectiveMinX
       ? effectiveMinX + 10.0
       : math.max(minX, maxX);
+  final initialPoints = math.min(maxPoints, math.max(129, maxPoints ~/ 3));
 
   final paramSet = <String>{
     for (final expr in expressions) ...expr.freeVariables,
@@ -47,12 +46,14 @@ PlotValue buildPlotValue(
         (x) => fnC(Complex(x)).real.toDouble(),
         effectiveMinX,
         effectiveMaxX,
+        initialPoints: initialPoints,
         maxPoints: maxPoints,
       );
       final imSample = sampleCurve(
         (x) => fnC(Complex(x)).imaginary.toDouble(),
         effectiveMinX,
         effectiveMaxX,
+        initialPoints: initialPoints,
         maxPoints: maxPoints,
       );
       final reSegs = [
@@ -96,6 +97,7 @@ PlotValue buildPlotValue(
         fn,
         effectiveMinX,
         effectiveMaxX,
+        initialPoints: initialPoints,
         maxPoints: maxPoints,
       );
       final segs = [
@@ -130,7 +132,6 @@ PlotValue buildPlotValue(
     maxY: maxY,
     curves: curves,
     parameters: parameters,
-    isDegrees: angleMode == AngleMode.deg,
   );
 }
 
@@ -141,7 +142,6 @@ PlotValue buildParametricPlotValue(
   String variable,
   double minT,
   double maxT, {
-  AngleMode angleMode = AngleMode.rad,
   Map<String, double>? parameterValues,
   int steps = 360,
 }) {
@@ -203,7 +203,6 @@ PlotValue buildParametricPlotValue(
     ],
     parameters: parameters,
     isParametric: true,
-    isDegrees: angleMode == AngleMode.deg,
     minT: t0,
     maxT: t1,
   );

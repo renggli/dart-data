@@ -7,6 +7,7 @@ import 'package:web/web.dart' as web;
 import '../engine/evaluator.dart';
 import '../engine/rpn.dart';
 import '../model/environment.dart';
+import '../model/serialization.dart';
 import '../model/session.dart';
 import '../model/stack.dart';
 import '../model/value.dart';
@@ -335,6 +336,50 @@ final class EngineClient {
     final resp = await _request('setSettings', {
       'settings': newSettings.toJson(),
     }, trackBusy: false);
+    if (resp.ok && resp.result != null) {
+      _syncFromWorkerResult(resp.result!);
+    }
+    onStateUpdated?.call();
+  }
+
+  /// Evaluates a variable or function definition (`a := 5` or `f(x) := x^2`)
+  /// without adding a cell to the Scroll worksheet or pushing onto the RPN stack.
+  Future<ErrorValue?> defineSymbol(String input) async {
+    final resp = await _request('defineSymbol', {
+      'input': input,
+    }, trackBusy: false);
+    if (resp.ok && resp.result != null) {
+      _syncFromWorkerResult(resp.result!);
+      onStateUpdated?.call();
+      final errJson = resp.result!['error'];
+      if (errJson is Map) {
+        return CalcSerialization.fromJson(errJson.cast<String, Object?>())
+            as ErrorValue;
+      }
+      return null;
+    }
+    if (resp.error != null) {
+      return CalcSerialization.fromJson(resp.error!) as ErrorValue;
+    }
+    return const ErrorValue('Definition failed');
+  }
+
+  /// Removes a defined variable or function without adding a worksheet cell or
+  /// RPN stack entry.
+  Future<void> clearSymbol(String name) async {
+    final resp = await _request('clearSymbol', {
+      'name': name,
+    }, trackBusy: false);
+    if (resp.ok && resp.result != null) {
+      _syncFromWorkerResult(resp.result!);
+    }
+    onStateUpdated?.call();
+  }
+
+  /// Removes all defined variables and functions without adding a worksheet cell
+  /// or RPN stack entry.
+  Future<void> clearAllSymbols() async {
+    final resp = await _request('clearAllSymbols', const {}, trackBusy: false);
     if (resp.ok && resp.result != null) {
       _syncFromWorkerResult(resp.result!);
     }

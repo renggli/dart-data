@@ -64,10 +64,8 @@ final class WebGLSurfaceRenderer {
   new _(
     this._hudCanvas,
     this._glCanvas,
-    this._gl,
-    this._program,
-    this._vbo,
-    this._ibo, {
+    this._underlayCtx,
+    this._shared, {
     required this._onUpdate,
     this._onHoverReadout,
   }) {
@@ -79,10 +77,10 @@ final class WebGLSurfaceRenderer {
     required void Function() onUpdate,
     void Function(String text)? onHoverReadout,
   }) {
-    final glCanvas =
+    final underlayCanvas =
         web.document.createElement('canvas') as web.HTMLCanvasElement
           ..className = 'webgl2-surface-underlay';
-    glCanvas.style
+    underlayCanvas.style
       ..position = 'absolute'
       ..top = '0'
       ..left = '0'
@@ -99,44 +97,17 @@ final class WebGLSurfaceRenderer {
       hudCanvas.style
         ..position = 'relative'
         ..zIndex = '1';
-      htmlParent.insertBefore(glCanvas, hudCanvas);
+      htmlParent.insertBefore(underlayCanvas, hudCanvas);
     }
 
-    web.WebGL2RenderingContext? gl;
-    try {
-      final ctx = glCanvas.getContext(
-        'webgl2',
-        {
-          'alpha': true,
-          'depth': true,
-          'antialias': true,
-          'premultipliedAlpha': false,
-          'preserveDrawingBuffer': true,
-        }.jsify(),
-      );
-      if (ctx != null && ctx.isA<web.WebGL2RenderingContext>()) {
-        gl = ctx as web.WebGL2RenderingContext;
-      }
-    } catch (_) {
-      gl = null;
-    }
-
-    web.WebGLProgram? prog;
-    web.WebGLBuffer? vbo;
-    web.WebGLBuffer? ibo;
-    if (gl != null) {
-      prog = compileProgram(gl, _vertSrc, _fragSrc);
-      vbo = gl.createBuffer();
-      ibo = gl.createBuffer();
-    }
+    final shared = _SharedWebGL2SurfaceContext.instance;
+    final underlayCtx = shared.isAvailable ? underlayCanvas.context2D : null;
 
     return WebGLSurfaceRenderer._(
       hudCanvas,
-      glCanvas,
-      gl,
-      prog,
-      vbo,
-      ibo,
+      underlayCanvas,
+      underlayCtx,
+      shared,
       onUpdate: onUpdate,
       onHoverReadout: onHoverReadout,
     );
@@ -144,10 +115,13 @@ final class WebGLSurfaceRenderer {
 
   final web.HTMLCanvasElement _hudCanvas;
   final web.HTMLCanvasElement _glCanvas;
-  final web.WebGL2RenderingContext? _gl;
-  final web.WebGLProgram? _program;
-  final web.WebGLBuffer? _vbo;
-  final web.WebGLBuffer? _ibo;
+  final web.CanvasRenderingContext2D? _underlayCtx;
+  final _SharedWebGL2SurfaceContext _shared;
+
+  web.WebGL2RenderingContext? get _gl => _shared.gl;
+  web.WebGLProgram? get _program => _shared.program;
+  web.WebGLBuffer? get _vbo => _shared.vbo;
+  web.WebGLBuffer? get _ibo => _shared.ibo;
 
   void Function() _onUpdate;
   void Function(String text)? _onHoverReadout;
@@ -172,8 +146,7 @@ final class WebGLSurfaceRenderer {
   bool _rafPending = false;
 
   /// Whether WebGL2 3D rendering is available.
-  bool get isAvailable =>
-      _gl != null && _program != null && _vbo != null && _ibo != null;
+  bool get isAvailable => _shared.isAvailable && _underlayCtx != null;
 
   /// Resets the turntable camera to default orientation and zoom.
   void resetCamera() {
@@ -396,6 +369,8 @@ final class WebGLSurfaceRenderer {
       }
     }
 
+    if (_shared.canvas.width != targetW) _shared.canvas.width = targetW;
+    if (_shared.canvas.height != targetH) _shared.canvas.height = targetH;
     gl.viewport(0, 0, targetW, targetH);
     gl.disable(web.WebGLRenderingContext.SCISSOR_TEST);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -412,7 +387,10 @@ final class WebGLSurfaceRenderer {
           web.WebGLRenderingContext.DEPTH_BUFFER_BIT,
     );
 
-    if (iIdx == 0) return;
+    if (iIdx == 0) {
+      _syncToUnderlay();
+      return;
+    }
 
     gl.useProgram(prog);
     gl.bindBuffer(web.WebGLRenderingContext.ARRAY_BUFFER, vbo);
@@ -489,6 +467,16 @@ final class WebGLSurfaceRenderer {
       web.WebGLRenderingContext.UNSIGNED_SHORT,
       0,
     );
+    _syncToUnderlay();
+  }
+
+  void _syncToUnderlay() {
+    final ctx = _underlayCtx;
+    if (ctx == null) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'copy';
+    ctx.drawImage(_shared.canvas, 0, 0);
+    ctx.restore();
   }
 
   void _renderCanvasFallbackSurface(
@@ -1082,4 +1070,62 @@ void main() {
     }
     return out;
   }
+}
+
+final class _SharedWebGL2SurfaceContext {
+  new _(this.canvas, this.gl, this.program, this.vbo, this.ibo);
+
+  factory _create() {
+    final canvas =
+        web.document.createElement('canvas') as web.HTMLCanvasElement;
+    web.WebGL2RenderingContext? gl;
+    try {
+      final ctx = canvas.getContext(
+        'webgl2',
+        {
+          'alpha': true,
+          'depth': true,
+          'antialias': true,
+          'premultipliedAlpha': false,
+          'preserveDrawingBuffer': true,
+        }.jsify(),
+      );
+      if (ctx != null && ctx.isA<web.WebGL2RenderingContext>()) {
+        gl = ctx as web.WebGL2RenderingContext;
+      }
+    } catch (_) {
+      gl = null;
+    }
+
+    web.WebGLProgram? prog;
+    web.WebGLBuffer? vbo;
+    web.WebGLBuffer? ibo;
+    if (gl != null) {
+      prog = compileProgram(
+        gl,
+        WebGLSurfaceRenderer._vertSrc,
+        WebGLSurfaceRenderer._fragSrc,
+      );
+      vbo = gl.createBuffer();
+      ibo = gl.createBuffer();
+    }
+
+    return _SharedWebGL2SurfaceContext._(canvas, gl, prog, vbo, ibo);
+  }
+
+  static final _SharedWebGL2SurfaceContext instance =
+      _SharedWebGL2SurfaceContext._create();
+
+  final web.HTMLCanvasElement canvas;
+  final web.WebGL2RenderingContext? gl;
+  final web.WebGLProgram? program;
+  final web.WebGLBuffer? vbo;
+  final web.WebGLBuffer? ibo;
+
+  bool get isAvailable =>
+      gl != null &&
+      !gl!.isContextLost() &&
+      program != null &&
+      vbo != null &&
+      ibo != null;
 }

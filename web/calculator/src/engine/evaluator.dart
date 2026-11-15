@@ -454,9 +454,7 @@ final class CalcEvaluator {
           ExprSyntax.standardUnaryFunctions[canonicalName] ??
           ExprSyntax.standardUnaryFunctions[name];
       if (exprArgs.length == 1 && unaryFn != null) {
-        return ExprValue(
-          _constructUnaryFunction(canonicalName, unaryFn, exprArgs[0]),
-        );
+        return ExprValue(unaryFn(exprArgs[0]));
       }
       if (exprArgs.length == 2 &&
           ExprSyntax.standardBinaryFunctions.containsKey(name)) {
@@ -481,11 +479,7 @@ final class CalcEvaluator {
         return VectorValue(
           Vector<Expr>.generate(
             vector.length,
-            (i) => _constructUnaryFunction(
-              canonicalName,
-              unaryFn,
-              vector.getUnchecked(i),
-            ),
+            (i) => unaryFn(vector.getUnchecked(i)),
             type: exprDataType,
           ),
         );
@@ -495,11 +489,7 @@ final class CalcEvaluator {
           Matrix<Expr>.generate(
             matrix.rowCount,
             matrix.colCount,
-            (r, c) => _constructUnaryFunction(
-              canonicalName,
-              unaryFn,
-              matrix.getUnchecked(r, c),
-            ),
+            (r, c) => unaryFn(matrix.getUnchecked(r, c)),
             type: exprDataType,
           ),
         );
@@ -822,25 +812,6 @@ final class CalcEvaluator {
     }
 
     return current;
-  }
-
-  Expr _constructUnaryFunction(
-    String canonicalName,
-    Expr Function(Expr) fn,
-    Expr arg,
-  ) {
-    if (environment.settings.angleMode != AngleMode.deg) {
-      return fn(arg);
-    }
-    const directTrig = {'sin', 'cos', 'tan', 'sec', 'csc', 'cot'};
-    if (directTrig.contains(canonicalName)) {
-      return fn(arg * Constant.pi / IntegerNumber.of(180));
-    }
-    const inverseTrig = {'asin', 'acos', 'atan'};
-    if (inverseTrig.contains(canonicalName)) {
-      return fn(arg) * IntegerNumber.of(180) / Constant.pi;
-    }
-    return fn(arg);
   }
 
   static bool _isNonZeroComplexExpr(Expr expr) =>

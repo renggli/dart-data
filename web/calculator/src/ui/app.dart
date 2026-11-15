@@ -17,6 +17,8 @@ import 'rpn_view.dart';
 import 'scroll_view.dart';
 import 'shortcuts.dart';
 
+enum _SidePanelTab { vars, settings, help }
+
 /// Top-level controller for the Symbolic Calculator PWA (`web/calculator/`).
 final class CalculatorApp {
   new() {
@@ -42,10 +44,12 @@ final class CalculatorApp {
   late final web.HTMLButtonElement _modeRpnBtn;
   late final web.HTMLButtonElement _undoBtn;
   late final web.HTMLButtonElement _redoBtn;
-  late final web.HTMLButtonElement _varsPill;
-  late final web.HTMLDivElement _varsDrawer;
-  late final web.HTMLDivElement _settingsPopover;
+  late final web.HTMLButtonElement _varsBtn;
+  late final web.HTMLButtonElement _settingsBtn;
+  late final web.HTMLButtonElement _helpBtn;
+  late final web.HTMLDivElement _sidePanel;
   late final web.HTMLDivElement _toastEl;
+  _SidePanelTab? _activePanel;
 
   Future<void> init() async {
     _bindHeaderControls();
@@ -63,34 +67,13 @@ final class CalculatorApp {
       }
     }
 
-    // Close popovers on outside click
-    final settingsBtn = web.document.getElementById('btn-settings');
-    web.document.addEventListener(
-      'click',
-      ((web.MouseEvent e) {
-        final target = e.target as web.Node?;
-        if (target != null) {
-          if (!_varsDrawer.contains(target) && !_varsPill.contains(target)) {
-            _varsDrawer.classList.add('hidden');
-          }
-          if (!_settingsPopover.contains(target) &&
-              (settingsBtn == null || !settingsBtn.contains(target))) {
-            _settingsPopover.classList.add('hidden');
-          }
-        }
-      }).toJS,
-    );
-
     GlobalShortcuts.register(
       onOpenPalette: _openCommandPalette,
       onToggleMode: () =>
           _setMode(_mode == CalcMode.scroll ? CalcMode.rpn : CalcMode.scroll),
       onUndo: () => unawaited(_client.undo()),
       onRedo: () => unawaited(_client.redo()),
-      onOpenHelp: () => HelpDrawerModal.open(
-        onRunExample: (ex) =>
-            unawaited(_client.evaluateScroll(ex, forceNumeric: false)),
-      ),
+      onOpenHelp: () => _toggleSidePanel(_SidePanelTab.help),
       onClearView: () => unawaited(_clearSession()),
       onFunctionKey: (fKey) {
         if (_mode != CalcMode.rpn) return false;
@@ -127,12 +110,14 @@ final class CalculatorApp {
         web.document.getElementById('btn-undo')! as web.HTMLButtonElement;
     _redoBtn =
         web.document.getElementById('btn-redo')! as web.HTMLButtonElement;
-    _varsPill =
-        web.document.getElementById('pill-vars')! as web.HTMLButtonElement;
-    _varsDrawer =
-        web.document.getElementById('vars-drawer')! as web.HTMLDivElement;
-    _settingsPopover =
-        web.document.getElementById('settings-popover')! as web.HTMLDivElement;
+    _varsBtn =
+        web.document.getElementById('btn-vars')! as web.HTMLButtonElement;
+    _settingsBtn =
+        web.document.getElementById('btn-settings')! as web.HTMLButtonElement;
+    _helpBtn =
+        web.document.getElementById('btn-help')! as web.HTMLButtonElement;
+    _sidePanel =
+        web.document.getElementById('calc-side-panel')! as web.HTMLDivElement;
     _toastEl = web.document.getElementById('calc-toast')! as web.HTMLDivElement;
 
     _modeScrollBtn.addEventListener(
@@ -152,15 +137,6 @@ final class CalculatorApp {
       ((web.Event _) => unawaited(_client.redo())).toJS,
     );
 
-    _varsPill.addEventListener(
-      'click',
-      ((web.Event e) {
-        e.stopPropagation();
-        _renderVarsDrawer();
-        _varsDrawer.classList.toggle('hidden');
-      }).toJS,
-    );
-
     final paletteBtn =
         web.document.getElementById('btn-palette')! as web.HTMLButtonElement;
     paletteBtn.addEventListener(
@@ -168,25 +144,17 @@ final class CalculatorApp {
       ((web.Event _) => _openCommandPalette()).toJS,
     );
 
-    final settingsBtn =
-        web.document.getElementById('btn-settings')! as web.HTMLButtonElement;
-    settingsBtn.addEventListener(
+    _varsBtn.addEventListener(
       'click',
-      ((web.Event e) {
-        e.stopPropagation();
-        _renderSettingsPopover();
-        _settingsPopover.classList.toggle('hidden');
-      }).toJS,
+      ((web.Event _) => _toggleSidePanel(_SidePanelTab.vars)).toJS,
     );
-
-    final helpBtn =
-        web.document.getElementById('btn-help')! as web.HTMLButtonElement;
-    helpBtn.addEventListener(
+    _settingsBtn.addEventListener(
       'click',
-      ((web.Event _) => HelpDrawerModal.open(
-        onRunExample: (ex) =>
-            unawaited(_client.evaluateScroll(ex, forceNumeric: false)),
-      )).toJS,
+      ((web.Event _) => _toggleSidePanel(_SidePanelTab.settings)).toJS,
+    );
+    _helpBtn.addEventListener(
+      'click',
+      ((web.Event _) => _toggleSidePanel(_SidePanelTab.help)).toJS,
     );
   }
 
@@ -377,7 +345,7 @@ final class CalculatorApp {
     final symCount =
         _client.environment.variables.length +
         _client.environment.functions.length;
-    _varsPill.textContent = 'Vars ($symCount)';
+    _varsBtn.title = 'Assigned Variables & Functions ($symCount)';
 
     // Views
     _scrollView.render(session: _client.session, digits: settings.digits);
@@ -389,38 +357,314 @@ final class CalculatorApp {
     _inputBar.updatePrompt(mode: _mode, nextId: _client.session.nextId);
     _keypad.setVisible(settings.keypadVisible, mode: _mode);
     _inputBar.setKeypadActive(settings.keypadVisible);
+
+    if (_activePanel == _SidePanelTab.vars ||
+        _activePanel == _SidePanelTab.settings) {
+      _renderSidePanel();
+    }
   }
 
-  void _renderVarsDrawer() {
-    _varsDrawer.innerHTML = ''.toJS;
-    final header = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-popover-header';
-    final title = web.document.createElement('strong') as web.HTMLElement
-      ..textContent = 'Assigned Variables & Functions';
-    final clearAllBtn =
+  void _toggleSidePanel(_SidePanelTab tab) {
+    if (_activePanel == tab) {
+      _closeSidePanel();
+    } else {
+      _activePanel = tab;
+      _updateSidePanelButtons();
+      _renderSidePanel();
+      _sidePanel.classList.remove('hidden');
+    }
+  }
+
+  void _closeSidePanel() {
+    _activePanel = null;
+    _updateSidePanelButtons();
+    _sidePanel.classList.add('hidden');
+  }
+
+  void _updateSidePanelButtons() {
+    _varsBtn.classList.toggle('active', _activePanel == _SidePanelTab.vars);
+    _settingsBtn.classList.toggle(
+      'active',
+      _activePanel == _SidePanelTab.settings,
+    );
+    _helpBtn.classList.toggle('active', _activePanel == _SidePanelTab.help);
+  }
+
+  void _renderSidePanel() {
+    final tab = _activePanel;
+    if (tab == null) return;
+    _sidePanel.innerHTML = ''.toJS;
+
+    final body = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-side-panel-body';
+
+    switch (tab) {
+      case _SidePanelTab.vars:
+        _renderVarsPanel(body);
+      case _SidePanelTab.settings:
+        _renderSettingsPanel(body);
+      case _SidePanelTab.help:
+        HelpPanel.render(
+          body,
+          onRunExample: (ex) {
+            if (web.window.matchMedia('(max-width: 768px)').matches) {
+              _closeSidePanel();
+            }
+            unawaited(_handleSubmit(ex, forceNumeric: false));
+          },
+        );
+    }
+
+    _sidePanel.append(body);
+  }
+
+  void _renderVarsPanel(web.HTMLDivElement container) {
+    final settings = _client.environment.settings;
+
+    // 1. Default Variable Domain selector
+    final domainSec = web.document.createElement('section')
+      ..className = 'calc-panel-section';
+    final domainTitle = web.document.createElement('h4')
+      ..className = 'calc-panel-section-title'
+      ..textContent = 'Default Domain';
+    final domainGroup = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-domain-pills';
+    const domainOptions = [
+      (domain: VariableDomain.unknown, label: 'Any', title: 'Unknown (ℂ / ℝ)'),
+      (domain: VariableDomain.real, label: 'ℝ', title: 'Real (∈ ℝ)'),
+      (domain: VariableDomain.positive, label: '> 0', title: 'Positive (> 0)'),
+      (domain: VariableDomain.integer, label: 'ℤ', title: 'Integer (∈ ℤ)'),
+      (domain: VariableDomain.complex, label: 'ℂ', title: 'Complex (∈ ℂ)'),
+    ];
+    for (final opt in domainOptions) {
+      final btn = web.document.createElement('button') as web.HTMLButtonElement
+        ..type = 'button'
+        ..className = settings.domain == opt.domain
+            ? 'calc-domain-pill active'
+            : 'calc-domain-pill'
+        ..textContent = opt.label
+        ..title = opt.title;
+      btn.addEventListener(
+        'click',
+        ((web.Event _) => unawaited(
+          _client.updateSettings(settings.copyWith(domain: opt.domain)),
+        )).toJS,
+      );
+      domainGroup.append(btn);
+    }
+    domainSec
+      ..append(domainTitle)
+      ..append(domainGroup);
+    container.append(domainSec);
+
+    // 2. Per-Variable Domain Assumptions
+    final varDomainSec = web.document.createElement('section')
+      ..className = 'calc-panel-section';
+    final varDomainHeader =
+        web.document.createElement('div') as web.HTMLDivElement
+          ..className = 'calc-panel-section-header';
+    final varDomainTitle = web.document.createElement('h4')
+      ..className = 'calc-panel-section-title'
+      ..textContent = 'Variable Domains';
+    varDomainHeader.append(varDomainTitle);
+
+    final varDomains = settings.variableDomains;
+    if (varDomains.isNotEmpty) {
+      final clearDomainsBtn =
+          web.document.createElement('button') as web.HTMLButtonElement
+            ..type = 'button'
+            ..className = 'calc-text-btn calc-text-btn-danger'
+            ..textContent = 'Clear All';
+      clearDomainsBtn.addEventListener(
+        'click',
+        ((web.Event _) => unawaited(
+          _client.updateSettings(settings.copyWith(variableDomains: const {})),
+        )).toJS,
+      );
+      varDomainHeader.append(clearDomainsBtn);
+    }
+    varDomainSec.append(varDomainHeader);
+
+    final varDomainForm =
+        web.document.createElement('form') as web.HTMLFormElement
+          ..className = 'calc-var-define-form';
+    final varNameInput =
+        web.document.createElement('input') as web.HTMLInputElement
+          ..type = 'text'
+          ..className = 'calc-var-define-input calc-var-name-input'
+          ..placeholder = 'var (e.g. x, n)'
+          ..autocomplete = 'off'
+          ..spellcheck = false;
+    final domainSelect =
+        web.document.createElement('select') as web.HTMLSelectElement
+          ..className = 'calc-domain-select'
+          ..title = 'Domain';
+    for (final opt in const [
+      (domain: VariableDomain.real, label: '∈ ℝ'),
+      (domain: VariableDomain.positive, label: '> 0'),
+      (domain: VariableDomain.integer, label: '∈ ℤ'),
+      (domain: VariableDomain.complex, label: '∈ ℂ'),
+    ]) {
+      final option =
+          web.document.createElement('option') as web.HTMLOptionElement
+            ..value = opt.domain.name
+            ..textContent = opt.label;
+      domainSelect.append(option);
+    }
+    final setDomainBtn =
         web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn calc-chip-secondary'
-          ..textContent = 'Clear All';
-    clearAllBtn.addEventListener(
-      'click',
-      ((web.Event _) {
-        _varsDrawer.classList.add('hidden');
-        unawaited(_client.evaluateScroll('clearall()', forceNumeric: false));
+          ..type = 'submit'
+          ..className = 'calc-btn-primary calc-var-define-btn'
+          ..textContent = 'Set';
+    varDomainForm.addEventListener(
+      'submit',
+      ((web.Event e) {
+        e.preventDefault();
+        final name = varNameInput.value.trim();
+        if (name.isEmpty) return;
+        final chosen = VariableDomain.values.firstWhere(
+          (d) => d.name == domainSelect.value,
+          orElse: () => VariableDomain.real,
+        );
+        final nextMap = Map<String, VariableDomain>.from(varDomains)
+          ..[name] = chosen;
+        varNameInput.value = '';
+        unawaited(
+          _client.updateSettings(settings.copyWith(variableDomains: nextMap)),
+        );
       }).toJS,
     );
-    header
-      ..append(title)
-      ..append(clearAllBtn);
-    _varsDrawer.append(header);
+    varDomainForm
+      ..append(varNameInput)
+      ..append(domainSelect)
+      ..append(setDomainBtn);
+    varDomainSec.append(varDomainForm);
 
+    for (final entry in varDomains.entries) {
+      final row = web.document.createElement('div') as web.HTMLDivElement
+        ..className = 'calc-var-row';
+      final domainLabel = switch (entry.value) {
+        VariableDomain.real => '∈ ℝ',
+        VariableDomain.positive => '> 0',
+        VariableDomain.integer => '∈ ℤ',
+        VariableDomain.complex => '∈ ℂ',
+        VariableDomain.unknown => 'Any',
+      };
+      final cycleBtn =
+          web.document.createElement('button') as web.HTMLButtonElement
+            ..type = 'button'
+            ..className = 'calc-var-insert'
+            ..title = 'Click to cycle domain for ${entry.key}'
+            ..textContent = '${entry.key} $domainLabel';
+      cycleBtn.addEventListener(
+        'click',
+        ((web.Event _) {
+          final nextDomain = switch (entry.value) {
+            VariableDomain.real => VariableDomain.positive,
+            VariableDomain.positive => VariableDomain.integer,
+            VariableDomain.integer => VariableDomain.complex,
+            VariableDomain.complex => VariableDomain.real,
+            VariableDomain.unknown => VariableDomain.real,
+          };
+          final nextMap = Map<String, VariableDomain>.from(varDomains)
+            ..[entry.key] = nextDomain;
+          unawaited(
+            _client.updateSettings(settings.copyWith(variableDomains: nextMap)),
+          );
+        }).toJS,
+      );
+      final delBtn =
+          web.document.createElement('button') as web.HTMLButtonElement
+            ..type = 'button'
+            ..className = 'calc-cell-icon-btn'
+            ..title = 'Remove domain for ${entry.key}'
+            ..textContent = '✕';
+      delBtn.addEventListener(
+        'click',
+        ((web.Event _) {
+          final nextMap = Map<String, VariableDomain>.from(varDomains)
+            ..remove(entry.key);
+          unawaited(
+            _client.updateSettings(settings.copyWith(variableDomains: nextMap)),
+          );
+        }).toJS,
+      );
+      row
+        ..append(cycleBtn)
+        ..append(delBtn);
+      varDomainSec.append(row);
+    }
+    container.append(varDomainSec);
+
+    // 3. Variables & Functions (define form + defined symbols list)
     final vars = _client.environment.variables;
     final fns = _client.environment.functions;
+    final symbolsSec = web.document.createElement('section')
+      ..className = 'calc-panel-section';
+    final symbolsHeader =
+        web.document.createElement('div') as web.HTMLDivElement
+          ..className = 'calc-panel-section-header';
+    final symbolsTitle = web.document.createElement('h4')
+      ..className = 'calc-panel-section-title'
+      ..textContent = 'Variables & Functions';
+    symbolsHeader.append(symbolsTitle);
+
+    if (vars.isNotEmpty || fns.isNotEmpty) {
+      final clearAllBtn =
+          web.document.createElement('button') as web.HTMLButtonElement
+            ..type = 'button'
+            ..className = 'calc-text-btn calc-text-btn-danger'
+            ..textContent = 'Clear All';
+      clearAllBtn.addEventListener(
+        'click',
+        ((web.Event _) => unawaited(_client.clearAllSymbols())).toJS,
+      );
+      symbolsHeader.append(clearAllBtn);
+    }
+    symbolsSec.append(symbolsHeader);
+
+    final defineForm = web.document.createElement('form') as web.HTMLFormElement
+      ..className = 'calc-var-define-form';
+    final defineInput =
+        web.document.createElement('input') as web.HTMLInputElement
+          ..type = 'text'
+          ..className = 'calc-var-define-input'
+          ..placeholder = 'a := 5  or  f(x) := x^2'
+          ..autocomplete = 'off'
+          ..spellcheck = false;
+    final defineBtn =
+        web.document.createElement('button') as web.HTMLButtonElement
+          ..type = 'submit'
+          ..className = 'calc-btn-primary calc-var-define-btn'
+          ..textContent = 'Add';
+    defineForm.addEventListener(
+      'submit',
+      ((web.Event e) {
+        e.preventDefault();
+        final text = defineInput.value.trim();
+        if (text.isEmpty) return;
+        unawaited(
+          _client.defineSymbol(text).then((err) {
+            if (err != null) {
+              _showToast(err.message);
+            } else {
+              defineInput.value = '';
+            }
+          }),
+        );
+      }).toJS,
+    );
+    defineForm
+      ..append(defineInput)
+      ..append(defineBtn);
+    symbolsSec.append(defineForm);
+
     if (vars.isEmpty && fns.isEmpty) {
       final empty = web.document.createElement('p') as web.HTMLParagraphElement
-        ..className = 'calc-popover-empty'
-        ..textContent = 'No symbols defined. Use "a := 5" or "f(x) := x^2".';
-      _varsDrawer.append(empty);
+        ..className = 'calc-side-panel-empty'
+        ..textContent = 'No variables or functions defined yet.';
+      symbolsSec.append(empty);
+      container.append(symbolsSec);
       return;
     }
 
@@ -431,11 +675,14 @@ final class CalculatorApp {
           web.document.createElement('button') as web.HTMLButtonElement
             ..type = 'button'
             ..className = 'calc-var-insert'
+            ..title = 'Insert ${entry.key}'
             ..textContent = '${entry.key} := ${entry.value.toCanonicalText()}';
       insertBtn.addEventListener(
         'click',
         ((web.Event _) {
-          _varsDrawer.classList.add('hidden');
+          if (web.window.matchMedia('(max-width: 768px)').matches) {
+            _closeSidePanel();
+          }
           _inputBar.insertAtCursor(entry.key);
         }).toJS,
       );
@@ -443,20 +690,16 @@ final class CalculatorApp {
           web.document.createElement('button') as web.HTMLButtonElement
             ..type = 'button'
             ..className = 'calc-cell-icon-btn'
+            ..title = 'Remove ${entry.key}'
             ..textContent = '✕';
       delBtn.addEventListener(
         'click',
-        ((web.Event _) {
-          unawaited(
-            _client.evaluateScroll('clear(${entry.key})', forceNumeric: false),
-          );
-          _renderVarsDrawer();
-        }).toJS,
+        ((web.Event _) => unawaited(_client.clearSymbol(entry.key))).toJS,
       );
       row
         ..append(insertBtn)
         ..append(delBtn);
-      _varsDrawer.append(row);
+      symbolsSec.append(row);
     }
 
     for (final fn in fns.values) {
@@ -466,11 +709,14 @@ final class CalculatorApp {
           web.document.createElement('button') as web.HTMLButtonElement
             ..type = 'button'
             ..className = 'calc-var-insert'
+            ..title = 'Insert ${fn.name}()'
             ..textContent = '${fn.signature} := ${fn.sourceText}';
       insertBtn.addEventListener(
         'click',
         ((web.Event _) {
-          _varsDrawer.classList.add('hidden');
+          if (web.window.matchMedia('(max-width: 768px)').matches) {
+            _closeSidePanel();
+          }
           _inputBar.insertAtCursor('${fn.name}()', cursorBack: 1);
         }).toJS,
       );
@@ -478,25 +724,21 @@ final class CalculatorApp {
           web.document.createElement('button') as web.HTMLButtonElement
             ..type = 'button'
             ..className = 'calc-cell-icon-btn'
+            ..title = 'Remove ${fn.name}'
             ..textContent = '✕';
       delBtn.addEventListener(
         'click',
-        ((web.Event _) {
-          unawaited(
-            _client.evaluateScroll('clear(${fn.name})', forceNumeric: false),
-          );
-          _renderVarsDrawer();
-        }).toJS,
+        ((web.Event _) => unawaited(_client.clearSymbol(fn.name))).toJS,
       );
       row
         ..append(insertBtn)
         ..append(delBtn);
-      _varsDrawer.append(row);
+      symbolsSec.append(row);
     }
+    container.append(symbolsSec);
   }
 
-  void _renderSettingsPopover() {
-    _settingsPopover.innerHTML = ''.toJS;
+  void _renderSettingsPanel(web.HTMLDivElement container) {
     final s = _client.environment.settings;
 
     web.HTMLElement toggleRow(
@@ -521,76 +763,14 @@ final class CalculatorApp {
       return row;
     }
 
-    // Angle mode setting
-    final angleRow = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-setting-row';
-    final angleLabel = web.document.createElement('span') as web.HTMLSpanElement
-      ..textContent = 'Angle unit';
-    final angleBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn calc-chip-secondary'
-          ..textContent = s.angleMode == AngleMode.rad
-              ? 'Radians (RAD)'
-              : 'Degrees (DEG)';
-    angleBtn.addEventListener(
-      'click',
-      ((web.Event _) {
-        final next = s.angleMode == AngleMode.rad
-            ? AngleMode.deg
-            : AngleMode.rad;
-        unawaited(
-          _client.updateSettings(s.copyWith(angleMode: next)).then((_) {
-            _renderSettingsPopover();
-          }),
-        );
-      }).toJS,
-    );
-    angleRow
-      ..append(angleLabel)
-      ..append(angleBtn);
+    final evalSec = web.document.createElement('section')
+      ..className = 'calc-panel-section';
+    final evalTitle = web.document.createElement('h4')
+      ..className = 'calc-panel-section-title'
+      ..textContent = 'Evaluation & Display';
 
-    // Variable domain setting
-    final domainRow = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-setting-row';
-    final domainLabel =
-        web.document.createElement('span') as web.HTMLSpanElement
-          ..textContent = 'Variable domain';
-    final domainBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn calc-chip-secondary'
-          ..textContent = switch (s.domain) {
-            VariableDomain.unknown => 'Unknown (x ∈ ℂ/ℝ)',
-            VariableDomain.real => 'Real (x ∈ ℝ)',
-            VariableDomain.positive => 'Positive (x > 0)',
-            VariableDomain.integer => 'Integer (x ∈ ℤ)',
-            VariableDomain.complex => 'Complex (x ∈ ℂ)',
-          };
-    domainBtn.addEventListener(
-      'click',
-      ((web.Event _) {
-        final next = switch (s.domain) {
-          VariableDomain.unknown => VariableDomain.real,
-          VariableDomain.real => VariableDomain.positive,
-          VariableDomain.positive => VariableDomain.integer,
-          VariableDomain.integer => VariableDomain.complex,
-          VariableDomain.complex => VariableDomain.unknown,
-        };
-        unawaited(
-          _client.updateSettings(s.copyWith(domain: next)).then((_) {
-            _renderSettingsPopover();
-          }),
-        );
-      }).toJS,
-    );
-    domainRow
-      ..append(domainLabel)
-      ..append(domainBtn);
-
-    _settingsPopover
-      ..append(angleRow)
-      ..append(domainRow)
+    evalSec
+      ..append(evalTitle)
       ..append(
         toggleRow(
           'Auto-simplify results',
@@ -628,107 +808,110 @@ final class CalculatorApp {
             ),
           ),
         ),
-      )
-      ..append(
-        toggleRow(
-          'Show virtual keypad',
-          s.keypadVisible,
-          (v) =>
-              unawaited(_client.updateSettings(s.copyWith(keypadVisible: v))),
-        ),
       );
+    container.append(evalSec);
 
-    // Session actions: Share Link, Export JSON, Import JSON, Reset Session
+    final sessionSec = web.document.createElement('section')
+      ..className = 'calc-panel-section';
+    final sessionTitle = web.document.createElement('h4')
+      ..className = 'calc-panel-section-title'
+      ..textContent = 'Session';
+    sessionSec.append(sessionTitle);
+
+    web.HTMLButtonElement actionCard(
+      String title,
+      String description,
+      void Function() onClick, {
+      bool danger = false,
+    }) {
+      final btn = web.document.createElement('button') as web.HTMLButtonElement
+        ..type = 'button'
+        ..className = danger
+            ? 'calc-action-card calc-action-card-danger'
+            : 'calc-action-card';
+      final titleEl = web.document.createElement('span') as web.HTMLSpanElement
+        ..className = 'calc-action-card-title'
+        ..textContent = title;
+      final descEl = web.document.createElement('span') as web.HTMLSpanElement
+        ..className = 'calc-action-card-desc'
+        ..textContent = description;
+      btn
+        ..append(titleEl)
+        ..append(descEl)
+        ..addEventListener('click', ((web.Event _) => onClick()).toJS);
+      return btn;
+    }
+
     final actionsDiv = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-setting-actions';
 
-    final shareBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn'
-          ..textContent = '🔗 Share Link';
-    shareBtn.addEventListener(
-      'click',
-      ((web.Event _) {
-        final url = CalcPersistence.buildShareUrl(_client.exportSnapshot());
-        CalcPersistence.copyToClipboard(
-          url,
-          onCopied: () => _showToast('Shareable #calc= link copied!'),
-        );
-        _settingsPopover.classList.add('hidden');
-      }).toJS,
-    );
-
-    final exportBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn'
-          ..textContent = '⬇ Export JSON';
-    exportBtn.addEventListener(
-      'click',
-      ((web.Event _) {
-        CalcPersistence.downloadSessionJson(_client.exportSnapshot());
-        _settingsPopover.classList.add('hidden');
-      }).toJS,
-    );
-
-    final importBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn'
-          ..textContent = '⬆ Import JSON';
-    importBtn.addEventListener(
-      'click',
-      ((web.Event _) {
-        final fileInput =
-            web.document.createElement('input') as web.HTMLInputElement
-              ..type = 'file'
-              ..accept = '.json';
-        fileInput.addEventListener(
-          'change',
-          ((web.Event _) {
-            final files = fileInput.files;
-            if (files != null && files.length > 0) {
-              final file = files.item(0)!;
-              final reader = web.FileReader();
-              reader.onload = ((web.Event _) {
-                try {
-                  final raw = (reader.result as JSString).toDart;
-                  final map = (jsonDecode(raw) as Map).cast<String, Object?>();
-                  unawaited(_client.loadSnapshot(map));
-                  _showToast('Imported session JSON');
-                } catch (_) {
-                  _showToast('Invalid session JSON file');
-                }
-              }).toJS;
-              reader.readAsText(file);
-            }
-          }).toJS,
-        );
-        fileInput.click();
-        _settingsPopover.classList.add('hidden');
-      }).toJS,
-    );
-
-    final resetBtn =
-        web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn calc-btn-danger-outline'
-          ..textContent = '🗑 Reset Session';
-    resetBtn.addEventListener(
-      'click',
-      ((web.Event _) {
-        _settingsPopover.classList.add('hidden');
-        unawaited(_clearSession());
-      }).toJS,
-    );
-
     actionsDiv
-      ..append(shareBtn)
-      ..append(exportBtn)
-      ..append(importBtn)
-      ..append(resetBtn);
-    _settingsPopover.append(actionsDiv);
+      ..append(
+        actionCard(
+          'Copy Share Link',
+          'Copy a URL containing the current worksheet and symbols',
+          () {
+            final url = CalcPersistence.buildShareUrl(_client.exportSnapshot());
+            CalcPersistence.copyToClipboard(
+              url,
+              onCopied: () => _showToast('Shareable #calc= link copied!'),
+            );
+          },
+        ),
+      )
+      ..append(
+        actionCard(
+          'Export Session JSON',
+          'Download history, stack, and definitions as a file',
+          () => CalcPersistence.downloadSessionJson(_client.exportSnapshot()),
+        ),
+      )
+      ..append(
+        actionCard(
+          'Import Session JSON',
+          'Restore a previously exported session file',
+          () {
+            final fileInput =
+                web.document.createElement('input') as web.HTMLInputElement
+                  ..type = 'file'
+                  ..accept = '.json';
+            fileInput.addEventListener(
+              'change',
+              ((web.Event _) {
+                final files = fileInput.files;
+                if (files != null && files.length > 0) {
+                  final file = files.item(0)!;
+                  final reader = web.FileReader();
+                  reader.onload = ((web.Event _) {
+                    try {
+                      final raw = (reader.result as JSString).toDart;
+                      final map = (jsonDecode(raw) as Map)
+                          .cast<String, Object?>();
+                      unawaited(_client.loadSnapshot(map));
+                      _showToast('Imported session JSON');
+                    } catch (_) {
+                      _showToast('Invalid session JSON file');
+                    }
+                  }).toJS;
+                  reader.readAsText(file);
+                }
+              }).toJS,
+            );
+            fileInput.click();
+          },
+        ),
+      )
+      ..append(
+        actionCard(
+          'Reset Session',
+          'Clear all cells, RPN stack, and defined symbols',
+          () => unawaited(_clearSession()),
+          danger: true,
+        ),
+      );
+
+    sessionSec.append(actionsDiv);
+    container.append(sessionSec);
   }
 
   void _openCommandPalette() {

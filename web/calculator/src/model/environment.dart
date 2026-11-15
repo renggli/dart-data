@@ -2,9 +2,6 @@ import 'package:data/symbolic.dart';
 
 import 'value.dart';
 
-/// Angle measurement unit for numeric evaluation and plotting.
-enum AngleMode { rad, deg }
-
 /// Display format for complex results (`a + b * i` vs `r * e^(i * theta)`).
 enum ComplexDisplayMode { rect, polar }
 
@@ -18,9 +15,9 @@ final class CalcSettings {
     this.implicitMultiplication = true,
     this.approxMode = false,
     this.digits = 10,
-    this.angleMode = AngleMode.rad,
     this.complexDisplay = ComplexDisplayMode.rect,
     this.domain = VariableDomain.unknown,
+    this.variableDomains = const {},
     this.keypadVisible = false,
     this.haptics = true,
     this.timeoutMs = 10000,
@@ -30,25 +27,26 @@ final class CalcSettings {
   final bool implicitMultiplication;
   final bool approxMode;
   final int digits;
-  final AngleMode angleMode;
   final ComplexDisplayMode complexDisplay;
   final VariableDomain domain;
+  final Map<String, VariableDomain> variableDomains;
   final bool keypadVisible;
   final bool haptics;
   final int timeoutMs;
 
-  Assumptions get assumptions => domain == VariableDomain.unknown
+  Assumptions get assumptions =>
+      domain == VariableDomain.unknown && variableDomains.isEmpty
       ? Assumptions.none
-      : Assumptions(defaultDomain: domain);
+      : Assumptions(domains: variableDomains, defaultDomain: domain);
 
   CalcSettings copyWith({
     bool? autoSimplify,
     bool? implicitMultiplication,
     bool? approxMode,
     int? digits,
-    AngleMode? angleMode,
     ComplexDisplayMode? complexDisplay,
     VariableDomain? domain,
+    Map<String, VariableDomain>? variableDomains,
     bool? keypadVisible,
     bool? haptics,
     int? timeoutMs,
@@ -58,9 +56,9 @@ final class CalcSettings {
         implicitMultiplication ?? this.implicitMultiplication,
     approxMode: approxMode ?? this.approxMode,
     digits: digits ?? this.digits,
-    angleMode: angleMode ?? this.angleMode,
     complexDisplay: complexDisplay ?? this.complexDisplay,
     domain: domain ?? this.domain,
+    variableDomains: variableDomains ?? this.variableDomains,
     keypadVisible: keypadVisible ?? this.keypadVisible,
     haptics: haptics ?? this.haptics,
     timeoutMs: timeoutMs ?? this.timeoutMs,
@@ -71,35 +69,54 @@ final class CalcSettings {
     'implicitMultiplication': implicitMultiplication,
     'approxMode': approxMode,
     'digits': digits,
-    'angleMode': angleMode.name,
     'complexDisplay': complexDisplay.name,
     'domain': domain.name,
+    if (variableDomains.isNotEmpty)
+      'variableDomains': {
+        for (final entry in variableDomains.entries)
+          entry.key: entry.value.name,
+      },
     'keypadVisible': keypadVisible,
     'haptics': haptics,
     'timeoutMs': timeoutMs,
   };
 
-  factory fromJson(Map<String, Object?> json) => CalcSettings(
-    autoSimplify: json['autoSimplify'] as bool? ?? true,
-    implicitMultiplication: json['implicitMultiplication'] as bool? ?? true,
-    approxMode: json['approxMode'] as bool? ?? false,
-    digits: ((json['digits'] as num?)?.toInt() ?? 10).clamp(4, 15),
-    angleMode: AngleMode.values.firstWhere(
-      (e) => e.name == json['angleMode'],
-      orElse: () => AngleMode.rad,
-    ),
-    complexDisplay: ComplexDisplayMode.values.firstWhere(
-      (e) => e.name == json['complexDisplay'],
-      orElse: () => ComplexDisplayMode.rect,
-    ),
-    domain: VariableDomain.values.firstWhere(
-      (e) => e.name == json['domain'],
-      orElse: () => VariableDomain.unknown,
-    ),
-    keypadVisible: json['keypadVisible'] as bool? ?? false,
-    haptics: json['haptics'] as bool? ?? true,
-    timeoutMs: (json['timeoutMs'] as num?)?.toInt() ?? 10000,
-  );
+  factory fromJson(Map<String, Object?> json) {
+    final rawDomains = json['variableDomains'];
+    final parsedDomains = <String, VariableDomain>{};
+    if (rawDomains is Map) {
+      for (final entry in rawDomains.entries) {
+        final key = entry.key?.toString();
+        final val = entry.value?.toString();
+        if (key != null && key.isNotEmpty && val != null) {
+          for (final d in VariableDomain.values) {
+            if (d.name == val) {
+              parsedDomains[key] = d;
+              break;
+            }
+          }
+        }
+      }
+    }
+    return CalcSettings(
+      autoSimplify: json['autoSimplify'] as bool? ?? true,
+      implicitMultiplication: json['implicitMultiplication'] as bool? ?? true,
+      approxMode: json['approxMode'] as bool? ?? false,
+      digits: ((json['digits'] as num?)?.toInt() ?? 10).clamp(4, 15),
+      complexDisplay: ComplexDisplayMode.values.firstWhere(
+        (e) => e.name == json['complexDisplay'],
+        orElse: () => ComplexDisplayMode.rect,
+      ),
+      domain: VariableDomain.values.firstWhere(
+        (e) => e.name == json['domain'],
+        orElse: () => VariableDomain.unknown,
+      ),
+      variableDomains: parsedDomains,
+      keypadVisible: json['keypadVisible'] as bool? ?? false,
+      haptics: json['haptics'] as bool? ?? true,
+      timeoutMs: (json['timeoutMs'] as num?)?.toInt() ?? 10000,
+    );
+  }
 }
 
 /// User-defined symbolic function `f(x1, x2, ...) := body`.

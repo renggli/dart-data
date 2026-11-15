@@ -136,17 +136,13 @@ final class FormulaInputBar {
     if (mode == CalcMode.rpn) {
       _promptBadge.textContent = 'RPN ▸';
       textarea.placeholder = 'Enter symbols, numbers, or postfix commands (e.g. x 2 ^ 1 - factor)...';
-      _evalBtn.textContent = '↵';
       _evalBtn.title = 'Push to stack or DUP (Enter)';
-      _approxBtn.textContent = '≈';
       _approxBtn.title = 'Approximate numerically on stack (Alt+Enter)';
       _approxBtn.classList.remove('hidden');
     } else {
       _promptBadge.textContent = 'in[$nextId] ▸';
       textarea.placeholder = 'Enter expression, equation, or command (e.g. integrate(x * cos(x), x))...';
-      _evalBtn.textContent = '↵';
       _evalBtn.title = 'Evaluate exact (Enter)';
-      _approxBtn.textContent = '≈';
       _approxBtn.title = 'Approximate numerically (Alt+Enter)';
       _approxBtn.classList.remove('hidden');
     }
@@ -265,8 +261,14 @@ final class FormulaInputBar {
     _approxBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-btn-secondary calc-eval-approx-btn'
-      ..textContent = '≈'
-      ..title = 'Approximate numerically (Alt+Enter)';
+      ..title = 'Approximate numerically (Alt+Enter)'
+      ..innerHTML =
+          '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                  '<path d="M4 9c2-2.2 5-2.2 8 0s6 2.2 8 0"/>'
+                  '<path d="M4 15c2-2.2 5-2.2 8 0s6 2.2 8 0"/>'
+                  '</svg>'
+              .toJS;
+    _approxBtn.setAttribute('aria-label', 'Approximate numerically');
     _approxBtn.addEventListener(
       'click',
       ((web.Event _) => _submit(forceNumeric: true)).toJS,
@@ -275,8 +277,14 @@ final class FormulaInputBar {
     _evalBtn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
       ..className = 'calc-btn-primary calc-eval-btn'
-      ..textContent = '↵'
-      ..title = 'Evaluate exact (Enter)';
+      ..title = 'Evaluate exact (Enter)'
+      ..innerHTML =
+          '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                  '<path d="M19 6v6a2 2 0 0 1-2 2H5"/>'
+                  '<path d="m9 10-4 4 4 4"/>'
+                  '</svg>'
+              .toJS;
+    _evalBtn.setAttribute('aria-label', 'Evaluate exact');
     _evalBtn.addEventListener(
       'click',
       ((web.Event _) => _submit(forceNumeric: false)).toJS,

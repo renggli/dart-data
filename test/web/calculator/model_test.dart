@@ -195,15 +195,16 @@ void main() {
 
         final settings = env.settings.copyWith(
           domain: VariableDomain.positive,
+          variableDomains: {'n': VariableDomain.integer},
           digits: 8,
-          angleMode: AngleMode.deg,
         );
         final restored = CalcSettings.fromJson(settings.toJson());
         check(restored.domain).equals(VariableDomain.positive);
         check(restored.digits).equals(8);
-        check(restored.angleMode).equals(AngleMode.deg);
         check(restored.assumptions.domainOf('x'))
             .equals(VariableDomain.positive);
+        check(restored.assumptions.domainOf('n'))
+            .equals(VariableDomain.integer);
 
         check(env.clearSymbol('a')).isTrue();
         check(env.getVariable('a')).isNull();

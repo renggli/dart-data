@@ -464,119 +464,90 @@ void main() {
       check(eval.session.activeCells.last.input).equals('pi');
     });
 
-    test('simultaneous user function substitution, approx digits, and deg mode', () {
-      final env = Environment();
-      final session = Session();
-      final eval = CalcEvaluator(environment: env, session: session);
+    test(
+      'simultaneous user function substitution, approx digits, and deg mode',
+      () {
+        final env = Environment();
+        final session = Session();
+        final eval = CalcEvaluator(environment: env, session: session);
 
-      // Simultaneous parameter substitution without variable capture
-      eval.evaluateScroll('f(x, y) := x + 2 * y');
-      final swapped = eval.evaluateScroll('f(y, x)');
-      check(swapped.value.toCanonicalText()).equals('2 * x + y');
+        // Simultaneous parameter substitution without variable capture
+        eval.evaluateScroll('f(x, y) := x + 2 * y');
+        final swapped = eval.evaluateScroll('f(y, x)');
+        check(swapped.value.toCanonicalText()).equals('2 * x + y');
 
-      // approx(expr, digits)
-      final approx4 = eval.evaluateScroll('approx(pi, 4)');
-      check(approx4.value.toCanonicalText()).equals('3.142');
+        // approx(expr, digits)
+        final approx4 = eval.evaluateScroll('approx(pi, 4)');
+        check(approx4.value.toCanonicalText()).equals('3.142');
 
-      // approx with digits rounding imaginary part to zero demotes to RealNumber
-      final approxZeroIm = eval.evaluateScroll('approx(2 + 0.0001*i, 2)');
-      check(approxZeroIm.value.toCanonicalText()).equals('2.0');
+        // approx with digits rounding imaginary part to zero demotes to RealNumber
+        final approxZeroIm = eval.evaluateScroll('approx(2 + 0.0001*i, 2)');
+        check(approxZeroIm.value.toCanonicalText()).equals('2.0');
 
-      // AngleMode.deg on sec/csc/cot and inverse trig, user functions, and subs
-      env.settings = env.settings.copyWith(angleMode: AngleMode.deg);
-      check(eval.evaluateScroll('sec(60)').value.toCanonicalText()).equals('2');
-      check(eval.evaluateScroll('asin(1 / 2)').value.toCanonicalText())
-          .equals('30');
-      eval.evaluateScroll('fdeg(x) := sin(x)');
-      check(eval.evaluateScroll('fdeg(90)').value.toCanonicalText())
-          .equals('1');
-      check(eval.evaluateScroll('subs(sin(x), x = 90)').value.toCanonicalText())
-          .equals('1');
-      env.settings = env.settings.copyWith(angleMode: AngleMode.rad);
+        // Assumptions propagation in Vector/Matrix simplification
+        env.settings = env.settings.copyWith(domain: VariableDomain.positive);
+        check(eval.evaluateScroll('[sqrt(x^2)]').value.toCanonicalText())
+            .equals('[x]');
+        env.settings = env.settings.copyWith(domain: VariableDomain.real);
 
-      // Assumptions propagation in Vector/Matrix simplification
-      env.settings = env.settings.copyWith(domain: VariableDomain.positive);
-      check(eval.evaluateScroll('[sqrt(x^2)]').value.toCanonicalText())
-          .equals('[x]');
-      env.settings = env.settings.copyWith(domain: VariableDomain.real);
+        // RPN ComplexDisplayMode.polar parity
+        env.settings = env.settings.copyWith(
+          complexDisplay: ComplexDisplayMode.polar,
+        );
+        final rpn = RpnInterpreter(stack: RpnStack(), evaluator: eval);
+        check(rpn.executeLine('1 i +')).isNull();
+        check(rpn.stack.level(1).value.toCanonicalText()).contains('exp(');
+        env.settings = env.settings.copyWith(
+          complexDisplay: ComplexDisplayMode.rect,
+        );
 
-      // RPN ComplexDisplayMode.polar parity
-      env.settings = env.settings.copyWith(
-        complexDisplay: ComplexDisplayMode.polar,
-      );
-      final rpn = RpnInterpreter(stack: RpnStack(), evaluator: eval);
-      check(rpn.executeLine('1 i +')).isNull();
-      check(rpn.stack.level(1).value.toCanonicalText()).contains('exp(');
-      env.settings = env.settings.copyWith(
-        complexDisplay: ComplexDisplayMode.rect,
-      );
+        // Bound parameter and dummy variable shadowing of i, e, pi
+        eval.evaluateScroll('sq(i) := i^2');
+        check(eval.evaluateScroll('sq(5)').value.toCanonicalText())
+            .equals('25');
+        check(eval.evaluateScroll('sum(i, i, 1, 10)').value.toCanonicalText())
+            .equals('55');
+        check(eval.evaluateScroll('diff(e^2, e)').value.toCanonicalText())
+            .equals('2 * e');
 
-      // Bound parameter and dummy variable shadowing of i, e, pi
-      eval.evaluateScroll('sq(i) := i^2');
-      check(eval.evaluateScroll('sq(5)').value.toCanonicalText()).equals('25');
-      check(eval.evaluateScroll('sum(i, i, 1, 10)').value.toCanonicalText())
-          .equals('55');
-      check(eval.evaluateScroll('diff(e^2, e)').value.toCanonicalText())
-          .equals('2 * e');
-
-      // AngleMode.deg plotting does not double-scale constant trig subexpressions
-      env.settings = env.settings.copyWith(angleMode: AngleMode.deg);
-      final degPlot =
-          eval.evaluateScroll('plot(sin(x) + sin(30), x, 0, 90)').value
-              as PlotValue;
-      final seg = degPlot.curves.first.segments.first;
-      // At x = 0, sin(0) + sin(30°) = 0.5; at x = 90, sin(90°) + sin(30°) = 1.5
-      check(seg.y.first).isCloseTo(0.5, 1e-6);
-      check(seg.y.last).isCloseTo(1.5, 1e-6);
-
-      final degPlot2 =
-          eval.evaluateScroll('plot(sin(30) + x, x, 0, 90)').value as PlotValue;
-      final seg2 = degPlot2.curves.first.segments.first;
-      check(seg2.y.first).isCloseTo(0.5, 1e-6);
-      check(seg2.y.last).isCloseTo(90.5, 1e-6);
-
-      final asinPlot =
-          eval.evaluateScroll('plot(asin(x), x, 0, 1)').value as PlotValue;
-      check(asinPlot.curves.first.segments.first.y.last).isCloseTo(90.0, 1e-4);
-
-      // CommandRegistry appliesTo, buildChipCall, inferPrimaryVariable, RPN postfix ops
-      env.settings = env.settings.copyWith(angleMode: AngleMode.rad);
-      final sampleValues = <CalcValue>[
-        ExprValue(Expr.parse('x^2 + 1')),
-        ExprValue(Expr.parse('x^2 + y^2')),
-        ExprValue(IntegerNumber.of(12)),
-        eval.evaluateScroll('[x, 2 * x]').value,
-        eval.evaluateScroll('[[1, 2], [3, 4]]').value,
-        const ListValue([
-          ExprValue(IntegerNumber.one),
-          ExprValue(IntegerNumber.two),
-        ]),
-      ];
-      for (final cmd in CommandRegistry.all) {
-        for (final val in sampleValues) {
-          if (cmd.appliesTo(val)) {
-            check(cmd.buildChipCall(1, val).isNotEmpty).isTrue();
+        // CommandRegistry appliesTo, buildChipCall, inferPrimaryVariable, RPN postfix ops
+        final sampleValues = <CalcValue>[
+          ExprValue(Expr.parse('x^2 + 1')),
+          ExprValue(Expr.parse('x^2 + y^2')),
+          ExprValue(IntegerNumber.of(12)),
+          eval.evaluateScroll('[x, 2 * x]').value,
+          eval.evaluateScroll('[[1, 2], [3, 4]]').value,
+          const ListValue([
+            ExprValue(IntegerNumber.one),
+            ExprValue(IntegerNumber.two),
+          ]),
+        ];
+        for (final cmd in CommandRegistry.all) {
+          for (final val in sampleValues) {
+            if (cmd.appliesTo(val)) {
+              check(cmd.buildChipCall(1, val).isNotEmpty).isTrue();
+            }
           }
         }
-      }
 
-      // RPN postfix operators (², ³, ⁴, !) and stack underflow recovery
-      check(rpn.executeLine('3 ²')).isNull();
-      check(rpn.stack.level(1).value.toCanonicalText()).equals('9');
-      check(rpn.executeLine('2 ³')).isNull();
-      check(rpn.stack.level(1).value.toCanonicalText()).equals('8');
-      check(rpn.executeLine('2 ⁴')).isNull();
-      check(rpn.stack.level(1).value.toCanonicalText()).equals('16');
-      check(rpn.executeLine('4 !')).isNull();
-      check(rpn.stack.level(1).value.toCanonicalText()).equals('24');
+        // RPN postfix operators (², ³, ⁴, !) and stack underflow recovery
+        check(rpn.executeLine('3 ²')).isNull();
+        check(rpn.stack.level(1).value.toCanonicalText()).equals('9');
+        check(rpn.executeLine('2 ³')).isNull();
+        check(rpn.stack.level(1).value.toCanonicalText()).equals('8');
+        check(rpn.executeLine('2 ⁴')).isNull();
+        check(rpn.stack.level(1).value.toCanonicalText()).equals('16');
+        check(rpn.executeLine('4 !')).isNull();
+        check(rpn.stack.level(1).value.toCanonicalText()).equals('24');
 
-      rpn.stack.clear();
-      check(rpn.executeCommand('SWAP')).isNotNull();
+        rpn.stack.clear();
+        check(rpn.executeCommand('SWAP')).isNotNull();
 
-      // Relative result indexing r[-1]
-      final prevCell = session.activeCells.last;
-      check(eval.evaluateScroll('r[-1]').value.toCanonicalText())
-          .equals(prevCell.value.toCanonicalText());
-    });
+        // Relative result indexing r[-1]
+        final prevCell = session.activeCells.last;
+        check(eval.evaluateScroll('r[-1]').value.toCanonicalText())
+            .equals(prevCell.value.toCanonicalText());
+      },
+    );
   });
 }

@@ -7,7 +7,6 @@ import '../../../shared/chart.dart';
 import '../../../shared/webgl_chart.dart';
 import '../../../shared/webgl_surface.dart';
 import '../engine/sampling.dart';
-import '../model/environment.dart';
 import '../model/value.dart';
 import 'persistence.dart';
 
@@ -202,7 +201,6 @@ final class PlotView {
                 plot.maxT ?? 6.283185307179586,
                 parameterValues: paramValues,
                 steps: 240,
-                angleMode: plot.isDegrees ? AngleMode.deg : AngleMode.rad,
               );
             } else {
               plot = buildPlotValue(
@@ -212,7 +210,6 @@ final class PlotView {
                 controller.maxX,
                 parameterValues: paramValues,
                 maxPoints: 256,
-                angleMode: plot.isDegrees ? AngleMode.deg : AngleMode.rad,
               );
             }
             draw();
@@ -226,18 +223,25 @@ final class PlotView {
       container.append(slidersWrap);
     }
 
+    int targetMaxPoints() {
+      final w = canvas.clientWidth;
+      if (w <= 0) return 1536;
+      return (w * 2).clamp(1024, 4096);
+    }
+
     Timer? resampleTimer;
     void scheduleAutoResample() {
       if (plot.isParametric || plot.isOde || plot.expressions.isEmpty) return;
       resampleTimer?.cancel();
-      resampleTimer = Timer(const Duration(milliseconds: 120), () {
+      resampleTimer = Timer(const Duration(milliseconds: 60), () {
         if (!canvas.isConnected) return;
         final curSpan = controller.maxX - controller.minX;
         final origSpan = plot.maxX - plot.minX;
         final needsResample =
             controller.minX < plot.minX ||
             controller.maxX > plot.maxX ||
-            curSpan < origSpan * 0.6;
+            curSpan < origSpan * 0.65 ||
+            curSpan > origSpan * 1.15;
         if (needsResample) {
           plot = buildPlotValue(
             plot.expressions,
@@ -245,8 +249,7 @@ final class PlotView {
             controller.minX,
             controller.maxX,
             parameterValues: paramValues,
-            maxPoints: 300,
-            angleMode: plot.isDegrees ? AngleMode.deg : AngleMode.rad,
+            maxPoints: targetMaxPoints(),
           );
           draw();
         }
