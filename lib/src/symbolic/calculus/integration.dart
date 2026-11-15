@@ -1084,12 +1084,20 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     return trigQuot;
   }
 
+  // Repeated quadratic denominator: P(x) / (Ax^2 + Bx + C)^m (m >= 2)
+  if (right case Pow(base: final quad, exponent: IntegerNumber(asInt: final m?))
+      when m >= 2 && m <= 10) {
+    if (_tryRepeatedQuadratic(left, quad, m, variable) case final repRes?) {
+      return repRes;
+    }
+  }
+
   // Rational functions P(x) / Q(x): polynomial division and partial fractions
   if (right.dependsOn(variable)) {
     final degLeft = polynomialDegree(left.expand().simplify(), variable);
     final degRight = polynomialDegree(right.expand().simplify(), variable);
     if (degLeft != null && degRight != null && degRight >= 1) {
-      if (degLeft >= degRight) {
+      if (degLeft >= degRight && degRight <= 24) {
         final (:quotient, :remainder) = left.polynomialDivide(right, variable);
         final qInt = _antiDerivative(quotient, variable);
         if (remainder is Number && remainder.isZero) {
@@ -1098,7 +1106,19 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
         final rInt = _antiDerivative((remainder / right).simplify(), variable);
         return (qInt + rInt).simplify();
       }
-      if (degRight >= 2) {
+      if (degRight == 3) {
+        if (_tryCubicBinomialDenominator(left, right, variable)
+            case final cubRes?) {
+          return cubRes;
+        }
+      }
+      if (degRight == 4) {
+        if (_trySophieGermainQuartic(left, right, variable)
+            case final quartRes?) {
+          return quartRes;
+        }
+      }
+      if (degRight >= 2 && degRight <= 12) {
         final originalRatio = (left / right).simplify();
         final decomposed = originalRatio.apart(variable);
         if (decomposed case Add(:final terms)) {
@@ -2685,4 +2705,204 @@ Expr? _tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
   }
 
   return null;
+}
+
+Expr? _tryRepeatedQuadratic(Expr left, Expr quad, int m, String variable) {
+  final quadCoeffs = extractPolynomialCoefficients(quad, variable);
+  if (quadCoeffs == null || maxPolynomialDegree(quadCoeffs) != 2) return null;
+  final a = quadCoeffs[2] ?? IntegerNumber.zero;
+  final b = quadCoeffs[1] ?? IntegerNumber.zero;
+  final c = quadCoeffs[0] ?? IntegerNumber.zero;
+
+  final degLeft = polynomialDegree(left.expand().simplify(), variable);
+  if (degLeft == null) return null;
+  if (degLeft >= 2) {
+    final (:quotient, :remainder) = left.polynomialDivide(quad, variable);
+    final qTerm = _antiDerivative(
+      (quotient / Pow(quad, IntegerNumber.of(m - 1))).simplify(),
+      variable,
+    );
+    if (_hasUnevaluatedIntegral(qTerm, variable)) return null;
+    if (remainder is Number && remainder.isZero) return qTerm;
+    final rTerm = _tryRepeatedQuadratic(remainder, quad, m, variable);
+    if (rTerm == null) return null;
+    return (qTerm + rTerm).simplify();
+  }
+
+  final numCoeffs = extractPolynomialCoefficients(left, variable);
+  if (numCoeffs == null || maxPolynomialDegree(numCoeffs) > 1) return null;
+  final d = numCoeffs[1] ?? IntegerNumber.zero;
+  final e = numCoeffs[0] ?? IntegerNumber.zero;
+
+  final twoA = (IntegerNumber.two * a).simplify();
+  final mMinus1 = IntegerNumber.of(m - 1);
+  var result = IntegerNumber.zero as Expr;
+
+  if (d != IntegerNumber.zero) {
+    result = (-d / (twoA * mMinus1 * Pow(quad, mMinus1))).simplify();
+  }
+
+  final eRem = (e - (d * b) / twoA).simplify();
+  if (eRem != IntegerNumber.zero) {
+    final constPart = _integrateRepeatedQuadConst(quad, a, b, c, m, variable);
+    if (constPart == null) return null;
+    result = (result + eRem * constPart).simplify();
+  }
+  return result;
+}
+
+Expr? _integrateRepeatedQuadConst(
+  Expr quad,
+  Expr a,
+  Expr b,
+  Expr c,
+  int m,
+  String variable,
+) {
+  if (m == 1) {
+    final res = _antiDerivative(IntegerNumber.one / quad, variable);
+    return _hasUnevaluatedIntegral(res, variable) ? null : res;
+  }
+  final disc = (const IntegerNumber(Integer(4)) * a * c - b * b).simplify();
+  if (disc is Number && disc.isZero) return null;
+
+  final prev = _integrateRepeatedQuadConst(quad, a, b, c, m - 1, variable);
+  if (prev == null) return null;
+
+  final mMinus1 = IntegerNumber.of(m - 1);
+  final twoAxPlusB = (IntegerNumber.two * a * Variable(variable) + b)
+      .simplify();
+  final denom = (mMinus1 * disc).simplify();
+  final term1 = (twoAxPlusB / (denom * Pow(quad, mMinus1))).simplify();
+  final coeff2 = ((IntegerNumber.two * IntegerNumber.of(2 * m - 3) * a) / denom)
+      .simplify();
+  return (term1 + coeff2 * prev).simplify();
+}
+
+Expr _integrateLinearOverQuad(
+  Expr d,
+  Expr e,
+  Expr quad,
+  Expr a,
+  Expr b,
+  String variable,
+) {
+  final twoA = (IntegerNumber.two * a).simplify();
+  var result = IntegerNumber.zero as Expr;
+  if (d != IntegerNumber.zero) {
+    result = ((d / twoA) * Ln(quad)).simplify();
+  }
+  final eRem = (e - (d * b) / twoA).simplify();
+  if (eRem != IntegerNumber.zero) {
+    final constInt = _antiDerivative((eRem / quad).simplify(), variable);
+    result = (result + constInt).simplify();
+  }
+  return result;
+}
+
+Expr? _tryCubicBinomialDenominator(Expr left, Expr right, String variable) {
+  final denCoeffs = extractPolynomialCoefficients(right, variable);
+  if (denCoeffs == null || maxPolynomialDegree(denCoeffs) != 3) return null;
+  if ((denCoeffs[2] != null && denCoeffs[2] != IntegerNumber.zero) ||
+      (denCoeffs[1] != null && denCoeffs[1] != IntegerNumber.zero)) {
+    return null;
+  }
+  final a3 = denCoeffs[3] ?? IntegerNumber.zero;
+  final c0 = denCoeffs[0] ?? IntegerNumber.zero;
+  if (a3 == IntegerNumber.zero || c0 == IntegerNumber.zero) return null;
+
+  final numCoeffs = extractPolynomialCoefficients(left, variable);
+  if (numCoeffs == null || maxPolynomialDegree(numCoeffs) > 2) return null;
+  final p2 = ((numCoeffs[2] ?? IntegerNumber.zero) / a3).simplify();
+  final p1 = ((numCoeffs[1] ?? IntegerNumber.zero) / a3).simplify();
+  final p0 = ((numCoeffs[0] ?? IntegerNumber.zero) / a3).simplify();
+  final c = (c0 / a3).simplify();
+
+  final r = Pow(c, const FractionNumber(Integer.one, Integer(3))).simplify();
+  final xVar = Variable(variable);
+  final linFactor = (xVar + r).simplify();
+  final quadFactor = (xVar * xVar - r * xVar + r * r).simplify();
+
+  final aCoeff = ((p2 * r * r - p1 * r + p0) / (IntegerNumber.of(3) * r * r))
+      .simplify();
+  final bCoeff = (p2 - aCoeff).simplify();
+  final cCoeff = (p0 / r - aCoeff * r).simplify();
+
+  final linInt = _antiDerivative((aCoeff / linFactor).simplify(), variable);
+  final quadInt = _integrateLinearOverQuad(
+    bCoeff,
+    cCoeff,
+    quadFactor,
+    IntegerNumber.one,
+    (-r).simplify(),
+    variable,
+  );
+  if (_hasUnevaluatedIntegral(linInt, variable) ||
+      _hasUnevaluatedIntegral(quadInt, variable)) {
+    return null;
+  }
+  return (linInt + quadInt).simplify();
+}
+
+Expr? _trySophieGermainQuartic(Expr left, Expr right, String variable) {
+  final denCoeffs = extractPolynomialCoefficients(right, variable);
+  if (denCoeffs == null || maxPolynomialDegree(denCoeffs) != 4) return null;
+  for (var deg = 1; deg <= 3; deg++) {
+    if (denCoeffs[deg] != null && denCoeffs[deg] != IntegerNumber.zero) {
+      return null;
+    }
+  }
+  final a4 = denCoeffs[4] ?? IntegerNumber.zero;
+  final c0 = denCoeffs[0] ?? IntegerNumber.zero;
+  if (a4 == IntegerNumber.zero || c0 == IntegerNumber.zero) return null;
+
+  final c = (c0 / a4).simplify();
+  if (!_isSymbolicPositive(c)) return null;
+
+  final numCoeffs = extractPolynomialCoefficients(left, variable);
+  if (numCoeffs == null || maxPolynomialDegree(numCoeffs) > 3) return null;
+  final p3 = ((numCoeffs[3] ?? IntegerNumber.zero) / a4).simplify();
+  final p2 = ((numCoeffs[2] ?? IntegerNumber.zero) / a4).simplify();
+  final p1 = ((numCoeffs[1] ?? IntegerNumber.zero) / a4).simplify();
+  final p0 = ((numCoeffs[0] ?? IntegerNumber.zero) / a4).simplify();
+
+  final r = Pow(c, FractionNumber.half).simplify();
+  final s =
+      (Pow(IntegerNumber.two, FractionNumber.half) *
+              Pow(c, const FractionNumber(Integer.one, Integer(4))))
+          .simplify();
+  final xVar = Variable(variable);
+  final q1 = (xVar * xVar - s * xVar + r).simplify();
+  final q2 = (xVar * xVar + s * xVar + r).simplify();
+
+  final diffAlpha = ((p2 - p0 / r) / s).simplify();
+  final sumBeta = (p0 / r).simplify();
+  final diffBeta = ((p1 - r * p3) / s).simplify();
+
+  final alpha1 = ((p3 + diffAlpha) / IntegerNumber.two).simplify();
+  final alpha2 = ((p3 - diffAlpha) / IntegerNumber.two).simplify();
+  final beta1 = ((sumBeta + diffBeta) / IntegerNumber.two).simplify();
+  final beta2 = ((sumBeta - diffBeta) / IntegerNumber.two).simplify();
+
+  final int1 = _integrateLinearOverQuad(
+    alpha1,
+    beta1,
+    q1,
+    IntegerNumber.one,
+    (-s).simplify(),
+    variable,
+  );
+  final int2 = _integrateLinearOverQuad(
+    alpha2,
+    beta2,
+    q2,
+    IntegerNumber.one,
+    s,
+    variable,
+  );
+  if (_hasUnevaluatedIntegral(int1, variable) ||
+      _hasUnevaluatedIntegral(int2, variable)) {
+    return null;
+  }
+  return (int1 + int2).simplify();
 }
