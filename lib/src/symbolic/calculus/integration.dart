@@ -256,42 +256,72 @@ Expr? _antiDerivTan(Expr inner, String variable) =>
       null => null,
     };
 
-Expr? _antiDerivAsin(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * Asin(inner) +
-                    Pow(
-                      IntegerNumber.one - Pow(inner, IntegerNumber.two),
-                      FractionNumber.half,
-                    )) /
-                a)
-            .simplify(),
-      null => null,
-    };
+Expr? _matchReciprocalLinear(Expr inner, String variable) {
+  final prod = (inner * Variable(variable)).simplify();
+  return prod.dependsOn(variable) ? null : prod;
+}
 
-Expr? _antiDerivAcos(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * Acos(inner) -
-                    Pow(
-                      IntegerNumber.one - Pow(inner, IntegerNumber.two),
-                      FractionNumber.half,
-                    )) /
-                a)
-            .simplify(),
-      null => null,
-    };
+Expr? _antiDerivAsin(Expr inner, String variable) {
+  if (inner.matchLinear(variable) case (:final a, b: _)) {
+    return ((inner * Asin(inner) +
+                Pow(
+                  IntegerNumber.one - Pow(inner, IntegerNumber.two),
+                  FractionNumber.half,
+                )) /
+            a)
+        .simplify();
+  }
+  if (_matchReciprocalLinear(inner, variable) case final c?) {
+    final xVar = Variable(variable);
+    final s = Pow(
+      IntegerNumber.one - Pow(inner, IntegerNumber.two),
+      FractionNumber.half,
+    );
+    return (xVar * Asin(inner) + c * Ln((xVar * (IntegerNumber.one + s)) / c))
+        .simplify();
+  }
+  return null;
+}
 
-Expr? _antiDerivAtan(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * Atan(inner) -
-                    FractionNumber.half *
-                        Ln(IntegerNumber.one + Pow(inner, IntegerNumber.two))) /
-                a)
-            .simplify(),
-      null => null,
-    };
+Expr? _antiDerivAcos(Expr inner, String variable) {
+  if (inner.matchLinear(variable) case (:final a, b: _)) {
+    return ((inner * Acos(inner) -
+                Pow(
+                  IntegerNumber.one - Pow(inner, IntegerNumber.two),
+                  FractionNumber.half,
+                )) /
+            a)
+        .simplify();
+  }
+  if (_matchReciprocalLinear(inner, variable) case final c?) {
+    final xVar = Variable(variable);
+    final s = Pow(
+      IntegerNumber.one - Pow(inner, IntegerNumber.two),
+      FractionNumber.half,
+    );
+    return (xVar * Acos(inner) - c * Ln((xVar * (IntegerNumber.one + s)) / c))
+        .simplify();
+  }
+  return null;
+}
+
+Expr? _antiDerivAtan(Expr inner, String variable) {
+  if (inner.matchLinear(variable) case (:final a, b: _)) {
+    return ((inner * Atan(inner) -
+                FractionNumber.half *
+                    Ln(IntegerNumber.one + Pow(inner, IntegerNumber.two))) /
+            a)
+        .simplify();
+  }
+  if (_matchReciprocalLinear(inner, variable) case final c?) {
+    final xVar = Variable(variable);
+    return (xVar * Atan(inner) +
+            (c / IntegerNumber.two) *
+                Ln(Pow(xVar, IntegerNumber.two) + Pow(c, IntegerNumber.two)))
+        .simplify();
+  }
+  return null;
+}
 
 Expr? _antiDerivSinh(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
@@ -634,6 +664,39 @@ Expr _antiDerivPow(
         }
       }
     }
+    // Powers of logarithms: ln(ax + b)^k for 2 <= k <= 6
+    if (base case Ln(expr: final inner)) {
+      if (exponent case IntegerNumber(asInt: final k?) when k >= 2 && k <= 6) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final kExpr = IntegerNumber.of(k);
+          final term1 = ((inner / a) * original).simplify();
+          final rem = _antiDerivative(
+            Pow(base, IntegerNumber.of(k - 1)).simplify(),
+            variable,
+          );
+          if (!_hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 - kExpr * rem).simplify();
+          }
+        }
+      }
+    }
+    // Squares of inverse trig/hyperbolic functions: asin(ax+b)^2, acos(ax+b)^2, atan(ax+b)^2, ...
+    if (exponent == IntegerNumber.two ||
+        (exponent is RealNumber && exponent.value == 2.0)) {
+      if (base is Asin ||
+          base is Acos ||
+          base is Atan ||
+          base is Asinh ||
+          base is Acosh ||
+          base is Atanh) {
+        final ibp = _tryIntegrationByParts(
+          IntegerNumber.one,
+          original,
+          variable,
+        );
+        if (ibp != null) return ibp;
+      }
+    }
     // Radical quadratic sqrt(a^2 - u^2) or sqrt(u^2 +- a^2) and (Ax^2 + Bx + C)^(n/2)
     if (exponent == FractionNumber.half ||
         (exponent is RealNumber && exponent.value == 0.5)) {
@@ -969,6 +1032,44 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     }
   }
 
+  // c / (x * sqrt(A*x^2 + C))
+  if (!left.dependsOn(variable)) {
+    if (right case Mul(factors: [final f0, final f1])) {
+      final Variable? xFactor;
+      final Pow? radFactor;
+      if (f0 is Variable && f0.name == variable && f1 is Pow) {
+        xFactor = f0;
+        radFactor = f1;
+      } else if (f1 is Variable && f1.name == variable && f0 is Pow) {
+        xFactor = f1;
+        radFactor = f0;
+      } else {
+        xFactor = null;
+        radFactor = null;
+      }
+      if (xFactor != null &&
+          radFactor != null &&
+          _halfIntExponent(radFactor.exponent) == 1) {
+        final coeffs = extractPolynomialCoefficients(radFactor.base, variable);
+        if (coeffs != null &&
+            maxPolynomialDegree(coeffs) == 2 &&
+            (coeffs[1] == null || coeffs[1] == IntegerNumber.zero)) {
+          final cConst = coeffs[0] ?? IntegerNumber.zero;
+          if (_isSymbolicPositive(cConst)) {
+            final sqrtC = Pow(cConst, FractionNumber.half).simplify();
+            return ((-left / sqrtC) * Ln(Abs((sqrtC + radFactor) / xFactor)))
+                .simplify();
+          }
+          final negC = (-cConst).simplify();
+          if (_isSymbolicPositive(negC)) {
+            final sqrtNegC = Pow(negC, FractionNumber.half).simplify();
+            return ((left / sqrtNegC) * Atan(radFactor / sqrtNegC)).simplify();
+          }
+        }
+      }
+    }
+  }
+
   // Chain rule quotient: int u'(x) / u(x) dx = ln(u(x))
   if (right.dependsOn(variable)) {
     final uPrime = right.derivative(variable).simplify();
@@ -1096,6 +1197,12 @@ Expr _antiDerivMul(
         }
       }
     }
+  }
+
+  // 3d. Polynomial times trig power or trig product: P(x) * sin^n(u), P(x) * sin(ax)*cos(bx)
+  if (_tryPolyTrigPowerReduction(varFactors, variable)
+      case final trigPolyRes?) {
+    return trigPolyRes;
   }
 
   // 4. Integration by parts (try pairing one factor with the rest):
@@ -1306,7 +1413,51 @@ Expr? _tryChainRuleExponential(
   return null;
 }
 
-Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
+Expr? _tryIntegrationByParts(
+  Expr pExpr,
+  Expr vExpr,
+  String variable, {
+  int depth = 0,
+}) {
+  if (depth >= 4) return null;
+
+  // Symbolic power times logarithm: x^n * ln(a*x)
+  if (vExpr case Ln(expr: final inner)) {
+    if (inner.matchLinear(variable) case (a: _, b: final b)
+        when b == IntegerNumber.zero) {
+      if (pExpr case Pow(base: Variable(:final name), exponent: final n)
+          when name == variable && !n.dependsOn(variable)) {
+        final nPlus1 = (n + IntegerNumber.one).simplify();
+        if (nPlus1 is! Number || !nPlus1.isZero) {
+          final xNP1 = Pow(pExpr.base, nPlus1);
+          return (xNP1 * Ln(inner) / nPlus1 - xNP1 / (nPlus1 * nPlus1))
+              .simplify();
+        }
+      }
+    }
+  }
+
+  // Inverse trig / inverse hyperbolic IBP: u = f(g(x)) or f(g(x))^2, dv = pExpr dx
+  final isInverseTrigOrHyp = switch (vExpr) {
+    Asin() || Acos() || Atan() || Asinh() || Acosh() || Atanh() => true,
+    Pow(
+      base: Asin() || Acos() || Atan() || Asinh() || Acosh() || Atanh(),
+      exponent: IntegerNumber(asInt: 2) || RealNumber(value: 2.0),
+    ) =>
+      true,
+    _ => false,
+  };
+  if (isInverseTrigOrHyp) {
+    final v = _antiDerivative(pExpr, variable, depth: 2);
+    if (!_hasUnevaluatedIntegral(v, variable)) {
+      final uPrime = vExpr.derivative(variable).simplify();
+      final remIntegrand = (v * uPrime).simplify();
+      final remIntegral = _antiDerivative(remIntegrand, variable, depth: 1);
+      if (!_hasUnevaluatedIntegral(remIntegral, variable)) {
+        return (v * vExpr - remIntegral).simplify();
+      }
+    }
+  }
   // Cyclic IBP: exp(ax + b) * sin(cx + d) or exp(ax + b) * cos(cx + d)
   if (pExpr case Pow(base: Constant.e, exponent: final expInner)) {
     if (expInner.matchLinear(variable) case (a: final a, b: _)) {
@@ -1370,9 +1521,24 @@ Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
   // Higher-degree polynomial P(x) * vExpr (e.g. x^n * exp(ax+b), x^n * sin(ax+b), x^n * ln(x), x^n * exp(-a*x^2)):
   final degP = polynomialDegree(pExpr, variable);
   if (degP != null && degP >= 1 && degP <= 10) {
-    // 1. P(x) * ln(a*x + b) where u = ln(a*x + b), dv = P(x) dx
+    // 1. P(x) * ln(a*x + b)^k where u = ln(a*x + b)^k, dv = P(x) dx
     if (vExpr case Ln(:final expr)
         when degP >= 2 && expr.matchLinear(variable) != null) {
+      final v = _antiDerivative(pExpr, variable);
+      final uPrime = vExpr.derivative(variable).simplify();
+      final remIntegrand = (v * uPrime).simplify();
+      final remIntegral = _antiDerivative(remIntegrand, variable);
+      if (!_hasUnevaluatedIntegral(v, variable) &&
+          !_hasUnevaluatedIntegral(remIntegral, variable)) {
+        return (v * vExpr - remIntegral).simplify();
+      }
+    }
+    if (vExpr
+        case Pow(
+          base: Ln(expr: final inner),
+          exponent: IntegerNumber(asInt: final k?),
+        )
+        when k >= 1 && k <= 5 && inner.matchLinear(variable) != null) {
       final v = _antiDerivative(pExpr, variable);
       final uPrime = vExpr.derivative(variable).simplify();
       final remIntegrand = (v * uPrime).simplify();
@@ -2387,6 +2553,134 @@ Expr? _tryTrigPowerProduct(Expr num, Expr den, String variable) {
     if (expanded is Add || expanded != (num / den).simplify()) {
       final res = _antiDerivative(expanded, variable, depth: 2);
       if (!_hasUnevaluatedIntegral(res, variable)) return res;
+    }
+  }
+
+  return null;
+}
+
+Expr? _reduceTrigPower(Expr factor, String variable) {
+  if (factor case Pow(:final base, exponent: IntegerNumber(asInt: final n?))
+      when n >= 2 && n <= 6) {
+    final Expr inner;
+    final bool isSin;
+    if (base case Sin(:final expr) when expr.matchLinear(variable) != null) {
+      inner = expr;
+      isSin = true;
+    } else if (base case Cos(:final expr)
+        when expr.matchLinear(variable) != null) {
+      inner = expr;
+      isSin = false;
+    } else {
+      return null;
+    }
+    final u2 = (IntegerNumber.two * inner).simplify();
+    final u3 = (IntegerNumber.of(3) * inner).simplify();
+    final u4 = (IntegerNumber.of(4) * inner).simplify();
+    final u5 = (IntegerNumber.of(5) * inner).simplify();
+    final u6 = (IntegerNumber.of(6) * inner).simplify();
+    return switch ((isSin, n)) {
+      (true, 2) => (IntegerNumber.one - Cos(u2)) / IntegerNumber.two,
+      (false, 2) => (IntegerNumber.one + Cos(u2)) / IntegerNumber.two,
+      (true, 3) =>
+        (IntegerNumber.of(3) * Sin(inner) - Sin(u3)) / IntegerNumber.of(4),
+      (false, 3) =>
+        (IntegerNumber.of(3) * Cos(inner) + Cos(u3)) / IntegerNumber.of(4),
+      (true, 4) =>
+        (IntegerNumber.of(3) - IntegerNumber.of(4) * Cos(u2) + Cos(u4)) /
+            IntegerNumber.of(8),
+      (false, 4) =>
+        (IntegerNumber.of(3) + IntegerNumber.of(4) * Cos(u2) + Cos(u4)) /
+            IntegerNumber.of(8),
+      (true, 5) =>
+        (IntegerNumber.of(10) * Sin(inner) -
+                IntegerNumber.of(5) * Sin(u3) +
+                Sin(u5)) /
+            IntegerNumber.of(16),
+      (false, 5) =>
+        (IntegerNumber.of(10) * Cos(inner) +
+                IntegerNumber.of(5) * Cos(u3) +
+                Cos(u5)) /
+            IntegerNumber.of(16),
+      (true, 6) =>
+        (IntegerNumber.of(10) -
+                IntegerNumber.of(15) * Cos(u2) +
+                IntegerNumber.of(6) * Cos(u4) -
+                Cos(u6)) /
+            IntegerNumber.of(32),
+      (false, 6) =>
+        (IntegerNumber.of(10) +
+                IntegerNumber.of(15) * Cos(u2) +
+                IntegerNumber.of(6) * Cos(u4) +
+                Cos(u6)) /
+            IntegerNumber.of(32),
+      _ => null,
+    };
+  }
+  return null;
+}
+
+Expr? _tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
+  for (var i = 0; i < varFactors.length; i++) {
+    if (_reduceTrigPower(varFactors[i], variable) case final reduced?) {
+      final others = <Expr>[
+        for (var j = 0; j < varFactors.length; j++)
+          if (i != j) varFactors[j],
+      ];
+      final otherExpr = others.length == 1
+          ? others.first
+          : Mul(others).simplify();
+      if (polynomialDegree(otherExpr, variable) != null) {
+        final expanded = (otherExpr * reduced).expand().simplify();
+        final res = _antiDerivative(expanded, variable);
+        if (!_hasUnevaluatedIntegral(res, variable)) return res;
+      }
+    }
+  }
+
+  for (var i = 0; i < varFactors.length; i++) {
+    for (var j = i + 1; j < varFactors.length; j++) {
+      final f1 = varFactors[i];
+      final f2 = varFactors[j];
+      Expr? pairReduced;
+      if (f1 case Sin(expr: final a) when a.matchLinear(variable) != null) {
+        if (f2 case Cos(expr: final b) when b.matchLinear(variable) != null) {
+          pairReduced =
+              (Sin((a + b).simplify()) + Sin((a - b).simplify())) /
+              IntegerNumber.two;
+        } else if (f2 case Sin(expr: final b)
+            when b.matchLinear(variable) != null) {
+          pairReduced =
+              (Cos((a - b).simplify()) - Cos((a + b).simplify())) /
+              IntegerNumber.two;
+        }
+      } else if (f1 case Cos(expr: final a)
+          when a.matchLinear(variable) != null) {
+        if (f2 case Sin(expr: final b) when b.matchLinear(variable) != null) {
+          pairReduced =
+              (Sin((a + b).simplify()) - Sin((a - b).simplify())) /
+              IntegerNumber.two;
+        } else if (f2 case Cos(expr: final b)
+            when b.matchLinear(variable) != null) {
+          pairReduced =
+              (Cos((a + b).simplify()) + Cos((a - b).simplify())) /
+              IntegerNumber.two;
+        }
+      }
+      if (pairReduced != null) {
+        final others = <Expr>[
+          for (var k = 0; k < varFactors.length; k++)
+            if (k != i && k != j) varFactors[k],
+        ];
+        final otherExpr = others.length == 1
+            ? others.first
+            : Mul(others).simplify();
+        if (polynomialDegree(otherExpr, variable) != null) {
+          final expanded = (otherExpr * pairReduced).expand().simplify();
+          final res = _antiDerivative(expanded, variable);
+          if (!_hasUnevaluatedIntegral(res, variable)) return res;
+        }
+      }
     }
   }
 
