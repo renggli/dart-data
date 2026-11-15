@@ -67,6 +67,26 @@ void main() {
         check(reSqrt.toFunction1D('x')(-4.0)).equals(0.0);
       },
     );
+
+    test('evaluateComplex on branch-cut expressions matches finite-difference derivatives', () {
+      const h = Complex(1e-7, 0);
+      const z = Complex(0.37, 0.29);
+      const params = {'a': Complex(0.63, 0.19), 'b': Complex(0.94, 0.12)};
+
+      for (final source in [
+        '(x - sqrt(a + x^2))^b',
+        'ln(x - sqrt(x^2 + 1))',
+        'sqrt(x^2 - 16)',
+      ]) {
+        final expr = Expr.parse(source);
+        final deriv = expr.derivative('x');
+        final fPlus = expr.evaluateComplex({...params, 'x': z + h});
+        final fMinus = expr.evaluateComplex({...params, 'x': z - h});
+        final fd = (fPlus - fMinus) / (h * const Complex(2));
+        final exact = deriv.evaluateComplex({...params, 'x': z});
+        check((exact - fd).abs()).isLessThan(1e-6);
+      }
+    });
   });
 
   group('Compiler error handling', () {

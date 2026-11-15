@@ -13,6 +13,7 @@ import 'dart:math' as math;
 // ignore: depend_on_referenced_packages internal tool
 import 'package:args/args.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/number.dart' show Complex;
 
 const _repoUrl = 'https://github.com/sympy/integration-test-suites.git';
 const _checkoutDir = '.dart_tool/integration-test-suites';
@@ -530,12 +531,15 @@ bool _verifyDerivative(Expr integrand, Expr antideriv, String variable) {
   } on Object {
     // Fall back to numerical derivative check.
   }
+  final Expr deriv;
   try {
-    final deriv = antideriv.derivative(variable);
-    final freeVars = <String>{
-      ...integrand.freeVariables,
-      ...deriv.freeVariables,
-    }..remove(variable);
+    deriv = antideriv.derivative(variable);
+  } on Object {
+    return false;
+  }
+  final freeVars = <String>{...integrand.freeVariables, ...deriv.freeVariables}
+    ..remove(variable);
+  try {
     final env = <String, double>{};
     var seed = 1.37;
     for (final v in freeVars) {
@@ -551,6 +555,37 @@ bool _verifyDerivative(Expr integrand, Expr antideriv, String variable) {
       if ((lhs - rhs).abs() > 1e-6 * math.max(1.0, rhs.abs())) return false;
       checked++;
     }
+    if (checked > 0) return true;
+  } on Object {
+    // Fall back to complex evaluation when real evaluation fails.
+  }
+  try {
+    final complexEnv = <String, Complex>{};
+    var seed = const Complex(0.63, 0.19);
+    for (final v in freeVars) {
+      complexEnv[v] = seed;
+      seed += const Complex(0.31, -0.07);
+    }
+    var checked = 0;
+    for (final pt in const [
+      Complex(0.37, 0.29),
+      Complex(1.19, -0.41),
+      Complex(-0.73, 0.53),
+      Complex(2.63, 0.17),
+      Complex(5.41, -0.31),
+    ]) {
+      complexEnv[variable] = pt;
+      final lhs = deriv.evaluateComplex(complexEnv);
+      final rhs = integrand.evaluateComplex(complexEnv);
+      if (!lhs.a.isFinite ||
+          !lhs.b.isFinite ||
+          !rhs.a.isFinite ||
+          !rhs.b.isFinite) {
+        continue;
+      }
+      if ((lhs - rhs).abs() > 1e-6 * math.max(1.0, rhs.abs())) return false;
+      checked++;
+    }
     return checked > 0;
   } on Object {
     return false;
@@ -562,9 +597,22 @@ bool _verifyEqual(Expr actual, Expr expected) {
   try {
     final diff = (actual - expected).simplify();
     if (diff is Number && diff.isZero) return true;
+  } on Object {
+    // Ignore simplification failures.
+  }
+  try {
     final a = actual.evaluate({});
     final b = expected.evaluate({});
     if (a.isFinite && b.isFinite) {
+      return (a - b).abs() <= 1e-6 * math.max(1.0, b.abs());
+    }
+  } on Object {
+    // Fall back to complex evaluation.
+  }
+  try {
+    final a = actual.evaluateComplex({});
+    final b = expected.evaluateComplex({});
+    if (a.a.isFinite && a.b.isFinite && b.a.isFinite && b.b.isFinite) {
       return (a - b).abs() <= 1e-6 * math.max(1.0, b.abs());
     }
   } on Object {
