@@ -34,20 +34,10 @@
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-* {
+*:where(:not(math, math *)) {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-}
-
-/* MathML Styling Enhancements */
-math msqrt > mrow {
-  padding-top: 0.14em;
-}
-
-math munder,
-math munderover {
-  math-style: normal;
 }
 
 body {

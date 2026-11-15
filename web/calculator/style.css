@@ -226,14 +226,13 @@ body.calc-body {
 
 /* Main Workspace */
 .calc-workspace {
+  --calc-gutter: 1rem;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  max-width: 1120px;
   width: 100%;
-  margin: 0 auto;
-  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.75rem 0 calc(0.75rem + env(safe-area-inset-bottom, 0px));
   gap: 0.65rem;
 }
 
@@ -245,7 +244,37 @@ body.calc-body {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  padding-right: 0.25rem;
+  padding-inline: max(var(--calc-gutter), calc(50% - 544px));
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.calc-scroll-view::-webkit-scrollbar,
+.calc-rpn-registers::-webkit-scrollbar,
+.calc-mathml-output::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.calc-scroll-view::-webkit-scrollbar-track,
+.calc-rpn-registers::-webkit-scrollbar-track,
+.calc-mathml-output::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.calc-scroll-view::-webkit-scrollbar-thumb,
+.calc-rpn-registers::-webkit-scrollbar-thumb,
+.calc-mathml-output::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.calc-scroll-view::-webkit-scrollbar-thumb:hover,
+.calc-rpn-registers::-webkit-scrollbar-thumb:hover,
+.calc-mathml-output::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.55);
 }
 
 .calc-stale-banner {
@@ -430,6 +459,8 @@ body.calc-body {
   overflow-x: auto;
   overflow-y: hidden;
   padding: 2px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
 }
 
 .calc-approx-subtitle {
@@ -633,19 +664,12 @@ body.calc-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 0.5rem;
+  padding-inline: max(var(--calc-gutter), calc(50% - 544px));
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-}
-
-.calc-rpn-registers.empty {
-  background: transparent;
-  border-color: transparent;
-  padding: 0 0.25rem 0 0;
+  gap: 0.65rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
 }
 
 .calc-rpn-row {
@@ -653,8 +677,10 @@ body.calc-body {
   align-items: center;
   gap: 0.65rem;
   padding: 0.45rem 0.65rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-subtle);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .calc-rpn-level-1 {
@@ -665,7 +691,8 @@ body.calc-body {
 .calc-rpn-level-1-card {
   background: var(--accent-subtle);
   border: 1px solid rgba(37, 99, 235, 0.35);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   padding: 0.45rem 0.65rem;
   display: flex;
   flex-direction: column;
@@ -676,6 +703,7 @@ body.calc-body {
   padding: 0;
   border: none;
   background: transparent;
+  box-shadow: none;
 }
 
 .calc-rpn-chip-strip {
@@ -709,6 +737,8 @@ body.calc-body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  width: min(1088px, calc(100% - 2 * var(--calc-gutter)));
+  margin-inline: auto;
   padding: 0.45rem 0.75rem;
   border-radius: var(--radius-md);
   background: var(--panel-bg-solid);
@@ -830,19 +860,6 @@ body.calc-body {
   background: var(--accent-hover);
 }
 
-.calc-eval-btn,
-.calc-eval-approx-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  height: 34px;
-  padding: 0 0.5rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
 .calc-btn-secondary {
   background: var(--border-subtle);
   color: var(--text-main);
@@ -857,6 +874,20 @@ body.calc-body {
 .calc-btn-secondary:hover {
   border-color: var(--accent-color);
   color: var(--accent-color);
+}
+
+.calc-eval-btn,
+.calc-eval-approx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 34px;
+  padding: 0;
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .calc-btn-danger {
@@ -955,6 +986,8 @@ body.calc-body {
 /* Virtual Keypad */
 .calc-keypad {
   flex-shrink: 0;
+  width: min(1088px, calc(100% - 2 * var(--calc-gutter)));
+  margin-inline: auto;
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -1265,6 +1298,8 @@ body.calc-body {
 /* Docked Matrix / Vector Builder Panel */
 .calc-matrix-panel {
   flex-shrink: 0;
+  width: min(1088px, calc(100% - 2 * var(--calc-gutter)));
+  margin-inline: auto;
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -1463,7 +1498,8 @@ body.calc-body {
   }
 
   .calc-workspace {
-    padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
+    --calc-gutter: 0.5rem;
+    padding: 0.4rem 0 calc(0.4rem + env(safe-area-inset-bottom, 0px));
     gap: 0.4rem;
   }
 
@@ -1576,7 +1612,8 @@ body.calc-body {
   }
 
   .calc-workspace {
-    padding: 0.3rem 0.35rem calc(0.3rem + env(safe-area-inset-bottom, 0px));
+    --calc-gutter: 0.35rem;
+    padding: 0.3rem 0 calc(0.3rem + env(safe-area-inset-bottom, 0px));
   }
 
   .calc-formula-bar {
