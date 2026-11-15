@@ -605,6 +605,34 @@ Expr _antiDerivPow(
           }
         }
       }
+      if (base case Tan(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final nMinus1 = IntegerNumber.of(n - 1);
+          final nMinus2 = IntegerNumber.of(n - 2);
+          final term1 = (Pow(Tan(inner), nMinus1) / (nMinus1 * a)).simplify();
+          final rem = _antiDerivative(
+            Pow(Tan(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (!_hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 - rem).simplify();
+          }
+        }
+      }
+      if (base case Tanh(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final nMinus1 = IntegerNumber.of(n - 1);
+          final nMinus2 = IntegerNumber.of(n - 2);
+          final term1 = (-Pow(Tanh(inner), nMinus1) / (nMinus1 * a)).simplify();
+          final rem = _antiDerivative(
+            Pow(Tanh(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (!_hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 + rem).simplify();
+          }
+        }
+      }
     }
     // Radical quadratic sqrt(a^2 - u^2) or sqrt(u^2 +- a^2) and (Ax^2 + Bx + C)^(n/2)
     if (exponent == FractionNumber.half ||
@@ -722,6 +750,14 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
       }
     }
 
+    // int c / sinh(ax + b) dx = (c / a) * ln|tanh((ax + b) / 2)|
+    if (right case Sinh(expr: final inner)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        return ((left * Ln(Abs(Tanh(inner / IntegerNumber.two)))) / a)
+            .simplify();
+      }
+    }
+
     // int c / cosh(ax + b)^2 dx = (c / a) * tanh(ax + b)
     if (right case Pow(base: Cosh(expr: final inner), :final exponent)
         when exponent == IntegerNumber.two ||
@@ -738,6 +774,77 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
         return ((-left * Cosh(inner)) / (a * Sinh(inner))).simplify();
       }
+    }
+
+    // Higher negative trig/hyperbolic powers: sec^n, csc^n, sech^n, csch^n (3 <= n <= 10)
+    if (right case Pow(:final base, exponent: IntegerNumber(asInt: final n?))
+        when n >= 3 && n <= 10) {
+      final nMinus1 = IntegerNumber.of(n - 1);
+      final nMinus2 = IntegerNumber.of(n - 2);
+      if (base case Cos(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final term1 = (Sin(inner) / (a * nMinus1 * Pow(Cos(inner), nMinus1)))
+              .simplify();
+          final rem = _tryAntiDerivDiv(
+            IntegerNumber.one,
+            Pow(Cos(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (rem != null) {
+            return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
+          }
+        }
+      }
+      if (base case Sin(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final term1 = (-Cos(inner) / (a * nMinus1 * Pow(Sin(inner), nMinus1)))
+              .simplify();
+          final rem = _tryAntiDerivDiv(
+            IntegerNumber.one,
+            Pow(Sin(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (rem != null) {
+            return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
+          }
+        }
+      }
+      if (base case Cosh(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final term1 =
+              (Sinh(inner) / (a * nMinus1 * Pow(Cosh(inner), nMinus1)))
+                  .simplify();
+          final rem = _tryAntiDerivDiv(
+            IntegerNumber.one,
+            Pow(Cosh(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (rem != null) {
+            return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
+          }
+        }
+      }
+      if (base case Sinh(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final term1 =
+              (-Cosh(inner) / (a * nMinus1 * Pow(Sinh(inner), nMinus1)))
+                  .simplify();
+          final rem = _tryAntiDerivDiv(
+            IntegerNumber.one,
+            Pow(Sinh(inner), nMinus2).simplify(),
+            variable,
+          );
+          if (rem != null) {
+            return (left * (term1 - (nMinus2 / nMinus1) * rem)).simplify();
+          }
+        }
+      }
+    }
+
+    // Weierstrass substitution for c / (A + B*sin(u) + C*cos(u))
+    if (_tryWeierstrassSubstitution(left, right, variable)
+        case final weierRes?) {
+      return weierRes;
     }
 
     // Completing the square for quadratic denominator: c / (Ax^2 + Bx + C)
@@ -871,6 +978,11 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     }
   }
 
+  // Trigonometric quotients/powers: sin^p(u) / cos^q(u), cot^n(u), etc.
+  if (_tryTrigPowerProduct(left, right, variable) case final trigQuot?) {
+    return trigQuot;
+  }
+
   // Rational functions P(x) / Q(x): polynomial division and partial fractions
   if (right.dependsOn(variable)) {
     final degLeft = polynomialDegree(left.expand().simplify(), variable);
@@ -961,6 +1073,10 @@ Expr _antiDerivMul(
     if (_tryTrigProduct(f1, f2, variable) case final trigRes?) {
       return trigRes;
     }
+  }
+  if (_tryTrigPowerProduct(original, IntegerNumber.one, variable)
+      case final trigPowRes?) {
+    return trigPowRes;
   }
 
   // 3c. Linear polynomial times quadratic radical: (px + q) * (Ax^2 + Bx + C)^(k/2)
@@ -2056,6 +2172,221 @@ Expr? _tryUSubstitution(
             .substitute(uName, candidate)
             .simplify(assumptions: assumptions);
       }
+    }
+  }
+
+  return null;
+}
+
+Expr? _tryWeierstrassSubstitution(Expr left, Expr right, String variable) {
+  final terms = right is Add ? right.terms : [right];
+  var aConst = IntegerNumber.zero as Expr;
+  var bSin = IntegerNumber.zero as Expr;
+  var cCos = IntegerNumber.zero as Expr;
+  Expr? inner;
+
+  for (final term in terms) {
+    if (!term.dependsOn(variable)) {
+      aConst = (aConst + term).simplify();
+      continue;
+    }
+    var coeff = IntegerNumber.one as Expr;
+    var varPart = term;
+    if (term case Mul(:final factors)) {
+      final (:constFactors, :varFactors) = partitionFactors(factors, variable);
+      if (varFactors.length != 1) return null;
+      varPart = varFactors.first;
+      coeff = switch (constFactors) {
+        [] => IntegerNumber.one,
+        [final single] => single,
+        _ => Mul(constFactors).simplify(),
+      };
+    }
+    switch (varPart) {
+      case Sin(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        bSin = (bSin + coeff).simplify();
+      case Cos(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        cCos = (cCos + coeff).simplify();
+      default:
+        return null;
+    }
+  }
+
+  if (inner == null) return null;
+  final linear = inner.matchLinear(variable);
+  if (linear == null) return null;
+  final k = linear.a;
+
+  const tName = '_wt';
+  const tVar = Variable(tName);
+  final denom =
+      ((aConst - cCos) * tVar * tVar +
+              IntegerNumber.two * bSin * tVar +
+              (aConst + cCos))
+          .simplify();
+  if (denom is Number && denom.isZero) return null;
+
+  final integrandT = ((IntegerNumber.two * left) / (k * denom)).simplify();
+  final tAntideriv = _antiDerivative(integrandT, tName, depth: 2);
+  if (_hasUnevaluatedIntegral(tAntideriv, tName)) return null;
+
+  return tAntideriv
+      .substitute(tName, Tan((inner / IntegerNumber.two).simplify()))
+      .simplify();
+}
+
+({Expr scale, int sinExp, int cosExp, Expr? inner})? _extractTrigPowers(
+  Expr expr,
+  String variable,
+) {
+  final factors = expr is Mul ? expr.factors : [expr];
+  var scale = IntegerNumber.one as Expr;
+  var sinExp = 0;
+  var cosExp = 0;
+  Expr? inner;
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      scale = (scale * f).simplify();
+      continue;
+    }
+    var base = f;
+    var exp = 1;
+    if (f case Pow(base: final pBase, exponent: IntegerNumber(:final asInt))
+        when asInt != null && asInt.abs() <= 10) {
+      base = pBase;
+      exp = asInt;
+    }
+    switch (base) {
+      case Sin(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        sinExp += exp;
+      case Cos(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        cosExp += exp;
+      default:
+        return null;
+    }
+  }
+  return (scale: scale, sinExp: sinExp, cosExp: cosExp, inner: inner);
+}
+
+Expr _integrateCotPower(int n, Expr inner, Expr a, String variable) {
+  if (n == 0) return Variable(variable);
+  if (n == 1) return (Ln(Abs(Sin(inner))) / a).simplify();
+  final nMinus1 = IntegerNumber.of(n - 1);
+  final cotTerm = Pow(Cos(inner) / Sin(inner), nMinus1);
+  final term1 = (-cotTerm / (nMinus1 * a)).simplify();
+  final rem = _integrateCotPower(n - 2, inner, a, variable);
+  return (term1 - rem).simplify();
+}
+
+Expr? _tryTrigPowerProduct(Expr num, Expr den, String variable) {
+  final numInfo = _extractTrigPowers(num, variable);
+  final denInfo = _extractTrigPowers(den, variable);
+  if (numInfo == null || denInfo == null) return null;
+
+  final inner = numInfo.inner ?? denInfo.inner;
+  if (inner == null) return null;
+  if (numInfo.inner != null &&
+      denInfo.inner != null &&
+      numInfo.inner != denInfo.inner) {
+    return null;
+  }
+  final linear = inner.matchLinear(variable);
+  if (linear == null) return null;
+  final a = linear.a;
+
+  final p = numInfo.sinExp - denInfo.sinExp;
+  final q = numInfo.cosExp - denInfo.cosExp;
+  if (p == 0 && q == 0) return null;
+  if (p.abs() > 10 || q.abs() > 10) return null;
+  final scale = (numInfo.scale / denInfo.scale).simplify();
+
+  if (q < 0 && p == -q && p >= 2) {
+    final res = _antiDerivative(Pow(Tan(inner), IntegerNumber.of(p)), variable);
+    return _hasUnevaluatedIntegral(res, variable) ? null : res.scale(scale);
+  }
+  if (p < 0 && q == -p && q >= 2) {
+    return _integrateCotPower(q, inner, a, variable).scale(scale);
+  }
+
+  const tName = '_wt';
+  const tVar = Variable(tName);
+
+  if (p >= 1 && p.isOdd) {
+    final k = (p - 1) ~/ 2;
+    final integrand =
+        ((-scale / a) *
+                Pow(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k)) *
+                Pow(tVar, IntegerNumber.of(q)))
+            .expand()
+            .simplify();
+    final tInt = _antiDerivative(integrand, tName, depth: 2);
+    if (!_hasUnevaluatedIntegral(tInt, tName)) {
+      return tInt.substitute(tName, Cos(inner)).simplify();
+    }
+  }
+
+  if (q >= 1 && q.isOdd) {
+    final k = (q - 1) ~/ 2;
+    final integrand =
+        ((scale / a) *
+                Pow(tVar, IntegerNumber.of(p)) *
+                Pow(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k)))
+            .expand()
+            .simplify();
+    final tInt = _antiDerivative(integrand, tName, depth: 2);
+    if (!_hasUnevaluatedIntegral(tInt, tName)) {
+      return tInt.substitute(tName, Sin(inner)).simplify();
+    }
+  }
+
+  if ((p + q).isEven && p + q <= -2) {
+    final m = -(p + q) ~/ 2 - 1;
+    final integrand =
+        ((scale / a) *
+                Pow(tVar, IntegerNumber.of(p)) *
+                Pow(IntegerNumber.one + tVar * tVar, IntegerNumber.of(m)))
+            .expand()
+            .simplify();
+    final tInt = _antiDerivative(integrand, tName, depth: 2);
+    if (!_hasUnevaluatedIntegral(tInt, tName)) {
+      return tInt.substitute(tName, Tan(inner)).simplify();
+    }
+  }
+
+  if (p >= 0 && q >= 0 && p.isEven && q.isEven) {
+    final twoInner = (IntegerNumber.two * inner).simplify();
+    final sin2 = (IntegerNumber.one - Cos(twoInner)) / IntegerNumber.two;
+    final cos2 = (IntegerNumber.one + Cos(twoInner)) / IntegerNumber.two;
+    final expanded =
+        (scale *
+                Pow(sin2, IntegerNumber.of(p ~/ 2)) *
+                Pow(cos2, IntegerNumber.of(q ~/ 2)))
+            .expand()
+            .simplify();
+    if (expanded is Add || expanded != (num / den).simplify()) {
+      final res = _antiDerivative(expanded, variable, depth: 2);
+      if (!_hasUnevaluatedIntegral(res, variable)) return res;
     }
   }
 
