@@ -574,11 +574,20 @@ Expr _antiDerivPow(
         }
       }
     }
-    // Radical quadratic sqrt(a^2 - u^2) or sqrt(u^2 +- a^2)
+    // Radical quadratic sqrt(a^2 - u^2) or sqrt(u^2 +- a^2) and (Ax^2 + Bx + C)^(n/2)
     if (exponent == FractionNumber.half ||
         (exponent is RealNumber && exponent.value == 0.5)) {
       final radQuad = _tryRadicalQuadratic(base, variable);
       if (radQuad != null) return radQuad;
+    }
+    if (_halfIntExponent(exponent) case final halfExp?) {
+      final quadRad = _tryQuadraticRadical(
+        IntegerNumber.one,
+        base,
+        halfExp,
+        variable,
+      );
+      if (quadRad != null) return quadRad;
     }
     if (exponent is IntegerNumber && exponent.value > Integer.one) {
       final expanded = original.expand().simplify(assumptions: assumptions);
@@ -723,6 +732,16 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
         final sqrtD = Pow(dPos, FractionNumber.half).simplify();
         final arg = ((twoAxPlusB - sqrtD) / (twoAxPlusB + sqrtD)).simplify();
         return ((left / sqrtD) * Ln(Abs(arg))).simplify();
+      } else if (!_isSyntacticallyNegative(delta)) {
+        final sqrtDelta = Pow(delta, FractionNumber.half).simplify();
+        return ((IntegerNumber.two * left / sqrtDelta) *
+                Atan(twoAxPlusB / sqrtDelta))
+            .simplify();
+      } else {
+        final dPos = (-delta).simplify();
+        final sqrtD = Pow(dPos, FractionNumber.half).simplify();
+        final arg = ((twoAxPlusB - sqrtD) / (twoAxPlusB + sqrtD)).simplify();
+        return ((left / sqrtD) * Ln(Abs(arg))).simplify();
       }
     }
 
@@ -750,7 +769,7 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     // General positive constant a + sqTerm
     if (!rL.dependsOn(variable) &&
         rR.dependsOn(variable) &&
-        _isPositiveConstant(rL)) {
+        _isSymbolicPositive(rL)) {
       if (_extractScaledSquareBase((rR / rL).simplify(), variable) case final w?
           when w.dependsOn(variable)) {
         final wPrime = w.derivative(variable).simplify();
@@ -772,7 +791,7 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
         : (!t1.dependsOn(variable) ? t1 : null);
     final varTerm = !t0.dependsOn(variable) ? t1 : t0;
     if (aConst != null) {
-      if (_isPositiveConstant(aConst)) {
+      if (_isSymbolicPositive(aConst)) {
         final sqrtA = aConst == IntegerNumber.one
             ? IntegerNumber.one
             : Pow(aConst, FractionNumber.half).simplify();
@@ -791,7 +810,7 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
             return Asinh(u / sqrtA).scale(k);
           }
         }
-      } else if (_isPositiveConstant((-aConst).simplify())) {
+      } else if (_isSymbolicPositive((-aConst).simplify())) {
         if (_extractScaledSquareBase(varTerm, variable) case final u?
             when u.dependsOn(variable)) {
           final uPrime = u.derivative(variable).simplify();
@@ -800,6 +819,14 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
           }
         }
       }
+    }
+  }
+
+  // Quadratic radical denominator: (p*x + q) / (Ax^2 + Bx + C)^(k/2)
+  if (right case Pow(:final base, :final exponent)) {
+    if (_halfIntExponent(exponent) case final halfExp?) {
+      final quadRad = _tryQuadraticRadical(left, base, -halfExp, variable);
+      if (quadRad != null) return quadRad;
     }
   }
 
@@ -901,6 +928,25 @@ Expr _antiDerivMul(
   if (varFactors case [final f1, final f2]) {
     if (_tryTrigProduct(f1, f2, variable) case final trigRes?) {
       return trigRes;
+    }
+  }
+
+  // 3c. Linear polynomial times quadratic radical: (px + q) * (Ax^2 + Bx + C)^(k/2)
+  for (var i = 0; i < varFactors.length; i++) {
+    if (varFactors[i] case Pow(:final base, :final exponent)) {
+      if (_halfIntExponent(exponent) case final halfExp?) {
+        final others = <Expr>[
+          for (var j = 0; j < varFactors.length; j++)
+            if (i != j) varFactors[j],
+        ];
+        final otherExpr = others.length == 1
+            ? others.first
+            : Mul(others).simplify();
+        if (_tryQuadraticRadical(otherExpr, base, halfExp, variable)
+            case final quadRes?) {
+          return quadRes;
+        }
+      }
     }
   }
 
@@ -1386,7 +1432,7 @@ Expr? _tryRadicalQuadratic(Expr base, String variable) {
     if (aConst == null) return null;
 
     final rad = Pow(base, FractionNumber.half).simplify();
-    if (_isPositiveConstant(aConst)) {
+    if (_isSymbolicPositive(aConst)) {
       final sqrtA = Pow(aConst, FractionNumber.half).simplify();
       // 1. sqrt(a - u^2) where u = m*x + b
       final negVar = (-varTerm).simplify();
@@ -1407,7 +1453,7 @@ Expr? _tryRadicalQuadratic(Expr base, String variable) {
               .simplify();
         }
       }
-    } else if (_isPositiveConstant((-aConst).simplify())) {
+    } else if (_isSymbolicPositive((-aConst).simplify())) {
       // 3. sqrt(u^2 - a) where a = -aConst > 0 and u = m*x + b
       final posA = (-aConst).simplify();
       if (_extractScaledSquareBase(varTerm, variable) case final u?) {
@@ -1434,7 +1480,7 @@ Expr? _extractScaledSquareBase(Expr expr, String variable) {
         [final single] => single,
         _ => Mul(constFactors).simplify(),
       };
-      if (_isPositiveConstant(constPart)) {
+      if (_isSymbolicPositive(constPart)) {
         if (_extractSquareBase(varPart) case final sq?) {
           return (Pow(constPart, FractionNumber.half).simplify() * sq)
               .simplify();
@@ -1442,5 +1488,156 @@ Expr? _extractScaledSquareBase(Expr expr, String variable) {
       }
     }
   }
+  return null;
+}
+
+bool _isSyntacticallyNegative(Expr expr) => switch (expr) {
+  RealNumeric(:final sign) => sign < 0,
+  Mul(:final factors) => factors.where(_isSyntacticallyNegative).length.isOdd,
+  _ => false,
+};
+
+bool _isSymbolicPositive(Expr expr) {
+  if (expr is RealNumeric) return expr.sign > 0;
+  if (expr.freeVariables.isEmpty) return isPositiveConstant(expr);
+  return !_isSyntacticallyNegative(expr);
+}
+
+int? _halfIntExponent(Expr exponent) {
+  if (exponent case FractionNumber(:final numerator, denominator: final den)
+      when den == Integer.two && numerator.isOdd) {
+    final value = numerator.asInt;
+    if (value != null && value.abs() <= 15) return value;
+  }
+  if (exponent is RealNumber) {
+    final doubled = exponent.value * 2;
+    if (doubled == doubled.roundToDouble() &&
+        doubled.toInt().isOdd &&
+        doubled.abs() <= 15) {
+      return doubled.toInt();
+    }
+  }
+  return null;
+}
+
+Expr? _tryQuadraticRadical(
+  Expr numerator,
+  Expr quad,
+  int halfExp,
+  String variable,
+) {
+  final numCoeffs = extractPolynomialCoefficients(numerator, variable);
+  if (numCoeffs == null || maxPolynomialDegree(numCoeffs) > 1) return null;
+  final p = numCoeffs[1] ?? IntegerNumber.zero;
+  final q = numCoeffs[0] ?? IntegerNumber.zero;
+
+  final quadCoeffs = extractPolynomialCoefficients(quad, variable);
+  if (quadCoeffs == null || maxPolynomialDegree(quadCoeffs) != 2) return null;
+  final a = quadCoeffs[2] ?? IntegerNumber.zero;
+  final b = quadCoeffs[1] ?? IntegerNumber.zero;
+  final c = quadCoeffs[0] ?? IntegerNumber.zero;
+
+  if (p == IntegerNumber.zero) {
+    final rem = _tryQuadraticRadicalConst(quad, a, b, c, halfExp, variable);
+    return rem == null ? null : (q * rem).simplify();
+  }
+
+  final twoA = (IntegerNumber.two * a).simplify();
+  final leadTerm =
+      (p / (a * IntegerNumber.of(halfExp + 2))) *
+      Pow(quad, FractionNumber(Integer(halfExp + 2), Integer.two));
+  final qRem = (q - (p * b) / twoA).simplify();
+  if (qRem == IntegerNumber.zero) return leadTerm.simplify();
+
+  final rem = _tryQuadraticRadicalConst(quad, a, b, c, halfExp, variable);
+  if (rem == null) return null;
+  return (leadTerm + qRem * rem).simplify();
+}
+
+Expr? _tryQuadraticRadicalConst(
+  Expr quad,
+  Expr a,
+  Expr b,
+  Expr c,
+  int halfExp,
+  String variable,
+) {
+  final twoA = (IntegerNumber.two * a).simplify();
+  final twoAxPlusB = (twoA * Variable(variable) + b).simplify();
+  final disc = (const IntegerNumber(Integer(4)) * a * c - b * b).simplify();
+
+  if (halfExp == -1) {
+    if (disc == IntegerNumber.zero) return null;
+    if (_isSyntacticallyNegative(a) || isNegativeConstant(a)) {
+      final negA = (-a).simplify();
+      final sqrtNegA = Pow(negA, FractionNumber.half).simplify();
+      final b2Minus4ac = (-disc).simplify();
+      final sqrtDisc = Pow(b2Minus4ac, FractionNumber.half).simplify();
+      final arg = ((-twoAxPlusB) / sqrtDisc).simplify();
+      return (Asin(arg) / sqrtNegA).simplify();
+    }
+    final sqrtA = Pow(a, FractionNumber.half).simplify();
+    if (_isSyntacticallyNegative(disc) || isNegativeConstant(disc)) {
+      final rad = Pow(quad, FractionNumber.half).simplify();
+      final logArg = (twoAxPlusB + IntegerNumber.two * sqrtA * rad).simplify();
+      return (Ln(Abs(logArg)) / sqrtA).simplify();
+    }
+    final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
+    final arg = (twoAxPlusB / sqrtDisc).simplify();
+    return (Asinh(arg) / sqrtA).simplify();
+  }
+
+  if (halfExp == -3) {
+    if (disc == IntegerNumber.zero) return null;
+    final rad = Pow(quad, FractionNumber.half).simplify();
+    return ((IntegerNumber.two * twoAxPlusB) / (disc * rad)).simplify();
+  }
+
+  if (halfExp <= -5) {
+    if (disc == IntegerNumber.zero) return null;
+    final m = -halfExp;
+    final prev = _tryQuadraticRadicalConst(
+      quad,
+      a,
+      b,
+      c,
+      halfExp + 2,
+      variable,
+    );
+    if (prev == null) return null;
+    final mMinus2 = IntegerNumber.of(m - 2);
+    final mMinus3 = IntegerNumber.of(m - 3);
+    final denom = (mMinus2 * disc).simplify();
+    final term1 =
+        (IntegerNumber.two * twoAxPlusB) /
+        (denom * Pow(quad, FractionNumber(Integer(m - 2), Integer.two)));
+    final term2 =
+        (const IntegerNumber(Integer(4)) * a * mMinus3 / denom) * prev;
+    return (term1 + term2).simplify();
+  }
+
+  if (halfExp >= 1) {
+    final prev = _tryQuadraticRadicalConst(
+      quad,
+      a,
+      b,
+      c,
+      halfExp - 2,
+      variable,
+    );
+    if (prev == null) return null;
+    final nPlus1 = IntegerNumber.of(halfExp + 1);
+    final term1 =
+        (twoAxPlusB *
+            Pow(quad, FractionNumber(Integer(halfExp), Integer.two))) /
+        (twoA * nPlus1);
+    final term2 =
+        (IntegerNumber.of(halfExp) *
+            disc /
+            (const IntegerNumber(Integer(4)) * a * nPlus1)) *
+        prev;
+    return (term1 + term2).simplify();
+  }
+
   return null;
 }
