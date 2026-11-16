@@ -4,10 +4,10 @@ import 'package:more/number.dart' show Complex;
 
 import 'zeta.dart';
 
-/// Returns the real-valued polylogarithm $\operatorname{Li}_s(z) = \sum_{k=1}^\infty \frac{z^k}{k^s}$.
+/// Returns the real-valued polylogarithm `Li_s(z) = ∑_{k=1}^∞ z^k / k^s`.
 ///
-/// Defined on $\mathbb{R}$ for $z \le 1$ (and $z < 1$ when $s \le 1$).
-/// Returns `double.nan` on the branch cut $z > 1$.
+/// Defined on R for `z <= 1` (and `z < 1` when `s <= 1`).
+/// Returns `double.nan` on the branch cut `z > 1`.
 double polylog(num s, num z) {
   if (s.isNaN || z.isNaN) return double.nan;
   final sd = s.toDouble();
@@ -31,7 +31,7 @@ double polylog(num s, num z) {
   return res.a.toDouble();
 }
 
-/// Returns the complex-valued polylogarithm $\operatorname{Li}_s(z)$.
+/// Returns the complex-valued polylogarithm `Li_s(z)`.
 Complex polylogComplex(Complex s, Complex z) {
   if (z.a == 0.0 && z.b == 0.0) return Complex.zero;
 

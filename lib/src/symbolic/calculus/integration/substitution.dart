@@ -8,6 +8,7 @@ import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
 
+/// Attempts direct chain-rule matching on `candidate * factor` with respect to [variable].
 Expr? tryChainRule(Expr candidate, Expr factor, String variable) {
   // General u(x) * u'(x) chain rule: int u * u' dx = 1/2 * u^2
   if (candidate.dependsOn(variable)) {
@@ -68,66 +69,15 @@ Expr? tryChainRule(Expr candidate, Expr factor, String variable) {
     ),
     Pow(:final base, :final exponent)
         when !exponent.dependsOn(variable) && base.dependsOn(variable) =>
-      tryChainRulePower(base, exponent, factor, variable),
+      _tryChainRulePower(base, exponent, factor, variable),
     Pow(:final base, :final exponent)
         when !base.dependsOn(variable) && exponent.dependsOn(variable) =>
-      tryChainRuleExponential(candidate, base, exponent, factor, variable),
+      _tryChainRuleExponential(candidate, base, exponent, factor, variable),
     _ => null,
   };
 }
 
-Expr? _scaleMatch(Expr factor, Expr deriv, Expr target, String variable) {
-  final k = factor.matchScalarMultiple(deriv, variable);
-  return k != null ? target.scale(k) : null;
-}
-
-Expr? tryChainRulePower(
-  Expr base,
-  Expr exponent,
-  Expr factor,
-  String variable,
-) {
-  final uPrime = base.derivative(variable).simplify();
-  final k = factor.matchScalarMultiple(uPrime, variable);
-  if (k != null) {
-    if (exponent == IntegerNumber.negativeOne ||
-        (exponent is RealNumber && exponent.value == -1.0)) {
-      return Ln(base).scale(k);
-    }
-    final nPlus1 = (exponent + IntegerNumber.one).simplify();
-    final fU = (Pow(base, nPlus1) / nPlus1).simplify();
-    return fU.scale(k);
-  }
-  return null;
-}
-
-Expr? tryChainRuleExponential(
-  Expr candidate,
-  Expr base,
-  Expr exponent,
-  Expr factor,
-  String variable,
-) {
-  if (base == Constant.e) {
-    final uPrime = exponent.derivative(variable).simplify();
-    final k = factor.matchScalarMultiple(uPrime, variable);
-    if (k != null) {
-      return candidate.scale(k);
-    }
-    return null;
-  }
-  if (isValidExponentialBase(base)) {
-    final uPrime = exponent.derivative(variable).simplify();
-    final k = factor.matchScalarMultiple(uPrime, variable);
-    if (k != null) {
-      final denom = Ln(base);
-      final fU = (candidate / denom).simplify();
-      return fU.scale(k);
-    }
-  }
-  return null;
-}
-
+/// Integrates Gaussian exponentials `exp(a2*x^2 + a1*x + a0)` via `erf` or `erfi`.
 Expr? tryGaussianAntiderivative(Expr exponent, String variable) {
   final coeffs = extractPolynomialCoefficients(exponent, variable);
   if (coeffs == null || maxPolynomialDegree(coeffs) != 2) return null;
@@ -178,105 +128,7 @@ Expr? tryGaussianAntiderivative(Expr exponent, String variable) {
       .simplify();
 }
 
-void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
-  if (!node.dependsOn(variable)) return;
-  switch (node) {
-    case Sin(:final expr) ||
-        Cos(:final expr) ||
-        Tan(:final expr) ||
-        Asin(:final expr) ||
-        Acos(:final expr) ||
-        Atan(:final expr) ||
-        Sinh(:final expr) ||
-        Cosh(:final expr) ||
-        Tanh(:final expr) ||
-        Asinh(:final expr) ||
-        Acosh(:final expr) ||
-        Atanh(:final expr) ||
-        Ln(:final expr) ||
-        Erf(:final expr) ||
-        Erfc(:final expr):
-      if (node is Sin ||
-          node is Cos ||
-          node is Tan ||
-          node is Ln ||
-          node is Atan ||
-          node is Asin ||
-          node is Acos) {
-        out.add(node);
-      }
-      if (expr is! Variable || expr.name != variable) {
-        out.add(expr);
-      }
-      _collectUCandidates(expr, variable, out);
-    case Pow(:final base, :final exponent):
-      if (base == Constant.e && exponent.dependsOn(variable)) {
-        out.add(node);
-        if (exponent is! Variable || exponent.name != variable) {
-          out.add(exponent);
-        }
-      } else {
-        if (base.dependsOn(variable) &&
-            (base is! Variable || base.name != variable)) {
-          out.add(base);
-        }
-        if (exponent.dependsOn(variable) &&
-            (base.dependsOn(variable) || isValidExponentialBase(base))) {
-          out.add(node);
-        }
-      }
-      _collectUCandidates(base, variable, out);
-      _collectUCandidates(exponent, variable, out);
-    default:
-      node.mapChildren((child) {
-        _collectUCandidates(child, variable, out);
-        return child;
-      });
-  }
-}
-
-Expr _expandDoubleAngleTrig(Expr node) {
-  if (node case Sin(:final expr)) {
-    if (expr case Mul(factors: [IntegerNumber(asInt: 2), final inner])) {
-      return IntegerNumber.two * Sin(inner) * Cos(inner);
-    }
-  }
-  return node.mapChildren(_expandDoubleAngleTrig);
-}
-
-Expr _replaceUCandidate(
-  Expr node,
-  Expr candidate,
-  Variable uVar,
-  String variable,
-) {
-  if (node == candidate) return uVar;
-  if (candidate case Pow(base: final cBase, exponent: final cExp)) {
-    if (node case Pow(base: final nBase, exponent: final nExp)
-        when nBase == cBase) {
-      final ratio = (nExp / cExp).simplify();
-      if (!ratio.dependsOn(variable)) {
-        return Pow(uVar, ratio);
-      }
-    }
-  }
-  if (candidate is Sin && node is Pow) {
-    if (node.base == Cos(candidate.expr) &&
-        node.exponent == IntegerNumber.two) {
-      return IntegerNumber.one - Pow(uVar, IntegerNumber.two);
-    }
-  }
-  if (candidate is Cos && node is Pow) {
-    if (node.base == Sin(candidate.expr) &&
-        node.exponent == IntegerNumber.two) {
-      return IntegerNumber.one - Pow(uVar, IntegerNumber.two);
-    }
-  }
-  return node.mapChildren(
-    (child) => _replaceUCandidate(child, candidate, uVar, variable),
-  );
-}
-
+/// Attempts general `u`-substitution across composite subexpressions of [expr].
 Expr? tryUSubstitution(
   Expr expr,
   String variable, {
@@ -327,6 +179,7 @@ Expr? tryUSubstitution(
   return null;
 }
 
+/// Integrates products `x^m * (a*x + b)^p` with symbolic exponent `p`.
 Expr? trySymbolicBinomialAffine(
   Expr expr,
   String variable, {
@@ -395,6 +248,8 @@ Expr? trySymbolicBinomialAffine(
       .simplify(assumptions: assumptions);
 }
 
+/// Integrates mixed exponential-trigonometric-logarithmic forms such as
+/// `x^n * sin(ln(a*x))` and `exp(c * atan(x)) / (x^2 + 1)^(k/2)`.
 Expr? tryMixedTrigLogExp(
   Expr expr,
   String variable, {
@@ -530,4 +385,155 @@ Expr? tryMixedTrigLogExp(
   }
 
   return null;
+}
+
+Expr? _scaleMatch(Expr factor, Expr deriv, Expr target, String variable) {
+  final k = factor.matchScalarMultiple(deriv, variable);
+  return k != null ? target.scale(k) : null;
+}
+
+Expr? _tryChainRulePower(
+  Expr base,
+  Expr exponent,
+  Expr factor,
+  String variable,
+) {
+  final uPrime = base.derivative(variable).simplify();
+  final k = factor.matchScalarMultiple(uPrime, variable);
+  if (k != null) {
+    if (exponent == IntegerNumber.negativeOne ||
+        (exponent is RealNumber && exponent.value == -1.0)) {
+      return Ln(base).scale(k);
+    }
+    final nPlus1 = (exponent + IntegerNumber.one).simplify();
+    final fU = (Pow(base, nPlus1) / nPlus1).simplify();
+    return fU.scale(k);
+  }
+  return null;
+}
+
+Expr? _tryChainRuleExponential(
+  Expr candidate,
+  Expr base,
+  Expr exponent,
+  Expr factor,
+  String variable,
+) {
+  if (base == Constant.e) {
+    final uPrime = exponent.derivative(variable).simplify();
+    final k = factor.matchScalarMultiple(uPrime, variable);
+    if (k != null) {
+      return candidate.scale(k);
+    }
+    return null;
+  }
+  if (isValidExponentialBase(base)) {
+    final uPrime = exponent.derivative(variable).simplify();
+    final k = factor.matchScalarMultiple(uPrime, variable);
+    if (k != null) {
+      final denom = Ln(base);
+      final fU = (candidate / denom).simplify();
+      return fU.scale(k);
+    }
+  }
+  return null;
+}
+
+void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
+  if (!node.dependsOn(variable)) return;
+  switch (node) {
+    case Sin(:final expr) ||
+        Cos(:final expr) ||
+        Tan(:final expr) ||
+        Asin(:final expr) ||
+        Acos(:final expr) ||
+        Atan(:final expr) ||
+        Sinh(:final expr) ||
+        Cosh(:final expr) ||
+        Tanh(:final expr) ||
+        Asinh(:final expr) ||
+        Acosh(:final expr) ||
+        Atanh(:final expr) ||
+        Ln(:final expr) ||
+        Erf(:final expr) ||
+        Erfc(:final expr):
+      if (node is Sin ||
+          node is Cos ||
+          node is Tan ||
+          node is Ln ||
+          node is Atan ||
+          node is Asin ||
+          node is Acos) {
+        out.add(node);
+      }
+      if (expr is! Variable || expr.name != variable) {
+        out.add(expr);
+      }
+      _collectUCandidates(expr, variable, out);
+    case Pow(:final base, :final exponent):
+      if (base == Constant.e && exponent.dependsOn(variable)) {
+        out.add(node);
+        if (exponent is! Variable || exponent.name != variable) {
+          out.add(exponent);
+        }
+      } else {
+        if (base.dependsOn(variable) &&
+            (base is! Variable || base.name != variable)) {
+          out.add(base);
+        }
+        if (exponent.dependsOn(variable) &&
+            (base.dependsOn(variable) || isValidExponentialBase(base))) {
+          out.add(node);
+        }
+      }
+      _collectUCandidates(base, variable, out);
+      _collectUCandidates(exponent, variable, out);
+    default:
+      node.mapChildren((child) {
+        _collectUCandidates(child, variable, out);
+        return child;
+      });
+  }
+}
+
+Expr _expandDoubleAngleTrig(Expr node) {
+  if (node case Sin(:final expr)) {
+    if (expr case Mul(factors: [IntegerNumber(asInt: 2), final inner])) {
+      return IntegerNumber.two * Sin(inner) * Cos(inner);
+    }
+  }
+  return node.mapChildren(_expandDoubleAngleTrig);
+}
+
+Expr _replaceUCandidate(
+  Expr node,
+  Expr candidate,
+  Variable uVar,
+  String variable,
+) {
+  if (node == candidate) return uVar;
+  if (candidate case Pow(base: final cBase, exponent: final cExp)) {
+    if (node case Pow(base: final nBase, exponent: final nExp)
+        when nBase == cBase) {
+      final ratio = (nExp / cExp).simplify();
+      if (!ratio.dependsOn(variable)) {
+        return Pow(uVar, ratio);
+      }
+    }
+  }
+  if (candidate is Sin && node is Pow) {
+    if (node.base == Cos(candidate.expr) &&
+        node.exponent == IntegerNumber.two) {
+      return IntegerNumber.one - Pow(uVar, IntegerNumber.two);
+    }
+  }
+  if (candidate is Cos && node is Pow) {
+    if (node.base == Sin(candidate.expr) &&
+        node.exponent == IntegerNumber.two) {
+      return IntegerNumber.one - Pow(uVar, IntegerNumber.two);
+    }
+  }
+  return node.mapChildren(
+    (child) => _replaceUCandidate(child, candidate, uVar, variable),
+  );
 }

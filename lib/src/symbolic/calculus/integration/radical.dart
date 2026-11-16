@@ -8,6 +8,7 @@ import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
 
+/// Integrates square-root binomial quadratics `sqrt(a +/- u^2)` or `sqrt(u^2 - a)`.
 Expr? tryRadicalQuadratic(Expr base, String variable) {
   if (base case Add(terms: [final t0, final t1])) {
     final aConst = !t0.dependsOn(variable)
@@ -55,6 +56,7 @@ Expr? tryRadicalQuadratic(Expr base, String variable) {
   return null;
 }
 
+/// Integrates `(p*x + q) * (A*x^2 + B*x + C)^(k/2)` with respect to [variable].
 Expr? tryQuadraticRadical(
   Expr numerator,
   Expr quad,
@@ -87,6 +89,385 @@ Expr? tryQuadraticRadical(
   final rem = _tryQuadraticRadicalConst(quad, a, b, c, halfExp, variable);
   if (rem == null) return null;
   return (leadTerm + qRem * rem).simplify();
+}
+
+/// Attempts affine radical substitution `u = (a*x + b)^(1/n)` on [expr].
+Expr? tryAffineRadicalSubstitution(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+  int depth = 0,
+}) {
+  final radicals = <({Expr base, int p, int q})>[];
+  _collectAffineRadicals(expr, variable, radicals);
+  if (radicals.isEmpty) return null;
+
+  final firstBase = radicals.first.base;
+  if (!radicals.every((r) => r.base == firstBase)) return null;
+  final linear = firstBase.matchLinear(variable);
+  if (linear == null) return null;
+  final (:a, :b) = linear;
+
+  var n = 1;
+  for (final r in radicals) {
+    n = _lcmInt(n, r.q);
+    if (n > 6) return null;
+  }
+  if (n < 2) return null;
+
+  final uName = '_u$depth';
+  final uVar = Variable(uName);
+  final replaced = _replaceAffineRadical(
+    expr,
+    firstBase,
+    variable,
+    uVar,
+    n,
+    a,
+    b,
+  );
+  final dx = (IntegerNumber.of(n) * Pow(uVar, IntegerNumber.of(n - 1))) / a;
+  final transformed = (replaced * dx).expand().simplify(
+    assumptions: assumptions,
+  );
+  if (transformed.dependsOn(variable)) return null;
+
+  final uAntideriv = antiDerivative(
+    transformed,
+    uName,
+    assumptions: assumptions,
+    depth: depth + 1,
+  );
+  if (hasUnevaluatedIntegral(uAntideriv, uName)) return null;
+
+  final backSub = Pow(firstBase, FractionNumber(Integer.one, Integer(n)));
+  return uAntideriv
+      .substitute(uName, backSub)
+      .simplify(assumptions: assumptions);
+}
+
+/// Attempts Chebyshev differential binomial substitution on `x^m * (a + b*x^n)^(p/q)`.
+Expr? tryChebyshevBinomial(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+  int depth = 0,
+}) {
+  final factors = expr is Mul ? expr.factors : [expr];
+  var constScale = IntegerNumber.one as Expr;
+  var m = 0;
+  Pow? binomPow;
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      constScale = (constScale * f).simplify();
+      continue;
+    }
+    if (f is Variable && f.name == variable) {
+      m += 1;
+      continue;
+    }
+    if (f case Pow(base: Variable(:final name), :final exponent)
+        when name == variable) {
+      if (exponent case IntegerNumber(:final asInt) when asInt != null) {
+        m += asInt;
+        continue;
+      }
+      return null;
+    }
+    if (f is Pow && binomPow == null) {
+      binomPow = f;
+      continue;
+    }
+    return null;
+  }
+
+  if (binomPow == null) return null;
+  final fracExp = _fractionalExponent(binomPow.exponent);
+  if (fracExp == null) return null;
+  final (:p, :q) = fracExp;
+
+  final baseCoeffs = extractPolynomialCoefficients(binomPow.base, variable);
+  if (baseCoeffs == null) return null;
+  final n = maxPolynomialDegree(baseCoeffs);
+  if (n < 2) return null;
+  for (var deg = 1; deg < n; deg++) {
+    if (baseCoeffs[deg] != null && baseCoeffs[deg] != IntegerNumber.zero) {
+      return null;
+    }
+  }
+  final a = baseCoeffs[0] ?? IntegerNumber.zero;
+  final b = baseCoeffs[n] ?? IntegerNumber.zero;
+  if (a == IntegerNumber.zero || b == IntegerNumber.zero) return null;
+
+  final uName = '_u$depth';
+  final uVar = Variable(uName);
+
+  // Case 1: (m + 1) / n is a positive integer k
+  if ((m + 1) > 0 && (m + 1) % n == 0) {
+    final k = (m + 1) ~/ n;
+    if (k <= 8) {
+      final transformed =
+          (constScale *
+                  (IntegerNumber.one / (IntegerNumber.of(n) * b)) *
+                  Pow((uVar - a) / b, IntegerNumber.of(k - 1)) *
+                  Pow(uVar, FractionNumber(Integer(p), Integer(q))))
+              .expand()
+              .simplify(assumptions: assumptions);
+      final uAntideriv = antiDerivative(
+        transformed,
+        uName,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(uAntideriv, uName)) {
+        return uAntideriv
+            .substitute(uName, binomPow.base)
+            .simplify(assumptions: assumptions);
+      }
+    }
+  }
+
+  // Case 2: (m + 1) / n + p / q is an integer r
+  final numSum = (m + 1) * q + p * n;
+  final denProd = n * q;
+  if (numSum % denProd == 0) {
+    final r = numSum ~/ denProd;
+    if (r.abs() <= 6) {
+      final transformed =
+          (constScale *
+                  (-IntegerNumber.of(q) / (IntegerNumber.of(n) * a)) *
+                  Pow(uVar, IntegerNumber.of(q - 1 + p)) *
+                  Pow(
+                    (Pow(uVar, IntegerNumber.of(q)) - b) / a,
+                    IntegerNumber.of(-(r + 1)),
+                  ))
+              .expand()
+              .simplify(assumptions: assumptions);
+      final uAntideriv = antiDerivative(
+        transformed,
+        uName,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(uAntideriv, uName)) {
+        final backSub = Pow(
+          (a * Pow(Variable(variable), IntegerNumber.of(-n)) + b).simplify(),
+          FractionNumber(Integer.one, Integer(q)),
+        );
+        return uAntideriv
+            .substitute(uName, backSub)
+            .simplify(assumptions: assumptions);
+      }
+    }
+  }
+
+  return null;
+}
+
+/// Integrates `P(x) / sqrt(Q(x))`, `sqrt(Q(x)) / x^k`, or `c / (x^k * sqrt(Q(x)))`.
+Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
+  // Case 1: P(x) / sqrt(Ax^2 + Bx + C) with deg(P) >= 2
+  if (right case Pow(base: final quad, exponent: final exp)
+      when halfIntExponent(exp) == 1) {
+    final coeffs = extractPolynomialCoefficients(quad, variable);
+    if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
+      final rawDegLeft = polynomialDegree(left, variable);
+      if (rawDegLeft != null && rawDegLeft >= 2 && rawDegLeft <= 6) {
+        final leftExp = left.expand().simplify();
+        final degLeft = polynomialDegree(leftExp, variable);
+        if (degLeft != null && degLeft >= 2 && degLeft <= 6) {
+          return _integratePolyOverSqrtQ(
+            leftExp,
+            quad,
+            coeffs[2] ?? IntegerNumber.zero,
+            coeffs[1] ?? IntegerNumber.zero,
+            coeffs[0] ?? IntegerNumber.zero,
+            variable,
+          );
+        }
+      }
+    }
+  }
+
+  // Case 2: sqrt(Ax^2 + Bx + C) / x^k (k >= 1)
+  if (left case Pow(base: final quad, exponent: final exp)
+      when halfIntExponent(exp) == 1) {
+    final coeffs = extractPolynomialCoefficients(quad, variable);
+    if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
+      int? k;
+      if (right is Variable && right.name == variable) {
+        k = 1;
+      } else if (right
+          case Pow(
+            base: Variable(:final name),
+            exponent: IntegerNumber(asInt: final p?),
+          )
+          when name == variable && p >= 1 && p <= 4) {
+        k = p;
+      }
+      if (k != null) {
+        final a = coeffs[2] ?? IntegerNumber.zero;
+        final b = coeffs[1] ?? IntegerNumber.zero;
+        final c = coeffs[0] ?? IntegerNumber.zero;
+        final xVar = Variable(variable);
+        // sqrt(Q)/x^k = A*x^(2-k)/sqrt(Q) + B*x^(1-k)/sqrt(Q) + C/(x^k * sqrt(Q))
+        final term1 = k == 1
+            ? antiDerivative((a * xVar / left).simplify(), variable)
+            : (k == 2
+                  ? antiDerivative((a / left).simplify(), variable)
+                  : tryPolynomialOverSqrtQuadratic(
+                      a,
+                      Pow(xVar, IntegerNumber.of(k - 2)) * left,
+                      variable,
+                    ));
+        final term2 = k == 1
+            ? antiDerivative((b / left).simplify(), variable)
+            : tryPolynomialOverSqrtQuadratic(
+                b,
+                Pow(xVar, IntegerNumber.of(k - 1)) * left,
+                variable,
+              );
+        final term3 = tryPolynomialOverSqrtQuadratic(
+          c,
+          (right * left).simplify(),
+          variable,
+        );
+        if (term1 != null &&
+            term2 != null &&
+            term3 != null &&
+            !hasUnevaluatedIntegral(term1, variable) &&
+            !hasUnevaluatedIntegral(term2, variable)) {
+          return (term1 + term2 + term3).simplify();
+        }
+      }
+    }
+  }
+
+  // Case 3: c / (x^k * sqrt(Ax^2 + Bx + C)) (k >= 1) via t = 1/x
+  if (!left.dependsOn(variable) && right is Mul) {
+    final factors = right.factors;
+    var k = 0;
+    Pow? rad;
+    var valid = true;
+    for (final f in factors) {
+      if (f is Variable && f.name == variable) {
+        k += 1;
+      } else if (f
+          case Pow(
+            base: Variable(:final name),
+            exponent: IntegerNumber(asInt: final p?),
+          )
+          when name == variable && p >= 1) {
+        k += p;
+      } else if (f is Pow && halfIntExponent(f.exponent) == 1 && rad == null) {
+        rad = f;
+      } else {
+        valid = false;
+      }
+    }
+    if (valid && k >= 1 && k <= 4 && rad != null) {
+      final coeffs = extractPolynomialCoefficients(rad.base, variable);
+      if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
+        final a = coeffs[2] ?? IntegerNumber.zero;
+        final b = coeffs[1] ?? IntegerNumber.zero;
+        final c = coeffs[0] ?? IntegerNumber.zero;
+        if (c != IntegerNumber.zero) {
+          const tName = '_inv';
+          const tVar = Variable(tName);
+          final qT = (c * tVar * tVar + b * tVar + a).simplify();
+          final numT =
+              (-left *
+                      (k == 1
+                          ? IntegerNumber.one
+                          : Pow(tVar, IntegerNumber.of(k - 1))))
+                  .simplify();
+          final tInt = antiDerivative(
+            (numT / Pow(qT, FractionNumber.half)).simplify(),
+            tName,
+            depth: 2,
+          );
+          if (!hasUnevaluatedIntegral(tInt, tName)) {
+            return tInt
+                .substitute(tName, IntegerNumber.one / Variable(variable))
+                .simplify();
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/// Attempts fractional-linear radical substitution `u = ((a*x + b) / (c*x + d))^(1/n)`.
+Expr? tryFractionalLinearRadical(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+  int depth = 0,
+}) {
+  Pow? targetPow;
+  ({int p, int q})? frac;
+  void scan(Expr n) {
+    if (targetPow != null || !n.dependsOn(variable)) return;
+    if (n case Pow(:final base, :final exponent)) {
+      if (_fractionalExponent(exponent) case final fq? when fq.q <= 4) {
+        final (numB, denB) = splitNumeratorDenominator(base);
+        if (numB.matchLinear(variable) != null &&
+            denB.dependsOn(variable) &&
+            denB.matchLinear(variable) != null) {
+          targetPow = n;
+          frac = fq;
+          return;
+        }
+      }
+    }
+    n.mapChildren((c) {
+      scan(c);
+      return c;
+    });
+  }
+
+  scan(expr);
+  if (targetPow == null || frac == null) return null;
+
+  final (numB, denB) = splitNumeratorDenominator(targetPow!.base);
+  final (:a, :b) = numB.matchLinear(variable)!;
+  final (a: c, b: d) = denB.matchLinear(variable)!;
+  final n = frac!.q;
+
+  const uName = '_fl';
+  const uVar = Variable(uName);
+  final uPowN = Pow(uVar, IntegerNumber.of(n));
+  final xOfU = ((d * uPowN - b) / (a - c * uPowN)).simplify();
+  final dx =
+      (IntegerNumber.of(n) *
+              (a * d - b * c) *
+              Pow(uVar, IntegerNumber.of(n - 1)) /
+              Pow(a - c * uPowN, IntegerNumber.two))
+          .simplify();
+
+  Expr replaceNode(Expr node) {
+    if (node == targetPow) return Pow(uVar, IntegerNumber.of(frac!.p));
+    if (node is Variable && node.name == variable) return xOfU;
+    return node.mapChildren(replaceNode);
+  }
+
+  final transformed = (replaceNode(expr) * dx).simplify(
+    assumptions: assumptions,
+  );
+  if (transformed.dependsOn(variable)) return null;
+  final uInt = antiDerivative(
+    transformed,
+    uName,
+    assumptions: assumptions,
+    depth: 2,
+  );
+  if (hasUnevaluatedIntegral(uInt, uName)) return null;
+
+  final backSub = Pow(targetPow!.base, FractionNumber(Integer.one, Integer(n)));
+  return uInt.substitute(uName, backSub).simplify(assumptions: assumptions);
 }
 
 Expr? _tryQuadraticRadicalConst(
@@ -246,312 +627,6 @@ Expr _replaceAffineRadical(
   );
 }
 
-Expr? tryAffineRadicalSubstitution(
-  Expr expr,
-  String variable, {
-  Assumptions assumptions = Assumptions.none,
-  int depth = 0,
-}) {
-  final radicals = <({Expr base, int p, int q})>[];
-  _collectAffineRadicals(expr, variable, radicals);
-  if (radicals.isEmpty) return null;
-
-  final firstBase = radicals.first.base;
-  if (!radicals.every((r) => r.base == firstBase)) return null;
-  final linear = firstBase.matchLinear(variable);
-  if (linear == null) return null;
-  final (:a, :b) = linear;
-
-  var n = 1;
-  for (final r in radicals) {
-    n = _lcmInt(n, r.q);
-    if (n > 6) return null;
-  }
-  if (n < 2) return null;
-
-  final uName = '_u$depth';
-  final uVar = Variable(uName);
-  final replaced = _replaceAffineRadical(
-    expr,
-    firstBase,
-    variable,
-    uVar,
-    n,
-    a,
-    b,
-  );
-  final dx = (IntegerNumber.of(n) * Pow(uVar, IntegerNumber.of(n - 1))) / a;
-  final transformed = (replaced * dx).expand().simplify(
-    assumptions: assumptions,
-  );
-  if (transformed.dependsOn(variable)) return null;
-
-  final uAntideriv = antiDerivative(
-    transformed,
-    uName,
-    assumptions: assumptions,
-    depth: depth + 1,
-  );
-  if (hasUnevaluatedIntegral(uAntideriv, uName)) return null;
-
-  final backSub = Pow(firstBase, FractionNumber(Integer.one, Integer(n)));
-  return uAntideriv
-      .substitute(uName, backSub)
-      .simplify(assumptions: assumptions);
-}
-
-Expr? tryChebyshevBinomial(
-  Expr expr,
-  String variable, {
-  Assumptions assumptions = Assumptions.none,
-  int depth = 0,
-}) {
-  final factors = expr is Mul ? expr.factors : [expr];
-  var constScale = IntegerNumber.one as Expr;
-  var m = 0;
-  Pow? binomPow;
-
-  for (final f in factors) {
-    if (!f.dependsOn(variable)) {
-      constScale = (constScale * f).simplify();
-      continue;
-    }
-    if (f is Variable && f.name == variable) {
-      m += 1;
-      continue;
-    }
-    if (f case Pow(base: Variable(:final name), :final exponent)
-        when name == variable) {
-      if (exponent case IntegerNumber(:final asInt) when asInt != null) {
-        m += asInt;
-        continue;
-      }
-      return null;
-    }
-    if (f is Pow && binomPow == null) {
-      binomPow = f;
-      continue;
-    }
-    return null;
-  }
-
-  if (binomPow == null) return null;
-  final fracExp = _fractionalExponent(binomPow.exponent);
-  if (fracExp == null) return null;
-  final (:p, :q) = fracExp;
-
-  final baseCoeffs = extractPolynomialCoefficients(binomPow.base, variable);
-  if (baseCoeffs == null) return null;
-  final n = maxPolynomialDegree(baseCoeffs);
-  if (n < 2) return null;
-  for (var deg = 1; deg < n; deg++) {
-    if (baseCoeffs[deg] != null && baseCoeffs[deg] != IntegerNumber.zero) {
-      return null;
-    }
-  }
-  final a = baseCoeffs[0] ?? IntegerNumber.zero;
-  final b = baseCoeffs[n] ?? IntegerNumber.zero;
-  if (a == IntegerNumber.zero || b == IntegerNumber.zero) return null;
-
-  final uName = '_u$depth';
-  final uVar = Variable(uName);
-
-  // Case 1: (m + 1) / n is a positive integer k
-  if ((m + 1) > 0 && (m + 1) % n == 0) {
-    final k = (m + 1) ~/ n;
-    if (k <= 8) {
-      final transformed =
-          (constScale *
-                  (IntegerNumber.one / (IntegerNumber.of(n) * b)) *
-                  Pow((uVar - a) / b, IntegerNumber.of(k - 1)) *
-                  Pow(uVar, FractionNumber(Integer(p), Integer(q))))
-              .expand()
-              .simplify(assumptions: assumptions);
-      final uAntideriv = antiDerivative(
-        transformed,
-        uName,
-        assumptions: assumptions,
-        depth: depth + 1,
-      );
-      if (!hasUnevaluatedIntegral(uAntideriv, uName)) {
-        return uAntideriv
-            .substitute(uName, binomPow.base)
-            .simplify(assumptions: assumptions);
-      }
-    }
-  }
-
-  // Case 2: (m + 1) / n + p / q is an integer r
-  final numSum = (m + 1) * q + p * n;
-  final denProd = n * q;
-  if (numSum % denProd == 0) {
-    final r = numSum ~/ denProd;
-    if (r.abs() <= 6) {
-      final transformed =
-          (constScale *
-                  (-IntegerNumber.of(q) / (IntegerNumber.of(n) * a)) *
-                  Pow(uVar, IntegerNumber.of(q - 1 + p)) *
-                  Pow(
-                    (Pow(uVar, IntegerNumber.of(q)) - b) / a,
-                    IntegerNumber.of(-(r + 1)),
-                  ))
-              .expand()
-              .simplify(assumptions: assumptions);
-      final uAntideriv = antiDerivative(
-        transformed,
-        uName,
-        assumptions: assumptions,
-        depth: depth + 1,
-      );
-      if (!hasUnevaluatedIntegral(uAntideriv, uName)) {
-        final backSub = Pow(
-          (a * Pow(Variable(variable), IntegerNumber.of(-n)) + b).simplify(),
-          FractionNumber(Integer.one, Integer(q)),
-        );
-        return uAntideriv
-            .substitute(uName, backSub)
-            .simplify(assumptions: assumptions);
-      }
-    }
-  }
-
-  return null;
-}
-
-Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
-  // Case 1: P(x) / sqrt(Ax^2 + Bx + C) with deg(P) >= 2
-  if (right case Pow(base: final quad, exponent: final exp)
-      when halfIntExponent(exp) == 1) {
-    final coeffs = extractPolynomialCoefficients(quad, variable);
-    if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
-      final rawDegLeft = polynomialDegree(left, variable);
-      if (rawDegLeft != null && rawDegLeft >= 2 && rawDegLeft <= 6) {
-        final leftExp = left.expand().simplify();
-        final degLeft = polynomialDegree(leftExp, variable);
-        if (degLeft != null && degLeft >= 2 && degLeft <= 6) {
-          return _integratePolyOverSqrtQ(
-            leftExp,
-            quad,
-            coeffs[2] ?? IntegerNumber.zero,
-            coeffs[1] ?? IntegerNumber.zero,
-            coeffs[0] ?? IntegerNumber.zero,
-            variable,
-          );
-        }
-      }
-    }
-  }
-
-  // Case 2: sqrt(Ax^2 + Bx + C) / x^k (k >= 1)
-  if (left case Pow(base: final quad, exponent: final exp)
-      when halfIntExponent(exp) == 1) {
-    final coeffs = extractPolynomialCoefficients(quad, variable);
-    if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
-      int? k;
-      if (right is Variable && right.name == variable) {
-        k = 1;
-      } else if (right
-          case Pow(
-            base: Variable(:final name),
-            exponent: IntegerNumber(asInt: final p?),
-          )
-          when name == variable && p >= 1 && p <= 4) {
-        k = p;
-      }
-      if (k != null) {
-        final a = coeffs[2] ?? IntegerNumber.zero;
-        final b = coeffs[1] ?? IntegerNumber.zero;
-        final c = coeffs[0] ?? IntegerNumber.zero;
-        final xVar = Variable(variable);
-        // sqrt(Q)/x^k = A*x^(2-k)/sqrt(Q) + B*x^(1-k)/sqrt(Q) + C/(x^k * sqrt(Q))
-        final term1 = k == 1
-            ? antiDerivative((a * xVar / left).simplify(), variable)
-            : (k == 2
-                  ? antiDerivative((a / left).simplify(), variable)
-                  : tryPolynomialOverSqrtQuadratic(
-                      a,
-                      Pow(xVar, IntegerNumber.of(k - 2)) * left,
-                      variable,
-                    ));
-        final term2 = k == 1
-            ? antiDerivative((b / left).simplify(), variable)
-            : tryPolynomialOverSqrtQuadratic(
-                b,
-                Pow(xVar, IntegerNumber.of(k - 1)) * left,
-                variable,
-              );
-        final term3 = tryPolynomialOverSqrtQuadratic(
-          c,
-          (right * left).simplify(),
-          variable,
-        );
-        if (term1 != null &&
-            term2 != null &&
-            term3 != null &&
-            !hasUnevaluatedIntegral(term1, variable) &&
-            !hasUnevaluatedIntegral(term2, variable)) {
-          return (term1 + term2 + term3).simplify();
-        }
-      }
-    }
-  }
-
-  // Case 3: c / (x^k * sqrt(Ax^2 + Bx + C)) (k >= 1) via t = 1/x
-  if (!left.dependsOn(variable) && right is Mul) {
-    final factors = right.factors;
-    var k = 0;
-    Pow? rad;
-    var valid = true;
-    for (final f in factors) {
-      if (f is Variable && f.name == variable) {
-        k += 1;
-      } else if (f
-          case Pow(
-            base: Variable(:final name),
-            exponent: IntegerNumber(asInt: final p?),
-          )
-          when name == variable && p >= 1) {
-        k += p;
-      } else if (f is Pow && halfIntExponent(f.exponent) == 1 && rad == null) {
-        rad = f;
-      } else {
-        valid = false;
-      }
-    }
-    if (valid && k >= 1 && k <= 4 && rad != null) {
-      final coeffs = extractPolynomialCoefficients(rad.base, variable);
-      if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
-        final a = coeffs[2] ?? IntegerNumber.zero;
-        final b = coeffs[1] ?? IntegerNumber.zero;
-        final c = coeffs[0] ?? IntegerNumber.zero;
-        if (c != IntegerNumber.zero) {
-          const tName = '_inv';
-          const tVar = Variable(tName);
-          final qT = (c * tVar * tVar + b * tVar + a).simplify();
-          final numT =
-              (-left *
-                      (k == 1
-                          ? IntegerNumber.one
-                          : Pow(tVar, IntegerNumber.of(k - 1))))
-                  .simplify();
-          final tInt = antiDerivative(
-            (numT / Pow(qT, FractionNumber.half)).simplify(),
-            tName,
-            depth: 2,
-          );
-          if (!hasUnevaluatedIntegral(tInt, tName)) {
-            return tInt
-                .substitute(tName, IntegerNumber.one / Variable(variable))
-                .simplify();
-          }
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
 Expr? _integratePolyOverSqrtQ(
   Expr poly,
   Expr quad,
@@ -600,73 +675,4 @@ Expr? _integratePolyOverSqrtQ(
   final remInt = _integratePolyOverSqrtQ(lowerPoly, quad, a, b, c, variable);
   if (remInt == null) return null;
   return (term1 + remInt).simplify();
-}
-
-Expr? tryFractionalLinearRadical(
-  Expr expr,
-  String variable, {
-  Assumptions assumptions = Assumptions.none,
-  int depth = 0,
-}) {
-  Pow? targetPow;
-  ({int p, int q})? frac;
-  void scan(Expr n) {
-    if (targetPow != null || !n.dependsOn(variable)) return;
-    if (n case Pow(:final base, :final exponent)) {
-      if (_fractionalExponent(exponent) case final fq? when fq.q <= 4) {
-        final (numB, denB) = splitNumeratorDenominator(base);
-        if (numB.matchLinear(variable) != null &&
-            denB.dependsOn(variable) &&
-            denB.matchLinear(variable) != null) {
-          targetPow = n;
-          frac = fq;
-          return;
-        }
-      }
-    }
-    n.mapChildren((c) {
-      scan(c);
-      return c;
-    });
-  }
-
-  scan(expr);
-  if (targetPow == null || frac == null) return null;
-
-  final (numB, denB) = splitNumeratorDenominator(targetPow!.base);
-  final (:a, :b) = numB.matchLinear(variable)!;
-  final (a: c, b: d) = denB.matchLinear(variable)!;
-  final n = frac!.q;
-
-  const uName = '_fl';
-  const uVar = Variable(uName);
-  final uPowN = Pow(uVar, IntegerNumber.of(n));
-  final xOfU = ((d * uPowN - b) / (a - c * uPowN)).simplify();
-  final dx =
-      (IntegerNumber.of(n) *
-              (a * d - b * c) *
-              Pow(uVar, IntegerNumber.of(n - 1)) /
-              Pow(a - c * uPowN, IntegerNumber.two))
-          .simplify();
-
-  Expr replaceNode(Expr node) {
-    if (node == targetPow) return Pow(uVar, IntegerNumber.of(frac!.p));
-    if (node is Variable && node.name == variable) return xOfU;
-    return node.mapChildren(replaceNode);
-  }
-
-  final transformed = (replaceNode(expr) * dx).simplify(
-    assumptions: assumptions,
-  );
-  if (transformed.dependsOn(variable)) return null;
-  final uInt = antiDerivative(
-    transformed,
-    uName,
-    assumptions: assumptions,
-    depth: 2,
-  );
-  if (hasUnevaluatedIntegral(uInt, uName)) return null;
-
-  final backSub = Pow(targetPow!.base, FractionNumber(Integer.one, Integer(n)));
-  return uInt.substitute(uName, backSub).simplify(assumptions: assumptions);
 }

@@ -8,19 +8,25 @@ import '../../compiler.dart';
 import '../../number/integer.dart';
 import '../linear_form.dart';
 import 'definite.dart';
-import 'integration.dart';
 import 'parts.dart';
 import 'radical.dart';
 import 'rational.dart';
 import 'substitution.dart';
 import 'trigonometric.dart';
 
+/// Specification of a single integration variable and optional definite bounds
+/// for iterated integration via [IntegrationExtension.integrateMultiple].
+///
+/// When both `from` and `to` are omitted (`null`), an indefinite
+/// anti-derivative is computed with respect to `variable`. When `from` and
+/// `to` are provided (as [Expr], [int], [BigInt], or [double]), a definite
+/// integral is evaluated.
 typedef IntegrationBound = ({String variable, Object? from, Object? to});
 
 /// Symbolic analytical integration extension on [Expr].
 extension IntegrationExtension on Expr {
-  /// Computes the symbolic anti-derivative $\int f(x) dx$ with respect to
-  /// [variable], or the definite integral $\int_a^b f(x) dx$ when [from] and
+  /// Computes the symbolic anti-derivative `∫ f(x) dx` with respect to
+  /// [variable], or the definite integral `∫_a^b f(x) dx` when [from] and
   /// [to] are specified.
   ///
   /// Conceptually, an integral calculates the total accumulated area under the
@@ -33,7 +39,7 @@ extension IntegrationExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final area = (x * x).integrate('x', from: 0, to: 3);
-  /// // area: IntegerNumber(9) because \int_0^3 x^2 dx = [x^3 / 3]_0^3 = 9
+  /// // area: IntegerNumber(9)
   /// ```
   Expr integrate(
     String variable, {
@@ -51,13 +57,12 @@ extension IntegrationExtension on Expr {
   /// Computes an iterated (multiple) integral across [bounds] in sequence from
   /// innermost to outermost integration variable.
   ///
-  /// For bounds $\[(x_1, a_1, b_1), (x_2, a_2, b_2), \dots, (x_n, a_n, b_n)\]$,
-  /// this evaluates:
-  /// $$\int_{a_n}^{b_n} \cdots \left(\int_{a_2}^{b_2} \left(\int_{a_1}^{b_1} f \, dx_1\right) dx_2\right) \cdots dx_n$$
+  /// For bounds `[(x_1, a_1, b_1), (x_2, a_2, b_2), ..., (x_n, a_n, b_n)]`,
+  /// this evaluates the nested integral from `x_1` out to `x_n`.
   ///
   /// Inner bounds may depend symbolically on outer integration variables
-  /// (e.g., integrating over a non-rectangular region $0 \le y \le x$,
-  /// $0 \le x \le 1$). When any step lacks a closed-form anti-derivative, an
+  /// (e.g., integrating over a non-rectangular region `0 <= y <= x`,
+  /// `0 <= x <= 1`). When any step lacks a closed-form anti-derivative, an
   /// unevaluated [Integral] node is retained, and nested definite [Integral]
   /// nodes can still be evaluated numerically via [CompilerExtension.evaluate]
   /// or [ApproximationExtension.approximate].
@@ -87,6 +92,8 @@ extension IntegrationExtension on Expr {
   }
 }
 
+/// Evaluates the indefinite or definite symbolic integral of [function] with
+/// respect to [variable].
 Expr symbolicIntegrate(
   Expr function,
   String variable, {
@@ -125,6 +132,7 @@ Expr symbolicIntegrate(
   }
 }
 
+/// Computes the symbolic anti-derivative of [expr] with respect to [variable].
 Expr antiDerivative(
   Expr expr,
   String variable, {
@@ -215,7 +223,7 @@ Expr antiDerivative(
       variable,
       assumptions: assumptions,
     ),
-    Pow(:final base, :final exponent) => antiDerivPow(
+    Pow(:final base, :final exponent) => _antiDerivPow(
       base,
       exponent,
       node,
@@ -293,8 +301,84 @@ Expr antiDerivative(
   return result;
 }
 
+/// Returns a simplified unevaluated [Integral] node for [expr] in [variable].
 Expr unsupportedIntegral(Expr expr, String variable) =>
     Integral(expr, variable, isSimplified: true);
+
+/// Whether [base] is a valid positive non-unit exponential base.
+bool isValidExponentialBase(Expr base) => switch (base) {
+  RationalNumber(:final isNegative, :final isZero, :final isOne) =>
+    !isNegative && !isZero && !isOne,
+  RealNumber(:final value) => value > 0 && value != 1.0,
+  _ => true,
+};
+
+/// Extracts `u` if [expr] has the form `u^(2*k)` for positive integer `k`.
+Expr? extractSquareBase(Expr expr) => switch (expr) {
+  Pow(:final base, exponent: IntegerNumber(:final value))
+      when value.isEven && value > Integer.zero =>
+    value == Integer.two
+        ? base
+        : Pow(base, IntegerNumber(value ~/ Integer.two)),
+  Pow(:final base, exponent: RealNumber(:final value))
+      when value % 2.0 == 0.0 && value > 0 =>
+    value == 2.0 ? base : Pow(base, RealNumber(value / 2.0)),
+  _ => null,
+};
+
+/// Extracts `sqrt(c) * u` if [expr] has the form `c * u^(2*k)` in [variable].
+Expr? extractScaledSquareBase(Expr expr, String variable) {
+  final direct = extractSquareBase(expr);
+  if (direct != null) return direct;
+  if (expr case Mul(:final factors)) {
+    final (:constFactors, :varFactors) = partitionFactors(factors, variable);
+    if (varFactors case [final varPart] when constFactors.isNotEmpty) {
+      final constPart = switch (constFactors) {
+        [final single] => single,
+        _ => Mul(constFactors).simplify(),
+      };
+      if (isSymbolicPositive(constPart)) {
+        if (extractSquareBase(varPart) case final sq?) {
+          return (Pow(constPart, FractionNumber.half).simplify() * sq)
+              .simplify();
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/// Whether [expr] carries a leading syntactic negative sign.
+bool isSyntacticallyNegative(Expr expr) => switch (expr) {
+  RealNumeric(:final sign) => sign < 0,
+  Mul(:final factors) => factors.where(isSyntacticallyNegative).length.isOdd,
+  _ => false,
+};
+
+/// Whether [expr] is a positive numeric constant or lacks a syntactic negative sign.
+bool isSymbolicPositive(Expr expr) {
+  if (expr is RealNumeric) return expr.sign > 0;
+  if (expr.freeVariables.isEmpty) return isPositiveConstant(expr);
+  return !isSyntacticallyNegative(expr);
+}
+
+/// Extracts odd integer `k` (`|k| <= 15`) when [exponent] equals `k / 2`.
+int? halfIntExponent(Expr exponent) {
+  if (exponent case FractionNumber(:final numerator, denominator: final den)
+      when den == Integer.two && numerator.isOdd) {
+    final value = numerator.asInt;
+    if (value != null && value.abs() <= 15) return value;
+  }
+  if (exponent is RealNumber) {
+    final doubled = exponent.value * 2;
+    if (doubled == doubled.roundToDouble() &&
+        doubled.toInt().isOdd &&
+        doubled.abs() <= 15) {
+      return doubled.toInt();
+    }
+  }
+  return null;
+}
 
 Expr? _antiDerivSin(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
@@ -631,14 +715,7 @@ Expr? _extractBoundaryPoint(Expr cond, String variable) => switch (cond) {
   _ => null,
 };
 
-bool isValidExponentialBase(Expr base) => switch (base) {
-  RationalNumber(:final isNegative, :final isZero, :final isOne) =>
-    !isNegative && !isZero && !isOne,
-  RealNumber(:final value) => value > 0 && value != 1.0,
-  _ => true,
-};
-
-Expr antiDerivPow(
+Expr _antiDerivPow(
   Expr base,
   Expr exponent,
   Expr original,
@@ -1055,66 +1132,4 @@ Expr _antiDerivMul(
   }
 
   return unsupportedIntegral(original, variable);
-}
-
-Expr? extractSquareBase(Expr expr) => switch (expr) {
-  Pow(:final base, exponent: IntegerNumber(:final value))
-      when value.isEven && value > Integer.zero =>
-    value == Integer.two
-        ? base
-        : Pow(base, IntegerNumber(value ~/ Integer.two)),
-  Pow(:final base, exponent: RealNumber(:final value))
-      when value % 2.0 == 0.0 && value > 0 =>
-    value == 2.0 ? base : Pow(base, RealNumber(value / 2.0)),
-  _ => null,
-};
-
-Expr? extractScaledSquareBase(Expr expr, String variable) {
-  final direct = extractSquareBase(expr);
-  if (direct != null) return direct;
-  if (expr case Mul(:final factors)) {
-    final (:constFactors, :varFactors) = partitionFactors(factors, variable);
-    if (varFactors case [final varPart] when constFactors.isNotEmpty) {
-      final constPart = switch (constFactors) {
-        [final single] => single,
-        _ => Mul(constFactors).simplify(),
-      };
-      if (isSymbolicPositive(constPart)) {
-        if (extractSquareBase(varPart) case final sq?) {
-          return (Pow(constPart, FractionNumber.half).simplify() * sq)
-              .simplify();
-        }
-      }
-    }
-  }
-  return null;
-}
-
-bool isSyntacticallyNegative(Expr expr) => switch (expr) {
-  RealNumeric(:final sign) => sign < 0,
-  Mul(:final factors) => factors.where(isSyntacticallyNegative).length.isOdd,
-  _ => false,
-};
-
-bool isSymbolicPositive(Expr expr) {
-  if (expr is RealNumeric) return expr.sign > 0;
-  if (expr.freeVariables.isEmpty) return isPositiveConstant(expr);
-  return !isSyntacticallyNegative(expr);
-}
-
-int? halfIntExponent(Expr exponent) {
-  if (exponent case FractionNumber(:final numerator, denominator: final den)
-      when den == Integer.two && numerator.isOdd) {
-    final value = numerator.asInt;
-    if (value != null && value.abs() <= 15) return value;
-  }
-  if (exponent is RealNumber) {
-    final doubled = exponent.value * 2;
-    if (doubled == doubled.roundToDouble() &&
-        doubled.toInt().isOdd &&
-        doubled.abs() <= 15) {
-      return doubled.toInt();
-    }
-  }
-  return null;
 }

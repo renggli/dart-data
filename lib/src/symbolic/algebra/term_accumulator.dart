@@ -794,7 +794,7 @@ int? polynomialDegree(Expr expr, String variable) {
 
 /// Extracts univariate polynomial coefficients for [expr] in [variable].
 ///
-/// Returns a map where each key $k \ge 0$ is the power of [variable] and the
+/// Returns a map where each key `k >= 0` is the power of [variable] and the
 /// value is the coefficient expression independent of [variable], or `null` if
 /// [expr] is not a polynomial in [variable].
 Map<int, Expr>? extractPolynomialCoefficients(Expr expr, String variable) {
@@ -816,26 +816,7 @@ Map<int, Expr>? extractPolynomialCoefficients(Expr expr, String variable) {
   return acc.extractPolynomialCoefficients(variable);
 }
 
-bool _canBePolynomialAfterExpand(Expr expr, String variable) {
-  if (!expr.dependsOn(variable)) return true;
-  return switch (expr) {
-    Variable(:final name) when name == variable => true,
-    Add(:final terms) => terms.every(
-      (t) => _canBePolynomialAfterExpand(t, variable),
-    ),
-    Mul(:final factors) => factors.every(
-      (f) => _canBePolynomialAfterExpand(f, variable),
-    ),
-    Pow(:final base, exponent: IntegerNumber(:final value)) when !value.isBig =>
-      _canBePolynomialAfterExpand(base, variable),
-    Pow(:final base, exponent: RealNumber(:final value))
-        when value == value.roundToDouble() =>
-      _canBePolynomialAfterExpand(base, variable),
-    _ => false,
-  };
-}
-
-/// Returns the maximum degree $k \ge 0$ with a non-zero coefficient in [coeffs],
+/// Returns the maximum degree `k >= 0` with a non-zero coefficient in [coeffs],
 /// or `-1` if [coeffs] has no non-zero terms.
 int maxPolynomialDegree(Map<int, Expr> coeffs) {
   var maxD = -1;
@@ -867,6 +848,25 @@ Expr buildPolynomialFromCoefficients(Map<int, Expr> coeffs, String variable) {
     [] => IntegerNumber.zero,
     [final single] => single,
     _ => Add(terms).simplify(),
+  };
+}
+
+bool _canBePolynomialAfterExpand(Expr expr, String variable) {
+  if (!expr.dependsOn(variable)) return true;
+  return switch (expr) {
+    Variable(:final name) when name == variable => true,
+    Add(:final terms) => terms.every(
+      (t) => _canBePolynomialAfterExpand(t, variable),
+    ),
+    Mul(:final factors) => factors.every(
+      (f) => _canBePolynomialAfterExpand(f, variable),
+    ),
+    Pow(:final base, exponent: IntegerNumber(:final value)) when !value.isBig =>
+      _canBePolynomialAfterExpand(base, variable),
+    Pow(:final base, exponent: RealNumber(:final value))
+        when value == value.roundToDouble() =>
+      _canBePolynomialAfterExpand(base, variable),
+    _ => false,
   };
 }
 

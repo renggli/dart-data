@@ -972,7 +972,6 @@ digraph {
   141 -> 148 [color="#888888", arrowsize="0.7"];
   141 -> 156 [color="#888888", arrowsize="0.7"];
   141 -> 255 [color="#888888", arrowsize="0.7"];
-  141 -> 141 [color="#888888", arrowsize="0.7"];
   141 -> 256 [color="#888888", arrowsize="0.7"];
   141 -> 257 [color="#888888", arrowsize="0.7"];
   141 -> 258 [color="#888888", arrowsize="0.7"];

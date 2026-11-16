@@ -10,7 +10,7 @@ import 'power.dart';
 import 'special.dart';
 import 'transcendental.dart';
 
-/// Simplifies a sine expression $\sin(expr)$.
+/// Simplifies a real-part expression `re(z)`.
 Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
@@ -37,7 +37,7 @@ Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
 }
 
-/// Simplifies an imaginary-part expression $\Im(z)$.
+/// Simplifies an imaginary-part expression `im(z)`.
 Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
@@ -64,7 +64,7 @@ Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
 }
 
-/// Simplifies a complex argument expression $\arg(z)$.
+/// Simplifies a complex argument expression `arg(z)`.
 Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
@@ -123,7 +123,7 @@ Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
 }
 
-/// Simplifies a complex conjugate expression $\overline{z}$.
+/// Simplifies a complex conjugate expression `conj(z)`.
 Expr simplifyConjugate(
   Expr expr, {
   Assumptions assumptions = Assumptions.none,
@@ -223,7 +223,7 @@ Expr simplifyConjugate(
   }
 }
 
-/// Rewrites [expr] into rectangular normal form $a + b i$.
+/// Rewrites [expr] into rectangular normal form `a + b * i`.
 Expr toRectangularExpr(
   Expr expr, {
   Assumptions assumptions = Assumptions.none,
@@ -243,7 +243,7 @@ Expr toRectangularExpr(
   return simplifyAdd([re, imTerm], assumptions: assumptions);
 }
 
-/// Rewrites [expr] into polar normal form $r e^{i \theta}$.
+/// Rewrites [expr] into polar normal form `r * e^(i * θ)`.
 Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   final simplified = simplifyExpr(expr, assumptions: assumptions);
   if (simplified is Number && simplified.isZero) {

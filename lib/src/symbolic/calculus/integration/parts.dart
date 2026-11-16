@@ -8,13 +8,15 @@ import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
 
+/// Attempts integration by parts on the product `pExpr * vExpr` with respect
+/// to [variable].
 Expr? tryIntegrationByParts(
   Expr pExpr,
   Expr vExpr,
   String variable, {
   int depth = 0,
 }) {
-  if (depth >= 4) return null;
+  if (depth >= 3) return null;
 
   // Symbolic power times logarithm: x^n * ln(a*x)
   if (vExpr case Ln(expr: final inner)) {
@@ -47,7 +49,11 @@ Expr? tryIntegrationByParts(
     if (!hasUnevaluatedIntegral(v, variable)) {
       final uPrime = vExpr.derivative(variable).simplify();
       final remIntegrand = (v * uPrime).simplify();
-      final remIntegral = antiDerivative(remIntegrand, variable, depth: 1);
+      final remIntegral = antiDerivative(
+        remIntegrand,
+        variable,
+        depth: depth + 1,
+      );
       if (!hasUnevaluatedIntegral(remIntegral, variable)) {
         return (v * vExpr - remIntegral).simplify();
       }
@@ -84,7 +90,7 @@ Expr? tryIntegrationByParts(
         final rem = antiDerivative(
           (v * vExpr.derivative(variable)).simplify(),
           variable,
-          depth: 1,
+          depth: depth + 1,
         );
         if (!hasUnevaluatedIntegral(rem, variable)) {
           return (v * vExpr - rem).simplify();

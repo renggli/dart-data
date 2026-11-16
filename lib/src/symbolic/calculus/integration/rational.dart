@@ -11,6 +11,8 @@ import 'integration.dart';
 import 'radical.dart';
 import 'trigonometric.dart';
 
+/// Attempts quotient and rational-function integration on `left / right` with
+/// respect to [variable].
 Expr? tryAntiDerivDiv(Expr left, Expr right, String variable, {int depth = 0}) {
   // int (c / g(x)) dx
   if (!left.dependsOn(variable)) {
@@ -26,7 +28,7 @@ Expr? tryAntiDerivDiv(Expr left, Expr right, String variable, {int depth = 0}) {
             base.matchLinear(variable) != null) {
       final negExp = (-exponent).simplify();
       final powExpr = Pow(base, negExp);
-      return antiDerivPow(base, negExp, powExpr, variable).scale(left);
+      return antiDerivative(powExpr, variable, depth: depth).scale(left);
     }
 
     // int c / cosh(ax + b) dx = (c / a) * atan(sinh(ax + b))
@@ -453,7 +455,7 @@ Expr? tryAntiDerivDiv(Expr left, Expr right, String variable, {int depth = 0}) {
   // Repeated quadratic denominator: P(x) / (Ax^2 + Bx + C)^m (m >= 2)
   if (right case Pow(base: final quad, exponent: IntegerNumber(asInt: final m?))
       when m >= 2 && m <= 10) {
-    if (tryRepeatedQuadratic(left, quad, m, variable) case final repRes?) {
+    if (_tryRepeatedQuadratic(left, quad, m, variable) case final repRes?) {
       return repRes;
     }
   }
@@ -465,7 +467,7 @@ Expr? tryAntiDerivDiv(Expr left, Expr right, String variable, {int depth = 0}) {
     if (rawDegLeft != null &&
         rawDegRight != null &&
         rawDegRight >= 1 &&
-        rawDegRight <= 24) {
+        (rawDegLeft >= rawDegRight ? rawDegRight <= 24 : rawDegRight <= 12)) {
       final leftExp = left.expand().simplify();
       final rightExp = right.expand().simplify();
       final degLeft = polynomialDegree(leftExp, variable);
@@ -488,23 +490,23 @@ Expr? tryAntiDerivDiv(Expr left, Expr right, String variable, {int depth = 0}) {
           return (qInt + rInt).simplify();
         }
         if (degRight == 3) {
-          if (tryCubicBinomialDenominator(leftExp, rightExp, variable)
+          if (_tryCubicBinomialDenominator(leftExp, rightExp, variable)
               case final cubRes?) {
             return cubRes;
           }
         }
         if (degRight == 4) {
-          if (trySophieGermainQuartic(leftExp, rightExp, variable)
+          if (_trySophieGermainQuartic(leftExp, rightExp, variable)
               case final quartRes?) {
             return quartRes;
           }
-          if (tryBiquadraticDenominator(leftExp, rightExp, variable)
+          if (_tryBiquadraticDenominator(leftExp, rightExp, variable)
               case final biqRes?) {
             return biqRes;
           }
         }
         if (degRight >= 2) {
-          if (tryDistinctLinearPartialFractions(left, right, variable)
+          if (_tryDistinctLinearPartialFractions(left, right, variable)
               case final pfRes?) {
             return pfRes;
           }
@@ -538,7 +540,7 @@ Expr? tryAntiDerivDiv(Expr left, Expr right, String variable, {int depth = 0}) {
   return null;
 }
 
-Expr? tryRepeatedQuadratic(Expr left, Expr quad, int m, String variable) {
+Expr? _tryRepeatedQuadratic(Expr left, Expr quad, int m, String variable) {
   final quadCoeffs = extractPolynomialCoefficients(quad, variable);
   if (quadCoeffs == null || maxPolynomialDegree(quadCoeffs) != 2) return null;
   final a = quadCoeffs[2] ?? IntegerNumber.zero;
@@ -557,7 +559,7 @@ Expr? tryRepeatedQuadratic(Expr left, Expr quad, int m, String variable) {
     );
     if (hasUnevaluatedIntegral(qTerm, variable)) return null;
     if (remainder is Number && remainder.isZero) return qTerm;
-    final rTerm = tryRepeatedQuadratic(remainder, quad, m, variable);
+    final rTerm = _tryRepeatedQuadratic(remainder, quad, m, variable);
     if (rTerm == null) return null;
     return (qTerm + rTerm).simplify();
   }
@@ -633,7 +635,7 @@ Expr _integrateLinearOverQuad(
   return result;
 }
 
-Expr? tryCubicBinomialDenominator(Expr left, Expr right, String variable) {
+Expr? _tryCubicBinomialDenominator(Expr left, Expr right, String variable) {
   final denCoeffs = extractPolynomialCoefficients(right, variable);
   if (denCoeffs == null || maxPolynomialDegree(denCoeffs) != 3) return null;
   if ((denCoeffs[2] != null && denCoeffs[2] != IntegerNumber.zero) ||
@@ -677,7 +679,7 @@ Expr? tryCubicBinomialDenominator(Expr left, Expr right, String variable) {
   return (linInt + quadInt).simplify();
 }
 
-Expr? trySophieGermainQuartic(Expr left, Expr right, String variable) {
+Expr? _trySophieGermainQuartic(Expr left, Expr right, String variable) {
   final denCoeffs = extractPolynomialCoefficients(right, variable);
   if (denCoeffs == null || maxPolynomialDegree(denCoeffs) != 4) return null;
   for (var deg = 1; deg <= 3; deg++) {
@@ -740,7 +742,7 @@ Expr? trySophieGermainQuartic(Expr left, Expr right, String variable) {
   return (int1 + int2).simplify();
 }
 
-Expr? tryBiquadraticDenominator(Expr left, Expr right, String variable) {
+Expr? _tryBiquadraticDenominator(Expr left, Expr right, String variable) {
   final denCoeffs = extractPolynomialCoefficients(right, variable);
   if (denCoeffs == null || maxPolynomialDegree(denCoeffs) != 4) return null;
   if ((denCoeffs[3] != null && denCoeffs[3] != IntegerNumber.zero) ||
@@ -843,7 +845,7 @@ Expr? tryBiquadraticDenominator(Expr left, Expr right, String variable) {
   return (int1 + int2).simplify();
 }
 
-Expr? tryDistinctLinearPartialFractions(
+Expr? _tryDistinctLinearPartialFractions(
   Expr left,
   Expr right,
   String variable,

@@ -687,17 +687,17 @@ This document describes the achieved architecture across all subsystems of `pack
   - `gamma(x)`: Complete gamma function $\Gamma(x)$ computed via Lanczos approximation ($g=7, n=9$) yielding 15 digits of relative precision, with Euler's reflection formula $\Gamma(1-z)\Gamma(z) = \frac{\pi}{\sin(\pi z)}$ handling negative non-integer poles.
   - `gammaLn(x)`: Logarithm of the absolute value of $\Gamma(x)$, preventing overflow for large inputs up to $x \approx 10^{300}$.
   - `gammap(a, x)` and `gammaq(a, x)`: Lower $P(a, x) = \frac{\gamma(a, x)}{\Gamma(a)}$ and upper $Q(a, x) = \frac{\Gamma(a, x)}{\Gamma(a)}$ regularized incomplete gamma functions. Evaluated via rapidly converging power series when $x < a + 1$, and via Legendre's continued fraction using Lentz's method when $x \ge a + 1$.
-  - `lowerGamma(s, x)` and `upperGamma(s, x)`: Unregularized lower $\gamma(s, x) = \int_0^x t^{s-1} e^{-t}\,dt$ and upper $\Gamma(s, x) = \int_x^\infty t^{s-1} e^{-t}\,dt$ incomplete gamma functions.
+  - `lowerGamma(s, x)` and `upperGamma(s, x)`: Unregularized lower `γ(s, x) = ∫_0^x t^(s-1) e^(-t) dt` and upper `Γ(s, x) = ∫_x^∞ t^(s-1) e^(-t) dt` incomplete gamma functions.
   - `gammapInv(a, p)` and `gammaqInv(a, q)`: Inverses of the regularized incomplete lower and upper gamma functions via initial rational approximations refined by Halley iterations.
 - **Beta Functions**:
-  - `beta(a, b)` and `betaLn(a, b)`: Euler's beta function $B(a, b) = \frac{\Gamma(a)\Gamma(b)}{\Gamma(a+b)}$ and log-beta $\ln B(a, b) = \ln\Gamma(a) + \ln\Gamma(b) - \ln\Gamma(a+b)$.
-  - `ibeta(a, b, x)`: Regularized incomplete beta function $I_x(a, b) = \frac{B(x; a, b)}{B(a, b)}$, evaluated via continued fraction expansion with symmetry transformation $I_x(a, b) = 1 - I_{1-x}(b, a)$ when $x > \frac{a+1}{a+b+2}$.
+  - `beta(a, b)` and `betaLn(a, b)`: Euler's beta function `B(a, b) = Γ(a)Γ(b) / Γ(a+b)` and log-beta `ln B(a, b) = ln Γ(a) + ln Γ(b) - ln Γ(a+b)`.
+  - `ibeta(a, b, x)`: Regularized incomplete beta function `I_x(a, b) = B(x; a, b) / B(a, b)`, evaluated via continued fraction expansion with symmetry transformation `I_x(a, b) = 1 - I_{1-x}(b, a)` when `x > (a + 1) / (a + b + 2)`.
   - `ibetaInv(a, b, p)`: Inverse incomplete beta function using Carter's normal approximation refined by Newton-Raphson/Halley steps.
 - **Logarithmic Derivatives & Zeta Functions**:
-  - `digamma(x)`: First derivative of $\ln\Gamma(x)$, $\psi(x) = \frac{\Gamma'(x)}{\Gamma(x)}$, evaluated via recurrence $\psi(x+1) = \psi(x) + \frac{1}{x}$ shifted to $x \ge 8$ and Bernoulli asymptotic expansion.
-  - `trigamma(x)`: Second derivative $\psi'(x) = \frac{d^2}{dx^2}\ln\Gamma(x)$ evaluated via shifted recurrence and asymptotic series.
-  - `polygamma(m, x)`: Order-$m$ logarithmic derivative $\psi^{(m)}(x) = \frac{d^{m+1}}{dx^{m+1}}\ln\Gamma(x)$.
-  - `zeta(s)`: Riemann zeta function $\zeta(s) = \sum_{n=1}^\infty n^{-s}$, computed via Borwein's accelerated alternating Dirichlet eta method for $\text{Re}(s) > 0$ and Riemann reflection for $\text{Re}(s) < 0$.
+  - `digamma(x)`: First derivative of `ln Γ(x)`, `ψ(x) = Γ'(x) / Γ(x)`, evaluated via recurrence `ψ(x+1) = ψ(x) + 1/x` shifted to `x >= 8` and Bernoulli asymptotic expansion.
+  - `trigamma(x)`: Second derivative `ψ'(x)` of `ln Γ(x)` evaluated via shifted recurrence and asymptotic series.
+  - `polygamma(m, x)`: Order-`m` logarithmic derivative `ψ^(m)(x)` of `ln Γ(x)`.
+  - `zeta(s)`: Riemann zeta function `ζ(s) = ∑_{n=1}^∞ n^(-s)`, computed via Borwein's accelerated alternating Dirichlet eta method for `Re(s) > 0` and Riemann reflection for `Re(s) < 0`.
 - **Combinatorics**:
   - Exact and floating-point combinatorics: `factorial`, `factorialLn`, `combination`, `combinationLn`, `permutation`, and `permutationLn`.
 
@@ -705,19 +705,19 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Fundamental to cumulative normal distributions, Brownian motion, diffusion equations, and wave diffraction.
 - **Implementation & Constraints**:
-  - `erf(x)`: Error function $\frac{2}{\sqrt{\pi}} \int_0^x e^{-t^2} dt$, computed via rational Chebyshev approximations across partitioned intervals.
-  - `erfc(x)`: Complementary error function $1 - \mathrm{erf}(x)$, maintaining high relative precision without catastrophic cancellation for large $x > 0$.
-  - `erfi(x)`: Imaginary error function $\mathrm{erfi}(x) = -i\,\mathrm{erf}(i x) = \frac{2}{\sqrt{\pi}} \int_0^x e^{t^2}\,dt$.
+  - `erf(x)`: Error function `(2 / √π) ∫_0^x e^(-t^2) dt`, computed via rational Chebyshev approximations across partitioned intervals.
+  - `erfc(x)`: Complementary error function `1 - erf(x)`, maintaining high relative precision without catastrophic cancellation for large `x > 0`.
+  - `erfi(x)`: Imaginary error function `erfi(x) = -i * erf(i * x) = (2 / √π) ∫_0^x e^(t^2) dt`.
   - `erfInv(p)` and `erfcInv(p)`: Inverse error functions combining rational polynomial approximations with Halley root refinement.
-  - `fresnelS(x)` and `fresnelC(x)`: Normalized Fresnel sine $S(x) = \int_0^x \sin(\frac{\pi}{2} t^2)\,dt$ and cosine $C(x) = \int_0^x \cos(\frac{\pi}{2} t^2)\,dt$ integrals.
+  - `fresnelS(x)` and `fresnelC(x)`: Normalized Fresnel sine `S(x) = ∫_0^x sin(π/2 * t^2) dt` and cosine `C(x) = ∫_0^x cos(π/2 * t^2) dt` integrals.
 
 ### 10.4 Cylindrical & Modified Bessel Functions (`lib/src/special/bessel.dart`)
 
-- **Reasoning**: Solutions to Bessel's differential equation $x^2 y'' + x y' + (x^2 - \nu^2) y = 0$ in cylindrical wave propagation and heat conduction.
+- **Reasoning**: Solutions to Bessel's differential equation `x^2 y'' + x y' + (x^2 - ν^2) y = 0` in cylindrical wave propagation and heat conduction.
 - **Implementation & Constraints**:
-  - `besselJ(nu, x)` and `besselY(nu, x)`: Bessel functions of the first and second kinds of arbitrary real order $\nu$.
-  - `besselI(nu, x)` and `besselK(nu, x)`: Modified Bessel functions of the first and second kinds of arbitrary real order $\nu$.
-  - `besselJ0(x)` and `besselJ1(x)`: Bessel functions of the first kind (order 0 and 1) computed using minimax rational approximations for $|x| \le 8$ and Hankel asymptotic series for $|x| > 8$.
+  - `besselJ(nu, x)` and `besselY(nu, x)`: Bessel functions of the first and second kinds of arbitrary real order `ν`.
+  - `besselI(nu, x)` and `besselK(nu, x)`: Modified Bessel functions of the first and second kinds of arbitrary real order `ν`.
+  - `besselJ0(x)` and `besselJ1(x)`: Bessel functions of the first kind (order 0 and 1) computed using minimax rational approximations for `|x| <= 8` and Hankel asymptotic series for `|x| > 8`.
   - `besselY0(x)` and `besselY1(x)`: Bessel functions of the second kind (Neumann functions, order 0 and 1).
   - `besselI0(x)` and `besselI1(x)`: Modified Bessel functions of the first kind (order 0 and 1) computed with exponentially scaled Chebyshev expansions.
   - `besselK0(x)` and `besselK1(x)`: Modified Bessel functions of the second kind (Macdonald functions, order 0 and 1).
@@ -726,29 +726,29 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Exact arc length of ellipses, planetary orbits, and pendulum periods.
 - **Implementation & Constraints**:
-  - `ellipticK(m)`: Complete Legendre elliptic integral of the first kind $K(m) = \int_0^{\pi/2} \frac{d\theta}{\sqrt{1 - m \sin^2\theta}}$, evaluated via the Arithmetic-Geometric Mean (AGM) algorithm ($a_{n+1} = \frac{a_n + b_n}{2}, b_{n+1} = \sqrt{a_n b_n}$) converging quadratically to machine precision.
-  - `ellipticE(m)`: Complete Legendre elliptic integral of the second kind $E(m) = \int_0^{\pi/2} \sqrt{1 - m \sin^2\theta} \, d\theta$, evaluated via simultaneous AGM progression and quadratic recurrence sums.
-  - `ellipticF(phi, m)`: Incomplete Legendre elliptic integral of the first kind $F(\phi, m) = \int_0^\phi \frac{d\theta}{\sqrt{1 - m \sin^2\theta}}$, evaluated via Carlson symmetric elliptic integral $R_F$.
-  - `ellipticEIncomplete(phi, m)`: Incomplete Legendre elliptic integral of the second kind $E(\phi, m) = \int_0^\phi \sqrt{1 - m \sin^2\theta} \, d\theta$, evaluated via Carlson symmetric elliptic integrals $R_F$ and $R_D$.
+  - `ellipticK(m)`: Complete Legendre elliptic integral of the first kind `K(m) = ∫_0^(π/2) dθ / √(1 - m sin^2 θ)`, evaluated via the Arithmetic-Geometric Mean (AGM) algorithm (`a_{n+1} = (a_n + b_n) / 2`, `b_{n+1} = √(a_n b_n)`) converging quadratically to machine precision.
+  - `ellipticE(m)`: Complete Legendre elliptic integral of the second kind `E(m) = ∫_0^(π/2) √(1 - m sin^2 θ) dθ`, evaluated via simultaneous AGM progression and quadratic recurrence sums.
+  - `ellipticF(phi, m)`: Incomplete Legendre elliptic integral of the first kind `F(φ, m) = ∫_0^φ dθ / √(1 - m sin^2 θ)`, evaluated via Carlson symmetric elliptic integral `R_F`.
+  - `ellipticEIncomplete(phi, m)`: Incomplete Legendre elliptic integral of the second kind `E(φ, m) = ∫_0^φ √(1 - m sin^2 θ) dθ`, evaluated via Carlson symmetric elliptic integrals `R_F` and `R_D`.
 
 ### 10.6 Generalized Hypergeometric Series (`lib/src/special/hypergeometric.dart`)
 
 - **Reasoning**: Unifying framework subsuming exponential, trigonometric, Bessel, and orthogonal polynomial series.
 - **Implementation & Constraints**:
-  - `hypergeometric1F1(a, b, z)`: Kummer confluent hypergeometric function $_1F_1(a; b; z) = \sum_{n=0}^\infty \frac{(a)_n}{(b)_n} \frac{z^n}{n!}$.
-  - `hypergeometric2F1(a, b, c, z)`: Gauss hypergeometric function $_2F_1(a, b; c; z) = \sum_{n=0}^\infty \frac{(a)_n (b)_n}{(c)_n} \frac{z^n}{n!}$, utilizing Euler/Pfaff linear transformations to map $|z| \ge 1$ into the unit disk $|z| < 1$.
+  - `hypergeometric1F1(a, b, z)`: Kummer confluent hypergeometric function `1F1(a; b; z) = ∑_{n=0}^∞ ((a)_n / (b)_n) (z^n / n!)`.
+  - `hypergeometric2F1(a, b, c, z)`: Gauss hypergeometric function `2F1(a, b; c; z) = ∑_{n=0}^∞ ((a)_n (b)_n / (c)_n) (z^n / n!)`, utilizing Euler/Pfaff linear transformations to map `|z| >= 1` into the unit disk `|z| < 1`.
 
 ### 10.7 Lambert W Function (`lib/src/special/lambert_w.dart`)
 
-- **Reasoning**: Solutions to transcendental equations of the form $W(x) e^{W(x)} = x$, appearing in tree enumeration, diode physics, enzyme kinetics, and delay differential equations.
+- **Reasoning**: Solutions to transcendental equations of the form `W(x) e^(W(x)) = x`, appearing in tree enumeration, diode physics, enzyme kinetics, and delay differential equations.
 - **Implementation & Constraints**:
-  - `lambertW0(x)`: Principal real branch defined for $x \ge -1/e \approx -0.367879$. Initialized via Taylor expansion near branch point $-1/e$, Fritsch approximation for intermediate $x$, or asymptotic logarithmic expansion $\ln(x) - \ln(\ln(x))$ for large $x$, followed by cubic Halley iteration.
-  - `lambertW1(x)`: Secondary real branch defined for $-1/e \le x < 0$, taking values $W_{-1}(x) \in (-\infty, -1]$.
+  - `lambertW0(x)`: Principal real branch defined for `x >= -1/e ≈ -0.367879`. Initialized via Taylor expansion near branch point `-1/e`, Fritsch approximation for intermediate `x`, or asymptotic logarithmic expansion `ln(x) - ln(ln(x))` for large `x`, followed by cubic Halley iteration.
+  - `lambertW1(x)`: Secondary real branch defined for `-1/e <= x < 0`, taking values `W_{-1}(x) ∈ (-∞, -1]`.
 
 ### 10.8 Exponential, Trigonometric, Hyperbolic Integrals & Polylogarithm (`lib/src/special/exp_integral.dart`, `polylog.dart`)
 
 - **Reasoning**: Non-elementary antiderivatives of rational-exponential, rational-trigonometric, and rational-hyperbolic kernels, plus polylogarithms appearing in Bose-Einstein/Fermi-Dirac statistics and dilogarithm identities.
 - **Implementation & Constraints**:
-  - `expIntegralEi(x)` and `logIntegralLi(x)`: Exponential integral $\operatorname{Ei}(x) = -\operatorname{PV}\int_{-x}^\infty \frac{e^{-t}}{t}\,dt$ and logarithmic integral $\operatorname{li}(x) = \operatorname{Ei}(\ln x)$.
+  - `expIntegralEi(x)` and `logIntegralLi(x)`: Exponential integral `Ei(x) = -PV ∫_{-x}^∞ e^(-t) / t dt` and logarithmic integral `li(x) = Ei(ln x)`.
   - `sinIntegralSi(x)`, `cosIntegralCi(x)`, `sinhIntegralShi(x)`, `coshIntegralChi(x)`: Sine, cosine, hyperbolic sine, and hyperbolic cosine integrals.
-  - `polylog(s, z)`: Polylogarithm $\operatorname{Li}_s(z) = \sum_{k=1}^\infty \frac{z^k}{k^s}$ with analytic continuation via inversion/reflection formulas.
+  - `polylog(s, z)`: Polylogarithm `Li_s(z) = ∑_{k=1}^∞ z^k / k^s` with analytic continuation via inversion/reflection formulas.

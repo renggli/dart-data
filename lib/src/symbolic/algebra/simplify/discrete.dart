@@ -9,7 +9,7 @@ import 'additive.dart';
 import 'domain.dart';
 import 'transcendental.dart';
 
-/// Simplifies a sine expression $\sin(expr)$.
+/// Simplifies a relational expression.
 Expr simplifyRelational(
   RelationalExpr expr, {
   Assumptions assumptions = Assumptions.none,
@@ -176,7 +176,7 @@ Expr simplifyLimit(
   );
 }
 
-/// Simplifies a factorial expression $n!$.
+/// Simplifies a floor expression `floor(x)`.
 Expr simplifyFloor(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
@@ -210,7 +210,7 @@ Expr simplifyFloor(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
 }
 
-/// Simplifies a ceiling expression $\lceil x \rceil$.
+/// Simplifies a ceiling expression `ceil(x)`.
 Expr simplifyCeil(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
@@ -244,7 +244,7 @@ Expr simplifyCeil(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
 }
 
-/// Simplifies a rounding expression $\operatorname{round}(x)$.
+/// Simplifies a rounding expression `round(x)`.
 Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
@@ -276,7 +276,7 @@ Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
 }
 
-/// Simplifies a signum expression $\operatorname{sgn}(x)$.
+/// Simplifies a signum expression `sign(x)`.
 Expr simplifySign(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -310,7 +310,7 @@ Expr simplifySign(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   return Sign(expr, isSimplified: true);
 }
 
-/// Simplifies a modulo expression $a \bmod b$.
+/// Simplifies a modulo expression `mod(a, b)`.
 Expr simplifyMod(
   Expr left,
   Expr right, {
@@ -346,5 +346,3 @@ Expr simplifyMod(
   }
   return Mod(left, right, isSimplified: true);
 }
-
-/// Simplifies a real-part expression $\Re(z)$.

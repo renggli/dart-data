@@ -18,7 +18,7 @@ import 'multiplicative.dart';
 import 'power.dart';
 import 'transcendental.dart';
 
-/// Simplifies a sine expression $\sin(expr)$.
+/// Simplifies a Lambert W expression `LambertW(expr, branch: branch)`.
 Expr simplifyLambertW(Expr expr, int branch) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -48,7 +48,7 @@ Expr simplifyLambertW(Expr expr, int branch) {
   return LambertW(expr, branch: branch, isSimplified: true);
 }
 
-/// Simplifies an error function expression $\operatorname{erf}(expr)$.
+/// Simplifies an error function expression `erf(expr)`.
 Expr simplifyErf(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -67,7 +67,7 @@ Expr simplifyErf(Expr expr) {
   return Erf(expr, isSimplified: true);
 }
 
-/// Simplifies a complementary error function expression $\operatorname{erfc}(expr)$.
+/// Simplifies a complementary error function expression `erfc(expr)`.
 Expr simplifyErfc(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -86,7 +86,7 @@ Expr simplifyErfc(Expr expr) {
   return Erfc(expr, isSimplified: true);
 }
 
-/// Simplifies an Euler gamma function expression $\Gamma(expr)$.
+/// Simplifies an Euler gamma function expression `gamma(expr)`.
 Expr simplifyGamma(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -117,7 +117,7 @@ Expr simplifyGamma(Expr expr) {
   return Gamma(expr, isSimplified: true);
 }
 
-/// Simplifies a Riemann zeta function expression $\zeta(s)$.
+/// Simplifies a Riemann zeta function expression `zeta(s)`.
 Expr simplifyZeta(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -152,7 +152,7 @@ Expr simplifyZeta(Expr expr) {
   return Zeta(expr, isSimplified: true);
 }
 
-/// Simplifies a digamma function expression $\psi(x)$.
+/// Simplifies a digamma function expression `digamma(x)`.
 Expr simplifyDigamma(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -163,7 +163,7 @@ Expr simplifyDigamma(Expr expr) {
   return Digamma(expr, isSimplified: true);
 }
 
-/// Simplifies a polygamma function expression $\psi^{(m)}(x)$.
+/// Simplifies a polygamma function expression `polygamma(m, x)`.
 Expr simplifyPolygamma(Expr m, Expr x) {
   if (m == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
@@ -181,7 +181,7 @@ Expr simplifyPolygamma(Expr m, Expr x) {
   return Polygamma(m, x, isSimplified: true);
 }
 
-/// Simplifies a Bessel function of the first kind $J_\nu(x)$.
+/// Simplifies a Bessel function of the first kind `besselJ(nu, x)`.
 Expr simplifyBesselJ(Expr nu, Expr x) {
   if (nu == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
@@ -200,7 +200,7 @@ Expr simplifyBesselJ(Expr nu, Expr x) {
   return BesselJ(nu, x, isSimplified: true);
 }
 
-/// Simplifies a Bessel function of the second kind $Y_\nu(x)$.
+/// Simplifies a Bessel function of the second kind `besselY(nu, x)`.
 Expr simplifyBesselY(Expr nu, Expr x) {
   if (nu == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
@@ -215,7 +215,7 @@ Expr simplifyBesselY(Expr nu, Expr x) {
   return BesselY(nu, x, isSimplified: true);
 }
 
-/// Simplifies a modified Bessel function of the first kind $I_\nu(x)$.
+/// Simplifies a modified Bessel function of the first kind `besselI(nu, x)`.
 Expr simplifyBesselI(Expr nu, Expr x) {
   if (nu == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
@@ -234,7 +234,7 @@ Expr simplifyBesselI(Expr nu, Expr x) {
   return BesselI(nu, x, isSimplified: true);
 }
 
-/// Simplifies a modified Bessel function of the second kind $K_\nu(x)$.
+/// Simplifies a modified Bessel function of the second kind `besselK(nu, x)`.
 Expr simplifyBesselK(Expr nu, Expr x) {
   if (nu == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
@@ -249,7 +249,7 @@ Expr simplifyBesselK(Expr nu, Expr x) {
   return BesselK(nu, x, isSimplified: true);
 }
 
-/// Simplifies a complete elliptic integral of the first kind $K(k)$.
+/// Simplifies a complete elliptic integral of the first kind `ellipticK(k)`.
 Expr simplifyEllipticK(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) {
@@ -261,7 +261,7 @@ Expr simplifyEllipticK(Expr expr) {
   return EllipticK(expr, isSimplified: true);
 }
 
-/// Simplifies a complete elliptic integral of the second kind $E(k)$.
+/// Simplifies a complete elliptic integral of the second kind `ellipticE(k)`.
 Expr simplifyEllipticE(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) {
@@ -276,7 +276,7 @@ Expr simplifyEllipticE(Expr expr) {
   return EllipticE(expr, isSimplified: true);
 }
 
-/// Simplifies an imaginary error function $\operatorname{erfi}(x)$.
+/// Simplifies an imaginary error function `erfi(x)`.
 Expr simplifyErfi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
@@ -290,7 +290,7 @@ Expr simplifyErfi(Expr expr) {
   return Erfi(expr, isSimplified: true);
 }
 
-/// Simplifies a Fresnel sine integral $S(x)$.
+/// Simplifies a Fresnel sine integral `fresnelS(x)`.
 Expr simplifyFresnelS(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
@@ -304,7 +304,7 @@ Expr simplifyFresnelS(Expr expr) {
   return FresnelS(expr, isSimplified: true);
 }
 
-/// Simplifies a Fresnel cosine integral $C(x)$.
+/// Simplifies a Fresnel cosine integral `fresnelC(x)`.
 Expr simplifyFresnelC(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
@@ -318,7 +318,7 @@ Expr simplifyFresnelC(Expr expr) {
   return FresnelC(expr, isSimplified: true);
 }
 
-/// Simplifies an exponential integral $\operatorname{Ei}(x)$.
+/// Simplifies an exponential integral `Ei(x)`.
 Expr simplifyExpIntegralEi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -327,7 +327,7 @@ Expr simplifyExpIntegralEi(Expr expr) {
   return ExpIntegralEi(expr, isSimplified: true);
 }
 
-/// Simplifies a logarithmic integral $\operatorname{li}(x)$.
+/// Simplifies a logarithmic integral `li(x)`.
 Expr simplifyLogIntegralLi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
@@ -337,7 +337,7 @@ Expr simplifyLogIntegralLi(Expr expr) {
   return LogIntegralLi(expr, isSimplified: true);
 }
 
-/// Simplifies a sine integral $\operatorname{Si}(x)$.
+/// Simplifies a sine integral `Si(x)`.
 Expr simplifySinIntegralSi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
@@ -351,7 +351,7 @@ Expr simplifySinIntegralSi(Expr expr) {
   return SinIntegralSi(expr, isSimplified: true);
 }
 
-/// Simplifies a cosine integral $\operatorname{Ci}(x)$.
+/// Simplifies a cosine integral `Ci(x)`.
 Expr simplifyCosIntegralCi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -360,7 +360,7 @@ Expr simplifyCosIntegralCi(Expr expr) {
   return CosIntegralCi(expr, isSimplified: true);
 }
 
-/// Simplifies a hyperbolic sine integral $\operatorname{Shi}(x)$.
+/// Simplifies a hyperbolic sine integral `Shi(x)`.
 Expr simplifySinhIntegralShi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
@@ -374,7 +374,7 @@ Expr simplifySinhIntegralShi(Expr expr) {
   return SinhIntegralShi(expr, isSimplified: true);
 }
 
-/// Simplifies a hyperbolic cosine integral $\operatorname{Chi}(x)$.
+/// Simplifies a hyperbolic cosine integral `Chi(x)`.
 Expr simplifyCoshIntegralChi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -383,7 +383,7 @@ Expr simplifyCoshIntegralChi(Expr expr) {
   return CoshIntegralChi(expr, isSimplified: true);
 }
 
-/// Simplifies an upper incomplete gamma function $\Gamma(s, x)$.
+/// Simplifies an upper incomplete gamma function `upperGamma(s, x)`.
 Expr simplifyUpperGamma(Expr s, Expr x) {
   if (s == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
@@ -400,7 +400,7 @@ Expr simplifyUpperGamma(Expr s, Expr x) {
   return UpperGamma(s, x, isSimplified: true);
 }
 
-/// Simplifies a lower incomplete gamma function $\gamma(s, x)$.
+/// Simplifies a lower incomplete gamma function `lowerGamma(s, x)`.
 Expr simplifyLowerGamma(Expr s, Expr x) {
   if (s == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
@@ -420,7 +420,7 @@ Expr simplifyLowerGamma(Expr s, Expr x) {
   return LowerGamma(s, x, isSimplified: true);
 }
 
-/// Simplifies a polylogarithm $\operatorname{Li}_s(z)$.
+/// Simplifies a polylogarithm `polylog(s, z)`.
 Expr simplifyPolylog(Expr s, Expr z) {
   if (s == Constant.undefined || z == Constant.undefined) {
     return Constant.undefined;
@@ -460,7 +460,7 @@ Expr simplifyPolylog(Expr s, Expr z) {
   return Polylog(s, z, isSimplified: true);
 }
 
-/// Simplifies an incomplete elliptic integral of the first kind $F(\phi, k)$.
+/// Simplifies an incomplete elliptic integral of the first kind `ellipticF(phi, k)`.
 Expr simplifyEllipticF(Expr phi, Expr k) {
   if (phi == Constant.undefined || k == Constant.undefined) {
     return Constant.undefined;
@@ -478,7 +478,7 @@ Expr simplifyEllipticF(Expr phi, Expr k) {
   return EllipticF(phi, k, isSimplified: true);
 }
 
-/// Simplifies an incomplete elliptic integral of the second kind $E(\phi, k)$.
+/// Simplifies an incomplete elliptic integral of the second kind `ellipticE(phi, k)`.
 Expr simplifyEllipticEIncomplete(Expr phi, Expr k) {
   if (phi == Constant.undefined || k == Constant.undefined) {
     return Constant.undefined;
@@ -496,7 +496,7 @@ Expr simplifyEllipticEIncomplete(Expr phi, Expr k) {
   return EllipticEIncomplete(phi, k, isSimplified: true);
 }
 
-/// Simplifies an Euler beta function expression $\operatorname{B}(a, b)$.
+/// Simplifies an Euler beta function expression `beta(a, b)`.
 Expr simplifyBeta(Expr a, Expr b) {
   if (a == Constant.undefined || b == Constant.undefined) {
     return Constant.undefined;
@@ -553,7 +553,7 @@ Expr simplifyBeta(Expr a, Expr b) {
   return Beta(a, b, isSimplified: true);
 }
 
-/// Simplifies an inverse hyperbolic sine expression $\operatorname{asinh}(expr)$.
+/// Simplifies a factorial expression `n!`.
 Expr simplifyFactorial(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -568,7 +568,7 @@ Expr simplifyFactorial(Expr expr) {
   return Factorial(expr, isSimplified: true);
 }
 
-/// Simplifies a binomial coefficient $\binom{n}{k}$.
+/// Simplifies a binomial coefficient `binomial(n, k)`.
 Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
   if (nExpr == Constant.undefined || kExpr == Constant.undefined) {
     return Constant.undefined;
@@ -611,5 +611,3 @@ Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
   }
   return Binomial(nExpr, kExpr, isSimplified: true);
 }
-
-/// Simplifies a floor expression $\lfloor x \rfloor$.

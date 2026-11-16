@@ -583,7 +583,7 @@ RationalNumber? matchPiMultiple(Expr expr) => switch (expr) {
   _ => null,
 };
 
-/// Simplifies a Lambert W expression $W_b(expr)$.
+/// Simplifies an inverse hyperbolic sine expression `asinh(expr)`.
 Expr simplifyAsinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -643,7 +643,6 @@ Expr simplifyAtanh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   return Atanh(expr, isSimplified: true);
 }
 
-/// Simplifies a relational expression.
 Expr? _matchIntegerPiMultiple(Expr expr, Assumptions assumptions) {
   if (expr == Constant.pi) return IntegerNumber.one;
   if (expr case Mul(:final factors)) {

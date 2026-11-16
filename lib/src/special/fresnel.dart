@@ -2,10 +2,10 @@ import 'dart:math';
 
 import 'package:more/number.dart' show Complex;
 
-/// Returns the Fresnel sine integral $S(x) = \int_0^x \sin\!\left(\frac{\pi}{2}t^2\right)dt$.
+/// Returns the Fresnel sine integral `S(x) = ∫_0^x sin(π/2 * t^2) dt`.
 double fresnelS(num x) => _fresnelPair(x).s;
 
-/// Returns the Fresnel cosine integral $C(x) = \int_0^x \cos\!\left(\frac{\pi}{2}t^2\right)dt$.
+/// Returns the Fresnel cosine integral `C(x) = ∫_0^x cos(π/2 * t^2) dt`.
 double fresnelC(num x) => _fresnelPair(x).c;
 
 ({double c, double s}) _fresnelPair(num x) {

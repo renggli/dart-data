@@ -2,9 +2,9 @@ import 'dart:math';
 
 import 'package:more/number.dart' show Complex;
 
-/// Returns the exponential integral $\operatorname{Ei}(x) = -\operatorname{PV}\int_{-x}^\infty \frac{e^{-t}}{t}\,dt$.
+/// Returns the exponential integral `Ei(x) = -PV ∫_{-x}^∞ e^(-t) / t dt`.
 ///
-/// Defined for real $x \ne 0$, with $\operatorname{Ei}(0) = -\infty$.
+/// Defined for real `x != 0`, with `Ei(0) = -∞`.
 double expIntegralEi(num x) {
   if (x.isNaN) return double.nan;
   final xd = x.toDouble();
@@ -42,9 +42,9 @@ double expIntegralEi(num x) {
   }
 }
 
-/// Returns the logarithmic integral $\operatorname{li}(x) = \int_0^x \frac{dt}{\ln t} = \operatorname{Ei}(\ln x)$.
+/// Returns the logarithmic integral `li(x) = ∫_0^x dt / ln(t) = Ei(ln(x))`.
 ///
-/// Defined for $x \ge 0$, with $\operatorname{li}(0) = 0$ and $\operatorname{li}(1) = -\infty$.
+/// Defined for `x >= 0`, with `li(0) = 0` and `li(1) = -∞`.
 double logIntegralLi(num x) {
   if (x.isNaN || x < 0.0) return double.nan;
   final xd = x.toDouble();
@@ -54,7 +54,7 @@ double logIntegralLi(num x) {
   return expIntegralEi(log(xd));
 }
 
-/// Returns the sine integral $\operatorname{Si}(x) = \int_0^x \frac{\sin t}{t}\,dt$.
+/// Returns the sine integral `Si(x) = ∫_0^x sin(t) / t dt`.
 double sinIntegralSi(num x) {
   if (x.isNaN) return double.nan;
   final xd = x.toDouble();
@@ -81,9 +81,9 @@ double sinIntegralSi(num x) {
   return sign * (pi / 2.0 + e1.b);
 }
 
-/// Returns the cosine integral $\operatorname{Ci}(x) = \gamma + \ln x + \int_0^x \frac{\cos t - 1}{t}\,dt$.
+/// Returns the cosine integral `Ci(x) = γ + ln(x) + ∫_0^x (cos(t) - 1) / t dt`.
 ///
-/// Defined for $x > 0$, with $\operatorname{Ci}(0) = -\infty$.
+/// Defined for `x > 0`, with `Ci(0) = -∞`.
 double cosIntegralCi(num x) {
   if (x.isNaN || x < 0.0) return double.nan;
   final xd = x.toDouble();
@@ -107,7 +107,7 @@ double cosIntegralCi(num x) {
   return -e1.a.toDouble();
 }
 
-/// Returns the hyperbolic sine integral $\operatorname{Shi}(x) = \int_0^x \frac{\sinh t}{t}\,dt$.
+/// Returns the hyperbolic sine integral `Shi(x) = ∫_0^x sinh(t) / t dt`.
 double sinhIntegralShi(num x) {
   if (x.isNaN) return double.nan;
   final xd = x.toDouble();
@@ -132,9 +132,9 @@ double sinhIntegralShi(num x) {
   return sign * 0.5 * (expIntegralEi(ax) - expIntegralEi(-ax));
 }
 
-/// Returns the hyperbolic cosine integral $\operatorname{Chi}(x) = \gamma + \ln x + \int_0^x \frac{\cosh t - 1}{t}\,dt$.
+/// Returns the hyperbolic cosine integral `Chi(x) = γ + ln(x) + ∫_0^x (cosh(t) - 1) / t dt`.
 ///
-/// Defined for $x > 0$, with $\operatorname{Chi}(0) = -\infty$.
+/// Defined for `x > 0`, with `Chi(0) = -∞`.
 double coshIntegralChi(num x) {
   if (x.isNaN || x < 0.0) return double.nan;
   final xd = x.toDouble();
