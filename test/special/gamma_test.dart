@@ -182,5 +182,16 @@ void main() {
       check(permutation(double.infinity, double.infinity)).isNaN();
       check(permutationLn(5, 2)).isCloseTo(math.log(20.0), 1e-6);
     });
+
+    test('upperGamma and lowerGamma', () {
+      check(upperGamma(1.0, 2.0)).isCloseTo(math.exp(-2.0), 1e-12);
+      check(lowerGamma(1.0, 2.0)).isCloseTo(1.0 - math.exp(-2.0), 1e-12);
+      check(upperGamma(2.0, 1.0)).isCloseTo(2.0 * math.exp(-1.0), 1e-12);
+      check(upperGamma(3.0, 1.0) + lowerGamma(3.0, 1.0))
+          .isCloseTo(gamma(3.0), 1e-12);
+      check(upperGamma(0.0, 1.0)).isCloseTo(-expIntegralEi(-1.0), 1e-12);
+      check(upperGamma(-1.0, 1.0))
+          .isCloseTo(math.exp(-1.0) + expIntegralEi(-1.0), 1e-12);
+    });
   });
 }

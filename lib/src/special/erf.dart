@@ -211,6 +211,28 @@ double erfcInv(num x) {
   return result;
 }
 
+/// Returns the imaginary error function $\operatorname{erfi}(x) = -i\operatorname{erf}(ix) = \frac{2}{\sqrt{\pi}}\int_0^x e^{t^2}\,dt$.
+double erfi(num x) {
+  if (x.isNaN) return double.nan;
+  final xd = x.toDouble();
+  if (xd == 0.0) return 0.0;
+  if (xd.isInfinite) return xd;
+  final sign = xd < 0.0 ? -1.0 : 1.0;
+  final ax = xd.abs();
+  if (ax > 26.7) return sign * double.infinity;
+
+  final x2 = ax * ax;
+  var sum = ax;
+  var term = ax;
+  for (var n = 1; n <= 1000; n++) {
+    term *= x2 / n;
+    final add = term / (2 * n + 1);
+    sum += add;
+    if (add <= 1e-16 * sum) break;
+  }
+  return sign * (2.0 / sqrt(pi)) * sum;
+}
+
 final _sqrPi = 1.0 / sqrt(pi);
 const _thresh = 0.46875;
 const _xSmall = 1.11e-16;

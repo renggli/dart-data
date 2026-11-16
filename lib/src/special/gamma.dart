@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'exp_integral.dart';
+
 /// Returns an approximation of the gamma function $\Gamma(x)$.
 ///
 /// Conceptually, the gamma function is a continuous extension of the factorial
@@ -471,3 +473,26 @@ double permutation(num total, num count) {
 /// Returns the logarithm of the permutations based on the [gammaLn] function.
 double permutationLn(num total, num count) =>
     factorialLn(total) - factorialLn(total - count);
+
+/// Returns the upper incomplete gamma function $\Gamma(s, x) = \int_x^\infty t^{s-1} e^{-t}\,dt$.
+double upperGamma(num s, num x) {
+  if (s.isNaN || x.isNaN || x < 0.0) return double.nan;
+  final sd = s.toDouble();
+  final xd = x.toDouble();
+  if (xd == double.infinity) return 0.0;
+  if (xd == 0.0) return sd > 0.0 ? gamma(sd) : double.nan;
+  if (sd > 0.0) return gamma(sd) * gammaq(sd, xd);
+  if (sd == 0.0) return -expIntegralEi(-xd);
+  return (upperGamma(sd + 1.0, xd) - pow(xd, sd) * exp(-xd)) / sd;
+}
+
+/// Returns the lower incomplete gamma function $\gamma(s, x) = \int_0^x t^{s-1} e^{-t}\,dt$.
+double lowerGamma(num s, num x) {
+  if (s.isNaN || x.isNaN || x < 0.0) return double.nan;
+  final sd = s.toDouble();
+  final xd = x.toDouble();
+  if (xd == 0.0) return sd > 0.0 ? 0.0 : double.nan;
+  if (xd == double.infinity) return sd > 0.0 ? gamma(sd) : double.nan;
+  if (sd > 0.0) return gamma(sd) * gammap(sd, xd);
+  return gamma(sd) - upperGamma(sd, xd);
+}

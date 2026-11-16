@@ -74,5 +74,14 @@ void main() {
       check(erfc(10.0)).isCloseTo(2.0884875837625446e-45, 1e-55);
       check(erfc(-10.0)).equals(2.0);
     });
+
+    test('erfi', () {
+      check(erfi(0.0)).equals(0.0);
+      check(erfi(1.0)).isCloseTo(1.6504257587975428, 1e-12);
+      check(erfi(-1.0)).isCloseTo(-1.6504257587975428, 1e-12);
+      check(erfi(2.0)).isCloseTo(18.564802414575553, 1e-11);
+      check(erfi(double.nan)).isNaN();
+      check(erfi(double.infinity)).equals(double.infinity);
+    });
   });
 }
