@@ -448,6 +448,20 @@ _CaseResult _evaluateCase(_CaseRequest req) {
     );
   }
 
+  final unknownFn =
+      _findUnknownFunction(integrand) ??
+      _findUnknownFunction(expected) ??
+      _findUnknownFunction(lower) ??
+      _findUnknownFunction(upper);
+  if (unknownFn != null) {
+    sw.stop();
+    return (
+      status: _Status.error,
+      detail: 'Unknown function: $unknownFn',
+      elapsedUs: sw.elapsedMicroseconds,
+    );
+  }
+
   if (req.mode == 'differentiate') {
     if (req.isDefinite || expected == null) {
       sw.stop();
@@ -522,6 +536,17 @@ bool _isSolved(Expr expr) {
     return child;
   });
   return solved;
+}
+
+String? _findUnknownFunction(Expr? expr) {
+  if (expr == null) return null;
+  if (expr is VariableFunction) return expr.name;
+  String? found;
+  expr.mapChildren((child) {
+    found ??= _findUnknownFunction(child);
+    return child;
+  });
+  return found;
 }
 
 bool _verifyDerivative(Expr integrand, Expr antideriv, String variable) {
