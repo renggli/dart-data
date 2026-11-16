@@ -591,6 +591,20 @@ void attachEventListeners() {
     e.stopPropagation();
   });
 
+  domainDropdownList.addEventListener(
+    'change',
+    (web.Event event) {
+      final target = event.target;
+      if (!target.isA<web.HTMLSelectElement>()) return;
+      final select = target as web.HTMLSelectElement;
+      final variable = select.getAttribute('data-var');
+      if (variable == null) return;
+      currentVariableDomains[variable] = _parseDomain(select.value);
+      updateAll();
+      updateUrlHash();
+    }.toJS,
+  );
+
   web.document.addEventListener(
     'click',
     (web.Event _) {
@@ -908,12 +922,6 @@ void updateDomainSelectors(List<String> vars) {
       }
 
       select.value = _domainToString(domain);
-      select.onChange.listen((_) {
-        currentVariableDomains[v] = _parseDomain(select.value);
-        updateDomainSelectors(vars);
-        updateAll();
-        updateUrlHash();
-      });
 
       row.append(label);
       row.append(select);

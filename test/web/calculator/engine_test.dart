@@ -5,6 +5,7 @@ import 'package:test/test.dart';
 import '../../../web/calculator/src/engine/commands.dart';
 import '../../../web/calculator/src/engine/evaluator.dart';
 import '../../../web/calculator/src/engine/rpn.dart';
+import '../../../web/calculator/src/language/completion.dart';
 import '../../../web/calculator/src/model/environment.dart';
 import '../../../web/calculator/src/model/session.dart';
 import '../../../web/calculator/src/model/stack.dart';
@@ -570,6 +571,23 @@ void main() {
           .equals('sqrt(2) * exp(1/4 * i * pi)');
       check(eval.evaluateScroll('polar(-2 * i)').value.toCanonicalText())
           .equals('2 * exp(-1/2 * i * pi)');
+    });
+
+    test('evaluates all mathFunctions help examples without errors', () {
+      final eval = createEval();
+      for (final fn in CalcCompletion.mathFunctions) {
+        for (final example in fn.examples) {
+          final cell = eval.evaluateScroll(example);
+          check(
+            cell.value,
+            because:
+                'Example "$example" for ${fn.name} should evaluate cleanly',
+          ).not((v) => v.isA<ErrorValue>());
+        }
+      }
+      // Binary case-insensitive fallback
+      check(eval.evaluateScroll('ROOT(27, 3)').value.toCanonicalText())
+          .equals('3');
     });
   });
 }

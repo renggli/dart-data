@@ -203,6 +203,32 @@ void main() {
         check(hintComp.signatureHint).isNotNull();
         check(hintComp.signatureHint!.name).equals('integrate');
         check(hintComp.signatureHint!.activeParamIndex).equals(1);
+
+        // Special functions completion and case-insensitive signature hints
+        final besselComp = CalcCompletion.complete(
+          'bessel',
+          6,
+          environment: env,
+          session: session,
+        );
+        final besselLabels = besselComp.items.map((item) => item.label);
+        check(besselLabels).contains('besselj');
+        check(besselLabels).contains('bessely');
+        check(besselLabels).contains('besseli');
+        check(besselLabels).contains('besselk');
+
+        final siHint = CalcCompletion.complete(
+          'si(',
+          3,
+          environment: env,
+          session: session,
+        );
+        check(siHint.signatureHint).isNotNull();
+        check(siHint.signatureHint!.name).equals('Si');
+
+        for (final fn in CalcCompletion.mathFunctions) {
+          check(fn.examples).isNotEmpty();
+        }
       },
     );
   });

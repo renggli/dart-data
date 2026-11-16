@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 
 import '../engine/commands.dart';
+import '../language/completion.dart';
 import '../model/environment.dart';
 import '../model/session.dart';
 
@@ -78,6 +79,20 @@ final class CommandPaletteModal {
             subtitle: cmd.doc,
             snippet: mode == CalcMode.rpn ? cmd.name : '${cmd.name}(',
             executeImmediately: mode == CalcMode.rpn,
+          ),
+        );
+      }
+
+      // Built-in elementary and special functions
+      for (final fn in CalcCompletion.mathFunctions) {
+        if (CommandRegistry.byName.containsKey(fn.name)) continue;
+        all.add(
+          _PaletteEntry(
+            title: fn.signature,
+            badge: 'FN',
+            subtitle: fn.doc,
+            snippet: mode == CalcMode.rpn ? fn.name : '${fn.name}(',
+            executeImmediately: false,
           ),
         );
       }

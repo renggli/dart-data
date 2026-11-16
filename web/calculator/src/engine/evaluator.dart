@@ -461,15 +461,19 @@ final class CalcEvaluator {
       final exprArgs = [for (final a in evaluatedArgs) (a as ExprValue).expr];
       final unaryFn =
           ExprSyntax.standardUnaryFunctions[canonicalName] ??
-          ExprSyntax.standardUnaryFunctions[name];
+          ExprSyntax.standardUnaryFunctions[name] ??
+          ExprSyntax.standardUnaryFunctions[canonicalName.toLowerCase()];
       if (exprArgs.length == 1 && unaryFn != null) {
         return ExprValue(unaryFn(exprArgs[0]));
       }
-      if (exprArgs.length == 2 &&
-          ExprSyntax.standardBinaryFunctions.containsKey(name)) {
-        return ExprValue(
-          ExprSyntax.standardBinaryFunctions[name]!(exprArgs[0], exprArgs[1]),
-        );
+      if (exprArgs.length == 2) {
+        final binaryFn =
+            ExprSyntax.standardBinaryFunctions[canonicalName] ??
+            ExprSyntax.standardBinaryFunctions[name] ??
+            ExprSyntax.standardBinaryFunctions[canonicalName.toLowerCase()];
+        if (binaryFn != null) {
+          return ExprValue(binaryFn(exprArgs[0], exprArgs[1]));
+        }
       }
       if (ExprSyntax.standardVariadicFunctions.containsKey(name)) {
         return ExprValue(ExprSyntax.standardVariadicFunctions[name]!(exprArgs));

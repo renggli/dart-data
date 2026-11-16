@@ -2,6 +2,8 @@ import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
+import '../../web/expressions/presets.dart';
+
 Expr _sliceFor1DPlot(Expr expr) {
   final freeVars = expr.freeVariables;
   if (freeVars.length == 1) {
@@ -35,6 +37,19 @@ void main() {
 
       final constExpr = IntegerNumber.of(42);
       check(_sliceFor1DPlot(constExpr).toString()).equals('42');
+    });
+
+    test('all expressionPresets parse and evaluate without errors', () {
+      check(expressionPresets).isNotEmpty();
+      final seenIds = <String>{};
+      for (final preset in expressionPresets) {
+        check(seenIds.add(preset.id)).isTrue();
+        check(preset.name).isNotEmpty();
+        check(preset.category).isNotEmpty();
+        check(preset.description).isNotEmpty();
+        final parsed = Expr.parse(preset.formula);
+        check(parsed.simplify()).isA<Expr>();
+      }
     });
   });
 }

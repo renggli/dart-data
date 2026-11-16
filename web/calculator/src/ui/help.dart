@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 
 import '../engine/commands.dart';
+import '../language/completion.dart';
 
 /// Renders the Help & Syntax Reference (`Ctrl/Cmd+/` or `?` button) with
 /// click-to-run examples across all 8 command categories, RPN stack reference,
@@ -57,41 +58,76 @@ final class HelpPanel {
       sec.append(h4);
 
       for (final cmd in CommandRegistry.forCategory(category)) {
-        final item = web.document.createElement('div') as web.HTMLDivElement
-          ..className = 'calc-help-cmd';
-        final sig = web.document.createElement('div') as web.HTMLDivElement
-          ..className = 'calc-help-cmd-sig'
-          ..textContent = cmd.signature;
-        final doc = web.document.createElement('div') as web.HTMLDivElement
-          ..className = 'calc-help-cmd-doc'
-          ..textContent = cmd.doc;
-        item
-          ..append(sig)
-          ..append(doc);
-
-        if (cmd.examples.isNotEmpty) {
-          final exWrap = web.document.createElement('div') as web.HTMLDivElement
-            ..className = 'calc-help-examples';
-          for (final ex in cmd.examples) {
-            final exBtn =
-                web.document.createElement('button') as web.HTMLButtonElement
-                  ..type = 'button'
-                  ..className = 'calc-help-example-btn'
-                  ..textContent = ex
-                  ..title = 'Run example';
-            exBtn.addEventListener(
-              'click',
-              ((web.Event _) => onRunExample(ex)).toJS,
-            );
-            exWrap.append(exBtn);
-          }
-          item.append(exWrap);
-        }
-        sec.append(item);
+        sec.append(
+          _buildHelpItem(
+            signature: cmd.signature,
+            doc: cmd.doc,
+            examples: cmd.examples,
+            onRunExample: onRunExample,
+          ),
+        );
       }
       body.append(sec);
     }
 
+    // Mathematical & Special Functions
+    final fnSec = web.document.createElement('section')
+      ..className = 'calc-help-section';
+    final fnHeader = web.document.createElement('h4') as web.HTMLHeadingElement
+      ..textContent = 'Mathematical & Special Functions';
+    fnSec.append(fnHeader);
+    for (final fn in CalcCompletion.mathFunctions) {
+      if (CommandRegistry.byName.containsKey(fn.name)) continue;
+      fnSec.append(
+        _buildHelpItem(
+          signature: fn.signature,
+          doc: fn.doc,
+          examples: fn.examples,
+          onRunExample: onRunExample,
+        ),
+      );
+    }
+    body.append(fnSec);
+
     container.append(body);
+  }
+
+  static web.HTMLDivElement _buildHelpItem({
+    required String signature,
+    required String doc,
+    required List<String> examples,
+    required void Function(String example) onRunExample,
+  }) {
+    final item = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-help-cmd';
+    final sigEl = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-help-cmd-sig'
+      ..textContent = signature;
+    final docEl = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-help-cmd-doc'
+      ..textContent = doc;
+    item
+      ..append(sigEl)
+      ..append(docEl);
+
+    if (examples.isNotEmpty) {
+      final exWrap = web.document.createElement('div') as web.HTMLDivElement
+        ..className = 'calc-help-examples';
+      for (final ex in examples) {
+        final exBtn =
+            web.document.createElement('button') as web.HTMLButtonElement
+              ..type = 'button'
+              ..className = 'calc-help-example-btn'
+              ..textContent = ex
+              ..title = 'Run example';
+        exBtn.addEventListener(
+          'click',
+          ((web.Event _) => onRunExample(ex)).toJS,
+        );
+        exWrap.append(exBtn);
+      }
+      item.append(exWrap);
+    }
+    return item;
   }
 }

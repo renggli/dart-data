@@ -62,45 +62,403 @@ final class CompletionResult {
   final SignatureHint? signatureHint;
 }
 
+/// Metadata describing a built-in mathematical or special function for
+/// autocomplete, the command palette, and the help panel.
+final class MathFunctionInfo {
+  const new({
+    required this.name,
+    required this.params,
+    required this.doc,
+    this.examples = const [],
+  });
+
+  /// Canonical function identifier.
+  final String name;
+
+  /// Parameter names shown in signatures and argument hints.
+  final List<String> params;
+
+  /// Short description of the function.
+  final String doc;
+
+  /// Click-to-run example expressions shown in the help panel.
+  final List<String> examples;
+
+  /// Formatted call signature.
+  String get signature => '$name(${params.join(', ')})';
+}
+
 /// Computes prefix completions and active-argument signature hints for the
 /// calculator input bar.
 abstract final class CalcCompletion {
-  static const Map<String, ({List<String> params, String doc})>
-  _mathFunctions = {
-    'sin': (params: ['x'], doc: 'Sine of x (radians).'),
-    'cos': (params: ['x'], doc: 'Cosine of x (radians).'),
-    'tan': (params: ['x'], doc: 'Tangent of x (radians).'),
-    'sec': (params: ['x'], doc: 'Secant 1 / cos(x).'),
-    'csc': (params: ['x'], doc: 'Cosecant 1 / sin(x).'),
-    'cot': (params: ['x'], doc: 'Cotangent cos(x) / sin(x).'),
-    'asin': (params: ['x'], doc: 'Inverse sine arcsin(x).'),
-    'acos': (params: ['x'], doc: 'Inverse cosine arccos(x).'),
-    'atan': (params: ['x'], doc: 'Inverse tangent arctan(x).'),
-    'sinh': (params: ['x'], doc: 'Hyperbolic sine sinh(x).'),
-    'cosh': (params: ['x'], doc: 'Hyperbolic cosine cosh(x).'),
-    'tanh': (params: ['x'], doc: 'Hyperbolic tangent tanh(x).'),
-    'asinh': (params: ['x'], doc: 'Inverse hyperbolic sine.'),
-    'acosh': (params: ['x'], doc: 'Inverse hyperbolic cosine.'),
-    'atanh': (params: ['x'], doc: 'Inverse hyperbolic tangent.'),
-    'sqrt': (params: ['x'], doc: 'Principal square root √x.'),
-    'root': (params: ['x', 'n'], doc: 'Real/principal n-th root x^(1/n).'),
-    'exp': (params: ['x'], doc: 'Natural exponential e^x.'),
-    'ln': (params: ['x'], doc: 'Natural logarithm ln(x).'),
-    'log': (
+  /// All built-in elementary and special functions exposed in completion, the
+  /// command palette, and the help panel.
+  static const List<MathFunctionInfo> mathFunctions = [
+    MathFunctionInfo(
+      name: 'sin',
+      params: ['x'],
+      doc: 'Sine of x (radians).',
+      examples: ['sin(pi / 6)'],
+    ),
+    MathFunctionInfo(
+      name: 'cos',
+      params: ['x'],
+      doc: 'Cosine of x (radians).',
+      examples: ['cos(pi / 3)'],
+    ),
+    MathFunctionInfo(
+      name: 'tan',
+      params: ['x'],
+      doc: 'Tangent of x (radians).',
+      examples: ['tan(pi / 4)'],
+    ),
+    MathFunctionInfo(
+      name: 'sec',
+      params: ['x'],
+      doc: 'Secant 1 / cos(x).',
+      examples: ['sec(pi / 3)'],
+    ),
+    MathFunctionInfo(
+      name: 'csc',
+      params: ['x'],
+      doc: 'Cosecant 1 / sin(x).',
+      examples: ['csc(pi / 6)'],
+    ),
+    MathFunctionInfo(
+      name: 'cot',
+      params: ['x'],
+      doc: 'Cotangent cos(x) / sin(x).',
+      examples: ['cot(pi / 4)'],
+    ),
+    MathFunctionInfo(
+      name: 'asin',
+      params: ['x'],
+      doc: 'Inverse sine arcsin(x).',
+      examples: ['asin(1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'acos',
+      params: ['x'],
+      doc: 'Inverse cosine arccos(x).',
+      examples: ['acos(1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'atan',
+      params: ['x'],
+      doc: 'Inverse tangent arctan(x).',
+      examples: ['atan(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'asec',
+      params: ['x'],
+      doc: 'Inverse secant arcsec(x).',
+      examples: ['asec(2)'],
+    ),
+    MathFunctionInfo(
+      name: 'acsc',
+      params: ['x'],
+      doc: 'Inverse cosecant arccsc(x).',
+      examples: ['acsc(2)'],
+    ),
+    MathFunctionInfo(
+      name: 'acot',
+      params: ['x'],
+      doc: 'Inverse cotangent arccot(x).',
+      examples: ['acot(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'sinh',
+      params: ['x'],
+      doc: 'Hyperbolic sine sinh(x).',
+      examples: ['sinh(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'cosh',
+      params: ['x'],
+      doc: 'Hyperbolic cosine cosh(x).',
+      examples: ['cosh(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'tanh',
+      params: ['x'],
+      doc: 'Hyperbolic tangent tanh(x).',
+      examples: ['tanh(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'sech',
+      params: ['x'],
+      doc: 'Hyperbolic secant 1 / cosh(x).',
+      examples: ['sech(0)'],
+    ),
+    MathFunctionInfo(
+      name: 'csch',
+      params: ['x'],
+      doc: 'Hyperbolic cosecant 1 / sinh(x).',
+      examples: ['csch(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'coth',
+      params: ['x'],
+      doc: 'Hyperbolic cotangent cosh(x) / sinh(x).',
+      examples: ['coth(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'asinh',
+      params: ['x'],
+      doc: 'Inverse hyperbolic sine.',
+      examples: ['asinh(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'acosh',
+      params: ['x'],
+      doc: 'Inverse hyperbolic cosine.',
+      examples: ['acosh(2)'],
+    ),
+    MathFunctionInfo(
+      name: 'atanh',
+      params: ['x'],
+      doc: 'Inverse hyperbolic tangent.',
+      examples: ['atanh(1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'asech',
+      params: ['x'],
+      doc: 'Inverse hyperbolic secant.',
+      examples: ['asech(1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'acsch',
+      params: ['x'],
+      doc: 'Inverse hyperbolic cosecant.',
+      examples: ['acsch(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'acoth',
+      params: ['x'],
+      doc: 'Inverse hyperbolic cotangent.',
+      examples: ['acoth(2)'],
+    ),
+    MathFunctionInfo(
+      name: 'sqrt',
+      params: ['x'],
+      doc: 'Principal square root √x.',
+      examples: ['sqrt(12)'],
+    ),
+    MathFunctionInfo(
+      name: 'root',
+      params: ['x', 'n'],
+      doc: 'Real/principal n-th root x^(1/n).',
+      examples: ['root(27, 3)'],
+    ),
+    MathFunctionInfo(
+      name: 'exp',
+      params: ['x'],
+      doc: 'Natural exponential e^x.',
+      examples: ['exp(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'ln',
+      params: ['x'],
+      doc: 'Natural logarithm ln(x).',
+      examples: ['ln(e^3)'],
+    ),
+    MathFunctionInfo(
+      name: 'log',
       params: ['b', 'x'],
       doc: 'Logarithm base b of x (or ln(x) for 1 arg).',
+      examples: ['log(2, 32)'],
     ),
-    'log2': (params: ['x'], doc: 'Base-2 logarithm log₂(x).'),
-    'log10': (params: ['x'], doc: 'Base-10 logarithm log₁₀(x).'),
-    'erf': (params: ['x'], doc: 'Gauss error function erf(x).'),
-    'erfc': (params: ['x'], doc: 'Complementary error function 1 - erf(x).'),
-    'gamma': (params: ['z'], doc: 'Euler Gamma function Γ(z).'),
-    'beta': (params: ['a', 'b'], doc: 'Euler Beta function B(a, b).'),
-    'lambertw': (params: ['z', '[branch]'], doc: 'Lambert W function W_k(z).'),
-    'piecewise': (
+    MathFunctionInfo(
+      name: 'log2',
+      params: ['x'],
+      doc: 'Base-2 logarithm log₂(x).',
+      examples: ['log2(1024)'],
+    ),
+    MathFunctionInfo(
+      name: 'log10',
+      params: ['x'],
+      doc: 'Base-10 logarithm log₁₀(x).',
+      examples: ['log10(1000)'],
+    ),
+    MathFunctionInfo(
+      name: 'erf',
+      params: ['x'],
+      doc: 'Gauss error function erf(x).',
+      examples: ['erf(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'erfc',
+      params: ['x'],
+      doc: 'Complementary error function 1 - erf(x).',
+      examples: ['erfc(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'erfi',
+      params: ['x'],
+      doc: 'Imaginary error function erfi(x).',
+      examples: ['erfi(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'fresnels',
+      params: ['x'],
+      doc: 'Fresnel sine integral S(x).',
+      examples: ['fresnels(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'fresnelc',
+      params: ['x'],
+      doc: 'Fresnel cosine integral C(x).',
+      examples: ['fresnelc(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'Ei',
+      params: ['x'],
+      doc: 'Exponential integral Ei(x).',
+      examples: ['Ei(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'li',
+      params: ['x'],
+      doc: 'Logarithmic integral li(x).',
+      examples: ['li(2)'],
+    ),
+    MathFunctionInfo(
+      name: 'Si',
+      params: ['x'],
+      doc: 'Sine integral Si(x).',
+      examples: ['Si(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'Ci',
+      params: ['x'],
+      doc: 'Cosine integral Ci(x).',
+      examples: ['Ci(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'Shi',
+      params: ['x'],
+      doc: 'Hyperbolic sine integral Shi(x).',
+      examples: ['Shi(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'Chi',
+      params: ['x'],
+      doc: 'Hyperbolic cosine integral Chi(x).',
+      examples: ['Chi(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'gamma',
+      params: ['z'],
+      doc: 'Euler Gamma function Γ(z).',
+      examples: ['gamma(5)', 'gamma(1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'uppergamma',
+      params: ['a', 'x'],
+      doc: 'Upper incomplete Gamma function Γ(a, x).',
+      examples: ['uppergamma(2, 1)'],
+    ),
+    MathFunctionInfo(
+      name: 'lowergamma',
+      params: ['a', 'x'],
+      doc: 'Lower incomplete Gamma function γ(a, x).',
+      examples: ['lowergamma(2, 1)'],
+    ),
+    MathFunctionInfo(
+      name: 'digamma',
+      params: ['z'],
+      doc: 'Digamma function ψ(z).',
+      examples: ['digamma(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'polygamma',
+      params: ['n', 'z'],
+      doc: 'Polygamma function ψ^(n)(z).',
+      examples: ['polygamma(1, 1)'],
+    ),
+    MathFunctionInfo(
+      name: 'zeta',
+      params: ['s'],
+      doc: 'Riemann zeta function ζ(s).',
+      examples: ['zeta(2)'],
+    ),
+    MathFunctionInfo(
+      name: 'polylog',
+      params: ['s', 'z'],
+      doc: 'Polylogarithm Li_s(z).',
+      examples: ['polylog(2, 1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'beta',
+      params: ['a', 'b'],
+      doc: 'Euler Beta function B(a, b).',
+      examples: ['beta(2, 3)'],
+    ),
+    MathFunctionInfo(
+      name: 'elliptick',
+      params: ['m'],
+      doc: 'Complete elliptic integral of the first kind K(m).',
+      examples: ['elliptick(1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'elliptice',
+      params: ['m'],
+      doc: 'Complete elliptic integral of the second kind E(m).',
+      examples: ['elliptice(1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'elliptic_f',
+      params: ['phi', 'm'],
+      doc: 'Incomplete elliptic integral of the first kind F(φ, m).',
+      examples: ['elliptic_f(pi / 3, 1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'elliptic_e',
+      params: ['phi', 'm'],
+      doc: 'Incomplete elliptic integral of the second kind E(φ, m).',
+      examples: ['elliptic_e(pi / 3, 1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'besselj',
+      params: ['nu', 'x'],
+      doc: 'Bessel function of the first kind J_ν(x).',
+      examples: ['besselj(0, 1)'],
+    ),
+    MathFunctionInfo(
+      name: 'bessely',
+      params: ['nu', 'x'],
+      doc: 'Bessel function of the second kind Y_ν(x).',
+      examples: ['bessely(0, 1)'],
+    ),
+    MathFunctionInfo(
+      name: 'besseli',
+      params: ['nu', 'x'],
+      doc: 'Modified Bessel function of the first kind I_ν(x).',
+      examples: ['besseli(0, 1)'],
+    ),
+    MathFunctionInfo(
+      name: 'besselk',
+      params: ['nu', 'x'],
+      doc: 'Modified Bessel function of the second kind K_ν(x).',
+      examples: ['besselk(0, 1)'],
+    ),
+    MathFunctionInfo(
+      name: 'lambertw',
+      params: ['z', '[branch]'],
+      doc: 'Lambert W function W_k(z).',
+      examples: ['lambertw(1)'],
+    ),
+    MathFunctionInfo(
+      name: 'piecewise',
       params: ['cond1', 'expr1', '[otherwise]'],
       doc: 'Piecewise conditional expression.',
+      examples: ['piecewise(x > 0, x, -x)'],
     ),
+  ];
+
+  /// Lookup map from lowercase function name to [MathFunctionInfo].
+  static final Map<String, MathFunctionInfo> mathFunctionByName = {
+    for (final fn in mathFunctions) fn.name.toLowerCase(): fn,
   };
 
   /// Computes completions and signature hints at [cursorOffset] in [input].
@@ -218,19 +576,18 @@ abstract final class CalcCompletion {
     }
 
     // 4. Elementary & special functions
-    for (final entry in _mathFunctions.entries) {
-      if (CommandRegistry.byName.containsKey(entry.key)) continue;
-      final score = _matchScore(entry.key, lowerPrefix);
+    for (final fn in mathFunctions) {
+      if (CommandRegistry.byName.containsKey(fn.name)) continue;
+      final score = _matchScore(fn.name, lowerPrefix);
       if (score != null) {
-        final sig = '${entry.key}(${entry.value.params.join(', ')})';
         candidates.add((
           score: score + 2,
           item: CompletionItem(
-            label: entry.key,
-            insertText: '${entry.key}(',
+            label: fn.name,
+            insertText: '${fn.name}(',
             kind: 'fn',
-            detail: sig,
-            doc: entry.value.doc,
+            detail: fn.signature,
+            doc: fn.doc,
           ),
         ));
       }
@@ -342,10 +699,10 @@ abstract final class CalcCompletion {
         doc: cmd.doc,
       );
     }
-    final mathFn = _mathFunctions[name];
+    final mathFn = mathFunctionByName[name.toLowerCase()];
     if (mathFn != null) {
       return SignatureHint(
-        name: name,
+        name: mathFn.name,
         params: mathFn.params,
         activeParamIndex: commaIndex.clamp(
           0,
