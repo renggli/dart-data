@@ -840,4 +840,142 @@ void main() {
       );
     });
   });
+
+  group('Extended trig, hyperbolic, radical, and parametric integration', () {
+    void verifyWithParams(
+      String source,
+      Map<String, double> params, {
+      List<double> points = const [0.3, 0.6, 0.9],
+    }) {
+      final f = Expr.parse(source);
+      final antideriv = f.integrate('x');
+      check(antideriv).isNotA<Integral>();
+      final diff = antideriv.derivative('x');
+      for (final pt in points) {
+        final env = {...params, 'x': pt};
+        check(diff.evaluate(env)).isCloseTo(f.evaluate(env), 1e-8);
+      }
+    }
+
+    test(
+      'integrates linear * log powers, exp * log, and symbolic binomials',
+      () {
+        verifyAntiderivative(
+          Expr.parse('x * ln(x)^2'),
+          points: const [0.5, 1.2, 2.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('exp(x) * ln(x + 1)'),
+          points: const [0.2, 0.7, 1.3],
+        );
+        verifyWithParams('x * (a + b * x)^p', {'a': 2.0, 'b': 1.5, 'p': 2.3});
+        verifyWithParams('x^2 * (a + b * x)^p', {
+          'a': 2.0,
+          'b': 1.5,
+          'p': -0.7,
+        });
+      },
+    );
+
+    test('integrates mixed trig-exp-log and Ei/polylog reductions', () {
+      verifyAntiderivative(
+        Expr.parse('sin(ln(x))'),
+        points: const [0.5, 1.2, 2.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('cos(ln(2 * x))'),
+        points: const [0.5, 1.2, 2.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('x^2 * sin(ln(x))'),
+        points: const [0.5, 1.2, 2.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('exp(atan(x)) / (x^2 + 1)^(3/2)'),
+        points: const [0.2, 0.6, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('x * exp(atan(x)) / (x^2 + 1)^(3/2)'),
+        points: const [0.2, 0.6, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('ln(x) / (x + 1)'),
+        points: const [0.2, 0.5, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('exp(x) / (x + 1)'),
+        points: const [0.2, 0.6, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('exp(x) / (x + 1)^2'),
+        points: const [0.2, 0.6, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('exp(1 / x)'),
+        points: const [0.4, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('x * exp(x^2) / (x^2 + 1)'),
+        points: const [0.2, 0.6, 1.1],
+      );
+    });
+
+    test('integrates rational trig and hyperbolic functions', () {
+      verifyAntiderivative(
+        Expr.parse('sin(x) / (sin(x) + cos(x) + 1)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('(2 * sin(x) + 3 * cos(x)) / (sin(x) + 2 * cos(x))'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(x)^2 / (sin(x)^2 + 1)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyWithParams('1 / (a^2 * sin(x)^2 + b^2 * cos(x)^2)', {
+        'a': 2.0,
+        'b': 3.0,
+      });
+      verifyAntiderivative(
+        Expr.parse('(cos(x) + 1)^(-2)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyWithParams('1 / (a + b * tanh(x))', {'a': 3.0, 'b': 1.5});
+      verifyWithParams('1 / (a^2 + b^2 * cosh(x)^2)', {'a': 2.0, 'b': 1.5});
+      verifyAntiderivative(
+        Expr.parse('(cosh(x) + 1)^(-2)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+    });
+
+    test('integrates algebraic radicals, biquadratics, and parametric partial fractions', () {
+      verifyAntiderivative(
+        Expr.parse('x^2 / sqrt(x^2 + 1)'),
+        points: const [0.2, 0.7, 1.3],
+      );
+      verifyAntiderivative(
+        Expr.parse('sqrt(3 - x^2) / x'),
+        points: const [0.3, 0.7, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('sqrt(x^2 + 1) / x^2'),
+        points: const [0.3, 0.7, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / (x^2 * sqrt(x^2 + 1))'),
+        points: const [0.3, 0.7, 1.1],
+      );
+      verifyWithParams('sqrt((a + x) / (a - x))', {'a': 2.5});
+      verifyAntiderivative(
+        Expr.parse('1 / (x^4 + x^2 + 1)'),
+        points: const [0.2, 0.6, 1.1],
+      );
+      verifyWithParams('x / ((x - a) * (x - b) * (x - c))', {
+        'a': 2.1,
+        'b': 3.3,
+        'c': 4.7,
+      });
+    });
+  });
 }

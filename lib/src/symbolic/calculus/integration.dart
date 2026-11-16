@@ -224,6 +224,14 @@ Expr _antiDerivative(
   };
 
   if (depth < 2 && node is! Add && _hasUnevaluatedIntegral(result, variable)) {
+    if (_trySymbolicBinomialAffine(node, variable, assumptions: assumptions)
+        case final symBinomRes?) {
+      return symBinomRes;
+    }
+    if (_tryMixedTrigLogExp(node, variable, assumptions: assumptions)
+        case final mixedRes?) {
+      return mixedRes;
+    }
     if (_tryAffineRadicalSubstitution(
           node,
           variable,
@@ -232,6 +240,15 @@ Expr _antiDerivative(
         )
         case final affineRes?) {
       return affineRes;
+    }
+    if (_tryFractionalLinearRadical(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final fracLinRes?) {
+      return fracLinRes;
     }
     if (_tryChebyshevBinomial(
           node,
@@ -250,6 +267,24 @@ Expr _antiDerivative(
         )
         case final uSubRes?) {
       return uSubRes;
+    }
+    if (_tryRationalTrigSubstitution(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final trigSubRes?) {
+      return trigSubRes;
+    }
+    if (_tryHyperbolicRationalSubstitution(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final hypSubRes?) {
+      return hypSubRes;
     }
   }
   return result;
@@ -852,6 +887,13 @@ Expr _antiDerivPow(
     if (base == Constant.e) {
       final gaussRes = _tryGaussianAntiderivative(exponent, variable);
       if (gaussRes != null) return gaussRes;
+
+      // e^(a/x) -> x * e^(a/x) - a * Ei(a/x)
+      final prod = (exponent * Variable(variable)).simplify();
+      if (!prod.dependsOn(variable)) {
+        return (Variable(variable) * original - prod * ExpIntegralEi(exponent))
+            .simplify();
+      }
     }
   }
 
@@ -1139,6 +1181,47 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     }
   }
 
+  // c * ln(x) / (a*x + b) -> (c / a) * (ln(x) * ln(1 + a*x/b) + polylog(2, -a*x/b))
+  if (left case Ln(expr: Variable(:final name)) when name == variable) {
+    if (right.matchLinear(variable) case (:final a, :final b)
+        when b != IntegerNumber.zero) {
+      final ratio = (a * Variable(variable) / b).simplify();
+      return ((Ln(Variable(variable)) * Ln(IntegerNumber.one + ratio) +
+                  Polylog(IntegerNumber.two, -ratio)) /
+              a)
+          .simplify();
+    }
+  }
+
+  // c * exp(a*x + b) / (c1*x + d)^k -> Ei reduction
+  if (left case Pow(base: Constant.e, exponent: final expInner)) {
+    if (expInner.matchLinear(variable) case (:final a, :final b)) {
+      if (right.matchLinear(variable) case (a: final c1, b: final d1)) {
+        final shift = (b - (a * d1) / c1).simplify();
+        final eiArg = (a * right / c1).simplify();
+        return (Pow(Constant.e, shift) * ExpIntegralEi(eiArg) / c1).simplify();
+      }
+      if (right
+          case Pow(base: final rBase, exponent: IntegerNumber(asInt: final k?))
+          when k >= 2 && k <= 8) {
+        if (rBase.matchLinear(variable) case (a: final c1, b: _)) {
+          final kMinus1 = IntegerNumber.of(k - 1);
+          final term1 = (-left / (c1 * kMinus1 * Pow(rBase, kMinus1)))
+              .simplify();
+          final rem = _antiDerivative(
+            (a * left / (c1 * kMinus1 * (k == 2 ? rBase : Pow(rBase, kMinus1))))
+                .simplify(),
+            variable,
+            depth: 1,
+          );
+          if (!_hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 + rem).simplify();
+          }
+        }
+      }
+    }
+  }
+
   // c * sin(ax)/x, cos(ax)/x, sinh(ax)/x, cosh(ax)/x, exp(ax+b)/x
   if (right is Variable && right.name == variable) {
     final (:constFactors, :varFactors) = partitionFactors(
@@ -1245,6 +1328,17 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     return trigQuot;
   }
 
+  // Linear trig quotient: (a1*sin(u) + b1*cos(u) + c1) / (a*sin(u) + b*cos(u) + c)
+  if (_tryLinearTrigQuotient(left, right, variable) case final linTrigRes?) {
+    return linTrigRes;
+  }
+
+  // Polynomial / (x^k * sqrt(Q)) or sqrt(Q) / x^k or x^m / sqrt(Q)
+  if (_tryPolynomialOverSqrtQuadratic(left, right, variable)
+      case final polySqrtRes?) {
+    return polySqrtRes;
+  }
+
   // Repeated quadratic denominator: P(x) / (Ax^2 + Bx + C)^m (m >= 2)
   if (right case Pow(base: final quad, exponent: IntegerNumber(asInt: final m?))
       when m >= 2 && m <= 10) {
@@ -1255,28 +1349,46 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
 
   // Rational functions P(x) / Q(x): polynomial division and partial fractions
   if (right.dependsOn(variable)) {
-    final degLeft = polynomialDegree(left.expand().simplify(), variable);
-    final degRight = polynomialDegree(right.expand().simplify(), variable);
+    final leftExp = left.expand().simplify();
+    final rightExp = right.expand().simplify();
+    final degLeft = polynomialDegree(leftExp, variable);
+    final degRight = polynomialDegree(rightExp, variable);
     if (degLeft != null && degRight != null && degRight >= 1) {
       if (degLeft >= degRight && degRight <= 24) {
-        final (:quotient, :remainder) = left.polynomialDivide(right, variable);
+        final (:quotient, :remainder) = leftExp.polynomialDivide(
+          rightExp,
+          variable,
+        );
         final qInt = _antiDerivative(quotient, variable);
         if (remainder is Number && remainder.isZero) {
           return qInt;
         }
-        final rInt = _antiDerivative((remainder / right).simplify(), variable);
+        final rInt = _antiDerivative(
+          (remainder / rightExp).simplify(),
+          variable,
+        );
         return (qInt + rInt).simplify();
       }
       if (degRight == 3) {
-        if (_tryCubicBinomialDenominator(left, right, variable)
+        if (_tryCubicBinomialDenominator(leftExp, rightExp, variable)
             case final cubRes?) {
           return cubRes;
         }
       }
       if (degRight == 4) {
-        if (_trySophieGermainQuartic(left, right, variable)
+        if (_trySophieGermainQuartic(leftExp, rightExp, variable)
             case final quartRes?) {
           return quartRes;
+        }
+        if (_tryBiquadraticDenominator(leftExp, rightExp, variable)
+            case final biqRes?) {
+          return biqRes;
+        }
+      }
+      if (degRight >= 2) {
+        if (_tryDistinctLinearPartialFractions(left, right, variable)
+            case final pfRes?) {
+          return pfRes;
         }
       }
       if (degRight >= 2 && degRight <= 12) {
@@ -1661,10 +1773,28 @@ Expr? _tryIntegrationByParts(
     }
   }
 
+  // exp(a*x + b) * ln(c*x + d)
+  if (pExpr case Pow(base: Constant.e, exponent: final expInner)) {
+    if (expInner.matchLinear(variable) case (a: final a, b: _)) {
+      if (vExpr case Ln(expr: final lnInner)
+          when lnInner.matchLinear(variable) != null) {
+        final v = (pExpr / a).simplify();
+        final rem = _antiDerivative(
+          (v * vExpr.derivative(variable)).simplify(),
+          variable,
+          depth: 1,
+        );
+        if (!_hasUnevaluatedIntegral(rem, variable)) {
+          return (v * vExpr - rem).simplify();
+        }
+      }
+    }
+  }
+
   final linP = pExpr.matchLinear(variable);
   if (linP != null) {
     final p = linP.a;
-    return switch (vExpr) {
+    final linRes = switch (vExpr) {
       Ln(:final expr) => switch (expr.matchLinear(variable)) {
         (:final a, :final b) => _ibpLogarithm(pExpr, vExpr, expr, linP, a, b),
         null => null,
@@ -1697,6 +1827,7 @@ Expr? _tryIntegrationByParts(
         },
       _ => null,
     };
+    if (linRes != null) return linRes;
   }
 
   // Higher-degree polynomial P(x) * vExpr (e.g. x^n * exp(ax+b), x^n * sin(ax+b), x^n * ln(x), x^n * exp(-a*x^2)):
@@ -3085,4 +3216,906 @@ Expr? _trySophieGermainQuartic(Expr left, Expr right, String variable) {
     return null;
   }
   return (int1 + int2).simplify();
+}
+
+Expr? _trySymbolicBinomialAffine(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final factors = expr is Mul ? expr.factors : [expr];
+  var scale = IntegerNumber.one as Expr;
+  var m = 0;
+  Pow? binomPow;
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      scale = (scale * f).simplify();
+      continue;
+    }
+    if (f is Variable && f.name == variable) {
+      m += 1;
+      continue;
+    }
+    if (f
+        case Pow(
+          base: Variable(:final name),
+          exponent: IntegerNumber(asInt: final k?),
+        )
+        when name == variable && k >= 1 && k <= 8) {
+      m += k;
+      continue;
+    }
+    if (f is Pow && binomPow == null && !f.exponent.dependsOn(variable)) {
+      if (f.base.matchLinear(variable) != null) {
+        binomPow = f;
+        continue;
+      }
+    }
+    return null;
+  }
+
+  if (binomPow == null || m == 0 || m > 8) return null;
+  final linear = binomPow.base.matchLinear(variable)!;
+  final (:a, :b) = linear;
+  final p = binomPow.exponent;
+
+  // u = a*x + b => x = (u - b) / a, dx = du / a
+  const uName = '_sb';
+  const uVar = Variable(uName);
+  final expanded = (Pow((uVar - b) / a, IntegerNumber.of(m)) / a)
+      .expand()
+      .simplify(assumptions: assumptions);
+  final terms = expanded is Add ? expanded.terms : [expanded];
+  final integrated = <Expr>[];
+  for (final t in terms) {
+    final deg = polynomialDegree(t, uName);
+    if (deg == null) return null;
+    final coeff =
+        (t / (deg == 0 ? IntegerNumber.one : Pow(uVar, IntegerNumber.of(deg))))
+            .simplify();
+    final newExp = (p + IntegerNumber.of(deg + 1)).simplify();
+    if (newExp is Number && newExp.isZero) {
+      integrated.add((coeff * Ln(uVar)).simplify());
+    } else {
+      integrated.add((coeff * Pow(uVar, newExp) / newExp).simplify());
+    }
+  }
+  return (scale * Add(integrated))
+      .substitute(uName, binomPow.base)
+      .simplify(assumptions: assumptions);
+}
+
+Expr? _tryMixedTrigLogExp(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  // 1. x^n * sin(ln(a*x)) or x^n * cos(ln(a*x))
+  final factors = expr is Mul ? expr.factors : [expr];
+  var scale = IntegerNumber.one as Expr;
+  Expr? xPower = IntegerNumber.zero;
+  Expr? trigFactor;
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      scale = (scale * f).simplify();
+      continue;
+    }
+    if (f is Variable && f.name == variable && xPower != null) {
+      xPower = (xPower + IntegerNumber.one).simplify();
+      continue;
+    }
+    if (f case Pow(base: Variable(:final name), :final exponent)
+        when name == variable &&
+            !exponent.dependsOn(variable) &&
+            xPower != null) {
+      xPower = (xPower + exponent).simplify();
+      continue;
+    }
+    if ((f is Sin || f is Cos) && trigFactor == null) {
+      trigFactor = f;
+      continue;
+    }
+    xPower = null;
+  }
+
+  if (xPower != null && trigFactor != null) {
+    final inner = trigFactor is Sin
+        ? trigFactor.expr
+        : (trigFactor as Cos).expr;
+    if (inner case Ln(expr: final lnInner)) {
+      if (lnInner.matchLinear(variable) case (:final a, b: final b)
+          when b == IntegerNumber.zero) {
+        const uName = '_ml';
+        const uVar = Variable(uName);
+        final expFactor = Pow(Constant.e, (xPower + IntegerNumber.one) * uVar);
+        final trigU = trigFactor is Sin ? Sin(uVar) : Cos(uVar);
+        final uInt = _antiDerivative(
+          (expFactor * trigU).simplify(),
+          uName,
+          depth: 2,
+        );
+        if (!_hasUnevaluatedIntegral(uInt, uName)) {
+          final preFactor = (scale / Pow(a, xPower + IntegerNumber.one))
+              .simplify();
+          return (preFactor * uInt)
+              .substitute(uName, inner)
+              .simplify(assumptions: assumptions);
+        }
+      }
+    }
+  }
+
+  // 2. exp(c * atan(x)) / (x^2 + 1)^(k/2) * x^m
+  final (numExpr, denExpr) = splitNumeratorDenominator(expr);
+  if (denExpr case Pow(base: final qBase, :final exponent)) {
+    final halfExp = _halfIntExponent(exponent);
+    if (halfExp != null && halfExp >= 2) {
+      final coeffs = extractPolynomialCoefficients(qBase, variable);
+      if (coeffs != null &&
+          maxPolynomialDegree(coeffs) == 2 &&
+          coeffs[2] == IntegerNumber.one &&
+          (coeffs[1] == null || coeffs[1] == IntegerNumber.zero) &&
+          coeffs[0] == IntegerNumber.one) {
+        final numFactors = numExpr is Mul ? numExpr.factors : [numExpr];
+        var numScale = IntegerNumber.one as Expr;
+        var xDeg = 0;
+        Expr? atanCoeff;
+        var ok = true;
+        for (final nf in numFactors) {
+          if (!nf.dependsOn(variable)) {
+            numScale = (numScale * nf).simplify();
+          } else if (nf is Variable && nf.name == variable) {
+            xDeg += 1;
+          } else if (nf
+              case Pow(
+                base: Variable(:final name),
+                exponent: IntegerNumber(asInt: final k?),
+              )
+              when name == variable && k >= 1) {
+            xDeg += k;
+          } else if (nf case Pow(base: Constant.e, exponent: final eExp)) {
+            if (eExp case Atan(expr: Variable(:final name))
+                when name == variable) {
+              atanCoeff = IntegerNumber.one;
+            } else if (eExp case Mul(factors: final ef)) {
+              final (:constFactors, :varFactors) = partitionFactors(
+                ef,
+                variable,
+              );
+              if (varFactors case [Atan(expr: Variable(:final name))]
+                  when name == variable) {
+                atanCoeff = constFactors.length == 1
+                    ? constFactors.first
+                    : Mul(constFactors).simplify();
+              } else {
+                ok = false;
+              }
+            } else {
+              ok = false;
+            }
+          } else {
+            ok = false;
+          }
+        }
+        if (ok && atanCoeff != null && xDeg <= 2 && halfExp >= xDeg + 2) {
+          const uName = '_at';
+          const uVar = Variable(uName);
+          final cosPow = halfExp - 2 - xDeg;
+          final integrand =
+              (numScale *
+                      Pow(Constant.e, atanCoeff * uVar) *
+                      Pow(Sin(uVar), IntegerNumber.of(xDeg)) *
+                      Pow(Cos(uVar), IntegerNumber.of(cosPow)))
+                  .simplify();
+          final uInt = _antiDerivative(integrand, uName, depth: 2);
+          if (!_hasUnevaluatedIntegral(uInt, uName)) {
+            return uInt
+                .substitute(uName, Atan(Variable(variable)))
+                .simplify(assumptions: assumptions);
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+({Expr aSin, Expr bCos, Expr cConst, Expr? inner})? _extractLinearTrigCombo(
+  Expr expr,
+  String variable,
+) {
+  final terms = expr is Add ? expr.terms : [expr];
+  var aSin = IntegerNumber.zero as Expr;
+  var bCos = IntegerNumber.zero as Expr;
+  var cConst = IntegerNumber.zero as Expr;
+  Expr? inner;
+
+  for (final term in terms) {
+    if (!term.dependsOn(variable)) {
+      cConst = (cConst + term).simplify();
+      continue;
+    }
+    var coeff = IntegerNumber.one as Expr;
+    var varPart = term;
+    if (term case Mul(:final factors)) {
+      final (:constFactors, :varFactors) = partitionFactors(factors, variable);
+      if (varFactors.length != 1) return null;
+      varPart = varFactors.first;
+      coeff = switch (constFactors) {
+        [] => IntegerNumber.one,
+        [final single] => single,
+        _ => Mul(constFactors).simplify(),
+      };
+    }
+    switch (varPart) {
+      case Sin(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        aSin = (aSin + coeff).simplify();
+      case Cos(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        bCos = (bCos + coeff).simplify();
+      default:
+        return null;
+    }
+  }
+  if (inner == null || inner.matchLinear(variable) == null) return null;
+  return (aSin: aSin, bCos: bCos, cConst: cConst, inner: inner);
+}
+
+Expr? _tryLinearTrigQuotient(Expr left, Expr right, String variable) {
+  if (!left.dependsOn(variable)) return null;
+  final numCombo = _extractLinearTrigCombo(left, variable);
+  final denCombo = _extractLinearTrigCombo(right, variable);
+  if (numCombo == null || denCombo == null) return null;
+  if (numCombo.inner != denCombo.inner) return null;
+  final inner = denCombo.inner!;
+  final k = inner.matchLinear(variable)!.a;
+
+  final a = denCombo.aSin;
+  final b = denCombo.bCos;
+  final c = denCombo.cConst;
+  final a1 = numCombo.aSin;
+  final b1 = numCombo.bCos;
+  final c1 = numCombo.cConst;
+
+  final denom = (a * a + b * b).simplify();
+  if (denom is Number && denom.isZero) return null;
+
+  final alpha = ((a1 * a + b1 * b) / denom).simplify();
+  final beta = ((b1 * a - a1 * b) / denom).simplify();
+  final gamma = (c1 - alpha * c).simplify();
+
+  var res = (alpha * Variable(variable)).simplify();
+  if (beta != IntegerNumber.zero) {
+    res = (res + (beta / k) * Ln(Abs(right))).simplify();
+  }
+  if (gamma != IntegerNumber.zero) {
+    final remInt = _tryWeierstrassSubstitution(gamma, right, variable);
+    if (remInt == null) return null;
+    res = (res + remInt).simplify();
+  }
+  return res;
+}
+
+Expr? _collectAffineTrigInner(Expr node, String variable) {
+  Expr? found;
+  var valid = true;
+  void scan(Expr n) {
+    if (!valid || !n.dependsOn(variable)) return;
+    switch (n) {
+      case Sin(:final expr) || Cos(:final expr) || Tan(:final expr):
+        if (expr.matchLinear(variable) == null) {
+          valid = false;
+          return;
+        }
+        if (found == null) {
+          found = expr;
+        } else if (found != expr) {
+          valid = false;
+        }
+      case Add(:final terms):
+        for (final t in terms) {
+          scan(t);
+        }
+      case Mul(:final factors):
+        for (final f in factors) {
+          scan(f);
+        }
+      case Pow(:final base, :final exponent)
+          when exponent is IntegerNumber && !exponent.dependsOn(variable):
+        scan(base);
+      default:
+        valid = false;
+    }
+  }
+
+  scan(node);
+  return valid ? found : null;
+}
+
+Expr _replaceTrigWithWeierstrass(Expr node, Expr inner, Variable tVar) {
+  if (node is Sin && node.expr == inner) {
+    return (IntegerNumber.two * tVar) / (IntegerNumber.one + tVar * tVar);
+  }
+  if (node is Cos && node.expr == inner) {
+    return (IntegerNumber.one - tVar * tVar) /
+        (IntegerNumber.one + tVar * tVar);
+  }
+  if (node is Tan && node.expr == inner) {
+    return (IntegerNumber.two * tVar) / (IntegerNumber.one - tVar * tVar);
+  }
+  return node.mapChildren((c) => _replaceTrigWithWeierstrass(c, inner, tVar));
+}
+
+Expr _replaceTrigWithTan(Expr node, Expr inner, Variable tVar) {
+  if (node is Tan && node.expr == inner) return tVar;
+  if (node
+      case Pow(
+        base: Sin(expr: final arg),
+        exponent: IntegerNumber(asInt: final n?),
+      )
+      when arg == inner && n.isEven) {
+    return Pow(
+      (tVar * tVar) / (IntegerNumber.one + tVar * tVar),
+      IntegerNumber.of(n ~/ 2),
+    );
+  }
+  if (node
+      case Pow(
+        base: Cos(expr: final arg),
+        exponent: IntegerNumber(asInt: final n?),
+      )
+      when arg == inner && n.isEven) {
+    return Pow(
+      IntegerNumber.one / (IntegerNumber.one + tVar * tVar),
+      IntegerNumber.of(n ~/ 2),
+    );
+  }
+  return node.mapChildren((c) => _replaceTrigWithTan(c, inner, tVar));
+}
+
+Expr? _tryRationalTrigSubstitution(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+  int depth = 0,
+}) {
+  final inner = _collectAffineTrigInner(expr, variable);
+  if (inner == null) return null;
+  final k = inner.matchLinear(variable)!.a;
+
+  // 1. Try t = tan(u) if expression is even in (sin, cos)
+  const tName = '_rt';
+  const tVar = Variable(tName);
+  final tanReplaced = _replaceTrigWithTan(expr, inner, tVar);
+  if (!tanReplaced.dependsOn(variable)) {
+    final rawIntegrand = (tanReplaced / (k * (IntegerNumber.one + tVar * tVar)))
+        .simplify();
+    final integrand = rawIntegrand.together();
+    final tInt = _antiDerivative(
+      integrand,
+      tName,
+      assumptions: assumptions,
+      depth: 2,
+    );
+    if (!_hasUnevaluatedIntegral(tInt, tName)) {
+      return tInt
+          .substitute(tName, Tan(inner))
+          .simplify(assumptions: assumptions);
+    }
+  }
+
+  // 2. General Weierstrass substitution t = tan(u / 2)
+  final wReplaced = _replaceTrigWithWeierstrass(expr, inner, tVar);
+  if (!wReplaced.dependsOn(variable)) {
+    final rawIntegrand =
+        ((wReplaced * IntegerNumber.two) /
+                (k * (IntegerNumber.one + tVar * tVar)))
+            .simplify();
+    final integrand = rawIntegrand.together();
+    final deg = polynomialDegree(
+      splitNumeratorDenominator(integrand).$2.expand().simplify(),
+      tName,
+    );
+    if (deg != null && deg <= 8) {
+      final tInt = _antiDerivative(
+        integrand,
+        tName,
+        assumptions: assumptions,
+        depth: 2,
+      );
+      if (!_hasUnevaluatedIntegral(tInt, tName)) {
+        return tInt
+            .substitute(tName, Tan((inner / IntegerNumber.two).simplify()))
+            .simplify(assumptions: assumptions);
+      }
+    }
+  }
+
+  return null;
+}
+
+Expr? _collectAffineHypInner(Expr node, String variable) {
+  Expr? found;
+  var valid = true;
+  void scan(Expr n) {
+    if (!valid || !n.dependsOn(variable)) return;
+    switch (n) {
+      case Sinh(:final expr) || Cosh(:final expr) || Tanh(:final expr):
+        if (expr.matchLinear(variable) == null) {
+          valid = false;
+          return;
+        }
+        if (found == null) {
+          found = expr;
+        } else if (found != expr) {
+          valid = false;
+        }
+      case Add(:final terms):
+        for (final t in terms) {
+          scan(t);
+        }
+      case Mul(:final factors):
+        for (final f in factors) {
+          scan(f);
+        }
+      case Pow(:final base, :final exponent)
+          when exponent is IntegerNumber && !exponent.dependsOn(variable):
+        scan(base);
+      default:
+        valid = false;
+    }
+  }
+
+  scan(node);
+  return valid ? found : null;
+}
+
+Expr _replaceHypWithExp(Expr node, Expr inner, Variable wVar) {
+  if (node is Sinh && node.expr == inner) {
+    return (wVar - IntegerNumber.one / wVar) / IntegerNumber.two;
+  }
+  if (node is Cosh && node.expr == inner) {
+    return (wVar + IntegerNumber.one / wVar) / IntegerNumber.two;
+  }
+  if (node is Tanh && node.expr == inner) {
+    return (wVar * wVar - IntegerNumber.one) /
+        (wVar * wVar + IntegerNumber.one);
+  }
+  return node.mapChildren((c) => _replaceHypWithExp(c, inner, wVar));
+}
+
+Expr? _tryHyperbolicRationalSubstitution(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+  int depth = 0,
+}) {
+  final inner = _collectAffineHypInner(expr, variable);
+  if (inner == null) return null;
+  final k = inner.matchLinear(variable)!.a;
+
+  const wName = '_hw';
+  const wVar = Variable(wName);
+  final replaced = _replaceHypWithExp(expr, inner, wVar);
+  if (replaced.dependsOn(variable)) return null;
+
+  final integrand = (replaced / (k * wVar)).simplify().together();
+  final wInt = _antiDerivative(
+    integrand,
+    wName,
+    assumptions: assumptions,
+    depth: 2,
+  );
+  if (_hasUnevaluatedIntegral(wInt, wName)) return null;
+
+  return wInt
+      .substitute(wName, Pow(Constant.e, inner))
+      .simplify(assumptions: assumptions);
+}
+
+Expr? _tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
+  // Case 1: P(x) / sqrt(Ax^2 + Bx + C) with deg(P) >= 2
+  if (right case Pow(base: final quad, exponent: final exp)
+      when _halfIntExponent(exp) == 1) {
+    final coeffs = extractPolynomialCoefficients(quad, variable);
+    if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
+      final degLeft = polynomialDegree(left.expand().simplify(), variable);
+      if (degLeft != null && degLeft >= 2 && degLeft <= 6) {
+        return _integratePolyOverSqrtQ(
+          left.expand().simplify(),
+          quad,
+          coeffs[2] ?? IntegerNumber.zero,
+          coeffs[1] ?? IntegerNumber.zero,
+          coeffs[0] ?? IntegerNumber.zero,
+          variable,
+        );
+      }
+    }
+  }
+
+  // Case 2: sqrt(Ax^2 + Bx + C) / x^k (k >= 1)
+  if (left case Pow(base: final quad, exponent: final exp)
+      when _halfIntExponent(exp) == 1) {
+    final coeffs = extractPolynomialCoefficients(quad, variable);
+    if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
+      int? k;
+      if (right is Variable && right.name == variable) {
+        k = 1;
+      } else if (right
+          case Pow(
+            base: Variable(:final name),
+            exponent: IntegerNumber(asInt: final p?),
+          )
+          when name == variable && p >= 1 && p <= 4) {
+        k = p;
+      }
+      if (k != null) {
+        final a = coeffs[2] ?? IntegerNumber.zero;
+        final b = coeffs[1] ?? IntegerNumber.zero;
+        final c = coeffs[0] ?? IntegerNumber.zero;
+        final xVar = Variable(variable);
+        // sqrt(Q)/x^k = A*x^(2-k)/sqrt(Q) + B*x^(1-k)/sqrt(Q) + C/(x^k * sqrt(Q))
+        final term1 = k == 1
+            ? _antiDerivative((a * xVar / left).simplify(), variable)
+            : (k == 2
+                  ? _antiDerivative((a / left).simplify(), variable)
+                  : _tryPolynomialOverSqrtQuadratic(
+                      a,
+                      Pow(xVar, IntegerNumber.of(k - 2)) * left,
+                      variable,
+                    ));
+        final term2 = k == 1
+            ? _antiDerivative((b / left).simplify(), variable)
+            : _tryPolynomialOverSqrtQuadratic(
+                b,
+                Pow(xVar, IntegerNumber.of(k - 1)) * left,
+                variable,
+              );
+        final term3 = _tryPolynomialOverSqrtQuadratic(
+          c,
+          (right * left).simplify(),
+          variable,
+        );
+        if (term1 != null &&
+            term2 != null &&
+            term3 != null &&
+            !_hasUnevaluatedIntegral(term1, variable) &&
+            !_hasUnevaluatedIntegral(term2, variable)) {
+          return (term1 + term2 + term3).simplify();
+        }
+      }
+    }
+  }
+
+  // Case 3: c / (x^k * sqrt(Ax^2 + Bx + C)) (k >= 1) via t = 1/x
+  if (!left.dependsOn(variable) && right is Mul) {
+    final factors = right.factors;
+    var k = 0;
+    Pow? rad;
+    var valid = true;
+    for (final f in factors) {
+      if (f is Variable && f.name == variable) {
+        k += 1;
+      } else if (f
+          case Pow(
+            base: Variable(:final name),
+            exponent: IntegerNumber(asInt: final p?),
+          )
+          when name == variable && p >= 1) {
+        k += p;
+      } else if (f is Pow && _halfIntExponent(f.exponent) == 1 && rad == null) {
+        rad = f;
+      } else {
+        valid = false;
+      }
+    }
+    if (valid && k >= 1 && k <= 4 && rad != null) {
+      final coeffs = extractPolynomialCoefficients(rad.base, variable);
+      if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
+        final a = coeffs[2] ?? IntegerNumber.zero;
+        final b = coeffs[1] ?? IntegerNumber.zero;
+        final c = coeffs[0] ?? IntegerNumber.zero;
+        if (c != IntegerNumber.zero) {
+          const tName = '_inv';
+          const tVar = Variable(tName);
+          final qT = (c * tVar * tVar + b * tVar + a).simplify();
+          final numT =
+              (-left *
+                      (k == 1
+                          ? IntegerNumber.one
+                          : Pow(tVar, IntegerNumber.of(k - 1))))
+                  .simplify();
+          final tInt = _antiDerivative(
+            (numT / Pow(qT, FractionNumber.half)).simplify(),
+            tName,
+            depth: 2,
+          );
+          if (!_hasUnevaluatedIntegral(tInt, tName)) {
+            return tInt
+                .substitute(tName, IntegerNumber.one / Variable(variable))
+                .simplify();
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+Expr? _integratePolyOverSqrtQ(
+  Expr poly,
+  Expr quad,
+  Expr a,
+  Expr b,
+  Expr c,
+  String variable,
+) {
+  final coeffs = extractPolynomialCoefficients(poly, variable);
+  if (coeffs == null) return null;
+  final deg = maxPolynomialDegree(coeffs);
+  if (deg <= 1) {
+    return _tryQuadraticRadical(poly, quad, -1, variable);
+  }
+  final leadCoeff = coeffs[deg]!;
+  final m = deg;
+  final xVar = Variable(variable);
+  final rad = Pow(quad, FractionNumber.half);
+  final term1 =
+      (leadCoeff *
+              Pow(xVar, IntegerNumber.of(m - 1)) *
+              rad /
+              (IntegerNumber.of(m) * a))
+          .simplify();
+
+  final rem1 =
+      (-leadCoeff *
+              IntegerNumber.of(2 * m - 1) *
+              b /
+              (IntegerNumber.two * IntegerNumber.of(m) * a) *
+              Pow(xVar, IntegerNumber.of(m - 1)))
+          .simplify();
+  final rem2 =
+      (-leadCoeff *
+              IntegerNumber.of(m - 1) *
+              c /
+              (IntegerNumber.of(m) * a) *
+              (m - 2 == 0
+                  ? IntegerNumber.one
+                  : Pow(xVar, IntegerNumber.of(m - 2))))
+          .simplify();
+  final lowerPoly =
+      (poly - leadCoeff * Pow(xVar, IntegerNumber.of(m)) + rem1 + rem2)
+          .expand()
+          .simplify();
+  final remInt = _integratePolyOverSqrtQ(lowerPoly, quad, a, b, c, variable);
+  if (remInt == null) return null;
+  return (term1 + remInt).simplify();
+}
+
+Expr? _tryFractionalLinearRadical(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+  int depth = 0,
+}) {
+  Pow? targetPow;
+  ({int p, int q})? frac;
+  void scan(Expr n) {
+    if (targetPow != null || !n.dependsOn(variable)) return;
+    if (n case Pow(:final base, :final exponent)) {
+      if (_fractionalExponent(exponent) case final fq? when fq.q <= 4) {
+        final (numB, denB) = splitNumeratorDenominator(base);
+        if (numB.matchLinear(variable) != null &&
+            denB.dependsOn(variable) &&
+            denB.matchLinear(variable) != null) {
+          targetPow = n;
+          frac = fq;
+          return;
+        }
+      }
+    }
+    n.mapChildren((c) {
+      scan(c);
+      return c;
+    });
+  }
+
+  scan(expr);
+  if (targetPow == null || frac == null) return null;
+
+  final (numB, denB) = splitNumeratorDenominator(targetPow!.base);
+  final (:a, :b) = numB.matchLinear(variable)!;
+  final (a: c, b: d) = denB.matchLinear(variable)!;
+  final n = frac!.q;
+
+  const uName = '_fl';
+  const uVar = Variable(uName);
+  final uPowN = Pow(uVar, IntegerNumber.of(n));
+  final xOfU = ((d * uPowN - b) / (a - c * uPowN)).simplify();
+  final dx =
+      (IntegerNumber.of(n) *
+              (a * d - b * c) *
+              Pow(uVar, IntegerNumber.of(n - 1)) /
+              Pow(a - c * uPowN, IntegerNumber.two))
+          .simplify();
+
+  Expr replaceNode(Expr node) {
+    if (node == targetPow) return Pow(uVar, IntegerNumber.of(frac!.p));
+    if (node is Variable && node.name == variable) return xOfU;
+    return node.mapChildren(replaceNode);
+  }
+
+  final transformed = (replaceNode(expr) * dx).simplify(
+    assumptions: assumptions,
+  );
+  if (transformed.dependsOn(variable)) return null;
+  final uInt = _antiDerivative(
+    transformed,
+    uName,
+    assumptions: assumptions,
+    depth: 2,
+  );
+  if (_hasUnevaluatedIntegral(uInt, uName)) return null;
+
+  final backSub = Pow(targetPow!.base, FractionNumber(Integer.one, Integer(n)));
+  return uInt.substitute(uName, backSub).simplify(assumptions: assumptions);
+}
+
+Expr? _tryBiquadraticDenominator(Expr left, Expr right, String variable) {
+  final denCoeffs = extractPolynomialCoefficients(right, variable);
+  if (denCoeffs == null || maxPolynomialDegree(denCoeffs) != 4) return null;
+  if ((denCoeffs[3] != null && denCoeffs[3] != IntegerNumber.zero) ||
+      (denCoeffs[1] != null && denCoeffs[1] != IntegerNumber.zero)) {
+    return null;
+  }
+  final a = denCoeffs[4] ?? IntegerNumber.zero;
+  final b = denCoeffs[2] ?? IntegerNumber.zero;
+  final c = denCoeffs[0] ?? IntegerNumber.zero;
+  if (a == IntegerNumber.zero ||
+      b == IntegerNumber.zero ||
+      c == IntegerNumber.zero) {
+    return null;
+  }
+
+  final numCoeffs = extractPolynomialCoefficients(left, variable);
+  if (numCoeffs == null || maxPolynomialDegree(numCoeffs) > 3) return null;
+  final p3 = ((numCoeffs[3] ?? IntegerNumber.zero) / a).simplify();
+  final p2 = ((numCoeffs[2] ?? IntegerNumber.zero) / a).simplify();
+  final p1 = ((numCoeffs[1] ?? IntegerNumber.zero) / a).simplify();
+  final p0 = ((numCoeffs[0] ?? IntegerNumber.zero) / a).simplify();
+  final xVar = Variable(variable);
+
+  // Case 1: b^2 - 4ac > 0 -> a*(x^2 + r1)*(x^2 + r2)
+  final disc = (b * b - const IntegerNumber(Integer(4)) * a * c).simplify();
+  if (_isSymbolicPositive(disc)) {
+    final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
+    final r1 = ((b + sqrtDisc) / (IntegerNumber.two * a)).simplify();
+    final r2 = ((b - sqrtDisc) / (IntegerNumber.two * a)).simplify();
+    final diffR = (r2 - r1).simplify();
+    final q1 = (xVar * xVar + r1).simplify();
+    final q2 = (xVar * xVar + r2).simplify();
+    final c1Lin = ((p1 - p3 * r1) / diffR).simplify();
+    final c1Const = ((p0 - p2 * r1) / diffR).simplify();
+    final c2Lin = (-(p1 - p3 * r2) / diffR).simplify();
+    final c2Const = (-(p0 - p2 * r2) / diffR).simplify();
+    final int1 = _integrateLinearOverQuad(
+      c1Lin,
+      c1Const,
+      q1,
+      IntegerNumber.one,
+      IntegerNumber.zero,
+      variable,
+    );
+    final int2 = _integrateLinearOverQuad(
+      c2Lin,
+      c2Const,
+      q2,
+      IntegerNumber.one,
+      IntegerNumber.zero,
+      variable,
+    );
+    if (!_hasUnevaluatedIntegral(int1, variable) &&
+        !_hasUnevaluatedIntegral(int2, variable)) {
+      return (int1 + int2).simplify();
+    }
+  }
+
+  final cNorm = (c / a).simplify();
+  final bNorm = (b / a).simplify();
+  if (!_isSymbolicPositive(cNorm)) return null;
+
+  final r = Pow(cNorm, FractionNumber.half).simplify();
+  final sSq = (IntegerNumber.two * r - bNorm).simplify();
+  if (!_isSymbolicPositive(sSq)) return null;
+  final s = Pow(sSq, FractionNumber.half).simplify();
+
+  final q1 = (xVar * xVar - s * xVar + r).simplify();
+  final q2 = (xVar * xVar + s * xVar + r).simplify();
+
+  final diffAlpha = ((p2 - p0 / r) / s).simplify();
+  final sumBeta = (p0 / r).simplify();
+  final diffBeta = ((p1 - r * p3) / s).simplify();
+
+  final alpha1 = ((p3 + diffAlpha) / IntegerNumber.two).simplify();
+  final alpha2 = ((p3 - diffAlpha) / IntegerNumber.two).simplify();
+  final beta1 = ((sumBeta + diffBeta) / IntegerNumber.two).simplify();
+  final beta2 = ((sumBeta - diffBeta) / IntegerNumber.two).simplify();
+
+  final int1 = _integrateLinearOverQuad(
+    alpha1,
+    beta1,
+    q1,
+    IntegerNumber.one,
+    (-s).simplify(),
+    variable,
+  );
+  final int2 = _integrateLinearOverQuad(
+    alpha2,
+    beta2,
+    q2,
+    IntegerNumber.one,
+    s,
+    variable,
+  );
+  if (_hasUnevaluatedIntegral(int1, variable) ||
+      _hasUnevaluatedIntegral(int2, variable)) {
+    return null;
+  }
+  return (int1 + int2).simplify();
+}
+
+Expr? _tryDistinctLinearPartialFractions(
+  Expr left,
+  Expr right,
+  String variable,
+) {
+  if (right is! Mul) return null;
+  final linFactors = <({Expr factor, Expr a, Expr b})>[];
+  var constScale = IntegerNumber.one as Expr;
+  for (final f in right.factors) {
+    if (!f.dependsOn(variable)) {
+      constScale = (constScale * f).simplify();
+      continue;
+    }
+    if (f.matchLinear(variable) case (:final a, :final b)) {
+      linFactors.add((factor: f, a: a, b: b));
+    } else {
+      return null;
+    }
+  }
+  if (linFactors.length < 2 || linFactors.length > 5) return null;
+  final degLeft = polynomialDegree(left.expand().simplify(), variable);
+  if (degLeft == null || degLeft >= linFactors.length) return null;
+
+  final terms = <Expr>[];
+  for (var i = 0; i < linFactors.length; i++) {
+    final fi = linFactors[i];
+    final root = (-fi.b / fi.a).simplify();
+    final numAtRoot = left.substitute(variable, root).simplify();
+    var denAtRoot = constScale * fi.a;
+    for (var j = 0; j < linFactors.length; j++) {
+      if (i != j) {
+        denAtRoot =
+            (denAtRoot * linFactors[j].factor.substitute(variable, root))
+                .simplify();
+      }
+    }
+    if (denAtRoot is Number && denAtRoot.isZero) return null;
+    final coeff = (numAtRoot / denAtRoot).simplify();
+    terms.add((coeff * Ln(Abs(fi.factor))).simplify());
+  }
+  return Add(terms).simplify();
 }
