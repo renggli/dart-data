@@ -257,9 +257,22 @@ sealed class Expr {
                     expr.value.a >= 0.0)),
       _ => false,
     },
-    BinaryExpr(:final left, :final right) =>
-      _isRealSubtree(left) && _isRealSubtree(right),
-    UnaryExpr(:final expr) => _isRealSubtree(expr),
+    BinaryExpr(:final left, :final right) => switch (node) {
+      Polylog() =>
+        _isRealSubtree(left) &&
+            _isRealSubtree(right) &&
+            !(right is RealNumeric && right.toDouble() > 1.0) &&
+            !(right is Constant &&
+                (right.value.b != 0.0 || right.value.a > 1.0)),
+      _ => _isRealSubtree(left) && _isRealSubtree(right),
+    },
+    UnaryExpr(:final expr) => switch (node) {
+      LogIntegralLi() || CosIntegralCi() || CoshIntegralChi() =>
+        _isRealSubtree(expr) &&
+            !(expr is RealNumeric && expr.toDouble() <= 0.0) &&
+            !(expr is Constant && (expr.value.b != 0.0 || expr.value.a <= 0.0)),
+      _ => _isRealSubtree(expr),
+    },
     Piecewise(:final branches, :final otherwise) =>
       branches.every(
             (b) => _isRealSubtree(b.relation) && _isRealSubtree(b.expr),

@@ -334,4 +334,98 @@ void main() {
       check(dE.evaluate({'x': x0})).isCloseTo(eNum, 1e-6);
     });
   });
+
+  group('Special integral and polylogarithm AST functions', () {
+    test(
+      'differentiates Erfi, FresnelS, FresnelC, ExpIntegralEi, LogIntegralLi',
+      () {
+        check(
+          (Expr.parse('erfi(2 * x)').derivative('x') -
+                  Expr.parse('4 * exp(4 * x^2) / sqrt(pi)'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('fresnels(x)').derivative('x') -
+                  Expr.parse('sin(pi * x^2 / 2)'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('fresnelc(x)').derivative('x') -
+                  Expr.parse('cos(pi * x^2 / 2)'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('Ei(2 * x)').derivative('x') -
+                  Expr.parse('exp(2 * x) / x'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('li(x^2)').derivative('x') -
+                  Expr.parse('2 * x / ln(x^2)'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+      },
+    );
+
+    test('differentiates SinIntegralSi, CosIntegralCi, SinhIntegralShi, CoshIntegralChi', () {
+      check(
+        (Expr.parse('Si(3 * x)').derivative('x') - Expr.parse('sin(3 * x) / x'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Expr.parse('Ci(x^2)').derivative('x') - Expr.parse('2 * cos(x^2) / x'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Expr.parse('Shi(x)').derivative('x') - Expr.parse('sinh(x) / x'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Expr.parse('Chi(x)').derivative('x') - Expr.parse('cosh(x) / x'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+    });
+
+    test('differentiates UpperGamma, LowerGamma, Polylog, EllipticF, EllipticEIncomplete', () {
+      check(
+        (Expr.parse('uppergamma(3, x^2)').derivative('x') -
+                Expr.parse('-2 * x^5 * exp(-x^2)'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Expr.parse('lowergamma(3, x^2)').derivative('x') -
+                Expr.parse('2 * x^5 * exp(-x^2)'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Expr.parse('polylog(1, x)').derivative('x') -
+                Expr.parse('1 / (1 - x)'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Expr.parse('polylog(3, x^2)').derivative('x') -
+                Expr.parse('2 * polylog(2, x^2) / x'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Expr.parse('elliptic_f(x, k)').derivative('x') -
+                Expr.parse('1 / sqrt(1 - k^2 * sin(x)^2)'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Expr.parse('elliptic_e(x, k)').derivative('x') -
+                Expr.parse('sqrt(1 - k^2 * sin(x)^2)'))
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+
+      // Parameter-dependent differentiation falls back to Derivative
+      check(UpperGamma(x, IntegerNumber.two).derivative('x')).isA<Derivative>();
+      check(LowerGamma(x, IntegerNumber.two).derivative('x')).isA<Derivative>();
+      check(Polylog(x, FractionNumber.half).derivative('x')).isA<Derivative>();
+      check(EllipticF(FractionNumber.half, x).derivative('x'))
+          .isA<Derivative>();
+      check(EllipticEIncomplete(FractionNumber.half, x).derivative('x'))
+          .isA<Derivative>();
+    });
+  });
 }

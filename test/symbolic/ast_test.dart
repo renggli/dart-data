@@ -64,5 +64,69 @@ void main() {
       check(Pow(IntegerNumber.two, ComplexNumber.i).isReal).isFalse();
       check(Pow(IntegerNumber.two, IntegerNumber.two).isReal).isTrue();
     });
+
+    test('supports substitute, mapChildren, getters, and isReal on special integral functions', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      const two = IntegerNumber.two;
+
+      final unaryNodes = [
+        Erfi(x),
+        FresnelS(x),
+        FresnelC(x),
+        ExpIntegralEi(x),
+        LogIntegralLi(x),
+        SinIntegralSi(x),
+        CosIntegralCi(x),
+        SinhIntegralShi(x),
+        CoshIntegralChi(x),
+      ];
+      for (final node in unaryNodes) {
+        check(node.substitute('x', y)).equals(node.mapChildren((_) => y));
+      }
+
+      final ug = UpperGamma(x, y);
+      check(ug.order).equals(x);
+      check(ug.argument).equals(y);
+      check(ug.substitute('x', two)).equals(UpperGamma(two, y));
+      check(ug.mapChildren((c) => c == x ? two : c)).equals(UpperGamma(two, y));
+
+      final lg = LowerGamma(x, y);
+      check(lg.order).equals(x);
+      check(lg.argument).equals(y);
+      check(lg.substitute('x', two)).equals(LowerGamma(two, y));
+      check(lg.mapChildren((c) => c == x ? two : c)).equals(LowerGamma(two, y));
+
+      final pl = Polylog(x, y);
+      check(pl.order).equals(x);
+      check(pl.argument).equals(y);
+      check(pl.substitute('x', two)).equals(Polylog(two, y));
+      check(pl.mapChildren((c) => c == x ? two : c)).equals(Polylog(two, y));
+
+      final ef = EllipticF(x, y);
+      check(ef.amplitude).equals(x);
+      check(ef.modulus).equals(y);
+      check(ef.substitute('x', two)).equals(EllipticF(two, y));
+      check(ef.mapChildren((c) => c == x ? two : c)).equals(EllipticF(two, y));
+
+      final ee = EllipticEIncomplete(x, y);
+      check(ee.amplitude).equals(x);
+      check(ee.modulus).equals(y);
+      check(ee.substitute('x', two)).equals(EllipticEIncomplete(two, y));
+      check(ee.mapChildren((c) => c == x ? two : c))
+          .equals(EllipticEIncomplete(two, y));
+
+      // isReal branch cuts
+      check(LogIntegralLi(two).isReal).isTrue();
+      check(LogIntegralLi(IntegerNumber.negativeOne).isReal).isFalse();
+      check(CosIntegralCi(two).isReal).isTrue();
+      check(CosIntegralCi(IntegerNumber.zero).isReal).isFalse();
+      check(CoshIntegralChi(two).isReal).isTrue();
+      check(CoshIntegralChi(IntegerNumber.negativeOne).isReal).isFalse();
+      check(Polylog(two, FractionNumber.half).isReal).isTrue();
+      check(Polylog(two, two).isReal).isFalse();
+      check(Polylog(two, Constant.pi).isReal).isFalse();
+      check(CosIntegralCi(ComplexNumber.i).isReal).isFalse();
+    });
   });
 }

@@ -66,6 +66,20 @@ int nodeTag(Expr expr) => switch (expr) {
   BesselK() => 56,
   EllipticK() => 57,
   EllipticE() => 58,
+  Erfi() => 59,
+  FresnelS() => 60,
+  FresnelC() => 61,
+  ExpIntegralEi() => 62,
+  LogIntegralLi() => 63,
+  SinIntegralSi() => 64,
+  CosIntegralCi() => 65,
+  SinhIntegralShi() => 66,
+  CoshIntegralChi() => 67,
+  UpperGamma() => 68,
+  LowerGamma() => 69,
+  Polylog() => 70,
+  EllipticF() => 71,
+  EllipticEIncomplete() => 72,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.

@@ -10,8 +10,11 @@ import '../../special/beta.dart' as special_beta;
 import '../../special/digamma.dart' as special_digamma;
 import '../../special/elliptic.dart' as special_elliptic;
 import '../../special/erf.dart' as special_erf;
+import '../../special/exp_integral.dart' as special_exp_int;
+import '../../special/fresnel.dart' as special_fresnel;
 import '../../special/gamma.dart' as special_gamma;
 import '../../special/lambert_w.dart' as special_lambert;
+import '../../special/polylog.dart' as special_polylog;
 import '../../special/zeta.dart' as special_zeta;
 import '../ast.dart';
 import '../calculus/differentiation.dart';
@@ -274,6 +277,44 @@ final class BytecodeEvaluator {
             stack[sp - 1] = special_elliptic.ellipticK(stack[sp - 1]);
           case Op.ellipticE:
             stack[sp - 1] = special_elliptic.ellipticE(stack[sp - 1]);
+          case Op.erfi:
+            stack[sp - 1] = special_erf.erfi(stack[sp - 1]);
+          case Op.fresnelS:
+            stack[sp - 1] = special_fresnel.fresnelS(stack[sp - 1]);
+          case Op.fresnelC:
+            stack[sp - 1] = special_fresnel.fresnelC(stack[sp - 1]);
+          case Op.expIntegralEi:
+            stack[sp - 1] = special_exp_int.expIntegralEi(stack[sp - 1]);
+          case Op.logIntegralLi:
+            stack[sp - 1] = special_exp_int.logIntegralLi(stack[sp - 1]);
+          case Op.sinIntegralSi:
+            stack[sp - 1] = special_exp_int.sinIntegralSi(stack[sp - 1]);
+          case Op.cosIntegralCi:
+            stack[sp - 1] = special_exp_int.cosIntegralCi(stack[sp - 1]);
+          case Op.sinhIntegralShi:
+            stack[sp - 1] = special_exp_int.sinhIntegralShi(stack[sp - 1]);
+          case Op.coshIntegralChi:
+            stack[sp - 1] = special_exp_int.coshIntegralChi(stack[sp - 1]);
+          case Op.upperGamma:
+            final x = stack[--sp];
+            final s = stack[--sp];
+            stack[sp++] = special_gamma.upperGamma(s, x);
+          case Op.lowerGamma:
+            final x = stack[--sp];
+            final s = stack[--sp];
+            stack[sp++] = special_gamma.lowerGamma(s, x);
+          case Op.polylog:
+            final z = stack[--sp];
+            final s = stack[--sp];
+            stack[sp++] = special_polylog.polylog(s, z);
+          case Op.ellipticF:
+            final k = stack[--sp];
+            final phi = stack[--sp];
+            stack[sp++] = special_elliptic.ellipticF(phi, k);
+          case Op.ellipticEIncomplete:
+            final k = stack[--sp];
+            final phi = stack[--sp];
+            stack[sp++] = special_elliptic.ellipticEIncomplete(phi, k);
           case Op.beta:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -610,6 +651,141 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp - 1] = Complex(special_elliptic.ellipticE(z.a.toDouble()));
+          case Op.erfi:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex Erfi evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_erf.erfi(z.a.toDouble()));
+          case Op.fresnelS:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex FresnelS evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_fresnel.fresnelS(z.a.toDouble()));
+          case Op.fresnelC:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex FresnelC evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(special_fresnel.fresnelC(z.a.toDouble()));
+          case Op.expIntegralEi:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex ExpIntegralEi evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(
+              special_exp_int.expIntegralEi(z.a.toDouble()),
+            );
+          case Op.logIntegralLi:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex LogIntegralLi evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(
+              special_exp_int.logIntegralLi(z.a.toDouble()),
+            );
+          case Op.sinIntegralSi:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex SinIntegralSi evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(
+              special_exp_int.sinIntegralSi(z.a.toDouble()),
+            );
+          case Op.cosIntegralCi:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex CosIntegralCi evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(
+              special_exp_int.cosIntegralCi(z.a.toDouble()),
+            );
+          case Op.sinhIntegralShi:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex SinhIntegralShi evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(
+              special_exp_int.sinhIntegralShi(z.a.toDouble()),
+            );
+          case Op.coshIntegralChi:
+            final z = stack[sp - 1];
+            if (z.b != 0.0) {
+              throw UnsupportedError(
+                'Complex CoshIntegralChi evaluation is only supported on R',
+              );
+            }
+            stack[sp - 1] = Complex(
+              special_exp_int.coshIntegralChi(z.a.toDouble()),
+            );
+          case Op.upperGamma:
+            final zX = stack[--sp];
+            final zS = stack[--sp];
+            if (zS.b != 0.0 || zX.b != 0.0) {
+              throw UnsupportedError(
+                'Complex UpperGamma evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_gamma.upperGamma(zS.a.toDouble(), zX.a.toDouble()),
+            );
+          case Op.lowerGamma:
+            final zX = stack[--sp];
+            final zS = stack[--sp];
+            if (zS.b != 0.0 || zX.b != 0.0) {
+              throw UnsupportedError(
+                'Complex LowerGamma evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_gamma.lowerGamma(zS.a.toDouble(), zX.a.toDouble()),
+            );
+          case Op.polylog:
+            final zArg = stack[--sp];
+            final zOrder = stack[--sp];
+            stack[sp++] = special_polylog.polylogComplex(zOrder, zArg);
+          case Op.ellipticF:
+            final zK = stack[--sp];
+            final zPhi = stack[--sp];
+            if (zPhi.b != 0.0 || zK.b != 0.0) {
+              throw UnsupportedError(
+                'Complex EllipticF evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_elliptic.ellipticF(zPhi.a.toDouble(), zK.a.toDouble()),
+            );
+          case Op.ellipticEIncomplete:
+            final zK = stack[--sp];
+            final zPhi = stack[--sp];
+            if (zPhi.b != 0.0 || zK.b != 0.0) {
+              throw UnsupportedError(
+                'Complex EllipticEIncomplete evaluation is only supported on R',
+              );
+            }
+            stack[sp++] = Complex(
+              special_elliptic.ellipticEIncomplete(
+                zPhi.a.toDouble(),
+                zK.a.toDouble(),
+              ),
+            );
           case Op.beta:
             final zB = stack[--sp];
             final zA = stack[--sp];

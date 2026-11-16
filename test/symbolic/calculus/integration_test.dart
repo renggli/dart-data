@@ -365,14 +365,22 @@ void main() {
       );
       check(separable.evaluate()).isCloseTo(2 * 0.3102683017233811, 1e-12);
 
-      // Non-separable double integral evaluated numerically via nested Gauss-Legendre
+      // Non-separable double integral reducing to Si(1)
       final nested = Expr.parse('cos(x * y)').integrateMultiple([
         (variable: 'y', from: 0, to: 1),
         (variable: 'x', from: 0, to: 1),
       ]);
-      check(nested).isA<Integral>();
+      check(nested).equals(SinIntegralSi(IntegerNumber.one));
       // \int_0^1 \int_0^1 cos(x*y) dy dx = \int_0^1 sin(x)/x dx = Si(1) \approx 0.946083070367
       check(nested.evaluate()).isCloseTo(0.946083070367183, 1e-12);
+
+      // Genuinely unevaluated double integral evaluated numerically via nested Gauss-Legendre
+      final nestedNum = Expr.parse('cos(x * y^2)').integrateMultiple([
+        (variable: 'y', from: 0, to: 1),
+        (variable: 'x', from: 0, to: 1),
+      ]);
+      check(nestedNum).isA<Integral>();
+      check(nestedNum.evaluate()).isCloseTo(0.9675774909926477, 1e-9);
     });
   });
 
@@ -758,5 +766,78 @@ void main() {
         check(highDeg.integrate('x').toString()).contains('integrate(');
       },
     );
+  });
+
+  group('Special integral function antiderivatives', () {
+    test('integrates exp(x^2), sin(x)/x, cos(x)/x, exp(x)/x, 1/ln(x), and special functions', () {
+      verifyAntiderivative(
+        Expr.parse('exp(x^2)'),
+        points: const [0.2, 0.5, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(2 * x) / x'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('cos(2 * x) / x'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('exp(2 * x) / x'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / ln(2 * x + 1)'),
+        points: const [0.5, 1.0, 2.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('Ei(2 * x)'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('Si(2 * x)'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('fresnels(2 * x)'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('fresnelc(2 * x)'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('exp(2 * x^2 + 4 * x + 1)'),
+        points: const [0.2, 0.5, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('sinh(2 * x) / x'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('cosh(2 * x) / x'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('erfi(2 * x)'),
+        points: const [0.2, 0.5, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('li(2 * x)'),
+        points: const [1.2, 2.0, 3.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('Ci(2 * x)'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('Shi(2 * x)'),
+        points: const [0.3, 0.8, 1.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('Chi(2 * x)'),
+        points: const [0.3, 0.8, 1.5],
+      );
+    });
   });
 }

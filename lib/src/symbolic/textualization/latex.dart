@@ -75,6 +75,31 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
     'K_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
   EllipticK(:final expr) => 'K(${_toLatex(expr, decimalPlaces)})',
   EllipticE(:final expr) => 'E(${_toLatex(expr, decimalPlaces)})',
+  Erfi(:final expr) => '\\operatorname{erfi}(${_toLatex(expr, decimalPlaces)})',
+  FresnelS(:final expr) => 'S(${_toLatex(expr, decimalPlaces)})',
+  FresnelC(:final expr) => 'C(${_toLatex(expr, decimalPlaces)})',
+  ExpIntegralEi(:final expr) =>
+    '\\operatorname{Ei}(${_toLatex(expr, decimalPlaces)})',
+  LogIntegralLi(:final expr) =>
+    '\\operatorname{li}(${_toLatex(expr, decimalPlaces)})',
+  SinIntegralSi(:final expr) =>
+    '\\operatorname{Si}(${_toLatex(expr, decimalPlaces)})',
+  CosIntegralCi(:final expr) =>
+    '\\operatorname{Ci}(${_toLatex(expr, decimalPlaces)})',
+  SinhIntegralShi(:final expr) =>
+    '\\operatorname{Shi}(${_toLatex(expr, decimalPlaces)})',
+  CoshIntegralChi(:final expr) =>
+    '\\operatorname{Chi}(${_toLatex(expr, decimalPlaces)})',
+  UpperGamma(:final left, :final right) =>
+    '\\Gamma(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
+  LowerGamma(:final left, :final right) =>
+    '\\gamma(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
+  Polylog(:final left, :final right) =>
+    '\\operatorname{Li}_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
+  EllipticF(:final left, :final right) =>
+    'F(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
+  EllipticEIncomplete(:final left, :final right) =>
+    'E(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   Beta(:final left, :final right) =>
     '\\operatorname{B}(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   Factorial(:final expr) => '${_formatPowBase(expr, decimalPlaces)}!',

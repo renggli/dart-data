@@ -112,6 +112,34 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><mi>K</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   EllipticE(:final expr) =>
     '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  Erfi(:final expr) =>
+    '<mrow><mi>erfi</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  FresnelS(:final expr) =>
+    '<mrow><mi>S</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  FresnelC(:final expr) =>
+    '<mrow><mi>C</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  ExpIntegralEi(:final expr) =>
+    '<mrow><mi>Ei</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  LogIntegralLi(:final expr) =>
+    '<mrow><mi>li</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  SinIntegralSi(:final expr) =>
+    '<mrow><mi>Si</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  CosIntegralCi(:final expr) =>
+    '<mrow><mi>Ci</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  SinhIntegralShi(:final expr) =>
+    '<mrow><mi>Shi</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  CoshIntegralChi(:final expr) =>
+    '<mrow><mi>Chi</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  UpperGamma(:final left, :final right) =>
+    '<mrow><mi>Γ</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  LowerGamma(:final left, :final right) =>
+    '<mrow><mi>γ</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  Polylog(:final left, :final right) =>
+    '<mrow><msub><mi>Li</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  EllipticF(:final left, :final right) =>
+    '<mrow><mi>F</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  EllipticEIncomplete(:final left, :final right) =>
+    '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   Beta(:final left, :final right) =>
     '<mrow><mi>B</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   Factorial(:final expr) =>

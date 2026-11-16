@@ -5,8 +5,11 @@ import '../../../special/beta.dart' as special_beta;
 import '../../../special/digamma.dart' as special_digamma;
 import '../../../special/elliptic.dart' as special_elliptic;
 import '../../../special/erf.dart' as special_erf;
+import '../../../special/exp_integral.dart' as special_exp_int;
+import '../../../special/fresnel.dart' as special_fresnel;
 import '../../../special/gamma.dart' as special_gamma;
 import '../../../special/lambert_w.dart' as special_lambert;
+import '../../../special/polylog.dart' as special_polylog;
 import '../../../special/zeta.dart' as special_zeta;
 import '../../assumptions.dart';
 import '../../ast.dart';
@@ -851,6 +854,209 @@ Expr simplifyEllipticE(Expr expr) {
     return RealNumber.fromDouble(special_elliptic.ellipticE(expr.value));
   }
   return EllipticE(expr, isSimplified: true);
+}
+
+/// Simplifies an imaginary error function $\operatorname{erfi}(x)$.
+Expr simplifyErfi(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr == IntegerNumber.zero) return IntegerNumber.zero;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_erf.erfi(expr.value));
+  }
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg) {
+    return simplifyNeg(simplifyErfi(posExpr));
+  }
+  return Erfi(expr, isSimplified: true);
+}
+
+/// Simplifies a Fresnel sine integral $S(x)$.
+Expr simplifyFresnelS(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr == IntegerNumber.zero) return IntegerNumber.zero;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_fresnel.fresnelS(expr.value));
+  }
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg) {
+    return simplifyNeg(simplifyFresnelS(posExpr));
+  }
+  return FresnelS(expr, isSimplified: true);
+}
+
+/// Simplifies a Fresnel cosine integral $C(x)$.
+Expr simplifyFresnelC(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr == IntegerNumber.zero) return IntegerNumber.zero;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_fresnel.fresnelC(expr.value));
+  }
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg) {
+    return simplifyNeg(simplifyFresnelC(posExpr));
+  }
+  return FresnelC(expr, isSimplified: true);
+}
+
+/// Simplifies an exponential integral $\operatorname{Ei}(x)$.
+Expr simplifyExpIntegralEi(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_exp_int.expIntegralEi(expr.value));
+  }
+  return ExpIntegralEi(expr, isSimplified: true);
+}
+
+/// Simplifies a logarithmic integral $\operatorname{li}(x)$.
+Expr simplifyLogIntegralLi(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr == IntegerNumber.zero) return IntegerNumber.zero;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_exp_int.logIntegralLi(expr.value));
+  }
+  return LogIntegralLi(expr, isSimplified: true);
+}
+
+/// Simplifies a sine integral $\operatorname{Si}(x)$.
+Expr simplifySinIntegralSi(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr == IntegerNumber.zero) return IntegerNumber.zero;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_exp_int.sinIntegralSi(expr.value));
+  }
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg) {
+    return simplifyNeg(simplifySinIntegralSi(posExpr));
+  }
+  return SinIntegralSi(expr, isSimplified: true);
+}
+
+/// Simplifies a cosine integral $\operatorname{Ci}(x)$.
+Expr simplifyCosIntegralCi(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_exp_int.cosIntegralCi(expr.value));
+  }
+  return CosIntegralCi(expr, isSimplified: true);
+}
+
+/// Simplifies a hyperbolic sine integral $\operatorname{Shi}(x)$.
+Expr simplifySinhIntegralShi(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr == IntegerNumber.zero) return IntegerNumber.zero;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_exp_int.sinhIntegralShi(expr.value));
+  }
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg) {
+    return simplifyNeg(simplifySinhIntegralShi(posExpr));
+  }
+  return SinhIntegralShi(expr, isSimplified: true);
+}
+
+/// Simplifies a hyperbolic cosine integral $\operatorname{Chi}(x)$.
+Expr simplifyCoshIntegralChi(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (expr is RealNumber) {
+    return RealNumber.fromDouble(special_exp_int.coshIntegralChi(expr.value));
+  }
+  return CoshIntegralChi(expr, isSimplified: true);
+}
+
+/// Simplifies an upper incomplete gamma function $\Gamma(s, x)$.
+Expr simplifyUpperGamma(Expr s, Expr x) {
+  if (s == Constant.undefined || x == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (x == IntegerNumber.zero && s is RealNumeric && s.sign > 0) {
+    return simplifyGamma(s);
+  }
+  if (s == IntegerNumber.one) {
+    return simplifyPow(Constant.e, simplifyNeg(x));
+  }
+  if (s is RealNumber && x is RealNumber) {
+    return RealNumber.fromDouble(special_gamma.upperGamma(s.value, x.value));
+  }
+  return UpperGamma(s, x, isSimplified: true);
+}
+
+/// Simplifies a lower incomplete gamma function $\gamma(s, x)$.
+Expr simplifyLowerGamma(Expr s, Expr x) {
+  if (s == Constant.undefined || x == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (x == IntegerNumber.zero && s is RealNumeric && s.sign > 0) {
+    return IntegerNumber.zero;
+  }
+  if (s == IntegerNumber.one) {
+    return simplifyAdd([
+      IntegerNumber.one,
+      simplifyNeg(simplifyPow(Constant.e, simplifyNeg(x))),
+    ]);
+  }
+  if (s is RealNumber && x is RealNumber) {
+    return RealNumber.fromDouble(special_gamma.lowerGamma(s.value, x.value));
+  }
+  return LowerGamma(s, x, isSimplified: true);
+}
+
+/// Simplifies a polylogarithm $\operatorname{Li}_s(z)$.
+Expr simplifyPolylog(Expr s, Expr z) {
+  if (s == Constant.undefined || z == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (z == IntegerNumber.zero) return IntegerNumber.zero;
+  if (s == IntegerNumber.one) {
+    return simplifyNeg(
+      simplifyLn(simplifyAdd([IntegerNumber.one, simplifyNeg(z)])),
+    );
+  }
+  if (s == IntegerNumber.zero) {
+    return simplifyDiv(z, simplifyAdd([IntegerNumber.one, simplifyNeg(z)]));
+  }
+  if (z == IntegerNumber.one && s is RealNumeric && s.toDouble() > 1.0) {
+    return simplifyZeta(s);
+  }
+  if (s is RealNumber && z is RealNumber) {
+    return RealNumber.fromDouble(special_polylog.polylog(s.value, z.value));
+  }
+  return Polylog(s, z, isSimplified: true);
+}
+
+/// Simplifies an incomplete elliptic integral of the first kind $F(\phi, k)$.
+Expr simplifyEllipticF(Expr phi, Expr k) {
+  if (phi == Constant.undefined || k == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (phi == IntegerNumber.zero) return IntegerNumber.zero;
+  if (k == IntegerNumber.zero) return phi;
+  if (phi == simplifyMul([FractionNumber.half, Constant.pi])) {
+    return simplifyEllipticK(k);
+  }
+  if (phi is RealNumber && k is RealNumber) {
+    return RealNumber.fromDouble(
+      special_elliptic.ellipticF(phi.value, k.value),
+    );
+  }
+  return EllipticF(phi, k, isSimplified: true);
+}
+
+/// Simplifies an incomplete elliptic integral of the second kind $E(\phi, k)$.
+Expr simplifyEllipticEIncomplete(Expr phi, Expr k) {
+  if (phi == Constant.undefined || k == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (phi == IntegerNumber.zero) return IntegerNumber.zero;
+  if (k == IntegerNumber.zero) return phi;
+  if (phi == simplifyMul([FractionNumber.half, Constant.pi])) {
+    return simplifyEllipticE(k);
+  }
+  if (phi is RealNumber && k is RealNumber) {
+    return RealNumber.fromDouble(
+      special_elliptic.ellipticEIncomplete(phi.value, k.value),
+    );
+  }
+  return EllipticEIncomplete(phi, k, isSimplified: true);
 }
 
 /// Simplifies an Euler beta function expression $\operatorname{B}(a, b)$.

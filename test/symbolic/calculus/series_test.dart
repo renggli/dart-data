@@ -546,5 +546,30 @@ void main() {
       check(symPoly1[0]).equals(IntegerNumber.one);
       check(symPoly1[1]).equals(IntegerNumber.one);
     });
+
+    test(
+      'throws UnsupportedError on non-series special integral functions',
+      () {
+        const x = Variable('x');
+        for (final expr in [
+          Erfi(x),
+          FresnelS(x),
+          FresnelC(x),
+          ExpIntegralEi(x),
+          LogIntegralLi(x),
+          SinIntegralSi(x),
+          CosIntegralCi(x),
+          SinhIntegralShi(x),
+          CoshIntegralChi(x),
+          UpperGamma(IntegerNumber.two, x),
+          LowerGamma(IntegerNumber.two, x),
+          Polylog(IntegerNumber.two, x),
+          EllipticF(x, FractionNumber.half),
+          EllipticEIncomplete(x, FractionNumber.half),
+        ]) {
+          check(() => expr.series('x', order: 2)).throws<UnsupportedError>();
+        }
+      },
+    );
   });
 }

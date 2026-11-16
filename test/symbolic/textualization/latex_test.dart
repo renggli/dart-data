@@ -205,5 +205,25 @@ void main() {
       check(Add([x, Mod(x, IntegerNumber.two)]).toLatex())
           .contains(r'\left(x \bmod 2\right)');
     });
+
+    test('formats special integral and polylogarithm functions to LaTeX', () {
+      const x = Variable('x');
+      const k = Variable('k');
+      check(Erfi(x).toLatex()).equals(r'\operatorname{erfi}(x)');
+      check(FresnelS(x).toLatex()).equals('S(x)');
+      check(FresnelC(x).toLatex()).equals('C(x)');
+      check(ExpIntegralEi(x).toLatex()).equals(r'\operatorname{Ei}(x)');
+      check(LogIntegralLi(x).toLatex()).equals(r'\operatorname{li}(x)');
+      check(SinIntegralSi(x).toLatex()).equals(r'\operatorname{Si}(x)');
+      check(CosIntegralCi(x).toLatex()).equals(r'\operatorname{Ci}(x)');
+      check(SinhIntegralShi(x).toLatex()).equals(r'\operatorname{Shi}(x)');
+      check(CoshIntegralChi(x).toLatex()).equals(r'\operatorname{Chi}(x)');
+      check(UpperGamma(IntegerNumber.two, x).toLatex()).equals(r'\Gamma(2, x)');
+      check(LowerGamma(IntegerNumber.two, x).toLatex()).equals(r'\gamma(2, x)');
+      check(Polylog(IntegerNumber.two, x).toLatex())
+          .equals(r'\operatorname{Li}_{2}(x)');
+      check(EllipticF(x, k).toLatex()).equals('F(x, k)');
+      check(EllipticEIncomplete(x, k).toLatex()).equals('E(x, k)');
+    });
   });
 }

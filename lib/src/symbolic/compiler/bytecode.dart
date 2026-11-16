@@ -127,6 +127,48 @@ enum Op {
   /// Complete elliptic integral of the second kind (`ellipticE(a)`).
   ellipticE,
 
+  /// Imaginary error function (`erfi(a)`).
+  erfi,
+
+  /// Fresnel sine integral (`fresnels(a)`).
+  fresnelS,
+
+  /// Fresnel cosine integral (`fresnelc(a)`).
+  fresnelC,
+
+  /// Exponential integral (`Ei(a)`).
+  expIntegralEi,
+
+  /// Logarithmic integral (`li(a)`).
+  logIntegralLi,
+
+  /// Sine integral (`Si(a)`).
+  sinIntegralSi,
+
+  /// Cosine integral (`Ci(a)`).
+  cosIntegralCi,
+
+  /// Hyperbolic sine integral (`Shi(a)`).
+  sinhIntegralShi,
+
+  /// Hyperbolic cosine integral (`Chi(a)`).
+  coshIntegralChi,
+
+  /// Upper incomplete gamma function (`uppergamma(s, a)`).
+  upperGamma,
+
+  /// Lower incomplete gamma function (`lowergamma(s, a)`).
+  lowerGamma,
+
+  /// Polylogarithm (`polylog(s, z)`).
+  polylog,
+
+  /// Incomplete elliptic integral of the first kind (`elliptic_f(phi, k)`).
+  ellipticF,
+
+  /// Incomplete elliptic integral of the second kind (`elliptic_e(phi, k)`).
+  ellipticEIncomplete,
+
   /// Beta function (`B(a, b)`).
   beta,
 
@@ -467,6 +509,53 @@ BytecodeEvaluator compileToBytecode(
       case EllipticE(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.ellipticE));
+      case Erfi(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.erfi));
+      case FresnelS(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.fresnelS));
+      case FresnelC(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.fresnelC));
+      case ExpIntegralEi(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.expIntegralEi));
+      case LogIntegralLi(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.logIntegralLi));
+      case SinIntegralSi(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.sinIntegralSi));
+      case CosIntegralCi(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.cosIntegralCi));
+      case SinhIntegralShi(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.sinhIntegralShi));
+      case CoshIntegralChi(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.coshIntegralChi));
+      case UpperGamma(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.upperGamma));
+      case LowerGamma(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.lowerGamma));
+      case Polylog(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.polylog));
+      case EllipticF(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.ellipticF));
+      case EllipticEIncomplete(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.ellipticEIncomplete));
       case Beta(:final left, :final right):
         emit(left);
         emit(right);
@@ -676,6 +765,11 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.besselY ||
           Op.besselI ||
           Op.besselK ||
+          Op.upperGamma ||
+          Op.lowerGamma ||
+          Op.polylog ||
+          Op.ellipticF ||
+          Op.ellipticEIncomplete ||
           Op.mod ||
           Op.lt ||
           Op.le ||
@@ -710,6 +804,15 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.digamma ||
           Op.ellipticK ||
           Op.ellipticE ||
+          Op.erfi ||
+          Op.fresnelS ||
+          Op.fresnelC ||
+          Op.expIntegralEi ||
+          Op.logIntegralLi ||
+          Op.sinIntegralSi ||
+          Op.cosIntegralCi ||
+          Op.sinhIntegralShi ||
+          Op.coshIntegralChi ||
           Op.factorial ||
           Op.floor ||
           Op.ceil ||

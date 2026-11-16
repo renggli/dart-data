@@ -214,6 +214,80 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     (EllipticE(inner) - EllipticK(inner)) / inner,
     _differentiate(inner, variable),
   ]),
+  Erfi(expr: final inner) => Mul([
+    IntegerNumber.two / Pow(Constant.pi, FractionNumber.half),
+    Pow(Constant.e, Pow(inner, IntegerNumber.two)),
+    _differentiate(inner, variable),
+  ]),
+  FresnelS(expr: final inner) => Mul([
+    Sin(Constant.pi * Pow(inner, IntegerNumber.two) / IntegerNumber.two),
+    _differentiate(inner, variable),
+  ]),
+  FresnelC(expr: final inner) => Mul([
+    Cos(Constant.pi * Pow(inner, IntegerNumber.two) / IntegerNumber.two),
+    _differentiate(inner, variable),
+  ]),
+  ExpIntegralEi(expr: final inner) => Mul([
+    Pow(Constant.e, inner) / inner,
+    _differentiate(inner, variable),
+  ]),
+  LogIntegralLi(expr: final inner) =>
+    _differentiate(inner, variable) / Ln(inner),
+  SinIntegralSi(expr: final inner) => Mul([
+    Sin(inner) / inner,
+    _differentiate(inner, variable),
+  ]),
+  CosIntegralCi(expr: final inner) => Mul([
+    Cos(inner) / inner,
+    _differentiate(inner, variable),
+  ]),
+  SinhIntegralShi(expr: final inner) => Mul([
+    Sinh(inner) / inner,
+    _differentiate(inner, variable),
+  ]),
+  CoshIntegralChi(expr: final inner) => Mul([
+    Cosh(inner) / inner,
+    _differentiate(inner, variable),
+  ]),
+  UpperGamma(:final left, :final right) when !left.dependsOn(variable) => Mul([
+    IntegerNumber.negativeOne,
+    Pow(right, left - IntegerNumber.one),
+    Pow(Constant.e, -right),
+    _differentiate(right, variable),
+  ]),
+  LowerGamma(:final left, :final right) when !left.dependsOn(variable) => Mul([
+    Pow(right, left - IntegerNumber.one),
+    Pow(Constant.e, -right),
+    _differentiate(right, variable),
+  ]),
+  Polylog(:final left, :final right) when !left.dependsOn(variable) =>
+    left == IntegerNumber.one
+        ? _differentiate(right, variable) / (IntegerNumber.one - right)
+        : Mul([
+                Polylog(left - IntegerNumber.one, right),
+                _differentiate(right, variable),
+              ]) /
+              right,
+  EllipticF(:final left, :final right) when !right.dependsOn(variable) =>
+    _differentiate(left, variable) /
+        Pow(
+          IntegerNumber.one -
+              Pow(right, IntegerNumber.two) * Pow(Sin(left), IntegerNumber.two),
+          FractionNumber.half,
+        ),
+  EllipticEIncomplete(:final left, :final right)
+      when !right.dependsOn(variable) =>
+    Pow(
+          IntegerNumber.one -
+              Pow(right, IntegerNumber.two) * Pow(Sin(left), IntegerNumber.two),
+          FractionNumber.half,
+        ) *
+        _differentiate(left, variable),
+  UpperGamma() ||
+  LowerGamma() ||
+  Polylog() ||
+  EllipticF() ||
+  EllipticEIncomplete() ||
   Polygamma() ||
   BesselJ() ||
   BesselY() ||

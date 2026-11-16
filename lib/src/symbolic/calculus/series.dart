@@ -676,6 +676,20 @@ PowerSeries _expandToPowerSeries(
   BesselK() ||
   EllipticK() ||
   EllipticE() ||
+  Erfi() ||
+  FresnelS() ||
+  FresnelC() ||
+  ExpIntegralEi() ||
+  LogIntegralLi() ||
+  SinIntegralSi() ||
+  CosIntegralCi() ||
+  SinhIntegralShi() ||
+  CoshIntegralChi() ||
+  UpperGamma() ||
+  LowerGamma() ||
+  Polylog() ||
+  EllipticF() ||
+  EllipticEIncomplete() ||
   Mod() ||
   RelationalExpr() ||
   Integral() ||

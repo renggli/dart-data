@@ -167,6 +167,54 @@ Expr simplifyExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     EllipticE(:final expr) => simplifyEllipticE(
       simplifyExpr(expr, assumptions: assumptions),
     ),
+    Erfi(:final expr) => simplifyErfi(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    FresnelS(:final expr) => simplifyFresnelS(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    FresnelC(:final expr) => simplifyFresnelC(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    ExpIntegralEi(:final expr) => simplifyExpIntegralEi(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    LogIntegralLi(:final expr) => simplifyLogIntegralLi(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    SinIntegralSi(:final expr) => simplifySinIntegralSi(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    CosIntegralCi(:final expr) => simplifyCosIntegralCi(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    SinhIntegralShi(:final expr) => simplifySinhIntegralShi(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    CoshIntegralChi(:final expr) => simplifyCoshIntegralChi(
+      simplifyExpr(expr, assumptions: assumptions),
+    ),
+    UpperGamma(:final left, :final right) => simplifyUpperGamma(
+      simplifyExpr(left, assumptions: assumptions),
+      simplifyExpr(right, assumptions: assumptions),
+    ),
+    LowerGamma(:final left, :final right) => simplifyLowerGamma(
+      simplifyExpr(left, assumptions: assumptions),
+      simplifyExpr(right, assumptions: assumptions),
+    ),
+    Polylog(:final left, :final right) => simplifyPolylog(
+      simplifyExpr(left, assumptions: assumptions),
+      simplifyExpr(right, assumptions: assumptions),
+    ),
+    EllipticF(:final left, :final right) => simplifyEllipticF(
+      simplifyExpr(left, assumptions: assumptions),
+      simplifyExpr(right, assumptions: assumptions),
+    ),
+    EllipticEIncomplete(:final left, :final right) =>
+      simplifyEllipticEIncomplete(
+        simplifyExpr(left, assumptions: assumptions),
+        simplifyExpr(right, assumptions: assumptions),
+      ),
     Beta(:final left, :final right) => simplifyBeta(
       simplifyExpr(left, assumptions: assumptions),
       simplifyExpr(right, assumptions: assumptions),

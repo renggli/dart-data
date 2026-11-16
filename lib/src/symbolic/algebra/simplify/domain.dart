@@ -64,9 +64,23 @@ bool isProvenReal(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
       Asinh(:final expr) ||
       Erf(:final expr) ||
       Erfc(:final expr) ||
+      Erfi(:final expr) ||
+      FresnelS(:final expr) ||
+      FresnelC(:final expr) ||
+      ExpIntegralEi(:final expr) ||
+      SinIntegralSi(:final expr) ||
+      SinhIntegralShi(:final expr) ||
       Gamma(:final expr) ||
       Zeta(:final expr) ||
       Digamma(:final expr) => isProvenReal(expr, assumptions),
+      LogIntegralLi(:final expr) ||
+      CosIntegralCi(:final expr) ||
+      CoshIntegralChi(:final expr) =>
+        isProvenReal(expr, assumptions) &&
+            switch (tryStaticRealValue(expr)) {
+              final v? => v > 0.0,
+              _ => false,
+            },
       EllipticK(:final expr) || EllipticE(:final expr) =>
         expr is RealNumeric
             ? expr.toDouble().abs() <= 1.0
@@ -75,10 +89,21 @@ bool isProvenReal(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
       BesselJ(:final left, :final right) ||
       BesselY(:final left, :final right) ||
       BesselI(:final left, :final right) ||
-      BesselK(
+      BesselK(:final left, :final right) ||
+      UpperGamma(:final left, :final right) ||
+      LowerGamma(:final left, :final right) ||
+      EllipticF(:final left, :final right) ||
+      EllipticEIncomplete(
         :final left,
         :final right,
       ) => isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
+      Polylog(:final left, :final right) =>
+        isProvenReal(left, assumptions) &&
+            isProvenReal(right, assumptions) &&
+            switch (tryStaticRealValue(right)) {
+              final v? => v <= 1.0,
+              _ => false,
+            },
       Asin(:final expr) || Acos(:final expr) =>
         isProvenReal(expr, assumptions) &&
             switch (tryStaticRealValue(expr)) {

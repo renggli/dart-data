@@ -823,5 +823,193 @@ void main() {
       check(isProvenReal(EllipticE(IntegerNumber.two), realAssumptions))
           .isFalse();
     });
+
+    test(
+      'simplifies and checks domain of special integral and polylog functions',
+      () {
+        const x = Variable('x');
+        const realAssumptions = Assumptions(
+          domains: {'x': VariableDomain.real},
+        );
+        final halfPi = Constant.pi / IntegerNumber.two;
+
+        // Zero, odd symmetry, undefined, and RealNumber folding
+        check(Erfi(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+        check(Erfi(-x).simplify()).equals(-Erfi(x));
+        check(Erfi(Constant.undefined).simplify()).equals(Constant.undefined);
+        check(Erfi(const RealNumber(1.0)).simplify()).isA<RealNumber>();
+
+        check(FresnelS(IntegerNumber.zero).simplify())
+            .equals(IntegerNumber.zero);
+        check(FresnelS(-x).simplify()).equals(-FresnelS(x));
+        check(FresnelS(Constant.undefined).simplify())
+            .equals(Constant.undefined);
+        check(FresnelS(const RealNumber(1.0)).simplify()).isA<RealNumber>();
+
+        check(FresnelC(IntegerNumber.zero).simplify())
+            .equals(IntegerNumber.zero);
+        check(FresnelC(-x).simplify()).equals(-FresnelC(x));
+        check(FresnelC(Constant.undefined).simplify())
+            .equals(Constant.undefined);
+        check(FresnelC(const RealNumber(1.0)).simplify()).isA<RealNumber>();
+
+        check(ExpIntegralEi(Constant.undefined).simplify())
+            .equals(Constant.undefined);
+        check(ExpIntegralEi(const RealNumber(1.0)).simplify())
+            .isA<RealNumber>();
+
+        check(LogIntegralLi(IntegerNumber.zero).simplify())
+            .equals(IntegerNumber.zero);
+        check(LogIntegralLi(Constant.undefined).simplify())
+            .equals(Constant.undefined);
+        check(LogIntegralLi(const RealNumber(2.0)).simplify())
+            .isA<RealNumber>();
+
+        check(SinIntegralSi(IntegerNumber.zero).simplify())
+            .equals(IntegerNumber.zero);
+        check(SinIntegralSi(-x).simplify()).equals(-SinIntegralSi(x));
+        check(SinIntegralSi(Constant.undefined).simplify())
+            .equals(Constant.undefined);
+        check(SinIntegralSi(const RealNumber(1.0)).simplify())
+            .isA<RealNumber>();
+
+        check(CosIntegralCi(Constant.undefined).simplify())
+            .equals(Constant.undefined);
+        check(CosIntegralCi(const RealNumber(1.0)).simplify())
+            .isA<RealNumber>();
+
+        check(SinhIntegralShi(IntegerNumber.zero).simplify())
+            .equals(IntegerNumber.zero);
+        check(SinhIntegralShi(-x).simplify()).equals(-SinhIntegralShi(x));
+        check(SinhIntegralShi(Constant.undefined).simplify())
+            .equals(Constant.undefined);
+        check(SinhIntegralShi(const RealNumber(1.0)).simplify())
+            .isA<RealNumber>();
+
+        check(CoshIntegralChi(Constant.undefined).simplify())
+            .equals(Constant.undefined);
+        check(CoshIntegralChi(const RealNumber(1.0)).simplify())
+            .isA<RealNumber>();
+
+        check(UpperGamma(IntegerNumber.two, IntegerNumber.zero).simplify())
+            .equals(IntegerNumber.one);
+        check(UpperGamma(IntegerNumber.one, x).simplify())
+            .equals(Pow(Constant.e, -x));
+        check(UpperGamma(Constant.undefined, x).simplify())
+            .equals(Constant.undefined);
+        check(
+          UpperGamma(const RealNumber(2.0), const RealNumber(1.0)).simplify(),
+        ).isA<RealNumber>();
+
+        check(LowerGamma(IntegerNumber.two, IntegerNumber.zero).simplify())
+            .equals(IntegerNumber.zero);
+        check(LowerGamma(IntegerNumber.one, x).simplify())
+            .equals((IntegerNumber.one - Pow(Constant.e, -x)).simplify());
+        check(LowerGamma(Constant.undefined, x).simplify())
+            .equals(Constant.undefined);
+        check(
+          LowerGamma(const RealNumber(2.0), const RealNumber(1.0)).simplify(),
+        ).isA<RealNumber>();
+
+        check(Polylog(IntegerNumber.two, IntegerNumber.zero).simplify())
+            .equals(IntegerNumber.zero);
+        check(Polylog(IntegerNumber.one, x).simplify())
+            .equals((-Ln(IntegerNumber.one - x)).simplify());
+        check(Polylog(IntegerNumber.zero, x).simplify())
+            .equals((x / (IntegerNumber.one - x)).simplify());
+        check(Polylog(IntegerNumber.two, IntegerNumber.one).simplify()).equals(
+          (Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(6))
+              .simplify(),
+        );
+        check(Polylog(Constant.undefined, x).simplify())
+            .equals(Constant.undefined);
+        check(Polylog(const RealNumber(2.0), const RealNumber(0.5)).simplify())
+            .isA<RealNumber>();
+
+        check(EllipticF(IntegerNumber.zero, x).simplify())
+            .equals(IntegerNumber.zero);
+        check(EllipticF(x, IntegerNumber.zero).simplify()).equals(x);
+        check(EllipticF(halfPi, x).simplify()).equals(EllipticK(x));
+        check(EllipticF(Constant.undefined, x).simplify())
+            .equals(Constant.undefined);
+        check(
+          EllipticF(const RealNumber(0.5), const RealNumber(0.5)).simplify(),
+        ).isA<RealNumber>();
+
+        check(EllipticEIncomplete(IntegerNumber.zero, x).simplify())
+            .equals(IntegerNumber.zero);
+        check(EllipticEIncomplete(x, IntegerNumber.zero).simplify()).equals(x);
+        check(EllipticEIncomplete(halfPi, x).simplify()).equals(EllipticE(x));
+        check(EllipticEIncomplete(Constant.undefined, x).simplify())
+            .equals(Constant.undefined);
+        check(
+          EllipticEIncomplete(
+            const RealNumber(0.5),
+            const RealNumber(0.5),
+          ).simplify(),
+        ).isA<RealNumber>();
+
+        // Structural ordering across all new AST nodes
+        final ordered = [
+          Erfi(x),
+          FresnelS(x),
+          FresnelC(x),
+          ExpIntegralEi(x),
+          LogIntegralLi(x),
+          SinIntegralSi(x),
+          CosIntegralCi(x),
+          SinhIntegralShi(x),
+          CoshIntegralChi(x),
+          UpperGamma(IntegerNumber.two, x),
+          LowerGamma(IntegerNumber.two, x),
+          Polylog(IntegerNumber.two, x),
+          EllipticF(x, FractionNumber.half),
+          EllipticEIncomplete(x, FractionNumber.half),
+        ];
+        for (var i = 0; i < ordered.length - 1; i++) {
+          check(compareStructural(ordered[i], ordered[i + 1])).isLessThan(0);
+        }
+
+        // Domain checks (isProvenReal)
+        check(isProvenReal(Erfi(x), realAssumptions)).isTrue();
+        check(isProvenReal(FresnelS(x), realAssumptions)).isTrue();
+        check(isProvenReal(FresnelC(x), realAssumptions)).isTrue();
+        check(isProvenReal(ExpIntegralEi(x), realAssumptions)).isTrue();
+        check(isProvenReal(SinIntegralSi(x), realAssumptions)).isTrue();
+        check(isProvenReal(SinhIntegralShi(x), realAssumptions)).isTrue();
+        check(isProvenReal(LogIntegralLi(IntegerNumber.two), realAssumptions))
+            .isTrue();
+        check(isProvenReal(LogIntegralLi(IntegerNumber.zero), realAssumptions))
+            .isFalse();
+        check(isProvenReal(CosIntegralCi(IntegerNumber.two), realAssumptions))
+            .isTrue();
+        check(isProvenReal(CoshIntegralChi(IntegerNumber.two), realAssumptions))
+            .isTrue();
+        check(isProvenReal(UpperGamma(IntegerNumber.two, x), realAssumptions))
+            .isTrue();
+        check(isProvenReal(LowerGamma(IntegerNumber.two, x), realAssumptions))
+            .isTrue();
+        check(
+          isProvenReal(
+            Polylog(IntegerNumber.two, FractionNumber.half),
+            realAssumptions,
+          ),
+        ).isTrue();
+        check(
+          isProvenReal(
+            Polylog(IntegerNumber.two, IntegerNumber.two),
+            realAssumptions,
+          ),
+        ).isFalse();
+        check(isProvenReal(EllipticF(x, FractionNumber.half), realAssumptions))
+            .isTrue();
+        check(
+          isProvenReal(
+            EllipticEIncomplete(x, FractionNumber.half),
+            realAssumptions,
+          ),
+        ).isTrue();
+      },
+    );
   });
 }

@@ -344,5 +344,52 @@ void main() {
             '<math><mrow><mo form="prefix">&minus;</mo><mrow><mi>x</mi><mi>y</mi></mrow></mrow></math>',
           );
     });
+
+    test('formats special integral and polylogarithm functions to MathML', () {
+      const x = Variable('x');
+      const k = Variable('k');
+      check(Erfi(x).toMathMl()).equals(
+        '<math><mrow><mi>erfi</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(FresnelS(x).toMathMl()).equals(
+        '<math><mrow><mi>S</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(FresnelC(x).toMathMl()).equals(
+        '<math><mrow><mi>C</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(ExpIntegralEi(x).toMathMl()).equals(
+        '<math><mrow><mi>Ei</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(LogIntegralLi(x).toMathMl()).equals(
+        '<math><mrow><mi>li</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(SinIntegralSi(x).toMathMl()).equals(
+        '<math><mrow><mi>Si</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(CosIntegralCi(x).toMathMl()).equals(
+        '<math><mrow><mi>Ci</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(SinhIntegralShi(x).toMathMl()).equals(
+        '<math><mrow><mi>Shi</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(CoshIntegralChi(x).toMathMl()).equals(
+        '<math><mrow><mi>Chi</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(UpperGamma(IntegerNumber.two, x).toMathMl()).equals(
+        '<math><mrow><mi>Γ</mi><mo>(</mo><mn>2</mn><mo>,</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(LowerGamma(IntegerNumber.two, x).toMathMl()).equals(
+        '<math><mrow><mi>γ</mi><mo>(</mo><mn>2</mn><mo>,</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(Polylog(IntegerNumber.two, x).toMathMl()).equals(
+        '<math><mrow><msub><mi>Li</mi><mn>2</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(EllipticF(x, k).toMathMl()).equals(
+        '<math><mrow><mi>F</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>k</mi><mo>)</mo></mrow></math>',
+      );
+      check(EllipticEIncomplete(x, k).toMathMl()).equals(
+        '<math><mrow><mi>E</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>k</mi><mo>)</mo></mrow></math>',
+      );
+    });
   });
 }

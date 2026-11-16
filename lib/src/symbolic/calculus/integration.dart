@@ -181,6 +181,26 @@ Expr _antiDerivative(
       _antiDerivErf(inner, variable) ?? _unsupported(node, variable),
     Erfc(expr: final inner) =>
       _antiDerivErfc(inner, variable) ?? _unsupported(node, variable),
+    Erfi(expr: final inner) =>
+      _antiDerivErfi(inner, variable) ?? _unsupported(node, variable),
+    FresnelS(expr: final inner) =>
+      _antiDerivFresnelS(inner, variable) ?? _unsupported(node, variable),
+    FresnelC(expr: final inner) =>
+      _antiDerivFresnelC(inner, variable) ?? _unsupported(node, variable),
+    ExpIntegralEi(expr: final inner) =>
+      _antiDerivExpIntegralEi(inner, variable) ?? _unsupported(node, variable),
+    LogIntegralLi(expr: final inner) =>
+      _antiDerivLogIntegralLi(inner, variable) ?? _unsupported(node, variable),
+    SinIntegralSi(expr: final inner) =>
+      _antiDerivSinIntegralSi(inner, variable) ?? _unsupported(node, variable),
+    CosIntegralCi(expr: final inner) =>
+      _antiDerivCosIntegralCi(inner, variable) ?? _unsupported(node, variable),
+    SinhIntegralShi(expr: final inner) =>
+      _antiDerivSinhIntegralShi(inner, variable) ??
+          _unsupported(node, variable),
+    CoshIntegralChi(expr: final inner) =>
+      _antiDerivCoshIntegralChi(inner, variable) ??
+          _unsupported(node, variable),
     Asinh(expr: final inner) =>
       _antiDerivAsinh(inner, variable) ?? _unsupported(node, variable),
     Acosh(expr: final inner) =>
@@ -383,6 +403,92 @@ Expr? _antiDerivErfc(Expr inner, String variable) =>
                         Pow(Constant.pi, FractionNumber.half)) /
                 a)
             .simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivErfi(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) =>
+        ((inner * Erfi(inner) -
+                    Pow(Constant.e, Pow(inner, IntegerNumber.two)) /
+                        Pow(Constant.pi, FractionNumber.half)) /
+                a)
+            .simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivFresnelS(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) =>
+        ((inner * FresnelS(inner) +
+                    Cos(
+                          Constant.pi *
+                              Pow(inner, IntegerNumber.two) /
+                              IntegerNumber.two,
+                        ) /
+                        Constant.pi) /
+                a)
+            .simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivFresnelC(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) =>
+        ((inner * FresnelC(inner) -
+                    Sin(
+                          Constant.pi *
+                              Pow(inner, IntegerNumber.two) /
+                              IntegerNumber.two,
+                        ) /
+                        Constant.pi) /
+                a)
+            .simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivExpIntegralEi(Expr inner, String variable) => switch (inner
+    .matchLinear(variable)) {
+  (:final a, b: _) =>
+    ((inner * ExpIntegralEi(inner) - Pow(Constant.e, inner)) / a).simplify(),
+  null => null,
+};
+
+Expr? _antiDerivLogIntegralLi(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) =>
+        ((inner * LogIntegralLi(inner) -
+                    ExpIntegralEi(IntegerNumber.two * Ln(inner))) /
+                a)
+            .simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivSinIntegralSi(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) =>
+        ((inner * SinIntegralSi(inner) + Cos(inner)) / a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivCosIntegralCi(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) =>
+        ((inner * CosIntegralCi(inner) - Sin(inner)) / a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivSinhIntegralShi(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) =>
+        ((inner * SinhIntegralShi(inner) - Cosh(inner)) / a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivCoshIntegralChi(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) =>
+        ((inner * CoshIntegralChi(inner) - Sinh(inner)) / a).simplify(),
       null => null,
     };
 
@@ -1020,6 +1126,61 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
             return Ln(Abs((u + right).simplify())).scale(k);
           }
         }
+      }
+    }
+  }
+
+  // c / ln(ax + b) -> (c / a) * li(ax + b)
+  if (!left.dependsOn(variable)) {
+    if (right case Ln(expr: final inner)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        return ((left / a) * LogIntegralLi(inner)).simplify();
+      }
+    }
+  }
+
+  // c * sin(ax)/x, cos(ax)/x, sinh(ax)/x, cosh(ax)/x, exp(ax+b)/x
+  if (right is Variable && right.name == variable) {
+    final (:constFactors, :varFactors) = partitionFactors(
+      left is Mul ? left.factors : [left],
+      variable,
+    );
+    if (varFactors case [final vf]) {
+      final scale = switch (constFactors) {
+        [] => IntegerNumber.one,
+        [final single] => single,
+        _ => Mul(constFactors).simplify(),
+      };
+      switch (vf) {
+        case Sin(expr: final inner):
+          if (inner.matchLinear(variable) case (a: _, b: final b)
+              when b == IntegerNumber.zero) {
+            return (scale * SinIntegralSi(inner)).simplify();
+          }
+        case Cos(expr: final inner):
+          if (inner.matchLinear(variable) case (a: _, b: final b)
+              when b == IntegerNumber.zero) {
+            return (scale * CosIntegralCi(inner)).simplify();
+          }
+        case Sinh(expr: final inner):
+          if (inner.matchLinear(variable) case (a: _, b: final b)
+              when b == IntegerNumber.zero) {
+            return (scale * SinhIntegralShi(inner)).simplify();
+          }
+        case Cosh(expr: final inner):
+          if (inner.matchLinear(variable) case (a: _, b: final b)
+              when b == IntegerNumber.zero) {
+            return (scale * CoshIntegralChi(inner)).simplify();
+          }
+        case Pow(base: Constant.e, exponent: final expInner):
+          if (expInner.matchLinear(variable) case (:final a, :final b)) {
+            return (scale *
+                    Pow(Constant.e, b) *
+                    ExpIntegralEi(a * Variable(variable)))
+                .simplify();
+          }
+        default:
+          break;
       }
     }
   }
@@ -1733,7 +1894,26 @@ Expr? _tryGaussianAntiderivative(Expr exponent, String variable) {
   final a1 = coeffs[1] ?? IntegerNumber.zero;
   final a0 = coeffs[0] ?? IntegerNumber.zero;
 
-  // Require negative leading coefficient a2 = -k where k > 0
+  // Positive leading coefficient a2 > 0 -> erfi
+  if (_isPositiveConstant(a2)) {
+    final sqrtA2 = Pow(a2, FractionNumber.half).simplify();
+    final sqrtPi = Pow(Constant.pi, FractionNumber.half).simplify();
+    final xVar = Variable(variable);
+    if (a1 == IntegerNumber.zero && a0 == IntegerNumber.zero) {
+      return ((sqrtPi / (IntegerNumber.two * sqrtA2)) * Erfi(sqrtA2 * xVar))
+          .simplify();
+    }
+    final shift = (a1 / (IntegerNumber.two * sqrtA2)).simplify();
+    final u = (sqrtA2 * xVar + shift).simplify();
+    final constExp =
+        (a0 - Pow(a1, IntegerNumber.two) / (IntegerNumber.of(4) * a2))
+            .simplify();
+    final expScale = Pow(Constant.e, constExp).simplify();
+    return ((expScale * sqrtPi / (IntegerNumber.two * sqrtA2)) * Erfi(u))
+        .simplify();
+  }
+
+  // Require negative leading coefficient a2 = -k where k > 0 -> erf
   final k = (-a2).simplify();
   if (!_isPositiveConstant(k)) return null;
 

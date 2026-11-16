@@ -269,5 +269,40 @@ void main() {
       check(expr.format()).equals('x + 1.053');
       check(expr.format(decimalPlaces: 1)).equals('x + 1.1');
     });
+
+    test('formats and parses special integral and polylogarithm functions', () {
+      const x = Variable('x');
+      const k = Variable('k');
+      check(Erfi(x).toString()).equals('erfi(x)');
+      check(FresnelS(x).toString()).equals('fresnels(x)');
+      check(FresnelC(x).toString()).equals('fresnelc(x)');
+      check(ExpIntegralEi(x).toString()).equals('Ei(x)');
+      check(LogIntegralLi(x).toString()).equals('li(x)');
+      check(SinIntegralSi(x).toString()).equals('Si(x)');
+      check(CosIntegralCi(x).toString()).equals('Ci(x)');
+      check(SinhIntegralShi(x).toString()).equals('Shi(x)');
+      check(CoshIntegralChi(x).toString()).equals('Chi(x)');
+      check(UpperGamma(IntegerNumber.two, x).toString())
+          .equals('uppergamma(2, x)');
+      check(LowerGamma(IntegerNumber.two, x).toString())
+          .equals('lowergamma(2, x)');
+      check(Polylog(IntegerNumber.two, x).toString()).equals('polylog(2, x)');
+      check(EllipticF(x, k).toString()).equals('elliptic_f(x, k)');
+      check(EllipticEIncomplete(x, k).toString()).equals('elliptic_e(x, k)');
+
+      // Parser aliases and arity disambiguation
+      check(Expr.parse('Ei(x)')).equals(ExpIntegralEi(x));
+      check(Expr.parse('expIntegralEi(x)')).equals(ExpIntegralEi(x));
+      check(Expr.parse('li(x)')).equals(LogIntegralLi(x));
+      check(Expr.parse('Li(x)')).equals(LogIntegralLi(x));
+      check(Expr.parse('Li(2, x)')).equals(Polylog(IntegerNumber.two, x));
+      check(Expr.parse('elliptic_e(x)')).equals(EllipticE(x));
+      check(Expr.parse('elliptic_e(x, k)')).equals(EllipticEIncomplete(x, k));
+      check(Expr.parse('ellipticF(x, k)')).equals(EllipticF(x, k));
+      check(Expr.parse('upperGamma(2, x)'))
+          .equals(UpperGamma(IntegerNumber.two, x));
+      check(Expr.parse('lowerGamma(2, x)'))
+          .equals(LowerGamma(IntegerNumber.two, x));
+    });
   });
 }
