@@ -798,6 +798,13 @@ int? polynomialDegree(Expr expr, String variable) {
 /// value is the coefficient expression independent of [variable], or `null` if
 /// [expr] is not a polynomial in [variable].
 Map<int, Expr>? extractPolynomialCoefficients(Expr expr, String variable) {
+  if (!expr.dependsOn(variable)) {
+    final simplified = expr.simplify();
+    return simplified is RationalNumber && simplified.isZero
+        ? {0: IntegerNumber.zero}
+        : {0: simplified};
+  }
+  if (!_canBePolynomialAfterExpand(expr, variable)) return null;
   final expanded = expr.expand().simplify();
   if (!expanded.dependsOn(variable)) {
     return expanded is RationalNumber && expanded.isZero
@@ -807,6 +814,25 @@ Map<int, Expr>? extractPolynomialCoefficients(Expr expr, String variable) {
   if (polynomialDegree(expanded, variable) == null) return null;
   final acc = MonomialAccumulator()..add(expanded);
   return acc.extractPolynomialCoefficients(variable);
+}
+
+bool _canBePolynomialAfterExpand(Expr expr, String variable) {
+  if (!expr.dependsOn(variable)) return true;
+  return switch (expr) {
+    Variable(:final name) when name == variable => true,
+    Add(:final terms) => terms.every(
+      (t) => _canBePolynomialAfterExpand(t, variable),
+    ),
+    Mul(:final factors) => factors.every(
+      (f) => _canBePolynomialAfterExpand(f, variable),
+    ),
+    Pow(:final base, exponent: IntegerNumber(:final value)) when !value.isBig =>
+      _canBePolynomialAfterExpand(base, variable),
+    Pow(:final base, exponent: RealNumber(:final value))
+        when value == value.roundToDouble() =>
+      _canBePolynomialAfterExpand(base, variable),
+    _ => false,
+  };
 }
 
 /// Returns the maximum degree $k \ge 0$ with a non-zero coefficient in [coeffs],

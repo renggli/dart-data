@@ -1,17 +1,17 @@
 import 'dart:math' as math;
 
-import '../algebra/expand.dart';
-import '../algebra/simplify.dart';
-import '../algebra/simplify/domain.dart';
-import '../algebra/term_accumulator.dart';
-import '../assumptions.dart';
-import '../ast.dart';
-import '../compiler.dart';
-import '../number/integer.dart';
-import '../solver/univariate.dart';
-import 'limit.dart';
-import 'linear_form.dart';
-import 'summation.dart';
+import '../../algebra/expand.dart';
+import '../../algebra/simplify.dart';
+import '../../algebra/simplify/domain.dart';
+import '../../algebra/term_accumulator.dart';
+import '../../assumptions.dart';
+import '../../ast.dart';
+import '../../compiler.dart';
+import '../../number/integer.dart';
+import '../../solver/univariate.dart';
+import '../limit.dart';
+import '../linear_form.dart';
+import '../summation.dart';
 
 /// Returns `true` if [bound] represents positive or negative infinity.
 bool isInfiniteBound(Expr bound) =>

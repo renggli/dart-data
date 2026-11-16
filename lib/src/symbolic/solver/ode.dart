@@ -2,7 +2,7 @@ import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
-import '../calculus/integration.dart';
+import '../calculus/integration/integration.dart';
 import '../calculus/linear_form.dart';
 import 'univariate.dart';
 

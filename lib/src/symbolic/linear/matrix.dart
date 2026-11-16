@@ -7,7 +7,7 @@ import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/differentiation.dart';
-import '../calculus/integration.dart';
+import '../calculus/integration/integration.dart';
 import '../solver/univariate.dart';
 import '../textualization/latex.dart';
 import '../textualization/mathml.dart';

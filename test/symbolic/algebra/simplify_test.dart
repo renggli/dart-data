@@ -182,5 +182,21 @@ void main() {
       check(Atanh(IntegerNumber.two).isReal).isFalse();
       check(Acosh(IntegerNumber.zero).isReal).isFalse();
     });
+
+    test('conjugate distributes over entire special functions', () {
+      const z = Variable('z');
+      for (final fn in [
+        Erfi(z),
+        FresnelS(z),
+        FresnelC(z),
+        SinIntegralSi(z),
+        SinhIntegralShi(z),
+      ]) {
+        final conj = Conjugate(fn).simplify();
+        check(conj.toString()).not((it) => it.startsWith('conj('));
+      }
+      check(Conjugate(Erfi(ComplexNumber.i)).simplify())
+          .equals(Erfi(-ComplexNumber.i).simplify());
+    });
   });
 }

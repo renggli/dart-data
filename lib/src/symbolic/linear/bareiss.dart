@@ -145,7 +145,11 @@ class BareissEngine {
         for (var c = col + 1; c < colCount; c++) {
           final pivotEntry = grid[pivotRow][c];
           if (!_isExprZero(pivotEntry)) {
-            grid[r][c] = _simplifyDifference(grid[r][c], factor * pivotEntry);
+            final cell = grid[r][c];
+            grid[r][c] =
+                (cell is Number && factor is Number && pivotEntry is Number)
+                ? cell.sub(factor.mul(pivotEntry))
+                : _simplifyDifference(cell, factor * pivotEntry);
           }
         }
       }
@@ -252,6 +256,7 @@ class BareissEngine {
   };
 
   static Expr _simplifyRatio(Expr num, Expr den) {
+    if (num is Number && den is Number && !den.isZero) return num.div(den);
     final sNum = num.expand().simplify();
     if (_isExprZero(sNum)) return IntegerNumber.zero;
     final sDen = den.expand().simplify();
@@ -263,6 +268,7 @@ class BareissEngine {
   }
 
   static Expr _simplifyDifference(Expr a, Expr b) {
+    if (a is Number && b is Number) return a.sub(b);
     final diff = (a - b).simplify();
     if (!_hasDiv(diff)) return diff.expand().simplify();
     return diff.cancel().simplify();
@@ -277,6 +283,12 @@ class BareissEngine {
     // Fast-path: direct simplification
     final direct = (num / den).simplify();
     if (!_hasDiv(direct)) return direct;
+
+    // Polynomial long division path (univariate or multivariate)
+    final polyDiv = _polynomialLongDivide(num, den);
+    if (polyDiv != null && !_hasDiv(polyDiv)) {
+      return polyDiv;
+    }
 
     // Factored cancellation path
     final cancelled = cancelFactoredFraction(
@@ -299,12 +311,6 @@ class BareissEngine {
         }
       }
       if (allClean && !_hasDiv(current)) return current.expand().simplify();
-    }
-
-    // Polynomial long division path (univariate or multivariate)
-    final polyDiv = _polynomialLongDivide(num, den);
-    if (polyDiv != null && !_hasDiv(polyDiv)) {
-      return polyDiv;
     }
 
     return direct;

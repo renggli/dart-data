@@ -7,17 +7,23 @@
 /// ## Implemented Function Families
 ///
 /// - **Gamma & Factorial Functions** ([gamma], [gammaLn], [gammap],
-///   [gammaq], [gammapInv], [gammaqInv]): The continuous extension of the factorial
-///   $\Gamma(n) = (n - 1)!$, implemented via Lanczos approximation with 15
-///   digits of numerical precision.
+///   [gammaq], [gammapInv], [gammaqInv], [upperGamma], [lowerGamma]): The
+///   continuous extension of the factorial `Γ(n) = (n - 1)!` and its
+///   regularized and unregularized incomplete forms, implemented via Lanczos
+///   approximation with 15 digits of numerical precision.
 /// - **Beta Functions** ([beta], [betaLn], [ibeta], [ibetaInv]): Euler's
-///   integral of the first kind $B(a, b)$, and the regularized incomplete beta
+///   integral of the first kind `B(a, b)`, and the regularized incomplete beta
 ///   function.
-/// - **Psi & Zeta Functions** ([digamma], [trigamma], [polygamma], [zeta]): Logarithmic
-///   derivatives of the gamma function $\psi^{(m)}(x)$ and the Riemann zeta
-///   function $\zeta(s)$.
-/// - **Error Functions** ([erf], [erfc], [erfInv], [erfcInv]): Gaussian error
-///   integrals fundamental to normal distributions and diffusion processes.
+/// - **Psi, Zeta & Polylogarithm Functions** ([digamma], [trigamma],
+///   [polygamma], [zeta], [polylog]): Logarithmic derivatives of the gamma
+///   function `ψ^(m)(x)`, the Riemann zeta function `ζ(s)`, and the
+///   polylogarithm `Li_s(z)`.
+/// - **Error & Fresnel Functions** ([erf], [erfc], [erfi], [erfInv],
+///   [erfcInv], [fresnelS], [fresnelC]): Gaussian error integrals and
+///   normalized Fresnel sine and cosine integrals.
+/// - **Exponential, Trigonometric & Hyperbolic Integrals** ([expIntegralEi],
+///   [logIntegralLi], [sinIntegralSi], [cosIntegralCi], [sinhIntegralShi],
+///   [coshIntegralChi]): Classical non-elementary integral functions.
 /// - **Bessel Functions** ([besselJ], [besselY], [besselI], [besselK],
 ///   [besselJ0], [besselJ1], [besselY0], [besselY1],
 ///   [besselI0], [besselI1], [besselK0], [besselK1]): Solutions to Bessel's
@@ -27,10 +33,10 @@
 ///   [ellipticEIncomplete]): Complete and incomplete Legendre elliptic integrals
 ///   of the 1st and 2nd kinds.
 /// - **Hypergeometric Functions** ([hypergeometric1F1], [hypergeometric2F1]):
-///   Kummer's confluent series $_1F_1(a; b; z)$ and Gauss's generalized series
-///   $_2F_1(a, b; c; z)$.
+///   Kummer's confluent series `1F1(a; b; z)` and Gauss's generalized series
+///   `2F1(a, b; c; z)`.
 /// - **Lambert W** ([lambertW0], [lambertW1]): The principal and secondary real
-///   branches of the product log function solving $W(x) e^{W(x)} = x$.
+///   branches of the product log function solving `W(x) * exp(W(x)) = x`.
 ///
 /// ## Example
 ///
@@ -55,9 +61,12 @@ import 'src/special/beta.dart';
 import 'src/special/digamma.dart';
 import 'src/special/elliptic.dart';
 import 'src/special/erf.dart';
+import 'src/special/exp_integral.dart';
+import 'src/special/fresnel.dart';
 import 'src/special/gamma.dart';
 import 'src/special/hypergeometric.dart';
 import 'src/special/lambert_w.dart';
+import 'src/special/polylog.dart' show polylog;
 import 'src/special/zeta.dart';
 
 export 'src/special/bessel.dart';

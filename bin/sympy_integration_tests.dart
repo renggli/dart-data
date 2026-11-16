@@ -550,17 +550,17 @@ String? _findUnknownFunction(Expr? expr) {
 }
 
 bool _verifyDerivative(Expr integrand, Expr antideriv, String variable) {
-  try {
-    final diff = (antideriv.derivative(variable) - integrand).simplify();
-    if (diff is Number && diff.isZero) return true;
-  } on Object {
-    // Fall back to numerical derivative check.
-  }
   final Expr deriv;
   try {
     deriv = antideriv.derivative(variable);
   } on Object {
     return false;
+  }
+  try {
+    final diff = (deriv - integrand).simplify();
+    if (diff is Number && diff.isZero) return true;
+  } on Object {
+    // Fall back to numerical derivative check.
   }
   final freeVars = <String>{...integrand.freeVariables, ...deriv.freeVariables}
     ..remove(variable);

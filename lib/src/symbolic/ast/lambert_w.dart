@@ -17,12 +17,7 @@ final class LambertW extends UnaryExpr {
   final int branch;
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      LambertW(expr.substitute(variable, replacement), branch: branch);
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      LambertW(transform(expr), branch: branch);
+  Expr _withExpr(Expr expr) => LambertW(expr, branch: branch);
 
   @override
   bool _extraEquals(UnaryExpr other) =>

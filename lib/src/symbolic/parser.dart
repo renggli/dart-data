@@ -61,8 +61,6 @@ class ExprSyntax {
   /// Standard symbolic syntax with built-in constants and functions.
   static final ExprSyntax standard = ExprSyntax();
 
-  static final _isExpFunction = Expando<bool>();
-
   /// Standard mathematical constants.
   static final Map<String, Expr> standardConstants = Map.unmodifiable(
     <String, Expr>{
@@ -359,6 +357,8 @@ class ExprSyntax {
       return null;
     }
   }
+
+  static final _isExpFunction = Expando<bool>();
 
   static const String _mathSymbols =
       '+-*/^ˆ\u0302‸＾()[]{},;:.=<>!&|~?@#\$%\\\'"`´¨˜−–×·÷≤≥≠²³⁴√';

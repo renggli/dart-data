@@ -4,6 +4,7 @@ import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/integer.dart';
 import 'additive.dart';
+import 'complex.dart';
 import 'domain.dart';
 import 'multiplicative.dart';
 import 'transcendental.dart';

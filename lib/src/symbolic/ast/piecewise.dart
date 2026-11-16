@@ -12,14 +12,7 @@ final class LessThan extends RelationalExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) => LessThan(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      LessThan(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => LessThan(left, right);
 }
 
 /// Less-than-or-equal relation: $\text{left} \le \text{right}$.
@@ -28,14 +21,7 @@ final class LessEqual extends RelationalExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) => LessEqual(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      LessEqual(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => LessEqual(left, right);
 }
 
 /// Strict greater-than relation: $\text{left} > \text{right}$.
@@ -44,14 +30,7 @@ final class GreaterThan extends RelationalExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) => GreaterThan(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      GreaterThan(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => GreaterThan(left, right);
 }
 
 /// Greater-than-or-equal relation: $\text{left} \ge \text{right}$.
@@ -60,14 +39,7 @@ final class GreaterEqual extends RelationalExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) => GreaterEqual(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      GreaterEqual(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => GreaterEqual(left, right);
 }
 
 /// Equality relation: $\text{left} = \text{right}$.
@@ -76,14 +48,7 @@ final class Equal extends RelationalExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) => Equal(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      Equal(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => Equal(left, right);
 }
 
 /// Inequality relation: $\text{left} \ne \text{right}$.
@@ -92,14 +57,7 @@ final class NotEqual extends RelationalExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) => NotEqual(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      NotEqual(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => NotEqual(left, right);
 }
 
 /// A guarded branch in a [Piecewise] expression.
@@ -142,19 +100,26 @@ final class Piecewise extends Expr {
   });
 
   @override
-  Expr substitute(String variable, Expr replacement) => Piecewise([
-    for (final (:relation, :expr) in branches)
-      (
-        relation: relation.substitute(variable, replacement) as RelationalExpr,
-        expr: expr.substitute(variable, replacement),
-      ),
-  ], otherwise: otherwise?.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Piecewise([
-    for (final (:relation, :expr) in branches)
-      (relation: transform(relation) as RelationalExpr, expr: transform(expr)),
-  ], otherwise: otherwise != null ? transform(otherwise!) : null);
+  Expr mapChildren(Expr Function(Expr) transform) {
+    List<PiecewiseBranch>? updated;
+    for (var i = 0; i < branches.length; i++) {
+      final branch = branches[i];
+      final nextRel = transform(branch.relation) as RelationalExpr;
+      final nextExpr = transform(branch.expr);
+      if (updated != null) {
+        updated[i] = (relation: nextRel, expr: nextExpr);
+      } else if (!identical(nextRel, branch.relation) ||
+          !identical(nextExpr, branch.expr)) {
+        updated = List<PiecewiseBranch>.of(branches);
+        updated[i] = (relation: nextRel, expr: nextExpr);
+      }
+    }
+    final nextOtherwise = otherwise != null ? transform(otherwise!) : null;
+    if (updated == null && identical(nextOtherwise, otherwise)) {
+      return this;
+    }
+    return Piecewise(updated ?? branches, otherwise: nextOtherwise);
+  }
 
   @override
   bool anyNode(bool Function(Expr) predicate) {

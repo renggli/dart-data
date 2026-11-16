@@ -82,12 +82,9 @@ extension RationalFunctionExtension on Expr {
     final expNum = numPart
         .expand(assumptions: assumptions)
         .simplify(assumptions: assumptions);
-    final expDen = denPart
-        .expand(assumptions: assumptions)
-        .simplify(assumptions: assumptions);
     return cancelFactoredFraction(
       _factorPolynomial(expNum, assumptions),
-      _factorPolynomial(expDen, assumptions),
+      _factorPolynomial(denPart, assumptions),
     ).simplify(assumptions: assumptions);
   }
 

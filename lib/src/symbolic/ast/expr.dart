@@ -91,7 +91,9 @@ sealed class Expr {
   bool get isReal => _isRealSubtree(this);
 
   /// Returns a new expression with every occurrence of [variable] replaced by [replacement].
-  Expr substitute(String variable, Expr replacement) => this;
+  Expr substitute(String variable, Expr replacement) => dependsOn(variable)
+      ? mapChildren((c) => c.substitute(variable, replacement))
+      : this;
 
   /// Applies [transform] to all direct child [Expr] nodes of this expression,
   /// returning a reconstructed node of the same type, or `this` for leaf nodes.

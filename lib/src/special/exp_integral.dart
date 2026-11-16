@@ -2,8 +2,6 @@ import 'dart:math';
 
 import 'package:more/number.dart' show Complex;
 
-const _eulerMascheroni = 0.57721566490153286060651209008240243;
-
 /// Returns the exponential integral $\operatorname{Ei}(x) = -\operatorname{PV}\int_{-x}^\infty \frac{e^{-t}}{t}\,dt$.
 ///
 /// Defined for real $x \ne 0$, with $\operatorname{Ei}(0) = -\infty$.
@@ -158,6 +156,8 @@ double coshIntegralChi(num x) {
 
   return 0.5 * (expIntegralEi(xd) + expIntegralEi(-xd));
 }
+
+const _eulerMascheroni = 0.57721566490153286060651209008240243;
 
 double _expIntegralE1(double t) {
   if (t <= 1.0) {

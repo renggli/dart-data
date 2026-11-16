@@ -6,11 +6,7 @@ final class Erf extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Erf(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Erf(transform(expr));
+  Expr _withExpr(Expr expr) => Erf(expr);
 }
 
 /// Complementary error function node: $\operatorname{erfc}(x) = 1 - \operatorname{erf}(x)$.
@@ -19,11 +15,7 @@ final class Erfc extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Erfc(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Erfc(transform(expr));
+  Expr _withExpr(Expr expr) => Erfc(expr);
 }
 
 /// Euler Gamma function node: $\Gamma(x) = \int_0^\infty t^{x-1} e^{-t}\,dt$.
@@ -32,11 +24,7 @@ final class Gamma extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Gamma(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Gamma(transform(expr));
+  Expr _withExpr(Expr expr) => Gamma(expr);
 }
 
 /// Euler Beta function node: $\operatorname{B}(a, b) = \frac{\Gamma(a)\Gamma(b)}{\Gamma(a+b)}$.
@@ -45,14 +33,7 @@ final class Beta extends BinaryExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) => Beta(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      Beta(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => Beta(left, right);
 }
 
 /// Factorial node: $n! = \Gamma(n + 1)$.
@@ -61,11 +42,7 @@ final class Factorial extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Factorial(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Factorial(transform(expr));
+  Expr _withExpr(Expr expr) => Factorial(expr);
 }
 
 /// Binomial coefficient node: $\binom{n}{k} = \frac{\Gamma(n + 1)}{\Gamma(k + 1)\Gamma(n - k + 1)}$.
@@ -74,14 +51,7 @@ final class Binomial extends BinaryExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) => Binomial(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      Binomial(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => Binomial(left, right);
 }
 
 /// Floor function node: $\lfloor x \rfloor$.
@@ -90,11 +60,7 @@ final class Floor extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Floor(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Floor(transform(expr));
+  Expr _withExpr(Expr expr) => Floor(expr);
 }
 
 /// Ceiling function node: $\lceil x \rceil$.
@@ -103,11 +69,7 @@ final class Ceil extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Ceil(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Ceil(transform(expr));
+  Expr _withExpr(Expr expr) => Ceil(expr);
 }
 
 /// Round-to-nearest-integer function node: $\operatorname{round}(x)$.
@@ -116,11 +78,7 @@ final class Round extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Round(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Round(transform(expr));
+  Expr _withExpr(Expr expr) => Round(expr);
 }
 
 /// Signum function node: $\operatorname{sgn}(x)$.
@@ -129,11 +87,7 @@ final class Sign extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Sign(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Sign(transform(expr));
+  Expr _withExpr(Expr expr) => Sign(expr);
 }
 
 /// Modulo function node: $a \bmod b = a - b \lfloor a / b \rfloor$.
@@ -142,14 +96,7 @@ final class Mod extends BinaryExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) => Mod(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      Mod(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => Mod(left, right);
 }
 
 /// Riemann zeta function node: $\zeta(s) = \sum_{n=1}^\infty \frac{1}{n^s}$.
@@ -158,11 +105,7 @@ final class Zeta extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Zeta(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Zeta(transform(expr));
+  Expr _withExpr(Expr expr) => Zeta(expr);
 }
 
 /// Digamma function node (psi function): $\psi(x) = \frac{d}{dx} \ln \Gamma(x) = \frac{\Gamma'(x)}{\Gamma(x)}$.
@@ -171,11 +114,7 @@ final class Digamma extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Digamma(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Digamma(transform(expr));
+  Expr _withExpr(Expr expr) => Digamma(expr);
 }
 
 /// Polygamma function node: $\psi^{(m)}(x) = \frac{d^{m+1}}{dx^{m+1}} \ln \Gamma(x) = \frac{d^m}{dx^m} \psi(x)$.
@@ -190,14 +129,7 @@ final class Polygamma extends BinaryExpr {
   Expr get argument => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => Polygamma(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      Polygamma(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => Polygamma(left, right);
 }
 
 /// Bessel function of the first kind: $J_\nu(x)$.
@@ -212,14 +144,7 @@ final class BesselJ extends BinaryExpr {
   Expr get argument => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => BesselJ(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      BesselJ(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => BesselJ(left, right);
 }
 
 /// Bessel function of the second kind (Weber function): $Y_\nu(x)$.
@@ -234,14 +159,7 @@ final class BesselY extends BinaryExpr {
   Expr get argument => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => BesselY(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      BesselY(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => BesselY(left, right);
 }
 
 /// Modified Bessel function of the first kind: $I_\nu(x)$.
@@ -256,14 +174,7 @@ final class BesselI extends BinaryExpr {
   Expr get argument => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => BesselI(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      BesselI(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => BesselI(left, right);
 }
 
 /// Modified Bessel function of the second kind: $K_\nu(x)$.
@@ -278,14 +189,7 @@ final class BesselK extends BinaryExpr {
   Expr get argument => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => BesselK(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      BesselK(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => BesselK(left, right);
 }
 
 /// Complete elliptic integral of the first kind: $K(k) = \int_0^{\pi/2} \frac{d\theta}{\sqrt{1 - k^2 \sin^2\theta}}$.
@@ -294,11 +198,7 @@ final class EllipticK extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      EllipticK(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => EllipticK(transform(expr));
+  Expr _withExpr(Expr expr) => EllipticK(expr);
 }
 
 /// Complete elliptic integral of the second kind: $E(k) = \int_0^{\pi/2} \sqrt{1 - k^2 \sin^2\theta}\,d\theta$.
@@ -307,11 +207,7 @@ final class EllipticE extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      EllipticE(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => EllipticE(transform(expr));
+  Expr _withExpr(Expr expr) => EllipticE(expr);
 }
 
 /// Imaginary error function node: $\operatorname{erfi}(x) = -i\operatorname{erf}(ix)$.
@@ -320,11 +216,7 @@ final class Erfi extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Erfi(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Erfi(transform(expr));
+  Expr _withExpr(Expr expr) => Erfi(expr);
 }
 
 /// Fresnel sine integral node: $S(x) = \int_0^x \sin\!\left(\frac{\pi}{2}t^2\right)dt$.
@@ -333,11 +225,7 @@ final class FresnelS extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      FresnelS(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => FresnelS(transform(expr));
+  Expr _withExpr(Expr expr) => FresnelS(expr);
 }
 
 /// Fresnel cosine integral node: $C(x) = \int_0^x \cos\!\left(\frac{\pi}{2}t^2\right)dt$.
@@ -346,11 +234,7 @@ final class FresnelC extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      FresnelC(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => FresnelC(transform(expr));
+  Expr _withExpr(Expr expr) => FresnelC(expr);
 }
 
 /// Exponential integral node: $\operatorname{Ei}(x) = -\operatorname{PV}\int_{-x}^\infty \frac{e^{-t}}{t}\,dt$.
@@ -359,12 +243,7 @@ final class ExpIntegralEi extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      ExpIntegralEi(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      ExpIntegralEi(transform(expr));
+  Expr _withExpr(Expr expr) => ExpIntegralEi(expr);
 }
 
 /// Logarithmic integral node: $\operatorname{li}(x) = \int_0^x \frac{dt}{\ln t}$.
@@ -373,12 +252,7 @@ final class LogIntegralLi extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      LogIntegralLi(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      LogIntegralLi(transform(expr));
+  Expr _withExpr(Expr expr) => LogIntegralLi(expr);
 }
 
 /// Sine integral node: $\operatorname{Si}(x) = \int_0^x \frac{\sin t}{t}\,dt$.
@@ -387,12 +261,7 @@ final class SinIntegralSi extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      SinIntegralSi(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      SinIntegralSi(transform(expr));
+  Expr _withExpr(Expr expr) => SinIntegralSi(expr);
 }
 
 /// Cosine integral node: $\operatorname{Ci}(x) = \gamma + \ln x + \int_0^x \frac{\cos t - 1}{t}\,dt$.
@@ -401,12 +270,7 @@ final class CosIntegralCi extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      CosIntegralCi(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      CosIntegralCi(transform(expr));
+  Expr _withExpr(Expr expr) => CosIntegralCi(expr);
 }
 
 /// Hyperbolic sine integral node: $\operatorname{Shi}(x) = \int_0^x \frac{\sinh t}{t}\,dt$.
@@ -415,12 +279,7 @@ final class SinhIntegralShi extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      SinhIntegralShi(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      SinhIntegralShi(transform(expr));
+  Expr _withExpr(Expr expr) => SinhIntegralShi(expr);
 }
 
 /// Hyperbolic cosine integral node: $\operatorname{Chi}(x) = \gamma + \ln x + \int_0^x \frac{\cosh t - 1}{t}\,dt$.
@@ -429,12 +288,7 @@ final class CoshIntegralChi extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      CoshIntegralChi(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      CoshIntegralChi(transform(expr));
+  Expr _withExpr(Expr expr) => CoshIntegralChi(expr);
 }
 
 /// Upper incomplete gamma function node: $\Gamma(s, x) = \int_x^\infty t^{s-1} e^{-t}\,dt$.
@@ -449,14 +303,7 @@ final class UpperGamma extends BinaryExpr {
   Expr get argument => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => UpperGamma(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      UpperGamma(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => UpperGamma(left, right);
 }
 
 /// Lower incomplete gamma function node: $\gamma(s, x) = \int_0^x t^{s-1} e^{-t}\,dt$.
@@ -471,14 +318,7 @@ final class LowerGamma extends BinaryExpr {
   Expr get argument => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => LowerGamma(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      LowerGamma(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => LowerGamma(left, right);
 }
 
 /// Polylogarithm node: $\operatorname{Li}_s(z) = \sum_{k=1}^\infty \frac{z^k}{k^s}$.
@@ -493,14 +333,7 @@ final class Polylog extends BinaryExpr {
   Expr get argument => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => Polylog(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      Polylog(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => Polylog(left, right);
 }
 
 /// Incomplete elliptic integral of the first kind: $F(\phi, k) = \int_0^\phi \frac{d\theta}{\sqrt{1 - k^2 \sin^2\theta}}$.
@@ -515,14 +348,7 @@ final class EllipticF extends BinaryExpr {
   Expr get modulus => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => EllipticF(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      EllipticF(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => EllipticF(left, right);
 }
 
 /// Incomplete elliptic integral of the second kind: $E(\phi, k) = \int_0^\phi \sqrt{1 - k^2 \sin^2\theta}\,d\theta$.
@@ -537,12 +363,5 @@ final class EllipticEIncomplete extends BinaryExpr {
   Expr get modulus => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => EllipticEIncomplete(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      EllipticEIncomplete(transform(left), transform(right));
+  Expr _withOperands(Expr left, Expr right) => EllipticEIncomplete(left, right);
 }

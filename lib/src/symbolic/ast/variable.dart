@@ -63,21 +63,16 @@ final class VariableFunction extends Expr {
   final bool isSimplified;
 
   @override
-  late final Set<String> freeVariables = Set.unmodifiable({
-    for (final arg in arguments) ...arg.freeVariables,
-  });
+  late final Set<String> freeVariables = _unionAllFreeVariables(arguments);
 
   @override
   bool dependsOn(String variable) => freeVariables.contains(variable);
 
   @override
-  Expr substitute(String variable, Expr replacement) => VariableFunction(name, [
-    for (final arg in arguments) arg.substitute(variable, replacement),
-  ]);
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      VariableFunction(name, [for (final arg in arguments) transform(arg)]);
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final mapped = _mapExprList(arguments, transform);
+    return identical(mapped, arguments) ? this : VariableFunction(name, mapped);
+  }
 
   @override
   bool anyNode(bool Function(Expr) predicate) =>

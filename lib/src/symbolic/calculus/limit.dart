@@ -119,14 +119,6 @@ Expr computeLimit(
           varLim != Constant.undefined) {
         return (constMul * varLim).simplify(assumptions: assumptions);
       }
-      if (_isPositiveInfinity(varLim)) {
-        final sign = _getSign(constMul);
-        return sign > 0 ? Constant.infinity : _negInfinity;
-      }
-      if (_isNegativeInfinity(varLim)) {
-        final sign = _getSign(constMul);
-        return sign > 0 ? _negInfinity : Constant.infinity;
-      }
     }
   }
 

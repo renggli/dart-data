@@ -530,6 +530,24 @@ void main() {
               .equals(Constant.infinity);
         },
       );
+
+      test('limits involving special integral functions', () {
+        const x = Variable('x');
+        check(
+          ((SinIntegralSi(x) - x) / x.pow(IntegerNumber.of(3))).limit(
+            'x',
+            IntegerNumber.zero,
+          ),
+        ).equals(Expr.parse('-1/18').simplify());
+        check((Erfi(x) / x).limit('x', IntegerNumber.zero))
+            .equals(Expr.parse('2/sqrt(pi)').simplify());
+        check(
+          (FresnelS(x) / x.pow(IntegerNumber.of(3))).limit(
+            'x',
+            IntegerNumber.zero,
+          ),
+        ).equals(Expr.parse('pi/6').simplify());
+      });
     },
   );
 }

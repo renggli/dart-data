@@ -547,29 +547,87 @@ void main() {
       check(symPoly1[1]).equals(IntegerNumber.one);
     });
 
-    test(
-      'throws UnsupportedError on non-series special integral functions',
-      () {
-        const x = Variable('x');
-        for (final expr in [
-          Erfi(x),
-          FresnelS(x),
-          FresnelC(x),
-          ExpIntegralEi(x),
-          LogIntegralLi(x),
-          SinIntegralSi(x),
-          CosIntegralCi(x),
-          SinhIntegralShi(x),
-          CoshIntegralChi(x),
-          UpperGamma(IntegerNumber.two, x),
-          LowerGamma(IntegerNumber.two, x),
-          Polylog(IntegerNumber.two, x),
-          EllipticF(x, FractionNumber.half),
-          EllipticEIncomplete(x, FractionNumber.half),
-        ]) {
-          check(() => expr.series('x', order: 2)).throws<UnsupportedError>();
-        }
-      },
-    );
+    test('expands special integral and elliptic functions', () {
+      const x = Variable('x');
+      check(
+        Erfi(x).series('x', order: 4, includeOrder: false).expand().simplify(),
+      ).equals(
+        Expr.parse('2/sqrt(pi)*x + 2/(3*sqrt(pi))*x^3').expand().simplify(),
+      );
+      check(FresnelS(x).series('x', order: 4, includeOrder: false).simplify())
+          .equals(Expr.parse('pi/6*x^3').simplify());
+      check(FresnelC(x).series('x', order: 2, includeOrder: false).simplify())
+          .equals(x);
+      check(
+        SinIntegralSi(x).series('x', order: 4, includeOrder: false).simplify(),
+      ).equals(Expr.parse('x - x^3/18').simplify());
+      check(
+        SinhIntegralShi(x)
+            .series('x', order: 4, includeOrder: false)
+            .simplify(),
+      ).equals(Expr.parse('x + x^3/18').simplify());
+      check(
+        Polylog(
+          IntegerNumber.two,
+          x,
+        ).series('x', order: 4, includeOrder: false).simplify(),
+      ).equals(Expr.parse('x + x^2/4 + x^3/9').simplify());
+      check(
+        EllipticF(
+          x,
+          FractionNumber.half,
+        ).series('x', order: 4, includeOrder: false).simplify(),
+      ).equals(Expr.parse('x + x^3/24').simplify());
+      check(
+        EllipticEIncomplete(
+          x,
+          FractionNumber.half,
+        ).series('x', order: 4, includeOrder: false).simplify(),
+      ).equals(Expr.parse('x - x^3/24').simplify());
+      check(EllipticK(x).series('x', order: 2, includeOrder: false).simplify())
+          .equals(Expr.parse('pi/2 + pi/8*x').simplify());
+      check(EllipticE(x).series('x', order: 2, includeOrder: false).simplify())
+          .equals(Expr.parse('pi/2 - pi/8*x').simplify());
+      check(
+        ExpIntegralEi(x)
+            .series('x', point: 1, order: 2, includeOrder: false)
+            .simplify(),
+      ).equals(Expr.parse('Ei(1) + e*(x - 1)').simplify());
+      check(
+        LogIntegralLi(x)
+            .series('x', point: 2, order: 2, includeOrder: false)
+            .simplify(),
+      ).equals(Expr.parse('li(2) + (x - 2)/ln(2)').simplify());
+      check(
+        CosIntegralCi(x)
+            .series('x', point: 1, order: 2, includeOrder: false)
+            .simplify(),
+      ).equals(Expr.parse('Ci(1) + cos(1)*(x - 1)').simplify());
+      check(
+        CoshIntegralChi(x)
+            .series('x', point: 1, order: 2, includeOrder: false)
+            .simplify(),
+      ).equals(Expr.parse('Chi(1) + cosh(1)*(x - 1)').simplify());
+      check(
+        UpperGamma(
+          IntegerNumber.two,
+          x,
+        ).series('x', point: 1, order: 2, includeOrder: false).simplify(),
+      ).equals(
+        (UpperGamma(IntegerNumber.two, IntegerNumber.one) -
+                (x - IntegerNumber.one) / Constant.e)
+            .simplify(),
+      );
+      check(
+        LowerGamma(
+          IntegerNumber.two,
+          x,
+        ).series('x', point: 1, order: 2, includeOrder: false).simplify(),
+      ).equals(
+        (LowerGamma(IntegerNumber.two, IntegerNumber.one) +
+                (x - IntegerNumber.one) / Constant.e)
+            .simplify(),
+      );
+    });
   });
 }

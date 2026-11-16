@@ -1,5 +1,6 @@
 import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
+import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import 'linear_form.dart';
@@ -28,7 +29,7 @@ extension DifferentiationExtension on Expr {
   }) {
     RangeError.checkValueInInterval(order, 0, 1000, 'order');
     if (order == 0) return simplify(assumptions: assumptions);
-    var current = this;
+    var current = simplify(assumptions: assumptions);
     for (var i = 0; i < order; i++) {
       if (!current.dependsOn(variable)) return IntegerNumber.zero;
       current = _differentiate(
@@ -444,26 +445,41 @@ Expr _differentiateMul(List<Expr> factors, String variable) {
     }
   }
 
-  if (denFactors.isNotEmpty && numFactors.isNotEmpty) {
+  if (denFactors.length == 1 && numFactors.isNotEmpty) {
     final left = switch (numFactors) {
       [final single] => single,
       _ => Mul(numFactors),
     };
-    final right = switch (denFactors) {
-      [final single] => single,
-      _ => Mul(denFactors),
-    };
+    final right = denFactors.first;
+    final degLeft = polynomialDegree(left, variable);
     return switch (right) {
       Pow(:final base, :final exponent) when !exponent.dependsOn(variable) =>
-        ((_differentiate(left, variable) * base -
-                    exponent * left * _differentiate(base, variable))
-                .expand()) /
-            Pow(base, exponent + IntegerNumber.one),
-      _ =>
-        ((_differentiate(left, variable) * right -
-                    left * _differentiate(right, variable))
-                .expand()) /
-            Pow(right, IntegerNumber.two),
+        () {
+          final degBase = polynomialDegree(base, variable);
+          final num =
+              _differentiate(left, variable) * base -
+              exponent * left * _differentiate(base, variable);
+          final shouldExpand =
+              degLeft != null &&
+              degLeft <= 4 &&
+              degBase != null &&
+              degBase <= 4;
+          return (shouldExpand ? num.expand() : num) /
+              Pow(base, exponent + IntegerNumber.one);
+        }(),
+      _ => () {
+        final degRight = polynomialDegree(right, variable);
+        final num =
+            _differentiate(left, variable) * right -
+            left * _differentiate(right, variable);
+        final shouldExpand =
+            degLeft != null &&
+            degLeft <= 4 &&
+            degRight != null &&
+            degRight <= 4;
+        return (shouldExpand ? num.expand() : num) /
+            Pow(right, IntegerNumber.two);
+      }(),
     };
   }
 

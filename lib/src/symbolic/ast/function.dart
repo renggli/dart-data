@@ -6,11 +6,7 @@ final class Sin extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Sin(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Sin(transform(expr));
+  Expr _withExpr(Expr expr) => Sin(expr);
 }
 
 /// Cosine function node: $\cos(x)$.
@@ -19,11 +15,7 @@ final class Cos extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Cos(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Cos(transform(expr));
+  Expr _withExpr(Expr expr) => Cos(expr);
 }
 
 /// Tangent function node: $\tan(x)$.
@@ -32,11 +24,7 @@ final class Tan extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Tan(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Tan(transform(expr));
+  Expr _withExpr(Expr expr) => Tan(expr);
 }
 
 /// Inverse sine (arcsine) function node: $\arcsin(x)$.
@@ -45,11 +33,7 @@ final class Asin extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Asin(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Asin(transform(expr));
+  Expr _withExpr(Expr expr) => Asin(expr);
 }
 
 /// Inverse cosine (arccosine) function node: $\arccos(x)$.
@@ -58,11 +42,7 @@ final class Acos extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Acos(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Acos(transform(expr));
+  Expr _withExpr(Expr expr) => Acos(expr);
 }
 
 /// Inverse tangent (arctangent) function node: $\arctan(x)$.
@@ -71,11 +51,7 @@ final class Atan extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Atan(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Atan(transform(expr));
+  Expr _withExpr(Expr expr) => Atan(expr);
 }
 
 /// Hyperbolic sine function node: $\sinh(x)$.
@@ -84,11 +60,7 @@ final class Sinh extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Sinh(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Sinh(transform(expr));
+  Expr _withExpr(Expr expr) => Sinh(expr);
 }
 
 /// Hyperbolic cosine function node: $\cosh(x)$.
@@ -97,11 +69,7 @@ final class Cosh extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Cosh(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Cosh(transform(expr));
+  Expr _withExpr(Expr expr) => Cosh(expr);
 }
 
 /// Hyperbolic tangent function node: $\tanh(x)$.
@@ -110,11 +78,7 @@ final class Tanh extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Tanh(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Tanh(transform(expr));
+  Expr _withExpr(Expr expr) => Tanh(expr);
 }
 
 /// Inverse hyperbolic sine function node: $\operatorname{asinh}(x) = \ln(x + \sqrt{x^2 + 1})$.
@@ -123,11 +87,7 @@ final class Asinh extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Asinh(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Asinh(transform(expr));
+  Expr _withExpr(Expr expr) => Asinh(expr);
 }
 
 /// Inverse hyperbolic cosine function node: $\operatorname{acosh}(x) = \ln(x + \sqrt{x^2 - 1})$.
@@ -136,11 +96,7 @@ final class Acosh extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Acosh(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Acosh(transform(expr));
+  Expr _withExpr(Expr expr) => Acosh(expr);
 }
 
 /// Inverse hyperbolic tangent function node: $\operatorname{atanh}(x) = \frac{1}{2}\ln\left(\frac{1+x}{1-x}\right)$.
@@ -149,11 +105,7 @@ final class Atanh extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Atanh(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Atanh(transform(expr));
+  Expr _withExpr(Expr expr) => Atanh(expr);
 }
 
 /// Absolute value function node: $|x|$.
@@ -165,11 +117,7 @@ final class Abs extends UnaryExpr {
   bool get isReal => true;
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Abs(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Abs(transform(expr));
+  Expr _withExpr(Expr expr) => Abs(expr);
 }
 
 /// Natural logarithm function node: $\ln(x)$.
@@ -178,11 +126,7 @@ final class Ln extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Ln(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Ln(transform(expr));
+  Expr _withExpr(Expr expr) => Ln(expr);
 }
 
 /// Real part function node: $\Re(z)$.
@@ -194,11 +138,7 @@ final class Re extends UnaryExpr {
   bool get isReal => true;
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Re(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Re(transform(expr));
+  Expr _withExpr(Expr expr) => Re(expr);
 }
 
 /// Imaginary part function node: $\Im(z)$.
@@ -210,11 +150,7 @@ final class Im extends UnaryExpr {
   bool get isReal => true;
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Im(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Im(transform(expr));
+  Expr _withExpr(Expr expr) => Im(expr);
 }
 
 /// Complex argument (phase angle) function node: $\arg(z) \in (-\pi, \pi]$.
@@ -226,11 +162,7 @@ final class Arg extends UnaryExpr {
   bool get isReal => true;
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Arg(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Arg(transform(expr));
+  Expr _withExpr(Expr expr) => Arg(expr);
 }
 
 /// Complex conjugate function node: $\overline{z}$.
@@ -239,9 +171,5 @@ final class Conjugate extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Conjugate(expr.substitute(variable, replacement));
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => Conjugate(transform(expr));
+  Expr _withExpr(Expr expr) => Conjugate(expr);
 }

@@ -620,6 +620,58 @@ PowerSeries _expandToPowerSeries(
     PowerSeries(variable, point, const {0: IntegerNumber.one}, order) -
         _expandErf(expr, variable, point, order),
 
+  Erfi(:final expr) => _expandErfi(expr, variable, point, order),
+
+  FresnelS(:final expr) => _expandFresnelS(expr, variable, point, order),
+
+  FresnelC(:final expr) => _expandFresnelC(expr, variable, point, order),
+
+  SinIntegralSi(:final expr) => _expandSinIntegralSi(
+    expr,
+    variable,
+    point,
+    order,
+  ),
+
+  SinhIntegralShi(:final expr) => _expandSinhIntegralShi(
+    expr,
+    variable,
+    point,
+    order,
+  ),
+
+  Polylog(:final left, :final right) => _expandPolylog(
+    expr,
+    left,
+    right,
+    variable,
+    point,
+    order,
+  ),
+
+  EllipticK(expr: final inner) => _expandEllipticK(
+    expr,
+    inner,
+    variable,
+    point,
+    order,
+  ),
+  EllipticE(expr: final inner) => _expandEllipticE(
+    expr,
+    inner,
+    variable,
+    point,
+    order,
+  ),
+  ExpIntegralEi() ||
+  LogIntegralLi() ||
+  CosIntegralCi() ||
+  CoshIntegralChi() ||
+  UpperGamma() ||
+  LowerGamma() ||
+  EllipticF() ||
+  EllipticEIncomplete() => _expandTaylorSeries(expr, variable, point, order),
+
   Asinh(:final expr) => _expandAsinh(expr, variable, point, order),
 
   Acosh(:final expr) => _expandAcosh(expr, variable, point, order),
@@ -674,22 +726,6 @@ PowerSeries _expandToPowerSeries(
   BesselY() ||
   BesselI() ||
   BesselK() ||
-  EllipticK() ||
-  EllipticE() ||
-  Erfi() ||
-  FresnelS() ||
-  FresnelC() ||
-  ExpIntegralEi() ||
-  LogIntegralLi() ||
-  SinIntegralSi() ||
-  CosIntegralCi() ||
-  SinhIntegralShi() ||
-  CoshIntegralChi() ||
-  UpperGamma() ||
-  LowerGamma() ||
-  Polylog() ||
-  EllipticF() ||
-  EllipticEIncomplete() ||
   Mod() ||
   RelationalExpr() ||
   Integral() ||
@@ -877,6 +913,13 @@ PowerSeries _expandCos(Expr inner, String variable, Expr point, int order) =>
 ) {
   final u = _expandToPowerSeries(inner, variable, point, order);
   _checkNoPole(u, 'sin/cos');
+  return _expandSinCosFromSeries(u);
+}
+
+({PowerSeries sin, PowerSeries cos}) _expandSinCosFromSeries(PowerSeries u) {
+  final variable = u.variable;
+  final point = u.point;
+  final order = u.order;
   final u0 = u.constantTerm;
 
   final s = <int, Expr>{};
@@ -930,6 +973,12 @@ PowerSeries _expandCos(Expr inner, String variable, Expr point, int order) =>
 ) {
   final u = _expandToPowerSeries(inner, variable, point, order);
   _checkNoPole(u, 'sinh/cosh');
+  return _expandSinhCoshFromSeries(u);
+}
+
+({PowerSeries sinh, PowerSeries cosh}) _expandSinhCoshFromSeries(
+  PowerSeries u,
+) {
   final expU = _expandExpFromSeries(u);
   final expNegU = _expandExpFromSeries(-u);
   return (
@@ -1076,6 +1125,221 @@ PowerSeries _expandErf(Expr inner, String variable, Expr point, int order) {
   final deriv = (uPrime * expNegU2).scale(factor);
   final constant = Erf(u0).simplify();
   return deriv.integrate(constant: constant);
+}
+
+PowerSeries _expandErfi(Expr inner, String variable, Expr point, int order) {
+  final u = _expandToPowerSeries(inner, variable, point, order);
+  _checkNoPole(u, 'erfi');
+  final u0 = u.constantTerm;
+  final uPrime = u.derivative();
+  final expU2 = _expandExpFromSeries(u * u);
+  final factor = IntegerNumber.two / Pow(Constant.pi, FractionNumber.half);
+  final deriv = (uPrime * expU2).scale(factor);
+  final constant = Erfi(u0).simplify();
+  return deriv.integrate(constant: constant);
+}
+
+PowerSeries _expandFresnelS(
+  Expr inner,
+  String variable,
+  Expr point,
+  int order,
+) {
+  final u = _expandToPowerSeries(inner, variable, point, order);
+  _checkNoPole(u, 'fresnelS');
+  final u0 = u.constantTerm;
+  final uPrime = u.derivative();
+  final arg = (u * u).scale(Constant.pi * FractionNumber.half);
+  final sinArg = _expandSinCosFromSeries(arg).sin;
+  final deriv = uPrime * sinArg;
+  final constant = FresnelS(u0).simplify();
+  return deriv.integrate(constant: constant);
+}
+
+PowerSeries _expandFresnelC(
+  Expr inner,
+  String variable,
+  Expr point,
+  int order,
+) {
+  final u = _expandToPowerSeries(inner, variable, point, order);
+  _checkNoPole(u, 'fresnelC');
+  final u0 = u.constantTerm;
+  final uPrime = u.derivative();
+  final arg = (u * u).scale(Constant.pi * FractionNumber.half);
+  final cosArg = _expandSinCosFromSeries(arg).cos;
+  final deriv = uPrime * cosArg;
+  final constant = FresnelC(u0).simplify();
+  return deriv.integrate(constant: constant);
+}
+
+PowerSeries _expandSinIntegralSi(
+  Expr inner,
+  String variable,
+  Expr point,
+  int order,
+) => _expandHyperbolicOrTrigIntegral(
+  inner,
+  variable,
+  point,
+  order,
+  name: 'Si',
+  alternating: true,
+  evaluateAt: (u0) => SinIntegralSi(u0).simplify(),
+  numeratorSeries: (u) => _expandSinCosFromSeries(u).sin,
+);
+
+PowerSeries _expandSinhIntegralShi(
+  Expr inner,
+  String variable,
+  Expr point,
+  int order,
+) => _expandHyperbolicOrTrigIntegral(
+  inner,
+  variable,
+  point,
+  order,
+  name: 'Shi',
+  alternating: false,
+  evaluateAt: (u0) => SinhIntegralShi(u0).simplify(),
+  numeratorSeries: (u) => _expandSinhCoshFromSeries(u).sinh,
+);
+
+PowerSeries _expandHyperbolicOrTrigIntegral(
+  Expr inner,
+  String variable,
+  Expr point,
+  int order, {
+  required String name,
+  required bool alternating,
+  required Expr Function(Expr) evaluateAt,
+  required PowerSeries Function(PowerSeries) numeratorSeries,
+}) {
+  final u = _expandToPowerSeries(inner, variable, point, order);
+  _checkNoPole(u, name);
+  final u0 = u.constantTerm;
+  if (!PowerSeries._isZero(u0)) {
+    final uPrime = u.derivative();
+    final deriv = uPrime * (numeratorSeries(u) / u);
+    return deriv.integrate(constant: evaluateAt(u0));
+  }
+  if (u.coefficients.isEmpty) {
+    return PowerSeries(variable, point, const {}, order);
+  }
+  final m = u.valuation;
+  var result = PowerSeries(variable, point, const {}, order);
+  var power = u;
+  final uSquared = u * u;
+  var fact = BigInt.one;
+  for (var k = 0; (2 * k + 1) * m < order; k++) {
+    final n = 2 * k + 1;
+    if (k > 0) {
+      fact *= BigInt.from(2 * k) * BigInt.from(n);
+      power = power * uSquared;
+    }
+    final denom = IntegerNumber(Integer.big(BigInt.from(n) * fact));
+    final coeff =
+        (alternating && k.isOdd
+                ? -IntegerNumber.one / denom
+                : IntegerNumber.one / denom)
+            .simplify();
+    result = result + power.scale(coeff);
+  }
+  return result;
+}
+
+PowerSeries _expandPolylog(
+  Expr expr,
+  Expr s,
+  Expr inner,
+  String variable,
+  Expr point,
+  int order,
+) {
+  if (!s.dependsOn(variable)) {
+    final u = _expandToPowerSeries(inner, variable, point, order);
+    _checkNoPole(u, 'polylog');
+    if (PowerSeries._isZero(u.constantTerm)) {
+      if (u.coefficients.isEmpty) {
+        return PowerSeries(variable, point, const {}, order);
+      }
+      final m = u.valuation;
+      var result = PowerSeries(variable, point, const {}, order);
+      var power = u;
+      for (var k = 1; k * m < order; k++) {
+        if (k > 1) {
+          power = power * u;
+        }
+        final coeff = Pow(IntegerNumber.of(k), -s).simplify();
+        result = result + power.scale(coeff);
+      }
+      return result;
+    }
+  }
+  return _expandTaylorSeries(expr, variable, point, order);
+}
+
+PowerSeries _expandEllipticK(
+  Expr expr,
+  Expr inner,
+  String variable,
+  Expr point,
+  int order,
+) => _expandCompleteElliptic(
+  expr,
+  inner,
+  variable,
+  point,
+  order,
+  isSecondKind: false,
+);
+
+PowerSeries _expandEllipticE(
+  Expr expr,
+  Expr inner,
+  String variable,
+  Expr point,
+  int order,
+) => _expandCompleteElliptic(
+  expr,
+  inner,
+  variable,
+  point,
+  order,
+  isSecondKind: true,
+);
+
+PowerSeries _expandCompleteElliptic(
+  Expr expr,
+  Expr inner,
+  String variable,
+  Expr point,
+  int order, {
+  required bool isSecondKind,
+}) {
+  final u = _expandToPowerSeries(inner, variable, point, order);
+  _checkNoPole(u, isSecondKind ? 'ellipticE' : 'ellipticK');
+  if (!PowerSeries._isZero(u.constantTerm)) {
+    return _expandTaylorSeries(expr, variable, point, order);
+  }
+  final piHalf = (Constant.pi * FractionNumber.half).simplify();
+  var result = PowerSeries(variable, point, {0: piHalf}, order);
+  if (u.coefficients.isEmpty) {
+    return result;
+  }
+  final m = u.valuation;
+  var power = PowerSeries(variable, point, {0: IntegerNumber.one}, order);
+  var sqCoeff = IntegerNumber.one as Expr;
+  for (var n = 1; n * m < order; n++) {
+    power = power * u;
+    final ratio = IntegerNumber.of(2 * n - 1) / IntegerNumber.of(2 * n);
+    sqCoeff = (sqCoeff * ratio * ratio).simplify();
+    final termCoeff = isSecondKind
+        ? (piHalf * sqCoeff / IntegerNumber.of(1 - 2 * n)).simplify()
+        : (piHalf * sqCoeff).simplify();
+    result = result + power.scale(termCoeff);
+  }
+  return result;
 }
 
 PowerSeries _expandAsinh(Expr inner, String variable, Expr point, int order) {

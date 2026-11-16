@@ -5,6 +5,7 @@ import '../../ast.dart';
 import '../../compiler.dart';
 import '../../number/integer.dart';
 import 'additive.dart';
+import 'complex.dart';
 import 'multiplicative.dart';
 import 'power.dart';
 import 'transcendental.dart';

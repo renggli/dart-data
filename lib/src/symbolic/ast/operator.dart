@@ -18,6 +18,12 @@ sealed class UnaryExpr extends Expr {
   late final Set<String> freeVariables = expr.freeVariables;
 
   @override
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final next = transform(expr);
+    return identical(next, expr) ? this : _withExpr(next);
+  }
+
+  @override
   bool anyNode(bool Function(Expr) predicate) =>
       predicate(this) || expr.anyNode(predicate);
 
@@ -29,6 +35,8 @@ sealed class UnaryExpr extends Expr {
           hashCode == other.hashCode &&
           _extraEquals(other) &&
           expr == other.expr);
+
+  Expr _withExpr(Expr expr);
 
   bool _extraEquals(UnaryExpr other) => true;
 
@@ -53,10 +61,19 @@ sealed class BinaryExpr extends Expr {
   late final int hashCode = Object.hash(runtimeType, left, right);
 
   @override
-  late final Set<String> freeVariables = Set.unmodifiable({
-    ...left.freeVariables,
-    ...right.freeVariables,
-  });
+  late final Set<String> freeVariables = _unionFreeVariables(
+    left.freeVariables,
+    right.freeVariables,
+  );
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final nextLeft = transform(left);
+    final nextRight = transform(right);
+    return identical(nextLeft, left) && identical(nextRight, right)
+        ? this
+        : _withOperands(nextLeft, nextRight);
+  }
 
   @override
   bool anyNode(bool Function(Expr) predicate) =>
@@ -70,6 +87,8 @@ sealed class BinaryExpr extends Expr {
           hashCode == other.hashCode &&
           left == other.left &&
           right == other.right);
+
+  Expr _withOperands(Expr left, Expr right);
 }
 
 /// N-ary addition node: $\sum_{i} t_i$.
@@ -88,17 +107,13 @@ final class Add extends Expr {
   late final int hashCode = Object.hash(Add, Object.hashAll(terms));
 
   @override
-  late final Set<String> freeVariables = Set.unmodifiable({
-    for (var i = 0; i < terms.length; i++) ...terms[i].freeVariables,
-  });
+  late final Set<String> freeVariables = _unionAllFreeVariables(terms);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Add([for (final t in terms) t.substitute(variable, replacement)]);
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      Add([for (final t in terms) transform(t)]);
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final mapped = _mapExprList(terms, transform);
+    return identical(mapped, terms) ? this : Add(mapped);
+  }
 
   @override
   bool anyNode(bool Function(Expr) predicate) {
@@ -140,17 +155,13 @@ final class Mul extends Expr {
   late final int hashCode = Object.hash(Mul, Object.hashAll(factors));
 
   @override
-  late final Set<String> freeVariables = Set.unmodifiable({
-    for (var i = 0; i < factors.length; i++) ...factors[i].freeVariables,
-  });
+  late final Set<String> freeVariables = _unionAllFreeVariables(factors);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Mul([for (final f in factors) f.substitute(variable, replacement)]);
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      Mul([for (final f in factors) transform(f)]);
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final mapped = _mapExprList(factors, transform);
+    return identical(mapped, factors) ? this : Mul(mapped);
+  }
 
   @override
   bool anyNode(bool Function(Expr) predicate) {
@@ -188,12 +199,44 @@ final class Pow extends BinaryExpr {
   Expr get exponent => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => Pow(
-    base.substitute(variable, replacement),
-    exponent.substitute(variable, replacement),
-  );
+  Expr _withOperands(Expr left, Expr right) => Pow(left, right);
+}
 
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      Pow(transform(base), transform(exponent));
+Set<String> _unionFreeVariables(Set<String> a, Set<String> b) {
+  if (a.isEmpty) return b.isEmpty ? const <String>{} : b;
+  if (b.isEmpty) return a;
+  return Set.unmodifiable({...a, ...b});
+}
+
+Set<String> _unionAllFreeVariables(List<Expr> nodes) {
+  Set<String>? single;
+  Set<String>? merged;
+  for (var i = 0; i < nodes.length; i++) {
+    final vars = nodes[i].freeVariables;
+    if (vars.isEmpty) continue;
+    if (merged != null) {
+      merged.addAll(vars);
+    } else if (single == null) {
+      single = vars;
+    } else if (!identical(single, vars)) {
+      merged = {...single, ...vars};
+    }
+  }
+  if (merged != null) return Set.unmodifiable(merged);
+  return single ?? const <String>{};
+}
+
+List<Expr> _mapExprList(List<Expr> items, Expr Function(Expr) transform) {
+  List<Expr>? updated;
+  for (var i = 0; i < items.length; i++) {
+    final original = items[i];
+    final next = transform(original);
+    if (updated != null) {
+      updated[i] = next;
+    } else if (!identical(next, original)) {
+      updated = List<Expr>.of(items);
+      updated[i] = next;
+    }
+  }
+  return updated ?? items;
 }

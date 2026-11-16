@@ -3,8 +3,11 @@ import '../ast.dart';
 import '../calculus/product.dart';
 import '../calculus/summation.dart';
 import 'simplify/additive.dart';
+import 'simplify/complex.dart';
+import 'simplify/discrete.dart';
 import 'simplify/multiplicative.dart';
 import 'simplify/power.dart';
+import 'simplify/special.dart';
 import 'simplify/transcendental.dart';
 
 /// Canonical algebraic simplification extension on [Expr].

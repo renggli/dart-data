@@ -1,5 +1,5 @@
 import 'package:checks/checks.dart';
-import 'package:data/src/symbolic/calculus/definite_integration.dart';
+import 'package:data/src/symbolic/calculus/integration/definite.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 

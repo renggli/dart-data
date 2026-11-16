@@ -102,7 +102,7 @@ import 'src/symbolic/algebra/trig.dart';
 import 'src/symbolic/assumptions.dart';
 import 'src/symbolic/ast.dart';
 import 'src/symbolic/calculus/differentiation.dart';
-import 'src/symbolic/calculus/integration.dart';
+import 'src/symbolic/calculus/integration/integration.dart';
 import 'src/symbolic/calculus/limit.dart';
 import 'src/symbolic/calculus/multivariable.dart';
 import 'src/symbolic/calculus/series.dart';
@@ -132,7 +132,7 @@ export 'src/symbolic/assumptions.dart' show Assumptions;
 export 'src/symbolic/ast.dart';
 export 'src/symbolic/calculus/differentiation.dart'
     show DifferentiationExtension;
-export 'src/symbolic/calculus/integration.dart'
+export 'src/symbolic/calculus/integration/integration.dart'
     show IntegrationBound, IntegrationExtension;
 export 'src/symbolic/calculus/limit.dart' show LimitExtension;
 export 'src/symbolic/calculus/linear_form.dart' show LinearFormExtension;

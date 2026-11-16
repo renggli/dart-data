@@ -200,7 +200,7 @@ void main() {
           .isA<Derivative>();
       check(
         Product(
-          x * t,
+          Sin(x * t),
           't',
           IntegerNumber.one,
           const Variable('n'),
