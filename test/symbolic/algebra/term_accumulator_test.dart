@@ -151,6 +151,18 @@ void main() {
           .equals('sinh(x) ^ 2');
       check(Expr.parse('-1 + cosh(x)^2 + sinh(x)^2').simplify().toString())
           .equals('2 * sinh(x) ^ 2');
+
+      // Negative coefficients and scaled constant folds
+      check(Expr.parse('-cosh(x)^2 + sinh(x)^2').simplify())
+          .equals(IntegerNumber.negativeOne);
+      check(Expr.parse('-3*sin(x)^2 - 2*cos(x)^2').simplify())
+          .equals(Expr.parse('-2 - sin(x)^2').simplify());
+      check(Expr.parse('2 - 2*sin(x)^2').simplify())
+          .equals(Expr.parse('2*cos(x)^2').simplify());
+      check(Expr.parse('3 + 3*sinh(x)^2').simplify())
+          .equals(Expr.parse('3*cosh(x)^2').simplify());
+      check(Expr.parse('2*ln(2) + 2*ln(3) - 2*ln(6)').simplify())
+          .equals(IntegerNumber.zero);
     });
 
     test(

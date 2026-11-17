@@ -317,8 +317,10 @@ class MonomialAccumulator {
             hasReal = true;
           }
           constant = constant.add(sinCoeff);
-        } else if (!sinCoeff.isNegative && !cosCoeff.isNegative) {
-          final m = sinCoeff.compareTo(cosCoeff) < 0 ? sinCoeff : cosCoeff;
+        } else if (sinCoeff.sign == cosCoeff.sign) {
+          final m = sinCoeff.abs().compareTo(cosCoeff.abs()) < 0
+              ? sinCoeff
+              : cosCoeff;
           final newSin = sinCoeff.subRational(m);
           final newCos = cosCoeff.subRational(m);
           if (newSin.isZero) {
@@ -339,10 +341,11 @@ class MonomialAccumulator {
       }
     }
 
-    if (constant == IntegerNumber.one) {
+    if (constant case final RationalNumber c when !c.isZero) {
+      final negC = c.neg();
       for (final MapEntry(:key, :value) in terms.entries.toList()) {
         final uSin = _isSquareOfSin(key);
-        if (uSin != null && value == IntegerNumber.negativeOne) {
+        if (uSin != null && value == negC) {
           terms.remove(key);
           constant = IntegerNumber.zero;
           final exp = key is Pow ? key.exponent : IntegerNumber.two;
@@ -352,13 +355,11 @@ class MonomialAccumulator {
             isSimplified: true,
           );
           final existing = terms[cos2];
-          terms[cos2] = existing == null
-              ? IntegerNumber.one
-              : existing.add(IntegerNumber.one);
+          terms[cos2] = existing == null ? c : existing.add(c);
           break;
         }
         final uCos = _isSquareOfCos(key);
-        if (uCos != null && value == IntegerNumber.negativeOne) {
+        if (uCos != null && value == negC) {
           terms.remove(key);
           constant = IntegerNumber.zero;
           final exp = key is Pow ? key.exponent : IntegerNumber.two;
@@ -368,9 +369,7 @@ class MonomialAccumulator {
             isSimplified: true,
           );
           final existing = terms[sin2];
-          terms[sin2] = existing == null
-              ? IntegerNumber.one
-              : existing.add(IntegerNumber.one);
+          terms[sin2] = existing == null ? c : existing.add(c);
           break;
         }
       }
@@ -393,7 +392,7 @@ class MonomialAccumulator {
       if (sinhSquares.containsKey(u)) {
         final (coshKey, coshCoeff) = coshSquares[u]!;
         final (sinhKey, sinhCoeff) = sinhSquares[u]!;
-        if (coshCoeff == sinhCoeff.neg() && !coshCoeff.isNegative) {
+        if (coshCoeff == sinhCoeff.neg()) {
           terms.remove(coshKey);
           terms.remove(sinhKey);
           if (_hasRealExponent(coshKey) || _hasRealExponent(sinhKey)) {
@@ -404,10 +403,11 @@ class MonomialAccumulator {
       }
     }
 
-    if (constant == IntegerNumber.one) {
+    if (constant case final RationalNumber c when !c.isZero) {
+      final negC = c.neg();
       for (final MapEntry(:key, :value) in terms.entries.toList()) {
         final uSinh = _isSquareOfSinh(key);
-        if (uSinh != null && value == IntegerNumber.one) {
+        if (uSinh != null && value == c) {
           terms.remove(key);
           constant = IntegerNumber.zero;
           final cosh2 = Pow(
@@ -416,18 +416,11 @@ class MonomialAccumulator {
             isSimplified: true,
           );
           final existing = terms[cosh2];
-          terms[cosh2] = existing == null
-              ? IntegerNumber.one
-              : existing.add(IntegerNumber.one);
+          terms[cosh2] = existing == null ? c : existing.add(c);
           break;
         }
-      }
-    }
-
-    if (constant == IntegerNumber.negativeOne) {
-      for (final MapEntry(:key, :value) in terms.entries.toList()) {
         final uCosh = _isSquareOfCosh(key);
-        if (uCosh != null && value == IntegerNumber.one) {
+        if (uCosh != null && value == negC) {
           terms.remove(key);
           constant = IntegerNumber.zero;
           final sinh2 = Pow(
@@ -436,9 +429,7 @@ class MonomialAccumulator {
             isSimplified: true,
           );
           final existing = terms[sinh2];
-          terms[sinh2] = existing == null
-              ? IntegerNumber.one
-              : existing.add(IntegerNumber.one);
+          terms[sinh2] = existing == null ? negC : existing.add(negC);
           break;
         }
       }
@@ -449,37 +440,64 @@ class MonomialAccumulator {
     final lnEntries = [
       for (final e in terms.entries)
         if (e.key is Ln &&
-            e.value is RationalNumber &&
-            (e.value.isOne || e.value.isNegativeOne) &&
+            e.value is IntegerNumber &&
+            !e.value.isZero &&
             isPositiveExpr((e.key as Ln).expr, assumptions: assumptions))
-          e,
+          (key: e.key, coeff: e.value as IntegerNumber),
     ];
 
     if (simplify != null && lnEntries.length >= 2) {
+      var g = lnEntries.first.coeff.value.abs();
+      for (var i = 1; i < lnEntries.length; i++) {
+        g = g.gcd(lnEntries[i].coeff.value.abs());
+      }
+      final scaled = [
+        for (final entry in lnEntries)
+          (key: entry.key, exp: (entry.coeff.value ~/ g).asInt),
+      ];
+      if (scaled.any((e) => e.exp == null || e.exp!.abs() > 8)) return;
+
       Expr? num;
       Expr? den;
 
-      for (final MapEntry(key: lnKey, :value) in lnEntries) {
-        final inner = (lnKey as Ln).expr;
-        if (value.isOne) {
+      for (final (:key, :exp) in scaled) {
+        final inner = (key as Ln).expr;
+        final s = exp!;
+        if (s > 0) {
+          final factor = s == 1
+              ? inner
+              : simplifyPow(
+                  inner,
+                  IntegerNumber.of(s),
+                  assumptions: assumptions,
+                );
           num = num == null
-              ? inner
-              : simplifyMul([num, inner], assumptions: assumptions);
+              ? factor
+              : simplifyMul([num, factor], assumptions: assumptions);
         } else {
-          den = den == null
+          final posExp = -s;
+          final factor = posExp == 1
               ? inner
-              : simplifyMul([den, inner], assumptions: assumptions);
+              : simplifyPow(
+                  inner,
+                  IntegerNumber.of(posExp),
+                  assumptions: assumptions,
+                );
+          den = den == null
+              ? factor
+              : simplifyMul([den, factor], assumptions: assumptions);
         }
-        terms.remove(lnKey);
+        terms.remove(key);
       }
 
+      final gNum = IntegerNumber(g);
       if (num != null && den != null) {
         final ratio = simplifyDiv(num, den, assumptions: assumptions);
         final combined = simplifyLn(ratio, assumptions: assumptions);
-        add(combined, IntegerNumber.one);
+        add(combined, gNum);
       } else if (num != null) {
         final combined = simplifyLn(num, assumptions: assumptions);
-        add(combined, IntegerNumber.one);
+        add(combined, gNum);
       } else if (den != null) {
         final inv = simplifyPow(
           den,
@@ -487,7 +505,7 @@ class MonomialAccumulator {
           assumptions: assumptions,
         );
         final combined = simplifyLn(inv, assumptions: assumptions);
-        add(combined, IntegerNumber.one);
+        add(combined, gNum);
       }
     }
   }
