@@ -113,7 +113,7 @@ _PolyMonomial? _parsePolyMonomial(Expr expr) => switch (expr) {
   ]),
   Pow(base: final Variable base, exponent: final IntegerNumber exp) =>
     _PolyMonomial(IntegerNumber.one, [_PolyFactor(base, exp, expr)]),
-  Mul(:final factors) => () {
+  Mul(:final factors, isSimplified: true) => () {
     Number coeff = IntegerNumber.one;
     final polyFactors = <_PolyFactor>[];
     for (final f in factors) {

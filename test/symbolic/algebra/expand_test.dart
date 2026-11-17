@@ -94,5 +94,13 @@ void main() {
       final trig = Expr.parse('sin((x + 1)^2)').expand();
       check(trig.toString()).equals('sin(1 + 2 * x + x ^ 2)');
     });
+
+    test('handles unsimplified monomials without duplicating factors', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      check(
+        ((y * x + IntegerNumber.one) * (x * y + IntegerNumber.one)).expand(),
+      ).equals(Expr.parse('1 + 2*x*y + x^2*y^2').simplify());
+    });
   });
 }
