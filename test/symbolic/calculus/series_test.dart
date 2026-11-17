@@ -261,6 +261,21 @@ void main() {
 
       check(LambertW(x).series('x', order: 4).toString())
           .equals('x - x ^ 2 + 3/2 * x ^ 3 + O(x^4)');
+      check(
+        LambertW(x).series('x', point: Constant.e, order: 3).simplify(),
+      ).equals(
+        Expr.parse('1 + (x - e)/(2*e) - 3*(x - e)^2/(16*e^2) + O((x - e)^3)')
+            .simplify(),
+      );
+      check(() => Expr.parse('asin(x)').series('x', point: 1, order: 3))
+          .throws<UnsupportedError>();
+      check(() => Expr.parse('atanh(x)').series('x', point: 1, order: 3))
+          .throws<UnsupportedError>();
+      check(
+        () =>
+            LambertW(x)
+                .series('x', point: -IntegerNumber.one / Constant.e, order: 3),
+      ).throws<UnsupportedError>();
 
       check(Erf(x).series('x', order: 4).removeOrder().evaluate({'x': 0.1}))
           .isCloseTo(Erf(x).evaluate({'x': 0.1}), 1e-5);
@@ -328,8 +343,6 @@ void main() {
           .throws<UnsupportedError>();
       check(() => Ln(x).series('x')).throws<UnsupportedError>();
       check(() => Abs(x).series('x')).throws<UnsupportedError>();
-      check(() => LambertW(x + IntegerNumber.one).series('x'))
-          .throws<UnsupportedError>();
       check(() => LambertW(x, branch: -1).series('x'))
           .throws<UnsupportedError>();
       check(() => Acosh(x).series('x')).throws<UnsupportedError>();

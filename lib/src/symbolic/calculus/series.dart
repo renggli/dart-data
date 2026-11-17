@@ -1012,6 +1012,9 @@ PowerSeries _expandAsin(Expr inner, String variable, Expr point, int order) {
   final uPrime = u.derivative();
   final oneMinusU2 =
       PowerSeries(variable, point, {0: IntegerNumber.one}, order) - (u * u);
+  if (PowerSeries._isZero(oneMinusU2.constantTerm)) {
+    throw UnsupportedError('Branch point singularity');
+  }
   final invSqrt = oneMinusU2.pow(FractionNumber.negativeHalf);
   final deriv = uPrime * invSqrt;
   final constant = Asin(u0).simplify();
@@ -1100,14 +1103,20 @@ PowerSeries _expandLambertW(
 ) {
   final u = _expandToPowerSeries(inner, variable, point, order);
   _checkNoPole(u, 'lambertw');
-  if (!PowerSeries._isZero(u.constantTerm)) {
-    throw UnsupportedError(
-      'Lambert W series expansion around non-zero value not supported',
-    );
+  final c0 = u.constantTerm.simplify();
+  if (c0 == (-Pow(Constant.e, IntegerNumber.negativeOne)).simplify()) {
+    throw UnsupportedError('LambertW branch point at -1/e');
+  }
+  if (!PowerSeries._isZero(c0)) {
+    return _expandTaylorSeries(LambertW(inner), variable, point, order);
+  }
+  if (u.coefficients.isEmpty) {
+    return PowerSeries(variable, point, const {}, order);
   }
   var res = PowerSeries(variable, point, const {}, order);
   var uPow = PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
-  for (var k = 1; k < order; k++) {
+  final val = u.valuation;
+  for (var k = 1; k * val < order; k++) {
     uPow = uPow * u;
     final ck = _lambertWMaclaurinCoeff(k);
     res = res + uPow.scale(ck);
@@ -1377,6 +1386,9 @@ PowerSeries _expandAcosh(Expr inner, String variable, Expr point, int order) {
   final u2MinusOne =
       (u * u) -
       PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
+  if (PowerSeries._isZero(u2MinusOne.constantTerm)) {
+    throw UnsupportedError('Branch point singularity');
+  }
   final invSqrt = u2MinusOne.pow(FractionNumber.negativeHalf);
   final deriv = uPrime * invSqrt;
   final constant = Acosh(u0).simplify();
@@ -1391,6 +1403,9 @@ PowerSeries _expandAtanh(Expr inner, String variable, Expr point, int order) {
   final oneMinusU2 =
       PowerSeries(variable, point, const {0: IntegerNumber.one}, order) -
       (u * u);
+  if (PowerSeries._isZero(oneMinusU2.constantTerm)) {
+    throw UnsupportedError('Branch point singularity');
+  }
   final deriv = uPrime / oneMinusU2;
   final constant = Atanh(u0).simplify();
   return deriv.integrate(constant: constant);
