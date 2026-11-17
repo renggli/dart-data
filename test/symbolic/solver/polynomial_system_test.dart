@@ -97,5 +97,27 @@ void main() {
       ].solve(['x', 'y'], method: PolynomialSystemMethod.groebner);
       check(posDim).isEmpty();
     });
+
+    test('preserves radical roots during back-substitution verification', () {
+      final sols = [
+        Expr.parse('x^2 - 2*x - 1'),
+        Expr.parse('y - x^2'),
+      ].solve(['x', 'y']);
+      check(sols.length).equals(2);
+      final expanded = [
+        for (final s in sols)
+          s.map((k, v) => MapEntry(k, v.expand().simplify())),
+      ]..sort((a, b) => a['x']!.evaluate().compareTo(b['x']!.evaluate()));
+      check(expanded).deepEquals([
+        {
+          'x': Expr.parse('1 - sqrt(2)').simplify(),
+          'y': Expr.parse('3 - 2*sqrt(2)').simplify(),
+        },
+        {
+          'x': Expr.parse('1 + sqrt(2)').simplify(),
+          'y': Expr.parse('3 + 2*sqrt(2)').simplify(),
+        },
+      ]);
+    });
   });
 }

@@ -280,17 +280,18 @@ class BareissEngine {
     if (den == IntegerNumber.negativeOne) return (-num).expand().simplify();
     if (_isExprZero(num)) return IntegerNumber.zero;
 
-    // Fast-path: direct simplification
-    final direct = (num / den).simplify();
-    if (!_hasDiv(direct)) return direct;
+    // (a) Numeric divisor: direct division
+    if (den is Number) {
+      return (num / den).expand().simplify();
+    }
 
-    // Polynomial long division path (univariate or multivariate)
+    // (b) Polynomial long division path (univariate or multivariate)
     final polyDiv = _polynomialLongDivide(num, den);
     if (polyDiv != null && !_hasDiv(polyDiv)) {
       return polyDiv;
     }
 
-    // Factored cancellation path
+    // (c) Factored cancellation fallback
     final cancelled = cancelFactoredFraction(
       num.factor(),
       den.factor(),
@@ -313,7 +314,7 @@ class BareissEngine {
       if (allClean && !_hasDiv(current)) return current.expand().simplify();
     }
 
-    return direct;
+    return (num / den).simplify();
   }
 
   static Expr? _polynomialLongDivide(Expr num, Expr den) {

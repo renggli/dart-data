@@ -161,7 +161,7 @@ void _backSubstitute(
       for (final MapEntry(:key, :value) in currentSolution.entries) {
         val = val.substitute(key, value);
       }
-      val = val.simplify();
+      val = val.expand().simplify();
       if (!isZeroExpr(val)) return;
     }
     results.add(Map<String, Expr>.of(currentSolution));
@@ -219,7 +219,10 @@ void _backSubstitute(
     var satisfiesAll = true;
     for (var i = 0; i < univariateEqs.length; i++) {
       if (i == primaryIdx) continue;
-      final val = univariateEqs[i].substitute(currentVar, rSimp).simplify();
+      final val = univariateEqs[i]
+          .substitute(currentVar, rSimp)
+          .expand()
+          .simplify();
       if (!isZeroExpr(val)) {
         satisfiesAll = false;
         break;
