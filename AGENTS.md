@@ -17,7 +17,7 @@
 - **Algebraic Container Integration**: The `symbolic` subsystem integrates natively with foundational algebraic container subsystems (`package:data/type.dart`, `package:data/linear.dart`, `package:data/polynomial.dart`). `symbolic` exports `ExprDataType` and `ExprField` implementing `ExtendedField<Expr>`, enabling first-class `Matrix<Expr>`, `Vector<Expr>`, and multivariate polynomial matrices without compromising numeric decoupling. Multivariable calculus operators (`gradient`, `hessian`, `jacobian`) must return first-class `Vector<Expr>` and `Matrix<Expr>` containers rather than raw lists.
 - **Exact Symbolic Numeric Representation & Unified N-ary AST**: In `package:data/symbolic.dart`, atomic numbers form a unified `Number` tower (`IntegerNumber`, `FractionNumber`, `RealNumber`, `ComplexNumber`) backed by a zero-cost `Integer` extension type (`int | BigInt`) that promotes and demotes transparently. `RationalNumber` (`IntegerNumber` and `FractionNumber`) and Gaussian/rational `ComplexNumber(real, imaginary)` (`ComplexNumber.i`) are single atomic AST nodes that auto-demote when the denominator is $1$ or the imaginary part is $0$. Named constants (`Constant.pi`, `Constant.e`, `Constant.infinity`, `Constant.undefined`) are opaque `Constant` expressions (not `Number`s) whose numeric `value` is used only for numeric evaluation, numeric approximation (`approximate()`), and sign queries. Variables (`Variable(name)`) are identified purely by name, while domain assumptions (`VariableDomain`: `unknown`, `complex`, `real`, `positive`, `integer`) are supplied via an immutable chainable `Assumptions` value class (`{Assumptions assumptions = Assumptions.none}`) and respected by simplification (`sqrt(x^2)`, `abs(x)`) and equation solving (`solve`). Arithmetic operators use a unified n-ary AST (`Add(terms)`, `Mul(factors)`, `Pow(base, exponent)`) without separate `Sub`, `Div`, `Neg`, or `Exp` classes: subtraction is `a + (-b)`, negation is `Mul([-1, x])`, division is `a * Pow(b, -1)`, and `exp(x)` is `Pow(Constant.e, x)`. Iterated operations unify under the sealed class `IteratedExpr` (`Sum`, `Product`). Default leaf implementations on `Expr` eliminate boilerplate in `Constant`, `Number`, and `Variable`. Composite AST nodes cache their structural `hashCode` via `late final int hashCode` for $O(1)$ equality short-circuiting and DAG subexpression deduplication. Symbolic integration (`integrate`) returns an unevaluated `Integral` AST node when no elementary closed-form antiderivative exists rather than throwing exceptions. Construction and parsing preserve input order, while `.simplify()` combines like terms/exponents, extracts integer radicals (`sqrt(12) -> 2 * sqrt(3)`), and sorts additive terms in increasing degree order (`1 + x + x^2 + O(x^3)`). Floating-point numbers (`RealNumber`) are strictly numeric values and must never be treated as symbols or inferred as exact expressions: real numbers simplify down to numeric results only, and there must never be automatic inference or guessing of real numbers to rational numbers or exact constants (e.g., $\sqrt{2}$, $\sqrt{3}$, $\pi$, $e$). Real-to-rational conversion is supported exclusively as an explicit, separate operation via `.rationalize()`. When algebraic, transcendental, or power operations are applied to `RealNumber` inputs, they evaluate directly to numeric `RealNumber` results rather than constructing symbolic expressions or matching exact angle/radical identities. Floating-point numbers are only created when explicitly parsed from a decimal/scientific literal or constructed directly; symbolic transformations never fall back to `RealNumber` unless a `RealNumber` is already present in the input expression or `.approximate()` is invoked.
 - **No String-Based Symbol Assumptions**: Never assume constants, variables, or functions are present or carry mathematical semantics purely by name (e.g., matching `VariableFunction` or `Variable` by string name in simplification, differentiation, or integration). Every mathematical constant, special function, or operator requires a proper first-class AST node implementation (e.g., in `lib/src/symbolic/ast/special_function.dart`) with full support across parsing, formatting, simplification, evaluation, and calculus.
-- **Sub-package Modularization & Directory Symmetry**: Functional modules must be decomposed into dedicated sub-packages within `lib/src/<subsystem>/<feature>/` (e.g., `calculus/`, `ode/`, `root_finding/`, `interpolation/`, `hypothesis/`, `resampling/`, `arrow/`, `blas/`, `lapack/`, `fft/`, `vforce/`). Avoid monolithic files. Test suites in `test/` must strictly mirror this layout 1:1. Intermediate internal barrel files inside `lib/src/` are prohibited; root `lib/<subsystem>.dart` files must export public declarations directly (conditional platform export selectors such as `library_loader.dart` and `arrow_c_data.dart` are allowed exceptions).
+- **Sub-package Modularization**: Decompose functional modules into dedicated sub-packages within `lib/src/<subsystem>/<feature>/` (e.g., `calculus/`, `ode/`, `root_finding/`, `interpolation/`, `hypothesis/`, `resampling/`, `arrow/`, `blas/`, `lapack/`, `fft/`, `vforce/`), and avoid monolithic files.
 - **Mathematical Completeness & Ergonomics**: Preserve analytical and numerical capabilities: infinite/semi-infinite integration domains via coordinate substitution ($[-\infty, \infty]$, $[a, \infty)$, $(-\infty, b]$), singular pole partitioning, convergence error/warning contracts, high-order differentiation stencils (orders 1–6, up to 8 points), high-level parametric curve fitting with confidence metrics, coordinate sampling grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`), adaptive curve sampling with discontinuity detection (`sampleCurve`), natural 2D matrix indexing (`matrix[r][c]`), general least-squares matrix solves (`Matrix.solve` for rectangular and matrix RHS), and memory-efficient sparse polynomials.
 - **Web Applications & Mathematical Typography**: Mathematical notation rendered in HTML/MathML across web applications and documentation must match LaTeX typesetting standards in visual rigor, elegance, and consistency:
   - **LaTeX Quality Rendering & Label Symmetry**: All UI labels, headers, toggles, and computed telemetry attributes must maintain 1:1 mathematical and typographic consistency with the library's MathML and LaTeX output. Plain-text mathematical approximations (such as `lim x->0`, `sum`, or raw prime notation) are prohibited where MathML or proper typography applies.
@@ -29,14 +29,14 @@
   - **Inline & Compact UI Metrics**: In compact telemetry rows and tables, math elements must have uniform sizing, baseline alignment, and non-clipping line heights (`line-height: normal; vertical-align: middle;`) matching adjacent descriptive labels.
 
 ## Comments, Documentation and Examples
-  
+
 - Use triple-slash (`///`) doc comments for all public members.
-- Use square brackets (`[Name]`) to link all class, constructor, method, and type references within doc comments (e.g., `[DataFrame]`, `[Vector.filled]`, `[Matrix]`, `[Polynomial.fromCoefficients]`). Ensure all bracketed identifiers resolve cleanly without linter warnings (`comment_references`). Use markdown sparingly.
+- Use square brackets (`[Name]`) to link all class, constructor, method, and type references within doc comments (e.g., `[DataFrame]`, `[Vector.filled]`, `[Matrix]`, `[Polynomial.fromCoefficients]`). Use markdown sparingly.
+- Escape square brackets in mathematical formulas (e.g., `R\[x\]`, `\[a, b\]`) or enclose them in backticks so all bracketed references resolve cleanly without triggering `comment_references` analyzer warnings.
 - Do not use LaTeX statements (`$...$` or `$$...$$`) in markdown or Dartdoc documentation; LaTeX syntax is not supported by Dart markdown documentation. Use plain Unicode mathematical notation or code spans instead.
-- Escape square brackets in mathematical formulas (e.g., `R\[x\]`, `\[a, b\]`) or enclose in backticks to prevent the Dart analyzer from treating them as in-scope symbol references and triggering `comment_references` warnings.
-- Start with a concise, single-sentence summary headline. When further explanation is needed, transition seamlessly into an accessible, intuitive conceptual explanation followed by mathematically rigorous definitions, properties, and formulas.
+- Start with a concise, single-sentence summary headline. When further explanation is needed, follow with a blank line and transition seamlessly into an accessible, intuitive conceptual explanation alongside mathematically rigorous definitions, properties, formulas, edge cases, parameters, and error handling.
 - Never use condescending audience labels (e.g., do not write "For high school students", "For students", or "For mathematicians"). Present conceptual intuition and mathematical rigor naturally as complementary layers of understanding for all readers.
-- Include code examples for non-trivial public APIs. Ensure examples are well-formatted, accurate, and relevant. Verify that examples compile and produce the advertised output.
+- Include code examples for non-trivial public APIs. Ensure examples are well-formatted, accurate, and relevant, and verify that they compile and produce the advertised output.
 
 ## Coding Style and Conventions
 
@@ -45,7 +45,7 @@
 - File names must use snake-case (e.g., `recipe_card.dart`).
 - Class names, enums, and extensions must use upper camel-case (e.g., `RecipeCard`).
 - Private class members, variables, and functions (visible only within the file) must be prefixed with an underscore `_`.
-- Avoid one-letter variables; unless in loops (i, j, k, ...), referring to axis (x, y, z, ...), or ranges/pairs (a, b).
+- Use descriptive, intention-revealing names that communicate purpose. Avoid single-letter variables except for standard loop counters (`i`, `j`, `k`, ...), axes (`x`, `y`, `z`, ...), or ranges/pairs (`a`, `b`).
 
 ### Ordering
 
@@ -57,30 +57,33 @@
 
 - Adhere to the `directives_ordering` linter rule: `dart:` imports first, then `package:` imports, then relative imports.
 - Within `lib/`, prefer relative imports (e.g., `import 'src/utils.dart';`) over package imports.
+- All imports must be in a single block, not split into multiple import blocks.
 
 ### Code Quality
 
 - The code must be auto-formatted (run `dart format .`).
 - The code must be free of linter warnings (run `dart analyze` and `dart fix --apply`).
 - Embrace strict null safety. Avoid using the non-null assertion operator (`!`) or `dynamic` types, if possible.
-- Never use positional record field accessors (`.$1`, `.$2`, etc.). Prefer named record fields (or `typedef`s with named fields.
+- Never use positional record field accessors (`.$1`, `.$2`, etc.). Prefer named record fields or `typedef`s with named fields.
 
 ## Logic and Patterns
 
 ### Asynchrony
 
-- Prefer `async` / `await` syntax over chaining `Future.then`, `Future.catchError`, ...
+- Prefer `async` / `await` syntax over chaining `Future.then`, `Future.catchError`, etc.
 - Always return `Future<void>` instead of `void` for asynchronous functions.
 
 ### Error Handling
 
-- Throw specific exceptions (e.g., `ArgumentError`, `StateError`, `FormatException`) rather than generic `Exception`.
-- Catch specific exceptions. Avoid generic `catch (e)` unless you are logging the error or rethrowing it.
+- **Throw Specific Exceptions**: Never throw generic `Exception` or `String` objects. Always throw specialized exceptions (e.g., `ArgumentError`, `StateError`, `FormatException`) to provide clear context.
+- **Catch Narrowly**: Avoid catching generic `Error` or `Exception` types, and never use blank catch blocks (`catch (_)`) or try-catch blocks without rethrowing, as they swallow critical failures.
+- **Prevent, Don't Catch**: Do not use exception handling for predictable control flow. If a framework or class provides a non-throwing alternative (e.g., `int.tryParse()` vs `int.parse()`), always prefer the safe method.
 
 ## Architecture
 
 - Keep the root `lib/` directory clean. Root files (`lib/*.dart`) are pure public API export facades and the umbrella `lib/data.dart`. Do not put implementation logic in root `lib/*.dart`.
 - Place implementation details in `lib/src/<library>/`. Users of the package should not import files from `lib/src/` directly.
+- Exports are only allowed in `lib/*.dart`—intermediate internal barrel files inside `lib/src/` are prohibited, and root `lib/<subsystem>.dart` files must export public declarations directly (conditional platform export selectors such as `library_loader.dart` and `arrow_c_data.dart` are allowed exceptions).
 - Nothing must depend on the umbrella library `lib/data.dart`.
 - The sub-library dependency graph (the dependencies between `lib/src/<library>/` directories) must form a strict Directed Acyclic Graph (DAG) with zero cycles.
 - Place cross-cutting utilities without domain coupling in `lib/src/shared/` to prevent circular dependencies between sub-libraries.
@@ -91,9 +94,10 @@
 
 ## Testing
 
-- All code must be accompanied by unit tests in the `test/` folder.
-- Structure the tests following the same folder structure as the code under test (e.g., `lib/src/foo/bar.dart` -> `test/foo/bar_test.dart`). Maintain a strict parallel hierarchy matching `lib/src/`.
+- All code must be accompanied by unit tests in the `test/` folder, aiming for meaningful unit test coverage near 100%.
+- Structure tests to strictly mirror `lib/src/` 1:1 (e.g., `lib/src/foo/bar.dart` -> `test/foo/bar_test.dart`).
 - Never create or commit test files with cryptic, chat-specific, milestone, or temporary names (e.g., `complex_challenge_*_test.dart`, `m2_*_test.dart`, `*_stress_test.dart`, `*_challenge_test.dart`). All committed tests, stress cases, and challenge suites must be cleanly integrated into their canonical test files.
-- Use the Dart `checks` framework (`package:checks`) to assert expected behavior (e.g., `check(result).equals('expected')`, `check(list).isEmpty()`). Prefer `check(...)` assertions over legacy `expect`.
+- Use the Dart `checks` framework (`package:checks` and `package:test/scaffolding.dart`; avoid `package:test/expect.dart`) to assert expected behavior (e.g., `check(result).equals('expected')`, `check(list).isEmpty()`).
+- Create reusable domain-specific checks where it makes sense.
 - Group tests by functionality using `group('description', () { ... })`. Avoid declaring a single top-level group in a file.
 - Avoid groups with a single monolithic test that bundles multiple disparate checks (e.g., combining sampling, fitting, constructor validation, errors, equality, and formatting). Split tests into short, descriptive cases with a couple of related assertions each (e.g., separate tests for moments/bounds, probability density/mass, cumulative distribution/survival, quantiles, sampling, fitting, error validation, equality/hashCode, and string conversion) so failures isolate the exact issue without terminating unrelated assertions.
