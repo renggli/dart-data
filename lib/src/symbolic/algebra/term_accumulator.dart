@@ -836,15 +836,6 @@ Map<int, Expr>? extractPolynomialCoefficients(Expr expr, String variable) {
   return acc.extractPolynomialCoefficients(variable);
 }
 
-bool _needsExpansion(Expr expr) => expr.anyNode(
-  (n) => switch (n) {
-    Mul(:final factors) => factors.any((f) => f is Add),
-    Pow(:final base, exponent: IntegerNumber(asInt: final e?)) when e > 0 =>
-      base is Add,
-    _ => false,
-  },
-);
-
 /// Returns the maximum degree `k >= 0` with a non-zero coefficient in [coeffs],
 /// or `-1` if [coeffs] has no non-zero terms.
 int maxPolynomialDegree(Map<int, Expr> coeffs) {
@@ -988,3 +979,12 @@ int? _asPositiveInt(Expr exponent) => switch (exponent) {
     value.round(),
   _ => null,
 };
+
+bool _needsExpansion(Expr expr) => expr.anyNode(
+  (n) => switch (n) {
+    Mul(:final factors) => factors.any((f) => f is Add),
+    Pow(:final base, exponent: IntegerNumber(asInt: final e?)) when e > 0 =>
+      base is Add,
+    _ => false,
+  },
+);

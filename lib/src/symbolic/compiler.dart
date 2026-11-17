@@ -12,15 +12,6 @@ import 'compiler/evaluator.dart';
 /// Extension providing zero-allocation high-throughput bytecode compilation of
 /// symbolic expressions.
 extension CompilerExtension on Expr {
-  static final _cache = Expando<BytecodeEvaluator>();
-
-  BytecodeEvaluator _cachedEvaluator() => _cache[this] ??= compileToBytecode(
-    this,
-    const [],
-    optimize: false,
-    allowDynamicVars: true,
-  );
-
   /// Evaluates this expression to a `double` given variable bindings in [context].
   ///
   /// Throws an [ArgumentError] if any free variable in this expression is
@@ -206,6 +197,15 @@ extension CompilerExtension on Expr {
       allowDynamicVars: variables == null,
     );
   }
+
+  BytecodeEvaluator _cachedEvaluator() => _cache[this] ??= compileToBytecode(
+    this,
+    const [],
+    optimize: false,
+    allowDynamicVars: true,
+  );
+
+  static final _cache = Expando<BytecodeEvaluator>();
 }
 
 /// Extension providing compilation of collections of symbolic expressions.

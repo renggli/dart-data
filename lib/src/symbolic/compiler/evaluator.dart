@@ -80,17 +80,6 @@ final class BytecodeEvaluator {
   @visibleForTesting
   int get innerCompileCount => _innerCompileCount;
 
-  BytecodeEvaluator _compileInner(Expr expr) =>
-      _innerPrograms.putIfAbsent(expr, () {
-        _innerCompileCount++;
-        return compileToBytecode(
-          expr,
-          const [],
-          optimize: false,
-          allowDynamicVars: true,
-        );
-      });
-
   /// Asserts that this evaluator produces a real value when bound to a
   /// real-valued evaluation target.
   void checkRealSupported() {
@@ -934,6 +923,17 @@ final class BytecodeEvaluator {
       if (!reentrant) _complexBusy = false;
     }
   }
+
+  BytecodeEvaluator _compileInner(Expr expr) =>
+      _innerPrograms.putIfAbsent(expr, () {
+        _innerCompileCount++;
+        return compileToBytecode(
+          expr,
+          const [],
+          optimize: false,
+          allowDynamicVars: true,
+        );
+      });
 }
 
 double _evalRealBinomial(double n, double k) {

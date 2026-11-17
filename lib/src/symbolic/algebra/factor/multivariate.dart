@@ -74,22 +74,6 @@ Expr? extractMonomialGcd(List<Expr> terms) {
   };
 }
 
-void _collectFactorPowers(Expr expr, Map<Expr, int> target) {
-  switch (expr) {
-    case Number(isOne: true):
-      return;
-    case Pow(:final base, exponent: IntegerNumber(asInt: final exp?))
-        when exp > 0:
-      target[base] = (target[base] ?? 0) + exp;
-    case Mul(:final factors):
-      for (final factor in factors) {
-        _collectFactorPowers(factor, target);
-      }
-    default:
-      target[expr] = (target[expr] ?? 0) + 1;
-  }
-}
-
 /// Collects variable powers and residual non-variable symbolic factors in a product monomial.
 void collectVariablePowers(
   Expr expr,
@@ -294,3 +278,19 @@ Expr? extractBaseCubeRoot(Expr expr) => switch (expr) {
 
 /// Tests whether [expr] equals scalar $1$.
 bool isOne(Expr expr) => expr is Number && expr.isOne;
+
+void _collectFactorPowers(Expr expr, Map<Expr, int> target) {
+  switch (expr) {
+    case Number(isOne: true):
+      return;
+    case Pow(:final base, exponent: IntegerNumber(asInt: final exp?))
+        when exp > 0:
+      target[base] = (target[base] ?? 0) + exp;
+    case Mul(:final factors):
+      for (final factor in factors) {
+        _collectFactorPowers(factor, target);
+      }
+    default:
+      target[expr] = (target[expr] ?? 0) + 1;
+  }
+}
