@@ -131,7 +131,17 @@ void main() {
         verifyAntiderivative(Pow(Cosh(lin), IntegerNumber.of(4)));
 
         // Negative float powers:
-        check(Expr.parse('x^(-1.0)').integrate('x')).equals(Ln(x));
+        check(Expr.parse('x^(-1.0)').integrate('x')).equals(Ln(Abs(x)));
+        check(Expr.parse('1/x').integrate('x'))
+            .equals(Expr.parse('ln(abs(x))'));
+        check(
+          Expr.parse('1/x').integrate(
+            'x',
+            assumptions: Assumptions.none.assume('x', VariableDomain.positive),
+          ),
+        ).equals(Expr.parse('ln(x)'));
+        check(Expr.parse('tan(x)').integrate('x'))
+            .equals(Expr.parse('-ln(abs(cos(x)))').simplify());
 
         check(Pow(IntegerNumber.of(-2), x).integrate('x')).isA<Integral>();
         check(Pow(x, x).integrate('x')).isA<Integral>();

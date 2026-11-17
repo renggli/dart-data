@@ -96,68 +96,139 @@ Expr evaluateDefiniteIntegral(
 
     if (!hasInteriorPole) {
       final effectiveAntiDeriv = wrapLnWithAbs(antiDeriv, assumptions);
-      try {
-        final upper = isInfiniteBound(toExpr)
-            ? effectiveAntiDeriv.limit(
-                variable,
-                toExpr,
-                assumptions: assumptions,
-              )
-            : effectiveAntiDeriv.substitute(variable, toExpr);
-        final lower = isInfiniteBound(fromExpr)
-            ? effectiveAntiDeriv.limit(
-                variable,
-                fromExpr,
-                assumptions: assumptions,
-              )
-            : effectiveAntiDeriv.substitute(variable, fromExpr);
-        final diff = (upper - lower).simplify(assumptions: assumptions);
-        if (!diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
-          return diff;
-        }
-      } on Object {
-        // Fall through to definite integral special cases or endpoint limit.
+      final List<({double value, Expr expr})>? jumps;
+      if (numFrom != null && numTo != null && !numFrom.isNaN && !numTo.isNaN) {
+        final low = numFrom < numTo ? numFrom : numTo;
+        final high = numFrom < numTo ? numTo : numFrom;
+        jumps = _antiderivativeJumps(
+          effectiveAntiDeriv,
+          variable,
+          low,
+          high,
+          assumptions,
+        );
+      } else {
+        jumps = const [];
       }
 
-      // Try one-sided limits at finite endpoints (e.g. int_0^1 ln(x) dx)
-      try {
-        final isAscending =
-            (evaluateBoundNumeric(fromExpr) ?? 0.0) <=
-            (evaluateBoundNumeric(toExpr) ?? 1.0);
-        final upper = isInfiniteBound(toExpr)
-            ? effectiveAntiDeriv.limit(
-                variable,
-                toExpr,
-                assumptions: assumptions,
-              )
-            : effectiveAntiDeriv.limit(
-                variable,
-                toExpr,
-                direction: isAscending
-                    ? LimitDirection.fromBelow
-                    : LimitDirection.fromAbove,
-                assumptions: assumptions,
-              );
-        final lower = isInfiniteBound(fromExpr)
-            ? effectiveAntiDeriv.limit(
-                variable,
-                fromExpr,
-                assumptions: assumptions,
-              )
-            : effectiveAntiDeriv.limit(
-                variable,
-                fromExpr,
-                direction: isAscending
-                    ? LimitDirection.fromAbove
-                    : LimitDirection.fromBelow,
-                assumptions: assumptions,
-              );
-        final diff = (upper - lower).simplify(assumptions: assumptions);
-        if (!diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
-          return diff;
+      if (jumps != null && jumps.isNotEmpty) {
+        final isAscending = numFrom! <= numTo!;
+        final points = <Expr>[
+          if (isAscending) fromExpr else toExpr,
+          for (final j in jumps) j.expr,
+          if (isAscending) toExpr else fromExpr,
+        ];
+        final pieces = <Expr>[];
+        var ok = true;
+        for (var i = 0; i < points.length - 1; i++) {
+          final pLow = points[i];
+          final pHigh = points[i + 1];
+          try {
+            final upper = isInfiniteBound(pHigh)
+                ? effectiveAntiDeriv.limit(
+                    variable,
+                    pHigh,
+                    assumptions: assumptions,
+                  )
+                : effectiveAntiDeriv.limit(
+                    variable,
+                    pHigh,
+                    direction: LimitDirection.fromBelow,
+                    assumptions: assumptions,
+                  );
+            final lower = isInfiniteBound(pLow)
+                ? effectiveAntiDeriv.limit(
+                    variable,
+                    pLow,
+                    assumptions: assumptions,
+                  )
+                : effectiveAntiDeriv.limit(
+                    variable,
+                    pLow,
+                    direction: LimitDirection.fromAbove,
+                    assumptions: assumptions,
+                  );
+            final diff = (upper - lower).simplify(assumptions: assumptions);
+            if (diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+              ok = false;
+              break;
+            }
+            pieces.add(diff);
+          } on Object {
+            ok = false;
+            break;
+          }
         }
-      } on Object {
-        // Fall through to definite integral special cases.
+        if (ok) {
+          final total = Add(pieces).simplify(assumptions: assumptions);
+          return isAscending
+              ? total
+              : (-total).simplify(assumptions: assumptions);
+        }
+      } else if (jumps != null) {
+        try {
+          final upper = isInfiniteBound(toExpr)
+              ? effectiveAntiDeriv.limit(
+                  variable,
+                  toExpr,
+                  assumptions: assumptions,
+                )
+              : effectiveAntiDeriv.substitute(variable, toExpr);
+          final lower = isInfiniteBound(fromExpr)
+              ? effectiveAntiDeriv.limit(
+                  variable,
+                  fromExpr,
+                  assumptions: assumptions,
+                )
+              : effectiveAntiDeriv.substitute(variable, fromExpr);
+          final diff = (upper - lower).simplify(assumptions: assumptions);
+          if (!diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+            return diff;
+          }
+        } on Object {
+          // Fall through to definite integral special cases or endpoint limit.
+        }
+
+        // Try one-sided limits at finite endpoints (e.g. int_0^1 ln(x) dx)
+        try {
+          final isAscending =
+              (evaluateBoundNumeric(fromExpr) ?? 0.0) <=
+              (evaluateBoundNumeric(toExpr) ?? 1.0);
+          final upper = isInfiniteBound(toExpr)
+              ? effectiveAntiDeriv.limit(
+                  variable,
+                  toExpr,
+                  assumptions: assumptions,
+                )
+              : effectiveAntiDeriv.limit(
+                  variable,
+                  toExpr,
+                  direction: isAscending
+                      ? LimitDirection.fromBelow
+                      : LimitDirection.fromAbove,
+                  assumptions: assumptions,
+                );
+          final lower = isInfiniteBound(fromExpr)
+              ? effectiveAntiDeriv.limit(
+                  variable,
+                  fromExpr,
+                  assumptions: assumptions,
+                )
+              : effectiveAntiDeriv.limit(
+                  variable,
+                  fromExpr,
+                  direction: isAscending
+                      ? LimitDirection.fromAbove
+                      : LimitDirection.fromBelow,
+                  assumptions: assumptions,
+                );
+          final diff = (upper - lower).simplify(assumptions: assumptions);
+          if (!diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+            return diff;
+          }
+        } on Object {
+          // Fall through to definite integral special cases.
+        }
       }
     }
   }
@@ -820,4 +891,73 @@ bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
     }
     return false;
   });
+}
+
+List<({double value, Expr expr})>? _antiderivativeJumps(
+  Expr antiDeriv,
+  String variable,
+  double low,
+  double high,
+  Assumptions assumptions,
+) {
+  final jumps = <({double value, Expr expr})>[];
+  var tooMany = false;
+
+  void collect(Expr node) {
+    if (tooMany) return;
+    if (node case Tan(expr: final arg) when arg.dependsOn(variable)) {
+      if (arg.matchLinear(variable) case (:final a, :final b)) {
+        final aVal = evaluateBoundNumeric(a);
+        final bVal = evaluateBoundNumeric(b);
+        if (aVal != null &&
+            bVal != null &&
+            aVal.isFinite &&
+            bVal.isFinite &&
+            aVal != 0.0) {
+          if (!low.isFinite || !high.isFinite) {
+            tooMany = true;
+            return;
+          }
+          final uLow = aVal * low + bVal;
+          final uHigh = aVal * high + bVal;
+          final uMin = math.min(uLow, uHigh);
+          final uMax = math.max(uLow, uHigh);
+          final kMin = (uMin / math.pi - 0.5).floor() - 1;
+          final kMax = (uMax / math.pi - 0.5).ceil() + 1;
+          if (kMax - kMin > 32) {
+            tooMany = true;
+            return;
+          }
+          for (var k = kMin; k <= kMax; k++) {
+            final xk = ((k + 0.5) * math.pi - bVal) / aVal;
+            if (xk > low + 1e-9 && xk < high - 1e-9) {
+              final exists = jumps.any((j) => (j.value - xk).abs() <= 1e-9);
+              if (!exists) {
+                if (jumps.length >= 16) {
+                  tooMany = true;
+                  return;
+                }
+                final xExpr =
+                    (((IntegerNumber.of(k) + FractionNumber.half) *
+                                    Constant.pi -
+                                b) /
+                            a)
+                        .simplify(assumptions: assumptions);
+                jumps.add((value: xk, expr: xExpr));
+              }
+            }
+          }
+        }
+      }
+    }
+    node.mapChildren((child) {
+      collect(child);
+      return child;
+    });
+  }
+
+  collect(antiDeriv);
+  if (tooMany) return null;
+  jumps.sort((x, y) => x.value.compareTo(y.value));
+  return jumps;
 }

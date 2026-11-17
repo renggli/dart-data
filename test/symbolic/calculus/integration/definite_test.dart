@@ -100,6 +100,13 @@ void main() {
       check(Sin(x).integrate('x', from: 0, to: Constant.pi))
           .equals(IntegerNumber.two);
       check(
+        Expr.parse('1/(2 + cos(x))')
+            .integrate('x', from: 0, to: IntegerNumber.two * Constant.pi),
+      ).equals(Expr.parse('2*pi/sqrt(3)').simplify());
+      check(
+        Expr.parse('1/(1 + sin(x)^2)').integrate('x', from: 0, to: Constant.pi),
+      ).equals(Expr.parse('pi/sqrt(2)').simplify());
+      check(
         x.integrate('x', from: const Variable('a'), to: const Variable('b')),
       ).equals(
         (FractionNumber.half * Pow(const Variable('b'), IntegerNumber.two) -

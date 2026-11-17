@@ -45,7 +45,7 @@ void main() {
 
       // Chain rule power u-substitution with power -1 (such as 1/(x * ln(x))):
       final xLnX = Expr.parse('1/(x * ln(x))').integrate('x');
-      check(xLnX).equals(Ln(Ln(x)));
+      check(xLnX).equals(Ln(Abs(Ln(x))));
     });
 
     test('integrates products via linear, cyclic, and higher-degree IBP', () {

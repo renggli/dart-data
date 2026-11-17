@@ -1,6 +1,7 @@
 import '../../algebra/approximate.dart';
 import '../../algebra/expand.dart';
 import '../../algebra/simplify.dart';
+import '../../algebra/simplify/domain.dart';
 import '../../algebra/term_accumulator.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
@@ -162,7 +163,8 @@ Expr antiDerivative(
     Cos(expr: final inner) =>
       _antiDerivCos(inner, variable) ?? unsupportedIntegral(node, variable),
     Tan(expr: final inner) =>
-      _antiDerivTan(inner, variable) ?? unsupportedIntegral(node, variable),
+      _antiDerivTan(inner, variable, assumptions: assumptions) ??
+          unsupportedIntegral(node, variable),
     Asin(expr: final inner) =>
       _antiDerivAsin(inner, variable) ?? unsupportedIntegral(node, variable),
     Acos(expr: final inner) =>
@@ -392,11 +394,22 @@ Expr? _antiDerivCos(Expr inner, String variable) =>
       null => null,
     };
 
-Expr? _antiDerivTan(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) => (-Ln(Cos(inner)) / a).simplify(),
-      null => null,
-    };
+/// Returns $\ln(u)$ when $u$ is proven positive under [assumptions], otherwise
+/// $\ln(|u|)$.
+Expr logAntiderivative(Expr u, Assumptions assumptions) =>
+    isPositiveExpr(u, assumptions: assumptions) ? Ln(u) : Ln(Abs(u));
+
+Expr? _antiDerivTan(
+  Expr inner,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) => switch (inner.matchLinear(variable)) {
+  (:final a, b: _) =>
+    (-logAntiderivative(Cos(inner), assumptions) / a).simplify(
+      assumptions: assumptions,
+    ),
+  null => null,
+};
 
 Expr? _matchReciprocalLinear(Expr inner, String variable) {
   final prod = (inner * Variable(variable)).simplify();
@@ -727,7 +740,9 @@ Expr _antiDerivPow(
     if (base.matchLinear(variable) case (:final a, b: _)) {
       if (exponent == IntegerNumber.negativeOne ||
           (exponent is RealNumber && exponent.value == -1.0)) {
-        return (Ln(base) / a).simplify();
+        return (logAntiderivative(base, assumptions) / a).simplify(
+          assumptions: assumptions,
+        );
       }
       final nPlus1 = (exponent + IntegerNumber.one).simplify();
       final denom = (a * nPlus1).simplify();
@@ -944,7 +959,12 @@ Expr _antiDerivPow(
     if (isNegExp) {
       final posExp = (-exponent).simplify();
       final den = posExp == IntegerNumber.one ? base : Pow(base, posExp);
-      final divRes = tryAntiDerivDiv(IntegerNumber.one, den, variable);
+      final divRes = tryAntiDerivDiv(
+        IntegerNumber.one,
+        den,
+        variable,
+        assumptions: assumptions,
+      );
       if (divRes != null) return divRes;
     }
   }
@@ -985,7 +1005,13 @@ Expr _antiDerivMul(
   // 1. Check if this product represents a quotient f(x) / g(x) where g depends on variable
   final (numExpr, denExpr) = splitNumeratorDenominator(original);
   if (denExpr != IntegerNumber.one && denExpr.dependsOn(variable)) {
-    final divRes = tryAntiDerivDiv(numExpr, denExpr, variable, depth: depth);
+    final divRes = tryAntiDerivDiv(
+      numExpr,
+      denExpr,
+      variable,
+      depth: depth,
+      assumptions: assumptions,
+    );
     if (divRes != null) return divRes;
   }
 
@@ -1020,7 +1046,8 @@ Expr _antiDerivMul(
     final otherExpr = others.length == 1
         ? others.first
         : Mul(others).simplify();
-    if (tryChainRule(candidate, otherExpr, variable) case final subRes?) {
+    if (tryChainRule(candidate, otherExpr, variable, assumptions: assumptions)
+        case final subRes?) {
       return subRes;
     }
   }

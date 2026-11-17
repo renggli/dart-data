@@ -2,6 +2,7 @@ import '../../algebra/expand.dart';
 import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/term_accumulator.dart';
+import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/integer.dart';
 import '../differentiation.dart';
@@ -13,13 +14,21 @@ import 'trigonometric.dart';
 
 /// Attempts quotient and rational-function integration on `left / right` with
 /// respect to [variable].
-Expr? tryAntiDerivDiv(Expr left, Expr right, String variable, {int depth = 0}) {
+Expr? tryAntiDerivDiv(
+  Expr left,
+  Expr right,
+  String variable, {
+  int depth = 0,
+  Assumptions assumptions = Assumptions.none,
+}) {
   // int (c / g(x)) dx
   if (!left.dependsOn(variable)) {
-    // int c / (ax + b) dx = (c ln(ax + b)) / a
+    // int c / (ax + b) dx = (c ln(|ax + b|)) / a
     if (right.matchLinear(variable) case (:final a, b: _)) {
-      final num = (left * Ln(right)).simplify();
-      return (num / a).simplify();
+      final num = (left * logAntiderivative(right, assumptions)).simplify(
+        assumptions: assumptions,
+      );
+      return (num / a).simplify(assumptions: assumptions);
     }
 
     // int c / (ax + b)^n dx = int c * (ax + b)^(-n) dx
@@ -427,12 +436,15 @@ Expr? tryAntiDerivDiv(Expr left, Expr right, String variable, {int depth = 0}) {
     }
   }
 
-  // Chain rule quotient: int u'(x) / u(x) dx = ln(u(x))
+  // Chain rule quotient: int u'(x) / u(x) dx = ln(|u(x)|)
   if (right.dependsOn(variable)) {
     final uPrime = right.derivative(variable).simplify();
     final k = left.matchScalarMultiple(uPrime, variable);
     if (k != null) {
-      return Ln(right).scale(k);
+      return logAntiderivative(
+        right,
+        assumptions,
+      ).simplify(assumptions: assumptions).scale(k);
     }
   }
 

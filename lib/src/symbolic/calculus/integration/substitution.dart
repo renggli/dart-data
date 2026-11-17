@@ -9,7 +9,12 @@ import 'definite.dart';
 import 'integration.dart';
 
 /// Attempts direct chain-rule matching on `candidate * factor` with respect to [variable].
-Expr? tryChainRule(Expr candidate, Expr factor, String variable) {
+Expr? tryChainRule(
+  Expr candidate,
+  Expr factor,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   // General u(x) * u'(x) chain rule: int u * u' dx = 1/2 * u^2
   if (candidate.dependsOn(variable)) {
     final uPrime = candidate.derivative(variable).simplify();
@@ -69,7 +74,13 @@ Expr? tryChainRule(Expr candidate, Expr factor, String variable) {
     ),
     Pow(:final base, :final exponent)
         when !exponent.dependsOn(variable) && base.dependsOn(variable) =>
-      _tryChainRulePower(base, exponent, factor, variable),
+      _tryChainRulePower(
+        base,
+        exponent,
+        factor,
+        variable,
+        assumptions: assumptions,
+      ),
     Pow(:final base, :final exponent)
         when !base.dependsOn(variable) && exponent.dependsOn(variable) =>
       _tryChainRuleExponential(candidate, base, exponent, factor, variable),
@@ -396,14 +407,18 @@ Expr? _tryChainRulePower(
   Expr base,
   Expr exponent,
   Expr factor,
-  String variable,
-) {
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final uPrime = base.derivative(variable).simplify();
   final k = factor.matchScalarMultiple(uPrime, variable);
   if (k != null) {
     if (exponent == IntegerNumber.negativeOne ||
         (exponent is RealNumber && exponent.value == -1.0)) {
-      return Ln(base).scale(k);
+      return logAntiderivative(
+        base,
+        assumptions,
+      ).simplify(assumptions: assumptions).scale(k);
     }
     final nPlus1 = (exponent + IntegerNumber.one).simplify();
     final fU = (Pow(base, nPlus1) / nPlus1).simplify();
