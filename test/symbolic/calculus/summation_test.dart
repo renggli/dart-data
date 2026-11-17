@@ -91,6 +91,39 @@ void main() {
       // Unevaluated fallback when no closed form exists
       final uneval = Sin(k * k).sum('k', 1, n);
       check(uneval.toString()).equals('sum(sin(k ^ 2), k, 1, n)');
+
+      // Integer-index assumptions and symbolic geometric convergence guard
+      check(Sum(Expr.parse('sin(pi*k)'), 'k', IntegerNumber.one, n).simplify())
+          .equals(IntegerNumber.zero);
+      check(Sum(Expr.parse('(-1)^(2*k)'), 'k', IntegerNumber.one, n).simplify())
+          .equals(n);
+      final symGeom = Sum(
+        Expr.parse('x^k'),
+        'k',
+        IntegerNumber.zero,
+        Constant.infinity,
+      ).simplify();
+      check(symGeom).isA<Piecewise>();
+      final pw = symGeom as Piecewise;
+      check(pw.branches.single.relation).equals(
+        LessThan(
+          Abs(const Variable('x'), isSimplified: true),
+          IntegerNumber.one,
+        ),
+      );
+      check(
+        (pw.branches.single.expr - Expr.parse('1/(1 - x)'))
+            .together()
+            .simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        Sum(
+          Expr.parse('(1/2)^k'),
+          'k',
+          IntegerNumber.zero,
+          Constant.infinity,
+        ).simplify(),
+      ).equals(IntegerNumber.two);
     });
   });
 

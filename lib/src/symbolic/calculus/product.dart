@@ -20,7 +20,8 @@ Expr computeProduct(
   Expr to, {
   Assumptions assumptions = Assumptions.none,
 }) {
-  final simplifiedFactor = factor.simplify(assumptions: assumptions);
+  final indexAssumptions = assumptions.assume(variable, VariableDomain.integer);
+  final simplifiedFactor = factor.simplify(assumptions: indexAssumptions);
   final a = from.simplify(assumptions: assumptions);
   final b = to.simplify(assumptions: assumptions);
 
@@ -87,7 +88,7 @@ Expr computeProduct(
         factors.add(
           simplifiedFactor
               .substitute(variable, IntegerNumber.of(k))
-              .simplify(assumptions: assumptions),
+              .simplify(assumptions: indexAssumptions),
         );
       }
       return simplifyMul(factors).simplify(assumptions: assumptions);

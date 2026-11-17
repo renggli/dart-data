@@ -97,7 +97,8 @@ Expr computeSum(
   Expr to, {
   Assumptions assumptions = Assumptions.none,
 }) {
-  final simplifiedTerm = term.simplify(assumptions: assumptions);
+  final indexAssumptions = assumptions.assume(variable, VariableDomain.integer);
+  final simplifiedTerm = term.simplify(assumptions: indexAssumptions);
   final a = from.simplify(assumptions: assumptions);
   final b = to.simplify(assumptions: assumptions);
 
@@ -122,17 +123,53 @@ Expr computeSum(
       assumptions: mergedAssumptions,
     );
     if (finite is! Sum) {
-      try {
-        final lim = finite.limit(
-          limitVarName,
-          Constant.infinity,
-          assumptions: mergedAssumptions,
-        );
-        if (lim is! Limit && lim != Constant.undefined) {
-          return lim.simplify(assumptions: assumptions);
+      final symBase = _findSymbolicBasePow(finite, limitVarName);
+      if (symBase != null) {
+        try {
+          final assumedZero = _zeroOutBasePow(finite, symBase, limitVarName);
+          final closedForm = assumedZero
+              .limit(
+                limitVarName,
+                Constant.infinity,
+                assumptions: mergedAssumptions,
+              )
+              .simplify(assumptions: assumptions);
+          if (closedForm is! Limit && closedForm != Constant.undefined) {
+            return Piecewise(
+              [
+                (
+                  relation: LessThan(
+                    Abs(symBase, isSimplified: true),
+                    IntegerNumber.one,
+                  ),
+                  expr: closedForm,
+                ),
+              ],
+              otherwise: Sum(
+                simplifiedTerm,
+                variable,
+                a,
+                b,
+                isSimplified: true,
+              ),
+            );
+          }
+        } on UnsupportedError {
+          // Fall through to closed-form infinite series matching.
         }
-      } on UnsupportedError {
-        // Fall through to closed-form infinite series matching.
+      } else {
+        try {
+          final lim = finite.limit(
+            limitVarName,
+            Constant.infinity,
+            assumptions: mergedAssumptions,
+          );
+          if (lim is! Limit && lim != Constant.undefined) {
+            return lim.simplify(assumptions: assumptions);
+          }
+        } on UnsupportedError {
+          // Fall through to closed-form infinite series matching.
+        }
       }
     }
 
@@ -163,7 +200,7 @@ Expr computeSum(
         terms.add(
           simplifiedTerm
               .substitute(variable, IntegerNumber.of(k))
-              .simplify(assumptions: assumptions),
+              .simplify(assumptions: indexAssumptions),
         );
       }
       return simplifyAdd(terms).simplify(assumptions: assumptions);
@@ -1529,4 +1566,27 @@ List<Integer> _eulerNumbers(int maxM) {
     e.add(-sum);
   }
   return e;
+}
+
+Expr? _findSymbolicBasePow(Expr expr, String limitVarName) {
+  Expr? found;
+  expr.anyNode((node) {
+    if (node case Pow(:final base, exponent: final e)
+        when e.dependsOn(limitVarName) &&
+            base.freeVariables.isNotEmpty &&
+            !base.dependsOn(limitVarName)) {
+      found = base;
+      return true;
+    }
+    return false;
+  });
+  return found;
+}
+
+Expr _zeroOutBasePow(Expr expr, Expr targetBase, String limitVarName) {
+  if (expr case Pow(:final base, exponent: final e)
+      when base == targetBase && e.dependsOn(limitVarName)) {
+    return IntegerNumber.zero;
+  }
+  return expr.mapChildren((c) => _zeroOutBasePow(c, targetBase, limitVarName));
 }
