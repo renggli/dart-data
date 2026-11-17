@@ -370,10 +370,8 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
       b._parts,
     ),
     (final RealNumber a, final RealNumber b) => a.value.compareTo(b.value),
-    _ => switch (toDouble().compareTo(other.toDouble())) {
-      0 => this is RationalNumber ? -1 : 1,
-      final cmp => cmp,
-    },
+    (final RationalNumber r, final RealNumber f) => _compareRationalReal(r, f),
+    (final RealNumber f, final RationalNumber r) => -_compareRationalReal(r, f),
   };
 }
 
@@ -773,4 +771,11 @@ final class ComplexNumber extends Number {
 
   @override
   int get hashCode => Object.hash(ComplexNumber, real, imaginary);
+}
+
+int _compareRationalReal(RationalNumber r, RealNumber f) {
+  final d = r.toDouble();
+  if (!d.isFinite && f.value.isFinite) return r.sign;
+  final cmp = d.compareTo(f.value);
+  return cmp != 0 ? cmp : -1;
 }

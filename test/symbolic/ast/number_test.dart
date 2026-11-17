@@ -313,5 +313,13 @@ void main() {
             .equals(const RealNumber(3.0));
       },
     );
+    test('compareTo handles overflowed RationalNumber vs RealNumber', () {
+      final huge = IntegerNumber(Integer.big(BigInt.one << 1024));
+      const finite = RealNumber(1e300);
+      check(huge.compareTo(finite)).isGreaterThan(0);
+      check(finite.compareTo(huge)).isLessThan(0);
+      check(huge.neg().compareTo(const RealNumber(-1e300))).isLessThan(0);
+      check(const RealNumber(-1e300).compareTo(huge.neg())).isGreaterThan(0);
+    });
   });
 }

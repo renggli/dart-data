@@ -287,6 +287,23 @@ void main() {
       check(compareStructural(p1, p3)).isLessThan(0);
       check(compareStructural(p1, p4)).isLessThan(0);
       check(compareStructural(p1, p5)).isLessThan(0);
+
+      // Integral comparisons
+      final i1 = Integral(x, 'x');
+      final i2 = Integral(
+        x,
+        'x',
+        lower: IntegerNumber.zero,
+        upper: IntegerNumber.one,
+      );
+      final i3 = Integral(
+        x,
+        'x',
+        lower: IntegerNumber.zero,
+        upper: IntegerNumber.two,
+      );
+      check(compareStructural(i1, i2)).isLessThan(0);
+      check(compareStructural(i2, i3)).isLessThan(0);
     });
   });
 }

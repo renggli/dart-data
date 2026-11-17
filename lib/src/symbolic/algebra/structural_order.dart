@@ -124,16 +124,8 @@ int compareStructural(Expr a, Expr b) {
       if (cmpVar != 0) return cmpVar;
       final cmpInt = compareStructural(ia.integrand, ib.integrand);
       if (cmpInt != 0) return cmpInt;
-      return switch ((ia.lower, ib.lower, ia.upper, ib.upper)) {
-        (null, null, _, _) => 0,
-        (null, _, _, _) => -1,
-        (_, null, _, _) => 1,
-        (final lowA?, final lowB?, final upA?, final upB?) => () {
-          final cmpLow = compareStructural(lowA, lowB);
-          return cmpLow != 0 ? cmpLow : compareStructural(upA, upB);
-        }(),
-        _ => 0,
-      };
+      final cmpLow = _compareNullable(ia.lower, ib.lower);
+      return cmpLow != 0 ? cmpLow : _compareNullable(ia.upper, ib.upper);
     }(),
     (final Derivative da, final Derivative db) => () {
       final cmpVar = da.variable.compareTo(db.variable);
@@ -259,3 +251,10 @@ int _compareDoubleWithNaN(double a, double b) {
   if (nanB) return -1;
   return a.compareTo(b);
 }
+
+int _compareNullable(Expr? a, Expr? b) => switch ((a, b)) {
+  (null, null) => 0,
+  (null, _) => -1,
+  (_, null) => 1,
+  (final xa?, final xb?) => compareStructural(xa, xb),
+};
