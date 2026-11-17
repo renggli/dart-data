@@ -422,10 +422,23 @@ void main() {
       check(UpperGamma(x, IntegerNumber.two).derivative('x')).isA<Derivative>();
       check(LowerGamma(x, IntegerNumber.two).derivative('x')).isA<Derivative>();
       check(Polylog(x, FractionNumber.half).derivative('x')).isA<Derivative>();
-      check(EllipticF(FractionNumber.half, x).derivative('x'))
-          .isA<Derivative>();
-      check(EllipticEIncomplete(FractionNumber.half, x).derivative('x'))
-          .isA<Derivative>();
+
+      // Modulus differentiation of incomplete elliptic integrals
+      const k = Variable('k');
+      final piOver4 = Constant.pi / IntegerNumber.of(4);
+      final piOver3 = Constant.pi / IntegerNumber.of(3);
+      check(EllipticEIncomplete(piOver4, k).derivative('k')).equals(
+        ((EllipticEIncomplete(piOver4, k) - EllipticF(piOver4, k)) / k)
+            .simplify(),
+      );
+
+      final dFdk = EllipticF(piOver3, k).derivative('k');
+      const h = 1e-6;
+      final fd =
+          (EllipticF(piOver3, k).evaluate({'k': 0.5 + h}) -
+              EllipticF(piOver3, k).evaluate({'k': 0.5 - h})) /
+          (2.0 * h);
+      check(dFdk.evaluate({'k': 0.5})).isCloseTo(fd, 1e-6);
     });
   });
 }

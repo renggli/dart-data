@@ -269,26 +269,59 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
                 _differentiate(right, variable),
               ]) /
               right,
-  EllipticF(:final left, :final right) when !right.dependsOn(variable) =>
-    _differentiate(left, variable) /
-        Pow(
+  EllipticF(:final left, :final right) => () {
+    final delta =
+        IntegerNumber.one -
+        Pow(right, IntegerNumber.two) * Pow(Sin(left), IntegerNumber.two);
+    final terms = <Expr>[];
+    if (left.dependsOn(variable)) {
+      terms.add(
+        _differentiate(left, variable) *
+            Pow(delta, FractionNumber.negativeHalf),
+      );
+    }
+    if (right.dependsOn(variable)) {
+      final oneMinusK2 = IntegerNumber.one - Pow(right, IntegerNumber.two);
+      final dFdk =
+          (EllipticEIncomplete(left, right) -
+              oneMinusK2 * EllipticF(left, right) -
+              Pow(right, IntegerNumber.two) *
+                  Sin(left) *
+                  Cos(left) *
+                  Pow(delta, FractionNumber.negativeHalf)) /
+          (right * oneMinusK2);
+      terms.add(dFdk * _differentiate(right, variable));
+    }
+    return switch (terms) {
+      [] => IntegerNumber.zero,
+      [final single] => single,
+      _ => Add(terms),
+    };
+  }(),
+  EllipticEIncomplete(:final left, :final right) => () {
+    final terms = <Expr>[];
+    if (left.dependsOn(variable)) {
+      final delta =
           IntegerNumber.one -
-              Pow(right, IntegerNumber.two) * Pow(Sin(left), IntegerNumber.two),
-          FractionNumber.half,
-        ),
-  EllipticEIncomplete(:final left, :final right)
-      when !right.dependsOn(variable) =>
-    Pow(
-          IntegerNumber.one -
-              Pow(right, IntegerNumber.two) * Pow(Sin(left), IntegerNumber.two),
-          FractionNumber.half,
-        ) *
-        _differentiate(left, variable),
+          Pow(right, IntegerNumber.two) * Pow(Sin(left), IntegerNumber.two);
+      terms.add(
+        Pow(delta, FractionNumber.half) * _differentiate(left, variable),
+      );
+    }
+    if (right.dependsOn(variable)) {
+      final dEdk =
+          (EllipticEIncomplete(left, right) - EllipticF(left, right)) / right;
+      terms.add(dEdk * _differentiate(right, variable));
+    }
+    return switch (terms) {
+      [] => IntegerNumber.zero,
+      [final single] => single,
+      _ => Add(terms),
+    };
+  }(),
   UpperGamma() ||
   LowerGamma() ||
   Polylog() ||
-  EllipticF() ||
-  EllipticEIncomplete() ||
   Polygamma() ||
   BesselJ() ||
   BesselY() ||
