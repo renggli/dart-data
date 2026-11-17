@@ -67,7 +67,7 @@ void main() {
         ).equals('x ^ 2 * y ^ 2');
         check(
           distributePower(Mul([IntegerNumber.negativeOne, x, y]), 3).toString(),
-        ).equals('-(x ^ 3 * y ^ 3)');
+        ).equals('-x ^ 3 * y ^ 3');
       },
     );
 

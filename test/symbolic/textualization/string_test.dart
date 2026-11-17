@@ -228,8 +228,16 @@ void main() {
           Mul([IntegerNumber.negativeOne, x, y]),
         ]).toString(),
       ).equals('x - x * y');
-      check(Mul([IntegerNumber.negativeOne, x, y]).toString())
-          .equals('-(x * y)');
+      check(Mul([IntegerNumber.negativeOne, x, y]).toString()).equals('-x * y');
+      for (final e in [
+        Mul([IntegerNumber.negativeOne, x, y]),
+        Expr.parse('-x * z / y'),
+        Expr.parse('-(a + b)'),
+      ]) {
+        check(Expr.parse(e.toString())).equals(e);
+      }
+      check(Expr.parse('-x * z / y').toString()).equals('-x * z / y');
+      check(Expr.parse('-(a + b)').toString()).equals('-(a + b)');
       check(canOmitMulDot(Pow(x, IntegerNumber.two), y)).isTrue();
       check(canOmitMulDot(Pow(x, FractionNumber.half), y)).isTrue();
       check(

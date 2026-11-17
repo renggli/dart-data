@@ -287,11 +287,10 @@ String _formatMulNumerator(
     case [final single]:
       return _formatExpr(single, parentPrec, decimalPlaces);
     case [IntegerNumber(isNegativeOne: true), ...final rest]:
-      final operand = switch (rest) {
-        [final single] => single,
-        _ => Mul(rest),
-      };
-      final formatted = '-${_formatExpr(operand, 4, decimalPlaces)}';
+      final formatted = rest.length == 1
+          ? '-${_formatExpr(rest.single, 3, decimalPlaces)}'
+          : '-${_formatExpr(rest.first, 3, decimalPlaces)} * '
+                '${_formatMulNumerator(rest.sublist(1), 2, decimalPlaces)}';
       return 3 < parentPrec ? '($formatted)' : formatted;
     default:
       final parts = <String>[];

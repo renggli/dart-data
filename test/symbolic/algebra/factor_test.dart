@@ -80,7 +80,7 @@ void main() {
         check(f360.simplify()).equals(IntegerNumber.of(360));
 
         final fNeg12 = IntegerNumber.of(-12).factor();
-        check(fNeg12.toString()).equals('-(2 ^ 2 * 3)');
+        check(fNeg12.toString()).equals('-2 ^ 2 * 3');
         check(fNeg12.simplify()).equals(IntegerNumber.of(-12));
 
         final fRat = RationalNumber(12, 25).factor();
