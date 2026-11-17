@@ -155,6 +155,21 @@ void main() {
         check(
           simplifyAbs(Pow(x, IntegerNumber.two), assumptions: Assumptions.real),
         ).equals(Pow(x, IntegerNumber.two));
+
+        check(
+          Expr.parse('asinh(sinh(x))').simplify(assumptions: Assumptions.real),
+        ).equals(x);
+        check(
+          Expr.parse('acosh(cosh(x))').simplify(assumptions: Assumptions.real),
+        ).equals(Expr.parse('abs(x)'));
+        check(
+          Expr.parse('atanh(tanh(x))').simplify(assumptions: Assumptions.real),
+        ).equals(x);
+        check(Expr.parse('asin(sin(x))').simplify())
+            .equals(Expr.parse('asin(sin(x))'));
+        check(Expr.parse('asin(sin(1))').simplify()).equals(IntegerNumber.one);
+        check(Expr.parse('acos(cos(1))').simplify()).equals(IntegerNumber.one);
+        check(Expr.parse('atan(tan(1))').simplify()).equals(IntegerNumber.one);
       },
     );
   });

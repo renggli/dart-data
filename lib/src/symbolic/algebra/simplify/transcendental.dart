@@ -207,7 +207,7 @@ Expr simplifyTan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies an arcsine expression $\arcsin(expr)$.
-Expr simplifyAsin(Expr expr) {
+Expr simplifyAsin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -221,11 +221,20 @@ Expr simplifyAsin(Expr expr) {
   if (expr is Number && expr.isNegativeOne) {
     return Mul([FractionNumber.negativeHalf, Constant.pi], isSimplified: true);
   }
+  if (expr is Sin && isProvenReal(expr.expr, assumptions)) {
+    final v = tryStaticRealValue(expr.expr);
+    if (v != null && v >= -math.pi / 2 && v <= math.pi / 2) {
+      return expr.expr;
+    }
+  }
 
   // Parity: asin(-u) = -asin(u)
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyAsin(posExpr));
+    return simplifyNeg(
+      simplifyAsin(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
 
   if (isHalf(posExpr)) {
@@ -245,7 +254,7 @@ Expr simplifyAsin(Expr expr) {
 }
 
 /// Simplifies an arccosine expression $\arccos(expr)$.
-Expr simplifyAcos(Expr expr) {
+Expr simplifyAcos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -258,6 +267,12 @@ Expr simplifyAcos(Expr expr) {
   }
   if (expr is Number && expr.isNegativeOne) {
     return Constant.pi;
+  }
+  if (expr is Cos && isProvenReal(expr.expr, assumptions)) {
+    final v = tryStaticRealValue(expr.expr);
+    if (v != null && v >= 0.0 && v <= math.pi) {
+      return expr.expr;
+    }
   }
 
   final (posExpr, isNeg) = extractSign(expr);
@@ -299,7 +314,7 @@ Expr simplifyAcos(Expr expr) {
 }
 
 /// Simplifies an arctangent expression $\arctan(expr)$.
-Expr simplifyAtan(Expr expr) {
+Expr simplifyAtan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.atan(expr.value));
@@ -314,11 +329,20 @@ Expr simplifyAtan(Expr expr) {
       Constant.pi,
     ], isSimplified: true);
   }
+  if (expr is Tan && isProvenReal(expr.expr, assumptions)) {
+    final v = tryStaticRealValue(expr.expr);
+    if (v != null && v > -math.pi / 2 && v < math.pi / 2) {
+      return expr.expr;
+    }
+  }
 
   // Parity: atan(-u) = -atan(u)
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyAtan(posExpr));
+    return simplifyNeg(
+      simplifyAtan(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
 
   if (isSqrt3Over3(posExpr)) {
@@ -335,7 +359,7 @@ Expr simplifyAtan(Expr expr) {
 }
 
 /// Simplifies a hyperbolic sine expression $\sinh(expr)$.
-Expr simplifySinh(Expr expr) {
+Expr simplifySinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -346,14 +370,17 @@ Expr simplifySinh(Expr expr) {
   // Parity: sinh(-u) = -sinh(u)
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifySinh(posExpr));
+    return simplifyNeg(
+      simplifySinh(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
 
   return Sinh(expr, isSimplified: true);
 }
 
 /// Simplifies a hyperbolic cosine expression $\cosh(expr)$.
-Expr simplifyCosh(Expr expr) {
+Expr simplifyCosh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -364,14 +391,14 @@ Expr simplifyCosh(Expr expr) {
   // Parity: cosh(-u) = cosh(u)
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyCosh(posExpr);
+    return simplifyCosh(posExpr, assumptions: assumptions);
   }
 
   return Cosh(expr, isSimplified: true);
 }
 
 /// Simplifies a hyperbolic tangent expression $\tanh(expr)$.
-Expr simplifyTanh(Expr expr) {
+Expr simplifyTanh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -384,7 +411,10 @@ Expr simplifyTanh(Expr expr) {
   // Parity: tanh(-u) = -tanh(u)
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyTanh(posExpr));
+    return simplifyNeg(
+      simplifyTanh(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
 
   return Tanh(expr, isSimplified: true);

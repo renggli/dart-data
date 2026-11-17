@@ -198,5 +198,18 @@ void main() {
       check(Conjugate(Erfi(ComplexNumber.i)).simplify())
           .equals(Erfi(-ComplexNumber.i).simplify());
     });
+
+    test('memoization preserves DAG equivalence and unchanged leaves', () {
+      const x = Variable('x');
+      final e = Expr.parse('(sin(x) + 1)^2 * (sin(x) + 1)^3');
+      check(e.simplify(assumptions: Assumptions.real))
+          .equals(Expr.parse('(1 + sin(x))^5').simplify());
+
+      final fn = VariableFunction('f', const [x]);
+      check(identical(fn.simplify(assumptions: Assumptions.real), fn)).isTrue();
+      const ord = OrderTerm('x', 2);
+      check(identical(ord.simplify(assumptions: Assumptions.real), ord))
+          .isTrue();
+    });
   });
 }
