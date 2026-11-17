@@ -234,5 +234,22 @@ void main() {
         ).isTrue();
       },
     );
+
+    test('exact gamma poles, half-integers, polygamma order, and negative binomial', () {
+      check(Expr.parse('gamma(0)').simplify()).equals(Constant.undefined);
+      check(Expr.parse('(-1)!').simplify()).equals(Constant.undefined);
+      check((Expr.parse('gamma(20)') - Expr.parse('19!')).simplify())
+          .equals(IntegerNumber.zero);
+      check(Expr.parse('gamma(-1/2)').simplify())
+          .equals(Expr.parse('-2 * sqrt(pi)').simplify());
+      check(Expr.parse('gamma(39/2)').simplify())
+          .equals(Expr.parse('(38! / (4^19 * 19!)) * sqrt(pi)').simplify());
+      check(Expr.parse('gamma(41/2)').simplify())
+          .equals(Expr.parse('(40! / (4^20 * 20!)) * sqrt(pi)').simplify());
+      check(Expr.parse('binomial(-1, 3)').simplify())
+          .equals(IntegerNumber.negativeOne);
+      check(Polygamma(const RealNumber(1.5), const RealNumber(2.0)).simplify())
+          .isA<Polygamma>();
+    });
   });
 }

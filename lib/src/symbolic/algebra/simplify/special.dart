@@ -94,20 +94,31 @@ Expr simplifyGamma(Expr expr) {
     if (v <= 0.0 && v == v.roundToDouble()) return Constant.undefined;
     return RealNumber.fromDouble(special_gamma.gamma(v));
   }
-  if (expr case IntegerNumber(asInt: final n?) when n > 0 && n <= 18) {
-    return IntegerNumber(Integer.from(n - 1).factorial());
+  if (expr is IntegerNumber) {
+    if (expr.isZero || expr.isNegative) return Constant.undefined;
+    if (expr.asInt case final n? when n <= 101) {
+      return IntegerNumber(Integer.from(n - 1).factorial());
+    }
   }
   if (expr == FractionNumber.half) {
     return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
   }
-  // Half-integer Gamma(n + 1/2) = (2n)! / (4^n * n!) * sqrt(pi)
+  // Half-integer Gamma(n + 1/2)
   if (expr case FractionNumber(:final numerator, :final denominator)
-      when denominator == Integer.two && numerator > Integer.one) {
+      when denominator == Integer.two) {
     final n = ((numerator - Integer.one) ~/ Integer.two).asInt;
-    if (n != null && n >= 1 && n <= 16) {
-      final numFact = Integer.from(2 * n).factorial();
-      final denFact = Integer.from(1 << (2 * n)) * Integer.from(n).factorial();
-      final coeff = RationalNumber.of(numFact, denFact);
+    if (n != null && n.abs() <= 50) {
+      final RationalNumber coeff;
+      if (n >= 0) {
+        final numFact = Integer.from(2 * n).factorial();
+        final denFact = const Integer(4).pow(n)! * Integer.from(n).factorial();
+        coeff = RationalNumber.of(numFact, denFact);
+      } else {
+        final m = -n;
+        final numVal = const Integer(-4).pow(m)! * Integer.from(m).factorial();
+        final denFact = Integer.from(2 * m).factorial();
+        coeff = RationalNumber.of(numVal, denFact);
+      }
       return simplifyMul([
         coeff,
         Pow(Constant.pi, FractionNumber.half, isSimplified: true),
@@ -171,7 +182,11 @@ Expr simplifyPolygamma(Expr m, Expr x) {
   if (m is RealNumeric &&
       x is RealNumeric &&
       (m is RealNumber || x is RealNumber)) {
-    final dm = m.toDouble().toInt();
+    final mDouble = m.toDouble();
+    if (mDouble != mDouble.roundToDouble()) {
+      return Polygamma(m, x, isSimplified: true);
+    }
+    final dm = mDouble.toInt();
     final dx = x.toDouble();
     if (dm < 0 || (dx <= 0.0 && dx == dx.roundToDouble())) {
       return Constant.undefined;
@@ -559,8 +574,11 @@ Expr simplifyFactorial(Expr expr) {
   if (expr is RealNumber) {
     return simplifyGamma(RealNumber.fromDouble(expr.value + 1.0));
   }
-  if (expr case IntegerNumber(asInt: final n?) when n >= 0 && n <= 100) {
-    return IntegerNumber(Integer.from(n).factorial());
+  if (expr is IntegerNumber) {
+    if (expr.isNegative) return Constant.undefined;
+    if (expr.asInt case final n? when n <= 100) {
+      return IntegerNumber(Integer.from(n).factorial());
+    }
   }
   if (expr == FractionNumber.negativeHalf) {
     return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
@@ -607,6 +625,14 @@ Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
       if (m <= 1000) {
         return IntegerNumber(Integer.from(n).binomial(Integer.from(k)));
       }
+    }
+  }
+  if (nExpr case IntegerNumber(:final value) when value.isNegative) {
+    if (kExpr case IntegerNumber(asInt: final k?) when k >= 0 && k <= 1000) {
+      final binom = (-value + Integer.from(k) - Integer.one).binomial(
+        Integer.from(k),
+      );
+      return IntegerNumber(k.isEven ? binom : -binom);
     }
   }
   return Binomial(nExpr, kExpr, isSimplified: true);
