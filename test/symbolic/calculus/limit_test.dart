@@ -303,6 +303,18 @@ void main() {
           check(
             (Ln(Pow(Constant.e, x) + Ln(x)) / x).limit('x', Constant.infinity),
           ).equals(IntegerNumber.one);
+
+          check(
+            Expr.parse('abs(ln(x) - 5)/ln(x)').limit('x', Constant.infinity),
+          ).equals(IntegerNumber.one);
+          check(Expr.parse('1/(ln(x) - 5)').limit('x', Constant.infinity))
+              .equals(IntegerNumber.zero);
+          check(Expr.parse('5 - ln(x)').limit('x', Constant.infinity))
+              .equals(-Constant.infinity);
+          check(() => Expr.parse('(-1 + 1/x)^x').limit('x', Constant.infinity))
+              .throws<UnsupportedError>();
+          check(Expr.parse('atan(x) + erf(x)').limit('x', 1))
+              .equals(Expr.parse('pi/4 + erf(1)').simplify());
         },
       );
 

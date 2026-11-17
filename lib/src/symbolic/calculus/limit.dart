@@ -124,6 +124,7 @@ Expr computeLimit(
 
   if (expr case Pow(:final base, :final exponent)
       when base.dependsOn(variable) && exponent.dependsOn(variable)) {
+    var oscillating = false;
     try {
       final baseLim = computeLimit(
         base,
@@ -139,7 +140,11 @@ Expr computeLimit(
         direction: direction,
         assumptions: assumptions,
       );
-      if (_isWellDefinedFinite(baseLim) &&
+      if (baseLim is RealNumeric &&
+          baseLim.isNegative &&
+          (_isPositiveInfinity(expLim) || _isNegativeInfinity(expLim))) {
+        oscillating = true;
+      } else if (_isWellDefinedFinite(baseLim) &&
           _isWellDefinedFinite(expLim) &&
           !(baseLim is Number && baseLim.isZero)) {
         final direct = Pow(baseLim, expLim).simplify(assumptions: assumptions);
@@ -149,6 +154,9 @@ Expr computeLimit(
       }
     } on Object {
       // Fall through to log-exponential form
+    }
+    if (oscillating) {
+      throw UnsupportedError('Limit does not exist due to oscillation');
     }
     final logForm = exponent * Ln(base);
     try {
@@ -695,7 +703,9 @@ Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
   );
   if (mapped case Abs(expr: final inner)) {
     final sign = _asymptoticSignAtInfinity(inner, variable);
-    return sign >= 0 ? inner : (-inner).simplify();
+    if (sign > 0) return inner;
+    if (sign < 0) return (-inner).simplify();
+    return mapped;
   }
   if (mapped case Piecewise(:final branches, :final otherwise)) {
     for (final (:relation, :expr) in branches) {
@@ -943,6 +953,7 @@ Expr _gruntzLimit(
             return lead.coefficient.simplify(assumptions: assumptions);
           }
           final sign = _asymptoticSignAtInfinity(lead.coefficient, variable);
+          if (sign == 0) break;
           return sign > 0 ? Constant.infinity : _negInfinity;
         }
       } on Object {
@@ -975,6 +986,7 @@ Expr _gruntzLimit(
         if (lead.exponent > 0) return IntegerNumber.zero;
         if (lead.exponent < 0) {
           final sign = _asymptoticSignAtInfinity(lead.coefficient, variable);
+          if (sign == 0) break;
           return sign > 0 ? Constant.infinity : _negInfinity;
         }
         return computeLimit(
@@ -1279,7 +1291,18 @@ bool _isEverywhereContinuous(Expr expr, String variable) => switch (expr) {
   Sin(:final expr) ||
   Cos(:final expr) ||
   Sinh(:final expr) ||
-  Cosh(:final expr) => _isEverywhereContinuous(expr, variable),
+  Cosh(:final expr) ||
+  Tanh(:final expr) ||
+  Atan(:final expr) ||
+  Asinh(:final expr) ||
+  Erf(:final expr) ||
+  Erfc(:final expr) ||
+  Erfi(:final expr) ||
+  FresnelS(:final expr) ||
+  FresnelC(:final expr) ||
+  SinIntegralSi(:final expr) ||
+  SinhIntegralShi(:final expr) ||
+  Abs(:final expr) => _isEverywhereContinuous(expr, variable),
   _ => false,
 };
 
@@ -1326,7 +1349,11 @@ int _getSign(Expr expr) {
   return 1;
 }
 
-int _asymptoticSignAtInfinity(Expr expr, String variable) {
+int _asymptoticSignAtInfinity(
+  Expr expr,
+  String variable, [
+  Set<Expr>? visited,
+]) {
   final s = expr.simplify();
   if (!s.dependsOn(variable)) return _getSign(s);
   if (s is Pow && s.base == Constant.e) return 1;
@@ -1336,23 +1363,45 @@ int _asymptoticSignAtInfinity(Expr expr, String variable) {
       [final single] => single,
       _ => Mul(rest),
     };
-    return first.sign * _asymptoticSignAtInfinity(restExpr, variable);
+    return first.sign * _asymptoticSignAtInfinity(restExpr, variable, visited);
   }
 
   if (_polynomialDegreeAndLead(s, variable) case (_, final leadCoeff)) {
     return _getSign(leadCoeff);
   }
 
-  try {
-    final val1 = s.evaluate({variable: 100.0});
-    if (val1.isFinite && val1 != 0.0) return val1 > 0.0 ? 1 : -1;
-    final val2 = s.evaluate({variable: 1000.0});
-    if (val2.isFinite && val2 != 0.0) return val2 > 0.0 ? 1 : -1;
-  } on Object {
-    // Ignore
+  final seen = visited ?? <Expr>{};
+  if (seen.add(s)) {
+    try {
+      final lim = computeLimit(s, variable, Constant.infinity);
+      if (_isPositiveInfinity(lim)) return 1;
+      if (_isNegativeInfinity(lim)) return -1;
+      if (!lim.anyNode((n) => n is Limit) &&
+          lim.freeVariables.isEmpty &&
+          !(lim is Number && lim.isZero)) {
+        return _getSign(lim);
+      }
+    } on UnsupportedError {
+      // Fall through to asymptotic sampling.
+    }
   }
 
-  return 1;
+  var agreedSign = 0;
+  for (final sample in const [1e4, 1e8, 1e16]) {
+    try {
+      final val = s.evaluate({variable: sample});
+      if (!val.isFinite || val == 0.0) return 0;
+      final sgn = val > 0.0 ? 1 : -1;
+      if (agreedSign == 0) {
+        agreedSign = sgn;
+      } else if (agreedSign != sgn) {
+        return 0;
+      }
+    } on Object {
+      return 0;
+    }
+  }
+  return agreedSign;
 }
 
 bool _isPositiveInfinity(Expr expr) => switch (expr) {
