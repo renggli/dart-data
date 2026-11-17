@@ -186,5 +186,19 @@ void main() {
         check(posReal).deepEquals([const RealNumber(2.5)]);
       },
     );
+
+    test('filters extraneous roots and solves radical, log, and ln(x)/x', () {
+      check(Expr.parse('sqrt(x + 2) - x').solve('x'))
+          .deepEquals([IntegerNumber.two]);
+      check(Expr.parse('sqrt(x) + 1').solve('x')).isEmpty();
+      check(Expr.parse('ln(x - 1) + ln(x + 1) - ln(3)').solve('x'))
+          .deepEquals([IntegerNumber.two]);
+      final lnOverXEq = Expr.parse('ln(x)/x - 1/(2*e)');
+      final lnOverX = lnOverXEq.solve('x');
+      check(lnOverX.length).equals(2);
+      for (final root in lnOverX) {
+        check(lnOverXEq.evaluate({'x': root.evaluate()})).isCloseTo(0.0, 1e-12);
+      }
+    });
   });
 }

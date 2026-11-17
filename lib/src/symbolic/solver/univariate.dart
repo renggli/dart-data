@@ -1,3 +1,4 @@
+import '../algebra/approximate.dart';
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/domain.dart';
@@ -48,8 +49,12 @@ List<Expr> solveEquation(
   Assumptions assumptions = Assumptions.none,
 }) {
   final effectiveDomain = assumptions.domainOf(variable);
+  final normalized = expr is Equal ? expr.left - expr.right : expr;
   final rawRoots = _solveUnfiltered(expr, variable, assumptions);
-  return _filterByDomain(rawRoots, effectiveDomain, assumptions);
+  final validRoots = rawRoots
+      .where((root) => _isValidRoot(normalized, variable, root, assumptions))
+      .toList();
+  return _filterByDomain(validRoots, effectiveDomain, assumptions);
 }
 
 /// Checks whether [root] satisfies [domain] under [assumptions].
@@ -294,4 +299,50 @@ bool _isZeroAt(
   } on UnsupportedError {
     return true;
   }
+}
+
+bool _isValidRoot(
+  Expr original,
+  String variable,
+  Expr root,
+  Assumptions assumptions,
+) {
+  if (root.freeVariables.isNotEmpty) return true;
+  final Expr v;
+  try {
+    v = original.substitute(variable, root).simplify(assumptions: assumptions);
+  } on Object {
+    return false;
+  }
+  if (v.anyNode(
+    (n) =>
+        n == Constant.undefined ||
+        n == Constant.infinity ||
+        (n is RealNumber && !n.value.isFinite),
+  )) {
+    return false;
+  }
+  if (v is Number) {
+    if (v.isZero) return true;
+    if (v is RealNumeric) return v.toDouble().abs() <= 1e-9;
+    if (v is ComplexNumber) {
+      return v.real.toDouble().abs() <= 1e-9 &&
+          v.imaginary.toDouble().abs() <= 1e-9;
+    }
+  }
+  if (v.freeVariables.isEmpty) {
+    try {
+      final approx = v.approximate();
+      if (approx is RealNumeric) {
+        return approx.toDouble().abs() <= 1e-9;
+      }
+      if (approx is ComplexNumber) {
+        return approx.real.toDouble().abs() <= 1e-9 &&
+            approx.imaginary.toDouble().abs() <= 1e-9;
+      }
+    } on Object {
+      // Fall through if numeric approximation is unavailable.
+    }
+  }
+  return true;
 }

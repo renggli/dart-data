@@ -1,11 +1,14 @@
 import 'dart:math' as math;
 
+import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
+import '../algebra/simplify/domain.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
 import '../compiler.dart';
+import '../number/integer.dart';
 import '../type/expr_data_type.dart';
 import 'polynomial.dart';
 import 'trigonometric.dart';
@@ -19,6 +22,22 @@ List<Expr>? isolateAndInvert(
 }) {
   // Case 1: expr is Add(terms)
   if (expr case Add(:final terms)) {
+    // Log combination: sum a_i * ln(u_i) + C -> ln(prod u_i^a_i) + C
+    final logCombined = _tryCombineLogsAndSolve(
+      terms,
+      variable,
+      assumptions: assumptions,
+    );
+    if (logCombined != null) return logCombined;
+
+    // Radical isolation: c * base^(p/q) + R = 0 -> c^q * base^p - (-R)^q = 0
+    final radicalSolved = _tryIsolateRadicalAndSolve(
+      terms,
+      variable,
+      assumptions: assumptions,
+    );
+    if (radicalSolved != null) return radicalSolved;
+
     final varTerms = <Expr>[];
     final constTerms = <Expr>[];
     for (final t in terms) {
@@ -475,6 +494,19 @@ List<Expr>? _solveProductTranscendental(
         }
       }
       if (a case Ln(:final expr)) {
+        if (b
+            case Pow(
+              base: final powBase,
+              exponent: IntegerNumber(isNegativeOne: true),
+            )
+            when powBase == expr && expr.dependsOn(variable)) {
+          return _solveLambertWEquation(
+            (-Ln(expr)).simplify(assumptions: assumptions),
+            (-c).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        }
         final ratio = (expr / b).simplify(assumptions: assumptions);
         if (!ratio.dependsOn(variable) && !(ratio is Number && ratio.isZero)) {
           final cPrime = (c * ratio).simplify(assumptions: assumptions);
@@ -499,14 +531,39 @@ List<Expr>? _solveAddTranscendental(
 }) {
   if (u.terms case [final t0, final t1]) {
     for (final (a, b) in [(t0, t1), (t1, t0)]) {
-      if (a case Ln(:final expr) when b is! Ln) {
-        final ratio = (b / expr).simplify(assumptions: assumptions);
+      final (Expr? lnArg, Expr k) = switch (a) {
+        Ln(:final expr) => (expr, IntegerNumber.one),
+        Mul(:final factors) => () {
+          Expr? arg;
+          final constFactors = <Expr>[];
+          for (final f in factors) {
+            if (arg == null && f is Ln) {
+              arg = f.expr;
+            } else if (!f.dependsOn(variable)) {
+              constFactors.add(f);
+            } else {
+              return (null, IntegerNumber.one);
+            }
+          }
+          if (arg == null) return (null, IntegerNumber.one);
+          final coeff = switch (constFactors) {
+            [] => IntegerNumber.one,
+            [final single] => single,
+            _ => Mul(constFactors).simplify(assumptions: assumptions),
+          };
+          return (arg, coeff);
+        }(),
+        _ => (null, IntegerNumber.one),
+      };
+      if (lnArg != null && b is! Ln) {
+        final ratio = (b / (k * lnArg)).simplify(assumptions: assumptions);
         if (!ratio.dependsOn(variable) && !(ratio is Number && ratio.isZero)) {
-          final cPrime = (ratio * Pow(Constant.e, c)).simplify(
+          final cOverK = (c / k).simplify(assumptions: assumptions);
+          final cPrime = (ratio * Pow(Constant.e, cOverK)).simplify(
             assumptions: assumptions,
           );
           return _solveLambertWEquation(
-            b,
+            (b / k).simplify(assumptions: assumptions),
             cPrime,
             variable,
             assumptions: assumptions,
@@ -674,4 +731,134 @@ double? _tryEvalReal(Expr expr) {
       break;
   }
   return null;
+}
+
+List<Expr>? _tryCombineLogsAndSolve(
+  List<Expr> terms,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final lnTerms = <({Expr u, RationalNumber coeff})>[];
+  final rest = <Expr>[];
+  for (final t in terms) {
+    switch (t) {
+      case Ln(:final expr):
+        lnTerms.add((u: expr, coeff: IntegerNumber.one));
+      case Mul(factors: [final RationalNumber a, Ln(:final expr)]):
+        lnTerms.add((u: expr, coeff: a));
+      default:
+        rest.add(t);
+    }
+  }
+  if (lnTerms.length < 2 || !lnTerms.any((e) => e.u.dependsOn(variable))) {
+    return null;
+  }
+  if (rest.any((r) => r.dependsOn(variable))) {
+    return null;
+  }
+
+  var prod = IntegerNumber.one as Expr;
+  for (final (:u, :coeff) in lnTerms) {
+    final term = coeff.isOne
+        ? u
+        : Pow(u, coeff).simplify(assumptions: assumptions);
+    prod = (prod * term).simplify(assumptions: assumptions);
+  }
+  final combined = Add([Ln(prod).simplify(assumptions: assumptions), ...rest])
+      .simplify(assumptions: assumptions);
+  final candidates = solveEquation(
+    combined,
+    variable,
+    assumptions: assumptions,
+  );
+  return candidates.where((root) {
+    for (final (:u, coeff: _) in lnTerms) {
+      if (!u.dependsOn(variable)) continue;
+      final uVal = u
+          .substitute(variable, root)
+          .simplify(assumptions: assumptions);
+      if (uVal.freeVariables.isNotEmpty) continue;
+      if (isPositiveExpr(uVal, assumptions: assumptions)) continue;
+      final numVal = _tryEvalReal(uVal);
+      if (numVal == null || numVal <= 0.0) return false;
+    }
+    return true;
+  }).toList();
+}
+
+bool _hasVariableRadical(Expr expr, String variable) => expr.anyNode(
+  (n) => n is Pow && n.exponent is FractionNumber && n.base.dependsOn(variable),
+);
+
+List<Expr>? _tryIsolateRadicalAndSolve(
+  List<Expr> terms,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  ({Expr c, Expr base, Integer p, int q})? radical;
+  final rest = <Expr>[];
+
+  for (final t in terms) {
+    if (!_hasVariableRadical(t, variable)) {
+      rest.add(t);
+      continue;
+    }
+    if (radical != null) return null;
+    if (t
+        case Pow(
+          :final base,
+          exponent: FractionNumber(:final numerator, :final denominator),
+        )
+        when base.dependsOn(variable)) {
+      final q = denominator.asInt;
+      if (q == null || q < 2 || q > 4) return null;
+      radical = (c: IntegerNumber.one, base: base, p: numerator, q: q);
+    } else if (t case Mul(:final factors)) {
+      Expr? radBase;
+      Integer? radP;
+      int? radQ;
+      final otherFactors = <Expr>[];
+      for (final f in factors) {
+        if (f
+            case Pow(
+              :final base,
+              exponent: FractionNumber(:final numerator, :final denominator),
+            )
+            when base.dependsOn(variable)) {
+          if (radBase != null) return null;
+          final q = denominator.asInt;
+          if (q == null || q < 2 || q > 4) return null;
+          radBase = base;
+          radP = numerator;
+          radQ = q;
+        } else if (_hasVariableRadical(f, variable)) {
+          return null;
+        } else {
+          otherFactors.add(f);
+        }
+      }
+      if (radBase == null) return null;
+      final c = switch (otherFactors) {
+        [] => IntegerNumber.one,
+        [final single] => single,
+        _ => Mul(otherFactors).simplify(assumptions: assumptions),
+      };
+      radical = (c: c, base: radBase, p: radP!, q: radQ!);
+    } else {
+      return null;
+    }
+  }
+
+  if (radical == null || rest.isEmpty) return null;
+  final (:c, :base, :p, :q) = radical;
+  final r = rest.length == 1
+      ? rest.single
+      : Add(rest).simplify(assumptions: assumptions);
+  final negR = (-r).simplify(assumptions: assumptions);
+  final poly =
+      (Pow(c, IntegerNumber.of(q)) * Pow(base, IntegerNumber(p)) -
+              Pow(negR, IntegerNumber.of(q)))
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
+  return solveEquation(poly, variable, assumptions: assumptions);
 }

@@ -337,6 +337,21 @@ void main() {
           'x',
         );
         check(r4).isNotNull().deepEquals([IntegerNumber.zero]);
+
+        // Product transcendental: ln(x)/x = 1/(2*e) -> exp(-W_k(-1/(2*e)))
+        final r5 = invertEquation(
+          Mul([Pow(x, IntegerNumber.negativeOne), Ln(x)]),
+          (IntegerNumber.one / (IntegerNumber.two * Constant.e)).simplify(),
+          'x',
+        );
+        check(r5).isNotNull().length.equals(2);
+        for (final root in r5!) {
+          check(
+            (Ln(root) / root -
+                    IntegerNumber.one / (IntegerNumber.two * Constant.e))
+                .evaluate(),
+          ).isCloseTo(0.0, 1e-12);
+        }
       },
     );
   });
