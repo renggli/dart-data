@@ -82,10 +82,18 @@ bool isProvenReal(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
               final v? => v > 0.0,
               _ => false,
             },
-      EllipticK(:final expr) || EllipticE(:final expr) =>
-        expr is RealNumeric
-            ? expr.toDouble().abs() <= 1.0
-            : isProvenReal(expr, assumptions),
+      EllipticK(:final expr) =>
+        isProvenReal(expr, assumptions) &&
+            switch (tryStaticRealValue(expr)) {
+              final v? => v.abs() < 1.0,
+              _ => false,
+            },
+      EllipticE(:final expr) =>
+        isProvenReal(expr, assumptions) &&
+            switch (tryStaticRealValue(expr)) {
+              final v? => v.abs() <= 1.0,
+              _ => false,
+            },
       Polygamma(:final left, :final right) ||
       BesselJ(:final left, :final right) ||
       BesselY(:final left, :final right) ||
@@ -143,6 +151,10 @@ bool isPositiveExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
       Pow(:final base, :final exponent) =>
         isPositiveExpr(base, assumptions: assumptions) &&
             isProvenReal(exponent, assumptions),
+      Cosh(:final expr) => isProvenReal(expr, assumptions),
+      Add(:final terms) =>
+        terms.every((t) => isNonNegativeExpr(t, assumptions: assumptions)) &&
+            terms.any((t) => isPositiveExpr(t, assumptions: assumptions)),
       Mul(:final factors) => factors.every(
         (f) => isPositiveExpr(f, assumptions: assumptions),
       ),
@@ -161,10 +173,15 @@ bool isNonNegativeExpr(
   Abs() => true,
   Pow(base: Constant.e, :final exponent) => isProvenReal(exponent, assumptions),
   Pow(:final base, :final exponent) =>
-    isNonNegativeExpr(base, assumptions: assumptions) ||
+    (isNonNegativeExpr(base, assumptions: assumptions) &&
+            isProvenReal(exponent, assumptions)) ||
         (isProvenReal(base, assumptions) &&
             exponent is IntegerNumber &&
             exponent.value.isEven),
+  Cosh(:final expr) => isProvenReal(expr, assumptions),
+  Add(:final terms) => terms.every(
+    (t) => isNonNegativeExpr(t, assumptions: assumptions),
+  ),
   Mul(:final factors) => factors.every(
     (f) => isNonNegativeExpr(f, assumptions: assumptions),
   ),

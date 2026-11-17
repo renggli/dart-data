@@ -151,6 +151,27 @@ void main() {
         check(prodDecomp.re).equals(IntegerNumber.of(-5));
         check(prodDecomp.im).equals(IntegerNumber.of(10));
       });
+
+      test('sound domain predicates for Pow, Add, Cosh, and Elliptic', () {
+        check(isNonNegativeExpr(Pow(IntegerNumber.two, ComplexNumber.i)))
+            .isFalse();
+        check(
+          isPositiveExpr(Expr.parse('x^2 + 1'), assumptions: Assumptions.real),
+        ).isTrue();
+        check(
+          Expr.parse('abs(x^2 + 1)').simplify(assumptions: Assumptions.real),
+        ).equals(Expr.parse('1 + x^2').simplify());
+        check(
+          Expr.parse('sqrt((x^2 + 1)^2)')
+              .simplify(assumptions: Assumptions.real),
+        ).equals(Expr.parse('1 + x^2').simplify());
+        check(isProvenReal(EllipticK(x), Assumptions.real)).isFalse();
+        check(isProvenReal(EllipticK(FractionNumber.half), Assumptions.real))
+            .isTrue();
+        check(isProvenReal(EllipticK(IntegerNumber.one))).isFalse();
+        check(isProvenReal(EllipticE(IntegerNumber.one))).isTrue();
+        check(isPositiveExpr(Cosh(x), assumptions: Assumptions.real)).isTrue();
+      });
     });
   });
 }
