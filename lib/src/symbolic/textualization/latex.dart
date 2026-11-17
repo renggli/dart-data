@@ -23,7 +23,7 @@ extension LatexExtension on Expr {
 }
 
 String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
-  Variable(:final name) => name,
+  Variable(:final name) => _formatVariableLatex(name),
   VariableFunction(:final name, :final arguments) =>
     '$name(${arguments.map((a) => _toLatex(a, decimalPlaces)).join(', ')})',
   Constant(:final latex) => latex,
@@ -139,30 +139,37 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
         '${branches.map((b) => '${_toLatex(b.expr, decimalPlaces)}, & \\text{if } ${_toLatex(b.relation, decimalPlaces)}').join(' \\\\ ')}'
         '${otherwise != null ? ' \\\\ ${_toLatex(otherwise, decimalPlaces)}, & \\text{otherwise}' : ''}'
         ' \\end{cases}',
-  Integral(:final integrand, :final variable, :final lower, :final upper) =>
-    lower != null && upper != null
-        ? '\\int_{${_toLatex(lower, decimalPlaces)}}^{${_toLatex(upper, decimalPlaces)}} ${_toLatex(integrand, decimalPlaces)} \\, d$variable'
-        : '\\int ${_toLatex(integrand, decimalPlaces)} \\, d$variable',
-  Derivative(:final expr, :final variable, :final order, :final point) =>
-    point != null
+  Integral(:final integrand, :final variable, :final lower, :final upper) => () {
+    final varLatex = _toLatex(Variable(variable), decimalPlaces);
+    final body = _formatMulRight(integrand, decimalPlaces);
+    return lower != null && upper != null
+        ? '\\int_{${_toLatex(lower, decimalPlaces)}}^{${_toLatex(upper, decimalPlaces)}} $body \\, \\mathrm{d}$varLatex'
+        : '\\int $body \\, \\mathrm{d}$varLatex';
+  }(),
+  Derivative(:final expr, :final variable, :final order, :final point) => () {
+    final varLatex = _toLatex(Variable(variable), decimalPlaces);
+    final body = _formatMulRight(expr, decimalPlaces);
+    return point != null
         ? (order == 1
-              ? '\\left. \\frac{d}{d$variable} ${_formatMulRight(expr, decimalPlaces)} \\right|_{$variable = ${_toLatex(point, decimalPlaces)}}'
-              : '\\left. \\frac{d^{$order}}{d$variable^{$order}} ${_formatMulRight(expr, decimalPlaces)} \\right|_{$variable = ${_toLatex(point, decimalPlaces)}}')
+              ? '\\left. \\frac{d}{d$varLatex} $body \\right|_{$varLatex = ${_toLatex(point, decimalPlaces)}}'
+              : '\\left. \\frac{d^{$order}}{d$varLatex^{$order}} $body \\right|_{$varLatex = ${_toLatex(point, decimalPlaces)}}')
         : (order == 1
-              ? '\\frac{d}{d$variable} ${_formatMulRight(expr, decimalPlaces)}'
-              : '\\frac{d^{$order}}{d$variable^{$order}} ${_formatMulRight(expr, decimalPlaces)}'),
+              ? '\\frac{d}{d$varLatex} $body'
+              : '\\frac{d^{$order}}{d$varLatex^{$order}} $body');
+  }(),
   Limit(:final expr, :final variable, :final point, :final direction) => () {
+    final varLatex = _toLatex(Variable(variable), decimalPlaces);
     final dirSuffix = switch (direction) {
       LimitDirection.both => '',
       LimitDirection.fromAbove => '^+',
       LimitDirection.fromBelow => '^-',
     };
-    return '\\lim_{$variable \\to ${_toLatex(point, decimalPlaces)}$dirSuffix} ${_formatMulRight(expr, decimalPlaces)}';
+    return '\\lim_{$varLatex \\to ${_toLatex(point, decimalPlaces)}$dirSuffix} ${_formatMulRight(expr, decimalPlaces)}';
   }(),
   Sum(:final expr, :final variable, :final lower, :final upper) =>
-    '\\sum_{$variable=${_toLatex(lower, decimalPlaces)}}^{${_toLatex(upper, decimalPlaces)}} ${_formatMulRight(expr, decimalPlaces)}',
+    '\\sum_{${_toLatex(Variable(variable), decimalPlaces)}=${_toLatex(lower, decimalPlaces)}}^{${_toLatex(upper, decimalPlaces)}} ${_formatMulRight(expr, decimalPlaces)}',
   Product(:final expr, :final variable, :final lower, :final upper) =>
-    '\\prod_{$variable=${_toLatex(lower, decimalPlaces)}}^{${_toLatex(upper, decimalPlaces)}} ${_formatMulRight(expr, decimalPlaces)}',
+    '\\prod_{${_toLatex(Variable(variable), decimalPlaces)}=${_toLatex(lower, decimalPlaces)}}^{${_toLatex(upper, decimalPlaces)}} ${_formatMulRight(expr, decimalPlaces)}',
 };
 
 String _formatComplexLatex(ComplexNumber c, int decimalPlaces) {
@@ -308,6 +315,44 @@ String _formatMulRight(Expr right, int decimalPlaces) =>
     needsMulRightParens(right)
     ? '(${_toLatex(right, decimalPlaces)})'
     : _toLatex(right, decimalPlaces);
+
+const _greekLetters = <String>{
+  'alpha',
+  'beta',
+  'gamma',
+  'delta',
+  'epsilon',
+  'zeta',
+  'eta',
+  'theta',
+  'iota',
+  'kappa',
+  'lambda',
+  'mu',
+  'nu',
+  'xi',
+  'rho',
+  'sigma',
+  'tau',
+  'upsilon',
+  'phi',
+  'chi',
+  'psi',
+  'omega',
+  'Gamma',
+  'Delta',
+  'Theta',
+  'Lambda',
+  'Xi',
+  'Sigma',
+  'Upsilon',
+  'Phi',
+  'Psi',
+  'Omega',
+};
+
+String _formatVariableLatex(String name) =>
+    _greekLetters.contains(name) ? '\\$name' : name;
 
 String _formatPowBase(Expr base, int decimalPlaces) => needsPowBaseParens(base)
     ? '(${_toLatex(base, decimalPlaces)})'

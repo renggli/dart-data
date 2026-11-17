@@ -305,6 +305,10 @@ void main() {
       check(Integral(x, 'x').toMathMl()).equals(
         '<math><mrow><mo>&#x222B;</mo><mi>x</mi><mspace width="thinmathspace"/><mi>d</mi><mi>x</mi></mrow></math>',
       );
+      check(Integral(x + IntegerNumber.one, 'x').toMathMl(root: false))
+          .contains(
+            '<mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo>',
+          );
       check(
         Integral(
           const Variable('t'),

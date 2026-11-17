@@ -120,7 +120,7 @@ void main() {
       ).contains(r'\begin{cases}');
 
       check(Integral(Expr.parse('exp(x^2)'), 'x').toLatex())
-          .equals(r'\int e^{{x}^{2}} \, dx');
+          .equals(r'\int e^{{x}^{2}} \, \mathrm{d}x');
       check(
         Integral(
           Expr.parse('sin(t^2)'),
@@ -128,7 +128,13 @@ void main() {
           lower: IntegerNumber.zero,
           upper: x,
         ).toLatex(),
-      ).equals(r'\int_{0}^{x} \sin({t}^{2}) \, dt');
+      ).equals(r'\int_{0}^{x} \sin({t}^{2}) \, \mathrm{d}t');
+      check(Integral(x + IntegerNumber.one, 'x').toLatex())
+          .equals(r'\int (x + 1) \, \mathrm{d}x');
+      check(Integral(const Variable('theta'), 'theta').toLatex())
+          .contains(r'\mathrm{d}\theta');
+      check(Derivative(const Variable('theta'), 'theta').toLatex())
+          .contains(r'\frac{d}{d\theta}');
       check(Expr.parse('sum(2 * abs(x), x, 1, n)').toLatex())
           .equals(r'\sum_{x=1}^{n} 2 \left|x\right|');
       check(Expr.parse('product(2 * abs(x), x, 1, n)').toLatex())
