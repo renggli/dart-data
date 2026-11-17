@@ -378,23 +378,60 @@ Integer? integerCbrt(Integer n) {
 List<Integer> divisors(Integer n) {
   final val = n.abs();
   if (val.isZero) return const [];
-  final valInt = val.asInt;
-  if (valInt != null && val.bitLength <= 30) {
-    final small = <Integer>[];
-    final large = <Integer>[];
-    final limit = math.sqrt(valInt.toDouble()).floor();
-    for (var i = 1; i <= limit; i++) {
-      if (valInt % i == 0) {
-        small.add(Integer.from(i));
-        final other = valInt ~/ i;
-        if (other != i) {
-          large.add(Integer.from(other));
-        }
-      }
+  if (val.isOne) return [Integer.one];
+
+  var rem = val;
+  final primePowers = <({Integer prime, int exp})>[];
+
+  if (rem.isEven) {
+    var count = 0;
+    while (rem.isEven) {
+      rem ~/= Integer.two;
+      count++;
     }
-    return [...small, ...large.reversed];
+    primePowers.add((prime: Integer.two, exp: count));
   }
-  return [Integer.one, val];
+
+  const maxTrial = Integer(100000);
+  var d = const Integer(3);
+  while (d <= maxTrial && d * d <= rem) {
+    if ((rem % d).isZero) {
+      var count = 0;
+      while ((rem % d).isZero) {
+        rem ~/= d;
+        count++;
+      }
+      primePowers.add((prime: d, exp: count));
+    }
+    d += Integer.two;
+  }
+
+  if (rem > Integer.one) {
+    primePowers.add((prime: rem, exp: 1));
+  }
+
+  var totalCount = 1;
+  for (final (:exp, prime: _) in primePowers) {
+    totalCount *= exp + 1;
+    if (totalCount > 4096) {
+      return [Integer.one, val];
+    }
+  }
+
+  var result = <Integer>[Integer.one];
+  for (final (:prime, :exp) in primePowers) {
+    final next = <Integer>[];
+    var pPow = Integer.one;
+    for (var e = 0; e <= exp; e++) {
+      for (final r in result) {
+        next.add(r * pPow);
+      }
+      if (e < exp) pPow *= prime;
+    }
+    result = next;
+  }
+  result.sort();
+  return result;
 }
 
 List<(List<Integer>, int)>? _decomposeSquareFree(

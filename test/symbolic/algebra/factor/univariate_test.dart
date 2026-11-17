@@ -108,6 +108,8 @@ void main() {
         const Integer(6),
         const Integer(12),
       ]);
+      check(Expr.parse('x^2 - 3*2^31*x + 2^63').factor())
+          .equals(Expr.parse('(x - 2^31)*(x - 2^32)').simplify());
     });
   });
 }

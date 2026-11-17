@@ -148,5 +148,12 @@ void main() {
         check(isOne(x)).isFalse();
       },
     );
+
+    test('factors out non-variable symbolic common factors', () {
+      check(Expr.parse('x*sin(y) + 2*sin(y)').factor())
+          .equals(Expr.parse('(2 + x)*sin(y)').simplify());
+      check(Expr.parse('x*exp(x) + exp(x)').factor())
+          .equals(Expr.parse('(1 + x)*exp(x)').simplify());
+    });
   });
 }

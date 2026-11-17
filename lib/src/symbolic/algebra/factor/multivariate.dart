@@ -20,16 +20,16 @@ Expr? extractMonomialGcd(List<Expr> terms) {
   if (terms.isEmpty) return null;
   var lcmDen = Integer.one;
   final termCoeffs = <RationalNumber>[];
-  final varPowers = <Map<String, int>>[];
+  final factorPowers = <Map<Expr, int>>[];
 
   for (final t in terms) {
     final (c, base) = decomposeTerm(t);
     if (c is! RationalNumber) return null;
     lcmDen = lcmDen.lcm(c.denominator);
     termCoeffs.add(c);
-    final powers = <String, int>{};
-    collectVariablePowers(base, powers);
-    varPowers.add(powers);
+    final powers = <Expr, int>{};
+    _collectFactorPowers(base, powers);
+    factorPowers.add(powers);
   }
 
   var content = Integer.zero;
@@ -39,12 +39,12 @@ Expr? extractMonomialGcd(List<Expr> terms) {
   }
   if (content.isZero) content = Integer.one;
 
-  final commonVars = <String, int>{};
-  for (final v in varPowers.first.keys) {
-    var minP = varPowers.first[v]!;
+  final commonFactors = <Expr, int>{};
+  for (final f in factorPowers.first.keys) {
+    var minP = factorPowers.first[f]!;
     var presentInAll = true;
-    for (var i = 1; i < varPowers.length; i++) {
-      final p = varPowers[i][v] ?? 0;
+    for (var i = 1; i < factorPowers.length; i++) {
+      final p = factorPowers[i][f] ?? 0;
       if (p == 0) {
         presentInAll = false;
         break;
@@ -52,28 +52,42 @@ Expr? extractMonomialGcd(List<Expr> terms) {
       minP = math.min(minP, p);
     }
     if (presentInAll && minP > 0) {
-      commonVars[v] = minP;
+      commonFactors[f] = minP;
     }
   }
 
   final scalarGcd = RationalNumber.of(content, lcmDen);
-  if (scalarGcd.isOne && commonVars.isEmpty) return null;
+  if (scalarGcd.isOne && commonFactors.isEmpty) return null;
 
   final factors = <Expr>[];
   if (!scalarGcd.isOne) {
     factors.add(scalarGcd);
   }
-  for (final MapEntry(:key, :value) in commonVars.entries) {
-    final vExpr = value == 1
-        ? Variable(key)
-        : Pow(Variable(key), IntegerNumber.of(value));
-    factors.add(vExpr);
+  for (final MapEntry(:key, :value) in commonFactors.entries) {
+    final fExpr = value == 1 ? key : Pow(key, IntegerNumber.of(value));
+    factors.add(fExpr);
   }
   return switch (factors) {
     [] => IntegerNumber.one,
     [final single] => single,
     _ => simplifyMul(factors),
   };
+}
+
+void _collectFactorPowers(Expr expr, Map<Expr, int> target) {
+  switch (expr) {
+    case Number(isOne: true):
+      return;
+    case Pow(:final base, exponent: IntegerNumber(asInt: final exp?))
+        when exp > 0:
+      target[base] = (target[base] ?? 0) + exp;
+    case Mul(:final factors):
+      for (final factor in factors) {
+        _collectFactorPowers(factor, target);
+      }
+    default:
+      target[expr] = (target[expr] ?? 0) + 1;
+  }
 }
 
 /// Collects variable powers and residual non-variable symbolic factors in a product monomial.
@@ -107,16 +121,11 @@ Expr divideMonomial(Expr term, Expr gcd) {
   final (cTerm, bTerm) = decomposeTerm(term);
   final (cGcd, bGcd) = decomposeTerm(gcd);
   final coeff = cTerm.div(cGcd);
-  final powersTerm = <String, int>{};
-  final residualsTerm = <Expr>[];
-  collectVariablePowers(bTerm, powersTerm, residualsTerm);
-  final powersGcd = <String, int>{};
-  final residualsGcd = <Expr>[];
-  collectVariablePowers(bGcd, powersGcd, residualsGcd);
-  for (final r in residualsGcd) {
-    residualsTerm.remove(r);
-  }
-  final remainingPowers = <String, int>{};
+  final powersTerm = <Expr, int>{};
+  _collectFactorPowers(bTerm, powersTerm);
+  final powersGcd = <Expr, int>{};
+  _collectFactorPowers(bGcd, powersGcd);
+  final remainingPowers = <Expr, int>{};
   for (final MapEntry(:key, :value) in powersTerm.entries) {
     final rem = value - (powersGcd[key] ?? 0);
     if (rem > 0) remainingPowers[key] = rem;
@@ -124,11 +133,7 @@ Expr divideMonomial(Expr term, Expr gcd) {
   final factors = <Expr>[
     if (!coeff.isOne) coeff,
     for (final MapEntry(:key, :value) in remainingPowers.entries)
-      if (value == 1)
-        Variable(key)
-      else
-        Pow(Variable(key), IntegerNumber.of(value)),
-    ...residualsTerm,
+      if (value == 1) key else Pow(key, IntegerNumber.of(value)),
   ];
   return switch (factors) {
     [] => coeff,
