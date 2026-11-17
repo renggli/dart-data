@@ -88,7 +88,18 @@ void main() {
       check(Expr.parse('(54 / 125)^(1/3)').simplify().toString())
           .equals('3/5 * 2 ^ (1/3)');
       check(Expr.parse('(16 / 81)^(1/3)').simplify().toString())
-          .equals('2/3 * (2/3) ^ (1/3)');
+          .equals('2/9 * 2 ^ (1/3) * 3 ^ (2/3)');
+      check((Expr.parse('sin(pi/4)') - Expr.parse('1/sqrt(2)')).simplify())
+          .equals(IntegerNumber.zero);
+      check((Expr.parse('sqrt(1/2)') - Expr.parse('sqrt(2)/2')).simplify())
+          .equals(IntegerNumber.zero);
+      check((Expr.parse('tan(pi/6)') - Expr.parse('1/sqrt(3)')).simplify())
+          .equals(IntegerNumber.zero);
+      check(Expr.parse('2^(5/2)').simplify())
+          .equals(Expr.parse('4 * sqrt(2)').simplify());
+      check(
+        Pow(IntegerNumber.of(2 * 1009 * 1009), FractionNumber.half).simplify(),
+      ).equals(Expr.parse('1009 * sqrt(2)').simplify());
 
       // Large denominator > 64 stays unextracted
       final largeRoot = simplifyPow(

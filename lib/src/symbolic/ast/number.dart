@@ -138,8 +138,8 @@ sealed class Number extends Expr {
     if (baseRat.isNegative) return null;
     if ((exponent.denominator.asInt, exponent.numerator.asInt)
         case (final q?, final p?) when q <= 64 && p.abs() <= 64) {
-      if (_exactIntegerRoot(baseRat.numerator, q) case final rootNum?) {
-        if (_exactIntegerRoot(baseRat.denominator, q) case final rootDen?) {
+      if (exactIntegerRoot(baseRat.numerator, q) case final rootNum?) {
+        if (exactIntegerRoot(baseRat.denominator, q) case final rootDen?) {
           return RationalNumber.of(rootNum, rootDen).powInteger(p);
         }
       }
@@ -284,7 +284,7 @@ sealed class Number extends Expr {
       _ => n.toBigInt().bitLength - 1,
     };
     for (var k = maxK; k >= 2; k--) {
-      final root = _exactIntegerRoot(n, k);
+      final root = exactIntegerRoot(n, k);
       if (root != null && root > Integer.one) {
         return (root, k);
       }
@@ -292,7 +292,9 @@ sealed class Number extends Expr {
     return null;
   }
 
-  static Integer? _exactIntegerRoot(Integer n, int q) {
+  /// Returns the exact non-negative [q]-th integer root of [n] if [n] is a
+  /// perfect [q]-th power, or `null` otherwise.
+  static Integer? exactIntegerRoot(Integer n, int q) {
     if (n.isNegative || q <= 0) return null;
     if (n.isZero) return Integer.zero;
     if (n.isOne || q == 1) return n;

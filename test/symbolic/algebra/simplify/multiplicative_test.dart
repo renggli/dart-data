@@ -108,6 +108,9 @@ void main() {
           const Variable('x'),
         ]).toString(),
       ).equals('2 * x');
+
+      check((Constant.infinity / Constant.infinity).simplify())
+          .equals(Constant.undefined);
     });
 
     test('distributes exact division over additive factors', () {

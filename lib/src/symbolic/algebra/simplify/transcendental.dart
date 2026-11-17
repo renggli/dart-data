@@ -20,6 +20,34 @@ Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
   // Involution: sin(asin(u)) = u
   if (expr is Asin) return expr.expr;
+  if (expr is Acos) {
+    final u = expr.expr;
+    return simplifyPow(
+      simplifyAdd([
+        IntegerNumber.one,
+        simplifyNeg(
+          simplifyPow(u, IntegerNumber.two, assumptions: assumptions),
+          assumptions: assumptions,
+        ),
+      ], assumptions: assumptions),
+      FractionNumber.half,
+      assumptions: assumptions,
+    );
+  }
+  if (expr is Atan) {
+    final u = expr.expr;
+    return simplifyMul([
+      u,
+      simplifyPow(
+        simplifyAdd([
+          IntegerNumber.one,
+          simplifyPow(u, IntegerNumber.two, assumptions: assumptions),
+        ], assumptions: assumptions),
+        FractionNumber.negativeHalf,
+        assumptions: assumptions,
+      ),
+    ], assumptions: assumptions);
+  }
 
   // Parity: sin(-u) = -sin(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -84,6 +112,31 @@ Expr simplifyCos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
   // Involution: cos(acos(u)) = u
   if (expr is Acos) return expr.expr;
+  if (expr is Asin) {
+    final u = expr.expr;
+    return simplifyPow(
+      simplifyAdd([
+        IntegerNumber.one,
+        simplifyNeg(
+          simplifyPow(u, IntegerNumber.two, assumptions: assumptions),
+          assumptions: assumptions,
+        ),
+      ], assumptions: assumptions),
+      FractionNumber.half,
+      assumptions: assumptions,
+    );
+  }
+  if (expr is Atan) {
+    final u = expr.expr;
+    return simplifyPow(
+      simplifyAdd([
+        IntegerNumber.one,
+        simplifyPow(u, IntegerNumber.two, assumptions: assumptions),
+      ], assumptions: assumptions),
+      FractionNumber.negativeHalf,
+      assumptions: assumptions,
+    );
+  }
 
   // Parity: cos(-u) = cos(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -366,6 +419,7 @@ Expr simplifySinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     return RealNumber.fromDouble((math.exp(v) - math.exp(-v)) / 2.0);
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
+  if (expr is Asinh) return expr.expr;
 
   // Parity: sinh(-u) = -sinh(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -387,6 +441,18 @@ Expr simplifyCosh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     return RealNumber.fromDouble((math.exp(v) + math.exp(-v)) / 2.0);
   }
   if (expr is Number && expr.isZero) return IntegerNumber.one;
+  if (expr is Acosh) return expr.expr;
+  if (expr is Asinh) {
+    final u = expr.expr;
+    return simplifyPow(
+      simplifyAdd([
+        IntegerNumber.one,
+        simplifyPow(u, IntegerNumber.two, assumptions: assumptions),
+      ], assumptions: assumptions),
+      FractionNumber.half,
+      assumptions: assumptions,
+    );
+  }
 
   // Parity: cosh(-u) = cosh(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -407,6 +473,7 @@ Expr simplifyTanh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     return RealNumber.fromDouble((ep - em) / (ep + em));
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
+  if (expr is Atanh) return expr.expr;
 
   // Parity: tanh(-u) = -tanh(u)
   final (posExpr, isNeg) = extractSign(expr);

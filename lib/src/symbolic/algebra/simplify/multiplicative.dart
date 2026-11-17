@@ -125,6 +125,7 @@ Expr simplifyMul(
           exp,
         ], assumptions: assumptions);
         if (sumExp is Number && sumExp.isZero) {
+          if (base == Constant.infinity) return Constant.undefined;
           if (sumExp is RealNumber || base is RealNumber) {
             coeff = coeff.mul(const RealNumber(1.0));
           }

@@ -170,6 +170,19 @@ void main() {
         check(Expr.parse('asin(sin(1))').simplify()).equals(IntegerNumber.one);
         check(Expr.parse('acos(cos(1))').simplify()).equals(IntegerNumber.one);
         check(Expr.parse('atan(tan(1))').simplify()).equals(IntegerNumber.one);
+        check(Expr.parse('sin(acos(x))').simplify())
+            .equals(Expr.parse('sqrt(1 - x^2)').simplify());
+        check(Expr.parse('cos(asin(x))').simplify())
+            .equals(Expr.parse('sqrt(1 - x^2)').simplify());
+        check(Expr.parse('sin(atan(x))').simplify())
+            .equals(Expr.parse('x * (1 + x^2)^(-1/2)').simplify());
+        check(Expr.parse('cos(atan(x))').simplify())
+            .equals(Expr.parse('(1 + x^2)^(-1/2)').simplify());
+        check(Expr.parse('sinh(asinh(x))').simplify()).equals(x);
+        check(Expr.parse('cosh(acosh(x))').simplify()).equals(x);
+        check(Expr.parse('tanh(atanh(x))').simplify()).equals(x);
+        check(Expr.parse('cosh(asinh(x))').simplify())
+            .equals(Expr.parse('sqrt(1 + x^2)').simplify());
       },
     );
   });

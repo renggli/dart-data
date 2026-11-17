@@ -359,19 +359,34 @@ Expr? _extractRationalRadical(
   FractionNumber exponent, {
   Assumptions assumptions = Assumptions.none,
 }) {
+  if (base.isNegative || base.isZero || base.isOne) return null;
   final p = exponent.numerator.asInt;
   final q = exponent.denominator.asInt;
   if (p == null || q == null || q <= 1 || q > 64 || p.abs() > 64) {
     return null;
   }
 
-  // Split improper fractional exponent: |p| >= q => p = m * q + rem
-  if (p.abs() >= q) {
-    final m = p ~/ q;
-    final rem = p.remainder(q);
+  // Split rational base u / v into u^(p/q) * v^(-p/q).
+  if (base.denominator > Integer.one) {
+    final u = IntegerNumber(base.numerator);
+    final v = IntegerNumber(base.denominator);
+    return simplifyMul([
+      if (!u.isOne) simplifyPow(u, exponent, assumptions: assumptions),
+      simplifyPow(v, exponent.neg(), assumptions: assumptions),
+    ], assumptions: assumptions);
+  }
+
+  // Integer base > 1: floorDiv(p, q) ensures remaining exponent r/q is in (0, 1).
+  var m = p ~/ q;
+  var r = p - m * q;
+  if (r < 0) {
+    m -= 1;
+    r += q;
+  }
+  if (m != 0) {
     final intPart = base.powInteger(m);
     if (intPart != null) {
-      final remExp = RationalNumber(rem, q);
+      final remExp = RationalNumber(r, q);
       return simplifyMul([
         intPart,
         simplifyPow(base, remExp, assumptions: assumptions),
@@ -379,18 +394,14 @@ Expr? _extractRationalRadical(
     }
   }
 
-  // Extract q-th powers from numerator and denominator: n = k^q * r
+  // Extract q-th powers from integer base: n = k^q * r
   final (kNum, rNum) = _extractQthPower(base.numerator, q);
-  final (kDen, rDen) = _extractQthPower(base.denominator, q);
-
-  if (kNum > Integer.one || kDen > Integer.one) {
-    final extractedRoot = RationalNumber.of(kNum, kDen);
-    final extractedFactor = extractedRoot.powInteger(p);
+  if (kNum > Integer.one) {
+    final extractedFactor = IntegerNumber(kNum).powInteger(p);
     if (extractedFactor != null) {
-      final remBase = RationalNumber.of(rNum, rDen);
-      final remPow = remBase.isOne
+      final remPow = rNum.isOne
           ? IntegerNumber.one
-          : Pow(remBase, exponent, isSimplified: true);
+          : Pow(IntegerNumber(rNum), exponent, isSimplified: true);
       return simplifyMul([extractedFactor, remPow], assumptions: assumptions);
     }
   }
@@ -402,52 +413,56 @@ Expr? _extractRationalRadical(
 /// and $\text{remainder}$ is free of prime factors $\le 997$ of multiplicity $\ge q$.
 (Integer, Integer) _extractQthPower(Integer n, int q) {
   if (n <= Integer.one || q <= 1) return (Integer.one, n);
-  final val = n.asInt;
-  if (val != null) {
-    var rem = val;
-    var root = 1;
+  var unfactored = n;
+  var root = Integer.one;
+  var restored = Integer.one;
 
-    var count2 = 0;
-    while ((rem & 1) == 0) {
-      rem >>= 1;
-      count2++;
-    }
-    if (count2 >= q) {
-      final extracted = count2 ~/ q;
-      for (var i = 0; i < extracted; i++) {
-        root *= 2;
-      }
-      count2 %= q;
-    }
-    for (var i = 0; i < count2; i++) {
-      rem <<= 1;
-    }
-
-    var d = 3;
-    var unfactored = rem >> count2;
-    var restored = 1 << count2;
-    while (d * d <= unfactored && d <= 997) {
-      if (unfactored % d == 0) {
-        var c = 0;
-        while (unfactored % d == 0) {
-          unfactored ~/= d;
-          c++;
-        }
-        if (c >= q) {
-          final ext = c ~/ q;
-          for (var i = 0; i < ext; i++) {
-            root *= d;
-          }
-          c %= q;
-        }
-        for (var i = 0; i < c; i++) {
-          restored *= d;
-        }
-      }
-      d += 2;
-    }
-    final finalRem = restored * unfactored;
-    return (Integer.from(root), Integer.from(finalRem));
+  var count2 = 0;
+  while (unfactored.isEven) {
+    unfactored ~/= Integer.two;
+    count2++;
   }
-  return (Integer.one, n);
+  if (count2 >= q) {
+    final extracted = count2 ~/ q;
+    for (var i = 0; i < extracted; i++) {
+      root *= Integer.two;
+    }
+    count2 %= q;
+  }
+  for (var i = 0; i < count2; i++) {
+    restored *= Integer.two;
+  }
+
+  var d = const Integer(3);
+  const limit = Integer(997);
+  while (d * d <= unfactored && d <= limit) {
+    if ((unfactored % d).isZero) {
+      var c = 0;
+      while ((unfactored % d).isZero) {
+        unfactored ~/= d;
+        c++;
+      }
+      if (c >= q) {
+        final ext = c ~/ q;
+        for (var i = 0; i < ext; i++) {
+          root *= d;
+        }
+        c %= q;
+      }
+      for (var i = 0; i < c; i++) {
+        restored *= d;
+      }
+    }
+    d += Integer.two;
+  }
+
+  if (unfactored > Integer.one) {
+    final exactRoot = Number.exactIntegerRoot(unfactored, q);
+    if (exactRoot != null) {
+      root *= exactRoot;
+      unfactored = Integer.one;
+    }
+  }
+
+  return (root, restored * unfactored);
 }
