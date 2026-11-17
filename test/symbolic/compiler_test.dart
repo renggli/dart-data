@@ -65,6 +65,8 @@ void main() {
         check(reSqrt.evaluate({'x': -4.0})).equals(0.0);
         check(imSqrt.toFunction1D('x')(-4.0)).equals(2.0);
         check(reSqrt.toFunction1D('x')(-4.0)).equals(0.0);
+        check(Expr.parse('abs(sqrt(x))').toFunction1D('x')(-4.0)).equals(2.0);
+        check(Expr.parse('sqrt(x)').toFunction1D('x')(-4.0).isNaN).isTrue();
       },
     );
 

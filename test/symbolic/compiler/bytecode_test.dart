@@ -91,5 +91,32 @@ void main() {
       check(compileToBytecode(Mul(const []), const []).evaluateList(const []))
           .equals(1.0);
     });
+
+    test('computes jump-aware maxStack for Piecewise branches', () {
+      const x = Variable('x');
+      final pw4 = Piecewise([
+        (relation: LessThan(x, IntegerNumber.one), expr: IntegerNumber.of(10)),
+        (relation: LessThan(x, IntegerNumber.two), expr: IntegerNumber.of(20)),
+        (
+          relation: LessThan(x, IntegerNumber.of(3)),
+          expr: IntegerNumber.of(30),
+        ),
+        (
+          relation: LessThan(x, IntegerNumber.of(4)),
+          expr: IntegerNumber.of(40),
+        ),
+      ], otherwise: IntegerNumber.of(50));
+      final pw10 = Piecewise([
+        for (var i = 1; i <= 10; i++)
+          (
+            relation: LessThan(x, IntegerNumber.of(i)),
+            expr: IntegerNumber.of(i),
+          ),
+      ], otherwise: IntegerNumber.zero);
+      final eval4 = compileToBytecode(pw4, const ['x']);
+      final eval10 = compileToBytecode(pw10, const ['x']);
+      check(eval4.maxStack).equals(eval10.maxStack);
+      check(eval4.maxStack).isLessThan(5);
+    });
   });
 }

@@ -12,6 +12,15 @@ import 'compiler/evaluator.dart';
 /// Extension providing zero-allocation high-throughput bytecode compilation of
 /// symbolic expressions.
 extension CompilerExtension on Expr {
+  static final _cache = Expando<BytecodeEvaluator>();
+
+  BytecodeEvaluator _cachedEvaluator() => _cache[this] ??= compileToBytecode(
+    this,
+    const [],
+    optimize: false,
+    allowDynamicVars: true,
+  );
+
   /// Evaluates this expression to a `double` given variable bindings in [context].
   ///
   /// Throws an [ArgumentError] if any free variable in this expression is
@@ -23,12 +32,7 @@ extension CompilerExtension on Expr {
   /// final val = expr.evaluate({'x': 3.0}); // 16.0
   /// ```
   double evaluate([Map<String, double> context = const {}]) =>
-      compileToBytecode(
-        this,
-        const [],
-        optimize: false,
-        allowDynamicVars: true,
-      ).evaluateMap(context);
+      _cachedEvaluator().evaluateMap(context);
 
   /// Evaluates this expression in the complex domain $\mathbb{C}$ given complex
   /// variable bindings in [context].
@@ -41,12 +45,7 @@ extension CompilerExtension on Expr {
   /// final val = z.evaluateComplex({'x': const Complex(3, 1)}); // Complex(3, 3)
   /// ```
   Complex evaluateComplex([Map<String, Complex> context = const {}]) =>
-      compileToBytecode(
-        this,
-        const [],
-        optimize: false,
-        allowDynamicVars: true,
-      ).evaluateComplexMap(context);
+      _cachedEvaluator().evaluateComplexMap(context);
 
   /// Compiles this expression into a fast native Dart function
   /// `double Function(double)`.

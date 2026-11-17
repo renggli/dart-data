@@ -1,6 +1,8 @@
+import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
 import 'package:more/math.dart';
 import 'package:more/number.dart' show Complex;
 
@@ -71,6 +73,23 @@ final class BytecodeEvaluator {
   );
   var _realBusy = false;
   var _complexBusy = false;
+  final _innerPrograms = HashMap<Expr, BytecodeEvaluator>();
+  var _innerCompileCount = 0;
+
+  /// Number of inner expressions compiled lazily by this evaluator.
+  @visibleForTesting
+  int get innerCompileCount => _innerCompileCount;
+
+  BytecodeEvaluator _compileInner(Expr expr) =>
+      _innerPrograms.putIfAbsent(expr, () {
+        _innerCompileCount++;
+        return compileToBytecode(
+          expr,
+          const [],
+          optimize: false,
+          allowDynamicVars: true,
+        );
+      });
 
   /// Asserts that this evaluator produces a real value when bound to a
   /// real-valued evaluation target.
@@ -190,7 +209,7 @@ final class BytecodeEvaluator {
               for (var i = 0; i < variables.length; i++)
                 variables[i]: loadVar(i),
             };
-            stack[sp++] = _evalNodeReal(instr.node!, ctx);
+            stack[sp++] = _evalNodeReal(instr.node!, ctx, _compileInner);
           case Op.add:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -347,42 +366,10 @@ final class BytecodeEvaluator {
                 ? double.nan
                 : a - b * (a / b).floorToDouble();
           case Op.re || Op.conj:
-            if (stack[sp - 1].isNaN) {
-              final res = _runComplex((idx) => Complex(loadVar(idx)));
-              if (res.b == 0.0 ||
-                  (res.b.abs() <= 1e-15 * (res.a.abs() + 1.0))) {
-                return res.a.toDouble();
-              }
-              if (res.isNaN) return double.nan;
-              throw UnsupportedError(
-                'Expression evaluated to complex value $res; use complex evaluation instead.',
-              );
-            }
+            break;
           case Op.im:
-            if (stack[sp - 1].isNaN) {
-              final res = _runComplex((idx) => Complex(loadVar(idx)));
-              if (res.b == 0.0 ||
-                  (res.b.abs() <= 1e-15 * (res.a.abs() + 1.0))) {
-                return res.a.toDouble();
-              }
-              if (res.isNaN) return double.nan;
-              throw UnsupportedError(
-                'Expression evaluated to complex value $res; use complex evaluation instead.',
-              );
-            }
             stack[sp - 1] = 0.0;
           case Op.arg:
-            if (stack[sp - 1].isNaN) {
-              final res = _runComplex((idx) => Complex(loadVar(idx)));
-              if (res.b == 0.0 ||
-                  (res.b.abs() <= 1e-15 * (res.a.abs() + 1.0))) {
-                return res.a.toDouble();
-              }
-              if (res.isNaN) return double.nan;
-              throw UnsupportedError(
-                'Expression evaluated to complex value $res; use complex evaluation instead.',
-              );
-            }
             final v = stack[sp - 1];
             stack[sp - 1] = v < 0.0 ? math.pi : 0.0;
           case Op.asinh:
@@ -417,7 +404,26 @@ final class BytecodeEvaluator {
             stack[sp++] = a != b ? 1.0 : 0.0;
         }
       }
-      return stack[0];
+      final result = stack[0];
+      if (result.isNaN) {
+        var anyVarNaN = false;
+        for (var i = 0; i < variables.length; i++) {
+          if (loadVar(i).isNaN) {
+            anyVarNaN = true;
+            break;
+          }
+        }
+        if (!anyVarNaN) {
+          if (!reentrant) _realBusy = false;
+          final complexRes = _runComplex((idx) => Complex(loadVar(idx)));
+          if (!complexRes.isNaN &&
+              complexRes.b.abs() <= 1e-15 * (complexRes.a.abs() + 1.0)) {
+            return complexRes.a.toDouble();
+          }
+          return double.nan;
+        }
+      }
+      return result;
     } finally {
       if (!reentrant) _realBusy = false;
     }
@@ -469,7 +475,7 @@ final class BytecodeEvaluator {
                 realCtx[variables[i]] = z.a.toDouble();
               }
               stack[sp++] = allReal
-                  ? Complex(_evalNodeReal(instr.node!, realCtx))
+                  ? Complex(_evalNodeReal(instr.node!, realCtx, _compileInner))
                   : Complex.nan;
             } else {
               stack[sp++] = Complex.nan;
@@ -892,19 +898,27 @@ final class BytecodeEvaluator {
           case Op.lt:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = a.a < b.a ? Complex.one : Complex.zero;
+            stack[sp++] = (_isEffectivelyReal(a) && _isEffectivelyReal(b))
+                ? (a.a < b.a ? Complex.one : Complex.zero)
+                : Complex.nan;
           case Op.le:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = a.a <= b.a ? Complex.one : Complex.zero;
+            stack[sp++] = (_isEffectivelyReal(a) && _isEffectivelyReal(b))
+                ? (a.a <= b.a ? Complex.one : Complex.zero)
+                : Complex.nan;
           case Op.gt:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = a.a > b.a ? Complex.one : Complex.zero;
+            stack[sp++] = (_isEffectivelyReal(a) && _isEffectivelyReal(b))
+                ? (a.a > b.a ? Complex.one : Complex.zero)
+                : Complex.nan;
           case Op.ge:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = a.a >= b.a ? Complex.one : Complex.zero;
+            stack[sp++] = (_isEffectivelyReal(a) && _isEffectivelyReal(b))
+                ? (a.a >= b.a ? Complex.one : Complex.zero)
+                : Complex.nan;
           case Op.eq:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -932,33 +946,25 @@ double _evalRealBinomial(double n, double k) {
       (special_gamma.gamma(k + 1.0) * special_gamma.gamma(n - k + 1.0));
 }
 
-double _evalNodeReal(Expr node, Map<String, double> context) {
+bool _isEffectivelyReal(Complex z) =>
+    !z.isNaN && z.b.abs() <= 1e-15 * (z.a.abs() + 1.0);
+
+double _evalNodeReal(
+  Expr node,
+  Map<String, double> context,
+  BytecodeEvaluator Function(Expr) compileInner,
+) {
   if (node case Integral(
     :final integrand,
     :final variable,
     :final lower?,
     :final upper?,
   )) {
-    final a = compileToBytecode(
-      lower,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    ).evaluateMap(context);
-    final b = compileToBytecode(
-      upper,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    ).evaluateMap(context);
+    final a = compileInner(lower).evaluateMap(context);
+    final b = compileInner(upper).evaluateMap(context);
     if (a.isNaN || b.isNaN) return double.nan;
     if (a == b) return 0.0;
-    final integrandEval = compileToBytecode(
-      integrand,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    );
+    final integrandEval = compileInner(integrand);
     final localContext = Map<String, double>.of(context);
     return _quadratureDefinite(
       (x) {
@@ -983,21 +989,11 @@ double _evalNodeReal(Expr node, Map<String, double> context) {
     }
     final d = substituted.derivative(variable, order: order);
     final evalPt = point != null
-        ? compileToBytecode(
-            point,
-            const [],
-            optimize: false,
-            allowDynamicVars: true,
-          ).evaluateMap(context)
+        ? compileInner(point).evaluateMap(context)
         : context[variable];
     if (evalPt == null || evalPt.isNaN) return double.nan;
     final evalContext = Map<String, double>.of(context)..[variable] = evalPt;
-    return compileToBytecode(
-      d,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    ).evaluateMap(evalContext);
+    return compileInner(d).evaluateMap(evalContext);
   }
   if (node case Limit(
     :final expr,
@@ -1011,35 +1007,15 @@ double _evalNodeReal(Expr node, Map<String, double> context) {
         substituted = substituted.substitute(key, Expr.wrap(value));
       }
     }
-    final ptVal = compileToBytecode(
-      point,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    ).evaluateMap(context);
+    final ptVal = compileInner(point).evaluateMap(context);
     if (ptVal.isNaN) return double.nan;
     final ptExpr = Expr.wrap(ptVal);
     final lim = substituted.limit(variable, ptExpr, direction: direction);
-    return compileToBytecode(
-      lim,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    ).evaluateMap(context);
+    return compileInner(lim).evaluateMap(context);
   }
   if (node case Sum(:final expr, :final variable, :final lower, :final upper)) {
-    final a = compileToBytecode(
-      lower,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    ).evaluateMap(context);
-    final b = compileToBytecode(
-      upper,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    ).evaluateMap(context);
+    final a = compileInner(lower).evaluateMap(context);
+    final b = compileInner(upper).evaluateMap(context);
     if (a.isNaN || b.isNaN) return double.nan;
     if (b < a) return 0.0;
     if (a.isFinite &&
@@ -1049,12 +1025,7 @@ double _evalNodeReal(Expr node, Map<String, double> context) {
         (b - a) <= 100000) {
       final start = a.round();
       final end = b.round();
-      final eval = compileToBytecode(
-        expr,
-        const [],
-        optimize: false,
-        allowDynamicVars: true,
-      );
+      final eval = compileInner(expr);
       final localCtx = Map<String, double>.of(context);
       var total = 0.0;
       for (var k = start; k <= end; k++) {
@@ -1065,12 +1036,7 @@ double _evalNodeReal(Expr node, Map<String, double> context) {
     }
     final s = expr.sum(variable, Expr.wrap(a), Expr.wrap(b));
     if (s is! Sum) {
-      return compileToBytecode(
-        s,
-        const [],
-        optimize: false,
-        allowDynamicVars: true,
-      ).evaluateMap(context);
+      return compileInner(s).evaluateMap(context);
     }
     return double.nan;
   }
@@ -1080,18 +1046,8 @@ double _evalNodeReal(Expr node, Map<String, double> context) {
     :final lower,
     :final upper,
   )) {
-    final a = compileToBytecode(
-      lower,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    ).evaluateMap(context);
-    final b = compileToBytecode(
-      upper,
-      const [],
-      optimize: false,
-      allowDynamicVars: true,
-    ).evaluateMap(context);
+    final a = compileInner(lower).evaluateMap(context);
+    final b = compileInner(upper).evaluateMap(context);
     if (a.isNaN || b.isNaN) return double.nan;
     if (b < a) return 1.0;
     if (a.isFinite &&
@@ -1101,12 +1057,7 @@ double _evalNodeReal(Expr node, Map<String, double> context) {
         (b - a) <= 100000) {
       final start = a.round();
       final end = b.round();
-      final eval = compileToBytecode(
-        expr,
-        const [],
-        optimize: false,
-        allowDynamicVars: true,
-      );
+      final eval = compileInner(expr);
       final localCtx = Map<String, double>.of(context);
       var total = 1.0;
       for (var k = start; k <= end; k++) {
@@ -1117,12 +1068,7 @@ double _evalNodeReal(Expr node, Map<String, double> context) {
     }
     final p = expr.product(variable, Expr.wrap(a), Expr.wrap(b));
     if (p is! Product) {
-      return compileToBytecode(
-        p,
-        const [],
-        optimize: false,
-        allowDynamicVars: true,
-      ).evaluateMap(context);
+      return compileInner(p).evaluateMap(context);
     }
     return double.nan;
   }

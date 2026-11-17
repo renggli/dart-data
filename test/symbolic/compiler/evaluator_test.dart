@@ -306,6 +306,29 @@ void main() {
         subEval.evaluateComplexList([const Complex(7, 3), const Complex(2, 1)]),
       ).equals(const Complex(5, 2));
     });
+
+    test('caches inner bytecode programs across repeated Sum evaluations', () {
+      final sumExpr = Expr.parse('sum(k*x, k, 1, 100)');
+      final evaluator = compileToBytecode(sumExpr, const ['x']);
+      for (var i = 0; i < 1000; i++) {
+        evaluator.evaluate1D(i.toDouble());
+      }
+      // 1 for lower (1), 1 for upper (100), 1 for inner summand (k * x) = 3 total
+      check(evaluator.innerCompileCount).equals(3);
+    });
+
+    test(
+      'complex relational comparisons return NaN for non-real or NaN operands',
+      () {
+        const x = Variable('x');
+        final ltExpr = LessThan(x, IntegerNumber.one);
+        check(ltExpr.evaluateComplex({'x': const Complex(0, 1)}).isNaN)
+            .isTrue();
+        check(ltExpr.evaluateComplex({'x': const Complex(double.nan, 0)}).isNaN)
+            .isTrue();
+        check(ltExpr.evaluateComplex({'x': Complex.zero})).equals(Complex.one);
+      },
+    );
   });
 
   group('Direct evaluateComplex extension', () {

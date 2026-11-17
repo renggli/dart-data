@@ -747,12 +747,33 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
 }
 
 int _computeMaxStack(List<Instruction> instructions) {
+  final depthAt = List<int?>.filled(instructions.length + 1, null);
   var current = 0;
   var maxDepth = 0;
-  for (final instr in instructions) {
+  for (var pc = 0; pc < instructions.length; pc++) {
+    final recorded = depthAt[pc];
+    if (recorded != null) {
+      current = recorded;
+    }
+    final instr = instructions[pc];
     switch (instr.op) {
       case Op.pushConst || Op.loadVar || Op.loadReg || Op.evalNode:
         current++;
+      case Op.jumpIfFalse:
+        current = math.max(0, current - 1);
+        final target = instr.index;
+        if (target >= 0 && target < depthAt.length) {
+          depthAt[target] ??= current;
+        }
+      case Op.jump:
+        final target = instr.index;
+        if (target >= 0 && target < depthAt.length) {
+          depthAt[target] ??= current;
+        }
+        final nextRecorded = depthAt[pc + 1];
+        if (nextRecorded != null) {
+          current = nextRecorded;
+        }
       case Op.add ||
           Op.sub ||
           Op.mul ||
@@ -776,11 +797,9 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.gt ||
           Op.ge ||
           Op.eq ||
-          Op.ne ||
-          Op.jumpIfFalse:
+          Op.ne:
         current = math.max(0, current - 1);
       case Op.storeReg ||
-          Op.jump ||
           Op.neg ||
           Op.sin ||
           Op.cos ||
