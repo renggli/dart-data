@@ -13,6 +13,7 @@ void main() {
       check(sum.lower).equals(IntegerNumber.one);
       check(sum.upper).equals(n);
       check(sum.freeVariables).unorderedEquals(['n']);
+      check(identical(sum.freeVariables, sum.freeVariables)).isTrue();
       check(sum.dependsOn('n')).isTrue();
       check(sum.dependsOn('k')).isFalse();
       check(sum.dependsOn('x')).isFalse();

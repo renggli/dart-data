@@ -81,5 +81,14 @@ void main() {
       // O(x^2) * O(x^4) -> O(x^6)
       check((o2 * o4).simplify()).equals(const OrderTerm('x', 6));
     });
+
+    test('dependsOn checks variable and point without allocating', () {
+      const o = OrderTerm('x', 3);
+      check(o.dependsOn('x')).isTrue();
+      check(o.dependsOn('y')).isFalse();
+      const oPoint = OrderTerm('x', 3, point: Variable('a'));
+      check(oPoint.dependsOn('a')).isTrue();
+      check(oPoint.dependsOn('b')).isFalse();
+    });
   });
 }

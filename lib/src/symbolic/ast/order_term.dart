@@ -24,6 +24,10 @@ final class OrderTerm extends Expr {
   Set<String> get freeVariables => {variable, ...point.freeVariables};
 
   @override
+  bool dependsOn(String variable) =>
+      this.variable == variable || point.dependsOn(variable);
+
+  @override
   Expr substitute(String variable, Expr replacement) {
     if (this.variable == variable) {
       if (replacement == point) {

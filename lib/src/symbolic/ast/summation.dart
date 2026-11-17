@@ -2,7 +2,7 @@ part of '../ast.dart';
 
 /// Base class for bounded indexed expressions over a discrete integer range.
 sealed class IteratedExpr extends Expr {
-  const new(
+  new(
     this.expr,
     this.variable,
     this.lower,
@@ -26,10 +26,12 @@ sealed class IteratedExpr extends Expr {
   final bool isSimplified;
 
   @override
-  Set<String> get freeVariables => {...expr.freeVariables}
-    ..remove(variable)
-    ..addAll(lower.freeVariables)
-    ..addAll(upper.freeVariables);
+  late final Set<String> freeVariables = Set.unmodifiable(
+    {...expr.freeVariables}
+      ..remove(variable)
+      ..addAll(lower.freeVariables)
+      ..addAll(upper.freeVariables),
+  );
 
   @override
   bool anyNode(bool Function(Expr) predicate) =>
