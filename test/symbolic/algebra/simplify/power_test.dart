@@ -448,5 +448,16 @@ void main() {
         ).equals(Expr.parse('1009 * sqrt(2)').simplify());
       },
     );
+
+    test(
+      'preserves branch cuts for nested even-numerator fractional powers',
+      () {
+        check(
+          Expr.parse('((x^(2/3))^(3/2))')
+              .simplify(assumptions: Assumptions.real),
+        ).equals(Abs(const Variable('x'), isSimplified: true));
+        check(Expr.parse('((x^(2/3))^(3/2))').simplify()).isA<Pow>();
+      },
+    );
   });
 }

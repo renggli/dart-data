@@ -241,8 +241,24 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
         }
         return Pow(base, exponent, isSimplified: true);
       }
-      if (innerExp.numerator > -innerExp.denominator &&
-          innerExp.numerator <= innerExp.denominator) {
+      if (innerExp is FractionNumber &&
+          innerExp.numerator.isEven &&
+          innerExp.denominator.isOdd &&
+          isProvenReal(innerBase, assumptions)) {
+        final prod = innerExp.mulRational(exponent);
+        if (!isNonNegativeExpr(innerBase, assumptions: assumptions)) {
+          return simplifyPow(
+            simplifyAbs(innerBase, assumptions: assumptions),
+            prod,
+            assumptions: assumptions,
+          );
+        }
+        return simplifyPow(innerBase, prod, assumptions: assumptions);
+      }
+      if (innerExp is FractionNumber &&
+          innerExp.numerator == Integer.one &&
+          exponent is FractionNumber &&
+          exponent.numerator.abs() <= innerExp.denominator) {
         return simplifyPow(
           innerBase,
           innerExp.mulRational(exponent),

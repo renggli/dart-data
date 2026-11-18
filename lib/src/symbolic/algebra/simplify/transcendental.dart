@@ -634,9 +634,21 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
       }
       return Ln(expr, isSimplified: true);
     }
-    if (k is RationalNumber &&
-        k.numerator > -k.denominator &&
-        k.numerator <= k.denominator) {
+    if (k is FractionNumber &&
+        k.numerator.isEven &&
+        k.denominator.isOdd &&
+        isProvenReal(u, assumptions)) {
+      return simplifyMul([
+        k,
+        simplifyLn(
+          simplifyAbs(u, assumptions: assumptions),
+          assumptions: assumptions,
+        ),
+      ], assumptions: assumptions);
+    }
+    if ((k is FractionNumber && k.numerator == Integer.one) ||
+        (k == IntegerNumber.negativeOne &&
+            isPositiveExpr(u, assumptions: assumptions))) {
       return simplifyMul([
         k,
         simplifyLn(u, assumptions: assumptions),

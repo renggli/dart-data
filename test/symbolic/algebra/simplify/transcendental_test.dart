@@ -303,5 +303,24 @@ void main() {
             .equals(Expr.parse('sqrt(1 + x^2)').simplify());
       },
     );
+
+    test('preserves branch cuts in ln(u^k) under real and unknown domains', () {
+      check(Expr.parse('ln(x^(2/3))').simplify(assumptions: Assumptions.real))
+          .equals(
+            Expr.parse('2/3 * ln(abs(x))')
+                .simplify(assumptions: Assumptions.real),
+          );
+      check(Expr.parse('ln(x^(-1))').simplify()).equals(
+        Ln(
+          Pow(const Variable('x'), IntegerNumber.negativeOne),
+          isSimplified: true,
+        ),
+      );
+      check(
+        Expr.parse('ln(x^(-1))').simplify(assumptions: Assumptions.positive),
+      ).equals(
+        Expr.parse('-ln(x)').simplify(assumptions: Assumptions.positive),
+      );
+    });
   });
 }
