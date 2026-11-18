@@ -21,8 +21,7 @@ void main() {
           .equals(Integral(IntegerNumber.two * t, 't'));
       const y = Variable('y');
       check(indef.substitute('t', y)).equals(Integral(a * y, 'y'));
-      check(indef.substitute('t', a))
-          .equals(Integral(const Variable('a_1') * a, 'a'));
+      check(indef.substitute('t', a)).equals(indef);
       check(indef.substitute('t', IntegerNumber.two)).equals(indef);
       final alphaRenamed = indef.substitute('a', t);
       check(alphaRenamed).isA<Integral>();
@@ -54,29 +53,22 @@ void main() {
       check(subT).equals(defParam);
 
       final subTtoU = defParam.substitute('t', const Variable('u'));
-      check(subTtoU).equals(
-        Integral(
-          const Variable('u') * const Variable('x'),
-          'u',
-          lower: IntegerNumber.zero,
-          upper: const Variable('x'),
-        ),
-      );
+      check(subTtoU).equals(defParam);
 
-      // Alpha-renaming of inner conflicting variable when renaming dummy variable to existing free variable
+      // Bound variable in definite integral does not rename or corrupt free variables
       final defConflict = Integral(
         t * const Variable('u'),
         't',
         lower: IntegerNumber.zero,
-        upper: IntegerNumber.one,
+        upper: t,
       );
-      final subRenamed = defConflict.substitute('t', const Variable('u'));
-      check(subRenamed).equals(
+      final subBound = defConflict.substitute('t', const Variable('u'));
+      check(subBound).equals(
         Integral(
-          const Variable('u') * const Variable('u_1'),
-          'u',
+          t * const Variable('u'),
+          't',
           lower: IntegerNumber.zero,
-          upper: IntegerNumber.one,
+          upper: const Variable('u'),
         ),
       );
 

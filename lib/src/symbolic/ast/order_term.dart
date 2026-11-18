@@ -31,10 +31,21 @@ final class OrderTerm extends Expr {
   Expr substitute(String variable, Expr replacement) {
     if (this.variable == variable) {
       if (replacement == point) {
-        return order > 0 ? IntegerNumber.zero : this;
+        return order > 0 ? IntegerNumber.zero : Constant.undefined;
       }
       if (replacement is Variable) {
         return OrderTerm(replacement.name, order, point: point);
+      }
+      if (replacement.freeVariables.length == 1) {
+        final newVar = replacement.freeVariables.first;
+        final shifted = (replacement - point).simplify();
+        if (shifted.matchLinear(newVar) case (:final a, :final b)) {
+          final newPoint = (-b / a).simplify();
+          return OrderTerm(newVar, order, point: newPoint);
+        }
+      }
+      if (replacement.freeVariables.isEmpty) {
+        return order > 0 ? IntegerNumber.zero : this;
       }
       return this;
     }

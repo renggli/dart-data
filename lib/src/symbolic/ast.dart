@@ -3,7 +3,9 @@ import 'dart:typed_data';
 
 import 'package:more/number.dart' show Complex, Fraction;
 
+import 'algebra/simplify.dart';
 import 'calculus/differentiation.dart';
+import 'calculus/linear_form.dart';
 import 'number/integer.dart';
 import 'number/rational.dart';
 import 'parser.dart';

@@ -28,9 +28,16 @@ void main() {
             .equals(const OrderTerm('u', 2, point: a));
         check(shifted.substitute('x', a)).equals(IntegerNumber.zero);
         check(shifted.substitute('x', IntegerNumber.two))
-            .equals(const OrderTerm('x', 2, point: a));
+            .equals(IntegerNumber.zero);
         check(const OrderTerm('x', 0, point: a).substitute('x', a))
-            .equals(const OrderTerm('x', 0, point: a));
+            .equals(Constant.undefined);
+        check(
+          const OrderTerm(
+            'x',
+            3,
+            point: IntegerNumber.one,
+          ).substitute('x', const Variable('h') + IntegerNumber.one),
+        ).equals(const OrderTerm('h', 3));
         check(shifted.substitute('a', IntegerNumber.one))
             .equals(const OrderTerm('x', 2, point: IntegerNumber.one));
         check(shifted.mapChildren((_) => IntegerNumber.one))

@@ -58,28 +58,7 @@ final class Integral extends Expr {
   Expr substitute(String variable, Expr replacement) {
     if (isDefinite) {
       if (variable == this.variable) {
-        if (replacement is Variable) {
-          final targetName = replacement.name;
-          var body = integrand;
-          if (targetName != this.variable &&
-              body.freeVariables.contains(targetName)) {
-            final used = <String>{
-              ...body.freeVariables,
-              ...replacement.freeVariables,
-              if (lower != null) ...lower!.freeVariables,
-              if (upper != null) ...upper!.freeVariables,
-            };
-            final fresh = _freshBoundVariable(targetName, used);
-            body = body.substitute(targetName, Variable(fresh));
-          }
-          return Integral(
-            body.substitute(this.variable, replacement),
-            targetName,
-            lower: lower!.substitute(variable, replacement),
-            upper: upper!.substitute(variable, replacement),
-          );
-        }
-        // Dummy integration variable is bound; only substitute in bounds
+        // Dummy integration variable is bound in integrand; only substitute in bounds
         return Integral(
           integrand,
           this.variable,
@@ -110,20 +89,13 @@ final class Integral extends Expr {
     if (variable == this.variable) {
       if (replacement is Variable) {
         final targetName = replacement.name;
-        var body = integrand;
-        if (targetName != this.variable &&
-            body.freeVariables.contains(targetName)) {
-          final used = <String>{
-            ...body.freeVariables,
-            ...replacement.freeVariables,
-          };
-          final fresh = _freshBoundVariable(targetName, used);
-          body = body.substitute(targetName, Variable(fresh));
+        if (targetName == this.variable) return this;
+        if (!integrand.freeVariables.contains(targetName)) {
+          return Integral(
+            integrand.substitute(this.variable, replacement),
+            targetName,
+          );
         }
-        return Integral(
-          body.substitute(this.variable, replacement),
-          targetName,
-        );
       }
       return Integral(integrand, this.variable);
     }
