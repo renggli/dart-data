@@ -65,8 +65,21 @@
 
     <div class="calc-header-center">
       <div class="calc-mode-segmented" role="tablist" aria-label="Calculator Mode">
-        <button id="mode-scroll-btn" type="button" class="calc-mode-btn active" title="Notebook Scroll Mode (Ctrl/Cmd+M)">Scroll</button>
-        <button id="mode-rpn-btn" type="button" class="calc-mode-btn" title="Reverse Polish Notation Stack Mode (Ctrl/Cmd+M)">RPN</button>
+        <button id="mode-scroll-btn" type="button" class="calc-mode-btn active" title="Notebook Scroll Mode (Ctrl/Cmd+M)" aria-label="Notebook Scroll Mode">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="3" width="16" height="18" rx="2"/>
+            <line x1="8" y1="8" x2="16" y2="8"/>
+            <line x1="8" y1="12" x2="16" y2="12"/>
+            <line x1="8" y1="16" x2="12" y2="16"/>
+          </svg>
+        </button>
+        <button id="mode-rpn-btn" type="button" class="calc-mode-btn" title="Reverse Polish Notation Stack Mode (Ctrl/Cmd+M)" aria-label="RPN Stack Mode">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m12 3 8 4.5-8 4.5-8-4.5Z"/>
+            <path d="m4 12 8 4.5 8-4.5"/>
+            <path d="m4 16.5 8 4.5 8-4.5"/>
+          </svg>
+        </button>
       </div>
     </div>
 

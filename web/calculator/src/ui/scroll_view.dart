@@ -105,9 +105,16 @@ final class ScrollWorksheetView {
     // 1. Input row: in[n] | expression | Edit / Re-run / Delete
     final inRow = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-cell-in-row';
-    final inBadge = web.document.createElement('span') as web.HTMLSpanElement
-      ..className = 'calc-in-badge'
-      ..textContent = 'in[${cell.id}]';
+    final inBadge =
+        web.document.createElement('button') as web.HTMLButtonElement
+          ..type = 'button'
+          ..className = 'calc-in-badge'
+          ..textContent = 'in[${cell.id}]'
+          ..title = 'Click to insert r[${cell.id}] at cursor';
+    inBadge.addEventListener(
+      'click',
+      ((web.Event _) => onInsertText('r[${cell.id}]')).toJS,
+    );
     inRow.append(inBadge);
 
     if (_editingCellId == cell.id) {
@@ -207,30 +214,13 @@ final class ScrollWorksheetView {
         ..append(cellActions);
     }
 
-    // 2. Output row: r[n] badge + rendered MathML / Plot / Matrix
+    // 2. Output row: rendered MathML / Plot / Matrix + compact actions menu
     final outRow = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-cell-out-row';
-    final rBadge = web.document.createElement('button') as web.HTMLButtonElement
-      ..type = 'button'
-      ..className = 'calc-r-badge'
-      ..textContent = 'r[${cell.id}]'
-      ..title = 'Click to insert r[${cell.id}] at cursor';
-    rBadge.addEventListener(
-      'click',
-      ((web.Event _) => onInsertText('r[${cell.id}]')).toJS,
-    );
 
     final renderedValue = ValueRenderer.renderValue(cell.value, digits: digits);
+    outRow.append(renderedValue);
 
-    outRow
-      ..append(rBadge)
-      ..append(renderedValue);
-
-    card
-      ..append(inRow)
-      ..append(outRow);
-
-    // 3. Action chips strip
     String? overlayPlotCall;
     if (latestPlot != null &&
         ((cell.value is ExprValue &&
@@ -243,6 +233,26 @@ final class ScrollWorksheetView {
       overlayPlotCall =
           'plot([$existing, r[${cell.id}]], ${latestPlot.variable}, ${PlotValue.fmtBound(latestPlot.minX)}, ${PlotValue.fmtBound(latestPlot.maxX)})';
     }
+
+    final compactMenu = ActionChips.buildCompactMenu(
+      cellId: cell.id,
+      value: cell.value,
+      onRunStatement: onRunStatement,
+      onToast: onToast,
+      onPushToStack: onPushToStack != null
+          ? () => onPushToStack!(cell.id)
+          : null,
+      overlayPlotCall: overlayPlotCall,
+    );
+    if (compactMenu != null) {
+      outRow.append(compactMenu);
+    }
+
+    card
+      ..append(inRow)
+      ..append(outRow);
+
+    // 3. Action chips strip (desktop)
     final chipStrip = ActionChips.build(
       cellId: cell.id,
       value: cell.value,

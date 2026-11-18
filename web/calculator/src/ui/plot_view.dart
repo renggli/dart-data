@@ -8,15 +8,22 @@ import '../../../shared/webgl_chart.dart';
 import '../../../shared/webgl_surface.dart';
 import '../engine/sampling.dart';
 import '../model/value.dart';
+import 'chips.dart';
 import 'persistence.dart';
+
+/// Extra action item shown inside a plot card's top-right `⋯` menu.
+typedef PlotMenuAction = ({String label, bool danger, void Function() onTap});
 
 /// Interactive WebGL2 + Canvas2D HUD plot card widget for 2D and 3D [PlotValue]
 /// results.
 final class PlotView {
   /// Builds a self-contained interactive plot DOM element for [initialPlot].
-  static web.HTMLElement create(PlotValue initialPlot) {
+  static web.HTMLElement create(
+    PlotValue initialPlot, {
+    List<PlotMenuAction> extraActions = const [],
+  }) {
     if (initialPlot.is3d) {
-      return _create3dSurfaceCard(initialPlot);
+      return _create3dSurfaceCard(initialPlot, extraActions: extraActions);
     }
     var plot = initialPlot;
     final paramValues = <String, double>{
@@ -56,32 +63,28 @@ final class PlotView {
       legend.append(item);
     }
 
-    final actions = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-plot-actions';
-
     final readout = web.document.createElement('span') as web.HTMLSpanElement
-      ..className = 'calc-plot-readout'
       ..textContent =
           '${plot.variable} ∈ [${formatRealDigits(plot.minX, 4)}, ${formatRealDigits(plot.maxX, 4)}]';
 
     final resetBtn =
         web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn'
-          ..textContent = 'Reset View';
+          ..type = 'button';
 
     final pngBtn = web.document.createElement('button') as web.HTMLButtonElement
-      ..type = 'button'
-      ..className = 'calc-chip-btn'
-      ..textContent = 'PNG';
+      ..type = 'button';
 
-    actions
-      ..append(readout)
-      ..append(resetBtn)
-      ..append(pngBtn);
     header
       ..append(legend)
-      ..append(actions);
+      ..append(
+        _buildCompactPlotMenu(
+          readoutSource: readout,
+          resetBtn: resetBtn,
+          pngBtn: pngBtn,
+          resetLabel: 'Reset View',
+          extraActions: extraActions,
+        ),
+      );
 
     final canvasWrap = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-plot-canvas-wrap';
@@ -314,7 +317,10 @@ final class PlotView {
     return container;
   }
 
-  static web.HTMLElement _create3dSurfaceCard(PlotValue initialPlot) {
+  static web.HTMLElement _create3dSurfaceCard(
+    PlotValue initialPlot, {
+    List<PlotMenuAction> extraActions = const [],
+  }) {
     var plot = initialPlot;
     final paramValues = <String, double>{
       for (final p in plot.parameters) p: 1.0,
@@ -343,34 +349,30 @@ final class PlotView {
       ..append(text);
     legend.append(item);
 
-    final actions = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'calc-plot-actions';
-
     final s3dInitial = plot.surface3d!;
     final defaultReadout =
         '${s3dInitial.xVar} ∈ [${formatRealDigits(s3dInitial.minX, 3)}, ${formatRealDigits(s3dInitial.maxX, 3)}], ${s3dInitial.yVar} ∈ [${formatRealDigits(s3dInitial.minY, 3)}, ${formatRealDigits(s3dInitial.maxY, 3)}]';
     final readout = web.document.createElement('span') as web.HTMLSpanElement
-      ..className = 'calc-plot-readout'
       ..textContent = defaultReadout;
 
     final resetBtn =
         web.document.createElement('button') as web.HTMLButtonElement
-          ..type = 'button'
-          ..className = 'calc-chip-btn'
-          ..textContent = 'Reset Orbit';
+          ..type = 'button';
 
     final pngBtn = web.document.createElement('button') as web.HTMLButtonElement
-      ..type = 'button'
-      ..className = 'calc-chip-btn'
-      ..textContent = 'PNG';
+      ..type = 'button';
 
-    actions
-      ..append(readout)
-      ..append(resetBtn)
-      ..append(pngBtn);
     header
       ..append(legend)
-      ..append(actions);
+      ..append(
+        _buildCompactPlotMenu(
+          readoutSource: readout,
+          resetBtn: resetBtn,
+          pngBtn: pngBtn,
+          resetLabel: 'Reset Orbit',
+          extraActions: extraActions,
+        ),
+      );
 
     final canvasWrap = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'calc-plot-canvas-wrap calc-plot-canvas-wrap-3d';
@@ -500,5 +502,102 @@ final class PlotView {
     );
 
     return container;
+  }
+
+  static web.HTMLElement _buildCompactPlotMenu({
+    required web.HTMLSpanElement readoutSource,
+    required web.HTMLButtonElement resetBtn,
+    required web.HTMLButtonElement pngBtn,
+    required String resetLabel,
+    List<PlotMenuAction> extraActions = const [],
+  }) {
+    final wrap = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-chip-more-wrap calc-plot-compact-menu';
+    final btn = web.document.createElement('button') as web.HTMLButtonElement
+      ..type = 'button'
+      ..className = 'calc-cell-icon-btn calc-compact-menu-btn'
+      ..textContent = '⋯'
+      ..title = 'Plot options';
+    btn.setAttribute('aria-label', 'Plot options');
+
+    final menu = web.document.createElement('div') as web.HTMLDivElement
+      ..className =
+          'calc-chip-dropdown calc-chip-dropdown-right open-down hidden';
+
+    final readoutItem = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-dropdown-readout'
+      ..textContent = readoutSource.textContent ?? '';
+    final divider = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-dropdown-divider';
+
+    final resetItem =
+        web.document.createElement('button') as web.HTMLButtonElement
+          ..type = 'button'
+          ..className = 'calc-dropdown-item'
+          ..textContent = resetLabel;
+    resetItem.addEventListener(
+      'click',
+      ((web.Event _) {
+        menu.classList.add('hidden');
+        resetBtn.click();
+      }).toJS,
+    );
+
+    final pngItem =
+        web.document.createElement('button') as web.HTMLButtonElement
+          ..type = 'button'
+          ..className = 'calc-dropdown-item'
+          ..textContent = 'Export PNG';
+    pngItem.addEventListener(
+      'click',
+      ((web.Event _) {
+        menu.classList.add('hidden');
+        pngBtn.click();
+      }).toJS,
+    );
+
+    menu
+      ..append(readoutItem)
+      ..append(divider)
+      ..append(resetItem)
+      ..append(pngItem);
+
+    if (extraActions.isNotEmpty) {
+      menu.append(
+        web.document.createElement('div') as web.HTMLDivElement
+          ..className = 'calc-dropdown-divider',
+      );
+      for (final action in extraActions) {
+        final item =
+            web.document.createElement('button') as web.HTMLButtonElement
+              ..type = 'button'
+              ..className = action.danger
+                  ? 'calc-dropdown-item calc-dropdown-item-danger'
+                  : 'calc-dropdown-item'
+              ..textContent = action.label;
+        item.addEventListener(
+          'click',
+          ((web.Event _) {
+            menu.classList.add('hidden');
+            action.onTap();
+          }).toJS,
+        );
+        menu.append(item);
+      }
+    }
+
+    btn.addEventListener(
+      'click',
+      ((web.Event e) {
+        e.stopPropagation();
+        readoutItem.textContent = readoutSource.textContent ?? '';
+        ActionChips.toggleDropdown(btn, menu, forceDown: true);
+      }).toJS,
+    );
+
+    wrap
+      ..append(btn)
+      ..append(menu);
+    return wrap;
   }
 }
