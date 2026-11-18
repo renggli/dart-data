@@ -362,49 +362,72 @@ Expr? _tryDistributeExactDivision(
   required Assumptions assumptions,
 }) {
   if (factors.length < 2) return null;
-  var addIndex = -1;
-  Add? addNode;
-  List<int>? negPowIndices;
+  final addIndices = <int>[];
+  final negPowIndices = <int>[];
 
   for (var i = 0; i < factors.length; i++) {
     switch (factors[i]) {
-      case final Add a:
-        if (addIndex != -1) return null;
-        addIndex = i;
-        addNode = a;
+      case Add():
+        addIndices.add(i);
       case Pow(exponent: RealNumeric(isNegative: true)):
-        (negPowIndices ??= []).add(i);
+        negPowIndices.add(i);
       default:
         break;
     }
   }
 
-  if (addNode == null || negPowIndices == null) return null;
+  if (addIndices.isEmpty || negPowIndices.isEmpty) return null;
 
-  final negFactors = [for (final idx in negPowIndices) factors[idx]];
-
-  final dividedTerms = <Expr>[];
-  for (final term in addNode.terms) {
-    final divTerm = simplifyMul([
-      term,
-      ...negFactors,
-    ], assumptions: assumptions);
-    if (_hasNegativePowerFactor(divTerm)) {
-      return null;
+  Expr? tryDivideAdd(Add a, Expr divisor) {
+    final dividedTerms = <Expr>[];
+    for (final term in a.terms) {
+      final divTerm = simplifyMul([term, divisor], assumptions: assumptions);
+      if (_hasNegativePowerFactor(divTerm)) return null;
+      dividedTerms.add(divTerm);
     }
-    dividedTerms.add(divTerm);
+    return simplifyAdd(dividedTerms, assumptions: assumptions);
   }
 
-  final sum = simplifyAdd(dividedTerms, assumptions: assumptions);
-  final otherFactors = <Expr>[
-    for (var i = 0; i < factors.length; i++)
-      if (i != addIndex && !negPowIndices.contains(i)) factors[i],
-  ];
-  return simplifyMul([
-    if (!coeff.isOne) coeff,
-    sum,
-    ...otherFactors,
-  ], assumptions: assumptions);
+  for (final negIdx in negPowIndices) {
+    final negFactor = factors[negIdx] as Pow;
+    final candidates = <Expr>[
+      negFactor,
+      if (negFactor.exponent case IntegerNumber(asInt: final k?) when k < -1)
+        Pow(negFactor.base, IntegerNumber.negativeOne, isSimplified: true),
+    ];
+
+    for (final divisor in candidates) {
+      for (final addIdx in addIndices) {
+        final addNode = factors[addIdx] as Add;
+        final divided = tryDivideAdd(addNode, divisor);
+        if (divided == null) continue;
+
+        final updatedFactors = <Expr>[];
+        for (var i = 0; i < factors.length; i++) {
+          if (i == addIdx) {
+            updatedFactors.add(divided);
+          } else if (i == negIdx) {
+            if (!identical(divisor, negFactor)) {
+              final remExp = (negFactor.exponent as IntegerNumber).add(
+                IntegerNumber.one,
+              );
+              updatedFactors.add(
+                simplifyPow(negFactor.base, remExp, assumptions: assumptions),
+              );
+            }
+          } else {
+            updatedFactors.add(factors[i]);
+          }
+        }
+        return simplifyMul([
+          if (!coeff.isOne) coeff,
+          ...updatedFactors,
+        ], assumptions: assumptions);
+      }
+    }
+  }
+
+  return null;
 }
 
 bool _hasNegativePowerFactor(Expr expr) => switch (expr) {

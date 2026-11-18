@@ -228,5 +228,17 @@ void main() {
         ).equals('y * (y * O(x^2) + z * O(x^2))');
       },
     );
+
+    test(
+      'distributes exact division across multiple Add factors and powers',
+      () {
+        check(Expr.parse('(x^2 + x) * (y + 1) / x').simplify())
+            .equals(Expr.parse('(1 + x) * (1 + y)').simplify());
+        check(Expr.parse('(x^2 + 2*x) / (x * y)').simplify())
+            .equals(Expr.parse('(2 + x) / y').simplify());
+        check(Expr.parse('(x^2 + x) * (x^2 + 2*x) / x^2').simplify())
+            .equals(Expr.parse('(1 + x) * (2 + x)').simplify());
+      },
+    );
   });
 }
