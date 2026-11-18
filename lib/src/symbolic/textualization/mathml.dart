@@ -352,10 +352,14 @@ String _formatOrderTermMathMl(
     }
     return '<mrow><mi>O</mi><mo>(</mo><msup><mi>${_escapeXml(variable)}</mi><mn>$order</mn></msup><mo>)</mo></mrow>';
   }
+  final stripped = stripLeadingNegative(point);
+  final diff = stripped != null
+      ? '<mrow><mi>${_escapeXml(variable)}</mi><mo>+</mo>${_toMathMl(stripped, decimalPlaces)}</mrow>'
+      : '<mrow><mi>${_escapeXml(variable)}</mi><mo>&minus;</mo>${_formatSubRight(point, decimalPlaces)}</mrow>';
   if (order == 1) {
-    return '<mrow><mi>O</mi><mo>(</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>&minus;</mo>${_formatSubRight(point, decimalPlaces)}</mrow><mo>)</mo></mrow>';
+    return '<mrow><mi>O</mi><mo>(</mo>$diff<mo>)</mo></mrow>';
   }
-  return '<mrow><mi>O</mi><mo>(</mo><msup><mrow><mo>(</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>&minus;</mo>${_formatSubRight(point, decimalPlaces)}</mrow><mo>)</mo></mrow><mn>$order</mn></msup><mo>)</mo></mrow>';
+  return '<mrow><mi>O</mi><mo>(</mo><msup><mrow><mo>(</mo>$diff<mo>)</mo></mrow><mn>$order</mn></msup><mo>)</mo></mrow>';
 }
 
 String _formatPow(Expr base, Expr exponent, int decimalPlaces) {

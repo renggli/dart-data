@@ -231,5 +231,14 @@ void main() {
       check(EllipticF(x, k).toLatex()).equals('F(x, k)');
       check(EllipticEIncomplete(x, k).toLatex()).equals('E(x, k)');
     });
+
+    test('formats negative-shifted OrderTerm and subscripted variables', () {
+      check(const OrderTerm('x', 2, point: IntegerNumber.negativeOne).toLatex())
+          .equals('O((x + 1)^{2})');
+      check(const OrderTerm('x', 1, point: IntegerNumber.negativeOne).toLatex())
+          .equals('O(x + 1)');
+      check(const Variable('alpha_0').toLatex()).equals(r'\alpha_{0}');
+      check(const Variable('x_1').toLatex()).equals('x_{1}');
+    });
   });
 }

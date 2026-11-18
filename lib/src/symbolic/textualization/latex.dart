@@ -267,14 +267,18 @@ String _formatOrderTermLatex(
   int decimalPlaces,
 ) {
   if (order == 0) return 'O(1)';
+  final varStr = _formatVariableLatex(variable);
   final isZero = point is Number && point.isZero;
   if (isZero) {
-    if (order == 1) return 'O($variable)';
-    return 'O($variable^{$order})';
+    if (order == 1) return 'O($varStr)';
+    return 'O($varStr^{$order})';
   }
-  final formattedPoint = _formatSubRight(point, decimalPlaces);
-  if (order == 1) return 'O($variable - $formattedPoint)';
-  return 'O(($variable - $formattedPoint)^{$order})';
+  final stripped = stripLeadingNegative(point);
+  final diff = stripped != null
+      ? '$varStr + ${_toLatex(stripped, decimalPlaces)}'
+      : '$varStr - ${_formatSubRight(point, decimalPlaces)}';
+  if (order == 1) return 'O($diff)';
+  return 'O(($diff)^{$order})';
 }
 
 String _formatPow(Expr base, Expr exponent, int decimalPlaces) {
@@ -351,8 +355,16 @@ const _greekLetters = <String>{
   'Omega',
 };
 
-String _formatVariableLatex(String name) =>
-    _greekLetters.contains(name) ? '\\$name' : name;
+String _formatVariableLatex(String name) {
+  final idx = name.indexOf('_');
+  if (idx > 0 && idx < name.length - 1) {
+    final base = name.substring(0, idx);
+    final sub = name.substring(idx + 1);
+    final baseTex = _greekLetters.contains(base) ? '\\$base' : base;
+    return '${baseTex}_{$sub}';
+  }
+  return _greekLetters.contains(name) ? '\\$name' : name;
+}
 
 String _formatPowBase(Expr base, int decimalPlaces) => needsPowBaseParens(base)
     ? '(${_toLatex(base, decimalPlaces)})'

@@ -395,5 +395,26 @@ void main() {
         '<math><mrow><mi>E</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>k</mi><mo>)</mo></mrow></math>',
       );
     });
+
+    test('formats negative-shifted OrderTerm cleanly', () {
+      check(
+        const OrderTerm(
+          'x',
+          2,
+          point: IntegerNumber.negativeOne,
+        ).toMathMl(root: false),
+      ).equals(
+        '<mrow><mi>O</mi><mo>(</mo><msup><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mn>2</mn></msup><mo>)</mo></mrow>',
+      );
+      check(
+        const OrderTerm(
+          'x',
+          1,
+          point: IntegerNumber.negativeOne,
+        ).toMathMl(root: false),
+      ).equals(
+        '<mrow><mi>O</mi><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow>',
+      );
+    });
   });
 }
