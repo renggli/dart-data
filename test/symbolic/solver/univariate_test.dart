@@ -199,6 +199,32 @@ void main() {
       for (final root in lnOverX) {
         check(lnOverXEq.evaluate({'x': root.evaluate()})).isCloseTo(0.0, 1e-12);
       }
+
+      // Parametric extraneous root rejection under positive assumptions
+      check(
+        Expr.parse('sqrt(x) + a').solve('x', assumptions: Assumptions.positive),
+      ).isEmpty();
+
+      // Symbolic integer root under integer domain assumptions
+      final intRoots = Expr.parse('x - (n + 1)').solve(
+        'x',
+        assumptions: const Assumptions(
+          domains: {'x': VariableDomain.integer, 'n': VariableDomain.integer},
+        ),
+      );
+      check(intRoots.length).equals(1);
+      check(intRoots.single.expand()).equals(Expr.parse('1 + n').simplify());
+
+      // Distinct exact rationals closer than 1e-12 are preserved
+      final closeRat = RationalNumber.of(
+        Integer.parse('1000000000000001'),
+        Integer.parse('1000000000000000'),
+      );
+      final closeRoots =
+          ((const Variable('x') - IntegerNumber.one) *
+                  (const Variable('x') - closeRat))
+              .solve('x');
+      check(closeRoots).unorderedEquals([IntegerNumber.one, closeRat]);
     });
   });
 }

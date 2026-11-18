@@ -69,7 +69,7 @@ bool satisfiesVariableDomain(
   final s = root.simplify(assumptions: assumptions);
   return switch (domain) {
     VariableDomain.unknown || VariableDomain.complex => true,
-    VariableDomain.integer => s is IntegerNumber,
+    VariableDomain.integer => isIntegerExpr(s, assumptions: assumptions),
     VariableDomain.real => _isRealRoot(s, assumptions),
     VariableDomain.positive => _isPositiveRealRoot(s, assumptions),
   };
@@ -82,6 +82,9 @@ List<Expr> deduplicateRoots(List<Expr> list) {
     final simplified = item.simplify();
     final isDup = result.any((existing) {
       if (existing == simplified) return true;
+      if (existing is RationalNumber && simplified is RationalNumber) {
+        return false;
+      }
       if ((existing, simplified) case (
         final RealNumeric a,
         final RealNumeric b,
@@ -307,7 +310,6 @@ bool _isValidRoot(
   Expr root,
   Assumptions assumptions,
 ) {
-  if (root.freeVariables.isNotEmpty) return true;
   final Expr v;
   try {
     v = original.substitute(variable, root).simplify(assumptions: assumptions);
@@ -329,6 +331,10 @@ bool _isValidRoot(
       return v.real.toDouble().abs() <= 1e-9 &&
           v.imaginary.toDouble().abs() <= 1e-9;
     }
+  }
+  if (isPositiveExpr(v, assumptions: assumptions) ||
+      isNegativeExpr(v, assumptions: assumptions)) {
+    return false;
   }
   if (v.freeVariables.isEmpty) {
     try {
