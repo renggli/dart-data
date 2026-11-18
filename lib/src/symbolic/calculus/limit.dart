@@ -1,5 +1,6 @@
 import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
+import '../algebra/simplify/domain.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
@@ -45,10 +46,8 @@ Expr computeLimit(
   LimitDirection direction = LimitDirection.both,
   required Assumptions assumptions,
 }) {
-  if (!assumptions.isEmpty) {
-    expr = expr.simplify(assumptions: assumptions);
-  }
-  if (!expr.dependsOn(variable)) return expr.simplify(assumptions: assumptions);
+  expr = expr.simplify(assumptions: assumptions);
+  if (!expr.dependsOn(variable)) return expr;
 
   if (expr case Add(:final terms)) {
     final termLims = <Expr>[];
@@ -56,13 +55,19 @@ Expr computeLimit(
     var hasInfinity = false;
     var hasNegInfinity = false;
     for (final t in terms) {
-      final tLim = computeLimit(
-        t,
-        variable,
-        point,
-        direction: direction,
-        assumptions: assumptions,
-      );
+      final Expr tLim;
+      try {
+        tLim = computeLimit(
+          t,
+          variable,
+          point,
+          direction: direction,
+          assumptions: assumptions,
+        );
+      } on UnsupportedError {
+        indeterminate = true;
+        break;
+      }
       if (tLim.anyNode((n) => n is Limit)) {
         indeterminate = true;
         break;
@@ -99,25 +104,49 @@ Expr computeLimit(
     if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
       final constMul = Mul(constFactors).simplify(assumptions: assumptions);
       final varMul = Mul(varFactors).simplify(assumptions: assumptions);
-      final varLim = computeLimit(
-        varMul,
-        variable,
-        point,
-        direction: direction,
-        assumptions: assumptions,
-      );
-      if (_isPositiveInfinity(varLim)) {
-        final sign = _getSign(constMul);
-        return sign > 0 ? Constant.infinity : _negInfinity;
-      }
-      if (_isNegativeInfinity(varLim)) {
-        final sign = _getSign(constMul);
-        return sign > 0 ? _negInfinity : Constant.infinity;
-      }
-      if (!varLim.dependsOn(variable) &&
-          !varLim.anyNode((n) => n is Limit) &&
-          varLim != Constant.undefined) {
-        return (constMul * varLim).simplify(assumptions: assumptions);
+      try {
+        final varLim = computeLimit(
+          varMul,
+          variable,
+          point,
+          direction: direction,
+          assumptions: assumptions,
+        );
+        if (_isPositiveInfinity(varLim)) {
+          final sign = _getSign(constMul, assumptions);
+          if (sign != 0) {
+            return sign > 0 ? Constant.infinity : _negInfinity;
+          }
+          return Limit(
+            expr,
+            variable,
+            point.simplify(assumptions: assumptions),
+            direction: direction,
+            isSimplified: true,
+          );
+        }
+        if (_isNegativeInfinity(varLim)) {
+          final sign = _getSign(constMul, assumptions);
+          if (sign != 0) {
+            return sign > 0 ? _negInfinity : Constant.infinity;
+          }
+          return Limit(
+            expr,
+            variable,
+            point.simplify(assumptions: assumptions),
+            direction: direction,
+            isSimplified: true,
+          );
+        }
+        if (!varLim.dependsOn(variable) &&
+            !varLim.anyNode((n) => n is Limit) &&
+            varLim != Constant.undefined) {
+          return (constMul * varLim).simplify(assumptions: assumptions);
+        }
+      } on UnsupportedError catch (e) {
+        if (e.message?.contains('does not exist') ?? false) {
+          rethrow;
+        }
       }
     }
   }
@@ -464,7 +493,13 @@ Expr _computeFiniteLimit(
           final cm = (leadNum.coefficient / leadDen.coefficient).simplify(
             assumptions: assumptions,
           );
-          return _deduceLimitFromLaurentLeading(m, cm, direction, point);
+          return _deduceLimitFromLaurentLeading(
+            m,
+            cm,
+            direction,
+            point,
+            assumptions,
+          );
         }
       } on UnsupportedError catch (e) {
         if (e.message?.contains('Two-sided limit') ?? false) {
@@ -500,9 +535,11 @@ Expr _computeFiniteLimit(
       lead.coefficient.simplify(assumptions: assumptions),
       direction,
       point,
+      assumptions,
     );
   } on UnsupportedError catch (e) {
-    if (e.message?.contains('Two-sided limit') ?? false) {
+    if ((e.message?.contains('Two-sided limit') ?? false) ||
+        (e.message?.contains('Sign of leading coefficient') ?? false)) {
       rethrow;
     }
   } on ArgumentError {
@@ -566,12 +603,16 @@ Expr _deduceLimitFromLaurentLeading(
   Expr cm,
   LimitDirection direction,
   Expr point,
+  Assumptions assumptions,
 ) {
   if (m > 0) return IntegerNumber.zero;
   if (m == 0) return cm;
 
   final poleOrder = -m;
-  final sign = _getSign(cm);
+  final sign = _getSign(cm, assumptions);
+  if (sign == 0) {
+    throw UnsupportedError('Sign of leading coefficient $cm is unknown');
+  }
 
   if (poleOrder.isEven) {
     return sign > 0 ? Constant.infinity : _negInfinity;
@@ -628,10 +669,18 @@ Expr _computeInfiniteLimit(
     );
   }
 
-  final ratLim = _rationalFunctionLimitAtInfinity(combined, variable);
+  final ratLim = _rationalFunctionLimitAtInfinity(
+    combined,
+    variable,
+    posAssumptions,
+  );
   if (ratLim != null) return ratLim.simplify(assumptions: posAssumptions);
 
-  final expPolyLim = _exponentialPolynomialLimitAtInfinity(combined, variable);
+  final expPolyLim = _exponentialPolynomialLimitAtInfinity(
+    combined,
+    variable,
+    posAssumptions,
+  );
   if (expPolyLim != null) {
     return expPolyLim.simplify(assumptions: posAssumptions);
   }
@@ -764,7 +813,11 @@ bool _isBoundedFactorAtInfinity(Expr expr, String variable) => switch (expr) {
   _ => false,
 };
 
-Expr? _rationalFunctionLimitAtInfinity(Expr expr, String variable) {
+Expr? _rationalFunctionLimitAtInfinity(
+  Expr expr,
+  String variable,
+  Assumptions assumptions,
+) {
   final (num, den) = splitNumeratorDenominator(expr);
 
   if ((
@@ -774,18 +827,25 @@ Expr? _rationalFunctionLimitAtInfinity(Expr expr, String variable) {
       case ((final dP, final cP), (final dQ, final cQ))) {
     if (dP < dQ) return IntegerNumber.zero;
     if (dP == dQ) {
-      return (cP / cQ).simplify();
+      return (cP / cQ).simplify(assumptions: assumptions);
     }
 
-    final ratio = (cP / cQ).simplify();
-    final sign = _getSign(ratio);
+    final ratio = (cP / cQ).simplify(assumptions: assumptions);
+    final sign = _getSign(ratio, assumptions);
+    if (sign == 0) {
+      throw UnsupportedError('Sign of leading coefficient $ratio is unknown');
+    }
     return sign > 0 ? Constant.infinity : _negInfinity;
   }
 
   return null;
 }
 
-Expr? _exponentialPolynomialLimitAtInfinity(Expr expr, String variable) {
+Expr? _exponentialPolynomialLimitAtInfinity(
+  Expr expr,
+  String variable,
+  Assumptions assumptions,
+) {
   if (expr case Mul(:final factors)) {
     Expr? expFactor;
     final polyFactors = <Expr>[];
@@ -802,7 +862,7 @@ Expr? _exponentialPolynomialLimitAtInfinity(Expr expr, String variable) {
     if (expFactor case Pow(:final RealNumeric base, exponent: _)) {
       final poly = polyFactors.isEmpty
           ? IntegerNumber.one
-          : Mul(polyFactors).simplify();
+          : Mul(polyFactors).simplify(assumptions: assumptions);
       final polyDeg = _polynomialDegreeAndLead(poly, variable);
       if (polyDeg != null) {
         final (deg, lead) = polyDeg;
@@ -811,8 +871,16 @@ Expr? _exponentialPolynomialLimitAtInfinity(Expr expr, String variable) {
           return IntegerNumber.zero;
         }
         if (cmpOne > 0 && base.sign > 0) {
-          final sign = _getSign(lead);
+          final sign = _getSign(lead, assumptions);
+          if (sign == 0) {
+            throw UnsupportedError(
+              'Sign of leading coefficient $lead is unknown',
+            );
+          }
           return sign > 0 ? Constant.infinity : _negInfinity;
+        }
+        if (cmpOne > 0 && base.sign < 0) {
+          throw UnsupportedError('Limit does not exist due to oscillation');
         }
       }
     }
@@ -1332,8 +1400,10 @@ bool _isWellDefinedFinite(Expr expr) {
   return false;
 }
 
-int _getSign(Expr expr) {
-  final s = expr.simplify();
+int _getSign(Expr expr, [Assumptions assumptions = Assumptions.none]) {
+  final s = expr.simplify(assumptions: assumptions);
+  if (isPositiveExpr(s, assumptions: assumptions)) return 1;
+  if (isNegativeExpr(s, assumptions: assumptions)) return -1;
   if (s is RealNumeric) {
     return s.sign;
   }
@@ -1343,7 +1413,7 @@ int _getSign(Expr expr) {
       [final single] => single,
       _ => Mul(rest),
     };
-    return first.sign * _getSign(restExpr);
+    return first.sign * _getSign(restExpr, assumptions);
   }
   if (s.freeVariables.isEmpty) {
     try {
@@ -1353,7 +1423,7 @@ int _getSign(Expr expr) {
       // Ignore
     }
   }
-  return 1;
+  return 0;
 }
 
 int _asymptoticSignAtInfinity(

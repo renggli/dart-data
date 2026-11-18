@@ -560,6 +560,38 @@ void main() {
           ),
         ).equals(Expr.parse('pi/6').simplify());
       });
+
+      test('soundness for cancelling poles, unknown parameter signs, and oscillating bases', () {
+        const x = Variable('x');
+        const a = Variable('a');
+        check(
+          (IntegerNumber.one / x - IntegerNumber.one / Sin(x)).limit('x', 0),
+        ).equals(IntegerNumber.zero);
+
+        check((a / Pow(x, IntegerNumber.two)).limit('x', 0)).isA<Limit>();
+        check(
+          (a / Pow(x, IntegerNumber.two)).limit(
+            'x',
+            0,
+            assumptions: const Assumptions(
+              domains: {'a': VariableDomain.positive},
+            ),
+          ),
+        ).equals(Constant.infinity);
+        check(
+          ((-a) / Pow(x, IntegerNumber.two)).limit(
+            'x',
+            0,
+            assumptions: const Assumptions(
+              domains: {'a': VariableDomain.positive},
+            ),
+          ),
+        ).equals(-Constant.infinity);
+        check(
+          () =>
+              (Pow(IntegerNumber.of(-2), x) * x).limit('x', Constant.infinity),
+        ).throws<UnsupportedError>();
+      });
     },
   );
 }
