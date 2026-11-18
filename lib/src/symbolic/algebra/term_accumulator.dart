@@ -295,29 +295,26 @@ class MonomialAccumulator {
   }
 
   void _reducePythagorean() {
-    final sinSquares = <Expr, (Expr, RationalNumber)>{};
-    final cosSquares = <Expr, (Expr, RationalNumber)>{};
+    final sinSquares = <({Expr arg, Expr cofactor}), (Expr, RationalNumber)>{};
+    final cosSquares = <({Expr arg, Expr cofactor}), (Expr, RationalNumber)>{};
 
     for (final MapEntry(:key, value: coeff) in terms.entries) {
       if (coeff is! RationalNumber) continue;
-      final uSin = _isSquareOfSin(key);
-      if (uSin != null) sinSquares[uSin] = (key, coeff);
-      final uCos = _isSquareOfCos(key);
-      if (uCos != null) cosSquares[uCos] = (key, coeff);
+      final match = _extractTrigSquare(key, isHyperbolic: false);
+      if (match == null) continue;
+      final pairKey = (arg: match.arg, cofactor: match.cofactor);
+      if (match.isFirst) {
+        sinSquares[pairKey] = (key, coeff);
+      } else {
+        cosSquares[pairKey] = (key, coeff);
+      }
     }
 
-    for (final u in sinSquares.keys) {
-      if (cosSquares.containsKey(u)) {
-        final (sinKey, sinCoeff) = sinSquares[u]!;
-        final (cosKey, cosCoeff) = cosSquares[u]!;
-        if (sinCoeff == cosCoeff) {
-          terms.remove(sinKey);
-          terms.remove(cosKey);
-          if (_hasRealExponent(sinKey) || _hasRealExponent(cosKey)) {
-            hasReal = true;
-          }
-          constant = constant.add(sinCoeff);
-        } else if (sinCoeff.sign == cosCoeff.sign) {
+    for (final pairKey in sinSquares.keys) {
+      if (cosSquares.containsKey(pairKey)) {
+        final (sinKey, sinCoeff) = sinSquares[pairKey]!;
+        final (cosKey, cosCoeff) = cosSquares[pairKey]!;
+        if (sinCoeff.sign == cosCoeff.sign) {
           final m = sinCoeff.abs().compareTo(cosCoeff.abs()) < 0
               ? sinCoeff
               : cosCoeff;
@@ -333,10 +330,11 @@ class MonomialAccumulator {
           } else {
             terms[cosKey] = newCos;
           }
-          if (_hasRealExponent(sinKey) || _hasRealExponent(cosKey)) {
+          if (_hasRealSquareExponent(sinKey) ||
+              _hasRealSquareExponent(cosKey)) {
             hasReal = true;
           }
-          constant = constant.add(m);
+          addDecomposed(m, pairKey.cofactor);
         }
       }
     }
@@ -377,28 +375,33 @@ class MonomialAccumulator {
   }
 
   void _reduceHyperbolicPythagorean() {
-    final coshSquares = <Expr, (Expr, RationalNumber)>{};
-    final sinhSquares = <Expr, (Expr, RationalNumber)>{};
+    final coshSquares = <({Expr arg, Expr cofactor}), (Expr, RationalNumber)>{};
+    final sinhSquares = <({Expr arg, Expr cofactor}), (Expr, RationalNumber)>{};
 
     for (final MapEntry(:key, value: coeff) in terms.entries) {
       if (coeff is! RationalNumber) continue;
-      final uCosh = _isSquareOfCosh(key);
-      if (uCosh != null) coshSquares[uCosh] = (key, coeff);
-      final uSinh = _isSquareOfSinh(key);
-      if (uSinh != null) sinhSquares[uSinh] = (key, coeff);
+      final match = _extractTrigSquare(key, isHyperbolic: true);
+      if (match == null) continue;
+      final pairKey = (arg: match.arg, cofactor: match.cofactor);
+      if (match.isFirst) {
+        coshSquares[pairKey] = (key, coeff);
+      } else {
+        sinhSquares[pairKey] = (key, coeff);
+      }
     }
 
-    for (final u in coshSquares.keys) {
-      if (sinhSquares.containsKey(u)) {
-        final (coshKey, coshCoeff) = coshSquares[u]!;
-        final (sinhKey, sinhCoeff) = sinhSquares[u]!;
+    for (final pairKey in coshSquares.keys) {
+      if (sinhSquares.containsKey(pairKey)) {
+        final (coshKey, coshCoeff) = coshSquares[pairKey]!;
+        final (sinhKey, sinhCoeff) = sinhSquares[pairKey]!;
         if (coshCoeff == sinhCoeff.neg()) {
           terms.remove(coshKey);
           terms.remove(sinhKey);
-          if (_hasRealExponent(coshKey) || _hasRealExponent(sinhKey)) {
+          if (_hasRealSquareExponent(coshKey) ||
+              _hasRealSquareExponent(sinhKey)) {
             hasReal = true;
           }
-          constant = constant.add(coshCoeff);
+          addDecomposed(coshCoeff, pairKey.cofactor);
         }
       }
     }
@@ -922,11 +925,53 @@ Expr? _isSquareOfCosh(Expr term) => switch (term) {
 bool _isTwo(Expr exp) =>
     exp == IntegerNumber.two || (exp is RealNumber && exp.value == 2.0);
 
-bool _hasRealExponent(Expr expr) => expr is Pow && expr.exponent is RealNumber;
+bool _hasRealSquareExponent(Expr expr) => switch (expr) {
+  Pow(:final exponent) => exponent is RealNumber,
+  Mul(:final factors) => factors.any(_hasRealSquareExponent),
+  _ => false,
+};
+
+({Expr arg, bool isFirst, Expr cofactor})? _extractTrigSquare(
+  Expr term, {
+  required bool isHyperbolic,
+}) {
+  (Expr arg, bool isFirst)? matchPow(Expr e) {
+    if (e case Pow(:final base, :final exponent) when _isTwo(exponent)) {
+      if (isHyperbolic) {
+        if (base is Cosh) return (base.expr, true);
+        if (base is Sinh) return (base.expr, false);
+      } else {
+        if (base is Sin) return (base.expr, true);
+        if (base is Cos) return (base.expr, false);
+      }
+    }
+    return null;
+  }
+
+  if (matchPow(term) case (final arg, final isFirst)) {
+    return (arg: arg, isFirst: isFirst, cofactor: IntegerNumber.one);
+  }
+  if (term case Mul(:final factors)) {
+    for (var i = 0; i < factors.length; i++) {
+      if (matchPow(factors[i]) case (final arg, final isFirst)) {
+        final rest = [
+          for (var j = 0; j < factors.length; j++)
+            if (j != i) factors[j],
+        ];
+        final cofactor = rest.length == 1
+            ? rest.first
+            : Mul(rest, isSimplified: true);
+        return (arg: arg, isFirst: isFirst, cofactor: cofactor);
+      }
+    }
+  }
+  return null;
+}
 
 bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
   Ln() => true,
   Pow(base: Sin() || Cos() || Sinh() || Cosh()) => true,
+  Mul(:final factors) => factors.any(_isReducibleTranscendentalBase),
   _ => false,
 };
 

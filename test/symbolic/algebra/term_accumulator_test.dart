@@ -158,6 +158,12 @@ void main() {
           .equals(IntegerNumber.negativeOne);
       check(Expr.parse('-3*sin(x)^2 - 2*cos(x)^2').simplify())
           .equals(Expr.parse('-2 - sin(x)^2').simplify());
+
+      // Symbolic cofactors
+      check(Expr.parse('x * sin(t)^2 + x * cos(t)^2').simplify())
+          .equals(const Variable('x'));
+      check(Expr.parse('2 * y * cosh(x)^2 - 2 * y * sinh(x)^2').simplify())
+          .equals(Expr.parse('2 * y').simplify());
       check(Expr.parse('2 - 2*sin(x)^2').simplify())
           .equals(Expr.parse('2*cos(x)^2').simplify());
       check(Expr.parse('3 + 3*sinh(x)^2').simplify())
