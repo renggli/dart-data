@@ -91,8 +91,8 @@ class MonomialAccumulator {
       hasUndefined = true;
       return;
     }
-    if (base == Constant.infinity) {
-      final sign = coeff is RealNumeric && coeff.isNegative ? -1 : 1;
+    if (base == Constant.infinity && coeff is RealNumeric) {
+      final sign = coeff.isNegative ? -1 : 1;
       if (infinitySign != null) {
         if (infinitySign != sign) {
           hasUndefined = true;
@@ -499,13 +499,8 @@ class MonomialAccumulator {
         final combined = simplifyLn(num, assumptions: assumptions);
         add(combined, gNum);
       } else if (den != null) {
-        final inv = simplifyPow(
-          den,
-          IntegerNumber.negativeOne,
-          assumptions: assumptions,
-        );
-        final combined = simplifyLn(inv, assumptions: assumptions);
-        add(combined, gNum);
+        final combined = simplifyLn(den, assumptions: assumptions);
+        add(combined, gNum.neg());
       }
     }
   }
@@ -541,6 +536,9 @@ class MonomialAccumulator {
     Expr point,
     int minOrder,
   ) {
+    if (minOrder <= 0 && !base.dependsOn(variable)) {
+      return true;
+    }
     final shifted = simplifySub(
       Variable(variable),
       point,

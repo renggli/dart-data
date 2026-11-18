@@ -179,7 +179,7 @@ void main() {
           Expr.parse('-ln(x) - ln(y)')
               .simplify(assumptions: posAssumptions)
               .toString(),
-        ).equals('ln(1 / (x * y))');
+        ).equals('-ln(x * y)');
         check(
           Expr.parse('ln(x) - ln(y)')
               .simplify(assumptions: posAssumptions)
@@ -328,6 +328,16 @@ void main() {
       final accUndef = MonomialAccumulator(assumptions: Assumptions.none)
         ..addDecomposed(IntegerNumber.one, Constant.undefined);
       check(accUndef.build()).equals(Constant.undefined);
+
+      check(
+        (ComplexNumber.i * Constant.infinity).simplify(),
+      ).equals(Mul([ComplexNumber.i, Constant.infinity], isSimplified: true));
+      check(
+        Add([
+          const Variable('y'),
+          const OrderTerm('x', 0, point: IntegerNumber.one),
+        ]).simplify(),
+      ).equals(const OrderTerm('x', 0, point: IntegerNumber.one));
     });
   });
 }
