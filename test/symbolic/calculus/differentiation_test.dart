@@ -204,8 +204,10 @@ void main() {
           't',
           IntegerNumber.one,
           const Variable('n'),
-        ).derivative('x'),
-      ).isA<Derivative>();
+        ).derivative('x').toString(),
+      ).equals(
+        'sum(t * cos(t * x) / sin(t * x), t, 1, n) * product(sin(t * x), t, 1, n)',
+      );
     });
 
     test('differentiates OrderTerm and Piecewise nodes', () {
@@ -439,6 +441,19 @@ void main() {
               EllipticF(piOver3, k).evaluate({'k': 0.5 - h})) /
           (2.0 * h);
       check(dFdk.evaluate({'k': 0.5})).isCloseTo(fd, 1e-6);
+    });
+
+    test('differentiates symbolic Product via logarithmic differentiation', () {
+      const t = Variable('t');
+      const n = Variable('n');
+      final prod = Product(Cos(x * t), 't', IntegerNumber.one, n);
+      check(prod.derivative('x')).equals(
+        (prod * Sum((-t * Sin(x * t)) / Cos(x * t), 't', IntegerNumber.one, n))
+            .simplify(),
+      );
+      // Bound variable match or dependent bounds remain unevaluated Derivative
+      check(Product(Cos(x * t), 't', IntegerNumber.one, x).derivative('x'))
+          .isA<Derivative>();
     });
   });
 }

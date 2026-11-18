@@ -375,7 +375,19 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     sVar != variable && !lower.dependsOn(variable) && !upper.dependsOn(variable)
         ? Sum(_differentiate(inner, variable), sVar, lower, upper)
         : Derivative(expr, variable),
-  Limit() || Product() || VariableFunction() => Derivative(expr, variable),
+  Product(
+    expr: final inner,
+    variable: final pVar,
+    :final lower,
+    :final upper,
+  ) =>
+    pVar != variable && !lower.dependsOn(variable) && !upper.dependsOn(variable)
+        ? Mul([
+            expr,
+            Sum(_differentiate(inner, variable) / inner, pVar, lower, upper),
+          ])
+        : Derivative(expr, variable),
+  Limit() || VariableFunction() => Derivative(expr, variable),
 };
 
 Expr _differentiateDerivative(
