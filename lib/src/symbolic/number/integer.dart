@@ -347,3 +347,31 @@ final _negativeTwoPow53 = -BigInt.two.pow(53);
 
 /// Pattern of a decimal integer with an optional sign.
 final _decimal = RegExp(r'^[+-]?[0-9]+$');
+
+/// Finds a non-trivial factor of composite [n] using Pollard's rho algorithm,
+/// or returns `null` if no factor is found.
+Integer? pollardsRho(Integer n) {
+  if (n <= Integer.one) return null;
+  if (n.isEven) return Integer.two;
+  if (n.isPrime) return n;
+
+  for (var cVal = 1; cVal <= 10; cVal++) {
+    final c = Integer.from(cVal);
+    var x = Integer.two;
+    var y = Integer.two;
+    var d = Integer.one;
+
+    Integer f(Integer val) => (val * val + c) % n;
+
+    while (d == Integer.one) {
+      x = f(x);
+      y = f(f(y));
+      d = (x - y).abs().gcd(n);
+    }
+
+    if (d > Integer.one && d < n) {
+      return d;
+    }
+  }
+  return null;
+}

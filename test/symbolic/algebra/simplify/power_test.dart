@@ -151,7 +151,7 @@ void main() {
         check(
           simplifyPow(
             RationalNumber(2, 3),
-            IntegerNumber.of(2000),
+            IntegerNumber.of(70000),
             assumptions: Assumptions.none,
           ),
         ).isA<Pow>();
@@ -434,5 +434,19 @@ void main() {
         ).toString(),
       ).equals('x ^ 2');
     });
+
+    test(
+      'folds large integer powers and extracts large prime square factors',
+      () {
+        check(Pow(IntegerNumber.two, IntegerNumber.of(1024)).simplify())
+            .equals(IntegerNumber(Integer.two.pow(1024)!));
+        check(
+          Pow(
+            IntegerNumber.of(2 * 1009 * 1009),
+            FractionNumber.half,
+          ).simplify(),
+        ).equals(Expr.parse('1009 * sqrt(2)').simplify());
+      },
+    );
   });
 }

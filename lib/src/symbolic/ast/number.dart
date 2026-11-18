@@ -118,7 +118,7 @@ sealed class Number extends Expr {
           ? IntegerNumber.one
           : IntegerNumber.negativeOne;
     }
-    if (exponent.asInt case final expInt? when expInt.abs() <= 1000) {
+    if (exponent.asInt case final expInt?) {
       return baseRat.powInteger(expInt);
     }
     return null;
@@ -137,7 +137,7 @@ sealed class Number extends Expr {
     if (baseRat.isOne) return IntegerNumber.one;
     if (baseRat.isNegative) return null;
     if ((exponent.denominator.asInt, exponent.numerator.asInt)
-        case (final q?, final p?) when q <= 64 && p.abs() <= 64) {
+        case (final q?, final p?) when q <= 1024 && p.abs() <= 1024) {
       if (exactIntegerRoot(baseRat.numerator, q) case final rootNum?) {
         if (exactIntegerRoot(baseRat.denominator, q) case final rootDen?) {
           return RationalNumber.of(rootNum, rootDen).powInteger(p);
@@ -184,7 +184,7 @@ sealed class Number extends Expr {
       } else {
         result = c.imaginary.powNumber(IntegerNumber(intExp))?.mul(iPow);
       }
-    } else if (intExp.asInt case final expAsInt? when expAsInt.abs() <= 64) {
+    } else if (intExp.asInt case final expAsInt? when expAsInt.abs() <= 1024) {
       result = _complexIntPow(c, expAsInt);
     }
     if (result == null) return null;

@@ -362,7 +362,7 @@ Expr? _extractRationalRadical(
   if (base.isNegative || base.isZero || base.isOne) return null;
   final p = exponent.numerator.asInt;
   final q = exponent.denominator.asInt;
-  if (p == null || q == null || q <= 1 || q > 64 || p.abs() > 64) {
+  if (p == null || q == null || q <= 1 || q > 1024 || p.abs() > 1024) {
     return null;
   }
 
@@ -461,6 +461,35 @@ Expr? _extractRationalRadical(
     if (exactRoot != null) {
       root *= exactRoot;
       unfactored = Integer.one;
+    } else if (q == 2 && unfactored.bitLength <= 64 && !unfactored.isPrime) {
+      final primeCounts = <Integer, int>{};
+      final queue = <Integer>[unfactored];
+      while (queue.isNotEmpty) {
+        final curr = queue.removeLast();
+        if (curr <= Integer.one) continue;
+        if (curr.isPrime) {
+          primeCounts[curr] = (primeCounts[curr] ?? 0) + 1;
+        } else {
+          final factor = pollardsRho(curr);
+          if (factor != null && factor > Integer.one && factor < curr) {
+            queue.add(factor);
+            queue.add(curr ~/ factor);
+          } else {
+            primeCounts[curr] = (primeCounts[curr] ?? 0) + 1;
+          }
+        }
+      }
+      var rem = Integer.one;
+      for (final MapEntry(key: p, value: c) in primeCounts.entries) {
+        final ext = c ~/ 2;
+        for (var i = 0; i < ext; i++) {
+          root *= p;
+        }
+        if (c.isOdd) {
+          rem *= p;
+        }
+      }
+      unfactored = rem;
     }
   }
 

@@ -230,7 +230,7 @@ void main() {
             .equals(IntegerNumber.negativeOne);
         check(RationalNumber(2, 3).powNumber(IntegerNumber.of(3)))
             .equals(RationalNumber(8, 27));
-        check(IntegerNumber.two.powNumber(IntegerNumber.of(2000))).isNull();
+        check(IntegerNumber.two.powNumber(IntegerNumber.of(70000))).isNull();
 
         check(IntegerNumber.zero.powNumber(FractionNumber.half))
             .equals(IntegerNumber.zero);
@@ -281,7 +281,7 @@ void main() {
         final twoI = ComplexNumber(IntegerNumber.zero, IntegerNumber.two);
         check(twoI.powNumber(IntegerNumber.of(3)))
             .equals(ComplexNumber(IntegerNumber.zero, IntegerNumber.of(-8)));
-        check(twoI.powNumber(IntegerNumber.of(2000))).isNull();
+        check(twoI.powNumber(IntegerNumber.of(70000))).isNull();
 
         final onePlusI = ComplexNumber(IntegerNumber.one, IntegerNumber.one);
         check(
@@ -290,7 +290,7 @@ void main() {
         check(onePlusI.powNumber(IntegerNumber.of(-2))).equals(
           ComplexNumber(IntegerNumber.zero, FractionNumber.negativeHalf),
         );
-        check(onePlusI.powNumber(IntegerNumber.of(100))).isNull();
+        check(onePlusI.powNumber(IntegerNumber.of(2000))).isNull();
         check(onePlusI.powNumber(const RealNumber(1.5))).isNull();
 
         check(RealNumber.zero.powNumber(RealNumber.zero))
