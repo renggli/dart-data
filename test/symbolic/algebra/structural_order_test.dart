@@ -305,5 +305,14 @@ void main() {
       check(compareStructural(i1, i2)).isLessThan(0);
       check(compareStructural(i2, i3)).isLessThan(0);
     });
+
+    test('breaks ties deterministically between numerically equal RationalNumber and RealNumber', () {
+      check(compareStructural(IntegerNumber.one, RealNumber.one)).equals(-1);
+      check(compareStructural(RealNumber.one, IntegerNumber.one)).equals(1);
+      final cRat = ComplexNumber.of(IntegerNumber.one, IntegerNumber.one);
+      final cReal = ComplexNumber.of(IntegerNumber.one, RealNumber.one);
+      check(compareStructural(cRat, cReal)).equals(-1);
+      check(compareStructural(cReal, cRat)).equals(1);
+    });
   });
 }

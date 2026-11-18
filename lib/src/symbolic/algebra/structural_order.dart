@@ -216,14 +216,27 @@ int _compareList(List<Expr> listA, List<Expr> listB) {
 }
 
 int _compareNumber(Number a, Number b) => switch ((a, b)) {
-  (final RealNumeric ra, final RealNumeric rb) => ra.compareTo(rb),
+  (final RealNumeric ra, final RealNumeric rb) => _compareRealNumericStructural(
+    ra,
+    rb,
+  ),
   (RealNumeric(), ComplexNumber()) => -1,
   (ComplexNumber(), RealNumeric()) => 1,
   (final ComplexNumber ca, final ComplexNumber cb) => () {
-    final cmpReal = ca.real.compareTo(cb.real);
-    return cmpReal != 0 ? cmpReal : ca.imaginary.compareTo(cb.imaginary);
+    final cmpReal = _compareRealNumericStructural(ca.real, cb.real);
+    return cmpReal != 0
+        ? cmpReal
+        : _compareRealNumericStructural(ca.imaginary, cb.imaginary);
   }(),
 };
+
+int _compareRealNumericStructural(RealNumeric a, RealNumeric b) {
+  final cmp = a.compareTo(b);
+  if (cmp != 0) return cmp;
+  if (a is RationalNumber && b is RealNumber) return -1;
+  if (a is RealNumber && b is RationalNumber) return 1;
+  return 0;
+}
 
 int _compareConstant(Constant a, Constant b) {
   final cmpName = a.name.compareTo(b.name);

@@ -108,8 +108,8 @@ void main() {
       check(const RealNumber(1.5).compareTo(const RealNumber(2.5)))
           .isLessThan(0);
       check(IntegerNumber.one.compareTo(const RealNumber(2.0))).isLessThan(0);
-      check(FractionNumber.half.compareTo(const RealNumber(0.5))).equals(-1);
-      check(const RealNumber(0.5).compareTo(FractionNumber.half)).equals(1);
+      check(FractionNumber.half.compareTo(const RealNumber(0.5))).equals(0);
+      check(const RealNumber(0.5).compareTo(FractionNumber.half)).equals(0);
     });
 
     test('ComplexNumber properties, demotion, and real-domain errors', () {
@@ -321,5 +321,18 @@ void main() {
       check(huge.neg().compareTo(const RealNumber(-1e300))).isLessThan(0);
       check(const RealNumber(-1e300).compareTo(huge.neg())).isGreaterThan(0);
     });
+
+    test(
+      'compareTo performs exact IEEE-754 comparison for >53-bit rationals',
+      () {
+        final bigPlusOne = IntegerNumber(Integer.parse('9007199254740993'));
+        const exactDouble = RealNumber(9007199254740992.0);
+        check(bigPlusOne.compareTo(exactDouble)).equals(1);
+        check(exactDouble.compareTo(bigPlusOne)).equals(-1);
+        check(IntegerNumber.one.compareTo(RealNumber.one)).equals(0);
+        check(RealNumber.one.compareTo(IntegerNumber.one)).equals(0);
+        check(IntegerNumber.zero.compareTo(RealNumber.zero)).equals(0);
+      },
+    );
   });
 }

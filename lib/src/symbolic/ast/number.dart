@@ -775,9 +775,28 @@ final class ComplexNumber extends Number {
   int get hashCode => Object.hash(ComplexNumber, real, imaginary);
 }
 
-int _compareRationalReal(RationalNumber r, RealNumber f) {
-  final d = r.toDouble();
-  if (!d.isFinite && f.value.isFinite) return r.sign;
-  final cmp = d.compareTo(f.value);
-  return cmp != 0 ? cmp : -1;
+int _compareRationalReal(RationalNumber r, RealNumber f) =>
+    _compareRationalToDoubleValue(r, f.value);
+
+int _compareRationalToDoubleValue(RationalNumber r, double d) {
+  if (d.isNaN) return -1;
+  if (d.isInfinite) return d.isNegative ? 1 : -1;
+  if (d == 0.0) return r.sign;
+  final dSign = d < 0 ? -1 : 1;
+  if (r.sign != dSign) return r.sign.compareTo(dSign);
+  // Decompose IEEE-754 double into exact m * 2^e
+  final bits = ByteData(8)..setFloat64(0, d.abs());
+  final raw = bits.getUint64(0);
+  final biasedExp = (raw >> 52) & 0x7ff;
+  final frac = raw & 0xfffffffffffff;
+  final mantissa = biasedExp == 0
+      ? BigInt.from(frac)
+      : BigInt.from(frac | (1 << 52));
+  final exp = (biasedExp == 0 ? 1 : biasedExp) - 1023 - 52;
+  final rNum = r.numerator.abs().toBigInt();
+  final rDen = r.denominator.toBigInt();
+  final cmp = exp >= 0
+      ? rNum.compareTo((mantissa << exp) * rDen)
+      : (rNum << (-exp)).compareTo(mantissa * rDen);
+  return dSign < 0 ? -cmp : cmp;
 }
