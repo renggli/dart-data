@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/integer.dart';
 import '../factor.dart';
@@ -70,7 +71,7 @@ Expr? extractMonomialGcd(List<Expr> terms) {
   return switch (factors) {
     [] => IntegerNumber.one,
     [final single] => single,
-    _ => simplifyMul(factors),
+    _ => simplifyMul(factors, assumptions: Assumptions.none),
   };
 }
 
@@ -122,12 +123,12 @@ Expr divideMonomial(Expr term, Expr gcd) {
   return switch (factors) {
     [] => coeff,
     [final single] => single,
-    _ => simplifyMul(factors),
+    _ => simplifyMul(factors, assumptions: Assumptions.none),
   };
 }
 
 /// Factors 4-term expressions by grouping pairwise.
-Expr? factorByGrouping4(List<Expr> terms) {
+Expr? factorByGrouping4(List<Expr> terms, {required Assumptions assumptions}) {
   if (terms case [final a, final b, final c, final d]) {
     final partitions = [((a, b), (c, d)), ((a, c), (b, d)), ((a, d), (b, c))];
 
@@ -135,17 +136,29 @@ Expr? factorByGrouping4(List<Expr> terms) {
       final g1 = extractMonomialGcd([t1, t2]) ?? IntegerNumber.one;
       final g2 = extractMonomialGcd([t3, t4]) ?? IntegerNumber.one;
 
-      final r1 = simplifyAdd([divideMonomial(t1, g1), divideMonomial(t2, g1)]);
-      final r2 = simplifyAdd([divideMonomial(t3, g2), divideMonomial(t4, g2)]);
+      final r1 = simplifyAdd([
+        divideMonomial(t1, g1),
+        divideMonomial(t2, g1),
+      ], assumptions: assumptions);
+      final r2 = simplifyAdd([
+        divideMonomial(t3, g2),
+        divideMonomial(t4, g2),
+      ], assumptions: assumptions);
 
       if (r1 == r2) {
-        final factorA = factorExpr(simplifyAdd([g1, g2]));
-        final factorB = factorExpr(r1);
+        final factorA = factorExpr(
+          simplifyAdd([g1, g2], assumptions: assumptions),
+          assumptions: assumptions,
+        );
+        final factorB = factorExpr(r1, assumptions: assumptions);
         return combineFactoredProducts([factorA, factorB]);
       }
-      if (r1 == simplifyNeg(r2)) {
-        final factorA = factorExpr(simplifySub(g1, g2));
-        final factorB = factorExpr(r1);
+      if (r1 == simplifyNeg(r2, assumptions: assumptions)) {
+        final factorA = factorExpr(
+          simplifySub(g1, g2, assumptions: assumptions),
+          assumptions: assumptions,
+        );
+        final factorB = factorExpr(r1, assumptions: assumptions);
         return combineFactoredProducts([factorA, factorB]);
       }
     }
@@ -185,7 +198,9 @@ Expr? monomialSquareRoot(RationalNumber coeff, Expr base) {
   final baseSqrt = extractBaseSquareRoot(base);
   if (baseSqrt == null) return null;
 
-  return scalar.isOne ? baseSqrt : simplifyMul([scalar, baseSqrt]);
+  return scalar.isOne
+      ? baseSqrt
+      : simplifyMul([scalar, baseSqrt], assumptions: Assumptions.none);
 }
 
 /// Extracts square root of [expr] if all factors have even exponents.
@@ -204,7 +219,7 @@ Expr? extractBaseSquareRoot(Expr expr) => switch (expr) {
       if (r == null) return null;
       rootFactors.add(r);
     }
-    return simplifyMul(rootFactors);
+    return simplifyMul(rootFactors, assumptions: Assumptions.none);
   }(),
   _ => null,
 };
@@ -252,7 +267,9 @@ Expr? monomialCubeRoot(RationalNumber coeff, Expr base) {
   final baseCbrt = extractBaseCubeRoot(base);
   if (baseCbrt == null) return null;
 
-  return scalar.isOne ? baseCbrt : simplifyMul([scalar, baseCbrt]);
+  return scalar.isOne
+      ? baseCbrt
+      : simplifyMul([scalar, baseCbrt], assumptions: Assumptions.none);
 }
 
 /// Extracts cube root of [expr] if all factors have exponents divisible by 3.
@@ -271,7 +288,7 @@ Expr? extractBaseCubeRoot(Expr expr) => switch (expr) {
       if (r == null) return null;
       rootFactors.add(r);
     }
-    return simplifyMul(rootFactors);
+    return simplifyMul(rootFactors, assumptions: Assumptions.none);
   }(),
   _ => null,
 };

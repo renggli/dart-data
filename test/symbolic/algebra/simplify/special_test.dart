@@ -11,8 +11,11 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
 
-      check(simplifyLambertW(IntegerNumber.zero, 0)).equals(IntegerNumber.zero);
-      check(simplifyLambertW(Constant.e, 0)).equals(IntegerNumber.one);
+      check(
+        simplifyLambertW(IntegerNumber.zero, 0, assumptions: Assumptions.none),
+      ).equals(IntegerNumber.zero);
+      check(simplifyLambertW(Constant.e, 0, assumptions: Assumptions.none))
+          .equals(IntegerNumber.one);
       check(
         simplifyLambertW(
           Mul([
@@ -20,31 +23,67 @@ void main() {
             Pow(Constant.e, IntegerNumber.negativeOne, isSimplified: true),
           ]),
           0,
+          assumptions: Assumptions.none,
         ),
       ).equals(IntegerNumber.negativeOne);
-      check(simplifyLambertW(x, -1))
+      check(simplifyLambertW(x, -1, assumptions: Assumptions.none))
           .equals(LambertW(x, branch: -1, isSimplified: true));
 
-      check(simplifyErf(Constant.infinity)).equals(IntegerNumber.one);
-      check(simplifyErf(Mul([IntegerNumber.negativeOne, Constant.infinity])))
-          .equals(IntegerNumber.negativeOne);
-      check(simplifyErf(x)).equals(Erf(x, isSimplified: true));
+      check(simplifyErf(Constant.infinity, assumptions: Assumptions.none))
+          .equals(IntegerNumber.one);
+      check(
+        simplifyErf(
+          Mul([IntegerNumber.negativeOne, Constant.infinity]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.negativeOne);
+      check(simplifyErf(x, assumptions: Assumptions.none))
+          .equals(Erf(x, isSimplified: true));
 
-      check(simplifyErfc(Constant.infinity)).equals(IntegerNumber.zero);
-      check(simplifyErfc(Mul([IntegerNumber.negativeOne, Constant.infinity])))
-          .equals(IntegerNumber.two);
-      check(simplifyErfc(x)).equals(Erfc(x, isSimplified: true));
+      check(simplifyErfc(Constant.infinity, assumptions: Assumptions.none))
+          .equals(IntegerNumber.zero);
+      check(
+        simplifyErfc(
+          Mul([IntegerNumber.negativeOne, Constant.infinity]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.two);
+      check(simplifyErfc(x, assumptions: Assumptions.none))
+          .equals(Erfc(x, isSimplified: true));
 
-      check(simplifyGamma(FractionNumber.half).toString()).equals('sqrt(pi)');
-      check(simplifyGamma(x)).equals(Gamma(x, isSimplified: true));
+      check(
+        simplifyGamma(
+          FractionNumber.half,
+          assumptions: Assumptions.none,
+        ).toString(),
+      ).equals('sqrt(pi)');
+      check(simplifyGamma(x, assumptions: Assumptions.none))
+          .equals(Gamma(x, isSimplified: true));
 
       // Beta symmetry, integer factorial evaluation, unit argument identities, and general form
-      check(simplifyBeta(IntegerNumber.of(3), IntegerNumber.of(4)))
-          .equals(RationalNumber(1, 60));
-      check(simplifyBeta(y, x)).equals(Beta(x, y, isSimplified: true));
-      check(simplifyBeta(IntegerNumber.one, x).toString()).equals('1 / x');
-      check(simplifyBeta(FractionNumber.half, IntegerNumber.one))
-          .equals(IntegerNumber.two);
+      check(
+        simplifyBeta(
+          IntegerNumber.of(3),
+          IntegerNumber.of(4),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(RationalNumber(1, 60));
+      check(simplifyBeta(y, x, assumptions: Assumptions.none))
+          .equals(Beta(x, y, isSimplified: true));
+      check(
+        simplifyBeta(
+          IntegerNumber.one,
+          x,
+          assumptions: Assumptions.none,
+        ).toString(),
+      ).equals('1 / x');
+      check(
+        simplifyBeta(
+          FractionNumber.half,
+          IntegerNumber.one,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.two);
     });
 
     test(

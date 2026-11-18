@@ -55,6 +55,7 @@ void main() {
           Expr.parse('x^2 - x'),
           IntegerNumber.one,
           'x',
+          assumptions: Assumptions.none,
         );
         check(quadComp.length).equals(2);
       },
@@ -100,6 +101,7 @@ void main() {
           Expr.parse('x^2 - x'),
           IntegerNumber.one,
           'x',
+          assumptions: Assumptions.none,
         );
         check(quadComp)
             .unorderedEquals([IntegerNumber.zero, IntegerNumber.one]);
@@ -137,6 +139,7 @@ void main() {
         Expr.parse('x^2 - x'),
         IntegerNumber.zero,
         'x',
+        assumptions: Assumptions.none,
       );
       check(quadComp.length).equals(4);
     });

@@ -429,7 +429,7 @@ int _algebraicMultiplicity(
   String lambdaVar,
   Expr root,
   int maxDegree, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   var multiplicity = 1;
   var deriv = charPoly.derivative(lambdaVar).simplify(assumptions: assumptions);

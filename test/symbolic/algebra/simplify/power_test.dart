@@ -9,23 +9,48 @@ void main() {
   group('Trivial and exponential base power identities', () {
     test('simplifies zero/unit exponents and zero/unit bases', () {
       const x = Variable('x');
-      check(simplifyPow(x, IntegerNumber.zero)).equals(IntegerNumber.one);
-      check(simplifyPow(x, RealNumber.zero)).equals(const RealNumber(1.0));
-      check(simplifyPow(x, IntegerNumber.one)).equals(x);
-      check(simplifyPow(IntegerNumber.one, x)).equals(IntegerNumber.one);
-      check(simplifyPow(const RealNumber(1.0), x))
+      check(simplifyPow(x, IntegerNumber.zero, assumptions: Assumptions.none))
+          .equals(IntegerNumber.one);
+      check(simplifyPow(x, RealNumber.zero, assumptions: Assumptions.none))
           .equals(const RealNumber(1.0));
-      check(simplifyPow(IntegerNumber.zero, IntegerNumber.two))
-          .equals(IntegerNumber.zero);
-      check(simplifyPow(RealNumber.zero, IntegerNumber.two))
-          .equals(RealNumber.zero);
+      check(simplifyPow(x, IntegerNumber.one, assumptions: Assumptions.none))
+          .equals(x);
+      check(simplifyPow(IntegerNumber.one, x, assumptions: Assumptions.none))
+          .equals(IntegerNumber.one);
+      check(
+        simplifyPow(const RealNumber(1.0), x, assumptions: Assumptions.none),
+      ).equals(const RealNumber(1.0));
+      check(
+        simplifyPow(
+          IntegerNumber.zero,
+          IntegerNumber.two,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        simplifyPow(
+          RealNumber.zero,
+          IntegerNumber.two,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(RealNumber.zero);
 
-      check(simplifyPow(IntegerNumber.zero, IntegerNumber.negativeOne))
-          .equals(Constant.undefined);
-      check(simplifyPow(IntegerNumber.zero, Mul([IntegerNumber.of(-2), x])))
-          .equals(Constant.undefined);
+      check(
+        simplifyPow(
+          IntegerNumber.zero,
+          IntegerNumber.negativeOne,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(
+        simplifyPow(
+          IntegerNumber.zero,
+          Mul([IntegerNumber.of(-2), x]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
 
-      check(simplifyPow(IntegerNumber.zero, x))
+      check(simplifyPow(IntegerNumber.zero, x, assumptions: Assumptions.none))
           .equals(Pow(IntegerNumber.zero, x, isSimplified: true));
       check(
         simplifyPow(IntegerNumber.zero, x, assumptions: Assumptions.positive),
@@ -35,11 +60,21 @@ void main() {
     test('simplifies natural exponential powers of logarithms', () {
       const x = Variable('x');
       const y = Variable('y');
-      check(simplifyPow(Constant.e, Ln(x))).equals(x);
-      check(simplifyPow(Constant.e, Mul([IntegerNumber.of(3), Ln(x)])))
-          .equals(Pow(x, IntegerNumber.of(3), isSimplified: true));
+      check(simplifyPow(Constant.e, Ln(x), assumptions: Assumptions.none))
+          .equals(x);
       check(
-        simplifyPow(Constant.e, Mul([IntegerNumber.two, y, Ln(x)])).toString(),
+        simplifyPow(
+          Constant.e,
+          Mul([IntegerNumber.of(3), Ln(x)]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Pow(x, IntegerNumber.of(3), isSimplified: true));
+      check(
+        simplifyPow(
+          Constant.e,
+          Mul([IntegerNumber.two, y, Ln(x)]),
+          assumptions: Assumptions.none,
+        ).toString(),
       ).equals('x ^ (2 * y)');
     });
   });
@@ -48,35 +83,78 @@ void main() {
     test(
       'evaluates rational, complex, and negative-base fractional powers',
       () {
-        check(simplifyPow(IntegerNumber.of(-4), FractionNumber.half).toString())
-            .equals('2 * i');
+        check(
+          simplifyPow(
+            IntegerNumber.of(-4),
+            FractionNumber.half,
+            assumptions: Assumptions.none,
+          ).toString(),
+        ).equals('2 * i');
         check(
           simplifyPow(
             IntegerNumber.of(-4),
             FractionNumber.negativeHalf,
+            assumptions: Assumptions.none,
           ).toString(),
         ).equals('-1/2 * i');
         check(
-          simplifyPow(IntegerNumber.of(-2), FractionNumber.third).toString(),
+          simplifyPow(
+            IntegerNumber.of(-2),
+            FractionNumber.third,
+            assumptions: Assumptions.none,
+          ).toString(),
         ).equals('(-2) ^ (1/3)');
 
-        check(simplifyPow(ComplexNumber.i, IntegerNumber.two))
-            .equals(IntegerNumber.negativeOne);
-        check(simplifyPow(ComplexNumber.i, FractionNumber.half).toString())
-            .equals('sqrt(i)');
-        check(simplifyPow(const RealNumber(2.5), const RealNumber(3.5)))
-            .equals(RealNumber(math.pow(2.5, 3.5).toDouble()));
         check(
-          simplifyPow(const RealNumber(2.5), const IntegerNumber(Integer(2))),
+          simplifyPow(
+            ComplexNumber.i,
+            IntegerNumber.two,
+            assumptions: Assumptions.none,
+          ),
+        ).equals(IntegerNumber.negativeOne);
+        check(
+          simplifyPow(
+            ComplexNumber.i,
+            FractionNumber.half,
+            assumptions: Assumptions.none,
+          ).toString(),
+        ).equals('sqrt(i)');
+        check(
+          simplifyPow(
+            const RealNumber(2.5),
+            const RealNumber(3.5),
+            assumptions: Assumptions.none,
+          ),
+        ).equals(RealNumber(math.pow(2.5, 3.5).toDouble()));
+        check(
+          simplifyPow(
+            const RealNumber(2.5),
+            const IntegerNumber(Integer(2)),
+            assumptions: Assumptions.none,
+          ),
         ).equals(const RealNumber(6.25));
         check(
-          simplifyPow(const IntegerNumber(Integer(2)), const RealNumber(0.5)),
+          simplifyPow(
+            const IntegerNumber(Integer(2)),
+            const RealNumber(0.5),
+            assumptions: Assumptions.none,
+          ),
         ).equals(RealNumber(math.sqrt(2)));
 
-        check(simplifyPow(RationalNumber(2, 3), IntegerNumber.two))
-            .equals(RationalNumber(4, 9));
-        check(simplifyPow(RationalNumber(2, 3), IntegerNumber.of(2000)))
-            .isA<Pow>();
+        check(
+          simplifyPow(
+            RationalNumber(2, 3),
+            IntegerNumber.two,
+            assumptions: Assumptions.none,
+          ),
+        ).equals(RationalNumber(4, 9));
+        check(
+          simplifyPow(
+            RationalNumber(2, 3),
+            IntegerNumber.of(2000),
+            assumptions: Assumptions.none,
+          ),
+        ).isA<Pow>();
       },
     );
 
@@ -105,6 +183,7 @@ void main() {
       final largeRoot = simplifyPow(
         IntegerNumber.of(4),
         RationalNumber(1, 100),
+        assumptions: Assumptions.none,
       );
       check(largeRoot).isA<Pow>();
     });
@@ -116,7 +195,13 @@ void main() {
       const y = Variable('y');
 
       // (u^2)^(1/2) -> |u| under real assumptions, stays (x^2)^(1/2) under none
-      check(simplifyPow(Pow(x, IntegerNumber.two), FractionNumber.half)).equals(
+      check(
+        simplifyPow(
+          Pow(x, IntegerNumber.two),
+          FractionNumber.half,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(
         Pow(Pow(x, IntegerNumber.two), FractionNumber.half, isSimplified: true),
       );
       check(
@@ -143,7 +228,7 @@ void main() {
       );
 
       // Nested powers: (e^x)^y -> e^(x*y) under real assumptions or integer exponent
-      check(simplifyPow(Pow(Constant.e, x), y))
+      check(simplifyPow(Pow(Constant.e, x), y, assumptions: Assumptions.none))
           .equals(Pow(Pow(Constant.e, x), y, isSimplified: true));
       check(
         simplifyPow(
@@ -152,12 +237,18 @@ void main() {
           assumptions: Assumptions.real,
         ).toString(),
       ).equals('exp(x * y)');
-      check(simplifyPow(Pow(Constant.e, x), IntegerNumber.two).toString())
-          .equals('exp(2 * x)');
+      check(
+        simplifyPow(
+          Pow(Constant.e, x),
+          IntegerNumber.two,
+          assumptions: Assumptions.none,
+        ).toString(),
+      ).equals('exp(2 * x)');
       check(
         simplifyPow(
           Pow(Constant.e, Mul([IntegerNumber.of(4), ComplexNumber.i])),
           FractionNumber.half,
+          assumptions: Assumptions.none,
         ),
       ).equals(
         Pow(
@@ -170,20 +261,31 @@ void main() {
         simplifyPow(
           Pow(x, FractionNumber.third),
           RationalNumber(3, 2),
+          assumptions: Assumptions.none,
         ).toString(),
       ).equals('sqrt(x)');
-      check(simplifyPow(Pow(x, y), IntegerNumber.two).toString())
-          .equals('x ^ (2 * y)');
+      check(
+        simplifyPow(
+          Pow(x, y),
+          IntegerNumber.two,
+          assumptions: Assumptions.none,
+        ).toString(),
+      ).equals('x ^ (2 * y)');
 
       // (x^3)^(1/3) and (x^2)^(1/3) do not fold without non-negative assumptions
-      check(simplifyPow(Pow(x, IntegerNumber.of(3)), FractionNumber.third))
-          .equals(
-            Pow(
-              Pow(x, IntegerNumber.of(3)),
-              FractionNumber.third,
-              isSimplified: true,
-            ),
-          );
+      check(
+        simplifyPow(
+          Pow(x, IntegerNumber.of(3)),
+          FractionNumber.third,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(
+        Pow(
+          Pow(x, IntegerNumber.of(3)),
+          FractionNumber.third,
+          isSimplified: true,
+        ),
+      );
       check(
         simplifyPow(
           Pow(x, IntegerNumber.of(3)),
@@ -191,14 +293,19 @@ void main() {
           assumptions: Assumptions.positive,
         ),
       ).equals(x);
-      check(simplifyPow(Pow(x, IntegerNumber.two), FractionNumber.third))
-          .equals(
-            Pow(
-              Pow(x, IntegerNumber.two),
-              FractionNumber.third,
-              isSimplified: true,
-            ),
-          );
+      check(
+        simplifyPow(
+          Pow(x, IntegerNumber.two),
+          FractionNumber.third,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(
+        Pow(
+          Pow(x, IntegerNumber.two),
+          FractionNumber.third,
+          isSimplified: true,
+        ),
+      );
       check(
         simplifyPow(
           Pow(x, IntegerNumber.two),
@@ -212,6 +319,7 @@ void main() {
         simplifyPow(
           Mul([IntegerNumber.two, x]),
           IntegerNumber.of(3),
+          assumptions: Assumptions.none,
         ).toString(),
       ).equals('8 * x ^ 3');
 
@@ -254,8 +362,13 @@ void main() {
       check(tangent.toString()).equals('-2 * x');
 
       // |x|^2 -> x^2 under real assumptions, stays abs(x)^2 under none
-      check(simplifyPow(Abs(x), IntegerNumber.two).toString())
-          .equals('abs(x) ^ 2');
+      check(
+        simplifyPow(
+          Abs(x),
+          IntegerNumber.two,
+          assumptions: Assumptions.none,
+        ).toString(),
+      ).equals('abs(x) ^ 2');
       check(
         simplifyPow(
           Abs(x),
@@ -265,24 +378,45 @@ void main() {
       ).equals('x ^ 2');
 
       // OrderTerm^k -> OrderTerm(var, order * k)
-      check(simplifyPow(const OrderTerm('x', 2), IntegerNumber.of(3)))
-          .equals(const OrderTerm('x', 6));
+      check(
+        simplifyPow(
+          const OrderTerm('x', 2),
+          IntegerNumber.of(3),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(const OrderTerm('x', 6));
 
       // ComplexNumber with RealNumber component raised to 0 -> RealNumber(1.0)
       check(
         simplifyPow(
           ComplexNumber(const RealNumber(1.0), const RealNumber(2.0)),
           IntegerNumber.zero,
+          assumptions: Assumptions.none,
         ),
       ).equals(const RealNumber(1.0));
 
       // Constant.infinity raised to negative, negative Mul, and positive exponents
-      check(simplifyPow(Constant.infinity, IntegerNumber.negativeOne))
-          .equals(IntegerNumber.zero);
-      check(simplifyPow(Constant.infinity, Mul([IntegerNumber.negativeOne, x])))
-          .equals(IntegerNumber.zero);
-      check(simplifyPow(Constant.infinity, IntegerNumber.two))
-          .equals(Constant.infinity);
+      check(
+        simplifyPow(
+          Constant.infinity,
+          IntegerNumber.negativeOne,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        simplifyPow(
+          Constant.infinity,
+          Mul([IntegerNumber.negativeOne, x]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        simplifyPow(
+          Constant.infinity,
+          IntegerNumber.two,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.infinity);
 
       // Higher even root involution: (x^4)^(1/4) -> |x| and (x^4)^(1/2) -> x^2 under real assumptions
       check(

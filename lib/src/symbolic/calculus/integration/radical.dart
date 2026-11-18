@@ -95,7 +95,7 @@ Expr? tryQuadraticRadical(
 Expr? tryAffineRadicalSubstitution(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
   int depth = 0,
 }) {
   final radicals = <({Expr base, int p, int q})>[];
@@ -150,7 +150,7 @@ Expr? tryAffineRadicalSubstitution(
 Expr? tryChebyshevBinomial(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
   int depth = 0,
 }) {
   final factors = expr is Mul ? expr.factors : [expr];
@@ -313,16 +313,28 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
         final xVar = Variable(variable);
         // sqrt(Q)/x^k = A*x^(2-k)/sqrt(Q) + B*x^(1-k)/sqrt(Q) + C/(x^k * sqrt(Q))
         final term1 = k == 1
-            ? antiDerivative((a * xVar / left).simplify(), variable)
+            ? antiDerivative(
+                (a * xVar / left).simplify(),
+                variable,
+                assumptions: Assumptions.none,
+              )
             : (k == 2
-                  ? antiDerivative((a / left).simplify(), variable)
+                  ? antiDerivative(
+                      (a / left).simplify(),
+                      variable,
+                      assumptions: Assumptions.none,
+                    )
                   : tryPolynomialOverSqrtQuadratic(
                       a,
                       Pow(xVar, IntegerNumber.of(k - 2)) * left,
                       variable,
                     ));
         final term2 = k == 1
-            ? antiDerivative((b / left).simplify(), variable)
+            ? antiDerivative(
+                (b / left).simplify(),
+                variable,
+                assumptions: Assumptions.none,
+              )
             : tryPolynomialOverSqrtQuadratic(
                 b,
                 Pow(xVar, IntegerNumber.of(k - 1)) * left,
@@ -385,6 +397,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
           final tInt = antiDerivative(
             (numT / Pow(qT, FractionNumber.half)).simplify(),
             tName,
+            assumptions: Assumptions.none,
             depth: 2,
           );
           if (!hasUnevaluatedIntegral(tInt, tName)) {
@@ -404,7 +417,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
 Expr? tryFractionalLinearRadical(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
   int depth = 0,
 }) {
   Pow? targetPow;

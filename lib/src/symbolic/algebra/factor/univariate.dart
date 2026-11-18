@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/integer.dart';
 import '../simplify/additive.dart';
@@ -336,13 +337,13 @@ Expr buildPolyExprFromRational(List<RationalNumber> coeffs, String variable) {
       if (!coeffs[k].isZero)
         switch (k) {
           0 => coeffs[k],
-          1 => simplifyMul([coeffs[k], x]),
+          1 => simplifyMul([coeffs[k], x], assumptions: Assumptions.none),
           _ => simplifyMul([
             coeffs[k],
             Pow(x, IntegerNumber.of(k), isSimplified: true),
-          ]),
+          ], assumptions: Assumptions.none),
         },
-  ]);
+  ], assumptions: Assumptions.none);
 }
 
 /// Computes exact integer cube root of [n] if perfect cube, or `null`.

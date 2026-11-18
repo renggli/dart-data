@@ -91,6 +91,7 @@ void main() {
           Pow(x + IntegerNumber.one, IntegerNumber.of(-2)),
           IntegerNumber.zero,
           'x',
+          assumptions: Assumptions.none,
         ),
       ).isNotNull().isEmpty();
 
@@ -100,6 +101,7 @@ void main() {
           Pow(x + IntegerNumber.one, IntegerNumber.two),
           IntegerNumber.of(-4),
           'x',
+          assumptions: Assumptions.none,
         ),
       ).isNotNull().isEmpty();
       check(
@@ -107,6 +109,7 @@ void main() {
           Pow(x + IntegerNumber.one, IntegerNumber.two),
           const RealNumber(-4.0),
           'x',
+          assumptions: Assumptions.none,
         ),
       ).isNotNull().isEmpty();
       check(
@@ -114,6 +117,7 @@ void main() {
               Pow(x - IntegerNumber.one, IntegerNumber.two),
               IntegerNumber.of(9),
               'x',
+              assumptions: Assumptions.none,
             ),
           )
           .isNotNull()
@@ -125,6 +129,7 @@ void main() {
           Pow(x - IntegerNumber.one, IntegerNumber.of(3)),
           IntegerNumber.of(-8),
           'x',
+          assumptions: Assumptions.none,
         ),
       ).isNotNull().deepEquals([IntegerNumber.negativeOne]);
 
@@ -134,6 +139,7 @@ void main() {
           Pow(x, FractionNumber.half),
           IntegerNumber.negativeOne,
           'x',
+          assumptions: Assumptions.none,
         ),
       ).isNotNull().isEmpty();
       check(
@@ -141,6 +147,7 @@ void main() {
           Pow(x, FractionNumber.half),
           const RealNumber(-1.0),
           'x',
+          assumptions: Assumptions.none,
         ),
       ).isNotNull().isEmpty();
 
@@ -150,32 +157,51 @@ void main() {
           Pow(x + IntegerNumber.one, FractionNumber.half),
           IntegerNumber.of(3),
           'x',
+          assumptions: Assumptions.none,
         ),
       ).isNotNull().deepEquals([IntegerNumber.of(8)]);
       check(
-        invertEquation(Pow(x, RationalNumber(3, 2)), IntegerNumber.of(8), 'x'),
+        invertEquation(
+          Pow(x, RationalNumber(3, 2)),
+          IntegerNumber.of(8),
+          'x',
+          assumptions: Assumptions.none,
+        ),
       ).isNotNull().deepEquals([IntegerNumber.of(4)]);
 
       // Negative even integer power: x^(-2) = 4 -> x = ±1/2
       check(
-        invertEquation(Pow(x, IntegerNumber.of(-2)), IntegerNumber.of(4), 'x'),
-      ).isNotNull().unorderedEquals([
-        FractionNumber.half,
-        FractionNumber.negativeHalf,
-      ]);
+            invertEquation(
+              Pow(x, IntegerNumber.of(-2)),
+              IntegerNumber.of(4),
+              'x',
+              assumptions: Assumptions.none,
+            ),
+          )
+          .isNotNull()
+          .unorderedEquals([FractionNumber.half, FractionNumber.negativeHalf]);
 
       // Rational power with even numerator: x^(2/3) = 4 -> x = ±8
       check(
-        invertEquation(Pow(x, RationalNumber(2, 3)), IntegerNumber.of(4), 'x'),
-      ).isNotNull().unorderedEquals([
-        IntegerNumber.of(8),
-        IntegerNumber.of(-8),
-      ]);
+            invertEquation(
+              Pow(x, RationalNumber(2, 3)),
+              IntegerNumber.of(4),
+              'x',
+              assumptions: Assumptions.none,
+            ),
+          )
+          .isNotNull()
+          .unorderedEquals([IntegerNumber.of(8), IntegerNumber.of(-8)]);
 
       // Even power equal to negative symbolic constant (-pi) has no real root
-      check(invertEquation(Pow(x, IntegerNumber.two), -Constant.pi, 'x'))
-          .isNotNull()
-          .isEmpty();
+      check(
+        invertEquation(
+          Pow(x, IntegerNumber.two),
+          -Constant.pi,
+          'x',
+          assumptions: Assumptions.none,
+        ),
+      ).isNotNull().isEmpty();
     });
   });
 
@@ -207,6 +233,7 @@ void main() {
           Mul([Pow(Constant.e, IntegerNumber.two * x), x]),
           IntegerNumber.one,
           'x',
+          assumptions: Assumptions.none,
         );
         check(leftExp).isNotNull().isNotEmpty();
 
@@ -216,7 +243,12 @@ void main() {
         final rLn = xLnX.first.evaluate();
         check(rLn * math.log(rLn)).isCloseTo(2.0, 1e-12);
 
-        final lnXX = invertEquation(Mul([Ln(x), x]), IntegerNumber.two, 'x');
+        final lnXX = invertEquation(
+          Mul([Ln(x), x]),
+          IntegerNumber.two,
+          'x',
+          assumptions: Assumptions.none,
+        );
         check(lnXX).isNotNull().isNotEmpty();
 
         // Self-exponentiation: x^x = c
@@ -231,7 +263,12 @@ void main() {
         final rAdd = addLn1.first.evaluate();
         check(math.log(rAdd) + rAdd).isCloseTo(1.0 + math.pi, 1e-12);
 
-        final addLn2 = invertEquation(Add([x, Ln(x)]), IntegerNumber.one, 'x');
+        final addLn2 = invertEquation(
+          Add([x, Ln(x)]),
+          IntegerNumber.one,
+          'x',
+          assumptions: Assumptions.none,
+        );
         check(addLn2).isNotNull().deepEquals([IntegerNumber.one]);
 
         // Non-unit Lambert W ratios in product and sum:
@@ -310,16 +347,31 @@ void main() {
         const b = Variable('b');
 
         // N(x) / const = c
-        final r1 = invertEquation(Sin(x) / a, IntegerNumber.zero, 'x');
+        final r1 = invertEquation(
+          Sin(x) / a,
+          IntegerNumber.zero,
+          'x',
+          assumptions: Assumptions.none,
+        );
         check(r1)
             .isNotNull()
             .unorderedEquals([IntegerNumber.zero, Constant.pi]);
 
         // const / D(x) = c
-        check(invertEquation(a / Sin(x), IntegerNumber.zero, 'x'))
-            .isNotNull()
-            .isEmpty();
-        final r2 = invertEquation(a / Sin(x), IntegerNumber.two, 'x');
+        check(
+          invertEquation(
+            a / Sin(x),
+            IntegerNumber.zero,
+            'x',
+            assumptions: Assumptions.none,
+          ),
+        ).isNotNull().isEmpty();
+        final r2 = invertEquation(
+          a / Sin(x),
+          IntegerNumber.two,
+          'x',
+          assumptions: Assumptions.none,
+        );
         check(r2).isNotNull().length.equals(2);
 
         // N(x) / D(x) = c where D(x) has a pole at one candidate root
@@ -327,6 +379,7 @@ void main() {
           (x * x - IntegerNumber.one) / (x - IntegerNumber.one),
           IntegerNumber.two,
           'x',
+          assumptions: Assumptions.none,
         );
         check(r3).isNotNull().isEmpty();
 
@@ -335,6 +388,7 @@ void main() {
           Mul([a, b, x, Pow(Constant.e, x)]),
           IntegerNumber.zero,
           'x',
+          assumptions: Assumptions.none,
         );
         check(r4).isNotNull().deepEquals([IntegerNumber.zero]);
 
@@ -343,6 +397,7 @@ void main() {
           Mul([Pow(x, IntegerNumber.negativeOne), Ln(x)]),
           (IntegerNumber.one / (IntegerNumber.two * Constant.e)).simplify(),
           'x',
+          assumptions: Assumptions.none,
         );
         check(r5).isNotNull().length.equals(2);
         for (final root in r5!) {

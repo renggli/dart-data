@@ -162,7 +162,7 @@ Expr divergence(
 Vector<Expr> curl(
   Iterable<Expr> vectorField,
   List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) => _multivariableCurl(
   vectorField.toList(),
   variables,
@@ -172,7 +172,7 @@ Vector<Expr> curl(
 Vector<Expr> _multivariableGradient(
   Expr function,
   List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) => Vector<Expr>.generate(
   variables.length,
   (i) => function.derivative(variables[i], assumptions: assumptions),
@@ -182,7 +182,7 @@ Vector<Expr> _multivariableGradient(
 Matrix<Expr> _multivariableJacobian(
   List<Expr> functions,
   List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final m = functions.length;
   final n = variables.length;
@@ -197,7 +197,7 @@ Matrix<Expr> _multivariableJacobian(
 Matrix<Expr> _multivariableHessian(
   Expr function,
   List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final n = variables.length;
   final grad = _multivariableGradient(
@@ -225,7 +225,7 @@ Matrix<Expr> _multivariableHessian(
 Expr _multivariableLaplacian(
   Expr function,
   List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (variables.isEmpty) return IntegerNumber.zero;
   final terms = <Expr>[];
@@ -241,7 +241,7 @@ Expr _multivariableLaplacian(
 Expr _multivariableDivergence(
   List<Expr> vectorField,
   List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (vectorField.length != variables.length) {
     throw ArgumentError(
@@ -261,7 +261,7 @@ Expr _multivariableDivergence(
 Vector<Expr> _multivariableCurl(
   List<Expr> vectorField,
   List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (vectorField.length != 3 || variables.length != 3) {
     throw ArgumentError(

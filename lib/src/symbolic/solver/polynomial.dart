@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../type/expr_data_type.dart';
 import 'univariate.dart';
@@ -100,12 +101,14 @@ List<Expr> solveBiquadratic(Expr a, Expr b, Expr c, String variable) {
   final uVarExpr = Variable(uVar);
   final uEq = ((a * Pow(uVarExpr, IntegerNumber.two)) + (b * uVarExpr) + c)
       .simplify();
-  final uRoots = solveEquation(uEq, uVar);
+  final uRoots = solveEquation(uEq, uVar, assumptions: Assumptions.none);
   final x = Variable(variable);
   final allRoots = <Expr>[];
   for (final u in uRoots) {
     final xEq = (Pow(x, IntegerNumber.two) - u).simplify();
-    allRoots.addAll(solveEquation(xEq, variable));
+    allRoots.addAll(
+      solveEquation(xEq, variable, assumptions: Assumptions.none),
+    );
   }
   return deduplicateRoots(allRoots);
 }

@@ -4,10 +4,7 @@ import '../simplify.dart';
 import '../term_accumulator.dart';
 
 /// Simplifies an N-ary addition expression across [terms].
-Expr simplifyAdd(
-  List<Expr> terms, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr simplifyAdd(List<Expr> terms, {required Assumptions assumptions}) {
   switch (terms) {
     case []:
       return IntegerNumber.zero;
@@ -31,17 +28,14 @@ Expr simplifyAdd(
 }
 
 /// Simplifies a binary subtraction `left - right`.
-Expr simplifySub(
-  Expr left,
-  Expr right, {
-  Assumptions assumptions = Assumptions.none,
-}) => simplifyAdd([
-  left,
-  simplifyNeg(right, assumptions: assumptions),
-], assumptions: assumptions);
+Expr simplifySub(Expr left, Expr right, {required Assumptions assumptions}) =>
+    simplifyAdd([
+      left,
+      simplifyNeg(right, assumptions: assumptions),
+    ], assumptions: assumptions);
 
 /// Simplifies a unary negation `-[expr]`.
-Expr simplifyNeg(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
+Expr simplifyNeg(Expr expr, {required Assumptions assumptions}) =>
     switch (expr) {
       final Number n => n.neg(),
       OrderTerm() => expr,

@@ -75,16 +75,39 @@ void main() {
           .equals(Integral(x, 'x', isSimplified: true));
 
       // Derivative and Limit AST simplification
-      check(simplifyDerivative(IntegerNumber.of(5), 'x'))
-          .equals(IntegerNumber.zero);
-      check(simplifyDerivative(Derivative(x, 'x'), 'x'))
-          .equals(Derivative(x, 'x', order: 2, isSimplified: true));
       check(
-        simplifyDerivative(Sin(x), 'x'),
+        simplifyDerivative(
+          IntegerNumber.of(5),
+          'x',
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        simplifyDerivative(
+          Derivative(x, 'x'),
+          'x',
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Derivative(x, 'x', order: 2, isSimplified: true));
+      check(
+        simplifyDerivative(Sin(x), 'x', assumptions: Assumptions.none),
       ).equals(Derivative(Sin(x, isSimplified: true), 'x', isSimplified: true));
-      check(simplifyLimit(IntegerNumber.of(5), 'x', IntegerNumber.zero))
-          .equals(IntegerNumber.of(5));
-      check(simplifyLimit(Sin(x), 'x', IntegerNumber.zero)).equals(
+      check(
+        simplifyLimit(
+          IntegerNumber.of(5),
+          'x',
+          IntegerNumber.zero,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.of(5));
+      check(
+        simplifyLimit(
+          Sin(x),
+          'x',
+          IntegerNumber.zero,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(
         Limit(
           Sin(x, isSimplified: true),
           'x',
@@ -94,49 +117,102 @@ void main() {
       );
 
       // Factorial and Binomial
-      check(simplifyFactorial(FractionNumber.negativeHalf).toString())
-          .equals('sqrt(pi)');
-      check(simplifyBinomial(IntegerNumber.of(5), IntegerNumber.of(-2)))
-          .equals(IntegerNumber.zero);
-      check(simplifyBinomial(IntegerNumber.of(3), IntegerNumber.of(5)))
-          .equals(IntegerNumber.zero);
+      check(
+        simplifyFactorial(
+          FractionNumber.negativeHalf,
+          assumptions: Assumptions.none,
+        ).toString(),
+      ).equals('sqrt(pi)');
+      check(
+        simplifyBinomial(
+          IntegerNumber.of(5),
+          IntegerNumber.of(-2),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        simplifyBinomial(
+          IntegerNumber.of(3),
+          IntegerNumber.of(5),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.zero);
 
       // Floor, Ceil, Round, Sign, Mod on RealNumber and constant expressions
-      check(simplifyFloor(const RealNumber(3.7))).equals(const RealNumber(3.0));
-      check(simplifyFloor(Constant.pi)).equals(IntegerNumber.of(3));
-      check(simplifyCeil(const RealNumber(3.2))).equals(const RealNumber(4.0));
-      check(simplifyCeil(Constant.pi)).equals(IntegerNumber.of(4));
-      check(simplifyRound(const RealNumber(3.6))).equals(const RealNumber(4.0));
-      check(simplifyRound(Constant.pi)).equals(IntegerNumber.of(3));
-      check(simplifyRound(FractionNumber.half)).equals(IntegerNumber.one);
-      check(simplifyRound(FractionNumber.negativeHalf))
-          .equals(IntegerNumber.negativeOne);
-      check(simplifyRound(RationalNumber(1, 3))).equals(IntegerNumber.zero);
-      check(simplifyRound(RationalNumber(2, 3))).equals(IntegerNumber.one);
+      check(simplifyFloor(const RealNumber(3.7), assumptions: Assumptions.none))
+          .equals(const RealNumber(3.0));
+      check(simplifyFloor(Constant.pi, assumptions: Assumptions.none))
+          .equals(IntegerNumber.of(3));
+      check(simplifyCeil(const RealNumber(3.2), assumptions: Assumptions.none))
+          .equals(const RealNumber(4.0));
+      check(simplifyCeil(Constant.pi, assumptions: Assumptions.none))
+          .equals(IntegerNumber.of(4));
+      check(simplifyRound(const RealNumber(3.6), assumptions: Assumptions.none))
+          .equals(const RealNumber(4.0));
+      check(simplifyRound(Constant.pi, assumptions: Assumptions.none))
+          .equals(IntegerNumber.of(3));
+      check(simplifyRound(FractionNumber.half, assumptions: Assumptions.none))
+          .equals(IntegerNumber.one);
+      check(
+        simplifyRound(
+          FractionNumber.negativeHalf,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.negativeOne);
+      check(simplifyRound(RationalNumber(1, 3), assumptions: Assumptions.none))
+          .equals(IntegerNumber.zero);
+      check(simplifyRound(RationalNumber(2, 3), assumptions: Assumptions.none))
+          .equals(IntegerNumber.one);
       final big = BigInt.from(10).pow(400);
       final bigHalf = FractionNumber(
         Integer.big(big * BigInt.two + BigInt.one),
         Integer.two,
       );
-      check(simplifyRound(bigHalf))
+      check(simplifyRound(bigHalf, assumptions: Assumptions.none))
           .equals(IntegerNumber(Integer.big(big + BigInt.one)));
-      check(simplifyRound(-bigHalf))
+      check(simplifyRound(-bigHalf, assumptions: Assumptions.none))
           .equals(IntegerNumber(Integer.big(-(big + BigInt.one))));
-      check(simplifySign(Mul([IntegerNumber.negativeOne, x]))).equals(
+      check(
+        simplifySign(
+          Mul([IntegerNumber.negativeOne, x]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(
         Mul([
           IntegerNumber.negativeOne,
           Sign(x, isSimplified: true),
         ], isSimplified: true),
       );
-      check(simplifySign(Constant.pi)).equals(IntegerNumber.one);
-      check(simplifyMod(IntegerNumber.of(5), IntegerNumber.zero))
-          .equals(Constant.undefined);
-      check(simplifyMod(IntegerNumber.zero, IntegerNumber.of(5)))
-          .equals(IntegerNumber.zero);
-      check(simplifyMod(IntegerNumber.of(5), IntegerNumber.one))
-          .equals(IntegerNumber.zero);
-      check(simplifyMod(const RealNumber(7.5), const RealNumber(2.0)))
-          .equals(const RealNumber(1.5));
+      check(simplifySign(Constant.pi, assumptions: Assumptions.none))
+          .equals(IntegerNumber.one);
+      check(
+        simplifyMod(
+          IntegerNumber.of(5),
+          IntegerNumber.zero,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(
+        simplifyMod(
+          IntegerNumber.zero,
+          IntegerNumber.of(5),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        simplifyMod(
+          IntegerNumber.of(5),
+          IntegerNumber.one,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        simplifyMod(
+          const RealNumber(7.5),
+          const RealNumber(2.0),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(const RealNumber(1.5));
 
       // Complex functions: Re, Im, Arg, Conjugate, toRectangular, toPolar
       const z = Variable('z');
@@ -182,6 +258,7 @@ void main() {
       ).equals('pi - atan(4/3)');
       final posArg = simplifyArg(
         ComplexNumber.of(IntegerNumber.two, IntegerNumber.of(3)),
+        assumptions: Assumptions.none,
       );
       check(posArg).isA<Atan>();
       check(posArg.toString()).equals('atan(3/2)');
@@ -266,14 +343,17 @@ void main() {
           .equals('re(tan(z)) + i * im(tan(z))');
       check(toRectangularExpr(Ln(z), assumptions: complexZ).toString())
           .equals('ln(abs(z)) + i * arg(z)');
-      check(toRectangularExpr(Ln(ComplexNumber.i))).equals(
+      check(
+        toRectangularExpr(Ln(ComplexNumber.i), assumptions: Assumptions.none),
+      ).equals(
         Mul([
           ComplexNumber(IntegerNumber.zero, FractionNumber.half),
           Constant.pi,
         ], isSimplified: true),
       );
-      check(simplifyRe(Ln(ComplexNumber.i))).equals(IntegerNumber.zero);
-      check(simplifyIm(Ln(ComplexNumber.i)))
+      check(simplifyRe(Ln(ComplexNumber.i), assumptions: Assumptions.none))
+          .equals(IntegerNumber.zero);
+      check(simplifyIm(Ln(ComplexNumber.i), assumptions: Assumptions.none))
           .equals(Mul([FractionNumber.half, Constant.pi]));
       check(simplifyRe(Ln(z), assumptions: complexZ)).equals(Ln(Abs(z)));
       check(simplifyIm(Ln(z), assumptions: complexZ)).equals(Arg(z));

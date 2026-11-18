@@ -50,11 +50,11 @@ Expr evaluateDefiniteIntegral(
   String variable,
   Object from,
   Object to, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
   required Expr Function(
     Expr function,
     String variable, {
-    Assumptions assumptions,
+    required Assumptions assumptions,
   })
   antiDerivative,
 }) {
@@ -343,7 +343,7 @@ List<double> findDenominatorRoots(Expr expr, String variable) {
 
 /// Wraps any [Ln] call in [expr] with an [Abs] if the argument is not already
 /// guaranteed positive.
-Expr wrapLnWithAbs(Expr expr, [Assumptions assumptions = Assumptions.none]) {
+Expr wrapLnWithAbs(Expr expr, Assumptions assumptions) {
   if (expr is Ln) {
     if (expr.expr is Abs ||
         isPositiveConstant(expr.expr) ||
@@ -367,7 +367,7 @@ bool isOddIntegrandWithoutInteriorPoles(
   String variable,
   Expr fromExpr,
   Expr toExpr, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final sFunc = function.simplify(assumptions: assumptions);
   final reflected = sFunc
@@ -405,7 +405,7 @@ Expr? definiteIntegralSpecialCases(
   String variable,
   Expr fromExpr,
   Expr toExpr, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   // Flip reversed bounds: int_a^b f(x) dx = -int_b^a f(x) dx when a > b
   if ((fromExpr == Constant.infinity) ||
@@ -504,7 +504,7 @@ Expr? definiteIntegralSpecialCases(
 Expr? definiteIntegralZeroToInfinity(
   Expr function,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final xVar = Variable(variable);
   final (num, den) = splitNumeratorDenominator(function);
@@ -694,7 +694,7 @@ Expr? definiteIntegralTrigDomain(
   Expr function,
   String variable,
   Expr toExpr, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final xVar = Variable(variable);
   final halfPi = (Constant.pi / IntegerNumber.two).simplify();
@@ -767,7 +767,7 @@ Expr? definiteIntegralTrigDomain(
 Expr? definiteIntegralUnitInterval(
   Expr function,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final xVar = Variable(variable);
   final (num, den) = splitNumeratorDenominator(function);

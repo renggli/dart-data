@@ -15,13 +15,13 @@ Expr? tryTrigProduct(Expr left, Expr right, String variable) {
       final sum = (a + b).simplify();
       final diff = (a - b).simplify();
       final expanded = ((Sin(sum) + Sin(diff)) / IntegerNumber.two).simplify();
-      return antiDerivative(expanded, variable);
+      return antiDerivative(expanded, variable, assumptions: Assumptions.none);
     }
     if (right case Sin(expr: final b) when b.matchLinear(variable) != null) {
       final diff = (a - b).simplify();
       final sum = (a + b).simplify();
       final expanded = ((Cos(diff) - Cos(sum)) / IntegerNumber.two).simplify();
-      return antiDerivative(expanded, variable);
+      return antiDerivative(expanded, variable, assumptions: Assumptions.none);
     }
   }
   if (left case Cos(expr: final a) when a.matchLinear(variable) != null) {
@@ -32,7 +32,7 @@ Expr? tryTrigProduct(Expr left, Expr right, String variable) {
       final diff = (a - b).simplify();
       final sum = (a + b).simplify();
       final expanded = ((Cos(diff) + Cos(sum)) / IntegerNumber.two).simplify();
-      return antiDerivative(expanded, variable);
+      return antiDerivative(expanded, variable, assumptions: Assumptions.none);
     }
   }
   return null;
@@ -98,7 +98,12 @@ Expr? tryWeierstrassSubstitution(Expr left, Expr right, String variable) {
   if (denom is Number && denom.isZero) return null;
 
   final integrandT = ((IntegerNumber.two * left) / (k * denom)).simplify();
-  final tAntideriv = antiDerivative(integrandT, tName, depth: 2);
+  final tAntideriv = antiDerivative(
+    integrandT,
+    tName,
+    depth: 2,
+    assumptions: Assumptions.none,
+  );
   if (hasUnevaluatedIntegral(tAntideriv, tName)) return null;
 
   return tAntideriv
@@ -130,7 +135,11 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
   final scale = (numInfo.scale / denInfo.scale).simplify();
 
   if (q < 0 && p == -q && p >= 2) {
-    final res = antiDerivative(Pow(Tan(inner), IntegerNumber.of(p)), variable);
+    final res = antiDerivative(
+      Pow(Tan(inner), IntegerNumber.of(p)),
+      variable,
+      assumptions: Assumptions.none,
+    );
     return hasUnevaluatedIntegral(res, variable) ? null : res.scale(scale);
   }
   if (p < 0 && q == -p && q >= 2) {
@@ -148,7 +157,12 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
                 Pow(tVar, IntegerNumber.of(q)))
             .expand()
             .simplify();
-    final tInt = antiDerivative(integrand, tName, depth: 2);
+    final tInt = antiDerivative(
+      integrand,
+      tName,
+      depth: 2,
+      assumptions: Assumptions.none,
+    );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
       return tInt.substitute(tName, Cos(inner)).simplify();
     }
@@ -162,7 +176,12 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
                 Pow(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k)))
             .expand()
             .simplify();
-    final tInt = antiDerivative(integrand, tName, depth: 2);
+    final tInt = antiDerivative(
+      integrand,
+      tName,
+      depth: 2,
+      assumptions: Assumptions.none,
+    );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
       return tInt.substitute(tName, Sin(inner)).simplify();
     }
@@ -176,7 +195,12 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
                 Pow(IntegerNumber.one + tVar * tVar, IntegerNumber.of(m)))
             .expand()
             .simplify();
-    final tInt = antiDerivative(integrand, tName, depth: 2);
+    final tInt = antiDerivative(
+      integrand,
+      tName,
+      depth: 2,
+      assumptions: Assumptions.none,
+    );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
       return tInt.substitute(tName, Tan(inner)).simplify();
     }
@@ -193,7 +217,12 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
             .expand()
             .simplify();
     if (expanded is Add || expanded != (num / den).simplify()) {
-      final res = antiDerivative(expanded, variable, depth: 2);
+      final res = antiDerivative(
+        expanded,
+        variable,
+        depth: 2,
+        assumptions: Assumptions.none,
+      );
       if (!hasUnevaluatedIntegral(res, variable)) return res;
     }
   }
@@ -215,7 +244,11 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
           : Mul(others).simplify();
       if (polynomialDegree(otherExpr, variable) != null) {
         final expanded = (otherExpr * reduced).expand().simplify();
-        final res = antiDerivative(expanded, variable);
+        final res = antiDerivative(
+          expanded,
+          variable,
+          assumptions: Assumptions.none,
+        );
         if (!hasUnevaluatedIntegral(res, variable)) return res;
       }
     }
@@ -260,7 +293,11 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
             : Mul(others).simplify();
         if (polynomialDegree(otherExpr, variable) != null) {
           final expanded = (otherExpr * pairReduced).expand().simplify();
-          final res = antiDerivative(expanded, variable);
+          final res = antiDerivative(
+            expanded,
+            variable,
+            assumptions: Assumptions.none,
+          );
           if (!hasUnevaluatedIntegral(res, variable)) return res;
         }
       }
@@ -311,7 +348,7 @@ Expr? tryLinearTrigQuotient(Expr left, Expr right, String variable) {
 Expr? tryRationalTrigSubstitution(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
   int depth = 0,
 }) {
   final inner = _collectAffineTrigInner(expr, variable);
@@ -375,7 +412,7 @@ Expr? tryRationalTrigSubstitution(
 Expr? tryHyperbolicRationalSubstitution(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
   int depth = 0,
 }) {
   final inner = _collectAffineHypInner(expr, variable);

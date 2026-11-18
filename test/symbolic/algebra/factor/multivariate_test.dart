@@ -49,7 +49,8 @@ void main() {
         const z = Variable('z');
         const w = Variable('w');
 
-        check(factorByGrouping4([x, y])).isNull();
+        check(factorByGrouping4([x, y], assumptions: Assumptions.none))
+            .isNull();
 
         // Partition ((0, 1), (2, 3)) with r1 == r2
         final g1 = factorByGrouping4([
@@ -57,7 +58,7 @@ void main() {
           Mul([x, w]),
           Mul([y, z]),
           Mul([y, w]),
-        ]);
+        ], assumptions: Assumptions.none);
         check(g1).isNotNull();
 
         // Partition ((0, 2), (1, 3)) with r1 == -r2: x*z - y*w + x*w - y*z
@@ -66,13 +67,14 @@ void main() {
           Mul([IntegerNumber.negativeOne, y, w]),
           Mul([x, w]),
           Mul([IntegerNumber.negativeOne, y, z]),
-        ]);
+        ], assumptions: Assumptions.none);
         check(g2).isNotNull();
         check((g2!.expand() - Expr.parse('x*z - y*w + x*w - y*z')).simplify())
             .equals(IntegerNumber.zero);
 
         // Non-factorable 4-term list returns null
-        check(factorByGrouping4([x, y, z, w])).isNull();
+        check(factorByGrouping4([x, y, z, w], assumptions: Assumptions.none))
+            .isNull();
       },
     );
   });

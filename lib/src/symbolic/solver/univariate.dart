@@ -46,7 +46,7 @@ extension SolverExtension on Expr {
 List<Expr> solveEquation(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final effectiveDomain = assumptions.domainOf(variable);
   final normalized = expr is Equal ? expr.left - expr.right : expr;
@@ -285,9 +285,9 @@ bool _isPositiveRealRoot(Expr expr, Assumptions assumptions) {
 bool _isZeroAt(
   Expr expr,
   String variable,
-  Expr value, [
-  Assumptions assumptions = Assumptions.none,
-]) {
+  Expr value,
+  Assumptions assumptions,
+) {
   try {
     final sub = expr
         .substitute(variable, value)

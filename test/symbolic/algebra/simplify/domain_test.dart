@@ -12,16 +12,16 @@ void main() {
 
     group('isProvenReal', () {
       test('identifies real numbers and constants', () {
-        check(isProvenReal(IntegerNumber.of(5))).isTrue();
-        check(isProvenReal(FractionNumber.half)).isTrue();
-        check(isProvenReal(const RealNumber(3.14))).isTrue();
-        check(isProvenReal(Constant.pi)).isTrue();
-        check(isProvenReal(Constant.e)).isTrue();
-        check(isProvenReal(ComplexNumber.i)).isFalse();
+        check(isProvenReal(IntegerNumber.of(5), Assumptions.none)).isTrue();
+        check(isProvenReal(FractionNumber.half, Assumptions.none)).isTrue();
+        check(isProvenReal(const RealNumber(3.14), Assumptions.none)).isTrue();
+        check(isProvenReal(Constant.pi, Assumptions.none)).isTrue();
+        check(isProvenReal(Constant.e, Assumptions.none)).isTrue();
+        check(isProvenReal(ComplexNumber.i, Assumptions.none)).isFalse();
       });
 
       test('respects variable assumptions', () {
-        check(isProvenReal(x)).isFalse();
+        check(isProvenReal(x, Assumptions.none)).isFalse();
         check(isProvenReal(x, realAssumptions)).isTrue();
         check(isProvenReal(x, posAssumptions)).isTrue();
         check(isProvenReal(x, intAssumptions)).isTrue();
@@ -34,46 +34,74 @@ void main() {
       });
 
       test('checks composite expressions', () {
-        check(isProvenReal(Add([IntegerNumber.one, Constant.pi]))).isTrue();
-        check(isProvenReal(Add([IntegerNumber.one, ComplexNumber.i])))
-            .isFalse();
+        check(
+          isProvenReal(Add([IntegerNumber.one, Constant.pi]), Assumptions.none),
+        ).isTrue();
+        check(
+          isProvenReal(
+            Add([IntegerNumber.one, ComplexNumber.i]),
+            Assumptions.none,
+          ),
+        ).isFalse();
         check(isProvenReal(Sin(x), realAssumptions)).isTrue();
         check(isProvenReal(Cos(x), realAssumptions)).isTrue();
         check(isProvenReal(Pow(x, IntegerNumber.two), realAssumptions))
             .isTrue();
-        check(isProvenReal(Abs(x))).isTrue();
-        check(isProvenReal(Re(x))).isTrue();
-        check(isProvenReal(Im(x))).isTrue();
-        check(isProvenReal(Arg(x))).isTrue();
+        check(isProvenReal(Abs(x), Assumptions.none)).isTrue();
+        check(isProvenReal(Re(x), Assumptions.none)).isTrue();
+        check(isProvenReal(Im(x), Assumptions.none)).isTrue();
+        check(isProvenReal(Arg(x), Assumptions.none)).isTrue();
       });
     });
 
     group('isPositiveExpr and isNonNegativeExpr', () {
       test('detects positive numbers and expressions', () {
-        check(isPositiveExpr(IntegerNumber.of(3))).isTrue();
-        check(isPositiveExpr(IntegerNumber.zero)).isFalse();
-        check(isPositiveExpr(IntegerNumber.of(-2))).isFalse();
-        check(isPositiveExpr(x)).isFalse();
+        check(
+          isPositiveExpr(IntegerNumber.of(3), assumptions: Assumptions.none),
+        ).isTrue();
+        check(isPositiveExpr(IntegerNumber.zero, assumptions: Assumptions.none))
+            .isFalse();
+        check(
+          isPositiveExpr(IntegerNumber.of(-2), assumptions: Assumptions.none),
+        ).isFalse();
+        check(isPositiveExpr(x, assumptions: Assumptions.none)).isFalse();
         check(isPositiveExpr(x, assumptions: posAssumptions)).isTrue();
         check(isPositiveExpr(Pow(Constant.e, x), assumptions: realAssumptions))
             .isTrue();
 
-        check(isNonNegativeExpr(IntegerNumber.zero)).isTrue();
-        check(isNonNegativeExpr(IntegerNumber.of(5))).isTrue();
-        check(isNonNegativeExpr(IntegerNumber.of(-1))).isFalse();
-        check(isNonNegativeExpr(Abs(x))).isTrue();
+        check(
+          isNonNegativeExpr(IntegerNumber.zero, assumptions: Assumptions.none),
+        ).isTrue();
+        check(
+          isNonNegativeExpr(IntegerNumber.of(5), assumptions: Assumptions.none),
+        ).isTrue();
+        check(
+          isNonNegativeExpr(
+            IntegerNumber.of(-1),
+            assumptions: Assumptions.none,
+          ),
+        ).isFalse();
+        check(isNonNegativeExpr(Abs(x), assumptions: Assumptions.none))
+            .isTrue();
       });
     });
 
     group('isIntegerExpr and isEvenIntegerExpr', () {
       test('identifies integers', () {
-        check(isIntegerExpr(IntegerNumber.of(42))).isTrue();
-        check(isIntegerExpr(FractionNumber.half)).isFalse();
-        check(isIntegerExpr(x)).isFalse();
+        check(
+          isIntegerExpr(IntegerNumber.of(42), assumptions: Assumptions.none),
+        ).isTrue();
+        check(isIntegerExpr(FractionNumber.half, assumptions: Assumptions.none))
+            .isFalse();
+        check(isIntegerExpr(x, assumptions: Assumptions.none)).isFalse();
         check(isIntegerExpr(x, assumptions: intAssumptions)).isTrue();
 
-        check(isEvenIntegerExpr(IntegerNumber.of(4))).isTrue();
-        check(isEvenIntegerExpr(IntegerNumber.of(5))).isFalse();
+        check(
+          isEvenIntegerExpr(IntegerNumber.of(4), assumptions: Assumptions.none),
+        ).isTrue();
+        check(
+          isEvenIntegerExpr(IntegerNumber.of(5), assumptions: Assumptions.none),
+        ).isFalse();
         check(
           isEvenIntegerExpr(
             Mul([IntegerNumber.two, x]),
@@ -153,8 +181,12 @@ void main() {
       });
 
       test('sound domain predicates for Pow, Add, Cosh, and Elliptic', () {
-        check(isNonNegativeExpr(Pow(IntegerNumber.two, ComplexNumber.i)))
-            .isFalse();
+        check(
+          isNonNegativeExpr(
+            Pow(IntegerNumber.two, ComplexNumber.i),
+            assumptions: Assumptions.none,
+          ),
+        ).isFalse();
         check(
           isPositiveExpr(Expr.parse('x^2 + 1'), assumptions: Assumptions.real),
         ).isTrue();
@@ -168,8 +200,10 @@ void main() {
         check(isProvenReal(EllipticK(x), Assumptions.real)).isFalse();
         check(isProvenReal(EllipticK(FractionNumber.half), Assumptions.real))
             .isTrue();
-        check(isProvenReal(EllipticK(IntegerNumber.one))).isFalse();
-        check(isProvenReal(EllipticE(IntegerNumber.one))).isTrue();
+        check(isProvenReal(EllipticK(IntegerNumber.one), Assumptions.none))
+            .isFalse();
+        check(isProvenReal(EllipticE(IntegerNumber.one), Assumptions.none))
+            .isTrue();
         check(isPositiveExpr(Cosh(x), assumptions: Assumptions.real)).isTrue();
       });
     });

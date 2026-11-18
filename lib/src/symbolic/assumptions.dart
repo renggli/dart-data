@@ -1,6 +1,6 @@
 import 'ast.dart';
 
-/// Immutable, chainable mathematical domain assumptions for symbolic variables.
+/// Immutable mathematical domain assumptions for symbolic variables.
 ///
 /// Pass an [Assumptions] instance to symbolic transformation, calculus, or
 /// equation-solving methods to supply domain constraints (`positive`, `real`,
@@ -17,13 +17,11 @@ import 'ast.dart';
 /// print(simplified); // x + y
 /// ```
 final class Assumptions {
-  /// Creates an [Assumptions] context with per-variable [domains], a fallback
-  /// [defaultDomain] (defaulting to [VariableDomain.unknown]), and an optional
-  /// [parent] context for hierarchical lookup.
+  /// Creates an [Assumptions] context with per-variable [domains] and a
+  /// fallback [defaultDomain] (defaulting to [VariableDomain.unknown]).
   const new({
     this.domains = const {},
     this.defaultDomain = VariableDomain.unknown,
-    this.parent,
   });
 
   /// Empty assumptions where all unspecified variables default to
@@ -51,58 +49,26 @@ final class Assumptions {
   /// Explicit domain assignments by variable name.
   final Map<String, VariableDomain> domains;
 
-  /// Default domain for variables not explicitly listed in [domains] or [parent].
+  /// Default domain for variables not explicitly listed in [domains].
   final VariableDomain defaultDomain;
-
-  /// Optional parent assumptions consulted before falling back to [defaultDomain].
-  final Assumptions? parent;
 
   /// Whether this context specifies no domain assumptions (all variables
   /// resolve to [VariableDomain.unknown]).
   bool get isEmpty =>
-      defaultDomain == VariableDomain.unknown &&
-      domains.isEmpty &&
-      (parent == null || parent!.isEmpty);
+      defaultDomain == VariableDomain.unknown && domains.isEmpty;
 
-  /// Resolves the [VariableDomain] of variable [name] by walking the
-  /// assumption chain from this context through [parent]s.
-  VariableDomain domainOf(String name) {
-    for (
-      Assumptions? current = this;
-      current != null;
-      current = current.parent
-    ) {
-      final domain = current.domains[name];
-      if (domain != null) return domain;
-    }
-    return defaultDomain;
-  }
+  /// Resolves the [VariableDomain] of variable [name].
+  VariableDomain domainOf(String name) => domains[name] ?? defaultDomain;
 
-  /// Returns a new [Assumptions] context that associates [name] with [domain],
-  /// preserving all existing domain assignments from this context and its parents.
-  Assumptions assume(String name, VariableDomain domain) {
-    final merged = <String, VariableDomain>{};
-    for (
-      Assumptions? current = this;
-      current != null;
-      current = current.parent
-    ) {
-      for (final entry in current.domains.entries) {
-        merged.putIfAbsent(entry.key, () => entry.value);
-      }
-    }
-    merged[name] = domain;
-    return Assumptions(domains: merged, defaultDomain: defaultDomain);
-  }
-
-  /// Returns a child [Assumptions] that overrides specific [domains] or
-  /// [defaultDomain] while chaining to `this` as [parent].
+  /// Returns a new [Assumptions] that merges [domains] and optionally overrides
+  /// [defaultDomain].
   Assumptions copyWith({
-    Map<String, VariableDomain> domains = const {},
+    Map<String, VariableDomain>? domains,
     VariableDomain? defaultDomain,
   }) => Assumptions(
-    domains: domains,
+    domains: domains == null || domains.isEmpty
+        ? this.domains
+        : {...this.domains, ...domains},
     defaultDomain: defaultDomain ?? this.defaultDomain,
-    parent: this,
   );
 }

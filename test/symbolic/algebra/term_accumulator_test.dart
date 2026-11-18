@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 void main() {
   group('MonomialAccumulator term collection and polynomial extraction', () {
     test('accumulates like monomials and extracts polynomial coefficients', () {
-      final acc = MonomialAccumulator();
+      final acc = MonomialAccumulator(assumptions: Assumptions.none);
       acc.add(Expr.parse('3 * x^2 + 2 * x - 5'));
       acc.add(Expr.parse('x^2 - 2 * x + 1'));
 
@@ -20,7 +20,7 @@ void main() {
     });
 
     test('handles RealNumber promotion, zero scales, and negated Add', () {
-      final acc = MonomialAccumulator();
+      final acc = MonomialAccumulator(assumptions: Assumptions.none);
       acc.add(const Variable('x'), IntegerNumber.zero);
       check(acc.terms).isEmpty();
 
@@ -36,13 +36,13 @@ void main() {
       check(built).equals(const RealNumber(-2.0));
 
       // All terms cancel with RealNumber scale -> RealNumber.zero
-      final emptyRealAcc = MonomialAccumulator();
+      final emptyRealAcc = MonomialAccumulator(assumptions: Assumptions.none);
       emptyRealAcc.addDecomposed(const RealNumber(1.5), const Variable('x'));
       emptyRealAcc.addDecomposed(const RealNumber(-1.5), const Variable('x'));
       check(emptyRealAcc.build()).equals(RealNumber.zero);
 
       // ComplexNumber with RealNumber imaginary component and direct RealNumber constant
-      final complexRealAcc = MonomialAccumulator();
+      final complexRealAcc = MonomialAccumulator(assumptions: Assumptions.none);
       complexRealAcc.add(const RealNumber(2.5));
       complexRealAcc.add(
         IntegerNumber.one,
@@ -52,7 +52,7 @@ void main() {
     });
 
     test('extractPolynomialCoefficients handles multivariate and non-polynomial cases', () {
-      final acc = MonomialAccumulator();
+      final acc = MonomialAccumulator(assumptions: Assumptions.none);
       acc.add(Expr.parse('a * x^2 + 2 * b * x^2 + c * x + d + 3 * e'));
       acc.add(Pow(const Variable('x'), const RealNumber(3.0)));
       // Nested Mul inside base
@@ -78,7 +78,8 @@ void main() {
         Expr.parse('y * sin(x)'),
         Pow(Sin(const Variable('x')), IntegerNumber.two),
       ]) {
-        final badAcc = MonomialAccumulator()..add(bad);
+        final badAcc = MonomialAccumulator(assumptions: Assumptions.none)
+          ..add(bad);
         check(badAcc.extractPolynomialCoefficients('x')).isNull();
       }
     });
@@ -324,7 +325,7 @@ void main() {
 
       check(polynomialDegree(Pow(x, const RealNumber(3.0)), 'x')).equals(3);
 
-      final accUndef = MonomialAccumulator()
+      final accUndef = MonomialAccumulator(assumptions: Assumptions.none)
         ..addDecomposed(IntegerNumber.one, Constant.undefined);
       check(accUndef.build()).equals(Constant.undefined);
     });

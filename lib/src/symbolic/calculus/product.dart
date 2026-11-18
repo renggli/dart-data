@@ -18,9 +18,11 @@ Expr computeProduct(
   String variable,
   Expr from,
   Expr to, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
-  final indexAssumptions = assumptions.assume(variable, VariableDomain.integer);
+  final indexAssumptions = assumptions.copyWith(
+    domains: {variable: VariableDomain.integer},
+  );
   final simplifiedFactor = factor.simplify(assumptions: indexAssumptions);
   final a = from.simplify(assumptions: assumptions);
   final b = to.simplify(assumptions: assumptions);
@@ -35,9 +37,8 @@ Expr computeProduct(
   if (b == Constant.infinity) {
     const limitVarName = '__prod_N';
     const limitVar = Variable(limitVarName);
-    final mergedAssumptions = assumptions.assume(
-      limitVarName,
-      VariableDomain.integer,
+    final mergedAssumptions = assumptions.copyWith(
+      domains: {limitVarName: VariableDomain.integer},
     );
     final finite = computeProduct(
       simplifiedFactor,
@@ -91,7 +92,10 @@ Expr computeProduct(
               .simplify(assumptions: indexAssumptions),
         );
       }
-      return simplifyMul(factors).simplify(assumptions: assumptions);
+      return simplifyMul(
+        factors,
+        assumptions: assumptions,
+      ).simplify(assumptions: assumptions);
     }
   }
 
@@ -114,7 +118,13 @@ Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
   // Exponential factor: base^exponent where base is independent of variable
   if (factor case Pow(:final base, :final exponent)
       when !base.dependsOn(variable)) {
-    final expSum = computeSum(exponent, variable, a, b);
+    final expSum = computeSum(
+      exponent,
+      variable,
+      a,
+      b,
+      assumptions: Assumptions.none,
+    );
     if (expSum is! Sum) {
       return Pow(base, expSum).simplify();
     }
@@ -147,7 +157,7 @@ Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
       if (p == null) return null;
       prodParts.add(p);
     }
-    return simplifyMul(prodParts);
+    return simplifyMul(prodParts, assumptions: Assumptions.none);
   }
 
   // Linear factor: k + c (or c * k + d)
@@ -270,9 +280,14 @@ Expr? tryProductTelescoping(
 
   if (constFactors.isNotEmpty) {
     final count = (b - a + IntegerNumber.one).simplify();
-    pairProducts.add(Pow(simplifyMul(constFactors), count).simplify());
+    pairProducts.add(
+      Pow(
+        simplifyMul(constFactors, assumptions: Assumptions.none),
+        count,
+      ).simplify(),
+    );
   }
-  return simplifyMul(pairProducts);
+  return simplifyMul(pairProducts, assumptions: Assumptions.none);
 }
 
 Expr? trySingleRatioTelescoping(
@@ -300,7 +315,9 @@ Expr? trySingleRatioTelescoping(
               .substitute(variable, (a + IntegerNumber.of(s)).simplify())
               .simplify(),
       ];
-      return (simplifyMul(numParts) / simplifyMul(denParts)).simplify();
+      return (simplifyMul(numParts, assumptions: Assumptions.none) /
+              simplifyMul(denParts, assumptions: Assumptions.none))
+          .simplify();
     }
     // Case 2: den(k) == num(k + d) => prod_{k=a..b} g(k) / g(k + d)
     if (num.substitute(variable, kPlusD).expand().simplify() ==
@@ -319,7 +336,9 @@ Expr? trySingleRatioTelescoping(
             (b + IntegerNumber.of(s)).simplify(),
           ).simplify(),
       ];
-      return (simplifyMul(numParts) / simplifyMul(denParts)).simplify();
+      return (simplifyMul(numParts, assumptions: Assumptions.none) /
+              simplifyMul(denParts, assumptions: Assumptions.none))
+          .simplify();
     }
   }
   return null;
@@ -329,7 +348,7 @@ Expr? infiniteProductClosedForm(
   Expr factor,
   String variable,
   Expr a, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (a is! IntegerNumber) return null;
   final startInt = a.asInt;
@@ -394,7 +413,7 @@ Expr? matchVieteCosineProduct(
   Expr inner,
   String variable,
   int startInt, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final factors = inner is Mul ? inner.factors : [inner];
   final ratios = <Expr>[];
@@ -415,11 +434,12 @@ Expr? matchVieteCosineProduct(
     remaining.add(f);
   }
 
-  final ratio = simplifyMul(ratios);
-  final scale = simplifyMul(scales);
+  final ratio = simplifyMul(ratios, assumptions: assumptions);
+  final scale = simplifyMul(scales, assumptions: assumptions);
   if (ratio != FractionNumber.half) return null;
   if (remaining.any((f) => f.dependsOn(variable))) return null;
-  final xPart = (scale * simplifyMul(remaining)).simplify();
+  final xPart = (scale * simplifyMul(remaining, assumptions: assumptions))
+      .simplify(assumptions: assumptions);
   if (xPart is Number && xPart.isZero) return IntegerNumber.one;
 
   // At k = 1, inner(1) = xPart / 2, so prod_{k=1..inf} cos(xPart / 2^k) = sin(xPart) / xPart
@@ -438,7 +458,7 @@ Expr? matchQuadraticInfiniteProduct(
   Expr factor,
   String variable,
   int startInt, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final together = factor.together();
   final (num, den) = splitNumeratorDenominator(together);
@@ -555,10 +575,7 @@ Expr? matchQuadraticInfiniteProduct(
   return null;
 }
 
-Expr? eulerSineProductValue(
-  Expr zSquared, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr? eulerSineProductValue(Expr zSquared, {required Assumptions assumptions}) {
   final (posZ2, isNeg) = extractSign(zSquared);
   final z = extractProductRoot(posZ2, assumptions: assumptions);
   if (!isNeg && z is IntegerNumber) {
@@ -573,7 +590,7 @@ Expr? eulerSineProductValue(
 
 Expr? eulerCosineProductValue(
   Expr zSquared, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final (posZ2, isNeg) = extractSign(zSquared);
   final z = extractProductRoot(posZ2, assumptions: assumptions);
@@ -588,10 +605,7 @@ Expr? eulerCosineProductValue(
   return Cos(piZ).simplify(assumptions: assumptions);
 }
 
-Expr extractProductRoot(
-  Expr posZ2, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr extractProductRoot(Expr posZ2, {required Assumptions assumptions}) {
   final factors = posZ2 is Mul ? posZ2.factors : [posZ2];
   final rootFactors = <Expr>[];
   for (final f in factors) {
@@ -621,7 +635,7 @@ Expr? adjustProductStart(
   int startInt,
   int canonStart,
   Expr canonProd, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if ((startInt - canonStart).abs() > 64) return null;
   if (startInt == canonStart) return canonProd;
@@ -633,8 +647,10 @@ Expr? adjustProductStart(
       if (val == null) return null;
       headFactors.add(val);
     }
-    return simplifyMul([...headFactors, canonProd])
-        .simplify(assumptions: assumptions);
+    return simplifyMul([
+      ...headFactors,
+      canonProd,
+    ], assumptions: assumptions).simplify(assumptions: assumptions);
   } else {
     final headFactors = <Expr>[];
     for (var k = canonStart; k < startInt; k++) {
@@ -642,7 +658,7 @@ Expr? adjustProductStart(
       if (val == null || (val is Number && val.isZero)) return null;
       headFactors.add(val);
     }
-    final headProd = simplifyMul(headFactors);
+    final headProd = simplifyMul(headFactors, assumptions: assumptions);
     return (canonProd / headProd).simplify(assumptions: assumptions);
   }
 }
@@ -652,7 +668,7 @@ Expr? evalTermAtInt(
   Expr expr,
   String variable,
   int value, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   try {
     final sub = expr.substitute(variable, IntegerNumber.of(value));

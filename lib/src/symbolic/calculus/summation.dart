@@ -95,9 +95,11 @@ Expr computeSum(
   String variable,
   Expr from,
   Expr to, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
-  final indexAssumptions = assumptions.assume(variable, VariableDomain.integer);
+  final indexAssumptions = assumptions.copyWith(
+    domains: {variable: VariableDomain.integer},
+  );
   final simplifiedTerm = term.simplify(assumptions: indexAssumptions);
   final a = from.simplify(assumptions: assumptions);
   final b = to.simplify(assumptions: assumptions);
@@ -111,9 +113,8 @@ Expr computeSum(
   if (b == Constant.infinity) {
     const limitVarName = '__sum_N';
     const limitVar = Variable(limitVarName);
-    final mergedAssumptions = assumptions.assume(
-      limitVarName,
-      VariableDomain.integer,
+    final mergedAssumptions = assumptions.copyWith(
+      domains: {limitVarName: VariableDomain.integer},
     );
     final finite = computeSum(
       simplifiedTerm,
@@ -203,7 +204,10 @@ Expr computeSum(
               .simplify(assumptions: indexAssumptions),
         );
       }
-      return simplifyAdd(terms).simplify(assumptions: assumptions);
+      return simplifyAdd(
+        terms,
+        assumptions: assumptions,
+      ).simplify(assumptions: assumptions);
     }
   }
 
@@ -280,7 +284,7 @@ Expr? _antidifference(Expr expr, String variable) {
       if (anti == null) return null;
       antiTerms.add(anti);
     }
-    return simplifyAdd(antiTerms);
+    return simplifyAdd(antiTerms, assumptions: Assumptions.none);
   }
 
   return _antidifferenceSingleTerm(expanded, variable);
@@ -295,8 +299,8 @@ Expr? _antidifferenceSingleTerm(Expr term, String variable) {
   final factors = term is Mul ? term.factors : [term];
   final (:constFactors, :varFactors) = partitionFactors(factors, variable);
   if (constFactors.isNotEmpty) {
-    final constPart = simplifyMul(constFactors);
-    final varPart = simplifyMul(varFactors);
+    final constPart = simplifyMul(constFactors, assumptions: Assumptions.none);
+    final varPart = simplifyMul(varFactors, assumptions: Assumptions.none);
     final innerAnti = _antidifferenceCore(varPart, variable);
     if (innerAnti != null) {
       return (constPart * innerAnti).simplify();
@@ -368,7 +372,7 @@ Expr _faulhaberAntidifference(String variable, int p) {
     final kPow = exp == 1 ? kVar : Pow(kVar, IntegerNumber.of(exp));
     terms.add(coeff.isOne ? kPow : coeff * kPow);
   }
-  return simplifyAdd(terms);
+  return simplifyAdd(terms, assumptions: Assumptions.none);
 }
 
 List<RationalNumber> _bernoulliNumbers(int maxIndex) {
@@ -409,7 +413,7 @@ List<RationalNumber> _bernoulliNumbers(int maxIndex) {
     return null;
   }
   if (ratios.isEmpty) return null;
-  final ratio = simplifyMul(ratios).simplify();
+  final ratio = simplifyMul(ratios, assumptions: Assumptions.none).simplify();
   return (ratio: ratio, scale: IntegerNumber.one);
 }
 
@@ -434,9 +438,12 @@ _matchPolynomialGeometric(Expr term, String variable) {
   }
 
   if (expFactors.isEmpty || otherFactors.isEmpty) return null;
-  final expNode = simplifyMul(expFactors);
-  final ratio = simplifyMul(ratios).simplify();
-  final polyExpr = simplifyMul(otherFactors).expand().simplify();
+  final expNode = simplifyMul(expFactors, assumptions: Assumptions.none);
+  final ratio = simplifyMul(ratios, assumptions: Assumptions.none).simplify();
+  final polyExpr = simplifyMul(
+    otherFactors,
+    assumptions: Assumptions.none,
+  ).expand().simplify();
   final polyCoeffs = extractPolynomialCoefficients(polyExpr, variable);
   if (polyCoeffs == null) return null;
   return (polyCoeffs: polyCoeffs, ratio: ratio, expNode: expNode);
@@ -489,7 +496,10 @@ Expr? _solvePolynomialGeometricGosper(
     }
   }
   if (factNode == null || otherFactors.isEmpty) return null;
-  final polyExpr = simplifyMul(otherFactors).expand().simplify();
+  final polyExpr = simplifyMul(
+    otherFactors,
+    assumptions: Assumptions.none,
+  ).expand().simplify();
   final polyCoeffs = extractPolynomialCoefficients(polyExpr, variable);
   if (polyCoeffs == null) return null;
   return (polyCoeffs: polyCoeffs, factNode: factNode);
@@ -615,7 +625,7 @@ Expr? _tryRationalTelescoping(Expr apartExpr, String variable) {
     if (!matched) return null;
   }
 
-  return simplifyAdd(antiParts);
+  return simplifyAdd(antiParts, assumptions: Assumptions.none);
 }
 
 /// Detects general telescoping differences $g(k + d) - g(k)$ or $g(k) - g(k + d)$
@@ -637,7 +647,7 @@ Expr? _tryGeneralTelescoping(Expr expr, String variable) {
               .substitute(variable, (kVar + IntegerNumber.of(s)).simplify())
               .simplify(),
       ];
-      return simplifyAdd(parts);
+      return simplifyAdd(parts, assumptions: Assumptions.none);
     }
     // Case 2: t1(k) == -t0(k + d) => expr = t0(k + d) - (-t1(k)) = g(k + d) - g(k) with g = -t1
     final negT1 = (-t1).simplify();
@@ -648,7 +658,7 @@ Expr? _tryGeneralTelescoping(Expr expr, String variable) {
               .substitute(variable, (kVar + IntegerNumber.of(s)).simplify())
               .simplify(),
       ];
-      return simplifyAdd(parts);
+      return simplifyAdd(parts, assumptions: Assumptions.none);
     }
   }
   return null;
@@ -683,7 +693,7 @@ Expr? _tryBinomialSum(Expr term, String variable, Expr a, Expr b) {
   final (:constFactors, :varFactors) = partitionFactors(otherFactors, variable);
   final constPart = constFactors.isEmpty
       ? IntegerNumber.one
-      : simplifyMul(constFactors);
+      : simplifyMul(constFactors, assumptions: Assumptions.none);
   if (varFactors.isEmpty) {
     return (constPart * Pow(IntegerNumber.two, nExpr)).simplify();
   }
@@ -735,7 +745,7 @@ Expr? _infiniteSeriesClosedForm(
   Expr term,
   String variable,
   Expr a, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (a is! IntegerNumber) return null;
   final startInt = a.asInt;
@@ -745,8 +755,8 @@ Expr? _infiniteSeriesClosedForm(
   final rawFactors = term is Mul ? term.factors : [term];
   final (:constFactors, :varFactors) = partitionFactors(rawFactors, variable);
   if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
-    final constPart = simplifyMul(constFactors);
-    final varPart = simplifyMul(varFactors);
+    final constPart = simplifyMul(constFactors, assumptions: assumptions);
+    final varPart = simplifyMul(varFactors, assumptions: assumptions);
     final inner = _infiniteSeriesClosedForm(
       varPart,
       variable,
@@ -800,7 +810,7 @@ Expr? _tryAdditiveInfiniteSeries(
   List<Expr> terms,
   String variable,
   Expr a, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final results = <Expr>[];
   for (final t in terms) {
@@ -819,7 +829,10 @@ Expr? _tryAdditiveInfiniteSeries(
     }
     results.add(res);
   }
-  return simplifyAdd(results).simplify(assumptions: assumptions);
+  return simplifyAdd(
+    results,
+    assumptions: assumptions,
+  ).simplify(assumptions: assumptions);
 }
 
 /// Evaluates $\sum_{k=\text{startInt}}^\infty f(k)$ given a canonical series
@@ -832,7 +845,7 @@ Expr? _adjustSeriesStart(
   int startInt,
   int canonStart,
   Expr canonSum, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if ((startInt - canonStart).abs() > 64) return null;
   if (startInt == canonStart) return canonSum;
@@ -856,8 +869,10 @@ Expr? _adjustSeriesStart(
       if (val == null) return null;
       headTerms.add(val);
     }
-    return simplifyAdd([...headTerms, canonSum])
-        .simplify(assumptions: assumptions);
+    return simplifyAdd([
+      ...headTerms,
+      canonSum,
+    ], assumptions: assumptions).simplify(assumptions: assumptions);
   } else {
     // startInt > canonStart: sum_{k=startInt..inf} = canonSum - sum_{k=canonStart..startInt-1}
     final headTerms = <Expr>[];
@@ -866,7 +881,7 @@ Expr? _adjustSeriesStart(
       if (val == null) return null;
       headTerms.add(val);
     }
-    final headSum = simplifyAdd(headTerms);
+    final headSum = simplifyAdd(headTerms, assumptions: assumptions);
     return (canonSum - headSum).simplify(assumptions: assumptions);
   }
 }
@@ -875,7 +890,7 @@ Expr? _evalTermAtInt(
   Expr term,
   String variable,
   int k, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   try {
     final v = term
@@ -897,7 +912,7 @@ Expr? _matchInfiniteSeriesFamily(
   Expr term,
   String variable,
   int startInt, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   // 1. Factorial / Taylor series: P(k) * r^k / (a*k + b)!
   final factRes = _matchFactorialSeries(
@@ -948,8 +963,12 @@ Expr? _matchInfiniteSeriesFamily(
   }
 
   return (
-    ratio: ratios.isEmpty ? IntegerNumber.one : simplifyMul(ratios).simplify(),
-    scale: scales.isEmpty ? IntegerNumber.one : simplifyMul(scales).simplify(),
+    ratio: ratios.isEmpty
+        ? IntegerNumber.one
+        : simplifyMul(ratios, assumptions: Assumptions.none).simplify(),
+    scale: scales.isEmpty
+        ? IntegerNumber.one
+        : simplifyMul(scales, assumptions: Assumptions.none).simplify(),
     remaining: remaining,
   );
 }
@@ -958,7 +977,7 @@ Expr? _matchFactorialSeries(
   Expr term,
   String variable,
   int startInt, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final (num, den) = splitNumeratorDenominator(term);
   final denFactors = den is Mul ? den.factors : [den];
@@ -998,7 +1017,10 @@ Expr? _matchFactorialSeries(
   if (m == 1) {
     final polyExpr = remaining.isEmpty
         ? IntegerNumber.one
-        : simplifyMul(remaining).expand().simplify();
+        : simplifyMul(
+            remaining,
+            assumptions: Assumptions.none,
+          ).expand().simplify();
     final polyCoeffs = extractPolynomialCoefficients(polyExpr, variable);
     if (polyCoeffs == null) return null;
 
@@ -1028,7 +1050,10 @@ Expr? _matchFactorialSeries(
           : Pow(ratio, IntegerNumber.of(j)).simplify();
       bellPolyTerms.add((cj * rPow).simplify());
     }
-    final bellFactor = simplifyAdd(bellPolyTerms);
+    final bellFactor = simplifyAdd(
+      bellPolyTerms,
+      assumptions: Assumptions.none,
+    );
     final shiftScale = c == 0
         ? scale
         : (scale * Pow(ratio, IntegerNumber.of(-c))).simplify();
@@ -1049,7 +1074,7 @@ Expr? _matchFactorialSeries(
   if (m == 2 && remaining.every((f) => !f.dependsOn(variable))) {
     final constRem = remaining.isEmpty
         ? IntegerNumber.one
-        : simplifyMul(remaining);
+        : simplifyMul(remaining, assumptions: Assumptions.none);
     final totalScale = (scale * constRem).simplify();
 
     // Check if ratio = -x^2 (trig) or +x^2 (hyperbolic)
@@ -1128,7 +1153,7 @@ Expr _extractEvenRoot(Expr expr) {
         factors.add(Pow(factor, FractionNumber.half).simplify());
       }
     }
-    return simplifyMul(factors);
+    return simplifyMul(factors, assumptions: Assumptions.none);
   }
   if (expr is RationalNumber && expr.sign > 0) {
     final numSqrt = expr.numerator.isqrt();
@@ -1189,7 +1214,7 @@ Expr? _matchPowerDenominatorSeries(
   Expr term,
   String variable,
   int startInt, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final (num, den) = splitNumeratorDenominator(term);
   if (!den.dependsOn(variable)) return null;
@@ -1212,7 +1237,8 @@ Expr? _matchPowerDenominatorSeries(
   final (:constFactors, :varFactors) = partitionFactors(remaining, variable);
   if (varFactors.length != 1) return null;
 
-  final constScale = (scale * simplifyMul(constFactors)).simplify();
+  final constScale =
+      (scale * simplifyMul(constFactors, assumptions: assumptions)).simplify();
   final vf = varFactors.first;
 
   Expr linBase;

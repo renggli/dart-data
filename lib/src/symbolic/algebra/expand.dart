@@ -21,50 +21,54 @@ extension ExpandExtension on Expr {
   /// final expanded = expr.expand(); // 6 - 5 * x + x^2
   /// ```
   Expr expand({Assumptions assumptions = Assumptions.none}) {
-    final expanded = _expand(this);
+    final expanded = _expand(this, assumptions);
     return (identical(assumptions, Assumptions.none) || assumptions.isEmpty)
         ? expanded
         : expanded.simplify(assumptions: assumptions);
   }
 }
 
-Expr _expand(Expr expr) => switch (expr) {
-  Add(:final terms) => _expandAdd(terms),
-  Mul(:final factors) => _expandMul(factors),
+Expr _expand(Expr expr, Assumptions assumptions) => switch (expr) {
+  Add(:final terms) => _expandAdd(terms, assumptions),
+  Mul(:final factors) => _expandMul(factors, assumptions),
   Pow(:final base, :final exponent) => _expandPow(
-    _expand(base),
-    _expand(exponent),
+    _expand(base, assumptions),
+    _expand(exponent, assumptions),
+    assumptions,
   ),
-  _ => expr.mapChildren(_expand),
+  _ => expr.mapChildren((c) => _expand(c, assumptions)),
 };
 
-Expr _expandAdd(List<Expr> terms) {
-  final acc = MonomialAccumulator();
+Expr _expandAdd(List<Expr> terms, Assumptions assumptions) {
+  final acc = MonomialAccumulator(assumptions: assumptions);
   for (final term in terms) {
-    acc.add(_expand(term));
+    acc.add(_expand(term, assumptions));
   }
   acc.reduceIdentities();
   return acc.build();
 }
 
-Expr _expandMul(List<Expr> factors) {
+Expr _expandMul(List<Expr> factors, Assumptions assumptions) {
   if (factors.isEmpty) return IntegerNumber.one;
-  var current = _expand(factors.first);
+  var current = _expand(factors.first, assumptions);
   for (var i = 1; i < factors.length; i++) {
-    final next = _expand(factors[i]);
-    current = _expandMulPair(current, next);
+    final next = _expand(factors[i], assumptions);
+    current = _expandMulPair(current, next, assumptions);
   }
   return current;
 }
 
-Expr _expandMulPair(Expr left, Expr right) {
+Expr _expandMulPair(Expr left, Expr right, Assumptions assumptions) {
   final leftTerms = <Expr>[];
   MonomialAccumulator.collectTerms(left, leftTerms);
   final rightTerms = <Expr>[];
   MonomialAccumulator.collectTerms(right, rightTerms);
 
   if (leftTerms.length == 1 && rightTerms.length == 1) {
-    return simplifyMul([leftTerms.first, rightTerms.first]);
+    return simplifyMul([
+      leftTerms.first,
+      rightTerms.first,
+    ], assumptions: assumptions);
   }
 
   final parsedLeft = leftTerms.map(_parsePolyMonomial).toList(growable: false);
@@ -72,7 +76,7 @@ Expr _expandMulPair(Expr left, Expr right) {
       .map(_parsePolyMonomial)
       .toList(growable: false);
 
-  final acc = MonomialAccumulator();
+  final acc = MonomialAccumulator(assumptions: assumptions);
   for (var i = 0; i < leftTerms.length; i++) {
     final pL = parsedLeft[i];
     final rawL = leftTerms[i];
@@ -85,7 +89,7 @@ Expr _expandMulPair(Expr left, Expr right) {
           acc.addDecomposed(coeff, base);
         }
       } else {
-        acc.add(simplifyMul([rawL, rightTerms[j]]));
+        acc.add(simplifyMul([rawL, rightTerms[j]], assumptions: assumptions));
       }
     }
   }
@@ -185,7 +189,7 @@ Expr _mergePolyFactors(List<_PolyFactor> a, List<_PolyFactor> b) {
   };
 }
 
-Expr _expandPow(Expr base, Expr exponent) {
+Expr _expandPow(Expr base, Expr exponent, Assumptions assumptions) {
   if (exponent case IntegerNumber(asInt: final intExp?)) {
     if (intExp < 0 && base is Number && base.isZero) {
       throw UnsupportedError('Division by zero in expansion');
@@ -197,27 +201,31 @@ Expr _expandPow(Expr base, Expr exponent) {
     }
     if (intExp == 1) return base;
     if (intExp > 1) {
-      return _expandPowInteger(base, intExp);
+      return _expandPowInteger(base, intExp, assumptions);
     }
     if (intExp < 0) {
-      final pos = _expandPowInteger(base, -intExp);
-      return simplifyPow(pos, IntegerNumber.negativeOne);
+      final pos = _expandPowInteger(base, -intExp, assumptions);
+      return simplifyPow(
+        pos,
+        IntegerNumber.negativeOne,
+        assumptions: assumptions,
+      );
     }
   }
-  return simplifyPow(base, exponent);
+  return simplifyPow(base, exponent, assumptions: assumptions);
 }
 
-Expr _expandPowInteger(Expr base, int exponent) {
+Expr _expandPowInteger(Expr base, int exponent, Assumptions assumptions) {
   Expr result = IntegerNumber.one;
   var current = base;
   var exp = exponent;
   while (exp > 0) {
     if (exp.isOdd) {
-      result = _expandMulPair(result, current);
+      result = _expandMulPair(result, current, assumptions);
     }
     exp ~/= 2;
     if (exp > 0) {
-      current = _expandMulPair(current, current);
+      current = _expandMulPair(current, current, assumptions);
     }
   }
   return result;

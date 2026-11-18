@@ -12,7 +12,7 @@ List<Expr> invertSin(
   Expr arg,
   Expr c,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (isRealConstantOutOfRange(c, 1.0)) {
     return const [];
@@ -52,7 +52,7 @@ List<Expr> invertCos(
   Expr arg,
   Expr c,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (isRealConstantOutOfRange(c, 1.0)) {
     return const [];
@@ -93,7 +93,7 @@ List<Expr> invertTan(
   Expr arg,
   Expr c,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final angles = switch (c) {
     RealNumber() => () {
@@ -132,7 +132,7 @@ List<Expr> _invertAngles(
   Expr arg,
   List<Expr> angles,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) => deduplicateRoots([
   for (final angle in angles)
     ...(invertEquation(arg, angle, variable, assumptions: assumptions) ??

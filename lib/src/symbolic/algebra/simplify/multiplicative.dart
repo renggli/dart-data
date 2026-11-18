@@ -8,10 +8,7 @@ import 'domain.dart';
 import 'power.dart';
 
 /// Simplifies an N-ary multiplication expression across [factors].
-Expr simplifyMul(
-  List<Expr> factors, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr simplifyMul(List<Expr> factors, {required Assumptions assumptions}) {
   if (factors.isEmpty) return IntegerNumber.one;
 
   final flatFactors = <Expr>[];
@@ -195,11 +192,7 @@ Expr simplifyMul(
 }
 
 /// Simplifies a binary division `left / right`.
-Expr simplifyDiv(
-  Expr left,
-  Expr right, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr simplifyDiv(Expr left, Expr right, {required Assumptions assumptions}) {
   if (left == Constant.undefined || right == Constant.undefined) {
     return Constant.undefined;
   }
@@ -243,7 +236,7 @@ Expr simplifySymbolicProduct(Number coeff, List<Expr> remainingFactors) {
 
 void _combineRadicalBases(
   Map<Expr, Expr> baseExponents, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (baseExponents.length < 2) return;
   var fractionCount = 0;
@@ -366,7 +359,7 @@ RationalNumber _absorbRationalCoeffIntoRadicals(
 Expr? _tryDistributeExactDivision(
   Number coeff,
   List<Expr> factors, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (factors.length < 2) return null;
   var addIndex = -1;
@@ -423,7 +416,7 @@ bool _hasNegativePowerFactor(Expr expr) => switch (expr) {
 Expr? _multiplyWithOrderTerm(
   OrderTerm orderTerm,
   Expr other, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final v = orderTerm.variable;
   final p = orderTerm.point;

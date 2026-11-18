@@ -19,7 +19,7 @@ Expr? tryAntiDerivDiv(
   Expr right,
   String variable, {
   int depth = 0,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   // int (c / g(x)) dx
   if (!left.dependsOn(variable)) {
@@ -37,7 +37,12 @@ Expr? tryAntiDerivDiv(
             base.matchLinear(variable) != null) {
       final negExp = (-exponent).simplify();
       final powExpr = Pow(base, negExp);
-      return antiDerivative(powExpr, variable, depth: depth).scale(left);
+      return antiDerivative(
+        powExpr,
+        variable,
+        depth: depth,
+        assumptions: assumptions,
+      ).scale(left);
     }
 
     // int c / cosh(ax + b) dx = (c / a) * atan(sinh(ax + b))
@@ -122,6 +127,7 @@ Expr? tryAntiDerivDiv(
             IntegerNumber.one,
             Pow(Cos(inner), nMinus2).simplify(),
             variable,
+            assumptions: assumptions,
           );
           if (rem != null) {
             return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
@@ -136,6 +142,7 @@ Expr? tryAntiDerivDiv(
             IntegerNumber.one,
             Pow(Sin(inner), nMinus2).simplify(),
             variable,
+            assumptions: assumptions,
           );
           if (rem != null) {
             return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
@@ -151,6 +158,7 @@ Expr? tryAntiDerivDiv(
             IntegerNumber.one,
             Pow(Cosh(inner), nMinus2).simplify(),
             variable,
+            assumptions: assumptions,
           );
           if (rem != null) {
             return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
@@ -166,6 +174,7 @@ Expr? tryAntiDerivDiv(
             IntegerNumber.one,
             Pow(Sinh(inner), nMinus2).simplify(),
             variable,
+            assumptions: assumptions,
           );
           if (rem != null) {
             return (left * (term1 - (nMinus2 / nMinus1) * rem)).simplify();
@@ -335,6 +344,7 @@ Expr? tryAntiDerivDiv(
                 .simplify(),
             variable,
             depth: 1,
+            assumptions: assumptions,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
             return (term1 + rem).simplify();
@@ -490,7 +500,12 @@ Expr? tryAntiDerivDiv(
             rightExp,
             variable,
           );
-          final qInt = antiDerivative(quotient, variable, depth: depth);
+          final qInt = antiDerivative(
+            quotient,
+            variable,
+            depth: depth,
+            assumptions: assumptions,
+          );
           if (remainder is Number && remainder.isZero) {
             return qInt;
           }
@@ -498,6 +513,7 @@ Expr? tryAntiDerivDiv(
             (remainder / rightExp).simplify(),
             variable,
             depth: depth,
+            assumptions: assumptions,
           );
           return (qInt + rInt).simplify();
         }
@@ -529,7 +545,12 @@ Expr? tryAntiDerivDiv(
           if (decomposed case Add(:final terms)) {
             return Add([
               for (final term in terms)
-                antiDerivative(term, variable, depth: depth),
+                antiDerivative(
+                  term,
+                  variable,
+                  depth: depth,
+                  assumptions: assumptions,
+                ),
             ]).simplify();
           }
           if (decomposed != originalRatio) {
@@ -541,7 +562,12 @@ Expr? tryAntiDerivDiv(
             if ((newDeg != null && newDeg < degRight) ||
                 (newDen is Pow && newDen.base.matchLinear(variable) != null) ||
                 newDen.matchLinear(variable) != null) {
-              return antiDerivative(decomposed, variable, depth: depth);
+              return antiDerivative(
+                decomposed,
+                variable,
+                depth: depth,
+                assumptions: assumptions,
+              );
             }
           }
         }
@@ -568,6 +594,7 @@ Expr? _tryRepeatedQuadratic(Expr left, Expr quad, int m, String variable) {
     final qTerm = antiDerivative(
       (quotient / Pow(quad, IntegerNumber.of(m - 1))).simplify(),
       variable,
+      assumptions: Assumptions.none,
     );
     if (hasUnevaluatedIntegral(qTerm, variable)) return null;
     if (remainder is Number && remainder.isZero) return qTerm;
@@ -607,7 +634,11 @@ Expr? _integrateRepeatedQuadConst(
   String variable,
 ) {
   if (m == 1) {
-    final res = antiDerivative(IntegerNumber.one / quad, variable);
+    final res = antiDerivative(
+      IntegerNumber.one / quad,
+      variable,
+      assumptions: Assumptions.none,
+    );
     return hasUnevaluatedIntegral(res, variable) ? null : res;
   }
   final disc = (const IntegerNumber(Integer(4)) * a * c - b * b).simplify();
@@ -641,7 +672,11 @@ Expr _integrateLinearOverQuad(
   }
   final eRem = (e - (d * b) / twoA).simplify();
   if (eRem != IntegerNumber.zero) {
-    final constInt = antiDerivative((eRem / quad).simplify(), variable);
+    final constInt = antiDerivative(
+      (eRem / quad).simplify(),
+      variable,
+      assumptions: Assumptions.none,
+    );
     result = (result + constInt).simplify();
   }
   return result;
@@ -675,7 +710,11 @@ Expr? _tryCubicBinomialDenominator(Expr left, Expr right, String variable) {
   final bCoeff = (p2 - aCoeff).simplify();
   final cCoeff = (p0 / r - aCoeff * r).simplify();
 
-  final linInt = antiDerivative((aCoeff / linFactor).simplify(), variable);
+  final linInt = antiDerivative(
+    (aCoeff / linFactor).simplify(),
+    variable,
+    assumptions: Assumptions.none,
+  );
   final quadInt = _integrateLinearOverQuad(
     bCoeff,
     cCoeff,

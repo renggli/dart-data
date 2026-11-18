@@ -55,7 +55,7 @@ Expr _solveOde(
   String constant = 'C1',
   Object? at,
   Object? initialValue,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   var eq = equation;
   if (eq is RelationalExpr) {

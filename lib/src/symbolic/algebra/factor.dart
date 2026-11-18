@@ -33,7 +33,7 @@ extension FactorExtension on Expr {
 }
 
 /// Recursively factors [expr] into irreducible products and groups like powers.
-Expr factorExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr factorExpr(Expr expr, {required Assumptions assumptions}) {
   // 1. Structural base cases
   if (expr is RationalNumber) return _factorRational(expr);
   if (expr is Number || expr is Constant || expr is Variable) return expr;
@@ -128,7 +128,10 @@ Expr factorExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
     // 6b. 4-Term grouping
     if (additiveTerms.length == 4) {
-      final grouped = factorByGrouping4(additiveTerms);
+      final grouped = factorByGrouping4(
+        additiveTerms,
+        assumptions: assumptions,
+      );
       if (grouped != null) return grouped;
     }
 
@@ -160,7 +163,11 @@ Expr factorExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
           : simplifyAdd([a, b], assumptions: assumptions);
       final quad = isDifference
           ? simplifyAdd([a2, ab, b2], assumptions: assumptions)
-          : simplifyAdd([a2, simplifyNeg(ab), b2], assumptions: assumptions);
+          : simplifyAdd([
+              a2,
+              simplifyNeg(ab, assumptions: assumptions),
+              b2,
+            ], assumptions: assumptions);
       return combineFactoredProducts([
         factorExpr(linear, assumptions: assumptions),
         factorExpr(quad, assumptions: assumptions),

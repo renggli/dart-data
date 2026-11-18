@@ -12,7 +12,7 @@ import 'transcendental.dart';
 /// Simplifies a relational expression.
 Expr simplifyRelational(
   RelationalExpr expr, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final left = expr.left.simplify(assumptions: assumptions);
   final right = expr.right.simplify(assumptions: assumptions);
@@ -40,10 +40,7 @@ Expr simplifyRelational(
 }
 
 /// Simplifies a piecewise expression.
-Expr simplifyPiecewise(
-  Piecewise expr, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr simplifyPiecewise(Piecewise expr, {required Assumptions assumptions}) {
   final simplifiedBranches = <PiecewiseBranch>[];
   for (final (:relation, expr: branchExpr) in expr.branches) {
     final sCond = relation.simplify(assumptions: assumptions);
@@ -81,7 +78,7 @@ Expr simplifyIntegral(
   String variable, {
   Expr? lower,
   Expr? upper,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final sIntegrand = integrand.simplify(assumptions: assumptions);
   if (sIntegrand is Number && sIntegrand.isZero) {
@@ -107,7 +104,7 @@ Expr simplifyDerivative(
   String variable, {
   int order = 1,
   Expr? point,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final sExpr = expr.simplify(assumptions: assumptions);
   final sPoint = point?.simplify(assumptions: assumptions);
@@ -160,7 +157,7 @@ Expr simplifyLimit(
   String variable,
   Expr point, {
   LimitDirection direction = LimitDirection.both,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final sExpr = expr.simplify(assumptions: assumptions);
   final sPoint = point.simplify(assumptions: assumptions);
@@ -177,7 +174,7 @@ Expr simplifyLimit(
 }
 
 /// Simplifies a floor expression `floor(x)`.
-Expr simplifyFloor(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyFloor(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
@@ -211,7 +208,7 @@ Expr simplifyFloor(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a ceiling expression `ceil(x)`.
-Expr simplifyCeil(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyCeil(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
@@ -245,7 +242,7 @@ Expr simplifyCeil(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a rounding expression `round(x)`.
-Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyRound(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (isIntegerExpr(expr, assumptions: assumptions)) return expr;
   switch (expr) {
@@ -277,7 +274,7 @@ Expr simplifyRound(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a signum expression `sign(x)`.
-Expr simplifySign(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifySign(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     if (expr.value.isNaN) return Constant.undefined;
@@ -292,7 +289,10 @@ Expr simplifySign(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifySign(posExpr, assumptions: assumptions));
+    return simplifyNeg(
+      simplifySign(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   if (expr.freeVariables.isEmpty && isProvenReal(expr, assumptions)) {
     try {
@@ -311,11 +311,7 @@ Expr simplifySign(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a modulo expression `mod(a, b)`.
-Expr simplifyMod(
-  Expr left,
-  Expr right, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr simplifyMod(Expr left, Expr right, {required Assumptions assumptions}) {
   if (left == Constant.undefined || right == Constant.undefined) {
     return Constant.undefined;
   }

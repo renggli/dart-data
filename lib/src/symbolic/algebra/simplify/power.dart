@@ -10,11 +10,7 @@ import 'multiplicative.dart';
 import 'transcendental.dart';
 
 /// Simplifies an exponentiation expression [base] ^ [exponent].
-Expr simplifyPow(
-  Expr base,
-  Expr exponent, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
   if (base == Constant.undefined || exponent == Constant.undefined) {
     return Constant.undefined;
   }
@@ -279,7 +275,11 @@ Expr simplifyPow(
           extractedFactors.add(exact);
           continue;
         }
-        final extracted = _extractRationalRadical(f, exponent);
+        final extracted = _extractRationalRadical(
+          f,
+          exponent,
+          assumptions: assumptions,
+        );
         if (extracted
             case Mul(
               factors: [
@@ -357,7 +357,7 @@ bool _isHalf(Expr expr) => expr == FractionNumber.half;
 Expr? _extractRationalRadical(
   RationalNumber base,
   FractionNumber exponent, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (base.isNegative || base.isZero || base.isOne) return null;
   final p = exponent.numerator.asInt;

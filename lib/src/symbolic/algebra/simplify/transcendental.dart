@@ -11,7 +11,7 @@ import 'multiplicative.dart';
 import 'power.dart';
 
 /// Simplifies a sine expression $\sin(expr)$.
-Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.sin(expr.value));
@@ -52,7 +52,10 @@ Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   // Parity: sin(-u) = -sin(u)
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifySin(posExpr, assumptions: assumptions));
+    return simplifyNeg(
+      simplifySin(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
 
   // Multiples of pi
@@ -103,7 +106,7 @@ Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a cosine expression $\cos(expr)$.
-Expr simplifyCos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.cos(expr.value));
@@ -200,7 +203,7 @@ Expr simplifyCos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a tangent expression $\tan(expr)$.
-Expr simplifyTan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = math.tan(expr.value);
@@ -214,7 +217,10 @@ Expr simplifyTan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   // Parity: tan(-u) = -tan(u)
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyTan(posExpr, assumptions: assumptions));
+    return simplifyNeg(
+      simplifyTan(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
 
   // Multiples of pi
@@ -260,7 +266,7 @@ Expr simplifyTan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies an arcsine expression $\arcsin(expr)$.
-Expr simplifyAsin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyAsin(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -307,7 +313,7 @@ Expr simplifyAsin(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies an arccosine expression $\arccos(expr)$.
-Expr simplifyAcos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyAcos(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -367,7 +373,7 @@ Expr simplifyAcos(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies an arctangent expression $\arctan(expr)$.
-Expr simplifyAtan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyAtan(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.atan(expr.value));
@@ -412,7 +418,7 @@ Expr simplifyAtan(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a hyperbolic sine expression $\sinh(expr)$.
-Expr simplifySinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifySinh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -434,7 +440,7 @@ Expr simplifySinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a hyperbolic cosine expression $\cosh(expr)$.
-Expr simplifyCosh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyCosh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -464,7 +470,7 @@ Expr simplifyCosh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a hyperbolic tangent expression $\tanh(expr)$.
-Expr simplifyTanh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyTanh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -488,7 +494,7 @@ Expr simplifyTanh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies an absolute value expression $|expr|$.
-Expr simplifyAbs(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyAbs(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RationalNumber) {
     return expr.isNegative ? expr.neg() : expr;
@@ -499,10 +505,11 @@ Expr simplifyAbs(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr case ComplexNumber(:final real, :final imaginary)) {
     return simplifyPow(
       simplifyAdd([
-        simplifyPow(real, IntegerNumber.two),
-        simplifyPow(imaginary, IntegerNumber.two),
-      ]),
+        simplifyPow(real, IntegerNumber.two, assumptions: assumptions),
+        simplifyPow(imaginary, IntegerNumber.two, assumptions: assumptions),
+      ], assumptions: assumptions),
       FractionNumber.half,
+      assumptions: assumptions,
     );
   }
   // Parity: |-u| = |u|
@@ -546,7 +553,7 @@ Expr simplifyAbs(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies an exponential expression $e^{expr}$.
-Expr simplifyExp(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyExp(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.exp(expr.value));
@@ -555,7 +562,7 @@ Expr simplifyExp(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a natural logarithm expression $\ln(expr)$.
-Expr simplifyLn(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
   if (expr is RealNumber) {
     if (expr.value <= 0.0) return Constant.undefined;
     return RealNumber.fromDouble(math.log(expr.value));
@@ -563,7 +570,7 @@ Expr simplifyLn(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == Constant.e) return IntegerNumber.one;
   if (expr is Number && expr.isZero) {
-    return simplifyNeg(Constant.infinity);
+    return simplifyNeg(Constant.infinity, assumptions: assumptions);
   }
   if (expr is RealNumeric && expr.isNegative) {
     final absLn = simplifyLn(expr.abs(), assumptions: assumptions);
@@ -652,12 +659,15 @@ Expr simplifyLn(Expr expr, {Assumptions assumptions = Assumptions.none}) {
         return (
           switch (rest) {
             [final single] => single,
-            _ => simplifyMul(rest),
+            _ => simplifyMul(rest, assumptions: Assumptions.none),
           },
           true,
         );
       }
-      return (simplifyMul([posFirst, ...rest]), true);
+      return (
+        simplifyMul([posFirst, ...rest], assumptions: Assumptions.none),
+        true,
+      );
     }(),
   _ => (expr, false),
 };
@@ -681,7 +691,7 @@ RationalNumber? matchPiMultiple(Expr expr) => switch (expr) {
 };
 
 /// Simplifies an inverse hyperbolic sine expression `asinh(expr)`.
-Expr simplifyAsinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyAsinh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -702,7 +712,7 @@ Expr simplifyAsinh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies an inverse hyperbolic cosine expression $\operatorname{acosh}(expr)$.
-Expr simplifyAcosh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyAcosh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -719,7 +729,7 @@ Expr simplifyAcosh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies an inverse hyperbolic tangent expression $\operatorname{atanh}(expr)$.
-Expr simplifyAtanh(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyAtanh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;

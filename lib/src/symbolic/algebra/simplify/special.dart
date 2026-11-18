@@ -9,6 +9,7 @@ import '../../../special/gamma.dart' as special_gamma;
 import '../../../special/lambert_w.dart' as special_lambert;
 import '../../../special/polylog.dart' as special_polylog;
 import '../../../special/zeta.dart' as special_zeta;
+import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../calculus/summation.dart' show evenZetaValue;
 import '../../number/integer.dart';
@@ -19,7 +20,11 @@ import 'power.dart';
 import 'transcendental.dart';
 
 /// Simplifies a Lambert W expression `LambertW(expr, branch: branch)`.
-Expr simplifyLambertW(Expr expr, int branch) {
+Expr simplifyLambertW(
+  Expr expr,
+  int branch, {
+  required Assumptions assumptions,
+}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -49,7 +54,7 @@ Expr simplifyLambertW(Expr expr, int branch) {
 }
 
 /// Simplifies an error function expression `erf(expr)`.
-Expr simplifyErf(Expr expr) {
+Expr simplifyErf(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_erf.erf(expr.value));
@@ -59,7 +64,10 @@ Expr simplifyErf(Expr expr) {
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyErf(posExpr));
+    return simplifyNeg(
+      simplifyErf(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   if (expr == Constant.infinity) {
     return IntegerNumber.one;
@@ -68,7 +76,7 @@ Expr simplifyErf(Expr expr) {
 }
 
 /// Simplifies a complementary error function expression `erfc(expr)`.
-Expr simplifyErfc(Expr expr) {
+Expr simplifyErfc(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_erf.erfc(expr.value));
@@ -87,7 +95,7 @@ Expr simplifyErfc(Expr expr) {
 }
 
 /// Simplifies an Euler gamma function expression `gamma(expr)`.
-Expr simplifyGamma(Expr expr) {
+Expr simplifyGamma(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
@@ -122,7 +130,7 @@ Expr simplifyGamma(Expr expr) {
       return simplifyMul([
         coeff,
         Pow(Constant.pi, FractionNumber.half, isSimplified: true),
-      ]);
+      ], assumptions: assumptions);
     }
   }
   return Gamma(expr, isSimplified: true);
@@ -265,10 +273,13 @@ Expr simplifyBesselK(Expr nu, Expr x) {
 }
 
 /// Simplifies a complete elliptic integral of the first kind `ellipticK(k)`.
-Expr simplifyEllipticK(Expr expr) {
+Expr simplifyEllipticK(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) {
-    return simplifyMul([FractionNumber.half, Constant.pi]);
+    return simplifyMul([
+      FractionNumber.half,
+      Constant.pi,
+    ], assumptions: assumptions);
   }
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_elliptic.ellipticK(expr.value));
@@ -277,10 +288,13 @@ Expr simplifyEllipticK(Expr expr) {
 }
 
 /// Simplifies a complete elliptic integral of the second kind `ellipticE(k)`.
-Expr simplifyEllipticE(Expr expr) {
+Expr simplifyEllipticE(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) {
-    return simplifyMul([FractionNumber.half, Constant.pi]);
+    return simplifyMul([
+      FractionNumber.half,
+      Constant.pi,
+    ], assumptions: assumptions);
   }
   if (expr == IntegerNumber.one) {
     return IntegerNumber.one;
@@ -292,7 +306,7 @@ Expr simplifyEllipticE(Expr expr) {
 }
 
 /// Simplifies an imaginary error function `erfi(x)`.
-Expr simplifyErfi(Expr expr) {
+Expr simplifyErfi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
@@ -300,13 +314,16 @@ Expr simplifyErfi(Expr expr) {
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyErfi(posExpr));
+    return simplifyNeg(
+      simplifyErfi(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   return Erfi(expr, isSimplified: true);
 }
 
 /// Simplifies a Fresnel sine integral `fresnelS(x)`.
-Expr simplifyFresnelS(Expr expr) {
+Expr simplifyFresnelS(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
@@ -314,13 +331,16 @@ Expr simplifyFresnelS(Expr expr) {
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyFresnelS(posExpr));
+    return simplifyNeg(
+      simplifyFresnelS(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   return FresnelS(expr, isSimplified: true);
 }
 
 /// Simplifies a Fresnel cosine integral `fresnelC(x)`.
-Expr simplifyFresnelC(Expr expr) {
+Expr simplifyFresnelC(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
@@ -328,7 +348,10 @@ Expr simplifyFresnelC(Expr expr) {
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifyFresnelC(posExpr));
+    return simplifyNeg(
+      simplifyFresnelC(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   return FresnelC(expr, isSimplified: true);
 }
@@ -353,7 +376,7 @@ Expr simplifyLogIntegralLi(Expr expr) {
 }
 
 /// Simplifies a sine integral `Si(x)`.
-Expr simplifySinIntegralSi(Expr expr) {
+Expr simplifySinIntegralSi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
@@ -361,7 +384,10 @@ Expr simplifySinIntegralSi(Expr expr) {
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifySinIntegralSi(posExpr));
+    return simplifyNeg(
+      simplifySinIntegralSi(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   return SinIntegralSi(expr, isSimplified: true);
 }
@@ -376,7 +402,7 @@ Expr simplifyCosIntegralCi(Expr expr) {
 }
 
 /// Simplifies a hyperbolic sine integral `Shi(x)`.
-Expr simplifySinhIntegralShi(Expr expr) {
+Expr simplifySinhIntegralShi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
@@ -384,7 +410,10 @@ Expr simplifySinhIntegralShi(Expr expr) {
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    return simplifyNeg(simplifySinhIntegralShi(posExpr));
+    return simplifyNeg(
+      simplifySinhIntegralShi(posExpr, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   return SinhIntegralShi(expr, isSimplified: true);
 }
@@ -399,15 +428,19 @@ Expr simplifyCoshIntegralChi(Expr expr) {
 }
 
 /// Simplifies an upper incomplete gamma function `upperGamma(s, x)`.
-Expr simplifyUpperGamma(Expr s, Expr x) {
+Expr simplifyUpperGamma(Expr s, Expr x, {required Assumptions assumptions}) {
   if (s == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
   }
   if (x == IntegerNumber.zero && s is RealNumeric && s.sign > 0) {
-    return simplifyGamma(s);
+    return simplifyGamma(s, assumptions: assumptions);
   }
   if (s == IntegerNumber.one) {
-    return simplifyPow(Constant.e, simplifyNeg(x));
+    return simplifyPow(
+      Constant.e,
+      simplifyNeg(x, assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   if (s is RealNumber && x is RealNumber) {
     return RealNumber.fromDouble(special_gamma.upperGamma(s.value, x.value));
@@ -416,7 +449,7 @@ Expr simplifyUpperGamma(Expr s, Expr x) {
 }
 
 /// Simplifies a lower incomplete gamma function `lowerGamma(s, x)`.
-Expr simplifyLowerGamma(Expr s, Expr x) {
+Expr simplifyLowerGamma(Expr s, Expr x, {required Assumptions assumptions}) {
   if (s == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
   }
@@ -426,8 +459,15 @@ Expr simplifyLowerGamma(Expr s, Expr x) {
   if (s == IntegerNumber.one) {
     return simplifyAdd([
       IntegerNumber.one,
-      simplifyNeg(simplifyPow(Constant.e, simplifyNeg(x))),
-    ]);
+      simplifyNeg(
+        simplifyPow(
+          Constant.e,
+          simplifyNeg(x, assumptions: assumptions),
+          assumptions: assumptions,
+        ),
+        assumptions: assumptions,
+      ),
+    ], assumptions: assumptions);
   }
   if (s is RealNumber && x is RealNumber) {
     return RealNumber.fromDouble(special_gamma.lowerGamma(s.value, x.value));
@@ -436,18 +476,32 @@ Expr simplifyLowerGamma(Expr s, Expr x) {
 }
 
 /// Simplifies a polylogarithm `polylog(s, z)`.
-Expr simplifyPolylog(Expr s, Expr z) {
+Expr simplifyPolylog(Expr s, Expr z, {required Assumptions assumptions}) {
   if (s == Constant.undefined || z == Constant.undefined) {
     return Constant.undefined;
   }
   if (z == IntegerNumber.zero) return IntegerNumber.zero;
   if (s == IntegerNumber.one) {
     return simplifyNeg(
-      simplifyLn(simplifyAdd([IntegerNumber.one, simplifyNeg(z)])),
+      simplifyLn(
+        simplifyAdd([
+          IntegerNumber.one,
+          simplifyNeg(z, assumptions: assumptions),
+        ], assumptions: assumptions),
+        assumptions: assumptions,
+      ),
+      assumptions: assumptions,
     );
   }
   if (s == IntegerNumber.zero) {
-    return simplifyDiv(z, simplifyAdd([IntegerNumber.one, simplifyNeg(z)]));
+    return simplifyDiv(
+      z,
+      simplifyAdd([
+        IntegerNumber.one,
+        simplifyNeg(z, assumptions: assumptions),
+      ], assumptions: assumptions),
+      assumptions: assumptions,
+    );
   }
   if (z == IntegerNumber.one && s is RealNumeric && s.toDouble() > 1.0) {
     return simplifyZeta(s);
@@ -461,12 +515,16 @@ Expr simplifyPolylog(Expr s, Expr z) {
         simplifyAdd([
           simplifyPow(
             IntegerNumber.two,
-            simplifyAdd([IntegerNumber.one, simplifyNeg(s)]),
+            simplifyAdd([
+              IntegerNumber.one,
+              simplifyNeg(s, assumptions: assumptions),
+            ], assumptions: assumptions),
+            assumptions: assumptions,
           ),
           IntegerNumber.negativeOne,
-        ]),
+        ], assumptions: assumptions),
         zetaVal,
-      ]);
+      ], assumptions: assumptions);
     }
   }
   if (s is RealNumber && z is RealNumber) {
@@ -476,14 +534,18 @@ Expr simplifyPolylog(Expr s, Expr z) {
 }
 
 /// Simplifies an incomplete elliptic integral of the first kind `ellipticF(phi, k)`.
-Expr simplifyEllipticF(Expr phi, Expr k) {
+Expr simplifyEllipticF(Expr phi, Expr k, {required Assumptions assumptions}) {
   if (phi == Constant.undefined || k == Constant.undefined) {
     return Constant.undefined;
   }
   if (phi == IntegerNumber.zero) return IntegerNumber.zero;
   if (k == IntegerNumber.zero) return phi;
-  if (phi == simplifyMul([FractionNumber.half, Constant.pi])) {
-    return simplifyEllipticK(k);
+  if (phi ==
+      simplifyMul([
+        FractionNumber.half,
+        Constant.pi,
+      ], assumptions: assumptions)) {
+    return simplifyEllipticK(k, assumptions: assumptions);
   }
   if (phi is RealNumber && k is RealNumber) {
     return RealNumber.fromDouble(
@@ -494,14 +556,22 @@ Expr simplifyEllipticF(Expr phi, Expr k) {
 }
 
 /// Simplifies an incomplete elliptic integral of the second kind `ellipticE(phi, k)`.
-Expr simplifyEllipticEIncomplete(Expr phi, Expr k) {
+Expr simplifyEllipticEIncomplete(
+  Expr phi,
+  Expr k, {
+  required Assumptions assumptions,
+}) {
   if (phi == Constant.undefined || k == Constant.undefined) {
     return Constant.undefined;
   }
   if (phi == IntegerNumber.zero) return IntegerNumber.zero;
   if (k == IntegerNumber.zero) return phi;
-  if (phi == simplifyMul([FractionNumber.half, Constant.pi])) {
-    return simplifyEllipticE(k);
+  if (phi ==
+      simplifyMul([
+        FractionNumber.half,
+        Constant.pi,
+      ], assumptions: assumptions)) {
+    return simplifyEllipticE(k, assumptions: assumptions);
   }
   if (phi is RealNumber && k is RealNumber) {
     return RealNumber.fromDouble(
@@ -512,7 +582,7 @@ Expr simplifyEllipticEIncomplete(Expr phi, Expr k) {
 }
 
 /// Simplifies an Euler beta function expression `beta(a, b)`.
-Expr simplifyBeta(Expr a, Expr b) {
+Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
   if (a == Constant.undefined || b == Constant.undefined) {
     return Constant.undefined;
   }
@@ -526,7 +596,7 @@ Expr simplifyBeta(Expr a, Expr b) {
     return res.isNaN ? Constant.undefined : RealNumber.fromDouble(res);
   }
   if (compareStructural(a, b) > 0) {
-    return simplifyBeta(b, a);
+    return simplifyBeta(b, a, assumptions: assumptions);
   }
   if (a case IntegerNumber(asInt: final m?) when m > 0) {
     if (b case IntegerNumber(asInt: final n?) when n > 0 && m + n <= 18) {
@@ -536,11 +606,15 @@ Expr simplifyBeta(Expr a, Expr b) {
       return RationalNumber.of(factM * factN, factTotal);
     }
     if (m == 1) {
-      return simplifyPow(b, IntegerNumber.negativeOne);
+      return simplifyPow(
+        b,
+        IntegerNumber.negativeOne,
+        assumptions: assumptions,
+      );
     }
   }
   if (b == IntegerNumber.one) {
-    return simplifyPow(a, IntegerNumber.negativeOne);
+    return simplifyPow(a, IntegerNumber.negativeOne, assumptions: assumptions);
   }
   // Rational arguments where Gamma(a), Gamma(b), Gamma(a + b) simplify
   if (a is RationalNumber &&
@@ -553,15 +627,15 @@ Expr simplifyBeta(Expr a, Expr b) {
     if ((a.denominator == Integer.one || a.denominator == Integer.two) &&
         (b.denominator == Integer.one || b.denominator == Integer.two) &&
         (sum.denominator == Integer.one || sum.denominator == Integer.two)) {
-      final ga = simplifyGamma(a);
-      final gb = simplifyGamma(b);
-      final gab = simplifyGamma(sum);
+      final ga = simplifyGamma(a, assumptions: assumptions);
+      final gb = simplifyGamma(b, assumptions: assumptions);
+      final gab = simplifyGamma(sum, assumptions: assumptions);
       if (ga is! Gamma && gb is! Gamma && gab is! Gamma) {
         return simplifyMul([
           ga,
           gb,
-          simplifyPow(gab, IntegerNumber.negativeOne),
-        ]);
+          simplifyPow(gab, IntegerNumber.negativeOne, assumptions: assumptions),
+        ], assumptions: assumptions);
       }
     }
   }
@@ -569,10 +643,13 @@ Expr simplifyBeta(Expr a, Expr b) {
 }
 
 /// Simplifies a factorial expression `n!`.
-Expr simplifyFactorial(Expr expr) {
+Expr simplifyFactorial(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
-    return simplifyGamma(RealNumber.fromDouble(expr.value + 1.0));
+    return simplifyGamma(
+      RealNumber.fromDouble(expr.value + 1.0),
+      assumptions: assumptions,
+    );
   }
   if (expr is IntegerNumber) {
     if (expr.isNegative) return Constant.undefined;
@@ -587,7 +664,11 @@ Expr simplifyFactorial(Expr expr) {
 }
 
 /// Simplifies a binomial coefficient `binomial(n, k)`.
-Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
+Expr simplifyBinomial(
+  Expr nExpr,
+  Expr kExpr, {
+  required Assumptions assumptions,
+}) {
   if (nExpr == Constant.undefined || kExpr == Constant.undefined) {
     return Constant.undefined;
   }
@@ -609,7 +690,7 @@ Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
   }
   if (kExpr is Number && kExpr.isOne) {
     return kExpr is RealNumber
-        ? simplifyMul([const RealNumber(1.0), nExpr])
+        ? simplifyMul([const RealNumber(1.0), nExpr], assumptions: assumptions)
         : nExpr;
   }
   if (nExpr == kExpr) {

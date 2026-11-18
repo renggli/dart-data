@@ -13,7 +13,7 @@ Expr? tryChainRule(
   Expr candidate,
   Expr factor,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   // General u(x) * u'(x) chain rule: int u * u' dx = 1/2 * u^2
   if (candidate.dependsOn(variable)) {
@@ -143,7 +143,7 @@ Expr? tryGaussianAntiderivative(Expr exponent, String variable) {
 Expr? tryUSubstitution(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
   int depth = 0,
 }) {
   final candidates = <Expr>{};
@@ -194,7 +194,7 @@ Expr? tryUSubstitution(
 Expr? trySymbolicBinomialAffine(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final factors = expr is Mul ? expr.factors : [expr];
   var scale = IntegerNumber.one as Expr;
@@ -264,7 +264,7 @@ Expr? trySymbolicBinomialAffine(
 Expr? tryMixedTrigLogExp(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   // 1. x^n * sin(ln(a*x)) or x^n * cos(ln(a*x))
   final factors = expr is Mul ? expr.factors : [expr];
@@ -307,8 +307,9 @@ Expr? tryMixedTrigLogExp(
         final expFactor = Pow(Constant.e, (xPower + IntegerNumber.one) * uVar);
         final trigU = trigFactor is Sin ? Sin(uVar) : Cos(uVar);
         final uInt = antiDerivative(
-          (expFactor * trigU).simplify(),
+          (expFactor * trigU).simplify(assumptions: assumptions),
           uName,
+          assumptions: assumptions,
           depth: 2,
         );
         if (!hasUnevaluatedIntegral(uInt, uName)) {
@@ -384,7 +385,12 @@ Expr? tryMixedTrigLogExp(
                       Pow(Sin(uVar), IntegerNumber.of(xDeg)) *
                       Pow(Cos(uVar), IntegerNumber.of(cosPow)))
                   .simplify();
-          final uInt = antiDerivative(integrand, uName, depth: 2);
+          final uInt = antiDerivative(
+            integrand,
+            uName,
+            assumptions: assumptions,
+            depth: 2,
+          );
           if (!hasUnevaluatedIntegral(uInt, uName)) {
             return uInt
                 .substitute(uName, Atan(Variable(variable)))
@@ -408,7 +414,7 @@ Expr? _tryChainRulePower(
   Expr exponent,
   Expr factor,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final uPrime = base.derivative(variable).simplify();
   final k = factor.matchScalarMultiple(uPrime, variable);

@@ -137,7 +137,9 @@ void main() {
         check(
           Expr.parse('1/x').integrate(
             'x',
-            assumptions: Assumptions.none.assume('x', VariableDomain.positive),
+            assumptions: Assumptions.none.copyWith(
+              domains: {'x': VariableDomain.positive},
+            ),
           ),
         ).equals(Expr.parse('ln(x)'));
         check(Expr.parse('tan(x)').integrate('x'))

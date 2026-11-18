@@ -71,18 +71,23 @@ void main() {
 
       final polar22 = toPolarExpr(
         ComplexNumber.of(IntegerNumber.two, IntegerNumber.two),
+        assumptions: Assumptions.none,
       );
       check(polar22.toString()).equals('2 * sqrt(2) * exp(1/4 * i * pi)');
       check(polar22.anyNode((n) => n is Mul && n.factors.any((f) => f is Mul)))
           .isFalse();
 
-      final rectC = toRectangularExpr(Constant.pi);
+      final rectC = toRectangularExpr(
+        Constant.pi,
+        assumptions: Assumptions.none,
+      );
       check(rectC).equals(Constant.pi);
       final rectExpr = toRectangularExpr(
         Add([
           IntegerNumber.one,
           Mul([ComplexNumber.i, IntegerNumber.two]),
         ]),
+        assumptions: Assumptions.none,
       );
       check(rectExpr.toString()).equals('1 + 2 * i');
       check(toRectangularExpr(Conjugate(z), assumptions: complexZ).toString())
@@ -100,31 +105,60 @@ void main() {
           Mul([ComplexNumber.i, IntegerNumber.of(4)]),
         ]),
       );
-      check(simplifyAbs(expComp))
+      check(simplifyAbs(expComp, assumptions: Assumptions.none))
           .equals(Pow(Constant.e, IntegerNumber.of(3), isSimplified: true));
 
       // isEvenIntegerExpr on Add and Pow
-      check(isEvenIntegerExpr(Add([IntegerNumber.of(2), IntegerNumber.of(4)])))
-          .isTrue();
-      check(isEvenIntegerExpr(Pow(IntegerNumber.of(2), IntegerNumber.of(3))))
-          .isTrue();
+      check(
+        isEvenIntegerExpr(
+          Add([IntegerNumber.of(2), IntegerNumber.of(4)]),
+          assumptions: Assumptions.none,
+        ),
+      ).isTrue();
+      check(
+        isEvenIntegerExpr(
+          Pow(IntegerNumber.of(2), IntegerNumber.of(3)),
+          assumptions: Assumptions.none,
+        ),
+      ).isTrue();
 
       // isIntegerExpr guards non-integer Factorial, Binomial, and complex Sign
-      check(isIntegerExpr(Factorial(FractionNumber.half))).isFalse();
-      check(isIntegerExpr(Binomial(FractionNumber.half, IntegerNumber.two)))
-          .isFalse();
+      check(
+        isIntegerExpr(
+          Factorial(FractionNumber.half),
+          assumptions: Assumptions.none,
+        ),
+      ).isFalse();
+      check(
+        isIntegerExpr(
+          Binomial(FractionNumber.half, IntegerNumber.two),
+          assumptions: Assumptions.none,
+        ),
+      ).isFalse();
       check(isIntegerExpr(Sign(z), assumptions: complexZ)).isFalse();
       check(isIntegerExpr(Sign(x), assumptions: realAssumptions)).isTrue();
       check(Floor(Factorial(x)).simplify()).isA<Floor>();
 
       // RealNumber contagion in Mod, Re, Im, Arg, and toPolarExpr
-      check(simplifyMod(const RealNumber(0.0), IntegerNumber.of(3)))
+      check(
+        simplifyMod(
+          const RealNumber(0.0),
+          IntegerNumber.of(3),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(const RealNumber(0.0));
+      check(
+        simplifyRe(
+          ComplexNumber(IntegerNumber.two, const RealNumber(1.0)),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(const RealNumber(2.0));
+      check(simplifyIm(const RealNumber(3.5), assumptions: Assumptions.none))
           .equals(const RealNumber(0.0));
-      check(simplifyRe(ComplexNumber(IntegerNumber.two, const RealNumber(1.0))))
-          .equals(const RealNumber(2.0));
-      check(simplifyIm(const RealNumber(3.5))).equals(const RealNumber(0.0));
-      check(simplifyArg(const RealNumber(-2.0))).isA<RealNumber>();
-      check(toPolarExpr(const RealNumber(0.0))).equals(const RealNumber(0.0));
+      check(simplifyArg(const RealNumber(-2.0), assumptions: Assumptions.none))
+          .isA<RealNumber>();
+      check(toPolarExpr(const RealNumber(0.0), assumptions: Assumptions.none))
+          .equals(const RealNumber(0.0));
 
       // Exact quadrant multiples of pi/6, pi/4, pi/3, pi/2 across sin, cos, tan
       for (final numVal in [1, 2, 3, 4, 5, 7, 11]) {
@@ -133,15 +167,16 @@ void main() {
             RationalNumber.of(Integer(numVal), Integer(denVal)),
             Constant.pi,
           ]);
-          check(simplifySin(angle).evaluate())
+          check(simplifySin(angle, assumptions: Assumptions.none).evaluate())
               .isCloseTo(Sin(angle).evaluate(), 1e-12);
-          check(simplifyCos(angle).evaluate())
+          check(simplifyCos(angle, assumptions: Assumptions.none).evaluate())
               .isCloseTo(Cos(angle).evaluate(), 1e-12);
           if ((numVal * 12 ~/ denVal) % 12 != 6) {
-            check(simplifyTan(angle).evaluate())
+            check(simplifyTan(angle, assumptions: Assumptions.none).evaluate())
                 .isCloseTo(Tan(angle).evaluate(), 1e-12);
           } else {
-            check(simplifyTan(angle)).equals(Constant.undefined);
+            check(simplifyTan(angle, assumptions: Assumptions.none))
+                .equals(Constant.undefined);
           }
         }
       }
@@ -167,113 +202,259 @@ void main() {
       ).isA<Add>();
 
       // RealNumber branches across special functions, rounding, and sign
-      check(simplifyLambertW(const RealNumber(0.5), 0)).isA<RealNumber>();
-      check(simplifyLambertW(const RealNumber(-0.2), -1)).isA<RealNumber>();
-      check(simplifyLambertW(const RealNumber(-1.0), 0))
-          .equals(Constant.undefined);
-      check(simplifyErf(const RealNumber(0.5))).isA<RealNumber>();
-      check(simplifyErfc(const RealNumber(0.5))).isA<RealNumber>();
-      check(simplifyGamma(const RealNumber(2.5))).isA<RealNumber>();
-      check(simplifyGamma(const RealNumber(-1.0))).equals(Constant.undefined);
-      check(simplifyBeta(const RealNumber(2.0), const RealNumber(3.0)))
+      check(
+        simplifyLambertW(
+          const RealNumber(0.5),
+          0,
+          assumptions: Assumptions.none,
+        ),
+      ).isA<RealNumber>();
+      check(
+        simplifyLambertW(
+          const RealNumber(-0.2),
+          -1,
+          assumptions: Assumptions.none,
+        ),
+      ).isA<RealNumber>();
+      check(
+        simplifyLambertW(
+          const RealNumber(-1.0),
+          0,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(simplifyErf(const RealNumber(0.5), assumptions: Assumptions.none))
           .isA<RealNumber>();
-      check(simplifyBeta(const RealNumber(-1.0), const RealNumber(2.0)))
-          .equals(Constant.undefined);
-      check(simplifyAsinh(const RealNumber(1.0))).isA<RealNumber>();
-      check(simplifyAcosh(const RealNumber(2.0))).isA<RealNumber>();
-      check(simplifyAcosh(const RealNumber(0.5))).equals(Constant.undefined);
-      check(simplifyAtanh(const RealNumber(0.5))).isA<RealNumber>();
-      check(simplifyAtanh(const RealNumber(2.0))).equals(Constant.undefined);
-      check(simplifyFactorial(const RealNumber(2.5))).isA<RealNumber>();
-      check(simplifyBinomial(const RealNumber(4.0), const RealNumber(2.0)))
+      check(simplifyErfc(const RealNumber(0.5), assumptions: Assumptions.none))
           .isA<RealNumber>();
-      check(simplifyBinomial(x, const RealNumber(1.0))).equals(x);
-      check(simplifyFloor(Add([const RealNumber(1.2), Constant.pi])))
-          .equals(const RealNumber(4.0));
-      check(simplifyCeil(Add([const RealNumber(1.2), Constant.pi])))
-          .equals(const RealNumber(5.0));
-      check(simplifyRound(Add([const RealNumber(1.2), Constant.pi])))
-          .equals(const RealNumber(4.0));
-      check(simplifySign(const RealNumber(2.5))).equals(const RealNumber(1.0));
-      check(simplifySign(Add([const RealNumber(1.0), Constant.pi])))
+      check(simplifyGamma(const RealNumber(2.5), assumptions: Assumptions.none))
+          .isA<RealNumber>();
+      check(
+        simplifyGamma(const RealNumber(-1.0), assumptions: Assumptions.none),
+      ).equals(Constant.undefined);
+      check(
+        simplifyBeta(
+          const RealNumber(2.0),
+          const RealNumber(3.0),
+          assumptions: Assumptions.none,
+        ),
+      ).isA<RealNumber>();
+      check(
+        simplifyBeta(
+          const RealNumber(-1.0),
+          const RealNumber(2.0),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(simplifyAsinh(const RealNumber(1.0), assumptions: Assumptions.none))
+          .isA<RealNumber>();
+      check(simplifyAcosh(const RealNumber(2.0), assumptions: Assumptions.none))
+          .isA<RealNumber>();
+      check(simplifyAcosh(const RealNumber(0.5), assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyAtanh(const RealNumber(0.5), assumptions: Assumptions.none))
+          .isA<RealNumber>();
+      check(simplifyAtanh(const RealNumber(2.0), assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(
+        simplifyFactorial(const RealNumber(2.5), assumptions: Assumptions.none),
+      ).isA<RealNumber>();
+      check(
+        simplifyBinomial(
+          const RealNumber(4.0),
+          const RealNumber(2.0),
+          assumptions: Assumptions.none,
+        ),
+      ).isA<RealNumber>();
+      check(
+        simplifyBinomial(
+          x,
+          const RealNumber(1.0),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(x);
+      check(
+        simplifyFloor(
+          Add([const RealNumber(1.2), Constant.pi]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(const RealNumber(4.0));
+      check(
+        simplifyCeil(
+          Add([const RealNumber(1.2), Constant.pi]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(const RealNumber(5.0));
+      check(
+        simplifyRound(
+          Add([const RealNumber(1.2), Constant.pi]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(const RealNumber(4.0));
+      check(simplifySign(const RealNumber(2.5), assumptions: Assumptions.none))
           .equals(const RealNumber(1.0));
+      check(
+        simplifySign(
+          Add([const RealNumber(1.0), Constant.pi]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(const RealNumber(1.0));
       check(
         simplifyArg(
           ComplexNumber(const RealNumber(1.0), const RealNumber(1.0)),
+          assumptions: Assumptions.none,
         ),
       ).isA<RealNumber>();
       check(simplifyRe(z, assumptions: complexZ))
           .equals(Re(z, isSimplified: true));
       check(simplifyIm(z, assumptions: complexZ))
           .equals(Im(z, isSimplified: true));
-      check(simplifySinh(const RealNumber(1.0))).isA<RealNumber>();
-      check(simplifyCosh(const RealNumber(1.0))).isA<RealNumber>();
-      check(simplifyTanh(const RealNumber(1.0))).isA<RealNumber>();
-      check(simplifyExp(const RealNumber(1.0))).isA<RealNumber>();
-      check(simplifyLn(Pow(x, FractionNumber.half))).isA<Mul>();
-      check(toRectangularExpr(ComplexNumber.i)).equals(ComplexNumber.i);
-      check(toPolarExpr(const RealNumber(-1.0))).isA<Mul>();
-      check(simplifyIm(ComplexNumber(const RealNumber(1.0), IntegerNumber.two)))
-          .equals(const RealNumber(2.0));
+      check(simplifySinh(const RealNumber(1.0), assumptions: Assumptions.none))
+          .isA<RealNumber>();
+      check(simplifyCosh(const RealNumber(1.0), assumptions: Assumptions.none))
+          .isA<RealNumber>();
+      check(simplifyTanh(const RealNumber(1.0), assumptions: Assumptions.none))
+          .isA<RealNumber>();
+      check(simplifyExp(const RealNumber(1.0), assumptions: Assumptions.none))
+          .isA<RealNumber>();
+      check(
+        simplifyLn(Pow(x, FractionNumber.half), assumptions: Assumptions.none),
+      ).isA<Mul>();
+      check(toRectangularExpr(ComplexNumber.i, assumptions: Assumptions.none))
+          .equals(ComplexNumber.i);
+      check(toPolarExpr(const RealNumber(-1.0), assumptions: Assumptions.none))
+          .isA<Mul>();
+      check(
+        simplifyIm(
+          ComplexNumber(const RealNumber(1.0), IntegerNumber.two),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(const RealNumber(2.0));
 
       // Propagation of Constant.undefined across simplify* functions
-      check(simplifySin(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyCos(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyTan(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyAsin(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyAcos(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyAtan(Constant.undefined)).equals(Constant.undefined);
-      check(simplifySinh(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyCosh(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyTanh(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyAbs(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyExp(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyLn(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyLambertW(Constant.undefined, 0)).equals(Constant.undefined);
-      check(simplifyErf(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyErfc(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyGamma(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyBeta(Constant.undefined, IntegerNumber.one))
+      check(simplifySin(Constant.undefined, assumptions: Assumptions.none))
           .equals(Constant.undefined);
-      check(simplifyBeta(IntegerNumber.one, Constant.undefined))
+      check(simplifyCos(Constant.undefined, assumptions: Assumptions.none))
           .equals(Constant.undefined);
-      check(simplifyAsinh(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyAcosh(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyAtanh(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyFactorial(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyBinomial(Constant.undefined, IntegerNumber.one))
+      check(simplifyTan(Constant.undefined, assumptions: Assumptions.none))
           .equals(Constant.undefined);
-      check(simplifyBinomial(IntegerNumber.one, Constant.undefined))
+      check(simplifyAsin(Constant.undefined, assumptions: Assumptions.none))
           .equals(Constant.undefined);
-      check(simplifyFloor(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyCeil(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyRound(Constant.undefined)).equals(Constant.undefined);
-      check(simplifySign(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyMod(Constant.undefined, IntegerNumber.one))
+      check(simplifyAcos(Constant.undefined, assumptions: Assumptions.none))
           .equals(Constant.undefined);
-      check(simplifyMod(IntegerNumber.one, Constant.undefined))
+      check(simplifyAtan(Constant.undefined, assumptions: Assumptions.none))
           .equals(Constant.undefined);
+      check(simplifySinh(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyCosh(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyTanh(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyAbs(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyExp(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyLn(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(
+        simplifyLambertW(Constant.undefined, 0, assumptions: Assumptions.none),
+      ).equals(Constant.undefined);
+      check(simplifyErf(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyErfc(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyGamma(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(
+        simplifyBeta(
+          Constant.undefined,
+          IntegerNumber.one,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(
+        simplifyBeta(
+          IntegerNumber.one,
+          Constant.undefined,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(simplifyAsinh(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyAcosh(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyAtanh(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(
+        simplifyFactorial(Constant.undefined, assumptions: Assumptions.none),
+      ).equals(Constant.undefined);
+      check(
+        simplifyBinomial(
+          Constant.undefined,
+          IntegerNumber.one,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(
+        simplifyBinomial(
+          IntegerNumber.one,
+          Constant.undefined,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(simplifyFloor(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyCeil(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifyRound(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(simplifySign(Constant.undefined, assumptions: Assumptions.none))
+          .equals(Constant.undefined);
+      check(
+        simplifyMod(
+          Constant.undefined,
+          IntegerNumber.one,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(
+        simplifyMod(
+          IntegerNumber.one,
+          Constant.undefined,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
       check(Sin(Asin(const RealNumber(2.0))).simplify())
           .equals(Constant.undefined);
 
       // isProvenReal on non-negative base with real exponent, and isIntegerExpr on Factorial and Binomial
       check(isProvenReal(Pow(Abs(x), y), realAssumptions)).isTrue();
-      check(isProvenReal(Factorial(ComplexNumber.i))).isFalse();
-      check(isProvenReal(Binomial(ComplexNumber.i, IntegerNumber.one)))
+      check(isProvenReal(Factorial(ComplexNumber.i), Assumptions.none))
           .isFalse();
-      check(isProvenReal(Floor(ComplexNumber.i))).isFalse();
-      check(isProvenReal(Ceil(ComplexNumber.i))).isFalse();
-      check(isProvenReal(Round(ComplexNumber.i))).isFalse();
-      check(isProvenReal(Sign(ComplexNumber.i))).isFalse();
+      check(
+        isProvenReal(
+          Binomial(ComplexNumber.i, IntegerNumber.one),
+          Assumptions.none,
+        ),
+      ).isFalse();
+      check(isProvenReal(Floor(ComplexNumber.i), Assumptions.none)).isFalse();
+      check(isProvenReal(Ceil(ComplexNumber.i), Assumptions.none)).isFalse();
+      check(isProvenReal(Round(ComplexNumber.i), Assumptions.none)).isFalse();
+      check(isProvenReal(Sign(ComplexNumber.i), Assumptions.none)).isFalse();
       check(Im(Factorial(ComplexNumber.i)).simplify())
           .not((it) => it.equals(IntegerNumber.zero));
-      check(isProvenReal(LambertW(IntegerNumber.of(-1)))).isFalse();
-      check(isProvenReal(LambertW(IntegerNumber.one, branch: -1))).isFalse();
-      check(isProvenReal(LambertW(IntegerNumber.one))).isTrue();
-      check(isProvenReal(Asin(Constant.pi))).isFalse();
-      check(isProvenReal(Acos(Constant.pi))).isFalse();
-      check(isProvenReal(Atanh(Constant.e))).isFalse();
-      check(isProvenReal(Acosh(IntegerNumber.zero))).isFalse();
+      check(isProvenReal(LambertW(IntegerNumber.of(-1)), Assumptions.none))
+          .isFalse();
+      check(
+        isProvenReal(LambertW(IntegerNumber.one, branch: -1), Assumptions.none),
+      ).isFalse();
+      check(isProvenReal(LambertW(IntegerNumber.one), Assumptions.none))
+          .isTrue();
+      check(isProvenReal(Asin(Constant.pi), Assumptions.none)).isFalse();
+      check(isProvenReal(Acos(Constant.pi), Assumptions.none)).isFalse();
+      check(isProvenReal(Atanh(Constant.e), Assumptions.none)).isFalse();
+      check(isProvenReal(Acosh(IntegerNumber.zero), Assumptions.none))
+          .isFalse();
       const intAssumptions = Assumptions(
         domains: {'x': VariableDomain.positive, 'y': VariableDomain.integer},
       );
@@ -308,8 +489,12 @@ void main() {
       check(simplifyBesselY(Constant.undefined, x)).equals(Constant.undefined);
       check(simplifyBesselI(Constant.undefined, x)).equals(Constant.undefined);
       check(simplifyBesselK(Constant.undefined, x)).equals(Constant.undefined);
-      check(simplifyEllipticK(Constant.undefined)).equals(Constant.undefined);
-      check(simplifyEllipticE(Constant.undefined)).equals(Constant.undefined);
+      check(
+        simplifyEllipticK(Constant.undefined, assumptions: Assumptions.none),
+      ).equals(Constant.undefined);
+      check(
+        simplifyEllipticE(Constant.undefined, assumptions: Assumptions.none),
+      ).equals(Constant.undefined);
 
       // Real domain checks
       check(isProvenReal(Zeta(IntegerNumber.two), realAssumptions)).isTrue();

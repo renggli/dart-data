@@ -103,7 +103,11 @@ void main() {
         Expr.parse('2 * y'),
         Expr.parse('2 * z'),
       ];
-      final curlGrad = curl(gradField, ['x', 'y', 'z']);
+      final curlGrad = curl(gradField, [
+        'x',
+        'y',
+        'z',
+      ], assumptions: Assumptions.none);
       check(curlGrad[0]).equals(IntegerNumber.zero);
       check(curlGrad[1]).equals(IntegerNumber.zero);
       check(curlGrad[2]).equals(IntegerNumber.zero);

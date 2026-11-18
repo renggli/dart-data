@@ -18,7 +18,7 @@ import 'univariate.dart';
 List<Expr>? isolateAndInvert(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   // Case 1: expr is Add(terms)
   if (expr case Add(:final terms)) {
@@ -83,7 +83,7 @@ List<Expr>? invertEquation(
   Expr u,
   Expr c,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   u = u.simplify(assumptions: assumptions);
   c = c.simplify(assumptions: assumptions);
@@ -445,7 +445,7 @@ List<Expr>? _solveLambertWEquation(
   Expr E,
   Expr cPrime,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final cVal = _tryEvalReal(cPrime);
   const invE = 1.0 / math.e;
@@ -477,7 +477,7 @@ List<Expr>? _solveProductTranscendental(
   Mul u,
   Expr c,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (u.factors case [final f0, final f1]) {
     for (final (a, b) in [(f0, f1), (f1, f0)]) {
@@ -527,7 +527,7 @@ List<Expr>? _solveAddTranscendental(
   Add u,
   Expr c,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (u.terms case [final t0, final t1]) {
     for (final (a, b) in [(t0, t1), (t1, t0)]) {
@@ -628,7 +628,7 @@ void _collectAdditiveTerms(Expr expr, List<Expr> terms) {
 List<Expr>? _matchAffineExponential(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final terms = <Expr>[];
   _collectAdditiveTerms(expr, terms);
@@ -736,7 +736,7 @@ double? _tryEvalReal(Expr expr) {
 List<Expr>? _tryCombineLogsAndSolve(
   List<Expr> terms,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final lnTerms = <({Expr u, RationalNumber coeff})>[];
   final rest = <Expr>[];
@@ -793,7 +793,7 @@ bool _hasVariableRadical(Expr expr, String variable) => expr.anyNode(
 List<Expr>? _tryIsolateRadicalAndSolve(
   List<Expr> terms,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   ({Expr c, Expr base, Integer p, int q})? radical;
   final rest = <Expr>[];

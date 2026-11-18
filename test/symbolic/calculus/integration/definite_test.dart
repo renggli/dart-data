@@ -43,6 +43,7 @@ void main() {
           'x',
           IntegerNumber.of(-1),
           IntegerNumber.one,
+          assumptions: Assumptions.none,
         ),
       ).isTrue();
 
@@ -53,6 +54,7 @@ void main() {
           'x',
           IntegerNumber.of(-1),
           IntegerNumber.one,
+          assumptions: Assumptions.none,
         ),
       ).isFalse();
 
@@ -63,6 +65,7 @@ void main() {
           'x',
           IntegerNumber.of(-1),
           IntegerNumber.one,
+          assumptions: Assumptions.none,
         ),
       ).isFalse();
     });

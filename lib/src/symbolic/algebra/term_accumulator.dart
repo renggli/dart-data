@@ -19,7 +19,7 @@ class MonomialAccumulator {
   ///
   /// An optional [simplify] callback performs sub-expression reduction during
   /// logarithmic and fraction combination.
-  new({this.simplify, this.assumptions = Assumptions.none});
+  new({this.simplify, required this.assumptions});
 
   /// Optional simplifier callback.
   final Expr Function(Expr)? simplify;
@@ -541,7 +541,11 @@ class MonomialAccumulator {
     Expr point,
     int minOrder,
   ) {
-    final shifted = simplifySub(Variable(variable), point);
+    final shifted = simplifySub(
+      Variable(variable),
+      point,
+      assumptions: Assumptions.none,
+    );
     final rawShifted = Variable(variable) - point;
     if (base == shifted || base == rawShifted) {
       return 1 >= minOrder;
@@ -832,7 +836,7 @@ Map<int, Expr>? extractPolynomialCoefficients(Expr expr, String variable) {
         : {0: expanded};
   }
   if (polynomialDegree(expanded, variable) == null) return null;
-  final acc = MonomialAccumulator()..add(expanded);
+  final acc = MonomialAccumulator(assumptions: Assumptions.none)..add(expanded);
   return acc.extractPolynomialCoefficients(variable);
 }
 
@@ -965,7 +969,7 @@ bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
       }
       final totalCoeff = coeffFactors.isEmpty
           ? IntegerNumber.one
-          : simplifyMul(coeffFactors);
+          : simplifyMul(coeffFactors, assumptions: Assumptions.none);
       return (power: totalPower, coeff: totalCoeff);
 
     default:

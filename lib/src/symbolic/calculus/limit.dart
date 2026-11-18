@@ -43,7 +43,7 @@ Expr computeLimit(
   String variable,
   Expr point, {
   LimitDirection direction = LimitDirection.both,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (!assumptions.isEmpty) {
     expr = expr.simplify(assumptions: assumptions);
@@ -421,7 +421,7 @@ Expr _computeFiniteLimit(
   String variable,
   Expr point, {
   LimitDirection direction = LimitDirection.both,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   try {
     final sub = expr
@@ -590,7 +590,7 @@ Expr _computeInfiniteLimit(
   Expr expr,
   String variable, {
   required bool isPositive,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (!isPositive) {
     final posAssumptions = assumptions.copyWith(
@@ -752,6 +752,7 @@ bool _isBoundedFactorAtInfinity(Expr expr, String variable) => switch (expr) {
         exponent,
         variable,
         isPositive: true,
+        assumptions: Assumptions.none,
       );
       if (cmp < 0 && _isPositiveInfinity(expLim)) return true;
       if (cmp > 0 && _isNegativeInfinity(expLim)) return true;
@@ -825,7 +826,7 @@ Expr? _exponentialPolynomialLimitAtInfinity(Expr expr, String variable) {
     return (0, expanded);
   }
 
-  final acc = MonomialAccumulator();
+  final acc = MonomialAccumulator(assumptions: Assumptions.none);
   acc.add(expanded);
 
   var maxDegree = -1;
@@ -893,11 +894,7 @@ Expr _rewriteHyperbolicsToExp(Expr expr, Assumptions assumptions) {
   };
 }
 
-Expr _gruntzLimit(
-  Expr expr,
-  String variable, [
-  Assumptions assumptions = Assumptions.none,
-]) {
+Expr _gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
   var f = _rewriteHyperbolicsToExp(
     expr.simplify(assumptions: assumptions),
     assumptions,
@@ -1061,7 +1058,7 @@ Expr _rewriteSingleExp(
 ({int degree, RationalNumber coeff, Expr remainder})?
 _extractDominantPolynomialTerm(Expr expr, String variable) {
   final expanded = expr.expand().simplify();
-  final acc = MonomialAccumulator();
+  final acc = MonomialAccumulator(assumptions: Assumptions.none);
   acc.add(expanded);
 
   var maxDeg = 0;
@@ -1212,7 +1209,12 @@ bool _containsUnboundedOscillation(Expr expr, String variable) =>
               Tan(expr: final inner)
           when inner.dependsOn(variable)) {
         try {
-          final lim = computeLimit(inner, variable, Constant.infinity);
+          final lim = computeLimit(
+            inner,
+            variable,
+            Constant.infinity,
+            assumptions: Assumptions.none,
+          );
           return _isPositiveInfinity(lim) || _isNegativeInfinity(lim);
         } on Object {
           return true;
@@ -1258,7 +1260,12 @@ Expr? _trySqueezeBoundedOscillation(Expr expr, String variable) {
 
   final envelope = (numPart / denPart).simplify();
   try {
-    final envLim = computeLimit(envelope, variable, Constant.infinity);
+    final envLim = computeLimit(
+      envelope,
+      variable,
+      Constant.infinity,
+      assumptions: Assumptions.none,
+    );
     if (envLim is Number && envLim.isZero) {
       return IntegerNumber.zero;
     }
@@ -1373,7 +1380,12 @@ int _asymptoticSignAtInfinity(
   final seen = visited ?? <Expr>{};
   if (seen.add(s)) {
     try {
-      final lim = computeLimit(s, variable, Constant.infinity);
+      final lim = computeLimit(
+        s,
+        variable,
+        Constant.infinity,
+        assumptions: Assumptions.none,
+      );
       if (_isPositiveInfinity(lim)) return 1;
       if (_isNegativeInfinity(lim)) return -1;
       if (!lim.anyNode((n) => n is Limit) &&

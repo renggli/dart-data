@@ -100,7 +100,7 @@ Expr symbolicIntegrate(
   String variable, {
   Object? from,
   Object? to,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if ((from == null) != (to == null)) {
     throw ArgumentError(
@@ -137,7 +137,7 @@ Expr symbolicIntegrate(
 Expr antiDerivative(
   Expr expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
   int depth = 0,
 }) {
   final node = expr.simplify(assumptions: assumptions);
@@ -402,7 +402,7 @@ Expr logAntiderivative(Expr u, Assumptions assumptions) =>
 Expr? _antiDerivTan(
   Expr inner,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) => switch (inner.matchLinear(variable)) {
   (:final a, b: _) =>
     (-logAntiderivative(Cos(inner), assumptions) / a).simplify(
@@ -667,7 +667,7 @@ Expr? _antiDerivAtanh(Expr inner, String variable) =>
 Expr _antiDerivPiecewise(
   Piecewise expr,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final m = expr.branches.length;
   final rawG = <Expr>[
@@ -733,7 +733,7 @@ Expr _antiDerivPow(
   Expr exponent,
   Expr original,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   // Form: (ax + b)^n
   if (!exponent.dependsOn(variable)) {
@@ -811,11 +811,14 @@ Expr _antiDerivPow(
           final term1 = (-Pow(Sin(inner), nMinus1) * Cos(inner) / (nExpr * a))
               .simplify();
           final rem = antiDerivative(
-            Pow(Sin(inner), nMinus2).simplify(),
+            Pow(Sin(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
+            assumptions: assumptions,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 + (nMinus1 / nExpr) * rem).simplify();
+            return (term1 + (nMinus1 / nExpr) * rem).simplify(
+              assumptions: assumptions,
+            );
           }
         }
       }
@@ -825,13 +828,16 @@ Expr _antiDerivPow(
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
           final term1 = (Pow(Cos(inner), nMinus1) * Sin(inner) / (nExpr * a))
-              .simplify();
+              .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Cos(inner), nMinus2).simplify(),
+            Pow(Cos(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
+            assumptions: assumptions,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 + (nMinus1 / nExpr) * rem).simplify();
+            return (term1 + (nMinus1 / nExpr) * rem).simplify(
+              assumptions: assumptions,
+            );
           }
         }
       }
@@ -841,13 +847,16 @@ Expr _antiDerivPow(
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
           final term1 = (Pow(Sinh(inner), nMinus1) * Cosh(inner) / (nExpr * a))
-              .simplify();
+              .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Sinh(inner), nMinus2).simplify(),
+            Pow(Sinh(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
+            assumptions: assumptions,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 - (nMinus1 / nExpr) * rem).simplify();
+            return (term1 - (nMinus1 / nExpr) * rem).simplify(
+              assumptions: assumptions,
+            );
           }
         }
       }
@@ -857,13 +866,16 @@ Expr _antiDerivPow(
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
           final term1 = (Pow(Cosh(inner), nMinus1) * Sinh(inner) / (nExpr * a))
-              .simplify();
+              .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Cosh(inner), nMinus2).simplify(),
+            Pow(Cosh(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
+            assumptions: assumptions,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 + (nMinus1 / nExpr) * rem).simplify();
+            return (term1 + (nMinus1 / nExpr) * rem).simplify(
+              assumptions: assumptions,
+            );
           }
         }
       }
@@ -871,13 +883,16 @@ Expr _antiDerivPow(
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 = (Pow(Tan(inner), nMinus1) / (nMinus1 * a)).simplify();
+          final term1 = (Pow(Tan(inner), nMinus1) / (nMinus1 * a)).simplify(
+            assumptions: assumptions,
+          );
           final rem = antiDerivative(
-            Pow(Tan(inner), nMinus2).simplify(),
+            Pow(Tan(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
+            assumptions: assumptions,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 - rem).simplify();
+            return (term1 - rem).simplify(assumptions: assumptions);
           }
         }
       }
@@ -885,13 +900,16 @@ Expr _antiDerivPow(
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 = (-Pow(Tanh(inner), nMinus1) / (nMinus1 * a)).simplify();
+          final term1 = (-Pow(Tanh(inner), nMinus1) / (nMinus1 * a)).simplify(
+            assumptions: assumptions,
+          );
           final rem = antiDerivative(
-            Pow(Tanh(inner), nMinus2).simplify(),
+            Pow(Tanh(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
+            assumptions: assumptions,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 + rem).simplify();
+            return (term1 + rem).simplify(assumptions: assumptions);
           }
         }
       }
@@ -901,13 +919,19 @@ Expr _antiDerivPow(
       if (exponent case IntegerNumber(asInt: final k?) when k >= 2 && k <= 6) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final kExpr = IntegerNumber.of(k);
-          final term1 = ((inner / a) * original).simplify();
+          final term1 = ((inner / a) * original).simplify(
+            assumptions: assumptions,
+          );
           final rem = antiDerivative(
-            Pow(base, IntegerNumber.of(k - 1)).simplify(),
+            Pow(
+              base,
+              IntegerNumber.of(k - 1),
+            ).simplify(assumptions: assumptions),
             variable,
+            assumptions: assumptions,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 - kExpr * rem).simplify();
+            return (term1 - kExpr * rem).simplify(assumptions: assumptions);
           }
         }
       }
@@ -925,6 +949,7 @@ Expr _antiDerivPow(
           IntegerNumber.one,
           original,
           variable,
+          assumptions: assumptions,
         );
         if (ibp != null) return ibp;
       }
@@ -999,7 +1024,7 @@ Expr _antiDerivPow(
 Expr _antiDerivMul(
   Mul original,
   String variable, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
   int depth = 0,
 }) {
   // 1. Check if this product represents a quotient f(x) / g(x) where g depends on variable
@@ -1089,11 +1114,23 @@ Expr _antiDerivMul(
 
   // 4. Integration by parts (try pairing one factor with the rest):
   if (varFactors case [final left, final right]) {
-    if (tryIntegrationByParts(left, right, variable, depth: depth)
+    if (tryIntegrationByParts(
+          left,
+          right,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
         case final ibpLR?) {
       return ibpLR;
     }
-    if (tryIntegrationByParts(right, left, variable, depth: depth)
+    if (tryIntegrationByParts(
+          right,
+          left,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
         case final ibpRL?) {
       return ibpRL;
     }
@@ -1104,12 +1141,24 @@ Expr _antiDerivMul(
         for (var j = 0; j < varFactors.length; j++)
           if (i != j) varFactors[j],
       ];
-      final otherExpr = Mul(others).simplify();
-      if (tryIntegrationByParts(candidate, otherExpr, variable, depth: depth)
+      final otherExpr = Mul(others).simplify(assumptions: assumptions);
+      if (tryIntegrationByParts(
+            candidate,
+            otherExpr,
+            variable,
+            assumptions: assumptions,
+            depth: depth,
+          )
           case final ibp1?) {
         return ibp1;
       }
-      if (tryIntegrationByParts(otherExpr, candidate, variable, depth: depth)
+      if (tryIntegrationByParts(
+            otherExpr,
+            candidate,
+            variable,
+            assumptions: assumptions,
+            depth: depth,
+          )
           case final ibp2?) {
         return ibp2;
       }

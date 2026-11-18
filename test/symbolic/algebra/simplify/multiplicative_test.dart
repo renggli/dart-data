@@ -9,12 +9,18 @@ void main() {
       'handles empty products, nested Mul flattening, and zero annihilator',
       () {
         const x = Variable('x');
-        check(simplifyMul(const [])).equals(IntegerNumber.one);
-        check(simplifyMul([Mul(const [])])).equals(IntegerNumber.one);
-        check(simplifyMul([x])).equals(x);
-        check(simplifyMul([x, IntegerNumber.zero])).equals(IntegerNumber.zero);
-        check(simplifyMul([x, RealNumber.zero])).equals(RealNumber.zero);
-        check(simplifyMul([RealNumber.zero, x])).equals(RealNumber.zero);
+        check(simplifyMul(const [], assumptions: Assumptions.none))
+            .equals(IntegerNumber.one);
+        check(simplifyMul([Mul(const [])], assumptions: Assumptions.none))
+            .equals(IntegerNumber.one);
+        check(simplifyMul([x], assumptions: Assumptions.none)).equals(x);
+        check(
+          simplifyMul([x, IntegerNumber.zero], assumptions: Assumptions.none),
+        ).equals(IntegerNumber.zero);
+        check(simplifyMul([x, RealNumber.zero], assumptions: Assumptions.none))
+            .equals(RealNumber.zero);
+        check(simplifyMul([RealNumber.zero, x], assumptions: Assumptions.none))
+            .equals(RealNumber.zero);
       },
     );
 
@@ -88,7 +94,7 @@ void main() {
         simplifyMul([
           IntegerNumber.of(4),
           Pow(IntegerNumber.two, RationalNumber(-3, 2)),
-        ]).toString(),
+        ], assumptions: Assumptions.none).toString(),
       ).equals('sqrt(2)');
 
       // Product where simplifyPow produces a Mul (e.g. 12^(1/2) -> 2 * sqrt(3))
@@ -97,7 +103,7 @@ void main() {
           const Variable('x'),
           Pow(const Variable('x'), IntegerNumber.zero),
           Pow(IntegerNumber.of(12), FractionNumber.half),
-        ]).toString(),
+        ], assumptions: Assumptions.none).toString(),
       ).equals('2 * sqrt(3) * x');
 
       // Product where radical bases fold to an integer Number
@@ -106,7 +112,7 @@ void main() {
           Pow(IntegerNumber.two, FractionNumber.half),
           Pow(IntegerNumber.two, FractionNumber.half),
           const Variable('x'),
-        ]).toString(),
+        ], assumptions: Assumptions.none).toString(),
       ).equals('2 * x');
 
       check((Constant.infinity / Constant.infinity).simplify())
@@ -134,10 +140,20 @@ void main() {
     });
 
     test('simplifies division and sorts symbolic products with same base', () {
-      check(simplifyDiv(const Variable('x'), IntegerNumber.zero))
-          .equals(Constant.undefined);
-      check(simplifyDiv(IntegerNumber.of(6), IntegerNumber.two))
-          .equals(IntegerNumber.of(3));
+      check(
+        simplifyDiv(
+          const Variable('x'),
+          IntegerNumber.zero,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(Constant.undefined);
+      check(
+        simplifyDiv(
+          IntegerNumber.of(6),
+          IntegerNumber.two,
+          assumptions: Assumptions.none,
+        ),
+      ).equals(IntegerNumber.of(3));
 
       const x = Variable('x');
       final sorted = simplifySymbolicProduct(IntegerNumber.one, [
@@ -158,40 +174,57 @@ void main() {
         const ord2 = OrderTerm('x', 2);
         const ord3 = OrderTerm('x', 3);
 
-        check(simplifyMul([ord2, ord3])).equals(const OrderTerm('x', 5));
-        check(simplifyMul([IntegerNumber.of(5), ord2])).equals(ord2);
-        check(simplifyMul([Constant.pi, ord2])).equals(ord2);
-        check(simplifyMul([x, ord2])).equals(ord3);
-        check(simplifyMul([Pow(x, IntegerNumber.of(3)), ord2]))
+        check(simplifyMul([ord2, ord3], assumptions: Assumptions.none))
             .equals(const OrderTerm('x', 5));
+        check(
+          simplifyMul([
+            IntegerNumber.of(5),
+            ord2,
+          ], assumptions: Assumptions.none),
+        ).equals(ord2);
+        check(simplifyMul([Constant.pi, ord2], assumptions: Assumptions.none))
+            .equals(ord2);
+        check(simplifyMul([x, ord2], assumptions: Assumptions.none))
+            .equals(ord3);
+        check(
+          simplifyMul([
+            Pow(x, IntegerNumber.of(3)),
+            ord2,
+          ], assumptions: Assumptions.none),
+        ).equals(const OrderTerm('x', 5));
 
         // Shifted point OrderTerm multiplication
         const shiftedOrd = OrderTerm('x', 2, point: IntegerNumber.one);
         final shiftedVar = x - IntegerNumber.one;
-        check(simplifyMul([shiftedVar, shiftedOrd]))
-            .equals(const OrderTerm('x', 3, point: IntegerNumber.one));
-        check(simplifyMul([Pow(shiftedVar, IntegerNumber.of(3)), shiftedOrd]))
-            .equals(const OrderTerm('x', 5, point: IntegerNumber.one));
+        check(
+          simplifyMul([shiftedVar, shiftedOrd], assumptions: Assumptions.none),
+        ).equals(const OrderTerm('x', 3, point: IntegerNumber.one));
+        check(
+          simplifyMul([
+            Pow(shiftedVar, IntegerNumber.of(3)),
+            shiftedOrd,
+          ], assumptions: Assumptions.none),
+        ).equals(const OrderTerm('x', 5, point: IntegerNumber.one));
 
         // Distributing OrderTerm over Add (collapsing and non-collapsing)
         check(
           simplifyMul([
             Add([IntegerNumber.one, x]),
             ord2,
-          ]),
+          ], assumptions: Assumptions.none),
         ).equals(ord2);
         check(
           simplifyMul([
             ord2,
             Add([y, z]),
-          ]).toString(),
+          ], assumptions: Assumptions.none).toString(),
         ).equals('y * O(x^2) + z * O(x^2)');
         check(
           simplifyMul([
             y,
             ord2,
             Add([y, z]),
-          ]).toString(),
+          ], assumptions: Assumptions.none).toString(),
         ).equals('y * (y * O(x^2) + z * O(x^2))');
       },
     );

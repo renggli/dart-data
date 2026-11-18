@@ -28,7 +28,7 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
   List<Expr> equations,
   List<String> variables, {
   PolynomialSystemMethod method = PolynomialSystemMethod.auto,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (equations.isEmpty || variables.isEmpty) return const [];
 
@@ -213,7 +213,11 @@ void _backSubstitute(
     }
   }
 
-  final roots = solveEquation(univariateEqs[primaryIdx], currentVar);
+  final roots = solveEquation(
+    univariateEqs[primaryIdx],
+    currentVar,
+    assumptions: Assumptions.none,
+  );
   for (final r in roots) {
     final rSimp = r.simplify();
     var satisfiesAll = true;

@@ -2,6 +2,7 @@ import '../../linear/matrix.dart';
 import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../linear/bareiss.dart';
 import '../type/expr_data_type.dart';
@@ -124,7 +125,7 @@ class SylvesterResultantSolver {
     final expF = f.expand().simplify();
     final expG = g.expand().simplify();
     final resY = resultant(expF, expG, xVar);
-    final yRoots = solveEquation(resY, yVar);
+    final yRoots = solveEquation(resY, yVar, assumptions: Assumptions.none);
 
     final solutions = <Map<String, Expr>>[];
     final seen = <String>{};
@@ -137,8 +138,10 @@ class SylvesterResultantSolver {
       if (!gAtY.dependsOn(xVar) && !isZeroExpr(gAtY)) continue;
 
       final xCandidates = <Expr>[
-        if (fAtY.dependsOn(xVar)) ...solveEquation(fAtY, xVar),
-        if (gAtY.dependsOn(xVar)) ...solveEquation(gAtY, xVar),
+        if (fAtY.dependsOn(xVar))
+          ...solveEquation(fAtY, xVar, assumptions: Assumptions.none),
+        if (gAtY.dependsOn(xVar))
+          ...solveEquation(gAtY, xVar, assumptions: Assumptions.none),
       ];
       for (final x0 in deduplicateRoots(xCandidates)) {
         final fVal = fAtY.substitute(xVar, x0).expand().simplify();

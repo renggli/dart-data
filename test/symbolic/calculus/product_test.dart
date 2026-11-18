@@ -9,7 +9,13 @@ void main() {
 
   group('computeProduct', () {
     test('factorial product', () {
-      final res = computeProduct(k, 'k', IntegerNumber.one, n);
+      final res = computeProduct(
+        k,
+        'k',
+        IntegerNumber.one,
+        n,
+        assumptions: Assumptions.none,
+      );
       check(res).equals(Factorial(n));
     });
 
@@ -19,6 +25,7 @@ void main() {
         'k',
         IntegerNumber.one,
         n,
+        assumptions: Assumptions.none,
       );
       check(res.toString()).equals('1 + n');
     });
@@ -32,6 +39,7 @@ void main() {
         'k',
         IntegerNumber.one,
         Constant.infinity,
+        assumptions: Assumptions.none,
       );
       check(res.toString()).equals('1/2 * pi');
     });
@@ -42,6 +50,7 @@ void main() {
         'k',
         IntegerNumber.one,
         IntegerNumber.of(5),
+        assumptions: Assumptions.none,
       );
       check(res).equals(IntegerNumber.of(120));
     });

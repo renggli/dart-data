@@ -57,7 +57,7 @@ List<Map<String, Expr>> solveEquations(
   List<Expr> equations,
   List<String> variables, {
   PolynomialSystemMethod method = PolynomialSystemMethod.auto,
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   if (equations.isEmpty || variables.isEmpty) {
     if (method == PolynomialSystemMethod.resultant) {
@@ -142,7 +142,7 @@ List<Map<String, Expr>> solveEquations(
 Map<String, Expr>? solveSystemEquations(
   List<Expr> equations,
   List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
+  required Assumptions assumptions,
 }) {
   final m = equations.length;
   final n = variables.length;

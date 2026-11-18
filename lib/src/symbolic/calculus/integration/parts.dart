@@ -2,6 +2,7 @@ import '../../algebra/expand.dart';
 import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/term_accumulator.dart';
+import '../../assumptions.dart';
 import '../../ast.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
@@ -14,6 +15,7 @@ Expr? tryIntegrationByParts(
   Expr pExpr,
   Expr vExpr,
   String variable, {
+  required Assumptions assumptions,
   int depth = 0,
 }) {
   if (depth >= 3) return null;
@@ -45,17 +47,25 @@ Expr? tryIntegrationByParts(
     _ => false,
   };
   if (isInverseTrigOrHyp) {
-    final v = antiDerivative(pExpr, variable, depth: 2);
+    final v = antiDerivative(
+      pExpr,
+      variable,
+      assumptions: assumptions,
+      depth: 2,
+    );
     if (!hasUnevaluatedIntegral(v, variable)) {
-      final uPrime = vExpr.derivative(variable).simplify();
-      final remIntegrand = (v * uPrime).simplify();
+      final uPrime = vExpr
+          .derivative(variable)
+          .simplify(assumptions: assumptions);
+      final remIntegrand = (v * uPrime).simplify(assumptions: assumptions);
       final remIntegral = antiDerivative(
         remIntegrand,
         variable,
+        assumptions: assumptions,
         depth: depth + 1,
       );
       if (!hasUnevaluatedIntegral(remIntegral, variable)) {
-        return (v * vExpr - remIntegral).simplify();
+        return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
       }
     }
   }
@@ -88,8 +98,9 @@ Expr? tryIntegrationByParts(
           when lnInner.matchLinear(variable) != null) {
         final v = (pExpr / a).simplify();
         final rem = antiDerivative(
-          (v * vExpr.derivative(variable)).simplify(),
+          (v * vExpr.derivative(variable)).simplify(assumptions: assumptions),
           variable,
+          assumptions: assumptions,
           depth: depth + 1,
         );
         if (!hasUnevaluatedIntegral(rem, variable)) {
@@ -144,13 +155,19 @@ Expr? tryIntegrationByParts(
     // 1. P(x) * ln(a*x + b)^k where u = ln(a*x + b)^k, dv = P(x) dx
     if (vExpr case Ln(:final expr)
         when degP >= 2 && expr.matchLinear(variable) != null) {
-      final v = antiDerivative(pExpr, variable);
-      final uPrime = vExpr.derivative(variable).simplify();
-      final remIntegrand = (v * uPrime).simplify();
-      final remIntegral = antiDerivative(remIntegrand, variable);
+      final v = antiDerivative(pExpr, variable, assumptions: assumptions);
+      final uPrime = vExpr
+          .derivative(variable)
+          .simplify(assumptions: assumptions);
+      final remIntegrand = (v * uPrime).simplify(assumptions: assumptions);
+      final remIntegral = antiDerivative(
+        remIntegrand,
+        variable,
+        assumptions: assumptions,
+      );
       if (!hasUnevaluatedIntegral(v, variable) &&
           !hasUnevaluatedIntegral(remIntegral, variable)) {
-        return (v * vExpr - remIntegral).simplify();
+        return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
       }
     }
     if (vExpr
@@ -159,13 +176,19 @@ Expr? tryIntegrationByParts(
           exponent: IntegerNumber(asInt: final k?),
         )
         when k >= 1 && k <= 5 && inner.matchLinear(variable) != null) {
-      final v = antiDerivative(pExpr, variable);
-      final uPrime = vExpr.derivative(variable).simplify();
-      final remIntegrand = (v * uPrime).simplify();
-      final remIntegral = antiDerivative(remIntegrand, variable);
+      final v = antiDerivative(pExpr, variable, assumptions: assumptions);
+      final uPrime = vExpr
+          .derivative(variable)
+          .simplify(assumptions: assumptions);
+      final remIntegrand = (v * uPrime).simplify(assumptions: assumptions);
+      final remIntegral = antiDerivative(
+        remIntegrand,
+        variable,
+        assumptions: assumptions,
+      );
       if (!hasUnevaluatedIntegral(v, variable) &&
           !hasUnevaluatedIntegral(remIntegral, variable)) {
-        return (v * vExpr - remIntegral).simplify();
+        return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
       }
     }
 
@@ -182,18 +205,29 @@ Expr? tryIntegrationByParts(
             xVar,
             variable,
           );
-          final dvAnti = (vExpr / (IntegerNumber.two * a2)).simplify();
-          final qPrime = quotient.derivative(variable).simplify();
+          final dvAnti = (vExpr / (IntegerNumber.two * a2)).simplify(
+            assumptions: assumptions,
+          );
+          final qPrime = quotient
+              .derivative(variable)
+              .simplify(assumptions: assumptions);
           final ibpRem = antiDerivative(
-            (qPrime * dvAnti).expand().simplify(),
+            (qPrime * dvAnti).expand().simplify(assumptions: assumptions),
             variable,
+            assumptions: assumptions,
           );
           final rem0 = (remainder is Number && remainder.isZero)
               ? IntegerNumber.zero
-              : antiDerivative((remainder * vExpr).simplify(), variable);
+              : antiDerivative(
+                  (remainder * vExpr).simplify(assumptions: assumptions),
+                  variable,
+                  assumptions: assumptions,
+                );
           if (!hasUnevaluatedIntegral(ibpRem, variable) &&
               !hasUnevaluatedIntegral(rem0, variable)) {
-            return (quotient * dvAnti - ibpRem + rem0).simplify();
+            return (quotient * dvAnti - ibpRem + rem0).simplify(
+              assumptions: assumptions,
+            );
           }
         }
       }
@@ -210,11 +244,12 @@ Expr? tryIntegrationByParts(
         _ => false,
       };
       if (isIntegrableV) {
-        final v = antiDerivative(vExpr, variable);
+        final v = antiDerivative(vExpr, variable, assumptions: assumptions);
         final pPrime = pExpr.derivative(variable);
         final remIntegral = antiDerivative(
-          (pPrime * v).expand().simplify(),
+          (pPrime * v).expand().simplify(assumptions: assumptions),
           variable,
+          assumptions: assumptions,
         );
         if (!hasUnevaluatedIntegral(v, variable) &&
             !hasUnevaluatedIntegral(remIntegral, variable)) {

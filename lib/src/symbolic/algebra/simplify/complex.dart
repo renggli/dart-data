@@ -11,7 +11,7 @@ import 'special.dart';
 import 'transcendental.dart';
 
 /// Simplifies a real-part expression `re(z)`.
-Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyRe(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
     case RealNumeric():
@@ -38,7 +38,7 @@ Expr simplifyRe(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies an imaginary-part expression `im(z)`.
-Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyIm(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
     case RealNumber():
@@ -50,7 +50,10 @@ Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
           ? RealNumber.fromDouble(imaginary.toDouble())
           : imaginary;
     case Conjugate(:final expr):
-      return simplifyNeg(simplifyIm(expr, assumptions: assumptions));
+      return simplifyNeg(
+        simplifyIm(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case Add(:final terms):
       return simplifyAdd([
         for (final term in terms) simplifyIm(term, assumptions: assumptions),
@@ -65,7 +68,7 @@ Expr simplifyIm(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a complex argument expression `arg(z)`.
-Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr simplifyArg(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
     case RealNumber(:final value):
@@ -105,6 +108,7 @@ Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
             assumptions: assumptions,
           ),
         ], assumptions: assumptions),
+        assumptions: assumptions,
       );
       if (!real.isNegative) {
         return atanTerm;
@@ -114,7 +118,10 @@ Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     case Conjugate(:final expr)
         when isPositiveExpr(expr, assumptions: assumptions) ||
             (expr is ComplexNumber && !expr.imaginary.isZero):
-      return simplifyNeg(simplifyArg(expr, assumptions: assumptions));
+      return simplifyNeg(
+        simplifyArg(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case _:
       if (isNonNegativeExpr(expr, assumptions: assumptions)) {
         return IntegerNumber.zero;
@@ -124,10 +131,7 @@ Expr simplifyArg(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 }
 
 /// Simplifies a complex conjugate expression `conj(z)`.
-Expr simplifyConjugate(
-  Expr expr, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr simplifyConjugate(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
     case RealNumeric() || Re() || Im() || Arg() || Abs() || OrderTerm():
@@ -181,35 +185,60 @@ Expr simplifyConjugate(
         assumptions: assumptions,
       );
     case Sinh(:final expr):
-      return simplifySinh(simplifyConjugate(expr, assumptions: assumptions));
+      return simplifySinh(
+        simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case Cosh(:final expr):
-      return simplifyCosh(simplifyConjugate(expr, assumptions: assumptions));
+      return simplifyCosh(
+        simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case Tanh(:final expr):
-      return simplifyTanh(simplifyConjugate(expr, assumptions: assumptions));
+      return simplifyTanh(
+        simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case Erf(:final expr):
-      return simplifyErf(simplifyConjugate(expr, assumptions: assumptions));
+      return simplifyErf(
+        simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case Erfc(:final expr):
-      return simplifyErfc(simplifyConjugate(expr, assumptions: assumptions));
+      return simplifyErfc(
+        simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case Erfi(:final expr):
-      return simplifyErfi(simplifyConjugate(expr, assumptions: assumptions));
+      return simplifyErfi(
+        simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case FresnelS(:final expr):
       return simplifyFresnelS(
         simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
       );
     case FresnelC(:final expr):
       return simplifyFresnelC(
         simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
       );
     case SinIntegralSi(:final expr):
       return simplifySinIntegralSi(
         simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
       );
     case SinhIntegralShi(:final expr):
       return simplifySinhIntegralShi(
         simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
       );
     case Atan(:final expr):
-      return simplifyAtan(simplifyConjugate(expr, assumptions: assumptions));
+      return simplifyAtan(
+        simplifyConjugate(expr, assumptions: assumptions),
+        assumptions: assumptions,
+      );
     case Asinh(:final expr):
       return simplifyAsinh(
         simplifyConjugate(expr, assumptions: assumptions),
@@ -224,10 +253,7 @@ Expr simplifyConjugate(
 }
 
 /// Rewrites [expr] into rectangular normal form `a + b * i`.
-Expr toRectangularExpr(
-  Expr expr, {
-  Assumptions assumptions = Assumptions.none,
-}) {
+Expr toRectangularExpr(Expr expr, {required Assumptions assumptions}) {
   final simplified = simplifyExpr(expr, assumptions: assumptions);
   final (:re, :im) = decomposeComplex(simplified, assumptions);
   if (im is Number && im.isZero) {
@@ -244,7 +270,7 @@ Expr toRectangularExpr(
 }
 
 /// Rewrites [expr] into polar normal form `r * e^(i * θ)`.
-Expr toPolarExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+Expr toPolarExpr(Expr expr, {required Assumptions assumptions}) {
   final simplified = simplifyExpr(expr, assumptions: assumptions);
   if (simplified is Number && simplified.isZero) {
     return simplified is RealNumber
