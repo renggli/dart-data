@@ -48,9 +48,15 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
   Mul(:final factors) => factors.every((f) => isProvenReal(f, assumptions)),
   Pow(base: Constant.e, :final exponent) => isProvenReal(exponent, assumptions),
   Pow(:final base, :final exponent) =>
-    (isProvenReal(base, assumptions) && exponent is IntegerNumber) ||
+    (isProvenReal(base, assumptions) &&
+            exponent is IntegerNumber &&
+            (!exponent.isNegative ||
+                isPositiveExpr(base, assumptions: assumptions) ||
+                isNegativeExpr(base, assumptions: assumptions))) ||
+        (isPositiveExpr(base, assumptions: assumptions) &&
+            isProvenReal(exponent, assumptions)) ||
         (isNonNegativeExpr(base, assumptions: assumptions) &&
-            isProvenReal(exponent, assumptions)),
+            isPositiveExpr(exponent, assumptions: assumptions)),
   Sin(:final expr) ||
   Cos(:final expr) ||
   Tan(:final expr) ||
@@ -67,9 +73,14 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
   ExpIntegralEi(:final expr) ||
   SinIntegralSi(:final expr) ||
   SinhIntegralShi(:final expr) ||
-  Gamma(:final expr) ||
-  Zeta(:final expr) ||
-  Digamma(:final expr) => isProvenReal(expr, assumptions),
+  Zeta(:final expr) => isProvenReal(expr, assumptions),
+  Gamma(:final expr) || Digamma(:final expr) =>
+    isProvenReal(expr, assumptions) &&
+        (isPositiveExpr(expr, assumptions: assumptions) ||
+            switch (tryStaticRealValue(expr)) {
+              final v? => v > 0.0 || (v != v.floorToDouble()),
+              _ => false,
+            }),
   LogIntegralLi(:final expr) ||
   CosIntegralCi(:final expr) ||
   CoshIntegralChi(:final expr) =>
@@ -91,17 +102,22 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
           _ => false,
         },
   Polygamma(:final left, :final right) ||
-  BesselJ(:final left, :final right) ||
-  BesselY(:final left, :final right) ||
-  BesselI(:final left, :final right) ||
-  BesselK(:final left, :final right) ||
-  UpperGamma(:final left, :final right) ||
-  LowerGamma(:final left, :final right) ||
   EllipticF(:final left, :final right) ||
   EllipticEIncomplete(
     :final left,
     :final right,
   ) => isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
+  BesselJ(:final left, :final right) || BesselI(:final left, :final right) =>
+    isProvenReal(left, assumptions) &&
+        isProvenReal(right, assumptions) &&
+        (isIntegerExpr(left, assumptions: assumptions) ||
+            isNonNegativeExpr(right, assumptions: assumptions)),
+  BesselY(:final left, :final right) ||
+  BesselK(:final left, :final right) ||
+  UpperGamma(:final left, :final right) ||
+  LowerGamma(:final left, :final right) =>
+    isProvenReal(left, assumptions) &&
+        isPositiveExpr(right, assumptions: assumptions),
   Polylog(:final left, :final right) =>
     isProvenReal(left, assumptions) &&
         isProvenReal(right, assumptions) &&
@@ -133,6 +149,12 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
   _ => false,
 };
 
+/// Returns `true` if [expr] is known to be strictly negative under [assumptions].
+bool isNegativeExpr(Expr expr, {required Assumptions assumptions}) {
+  final (pos, isNeg) = extractSign(expr);
+  return isNeg && isPositiveExpr(pos, assumptions: assumptions);
+}
+
 /// Returns `true` if [expr] is known to be strictly positive under [assumptions].
 bool isPositiveExpr(Expr expr, {required Assumptions assumptions}) =>
     switch (expr) {
@@ -145,50 +167,80 @@ bool isPositiveExpr(Expr expr, {required Assumptions assumptions}) =>
         assumptions,
       ),
       Pow(:final base, :final exponent) =>
-        isPositiveExpr(base, assumptions: assumptions) &&
-            isProvenReal(exponent, assumptions),
+        (isPositiveExpr(base, assumptions: assumptions) &&
+                isProvenReal(exponent, assumptions)) ||
+            (isProvenReal(base, assumptions) &&
+                (isPositiveExpr(base, assumptions: assumptions) ||
+                    isNegativeExpr(base, assumptions: assumptions)) &&
+                exponent is IntegerNumber &&
+                exponent.value > Integer.zero &&
+                exponent.value.isEven),
+      Ln(:final expr) =>
+        expr == Constant.e ||
+            switch (tryStaticRealValue(expr)) {
+              final v? => v > 1.0,
+              _ => false,
+            },
+      Sin() || Cos() => switch (tryStaticRealValue(expr)) {
+        final v? => v > 0.0,
+        _ => false,
+      },
       Cosh(:final expr) => isProvenReal(expr, assumptions),
       Add(:final terms) =>
         terms.every((t) => isNonNegativeExpr(t, assumptions: assumptions)) &&
             terms.any((t) => isPositiveExpr(t, assumptions: assumptions)),
-      Mul(:final factors) => factors.every(
-        (f) => isPositiveExpr(f, assumptions: assumptions),
-      ),
+      Mul(:final factors) => () {
+        var negCount = 0;
+        for (final f in factors) {
+          if (isPositiveExpr(f, assumptions: assumptions)) continue;
+          if (isNegativeExpr(f, assumptions: assumptions)) {
+            negCount++;
+            continue;
+          }
+          return false;
+        }
+        return negCount.isEven;
+      }(),
       _ => false,
     };
 
 /// Returns `true` if [expr] is syntactically non-negative under [assumptions].
-bool isNonNegativeExpr(Expr expr, {required Assumptions assumptions}) =>
-    switch (expr) {
-      RealNumeric(:final isNegative) => !isNegative,
-      Constant(:final value) => value.b == 0 && value.a >= 0,
-      Variable(:final name) =>
-        assumptions.domainOf(name) == VariableDomain.positive,
-      Abs() => true,
-      Pow(base: Constant.e, :final exponent) => isProvenReal(
-        exponent,
-        assumptions,
-      ),
-      Pow(:final base, :final exponent) =>
+bool isNonNegativeExpr(
+  Expr expr, {
+  required Assumptions assumptions,
+}) => switch (expr) {
+  RealNumeric(:final isNegative) => !isNegative,
+  Constant(:final value) => value.b == 0 && value.a >= 0,
+  Variable(:final name) =>
+    assumptions.domainOf(name) == VariableDomain.positive,
+  Abs(:final expr) => expr != Constant.undefined && expr != Constant.infinity,
+  Pow(base: Constant.e, :final exponent) => isProvenReal(exponent, assumptions),
+  Pow(:final base, :final exponent) =>
+    (isPositiveExpr(base, assumptions: assumptions) &&
+            isProvenReal(exponent, assumptions)) ||
         (isNonNegativeExpr(base, assumptions: assumptions) &&
-                isProvenReal(exponent, assumptions)) ||
-            (isProvenReal(base, assumptions) &&
-                exponent is IntegerNumber &&
-                exponent.value.isEven),
-      Cosh(:final expr) => isProvenReal(expr, assumptions),
-      Add(:final terms) => terms.every(
-        (t) => isNonNegativeExpr(t, assumptions: assumptions),
-      ),
-      Mul(:final factors) => factors.every(
-        (f) => isNonNegativeExpr(f, assumptions: assumptions),
-      ),
-      _ => false,
-    };
+            isNonNegativeExpr(exponent, assumptions: assumptions)) ||
+        (isProvenReal(base, assumptions) &&
+            exponent is IntegerNumber &&
+            exponent.value > Integer.zero &&
+            exponent.value.isEven),
+  Cosh(:final expr) => isProvenReal(expr, assumptions),
+  Add(:final terms) => terms.every(
+    (t) => isNonNegativeExpr(t, assumptions: assumptions),
+  ),
+  Mul(:final factors) => factors.every(
+    (f) => isNonNegativeExpr(f, assumptions: assumptions),
+  ),
+  _ => false,
+};
 
 /// Returns `true` if [expr] is syntactically integer-valued under [assumptions].
 bool isIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
     switch (expr) {
-      IntegerNumber() || Floor() || Ceil() || Round() => true,
+      IntegerNumber() => true,
+      Floor(:final expr) ||
+      Ceil(:final expr) ||
+      Round(:final expr) => isProvenReal(expr, assumptions),
       Sign(:final expr) => isProvenReal(expr, assumptions),
       Factorial(:final expr) =>
         isIntegerExpr(expr, assumptions: assumptions) &&

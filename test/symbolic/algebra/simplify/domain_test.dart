@@ -206,6 +206,68 @@ void main() {
             .isTrue();
         check(isPositiveExpr(Cosh(x), assumptions: Assumptions.real)).isTrue();
       });
+
+      test(
+        'sound domain predicates for Bessel, Gamma, Floor, and negative Mul',
+        () {
+          check(
+            isIntegerExpr(
+              Floor(Constant.undefined),
+              assumptions: Assumptions.none,
+            ),
+          ).isFalse();
+          check(
+            isIntegerExpr(
+              Floor(const Variable('x')),
+              assumptions: Assumptions.real,
+            ),
+          ).isTrue();
+          check(
+            isProvenReal(
+              BesselK(IntegerNumber.zero, IntegerNumber.negativeOne),
+              Assumptions.none,
+            ),
+          ).isFalse();
+          check(
+            isProvenReal(
+              BesselY(IntegerNumber.zero, IntegerNumber.negativeOne),
+              Assumptions.none,
+            ),
+          ).isFalse();
+          check(
+            isProvenReal(
+              UpperGamma(IntegerNumber.one, IntegerNumber.negativeOne),
+              Assumptions.none,
+            ),
+          ).isFalse();
+          check(isProvenReal(Gamma(IntegerNumber.zero), Assumptions.none))
+              .isFalse();
+          check(
+            isPositiveExpr(
+              Expr.parse('(-2) * (-x)'),
+              assumptions: Assumptions.positive,
+            ),
+          ).isTrue();
+          check(
+            isNegativeExpr(
+              Expr.parse('-2 * x'),
+              assumptions: Assumptions.positive,
+            ),
+          ).isTrue();
+          check(
+            isNonNegativeExpr(
+              Pow(IntegerNumber.zero, IntegerNumber.negativeOne),
+              assumptions: Assumptions.none,
+            ),
+          ).isFalse();
+          check(
+            isNonNegativeExpr(
+              Abs(Constant.undefined),
+              assumptions: Assumptions.none,
+            ),
+          ).isFalse();
+        },
+      );
     });
   });
 }
