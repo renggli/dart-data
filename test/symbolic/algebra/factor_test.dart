@@ -189,5 +189,10 @@ void main() {
       check(hugeFactored).isA<Mul>();
       check(hugeFactored.simplify()).equals(hugeComposite);
     });
+
+    test('returns undefined on division by zero in factor and cancel', () {
+      check(Expr.parse('1 / (x - x)').factor()).equals(Constant.undefined);
+      check(Expr.parse('1 / (x - x)').cancel()).equals(Constant.undefined);
+    });
   });
 }

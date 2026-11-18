@@ -100,6 +100,9 @@ Expr _approximatePow(Expr base, Expr exponent) {
         return ComplexNumber.of(RealNumber(re), RealNumber(im));
       }
     }
+    if (base.isZero && exponent is RealNumeric && exponent.isNegative) {
+      return Constant.undefined;
+    }
     final folded = base.powNumber(exponent);
     if (folded != null) return folded;
   }

@@ -30,6 +30,9 @@ Expr buildFactoredExpr({
 
 /// Cancels common symbolic factors and numerical scalar between [num] and [den].
 Expr cancelFactoredFraction(Expr num, Expr den) {
+  if (num == Constant.undefined || den == Constant.undefined) {
+    return Constant.undefined;
+  }
   final numFactors = <Expr, int>{};
   RationalNumber numScalar = IntegerNumber.one;
   flattenFactored(num, numFactors, (s) {
@@ -43,7 +46,7 @@ Expr cancelFactoredFraction(Expr num, Expr den) {
   });
 
   if (denScalar.isZero) {
-    throw UnsupportedError('Division by zero in factorization');
+    return Constant.undefined;
   }
 
   // Cancel common symbolic factors

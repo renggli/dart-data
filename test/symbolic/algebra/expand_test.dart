@@ -83,8 +83,9 @@ void main() {
       final fracPow = Expr.parse('((x + 1)^2)^(1/2)').expand();
       check(fracPow.evaluate({'x': 3.0})).equals(4.0);
 
-      check(() => Pow(IntegerNumber.zero, IntegerNumber.negativeOne).expand())
-          .throws<UnsupportedError>();
+      check(Pow(IntegerNumber.zero, IntegerNumber.negativeOne).expand())
+          .equals(Constant.undefined);
+      check(Expr.parse('(x - x)^(-1)').expand()).equals(Constant.undefined);
     });
 
     test('recursively expands inside sums and function arguments', () {

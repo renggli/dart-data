@@ -190,9 +190,12 @@ Expr _mergePolyFactors(List<_PolyFactor> a, List<_PolyFactor> b) {
 }
 
 Expr _expandPow(Expr base, Expr exponent, Assumptions assumptions) {
+  if (base == Constant.undefined || exponent == Constant.undefined) {
+    return Constant.undefined;
+  }
   if (exponent case IntegerNumber(asInt: final intExp?)) {
     if (intExp < 0 && base is Number && base.isZero) {
-      throw UnsupportedError('Division by zero in expansion');
+      return Constant.undefined;
     }
     if (intExp == 0) {
       return base.anyNode((n) => n is RealNumber)

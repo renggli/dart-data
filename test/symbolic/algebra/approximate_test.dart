@@ -126,6 +126,8 @@ void main() {
           const RealNumber(200.5),
         ).approximate();
         check(overflowPow).equals(Constant.undefined);
+        check(Pow(IntegerNumber.zero, IntegerNumber.negativeOne).approximate())
+            .equals(Constant.undefined);
 
         // Unary function where real evaluation is NaN but complex evaluation succeeds
         final lnNeg1 = Ln(IntegerNumber.negativeOne).approximate();
