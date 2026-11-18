@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import '../ast.dart';
 import 'multivariate_polynomial.dart';
 
@@ -119,11 +121,11 @@ class FglmEngine {
         .toList();
 
     final result = <Monomial>[];
-    final queue = <Monomial>[Monomial.zero(n)];
+    final queue = Queue<Monomial>()..add(Monomial.zero(n));
     final visited = <Monomial>{Monomial.zero(n)};
 
     while (queue.isNotEmpty) {
-      final m = queue.removeAt(0);
+      final m = queue.removeFirst();
       var isDivisible = false;
       for (final lm in leadingMonomials) {
         if (lm.divides(m)) {

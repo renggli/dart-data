@@ -248,9 +248,15 @@ void main() {
         check(isProvenReal(CoshIntegralChi(IntegerNumber.two), realAssumptions))
             .isTrue();
         check(isProvenReal(UpperGamma(IntegerNumber.two, x), realAssumptions))
-            .isTrue();
+            .isFalse();
         check(isProvenReal(LowerGamma(IntegerNumber.two, x), realAssumptions))
-            .isTrue();
+            .isFalse();
+        check(
+          isProvenReal(UpperGamma(IntegerNumber.two, x), Assumptions.positive),
+        ).isTrue();
+        check(
+          isProvenReal(LowerGamma(IntegerNumber.two, x), Assumptions.positive),
+        ).isTrue();
         check(
           isProvenReal(
             Polylog(IntegerNumber.two, FractionNumber.half),

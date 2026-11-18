@@ -201,7 +201,7 @@ extension CompilerExtension on Expr {
   BytecodeEvaluator _cachedEvaluator() => _cache[this] ??= compileToBytecode(
     this,
     const [],
-    optimize: false,
+    optimize: true,
     allowDynamicVars: true,
   );
 

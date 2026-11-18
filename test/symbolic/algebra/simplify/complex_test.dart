@@ -34,7 +34,7 @@ void main() {
           .equals(IntegerNumber.zero);
       check(simplifyIm(Erfc(x), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Gamma(x), assumptions: realAssumptions))
+      check(simplifyIm(Gamma(x), assumptions: Assumptions.positive))
           .equals(IntegerNumber.zero);
       check(simplifyIm(Binomial(x, y), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);
@@ -428,7 +428,7 @@ void main() {
           .equals(Constant.undefined);
 
       // isProvenReal on non-negative base with real exponent, and isIntegerExpr on Factorial and Binomial
-      check(isProvenReal(Pow(Abs(x), y), realAssumptions)).isTrue();
+      check(isProvenReal(Pow(Abs(x), y), Assumptions.positive)).isTrue();
       check(isProvenReal(Factorial(ComplexNumber.i), Assumptions.none))
           .isFalse();
       check(

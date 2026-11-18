@@ -49,6 +49,7 @@ class MonomialAccumulator {
   int? infinitySign;
 
   bool _isCombiningFractions = false;
+  bool _hasNegativePowerTerm = false;
 
   /// Recursively flattens and accumulates [expr] multiplied by [scale].
   void add(Expr expr, [Number scale = IntegerNumber.one]) {
@@ -113,6 +114,9 @@ class MonomialAccumulator {
     }
     if (!hasTranscendental && _isReducibleTranscendentalBase(base)) {
       hasTranscendental = true;
+    }
+    if (!_hasNegativePowerTerm && _containsNegativePower(base)) {
+      _hasNegativePowerTerm = true;
     }
     final existing = terms[base];
     final nextCoeff = existing == null ? coeff : existing.add(coeff);
@@ -222,7 +226,9 @@ class MonomialAccumulator {
 
   /// Combines fractions with identical denominators.
   void combineFractions() {
-    if (_isCombiningFractions) return;
+    if (_isCombiningFractions || !_hasNegativePowerTerm || terms.length < 2) {
+      return;
+    }
     _isCombiningFractions = true;
     try {
       _doCombineFractions();
@@ -967,6 +973,12 @@ bool _hasRealSquareExponent(Expr expr) => switch (expr) {
   }
   return null;
 }
+
+bool _containsNegativePower(Expr expr) => switch (expr) {
+  Pow(exponent: RealNumeric(isNegative: true)) => true,
+  Mul(:final factors) => factors.any(_containsNegativePower),
+  _ => false,
+};
 
 bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
   Ln() => true,

@@ -54,6 +54,10 @@ Expr simplifyExpr(Expr expr, {required Assumptions assumptions}) {
 }
 
 Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
+  if (expr.isSimplified &&
+      (identical(assumptions, Assumptions.none) || assumptions.isEmpty)) {
+    return expr;
+  }
   if (expr is Number || expr is Constant || expr is Variable) {
     return expr;
   }
