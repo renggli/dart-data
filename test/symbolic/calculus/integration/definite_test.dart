@@ -161,30 +161,30 @@ void main() {
 
       // Interior singularity pole detection:
       final divergentPole = Expr.parse('1/x^2').integrate('x', from: -1, to: 1);
-      check(divergentPole).isA<Integral>();
+      check(divergentPole).equals(Constant.infinity);
 
       final divergentInfPole = Expr.parse('1/x^2')
           .integrate('x', from: -Constant.infinity, to: Constant.infinity);
-      check(divergentInfPole).isA<Integral>();
+      check(divergentInfPole).equals(Constant.infinity);
 
       final divergentSemiInfPole = Expr.parse('1/x^2')
           .integrate('x', from: -1, to: Constant.infinity);
-      check(divergentSemiInfPole).isA<Integral>();
+      check(divergentSemiInfPole).equals(Constant.infinity);
 
       final divergentLeftSemiInfPole = Expr.parse('1/x^2')
           .integrate('x', from: -Constant.infinity, to: 1);
-      check(divergentLeftSemiInfPole).isA<Integral>();
+      check(divergentLeftSemiInfPole).equals(Constant.infinity);
 
       final shiftedPole = Expr.parse('1/(x - 1)^2')
           .integrate('x', from: 0, to: 2);
-      check(shiftedPole).isA<Integral>();
+      check(shiftedPole).equals(Constant.infinity);
 
-      // Interior pole detection for Tan(u) and Ln(u):
+      // Interior singularity pole detection for Tan(u) and Ln(u):
       final tanSquarePole = Pow(
         Tan(x),
         IntegerNumber.two,
       ).integrate('x', from: IntegerNumber.zero, to: Constant.pi);
-      check(tanSquarePole).isA<Integral>();
+      check(tanSquarePole).equals(Constant.infinity);
 
       final tanSquareNoPole = Pow(Tan(x), IntegerNumber.two).integrate(
         'x',
@@ -362,7 +362,14 @@ void main() {
       ).isNotNull();
       check(Expr.parse('sin(x^3) / (x^2 - 4)').integrate('x', from: -1, to: 1))
           .equals(IntegerNumber.zero);
-      check(Expr.parse('sin(x^3) / x').integrate('x', from: -1, to: 1))
+      check(Expr.parse('sin(x^3) / x').integrate('x', from: -1, to: 1)).equals(
+        (RationalNumber(2, 3) * SinIntegralSi(IntegerNumber.one)).simplify(),
+      );
+      check(Expr.parse('1 / (x - 1)^2').integrate('x', from: 0, to: 2))
+          .equals(Constant.infinity);
+      check(Expr.parse('((x - 1)^2)^(-1/3)').integrate('x', from: 0, to: 2))
+          .equals(IntegerNumber.of(6));
+      check(Expr.parse('1 / (x - 1)').integrate('x', from: 0, to: 2))
           .isA<Integral>();
       check(
         Expr.parse('sin(x^3) / (x^2 - 4)')

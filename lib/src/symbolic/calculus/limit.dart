@@ -207,6 +207,28 @@ Expr computeLimit(
   }
 
   if (expr case Pow(:final base, :final exponent)
+      when base.dependsOn(variable) && !exponent.dependsOn(variable)) {
+    try {
+      final baseLim = computeLimit(
+        base,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      if (baseLim is Number &&
+          baseLim.isZero &&
+          exponent is RealNumeric &&
+          !exponent.isNegative &&
+          !exponent.isZero) {
+        return exponent is RealNumber ? RealNumber.zero : IntegerNumber.zero;
+      }
+    } on Object {
+      // Fall through
+    }
+  }
+
+  if (expr case Pow(:final base, :final exponent)
       when (base == Constant.e || base is RealNumeric)) {
     try {
       final innerLim = computeLimit(

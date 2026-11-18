@@ -94,6 +94,167 @@ Expr evaluateDefiniteIntegral(
       hasInteriorPole = _hasInteriorPole(function, variable, low, high);
     }
 
+    if (hasInteriorPole &&
+        numFrom != null &&
+        numTo != null &&
+        !numFrom.isNaN &&
+        !numTo.isNaN) {
+      final low = numFrom < numTo ? numFrom : numTo;
+      final high = numFrom < numTo ? numTo : numFrom;
+      final poles = _collectSymbolicInteriorPoles(
+        function,
+        variable,
+        low,
+        high,
+      );
+      if (poles != null && poles.isNotEmpty) {
+        final hasEvenPowerFrac = function.anyNode(
+          (n) =>
+              n is Pow &&
+              n.base is Pow &&
+              (n.base as Pow).exponent == IntegerNumber.two &&
+              n.exponent is FractionNumber &&
+              (n.exponent as FractionNumber).denominator.isOdd,
+        );
+        final effectiveAntiDeriv = wrapLnWithAbs(antiDeriv, assumptions);
+        final isAscending = numFrom <= numTo;
+        final points = <Expr>[
+          if (isAscending) fromExpr else toExpr,
+          for (final p in poles) p.expr,
+          if (isAscending) toExpr else fromExpr,
+        ];
+        final pieces = <Expr>[];
+        var ok = true;
+        var hasPosInf = false;
+        var hasNegInf = false;
+        for (var i = 0; i < points.length - 1; i++) {
+          final pLow = points[i];
+          final pHigh = points[i + 1];
+          final vLow = evaluateBoundNumeric(pLow);
+          final vHigh = evaluateBoundNumeric(pHigh);
+          if (vLow != null &&
+              vHigh != null &&
+              vLow.isFinite &&
+              vHigh.isFinite) {
+            final mid = 0.5 * (vLow + vHigh);
+            final hasNegLnArg = function.anyNode((n) {
+              if (n case Ln(:final expr) when expr.dependsOn(variable)) {
+                try {
+                  final v = expr.evaluate({variable: mid});
+                  return v.isNaN || v <= 0.0;
+                } on Object {
+                  return true;
+                }
+              }
+              return false;
+            });
+            if (hasNegLnArg) {
+              ok = false;
+              break;
+            }
+          }
+          var pieceAnti = effectiveAntiDeriv;
+          if (hasEvenPowerFrac) {
+            final vLow = evaluateBoundNumeric(pLow);
+            final vHigh = evaluateBoundNumeric(pHigh);
+            if (vLow == null ||
+                vHigh == null ||
+                !vLow.isFinite ||
+                !vHigh.isFinite) {
+              ok = false;
+              break;
+            }
+            final subFn = _resolveEvenPowerOnInterval(
+              function,
+              variable,
+              0.5 * (vLow + vHigh),
+              assumptions,
+            );
+            final subAnti = antiDerivative(
+              subFn,
+              variable,
+              assumptions: assumptions,
+            ).simplify(assumptions: assumptions);
+            if (hasUnevaluatedIntegral(subAnti, variable)) {
+              ok = false;
+              break;
+            }
+            pieceAnti = wrapLnWithAbs(subAnti, assumptions);
+          }
+          try {
+            final upper = isInfiniteBound(pHigh)
+                ? pieceAnti.limit(variable, pHigh, assumptions: assumptions)
+                : pieceAnti.limit(
+                    variable,
+                    pHigh,
+                    direction: LimitDirection.fromBelow,
+                    assumptions: assumptions,
+                  );
+            final lower = isInfiniteBound(pLow)
+                ? pieceAnti.limit(variable, pLow, assumptions: assumptions)
+                : pieceAnti.limit(
+                    variable,
+                    pLow,
+                    direction: LimitDirection.fromAbove,
+                    assumptions: assumptions,
+                  );
+            if (upper.anyNode((n) => n is Limit || n == Constant.undefined) ||
+                lower.anyNode((n) => n is Limit || n == Constant.undefined)) {
+              ok = false;
+              break;
+            }
+            if (upper == Constant.infinity) {
+              if (lower == Constant.infinity) {
+                ok = false;
+                break;
+              }
+              hasPosInf = true;
+              continue;
+            }
+            if (upper == _negInfinity) {
+              if (lower == _negInfinity) {
+                ok = false;
+                break;
+              }
+              hasNegInf = true;
+              continue;
+            }
+            if (lower == Constant.infinity) {
+              hasNegInf = true;
+              continue;
+            }
+            if (lower == _negInfinity) {
+              hasPosInf = true;
+              continue;
+            }
+            final diff = (upper - lower).simplify(assumptions: assumptions);
+            if (diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+              ok = false;
+              break;
+            }
+            pieces.add(diff);
+          } on Object {
+            ok = false;
+            break;
+          }
+        }
+        if (ok && !(hasPosInf && hasNegInf)) {
+          if (hasPosInf) {
+            return isAscending ? Constant.infinity : _negInfinity;
+          }
+          if (hasNegInf) {
+            return isAscending ? _negInfinity : Constant.infinity;
+          }
+          final total = Add(pieces).simplify(assumptions: assumptions);
+          if (!total.anyNode((n) => n is Limit || n == Constant.undefined)) {
+            return isAscending
+                ? total
+                : (-total).simplify(assumptions: assumptions);
+          }
+        }
+      }
+    }
+
     if (!hasInteriorPole) {
       final effectiveAntiDeriv = wrapLnWithAbs(antiDeriv, assumptions);
       final List<({double value, Expr expr})>? jumps;
@@ -244,6 +405,97 @@ Expr evaluateDefiniteIntegral(
     return specialDef.simplify(assumptions: assumptions);
   }
 
+  // Fallback: if antiderivative failed due to an even-power fractional
+  // singularity like ((x - 1)^2)^(-1/3), split at interior poles and resolve
+  // the base sign on each sub-interval.
+  if (hasUnevaluatedIntegral(antiDeriv, variable)) {
+    final numFrom = evaluateBoundNumeric(fromExpr);
+    final numTo = evaluateBoundNumeric(toExpr);
+    if (numFrom != null && numTo != null && !numFrom.isNaN && !numTo.isNaN) {
+      final low = numFrom < numTo ? numFrom : numTo;
+      final high = numFrom < numTo ? numTo : numFrom;
+      if (_hasInteriorPole(function, variable, low, high)) {
+        final poles = _collectSymbolicInteriorPoles(
+          function,
+          variable,
+          low,
+          high,
+        );
+        if (poles != null && poles.isNotEmpty) {
+          final isAscending = numFrom <= numTo;
+          final points = <Expr>[
+            if (isAscending) fromExpr else toExpr,
+            for (final p in poles) p.expr,
+            if (isAscending) toExpr else fromExpr,
+          ];
+          final pieces = <Expr>[];
+          var ok = true;
+          for (var i = 0; i < points.length - 1; i++) {
+            final pLow = points[i];
+            final pHigh = points[i + 1];
+            final vLow = evaluateBoundNumeric(pLow);
+            final vHigh = evaluateBoundNumeric(pHigh);
+            if (vLow == null ||
+                vHigh == null ||
+                !vLow.isFinite ||
+                !vHigh.isFinite) {
+              ok = false;
+              break;
+            }
+            final mid = 0.5 * (vLow + vHigh);
+            final subFn = _resolveEvenPowerOnInterval(
+              function,
+              variable,
+              mid,
+              assumptions,
+            );
+            final subAnti = antiDerivative(
+              subFn,
+              variable,
+              assumptions: assumptions,
+            ).simplify(assumptions: assumptions);
+            if (hasUnevaluatedIntegral(subAnti, variable)) {
+              ok = false;
+              break;
+            }
+            final effSub = wrapLnWithAbs(subAnti, assumptions);
+            try {
+              final upper = effSub.limit(
+                variable,
+                pHigh,
+                direction: LimitDirection.fromBelow,
+                assumptions: assumptions,
+              );
+              final lower = effSub.limit(
+                variable,
+                pLow,
+                direction: LimitDirection.fromAbove,
+                assumptions: assumptions,
+              );
+              final diff = (upper - lower).simplify(assumptions: assumptions);
+              if (diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+                ok = false;
+                break;
+              }
+              pieces.add(diff);
+            } on Object {
+              ok = false;
+              break;
+            }
+          }
+          if (ok) {
+            final total = Add(pieces).simplify(assumptions: assumptions);
+            if (!total.anyNode((n) => n is Limit || n == Constant.undefined)) {
+              return isAscending
+                  ? total
+                  : (-total).simplify(assumptions: assumptions);
+            }
+          }
+        }
+      }
+    }
+  }
+
   return Integral(
     function.simplify(assumptions: assumptions),
     variable,
@@ -282,9 +534,8 @@ List<Expr> extractDenominatorFactors(Expr expr) {
       final exp = e.exponent;
       if (exp is Number && exp.toDouble() < 0) {
         factors.add(e.base);
-      } else {
-        visit(e.base);
       }
+      visit(e.base);
     } else if (e is Mul) {
       for (final f in e.factors) {
         visit(f);
@@ -851,6 +1102,66 @@ final Expr _negInfinity = Mul(const [
   IntegerNumber.negativeOne,
   Constant.infinity,
 ], isSimplified: true);
+
+Expr _resolveEvenPowerOnInterval(
+  Expr expr,
+  String variable,
+  double midpoint,
+  Assumptions assumptions,
+) {
+  if (expr
+      case Pow(
+        base: Pow(base: final u, exponent: IntegerNumber(asInt: 2)),
+        exponent: final r,
+      )
+      when r is FractionNumber && r.denominator.isOdd) {
+    try {
+      final val = u.evaluate({variable: midpoint});
+      if (val.isFinite && val != 0.0) {
+        final signedBase = val > 0
+            ? u
+            : (-u).simplify(assumptions: assumptions);
+        return Pow(
+          signedBase,
+          r.mulRational(IntegerNumber.two),
+        ).simplify(assumptions: assumptions);
+      }
+    } on Object {
+      // Fall through
+    }
+  }
+  return expr.mapChildren(
+    (c) => _resolveEvenPowerOnInterval(c, variable, midpoint, assumptions),
+  );
+}
+
+List<({double value, Expr expr})>? _collectSymbolicInteriorPoles(
+  Expr expr,
+  String variable,
+  double low,
+  double high,
+) {
+  final poles = <({double value, Expr expr})>[];
+  for (final factor in extractDenominatorFactors(expr)) {
+    if (!factor.dependsOn(variable)) continue;
+    try {
+      final roots = factor.solve(variable, assumptions: Assumptions.real);
+      for (final root in roots) {
+        final v = evaluateBoundNumeric(root);
+        if (v == null || v.isNaN) return null;
+        if (v > low + 1e-12 && v < high - 1e-12) {
+          if (!poles.any((p) => (p.value - v).abs() < 1e-12)) {
+            poles.add((value: v, expr: root));
+          }
+        }
+      }
+    } on Object {
+      return null;
+    }
+  }
+  poles.sort((a, b) => a.value.compareTo(b.value));
+  return poles;
+}
 
 bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
   final poles = findDenominatorRoots(expr, variable);
