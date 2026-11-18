@@ -642,5 +642,29 @@ void main() {
             .simplify(),
       );
     });
+
+    test(
+      'expands BesselI, Factorial, Beta, and Binomial into Taylor series',
+      () {
+        const x = Variable('x');
+        check(BesselI(IntegerNumber.zero, x).series('x', order: 4)).equals(
+          (IntegerNumber.one +
+                  RationalNumber(1, 4) * Pow(x, IntegerNumber.two) +
+                  const OrderTerm('x', 4))
+              .simplify(),
+        );
+        check(Factorial(x).series('x', order: 2).toString())
+            .equals('1 + digamma(1) * x + O(x^2)');
+        check(
+          Beta(x, IntegerNumber.one).series('x', point: 1, order: 2).toString(),
+        ).equals('1 - (x - 1) + O((x - 1)^2)');
+        check(Binomial(x, IntegerNumber.two).series('x', order: 3)).equals(
+          (FractionNumber.negativeHalf * x +
+                  FractionNumber.half * Pow(x, IntegerNumber.two) +
+                  const OrderTerm('x', 3))
+              .simplify(),
+        );
+      },
+    );
   });
 }

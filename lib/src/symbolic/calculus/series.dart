@@ -708,7 +708,36 @@ PowerSeries _expandToPowerSeries(
 
   Zeta(:final expr) => _expandZeta(expr, variable, point, order),
 
-  BesselJ(:final left, :final right) => _expandBesselJ(
+  BesselJ(:final left, :final right) => _expandBessel(
+    left,
+    right,
+    variable,
+    point,
+    order,
+    isModified: false,
+  ),
+  BesselI(:final left, :final right) => _expandBessel(
+    left,
+    right,
+    variable,
+    point,
+    order,
+    isModified: true,
+  ),
+  Factorial(:final expr) => _expandGamma(
+    (expr + IntegerNumber.one).simplify(),
+    variable,
+    point,
+    order,
+  ),
+  Beta(:final left, :final right) => _expandBeta(
+    left,
+    right,
+    variable,
+    point,
+    order,
+  ),
+  Binomial(:final left, :final right) => _expandBinomial(
     left,
     right,
     variable,
@@ -720,11 +749,7 @@ PowerSeries _expandToPowerSeries(
   Im() ||
   Arg() ||
   Conjugate() ||
-  Beta() ||
-  Factorial() ||
-  Binomial() ||
   BesselY() ||
-  BesselI() ||
   BesselK() ||
   Mod() ||
   RelationalExpr() ||
@@ -1701,14 +1726,16 @@ PowerSeries _expandZeta(Expr inner, String variable, Expr point, int order) {
   );
 }
 
-PowerSeries _expandBesselJ(
+PowerSeries _expandBessel(
   Expr nu,
   Expr inner,
   String variable,
   Expr point,
-  int order,
-) {
-  void checkBesselJSingularity(Expr atPoint) {
+  int order, {
+  required bool isModified,
+}) {
+  final fnName = isModified ? 'BesselI' : 'BesselJ';
+  void checkBesselSingularity(Expr atPoint) {
     final u0 = inner.substitute(variable, point).simplify();
     final isNuInt =
         nu is IntegerNumber ||
@@ -1723,18 +1750,77 @@ PowerSeries _expandBesselJ(
             }());
     if (PowerSeries._isZero(u0) && !isNuInt) {
       throw UnsupportedError(
-        'BesselJ has a branch point at zero for non-integer orders',
+        '$fnName has a branch point at zero for non-integer orders',
       );
     }
   }
 
   return _expandTaylorSeries(
-    BesselJ(nu, inner),
+    isModified ? BesselI(nu, inner) : BesselJ(nu, inner),
     variable,
     point,
     order,
-    checkSingularity: checkBesselJSingularity,
+    checkSingularity: checkBesselSingularity,
   );
+}
+
+PowerSeries _expandBeta(
+  Expr left,
+  Expr right,
+  String variable,
+  Expr point,
+  int order,
+) {
+  void checkBetaPole(Expr atPoint) {
+    for (final arg in [left, right]) {
+      final vExpr = arg.substitute(variable, point).simplify();
+      if (vExpr is IntegerNumber && (vExpr.isZero || vExpr.isNegative)) {
+        throw UnsupportedError(
+          'Beta has a pole at non-positive integer $vExpr',
+        );
+      }
+    }
+  }
+
+  return _expandTaylorSeries(
+    Beta(left, right),
+    variable,
+    point,
+    order,
+    checkSingularity: checkBetaPole,
+  );
+}
+
+PowerSeries _expandBinomial(
+  Expr left,
+  Expr right,
+  String variable,
+  Expr point,
+  int order,
+) {
+  if (right case IntegerNumber(asInt: final k?) when k >= 0 && k <= 20) {
+    if (k == 0) {
+      return PowerSeries(variable, point, {0: IntegerNumber.one}, order);
+    }
+    var acc = _expandToPowerSeries(left, variable, point, order);
+    for (var j = 1; j < k; j++) {
+      final factor = _expandToPowerSeries(
+        (left - IntegerNumber.of(j)).simplify(),
+        variable,
+        point,
+        order,
+      );
+      acc = acc * factor;
+    }
+    final invFact = RationalNumber.of(Integer.one, Integer.from(k).factorial());
+    return acc.scale(invFact);
+  }
+  final gammaExpr =
+      (Gamma(left + IntegerNumber.one) /
+              (Gamma(right + IntegerNumber.one) *
+                  Gamma(left - right + IntegerNumber.one)))
+          .simplify();
+  return _expandTaylorSeries(gammaExpr, variable, point, order);
 }
 
 Expr _wrapSeriesPoint(Object point) => Expr.wrap(point);
