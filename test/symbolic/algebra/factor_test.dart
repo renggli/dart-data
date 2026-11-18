@@ -194,5 +194,21 @@ void main() {
       check(Expr.parse('1 / (x - x)').factor()).equals(Constant.undefined);
       check(Expr.parse('1 / (x - x)').cancel()).equals(Constant.undefined);
     });
+
+    test('factors multivariate quadratic and homogeneous polynomials', () {
+      check(Expr.parse('x^2 + 2*x*y + y^2').factor()).equals(
+        Pow(
+          Add([const Variable('x'), const Variable('y')], isSimplified: true),
+          IntegerNumber.two,
+          isSimplified: true,
+        ),
+      );
+      check(Expr.parse('x^2 - x*y - 6*y^2').factor())
+          .equals(Expr.parse('(x - 3*y) * (x + 2*y)').simplify());
+      check(Expr.parse('x^3 + 3*x^2*y + 3*x*y^2 + y^3').factor())
+          .equals(Expr.parse('(x + y)^3').simplify());
+      check(Expr.parse('x^2 + (a + b)*x + a*b').expand().factor())
+          .equals(Expr.parse('(a + x) * (b + x)').simplify());
+    });
   });
 }

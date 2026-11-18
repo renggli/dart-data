@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/integer.dart';
+import '../expand.dart';
 import '../factor.dart';
+import '../simplify.dart';
 import '../simplify/additive.dart';
 import '../simplify/multiplicative.dart';
 import '../term_accumulator.dart';
@@ -310,4 +312,261 @@ void _collectFactorPowers(Expr expr, Map<Expr, int> target) {
     default:
       target[expr] = (target[expr] ?? 0) + 1;
   }
+}
+
+/// Attempts general multivariate polynomial factorization when specialized
+/// grouping/binomial patterns do not apply.
+Expr? factorMultivariatePolynomial(
+  Expr expanded,
+  List<String> vars, {
+  required Assumptions assumptions,
+}) {
+  if (vars.length < 2) return null;
+
+  // Choose main variable with lowest positive polynomial degree.
+  String? mainVar;
+  var minDeg = 1 << 30;
+  final sortedVars = [...vars]..sort();
+  for (final v in sortedVars) {
+    final deg = polynomialDegree(expanded, v);
+    if (deg != null && deg >= 1 && deg < minDeg) {
+      minDeg = deg;
+      mainVar = v;
+    }
+  }
+  if (mainVar == null) return null;
+
+  final coeffs = extractPolynomialCoefficients(expanded, mainVar);
+  if (coeffs == null) return null;
+  final d = maxPolynomialDegree(coeffs);
+  if (d < 1) return null;
+
+  if (d == 1) {
+    return _factorLinearInVar(coeffs, mainVar, assumptions: assumptions);
+  }
+
+  if (d == 2) {
+    return _factorQuadraticInVar(coeffs, mainVar, assumptions: assumptions);
+  }
+
+  if (vars.length == 2) {
+    return _factorHomogeneousBivariate(
+      expanded,
+      sortedVars[0],
+      sortedVars[1],
+      assumptions: assumptions,
+    );
+  }
+
+  return null;
+}
+
+Expr? _factorLinearInVar(
+  Map<int, Expr> coeffs,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final c1 = coeffs[1] ?? IntegerNumber.zero;
+  final c0 = coeffs[0] ?? IntegerNumber.zero;
+
+  final f1 = factorExpr(c1, assumptions: assumptions);
+  final f0 = factorExpr(c0, assumptions: assumptions);
+
+  final m1 = <Expr, int>{};
+  RationalNumber s1 = IntegerNumber.one;
+  flattenFactored(f1, m1, (s) => s1 = s1.mulRational(s));
+
+  final m0 = <Expr, int>{};
+  RationalNumber s0 = IntegerNumber.one;
+  flattenFactored(f0, m0, (s) => s0 = s0.mulRational(s));
+
+  final commonFactors = <Expr>[];
+  for (final entry in m1.entries) {
+    final otherExp = m0[entry.key];
+    if (otherExp != null) {
+      final minExp = math.min(entry.value, otherExp);
+      if (minExp > 0) {
+        commonFactors.add(
+          minExp == 1 ? entry.key : Pow(entry.key, IntegerNumber.of(minExp)),
+        );
+      }
+    }
+  }
+
+  // Extract common integer scalar GCD if both are integers.
+  RationalNumber commonScalar = IntegerNumber.one;
+  if ((s1, s0) case (
+    IntegerNumber(value: final v1),
+    IntegerNumber(value: final v0),
+  )) {
+    final g = v1.abs().gcd(v0.abs());
+    if (g > Integer.one) {
+      commonScalar = IntegerNumber(g);
+    }
+  }
+  if (s1.isNegative && s0.isNegative) {
+    commonScalar = commonScalar.neg();
+  }
+
+  if (commonFactors.isEmpty && commonScalar.isOne) {
+    return null;
+  }
+
+  final g = simplifyMul([
+    if (!commonScalar.isOne) commonScalar,
+    ...commonFactors,
+  ], assumptions: assumptions);
+
+  final q1 = cancelFactoredFraction(f1, g);
+  final q0 = cancelFactoredFraction(f0, g);
+  if (q1 == Constant.undefined || q0 == Constant.undefined) return null;
+
+  final inner = simplifyAdd([
+    simplifyMul([q1, Variable(variable)], assumptions: assumptions),
+    q0,
+  ], assumptions: assumptions);
+
+  return combineFactoredProducts([g, inner]);
+}
+
+Expr? _factorQuadraticInVar(
+  Map<int, Expr> coeffs,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final a = coeffs[2] ?? IntegerNumber.zero;
+  final b = coeffs[1] ?? IntegerNumber.zero;
+  final c = coeffs[0] ?? IntegerNumber.zero;
+
+  final delta = (b * b - IntegerNumber.of(4) * a * c)
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+
+  Expr? sqrtDelta;
+  if (delta is Number && delta.isZero) {
+    sqrtDelta = IntegerNumber.zero;
+  } else {
+    final factoredDelta = factorExpr(delta, assumptions: assumptions);
+    final dFactors = <Expr, int>{};
+    RationalNumber dScalar = IntegerNumber.one;
+    flattenFactored(
+      factoredDelta,
+      dFactors,
+      (s) => dScalar = dScalar.mulRational(s),
+    );
+
+    if (dScalar.sign <= 0) return null;
+    final numSqrt = dScalar.numerator.isqrt();
+    final denSqrt = dScalar.denominator.isqrt();
+    if (numSqrt == null || denSqrt == null) return null;
+    if (dFactors.values.any((e) => e.isOdd)) return null;
+
+    final scalarSqrt = RationalNumber.of(numSqrt, denSqrt);
+    sqrtDelta = simplifyMul([
+      if (!scalarSqrt.isOne) scalarSqrt,
+      for (final entry in dFactors.entries)
+        if (entry.value > 0)
+          if (entry.value == 2)
+            entry.key
+          else
+            Pow(entry.key, IntegerNumber.of(entry.value ~/ 2)),
+    ], assumptions: assumptions);
+  }
+
+  final twoA = (IntegerNumber.two * a)
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  final x = Variable(variable);
+  final f1Raw = (twoA * x + b - sqrtDelta)
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  final f2Raw = (twoA * x + b + sqrtDelta)
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+
+  final f1 = factorExpr(f1Raw, assumptions: assumptions);
+  final f2 = factorExpr(f2Raw, assumptions: assumptions);
+  final prod = combineFactoredProducts([f1, f2]);
+  final fourA = combineFactoredProducts([
+    IntegerNumber.of(4),
+    factorExpr(a, assumptions: assumptions),
+  ]);
+  final result = cancelFactoredFraction(prod, fourA);
+  if (result == Constant.undefined) return null;
+  return result;
+}
+
+Expr? _factorHomogeneousBivariate(
+  Expr expanded,
+  String xVar,
+  String yVar, {
+  required Assumptions assumptions,
+}) {
+  final terms = <Expr>[];
+  collectAdditiveTerms(expanded, 1, terms);
+  if (terms.length < 2) return null;
+
+  int? totalDeg;
+  for (final t in terms) {
+    final powers = <String, int>{};
+    final residuals = <Expr>[];
+    final (_, base) = decomposeTerm(t);
+    collectVariablePowers(base, powers, residuals);
+    if (residuals.isNotEmpty) return null;
+    final deg = (powers[xVar] ?? 0) + (powers[yVar] ?? 0);
+    if (totalDeg == null) {
+      totalDeg = deg;
+    } else if (deg != totalDeg) {
+      return null;
+    }
+  }
+  if (totalDeg == null || totalDeg < 3) return null;
+
+  final uni = expanded
+      .substitute(yVar, IntegerNumber.one)
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  final factoredUni = factorExpr(uni, assumptions: assumptions);
+
+  final uFactors = <Expr, int>{};
+  RationalNumber uScalar = IntegerNumber.one;
+  flattenFactored(
+    factoredUni,
+    uFactors,
+    (s) => uScalar = uScalar.mulRational(s),
+  );
+
+  if (uFactors.isEmpty) return null;
+  if (uFactors.length == 1 && uFactors.values.first == 1) return null;
+
+  final homogenizedParts = <Expr>[if (!uScalar.isOne) uScalar];
+  for (final MapEntry(key: factor, value: mult) in uFactors.entries) {
+    final fDeg = polynomialDegree(factor, xVar);
+    if (fDeg == null) return null;
+    final fTerms = <Expr>[];
+    collectAdditiveTerms(factor, 1, fTerms);
+    final hTerms = <Expr>[];
+    for (final ft in fTerms) {
+      final degX = polynomialDegree(ft, xVar) ?? 0;
+      final remY = fDeg - degX;
+      if (remY > 0) {
+        final yPow = remY == 1
+            ? Variable(yVar)
+            : Pow(Variable(yVar), IntegerNumber.of(remY));
+        hTerms.add(simplifyMul([ft, yPow], assumptions: assumptions));
+      } else {
+        hTerms.add(ft);
+      }
+    }
+    final hFactor = simplifyAdd(hTerms, assumptions: assumptions);
+    homogenizedParts.add(
+      mult == 1 ? hFactor : Pow(hFactor, IntegerNumber.of(mult)),
+    );
+  }
+
+  final candidate = combineFactoredProducts(homogenizedParts);
+  final checkDiff = (candidate.expand(assumptions: assumptions) - expanded)
+      .simplify(assumptions: assumptions);
+  if (checkDiff != IntegerNumber.zero) return null;
+  return candidate;
 }

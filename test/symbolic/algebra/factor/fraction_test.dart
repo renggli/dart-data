@@ -41,8 +41,8 @@ void main() {
       final cancelled = cancelFactoredFraction(num, den);
       check(cancelled.toString()).equals('3 * x ^ 2 / y ^ 3');
 
-      check(() => cancelFactoredFraction(x, IntegerNumber.zero))
-          .throws<UnsupportedError>();
+      check(cancelFactoredFraction(x, IntegerNumber.zero))
+          .equals(Constant.undefined);
     });
 
     test(

@@ -173,6 +173,16 @@ Expr factorExpr(Expr expr, {required Assumptions assumptions}) {
         factorExpr(quad, assumptions: assumptions),
       ]);
     }
+
+    // 6e. General multivariate quadratic, linear content, or homogeneous factorization
+    if (vars.length >= 2) {
+      final multi = factorMultivariatePolynomial(
+        expanded,
+        vars.toList(),
+        assumptions: assumptions,
+      );
+      if (multi != null) return multi;
+    }
   }
 
   return expr.simplify(assumptions: assumptions);
