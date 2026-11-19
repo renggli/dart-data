@@ -76,6 +76,25 @@ void main() {
         Expr.parse('x * ln(1 + 1 / x)'),
         points: const [0.5, 1.0, 2.0],
       );
+      check(
+        Expr.parse('ln(x^2 + 1)').integrate('x'),
+      ).equals(Expr.parse('x * ln(x^2 + 1) - 2 * x + 2 * atan(x)').simplify());
+      verifyAntiderivative(
+        Expr.parse('ln((x + 1) / (1 - x))'),
+        points: const [-0.5, 0.2, 0.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('ln(x + 1) / x^2'),
+        points: const [0.5, 1.0, 2.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(x) * ln(sin(x))'),
+        points: const [0.3, 0.7, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('ln(cos(x)) / cos(x)^2'),
+        points: const [0.2, 0.5, 0.8],
+      );
     });
   });
 }

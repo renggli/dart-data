@@ -7,6 +7,7 @@ import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
 import '../../number/integer.dart';
+import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'parts.dart';
@@ -180,7 +181,8 @@ Expr antiDerivative(
     Abs(expr: final inner) =>
       _antiDerivAbs(inner, variable) ?? unsupportedIntegral(node, variable),
     Ln(expr: final inner) =>
-      _antiDerivLn(inner, variable) ?? unsupportedIntegral(node, variable),
+      _antiDerivLn(inner, variable, assumptions: assumptions, depth: depth) ??
+          unsupportedIntegral(node, variable),
     LambertW(expr: final inner, :final branch) =>
       _antiDerivLambertW(inner, branch, variable) ??
           unsupportedIntegral(node, variable),
@@ -512,11 +514,44 @@ Expr? _antiDerivAbs(Expr inner, String variable) =>
       null => null,
     };
 
-Expr? _antiDerivLn(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) => ((inner * Ln(inner) - inner) / a).simplify(),
-      null => null,
-    };
+Expr? _antiDerivLn(
+  Expr inner,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (inner.matchLinear(variable) case (:final a, b: _)) {
+    return ((inner * Ln(inner) - inner) / a).simplify(assumptions: assumptions);
+  }
+  if (depth >= 2) return null;
+  final uPrime = (inner.derivative(variable, assumptions: assumptions) / inner)
+      .simplify(assumptions: assumptions);
+  final (uNum, uDen) = splitNumeratorDenominator(uPrime);
+  final uNumExp = uNum
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  final uDenExp = uDen
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  if (polynomialDegree(uNumExp, variable) != null &&
+      polynomialDegree(uDenExp, variable) != null) {
+    final rem = (Variable(variable) * uNumExp / uDenExp).simplify(
+      assumptions: assumptions,
+    );
+    final remInt = antiDerivative(
+      rem,
+      variable,
+      assumptions: assumptions,
+      depth: depth + 1,
+    );
+    if (!hasUnevaluatedIntegral(remInt, variable)) {
+      return (Variable(variable) * Ln(inner) - remInt).simplify(
+        assumptions: assumptions,
+      );
+    }
+  }
+  return null;
+}
 
 Expr? _antiDerivLambertW(Expr inner, int branch, String variable) =>
     switch (inner.matchLinear(variable)) {

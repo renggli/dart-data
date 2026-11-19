@@ -268,6 +268,38 @@ Expr? tryIntegrationByParts(
     }
   }
 
+  // General log rule: P(x) * ln(g(x))^k where P(x) is any integrable cofactor
+  final isLogFactor = switch (vExpr) {
+    Ln() => true,
+    Pow(base: Ln(), exponent: IntegerNumber(asInt: final k?))
+        when k >= 1 && k <= 3 =>
+      true,
+    _ => false,
+  };
+  if (depth < 2 && isLogFactor) {
+    final v = antiDerivative(
+      pExpr,
+      variable,
+      assumptions: assumptions,
+      depth: 2,
+    );
+    if (!hasUnevaluatedIntegral(v, variable)) {
+      final uPrime = vExpr
+          .derivative(variable)
+          .simplify(assumptions: assumptions);
+      final remIntegrand = (v * uPrime).simplify(assumptions: assumptions);
+      final remIntegral = antiDerivative(
+        remIntegrand,
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(remIntegral, variable)) {
+        return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
+      }
+    }
+  }
+
   return null;
 }
 

@@ -76,7 +76,8 @@ void main() {
         verifyAntiderivative(f);
       }
 
-      check((Sin(x) * Ln(x)).integrate('x')).isA<Integral>();
+      check((Sin(x) * Ln(x)).integrate('x'))
+          .equals(Expr.parse('-cos(x) * ln(x) + Ci(x)').simplify());
     });
   });
 

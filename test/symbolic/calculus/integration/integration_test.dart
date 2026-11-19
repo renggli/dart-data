@@ -68,7 +68,7 @@ void main() {
         Acosh(nonLin),
         Atanh(nonLin),
         Abs(nonLin),
-        Ln(nonLin),
+        Ln(Sin(x * x)),
         LambertW(nonLin),
         Erf(nonLin),
         Erfc(nonLin),
