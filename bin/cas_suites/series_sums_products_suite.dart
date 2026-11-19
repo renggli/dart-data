@@ -1,0 +1,266 @@
+/// SymPy Power Series, Symbolic Summations, and Symbolic Products Benchmark Suite.
+///
+/// Attribution:
+/// - Adapted from SymPy's `sympy/series/tests/test_series.py` and
+///   `sympy/concrete/tests/test_sums_products.py`
+///   (https://github.com/sympy/sympy), distributed under the 3-Clause BSD
+///   License (BSD-3-Clause).
+library;
+
+import 'cas_test_case.dart';
+
+/// Benchmark suite covering Taylor, Maclaurin, and Laurent series expansions,
+/// finite and infinite symbolic summations, and finite and infinite symbolic
+/// products.
+final CasTestSuite seriesSumsProductsSuite = CasTestSuite(
+  name: 'series_sums_products',
+  description: 'SymPy Power Series, Summations & Products Suite (BSD-3-Clause)',
+  buildCases: () => [
+    // Taylor, Maclaurin, and Laurent Series Expansions
+    seriesCase(
+      'ser_exp',
+      'exp(x)',
+      'x',
+      order: 5,
+      expected: '1 + x + x^2/2 + x^3/6 + x^4/24 + O(x^5)',
+    ),
+    seriesCase(
+      'ser_sin',
+      'sin(x)',
+      'x',
+      order: 6,
+      expected: 'x - x^3/6 + x^5/120 + O(x^6)',
+    ),
+    seriesCase(
+      'ser_cos',
+      'cos(x)',
+      'x',
+      order: 5,
+      expected: '1 - x^2/2 + x^4/24 + O(x^5)',
+    ),
+    seriesCase(
+      'ser_sinh',
+      'sinh(x)',
+      'x',
+      order: 6,
+      expected: 'x + x^3/6 + x^5/120 + O(x^6)',
+    ),
+    seriesCase(
+      'ser_cosh',
+      'cosh(x)',
+      'x',
+      order: 5,
+      expected: '1 + x^2/2 + x^4/24 + O(x^5)',
+    ),
+    seriesCase(
+      'ser_atan',
+      'atan(x)',
+      'x',
+      order: 6,
+      expected: 'x - x^3/3 + x^5/5 + O(x^6)',
+    ),
+    seriesCase(
+      'ser_asin',
+      'asin(x)',
+      'x',
+      order: 6,
+      expected: 'x + x^3/6 + 3*x^5/40 + O(x^6)',
+    ),
+    seriesCase(
+      'ser_geom',
+      '1 / (1 - x)',
+      'x',
+      order: 5,
+      expected: '1 + x + x^2 + x^3 + x^4 + O(x^5)',
+    ),
+    seriesCase(
+      'ser_sqrt',
+      'sqrt(1 + x)',
+      'x',
+      order: 4,
+      expected: '1 + x/2 - x^2/8 + x^3/16 + O(x^4)',
+    ),
+    seriesCase(
+      'ser_laurent_cot',
+      'cos(x) / sin(x)',
+      'x',
+      order: 4,
+      expected: '1/x - x/3 - x^3/45 + O(x^4)',
+    ),
+    seriesCase(
+      'ser_laurent_csc',
+      '1 / sin(x)',
+      'x',
+      order: 4,
+      expected: '1/x + x/6 + 7*x^3/360 + O(x^4)',
+    ),
+    seriesCase(
+      'ser_shifted_exp',
+      'exp(x)',
+      'x',
+      point: '1',
+      order: 3,
+      expected: 'E + E*(x - 1) + E/2*(x - 1)^2 + O((x - 1)^3)',
+    ),
+    seriesCase(
+      'ser_shifted_ln',
+      'ln(x)',
+      'x',
+      point: '1',
+      order: 4,
+      expected: '(x - 1) - (x - 1)^2/2 + (x - 1)^3/3 + O((x - 1)^4)',
+    ),
+    seriesCase(
+      'ser_lambertW',
+      'LambertW(x)',
+      'x',
+      order: 4,
+      expected: 'x - x^2 + 3/2*x^3 + O(x^4)',
+    ),
+    seriesCase(
+      'ser_besselJ0',
+      'besselJ(0, x)',
+      'x',
+      order: 4,
+      expected: '1 - x^2/4 + O(x^4)',
+    ),
+    seriesCase(
+      'ser_besselI0',
+      'besselI(0, x)',
+      'x',
+      order: 4,
+      expected: '1 + x^2/4 + O(x^4)',
+    ),
+    seriesCase(
+      'ser_binomial',
+      'binomial(x, 2)',
+      'x',
+      order: 3,
+      expected: '-x/2 + x^2/2 + O(x^3)',
+    ),
+
+    // Finite Symbolic Summations (Faulhaber, Geometric, Gosper Telescoping, Binomial)
+    sumCase('sum_const', 'c', 'k', '1', 'n', 'c * n'),
+    sumCase('sum_faulhaber_1', 'k', 'k', '1', 'n', 'n * (n + 1) / 2'),
+    sumCase(
+      'sum_faulhaber_2',
+      'k^2',
+      'k',
+      '1',
+      'n',
+      'n * (n + 1) * (2*n + 1) / 6',
+    ),
+    sumCase('sum_faulhaber_3', 'k^3', 'k', '1', 'n', 'n^2 * (n + 1)^2 / 4'),
+    sumCase(
+      'sum_faulhaber_4',
+      'k^4',
+      'k',
+      '1',
+      'n',
+      'n * (n + 1) * (2*n + 1) * (3*n^2 + 3*n - 1) / 30',
+    ),
+    sumCase('sum_odd_integers', '2*k - 1', 'k', '1', 'n', 'n^2'),
+    sumCase(
+      'sum_geom_finite',
+      'r^k',
+      'k',
+      '0',
+      'n',
+      '(1 - r^(n + 1)) / (1 - r)',
+    ),
+    sumCase(
+      'sum_arith_geom',
+      'k * 2^k',
+      'k',
+      '1',
+      'n',
+      '2 + (n - 1) * 2^(n + 1)',
+    ),
+    sumCase(
+      'sum_telescope_1',
+      '1 / (k * (k + 1))',
+      'k',
+      '1',
+      'n',
+      'n / (n + 1)',
+    ),
+    sumCase(
+      'sum_telescope_2',
+      '1 / (k * (k + 2))',
+      'k',
+      '1',
+      'n',
+      '3/4 - (2*n + 3) / (2*(n + 1)*(n + 2))',
+    ),
+    sumCase('sum_telescope_fact', 'k * k!', 'k', '1', 'n', '(n + 1)! - 1'),
+    sumCase('sum_binomial_1', 'binomial(n, k)', 'k', '0', 'n', '2^n'),
+    sumCase(
+      'sum_binomial_2',
+      'k * binomial(n, k)',
+      'k',
+      '0',
+      'n',
+      'n * 2^(n - 1)',
+    ),
+    sumCase(
+      'sum_binomial_upper',
+      'binomial(k, 2)',
+      'k',
+      '2',
+      'n',
+      'binomial(n + 1, 3)',
+    ),
+
+    // Infinite Symbolic Summations (Zeta, Exponential, Trigonometric, Logarithmic)
+    sumCase('sum_inf_geom_half', '(1/2)^k', 'k', '0', 'oo', '2'),
+    sumCase('sum_inf_geom_third', '(1/3)^k', 'k', '1', 'oo', '1/2'),
+    sumCase('sum_inf_arith_geom', 'k / 2^k', 'k', '1', 'oo', '2'),
+    sumCase('sum_inf_zeta_2', '1 / k^2', 'k', '1', 'oo', 'pi^2 / 6'),
+    sumCase('sum_inf_zeta_4', '1 / k^4', 'k', '1', 'oo', 'pi^4 / 90'),
+    sumCase('sum_inf_zeta_6', '1 / k^6', 'k', '1', 'oo', 'pi^6 / 945'),
+    sumCase('sum_inf_exp', 'x^k / k!', 'k', '0', 'oo', 'exp(x)'),
+    sumCase('sum_inf_exp_shifted', 'x^k / k!', 'k', '1', 'oo', 'exp(x) - 1'),
+    sumCase('sum_inf_bell_1', 'k * x^k / k!', 'k', '0', 'oo', 'x * exp(x)'),
+    sumCase('sum_inf_telescope', '1 / (k * (k + 1))', 'k', '1', 'oo', '1'),
+
+    // Finite & Infinite Symbolic Products
+    productCase('prod_finite_const', 'c', 'k', '1', 'n', 'c^n'),
+    productCase('prod_finite_linear', 'k', 'k', '1', '6', '720'),
+    productCase('prod_telescope_1', '(k + 1) / k', 'k', '1', 'n', 'n + 1'),
+    productCase(
+      'prod_telescope_2',
+      '(k + 2) / k',
+      'k',
+      '1',
+      'n',
+      '(n + 1) * (n + 2) / 2',
+    ),
+    productCase(
+      'prod_telescope_sq',
+      '1 - 1 / k^2',
+      'k',
+      '2',
+      'n',
+      '(n + 1) / (2 * n)',
+    ),
+    productCase('prod_exp_sum', '2^k', 'k', '1', 'n', '2^(n * (n + 1) / 2)'),
+    productCase(
+      'prod_inf_euler_sin',
+      '1 - x^2 / k^2',
+      'k',
+      '1',
+      'oo',
+      'sin(pi * x) / (pi * x)',
+    ),
+    productCase(
+      'prod_inf_euler_sinh',
+      '1 + x^2 / k^2',
+      'k',
+      '1',
+      'oo',
+      'sinh(pi * x) / (pi * x)',
+    ),
+    productCase('prod_inf_viete', 'cos(x / 2^k)', 'k', '1', 'oo', 'sin(x) / x'),
+    productCase('prod_inf_telescope', '1 - 1 / k^2', 'k', '2', 'oo', '1/2'),
+  ],
+);
