@@ -442,6 +442,26 @@ void main() {
           .equals(Expr.parse('(n + n^2) * 2^(n - 2)').simplify());
       check(Expr.parse('binomial(k, 2)').sum('k', 2, const Variable('n')))
           .equals(Expr.parse('binomial(n + 1, 3)').simplify());
+      check(
+        Expr.parse('(-1)^k * binomial(n, k)').sum(
+          'k',
+          IntegerNumber.zero,
+          const Variable('n'),
+          assumptions: Assumptions.positive,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        Expr.parse('(-1)^k * k * binomial(5, k)')
+            .sum('k', IntegerNumber.zero, IntegerNumber.of(5)),
+      ).equals(IntegerNumber.zero);
+      check(
+        Expr.parse('binomial(n, k)^2')
+            .sum('k', IntegerNumber.zero, const Variable('n')),
+      ).equals(Expr.parse('binomial(2 * n, n)').simplify());
+      check(
+        Expr.parse('binomial(m, k) * binomial(n, r - k)')
+            .sum('k', IntegerNumber.zero, const Variable('r')),
+      ).equals(Expr.parse('binomial(m + n, r)').simplify());
     });
   });
 

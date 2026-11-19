@@ -2,6 +2,7 @@ import '../algebra/expand.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/additive.dart';
+import '../algebra/simplify/domain.dart';
 import '../algebra/simplify/multiplicative.dart';
 import '../algebra/simplify/transcendental.dart';
 import '../algebra/term_accumulator.dart';
@@ -234,7 +235,13 @@ Expr computeSum(
   }
 
   // Binomial series: sum_{k=a..b} C(n, k) * x^k * y^(n-k)
-  final binomSum = _tryBinomialSum(simplifiedTerm, variable, a, b);
+  final binomSum = _tryBinomialSum(
+    simplifiedTerm,
+    variable,
+    a,
+    b,
+    assumptions: assumptions,
+  );
   if (binomSum != null) {
     return binomSum.simplify(assumptions: assumptions);
   }
@@ -677,9 +684,81 @@ Expr? _tryGeneralTelescoping(Expr expr, String variable) {
   return null;
 }
 
-Expr? _tryBinomialSum(Expr term, String variable, Expr a, Expr b) {
+Expr? _tryBinomialSum(
+  Expr term,
+  String variable,
+  Expr a,
+  Expr b, {
+  required Assumptions assumptions,
+}) {
   final kVar = Variable(variable);
   final factors = term is Mul ? term.factors : [term];
+
+  Expr adjustLowerBound(Expr fullSum) => a == IntegerNumber.zero
+      ? fullSum
+      : (fullSum -
+                term
+                    .substitute(variable, IntegerNumber.zero)
+                    .simplify(assumptions: assumptions))
+            .simplify(assumptions: assumptions);
+
+  // Check for squared binomial sum: C(n, k)^2 or Vandermonde: C(m, k) * C(n, r - k)
+  if (a == IntegerNumber.zero || a == IntegerNumber.one) {
+    final (:constFactors, :varFactors) = partitionFactors(factors, variable);
+    final constPart = constFactors.isEmpty
+        ? IntegerNumber.one
+        : simplifyMul(constFactors, assumptions: assumptions);
+
+    if (varFactors
+        case [
+          Pow(
+            base: Binomial(left: final nExpr, right: final kExpr),
+            exponent: IntegerNumber(asInt: 2),
+          ),
+        ]
+        when !nExpr.dependsOn(variable) && kExpr == kVar && b == nExpr) {
+      final fullSum =
+          (constPart *
+                  Binomial(
+                    (IntegerNumber.two * nExpr).simplify(
+                      assumptions: assumptions,
+                    ),
+                    nExpr,
+                  ))
+              .simplify(assumptions: assumptions);
+      return adjustLowerBound(fullSum);
+    }
+
+    if (varFactors case [final Binomial b1, final Binomial b2]) {
+      final (Binomial? kBinom, Binomial? rBinom) = switch ((b1, b2)) {
+        (Binomial(left: final m, right: final k), final other)
+            when !m.dependsOn(variable) && k == kVar =>
+          (b1, other),
+        (final other, Binomial(left: final m, right: final k))
+            when !m.dependsOn(variable) && k == kVar =>
+          (b2, other),
+        _ => (null, null),
+      };
+      if (kBinom != null &&
+          rBinom != null &&
+          !rBinom.left.dependsOn(variable)) {
+        final lin = rBinom.right.matchLinear(variable);
+        if (lin != null && lin.a == IntegerNumber.negativeOne && lin.b == b) {
+          final fullSum =
+              (constPart *
+                      Binomial(
+                        (kBinom.left + rBinom.left).simplify(
+                          assumptions: assumptions,
+                        ),
+                        b,
+                      ))
+                  .simplify(assumptions: assumptions);
+          return adjustLowerBound(fullSum);
+        }
+      }
+    }
+  }
+
   Binomial? binomNode;
   final otherFactors = <Expr>[];
 
@@ -699,11 +778,6 @@ Expr? _tryBinomialSum(Expr term, String variable, Expr a, Expr b) {
   if ((a != IntegerNumber.zero && a != IntegerNumber.one) || b != nExpr) {
     return null;
   }
-
-  Expr adjustLowerBound(Expr fullSum) => a == IntegerNumber.zero
-      ? fullSum
-      : (fullSum - term.substitute(variable, IntegerNumber.zero).simplify())
-            .simplify();
 
   if (otherFactors.isEmpty) {
     return adjustLowerBound(Pow(IntegerNumber.two, nExpr).simplify());
@@ -757,7 +831,7 @@ Expr? _tryBinomialSum(Expr term, String variable, Expr a, Expr b) {
   final sumBase = (xRatio + yRatio).simplify();
   if (polyFactors.isEmpty) {
     if (sumBase is Number && sumBase.isZero) {
-      if (nExpr is IntegerNumber && nExpr.value > Integer.zero) {
+      if (isPositiveExpr(nExpr, assumptions: assumptions)) {
         return adjustLowerBound(IntegerNumber.zero);
       }
       return null;
@@ -780,6 +854,12 @@ Expr? _tryBinomialSum(Expr term, String variable, Expr a, Expr b) {
   if (maxDeg > 4) return null;
 
   if (sumBase is Number && sumBase.isZero) {
+    final diff = (nExpr - IntegerNumber.of(maxDeg)).simplify(
+      assumptions: assumptions,
+    );
+    if (isPositiveExpr(diff, assumptions: assumptions)) {
+      return adjustLowerBound(IntegerNumber.zero);
+    }
     return null;
   }
 
