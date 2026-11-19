@@ -109,6 +109,26 @@ void main() {
           Expr.parse('sqrt(tan(x))'),
           points: const [0.2, 0.6, 1.0],
         );
+        verifyAntiderivative(
+          Expr.parse('sqrt(1 + 1 / x)'),
+          points: const [0.5, 1.0, 2.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('1 / (5 + 4 * sqrt(x) + x)'),
+          points: const [0.5, 1.0, 2.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('x / (sqrt(x - 1) + sqrt(x + 1))'),
+          points: const [1.5, 2.0, 3.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('sqrt(1 + sin(x))'),
+          points: const [0.2, 0.6, 1.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('x^(13/2) * sqrt(1 + x^(5/2))'),
+          points: const [0.5, 0.8, 1.2],
+        );
       },
     );
   });

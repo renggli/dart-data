@@ -515,6 +515,8 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
           if (exponent case IntegerNumber(asInt: final m?)
               when m >= 4 && m.isEven) {
             out.add(Pow(base, IntegerNumber.of(m ~/ 2)));
+          } else if (exponent is FractionNumber) {
+            out.add(node);
           }
         }
         if (exponent.dependsOn(variable) &&

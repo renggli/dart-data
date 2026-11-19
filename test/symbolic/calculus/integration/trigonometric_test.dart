@@ -80,6 +80,22 @@ void main() {
         Expr.parse('cos(x) * cos(3 * x) * cos(5 * x)'),
         points: const [0.2, 0.6, 1.0],
       );
+      verifyAntiderivative(
+        Expr.parse('sin(4 * x) / sin(x)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(23 * x) / sin(x)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('cos(x) / (1 - cos(2 * x))'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('tanh(x) / exp(x)'),
+        points: const [0.2, 0.6, 1.0],
+      );
     });
   });
 }

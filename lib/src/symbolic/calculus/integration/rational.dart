@@ -561,6 +561,19 @@ Expr? tryAntiDerivDiv(
     }
   }
 
+  // Rationalize P(x) / (c1 * sqrt(A) + c2 * sqrt(B)) denominators when A - B is radical-free
+  if (depth < 2 && right is Add && right.terms.length == 2) {
+    final conjRes = _tryConjugateRadicalDenominator(
+      left,
+      right.terms[0],
+      right.terms[1],
+      variable,
+      depth: depth,
+      assumptions: assumptions,
+    );
+    if (conjRes != null) return conjRes;
+  }
+
   // Rational functions P(x) / Q(x): polynomial division and partial fractions
   if (right.dependsOn(variable)) {
     final rawDegLeft = polynomialDegree(left, variable);
@@ -607,6 +620,25 @@ Expr? tryAntiDerivDiv(
             assumptions: assumptions,
           );
           return (qInt + rInt).simplify();
+        }
+        if (degRight == 2 && degLeft <= 1) {
+          final quadCoeffs = extractPolynomialCoefficients(rightExp, variable)!;
+          final numCoeffs = extractPolynomialCoefficients(leftExp, variable)!;
+          final a = quadCoeffs[2] ?? IntegerNumber.zero;
+          final b = quadCoeffs[1] ?? IntegerNumber.zero;
+          final d = numCoeffs[1] ?? IntegerNumber.zero;
+          final e = numCoeffs[0] ?? IntegerNumber.zero;
+          final quadRes = _integrateLinearOverQuad(
+            d,
+            e,
+            rightExp,
+            a,
+            b,
+            variable,
+          );
+          if (!hasUnevaluatedIntegral(quadRes, variable)) {
+            return quadRes;
+          }
         }
         if (degRight == 3) {
           if (_tryCubicBinomialDenominator(leftExp, rightExp, variable)
@@ -1207,4 +1239,51 @@ Expr? _polyGcd(Expr a, Expr b, String variable) {
     v = rem;
   }
   return null;
+}
+
+Expr? _tryConjugateRadicalDenominator(
+  Expr left,
+  Expr t1,
+  Expr t2,
+  String variable, {
+  required int depth,
+  required Assumptions assumptions,
+}) {
+  bool isSqrtTerm(Expr e) {
+    final factors = e is Mul ? e.factors : [e];
+    return factors.any(
+      (f) =>
+          f is Pow &&
+          (f.exponent == FractionNumber.half ||
+              (f.exponent is RealNumber &&
+                  (f.exponent as RealNumber).value == 0.5)),
+    );
+  }
+
+  if (!isSqrtTerm(t1) && !isSqrtTerm(t2)) return null;
+  final conjDen = (t1 * t1 - t2 * t2).expand().simplify(
+    assumptions: assumptions,
+  );
+  if (conjDen is Number && conjDen.isZero) return null;
+  bool hasFracPow(Expr e) {
+    if (e is Pow && e.exponent is FractionNumber) return true;
+    var found = false;
+    e.mapChildren((c) {
+      if (!found && hasFracPow(c)) found = true;
+      return c;
+    });
+    return found;
+  }
+
+  if (hasFracPow(conjDen)) return null;
+  final rationalized = (left * (t1 - t2) / conjDen).simplify(
+    assumptions: assumptions,
+  );
+  final res = antiDerivative(
+    rationalized,
+    variable,
+    depth: depth + 1,
+    assumptions: assumptions,
+  );
+  return hasUnevaluatedIntegral(res, variable) ? null : res;
 }

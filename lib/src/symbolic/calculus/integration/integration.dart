@@ -1090,8 +1090,63 @@ Expr _antiDerivPow(
     // Radical quadratic sqrt(a^2 - u^2) or sqrt(u^2 +- a^2) and (Ax^2 + Bx + C)^(n/2)
     if (exponent == FractionNumber.half ||
         (exponent is RealNumber && exponent.value == 0.5)) {
+      // Half-angle identities: sqrt(1 +- sin(a*x+b)) and sqrt(1 +- cos(a*x+b))
+      if (base case Add(terms: [final t0, final t1])) {
+        final (Expr? cTerm, Expr? trigTerm) = !t0.dependsOn(variable)
+            ? (t0, t1)
+            : (!t1.dependsOn(variable) ? (t1, t0) : (null, null));
+        if (cTerm == IntegerNumber.one && trigTerm != null) {
+          if (trigTerm case Sin(:final expr)) {
+            if (expr.matchLinear(variable) case (:final a, b: _)) {
+              final half = (expr / IntegerNumber.two).simplify();
+              return (IntegerNumber.two * (Sin(half) - Cos(half)) / a).simplify(
+                assumptions: assumptions,
+              );
+            }
+          } else if (trigTerm
+              case Mul(factors: [Number(isNegativeOne: true), Sin(:final expr)])
+              when expr.matchLinear(variable) != null) {
+            final a = expr.matchLinear(variable)!.a;
+            final half = (expr / IntegerNumber.two).simplify();
+            return (IntegerNumber.two * (Sin(half) + Cos(half)) / a).simplify(
+              assumptions: assumptions,
+            );
+          } else if (trigTerm case Cos(:final expr)) {
+            if (expr.matchLinear(variable) case (:final a, b: _)) {
+              final half = (expr / IntegerNumber.two).simplify();
+              return (IntegerNumber.two *
+                      Pow(IntegerNumber.two, FractionNumber.half) *
+                      Sin(half) /
+                      a)
+                  .simplify(assumptions: assumptions);
+            }
+          } else if (trigTerm
+              case Mul(factors: [Number(isNegativeOne: true), Cos(:final expr)])
+              when expr.matchLinear(variable) != null) {
+            final a = expr.matchLinear(variable)!.a;
+            final half = (expr / IntegerNumber.two).simplify();
+            return (-IntegerNumber.two *
+                    Pow(IntegerNumber.two, FractionNumber.half) *
+                    Cos(half) /
+                    a)
+                .simplify(assumptions: assumptions);
+          }
+        }
+      }
       final radQuad = tryRadicalQuadratic(base, variable);
       if (radQuad != null) return radQuad;
+    }
+    if (exponent is FractionNumber) {
+      final combinedBase = base.together(assumptions: assumptions);
+      if (combinedBase != base) {
+        final combPow = Pow(
+          combinedBase,
+          exponent,
+        ).simplify(assumptions: assumptions);
+        if (combPow != original) {
+          return antiDerivative(combPow, variable, assumptions: assumptions);
+        }
+      }
     }
     if (halfIntExponent(exponent) case final halfExp?) {
       final quadRad = tryQuadraticRadical(
@@ -1262,6 +1317,43 @@ Expr _antiDerivMul(
   if (varFactors case [final f1, final f2]) {
     if (tryTrigProduct(f1, f2, variable) case final trigRes?) {
       return trigRes;
+    }
+  }
+  // Mixed hyperbolic-trigonometric products: rewrite sinh/cosh as exponentials
+  final hasTrig = varFactors.any(
+    (f) =>
+        f is Sin || f is Cos || (f is Pow && (f.base is Sin || f.base is Cos)),
+  );
+  final hasHyp = varFactors.any(
+    (f) =>
+        f is Sinh ||
+        f is Cosh ||
+        (f is Pow && (f.base is Sinh || f.base is Cosh)),
+  );
+  if (depth < 2 && hasTrig && hasHyp) {
+    Expr hypToExp(Expr e) {
+      if (e case Sinh(:final expr)) {
+        return (Pow(Constant.e, expr) - Pow(Constant.e, -expr)) /
+            IntegerNumber.two;
+      }
+      if (e case Cosh(:final expr)) {
+        return (Pow(Constant.e, expr) + Pow(Constant.e, -expr)) /
+            IntegerNumber.two;
+      }
+      return e.mapChildren(hypToExp);
+    }
+
+    final rewritten = hypToExp(original)
+        .expand()
+        .simplify(assumptions: assumptions);
+    if (rewritten != original) {
+      final res = antiDerivative(
+        rewritten,
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(res, variable)) return res;
     }
   }
   if (tryTrigPowerProduct(original, IntegerNumber.one, variable)

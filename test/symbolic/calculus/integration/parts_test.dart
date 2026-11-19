@@ -95,6 +95,22 @@ void main() {
         Expr.parse('ln(cos(x)) / cos(x)^2'),
         points: const [0.2, 0.5, 0.8],
       );
+      verifyAntiderivative(
+        Expr.parse('x * sec(4 * x)^2'),
+        points: const [0.1, 0.2, 0.3],
+      );
+      verifyAntiderivative(
+        Expr.parse('x * cosh(x) / sinh(x)^2'),
+        points: const [0.4, 0.8, 1.2],
+      );
+      verifyAntiderivative(
+        Expr.parse('cos(x) * cosh(x) + sin(x) * sinh(x)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('exp(x) * (cos(x)^2 + cos(x) * sin(x) - sin(x)^2)'),
+        points: const [0.2, 0.6, 1.0],
+      );
     });
   });
 }

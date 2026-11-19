@@ -2,6 +2,7 @@ import '../../algebra/expand.dart';
 import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/term_accumulator.dart';
+import '../../algebra/trig.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../linear_form.dart';
@@ -299,7 +300,10 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
           (o) =>
               polynomialDegree(o, variable) != null ||
               (o is Sin && o.expr.matchLinear(variable) != null) ||
-              (o is Cos && o.expr.matchLinear(variable) != null),
+              (o is Cos && o.expr.matchLinear(variable) != null) ||
+              (o is Pow &&
+                  !o.base.dependsOn(variable) &&
+                  o.exponent.matchLinear(variable) != null),
         );
         if (isReducibleProduct) {
           final otherExpr = others.length == 1
@@ -364,8 +368,26 @@ Expr? tryRationalTrigSubstitution(
   required Assumptions assumptions,
   int depth = 0,
 }) {
+  if (_tryDirichletKernel(expr, variable, assumptions: assumptions)
+      case final dirRes?) {
+    return dirRes;
+  }
+
   final inner = _collectAffineTrigInner(expr, variable);
-  if (inner == null) return null;
+  if (inner == null) {
+    if (depth == 0 && _hasMultipleAngleTrig(expr, variable)) {
+      final expanded = expr.expandTrig(assumptions: assumptions);
+      if (expanded != expr) {
+        return tryRationalTrigSubstitution(
+          expanded,
+          variable,
+          assumptions: assumptions,
+          depth: depth + 1,
+        );
+      }
+    }
+    return null;
+  }
   final k = inner.matchLinear(variable)!.a;
 
   // 1. Try t = tan(u) if expression is even in (sin, cos)
@@ -695,6 +717,7 @@ Expr _replaceTrigWithTan(Expr node, Expr inner, Variable tVar) {
 
 Expr? _collectAffineHypInner(Expr node, String variable) {
   Expr? found;
+  final expExponents = <Expr>[];
   var valid = true;
   void scan(Expr n) {
     if (!valid || !n.dependsOn(variable)) return;
@@ -709,6 +732,12 @@ Expr? _collectAffineHypInner(Expr node, String variable) {
         } else if (found != expr) {
           valid = false;
         }
+      case Pow(base: Constant.e, :final exponent):
+        if (exponent.matchLinear(variable) == null) {
+          valid = false;
+          return;
+        }
+        expExponents.add(exponent);
       case Add(:final terms):
         for (final t in terms) {
           scan(t);
@@ -726,7 +755,18 @@ Expr? _collectAffineHypInner(Expr node, String variable) {
   }
 
   scan(node);
-  return valid ? found : null;
+  if (!valid || found == null) return null;
+  final linFound = found!.matchLinear(variable)!;
+  for (final expArg in expExponents) {
+    final linExp = expArg.matchLinear(variable)!;
+    final ratio = (linExp.a / linFound.a).simplify();
+    if (ratio is! IntegerNumber ||
+        ratio.asInt == null ||
+        ratio.asInt!.abs() > 6) {
+      return null;
+    }
+  }
+  return found;
 }
 
 Expr _replaceHypWithExp(Expr node, Expr inner, Variable wVar) {
@@ -740,5 +780,129 @@ Expr _replaceHypWithExp(Expr node, Expr inner, Variable wVar) {
     return (wVar * wVar - IntegerNumber.one) /
         (wVar * wVar + IntegerNumber.one);
   }
+  if (node case Pow(base: Constant.e, :final exponent)) {
+    final vName = inner.freeVariables.first;
+    final linInner = inner.matchLinear(vName)!;
+    final linExp = exponent.matchLinear(vName)!;
+    final k = (linExp.a / linInner.a).simplify() as IntegerNumber;
+    final shift = (linExp.b - k * linInner.b).simplify();
+    final wPow = Pow(wVar, k);
+    return (shift is Number && shift.isZero)
+        ? wPow
+        : (Pow(Constant.e, shift) * wPow);
+  }
   return node.mapChildren((c) => _replaceHypWithExp(c, inner, wVar));
+}
+
+Expr? _tryDirichletKernel(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  if (expr is! Mul) return null;
+  var scale = IntegerNumber.one as Expr;
+  Sin? numSin;
+  Sin? denSin;
+  for (final f in expr.factors) {
+    if (!f.dependsOn(variable)) {
+      scale = (scale * f).simplify(assumptions: assumptions);
+    } else if (f is Sin && numSin == null) {
+      numSin = f;
+    } else if (f
+        case Pow(
+          base: final Sin s,
+          exponent: IntegerNumber(isNegativeOne: true),
+        )
+        when denSin == null) {
+      denSin = s;
+    } else {
+      return null;
+    }
+  }
+  if (numSin == null || denSin == null) return null;
+  final linDen = denSin.expr.matchLinear(variable);
+  final linNum = numSin.expr.matchLinear(variable);
+  if (linDen == null || linNum == null) return null;
+  final nExpr = (linNum.a / linDen.a).simplify(assumptions: assumptions);
+  if (nExpr is! IntegerNumber || nExpr.asInt == null) return null;
+  final n = nExpr.asInt!;
+  if (n < 2 || n > 50) return null;
+  final expectedB = (nExpr * linDen.b).simplify(assumptions: assumptions);
+  if ((linNum.b - expectedB).simplify(assumptions: assumptions) !=
+      IntegerNumber.zero) {
+    return null;
+  }
+
+  final u = denSin.expr;
+  final a = linDen.a;
+  final terms = <Expr>[];
+  if (n.isOdd) {
+    terms.add(u);
+    final m = (n - 1) ~/ 2;
+    for (var j = 1; j <= m; j++) {
+      terms.add(
+        Sin((IntegerNumber.of(2 * j) * u).simplify()) / IntegerNumber.of(j),
+      );
+    }
+  } else {
+    final m = n ~/ 2;
+    for (var j = 1; j <= m; j++) {
+      final coeff = IntegerNumber.of(2 * j - 1);
+      terms.add((IntegerNumber.two * Sin((coeff * u).simplify())) / coeff);
+    }
+  }
+  return (scale * Add(terms) / a).simplify(assumptions: assumptions);
+}
+
+bool _hasMultipleAngleTrig(Expr node, String variable) {
+  final args = <Expr>{};
+  var valid = true;
+  void scan(Expr n) {
+    if (!valid || !n.dependsOn(variable)) return;
+    switch (n) {
+      case Sin(:final expr) || Cos(:final expr) || Tan(:final expr):
+        if (expr.matchLinear(variable) == null) {
+          valid = false;
+          return;
+        }
+        args.add(expr);
+      case Add(:final terms):
+        for (final t in terms) {
+          scan(t);
+        }
+      case Mul(:final factors):
+        for (final f in factors) {
+          scan(f);
+        }
+      case Pow(:final base, :final exponent)
+          when exponent is IntegerNumber && !exponent.dependsOn(variable):
+        scan(base);
+      default:
+        valid = false;
+    }
+  }
+
+  scan(node);
+  if (!valid || args.length < 2) return false;
+  var minSlope = double.infinity;
+  Expr? minArg;
+  for (final arg in args) {
+    final a = arg.matchLinear(variable)!.a;
+    if (a is RealNumeric) {
+      final v = a.toDouble().abs();
+      if (v > 0 && v < minSlope) {
+        minSlope = v;
+        minArg = arg;
+      }
+    }
+  }
+  if (minArg == null) return false;
+  final baseSlope = minArg.matchLinear(variable)!.a;
+  for (final arg in args) {
+    final k = (arg.matchLinear(variable)!.a / baseSlope).simplify();
+    if (k is! IntegerNumber || k.asInt == null || k.asInt!.abs() > 24) {
+      return false;
+    }
+  }
+  return true;
 }

@@ -72,6 +72,18 @@ Expr? tryIntegrationByParts(
   // Cyclic IBP: exp(ax + b) * sin(cx + d) or exp(ax + b) * cos(cx + d)
   if (pExpr case Pow(base: Constant.e, exponent: final expInner)) {
     if (expInner.matchLinear(variable) case (a: final a, b: _)) {
+      if (depth < 2 && vExpr is Add) {
+        final distSum = Add([
+          for (final t in vExpr.terms)
+            antiDerivative(
+              (pExpr * t).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+              depth: depth + 1,
+            ),
+        ]).simplify(assumptions: assumptions);
+        if (!hasUnevaluatedIntegral(distSum, variable)) return distSum;
+      }
       if (vExpr case Sin(expr: final trigInner)) {
         if (trigInner.matchLinear(variable) case (a: final c, b: _)) {
           final denom = (a * a + c * c).simplify();
@@ -300,6 +312,32 @@ Expr? tryIntegrationByParts(
     }
   }
 
+  // General polynomial fallback: P(x) of degree 1..3 times any integrable vExpr
+  if (depth < 2 &&
+      degP != null &&
+      degP >= 1 &&
+      degP <= 3 &&
+      !_containsLogOrInverseTrig(vExpr)) {
+    final v = antiDerivative(
+      vExpr,
+      variable,
+      assumptions: assumptions,
+      depth: 2,
+    );
+    if (!hasUnevaluatedIntegral(v, variable)) {
+      final pPrime = pExpr.derivative(variable, assumptions: assumptions);
+      final remIntegral = antiDerivative(
+        (pPrime * v).simplify(assumptions: assumptions),
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(remIntegral, variable)) {
+        return (pExpr * v - remIntegral).simplify(assumptions: assumptions);
+      }
+    }
+  }
+
   return null;
 }
 
@@ -382,3 +420,12 @@ Expr _ibpCosh(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
   final term2 = ((p / cSquared).simplify() * Cosh(expr)).simplify();
   return (term1 - term2).simplify();
 }
+
+bool _containsLogOrInverseTrig(Expr expr) => switch (expr) {
+  Ln() || Asin() || Acos() || Atan() || Asinh() || Acosh() || Atanh() => true,
+  Add(:final terms) => terms.any(_containsLogOrInverseTrig),
+  Mul(:final factors) => factors.any(_containsLogOrInverseTrig),
+  Pow(:final base, :final exponent) =>
+    _containsLogOrInverseTrig(base) || _containsLogOrInverseTrig(exponent),
+  _ => false,
+};
