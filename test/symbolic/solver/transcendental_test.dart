@@ -409,5 +409,14 @@ void main() {
         }
       },
     );
+
+    test('solves polynomial equations in exponential substitutions', () {
+      check(Expr.parse('exp(2*x) - 3*exp(x) + 2').solve('x')).unorderedEquals([
+        IntegerNumber.zero,
+        Ln(IntegerNumber.two, isSimplified: true),
+      ]);
+      check(Expr.parse('exp(2*x) - 1').solve('x'))
+          .deepEquals([IntegerNumber.zero]);
+    });
   });
 }

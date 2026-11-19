@@ -69,7 +69,15 @@ List<Expr>? isolateAndInvert(
   );
   if (affineExp != null) return affineExp;
 
-  // Case 3: expr is alone (equated to 0)
+  // Case 3: Polynomial in an exponential substitution P(b^(a*x + c)) = 0
+  final expPolyRoots = _tryPolynomialInExponential(
+    expr,
+    variable,
+    assumptions: assumptions,
+  );
+  if (expPolyRoots != null) return expPolyRoots;
+
+  // Case 4: expr is alone (equated to 0)
   return invertEquation(
     expr,
     IntegerNumber.zero,
@@ -861,4 +869,98 @@ List<Expr>? _tryIsolateRadicalAndSolve(
           .expand(assumptions: assumptions)
           .simplify(assumptions: assumptions);
   return solveEquation(poly, variable, assumptions: assumptions);
+}
+
+List<Expr>? _tryPolynomialInExponential(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final expNodes = <({Pow node, Expr base, RationalNumber alpha, Expr beta})>[];
+
+  void collect(Expr e) {
+    if (e case Pow(:final base, :final exponent)) {
+      if (!base.dependsOn(variable) && exponent.dependsOn(variable)) {
+        final lin = exponent.matchLinear(variable);
+        if (lin?.a case final RationalNumber alpha when !alpha.isZero) {
+          expNodes.add((node: e, base: base, alpha: alpha, beta: lin!.b));
+          return;
+        }
+      }
+    }
+    e.mapChildren((c) {
+      collect(c);
+      return c;
+    });
+  }
+
+  collect(expr);
+  if (expNodes.isEmpty) return null;
+
+  final commonBase = expNodes.first.base;
+  final firstSign = expNodes.first.alpha.sign;
+  for (final entry in expNodes) {
+    if (entry.base != commonBase || entry.alpha.sign != firstSign) return null;
+  }
+
+  // Fundamental rational slope alpha0 = sign * gcd(numerators) / lcm(denominators)
+  var gcdNum = expNodes.first.alpha.numerator.abs();
+  var lcmDen = expNodes.first.alpha.denominator;
+  for (var i = 1; i < expNodes.length; i++) {
+    final r = expNodes[i].alpha;
+    final numAbs = r.numerator.abs();
+    gcdNum = gcdNum.gcd(numAbs);
+    lcmDen = (lcmDen ~/ lcmDen.gcd(r.denominator)) * r.denominator;
+  }
+  final alpha0 = RationalNumber.of(firstSign < 0 ? -gcdNum : gcdNum, lcmDen);
+
+  const uName = '_u_exp';
+  const uVar = Variable(uName);
+  final replacements = <Pow, Expr>{};
+  for (final (:node, :base, :alpha, :beta) in expNodes) {
+    final ratio = alpha.divRational(alpha0);
+    if (ratio is! IntegerNumber) return null;
+    final m = ratio.asInt;
+    if (m == null || m < 1 || m > 6) return null;
+    final uPow = m == 1 ? uVar : Pow(uVar, IntegerNumber.of(m));
+    final bScale = (beta is Number && beta.isZero)
+        ? IntegerNumber.one
+        : Pow(base, beta);
+    replacements[node] = (bScale * uPow).simplify(
+      assumptions: Assumptions.none,
+    );
+  }
+
+  Expr substituteExp(Expr e) {
+    if (e is Pow && replacements.containsKey(e)) {
+      return replacements[e]!;
+    }
+    return e.mapChildren(substituteExp);
+  }
+
+  final polyU = substituteExp(expr).simplify(assumptions: Assumptions.none);
+  if (polyU.dependsOn(variable) || !polyU.dependsOn(uName)) return null;
+
+  final uRoots = solveEquation(polyU, uName, assumptions: Assumptions.none);
+  if (uRoots.isEmpty) return const [];
+
+  final targetPow = Pow(
+    commonBase,
+    (alpha0 * Variable(variable)).simplify(assumptions: assumptions),
+  );
+  final results = <Expr>[];
+  final seen = <Expr>{};
+  for (final uRoot in uRoots) {
+    final roots = invertEquation(
+      targetPow,
+      uRoot,
+      variable,
+      assumptions: assumptions,
+    );
+    if (roots == null) return null;
+    for (final r in roots) {
+      if (seen.add(r)) results.add(r);
+    }
+  }
+  return results;
 }
