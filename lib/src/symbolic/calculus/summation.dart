@@ -350,6 +350,19 @@ Expr? _antidifferenceCore(Expr term, String variable) {
     }
   }
 
+  // 5. Upper-index Binomial(k + c, m) where m is independent of k
+  if (term case Binomial(:final left, :final right)
+      when !right.dependsOn(variable)) {
+    if (left.matchLinear(variable) case (:final a, :final b)
+        when a == IntegerNumber.one) {
+      return Binomial(
+        (kVar + b).simplify(),
+        (right + IntegerNumber.one).simplify(),
+        isSimplified: true,
+      );
+    }
+  }
+
   return null;
 }
 
@@ -683,24 +696,34 @@ Expr? _tryBinomialSum(Expr term, String variable, Expr a, Expr b) {
 
   if (binomNode == null) return null;
   final nExpr = binomNode.left;
-  if (a != IntegerNumber.zero || b != nExpr) return null;
-
-  if (otherFactors.isEmpty) {
-    return Pow(IntegerNumber.two, nExpr).simplify();
+  if ((a != IntegerNumber.zero && a != IntegerNumber.one) || b != nExpr) {
+    return null;
   }
 
-  // Extract geometric factors x^k * y^(n - k) and constant factors
+  Expr adjustLowerBound(Expr fullSum) => a == IntegerNumber.zero
+      ? fullSum
+      : (fullSum - term.substitute(variable, IntegerNumber.zero).simplify())
+            .simplify();
+
+  if (otherFactors.isEmpty) {
+    return adjustLowerBound(Pow(IntegerNumber.two, nExpr).simplify());
+  }
+
+  // Extract geometric factors x^k * y^(n - k), polynomial factors P(k), and constant factors
   final (:constFactors, :varFactors) = partitionFactors(otherFactors, variable);
   final constPart = constFactors.isEmpty
       ? IntegerNumber.one
       : simplifyMul(constFactors, assumptions: Assumptions.none);
   if (varFactors.isEmpty) {
-    return (constPart * Pow(IntegerNumber.two, nExpr)).simplify();
+    return adjustLowerBound(
+      (constPart * Pow(IntegerNumber.two, nExpr)).simplify(),
+    );
   }
 
   var xRatio = IntegerNumber.one as Expr;
   var yRatio = IntegerNumber.one as Expr;
   var extraScale = IntegerNumber.one as Expr;
+  final polyFactors = <Expr>[];
 
   for (final vf in varFactors) {
     if (vf case Pow(:final base, :final exponent)
@@ -728,17 +751,83 @@ Expr? _tryBinomialSum(Expr term, String variable, Expr a, Expr b) {
       }
       continue;
     }
-    return null;
+    polyFactors.add(vf);
   }
 
   final sumBase = (xRatio + yRatio).simplify();
-  if (sumBase is Number && sumBase.isZero) {
-    if (nExpr is IntegerNumber && nExpr.value > Integer.zero) {
-      return IntegerNumber.zero;
+  if (polyFactors.isEmpty) {
+    if (sumBase is Number && sumBase.isZero) {
+      if (nExpr is IntegerNumber && nExpr.value > Integer.zero) {
+        return adjustLowerBound(IntegerNumber.zero);
+      }
+      return null;
     }
+    return adjustLowerBound(
+      (constPart * extraScale * Pow(sumBase, nExpr)).simplify(),
+    );
+  }
+
+  final polyExpr = polyFactors.length == 1
+      ? polyFactors.first
+      : simplifyMul(polyFactors, assumptions: Assumptions.none);
+  final coeffs = extractPolynomialCoefficients(polyExpr, variable);
+  if (coeffs == null) return null;
+
+  var maxDeg = 0;
+  for (final d in coeffs.keys) {
+    if (d > maxDeg) maxDeg = d;
+  }
+  if (maxDeg > 4) return null;
+
+  if (sumBase is Number && sumBase.isZero) {
     return null;
   }
-  return (constPart * extraScale * Pow(sumBase, nExpr)).simplify();
+
+  // Stirling numbers of the second kind S(i, j) for i, j <= 4
+  const stirling2 = <List<int>>[
+    [1],
+    [0, 1],
+    [0, 1, 1],
+    [0, 1, 3, 1],
+    [0, 1, 7, 6, 1],
+  ];
+
+  // Express P(k) = sum_{j=0}^maxDeg s_j * k^{falling j}
+  final sCoeffs = List<Expr>.filled(maxDeg + 1, IntegerNumber.zero);
+  for (var j = 0; j <= maxDeg; j++) {
+    Expr sj = IntegerNumber.zero;
+    for (var i = j; i <= maxDeg; i++) {
+      final ci = coeffs[i];
+      if (ci != null) {
+        final s = stirling2[i][j];
+        if (s != 0) {
+          sj = (sj + IntegerNumber.of(s) * ci).simplify();
+        }
+      }
+    }
+    sCoeffs[j] = sj;
+  }
+
+  // Sum_{k=0}^n k^{falling j} C(n,k) x^k y^{n-k} = n^{falling j} x^j (x+y)^{n-j}
+  Expr polyFactorSum = IntegerNumber.zero;
+  Expr fallingN = IntegerNumber.one;
+  Expr xPow = IntegerNumber.one;
+  for (var j = 0; j <= maxDeg; j++) {
+    if (j > 0) {
+      fallingN = (fallingN * (nExpr - IntegerNumber.of(j - 1))).simplify();
+      xPow = (xPow * xRatio).simplify();
+    }
+    final sj = sCoeffs[j];
+    if (sj is Number && sj.isZero) continue;
+    final basePow = Pow(sumBase, IntegerNumber.of(maxDeg - j)).simplify();
+    polyFactorSum = (polyFactorSum + sj * fallingN * xPow * basePow).simplify();
+  }
+
+  final expandedPoly = polyFactorSum.expand().simplify();
+  final tailPow = Pow(sumBase, (nExpr - IntegerNumber.of(maxDeg)).simplify());
+  return adjustLowerBound(
+    (constPart * extraScale * expandedPoly * tailPow).simplify(),
+  );
 }
 
 Expr? _infiniteSeriesClosedForm(

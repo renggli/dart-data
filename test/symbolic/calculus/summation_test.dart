@@ -436,6 +436,12 @@ void main() {
       check(
         Expr.parse('sum(binomial(n, k) * x^k * y^(n - k), k, 0, n)').simplify(),
       ).equals(Expr.parse('(x + y)^n').simplify());
+      check(Expr.parse('k * binomial(n, k)').sum('k', 0, const Variable('n')))
+          .equals(Expr.parse('n * 2^(n - 1)').simplify());
+      check(Expr.parse('k^2 * binomial(n, k)').sum('k', 0, const Variable('n')))
+          .equals(Expr.parse('(n + n^2) * 2^(n - 2)').simplify());
+      check(Expr.parse('binomial(k, 2)').sum('k', 2, const Variable('n')))
+          .equals(Expr.parse('binomial(n + 1, 3)').simplify());
     });
   });
 
