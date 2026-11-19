@@ -225,6 +225,21 @@ void main() {
       check(Expr.parse('x / (y + 1)^2 - x / (y + 1)^2').simplify())
           .equals(IntegerNumber.zero);
     });
+
+    test(
+      'combines high-degree shifted-power fractions without expansion blowup',
+      () {
+        check(
+          Expr.parse('exp(x) / (1 - exp(x))^2024 - exp(x) / (1 - exp(x))^2023')
+              .simplify(),
+        ).equals(Expr.parse('exp(2 * x) / (1 - exp(x))^2024').simplify());
+        final deriv = Expr.parse(
+          '1 / (2023 * (1 - exp(x))^2023) - 1 / (2022 * (1 - exp(x))^2022)',
+        ).derivative('x');
+        check((deriv - Expr.parse('exp(2 * x) / (1 - exp(x))^2024')).simplify())
+            .equals(IntegerNumber.zero);
+      },
+    );
   });
 
   group('OrderTerm absorption and term decomposition helpers', () {

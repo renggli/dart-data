@@ -586,6 +586,60 @@ class MonomialAccumulator {
 
     if (groups == null) return;
 
+    if (groups.length >= 2) {
+      final byBase = <Expr, List<({Expr denPart, int exp})>>{};
+      for (final denPart in groups.keys) {
+        if (denPart
+            case Pow(
+              base: final innerBase,
+              exponent: IntegerNumber(asInt: final m?),
+            )
+            when m >= 1) {
+          byBase.putIfAbsent(innerBase, () => []).add((
+            denPart: denPart,
+            exp: m,
+          ));
+        } else {
+          byBase.putIfAbsent(denPart, () => []).add((denPart: denPart, exp: 1));
+        }
+      }
+      for (final MapEntry(key: baseExpr, value: entries) in byBase.entries) {
+        if (entries.length < 2) continue;
+        entries.sort((a, b) => b.exp.compareTo(a.exp));
+        var i = 0;
+        while (i < entries.length) {
+          final maxEntry = entries[i];
+          final mMax = maxEntry.exp;
+          if (mMax <= 16) break;
+          var j = i + 1;
+          while (j < entries.length && mMax - entries[j].exp <= 4) {
+            j++;
+          }
+          if (j - i >= 2) {
+            final targetItems = groups[maxEntry.denPart]!;
+            for (var k = i + 1; k < j; k++) {
+              final subEntry = entries[k];
+              final shift = mMax - subEntry.exp;
+              final shiftFactor = shift == 1
+                  ? baseExpr
+                  : Pow(baseExpr, IntegerNumber.of(shift), isSimplified: true);
+              final subItems = groups.remove(subEntry.denPart)!;
+              for (final (termBase, numPart, coeff) in subItems) {
+                final alignedNum = numPart is Number && numPart.isOne
+                    ? shiftFactor
+                    : simplifyMul([
+                        numPart,
+                        shiftFactor,
+                      ], assumptions: assumptions);
+                targetItems.add((termBase, alignedNum, coeff));
+              }
+            }
+          }
+          i = j;
+        }
+      }
+    }
+
     for (final MapEntry(key: den, value: items) in groups.entries) {
       if (items.length < 2) continue;
 
@@ -607,9 +661,11 @@ class MonomialAccumulator {
       }
 
       final totalNum = Add(numerators);
-      final simplifiedNum = totalNum
-          .expand(assumptions: assumptions)
-          .simplify(assumptions: assumptions);
+      final simplifiedNum = _hasHighDegreePowerOfAdd(totalNum)
+          ? totalNum.simplify(assumptions: assumptions)
+          : totalNum
+                .expand(assumptions: assumptions)
+                .simplify(assumptions: assumptions);
 
       if (simplifiedNum is Number && simplifiedNum.isZero) {
         // Combined numerator is 0: sum is 0, nothing added.
@@ -677,9 +733,37 @@ class MonomialAccumulator {
     return null;
   }
 
+  static bool _hasHighDegreePowerOfAdd(Expr expr, {int maxExponent = 16}) {
+    if (expr is Pow) {
+      if (expr.base is Add &&
+          expr.exponent is IntegerNumber &&
+          (expr.exponent as IntegerNumber).value.abs() >
+              Integer.from(maxExponent)) {
+        return true;
+      }
+      return _hasHighDegreePowerOfAdd(expr.base, maxExponent: maxExponent) ||
+          _hasHighDegreePowerOfAdd(expr.exponent, maxExponent: maxExponent);
+    }
+    if (expr is Add) {
+      for (final t in expr.terms) {
+        if (_hasHighDegreePowerOfAdd(t, maxExponent: maxExponent)) return true;
+      }
+      return false;
+    }
+    if (expr is Mul) {
+      for (final f in expr.factors) {
+        if (_hasHighDegreePowerOfAdd(f, maxExponent: maxExponent)) return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
   static bool _isAlgebraicallyZero(Expr expr) {
     if (expr is Number && expr.isZero) return true;
-    final s = expr.expand().simplify();
+    final s = _hasHighDegreePowerOfAdd(expr)
+        ? expr.simplify()
+        : expr.expand().simplify();
     return s is Number && s.isZero;
   }
 }
