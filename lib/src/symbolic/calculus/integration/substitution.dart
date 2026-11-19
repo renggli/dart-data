@@ -270,7 +270,8 @@ Expr? tryMixedTrigLogExp(
   final factors = expr is Mul ? expr.factors : [expr];
   var scale = IntegerNumber.one as Expr;
   Expr? xPower = IntegerNumber.zero;
-  Expr? trigFactor;
+  Expr? trigBase;
+  var trigPower = 1;
 
   for (final f in factors) {
     if (!f.dependsOn(variable)) {
@@ -288,24 +289,32 @@ Expr? tryMixedTrigLogExp(
       xPower = (xPower + exponent).simplify();
       continue;
     }
-    if ((f is Sin || f is Cos) && trigFactor == null) {
-      trigFactor = f;
+    if ((f is Sin || f is Cos) && trigBase == null) {
+      trigBase = f;
+      trigPower = 1;
+      continue;
+    }
+    if (f case Pow(base: final b, exponent: IntegerNumber(asInt: final k?))
+        when (b is Sin || b is Cos) && k >= 1 && k <= 6 && trigBase == null) {
+      trigBase = b;
+      trigPower = k;
       continue;
     }
     xPower = null;
   }
 
-  if (xPower != null && trigFactor != null) {
-    final inner = trigFactor is Sin
-        ? trigFactor.expr
-        : (trigFactor as Cos).expr;
+  if (xPower != null && trigBase != null) {
+    final inner = trigBase is Sin ? trigBase.expr : (trigBase as Cos).expr;
     if (inner case Ln(expr: final lnInner)) {
       if (lnInner.matchLinear(variable) case (:final a, b: final b)
           when b == IntegerNumber.zero) {
         const uName = '_ml';
         const uVar = Variable(uName);
         final expFactor = Pow(Constant.e, (xPower + IntegerNumber.one) * uVar);
-        final trigU = trigFactor is Sin ? Sin(uVar) : Cos(uVar);
+        final baseTrigU = trigBase is Sin ? Sin(uVar) : Cos(uVar);
+        final trigU = trigPower == 1
+            ? baseTrigU
+            : Pow(baseTrigU, IntegerNumber.of(trigPower));
         final uInt = antiDerivative(
           (expFactor * trigU).simplify(assumptions: assumptions),
           uName,

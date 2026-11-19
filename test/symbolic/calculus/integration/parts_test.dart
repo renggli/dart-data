@@ -72,6 +72,10 @@ void main() {
         Expr.parse('x * sin(x) * cos(x)'),
         points: const [0.2, 0.7, 1.3],
       );
+      verifyAntiderivative(
+        Expr.parse('x * ln(1 + 1 / x)'),
+        points: const [0.5, 1.0, 2.0],
+      );
     });
   });
 }

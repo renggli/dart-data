@@ -70,5 +70,16 @@ void main() {
         }
       },
     );
+
+    test('integrates multi-factor trigonometric products', () {
+      verifyAntiderivative(
+        Expr.parse('sin(x) * sin(2 * x) * sin(3 * x)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('cos(x) * cos(3 * x) * cos(5 * x)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+    });
   });
 }

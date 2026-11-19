@@ -277,6 +277,15 @@ Expr antiDerivative(
         case final chebRes?) {
       return chebRes;
     }
+    if (tryTrigRadicalSubstitution(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final trigRadRes?) {
+      return trigRadRes;
+    }
     if (tryUSubstitution(node, variable, assumptions: assumptions, depth: depth)
         case final uSubRes?) {
       return uSubRes;

@@ -203,10 +203,10 @@ Expr? tryChebyshevBinomial(
   final uName = '_u$depth';
   final uVar = Variable(uName);
 
-  // Case 1: (m + 1) / n is a positive integer k
-  if ((m + 1) > 0 && (m + 1) % n == 0) {
+  // Case 1: (m + 1) / n is an integer k
+  if ((m + 1) % n == 0) {
     final k = (m + 1) ~/ n;
-    if (k <= 8) {
+    if (k > 0 && k <= 8) {
       final transformed =
           (constScale *
                   (IntegerNumber.one / (IntegerNumber.of(n) * b)) *
@@ -223,6 +223,31 @@ Expr? tryChebyshevBinomial(
       if (!hasUnevaluatedIntegral(uAntideriv, uName)) {
         return uAntideriv
             .substitute(uName, binomPow.base)
+            .simplify(assumptions: assumptions);
+      }
+    } else if (k <= 0 && k >= -6 && q >= 2) {
+      final bPow = k == 0 ? IntegerNumber.one : Pow(b, IntegerNumber.of(k));
+      final transformed =
+          (constScale *
+                  (IntegerNumber.of(q) / (IntegerNumber.of(n) * bPow)) *
+                  Pow(uVar, IntegerNumber.of(p + q - 1)) *
+                  Pow(
+                    Pow(uVar, IntegerNumber.of(q)) - a,
+                    IntegerNumber.of(k - 1),
+                  ))
+              .simplify(assumptions: assumptions);
+      final uAntideriv = antiDerivative(
+        transformed,
+        uName,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(uAntideriv, uName)) {
+        return uAntideriv
+            .substitute(
+              uName,
+              Pow(binomPow.base, FractionNumber(Integer.one, Integer(q))),
+            )
             .simplify(assumptions: assumptions);
       }
     }
@@ -688,4 +713,55 @@ Expr? _integratePolyOverSqrtQ(
   final remInt = _integratePolyOverSqrtQ(lowerPoly, quad, a, b, c, variable);
   if (remInt == null) return null;
   return (term1 + remInt).simplify();
+}
+
+/// Integrates fractional powers $\tan(a x + b)^{p/2}$ via $u = \sqrt{\tan(a x + b)}$.
+Expr? tryTrigRadicalSubstitution(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2) return null;
+  final factors = expr is Mul ? expr.factors : [expr];
+  var constScale = IntegerNumber.one as Expr;
+  Pow? tanPow;
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      constScale = (constScale * f).simplify();
+      continue;
+    }
+    if (f is Pow && f.base is Tan && tanPow == null) {
+      tanPow = f;
+      continue;
+    }
+    return null;
+  }
+
+  if (tanPow == null) return null;
+  final inner = (tanPow.base as Tan).expr;
+  final lin = inner.matchLinear(variable);
+  if (lin == null) return null;
+  final fracExp = _fractionalExponent(tanPow.exponent);
+  if (fracExp == null || fracExp.q != 2 || fracExp.p.abs() > 3) return null;
+
+  final uName = '_u$depth';
+  final uVar = Variable(uName);
+  final transformed =
+      (constScale *
+              (IntegerNumber.two / lin.a) *
+              Pow(uVar, IntegerNumber.of(fracExp.p + 1)) /
+              (Pow(uVar, const IntegerNumber(Integer(4))) + IntegerNumber.one))
+          .simplify(assumptions: assumptions);
+  final uAntideriv = antiDerivative(
+    transformed,
+    uName,
+    assumptions: assumptions,
+    depth: depth + 1,
+  );
+  if (hasUnevaluatedIntegral(uAntideriv, uName)) return null;
+  return uAntideriv
+      .substitute(uName, Pow(Tan(inner), FractionNumber.half))
+      .simplify(assumptions: assumptions);
 }

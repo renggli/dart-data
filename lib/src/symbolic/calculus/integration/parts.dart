@@ -152,22 +152,31 @@ Expr? tryIntegrationByParts(
   // Higher-degree polynomial P(x) * vExpr (e.g. x^n * exp(ax+b), x^n * sin(ax+b), x^n * ln(x), x^n * exp(-a*x^2)):
   final degP = polynomialDegree(pExpr, variable);
   if (degP != null && degP >= 1 && degP <= 10) {
-    // 1. P(x) * ln(a*x + b)^k where u = ln(a*x + b)^k, dv = P(x) dx
+    // 1. P(x) * ln(R(x)) where u = ln(R(x)), dv = P(x) dx
     if (vExpr case Ln(:final expr)
-        when degP >= 2 && expr.matchLinear(variable) != null) {
-      final v = antiDerivative(pExpr, variable, assumptions: assumptions);
+        when (degP >= 2 && expr.matchLinear(variable) != null) || degP <= 6) {
       final uPrime = vExpr
           .derivative(variable)
           .simplify(assumptions: assumptions);
-      final remIntegrand = (v * uPrime).simplify(assumptions: assumptions);
-      final remIntegral = antiDerivative(
-        remIntegrand,
-        variable,
-        assumptions: assumptions,
-      );
-      if (!hasUnevaluatedIntegral(v, variable) &&
-          !hasUnevaluatedIntegral(remIntegral, variable)) {
-        return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
+      final (uNum, uDen) = splitNumeratorDenominator(uPrime);
+      final uNumExp = uNum.expand().simplify(assumptions: assumptions);
+      final uDenExp = uDen.expand().simplify(assumptions: assumptions);
+      if (expr.matchLinear(variable) != null ||
+          (polynomialDegree(uNumExp, variable) != null &&
+              polynomialDegree(uDenExp, variable) != null)) {
+        final v = antiDerivative(pExpr, variable, assumptions: assumptions);
+        final remIntegrand = (v * uNumExp / uDenExp).simplify(
+          assumptions: assumptions,
+        );
+        final remIntegral = antiDerivative(
+          remIntegrand,
+          variable,
+          assumptions: assumptions,
+        );
+        if (!hasUnevaluatedIntegral(v, variable) &&
+            !hasUnevaluatedIntegral(remIntegral, variable)) {
+          return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
+        }
       }
     }
     if (vExpr

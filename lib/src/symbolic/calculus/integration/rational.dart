@@ -803,9 +803,7 @@ Expr? _tryBiquadraticDenominator(Expr left, Expr right, String variable) {
   final a = denCoeffs[4] ?? IntegerNumber.zero;
   final b = denCoeffs[2] ?? IntegerNumber.zero;
   final c = denCoeffs[0] ?? IntegerNumber.zero;
-  if (a == IntegerNumber.zero ||
-      b == IntegerNumber.zero ||
-      c == IntegerNumber.zero) {
+  if (a == IntegerNumber.zero || c == IntegerNumber.zero) {
     return null;
   }
 

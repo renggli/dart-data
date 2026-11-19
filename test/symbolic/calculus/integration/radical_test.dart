@@ -101,6 +101,14 @@ void main() {
           Expr.parse('sin((x - 1)^(1/4))'),
           points: const [1.5, 2.0, 3.0],
         );
+        verifyAntiderivative(
+          Expr.parse('1 / (x * sqrt(x^4 - 1))'),
+          points: const [1.2, 1.6, 2.2],
+        );
+        verifyAntiderivative(
+          Expr.parse('sqrt(tan(x))'),
+          points: const [0.2, 0.6, 1.0],
+        );
       },
     );
   });

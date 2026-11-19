@@ -239,10 +239,17 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
         for (var j = 0; j < varFactors.length; j++)
           if (i != j) varFactors[j],
       ];
-      final otherExpr = others.length == 1
-          ? others.first
-          : Mul(others).simplify();
-      if (polynomialDegree(otherExpr, variable) != null) {
+      final isReducible = others.every(
+        (o) =>
+            polynomialDegree(o, variable) != null ||
+            (o is Pow &&
+                !o.base.dependsOn(variable) &&
+                o.exponent.matchLinear(variable) != null),
+      );
+      if (isReducible) {
+        final otherExpr = others.length == 1
+            ? others.first
+            : Mul(others).simplify();
         final expanded = (otherExpr * reduced).expand().simplify();
         final res = antiDerivative(
           expanded,
@@ -288,10 +295,16 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
           for (var k = 0; k < varFactors.length; k++)
             if (k != i && k != j) varFactors[k],
         ];
-        final otherExpr = others.length == 1
-            ? others.first
-            : Mul(others).simplify();
-        if (polynomialDegree(otherExpr, variable) != null) {
+        final isReducibleProduct = others.every(
+          (o) =>
+              polynomialDegree(o, variable) != null ||
+              (o is Sin && o.expr.matchLinear(variable) != null) ||
+              (o is Cos && o.expr.matchLinear(variable) != null),
+        );
+        if (isReducibleProduct) {
+          final otherExpr = others.length == 1
+              ? others.first
+              : Mul(others).simplify();
           final expanded = (otherExpr * pairReduced).expand().simplify();
           final res = antiDerivative(
             expanded,

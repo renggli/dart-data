@@ -258,6 +258,10 @@ void main() {
         'b': 3.3,
         'c': 4.7,
       });
+      verifyAntiderivative(
+        Expr.parse('sin(ln(x))^2'),
+        points: const [0.5, 1.5, 2.5],
+      );
     });
   });
 }
