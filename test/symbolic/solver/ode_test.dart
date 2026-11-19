@@ -187,6 +187,42 @@ void main() {
       ).equals(Expr.parse('C1 * cos(x) + C2 * sin(x)').simplify());
     });
 
+    test(
+      'solves inhomogeneous polynomial, exponential, and sinusoidal ODEs',
+      () {
+        check(
+          Expr.parse('diff(y, x, 2) + y - x')
+              .solveOde(dependent: 'y', independent: 'x'),
+        ).equals(Expr.parse('C1 * cos(x) + C2 * sin(x) + x').simplify());
+        check(
+          Expr.parse('diff(y, x, 2) - y - exp(2 * x)')
+              .solveOde(dependent: 'y', independent: 'x'),
+        ).equals(
+          Expr.parse('C1 * exp(-x) + C2 * exp(x) + 1/3 * exp(2 * x)')
+              .simplify(),
+        );
+        check(
+          Expr.parse('diff(y, x, 2) - 3 * diff(y, x) + 2 * y - exp(x)')
+              .solveOde(dependent: 'y', independent: 'x'),
+        ).equals(
+          Expr.parse('C1 * exp(x) + C2 * exp(2 * x) - x * exp(x)').simplify(),
+        );
+        check(
+          Expr.parse('diff(y, x, 2) + y - cos(x)')
+              .solveOde(dependent: 'y', independent: 'x'),
+        ).equals(
+          Expr.parse('C1 * cos(x) + C2 * sin(x) + 1/2 * x * sin(x)').simplify(),
+        );
+        check(
+          Expr.parse('diff(y, x, 2) - y - sin(2 * x)')
+              .solveOde(dependent: 'y', independent: 'x'),
+        ).equals(
+          Expr.parse('C1 * exp(-x) + C2 * exp(x) - 1/5 * sin(2 * x)')
+              .simplify(),
+        );
+      },
+    );
+
     test('throws UnsupportedError for ODEs of order > 2', () {
       check(
         () =>
