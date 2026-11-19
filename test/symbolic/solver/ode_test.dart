@@ -244,10 +244,40 @@ void main() {
       },
     );
 
-    test('throws UnsupportedError for ODEs of order > 2', () {
+    test('solves polynomial * exponential and polynomial * trig forcing', () {
+      check(
+        Expr.parse('diff(y, x, 2) - y - x * exp(2 * x)')
+            .solveOde(dependent: 'y', independent: 'x'),
+      ).equals(
+        Expr.parse('C1 * exp(-x) + C2 * exp(x) + (x / 3 - 4 / 9) * exp(2 * x)')
+            .simplify(),
+      );
+      check(
+        Expr.parse('diff(y, x, 2) + y - x * sin(x)')
+            .solveOde(dependent: 'y', independent: 'x')
+            .expand(),
+      ).equals(
+        Expr.parse(
+          'C1 * cos(x) + C2 * sin(x) - x^2 / 4 * cos(x) + x / 4 * sin(x)',
+        ).simplify(),
+      );
+    });
+
+    test('solves higher-order constant-coefficient ODEs up to order 6', () {
+      check(
+        Expr.parse('diff(y, x, 3) - y')
+            .solveOde(dependent: 'y', independent: 'x'),
+      ).equals(
+        Expr.parse(
+          'C1 * exp(x) + exp(-x / 2) * (C2 * cos(sqrt(3) / 2 * x) + C3 * sin(sqrt(3) / 2 * x))',
+        ).simplify(),
+      );
+    });
+
+    test('throws UnsupportedError for ODEs of order > 6', () {
       check(
         () =>
-            Expr.parse('diff(y, x, 3) + y')
+            Expr.parse('diff(y, x, 7) + y')
                 .solveOde(dependent: 'y', independent: 'x'),
       ).throws<UnsupportedError>();
     });

@@ -1,13 +1,14 @@
+import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/domain.dart';
-import '../algebra/simplify/multiplicative.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/differentiation.dart';
 import '../calculus/integration/integration.dart';
 import '../calculus/linear_form.dart';
+import '../compiler.dart';
 import 'system.dart';
 import 'univariate.dart';
 
@@ -86,8 +87,8 @@ Expr _solveOde(
   }
 
   scanOrder(eq);
-  if (maxOrder > 2) {
-    throw UnsupportedError('ODEs of order $maxOrder > 2 are not supported');
+  if (maxOrder > 6) {
+    throw UnsupportedError('ODEs of order $maxOrder > 6 are not supported');
   }
   if (initialValues.length > maxOrder) {
     throw ArgumentError(
@@ -99,9 +100,10 @@ Expr _solveOde(
   }
 
   Expr ySol;
-  if (maxOrder == 2) {
-    ySol = _trySecondOrderLinearOde(
+  if (maxOrder >= 2) {
+    ySol = _tryNthOrderLinearOde(
       eq,
+      order: maxOrder,
       dependent: dependent,
       independent: independent,
       constant: constant,
@@ -183,8 +185,8 @@ Expr _solveOde(
     final atExpr = _toExpr(at);
     final constNames = <String>[
       constant,
-      if (maxOrder == 2)
-        if (constant == 'C1') 'C2' else '${constant}_2',
+      for (var i = 2; i <= maxOrder; i++)
+        if (constant == 'C1') 'C$i' else '${constant}_$i',
     ];
     final equations = <Expr>[];
     var currentDeriv = ySol;
@@ -305,15 +307,15 @@ Expr _replaceDerivative(
   return (fx, gy);
 }
 
-Expr _trySecondOrderLinearOde(
+Expr _tryNthOrderLinearOde(
   Expr eq, {
+  required int order,
   required String dependent,
   required String independent,
   required String constant,
   required Assumptions assumptions,
 }) {
-  const yDoublePrime = '_yDoublePrime';
-  const yPrime = '_yPrime';
+  String derivSentinel(int k) => '_yDeriv_$k';
 
   Expr replaceHigher(Expr e) {
     if (e
@@ -322,102 +324,74 @@ Expr _trySecondOrderLinearOde(
           variable: final indName,
           order: final ord,
         )
-        when depName == dependent && indName == independent) {
-      if (ord == 2) return const Variable(yDoublePrime);
-      if (ord == 1) return const Variable(yPrime);
+        when depName == dependent && indName == independent && ord >= 1) {
+      return Variable(derivSentinel(ord));
     }
     return e.mapChildren(replaceHigher);
   }
 
-  final normalized = replaceHigher(eq).simplify(assumptions: assumptions);
-  final lin2 = normalized.matchLinear(yDoublePrime);
-  if (lin2 == null) {
-    throw UnsupportedError(
-      'Only linear second-order ODEs with constant coefficients are supported.',
-    );
-  }
-  final a = lin2.a.simplify(assumptions: assumptions);
-  final lin1 = lin2.b.dependsOn(yPrime)
-      ? lin2.b.matchLinear(yPrime)
-      : (a: IntegerNumber.zero as Expr, b: lin2.b);
-  if (lin1 == null) {
-    throw UnsupportedError(
-      'Only linear second-order ODEs with constant coefficients are supported.',
-    );
-  }
-  final b = lin1.a.simplify(assumptions: assumptions);
-  final lin0 = lin1.b.dependsOn(dependent)
-      ? lin1.b.matchLinear(dependent)
-      : (a: IntegerNumber.zero as Expr, b: lin1.b);
-  if (lin0 == null) {
-    throw UnsupportedError(
-      'Only linear second-order ODEs with constant coefficients are supported.',
-    );
-  }
-  final c = lin0.a.simplify(assumptions: assumptions);
-  final d = lin0.b.simplify(assumptions: assumptions);
+  var rem = replaceHigher(eq).simplify(assumptions: assumptions);
+  final coeffs = List<Expr>.filled(order + 1, IntegerNumber.zero);
 
-  bool hasDepVar(Expr e) =>
-      e.dependsOn(dependent) ||
-      e.dependsOn(yPrime) ||
-      e.dependsOn(yDoublePrime);
+  for (var k = order; k >= 1; k--) {
+    final sName = derivSentinel(k);
+    if (rem.dependsOn(sName)) {
+      final lin = rem.matchLinear(sName);
+      if (lin == null) {
+        throw UnsupportedError(
+          'Only linear ODEs with constant coefficients are supported.',
+        );
+      }
+      coeffs[k] = lin.a.simplify(assumptions: assumptions);
+      rem = lin.b.simplify(assumptions: assumptions);
+    }
+  }
+
+  if (rem.dependsOn(dependent)) {
+    final lin = rem.matchLinear(dependent);
+    if (lin == null) {
+      throw UnsupportedError(
+        'Only linear ODEs with constant coefficients are supported.',
+      );
+    }
+    coeffs[0] = lin.a.simplify(assumptions: assumptions);
+    rem = lin.b.simplify(assumptions: assumptions);
+  }
+  final d = rem;
+
+  bool hasDepVar(Expr e) {
+    if (e.dependsOn(dependent)) return true;
+    for (var k = 1; k <= order; k++) {
+      if (e.dependsOn(derivSentinel(k))) return true;
+    }
+    return false;
+  }
 
   bool hasForbiddenVar(Expr e) => e.dependsOn(independent) || hasDepVar(e);
 
-  if ((a is Number && a.isZero) ||
-      hasForbiddenVar(a) ||
-      hasForbiddenVar(b) ||
-      hasForbiddenVar(c) ||
+  if ((coeffs[order] is Number && (coeffs[order] as Number).isZero) ||
+      coeffs.any(hasForbiddenVar) ||
       hasDepVar(d)) {
     throw UnsupportedError(
-      'Only linear second-order ODEs with constant coefficients are supported.',
+      'Only linear ODEs with constant coefficients are supported.',
     );
   }
 
-  final xVar = Variable(independent);
-  final c1 = Variable(constant);
-  final c2 = Variable(constant == 'C1' ? 'C2' : '${constant}_2');
-  final delta = (b * b - IntegerNumber.of(4) * a * c).simplify(
+  final yh = _buildHomogeneousSolution(
+    coeffs,
+    order: order,
+    independent: independent,
+    constant: constant,
     assumptions: assumptions,
   );
-
-  final Expr yh;
-  if (delta is Number && delta.isZero) {
-    final r = (-b / (IntegerNumber.two * a)).simplify(assumptions: assumptions);
-    yh = ((c1 + c2 * xVar) * Pow(Constant.e, r * xVar)).simplify(
-      assumptions: assumptions,
-    );
-  } else if (isNegativeExpr(delta, assumptions: assumptions)) {
-    final alpha = (-b / (IntegerNumber.two * a)).simplify(
-      assumptions: assumptions,
-    );
-    final beta = (Pow(-delta, FractionNumber.half) / (IntegerNumber.two * a))
-        .simplify(assumptions: assumptions);
-    yh =
-        (Pow(Constant.e, alpha * xVar) *
-                (c1 * Cos(beta * xVar) + c2 * Sin(beta * xVar)))
-            .simplify(assumptions: assumptions);
-  } else {
-    final sqrtDelta = Pow(delta, FractionNumber.half);
-    final r1 = ((-b - sqrtDelta) / (IntegerNumber.two * a)).simplify(
-      assumptions: assumptions,
-    );
-    final r2 = ((-b + sqrtDelta) / (IntegerNumber.two * a)).simplify(
-      assumptions: assumptions,
-    );
-    yh = (c1 * Pow(Constant.e, r1 * xVar) + c2 * Pow(Constant.e, r2 * xVar))
-        .simplify(assumptions: assumptions);
-  }
 
   final rhs = (-d).simplify(assumptions: assumptions);
   if (rhs is Number && rhs.isZero) {
     return yh;
   }
 
-  final yp = _particularSolutionUndeterminedCoeffs(
-    a,
-    b,
-    c,
+  final yp = _particularSolutionNthOrder(
+    coeffs,
     rhs,
     independent,
     assumptions: assumptions,
@@ -425,181 +399,459 @@ Expr _trySecondOrderLinearOde(
   return (yh + yp).simplify(assumptions: assumptions);
 }
 
-Expr _particularSolutionUndeterminedCoeffs(
-  Expr a,
-  Expr b,
-  Expr c,
+Expr _buildHomogeneousSolution(
+  List<Expr> coeffs, {
+  required int order,
+  required String independent,
+  required String constant,
+  required Assumptions assumptions,
+}) {
+  final xVar = Variable(independent);
+  String constName(int index) => index == 1
+      ? constant
+      : (constant == 'C1' ? 'C$index' : '${constant}_$index');
+
+  if (order == 2) {
+    final c = coeffs[0];
+    final b = coeffs[1];
+    final a = coeffs[2];
+    final c1 = Variable(constName(1));
+    final c2 = Variable(constName(2));
+    final delta = (b * b - IntegerNumber.of(4) * a * c).simplify(
+      assumptions: assumptions,
+    );
+
+    if (delta is Number && delta.isZero) {
+      final r = (-b / (IntegerNumber.two * a)).simplify(
+        assumptions: assumptions,
+      );
+      return ((c1 + c2 * xVar) * Pow(Constant.e, r * xVar)).simplify(
+        assumptions: assumptions,
+      );
+    }
+    if (isNegativeExpr(delta, assumptions: assumptions)) {
+      final alpha = (-b / (IntegerNumber.two * a)).simplify(
+        assumptions: assumptions,
+      );
+      final beta = (Pow(-delta, FractionNumber.half) / (IntegerNumber.two * a))
+          .simplify(assumptions: assumptions);
+      return (Pow(Constant.e, alpha * xVar) *
+              (c1 * Cos(beta * xVar) + c2 * Sin(beta * xVar)))
+          .simplify(assumptions: assumptions);
+    }
+    final sqrtDelta = Pow(delta, FractionNumber.half);
+    final r1 = ((-b - sqrtDelta) / (IntegerNumber.two * a)).simplify(
+      assumptions: assumptions,
+    );
+    final r2 = ((-b + sqrtDelta) / (IntegerNumber.two * a)).simplify(
+      assumptions: assumptions,
+    );
+    return (c1 * Pow(Constant.e, r1 * xVar) + c2 * Pow(Constant.e, r2 * xVar))
+        .simplify(assumptions: assumptions);
+  }
+
+  const rName = '_r';
+  const rVar = Variable(rName);
+  var charPoly = IntegerNumber.zero as Expr;
+  for (var j = 0; j <= order; j++) {
+    final aj = coeffs[j];
+    if (aj is Number && aj.isZero) continue;
+    final rPow = j == 0
+        ? IntegerNumber.one
+        : (j == 1 ? rVar : Pow(rVar, IntegerNumber.of(j)));
+    charPoly = charPoly + aj * rPow;
+  }
+  charPoly = charPoly.simplify(assumptions: assumptions);
+
+  final roots = solveEquation(charPoly, rName, assumptions: assumptions);
+  if (roots.isEmpty) {
+    throw UnsupportedError(
+      'Could not find characteristic roots for order-$order ODE.',
+    );
+  }
+
+  var constIdx = 1;
+  var yh = IntegerNumber.zero as Expr;
+
+  for (final root in roots) {
+    final mult = _rootMultiplicity(
+      charPoly,
+      rName,
+      root,
+      maxOrder: order,
+      assumptions: assumptions,
+    );
+    final alpha = Re(root).simplify(assumptions: assumptions);
+    final beta = Im(root).simplify(assumptions: assumptions);
+
+    if (beta is Number && beta.isZero) {
+      final expTerm = (alpha is Number && alpha.isZero)
+          ? IntegerNumber.one
+          : Pow(Constant.e, alpha * xVar);
+      for (var k = 0; k < mult; k++) {
+        final ck = Variable(constName(constIdx++));
+        final xPow = k == 0
+            ? IntegerNumber.one
+            : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
+        yh = yh + ck * xPow * expTerm;
+      }
+    } else {
+      final isPosIm =
+          isPositiveExpr(beta, assumptions: assumptions) ||
+          (beta.freeVariables.isEmpty && beta.evaluate() > 0);
+      if (!isPosIm) continue;
+      final expTerm = (alpha is Number && alpha.isZero)
+          ? IntegerNumber.one
+          : Pow(Constant.e, alpha * xVar);
+      for (var k = 0; k < mult; k++) {
+        final cA = Variable(constName(constIdx++));
+        final cB = Variable(constName(constIdx++));
+        final xPow = k == 0
+            ? IntegerNumber.one
+            : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
+        yh =
+            yh +
+            xPow * expTerm * (cA * Cos(beta * xVar) + cB * Sin(beta * xVar));
+      }
+    }
+  }
+
+  return yh.simplify(assumptions: assumptions);
+}
+
+int _rootMultiplicity(
+  Expr poly,
+  String rName,
+  Expr z, {
+  required int maxOrder,
+  required Assumptions assumptions,
+}) {
+  var current = poly;
+  var mult = 0;
+  for (var k = 0; k < maxOrder; k++) {
+    final val = current.substitute(rName, z).simplify(assumptions: assumptions);
+    final isZero =
+        (val is Number && val.isZero) ||
+        (val is ComplexNumber && val.isZero) ||
+        (val.freeVariables.isEmpty &&
+            () {
+              try {
+                final c = val.evaluateComplex();
+                return !c.isNaN && c.a.abs() < 1e-10 && c.b.abs() < 1e-10;
+              } on Object {
+                return false;
+              }
+            }());
+    if (!isZero) break;
+    mult++;
+    current = current.derivative(rName, assumptions: assumptions);
+  }
+  return mult;
+}
+
+Expr _particularSolutionNthOrder(
+  List<Expr> coeffs,
   Expr rhs,
   String independent, {
   required Assumptions assumptions,
 }) {
+  final order = coeffs.length - 1;
   final xVar = Variable(independent);
+  const rName = '_r';
+  const rVar = Variable(rName);
+  var charPoly = IntegerNumber.zero as Expr;
+  for (var j = 0; j <= order; j++) {
+    final aj = coeffs[j];
+    if (aj is Number && aj.isZero) continue;
+    final rPow = j == 0
+        ? IntegerNumber.one
+        : (j == 1 ? rVar : Pow(rVar, IntegerNumber.of(j)));
+    charPoly = charPoly + aj * rPow;
+  }
+  charPoly = charPoly.simplify(assumptions: assumptions);
+
   final terms = rhs is Add ? rhs.terms : [rhs];
-  final polyTerms = <Expr>[];
-  final otherTerms = <Expr>[];
+  final groups =
+      <
+        (Expr, Expr),
+        ({Expr alpha, Expr beta, List<Expr> cosTerms, List<Expr> sinTerms})
+      >{};
 
   for (final term in terms) {
-    if (extractPolynomialCoefficients(term, independent) != null) {
-      polyTerms.add(term);
-    } else {
-      otherTerms.add(term);
+    final parsed = _parseForcingTerm(
+      term,
+      independent,
+      assumptions: assumptions,
+    );
+    if (parsed == null) {
+      throw UnsupportedError(
+        'Unsupported inhomogeneous term in linear ODE: $term',
+      );
+    }
+    for (final piece in parsed) {
+      final key = (piece.alpha, piece.beta);
+      final group = groups.putIfAbsent(
+        key,
+        () => (
+          alpha: piece.alpha,
+          beta: piece.beta,
+          cosTerms: <Expr>[],
+          sinTerms: <Expr>[],
+        ),
+      );
+      if (piece.isSin) {
+        group.sinTerms.add(piece.poly);
+      } else {
+        group.cosTerms.add(piece.poly);
+      }
     }
   }
 
   var totalYp = IntegerNumber.zero as Expr;
 
-  if (polyTerms.isNotEmpty) {
-    final polyRhs = polyTerms.length == 1
-        ? polyTerms.first
-        : Add(polyTerms).simplify(assumptions: assumptions);
-    final coeffs = extractPolynomialCoefficients(polyRhs, independent)!;
-    var maxDeg = 0;
-    for (final k in coeffs.keys) {
-      if (k > maxDeg) maxDeg = k;
-    }
-    if (maxDeg > 4) {
+  for (final group in groups.values) {
+    final alpha = group.alpha;
+    final beta = group.beta;
+    final isTrig = !(beta is Number && beta.isZero);
+
+    final qCos = group.cosTerms.isEmpty
+        ? IntegerNumber.zero
+        : Add(group.cosTerms).simplify(assumptions: assumptions);
+    final qSin = group.sinTerms.isEmpty
+        ? IntegerNumber.zero
+        : Add(group.sinTerms).simplify(assumptions: assumptions);
+
+    final degCos = qCos is Number && qCos.isZero
+        ? 0
+        : (polynomialDegree(qCos, independent) ?? 99);
+    final degSin = qSin is Number && qSin.isZero
+        ? 0
+        : (polynomialDegree(qSin, independent) ?? 99);
+    final m = degCos > degSin ? degCos : degSin;
+    if (m > 4) {
       throw UnsupportedError(
-        'Polynomial forcing of degree > 4 in second-order ODE is not supported.',
+        'Polynomial forcing of degree > 4 in linear ODE is not supported.',
       );
     }
-    final isCZero = c is Number && c.isZero;
-    final isBZero = b is Number && b.isZero;
-    final s = isCZero ? (isBZero ? 2 : 1) : 0;
-    final aCoeffs = List<Expr>.filled(maxDeg + 1, IntegerNumber.zero);
 
-    for (var k = maxDeg; k >= 0; k--) {
-      final pk = coeffs[k] ?? IntegerNumber.zero;
-      if (s == 0) {
-        var rem = pk;
-        if (k + 1 <= maxDeg) {
-          rem = rem - b * IntegerNumber.of(k + 1) * aCoeffs[k + 1];
-        }
-        if (k + 2 <= maxDeg) {
-          rem = rem - a * IntegerNumber.of((k + 2) * (k + 1)) * aCoeffs[k + 2];
-        }
-        aCoeffs[k] = (rem / c).simplify(assumptions: assumptions);
-      } else if (s == 1) {
-        var rem = pk;
-        if (k + 1 <= maxDeg) {
-          rem = rem - a * IntegerNumber.of((k + 2) * (k + 1)) * aCoeffs[k + 1];
-        }
-        aCoeffs[k] = (rem / (b * IntegerNumber.of(k + 1))).simplify(
-          assumptions: assumptions,
-        );
-      } else {
-        aCoeffs[k] = (pk / (a * IntegerNumber.of((k + 2) * (k + 1)))).simplify(
-          assumptions: assumptions,
-        );
+    final z = isTrig
+        ? (alpha + ComplexNumber.i * beta).simplify(assumptions: assumptions)
+        : alpha;
+    final s = _rootMultiplicity(
+      charPoly,
+      rName,
+      z,
+      maxOrder: order,
+      assumptions: assumptions,
+    );
+
+    final unknowns = <String>[];
+    var polyA = IntegerNumber.zero as Expr;
+    var polyB = IntegerNumber.zero as Expr;
+    for (var k = 0; k <= m; k++) {
+      final aName = '_ua_$k';
+      unknowns.add(aName);
+      final xPow = k == 0
+          ? IntegerNumber.one
+          : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
+      polyA = polyA + Variable(aName) * xPow;
+      if (isTrig) {
+        final bName = '_ub_$k';
+        unknowns.add(bName);
+        polyB = polyB + Variable(bName) * xPow;
       }
     }
 
-    var ypPoly = IntegerNumber.zero as Expr;
-    for (var k = 0; k <= maxDeg; k++) {
-      if (aCoeffs[k] is Number && (aCoeffs[k] as Number).isZero) continue;
-      final powExp = k + s;
-      final xPow = powExp == 0
-          ? IntegerNumber.one
-          : (powExp == 1 ? xVar : Pow(xVar, IntegerNumber.of(powExp)));
-      ypPoly = ypPoly + aCoeffs[k] * xPow;
-    }
-    totalYp = totalYp + ypPoly;
-  }
+    final xShift = s == 0
+        ? IntegerNumber.one
+        : (s == 1 ? xVar : Pow(xVar, IntegerNumber.of(s)));
+    final expFactor = (alpha is Number && alpha.isZero)
+        ? IntegerNumber.one
+        : Pow(Constant.e, alpha * xVar);
 
-  for (final term in otherTerms) {
-    final ypTerm = _particularSingleNonPolyTerm(
-      a,
-      b,
-      c,
-      term,
-      independent,
-      assumptions: assumptions,
-    );
-    if (ypTerm == null) {
-      throw UnsupportedError(
-        'Unsupported inhomogeneous term in second-order linear ODE: $term',
+    final Expr ypAnsatz;
+    final Expr forcing;
+    if (!isTrig) {
+      ypAnsatz = (xShift * expFactor * polyA).simplify(
+        assumptions: assumptions,
+      );
+      forcing = (qCos * expFactor).simplify(assumptions: assumptions);
+    } else {
+      final cosBx = Cos(beta * xVar);
+      final sinBx = Sin(beta * xVar);
+      ypAnsatz = (xShift * expFactor * (polyA * cosBx + polyB * sinBx))
+          .simplify(assumptions: assumptions);
+      forcing = (expFactor * (qCos * cosBx + qSin * sinBx)).simplify(
+        assumptions: assumptions,
       );
     }
-    totalYp = totalYp + ypTerm;
+
+    var lhs = IntegerNumber.zero as Expr;
+    var currentDeriv = ypAnsatz;
+    for (var j = 0; j <= order; j++) {
+      if (j > 0) {
+        currentDeriv = currentDeriv.derivative(
+          independent,
+          assumptions: assumptions,
+        );
+      }
+      final aj = coeffs[j];
+      if (!(aj is Number && aj.isZero)) {
+        lhs = lhs + aj * currentDeriv;
+      }
+    }
+
+    var residual = lhs - forcing;
+    if (!(alpha is Number && alpha.isZero)) {
+      residual = residual * Pow(Constant.e, -alpha * xVar);
+    }
+    residual = residual
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+
+    final equations = <Expr>[];
+    if (!isTrig) {
+      final resCoeffs = extractPolynomialCoefficients(residual, independent);
+      if (resCoeffs == null) {
+        throw UnsupportedError(
+          'Could not extract polynomial coefficients from ODE residual.',
+        );
+      }
+      for (final c in resCoeffs.values) {
+        if (!(c is Number && c.isZero)) equations.add(c);
+      }
+    } else {
+      const ocName = '_oc';
+      const osName = '_os';
+      final cosBx = Cos(beta * xVar).simplify(assumptions: assumptions);
+      final sinBx = Sin(beta * xVar).simplify(assumptions: assumptions);
+      Expr replaceTrig(Expr e) {
+        if (e == cosBx) return const Variable(ocName);
+        if (e == sinBx) return const Variable(osName);
+        return e.mapChildren(replaceTrig);
+      }
+
+      final trigRes = replaceTrig(residual).simplify(assumptions: assumptions);
+      final cPart = trigRes
+          .substitute(ocName, IntegerNumber.one)
+          .substitute(osName, IntegerNumber.zero)
+          .simplify(assumptions: assumptions);
+      final sPart = trigRes
+          .substitute(ocName, IntegerNumber.zero)
+          .substitute(osName, IntegerNumber.one)
+          .simplify(assumptions: assumptions);
+
+      for (final part in [cPart, sPart]) {
+        final partCoeffs = extractPolynomialCoefficients(part, independent);
+        if (partCoeffs == null) {
+          throw UnsupportedError(
+            'Could not extract polynomial coefficients from trig ODE residual.',
+          );
+        }
+        for (final c in partCoeffs.values) {
+          if (!(c is Number && c.isZero)) equations.add(c);
+        }
+      }
+    }
+
+    final solList = equations.solve(unknowns, assumptions: assumptions);
+    if (solList.isEmpty) {
+      throw UnsupportedError(
+        'Could not solve undetermined coefficients for linear ODE.',
+      );
+    }
+    var ypSolved = ypAnsatz;
+    for (final entry in solList.first.entries) {
+      ypSolved = ypSolved.substitute(entry.key, entry.value);
+    }
+    totalYp = totalYp + ypSolved.simplify(assumptions: assumptions);
   }
 
   return totalYp.simplify(assumptions: assumptions);
 }
 
-Expr? _particularSingleNonPolyTerm(
-  Expr a,
-  Expr b,
-  Expr c,
+List<({Expr poly, Expr alpha, Expr beta, bool isSin})>? _parseForcingTerm(
   Expr term,
   String independent, {
   required Assumptions assumptions,
 }) {
-  final xVar = Variable(independent);
   final factors = term is Mul ? term.factors : [term];
-  final (:constFactors, :varFactors) = partitionFactors(factors, independent);
-  if (varFactors.length != 1) return null;
+  final polyFactors = <Expr>[];
+  var alpha = IntegerNumber.zero as Expr;
+  Expr? trigFactor;
 
-  final kConst = constFactors.isEmpty
-      ? IntegerNumber.one
-      : simplifyMul(constFactors, assumptions: assumptions);
-  final vf = varFactors.first;
-
-  // Exponential: K * e^(alpha * x + beta)
-  if (vf case Pow(base: Constant.e, :final exponent)) {
-    final lin = exponent.matchLinear(independent);
-    if (lin == null || (lin.a is Number && (lin.a as Number).isZero)) {
-      return null;
+  for (final f in factors) {
+    if (!f.dependsOn(independent)) {
+      polyFactors.add(f);
+      continue;
     }
-    final alpha = lin.a;
-    final pChar = (a * alpha * alpha + b * alpha + c).simplify(
-      assumptions: assumptions,
-    );
-    if (!(pChar is Number && pChar.isZero)) {
-      return (term / pChar).simplify(assumptions: assumptions);
-    }
-    final derivChar = (IntegerNumber.two * a * alpha + b).simplify(
-      assumptions: assumptions,
-    );
-    if (!(derivChar is Number && derivChar.isZero)) {
-      return (xVar * term / derivChar).simplify(assumptions: assumptions);
-    }
-    return (xVar * xVar * term / (IntegerNumber.two * a)).simplify(
-      assumptions: assumptions,
-    );
-  }
-
-  // Sinusoidal: K * cos(omega * x + phi) or K * sin(omega * x + phi)
-  if (vf is Cos || vf is Sin) {
-    final arg = vf is Cos ? vf.expr : (vf as Sin).expr;
-    final lin = arg.matchLinear(independent);
-    if (lin == null || (lin.a is Number && (lin.a as Number).isZero)) {
-      return null;
-    }
-    final omega = lin.a;
-    final d1 = (c - a * omega * omega).simplify(assumptions: assumptions);
-    final d2 = (b * omega).simplify(assumptions: assumptions);
-    final deltaOmega = (d1 * d1 + d2 * d2).simplify(assumptions: assumptions);
-
-    if (!(deltaOmega is Number && deltaOmega.isZero)) {
-      if (vf is Cos) {
-        return (kConst * (d1 * Cos(arg) + d2 * Sin(arg)) / deltaOmega).simplify(
-          assumptions: assumptions,
-        );
-      } else {
-        return (kConst * (d1 * Sin(arg) - d2 * Cos(arg)) / deltaOmega).simplify(
-          assumptions: assumptions,
-        );
+    if (f case Pow(base: Constant.e, :final exponent)) {
+      final lin = exponent.matchLinear(independent);
+      if (lin == null) return null;
+      alpha = (alpha + lin.a).simplify(assumptions: assumptions);
+      if (!(lin.b is Number && (lin.b as Number).isZero)) {
+        polyFactors.add(Pow(Constant.e, lin.b));
       }
+      continue;
     }
-
-    // Pure harmonic resonance: b = 0 and c = a * omega^2
-    if (vf is Cos) {
-      return (kConst * xVar * Sin(arg) / (IntegerNumber.two * a * omega))
-          .simplify(assumptions: assumptions);
-    } else {
-      return (-kConst * xVar * Cos(arg) / (IntegerNumber.two * a * omega))
-          .simplify(assumptions: assumptions);
+    if ((f is Sin || f is Cos) && trigFactor == null) {
+      trigFactor = f;
+      continue;
     }
+    if (polynomialDegree(f, independent) != null) {
+      polyFactors.add(f);
+      continue;
+    }
+    return null;
   }
 
-  return null;
+  final poly = polyFactors.isEmpty
+      ? IntegerNumber.one
+      : Mul(polyFactors).simplify(assumptions: assumptions);
+
+  if (trigFactor == null) {
+    return [(poly: poly, alpha: alpha, beta: IntegerNumber.zero, isSin: false)];
+  }
+
+  final arg = trigFactor is Cos ? trigFactor.expr : (trigFactor as Sin).expr;
+  final lin = arg.matchLinear(independent);
+  if (lin == null || (lin.a is Number && (lin.a as Number).isZero)) {
+    return null;
+  }
+  final beta = lin.a;
+  final phi = lin.b;
+  if (phi is Number && phi.isZero) {
+    return [(poly: poly, alpha: alpha, beta: beta, isSin: trigFactor is Sin)];
+  }
+  if (trigFactor is Cos) {
+    return [
+      (
+        poly: (poly * Cos(phi)).simplify(assumptions: assumptions),
+        alpha: alpha,
+        beta: beta,
+        isSin: false,
+      ),
+      (
+        poly: (-poly * Sin(phi)).simplify(assumptions: assumptions),
+        alpha: alpha,
+        beta: beta,
+        isSin: true,
+      ),
+    ];
+  } else {
+    return [
+      (
+        poly: (poly * Cos(phi)).simplify(assumptions: assumptions),
+        alpha: alpha,
+        beta: beta,
+        isSin: true,
+      ),
+      (
+        poly: (poly * Sin(phi)).simplify(assumptions: assumptions),
+        alpha: alpha,
+        beta: beta,
+        isSin: false,
+      ),
+    ];
+  }
 }
