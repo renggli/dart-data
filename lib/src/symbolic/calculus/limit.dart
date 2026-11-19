@@ -998,6 +998,28 @@ Expr _gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
   }
 
   f = _expandLogArguments(f, variable);
+  final expandedExp = _expandSubdominantExponentials(f, variable, assumptions);
+  if (expandedExp != f) {
+    f = expandedExp;
+    if (!f.dependsOn(variable)) return f;
+    if (f is Pow && f.base == Constant.e) {
+      return computeLimit(
+        f,
+        variable,
+        Constant.infinity,
+        assumptions: assumptions,
+      );
+    }
+  }
+  f = _simplifyMulFiniteExponentials(f, variable, assumptions);
+  if (!f.dependsOn(variable)) return f;
+
+  if (f case Add(:final terms)) {
+    final finiteSum = _tryFiniteAddLimit(terms, variable, assumptions);
+    if (finiteSum != null) return finiteSum;
+  }
+
+  f = _splitPolyExpTerms(f, variable, assumptions);
 
   final expScale = _findDominantExpScale(f, variable);
 
@@ -1535,3 +1557,233 @@ final Expr _negInfinity = Mul(const [
   IntegerNumber.negativeOne,
   Constant.infinity,
 ], isSimplified: true);
+
+Expr? _tryInfiniteLimit(Expr expr, String variable, Assumptions assumptions) {
+  if (expr case Mul(:final factors)) {
+    final constFactors = <Expr>[];
+    final varFactors = <Expr>[];
+    for (final f in factors) {
+      if (f.dependsOn(variable)) {
+        varFactors.add(f);
+      } else {
+        constFactors.add(f);
+      }
+    }
+    if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
+      final varExpr = varFactors.length == 1
+          ? varFactors.first
+          : Mul(varFactors).simplify(assumptions: assumptions);
+      final varLim = _tryInfiniteLimit(varExpr, variable, assumptions);
+      if (varLim == null) return null;
+      final constExpr = constFactors.length == 1
+          ? constFactors.first
+          : Mul(constFactors).simplify(assumptions: assumptions);
+      final prod = (constExpr * varLim).simplify(assumptions: assumptions);
+      return prod == Constant.undefined ? null : prod;
+    }
+  }
+  try {
+    return computeLimit(
+      expr,
+      variable,
+      Constant.infinity,
+      assumptions: assumptions,
+    );
+  } on Object {
+    return null;
+  }
+}
+
+Expr? _tryFiniteAddLimit(
+  List<Expr> terms,
+  String variable,
+  Assumptions assumptions,
+) {
+  final limits = <Expr>[];
+  for (final term in terms) {
+    final lim = _tryInfiniteLimit(term, variable, assumptions);
+    if (lim == null ||
+        lim == Constant.undefined ||
+        lim.anyNode((n) => n is Limit) ||
+        _isPositiveInfinity(lim) ||
+        _isNegativeInfinity(lim)) {
+      return null;
+    }
+    limits.add(lim);
+  }
+  return Add(limits).simplify(assumptions: assumptions);
+}
+
+(Expr coeff, Expr exponent)? _matchScaledExp(Expr term, String variable) {
+  switch (term) {
+    case Pow(base: Constant.e, :final exponent):
+      return (IntegerNumber.one, exponent);
+    case Mul(:final factors):
+      final coeffFactors = <Expr>[];
+      Expr? expArg;
+      for (final f in factors) {
+        if (expArg == null && f is Pow && f.base == Constant.e) {
+          expArg = f.exponent;
+        } else if (!f.dependsOn(variable)) {
+          coeffFactors.add(f);
+        } else {
+          return null;
+        }
+      }
+      if (expArg != null) {
+        final coeff = coeffFactors.isEmpty
+            ? IntegerNumber.one
+            : coeffFactors.length == 1
+            ? coeffFactors.first
+            : Mul(coeffFactors, isSimplified: true);
+        return (coeff, expArg);
+      }
+      return null;
+    default:
+      return null;
+  }
+}
+
+Expr _expandSubdominantExponentials(
+  Expr expr,
+  String variable,
+  Assumptions assumptions,
+) {
+  if (!expr.dependsOn(variable)) return expr;
+  final mapped = expr.mapChildren(
+    (c) => _expandSubdominantExponentials(c, variable, assumptions),
+  );
+
+  if (mapped case Add(terms: [final t1, final t2])) {
+    final m1 = _matchScaledExp(t1, variable);
+    final m2 = _matchScaledExp(t2, variable);
+    if (m1 != null && m2 != null) {
+      final (c1, u) = m1;
+      final (c2, v) = m2;
+      final sumCoeff = (c1 + c2).simplify(assumptions: assumptions);
+      if (sumCoeff is Number && sumCoeff.isZero) {
+        final delta = (u - v).simplify(assumptions: assumptions);
+        if (delta is Number && delta.isZero) return IntegerNumber.zero;
+        final deltaLim = _tryInfiniteLimit(delta, variable, assumptions);
+        if (deltaLim == IntegerNumber.zero) {
+          return (c1 * Pow(Constant.e, v) * delta).simplify(
+            assumptions: assumptions,
+          );
+        }
+        final bothPoly =
+            _isPolyMonomialTerm(u, variable) &&
+            _isPolyMonomialTerm(v, variable);
+        if (!bothPoly) {
+          if (deltaLim != null && _isPositiveInfinity(deltaLim)) {
+            return (c1 * Pow(Constant.e, u)).simplify(assumptions: assumptions);
+          }
+          if (deltaLim != null && _isNegativeInfinity(deltaLim)) {
+            return (c2 * Pow(Constant.e, v)).simplify(assumptions: assumptions);
+          }
+          if (deltaLim != null && !deltaLim.dependsOn(variable)) {
+            return (c1 *
+                    Pow(Constant.e, v) *
+                    (Pow(Constant.e, deltaLim) - IntegerNumber.one))
+                .simplify(assumptions: assumptions);
+          }
+        }
+      }
+    }
+  }
+
+  return mapped;
+}
+
+Expr _simplifyMulFiniteExponentials(
+  Expr expr,
+  String variable,
+  Assumptions assumptions,
+) {
+  if (expr case Mul(:final factors)) {
+    final flat = <Expr>[];
+    void collect(Expr e) {
+      if (e is Mul) {
+        for (final sub in e.factors) {
+          collect(sub);
+        }
+      } else {
+        flat.add(e);
+      }
+    }
+
+    for (final f in factors) {
+      collect(f);
+    }
+
+    final newFactors = <Expr>[];
+    var changed = flat.length != factors.length;
+    for (final f in flat) {
+      if (f is Pow && f.base == Constant.e) {
+        final lim = _tryInfiniteLimit(f, variable, assumptions);
+        if (lim != null &&
+            lim != Constant.undefined &&
+            !lim.anyNode((n) => n is Limit) &&
+            !_isPositiveInfinity(lim) &&
+            !_isNegativeInfinity(lim) &&
+            !(lim is Number && lim.isZero)) {
+          newFactors.add(lim);
+          changed = true;
+          continue;
+        }
+      }
+      newFactors.add(f);
+    }
+    var result = changed
+        ? Mul(newFactors).simplify(assumptions: assumptions)
+        : expr;
+    if (result is Mul &&
+        result.factors.any(
+          (f) => f is Add && f.anyNode((n) => n is Pow && n.base == Constant.e),
+        )) {
+      result = result.expand().simplify(assumptions: assumptions);
+    }
+    return result;
+  }
+  return expr;
+}
+
+bool _isPolyMonomialTerm(Expr term, String variable) {
+  if (!term.dependsOn(variable)) return true;
+  if (_monomialDegree(term, variable) != null) return true;
+  if (term case Mul(:final factors)) {
+    return factors.every(
+      (f) => !f.dependsOn(variable) || _monomialDegree(f, variable) != null,
+    );
+  }
+  return false;
+}
+
+Expr _splitPolyExpTerms(Expr expr, String variable, Assumptions assumptions) {
+  if (!expr.dependsOn(variable)) return expr;
+  if (expr case Pow(base: Constant.e, exponent: Add(:final terms))) {
+    final polyTerms = <Expr>[];
+    final otherTerms = <Expr>[];
+    var hasVarPoly = false;
+    for (final t in terms) {
+      if (_isPolyMonomialTerm(t, variable)) {
+        polyTerms.add(t);
+        if (t.dependsOn(variable)) hasVarPoly = true;
+      } else {
+        otherTerms.add(t);
+      }
+    }
+    if (hasVarPoly && otherTerms.isNotEmpty) {
+      final polyExp = polyTerms.length == 1
+          ? polyTerms.first
+          : Add(polyTerms).simplify(assumptions: assumptions);
+      final otherExp = otherTerms.length == 1
+          ? otherTerms.first
+          : Add(otherTerms).simplify(assumptions: assumptions);
+      return Mul([
+        Pow(Constant.e, polyExp, isSimplified: true),
+        Pow(Constant.e, otherExp, isSimplified: true),
+      ], isSimplified: true);
+    }
+  }
+  return expr.mapChildren((c) => _splitPolyExpTerms(c, variable, assumptions));
+}

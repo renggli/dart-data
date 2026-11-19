@@ -224,374 +224,364 @@ void main() {
     });
   });
 
-  group(
-    'Asymptotic limits at infinity (rational, Gruntz MRV, and Squeeze)',
-    () {
-      test('evaluates rational functions at plus and minus infinity', () {
-        check(Expr.parse('(x + 1) / (x^2 + 1)').limit('x', Constant.infinity))
-            .equals(IntegerNumber.zero);
-        check(
-          Expr.parse('(3*x^2 + 1) / (x^2 - 5)').limit('x', Constant.infinity),
-        ).equals(IntegerNumber.of(3));
-        check(Expr.parse('(x^3 + 1) / (x^2 + 1)').limit('x', Constant.infinity))
-            .equals(Constant.infinity);
-        check(
-          Expr.parse('(-x^3 + 1) / (x^2 + 1)').limit('x', Constant.infinity),
-        ).equals(-Constant.infinity);
-        check(
-          Expr.parse('(x^3 + 1) / (x^2 + 1)').limit('x', -Constant.infinity),
-        ).equals(-Constant.infinity);
-        check(
-          (IntegerNumber.one / x).limit(
-            'x',
-            Mul(const [
-              Constant.infinity,
-              IntegerNumber.negativeOne,
-            ], isSimplified: true),
-          ),
-        ).equals(IntegerNumber.zero);
-        check(
-          Expr.parse('(3*x^2 + 1) / (x^2 - 5)')
-              .limit('x', const Variable('infinity')),
-        ).equals(IntegerNumber.of(3));
-      });
+  group('Asymptotic limits at infinity (rational, Gruntz MRV, and Squeeze)', () {
+    test('evaluates rational functions at plus and minus infinity', () {
+      check(Expr.parse('(x + 1) / (x^2 + 1)').limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check(Expr.parse('(3*x^2 + 1) / (x^2 - 5)').limit('x', Constant.infinity))
+          .equals(IntegerNumber.of(3));
+      check(Expr.parse('(x^3 + 1) / (x^2 + 1)').limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+      check(Expr.parse('(-x^3 + 1) / (x^2 + 1)').limit('x', Constant.infinity))
+          .equals(-Constant.infinity);
+      check(Expr.parse('(x^3 + 1) / (x^2 + 1)').limit('x', -Constant.infinity))
+          .equals(-Constant.infinity);
+      check(
+        (IntegerNumber.one / x).limit(
+          'x',
+          Mul(const [
+            Constant.infinity,
+            IntegerNumber.negativeOne,
+          ], isSimplified: true),
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        Expr.parse('(3*x^2 + 1) / (x^2 - 5)')
+            .limit('x', const Variable('infinity')),
+      ).equals(IntegerNumber.of(3));
+    });
 
-      test('resolves Abs and Piecewise asymptotically at infinity', () {
-        check((Abs(x) / x).limit('x', Constant.infinity))
-            .equals(IntegerNumber.one);
-        check((Abs(x) / x).limit('x', -Constant.infinity))
-            .equals(IntegerNumber.negativeOne);
-        check((Abs(-x) / x).limit('x', Constant.infinity))
-            .equals(IntegerNumber.one);
+    test('resolves Abs and Piecewise asymptotically at infinity', () {
+      check((Abs(x) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.one);
+      check((Abs(x) / x).limit('x', -Constant.infinity))
+          .equals(IntegerNumber.negativeOne);
+      check((Abs(-x) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.one);
 
-        final pw1 = Piecewise([
-          (
-            relation: GreaterThan(x, IntegerNumber.zero),
-            expr: IntegerNumber.of(7),
-          ),
-        ], otherwise: IntegerNumber.of(-7));
-        check(pw1.limit('x', Constant.infinity)).equals(IntegerNumber.of(7));
-        check(pw1.limit('x', -Constant.infinity)).equals(IntegerNumber.of(-7));
-      });
+      final pw1 = Piecewise([
+        (
+          relation: GreaterThan(x, IntegerNumber.zero),
+          expr: IntegerNumber.of(7),
+        ),
+      ], otherwise: IntegerNumber.of(-7));
+      check(pw1.limit('x', Constant.infinity)).equals(IntegerNumber.of(7));
+      check(pw1.limit('x', -Constant.infinity)).equals(IntegerNumber.of(-7));
+    });
 
-      test(
-        'evaluates algebraic radicals and logarithmic limits at infinity',
-        () {
-          check(Expr.parse('sqrt(x^2 + x) - x').limit('x', Constant.infinity))
-              .equals(FractionNumber.half);
-          check(Expr.parse('sqrt(x^2 + 1) - x').limit('x', Constant.infinity))
-              .equals(IntegerNumber.zero);
-          check(Expr.parse('sqrt(x^4 + 1) - x').limit('x', Constant.infinity))
-              .equals(Constant.infinity);
-          check(Expr.parse('x - sqrt(x^4 + 1)').limit('x', Constant.infinity))
-              .equals(-Constant.infinity);
-          final undetAlg = Expr.parse('sqrt(x^3 + 1) - x')
-              .limit('x', Constant.infinity);
-          check(undetAlg).isA<Limit>();
-          check(Expr.parse(undetAlg.toString())).equals(undetAlg);
+    test('evaluates algebraic radicals and logarithmic limits at infinity', () {
+      check(Expr.parse('sqrt(x^2 + x) - x').limit('x', Constant.infinity))
+          .equals(FractionNumber.half);
+      check(Expr.parse('sqrt(x^2 + 1) - x').limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check(Expr.parse('sqrt(x^4 + 1) - x').limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+      check(Expr.parse('x - sqrt(x^4 + 1)').limit('x', Constant.infinity))
+          .equals(-Constant.infinity);
+      final undetAlg = Expr.parse('sqrt(x^3 + 1) - x')
+          .limit('x', Constant.infinity);
+      check(undetAlg).isA<Limit>();
+      check(Expr.parse(undetAlg.toString())).equals(undetAlg);
 
-          check((Ln(x) / x).limit('x', Constant.infinity))
-              .equals(IntegerNumber.zero);
-          check(
-            (Ln(IntegerNumber.one + Pow(Constant.e, x)) / x).limit(
-              'x',
-              Constant.infinity,
-            ),
-          ).equals(IntegerNumber.one);
-          check((Ln(Pow(Constant.e, x) + x) / x).limit('x', Constant.infinity))
-              .equals(IntegerNumber.one);
-          check(
-            (Ln(Pow(Constant.e, x) + Ln(x)) / x).limit('x', Constant.infinity),
-          ).equals(IntegerNumber.one);
+      check((Ln(x) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check(
+        (Ln(IntegerNumber.one + Pow(Constant.e, x)) / x).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(IntegerNumber.one);
+      check((Ln(Pow(Constant.e, x) + x) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.one);
+      check((Ln(Pow(Constant.e, x) + Ln(x)) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.one);
 
-          check(
-            Expr.parse('abs(ln(x) - 5)/ln(x)').limit('x', Constant.infinity),
-          ).equals(IntegerNumber.one);
-          check(Expr.parse('1/(ln(x) - 5)').limit('x', Constant.infinity))
-              .equals(IntegerNumber.zero);
-          check(Expr.parse('5 - ln(x)').limit('x', Constant.infinity))
-              .equals(-Constant.infinity);
-          check(() => Expr.parse('(-1 + 1/x)^x').limit('x', Constant.infinity))
-              .throws<UnsupportedError>();
-          check(Expr.parse('atan(x) + erf(x)').limit('x', 1))
-              .equals(Expr.parse('pi/4 + erf(1)').simplify());
-        },
+      check(Expr.parse('abs(ln(x) - 5)/ln(x)').limit('x', Constant.infinity))
+          .equals(IntegerNumber.one);
+      check(Expr.parse('1/(ln(x) - 5)').limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check(Expr.parse('5 - ln(x)').limit('x', Constant.infinity))
+          .equals(-Constant.infinity);
+      check(() => Expr.parse('(-1 + 1/x)^x').limit('x', Constant.infinity))
+          .throws<UnsupportedError>();
+      check(Expr.parse('atan(x) + erf(x)').limit('x', 1))
+          .equals(Expr.parse('pi/4 + erf(1)').simplify());
+    });
+
+    test('evaluates exponential hierarchy (Gruntz MRV) and Squeeze theorem', () {
+      check(
+        (Pow(x, IntegerNumber.of(5)) / Pow(Constant.e, x)).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Pow(Constant.e, x) / Pow(x, IntegerNumber.of(5))).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(Constant.infinity);
+      check(
+        (-Pow(Constant.e, x) / Pow(x, IntegerNumber.of(5))).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(-Constant.infinity);
+      check(
+        ((-IntegerNumber.two * Constant.pi * Pow(Constant.e, x)) /
+                Pow(x, IntegerNumber.of(5)))
+            .limit('x', Constant.infinity),
+      ).equals(-Constant.infinity);
+      check(
+        (Pow(x - IntegerNumber.of(100), FractionNumber.half) *
+                Pow(Constant.e, x))
+            .limit('x', Constant.infinity),
+      ).equals(Constant.infinity);
+
+      final multiExp = Expr.parse(
+        '(3 * exp(2 * x + 1) + exp(x)) / (exp(2 * x) - exp(x))',
       );
+      check(multiExp.limit('x', Constant.infinity))
+          .equals((IntegerNumber.of(3) * Constant.e).simplify());
 
-      test(
-        'evaluates exponential hierarchy (Gruntz MRV) and Squeeze theorem',
-        () {
-          check(
-            (Pow(x, IntegerNumber.of(5)) / Pow(Constant.e, x)).limit(
-              'x',
-              Constant.infinity,
+      final mixedDegExp =
+          (Pow(Constant.e, Pow(x, IntegerNumber.two) + x) +
+              Pow(Constant.e, x)) /
+          Pow(Constant.e, Pow(x, IntegerNumber.two) + x);
+      check(mixedDegExp.limit('x', Constant.infinity))
+          .equals(IntegerNumber.one);
+
+      check(Expr.parse('exp(x - exp(x))').limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check(
+        Expr.parse(
+          'exp(x) * (exp(1/x + exp(-x) + exp(-x^2)) - exp(1/x - exp(-exp(x))))',
+        ).limit('x', Constant.infinity),
+      ).equals(IntegerNumber.one);
+      check(
+        Expr.parse('exp(exp(x - exp(-x)) / (1 - 1/x)) - exp(exp(x))')
+            .limit('x', Constant.infinity),
+      ).equals(Constant.infinity);
+
+      final realExp =
+          (Pow(Constant.e, const RealNumber(0.5) * x) + IntegerNumber.one) /
+          Pow(Constant.e, x);
+      check(realExp.limit('x', Constant.infinity)).equals(IntegerNumber.zero);
+
+      check(
+        (Pow(IntegerNumber.two, x) / Pow(IntegerNumber.of(3), x)).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Pow(IntegerNumber.of(3), x) / Pow(IntegerNumber.two, x)).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(Constant.infinity);
+      check(
+        (Pow(IntegerNumber.two, x + IntegerNumber.one) /
+                Pow(IntegerNumber.two, x))
+            .limit('x', Constant.infinity),
+      ).equals(IntegerNumber.two);
+      check(
+        ((x + IntegerNumber.one) * Pow(IntegerNumber.two, -x)).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        ((Pow(x, IntegerNumber.two) + x) * Pow(FractionNumber.half, x)).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(IntegerNumber.zero);
+      check((Sinh(x) / Cosh(x)).limit('x', Constant.infinity))
+          .equals(IntegerNumber.one);
+      check((Sinh(x) - Cosh(x)).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+
+      check((Sin(x) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check((Sin(x) / (x * Ln(x))).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check((Pow(Cos(x), IntegerNumber.two) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+
+      // Unexpanded polynomial exponents and terms in Gruntz and rational limits
+      check(
+        Expr.parse('exp((x + 1)^2) / exp(x^2 + 2 * x)')
+            .limit('x', Constant.infinity),
+      ).equals(Constant.e);
+      check(Expr.parse('exp(x * (x + 1) - x^2)').limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+      check(
+        Expr.parse('((x + 1)^2 - x^2) / (2 * x + 5)')
+            .limit('x', Constant.infinity),
+      ).equals(IntegerNumber.one);
+      check(() => (x * Sin(x)).limit('x', Constant.infinity))
+          .throws<UnsupportedError>();
+
+      final unsupportedMrv =
+          Piecewise([
+            (
+              relation: LessThan(const Variable('y'), IntegerNumber.zero),
+              expr: Pow(Constant.e, x),
             ),
-          ).equals(IntegerNumber.zero);
-          check(
-            (Pow(Constant.e, x) / Pow(x, IntegerNumber.of(5))).limit(
-              'x',
-              Constant.infinity,
-            ),
-          ).equals(Constant.infinity);
-          check(
-            (-Pow(Constant.e, x) / Pow(x, IntegerNumber.of(5))).limit(
-              'x',
-              Constant.infinity,
-            ),
-          ).equals(-Constant.infinity);
-          check(
-            ((-IntegerNumber.two * Constant.pi * Pow(Constant.e, x)) /
-                    Pow(x, IntegerNumber.of(5)))
-                .limit('x', Constant.infinity),
-          ).equals(-Constant.infinity);
-          check(
-            (Pow(x - IntegerNumber.of(100), FractionNumber.half) *
-                    Pow(Constant.e, x))
-                .limit('x', Constant.infinity),
-          ).equals(Constant.infinity);
-
-          final multiExp = Expr.parse(
-            '(3 * exp(2 * x + 1) + exp(x)) / (exp(2 * x) - exp(x))',
-          );
-          check(multiExp.limit('x', Constant.infinity))
-              .equals((IntegerNumber.of(3) * Constant.e).simplify());
-
-          final mixedDegExp =
-              (Pow(Constant.e, Pow(x, IntegerNumber.two) + x) +
-                  Pow(Constant.e, x)) /
-              Pow(Constant.e, Pow(x, IntegerNumber.two) + x);
-          check(mixedDegExp.limit('x', Constant.infinity))
-              .equals(IntegerNumber.one);
-
-          final realExp =
-              (Pow(Constant.e, const RealNumber(0.5) * x) + IntegerNumber.one) /
-              Pow(Constant.e, x);
-          check(realExp.limit('x', Constant.infinity))
-              .equals(IntegerNumber.zero);
-
-          check(
-            (Pow(IntegerNumber.two, x) / Pow(IntegerNumber.of(3), x)).limit(
-              'x',
-              Constant.infinity,
-            ),
-          ).equals(IntegerNumber.zero);
-          check(
-            (Pow(IntegerNumber.of(3), x) / Pow(IntegerNumber.two, x)).limit(
-              'x',
-              Constant.infinity,
-            ),
-          ).equals(Constant.infinity);
-          check(
-            (Pow(IntegerNumber.two, x + IntegerNumber.one) /
-                    Pow(IntegerNumber.two, x))
-                .limit('x', Constant.infinity),
-          ).equals(IntegerNumber.two);
-          check(
-            ((x + IntegerNumber.one) * Pow(IntegerNumber.two, -x)).limit(
-              'x',
-              Constant.infinity,
-            ),
-          ).equals(IntegerNumber.zero);
-          check(
-            ((Pow(x, IntegerNumber.two) + x) * Pow(FractionNumber.half, x))
-                .limit('x', Constant.infinity),
-          ).equals(IntegerNumber.zero);
-          check((Sinh(x) / Cosh(x)).limit('x', Constant.infinity))
-              .equals(IntegerNumber.one);
-          check((Sinh(x) - Cosh(x)).limit('x', Constant.infinity))
-              .equals(IntegerNumber.zero);
-
-          check((Sin(x) / x).limit('x', Constant.infinity))
-              .equals(IntegerNumber.zero);
-          check((Sin(x) / (x * Ln(x))).limit('x', Constant.infinity))
-              .equals(IntegerNumber.zero);
-          check(
-            (Pow(Cos(x), IntegerNumber.two) / x).limit('x', Constant.infinity),
-          ).equals(IntegerNumber.zero);
-
-          // Unexpanded polynomial exponents and terms in Gruntz and rational limits
-          check(
-            Expr.parse('exp((x + 1)^2) / exp(x^2 + 2 * x)')
-                .limit('x', Constant.infinity),
-          ).equals(Constant.e);
-          check(
-            Expr.parse('exp(x * (x + 1) - x^2)').limit('x', Constant.infinity),
-          ).equals(Constant.infinity);
-          check(
-            Expr.parse('((x + 1)^2 - x^2) / (2 * x + 5)')
-                .limit('x', Constant.infinity),
-          ).equals(IntegerNumber.one);
-          check(() => (x * Sin(x)).limit('x', Constant.infinity))
-              .throws<UnsupportedError>();
-
-          final unsupportedMrv =
-              Piecewise([
-                (
-                  relation: LessThan(const Variable('y'), IntegerNumber.zero),
-                  expr: Pow(Constant.e, x),
-                ),
-              ]) +
-              Integral(
-                Pow(Constant.e, x),
-                't',
-                lower: IntegerNumber.zero,
-                upper: IntegerNumber.one,
-              );
-          final limNode = unsupportedMrv.limit('x', Constant.infinity);
-          check(limNode).isA<Limit>();
-          check(Expr.parse(limNode.toString())).equals(limNode);
-          check(limNode.toLatex()).contains(r'\lim_{x \to \infty}');
-          check(limNode.toMathMl(root: false))
-              .contains('<munder><mo movablelimits="false">lim</mo>');
-
-          final limAbove = Expr.parse('limit(f(x), x, 0, 1)');
-          check(limAbove).equals(
-            Limit(
-              Expr.parse('f(x)'),
-              'x',
-              IntegerNumber.zero,
-              direction: LimitDirection.fromAbove,
-            ),
-          );
-          check(Expr.parse(limAbove.toString())).equals(limAbove);
-          check(limAbove.toLatex()).equals(r'\lim_{x \to 0^+} f(x)');
-          check(limAbove.toMathMl(root: false)).equals(
-            '<mrow><munder><mo movablelimits="false">lim</mo><mrow><mi>x</mi><mo>&#x2192;</mo><msup><mn>0</mn><mo>+</mo></msup></mrow></munder><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mrow>',
-          );
-
-          final limBelow = Expr.parse('limit(f(x), x, 0, -1)');
-          check(Expr.parse(limBelow.toString())).equals(limBelow);
-          check(limBelow.toLatex()).equals(r'\lim_{x \to 0^-} f(x)');
-
-          check((Sin(x) / x).limit('x', 0)).equals(IntegerNumber.one);
-          check((x + IntegerNumber.one).limit('x', BigInt.two))
-              .equals(IntegerNumber.of(3));
-          check((x + IntegerNumber.one).limit('x', 1.5))
-              .equals(const RealNumber(2.5));
-          check((IntegerNumber.one / x).limit('x', double.infinity))
-              .equals(IntegerNumber.zero);
-          check((IntegerNumber.one / x).limit('x', double.negativeInfinity))
-              .equals(IntegerNumber.zero);
-          check(Sin(x).limit('x', Constant.pi / IntegerNumber.two))
-              .equals(IntegerNumber.one);
-          check(() => x.limit('x', '??? invalid')).throws<ArgumentError>();
-
-          // Exponential limits at infinity
-          check(Pow(IntegerNumber.two, x).limit('x', Constant.infinity))
-              .equals(Constant.infinity);
-          check(Pow(FractionNumber.half, x).limit('x', -Constant.infinity))
-              .equals(Constant.infinity);
-
-          // Bounded oscillation with multiple non-oscillating factors
-          final multiFactorOsc =
-              (Mul([IntegerNumber.two, x, Sin(x)])) /
-              (Pow(x, IntegerNumber.two) + IntegerNumber.one);
-          check(multiFactorOsc.limit('x', Constant.infinity))
-              .equals(IntegerNumber.zero);
-
-          // Asymptotic degree analysis scanning composite AST nodes
-          final compositeExpr = Add([
-            Derivative(x, 'x'),
-            Limit(x, 't', IntegerNumber.zero),
-            Sum(x, 'k', IntegerNumber.one, IntegerNumber.of(5)),
-            Product(x, 'k', IntegerNumber.one, IntegerNumber.of(5)),
-            VariableFunction('f', [x]),
-          ]);
-          check(compositeExpr.limit('x', Constant.infinity)).isNotNull();
-
-          // Assumptions propagation in limit
-          check(
-            Expr.parse(
-              'sqrt(x^2) / x',
-            ).limit('x', IntegerNumber.zero, assumptions: Assumptions.positive),
-          ).equals(IntegerNumber.one);
-
-          // Erfc at +infinity and -infinity, fresh limit variable collision, and power bounded factor
-          check(Erfc(x).limit('x', Constant.infinity))
-              .equals(IntegerNumber.zero);
-          check(Erfc(x).limit('x', -Constant.infinity))
-              .equals(IntegerNumber.two);
-          const hVar = Variable('_h');
-          const h1Var = Variable('_h_1');
-          check((x + hVar + h1Var).limit('x', IntegerNumber.one))
-              .equals((IntegerNumber.one + hVar + h1Var).simplify());
-          final expComposite = Add([
+          ]) +
+          Integral(
             Pow(Constant.e, x),
-            Limit(Pow(Constant.e, x), 't', IntegerNumber.zero),
-            Sum(Pow(Constant.e, x), 'k', IntegerNumber.one, IntegerNumber.two),
-          ]);
-          check(expComposite.limit('x', Constant.infinity))
-              .equals(Constant.infinity);
+            't',
+            lower: IntegerNumber.zero,
+            upper: IntegerNumber.one,
+          );
+      final limNode = unsupportedMrv.limit('x', Constant.infinity);
+      check(limNode).isA<Limit>();
+      check(Expr.parse(limNode.toString())).equals(limNode);
+      check(limNode.toLatex()).contains(r'\lim_{x \to \infty}');
+      check(limNode.toMathMl(root: false))
+          .contains('<munder><mo movablelimits="false">lim</mo>');
 
-          // LambertW limits
-          check(
-            LambertW(x, branch: -1).limit(
-              'x',
-              IntegerNumber.zero,
-              direction: LimitDirection.fromBelow,
-            ),
-          ).equals(-Constant.infinity);
-          check(
-            () => LambertW(x, branch: -1).limit(
-              'x',
-              IntegerNumber.zero,
-              direction: LimitDirection.fromAbove,
-            ),
-          ).throws<UnsupportedError>();
-          check(LambertW(x).limit('x', Constant.infinity))
-              .equals(Constant.infinity);
-        },
+      final limAbove = Expr.parse('limit(f(x), x, 0, 1)');
+      check(limAbove).equals(
+        Limit(
+          Expr.parse('f(x)'),
+          'x',
+          IntegerNumber.zero,
+          direction: LimitDirection.fromAbove,
+        ),
+      );
+      check(Expr.parse(limAbove.toString())).equals(limAbove);
+      check(limAbove.toLatex()).equals(r'\lim_{x \to 0^+} f(x)');
+      check(limAbove.toMathMl(root: false)).equals(
+        '<mrow><munder><mo movablelimits="false">lim</mo><mrow><mi>x</mi><mo>&#x2192;</mo><msup><mn>0</mn><mo>+</mo></msup></mrow></munder><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mrow>',
       );
 
-      test('limits involving special integral functions', () {
-        const x = Variable('x');
-        check(
-          ((SinIntegralSi(x) - x) / x.pow(IntegerNumber.of(3))).limit(
-            'x',
-            IntegerNumber.zero,
-          ),
-        ).equals(Expr.parse('-1/18').simplify());
-        check((Erfi(x) / x).limit('x', IntegerNumber.zero))
-            .equals(Expr.parse('2/sqrt(pi)').simplify());
-        check(
-          (FresnelS(x) / x.pow(IntegerNumber.of(3))).limit(
-            'x',
-            IntegerNumber.zero,
-          ),
-        ).equals(Expr.parse('pi/6').simplify());
-      });
+      final limBelow = Expr.parse('limit(f(x), x, 0, -1)');
+      check(Expr.parse(limBelow.toString())).equals(limBelow);
+      check(limBelow.toLatex()).equals(r'\lim_{x \to 0^-} f(x)');
 
-      test('soundness for cancelling poles, unknown parameter signs, and oscillating bases', () {
-        const x = Variable('x');
-        const a = Variable('a');
-        check(
-          (IntegerNumber.one / x - IntegerNumber.one / Sin(x)).limit('x', 0),
-        ).equals(IntegerNumber.zero);
+      check((Sin(x) / x).limit('x', 0)).equals(IntegerNumber.one);
+      check((x + IntegerNumber.one).limit('x', BigInt.two))
+          .equals(IntegerNumber.of(3));
+      check((x + IntegerNumber.one).limit('x', 1.5))
+          .equals(const RealNumber(2.5));
+      check((IntegerNumber.one / x).limit('x', double.infinity))
+          .equals(IntegerNumber.zero);
+      check((IntegerNumber.one / x).limit('x', double.negativeInfinity))
+          .equals(IntegerNumber.zero);
+      check(Sin(x).limit('x', Constant.pi / IntegerNumber.two))
+          .equals(IntegerNumber.one);
+      check(() => x.limit('x', '??? invalid')).throws<ArgumentError>();
 
-        check((a / Pow(x, IntegerNumber.two)).limit('x', 0)).isA<Limit>();
-        check(
-          (a / Pow(x, IntegerNumber.two)).limit(
-            'x',
-            0,
-            assumptions: const Assumptions(
-              domains: {'a': VariableDomain.positive},
-            ),
+      // Exponential limits at infinity
+      check(Pow(IntegerNumber.two, x).limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+      check(Pow(FractionNumber.half, x).limit('x', -Constant.infinity))
+          .equals(Constant.infinity);
+
+      // Bounded oscillation with multiple non-oscillating factors
+      final multiFactorOsc =
+          (Mul([IntegerNumber.two, x, Sin(x)])) /
+          (Pow(x, IntegerNumber.two) + IntegerNumber.one);
+      check(multiFactorOsc.limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+
+      // Asymptotic degree analysis scanning composite AST nodes
+      final compositeExpr = Add([
+        Derivative(x, 'x'),
+        Limit(x, 't', IntegerNumber.zero),
+        Sum(x, 'k', IntegerNumber.one, IntegerNumber.of(5)),
+        Product(x, 'k', IntegerNumber.one, IntegerNumber.of(5)),
+        VariableFunction('f', [x]),
+      ]);
+      check(compositeExpr.limit('x', Constant.infinity)).isNotNull();
+
+      // Assumptions propagation in limit
+      check(
+        Expr.parse('sqrt(x^2) / x')
+            .limit('x', IntegerNumber.zero, assumptions: Assumptions.positive),
+      ).equals(IntegerNumber.one);
+
+      // Erfc at +infinity and -infinity, fresh limit variable collision, and power bounded factor
+      check(Erfc(x).limit('x', Constant.infinity)).equals(IntegerNumber.zero);
+      check(Erfc(x).limit('x', -Constant.infinity)).equals(IntegerNumber.two);
+      const hVar = Variable('_h');
+      const h1Var = Variable('_h_1');
+      check((x + hVar + h1Var).limit('x', IntegerNumber.one))
+          .equals((IntegerNumber.one + hVar + h1Var).simplify());
+      final expComposite = Add([
+        Pow(Constant.e, x),
+        Limit(Pow(Constant.e, x), 't', IntegerNumber.zero),
+        Sum(Pow(Constant.e, x), 'k', IntegerNumber.one, IntegerNumber.two),
+      ]);
+      check(expComposite.limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+
+      // LambertW limits
+      check(
+        LambertW(
+          x,
+          branch: -1,
+        ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromBelow),
+      ).equals(-Constant.infinity);
+      check(
+        () => LambertW(
+          x,
+          branch: -1,
+        ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromAbove),
+      ).throws<UnsupportedError>();
+      check(LambertW(x).limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+    });
+
+    test('limits involving special integral functions', () {
+      const x = Variable('x');
+      check(
+        ((SinIntegralSi(x) - x) / x.pow(IntegerNumber.of(3))).limit(
+          'x',
+          IntegerNumber.zero,
+        ),
+      ).equals(Expr.parse('-1/18').simplify());
+      check((Erfi(x) / x).limit('x', IntegerNumber.zero))
+          .equals(Expr.parse('2/sqrt(pi)').simplify());
+      check(
+        (FresnelS(x) / x.pow(IntegerNumber.of(3))).limit(
+          'x',
+          IntegerNumber.zero,
+        ),
+      ).equals(Expr.parse('pi/6').simplify());
+    });
+
+    test('soundness for cancelling poles, unknown parameter signs, and oscillating bases', () {
+      const x = Variable('x');
+      const a = Variable('a');
+      check((IntegerNumber.one / x - IntegerNumber.one / Sin(x)).limit('x', 0))
+          .equals(IntegerNumber.zero);
+
+      check((a / Pow(x, IntegerNumber.two)).limit('x', 0)).isA<Limit>();
+      check(
+        (a / Pow(x, IntegerNumber.two)).limit(
+          'x',
+          0,
+          assumptions: const Assumptions(
+            domains: {'a': VariableDomain.positive},
           ),
-        ).equals(Constant.infinity);
-        check(
-          ((-a) / Pow(x, IntegerNumber.two)).limit(
-            'x',
-            0,
-            assumptions: const Assumptions(
-              domains: {'a': VariableDomain.positive},
-            ),
+        ),
+      ).equals(Constant.infinity);
+      check(
+        ((-a) / Pow(x, IntegerNumber.two)).limit(
+          'x',
+          0,
+          assumptions: const Assumptions(
+            domains: {'a': VariableDomain.positive},
           ),
-        ).equals(-Constant.infinity);
-        check(
-          () =>
-              (Pow(IntegerNumber.of(-2), x) * x).limit('x', Constant.infinity),
-        ).throws<UnsupportedError>();
-      });
-    },
-  );
+        ),
+      ).equals(-Constant.infinity);
+      check(
+        () => (Pow(IntegerNumber.of(-2), x) * x).limit('x', Constant.infinity),
+      ).throws<UnsupportedError>();
+    });
+  });
 }
