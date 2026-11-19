@@ -1,5 +1,6 @@
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
+import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/integration/integration.dart';
@@ -60,6 +61,37 @@ Expr _solveOde(
   var eq = equation;
   if (eq is RelationalExpr) {
     eq = eq.left - eq.right;
+  }
+
+  var maxOrder = 0;
+  void scanOrder(Expr e) {
+    if (e
+        case Derivative(
+          expr: Variable(name: final depName),
+          variable: final indName,
+          order: final ord,
+        )
+        when depName == dependent && indName == independent) {
+      if (ord > maxOrder) maxOrder = ord;
+    }
+    e.mapChildren((c) {
+      scanOrder(c);
+      return c;
+    });
+  }
+
+  scanOrder(eq);
+  if (maxOrder > 2) {
+    throw UnsupportedError('ODEs of order $maxOrder > 2 are not supported');
+  }
+  if (maxOrder == 2) {
+    return _trySecondOrderLinearOde(
+      eq,
+      dependent: dependent,
+      independent: independent,
+      constant: constant,
+      assumptions: assumptions,
+    );
   }
 
   const sentinel = '_yPrime';
@@ -225,4 +257,108 @@ Expr _replaceDerivative(
   };
 
   return (fx, gy);
+}
+
+Expr _trySecondOrderLinearOde(
+  Expr eq, {
+  required String dependent,
+  required String independent,
+  required String constant,
+  required Assumptions assumptions,
+}) {
+  const yDoublePrime = '_yDoublePrime';
+  const yPrime = '_yPrime';
+
+  Expr replaceHigher(Expr e) {
+    if (e
+        case Derivative(
+          expr: Variable(name: final depName),
+          variable: final indName,
+          order: final ord,
+        )
+        when depName == dependent && indName == independent) {
+      if (ord == 2) return const Variable(yDoublePrime);
+      if (ord == 1) return const Variable(yPrime);
+    }
+    return e.mapChildren(replaceHigher);
+  }
+
+  final normalized = replaceHigher(eq).simplify(assumptions: assumptions);
+  final lin2 = normalized.matchLinear(yDoublePrime);
+  if (lin2 == null) {
+    throw UnsupportedError(
+      'Only linear second-order ODEs with constant coefficients are supported.',
+    );
+  }
+  final a = lin2.a.simplify(assumptions: assumptions);
+  final lin1 = lin2.b.dependsOn(yPrime)
+      ? lin2.b.matchLinear(yPrime)
+      : (a: IntegerNumber.zero as Expr, b: lin2.b);
+  if (lin1 == null) {
+    throw UnsupportedError(
+      'Only linear second-order ODEs with constant coefficients are supported.',
+    );
+  }
+  final b = lin1.a.simplify(assumptions: assumptions);
+  final lin0 = lin1.b.dependsOn(dependent)
+      ? lin1.b.matchLinear(dependent)
+      : (a: IntegerNumber.zero as Expr, b: lin1.b);
+  if (lin0 == null) {
+    throw UnsupportedError(
+      'Only linear second-order ODEs with constant coefficients are supported.',
+    );
+  }
+  final c = lin0.a.simplify(assumptions: assumptions);
+  final d = lin0.b.simplify(assumptions: assumptions);
+
+  bool hasForbiddenVar(Expr e) =>
+      e.dependsOn(independent) ||
+      e.dependsOn(dependent) ||
+      e.dependsOn(yPrime) ||
+      e.dependsOn(yDoublePrime);
+
+  if ((a is Number && a.isZero) ||
+      hasForbiddenVar(a) ||
+      hasForbiddenVar(b) ||
+      hasForbiddenVar(c) ||
+      !(d is Number && d.isZero)) {
+    throw UnsupportedError(
+      'Only homogeneous linear second-order ODEs with constant coefficients are supported.',
+    );
+  }
+
+  final xVar = Variable(independent);
+  final c1 = Variable(constant);
+  final c2 = Variable(constant == 'C1' ? 'C2' : '${constant}_2');
+  final delta = (b * b - IntegerNumber.of(4) * a * c).simplify(
+    assumptions: assumptions,
+  );
+
+  if (delta is Number && delta.isZero) {
+    final r = (-b / (IntegerNumber.two * a)).simplify(assumptions: assumptions);
+    return ((c1 + c2 * xVar) * Pow(Constant.e, r * xVar)).simplify(
+      assumptions: assumptions,
+    );
+  }
+
+  if (isNegativeExpr(delta, assumptions: assumptions)) {
+    final alpha = (-b / (IntegerNumber.two * a)).simplify(
+      assumptions: assumptions,
+    );
+    final beta = (Pow(-delta, FractionNumber.half) / (IntegerNumber.two * a))
+        .simplify(assumptions: assumptions);
+    return (Pow(Constant.e, alpha * xVar) *
+            (c1 * Cos(beta * xVar) + c2 * Sin(beta * xVar)))
+        .simplify(assumptions: assumptions);
+  }
+
+  final sqrtDelta = Pow(delta, FractionNumber.half);
+  final r1 = ((-b - sqrtDelta) / (IntegerNumber.two * a)).simplify(
+    assumptions: assumptions,
+  );
+  final r2 = ((-b + sqrtDelta) / (IntegerNumber.two * a)).simplify(
+    assumptions: assumptions,
+  );
+  return (c1 * Pow(Constant.e, r1 * xVar) + c2 * Pow(Constant.e, r2 * xVar))
+      .simplify(assumptions: assumptions);
 }

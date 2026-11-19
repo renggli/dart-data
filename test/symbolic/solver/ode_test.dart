@@ -164,4 +164,35 @@ void main() {
           .throws<UnsupportedError>();
     });
   });
+
+  group('Second-order constant-coefficient linear homogeneous ODEs', () {
+    test('solves distinct real characteristic roots', () {
+      check(
+        Expr.parse('diff(y, x, 2) - 3 * diff(y, x) + 2 * y')
+            .solveOde(dependent: 'y', independent: 'x'),
+      ).equals(Expr.parse('C1 * exp(x) + C2 * exp(2 * x)').simplify());
+    });
+
+    test('solves repeated characteristic root', () {
+      check(
+        Expr.parse('diff(y, x, 2) - 2 * diff(y, x) + y')
+            .solveOde(dependent: 'y', independent: 'x'),
+      ).equals(Expr.parse('(C1 + C2 * x) * exp(x)').simplify());
+    });
+
+    test('solves complex conjugate characteristic roots (harmonic)', () {
+      check(
+        Expr.parse('diff(y, x, 2) + y')
+            .solveOde(dependent: 'y', independent: 'x'),
+      ).equals(Expr.parse('C1 * cos(x) + C2 * sin(x)').simplify());
+    });
+
+    test('throws UnsupportedError for ODEs of order > 2', () {
+      check(
+        () =>
+            Expr.parse('diff(y, x, 3) + y')
+                .solveOde(dependent: 'y', independent: 'x'),
+      ).throws<UnsupportedError>();
+    });
+  });
 }
