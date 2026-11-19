@@ -486,6 +486,18 @@ Expr? tryAntiDerivDiv(
   if (right.dependsOn(variable)) {
     final rawDegLeft = polynomialDegree(left, variable);
     final rawDegRight = polynomialDegree(right, variable);
+    if (rawDegLeft != null && rawDegRight != null && rawDegRight >= 4) {
+      if (_tryPowerSubstitution(
+            left,
+            right,
+            variable,
+            depth: depth,
+            assumptions: assumptions,
+          )
+          case final powSubRes?) {
+        return powSubRes;
+      }
+    }
     if (rawDegLeft != null &&
         rawDegRight != null &&
         rawDegRight >= 1 &&
@@ -539,6 +551,53 @@ Expr? tryAntiDerivDiv(
             return pfRes;
           }
         }
+        if (degRight >= 2 && right is! Pow) {
+          final sqFree = _squareFreeFactorization(rightExp, variable);
+          if (sqFree != null && sqFree.any((e) => e.mult > 1)) {
+            final rightCoeffs = extractPolynomialCoefficients(
+              rightExp,
+              variable,
+            )!;
+            final lead = rightCoeffs[degRight] ?? IntegerNumber.one;
+            var factoredDen = lead;
+            for (final entry in sqFree) {
+              factoredDen =
+                  factoredDen *
+                  (entry.mult == 1
+                      ? entry.factor
+                      : Pow(entry.factor, IntegerNumber.of(entry.mult)));
+            }
+            if (sqFree.length == 1) {
+              final factor = sqFree.first.factor;
+              final mult = sqFree.first.mult;
+              final degF = polynomialDegree(factor, variable) ?? 0;
+              if (degF == 2) {
+                final scaledLeft = (leftExp / lead).simplify(
+                  assumptions: assumptions,
+                );
+                if (_tryRepeatedQuadratic(scaledLeft, factor, mult, variable)
+                    case final repRes?) {
+                  return repRes;
+                }
+              }
+            }
+            final factoredRatio = (leftExp / factoredDen).simplify(
+              assumptions: assumptions,
+            );
+            final decomposed = factoredRatio.apart(variable);
+            if (decomposed is Add) {
+              return Add([
+                for (final term in decomposed.terms)
+                  antiDerivative(
+                    term,
+                    variable,
+                    depth: depth,
+                    assumptions: assumptions,
+                  ),
+              ]).simplify(assumptions: assumptions);
+            }
+          }
+        }
         if (degRight >= 2 && degRight <= 12) {
           final originalRatio = (left / right).simplify();
           final decomposed = originalRatio.apart(variable);
@@ -560,7 +619,11 @@ Expr? tryAntiDerivDiv(
               variable,
             );
             if ((newDeg != null && newDeg < degRight) ||
-                (newDen is Pow && newDen.base.matchLinear(variable) != null) ||
+                (newDen is Pow &&
+                    (newDen.base.matchLinear(variable) != null ||
+                        (newDen.exponent is IntegerNumber &&
+                            (newDen.exponent as IntegerNumber).value >
+                                Integer.one))) ||
                 newDen.matchLinear(variable) != null) {
               return antiDerivative(
                 decomposed,
@@ -939,4 +1002,130 @@ Expr? _tryDistinctLinearPartialFractions(
     terms.add((coeff * Ln(Abs(fi.factor))).simplify());
   }
   return Add(terms).simplify();
+}
+
+Expr? _tryPowerSubstitution(
+  Expr left,
+  Expr right,
+  String variable, {
+  required int depth,
+  required Assumptions assumptions,
+}) {
+  if (depth >= 2) return null;
+  final numCoeffs = extractPolynomialCoefficients(left, variable);
+  final denCoeffs = extractPolynomialCoefficients(right, variable);
+  if (numCoeffs == null || denCoeffs == null || denCoeffs.isEmpty) return null;
+
+  var d0 = denCoeffs.keys.first;
+  for (final e in denCoeffs.keys) {
+    if (e < d0) d0 = e;
+  }
+
+  var k = 0;
+  for (final e in denCoeffs.keys) {
+    final diff = e - d0;
+    if (diff > 0) {
+      k = k == 0 ? diff : k.gcd(diff);
+    }
+  }
+  if (k < 2) return null;
+
+  for (final e in numCoeffs.keys) {
+    final shifted = e + 1 - d0;
+    if (shifted < 0 || shifted % k != 0) return null;
+  }
+
+  final uName = '_upow$depth';
+  final uVar = Variable(uName);
+
+  var uNum = IntegerNumber.zero as Expr;
+  for (final MapEntry(key: e, value: c) in numCoeffs.entries) {
+    final q = (e + 1 - d0) ~/ k;
+    final uPow = q == 0
+        ? IntegerNumber.one
+        : (q == 1 ? uVar : Pow(uVar, IntegerNumber.of(q)));
+    uNum = uNum + c * uPow;
+  }
+
+  var uDen = IntegerNumber.zero as Expr;
+  for (final MapEntry(key: e, value: c) in denCoeffs.entries) {
+    final q = (e - d0) ~/ k;
+    final uPow = q == 0
+        ? IntegerNumber.one
+        : (q == 1 ? uVar : Pow(uVar, IntegerNumber.of(q)));
+    uDen = uDen + c * uPow;
+  }
+
+  final transformed = (uNum / (IntegerNumber.of(k) * uVar * uDen)).simplify(
+    assumptions: assumptions,
+  );
+  final uInt = antiDerivative(
+    transformed,
+    uName,
+    depth: depth + 1,
+    assumptions: assumptions,
+  );
+  if (hasUnevaluatedIntegral(uInt, uName)) return null;
+  return uInt
+      .substitute(uName, Pow(Variable(variable), IntegerNumber.of(k)))
+      .simplify(assumptions: assumptions);
+}
+
+List<({Expr factor, int mult})>? _squareFreeFactorization(
+  Expr poly,
+  String variable,
+) {
+  final deg = polynomialDegree(poly, variable);
+  if (deg == null || deg < 2) return null;
+  final deriv = poly.derivative(variable).simplify();
+  final g0 = _polyGcd(poly, deriv, variable);
+  if (g0 == null) return null;
+  final degG = polynomialDegree(g0, variable);
+  if (degG == null || degG == 0) return null;
+
+  var c = poly.polynomialDivide(g0, variable).quotient.simplify();
+  var g = g0;
+  final result = <({Expr factor, int mult})>[];
+  var i = 1;
+
+  while ((polynomialDegree(c, variable) ?? 0) > 0) {
+    final y = _polyGcd(c, g, variable);
+    if (y == null) return null;
+    final z = c.polynomialDivide(y, variable).quotient.simplify();
+    final degZ = polynomialDegree(z, variable) ?? 0;
+    if (degZ > 0) {
+      result.add((factor: _makeMonic(z, variable), mult: i));
+    }
+    c = y;
+    g = g.polynomialDivide(y, variable).quotient.simplify();
+    i++;
+    if (i > deg + 1) return null;
+  }
+  return result;
+}
+
+Expr _makeMonic(Expr poly, String variable) {
+  final coeffs = extractPolynomialCoefficients(poly, variable);
+  if (coeffs == null || coeffs.isEmpty) return poly;
+  final deg = maxPolynomialDegree(coeffs);
+  final lead = coeffs[deg];
+  if (lead == null || lead == IntegerNumber.one) return poly;
+  return (poly / lead).expand().simplify();
+}
+
+Expr? _polyGcd(Expr a, Expr b, String variable) {
+  var u = a.expand().simplify();
+  var v = b.expand().simplify();
+  for (var iter = 0; iter < 30; iter++) {
+    final degV = polynomialDegree(v, variable);
+    if (degV == null) return null;
+    if (v is Number && v.isZero) {
+      return _makeMonic(u, variable);
+    }
+    if (degV == 0) return IntegerNumber.one;
+    final rem = u.polynomialDivide(v, variable).remainder.expand().simplify();
+    u = v;
+    v = rem;
+  }
+  return null;
 }

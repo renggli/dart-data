@@ -43,7 +43,24 @@ void main() {
           points: const [0.2, 0.7, 1.3],
         );
 
-        final highDeg = Expr.parse('(2 * x^2022 + 1) / (x^2023 + x)');
+        verifyAntiderivative(
+          Expr.parse('1 / (x^4 + 2 * x^2 + 1)'),
+          points: const [0.2, 0.7, 1.3],
+        );
+        verifyAntiderivative(
+          Expr.parse('1 / (x + 1 / x)^2'),
+          points: const [0.4, 0.7, 1.3],
+        );
+        verifyAntiderivative(
+          Expr.parse('x^9 / (x^20 - 48 * x^10 + 575)'),
+          points: const [0.4, 0.7, 0.9],
+        );
+        verifyAntiderivative(
+          Expr.parse('(2 * x^2022 + 1) / (x^2023 + x)'),
+          points: const [1.0, 1.01, 1.02],
+        );
+
+        final highDeg = Expr.parse('1 / (x^2023 + x + 1)');
         check(highDeg.integrate('x').toString()).contains('integrate(');
       },
     );

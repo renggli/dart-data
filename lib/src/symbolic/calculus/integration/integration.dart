@@ -1,5 +1,6 @@
 import '../../algebra/approximate.dart';
 import '../../algebra/expand.dart';
+import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/simplify/domain.dart';
 import '../../algebra/term_accumulator.dart';
@@ -244,6 +245,18 @@ Expr antiDerivative(
   };
 
   if (depth < 2 && node is! Add && hasUnevaluatedIntegral(result, variable)) {
+    if (_isRationalIn(node, variable) && _hasNestedRational(node, variable)) {
+      final combined = node.together(assumptions: assumptions);
+      if (combined != node) {
+        final combRes = antiDerivative(
+          combined,
+          variable,
+          assumptions: assumptions,
+          depth: depth + 1,
+        );
+        if (!hasUnevaluatedIntegral(combRes, variable)) return combRes;
+      }
+    }
     if (trySymbolicBinomialAffine(node, variable, assumptions: assumptions)
         case final symBinomRes?) {
       return symBinomRes;
@@ -317,6 +330,38 @@ Expr antiDerivative(
 /// Returns a simplified unevaluated [Integral] node for [expr] in [variable].
 Expr unsupportedIntegral(Expr expr, String variable) =>
     Integral(expr, variable, isSimplified: true);
+
+bool _isRationalIn(Expr expr, String variable) {
+  if (!expr.dependsOn(variable)) return true;
+  return switch (expr) {
+    Variable(:final name) => name == variable,
+    Add(:final terms) => terms.every((t) => _isRationalIn(t, variable)),
+    Mul(:final factors) => factors.every((f) => _isRationalIn(f, variable)),
+    Pow(:final base, exponent: IntegerNumber()) => _isRationalIn(
+      base,
+      variable,
+    ),
+    _ => false,
+  };
+}
+
+bool _hasNestedRational(Expr expr, String variable) {
+  bool hasNegVarPow(Expr e) {
+    if (e case Pow(:final base, exponent: IntegerNumber(isNegative: true))
+        when base.dependsOn(variable)) {
+      return true;
+    }
+    var found = false;
+    e.mapChildren((c) {
+      if (!found && hasNegVarPow(c)) found = true;
+      return c;
+    });
+    return found;
+  }
+
+  final (numPart, denPart) = splitNumeratorDenominator(expr);
+  return hasNegVarPow(numPart) || hasNegVarPow(denPart);
+}
 
 /// Whether [base] is a valid positive non-unit exponential base.
 bool isValidExponentialBase(Expr base) => switch (base) {
