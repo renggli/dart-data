@@ -333,7 +333,7 @@ final class BytecodeEvaluator {
           case Op.binomial:
             final k = stack[--sp];
             final n = stack[--sp];
-            stack[sp++] = _evalRealBinomial(n, k);
+            stack[sp++] = evalRealBinomial(n, k);
           case Op.floor:
             final v = stack[sp - 1];
             stack[sp - 1] = v.isFinite ? v.floorToDouble() : v;
@@ -809,7 +809,7 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp++] = Complex(
-              _evalRealBinomial(zN.a.toDouble(), zK.a.toDouble()),
+              evalRealBinomial(zN.a.toDouble(), zK.a.toDouble()),
             );
           case Op.floor:
             final z = stack[sp - 1];
@@ -936,14 +936,84 @@ final class BytecodeEvaluator {
       });
 }
 
-double _evalRealBinomial(double n, double k) {
+/// Evaluates the real binomial coefficient $\binom{n}{k}$ without intermediate
+/// gamma overflow.
+double evalRealBinomial(double n, double k) {
   if (n.isNaN || k.isNaN) return double.nan;
   if (k == k.roundToDouble() && k < 0.0) return 0.0;
   if (n == n.roundToDouble() && k == k.roundToDouble() && n >= 0.0 && k > n) {
     return 0.0;
   }
-  return special_gamma.gamma(n + 1.0) /
-      (special_gamma.gamma(k + 1.0) * special_gamma.gamma(n - k + 1.0));
+  if (k == 0.0) return 1.0;
+  if (n >= 0.0 && k >= 0.0 && k <= n) {
+    return special_gamma.combination(n, k);
+  }
+  if (n <= -1.0 && k == k.roundToDouble() && k >= 0.0) {
+    final absVal = special_gamma.combination(-n + k - 1.0, k);
+    final isOdd = (k - 2.0 * (k / 2.0).floorToDouble()) != 0.0;
+    return isOdd ? -absVal : absVal;
+  }
+  final (:logAbs, :sign) = logAbsBinomialWithSign(n, k);
+  if (logAbs.isNaN) return double.nan;
+  if (sign == 0) return 0.0;
+  return sign * math.exp(logAbs);
+}
+
+/// Computes $(\ln|\Gamma(z)|, \operatorname{sgn}\Gamma(z))$ for real [z].
+///
+/// Returns `sign == 0` and `logAbs == double.infinity` at non-positive integer
+/// poles, or `logAbs == double.nan` for `NaN`.
+({double logAbs, int sign}) logAbsGammaWithSign(double z) {
+  if (z.isNaN) return (logAbs: double.nan, sign: 0);
+  if (z <= 0.0 && z == z.roundToDouble()) {
+    return (logAbs: double.infinity, sign: 0);
+  }
+  if (z > 0.0) {
+    return (logAbs: special_gamma.gammaLn(z), sign: 1);
+  }
+  final r = z - 2.0 * (z / 2.0).roundToDouble();
+  final s = math.sin(math.pi * r);
+  if (s == 0.0) return (logAbs: double.infinity, sign: 0);
+  final logAbs =
+      math.log(math.pi) - math.log(s.abs()) - special_gamma.gammaLn(1.0 - z);
+  return (logAbs: logAbs, sign: s > 0.0 ? 1 : -1);
+}
+
+/// Computes $(\ln|\binom{n}{k}|, \operatorname{sgn}\binom{n}{k})$ for real
+/// [n] and [k].
+({double logAbs, int sign}) logAbsBinomialWithSign(double n, double k) {
+  if (n.isNaN || k.isNaN) return (logAbs: double.nan, sign: 0);
+  if (k == k.roundToDouble() && k < 0.0) {
+    return (logAbs: double.negativeInfinity, sign: 0);
+  }
+  if (n == n.roundToDouble() && k == k.roundToDouble() && n >= 0.0 && k > n) {
+    return (logAbs: double.negativeInfinity, sign: 0);
+  }
+  if (k == 0.0) return (logAbs: 0.0, sign: 1);
+  if (n >= 0.0 && k >= 0.0 && k <= n) {
+    return (logAbs: special_gamma.combinationLn(n, k), sign: 1);
+  }
+  if (n <= -1.0 && k == k.roundToDouble() && k >= 0.0) {
+    final logAbs = special_gamma.combinationLn(-n + k - 1.0, k);
+    final isOdd = (k - 2.0 * (k / 2.0).floorToDouble()) != 0.0;
+    return (logAbs: logAbs, sign: isOdd ? -1 : 1);
+  }
+  final numG = logAbsGammaWithSign(n + 1.0);
+  final den1G = logAbsGammaWithSign(k + 1.0);
+  final den2G = logAbsGammaWithSign(n - k + 1.0);
+  if (numG.logAbs.isNaN || den1G.logAbs.isNaN || den2G.logAbs.isNaN) {
+    return (logAbs: double.nan, sign: 0);
+  }
+  if (numG.sign == 0) {
+    return (logAbs: double.nan, sign: 0);
+  }
+  if (den1G.sign == 0 || den2G.sign == 0) {
+    return (logAbs: double.negativeInfinity, sign: 0);
+  }
+  return (
+    logAbs: numG.logAbs - den1G.logAbs - den2G.logAbs,
+    sign: numG.sign * den1G.sign * den2G.sign,
+  );
 }
 
 bool _isEffectivelyReal(Complex z) =>

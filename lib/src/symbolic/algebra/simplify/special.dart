@@ -12,6 +12,7 @@ import '../../../special/zeta.dart' as special_zeta;
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../calculus/summation.dart' show evenZetaValue;
+import '../../compiler/evaluator.dart';
 import '../../number/integer.dart';
 import '../structural_order.dart';
 import 'additive.dart';
@@ -599,11 +600,11 @@ Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
     return simplifyBeta(b, a, assumptions: assumptions);
   }
   if (a case IntegerNumber(asInt: final m?) when m > 0) {
-    if (b case IntegerNumber(asInt: final n?) when n > 0 && m + n <= 18) {
-      final factM = Integer.from(m - 1).factorial();
-      final factN = Integer.from(n - 1).factorial();
-      final factTotal = Integer.from(m + n - 1).factorial();
-      return RationalNumber.of(factM * factN, factTotal);
+    if (b case IntegerNumber(asInt: final n?) when n > 0 && m <= 1000) {
+      final denom =
+          Integer.from(n) *
+          Integer.from(m + n - 1).binomial(Integer.from(m - 1));
+      return RationalNumber.of(Integer.one, denom);
     }
     if (m == 1) {
       return simplifyPow(
@@ -675,12 +676,7 @@ Expr simplifyBinomial(
   if (nExpr is RealNumeric &&
       kExpr is RealNumeric &&
       (nExpr is RealNumber || kExpr is RealNumber)) {
-    final n = nExpr.toDouble();
-    final k = kExpr.toDouble();
-    final gn = special_gamma.gamma(n + 1.0);
-    final gk = special_gamma.gamma(k + 1.0);
-    final gnk = special_gamma.gamma(n - k + 1.0);
-    final res = gn / (gk * gnk);
+    final res = evalRealBinomial(nExpr.toDouble(), kExpr.toDouble());
     return res.isNaN ? Constant.undefined : RealNumber.fromDouble(res);
   }
   if (kExpr is Number && kExpr.isZero) {

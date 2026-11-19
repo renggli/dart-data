@@ -213,6 +213,15 @@ void main() {
 
           const ord = OrderTerm('x', 3);
           check(ord.approximate()).equals(ord);
+
+          final largeGammaRatio = Expr.parse('gamma(1000.5) / gamma(999.2)')
+              .approximate();
+          check(largeGammaRatio).isA<RealNumber>();
+          check((largeGammaRatio as RealNumber).value)
+              .isCloseTo(7936.570631156124, 1e-9);
+
+          check(Expr.parse('gamma(10000) / gamma(9999)').approximate())
+              .equals(const RealNumber(9999.0));
         },
       );
     },

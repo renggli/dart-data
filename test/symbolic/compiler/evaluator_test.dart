@@ -252,6 +252,10 @@ void main() {
       check(conjEval.evaluate1D(3.0)).equals(3.0);
       check(argEval.evaluateComplex1D(const Complex(0, 1)).a)
           .isCloseTo(1.5707963267948966, 1e-12);
+
+      check(Expr.parse('binomial(1000, 500)').evaluate())
+          .isCloseTo(2.7028824094543656e299, 1e286);
+      check(Expr.parse('binomial(-3, 4)').evaluate()).isCloseTo(15.0, 1e-12);
     });
 
     test('relational, Piecewise, Integral, and direct Op.sub instructions', () {

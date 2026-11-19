@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/integer.dart';
@@ -134,6 +136,16 @@ Expr simplifyMul(List<Expr> factors, {required Assumptions assumptions}) {
         baseExponents[base] = exp;
       }
     }
+  }
+
+  // Cancel Factorial, Gamma, and Binomial ratios with integer argument shifts
+  coeff = _reduceFactorialAndGammaFactors(
+    coeff,
+    baseExponents,
+    assumptions: assumptions,
+  );
+  if (coeff.isZero) {
+    return coeff is RealNumber ? const RealNumber(0.0) : IntegerNumber.zero;
   }
 
   // Combine radical factors with matching fractional exponents (e.g. sqrt(x) * sqrt(y) -> sqrt(x * y))
@@ -483,4 +495,204 @@ Expr? _multiplyWithOrderTerm(
   }
 
   return null;
+}
+
+Number _reduceFactorialAndGammaFactors(
+  Number coeff,
+  Map<Expr, Expr> baseExponents, {
+  required Assumptions assumptions,
+}) {
+  final expMap = <Expr, int>{};
+  final posBinomials = <Expr>[];
+  final negBinomials = <Expr>[];
+  final posGammas = <Expr>[];
+  final negGammas = <Expr>[];
+
+  for (final MapEntry(key: base, value: exp) in baseExponents.entries) {
+    if (exp case IntegerNumber(asInt: final e?) when e != 0) {
+      if (base is Binomial) {
+        expMap[base] = e;
+        if (e > 0) {
+          posBinomials.add(base);
+        } else {
+          negBinomials.add(base);
+        }
+      } else if (base is Factorial || base is Gamma) {
+        expMap[base] = e;
+        if (e > 0) {
+          posGammas.add(base);
+        } else {
+          negGammas.add(base);
+        }
+      }
+    }
+  }
+
+  var currentCoeff = coeff;
+
+  void addFactorPower(Expr factor, int power) {
+    if (power == 0) return;
+    if (factor is Number) {
+      final powered = factor.powNumber(IntegerNumber.of(power));
+      if (powered != null) {
+        currentCoeff = currentCoeff.mul(powered);
+        return;
+      }
+    }
+    if (factor is Mul) {
+      for (final sub in factor.factors) {
+        addFactorPower(sub, power);
+      }
+      return;
+    }
+    final (base, baseExp) = decomposeFactor(factor);
+    final scaledExp = simplifyMul([
+      baseExp,
+      IntegerNumber.of(power),
+    ], assumptions: assumptions);
+    final existing = baseExponents[base];
+    if (existing != null) {
+      final sumExp = simplifyAdd([
+        existing,
+        scaledExp,
+      ], assumptions: assumptions);
+      if (sumExp is Number && sumExp.isZero) {
+        baseExponents.remove(base);
+      } else {
+        baseExponents[base] = sumExp;
+      }
+    } else {
+      baseExponents[base] = scaledExp;
+    }
+  }
+
+  List<(Expr, int)>? collectGammaRatio(Expr a, Expr b, int d, int power) {
+    if (d == 0) return const [];
+    final start = d > 0 ? b : a;
+    final count = d.abs();
+    final signPower = d > 0 ? power : -power;
+    final terms = <(Expr, int)>[];
+    for (var j = 0; j < count; j++) {
+      final term = j == 0
+          ? start
+          : simplifyAdd([start, IntegerNumber.of(j)], assumptions: assumptions);
+      if (signPower < 0 && term is Number && term.isZero) {
+        return null;
+      }
+      terms.add((term, signPower));
+    }
+    return terms;
+  }
+
+  void applyCollected(List<(Expr, int)> terms) {
+    for (final (term, signPower) in terms) {
+      addFactorPower(term, signPower);
+    }
+  }
+
+  // Pairwise Binomial cancellation
+  if (posBinomials.isNotEmpty && negBinomials.isNotEmpty) {
+    for (final p in posBinomials) {
+      var pExp = expMap[p]!;
+      if (pExp <= 0) continue;
+      final b1 = p as Binomial;
+      for (final q in negBinomials) {
+        final qExp = expMap[q]!;
+        if (qExp >= 0) continue;
+        final b2 = q as Binomial;
+        final dn = simplifySub(b1.left, b2.left, assumptions: assumptions);
+        final dk = simplifySub(b1.right, b2.right, assumptions: assumptions);
+        if (dn case IntegerNumber(asInt: final dnInt?)) {
+          if (dk case IntegerNumber(asInt: final dkInt?)
+              when dnInt.abs() + dkInt.abs() <= 1000) {
+            final units = math.min(pExp, -qExp);
+            final n1p1 = simplifyAdd([
+              b1.left,
+              IntegerNumber.one,
+            ], assumptions: assumptions);
+            final n2p1 = simplifyAdd([
+              b2.left,
+              IntegerNumber.one,
+            ], assumptions: assumptions);
+            final k1p1 = simplifyAdd([
+              b1.right,
+              IntegerNumber.one,
+            ], assumptions: assumptions);
+            final k2p1 = simplifyAdd([
+              b2.right,
+              IntegerNumber.one,
+            ], assumptions: assumptions);
+            final nk1p1 = simplifyAdd([
+              simplifySub(b1.left, b1.right, assumptions: assumptions),
+              IntegerNumber.one,
+            ], assumptions: assumptions);
+            final nk2p1 = simplifyAdd([
+              simplifySub(b2.left, b2.right, assumptions: assumptions),
+              IntegerNumber.one,
+            ], assumptions: assumptions);
+
+            final r1 = collectGammaRatio(n1p1, n2p1, dnInt, units);
+            if (r1 == null) continue;
+            final r2 = collectGammaRatio(k2p1, k1p1, -dkInt, units);
+            if (r2 == null) continue;
+            final r3 = collectGammaRatio(nk2p1, nk1p1, dkInt - dnInt, units);
+            if (r3 == null) continue;
+
+            applyCollected(r1);
+            applyCollected(r2);
+            applyCollected(r3);
+
+            pExp -= units;
+            expMap[p] = pExp;
+            expMap[q] = qExp + units;
+            if (pExp == 0) break;
+          }
+        }
+      }
+    }
+  }
+
+  // Pairwise Factorial / Gamma cancellation
+  if (posGammas.isNotEmpty && negGammas.isNotEmpty) {
+    Expr gammaArg(Expr node) => switch (node) {
+      Gamma(:final expr) => expr,
+      Factorial(:final expr) => simplifyAdd([
+        expr,
+        IntegerNumber.one,
+      ], assumptions: assumptions),
+      _ => node,
+    };
+
+    for (final p in posGammas) {
+      var pExp = expMap[p]!;
+      if (pExp <= 0) continue;
+      final a = gammaArg(p);
+      for (final q in negGammas) {
+        final qExp = expMap[q]!;
+        if (qExp >= 0) continue;
+        final b = gammaArg(q);
+        final diff = simplifySub(a, b, assumptions: assumptions);
+        if (diff case IntegerNumber(asInt: final d?) when d.abs() <= 1000) {
+          final units = math.min(pExp, -qExp);
+          final r = collectGammaRatio(a, b, d, units);
+          if (r == null) continue;
+          applyCollected(r);
+          pExp -= units;
+          expMap[p] = pExp;
+          expMap[q] = qExp + units;
+          if (pExp == 0) break;
+        }
+      }
+    }
+  }
+
+  for (final MapEntry(:key, :value) in expMap.entries) {
+    if (value == 0) {
+      baseExponents.remove(key);
+    } else {
+      baseExponents[key] = IntegerNumber.of(value);
+    }
+  }
+
+  return currentCoeff;
 }

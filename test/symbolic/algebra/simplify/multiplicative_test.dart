@@ -240,5 +240,25 @@ void main() {
             .equals(Expr.parse('(1 + x) * (2 + x)').simplify());
       },
     );
+
+    test(
+      'cancels Factorial, Gamma, and Binomial ratios with integer shifts',
+      () {
+        check(Expr.parse('gamma(10000) / gamma(9999)').simplify())
+            .equals(IntegerNumber.of(9999));
+        check(Expr.parse('10000! / 9999!').simplify())
+            .equals(IntegerNumber.of(10000));
+        check(Expr.parse('(n + 2)! / n!').simplify())
+            .equals(Expr.parse('(1 + n) * (2 + n)').simplify());
+        check(Expr.parse('gamma(x + 2) / gamma(x)').simplify())
+            .equals(Expr.parse('x * (1 + x)').simplify());
+        check(Expr.parse('x! / gamma(x)').simplify())
+            .equals(const Variable('x'));
+        check(
+          Expr.parse('binomial(10000, 2000) / binomial(10000, 1999)')
+              .simplify(),
+        ).equals(RationalNumber(8001, 2000));
+      },
+    );
   });
 }

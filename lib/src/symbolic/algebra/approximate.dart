@@ -1,8 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:more/number.dart' show Fraction;
 
+import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../compiler/evaluator.dart';
 import 'simplify.dart';
+import 'simplify/multiplicative.dart';
+import 'term_accumulator.dart';
 
 /// Numeric approximation and rationalization operations on [Expr].
 extension ApproximationExtension on Expr {
@@ -46,7 +52,7 @@ Expr _approximateNode(Expr node) => switch (node) {
   Constant() => _approximateConstant(node),
   Variable() || OrderTerm() => node,
   Add(:final terms) => Add(terms.map(_approximateNode).toList()).simplify(),
-  Mul(:final factors) => Mul(factors.map(_approximateNode).toList()).simplify(),
+  Mul() => _approximateMul(node),
   Pow(:final base, :final exponent) => _approximatePow(
     _approximateNode(base),
     _approximateNode(exponent),
@@ -69,6 +75,88 @@ Expr _approximateNode(Expr node) => switch (node) {
   }(),
   BinaryExpr() => _approximateBinary(node),
 };
+
+Expr _approximateMul(Mul node) {
+  final simplified = node.isSimplified ? node : node.simplify();
+  if (simplified != Constant.undefined && simplified is! Mul) {
+    return _approximateNode(simplified);
+  }
+  final sourceFactors = simplified is Mul ? simplified.factors : node.factors;
+
+  final logEntries = <({double logAbs, int sign, int exp})>[];
+  final otherFactors = <Expr>[];
+  var hasNegativeExp = false;
+
+  for (final factor in sourceFactors) {
+    final (base, expExpr) = decomposeFactor(factor);
+    if (expExpr case IntegerNumber(asInt: final e?) when e != 0) {
+      ({double logAbs, int sign})? entry;
+      if (base is Gamma) {
+        final approxArg = _approximateNode(base.expr);
+        if (approxArg is RealNumeric) {
+          final g = logAbsGammaWithSign(approxArg.toDouble());
+          if (!g.logAbs.isNaN && g.sign != 0) {
+            entry = g;
+          }
+        }
+      } else if (base is Factorial) {
+        final approxArg = _approximateNode(base.expr);
+        if (approxArg is RealNumeric) {
+          final g = logAbsGammaWithSign(approxArg.toDouble() + 1.0);
+          if (!g.logAbs.isNaN && g.sign != 0) {
+            entry = g;
+          }
+        }
+      } else if (base is Binomial) {
+        final approxN = _approximateNode(base.left);
+        final approxK = _approximateNode(base.right);
+        if (approxN is RealNumeric && approxK is RealNumeric) {
+          final b = logAbsBinomialWithSign(
+            approxN.toDouble(),
+            approxK.toDouble(),
+          );
+          if (!b.logAbs.isNaN && (b.sign != 0 || e > 0)) {
+            entry = b;
+          }
+        }
+      }
+      if (entry != null) {
+        if (e < 0) hasNegativeExp = true;
+        logEntries.add((logAbs: entry.logAbs, sign: entry.sign, exp: e));
+        continue;
+      }
+    }
+    otherFactors.add(factor);
+  }
+
+  if (logEntries.length >= 2 && hasNegativeExp) {
+    var totalLog = 0.0;
+    var totalSign = 1;
+    for (final entry in logEntries) {
+      if (entry.sign == 0) {
+        totalSign = 0;
+        break;
+      }
+      totalLog += entry.exp * entry.logAbs;
+      if (entry.exp.isOdd) {
+        totalSign *= entry.sign;
+      }
+    }
+    final combined = totalSign == 0
+        ? const RealNumber(0.0)
+        : RealNumber.fromDouble(totalSign * math.exp(totalLog));
+    return simplifyMul([
+      combined,
+      ...otherFactors.map(_approximateNode),
+    ], assumptions: Assumptions.none);
+  }
+
+  if (simplified == Constant.undefined) {
+    return Constant.undefined;
+  }
+
+  return Mul(sourceFactors.map(_approximateNode).toList()).simplify();
+}
 
 Expr _approximateConstant(Constant c) {
   if (c == Constant.infinity || c == Constant.undefined) return c;

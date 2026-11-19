@@ -296,5 +296,18 @@ void main() {
       check(Polygamma(const RealNumber(1.5), const RealNumber(2.0)).simplify())
           .isA<Polygamma>();
     });
+
+    test(
+      'simplifies large integer beta and real binomial without overflow',
+      () {
+        check(Expr.parse('beta(2, 10000)').simplify())
+            .equals(FractionNumber(Integer.one, Integer.from(100010000)));
+        check(Expr.parse('binomial(1000.0, 2.0)').simplify())
+            .equals(const RealNumber(499500.0));
+        final negBinomReal = Expr.parse('binomial(-0.5, 2.0)').simplify();
+        check(negBinomReal).isA<RealNumber>();
+        check((negBinomReal as RealNumber).value).isCloseTo(0.375, 1e-12);
+      },
+    );
   });
 }
