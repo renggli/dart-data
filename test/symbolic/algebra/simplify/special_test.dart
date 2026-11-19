@@ -287,6 +287,12 @@ void main() {
           .equals(IntegerNumber.zero);
       check(Expr.parse('gamma(-1/2)').simplify())
           .equals(Expr.parse('-2 * sqrt(pi)').simplify());
+      check(Expr.parse('(1/2)!').simplify())
+          .equals(Expr.parse('1/2 * sqrt(pi)').simplify());
+      check(Expr.parse('(3/2)!').simplify())
+          .equals(Expr.parse('3/4 * sqrt(pi)').simplify());
+      check(Expr.parse('(-3/2)!').simplify())
+          .equals(Expr.parse('-2 * sqrt(pi)').simplify());
       check(Expr.parse('gamma(39/2)').simplify())
           .equals(Expr.parse('(38! / (4^19 * 19!)) * sqrt(pi)').simplify());
       check(Expr.parse('gamma(41/2)').simplify())

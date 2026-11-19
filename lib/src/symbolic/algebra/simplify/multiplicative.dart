@@ -568,6 +568,12 @@ Number _reduceFactorialAndGammaFactors(
 
   List<(Expr, int)>? collectGammaRatio(Expr a, Expr b, int d, int power) {
     if (d == 0) return const [];
+    if (a case IntegerNumber(:final value) when value <= Integer.zero) {
+      return null;
+    }
+    if (b case IntegerNumber(:final value) when value <= Integer.zero) {
+      return null;
+    }
     final start = d > 0 ? b : a;
     final count = d.abs();
     final signPower = d > 0 ? power : -power;
@@ -576,7 +582,7 @@ Number _reduceFactorialAndGammaFactors(
       final term = j == 0
           ? start
           : simplifyAdd([start, IntegerNumber.of(j)], assumptions: assumptions);
-      if (signPower < 0 && term is Number && term.isZero) {
+      if (term is Number && term.isZero) {
         return null;
       }
       terms.add((term, signPower));

@@ -658,8 +658,12 @@ Expr simplifyFactorial(Expr expr, {required Assumptions assumptions}) {
       return IntegerNumber(Integer.from(n).factorial());
     }
   }
-  if (expr == FractionNumber.negativeHalf) {
-    return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
+  if (expr case FractionNumber(:final numerator, :final denominator)
+      when denominator == Integer.two && numerator.abs() <= const Integer(41)) {
+    return simplifyGamma(
+      FractionNumber(numerator + Integer.two, Integer.two),
+      assumptions: assumptions,
+    );
   }
   return Factorial(expr, isSimplified: true);
 }

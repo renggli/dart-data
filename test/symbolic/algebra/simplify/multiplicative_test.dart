@@ -258,6 +258,14 @@ void main() {
           Expr.parse('binomial(10000, 2000) / binomial(10000, 1999)')
               .simplify(),
         ).equals(RationalNumber(8001, 2000));
+        check(
+          (Gamma(IntegerNumber.of(102)) / Gamma(IntegerNumber.of(-102)))
+              .simplify(),
+        ).not((s) => s.equals(IntegerNumber.zero));
+        check(
+          (Factorial(IntegerNumber.of(102)) / Factorial(IntegerNumber.of(-102)))
+              .simplify(),
+        ).equals(Constant.undefined);
       },
     );
   });
