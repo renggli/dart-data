@@ -418,5 +418,43 @@ void main() {
       check(Expr.parse('exp(2*x) - 1').solve('x'))
           .deepEquals([IntegerNumber.zero]);
     });
+
+    test('solves polynomial equations in elementary functions', () {
+      check(Expr.parse('ln(x)^2 - 3*ln(x) + 2').solve('x')).unorderedEquals([
+        Constant.e,
+        Pow(Constant.e, IntegerNumber.two, isSimplified: true),
+      ]);
+      check(Expr.parse('2*sin(x)^2 - 3*sin(x) + 1').solve('x')).unorderedEquals(
+        [
+          (Constant.pi / IntegerNumber.of(6)).simplify(),
+          (Constant.pi / IntegerNumber.two).simplify(),
+          (IntegerNumber.of(5) * Constant.pi / IntegerNumber.of(6)).simplify(),
+        ],
+      );
+      final sinhRoots = Expr.parse('sinh(x)^2 - 3*sinh(x) + 2').solve('x');
+      check(sinhRoots.length).equals(2);
+      for (final root in sinhRoots) {
+        final v = root.evaluate();
+        check(
+          math.pow((math.exp(v) - math.exp(-v)) / 2, 2) -
+              3 * ((math.exp(v) - math.exp(-v)) / 2) +
+              2,
+        ).isCloseTo(0.0, 1e-12);
+      }
+    });
+
+    test('solves multiple-angle trigonometric equations', () {
+      check(Expr.parse('cos(2*x) - cos(x)').solve('x')).unorderedEquals([
+        IntegerNumber.zero,
+        (IntegerNumber.two * Constant.pi / IntegerNumber.of(3)).simplify(),
+        (IntegerNumber.of(4) * Constant.pi / IntegerNumber.of(3)).simplify(),
+      ]);
+      check(Expr.parse('sin(2*x) - sin(x)').solve('x')).unorderedEquals([
+        IntegerNumber.zero,
+        Constant.pi,
+        (Constant.pi / IntegerNumber.of(3)).simplify(),
+        (IntegerNumber.of(5) * Constant.pi / IntegerNumber.of(3)).simplify(),
+      ]);
+    });
   });
 }

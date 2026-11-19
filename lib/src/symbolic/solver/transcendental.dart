@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 
 import '../algebra/expand.dart';
+import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/domain.dart';
 import '../algebra/term_accumulator.dart';
+import '../algebra/trig.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
@@ -76,6 +78,22 @@ List<Expr>? isolateAndInvert(
     assumptions: assumptions,
   );
   if (expPolyRoots != null) return expPolyRoots;
+
+  // Case 3b: Polynomial in a single elementary function P(u(x)) = 0
+  final fnPolyRoots = _tryPolynomialInFunction(
+    expr,
+    variable,
+    assumptions: assumptions,
+  );
+  if (fnPolyRoots != null) return fnPolyRoots;
+
+  // Case 3c: Multiple-angle trigonometric reduction
+  final multiTrigRoots = _tryMultipleAngleTrig(
+    expr,
+    variable,
+    assumptions: assumptions,
+  );
+  if (multiTrigRoots != null) return multiTrigRoots;
 
   // Case 4: expr is alone (equated to 0)
   return invertEquation(
@@ -963,4 +981,199 @@ List<Expr>? _tryPolynomialInExponential(
     }
   }
   return results;
+}
+
+bool _isElementaryFunctionNode(Expr e, String variable) => switch (e) {
+  Ln(:final expr) ||
+  Sin(:final expr) ||
+  Cos(:final expr) ||
+  Tan(:final expr) ||
+  Sinh(:final expr) ||
+  Cosh(:final expr) ||
+  Tanh(:final expr) ||
+  Asin(:final expr) ||
+  Acos(:final expr) ||
+  Atan(:final expr) ||
+  LambertW(:final expr) => expr.dependsOn(variable),
+  _ => false,
+};
+
+List<Expr>? _tryPolynomialInFunction(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final fnNodes = <Expr>{};
+
+  void collect(Expr e) {
+    if (_isElementaryFunctionNode(e, variable)) {
+      fnNodes.add(e);
+      return;
+    }
+    e.mapChildren((c) {
+      collect(c);
+      return c;
+    });
+  }
+
+  collect(expr);
+  if (fnNodes.isEmpty) return null;
+
+  const uName = '_u_fn';
+  const uVar = Variable(uName);
+
+  List<Expr>? solveSubstituted(Expr uNode, Expr polyU) {
+    final simplified = polyU.simplify(assumptions: Assumptions.none);
+    if (simplified.dependsOn(variable) || !simplified.dependsOn(uName)) {
+      return null;
+    }
+    final uRoots = solveEquation(
+      simplified,
+      uName,
+      assumptions: Assumptions.none,
+    );
+    if (uRoots.isEmpty) return const [];
+    final results = <Expr>[];
+    for (final uRoot in uRoots) {
+      final roots = invertEquation(
+        uNode,
+        uRoot,
+        variable,
+        assumptions: assumptions,
+      );
+      if (roots == null) return null;
+      results.addAll(roots);
+    }
+    return deduplicateRoots(results);
+  }
+
+  if (fnNodes.length == 1) {
+    final uNode = fnNodes.first;
+    Expr subst(Expr e) => e == uNode ? uVar : e.mapChildren(subst);
+    return solveSubstituted(uNode, subst(expr));
+  }
+
+  if (fnNodes.length == 2) {
+    final list = fnNodes.toList();
+    final (Sin? sinNode, Cos? cosNode) = switch ((list[0], list[1])) {
+      (final Sin s, final Cos c) when s.expr == c.expr => (s, c),
+      (final Cos c, final Sin s) when s.expr == c.expr => (s, c),
+      _ => (null, null),
+    };
+    if (sinNode != null && cosNode != null) {
+      Expr? tryPythagorean(Expr uNode, Expr otherNode) {
+        var valid = true;
+        Expr subst(Expr e) {
+          if (!valid) return e;
+          if (e == uNode) return uVar;
+          if (e == otherNode) {
+            valid = false;
+            return e;
+          }
+          if (e
+              case Pow(base: final b, exponent: IntegerNumber(asInt: final k?))
+              when b == otherNode) {
+            if (k < 2 || k.isOdd) {
+              valid = false;
+              return e;
+            }
+            final oneMinusU2 = IntegerNumber.one - Pow(uVar, IntegerNumber.two);
+            return k == 2
+                ? oneMinusU2
+                : Pow(oneMinusU2, IntegerNumber.of(k ~/ 2));
+          }
+          return e.mapChildren(subst);
+        }
+
+        final replaced = subst(expr);
+        return valid ? replaced : null;
+      }
+
+      if (tryPythagorean(cosNode, sinNode) case final polyCos?) {
+        final res = solveSubstituted(cosNode, polyCos);
+        if (res != null) return res;
+      }
+      if (tryPythagorean(sinNode, cosNode) case final polySin?) {
+        final res = solveSubstituted(sinNode, polySin);
+        if (res != null) return res;
+      }
+    }
+  }
+
+  return null;
+}
+
+List<Expr>? _tryMultipleAngleTrig(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final trigAtoms = <Expr>{};
+  void collectTrig(Expr e) {
+    switch (e) {
+      case Sin(expr: final arg) || Cos(expr: final arg) || Tan(expr: final arg)
+          when arg.dependsOn(variable):
+        trigAtoms.add(e);
+      default:
+        e.mapChildren((c) {
+          collectTrig(c);
+          return c;
+        });
+    }
+  }
+
+  collectTrig(expr);
+  if (trigAtoms.length < 2) return null;
+
+  final expanded = expr.expandTrig(assumptions: assumptions);
+  if (expanded == expr) return null;
+
+  // Factor expanded expression with respect to its trigonometric atoms.
+  final expandedAtoms = <Expr>[];
+  final atomSet = <Expr>{};
+  void collectExpandedTrig(Expr e) {
+    switch (e) {
+      case Sin(expr: final arg) || Cos(expr: final arg) || Tan(expr: final arg)
+          when arg.dependsOn(variable):
+        if (atomSet.add(e)) expandedAtoms.add(e);
+      default:
+        e.mapChildren((c) {
+          collectExpandedTrig(c);
+          return c;
+        });
+    }
+  }
+
+  collectExpandedTrig(expanded);
+  if (expandedAtoms.isNotEmpty) {
+    final toPlaceholder = <Expr, Variable>{};
+    final fromPlaceholder = <Variable, Expr>{};
+    for (var i = 0; i < expandedAtoms.length; i++) {
+      final v = Variable('_t_trig_$i');
+      toPlaceholder[expandedAtoms[i]] = v;
+      fromPlaceholder[v] = expandedAtoms[i];
+    }
+    Expr toPoly(Expr e) => toPlaceholder[e] ?? e.mapChildren(toPoly);
+    Expr fromPoly(Expr e) =>
+        e is Variable ? (fromPlaceholder[e] ?? e) : e.mapChildren(fromPoly);
+
+    final poly = toPoly(expanded);
+    if (!poly.dependsOn(variable)) {
+      final factored = poly.factor(assumptions: Assumptions.none);
+      if (factored case Mul(:final factors)) {
+        final allRoots = <Expr>[];
+        for (final f in factors) {
+          final restored = fromPoly(f).simplify(assumptions: assumptions);
+          if (!restored.dependsOn(variable)) continue;
+          allRoots.addAll(
+            solveEquation(restored, variable, assumptions: assumptions),
+          );
+        }
+        return deduplicateRoots(allRoots);
+      }
+    }
+  }
+
+  final roots = solveEquation(expanded, variable, assumptions: assumptions);
+  return roots.isEmpty ? null : deduplicateRoots(roots);
 }
