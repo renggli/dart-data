@@ -135,12 +135,13 @@ sealed class Number extends Expr {
       return IntegerNumber.zero;
     }
     if (baseRat.isOne) return IntegerNumber.one;
-    if (baseRat.isNegative) return null;
+    if (baseRat.isNegative && exponent.denominator.isEven) return null;
     if ((exponent.denominator.asInt, exponent.numerator.asInt)
         case (final q?, final p?) when q <= 1024 && p.abs() <= 1024) {
-      if (exactIntegerRoot(baseRat.numerator, q) case final rootNum?) {
+      if (exactIntegerRoot(baseRat.numerator.abs(), q) case final rootNum?) {
         if (exactIntegerRoot(baseRat.denominator, q) case final rootDen?) {
-          return RationalNumber.of(rootNum, rootDen).powInteger(p);
+          final signedNum = baseRat.isNegative ? -rootNum : rootNum;
+          return RationalNumber.of(signedNum, rootDen).powInteger(p);
         }
       }
     }

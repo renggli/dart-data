@@ -156,16 +156,15 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
               ),
             ], assumptions: assumptions);
           }
-        } else {
-          final folded = base.powNumber(exponent);
-          if (folded != null) return folded;
-          final extracted = _extractRationalRadical(
-            base,
-            exponent,
-            assumptions: assumptions,
-          );
-          if (extracted != null) return extracted;
         }
+        final folded = base.powNumber(exponent);
+        if (folded != null) return folded;
+        final extracted = _extractRationalRadical(
+          base,
+          exponent,
+          assumptions: assumptions,
+        );
+        if (extracted != null) return extracted;
       }
       return Pow(base, exponent, isSimplified: true);
     }
@@ -375,7 +374,19 @@ Expr? _extractRationalRadical(
   FractionNumber exponent, {
   required Assumptions assumptions,
 }) {
-  if (base.isNegative || base.isZero || base.isOne) return null;
+  if (base.isZero || base.isOne) return null;
+  if (base.isNegative) {
+    if (exponent.denominator.isEven) return null;
+    final posExtracted = _extractRationalRadical(
+      base.abs(),
+      exponent,
+      assumptions: assumptions,
+    );
+    if (posExtracted == null) return null;
+    return exponent.numerator.isOdd
+        ? simplifyNeg(posExtracted, assumptions: assumptions)
+        : posExtracted;
+  }
   final p = exponent.numerator.asInt;
   final q = exponent.denominator.asInt;
   if (p == null || q == null || q <= 1 || q > 1024 || p.abs() > 1024) {

@@ -97,6 +97,11 @@ void main() {
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('-1/2 * i');
+        check(Expr.parse('(-27)^(1/3) + (-1)^(1/2)').simplify())
+            .equals(ComplexNumber(IntegerNumber.of(-3), IntegerNumber.one));
+        check(Expr.parse('(-8)^(2/3)').simplify()).equals(IntegerNumber.of(4));
+        check(Expr.parse('(-54)^(1/3)').simplify())
+            .equals(Expr.parse('-3 * 2^(1/3)').simplify());
         check(
           simplifyPow(
             IntegerNumber.of(-2),
