@@ -13,7 +13,7 @@ void main() {
       final coeffs = acc.extractPolynomialCoefficients('x');
       check(coeffs).isNotNull();
       check(coeffs![0]).equals(IntegerNumber.of(-4));
-      check(coeffs.containsKey(1)).isFalse();
+      check(coeffs.containsKey(1)).isFalse;
       check(coeffs[2]).equals(IntegerNumber.of(4));
 
       check(acc.build().toString()).equals('-4 + 4 * x ^ 2');
@@ -22,7 +22,7 @@ void main() {
     test('handles RealNumber promotion, zero scales, and negated Add', () {
       final acc = MonomialAccumulator(assumptions: Assumptions.none);
       acc.add(const Variable('x'), IntegerNumber.zero);
-      check(acc.terms).isEmpty();
+      check(acc.terms).isEmpty;
 
       acc.add(
         Mul([
@@ -48,7 +48,7 @@ void main() {
         IntegerNumber.one,
         ComplexNumber.of(IntegerNumber.one, const RealNumber(1.0)),
       );
-      check(complexRealAcc.hasReal).isTrue();
+      check(complexRealAcc.hasReal).isTrue;
     });
 
     test('extractPolynomialCoefficients handles multivariate and non-polynomial cases', () {
@@ -80,7 +80,7 @@ void main() {
       ]) {
         final badAcc = MonomialAccumulator(assumptions: Assumptions.none)
           ..add(bad);
-        check(badAcc.extractPolynomialCoefficients('x')).isNull();
+        check(badAcc.extractPolynomialCoefficients('x')).isNull;
       }
     });
 

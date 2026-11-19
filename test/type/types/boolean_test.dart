@@ -10,9 +10,9 @@ void main() {
 
     test('attributes', () {
       check(type.name).equals('boolean');
-      check(type.defaultValue).isFalse();
-      check(type.isNullable).isFalse();
-      check(type.isNative).isFalse();
+      check(type.defaultValue).isFalse;
+      check(type.isNullable).isFalse;
+      check(type.isNative).isFalse;
       check(type.toString()).equals('DataType.boolean');
     });
 
@@ -21,12 +21,12 @@ void main() {
     });
 
     test('cast', () {
-      check(type.cast(true)).isTrue();
-      check(type.cast(false)).isFalse();
-      check(type.cast(1)).isTrue();
-      check(type.cast(0)).isFalse();
-      check(type.cast('true')).isTrue();
-      check(type.cast('false')).isFalse();
+      check(type.cast(true)).isTrue;
+      check(type.cast(false)).isFalse;
+      check(type.cast(1)).isTrue;
+      check(type.cast(0)).isFalse;
+      check(type.cast('true')).isTrue;
+      check(type.cast('false')).isFalse;
     });
 
     test('cast error', () {

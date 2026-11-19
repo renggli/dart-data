@@ -10,15 +10,15 @@ void main() {
       check(hypergeometric1F1(2, 2, 0.5)).isCloseTo(math.exp(0.5), 1e-12);
       check(hypergeometric1F1(5, 5, 1.2)).isCloseTo(math.exp(1.2), 1e-12);
       check(hypergeometric1F1(0, 3.5, 2.5)).equals(1.0);
-      check(hypergeometric1F1(1, 0, 0.5)).isNaN();
-      check(hypergeometric1F1(1, -2, 0.5)).isNaN();
-      check(hypergeometric1F1(1, 2, double.infinity)).isNaN();
-      check(hypergeometric1F1(1, 2, double.negativeInfinity)).isNaN();
+      check(hypergeometric1F1(1, 0, 0.5)).isNaN;
+      check(hypergeometric1F1(1, -2, 0.5)).isNaN;
+      check(hypergeometric1F1(1, 2, double.infinity)).isNaN;
+      check(hypergeometric1F1(1, 2, double.negativeInfinity)).isNaN;
       // 1F1(1, 2, z) = (exp(z) - 1)/z. For z = -50, (exp(-50) - 1)/(-50) = 1/50 = 0.02
       check(hypergeometric1F1(1, 2, -50.0)).isCloseTo(0.02, 1e-12);
       check(hypergeometric1F1(1, 2, -750.0)).isCloseTo(1.0 / 750.0, 1e-6);
       check(hypergeometric1F1(1, 2, -1000.0)).isCloseTo(0.001, 1e-6);
-      check(hypergeometric1F1(2, 4, -800.0).isFinite).isTrue();
+      check(hypergeometric1F1(2, 4, -800.0).isFinite).isTrue;
     });
 
     test('Gauss hypergeometric 2F1 standard cases', () {
@@ -63,7 +63,7 @@ void main() {
       check(hypergeometric2F1(-2, 1.5, 3, 0.95))
           .isCloseTo(1.0 - 0.95 + 0.95 * 0.95 * 5.0 / 16.0, 1e-12);
       check(hypergeometric2F1(-2, -3, 1, 0.5)).isCloseTo(4.75, 1e-12);
-      check(hypergeometric2F1(-3, 2, -1, 0.5)).isNaN();
+      check(hypergeometric2F1(-3, 2, -1, 0.5)).isNaN;
       check(hypergeometric2F1(2, 2, 3, 0.95))
           .isCloseTo(35.466521277442666, 1e-10);
       check(hypergeometric2F1(1, 1, 4, 0.95)).isGreaterThan(0.0);

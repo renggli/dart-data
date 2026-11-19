@@ -13,10 +13,10 @@ void main() {
         check(type.name).equals('float32');
         check(type.bits).equals(32);
         check(type.bytesPerElement).equals(4);
-        check(type.isFloat).isTrue();
-        check(type.isInteger).isFalse();
-        check(type.isNumeric).isTrue();
-        check(type.isNative).isTrue();
+        check(type.isFloat).isTrue;
+        check(type.isInteger).isFalse;
+        check(type.isNumeric).isTrue;
+        check(type.isNative).isTrue;
         check(type.defaultValue).equals(0.0);
         check(type.min).isLessThan(0.0);
         check(type.max).isGreaterThan(0.0);
@@ -47,10 +47,10 @@ void main() {
         check(type.name).equals('float64');
         check(type.bits).equals(64);
         check(type.bytesPerElement).equals(8);
-        check(type.isFloat).isTrue();
-        check(type.isInteger).isFalse();
-        check(type.isNumeric).isTrue();
-        check(type.isNative).isTrue();
+        check(type.isFloat).isTrue;
+        check(type.isInteger).isFalse;
+        check(type.isNumeric).isTrue;
+        check(type.isNative).isTrue;
         check(type.defaultValue).equals(0.0);
       });
 
@@ -83,7 +83,7 @@ void main() {
       check(field.mod(7.5, 2.0)).equals(1.5);
       check(field.division(7.5, 2.0)).equals(3.0);
       check(field.division(1e25, 1.0)).equals(1e25);
-      check(field.division(1.0, 0.0).isInfinite).isTrue();
+      check(field.division(1.0, 0.0).isInfinite).isTrue;
       check(field.remainder(7.5, 2.0)).equals(1.5);
       check(field.pow(2.0, 3.0)).equals(8.0);
       check(field.modPow(2.0, 3.0, 5.0)).equals(3.0);
@@ -93,9 +93,9 @@ void main() {
       check(field.exp(0.0)).equals(1.0);
       check(field.log(1.0)).equals(0.0);
       check(field.conjugate(4.2)).equals(4.2);
-      check(field.nan.isNaN).isTrue();
-      check(field.infinity.isInfinite).isTrue();
-      check(field.negativeInfinity.isInfinite).isTrue();
+      check(field.nan.isNaN).isTrue;
+      check(field.infinity.isInfinite).isTrue;
+      check(field.negativeInfinity.isInfinite).isTrue;
       check(() => field.modInverse(2.0, 5.0)).throws<UnsupportedError>();
       check(() => field.gcd(2.0, 5.0)).throws<UnsupportedError>();
     });

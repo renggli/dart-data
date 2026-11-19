@@ -13,8 +13,8 @@ void main() {
       check(dist.rate).equals(4.0);
       check(dist.lowerBound).equals(0);
       check(dist.upperBound).equals(DataType.integer.safeMax);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isTrue();
+      check(dist.isLowerBoundOpen).isFalse;
+      check(dist.isUpperBoundOpen).isTrue;
       check(dist.mean).equals(4.0);
       check(dist.variance).equals(4.0);
       check(dist.standardDeviation).equals(2.0);
@@ -48,7 +48,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0)).isTrue();
+      check(samples.every((sample) => sample >= 0)).isTrue;
     });
 
     test('fit', () {

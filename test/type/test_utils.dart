@@ -48,7 +48,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
         final result = type.castList(list);
         check(result.length).equals(list.length);
         for (var i = 0; i < list.length; i++) {
-          check(type.equality.isEqual(result[i], list[i])).isTrue();
+          check(type.equality.isEqual(result[i], list[i])).isTrue;
         }
       });
     }
@@ -65,7 +65,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
   group('newList', () {
     test('empty', () {
       final list = type.newList(0);
-      check(list).isEmpty();
+      check(list).isEmpty;
     });
 
     test('length', () {
@@ -75,7 +75,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
 
     test('defaultValue', () {
       final list = type.newList(1);
-      check(type.equality.isEqual(list[0], type.defaultValue)).isTrue();
+      check(type.equality.isEqual(list[0], type.defaultValue)).isTrue;
     });
 
     test('readonly', () {
@@ -88,7 +88,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
       final list = type.newList(10, fillValue: exampleValue);
       check(list.length).equals(10);
       for (var i = 0; i < 10; i++) {
-        check(type.equality.isEqual(list[i], exampleValue)).isTrue();
+        check(type.equality.isEqual(list[i], exampleValue)).isTrue;
       }
     });
 
@@ -97,7 +97,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
       check(() => list[0] = type.defaultValue).throws<UnsupportedError>();
       check(list.length).equals(10);
       for (var i = 0; i < 10; i++) {
-        check(type.equality.isEqual(list[i], exampleValue)).isTrue();
+        check(type.equality.isEqual(list[i], exampleValue)).isTrue;
       }
     });
 
@@ -106,7 +106,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
       final list = type.newList(values.length, generate: (i) => values[i]);
       check(list.length).equals(values.length);
       for (var i = 0; i < values.length; i++) {
-        check(type.equality.isEqual(list[i], values[i])).isTrue();
+        check(type.equality.isEqual(list[i], values[i])).isTrue;
       }
     });
 
@@ -129,7 +129,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
       final copy = type.copyList(exampleList);
       check(copy.length).equals(exampleList.length);
       for (var i = 0; i < exampleList.length; i++) {
-        check(type.equality.isEqual(copy[i], exampleList[i])).isTrue();
+        check(type.equality.isEqual(copy[i], exampleList[i])).isTrue;
       }
     });
 
@@ -138,7 +138,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
       final copy = type.copyList(exampleList, length: targetLength);
       check(copy.length).equals(targetLength);
       for (var i = 0; i < targetLength; i++) {
-        check(type.equality.isEqual(copy[i], exampleList[i])).isTrue();
+        check(type.equality.isEqual(copy[i], exampleList[i])).isTrue;
       }
     });
 
@@ -146,10 +146,10 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
       final copy = type.copyList(exampleList, length: exampleList.length + 5);
       check(copy.length).equals(exampleList.length + 5);
       for (var i = 0; i < exampleList.length; i++) {
-        check(type.equality.isEqual(copy[i], exampleList[i])).isTrue();
+        check(type.equality.isEqual(copy[i], exampleList[i])).isTrue;
       }
       for (var i = exampleList.length; i < copy.length; i++) {
-        check(type.equality.isEqual(copy[i], type.defaultValue)).isTrue();
+        check(type.equality.isEqual(copy[i], type.defaultValue)).isTrue;
       }
     });
 
@@ -161,10 +161,10 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
       );
       check(copy.length).equals(exampleList.length + 5);
       for (var i = 0; i < exampleList.length; i++) {
-        check(type.equality.isEqual(copy[i], exampleList[i])).isTrue();
+        check(type.equality.isEqual(copy[i], exampleList[i])).isTrue;
       }
       for (var i = exampleList.length; i < copy.length; i++) {
-        check(type.equality.isEqual(copy[i], exampleValue)).isTrue();
+        check(type.equality.isEqual(copy[i], exampleValue)).isTrue;
       }
     });
 
@@ -176,7 +176,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
       final copyWritable = type.copyList(exampleList, readonly: false);
       if (exampleList.isNotEmpty) {
         copyWritable[0] = exampleValue;
-        check(type.equality.isEqual(copyWritable[0], exampleValue)).isTrue();
+        check(type.equality.isEqual(copyWritable[0], exampleValue)).isTrue;
       }
     });
   });
@@ -186,7 +186,7 @@ void checkListOperations<T>(DataType<T> type, List<List<T>> lists) {
     final examples = lists.expand((list) => list).toList();
     for (final example in examples) {
       final printed = printer(example);
-      check(printed.isNotEmpty).isTrue();
+      check(printed.isNotEmpty).isTrue;
     }
   });
 }
@@ -204,18 +204,18 @@ void checkFieldOperations<T>(
 
   group('equality', () {
     test('isEqual', () {
-      check(equality.isEqual(addId, mulId)).isFalse();
+      check(equality.isEqual(addId, mulId)).isFalse;
       for (final value in values) {
-        check(equality.isEqual(value, value)).isTrue();
-        check(equality.isEqual(value, addId)).isFalse();
+        check(equality.isEqual(value, value)).isTrue;
+        check(equality.isEqual(value, addId)).isFalse;
       }
     });
 
     test('isClose', () {
-      check(equality.isClose(addId, mulId, epsilon)).isFalse();
+      check(equality.isClose(addId, mulId, epsilon)).isFalse;
       for (final value in values) {
-        check(equality.isClose(value, value, epsilon)).isTrue();
-        check(equality.isClose(value, addId, epsilon)).isFalse();
+        check(equality.isClose(value, value, epsilon)).isTrue;
+        check(equality.isClose(value, addId, epsilon)).isFalse;
       }
     });
 
@@ -253,13 +253,13 @@ void checkFieldOperations<T>(
   group('field arithmetic', () {
     test('neg, add, sub', () {
       for (final value in values) {
-        check(equality.isEqual(field.neg(field.neg(value)), value)).isTrue();
-        check(equality.isEqual(field.add(value, addId), value)).isTrue();
-        check(equality.isEqual(field.add(addId, value), value)).isTrue();
+        check(equality.isEqual(field.neg(field.neg(value)), value)).isTrue;
+        check(equality.isEqual(field.add(value, addId), value)).isTrue;
+        check(equality.isEqual(field.add(addId, value), value)).isTrue;
         check(
           equality.isClose(field.add(value, field.neg(value)), addId, epsilon),
-        ).isTrue();
-        check(equality.isEqual(field.sub(value, addId), value)).isTrue();
+        ).isTrue;
+        check(equality.isEqual(field.sub(value, addId), value)).isTrue;
       }
     });
   });

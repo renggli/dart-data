@@ -16,10 +16,10 @@ void main() {
       test('attributes', () {
         check(type.bits).equals(bits);
         check(type.isSigned).equals(isSigned);
-        check(type.isInteger).isTrue();
-        check(type.isFloat).isFalse();
-        check(type.isNumeric).isTrue();
-        check(type.isNative).isTrue();
+        check(type.isInteger).isTrue;
+        check(type.isFloat).isFalse;
+        check(type.isNumeric).isTrue;
+        check(type.isNative).isTrue;
         check(type.defaultValue).equals(0);
         check(type.min).equals(min);
         check(type.max).equals(max);

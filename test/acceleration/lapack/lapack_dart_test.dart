@@ -10,13 +10,13 @@ void main() {
     test('dpotrf fails on non-positive-definite matrix', () {
       final a = Float64List.fromList([-1.0, 0.0, 0.0, 1.0]);
       check(LapackDart.dpotrf(uplo: cblasUpper, n: 2, a: a, aOffset: 0, lda: 2))
-          .isFalse();
+          .isFalse;
     });
 
     test('dpotrf lower triangular branch', () {
       final a = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
       check(LapackDart.dpotrf(uplo: cblasLower, n: 2, a: a, aOffset: 0, lda: 2))
-          .isTrue();
+          .isTrue;
       check(a[0]).isCloseTo(2.0, 1e-10);
       check(a[2]).isCloseTo(1.0, 1e-10);
       check(a[3]).isCloseTo(2.0, 1e-10);
@@ -36,7 +36,7 @@ void main() {
           bOffset: 0,
           ldb: 1,
         ),
-      ).isFalse();
+      ).isFalse;
     });
 
     test('dgels overdetermined system (m > n)', () {
@@ -54,7 +54,7 @@ void main() {
           bOffset: 0,
           ldb: 1,
         ),
-      ).isTrue();
+      ).isTrue;
       check(b[0]).isCloseTo(8.0, 1e-10);
       check(b[1]).isCloseTo(-3.0, 1e-10);
     });
@@ -75,7 +75,7 @@ void main() {
           bOffset: 0,
           ldb: 1,
         ),
-      ).isTrue();
+      ).isTrue;
       check(b[0]).isCloseTo(1.0 / 3.0, 1e-10);
       check(b[1]).isCloseTo(4.0 / 3.0, 1e-10);
       check(b[2]).isCloseTo(5.0 / 3.0, 1e-10);
@@ -95,7 +95,7 @@ void main() {
           w: w0,
           wOffset: 0,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         LapackDart.ssyev(
           jobz: 'V',
@@ -107,7 +107,7 @@ void main() {
           w: Float32List(0),
           wOffset: 0,
         ),
-      ).isTrue();
+      ).isTrue;
 
       final a = Float64List.fromList([42.0]);
       final w = Float64List(1);
@@ -122,7 +122,7 @@ void main() {
           w: w,
           wOffset: 0,
         ),
-      ).isTrue();
+      ).isTrue;
       check(w[0]).equals(42.0);
       check(a[0]).equals(1.0);
     });
@@ -141,7 +141,7 @@ void main() {
           aOffset: 0,
           lda: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(aUpper[0]).isCloseTo(2.0, 1e-10);
       check(aUpper[1]).isCloseTo(1.0, 1e-10);
       check(aUpper[3]).isCloseTo(2.0, 1e-10);
@@ -159,7 +159,7 @@ void main() {
           aOffset: 0,
           lda: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(aLower[0]).isCloseTo(2.0, 1e-10);
       check(aLower[2]).isCloseTo(1.0, 1e-10);
       check(aLower[3]).isCloseTo(2.0, 1e-10);
@@ -183,7 +183,7 @@ void main() {
           w: wUpper,
           wOffset: 0,
         ),
-      ).isTrue();
+      ).isTrue;
       check(wUpper[0]).isCloseTo(1.0, 1e-10);
       check(wUpper[1]).isCloseTo(3.0, 1e-10);
 
@@ -204,7 +204,7 @@ void main() {
           w: wLower,
           wOffset: 0,
         ),
-      ).isTrue();
+      ).isTrue;
       check(wLower[0]).isCloseTo(1.0, 1e-10);
       check(wLower[1]).isCloseTo(3.0, 1e-10);
     });
@@ -233,7 +233,7 @@ void main() {
             bOffset: 0,
             ldb: 2,
           ),
-        ).isTrue();
+        ).isTrue;
         check(b[0]).isCloseTo(2.0, 1e-10);
         check(b[2]).isCloseTo(3.0, 1e-10);
       },
@@ -260,7 +260,7 @@ void main() {
           u: u,
           vt: vt,
         ),
-      ).isFalse();
+      ).isFalse;
       check(
         LapackDart.dgesvd(
           jobu: 'A',
@@ -275,7 +275,7 @@ void main() {
           u: u,
           vt: vt,
         ),
-      ).isFalse();
+      ).isFalse;
       check(
         LapackDart.dgesvd(
           jobu: 'INVALID',
@@ -290,7 +290,7 @@ void main() {
           u: u,
           vt: vt,
         ),
-      ).isFalse();
+      ).isFalse;
       check(
         LapackDart.dgesvd(
           jobu: 'A',
@@ -305,7 +305,7 @@ void main() {
           u: u,
           vt: vt,
         ),
-      ).isFalse();
+      ).isFalse;
       check(
         LapackDart.dgesvd(
           jobu: 'A',
@@ -320,7 +320,7 @@ void main() {
           u: null,
           vt: vt,
         ),
-      ).isFalse();
+      ).isFalse;
       check(
         LapackDart.dgesvd(
           jobu: 'A',
@@ -335,7 +335,7 @@ void main() {
           u: u,
           vt: null,
         ),
-      ).isFalse();
+      ).isFalse;
 
       // m = 0 or n = 0
       check(
@@ -350,7 +350,7 @@ void main() {
           s: s,
           sOffset: 0,
         ),
-      ).isTrue();
+      ).isTrue;
 
       // Buffer bounds
       check(
@@ -365,7 +365,7 @@ void main() {
           s: s,
           sOffset: 0,
         ),
-      ).isFalse();
+      ).isFalse;
       check(
         LapackDart.dgesvd(
           jobu: 'N',
@@ -378,7 +378,7 @@ void main() {
           s: Float64List(1),
           sOffset: 0,
         ),
-      ).isFalse();
+      ).isFalse;
 
       // NaN in input
       final nanA = Float64List.fromList([double.nan, 1.0, 2.0, 3.0]);
@@ -394,7 +394,7 @@ void main() {
           s: s,
           sOffset: 0,
         ),
-      ).isFalse();
+      ).isFalse;
     });
 
     test('dgesvd wide matrix m < n with jobu A in pure Dart', () {
@@ -417,7 +417,7 @@ void main() {
         vt: vt,
         ldvt: 4,
       );
-      check(success).isTrue();
+      check(success).isTrue;
     });
 
     test('dgesvd all-zero matrix does not produce NaNs', () {
@@ -440,12 +440,12 @@ void main() {
         vt: vt,
         ldvt: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(s[0]).equals(0.0);
       check(s[1]).equals(0.0);
       for (var i = 0; i < 4; i++) {
-        check(u[i].isNaN).isFalse();
-        check(vt[i].isNaN).isFalse();
+        check(u[i].isNaN).isFalse;
+        check(vt[i].isNaN).isFalse;
       }
     });
   });

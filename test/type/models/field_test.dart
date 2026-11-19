@@ -19,7 +19,7 @@ void main() {
       check(field.norm(-4.5)).equals(4.5);
       check(field.sqrt(9.0)).equals(3.0);
       check(field.conjugate(4.5)).equals(4.5);
-      check(field.nan.isNaN).isTrue();
+      check(field.nan.isNaN).isTrue;
       check(field.infinity).equals(double.infinity);
       check(field.negativeInfinity).equals(double.negativeInfinity);
     });
@@ -49,7 +49,7 @@ void main() {
     test('Numeric and Quaternion field operations', () {
       final numField = DataType.numeric.field;
       check(numField).isA<ExtendedField<num>>();
-      check(numField.nan.isNaN).isTrue();
+      check(numField.nan.isNaN).isTrue;
       check(numField.infinity).equals(double.infinity);
       check(numField.negativeInfinity).equals(double.negativeInfinity);
       check(numField.abs(-5)).equals(5);
@@ -70,7 +70,7 @@ void main() {
 
     test('Complex, Fraction, and BigInt field limits', () {
       final complexField = DataType.complex.field;
-      check(complexField.nan.isNaN).isTrue();
+      check(complexField.nan.isNaN).isTrue;
       check(complexField.infinity.a).equals(double.infinity);
 
       final fracField = DataType.fraction.field;

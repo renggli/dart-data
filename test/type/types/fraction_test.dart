@@ -11,8 +11,8 @@ void main() {
     test('attributes', () {
       check(type.name).equals('fraction');
       check(type.defaultValue).equals(Fraction.zero);
-      check(type.isNullable).isFalse();
-      check(type.isNative).isFalse();
+      check(type.isNullable).isFalse;
+      check(type.isNative).isFalse;
       check(type.toString()).equals('DataType.fraction');
     });
 

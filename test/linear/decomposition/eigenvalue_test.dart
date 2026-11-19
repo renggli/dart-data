@@ -135,7 +135,7 @@ void main() {
 
       // 1. Check eigenvalue ordering: ascending
       for (var i = 0; i < vals.length - 1; i++) {
-        check(vals[i] <= vals[i + 1]).isTrue();
+        check(vals[i] <= vals[i + 1]).isTrue;
       }
 
       // 2. Check orthonormality: V^T * V = I
@@ -204,14 +204,13 @@ void main() {
         final nonFinite1 = Matrix<double>.fromRows([
           [val],
         ], type: DataType.float64);
-        check(nonFinite1.eigenvalue.realEigenvalues[0].isNaN).isTrue();
+        check(nonFinite1.eigenvalue.realEigenvalues[0].isNaN).isTrue;
 
         final nonFinite2 = Matrix<double>.fromRows([
           [val, 1.0],
           [1.0, 2.0],
         ], type: DataType.float64);
-        check(nonFinite2.eigenvalue.realEigenvalues.any((x) => x.isNaN))
-            .isTrue();
+        check(nonFinite2.eigenvalue.realEigenvalues.any((x) => x.isNaN)).isTrue;
       }
     });
 

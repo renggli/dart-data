@@ -19,12 +19,12 @@ void main() {
 
       check(series.name).equals('names');
       check(series.length).equals(5);
-      check(series.hasNulls).isTrue();
+      check(series.hasNulls).isTrue;
       check(series.nullCount).equals(1);
       check(series.dataType).equals(DataType.string);
 
       check(series[0]).equals('Alice');
-      check(series[1]).isNull();
+      check(series[1]).isNull;
       check(series[2]).equals('Bob');
       check(series[3]).equals('');
       check(series[4]).equals('Charlie 🚀');
@@ -38,13 +38,13 @@ void main() {
       check(utf8.decode(b0)).equals('Hello');
 
       final b1 = series.getBytes(1); // null
-      check(b1.isEmpty).isTrue();
+      check(b1.isEmpty).isTrue;
 
       final b2 = series.getBytes(2);
       check(utf8.decode(b2)).equals('World');
 
       final b3 = series.getBytes(3); // empty
-      check(b3.isEmpty).isTrue();
+      check(b3.isEmpty).isTrue;
 
       // Out of bounds throws RangeError
       check(() => series.getBytes(-1)).throws<RangeError>();
@@ -66,12 +66,12 @@ void main() {
 
       check(filtered.length).equals(3);
       check(filtered[0]).equals('Banana');
-      check(filtered[1]).isNull();
+      check(filtered[1]).isNull;
       check(filtered[2]).equals('Elderberry');
       check(filtered.nullCount).equals(1);
 
       check(utf8.decode(filtered.getBytes(0))).equals('Banana');
-      check(filtered.getBytes(1).isEmpty).isTrue();
+      check(filtered.getBytes(1).isEmpty).isTrue;
       check(utf8.decode(filtered.getBytes(2))).equals('Elderberry');
     });
 
@@ -87,7 +87,7 @@ void main() {
       final sliced = series.slice(1, 4) as ArrowStringSeries;
       check(sliced.length).equals(3);
       check(sliced[0]).equals('B');
-      check(sliced[1]).isNull();
+      check(sliced[1]).isNull;
       check(sliced[2]).equals('D');
 
       check(sliced.offsets[0]).equals(0);
@@ -95,14 +95,14 @@ void main() {
 
       // Slice without nulls normalizes mask to null
       final nonNullSlice = series.slice(0, 2) as ArrowStringSeries;
-      check(nonNullSlice.hasNulls).isFalse();
+      check(nonNullSlice.hasNulls).isFalse;
       check(nonNullSlice.nullCount).equals(0);
-      check(nonNullSlice.mask).isNull();
+      check(nonNullSlice.mask).isNull;
 
       // Empty slice
       final empty = series.slice(2, 2) as ArrowStringSeries;
       check(empty.length).equals(0);
-      check(empty.bytes.isEmpty).isTrue();
+      check(empty.bytes.isEmpty).isTrue;
     });
 
     test('sort orders lexicographically with nulls last', () {
@@ -153,19 +153,19 @@ void main() {
 
       check(series.min).equals('apple');
       check(series.max).equals('cherry');
-      check(series.sum).isNull();
-      check(series.mean).isNull();
+      check(series.sum).isNull;
+      check(series.mean).isNull;
 
       final emptySeries = ArrowStringSeries.fromList('empty', <String>[]);
-      check(emptySeries.min).isNull();
-      check(emptySeries.max).isNull();
+      check(emptySeries.min).isNull;
+      check(emptySeries.max).isNull;
 
       final allNullSeries = ArrowStringSeries.fromList('all_null', <String?>[
         null,
         null,
       ]);
-      check(allNullSeries.min).isNull();
-      check(allNullSeries.max).isNull();
+      check(allNullSeries.min).isNull;
+      check(allNullSeries.max).isNull;
     });
 
     test('permute subsets and reorders bytes and offsets', () {
@@ -179,8 +179,8 @@ void main() {
       check(permuted.length).equals(4);
       check(permuted.toList()).deepEquals(['gamma', 'beta', null, 'alpha']);
       check(permuted.nullCount).equals(1);
-      check(permuted.isNull(2)).isTrue();
-      check(permuted.isNull(0)).isFalse();
+      check(permuted.isNull(2)).isTrue;
+      check(permuted.isNull(0)).isFalse;
     });
 
     test('concat joins raw byte buffers and validity masks', () {
@@ -197,8 +197,8 @@ void main() {
       final nonNull1 = ArrowStringSeries.fromList('b', ['x', 'y']);
       final nonNull2 = ArrowStringSeries.fromList('b', ['z']);
       final nonNullConcat = nonNull1.concat(nonNull2) as ArrowStringSeries;
-      check(nonNullConcat.hasNulls).isFalse();
-      check(nonNullConcat.mask).isNull();
+      check(nonNullConcat.hasNulls).isFalse;
+      check(nonNullConcat.mask).isNull;
       check(nonNullConcat.toList()).deepEquals(['x', 'y', 'z']);
 
       // Concat with incompatible series falls back to ObjectSeries

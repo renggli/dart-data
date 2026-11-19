@@ -11,7 +11,7 @@ void main() {
     accelerationTest('dpotrf Cholesky factorization', () {
       final a = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
       final ok = Lapack.dpotrf(n: 2, a: a, lda: 2);
-      check(ok).isTrue();
+      check(ok).isTrue;
       // L = [[2, 0], [1, 2]]
       check(a[0]).isCloseTo(2.0, 1e-10);
       check(a[1]).isCloseTo(1.0, 1e-10);
@@ -23,7 +23,7 @@ void main() {
       () {
         final a = Float64List.fromList([4.0, 6.0, 6.0, 5.0]);
         final ok = Lapack.dpotrf(n: 2, a: a, lda: 2);
-        check(ok).isFalse();
+        check(ok).isFalse;
       },
     );
 
@@ -31,7 +31,7 @@ void main() {
       final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
       final b = Float64List.fromList([5.0, 5.0]);
       final ok = Lapack.dgesv(n: 2, nrhs: 1, a: a, lda: 2, b: b, ldb: 1);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(b[0]).isCloseTo(2.0, 1e-10);
       check(b[1]).isCloseTo(1.0, 1e-10);
     });
@@ -42,7 +42,7 @@ void main() {
         final a = Float64List.fromList([1.0, 2.0, 2.0, 4.0]);
         final b = Float64List.fromList([1.0, 2.0]);
         final ok = Lapack.dgesv(n: 2, nrhs: 1, a: a, lda: 2, b: b, ldb: 1);
-        check(ok).isFalse();
+        check(ok).isFalse;
       },
     );
 
@@ -59,7 +59,7 @@ void main() {
         3.0, 1.0, // row 2: RHS1=3, RHS2=1
       ]);
       final ok = Lapack.dgels(m: 3, n: 2, nrhs: 2, a: a, lda: 3, b: b, ldb: 2);
-      check(ok).isTrue();
+      check(ok).isTrue;
       // RHS 1 solution is [0, 1], RHS 2 solution is [1, 0]
       check(b[0 * 2 + 0]).isCloseTo(0.0, 1e-9);
       check(b[0 * 2 + 1]).isCloseTo(1.0, 1e-9);
@@ -72,7 +72,7 @@ void main() {
       final a = Float64List.fromList(a0);
       final w = Float64List(3);
       final ok = Lapack.dsyev(n: 3, a: a, lda: 3, w: w);
-      check(ok).isTrue();
+      check(ok).isTrue;
       // Eigenvalues of tridiagonal [[2,1,0],[1,3,1],[0,1,2]] are 1, 2, 4
       check(w[0]).isCloseTo(1.0, 1e-9);
       check(w[1]).isCloseTo(2.0, 1e-9);
@@ -97,7 +97,7 @@ void main() {
       final a = Float32List.fromList(a0);
       final w = Float32List(2);
       final ok = Lapack.ssyev(n: 2, a: a, lda: 2, w: w);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(w[0]).isCloseTo(1.0, 1e-5);
       check(w[1]).isCloseTo(3.0, 1e-5);
 
@@ -136,7 +136,7 @@ void main() {
         vt: vt,
         ldvt: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
 
       // Singular values descending
       check(s[0]).isGreaterThan(s[1]);
@@ -191,7 +191,7 @@ void main() {
         lda: 2,
         s: s,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(s[0]).isCloseTo(9.525518, 1e-4);
       check(s[1]).isCloseTo(0.514300, 1e-4);
     });
@@ -214,7 +214,7 @@ void main() {
         vt: vt,
         ldvt: 3,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
 
       // Verify A = U * S * VT
       for (var r = 0; r < 2; r++) {
@@ -231,9 +231,9 @@ void main() {
     accelerationTest('Lapack routines handle n = 0 without error', () {
       final empty64 = Float64List(0);
       final empty32 = Float32List(0);
-      check(Lapack.dpotrf(n: 0, a: empty64, lda: 1)).isTrue();
+      check(Lapack.dpotrf(n: 0, a: empty64, lda: 1)).isTrue;
       check(Lapack.dgesv(n: 0, nrhs: 0, a: empty64, lda: 1, b: empty64, ldb: 1))
-          .isTrue();
+          .isTrue;
       check(
         Lapack.dgels(
           m: 0,
@@ -244,9 +244,9 @@ void main() {
           b: empty64,
           ldb: 1,
         ),
-      ).isTrue();
-      check(Lapack.dsyev(n: 0, a: empty64, lda: 1, w: empty64)).isTrue();
-      check(Lapack.ssyev(n: 0, a: empty32, lda: 1, w: empty32)).isTrue();
+      ).isTrue;
+      check(Lapack.dsyev(n: 0, a: empty64, lda: 1, w: empty64)).isTrue;
+      check(Lapack.ssyev(n: 0, a: empty32, lda: 1, w: empty32)).isTrue;
       check(
         Lapack.dgesvd(
           m: 0,
@@ -257,7 +257,7 @@ void main() {
           jobu: 'N',
           jobvt: 'N',
         ),
-      ).isTrue();
+      ).isTrue;
     });
 
     accelerationTest('dgesvd does not mutate input matrix a', () {
@@ -273,7 +273,7 @@ void main() {
         lda: 2,
         s: s,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(a).deepEquals(aExpected);
     });
 
@@ -282,47 +282,46 @@ void main() {
       final aExpected = Float64List.fromList(a);
       final b = Float64List.fromList([1.0, 2.0, 3.0]);
       final ok = Lapack.dgels(m: 3, n: 2, nrhs: 1, a: a, lda: 2, b: b, ldb: 1);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(a).deepEquals(aExpected);
     });
 
     accelerationTest('Lapack returns false on NaN inputs', () {
       final nanMat1 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
-      check(Lapack.dpotrf(uplo: cblasUpper, n: 2, a: nanMat1, lda: 2))
-          .isFalse();
+      check(Lapack.dpotrf(uplo: cblasUpper, n: 2, a: nanMat1, lda: 2)).isFalse;
       final nanMat2 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
       final b1 = Float64List.fromList([1.0, 1.0]);
       check(Lapack.dgesv(n: 2, nrhs: 1, a: nanMat2, lda: 2, b: b1, ldb: 1))
-          .isFalse();
+          .isFalse;
       final validA1 = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
       final nanB1 = Float64List.fromList([double.nan, 1.0]);
       check(Lapack.dgesv(n: 2, nrhs: 1, a: validA1, lda: 2, b: nanB1, ldb: 1))
-          .isFalse();
+          .isFalse;
       final nanMat3 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
       final b2 = Float64List.fromList([1.0, 1.0]);
       check(
         Lapack.dgels(m: 2, n: 2, nrhs: 1, a: nanMat3, lda: 2, b: b2, ldb: 1),
-      ).isFalse();
+      ).isFalse;
       final validA2 = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
       final nanB2 = Float64List.fromList([double.nan, 1.0]);
       check(
         Lapack.dgels(m: 2, n: 2, nrhs: 1, a: validA2, lda: 2, b: nanB2, ldb: 1),
-      ).isFalse();
+      ).isFalse;
 
       final nanSym1 = Float64List.fromList([double.nan]);
       final w1 = Float64List(1);
-      check(Lapack.dsyev(n: 1, a: nanSym1, lda: 1, w: w1)).isFalse();
+      check(Lapack.dsyev(n: 1, a: nanSym1, lda: 1, w: w1)).isFalse;
 
       final nanSym2 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
       final w2 = Float64List(2);
-      check(Lapack.dsyev(n: 2, a: nanSym2, lda: 2, w: w2)).isFalse();
+      check(Lapack.dsyev(n: 2, a: nanSym2, lda: 2, w: w2)).isFalse;
 
       final infSym2 = Float64List.fromList([double.infinity, 1.0, 1.0, 2.0]);
-      check(Lapack.dsyev(n: 2, a: infSym2, lda: 2, w: w2)).isFalse();
+      check(Lapack.dsyev(n: 2, a: infSym2, lda: 2, w: w2)).isFalse;
 
       final nanSym32 = Float32List.fromList([double.nan, 0.0, 0.0, 1.0]);
       final w2f = Float32List(2);
-      check(Lapack.ssyev(n: 2, a: nanSym32, lda: 2, w: w2f)).isFalse();
+      check(Lapack.ssyev(n: 2, a: nanSym32, lda: 2, w: w2f)).isFalse;
 
       final nanSvd = Float64List.fromList([double.nan, 1.0, 2.0, 3.0]);
       final sSvd = Float64List(2);
@@ -336,7 +335,7 @@ void main() {
           jobu: 'N',
           jobvt: 'N',
         ),
-      ).isFalse();
+      ).isFalse;
     });
 
     test('Lapack routines validate bounds and argument constraints', () {

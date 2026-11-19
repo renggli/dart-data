@@ -33,9 +33,9 @@ void main() {
     test(
       'handles out-of-range, general constants, and composite arguments',
       () {
-        check(Expr.parse('sin(x) - 2').solve('x')).isEmpty();
-        check(Expr.parse('sin(x) + 2').solve('x')).isEmpty();
-        check((Sin(const Variable('x')) - Constant.pi).solve('x')).isEmpty();
+        check(Expr.parse('sin(x) - 2').solve('x')).isEmpty;
+        check(Expr.parse('sin(x) + 2').solve('x')).isEmpty;
+        check((Sin(const Variable('x')) - Constant.pi).solve('x')).isEmpty;
 
         final gen = Expr.parse('sin(x) - 1/3').solve('x');
         check(gen.length).equals(2);
@@ -87,8 +87,8 @@ void main() {
     test(
       'handles out-of-range, general constants, and composite arguments',
       () {
-        check(Expr.parse('cos(x) - 2').solve('x')).isEmpty();
-        check(Expr.parse('cos(x) + 1.5').solve('x')).isEmpty();
+        check(Expr.parse('cos(x) - 2').solve('x')).isEmpty;
+        check(Expr.parse('cos(x) + 1.5').solve('x')).isEmpty;
 
         final gen = Expr.parse('cos(x) - 1/3').solve('x');
         check(gen.length).equals(2);

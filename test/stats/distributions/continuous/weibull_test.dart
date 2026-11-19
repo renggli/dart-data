@@ -57,11 +57,11 @@ void main() {
       () {
         final distShape15 = WeibullDistribution(1.5, 1.0);
         final pTail = distShape15.probability(1e200);
-        check(pTail.isNaN).isFalse();
+        check(pTail.isNaN).isFalse;
         check(pTail).equals(0.0);
         final logPTail = distShape15.logProbability(1e200);
-        check(logPTail.isNaN).isFalse();
-        check(logPTail.isNegative).isTrue();
+        check(logPTail.isNaN).isFalse;
+        check(logPTail.isNegative).isTrue;
       },
     );
   });
@@ -71,7 +71,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0.0)).isTrue();
+      check(samples.every((sample) => sample >= 0.0)).isTrue;
     });
 
     test('fit', () {
@@ -92,7 +92,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == WeibullDistribution(1.0, 1.0)).isTrue();
+      check(dist == WeibullDistribution(1.0, 1.0)).isTrue;
       check(dist.hashCode).equals(WeibullDistribution(1.0, 1.0).hashCode);
     });
 

@@ -64,10 +64,10 @@ void main() {
     });
 
     test('returns null on failure', () {
-      check(Expr.tryWrap(null)).isNull();
-      check(Expr.tryWrap(Object())).isNull();
-      check(Expr.tryWrap([1, 2, 3])).isNull();
-      check(Expr.tryWrap('invalid ???')).isNull();
+      check(Expr.tryWrap(null)).isNull;
+      check(Expr.tryWrap(Object())).isNull;
+      check(Expr.tryWrap([1, 2, 3])).isNull;
+      check(Expr.tryWrap('invalid ???')).isNull;
     });
   });
 
@@ -75,7 +75,7 @@ void main() {
     test('parse and tryParse with standard and custom syntax', () {
       check(Expr.parse('x + 1')).equals(const Variable('x') + 1);
       check(Expr.tryParse('x + 1')).equals(const Variable('x') + 1);
-      check(Expr.tryParse('invalid ???')).isNull();
+      check(Expr.tryParse('invalid ???')).isNull;
 
       final syntax = ExprSyntax(constants: {'k': IntegerNumber.of(7)});
       check(Expr.parse('k', syntax: syntax)).equals(IntegerNumber.of(7));
@@ -191,17 +191,17 @@ void main() {
 
     test('isReal detects complex literals in AST subtrees', () {
       const x = Variable('x');
-      check((x + IntegerNumber.two).isReal).isTrue();
-      check((x + ComplexNumber.i).isReal).isFalse();
-      check(Sin(ComplexNumber.i).isReal).isFalse();
-      check(Asin(Constant.pi).isReal).isFalse();
-      check(Acos(Constant.pi).isReal).isFalse();
-      check(Atanh(Constant.e).isReal).isFalse();
-      check(Acosh(IntegerNumber.zero).isReal).isFalse();
-      check(LambertW(IntegerNumber.of(-1)).isReal).isFalse();
-      check(LambertW(IntegerNumber.one, branch: -1).isReal).isFalse();
-      check(LambertW(IntegerNumber.one).isReal).isTrue();
-      check(Ln(IntegerNumber.of(-2)).isReal).isFalse();
+      check((x + IntegerNumber.two).isReal).isTrue;
+      check((x + ComplexNumber.i).isReal).isFalse;
+      check(Sin(ComplexNumber.i).isReal).isFalse;
+      check(Asin(Constant.pi).isReal).isFalse;
+      check(Acos(Constant.pi).isReal).isFalse;
+      check(Atanh(Constant.e).isReal).isFalse;
+      check(Acosh(IntegerNumber.zero).isReal).isFalse;
+      check(LambertW(IntegerNumber.of(-1)).isReal).isFalse;
+      check(LambertW(IntegerNumber.one, branch: -1).isReal).isFalse;
+      check(LambertW(IntegerNumber.one).isReal).isTrue;
+      check(Ln(IntegerNumber.of(-2)).isReal).isFalse;
     });
   });
 }

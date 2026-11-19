@@ -9,7 +9,7 @@ void main() {
       'supports arithmetic, divisibility, lcm, gcd, coprime, and purePower',
       () {
         final z = Monomial.zero(3);
-        check(z.isZero).isTrue();
+        check(z.isZero).isTrue;
         check(z.length).equals(3);
         check(z[0]).equals(0);
 
@@ -18,19 +18,19 @@ void main() {
         final m3 = Monomial([0, 0, 2]);
 
         check(m1 * m2).equals(Monomial([3, 4, 0]));
-        check(Monomial([1, 1, 0]).divides(m1)).isTrue();
-        check(m2.divides(m1)).isFalse();
+        check(Monomial([1, 1, 0]).divides(m1)).isTrue;
+        check(m2.divides(m1)).isFalse;
         check(m1.divide(Monomial([1, 1, 0]))).equals(Monomial([1, 0, 0]));
         check(() => m1.divide(m2)).throws<ArgumentError>();
 
         check(m1.lcm(m2)).equals(Monomial([2, 3, 0]));
         check(m1.gcd(m2)).equals(Monomial([1, 1, 0]));
-        check(m1.isCoprime(m2)).isFalse();
-        check(m1.isCoprime(m3)).isTrue();
+        check(m1.isCoprime(m2)).isFalse;
+        check(m1.isCoprime(m3)).isTrue;
 
-        check(m3.isPurePower(2)).isTrue();
-        check(m3.isPurePower(0)).isFalse();
-        check(m1.isPurePower(0)).isFalse();
+        check(m3.isPurePower(2)).isTrue;
+        check(m3.isPurePower(0)).isFalse;
+        check(m1.isPurePower(0)).isFalse;
 
         check(m1.hashCode).equals(Monomial([2, 1, 0]).hashCode);
         check(m1.toString()).equals('Monomial[2, 1, 0]');
@@ -60,7 +60,7 @@ void main() {
       () {
         final vars = ['x', 'y'];
         final zero = MultivariatePolynomial.zero(vars);
-        check(zero.isZero).isTrue();
+        check(zero.isZero).isTrue;
         check(zero.length).equals(2);
         check(zero.totalDegree).equals(0);
         check(zero.leadingMonomial()).equals(Monomial.zero(2));
@@ -123,8 +123,8 @@ void main() {
         );
         check(p).equals(pCopy);
         check(p.hashCode).equals(pCopy.hashCode);
-        check(p == q).isFalse();
-        check(p.toString()).isNotEmpty();
+        check(p == q).isFalse;
+        check(p.toString()).isNotEmpty;
       },
     );
 
@@ -135,7 +135,7 @@ void main() {
         Add([const Variable('x'), -const Variable('x')]),
         vars,
       );
-      check(cancelled.isZero).isTrue();
+      check(cancelled.isZero).isTrue;
 
       // Single constant term toExpr
       final constPoly = MultivariatePolynomial.fromExpr(

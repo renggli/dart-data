@@ -49,14 +49,14 @@ void main() {
         ).equals('sqrt(z ^ 2)');
 
         // Chained assumptions via copyWith overriding parent defaultDomain
-        check(Assumptions.none.isEmpty).isTrue();
-        check(Assumptions.complex.isEmpty).isFalse();
+        check(Assumptions.none.isEmpty).isTrue;
+        check(Assumptions.complex.isEmpty).isFalse;
         check(Conjugate(z).simplify(assumptions: Assumptions.complex))
             .equals(Conjugate(z, isSimplified: true));
         final chained = Assumptions.complex.copyWith(
           domains: {'z': VariableDomain.real},
         );
-        check(chained.isEmpty).isFalse();
+        check(chained.isEmpty).isFalse;
         check(chained.domainOf('z')).equals(VariableDomain.real);
 
         // copyWith merges domains while preserving existing ones
@@ -117,7 +117,7 @@ void main() {
           .deepEquals([IntegerNumber.two]);
 
       final eq2 = Expr.parse('x^2 + 1');
-      check(eq2.solve('x', assumptions: Assumptions.real)).isEmpty();
+      check(eq2.solve('x', assumptions: Assumptions.real)).isEmpty;
 
       final eq3 = Expr.parse('(2 * x - 1) * (x - 3)');
       check(
@@ -141,7 +141,7 @@ void main() {
       );
       check(a1).equals(a2);
       check(a1.hashCode).equals(a2.hashCode);
-      check(a1 == a3).isFalse();
+      check(a1 == a3).isFalse;
     });
   });
 }

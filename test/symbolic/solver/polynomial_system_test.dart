@@ -73,15 +73,15 @@ void main() {
 
   group('Multivariate polynomial system edge cases', () {
     test('handles empty, inconsistent, and invalid method arguments', () {
-      check(<Expr>[].solve(['x'])).isEmpty();
-      check([Expr.parse('x - 1')].solve([])).isEmpty();
+      check(<Expr>[].solve(['x'])).isEmpty;
+      check([Expr.parse('x - 1')].solve([])).isEmpty;
 
       // Inconsistent 2x2 system
       final inc = [
         Expr.parse('x + y - 1'),
         Expr.parse('x + y - 2'),
       ].solve(['x', 'y']);
-      check(inc).isEmpty();
+      check(inc).isEmpty;
 
       // Resultant method requires exactly 2 equations and 2 variables
       check(
@@ -95,7 +95,7 @@ void main() {
         Expr.parse('x + y - 1'),
         Expr.parse('2*x + 2*y - 2'),
       ].solve(['x', 'y'], method: PolynomialSystemMethod.groebner);
-      check(posDim).isEmpty();
+      check(posDim).isEmpty;
     });
 
     test('preserves radical roots during back-substitution verification', () {

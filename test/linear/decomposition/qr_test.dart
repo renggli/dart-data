@@ -5,8 +5,8 @@ import 'package:test/test.dart';
 
 extension on Subject<Complex> {
   void isCloseTo(Complex other, double delta) {
-    has((c) => c.a, 'real').isCloseTo(other.a, delta);
-    has((c) => c.b, 'imaginary').isCloseTo(other.b, delta);
+    has('real', (c) => c.a).isCloseTo(other.a, delta);
+    has('imaginary', (c) => c.b).isCloseTo(other.b, delta);
   }
 }
 
@@ -20,7 +20,7 @@ void main() {
       ], type: DataType.float64);
 
       final qr = a.qr;
-      check(qr.isFullRank).isTrue();
+      check(qr.isFullRank).isTrue;
 
       final qMat = qr.q;
       final rMat = qr.r;
@@ -133,7 +133,7 @@ void main() {
         [2.0, 4.0],
       ], type: DataType.float64);
       final qr = a.qr;
-      check(qr.isFullRank).isFalse();
+      check(qr.isFullRank).isFalse;
       final b = Vector<double>.fromList([1.0, 2.0]);
       check(() => qr.solveVector(b)).throws<StateError>();
       check(() => qr.solve(Matrix<double>.identity(2, type: DataType.float64)))
@@ -159,7 +159,7 @@ void main() {
         (r, c) => base.get(r, c) * 1e-15,
         type: DataType.float64,
       );
-      check(small.qr.isFullRank).isTrue();
+      check(small.qr.isFullRank).isTrue;
 
       final large = Matrix<double>.generate(
         2,
@@ -167,19 +167,19 @@ void main() {
         (r, c) => base.get(r, c) * 1e15,
         type: DataType.float64,
       );
-      check(large.qr.isFullRank).isTrue();
+      check(large.qr.isFullRank).isTrue;
 
       final smallRankDef = Matrix<double>.fromRows([
         [1e-15, 2e-15],
         [2e-15, 4e-15],
       ], type: DataType.float64);
-      check(smallRankDef.qr.isFullRank).isFalse();
+      check(smallRankDef.qr.isFullRank).isFalse;
 
       final largeRankDef = Matrix<double>.fromRows([
         [1e15, 2e15],
         [2e15, 4e15],
       ], type: DataType.float64);
-      check(largeRankDef.qr.isFullRank).isFalse();
+      check(largeRankDef.qr.isFullRank).isFalse;
     });
   });
 
@@ -204,7 +204,7 @@ void main() {
       ], type: DataType.complex);
 
       final qr = a.qr;
-      check(qr.isFullRank).isTrue();
+      check(qr.isFullRank).isTrue;
 
       final q = qr.q;
       final r = qr.r;
@@ -251,7 +251,7 @@ void main() {
       ], type: DataType.complex);
 
       final qr = a.qr;
-      check(qr.isFullRank).isTrue();
+      check(qr.isFullRank).isTrue;
 
       final q = qr.q;
       final r = qr.r;
@@ -289,7 +289,7 @@ void main() {
         [const Complex(2.0, 2.0), const Complex(4.0, 4.0)],
       ], type: DataType.complex);
       final qr = a.qr;
-      check(qr.isFullRank).isFalse();
+      check(qr.isFullRank).isFalse;
       final b = Vector<Complex>.fromList([
         const Complex(1.0, 0.0),
         const Complex(2.0, 0.0),
@@ -303,14 +303,14 @@ void main() {
         [const Complex(1e200, 0.0), const Complex(1e200, 0.0)],
       ], type: DataType.complex);
       final qr = a.qr;
-      check(qr.isFullRank).isTrue();
+      check(qr.isFullRank).isTrue;
 
       final q = qr.q;
       final r = qr.r;
-      check(q.get(0, 0).a.isNaN).isFalse();
-      check(q.get(0, 0).b.isNaN).isFalse();
-      check(r.get(0, 0).a.isNaN).isFalse();
-      check(r.get(0, 0).b.isNaN).isFalse();
+      check(q.get(0, 0).a.isNaN).isFalse;
+      check(q.get(0, 0).b.isNaN).isFalse;
+      check(r.get(0, 0).a.isNaN).isFalse;
+      check(r.get(0, 0).b.isNaN).isFalse;
 
       // Q must be unitary: Q^H * Q == I
       final qHq = q.conjugateTranspose * q;
@@ -327,13 +327,13 @@ void main() {
         [double.nan, 1.0],
         [0.0, 1.0],
       ]);
-      check(nanMat.qr.isFullRank).isFalse();
+      check(nanMat.qr.isFullRank).isFalse;
 
       final infMat = Matrix<double>.fromRows([
         [double.infinity, 1.0],
         [double.infinity, 2.0],
       ]);
-      check(infMat.qr.isFullRank).isFalse();
+      check(infMat.qr.isFullRank).isFalse;
     });
   });
 }

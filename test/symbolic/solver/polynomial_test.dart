@@ -9,9 +9,9 @@ void main() {
     test(
       'matchQuadratic identifies degree-2 polynomials and rejects others',
       () {
-        check(matchQuadratic(Expr.parse('sin(x)'), 'x')).isNull();
-        check(matchQuadratic(Expr.parse('x^3 + x^2 - 1'), 'x')).isNull();
-        check(matchQuadratic(Expr.parse('2*x + 1'), 'x')).isNull();
+        check(matchQuadratic(Expr.parse('sin(x)'), 'x')).isNull;
+        check(matchQuadratic(Expr.parse('x^3 + x^2 - 1'), 'x')).isNull;
+        check(matchQuadratic(Expr.parse('2*x + 1'), 'x')).isNull;
 
         final m = matchQuadratic(Expr.parse('3*x^2 - 4*x + 5'), 'x');
         check(m).isNotNull();
@@ -104,9 +104,9 @@ void main() {
     test(
       'matchBiquadratic and solveBiquadratic handle variable collisions',
       () {
-        check(matchBiquadratic(Expr.parse('sin(x)'), 'x')).isNull();
-        check(matchBiquadratic(Expr.parse('x^4 + x^3 - 1'), 'x')).isNull();
-        check(matchBiquadratic(Expr.parse('x^2 - 1'), 'x')).isNull();
+        check(matchBiquadratic(Expr.parse('sin(x)'), 'x')).isNull;
+        check(matchBiquadratic(Expr.parse('x^4 + x^3 - 1'), 'x')).isNull;
+        check(matchBiquadratic(Expr.parse('x^2 - 1'), 'x')).isNull;
 
         final bq = matchBiquadratic(Expr.parse('2*x^4 - 10*x^2 + 8'), 'x');
         check(bq).isNotNull();
@@ -140,7 +140,7 @@ void main() {
       check(extractPolynomialCoefficients(IntegerNumber.of(7), 'x'))
           .isNotNull()
           .deepEquals({0: IntegerNumber.of(7)});
-      check(extractPolynomialCoefficients(Expr.parse('1 / x'), 'x')).isNull();
+      check(extractPolynomialCoefficients(Expr.parse('1 / x'), 'x')).isNull;
     });
 
     test('sqrtConstant and rootConstant cover all cases', () {

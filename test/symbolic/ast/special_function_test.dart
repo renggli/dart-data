@@ -146,7 +146,7 @@ void main() {
           .equals(Binomial(IntegerNumber.two, y));
       check(Binomial(x, y).mapChildren((e) => e == x ? IntegerNumber.two : e))
           .equals(Binomial(IntegerNumber.two, y));
-      check(Binomial(x, y).evaluate({'x': double.nan, 'y': 2.0})).isNaN();
+      check(Binomial(x, y).evaluate({'x': double.nan, 'y': 2.0})).isNaN;
       check(Binomial(x, y).evaluate({'x': 5.0, 'y': -1.0})).equals(0.0);
       check(Binomial(x, y).evaluate({'x': 3.0, 'y': 5.0})).equals(0.0);
 
@@ -159,7 +159,7 @@ void main() {
           ]) {
         final node = build(x);
         check(node.evaluate({'x': val})).equals(expected);
-        check(node.evaluate({'x': double.nan})).isNaN();
+        check(node.evaluate({'x': double.nan})).isNaN;
         check(node.substitute('x', y)).equals(build(y));
         check(node.mapChildren((_) => y)).equals(build(y));
       }
@@ -167,7 +167,7 @@ void main() {
       check(Sign(x).evaluate({'x': 2.5})).equals(1.0);
 
       check(Mod(x, y).evaluate({'x': 17.0, 'y': 5.0})).equals(2.0);
-      check(Mod(x, y).evaluate({'x': 17.0, 'y': 0.0})).isNaN();
+      check(Mod(x, y).evaluate({'x': 17.0, 'y': 0.0})).isNaN;
       check(Mod(x, y).substitute('x', IntegerNumber.two))
           .equals(Mod(IntegerNumber.two, y));
       check(Mod(x, y).mapChildren((e) => e == x ? IntegerNumber.two : e))

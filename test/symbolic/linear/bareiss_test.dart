@@ -165,7 +165,7 @@ void main() {
       check(engine.solve(a, b)!.format()).equals('[2, 1]');
 
       final singular = syntax.parseMatrix('[[1, 2], [2, 4]]');
-      check(engine.solve(singular, b)).isNull();
+      check(engine.solve(singular, b)).isNull;
       check(() => engine.solve(a, syntax.parseVector('[1, 2, 3]')))
           .throws<ArgumentError>();
       check(() => engine.solve(a, syntax.parseMatrix('[[1], [2], [3]]')))

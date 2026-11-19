@@ -15,10 +15,10 @@ void main() {
       check(p!.degree).equals(2);
 
       // Non-polynomial or multivariate expressions return null
-      check(extractPoly(Expr.parse('1.5 * x + 1'), 'x')).isNull();
-      check(extractPoly(Expr.parse('x^(-1) + 1'), 'x')).isNull();
-      check(extractPoly(Expr.parse('x + y'), 'x')).isNull();
-      check(extractPoly(Expr.parse('sin(x) + 1'), 'x')).isNull();
+      check(extractPoly(Expr.parse('1.5 * x + 1'), 'x')).isNull;
+      check(extractPoly(Expr.parse('x^(-1) + 1'), 'x')).isNull;
+      check(extractPoly(Expr.parse('x + y'), 'x')).isNull;
+      check(extractPoly(Expr.parse('sin(x) + 1'), 'x')).isNull;
     });
   });
 
@@ -95,11 +95,11 @@ void main() {
       check(const Integer(12).gcd(const Integer(18))).equals(const Integer(6));
       check(Integer.zero.lcm(const Integer(5))).equals(Integer.zero);
       check(const Integer(4).lcm(const Integer(6))).equals(const Integer(12));
-      check(const Integer(-4).isqrt()).isNull();
+      check(const Integer(-4).isqrt()).isNull;
       check(Integer.zero.isqrt()).equals(Integer.zero);
       check(const Integer(16).isqrt()).equals(const Integer(4));
-      check(const Integer(15).isqrt()).isNull();
-      check(divisors(Integer.zero)).isEmpty();
+      check(const Integer(15).isqrt()).isNull;
+      check(divisors(Integer.zero)).isEmpty;
       check(divisors(const Integer(12))).deepEquals([
         const Integer(1),
         const Integer(2),

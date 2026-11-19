@@ -140,7 +140,7 @@ void main() {
         Tensor<double>.fromIterable([11.0, 11.0, 4.0]).flip(),
       );
 
-      check(diag.tensor.isContiguous).isFalse();
+      check(diag.tensor.isContiguous).isFalse;
 
       final x = solveTridiagonal(sub, diag, sup, rhs);
       check(x[0]).isCloseTo(18.0 / 17.0, 1e-12);
@@ -253,7 +253,7 @@ void main() {
         Tensor<double>.fromIterable([3.0, 2.0, 1.0]).flip(),
       );
 
-      check(diag.tensor.isContiguous).isFalse();
+      check(diag.tensor.isContiguous).isFalse;
       check(() => solveTridiagonal(sub, diag, sup, rhs)).throws<StateError>();
     });
   });

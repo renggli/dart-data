@@ -22,37 +22,37 @@ void main() {
       for (final nt in nativeTypes) {
         check(nt.bytesPerElement).isGreaterThan(0);
         check(nt.bits).isGreaterThan(0);
-        check(nt.isNative).isTrue();
+        check(nt.isNative).isTrue;
       }
 
-      check(DataType.float32.isFloat).isTrue();
-      check(DataType.float64.isFloat).isTrue();
-      check(DataType.int32.isFloat).isFalse();
+      check(DataType.float32.isFloat).isTrue;
+      check(DataType.float64.isFloat).isTrue;
+      check(DataType.int32.isFloat).isFalse;
 
-      check(DataType.int8.isInteger).isTrue();
-      check(DataType.uint8.isInteger).isTrue();
-      check(DataType.int16.isInteger).isTrue();
-      check(DataType.uint16.isInteger).isTrue();
-      check(DataType.int32.isInteger).isTrue();
-      check(DataType.uint32.isInteger).isTrue();
-      check(DataType.int64.isInteger).isTrue();
-      check(DataType.uint64.isInteger).isTrue();
-      check(DataType.float64.isInteger).isFalse();
+      check(DataType.int8.isInteger).isTrue;
+      check(DataType.uint8.isInteger).isTrue;
+      check(DataType.int16.isInteger).isTrue;
+      check(DataType.uint16.isInteger).isTrue;
+      check(DataType.int32.isInteger).isTrue;
+      check(DataType.uint32.isInteger).isTrue;
+      check(DataType.int64.isInteger).isTrue;
+      check(DataType.uint64.isInteger).isTrue;
+      check(DataType.float64.isInteger).isFalse;
 
-      check(DataType.float32.isNumeric).isTrue();
-      check(DataType.int32.isNumeric).isTrue();
+      check(DataType.float32.isNumeric).isTrue;
+      check(DataType.int32.isNumeric).isTrue;
 
-      check(DataType.int8.isSigned).isTrue();
-      check(DataType.int16.isSigned).isTrue();
-      check(DataType.int32.isSigned).isTrue();
-      check(DataType.int64.isSigned).isTrue();
-      check(DataType.float32.isSigned).isTrue();
-      check(DataType.float64.isSigned).isTrue();
+      check(DataType.int8.isSigned).isTrue;
+      check(DataType.int16.isSigned).isTrue;
+      check(DataType.int32.isSigned).isTrue;
+      check(DataType.int64.isSigned).isTrue;
+      check(DataType.float32.isSigned).isTrue;
+      check(DataType.float64.isSigned).isTrue;
 
-      check(DataType.uint8.isSigned).isFalse();
-      check(DataType.uint16.isSigned).isFalse();
-      check(DataType.uint32.isSigned).isFalse();
-      check(DataType.uint64.isSigned).isFalse();
+      check(DataType.uint8.isSigned).isFalse;
+      check(DataType.uint16.isSigned).isFalse;
+      check(DataType.uint32.isSigned).isFalse;
+      check(DataType.uint64.isSigned).isFalse;
 
       check(DataType.int8.bytesPerElement).equals(1);
       check(DataType.int16.bytesPerElement).equals(2);
@@ -61,9 +61,9 @@ void main() {
       check(DataType.float32.bytesPerElement).equals(4);
       check(DataType.float64.bytesPerElement).equals(8);
 
-      check(DataType.boolean.isNative).isFalse();
-      check(DataType.string.isNative).isFalse();
-      check(DataType.object.isNative).isFalse();
+      check(DataType.boolean.isNative).isFalse;
+      check(DataType.string.isNative).isFalse;
+      check(DataType.object.isNative).isFalse;
     });
   });
 
@@ -153,24 +153,24 @@ void main() {
     });
 
     test('NullableDataType metadata delegation and equality', () {
-      check(DataType.int32.nullable.isInteger).isTrue();
-      check(DataType.float64.nullable.isNumeric).isTrue();
-      check(DataType.float32.nullable.isFloat).isTrue();
-      check(DataType.uint8.nullable.isSigned).isFalse();
+      check(DataType.int32.nullable.isInteger).isTrue;
+      check(DataType.float64.nullable.isNumeric).isTrue;
+      check(DataType.float32.nullable.isFloat).isTrue;
+      check(DataType.uint8.nullable.isSigned).isFalse;
       check(DataType.int16.nullable.bits).equals(16);
 
       final nLast = NullableDataType(DataType.int32, nullsFirst: false);
       final nFirst = NullableDataType(DataType.int32, nullsFirst: true);
-      check(nLast == nFirst).isFalse();
-      check(nLast.hashCode == nFirst.hashCode).isFalse();
+      check(nLast == nFirst).isFalse;
+      check(nLast.hashCode == nFirst.hashCode).isFalse;
     });
 
     test('Equality isClose with epsilon zero', () {
-      check(DataType.int32.equality.isClose(5, 5, 0.0)).isTrue();
+      check(DataType.int32.equality.isClose(5, 5, 0.0)).isTrue;
       check(
         DataType.bigInt.equality.isClose(BigInt.from(5), BigInt.from(5), 0.0),
-      ).isTrue();
-      check(DataType.string.equality.isClose('hello', 'hello', 0.0)).isTrue();
+      ).isTrue;
+      check(DataType.string.equality.isClose('hello', 'hello', 0.0)).isTrue;
     });
 
     test('fromIterable', () {
@@ -228,10 +228,9 @@ void main() {
     test('Boolean, String, and Object data types', () {
       // Boolean
       check(DataType.boolean.name).equals('boolean');
-      check(DataType.boolean.defaultValue).isFalse();
-      check(DataType.boolean.cast(true)).isTrue();
-      check(DataType.boolean.newList(3, fillValue: true))
-          .which((list) => list.every((val) => val));
+      check(DataType.boolean.defaultValue).isFalse;
+      check(DataType.boolean.cast(true)).isTrue;
+      check(DataType.boolean.newList(3, fillValue: true)).every(.it()..isTrue);
       check(() => DataType.boolean.field).throws<UnsupportedError>();
 
       // String
@@ -245,7 +244,7 @@ void main() {
       // Object
       const objType = DataType.object;
       check(objType.name).equals('object');
-      check(objType.defaultValue).isNull();
+      check(objType.defaultValue).isNull;
       check(objType.cast('abc')).equals('abc');
       final objList = objType.newList(3, fillValue: 42);
       check(objList[0]).equals(42);
@@ -439,18 +438,18 @@ void main() {
   group('Equality', () {
     test('NaturalEquality', () {
       const eq = NaturalEquality<String>();
-      check(eq.isEqual('a', 'a')).isTrue();
-      check(eq.isEqual('a', 'b')).isFalse();
-      check(eq.isClose('a', 'a', 0.1)).isTrue();
+      check(eq.isEqual('a', 'a')).isTrue;
+      check(eq.isEqual('a', 'b')).isFalse;
+      check(eq.isClose('a', 'a', 0.1)).isTrue;
       check(eq.hash('a')).equals('a'.hashCode);
     });
 
     test('FloatEquality', () {
       const eq = FloatEquality();
-      check(eq.isEqual(1.0, 1.0)).isTrue();
-      check(eq.isEqual(1.0, 2.0)).isFalse();
-      check(eq.isClose(1.0, 1.05, 0.1)).isTrue();
-      check(eq.isClose(1.0, 1.2, 0.1)).isFalse();
+      check(eq.isEqual(1.0, 1.0)).isTrue;
+      check(eq.isEqual(1.0, 2.0)).isFalse;
+      check(eq.isClose(1.0, 1.05, 0.1)).isTrue;
+      check(eq.isClose(1.0, 1.2, 0.1)).isFalse;
       check(eq.hash(1.0)).equals((1.0).hashCode);
     });
   });
@@ -470,11 +469,11 @@ void main() {
         DataType.float64,
       ];
       for (final type in nativeTypes) {
-        check(type.isNative).isTrue();
+        check(type.isNative).isTrue;
       }
-      check(DataType.boolean.isNative).isFalse();
-      check(DataType.string.isNative).isFalse();
-      check(DataType.object.isNative).isFalse();
+      check(DataType.boolean.isNative).isFalse;
+      check(DataType.string.isNative).isFalse;
+      check(DataType.object.isNative).isFalse;
       check(DataType.float32.bits).equals(32);
       check(DataType.float64.bits).equals(64);
       check(DataType.string.comparator('apple', 'banana')).isLessThan(0);
@@ -511,13 +510,13 @@ void main() {
       check(() => DataType.bigInt.cast(double.nan)).throws<ArgumentError>();
       check(DataType.bigInt.cast(Fraction(7, 2))).equals(BigInt.from(3));
       check(DataType.numeric.cast(BigInt.from(42))).equals(42);
-      check(DataType.boolean.cast(' TRUE ')).isTrue();
-      check(DataType.boolean.cast('False')).isFalse();
+      check(DataType.boolean.cast(' TRUE ')).isTrue;
+      check(DataType.boolean.cast('False')).isFalse;
       check(() => DataType.float64.cast('not-a-float')).throws<ArgumentError>();
       check(DataType.dynamicType.comparator(1, 2)).isLessThan(0);
       check(
         DataType.bigInt.equality.isClose(BigInt.from(5), BigInt.from(6), 1.5),
-      ).isTrue();
+      ).isTrue;
       check(() => const ObjectDataType<int>().defaultValue)
           .throws<StateError>();
       check(DataType.int16.promoteWith(DataType.uint8)).equals(DataType.int16);

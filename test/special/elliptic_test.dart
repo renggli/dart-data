@@ -16,9 +16,9 @@ void main() {
     });
 
     test('complete elliptic K edge cases', () {
-      check(ellipticK(1.01)).isNaN();
-      check(ellipticK(-1.01)).isNaN();
-      check(ellipticK(double.nan)).isNaN();
+      check(ellipticK(1.01)).isNaN;
+      check(ellipticK(-1.01)).isNaN;
+      check(ellipticK(double.nan)).isNaN;
     });
 
     test('complete elliptic E standard values', () {
@@ -31,9 +31,9 @@ void main() {
     });
 
     test('complete elliptic E edge cases', () {
-      check(ellipticE(1.01)).isNaN();
-      check(ellipticE(-1.01)).isNaN();
-      check(ellipticE(double.nan)).isNaN();
+      check(ellipticE(1.01)).isNaN;
+      check(ellipticE(-1.01)).isNaN;
+      check(ellipticE(double.nan)).isNaN;
     });
 
     test('incomplete elliptic F', () {
@@ -48,8 +48,8 @@ void main() {
       final fShifted = ellipticF(0.6 + math.pi, 0.4);
       check(fShifted).isCloseTo(fBase + 2.0 * ellipticK(0.4), 1e-12);
 
-      check(ellipticF(0.5, 1.2)).isNaN();
-      check(ellipticF(double.nan, 0.5)).isNaN();
+      check(ellipticF(0.5, 1.2)).isNaN;
+      check(ellipticF(double.nan, 0.5)).isNaN;
       check(ellipticF(double.infinity, 0.5)).equals(double.infinity);
       check(ellipticF(double.negativeInfinity, 0.5))
           .equals(double.negativeInfinity);
@@ -72,8 +72,8 @@ void main() {
       final eShifted = ellipticEIncomplete(0.6 + math.pi, 0.4);
       check(eShifted).isCloseTo(eBase + 2.0 * ellipticE(0.4), 1e-7);
 
-      check(ellipticEIncomplete(0.5, 1.2)).isNaN();
-      check(ellipticEIncomplete(double.nan, 0.5)).isNaN();
+      check(ellipticEIncomplete(0.5, 1.2)).isNaN;
+      check(ellipticEIncomplete(double.nan, 0.5)).isNaN;
       check(ellipticEIncomplete(double.infinity, 0.5)).equals(double.infinity);
       check(ellipticEIncomplete(double.negativeInfinity, 0.5))
           .equals(double.negativeInfinity);

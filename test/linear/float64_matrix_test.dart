@@ -321,7 +321,7 @@ void main() {
 
         final targetCopy = Float64Matrix.fromList(2, 2, [0.0, 0.0, 0.0, 0.0]);
         final resCopy = copied.copy(target: targetCopy);
-        check(identical(resCopy, targetCopy)).isTrue();
+        check(identical(resCopy, targetCopy)).isTrue;
         check(targetCopy.toNestedList()).deepEquals([
           [42.0, 1.0],
           [1.0, 1.0],
@@ -351,7 +351,7 @@ void main() {
           Float64Matrix.fromList(2, 2, [1.0, 0.0, 0.0, 1.0]),
           epsilon: 1e-10,
         ),
-      ).isTrue();
+      ).isTrue;
     });
 
     test('normalizes matrix.type to DataType.float64', () {

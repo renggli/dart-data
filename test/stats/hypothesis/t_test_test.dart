@@ -7,7 +7,7 @@ void main() {
     test('one-sample t-test', () {
       final sample = [10.2, 9.8, 10.1, 10.5, 9.9, 10.0, 10.3, 9.7];
       final resNullTrue = tTestOneSample(sample, mu0: 10.0);
-      check(resNullTrue.isSignificant).isFalse();
+      check(resNullTrue.isSignificant).isFalse;
       check(resNullTrue.pValue).isGreaterThan(0.5);
       check(resNullTrue.confidenceInterval).isNotNull();
       final (:lower, :upper) = resNullTrue.confidenceInterval!;
@@ -15,7 +15,7 @@ void main() {
       check(upper).isGreaterThan(10.0);
 
       final resNullFalse = tTestOneSample(sample, mu0: 15.0);
-      check(resNullFalse.isSignificant).isTrue();
+      check(resNullFalse.isSignificant).isTrue;
       check(resNullFalse.pValue).isLessThan(1e-5);
       check(resNullFalse.toString()).contains('test');
 
@@ -25,19 +25,19 @@ void main() {
         mu0: 15.0,
         alternative: AlternativeHypothesis.less,
       );
-      check(resLess.isSignificant).isTrue();
+      check(resLess.isSignificant).isTrue;
       check(resLess.pValue).isLessThan(1e-5);
       check(resLess.confidenceInterval!.lower).equals(double.negativeInfinity);
-      check(resLess.confidenceInterval!.upper).isFinite();
+      check(resLess.confidenceInterval!.upper).isFinite;
 
       final resGreater = tTestOneSample(
         sample,
         mu0: 5.0,
         alternative: AlternativeHypothesis.greater,
       );
-      check(resGreater.isSignificant).isTrue();
+      check(resGreater.isSignificant).isTrue;
       check(resGreater.pValue).isLessThan(1e-5);
-      check(resGreater.confidenceInterval!.lower).isFinite();
+      check(resGreater.confidenceInterval!.lower).isFinite;
       check(resGreater.confidenceInterval!.upper).equals(double.infinity);
 
       // Errors
@@ -45,8 +45,8 @@ void main() {
 
       // NaN handling
       final nanRes = tTestOneSample([1.0, double.nan, 3.0]);
-      check(nanRes.statistic.isNaN).isTrue();
-      check(nanRes.pValue.isNaN).isTrue();
+      check(nanRes.statistic.isNaN).isTrue;
+      check(nanRes.pValue.isNaN).isTrue;
       check(nanRes.degreesOfFreedom?.isNaN).equals(true);
     });
 
@@ -55,11 +55,11 @@ void main() {
       final groupB = [18.0, 19.0, 17.0, 20.0, 18.5];
 
       final resStudent = tTestTwoSample(groupA, groupB, equalVariance: true);
-      check(resStudent.isSignificant).isTrue();
+      check(resStudent.isSignificant).isTrue;
       check(resStudent.pValue).isLessThan(0.001);
 
       final resWelch = tTestTwoSample(groupA, groupB, equalVariance: false);
-      check(resWelch.isSignificant).isTrue();
+      check(resWelch.isSignificant).isTrue;
       check(resWelch.pValue).isLessThan(0.001);
 
       final resLess = tTestTwoSample(
@@ -86,8 +86,8 @@ void main() {
         groupB,
         equalVariance: false,
       );
-      check(nanRes.statistic.isNaN).isTrue();
-      check(nanRes.pValue.isNaN).isTrue();
+      check(nanRes.statistic.isNaN).isTrue;
+      check(nanRes.pValue.isNaN).isTrue;
       check(nanRes.degreesOfFreedom?.isNaN).equals(true);
     });
 
@@ -96,7 +96,7 @@ void main() {
       final after = [115.0, 118.0, 121.0, 120.0, 116.0];
 
       final res = tTestPaired(before, after);
-      check(res.isSignificant).isTrue();
+      check(res.isSignificant).isTrue;
       check(res.pValue).isLessThan(0.01);
       check(res.statistic).isGreaterThan(0.0);
 
@@ -121,8 +121,8 @@ void main() {
 
       // NaN handling
       final nanPaired = tTestPaired([1.0, double.nan], [3.0, 4.0]);
-      check(nanPaired.statistic.isNaN).isTrue();
-      check(nanPaired.pValue.isNaN).isTrue();
+      check(nanPaired.statistic.isNaN).isTrue;
+      check(nanPaired.pValue.isNaN).isTrue;
     });
 
     test('t-test with zero variance edge cases', () {

@@ -13,7 +13,7 @@ void main() {
         const x = Variable('x');
         check(Equal(IntegerNumber.of(3) * x, IntegerNumber.of(6)).solve('x'))
             .deepEquals([IntegerNumber.two]);
-        check(IntegerNumber.of(5).solve('x')).isEmpty();
+        check(IntegerNumber.of(5).solve('x')).isEmpty;
 
         final quad = Expr.parse('x^2 - 5*x + 6').solve('x');
         check(quad).unorderedEquals([IntegerNumber.two, IntegerNumber.of(3)]);
@@ -52,18 +52,18 @@ void main() {
 
     test('solves rational equations and filters denominator poles', () {
       const x = Variable('x');
-      check(Expr.parse('1 / (x - 1)').solve('x')).isEmpty();
+      check(Expr.parse('1 / (x - 1)').solve('x')).isEmpty;
 
       final rat = Expr.parse('(x^2 - 1) / (x^2 - 3*x + 2)').solve('x');
       check(rat).deepEquals([IntegerNumber.negativeOne]);
 
       // Product factor roots that make co-factors undefined or poles are filtered:
-      check((x * (IntegerNumber.one / x)).solve('x')).isEmpty();
+      check((x * (IntegerNumber.one / x)).solve('x')).isEmpty;
       check(
         ((x - IntegerNumber.two) *
                 (IntegerNumber.one / (x - IntegerNumber.two)))
             .solve('x'),
-      ).isEmpty();
+      ).isEmpty;
       check(
         ((x - IntegerNumber.one) *
                 (x - IntegerNumber.two) *
@@ -82,7 +82,7 @@ void main() {
       check(lnRoots.first.evaluate()).isCloseTo(math.exp(2.0) - 1.0, 1e-12);
 
       final lambertRoots = Expr.parse('x * exp(x) - 2').solve('x');
-      check(lambertRoots).isNotEmpty();
+      check(lambertRoots).isNotEmpty;
       final r = lambertRoots.first.evaluate();
       check(r * math.exp(r)).isCloseTo(2.0, 1e-12);
     });
@@ -92,7 +92,7 @@ void main() {
     test('filters roots according to VariableDomain assumptions', () {
       const intAssumptions = Assumptions(defaultDomain: VariableDomain.integer);
       final imagEq = Expr.parse('x^2 + 1');
-      check(imagEq.solve('x', assumptions: Assumptions.real)).isEmpty();
+      check(imagEq.solve('x', assumptions: Assumptions.real)).isEmpty;
       check(imagEq.solve('x', assumptions: Assumptions.complex).length)
           .equals(2);
 
@@ -130,7 +130,7 @@ void main() {
             domains: {'x': VariableDomain.positive},
           ),
         ),
-      ).isEmpty();
+      ).isEmpty;
       check(symEq.solve('x', assumptions: Assumptions.positive))
           .deepEquals([const Variable('a')]);
 
@@ -144,17 +144,17 @@ void main() {
         -Pow(const Variable('a'), FractionNumber.half),
         Pow(const Variable('a'), FractionNumber.half),
       ]);
-      check(imagEq.solve('x', assumptions: Assumptions.positive)).isEmpty();
+      check(imagEq.solve('x', assumptions: Assumptions.positive)).isEmpty;
     });
 
     test(
       'isZeroExpr and deduplicateRoots handle numeric and symbolic constants',
       () {
-        check(isZeroExpr(IntegerNumber.zero)).isTrue();
-        check(isZeroExpr(const RealNumber(0.0))).isTrue();
-        check(isZeroExpr(const RealNumber(1e-12))).isFalse();
-        check(isZeroExpr(Sin(Constant.pi))).isTrue();
-        check(isZeroExpr(Constant.pi)).isFalse();
+        check(isZeroExpr(IntegerNumber.zero)).isTrue;
+        check(isZeroExpr(const RealNumber(0.0))).isTrue;
+        check(isZeroExpr(const RealNumber(1e-12))).isFalse;
+        check(isZeroExpr(Sin(Constant.pi))).isTrue;
+        check(isZeroExpr(Constant.pi)).isFalse;
 
         final dedup = deduplicateRoots([
           IntegerNumber.one,
@@ -166,15 +166,15 @@ void main() {
 
         // Trigonometric equations with RealNumber RHS
         final sinReal = Expr.parse('sin(x) - 0.5').solve('x');
-        check(sinReal).isNotEmpty();
+        check(sinReal).isNotEmpty;
         check(sinReal.first).isA<RealNumber>();
 
         final cosReal = Expr.parse('cos(x) - 0.5').solve('x');
-        check(cosReal).isNotEmpty();
+        check(cosReal).isNotEmpty;
         check(cosReal.first).isA<RealNumber>();
 
         final tanReal = Expr.parse('tan(x) - 1.5').solve('x');
-        check(tanReal).isNotEmpty();
+        check(tanReal).isNotEmpty;
         check(tanReal.first).isA<RealNumber>();
 
         final posReal = (const Variable('x') - const RealNumber(2.5)).solve(
@@ -190,7 +190,7 @@ void main() {
     test('filters extraneous roots and solves radical, log, and ln(x)/x', () {
       check(Expr.parse('sqrt(x + 2) - x').solve('x'))
           .deepEquals([IntegerNumber.two]);
-      check(Expr.parse('sqrt(x) + 1').solve('x')).isEmpty();
+      check(Expr.parse('sqrt(x) + 1').solve('x')).isEmpty;
       check(Expr.parse('ln(x - 1) + ln(x + 1) - ln(3)').solve('x'))
           .deepEquals([IntegerNumber.two]);
       final lnOverXEq = Expr.parse('ln(x)/x - 1/(2*e)');
@@ -203,7 +203,7 @@ void main() {
       // Parametric extraneous root rejection under positive assumptions
       check(
         Expr.parse('sqrt(x) + a').solve('x', assumptions: Assumptions.positive),
-      ).isEmpty();
+      ).isEmpty;
 
       // Symbolic integer root under integer domain assumptions
       final intRoots = Expr.parse('x - (n + 1)').solve(

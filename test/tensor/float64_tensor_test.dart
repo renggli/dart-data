@@ -218,7 +218,7 @@ void main() {
       final source = Float64Tensor.fromIterable([1.0, 2.0, 3.0]);
       final target = Float64Tensor.fromIterable([0.0, 0.0, 0.0]);
       final result = source.copy(target: target);
-      check(identical(result, target)).isTrue();
+      check(identical(result, target)).isTrue;
       check(target.toFlatList()).deepEquals([1.0, 2.0, 3.0]);
     });
 

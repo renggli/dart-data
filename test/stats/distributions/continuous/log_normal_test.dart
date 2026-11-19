@@ -69,7 +69,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == LogNormalDistribution(0.0, 1.0)).isTrue();
+      check(dist == LogNormalDistribution(0.0, 1.0)).isTrue;
       check(dist.hashCode).equals(LogNormalDistribution(0.0, 1.0).hashCode);
     });
 

@@ -56,7 +56,7 @@ void main() {
     test('gamma', () {
       for (final (x, expected) in gammaTuples) {
         if (expected.isNaN) {
-          check(because: 'gamma($x)', gamma(x)).isNaN();
+          check(because: 'gamma($x)', gamma(x)).isNaN;
         } else {
           check(because: 'gamma($x)', gamma(x)).isCloseTo(expected, 1e-4);
         }
@@ -72,8 +72,8 @@ void main() {
           ).isCloseTo(math.log(expected), 1e-6);
         }
       }
-      check(gammaLn(0)).isNaN();
-      check(gammaLn(-1)).isNaN();
+      check(gammaLn(0)).isNaN;
+      check(gammaLn(-1)).isNaN;
     });
 
     test('gammap and gammaq', () {
@@ -88,10 +88,10 @@ void main() {
       ]) {
         check(gammap(a, x) + gammaq(a, x)).isCloseTo(1.0, 1e-14);
       }
-      check(gammap(-1, 1)).isNaN();
-      check(gammap(1, -1)).isNaN();
-      check(gammaq(-1, 1)).isNaN();
-      check(gammaq(1, -1)).isNaN();
+      check(gammap(-1, 1)).isNaN;
+      check(gammap(1, -1)).isNaN;
+      check(gammaq(-1, 1)).isNaN;
+      check(gammaq(1, -1)).isNaN;
       check(gamma(double.infinity)).equals(double.infinity);
       check(gammaLn(double.infinity)).equals(double.infinity);
       check(gammap(2.0, double.infinity)).equals(1.0);
@@ -101,11 +101,11 @@ void main() {
     test('gammapInv', () {
       check(gammapInv(0.0, 2.0)).equals(0.0);
       check(gammapInv(1.0, 2.0)).equals(double.infinity);
-      check(gammapInv(-0.1, 2.0)).isNaN();
-      check(gammapInv(1.1, 2.0)).isNaN();
-      check(gammapInv(double.nan, 2.0)).isNaN();
-      check(gammapInv(0.5, 0.0)).isNaN();
-      check(gammapInv(0.5, -1.0)).isNaN();
+      check(gammapInv(-0.1, 2.0)).isNaN;
+      check(gammapInv(1.1, 2.0)).isNaN;
+      check(gammapInv(double.nan, 2.0)).isNaN;
+      check(gammapInv(0.5, 0.0)).isNaN;
+      check(gammapInv(0.5, -1.0)).isNaN;
       final prob = gammap(2.5, 3.0);
       check(gammapInv(prob, 2.5)).isCloseTo(3.0, 1e-12);
 
@@ -123,11 +123,11 @@ void main() {
     test('gammaqInv', () {
       check(gammaqInv(0.0, 2.0)).equals(double.infinity);
       check(gammaqInv(1.0, 2.0)).equals(0.0);
-      check(gammaqInv(-0.1, 2.0)).isNaN();
-      check(gammaqInv(1.1, 2.0)).isNaN();
-      check(gammaqInv(double.nan, 2.0)).isNaN();
-      check(gammaqInv(0.5, 0.0)).isNaN();
-      check(gammaqInv(0.5, -1.0)).isNaN();
+      check(gammaqInv(-0.1, 2.0)).isNaN;
+      check(gammaqInv(1.1, 2.0)).isNaN;
+      check(gammaqInv(double.nan, 2.0)).isNaN;
+      check(gammaqInv(0.5, 0.0)).isNaN;
+      check(gammaqInv(0.5, -1.0)).isNaN;
 
       // Invertibility: gammaq(a, gammaqInv(q, a)) == q
       for (final a in [0.5, 1.0, 2.5, 5.0, 10.0, 50.0]) {
@@ -139,16 +139,16 @@ void main() {
     });
 
     test('gamma for large x', () {
-      check(gamma(105.0).isFinite).isTrue();
+      check(gamma(105.0).isFinite).isTrue;
     });
 
     test('factorial and combinations', () {
       check(factorial(0)).isCloseTo(1.0, 1e-8);
       check(factorial(5)).isCloseTo(120.0, 1e-8);
-      check(factorial(-1)).isNaN();
-      check(factorial(double.nan)).isNaN();
+      check(factorial(-1)).isNaN;
+      check(factorial(double.nan)).isNaN;
       check(factorialLn(5)).isCloseTo(math.log(120.0), 1e-6);
-      check(factorialLn(double.nan)).isNaN();
+      check(factorialLn(double.nan)).isNaN;
       check(combination(5, 2)).equals(10.0);
       check(combination(10, 3)).equals(120.0);
       check(combination(20, 10)).equals(184756.0);
@@ -161,11 +161,11 @@ void main() {
       check(combination(5, 6)).equals(0.0);
       check(combination(5, -1)).equals(0.0);
       check(combination(5.5, 2.5)).isGreaterThan(0.0);
-      check(combination(double.nan, 2)).isNaN();
-      check(combination(5, double.nan)).isNaN();
+      check(combination(double.nan, 2)).isNaN;
+      check(combination(5, double.nan)).isNaN;
       check(combination(double.infinity, 2)).equals(double.infinity);
-      check(combination(double.infinity, double.infinity)).isNaN();
-      check(combination(double.infinity, 1.5)).isNaN();
+      check(combination(double.infinity, double.infinity)).isNaN;
+      check(combination(double.infinity, 1.5)).isNaN;
       check(combinationLn(5, 2)).isCloseTo(math.log(10.0), 1e-6);
 
       check(permutation(5, 2)).equals(20.0);
@@ -176,10 +176,10 @@ void main() {
       check(permutation(5, 0)).equals(1.0);
       check(permutation(5, 6)).equals(0.0);
       check(permutation(5, -1)).equals(0.0);
-      check(permutation(double.nan, 2)).isNaN();
-      check(permutation(5, double.nan)).isNaN();
+      check(permutation(double.nan, 2)).isNaN;
+      check(permutation(5, double.nan)).isNaN;
       check(permutation(double.infinity, 2)).equals(double.infinity);
-      check(permutation(double.infinity, double.infinity)).isNaN();
+      check(permutation(double.infinity, double.infinity)).isNaN;
       check(permutationLn(5, 2)).isCloseTo(math.log(20.0), 1e-6);
     });
 

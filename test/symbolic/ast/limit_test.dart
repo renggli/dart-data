@@ -14,7 +14,7 @@ void main() {
       check(lim.variable).equals('x');
       check(lim.point).equals(IntegerNumber.zero);
       check(lim.direction).equals(LimitDirection.both);
-      check(lim.isSimplified).isFalse();
+      check(lim.isSimplified).isFalse;
 
       final limAbove = Limit(
         IntegerNumber.one / x,
@@ -24,7 +24,7 @@ void main() {
         isSimplified: true,
       );
       check(limAbove.direction).equals(LimitDirection.fromAbove);
-      check(limAbove.isSimplified).isTrue();
+      check(limAbove.isSimplified).isTrue;
     });
 
     test('equality and hashCode', () {
@@ -54,8 +54,8 @@ void main() {
       );
       check(a).equals(b);
       check(a.hashCode).equals(b.hashCode);
-      check(a == c).isFalse();
-      check(a == d).isFalse();
+      check(a == c).isFalse;
+      check(a == d).isFalse;
     });
   });
 
@@ -70,13 +70,13 @@ void main() {
       () {
         final lim = Limit(x * y, 'x', z);
         check(lim.freeVariables).deepEquals({'y', 'z'});
-        check(lim.dependsOn('x')).isFalse();
-        check(lim.dependsOn('y')).isTrue();
-        check(lim.dependsOn('z')).isTrue();
-        check(lim.dependsOn('w')).isFalse();
+        check(lim.dependsOn('x')).isFalse;
+        check(lim.dependsOn('y')).isTrue;
+        check(lim.dependsOn('z')).isTrue;
+        check(lim.dependsOn('w')).isFalse;
 
         final limShadow = Limit(x * y, 'x', x);
-        check(limShadow.dependsOn('x')).isTrue();
+        check(limShadow.dependsOn('x')).isTrue;
       },
     );
 
@@ -113,10 +113,10 @@ void main() {
         ),
       );
 
-      check(lim.anyNode((node) => node is Limit)).isTrue();
-      check(lim.anyNode((node) => node is Sin)).isTrue();
-      check(lim.anyNode((node) => node is IntegerNumber)).isTrue();
-      check(lim.anyNode((node) => node is Cos)).isFalse();
+      check(lim.anyNode((node) => node is Limit)).isTrue;
+      check(lim.anyNode((node) => node is Sin)).isTrue;
+      check(lim.anyNode((node) => node is IntegerNumber)).isTrue;
+      check(lim.anyNode((node) => node is Cos)).isFalse;
     });
   });
 }

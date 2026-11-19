@@ -13,7 +13,7 @@ void main() {
       check(zero.degree).equals(-1);
       check(zero.leadingCoefficient).equals(0.0);
       check(zero.termCount).equals(0);
-      check(zero.coefficients).isEmpty();
+      check(zero.coefficients).isEmpty;
       check(zero[0]).equals(0.0);
       check(zero[10]).equals(0.0);
       check(zero.toString()).equals('0');
@@ -143,7 +143,7 @@ void main() {
       ], type: DataType.float64);
       final res = a.divide(b);
       check(res.quotient.coefficients).deepEquals([1.0, 1.0]);
-      check(res.remainder.coefficients).isEmpty();
+      check(res.remainder.coefficients).isEmpty;
 
       // Compose: P(x) = x^2, Q(x) = 2x + 1 -> (2x + 1)^2 = 1 + 4x + 4x^2
       final poly = DensePolynomial<double>.fromCoefficients([

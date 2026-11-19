@@ -18,8 +18,8 @@ void main() {
       check(dist.excessKurtosis).equals(0.0);
       check(dist.lowerBound).equals(double.negativeInfinity);
       check(dist.upperBound).equals(double.infinity);
-      check(dist.isLowerBoundOpen).isTrue();
-      check(dist.isUpperBoundOpen).isTrue();
+      check(dist.isLowerBoundOpen).isTrue;
+      check(dist.isUpperBoundOpen).isTrue;
     });
 
     test('probability density function', () {
@@ -44,9 +44,9 @@ void main() {
       check(dist.inverseCumulativeProbability(0.975)).isCloseTo(1.95996, 1e-4);
       check(dist.inverseCumulativeProbability(0.025)).isCloseTo(-1.95996, 1e-4);
       // Deep tail quantiles do not floor at -infinity
-      check(dist.inverseCumulativeProbability(1e-20).isFinite).isTrue();
+      check(dist.inverseCumulativeProbability(1e-20).isFinite).isTrue;
       check(dist.inverseCumulativeProbability(1e-20)).isLessThan(-8.0);
-      check(dist.inverseSurvival(1e-20).isFinite).isTrue();
+      check(dist.inverseSurvival(1e-20).isFinite).isTrue;
       check(dist.inverseSurvival(1e-20)).isGreaterThan(8.0);
     });
 
@@ -63,7 +63,7 @@ void main() {
 
     test('single sample without random and with random', () {
       final sDefault = dist.sample();
-      check(sDefault.isFinite).isTrue();
+      check(sDefault.isFinite).isTrue;
       final rng = math.Random(123);
       final singleSamples = List.generate(
         1000,
@@ -97,7 +97,7 @@ void main() {
 
     test('equality and hashCode', () {
       final dist2 = NormalDistribution(0.0, 1.0);
-      check(dist == dist2).isTrue();
+      check(dist == dist2).isTrue;
       check(dist.hashCode).equals(dist2.hashCode);
     });
 

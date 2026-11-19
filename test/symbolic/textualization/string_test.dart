@@ -207,14 +207,14 @@ void main() {
       check(leftmostMulFactor(nestedMul)).equals(x);
 
       final cFull = ComplexNumber(IntegerNumber.one, IntegerNumber.two);
-      check(needsSubRightParens(cFull)).isTrue();
-      check(needsSubRightParens(IntegerNumber.of(-2))).isTrue();
-      check(needsMulLeftParens(cFull)).isTrue();
-      check(needsMulRightParens(cFull)).isTrue();
-      check(needsMulRightParens(IntegerNumber.of(-2))).isTrue();
-      check(needsNegOperandParens(cFull)).isTrue();
-      check(needsNegOperandParens(IntegerNumber.of(-2))).isTrue();
-      check(needsPowBaseParens(Pow(x, IntegerNumber.negativeOne))).isTrue();
+      check(needsSubRightParens(cFull)).isTrue;
+      check(needsSubRightParens(IntegerNumber.of(-2))).isTrue;
+      check(needsMulLeftParens(cFull)).isTrue;
+      check(needsMulRightParens(cFull)).isTrue;
+      check(needsMulRightParens(IntegerNumber.of(-2))).isTrue;
+      check(needsNegOperandParens(cFull)).isTrue;
+      check(needsNegOperandParens(IntegerNumber.of(-2))).isTrue;
+      check(needsPowBaseParens(Pow(x, IntegerNumber.negativeOne))).isTrue;
       check(Pow(x, IntegerNumber.negativeOne).toString()).equals('1 / x');
       check(
         Mul([
@@ -238,15 +238,15 @@ void main() {
       }
       check(Expr.parse('-x * z / y').toString()).equals('-x * z / y');
       check(Expr.parse('-(a + b)').toString()).equals('-(a + b)');
-      check(canOmitMulDot(Pow(x, IntegerNumber.two), y)).isTrue();
-      check(canOmitMulDot(Pow(x, FractionNumber.half), y)).isTrue();
+      check(canOmitMulDot(Pow(x, IntegerNumber.two), y)).isTrue;
+      check(canOmitMulDot(Pow(x, FractionNumber.half), y)).isTrue;
       check(
         startsWithNumber(ComplexNumber(IntegerNumber.zero, IntegerNumber.two)),
-      ).isTrue();
+      ).isTrue;
       check(startsWithNumber(Pow(IntegerNumber.two, FractionNumber.half)))
-          .isFalse();
-      check(canOmitMulDot(x, IntegerNumber.of(-2))).isFalse();
-      check(canOmitMulDot(x, Pow(y, IntegerNumber.negativeOne))).isFalse();
+          .isFalse;
+      check(canOmitMulDot(x, IntegerNumber.of(-2))).isFalse;
+      check(canOmitMulDot(x, Pow(y, IntegerNumber.negativeOne))).isFalse;
       check(Mod(x + y, y).toString()).equals('mod(x + y, y)');
       check((LessThan(x, y) + IntegerNumber.one).toString())
           .equals('(x < y) + 1');

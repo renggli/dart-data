@@ -78,9 +78,9 @@ void main() {
           .throws<ArgumentError>();
       check(
         dist.logProbability(Vector<double>.fromList([0.5, double.nan])).isNaN,
-      ).isTrue();
+      ).isTrue;
       check(dist.probability(Vector<double>.fromList([0.5, double.nan])).isNaN)
-          .isTrue();
+          .isTrue;
     });
 
     test('boundary evaluations where xi == 0', () {
@@ -103,7 +103,7 @@ void main() {
           .equals(double.negativeInfinity);
       check(
         distSmall.logProbability(Vector<double>.fromList([0.0, double.nan])),
-      ).isNaN();
+      ).isNaN;
     });
 
     test('equality, hashCode, and toString', () {
@@ -113,8 +113,8 @@ void main() {
       final dist2 = DirichletDistribution(alpha2);
       final dist3 = DirichletDistribution.symmetric(3, 3.0);
 
-      check(dist1 == dist2).isTrue();
-      check(dist1 == dist3).isFalse();
+      check(dist1 == dist2).isTrue;
+      check(dist1 == dist3).isFalse;
       check(dist1.hashCode).equals(dist2.hashCode);
       check(dist1.toString()).contains('DirichletDistribution');
     });
@@ -122,9 +122,9 @@ void main() {
     test('sample with very small alpha does not yield NaN', () {
       final dist = DirichletDistribution.symmetric(3, 1e-4);
       final s = dist.sample(random: Random(42));
-      check(s.getUnchecked(0).isNaN).isFalse();
-      check(s.getUnchecked(1).isNaN).isFalse();
-      check(s.getUnchecked(2).isNaN).isFalse();
+      check(s.getUnchecked(0).isNaN).isFalse;
+      check(s.getUnchecked(1).isNaN).isFalse;
+      check(s.getUnchecked(2).isNaN).isFalse;
       check(s.getUnchecked(0) + s.getUnchecked(1) + s.getUnchecked(2))
           .isCloseTo(1.0, 1e-6);
     });

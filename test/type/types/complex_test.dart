@@ -14,8 +14,8 @@ void main() {
     test('attributes', () {
       check(type.name).equals('complex');
       check(type.defaultValue).equals(Complex.zero);
-      check(type.isNullable).isFalse();
-      check(type.isNative).isTrue();
+      check(type.isNullable).isFalse;
+      check(type.isNative).isTrue;
       check(type.bits).equals(128);
       check(type.bytesPerElement).equals(16);
       check(type.toString()).equals('DataType.complex');
@@ -76,9 +76,9 @@ void main() {
       check(field.sqrt(const Complex(4, 0))).equals(const Complex(2, 0));
       check(field.exp(Complex.zero)).equals(const Complex(1, 0));
       check(field.log(const Complex(1, 0))).equals(Complex.zero);
-      check(field.nan.isNaN).isTrue();
-      check(field.infinity.isInfinite).isTrue();
-      check(field.negativeInfinity.isInfinite).isTrue();
+      check(field.nan.isNaN).isTrue;
+      check(field.infinity.isInfinite).isTrue;
+      check(field.negativeInfinity.isInfinite).isTrue;
 
       check(() => field.mod(Complex.zero, Complex.zero))
           .throws<UnsupportedError>();
@@ -231,11 +231,11 @@ void main() {
       final b = Float64ComplexList(4);
       final view = a.asUnmodifiableView();
 
-      check(sharesMemory(a, a)).isTrue();
-      check(sharesMemory(a, view)).isTrue();
-      check(sharesMemory(a, b)).isFalse();
-      check(hasOverlap(a, 0, a, 1, 2)).isTrue();
-      check(hasOverlap(a, 0, b, 0, 2)).isFalse();
+      check(sharesMemory(a, a)).isTrue;
+      check(sharesMemory(a, view)).isTrue;
+      check(sharesMemory(a, b)).isFalse;
+      check(hasOverlap(a, 0, a, 1, 2)).isTrue;
+      check(hasOverlap(a, 0, b, 0, 2)).isFalse;
     });
   });
 }

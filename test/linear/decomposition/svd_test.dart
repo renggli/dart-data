@@ -77,8 +77,8 @@ void main() {
         check(svd.s[0]).equals(0.0);
         check(svd.s[1]).equals(0.0);
         check(svd.rank).equals(0);
-        check(svd.u.get(0, 0).isNaN).isFalse();
-        check(svd.vt.get(0, 0).isNaN).isFalse();
+        check(svd.u.get(0, 0).isNaN).isFalse;
+        check(svd.vt.get(0, 0).isNaN).isFalse;
       } finally {
         AccelerationManager.mode = prev;
       }
@@ -192,18 +192,18 @@ void main() {
         [3.0, 4.0],
       ], type: DataType.float64);
       final svdNan = aNan.svd;
-      check(svdNan.s[0]).isNaN();
-      check(svdNan.u.get(0, 0)).isNaN();
-      check(svdNan.vt.get(0, 0)).isNaN();
+      check(svdNan.s[0]).isNaN;
+      check(svdNan.u.get(0, 0)).isNaN;
+      check(svdNan.vt.get(0, 0)).isNaN;
 
       final aInf = Matrix<double>.fromRows([
         [double.infinity, 2.0],
         [3.0, 4.0],
       ], type: DataType.float64);
       final svdInf = aInf.svd;
-      check(svdInf.s[0]).isNaN();
-      check(svdInf.u.get(0, 0)).isNaN();
-      check(svdInf.vt.get(0, 0)).isNaN();
+      check(svdInf.s[0]).isNaN;
+      check(svdInf.u.get(0, 0)).isNaN;
+      check(svdInf.vt.get(0, 0)).isNaN;
     });
 
     test('scale invariance of solveVector', () {

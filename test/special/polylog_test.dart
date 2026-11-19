@@ -20,7 +20,7 @@ void main() {
       check(polylog(1, 0.5)).isCloseTo(math.ln2, 1e-12);
       check(polylog(0, 0.5)).isCloseTo(1.0, 1e-12);
       check(polylog(-1, 0.5)).isCloseTo(2.0, 1e-12);
-      check(polylog(2, 1.5)).isNaN();
+      check(polylog(2, 1.5)).isNaN;
     });
   });
 }

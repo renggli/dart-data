@@ -20,18 +20,18 @@ void main() {
 
     test('moments for small degrees of freedom', () {
       final distDof1 = StudentDistribution(1.0);
-      check(distDof1.mean.isNaN).isTrue();
-      check(distDof1.variance.isNaN).isTrue();
-      check(distDof1.skewness.isNaN).isTrue();
-      check(distDof1.excessKurtosis.isNaN).isTrue();
+      check(distDof1.mean.isNaN).isTrue;
+      check(distDof1.variance.isNaN).isTrue;
+      check(distDof1.skewness.isNaN).isTrue;
+      check(distDof1.excessKurtosis.isNaN).isTrue;
 
       final distDof2 = StudentDistribution(2.0);
       check(distDof2.mean).equals(0.0);
-      check(distDof2.variance.isInfinite).isTrue();
+      check(distDof2.variance.isInfinite).isTrue;
 
       final distDof3 = StudentDistribution(3.0);
-      check(distDof3.skewness.isNaN).isTrue();
-      check(distDof3.excessKurtosis.isInfinite).isTrue();
+      check(distDof3.skewness.isNaN).isTrue;
+      check(distDof3.excessKurtosis.isInfinite).isTrue;
     });
 
     test('probability density function', () {
@@ -80,7 +80,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == StudentDistribution(10.0)).isTrue();
+      check(dist == StudentDistribution(10.0)).isTrue;
       check(dist.hashCode).equals(StudentDistribution(10.0).hashCode);
     });
 

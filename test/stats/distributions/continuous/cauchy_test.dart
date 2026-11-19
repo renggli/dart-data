@@ -11,12 +11,12 @@ void main() {
     test('moments and parameters', () {
       check(dist.location).equals(0.0);
       check(dist.scale).equals(1.0);
-      check(dist.mean.isNaN).isTrue();
+      check(dist.mean.isNaN).isTrue;
       check(dist.median).equals(0.0);
       check(dist.mode).equals(0.0);
-      check(dist.variance.isNaN).isTrue();
-      check(dist.skewness.isNaN).isTrue();
-      check(dist.excessKurtosis.isNaN).isTrue();
+      check(dist.variance.isNaN).isTrue;
+      check(dist.skewness.isNaN).isTrue;
+      check(dist.excessKurtosis.isNaN).isTrue;
     });
 
     test('probability density function', () {
@@ -48,7 +48,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.isNotEmpty).isTrue();
+      check(samples.isNotEmpty).isTrue;
     });
 
     test('fit', () {
@@ -68,7 +68,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == CauchyDistribution(0.0, 1.0)).isTrue();
+      check(dist == CauchyDistribution(0.0, 1.0)).isTrue;
       check(dist.hashCode).equals(CauchyDistribution(0.0, 1.0).hashCode);
     });
 

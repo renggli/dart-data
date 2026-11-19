@@ -14,8 +14,8 @@ void main() {
       check(dist.p).equals(0.5);
       check(dist.lowerBound).equals(0);
       check(dist.upperBound).equals(DataType.integer.safeMax);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isTrue();
+      check(dist.isLowerBoundOpen).isFalse;
+      check(dist.isUpperBoundOpen).isTrue;
       check(dist.mean).equals(1.0);
       check(dist.variance).equals(2.0);
       check(dist.standardDeviation).isCloseTo(math.sqrt(2.0), 1e-6);
@@ -51,7 +51,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0)).isTrue();
+      check(samples.every((sample) => sample >= 0)).isTrue;
     });
 
     test('fit with and without specified r', () {

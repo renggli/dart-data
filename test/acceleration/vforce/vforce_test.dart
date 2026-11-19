@@ -81,8 +81,8 @@ void main() {
       check(corr[2]).isCloseTo(3.5, 1e-9);
 
       final emptyFilter = Float64List(0);
-      check(Vforce.convolve(signal: signal, filter: emptyFilter)).isEmpty();
-      check(Vforce.correlate(signal: signal, filter: emptyFilter)).isEmpty();
+      check(Vforce.convolve(signal: signal, filter: emptyFilter)).isEmpty;
+      check(Vforce.correlate(signal: signal, filter: emptyFilter)).isEmpty;
 
       final providedOut = Float64List(5);
       final emptyConv = Vforce.convolve(

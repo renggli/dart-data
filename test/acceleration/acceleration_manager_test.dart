@@ -12,7 +12,7 @@ void main() {
       final prev = AccelerationManager.mode;
       try {
         AccelerationManager.mode = AccelerationMode.dart;
-        check(AccelerationManager.isAccelerated).isFalse();
+        check(AccelerationManager.isAccelerated).isFalse;
 
         AccelerationManager.mode = AccelerationMode.auto;
         check(AccelerationManager.isAccelerated).equals(

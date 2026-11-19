@@ -493,7 +493,7 @@ void main() {
         model: (x, p) => p[0] * x + p[1] * x + p[2],
         initialParams: Vector<double>.fromList([1.0, 1.0, 0.0]),
       );
-      check(resPartial.covariance.get(2, 2).isFinite).isTrue();
+      check(resPartial.covariance.get(2, 2).isFinite).isTrue;
 
       // Full-rank overdetermined leastSquares via QR fallback (in pure Dart mode or non-float64)
       final qrA = Matrix<double>.fromRows([
@@ -552,9 +552,9 @@ void main() {
         model: (x, p) => p[0] * x + p[1],
         initialParams: Vector<double>.fromList([1.0, 1.0]),
       );
-      check(res.residualStandardError.isNaN).isTrue();
-      check(res.standardErrors[0].isNaN).isTrue();
-      check(res.standardErrors[1].isNaN).isTrue();
+      check(res.residualStandardError.isNaN).isTrue;
+      check(res.standardErrors[0].isNaN).isTrue;
+      check(res.standardErrors[1].isNaN).isTrue;
     });
   });
 }

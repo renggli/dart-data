@@ -43,17 +43,17 @@ void main() {
 
       // Zero-variance data returns double.nan for skewness and kurtosis
       final constant = [5.0, 5.0, 5.0, 5.0];
-      check(skewness(constant)).isNaN();
-      check(kurtosis(constant)).isNaN();
+      check(skewness(constant)).isNaN;
+      check(kurtosis(constant)).isNaN;
     });
 
     test('rankData and spearmanCorrelation with NaN returns NaN', () {
       final data = [1.0, double.nan, 3.0];
       final ranks = rankData(data);
-      check(ranks.any((r) => r.isNaN)).isTrue();
+      check(ranks.any((r) => r.isNaN)).isTrue;
 
       final corr = spearmanCorrelation([1.0, 2.0, 3.0], [1.0, double.nan, 2.0]);
-      check(corr.isNaN).isTrue();
+      check(corr.isNaN).isTrue;
     });
 
     test('geometric and harmonic means', () {
@@ -162,14 +162,14 @@ void main() {
       ]);
       final constCorr = constMatrix.pearsonCorrelationMatrix();
       check(constCorr.get(0, 0)).isCloseTo(1.0, 1e-10);
-      check(constCorr.get(1, 1).isNaN).isTrue();
-      check(constCorr.get(0, 1).isNaN).isTrue();
+      check(constCorr.get(1, 1).isNaN).isTrue;
+      check(constCorr.get(0, 1).isNaN).isTrue;
 
       // Quantile validation and NaN propagation
       check(() => quantile([1.0, 2.0], -0.1)).throws<ArgumentError>();
       check(() => quantile([1.0, 2.0], 1.1)).throws<ArgumentError>();
       check(() => quantile([1.0, 2.0], double.nan)).throws<ArgumentError>();
-      check(quantile([1.0, double.nan, 3.0], 0.5)).isNaN();
+      check(quantile([1.0, double.nan, 3.0], 0.5)).isNaN;
 
       // Invalid matrix data error checking
       final tooFewRows = Matrix<double>.fromRows([
@@ -335,8 +335,8 @@ void main() {
       check(() => weightedMean([1.0], [-1.0])).throws<ArgumentError>();
       check(() => weightedVariance([1.0], [1.0, 2.0])).throws<ArgumentError>();
       check(() => weightedVariance([1.0], [-0.5])).throws<ArgumentError>();
-      check(weightedMean([], []).isNaN).isTrue();
-      check(weightedVariance([], []).isNaN).isTrue();
+      check(weightedMean([], []).isNaN).isTrue;
+      check(weightedVariance([], []).isNaN).isTrue;
     });
 
     test('simple moving average (SMA)', () {
@@ -384,7 +384,7 @@ void main() {
       check(exponentialMovingAverage(data, 1.0)).deepEquals(data);
 
       // Empty collection
-      check(exponentialMovingAverage([], 0.5)).isEmpty();
+      check(exponentialMovingAverage([], 0.5)).isEmpty;
 
       // Errors
       check(() => exponentialMovingAverage(data, 0.0)).throws<ArgumentError>();

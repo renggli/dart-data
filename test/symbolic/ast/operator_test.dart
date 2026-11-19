@@ -17,10 +17,10 @@ void main() {
       check(terms.length).equals(4);
       check(sum.evaluate({'x': 1.0, 'y': 2.0, 'z': 0.5})).equals(3.5);
       check(sum.mapChildren((e) => e)).equals(sum);
-      check(sum.anyNode((e) => e == z)).isTrue();
-      check(sum.anyNode((e) => e == const Variable('w'))).isFalse();
-      check(sum == Add([x, y])).isFalse();
-      check(sum == Add([x, y, -z, IntegerNumber.two])).isFalse();
+      check(sum.anyNode((e) => e == z)).isTrue;
+      check(sum.anyNode((e) => e == const Variable('w'))).isFalse;
+      check(sum == Add([x, y])).isFalse;
+      check(sum == Add([x, y, -z, IntegerNumber.two])).isFalse;
 
       final prod = x * y / z;
       check(prod).isA<Mul>();
@@ -28,10 +28,10 @@ void main() {
       check(factors.length).equals(3);
       check(prod.evaluate({'x': 3.0, 'y': 4.0, 'z': 2.0})).equals(6.0);
       check(prod.mapChildren((e) => e)).equals(prod);
-      check(prod.anyNode((e) => e == z)).isTrue();
-      check(prod.anyNode((e) => e == const Variable('w'))).isFalse();
-      check(prod == Mul([x, y])).isFalse();
-      check(prod == Mul([x, y, z])).isFalse();
+      check(prod.anyNode((e) => e == z)).isTrue;
+      check(prod.anyNode((e) => e == const Variable('w'))).isFalse;
+      check(prod == Mul([x, y])).isFalse;
+      check(prod == Mul([x, y, z])).isFalse;
     });
   });
 
@@ -52,7 +52,7 @@ void main() {
         check(Pow(x, IntegerNumber.two).mapChildren((e) => e))
             .equals(Pow(x, IntegerNumber.two));
         check(Pow(x, IntegerNumber.two).anyNode((e) => e == IntegerNumber.two))
-            .isTrue();
+            .isTrue;
       },
     );
   });

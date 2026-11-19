@@ -201,9 +201,9 @@ void main() {
 
         // Non-contiguous (negative stride) views in Float64Vector
         final flipped = Float64Vector(Vector<double>(copied.tensor.flip()));
-        check(flipped.dot(copied)).isFinite();
-        check(flipped.norm(2)).isFinite();
-        check(flipped.norm(1)).isFinite();
+        check(flipped.dot(copied)).isFinite;
+        check(flipped.norm(2)).isFinite;
+        check(flipped.norm(1)).isFinite;
         check((flipped + copied).length).equals(3);
         check((flipped - copied).length).equals(3);
         check((flipped * copied).length).equals(3);
@@ -222,15 +222,15 @@ void main() {
         final targetCumprod = Float64Vector.fromIterable([0.0, 0.0, 0.0]);
 
         final resCopy = copied.copy(target: targetCopy);
-        check(identical(resCopy, targetCopy)).isTrue();
+        check(identical(resCopy, targetCopy)).isTrue;
         check(targetCopy.toList()).deepEquals([42.0, 1.0, 1.0]);
 
         final resCumsum = copied.cumsum(target: targetCumsum);
-        check(identical(resCumsum, targetCumsum)).isTrue();
+        check(identical(resCumsum, targetCumsum)).isTrue;
         check(targetCumsum.toList()).deepEquals([42.0, 43.0, 44.0]);
 
         final resCumprod = copied.cumprod(target: targetCumprod);
-        check(identical(resCumprod, targetCumprod)).isTrue();
+        check(identical(resCumprod, targetCumprod)).isTrue;
         check(targetCumprod.toList()).deepEquals([42.0, 42.0, 42.0]);
       },
     );

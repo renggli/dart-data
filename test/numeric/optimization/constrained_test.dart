@@ -21,7 +21,7 @@ void main() {
 
       check(res.point[0]).isCloseTo(2.0, 1e-4);
       check(res.value).isCloseTo(11.0, 1e-4);
-      check(res.converged).isTrue();
+      check(res.converged).isTrue;
     });
 
     test('2D quadratic with active box bounds', () {

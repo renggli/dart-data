@@ -5,8 +5,8 @@ import 'package:test/test.dart';
 
 extension on Subject<Complex> {
   void isCloseTo(Complex other, double delta) {
-    has((c) => c.a, 'real').isCloseTo(other.a, delta);
-    has((c) => c.b, 'imaginary').isCloseTo(other.b, delta);
+    has('real', (c) => c.a).isCloseTo(other.a, delta);
+    has('imaginary', (c) => c.b).isCloseTo(other.b, delta);
   }
 }
 
@@ -20,7 +20,7 @@ void main() {
       ], type: DataType.float64);
 
       final cholesky = a.cholesky;
-      check(cholesky.isSymmetricPositiveDefinite).isTrue();
+      check(cholesky.isSymmetricPositiveDefinite).isTrue;
 
       final lower = cholesky.l;
       // L must be lower triangular
@@ -68,14 +68,14 @@ void main() {
       ], type: DataType.float64);
 
       final cholesky = a.cholesky;
-      check(cholesky.isSymmetricPositiveDefinite).isFalse();
+      check(cholesky.isSymmetricPositiveDefinite).isFalse;
       check(() => cholesky.solve(a)).throws<StateError>();
 
       final smallNonSymmetric = Matrix<double>.fromRows([
         [1e-13, 1e-13],
         [-1e-13, 1e-13],
       ], type: DataType.float64);
-      check(smallNonSymmetric.cholesky.isSymmetricPositiveDefinite).isFalse();
+      check(smallNonSymmetric.cholesky.isSymmetricPositiveDefinite).isFalse;
     });
   });
 
@@ -87,7 +87,7 @@ void main() {
       ], type: DataType.complex);
 
       final cholesky = a.cholesky;
-      check(cholesky.isSymmetricPositiveDefinite).isTrue();
+      check(cholesky.isSymmetricPositiveDefinite).isTrue;
 
       final l = cholesky.l;
       check(l.get(0, 1)).equals(Complex.zero);
@@ -130,7 +130,7 @@ void main() {
 
       final a = l0 * l0.conjugateTranspose;
       final cholesky = a.cholesky;
-      check(cholesky.isSymmetricPositiveDefinite).isTrue();
+      check(cholesky.isSymmetricPositiveDefinite).isTrue;
 
       final l = cholesky.l;
       final aRec = l * l.conjugateTranspose;
@@ -161,7 +161,7 @@ void main() {
         [const Complex(1.0, 2.0), const Complex(4.0, 0.0)],
       ], type: DataType.complex);
       final cholNonHerm = nonHermitian.cholesky;
-      check(cholNonHerm.isSymmetricPositiveDefinite).isFalse();
+      check(cholNonHerm.isSymmetricPositiveDefinite).isFalse;
       check(() => cholNonHerm.det).throws<StateError>();
       check(
         () => cholNonHerm.solve(
@@ -173,19 +173,19 @@ void main() {
         [const Complex(-1.0, 0.0), const Complex(0.0, 0.0)],
         [const Complex(0.0, 0.0), const Complex(2.0, 0.0)],
       ], type: DataType.complex);
-      check(nonPosDef.cholesky.isSymmetricPositiveDefinite).isFalse();
+      check(nonPosDef.cholesky.isSymmetricPositiveDefinite).isFalse;
 
       final smallNonHermitian = Matrix<Complex>.fromRows([
         [const Complex(1e-13, 0.0), const Complex(0.0, 1e-13)],
         [const Complex(0.0, 1e-13), const Complex(1e-13, 0.0)],
       ], type: DataType.complex);
-      check(smallNonHermitian.cholesky.isSymmetricPositiveDefinite).isFalse();
+      check(smallNonHermitian.cholesky.isSymmetricPositiveDefinite).isFalse;
 
       final zeroDiag = Matrix<Complex>.fromRows([
         [Complex.zero, Complex.one],
         [Complex.one, Complex.one],
       ], type: DataType.complex);
-      check(zeroDiag.cholesky.isSymmetricPositiveDefinite).isFalse();
+      check(zeroDiag.cholesky.isSymmetricPositiveDefinite).isFalse;
 
       // Negative value in Fraction field should NOT be considered positive-definite
       final nonPosFraction = Matrix<Fraction>.fromRows([
@@ -195,14 +195,14 @@ void main() {
       check(
         CholeskyDecomposition<Fraction>(nonPosFraction)
             .isSymmetricPositiveDefinite,
-      ).isFalse();
+      ).isFalse;
 
       // Floating-point rounding asymmetry in transposed product should remain SPD
       final nearSym = Matrix<double>.fromRows([
         [2.0, 1.0 + 1e-15],
         [1.0, 2.0],
       ], type: DataType.float64);
-      check(nearSym.cholesky.isSymmetricPositiveDefinite).isTrue();
+      check(nearSym.cholesky.isSymmetricPositiveDefinite).isTrue;
 
       // Row dimension mismatch in Cholesky.solve
       final spd = Matrix<double>.fromRows([

@@ -14,10 +14,10 @@ void main() {
           final pos = specialRadicalExpr(radical);
           final neg = specialRadicalExpr(radical, negative: true);
 
-          check(isSpecialAngleConstant(pos, radical)).isTrue();
-          check(isSpecialAngleConstant(pos, radical, negative: true)).isFalse();
-          check(isSpecialAngleConstant(neg, radical, negative: true)).isTrue();
-          check(isSpecialAngleConstant(neg, radical)).isFalse();
+          check(isSpecialAngleConstant(pos, radical)).isTrue;
+          check(isSpecialAngleConstant(pos, radical, negative: true)).isFalse;
+          check(isSpecialAngleConstant(neg, radical, negative: true)).isTrue;
+          check(isSpecialAngleConstant(neg, radical)).isFalse;
 
           final idPos = identifySpecialRadical(pos);
           check(idPos).equals((radical: radical, isNegative: false));
@@ -26,10 +26,10 @@ void main() {
           check(idNeg).equals((radical: radical, isNegative: true));
         }
 
-        check(identifySpecialRadical(IntegerNumber.two)).isNull();
-        check(identifySpecialRadical(const Variable('x'))).isNull();
-        check(identifySpecialRadical(const RealNumber(0.5))).isNull();
-        check(identifySpecialRadical(RealNumber(math.sqrt(3)))).isNull();
+        check(identifySpecialRadical(IntegerNumber.two)).isNull;
+        check(identifySpecialRadical(const Variable('x'))).isNull;
+        check(identifySpecialRadical(const RealNumber(0.5))).isNull;
+        check(identifySpecialRadical(RealNumber(math.sqrt(3)))).isNull;
       },
     );
 
@@ -37,23 +37,23 @@ void main() {
       'recognizes alternative exact AST representations of special radicals',
       () {
         // FractionNumber representations of +/- 1/2
-        check(isHalf(FractionNumber.half)).isTrue();
-        check(isHalf(FractionNumber.negativeHalf)).isFalse();
-        check(isHalf(const Variable('x'))).isFalse();
+        check(isHalf(FractionNumber.half)).isTrue;
+        check(isHalf(FractionNumber.negativeHalf)).isFalse;
+        check(isHalf(const Variable('x'))).isFalse;
 
-        check(isNegativeHalf(FractionNumber.negativeHalf)).isTrue();
-        check(isNegativeHalf(FractionNumber.half)).isFalse();
-        check(isNegativeHalf(const Variable('x'))).isFalse();
+        check(isNegativeHalf(FractionNumber.negativeHalf)).isTrue;
+        check(isNegativeHalf(FractionNumber.half)).isFalse;
+        check(isNegativeHalf(const Variable('x'))).isFalse;
 
         // Real numbers must never be recognized as exact constants
-        check(isHalf(const RealNumber(0.5))).isFalse();
-        check(isHalf(const RealNumber(-0.5))).isFalse();
-        check(isNegativeHalf(const RealNumber(-0.5))).isFalse();
-        check(isNegativeHalf(const RealNumber(0.5))).isFalse();
+        check(isHalf(const RealNumber(0.5))).isFalse;
+        check(isHalf(const RealNumber(-0.5))).isFalse;
+        check(isNegativeHalf(const RealNumber(-0.5))).isFalse;
+        check(isNegativeHalf(const RealNumber(0.5))).isFalse;
 
         // Pow(1/2, 1/2) and 2^(-1/2) representations of sqrt(2)/2
         final powHalf = Pow(FractionNumber.half, FractionNumber.half);
-        check(isSqrt2Over2(powHalf)).isTrue();
+        check(isSqrt2Over2(powHalf)).isTrue;
         check(
           isSqrt2Over2(
             Pow(
@@ -61,17 +61,17 @@ void main() {
               const FractionNumber(Integer.negativeOne, Integer.two),
             ),
           ),
-        ).isTrue();
-        check(isSqrt2Over2(const RealNumber(math.sqrt1_2))).isFalse();
-        check(isNegativeSqrt2Over2(const RealNumber(-math.sqrt1_2))).isFalse();
+        ).isTrue;
+        check(isSqrt2Over2(const RealNumber(math.sqrt1_2))).isFalse;
+        check(isNegativeSqrt2Over2(const RealNumber(-math.sqrt1_2))).isFalse;
 
         // Direct Pow(3, 1/2) for isSqrt3
         final sqrt3Pow = Pow(IntegerNumber.of(3), FractionNumber.half);
-        check(isSqrt(sqrt3Pow, 3)).isTrue();
-        check(isSqrt(const Variable('x'), 3)).isFalse();
-        check(isSqrt3(sqrt3Pow)).isTrue();
-        check(isSqrt3(RealNumber(math.sqrt(3)))).isFalse();
-        check(isNegativeSqrt3(RealNumber(-math.sqrt(3)))).isFalse();
+        check(isSqrt(sqrt3Pow, 3)).isTrue;
+        check(isSqrt(const Variable('x'), 3)).isFalse;
+        check(isSqrt3(sqrt3Pow)).isTrue;
+        check(isSqrt3(RealNumber(math.sqrt(3)))).isFalse;
+        check(isNegativeSqrt3(RealNumber(-math.sqrt(3)))).isFalse;
 
         // 3^(-1/2) representation of sqrt(3)/3
         check(
@@ -81,14 +81,14 @@ void main() {
               const FractionNumber(Integer.negativeOne, Integer.two),
             ),
           ),
-        ).isTrue();
-        check(isSqrt3Over3(const RealNumber(0.5773502691896257))).isFalse();
-        check(isSqrt3Over2(const RealNumber(0.8660254037844386))).isFalse();
+        ).isTrue;
+        check(isSqrt3Over3(const RealNumber(0.5773502691896257))).isFalse;
+        check(isSqrt3Over2(const RealNumber(0.8660254037844386))).isFalse;
 
         // Non-real and free-variable expressions return false
-        check(isSqrt3Over2(const Variable('x'))).isFalse();
-        check(isSqrt3Over2(ComplexNumber.i)).isFalse();
-        check(isSqrt3Over3(Ln(IntegerNumber.zero))).isFalse();
+        check(isSqrt3Over2(const Variable('x'))).isFalse;
+        check(isSqrt3Over2(ComplexNumber.i)).isFalse;
+        check(isSqrt3Over3(Ln(IntegerNumber.zero))).isFalse;
       },
     );
   });

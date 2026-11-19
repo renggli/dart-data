@@ -22,8 +22,8 @@ void main() {
 
       check(fresnelS(double.infinity)).equals(0.5);
       check(fresnelC(double.infinity)).equals(0.5);
-      check(fresnelS(double.nan)).isNaN();
-      check(fresnelC(double.nan)).isNaN();
+      check(fresnelS(double.nan)).isNaN;
+      check(fresnelC(double.nan)).isNaN;
     });
   });
 }

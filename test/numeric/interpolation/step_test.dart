@@ -18,8 +18,8 @@ void main() {
       final preferHigher = NearestInterpolation(xs, ys, preferLower: false);
       check(preferHigher(0.5)).isCloseTo(10.0, 1e-9);
 
-      check(interp(double.nan)).isNaN();
-      check(preferHigher(double.nan)).isNaN();
+      check(interp(double.nan)).isNaN;
+      check(preferHigher(double.nan)).isNaN;
     });
 
     test('previous step interpolation', () {
@@ -34,7 +34,7 @@ void main() {
       check(interp(3.5)).isCloseTo(20.0, 1e-9);
       check(interp(4.0)).isCloseTo(40.0, 1e-9);
       check(interp(5.0)).isCloseTo(40.0, 1e-9);
-      check(interp(double.nan)).isNaN();
+      check(interp(double.nan)).isNaN;
     });
 
     test('next step interpolation', () {
@@ -49,7 +49,7 @@ void main() {
       check(interp(3.0)).isCloseTo(40.0, 1e-9);
       check(interp(4.0)).isCloseTo(40.0, 1e-9);
       check(interp(4.1)).isCloseTo(99.0, 1e-9);
-      check(interp(double.nan)).isNaN();
+      check(interp(double.nan)).isNaN;
     });
 
     test('constructor errors', () {

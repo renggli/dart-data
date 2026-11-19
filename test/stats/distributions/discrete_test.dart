@@ -26,8 +26,8 @@ void main() {
       final b1 = BernoulliDistribution(0.4);
       final b2 = BernoulliDistribution(0.4);
       final b3 = BernoulliDistribution(0.6);
-      check(b1 == b2).isTrue();
-      check(b1 == b3).isFalse();
+      check(b1 == b2).isTrue;
+      check(b1 == b3).isFalse;
       check(b1.hashCode).equals(b2.hashCode);
       check(b1.sample()).isNotNull();
 
@@ -35,8 +35,8 @@ void main() {
       final bin1 = BinomialDistribution(10, 0.4);
       final bin2 = BinomialDistribution(10, 0.4);
       final bin3 = BinomialDistribution(10, 0.5);
-      check(bin1 == bin2).isTrue();
-      check(bin1 == bin3).isFalse();
+      check(bin1 == bin2).isTrue;
+      check(bin1 == bin3).isFalse;
       check(bin1.hashCode).equals(bin2.hashCode);
       check(bin1.sample()).isNotNull();
 
@@ -44,8 +44,8 @@ void main() {
       final p1 = PoissonDistribution(50.0);
       final p2 = PoissonDistribution(50.0);
       final p3 = PoissonDistribution(10.0);
-      check(p1 == p2).isTrue();
-      check(p1 == p3).isFalse();
+      check(p1 == p2).isTrue;
+      check(p1 == p3).isFalse;
       check(p1.hashCode).equals(p2.hashCode);
       check(p1.sample()).isNotNull();
       check(p3.sample()).isNotNull();
@@ -54,8 +54,8 @@ void main() {
       final g1 = GeometricDistribution(0.3);
       final g2 = GeometricDistribution(0.3);
       final g3 = GeometricDistribution(0.7);
-      check(g1 == g2).isTrue();
-      check(g1 == g3).isFalse();
+      check(g1 == g2).isTrue;
+      check(g1 == g3).isFalse;
       check(g1.hashCode).equals(g2.hashCode);
       check(g1.sample()).isNotNull();
 
@@ -63,8 +63,8 @@ void main() {
       final h1 = HypergeometricDistribution(50, 20, 10);
       final h2 = HypergeometricDistribution(50, 20, 10);
       final h3 = HypergeometricDistribution(50, 25, 10);
-      check(h1 == h2).isTrue();
-      check(h1 == h3).isFalse();
+      check(h1 == h2).isTrue;
+      check(h1 == h3).isFalse;
       check(h1.hashCode).equals(h2.hashCode);
       check(h1.sample()).isNotNull();
 
@@ -78,15 +78,15 @@ void main() {
       final nb1 = NegativeBinomialDistribution(5, 0.5);
       final nb2 = NegativeBinomialDistribution(5, 0.5);
       final nb3 = NegativeBinomialDistribution(5, 0.6);
-      check(nb1 == nb2).isTrue();
-      check(nb1 == nb3).isFalse();
+      check(nb1 == nb2).isTrue;
+      check(nb1 == nb3).isFalse;
       check(nb1.hashCode).equals(nb2.hashCode);
       check(nb1.sample()).isNotNull();
 
       // Rademacher
       const r1 = RademacherDistribution();
       const r2 = RademacherDistribution();
-      check(r1 == r2).isTrue();
+      check(r1 == r2).isTrue;
       check(r1.hashCode).equals(r2.hashCode);
       check(r1.sample()).isNotNull();
 
@@ -94,20 +94,20 @@ void main() {
       final u1 = UniformDiscreteDistribution(1, 6);
       final u2 = UniformDiscreteDistribution(1, 6);
       final u3 = UniformDiscreteDistribution(1, 10);
-      check(u1 == u2).isTrue();
-      check(u1 == u3).isFalse();
+      check(u1 == u2).isTrue;
+      check(u1 == u3).isFalse;
       check(u1.hashCode).equals(u2.hashCode);
       check(u1.sample()).isNotNull();
 
       // Degenerate skewness/kurtosis and p=0 quantile
-      check(BernoulliDistribution(0.0).skewness).isNaN();
-      check(BernoulliDistribution(0.0).excessKurtosis).isNaN();
-      check(BinomialDistribution(10, 0.0).skewness).isNaN();
-      check(BinomialDistribution(10, 0.0).excessKurtosis).isNaN();
+      check(BernoulliDistribution(0.0).skewness).isNaN;
+      check(BernoulliDistribution(0.0).excessKurtosis).isNaN;
+      check(BinomialDistribution(10, 0.0).skewness).isNaN;
+      check(BinomialDistribution(10, 0.0).excessKurtosis).isNaN;
       check(BinomialDistribution(10, 0.0).inverseCumulativeProbability(1))
           .equals(0);
-      check(UniformDiscreteDistribution(5, 5).skewness).isNaN();
-      check(UniformDiscreteDistribution(5, 5).excessKurtosis).isNaN();
+      check(UniformDiscreteDistribution(5, 5).skewness).isNaN;
+      check(UniformDiscreteDistribution(5, 5).excessKurtosis).isNaN;
 
       // NaN / Infinity parameter and fit validation
       check(() => BernoulliDistribution(double.nan)).throws<ArgumentError>();

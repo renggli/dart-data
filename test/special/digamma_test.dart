@@ -10,21 +10,21 @@ void main() {
       check(digamma(1)).isCloseTo(-0.5772156649, 1e-6); // -EulerMascheroni
       check(digamma(2)).isCloseTo(1.0 - 0.5772156649, 1e-6);
       check(digamma(0.5)).isCloseTo(-2.0 * math.ln2 - 0.5772156649, 1e-6);
-      check(digamma(0)).isNaN();
-      check(digamma(-1)).isNaN();
+      check(digamma(0)).isNaN;
+      check(digamma(-1)).isNaN;
       check(digamma(double.infinity)).equals(double.infinity);
-      check(digamma(double.negativeInfinity)).isNaN();
-      check(digamma(-1.5).isFinite).isTrue();
+      check(digamma(double.negativeInfinity)).isNaN;
+      check(digamma(-1.5).isFinite).isTrue;
     });
 
     test('trigamma known values', () {
       check(trigamma(1)).isCloseTo(math.pi * math.pi / 6.0, 1e-6);
       check(trigamma(2)).isCloseTo(math.pi * math.pi / 6.0 - 1.0, 1e-6);
-      check(trigamma(0)).isNaN();
-      check(trigamma(-1)).isNaN();
+      check(trigamma(0)).isNaN;
+      check(trigamma(-1)).isNaN;
       check(trigamma(double.infinity)).equals(0.0);
-      check(trigamma(double.negativeInfinity)).isNaN();
-      check(trigamma(-1.5).isFinite).isTrue();
+      check(trigamma(double.negativeInfinity)).isNaN;
+      check(trigamma(-1.5).isFinite).isTrue;
     });
 
     test('polygamma known values', () {
@@ -46,9 +46,9 @@ void main() {
       check(polygamma(2, 2)).isCloseTo(-0.4041138063191885, 1e-8);
 
       // Non-positive integers return NaN
-      check(polygamma(2, 0)).isNaN();
-      check(polygamma(2, -1)).isNaN();
-      check(polygamma(2, -2)).isNaN();
+      check(polygamma(2, 0)).isNaN;
+      check(polygamma(2, -1)).isNaN;
+      check(polygamma(2, -2)).isNaN;
 
       // Negative non-integers are finite via reflection
       check(polygamma(2, -0.5)).isCloseTo(polygamma(2, 1.5), 1e-10);
@@ -57,9 +57,9 @@ void main() {
           .isCloseTo(2 * math.pow(math.pi, 4) - polygamma(3, 1.5), 1e-8);
 
       // Large negative values evaluate instantly via reflection without looping
-      check(polygamma(2, -1e8 - 0.5).isFinite).isTrue();
-      check(polygamma(2, -1e14 - 0.5).isFinite).isTrue();
-      check(polygamma(3, -1e8 - 0.5).isFinite).isTrue();
+      check(polygamma(2, -1e8 - 0.5).isFinite).isTrue;
+      check(polygamma(2, -1e14 - 0.5).isFinite).isTrue;
+      check(polygamma(3, -1e8 - 0.5).isFinite).isTrue;
     });
   });
 }

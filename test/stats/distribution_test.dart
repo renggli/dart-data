@@ -65,8 +65,8 @@ void main() {
       check(dist.excessKurtosis).equals(0.0);
       check(dist.lowerBound).equals(0.0);
       check(dist.upperBound).equals(10.0);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
+      check(dist.isLowerBoundOpen).isFalse;
+      check(dist.isUpperBoundOpen).isFalse;
     });
 
     test('probabilities and CDF', () {

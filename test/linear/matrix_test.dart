@@ -207,25 +207,25 @@ void main() {
         [2, 5, 6],
         [3, 6, 9],
       ]);
-      check(sym.isSymmetric).isTrue();
-      check(sym.isDiagonal).isFalse();
+      check(sym.isSymmetric).isTrue;
+      check(sym.isDiagonal).isFalse;
 
       final diag = Matrix<int>.fromRows([
         [1, 0, 0],
         [0, 2, 0],
         [0, 0, 3],
       ]);
-      check(diag.isDiagonal).isTrue();
-      check(diag.isLowerTriangular).isTrue();
-      check(diag.isUpperTriangular).isTrue();
+      check(diag.isDiagonal).isTrue;
+      check(diag.isLowerTriangular).isTrue;
+      check(diag.isUpperTriangular).isTrue;
 
       final lower = Matrix<int>.fromRows([
         [1, 0, 0],
         [4, 5, 0],
         [7, 8, 9],
       ]);
-      check(lower.isLowerTriangular).isTrue();
-      check(lower.isUpperTriangular).isFalse();
+      check(lower.isLowerTriangular).isTrue;
+      check(lower.isUpperTriangular).isFalse;
 
       final nested = lower.toNestedList();
       check(nested).deepEquals([
@@ -253,12 +253,12 @@ void main() {
       final b = Vector<double>.fromList([4.0, 7.0]);
 
       final luSol = a.lu.solveVector(b);
-      check(luSol[0]).which((it) => it.isCloseTo(1.0, 1e-12));
-      check(luSol[1]).which((it) => it.isCloseTo(2.0, 1e-12));
+      check(luSol[0]).which(.it()..isCloseTo(1.0, 1e-12));
+      check(luSol[1]).which(.it()..isCloseTo(2.0, 1e-12));
 
       final choleskySol = a.cholesky.solveVector(b);
-      check(choleskySol[0]).which((it) => it.isCloseTo(1.0, 1e-12));
-      check(choleskySol[1]).which((it) => it.isCloseTo(2.0, 1e-12));
+      check(choleskySol[0]).which(.it()..isCloseTo(1.0, 1e-12));
+      check(choleskySol[1]).which(.it()..isCloseTo(2.0, 1e-12));
     });
   });
 
@@ -332,10 +332,10 @@ void main() {
       check(lu.det).isCloseTo(16.0, 1e-10);
 
       final qr = a.qr;
-      check(qr.isFullRank).isTrue();
+      check(qr.isFullRank).isTrue;
 
       final chol = a.cholesky;
-      check(chol.isSymmetricPositiveDefinite).isTrue();
+      check(chol.isSymmetricPositiveDefinite).isTrue;
 
       final svd = a.svd;
       check(svd.s.length).equals(2);
@@ -355,10 +355,10 @@ void main() {
       check(lu.det).isCloseTo(4.0, 1e-10);
 
       final qr = a.qr;
-      check(qr.isFullRank).isTrue();
+      check(qr.isFullRank).isTrue;
 
       final chol = a.cholesky;
-      check(chol.isSymmetricPositiveDefinite).isTrue();
+      check(chol.isSymmetricPositiveDefinite).isTrue;
 
       final svd = a.svd;
       check(svd.s.length).equals(2);
@@ -377,10 +377,10 @@ void main() {
       check(lu.det).isCloseTo(16.0, 1e-10);
 
       final qr = a.qr;
-      check(qr.isFullRank).isTrue();
+      check(qr.isFullRank).isTrue;
 
       final chol = a.cholesky;
-      check(chol.isSymmetricPositiveDefinite).isTrue();
+      check(chol.isSymmetricPositiveDefinite).isTrue;
 
       final svd = a.svd;
       check(svd.s.length).equals(2);
@@ -397,7 +397,7 @@ void main() {
       ], type: DataType.fraction);
 
       final lu = a.lu;
-      check(lu.isNonsingular).isTrue();
+      check(lu.isNonsingular).isTrue;
       check(lu.det).equals(Fraction(16));
       check(a.det).equals(Fraction(16));
 
@@ -411,10 +411,10 @@ void main() {
       check(ident.get(1, 0)).equals(Fraction.zero);
 
       final chol = a.cholesky;
-      check(chol.isSymmetricPositiveDefinite).isTrue();
+      check(chol.isSymmetricPositiveDefinite).isTrue;
 
       final qr = a.qr;
-      check(qr.isFullRank).isTrue();
+      check(qr.isFullRank).isTrue;
     });
 
     test('non-numeric matrices have no decomposition getters and avoid downcast TypeError', () {
@@ -1119,24 +1119,24 @@ void main() {
           [1, 2],
           [2, 3],
         ]);
-        check(square.isSquare).isTrue();
-        check(square.isSymmetric).isTrue();
-        check(square.isDiagonal).isFalse();
+        check(square.isSquare).isTrue;
+        check(square.isSymmetric).isTrue;
+        check(square.isDiagonal).isFalse;
 
         final rect = Matrix<int>.fromRows([
           [1, 2, 3],
           [4, 5, 6],
         ]);
-        check(rect.isSquare).isFalse();
-        check(rect.isSymmetric).isFalse();
+        check(rect.isSquare).isFalse;
+        check(rect.isSymmetric).isFalse;
 
         final diag = Matrix<int>.fromRows([
           [5, 0],
           [0, 8],
         ]);
-        check(diag.isDiagonal).isTrue();
-        check(diag.isLowerTriangular).isTrue();
-        check(diag.isUpperTriangular).isTrue();
+        check(diag.isDiagonal).isTrue;
+        check(diag.isLowerTriangular).isTrue;
+        check(diag.isUpperTriangular).isTrue;
       },
     );
 
@@ -1294,7 +1294,7 @@ void main() {
       check(infMat.normFrobenius).equals(double.infinity);
 
       final nanVec = Vector<double>.fromList([1.0, double.nan, 3.0]);
-      check(nanVec.norm(double.infinity).isNaN).isTrue();
+      check(nanVec.norm(double.infinity).isNaN).isTrue;
 
       final f64v = Float64Vector.fromList([3.0, 4.0]);
       check(f64v.normalized().norm()).isCloseTo(1.0, 1e-12);
@@ -1459,10 +1459,10 @@ void main() {
       ]);
       final diffDim = Matrix<double>.filled(2, 3, 1.0);
 
-      check(a.isClose(b)).isTrue();
-      check(a.isClose(c)).isFalse();
-      check(a.isClose(c, epsilon: 0.2)).isTrue();
-      check(a.isClose(diffDim)).isFalse();
+      check(a.isClose(b)).isTrue;
+      check(a.isClose(c)).isFalse;
+      check(a.isClose(c, epsilon: 0.2)).isTrue;
+      check(a.isClose(diffDim)).isFalse;
     });
 
     test('kronecker product computes block multiplication', () {
@@ -1497,26 +1497,26 @@ void main() {
 
       // Condition 1: A * A^+ * A = A
       final cond1 = a * pinv * a;
-      check(cond1.isClose(a, epsilon: 1e-10)).isTrue();
+      check(cond1.isClose(a, epsilon: 1e-10)).isTrue;
 
       // Condition 2: A^+ * A * A^+ = A^+
       final cond2 = pinv * a * pinv;
-      check(cond2.isClose(pinv, epsilon: 1e-10)).isTrue();
+      check(cond2.isClose(pinv, epsilon: 1e-10)).isTrue;
 
       // Condition 3: (A * A^+)^T = A * A^+
       final aPinv = a * pinv;
-      check(aPinv.transposed.isClose(aPinv, epsilon: 1e-10)).isTrue();
+      check(aPinv.transposed.isClose(aPinv, epsilon: 1e-10)).isTrue;
 
       // Condition 4: (A^+ * A)^T = A^+ * A
       final pinvA = pinv * a;
-      check(pinvA.transposed.isClose(pinvA, epsilon: 1e-10)).isTrue();
+      check(pinvA.transposed.isClose(pinvA, epsilon: 1e-10)).isTrue;
 
       // Square invertible matrix: pinv == inverse
       final sq = Matrix<double>.fromRows([
         [4.0, 7.0],
         [2.0, 6.0],
       ]);
-      check(sq.pseudoinverse().isClose(sq.inverse, epsilon: 1e-10)).isTrue();
+      check(sq.pseudoinverse().isClose(sq.inverse, epsilon: 1e-10)).isTrue;
 
       // Empty matrix
       final empty = Matrix<double>.filled(0, 0, 0.0);

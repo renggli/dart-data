@@ -75,7 +75,7 @@ void main() {
       check(fn(3.0)).equals(10.0);
 
       final latex = (x * 2 + 1).toLatex();
-      check(latex.isNotEmpty).isTrue();
+      check(latex.isNotEmpty).isTrue;
     });
   });
 
@@ -397,7 +397,7 @@ void main() {
       check(res1.pValue).isA<double>();
 
       final res2 = tTestTwoSample([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]);
-      check(res2.isSignificant).isTrue();
+      check(res2.isSignificant).isTrue;
     });
 
     test('bootstrap', () {
@@ -659,7 +659,7 @@ void main() {
       const x = Variable('x');
       final f = x.pow(3) + x * 2;
       final df = f.derivative('x').simplify();
-      check(df.toLatex().isNotEmpty).isTrue();
+      check(df.toLatex().isNotEmpty).isTrue;
       final fn = df.toFunction1D('x');
       check(fn(2.0)).isCloseTo(14.0, 1e-6);
     });

@@ -8,15 +8,15 @@ void main() {
   group('VforceDart Edge Cases', () {
     test('mean on empty list returns NaN', () {
       final empty = Float64List(0);
-      check(VforceDart.mean(x: empty, n: 0)).isNaN();
+      check(VforceDart.mean(x: empty, n: 0)).isNaN;
     });
 
     test('variance on empty or single element list', () {
       final empty = Float64List(0);
-      check(VforceDart.variance(x: empty, n: 0, sample: true)).isNaN();
+      check(VforceDart.variance(x: empty, n: 0, sample: true)).isNaN;
 
       final single = Float64List.fromList([42.0]);
-      check(VforceDart.variance(x: single, n: 1, sample: true)).isNaN();
+      check(VforceDart.variance(x: single, n: 1, sample: true)).isNaN;
       check(VforceDart.variance(x: single, n: 1, sample: false)).equals(0.0);
     });
 

@@ -111,8 +111,8 @@ void main() {
       final dist2 = MultivariateNormalDistribution(mean2, cov2);
       final dist3 = MultivariateNormalDistribution.standard(3);
 
-      check(dist1 == dist2).isTrue();
-      check(dist1 == dist3).isFalse();
+      check(dist1 == dist2).isTrue;
+      check(dist1 == dist3).isFalse;
       check(dist1.hashCode).equals(dist2.hashCode);
       check(dist1.toString()).contains('MultivariateNormalDistribution');
     });

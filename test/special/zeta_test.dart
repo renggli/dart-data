@@ -26,14 +26,14 @@ void main() {
 
       // s < -170 avoids overflow in gamma
       check(zeta(-170)).equals(0.0);
-      check(zeta(-171).isFinite).isTrue();
-      check(zeta(-170.5).isFinite).isTrue();
-      check(zeta(-301).isInfinite).isTrue();
+      check(zeta(-171).isFinite).isTrue;
+      check(zeta(-170.5).isFinite).isTrue;
+      check(zeta(-301).isInfinite).isTrue;
     });
 
     test('zeta edge cases', () {
-      check(zeta(double.nan)).isNaN();
-      check(zeta(double.negativeInfinity)).isNaN();
+      check(zeta(double.nan)).isNaN;
+      check(zeta(double.negativeInfinity)).isNaN;
     });
   });
 }

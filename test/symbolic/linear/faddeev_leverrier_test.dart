@@ -14,7 +14,7 @@ void main() {
         IntegerNumber.zero,
         type: exprDataType,
       );
-      check(engine.compute(m0).coefficients).isEmpty();
+      check(engine.compute(m0).coefficients).isEmpty;
       check(m0.characteristicPolynomial()).equals(IntegerNumber.one);
 
       final m1 = Matrix<Expr>.fromRows([
@@ -71,7 +71,7 @@ void main() {
       final m1Zero = Matrix<Expr>.fromRows([
         [IntegerNumber.zero],
       ], type: exprDataType);
-      check(m1Zero.inverse()).isNull();
+      check(m1Zero.inverse()).isNull;
 
       final a = Matrix<Expr>.fromRows([
         [IntegerNumber.of(1), IntegerNumber.of(2)],
@@ -99,7 +99,7 @@ void main() {
         [IntegerNumber.one, IntegerNumber.two],
         [IntegerNumber.two, IntegerNumber.of(4)],
       ], type: exprDataType);
-      check(singular.inverse()).isNull();
+      check(singular.inverse()).isNull;
 
       final rect = Matrix<Expr>.filled(
         2,

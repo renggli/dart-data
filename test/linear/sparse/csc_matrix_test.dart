@@ -69,7 +69,7 @@ void main() {
       final vFlipped = Vector<double>(
         Tensor<double>.fromIterable([1.0, 2.0]).flip(),
       );
-      check(vFlipped.tensor.isContiguous).isFalse();
+      check(vFlipped.tensor.isContiguous).isFalse;
       final res = cscEntries.applyTranspose(vFlipped);
       check(res[0]).equals(10.0);
       check(res[1]).equals(10.0);
@@ -230,7 +230,7 @@ void main() {
       check(at.get(0, 0)).equals(1.0);
       check(at.get(2, 0)).equals(2.0);
       check(at.get(1, 1)).equals(3.0);
-      check(at.transposed == a).isTrue();
+      check(at.transposed == a).isTrue;
     });
 
     test('scale', () {
@@ -249,7 +249,7 @@ void main() {
       check(neg.get(0, 0)).equals(-1.0);
       check(neg.get(0, 2)).equals(-2.0);
       check(neg.get(1, 1)).equals(-3.0);
-      check((-neg) == a).isTrue();
+      check((-neg) == a).isTrue;
     });
 
     test('addition and subtraction', () {
@@ -277,9 +277,9 @@ void main() {
         (1, 1, 3.0),
         (0, 0, 1.0),
       ]).toCsc();
-      check(a == a2).isTrue();
+      check(a == a2).isTrue;
       check(a.hashCode).equals(a2.hashCode);
-      check(a == b).isFalse();
+      check(a == b).isFalse;
 
       // Explicit zero element does not violate hashCode contract
       final withExplicitZero = CscMatrix<double>(
@@ -290,7 +290,7 @@ void main() {
         values: [1.0, 0.0, 3.0, 2.0],
         type: DataType.float64,
       );
-      check(a == withExplicitZero).isTrue();
+      check(a == withExplicitZero).isTrue;
       check(a.hashCode).equals(withExplicitZero.hashCode);
 
       // Different column for same non-zero value produces different hashCode
@@ -310,8 +310,8 @@ void main() {
         values: [5.0],
         type: DataType.float64,
       );
-      check(mCol0 == mCol1).isFalse();
-      check(mCol0.hashCode == mCol1.hashCode).isFalse();
+      check(mCol0 == mCol1).isFalse;
+      check(mCol0.hashCode == mCol1.hashCode).isFalse;
     });
 
     test('constructor rejects duplicate rowIndices in column', () {

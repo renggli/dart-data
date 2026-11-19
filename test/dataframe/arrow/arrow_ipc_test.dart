@@ -17,7 +17,7 @@ void main() {
       });
 
       final ipcBytes = df.toArrowIpc();
-      check(ipcBytes.isNotEmpty).isTrue();
+      check(ipcBytes.isNotEmpty).isTrue;
 
       // Check header continuation token (0xFFFFFFFF)
       check(ipcBytes[0]).equals(0xFF);

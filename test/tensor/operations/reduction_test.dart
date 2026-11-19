@@ -18,7 +18,7 @@ void main() {
 
       // Global sum (routes to Vforce.sum for contiguous Float64)
       final globalSum = t.sum();
-      check(globalSum.shape).isEmpty();
+      check(globalSum.shape).isEmpty;
       check(globalSum.getValue([])).isCloseTo(21.0, 1e-10);
 
       // keepDims = true
@@ -48,7 +48,7 @@ void main() {
       );
 
       final m = t.mean();
-      check(m.shape).isEmpty();
+      check(m.shape).isEmpty;
       check(m.getValue([])).isCloseTo(3.5, 1e-10);
 
       final mKeep = t.mean(keepDims: true);
@@ -169,11 +169,11 @@ void main() {
       check(minAxis1.getValue([1])).equals(2.0);
 
       final argminGlobal = t.argmin();
-      check(argminGlobal.shape).isEmpty();
+      check(argminGlobal.shape).isEmpty;
       check(argminGlobal.getValue([])).equals(1);
 
       final argmaxGlobal = t.argmax();
-      check(argmaxGlobal.shape).isEmpty();
+      check(argmaxGlobal.shape).isEmpty;
       check(argmaxGlobal.getValue([])).equals(2);
 
       final argminAxis1 = t.argmin(axis: 1);
@@ -243,15 +243,15 @@ void main() {
         [1.0, double.nan, 3.0, 4.0],
         shape: [2, 2],
       );
-      check(nanTensor.min().getValue([]).isNaN).isTrue();
-      check(nanTensor.max().getValue([]).isNaN).isTrue();
-      check(nanTensor.min(axis: 1).toFlatList()[0].isNaN).isTrue();
-      check(nanTensor.max(axis: 1).toFlatList()[0].isNaN).isTrue();
+      check(nanTensor.min().getValue([]).isNaN).isTrue;
+      check(nanTensor.max().getValue([]).isNaN).isTrue;
+      check(nanTensor.min(axis: 1).toFlatList()[0].isNaN).isTrue;
+      check(nanTensor.max(axis: 1).toFlatList()[0].isNaN).isTrue;
       check(nanTensor.argmin().getValue([])).equals(1);
       check(nanTensor.argmax().getValue([])).equals(1);
       check(nanTensor.argmin(axis: 1).toFlatList()).deepEquals([1, 0]);
       check(nanTensor.argmax(axis: 1).toFlatList()).deepEquals([1, 1]);
-      check(nanTensor.norm(double.infinity).isNaN).isTrue();
+      check(nanTensor.norm(double.infinity).isNaN).isTrue;
 
       // min/max along non-empty axis on [0, 3] tensor returns [0] tensor
       final emptyRows = Tensor<double>.filled(0.0, shape: [0, 3]);

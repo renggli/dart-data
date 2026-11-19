@@ -7,16 +7,16 @@ void main() {
     test('evaluation, freeVariables, dependsOn, and substitute', () {
       const x = Variable('x');
       const y = Variable('y');
-      check(x.isSimplified).isTrue();
+      check(x.isSimplified).isTrue;
       check(() => x.evaluate({})).throws<ArgumentError>();
       check(x.evaluate({'x': 4.5})).equals(4.5);
       check(x.mapChildren((e) => y)).equals(x);
-      check(x.anyNode((e) => e == x)).isTrue();
+      check(x.anyNode((e) => e == x)).isTrue;
 
       final expr = x * y + Sin(x);
       check(expr.freeVariables).unorderedEquals(['x', 'y']);
-      check(expr.dependsOn('x')).isTrue();
-      check(expr.dependsOn('z')).isFalse();
+      check(expr.dependsOn('x')).isTrue;
+      check(expr.dependsOn('z')).isFalse;
 
       final sub = expr.substitute('x', IntegerNumber.zero);
       check(sub.freeVariables).unorderedEquals(['y']);
@@ -29,8 +29,8 @@ void main() {
       const x1 = Variable('x');
       const x2 = Variable('x');
       const y = Variable('y');
-      check(x1 == x2).isTrue();
-      check(x1 == y).isFalse();
+      check(x1 == x2).isTrue;
+      check(x1 == y).isFalse;
       check(x1.hashCode).equals(x2.hashCode);
       check(Assumptions.none.domainOf('x')).equals(VariableDomain.unknown);
       check(
@@ -46,16 +46,16 @@ void main() {
       const y = Variable('y');
       final f = Expr.parse('f(x + x, y)');
       check(f).equals(VariableFunction('f', [x + x, y]));
-      check(f.isSimplified).isFalse();
+      check(f.isSimplified).isFalse;
       check(f.toString()).equals('f(x + x, y)');
       check(f.toLatex()).equals('f(x + x, y)');
       check(f.toMathMl(root: false)).equals(
         '<mrow><mi>f</mi><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>x</mi></mrow><mo>,</mo><mi>y</mi><mo>)</mo></mrow>',
       );
       check(f.freeVariables).unorderedEquals(['x', 'y']);
-      check(f.dependsOn('x')).isTrue();
-      check(f.dependsOn('z')).isFalse();
-      check(f.anyNode((e) => e == y)).isTrue();
+      check(f.dependsOn('x')).isTrue;
+      check(f.dependsOn('z')).isFalse;
+      check(f.anyNode((e) => e == y)).isTrue;
 
       final simplified = f.simplify();
       check(simplified).equals(
@@ -64,7 +64,7 @@ void main() {
           y,
         ], isSimplified: true),
       );
-      check(simplified.isSimplified).isTrue();
+      check(simplified.isSimplified).isTrue;
       check(simplified.hashCode).equals(
         VariableFunction('f', [
           Mul([IntegerNumber.two, x]),

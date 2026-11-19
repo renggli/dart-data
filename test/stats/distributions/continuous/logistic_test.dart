@@ -48,7 +48,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.isNotEmpty).isTrue();
+      check(samples.isNotEmpty).isTrue;
     });
 
     test('fit', () {
@@ -68,7 +68,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == LogisticDistribution(0.0, 1.0)).isTrue();
+      check(dist == LogisticDistribution(0.0, 1.0)).isTrue;
       check(dist.hashCode).equals(LogisticDistribution(0.0, 1.0).hashCode);
     });
 

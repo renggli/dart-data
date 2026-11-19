@@ -45,11 +45,11 @@ void main() {
       check(() => Integer(unsafe)).throws<AssertionError>();
     });
     test('from int', () {
-      check(Integer.from(Integer.maxSafe).isBig).isFalse();
-      check(Integer.from(-Integer.maxSafe).isBig).isFalse();
+      check(Integer.from(Integer.maxSafe).isBig).isFalse;
+      check(Integer.from(-Integer.maxSafe).isBig).isFalse;
       final unsafe = int.parse('9007199254740992');
-      check(Integer.from(unsafe).isBig).isTrue();
-      check(Integer.from(-unsafe).isBig).isTrue();
+      check(Integer.from(unsafe).isBig).isTrue;
+      check(Integer.from(-unsafe).isBig).isTrue;
       checkInvariant(Integer.from(unsafe), maxSafe + BigInt.one);
     });
     test('from BigInt demotes safe values', () {
@@ -60,8 +60,8 @@ void main() {
       }
       check(Integer.big(maxSafe).asInt).equals(Integer.maxSafe);
       check(Integer.big(-maxSafe).asInt).equals(-Integer.maxSafe);
-      check(Integer.big(maxSafe + BigInt.one).asInt).isNull();
-      check(Integer.big(-maxSafe - BigInt.one).asInt).isNull();
+      check(Integer.big(maxSafe + BigInt.one).asInt).isNull;
+      check(Integer.big(-maxSafe - BigInt.one).asInt).isNull;
     });
     test('conversions', () {
       check(const Integer(-5).toInt()).equals(-5);
@@ -83,15 +83,15 @@ void main() {
           .equals(const Integer(-123456789012345));
     });
     test('safe range boundaries', () {
-      check(Integer.parse('9007199254740991').isBig).isFalse();
-      check(Integer.parse('-9007199254740991').isBig).isFalse();
-      check(Integer.parse('9007199254740992').isBig).isTrue();
-      check(Integer.parse('-9007199254740992').isBig).isTrue();
+      check(Integer.parse('9007199254740991').isBig).isFalse;
+      check(Integer.parse('-9007199254740991').isBig).isFalse;
+      check(Integer.parse('9007199254740992').isBig).isTrue;
+      check(Integer.parse('-9007199254740992').isBig).isTrue;
     });
     test('leading zeros demote', () {
       final value = Integer.parse('00000000000000000000000012');
       check(value).equals(const Integer(12));
-      check(value.isBig).isFalse();
+      check(value.isBig).isFalse;
     });
     test('long digit strings', () {
       for (final length in const [16, 19, 20, 50, 100, 1000]) {
@@ -127,7 +127,7 @@ void main() {
     test('equality across representations', () {
       final big = Integer.big(maxSafe + BigInt.one);
       check(big - Integer.one).equals(const Integer(Integer.maxSafe));
-      check((big - Integer.one).isBig).isFalse();
+      check((big - Integer.one).isBig).isFalse;
       check((big - Integer.one).hashCode)
           .equals(const Integer(Integer.maxSafe).hashCode);
       check(Integer.big(BigInt.from(5))).equals(const Integer(5));
@@ -155,7 +155,7 @@ void main() {
       ]) {
         check(zero).equals(Integer.zero);
         check(zero.toString()).equals('0');
-        check(zero.isNegative).isFalse();
+        check(zero.isNegative).isFalse;
         check(zero.sign).equals(0);
       }
     });
@@ -236,7 +236,7 @@ void main() {
         sum -= step;
       }
       check(sum).equals(Integer.zero);
-      check(sum.isBig).isFalse();
+      check(sum.isBig).isFalse;
     });
   });
   group('gcd', () {
@@ -267,20 +267,20 @@ void main() {
       checkInvariant(a.lcm(b), BigInt.two.pow(100) * BigInt.from(9));
     });
     test('isPrime', () {
-      check(Integer.zero.isPrime).isFalse();
-      check(Integer.one.isPrime).isFalse();
-      check(Integer.negativeOne.isPrime).isFalse();
-      check(const Integer(-7).isPrime).isFalse();
+      check(Integer.zero.isPrime).isFalse;
+      check(Integer.one.isPrime).isFalse;
+      check(Integer.negativeOne.isPrime).isFalse;
+      check(const Integer(-7).isPrime).isFalse;
       for (final p in const [2, 3, 5, 7, 11, 13, 97, 101, 104729, 2147483647]) {
-        check(Integer.from(p).isPrime).isTrue();
+        check(Integer.from(p).isPrime).isTrue;
       }
       for (final c in const [4, 6, 8, 9, 15, 21, 561, 1105, 1729, 104727]) {
-        check(Integer.from(c).isPrime).isFalse();
+        check(Integer.from(c).isPrime).isFalse;
       }
       // Mersenne primes 2^89 - 1 and 2^127 - 1, and composite 2^67 - 1
-      check(Integer.big(BigInt.two.pow(89) - BigInt.one).isPrime).isTrue();
-      check(Integer.big(BigInt.two.pow(127) - BigInt.one).isPrime).isTrue();
-      check(Integer.big(BigInt.two.pow(67) - BigInt.one).isPrime).isFalse();
+      check(Integer.big(BigInt.two.pow(89) - BigInt.one).isPrime).isTrue;
+      check(Integer.big(BigInt.two.pow(127) - BigInt.one).isPrime).isTrue;
+      check(Integer.big(BigInt.two.pow(67) - BigInt.one).isPrime).isFalse;
     });
     test('RationalNumber gcd, lcm, and isPrime', () {
       check(IntegerNumber.of(12).gcd(IntegerNumber.of(18)))
@@ -291,22 +291,22 @@ void main() {
           .equals(RationalNumber(2, 9));
       check(RationalNumber(2, 3).lcm(RationalNumber(4, 9)))
           .equals(RationalNumber(4, 3));
-      check(IntegerNumber.of(13).isPrime).isTrue();
-      check(IntegerNumber.of(15).isPrime).isFalse();
-      check(RationalNumber(3, 2).isPrime).isFalse();
+      check(IntegerNumber.of(13).isPrime).isTrue;
+      check(IntegerNumber.of(15).isPrime).isFalse;
+      check(RationalNumber(3, 2).isPrime).isFalse;
     });
     test('isqrt', () {
-      check(const Integer(-5).isqrt()).isNull();
+      check(const Integer(-5).isqrt()).isNull;
       check(Integer.zero.isqrt()).equals(Integer.zero);
       check(Integer.one.isqrt()).equals(Integer.one);
       check(const Integer(4).isqrt()).equals(Integer.two);
       check(const Integer(9).isqrt()).equals(const Integer(3));
-      check(const Integer(10).isqrt()).isNull();
+      check(const Integer(10).isqrt()).isNull;
       check(const Integer(144).isqrt()).equals(const Integer(12));
       final bigSquare = Integer.big(BigInt.from(10).pow(60));
       check(bigSquare.isqrt()).equals(Integer.big(BigInt.from(10).pow(30)));
       final nonSquare = Integer.big(BigInt.from(10).pow(60) + BigInt.one);
-      check(nonSquare.isqrt()).isNull();
+      check(nonSquare.isqrt()).isNull;
     });
     test('factorial', () {
       check(Integer.zero.factorial()).equals(Integer.one);
@@ -360,14 +360,14 @@ void main() {
     test('size limit', () {
       check(Integer.two.pow(65535))
           .isNotNull()
-          .has((value) => value.bitLength, 'bitLength')
+          .has('bitLength', (value) => value.bitLength)
           .equals(65536);
-      check(Integer.two.pow(65536)).isNull();
-      check(const Integer(3).pow(100, maxBitLength: 100)).isNull();
+      check(Integer.two.pow(65536)).isNull;
+      check(const Integer(3).pow(100, maxBitLength: 100)).isNull;
       check(const Integer(3).pow(100, maxBitLength: 159))
           .isNotNull()
           .equals(Integer.big(BigInt.from(3).pow(100)));
-      check(Integer.two.pow(1000000)).isNull();
+      check(Integer.two.pow(1000000)).isNull;
       check(Integer.two.pow(100000, maxBitLength: 100001)).isNotNull();
     });
     test('negative exponent', () {

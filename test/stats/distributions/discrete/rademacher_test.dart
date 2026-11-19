@@ -11,11 +11,11 @@ void main() {
     test('moments and parameters', () {
       check(dist.lowerBound).equals(-1);
       check(dist.upperBound).equals(1);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
+      check(dist.isLowerBoundOpen).isFalse;
+      check(dist.isUpperBoundOpen).isFalse;
       check(dist.mean).equals(0.0);
       check(dist.median).equals(0.0);
-      check(dist.mode.isNaN).isTrue();
+      check(dist.mode.isNaN).isTrue;
       check(dist.variance).equals(1.0);
       check(dist.standardDeviation).equals(1.0);
       check(dist.skewness).equals(0.0);
@@ -53,7 +53,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample == -1 || sample == 1)).isTrue();
+      check(samples.every((sample) => sample == -1 || sample == 1)).isTrue;
     });
 
     test('fit', () {

@@ -102,8 +102,8 @@ void main() {
     test('projection and rejection with non-contiguous vectors', () {
       final u = Vector<double>(Tensor<double>.fromIterable([4.0, 3.0]).flip());
       final v = Vector<double>(Tensor<double>.fromIterable([0.0, 1.0]).flip());
-      check(u.tensor.isContiguous).isFalse();
-      check(v.tensor.isContiguous).isFalse();
+      check(u.tensor.isContiguous).isFalse;
+      check(v.tensor.isContiguous).isFalse;
 
       final proj = u.project(v);
       final rej = u.reject(v);

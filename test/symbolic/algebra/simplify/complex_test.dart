@@ -67,7 +67,7 @@ void main() {
       const z = Variable('z');
       const complexZ = Assumptions(domains: {'z': VariableDomain.complex});
       final polarZ = toPolarExpr(z, assumptions: complexZ);
-      check(polarZ is Mul).isTrue();
+      check(polarZ is Mul).isTrue;
 
       final polar22 = toPolarExpr(
         ComplexNumber.of(IntegerNumber.two, IntegerNumber.two),
@@ -75,7 +75,7 @@ void main() {
       );
       check(polar22.toString()).equals('2 * sqrt(2) * exp(1/4 * i * pi)');
       check(polar22.anyNode((n) => n is Mul && n.factors.any((f) => f is Mul)))
-          .isFalse();
+          .isFalse;
 
       final rectC = toRectangularExpr(
         Constant.pi,
@@ -114,13 +114,13 @@ void main() {
           Add([IntegerNumber.of(2), IntegerNumber.of(4)]),
           assumptions: Assumptions.none,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         isEvenIntegerExpr(
           Pow(IntegerNumber.of(2), IntegerNumber.of(3)),
           assumptions: Assumptions.none,
         ),
-      ).isTrue();
+      ).isTrue;
 
       // isIntegerExpr guards non-integer Factorial, Binomial, and complex Sign
       check(
@@ -128,15 +128,15 @@ void main() {
           Factorial(FractionNumber.half),
           assumptions: Assumptions.none,
         ),
-      ).isFalse();
+      ).isFalse;
       check(
         isIntegerExpr(
           Binomial(FractionNumber.half, IntegerNumber.two),
           assumptions: Assumptions.none,
         ),
-      ).isFalse();
-      check(isIntegerExpr(Sign(z), assumptions: complexZ)).isFalse();
-      check(isIntegerExpr(Sign(x), assumptions: realAssumptions)).isTrue();
+      ).isFalse;
+      check(isIntegerExpr(Sign(z), assumptions: complexZ)).isFalse;
+      check(isIntegerExpr(Sign(x), assumptions: realAssumptions)).isTrue;
       check(Floor(Factorial(x)).simplify()).isA<Floor>();
 
       // RealNumber contagion in Mod, Re, Im, Arg, and toPolarExpr
@@ -428,33 +428,30 @@ void main() {
           .equals(Constant.undefined);
 
       // isProvenReal on non-negative base with real exponent, and isIntegerExpr on Factorial and Binomial
-      check(isProvenReal(Pow(Abs(x), y), Assumptions.positive)).isTrue();
-      check(isProvenReal(Factorial(ComplexNumber.i), Assumptions.none))
-          .isFalse();
+      check(isProvenReal(Pow(Abs(x), y), Assumptions.positive)).isTrue;
+      check(isProvenReal(Factorial(ComplexNumber.i), Assumptions.none)).isFalse;
       check(
         isProvenReal(
           Binomial(ComplexNumber.i, IntegerNumber.one),
           Assumptions.none,
         ),
-      ).isFalse();
-      check(isProvenReal(Floor(ComplexNumber.i), Assumptions.none)).isFalse();
-      check(isProvenReal(Ceil(ComplexNumber.i), Assumptions.none)).isFalse();
-      check(isProvenReal(Round(ComplexNumber.i), Assumptions.none)).isFalse();
-      check(isProvenReal(Sign(ComplexNumber.i), Assumptions.none)).isFalse();
+      ).isFalse;
+      check(isProvenReal(Floor(ComplexNumber.i), Assumptions.none)).isFalse;
+      check(isProvenReal(Ceil(ComplexNumber.i), Assumptions.none)).isFalse;
+      check(isProvenReal(Round(ComplexNumber.i), Assumptions.none)).isFalse;
+      check(isProvenReal(Sign(ComplexNumber.i), Assumptions.none)).isFalse;
       check(Im(Factorial(ComplexNumber.i)).simplify())
-          .not((it) => it.equals(IntegerNumber.zero));
+          .not(.it()..equals(IntegerNumber.zero));
       check(isProvenReal(LambertW(IntegerNumber.of(-1)), Assumptions.none))
-          .isFalse();
+          .isFalse;
       check(
         isProvenReal(LambertW(IntegerNumber.one, branch: -1), Assumptions.none),
-      ).isFalse();
-      check(isProvenReal(LambertW(IntegerNumber.one), Assumptions.none))
-          .isTrue();
-      check(isProvenReal(Asin(Constant.pi), Assumptions.none)).isFalse();
-      check(isProvenReal(Acos(Constant.pi), Assumptions.none)).isFalse();
-      check(isProvenReal(Atanh(Constant.e), Assumptions.none)).isFalse();
-      check(isProvenReal(Acosh(IntegerNumber.zero), Assumptions.none))
-          .isFalse();
+      ).isFalse;
+      check(isProvenReal(LambertW(IntegerNumber.one), Assumptions.none)).isTrue;
+      check(isProvenReal(Asin(Constant.pi), Assumptions.none)).isFalse;
+      check(isProvenReal(Acos(Constant.pi), Assumptions.none)).isFalse;
+      check(isProvenReal(Atanh(Constant.e), Assumptions.none)).isFalse;
+      check(isProvenReal(Acosh(IntegerNumber.zero), Assumptions.none)).isFalse;
       const intAssumptions = Assumptions(
         domains: {'x': VariableDomain.positive, 'y': VariableDomain.integer},
       );
@@ -463,9 +460,8 @@ void main() {
           Factorial(IntegerNumber.of(3)),
           assumptions: intAssumptions,
         ),
-      ).isTrue();
-      check(isIntegerExpr(Binomial(y, y), assumptions: intAssumptions))
-          .isTrue();
+      ).isTrue;
+      check(isIntegerExpr(Binomial(y, y), assumptions: intAssumptions)).isTrue;
 
       // Derivative structural comparison with point
       final d0 = Derivative(x, 'x');
@@ -497,48 +493,48 @@ void main() {
       ).equals(Constant.undefined);
 
       // Real domain checks
-      check(isProvenReal(Zeta(IntegerNumber.two), realAssumptions)).isTrue();
-      check(isProvenReal(Zeta(ComplexNumber.i), realAssumptions)).isFalse();
-      check(isProvenReal(Digamma(IntegerNumber.two), realAssumptions)).isTrue();
-      check(isProvenReal(Digamma(ComplexNumber.i), realAssumptions)).isFalse();
+      check(isProvenReal(Zeta(IntegerNumber.two), realAssumptions)).isTrue;
+      check(isProvenReal(Zeta(ComplexNumber.i), realAssumptions)).isFalse;
+      check(isProvenReal(Digamma(IntegerNumber.two), realAssumptions)).isTrue;
+      check(isProvenReal(Digamma(ComplexNumber.i), realAssumptions)).isFalse;
       check(
         isProvenReal(
           Polygamma(IntegerNumber.one, IntegerNumber.two),
           realAssumptions,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         isProvenReal(
           BesselJ(IntegerNumber.zero, IntegerNumber.one),
           realAssumptions,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         isProvenReal(
           BesselY(IntegerNumber.zero, IntegerNumber.one),
           realAssumptions,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         isProvenReal(
           BesselI(IntegerNumber.zero, IntegerNumber.one),
           realAssumptions,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         isProvenReal(
           BesselK(IntegerNumber.zero, IntegerNumber.one),
           realAssumptions,
         ),
-      ).isTrue();
+      ).isTrue;
       check(isProvenReal(EllipticK(FractionNumber.half), realAssumptions))
-          .isTrue();
+          .isTrue;
       check(isProvenReal(EllipticK(IntegerNumber.two), realAssumptions))
-          .isFalse();
+          .isFalse;
       check(isProvenReal(EllipticE(FractionNumber.half), realAssumptions))
-          .isTrue();
+          .isTrue;
       check(isProvenReal(EllipticE(IntegerNumber.two), realAssumptions))
-          .isFalse();
+          .isFalse;
     });
   });
 }

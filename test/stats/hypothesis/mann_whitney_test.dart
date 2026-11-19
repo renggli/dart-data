@@ -10,7 +10,7 @@ void main() {
 
       final res = mannWhitneyUTest(x, y);
       check(res.statistic).isCloseTo(0.0, 1e-10);
-      check(res.isSignificant).isTrue();
+      check(res.isSignificant).isTrue;
       check(res.pValue).isLessThan(0.05);
 
       final resLess = mannWhitneyUTest(
@@ -34,8 +34,8 @@ void main() {
 
     test('Mann-Whitney U test with NaN returns NaN', () {
       final res = mannWhitneyUTest([1.0, double.nan, 3.0], [4.0, 5.0]);
-      check(res.statistic.isNaN).isTrue();
-      check(res.pValue.isNaN).isTrue();
+      check(res.statistic.isNaN).isTrue;
+      check(res.pValue.isNaN).isTrue;
     });
 
     test('Mann-Whitney U test with ties and continuity correction', () {

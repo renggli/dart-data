@@ -8,11 +8,11 @@ void main() {
     test('empty inputs', () {
       final empty = <Complex>[];
       fft(empty);
-      check(empty).isEmpty();
+      check(empty).isEmpty;
 
       final empty2 = <Complex>[];
       fft2(empty2, rows: 0, cols: 0);
-      check(empty2).isEmpty();
+      check(empty2).isEmpty;
     });
 
     test('1D FFT of DC signal in-place on List<Complex>', () {

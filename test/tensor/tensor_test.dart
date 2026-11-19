@@ -13,7 +13,7 @@ void main() {
       check(layout.shape).deepEquals([5]);
       check(layout.strides).deepEquals([1]);
       check(layout.length).equals(5);
-      check(layout.isContiguous).isTrue();
+      check(layout.isContiguous).isTrue;
       check(layout.toIndex([3])).equals(3);
       check(layout.toKey(3)).deepEquals([3]);
     });
@@ -35,7 +35,7 @@ void main() {
       check(layout.rank).equals(2);
       check(layout.strides).deepEquals([3, 1]);
       check(layout.length).equals(6);
-      check(layout.isContiguous).isTrue();
+      check(layout.isContiguous).isTrue;
       check(layout.toIndex([1, 2])).equals(5);
       check(layout.toKey(5)).deepEquals([1, 2]);
     });
@@ -45,7 +45,7 @@ void main() {
       final transposed = layout.transpose([1, 0]);
       check(transposed.shape).deepEquals([3, 2]);
       check(transposed.strides).deepEquals([1, 3]);
-      check(transposed.isContiguous).isFalse();
+      check(transposed.isContiguous).isFalse;
       check(transposed.toIndex([2, 1])).equals(layout.toIndex([1, 2]));
     });
 
@@ -72,7 +72,7 @@ void main() {
       final reshaped = layout.reshape([6]);
       check(reshaped.shape).deepEquals([6]);
       check(reshaped.strides).deepEquals([1]);
-      check(reshaped.isContiguous).isTrue();
+      check(reshaped.isContiguous).isTrue;
     });
 
     test('broadcast layout', () {
@@ -81,7 +81,7 @@ void main() {
       final (self: b1, other: b2) = layout1.broadcast(layout2);
       check(b1.shape).deepEquals([4, 3]);
       check(b1.strides).deepEquals([0, 1]);
-      check(b1.isContiguous).isFalse();
+      check(b1.isContiguous).isFalse;
       check(b2.shape).deepEquals([4, 3]);
       check(b2.strides).deepEquals([1, 0]);
     });
@@ -199,7 +199,7 @@ void main() {
         shape: [3, 2],
       );
       final subMat = mat.getRange(axis: 0, start: 1, end: 3);
-      check(subMat.isContiguous).isTrue();
+      check(subMat.isContiguous).isTrue;
       check(subMat.offset).equals(2);
       final matCopy = subMat.copy();
       check(matCopy.offset).equals(0);
@@ -231,14 +231,14 @@ void main() {
 
       final tNullableLeading = Tensor.fromIterable([null, 1, 2]);
       check(tNullableLeading.type).equals(DataType.integer.nullable);
-      check(tNullableLeading.getValue([0])).isNull();
+      check(tNullableLeading.getValue([0])).isNull;
       check(tNullableLeading.getValue([1])).equals(1);
       check(tNullableLeading.getValue([2])).equals(2);
 
       final tNullableInterleaved = Tensor.fromIterable([1, null, 2]);
       check(tNullableInterleaved.type).equals(DataType.integer.nullable);
       check(tNullableInterleaved.getValue([0])).equals(1);
-      check(tNullableInterleaved.getValue([1])).isNull();
+      check(tNullableInterleaved.getValue([1])).isNull;
       check(tNullableInterleaved.getValue([2])).equals(2);
 
       final t2 = Tensor<int>.fromObject([
@@ -414,7 +414,7 @@ void main() {
 
       // Non-contiguous reduction (transposed tensor)
       final transposed = a.transpose();
-      check(transposed.layout.isContiguous).isFalse();
+      check(transposed.layout.isContiguous).isFalse;
       check(transposed.sum().getValue([])).equals(21.0);
       check(transposed.sum(axis: 0).toFlatList()).deepEquals([6.0, 15.0]);
     });
@@ -598,7 +598,7 @@ void main() {
       );
       // Slicing shares the same underlying buffer
       final row0 = a[0];
-      check(row0.sharesMemoryWith(a)).isTrue();
+      check(row0.sharesMemoryWith(a)).isTrue;
 
       // Binary operation between row0 and a does not corrupt results due to
       // aliasing
@@ -611,12 +611,12 @@ void main() {
       final empty1 = Tensor<int>.fromIterable([]);
       check(empty1.length).equals(0);
       check(empty1.shape).deepEquals([0]);
-      check(empty1.toFlatList()).isEmpty();
+      check(empty1.toFlatList()).isEmpty;
 
       final empty2 = Tensor<int>.fromObject(<int>[]);
       check(empty2.length).equals(0);
       check(empty2.shape).deepEquals([0]);
-      check(empty2.toFlatList()).isEmpty();
+      check(empty2.toFlatList()).isEmpty;
 
       check(Layout.empty.length).equals(0);
       check(Layout.empty.shape).deepEquals([0]);
@@ -673,7 +673,7 @@ void main() {
       // Pre-allocated non-zero target must be zero-filled
       final target = Tensor<double>.filled(42.0, shape: [2, 2]);
       final targetRes = a.matmul(b, target: target);
-      check(identical(targetRes, target)).isTrue();
+      check(identical(targetRes, target)).isTrue;
       check(target.toFlatList()).deepEquals([0.0, 0.0, 0.0, 0.0]);
 
       // 0x0 * 0x0 -> 0x0
@@ -713,7 +713,7 @@ void main() {
 
       // Non-contiguous unary operation without target
       final transposed = a.transpose();
-      check(transposed.layout.isContiguous).isFalse();
+      check(transposed.layout.isContiguous).isFalse;
       check(transposed.abs().toFlatList()).deepEquals([1.0, 3.0, 2.0, 4.0]);
 
       // Unary operation with target
@@ -953,7 +953,7 @@ void main() {
         [3, 4],
       ]);
       final transposed = t2d.transpose();
-      check(transposed.layout.isContiguous).isFalse();
+      check(transposed.layout.isContiguous).isFalse;
       final reshaped = transposed.reshape([4]);
       check(reshaped.toFlatList()).deepEquals([1, 3, 2, 4]);
 
@@ -976,8 +976,8 @@ void main() {
         'other',
       ], type: customType);
 
-      check(t1 == t2).isTrue();
-      check(t1 == t3).isFalse();
+      check(t1 == t2).isTrue;
+      check(t1 == t3).isFalse;
       check(t1.hashCode).equals(t2.hashCode);
     });
 
@@ -995,12 +995,12 @@ void main() {
       final empty1 = Tensor<double>.fromIterable([]);
       final empty2 = Tensor<double>.fromIterable([]);
 
-      check(t1.isClose(t1)).isTrue();
-      check(t1.isClose(t2)).isTrue();
-      check(t1.isClose(t3)).isFalse();
-      check(t1.isClose(t3, epsilon: 0.2)).isTrue();
-      check(t1.isClose(tDiffShape)).isFalse();
-      check(empty1.isClose(empty2)).isTrue();
+      check(t1.isClose(t1)).isTrue;
+      check(t1.isClose(t2)).isTrue;
+      check(t1.isClose(t3)).isFalse;
+      check(t1.isClose(t3, epsilon: 0.2)).isTrue;
+      check(t1.isClose(tDiffShape)).isFalse;
+      check(empty1.isClose(empty2)).isTrue;
     });
   });
 }

@@ -79,7 +79,7 @@ void main() {
       final col4 = e4.collect('x');
       check(col4.toString()).equals('5 * y * x');
       check(col4.anyNode((n) => n is Mul && n.factors.any((f) => f is Mul)))
-          .isFalse();
+          .isFalse;
     });
   });
 

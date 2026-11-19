@@ -152,7 +152,7 @@ void main() {
       final rf1 = RationalFunction(num1, den1);
       final rf2 = RationalFunction(num2, den2);
 
-      check(rf1 == rf2).isTrue();
+      check(rf1 == rf2).isTrue;
       check(rf1.hashCode).equals(rf2.hashCode);
 
       // Non-power-of-two scaling (3 vs 6) preserves == and hashCode consistency
@@ -164,7 +164,7 @@ void main() {
         Polynomial<double>.fromCoefficients([4.0, 8.0]),
         Polynomial<double>.fromCoefficients([2.0, 6.0]),
       );
-      check(rf3 == rf4).isTrue();
+      check(rf3 == rf4).isTrue;
       check(rf3.hashCode).equals(rf4.hashCode);
 
       // Mismatched DataType throws ArgumentError
@@ -215,9 +215,9 @@ void main() {
 
       // Equality and cached simplify
       final unsimplified = RationalFunction(num, den);
-      check(unsimplified == rf).isTrue();
+      check(unsimplified == rf).isTrue;
       check(unsimplified.hashCode).equals(rf.hashCode);
-      check(identical(rf.simplify(), rf)).isTrue();
+      check(identical(rf.simplify(), rf)).isTrue;
     });
   });
 }

@@ -16,8 +16,8 @@ void main() {
   group('BoxBound', () {
     test('default constructor creates unbounded box', () {
       const bound = BoxBound();
-      check(bound.lower).isNull();
-      check(bound.upper).isNull();
+      check(bound.lower).isNull;
+      check(bound.upper).isNull;
     });
 
     test('equality and hashCode', () {
@@ -27,7 +27,7 @@ void main() {
 
       check(b1).equals(b2);
       check(b1.hashCode).equals(b2.hashCode);
-      check(b1 == b3).isFalse();
+      check(b1 == b3).isFalse;
     });
 
     test('toString formatting', () {
@@ -55,7 +55,7 @@ void main() {
       check(result.value).equals(42.0);
       check(result.iterations).equals(15);
       check(result.gradientNorm).equals(1e-5);
-      check(result.converged).isTrue();
+      check(result.converged).isTrue;
     });
 
     test('toString formatting', () {

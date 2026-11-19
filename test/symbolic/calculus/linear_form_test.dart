@@ -45,13 +45,13 @@ void main() {
     });
 
     test('rejects constants, cancelled slopes, and non-linear expressions', () {
-      check(IntegerNumber.of(5).matchLinear('x')).isNull();
-      check(y.matchLinear('x')).isNull();
-      check(Expr.parse('x^2 + 1').matchLinear('x')).isNull();
-      check(Expr.parse('sin(x)').matchLinear('x')).isNull();
-      check((x * Sin(x)).matchLinear('x')).isNull();
-      check((IntegerNumber.two * Sin(x)).matchLinear('x')).isNull();
-      check((y * (x + IntegerNumber.one) - y * x).matchLinear('x')).isNull();
+      check(IntegerNumber.of(5).matchLinear('x')).isNull;
+      check(y.matchLinear('x')).isNull;
+      check(Expr.parse('x^2 + 1').matchLinear('x')).isNull;
+      check(Expr.parse('sin(x)').matchLinear('x')).isNull;
+      check((x * Sin(x)).matchLinear('x')).isNull;
+      check((IntegerNumber.two * Sin(x)).matchLinear('x')).isNull;
+      check((y * (x + IntegerNumber.one) - y * x).matchLinear('x')).isNull;
     });
   });
 
@@ -98,8 +98,8 @@ void main() {
             x + IntegerNumber.two,
             'x',
           ),
-        ).isNull();
-        check((x * x).matchScalarMultiple(x, 'x')).isNull();
+        ).isNull;
+        check((x * x).matchScalarMultiple(x, 'x')).isNull;
       },
     );
   });

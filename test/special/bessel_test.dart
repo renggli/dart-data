@@ -20,10 +20,10 @@ void main() {
     });
 
     test('Bessel Y0 and Y1 boundary and reference values', () {
-      check(besselY0(0)).isNaN();
-      check(besselY0(-1)).isNaN();
-      check(besselY1(0)).isNaN();
-      check(besselY1(-1)).isNaN();
+      check(besselY0(0)).isNaN;
+      check(besselY0(-1)).isNaN;
+      check(besselY1(0)).isNaN;
+      check(besselY1(-1)).isNaN;
       check(besselY0(1.0)).isCloseTo(0.0882569642156765, 1e-6);
       check(besselY0(5.0)).isCloseTo(-0.308517623137123, 1e-6);
       check(besselY0(10.0)).isCloseTo(0.0556711672835994, 1e-6);
@@ -45,10 +45,10 @@ void main() {
     });
 
     test('Modified Bessel K0 and K1 reference values', () {
-      check(besselK0(0)).isNaN();
-      check(besselK0(-1)).isNaN();
-      check(besselK1(0)).isNaN();
-      check(besselK1(-1)).isNaN();
+      check(besselK0(0)).isNaN;
+      check(besselK0(-1)).isNaN;
+      check(besselK1(0)).isNaN;
+      check(besselK1(-1)).isNaN;
       check(besselK0(1.0)).isCloseTo(0.4210244382407083, 1e-6);
       check(besselK0(5.0)).isCloseTo(0.00369110762356937, 1e-6);
       check(besselK1(1.0)).isCloseTo(0.6019072301972346, 1e-6);
@@ -70,14 +70,14 @@ void main() {
       check(besselY1(double.infinity)).equals(0.0);
 
       // Infinite nu returns NaN
-      check(besselJ(double.infinity, 5.0)).isNaN();
-      check(besselJ(double.negativeInfinity, 5.0)).isNaN();
-      check(besselY(double.infinity, 5.0)).isNaN();
-      check(besselY(double.negativeInfinity, 5.0)).isNaN();
-      check(besselI(double.infinity, 5.0)).isNaN();
-      check(besselI(double.negativeInfinity, 5.0)).isNaN();
-      check(besselK(double.infinity, 5.0)).isNaN();
-      check(besselK(double.negativeInfinity, 5.0)).isNaN();
+      check(besselJ(double.infinity, 5.0)).isNaN;
+      check(besselJ(double.negativeInfinity, 5.0)).isNaN;
+      check(besselY(double.infinity, 5.0)).isNaN;
+      check(besselY(double.negativeInfinity, 5.0)).isNaN;
+      check(besselI(double.infinity, 5.0)).isNaN;
+      check(besselI(double.negativeInfinity, 5.0)).isNaN;
+      check(besselK(double.infinity, 5.0)).isNaN;
+      check(besselK(double.negativeInfinity, 5.0)).isNaN;
 
       // Infinite x
       check(besselJ(2.5, double.infinity)).equals(0.0);
@@ -86,8 +86,8 @@ void main() {
       check(besselK(2.5, double.infinity)).equals(0.0);
 
       // Small x in integer Miller recurrence
-      check(besselJ(5, 1e-100).isFinite).isTrue();
-      check(besselI(10, 1e-10).isFinite).isTrue();
+      check(besselJ(5, 1e-100).isFinite).isTrue;
+      check(besselI(10, 1e-10).isFinite).isTrue;
 
       // Large x asymptotic accuracy for non-integer orders
       final expectedJHalf50 =

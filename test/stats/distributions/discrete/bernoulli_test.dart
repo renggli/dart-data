@@ -12,8 +12,8 @@ void main() {
       check(dist.p).equals(0.7);
       check(dist.lowerBound).equals(0);
       check(dist.upperBound).equals(1);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
+      check(dist.isLowerBoundOpen).isFalse;
+      check(dist.isUpperBoundOpen).isFalse;
       check(dist.mean).equals(0.7);
       check(dist.median).equals(1.0);
       check(dist.mode).equals(1.0);
@@ -63,7 +63,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(100).toList();
-      check(samples.every((sample) => sample == 0 || sample == 1)).isTrue();
+      check(samples.every((sample) => sample == 0 || sample == 1)).isTrue;
     });
 
     test('fit', () {

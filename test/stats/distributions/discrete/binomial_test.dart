@@ -13,8 +13,8 @@ void main() {
       check(dist.p).equals(0.5);
       check(dist.lowerBound).equals(0);
       check(dist.upperBound).equals(10);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
+      check(dist.isLowerBoundOpen).isFalse;
+      check(dist.isUpperBoundOpen).isFalse;
       check(dist.mean).equals(5.0);
       check(dist.median).equals(5.0);
       check(BinomialDistribution(3, 0.2).median).equals(0.0);
@@ -62,7 +62,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0 && sample <= 10)).isTrue();
+      check(samples.every((sample) => sample >= 0 && sample <= 10)).isTrue;
     });
 
     test('fit', () {

@@ -10,9 +10,9 @@ void main() {
       check(lambertW0(0.0)).equals(0.0);
       check(lambertW0(math.e)).isCloseTo(1.0, 1e-7);
       check(lambertW0(-1.0 / math.e)).isCloseTo(-1.0, 1e-6);
-      check(lambertW0(-0.5)).isNaN(); // < -1/e
+      check(lambertW0(-0.5)).isNaN; // < -1/e
       check(lambertW0(double.infinity)).equals(double.infinity);
-      check(lambertW0(1e307).isFinite).isTrue();
+      check(lambertW0(1e307).isFinite).isTrue;
 
       final wLarge = lambertW0(1e300);
       check(wLarge + math.log(wLarge)).isCloseTo(math.log(1e300), 1e-12);
@@ -22,8 +22,8 @@ void main() {
     });
 
     test('Lambert W1 known values', () {
-      check(lambertW1(0.0)).isNaN();
-      check(lambertW1(1.0)).isNaN();
+      check(lambertW1(0.0)).isNaN;
+      check(lambertW1(1.0)).isNaN;
       check(lambertW1(-1.0 / math.e)).isCloseTo(-1.0, 1e-5);
       final wVal = lambertW1(-0.1);
       check(wVal * math.exp(wVal)).isCloseTo(-0.1, 1e-7);

@@ -15,7 +15,7 @@ void main() {
       check(expIntegralEi(0.0)).equals(double.negativeInfinity);
       check(expIntegralEi(double.infinity)).equals(double.infinity);
       check(expIntegralEi(double.negativeInfinity)).equals(0.0);
-      check(expIntegralEi(double.nan)).isNaN();
+      check(expIntegralEi(double.nan)).isNaN;
     });
 
     test('logIntegralLi', () {
@@ -23,7 +23,7 @@ void main() {
       check(logIntegralLi(1.0)).equals(double.negativeInfinity);
       check(logIntegralLi(2.0)).isCloseTo(1.0451637801174928, 1e-12);
       check(logIntegralLi(math.e)).isCloseTo(expIntegralEi(1.0), 1e-12);
-      check(logIntegralLi(-1.0)).isNaN();
+      check(logIntegralLi(-1.0)).isNaN;
     });
 
     test('sinIntegralSi and cosIntegralCi', () {
@@ -37,7 +37,7 @@ void main() {
       check(cosIntegralCi(5.0)).isCloseTo(-0.19002974965664385, 1e-12);
       check(cosIntegralCi(0.0)).equals(double.negativeInfinity);
       check(cosIntegralCi(double.infinity)).equals(0.0);
-      check(cosIntegralCi(-1.0)).isNaN();
+      check(cosIntegralCi(-1.0)).isNaN;
     });
 
     test('sinhIntegralShi and coshIntegralChi', () {
@@ -49,7 +49,7 @@ void main() {
       check(coshIntegralChi(1.0)).isCloseTo(0.8378669409802082, 1e-12);
       check(coshIntegralChi(5.0)).isCloseTo(20.09206353010595, 1e-11);
       check(coshIntegralChi(0.0)).equals(double.negativeInfinity);
-      check(coshIntegralChi(-1.0)).isNaN();
+      check(coshIntegralChi(-1.0)).isNaN;
     });
   });
 }

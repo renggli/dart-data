@@ -10,7 +10,7 @@ void main() {
       // Fair 6-sided die expected: 20 per side (120 rolls total)
       final fairRolls = [19, 21, 20, 18, 22, 20];
       final resFair = chiSquaredTest(fairRolls);
-      check(resFair.isSignificant).isFalse();
+      check(resFair.isSignificant).isFalse;
       check(resFair.pValue).isGreaterThan(0.9);
 
       // Explicit expected with scaling and ddof
@@ -21,7 +21,7 @@ void main() {
       // Biased die
       final biasedRolls = [5, 5, 10, 10, 30, 60];
       final resBiased = chiSquaredTest(biasedRolls);
-      check(resBiased.isSignificant).isTrue();
+      check(resBiased.isSignificant).isTrue;
       check(resBiased.pValue).isLessThan(1e-5);
 
       // Errors
@@ -49,7 +49,7 @@ void main() {
       ], type: DataType.int32);
 
       final res = chiSquaredContingency(table);
-      check(res.isSignificant).isTrue();
+      check(res.isSignificant).isTrue;
       check(res.degreesOfFreedom).equals(1.0);
       check(res.pValue).isLessThan(0.001);
 

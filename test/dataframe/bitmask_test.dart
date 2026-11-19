@@ -10,24 +10,24 @@ void main() {
     test('repeated setNull on same index only increments once', () {
       final mask = ValidityMask(16);
       check(mask.nullCount).equals(0);
-      check(mask.hasNulls).isFalse();
+      check(mask.hasNulls).isFalse;
 
       mask.setNull(4);
       check(mask.nullCount).equals(1);
-      check(mask.hasNulls).isTrue();
+      check(mask.hasNulls).isTrue;
 
       // Calling setNull again on an already-null index must be a no-op for
       // nullCount
       mask.setNull(4);
       mask.setNull(4);
       check(mask.nullCount).equals(1);
-      check(mask.isNull(4)).isTrue();
+      check(mask.isNull(4)).isTrue;
     });
 
     test('repeated setValid on same index only decrements once', () {
       final mask = ValidityMask.allNull(16);
       check(mask.nullCount).equals(16);
-      check(mask.hasNulls).isTrue();
+      check(mask.hasNulls).isTrue;
 
       mask.setValid(4);
       check(mask.nullCount).equals(15);
@@ -37,7 +37,7 @@ void main() {
       mask.setValid(4);
       mask.setValid(4);
       check(mask.nullCount).equals(15);
-      check(mask.isValid(4)).isTrue();
+      check(mask.isValid(4)).isTrue;
     });
 
     test('toggling states repeatedly updates nullCount accurately', () {
@@ -60,7 +60,7 @@ void main() {
       mask.setValid(7);
       mask.setValid(8);
       check(mask.nullCount).equals(0);
-      check(mask.hasNulls).isFalse();
+      check(mask.hasNulls).isFalse;
     });
 
     test('mutations across byte boundaries', () {
@@ -71,9 +71,9 @@ void main() {
       mask.setNull(16);
       check(mask.nullCount).equals(3);
 
-      check(mask.isNull(7)).isTrue();
-      check(mask.isNull(8)).isTrue();
-      check(mask.isNull(16)).isTrue();
+      check(mask.isNull(7)).isTrue;
+      check(mask.isNull(8)).isTrue;
+      check(mask.isNull(16)).isTrue;
 
       mask.setValid(7);
       check(mask.nullCount).equals(2);
@@ -90,10 +90,10 @@ void main() {
         final mask = ValidityMask(len);
         check(mask.length).equals(len);
         check(mask.nullCount).equals(0);
-        check(mask.hasNulls).isFalse();
+        check(mask.hasNulls).isFalse;
         for (var i = 0; i < len; i++) {
-          check(mask.isValid(i)).isTrue();
-          check(mask.isNull(i)).isFalse();
+          check(mask.isValid(i)).isTrue;
+          check(mask.isNull(i)).isFalse;
         }
       }
     });
@@ -105,8 +105,8 @@ void main() {
         check(mask.nullCount).equals(len);
         check(mask.hasNulls).equals(len > 0);
         for (var i = 0; i < len; i++) {
-          check(mask.isNull(i)).isTrue();
-          check(mask.isValid(i)).isFalse();
+          check(mask.isNull(i)).isTrue;
+          check(mask.isValid(i)).isFalse;
         }
       }
     });
@@ -150,16 +150,16 @@ void main() {
       check(mask.nullCount).equals(5);
 
       // Verify each bit
-      check(mask.isNull(0)).isTrue();
-      check(mask.isNull(1)).isTrue();
-      check(mask.isNull(2)).isTrue();
-      check(mask.isNull(3)).isTrue();
-      check(mask.isValid(4)).isTrue();
-      check(mask.isValid(5)).isTrue();
-      check(mask.isValid(6)).isTrue();
-      check(mask.isValid(7)).isTrue();
-      check(mask.isNull(8)).isTrue();
-      check(mask.isValid(9)).isTrue();
+      check(mask.isNull(0)).isTrue;
+      check(mask.isNull(1)).isTrue;
+      check(mask.isNull(2)).isTrue;
+      check(mask.isNull(3)).isTrue;
+      check(mask.isValid(4)).isTrue;
+      check(mask.isValid(5)).isTrue;
+      check(mask.isValid(6)).isTrue;
+      check(mask.isValid(7)).isTrue;
+      check(mask.isNull(8)).isTrue;
+      check(mask.isValid(9)).isTrue;
 
       // Tail bits in raw bytes must not affect validity or nullCount
       // Last byte: length % 8 is 2, so bits 2..7 should be masked to 0
@@ -180,14 +180,14 @@ void main() {
       final cloned = original.copy();
       check(cloned.length).equals(original.length);
       check(cloned.nullCount).equals(original.nullCount);
-      check(cloned.isNull(5)).isTrue();
-      check(cloned.isNull(12)).isTrue();
+      check(cloned.isNull(5)).isTrue;
+      check(cloned.isNull(12)).isTrue;
 
       // Mutating clone does not mutate original
       cloned.setValid(5);
       check(cloned.nullCount).equals(1);
       check(original.nullCount).equals(2);
-      check(original.isNull(5)).isTrue();
+      check(original.isNull(5)).isTrue;
     });
   });
 
@@ -224,13 +224,13 @@ void main() {
       final validSlice = validMask.slice(10, 30);
       check(validSlice.length).equals(20);
       check(validSlice.nullCount).equals(0);
-      check(validSlice.hasNulls).isFalse();
+      check(validSlice.hasNulls).isFalse;
 
       final nullMask = ValidityMask.allNull(50);
       final nullSlice = nullMask.slice(15, 45);
       check(nullSlice.length).equals(30);
       check(nullSlice.nullCount).equals(30);
-      check(nullSlice.hasNulls).isTrue();
+      check(nullSlice.hasNulls).isTrue;
 
       final emptySlice = validMask.slice(25, 25);
       check(emptySlice.length).equals(0);
@@ -243,7 +243,7 @@ void main() {
       sliced.setNull(0); // index 5 in original
       check(sliced.nullCount).equals(1);
       check(original.nullCount).equals(0);
-      check(original.isValid(5)).isTrue();
+      check(original.isValid(5)).isTrue;
     });
   });
 
@@ -252,8 +252,8 @@ void main() {
       final mask = ValidityMask(0);
       check(mask.length).equals(0);
       check(mask.nullCount).equals(0);
-      check(mask.hasNulls).isFalse();
-      check(mask.bytes).isEmpty();
+      check(mask.hasNulls).isFalse;
+      check(mask.bytes).isEmpty;
 
       final nullMask = ValidityMask.allNull(0);
       check(nullMask.length).equals(0);
@@ -282,12 +282,12 @@ void main() {
         // Set last element to null
         mask.setNull(len - 1);
         check(mask.nullCount).equals(1);
-        check(mask.isNull(len - 1)).isTrue();
+        check(mask.isNull(len - 1)).isTrue;
 
         // Roundtrip via fromBytes
         final copy = ValidityMask.fromBytes(len, mask.bytes);
         check(copy.nullCount).equals(1);
-        check(copy.isNull(len - 1)).isTrue();
+        check(copy.isNull(len - 1)).isTrue;
       }
     });
 
@@ -349,7 +349,7 @@ void main() {
         bd.setUint8(byteIndex, 1 << bitOffset);
         final mask = ValidityMask.fromBytes(32, bd.buffer.asUint8List());
         check(mask.nullCount).equals(31);
-        check(mask.isValid(bit)).isTrue();
+        check(mask.isValid(bit)).isTrue;
       }
 
       // Single 0-bit set at each bit position 0..31 (all other 31 bits are 1)
@@ -360,7 +360,7 @@ void main() {
         bd.setUint8(byteIndex, 0xFF & ~(1 << bitOffset));
         final mask = ValidityMask.fromBytes(32, bd.buffer.asUint8List());
         check(mask.nullCount).equals(1);
-        check(mask.isNull(bit)).isTrue();
+        check(mask.isNull(bit)).isTrue;
       }
 
       // Alternating bit patterns
@@ -396,12 +396,12 @@ void main() {
         final sliced = mask.slice(8, 32);
         check(sliced.length).equals(24);
         check(sliced.nullCount).equals(5);
-        check(sliced.isNull(0)).isTrue(); // orig 8
-        check(sliced.isNull(2)).isTrue(); // orig 10
-        check(sliced.isNull(16)).isTrue(); // orig 24
-        check(sliced.isNull(17)).isTrue(); // orig 25
-        check(sliced.isNull(18)).isTrue(); // orig 26
-        check(sliced.isValid(1)).isTrue(); // orig 9
+        check(sliced.isNull(0)).isTrue; // orig 8
+        check(sliced.isNull(2)).isTrue; // orig 10
+        check(sliced.isNull(16)).isTrue; // orig 24
+        check(sliced.isNull(17)).isTrue; // orig 25
+        check(sliced.isNull(18)).isTrue; // orig 26
+        check(sliced.isValid(1)).isTrue; // orig 9
       },
     );
   });

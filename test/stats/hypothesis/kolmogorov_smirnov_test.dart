@@ -14,7 +14,7 @@ void main() {
           .toList();
 
       final resNormal = kolmogorovSmirnovTest(normalSample, normal);
-      check(resNormal.isSignificant).isFalse();
+      check(resNormal.isSignificant).isFalse;
       check(resNormal.pValue).isGreaterThan(0.05);
       check(resNormal.statistic).isLessThan(0.15);
 
@@ -25,7 +25,7 @@ void main() {
           .toList();
 
       final resReject = kolmogorovSmirnovTest(uniformSample, normal);
-      check(resReject.isSignificant).isTrue();
+      check(resReject.isSignificant).isTrue;
       check(resReject.pValue).isLessThan(1e-4);
 
       check(() => kolmogorovSmirnovTest(<double>[], normal))
@@ -38,12 +38,12 @@ void main() {
       final sample2 = normal.samples(random: math.Random(2)).take(100).toList();
 
       final resSame = kolmogorovSmirnovTwoSample(sample1, sample2);
-      check(resSame.isSignificant).isFalse();
+      check(resSame.isSignificant).isFalse;
       check(resSame.pValue).isGreaterThan(0.05);
 
       final shiftedSample = sample1.map((x) => x + 3.0).toList();
       final resDiff = kolmogorovSmirnovTwoSample(sample1, shiftedSample);
-      check(resDiff.isSignificant).isTrue();
+      check(resDiff.isSignificant).isTrue;
       check(resDiff.pValue).isLessThan(1e-4);
 
       check(() => kolmogorovSmirnovTwoSample(<double>[], sample2))
@@ -93,12 +93,12 @@ void main() {
     test('Kolmogorov-Smirnov returns NaN on NaN inputs', () {
       const normal = NormalDistribution.standard();
       final res1 = kolmogorovSmirnovTest([1.0, double.nan, 2.0], normal);
-      check(res1.statistic.isNaN).isTrue();
-      check(res1.pValue.isNaN).isTrue();
+      check(res1.statistic.isNaN).isTrue;
+      check(res1.pValue.isNaN).isTrue;
 
       final res2 = kolmogorovSmirnovTwoSample([1.0, 2.0], [double.nan, 3.0]);
-      check(res2.statistic.isNaN).isTrue();
-      check(res2.pValue.isNaN).isTrue();
+      check(res2.statistic.isNaN).isTrue;
+      check(res2.pValue.isNaN).isTrue;
     });
   });
 }

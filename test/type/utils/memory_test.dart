@@ -12,16 +12,16 @@ void main() {
       final view2 = Float64List.view(list1.buffer, 40, 5);
       final list2 = Float64List(10);
 
-      check(sharesMemory(view1, view2)).isTrue();
-      check(sharesMemory(view1, list2)).isFalse();
+      check(sharesMemory(view1, view2)).isTrue;
+      check(sharesMemory(view1, list2)).isFalse;
     });
 
     test('sharesMemory on non-typed lists', () {
       final list1 = <int>[1, 2, 3];
       final list2 = <int>[1, 2, 3];
 
-      check(sharesMemory(list1, list1)).isTrue();
-      check(sharesMemory(list1, list2)).isFalse();
+      check(sharesMemory(list1, list1)).isTrue;
+      check(sharesMemory(list1, list2)).isFalse;
     });
 
     test('typed buffer range overlap detection', () {
@@ -30,25 +30,25 @@ void main() {
       final v2 = Float64List.view(base.buffer, 8 * 5, 10);
       final v3 = Float64List.view(base.buffer, 8 * 12, 5);
 
-      check(hasOverlap(v1, 0, v2, 0, 10)).isTrue();
-      check(hasOverlap(v1, 0, v3, 0, 5)).isFalse();
-      check(hasOverlap(v2, 0, v3, 0, 5)).isFalse();
-      check(hasOverlap(v2, 7, v3, 0, 3)).isTrue();
-      check(hasOverlap(v1, 0, v2, 0, 0)).isFalse();
-      check(hasOverlap(v1, 0, v2, 0, 2, 5)).isFalse();
-      check(hasOverlap(v1, 0, v2, 0, 6, 2)).isTrue();
+      check(hasOverlap(v1, 0, v2, 0, 10)).isTrue;
+      check(hasOverlap(v1, 0, v3, 0, 5)).isFalse;
+      check(hasOverlap(v2, 0, v3, 0, 5)).isFalse;
+      check(hasOverlap(v2, 7, v3, 0, 3)).isTrue;
+      check(hasOverlap(v1, 0, v2, 0, 0)).isFalse;
+      check(hasOverlap(v1, 0, v2, 0, 2, 5)).isFalse;
+      check(hasOverlap(v1, 0, v2, 0, 6, 2)).isTrue;
     });
 
     test('non-typed list overlap detection', () {
       final list1 = <int>[1, 2, 3, 4, 5];
       final list2 = <int>[1, 2, 3, 4, 5];
 
-      check(hasOverlap(list1, 0, list1, 2, 3)).isTrue();
-      check(hasOverlap(list1, 0, list1, 3, 2)).isFalse();
-      check(hasOverlap(list1, 0, list1, 1, 2, 1)).isTrue();
-      check(hasOverlap(list1, 0, list1, 3, 1, 1)).isFalse();
-      check(hasOverlap(list1, 0, list2, 0, 5)).isFalse();
-      check(hasOverlap(list1, 0, list1, 0, 0)).isFalse();
+      check(hasOverlap(list1, 0, list1, 2, 3)).isTrue;
+      check(hasOverlap(list1, 0, list1, 3, 2)).isFalse;
+      check(hasOverlap(list1, 0, list1, 1, 2, 1)).isTrue;
+      check(hasOverlap(list1, 0, list1, 3, 1, 1)).isFalse;
+      check(hasOverlap(list1, 0, list2, 0, 5)).isFalse;
+      check(hasOverlap(list1, 0, list1, 0, 0)).isFalse;
     });
   });
 }

@@ -9,23 +9,23 @@ void main() {
 
   group('Definite integration helper utilities', () {
     test('isInfiniteBound identifies infinities', () {
-      check(isInfiniteBound(Constant.infinity)).isTrue();
-      check(isInfiniteBound(-Constant.infinity)).isTrue();
-      check(isInfiniteBound(IntegerNumber.zero)).isFalse();
-      check(isInfiniteBound(x)).isFalse();
+      check(isInfiniteBound(Constant.infinity)).isTrue;
+      check(isInfiniteBound(-Constant.infinity)).isTrue;
+      check(isInfiniteBound(IntegerNumber.zero)).isFalse;
+      check(isInfiniteBound(x)).isFalse;
     });
 
     test('isPositiveConstant and isNegativeConstant', () {
-      check(isPositiveConstant(IntegerNumber.of(5))).isTrue();
-      check(isPositiveConstant(FractionNumber.half)).isTrue();
-      check(isPositiveConstant(const RealNumber(2.5))).isTrue();
-      check(isPositiveConstant(Constant.pi)).isTrue();
-      check(isPositiveConstant(IntegerNumber.zero)).isFalse();
-      check(isPositiveConstant(IntegerNumber.of(-1))).isFalse();
-      check(isPositiveConstant(x)).isFalse();
+      check(isPositiveConstant(IntegerNumber.of(5))).isTrue;
+      check(isPositiveConstant(FractionNumber.half)).isTrue;
+      check(isPositiveConstant(const RealNumber(2.5))).isTrue;
+      check(isPositiveConstant(Constant.pi)).isTrue;
+      check(isPositiveConstant(IntegerNumber.zero)).isFalse;
+      check(isPositiveConstant(IntegerNumber.of(-1))).isFalse;
+      check(isPositiveConstant(x)).isFalse;
 
-      check(isNegativeConstant(IntegerNumber.of(-5))).isTrue();
-      check(isNegativeConstant(IntegerNumber.of(5))).isFalse();
+      check(isNegativeConstant(IntegerNumber.of(-5))).isTrue;
+      check(isNegativeConstant(IntegerNumber.of(5))).isFalse;
     });
 
     test('findDenominatorRoots locates denominator singularities', () {
@@ -45,7 +45,7 @@ void main() {
           IntegerNumber.one,
           assumptions: Assumptions.none,
         ),
-      ).isTrue();
+      ).isTrue;
 
       // Even function is not odd
       check(
@@ -56,7 +56,7 @@ void main() {
           IntegerNumber.one,
           assumptions: Assumptions.none,
         ),
-      ).isFalse();
+      ).isFalse;
 
       // Odd function with pole in interval
       check(
@@ -67,7 +67,7 @@ void main() {
           IntegerNumber.one,
           assumptions: Assumptions.none,
         ),
-      ).isFalse();
+      ).isFalse;
     });
   });
 
@@ -91,7 +91,7 @@ void main() {
       check(x.integrate('x', from: 0.0, to: 0.1234567).evaluate())
           .isCloseTo(0.5 * 0.1234567 * 0.1234567, 1e-12);
       check(x.integrate('x', from: 0.0, to: double.nan).evaluate().isNaN)
-          .isTrue();
+          .isTrue;
 
       final paramDef = (y * x).integrate('x', from: 0, to: 2);
       check(paramDef).equals((IntegerNumber.two * y).simplify());

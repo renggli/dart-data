@@ -12,12 +12,12 @@ void main() {
       check(dt).equals(exprDataType);
       check(dt.name).equals('expr');
       check(dt.defaultValue).equals(IntegerNumber.zero);
-      check(dt.isNullable).isFalse();
+      check(dt.isNullable).isFalse;
       check(dt.toString()).equals('DataType.expr');
       check(dt.printer(IntegerNumber.of(42))).equals('42');
 
       const x = Variable('x');
-      check(dt.equality.isEqual(x, x)).isTrue();
+      check(dt.equality.isEqual(x, x)).isTrue;
       check(dt.comparator(IntegerNumber.one, IntegerNumber.two)).isLessThan(0);
       check(dt.comparator(x, x)).equals(0);
 
@@ -43,30 +43,29 @@ void main() {
       final a = Expr.parse('(x + 1)^2');
       final b = Expr.parse('x^2 + 2*x + 1');
 
-      check(eq.isEqual(a, a)).isTrue();
-      check(eq.isEqual(a, b)).isFalse();
+      check(eq.isEqual(a, a)).isTrue;
+      check(eq.isEqual(a, b)).isFalse;
       check(eq.hash(a)).equals(a.hashCode);
 
-      check(eq.isClose(a, a, 1e-9)).isTrue();
-      check(eq.isClose(a, b, 1e-9)).isTrue();
+      check(eq.isClose(a, a, 1e-9)).isTrue;
+      check(eq.isClose(a, b, 1e-9)).isTrue;
       check(eq.isClose(const RealNumber(1.0), const RealNumber(1.0001), 1e-3))
-          .isTrue();
+          .isTrue;
       check(eq.isClose(const RealNumber(1.0), const RealNumber(1.01), 1e-3))
-          .isFalse();
+          .isFalse;
       check(
         eq.isClose(
           ComplexNumber(IntegerNumber.one, const RealNumber(1e-5)),
           IntegerNumber.one,
           1e-3,
         ),
-      ).isTrue();
-      check(eq.isClose(Constant.pi, const RealNumber(math.pi), 1e-12)).isTrue();
+      ).isTrue;
+      check(eq.isClose(Constant.pi, const RealNumber(math.pi), 1e-12)).isTrue;
       // Closed expression throwing on evaluateComplex returns false
       check(eq.isClose(Gamma(ComplexNumber.i), IntegerNumber.zero, 1e-3))
-          .isFalse();
+          .isFalse;
       // Distinct symbolic expressions with free variables return false
-      check(eq.isClose(const Variable('x'), const Variable('y'), 1e-3))
-          .isFalse();
+      check(eq.isClose(const Variable('x'), const Variable('y'), 1e-3)).isFalse;
     });
   });
 
@@ -125,10 +124,10 @@ void main() {
       );
 
       // isZero
-      check(f.isZero(IntegerNumber.zero)).isTrue();
-      check(f.isZero(RealNumber.zero)).isTrue();
-      check(f.isZero(x - x)).isTrue();
-      check(f.isZero(x)).isFalse();
+      check(f.isZero(IntegerNumber.zero)).isTrue;
+      check(f.isZero(RealNumber.zero)).isTrue;
+      check(f.isZero(x - x)).isTrue;
+      check(f.isZero(x)).isFalse;
 
       // Euclidean / modular operations throw UnsupportedError
       check(() => f.mod(a, b)).throws<UnsupportedError>();

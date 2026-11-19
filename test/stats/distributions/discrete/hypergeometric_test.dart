@@ -14,8 +14,8 @@ void main() {
       check(dist.draws).equals(5);
       check(dist.lowerBound).equals(0);
       check(dist.upperBound).equals(5);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
+      check(dist.isLowerBoundOpen).isFalse;
+      check(dist.isUpperBoundOpen).isFalse;
       check(dist.mean).equals(1.0);
       check(dist.variance)
           .isCloseTo(5.0 * (10.0 / 50.0) * (40.0 / 50.0) * (45.0 / 49.0), 1e-6);
@@ -52,7 +52,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0 && sample <= 5)).isTrue();
+      check(samples.every((sample) => sample >= 0 && sample <= 5)).isTrue;
     });
 
     test('fit', () {

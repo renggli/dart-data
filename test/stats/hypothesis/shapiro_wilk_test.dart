@@ -14,7 +14,7 @@ void main() {
       check(res.testName).equals('Shapiro-Wilk Normality Test');
       check(res.statistic).isGreaterThan(0.90);
       check(res.pValue).isGreaterThan(0.05);
-      check(res.isSignificant).isFalse();
+      check(res.isSignificant).isFalse;
     });
 
     test(
@@ -29,7 +29,7 @@ void main() {
         final res = shapiroWilkTest(sample);
         check(res.statistic).isLessThan(0.98);
         check(res.pValue).isLessThan(0.05);
-        check(res.isSignificant).isTrue();
+        check(res.isSignificant).isTrue;
       },
     );
 
@@ -72,7 +72,7 @@ void main() {
       final res = shapiroWilkTest([1.0, 1.1, 1.2, 1000.0]);
       check(res.statistic).isLessThan(0.7);
       check(res.pValue).isLessThan(0.01);
-      check(res.isSignificant).isTrue();
+      check(res.isSignificant).isTrue;
     });
 
     test('edge cases and argument validation', () {
@@ -84,12 +84,12 @@ void main() {
       ).throws<ArgumentError>();
 
       final nanRes = shapiroWilkTest([1.0, double.nan, 3.0]);
-      check(nanRes.statistic.isNaN).isTrue();
-      check(nanRes.pValue.isNaN).isTrue();
+      check(nanRes.statistic.isNaN).isTrue;
+      check(nanRes.pValue.isNaN).isTrue;
 
       final constRes = shapiroWilkTest([4.0, 4.0, 4.0, 4.0]);
-      check(constRes.statistic.isNaN).isTrue();
-      check(constRes.pValue.isNaN).isTrue();
+      check(constRes.statistic.isNaN).isTrue;
+      check(constRes.pValue.isNaN).isTrue;
     });
   });
 }

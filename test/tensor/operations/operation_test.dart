@@ -32,7 +32,7 @@ void main() {
         type: DataType.int32,
       ).transpose();
       check(targetStrided.shape).deepEquals([2, 3]);
-      check(targetStrided.isContiguous).isFalse();
+      check(targetStrided.isContiguous).isFalse;
       final result2 = tensor.unaryOperation(
         (x) => x + 1,
         target: targetStrided,
@@ -366,7 +366,7 @@ void main() {
         type: DataType.int32,
       ).transpose();
       check(nonContigTarget.shape).deepEquals([2, 3]);
-      check(nonContigTarget.isContiguous).isFalse();
+      check(nonContigTarget.isContiguous).isFalse;
 
       col.binaryOperation(row, (x, y) => x + y, target: nonContigTarget);
       check(nonContigTarget.toFlatList()).deepEquals([11, 12, 13, 21, 22, 23]);
@@ -410,7 +410,7 @@ void main() {
 
       final buffer = Tensor<int>.filled(0, shape: [4, 3], type: DataType.int32);
       final sliceTarget = buffer.getRange(axis: 0, start: 1, end: 3);
-      check(sliceTarget.isContiguous).isTrue();
+      check(sliceTarget.isContiguous).isTrue;
       check(sliceTarget.layout.offset).equals(3);
 
       final result = a.binaryOperation(b, (x, y) => x + y, target: sliceTarget);
@@ -428,7 +428,7 @@ void main() {
       );
       final slice = buffer.getRange(axis: 0, start: 1, end: 3);
       check(slice.layout.offset).equals(3);
-      check(slice.isContiguous).isTrue();
+      check(slice.isContiguous).isTrue;
 
       final other = Tensor<int>.fromIterable(
         [10, 20, 30, 40, 50, 60],
@@ -460,7 +460,7 @@ void main() {
       ).transpose();
       check(a.shape).deepEquals([3, 2]);
       check(b.shape).deepEquals([3, 2]);
-      check(a.isContiguous).isFalse();
+      check(a.isContiguous).isFalse;
 
       // Mismatched target shape [2, 3] instead of [3, 2]
       final wrongTarget = Tensor<int>.filled(
@@ -479,7 +479,7 @@ void main() {
         type: DataType.int32,
       ).transpose();
       check(a.shape).deepEquals([3, 2]);
-      check(a.isContiguous).isFalse();
+      check(a.isContiguous).isFalse;
 
       final wrongTarget = Tensor<int>.filled(
         0,
@@ -626,7 +626,7 @@ void main() {
         layout: Layout(shape: [4]),
         data: v1,
       );
-      check(t0.sharesMemoryWith(t1)).isTrue();
+      check(t0.sharesMemoryWith(t1)).isTrue;
       t0.unaryOperation((x) => x * 10.0, target: t1);
       check(buf).deepEquals([1.0, 10.0, 20.0, 30.0, 40.0]);
 
@@ -687,7 +687,7 @@ void main() {
       );
       final tnSrc = tn.getRange(axis: 0, start: 0, end: 4);
       final tnDst = tn.getRange(axis: 0, start: 1, end: 5);
-      check(tnSrc.sharesMemoryWith(tnDst)).isTrue();
+      check(tnSrc.sharesMemoryWith(tnDst)).isTrue;
       tnSrc.unaryOperation((x) => (x ?? 0) * 10, target: tnDst);
       check(tn.toFlatList()).deepEquals([1, 10, 20, 30, 40]);
 
@@ -707,7 +707,7 @@ void main() {
         layout: Layout(shape: [3]),
         data: cUnmod,
       );
-      check(tc1.sharesMemoryWith(tc2)).isTrue();
+      check(tc1.sharesMemoryWith(tc2)).isTrue;
     });
 
     test('relational operators adhere to IEEE 754 with NaN and -0.0', () {
@@ -745,8 +745,8 @@ void main() {
       final s2 = big.getRange(axis: 0, start: 3, end: 6);
       final target = big.getRange(axis: 0, start: 6, end: 9);
 
-      check(s1.sharesMemoryWith(target)).isTrue();
-      check(s2.sharesMemoryWith(target)).isTrue();
+      check(s1.sharesMemoryWith(target)).isTrue;
+      check(s2.sharesMemoryWith(target)).isTrue;
 
       s1.binaryOperation<int, int>(s2, (a, b) => a + b, target: target);
       check(target.toFlatList()).deepEquals([11, 22, 33]);
@@ -766,8 +766,8 @@ void main() {
         layout: Layout(shape: [1, 3], strides: [3, 1]),
         data: [0, 0, 0],
       );
-      check(t1.layout.isContiguous).isTrue();
-      check(target.layout.isContiguous).isTrue();
+      check(t1.layout.isContiguous).isTrue;
+      check(target.layout.isContiguous).isTrue;
       t1.binaryOperation<int, int>(t1, (a, b) => a + b, target: target);
       check(target.toFlatList()).deepEquals([2, 4, 6]);
     });

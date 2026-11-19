@@ -12,16 +12,16 @@ void main() {
       check(zero.degree).equals(-1);
       check(zero.leadingCoefficient).equals(0.0);
       check(zero.termCount).equals(0);
-      check(zero.nonZeroTerms.toList()).isEmpty();
-      check(zero.toMap()).isEmpty();
-      check(zero.coefficients).isEmpty();
+      check(zero.nonZeroTerms.toList()).isEmpty;
+      check(zero.toMap()).isEmpty;
+      check(zero.coefficients).isEmpty;
       check(zero[0]).equals(0.0);
       check(zero[100]).equals(0.0);
       check(zero.toString()).equals('0');
 
       // Zero via factory constructor on Polynomial
       final zeroPoly = Polynomial<double>.zero(type: DataType.float64);
-      check(zero == zeroPoly).isTrue();
+      check(zero == zeroPoly).isTrue;
     });
 
     test('construction from map and lists', () {
@@ -86,7 +86,7 @@ void main() {
         type: DataType.float64,
       );
       check(pComp).isA<CompressedPolynomial<double>>();
-      check(pComp == pSparse).isTrue();
+      check(pComp == pSparse).isTrue;
     });
   });
 
@@ -135,7 +135,7 @@ void main() {
       check(dp.termCount).equals(1);
       check(dp[9999]).equals(10000.0);
       check(dp.evaluate(1.0)).equals(10000.0);
-      check(p.derivative() == dp).isTrue();
+      check(p.derivative() == dp).isTrue;
 
       // ∫ P'(x) dx = x^10000
       final intDp = dp.integrate();
@@ -365,7 +365,7 @@ void main() {
       // Dense + Sparse
       final sum2 = denseQ + sparseP;
       check(sum2.degree).equals(1000);
-      check(sum2 == sum1).isTrue();
+      check(sum2 == sum1).isTrue;
 
       // Sparse * Dense
       final prod = sparseP * denseQ;
@@ -381,18 +381,18 @@ void main() {
         0: 1.0,
         2: 4.0,
       }, type: DataType.float64);
-      check(pDense == pSparseEquivalent).isTrue();
-      check(pSparseEquivalent == pDense).isTrue();
+      check(pDense == pSparseEquivalent).isTrue;
+      check(pSparseEquivalent == pDense).isTrue;
       check(pDense.hashCode).equals(pSparseEquivalent.hashCode);
 
       // Conversions: toCompressed and toDense
       final convSparse = pDense.toCompressed();
       check(convSparse).isA<CompressedPolynomial<double>>();
-      check(convSparse == pDense).isTrue();
+      check(convSparse == pDense).isTrue;
 
       final convDense = pSparseEquivalent.toDense();
       check(convDense).isA<DensePolynomial<double>>();
-      check(convDense == pSparseEquivalent).isTrue();
+      check(convDense == pSparseEquivalent).isTrue;
     });
 
     test('dense coefficients buffer limit on high-degree polynomials', () {

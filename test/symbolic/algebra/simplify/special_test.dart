@@ -233,50 +233,50 @@ void main() {
         }
 
         // Domain checks (isProvenReal)
-        check(isProvenReal(Erfi(x), realAssumptions)).isTrue();
-        check(isProvenReal(FresnelS(x), realAssumptions)).isTrue();
-        check(isProvenReal(FresnelC(x), realAssumptions)).isTrue();
-        check(isProvenReal(ExpIntegralEi(x), realAssumptions)).isTrue();
-        check(isProvenReal(SinIntegralSi(x), realAssumptions)).isTrue();
-        check(isProvenReal(SinhIntegralShi(x), realAssumptions)).isTrue();
+        check(isProvenReal(Erfi(x), realAssumptions)).isTrue;
+        check(isProvenReal(FresnelS(x), realAssumptions)).isTrue;
+        check(isProvenReal(FresnelC(x), realAssumptions)).isTrue;
+        check(isProvenReal(ExpIntegralEi(x), realAssumptions)).isTrue;
+        check(isProvenReal(SinIntegralSi(x), realAssumptions)).isTrue;
+        check(isProvenReal(SinhIntegralShi(x), realAssumptions)).isTrue;
         check(isProvenReal(LogIntegralLi(IntegerNumber.two), realAssumptions))
-            .isTrue();
+            .isTrue;
         check(isProvenReal(LogIntegralLi(IntegerNumber.zero), realAssumptions))
-            .isFalse();
+            .isFalse;
         check(isProvenReal(CosIntegralCi(IntegerNumber.two), realAssumptions))
-            .isTrue();
+            .isTrue;
         check(isProvenReal(CoshIntegralChi(IntegerNumber.two), realAssumptions))
-            .isTrue();
+            .isTrue;
         check(isProvenReal(UpperGamma(IntegerNumber.two, x), realAssumptions))
-            .isFalse();
+            .isFalse;
         check(isProvenReal(LowerGamma(IntegerNumber.two, x), realAssumptions))
-            .isFalse();
+            .isFalse;
         check(
           isProvenReal(UpperGamma(IntegerNumber.two, x), Assumptions.positive),
-        ).isTrue();
+        ).isTrue;
         check(
           isProvenReal(LowerGamma(IntegerNumber.two, x), Assumptions.positive),
-        ).isTrue();
+        ).isTrue;
         check(
           isProvenReal(
             Polylog(IntegerNumber.two, FractionNumber.half),
             realAssumptions,
           ),
-        ).isTrue();
+        ).isTrue;
         check(
           isProvenReal(
             Polylog(IntegerNumber.two, IntegerNumber.two),
             realAssumptions,
           ),
-        ).isFalse();
+        ).isFalse;
         check(isProvenReal(EllipticF(x, FractionNumber.half), realAssumptions))
-            .isTrue();
+            .isTrue;
         check(
           isProvenReal(
             EllipticEIncomplete(x, FractionNumber.half),
             realAssumptions,
           ),
-        ).isTrue();
+        ).isTrue;
       },
     );
 

@@ -9,11 +9,11 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
 
-      check(isMonomial(x)).isTrue();
-      check(isMonomial(Pow(x, IntegerNumber.two))).isTrue();
-      check(isMonomial(Mul([x, Pow(y, IntegerNumber.of(3))]))).isTrue();
-      check(isMonomial(Add([x, y]))).isFalse();
-      check(isMonomial(IntegerNumber.two)).isFalse();
+      check(isMonomial(x)).isTrue;
+      check(isMonomial(Pow(x, IntegerNumber.two))).isTrue;
+      check(isMonomial(Mul([x, Pow(y, IntegerNumber.of(3))]))).isTrue;
+      check(isMonomial(Add([x, y]))).isFalse;
+      check(isMonomial(IntegerNumber.two)).isFalse;
     });
 
     test(

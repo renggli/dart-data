@@ -28,14 +28,14 @@ void main() {
       final slice = mask.slice(5, 20);
       check(slice.length).equals(15);
       check(slice.nullCount).equals(4);
-      check(slice.isNull(0)).isFalse(); // orig 5
-      check(slice.isNull(1)).isFalse(); // orig 6
-      check(slice.isNull(2)).isTrue(); // orig 7
-      check(slice.isNull(3)).isTrue(); // orig 8
-      check(slice.isNull(4)).isFalse(); // orig 9
-      check(slice.isNull(10)).isTrue(); // orig 15
-      check(slice.isNull(11)).isTrue(); // orig 16
-      check(slice.isNull(14)).isFalse(); // orig 19
+      check(slice.isNull(0)).isFalse; // orig 5
+      check(slice.isNull(1)).isFalse; // orig 6
+      check(slice.isNull(2)).isTrue; // orig 7
+      check(slice.isNull(3)).isTrue; // orig 8
+      check(slice.isNull(4)).isFalse; // orig 9
+      check(slice.isNull(10)).isTrue; // orig 15
+      check(slice.isNull(11)).isTrue; // orig 16
+      check(slice.isNull(14)).isFalse; // orig 19
 
       // Empty slice
       final emptySlice = mask.slice(10, 10);
@@ -56,7 +56,7 @@ void main() {
 
       check(series.data).isA<Float64List>();
       check(series.dataType).equals(DataType.float64);
-      check(series.hasNulls).isFalse();
+      check(series.hasNulls).isFalse;
       check(series.nullCount).equals(0);
 
       final filterMask = [true, false, true, false, true];
@@ -66,7 +66,7 @@ void main() {
       final typedFiltered = filtered as TypedSeries<double>;
       check(typedFiltered.data).isA<Float64List>();
       check(typedFiltered.length).equals(3);
-      check(typedFiltered.hasNulls).isFalse();
+      check(typedFiltered.hasNulls).isFalse;
       check(typedFiltered.nullCount).equals(0);
       check(typedFiltered.toList()).deepEquals([1.5, 3.5, 5.5]);
     });
@@ -76,7 +76,7 @@ void main() {
       final series = TypedSeries<int>.fromList('i32', originalList);
 
       check(series.data).isA<Int32List>();
-      check(series.hasNulls).isTrue();
+      check(series.hasNulls).isTrue;
       check(series.nullCount).equals(2);
 
       // Filter keeping indices 0, 1, 2, 4 (three non-nulls, one null)
@@ -85,11 +85,11 @@ void main() {
 
       check(filtered.data).isA<Int32List>();
       check(filtered.length).equals(4);
-      check(filtered.hasNulls).isTrue();
+      check(filtered.hasNulls).isTrue;
       check(filtered.nullCount).equals(1);
       check(filtered.toList()).deepEquals([10, null, 30, 50]);
-      check(filtered.isNull(1)).isTrue();
-      check(filtered.isNull(0)).isFalse();
+      check(filtered.isNull(1)).isTrue;
+      check(filtered.isNull(0)).isFalse;
     });
 
     test('filters when all rows match or no rows match', () {
@@ -133,12 +133,12 @@ void main() {
       check(sliced.data).isA<Float64List>();
       check(sliced.length).equals(4);
       check(sliced.nullCount).equals(1);
-      check(sliced.isNull(1)).isTrue();
+      check(sliced.isNull(1)).isTrue;
       check(sliced.toList()).deepEquals([20.0, null, 40.0, 50.0]);
 
       // Slice with no nulls in target range drops mask
       final cleanSlice = series.slice(0, 2) as TypedSeries<double>;
-      check(cleanSlice.hasNulls).isFalse();
+      check(cleanSlice.hasNulls).isFalse;
       check(cleanSlice.nullCount).equals(0);
       check(cleanSlice.toList()).deepEquals([10.0, 20.0]);
 
@@ -161,7 +161,7 @@ void main() {
 
       // Non-null series
       final nonNullSeries = TypedSeries<int>.fromList('ids', [10, 20, 30]);
-      check(nonNullSeries.hasNulls).isFalse();
+      check(nonNullSeries.hasNulls).isFalse;
       check(nonNullSeries.getNonNull(0)).equals(10);
       check(nonNullSeries.getNonNull(1)).equals(20);
       check(nonNullSeries.getNonNull(2)).equals(30);
@@ -174,7 +174,7 @@ void main() {
         null,
         'Bob',
       ]);
-      check(strSeries.hasNulls).isTrue();
+      check(strSeries.hasNulls).isTrue;
       check(strSeries.getNonNull(0)).equals('Alice');
       check(strSeries.getNonNull(2)).equals('Bob');
       check(() => strSeries.getNonNull(1)).throws<StateError>();
@@ -186,7 +186,7 @@ void main() {
       final s = Series<int>.fromList('x', [1, null, 2, null, 3]);
       final clean = s.dropNulls();
       check(clean.toList()).deepEquals([1, 2, 3]);
-      check(clean.hasNulls).isFalse();
+      check(clean.hasNulls).isFalse;
 
       final noNulls = Series<int>.fromList('y', [1, 2, 3]);
       check(noNulls.dropNulls().toList()).deepEquals([1, 2, 3]);
@@ -198,7 +198,7 @@ void main() {
       check(filled.toList()).deepEquals([1, 0, 2, 0, 3]);
 
       final noNulls = Series<int>.fromList('y', [1, 2, 3]);
-      check(identical(noNulls.fillNull(99), noNulls)).isTrue();
+      check(identical(noNulls.fillNull(99), noNulls)).isTrue;
     });
 
     test('map transforms non-null elements preserving null positions', () {
@@ -227,7 +227,7 @@ void main() {
       final uNan = nanSeries.unique();
       check(uNan.length).equals(4);
       check(uNan[0]).equals(1.0);
-      check(uNan[1]!.isNaN).isTrue();
+      check(uNan[1]!.isNaN).isTrue;
       check(uNan[2]).equals(2.0);
       check(uNan[3]).equals(0.0);
     });
@@ -275,8 +275,8 @@ void main() {
       check(() => s.isNull(2)).throws<RangeError>();
 
       final sNan = Series<double>.fromList('nan', [2.0, double.nan, 1.0]);
-      check(sNan.min!.isNaN).isTrue();
-      check(sNan.max!.isNaN).isTrue();
+      check(sNan.min!.isNaN).isTrue;
+      check(sNan.max!.isNaN).isTrue;
     });
 
     test(
@@ -306,20 +306,20 @@ void main() {
       final sDiffVal = Series<int>.fromList('a', [1, 2, 3]);
       final sDiffLen = Series<int>.fromList('a', [1, null]);
 
-      check(s1 == s2).isTrue();
+      check(s1 == s2).isTrue;
       check(s1.hashCode).equals(s2.hashCode);
-      check(s1 == sDiffName).isFalse();
-      check(s1 == sDiffVal).isFalse();
-      check(s1 == sDiffLen).isFalse();
+      check(s1 == sDiffName).isFalse;
+      check(s1 == sDiffVal).isFalse;
+      check(s1 == sDiffLen).isFalse;
 
       final sNan1 = Series<double>.fromList('nan', [double.nan, 1.0]);
       final sNan2 = Series<double>.fromList('nan', [double.nan, 1.0]);
-      check(sNan1 == sNan2).isTrue();
+      check(sNan1 == sNan2).isTrue;
       check(sNan1.hashCode).equals(sNan2.hashCode);
 
       final sZero1 = Series<double>.fromList('zero', [0.0, 1.0]);
       final sZero2 = Series<double>.fromList('zero', [-0.0, 1.0]);
-      check(sZero1 == sZero2).isTrue();
+      check(sZero1 == sZero2).isTrue;
       check(sZero1.hashCode).equals(sZero2.hashCode);
 
       check(() => BoolSeries(name: 'b', data: [true], mask: ValidityMask(2)))
@@ -374,23 +374,23 @@ void main() {
       check(asc[1]).equals(1.0);
       check(asc[2]).equals(2.0);
       check(asc[3]).equals(double.infinity);
-      check(asc[4]!.isNaN).isTrue();
-      check(asc[5]).isNull();
+      check(asc[4]!.isNaN).isTrue;
+      check(asc[5]).isNull;
 
       final desc = s.sort(ascending: false, nullsLast: true);
-      check(desc[0]!.isNaN).isTrue();
+      check(desc[0]!.isNaN).isTrue;
       check(desc[1]).equals(double.infinity);
       check(desc[2]).equals(2.0);
       check(desc[3]).equals(1.0);
       check(desc[4]).equals(-double.infinity);
-      check(desc[5]).isNull();
+      check(desc[5]).isNull;
     });
 
     test('Series equality handles NaN correctly', () {
       final s1 = Series<double?>.fromList('s', [1.0, double.nan, null, 2.0]);
       final s2 = Series<double?>.fromList('s', [1.0, double.nan, null, 2.0]);
-      check(s1 == s2).isTrue();
-      check(s1 == s1.slice(0, 4)).isTrue();
+      check(s1 == s2).isTrue;
+      check(s1 == s1.slice(0, 4)).isTrue;
     });
 
     test(
@@ -502,24 +502,24 @@ void main() {
   group('Series fillNull unboxed and zero-copy', () {
     test('TypedSeries.fillNull replaces nulls and preserves buffer type', () {
       final s = TypedSeries<double>.fromList('x', [1.0, null, 3.0]);
-      check(s.hasNulls).isTrue();
+      check(s.hasNulls).isTrue;
       final filled = s.fillNull(0.0);
       check(filled).isA<TypedSeries<double>>();
-      check(filled.hasNulls).isFalse();
+      check(filled.hasNulls).isFalse;
       check(filled.data).isA<Float64List>();
       check(filled.toList()).deepEquals([1.0, 0.0, 3.0]);
 
       // Returns same instance if no nulls
-      check(identical(filled.fillNull(42.0), filled)).isTrue();
+      check(identical(filled.fillNull(42.0), filled)).isTrue;
     });
 
     test('BoolSeries.fillNull replaces nulls', () {
       final s = BoolSeries.fromList('b', [true, null, false]);
-      check(s.hasNulls).isTrue();
+      check(s.hasNulls).isTrue;
       final filled = s.fillNull(false);
-      check(filled.hasNulls).isFalse();
+      check(filled.hasNulls).isFalse;
       check(filled.toList()).deepEquals([true, false, false]);
-      check(identical(filled.fillNull(true), filled)).isTrue();
+      check(identical(filled.fillNull(true), filled)).isTrue;
     });
 
     test('ObjectSeries.fillNull replaces nulls', () {
@@ -528,24 +528,24 @@ void main() {
         null,
         DateTime(2022),
       ]);
-      check(s.hasNulls).isTrue();
+      check(s.hasNulls).isTrue;
       final fallback = DateTime(2000);
       final filled = s.fillNull(fallback);
-      check(filled.hasNulls).isFalse();
+      check(filled.hasNulls).isFalse;
       check(filled.toList())
           .deepEquals([DateTime(2020), fallback, DateTime(2022)]);
-      check(identical(filled.fillNull(fallback), filled)).isTrue();
+      check(identical(filled.fillNull(fallback), filled)).isTrue;
     });
 
     test(
       'ArrowStringSeries.fillNull replaces nulls without decoding strings',
       () {
         final s = ArrowStringSeries.fromList('str', ['hello', null, 'world']);
-        check(s.hasNulls).isTrue();
+        check(s.hasNulls).isTrue;
         final filled = s.fillNull('N/A');
-        check(filled.hasNulls).isFalse();
+        check(filled.hasNulls).isFalse;
         check(filled.toList()).deepEquals(['hello', 'N/A', 'world']);
-        check(identical(filled.fillNull('xyz'), filled)).isTrue();
+        check(identical(filled.fillNull('xyz'), filled)).isTrue;
       },
     );
   });
@@ -627,27 +627,27 @@ void main() {
       check(withNulls.median()).equals(20.0);
 
       final withNaN = TypedSeries<double>.fromList('x', [1.0, double.nan, 3.0]);
-      check(withNaN.variance()!.isNaN).isTrue();
-      check(withNaN.std()!.isNaN).isTrue();
-      check(withNaN.median()!.isNaN).isTrue();
-      check(withNaN.quantile(0.5)!.isNaN).isTrue();
+      check(withNaN.variance()!.isNaN).isTrue;
+      check(withNaN.std()!.isNaN).isTrue;
+      check(withNaN.median()!.isNaN).isTrue;
+      check(withNaN.quantile(0.5)!.isNaN).isTrue;
 
       final single = TypedSeries<double>.fromList('x', [42.0]);
       check(single.count).equals(1);
-      check(single.variance()).isNull(); // sample variance requires n >= 2
+      check(single.variance()).isNull; // sample variance requires n >= 2
       check(single.variance(population: true)).equals(0.0);
-      check(single.std()).isNull();
+      check(single.std()).isNull;
       check(single.std(population: true)).equals(0.0);
       check(single.median()).equals(42.0);
 
       final empty = TypedSeries<double>.fromList('x', []);
       check(empty.count).equals(0);
-      check(empty.min).isNull();
-      check(empty.max).isNull();
-      check(empty.variance()).isNull();
-      check(empty.std()).isNull();
-      check(empty.median()).isNull();
-      check(empty.quantile(0.5)).isNull();
+      check(empty.min).isNull;
+      check(empty.max).isNull;
+      check(empty.variance()).isNull;
+      check(empty.std()).isNull;
+      check(empty.median()).isNull;
+      check(empty.quantile(0.5)).isNull;
 
       check(() => withNulls.quantile(-0.1)).throws<RangeError>();
       check(() => withNulls.quantile(1.1)).throws<RangeError>();
@@ -658,10 +658,10 @@ void main() {
       check(sMixed.count).equals(2);
       check(sMixed.min).equals(false);
       check(sMixed.max).equals(true);
-      check(sMixed.variance()).isNull();
-      check(sMixed.std()).isNull();
-      check(sMixed.median()).isNull();
-      check(sMixed.quantile(0.5)).isNull();
+      check(sMixed.variance()).isNull;
+      check(sMixed.std()).isNull;
+      check(sMixed.median()).isNull;
+      check(sMixed.quantile(0.5)).isNull;
 
       final sAllTrue = BoolSeries.fromList('b', [true, true]);
       check(sAllTrue.min).equals(true);
@@ -678,8 +678,8 @@ void main() {
 
       final sAllNull = BoolSeries.fromList('b', [null, null]);
       check(sAllNull.count).equals(0);
-      check(sAllNull.min).isNull();
-      check(sAllNull.max).isNull();
+      check(sAllNull.min).isNull;
+      check(sAllNull.max).isNull;
     });
 
     test('ObjectSeries min, max, and stats', () {
@@ -687,7 +687,7 @@ void main() {
       check(sStr.count).equals(3);
       check(sStr.min).equals('apple');
       check(sStr.max).equals('cherry');
-      check(sStr.variance()).isNull();
+      check(sStr.variance()).isNull;
 
       final sNum = Series<Object?>.fromList('n', [10, 20, 30]);
       check(sNum.count).equals(3);
@@ -701,10 +701,10 @@ void main() {
       check(sNum.quantile(0.5)).equals(20.0);
 
       final sArrow = ArrowStringSeries.fromList('a', ['x', 'y']);
-      check(sArrow.variance()).isNull();
-      check(sArrow.std()).isNull();
-      check(sArrow.median()).isNull();
-      check(sArrow.quantile(0.5)).isNull();
+      check(sArrow.variance()).isNull;
+      check(sArrow.std()).isNull;
+      check(sArrow.median()).isNull;
+      check(sArrow.quantile(0.5)).isNull;
     });
   });
 }

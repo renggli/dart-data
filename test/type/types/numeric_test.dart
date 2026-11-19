@@ -11,8 +11,8 @@ void main() {
     test('attributes', () {
       check(type.name).equals('numeric');
       check(type.defaultValue).equals(0);
-      check(type.isNullable).isFalse();
-      check(type.isNumeric).isTrue();
+      check(type.isNullable).isFalse;
+      check(type.isNumeric).isTrue;
       check(type.toString()).equals('DataType.numeric');
     });
 

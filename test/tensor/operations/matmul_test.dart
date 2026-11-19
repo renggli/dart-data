@@ -175,13 +175,13 @@ void main() {
         type: DataType.float64,
       );
       final res = a.matmul(b, target: target);
-      check(identical(res, target)).isTrue();
+      check(identical(res, target)).isTrue;
       check(target.getValue([0, 0])).isCloseTo(4.0, 1e-10);
       check(target.getValue([1, 1])).isCloseTo(8.0, 1e-10);
 
       // Target aliases input: a.matmul(b, target: a)
       final aliasedRes = a.matmul(b, target: a);
-      check(identical(aliasedRes, a)).isTrue();
+      check(identical(aliasedRes, a)).isTrue;
       check(a.getValue([0, 0])).isCloseTo(4.0, 1e-10);
       check(a.getValue([0, 1])).isCloseTo(4.0, 1e-10);
       check(a.getValue([1, 0])).isCloseTo(10.0, 1e-10);
@@ -226,7 +226,7 @@ void main() {
       final fullTarget = Tensor<double>.filled(1.0, shape: [2, 2, 4]);
       final slicedTarget = fullTarget.getRange(axis: 2, start: 0, end: 2);
       batchA.matmul(batchB, target: slicedTarget);
-      check(slicedTarget.toFlatList()).every((it) => it.equals(0.0));
+      check(slicedTarget.toFlatList()).every(.it()..equals(0.0));
     });
   });
 }

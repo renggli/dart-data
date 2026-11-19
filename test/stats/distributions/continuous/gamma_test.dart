@@ -61,7 +61,7 @@ void main() {
           .samples(random: math.Random(42))
           .take(10)
           .toList();
-      check(smallSamples.every((sample) => sample >= 0)).isTrue();
+      check(smallSamples.every((sample) => sample >= 0)).isTrue;
     });
 
     test('shape constructor', () {
@@ -88,7 +88,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == GammaDistribution(3.0, 2.0)).isTrue();
+      check(dist == GammaDistribution(3.0, 2.0)).isTrue;
       check(dist.hashCode).equals(GammaDistribution(3.0, 2.0).hashCode);
     });
 

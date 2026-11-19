@@ -63,7 +63,7 @@ void main() {
 
       final start = Vector<double>.fromList([0.1, 0.1], type: DataType.float64);
       final res = nelderMead(f, start, step: 0.5, maxIterations: 1);
-      check(res.value.isNaN).isFalse();
+      check(res.value.isNaN).isFalse;
     });
   });
 }

@@ -9,8 +9,8 @@ void main() {
       final expr =
           Sin(x) + Cos(x) * IntegerNumber.two - Pow(x, IntegerNumber.two);
       check(expr.freeVariables).unorderedEquals(['x']);
-      check(expr.dependsOn('x')).isTrue();
-      check(expr.dependsOn('y')).isFalse();
+      check(expr.dependsOn('x')).isTrue;
+      check(expr.dependsOn('y')).isFalse;
     });
 
     test('cached structural hashCode and equality across composite trees', () {
@@ -22,7 +22,7 @@ void main() {
       // Free variables caching
       final free1 = expr1.freeVariables;
       final free2 = expr1.freeVariables;
-      check(identical(free1, free2)).isTrue();
+      check(identical(free1, free2)).isTrue;
       check(free1).unorderedEquals(['x']);
     });
   });
@@ -45,7 +45,7 @@ void main() {
         Piecewise([
           (relation: LessThan(x, IntegerNumber.zero), expr: -x),
         ], otherwise: x).isReal,
-      ).isTrue();
+      ).isTrue;
       check(
         Integral(
           x,
@@ -53,16 +53,15 @@ void main() {
           lower: IntegerNumber.zero,
           upper: IntegerNumber.one,
         ).isReal,
-      ).isTrue();
-      check(Derivative(x, 'x').isReal).isTrue();
-      check(Limit(x, 'x', IntegerNumber.zero).isReal).isTrue();
-      check(Sum(x, 'x', IntegerNumber.one, const Variable('n')).isReal)
-          .isTrue();
+      ).isTrue;
+      check(Derivative(x, 'x').isReal).isTrue;
+      check(Limit(x, 'x', IntegerNumber.zero).isReal).isTrue;
+      check(Sum(x, 'x', IntegerNumber.one, const Variable('n')).isReal).isTrue;
       check(Product(x, 'x', IntegerNumber.one, const Variable('n')).isReal)
-          .isTrue();
-      check(VariableFunction('f', const [x]).isReal).isTrue();
-      check(Pow(IntegerNumber.two, ComplexNumber.i).isReal).isFalse();
-      check(Pow(IntegerNumber.two, IntegerNumber.two).isReal).isTrue();
+          .isTrue;
+      check(VariableFunction('f', const [x]).isReal).isTrue;
+      check(Pow(IntegerNumber.two, ComplexNumber.i).isReal).isFalse;
+      check(Pow(IntegerNumber.two, IntegerNumber.two).isReal).isTrue;
     });
 
     test('supports substitute, mapChildren, getters, and isReal on special integral functions', () {
@@ -117,16 +116,16 @@ void main() {
           .equals(EllipticEIncomplete(two, y));
 
       // isReal branch cuts
-      check(LogIntegralLi(two).isReal).isTrue();
-      check(LogIntegralLi(IntegerNumber.negativeOne).isReal).isFalse();
-      check(CosIntegralCi(two).isReal).isTrue();
-      check(CosIntegralCi(IntegerNumber.zero).isReal).isFalse();
-      check(CoshIntegralChi(two).isReal).isTrue();
-      check(CoshIntegralChi(IntegerNumber.negativeOne).isReal).isFalse();
-      check(Polylog(two, FractionNumber.half).isReal).isTrue();
-      check(Polylog(two, two).isReal).isFalse();
-      check(Polylog(two, Constant.pi).isReal).isFalse();
-      check(CosIntegralCi(ComplexNumber.i).isReal).isFalse();
+      check(LogIntegralLi(two).isReal).isTrue;
+      check(LogIntegralLi(IntegerNumber.negativeOne).isReal).isFalse;
+      check(CosIntegralCi(two).isReal).isTrue;
+      check(CosIntegralCi(IntegerNumber.zero).isReal).isFalse;
+      check(CoshIntegralChi(two).isReal).isTrue;
+      check(CoshIntegralChi(IntegerNumber.negativeOne).isReal).isFalse;
+      check(Polylog(two, FractionNumber.half).isReal).isTrue;
+      check(Polylog(two, two).isReal).isFalse;
+      check(Polylog(two, Constant.pi).isReal).isFalse;
+      check(CosIntegralCi(ComplexNumber.i).isReal).isFalse;
     });
   });
 }

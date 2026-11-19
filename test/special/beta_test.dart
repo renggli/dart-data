@@ -23,7 +23,7 @@ void main() {
     test('beta', () {
       for (final (a, b, expected) in betaTuples) {
         if (expected.isNaN) {
-          check(because: 'beta($a, $b)', beta(a, b)).isNaN();
+          check(because: 'beta($a, $b)', beta(a, b)).isNaN;
         } else {
           check(because: 'beta($a, $b)', beta(a, b)).isCloseTo(expected, 1e-6);
         }
@@ -50,8 +50,8 @@ void main() {
       check(ibeta(0.0, 2.0, 3.0)).equals(0.0);
       check(ibeta(1.0, 2.0, 3.0)).equals(1.0);
       check(ibeta(0.5, 1.0, 1.0)).isCloseTo(0.5, 1e-12);
-      check(ibeta(-0.1, 1, 1)).isNaN();
-      check(ibeta(1.1, 1, 1)).isNaN();
+      check(ibeta(-0.1, 1, 1)).isNaN;
+      check(ibeta(1.1, 1, 1)).isNaN;
 
       final prob = ibeta(0.4, 3.0, 4.0);
       check(ibetaInv(prob, 3.0, 4.0)).isCloseTo(0.4, 1e-10);
@@ -67,13 +67,13 @@ void main() {
         check(ibetaInv(p, a, b)).isCloseTo(x, 1e-8);
       }
 
-      check(beta(double.nan, 1.0)).isNaN();
-      check(betaLn(double.nan, 1.0)).isNaN();
-      check(ibeta(double.nan, 2.0, 3.0)).isNaN();
-      check(ibeta(0.5, double.nan, 3.0)).isNaN();
-      check(ibetaInv(-0.1, 2.0, 3.0)).isNaN();
-      check(ibetaInv(1.1, 2.0, 3.0)).isNaN();
-      check(ibetaInv(double.nan, 2.0, 3.0)).isNaN();
+      check(beta(double.nan, 1.0)).isNaN;
+      check(betaLn(double.nan, 1.0)).isNaN;
+      check(ibeta(double.nan, 2.0, 3.0)).isNaN;
+      check(ibeta(0.5, double.nan, 3.0)).isNaN;
+      check(ibetaInv(-0.1, 2.0, 3.0)).isNaN;
+      check(ibetaInv(1.1, 2.0, 3.0)).isNaN;
+      check(ibetaInv(double.nan, 2.0, 3.0)).isNaN;
       check(beta(150.0, 2.0)).isCloseTo(math.exp(betaLn(150.0, 2.0)), 1e-12);
       check(ibetaInv(0.95, 0.3, 0.3))
           .isCloseTo(1.0 - ibetaInv(0.05, 0.3, 0.3), 1e-8);

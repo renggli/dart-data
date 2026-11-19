@@ -151,7 +151,7 @@ void main() {
       check(df['a'].toList()).deepEquals([1, 3]);
       check(df['b'].toList()).deepEquals([2, null]);
       check(df['b'].nullCount).equals(1);
-      check(df['b'].isNull(1)).isTrue();
+      check(df['b'].isNull(1)).isTrue;
     });
 
     test('handles out-of-order keys across rows', () {

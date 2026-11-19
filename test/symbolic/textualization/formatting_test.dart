@@ -19,7 +19,7 @@ void main() {
           .equals(Mul([IntegerNumber.two, x]));
       check(stripLeadingNegative(Mul([ComplexNumber.negativeI, x])))
           .equals(Mul([ComplexNumber.i, x]));
-      check(stripLeadingNegative(x)).isNull();
+      check(stripLeadingNegative(x)).isNull;
     });
 
     test('partitionMulFraction separates sign, numerator, and denominator', () {
@@ -30,7 +30,7 @@ void main() {
         x,
         Pow(y, IntegerNumber.of(-2)),
       ]);
-      check(part.isNegative).isTrue();
+      check(part.isNegative).isTrue;
       check(part.numerator).deepEquals([IntegerNumber.of(3), x]);
       check(part.denominator)
           .deepEquals([IntegerNumber.of(4), Pow(y, IntegerNumber.two)]);
@@ -42,14 +42,14 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
       check(matchFunctionPower(Sin(x), IntegerNumber.two)).isNotNull();
-      check(matchFunctionPower(Sin(x), IntegerNumber.one)).isNull();
-      check(matchFunctionPower(Asin(x), IntegerNumber.two)).isNull();
+      check(matchFunctionPower(Sin(x), IntegerNumber.one)).isNull;
+      check(matchFunctionPower(Asin(x), IntegerNumber.two)).isNull;
 
-      check(canOmitMulDot(IntegerNumber.two, x)).isTrue();
-      check(canOmitMulDot(x, y)).isTrue();
-      check(canOmitMulDot(IntegerNumber.two, IntegerNumber.of(3))).isFalse();
-      check(canOmitMulDot(x, IntegerNumber.of(-2))).isFalse();
-      check(canOmitMulDot(x, Pow(y, IntegerNumber.negativeOne))).isFalse();
+      check(canOmitMulDot(IntegerNumber.two, x)).isTrue;
+      check(canOmitMulDot(x, y)).isTrue;
+      check(canOmitMulDot(IntegerNumber.two, IntegerNumber.of(3))).isFalse;
+      check(canOmitMulDot(x, IntegerNumber.of(-2))).isFalse;
+      check(canOmitMulDot(x, Pow(y, IntegerNumber.negativeOne))).isFalse;
     });
 
     test('parenthesization predicates for sub, mul, pow, and neg', () {
@@ -57,32 +57,32 @@ void main() {
       const y = Variable('y');
       final comp = ComplexNumber(IntegerNumber.one, IntegerNumber.one);
 
-      check(needsSubRightParens(x + y)).isTrue();
-      check(needsSubRightParens(comp)).isTrue();
-      check(needsSubRightParens(-x)).isTrue();
-      check(needsSubRightParens(x)).isFalse();
+      check(needsSubRightParens(x + y)).isTrue;
+      check(needsSubRightParens(comp)).isTrue;
+      check(needsSubRightParens(-x)).isTrue;
+      check(needsSubRightParens(x)).isFalse;
 
-      check(needsMulLeftParens(x + y)).isTrue();
-      check(needsMulLeftParens(comp)).isTrue();
-      check(needsMulLeftParens(x)).isFalse();
+      check(needsMulLeftParens(x + y)).isTrue;
+      check(needsMulLeftParens(comp)).isTrue;
+      check(needsMulLeftParens(x)).isFalse;
 
-      check(needsMulRightParens(x + y)).isTrue();
-      check(needsMulRightParens(comp)).isTrue();
-      check(needsMulRightParens(-x)).isTrue();
-      check(needsMulRightParens(x)).isFalse();
+      check(needsMulRightParens(x + y)).isTrue;
+      check(needsMulRightParens(comp)).isTrue;
+      check(needsMulRightParens(-x)).isTrue;
+      check(needsMulRightParens(x)).isFalse;
 
-      check(needsPowBaseParens(x + y)).isTrue();
-      check(needsPowBaseParens(x * y)).isTrue();
-      check(needsPowBaseParens(FractionNumber.half)).isTrue();
-      check(needsPowBaseParens(IntegerNumber.of(-2))).isTrue();
-      check(needsPowBaseParens(comp)).isTrue();
-      check(needsPowBaseParens(Pow(x, IntegerNumber.negativeOne))).isTrue();
-      check(needsPowBaseParens(x)).isFalse();
+      check(needsPowBaseParens(x + y)).isTrue;
+      check(needsPowBaseParens(x * y)).isTrue;
+      check(needsPowBaseParens(FractionNumber.half)).isTrue;
+      check(needsPowBaseParens(IntegerNumber.of(-2))).isTrue;
+      check(needsPowBaseParens(comp)).isTrue;
+      check(needsPowBaseParens(Pow(x, IntegerNumber.negativeOne))).isTrue;
+      check(needsPowBaseParens(x)).isFalse;
 
-      check(needsNegOperandParens(x + y)).isTrue();
-      check(needsNegOperandParens(comp)).isTrue();
-      check(needsNegOperandParens(-x)).isTrue();
-      check(needsNegOperandParens(x)).isFalse();
+      check(needsNegOperandParens(x + y)).isTrue;
+      check(needsNegOperandParens(comp)).isTrue;
+      check(needsNegOperandParens(-x)).isTrue;
+      check(needsNegOperandParens(x)).isFalse;
     });
   });
 }

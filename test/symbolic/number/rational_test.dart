@@ -25,8 +25,8 @@ BigInt numeratorOf(RationalParts value) => value.numerator.toBigInt();
 BigInt denominatorOf(RationalParts value) => value.denominator.toBigInt();
 
 void checkNormalized(RationalParts value) {
-  check(value.denominator.isNegative).isFalse();
-  check(value.denominator.isZero).isFalse();
+  check(value.denominator.isNegative).isFalse;
+  check(value.denominator.isZero).isFalse;
   check(value.numerator.gcd(value.denominator))
       .equals(value.numerator.isZero ? value.denominator : Integer.one);
   if (value.numerator.isZero) check(value.denominator).equals(Integer.one);
@@ -157,8 +157,8 @@ void main() {
       ));
     });
     test('size limit', () {
-      check(rationalPow(parts(1, 2), 65536)).isNull();
-      check(rationalPow(parts(3, 2), 100, maxBitLength: 100)).isNull();
+      check(rationalPow(parts(1, 2), 65536)).isNull;
+      check(rationalPow(parts(3, 2), 100, maxBitLength: 100)).isNull;
       check(rationalPow(parts(3, 2), 100, maxBitLength: 159)).isNotNull();
     });
     test('zero to a negative power', () {

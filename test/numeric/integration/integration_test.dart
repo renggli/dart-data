@@ -124,8 +124,8 @@ void main() {
         method: IntegrationMethod.simpson,
         onWarning: (type, x) => warnings.add(type),
       );
-      check(warnings).isNotEmpty();
-      check(handled.isNaN).isFalse();
+      check(warnings).isNotEmpty;
+      check(handled.isNaN).isFalse;
 
       // NaN bounds throw ArgumentError
       check(() => integrate((x) => x, double.nan, 1.0)).throws<ArgumentError>();
@@ -246,15 +246,13 @@ void main() {
         poles: [0.0],
         onWarning: (warning, x) {
           warningTriggered = true;
-          check(warning).which(
-            (it) => it.anyOf([
-              (w) => w.equals(IntegrateWarning.doesNotConverge),
-              (w) => w.equals(IntegrateWarning.depthTooShallow),
-            ]),
-          );
+          check(warning).anyOf([
+            .it()..equals(IntegrateWarning.doesNotConverge),
+            .it()..equals(IntegrateWarning.depthTooShallow),
+          ]);
         },
       );
-      check(warningTriggered).isTrue();
+      check(warningTriggered).isTrue;
 
       // Test divergent 1/x^2 singularity at upper endpoint
       double divX2(double x) =>
@@ -289,7 +287,7 @@ void main() {
         tolerance: 1e-15,
         onWarning: (w, x) => simpWarned = true,
       );
-      check(simpWarned).isTrue();
+      check(simpWarned).isTrue;
 
       // \int_{-\infty}^0 1 / (sqrt(-x) * (1 + x^2)) dx = pi / sqrt(2)
       final resNegInfinite = integrate(

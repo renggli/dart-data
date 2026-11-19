@@ -10,10 +10,10 @@ void main() {
       'handles empty input, inconsistent ideals, and Gebauer-Möller criteria',
       () {
         final vars = ['x', 'y', 'z'];
-        check(BuchbergerEngine.compute([])).isEmpty();
+        check(BuchbergerEngine.compute([])).isEmpty;
         check(BuchbergerEngine.compute([MultivariatePolynomial.zero(vars)]))
-            .isEmpty();
-        check(BuchbergerEngine.autoreduce([])).isEmpty();
+            .isEmpty;
+        check(BuchbergerEngine.autoreduce([])).isEmpty;
 
         // Inconsistent ideal: {x + y, x + y + 1} -> {1}
         final inc = BuchbergerEngine.compute([
@@ -21,7 +21,7 @@ void main() {
           MultivariatePolynomial.fromExpr(Expr.parse('x + y + 1'), vars),
         ]);
         check(inc.length).equals(1);
-        check(inc.first.leadingMonomial().isZero).isTrue();
+        check(inc.first.leadingMonomial().isZero).isTrue;
 
         // System exercising Gebauer-Möller Criteria F and M and tie-breaking
         final polys = [
@@ -31,7 +31,7 @@ void main() {
           MultivariatePolynomial.fromExpr(Expr.parse('x*y + z - 2'), vars),
         ];
         final gb = BuchbergerEngine.compute(polys);
-        check(gb).isNotEmpty();
+        check(gb).isNotEmpty;
 
         // Autoreduce with duplicate leading monomials filters redundant element
         final dup = BuchbergerEngine.autoreduce([

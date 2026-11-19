@@ -7,13 +7,13 @@ import 'package:test/test.dart';
 void main() {
   group('Monomial GCD extraction and division', () {
     test('extractMonomialGcd extracts rational scalar and variable powers', () {
-      check(extractMonomialGcd(const [])).isNull();
+      check(extractMonomialGcd(const [])).isNull;
       check(
         extractMonomialGcd([
           Mul([const RealNumber(2.0), const Variable('x')]),
           const Variable('x'),
         ]),
-      ).isNull();
+      ).isNull;
 
       final terms = <Expr>[];
       collectAdditiveTerms(
@@ -49,8 +49,7 @@ void main() {
         const z = Variable('z');
         const w = Variable('w');
 
-        check(factorByGrouping4([x, y], assumptions: Assumptions.none))
-            .isNull();
+        check(factorByGrouping4([x, y], assumptions: Assumptions.none)).isNull;
 
         // Partition ((0, 1), (2, 3)) with r1 == r2
         final g1 = factorByGrouping4([
@@ -74,7 +73,7 @@ void main() {
 
         // Non-factorable 4-term list returns null
         check(factorByGrouping4([x, y, z, w], assumptions: Assumptions.none))
-            .isNull();
+            .isNull;
       },
     );
   });
@@ -103,15 +102,15 @@ void main() {
 
         check(extractBaseSquareRoot(IntegerNumber.one))
             .equals(IntegerNumber.one);
-        check(extractBaseSquareRoot(x)).isNull();
-        check(extractBaseSquareRoot(Sin(x))).isNull();
-        check(matchDifferenceOfSquares([x])).isNull();
+        check(extractBaseSquareRoot(x)).isNull;
+        check(extractBaseSquareRoot(Sin(x))).isNull;
+        check(matchDifferenceOfSquares([x])).isNull;
         check(
           matchDifferenceOfSquares([
             Mul([const RealNumber(1.0), Pow(x, IntegerNumber.two)]),
             Mul([const RealNumber(-1.0), Pow(y, IntegerNumber.two)]),
           ]),
-        ).isNull();
+        ).isNull;
       },
     );
 
@@ -132,22 +131,22 @@ void main() {
           Mul([IntegerNumber.of(27), Pow(z, IntegerNumber.of(3))]),
         ]);
         check(cubes).isNotNull();
-        check(cubes!.isDifference).isTrue();
+        check(cubes!.isDifference).isTrue;
         check(cubes.a.toString()).equals('3 * z');
         check(cubes.b.toString()).equals('2 * x * y ^ 2');
 
         check(extractBaseCubeRoot(IntegerNumber.one)).equals(IntegerNumber.one);
-        check(extractBaseCubeRoot(x)).isNull();
+        check(extractBaseCubeRoot(x)).isNull;
         check(integerCbrt(Integer.zero)).equals(Integer.zero);
         check(integerCbrt(const Integer(-27))).equals(const Integer(-3));
-        check(integerCbrt(const Integer(10))).isNull();
+        check(integerCbrt(const Integer(10))).isNull;
         final bigCube = Integer.big(BigInt.from(10).pow(60));
         check(integerCbrt(bigCube))
             .equals(Integer.big(BigInt.from(10).pow(20)));
         final bigSq = Integer.big(BigInt.from(10).pow(60));
         check(bigSq.isqrt()).equals(Integer.big(BigInt.from(10).pow(30)));
-        check(isOne(IntegerNumber.one)).isTrue();
-        check(isOne(x)).isFalse();
+        check(isOne(IntegerNumber.one)).isTrue;
+        check(isOne(x)).isFalse;
       },
     );
 

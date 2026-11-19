@@ -11,8 +11,8 @@ void main() {
     test('attributes', () {
       check(type.name).equals('quaternion');
       check(type.defaultValue).equals(Quaternion.zero);
-      check(type.isNullable).isFalse();
-      check(type.isNative).isFalse();
+      check(type.isNullable).isFalse;
+      check(type.isNative).isFalse;
       check(type.toString()).equals('DataType.quaternion');
     });
 
@@ -57,7 +57,7 @@ void main() {
         field
             .pow(const Quaternion(2), const Quaternion(3))
             .closeTo(const Quaternion(8), 1e-10),
-      ).isTrue();
+      ).isTrue;
       check(field.abs(const Quaternion(1, 2, 2, 4)))
           .equals(const Quaternion(5));
       check(field.norm(const Quaternion(1, 2, 2, 4))).equals(5.0);

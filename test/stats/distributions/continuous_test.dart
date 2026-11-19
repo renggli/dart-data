@@ -11,31 +11,31 @@ void main() {
       final cauchy = CauchyDistribution(0.0, 1.0);
       check(cauchy.lowerBound).equals(double.negativeInfinity);
       check(cauchy.upperBound).equals(double.infinity);
-      check(cauchy == CauchyDistribution(0.0, 1.0)).isTrue();
+      check(cauchy == CauchyDistribution(0.0, 1.0)).isTrue;
       check(cauchy.hashCode).equals(CauchyDistribution(0.0, 1.0).hashCode);
-      check(cauchy.sample().isFinite).isTrue();
+      check(cauchy.sample().isFinite).isTrue;
 
       // Laplace
       final laplace = LaplaceDistribution(0.0, 1.0);
       check(laplace.lowerBound).equals(double.negativeInfinity);
       check(laplace.upperBound).equals(double.infinity);
-      check(laplace == LaplaceDistribution(0.0, 1.0)).isTrue();
+      check(laplace == LaplaceDistribution(0.0, 1.0)).isTrue;
       check(laplace.hashCode).equals(LaplaceDistribution(0.0, 1.0).hashCode);
-      check(laplace.sample().isFinite).isTrue();
+      check(laplace.sample().isFinite).isTrue;
 
       // Logistic
       final logistic = LogisticDistribution(0.0, 1.0);
       check(logistic.lowerBound).equals(double.negativeInfinity);
       check(logistic.upperBound).equals(double.infinity);
-      check(logistic == LogisticDistribution(0.0, 1.0)).isTrue();
+      check(logistic == LogisticDistribution(0.0, 1.0)).isTrue;
       check(logistic.hashCode).equals(LogisticDistribution(0.0, 1.0).hashCode);
-      check(logistic.sample().isFinite).isTrue();
+      check(logistic.sample().isFinite).isTrue;
 
       // Degenerate
       final degen = DegenerateDistribution(5.0);
       check(degen.lowerBound).equals(5.0);
       check(degen.upperBound).equals(5.0);
-      check(degen == DegenerateDistribution(5.0)).isTrue();
+      check(degen == DegenerateDistribution(5.0)).isTrue;
       check(degen.hashCode).equals(DegenerateDistribution(5.0).hashCode);
       check(degen.sample()).equals(5.0);
 
@@ -58,13 +58,13 @@ void main() {
       final beta = BetaDistribution(2.0, 2.0);
       check(beta.lowerBound).equals(0.0);
       check(beta.upperBound).equals(1.0);
-      check(beta == BetaDistribution(2.0, 2.0)).isTrue();
+      check(beta == BetaDistribution(2.0, 2.0)).isTrue;
       check(beta.hashCode).equals(BetaDistribution(2.0, 2.0).hashCode);
-      check(beta.sample() >= 0.0 && beta.sample() <= 1.0).isTrue();
+      check(beta.sample() >= 0.0 && beta.sample() <= 1.0).isTrue;
 
       // Inverse Gamma
       final invGamma = InverseGammaDistribution(2.0, 1.0);
-      check(invGamma.sample() > 0.0).isTrue();
+      check(invGamma.sample() > 0.0).isTrue;
     });
   });
 
@@ -101,15 +101,15 @@ void main() {
       check(() => UniformDistribution(double.nan, 1.0)).throws<ArgumentError>();
       check(() => WeibullDistribution(double.nan, 1.0)).throws<ArgumentError>();
 
-      check(DegenerateDistribution(5.0).probability(double.nan)).isNaN();
+      check(DegenerateDistribution(5.0).probability(double.nan)).isNaN;
       check(DegenerateDistribution(5.0).cumulativeProbability(double.nan))
-          .isNaN();
-      check(ExponentialDistribution(1.0).probability(double.nan)).isNaN();
+          .isNaN;
+      check(ExponentialDistribution(1.0).probability(double.nan)).isNaN;
       check(ExponentialDistribution(1.0).cumulativeProbability(double.nan))
-          .isNaN();
-      check(UniformDistribution(0.0, 1.0).probability(double.nan)).isNaN();
+          .isNaN;
+      check(UniformDistribution(0.0, 1.0).probability(double.nan)).isNaN;
       check(UniformDistribution(0.0, 1.0).cumulativeProbability(double.nan))
-          .isNaN();
+          .isNaN;
       check(GammaDistribution(2.0, 1.0).probability(double.infinity))
           .equals(0.0);
       check(WeibullDistribution(2.0, 1.0).probability(double.infinity))

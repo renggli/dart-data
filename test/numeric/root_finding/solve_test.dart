@@ -24,11 +24,11 @@ void main() {
     });
 
     test('Brent-Dekker with NaN returns NaN', () {
-      check(solve((double x) => double.nan, 0.0, b: 1.0)).isNaN();
+      check(solve((double x) => double.nan, 0.0, b: 1.0)).isNaN;
 
       // Function that returns NaN inside the iteration loop
       double fNanLoop(double x) => x < 0.5 ? -1.0 : double.nan;
-      check(solve(fNanLoop, 0.0, b: 1.0)).isNaN();
+      check(solve(fNanLoop, 0.0, b: 1.0)).isNaN;
     });
 
     test('Newton-Raphson root solver (method: RootMethod.newtonRaphson)', () {
@@ -119,7 +119,7 @@ void main() {
           b: 1.0,
           method: RootMethod.bisection,
         ),
-      ).isNaN();
+      ).isNaN;
     });
 
     test('Bracketed methods require bound b', () {

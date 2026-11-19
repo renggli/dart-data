@@ -41,7 +41,7 @@ void main() {
       final res = fisherExactTest(table);
       check(res.statistic).isGreaterThan(50.0);
       check(res.pValue).isLessThan(0.001);
-      check(res.isSignificant).isTrue();
+      check(res.isSignificant).isTrue;
     });
 
     test('table with zero cells', () {
@@ -86,8 +86,8 @@ void main() {
         [0, 0],
         [0, 0],
       ]);
-      check(emptyRes.statistic.isNaN).isTrue();
-      check(emptyRes.pValue.isNaN).isTrue();
+      check(emptyRes.statistic.isNaN).isTrue;
+      check(emptyRes.pValue.isNaN).isTrue;
     });
   });
 }

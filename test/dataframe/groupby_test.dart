@@ -178,15 +178,15 @@ void main() {
 
       // Group B (only null value)
       check(result['v_count'][1]).equals(0);
-      check(result['v_sum'][1]).isNull();
-      check(result['v_mean'][1]).isNull();
-      check(result['v_min'][1]).isNull();
-      check(result['v_max'][1]).isNull();
-      check(result['v_first'][1]).isNull();
-      check(result['v_last'][1]).isNull();
-      check(result['v_std'][1]).isNull();
-      check(result['v_variance'][1]).isNull();
-      check(result['v_median'][1]).isNull();
+      check(result['v_sum'][1]).isNull;
+      check(result['v_mean'][1]).isNull;
+      check(result['v_min'][1]).isNull;
+      check(result['v_max'][1]).isNull;
+      check(result['v_first'][1]).isNull;
+      check(result['v_last'][1]).isNull;
+      check(result['v_std'][1]).isNull;
+      check(result['v_variance'][1]).isNull;
+      check(result['v_median'][1]).isNull;
     });
 
     test('mean(), sum(), count() convenience methods', () {
@@ -432,11 +432,11 @@ void main() {
         final g = res['group'][row];
         if (g == 'single_a') {
           check(res['val_count'][row]).equals(1);
-          check(res['val_variance'][row]).isNull();
+          check(res['val_variance'][row]).isNull;
           check(res['val_median'][row]).equals(42.0);
         } else if (g == 'single_b') {
           check(res['val_count'][row]).equals(1);
-          check(res['val_variance'][row]).isNull();
+          check(res['val_variance'][row]).isNull;
           check(res['val_median'][row]).equals(99.0);
         } else if (g == 'pair') {
           check(res['val_count'][row]).equals(2);
@@ -470,11 +470,11 @@ void main() {
         final cat = res['cat'][row];
         if (cat == 'all_null') {
           check(res['x_count'][row]).equals(0);
-          check(res['x_variance'][row]).isNull();
-          check(res['x_median'][row]).isNull();
+          check(res['x_variance'][row]).isNull;
+          check(res['x_median'][row]).isNull;
         } else if (cat == 'one_valid') {
           check(res['x_count'][row]).equals(1);
-          check(res['x_variance'][row]).isNull();
+          check(res['x_variance'][row]).isNull;
           check(res['x_median'][row]).equals(100.0);
         } else if (cat == 'mixed') {
           check(res['x_count'][row]).equals(3);
@@ -567,9 +567,9 @@ void main() {
         } else if (dept == 'IT' && role == 'qa') {
           check(res['salary_count'][row]).equals(1);
           check(res['salary_mean'][row]).equals(90.0);
-          check(res['salary_variance'][row]).isNull();
+          check(res['salary_variance'][row]).isNull;
           check(res['salary_median'][row]).equals(90.0);
-          check(res['salary_std'][row]).isNull();
+          check(res['salary_std'][row]).isNull;
         } else if (dept == 'HR' && role == 'recruiter') {
           check(res['salary_count'][row]).equals(2);
           check(res['salary_mean'][row]).equals(60.0);
@@ -611,8 +611,8 @@ void main() {
             check(res['val_median'][row]).equals(7.0);
             check(res['val_variance'][row]).equals(0.0);
           } else if (g == 'str') {
-            check(res['val_median'][row]).isNull();
-            check(res['val_variance'][row]).isNull();
+            check(res['val_median'][row]).isNull;
+            check(res['val_variance'][row]).isNull;
           }
         }
       },
@@ -628,10 +628,10 @@ void main() {
         'val': [Agg.min, Agg.max, Agg.median, Agg.variance],
       });
 
-      check((res['val_min'][0] as double).isNaN).isTrue();
-      check((res['val_max'][0] as double).isNaN).isTrue();
-      check((res['val_median'][0] as double).isNaN).isTrue();
-      check((res['val_variance'][0] as double).isNaN).isTrue();
+      check((res['val_min'][0] as double).isNaN).isTrue;
+      check((res['val_max'][0] as double).isNaN).isTrue;
+      check((res['val_median'][0] as double).isNaN).isTrue;
+      check((res['val_variance'][0] as double).isNaN).isTrue;
     });
 
     test(

@@ -59,7 +59,7 @@ void main() {
         final tMid = sol.t[halfPiIdx];
         check(sol.y[halfPiIdx][0]).isCloseTo(math.sin(tMid), 1e-4);
         check(sol.y[halfPiIdx][1]).isCloseTo(math.cos(tMid), 1e-4);
-        check(sol.converged).isTrue();
+        check(sol.converged).isTrue;
       },
     );
 
@@ -89,7 +89,7 @@ void main() {
         stepSize: 0.1,
         maxSteps: 5,
       );
-      check(rk4Sol.converged).isFalse();
+      check(rk4Sol.converged).isFalse;
 
       final rk45Sol = solveOde(
         f: derivative,
@@ -99,7 +99,7 @@ void main() {
         method: OdeMethod.dormandPrince45,
         maxSteps: 5,
       );
-      check(rk45Sol.converged).isFalse();
+      check(rk45Sol.converged).isFalse;
     });
 
     test('RK45 aborts with converged=false when step cannot be reduced below minStep', () {
@@ -121,7 +121,7 @@ void main() {
         absoluteTolerance: 1e-12,
         maxSteps: 100000,
       );
-      check(sol.converged).isFalse();
+      check(sol.converged).isFalse;
       check(sol.stepCount).isLessThan(10);
     });
 
@@ -140,7 +140,7 @@ void main() {
         stepSize: 0.005,
       );
 
-      check(sol.converged).isTrue();
+      check(sol.converged).isTrue;
       check(sol.last[0]).isCloseTo(math.exp(-50.0 * 0.5), 1e-4);
     });
 
@@ -160,7 +160,7 @@ void main() {
         stepSize: 0.45,
       );
 
-      check(sol.converged).isTrue();
+      check(sol.converged).isTrue;
       check(sol.last[0]).isCloseTo(1.0 / (1.0 - 0.5), 1e-3);
     });
 
@@ -181,7 +181,7 @@ void main() {
           minStep: 0.45,
         );
 
-        check(sol.converged).isFalse();
+        check(sol.converged).isFalse;
       },
     );
 
@@ -201,7 +201,7 @@ void main() {
         stepSize: 0.01,
       );
 
-      check(sol.converged).isTrue();
+      check(sol.converged).isTrue;
       check(sol.last[0]).isCloseTo(math.exp(-2.0 * 0.503), 1e-4);
     });
 
@@ -229,8 +229,8 @@ void main() {
         absoluteTolerance: 1e-8,
       );
 
-      check(solLoose.converged).isTrue();
-      check(solTight.converged).isTrue();
+      check(solLoose.converged).isTrue;
+      check(solTight.converged).isTrue;
       check(solLoose.stepCount).isLessThan(solTight.stepCount);
       check(solTight.last[0]).isCloseTo(math.exp(-2.0), 1e-4);
     });
@@ -296,7 +296,7 @@ void main() {
           relativeTolerance: 1e-9,
           absoluteTolerance: 1e-9,
         );
-        check(sol.converged).isTrue();
+        check(sol.converged).isTrue;
         check(sol.last[0]).isCloseTo(math.sin(50.0 * 0.1005), 1e-6);
       },
     );
@@ -321,7 +321,7 @@ void main() {
         stepSize: 0.1,
         minStep: 0.05,
       );
-      check(sol.converged).isFalse();
+      check(sol.converged).isFalse;
     });
   });
 }

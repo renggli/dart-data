@@ -11,7 +11,7 @@ void main() {
       final g3 = [20.0, 19.5, 21.0, 20.5, 19.8];
 
       final res = oneWayAnova([g1, g2, g3]);
-      check(res.isSignificant).isTrue();
+      check(res.isSignificant).isTrue;
       check(res.pValue).isLessThan(1e-6);
       check(res.statistic).isGreaterThan(100.0);
 
@@ -34,7 +34,7 @@ void main() {
       ]);
       check(resDiff.statistic).equals(double.infinity);
       check(resDiff.pValue).equals(0.0);
-      check(resDiff.isSignificant).isTrue();
+      check(resDiff.isSignificant).isTrue;
 
       // Identical means with 0 within-group variance
       final resSame = oneWayAnova([
@@ -43,7 +43,7 @@ void main() {
       ]);
       check(resSame.statistic).equals(0.0);
       check(resSame.pValue).equals(1.0);
-      check(resSame.isSignificant).isFalse();
+      check(resSame.isSignificant).isFalse;
     });
   });
 }

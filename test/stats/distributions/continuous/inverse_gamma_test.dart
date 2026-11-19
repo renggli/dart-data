@@ -22,22 +22,22 @@ void main() {
 
     test('moments edge cases for small shape', () {
       final distSmall1 = InverseGammaDistribution(0.5, 1.0);
-      check(distSmall1.mean.isNaN).isTrue();
-      check(distSmall1.variance.isNaN).isTrue();
-      check(distSmall1.skewness.isNaN).isTrue();
-      check(distSmall1.excessKurtosis.isNaN).isTrue();
+      check(distSmall1.mean.isNaN).isTrue;
+      check(distSmall1.variance.isNaN).isTrue;
+      check(distSmall1.skewness.isNaN).isTrue;
+      check(distSmall1.excessKurtosis.isNaN).isTrue;
 
       final distSmall2 = InverseGammaDistribution(1.5, 1.0);
       check(distSmall2.mean).isGreaterThan(0.0);
-      check(distSmall2.variance.isNaN).isTrue();
+      check(distSmall2.variance.isNaN).isTrue;
 
       final distSmall3 = InverseGammaDistribution(2.5, 1.0);
       check(distSmall3.variance).isGreaterThan(0.0);
-      check(distSmall3.skewness.isNaN).isTrue();
+      check(distSmall3.skewness.isNaN).isTrue;
 
       final distSmall4 = InverseGammaDistribution(3.5, 1.0);
       check(distSmall4.skewness).isGreaterThan(0.0);
-      check(distSmall4.excessKurtosis.isNaN).isTrue();
+      check(distSmall4.excessKurtosis.isNaN).isTrue;
     });
 
     test('probability density function', () {
@@ -65,7 +65,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample > 0)).isTrue();
+      check(samples.every((sample) => sample > 0)).isTrue;
     });
 
     test('fit', () {
@@ -87,7 +87,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == InverseGammaDistribution(4.0, 6.0)).isTrue();
+      check(dist == InverseGammaDistribution(4.0, 6.0)).isTrue;
       check(dist.hashCode).equals(InverseGammaDistribution(4.0, 6.0).hashCode);
     });
 

@@ -11,7 +11,7 @@ void main() {
     test('moments and bounds', () {
       check(dist.dof).equals(5.0);
       check(dist.lowerBound).equals(0.0);
-      check(dist.isLowerBoundOpen).isFalse();
+      check(dist.isLowerBoundOpen).isFalse;
       check(dist.mean).equals(5.0);
       check(dist.median).isGreaterThan(4.0);
       check(dist.mode).equals(3.0);
@@ -64,7 +64,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == ChiSquaredDistribution(5.0)).isTrue();
+      check(dist == ChiSquaredDistribution(5.0)).isTrue;
       check(dist.hashCode).equals(ChiSquaredDistribution(5.0).hashCode);
     });
 

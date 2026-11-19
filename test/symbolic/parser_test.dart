@@ -11,7 +11,7 @@ void main() {
 
       final bigIntExpr = Expr.parse('123456789012345678901234567890');
       check(bigIntExpr).isA<IntegerNumber>();
-      check((bigIntExpr as IntegerNumber).value.isBig).isTrue();
+      check((bigIntExpr as IntegerNumber).value.isBig).isTrue;
 
       final fracExpr = Expr.parse('3 / 6');
       check(fracExpr).isA<FractionNumber>();
@@ -311,22 +311,22 @@ void main() {
         final vec = syntax.parseVector('[1, x, 2]');
         check(vec.length).equals(3);
         check(syntax.tryParseVector('[1, x]')!.length).equals(2);
-        check(syntax.tryParseVector('[1, +]')).isNull();
-        check(syntax.tryParseVector('[diff(x)]')).isNull();
+        check(syntax.tryParseVector('[1, +]')).isNull;
+        check(syntax.tryParseVector('[diff(x)]')).isNull;
         check(() => syntax.parseVector('[1, +]')).throws<FormatException>();
 
         final mat = syntax.parseMatrix('[[1, 2], [3, 4]]');
         check(mat.rowCount).equals(2);
         check(syntax.tryParseMatrix('[[1, 2], [3, 4]]')!.colCount).equals(2);
-        check(syntax.tryParseMatrix('[[1, 2], [3]]')).isNull();
-        check(syntax.tryParseMatrix('[1, 2]')).isNull();
+        check(syntax.tryParseMatrix('[[1, 2], [3]]')).isNull;
+        check(syntax.tryParseMatrix('[1, 2]')).isNull;
         check(() => syntax.parseMatrix('[[1, 2], [3]]'))
             .throws<FormatException>();
         check(() => syntax.parseMatrix('[1, 2]')).throws<FormatException>();
 
         check(() => syntax.parse('x +')).throws<FormatException>();
-        check(syntax.tryParse('x +')).isNull();
-        check(syntax.tryParse('diff(x)')).isNull();
+        check(syntax.tryParse('x +')).isNull;
+        check(syntax.tryParse('diff(x)')).isNull;
       },
     );
   });

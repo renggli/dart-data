@@ -13,16 +13,16 @@ void main() {
         check(o3.variable).equals('x');
         check(o3.order).equals(3);
         check(o3.point).equals(IntegerNumber.zero);
-        check(o3.isSimplified).isTrue();
-        check(o3.dependsOn('x')).isTrue();
-        check(o3.dependsOn('y')).isFalse();
+        check(o3.isSimplified).isTrue;
+        check(o3.dependsOn('x')).isTrue;
+        check(o3.dependsOn('y')).isFalse;
         check(o3.freeVariables).unorderedEquals(['x']);
         check(o3.evaluate({'x': 2.0})).equals(0.0);
         check(o3.hashCode).equals(const OrderTerm('x', 3).hashCode);
 
         const shifted = OrderTerm('x', 2, point: a);
         check(shifted.point).equals(a);
-        check(shifted.dependsOn('a')).isTrue();
+        check(shifted.dependsOn('a')).isTrue;
         check(shifted.freeVariables).unorderedEquals(['x', 'a']);
         check(shifted.substitute('x', u))
             .equals(const OrderTerm('u', 2, point: a));
@@ -42,9 +42,9 @@ void main() {
             .equals(const OrderTerm('x', 2, point: IntegerNumber.one));
         check(shifted.mapChildren((_) => IntegerNumber.one))
             .equals(const OrderTerm('x', 2, point: IntegerNumber.one));
-        check(shifted.anyNode((e) => e == shifted)).isTrue();
-        check(shifted.anyNode((e) => e == a)).isTrue();
-        check(shifted.anyNode((e) => e == u)).isFalse();
+        check(shifted.anyNode((e) => e == shifted)).isTrue;
+        check(shifted.anyNode((e) => e == a)).isTrue;
+        check(shifted.anyNode((e) => e == u)).isFalse;
         check(const OrderTerm('x', 2, point: IntegerNumber.one).toString())
             .equals('O((x - 1)^2)');
       },
@@ -91,11 +91,11 @@ void main() {
 
     test('dependsOn checks variable and point without allocating', () {
       const o = OrderTerm('x', 3);
-      check(o.dependsOn('x')).isTrue();
-      check(o.dependsOn('y')).isFalse();
+      check(o.dependsOn('x')).isTrue;
+      check(o.dependsOn('y')).isFalse;
       const oPoint = OrderTerm('x', 3, point: Variable('a'));
-      check(oPoint.dependsOn('a')).isTrue();
-      check(oPoint.dependsOn('b')).isFalse();
+      check(oPoint.dependsOn('a')).isTrue;
+      check(oPoint.dependsOn('b')).isFalse;
     });
   });
 }

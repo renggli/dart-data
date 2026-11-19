@@ -8,17 +8,17 @@ void main() {
   group('TabularDefinition linter', () {
     test('csv parser is free of linter defects', () {
       final parser = TabularDefinition.csv().build();
-      check(linter(parser)).isEmpty();
+      check(linter(parser)).isEmpty;
     });
 
     test('tsv parser is free of linter defects', () {
       final parser = TabularDefinition.tsv().build();
-      check(linter(parser)).isEmpty();
+      check(linter(parser)).isEmpty;
     });
 
     test('custom semicolon delimiter parser is free of linter defects', () {
       final parser = TabularDefinition.csv(delimiter: ';'.toParser()).build();
-      check(linter(parser)).isEmpty();
+      check(linter(parser)).isEmpty;
     });
 
     test('directly parses trailing newline without phantom rows', () {

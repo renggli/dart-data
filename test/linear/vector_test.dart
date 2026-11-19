@@ -121,7 +121,7 @@ void main() {
       final v = Vector<int>.fromList([2, 4, 6, 8], type: DataType.int32);
       final ret = v.cumsum(target: v);
 
-      check(identical(ret, v)).isTrue();
+      check(identical(ret, v)).isTrue;
       check(v.toList()).deepEquals([2, 6, 12, 20]);
     });
 
@@ -130,7 +130,7 @@ void main() {
       final target = Vector<int>.filled(3, 0, type: DataType.int32);
       final ret = v.cumsum(target: target);
 
-      check(identical(ret, target)).isTrue();
+      check(identical(ret, target)).isTrue;
       check(target.toList()).deepEquals([10, 30, 60]);
       check(v.toList()).deepEquals([10, 20, 30]);
     });
@@ -207,7 +207,7 @@ void main() {
       final v = Vector<int>.fromList([3, 2, 4], type: DataType.int32);
       final ret = v.cumprod(target: v);
 
-      check(identical(ret, v)).isTrue();
+      check(identical(ret, v)).isTrue;
       check(v.toList()).deepEquals([3, 6, 24]);
     });
 
@@ -216,7 +216,7 @@ void main() {
       final target = Vector<int>.filled(3, 0, type: DataType.int32);
       final ret = v.cumprod(target: target);
 
-      check(identical(ret, target)).isTrue();
+      check(identical(ret, target)).isTrue;
       check(target.toList()).deepEquals([2, 6, 24]);
       check(v.toList()).deepEquals([2, 3, 4]);
     });
@@ -418,7 +418,7 @@ void main() {
       // Reversed view: flip(axis: 0) gives elements [4, 3, 2, 1]
       final revView = Vector<int>(vRev.tensor.flip());
       revView.cumsum(target: revView);
-      check(revView.toList()).which((it) => it.deepEquals([4, 7, 9, 10]));
+      check(revView.toList()).which(.it()..deepEquals([4, 7, 9, 10]));
 
       // Overlapping sublistView cumsum
       final bufferData = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0]);
@@ -439,7 +439,7 @@ void main() {
       // vSrc is [1, 2, 3, 4]
       // cumsum into vDst should produce [1, 3, 6, 10] in bufferData[1..5]
       vSrc.cumsum(target: vDst);
-      check(vDst.toList()).which((it) => it.deepEquals([1.0, 3.0, 6.0, 10.0]));
+      check(vDst.toList()).which(.it()..deepEquals([1.0, 3.0, 6.0, 10.0]));
     });
 
     test('cross product and isClose', () {
@@ -458,17 +458,17 @@ void main() {
       final a = Vector<double>.fromList([1.0, 2.0, 3.0]);
       final b = Vector<double>.fromList([1.0000000001, 1.9999999999, 3.0]);
       final c = Vector<double>.fromList([1.1, 2.0, 3.0]);
-      check(a.isClose(b)).isTrue();
-      check(a.isClose(c)).isFalse();
-      check(a.isClose(c, epsilon: 0.2)).isTrue();
-      check(a.isClose(v2)).isFalse();
+      check(a.isClose(b)).isTrue;
+      check(a.isClose(c)).isFalse;
+      check(a.isClose(c, epsilon: 0.2)).isTrue;
+      check(a.isClose(v2)).isFalse;
     });
 
     test('Vector with nullable type derived from list', () {
       final v = Vector<int?>.fromList([1, null, 2]);
       check(v.type).equals(DataType.integer.nullable);
       check(v[0]).equals(1);
-      check(v[1]).isNull();
+      check(v[1]).isNull;
       check(v[2]).equals(2);
       check(v.toList()).deepEquals([1, null, 2]);
     });

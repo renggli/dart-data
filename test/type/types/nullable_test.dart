@@ -10,8 +10,8 @@ void main() {
 
     test('attributes', () {
       check(type.name).equals('int32.nullable');
-      check(type.defaultValue).isNull();
-      check(type.isNullable).isTrue();
+      check(type.defaultValue).isNull;
+      check(type.isNullable).isTrue;
       check(type.nullable).identicalTo(type);
       check(type.toString()).equals('DataType.int32.nullable');
     });
@@ -31,7 +31,7 @@ void main() {
     });
 
     test('cast', () {
-      check(type.cast(null)).isNull();
+      check(type.cast(null)).isNull;
       check(type.cast(42)).equals(42);
       check(type.cast('42')).equals(42);
     });
@@ -43,15 +43,15 @@ void main() {
     test('equality', () {
       final floatNullable = DataType.float64.nullable;
       final equality = floatNullable.equality;
-      check(equality.isEqual(null, null)).isTrue();
-      check(equality.isEqual(1.0, null)).isFalse();
-      check(equality.isEqual(null, 1.0)).isFalse();
-      check(equality.isEqual(1.0, 1.0)).isTrue();
-      check(equality.isClose(null, null, 1e-6)).isTrue();
-      check(equality.isClose(1.0, null, 1e-6)).isFalse();
-      check(equality.isClose(null, 1.0, 1e-6)).isFalse();
-      check(equality.isClose(1.0, 1.0 + 1e-8, 1e-6)).isTrue();
-      check(equality.isClose(1.0, 2.0, 1e-6)).isFalse();
+      check(equality.isEqual(null, null)).isTrue;
+      check(equality.isEqual(1.0, null)).isFalse;
+      check(equality.isEqual(null, 1.0)).isFalse;
+      check(equality.isEqual(1.0, 1.0)).isTrue;
+      check(equality.isClose(null, null, 1e-6)).isTrue;
+      check(equality.isClose(1.0, null, 1e-6)).isFalse;
+      check(equality.isClose(null, 1.0, 1e-6)).isFalse;
+      check(equality.isClose(1.0, 1.0 + 1e-8, 1e-6)).isTrue;
+      check(equality.isClose(1.0, 2.0, 1e-6)).isFalse;
       check(equality.hash(null)).equals(0);
       check(equality.hash(1.0)).equals(DataType.float64.equality.hash(1.0));
     });

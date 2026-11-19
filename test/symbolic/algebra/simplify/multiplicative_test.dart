@@ -261,7 +261,7 @@ void main() {
         check(
           (Gamma(IntegerNumber.of(102)) / Gamma(IntegerNumber.of(-102)))
               .simplify(),
-        ).not((s) => s.equals(IntegerNumber.zero));
+        ).not(.it()..equals(IntegerNumber.zero));
         check(
           (Factorial(IntegerNumber.of(102)) / Factorial(IntegerNumber.of(-102)))
               .simplify(),

@@ -22,13 +22,13 @@ void main() {
 
       test('contiguous layout normalizes singleton strides to canonical', () {
         final layout = Layout(shape: [1, 3], strides: [100, 1]);
-        check(layout.isContiguous).isTrue();
+        check(layout.isContiguous).isTrue;
         check(layout.strides).deepEquals([3, 1]);
       });
 
       test('layout with non-positive strides is not contiguous', () {
         final layout = Layout(shape: [1, 3], strides: [0, 1]);
-        check(layout.isContiguous).isFalse();
+        check(layout.isContiguous).isFalse;
       });
     });
 
@@ -168,7 +168,7 @@ void main() {
     group('indices', () {
       test('empty layout', () {
         final layout = Layout(shape: [0, 5]);
-        check(layout.indices.toList()).isEmpty();
+        check(layout.indices.toList()).isEmpty;
       });
 
       test('rank 0 layout', () {
@@ -178,13 +178,13 @@ void main() {
 
       test('contiguous layout', () {
         final layout = Layout(shape: [2, 3], offset: 10);
-        check(layout.isContiguous).isTrue();
+        check(layout.isContiguous).isTrue;
         check(layout.indices.toList()).deepEquals([10, 11, 12, 13, 14, 15]);
       });
 
       test('non-contiguous transposed layout matches keys', () {
         final layout = Layout(shape: [2, 3, 4], offset: 5).transpose([2, 0, 1]);
-        check(layout.isContiguous).isFalse();
+        check(layout.isContiguous).isFalse;
         final expected = [for (final k in layout.keys) layout.toIndex(k)];
         check(layout.indices.toList()).deepEquals(expected);
       });
@@ -195,7 +195,7 @@ void main() {
           const Slice(1, 5, 2),
           const Slice(6, 1, -2),
         ]);
-        check(sliced.isContiguous).isFalse();
+        check(sliced.isContiguous).isFalse;
         final expected = [for (final k in sliced.keys) sliced.toIndex(k)];
         check(sliced.indices.toList()).deepEquals(expected);
       });
@@ -234,10 +234,10 @@ void main() {
         final l1 = Layout(shape: [2, 3]);
         final l2 = Layout(shape: [2, 3]);
         final l3 = Layout(shape: [3, 2]);
-        check(l1 == l2).isTrue();
+        check(l1 == l2).isTrue;
         check(l1.hashCode).equals(l2.hashCode);
-        check(l1 == l3).isFalse();
-        check(l1 == Object()).isFalse();
+        check(l1 == l3).isFalse;
+        check(l1 == Object()).isFalse;
 
         final t1 = Tensor<int>.fromIterable(List.generate(12, (i) => i));
         check(t1.hashCode).equals(

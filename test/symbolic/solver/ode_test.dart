@@ -11,9 +11,9 @@ void main() {
       final ode = dy - (y * 3);
       final sol = ode.solveOde(dependent: 'y', independent: 'x');
       // y = C1 * exp(3 * x)
-      check(sol.dependsOn('C1')).isTrue();
-      check(sol.dependsOn('x')).isTrue();
-      check(sol.dependsOn('y')).isFalse();
+      check(sol.dependsOn('C1')).isTrue;
+      check(sol.dependsOn('x')).isTrue;
+      check(sol.dependsOn('y')).isFalse;
 
       // Verify that dy/dx - 3y simplifies to 0
       final deriv = sol.derivative('x').simplify();
@@ -40,8 +40,8 @@ void main() {
     test('custom constant name: y\' + 2y = 0 with constant K', () {
       final ode = dy + (y * 2);
       final sol = ode.solveOde(dependent: 'y', independent: 'x', constant: 'K');
-      check(sol.dependsOn('K')).isTrue();
-      check(sol.dependsOn('C1')).isFalse();
+      check(sol.dependsOn('K')).isTrue;
+      check(sol.dependsOn('C1')).isFalse;
     });
   });
 
@@ -87,7 +87,7 @@ void main() {
         at: 0,
         initialValues: [5],
       );
-      check(sol.dependsOn('C1')).isFalse();
+      check(sol.dependsOn('C1')).isFalse;
       final yAt0 = sol.substitute('x', IntegerNumber.zero).simplify();
       check(yAt0).equals(IntegerNumber.of(5));
     });
@@ -100,7 +100,7 @@ void main() {
         at: 0,
         initialValues: [5],
       );
-      check(sol.dependsOn('C1')).isFalse();
+      check(sol.dependsOn('C1')).isFalse;
       final yAt0 = sol.substitute('x', IntegerNumber.zero).simplify();
       check(yAt0).equals(IntegerNumber.of(5));
     });
@@ -148,28 +148,28 @@ void main() {
       const yPrime = Variable("y'");
       final ode = yPrime - (y * 2);
       final sol = ode.solveOde(dependent: 'y', independent: 'x');
-      check(sol.dependsOn('C1')).isTrue();
+      check(sol.dependsOn('C1')).isTrue;
     });
 
     test('supports dy notation', () {
       const dy = Variable('dy');
       final ode = dy - (y * 2);
       final sol = ode.solveOde(dependent: 'y', independent: 'x');
-      check(sol.dependsOn('C1')).isTrue();
+      check(sol.dependsOn('C1')).isTrue;
     });
 
     test('supports y_prime notation', () {
       const yPrime = Variable('y_prime');
       final ode = yPrime - (y * 2);
       final sol = ode.solveOde(dependent: 'y', independent: 'x');
-      check(sol.dependsOn('C1')).isTrue();
+      check(sol.dependsOn('C1')).isTrue;
     });
 
     test('supports Equal relational expression', () {
       final dy = Derivative(y, 'x');
       final ode = Equal(dy, y * 2);
       final sol = ode.solveOde(dependent: 'y', independent: 'x');
-      check(sol.dependsOn('C1')).isTrue();
+      check(sol.dependsOn('C1')).isTrue;
     });
 
     test('equation without derivative throws ArgumentError', () {

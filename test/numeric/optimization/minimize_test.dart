@@ -13,7 +13,7 @@ void main() {
       final result = minimize(function, a: 0.0, b: 6.0);
       check(result.point1D).isCloseTo(3.0, 1e-6);
       check(result.value).isCloseTo(5.0, 1e-6);
-      check(result.converged).isTrue();
+      check(result.converged).isTrue;
 
       // Constrained 1D interval: min (x - 3)^2 subject to x <= 2.0 (x - 2 <= 0)
       final constrainedResult = minimize(
@@ -95,7 +95,7 @@ void main() {
       check(result.point[0]).isCloseTo(2.0, 1e-5);
       check(result.point[1]).isCloseTo(-1.0, 1e-5);
       check(result.value).isCloseTo(4.0, 1e-5);
-      check(result.converged).isTrue();
+      check(result.converged).isTrue;
     });
 
     test('L-BFGS optimization on 3D quadratic form', () {
@@ -137,7 +137,7 @@ void main() {
 
       check(result.point[0]).isCloseTo(2.0, 1e-4);
       check(result.value).isCloseTo(11.0, 1e-4);
-      check(result.converged).isTrue();
+      check(result.converged).isTrue;
     });
 
     test('1D scalar minimization with lower-only bound', () {
@@ -154,7 +154,7 @@ void main() {
 
       check(result.point[0]).isCloseTo(3.0, 1e-4);
       check(result.value).isCloseTo(4.0, 1e-4);
-      check(result.converged).isTrue();
+      check(result.converged).isTrue;
     });
 
     test('1D scalar minimization with upper-only bound', () {
@@ -171,7 +171,7 @@ void main() {
 
       check(result.point[0]).isCloseTo(-5.0, 1e-4);
       check(result.value).isCloseTo(9.0, 1e-4);
-      check(result.converged).isTrue();
+      check(result.converged).isTrue;
     });
 
     test('2D quadratic bowl with active box bounds', () {
@@ -194,7 +194,7 @@ void main() {
       check(result.point[0]).isCloseTo(1.0, 1e-4);
       check(result.point[1]).isCloseTo(1.0, 1e-4);
       check(result.value).isCloseTo(5.0, 1e-4);
-      check(result.converged).isTrue();
+      check(result.converged).isTrue;
     });
 
     test('2D quadratic bowl with inactive box bounds', () {
@@ -216,7 +216,7 @@ void main() {
       check(result.point[0]).isCloseTo(2.0, 1e-5);
       check(result.point[1]).isCloseTo(3.0, 1e-5);
       check(result.value).isCloseTo(0.0, 1e-5);
-      check(result.converged).isTrue();
+      check(result.converged).isTrue;
     });
 
     test(
@@ -247,7 +247,7 @@ void main() {
         check(result.point[0]).isCloseTo(1.0, 1e-4);
         check(result.point[1]).isCloseTo(1.0, 1e-4);
         check(result.value).isCloseTo(0.0, 1e-4);
-        check(result.converged).isTrue();
+        check(result.converged).isTrue;
       },
     );
 
@@ -370,7 +370,7 @@ void main() {
 
       check(b1).equals(b2);
       check(b1.hashCode).equals(b2.hashCode);
-      check(b1 == b3).isFalse();
+      check(b1 == b3).isFalse;
       check(b1.toString()).startsWith('BoxBound(');
       check(b1.toString()).contains('lower:');
       check(b1.toString()).contains('upper:');
@@ -425,7 +425,7 @@ void main() {
         method: OptimizationMethod.brent,
         maxIterations: 1,
       );
-      check(brentRes.converged).isFalse();
+      check(brentRes.converged).isFalse;
 
       final nmRes = minimize(
         function,
@@ -433,7 +433,7 @@ void main() {
         method: OptimizationMethod.nelderMead,
         maxIterations: 1,
       );
-      check(nmRes.converged).isFalse();
+      check(nmRes.converged).isFalse;
     });
 
     test('Bound-constrained optimization with Nelder-Mead and L-BFGS', () {

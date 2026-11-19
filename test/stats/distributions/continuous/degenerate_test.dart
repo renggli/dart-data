@@ -13,8 +13,8 @@ void main() {
       check(dist.mode).equals(5.0);
       check(dist.variance).equals(0.0);
       check(dist.standardDeviation).equals(0.0);
-      check(dist.skewness.isNaN).isTrue();
-      check(dist.excessKurtosis.isNaN).isTrue();
+      check(dist.skewness.isNaN).isTrue;
+      check(dist.excessKurtosis.isNaN).isTrue;
     });
 
     test('probability density function', () {
@@ -47,11 +47,11 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples().take(10).toList();
-      check(samples.every((sample) => sample == 5.0)).isTrue();
+      check(samples.every((sample) => sample == 5.0)).isTrue;
     });
 
     test('equality and hashCode', () {
-      check(dist == DegenerateDistribution(5.0)).isTrue();
+      check(dist == DegenerateDistribution(5.0)).isTrue;
       check(dist.hashCode).equals(DegenerateDistribution(5.0).hashCode);
     });
 

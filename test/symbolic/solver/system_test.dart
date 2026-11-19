@@ -43,12 +43,12 @@ void main() {
           Expr.parse('x - y - 1'),
           Expr.parse('2*x + y - 6'),
         ].solve(['x', 'y']);
-        check(overdetInconsistent).isEmpty();
+        check(overdetInconsistent).isEmpty;
 
         // Rejects non-linear equations containing zero-derivative functions like Floor
         const x = Variable('x');
-        check([Floor(x) + x - IntegerNumber.two].solve(['x'])).isEmpty();
-        check([Floor(x)].solve(['x'])).isEmpty();
+        check([Floor(x) + x - IntegerNumber.two].solve(['x'])).isEmpty;
+        check([Floor(x)].solve(['x'])).isEmpty;
       },
     );
   });
@@ -96,15 +96,15 @@ void main() {
 
   group('Unified equation system solver (singular and empty cases)', () {
     test('returns empty list for empty, mismatched, or singular systems', () {
-      check(<Expr>[].solve([])).isEmpty();
-      check([Expr.parse('x - 1')].solve(['x', 'y'])).isEmpty();
+      check(<Expr>[].solve([])).isEmpty;
+      check([Expr.parse('x - 1')].solve(['x', 'y'])).isEmpty;
 
       // Singular inconsistent linear system
       final singular = [
         Expr.parse('x + y - 1'),
         Expr.parse('2*x + 2*y - 3'),
       ].solve(['x', 'y']);
-      check(singular).isEmpty();
+      check(singular).isEmpty;
     });
 
     test('filters multivariate system solutions by Assumptions', () {
@@ -125,7 +125,7 @@ void main() {
         Expr.parse('x^2 + 1'),
         Expr.parse('y - 2'),
       ].solve(['x', 'y'], assumptions: Assumptions.real);
-      check(realSols).isEmpty();
+      check(realSols).isEmpty;
     });
   });
 }

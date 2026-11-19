@@ -470,7 +470,7 @@ void main() {
       final imported = Series.importFrom(schema: schema, array: array);
       check(imported.name).equals('empty_col');
       check(imported.length).equals(0);
-      check(imported.toList()).isEmpty();
+      check(imported.toList()).isEmpty;
 
       calloc.free(schema);
       calloc.free(array);
@@ -577,7 +577,7 @@ void main() {
       final rawAlloc = calloc<ffi.Uint8>(3 * 8 + 7);
       final unalignedOffset = ((8 - (rawAlloc.address % 8)) % 8) + 1;
       final unalignedPtr = rawAlloc + unalignedOffset;
-      check(unalignedPtr.address % 8).not((c) => c.equals(0));
+      check(unalignedPtr.address % 8).not(.it()..equals(0));
 
       final byteData = ByteData.sublistView(
         rawAlloc.asTypedList(3 * 8 + 7),
@@ -630,7 +630,7 @@ void main() {
       final rawOffsets = calloc<ffi.Uint8>(3 * 4 + 7);
       final unalignedOffset = ((4 - (rawOffsets.address % 4)) % 4) + 1;
       final unalignedOffsetsPtr = rawOffsets + unalignedOffset;
-      check(unalignedOffsetsPtr.address % 4).not((c) => c.equals(0));
+      check(unalignedOffsetsPtr.address % 4).not(.it()..equals(0));
 
       final offByteData = ByteData.sublistView(
         rawOffsets.asTypedList(3 * 4 + 7),

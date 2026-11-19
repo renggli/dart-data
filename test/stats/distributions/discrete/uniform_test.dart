@@ -13,13 +13,13 @@ void main() {
       check(dist.max).equals(6);
       check(dist.lowerBound).equals(1);
       check(dist.upperBound).equals(6);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
+      check(dist.isLowerBoundOpen).isFalse;
+      check(dist.isUpperBoundOpen).isFalse;
       check(dist.mean).equals(3.5);
       check(dist.variance).isCloseTo(35.0 / 12.0, 1e-6);
       check(dist.standardDeviation).isCloseTo(math.sqrt(35.0 / 12.0), 1e-6);
       check(dist.median).equals(3.5);
-      check(dist.mode.isNaN).isTrue();
+      check(dist.mode.isNaN).isTrue;
       check(dist.skewness).equals(0.0);
       check(dist.excessKurtosis).isCloseTo(-1.2685714, 1e-4);
     });
@@ -57,7 +57,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 1 && sample <= 6)).isTrue();
+      check(samples.every((sample) => sample >= 1 && sample <= 6)).isTrue;
     });
 
     test('fit', () {

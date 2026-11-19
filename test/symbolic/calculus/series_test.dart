@@ -11,7 +11,7 @@ void main() {
       final zero = PowerSeries('x', IntegerNumber.zero, const {}, 5);
       check(zero.valuation).equals(5);
       check(zero.poleOrder).equals(0);
-      check(zero.leadingTerm).isNull();
+      check(zero.leadingTerm).isNull;
       check(zero.constantTerm).equals(IntegerNumber.zero);
       check(zero.toExpr(includeOrder: false)).equals(IntegerNumber.zero);
       check(zero.toExpr()).equals(const OrderTerm('x', 5));
@@ -26,7 +26,7 @@ void main() {
       check(laurent.leadingTerm)
           .equals((exponent: -2, coefficient: IntegerNumber.of(3)));
       check(laurent.constantTerm).equals(IntegerNumber.of(5));
-      check(laurent.coefficients.containsKey(7)).isFalse();
+      check(laurent.coefficients.containsKey(7)).isFalse;
     });
 
     test('performs addition, subtraction, negation, scaling, and division', () {
@@ -46,7 +46,7 @@ void main() {
       check(sum.coefficients[2]).equals(IntegerNumber.of(3));
 
       final diff = s1 - s2;
-      check(diff.coefficients[0]).isNull();
+      check(diff.coefficients[0]).isNull;
       check(diff.coefficients[1]).equals(IntegerNumber.two);
       check(diff.coefficients[2]).equals(IntegerNumber.of(-3));
 
@@ -54,7 +54,7 @@ void main() {
       check(neg.coefficients[0]).equals(IntegerNumber.negativeOne);
       check(neg.coefficients[1]).equals(IntegerNumber.of(-2));
 
-      check(s1.scale(IntegerNumber.zero).coefficients).isEmpty();
+      check(s1.scale(IntegerNumber.zero).coefficients).isEmpty;
       check(s1.scale(IntegerNumber.of(3)).coefficients[1])
           .equals(IntegerNumber.of(6));
 
@@ -85,7 +85,7 @@ void main() {
             .equals(IntegerNumber.negativeOne);
 
         final zero = PowerSeries('x', IntegerNumber.zero, const {}, 4);
-        check(zero.pow(FractionNumber.half).coefficients).isEmpty();
+        check(zero.pow(FractionNumber.half).coefficients).isEmpty;
 
         final shifted =
             (Pow(x, IntegerNumber.two) + Pow(x, IntegerNumber.of(3)))

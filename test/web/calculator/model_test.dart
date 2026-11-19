@@ -17,26 +17,26 @@ void main() {
       'tracks exactness, canonical text, MathML, LaTeX, and approxSummary',
       () {
         final exactRad = ExprValue(Expr.parse('sqrt(2)'));
-        check(exactRad.isExact).isTrue();
+        check(exactRad.isExact).isTrue;
         check(exactRad.toCanonicalText()).equals('sqrt(2)');
         check(exactRad.toMathMl()).contains('<msqrt>');
         check(exactRad.toLatex()).contains(r'\sqrt');
         check(exactRad.approxSummary(digits: 6)).equals('1.41421');
 
         final intVal = ExprValue(IntegerNumber.of(42));
-        check(intVal.isExact).isTrue();
-        check(intVal.approxSummary()).isNull();
+        check(intVal.isExact).isTrue;
+        check(intVal.approxSummary()).isNull;
 
         const approxVal = ExprValue(RealNumber(1.5));
-        check(approxVal.isExact).isFalse();
-        check(approxVal.approxSummary()).isNull();
+        check(approxVal.isExact).isFalse;
+        check(approxVal.approxSummary()).isNull;
 
         final symVal = ExprValue(Expr.parse('x^2 + 1'));
-        check(symVal.isExact).isTrue();
-        check(symVal.approxSummary()).isNull();
+        check(symVal.isExact).isTrue;
+        check(symVal.approxSummary()).isNull;
 
         final eqVal = ExprValue(Expr.parse('x = 2'));
-        check(eqVal.isEquation).isTrue();
+        check(eqVal.isEquation).isTrue;
         check(eqVal.kind).equals('equation');
       },
     );
@@ -155,10 +155,10 @@ void main() {
       final nanRestored = CalcSerialization.fromJson(
         jsonDecode(nanEncoded) as Map<String, Object?>,
       ) as PlotValue;
-      check(nanRestored.surface3d!.zValues[0].isNaN).isTrue();
-      check(nanRestored.surface3d!.zValues[2].isNaN).isTrue();
-      check(nanRestored.curves.first.segments.first.y[0].isNaN).isTrue();
-      check(nanRestored.curves.first.segments.first.y[1].isNaN).isTrue();
+      check(nanRestored.surface3d!.zValues[0].isNaN).isTrue;
+      check(nanRestored.surface3d!.zValues[2].isNaN).isTrue;
+      check(nanRestored.curves.first.segments.first.y[0].isNaN).isTrue;
+      check(nanRestored.curves.first.segments.first.y[1].isNaN).isTrue;
 
       // LaTeX escaping in InfoValue and ErrorValue
       check(const InfoValue(r'a_b & c% $1 #2 {x}').toLatex())
@@ -206,10 +206,10 @@ void main() {
         check(restored.assumptions.domainOf('n'))
             .equals(VariableDomain.integer);
 
-        check(env.clearSymbol('a')).isTrue();
-        check(env.getVariable('a')).isNull();
+        check(env.clearSymbol('a')).isTrue;
+        check(env.getVariable('a')).isNull;
         env.clearAll();
-        check(env.functions).isEmpty();
+        check(env.functions).isEmpty;
       },
     );
   });
@@ -267,7 +267,7 @@ void main() {
         assignedSymbol: 'c',
         referencedSymbols: {'b'},
       );
-      check(session2.staleCells).isEmpty();
+      check(session2.staleCells).isEmpty;
       session2.addResult(
         input: 'a := 5',
         value: ExprValue(IntegerNumber.of(5)),
@@ -329,14 +329,14 @@ void main() {
       stack.push(item(999));
       stack.drop();
       stack.popArgs(1);
-      check(stack.depth).not((it) => it.equals(cp.items.length));
+      check(stack.depth).not(.it()..equals(cp.items.length));
       stack.restoreCheckpoint(cp);
       check(stack.depth).equals(cp.items.length);
       check(stack.level(1).value).equals(cp.items.last.value);
 
       // CLEAR
       stack.clear();
-      check(stack.isEmpty).isTrue();
+      check(stack.isEmpty).isTrue;
     });
   });
 }

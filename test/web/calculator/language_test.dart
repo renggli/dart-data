@@ -62,22 +62,22 @@ void main() {
 
         check(() => grammar.parseStatement(''))
             .throws<CalcParseException>()
-            .has((e) => e.offset, 'offset')
+            .has('offset', (e) => e.offset)
             .equals(0);
 
         check(() => grammar.parseStatement('sin(x + 1'))
             .throws<CalcParseException>()
-            .has((e) => e.suggestion, 'suggestion')
+            .has('suggestion', (e) => e.suggestion)
             .isNotNull();
 
         check(() => grammar.parseStatement('[[1, 2], [3]]'))
             .throws<CalcParseException>()
-            .has((e) => e.message, 'message')
+            .has('message', (e) => e.message)
             .contains('Inconsistent matrix row lengths');
 
         check(() => grammar.parseStatement('pi := 3'))
             .throws<CalcParseException>()
-            .has((e) => e.message, 'message')
+            .has('message', (e) => e.message)
             .contains('reserved');
 
         check(CalcGrammar.suggestClosestIdentifier('integrat'))
@@ -105,15 +105,15 @@ void main() {
       check(tokens[8]).isA<RpnCommandToken>();
       check(tokens[9])
           .isA<RpnPushNodeToken>()
-          .has((t) => t.rawText, 'rawText')
+          .has('rawText', (t) => t.rawText)
           .equals('−5');
       check(tokens[10])
           .isA<RpnPushNodeToken>()
-          .has((t) => t.rawText, 'rawText')
+          .has('rawText', (t) => t.rawText)
           .equals('–2');
       check(tokens[11])
           .isA<RpnPushNodeToken>()
-          .has((t) => t.rawText, 'rawText')
+          .has('rawText', (t) => t.rawText)
           .equals('√2');
     });
 
@@ -123,7 +123,7 @@ void main() {
       final stmt = grammar.parseStatement('2ˆ3') as EvalStatement;
       check(stmt.node)
           .isA<BinaryOpNode>()
-          .has((n) => n.op, 'op')
+          .has('op', (n) => n.op)
           .equals(CalcBinaryOp.pow);
 
       // In RPN mode: '2 3 ˆ' parses as [2, 3, ^] and '2ˆ' parses as [2, ^]
@@ -131,7 +131,7 @@ void main() {
       check(rpnTokens.length).equals(3);
       check(rpnTokens[2])
           .isA<RpnCommandToken>()
-          .has((t) => t.name, 'name')
+          .has('name', (t) => t.name)
           .equals('^');
 
       final gluedTokens = grammar.parseRpnTokens('2ˆ');
@@ -139,7 +139,7 @@ void main() {
       check(gluedTokens[0]).isA<RpnPushNodeToken>();
       check(gluedTokens[1])
           .isA<RpnCommandToken>()
-          .has((t) => t.name, 'name')
+          .has('name', (t) => t.name)
           .equals('^');
 
       final quotedTokens = grammar.parseRpnTokens('´xˆ2 - 1´ factor');
@@ -147,7 +147,7 @@ void main() {
       check(quotedTokens[0]).isA<RpnPushNodeToken>();
       check(quotedTokens[1])
           .isA<RpnCommandToken>()
-          .has((t) => t.name, 'name')
+          .has('name', (t) => t.name)
           .equals('factor');
     });
   });
@@ -227,7 +227,7 @@ void main() {
         check(siHint.signatureHint!.name).equals('Si');
 
         for (final fn in CalcCompletion.mathFunctions) {
-          check(fn.examples).isNotEmpty();
+          check(fn.examples).isNotEmpty;
         }
       },
     );

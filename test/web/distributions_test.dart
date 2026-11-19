@@ -16,12 +16,12 @@ void main() {
           check(dist).isA<Distribution<double>>();
           final d = dist as Distribution<double>;
           final cdf = d.cumulativeProbability(0.0);
-          check(cdf.isFinite).isTrue();
+          check(cdf.isFinite).isTrue;
         } else {
           check(dist).isA<Distribution<int>>();
           final d = dist as Distribution<int>;
           final cdf = d.cumulativeProbability(0);
-          check(cdf.isFinite).isTrue();
+          check(cdf.isFinite).isTrue;
         }
       }
     });
@@ -34,8 +34,8 @@ void main() {
         // Passing non-integer coordinates via floor should never throw TypeError
         const x = 2.7;
         final cdfVal = dist.cumulativeProbability(x.floor());
-        check(cdfVal.isFinite).isTrue();
-        check(cdfVal >= 0.0 && cdfVal <= 1.0).isTrue();
+        check(cdfVal.isFinite).isTrue;
+        check(cdfVal >= 0.0 && cdfVal <= 1.0).isTrue;
       }
     });
 

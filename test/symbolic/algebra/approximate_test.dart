@@ -272,9 +272,9 @@ void main() {
           const OrderTerm('x', 4),
         ]);
         final rat = expr.rationalize();
-        check(rat.anyNode((n) => n is RealNumber)).isFalse();
-        check(rat.anyNode((n) => n == FractionNumber.half)).isTrue();
-        check(rat.anyNode((n) => n == RationalNumber(1, 8))).isTrue();
+        check(rat.anyNode((n) => n is RealNumber)).isFalse;
+        check(rat.anyNode((n) => n == FractionNumber.half)).isTrue;
+        check(rat.anyNode((n) => n == RationalNumber(1, 8))).isTrue;
       },
     );
   });

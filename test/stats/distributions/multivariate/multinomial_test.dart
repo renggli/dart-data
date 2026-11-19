@@ -85,8 +85,8 @@ void main() {
       final dist2 = MultinomialDistribution(5, p1);
       final dist3 = MultinomialDistribution(5, p3);
 
-      check(dist1 == dist2).isTrue();
-      check(dist1 == dist3).isFalse();
+      check(dist1 == dist2).isTrue;
+      check(dist1 == dist3).isFalse;
       check(dist1.hashCode).equals(dist2.hashCode);
       check(dist1.toString()).contains('MultinomialDistribution');
     });

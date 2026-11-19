@@ -15,11 +15,11 @@ void main() {
     test('check throws on out-of-range probabilities', () {
       check(() => InvalidProbability.check(-0.01))
           .throws<InvalidProbability>()
-          .has((e) => e.probability, 'probability')
+          .has('probability', (e) => e.probability)
           .equals(-0.01);
       check(() => InvalidProbability.check(1.01))
           .throws<InvalidProbability>()
-          .has((e) => e.probability, 'probability')
+          .has('probability', (e) => e.probability)
           .equals(1.01);
     });
 

@@ -13,8 +13,8 @@ void main() {
       check(dist.beta).equals(5.0);
       check(dist.lowerBound).equals(0.0);
       check(dist.upperBound).equals(1.0);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
+      check(dist.isLowerBoundOpen).isFalse;
+      check(dist.isUpperBoundOpen).isFalse;
       check(dist.mean).isCloseTo(2.0 / 7.0, 1e-6);
       check(dist.cumulativeProbability(dist.median)).isCloseTo(0.5, 1e-4);
       check(dist.mode).isCloseTo(1.0 / 5.0, 1e-6);
@@ -28,7 +28,7 @@ void main() {
       check(distSym.median).equals(0.5);
 
       final distFlat = BetaDistribution(0.5, 0.5);
-      check(distFlat.mode.isNaN).isTrue();
+      check(distFlat.mode.isNaN).isTrue;
     });
 
     test('probability density function', () {
@@ -44,9 +44,9 @@ void main() {
       check(distBeta1.probability(1.0)).equals(2.0);
 
       final distAlphaSmall = BetaDistribution(0.5, 2.0);
-      check(distAlphaSmall.probability(0.0).isInfinite).isTrue();
+      check(distAlphaSmall.probability(0.0).isInfinite).isTrue;
       final distBetaSmall = BetaDistribution(2.0, 0.5);
-      check(distBetaSmall.probability(1.0).isInfinite).isTrue();
+      check(distBetaSmall.probability(1.0).isInfinite).isTrue;
     });
 
     test('cumulative probability', () {
@@ -89,7 +89,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == BetaDistribution(2.0, 5.0)).isTrue();
+      check(dist == BetaDistribution(2.0, 5.0)).isTrue;
       check(dist.hashCode).equals(BetaDistribution(2.0, 5.0).hashCode);
     });
 

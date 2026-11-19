@@ -14,7 +14,7 @@ void main() {
           .toList();
 
       final resNormal = jarqueBeraTest(normalSample);
-      check(resNormal.isSignificant).isFalse();
+      check(resNormal.isSignificant).isFalse;
       check(resNormal.degreesOfFreedom).equals(2.0);
       check(resNormal.pValue).isGreaterThan(0.05);
     });
@@ -27,7 +27,7 @@ void main() {
           .toList();
 
       final resUniform = jarqueBeraTest(uniformSample);
-      check(resUniform.isSignificant).isTrue();
+      check(resUniform.isSignificant).isTrue;
       check(resUniform.pValue).isLessThan(0.01);
     });
 
@@ -37,8 +37,8 @@ void main() {
 
     test('constant sample yields NaN statistic and p-value', () {
       final constRes = jarqueBeraTest([5.0, 5.0, 5.0, 5.0]);
-      check(constRes.statistic.isNaN).isTrue();
-      check(constRes.pValue.isNaN).isTrue();
+      check(constRes.statistic.isNaN).isTrue;
+      check(constRes.pValue.isNaN).isTrue;
     });
   });
 }

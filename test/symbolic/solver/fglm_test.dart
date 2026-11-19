@@ -11,7 +11,7 @@ void main() {
       'handles empty basis, trivial ideal {1}, and non-zero-dimensional error',
       () {
         final vars = ['x', 'y'];
-        check(FglmEngine.convert([])).isEmpty();
+        check(FglmEngine.convert([])).isEmpty;
 
         // Trivial ideal {1}
         final unit = MultivariatePolynomial.fromExpr(IntegerNumber.one, vars);
@@ -42,8 +42,8 @@ void main() {
       final lex = FglmEngine.convert(grevlex);
       check(lex.length).equals(2);
       // Last polynomial in lex order is univariate in y
-      check(lex.last.toExpr().dependsOn('x')).isFalse();
-      check(lex.last.toExpr().dependsOn('y')).isTrue();
+      check(lex.last.toExpr().dependsOn('x')).isFalse;
+      check(lex.last.toExpr().dependsOn('y')).isTrue;
     });
   });
 }

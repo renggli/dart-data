@@ -13,17 +13,17 @@ void main() {
       check(sum.lower).equals(IntegerNumber.one);
       check(sum.upper).equals(n);
       check(sum.freeVariables).unorderedEquals(['n']);
-      check(identical(sum.freeVariables, sum.freeVariables)).isTrue();
-      check(sum.dependsOn('n')).isTrue();
-      check(sum.dependsOn('k')).isFalse();
-      check(sum.dependsOn('x')).isFalse();
+      check(identical(sum.freeVariables, sum.freeVariables)).isTrue;
+      check(sum.dependsOn('n')).isTrue;
+      check(sum.dependsOn('k')).isFalse;
+      check(sum.dependsOn('x')).isFalse;
     });
 
     test('anyNode traversal', () {
       final sum = Sum(k * k, 'k', IntegerNumber.one, n);
-      check(sum.anyNode((e) => e == n)).isTrue();
-      check(sum.anyNode((e) => e == IntegerNumber.one)).isTrue();
-      check(sum.anyNode((e) => e == const Variable('nonexistent'))).isFalse();
+      check(sum.anyNode((e) => e == n)).isTrue;
+      check(sum.anyNode((e) => e == IntegerNumber.one)).isTrue;
+      check(sum.anyNode((e) => e == const Variable('nonexistent'))).isFalse;
     });
 
     test('copyWith, substitute, and mapChildren', () {
@@ -40,7 +40,7 @@ void main() {
       );
       check(copied.variable).equals('j');
       check(copied.lower).equals(IntegerNumber.zero);
-      check(copied.isSimplified).isTrue();
+      check(copied.isSimplified).isTrue;
 
       // Substitution of upper bound
       final substituted = sum.substitute('n', IntegerNumber.of(10)) as Sum;
@@ -69,7 +69,7 @@ void main() {
       final s3 = Sum(k * k, 'k', IntegerNumber.one, n);
       check(s1).equals(s2);
       check(s1.hashCode).equals(s2.hashCode);
-      check(s1 == s3).isFalse();
+      check(s1 == s3).isFalse;
     });
   });
 
@@ -80,15 +80,15 @@ void main() {
       check(prod.lower).equals(IntegerNumber.one);
       check(prod.upper).equals(n);
       check(prod.freeVariables).unorderedEquals(['n']);
-      check(prod.dependsOn('n')).isTrue();
-      check(prod.dependsOn('k')).isFalse();
+      check(prod.dependsOn('n')).isTrue;
+      check(prod.dependsOn('k')).isFalse;
     });
 
     test('anyNode traversal', () {
       final prod = Product(k, 'k', IntegerNumber.one, n);
-      check(prod.anyNode((e) => e == n)).isTrue();
-      check(prod.anyNode((e) => e == IntegerNumber.one)).isTrue();
-      check(prod.anyNode((e) => e == const Variable('nonexistent'))).isFalse();
+      check(prod.anyNode((e) => e == n)).isTrue;
+      check(prod.anyNode((e) => e == IntegerNumber.one)).isTrue;
+      check(prod.anyNode((e) => e == const Variable('nonexistent'))).isFalse;
     });
 
     test('copyWith, substitute, and mapChildren', () {
@@ -105,7 +105,7 @@ void main() {
       );
       check(copied.variable).equals('m');
       check(copied.lower).equals(IntegerNumber.two);
-      check(copied.isSimplified).isTrue();
+      check(copied.isSimplified).isTrue;
 
       final substituted = prod.substitute('n', IntegerNumber.of(20)) as Product;
       check(substituted.upper).equals(IntegerNumber.of(20));
@@ -120,7 +120,7 @@ void main() {
       final p3 = Product(k * k, 'k', IntegerNumber.one, n);
       check(p1).equals(p2);
       check(p1.hashCode).equals(p2.hashCode);
-      check(p1 == p3).isFalse();
+      check(p1 == p3).isFalse;
     });
   });
 }

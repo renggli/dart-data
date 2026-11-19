@@ -243,7 +243,7 @@ void main() {
           );
 
       await completer.future;
-      check(errorReceived).isTrue();
+      check(errorReceived).isTrue;
     });
 
     test(

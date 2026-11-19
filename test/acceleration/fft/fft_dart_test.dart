@@ -28,20 +28,20 @@ void main() {
 
       FftDart.fft(buffer: b3, inverse: false);
       // X_0 = 1 + 2 + 3 = 6
-      check((b3[0].a - 6.0).abs() < 1e-10).isTrue();
-      check(b3[0].b.abs() < 1e-10).isTrue();
+      check((b3[0].a - 6.0).abs() < 1e-10).isTrue;
+      check(b3[0].b.abs() < 1e-10).isTrue;
       // X_1 = -1.5 + sqrt(3)/2 * i
-      check((b3[1].a - (-1.5)).abs() < 1e-10).isTrue();
-      check((b3[1].b - (math.sqrt(3) / 2)).abs() < 1e-10).isTrue();
+      check((b3[1].a - (-1.5)).abs() < 1e-10).isTrue;
+      check((b3[1].b - (math.sqrt(3) / 2)).abs() < 1e-10).isTrue;
 
       // Invert back
       FftDart.fft(buffer: b3, inverse: true);
-      check((b3[0].a - 1.0).abs() < 1e-10).isTrue();
-      check(b3[0].b.abs() < 1e-10).isTrue();
-      check((b3[1].a - 2.0).abs() < 1e-10).isTrue();
-      check(b3[1].b.abs() < 1e-10).isTrue();
-      check((b3[2].a - 3.0).abs() < 1e-10).isTrue();
-      check(b3[2].b.abs() < 1e-10).isTrue();
+      check((b3[0].a - 1.0).abs() < 1e-10).isTrue;
+      check(b3[0].b.abs() < 1e-10).isTrue;
+      check((b3[1].a - 2.0).abs() < 1e-10).isTrue;
+      check(b3[1].b.abs() < 1e-10).isTrue;
+      check((b3[2].a - 3.0).abs() < 1e-10).isTrue;
+      check(b3[2].b.abs() < 1e-10).isTrue;
     });
   });
 

@@ -78,7 +78,7 @@ void main() {
       final x = Float64List.fromList([1.0, 2.0, 3.0]);
       final y = Float64List.fromList([4.0, 5.0, 6.0]);
       final ok = Blas.daxpy(n: 3, alpha: 2.0, x: x, y: y);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(y[0]).isCloseTo(6.0, 1e-10);
       check(y[1]).isCloseTo(9.0, 1e-10);
       check(y[2]).isCloseTo(12.0, 1e-10);
@@ -88,7 +88,7 @@ void main() {
       final x = Float64List.fromList([1.0, 2.0, 3.0]);
       final y = Float64List.fromList([4.0, 5.0, 6.0]);
       final ok = Blas.daxpy(n: 3, alpha: 2.0, x: x, incX: -1, y: y, incY: 1);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(y[0]).isCloseTo(10.0, 1e-10);
       check(y[1]).isCloseTo(9.0, 1e-10);
       check(y[2]).isCloseTo(8.0, 1e-10);
@@ -98,7 +98,7 @@ void main() {
       final x = Float32List.fromList([1.0, 2.0, 3.0]);
       final y = Float32List.fromList([4.0, 5.0, 6.0]);
       final ok = Blas.saxpy(n: 3, alpha: 2.0, x: x, y: y);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(y[0]).isCloseTo(6.0, 1e-5);
       check(y[1]).isCloseTo(9.0, 1e-5);
       check(y[2]).isCloseTo(12.0, 1e-5);
@@ -107,7 +107,7 @@ void main() {
     accelerationTest('dscal vector scaling', () {
       final x = Float64List.fromList([1.0, 2.0, 3.0]);
       final ok = Blas.dscal(n: 3, alpha: 2.5, x: x);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(x[0]).isCloseTo(2.5, 1e-10);
       check(x[1]).isCloseTo(5.0, 1e-10);
       check(x[2]).isCloseTo(7.5, 1e-10);
@@ -116,7 +116,7 @@ void main() {
     accelerationTest('sscal vector scaling', () {
       final x = Float32List.fromList([1.0, 2.0, 3.0]);
       final ok = Blas.sscal(n: 3, alpha: 2.5, x: x);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(x[0]).isCloseTo(2.5, 1e-5);
       check(x[1]).isCloseTo(5.0, 1e-5);
       check(x[2]).isCloseTo(7.5, 1e-5);
@@ -138,7 +138,7 @@ void main() {
         beta: 0.0,
         y: y,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(y[0]).isCloseTo(3.0, 1e-10);
       check(y[1]).isCloseTo(7.0, 1e-10);
     });
@@ -158,7 +158,7 @@ void main() {
         beta: 0.0,
         y: y,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(y[0]).isCloseTo(4.0, 1e-10);
       check(y[1]).isCloseTo(6.0, 1e-10);
     });
@@ -178,7 +178,7 @@ void main() {
         beta: 0.0,
         y: y,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(y[0]).isCloseTo(4.0, 1e-10);
       check(y[1]).isCloseTo(6.0, 1e-10);
     });
@@ -197,7 +197,7 @@ void main() {
         beta: 0.0,
         y: y,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(y[0]).isCloseTo(3.0, 1e-5);
       check(y[1]).isCloseTo(7.0, 1e-5);
     });
@@ -207,7 +207,7 @@ void main() {
       final x = Float64List.fromList([1.0, 2.0]);
       final y = Float64List.fromList([3.0, 4.0]);
       final ok = Blas.dsyr2(n: 2, alpha: 1.0, x: x, y: y, a: a, lda: 2);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(a[0]).isCloseTo(1.0 + 2.0 * (1.0 * 3.0), 1e-10);
       check(a[1]).isCloseTo(1.0 * 4.0 + 2.0 * 3.0, 1e-10);
       check(a[3]).isCloseTo(1.0 + 2.0 * (2.0 * 4.0), 1e-10);
@@ -218,7 +218,7 @@ void main() {
       final x = Float32List.fromList([1.0, 2.0]);
       final y = Float32List.fromList([3.0, 4.0]);
       final ok = Blas.ssyr2(n: 2, alpha: 1.0, x: x, y: y, a: a, lda: 2);
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(a[0]).isCloseTo(7.0, 1e-5);
       check(a[1]).isCloseTo(10.0, 1e-5);
       check(a[3]).isCloseTo(17.0, 1e-5);
@@ -236,7 +236,7 @@ void main() {
         lda: 2,
         x: x,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(x[0]).isCloseTo(2.0 * 1.0 + 3.0 * 2.0, 1e-10);
       check(x[1]).isCloseTo(4.0 * 2.0, 1e-10);
     });
@@ -253,7 +253,7 @@ void main() {
         lda: 2,
         x: x,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(x[0]).isCloseTo(8.0, 1e-5);
       check(x[1]).isCloseTo(8.0, 1e-5);
     });
@@ -271,7 +271,7 @@ void main() {
         a: a,
         lda: 2,
       );
-      check(okUpper).isTrue();
+      check(okUpper).isTrue;
       check(a[0]).isCloseTo(6.0, 1e-10);
       check(a[1]).isCloseTo(10.0, 1e-10);
       check(a[2]).isCloseTo(10.0, 1e-10);
@@ -287,7 +287,7 @@ void main() {
         a: aLower,
         lda: 2,
       );
-      check(okLower).isTrue();
+      check(okLower).isTrue;
       check(aLower[0]).isCloseTo(6.0, 1e-10);
       check(aLower[1]).isCloseTo(10.0, 1e-10);
       check(aLower[2]).isCloseTo(10.0, 1e-10);
@@ -313,7 +313,7 @@ void main() {
         c: c,
         ldc: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(c[0]).isCloseTo(19.0, 1e-10);
       check(c[1]).isCloseTo(22.0, 1e-10);
       check(c[2]).isCloseTo(43.0, 1e-10);
@@ -338,7 +338,7 @@ void main() {
         c: c,
         ldc: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(c[0]).isCloseTo(19.0, 1e-10);
       check(c[1]).isCloseTo(22.0, 1e-10);
       check(c[2]).isCloseTo(43.0, 1e-10);
@@ -363,7 +363,7 @@ void main() {
         c: c,
         ldc: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(c[0]).isCloseTo(19.0, 1e-10);
       check(c[1]).isCloseTo(22.0, 1e-10);
       check(c[2]).isCloseTo(43.0, 1e-10);
@@ -387,7 +387,7 @@ void main() {
         c: c,
         ldc: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(c[0]).isCloseTo(19.0, 1e-5);
       check(c[1]).isCloseTo(22.0, 1e-5);
       check(c[2]).isCloseTo(43.0, 1e-5);
@@ -409,7 +409,7 @@ void main() {
         c: c,
         ldc: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(c[0]).isCloseTo(5.0, 1e-10);
       check(c[1]).isCloseTo(11.0, 1e-10);
       check(c[3]).isCloseTo(25.0, 1e-10);
@@ -430,7 +430,7 @@ void main() {
         c: c,
         ldc: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(c[0]).isCloseTo(5.0, 1e-5);
       check(c[1]).isCloseTo(11.0, 1e-5);
       check(c[3]).isCloseTo(25.0, 1e-5);
@@ -454,7 +454,7 @@ void main() {
         c: c,
         ldc: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(c[0]).isCloseTo(5.0, 1e-10);
       check(c[1]).isCloseTo(8.0, 1e-10);
       check(c[2]).isCloseTo(10.0, 1e-10);
@@ -479,7 +479,7 @@ void main() {
         c: c,
         ldc: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(c[0]).isCloseTo(5.0, 1e-5);
       check(c[1]).isCloseTo(8.0, 1e-5);
       check(c[2]).isCloseTo(10.0, 1e-5);
@@ -502,7 +502,7 @@ void main() {
         b: b,
         ldb: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(b[0]).isCloseTo(11.0, 1e-10);
       check(b[1]).isCloseTo(16.0, 1e-10);
       check(b[2]).isCloseTo(12.0, 1e-10);
@@ -525,7 +525,7 @@ void main() {
         b: b,
         ldb: 2,
       );
-      check(ok).isTrue();
+      check(ok).isTrue;
       check(b[0]).isCloseTo(11.0, 1e-5);
       check(b[1]).isCloseTo(16.0, 1e-5);
       check(b[2]).isCloseTo(12.0, 1e-5);
@@ -539,20 +539,20 @@ void main() {
       final y64 = Float64List(0);
       check(Blas.ddot(n: 0, x: x64, y: y64)).equals(0.0);
       check(Blas.dnrm2(n: 0, x: x64)).equals(0.0);
-      check(Blas.daxpy(n: 0, alpha: 2.0, x: x64, y: y64)).isTrue();
-      check(Blas.dscal(n: 0, alpha: 2.0, x: x64)).isTrue();
+      check(Blas.daxpy(n: 0, alpha: 2.0, x: x64, y: y64)).isTrue;
+      check(Blas.dscal(n: 0, alpha: 2.0, x: x64)).isTrue;
 
       final x32 = Float32List(0);
       final y32 = Float32List(0);
       check(Blas.sdot(n: 0, x: x32, y: y32)).equals(0.0);
       check(Blas.snrm2(n: 0, x: x32)).equals(0.0);
-      check(Blas.saxpy(n: 0, alpha: 2.0, x: x32, y: y32)).isTrue();
-      check(Blas.sscal(n: 0, alpha: 2.0, x: x32)).isTrue();
+      check(Blas.saxpy(n: 0, alpha: 2.0, x: x32, y: y32)).isTrue;
+      check(Blas.sscal(n: 0, alpha: 2.0, x: x32)).isTrue;
 
       final a64 = Float64List(0);
       final b64 = Float64List(0);
       final c64 = Float64List(0);
-      check(Blas.dgemv(m: 0, n: 0, a: a64, lda: 1, x: x64, y: y64)).isTrue();
+      check(Blas.dgemv(m: 0, n: 0, a: a64, lda: 1, x: x64, y: y64)).isTrue;
       check(
         Blas.dgemm(
           m: 0,
@@ -565,12 +565,12 @@ void main() {
           c: c64,
           ldc: 1,
         ),
-      ).isTrue();
+      ).isTrue;
 
       final a32 = Float32List(0);
       final b32 = Float32List(0);
       final c32 = Float32List(0);
-      check(Blas.sgemv(m: 0, n: 0, a: a32, lda: 1, x: x32, y: y32)).isTrue();
+      check(Blas.sgemv(m: 0, n: 0, a: a32, lda: 1, x: x32, y: y32)).isTrue;
       check(
         Blas.sgemm(
           m: 0,
@@ -583,7 +583,7 @@ void main() {
           c: c32,
           ldc: 1,
         ),
-      ).isTrue();
+      ).isTrue;
     });
 
     accelerationTest(
@@ -605,7 +605,7 @@ void main() {
           c: cZero,
           ldc: 2,
         );
-        check(okZero).isTrue();
+        check(okZero).isTrue;
         check(cZero[0]).equals(0.0);
         check(cZero[1]).equals(0.0);
         check(cZero[2]).equals(0.0);
@@ -625,7 +625,7 @@ void main() {
           c: cScaled,
           ldc: 2,
         );
-        check(okScaled).isTrue();
+        check(okScaled).isTrue;
         check(cScaled[0]).isCloseTo(2.5, 1e-10);
         check(cScaled[1]).isCloseTo(5.0, 1e-10);
         check(cScaled[2]).isCloseTo(7.5, 1e-10);
@@ -641,7 +641,7 @@ void main() {
           beta: 0.0,
           y: yZero,
         );
-        check(okGemvZero).isTrue();
+        check(okGemvZero).isTrue;
         check(yZero[0]).equals(0.0);
         check(yZero[1]).equals(0.0);
 
@@ -655,7 +655,7 @@ void main() {
           beta: 3.0,
           y: yScaled,
         );
-        check(okGemvScaled).isTrue();
+        check(okGemvScaled).isTrue;
         check(yScaled[0]).isCloseTo(30.0, 1e-10);
         check(yScaled[1]).isCloseTo(60.0, 1e-10);
 
@@ -670,7 +670,7 @@ void main() {
           beta: 2.0,
           y: yTrans,
         );
-        check(okGemvTrans).isTrue();
+        check(okGemvTrans).isTrue;
         check(yTrans[0]).isCloseTo(20.0, 1e-10);
         check(yTrans[1]).isCloseTo(40.0, 1e-10);
 
@@ -685,7 +685,7 @@ void main() {
           y: yNegStride,
           incY: -1,
         );
-        check(okGemvNeg).isTrue();
+        check(okGemvNeg).isTrue;
         check(yNegStride[0]).isCloseTo(30.0, 1e-10);
         check(yNegStride[1]).isCloseTo(60.0, 1e-10);
       },
@@ -694,13 +694,13 @@ void main() {
     accelerationTest('1-vector routines with incX < 0 are no-op / 0.0', () {
       final x64 = Float64List.fromList([3.0, 4.0]);
       check(Blas.dnrm2(n: 2, x: x64, incX: -1)).equals(0.0);
-      check(Blas.dscal(n: 2, alpha: 2.0, x: x64, incX: -1)).isTrue();
+      check(Blas.dscal(n: 2, alpha: 2.0, x: x64, incX: -1)).isTrue;
       check(x64[0]).equals(3.0);
       check(x64[1]).equals(4.0);
 
       final x32 = Float32List.fromList([3.0, 4.0]);
       check(Blas.snrm2(n: 2, x: x32, incX: -1)).equals(0.0);
-      check(Blas.sscal(n: 2, alpha: 2.0, x: x32, incX: -1)).isTrue();
+      check(Blas.sscal(n: 2, alpha: 2.0, x: x32, incX: -1)).isTrue;
       check(x32[0]).equals(3.0);
       check(x32[1]).equals(4.0);
     });
@@ -726,7 +726,7 @@ void main() {
             beta: 2.0,
             y: y64,
           ),
-        ).isTrue();
+        ).isTrue;
         check(y64[0]).equals(2.0);
         check(y64[1]).equals(4.0);
 
@@ -742,7 +742,7 @@ void main() {
             c: c64,
             ldc: 2,
           ),
-        ).isTrue();
+        ).isTrue;
         check(c64[0]).equals(2.0);
         check(c64[3]).equals(6.0);
 
@@ -759,14 +759,14 @@ void main() {
             c: c64,
             ldc: 2,
           ),
-        ).isTrue();
+        ).isTrue;
         check(c64[0]).equals(0.0);
         check(c64[3]).equals(0.0);
 
         final b64 = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
         check(
           Blas.dtrmm(m: 2, n: 2, alpha: 0.0, a: nan64, lda: 2, b: b64, ldb: 2),
-        ).isTrue();
+        ).isTrue;
         check(b64[0]).equals(0.0);
         check(b64[3]).equals(0.0);
       },
@@ -883,7 +883,7 @@ void main() {
         double.nan,
         3.0,
       ]);
-      check(Blas.dnrm2(n: 3, x: nanInfVec).isNaN).isTrue();
+      check(Blas.dnrm2(n: 3, x: nanInfVec).isNaN).isTrue;
 
       final infVec32 = Float32List.fromList([
         double.infinity,
@@ -897,13 +897,13 @@ void main() {
         double.nan,
         3.0,
       ]);
-      check(Blas.snrm2(n: 3, x: nanInfVec32).isNaN).isTrue();
+      check(Blas.snrm2(n: 3, x: nanInfVec32).isNaN).isTrue;
     });
 
     accelerationTest('alpha == 0 short-circuits avoid NaN propagation', () {
       final nanX = Float64List.fromList([double.nan, double.nan]);
       final y = Float64List.fromList([1.0, 2.0]);
-      check(Blas.daxpy(n: 2, alpha: 0.0, x: nanX, y: y)).isTrue();
+      check(Blas.daxpy(n: 2, alpha: 0.0, x: nanX, y: y)).isTrue;
       check(y).deepEquals([1.0, 2.0]);
 
       final nanMat = Float64List.fromList([
@@ -923,7 +923,7 @@ void main() {
           beta: 1.0,
           y: y,
         ),
-      ).isTrue();
+      ).isTrue;
       check(y).deepEquals([1.0, 2.0]);
     });
 
@@ -954,8 +954,8 @@ void main() {
               c: c32,
               ldc: dim,
             ),
-          ).isTrue();
-          check(c32[0].isFinite).isTrue();
+          ).isTrue;
+          check(c32[0].isFinite).isTrue;
         }
       }
 
@@ -978,7 +978,7 @@ void main() {
           c: c64,
           ldc: dim,
         ),
-      ).isTrue();
+      ).isTrue;
 
       final y32 = Float32List.fromList([2.0, 3.0]);
       check(
@@ -993,7 +993,7 @@ void main() {
           beta: 0.0,
           y: y32,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         Blas.sgemv(
           m: 2,
@@ -1005,7 +1005,7 @@ void main() {
           beta: 0.0,
           y: y32,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         Blas.sgemv(
           m: 2,
@@ -1017,7 +1017,7 @@ void main() {
           beta: 2.0,
           y: y32,
         ),
-      ).isTrue();
+      ).isTrue;
 
       final mat2f = Float32List.fromList([2.0, 3.0, 4.0, 5.0]);
       final mat2d = Float64List.fromList([2.0, 3.0, 4.0, 5.0]);
@@ -1035,7 +1035,7 @@ void main() {
                 lda: 2,
                 x: xd,
               ),
-            ).isTrue();
+            ).isTrue;
             final xf = Float32List.fromList([1.0, 2.0]);
             check(
               Blas.strmv(
@@ -1047,7 +1047,7 @@ void main() {
                 lda: 2,
                 x: xf,
               ),
-            ).isTrue();
+            ).isTrue;
 
             final bd = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
             final bf = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -1066,7 +1066,7 @@ void main() {
                   b: bd,
                   ldb: 2,
                 ),
-              ).isTrue();
+              ).isTrue;
               check(
                 Blas.strmm(
                   side: side,
@@ -1081,7 +1081,7 @@ void main() {
                   b: bf,
                   ldb: 2,
                 ),
-              ).isTrue();
+              ).isTrue;
             }
           }
         }
@@ -1096,7 +1096,7 @@ void main() {
           b: Float32List(4),
           ldb: 2,
         ),
-      ).isTrue();
+      ).isTrue;
 
       final syr2f = Float32List(4);
       check(
@@ -1109,7 +1109,7 @@ void main() {
           a: syr2f,
           lda: 2,
         ),
-      ).isTrue();
+      ).isTrue;
 
       for (final uplo in [cblasUpper, cblasLower]) {
         for (final trans in [cblasNoTrans, cblasTrans]) {
@@ -1127,7 +1127,7 @@ void main() {
               c: cf,
               ldc: 2,
             ),
-          ).isTrue();
+          ).isTrue;
           final cd = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
           check(
             Blas.dsyrk(
@@ -1142,7 +1142,7 @@ void main() {
               c: cd,
               ldc: 2,
             ),
-          ).isTrue();
+          ).isTrue;
         }
         check(
           Blas.ssyrk(
@@ -1156,7 +1156,7 @@ void main() {
             c: Float32List(4),
             ldc: 2,
           ),
-        ).isTrue();
+        ).isTrue;
         for (final side in [cblasLeft, cblasRight]) {
           check(
             Blas.dsymm(
@@ -1173,7 +1173,7 @@ void main() {
               c: Float64List(4),
               ldc: 2,
             ),
-          ).isTrue();
+          ).isTrue;
           check(
             Blas.ssymm(
               side: side,
@@ -1189,7 +1189,7 @@ void main() {
               c: Float32List(4),
               ldc: 2,
             ),
-          ).isTrue();
+          ).isTrue;
         }
       }
       check(
@@ -1205,7 +1205,7 @@ void main() {
           c: Float64List(4),
           ldc: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         Blas.ssymm(
           m: 2,
@@ -1219,7 +1219,7 @@ void main() {
           c: Float32List(4),
           ldc: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(
         Blas.ssymm(
           m: 2,
@@ -1233,7 +1233,7 @@ void main() {
           c: Float32List(4),
           ldc: 2,
         ),
-      ).isTrue();
+      ).isTrue;
     });
   });
 }

@@ -16,7 +16,7 @@ void main() {
           payload: {'input': 'a := 5'},
         ),
       );
-      check(r1.ok).isTrue();
+      check(r1.ok).isTrue;
       check(dispatcher.session.activeCells.length).equals(1);
 
       final r2 = dispatcher.handle(
@@ -26,7 +26,7 @@ void main() {
           payload: {'input': 'a * x + 1'},
         ),
       );
-      check(r2.ok).isTrue();
+      check(r2.ok).isTrue;
       final cell2 = r2.result!['cell']! as Map<String, Object?>;
       check((cell2['value']! as Map<String, Object?>)['text'])
           .equals('1 + 5 * x');
@@ -39,14 +39,14 @@ void main() {
           payload: {'cellId': 1, 'input': 'a := 9'},
         ),
       );
-      check(r3.ok).isTrue();
+      check(r3.ok).isTrue;
       check(r3.result!['staleIds']! as List<Object?>).deepEquals([2]);
 
       // Recompute stale cells
       final r4 = dispatcher.handle(
         const WorkerRequest(id: 4, op: 'recomputeStale'),
       );
-      check(r4.ok).isTrue();
+      check(r4.ok).isTrue;
       check(dispatcher.session.allCells[2]!.value.toCanonicalText())
           .equals('1 + 9 * x');
 
@@ -65,7 +65,7 @@ void main() {
           payload: {'line': '10 20 +'},
         ),
       );
-      check(r5.ok).isTrue();
+      check(r5.ok).isTrue;
       check(dispatcher.stack.depth).equals(3);
       check(dispatcher.stack.level(1).value.toCanonicalText()).equals('30');
       // Intermediate literals 10 and 20 were coalesced from Session!
@@ -79,9 +79,9 @@ void main() {
           payload: {'line': 'pi', 'forceNumeric': true},
         ),
       );
-      check(rApprox.ok).isTrue();
+      check(rApprox.ok).isTrue;
       check(dispatcher.stack.depth).equals(4);
-      check(dispatcher.stack.level(1).value.isExact).isFalse();
+      check(dispatcher.stack.level(1).value.isExact).isFalse;
       check(dispatcher.session.activeCells.length).equals(4);
       check(dispatcher.session.activeCells.last.input).equals('pi');
       dispatcher.handle(
@@ -100,7 +100,7 @@ void main() {
           payload: {'command': 'DUP'},
         ),
       );
-      check(r6.ok).isTrue();
+      check(r6.ok).isTrue;
       check(dispatcher.stack.depth).equals(4);
 
       // Push cell 1 explicitly onto top of RPN stack
@@ -111,7 +111,7 @@ void main() {
           payload: {'cellId': 1},
         ),
       );
-      check(rPush.ok).isTrue();
+      check(rPush.ok).isTrue;
       check(dispatcher.stack.depth).equals(5);
       check(dispatcher.stack.level(1).resultId).equals(1);
       check(dispatcher.stack.level(1).value.toCanonicalText()).equals('9');
@@ -120,7 +120,7 @@ void main() {
       final rDel = dispatcher.handle(
         const WorkerRequest(id: 8, op: 'deleteCell', payload: {'cellId': 1}),
       );
-      check(rDel.ok).isTrue();
+      check(rDel.ok).isTrue;
       check(dispatcher.stack.depth).equals(3);
 
       // Export and import state into a fresh WorkerDispatcher (simulating respawn after cancel)
@@ -129,7 +129,7 @@ void main() {
       final rLoad = respawned.handle(
         WorkerRequest(id: 9, op: 'loadState', payload: {'state': snapshot}),
       );
-      check(rLoad.ok).isTrue();
+      check(rLoad.ok).isTrue;
       check(respawned.session.activeCells.length)
           .equals(dispatcher.session.activeCells.length);
       check(respawned.stack.depth).equals(3);
@@ -141,8 +141,8 @@ void main() {
   group('WorkerDispatcher undo and redo', () {
     test('supports unified whole-session undo and redo across Scroll and RPN operations', () {
       final dispatcher = WorkerDispatcher();
-      check(dispatcher.canUndo).isFalse();
-      check(dispatcher.canRedo).isFalse();
+      check(dispatcher.canUndo).isFalse;
+      check(dispatcher.canRedo).isFalse;
 
       // 1. Scroll variable assignment: k := 3
       dispatcher.handle(
@@ -152,7 +152,7 @@ void main() {
           payload: {'input': 'k := 3'},
         ),
       );
-      check(dispatcher.canUndo).isTrue();
+      check(dispatcher.canUndo).isTrue;
       check(dispatcher.environment.getVariable('k')?.toCanonicalText())
           .equals('3');
 
@@ -171,19 +171,19 @@ void main() {
 
       // 3. Undo the RPN line evaluation
       final u1 = dispatcher.handle(const WorkerRequest(id: 3, op: 'undo'));
-      check(u1.ok).isTrue();
-      check(dispatcher.canRedo).isTrue();
+      check(u1.ok).isTrue;
+      check(dispatcher.canRedo).isTrue;
       check(dispatcher.stack.depth).equals(1);
       check(dispatcher.stack.level(1).value.toCanonicalText()).equals('3');
       check(dispatcher.session.activeCells.length).equals(1);
 
       // 4. Undo the initial Scroll evaluation
       final u2 = dispatcher.handle(const WorkerRequest(id: 4, op: 'undo'));
-      check(u2.ok).isTrue();
-      check(dispatcher.canUndo).isFalse();
-      check(dispatcher.stack.isEmpty).isTrue();
-      check(dispatcher.session.activeCells).isEmpty();
-      check(dispatcher.environment.getVariable('k')).isNull();
+      check(u2.ok).isTrue;
+      check(dispatcher.canUndo).isFalse;
+      check(dispatcher.stack.isEmpty).isTrue;
+      check(dispatcher.session.activeCells).isEmpty;
+      check(dispatcher.environment.getVariable('k')).isNull;
 
       // 5. Redo both steps
       dispatcher.handle(const WorkerRequest(id: 5, op: 'redo'));
@@ -195,15 +195,15 @@ void main() {
       check(dispatcher.stack.depth).equals(2);
       check(dispatcher.stack.level(1).value.toCanonicalText())
           .equals('(-3 + x) * (3 + x)');
-      check(dispatcher.canRedo).isFalse();
+      check(dispatcher.canRedo).isFalse;
 
       // 6. Reset records undo snapshot so canUndo is true and state can be undone
       final rReset = dispatcher.handle(const WorkerRequest(id: 7, op: 'reset'));
-      check(rReset.ok).isTrue();
-      check(dispatcher.canUndo).isTrue();
+      check(rReset.ok).isTrue;
+      check(dispatcher.canUndo).isTrue;
       check((rReset.result!['state'] as Map)['canUndo']).equals(true);
-      check(dispatcher.session.activeCells).isEmpty();
-      check(dispatcher.stack.isEmpty).isTrue();
+      check(dispatcher.session.activeCells).isEmpty;
+      check(dispatcher.stack.isEmpty).isTrue;
 
       // Undo the reset restores previous state
       dispatcher.handle(const WorkerRequest(id: 8, op: 'undo'));
@@ -223,7 +223,7 @@ void main() {
 
       const respOk = WorkerResponse(id: 42, ok: true, result: {'val': 2});
       final respOkDecoded = WorkerResponse.fromJson(respOk.toJson());
-      check(respOkDecoded.ok).isTrue();
+      check(respOkDecoded.ok).isTrue;
       check(respOkDecoded.id).equals(42);
 
       const respErr = WorkerResponse(
@@ -232,7 +232,7 @@ void main() {
         error: {'message': 'bad input'},
       );
       final respErrDecoded = WorkerResponse.fromJson(respErr.toJson());
-      check(respErrDecoded.ok).isFalse();
+      check(respErrDecoded.ok).isFalse;
       check(respErrDecoded.error!['message']).equals('bad input');
     });
 
@@ -246,12 +246,12 @@ void main() {
           payload: {'input': 'a := 5'},
         ),
       );
-      check(defVar.ok).isTrue();
-      check(defVar.result!['error']).isNull();
+      check(defVar.ok).isTrue;
+      check(defVar.result!['error']).isNull;
       check(dispatcher.environment.getVariable('a')?.toCanonicalText())
           .equals('5');
-      check(dispatcher.session.activeCells).isEmpty();
-      check(dispatcher.stack.isEmpty).isTrue();
+      check(dispatcher.session.activeCells).isEmpty;
+      check(dispatcher.stack.isEmpty).isTrue;
 
       final defFn = dispatcher.handle(
         const WorkerRequest(
@@ -260,10 +260,10 @@ void main() {
           payload: {'input': 'f(x) := x^2'},
         ),
       );
-      check(defFn.ok).isTrue();
+      check(defFn.ok).isTrue;
       check(dispatcher.environment.getFunction('f')).isNotNull();
-      check(dispatcher.session.activeCells).isEmpty();
-      check(dispatcher.stack.isEmpty).isTrue();
+      check(dispatcher.session.activeCells).isEmpty;
+      check(dispatcher.stack.isEmpty).isTrue;
 
       final nonAssign = dispatcher.handle(
         const WorkerRequest(
@@ -272,22 +272,22 @@ void main() {
           payload: {'input': '2 + 2'},
         ),
       );
-      check(nonAssign.ok).isTrue();
+      check(nonAssign.ok).isTrue;
       check(nonAssign.result!['error']).isNotNull();
-      check(dispatcher.session.activeCells).isEmpty();
-      check(dispatcher.stack.isEmpty).isTrue();
+      check(dispatcher.session.activeCells).isEmpty;
+      check(dispatcher.stack.isEmpty).isTrue;
 
       dispatcher.handle(
         const WorkerRequest(id: 4, op: 'clearSymbol', payload: {'name': 'a'}),
       );
-      check(dispatcher.environment.getVariable('a')).isNull();
+      check(dispatcher.environment.getVariable('a')).isNull;
       check(dispatcher.environment.getFunction('f')).isNotNull();
 
       dispatcher.handle(const WorkerRequest(id: 5, op: 'clearAllSymbols'));
-      check(dispatcher.environment.variables).isEmpty();
-      check(dispatcher.environment.functions).isEmpty();
-      check(dispatcher.session.activeCells).isEmpty();
-      check(dispatcher.stack.isEmpty).isTrue();
+      check(dispatcher.environment.variables).isEmpty;
+      check(dispatcher.environment.functions).isEmpty;
+      check(dispatcher.session.activeCells).isEmpty;
+      check(dispatcher.stack.isEmpty).isTrue;
     });
 
     test(
@@ -301,7 +301,7 @@ void main() {
             payload: {'input': 'solve([x + y = 3, x - y = 1], [x, y])'},
           ),
         );
-        check(resp.ok).isTrue();
+        check(resp.ok).isTrue;
         final cellMap = (resp.result!['cell']! as Map).cast<String, Object?>();
         final cell = WorksheetCell.fromJson(cellMap);
         check(cell.value.toCanonicalText()).equals('[[x == 2, y == 1]]');

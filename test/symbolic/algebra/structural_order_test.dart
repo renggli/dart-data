@@ -93,8 +93,8 @@ void main() {
       check(compareStructural(c3, c1)).isGreaterThan(0);
 
       check(realScalarValue(n2)).equals(0.5);
-      check(realScalarValue(c1)).isNull();
-      check(realScalarValue(const Variable('x'))).isNull();
+      check(realScalarValue(c1)).isNull;
+      check(realScalarValue(const Variable('x'))).isNull;
     });
 
     test('compares Constant nodes by name, value (including NaN), latex, and mathMl', () {

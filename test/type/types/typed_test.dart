@@ -35,7 +35,7 @@ void main() {
       final iterable = generator();
       final copy = DataType.float64.copyList(iterable);
       check(copy).isA<Float64List>();
-      check(copy).which((it) => it.deepEquals([1.0, 2.0, 3.0]));
+      check(copy).which(.it()..deepEquals([1.0, 2.0, 3.0]));
       check(callCount).equals(1);
     });
   });

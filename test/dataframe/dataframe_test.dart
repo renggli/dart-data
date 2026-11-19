@@ -13,26 +13,26 @@ void main() {
     test('initializes all valid and sets null bits', () {
       final mask = ValidityMask(16);
       check(mask.nullCount).equals(0);
-      check(mask.isValid(0)).isTrue();
-      check(mask.isValid(15)).isTrue();
+      check(mask.isValid(0)).isTrue;
+      check(mask.isValid(15)).isTrue;
 
       mask.setNull(3);
       mask.setNull(11);
       check(mask.nullCount).equals(2);
-      check(mask.isNull(3)).isTrue();
-      check(mask.isValid(3)).isFalse();
-      check(mask.isNull(11)).isTrue();
-      check(mask.isValid(11)).isFalse();
-      check(mask.isValid(4)).isTrue();
+      check(mask.isNull(3)).isTrue;
+      check(mask.isValid(3)).isFalse;
+      check(mask.isNull(11)).isTrue;
+      check(mask.isValid(11)).isFalse;
+      check(mask.isValid(4)).isTrue;
 
       mask.setValid(3);
       check(mask.nullCount).equals(1);
-      check(mask.isValid(3)).isTrue();
+      check(mask.isValid(3)).isTrue;
 
       final fromBytes = ValidityMask.fromBytes(16, mask.bytes);
       check(fromBytes.nullCount).equals(1);
-      check(fromBytes.isValid(3)).isTrue();
-      check(fromBytes.isNull(11)).isTrue();
+      check(fromBytes.isValid(3)).isTrue;
+      check(fromBytes.isNull(11)).isTrue;
 
       check(() => mask.isNull(-1)).throws<RangeError>();
       check(() => mask.isNull(20)).throws<RangeError>();
@@ -54,7 +54,7 @@ void main() {
       check(series.length).equals(4);
       check(series.nullCount).equals(1);
       check(series[0]).equals(10.0);
-      check(series[1]).isNull();
+      check(series[1]).isNull;
       check(series[2]).equals(30.0);
       check(series.sum).equals(80.0);
       check(series.mean).isNotNull().isCloseTo(80.0 / 3, 1e-10);
@@ -71,15 +71,15 @@ void main() {
 
       final sorted = series.sort(ascending: false);
       check(sorted.toList().first).equals(40.0);
-      check(sorted.toList().last).isNull();
+      check(sorted.toList().last).isNull;
       final sortedAsc = series.sort(ascending: true);
       check(sortedAsc.toList().first).equals(10.0);
-      check(sortedAsc.toList().last).isNull();
+      check(sortedAsc.toList().last).isNull;
       final sortedAscNullsFirst = series.sort(
         ascending: true,
         nullsLast: false,
       );
-      check(sortedAscNullsFirst.toList().first).isNull();
+      check(sortedAscNullsFirst.toList().first).isNull;
 
       final renamed = series.rename('temperature');
       check(renamed.name).equals('temperature');
@@ -87,10 +87,10 @@ void main() {
 
       // All null series
       final allNull = TypedSeries<double>.fromList('all_null', [null, null]);
-      check(allNull.min).isNull();
-      check(allNull.max).isNull();
-      check(allNull.sum).isNull();
-      check(allNull.mean).isNull();
+      check(allNull.min).isNull;
+      check(allNull.max).isNull;
+      check(allNull.sum).isNull;
+      check(allNull.mean).isNull;
     });
 
     test('StringSeries and BoolSeries', () {
@@ -102,11 +102,11 @@ void main() {
       ]);
       check(strCol.nullCount).equals(1);
       check(strCol[1]).equals('Bob');
-      check(strCol[2]).isNull();
+      check(strCol[2]).isNull;
       check(strCol.min).equals('Alice');
       check(strCol.max).equals('Charlie');
-      check(strCol.sum).isNull();
-      check(strCol.mean).isNull();
+      check(strCol.sum).isNull;
+      check(strCol.mean).isNull;
 
       final strFiltered = strCol.filter([true, false, true, false]);
       check(strFiltered.length).equals(2);
@@ -114,12 +114,12 @@ void main() {
       check(strSliced.length).equals(2);
       final strSorted = strCol.sort(ascending: true);
       check(strSorted[0]).equals('Alice');
-      check(strSorted[3]).isNull();
+      check(strSorted[3]).isNull;
       final strSortedNullsFirst = strCol.sort(
         ascending: true,
         nullsLast: false,
       );
-      check(strSortedNullsFirst[0]).isNull();
+      check(strSortedNullsFirst[0]).isNull;
       check(strSortedNullsFirst[1]).equals('Alice');
       final strRenamed = strCol.rename('full_names');
       check(strRenamed.name).equals('full_names');
@@ -134,8 +134,8 @@ void main() {
       check(boolCol.mean).isNotNull().isCloseTo(2.0 / 3.0, 1e-4);
 
       final allNullBool = BoolSeries.fromList('nulls', [null, null]);
-      check(allNullBool.sum).isNull();
-      check(allNullBool.mean).isNull();
+      check(allNullBool.sum).isNull;
+      check(allNullBool.mean).isNull;
 
       final boolFiltered = boolCol.filter([true, false, true, false]);
       check(boolFiltered.length).equals(2);
@@ -143,12 +143,12 @@ void main() {
       check(boolSliced.length).equals(2);
       final boolSorted = boolCol.sort(ascending: true);
       check(boolSorted[0]).equals(false);
-      check(boolSorted[3]).isNull();
+      check(boolSorted[3]).isNull;
       final boolSortedNullsFirst = boolCol.sort(
         ascending: true,
         nullsLast: false,
       );
-      check(boolSortedNullsFirst[0]).isNull();
+      check(boolSortedNullsFirst[0]).isNull;
       final boolRenamed = boolCol.rename('is_active');
       check(boolRenamed.name).equals('is_active');
     });
@@ -163,20 +163,20 @@ void main() {
       check(objSeries.nullCount).equals(1);
       check(objSeries.min).equals(DateTime(2025, 1, 1));
       check(objSeries.max).equals(DateTime(2025, 1, 3));
-      check(objSeries.sum).isNull();
-      check(objSeries.mean).isNull();
+      check(objSeries.sum).isNull;
+      check(objSeries.mean).isNull;
 
       final objFiltered = objSeries.filter([true, false, true]);
       check(objFiltered.length).equals(2);
       final objSliced = objSeries.slice(0, 2);
       check(objSliced.length).equals(2);
       final objSorted = objSeries.sort(ascending: true);
-      check(objSorted[2]).isNull();
+      check(objSorted[2]).isNull;
       final objSortedNullsFirst = objSeries.sort(
         ascending: true,
         nullsLast: false,
       );
-      check(objSortedNullsFirst[0]).isNull();
+      check(objSortedNullsFirst[0]).isNull;
       final objRenamed = objSeries.rename('dates');
       check(objRenamed.name).equals('dates');
 
@@ -330,16 +330,16 @@ void main() {
       check(nanAsc['v'][1]).equals(1.0);
       check(nanAsc['v'][2]).equals(2.0);
       check(nanAsc['v'][3]).equals(double.infinity);
-      check((nanAsc['v'][4] as num).isNaN).isTrue();
-      check(nanAsc['v'][5]).isNull();
+      check((nanAsc['v'][4] as num).isNaN).isTrue;
+      check(nanAsc['v'][5]).isNull;
 
       final nanDesc = nanDf.sortBy('v', ascending: false, nullsLast: true);
-      check((nanDesc['v'][0] as num).isNaN).isTrue();
+      check((nanDesc['v'][0] as num).isNaN).isTrue;
       check(nanDesc['v'][1]).equals(double.infinity);
       check(nanDesc['v'][2]).equals(2.0);
       check(nanDesc['v'][3]).equals(1.0);
       check(nanDesc['v'][4]).equals(-double.infinity);
-      check(nanDesc['v'][5]).isNull();
+      check(nanDesc['v'][5]).isNull;
 
       final head2 = sorted.head(2);
       check(head2.rowCount).equals(2);
@@ -406,9 +406,9 @@ void main() {
         check(mixedTensor.shape).deepEquals([3, 2]);
         check(mixedTensor.getValue([0, 0])).equals(10.0);
         check(mixedTensor.getValue([1, 0])).equals(20.0);
-        check(mixedTensor.getValue([2, 0]).isNaN).isTrue();
+        check(mixedTensor.getValue([2, 0]).isNaN).isTrue;
         check(mixedTensor.getValue([0, 1])).equals(1.5);
-        check(mixedTensor.getValue([1, 1]).isNaN).isTrue();
+        check(mixedTensor.getValue([1, 1]).isNaN).isTrue;
         check(mixedTensor.getValue([2, 1])).equals(3.5);
 
         // Custom nullValue
@@ -585,7 +585,7 @@ Charlie,,60000.0,true
       check(df['name'].dataType.name).equals('string');
 
       // Null handling
-      check(df['age'][2]).isNull();
+      check(df['age'][2]).isNull;
       check(df['salary'][2]).equals(60000.0);
 
       // Serialization
@@ -689,7 +689,7 @@ line 2",10
 
       final leftWithNull = dfA.join(dfB, on: ['k'], type: JoinType.left);
       check(leftWithNull.rowCount).equals(2);
-      check(leftWithNull['k'][1]).isNull();
+      check(leftWithNull['k'][1]).isNull;
 
       // 5. StringSeries, BoolSeries, and ObjectSeries descending / custom sorts
       final strSeries = Series<String?>.fromList('s', [
@@ -700,7 +700,7 @@ line 2",10
       final strDesc = strSeries.sort(ascending: false);
       check(strDesc[0]).equals('banana');
       check(strDesc[1]).equals('apple');
-      check(strDesc[2]).isNull();
+      check(strDesc[2]).isNull;
 
       final boolSeries = Series<bool?>.fromList('b', [false, true, null]);
       final boolDesc = boolSeries.sort(ascending: false);
@@ -861,7 +861,7 @@ line 2",10
       final stats = df.describe();
       check(stats['val'][0]).equals(3.0);
       for (var i = 1; i <= 7; i++) {
-        check((stats['val'][i] as double).isNaN).isTrue();
+        check((stats['val'][i] as double).isNaN).isTrue;
       }
     });
 
@@ -872,7 +872,7 @@ line 2",10
       final stats = df.describe();
       check(stats['val'][0]).equals(1.0);
       check(stats['val'][1]).equals(42.0);
-      check((stats['val'][2] as double).isNaN).isTrue();
+      check((stats['val'][2] as double).isNaN).isTrue;
     });
 
     test('sample without replacement', () {
@@ -915,8 +915,7 @@ line 2",10
       final combined = df1.concat(df2);
       check(combined['a'].dataType).equals(DataType.float64);
       check(combined['a'].toList()).deepEquals([1.0, 2.0, 3.5, 4.5]);
-      check(combined['a'].dataType)
-          .not((it) => it.equals(DataType.dynamicType));
+      check(combined['a'].dataType).not(.it()..equals(DataType.dynamicType));
     });
 
     test('sortBy supports multiple columns and directions', () {
@@ -970,9 +969,9 @@ line 2",10
         'x': [1, 3],
         'y': ['a', 'b'],
       });
-      check(dfA == dfB).isTrue();
+      check(dfA == dfB).isTrue;
       check(dfA.hashCode).equals(dfB.hashCode);
-      check(dfA == dfC).isFalse();
+      check(dfA == dfC).isFalse;
       check(dfA.toRecords()).deepEquals([
         {'x': 1, 'y': 'a'},
         {'x': 2, 'y': 'b'},
@@ -984,7 +983,7 @@ line 2",10
       ]);
       final tensor = dfObjNum.toTensor();
       check(tensor.getValue([0, 0])).equals(1.5);
-      check(tensor.getValue([1, 0]).isNaN).isTrue();
+      check(tensor.getValue([1, 0]).isNaN).isTrue;
 
       // DataFrame.fromRecords, fillNull on column without nulls, sortBy invalid by
       final dfRec = DataFrame.fromRecords([

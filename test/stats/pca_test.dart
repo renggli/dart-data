@@ -51,7 +51,7 @@ void main() {
       final data = Matrix<double>.fromRows(rows, type: DataType.float64);
 
       final model = pca(data, nComponents: 2, standardize: true);
-      check(model.standardize).isTrue();
+      check(model.standardize).isTrue;
       check(model.std).isNotNull();
       // Both features are perfectly linearly correlated, so PC1 explains 100%
       // of variance

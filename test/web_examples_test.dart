@@ -36,7 +36,7 @@ void main() {
         check(dist).isNotNull();
         final testPoint = def.isContinuous ? 0.0 : 0;
         final prob = dist.probability(testPoint);
-        check(prob.isNaN).isFalse();
+        check(prob.isNaN).isFalse;
 
         final samples = dist.samples().take(5).toList();
         check(samples.length).equals(5);
@@ -46,9 +46,9 @@ void main() {
     test('all parameter bounds are consistent', () {
       for (final def in distributions) {
         for (final p in def.parameters) {
-          check(p.min <= p.max).isTrue();
-          check(p.defaultValue >= p.min && p.defaultValue <= p.max).isTrue();
-          check(p.step > 0).isTrue();
+          check(p.min <= p.max).isTrue;
+          check(p.defaultValue >= p.min && p.defaultValue <= p.max).isTrue;
+          check(p.step > 0).isTrue;
         }
       }
     });
@@ -65,35 +65,35 @@ void main() {
             : Assumptions(defaultDomain: preset.defaultDomain);
 
         final simplified = expr!.simplify(assumptions: assumptions);
-        check(simplified.toString().isNotEmpty).isTrue();
+        check(simplified.toString().isNotEmpty).isTrue;
 
         final expanded = expr.expand(assumptions: assumptions);
-        check(expanded.toString().isNotEmpty).isTrue();
+        check(expanded.toString().isNotEmpty).isTrue;
 
         final factored = expr.factor(assumptions: assumptions);
-        check(factored.toString().isNotEmpty).isTrue();
+        check(factored.toString().isNotEmpty).isTrue;
 
         final apart = expr.apart('x', assumptions: assumptions);
-        check(apart.toString().isNotEmpty).isTrue();
+        check(apart.toString().isNotEmpty).isTrue;
 
         final together = expr.together(assumptions: assumptions);
-        check(together.toString().isNotEmpty).isTrue();
+        check(together.toString().isNotEmpty).isTrue;
 
         final canceled = expr.cancel(assumptions: assumptions);
-        check(canceled.toString().isNotEmpty).isTrue();
+        check(canceled.toString().isNotEmpty).isTrue;
 
         final trigExpanded = expr.expandTrig(assumptions: assumptions);
-        check(trigExpanded.toString().isNotEmpty).isTrue();
+        check(trigExpanded.toString().isNotEmpty).isTrue;
 
         final trigSimplified = expr.simplifyTrig(assumptions: assumptions);
-        check(trigSimplified.toString().isNotEmpty).isTrue();
+        check(trigSimplified.toString().isNotEmpty).isTrue;
 
         final latex = simplified.toLatex();
-        check(latex.isNotEmpty).isTrue();
+        check(latex.isNotEmpty).isTrue;
 
         final mathml = simplified.toMathMl();
-        check(mathml.startsWith('<math>')).isTrue();
-        check(mathml.endsWith('</math>')).isTrue();
+        check(mathml.startsWith('<math>')).isTrue;
+        check(mathml.endsWith('</math>')).isTrue;
       }
     });
 
@@ -121,15 +121,15 @@ void main() {
           final d2 = d1
               .derivative('x', assumptions: assumptions)
               .simplify(assumptions: assumptions);
-          check(d1.toString().isNotEmpty).isTrue();
-          check(d2.toString().isNotEmpty).isTrue();
+          check(d1.toString().isNotEmpty).isTrue;
+          check(d2.toString().isNotEmpty).isTrue;
 
           final x0Expr = _parsePresetBound(preset.defaultPointX);
           final ptDouble = x0Expr.evaluateComplex().a.toDouble();
           Expr lim;
           try {
             lim = expr.limit('x', x0Expr, assumptions: assumptions);
-            check(lim.toString().isNotEmpty).isTrue();
+            check(lim.toString().isNotEmpty).isTrue;
           } on UnsupportedError {
             final limLeft = expr.limit(
               'x',
@@ -143,7 +143,7 @@ void main() {
               direction: LimitDirection.fromAbove,
               assumptions: assumptions,
             );
-            check(limLeft).not((it) => it.equals(limRight));
+            check(limLeft).not(.it()..equals(limRight));
             lim = Constant.undefined;
           }
 
@@ -162,22 +162,22 @@ void main() {
             check(hessian.rowCount).equals(vars.length);
             check(hessian.colCount).equals(vars.length);
             final bc = expr.toBytecode(variables: vars);
-            check(bc.instructions.isNotEmpty).isTrue();
+            check(bc.instructions.isNotEmpty).isTrue;
           } else if (containsImaginary(expr)) {
             final cfn = expr.toComplexFunction1D('x');
             final y0 = cfn(Complex(ptDouble, 0));
-            check(y0.a.isNaN).isFalse();
-            check(y0.b.isNaN).isFalse();
+            check(y0.a.isNaN).isFalse;
+            check(y0.b.isNaN).isFalse;
             if (!hasUnevaluatedDerivative) {
               final cdf = d1.toComplexFunction1D('x');
               final slope = cdf(Complex(ptDouble, 0));
-              check(slope.a.isNaN).isFalse();
-              check(slope.b.isNaN).isFalse();
+              check(slope.a.isNaN).isFalse;
+              check(slope.b.isNaN).isFalse;
             }
           } else {
             final fn = expr.toFunction1D('x');
             final y0 = fn(ptDouble);
-            check(y0.isFinite || lim != Constant.undefined).isTrue();
+            check(y0.isFinite || lim != Constant.undefined).isTrue;
             if (!hasUnevaluatedDerivative) {
               final df = d1.toFunction1D('x');
               final slope = df(ptDouble);
@@ -185,7 +185,7 @@ void main() {
                 slope.isFinite ||
                     lim != Constant.undefined ||
                     preset.id == 'piecewise_jump',
-              ).isTrue();
+              ).isTrue;
             }
           }
         }
@@ -204,7 +204,7 @@ void main() {
         final defInt = expr
             .integrate('x', from: aExpr, to: bExpr, assumptions: assumptions)
             .simplify(assumptions: assumptions);
-        check(defInt.toString().isNotEmpty).isTrue();
+        check(defInt.toString().isNotEmpty).isTrue;
 
         final sumExpr = expr
             .sum(
@@ -214,7 +214,7 @@ void main() {
               assumptions: assumptions,
             )
             .simplify(assumptions: assumptions);
-        check(sumExpr.toString().isNotEmpty).isTrue();
+        check(sumExpr.toString().isNotEmpty).isTrue;
 
         final prodExpr = expr
             .product(
@@ -224,7 +224,7 @@ void main() {
               assumptions: assumptions,
             )
             .simplify(assumptions: assumptions);
-        check(prodExpr.toString().isNotEmpty).isTrue();
+        check(prodExpr.toString().isNotEmpty).isTrue;
 
         try {
           final taylor = expr
@@ -236,7 +236,7 @@ void main() {
                 assumptions: assumptions,
               )
               .simplify(assumptions: assumptions);
-          check(taylor.toString().isNotEmpty).isTrue();
+          check(taylor.toString().isNotEmpty).isTrue;
         } on UnsupportedError {
           // Functions with non-elementary series at the point throw UnsupportedError.
         }
@@ -249,13 +249,13 @@ void main() {
       test(
         'detects presence of imaginary constant i in various AST locations',
         () {
-          check(containsImaginary(ComplexNumber.i)).isTrue();
-          check(containsImaginary(Expr.parse('exp(i * x)'))).isTrue();
-          check(containsImaginary(Expr.parse('(x + i)^2'))).isTrue();
-          check(containsImaginary(Expr.parse('sin(2 * i)'))).isTrue();
-          check(containsImaginary(Expr.parse('x^3 - 3*x + 1'))).isFalse();
-          check(containsImaginary(Expr.parse('sqrt(x)'))).isFalse();
-          check(containsImaginary(Expr.parse('ln(1 + exp(x))'))).isFalse();
+          check(containsImaginary(ComplexNumber.i)).isTrue;
+          check(containsImaginary(Expr.parse('exp(i * x)'))).isTrue;
+          check(containsImaginary(Expr.parse('(x + i)^2'))).isTrue;
+          check(containsImaginary(Expr.parse('sin(2 * i)'))).isTrue;
+          check(containsImaginary(Expr.parse('x^3 - 3*x + 1'))).isFalse;
+          check(containsImaginary(Expr.parse('sqrt(x)'))).isFalse;
+          check(containsImaginary(Expr.parse('ln(1 + exp(x))'))).isFalse;
         },
       );
     });

@@ -83,11 +83,11 @@ void main() {
         '<mrow><mo>[</mo><mtable><mtr><mtd><mfrac><mn>1</mn><mn>2</mn></mfrac></mtd><mtd><mfrac><mn>1</mn><mn>4</mn></mfrac></mtd></mtr></mtable><mo>]</mo></mrow>',
       );
 
-      check(syntax.tryParseMatrix('[[1, 2], [3]]')).isNull();
+      check(syntax.tryParseMatrix('[[1, 2], [3]]')).isNull;
       check(() => syntax.parseMatrix('[[1, 2], [3]]'))
           .throws<FormatException>();
       check(syntax.tryParseMatrix('[[1, 2], [3, 4]]')).isNotNull();
-      check(syntax.tryParseMatrix('not a matrix')).isNull();
+      check(syntax.tryParseMatrix('not a matrix')).isNull;
       check(() => syntax.parseMatrix('not a matrix')).throws<FormatException>();
     });
 
@@ -225,7 +225,7 @@ void main() {
       check(intVec[0]).equals(IntegerNumber.two);
       check(intVec[1]).equals(IntegerNumber.two);
 
-      check(syntax.tryParseVector('[1, 2')).isNull();
+      check(syntax.tryParseVector('[1, 2')).isNull;
       check(() => syntax.parseVector('[1, 2')).throws<FormatException>();
     });
 

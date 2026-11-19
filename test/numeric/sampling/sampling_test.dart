@@ -172,8 +172,8 @@ void main() {
       }
 
       // sampleCurve edge cases: constant curve, all-NaN curve, and exception handling
-      check(sampleCurve((x) => 5.0, 0.0, 1.0).segments).isNotEmpty();
-      check(sampleCurve((x) => double.nan, 0.0, 1.0).segments).isEmpty();
+      check(sampleCurve((x) => 5.0, 0.0, 1.0).segments).isNotEmpty;
+      check(sampleCurve((x) => double.nan, 0.0, 1.0).segments).isEmpty;
       check(
         sampleCurve(
           (x) => x < 0.2
@@ -188,7 +188,7 @@ void main() {
           0.0,
           1.0,
         ).segments,
-      ).isNotEmpty();
+      ).isNotEmpty;
     });
 
     test('endpoint = false excludes stop', () {

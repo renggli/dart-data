@@ -5,8 +5,8 @@ import 'package:test/scaffolding.dart';
 
 extension on Subject<Complex> {
   void isCloseTo(Complex other, double delta) {
-    has((c) => c.a, 'real').isCloseTo(other.a, delta);
-    has((c) => c.b, 'imaginary').isCloseTo(other.b, delta);
+    has('real', (c) => c.a).isCloseTo(other.a, delta);
+    has('imaginary', (c) => c.b).isCloseTo(other.b, delta);
   }
 }
 
@@ -20,7 +20,7 @@ void main() {
       ], type: DataType.float64);
 
       final lu = a.lu;
-      check(lu.isNonsingular).isTrue();
+      check(lu.isNonsingular).isTrue;
 
       final lower = lu.lower;
       final upper = lu.upper;
@@ -107,7 +107,7 @@ void main() {
       ], type: DataType.float64);
 
       final lu = a.lu;
-      check(lu.isNonsingular).isTrue();
+      check(lu.isNonsingular).isTrue;
       final x = lu.solve(b);
 
       final ax = a * x;
@@ -138,7 +138,7 @@ void main() {
       ], type: DataType.float64);
 
       final lu = a.lu;
-      check(lu.isNonsingular).isFalse();
+      check(lu.isNonsingular).isFalse;
       check(() => lu.solve(a)).throws<StateError>();
     });
 
@@ -151,7 +151,7 @@ void main() {
       final lu = a.lu;
       check(lu.m).equals(2);
       check(lu.n).equals(3);
-      check(lu.isNonsingular).isFalse();
+      check(lu.isNonsingular).isFalse;
       check(() => lu.det).throws<ArgumentError>();
 
       final lower = lu.lower;
@@ -188,7 +188,7 @@ void main() {
       final lu = a.lu;
       check(lu.m).equals(3);
       check(lu.n).equals(2);
-      check(lu.isNonsingular).isFalse();
+      check(lu.isNonsingular).isFalse;
       check(() => lu.det).throws<ArgumentError>();
 
       final lower = lu.lower;
@@ -237,7 +237,7 @@ void main() {
       ], type: DataType.complex);
 
       final lu = a.lu;
-      check(lu.isNonsingular).isTrue();
+      check(lu.isNonsingular).isTrue;
 
       final l = lu.lower;
       final u = lu.upper;
@@ -295,7 +295,7 @@ void main() {
         [const Complex(2.0, 4.0), const Complex(4.0, 8.0)],
       ], type: DataType.complex);
       final lu = a.lu;
-      check(lu.isNonsingular).isFalse();
+      check(lu.isNonsingular).isFalse;
       final b = Vector<Complex>.fromList([
         const Complex(1.0, 0.0),
         const Complex(2.0, 0.0),
@@ -320,7 +320,7 @@ void main() {
       final lu = a.lu;
       check(lu.m).equals(2);
       check(lu.n).equals(3);
-      check(lu.isNonsingular).isFalse();
+      check(lu.isNonsingular).isFalse;
 
       final l = lu.lower;
       final u = lu.upper;
@@ -350,7 +350,7 @@ void main() {
       final lu = a.lu;
       check(lu.m).equals(3);
       check(lu.n).equals(2);
-      check(lu.isNonsingular).isFalse();
+      check(lu.isNonsingular).isFalse;
 
       final l = lu.lower;
       final u = lu.upper;
@@ -375,7 +375,7 @@ void main() {
         [double.nan, 1.0],
         [0.0, 1.0],
       ]);
-      check(nanMat.lu.isNonsingular).isFalse();
+      check(nanMat.lu.isNonsingular).isFalse;
 
       // Complex non-square inverse and LU solve row mismatch
       final rectC = Matrix<Complex>.filled(

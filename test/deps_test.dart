@@ -82,7 +82,7 @@ void main() {
 
   group('umbrella', () {
     test('no incoming dependencies', () {
-      check(filesGraph.predecessorsOf('lib/data.dart')).isEmpty();
+      check(filesGraph.predecessorsOf('lib/data.dart')).isEmpty;
     });
 
     test('exports all public sub-libraries', () {
@@ -102,7 +102,7 @@ void main() {
           )
           .map((edge) => '${edge.source} -> ${edge.target}')
           .toList();
-      check(badEdges).isEmpty();
+      check(badEdges).isEmpty;
     });
 
     test('no cycles between sub-libraries', () {
@@ -111,7 +111,7 @@ void main() {
           (scc) =>
               scc.length > 1 || libsGraph.getEdge(scc.first, scc.first) != null,
         ),
-      ).isEmpty();
+      ).isEmpty;
     });
 
     test(
@@ -133,7 +133,7 @@ void main() {
             internalExports.add('$relPath: ${match.group(0)!.trim()}');
           }
         }
-        check(internalExports).isEmpty();
+        check(internalExports).isEmpty;
       },
     );
   });
@@ -144,7 +144,7 @@ void main() {
         filesGraph.vertices
             .where((file) => file.startsWith('lib/src/'))
             .where((file) => filesGraph.predecessorsOf(file).isEmpty),
-      ).isEmpty();
+      ).isEmpty;
     });
 
     test('all files reachable from root', () {
@@ -153,7 +153,7 @@ void main() {
       );
       final reachable = <String>{...roots.expand(filesGraph.depthFirst)};
       check(filesGraph.vertices.where((file) => !reachable.contains(file)))
-          .isEmpty();
+          .isEmpty;
     });
   });
 
@@ -172,11 +172,11 @@ void main() {
     }
 
     test('type is completely self-contained', () {
-      check(reachedSubsystems(Subsystem.type)).isEmpty();
+      check(reachedSubsystems(Subsystem.type)).isEmpty;
     });
 
     test('special is completely self-contained', () {
-      check(reachedSubsystems(Subsystem.special)).isEmpty();
+      check(reachedSubsystems(Subsystem.special)).isEmpty;
     });
 
     test('acceleration depends only on type', () {
@@ -195,8 +195,7 @@ void main() {
       );
       for (final s in nonSymbolic) {
         test('${s.name} never transitively depends on symbolic', () {
-          check(reachedSubsystems(s))
-              .not((sub) => sub.contains(Subsystem.symbolic));
+          check(reachedSubsystems(s)).not(.it()..contains(Subsystem.symbolic));
         });
       }
     });
@@ -207,8 +206,7 @@ void main() {
       );
       for (final s in nonDataFrame) {
         test('${s.name} never transitively depends on dataframe', () {
-          check(reachedSubsystems(s))
-              .not((sub) => sub.contains(Subsystem.dataframe));
+          check(reachedSubsystems(s)).not(.it()..contains(Subsystem.dataframe));
         });
       }
     });
@@ -224,8 +222,7 @@ void main() {
       ];
       for (final s in nonStats) {
         test('${s.name} never transitively depends on stats', () {
-          check(reachedSubsystems(s))
-              .not((sub) => sub.contains(Subsystem.stats));
+          check(reachedSubsystems(s)).not(.it()..contains(Subsystem.stats));
         });
       }
     });

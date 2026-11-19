@@ -514,7 +514,7 @@ void main() {
 
       final allZeros = Polynomial<double>.fromCoefficients([0.0, 0.0, 0.0]);
       check(allZeros.degree).equals(-1);
-      check(allZeros.coefficients.isEmpty).isTrue();
+      check(allZeros.coefficients.isEmpty).isTrue;
       check(allZeros.leadingCoefficient).equals(0.0);
     });
 
@@ -553,7 +553,7 @@ void main() {
         1.0,
         2.0,
       ], type: DataType.float64);
-      check(pInt == pFloat).isFalse();
+      check(pInt == pFloat).isFalse;
 
       final cInt = Polynomial<num>.compressed(
         [0, 1],
@@ -565,8 +565,8 @@ void main() {
         [1.0, 2.0],
         type: DataType.float64,
       );
-      check(cInt == cFloat).isFalse();
-      check(pInt == cInt).isTrue();
+      check(cInt == cFloat).isFalse;
+      check(pInt == cInt).isTrue;
       check(pInt.hashCode).equals(cInt.hashCode);
 
       // CompressedPolynomial monic normalize and roots with complex coefficients
@@ -615,14 +615,14 @@ void main() {
         [0, 50000, 100000],
         [-1, 1, 1],
       );
-      check(highDeg1 == highDeg2).isTrue();
+      check(highDeg1 == highDeg2).isTrue;
       check(highDeg1.hashCode).equals(highDeg2.hashCode);
-      check(highDeg1 == highDeg3).isFalse();
+      check(highDeg1 == highDeg3).isFalse;
 
       final denseP = Polynomial<int>.fromCoefficients([1, 0, 3]);
       final compP = Polynomial<int>.compressed([0, 2], [1, 3]);
-      check(denseP == compP).isTrue();
-      check(compP == denseP).isTrue();
+      check(denseP == compP).isTrue;
+      check(compP == denseP).isTrue;
       check(
         denseP.nonZeroTerms.map((t) => (t.exponent, t.coefficient)).toList(),
       ).deepEquals([(0, 1), (2, 3)]);

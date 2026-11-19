@@ -11,13 +11,13 @@ void main() {
       final key3 = TupleKey(['a', 2, true, 3.14]);
       final key4 = TupleKey(['a', '1', true, 3.14]);
 
-      check(key1 == key2).isTrue();
+      check(key1 == key2).isTrue;
       check(key1.hashCode).equals(key2.hashCode);
 
-      check(key1 == key3).isFalse();
-      check(key1 == key4).isFalse();
-      check(key1 == Object()).isFalse();
-      check(key1 == key1).isTrue();
+      check(key1 == key3).isFalse;
+      check(key1 == key4).isFalse;
+      check(key1 == Object()).isFalse;
+      check(key1 == key1).isTrue;
     });
 
     test('toString formatting', () {
@@ -29,8 +29,8 @@ void main() {
       final keyWithNull = TupleKey([null, 1, 2, 3]);
       final keyWithStringNull = TupleKey(['null', 1, 2, 3]);
 
-      check(keyWithNull == keyWithStringNull).isFalse();
-      check(keyWithNull == TupleKey([null, 1, 2, 3])).isTrue();
+      check(keyWithNull == keyWithStringNull).isFalse;
+      check(keyWithNull == TupleKey([null, 1, 2, 3])).isTrue;
     });
   });
 
@@ -42,37 +42,37 @@ void main() {
       check(extractor.extractKey(0)).equals(10);
       check(extractor.extractKeyOrNull(0)).equals(10);
       check(extractor.extractJoinKeyOrNull(0)).equals(10);
-      check(extractor.hasNull(0)).isFalse();
-      check(extractor.hasNullOrNan(0)).isFalse();
+      check(extractor.hasNull(0)).isFalse;
+      check(extractor.hasNullOrNan(0)).isFalse;
 
-      check(extractor.extractKey(1)).isNull();
-      check(extractor.extractKeyOrNull(1)).isNull();
-      check(extractor.extractJoinKeyOrNull(1)).isNull();
-      check(extractor.hasNull(1)).isTrue();
-      check(extractor.hasNullOrNan(1)).isTrue();
+      check(extractor.extractKey(1)).isNull;
+      check(extractor.extractKeyOrNull(1)).isNull;
+      check(extractor.extractJoinKeyOrNull(1)).isNull;
+      check(extractor.hasNull(1)).isTrue;
+      check(extractor.hasNullOrNan(1)).isTrue;
 
       check(extractor.extractKey(2)).equals(20);
       check(extractor.extractKeyOrNull(2)).equals(20);
       check(extractor.extractJoinKeyOrNull(2)).equals(20);
-      check(extractor.hasNull(2)).isFalse();
-      check(extractor.hasNullOrNan(2)).isFalse();
+      check(extractor.hasNull(2)).isFalse;
+      check(extractor.hasNullOrNan(2)).isFalse;
 
       check(extractor.extractKey(3)).equals(nanKey);
       check(extractor.extractKeyOrNull(3)).equals(nanKey);
-      check(extractor.extractJoinKeyOrNull(3)).isNull();
-      check(extractor.hasNull(3)).isFalse();
-      check(extractor.hasNullOrNan(3)).isTrue();
+      check(extractor.extractJoinKeyOrNull(3)).isNull;
+      check(extractor.hasNull(3)).isFalse;
+      check(extractor.hasNullOrNan(3)).isTrue;
     });
 
     test('canonicalizes NaN and -0.0 in TupleKey and extractors', () {
       final keyNan1 = TupleKey(['a', double.nan, true]);
       final keyNan2 = TupleKey(['a', double.nan, true]);
-      check(keyNan1 == keyNan2).isTrue();
+      check(keyNan1 == keyNan2).isTrue;
       check(keyNan1.hashCode).equals(keyNan2.hashCode);
 
       final keyNegZero = TupleKey(['a', -0.0, true]);
       final keyPosZero = TupleKey(['a', 0.0, true]);
-      check(keyNegZero == keyPosZero).isTrue();
+      check(keyNegZero == keyPosZero).isTrue;
       check(keyNegZero.hashCode).equals(keyPosZero.hashCode);
 
       final col = Series<double>.fromList('c', [
@@ -84,12 +84,12 @@ void main() {
       final ext = RowKeyExtractor([col]);
       check(ext.extractKey(0)).equals(0.0);
       check(ext.extractKey(1)).equals(0.0);
-      check(ext.extractKey(0) == ext.extractKey(1)).isTrue();
+      check(ext.extractKey(0) == ext.extractKey(1)).isTrue;
       check(ext.extractKey(0).hashCode).equals(ext.extractKey(1).hashCode);
 
       check(ext.extractKey(2)).equals(nanKey);
       check(ext.extractKey(3)).equals(nanKey);
-      check(ext.extractKey(2) == ext.extractKey(3)).isTrue();
+      check(ext.extractKey(2) == ext.extractKey(3)).isTrue;
       check(ext.extractKey(2).hashCode).equals(ext.extractKey(3).hashCode);
     });
 
@@ -100,19 +100,19 @@ void main() {
 
       check(extractor.extractKey(0)).equals(('x', 1));
       check(extractor.extractKeyOrNull(0)).equals(('x', 1));
-      check(extractor.hasNull(0)).isFalse();
+      check(extractor.hasNull(0)).isFalse;
 
       check(extractor.extractKey(1)).equals(('x', null));
-      check(extractor.extractKeyOrNull(1)).isNull();
-      check(extractor.hasNull(1)).isTrue();
+      check(extractor.extractKeyOrNull(1)).isNull;
+      check(extractor.hasNull(1)).isTrue;
 
       check(extractor.extractKey(2)).equals((null, 2));
-      check(extractor.extractKeyOrNull(2)).isNull();
-      check(extractor.hasNull(2)).isTrue();
+      check(extractor.extractKeyOrNull(2)).isNull;
+      check(extractor.hasNull(2)).isTrue;
 
       check(extractor.extractKey(3)).equals(('x', 3));
       check(extractor.extractKeyOrNull(3)).equals(('x', 3));
-      check(extractor.hasNull(3)).isFalse();
+      check(extractor.hasNull(3)).isFalse;
     });
 
     test('3 column extractor', () {
@@ -123,11 +123,11 @@ void main() {
 
       check(extractor.extractKey(0)).equals((1, 'a', true));
       check(extractor.extractKeyOrNull(0)).equals((1, 'a', true));
-      check(extractor.hasNull(0)).isFalse();
+      check(extractor.hasNull(0)).isFalse;
 
       check(extractor.extractKey(1)).equals((1, null, false));
-      check(extractor.extractKeyOrNull(1)).isNull();
-      check(extractor.hasNull(1)).isTrue();
+      check(extractor.extractKeyOrNull(1)).isNull;
+      check(extractor.hasNull(1)).isTrue;
     });
 
     test('4 column extractor (TupleKey fallback)', () {
@@ -141,17 +141,17 @@ void main() {
       check(key0).isA<TupleKey>();
       check((key0 as TupleKey).values).deepEquals([1, 2, 3, 4]);
       check(extractor.extractKeyOrNull(0)).isA<TupleKey>();
-      check(extractor.hasNull(0)).isFalse();
+      check(extractor.hasNull(0)).isFalse;
 
-      check(extractor.extractKeyOrNull(1)).isNull();
-      check(extractor.hasNull(1)).isTrue();
+      check(extractor.extractKeyOrNull(1)).isNull;
+      check(extractor.hasNull(1)).isTrue;
     });
 
     test('0 column extractor', () {
       final extractor = RowKeyExtractor([]);
       check(extractor.extractKey(0)).isA<TupleKey>();
       check(extractor.extractKeyOrNull(0)).isA<TupleKey>();
-      check(extractor.hasNull(0)).isFalse();
+      check(extractor.hasNull(0)).isFalse;
     });
   });
 }

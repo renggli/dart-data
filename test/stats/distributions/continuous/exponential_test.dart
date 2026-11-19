@@ -60,7 +60,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == ExponentialDistribution(2.0)).isTrue();
+      check(dist == ExponentialDistribution(2.0)).isTrue;
       check(dist.hashCode).equals(ExponentialDistribution(2.0).hashCode);
     });
 

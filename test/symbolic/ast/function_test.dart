@@ -35,9 +35,9 @@ void main() {
           check(node.substitute('x', y)).equals(build(y));
           check(node.mapChildren((_) => y)).equals(build(y));
           check(node.freeVariables).unorderedEquals(['x']);
-          check(node.dependsOn('x')).isTrue();
-          check(node.dependsOn('y')).isFalse();
-          check(node.anyNode((e) => e == x)).isTrue();
+          check(node.dependsOn('x')).isTrue;
+          check(node.dependsOn('y')).isFalse;
+          check(node.anyNode((e) => e == x)).isTrue;
           check(node).equals(build(x));
           check(node.hashCode).equals(build(x).hashCode);
         }
@@ -51,17 +51,17 @@ void main() {
       check(Tanh(x).evaluate({'x': 25.0})).equals(1.0);
       check(Tanh(x).evaluate({'x': -25.0})).equals(-1.0);
 
-      check(Asinh(x).evaluate({'x': double.nan}).isNaN).isTrue();
+      check(Asinh(x).evaluate({'x': double.nan}).isNaN).isTrue;
       check(Asinh(x).evaluate({'x': double.infinity})).equals(double.infinity);
       check(Asinh(x).evaluate({'x': -1e10}))
           .isCloseTo(-(math.log(1e10) + math.ln2), 1e-12);
 
-      check(Acosh(x).evaluate({'x': 0.5}).isNaN).isTrue();
+      check(Acosh(x).evaluate({'x': 0.5}).isNaN).isTrue;
       check(Acosh(x).evaluate({'x': 1e10}))
           .isCloseTo(math.log(1e10) + math.ln2, 1e-12);
 
-      check(Atanh(x).evaluate({'x': -1.5}).isNaN).isTrue();
-      check(Atanh(x).evaluate({'x': 1.5}).isNaN).isTrue();
+      check(Atanh(x).evaluate({'x': -1.5}).isNaN).isTrue;
+      check(Atanh(x).evaluate({'x': 1.5}).isNaN).isTrue;
       check(Atanh(x).evaluate({'x': 1.0})).equals(double.infinity);
       check(Atanh(x).evaluate({'x': -1.0})).equals(double.negativeInfinity);
     });
@@ -133,10 +133,10 @@ void main() {
         );
 
         // Direct AST methods: isReal, evaluate, substitute, mapChildren
-        check(Abs(x).isReal).isTrue();
-        check(Re(x).isReal).isTrue();
-        check(Im(x).isReal).isTrue();
-        check(Arg(x).isReal).isTrue();
+        check(Abs(x).isReal).isTrue;
+        check(Re(x).isReal).isTrue;
+        check(Im(x).isReal).isTrue;
+        check(Arg(x).isReal).isTrue;
         check(
           Abs(ComplexNumber.of(IntegerNumber.of(3), IntegerNumber.of(4)))
               .evaluate({'x': 1.0}),

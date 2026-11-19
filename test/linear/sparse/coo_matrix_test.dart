@@ -198,7 +198,7 @@ void main() {
       check(at.get(0, 0)).equals(1.0);
       check(at.get(2, 0)).equals(2.0);
       check(at.get(1, 1)).equals(3.0);
-      check(at.transposed == a).isTrue();
+      check(at.transposed == a).isTrue;
     });
 
     test('scale', () {
@@ -217,7 +217,7 @@ void main() {
       check(neg.get(0, 0)).equals(-1.0);
       check(neg.get(0, 2)).equals(-2.0);
       check(neg.get(1, 1)).equals(-3.0);
-      check((-neg) == a).isTrue();
+      check((-neg) == a).isTrue;
     });
 
     test('addition and subtraction', () {
@@ -245,9 +245,9 @@ void main() {
         (1, 1, 3.0),
         (0, 0, 1.0),
       ]);
-      check(a == a2).isTrue();
+      check(a == a2).isTrue;
       check(a.hashCode).equals(a2.hashCode);
-      check(a == b).isFalse();
+      check(a == b).isFalse;
     });
 
     test('string conversion', () {

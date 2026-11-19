@@ -30,7 +30,7 @@ void main() {
           cOffset: 0,
           ldc: 0,
         ),
-      ).isTrue();
+      ).isTrue;
     });
 
     test('dgemm with beta != 1.0 scales C', () {
@@ -56,7 +56,7 @@ void main() {
           cOffset: 0,
           ldc: 1,
         ),
-      ).isTrue();
+      ).isTrue;
       check(c[0]).isCloseTo(10.0 * 0.5 + 2.0, 1e-10);
     });
 
@@ -83,7 +83,7 @@ void main() {
           cOffset: 0,
           ldc: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(c[0]).isCloseTo(19.0, 1e-10);
       check(c[1]).isCloseTo(22.0, 1e-10);
       check(c[2]).isCloseTo(43.0, 1e-10);
@@ -113,7 +113,7 @@ void main() {
           cOffset: 0,
           ldc: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(c[0]).isCloseTo(19.0, 1e-5);
       check(c[1]).isCloseTo(22.0, 1e-5);
       check(c[2]).isCloseTo(43.0, 1e-5);
@@ -142,7 +142,7 @@ void main() {
           cOffset: 0,
           ldc: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(c[0]).isCloseTo(4.0, 1e-10);
       check(c[1]).isCloseTo(7.0, 1e-10);
       check(c[2]).isCloseTo(10.0, 1e-10);
@@ -168,7 +168,7 @@ void main() {
           bOffset: 0,
           ldb: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(b[0]).isCloseTo(8.0, 1e-10);
       check(b[1]).isCloseTo(8.0, 1e-10);
       check(b[2]).isCloseTo(18.0, 1e-10);
@@ -196,7 +196,7 @@ void main() {
           yOffset: 0,
           incY: 1,
         ),
-      ).isTrue();
+      ).isTrue;
       check(y[0]).isCloseTo(4.0, 1e-10);
       check(y[1]).isCloseTo(6.0, 1e-10);
     });
@@ -224,7 +224,7 @@ void main() {
           cOffset: 0,
           ldc: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(c[0]).isCloseTo(19.0, 1e-10);
       check(c[1]).isCloseTo(22.0, 1e-10);
       check(c[2]).isCloseTo(43.0, 1e-10);
@@ -256,7 +256,7 @@ void main() {
           yOffset: 0,
           incY: 1,
         ),
-      ).isTrue();
+      ).isTrue;
       check(y[0]).isCloseTo(10.0, 1e-10);
       check(y[1]).isCloseTo(9.0, 1e-10);
       check(y[2]).isCloseTo(8.0, 1e-10);
@@ -290,7 +290,7 @@ void main() {
           cOffset: 0,
           ldc: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(c[0]).isCloseTo(10.0, 1e-10);
       check(c[1]).isCloseTo(14.0, 1e-10);
       check(c[2]).isCloseTo(14.0, 1e-10);
@@ -316,7 +316,7 @@ void main() {
           bOffset: 0,
           ldb: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(b[0]).isCloseTo(8.0, 1e-10);
       check(b[1]).isCloseTo(8.0, 1e-10);
       check(b[2]).isCloseTo(18.0, 1e-10);
@@ -343,7 +343,7 @@ void main() {
           aOffset: 0,
           lda: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       // x * y^T + y * x^T:
       // (0,0) = 1*3 + 3*1 = 6
       // (0,1) = 1*4 + 3*2 = 10
@@ -370,7 +370,7 @@ void main() {
           aOffset: 0,
           lda: 2,
         ),
-      ).isTrue();
+      ).isTrue;
       check(aLower[0]).isCloseTo(6.0, 1e-10);
       check(aLower[1]).isCloseTo(10.0, 1e-10);
       check(aLower[2]).isCloseTo(10.0, 1e-10);
@@ -399,7 +399,7 @@ void main() {
           yOffset: 0,
           incY: 1,
         ),
-      ).isTrue();
+      ).isTrue;
       check(y[0]).isCloseTo(6.0, 1e-10);
       check(y[1]).isCloseTo(8.0, 1e-10);
       check(y[2]).isCloseTo(10.0, 1e-10);

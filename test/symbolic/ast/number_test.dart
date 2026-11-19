@@ -9,10 +9,10 @@ void main() {
     test('canonical construction, reduction, and queries', () {
       final zero = RationalNumber(0);
       check(zero).isA<IntegerNumber>();
-      check(zero.isZero).isTrue();
-      check(zero.isOne).isFalse();
-      check(zero.isNegativeOne).isFalse();
-      check(zero.isInteger).isTrue();
+      check(zero.isZero).isTrue;
+      check(zero.isOne).isFalse;
+      check(zero.isNegativeOne).isFalse;
+      check(zero.isInteger).isTrue;
       check(zero).equals(IntegerNumber.zero);
       check(zero.sign).equals(0);
       check(zero.abs()).equals(IntegerNumber.zero);
@@ -29,9 +29,9 @@ void main() {
       check(negDenom).equals(FractionNumber.negativeHalf);
       check(negDenom.numerator).equals(Integer.negativeOne);
       check(negDenom.denominator).equals(Integer.two);
-      check(negDenom.isNegative).isTrue();
-      check(negDenom.isInteger).isFalse();
-      check(negDenom.asInt).isNull();
+      check(negDenom.isNegative).isTrue;
+      check(negDenom.isInteger).isFalse;
+      check(negDenom.asInt).isNull;
       check(negDenom.abs()).equals(FractionNumber.half);
       check(negDenom.neg()).equals(FractionNumber.half);
       check(RationalNumber(7, 2).toInt()).equals(3);
@@ -39,23 +39,23 @@ void main() {
       check(FractionNumber.quarter.toDouble()).equals(0.25);
       check(FractionNumber.half.hashCode).equals(RationalNumber(1, 2).hashCode);
 
-      check(zero.freeVariables).isEmpty();
-      check(zero.dependsOn('x')).isFalse();
+      check(zero.freeVariables).isEmpty;
+      check(zero.dependsOn('x')).isFalse;
       check(zero.substitute('x', IntegerNumber.one)).equals(zero);
       check(zero.mapChildren((e) => IntegerNumber.one)).equals(zero);
-      check(zero.anyNode((e) => e == zero)).isTrue();
+      check(zero.anyNode((e) => e == zero)).isTrue;
     });
 
     test('BigInt transparent promotion and demotion in IntegerNumber', () {
       final big = BigInt.two.pow(100);
       final expr = IntegerNumber(Integer.big(big));
-      check(expr.value.isBig).isTrue();
-      check(expr.asInt).isNull();
+      check(expr.value.isBig).isTrue;
+      check(expr.asInt).isNull;
       check(expr.value.toBigInt()).equals(big);
 
       final quotient = expr / expr;
       check(quotient).equals(IntegerNumber.one);
-      check((quotient as IntegerNumber).value.isBig).isFalse();
+      check((quotient as IntegerNumber).value.isBig).isFalse;
     });
 
     test('RationalNumber construction with values exceeding 2^53 and 2^64', () {
@@ -79,16 +79,16 @@ void main() {
   group('RealNumber and ComplexNumber', () {
     test('RealNumber properties, normalization, and non-finite mapping', () {
       const negZero = RealNumber(-0.0);
-      check(negZero.isZero).isTrue();
-      check(negZero.isOne).isFalse();
-      check(negZero.isNegativeOne).isFalse();
-      check(negZero.isNegative).isFalse();
+      check(negZero.isZero).isTrue;
+      check(negZero.isOne).isFalse;
+      check(negZero.isNegativeOne).isFalse;
+      check(negZero.isNegative).isFalse;
       check(negZero.sign).equals(0);
 
-      check(RealNumber.one.isOne).isTrue();
+      check(RealNumber.one.isOne).isTrue;
       check(RealNumber.one.sign).equals(1);
-      check(RealNumber.negativeOne.isNegativeOne).isTrue();
-      check(RealNumber.negativeOne.isNegative).isTrue();
+      check(RealNumber.negativeOne.isNegativeOne).isTrue;
+      check(RealNumber.negativeOne.isNegative).isTrue;
       check(RealNumber.negativeOne.sign).equals(-1);
       check(RealNumber.negativeOne.abs()).equals(RealNumber.one);
       check(RealNumber.one.conjugate).equals(RealNumber.one);
@@ -142,12 +142,12 @@ void main() {
       );
       check(gaussian).isA<ComplexNumber>();
       final c = gaussian as ComplexNumber;
-      check(c.isReal).isFalse();
-      check(c.isZero).isFalse();
-      check(c.isOne).isFalse();
-      check(c.isNegativeOne).isFalse();
-      check(c.isPureImaginary).isFalse();
-      check(ComplexNumber.i.isPureImaginary).isTrue();
+      check(c.isReal).isFalse;
+      check(c.isZero).isFalse;
+      check(c.isOne).isFalse;
+      check(c.isNegativeOne).isFalse;
+      check(c.isPureImaginary).isFalse;
+      check(ComplexNumber.i.isPureImaginary).isTrue;
       check(c.value).equals(const Complex(3.0, -0.5));
       check(c.real).equals(IntegerNumber.of(3));
       check(c.imaginary).equals(FractionNumber.negativeHalf);
@@ -230,7 +230,7 @@ void main() {
             .equals(IntegerNumber.negativeOne);
         check(RationalNumber(2, 3).powNumber(IntegerNumber.of(3)))
             .equals(RationalNumber(8, 27));
-        check(IntegerNumber.two.powNumber(IntegerNumber.of(70000))).isNull();
+        check(IntegerNumber.two.powNumber(IntegerNumber.of(70000))).isNull;
 
         check(IntegerNumber.zero.powNumber(FractionNumber.half))
             .equals(IntegerNumber.zero);
@@ -238,11 +238,11 @@ void main() {
             .throws<UnsupportedError>();
         check(IntegerNumber.one.powNumber(FractionNumber.third))
             .equals(IntegerNumber.one);
-        check(IntegerNumber.of(-4).powNumber(FractionNumber.half)).isNull();
+        check(IntegerNumber.of(-4).powNumber(FractionNumber.half)).isNull;
         check(RationalNumber(8, 27).powNumber(RationalNumber(2, 3)))
             .equals(RationalNumber(4, 9));
-        check(IntegerNumber.two.powNumber(FractionNumber.half)).isNull();
-        check(IntegerNumber.of(4).powNumber(RationalNumber(1, 100))).isNull();
+        check(IntegerNumber.two.powNumber(FractionNumber.half)).isNull;
+        check(IntegerNumber.of(4).powNumber(RationalNumber(1, 100))).isNull;
 
         // Large BigInt exact integer roots exceeding 2^53 and 2^64
         final big120 = Integer.big(BigInt.one << 120);
@@ -261,7 +261,7 @@ void main() {
         check(
           IntegerNumber(Integer.big((BigInt.one << 120) + BigInt.one))
               .powNumber(FractionNumber.half),
-        ).isNull();
+        ).isNull;
 
         check(ComplexNumber.i.powNumber(IntegerNumber.zero))
             .equals(IntegerNumber.one);
@@ -281,7 +281,7 @@ void main() {
         final twoI = ComplexNumber(IntegerNumber.zero, IntegerNumber.two);
         check(twoI.powNumber(IntegerNumber.of(3)))
             .equals(ComplexNumber(IntegerNumber.zero, IntegerNumber.of(-8)));
-        check(twoI.powNumber(IntegerNumber.of(70000))).isNull();
+        check(twoI.powNumber(IntegerNumber.of(70000))).isNull;
 
         final onePlusI = ComplexNumber(IntegerNumber.one, IntegerNumber.one);
         check(
@@ -290,8 +290,8 @@ void main() {
         check(onePlusI.powNumber(IntegerNumber.of(-2))).equals(
           ComplexNumber(IntegerNumber.zero, FractionNumber.negativeHalf),
         );
-        check(onePlusI.powNumber(IntegerNumber.of(2000))).isNull();
-        check(onePlusI.powNumber(const RealNumber(1.5))).isNull();
+        check(onePlusI.powNumber(IntegerNumber.of(2000))).isNull;
+        check(onePlusI.powNumber(const RealNumber(1.5))).isNull;
 
         check(RealNumber.zero.powNumber(RealNumber.zero))
             .equals(const RealNumber(1.0));
@@ -303,12 +303,11 @@ void main() {
             .throws<UnsupportedError>();
         check(RealNumber.one.powNumber(const RealNumber(2.5)))
             .equals(const RealNumber(1.0));
-        check(const RealNumber(-2.0).powNumber(const RealNumber(1.5))).isNull();
+        check(const RealNumber(-2.0).powNumber(const RealNumber(1.5))).isNull;
         check(const RealNumber(4.0).powNumber(const RealNumber(0.5)))
             .equals(const RealNumber(2.0));
-        check(const RealNumber(1e200).powNumber(const RealNumber(10.0)))
-            .isNull();
-        check(IntegerNumber.two.powNumber(ComplexNumber.i)).isNull();
+        check(const RealNumber(1e200).powNumber(const RealNumber(10.0))).isNull;
+        check(IntegerNumber.two.powNumber(ComplexNumber.i)).isNull;
         check(ComplexNumber.of(IntegerNumber.of(3), const RealNumber(0.0)))
             .equals(const RealNumber(3.0));
       },

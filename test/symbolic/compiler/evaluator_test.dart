@@ -100,17 +100,17 @@ void main() {
       const y = Variable('y');
 
       final gammaEval = compileToBytecode(Gamma(x), ['x']);
-      check(gammaEval.evaluate1D(0.0)).isNaN();
-      check(gammaEval.evaluate1D(-2.0)).isNaN();
+      check(gammaEval.evaluate1D(0.0)).isNaN;
+      check(gammaEval.evaluate1D(-2.0)).isNaN;
       check(() => gammaEval.evaluateComplex1D(const Complex(1, 1)))
           .throws<UnsupportedError>();
 
       final acoshEval = compileToBytecode(Acosh(x), ['x']);
-      check(acoshEval.evaluate1D(0.5).isNaN).isTrue();
+      check(acoshEval.evaluate1D(0.5).isNaN).isTrue;
 
       final atanhEval = compileToBytecode(Atanh(x), ['x']);
-      check(atanhEval.evaluate1D(1.5).isNaN).isTrue();
-      check(atanhEval.evaluate1D(-1.5).isNaN).isTrue();
+      check(atanhEval.evaluate1D(1.5).isNaN).isTrue;
+      check(atanhEval.evaluate1D(-1.5).isNaN).isTrue;
       check(atanhEval.evaluate1D(1.0)).equals(double.infinity);
       check(atanhEval.evaluate1D(-1.0)).equals(double.negativeInfinity);
 
@@ -170,7 +170,7 @@ void main() {
           .equals(double.infinity);
       check(
         powEval.evaluateComplexList([Complex.zero, const Complex(0, 1)]).isNaN,
-      ).isTrue();
+      ).isTrue;
       check(powEval.evaluateComplexList([const Complex(2, 1), Complex.one]))
           .equals(const Complex(2, 1));
       check(
@@ -193,7 +193,7 @@ void main() {
       ).equals(const Complex(0, 1));
       final binomEval = compileToBytecode(Binomial(x, y), ['x', 'y']);
       check(binomEval.evaluateList([5.0, 2.0])).isCloseTo(10.0, 1e-12);
-      check(binomEval.evaluateList([double.nan, 2.0])).isNaN();
+      check(binomEval.evaluateList([double.nan, 2.0])).isNaN;
       check(binomEval.evaluateList([5.0, -1.0])).equals(0.0);
       check(binomEval.evaluateList([3.0, 5.0])).equals(0.0);
       check(
@@ -211,7 +211,7 @@ void main() {
 
       final modEval = compileToBytecode(Mod(x, y), ['x', 'y']);
       check(modEval.evaluateList([17.0, 5.0])).equals(2.0);
-      check(modEval.evaluateList([17.0, 0.0])).isNaN();
+      check(modEval.evaluateList([17.0, 0.0])).isNaN;
       check(
         modEval.evaluateComplexList([const Complex(17.0), const Complex(5.0)]),
       ).equals(const Complex(2.0));
@@ -283,10 +283,10 @@ void main() {
         ['x'],
       );
       check(pwNoOtherwise.evaluate1D(-2.0)).equals(2.0);
-      check(pwNoOtherwise.evaluate1D(2.0).isNaN).isTrue();
+      check(pwNoOtherwise.evaluate1D(2.0).isNaN).isTrue;
       check(pwNoOtherwise.evaluateComplex1D(const Complex(-2.0)))
           .equals(const Complex(2.0));
-      check(pwNoOtherwise.evaluateComplex1D(const Complex(2.0)).isNaN).isTrue();
+      check(pwNoOtherwise.evaluateComplex1D(const Complex(2.0)).isNaN).isTrue;
 
       final intEval = compileToBytecode(
         Integral(const Variable('t'), 't', lower: IntegerNumber.zero, upper: x),
@@ -326,10 +326,9 @@ void main() {
       () {
         const x = Variable('x');
         final ltExpr = LessThan(x, IntegerNumber.one);
-        check(ltExpr.evaluateComplex({'x': const Complex(0, 1)}).isNaN)
-            .isTrue();
+        check(ltExpr.evaluateComplex({'x': const Complex(0, 1)}).isNaN).isTrue;
         check(ltExpr.evaluateComplex({'x': const Complex(double.nan, 0)}).isNaN)
-            .isTrue();
+            .isTrue;
         check(ltExpr.evaluateComplex({'x': Complex.zero})).equals(Complex.one);
       },
     );
@@ -355,7 +354,7 @@ void main() {
         Pow(IntegerNumber.zero, IntegerNumber.negativeOne).evaluateComplex().a,
       ).equals(double.infinity);
       check(Pow(IntegerNumber.zero, ComplexNumber.i).evaluateComplex().isNaN)
-          .isTrue();
+          .isTrue;
       check(
         Pow(x, IntegerNumber.one).evaluateComplex({'x': const Complex(2, 3)}),
       ).equals(const Complex(2, 3));
@@ -458,7 +457,7 @@ void main() {
           upper: IntegerNumber.two,
         );
         check(defInt.evaluateComplex().a).isCloseTo(2.0, 1e-12);
-        check(Integral(x, 'x').evaluateComplex().isNaN).isTrue();
+        check(Integral(x, 'x').evaluateComplex().isNaN).isTrue;
 
         // Node evaluation in real mode for calculus and iterated nodes:
         final derivNode = Derivative(

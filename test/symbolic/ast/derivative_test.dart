@@ -14,11 +14,11 @@ void main() {
       check(d1.expr).equals(Sin(x));
       check(d1.variable).equals('x');
       check(d1.order).equals(1);
-      check(d1.isSimplified).isFalse();
+      check(d1.isSimplified).isFalse;
 
       final d2 = Derivative(Sin(x), 'x', order: 2, isSimplified: true);
       check(d2.order).equals(2);
-      check(d2.isSimplified).isTrue();
+      check(d2.isSimplified).isTrue;
     });
 
     test('equality and hashCode', () {
@@ -28,8 +28,8 @@ void main() {
       final d = Derivative(x + y, 'x', order: 3);
       check(a).equals(b);
       check(a.hashCode).equals(b.hashCode);
-      check(a == c).isFalse();
-      check(a == d).isFalse();
+      check(a == c).isFalse;
+      check(a == d).isFalse;
     });
   });
 
@@ -42,9 +42,9 @@ void main() {
     test('freeVariables and dependsOn', () {
       final d = Derivative(x * y, 'x');
       check(d.freeVariables).deepEquals({'x', 'y'});
-      check(d.dependsOn('x')).isTrue();
-      check(d.dependsOn('y')).isTrue();
-      check(d.dependsOn('z')).isFalse();
+      check(d.dependsOn('x')).isTrue;
+      check(d.dependsOn('y')).isTrue;
+      check(d.dependsOn('z')).isFalse;
     });
 
     test('substitute and mapChildren', () {
@@ -67,9 +67,9 @@ void main() {
 
     test('anyNode', () {
       final d = Derivative(Sin(x), 'x');
-      check(d.anyNode((node) => node is Derivative)).isTrue();
-      check(d.anyNode((node) => node is Sin)).isTrue();
-      check(d.anyNode((node) => node is Cos)).isFalse();
+      check(d.anyNode((node) => node is Derivative)).isTrue;
+      check(d.anyNode((node) => node is Sin)).isTrue;
+      check(d.anyNode((node) => node is Cos)).isFalse;
     });
 
     test('point evaluation and alpha-renaming on variable capture', () {
@@ -81,7 +81,7 @@ void main() {
       // Variable capture when replacing bound differentiation variable
       final dProduct = Derivative(x * y, 'x');
       final subRenamed = dProduct.substitute('x', y);
-      check(subRenamed is Derivative).isTrue();
+      check(subRenamed is Derivative).isTrue;
       final subD = subRenamed as Derivative;
       check(subD.variable).equals('y');
       // Free variable y was renamed to fresh y_1 to prevent capture
@@ -89,7 +89,7 @@ void main() {
 
       // Variable capture when substituting free variable with bound variable
       final subFree = dProduct.substitute('y', x);
-      check(subFree is Derivative).isTrue();
+      check(subFree is Derivative).isTrue;
       final subFreeD = subFree as Derivative;
       check(subFreeD.variable).equals('x_1');
       check(subFreeD.expr).equals(const Variable('x_1') * x);
@@ -101,8 +101,8 @@ void main() {
 
       // Point properties: variable is bound, only point and other free variables remain
       final dPoint = Derivative(x * y, 'x', point: IntegerNumber.two);
-      check(dPoint.dependsOn('x')).isFalse();
-      check(dPoint.dependsOn('y')).isTrue();
+      check(dPoint.dependsOn('x')).isFalse;
+      check(dPoint.dependsOn('y')).isTrue;
       check(dPoint.freeVariables).deepEquals({'y'});
 
       // Simplify evaluates point derivative if possible

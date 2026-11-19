@@ -186,7 +186,7 @@ void main() {
         limPw.anyNode(
           (n) => n is Pow && n.base == Constant.e && n.exponent is Limit,
         ),
-      ).isFalse();
+      ).isFalse;
     });
 
     test('evaluates Sin, Cos, Atan, and Tanh limits', () {

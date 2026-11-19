@@ -20,10 +20,10 @@ void main() {
       check(dist.excessKurtosis).isGreaterThan(0.0);
 
       final distSmallD2 = FDistribution(1.0, 2.0);
-      check(distSmallD2.mean.isNaN).isTrue();
-      check(distSmallD2.variance.isNaN).isTrue();
-      check(distSmallD2.skewness.isNaN).isTrue();
-      check(distSmallD2.excessKurtosis.isNaN).isTrue();
+      check(distSmallD2.mean.isNaN).isTrue;
+      check(distSmallD2.variance.isNaN).isTrue;
+      check(distSmallD2.skewness.isNaN).isTrue;
+      check(distSmallD2.excessKurtosis.isNaN).isTrue;
       check(distSmallD2.mode).equals(0.0);
     });
 
@@ -87,7 +87,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == FDistribution(10.0, 20.0)).isTrue();
+      check(dist == FDistribution(10.0, 20.0)).isTrue;
       check(dist.hashCode).equals(FDistribution(10.0, 20.0).hashCode);
     });
 

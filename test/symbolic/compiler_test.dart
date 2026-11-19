@@ -66,7 +66,7 @@ void main() {
         check(imSqrt.toFunction1D('x')(-4.0)).equals(2.0);
         check(reSqrt.toFunction1D('x')(-4.0)).equals(0.0);
         check(Expr.parse('abs(sqrt(x))').toFunction1D('x')(-4.0)).equals(2.0);
-        check(Expr.parse('sqrt(x)').toFunction1D('x')(-4.0).isNaN).isTrue();
+        check(Expr.parse('sqrt(x)').toFunction1D('x')(-4.0).isNaN).isTrue;
       },
     );
 
@@ -154,8 +154,8 @@ void main() {
         IntegerNumber.two,
         x,
       ).evaluateComplex({'x': const Complex(0.3, 0.4)});
-      check(polyC.a.isFinite).isTrue();
-      check(polyC.b.isFinite).isTrue();
+      check(polyC.a.isFinite).isTrue;
+      check(polyC.b.isFinite).isTrue;
 
       // Complex-input UnsupportedError for real-only special opcodes
       const z = Complex(1.0, 0.5);

@@ -40,13 +40,13 @@ void main() {
     });
 
     test('all expressionPresets parse and evaluate without errors', () {
-      check(expressionPresets).isNotEmpty();
+      check(expressionPresets).isNotEmpty;
       final seenIds = <String>{};
       for (final preset in expressionPresets) {
-        check(seenIds.add(preset.id)).isTrue();
-        check(preset.name).isNotEmpty();
-        check(preset.category).isNotEmpty();
-        check(preset.description).isNotEmpty();
+        check(seenIds.add(preset.id)).isTrue;
+        check(preset.name).isNotEmpty;
+        check(preset.category).isNotEmpty;
+        check(preset.description).isNotEmpty;
         final parsed = Expr.parse(preset.formula);
         check(parsed.simplify()).isA<Expr>();
       }

@@ -16,17 +16,17 @@ void main() {
       check(dist.median).isCloseTo(math.pow(2.0, 1.0 / 3.0), 1e-6);
       check(dist.mode).equals(1.0);
       check(dist.variance).isCloseTo(3.0 / 4.0, 1e-6);
-      check(dist.skewness.isNaN).isTrue(); // shape <= 3 gives nan
-      check(dist.excessKurtosis.isNaN).isTrue(); // shape <= 4 gives nan
+      check(dist.skewness.isNaN).isTrue; // shape <= 3 gives nan
+      check(dist.excessKurtosis.isNaN).isTrue; // shape <= 4 gives nan
     });
 
     test('moments for varying shape thresholds', () {
       final distAlpha1 = ParetoDistribution(1.0, 1.0);
-      check(distAlpha1.mean.isInfinite).isTrue();
-      check(distAlpha1.variance.isNaN).isTrue();
+      check(distAlpha1.mean.isInfinite).isTrue;
+      check(distAlpha1.variance.isNaN).isTrue;
 
       final distAlpha2 = ParetoDistribution(1.5, 1.0);
-      check(distAlpha2.variance.isInfinite).isTrue();
+      check(distAlpha2.variance.isInfinite).isTrue;
 
       final distAlpha5 = ParetoDistribution(5.0, 1.0);
       check(distAlpha5.skewness).isGreaterThan(0.0);
@@ -56,9 +56,9 @@ void main() {
       () {
         final distLarge = ParetoDistribution(500.0, 10.0);
         final p = distLarge.probability(15.0);
-        check(p.isNaN).isFalse();
+        check(p.isNaN).isFalse;
         final logP = distLarge.logProbability(15.0);
-        check(logP.isNaN).isFalse();
+        check(logP.isNaN).isFalse;
       },
     );
   });
@@ -68,7 +68,7 @@ void main() {
 
     test('samples', () {
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 1.0)).isTrue();
+      check(samples.every((sample) => sample >= 1.0)).isTrue;
     });
 
     test('fit', () {
@@ -89,7 +89,7 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      check(dist == ParetoDistribution(3.0, 1.0)).isTrue();
+      check(dist == ParetoDistribution(3.0, 1.0)).isTrue;
       check(dist.hashCode).equals(ParetoDistribution(3.0, 1.0).hashCode);
     });
 

@@ -11,12 +11,12 @@ void main() {
       const a = Variable('a');
       final indef = Integral(a * t, 't');
 
-      check(indef.isDefinite).isFalse();
-      check(indef.evaluate({'a': 1.0, 't': 2.0}).isNaN).isTrue();
+      check(indef.isDefinite).isFalse;
+      check(indef.evaluate({'a': 1.0, 't': 2.0}).isNaN).isTrue;
       check(indef.freeVariables).unorderedEquals(['a', 't']);
-      check(indef.dependsOn('t')).isTrue();
-      check(indef.dependsOn('a')).isTrue();
-      check(indef.dependsOn('z')).isFalse();
+      check(indef.dependsOn('t')).isTrue;
+      check(indef.dependsOn('a')).isTrue;
+      check(indef.dependsOn('z')).isFalse;
       check(indef.substitute('a', IntegerNumber.two))
           .equals(Integral(IntegerNumber.two * t, 't'));
       const y = Variable('y');
@@ -25,10 +25,10 @@ void main() {
       check(indef.substitute('t', IntegerNumber.two)).equals(indef);
       final alphaRenamed = indef.substitute('a', t);
       check(alphaRenamed).isA<Integral>();
-      check((alphaRenamed as Integral).variable).not((v) => v.equals('t'));
-      check(alphaRenamed.dependsOn('t')).isTrue();
+      check((alphaRenamed as Integral).variable).not(.it()..equals('t'));
+      check(alphaRenamed.dependsOn('t')).isTrue;
       check(indef.mapChildren((e) => e)).equals(indef);
-      check(indef.anyNode((e) => e == a)).isTrue();
+      check(indef.anyNode((e) => e == a)).isTrue;
       check(indef.hashCode).equals(Integral(a * t, 't').hashCode);
     });
   });
@@ -44,10 +44,10 @@ void main() {
         upper: x,
       );
 
-      check(defParam.isDefinite).isTrue();
+      check(defParam.isDefinite).isTrue;
       check(defParam.freeVariables).unorderedEquals(['x']);
-      check(defParam.dependsOn('t')).isFalse();
-      check(defParam.dependsOn('x')).isTrue();
+      check(defParam.dependsOn('t')).isFalse;
+      check(defParam.dependsOn('x')).isTrue;
 
       final subT = defParam.substitute('t', IntegerNumber.of(5));
       check(subT).equals(defParam);
@@ -95,8 +95,8 @@ void main() {
         ),
       );
       check(defParam.mapChildren((e) => e)).equals(defParam);
-      check(defParam.anyNode((e) => e == IntegerNumber.zero)).isTrue();
-      check(defParam.anyNode((e) => e == const Variable('z'))).isFalse();
+      check(defParam.anyNode((e) => e == IntegerNumber.zero)).isTrue;
+      check(defParam.anyNode((e) => e == const Variable('z'))).isFalse;
 
       final sqInt = Integral(
         Pow(t, IntegerNumber.two),
@@ -128,7 +128,7 @@ void main() {
         lower: Constant.undefined,
         upper: IntegerNumber.one,
       );
-      check(nanInt.evaluate().isNaN).isTrue();
+      check(nanInt.evaluate().isNaN).isTrue;
 
       final semiPos = Integral(
         Pow(Constant.e, -t),

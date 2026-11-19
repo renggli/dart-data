@@ -39,17 +39,17 @@ void main() {
       final stack = RpnStack();
       final rpn = RpnInterpreter(stack: stack, evaluator: eval);
 
-      check(rpn.executeLine("'sin(x) / x'")).isNull();
-      check(rpn.executeLine("'x'")).isNull();
-      check(rpn.executeLine('0')).isNull();
-      check(rpn.executeLine('4')).isNull();
-      check(rpn.executeCommand('taylor')).isNull();
+      check(rpn.executeLine("'sin(x) / x'")).isNull;
+      check(rpn.executeLine("'x'")).isNull;
+      check(rpn.executeLine('0')).isNull;
+      check(rpn.executeLine('4')).isNull;
+      check(rpn.executeCommand('taylor')).isNull;
 
       check(stack.depth).equals(1);
       check(stack.level(1).value.toCanonicalText())
           .equals('1 - 1/6 * x ^ 2 + 1/120 * x ^ 4');
 
-      check(rpn.executeCommand('plot')).isNull();
+      check(rpn.executeCommand('plot')).isNull;
       check(stack.level(1).value).isA<PlotValue>();
     });
 
@@ -59,36 +59,36 @@ void main() {
       final rpn = RpnInterpreter(stack: stack, evaluator: eval);
 
       // Humanized command names
-      check(rpn.executeLine("'x^2 - 1'")).isNull();
-      check(rpn.executeCommand('Factor')).isNull();
+      check(rpn.executeLine("'x^2 - 1'")).isNull;
+      check(rpn.executeCommand('Factor')).isNull;
       check(stack.level(1).value.toCanonicalText())
           .equals('(-1 + x) * (1 + x)');
 
-      check(rpn.executeCommand('Expand')).isNull();
+      check(rpn.executeCommand('Expand')).isNull;
       check(stack.level(1).value.toCanonicalText()).equals('-1 + x ^ 2');
 
       // Duplicate and Drop
-      check(rpn.executeCommand('Duplicate')).isNull();
+      check(rpn.executeCommand('Duplicate')).isNull;
       check(stack.depth).equals(2);
-      check(rpn.executeCommand('Drop')).isNull();
+      check(rpn.executeCommand('Drop')).isNull;
       check(stack.depth).equals(1);
 
       // Store, Recall, and Delete
-      check(rpn.executeLine("'my_var'")).isNull();
-      check(rpn.executeCommand('Store')).isNull();
-      check(rpn.executeLine("'my_var'")).isNull();
-      check(rpn.executeCommand('Recall')).isNull();
+      check(rpn.executeLine("'my_var'")).isNull;
+      check(rpn.executeCommand('Store')).isNull;
+      check(rpn.executeLine("'my_var'")).isNull;
+      check(rpn.executeCommand('Recall')).isNull;
       check(stack.level(1).value.toCanonicalText()).equals('-1 + x ^ 2');
 
-      check(rpn.executeLine("'my_var'")).isNull();
-      check(rpn.executeCommand('Delete')).isNull();
-      check(eval.environment.getVariable('my_var')).isNull();
+      check(rpn.executeLine("'my_var'")).isNull;
+      check(rpn.executeCommand('Delete')).isNull;
+      check(eval.environment.getVariable('my_var')).isNull;
 
       // Approx and Exact
-      check(rpn.executeLine("'1/2'")).isNull();
-      check(rpn.executeCommand('Approx')).isNull();
+      check(rpn.executeLine("'1/2'")).isNull;
+      check(rpn.executeCommand('Approx')).isNull;
       check(stack.level(1).value.toCanonicalText()).equals('0.5');
-      check(rpn.executeCommand('Exact')).isNull();
+      check(rpn.executeCommand('Exact')).isNull;
       check(stack.level(1).value.toCanonicalText()).equals('1/2');
     });
 
@@ -98,7 +98,7 @@ void main() {
       final rpn = RpnInterpreter(stack: stack, evaluator: eval);
 
       // 1. Singular matrix inversion does not discard the matrix
-      check(rpn.executeLine('[[1, 2], [2, 4]]')).isNull();
+      check(rpn.executeLine('[[1, 2], [2, 4]]')).isNull;
       check(stack.depth).equals(1);
       final invErr = rpn.executeCommand('inv');
       check(invErr).isNotNull();
@@ -106,8 +106,8 @@ void main() {
       check(stack.level(1).value.toCanonicalText()).equals('[[1, 2], [2, 4]]');
 
       // 2. Incompatible dimension cross product does not discard vector operands
-      check(rpn.executeLine('[1, 2]')).isNull();
-      check(rpn.executeLine('[3, 4]')).isNull();
+      check(rpn.executeLine('[1, 2]')).isNull;
+      check(rpn.executeLine('[3, 4]')).isNull;
       check(stack.depth).equals(3);
       final crossErr = rpn.executeCommand('cross');
       check(crossErr).isNotNull();
@@ -135,7 +135,7 @@ void main() {
       check(stack.level(4).value.toCanonicalText()).equals('10');
 
       // '3 ROLL' moves level 3 (20) to level 1
-      check(rpn.executeCommand('3 ROLL')).isNull();
+      check(rpn.executeCommand('3 ROLL')).isNull;
       check(stack.depth).equals(4);
       check(stack.level(1).value.toCanonicalText()).equals('20');
       check(stack.level(2).value.toCanonicalText()).equals('40');
@@ -143,14 +143,14 @@ void main() {
       check(stack.level(4).value.toCanonicalText()).equals('10');
 
       // '2 DROP' removes level 2 (40)
-      check(rpn.executeCommand('2 DROP')).isNull();
+      check(rpn.executeCommand('2 DROP')).isNull;
       check(stack.depth).equals(3);
       check(stack.level(1).value.toCanonicalText()).equals('20');
       check(stack.level(2).value.toCanonicalText()).equals('30');
       check(stack.level(3).value.toCanonicalText()).equals('10');
 
       // '3 PICK' copies level 3 (10) to top
-      check(rpn.executeCommand('3 PICK')).isNull();
+      check(rpn.executeCommand('3 PICK')).isNull;
       check(stack.depth).equals(4);
       check(stack.level(1).value.toCanonicalText()).equals('10');
       check(stack.level(2).value.toCanonicalText()).equals('20');
@@ -185,7 +185,7 @@ void main() {
 
       final call = numChip!.buildChipCall(c1.id, c1.value);
       final c2 = eval.evaluateScroll(call);
-      check(c2.value.isExact).isFalse();
+      check(c2.value.isExact).isFalse;
       check(double.parse(c2.value.toCanonicalText())).isCloseTo(0.7148, 1e-5);
     });
   });
@@ -303,7 +303,7 @@ void main() {
       final plotCell = eval.evaluateScroll('plot(tan(x), x, -5, 5)');
       check(plotCell.value).isA<PlotValue>();
       final pv = plotCell.value as PlotValue;
-      check(pv.curves).isNotEmpty();
+      check(pv.curves).isNotEmpty;
       // tan(x) on [-5, 5] has 4 vertical asymptotes (±π/2, ±3π/2), splitting into multiple segments
       check(pv.curves.first.segments.length).isGreaterThan(3);
     });
@@ -329,24 +329,24 @@ void main() {
         check(eval.evaluateScroll('plot(sin(x))').value).isA<PlotValue>();
 
         // RPN 1-item stack execution
-        check(rpn.executeLine("'x^2 - 9' solve")).isNull();
+        check(rpn.executeLine("'x^2 - 9' solve")).isNull;
         check(stack.level(1).value.toCanonicalText()).equals('[3, -3]');
 
-        check(rpn.executeLine("'sin(t)' diff")).isNull();
+        check(rpn.executeLine("'sin(t)' diff")).isNull;
         check(stack.level(1).value.toCanonicalText()).equals('cos(t)');
 
-        check(rpn.executeLine("'3 * x^2' integrate")).isNull();
+        check(rpn.executeLine("'3 * x^2' integrate")).isNull;
         check(stack.level(1).value.toCanonicalText()).equals('x ^ 3');
 
-        check(rpn.executeLine("'exp(x)' taylor")).isNull();
+        check(rpn.executeLine("'exp(x)' taylor")).isNull;
         check(stack.level(1).value.toCanonicalText()).contains('1/120 * x ^ 5');
 
         // RPN 2-item taylor (expr + order)
-        check(rpn.executeLine("'cos(x)' 2 taylor")).isNull();
+        check(rpn.executeLine("'cos(x)' 2 taylor")).isNull;
         check(stack.level(1).value.toCanonicalText()).equals('1 - 1/2 * x ^ 2');
 
         // RPN 3-item definite integral (expr, lower, upper)
-        check(rpn.executeLine("'sin(x)' 0 pi DEF∫")).isNull();
+        check(rpn.executeLine("'sin(x)' 0 pi DEF∫")).isNull;
         check(stack.level(1).value.toCanonicalText()).equals('2');
       },
     );
@@ -370,14 +370,14 @@ void main() {
 
       // RPN command operates directly on the Scroll result on stack level 1:
       // Note: c1 is NOT a literal push, so c1 remains in Session while factor creates c2!
-      check(rpn.executeCommand('factor')).isNull();
+      check(rpn.executeCommand('factor')).isNull;
       check(stack.depth).equals(1);
       check(stack.level(1).value.toCanonicalText())
           .equals('(-1 + x) * (1 + x)');
       check(session.activeCells.length).equals(2);
 
       // RPN literal pushes ('12 4 +') coalesce the literal pushes 12 and 4
-      check(rpn.executeLine('12 4 +')).isNull();
+      check(rpn.executeLine('12 4 +')).isNull;
       check(stack.depth).equals(2);
       check(stack.level(1).value.toCanonicalText()).equals('16');
       // Only the final result cell (12 + 4 = 16) remains in Session alongside c1 and c2
@@ -403,9 +403,9 @@ void main() {
       );
       check(paramCell.value).isA<PlotValue>();
       final paramPlot = paramCell.value as PlotValue;
-      check(paramPlot.isParametric).isTrue();
+      check(paramPlot.isParametric).isTrue;
       check(paramPlot.curves.length).equals(1);
-      check(paramPlot.curves.first.segments).isNotEmpty();
+      check(paramPlot.curves.first.segments).isNotEmpty;
 
       // 3. ODE plot: ode(-y, 1, 0, 2)
       final odeCell = eval.evaluateScroll('ode(-y, 1, 0, 2)');
@@ -426,7 +426,7 @@ void main() {
       final surfCell = eval.evaluateScroll('plot3d(x^2 - y^2)');
       check(surfCell.value).isA<PlotValue>();
       final surfPlot = surfCell.value as PlotValue;
-      check(surfPlot.is3d).isTrue();
+      check(surfPlot.is3d).isTrue;
       check(surfPlot.surface3d!.xVar).equals('x');
       check(surfPlot.surface3d!.yVar).equals('y');
       check(surfPlot.surface3d!.gridSize).equals(64);
@@ -438,28 +438,28 @@ void main() {
       check(chips.primary.map((c) => c.name)).contains('plot3d');
 
       final rpn = RpnInterpreter(stack: RpnStack(), evaluator: eval);
-      check(rpn.executeLine("'x * exp(-x^2 - y^2)' plot3d")).isNull();
+      check(rpn.executeLine("'x * exp(-x^2 - y^2)' plot3d")).isNull;
       check(rpn.stack.level(1).value).isA<PlotValue>();
-      check((rpn.stack.level(1).value as PlotValue).is3d).isTrue();
+      check((rpn.stack.level(1).value as PlotValue).is3d).isTrue;
 
       // 7. Unquoted symbolic RPN postfix quick-start lines & forceNumeric
-      check(rpn.executeLine('x 6 ^ 1 - factor')).isNull();
+      check(rpn.executeLine('x 6 ^ 1 - factor')).isNull;
       check(rpn.stack.level(1).value.toCanonicalText()).contains('-1 + x');
-      check(rpn.executeLine('x 3 ^ 6 x 2 ^ * - 11 x * + 6 - solve')).isNull();
+      check(rpn.executeLine('x 3 ^ 6 x 2 ^ * - 11 x * + 6 - solve')).isNull;
       check(rpn.stack.level(1).value.toCanonicalText()).equals('[3, 2, 1]');
-      check(rpn.executeLine('x 2 ^ x cos * integrate')).isNull();
+      check(rpn.executeLine('x 2 ^ x cos * integrate')).isNull;
       check(rpn.stack.level(1).value).isA<ExprValue>();
-      check(rpn.executeLine('x sin x / 0 6 taylor')).isNull();
+      check(rpn.executeLine('x sin x / 0 6 taylor')).isNull;
       check(rpn.stack.level(1).value.toCanonicalText()).contains('x ^ 6');
-      check(rpn.executeLine('[[a, b], [c, d]] inv')).isNull();
+      check(rpn.executeLine('[[a, b], [c, d]] inv')).isNull;
       check(rpn.stack.level(1).value).isA<MatrixValue>();
-      check(rpn.executeLine('[sin(x) / x, cos(x)] -10 10 plot')).isNull();
+      check(rpn.executeLine('[sin(x) / x, cos(x)] -10 10 plot')).isNull;
       check(rpn.stack.level(1).value).isA<PlotValue>();
       check((rpn.stack.level(1).value as PlotValue).curves.length).equals(2);
       final cellsBeforeApprox = eval.session.activeCells.length;
-      check(rpn.executeLine('pi', forceNumeric: true)).isNull();
-      check(rpn.stack.level(1).value.isExact).isFalse();
-      check(rpn.stack.level(1).isLiteralPush).isTrue();
+      check(rpn.executeLine('pi', forceNumeric: true)).isNull;
+      check(rpn.stack.level(1).value.isExact).isFalse;
+      check(rpn.stack.level(1).isLiteralPush).isTrue;
       // Single cell created for 'pi' (approximated in-place), no extra approx(...) cell
       check(eval.session.activeCells.length).equals(cellsBeforeApprox + 1);
       check(eval.session.activeCells.last.input).equals('pi');
@@ -496,7 +496,7 @@ void main() {
           complexDisplay: ComplexDisplayMode.polar,
         );
         final rpn = RpnInterpreter(stack: RpnStack(), evaluator: eval);
-        check(rpn.executeLine('1 i +')).isNull();
+        check(rpn.executeLine('1 i +')).isNull;
         check(rpn.stack.level(1).value.toCanonicalText()).contains('exp(');
         env.settings = env.settings.copyWith(
           complexDisplay: ComplexDisplayMode.rect,
@@ -526,19 +526,19 @@ void main() {
         for (final cmd in CommandRegistry.all) {
           for (final val in sampleValues) {
             if (cmd.appliesTo(val)) {
-              check(cmd.buildChipCall(1, val).isNotEmpty).isTrue();
+              check(cmd.buildChipCall(1, val).isNotEmpty).isTrue;
             }
           }
         }
 
         // RPN postfix operators (², ³, ⁴, !) and stack underflow recovery
-        check(rpn.executeLine('3 ²')).isNull();
+        check(rpn.executeLine('3 ²')).isNull;
         check(rpn.stack.level(1).value.toCanonicalText()).equals('9');
-        check(rpn.executeLine('2 ³')).isNull();
+        check(rpn.executeLine('2 ³')).isNull;
         check(rpn.stack.level(1).value.toCanonicalText()).equals('8');
-        check(rpn.executeLine('2 ⁴')).isNull();
+        check(rpn.executeLine('2 ⁴')).isNull;
         check(rpn.stack.level(1).value.toCanonicalText()).equals('16');
-        check(rpn.executeLine('4 !')).isNull();
+        check(rpn.executeLine('4 !')).isNull;
         check(rpn.stack.level(1).value.toCanonicalText()).equals('24');
 
         rpn.stack.clear();
@@ -582,7 +582,7 @@ void main() {
             cell.value,
             because:
                 'Example "$example" for ${fn.name} should evaluate cleanly',
-          ).not((v) => v.isA<ErrorValue>());
+          ).not(.it()..isA<ErrorValue>());
         }
       }
       // Binary case-insensitive fallback

@@ -262,7 +262,7 @@ void main() {
       );
       check(posArg).isA<Atan>();
       check(posArg.toString()).equals('atan(3/2)');
-      check(posArg.anyNode((n) => n is Add)).isFalse();
+      check(posArg.anyNode((n) => n is Add)).isFalse;
       check(simplifyArg(Conjugate(z), assumptions: complexZ))
           .equals(Arg(Conjugate(z), isSimplified: true));
       check(

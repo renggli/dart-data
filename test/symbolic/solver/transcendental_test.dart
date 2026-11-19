@@ -10,17 +10,17 @@ void main() {
     test('solves Asin, Acos, and Atan equations and checks range bounds', () {
       check(Expr.parse('asin(x) - pi/6').solve('x').first.evaluate())
           .isCloseTo(0.5, 1e-12);
-      check(Expr.parse('asin(x) - 2').solve('x')).isEmpty();
+      check(Expr.parse('asin(x) - 2').solve('x')).isEmpty;
 
       check(Expr.parse('acos(x) - pi/3').solve('x').first.evaluate())
           .isCloseTo(0.5, 1e-12);
-      check(Expr.parse('acos(x) + 1').solve('x')).isEmpty();
-      check(Expr.parse('acos(x) - 4').solve('x')).isEmpty();
+      check(Expr.parse('acos(x) + 1').solve('x')).isEmpty;
+      check(Expr.parse('acos(x) - 4').solve('x')).isEmpty;
 
       check(Expr.parse('atan(x) - pi/4').solve('x').first.evaluate())
           .isCloseTo(1.0, 1e-12);
-      check(Expr.parse('atan(x) - 2').solve('x')).isEmpty();
-      check(Expr.parse('atan(x) + 2').solve('x')).isEmpty();
+      check(Expr.parse('atan(x) - 2').solve('x')).isEmpty;
+      check(Expr.parse('atan(x) + 2').solve('x')).isEmpty;
     });
 
     test('solves Sinh, Cosh, Tanh, Asinh, Acosh, Atanh, Abs, and Erf', () {
@@ -29,7 +29,7 @@ void main() {
       check((Sinh(x) - IntegerNumber.two).solve('x'))
           .deepEquals([Asinh(IntegerNumber.two)]);
 
-      check((Cosh(x) - FractionNumber.half).solve('x')).isEmpty();
+      check((Cosh(x) - FractionNumber.half).solve('x')).isEmpty;
       check((Cosh(x) - IntegerNumber.one).solve('x'))
           .deepEquals([IntegerNumber.zero]);
       check((Cosh(x) - IntegerNumber.two).solve('x')).unorderedEquals([
@@ -37,22 +37,22 @@ void main() {
         (-Acosh(IntegerNumber.two)).simplify(),
       ]);
 
-      check((Tanh(x) - IntegerNumber.one).solve('x')).isEmpty();
-      check((Tanh(x) + IntegerNumber.two).solve('x')).isEmpty();
+      check((Tanh(x) - IntegerNumber.one).solve('x')).isEmpty;
+      check((Tanh(x) + IntegerNumber.two).solve('x')).isEmpty;
       check((Tanh(x) - FractionNumber.half).solve('x'))
           .deepEquals([Atanh(FractionNumber.half)]);
 
       check((Asinh(x) - IntegerNumber.one).solve('x'))
           .deepEquals([Sinh(IntegerNumber.one)]);
 
-      check((Acosh(x) + IntegerNumber.one).solve('x')).isEmpty();
+      check((Acosh(x) + IntegerNumber.one).solve('x')).isEmpty;
       check((Acosh(x) - IntegerNumber.one).solve('x'))
           .deepEquals([Cosh(IntegerNumber.one)]);
 
       check((Atanh(x) - IntegerNumber.one).solve('x'))
           .deepEquals([Tanh(IntegerNumber.one)]);
 
-      check((Abs(x) + IntegerNumber.one).solve('x')).isEmpty();
+      check((Abs(x) + IntegerNumber.one).solve('x')).isEmpty;
       check(Abs(x - IntegerNumber.of(3)).solve('x'))
           .deepEquals([IntegerNumber.of(3)]);
       check((Abs(x - IntegerNumber.one) - IntegerNumber.two).solve('x'))
@@ -60,18 +60,18 @@ void main() {
 
       check(Erf(x - IntegerNumber.two).solve('x'))
           .deepEquals([IntegerNumber.two]);
-      check((Erf(x) - IntegerNumber.two).solve('x')).isEmpty();
-      check((Erf(x) - FractionNumber.half).solve('x')).isEmpty();
+      check((Erf(x) - IntegerNumber.two).solve('x')).isEmpty;
+      check((Erf(x) - FractionNumber.half).solve('x')).isEmpty;
     });
   });
 
   group('Exponential, power, and radical equations', () {
     test('solves e^f(x) = c and b^f(x) = c', () {
-      check(Expr.parse('exp(x) + 1').solve('x')).isEmpty();
+      check(Expr.parse('exp(x) + 1').solve('x')).isEmpty;
       check(Expr.parse('exp(2*x) - 1').solve('x'))
           .deepEquals([IntegerNumber.zero]);
 
-      check(Expr.parse('2^x + 1').solve('x')).isEmpty();
+      check(Expr.parse('2^x + 1').solve('x')).isEmpty;
       final twoPow = Expr.parse('2^x - 8').solve('x');
       check(twoPow.length).equals(1);
       check(twoPow.first.evaluate()).isCloseTo(3.0, 1e-12);
@@ -93,7 +93,7 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         ),
-      ).isNotNull().isEmpty();
+      ).isNotNull().isEmpty;
 
       // Even integer power
       check(
@@ -103,7 +103,7 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         ),
-      ).isNotNull().isEmpty();
+      ).isNotNull().isEmpty;
       check(
         invertEquation(
           Pow(x + IntegerNumber.one, IntegerNumber.two),
@@ -111,7 +111,7 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         ),
-      ).isNotNull().isEmpty();
+      ).isNotNull().isEmpty;
       check(
             invertEquation(
               Pow(x - IntegerNumber.one, IntegerNumber.two),
@@ -141,7 +141,7 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         ),
-      ).isNotNull().isEmpty();
+      ).isNotNull().isEmpty;
       check(
         invertEquation(
           Pow(x, FractionNumber.half),
@@ -149,7 +149,7 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         ),
-      ).isNotNull().isEmpty();
+      ).isNotNull().isEmpty;
 
       // Fractional power with positive RHS
       check(
@@ -201,7 +201,7 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         ),
-      ).isNotNull().isEmpty();
+      ).isNotNull().isEmpty;
     });
   });
 
@@ -211,15 +211,14 @@ void main() {
       () {
         const x = Variable('x');
         // Direct LambertW inversion
-        check((LambertW(x, branch: 0) + IntegerNumber.two).solve('x'))
-            .isEmpty();
+        check((LambertW(x, branch: 0) + IntegerNumber.two).solve('x')).isEmpty;
         check((LambertW(x, branch: -1) - IntegerNumber.zero).solve('x'))
-            .isEmpty();
+            .isEmpty;
         check((LambertW(x, branch: 0) - IntegerNumber.one).solve('x'))
             .deepEquals([Constant.e]);
 
         // x * e^x = c in all regions: c < -1/e, c == -1/e, -1/e < c < 0, c >= 0, symbolic
-        check(Expr.parse('x * exp(x) + 1').solve('x')).isEmpty();
+        check(Expr.parse('x * exp(x) + 1').solve('x')).isEmpty;
         check(
           (x * Pow(Constant.e, x) + const RealNumber(1.0 / math.e)).solve('x'),
         ).deepEquals([IntegerNumber.negativeOne]);
@@ -235,7 +234,7 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         );
-        check(leftExp).isNotNull().isNotEmpty();
+        check(leftExp).isNotNull().isNotEmpty;
 
         // x * ln(x) = c and ln(x) * x = c
         final xLnX = Expr.parse('x * ln(x) - 2').solve('x');
@@ -249,10 +248,10 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         );
-        check(lnXX).isNotNull().isNotEmpty();
+        check(lnXX).isNotNull().isNotEmpty;
 
         // Self-exponentiation: x^x = c
-        check(Expr.parse('x^x + 1').solve('x')).isEmpty();
+        check(Expr.parse('x^x + 1').solve('x')).isEmpty;
         final xxRoots = Expr.parse('x^x - 4').solve('x');
         check(xxRoots.length).equals(1);
         check(xxRoots.first.evaluate()).isCloseTo(2.0, 1e-12);
@@ -311,7 +310,7 @@ void main() {
         check(tangentRoot).deepEquals([IntegerNumber.zero]);
 
         // e^x - x + 1 = 0 (wVal < -1/e -> no real roots)
-        check(Expr.parse('exp(x) - x + 1').solve('x')).isEmpty();
+        check(Expr.parse('exp(x) - x + 1').solve('x')).isEmpty;
 
         // e^x + x - 1 = 0 (wVal > 0 -> single root x = 0)
         final posW = Expr.parse('exp(x) + x - 1').solve('x');
@@ -319,14 +318,14 @@ void main() {
         check(posW.first.evaluate()).isCloseTo(0.0, 1e-12);
 
         // Scaled exponential with single and multiple constant factors
-        check(Expr.parse('2 * 3^(x + 1) - 4*x - 5').solve('x')).isEmpty();
+        check(Expr.parse('2 * 3^(x + 1) - 4*x - 5').solve('x')).isEmpty;
         final scaledExp = Expr.parse('3 * a * 2^(2*x + 1) - 4*x - 5')
             .solve('x');
         check(scaledExp.length).equals(2);
 
         // Non-matching additive expressions return empty
         check((Pow(Constant.e, x * x) + x + IntegerNumber.one).solve('x'))
-            .isEmpty();
+            .isEmpty;
 
         // Exponential form e^exponent = c forwards assumptions
         check(
@@ -364,7 +363,7 @@ void main() {
             'x',
             assumptions: Assumptions.none,
           ),
-        ).isNotNull().isEmpty();
+        ).isNotNull().isEmpty;
         final r2 = invertEquation(
           a / Sin(x),
           IntegerNumber.two,
@@ -380,7 +379,7 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         );
-        check(r3).isNotNull().isEmpty();
+        check(r3).isNotNull().isEmpty;
 
         // Mul with multiple constant and variable factors
         final r4 = invertEquation(
@@ -465,7 +464,7 @@ void main() {
         (Constant.pi / IntegerNumber.of(4)).simplify(),
         (IntegerNumber.of(5) * Constant.pi / IntegerNumber.of(4)).simplify(),
       ]);
-      check(Expr.parse('sin(x) + cos(x) - 3').solve('x')).isEmpty();
+      check(Expr.parse('sin(x) + cos(x) - 3').solve('x')).isEmpty;
     });
   });
 }

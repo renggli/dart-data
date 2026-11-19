@@ -21,7 +21,7 @@ void main() {
       check(result.degreesOfFreedom).equals(18.0);
       check(result.confidenceInterval?.lower).equals(1.1);
       check(result.confidenceInterval?.upper).equals(3.5);
-      check(result.isSignificant).isTrue();
+      check(result.isSignificant).isTrue;
       check(result.toString()).contains('HypothesisTestResult');
     });
 
@@ -31,9 +31,9 @@ void main() {
         statistic: 1.2,
         pValue: 0.23,
       );
-      check(result.isSignificant).isFalse();
-      check(result.degreesOfFreedom).isNull();
-      check(result.confidenceInterval).isNull();
+      check(result.isSignificant).isFalse;
+      check(result.degreesOfFreedom).isNull;
+      check(result.confidenceInterval).isNull;
     });
   });
 }

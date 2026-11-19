@@ -28,8 +28,8 @@ void main() {
       );
 
       check(res).equals(100);
-      check(accelCalled).isFalse();
-      check(fallbackCalled).isTrue();
+      check(accelCalled).isFalse;
+      check(fallbackCalled).isTrue;
     });
 
     test('executeAccelerated in accelerated mode throws when unavailable', () {
@@ -97,7 +97,7 @@ void main() {
         accelerate: () => true,
         fallback: () => false,
       );
-      check(res).isFalse();
+      check(res).isFalse;
     });
 
     test('executeAcceleratedVoid executes void operation', () {
@@ -112,7 +112,7 @@ void main() {
           ranFallback = true;
         },
       );
-      check(ranFallback).isTrue();
+      check(ranFallback).isTrue;
 
       AccelerationManager.mode = AccelerationMode.accelerated;
       check(

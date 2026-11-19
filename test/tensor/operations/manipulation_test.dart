@@ -6,12 +6,12 @@ void main() {
   group('Slice', () {
     test('defaults and Slice.all', () {
       const slice = Slice();
-      check(slice.start).isNull();
-      check(slice.end).isNull();
+      check(slice.start).isNull;
+      check(slice.end).isNull;
       check(slice.step).equals(1);
 
-      check(Slice.all.start).isNull();
-      check(Slice.all.end).isNull();
+      check(Slice.all.start).isNull;
+      check(Slice.all.end).isNull;
       check(Slice.all.step).equals(1);
       check(Slice.all).equals(const Slice());
     });
@@ -30,7 +30,7 @@ void main() {
       const s3 = Slice(1, 5, 1);
       check(s1).equals(s2);
       check(s1.hashCode).equals(s2.hashCode);
-      check(s1 == s3).isFalse();
+      check(s1 == s3).isFalse;
     });
 
     test('zero step assertion/exception', () {
@@ -50,7 +50,7 @@ void main() {
       check(sub.strides).deepEquals([2]);
       check(sub.offset).equals(2);
       check(sub.length).equals(3);
-      check(sub.isContiguous).isFalse();
+      check(sub.isContiguous).isFalse;
       check(sub.indices.toList()).deepEquals([2, 4, 6]);
     });
 
@@ -60,7 +60,7 @@ void main() {
       check(sub.shape).deepEquals([5]);
       check(sub.strides).deepEquals([1]);
       check(sub.offset).equals(2);
-      check(sub.isContiguous).isTrue();
+      check(sub.isContiguous).isTrue;
       check(sub.indices.toList()).deepEquals([2, 3, 4, 5, 6]);
     });
 
@@ -71,7 +71,7 @@ void main() {
       check(rev.strides).deepEquals([-1]);
       check(rev.offset).equals(4);
       check(rev.length).equals(5);
-      check(rev.isContiguous).isFalse();
+      check(rev.isContiguous).isFalse;
       check(rev.indices.toList()).deepEquals([4, 3, 2, 1, 0]);
     });
 
@@ -123,12 +123,12 @@ void main() {
       final emptyPos = layout.slice(const [Slice(4, 2, 1)]);
       check(emptyPos.shape).deepEquals([0]);
       check(emptyPos.length).equals(0);
-      check(emptyPos.indices.toList()).isEmpty();
+      check(emptyPos.indices.toList()).isEmpty;
 
       final emptyNeg = layout.slice(const [Slice(2, 4, -1)]);
       check(emptyNeg.shape).deepEquals([0]);
       check(emptyNeg.length).equals(0);
-      check(emptyNeg.indices.toList()).isEmpty();
+      check(emptyNeg.indices.toList()).isEmpty;
     });
 
     test('omitted trailing slices default to Slice.all', () {
@@ -137,7 +137,7 @@ void main() {
       check(sub.shape).deepEquals([2, 4]);
       check(sub.strides).deepEquals([4, 1]);
       check(sub.offset).equals(4);
-      check(sub.isContiguous).isTrue();
+      check(sub.isContiguous).isTrue;
     });
 
     test('0-rank scalar slicing', () {
@@ -211,7 +211,7 @@ void main() {
         [7, 8, 9],
       ]);
       final sub = tensor.slice(const [Slice(1, 3), Slice(1, 3)]);
-      check(sub.sharesMemoryWith(tensor)).isTrue();
+      check(sub.sharesMemoryWith(tensor)).isTrue;
       check(sub.toNestedList() as List).deepEquals([
         [5, 6],
         [8, 9],
@@ -231,7 +231,7 @@ void main() {
     test('zero-copy negative step view mutation', () {
       final tensor = Tensor.fromIterable([10, 20, 30, 40, 50]);
       final rev = tensor.slice(const [Slice(null, null, -1)]);
-      check(rev.sharesMemoryWith(tensor)).isTrue();
+      check(rev.sharesMemoryWith(tensor)).isTrue;
       check(rev.toFlatList()).deepEquals([50, 40, 30, 20, 10]);
 
       // Modify element at index 0 of reversed view (which corresponds to index
@@ -264,7 +264,7 @@ void main() {
       ]);
 
       // Zero-copy verification
-      check(parts[0].sharesMemoryWith(tensor)).isTrue();
+      check(parts[0].sharesMemoryWith(tensor)).isTrue;
       parts[0].setValue([0, 0], 100);
       check(tensor.getValue([0, 0])).equals(100);
     });
@@ -300,7 +300,7 @@ void main() {
       final parts = tensor.split(1);
       check(parts.length).equals(1);
       check(parts[0].toFlatList()).deepEquals([1, 2, 3]);
-      check(parts[0].sharesMemoryWith(tensor)).isTrue();
+      check(parts[0].sharesMemoryWith(tensor)).isTrue;
     });
 
     test('split error validation: non-positive parts, uneven dimension, axis out of bounds', () {
@@ -332,7 +332,7 @@ void main() {
       check(parts[2].toFlatList()).deepEquals([50, 60]);
 
       // Zero-copy verification
-      check(parts[1].sharesMemoryWith(tensor)).isTrue();
+      check(parts[1].sharesMemoryWith(tensor)).isTrue;
       parts[1].setValue([0], 999);
       check(tensor.getValue([1])).equals(999);
     });
@@ -443,7 +443,7 @@ void main() {
         check(sliced.shape).deepEquals([2, 2, 2, 3]);
         check(sliced.rank).equals(4);
         check(sliced.length).equals(24);
-        check(sliced.isContiguous).isFalse();
+        check(sliced.isContiguous).isFalse;
 
         // Check specific element coordinates:
         // sliced[0, 0, 0, 0] -> tensor[1, 0, 1, 4]:
@@ -527,7 +527,7 @@ void main() {
         final empty = tensor.slice(const [Slice.all, Slice(2, 2), Slice.all]);
         check(empty.shape).deepEquals([2, 0, 4]);
         check(empty.length).equals(0);
-        check(empty.layout.indices.toList()).isEmpty();
+        check(empty.layout.indices.toList()).isEmpty;
         check(empty.toNestedList() as List).deepEquals([[], []]);
       },
     );
@@ -675,7 +675,7 @@ void main() {
 
       // Scalar generate
       final scalar = Tensor<int>.generate((key) => 42, shape: []);
-      check(scalar.shape).isEmpty();
+      check(scalar.shape).isEmpty;
       check(scalar.getValue([])).equals(42);
     });
   });

@@ -16,14 +16,14 @@ void main() {
       check(w0.branch).equals(0);
       check(wm1.branch).equals(-1);
       check(w0.freeVariables).unorderedEquals(['x']);
-      check(w0.dependsOn('x')).isTrue();
-      check(w0.dependsOn('y')).isFalse();
+      check(w0.dependsOn('x')).isTrue;
+      check(w0.dependsOn('y')).isFalse;
       check(w0.substitute('x', y)).equals(LambertW(y));
       check(wm1.substitute('x', y)).equals(LambertW(y, branch: -1));
       check(w0.mapChildren((_) => y)).equals(LambertW(y));
       check(wm1.mapChildren((_) => y)).equals(LambertW(y, branch: -1));
-      check(w0.anyNode((e) => e == x)).isTrue();
-      check(w0 == wm1).isFalse();
+      check(w0.anyNode((e) => e == x)).isTrue;
+      check(w0 == wm1).isFalse;
       check(w0).equals(LambertW(x));
       check(w0.hashCode).equals(LambertW(x).hashCode);
       check(wm1.hashCode).equals(LambertW(x, branch: -1).hashCode);
@@ -69,8 +69,8 @@ void main() {
       check(wm1Val * math.exp(wm1Val)).isCloseTo(-0.2, 1e-13);
 
       // Out of real domain returns NaN
-      check(w0.evaluate({'x': -0.5}).isNaN).isTrue();
-      check(wm1.evaluate({'x': 0.5}).isNaN).isTrue();
+      check(w0.evaluate({'x': -0.5}).isNaN).isTrue;
+      check(wm1.evaluate({'x': 0.5}).isNaN).isTrue;
     });
 
     test('evaluateComplex on real-embedded complex argument', () {

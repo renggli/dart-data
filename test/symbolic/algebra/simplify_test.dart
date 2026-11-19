@@ -174,13 +174,12 @@ void main() {
     });
 
     test('isReal fail-safe checks on negative bases and arguments', () {
-      check(Pow(IntegerNumber.negativeOne, FractionNumber.half).isReal)
-          .isFalse();
-      check(Ln(IntegerNumber.negativeOne).isReal).isFalse();
-      check(Asin(IntegerNumber.two).isReal).isFalse();
-      check(Acos(IntegerNumber.two).isReal).isFalse();
-      check(Atanh(IntegerNumber.two).isReal).isFalse();
-      check(Acosh(IntegerNumber.zero).isReal).isFalse();
+      check(Pow(IntegerNumber.negativeOne, FractionNumber.half).isReal).isFalse;
+      check(Ln(IntegerNumber.negativeOne).isReal).isFalse;
+      check(Asin(IntegerNumber.two).isReal).isFalse;
+      check(Acos(IntegerNumber.two).isReal).isFalse;
+      check(Atanh(IntegerNumber.two).isReal).isFalse;
+      check(Acosh(IntegerNumber.zero).isReal).isFalse;
     });
 
     test('conjugate distributes over entire special functions', () {
@@ -193,7 +192,7 @@ void main() {
         SinhIntegralShi(z),
       ]) {
         final conj = Conjugate(fn).simplify();
-        check(conj.toString()).not((it) => it.startsWith('conj('));
+        check(conj.toString()).not(.it()..startsWith('conj('));
       }
       check(Conjugate(Erfi(ComplexNumber.i)).simplify())
           .equals(Erfi(-ComplexNumber.i).simplify());
@@ -206,10 +205,9 @@ void main() {
           .equals(Expr.parse('(1 + sin(x))^5').simplify());
 
       final fn = VariableFunction('f', const [x]);
-      check(identical(fn.simplify(assumptions: Assumptions.real), fn)).isTrue();
+      check(identical(fn.simplify(assumptions: Assumptions.real), fn)).isTrue;
       const ord = OrderTerm('x', 2);
-      check(identical(ord.simplify(assumptions: Assumptions.real), ord))
-          .isTrue();
+      check(identical(ord.simplify(assumptions: Assumptions.real), ord)).isTrue;
     });
   });
 }
