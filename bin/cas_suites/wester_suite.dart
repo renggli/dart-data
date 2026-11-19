@@ -391,7 +391,7 @@ final CasTestSuite westerSuite = CasTestSuite(
       'x',
       'exp(x)',
       at: '0',
-      initialValue: '1',
+      initialValues: ['1'],
     ),
     odeCase(
       'wester_Z2',
@@ -400,7 +400,7 @@ final CasTestSuite westerSuite = CasTestSuite(
       'x',
       'exp(-x^2)',
       at: '0',
-      initialValue: '1',
+      initialValues: ['1'],
     ),
   ],
 );

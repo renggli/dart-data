@@ -85,7 +85,7 @@ void main() {
         dependent: 'y',
         independent: 'x',
         at: 0,
-        initialValue: 5,
+        initialValues: [5],
       );
       check(sol.dependsOn('C1')).isFalse();
       final yAt0 = sol.substitute('x', IntegerNumber.zero).simplify();
@@ -98,7 +98,7 @@ void main() {
         dependent: 'y',
         independent: 'x',
         at: 0,
-        initialValue: 5,
+        initialValues: [5],
       );
       check(sol.dependsOn('C1')).isFalse();
       final yAt0 = sol.substitute('x', IntegerNumber.zero).simplify();
@@ -111,11 +111,32 @@ void main() {
         dependent: 'y',
         independent: 'x',
         at: 1,
-        initialValue: 10,
+        initialValues: [10],
       );
       check(sol.toString()).equals('9 + x ^ 3');
       final yAt1 = sol.substitute('x', IntegerNumber.one).simplify();
       check(yAt1).equals(IntegerNumber.of(10));
+    });
+
+    test('IVP: second-order y\'\' + y = 0 with y(0) = 1, y\'(0) = 0', () {
+      final sol = Expr.parse('diff(y, x, 2) + y').solveOde(
+        dependent: 'y',
+        independent: 'x',
+        at: 0,
+        initialValues: [1, 0],
+      );
+      check(sol).equals(Expr.parse('cos(x)').simplify());
+    });
+
+    test('throws ArgumentError when initialValues exceeds ODE order', () {
+      check(
+        () => (dy - y).solveOde(
+          dependent: 'y',
+          independent: 'x',
+          at: 0,
+          initialValues: [1, 2],
+        ),
+      ).throws<ArgumentError>();
     });
   });
 

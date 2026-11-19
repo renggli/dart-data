@@ -87,7 +87,15 @@ List<Expr>? isolateAndInvert(
   );
   if (fnPolyRoots != null) return fnPolyRoots;
 
-  // Case 3c: Multiple-angle trigonometric reduction
+  // Case 3c: Harmonic addition a*sin(u) + b*cos(u) + k = 0
+  final harmonicRoots = _tryHarmonicAddition(
+    expr,
+    variable,
+    assumptions: assumptions,
+  );
+  if (harmonicRoots != null) return harmonicRoots;
+
+  // Case 3d: Multiple-angle trigonometric reduction
   final multiTrigRoots = _tryMultipleAngleTrig(
     expr,
     variable,
@@ -1176,4 +1184,109 @@ List<Expr>? _tryMultipleAngleTrig(
 
   final roots = solveEquation(expanded, variable, assumptions: assumptions);
   return roots.isEmpty ? null : deduplicateRoots(roots);
+}
+
+List<Expr>? _tryHarmonicAddition(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  if (expr is! Add) return null;
+  final constTerms = <Expr>[];
+  final sinCoeffs = <Expr>[];
+  final cosCoeffs = <Expr>[];
+  Expr? commonArg;
+
+  for (final term in expr.terms) {
+    if (!term.dependsOn(variable)) {
+      constTerms.add(term);
+      continue;
+    }
+    final factors = term is Mul ? term.factors : [term];
+    Expr? trigNode;
+    final coeffFactors = <Expr>[];
+    for (final f in factors) {
+      if (!f.dependsOn(variable)) {
+        coeffFactors.add(f);
+      } else if ((f is Sin || f is Cos) && trigNode == null) {
+        trigNode = f;
+      } else {
+        return null;
+      }
+    }
+    if (trigNode == null) return null;
+    final arg = trigNode is Sin ? trigNode.expr : (trigNode as Cos).expr;
+    if (arg.matchLinear(variable) == null) return null;
+    if (commonArg == null) {
+      commonArg = arg;
+    } else if (commonArg != arg) {
+      return null;
+    }
+    final coeff = coeffFactors.isEmpty
+        ? IntegerNumber.one
+        : Mul(coeffFactors).simplify(assumptions: assumptions);
+    if (trigNode is Sin) {
+      sinCoeffs.add(coeff);
+    } else {
+      cosCoeffs.add(coeff);
+    }
+  }
+
+  if (commonArg == null || sinCoeffs.isEmpty || cosCoeffs.isEmpty) {
+    return null;
+  }
+  final a = Add(sinCoeffs).simplify(assumptions: assumptions);
+  final b = Add(cosCoeffs).simplify(assumptions: assumptions);
+  if ((a is Number && a.isZero) || (b is Number && b.isZero)) return null;
+
+  final r = Pow(
+    a * a + b * b,
+    FractionNumber.half,
+  ).simplify(assumptions: assumptions);
+  final k = constTerms.isEmpty
+      ? IntegerNumber.zero
+      : Add(constTerms).simplify(assumptions: assumptions);
+
+  if (k.freeVariables.isEmpty && r.freeVariables.isEmpty) {
+    final kAbs = k.evaluate().abs();
+    final rVal = r.evaluate();
+    if (kAbs.isFinite && rVal.isFinite && kAbs > rVal + 1e-12) {
+      return const [];
+    }
+  }
+
+  final Expr phi;
+  if ((a is RealNumber || b is RealNumber) &&
+      a.freeVariables.isEmpty &&
+      b.freeVariables.isEmpty) {
+    phi = RealNumber(math.atan2(b.evaluate(), a.evaluate()));
+  } else {
+    final ratio = (b / a).simplify(assumptions: assumptions);
+    final baseAtan = Atan(ratio).simplify(assumptions: assumptions);
+    final aPos =
+        isPositiveExpr(a, assumptions: assumptions) ||
+        (a.freeVariables.isEmpty && a.evaluate() > 0);
+    final aNeg =
+        isNegativeExpr(a, assumptions: assumptions) ||
+        (a.freeVariables.isEmpty && a.evaluate() < 0);
+    if (aPos) {
+      phi = baseAtan;
+    } else if (aNeg) {
+      final bNonNeg = b.freeVariables.isEmpty
+          ? b.evaluate() >= 0
+          : !isNegativeExpr(b, assumptions: assumptions);
+      phi = (baseAtan + (bNonNeg ? Constant.pi : -Constant.pi)).simplify(
+        assumptions: assumptions,
+      );
+    } else {
+      return null;
+    }
+  }
+
+  return invertSin(
+    (commonArg + phi).simplify(assumptions: assumptions),
+    (-k / r).simplify(assumptions: assumptions),
+    variable,
+    assumptions: assumptions,
+  );
 }

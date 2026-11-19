@@ -236,8 +236,8 @@ void main() {
         final deriv = Expr.parse(
           '1 / (2023 * (1 - exp(x))^2023) - 1 / (2022 * (1 - exp(x))^2022)',
         ).derivative('x');
-        check((deriv - Expr.parse('exp(2 * x) / (1 - exp(x))^2024')).simplify())
-            .equals(IntegerNumber.zero);
+        check(deriv)
+            .equals(Expr.parse('exp(2 * x) / (1 - exp(x))^2024').simplify());
       },
     );
   });

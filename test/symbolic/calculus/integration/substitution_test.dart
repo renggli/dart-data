@@ -262,6 +262,9 @@ void main() {
         Expr.parse('sin(ln(x))^2'),
         points: const [0.5, 1.5, 2.5],
       );
+      check(
+        Expr.parse('x * (1 - x)^99').integrate('x'),
+      ).equals(Expr.parse('(1 - x)^101 / 101 - (1 - x)^100 / 100').simplify());
     });
   });
 }

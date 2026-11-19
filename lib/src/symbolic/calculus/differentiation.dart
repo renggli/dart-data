@@ -505,10 +505,12 @@ Expr _differentiateMul(List<Expr> factors, String variable) {
               _differentiate(left, variable) * base -
               exponent * left * _differentiate(base, variable);
           final shouldExpand =
-              degLeft != null &&
-              degLeft <= 4 &&
-              degBase != null &&
-              degBase <= 4;
+              (degLeft != null &&
+                  degLeft <= 4 &&
+                  degBase != null &&
+                  degBase <= 4) ||
+              (exponent is IntegerNumber &&
+                  (exponent.asInt == null || exponent.asInt!.abs() > 16));
           return (shouldExpand ? num.expand() : num) /
               Pow(base, exponent + IntegerNumber.one);
         }(),

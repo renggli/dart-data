@@ -661,11 +661,10 @@ class MonomialAccumulator {
       }
 
       final totalNum = Add(numerators);
-      final simplifiedNum = _hasHighDegreePowerOfAdd(totalNum)
-          ? totalNum.simplify(assumptions: assumptions)
-          : totalNum
-                .expand(assumptions: assumptions)
-                .simplify(assumptions: assumptions);
+      final simplifiedNum = _expandAndSimplifyGuarded(
+        totalNum,
+        assumptions: assumptions,
+      );
 
       if (simplifiedNum is Number && simplifiedNum.isZero) {
         // Combined numerator is 0: sum is 0, nothing added.
@@ -733,37 +732,45 @@ class MonomialAccumulator {
     return null;
   }
 
-  static bool _hasHighDegreePowerOfAdd(Expr expr, {int maxExponent = 16}) {
-    if (expr is Pow) {
-      if (expr.base is Add &&
-          expr.exponent is IntegerNumber &&
-          (expr.exponent as IntegerNumber).value.abs() >
-              Integer.from(maxExponent)) {
-        return true;
+  static Expr _expandAndSimplifyGuarded(
+    Expr expr, {
+    required Assumptions assumptions,
+    int maxExponent = 16,
+  }) {
+    final placeholders = <Variable, Expr>{};
+    final reverseMap = <Expr, Variable>{};
+    var counter = 0;
+
+    Expr replaceHighPowers(Expr e) {
+      if (e case Pow(base: Add(), exponent: IntegerNumber(:final value))
+          when value.abs() > Integer.from(maxExponent)) {
+        return reverseMap.putIfAbsent(e, () {
+          final v = Variable('_hp_${counter++}');
+          placeholders[v] = e;
+          return v;
+        });
       }
-      return _hasHighDegreePowerOfAdd(expr.base, maxExponent: maxExponent) ||
-          _hasHighDegreePowerOfAdd(expr.exponent, maxExponent: maxExponent);
+      return e.mapChildren(replaceHighPowers);
     }
-    if (expr is Add) {
-      for (final t in expr.terms) {
-        if (_hasHighDegreePowerOfAdd(t, maxExponent: maxExponent)) return true;
-      }
-      return false;
+
+    final guarded = replaceHighPowers(expr);
+    if (placeholders.isEmpty) {
+      return expr
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
     }
-    if (expr is Mul) {
-      for (final f in expr.factors) {
-        if (_hasHighDegreePowerOfAdd(f, maxExponent: maxExponent)) return true;
-      }
-      return false;
+    var result = guarded
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+    for (final MapEntry(:key, :value) in placeholders.entries) {
+      result = result.substitute(key.name, value);
     }
-    return false;
+    return result.simplify(assumptions: assumptions);
   }
 
   static bool _isAlgebraicallyZero(Expr expr) {
     if (expr is Number && expr.isZero) return true;
-    final s = _hasHighDegreePowerOfAdd(expr)
-        ? expr.simplify()
-        : expr.expand().simplify();
+    final s = _expandAndSimplifyGuarded(expr, assumptions: Assumptions.none);
     return s is Number && s.isZero;
   }
 }

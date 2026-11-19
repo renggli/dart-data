@@ -620,7 +620,7 @@ CasTestCase odeCase(
   String independent,
   String expected, {
   Object? at,
-  Object? initialValue,
+  List<Object> initialValues = const [],
   Assumptions assumptions = Assumptions.none,
 }) => CasTestCase(
   name: name,
@@ -630,9 +630,10 @@ CasTestCase odeCase(
       dependent: dependent,
       independent: independent,
       at: at is String ? parseCas(at) : at,
-      initialValue: initialValue is String
-          ? parseCas(initialValue)
-          : initialValue,
+      initialValues: [
+        for (final v in initialValues)
+          if (v is String) parseCas(v) else v,
+      ],
       assumptions: assumptions,
     );
     final exp = parseCas(expected).simplify(assumptions: assumptions);

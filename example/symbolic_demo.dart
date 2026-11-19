@@ -94,7 +94,7 @@ void main() {
     dependent: 'y',
     independent: 'x',
     at: 0,
-    initialValue: 5,
+    initialValues: [5],
   );
   stdout.writeln('   Particular solution with y(0) = 5:');
   stdout.writeln('      y(x) = $ivpSol\n');

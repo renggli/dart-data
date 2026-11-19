@@ -327,7 +327,6 @@ void main() {
         // Non-matching additive expressions return empty
         check((Pow(Constant.e, x * x) + x + IntegerNumber.one).solve('x'))
             .isEmpty();
-        check((Sin(x) + Cos(x) - IntegerNumber.one).solve('x')).isEmpty();
 
         // Exponential form e^exponent = c forwards assumptions
         check(
@@ -455,6 +454,18 @@ void main() {
         (Constant.pi / IntegerNumber.of(3)).simplify(),
         (IntegerNumber.of(5) * Constant.pi / IntegerNumber.of(3)).simplify(),
       ]);
+    });
+
+    test('solves harmonic addition equations a*sin(u) + b*cos(u) + k = 0', () {
+      check(Expr.parse('sin(x) + cos(x) - 1').solve('x')).unorderedEquals([
+        IntegerNumber.zero,
+        (Constant.pi / IntegerNumber.two).simplify(),
+      ]);
+      check(Expr.parse('sin(x) - cos(x)').solve('x')).unorderedEquals([
+        (Constant.pi / IntegerNumber.of(4)).simplify(),
+        (IntegerNumber.of(5) * Constant.pi / IntegerNumber.of(4)).simplify(),
+      ]);
+      check(Expr.parse('sin(x) + cos(x) - 3').solve('x')).isEmpty();
     });
   });
 }

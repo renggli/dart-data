@@ -122,7 +122,7 @@ final CasTestSuite solversLinearSuite = CasTestSuite(
       'x',
       '2 * exp(x^2 / 2)',
       at: '0',
-      initialValue: '2',
+      initialValues: ['2'],
     ),
     odeCase(
       'ode_linear_first_order',
@@ -131,7 +131,7 @@ final CasTestSuite solversLinearSuite = CasTestSuite(
       'x',
       '1/2 * exp(x) + 1/2 * exp(-x)',
       at: '0',
-      initialValue: '1',
+      initialValues: ['1'],
     ),
     odeCase(
       'ode_harmonic_2nd_order',

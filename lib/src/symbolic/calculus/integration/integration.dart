@@ -1070,6 +1070,23 @@ Expr _antiDerivMul(
     ).scale(constPart);
   }
 
+  // Fast-path for x^m * (a*x + b)^n with large integer n > 8 to avoid expansion.
+  if (polynomialDegree(original, variable) != null &&
+      varFactors.any(
+        (f) =>
+            f is Pow &&
+            f.exponent is IntegerNumber &&
+            (f.exponent as IntegerNumber).value > const Integer(8) &&
+            f.base.matchLinear(variable) != null,
+      )) {
+    final binomRes = trySymbolicBinomialAffine(
+      original,
+      variable,
+      assumptions: assumptions,
+    );
+    if (binomRes != null) return binomRes;
+  }
+
   // 3. Chain-rule substitution across any factor as candidate and remaining product as factor:
   for (var i = 0; i < varFactors.length; i++) {
     final candidate = varFactors[i];

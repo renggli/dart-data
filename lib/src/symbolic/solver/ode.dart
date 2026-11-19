@@ -5,8 +5,10 @@ import '../algebra/simplify/multiplicative.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../calculus/differentiation.dart';
 import '../calculus/integration/integration.dart';
 import '../calculus/linear_form.dart';
+import 'system.dart';
 import 'univariate.dart';
 
 /// Extension providing symbolic ordinary differential equation solving on [Expr].
@@ -22,8 +24,9 @@ extension OdeExtension on Expr {
   /// using the integrating factor $\mu(x) = \exp\left(\int P(x) dx\right)$, as
   /// well as separable ODEs $\frac{dy}{dx} = f(x) g(y)$.
   ///
-  /// Optionally accepts an initial value condition: $y(\text{at}) = \text{initialValue}$,
-  /// determining the integration constant [constant] (defaults to `'C1'`).
+  /// Optionally accepts initial value conditions at [at]:
+  /// `[y(at)]` for first-order ODEs, or `[y(at), y'(at)]` for second-order
+  /// ODEs, determining the integration constants (`C1`, `C2`, ...).
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -38,7 +41,7 @@ extension OdeExtension on Expr {
     required String independent,
     String constant = 'C1',
     Object? at,
-    Object? initialValue,
+    List<Object> initialValues = const [],
     Assumptions assumptions = Assumptions.none,
   }) => _solveOde(
     this,
@@ -46,7 +49,7 @@ extension OdeExtension on Expr {
     independent: independent,
     constant: constant,
     at: at,
-    initialValue: initialValue,
+    initialValues: initialValues,
     assumptions: assumptions,
   );
 }
@@ -57,7 +60,7 @@ Expr _solveOde(
   required String independent,
   String constant = 'C1',
   Object? at,
-  Object? initialValue,
+  List<Object> initialValues = const [],
   required Assumptions assumptions,
 }) {
   var eq = equation;
@@ -86,99 +89,140 @@ Expr _solveOde(
   if (maxOrder > 2) {
     throw UnsupportedError('ODEs of order $maxOrder > 2 are not supported');
   }
+  if (initialValues.length > maxOrder) {
+    throw ArgumentError(
+      'Too many initial values (${initialValues.length}) for ODE of order $maxOrder.',
+    );
+  }
+  if (initialValues.isNotEmpty && at == null) {
+    throw ArgumentError('at must be provided when initialValues is non-empty.');
+  }
+
+  Expr ySol;
   if (maxOrder == 2) {
-    return _trySecondOrderLinearOde(
+    ySol = _trySecondOrderLinearOde(
       eq,
       dependent: dependent,
       independent: independent,
       constant: constant,
       assumptions: assumptions,
     );
-  }
-
-  const sentinel = '_yPrime';
-  final normalized = _replaceDerivative(
-    eq,
-    dependent,
-    independent,
-    const Variable(sentinel),
-  );
-  if (!normalized.dependsOn(sentinel)) {
-    throw ArgumentError(
-      'Equation does not contain any derivative of $dependent with respect to $independent.',
-    );
-  }
-
-  final isolated = normalized.solve(sentinel, assumptions: assumptions);
-  if (isolated.isEmpty) {
-    throw UnsupportedError(
-      'Could not isolate derivative of $dependent in ODE.',
-    );
-  }
-
-  final yPrime = isolated.first.simplify(assumptions: assumptions);
-  Expr ySol;
-
-  // Case 1: y' does not depend on y -> direct integration
-  if (!yPrime.dependsOn(dependent)) {
-    final anti = yPrime.integrate(independent, assumptions: assumptions);
-    ySol = (anti + Variable(constant)).simplify(assumptions: assumptions);
   } else {
-    // Case 2: First-order linear ODE: y' = a(x) * y + b(x) <=> y' - a(x)*y = b(x)
-    final lin = yPrime.matchLinear(dependent);
-    if (lin != null &&
-        !lin.a.dependsOn(dependent) &&
-        !lin.b.dependsOn(dependent)) {
-      final p = (-lin.a).simplify(assumptions: assumptions);
-      final q = lin.b.simplify(assumptions: assumptions);
-      final pInt = p.integrate(independent, assumptions: assumptions);
-      final mu = Pow(Constant.e, pInt).simplify(assumptions: assumptions);
-      final muQ = (mu * q).simplify(assumptions: assumptions);
-      final muQInt = muQ.integrate(independent, assumptions: assumptions);
-      ySol = ((muQInt + Variable(constant)) / mu).simplify(
-        assumptions: assumptions,
+    const sentinel = '_yPrime';
+    final normalized = _replaceDerivative(
+      eq,
+      dependent,
+      independent,
+      const Variable(sentinel),
+    );
+    if (!normalized.dependsOn(sentinel)) {
+      throw ArgumentError(
+        'Equation does not contain any derivative of $dependent with respect to $independent.',
       );
+    }
+
+    final isolated = normalized.solve(sentinel, assumptions: assumptions);
+    if (isolated.isEmpty) {
+      throw UnsupportedError(
+        'Could not isolate derivative of $dependent in ODE.',
+      );
+    }
+
+    final yPrime = isolated.first.simplify(assumptions: assumptions);
+
+    // Case 1: y' does not depend on y -> direct integration
+    if (!yPrime.dependsOn(dependent)) {
+      final anti = yPrime.integrate(independent, assumptions: assumptions);
+      ySol = (anti + Variable(constant)).simplify(assumptions: assumptions);
     } else {
-      // Case 3: Separable ODE: y' = F(x) * G(y)
-      final factored = yPrime.factor(assumptions: assumptions);
-      final (fx, gy) = _separateVariables(factored, independent, dependent);
-      if (fx != null && gy != null) {
-        final invG = (IntegerNumber.one / gy).simplify(
+      // Case 2: First-order linear ODE: y' = a(x) * y + b(x) <=> y' - a(x)*y = b(x)
+      final lin = yPrime.matchLinear(dependent);
+      if (lin != null &&
+          !lin.a.dependsOn(dependent) &&
+          !lin.b.dependsOn(dependent)) {
+        final p = (-lin.a).simplify(assumptions: assumptions);
+        final q = lin.b.simplify(assumptions: assumptions);
+        final pInt = p.integrate(independent, assumptions: assumptions);
+        final mu = Pow(Constant.e, pInt).simplify(assumptions: assumptions);
+        final muQ = (mu * q).simplify(assumptions: assumptions);
+        final muQInt = muQ.integrate(independent, assumptions: assumptions);
+        ySol = ((muQInt + Variable(constant)) / mu).simplify(
           assumptions: assumptions,
         );
-        final iY = invG.integrate(dependent, assumptions: assumptions);
-        final iX = fx.integrate(independent, assumptions: assumptions);
-        final sepEq = (iY - iX - Variable(constant)).simplify(
-          assumptions: assumptions,
-        );
-        final roots = sepEq.solve(dependent, assumptions: assumptions);
-        if (roots.isNotEmpty) {
-          ySol = roots.first.simplify(assumptions: assumptions);
+      } else {
+        // Case 3: Separable ODE: y' = F(x) * G(y)
+        final factored = yPrime.factor(assumptions: assumptions);
+        final (fx, gy) = _separateVariables(factored, independent, dependent);
+        if (fx != null && gy != null) {
+          final invG = (IntegerNumber.one / gy).simplify(
+            assumptions: assumptions,
+          );
+          final iY = invG.integrate(dependent, assumptions: assumptions);
+          final iX = fx.integrate(independent, assumptions: assumptions);
+          final sepEq = (iY - iX - Variable(constant)).simplify(
+            assumptions: assumptions,
+          );
+          final roots = sepEq.solve(dependent, assumptions: assumptions);
+          if (roots.isNotEmpty) {
+            ySol = roots.first.simplify(assumptions: assumptions);
+          } else {
+            throw UnsupportedError(
+              'Could not algebraically invert separable ODE integral for $dependent.',
+            );
+          }
         } else {
           throw UnsupportedError(
-            'Could not algebraically invert separable ODE integral for $dependent.',
+            'Unsupported ODE form. Only first-order linear and separable ODEs are currently supported.',
           );
         }
-      } else {
-        throw UnsupportedError(
-          'Unsupported ODE form. Only first-order linear and separable ODEs are currently supported.',
-        );
       }
     }
   }
 
-  if (at != null && initialValue != null) {
+  if (at != null && initialValues.isNotEmpty) {
     final atExpr = _toExpr(at);
-    final initExpr = _toExpr(initialValue);
-    final evaluated = ySol
-        .substitute(independent, atExpr)
-        .simplify(assumptions: assumptions);
-    final cEq = (evaluated - initExpr).simplify(assumptions: assumptions);
-    final cRoots = cEq.solve(constant, assumptions: assumptions);
-    if (cRoots.isNotEmpty) {
-      ySol = ySol
-          .substitute(constant, cRoots.first)
+    final constNames = <String>[
+      constant,
+      if (maxOrder == 2)
+        if (constant == 'C1') 'C2' else '${constant}_2',
+    ];
+    final equations = <Expr>[];
+    var currentDeriv = ySol;
+    for (var k = 0; k < initialValues.length; k++) {
+      if (k > 0) {
+        currentDeriv = currentDeriv.derivative(
+          independent,
+          assumptions: assumptions,
+        );
+      }
+      final evaluated = currentDeriv
+          .substitute(independent, atExpr)
           .simplify(assumptions: assumptions);
+      equations.add(
+        (evaluated - _toExpr(initialValues[k])).simplify(
+          assumptions: assumptions,
+        ),
+      );
+    }
+    if (equations.length == 1) {
+      final cRoots = equations.first.solve(
+        constNames.first,
+        assumptions: assumptions,
+      );
+      if (cRoots.isNotEmpty) {
+        ySol = ySol
+            .substitute(constNames.first, cRoots.first)
+            .simplify(assumptions: assumptions);
+      }
+    } else {
+      final solutions = equations.solve(constNames, assumptions: assumptions);
+      if (solutions.isNotEmpty) {
+        var substituted = ySol;
+        for (final entry in solutions.first.entries) {
+          substituted = substituted.substitute(entry.key, entry.value);
+        }
+        ySol = substituted.simplify(assumptions: assumptions);
+      }
     }
   }
 
