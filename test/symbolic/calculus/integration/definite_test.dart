@@ -377,6 +377,16 @@ void main() {
       ).isA<Integral>();
       check(Expr.parse('1 / (x^2 - 2)').integrate('x', from: 0, to: 2))
           .isA<Integral>();
+
+      // Even-power fractional singularity with reversed bounds:
+      check(Expr.parse('((x - 1)^2)^(-1/3)').integrate('x', from: 2, to: 0))
+          .equals(IntegerNumber.of(-6));
+
+      // Fractional Wallis Beta integral:
+      check(
+        Expr.parse('sin(x)^(1/2) * cos(x)^(1/3)')
+            .integrate('x', from: 0, to: Expr.parse('pi / 2')),
+      ).equals(Expr.parse('beta(3/4, 2/3) / 2').simplify());
     });
   });
 }

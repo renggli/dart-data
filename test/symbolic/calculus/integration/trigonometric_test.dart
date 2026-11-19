@@ -96,6 +96,33 @@ void main() {
         Expr.parse('tanh(x) / exp(x)'),
         points: const [0.2, 0.6, 1.0],
       );
+      verifyAntiderivative(
+        Expr.parse('sin(x)^2 / cos(x)^2'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(x)^2 * cos(x)^3'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / (sin(x)^2 * cos(x)^2)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+    });
+
+    test('integrates polynomials times higher trig powers', () {
+      for (final expr in const [
+        'x * sin(x)^3',
+        'x * cos(x)^3',
+        'x * sin(x)^4',
+        'x * cos(x)^4',
+        'x * sin(x)^5',
+        'x * cos(x)^5',
+        'x * sin(x)^6',
+        'x * cos(x)^6',
+      ]) {
+        verifyAntiderivative(Expr.parse(expr), points: const [0.3, 0.8]);
+      }
     });
   });
 }

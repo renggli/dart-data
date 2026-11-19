@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
@@ -705,6 +706,72 @@ void main() {
       check(sArrow.std()).isNull;
       check(sArrow.median()).isNull;
       check(sArrow.quantile(0.5)).isNull;
+    });
+
+    test('fillNull and ObjectSeries numeric/sort edge cases', () {
+      final sNoNull = Series<int>.fromList('i', [1, 2, 3]);
+      check(identical(sNoNull.fillNull(0), sNoNull)).isTrue;
+      final sWithNull = Series<int?>.fromList('i', [1, null, 3]);
+      check(sWithNull.fillNull(9).toList()).deepEquals([1, 9, 3]);
+
+      final objNum = ObjectSeries<Object?>(
+        name: 'n',
+        data: [10, 20, null, 40, 50],
+        dataType: DataType.object,
+        mask: ValidityMask(5)..setNull(2),
+      );
+      check(objNum.sum).equals(120);
+      check(objNum.mean).equals(30.0);
+      check(objNum.variance()!).isCloseTo(333.3333333333333, 1e-9);
+      check(objNum.variance(population: true)!).isCloseTo(250.0, 1e-9);
+      check(objNum.std()!).isCloseTo(math.sqrt(1000 / 3), 1e-9);
+      check(objNum.median()).equals(30.0);
+      check(objNum.quantile(1.0)).equals(50.0);
+      check(() => objNum.quantile(-0.1)).throws<RangeError>();
+      check(() => objNum.quantile(double.nan)).throws<RangeError>();
+
+      final objNan = ObjectSeries<Object?>(
+        name: 'nan',
+        data: [1.0, double.nan],
+        dataType: DataType.object,
+      );
+      check(objNan.variance()!).isNaN;
+      check(objNan.quantile(0.5)!).isNaN;
+
+      final objEmpty = ObjectSeries<Object?>(
+        name: 'empty',
+        data: [null, null],
+        dataType: DataType.object,
+        mask: ValidityMask(2)
+          ..setNull(0)
+          ..setNull(1),
+      );
+      check(objEmpty.sum).isNull;
+      check(objEmpty.mean).isNull;
+      check(objEmpty.variance()).isNull;
+      check(objEmpty.std()).isNull;
+      check(objEmpty.quantile(0.5)).isNull;
+
+      final objNonNum = ObjectSeries<Object?>(
+        name: 's',
+        data: ['a', 'b'],
+        dataType: DataType.object,
+      );
+      check(objNonNum.sum).isNull;
+      check(objNonNum.variance()).isNull;
+      check(objNonNum.quantile(0.5)).isNull;
+
+      final objSort = ObjectSeries<Object?>(
+        name: 'sort',
+        data: [null, 2.0, double.nan, 1.0],
+        dataType: DataType.object,
+        mask: ValidityMask(4)..setNull(0),
+      );
+      final sortedFirst = objSort.sort(nullsLast: false);
+      check(sortedFirst.isNull(0)).isTrue;
+      check(sortedFirst[1]).equals(1.0);
+      check(sortedFirst[2]).equals(2.0);
+      check((sortedFirst[3] as double).isNaN).isTrue;
     });
   });
 }

@@ -583,5 +583,15 @@ void main() {
         () => (Pow(IntegerNumber.of(-2), x) * x).limit('x', Constant.infinity),
       ).throws<UnsupportedError>();
     });
+
+    test('evaluates hyperbolic and inverse hyperbolic limits at infinity', () {
+      check(
+        Expr.parse('(1 - tanh(x)) * exp(2 * x)').limit('x', Constant.infinity),
+      ).equals(IntegerNumber.two);
+      check(Expr.parse('asinh(x) - ln(2 * x)').limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check(Expr.parse('x * atanh(1 / x)').limit('x', Constant.infinity))
+          .equals(IntegerNumber.one);
+    });
   });
 }
