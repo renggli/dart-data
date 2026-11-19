@@ -86,9 +86,11 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
           ? expr
           : OrderTerm(variable, order, point: newPoint);
     }(),
-    Add(:final terms) => simplifyAdd([
-      for (final term in terms) _simplify(term, assumptions, cache),
-    ], assumptions: assumptions),
+    Add(:final terms) => simplifyAdd(
+      [for (final term in terms) _simplify(term, assumptions, cache)],
+      assumptions: assumptions,
+      simplify: (e) => _simplify(e, assumptions, cache),
+    ),
     Mul(:final factors) => simplifyMul([
       for (final factor in factors) _simplify(factor, assumptions, cache),
     ], assumptions: assumptions),

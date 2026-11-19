@@ -4,7 +4,11 @@ import '../simplify.dart';
 import '../term_accumulator.dart';
 
 /// Simplifies an N-ary addition expression across [terms].
-Expr simplifyAdd(List<Expr> terms, {required Assumptions assumptions}) {
+Expr simplifyAdd(
+  List<Expr> terms, {
+  required Assumptions assumptions,
+  Expr Function(Expr)? simplify,
+}) {
   switch (terms) {
     case []:
       return IntegerNumber.zero;
@@ -17,7 +21,7 @@ Expr simplifyAdd(List<Expr> terms, {required Assumptions assumptions}) {
   }
 
   final acc = MonomialAccumulator(
-    simplify: (e) => simplifyExpr(e, assumptions: assumptions),
+    simplify: simplify ?? (e) => simplifyExpr(e, assumptions: assumptions),
     assumptions: assumptions,
   );
   for (final term in terms) {
