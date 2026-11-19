@@ -156,10 +156,26 @@ Expr antiDerivative(
       (Pow(node, IntegerNumber.two) / IntegerNumber.two).simplify(
         assumptions: assumptions,
       ),
-    Add(:final terms) => Add([
-      for (final term in terms)
-        antiDerivative(term, variable, assumptions: assumptions, depth: depth),
-    ]).simplify(assumptions: assumptions),
+    Add(:final terms) => () {
+      final sumRes = Add([
+        for (final term in terms)
+          antiDerivative(
+            term,
+            variable,
+            assumptions: assumptions,
+            depth: depth,
+          ),
+      ]).simplify(assumptions: assumptions);
+      if (depth == 0 && hasUnevaluatedIntegral(sumRes, variable)) {
+        final paired = _tryAdditiveProductRule(
+          node,
+          variable,
+          assumptions: assumptions,
+        );
+        if (paired != null) return paired;
+      }
+      return sumRes;
+    }(),
     Sin(expr: final inner) =>
       _antiDerivSin(inner, variable) ?? unsupportedIntegral(node, variable),
     Cos(expr: final inner) =>
@@ -567,6 +583,13 @@ Expr? _antiDerivLn(
 }) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
     return ((inner * Ln(inner) - inner) / a).simplify(assumptions: assumptions);
+  }
+  if (inner case Ln(expr: final arg)) {
+    if (arg.matchLinear(variable) case (:final a, b: _)) {
+      return ((arg * Ln(inner) - LogIntegralLi(arg)) / a).simplify(
+        assumptions: assumptions,
+      );
+    }
   }
   if (depth >= 2) return null;
   final uPrime = (inner.derivative(variable, assumptions: assumptions) / inner)
@@ -1003,7 +1026,7 @@ Expr _antiDerivPow(
         }
       }
     }
-    // Powers of logarithms: ln(ax + b)^k for 2 <= k <= 6
+    // Powers of logarithms: ln(ax + b)^k for 2 <= k <= 6 and ln(ax + b)^(-k) for 2 <= k <= 6
     if (base case Ln(expr: final inner)) {
       if (exponent case IntegerNumber(asInt: final k?) when k >= 2 && k <= 6) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
@@ -1021,6 +1044,27 @@ Expr _antiDerivPow(
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
             return (term1 - kExpr * rem).simplify(assumptions: assumptions);
+          }
+        }
+      }
+      if (exponent case IntegerNumber(asInt: final negK?)
+          when negK <= -2 && negK >= -6) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final k = -negK;
+          final km1 = IntegerNumber.of(k - 1);
+          final term1 = (-inner / (a * km1 * Pow(base, km1))).simplify(
+            assumptions: assumptions,
+          );
+          final rem = antiDerivative(
+            Pow(
+              base,
+              IntegerNumber.of(-(k - 1)),
+            ).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+          if (!hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 + rem / km1).simplify(assumptions: assumptions);
           }
         }
       }
@@ -1098,11 +1142,31 @@ Expr _antiDerivPow(
       final gaussRes = tryGaussianAntiderivative(exponent, variable);
       if (gaussRes != null) return gaussRes;
 
+      // e^(e^(a*x + b)) -> Ei(e^(a*x + b)) / a
+      if (exponent case Pow(base: Constant.e, exponent: final innerExp)) {
+        if (innerExp.matchLinear(variable) case (:final a, b: _)) {
+          return (ExpIntegralEi(exponent) / a).simplify(
+            assumptions: assumptions,
+          );
+        }
+      }
+
       // e^(a/x) -> x * e^(a/x) - a * Ei(a/x)
       final prod = (exponent * Variable(variable)).simplify();
       if (!prod.dependsOn(variable)) {
         return (Variable(variable) * original - prod * ExpIntegralEi(exponent))
             .simplify();
+      }
+    }
+    // b^ln(x) -> x^ln(b)
+    if (isValidExponentialBase(base)) {
+      if (exponent case Ln(expr: Variable(:final name)) when name == variable) {
+        final lnB = Ln(base).simplify(assumptions: assumptions);
+        return antiDerivative(
+          Pow(Variable(variable), lnB),
+          variable,
+          assumptions: assumptions,
+        );
       }
     }
   }
@@ -1180,6 +1244,17 @@ Expr _antiDerivMul(
     if (tryChainRule(candidate, otherExpr, variable, assumptions: assumptions)
         case final subRes?) {
       return subRes;
+    }
+    if (candidate case Pow(
+      base: Constant.e,
+      exponent: Pow(base: Constant.e, exponent: final innerU),
+    )) {
+      final uPrime = innerU.derivative(variable).simplify();
+      if (otherExpr.matchScalarMultiple(uPrime, variable) case final k?) {
+        return (k * ExpIntegralEi(Pow(Constant.e, innerU))).simplify(
+          assumptions: assumptions,
+        );
+      }
     }
   }
 
@@ -1296,6 +1371,18 @@ Expr _antiDerivMul(
       if (!hasVarDen || !hasUnevaluatedIntegral(distSum, variable)) {
         return distSum;
       }
+      if (depth == 0) {
+        final distAdd = Add([
+          for (final t in terms)
+            (t * otherExpr).simplify(assumptions: assumptions),
+        ]);
+        final paired = _tryAdditiveProductRule(
+          distAdd,
+          variable,
+          assumptions: assumptions,
+        );
+        if (paired != null) return paired;
+      }
       break;
     }
   }
@@ -1314,4 +1401,59 @@ Expr _antiDerivMul(
   }
 
   return unsupportedIntegral(original, variable);
+}
+
+Expr? _tryAdditiveProductRule(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final terms = expr is Add ? expr.terms : [expr];
+  final candidates = <Expr>{};
+  void addCandidate(Expr e) {
+    if (e.dependsOn(variable)) candidates.add(e);
+  }
+
+  for (final term in terms) {
+    final factors = term is Mul ? term.factors : [term];
+    for (final f in factors) {
+      addCandidate(f);
+      if (f case Sin(:final expr)) {
+        addCandidate(Cos(expr));
+      } else if (f case Cos(:final expr)) {
+        addCandidate(Sin(expr));
+      } else if (f case Pow(:final base, exponent: IntegerNumber(:final asInt?))
+          when asInt < 0) {
+        addCandidate(Pow(base, IntegerNumber.negativeOne));
+        if (asInt < -1) {
+          addCandidate(Pow(base, IntegerNumber.of(asInt + 1)));
+        }
+      }
+    }
+  }
+
+  final candList = candidates.toList();
+  for (final c in candList) {
+    final diff = (c.derivative(variable, assumptions: assumptions) - expr)
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+    if (diff is Number && diff.isZero) {
+      return c.simplify(assumptions: assumptions);
+    }
+  }
+  for (var i = 0; i < candList.length; i++) {
+    for (var j = i; j < candList.length; j++) {
+      final prod = (candList[i] * candList[j]).simplify(
+        assumptions: assumptions,
+      );
+      if (!prod.dependsOn(variable)) continue;
+      final diff = (prod.derivative(variable, assumptions: assumptions) - expr)
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
+      if (diff is Number && diff.isZero) {
+        return prod;
+      }
+    }
+  }
+  return null;
 }

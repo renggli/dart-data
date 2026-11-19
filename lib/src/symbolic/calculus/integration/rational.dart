@@ -237,6 +237,85 @@ Expr? tryAntiDerivDiv(
     }
   }
 
+  // int x^n / ln(x) dx = Ei((n + 1) * ln(x)) (or ln|ln(x)| for n = -1)
+  if (right case Ln(expr: Variable(:final name)) when name == variable) {
+    Expr? nExp;
+    var scale = IntegerNumber.one as Expr;
+    if (!left.dependsOn(variable)) {
+      nExp = IntegerNumber.zero;
+      scale = left;
+    } else if (left is Variable && left.name == variable) {
+      nExp = IntegerNumber.one;
+    } else if (left case Pow(base: Variable(name: final lName), :final exponent)
+        when lName == variable && !exponent.dependsOn(variable)) {
+      nExp = exponent;
+    }
+    if (nExp != null) {
+      if (nExp == IntegerNumber.negativeOne) {
+        return (scale * Ln(Abs(right))).simplify(assumptions: assumptions);
+      }
+      if (nExp is Number && nExp.isZero) {
+        return (scale * LogIntegralLi(Variable(variable))).simplify(
+          assumptions: assumptions,
+        );
+      }
+      final nPlus1 = (nExp + IntegerNumber.one).simplify(
+        assumptions: assumptions,
+      );
+      return (scale *
+              ExpIntegralEi(
+                (nPlus1 * right).simplify(assumptions: assumptions),
+              ))
+          .simplify(assumptions: assumptions);
+    }
+  }
+
+  // int sin(a*x) / x^k dx and cos(a*x) / x^k dx for k >= 2
+  if (right
+      case Pow(
+        base: Variable(name: final rName),
+        exponent: IntegerNumber(asInt: final k?),
+      )
+      when rName == variable && k >= 2 && k <= 6) {
+    if (left is Sin || left is Cos) {
+      final inner = left is Sin ? left.expr : (left as Cos).expr;
+      if (inner.matchLinear(variable) case (:final a, b: final b)
+          when b is Number && b.isZero) {
+        final km1 = IntegerNumber.of(k - 1);
+        final xPow = k - 1 == 1
+            ? Variable(variable)
+            : Pow(Variable(variable), km1);
+        if (left is Sin) {
+          final term1 = (-Sin(inner) / (km1 * xPow)).simplify(
+            assumptions: assumptions,
+          );
+          final rem = antiDerivative(
+            (Cos(inner) / xPow).simplify(assumptions: assumptions),
+            variable,
+            depth: depth + 1,
+            assumptions: assumptions,
+          );
+          if (!hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 + (a / km1) * rem).simplify(assumptions: assumptions);
+          }
+        } else {
+          final term1 = (-Cos(inner) / (km1 * xPow)).simplify(
+            assumptions: assumptions,
+          );
+          final rem = antiDerivative(
+            (Sin(inner) / xPow).simplify(assumptions: assumptions),
+            variable,
+            depth: depth + 1,
+            assumptions: assumptions,
+          );
+          if (!hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 - (a / km1) * rem).simplify(assumptions: assumptions);
+          }
+        }
+      }
+    }
+  }
+
   // int u'(x) / (a + b * u(x)^2) dx = (1 / sqrt(a * b)) * arctan(sqrt(b / a) * u(x))
   if (right case Add(terms: [final rL, final rR])) {
     if (rL case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {

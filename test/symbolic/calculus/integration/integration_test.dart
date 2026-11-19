@@ -505,5 +505,55 @@ void main() {
         points: const [0.3, 0.8, 1.5],
       );
     });
+
+    test(
+      'integrates special-function reductions and additive cancellations',
+      () {
+        verifyAntiderivative(
+          Expr.parse('1 / ln(x) - 1 / ln(x)^2'),
+          points: const [1.5, 2.0, 3.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('1 / ln(x) + ln(ln(x))'),
+          points: const [1.5, 2.0, 3.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('cos(x) * ln(x) + sin(x) / x'),
+          points: const [0.4, 0.8, 1.5],
+        );
+        verifyAntiderivative(
+          Expr.parse('(cos(x) * ln(x) - sin(x) / x) / ln(x)^2'),
+          points: const [1.5, 2.0, 3.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('(cos(x) + sin(x)) / x^2 + (sin(x) - cos(x)) / x'),
+          points: const [0.4, 0.8, 1.5],
+        );
+        verifyAntiderivative(
+          Expr.parse('(x^7 - 1) / ln(x)'),
+          points: const [1.5, 2.0, 3.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('x * exp(exp(x^2))'),
+          points: const [0.3, 0.6, 0.9],
+        );
+        verifyAntiderivative(
+          Expr.parse('exp(exp(x)) - exp(exp(x) - x)'),
+          points: const [0.3, 0.6, 0.9],
+        );
+        verifyAntiderivative(
+          Expr.parse('x^5 * exp(-x^4)'),
+          points: const [0.3, 0.7, 1.1],
+        );
+        verifyAntiderivative(
+          Expr.parse('2^ln(x)'),
+          points: const [1.5, 2.0, 3.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('(1 + ln(x)) * ln(ln(x))'),
+          points: const [1.5, 2.0, 3.0],
+        );
+      },
+    );
   });
 }

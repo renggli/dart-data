@@ -511,6 +511,12 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
             (base is! Variable || base.name != variable)) {
           out.add(base);
         }
+        if (base case Variable(:final name) when name == variable) {
+          if (exponent case IntegerNumber(asInt: final m?)
+              when m >= 4 && m.isEven) {
+            out.add(Pow(base, IntegerNumber.of(m ~/ 2)));
+          }
+        }
         if (exponent.dependsOn(variable) &&
             (base.dependsOn(variable) || isValidExponentialBase(base))) {
           out.add(node);
