@@ -34,7 +34,7 @@ extension MathMlExtension on Expr {
 }
 
 String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
-  Variable(:final name) => '<mi>${_escapeXml(name)}</mi>',
+  Variable(:final name) => _formatVariableMathMl(name),
   VariableFunction(:final name, :final arguments) =>
     '<mrow><mi>${_escapeXml(name)}</mi><mo>(</mo>${arguments.map((a) => _toMathMl(a, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
   Constant(:final mathMl) => mathMl,
@@ -346,16 +346,17 @@ String _formatOrderTermMathMl(
     return '<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>';
   }
   final isZero = point is Number && point.isZero;
+  final varMl = _formatVariableMathMl(variable);
   if (isZero) {
     if (order == 1) {
-      return '<mrow><mi>O</mi><mo>(</mo><mi>${_escapeXml(variable)}</mi><mo>)</mo></mrow>';
+      return '<mrow><mi>O</mi><mo>(</mo>$varMl<mo>)</mo></mrow>';
     }
-    return '<mrow><mi>O</mi><mo>(</mo><msup><mi>${_escapeXml(variable)}</mi><mn>$order</mn></msup><mo>)</mo></mrow>';
+    return '<mrow><mi>O</mi><mo>(</mo><msup>$varMl<mn>$order</mn></msup><mo>)</mo></mrow>';
   }
   final stripped = stripLeadingNegative(point);
   final diff = stripped != null
-      ? '<mrow><mi>${_escapeXml(variable)}</mi><mo>+</mo>${_toMathMl(stripped, decimalPlaces)}</mrow>'
-      : '<mrow><mi>${_escapeXml(variable)}</mi><mo>&minus;</mo>${_formatSubRight(point, decimalPlaces)}</mrow>';
+      ? '<mrow>$varMl<mo>+</mo>${_toMathMl(stripped, decimalPlaces)}</mrow>'
+      : '<mrow>$varMl<mo>&minus;</mo>${_formatSubRight(point, decimalPlaces)}</mrow>';
   if (order == 1) {
     return '<mrow><mi>O</mi><mo>(</mo>$diff<mo>)</mo></mrow>';
   }
@@ -416,3 +417,62 @@ String _escapeXml(String text) => text
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&apos;');
+
+const _greekLetters = <String, String>{
+  'alpha': 'α',
+  'beta': 'β',
+  'gamma': 'γ',
+  'delta': 'δ',
+  'epsilon': 'ε',
+  'zeta': 'ζ',
+  'eta': 'η',
+  'theta': 'θ',
+  'iota': 'ι',
+  'kappa': 'κ',
+  'lambda': 'λ',
+  'mu': 'μ',
+  'nu': 'ν',
+  'xi': 'ξ',
+  'rho': 'ρ',
+  'sigma': 'σ',
+  'tau': 'τ',
+  'upsilon': 'υ',
+  'phi': 'φ',
+  'chi': 'χ',
+  'psi': 'ψ',
+  'omega': 'ω',
+  'Gamma': 'Γ',
+  'Delta': 'Δ',
+  'Theta': 'Θ',
+  'Lambda': 'Λ',
+  'Xi': 'Ξ',
+  'Sigma': 'Σ',
+  'Upsilon': 'Υ',
+  'Phi': 'Φ',
+  'Psi': 'Ψ',
+  'Omega': 'Ω',
+};
+
+String _formatVariableMathMl(String name) {
+  final idx = name.indexOf('_');
+  if (idx > 0 && idx < name.length - 1) {
+    final base = name.substring(0, idx);
+    final sub = name.substring(idx + 1);
+    final baseGlyph = _greekLetters[base] ?? _escapeXml(base);
+    final subNode = _isAllAsciiDigits(sub)
+        ? '<mn>$sub</mn>'
+        : '<mi>${_escapeXml(sub)}</mi>';
+    return '<msub><mi>$baseGlyph</mi>$subNode</msub>';
+  }
+  final glyph = _greekLetters[name] ?? _escapeXml(name);
+  return '<mi>$glyph</mi>';
+}
+
+bool _isAllAsciiDigits(String text) {
+  if (text.isEmpty) return false;
+  for (var i = 0; i < text.length; i++) {
+    final code = text.codeUnitAt(i);
+    if (code < 48 || code > 57) return false;
+  }
+  return true;
+}

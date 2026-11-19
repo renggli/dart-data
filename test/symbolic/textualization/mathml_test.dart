@@ -416,5 +416,22 @@ void main() {
         '<mrow><mi>O</mi><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow>',
       );
     });
+
+    test(
+      'formats Greek and subscripted variables symmetrically with LaTeX',
+      () {
+        check(const Variable('x_1').toMathMl(root: false))
+            .equals('<msub><mi>x</mi><mn>1</mn></msub>');
+        check(const Variable('alpha_0').toMathMl(root: false))
+            .equals('<msub><mi>α</mi><mn>0</mn></msub>');
+        check(const Variable('beta_i').toMathMl(root: false))
+            .equals('<msub><mi>β</mi><mi>i</mi></msub>');
+        check(const Variable('Omega').toMathMl(root: false))
+            .equals('<mi>Ω</mi>');
+        check(const OrderTerm('x_1', 2).toMathMl(root: false)).equals(
+          '<mrow><mi>O</mi><mo>(</mo><msup><msub><mi>x</mi><mn>1</mn></msub><mn>2</mn></msup><mo>)</mo></mrow>',
+        );
+      },
+    );
   });
 }

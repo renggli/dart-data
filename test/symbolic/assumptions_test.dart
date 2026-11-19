@@ -129,5 +129,19 @@ void main() {
         ),
       ).deepEquals([IntegerNumber.of(3)]);
     });
+
+    test('implements value equality and hashCode', () {
+      const a1 = Assumptions(domains: {'x': VariableDomain.positive});
+      final a2 = Assumptions.none.copyWith(
+        domains: {'x': VariableDomain.positive},
+      );
+      const a3 = Assumptions(
+        domains: {'x': VariableDomain.positive},
+        defaultDomain: VariableDomain.real,
+      );
+      check(a1).equals(a2);
+      check(a1.hashCode).equals(a2.hashCode);
+      check(a1 == a3).isFalse();
+    });
   });
 }

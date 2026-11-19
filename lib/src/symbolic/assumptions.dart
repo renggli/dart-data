@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import 'ast.dart';
 
 /// Immutable mathematical domain assumptions for symbolic variables.
@@ -71,4 +73,16 @@ final class Assumptions {
         : {...this.domains, ...domains},
     defaultDomain: defaultDomain ?? this.defaultDomain,
   );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Assumptions &&
+          defaultDomain == other.defaultDomain &&
+          _mapEquality.equals(domains, other.domains);
+
+  @override
+  int get hashCode => Object.hash(defaultDomain, _mapEquality.hash(domains));
+
+  static const _mapEquality = MapEquality<String, VariableDomain>();
 }
