@@ -784,14 +784,15 @@ int _compareRationalToDoubleValue(RationalNumber r, double d) {
   if (d == 0.0) return r.sign;
   final dSign = d < 0 ? -1 : 1;
   if (r.sign != dSign) return r.sign.compareTo(dSign);
-  // Decompose IEEE-754 double into exact m * 2^e
+  // Decompose IEEE-754 double into exact m * 2^e using 32-bit reads (dart2js safe)
   final bits = ByteData(8)..setFloat64(0, d.abs());
-  final raw = bits.getUint64(0);
-  final biasedExp = (raw >> 52) & 0x7ff;
-  final frac = raw & 0xfffffffffffff;
-  final mantissa = biasedExp == 0
-      ? BigInt.from(frac)
-      : BigInt.from(frac | (1 << 52));
+  final hi = bits.getUint32(0);
+  final lo = bits.getUint32(4);
+  final biasedExp = (hi >> 20) & 0x7ff;
+  final fracHi = hi & 0xfffff;
+  final mantissa =
+      (BigInt.from(biasedExp == 0 ? fracHi : (fracHi | 0x100000)) << 32) |
+      BigInt.from(lo);
   final exp = (biasedExp == 0 ? 1 : biasedExp) - 1023 - 52;
   final rNum = r.numerator.abs().toBigInt();
   final rDen = r.denominator.toBigInt();
