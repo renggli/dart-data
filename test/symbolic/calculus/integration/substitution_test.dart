@@ -267,5 +267,23 @@ void main() {
         Expr.parse('x * (1 - x)^99').integrate('x'),
       ).equals(Expr.parse('(1 - x)^101 / 101 - (1 - x)^100 / 100').simplify());
     });
+
+    test(
+      'integrates general exponential rational forms via u = B^(alpha * x)',
+      () {
+        verifyWithParams('f^(a + b * x) / (c + d * f^(e + 2 * b * x))', {
+          'a': 0.5,
+          'b': 1.2,
+          'c': 2.0,
+          'd': 3.0,
+          'e': 0.3,
+          'f': 2.5,
+        });
+        verifyAntiderivative(
+          Expr.parse('2^(3 * x + 1) / (1 + 2^(6 * x))'),
+          points: const [0.1, 0.4, 0.8],
+        );
+      },
+    );
   });
 }

@@ -8,6 +8,112 @@ import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
 
+/// Attempts exponential substitution `u = B^(alpha_0 * x)` for rational or
+/// algebraic integrands whose variable dependence is confined to `B^(a_i*x + b_i)`.
+Expr? tryExponentialSubstitution(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2) return null;
+
+  Expr? commonBase;
+  final expNodes = <Pow>[];
+  var valid = true;
+
+  void collect(Expr node) {
+    if (!valid) return;
+    if (node is Pow &&
+        !node.base.dependsOn(variable) &&
+        node.exponent.dependsOn(variable)) {
+      if (commonBase == null) {
+        commonBase = node.base;
+      } else if (commonBase != node.base) {
+        valid = false;
+        return;
+      }
+      expNodes.add(node);
+      return;
+    }
+    node.mapChildren((c) {
+      collect(c);
+      return c;
+    });
+  }
+
+  collect(expr);
+  if (!valid || expNodes.isEmpty || commonBase == null) return null;
+  final base = commonBase!;
+  if (!isValidExponentialBase(base)) return null;
+
+  final linearInfos = <Pow, ({Expr a, Expr b})>{};
+  for (final node in expNodes) {
+    final lin = node.exponent.matchLinear(variable);
+    if (lin == null) return null;
+    linearInfos[node] = lin;
+  }
+
+  // Choose alpha_0 with smallest string length so integer multiples are positive/clean.
+  var alpha0 = linearInfos.values.first.a;
+  var bestLen = alpha0.toString().length;
+  for (final info in linearInfos.values) {
+    final len = info.a.toString().length;
+    if (len < bestLen) {
+      alpha0 = info.a;
+      bestLen = len;
+    }
+  }
+
+  final ratios = <Pow, int>{};
+  for (final MapEntry(:key, :value) in linearInfos.entries) {
+    final ratio = (value.a / alpha0).simplify(assumptions: assumptions);
+    if (ratio case IntegerNumber(asInt: final m?)
+        when m.abs() >= 1 && m.abs() <= 6) {
+      ratios[key] = m;
+    } else {
+      return null;
+    }
+  }
+
+  const uName = '_exp_u';
+  const uVar = Variable(uName);
+
+  Expr rewrite(Expr node) {
+    if (node is Pow && linearInfos.containsKey(node)) {
+      final beta = linearInfos[node]!.b;
+      final m = ratios[node]!;
+      return (Pow(base, beta) * Pow(uVar, IntegerNumber.of(m))).simplify(
+        assumptions: assumptions,
+      );
+    }
+    return node.mapChildren(rewrite);
+  }
+
+  final rewritten = rewrite(expr).simplify(assumptions: assumptions);
+  if (rewritten.dependsOn(variable)) return null;
+
+  final lnBase = base == Constant.e
+      ? IntegerNumber.one
+      : Ln(base).simplify(assumptions: assumptions);
+  final integrandU = (rewritten / (alpha0 * lnBase * uVar)).simplify(
+    assumptions: assumptions,
+  );
+  final resU = antiDerivative(
+    integrandU,
+    uName,
+    depth: depth + 1,
+    assumptions: assumptions,
+  );
+  if (hasUnevaluatedIntegral(resU, uName)) return null;
+
+  final uExpr = Pow(
+    base,
+    (alpha0 * Variable(variable)).simplify(assumptions: assumptions),
+  );
+  return resU.substitute(uName, uExpr).simplify(assumptions: assumptions);
+}
+
 /// Attempts direct chain-rule matching on `candidate * factor` with respect to [variable].
 Expr? tryChainRule(
   Expr candidate,

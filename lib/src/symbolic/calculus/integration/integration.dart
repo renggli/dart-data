@@ -330,6 +330,15 @@ Expr antiDerivative(
         case final uSubRes?) {
       return uSubRes;
     }
+    if (tryExponentialSubstitution(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final expSubRes?) {
+      return expSubRes;
+    }
     if (tryRationalTrigSubstitution(
           node,
           variable,
