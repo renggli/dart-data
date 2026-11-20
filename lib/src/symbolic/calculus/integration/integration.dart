@@ -466,10 +466,12 @@ Expr? _antiDerivCos(Expr inner, String variable) =>
       null => null,
     };
 
-/// Returns $\ln(u)$ when $u$ is proven positive under [assumptions], otherwise
-/// $\ln(|u|)$.
+/// Returns `ln(u)` when `u` is proven positive under [assumptions] or may
+/// evaluate to a complex value, otherwise `ln(|u|)`.
 Expr logAntiderivative(Expr u, Assumptions assumptions) =>
-    isPositiveExpr(u, assumptions: assumptions) ? Ln(u) : Ln(Abs(u));
+    isPositiveExpr(u, assumptions: assumptions) || _mayBeComplexExpr(u)
+    ? Ln(u)
+    : Ln(Abs(u));
 
 Expr? _antiDerivTan(
   Expr inner,
@@ -1549,3 +1551,13 @@ Expr? _tryAdditiveProductRule(
   }
   return null;
 }
+
+bool _mayBeComplexExpr(Expr expr) => expr.anyNode(
+  (node) =>
+      node is ComplexNumber ||
+      (node is Pow &&
+          node.exponent is FractionNumber &&
+          (node.exponent as FractionNumber).denominator.isEven &&
+          (isSyntacticallyNegative(node.base) ||
+              isNegativeConstant(node.base))),
+);

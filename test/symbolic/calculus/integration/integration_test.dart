@@ -555,5 +555,14 @@ void main() {
         );
       },
     );
+
+    test('omits Abs in logarithmic antiderivative for complex arguments', () {
+      final sqrtNegA = Expr.parse('1 / (a + x * sqrt(-a))').integrate('x');
+      check(sqrtNegA).isNotA<Integral>();
+      check(sqrtNegA.anyNode((n) => n is Abs)).isFalse;
+
+      final withI = Expr.parse('1 / (x + i)').integrate('x');
+      check(withI).equals(Expr.parse('ln(i + x)').simplify());
+    });
   });
 }
