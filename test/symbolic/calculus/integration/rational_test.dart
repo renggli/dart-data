@@ -83,5 +83,25 @@ void main() {
         check(symQuad.anyNode((n) => n is Abs)).isFalse;
       },
     );
+
+    test('integrates high-degree Laurent polynomials P(x) / (c * x^n)', () {
+      final res1 = Expr.parse('(a + b * x^2)^3 / x^13').integrate('x');
+      check(res1).isNotA<Integral>();
+      final diff1 =
+          (res1.derivative('x') - Expr.parse('(a + b * x^2)^3 / x^13'))
+              .expand()
+              .simplify();
+      check(diff1).equals(IntegerNumber.zero);
+
+      final res2 = Expr.parse('(A + B * x^3) * (a + b * x^3)^5 / x^19')
+          .integrate('x');
+      check(res2).isNotA<Integral>();
+      final diff2 =
+          (res2.derivative('x') -
+                  Expr.parse('(A + B * x^3) * (a + b * x^3)^5 / x^19'))
+              .expand()
+              .simplify(assumptions: Assumptions.positive);
+      check(diff2).equals(IntegerNumber.zero);
+    });
   });
 }

@@ -593,6 +593,10 @@ Expr? tryAntiDerivDiv(
 
   // Rational functions P(x) / Q(x): polynomial division and partial fractions
   if (right.dependsOn(variable)) {
+    if (_tryMonomialDenominator(left, right, variable, assumptions: assumptions)
+        case final monoRes?) {
+      return monoRes;
+    }
     final rawDegLeft = polynomialDegree(left, variable);
     final rawDegRight = polynomialDegree(right, variable);
     if (rawDegLeft != null && rawDegRight != null && rawDegRight >= 4) {
@@ -1326,3 +1330,71 @@ bool _isPositiveCoeffMonomial(Expr expr) => switch (expr) {
   Mul(:final factors) => factors.every(_isPositiveCoeffMonomial),
   _ => false,
 };
+
+Expr? _tryMonomialDenominator(
+  Expr left,
+  Expr right,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  ({Expr scale, int n})? extractMonomial(Expr e) {
+    if (e case Variable(:final name) when name == variable) {
+      return (scale: IntegerNumber.one, n: 1);
+    }
+    if (e
+        case Pow(
+          base: Variable(:final name),
+          exponent: IntegerNumber(asInt: final k?),
+        )
+        when name == variable && k >= 1) {
+      return (scale: IntegerNumber.one, n: k);
+    }
+    if (e case Mul(:final factors)) {
+      final constFactors = <Expr>[];
+      final varFactors = <Expr>[];
+      for (final f in factors) {
+        if (f.dependsOn(variable)) {
+          varFactors.add(f);
+        } else {
+          constFactors.add(f);
+        }
+      }
+      if (varFactors.length == 1) {
+        final inner = extractMonomial(varFactors.first);
+        if (inner != null) {
+          final scale = constFactors.isEmpty
+              ? IntegerNumber.one
+              : Mul(constFactors).simplify(assumptions: assumptions);
+          return (scale: scale, n: inner.n);
+        }
+      }
+    }
+    return null;
+  }
+
+  final mono = extractMonomial(right);
+  if (mono == null) return null;
+  final (:scale, :n) = mono;
+
+  final rawDeg = polynomialDegree(left, variable);
+  if (rawDeg == null || rawDeg > 40) return null;
+
+  final coeffs = extractPolynomialCoefficients(left, variable);
+  if (coeffs == null) return null;
+
+  final xVar = Variable(variable);
+  final terms = <Expr>[];
+  for (final MapEntry(:key, :value) in coeffs.entries) {
+    if (value is Number && value.isZero) continue;
+    final exp = key - n;
+    if (exp == -1) {
+      terms.add((value * logAntiderivative(xVar, assumptions)) / scale);
+    } else {
+      final newExp = IntegerNumber.of(exp + 1);
+      terms.add((value * Pow(xVar, newExp)) / (scale * newExp));
+    }
+  }
+  return terms.isEmpty
+      ? IntegerNumber.zero
+      : Add(terms).simplify(assumptions: assumptions);
+}
