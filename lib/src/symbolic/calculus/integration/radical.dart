@@ -8,6 +8,94 @@ import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
 
+/// Factors common monomials `x^m` or perfect-square trinomials out of
+/// fractional-power radicands and delegates to [antiDerivative].
+Expr? tryFactorRadicandPower(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2) return null;
+  final factors = expr is Mul ? expr.factors : [expr];
+  final xVar = Variable(variable);
+
+  Expr rebuild(int idx, Expr replacement) => Mul([
+    for (var j = 0; j < factors.length; j++)
+      if (j == idx) replacement else factors[j],
+  ]).simplify(assumptions: assumptions);
+
+  for (var i = 0; i < factors.length; i++) {
+    final factor = factors[i];
+    if (factor case Pow(:final base, exponent: final FractionNumber exp)
+        when base.dependsOn(variable)) {
+      final coeffs = extractPolynomialCoefficients(base, variable);
+      if (coeffs == null) continue;
+      final nonZero = [
+        for (final entry in coeffs.entries)
+          if (entry.value is! Number || !(entry.value as Number).isZero) entry,
+      ];
+      if (nonZero.length < 2) continue;
+
+      final minDeg = nonZero.map((e) => e.key).reduce((a, b) => a < b ? a : b);
+      if (minDeg >= 1) {
+        final quotientPoly = Add([
+          for (final entry in nonZero)
+            entry.value * Pow(xVar, IntegerNumber.of(entry.key - minDeg)),
+        ]).simplify(assumptions: assumptions);
+        final replacement =
+            (Pow(xVar, (IntegerNumber.of(minDeg) * exp).simplify()) *
+                    Pow(quotientPoly, exp))
+                .simplify(assumptions: assumptions);
+        final rewritten = rebuild(i, replacement);
+        final res = antiDerivative(
+          rewritten,
+          variable,
+          depth: depth + 1,
+          assumptions: assumptions,
+        );
+        if (!hasUnevaluatedIntegral(res, variable)) return res;
+      }
+
+      for (final k in const [1, 2, 3]) {
+        if (nonZero.length == 3 &&
+            nonZero.every((e) => e.key == 0 || e.key == k || e.key == 2 * k)) {
+          final a = coeffs[2 * k]!;
+          final b = coeffs[k]!;
+          final c = coeffs[0]!;
+          final disc = (b * b - IntegerNumber.of(4) * a * c).expand().simplify(
+            assumptions: assumptions,
+          );
+          if (disc is Number && disc.isZero) {
+            final sqrtA = _factorEvenPowerSqrt(a, assumptions);
+            final sqrtC = _factorEvenPowerSqrt(c, assumptions);
+            final signRatio = (b / (IntegerNumber.two * sqrtA * sqrtC))
+                .expand()
+                .simplify(assumptions: assumptions);
+            final s = signRatio == IntegerNumber.negativeOne
+                ? IntegerNumber.negativeOne
+                : IntegerNumber.one;
+            final inner = (sqrtA * Pow(xVar, IntegerNumber.of(k)) + s * sqrtC)
+                .simplify(assumptions: assumptions);
+            final newExp = (IntegerNumber.two * exp).simplify(
+              assumptions: assumptions,
+            );
+            final rewritten = rebuild(i, Pow(inner, newExp));
+            final res = antiDerivative(
+              rewritten,
+              variable,
+              depth: depth + 1,
+              assumptions: assumptions,
+            );
+            if (!hasUnevaluatedIntegral(res, variable)) return res;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 /// Integrates square-root binomial quadratics `sqrt(a +/- u^2)` or `sqrt(u^2 - a)`.
 Expr? tryRadicalQuadratic(Expr base, String variable) {
   if (base case Add(terms: [final t0, final t1])) {
@@ -765,3 +853,12 @@ Expr? tryTrigRadicalSubstitution(
       .substitute(uName, Pow(Tan(inner), FractionNumber.half))
       .simplify(assumptions: assumptions);
 }
+
+Expr _factorEvenPowerSqrt(Expr expr, Assumptions assumptions) => switch (expr) {
+  Pow(:final base, exponent: IntegerNumber(asInt: final p?)) when p.isEven =>
+    Pow(base, IntegerNumber.of(p ~/ 2)).simplify(assumptions: assumptions),
+  Mul(:final factors) => Mul([
+    for (final f in factors) _factorEvenPowerSqrt(f, assumptions),
+  ]).simplify(assumptions: assumptions),
+  _ => Pow(expr, FractionNumber.half).simplify(assumptions: assumptions),
+};

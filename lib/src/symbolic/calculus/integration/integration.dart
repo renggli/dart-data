@@ -299,6 +299,15 @@ Expr antiDerivative(
         case final fracLinRes?) {
       return fracLinRes;
     }
+    if (tryFactorRadicandPower(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final factorRadRes?) {
+      return factorRadRes;
+    }
     if (tryChebyshevBinomial(
           node,
           variable,

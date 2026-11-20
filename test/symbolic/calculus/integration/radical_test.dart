@@ -131,5 +131,32 @@ void main() {
         );
       },
     );
+
+    test(
+      'factors monomials and perfect squares out of fractional-power radicands',
+      () {
+        check(Expr.parse('sqrt(x) * sqrt(a * x + b * x^3)').integrate('x'))
+            .isNotA<Integral>();
+        check(Expr.parse('(a * x^3 + b * x^6)^(5/3)').integrate('x'))
+            .isNotA<Integral>();
+        check(
+          Expr.parse('(a^2 + 2 * a * b * x^2 + b^2 * x^4)^(3/4)')
+              .integrate('x'),
+        ).isNotA<Integral>();
+
+        verifyAntiderivative(
+          Expr.parse('sqrt(x) * sqrt(2 * x + 3 * x^3)'),
+          points: const [0.5, 1.0, 1.5],
+        );
+        verifyAntiderivative(
+          Expr.parse('(2 * x^3 + 3 * x^6)^(5/3)'),
+          points: const [0.5, 0.8, 1.1],
+        );
+        verifyAntiderivative(
+          Expr.parse('(4 + 12 * x^2 + 9 * x^4)^(3/4)'),
+          points: const [0.3, 0.7, 1.2],
+        );
+      },
+    );
   });
 }
