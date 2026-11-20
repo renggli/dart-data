@@ -4,6 +4,7 @@ import '../../algebra/simplify.dart';
 import '../../algebra/term_accumulator.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../compiler.dart';
 import '../../number/integer.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
@@ -196,34 +197,50 @@ Expr? tryAntiDerivDiv(
       final b = coeffs[1] ?? IntegerNumber.zero;
       final c = coeffs[0] ?? IntegerNumber.zero;
       final delta = (const IntegerNumber(Integer(4)) * a * c - b * b)
+          .expand()
           .simplify();
       final twoA = (IntegerNumber.two * a).simplify();
       final twoAxPlusB = (twoA * Variable(variable) + b).simplify();
 
-      if (delta case RealNumeric(:final sign) when sign > 0) {
+      Expr atanBranch() {
         final sqrtDelta = Pow(delta, FractionNumber.half).simplify();
         return ((IntegerNumber.two * left / sqrtDelta) *
                 Atan(twoAxPlusB / sqrtDelta))
             .simplify();
-      } else if (delta case RealNumeric(:final sign) when sign == 0) {
-        final xPlus = (twoAxPlusB / twoA).simplify();
-        return (-left / (a * xPlus)).simplify();
-      } else if (delta case RealNumeric(:final sign) when sign < 0) {
-        final dPos = (-delta).simplify();
-        final sqrtD = Pow(dPos, FractionNumber.half).simplify();
-        final arg = ((twoAxPlusB - sqrtD) / (twoAxPlusB + sqrtD)).simplify();
-        return ((left / sqrtD) * Ln(Abs(arg))).simplify();
-      } else if (!isSyntacticallyNegative(delta)) {
-        final sqrtDelta = Pow(delta, FractionNumber.half).simplify();
-        return ((IntegerNumber.two * left / sqrtDelta) *
-                Atan(twoAxPlusB / sqrtDelta))
-            .simplify();
-      } else {
+      }
+
+      Expr logAbsBranch() {
         final dPos = (-delta).simplify();
         final sqrtD = Pow(dPos, FractionNumber.half).simplify();
         final arg = ((twoAxPlusB - sqrtD) / (twoAxPlusB + sqrtD)).simplify();
         return ((left / sqrtD) * Ln(Abs(arg))).simplify();
       }
+
+      if (delta is Number && delta.isZero) {
+        final xPlus = (twoAxPlusB / twoA).simplify();
+        return (-left / (a * xPlus)).simplify();
+      }
+      if (delta.freeVariables.isEmpty && !_containsComplexSubexpr(delta)) {
+        try {
+          final val = delta.evaluate(const {});
+          if (val.isFinite && val != 0.0) {
+            return val > 0.0 ? atanBranch() : logAbsBranch();
+          }
+        } on Object {
+          // Fall through to symbolic check below.
+        }
+      }
+      if (delta case RealNumeric(:final sign)) {
+        if (sign > 0) return atanBranch();
+        if (sign < 0) return logAbsBranch();
+      }
+      if (isSyntacticallyNegative(delta) && !_containsComplexSubexpr(delta)) {
+        final dPos = (-delta).simplify();
+        if (isSymbolicPositive(dPos) || _isPositiveCoeffMonomial(dPos)) {
+          return logAbsBranch();
+        }
+      }
+      return atanBranch();
     }
 
     // int c / (d + exp(ax + b)) dx = (c / d) * (x - (1 / a) * ln(d + exp(ax + b)))
@@ -990,12 +1007,16 @@ Expr? _tryBiquadraticDenominator(Expr left, Expr right, String variable) {
   final xVar = Variable(variable);
 
   // Case 1: b^2 - 4ac > 0 -> a*(x^2 + r1)*(x^2 + r2)
-  final disc = (b * b - const IntegerNumber(Integer(4)) * a * c).simplify();
+  final disc = (b * b - const IntegerNumber(Integer(4)) * a * c)
+      .expand()
+      .simplify();
+  if (disc is Number && disc.isZero) return null;
   if (isSymbolicPositive(disc)) {
     final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
     final r1 = ((b + sqrtDisc) / (IntegerNumber.two * a)).simplify();
     final r2 = ((b - sqrtDisc) / (IntegerNumber.two * a)).simplify();
-    final diffR = (r2 - r1).simplify();
+    final diffR = (r2 - r1).expand().simplify();
+    if (diffR is Number && diffR.isZero) return null;
     final q1 = (xVar * xVar + r1).simplify();
     final q2 = (xVar * xVar + r2).simplify();
     final c1Lin = ((p1 - p3 * r1) / diffR).simplify();
@@ -1287,3 +1308,21 @@ Expr? _tryConjugateRadicalDenominator(
   );
   return hasUnevaluatedIntegral(res, variable) ? null : res;
 }
+
+bool _containsComplexSubexpr(Expr expr) => expr.anyNode(
+  (node) =>
+      node is ComplexNumber ||
+      (node is Pow &&
+          node.exponent is FractionNumber &&
+          (node.exponent as FractionNumber).denominator.isEven &&
+          (isSyntacticallyNegative(node.base) ||
+              isNegativeConstant(node.base))),
+);
+
+bool _isPositiveCoeffMonomial(Expr expr) => switch (expr) {
+  RealNumeric(:final sign) => sign > 0,
+  Variable() => true,
+  Pow(:final base) => _isPositiveCoeffMonomial(base),
+  Mul(:final factors) => factors.every(_isPositiveCoeffMonomial),
+  _ => false,
+};

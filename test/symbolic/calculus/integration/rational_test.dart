@@ -64,5 +64,24 @@ void main() {
         check(highDeg.integrate('x').toString()).contains('integrate(');
       },
     );
+
+    test(
+      'handles irrational discriminants and zero-discriminant biquadratics',
+      () {
+        verifyAntiderivative(
+          Expr.parse('1 / (x^4 + 3 * x^2 - 1)'),
+          points: const [0.3, 0.8, 1.4],
+        );
+
+        final repQuad = Expr.parse('sqrt(c + d * x) / (a + b * x)^2')
+            .integrate('x');
+        check(repQuad).isNotA<Integral>();
+        check(repQuad.anyNode((n) => n == Constant.undefined)).isFalse;
+
+        final symQuad = Expr.parse('1 / (x^2 + a)').integrate('x');
+        check(symQuad).isNotA<Integral>();
+        check(symQuad.anyNode((n) => n is Abs)).isFalse;
+      },
+    );
   });
 }
