@@ -103,5 +103,14 @@ void main() {
               .simplify(assumptions: Assumptions.positive);
       check(diff2).equals(IntegerNumber.zero);
     });
+
+    test('integrates high-degree linear-power denominators quickly', () {
+      final res = Expr.parse('(c + d * x)^7 / (a + b * x)^8').integrate('x');
+      check(res).isNotA<Integral>();
+      verifyAntiderivative(
+        Expr.parse('(2 + 3 * x)^7 / (1 + 2 * x)^8'),
+        points: const [0.3, 0.7, 1.2],
+      );
+    });
   });
 }

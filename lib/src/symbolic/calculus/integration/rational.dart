@@ -597,6 +597,15 @@ Expr? tryAntiDerivDiv(
         case final monoRes?) {
       return monoRes;
     }
+    if (_tryLinearPowerDenominator(
+          left,
+          right,
+          variable,
+          assumptions: assumptions,
+        )
+        case final linPowRes?) {
+      return linPowRes;
+    }
     final rawDegLeft = polynomialDegree(left, variable);
     final rawDegRight = polynomialDegree(right, variable);
     if (rawDegLeft != null && rawDegRight != null && rawDegRight >= 4) {
@@ -1397,4 +1406,70 @@ Expr? _tryMonomialDenominator(
   return terms.isEmpty
       ? IntegerNumber.zero
       : Add(terms).simplify(assumptions: assumptions);
+}
+
+Expr? _tryLinearPowerDenominator(
+  Expr left,
+  Expr right,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  ({Expr scale, Expr linBase, int q})? extractLinPow(Expr e) {
+    if (e
+        case Pow(base: final linBase, exponent: IntegerNumber(asInt: final q?))
+        when q >= 2 && linBase.dependsOn(variable)) {
+      return (scale: IntegerNumber.one, linBase: linBase, q: q);
+    }
+    if (e case Mul(:final factors)) {
+      final constFactors = <Expr>[];
+      final varFactors = <Expr>[];
+      for (final f in factors) {
+        if (f.dependsOn(variable)) {
+          varFactors.add(f);
+        } else {
+          constFactors.add(f);
+        }
+      }
+      if (varFactors.length == 1) {
+        final inner = extractLinPow(varFactors.first);
+        if (inner != null) {
+          final scale = constFactors.isEmpty
+              ? IntegerNumber.one
+              : Mul(constFactors).simplify(assumptions: assumptions);
+          return (scale: scale, linBase: inner.linBase, q: inner.q);
+        }
+      }
+    }
+    return null;
+  }
+
+  final lp = extractLinPow(right);
+  if (lp == null) return null;
+  final (:scale, :linBase, :q) = lp;
+
+  final lin = linBase.matchLinear(variable);
+  if (lin == null) return null;
+  final (:a, :b) = lin;
+  if (b is Number && b.isZero) return null;
+
+  final rawDeg = polynomialDegree(left, variable);
+  if (rawDeg == null || rawDeg == 0 || rawDeg > 20) return null;
+
+  const uName = '_lin_u';
+  const uVar = Variable(uName);
+  final xOfU = ((uVar - b) / a).simplify(assumptions: assumptions);
+  final numU = left
+      .substitute(variable, xOfU)
+      .simplify(assumptions: assumptions);
+  final denU = (a * scale * Pow(uVar, IntegerNumber.of(q))).simplify(
+    assumptions: assumptions,
+  );
+  final resU = _tryMonomialDenominator(
+    numU,
+    denU,
+    uName,
+    assumptions: assumptions,
+  );
+  if (resU == null) return null;
+  return resU.substitute(uName, linBase).simplify(assumptions: assumptions);
 }
