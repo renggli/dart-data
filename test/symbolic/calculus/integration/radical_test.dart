@@ -237,5 +237,21 @@ void main() {
         points: const [0.2, 0.6, 1.0, 2.0, 2.5],
       );
     });
+
+    test('integrates scaled tangent half-integer powers', () {
+      check(Expr.parse('(b * tan(c + d * x))^(5/2)').integrate('x'))
+          .isNotA<Integral>();
+      check(Expr.parse('(b * tan(c + d * x))^(-5/2)').integrate('x'))
+          .isNotA<Integral>();
+
+      verifyAntiderivative(
+        Expr.parse('(3 * tan(1 + 2 * x))^(5/2)'),
+        points: const [0.1, 0.2, 0.25],
+      );
+      verifyAntiderivative(
+        Expr.parse('(3 * tan(1 + 2 * x))^(-5/2)'),
+        points: const [0.1, 0.2, 0.25],
+      );
+    });
   });
 }

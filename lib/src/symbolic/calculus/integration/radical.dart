@@ -1193,7 +1193,8 @@ Expr? _integratePolyOverSqrtQ(
   return (term1 + remInt).simplify();
 }
 
-/// Integrates fractional powers $\tan(a x + b)^{p/2}$ via $u = \sqrt{\tan(a x + b)}$.
+/// Integrates fractional powers `(b * tan(a*x + c))^(k/2)` via
+/// `u = (b * tan(a*x + c))^(1/2)`.
 Expr? tryTrigRadicalSubstitution(
   Expr expr,
   String variable, {
@@ -1210,7 +1211,7 @@ Expr? tryTrigRadicalSubstitution(
       constScale = (constScale * f).simplify();
       continue;
     }
-    if (f is Pow && f.base is Tan && tanPow == null) {
+    if (f is Pow && tanPow == null) {
       tanPow = f;
       continue;
     }
@@ -1218,29 +1219,99 @@ Expr? tryTrigRadicalSubstitution(
   }
 
   if (tanPow == null) return null;
-  final inner = (tanPow.base as Tan).expr;
+  final k = halfIntExponent(tanPow.exponent);
+  if (k == null || k.isEven || k.abs() > 7) return null;
+
+  Expr bScale = IntegerNumber.one;
+  Tan? tanNode;
+  if (tanPow.base case final Tan t) {
+    tanNode = t;
+  } else if (tanPow.base case Mul(:final factors)) {
+    final consts = <Expr>[];
+    final vars = <Expr>[];
+    for (final f in factors) {
+      if (f.dependsOn(variable)) {
+        vars.add(f);
+      } else {
+        consts.add(f);
+      }
+    }
+    if (vars.length == 1 && vars.first is Tan) {
+      tanNode = vars.first as Tan;
+      if (consts.isNotEmpty) {
+        bScale = Mul(consts).simplify(assumptions: assumptions);
+      }
+    }
+  }
+  if (tanNode == null) return null;
+
+  final inner = tanNode.expr;
   final lin = inner.matchLinear(variable);
   if (lin == null) return null;
-  final fracExp = _fractionalExponent(tanPow.exponent);
-  if (fracExp == null || fracExp.q != 2 || fracExp.p.abs() > 3) return null;
+  final d = lin.a;
 
   final uName = '_u$depth';
   final uVar = Variable(uName);
-  final transformed =
-      (constScale *
-              (IntegerNumber.two / lin.a) *
-              Pow(uVar, IntegerNumber.of(fracExp.p + 1)) /
-              (Pow(uVar, const IntegerNumber(Integer(4))) + IntegerNumber.one))
-          .simplify(assumptions: assumptions);
-  final uAntideriv = antiDerivative(
-    transformed,
-    uName,
+  final bSq = (bScale * bScale).simplify(assumptions: assumptions);
+  final quarticDen = (Pow(uVar, const IntegerNumber(Integer(4))) + bSq)
+      .simplify(assumptions: assumptions);
+  final preFactor = (constScale * (IntegerNumber.two * bScale / d)).simplify(
     assumptions: assumptions,
-    depth: depth + 1,
   );
-  if (hasUnevaluatedIntegral(uAntideriv, uName)) return null;
+
+  Expr? uAntideriv;
+  if (k >= -1) {
+    final numU = k + 1 == 0
+        ? IntegerNumber.one
+        : Pow(uVar, IntegerNumber.of(k + 1));
+    final transformed = (preFactor * numU / quarticDen).simplify(
+      assumptions: assumptions,
+    );
+    uAntideriv = antiDerivative(
+      transformed,
+      uName,
+      assumptions: assumptions,
+      depth: depth + 1,
+    );
+  } else {
+    // k <= -3: m = -(k + 1) in {2, 4, 6}
+    var m = -(k + 1);
+    var remScale = IntegerNumber.one as Expr;
+    final terms = <Expr>[];
+    while (m > 0) {
+      final coeff = (remScale / bSq).simplify(assumptions: assumptions);
+      final laurentInt =
+          (-coeff /
+                  (IntegerNumber.of(m - 1) *
+                      Pow(uVar, IntegerNumber.of(m - 1))))
+              .simplify(assumptions: assumptions);
+      terms.add(laurentInt);
+      remScale = (-coeff).simplify(assumptions: assumptions);
+      m -= 4;
+    }
+    final remPow = -m; // 0 or 2
+    final remNum = remPow == 0
+        ? remScale
+        : (remScale * Pow(uVar, IntegerNumber.of(remPow))).simplify(
+            assumptions: assumptions,
+          );
+    final remInt = antiDerivative(
+      (remNum / quarticDen).simplify(assumptions: assumptions),
+      uName,
+      assumptions: assumptions,
+      depth: depth + 1,
+    );
+    if (!hasUnevaluatedIntegral(remInt, uName)) {
+      terms.add(remInt);
+      uAntideriv = (preFactor * Add(terms)).simplify(assumptions: assumptions);
+    }
+  }
+
+  if (uAntideriv == null || hasUnevaluatedIntegral(uAntideriv, uName)) {
+    return null;
+  }
   return uAntideriv
-      .substitute(uName, Pow(Tan(inner), FractionNumber.half))
+      .substitute(uName, Pow(tanPow.base, FractionNumber.half))
       .simplify(assumptions: assumptions);
 }
 
