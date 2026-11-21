@@ -75,7 +75,12 @@ extension RationalFunctionExtension on Expr {
   /// ```
   Expr cancel({Assumptions assumptions = Assumptions.none}) {
     final combined = together(assumptions: assumptions);
-    final (numPart, denPart) = splitNumeratorDenominator(combined);
+    final (rawNum, rawDen) = splitNumeratorDenominator(combined);
+    if (rawDen == IntegerNumber.one) {
+      return rawNum.simplify(assumptions: assumptions);
+    }
+    final preCancelled = cancelFactoredFraction(rawNum, rawDen);
+    final (numPart, denPart) = splitNumeratorDenominator(preCancelled);
     if (denPart == IntegerNumber.one) {
       return numPart.simplify(assumptions: assumptions);
     }

@@ -49,11 +49,21 @@ Expr cancelFactoredFraction(Expr num, Expr den) {
     return Constant.undefined;
   }
 
-  // Cancel common symbolic factors
+  // Cancel common symbolic factors (including negated Add factors)
   for (final key in numFactors.keys.toList()) {
-    if (denFactors.containsKey(key)) {
+    var denKey = denFactors.containsKey(key) ? key : null;
+    var negated = false;
+    if (denKey == null && key is Add) {
+      final negKey = Add([for (final t in key.terms) (-t).simplify()])
+          .simplify();
+      if (denFactors.containsKey(negKey)) {
+        denKey = negKey;
+        negated = true;
+      }
+    }
+    if (denKey != null) {
       final nExp = numFactors[key]!;
-      final dExp = denFactors[key]!;
+      final dExp = denFactors[denKey]!;
       final common = math.min(nExp, dExp);
       final newN = nExp - common;
       final newD = dExp - common;
@@ -63,9 +73,12 @@ Expr cancelFactoredFraction(Expr num, Expr den) {
         numFactors[key] = newN;
       }
       if (newD == 0) {
-        denFactors.remove(key);
+        denFactors.remove(denKey);
       } else {
-        denFactors[key] = newD;
+        denFactors[denKey] = newD;
+      }
+      if (negated && common.isOdd) {
+        numScalar = numScalar.mulRational(IntegerNumber.of(-1));
       }
     }
   }

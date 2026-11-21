@@ -1,4 +1,5 @@
 import '../../algebra/expand.dart';
+import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/term_accumulator.dart';
 import '../../assumptions.dart';
@@ -276,6 +277,34 @@ Expr? tryUSubstitution(
       var fU = replaced.simplify(assumptions: assumptions);
       if (fU.dependsOn(variable)) {
         fU = replaced.expand().simplify(assumptions: assumptions);
+      }
+      if (fU.dependsOn(variable)) {
+        final normQuot = quot
+            .together(assumptions: assumptions)
+            .cancel(assumptions: assumptions);
+        if (normQuot != quot) {
+          final normReplaced = _replaceUCandidate(
+            normQuot,
+            candidate,
+            uVar,
+            variable,
+          );
+          fU = normReplaced.simplify(assumptions: assumptions);
+          if (fU.dependsOn(variable)) {
+            fU = normReplaced.expand().simplify(assumptions: assumptions);
+          }
+        }
+        if (fU.dependsOn(variable)) {
+          fU =
+              _tryLinearTranscendentalReplace(
+                normQuot: normQuot,
+                candidate: candidate,
+                uVar: uVar,
+                variable: variable,
+                assumptions: assumptions,
+              ) ??
+              fU;
+        }
       }
       if (fU.dependsOn(variable)) continue;
 
@@ -616,6 +645,14 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
         if (base.dependsOn(variable) &&
             (base is! Variable || base.name != variable)) {
           out.add(base);
+          if (base is Add &&
+              exponent is IntegerNumber &&
+              exponent.isNegative &&
+              _findTranscendental(base, variable) != null) {
+            final xVar = Variable(variable);
+            out.add((base / xVar).simplify());
+            out.add((base / (xVar * xVar)).simplify());
+          }
         }
         if (base case Variable(:final name) when name == variable) {
           if (exponent case IntegerNumber(asInt: final m?)
@@ -680,4 +717,56 @@ Expr _replaceUCandidate(
   return node.mapChildren(
     (child) => _replaceUCandidate(child, candidate, uVar, variable),
   );
+}
+
+Expr? _tryLinearTranscendentalReplace({
+  required Expr normQuot,
+  required Expr candidate,
+  required Variable uVar,
+  required String variable,
+  required Assumptions assumptions,
+}) {
+  final tNode = _findTranscendental(candidate, variable);
+  if (tNode == null) return null;
+  const tName = '_lt';
+  const tVar = Variable(tName);
+  final linear = _substituteExpr(candidate, tNode, tVar).matchLinear(tName);
+  if (linear == null) return null;
+  final (:a, :b) = linear;
+  if (a is Number && a.isZero) return null;
+  final tReplacement = ((uVar - b) / a).simplify(assumptions: assumptions);
+  final subbed = _substituteExpr(normQuot, tNode, tReplacement);
+  final reduced = subbed
+      .together(assumptions: assumptions)
+      .cancel(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  return reduced.dependsOn(variable) ? null : reduced;
+}
+
+Expr? _findTranscendental(Expr node, String variable) {
+  if (!node.dependsOn(variable)) return null;
+  if (node is Sin ||
+      node is Cos ||
+      node is Tan ||
+      node is Asin ||
+      node is Acos ||
+      node is Atan ||
+      node is Sinh ||
+      node is Cosh ||
+      node is Tanh ||
+      node is Ln ||
+      (node is Pow && node.base == Constant.e)) {
+    return node;
+  }
+  Expr? found;
+  node.mapChildren((child) {
+    found ??= _findTranscendental(child, variable);
+    return child;
+  });
+  return found;
+}
+
+Expr _substituteExpr(Expr root, Expr target, Expr replacement) {
+  if (root == target) return replacement;
+  return root.mapChildren((c) => _substituteExpr(c, target, replacement));
 }

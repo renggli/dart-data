@@ -285,5 +285,20 @@ void main() {
         );
       },
     );
+
+    test('normalizes u-substitution quotients and cancels negated denominator factors', () {
+      verifyAntiderivative(
+        Expr.parse('(cos(x) + x * sin(x)) / (x * (x + cos(x)))'),
+        points: const [0.3, 0.7, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('(x - 1) / (x + x^2 * ln(x))'),
+        points: const [0.4, 1.5, 2.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('(x * e^x - e^x) / (x * (x + e^x))'),
+        points: const [0.3, 0.7, 1.2],
+      );
+    });
   });
 }
