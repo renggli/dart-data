@@ -442,35 +442,40 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
                       Pow(xVar, IntegerNumber.of(k - 2)) * left,
                       variable,
                     ));
-        final term2 = k == 1
-            ? antiDerivative(
-                (b / left).simplify(),
-                variable,
-                assumptions: Assumptions.none,
-              )
+        final term2 = (b is Number && b.isZero)
+            ? IntegerNumber.zero
+            : (k == 1
+                  ? antiDerivative(
+                      (b / left).simplify(),
+                      variable,
+                      assumptions: Assumptions.none,
+                    )
+                  : tryPolynomialOverSqrtQuadratic(
+                      b,
+                      Pow(xVar, IntegerNumber.of(k - 1)) * left,
+                      variable,
+                    ));
+        final term3 = (c is Number && c.isZero)
+            ? IntegerNumber.zero
             : tryPolynomialOverSqrtQuadratic(
-                b,
-                Pow(xVar, IntegerNumber.of(k - 1)) * left,
+                c,
+                (right * left).simplify(),
                 variable,
               );
-        final term3 = tryPolynomialOverSqrtQuadratic(
-          c,
-          (right * left).simplify(),
-          variable,
-        );
         if (term1 != null &&
             term2 != null &&
             term3 != null &&
             !hasUnevaluatedIntegral(term1, variable) &&
-            !hasUnevaluatedIntegral(term2, variable)) {
+            !hasUnevaluatedIntegral(term2, variable) &&
+            !hasUnevaluatedIntegral(term3, variable)) {
           return (term1 + term2 + term3).simplify();
         }
       }
     }
   }
 
-  // Case 3: c / (x^k * sqrt(Ax^2 + Bx + C)) (k >= 1) via t = 1/x
-  if (!left.dependsOn(variable) && right is Mul) {
+  // Case 3: P(x) / (x^k * sqrt(Ax^2 + Bx + C)) (k >= 1) via t = 1/x
+  if (right is Mul) {
     final factors = right.factors;
     var k = 0;
     Pow? rad;
@@ -491,7 +496,53 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
         valid = false;
       }
     }
-    if (valid && k >= 1 && k <= 4 && rad != null) {
+    if (valid && k >= 1 && k <= 8 && rad != null) {
+      if (left.dependsOn(variable)) {
+        final degLeft = polynomialDegree(left, variable);
+        if (degLeft != null && degLeft <= 8) {
+          final pCoeffs = extractPolynomialCoefficients(left, variable);
+          if (pCoeffs != null) {
+            final xVar = Variable(variable);
+            final results = <Expr>[];
+            var ok = true;
+            for (final MapEntry(key: j, value: coeff) in pCoeffs.entries) {
+              if (coeff is Number && coeff.isZero) continue;
+              final Expr? termRes;
+              if (j >= k) {
+                final numTerm = j == k
+                    ? coeff
+                    : (coeff * Pow(xVar, IntegerNumber.of(j - k))).simplify();
+                termRes = antiDerivative(
+                  (numTerm / rad).simplify(),
+                  variable,
+                  assumptions: Assumptions.none,
+                  depth: 2,
+                );
+              } else {
+                final denomTerm = (Pow(xVar, IntegerNumber.of(k - j)) * rad)
+                    .simplify();
+                termRes = tryPolynomialOverSqrtQuadratic(
+                  coeff,
+                  denomTerm,
+                  variable,
+                );
+              }
+              if (termRes == null ||
+                  hasUnevaluatedIntegral(termRes, variable)) {
+                ok = false;
+                break;
+              }
+              results.add(termRes);
+            }
+            if (ok) {
+              return results.isEmpty
+                  ? IntegerNumber.zero
+                  : Add(results).simplify();
+            }
+          }
+        }
+        return null;
+      }
       final coeffs = extractPolynomialCoefficients(rad.base, variable);
       if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
         final a = coeffs[2] ?? IntegerNumber.zero;

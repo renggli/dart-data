@@ -158,5 +158,27 @@ void main() {
         );
       },
     );
+
+    test(
+      'integrates sqrt(A*x^2 + B*x) / x^k and P(x) / (x^k * sqrt(Q(x)))',
+      () {
+        verifyAntiderivative(
+          Expr.parse('sqrt(x^2 + x) / x'),
+          points: const [0.5, 1.0, 2.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('sqrt(x^2 + 1) / x'),
+          points: const [0.5, 1.0, 2.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('(2 + 3 * x)^2 / (x^5 * sqrt(4 - 9 * x^2))'),
+          points: const [0.2, 0.35, 0.5],
+        );
+        check(
+          Expr.parse('(d + e * x)^2 / (x^5 * sqrt(d^2 - e^2 * x^2))')
+              .integrate('x'),
+        ).isNotA<Integral>();
+      },
+    );
   });
 }
