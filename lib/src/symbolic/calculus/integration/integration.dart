@@ -151,7 +151,40 @@ Expr antiDerivative(
     return (node * Variable(variable)).simplify(assumptions: assumptions);
   }
 
+  if (depth < 2 && node.anyNode((n) => n is Binomial)) {
+    Expr expandBinomial(Expr e) {
+      final mapped = e.mapChildren(expandBinomial);
+      if (mapped
+          case Binomial(left: final u, right: IntegerNumber(asInt: final k?))
+          when u.dependsOn(variable) && k >= 1 && k <= 8) {
+        var fact = 1;
+        for (var j = 2; j <= k; j++) {
+          fact *= j;
+        }
+        return Mul([for (var j = 0; j < k; j++) u - IntegerNumber.of(j)]) /
+            IntegerNumber.of(fact);
+      }
+      return mapped;
+    }
+
+    final expanded = expandBinomial(node).simplify(assumptions: assumptions);
+    if (expanded != node) {
+      final res = antiDerivative(
+        expanded,
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(res, variable)) return res;
+    }
+  }
+
   final result = switch (node) {
+    Derivative(:final expr, variable: final v, :final order)
+        when v == variable =>
+      order == 1
+          ? expr
+          : expr.derivative(v, order: order - 1, assumptions: assumptions),
     Variable(:final name) when name == variable =>
       (Pow(node, IntegerNumber.two) / IntegerNumber.two).simplify(
         assumptions: assumptions,
@@ -618,6 +651,21 @@ Expr? _antiDerivLn(
       return ((arg * Ln(inner) - LogIntegralLi(arg)) / a).simplify(
         assumptions: assumptions,
       );
+    }
+  }
+  if (depth < 2) {
+    if (inner case Pow(:final base, :final exponent)
+        when !base.dependsOn(variable)) {
+      final lnBase = base == Constant.e ? IntegerNumber.one : Ln(base);
+      final gInt = antiDerivative(
+        exponent,
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(gInt, variable)) {
+        return (lnBase * gInt).simplify(assumptions: assumptions);
+      }
     }
   }
   if (depth >= 2) return null;

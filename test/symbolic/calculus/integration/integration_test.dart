@@ -564,5 +564,33 @@ void main() {
       final withI = Expr.parse('1 / (x + i)').integrate('x');
       check(withI).equals(Expr.parse('ln(i + x)').simplify());
     });
+
+    test(
+      'integrates unevaluated Derivative, Binomial(x, k), and ln(b^g(x))',
+      () {
+        final derivExpr = Derivative(Expr.parse('exp(1 + x - x^2)'), 'x');
+        check(derivExpr.integrate('x')).equals(Expr.parse('exp(1 + x - x^2)'));
+
+        final deriv2 = Derivative(Expr.parse('sin(x^2)'), 'x', order: 2);
+        check(deriv2.integrate('x'))
+            .equals(Expr.parse('2 * x * cos(x^2)').simplify());
+
+        final binomRecip =
+            (IntegerNumber.one / Binomial(x, IntegerNumber.of(5))).integrate(
+              'x',
+            );
+        check(binomRecip).isNotA<Integral>();
+        check(binomRecip.anyNode((n) => n is Binomial)).isFalse;
+
+        verifyAntiderivative(
+          Ln(Pow(Constant.e, Cos(x))),
+          points: const [0.3, 0.8, 1.4],
+        );
+        verifyAntiderivative(
+          Ln(Pow(IntegerNumber.two, Cos(x))),
+          points: const [0.3, 0.8, 1.4],
+        );
+      },
+    );
   });
 }
