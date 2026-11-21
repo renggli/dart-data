@@ -161,5 +161,21 @@ void main() {
         points: const [0.2, 0.5, 0.8],
       );
     });
+
+    test(
+      'integrates shifted exponentials over linear powers and polynomials',
+      () {
+        check(Expr.parse('exp(a + b * x) / (c + d * x)^2').integrate('x'))
+            .isNotA<Integral>();
+        verifyAntiderivative(
+          Expr.parse('exp(2 * x) / (x^2 - 3 * x + 2)'),
+          points: const [2.5, 3.0, 4.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('exp(1 + 2 * x) / (1 + 3 * x)^2'),
+          points: const [0.2, 0.5, 0.8],
+        );
+      },
+    );
   });
 }

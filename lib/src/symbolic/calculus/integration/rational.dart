@@ -268,6 +268,16 @@ Expr? tryAntiDerivDiv(
       case final trigHypLinRes?) {
     return trigHypLinRes;
   }
+  if (_tryExpOverRational(
+        left,
+        right,
+        variable,
+        depth: depth,
+        assumptions: assumptions,
+      )
+      case final expRatRes?) {
+    return expRatRes;
+  }
 
   // int u'(x) / (a + b * u(x)^2) dx = (1 / sqrt(a * b)) * arctan(sqrt(b / a) * u(x))
   if (right case Add(terms: [final rL, final rR])) {
@@ -1629,4 +1639,103 @@ Expr? _tryTrigOrHypOverLinearPower(
   }
 
   return integrateK(left, k);
+}
+
+Expr? _tryExpOverRational(
+  Expr left,
+  Expr right,
+  String variable, {
+  required int depth,
+  required Assumptions assumptions,
+}) {
+  var scale = IntegerNumber.one as Expr;
+  Pow? expNode;
+  if (left is Pow && left.base == Constant.e) {
+    expNode = left;
+  } else if (left is Mul) {
+    final consts = <Expr>[];
+    final vars = <Expr>[];
+    for (final f in left.factors) {
+      if (f.dependsOn(variable)) {
+        vars.add(f);
+      } else {
+        consts.add(f);
+      }
+    }
+    if (vars.length == 1 && vars.first is Pow) {
+      final p = vars.first as Pow;
+      if (p.base == Constant.e) {
+        expNode = p;
+        if (consts.isNotEmpty) {
+          scale = Mul(consts).simplify(assumptions: assumptions);
+        }
+      }
+    }
+  }
+  if (expNode == null) return null;
+
+  final linExp = expNode.exponent.matchLinear(variable);
+  if (linExp == null) return null;
+  final (a: b, b: a) = linExp;
+
+  // Case 1: right is (c + d*x)^k with 1 <= k <= 6
+  final Expr linBase;
+  final int k;
+  if (right
+      case Pow(base: final rBase, exponent: IntegerNumber(asInt: final p?))
+      when p >= 1 && p <= 6) {
+    linBase = rBase;
+    k = p;
+  } else {
+    linBase = right;
+    k = 1;
+  }
+  final linDen = linBase.matchLinear(variable);
+  if (linDen != null) {
+    final (a: d, b: c) = linDen;
+    Expr integrateK(int m) {
+      if (m == 1) {
+        final shift = Pow(
+          Constant.e,
+          (a - b * c / d).simplify(assumptions: assumptions),
+        );
+        final arg = ((b / d) * linBase).simplify(assumptions: assumptions);
+        return (scale * shift * ExpIntegralEi(arg) / d).simplify(
+          assumptions: assumptions,
+        );
+      }
+      final m1 = IntegerNumber.of(m - 1);
+      final denomPow = m - 1 == 1 ? linBase : Pow(linBase, m1);
+      final term1 = (-left / (d * m1 * denomPow)).simplify(
+        assumptions: assumptions,
+      );
+      final rem = integrateK(m - 1);
+      return (term1 + (b / (d * m1)) * rem).simplify(assumptions: assumptions);
+    }
+
+    return integrateK(k);
+  }
+
+  // Case 2: right is a polynomial of degree 2..4 -> partial fractions
+  if (depth < 2) {
+    final deg = polynomialDegree(right, variable);
+    if (deg != null && deg >= 2 && deg <= 4) {
+      final pf = (IntegerNumber.one / right).apart(variable);
+      if (pf is Add) {
+        final results = <Expr>[];
+        for (final term in pf.terms) {
+          final res = antiDerivative(
+            (left * term).simplify(assumptions: assumptions),
+            variable,
+            depth: depth + 1,
+            assumptions: assumptions,
+          );
+          if (hasUnevaluatedIntegral(res, variable)) return null;
+          results.add(res);
+        }
+        return Add(results).simplify(assumptions: assumptions);
+      }
+    }
+  }
+  return null;
 }
