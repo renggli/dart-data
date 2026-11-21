@@ -299,6 +299,13 @@ void main() {
         Expr.parse('(x * e^x - e^x) / (x * (x + e^x))'),
         points: const [0.3, 0.7, 1.2],
       );
+      check(
+        Expr.parse(
+          '(2018 * x^2017 + 2017 * x^2016) / (x^4036 + 2 * x^4035 + x^4034 + 1)',
+        ).integrate('x'),
+      ).isA<Expr>();
+      check(Expr.parse('x^2017 / (x^2018 + 1)').integrate('x'))
+          .isNotA<Integral>();
     });
   });
 }

@@ -278,7 +278,7 @@ Expr? tryUSubstitution(
       if (fU.dependsOn(variable)) {
         fU = replaced.expand().simplify(assumptions: assumptions);
       }
-      if (fU.dependsOn(variable)) {
+      if (fU.dependsOn(variable) && !_hasLargeIntegerExponent(quot)) {
         final normQuot = quot
             .together(assumptions: assumptions)
             .cancel(assumptions: assumptions);
@@ -736,12 +736,21 @@ Expr? _tryLinearTranscendentalReplace({
   if (a is Number && a.isZero) return null;
   final tReplacement = ((uVar - b) / a).simplify(assumptions: assumptions);
   final subbed = _substituteExpr(normQuot, tNode, tReplacement);
+  if (_hasLargeIntegerExponent(subbed)) return null;
   final reduced = subbed
       .together(assumptions: assumptions)
       .cancel(assumptions: assumptions)
       .simplify(assumptions: assumptions);
   return reduced.dependsOn(variable) ? null : reduced;
 }
+
+bool _hasLargeIntegerExponent(Expr expr, {int limit = 16}) => expr.anyNode(
+  (n) =>
+      n is Pow &&
+      n.exponent is IntegerNumber &&
+      ((n.exponent as IntegerNumber).asInt == null ||
+          (n.exponent as IntegerNumber).asInt!.abs() > limit),
+);
 
 Expr? _findTranscendental(Expr node, String variable) {
   if (!node.dependsOn(variable)) return null;
