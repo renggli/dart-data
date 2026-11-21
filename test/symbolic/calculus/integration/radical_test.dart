@@ -180,5 +180,30 @@ void main() {
         ).isNotA<Integral>();
       },
     );
+
+    test(
+      'integrates half-integer powers of (a +/- a*sin(u)) and (a +/- a*cos(u))',
+      () {
+        verifyAntiderivative(
+          Expr.parse('(2 + 2 * sin(1 + 3 * x))^(3/2)'),
+          points: const [0.1, 0.4, 0.7],
+        );
+        verifyAntiderivative(
+          Expr.parse('(2 + 2 * sin(1 + 3 * x))^(-3/2)'),
+          points: const [0.1, 0.4, 0.7],
+        );
+        verifyAntiderivative(
+          Expr.parse('(2 - 2 * cos(1 + 3 * x))^(5/2)'),
+          points: const [0.2, 0.5, 0.8],
+        );
+        for (final expr in const [
+          '(a + a * sin(c + d * x))^(3/2)',
+          '(a + a * sin(c + d * x))^(-3/2)',
+          '(a - a * cos(c + d * x))^(5/2)',
+        ]) {
+          check(Expr.parse(expr).integrate('x')).isNotA<Integral>();
+        }
+      },
+    );
   });
 }

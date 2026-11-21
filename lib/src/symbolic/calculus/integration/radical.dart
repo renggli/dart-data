@@ -96,6 +96,155 @@ Expr? tryFactorRadicandPower(
   return null;
 }
 
+/// Integrates half-integer powers `(a +/- a*sin(u))^(k/2)` and
+/// `(a +/- a*cos(u))^(k/2)` via half-angle identities.
+Expr? tryHalfAngleTrigRadical(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2) return null;
+
+  var constScale = IntegerNumber.one as Expr;
+  Pow? targetPow;
+  if (expr is Pow) {
+    targetPow = expr;
+  } else if (expr is Mul) {
+    final consts = <Expr>[];
+    final vars = <Expr>[];
+    for (final f in expr.factors) {
+      if (f.dependsOn(variable)) {
+        vars.add(f);
+      } else {
+        consts.add(f);
+      }
+    }
+    if (vars.length == 1 && vars.first is Pow) {
+      targetPow = vars.first as Pow;
+      if (consts.isNotEmpty) {
+        constScale = Mul(consts).simplify(assumptions: assumptions);
+      }
+    }
+  }
+  if (targetPow == null) return null;
+
+  final k = halfIntExponent(targetPow.exponent);
+  if (k == null || k.isEven || k.abs() > 9) return null;
+
+  if (targetPow.base case Add(terms: [final t0, final t1])) {
+    final Expr? a;
+    final Expr trigTerm;
+    if (!t0.dependsOn(variable) && t1.dependsOn(variable)) {
+      a = t0;
+      trigTerm = t1;
+    } else if (!t1.dependsOn(variable) && t0.dependsOn(variable)) {
+      a = t1;
+      trigTerm = t0;
+    } else {
+      return null;
+    }
+
+    final trigFactors = trigTerm is Mul ? trigTerm.factors : [trigTerm];
+    final trigConst = <Expr>[];
+    final trigVar = <Expr>[];
+    for (final f in trigFactors) {
+      if (f.dependsOn(variable)) {
+        trigVar.add(f);
+      } else {
+        trigConst.add(f);
+      }
+    }
+    if (trigVar.length != 1) return null;
+    final trigNode = trigVar.first;
+    final bool isSin;
+    final Expr u;
+    if (trigNode case Sin(:final expr)) {
+      isSin = true;
+      u = expr;
+    } else if (trigNode case Cos(:final expr)) {
+      isSin = false;
+      u = expr;
+    } else {
+      return null;
+    }
+    if (u.matchLinear(variable) == null) return null;
+
+    final coeff = trigConst.isEmpty
+        ? IntegerNumber.one
+        : Mul(trigConst).simplify(assumptions: assumptions);
+    final ratio = (coeff / a).simplify(assumptions: assumptions);
+    final int sign;
+    if (ratio == IntegerNumber.one) {
+      sign = 1;
+    } else if (ratio == IntegerNumber.negativeOne) {
+      sign = -1;
+    } else {
+      return null;
+    }
+
+    final aExpr = a;
+    final duFactor = u
+        .matchLinear(variable)!
+        .a
+        .simplify(assumptions: assumptions);
+    final trigDeriv = isSin ? Cos(u) : (-Sin(u)).simplify();
+    final sqrt2 = Pow(IntegerNumber.two, FractionNumber.half);
+    final sqrtA = Pow(aExpr, FractionNumber.half);
+
+    Expr integrateHalfInt(int m) {
+      final sExpr = targetPow!.base;
+      if (m == 1) {
+        return (-IntegerNumber.of(2 * sign) *
+                aExpr *
+                trigDeriv *
+                Pow(sExpr, const FractionNumber(Integer(-1), Integer(2))))
+            .simplify(assumptions: assumptions);
+      }
+      if (m == -1) {
+        final arg =
+            (sqrt2 *
+                    sqrtA *
+                    trigDeriv /
+                    (IntegerNumber.two * Pow(sExpr, FractionNumber.half)))
+                .simplify(assumptions: assumptions);
+        return (-IntegerNumber.of(sign) * sqrt2 * Atanh(arg) / sqrtA).simplify(
+          assumptions: assumptions,
+        );
+      }
+      if (m > 1) {
+        final q = FractionNumber(Integer(m), const Integer(2));
+        final prev = integrateHalfInt(m - 2);
+        final term1 =
+            (-IntegerNumber.of(2 * sign) *
+                aExpr *
+                trigDeriv *
+                Pow(sExpr, (q - IntegerNumber.one).simplify())) /
+            IntegerNumber.of(m);
+        final term2 =
+            (IntegerNumber.of(2 * (m - 1)) * aExpr / IntegerNumber.of(m)) *
+            prev;
+        return (term1 + term2).simplify(assumptions: assumptions);
+      }
+      // m <= -3
+      final q = FractionNumber(Integer(m), const Integer(2));
+      final next = integrateHalfInt(m + 2);
+      final term1 =
+          (IntegerNumber.of(sign) * trigDeriv * Pow(sExpr, q)) /
+          IntegerNumber.of(m + 1);
+      final term2 =
+          (IntegerNumber.of(m + 2) / (IntegerNumber.of(2 * (m + 1)) * aExpr)) *
+          next;
+      return (term1 + term2).simplify(assumptions: assumptions);
+    }
+
+    return (constScale * integrateHalfInt(k) / duFactor).simplify(
+      assumptions: assumptions,
+    );
+  }
+  return null;
+}
+
 /// Integrates square-root binomial quadratics `sqrt(a +/- u^2)` or `sqrt(u^2 - a)`.
 Expr? tryRadicalQuadratic(Expr base, String variable) {
   if (base case Add(terms: [final t0, final t1])) {

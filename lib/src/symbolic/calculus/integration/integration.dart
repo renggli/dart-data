@@ -326,6 +326,15 @@ Expr antiDerivative(
         case final trigRadRes?) {
       return trigRadRes;
     }
+    if (tryHalfAngleTrigRadical(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final halfAngleRes?) {
+      return halfAngleRes;
+    }
     if (tryUSubstitution(node, variable, assumptions: assumptions, depth: depth)
         case final uSubRes?) {
       return uSubRes;
