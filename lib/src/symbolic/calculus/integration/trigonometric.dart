@@ -653,6 +653,14 @@ Expr? tryHyperbolicRationalSubstitution(
           return null;
         }
         cosExp += exp;
+      case Tan(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        sinExp += exp;
+        cosExp -= exp;
       default:
         return null;
     }

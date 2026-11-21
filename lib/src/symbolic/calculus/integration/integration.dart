@@ -4,6 +4,7 @@ import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/simplify/domain.dart';
 import '../../algebra/term_accumulator.dart';
+import '../../algebra/trig.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
@@ -416,6 +417,32 @@ Expr antiDerivative(
         )
         case final hypSubRes?) {
       return hypSubRes;
+    }
+    if (node is! Tan &&
+        node.anyNode((n) => n is Tan && n.dependsOn(variable))) {
+      final rewritten = _rewriteTanToSinCos(
+        node,
+        variable,
+      ).simplify(assumptions: assumptions);
+      if (rewritten != node) {
+        final tanRes = antiDerivative(
+          rewritten,
+          variable,
+          assumptions: assumptions,
+          depth: depth + 1,
+        );
+        if (!hasUnevaluatedIntegral(tanRes, variable)) return tanRes;
+      }
+    }
+    if (_tryExpandTrigAtan(node, variable, assumptions: assumptions)
+        case final atanTrigRes?) {
+      final res = antiDerivative(
+        atanTrigRes,
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(res, variable)) return res;
     }
   }
   if (depth == 2 && node is! Add && hasUnevaluatedIntegral(result, variable)) {
@@ -1750,3 +1777,34 @@ bool _mayBeComplexExpr(Expr expr) => expr.anyNode(
           (isSyntacticallyNegative(node.base) ||
               isNegativeConstant(node.base))),
 );
+
+Expr _rewriteTanToSinCos(Expr node, String variable) {
+  if (!node.dependsOn(variable)) return node;
+  if (node case Tan(:final expr)) {
+    return Sin(expr) * Pow(Cos(expr), IntegerNumber.negativeOne);
+  }
+  return node.mapChildren((c) => _rewriteTanToSinCos(c, variable));
+}
+
+Expr? _tryExpandTrigAtan(
+  Expr node,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final Expr inner;
+  if (node case Sin(:final expr)) {
+    inner = expr;
+  } else if (node case Cos(:final expr)) {
+    inner = expr;
+  } else {
+    return null;
+  }
+  if (inner
+      case Mul(factors: [IntegerNumber(asInt: final k?), Atan(expr: final u)])
+      when k >= 2 && k <= 6 && u.matchLinear(variable) != null) {
+    return node
+        .expandTrig(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+  }
+  return null;
+}

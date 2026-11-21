@@ -151,5 +151,32 @@ void main() {
             .integrate('x'),
       ).isNotA<Integral>();
     });
+
+    test('integrates sec/tan products, sum-to-product quotients, and trig(k * atan)', () {
+      verifyAntiderivative(
+        Expr.parse('tan(x)^3 / cos(x)^5'),
+        points: const [0.2, 0.5, 0.9],
+      );
+      verifyAntiderivative(
+        Expr.parse('exp(sin(x)) / (tan(x) / sin(x))'),
+        points: const [0.3, 0.7, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('(sin(20 * x) + sin(19 * x)) / (cos(20 * x) + cos(19 * x))'),
+        points: const [0.02, 0.04],
+      );
+      verifyAntiderivative(
+        Expr.parse('(sin(5 * x) - sin(3 * x)) / (cos(5 * x) - cos(3 * x))'),
+        points: const [0.1, 0.2],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(4 * atan(x))'),
+        points: const [0.2, 0.6, 1.2],
+      );
+      verifyAntiderivative(
+        Expr.parse('cos(3 * atan(x))'),
+        points: const [0.2, 0.6, 1.2],
+      );
+    });
   });
 }

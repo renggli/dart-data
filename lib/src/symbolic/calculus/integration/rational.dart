@@ -535,6 +535,15 @@ Expr? tryAntiDerivDiv(
       assumptions: assumptions,
     );
     if (conjRes != null) return conjRes;
+
+    final sumProdRes = _trySumToProductTrigQuotient(
+      left,
+      right,
+      variable,
+      depth: depth,
+      assumptions: assumptions,
+    );
+    if (sumProdRes != null) return sumProdRes;
   }
 
   // Rational functions P(x) / Q(x): polynomial division and partial fractions
@@ -1757,4 +1766,99 @@ Expr? _tryExpOverRational(
     }
   }
   return null;
+}
+
+Expr? _trySumToProductTrigQuotient(
+  Expr left,
+  Add right,
+  String variable, {
+  required int depth,
+  required Assumptions assumptions,
+}) {
+  if (left is! Add || left.terms.length != 2 || right.terms.length != 2) {
+    return null;
+  }
+
+  ({int sign, Expr arg})? matchSignedSin(Expr e) => switch (e) {
+    Sin(:final expr) => (sign: 1, arg: expr),
+    Mul(factors: [IntegerNumber(isNegativeOne: true), Sin(:final expr)]) => (
+      sign: -1,
+      arg: expr,
+    ),
+    _ => null,
+  };
+
+  ({int sign, Expr arg})? matchSignedCos(Expr e) => switch (e) {
+    Cos(:final expr) => (sign: 1, arg: expr),
+    Mul(factors: [IntegerNumber(isNegativeOne: true), Cos(:final expr)]) => (
+      sign: -1,
+      arg: expr,
+    ),
+    _ => null,
+  };
+
+  final s0 = matchSignedSin(left.terms[0]);
+  final s1 = matchSignedSin(left.terms[1]);
+  final c0 = matchSignedCos(right.terms[0]);
+  final c1 = matchSignedCos(right.terms[1]);
+  if (s0 == null || s1 == null || c0 == null || c1 == null) return null;
+
+  final ({int sign, Expr arg}) cosA;
+  final ({int sign, Expr arg}) cosB;
+  if (s0.arg == c0.arg && s1.arg == c1.arg) {
+    cosA = c0;
+    cosB = c1;
+  } else if (s0.arg == c1.arg && s1.arg == c0.arg) {
+    cosA = c1;
+    cosB = c0;
+  } else {
+    return null;
+  }
+
+  final a = s0.arg;
+  final b = s1.arg;
+  if (a == b ||
+      a.matchLinear(variable) == null ||
+      b.matchLinear(variable) == null) {
+    return null;
+  }
+
+  var numSignA = s0.sign;
+  var numSignB = s1.sign;
+  var denSignA = cosA.sign;
+  var denSignB = cosB.sign;
+  var overallSign = 1;
+  if (denSignA == -1) {
+    denSignA = 1;
+    denSignB = -denSignB;
+    overallSign = -overallSign;
+  }
+  if (numSignA == -1) {
+    numSignA = 1;
+    numSignB = -numSignB;
+    overallSign = -overallSign;
+  }
+
+  final Expr rewritten;
+  if (denSignB == 1) {
+    final angle = ((numSignB == 1 ? a + b : a - b) / IntegerNumber.two)
+        .simplify(assumptions: assumptions);
+    rewritten = (IntegerNumber.of(overallSign) * Tan(angle)).simplify(
+      assumptions: assumptions,
+    );
+  } else {
+    final angle = ((numSignB == 1 ? a - b : a + b) / IntegerNumber.two)
+        .simplify(assumptions: assumptions);
+    rewritten = (IntegerNumber.of(-overallSign) / Tan(angle)).simplify(
+      assumptions: assumptions,
+    );
+  }
+
+  final res = antiDerivative(
+    rewritten,
+    variable,
+    assumptions: assumptions,
+    depth: depth + 1,
+  );
+  return hasUnevaluatedIntegral(res, variable) ? null : res;
 }
