@@ -253,5 +253,21 @@ void main() {
         points: const [0.1, 0.2, 0.25],
       );
     });
+
+    test('extracts locally-constant scale from (a * f(x)^2)^(k/2)', () {
+      check(Expr.parse('(a * sin(x)^2)^(3/2)').integrate('x'))
+          .isNotA<Integral>();
+      check(Expr.parse('(a * sin(x)^2)^(-3/2)').integrate('x'))
+          .isNotA<Integral>();
+
+      verifyAntiderivative(
+        Expr.parse('(4 * sin(x)^2)^(3/2)'),
+        points: const [0.3, 0.8, 2.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('(4 * sin(x)^2)^(-3/2)'),
+        points: const [0.3, 0.8, 2.0],
+      );
+    });
   });
 }

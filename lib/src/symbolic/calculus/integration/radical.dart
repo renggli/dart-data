@@ -31,6 +31,49 @@ Expr? tryFactorRadicandPower(
     final factor = factors[i];
     if (factor case Pow(:final base, exponent: final FractionNumber exp)
         when base.dependsOn(variable)) {
+      final k = halfIntExponent(exp);
+      if (k != null && k.isOdd && k.abs() <= 9 && base is Mul) {
+        final varPart = [
+          for (final f in base.factors)
+            if (f.dependsOn(variable)) f,
+        ];
+        if (varPart.length == 1) {
+          if (varPart.first case Pow(
+            base: final f,
+            exponent: IntegerNumber(asInt: 2),
+          )) {
+            final isLinearTrigOrHyp = switch (f) {
+              Sin(:final expr) ||
+              Cos(:final expr) ||
+              Tan(:final expr) ||
+              Sinh(:final expr) ||
+              Cosh(:final expr) ||
+              Tanh(:final expr) => expr.matchLinear(variable) != null,
+              _ => false,
+            };
+            if (isLinearTrigOrHyp) {
+              final fPowK = Pow(
+                f,
+                IntegerNumber.of(k),
+              ).simplify(assumptions: assumptions);
+              final scaleFactor = (factor / fPowK).simplify(
+                assumptions: assumptions,
+              );
+              final rewritten = rebuild(i, fPowK);
+              final res = antiDerivative(
+                rewritten,
+                variable,
+                depth: depth + 1,
+                assumptions: assumptions,
+              );
+              if (!hasUnevaluatedIntegral(res, variable)) {
+                return (scaleFactor * res).simplify(assumptions: assumptions);
+              }
+            }
+          }
+        }
+      }
+
       final coeffs = extractPolynomialCoefficients(base, variable);
       if (coeffs == null) continue;
       final nonZero = [
