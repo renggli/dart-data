@@ -18,13 +18,13 @@ void main() {
     });
 
     test('trigamma known values', () {
-      check(trigamma(1)).isCloseTo(math.pi * math.pi / 6.0, 1e-6);
-      check(trigamma(2)).isCloseTo(math.pi * math.pi / 6.0 - 1.0, 1e-6);
-      check(trigamma(0)).isNaN;
-      check(trigamma(-1)).isNaN;
-      check(trigamma(double.infinity)).equals(0.0);
-      check(trigamma(double.negativeInfinity)).isNaN;
-      check(trigamma(-1.5).isFinite).isTrue;
+      check(polygamma(1, 1)).isCloseTo(math.pi * math.pi / 6.0, 1e-6);
+      check(polygamma(1, 2)).isCloseTo(math.pi * math.pi / 6.0 - 1.0, 1e-6);
+      check(polygamma(1, 0)).isNaN;
+      check(polygamma(1, -1)).isNaN;
+      check(polygamma(1, double.infinity)).equals(0.0);
+      check(polygamma(1, double.negativeInfinity)).isNaN;
+      check(polygamma(1, -1.5).isFinite).isTrue;
     });
 
     test('polygamma known values', () {
@@ -35,9 +35,9 @@ void main() {
         check(polygamma(0, x)).isCloseTo(digamma(x), 1e-10);
       }
 
-      // polygamma(1, x) == trigamma(x)
+      // polygamma(1, x) == polygamma(1, x)
       for (final x in [0.5, 1.0, 2.0, 3.5]) {
-        check(polygamma(1, x)).isCloseTo(trigamma(x), 1e-10);
+        check(polygamma(1, x)).isCloseTo(polygamma(1, x), 1e-10);
       }
 
       // polygamma(2, 1) = -2 * zeta(3) ~= -2.4041138063

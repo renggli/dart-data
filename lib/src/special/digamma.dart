@@ -50,67 +50,18 @@ double digamma(num x) {
   return result - shift;
 }
 
-/// Returns the trigamma function, which is the first derivative of the digamma
-/// function: $\psi_1(x) = \psi'(x)$.
-///
-/// Conceptually, trigamma measures the curvature (second derivative) of
-/// $\ln\Gamma(x)$. At $x=1$, it equals $\pi^2 / 6 \approx 1.6449$. Formally,
-/// this evaluates the first polygamma function
-/// $\psi_1(x) = \frac{d^2}{dx^2}\ln\Gamma(x)$
-/// $= \sum_{k=0}^\infty \frac{1}{(x + k)^2}$.
-///
-/// See https://en.wikipedia.org/wiki/Trigamma_function for details.
-///
-/// ```dart
-/// final val = trigamma(1.0); // ~ 1.6449340668 (pi^2 / 6)
-/// ```
-double trigamma(num x) {
-  if (x.isNaN) return double.nan;
-  if (x.isInfinite) {
-    return x.isNegative ? double.nan : 0.0;
-  }
-  var value = x.toDouble();
-  if (value <= 0.0) {
-    if (value.roundToDouble() == value) {
-      return double.nan;
-    }
-    final sinVal = sin(pi * value);
-    return pi * pi / (sinVal * sinVal) - trigamma(1.0 - value);
-  }
-  var shift = 0.0;
-  while (value < 8.0) {
-    shift += 1.0 / (value * value);
-    value += 1.0;
-  }
-  final invVal = 1.0 / value;
-  final r2 = invVal * invVal;
-  final r3 = r2 * invVal;
-  final r5 = r3 * r2;
-  final r7 = r5 * r2;
-  final r9 = r7 * r2;
-  final r11 = r9 * r2;
-  final result =
-      invVal +
-      0.5 * r2 +
-      (1.0 / 6.0) * r3 -
-      (1.0 / 30.0) * r5 +
-      (1.0 / 42.0) * r7 -
-      (1.0 / 30.0) * r9 +
-      (5.0 / 66.0) * r11;
-  return result + shift;
-}
-
 /// Returns the polygamma function of order [m], which is the $(m+1)$-th
 /// derivative of the logarithm of the gamma function:
 /// $\psi^{(m)}(x) = \frac{d^{m+1}}{dx^{m+1}} \ln \Gamma(x)$.
 ///
-/// For $m = 0$, this equals [digamma]. For $m = 1$, this equals [trigamma].
+/// For $m = 0$, this equals [digamma]. For $m = 1$, this is the trigamma
+/// function $\psi_1(x) = \psi'(x)$.
 double polygamma(int m, num x) {
   if (m < 0) {
     throw ArgumentError.value(m, 'm', 'Order must be non-negative');
   }
   if (m == 0) return digamma(x);
-  if (m == 1) return trigamma(x);
+  if (m == 1) return _trigamma(x);
   if (x.isNaN) return double.nan;
   if (x.isInfinite) {
     return x.isNegative ? double.nan : 0.0;
@@ -164,6 +115,42 @@ double polygamma(int m, num x) {
   }
 
   return sign * asymptotic + shift;
+}
+
+double _trigamma(num x) {
+  if (x.isNaN) return double.nan;
+  if (x.isInfinite) {
+    return x.isNegative ? double.nan : 0.0;
+  }
+  var value = x.toDouble();
+  if (value <= 0.0) {
+    if (value.roundToDouble() == value) {
+      return double.nan;
+    }
+    final sinVal = sin(pi * value);
+    return pi * pi / (sinVal * sinVal) - _trigamma(1.0 - value);
+  }
+  var shift = 0.0;
+  while (value < 8.0) {
+    shift += 1.0 / (value * value);
+    value += 1.0;
+  }
+  final invVal = 1.0 / value;
+  final r2 = invVal * invVal;
+  final r3 = r2 * invVal;
+  final r5 = r3 * r2;
+  final r7 = r5 * r2;
+  final r9 = r7 * r2;
+  final r11 = r9 * r2;
+  final result =
+      invVal +
+      0.5 * r2 +
+      (1.0 / 6.0) * r3 -
+      (1.0 / 30.0) * r5 +
+      (1.0 / 42.0) * r7 -
+      (1.0 / 30.0) * r9 +
+      (5.0 / 66.0) * r11;
+  return result + shift;
 }
 
 double _cotDerivative(int m, double x) {

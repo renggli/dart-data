@@ -6,50 +6,50 @@ import 'package:test/test.dart';
 
 void main() {
   group('exponential and trigonometric integrals', () {
-    test('expIntegralEi', () {
-      check(expIntegralEi(1.0)).isCloseTo(1.8951178163559368, 1e-12);
-      check(expIntegralEi(2.0)).isCloseTo(4.95423435600189, 1e-12);
-      check(expIntegralEi(-1.0)).isCloseTo(-0.21938393439552027, 1e-12);
-      check(expIntegralEi(-5.0)).isCloseTo(-0.0011482955912753257, 1e-12);
-      check(expIntegralEi(45.0)).isCloseTo(7.943916035704453e17, 1e5);
-      check(expIntegralEi(0.0)).equals(double.negativeInfinity);
-      check(expIntegralEi(double.infinity)).equals(double.infinity);
-      check(expIntegralEi(double.negativeInfinity)).equals(0.0);
-      check(expIntegralEi(double.nan)).isNaN;
+    test('expIntegral', () {
+      check(expIntegral(1.0)).isCloseTo(1.8951178163559368, 1e-12);
+      check(expIntegral(2.0)).isCloseTo(4.95423435600189, 1e-12);
+      check(expIntegral(-1.0)).isCloseTo(-0.21938393439552027, 1e-12);
+      check(expIntegral(-5.0)).isCloseTo(-0.0011482955912753257, 1e-12);
+      check(expIntegral(45.0)).isCloseTo(7.943916035704453e17, 1e5);
+      check(expIntegral(0.0)).equals(double.negativeInfinity);
+      check(expIntegral(double.infinity)).equals(double.infinity);
+      check(expIntegral(double.negativeInfinity)).equals(0.0);
+      check(expIntegral(double.nan)).isNaN;
     });
 
-    test('logIntegralLi', () {
-      check(logIntegralLi(0.0)).equals(0.0);
-      check(logIntegralLi(1.0)).equals(double.negativeInfinity);
-      check(logIntegralLi(2.0)).isCloseTo(1.0451637801174928, 1e-12);
-      check(logIntegralLi(math.e)).isCloseTo(expIntegralEi(1.0), 1e-12);
-      check(logIntegralLi(-1.0)).isNaN;
+    test('logIntegral', () {
+      check(logIntegral(0.0)).equals(0.0);
+      check(logIntegral(1.0)).equals(double.negativeInfinity);
+      check(logIntegral(2.0)).isCloseTo(1.0451637801174928, 1e-12);
+      check(logIntegral(math.e)).isCloseTo(expIntegral(1.0), 1e-12);
+      check(logIntegral(-1.0)).isNaN;
     });
 
-    test('sinIntegralSi and cosIntegralCi', () {
-      check(sinIntegralSi(0.0)).equals(0.0);
-      check(sinIntegralSi(1.0)).isCloseTo(0.946083070367183, 1e-12);
-      check(sinIntegralSi(-1.0)).isCloseTo(-0.946083070367183, 1e-12);
-      check(sinIntegralSi(5.0)).isCloseTo(1.5499312449446738, 1e-12);
-      check(sinIntegralSi(double.infinity)).isCloseTo(math.pi / 2.0, 1e-12);
+    test('sinIntegral and cosIntegral', () {
+      check(sinIntegral(0.0)).equals(0.0);
+      check(sinIntegral(1.0)).isCloseTo(0.946083070367183, 1e-12);
+      check(sinIntegral(-1.0)).isCloseTo(-0.946083070367183, 1e-12);
+      check(sinIntegral(5.0)).isCloseTo(1.5499312449446738, 1e-12);
+      check(sinIntegral(double.infinity)).isCloseTo(math.pi / 2.0, 1e-12);
 
-      check(cosIntegralCi(1.0)).isCloseTo(0.33740392290096813, 1e-12);
-      check(cosIntegralCi(5.0)).isCloseTo(-0.19002974965664385, 1e-12);
-      check(cosIntegralCi(0.0)).equals(double.negativeInfinity);
-      check(cosIntegralCi(double.infinity)).equals(0.0);
-      check(cosIntegralCi(-1.0)).isNaN;
+      check(cosIntegral(1.0)).isCloseTo(0.33740392290096813, 1e-12);
+      check(cosIntegral(5.0)).isCloseTo(-0.19002974965664385, 1e-12);
+      check(cosIntegral(0.0)).equals(double.negativeInfinity);
+      check(cosIntegral(double.infinity)).equals(0.0);
+      check(cosIntegral(-1.0)).isNaN;
     });
 
-    test('sinhIntegralShi and coshIntegralChi', () {
-      check(sinhIntegralShi(0.0)).equals(0.0);
-      check(sinhIntegralShi(1.0)).isCloseTo(1.0572508753757285, 1e-12);
-      check(sinhIntegralShi(-1.0)).isCloseTo(-1.0572508753757285, 1e-12);
-      check(sinhIntegralShi(5.0)).isCloseTo(20.093211825697228, 1e-11);
+    test('sinhIntegral and coshIntegral', () {
+      check(sinhIntegral(0.0)).equals(0.0);
+      check(sinhIntegral(1.0)).isCloseTo(1.0572508753757285, 1e-12);
+      check(sinhIntegral(-1.0)).isCloseTo(-1.0572508753757285, 1e-12);
+      check(sinhIntegral(5.0)).isCloseTo(20.093211825697228, 1e-11);
 
-      check(coshIntegralChi(1.0)).isCloseTo(0.8378669409802082, 1e-12);
-      check(coshIntegralChi(5.0)).isCloseTo(20.09206353010595, 1e-11);
-      check(coshIntegralChi(0.0)).equals(double.negativeInfinity);
-      check(coshIntegralChi(-1.0)).isNaN;
+      check(coshIntegral(1.0)).isCloseTo(0.8378669409802082, 1e-12);
+      check(coshIntegral(5.0)).isCloseTo(20.09206353010595, 1e-11);
+      check(coshIntegral(0.0)).equals(double.negativeInfinity);
+      check(coshIntegral(-1.0)).isNaN;
     });
   });
 }

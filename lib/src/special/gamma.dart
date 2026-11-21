@@ -95,7 +95,7 @@ double gammaLn(num x) {
 ///
 /// Follows standard numerical conventions (e.g. SciPy `gammaincc` and Numerical
 /// Recipes $Q(a, x) = \frac{\Gamma(a, x)}{\Gamma(a)}$).
-double gammaq(num a, num x) {
+double gammaQ(num a, num x) {
   if (x.isNaN || a.isNaN || x < 0 || a <= 0) {
     return double.nan;
   }
@@ -110,7 +110,7 @@ double gammaq(num a, num x) {
   }
   final aln = gammaLn(a);
   if (x < a + 1.0) {
-    return 1.0 - gammap(a, x);
+    return 1.0 - gammaP(a, x);
   }
   var b = x + 1.0 - a;
   var cVal = 1.0 / 1.0e-30;
@@ -138,7 +138,7 @@ double gammaq(num a, num x) {
 }
 
 /// Returns the inverse of the lower regularized incomplete gamma function.
-double gammapInv(num probability, num a) {
+double gammaPInv(num probability, num a) {
   if (probability.isNaN ||
       a.isNaN ||
       probability < 0.0 ||
@@ -192,7 +192,7 @@ double gammapInv(num probability, num a) {
     if (x <= xMin || x >= xMax) {
       x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
     }
-    final curProb = gammap(a, x);
+    final curProb = gammaP(a, x);
     final err = curProb - probability;
     if (err > 0) {
       if (x < xMax) xMax = x;
@@ -233,7 +233,7 @@ double gammapInv(num probability, num a) {
 
 /// Returns the inverse of the upper regularized incomplete gamma function
 /// $x = Q^{-1}(a, q)$ such that $Q(a, x) = q$.
-double gammaqInv(num probability, num a) {
+double gammaQInv(num probability, num a) {
   if (probability.isNaN ||
       a.isNaN ||
       probability < 0.0 ||
@@ -249,7 +249,7 @@ double gammaqInv(num probability, num a) {
     return 0.0;
   }
   if (probability > 0.25) {
-    return gammapInv(1.0 - probability, a);
+    return gammaPInv(1.0 - probability, a);
   }
   final ad = a.toDouble();
   final qd = probability.toDouble();
@@ -259,7 +259,7 @@ double gammaqInv(num probability, num a) {
   final lna1 = log(a1 > 0 ? a1 : 1.0);
   final afac = exp(a1 * (lna1 - 1.0) - gln);
 
-  var x = gammapInv(1.0 - qd, ad);
+  var x = gammaPInv(1.0 - qd, ad);
   var xMin = 0.0;
   var xMax = double.infinity;
   if (x <= 0.0 || !x.isFinite) {
@@ -269,7 +269,7 @@ double gammaqInv(num probability, num a) {
     if (x <= xMin || x >= xMax) {
       x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
     }
-    final curQ = gammaq(ad, x);
+    final curQ = gammaQ(ad, x);
     final err = curQ - qd;
     if (err > 0) {
       if (x > xMin) xMin = x;
@@ -312,7 +312,7 @@ double gammaqInv(num probability, num a) {
 ///
 /// Follows standard numerical conventions (e.g. SciPy `gammainc` and Numerical
 /// Recipes $P(a, x) = \frac{\gamma(a, x)}{\Gamma(a)}$).
-double gammap(num a, num x) {
+double gammaP(num a, num x) {
   if (x.isNaN || a.isNaN || x < 0 || a <= 0) {
     return double.nan;
   }
@@ -326,7 +326,7 @@ double gammap(num a, num x) {
     return 0.0;
   }
   if (x >= a + 1.0) {
-    return 1.0 - gammaq(a, x);
+    return 1.0 - gammaQ(a, x);
   }
   final aln = gammaLn(a);
   var ap = a;
@@ -361,9 +361,9 @@ double factorialLn(num value) =>
 /// Returns the combinations based on the [gamma] function.
 ///
 /// ```dart
-/// print(combination(5, 2));  // 10.0
+/// print(binomial(5, 2));  // 10.0
 /// ```
-double combination(num total, num choose) {
+double binomial(num total, num choose) {
   if (total.isNaN || choose.isNaN) {
     return double.nan;
   }
@@ -416,11 +416,11 @@ double combination(num total, num choose) {
     }
     return bigRes.toDouble();
   }
-  return exp(combinationLn(total, choose));
+  return exp(binomialLn(total, choose));
 }
 
 /// Returns the logarithm of the combinations based on the [gammaLn] function.
-double combinationLn(num total, num choose) =>
+double binomialLn(num total, num choose) =>
     factorialLn(total) - factorialLn(choose) - factorialLn(total - choose);
 
 /// Returns the permutations based on the [gamma] function.
@@ -481,8 +481,8 @@ double upperGamma(num s, num x) {
   final xd = x.toDouble();
   if (xd == double.infinity) return 0.0;
   if (xd == 0.0) return sd > 0.0 ? gamma(sd) : double.nan;
-  if (sd > 0.0) return gamma(sd) * gammaq(sd, xd);
-  if (sd == 0.0) return -expIntegralEi(-xd);
+  if (sd > 0.0) return gamma(sd) * gammaQ(sd, xd);
+  if (sd == 0.0) return -expIntegral(-xd);
   return (upperGamma(sd + 1.0, xd) - pow(xd, sd) * exp(-xd)) / sd;
 }
 
@@ -493,6 +493,6 @@ double lowerGamma(num s, num x) {
   final xd = x.toDouble();
   if (xd == 0.0) return sd > 0.0 ? 0.0 : double.nan;
   if (xd == double.infinity) return sd > 0.0 ? gamma(sd) : double.nan;
-  if (sd > 0.0) return gamma(sd) * gammap(sd, xd);
+  if (sd > 0.0) return gamma(sd) * gammaP(sd, xd);
   return gamma(sd) - upperGamma(sd, xd);
 }

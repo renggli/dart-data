@@ -31,16 +31,21 @@ double ellipticK(num modulus) {
   return pi / (2.0 * a);
 }
 
-/// Returns the complete elliptic integral of the second kind $E(k)$.
+/// Returns the elliptic integral of the second kind $E(k)$ or $E(\phi, k)$.
 ///
-/// Defined for $-1 \le k \le 1$.
+/// When [phi] is omitted, returns the complete integral $E(k)$ defined for
+/// $-1 \le k \le 1$. When [phi] is provided, returns the incomplete integral
+/// $E(\phi, k) = \int_0^\phi \sqrt{1 - k^2 \sin^2 \theta} \, d\theta$.
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
-double ellipticE(num modulus) {
-  if (modulus.isNaN || modulus.abs() > 1.0) {
+double ellipticE(num k, {num? phi}) {
+  if (phi != null) {
+    return _ellipticEIncomplete(phi, k);
+  }
+  if (k.isNaN || k.abs() > 1.0) {
     return double.nan;
   }
-  final kd = modulus.toDouble();
+  final kd = k.toDouble();
   if (kd.abs() == 1.0) {
     return 1.0;
   }
@@ -101,13 +106,7 @@ double ellipticF(num phi, num k) {
   return m == 0 ? fPsi : 2.0 * m * ellipticK(kd) + fPsi;
 }
 
-/// Returns the incomplete elliptic integral of the second kind $E(\phi, k)$:
-/// $E(\phi, k) = \int_0^\phi \sqrt{1 - k^2 \sin^2 \theta} \, d\theta$.
-///
-/// For $\phi = \pi / 2$, this equals the complete integral [ellipticE].
-///
-/// Evaluated via Carlson's symmetric forms $R_F$ and $R_D$.
-double ellipticEIncomplete(num phi, num k) {
+double _ellipticEIncomplete(num phi, num k) {
   final phiD = phi.toDouble();
   final kd = k.toDouble();
   if (phiD.isNaN || kd.isNaN || kd.abs() > 1.0) {

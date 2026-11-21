@@ -7,67 +7,68 @@ import 'package:test/test.dart';
 void main() {
   group('Bessel functions', () {
     test('Bessel J0 and J1 exact and reference values', () {
-      check(besselJ0(0)).equals(1.0);
-      check(besselJ1(0)).equals(0.0);
-      check(besselJ0(1.0)).isCloseTo(0.7651976865579666, 1e-6);
-      check(besselJ0(5.0)).isCloseTo(-0.1775967713143383, 1e-6);
-      check(besselJ0(10.0)).isCloseTo(-0.2459357644513483, 1e-6);
-      check(besselJ1(1.0)).isCloseTo(0.4400505857449335, 1e-6);
-      check(besselJ1(5.0)).isCloseTo(-0.327579137591465, 1e-6);
-      check(besselJ1(10.0)).isCloseTo(0.0434727461688614, 1e-6);
-      check(besselJ0(-1.0)).isCloseTo(besselJ0(1.0), 1e-9);
-      check(besselJ1(-1.0)).isCloseTo(-besselJ1(1.0), 1e-9);
+      check(besselJ(0, 0)).equals(1.0);
+      check(besselJ(1, 0)).equals(0.0);
+      check(besselJ(0, 1.0)).isCloseTo(0.7651976865579666, 1e-6);
+      check(besselJ(0, 5.0)).isCloseTo(-0.1775967713143383, 1e-6);
+      check(besselJ(0, 10.0)).isCloseTo(-0.2459357644513483, 1e-6);
+      check(besselJ(1, 1.0)).isCloseTo(0.4400505857449335, 1e-6);
+      check(besselJ(1, 5.0)).isCloseTo(-0.327579137591465, 1e-6);
+      check(besselJ(1, 10.0)).isCloseTo(0.0434727461688614, 1e-6);
+      check(besselJ(0, -1.0)).isCloseTo(besselJ(0, 1.0), 1e-9);
+      check(besselJ(1, -1.0)).isCloseTo(-besselJ(1, 1.0), 1e-9);
     });
 
     test('Bessel Y0 and Y1 boundary and reference values', () {
-      check(besselY0(0)).isNaN;
-      check(besselY0(-1)).isNaN;
-      check(besselY1(0)).isNaN;
-      check(besselY1(-1)).isNaN;
-      check(besselY0(1.0)).isCloseTo(0.0882569642156765, 1e-6);
-      check(besselY0(5.0)).isCloseTo(-0.308517623137123, 1e-6);
-      check(besselY0(10.0)).isCloseTo(0.0556711672835994, 1e-6);
-      check(besselY1(1.0)).isCloseTo(-0.7812128213002889, 1e-6);
-      check(besselY1(5.0)).isCloseTo(0.147863143391227, 1e-6);
-      check(besselY1(10.0)).isCloseTo(0.2490154242069538, 1e-6);
+      check(besselY(0, 0)).isNaN;
+      check(besselY(0, -1)).isNaN;
+      check(besselY(1, 0)).isNaN;
+      check(besselY(1, -1)).isNaN;
+      check(besselY(0, 1.0)).isCloseTo(0.0882569642156765, 1e-6);
+      check(besselY(0, 5.0)).isCloseTo(-0.308517623137123, 1e-6);
+      check(besselY(0, 10.0)).isCloseTo(0.0556711672835994, 1e-6);
+      check(besselY(1, 1.0)).isCloseTo(-0.7812128213002889, 1e-6);
+      check(besselY(1, 5.0)).isCloseTo(0.147863143391227, 1e-6);
+      check(besselY(1, 10.0)).isCloseTo(0.2490154242069538, 1e-6);
     });
 
     test('Modified Bessel I0 and I1 reference values', () {
-      check(besselI0(0)).equals(1.0);
-      check(besselI1(0)).equals(0.0);
-      check(besselI0(1.0)).isCloseTo(1.2660658777520083, 1e-6);
-      check(besselI0(5.0)).isCloseTo(27.23987182441066, 1e-4);
-      check(besselI1(1.0)).isCloseTo(0.5651591039924850, 1e-6);
-      check(besselI1(5.0)).isCloseTo(24.33564214245648, 1e-4);
+      check(besselI(0, 0)).equals(1.0);
+      check(besselI(1, 0)).equals(0.0);
+      check(besselI(0, 1.0)).isCloseTo(1.2660658777520083, 1e-6);
+      check(besselI(0, 5.0)).isCloseTo(27.23987182441066, 1e-4);
+      check(besselI(1, 1.0)).isCloseTo(0.5651591039924850, 1e-6);
+      check(besselI(1, 5.0)).isCloseTo(24.33564214245648, 1e-4);
       // Symmetry
-      check(besselI0(-2.0)).isCloseTo(besselI0(2.0), 1e-9);
-      check(besselI1(-2.0)).isCloseTo(-besselI1(2.0), 1e-9);
+      check(besselI(0, -2.0)).isCloseTo(besselI(0, 2.0), 1e-9);
+      check(besselI(1, -2.0)).isCloseTo(-besselI(1, 2.0), 1e-9);
     });
 
     test('Modified Bessel K0 and K1 reference values', () {
-      check(besselK0(0)).isNaN;
-      check(besselK0(-1)).isNaN;
-      check(besselK1(0)).isNaN;
-      check(besselK1(-1)).isNaN;
-      check(besselK0(1.0)).isCloseTo(0.4210244382407083, 1e-6);
-      check(besselK0(5.0)).isCloseTo(0.00369110762356937, 1e-6);
-      check(besselK1(1.0)).isCloseTo(0.6019072301972346, 1e-6);
-      check(besselK1(5.0)).isCloseTo(0.00404457497148563, 1e-6);
+      check(besselK(0, 0)).isNaN;
+      check(besselK(0, -1)).isNaN;
+      check(besselK(1, 0)).isNaN;
+      check(besselK(1, -1)).isNaN;
+      check(besselK(0, 1.0)).isCloseTo(0.4210244382407083, 1e-6);
+      check(besselK(0, 5.0)).isCloseTo(0.00369110762356937, 1e-6);
+      check(besselK(1, 1.0)).isCloseTo(0.6019072301972346, 1e-6);
+      check(besselK(1, 5.0)).isCloseTo(0.00404457497148563, 1e-6);
     });
 
     test('infinite and NaN arguments', () {
-      check(besselI0(double.infinity)).equals(double.infinity);
-      check(besselI0(double.negativeInfinity)).equals(double.infinity);
-      check(besselI1(double.infinity)).equals(double.infinity);
-      check(besselI1(double.negativeInfinity)).equals(double.negativeInfinity);
-      check(besselK0(double.infinity)).equals(0.0);
-      check(besselK1(double.infinity)).equals(0.0);
-      check(besselJ0(double.infinity)).equals(0.0);
-      check(besselJ0(double.negativeInfinity)).equals(0.0);
-      check(besselJ1(double.infinity)).equals(0.0);
-      check(besselJ1(double.negativeInfinity)).equals(0.0);
-      check(besselY0(double.infinity)).equals(0.0);
-      check(besselY1(double.infinity)).equals(0.0);
+      check(besselI(0, double.infinity)).equals(double.infinity);
+      check(besselI(0, double.negativeInfinity)).equals(double.infinity);
+      check(besselI(1, double.infinity)).equals(double.infinity);
+      check(besselI(1, double.negativeInfinity))
+          .equals(double.negativeInfinity);
+      check(besselK(0, double.infinity)).equals(0.0);
+      check(besselK(1, double.infinity)).equals(0.0);
+      check(besselJ(0, double.infinity)).equals(0.0);
+      check(besselJ(0, double.negativeInfinity)).equals(0.0);
+      check(besselJ(1, double.infinity)).equals(0.0);
+      check(besselJ(1, double.negativeInfinity)).equals(0.0);
+      check(besselY(0, double.infinity)).equals(0.0);
+      check(besselY(1, double.infinity)).equals(0.0);
 
       // Infinite nu returns NaN
       check(besselJ(double.infinity, 5.0)).isNaN;
@@ -105,9 +106,9 @@ void main() {
 
     test('general-order besselJ', () {
       for (final x in [0.5, 1.0, 2.5, 5.0]) {
-        check(besselJ(0, x)).isCloseTo(besselJ0(x), 1e-10);
-        check(besselJ(1, x)).isCloseTo(besselJ1(x), 1e-10);
-        check(besselJ(-1, x)).isCloseTo(-besselJ1(x), 1e-10);
+        check(besselJ(0, x)).isCloseTo(besselJ(0, x), 1e-10);
+        check(besselJ(1, x)).isCloseTo(besselJ(1, x), 1e-10);
+        check(besselJ(-1, x)).isCloseTo(-besselJ(1, x), 1e-10);
         check(besselJ(-2, x)).isCloseTo(besselJ(2, x), 1e-10);
 
         // Recurrence: J_{n-1}(x) + J_{n+1}(x) = (2n / x) * J_n(x)
@@ -124,9 +125,9 @@ void main() {
 
     test('general-order besselY', () {
       for (final x in [0.5, 1.0, 2.5, 5.0]) {
-        check(besselY(0, x)).isCloseTo(besselY0(x), 1e-10);
-        check(besselY(1, x)).isCloseTo(besselY1(x), 1e-10);
-        check(besselY(-1, x)).isCloseTo(-besselY1(x), 1e-10);
+        check(besselY(0, x)).isCloseTo(besselY(0, x), 1e-10);
+        check(besselY(1, x)).isCloseTo(besselY(1, x), 1e-10);
+        check(besselY(-1, x)).isCloseTo(-besselY(1, x), 1e-10);
 
         // Recurrence: Y_{n-1}(x) + Y_{n+1}(x) = (2n / x) * Y_n(x)
         final y0 = besselY(0, x);
@@ -138,9 +139,9 @@ void main() {
 
     test('general-order besselI', () {
       for (final x in [0.5, 1.0, 2.5, 5.0]) {
-        check(besselI(0, x)).isCloseTo(besselI0(x), 1e-10);
-        check(besselI(1, x)).isCloseTo(besselI1(x), 1e-10);
-        check(besselI(-1, x)).isCloseTo(besselI1(x), 1e-10);
+        check(besselI(0, x)).isCloseTo(besselI(0, x), 1e-10);
+        check(besselI(1, x)).isCloseTo(besselI(1, x), 1e-10);
+        check(besselI(-1, x)).isCloseTo(besselI(1, x), 1e-10);
 
         // Recurrence: I_{n-1}(x) - I_{n+1}(x) = (2n / x) * I_n(x)
         final i0 = besselI(0, x);
@@ -157,9 +158,9 @@ void main() {
 
     test('general-order besselK', () {
       for (final x in [0.5, 1.0, 2.5, 5.0]) {
-        check(besselK(0, x)).isCloseTo(besselK0(x), 1e-10);
-        check(besselK(1, x)).isCloseTo(besselK1(x), 1e-10);
-        check(besselK(-1, x)).isCloseTo(besselK1(x), 1e-10);
+        check(besselK(0, x)).isCloseTo(besselK(0, x), 1e-10);
+        check(besselK(1, x)).isCloseTo(besselK(1, x), 1e-10);
+        check(besselK(-1, x)).isCloseTo(besselK(1, x), 1e-10);
 
         // Recurrence: K_{n+1}(x) - K_{n-1}(x) = (2n / x) * K_n(x)
         final k0 = besselK(0, x);

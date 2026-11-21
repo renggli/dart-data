@@ -102,7 +102,7 @@ class BinomialDistribution extends DiscreteDistribution {
     if (k < 0 || k > n) return 0.0;
     if (p == 0.0) return k == 0 ? 1.0 : 0.0;
     if (p == 1.0) return k == n ? 1.0 : 0.0;
-    return exp(combinationLn(n, k) + k * log(p) + (n - k) * log(q));
+    return exp(binomialLn(n, k) + k * log(p) + (n - k) * log(q));
   }
 
   @override
@@ -111,7 +111,7 @@ class BinomialDistribution extends DiscreteDistribution {
     if (k >= n) return 1.0;
     if (p == 0.0) return 1.0;
     if (p == 1.0) return 0.0;
-    return ibeta(1.0 - p, n - k, k + 1);
+    return betaI(1.0 - p, n - k, k + 1);
   }
 
   @override

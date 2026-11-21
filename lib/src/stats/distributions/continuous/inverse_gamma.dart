@@ -99,12 +99,12 @@ class InverseGammaDistribution extends ContinuousDistribution {
 
   @override
   double cumulativeProbability(double x) =>
-      x <= 0.0 ? 0.0 : gammaq(shape, scale / x);
+      x <= 0.0 ? 0.0 : gammaQ(shape, scale / x);
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return scale / gammapInv(1.0 - probability, shape);
+    return scale / gammaPInv(1.0 - probability, shape);
   }
 
   @override

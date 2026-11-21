@@ -109,11 +109,11 @@ HypothesisTestResult fisherExactTest(
 
   // Hypergeometric probability log-function for cell A = k:
   // P(A = k) = C(r1, k) * C(r2, c1 - k) / C(n, c1)
-  final logTotalComb = combinationLn(n, c1);
+  final logTotalComb = binomialLn(n, c1);
   double logHypergeometricProb(int k) {
     final k2 = c1 - k;
     if (k < 0 || k > r1 || k2 < 0 || k2 > r2) return double.negativeInfinity;
-    return combinationLn(r1, k) + combinationLn(r2, k2) - logTotalComb;
+    return binomialLn(r1, k) + binomialLn(r2, k2) - logTotalComb;
   }
 
   final minK = max(0, c1 - r2);

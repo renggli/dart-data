@@ -129,7 +129,7 @@ class StudentDistribution extends ContinuousDistribution {
     if (x == double.negativeInfinity) return 0.0;
     if (x == 0.0) return 0.5;
     final z = dof / (dof + x * x);
-    final halfIbeta = 0.5 * ibeta(z, 0.5 * dof, 0.5);
+    final halfIbeta = 0.5 * betaI(z, 0.5 * dof, 0.5);
     return x > 0.0 ? 1.0 - halfIbeta : halfIbeta;
   }
 
@@ -140,14 +140,14 @@ class StudentDistribution extends ContinuousDistribution {
     if (x == double.negativeInfinity) return 1.0;
     if (x == 0.0) return 0.5;
     final z = dof / (dof + x * x);
-    final halfIbeta = 0.5 * ibeta(z, 0.5 * dof, 0.5);
+    final halfIbeta = 0.5 * betaI(z, 0.5 * dof, 0.5);
     return x > 0.0 ? halfIbeta : 1.0 - halfIbeta;
   }
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    var x = ibetaInv(2.0 * min(probability, 1.0 - probability), 0.5 * dof, 0.5);
+    var x = betaIInv(2.0 * min(probability, 1.0 - probability), 0.5 * dof, 0.5);
     x = sqrt(dof * (1.0 - x) / x);
     return probability > 0.5 ? x : -x;
   }

@@ -150,9 +150,9 @@ class HypergeometricDistribution extends DiscreteDistribution {
   double probability(int k) {
     if (k < lowerBound || k > upperBound) return 0;
     return exp(
-      combinationLn(successStates, k) +
-          combinationLn(populationSize - successStates, draws - k) -
-          combinationLn(populationSize, draws),
+      binomialLn(successStates, k) +
+          binomialLn(populationSize - successStates, draws - k) -
+          binomialLn(populationSize, draws),
     );
   }
 

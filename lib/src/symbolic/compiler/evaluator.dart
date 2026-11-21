@@ -248,9 +248,9 @@ final class BytecodeEvaluator {
           case Op.sqrt:
             stack[sp - 1] = math.sqrt(stack[sp - 1]);
           case Op.lambertW0:
-            stack[sp - 1] = special_lambert.lambertW0(stack[sp - 1]);
+            stack[sp - 1] = special_lambert.lambertW(stack[sp - 1]);
           case Op.lambertW1:
-            stack[sp - 1] = special_lambert.lambertW1(stack[sp - 1]);
+            stack[sp - 1] = special_lambert.lambertW(stack[sp - 1], branch: -1);
           case Op.erf:
             stack[sp - 1] = special_erf.erf(stack[sp - 1]);
           case Op.erfc:
@@ -292,17 +292,17 @@ final class BytecodeEvaluator {
           case Op.fresnelC:
             stack[sp - 1] = special_fresnel.fresnelC(stack[sp - 1]);
           case Op.expIntegralEi:
-            stack[sp - 1] = special_exp_int.expIntegralEi(stack[sp - 1]);
+            stack[sp - 1] = special_exp_int.expIntegral(stack[sp - 1]);
           case Op.logIntegralLi:
-            stack[sp - 1] = special_exp_int.logIntegralLi(stack[sp - 1]);
+            stack[sp - 1] = special_exp_int.logIntegral(stack[sp - 1]);
           case Op.sinIntegralSi:
-            stack[sp - 1] = special_exp_int.sinIntegralSi(stack[sp - 1]);
+            stack[sp - 1] = special_exp_int.sinIntegral(stack[sp - 1]);
           case Op.cosIntegralCi:
-            stack[sp - 1] = special_exp_int.cosIntegralCi(stack[sp - 1]);
+            stack[sp - 1] = special_exp_int.cosIntegral(stack[sp - 1]);
           case Op.sinhIntegralShi:
-            stack[sp - 1] = special_exp_int.sinhIntegralShi(stack[sp - 1]);
+            stack[sp - 1] = special_exp_int.sinhIntegral(stack[sp - 1]);
           case Op.coshIntegralChi:
-            stack[sp - 1] = special_exp_int.coshIntegralChi(stack[sp - 1]);
+            stack[sp - 1] = special_exp_int.coshIntegral(stack[sp - 1]);
           case Op.upperGamma:
             final x = stack[--sp];
             final s = stack[--sp];
@@ -322,7 +322,7 @@ final class BytecodeEvaluator {
           case Op.ellipticEIncomplete:
             final k = stack[--sp];
             final phi = stack[--sp];
-            stack[sp++] = special_elliptic.ellipticEIncomplete(phi, k);
+            stack[sp++] = special_elliptic.ellipticE(k, phi: phi);
           case Op.beta:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -526,7 +526,7 @@ final class BytecodeEvaluator {
                 'Complex LambertW evaluation is only supported on R',
               );
             }
-            stack[sp - 1] = Complex(special_lambert.lambertW0(z.a.toDouble()));
+            stack[sp - 1] = Complex(special_lambert.lambertW(z.a.toDouble()));
           case Op.lambertW1:
             final z = stack[sp - 1];
             if (z.b != 0.0) {
@@ -534,7 +534,9 @@ final class BytecodeEvaluator {
                 'Complex LambertW evaluation is only supported on R',
               );
             }
-            stack[sp - 1] = Complex(special_lambert.lambertW1(z.a.toDouble()));
+            stack[sp - 1] = Complex(
+              special_lambert.lambertW(z.a.toDouble(), branch: -1),
+            );
           case Op.erf:
             final z = stack[sp - 1];
             if (z.b != 0.0) {
@@ -678,7 +680,7 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp - 1] = Complex(
-              special_exp_int.expIntegralEi(z.a.toDouble()),
+              special_exp_int.expIntegral(z.a.toDouble()),
             );
           case Op.logIntegralLi:
             final z = stack[sp - 1];
@@ -688,7 +690,7 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp - 1] = Complex(
-              special_exp_int.logIntegralLi(z.a.toDouble()),
+              special_exp_int.logIntegral(z.a.toDouble()),
             );
           case Op.sinIntegralSi:
             final z = stack[sp - 1];
@@ -698,7 +700,7 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp - 1] = Complex(
-              special_exp_int.sinIntegralSi(z.a.toDouble()),
+              special_exp_int.sinIntegral(z.a.toDouble()),
             );
           case Op.cosIntegralCi:
             final z = stack[sp - 1];
@@ -708,7 +710,7 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp - 1] = Complex(
-              special_exp_int.cosIntegralCi(z.a.toDouble()),
+              special_exp_int.cosIntegral(z.a.toDouble()),
             );
           case Op.sinhIntegralShi:
             final z = stack[sp - 1];
@@ -718,7 +720,7 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp - 1] = Complex(
-              special_exp_int.sinhIntegralShi(z.a.toDouble()),
+              special_exp_int.sinhIntegral(z.a.toDouble()),
             );
           case Op.coshIntegralChi:
             final z = stack[sp - 1];
@@ -728,7 +730,7 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp - 1] = Complex(
-              special_exp_int.coshIntegralChi(z.a.toDouble()),
+              special_exp_int.coshIntegral(z.a.toDouble()),
             );
           case Op.upperGamma:
             final zX = stack[--sp];
@@ -776,9 +778,9 @@ final class BytecodeEvaluator {
               );
             }
             stack[sp++] = Complex(
-              special_elliptic.ellipticEIncomplete(
-                zPhi.a.toDouble(),
+              special_elliptic.ellipticE(
                 zK.a.toDouble(),
+                phi: zPhi.a.toDouble(),
               ),
             );
           case Op.beta:
@@ -946,10 +948,10 @@ double evalRealBinomial(double n, double k) {
   }
   if (k == 0.0) return 1.0;
   if (n >= 0.0 && k >= 0.0 && k <= n) {
-    return special_gamma.combination(n, k);
+    return special_gamma.binomial(n, k);
   }
   if (n <= -1.0 && k == k.roundToDouble() && k >= 0.0) {
-    final absVal = special_gamma.combination(-n + k - 1.0, k);
+    final absVal = special_gamma.binomial(-n + k - 1.0, k);
     final isOdd = (k - 2.0 * (k / 2.0).floorToDouble()) != 0.0;
     return isOdd ? -absVal : absVal;
   }
@@ -991,10 +993,10 @@ double evalRealBinomial(double n, double k) {
   }
   if (k == 0.0) return (logAbs: 0.0, sign: 1);
   if (n >= 0.0 && k >= 0.0 && k <= n) {
-    return (logAbs: special_gamma.combinationLn(n, k), sign: 1);
+    return (logAbs: special_gamma.binomialLn(n, k), sign: 1);
   }
   if (n <= -1.0 && k == k.roundToDouble() && k >= 0.0) {
-    final logAbs = special_gamma.combinationLn(-n + k - 1.0, k);
+    final logAbs = special_gamma.binomialLn(-n + k - 1.0, k);
     final isOdd = (k - 2.0 * (k / 2.0).floorToDouble()) != 0.0;
     return (logAbs: logAbs, sign: isOdd ? -1 : 1);
   }

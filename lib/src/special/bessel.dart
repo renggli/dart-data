@@ -12,12 +12,12 @@ double besselJ(num nu, num x) {
   final nud = nu.toDouble();
   final xd = x.toDouble();
   if (!nud.isFinite) return double.nan;
+  if (nud == 0.0) return _besselJ0(xd);
+  if (nud == 1.0) return _besselJ1(xd);
   if (xd.isInfinite) {
     if (xd.isNegative) return double.nan;
     return 0.0;
   }
-  if (nud == 0.0) return besselJ0(xd);
-  if (nud == 1.0) return besselJ1(xd);
 
   // Integer order branch
   if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
@@ -48,8 +48,8 @@ double besselJ(num nu, num x) {
     }
     if (xd > n) {
       // Forward recurrence
-      var jPrev = besselJ0(xd);
-      var jCur = besselJ1(xd);
+      var jPrev = _besselJ0(xd);
+      var jCur = _besselJ1(xd);
       for (var k = 1; k < n; k++) {
         final jNext = (2.0 * k / xd) * jCur - jPrev;
         jPrev = jCur;
@@ -110,8 +110,8 @@ double besselY(num nu, num x) {
   final xd = x.toDouble();
   if (!nud.isFinite || xd <= 0.0) return double.nan;
   if (xd.isInfinite) return 0.0;
-  if (nud == 0.0) return besselY0(xd);
-  if (nud == 1.0) return besselY1(xd);
+  if (nud == 0.0) return _besselY0(xd);
+  if (nud == 1.0) return _besselY1(xd);
   if (xd > max(25.0, nud * nud)) {
     return _hankelAsymptotic(nud, xd).y;
   }
@@ -123,8 +123,8 @@ double besselY(num nu, num x) {
       final yPos = besselY(-n, xd);
       return n.isOdd ? -yPos : yPos;
     }
-    var yPrev = besselY0(xd);
-    var yCur = besselY1(xd);
+    var yPrev = _besselY0(xd);
+    var yCur = _besselY1(xd);
     for (var k = 1; k < n; k++) {
       final yNext = (2.0 * k / xd) * yCur - yPrev;
       yPrev = yCur;
@@ -156,8 +156,8 @@ double besselI(num nu, num x) {
     }
     return double.infinity;
   }
-  if (nud == 0.0) return besselI0(xd);
-  if (nud == 1.0) return besselI1(xd);
+  if (nud == 0.0) return _besselI0(xd);
+  if (nud == 1.0) return _besselI1(xd);
 
   // Integer order branch
   if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
@@ -165,8 +165,8 @@ double besselI(num nu, num x) {
     if (n < 0) {
       return besselI(-n, xd);
     }
-    if (n == 0) return besselI0(xd);
-    if (n == 1) return besselI1(xd);
+    if (n == 0) return _besselI0(xd);
+    if (n == 1) return _besselI1(xd);
     if (xd == 0.0) return 0.0;
     if (xd < 0.0) {
       final iPos = besselI(n, -xd);
@@ -202,7 +202,7 @@ double besselI(num nu, num x) {
       }
       if (k - 1 == n) fn = fCur;
     }
-    final trueI0 = besselI0(xd);
+    final trueI0 = _besselI0(xd);
     return fCur == 0.0 ? 0.0 : fn * (trueI0 / fCur);
   }
 
@@ -234,8 +234,8 @@ double besselK(num nu, num x) {
   final xd = x.toDouble();
   if (!nud.isFinite || xd <= 0.0) return double.nan;
   if (xd.isInfinite) return 0.0;
-  if (nud == 0.0) return besselK0(xd);
-  if (nud == 1.0) return besselK1(xd);
+  if (nud == 0.0) return _besselK0(xd);
+  if (nud == 1.0) return _besselK1(xd);
 
   final absNu = nud.abs();
   if (xd > max(25.0, absNu * absNu)) {
@@ -245,8 +245,8 @@ double besselK(num nu, num x) {
   // Integer order branch via forward recurrence
   if (absNu <= 1e7 && absNu.roundToDouble() == absNu) {
     final n = absNu.toInt();
-    var kPrev = besselK0(xd);
-    var kCur = besselK1(xd);
+    var kPrev = _besselK0(xd);
+    var kCur = _besselK1(xd);
     for (var k = 1; k < n; k++) {
       final kNext = (2.0 * k / xd) * kCur + kPrev;
       kPrev = kCur;
@@ -336,9 +336,9 @@ double besselK(num nu, num x) {
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 ///
 /// ```dart
-/// final val = besselI0(0.0); // 1.0
+/// final val = _besselI0(0.0); // 1.0
 /// ```
-double besselI0(num x) {
+double _besselI0(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 1.0;
   if (x.isInfinite) return double.infinity;
@@ -381,7 +381,7 @@ double besselI0(num x) {
 /// Returns the modified Bessel function $I_1(x)$ of the first kind of order 1.
 ///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
-double besselI1(num x) {
+double _besselI1(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 0.0;
   if (x.isInfinite) {
@@ -433,13 +433,13 @@ double besselI1(num x) {
 /// Returns the modified Bessel function $K_0(x)$ of the second kind of order 0.
 ///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
-double besselK0(num x) {
+double _besselK0(num x) {
   if (x.isNaN || x <= 0) return double.nan;
   if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd <= 2.0) {
     final y = xd * xd / 4.0;
-    return -log(xd / 2.0) * besselI0(xd) +
+    return -log(xd / 2.0) * _besselI0(xd) +
         (-0.57721566 +
             y *
                 (0.42278420 +
@@ -473,13 +473,13 @@ double besselK0(num x) {
 /// Returns the modified Bessel function $K_1(x)$ of the second kind of order 1.
 ///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
-double besselK1(num x) {
+double _besselK1(num x) {
   if (x.isNaN || x <= 0) return double.nan;
   if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd <= 2.0) {
     final y = xd * xd / 4.0;
-    return log(xd / 2.0) * besselI1(xd) +
+    return log(xd / 2.0) * _besselI1(xd) +
         (1.0 / xd) *
             (1.0 +
                 y *
@@ -524,9 +524,9 @@ double besselK1(num x) {
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 ///
 /// ```dart
-/// final val = besselJ0(0.0); // 1.0
+/// final val = _besselJ0(0.0); // 1.0
 /// ```
-double besselJ0(num x) {
+double _besselJ0(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 1.0;
   if (x.isInfinite) return 0.0;
@@ -573,7 +573,7 @@ double besselJ0(num x) {
 /// Returns the Bessel function $J_1(x)$ of the first kind of order 1.
 ///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
-double besselJ1(num x) {
+double _besselJ1(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 0.0;
   if (x.isInfinite) return 0.0;
@@ -623,7 +623,7 @@ double besselJ1(num x) {
 /// Returns the Bessel function $Y_0(x)$ of the second kind of order 0.
 ///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
-double besselY0(num x) {
+double _besselY0(num x) {
   if (x.isNaN || x <= 0) return double.nan;
   if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
@@ -643,7 +643,7 @@ double besselY0(num x) {
         y *
             (745249964.8 +
                 y * (7189466.438 + y * (47447.26470 + y * (226.1030244 + y))));
-    return (2.0 / pi) * log(xd) * besselJ0(xd) + num / den;
+    return (2.0 / pi) * log(xd) * _besselJ0(xd) + num / den;
   } else {
     final z = 8.0 / xd;
     final y = z * z;
@@ -669,7 +669,7 @@ double besselY0(num x) {
 /// Returns the Bessel function $Y_1(x)$ of the second kind of order 1.
 ///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
-double besselY1(num x) {
+double _besselY1(num x) {
   if (x.isNaN || x <= 0) return double.nan;
   if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
@@ -694,7 +694,7 @@ double besselY1(num x) {
     final den =
         s1 + y * (s2 + y * (s3 + y * (s4 + y * (s5 + y * (s6 + y * s7)))));
 
-    return (2.0 / pi) * (log(xd) * besselJ1(xd) - 1.0 / xd) + num / den;
+    return (2.0 / pi) * (log(xd) * _besselJ1(xd) - 1.0 / xd) + num / den;
   } else {
     final z = 8.0 / xd;
     final y = z * z;

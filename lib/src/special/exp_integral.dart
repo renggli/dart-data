@@ -5,7 +5,7 @@ import 'package:more/number.dart' show Complex;
 /// Returns the exponential integral `Ei(x) = -PV ∫_{-x}^∞ e^(-t) / t dt`.
 ///
 /// Defined for real `x != 0`, with `Ei(0) = -∞`.
-double expIntegralEi(num x) {
+double expIntegral(num x) {
   if (x.isNaN) return double.nan;
   final xd = x.toDouble();
   if (xd == 0.0) return double.negativeInfinity;
@@ -45,17 +45,17 @@ double expIntegralEi(num x) {
 /// Returns the logarithmic integral `li(x) = ∫_0^x dt / ln(t) = Ei(ln(x))`.
 ///
 /// Defined for `x >= 0`, with `li(0) = 0` and `li(1) = -∞`.
-double logIntegralLi(num x) {
+double logIntegral(num x) {
   if (x.isNaN || x < 0.0) return double.nan;
   final xd = x.toDouble();
   if (xd == 0.0) return 0.0;
   if (xd == 1.0) return double.negativeInfinity;
   if (xd == double.infinity) return double.infinity;
-  return expIntegralEi(log(xd));
+  return expIntegral(log(xd));
 }
 
 /// Returns the sine integral `Si(x) = ∫_0^x sin(t) / t dt`.
-double sinIntegralSi(num x) {
+double sinIntegral(num x) {
   if (x.isNaN) return double.nan;
   final xd = x.toDouble();
   if (xd == 0.0) return 0.0;
@@ -84,7 +84,7 @@ double sinIntegralSi(num x) {
 /// Returns the cosine integral `Ci(x) = γ + ln(x) + ∫_0^x (cos(t) - 1) / t dt`.
 ///
 /// Defined for `x > 0`, with `Ci(0) = -∞`.
-double cosIntegralCi(num x) {
+double cosIntegral(num x) {
   if (x.isNaN || x < 0.0) return double.nan;
   final xd = x.toDouble();
   if (xd == 0.0) return double.negativeInfinity;
@@ -108,7 +108,7 @@ double cosIntegralCi(num x) {
 }
 
 /// Returns the hyperbolic sine integral `Shi(x) = ∫_0^x sinh(t) / t dt`.
-double sinhIntegralShi(num x) {
+double sinhIntegral(num x) {
   if (x.isNaN) return double.nan;
   final xd = x.toDouble();
   if (xd == 0.0) return 0.0;
@@ -129,13 +129,13 @@ double sinhIntegralShi(num x) {
     return sign * sum;
   }
 
-  return sign * 0.5 * (expIntegralEi(ax) - expIntegralEi(-ax));
+  return sign * 0.5 * (expIntegral(ax) - expIntegral(-ax));
 }
 
 /// Returns the hyperbolic cosine integral `Chi(x) = γ + ln(x) + ∫_0^x (cosh(t) - 1) / t dt`.
 ///
 /// Defined for `x > 0`, with `Chi(0) = -∞`.
-double coshIntegralChi(num x) {
+double coshIntegral(num x) {
   if (x.isNaN || x < 0.0) return double.nan;
   final xd = x.toDouble();
   if (xd == 0.0) return double.negativeInfinity;
@@ -154,7 +154,7 @@ double coshIntegralChi(num x) {
     return sum;
   }
 
-  return 0.5 * (expIntegralEi(xd) + expIntegralEi(-xd));
+  return 0.5 * (expIntegral(xd) + expIntegral(-xd));
 }
 
 const _eulerMascheroni = 0.57721566490153286060651209008240243;

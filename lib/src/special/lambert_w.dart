@@ -1,21 +1,28 @@
 import 'dart:math';
 
-/// Returns the principal branch of the Lambert W function $W_0(z)$.
+/// Returns the real Lambert W function $W_{\text{branch}}(z)$.
 ///
 /// Conceptually, the Lambert W function solves transcendental equations where
 /// the unknown variable appears both linearly and in an exponent, such as
-/// $w e^w = z$. Formally, this calculates the principal branch $W_0(z)$ of the
-/// inverse of the transcendental relation $f(w) = w e^w$, defined for real
-/// $z \ge -1/e$.
+/// $w e^w = z$. Formally, this calculates the principal branch $W_0(z)$
+/// (`branch: 0`, defined for $z \ge -1/e$) or the secondary real branch
+/// $W_{-1}(z)$ (`branch: -1`, defined for $-1/e \le z < 0$).
 ///
-/// Satisfies $W(z) e^{W(z)} = z$ for $z \ge -1/e$.
+/// Throws an [ArgumentError] if [branch] is not `0` or `-1`.
 ///
 /// See https://en.wikipedia.org/wiki/Lambert_W_function for details.
 ///
 /// ```dart
-/// final val = lambertW0(0.0); // 0.0
+/// final w0 = lambertW(0.0); // 0.0
+/// final w1 = lambertW(-0.1, branch: -1); // ~ -3.577152063957297
 /// ```
-double lambertW0(num z) {
+double lambertW(num z, {int branch = 0}) => switch (branch) {
+  0 => _lambertW0(z),
+  -1 => _lambertW1(z),
+  _ => throw ArgumentError.value(branch, 'branch', 'Branch must be 0 or -1'),
+};
+
+double _lambertW0(num z) {
   if (z.isNaN || z < -_invE - 1e-15) {
     return double.nan;
   }
@@ -75,21 +82,7 @@ double lambertW0(num z) {
   return wVal;
 }
 
-/// Returns the secondary branch of the Lambert W function $W_{-1}(z)$ (exported
-/// as `lambertW1(z)`).
-///
-/// Conceptually, this calculates the secondary negative solution to $w e^w = z$
-/// when $-1/e \le z < 0$. Formally, this calculates the secondary real branch
-/// $W_{-1}(z)$ of the inverse of $f(w) = w e^w$, satisfying $W(z) \le -1$.
-///
-/// Defined for $-1/e \le z < 0$.
-///
-/// See https://en.wikipedia.org/wiki/Lambert_W_function for details.
-///
-/// ```dart
-/// final val = lambertW1(-0.1); // ~ -3.577152063957297
-/// ```
-double lambertW1(num z) {
+double _lambertW1(num z) {
   if (z.isNaN || z < -_invE - 1e-15 || z >= 0.0) {
     return double.nan;
   }

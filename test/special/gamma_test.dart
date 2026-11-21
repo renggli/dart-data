@@ -76,9 +76,9 @@ void main() {
       check(gammaLn(-1)).isNaN;
     });
 
-    test('gammap and gammaq', () {
-      check(gammap(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-14);
-      check(gammaq(1, 1)).isCloseTo(math.exp(-1), 1e-14);
+    test('gammaP and gammaQ', () {
+      check(gammaP(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-14);
+      check(gammaQ(1, 1)).isCloseTo(math.exp(-1), 1e-14);
       // High-precision partition and convergence tests across x < a+1 and x >= a+1
       for (final (a, x) in [
         (5.0, 3.0),
@@ -86,54 +86,54 @@ void main() {
         (12.0, 10.0),
         (12.0, 15.0),
       ]) {
-        check(gammap(a, x) + gammaq(a, x)).isCloseTo(1.0, 1e-14);
+        check(gammaP(a, x) + gammaQ(a, x)).isCloseTo(1.0, 1e-14);
       }
-      check(gammap(-1, 1)).isNaN;
-      check(gammap(1, -1)).isNaN;
-      check(gammaq(-1, 1)).isNaN;
-      check(gammaq(1, -1)).isNaN;
+      check(gammaP(-1, 1)).isNaN;
+      check(gammaP(1, -1)).isNaN;
+      check(gammaQ(-1, 1)).isNaN;
+      check(gammaQ(1, -1)).isNaN;
       check(gamma(double.infinity)).equals(double.infinity);
       check(gammaLn(double.infinity)).equals(double.infinity);
-      check(gammap(2.0, double.infinity)).equals(1.0);
-      check(gammaq(2.0, double.infinity)).equals(0.0);
+      check(gammaP(2.0, double.infinity)).equals(1.0);
+      check(gammaQ(2.0, double.infinity)).equals(0.0);
     });
 
-    test('gammapInv', () {
-      check(gammapInv(0.0, 2.0)).equals(0.0);
-      check(gammapInv(1.0, 2.0)).equals(double.infinity);
-      check(gammapInv(-0.1, 2.0)).isNaN;
-      check(gammapInv(1.1, 2.0)).isNaN;
-      check(gammapInv(double.nan, 2.0)).isNaN;
-      check(gammapInv(0.5, 0.0)).isNaN;
-      check(gammapInv(0.5, -1.0)).isNaN;
-      final prob = gammap(2.5, 3.0);
-      check(gammapInv(prob, 2.5)).isCloseTo(3.0, 1e-12);
+    test('gammaPInv', () {
+      check(gammaPInv(0.0, 2.0)).equals(0.0);
+      check(gammaPInv(1.0, 2.0)).equals(double.infinity);
+      check(gammaPInv(-0.1, 2.0)).isNaN;
+      check(gammaPInv(1.1, 2.0)).isNaN;
+      check(gammaPInv(double.nan, 2.0)).isNaN;
+      check(gammaPInv(0.5, 0.0)).isNaN;
+      check(gammaPInv(0.5, -1.0)).isNaN;
+      final prob = gammaP(2.5, 3.0);
+      check(gammaPInv(prob, 2.5)).isCloseTo(3.0, 1e-12);
 
       // a <= 1.0 branches
-      final pSmall = gammap(0.5, 0.2);
-      check(gammapInv(pSmall, 0.5)).isCloseTo(0.2, 1e-12);
-      final pLarge = gammap(0.5, 2.0);
-      check(gammapInv(pLarge, 0.5)).isCloseTo(2.0, 1e-12);
+      final pSmall = gammaP(0.5, 0.2);
+      check(gammaPInv(pSmall, 0.5)).isCloseTo(0.2, 1e-12);
+      final pLarge = gammaP(0.5, 2.0);
+      check(gammaPInv(pLarge, 0.5)).isCloseTo(2.0, 1e-12);
 
       // a > 1.0 with p < 0.5
-      final pLow = gammap(3.0, 0.5);
-      check(gammapInv(pLow, 3.0)).isCloseTo(0.5, 1e-12);
+      final pLow = gammaP(3.0, 0.5);
+      check(gammaPInv(pLow, 3.0)).isCloseTo(0.5, 1e-12);
     });
 
-    test('gammaqInv', () {
-      check(gammaqInv(0.0, 2.0)).equals(double.infinity);
-      check(gammaqInv(1.0, 2.0)).equals(0.0);
-      check(gammaqInv(-0.1, 2.0)).isNaN;
-      check(gammaqInv(1.1, 2.0)).isNaN;
-      check(gammaqInv(double.nan, 2.0)).isNaN;
-      check(gammaqInv(0.5, 0.0)).isNaN;
-      check(gammaqInv(0.5, -1.0)).isNaN;
+    test('gammaQInv', () {
+      check(gammaQInv(0.0, 2.0)).equals(double.infinity);
+      check(gammaQInv(1.0, 2.0)).equals(0.0);
+      check(gammaQInv(-0.1, 2.0)).isNaN;
+      check(gammaQInv(1.1, 2.0)).isNaN;
+      check(gammaQInv(double.nan, 2.0)).isNaN;
+      check(gammaQInv(0.5, 0.0)).isNaN;
+      check(gammaQInv(0.5, -1.0)).isNaN;
 
-      // Invertibility: gammaq(a, gammaqInv(q, a)) == q
+      // Invertibility: gammaQ(a, gammaQInv(q, a)) == q
       for (final a in [0.5, 1.0, 2.5, 5.0, 10.0, 50.0]) {
         for (final q in [0.001, 0.01, 0.1, 0.2, 0.25, 0.5, 0.8, 0.99]) {
-          final x = gammaqInv(q, a);
-          check(gammaq(a, x)).isCloseTo(q, 1e-11);
+          final x = gammaQInv(q, a);
+          check(gammaQ(a, x)).isCloseTo(q, 1e-11);
         }
       }
     });
@@ -149,24 +149,24 @@ void main() {
       check(factorial(double.nan)).isNaN;
       check(factorialLn(5)).isCloseTo(math.log(120.0), 1e-6);
       check(factorialLn(double.nan)).isNaN;
-      check(combination(5, 2)).equals(10.0);
-      check(combination(10, 3)).equals(120.0);
-      check(combination(20, 10)).equals(184756.0);
-      check(combination(60, 5)).equals(5461512.0);
-      check(combination(62, 31)).isCloseTo(4.654283532552611e17, 1e8);
-      check(combination(100, 10)).isCloseTo(1.731030945644e13, 1e5);
-      check(combination(200, 2)).equals(19900.0);
-      check(combination(5, 0)).equals(1.0);
-      check(combination(5, 5)).equals(1.0);
-      check(combination(5, 6)).equals(0.0);
-      check(combination(5, -1)).equals(0.0);
-      check(combination(5.5, 2.5)).isGreaterThan(0.0);
-      check(combination(double.nan, 2)).isNaN;
-      check(combination(5, double.nan)).isNaN;
-      check(combination(double.infinity, 2)).equals(double.infinity);
-      check(combination(double.infinity, double.infinity)).isNaN;
-      check(combination(double.infinity, 1.5)).isNaN;
-      check(combinationLn(5, 2)).isCloseTo(math.log(10.0), 1e-6);
+      check(binomial(5, 2)).equals(10.0);
+      check(binomial(10, 3)).equals(120.0);
+      check(binomial(20, 10)).equals(184756.0);
+      check(binomial(60, 5)).equals(5461512.0);
+      check(binomial(62, 31)).isCloseTo(4.654283532552611e17, 1e8);
+      check(binomial(100, 10)).isCloseTo(1.731030945644e13, 1e5);
+      check(binomial(200, 2)).equals(19900.0);
+      check(binomial(5, 0)).equals(1.0);
+      check(binomial(5, 5)).equals(1.0);
+      check(binomial(5, 6)).equals(0.0);
+      check(binomial(5, -1)).equals(0.0);
+      check(binomial(5.5, 2.5)).isGreaterThan(0.0);
+      check(binomial(double.nan, 2)).isNaN;
+      check(binomial(5, double.nan)).isNaN;
+      check(binomial(double.infinity, 2)).equals(double.infinity);
+      check(binomial(double.infinity, double.infinity)).isNaN;
+      check(binomial(double.infinity, 1.5)).isNaN;
+      check(binomialLn(5, 2)).isCloseTo(math.log(10.0), 1e-6);
 
       check(permutation(5, 2)).equals(20.0);
       check(permutation(10, 3)).equals(720.0);
@@ -189,9 +189,9 @@ void main() {
       check(upperGamma(2.0, 1.0)).isCloseTo(2.0 * math.exp(-1.0), 1e-12);
       check(upperGamma(3.0, 1.0) + lowerGamma(3.0, 1.0))
           .isCloseTo(gamma(3.0), 1e-12);
-      check(upperGamma(0.0, 1.0)).isCloseTo(-expIntegralEi(-1.0), 1e-12);
+      check(upperGamma(0.0, 1.0)).isCloseTo(-expIntegral(-1.0), 1e-12);
       check(upperGamma(-1.0, 1.0))
-          .isCloseTo(math.exp(-1.0) + expIntegralEi(-1.0), 1e-12);
+          .isCloseTo(math.exp(-1.0) + expIntegral(-1.0), 1e-12);
     });
   });
 }

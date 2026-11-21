@@ -363,10 +363,10 @@ void main() {
       check(gammaLn(5)).isCloseTo(3.17805383, 1e-6);
     });
 
-    test('beta, betaLn, ibeta', () {
+    test('beta, betaLn, betaI', () {
       check(beta(2, 3)).isCloseTo(1.0 / 12.0, 1e-9);
       check(betaLn(2, 3)).isCloseTo(-2.484906649788, 1e-6);
-      check(ibeta(0.5, 2, 3)).isCloseTo(0.6875, 1e-6);
+      check(betaI(0.5, 2, 3)).isCloseTo(0.6875, 1e-6);
     });
 
     test('erf and erfInv', () {
@@ -376,17 +376,17 @@ void main() {
 
     test('digamma and trigamma', () {
       check(digamma(1.0)).isCloseTo(-0.5772156649, 1e-6);
-      check(trigamma(1.0)).isCloseTo(1.6449340668, 1e-6);
+      check(polygamma(1, 1.0)).isCloseTo(1.6449340668, 1e-6);
     });
 
-    test('lambertW0 and lambertW1', () {
-      check(lambertW0(0.0)).equals(0.0);
-      check(lambertW1(-0.1)).isCloseTo(-3.577152063957297, 1e-6);
+    test('lambertW branches 0 and -1', () {
+      check(lambertW(0.0)).equals(0.0);
+      check(lambertW(-0.1, branch: -1)).isCloseTo(-3.577152063957297, 1e-6);
     });
 
     test('bessel functions', () {
-      check(besselI0(0.0)).equals(1.0);
-      check(besselJ0(0.0)).equals(1.0);
+      check(besselI(0, 0.0)).equals(1.0);
+      check(besselJ(0, 0.0)).equals(1.0);
     });
   });
 
@@ -637,7 +637,7 @@ void main() {
     test('lib/special.dart quick start', () {
       check(gamma(0.5)).isCloseTo(math.sqrt(math.pi), 1e-5);
       check(erf(1.0)).isCloseTo(0.84270, 1e-4);
-      check(besselJ0(0.0)).equals(1.0);
+      check(besselJ(0, 0.0)).equals(1.0);
     });
 
     test('lib/stats.dart quick start', () {

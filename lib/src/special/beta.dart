@@ -47,9 +47,9 @@ double betaLn(num x, num y) => x.isNaN || y.isNaN || x <= 0 || y <= 0
 /// continued fractions.
 ///
 /// ```dart
-/// final p = ibeta(0.5, 2, 3); // 0.6875
+/// final p = betaI(0.5, 2, 3); // 0.6875
 /// ```
-double ibeta(num x, num a, num b) {
+double betaI(num x, num a, num b) {
   if (x.isNaN || a.isNaN || b.isNaN || x < 0 || 1 < x || a <= 0 || b <= 0) {
     return double.nan;
   }
@@ -77,9 +77,9 @@ double ibeta(num x, num a, num b) {
 /// expansions followed by iterative root refinement.
 ///
 /// ```dart
-/// final x = ibetaInv(0.6875, 2, 3); // ~ 0.5
+/// final x = betaIInv(0.6875, 2, 3); // ~ 0.5
 /// ```
-double ibetaInv(num probability, num a, num b) {
+double betaIInv(num probability, num a, num b) {
   if (probability.isNaN ||
       a.isNaN ||
       b.isNaN ||
@@ -136,7 +136,7 @@ double ibetaInv(num probability, num a, num b) {
     if (x <= xMin || x >= xMax) {
       x = 0.5 * (xMin + xMax);
     }
-    final curProb = ibeta(x, a, b);
+    final curProb = betaI(x, a, b);
     final err = curProb - probability;
     if (err > 0) {
       if (x < xMax) xMax = x;

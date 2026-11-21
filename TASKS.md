@@ -1,134 +1,199 @@
-# High-Impact CAS Integration Fixes (`TASKS.md`)
+# Special Functions Redesign, Complex Unification & CAS Roadmap (`TASKS.md`)
 
-All previous tasks (`[TASK-44]`–`[TASK-49]`) were verified against `HEAD` (`3793e87a`): `dart analyze` clean, 589 / 589 symbolic & dependency unit tests passing, 283 / 283 (100.0%) on built-in CAS suites, `mit_bee_integrate` at 247 / 322 (76.7%), `mit_bee_official_integrate` at 312 / 544 (57.4%), `independent_integrate` at 1,342 / 1,778 (75.5%), `rubi/t_1_2_1_4#37..46` at 10 / 10 (100%), and `rubi/t_4_1_1_1#0..6` at 7 / 7 (100%).
-
-One sign defect was caught in `[TASK-49]` (`mit_bee#31, #73, #80`), and 4 high-impact integration clusters across `rubi_integrate` (`t_4_trig_functions`, `t_3_logarithms`, `t_6_hyperbolic_functions`) and `independent_integrate` are specified below in dependency order.
+All previous tasks (`[TASK-65]`–`[TASK-70]`) were verified against `HEAD` (`d31a623b`): `dart analyze` clean, 607 / 607 symbolic & dependency unit tests passing in 2s, and full 17-suite CAS runner at **94,244 / 158,635 (59.4%)**.
 
 ---
 
-## [TASK-50] Preserve `Sign(f)` When Pulling Even Powers Out of `sqrt(...)` in `tryRealRadicalRewrite` (`P0-Bug`)
+## Target Design for `package:data/special.dart` (No Backward Compatibility)
 
-- **Impact:** Fixes the 3 sign-flip failures in `mit_bee_integrate` (`#31`, `#73`, `#80`) and 3 corresponding failures in `mit_bee_official_integrate` (`#31`, `#73`, `#80`), bringing `mit_bee_integrate` to **250 / 322 (77.6%)** with **0 wrong results**.
-- **Files:**
-  - `lib/src/symbolic/calculus/integration/radical.dart` (`tryRealRadicalRewrite`)
-  - `test/symbolic/calculus/integration_test.dart`
-- **Problem:**
-  In `[TASK-49]`, `tryRealRadicalRewrite` replaced `sqrt(f^2)` with `f` (e.g. `sqrt(cos(x)^2 / sin(x)) -> cos(x) / sqrt(sin(x))` and `sqrt(1 + tan(x)^2) -> 1 / cos(x)`). On intervals where `cos(x) < 0` (such as `x = 1.63, 2.11`), `sqrt(cos(x)^2) = |cos(x)| = -cos(x)`, so the antiderivative `2 * sqrt(sin(x))` has the opposite sign of the integrand and fails `verifyDerivative`.
-- **Specification:**
-  In `tryRealRadicalRewrite` (`lib/src/symbolic/calculus/integration/radical.dart`):
-  - Whenever an odd power `f^k` is pulled out of `sqrt(f^(2*k))` (including `sqrt(1 + tan(u)^2) -> sqrt(1 / cos(u)^2)` where `f = cos(u)` and `k = -1`, or `sqrt(cos(u)^2 / sin(u))` where `f = cos(u)` and `k = 1`):
-    - If `k.isOdd` and `!isPositiveExpr(f, assumptions: assumptions)`, track `Sign(f)` as an external locally-constant sign factor!
-    - Integrate the sign-stripped expression via `antiDerivative(..., depth: depth + 1, assumptions: assumptions)`.
-    - If no unevaluated `Integral` remains, multiply the resulting antiderivative by the accumulated `Sign(f)` factor(s) (since `d/dx(Sign(f)) == 0`, `d/dx(Sign(f) * F(x)) == Sign(f) * F'(x)` matches the integrand for ALL real `x` where `f(x) != 0`!).
-- **Verification:**
-  - `dart run bin/cas_runner.dart -s "^mit_bee_integrate$" -t "#(23|31|73|80)$"` passes **4 / 4 (100.0%)**.
-  - `dart test test/symbolic/ test/deps_test.dart` passes.
+### Design Principles
 
----
+1. **Single Canonical Name per Mathematical Function:** Remove all redundant aliases (`besselJ0/J1/Y0/Y1/I0/I1/K0/K1`, `trigamma`, `lambertW0`/`lambertW1`, `ellipticEIncomplete`) and fix inconsistent naming (`gammap`/`gammaq`/`ibeta`, stuttering `sinIntegralSi`).
+2. **Paired Top-Level Real & Complex Functions (`<name>` and `<name>Complex`):**
+   - Every analytic special function provides two top-level functions with identical parameter order: `double <name>(...)` and `Complex <name>Complex(...)`, exported directly from `lib/special.dart`.
+   - Real-only probability quantile inverses (`erfInv`, `erfcInv`, `gammaPInv`, `gammaQInv`, `betaIInv`) remain real-only.
+   - **File layout (`AGENTS.md` ordering):** In each `lib/src/special/<family>.dart` file, place all public `<name>` and `<name>Complex` functions (fully documented with `///`) together at the top of the file, and place all private helpers (`_*`) below them.
+3. **Zero Numerical Duplication in `lib/src/symbolic/`:** `evaluator.dart`, `approximate.dart`, and `simplify/special.dart` delegate directly to `package:data/special.dart`.
 
-## [TASK-51] Expand Powered Trig/Hyperbolic Binomials `(a + b*sin(u))^m * cos(u)^n` (`P1-Coverage`, ~1,000+ fixes)
+### Canonical Function Table (`package:data/special.dart`)
 
-- **Impact:** Unlocks **1,000+ cases** across `rubi_integrate` `t_4_trig_functions` (`t_4_1_1_2.jsonl#11..26`: `(a + a*sin(c + d*x))^2 * cos(c + d*x)^6`, `(a + a*sin(c + d*x))^2 / cos(c + d*x)^7`, `(a + a*sin(c + d*x))^3 * cos(c + d*x)^5`, etc.) and `t_6_hyperbolic_functions`.
-- **Files:**
-  - `lib/src/symbolic/calculus/integration/trigonometric.dart` (`tryExpandTrigBinomialProduct`)
-  - `lib/src/symbolic/calculus/integration/integration.dart` (`_antiDerivMul`)
-  - `test/symbolic/calculus/integration_test.dart`
-- **Problem:**
-  In `_antiDerivMul`, step 5 distributes over bare `Add` factors, but does NOT expand `Pow(Add, m)` (`2 <= m <= 6`) when multiplied by trigonometric or hyperbolic powers (e.g. `(a + a*sin(u))^2 * cos(u)^6`). Once expanded into a sum of `sin(u)^p * cos(u)^q` terms, `tryTrigPowerProduct` already integrates every term in closed form!
-- **Specification:**
-  1. Add `Expr? tryExpandTrigBinomialProduct(List<Expr> varFactors, String variable, {required Assumptions assumptions, int depth = 0})` in `lib/src/symbolic/calculus/integration/trigonometric.dart`:
-     - Only run when `depth < 2`.
-     - Look for a factor `Pow(base: final Add addBase, exponent: IntegerNumber(asInt: final m?))` with `2 <= m <= 6` and `addBase.terms.length <= 3`, where `addBase` contains `Sin`, `Cos`, `Tan`, `Sinh`, `Cosh`, or `Tanh` of a linear argument in `variable`, AND all other `varFactors` are powers (positive or negative integer) of `Sin`, `Cos`, `Tan`, `Sinh`, `Cosh`, or `Tanh` of linear arguments in `variable`.
-     - Expand `Pow(addBase, m)` via `.expand().simplify(assumptions: assumptions)`, multiply by the remaining factors, distribute across the resulting `Add`, and integrate term-by-term via `antiDerivative(..., depth: depth + 1, assumptions: assumptions)`.
-     - Return the simplified sum only if no unevaluated `Integral` remains.
-  2. Call `tryExpandTrigBinomialProduct(varFactors, variable, assumptions: assumptions, depth: depth)` in `_antiDerivMul` (`lib/src/symbolic/calculus/integration/integration.dart`) right after `tryTrigPowerProduct`.
-- **Verification:**
-  - Add unit tests for `(a + a*sin(c + d*x))^2 * cos(c + d*x)^6` and `(a + a*sin(c + d*x))^2 / cos(c + d*x)^7`.
-  - `dart run bin/cas_runner.dart -s "^rubi_integrate$" -t "t_4_1_1_2.jsonl#(11|12|13|15|23|24|25|26)$"` passes **8 / 8 (100.0%)**.
+| File | Real (`double`) | Complex (`Complex`) | Removed / Renamed |
+| --- | --- | --- | --- |
+| `gamma.dart` | `gamma(x)`, `gammaLn(x)`, `lowerGamma(s, x)`, `upperGamma(s, x)`, `gammaP(a, x)`, `gammaQ(a, x)`, `gammaPInv(p, a)`, `gammaQInv(p, a)`, `factorial(x)`, `factorialLn(x)`, `binomial(n, k)`, `binomialLn(n, k)`, `permutation(n, k)`, `permutationLn(n, k)` | `gammaComplex`, `gammaLnComplex`, `lowerGammaComplex`, `upperGammaComplex`, `factorialComplex`, `binomialComplex` | `gammap`→`gammaP`, `gammaq`→`gammaQ`, `gammapInv`→`gammaPInv`, `gammaqInv`→`gammaQInv`, `combination`→`binomial`, `combinationLn`→`binomialLn` |
+| `beta.dart` | `beta(a, b)`, `betaLn(a, b)`, `betaI(x, a, b)`, `betaIInv(p, a, b)` | `betaComplex`, `betaLnComplex` | `ibeta`→`betaI`, `ibetaInv`→`betaIInv` |
+| `digamma.dart` | `digamma(x)`, `polygamma(m, x)` | `digammaComplex`, `polygammaComplex` | Drop `trigamma` (`polygamma(1, x)`) |
+| `zeta.dart` | `zeta(s)` | `zetaComplex` | — |
+| `polylog.dart` | `polylog(s, z)` | `polylogComplex` | Export `polylogComplex` in `lib/special.dart` |
+| `erf.dart` | `erf(x)`, `erfc(x)`, `erfi(x)`, `erfInv(x)`, `erfcInv(x)` | `erfComplex`, `erfcComplex`, `erfiComplex` | — |
+| `fresnel.dart` | `fresnelS(x)`, `fresnelC(x)` | `fresnelSComplex`, `fresnelCComplex` | — |
+| `exp_integral.dart` | `expIntegral(x)`, `logIntegral(x)`, `sinIntegral(x)`, `cosIntegral(x)`, `sinhIntegral(x)`, `coshIntegral(x)` | `expIntegralComplex`, `logIntegralComplex`, `sinIntegralComplex`, `cosIntegralComplex`, `sinhIntegralComplex`, `coshIntegralComplex` | Drop `Ei`/`Li`/`Si`/`Ci`/`Shi`/`Chi` stutter suffixes |
+| `bessel.dart` | `besselJ(nu, x)`, `besselY(nu, x)`, `besselI(nu, x)`, `besselK(nu, x)` | `besselJComplex`, `besselYComplex`, `besselIComplex`, `besselKComplex` | Drop `bessel{J,Y,I,K}{0,1}` (keep private fast paths) |
+| `elliptic.dart` | `ellipticK(k)`, `ellipticF(phi, k)`, `ellipticE(k, {num? phi})`, `ellipticPi(n, k, {num? phi})` | `ellipticKComplex`, `ellipticFComplex`, `ellipticEComplex`, `ellipticPiComplex` | Merge `ellipticEIncomplete(phi, k)` into `ellipticE(k, phi: phi)`; add `ellipticPi` |
+| `lambert_w.dart` | `lambertW(x, {int branch = 0})` | `lambertWComplex(z, {int branch = 0})` | Merge `lambertW0`/`lambertW1` into `lambertW(..., branch: 0 | -1)` |
+| `hypergeometric.dart` | `hypergeometric1F1(a, b, z)`, `hypergeometric2F1(a, b, c, z)` | `hypergeometric1F1Complex`, `hypergeometric2F1Complex` | — |
 
 ---
 
-## [TASK-52] Generalize `x^n / ln(c * x)^k` Integration to Scaled Logs, Negative `n`, and Powers `k >= 2` (`P1-Coverage`, ~400+ fixes)
+## Phase 1: Clean Up `package:data/special.dart` API & Callers
 
-- **Impact:** Unlocks **hundreds of cases** in `rubi_integrate` `t_3_logarithms` (`t_3_1_2.jsonl#21..30`: `x^3 / ln(c*x)`, `1 / (x^2 * ln(c*x))`, `x^3 / ln(c*x)^2`, etc.).
+### [TASK-71] Refactor `package:data/special.dart` to Canonical Names & Top-of-File Public Layout (`API Cleanup`)
+
 - **Files:**
-  - `lib/src/symbolic/calculus/integration/rational.dart` (`tryAntiDerivDiv`, `_tryPowerOverLogPower`)
-  - `test/symbolic/calculus/integration_test.dart`
-- **Problem:**
-  In `rational.dart:241`, the `x^n / ln(x)` rule only matches bare `Ln(Variable(variable))` (rejecting `Ln(c * x)`), only matches positive `x^n` in `left` (rejecting `1 / (x^2 * ln(c * x))` where `x^2` is in `right`), and only handles `k == 1` (rejecting `x^3 / ln(c * x)^2`).
+  - `lib/special.dart`
+  - `lib/src/special/*.dart` (all 12 files)
+  - All callers in `lib/src/stats/`, `lib/src/symbolic/`, `test/`, `doc/`, `bin/`
 - **Specification:**
-  Replace the inline block at `rational.dart:240-271` with a dedicated helper `Expr? _tryPowerOverLogPower(Expr left, Expr right, String variable, {required Assumptions assumptions})`:
-  1. Decompose `left / right` into `(scale, nExp, cConst, kInt)` matching `scale * x^n / ln(c * x)^k`:
-     - Extract all factors from `left` (positive exponent) and `right` (negative exponent).
-     - Exactly one logarithmic factor `Ln(inner)^(-k)` with integer `k >= 1 && k <= 6`, where `inner.matchLinear(variable)` is `(a: final c, b: final b)` with `b is Number && b.isZero` (i.e. `inner == c * x`).
-     - All remaining variable-dependent factors must be `x` or `Pow(x, e)` with `!e.dependsOn(variable)` (sum their exponents into `nExp`).
-     - All constant factors multiply into `scale`.
-  2. Integrate `x^n / ln(c * x)^k` via the exact reduction:
-     - If `nExp == IntegerNumber.negativeOne`:
-       - If `k == 1`: `logAntiderivative(Ln(inner), assumptions)`.
-       - If `k >= 2`: `-Pow(Ln(inner), IntegerNumber.of(1 - k)) / IntegerNumber.of(k - 1)`.
-     - Else (let `np1 = (nExp + IntegerNumber.one).simplify()`):
-       - Base case `k == 1`:
-         - If `nExp is Number && nExp.isZero`: `LogIntegralLi(inner) / c`.
-         - Else: `ExpIntegralEi((np1 * Ln(inner)).simplify()) / Pow(c, np1)`.
-       - Recursive step `k >= 2`:
-         $$\int \frac{x^n}{\ln(c x)^k}\,dx = -\frac{x^{n + 1}}{(k - 1)\ln(c x)^{k - 1}} + \frac{n + 1}{k - 1}\int \frac{x^n}{\ln(c x)^{k - 1}}\,dx$$
-  3. Multiply by `scale` and `.simplify(assumptions: assumptions)`.
+  1. Apply every rename and removal in the Canonical Function Table above directly across `lib/src/special/*.dart`:
+     - Make `bessel{J,Y,I,K}{0,1}` private (`_besselJ0`, etc.) while keeping them as fast paths inside `besselJ`/`besselY`/`besselI`/`besselK`.
+     - Remove `trigamma` (replace callers with `polygamma(1, x)`).
+     - Merge `lambertW0`/`lambertW1` into `double lambertW(num z, {int branch = 0})` (throw `ArgumentError` for branches other than `0` or `-1`).
+     - Merge `ellipticEIncomplete(phi, k)` into `double ellipticE(num k, {num? phi})`.
+     - Rename `gammap`/`gammaq`/`gammapInv`/`gammaqInv`/`combination`/`combinationLn`/`ibeta`/`ibetaInv` and `expIntegralEi`/`logIntegralLi`/`sinIntegralSi`/`cosIntegralCi`/`sinhIntegralShi`/`coshIntegralChi`.
+     - Export `polylogComplex` in `lib/special.dart` (remove `show polylog`).
+  2. Enforce ordering in every `lib/src/special/*.dart` file: all public functions (documented with `///`) at the top of the file, all private helpers below.
+  3. Update all callers across `lib/`, `test/`, `bin/`, and `test/doc_examples_test.dart`.
 - **Verification:**
-  - Add unit tests for `x^3 / ln(c*x)`, `1 / (x^2 * ln(c*x))`, and `x^3 / ln(c*x)^2`.
-  - `dart run bin/cas_runner.dart -s "^rubi_integrate$" -t "t_3_1_2.jsonl#(21|22|23|26|27|28|29|30)$"` passes **8 / 8 (100.0%)**.
+  - `dart analyze` clean (0 issues).
+  - `dart test test/special/ test/stats/ test/symbolic/ test/deps_test.dart test/doc_examples_test.dart` passes 100%.
 
 ---
 
-## [TASK-53] Shifted Trig/Hyperbolic Integrals `(sin|cos|sinh|cosh)(a + b*x) / (c + d*x)^k` and Hyperbolic Power Reduction (`P1-Coverage`, ~600+ fixes)
+## Phase 2: Implement Complete `<name>Complex` Functions in `lib/src/special/`
 
-- **Impact:** Unlocks **hundreds of cases** in `rubi_integrate` `t_6_hyperbolic_functions` (`t_6_1_1.jsonl#4..14`: `sinh(a + b*x) / (c + d*x)^k`, `(c + d*x)^4 * sinh(a + b*x)^2`, `sinh(a + b*x)^2 / (c + d*x)^k`) and `t_4_trig_functions`.
+### [TASK-72] Add Complex Gamma, Incomplete Gamma, Beta, Digamma, Polygamma & Zeta (`lib/src/special/`)
+
+- **Impact:** Unlocks **438+ `uppergamma` cases** in `rubi_differentiate` plus complex `Gamma`, `Factorial`, `Binomial`, `Beta`, `Digamma`, `Polygamma`, and `Zeta`.
 - **Files:**
-  - `lib/src/symbolic/calculus/integration/trigonometric.dart` (`_reduceTrigPower`)
-  - `lib/src/symbolic/calculus/integration/rational.dart` (`tryAntiDerivDiv`, `_tryTrigOrHypOverLinearPower`)
-  - `test/symbolic/calculus/integration_test.dart`
-- **Problem:**
-  1. `_reduceTrigPower` (`trigonometric.dart:495`) only reduces `Sin^n` and `Cos^n`, NOT `Sinh^n` and `Cosh^n`, so `(c + d*x)^4 * sinh(a + b*x)^2` (`t_6_1_1#7`) fails!
-  2. `rational.dart:274` only handles `sin(a*x) / x^k` and `cos(a*x) / x^k` with zero constant shifts (`b == 0` and denominator `x^k`), missing shifted linear arguments `(sin|cos|sinh|cosh)(a + b*x) / (c + d*x)^k` and squared forms `sinh(a + b*x)^2 / (c + d*x)^k`.
+  - `lib/src/special/gamma.dart` (`gammaComplex`, `gammaLnComplex`, `lowerGammaComplex`, `upperGammaComplex`, `factorialComplex`, `binomialComplex`)
+  - `lib/src/special/beta.dart` (`betaComplex`, `betaLnComplex`)
+  - `lib/src/special/digamma.dart` (`digammaComplex`, `polygammaComplex`)
+  - `lib/src/special/zeta.dart` (`zetaComplex`)
+  - `test/special/gamma_test.dart`, `beta_test.dart`, `digamma_test.dart`, `zeta_test.dart`
 - **Specification:**
-  1. In `_reduceTrigPower` (`lib/src/symbolic/calculus/integration/trigonometric.dart:495`):
-     - Add `Sinh` and `Cosh` for `n = 2, 3, 4`:
-       - `sinh(u)^2 = (cosh(2*u) - 1) / 2`, `cosh(u)^2 = (cosh(2*u) + 1) / 2`
-       - `sinh(u)^3 = (sinh(3*u) - 3*sinh(u)) / 4`, `cosh(u)^3 = (cosh(3*u) + 3*cosh(u)) / 4`
-       - `sinh(u)^4 = (cosh(4*u) - 4*cosh(2*u) + 3) / 8`, `cosh(u)^4 = (cosh(4*u) + 4*cosh(2*u) + 3) / 8`
-  2. Add `Expr? _tryTrigOrHypOverLinearPower(Expr left, Expr right, String variable, {required Assumptions assumptions})` in `lib/src/symbolic/calculus/integration/rational.dart`:
-     - Match `right` as `linBase` (`k = 1`) or `Pow(linBase, IntegerNumber(asInt: final k?))` (`1 <= k <= 6`), where `linBase.matchLinear(variable)` is `(a: final d, b: final c)`.
-     - If `left` is `Pow(Sin|Cos|Sinh|Cosh(u), IntegerNumber(asInt: final n?))` (`2 <= n <= 4`, `u` linear): apply `_reduceTrigPower(left, variable)`, expand, and integrate each term over `right`!
-     - If `left` is `Sin(u)`, `Cos(u)`, `Sinh(u)`, or `Cosh(u)` with `u.matchLinear(variable) = (a: final b, b: final a)`:
-       - Base case `k == 1`: shift `w = c + d*x`, so `u = alpha + beta*w` where `beta = b / d`, `alpha = a - b * c / d`:
-         - `sin(alpha + beta*w) / w`: `(cos(alpha) * SinIntegralSi(beta * w) + sin(alpha) * CosIntegralCi(beta * w)) / d`
-         - `cos(alpha + beta*w) / w`: `(cos(alpha) * CosIntegralCi(beta * w) - sin(alpha) * SinIntegralSi(beta * w)) / d`
-         - `sinh(alpha + beta*w) / w`: `(cosh(alpha) * SinhIntegralShi(beta * w) + sinh(alpha) * CoshIntegralChi(beta * w)) / d`
-         - `cosh(alpha + beta*w) / w`: `(cosh(alpha) * CoshIntegralChi(beta * w) + sinh(alpha) * SinhIntegralShi(beta * w)) / d`
-       - Recursive step `k >= 2`: 1-step IBP (`u = left`, `dv = (c + d*x)^(-k) dx`):
-         `term1 = -left / (d * (k - 1) * (c + d*x)^(k - 1))`, plus `(1 / (d * (k - 1))) * integral(left' / (c + d*x)^(k - 1))`.
+  Place each `<name>Complex` directly beside its real counterpart at the top of its file, with all private helpers below:
+  1. **`gammaComplex(z)` & `gammaLnComplex(z)`:** Complex Lanczos ($g = 7$, 9 coefficients) with Euler reflection $\Gamma(z) = \frac{\pi}{\sin(\pi z)\Gamma(1 - z)}$ for `z.a < 0.5`.
+  2. **`factorialComplex(z)` & `binomialComplex(n, k)`:** `gammaComplex(z + Complex.one)` and `(gammaLnComplex(n + 1) - gammaLnComplex(k + 1) - gammaLnComplex(n - k + 1)).exp()`.
+  3. **`upperGammaComplex(s, z)` & `lowerGammaComplex(s, z)`:** Lentz modified continued fraction when `|z| >= |s| + 1 && z.a > -z.b.abs()`, convergent power series $\gamma(s, z) = z^s e^{-z} \sum_{n=0}^{120} \frac{z^n}{s(s+1)\cdots(s+n)}$ otherwise.
+  4. **`betaComplex(a, b)` & `betaLnComplex(a, b)`:** via `gammaLnComplex`.
+  5. **`digammaComplex(z)` & `polygammaComplex(m, z)`:** reflection for `z.a < 0.5`, recurrence shift to `|z| >= 8`, asymptotic Bernoulli series.
+  6. **`zetaComplex(s)`:** Borwein/Euler-Maclaurin alternating eta for `s.a >= 0.5` and Riemann functional equation for `s.a < 0.5`.
 - **Verification:**
-  - `dart run bin/cas_runner.dart -s "^rubi_integrate$" -t "t_6_1_1.jsonl#(4|5|6|7|11|12|13|14)$"` passes **8 / 8 (100.0%)**.
+  - Unit tests verify agreement with real functions on $\mathbb{R}$ (`< 1e-12`) and complex functional identities ($\Gamma(z+1) = z\Gamma(z)$, $\Gamma(s, z) + \gamma(s, z) = \Gamma(s)$, $\psi(z+1) = \psi(z) + 1/z$).
 
 ---
 
-## [TASK-54] Shifted Exponential Integrals `exp(a + b*x) / (c + d*x)^k` and `exp(a + b*x) / Q(x)` (`P2-Coverage`, ~200+ fixes)
+### [TASK-73] Add Complex Elliptic Integrals (`K`, `F`, `E`, `Pi`) & Real `ellipticPi` (`lib/src/special/elliptic.dart`)
 
-- **Impact:** Fixes `independent/apostol_problems.jsonl#173` (`exp(2*x) / (x^2 - 3*x + 2)`) and unlocks shifted exponential-rational integrals in `rubi_integrate` (`t_2_exponentials`).
+- **Impact:** Directly enables fixing **~4,000+ `elliptic_f`/`elliptic_e` failures** in `rubi_differentiate` and **3,382 `elliptic_pi` errors** in `run.txt`!
 - **Files:**
-  - `lib/src/symbolic/calculus/integration/rational.dart` (`tryAntiDerivDiv`, `_tryExpOverRational`)
-  - `test/symbolic/calculus/integration_test.dart`
-- **Problem:**
-  `exp(a + b*x) / (c + d*x)^k` and `exp(2*x) / (x^2 - 3*x + 2)` stay unevaluated because there is no rule for shifted exponential integrals (`Ei`) or partial-fraction decomposition of `1 / Q(x)` underneath an exponential factor `exp(a + b*x)`.
+  - `lib/src/special/elliptic.dart` (`ellipticKComplex`, `ellipticFComplex`, `ellipticEComplex`, `ellipticPi`, `ellipticPiComplex`)
+  - `test/special/elliptic_test.dart`
 - **Specification:**
-  Add `Expr? _tryExpOverRational(Expr left, Expr right, String variable, {required Assumptions assumptions})` in `lib/src/symbolic/calculus/integration/rational.dart`:
-  1. Match `left` as `scale * Pow(Constant.e, u)` where `!scale.dependsOn(variable)` and `u.matchLinear(variable)` is `(a: final b, b: final a)`.
-  2. **Case 1 (`right` is `(c + d*x)^k` with `1 <= k <= 6`):**
-     - Base case `k == 1`: substitute `w = c + d*x`, returning `scale * Pow(Constant.e, a - b*c/d) / d * ExpIntegralEi((b / d) * (c + d*x))`.
-     - Recursive step `k >= 2`: 1-step IBP (`-left / (d * (k - 1) * (c + d*x)^(k - 1)) + (b / (d * (k - 1))) * integral(left / (c + d*x)^(k - 1))`).
-  3. **Case 2 (`right` is a polynomial of degree `2 <= deg <= 4`):**
-     - Compute `final pf = (IntegerNumber.one / right).apart(variable);`.
-     - If `pf is Add`: multiply each term by `left` and integrate term-by-term via `antiDerivative(..., depth: depth + 1, assumptions: assumptions)`. Return the sum if no unevaluated `Integral` remains.
+  1. Place all 8 public functions (`ellipticK`/`ellipticKComplex`, `ellipticF`/`ellipticFComplex`, `ellipticE`/`ellipticEComplex`, `ellipticPi`/`ellipticPiComplex`) at the top of `elliptic.dart`, with all private Carlson helpers (`_carlsonRF*`, `_carlsonRD*`, `_carlsonRC*`, `_carlsonRJ*`) below.
+  2. Implement complex Carlson duplication algorithms using modulus $k$ ($m = k^2$), handling $|\operatorname{Re}(\phi)| > \pi/2$ via quasi-periodicity.
 - **Verification:**
-  - `dart run bin/cas_runner.dart -s "^independent_integrate$" -t "apostol_problems.jsonl#173$"` passes.
-  - Add unit tests for `exp(2*x) / (x^2 - 3*x + 2)` and `exp(a + b*x) / (c + d*x)^2`.
+  - Unit tests verify agreement on $\mathbb{R}$ (`< 1e-12`) and complex finite-difference derivatives $\partial_\phi F$, $\partial_\phi E$, $\partial_\phi \Pi$.
+
+---
+
+### [TASK-74] Add Complex Error, Fresnel, Integral Functions, Bessel, Lambert W & Hypergeometric (`lib/src/special/`)
+
+- **Impact:** Completes 100% complex coverage across `package:data/special.dart`.
+- **Files:**
+  - `lib/src/special/erf.dart` (`erfComplex`, `erfcComplex`, `erfiComplex`)
+  - `lib/src/special/fresnel.dart` (`fresnelSComplex`, `fresnelCComplex`)
+  - `lib/src/special/exp_integral.dart` (`expIntegralComplex`, `logIntegralComplex`, `sinIntegralComplex`, `cosIntegralComplex`, `sinhIntegralComplex`, `coshIntegralComplex`)
+  - `lib/src/special/bessel.dart` (`besselJComplex`, `besselYComplex`, `besselIComplex`, `besselKComplex`)
+  - `lib/src/special/lambert_w.dart` (`lambertWComplex`)
+  - `lib/src/special/hypergeometric.dart` (`hypergeometric1F1Complex`, `hypergeometric2F1Complex`)
+  - `test/special/erf_test.dart`, `fresnel_test.dart`, `exp_integral_test.dart`, `bessel_test.dart`, `lambert_w_test.dart`, `hypergeometric_test.dart`
+- **Specification:**
+  Place each `<name>Complex` beside its real counterpart at the top of its file, with all private helpers below:
+  1. **`erfComplex`, `erfcComplex`, `erfiComplex`:** power series for `|z| < 4`, Lentz CF for `|z| >= 4`, `erfiComplex(z) = -i * erfComplex(i * z)`.
+  2. **`fresnelSComplex`, `fresnelCComplex`:** generalize existing complex series/CF in `fresnel.dart` from `double` to `Complex`.
+  3. **`expIntegralComplex` .. `coshIntegralComplex`:** power series for `|z| < 4`, existing `_expIntegralE1Complex` CF for `|z| >= 4`.
+  4. **`besselJComplex`, `besselYComplex`, `besselIComplex`, `besselKComplex`:** power series (`|z| <= 12`) + Hankel asymptotic expansion (`|z| > 12`) + connection formulas.
+  5. **`lambertWComplex(z, {int branch = 0})`:** complex Halley iteration for branches `0` and `-1`.
+  6. **`hypergeometric1F1Complex`, `hypergeometric2F1Complex`:** complex Kummer/Gauss series with Euler/Pfaff linear transformations when `|z| >= 0.8`.
+- **Verification:**
+  - Unit tests in `test/special/` verifying real-axis agreement (`< 1e-12`) and complex derivative / functional identities.
+
+---
+
+## Phase 3: Unify `lib/src/symbolic/` onto `<name>Complex`
+
+### [TASK-75] Wire `evaluator.dart`, `approximate.dart`, and `simplify/special.dart` onto `<name>Complex` (`Symbolic Cleanup`, ~4,200+ fixes)
+
+- **Impact:** Deletes all 29 `UnsupportedError('Complex ... evaluation is only supported on R')` blocks in `evaluator.dart`, fixes `_approximateBinary` and `simplify/special.dart` for floating-point `ComplexNumber`, and fixes **~4,200+ failures** in `rubi_differentiate` and `independent_differentiate`!
+- **Files:**
+  - `lib/src/symbolic/compiler/evaluator.dart` (`BytecodeEvaluator._runComplex`)
+  - `lib/src/symbolic/algebra/approximate.dart` (`_approximateUnary`, `_approximateBinary`)
+  - `lib/src/symbolic/algebra/simplify/special.dart`
+  - `test/symbolic/compiler/evaluator_test.dart`, `test/symbolic/algebra/approximate_test.dart`
+- **Specification:**
+  1. **`evaluator.dart`:** Replace all 29 special-function `UnsupportedError` blocks in `_runComplex` with direct `<name>Complex(...)` calls. Keep `UnsupportedError` only for real-ordered discrete ops (`floor`, `ceil`, `round`, `mod`).
+  2. **`approximate.dart`:** Add shared `_complexToExpr(Complex c)` and update `_approximateBinary` to fall back to `_complexToExpr(rebuilt.evaluateComplex())` when either operand is `ComplexNumber` or `realVal.isNaN`.
+  3. **`simplify/special.dart`:** Evaluate floating-point `ComplexNumber` inputs (those containing a `RealNumber` part) uniformly via `<name>Complex(...)` while keeping exact rational/Gaussian `ComplexNumber` inputs symbolic.
+- **Verification:**
+  - `dart test test/symbolic/ test/deps_test.dart` passes 100%.
+  - `dart run bin/cas_runner.dart -s "^rubi_differentiate$" -t "t_1_1_1_2.jsonl#(1168|1186|1187|1188)$|t_2_1.jsonl#(0|18)$"` passes **6 / 6 (100.0%)**.
+
+---
+
+## Phase 4: High-Impact Multi-Subsystem CAS Gaps
+
+### [TASK-76] First-Class `EllipticPi(n, phi, k)` and `Atan2(y, x)` AST Nodes (`AST / Parsing / Calculus`, ~3,520 errors fixed)
+
+- **Impact:** Eliminates **3,382 `Unknown function: elliptic_pi`** errors and **138 `Unknown function: atan2`** errors in `run.txt`.
+- **Files:**
+  - `lib/src/symbolic/ast/special_function.dart` (`EllipticPi`), `lib/src/symbolic/ast/trigonometric.dart` (`Atan2`)
+  - `lib/symbolic.dart`, `lib/src/symbolic/parsing/syntax.dart`, `bin/cas_suites/cas_test_case.dart`
+  - `lib/src/symbolic/textualization/string.dart`, `latex.dart`, `mathml.dart`
+  - `lib/src/symbolic/algebra/simplify.dart`, `simplify/special.dart`, `simplify/transcendental.dart`
+  - `lib/src/symbolic/calculus/differentiation.dart`, `lib/src/symbolic/compiler/bytecode.dart`, `evaluator.dart`, `approximate.dart`
+- **Specification:**
+  1. `EllipticPi(n, phi, k)`: delegates to `ellipticPi` / `ellipticPiComplex`, maps SymPy's `elliptic_pi(n, phi, m)` -> `EllipticPi(n, phi, sqrt(m))` in `cas_test_case.dart`, differentiates as `phi' / ((1 - n*sin(phi)^2) * sqrt(1 - k^2*sin(phi)^2))`.
+  2. `Atan2(y, x)`: exact quadrant simplifications, derivative `(x*y' - y*x') / (x^2 + y^2)`, real `math.atan2(y, x)` and complex `-i * ln((x + i*y) / sqrt(x^2 + y^2))`.
+- **Verification:**
+  - `dart run bin/cas_runner.dart -s "^independent_differentiate$" -q` has 0 `elliptic_pi` errors; `rubi_integrate` `t_4_1_7#(576|577)` has 0 `atan2` errors.
+
+---
+
+### [TASK-77] Exponential-of-Inverse-Hyperbolic Simplification `exp(atanh|asinh|acosh(u))` (`Simplification`, ~1,916 fixes)
+
+- **Impact:** Unlocks **~1,916 unevaluated cases** in `rubi_integrate` (`t_7_3_6`, `t_7_4_2`) and strengthens general simplification.
+- **Files:** `lib/src/symbolic/algebra/simplify/power.dart`, `bin/cas_suites/algebra_suite.dart`, `test/symbolic/algebra/simplify_test.dart`
+- **Specification:** Simplify `exp(k * atanh(u)) -> ((1 + u)/(1 - u))^(k/2)` (rational `k`), `exp(±asinh(u)) -> sqrt(u^2 + 1) ± u`, `exp(±acosh(u)) -> u ± sqrt(u^2 - 1)`.
+- **Verification:** `algebra` suite 100%; `rubi_integrate` `t_7_3_6|t_7_4_2` pass rate jumps sharply.
+
+---
+
+### [TASK-78] Square-Root Radical Denesting `sqrt(a ± b*sqrt(c))` (`Simplification / Algebra`)
+
+- **Files:** `lib/src/symbolic/algebra/simplify/power.dart`, `bin/cas_suites/algebra_suite.dart`, `test/symbolic/algebra/simplify_test.dart`
+- **Specification:** When `a, b, c` are rationals (`a > 0, c > 0, b != 0`) and `d = sqrt(a^2 - b^2 * c)` is rational, simplify `sqrt(a + b*sqrt(c)) -> sqrt((a + d)/2) + sign(b) * sqrt((a - d)/2)`.
+- **Verification:** `wester|algebra` suites 100%.
+
+---
+
+### [TASK-79] Quadratic Trigonometric Equations $a\sin^2 u + b\sin u \cos u + c\cos^2 u = d$ (`Solvers`)
+
+- **Files:** `lib/src/symbolic/solver/trigonometric.dart`, `bin/cas_suites/solvers_linear_suite.dart`, `test/symbolic/solver/trigonometric_test.dart`
+- **Specification:** Replace `d` with `d*(sin(u)^2 + cos(u)^2)`, handle `cos(u) == 0` when `a + d == 0`, divide by `cos(u)^2` to solve `(a + d)*tan(u)^2 + b*tan(u) + (c + d) = 0`, and invert `tan(u) = t_k`.
+- **Verification:** `solvers_linear` suite 100%.
+
+---
+
+### [TASK-80] Stirling Asymptotic Limits, Special-Function Maclaurin Series, and Alternating/Digamma Infinite Sums (`Limits / Series / Summation`)
+
+- **Files:** `lib/src/symbolic/calculus/limit.dart`, `series.dart`, `summation.dart`, `bin/cas_suites/gruntz_limits_suite.dart`, `series_sums_products_suite.dart`
+- **Specification:** Stirling asymptotic fallback for `Factorial`/`Gamma` at `+oo`; Maclaurin series at `0` for `Erf`, `Erfc`, `Erfi`, `SinIntegralSi`, `SinhIntegralShi`, `FresnelS`, `FresnelC`; alternating Dirichlet eta, Gregory-Leibniz, and two-pole `Digamma` infinite sums.
+- **Verification:** `gruntz_limits|series_sums_products` suites 100%.
+
+---
+
+### [TASK-81] High-Impact Integration Fixes: `t_1_2_1_2`/`t_1_2_1_3` Wrong-Sign Bugs, `x^m * P(x)`, and `x^k / (a + b*x^n)^m` (`Integration`, ~2,350+ fixes)
+
+- **Files:** `lib/src/symbolic/calculus/integration/radical.dart`, `integration.dart`, `rational.dart`
+- **Specification:** Omit `Abs` inside `Ln` in `_tryQuadraticRadicalConst` when `quad` has negative discriminant (`t_1_2_1_2`/`t_1_2_1_3`, ~154 wrong results); expand `x^m * P(x)` for symbolic `m` (`t_1_1_1_3`, ~1,195 cases); add 1-step Ostrogradsky reduction for `x^k / (a + b*x^n)^m` (`t_1_1_3_2`, ~1,013 cases).
+- **Verification:** `rubi_integrate` `t_1_2_1_2|t_1_2_1_3|t_1_1_1_3|t_1_1_3_2` pass rate jumps sharply.

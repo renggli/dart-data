@@ -58,24 +58,22 @@ void main() {
     });
 
     test('incomplete elliptic E', () {
-      check(ellipticEIncomplete(0, 0.5)).equals(0.0);
-      check(ellipticEIncomplete(1.2, 0)).isCloseTo(1.2, 1e-12);
-      check(ellipticEIncomplete(math.pi / 2.0, 0.5))
-          .isCloseTo(ellipticE(0.5), 1e-7);
-      check(ellipticEIncomplete(math.pi / 2.0, 0.8))
-          .isCloseTo(ellipticE(0.8), 1e-7);
-      check(ellipticEIncomplete(-0.7, 0.5))
-          .isCloseTo(-ellipticEIncomplete(0.7, 0.5), 1e-7);
+      check(ellipticE(0.5, phi: 0)).equals(0.0);
+      check(ellipticE(0, phi: 1.2)).isCloseTo(1.2, 1e-12);
+      check(ellipticE(0.5, phi: math.pi / 2.0)).isCloseTo(ellipticE(0.5), 1e-7);
+      check(ellipticE(0.8, phi: math.pi / 2.0)).isCloseTo(ellipticE(0.8), 1e-7);
+      check(ellipticE(0.5, phi: -0.7))
+          .isCloseTo(-ellipticE(0.5, phi: 0.7), 1e-7);
 
       // Quasi-periodicity: E(phi + pi, k) = E(phi, k) + 2 * E(k)
-      final eBase = ellipticEIncomplete(0.6, 0.4);
-      final eShifted = ellipticEIncomplete(0.6 + math.pi, 0.4);
+      final eBase = ellipticE(0.4, phi: 0.6);
+      final eShifted = ellipticE(0.4, phi: 0.6 + math.pi);
       check(eShifted).isCloseTo(eBase + 2.0 * ellipticE(0.4), 1e-7);
 
-      check(ellipticEIncomplete(0.5, 1.2)).isNaN;
-      check(ellipticEIncomplete(double.nan, 0.5)).isNaN;
-      check(ellipticEIncomplete(double.infinity, 0.5)).equals(double.infinity);
-      check(ellipticEIncomplete(double.negativeInfinity, 0.5))
+      check(ellipticE(1.2, phi: 0.5)).isNaN;
+      check(ellipticE(0.5, phi: double.nan)).isNaN;
+      check(ellipticE(0.5, phi: double.infinity)).equals(double.infinity);
+      check(ellipticE(0.5, phi: double.negativeInfinity))
           .equals(double.negativeInfinity);
     });
   });

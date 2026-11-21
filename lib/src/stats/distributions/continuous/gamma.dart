@@ -111,15 +111,15 @@ class GammaDistribution extends ContinuousDistribution {
 
   @override
   double cumulativeProbability(double x) =>
-      x <= 0.0 ? 0.0 : gammap(shape, x / scale);
+      x <= 0.0 ? 0.0 : gammaP(shape, x / scale);
 
   @override
-  double survival(double x) => x <= 0.0 ? 1.0 : gammaq(shape, x / scale);
+  double survival(double x) => x <= 0.0 ? 1.0 : gammaQ(shape, x / scale);
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return gammapInv(probability, shape) * scale;
+    return gammaPInv(probability, shape) * scale;
   }
 
   @override

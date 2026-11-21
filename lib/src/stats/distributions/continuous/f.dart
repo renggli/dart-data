@@ -129,7 +129,7 @@ class FDistribution extends ContinuousDistribution {
     if (x <= 0.0) return 0.0;
     if (x == double.infinity) return 1.0;
     final z = (d1 * x) / (d1 * x + d2);
-    return ibeta(z, 0.5 * d1, 0.5 * d2);
+    return betaI(z, 0.5 * d1, 0.5 * d2);
   }
 
   @override
@@ -138,7 +138,7 @@ class FDistribution extends ContinuousDistribution {
     if (x <= 0.0) return 1.0;
     if (x == double.infinity) return 0.0;
     final z = d2 / (d1 * x + d2);
-    return ibeta(z, 0.5 * d2, 0.5 * d1);
+    return betaI(z, 0.5 * d2, 0.5 * d1);
   }
 
   @override
@@ -146,7 +146,7 @@ class FDistribution extends ContinuousDistribution {
     InvalidProbability.check(probability);
     if (probability == 0.0) return 0.0;
     if (probability == 1.0) return double.infinity;
-    final betaVal = ibetaInv(probability, 0.5 * d1, 0.5 * d2);
+    final betaVal = betaIInv(probability, 0.5 * d1, 0.5 * d2);
     return (d2 * betaVal) / (d1 * (1.0 - betaVal));
   }
 

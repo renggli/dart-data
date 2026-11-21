@@ -92,8 +92,8 @@ void main() {
       final invGamma = InverseGammaDistribution(5.0, 1.0);
       check(invGamma.excessKurtosis).isCloseTo(42.0, 1e-12);
 
-      check(combination(5, 4)).equals(5.0);
-      check(combination(5.5, 2.5)).isGreaterThan(10.0);
+      check(binomial(5, 4)).equals(5.0);
+      check(binomial(5.5, 2.5)).isGreaterThan(10.0);
       check(permutation(5.5, 2.5)).isGreaterThan(20.0);
     });
   });

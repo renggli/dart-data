@@ -70,7 +70,7 @@ class PoissonDistribution extends DiscreteDistribution {
       k < 0 ? 0.0 : exp(k * log(rate) - rate - factorialLn(k));
 
   @override
-  double cumulativeProbability(int k) => k < 0 ? 0.0 : gammaq(k + 1.0, rate);
+  double cumulativeProbability(int k) => k < 0 ? 0.0 : gammaQ(k + 1.0, rate);
 
   @override
   int sample({Random? random}) {

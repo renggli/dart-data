@@ -108,13 +108,13 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
   @override
   double probability(int k) {
     if (k < 0) return 0;
-    return exp(combinationLn(k + r - 1, k) + k * log(p) + r * log(q));
+    return exp(binomialLn(k + r - 1, k) + k * log(p) + r * log(q));
   }
 
   @override
   double cumulativeProbability(int k) {
     if (k < 0) return 0.0;
-    return ibeta(q, r, k + 1);
+    return betaI(q, r, k + 1);
   }
 
   @override

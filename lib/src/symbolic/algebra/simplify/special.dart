@@ -30,8 +30,8 @@ Expr simplifyLambertW(
   if (expr is RealNumber) {
     final v = expr.value;
     final res = branch == 0
-        ? special_lambert.lambertW0(v)
-        : special_lambert.lambertW1(v);
+        ? special_lambert.lambertW(v)
+        : special_lambert.lambertW(v, branch: -1);
     return res.isNaN ? Constant.undefined : RealNumber.fromDouble(res);
   }
   if (branch == 0) {
@@ -361,7 +361,7 @@ Expr simplifyFresnelC(Expr expr, {required Assumptions assumptions}) {
 Expr simplifyExpIntegralEi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.expIntegralEi(expr.value));
+    return RealNumber.fromDouble(special_exp_int.expIntegral(expr.value));
   }
   return ExpIntegralEi(expr, isSimplified: true);
 }
@@ -371,7 +371,7 @@ Expr simplifyLogIntegralLi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.logIntegralLi(expr.value));
+    return RealNumber.fromDouble(special_exp_int.logIntegral(expr.value));
   }
   return LogIntegralLi(expr, isSimplified: true);
 }
@@ -381,7 +381,7 @@ Expr simplifySinIntegralSi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.sinIntegralSi(expr.value));
+    return RealNumber.fromDouble(special_exp_int.sinIntegral(expr.value));
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
@@ -397,7 +397,7 @@ Expr simplifySinIntegralSi(Expr expr, {required Assumptions assumptions}) {
 Expr simplifyCosIntegralCi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.cosIntegralCi(expr.value));
+    return RealNumber.fromDouble(special_exp_int.cosIntegral(expr.value));
   }
   return CosIntegralCi(expr, isSimplified: true);
 }
@@ -407,7 +407,7 @@ Expr simplifySinhIntegralShi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.sinhIntegralShi(expr.value));
+    return RealNumber.fromDouble(special_exp_int.sinhIntegral(expr.value));
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
@@ -423,7 +423,7 @@ Expr simplifySinhIntegralShi(Expr expr, {required Assumptions assumptions}) {
 Expr simplifyCoshIntegralChi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.coshIntegralChi(expr.value));
+    return RealNumber.fromDouble(special_exp_int.coshIntegral(expr.value));
   }
   return CoshIntegralChi(expr, isSimplified: true);
 }
@@ -576,7 +576,7 @@ Expr simplifyEllipticEIncomplete(
   }
   if (phi is RealNumber && k is RealNumber) {
     return RealNumber.fromDouble(
-      special_elliptic.ellipticEIncomplete(phi.value, k.value),
+      special_elliptic.ellipticE(k.value, phi: phi.value),
     );
   }
   return EllipticEIncomplete(phi, k, isSimplified: true);

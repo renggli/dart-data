@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
-import 'package:data/src/special/polylog.dart';
 import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
