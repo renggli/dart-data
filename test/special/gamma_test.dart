@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
 void main() {
@@ -192,6 +193,38 @@ void main() {
       check(upperGamma(0.0, 1.0)).isCloseTo(-expIntegral(-1.0), 1e-12);
       check(upperGamma(-1.0, 1.0))
           .isCloseTo(math.exp(-1.0) + expIntegral(-1.0), 1e-12);
+    });
+
+    test('complex gamma, factorial, binomial, and incomplete gamma', () {
+      for (final x in [0.5, 2.5, 5.0, -1.3]) {
+        final gc = gammaComplex(Complex(x));
+        check(gc.a).isCloseTo(gamma(x), 1e-12);
+        check(gc.b).isCloseTo(0.0, 1e-12);
+      }
+      const z = Complex(1.5, 0.8);
+      final gz1 = gammaComplex(z + Complex.one);
+      final zGz = z * gammaComplex(z);
+      check((gz1 - zGz).abs()).isLessThan(1e-12);
+      check(gammaLnComplex(const Complex(3.5)).a.toDouble())
+          .isCloseTo(gammaLn(3.5), 1e-12);
+      check((factorialComplex(z) - gammaComplex(z + Complex.one)).abs())
+          .isLessThan(1e-12);
+      check(
+        (binomialComplex(const Complex(5, 1), const Complex(2)) -
+                (const Complex(5, 1) * const Complex(4, 1) / const Complex(2)))
+            .abs(),
+      ).isLessThan(1e-12);
+
+      // upperGammaComplex + lowerGammaComplex == gammaComplex
+      const s = Complex(1.2, 0.5);
+      const w = Complex(2.5, -0.7);
+      final sum = upperGammaComplex(s, w) + lowerGammaComplex(s, w);
+      check((sum - gammaComplex(s)).abs()).isLessThan(1e-12);
+      // Small |z| series branch
+      const wSmall = Complex(0.4, 0.3);
+      final sumSmall =
+          upperGammaComplex(s, wSmall) + lowerGammaComplex(s, wSmall);
+      check((sumSmall - gammaComplex(s)).abs()).isLessThan(1e-12);
     });
   });
 }

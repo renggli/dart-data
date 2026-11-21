@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/number.dart' show Complex;
+
 import 'exp_integral.dart';
 
 /// Returns an approximation of the gamma function $\Gamma(x)$.
@@ -51,6 +53,41 @@ double gamma(num x) {
   }
 }
 
+/// Returns the complex gamma function $\Gamma(z)$ via Lanczos approximation
+/// and Euler reflection.
+Complex gammaComplex(Complex z) {
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.b == 0.0 && z.a <= 0.0 && z.a == z.a.roundToDouble()) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a < 0.5) {
+    final piZ = const Complex(pi) * z;
+    return const Complex(pi) / (piZ.sin() * gammaComplex(Complex.one - z));
+  }
+  const lanczosG = 7;
+  const lanczosCoeffs = [
+    0.99999999999980993,
+    676.5203681218851,
+    -1259.1392167224028,
+    771.32342877765313,
+    -176.61502916214059,
+    12.507343278686905,
+    -0.13857109526572012,
+    9.9843695780195716e-6,
+    1.5056327351493116e-7,
+  ];
+  final zAdj = z - Complex.one;
+  var y = Complex(lanczosCoeffs[0]);
+  for (var i = 1; i < lanczosG + 2; i++) {
+    y += Complex(lanczosCoeffs[i]) / (zAdj + Complex(i));
+  }
+  final tVal = zAdj + const Complex(lanczosG + 0.5);
+  return Complex(sqrt(2.0 * pi)) *
+      tVal.pow(zAdj + const Complex(0.5)) *
+      (-tVal).exp() *
+      y;
+}
+
 /// Returns the natural logarithm of the gamma function $\ln \Gamma(x)$.
 ///
 /// Conceptually, calculating $\ln(\Gamma(x))$ enables operations on very large
@@ -89,6 +126,47 @@ double gammaLn(num x) {
   }
   final tVal = x + lanczosG + 0.5;
   return 0.5 * log(2.0 * pi) + (x + 0.5) * log(tVal) - tVal + log(y) - log(x);
+}
+
+/// Returns the complex log-gamma function $\ln \Gamma(z)$ via Lanczos
+/// approximation and Euler reflection.
+Complex gammaLnComplex(Complex z) {
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.b == 0.0 && z.a <= 0.0 && z.a == z.a.roundToDouble()) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a < 0.5) {
+    final sinPiZ = (const Complex(pi) * z).sin();
+    return Complex(log(pi)) - sinPiZ.log() - gammaLnComplex(Complex.one - z);
+  }
+  const lanczosG = 607 / 128;
+  const lanczosCoeffs = [
+    0.99999999999999709182,
+    57.156235665862923517,
+    -59.597960355475491248,
+    14.136097974741747174,
+    -0.49191381609762019978,
+    0.33994649984811888699e-4,
+    0.46523628927048575665e-4,
+    -0.98374475304879564677e-4,
+    0.15808870322491248884e-3,
+    -0.21026444172410488319e-3,
+    0.21743961811521264320e-3,
+    -0.16431810653676389022e-3,
+    0.84418223983852743293e-4,
+    -0.26190838401581408670e-4,
+    0.36899182659531622704e-5,
+  ];
+  var y = Complex(lanczosCoeffs[0]);
+  for (var i = lanczosCoeffs.length - 1; i > 0; --i) {
+    y += Complex(lanczosCoeffs[i]) / (z + Complex(i));
+  }
+  final tVal = z + const Complex(lanczosG + 0.5);
+  return Complex(0.5 * log(2.0 * pi)) +
+      (z + const Complex(0.5)) * tVal.log() -
+      tVal +
+      y.log() -
+      z.log();
 }
 
 /// Returns the upper regularized incomplete gamma function $Q(a, x) = 1 - P(a, x)$.
@@ -354,6 +432,9 @@ double gammaP(num a, num x) {
 double factorial(num value) =>
     value.isNaN || value < 0.0 ? double.nan : gamma(1.0 + value);
 
+/// Returns the complex factorial $z! = \Gamma(z + 1)$.
+Complex factorialComplex(Complex z) => gammaComplex(z + Complex.one);
+
 /// Returns the logarithm of the factorial based on the [gammaLn] function.
 double factorialLn(num value) =>
     value.isNaN || value < 0.0 ? double.nan : gammaLn(1.0 + value);
@@ -417,6 +498,29 @@ double binomial(num total, num choose) {
     return bigRes.toDouble();
   }
   return exp(binomialLn(total, choose));
+}
+
+/// Returns the complex binomial coefficient $\binom{n}{k} = \frac{\Gamma(n + 1)}{\Gamma(k + 1)\Gamma(n - k + 1)}$.
+Complex binomialComplex(Complex n, Complex k) {
+  if (n.a.isNaN || n.b.isNaN || k.a.isNaN || k.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (k == Complex.zero) return Complex.one;
+  if (k.b == 0.0 && k.a == k.a.roundToDouble()) {
+    final kInt = k.a.toInt();
+    if (kInt < 0) return Complex.zero;
+    if (kInt <= 20) {
+      var res = Complex.one;
+      for (var i = 0; i < kInt; i++) {
+        res = res * (n - Complex(i)) / Complex(i + 1);
+      }
+      return res;
+    }
+  }
+  return (gammaLnComplex(n + Complex.one) -
+          gammaLnComplex(k + Complex.one) -
+          gammaLnComplex(n - k + Complex.one))
+      .exp();
 }
 
 /// Returns the logarithm of the combinations based on the [gammaLn] function.
@@ -486,6 +590,37 @@ double upperGamma(num s, num x) {
   return (upperGamma(sd + 1.0, xd) - pow(xd, sd) * exp(-xd)) / sd;
 }
 
+/// Returns the complex upper incomplete gamma function $\Gamma(s, z) = \int_z^\infty t^{s-1} e^{-t}\,dt$.
+Complex upperGammaComplex(Complex s, Complex z) {
+  if (s.a.isNaN || s.b.isNaN || z.a.isNaN || z.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a == 0.0 && z.b == 0.0) {
+    return s.a > 0.0 ? gammaComplex(s) : const Complex(double.nan, double.nan);
+  }
+  if (z.abs() >= s.abs() + 1.0 && z.a > -z.b.abs()) {
+    const tiny = 1.0e-30;
+    var b = z + Complex.one - s;
+    var c = const Complex(1.0 / tiny);
+    var d = b.abs() < tiny ? const Complex(1.0 / tiny) : Complex.one / b;
+    var h = d;
+    for (var k = 1; k <= 200; k++) {
+      final a = Complex(-k) * (Complex(k) - s);
+      b += const Complex(2.0);
+      d = a * d + b;
+      if (d.abs() < tiny) d = const Complex(tiny);
+      c = b + a / c;
+      if (c.abs() < tiny) c = const Complex(tiny);
+      d = Complex.one / d;
+      final delta = d * c;
+      h *= delta;
+      if ((delta - Complex.one).abs() < 1.0e-15) break;
+    }
+    return z.pow(s) * (-z).exp() * h;
+  }
+  return gammaComplex(s) - lowerGammaComplex(s, z);
+}
+
 /// Returns the lower incomplete gamma function $\gamma(s, x) = \int_0^x t^{s-1} e^{-t}\,dt$.
 double lowerGamma(num s, num x) {
   if (s.isNaN || x.isNaN || x < 0.0) return double.nan;
@@ -495,4 +630,30 @@ double lowerGamma(num s, num x) {
   if (xd == double.infinity) return sd > 0.0 ? gamma(sd) : double.nan;
   if (sd > 0.0) return gamma(sd) * gammaP(sd, xd);
   return gamma(sd) - upperGamma(sd, xd);
+}
+
+/// Returns the complex lower incomplete gamma function $\gamma(s, z) = \int_0^z t^{s-1} e^{-t}\,dt$.
+Complex lowerGammaComplex(Complex s, Complex z) {
+  if (s.a.isNaN || s.b.isNaN || z.a.isNaN || z.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a == 0.0 && z.b == 0.0) {
+    return s.a > 0.0 ? Complex.zero : const Complex(double.nan, double.nan);
+  }
+  if (s.b == 0.0 && s.a <= 0.0 && s.a == s.a.roundToDouble()) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.abs() >= s.abs() + 1.0 && z.a > -z.b.abs()) {
+    return gammaComplex(s) - upperGammaComplex(s, z);
+  }
+  var ap = s;
+  var del = Complex.one / s;
+  var sum = del;
+  for (var n = 1; n <= 120; n++) {
+    ap += Complex.one;
+    del *= z / ap;
+    sum += del;
+    if (del.abs() <= 1.0e-15 * sum.abs()) break;
+  }
+  return z.pow(s) * (-z).exp() * sum;
 }

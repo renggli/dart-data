@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/number.dart' show Complex;
+
 import 'gamma.dart';
 
 /// Beta function based on the [gamma] function.
@@ -24,6 +26,17 @@ double beta(num x, num y) {
   return gamma(x) * gamma(y) / gamma(x + y);
 }
 
+/// Returns the complex beta function $B(a, b) = \frac{\Gamma(a)\Gamma(b)}{\Gamma(a + b)}$.
+Complex betaComplex(Complex a, Complex b) {
+  if (a.a.isNaN || a.b.isNaN || b.a.isNaN || b.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (a.abs() < 50.0 && b.abs() < 50.0) {
+    return gammaComplex(a) * gammaComplex(b) / gammaComplex(a + b);
+  }
+  return betaLnComplex(a, b).exp();
+}
+
 /// Logarithm of the beta function based on the [gammaLn] function.
 ///
 /// Conceptually, this computes $\ln(B(x, y))$ directly to prevent numerical
@@ -37,6 +50,10 @@ double beta(num x, num y) {
 double betaLn(num x, num y) => x.isNaN || y.isNaN || x <= 0 || y <= 0
     ? double.nan
     : gammaLn(x) + gammaLn(y) - gammaLn(x + y);
+
+/// Returns the complex log-beta function $\ln B(a, b) = \ln \Gamma(a) + \ln \Gamma(b) - \ln \Gamma(a + b)$.
+Complex betaLnComplex(Complex a, Complex b) =>
+    gammaLnComplex(a) + gammaLnComplex(b) - gammaLnComplex(a + b);
 
 /// Incomplete beta function $I_x(a, b)$.
 ///

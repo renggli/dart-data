@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
 void main() {
@@ -60,6 +61,32 @@ void main() {
       check(polygamma(2, -1e8 - 0.5).isFinite).isTrue;
       check(polygamma(2, -1e14 - 0.5).isFinite).isTrue;
       check(polygamma(3, -1e8 - 0.5).isFinite).isTrue;
+    });
+
+    test('digammaComplex and polygammaComplex', () {
+      for (final x in [0.5, 1.0, 2.5, -0.7]) {
+        final dc = digammaComplex(Complex(x));
+        check(dc.a).isCloseTo(digamma(x), 1e-12);
+        check(dc.b).isCloseTo(0.0, 1e-12);
+        final pc = polygammaComplex(1, Complex(x));
+        check(pc.a).isCloseTo(polygamma(1, x), 1e-12);
+        check(pc.b).isCloseTo(0.0, 1e-12);
+      }
+      // Recurrence psi(z + 1) = psi(z) + 1/z
+      const z = Complex(1.3, 0.7);
+      check(
+        (digammaComplex(z + Complex.one) -
+                (digammaComplex(z) + Complex.one / z))
+            .abs(),
+      ).isLessThan(1e-12);
+      // Reflection psi(-z) and polygamma(2, z)
+      check(
+        (polygammaComplex(2, const Complex(-0.5, 0.4)) -
+                (polygammaComplex(2, const Complex(0.5, 0.4)) -
+                    const Complex(2.0) / const Complex(-0.5, 0.4).pow(3)))
+            .abs(),
+      ).isLessThan(1e-11);
+      check(() => polygammaComplex(-1, z)).throws<ArgumentError>();
     });
   });
 }

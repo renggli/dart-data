@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
 void main() {
@@ -34,6 +35,26 @@ void main() {
     test('zeta edge cases', () {
       check(zeta(double.nan)).isNaN;
       check(zeta(double.negativeInfinity)).isNaN;
+    });
+
+    test('zetaComplex', () {
+      for (final s in [2.0, 3.0, 0.5, -1.5]) {
+        final zc = zetaComplex(Complex(s));
+        check(zc.a).isCloseTo(zeta(s), 1e-12);
+        check(zc.b).isCloseTo(0.0, 1e-12);
+      }
+      // First non-trivial Riemann zero ~ 0.5 + 14.134725141734693i
+      final zZero = zetaComplex(const Complex(0.5, 14.134725141734693));
+      check(zZero.abs()).isLessThan(1e-5);
+      // Functional equation at complex point s = 0.3 + 1.5i
+      const s = Complex(0.3, 1.5);
+      final rhs =
+          const Complex(2.0).pow(s) *
+          const Complex(math.pi).pow(s - Complex.one) *
+          (const Complex(0.5 * math.pi) * s).sin() *
+          gammaComplex(Complex.one - s) *
+          zetaComplex(Complex.one - s);
+      check((zetaComplex(s) - rhs).abs()).isLessThan(1e-12);
     });
   });
 }

@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/number.dart' show Complex;
+
 import 'gamma.dart';
 
 /// Returns the Riemann zeta function $\zeta(s) = \sum_{n=1}^\infty n^{-s}$.
@@ -97,6 +99,62 @@ double zeta(num s) {
   }
 
   final denom = dn * (1.0 - pow(2.0, 1.0 - sd));
+  return -sum / denom;
+}
+
+/// Returns the complex Riemann zeta function $\zeta(s)$.
+Complex zetaComplex(Complex s) {
+  if (s.a.isNaN || s.b.isNaN) return const Complex(double.nan, double.nan);
+  if (s == Complex.one) return const Complex(double.infinity);
+  if (s == Complex.zero) return const Complex(-0.5);
+
+  if (s.a < 0.5) {
+    final oneMinusS = Complex.one - s;
+    return const Complex(2.0).pow(s) *
+        const Complex(pi).pow(s - Complex.one) *
+        (const Complex(0.5 * pi) * s).sin() *
+        gammaComplex(oneMinusS) *
+        zetaComplex(oneMinusS);
+  }
+
+  if (s.a > 35.0) {
+    return Complex.one + const Complex(2.0).pow(-s);
+  }
+
+  const n = 18;
+  const dCoeffs = <double>[
+    1.0,
+    649.0,
+    70417.0,
+    3047185.0,
+    70024465.0,
+    986869009.0,
+    9294036241.0,
+    61875666193.0,
+    302874803473.0,
+    1121956838673.0,
+    3217082465553.0,
+    7280356408593.0,
+    13257491266833.0,
+    19878317571345.0,
+    25308095757585.0,
+    28503551425809.0,
+    29779156712721.0,
+    30088394358033.0,
+    30122754096401.0,
+  ];
+  const dn = 30122754096401.0;
+
+  var sum = Complex.zero;
+  for (var k = 0; k < n; k++) {
+    final sign = k.isEven ? 1.0 : -1.0;
+    final diff = sign * (dCoeffs[k] - dn);
+    sum += Complex(diff) / Complex(k + 1).pow(s);
+  }
+
+  final denom =
+      const Complex(dn) *
+      (Complex.one - const Complex(2.0).pow(Complex.one - s));
   return -sum / denom;
 }
 

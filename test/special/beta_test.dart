@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
 void main() {
@@ -77,6 +78,18 @@ void main() {
       check(beta(150.0, 2.0)).isCloseTo(math.exp(betaLn(150.0, 2.0)), 1e-12);
       check(betaIInv(0.95, 0.3, 0.3))
           .isCloseTo(1.0 - betaIInv(0.05, 0.3, 0.3), 1e-8);
+    });
+
+    test('betaComplex and betaLnComplex', () {
+      final bcReal = betaComplex(const Complex(2.0), const Complex(3.0));
+      check(bcReal.a).isCloseTo(beta(2.0, 3.0), 1e-12);
+      check(bcReal.b).isCloseTo(0.0, 1e-12);
+
+      const a = Complex(1.5, 0.4);
+      const b = Complex(2.2, -0.3);
+      final expected = gammaComplex(a) * gammaComplex(b) / gammaComplex(a + b);
+      check((betaComplex(a, b) - expected).abs()).isLessThan(1e-12);
+      check((betaLnComplex(a, b).exp() - expected).abs()).isLessThan(1e-12);
     });
   });
 }
