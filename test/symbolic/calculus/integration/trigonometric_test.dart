@@ -196,5 +196,26 @@ void main() {
             .simplify(assumptions: realAssumptions),
       ).equals(const Variable('x'));
     });
+
+    test('integrates rational trig powers via trig polynomial division', () {
+      check(
+        Expr.parse('cos(c + d * x)^5 / (a + b * cos(c + d * x))')
+            .integrate('x'),
+      ).isNotA<Integral>();
+      check(
+        Expr.parse(
+          '(A + C / cos(c + d * x)^2) / (cos(c + d * x)^2 * (a + b / cos(c + d * x)))',
+        ).integrate('x'),
+      ).isNotA<Integral>();
+
+      verifyAntiderivative(
+        Expr.parse('cos(1 + 2 * x)^5 / (3 + cos(1 + 2 * x))'),
+        points: const [0.1, 0.4, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(x)^3 / (2 + sin(x))'),
+        points: const [0.2, 0.6, 1.0],
+      );
+    });
   });
 }

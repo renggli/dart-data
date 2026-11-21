@@ -533,6 +533,17 @@ Expr? tryRationalTrigSubstitution(
   }
   final k = inner.matchLinear(variable)!.a;
 
+  if (_tryTrigPolyDivision(
+        expr,
+        inner,
+        variable,
+        assumptions: assumptions,
+        depth: depth,
+      )
+      case final polyDivRes?) {
+    return polyDivRes;
+  }
+
   // 1. Try t = tan(u) if expression is even in (sin, cos)
   const tName = '_rt';
   const tVar = Variable(tName);
@@ -1094,4 +1105,99 @@ bool _hasMultipleAngleTrig(Expr node, String variable) {
     }
   }
   return true;
+}
+
+Expr? _tryTrigPolyDivision(
+  Expr expr,
+  Expr inner,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2) return null;
+  const sName = '_s';
+  const sVar = Variable(sName);
+
+  Expr replaceAtom(Expr node, Expr atom) {
+    if (node == atom) return sVar;
+    return node.mapChildren((c) => replaceAtom(c, atom));
+  }
+
+  Expr replaceRecipAtom(Expr node, Expr trigAtom) {
+    if (node == trigAtom) return IntegerNumber.one / sVar;
+    if (node case Pow(base: final b, exponent: IntegerNumber(asInt: final k?))
+        when b == trigAtom) {
+      return Pow(sVar, IntegerNumber.of(-k));
+    }
+    return node.mapChildren((c) => replaceRecipAtom(c, trigAtom));
+  }
+
+  final candidates = <(Expr atom, Expr Function(Expr) replacer)>[
+    (Sin(inner), (e) => replaceAtom(e, Sin(inner))),
+    (Cos(inner), (e) => replaceAtom(e, Cos(inner))),
+    (
+      Pow(Cos(inner), IntegerNumber.negativeOne),
+      (e) => replaceRecipAtom(e, Cos(inner)),
+    ),
+    (
+      Pow(Sin(inner), IntegerNumber.negativeOne),
+      (e) => replaceRecipAtom(e, Sin(inner)),
+    ),
+  ];
+
+  for (final (atom, replacer) in candidates) {
+    final replaced = replacer(expr);
+    if (replaced.dependsOn(variable)) continue;
+    final combined = replaced.together(assumptions: assumptions);
+    final (numS, denS) = splitNumeratorDenominator(combined);
+    final degNum = polynomialDegree(numS, sName);
+    final degDen = polynomialDegree(denS, sName);
+    if (degNum != null &&
+        degDen != null &&
+        degDen >= 1 &&
+        degDen <= 4 &&
+        degNum >= degDen) {
+      final numExp = numS.expand().simplify(assumptions: assumptions);
+      final denExp = denS.expand().simplify(assumptions: assumptions);
+      final (:quotient, :remainder) = numExp.polynomialDivide(
+        denExp,
+        sName,
+        assumptions: assumptions,
+      );
+      final qExpr = quotient
+          .substitute(sName, atom)
+          .simplify(assumptions: assumptions);
+      final qRes = antiDerivative(
+        qExpr,
+        variable,
+        depth: depth + 1,
+        assumptions: assumptions,
+      );
+      if (hasUnevaluatedIntegral(qRes, variable)) continue;
+      if (remainder is Number && remainder.isZero) return qRes;
+      final rExpr = (remainder / denExp)
+          .substitute(sName, atom)
+          .simplify(assumptions: assumptions);
+      var rRes = antiDerivative(
+        rExpr,
+        variable,
+        depth: depth + 1,
+        assumptions: assumptions,
+      );
+      if (hasUnevaluatedIntegral(rRes, variable)) {
+        rRes =
+            tryRationalTrigSubstitution(
+              rExpr,
+              variable,
+              assumptions: assumptions,
+              depth: depth + 1,
+            ) ??
+            rRes;
+      }
+      if (!hasUnevaluatedIntegral(rRes, variable)) {
+        return (qRes + rRes).simplify(assumptions: assumptions);
+      }
+    }
+  }
+  return null;
 }
