@@ -112,5 +112,29 @@ void main() {
         points: const [0.3, 0.7, 1.2],
       );
     });
+
+    test('integrates x^n / ln(c * x)^k for scaled logs and negative n', () {
+      for (final expr in const [
+        'x^3 / ln(c * x)',
+        '1 / (x^2 * ln(c * x))',
+        'x^3 / ln(c * x)^2',
+        '1 / (x * ln(c * x)^2)',
+      ]) {
+        check(Expr.parse(expr).integrate('x')).isNotA<Integral>();
+      }
+
+      verifyAntiderivative(
+        Expr.parse('x^3 / ln(2 * x)'),
+        points: const [1.2, 2.0, 3.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / (x^2 * ln(2 * x))'),
+        points: const [1.2, 2.0, 3.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('x^3 / ln(2 * x)^2'),
+        points: const [1.2, 2.0, 3.0],
+      );
+    });
   });
 }

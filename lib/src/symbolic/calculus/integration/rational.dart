@@ -254,37 +254,9 @@ Expr? tryAntiDerivDiv(
     }
   }
 
-  // int x^n / ln(x) dx = Ei((n + 1) * ln(x)) (or ln|ln(x)| for n = -1)
-  if (right case Ln(expr: Variable(:final name)) when name == variable) {
-    Expr? nExp;
-    var scale = IntegerNumber.one as Expr;
-    if (!left.dependsOn(variable)) {
-      nExp = IntegerNumber.zero;
-      scale = left;
-    } else if (left is Variable && left.name == variable) {
-      nExp = IntegerNumber.one;
-    } else if (left case Pow(base: Variable(name: final lName), :final exponent)
-        when lName == variable && !exponent.dependsOn(variable)) {
-      nExp = exponent;
-    }
-    if (nExp != null) {
-      if (nExp == IntegerNumber.negativeOne) {
-        return (scale * Ln(Abs(right))).simplify(assumptions: assumptions);
-      }
-      if (nExp is Number && nExp.isZero) {
-        return (scale * LogIntegralLi(Variable(variable))).simplify(
-          assumptions: assumptions,
-        );
-      }
-      final nPlus1 = (nExp + IntegerNumber.one).simplify(
-        assumptions: assumptions,
-      );
-      return (scale *
-              ExpIntegralEi(
-                (nPlus1 * right).simplify(assumptions: assumptions),
-              ))
-          .simplify(assumptions: assumptions);
-    }
+  if (_tryPowerOverLogPower(left, right, variable, assumptions: assumptions)
+      case final logPowRes?) {
+    return logPowRes;
   }
 
   // int sin(a*x) / x^k dx and cos(a*x) / x^k dx for k >= 2
@@ -1472,4 +1444,108 @@ Expr? _tryLinearPowerDenominator(
   );
   if (resU == null) return null;
   return resU.substitute(uName, linBase).simplify(assumptions: assumptions);
+}
+
+Expr? _tryPowerOverLogPower(
+  Expr left,
+  Expr right,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final numFactors = left is Mul ? left.factors : [left];
+  final denFactors = right is Mul ? right.factors : [right];
+
+  var scale = IntegerNumber.one as Expr;
+  var nExp = IntegerNumber.zero as Expr;
+  Expr? logInner;
+  Expr? logScale;
+  int? kInt;
+
+  bool processFactor(Expr f, {required bool isNum}) {
+    if (!f.dependsOn(variable)) {
+      scale = (isNum ? scale * f : scale / f).simplify(
+        assumptions: assumptions,
+      );
+      return true;
+    }
+    if (f is Variable && f.name == variable) {
+      nExp = (nExp + (isNum ? IntegerNumber.one : IntegerNumber.negativeOne))
+          .simplify(assumptions: assumptions);
+      return true;
+    }
+    if (f case Pow(base: Variable(:final name), :final exponent)
+        when name == variable && !exponent.dependsOn(variable)) {
+      nExp = (nExp + (isNum ? exponent : -exponent)).simplify(
+        assumptions: assumptions,
+      );
+      return true;
+    }
+    if (f case Ln(:final expr) when !isNum) {
+      if (kInt != null) return false;
+      if (expr.matchLinear(variable) case (:final a, :final b)
+          when b is Number && b.isZero) {
+        logInner = expr;
+        logScale = a;
+        kInt = 1;
+        return true;
+      }
+      return false;
+    }
+    if (f case Pow(
+      base: Ln(:final expr),
+      exponent: IntegerNumber(asInt: final p?),
+    )) {
+      final k = isNum ? -p : p;
+      if (k < 1 || k > 6 || kInt != null) return false;
+      if (expr.matchLinear(variable) case (:final a, :final b)
+          when b is Number && b.isZero) {
+        logInner = expr;
+        logScale = a;
+        kInt = k;
+        return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
+  for (final f in numFactors) {
+    if (!processFactor(f, isNum: true)) return null;
+  }
+  for (final f in denFactors) {
+    if (!processFactor(f, isNum: false)) return null;
+  }
+  if (logInner == null || logScale == null || kInt == null) return null;
+
+  final inner = logInner!;
+  final c = logScale!;
+  final k = kInt!;
+  final lnExpr = Ln(inner);
+  final xVar = Variable(variable);
+
+  if (nExp == IntegerNumber.negativeOne) {
+    final res = k == 1
+        ? logAntiderivative(lnExpr, assumptions)
+        : (-Pow(lnExpr, IntegerNumber.of(1 - k)) / IntegerNumber.of(k - 1));
+    return (scale * res).simplify(assumptions: assumptions);
+  }
+
+  final np1 = (nExp + IntegerNumber.one).simplify(assumptions: assumptions);
+  final isZeroN = nExp is Number && (nExp as Number).isZero;
+  Expr integrateK(int m) {
+    if (m == 1) {
+      if (isZeroN) {
+        return (LogIntegralLi(inner) / c).simplify(assumptions: assumptions);
+      }
+      return (ExpIntegralEi((np1 * lnExpr).simplify(assumptions: assumptions)) /
+              Pow(c, np1))
+          .simplify(assumptions: assumptions);
+    }
+    final m1 = IntegerNumber.of(m - 1);
+    final term1 = -Pow(xVar, np1) / (m1 * Pow(lnExpr, m1));
+    final term2 = (np1 / m1) * integrateK(m - 1);
+    return (term1 + term2).simplify(assumptions: assumptions);
+  }
+
+  return (scale * integrateK(k)).simplify(assumptions: assumptions);
 }
