@@ -521,15 +521,41 @@ Expr? tryAntiDerivDiv(
     }
   }
 
-  // Chain rule quotient: int u'(x) / u(x) dx = ln(|u(x)|)
+  // Chain rule quotient: int u'(x) / u(x) dx = ln(|u(x)|) and u'(x) / u(x)^m dx
   if (right.dependsOn(variable)) {
     final uPrime = right.derivative(variable).simplify();
-    final k = left.matchScalarMultiple(uPrime, variable);
+    var k = left.matchScalarMultiple(uPrime, variable);
+    if (k == null) {
+      if ((left - uPrime).simplify() == IntegerNumber.zero) {
+        k = IntegerNumber.one;
+      } else if ((left + uPrime).simplify() == IntegerNumber.zero) {
+        k = IntegerNumber.negativeOne;
+      }
+    }
     if (k != null) {
       return logAntiderivative(
         right,
         assumptions,
       ).simplify(assumptions: assumptions).scale(k);
+    }
+    if (right
+        case Pow(base: final uBase, exponent: IntegerNumber(asInt: final m?))
+        when m >= 2 && uBase.dependsOn(variable)) {
+      final basePrime = uBase.derivative(variable).simplify();
+      var km = left.matchScalarMultiple(basePrime, variable);
+      if (km == null) {
+        if ((left - basePrime).simplify() == IntegerNumber.zero) {
+          km = IntegerNumber.one;
+        } else if ((left + basePrime).simplify() == IntegerNumber.zero) {
+          km = IntegerNumber.negativeOne;
+        }
+      }
+      if (km != null) {
+        final oneMinusM = IntegerNumber.of(1 - m);
+        return (km * Pow(uBase, oneMinusM) / oneMinusM).simplify(
+          assumptions: assumptions,
+        );
+      }
     }
   }
 

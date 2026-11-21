@@ -258,7 +258,12 @@ Expr? tryUSubstitution(
   if (candidates.isEmpty) return null;
 
   final expandedTrig = _expandDoubleAngleTrig(expr);
-  final exprVariants = expandedTrig != expr ? [expr, expandedTrig] : [expr];
+  final splitExp = splitExpSumProduct(expr, variable);
+  final exprVariants = <Expr>[
+    expr,
+    if (expandedTrig != expr) expandedTrig,
+    if (splitExp != expr && splitExp != expandedTrig) splitExp,
+  ];
 
   final uName = '_u$depth';
   final uVar = Variable(uName);
@@ -273,8 +278,16 @@ Expr? tryUSubstitution(
 
     for (final variant in exprVariants) {
       final quot = (variant / gPrime).simplify(assumptions: assumptions);
-      final replaced = _replaceUCandidate(quot, candidate, uVar, variable);
+      var replaced = _replaceUCandidate(quot, candidate, uVar, variable);
       var fU = replaced.simplify(assumptions: assumptions);
+      if (fU.dependsOn(variable) && variant == splitExp) {
+        final vSub = _replaceUCandidate(variant, candidate, uVar, variable);
+        final gSub = _replaceUCandidate(gPrime, candidate, uVar, variable);
+        if (!vSub.dependsOn(variable) && !gSub.dependsOn(variable)) {
+          replaced = vSub / gSub;
+          fU = replaced.simplify(assumptions: assumptions);
+        }
+      }
       if (fU.dependsOn(variable)) {
         fU = replaced.expand().simplify(assumptions: assumptions);
       }
@@ -725,11 +738,25 @@ Expr _replaceUCandidate(
 ) {
   if (node == candidate) return uVar;
   if (candidate case Pow(base: final cBase, exponent: final cExp)) {
-    if (node case Pow(base: final nBase, exponent: final nExp)
-        when nBase == cBase) {
-      final ratio = (nExp / cExp).simplify();
-      if (!ratio.dependsOn(variable)) {
-        return Pow(uVar, ratio);
+    if (node case Pow(base: final nBase, exponent: final nExp)) {
+      if (nBase == cBase) {
+        final ratio = (nExp / cExp).simplify();
+        if (!ratio.dependsOn(variable)) {
+          return Pow(uVar, ratio);
+        }
+      } else if (cBase is IntegerNumber &&
+          nBase is IntegerNumber &&
+          cBase.asInt != null &&
+          nBase.asInt != null &&
+          cBase.asInt! > 1 &&
+          nBase.asInt! > cBase.asInt!) {
+        final k = _integerLogBase(nBase.asInt!, cBase.asInt!);
+        if (k != null) {
+          final ratio = (IntegerNumber.of(k) * nExp / cExp).simplify();
+          if (!ratio.dependsOn(variable)) {
+            return Pow(uVar, ratio);
+          }
+        }
       }
     }
   }
@@ -809,4 +836,72 @@ Expr? _findTranscendental(Expr node, String variable) {
 Expr _substituteExpr(Expr root, Expr target, Expr replacement) {
   if (root == target) return replacement;
   return root.mapChildren((c) => _substituteExpr(c, target, replacement));
+}
+
+/// Splits `exp(nonLinear + linear)` into `exp(nonLinear) * exp(linear)` and
+/// factors common exponential factors out of additive sums.
+Expr splitExpSumProduct(Expr node, String variable) {
+  Expr splitNode(Expr n) {
+    if (!n.dependsOn(variable)) return n;
+    final mapped = n.mapChildren(splitNode);
+    if (mapped case Pow(base: Constant.e, exponent: Add(:final terms))) {
+      final linearTerms = <Expr>[];
+      final otherTerms = <Expr>[];
+      var hasExpTerm = false;
+      for (final t in terms) {
+        if (t.anyNode((c) => c is Pow && c.base == Constant.e)) {
+          hasExpTerm = true;
+          otherTerms.add(t);
+        } else if (t.matchLinear(variable) != null) {
+          linearTerms.add(t);
+        } else {
+          otherTerms.add(t);
+        }
+      }
+      if (hasExpTerm && linearTerms.isNotEmpty && otherTerms.isNotEmpty) {
+        final otherSum = otherTerms.length == 1
+            ? otherTerms.first
+            : Add(otherTerms);
+        final linSum = linearTerms.length == 1
+            ? linearTerms.first
+            : Add(linearTerms);
+        return Pow(Constant.e, otherSum) * Pow(Constant.e, linSum);
+      }
+    }
+    return mapped;
+  }
+
+  final split = splitNode(node);
+  if (split case Add(:final terms) when terms.length >= 2) {
+    Set<Expr>? commonExpFactors;
+    for (final t in terms) {
+      final factors = t is Mul ? t.factors : [t];
+      final expSet = <Expr>{
+        for (final f in factors)
+          if (f is Pow && f.base == Constant.e && f.dependsOn(variable)) f,
+      };
+      commonExpFactors = commonExpFactors == null
+          ? expSet
+          : commonExpFactors.intersection(expSet);
+      if (commonExpFactors.isEmpty) break;
+    }
+    if (commonExpFactors != null && commonExpFactors.isNotEmpty) {
+      final common = commonExpFactors.length == 1
+          ? commonExpFactors.first
+          : Mul(commonExpFactors.toList()).simplify();
+      final remTerms = [for (final t in terms) (t / common).simplify()];
+      return common * Add(remTerms).simplify();
+    }
+  }
+  return split;
+}
+
+int? _integerLogBase(int value, int base) {
+  var current = base;
+  var exp = 1;
+  while (current < value && exp < 12) {
+    current *= base;
+    exp += 1;
+  }
+  return current == value ? exp : null;
 }

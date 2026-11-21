@@ -207,6 +207,16 @@ Expr antiDerivative(
           assumptions: assumptions,
         );
         if (paired != null) return paired;
+        final factoredExp = splitExpSumProduct(node, variable);
+        if (factoredExp != node) {
+          final expRes = tryUSubstitution(
+            factoredExp,
+            variable,
+            assumptions: assumptions,
+            depth: depth,
+          );
+          if (expRes != null) return expRes;
+        }
       }
       return sumRes;
     }(),

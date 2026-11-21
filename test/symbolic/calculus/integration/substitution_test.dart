@@ -342,5 +342,31 @@ void main() {
         points: const [0.3, 0.7, 1.1],
       );
     });
+
+    test('integrates split exponentials, base-power towers, shifted Gaussians, and multi-term u\'/u^m', () {
+      verifyAntiderivative(
+        Expr.parse('exp(exp(x) + exp(-x) + x) - exp(exp(x) + exp(-x) - x)'),
+        points: const [0.1, 0.3, 0.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('exp(exp(2 * x) + 6 * x)'),
+        points: const [0.1, 0.3, 0.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('3 * x^2 * (x^3 + 1)^2 * exp(-x^6 - 2 * x^3)'),
+        points: const [0.2, 0.5, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('4^x * 3^(2^x)'),
+        points: const [0.1, 0.4, 0.7],
+      );
+      verifyAntiderivative(
+        Expr.parse(
+          '(1 / (x - 1)^2 + 3 / (x - 3)^4 + 5 / (x - 5)^6) / '
+          '(1 + 1 / (x - 1) + 1 / (x - 3)^3 + 1 / (x - 5)^5)^2',
+        ),
+        points: const [0.2, 2.0, 4.0],
+      );
+    });
   });
 }

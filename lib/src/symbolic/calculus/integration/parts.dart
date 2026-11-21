@@ -223,6 +223,36 @@ Expr? tryIntegrationByParts(
       if (expCoeffs != null && maxPolynomialDegree(expCoeffs) == 2) {
         final a2 = expCoeffs[2] ?? IntegerNumber.zero;
         final a1 = expCoeffs[1] ?? IntegerNumber.zero;
+        if (degP >= 2 &&
+            a1 != IntegerNumber.zero &&
+            isNegativeConstant(a2) &&
+            depth < 2) {
+          final shift = (a1 / (IntegerNumber.two * a2)).simplify(
+            assumptions: assumptions,
+          );
+          const wName = '_gw';
+          const wVar = Variable(wName);
+          final xInW = (wVar - shift).simplify(assumptions: assumptions);
+          final pW = pExpr
+              .substitute(variable, xInW)
+              .expand()
+              .simplify(assumptions: assumptions);
+          final expW = exponent
+              .substitute(variable, xInW)
+              .expand()
+              .simplify(assumptions: assumptions);
+          final wInt = antiDerivative(
+            (pW * Pow(Constant.e, expW)).simplify(assumptions: assumptions),
+            wName,
+            assumptions: assumptions,
+            depth: depth + 1,
+          );
+          if (!hasUnevaluatedIntegral(wInt, wName)) {
+            return wInt
+                .substitute(wName, (Variable(variable) + shift).simplify())
+                .simplify(assumptions: assumptions);
+          }
+        }
         if (degP >= 2 && a1 == IntegerNumber.zero && isNegativeConstant(a2)) {
           // Write P(x) = x * Q(x) + p0, and integrate x * Q(x) * exp(a2*x^2) via u = Q(x), dv = x*exp(a2*x^2) dx
           final xVar = Variable(variable);
