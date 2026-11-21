@@ -205,5 +205,22 @@ void main() {
         }
       },
     );
+
+    test('integrates higher-degree polynomial-weighted quadratic radicals', () {
+      check(Expr.parse('x^2 * sqrt(a + b * x^2)').integrate('x'))
+          .isNotA<Integral>();
+      verifyAntiderivative(
+        Expr.parse('x^2 * sqrt(3 + 2 * x^2)'),
+        points: const [0.3, 0.7, 1.2],
+      );
+      verifyAntiderivative(
+        Expr.parse('x^3 * (1 - x^2)^(3/2)'),
+        points: const [0.2, 0.5, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('x^2 / (1 + x^2)^(3/2)'),
+        points: const [0.3, 0.8, 1.5],
+      );
+    });
   });
 }

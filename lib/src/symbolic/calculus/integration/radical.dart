@@ -1,4 +1,5 @@
 import '../../algebra/expand.dart';
+import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/term_accumulator.dart';
 import '../../assumptions.dart';
@@ -293,23 +294,77 @@ Expr? tryRadicalQuadratic(Expr base, String variable) {
   return null;
 }
 
-/// Integrates `(p*x + q) * (A*x^2 + B*x + C)^(k/2)` with respect to [variable].
+/// Integrates `P(x) * (A*x^2 + B*x + C)^(k/2)` with respect to [variable].
 Expr? tryQuadraticRadical(
   Expr numerator,
   Expr quad,
   int halfExp,
   String variable,
 ) {
-  final numCoeffs = extractPolynomialCoefficients(numerator, variable);
-  if (numCoeffs == null || maxPolynomialDegree(numCoeffs) > 1) return null;
-  final p = numCoeffs[1] ?? IntegerNumber.zero;
-  final q = numCoeffs[0] ?? IntegerNumber.zero;
+  final numExpanded = numerator.expand().simplify();
+  if (numExpanded is Number && numExpanded.isZero) return IntegerNumber.zero;
+
+  final numCoeffs = extractPolynomialCoefficients(numExpanded, variable);
+  if (numCoeffs == null) return null;
+  final degP = maxPolynomialDegree(numCoeffs);
+  if (degP > 8) return null;
 
   final quadCoeffs = extractPolynomialCoefficients(quad, variable);
   if (quadCoeffs == null || maxPolynomialDegree(quadCoeffs) != 2) return null;
   final a = quadCoeffs[2] ?? IntegerNumber.zero;
   final b = quadCoeffs[1] ?? IntegerNumber.zero;
   final c = quadCoeffs[0] ?? IntegerNumber.zero;
+
+  if (degP >= 2) {
+    if (halfExp <= -3) {
+      final (:quotient, :remainder) = numExpanded.polynomialDivide(
+        quad,
+        variable,
+      );
+      final qInt = tryQuadraticRadical(quotient, quad, halfExp + 2, variable);
+      if (qInt == null) return null;
+      final rInt = tryQuadraticRadical(remainder, quad, halfExp, variable);
+      if (rInt == null) return null;
+      return (qInt + rInt).simplify();
+    }
+    if (halfExp == -1) {
+      return _integratePolyOverSqrtQ(numExpanded, quad, a, b, c, variable);
+    }
+    if (halfExp >= 1 && halfExp.isOdd) {
+      final m = degP;
+      final lead = numCoeffs[m]!;
+      final xVar = Variable(variable);
+      final denom = (IntegerNumber.of(m + halfExp + 1) * a).simplify();
+      final term1 =
+          (lead *
+              Pow(xVar, IntegerNumber.of(m - 1)) *
+              Pow(
+                quad,
+                FractionNumber(Integer(halfExp + 2), const Integer(2)),
+              )) /
+          denom;
+      final bTerm =
+          (lead *
+              IntegerNumber.of(2 * m + halfExp) *
+              b /
+              (IntegerNumber.two * denom)) *
+          Pow(xVar, IntegerNumber.of(m - 1));
+      final cTerm =
+          (lead * IntegerNumber.of(m - 1) * c / denom) *
+          (m == 2 ? IntegerNumber.one : Pow(xVar, IntegerNumber.of(m - 2)));
+      final lowerPoly =
+          (numExpanded - lead * Pow(xVar, IntegerNumber.of(m)) - bTerm - cTerm)
+              .expand()
+              .simplify();
+      final rem = tryQuadraticRadical(lowerPoly, quad, halfExp, variable);
+      if (rem == null) return null;
+      return (term1 + rem).simplify();
+    }
+    return null;
+  }
+
+  final p = numCoeffs[1] ?? IntegerNumber.zero;
+  final q = numCoeffs[0] ?? IntegerNumber.zero;
 
   if (p == IntegerNumber.zero) {
     final rem = _tryQuadraticRadicalConst(quad, a, b, c, halfExp, variable);
@@ -319,7 +374,7 @@ Expr? tryQuadraticRadical(
   final twoA = (IntegerNumber.two * a).simplify();
   final leadTerm =
       (p / (a * IntegerNumber.of(halfExp + 2))) *
-      Pow(quad, FractionNumber(Integer(halfExp + 2), Integer.two));
+      Pow(quad, FractionNumber(Integer(halfExp + 2), const Integer(2)));
   final qRem = (q - (p * b) / twoA).simplify();
   if (qRem == IntegerNumber.zero) return leadTerm.simplify();
 
