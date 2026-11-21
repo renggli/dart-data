@@ -1,6 +1,7 @@
 import '../../algebra/expand.dart';
 import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
+import '../../algebra/simplify/domain.dart';
 import '../../algebra/term_accumulator.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
@@ -297,6 +298,7 @@ Expr? tryRealRadicalRewrite(
   }
 
   // 2. Trig Pythagorean identity & even-power extraction inside sqrt(...)
+  final signFactors = <Expr>[];
   Expr rewriteSqrt(Expr node) {
     final mapped = node.mapChildren(rewriteSqrt);
     if (mapped case Pow(
@@ -317,7 +319,11 @@ Expr? tryRealRadicalRewrite(
           base: Tan(expr: final u),
           exponent: IntegerNumber(asInt: 2),
         )) {
-          return Pow(Cos(u), IntegerNumber.negativeOne);
+          final cosU = Cos(u);
+          if (!isPositiveExpr(cosU, assumptions: assumptions)) {
+            signFactors.add(Sign(cosU));
+          }
+          return Pow(cosU, IntegerNumber.negativeOne);
         }
       }
       if (base case Mul(:final factors)) {
@@ -330,7 +336,11 @@ Expr? tryRealRadicalRewrite(
                 exponent: IntegerNumber(asInt: final p?),
               )
               when p.isEven && (inner is Sin || inner is Cos)) {
-            pulled.add(Pow(inner, IntegerNumber.of(p ~/ 2)));
+            final k = p ~/ 2;
+            if (k.isOdd && !isPositiveExpr(inner, assumptions: assumptions)) {
+              signFactors.add(Sign(inner));
+            }
+            pulled.add(Pow(inner, IntegerNumber.of(k)));
           } else {
             remaining.add(f);
           }
@@ -362,7 +372,11 @@ Expr? tryRealRadicalRewrite(
       depth: depth + 1,
       assumptions: assumptions,
     );
-    if (!hasUnevaluatedIntegral(res, variable)) return res;
+    if (!hasUnevaluatedIntegral(res, variable)) {
+      return signFactors.isEmpty
+          ? res
+          : (Mul(signFactors) * res).simplify(assumptions: assumptions);
+    }
   }
   return null;
 }

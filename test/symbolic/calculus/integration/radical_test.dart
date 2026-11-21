@@ -230,11 +230,11 @@ void main() {
       );
       verifyAntiderivative(
         Expr.parse('sqrt(1 / sin(x) - sin(x))'),
-        points: const [0.2, 0.6, 1.0],
+        points: const [0.2, 0.6, 1.0, 2.0, 2.5],
       );
       verifyAntiderivative(
         Expr.parse('sin(x) * sqrt(1 + tan(x)^2)'),
-        points: const [0.2, 0.6, 1.0],
+        points: const [0.2, 0.6, 1.0, 2.0, 2.5],
       );
     });
   });
