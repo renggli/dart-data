@@ -217,5 +217,34 @@ void main() {
         points: const [0.2, 0.6, 1.0],
       );
     });
+
+    test(
+      'integrates symbolic-exponent trig and hyperbolic odd-power products',
+      () {
+        check(
+          Expr.parse('sinh(a + b * x)^n * cosh(a + b * x)^3').integrate('x'),
+        ).isNotA<Integral>();
+        check(
+          Expr.parse('cosh(a + b * x)^n * sinh(a + b * x)^5').integrate('x'),
+        ).isNotA<Integral>();
+        check(Expr.parse('sin(a + b * x)^n * cos(a + b * x)^3').integrate('x'))
+            .isNotA<Integral>();
+        check(Expr.parse('cos(a + b * x)^n * sin(a + b * x)^3').integrate('x'))
+            .isNotA<Integral>();
+
+        verifyAntiderivative(
+          Expr.parse('sinh(1 + 2 * x)^(3/2) * cosh(1 + 2 * x)^3'),
+          points: const [0.2, 0.5, 0.8],
+        );
+        verifyAntiderivative(
+          Expr.parse('cosh(1 + 2 * x)^(-1) * sinh(1 + 2 * x)^3'),
+          points: const [0.2, 0.5, 0.8],
+        );
+        verifyAntiderivative(
+          Expr.parse('sin(1 + 2 * x)^(1/3) * cos(1 + 2 * x)^3'),
+          points: const [0.1, 0.3, 0.5],
+        );
+      },
+    );
   });
 }

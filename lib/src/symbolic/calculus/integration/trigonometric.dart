@@ -5,6 +5,7 @@ import '../../algebra/term_accumulator.dart';
 import '../../algebra/trig.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../number/integer.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -1200,4 +1201,113 @@ Expr? _tryTrigPolyDivision(
     }
   }
   return null;
+}
+
+/// Integrates products `scale * f(u)^n * g(u)^(2*k + 1)` where `n` is symbolic
+/// (or numeric), `0 <= k <= 6`, `u` is linear in [variable], and `(f, g)` is
+/// `(Sin, Cos)`, `(Cos, Sin)`, `(Sinh, Cosh)`, or `(Cosh, Sinh)`.
+Expr? trySymbolicTrigPowerProduct(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final factors = expr is Mul ? expr.factors : [expr];
+  var scale = IntegerNumber.one as Expr;
+  final varFactors = <({Expr base, Expr exp})>[];
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      scale = (scale * f).simplify(assumptions: assumptions);
+      continue;
+    }
+    if (f case Pow(:final base, :final exponent)) {
+      if (exponent.dependsOn(variable)) return null;
+      varFactors.add((base: base, exp: exponent));
+    } else {
+      varFactors.add((base: f, exp: IntegerNumber.one));
+    }
+  }
+
+  if (varFactors.length != 2) return null;
+
+  bool isTrigOrHyp(Expr e) => e is Sin || e is Cos || e is Sinh || e is Cosh;
+  Expr? innerOf(Expr e) => switch (e) {
+    Sin(:final expr) => expr,
+    Cos(:final expr) => expr,
+    Sinh(:final expr) => expr,
+    Cosh(:final expr) => expr,
+    _ => null,
+  };
+
+  final f0 = varFactors[0];
+  final f1 = varFactors[1];
+  if (!isTrigOrHyp(f0.base) || !isTrigOrHyp(f1.base)) return null;
+
+  final u0 = innerOf(f0.base);
+  final u1 = innerOf(f1.base);
+  if (u0 == null || u0 != u1) return null;
+  final lin = u0.matchLinear(variable);
+  if (lin == null) return null;
+  final slope = lin.a;
+
+  // Pick which factor is g^(2k+1) and which is f^n
+  final ({Expr base, Expr exp}) fPair;
+  final ({Expr base, Expr exp}) gPair;
+  if (f1.exp case IntegerNumber(asInt: final m?)
+      when m >= 1 && m <= 13 && m.isOdd) {
+    fPair = f0;
+    gPair = f1;
+  } else if (f0.exp case IntegerNumber(asInt: final m?)
+      when m >= 1 && m <= 13 && m.isOdd) {
+    fPair = f1;
+    gPair = f0;
+  } else {
+    return null;
+  }
+
+  final fBase = fPair.base;
+  final gBase = gPair.base;
+  final n = fPair.exp;
+  final k = ((gPair.exp as IntegerNumber).asInt! - 1) ~/ 2;
+
+  // Determine (prefactor, signPattern):
+  // signMode: 0 -> all +1 (Sinh/Cosh), 1 -> (-1)^j (Sin/Cos, Cos/Sin), 2 -> (-1)^(k-j) (Cosh/Sinh)
+  final Expr prefactor;
+  final int signMode;
+  if (fBase is Sin && gBase is Cos) {
+    prefactor = (scale / slope).simplify(assumptions: assumptions);
+    signMode = 1;
+  } else if (fBase is Cos && gBase is Sin) {
+    prefactor = (-scale / slope).simplify(assumptions: assumptions);
+    signMode = 1;
+  } else if (fBase is Sinh && gBase is Cosh) {
+    prefactor = (scale / slope).simplify(assumptions: assumptions);
+    signMode = 0;
+  } else if (fBase is Cosh && gBase is Sinh) {
+    prefactor = (scale / slope).simplify(assumptions: assumptions);
+    signMode = 2;
+  } else {
+    return null;
+  }
+
+  final terms = <Expr>[];
+  for (var j = 0; j <= k; j++) {
+    final binom = IntegerNumber(Integer.from(k).binomial(Integer.from(j)));
+    final isNeg = switch (signMode) {
+      1 => j.isOdd,
+      2 => (k - j).isOdd,
+      _ => false,
+    };
+    final coeff = isNeg ? -binom : binom;
+    final exp = (n + IntegerNumber.of(2 * j + 1)).simplify(
+      assumptions: assumptions,
+    );
+    if (exp is Number && exp.isZero) {
+      terms.add(coeff * logAntiderivative(fBase, assumptions));
+    } else {
+      terms.add(coeff * Pow(fBase, exp) / exp);
+    }
+  }
+
+  return (prefactor * Add(terms)).simplify(assumptions: assumptions);
 }

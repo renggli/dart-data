@@ -1609,6 +1609,10 @@ Expr _antiDerivMul(
       case final trigPowRes?) {
     return trigPowRes;
   }
+  if (trySymbolicTrigPowerProduct(original, variable, assumptions: assumptions)
+      case final symTrigPowRes?) {
+    return symTrigPowRes;
+  }
   if (tryExpandTrigBinomialProduct(
         varFactors,
         variable,
