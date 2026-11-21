@@ -291,5 +291,12 @@ void main() {
         );
       },
     );
+
+    test('integrates degree-9 polynomials over quadratic radicals', () {
+      verifyAntiderivative(
+        Expr.parse('((x^3 - 3 * x)^3 - 3 * x^3 + 9 * x) / sqrt(x^2 - 4)'),
+        points: const [2.5, 3.0, 4.0],
+      );
+    });
   });
 }

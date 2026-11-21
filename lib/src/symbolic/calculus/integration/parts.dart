@@ -266,6 +266,8 @@ Expr? tryIntegrationByParts(
         Cos(:final expr) ||
         Sinh(:final expr) ||
         Cosh(:final expr) => expr.matchLinear(variable) != null,
+        Mul(factors: [final f0, final f1]) =>
+          _isExpTrigPair(f0, f1, variable) || _isExpTrigPair(f1, f0, variable),
         _ => false,
       };
       if (isIntegrableV) {
@@ -435,3 +437,15 @@ bool _containsLogOrInverseTrig(Expr expr) => switch (expr) {
     _containsLogOrInverseTrig(base) || _containsLogOrInverseTrig(exponent),
   _ => false,
 };
+
+bool _isExpTrigPair(Expr expNode, Expr trigNode, String variable) {
+  if (expNode case Pow(:final base, :final exponent) when base == Constant.e) {
+    if (exponent.matchLinear(variable) == null) return false;
+    return switch (trigNode) {
+      Sin(:final expr) ||
+      Cos(:final expr) => expr.matchLinear(variable) != null,
+      _ => false,
+    };
+  }
+  return false;
+}

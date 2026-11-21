@@ -592,7 +592,7 @@ Expr? tryQuadraticRadical(
   final numCoeffs = extractPolynomialCoefficients(numExpanded, variable);
   if (numCoeffs == null) return null;
   final degP = maxPolynomialDegree(numCoeffs);
-  if (degP > 8) return null;
+  if (degP > 12) return null;
 
   final quadCoeffs = extractPolynomialCoefficients(quad, variable);
   if (quadCoeffs == null || maxPolynomialDegree(quadCoeffs) != 2) return null;
@@ -875,10 +875,10 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
     final coeffs = extractPolynomialCoefficients(quad, variable);
     if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
       final rawDegLeft = polynomialDegree(left, variable);
-      if (rawDegLeft != null && rawDegLeft >= 2 && rawDegLeft <= 6) {
+      if (rawDegLeft != null && rawDegLeft >= 2 && rawDegLeft <= 12) {
         final leftExp = left.expand().simplify();
         final degLeft = polynomialDegree(leftExp, variable);
-        if (degLeft != null && degLeft >= 2 && degLeft <= 6) {
+        if (degLeft != null && degLeft >= 2 && degLeft <= 12) {
           return _integratePolyOverSqrtQ(
             leftExp,
             quad,

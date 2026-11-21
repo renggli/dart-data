@@ -131,5 +131,19 @@ void main() {
         points: const [0.3, 0.6, 0.9],
       );
     });
+
+    test(
+      'integrates higher-degree polynomials times exp(a*x) * sin/cos(b*x)',
+      () {
+        verifyAntiderivative(
+          Expr.parse('x^4 * e^(-x) * sin(x)'),
+          points: const [0.2, 0.7, 1.3],
+        );
+        verifyAntiderivative(
+          Expr.parse('x^3 * e^(2 * x) * cos(3 * x)'),
+          points: const [0.1, 0.4, 0.8],
+        );
+      },
+    );
   });
 }
