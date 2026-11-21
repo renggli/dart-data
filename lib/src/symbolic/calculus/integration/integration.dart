@@ -122,11 +122,11 @@ Expr symbolicIntegrate(
   }
 
   try {
-    return antiDerivative(
-      function,
-      variable,
-      assumptions: assumptions,
-    ).simplify(assumptions: assumptions);
+    var res = antiDerivative(function, variable, assumptions: assumptions);
+    if (_mayBeComplexExpr(function)) {
+      res = _stripAbsInLn(res);
+    }
+    return res.simplify(assumptions: assumptions);
   } on Object {
     return Integral(
       function.simplify(assumptions: assumptions),
@@ -1854,6 +1854,11 @@ bool _mayBeComplexExpr(Expr expr) => expr.anyNode(
           (isSyntacticallyNegative(node.base) ||
               isNegativeConstant(node.base))),
 );
+
+Expr _stripAbsInLn(Expr expr) => switch (expr) {
+  Ln(expr: Abs(:final expr)) => Ln(_stripAbsInLn(expr)),
+  _ => expr.mapChildren(_stripAbsInLn),
+};
 
 Expr _rewriteTanToSinCos(Expr node, String variable) {
   if (!node.dependsOn(variable)) return node;

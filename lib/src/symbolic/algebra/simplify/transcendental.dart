@@ -632,6 +632,13 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
     return Ln(expr, isSimplified: true);
   }
 
+  // ln(|e^u|) = u for real u
+  if (expr case Abs(expr: Pow(base: Constant.e, exponent: final inner))) {
+    if (isProvenReal(inner, assumptions)) {
+      return inner;
+    }
+  }
+
   // ln(u^k)
   if (expr is Pow) {
     final k = expr.exponent;
