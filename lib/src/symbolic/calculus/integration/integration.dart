@@ -444,6 +444,19 @@ Expr antiDerivative(
       );
       if (!hasUnevaluatedIntegral(res, variable)) return res;
     }
+    final powLogRewritten = _rewritePowerLogIdentities(
+      node,
+      variable,
+    ).simplify(assumptions: assumptions);
+    if (powLogRewritten != node) {
+      final res = antiDerivative(
+        powLogRewritten,
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(res, variable)) return res;
+    }
   }
   if (depth == 2 && node is! Add && hasUnevaluatedIntegral(result, variable)) {
     if (tryRealRadicalRewrite(
@@ -570,17 +583,47 @@ int? halfIntExponent(Expr exponent) {
   return null;
 }
 
-Expr? _antiDerivSin(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) => (-Cos(inner) / a).simplify(),
-      null => null,
-    };
+Expr? _antiDerivSin(Expr inner, String variable) {
+  if (inner.matchLinear(variable) case (:final a, b: _)) {
+    return (-Cos(inner) / a).simplify();
+  }
+  if (_matchScaledSquare(inner, variable) case final a?) {
+    final absA = isNegativeConstant(a) ? (-a).simplify() : a;
+    final sign = isNegativeConstant(a)
+        ? IntegerNumber.negativeOne
+        : IntegerNumber.one;
+    final twoA = (IntegerNumber.two * absA).simplify();
+    final scale = Pow(Constant.pi / twoA, FractionNumber.half);
+    final arg =
+        Pow(twoA / Constant.pi, FractionNumber.half) * Variable(variable);
+    return (sign * scale * FresnelS(arg)).simplify();
+  }
+  return null;
+}
 
-Expr? _antiDerivCos(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) => (Sin(inner) / a).simplify(),
-      null => null,
-    };
+Expr? _antiDerivCos(Expr inner, String variable) {
+  if (inner.matchLinear(variable) case (:final a, b: _)) {
+    return (Sin(inner) / a).simplify();
+  }
+  if (_matchScaledSquare(inner, variable) case final a?) {
+    final absA = isNegativeConstant(a) ? (-a).simplify() : a;
+    final twoA = (IntegerNumber.two * absA).simplify();
+    final scale = Pow(Constant.pi / twoA, FractionNumber.half);
+    final arg =
+        Pow(twoA / Constant.pi, FractionNumber.half) * Variable(variable);
+    return (scale * FresnelC(arg)).simplify();
+  }
+  return null;
+}
+
+Expr? _matchScaledSquare(Expr expr, String variable) {
+  final coeffs = extractPolynomialCoefficients(expr, variable);
+  if (coeffs == null || maxPolynomialDegree(coeffs) != 2) return null;
+  final c1 = coeffs[1] ?? IntegerNumber.zero;
+  final c0 = coeffs[0] ?? IntegerNumber.zero;
+  if (c1 != IntegerNumber.zero || c0 != IntegerNumber.zero) return null;
+  return coeffs[2];
+}
 
 /// Returns `ln(u)` when `u` is proven positive under [assumptions] or may
 /// evaluate to a complex value, otherwise `ln(|u|)`.
@@ -1005,6 +1048,18 @@ Expr _antiDerivPow(
                   Sin(twoInner) / (const IntegerNumber(Integer(4)) * a))
               .simplify();
         }
+        if (_matchScaledSquare(inner, variable) != null) {
+          const half = FractionNumber.half;
+          final reduced =
+              (half * (IntegerNumber.one - Cos(IntegerNumber.two * inner)))
+                  .simplify(assumptions: assumptions);
+          return antiDerivative(
+            reduced,
+            variable,
+            assumptions: assumptions,
+            depth: 1,
+          );
+        }
       }
       if (base case Cos(expr: final inner)) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
@@ -1013,6 +1068,18 @@ Expr _antiDerivPow(
           return (xVar / IntegerNumber.two +
                   Sin(twoInner) / (const IntegerNumber(Integer(4)) * a))
               .simplify();
+        }
+        if (_matchScaledSquare(inner, variable) != null) {
+          const half = FractionNumber.half;
+          final reduced =
+              (half * (IntegerNumber.one + Cos(IntegerNumber.two * inner)))
+                  .simplify(assumptions: assumptions);
+          return antiDerivative(
+            reduced,
+            variable,
+            assumptions: assumptions,
+            depth: 1,
+          );
         }
       }
       if (base case Tan(expr: final inner)) {
@@ -1805,6 +1872,61 @@ Expr? _tryExpandTrigAtan(
     return node
         .expandTrig(assumptions: assumptions)
         .simplify(assumptions: assumptions);
+  }
+  return null;
+}
+
+Expr _rewritePowerLogIdentities(Expr node, String variable) {
+  if (!node.dependsOn(variable)) return node;
+  final mapped = node.mapChildren(
+    (c) => _rewritePowerLogIdentities(c, variable),
+  );
+  if (mapped case Pow(:final base, :final exponent)) {
+    // 1. u^(c / ln(u)) -> e^c
+    final (expNum, expDen) = splitNumeratorDenominator(exponent);
+    if (expDen case Ln(expr: final lnBase) when lnBase == base) {
+      return Pow(Constant.e, expNum);
+    }
+    // 2. Nested variable power: (c * x^a)^b -> c^b * x^(a*b)
+    if (!exponent.dependsOn(variable)) {
+      if (base is Variable && base.name == variable) return mapped;
+      if (_extractMonomialVarPower(base, variable) case (
+        :final scale,
+        :final power,
+      )) {
+        return (Pow(scale, exponent) *
+                Pow(Variable(variable), (power * exponent).simplify()))
+            .simplify();
+      }
+    }
+  }
+  return mapped;
+}
+
+({Expr scale, Expr power})? _extractMonomialVarPower(
+  Expr expr,
+  String variable,
+) {
+  if (!expr.dependsOn(variable)) {
+    return (scale: expr, power: IntegerNumber.zero);
+  }
+  if (expr is Variable && expr.name == variable) {
+    return (scale: IntegerNumber.one, power: IntegerNumber.one);
+  }
+  if (expr case Pow(base: Variable(:final name), :final exponent)
+      when name == variable && !exponent.dependsOn(variable)) {
+    return (scale: IntegerNumber.one, power: exponent);
+  }
+  if (expr is Mul) {
+    var scale = IntegerNumber.one as Expr;
+    var power = IntegerNumber.zero as Expr;
+    for (final f in expr.factors) {
+      final sub = _extractMonomialVarPower(f, variable);
+      if (sub == null) return null;
+      scale = (scale * sub.scale).simplify();
+      power = (power + sub.power).simplify();
+    }
+    return (scale: scale, power: power);
   }
   return null;
 }

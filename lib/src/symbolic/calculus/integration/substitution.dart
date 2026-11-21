@@ -401,6 +401,27 @@ Expr? tryMixedTrigLogExp(
   String variable, {
   required Assumptions assumptions,
 }) {
+  // 0. x^(a*ln(x) + b) -> u = ln(x), dx = e^u du -> exp(a*u^2 + (b + 1)*u)
+  if (expr case Pow(base: Variable(:final name), :final exponent)
+      when name == variable) {
+    const uName = '_ml';
+    const uVar = Variable(uName);
+    final xVar = Variable(variable);
+    final expSub = _substituteExpr(exponent, Ln(xVar), uVar);
+    if (!expSub.dependsOn(variable)) {
+      if (expSub.matchLinear(uName) case (a: final a, b: final b)) {
+        final quadExp = (a * uVar * uVar + (b + IntegerNumber.one) * uVar)
+            .simplify(assumptions: assumptions);
+        final res = tryGaussianAntiderivative(quadExp, uName);
+        if (res != null) {
+          return res
+              .substitute(uName, Ln(xVar))
+              .simplify(assumptions: assumptions);
+        }
+      }
+    }
+  }
+
   // 1. x^n * sin(ln(a*x)) or x^n * cos(ln(a*x))
   final factors = expr is Mul ? expr.factors : [expr];
   var scale = IntegerNumber.one as Expr;
@@ -640,6 +661,16 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
         out.add(node);
         if (exponent is! Variable || exponent.name != variable) {
           out.add(exponent);
+        }
+        if (exponent.anyNode(
+          (n) =>
+              n is Pow &&
+              n.base is Variable &&
+              (n.base as Variable).name == variable &&
+              n.exponent is IntegerNumber &&
+              (n.exponent as IntegerNumber).isNegative,
+        )) {
+          out.add(Pow(Variable(variable), IntegerNumber.negativeOne));
         }
       } else {
         if (base.dependsOn(variable) &&

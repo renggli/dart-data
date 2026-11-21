@@ -307,5 +307,40 @@ void main() {
       check(Expr.parse('x^2017 / (x^2018 + 1)').integrate('x'))
           .isNotA<Integral>();
     });
+
+    test('integrates power/log rewrites, linear-log denominators, and Fresnel quadratics', () {
+      verifyAntiderivative(
+        Expr.parse('x^(1 / ln(x))'),
+        points: const [1.5, 2.5, 4.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('x^(-ln(x))'),
+        points: const [1.5, 2.5, 4.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('sqrt(x * sqrt(x^(3/2)))'),
+        points: const [0.5, 1.5, 3.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('ln(2 * x) / (x * ln(x))'),
+        points: const [1.5, 2.5, 4.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / (1 - ln(1 - x))'),
+        points: const [0.2, 0.5, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('e^(-9 / (4 * x^2)) / x^2'),
+        points: const [0.5, 1.2, 2.5],
+      );
+      verifyAntiderivative(
+        Expr.parse('cos(2 * x^2)^2'),
+        points: const [0.3, 0.7, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(3 * x^2)'),
+        points: const [0.3, 0.7, 1.1],
+      );
+    });
   });
 }

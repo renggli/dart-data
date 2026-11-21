@@ -324,13 +324,21 @@ void main() {
       // \int_0^1 \int_0^1 cos(x*y) dy dx = \int_0^1 sin(x)/x dx = Si(1) \approx 0.946083070367
       check(nested.evaluate()).isCloseTo(0.946083070367183, 1e-12);
 
+      // Double integral reducing to FresnelC
+      final nestedFresnel = Expr.parse('cos(x * y^2)').integrateMultiple([
+        (variable: 'y', from: 0, to: 1),
+        (variable: 'x', from: 0, to: 1),
+      ]);
+      check(nestedFresnel).isNotA<Integral>();
+      check(nestedFresnel.evaluate()).isCloseTo(0.9675774909926477, 1e-9);
+
       // Genuinely unevaluated double integral evaluated numerically via nested Gauss-Legendre
-      final nestedNum = Expr.parse('cos(x * y^2)').integrateMultiple([
+      final nestedNum = Expr.parse('cos(x * y^3)').integrateMultiple([
         (variable: 'y', from: 0, to: 1),
         (variable: 'x', from: 0, to: 1),
       ]);
       check(nestedNum).isA<Integral>();
-      check(nestedNum.evaluate()).isCloseTo(0.9675774909926477, 1e-9);
+      check(nestedNum.evaluate()).isCloseTo(0.9768211684833681, 1e-9);
     });
   });
 

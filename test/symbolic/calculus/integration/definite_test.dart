@@ -153,8 +153,11 @@ void main() {
       check(lorentz).equals(Constant.pi);
 
       final fresnel = Expr.parse('sin(x^2)').integrate('x', from: 0, to: 1);
-      check(fresnel).isA<Integral>();
+      check(fresnel).isNotA<Integral>();
       check(fresnel.evaluate()).isCloseTo(0.3102683017233811, 1e-12);
+
+      final unevaluated = Expr.parse('sin(x^3)').integrate('x', from: 0, to: 1);
+      check(unevaluated).isA<Integral>();
 
       final oscImproper = Cos(x).integrate('x', from: 0, to: double.infinity);
       check(oscImproper).isA<Integral>();

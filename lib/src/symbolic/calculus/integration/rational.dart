@@ -346,11 +346,44 @@ Expr? tryAntiDerivDiv(
   }
 
   // c / ln(ax + b) -> (c / a) * li(ax + b)
+  // L / (a + b * ln(c*x + d)) -> (L / (b*c)) * exp(-a/b) * li((c*x + d) * exp(a/b))
   if (!left.dependsOn(variable)) {
     if (right case Ln(expr: final inner)) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
         return ((left / a) * LogIntegralLi(inner)).simplify();
       }
+    }
+    if (_matchLinearLog(right, variable) case (
+      :final a,
+      :final b,
+      :final inner,
+    )) {
+      if (inner.matchLinear(variable) case (a: final c, b: _)) {
+        final ratio = (a / b).simplify(assumptions: assumptions);
+        return ((left / (b * c)) *
+                Pow(Constant.e, -ratio) *
+                LogIntegralLi(inner * Pow(Constant.e, ratio)))
+            .simplify(assumptions: assumptions);
+      }
+    }
+  }
+
+  // Split ln(c * x) -> ln(c) + ln(x) when denominator contains ln(x)
+  if (depth < 2 &&
+      right.anyNode((n) => n is Ln && n.expr == Variable(variable)) &&
+      left.anyNode((n) => _isScaledVarLn(n, variable))) {
+    final splitLeft = _splitScaledVarLn(
+      left,
+      variable,
+    ).simplify(assumptions: assumptions);
+    if (splitLeft != left) {
+      final res = antiDerivative(
+        (splitLeft / right).simplify(assumptions: assumptions),
+        variable,
+        depth: depth + 1,
+        assumptions: assumptions,
+      );
+      if (!hasUnevaluatedIntegral(res, variable)) return res;
     }
   }
 
@@ -1861,4 +1894,65 @@ Expr? _trySumToProductTrigQuotient(
     depth: depth + 1,
   );
   return hasUnevaluatedIntegral(res, variable) ? null : res;
+}
+
+({Expr a, Expr b, Expr inner})? _matchLinearLog(Expr expr, String variable) {
+  final terms = expr is Add ? expr.terms : [expr];
+  var a = IntegerNumber.zero as Expr;
+  Expr? b;
+  Expr? inner;
+  for (final t in terms) {
+    if (!t.dependsOn(variable)) {
+      a = (a + t).simplify();
+      continue;
+    }
+    if (t case Ln(expr: final arg) when inner == null || inner == arg) {
+      inner = arg;
+      b = ((b ?? IntegerNumber.zero) + IntegerNumber.one).simplify();
+      continue;
+    }
+    if (t case Mul(:final factors)) {
+      var coeff = IntegerNumber.one as Expr;
+      Expr? lnArg;
+      var valid = true;
+      for (final f in factors) {
+        if (!f.dependsOn(variable)) {
+          coeff = (coeff * f).simplify();
+        } else if (f case Ln(expr: final arg) when lnArg == null) {
+          lnArg = arg;
+        } else {
+          valid = false;
+          break;
+        }
+      }
+      if (valid && lnArg != null && (inner == null || inner == lnArg)) {
+        inner = lnArg;
+        b = ((b ?? IntegerNumber.zero) + coeff).simplify();
+        continue;
+      }
+    }
+    return null;
+  }
+  if (b == null || inner == null || (b is Number && b.isZero)) return null;
+  return (a: a, b: b, inner: inner);
+}
+
+bool _isScaledVarLn(Expr node, String variable) {
+  if (node case Ln(expr: final inner)) {
+    if (inner.matchLinear(variable) case (a: final a, b: final b)
+        when b is Number && b.isZero && a != IntegerNumber.one) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Expr _splitScaledVarLn(Expr node, String variable) {
+  if (node case Ln(expr: final inner)) {
+    if (inner.matchLinear(variable) case (a: final a, b: final b)
+        when b is Number && b.isZero && a != IntegerNumber.one) {
+      return Ln(a) + Ln(Variable(variable));
+    }
+  }
+  return node.mapChildren((c) => _splitScaledVarLn(c, variable));
 }
