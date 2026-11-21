@@ -136,5 +136,30 @@ void main() {
         points: const [1.2, 2.0, 3.0],
       );
     });
+
+    test('integrates shifted trig/hyperbolic over linear powers and sinh/cosh powers', () {
+      for (final expr in const [
+        '(c + d * x)^4 * sinh(a + b * x)^2',
+        'sinh(a + b * x) / (c + d * x)^2',
+        'cosh(a + b * x) / (c + d * x)',
+        'sinh(a + b * x)^2 / (c + d * x)^2',
+        'sin(a + b * x) / (c + d * x)^2',
+      ]) {
+        check(Expr.parse(expr).integrate('x')).isNotA<Integral>();
+      }
+
+      verifyAntiderivative(
+        Expr.parse('(1 + 2 * x)^4 * sinh(1 + 3 * x)^2'),
+        points: const [0.2, 0.5, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('sinh(1 + 2 * x) / (1 + 3 * x)^2'),
+        points: const [0.2, 0.5, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(1 + 2 * x) / (1 + 3 * x)^2'),
+        points: const [0.2, 0.5, 0.8],
+      );
+    });
   });
 }

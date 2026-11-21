@@ -378,7 +378,7 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
 /// via multiple-angle power reduction.
 Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
   for (var i = 0; i < varFactors.length; i++) {
-    if (_reduceTrigPower(varFactors[i], variable) case final reduced?) {
+    if (reduceTrigPower(varFactors[i], variable) case final reduced?) {
       final others = <Expr>[
         for (var j = 0; j < varFactors.length; j++)
           if (i != j) varFactors[j],
@@ -670,9 +670,46 @@ Expr _integrateCotPower(int n, Expr inner, Expr a, String variable) {
   return (term1 - rem).simplify();
 }
 
-Expr? _reduceTrigPower(Expr factor, String variable) {
+/// Reduces integer powers `2 <= n <= 6` of `sin`, `cos`, `sinh`, or `cosh`
+/// with linear arguments into multiple-angle sums.
+Expr? reduceTrigPower(Expr factor, String variable) {
   if (factor case Pow(:final base, exponent: IntegerNumber(asInt: final n?))
       when n >= 2 && n <= 6) {
+    Expr u2(Expr inner) => (IntegerNumber.two * inner).simplify();
+    Expr u3(Expr inner) => (IntegerNumber.of(3) * inner).simplify();
+    Expr u4(Expr inner) => (IntegerNumber.of(4) * inner).simplify();
+    Expr u5(Expr inner) => (IntegerNumber.of(5) * inner).simplify();
+    Expr u6(Expr inner) => (IntegerNumber.of(6) * inner).simplify();
+
+    if (base case Sinh(:final expr) when expr.matchLinear(variable) != null) {
+      return switch (n) {
+        2 => (Cosh(u2(expr)) - IntegerNumber.one) / IntegerNumber.two,
+        3 =>
+          (Sinh(u3(expr)) - IntegerNumber.of(3) * Sinh(expr)) /
+              IntegerNumber.of(4),
+        4 =>
+          (Cosh(u4(expr)) -
+                  IntegerNumber.of(4) * Cosh(u2(expr)) +
+                  IntegerNumber.of(3)) /
+              IntegerNumber.of(8),
+        _ => null,
+      };
+    }
+    if (base case Cosh(:final expr) when expr.matchLinear(variable) != null) {
+      return switch (n) {
+        2 => (Cosh(u2(expr)) + IntegerNumber.one) / IntegerNumber.two,
+        3 =>
+          (Cosh(u3(expr)) + IntegerNumber.of(3) * Cosh(expr)) /
+              IntegerNumber.of(4),
+        4 =>
+          (Cosh(u4(expr)) +
+                  IntegerNumber.of(4) * Cosh(u2(expr)) +
+                  IntegerNumber.of(3)) /
+              IntegerNumber.of(8),
+        _ => null,
+      };
+    }
+
     final Expr inner;
     final bool isSin;
     if (base case Sin(:final expr) when expr.matchLinear(variable) != null) {
@@ -685,45 +722,46 @@ Expr? _reduceTrigPower(Expr factor, String variable) {
     } else {
       return null;
     }
-    final u2 = (IntegerNumber.two * inner).simplify();
-    final u3 = (IntegerNumber.of(3) * inner).simplify();
-    final u4 = (IntegerNumber.of(4) * inner).simplify();
-    final u5 = (IntegerNumber.of(5) * inner).simplify();
-    final u6 = (IntegerNumber.of(6) * inner).simplify();
     return switch ((isSin, n)) {
-      (true, 2) => (IntegerNumber.one - Cos(u2)) / IntegerNumber.two,
-      (false, 2) => (IntegerNumber.one + Cos(u2)) / IntegerNumber.two,
+      (true, 2) => (IntegerNumber.one - Cos(u2(inner))) / IntegerNumber.two,
+      (false, 2) => (IntegerNumber.one + Cos(u2(inner))) / IntegerNumber.two,
       (true, 3) =>
-        (IntegerNumber.of(3) * Sin(inner) - Sin(u3)) / IntegerNumber.of(4),
+        (IntegerNumber.of(3) * Sin(inner) - Sin(u3(inner))) /
+            IntegerNumber.of(4),
       (false, 3) =>
-        (IntegerNumber.of(3) * Cos(inner) + Cos(u3)) / IntegerNumber.of(4),
+        (IntegerNumber.of(3) * Cos(inner) + Cos(u3(inner))) /
+            IntegerNumber.of(4),
       (true, 4) =>
-        (IntegerNumber.of(3) - IntegerNumber.of(4) * Cos(u2) + Cos(u4)) /
+        (IntegerNumber.of(3) -
+                IntegerNumber.of(4) * Cos(u2(inner)) +
+                Cos(u4(inner))) /
             IntegerNumber.of(8),
       (false, 4) =>
-        (IntegerNumber.of(3) + IntegerNumber.of(4) * Cos(u2) + Cos(u4)) /
+        (IntegerNumber.of(3) +
+                IntegerNumber.of(4) * Cos(u2(inner)) +
+                Cos(u4(inner))) /
             IntegerNumber.of(8),
       (true, 5) =>
         (IntegerNumber.of(10) * Sin(inner) -
-                IntegerNumber.of(5) * Sin(u3) +
-                Sin(u5)) /
+                IntegerNumber.of(5) * Sin(u3(inner)) +
+                Sin(u5(inner))) /
             IntegerNumber.of(16),
       (false, 5) =>
         (IntegerNumber.of(10) * Cos(inner) +
-                IntegerNumber.of(5) * Cos(u3) +
-                Cos(u5)) /
+                IntegerNumber.of(5) * Cos(u3(inner)) +
+                Cos(u5(inner))) /
             IntegerNumber.of(16),
       (true, 6) =>
         (IntegerNumber.of(10) -
-                IntegerNumber.of(15) * Cos(u2) +
-                IntegerNumber.of(6) * Cos(u4) -
-                Cos(u6)) /
+                IntegerNumber.of(15) * Cos(u2(inner)) +
+                IntegerNumber.of(6) * Cos(u4(inner)) -
+                Cos(u6(inner))) /
             IntegerNumber.of(32),
       (false, 6) =>
         (IntegerNumber.of(10) +
-                IntegerNumber.of(15) * Cos(u2) +
-                IntegerNumber.of(6) * Cos(u4) +
-                Cos(u6)) /
+                IntegerNumber.of(15) * Cos(u2(inner)) +
+                IntegerNumber.of(6) * Cos(u4(inner)) +
+                Cos(u6(inner))) /
             IntegerNumber.of(32),
       _ => null,
     };

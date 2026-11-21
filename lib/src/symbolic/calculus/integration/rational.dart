@@ -259,50 +259,14 @@ Expr? tryAntiDerivDiv(
     return logPowRes;
   }
 
-  // int sin(a*x) / x^k dx and cos(a*x) / x^k dx for k >= 2
-  if (right
-      case Pow(
-        base: Variable(name: final rName),
-        exponent: IntegerNumber(asInt: final k?),
+  if (_tryTrigOrHypOverLinearPower(
+        left,
+        right,
+        variable,
+        assumptions: assumptions,
       )
-      when rName == variable && k >= 2 && k <= 6) {
-    if (left is Sin || left is Cos) {
-      final inner = left is Sin ? left.expr : (left as Cos).expr;
-      if (inner.matchLinear(variable) case (:final a, b: final b)
-          when b is Number && b.isZero) {
-        final km1 = IntegerNumber.of(k - 1);
-        final xPow = k - 1 == 1
-            ? Variable(variable)
-            : Pow(Variable(variable), km1);
-        if (left is Sin) {
-          final term1 = (-Sin(inner) / (km1 * xPow)).simplify(
-            assumptions: assumptions,
-          );
-          final rem = antiDerivative(
-            (Cos(inner) / xPow).simplify(assumptions: assumptions),
-            variable,
-            depth: depth + 1,
-            assumptions: assumptions,
-          );
-          if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 + (a / km1) * rem).simplify(assumptions: assumptions);
-          }
-        } else {
-          final term1 = (-Cos(inner) / (km1 * xPow)).simplify(
-            assumptions: assumptions,
-          );
-          final rem = antiDerivative(
-            (Sin(inner) / xPow).simplify(assumptions: assumptions),
-            variable,
-            depth: depth + 1,
-            assumptions: assumptions,
-          );
-          if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 - (a / km1) * rem).simplify(assumptions: assumptions);
-          }
-        }
-      }
-    }
+      case final trigHypLinRes?) {
+    return trigHypLinRes;
   }
 
   // int u'(x) / (a + b * u(x)^2) dx = (1 / sqrt(a * b)) * arctan(sqrt(b / a) * u(x))
@@ -1548,4 +1512,121 @@ Expr? _tryPowerOverLogPower(
   }
 
   return (scale * integrateK(k)).simplify(assumptions: assumptions);
+}
+
+Expr? _tryTrigOrHypOverLinearPower(
+  Expr left,
+  Expr right,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final Expr linBase;
+  final int k;
+  if (right
+      case Pow(base: final rBase, exponent: IntegerNumber(asInt: final p?))
+      when p >= 1 && p <= 6) {
+    linBase = rBase;
+    k = p;
+  } else {
+    linBase = right;
+    k = 1;
+  }
+
+  final linDen = linBase.matchLinear(variable);
+  if (linDen == null) return null;
+  final (a: d, b: c) = linDen;
+
+  // Handle powered trig/hyperbolic numerator: (sin|cos|sinh|cosh)(u)^n / (c + d*x)^k
+  if (left
+      case Pow(
+        base: Sin() || Cos() || Sinh() || Cosh(),
+        exponent: IntegerNumber(asInt: final n?),
+      )
+      when n >= 2 && n <= 4) {
+    final reduced = reduceTrigPower(left, variable);
+    if (reduced != null) {
+      final expanded = reduced
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
+      final terms = expanded is Add ? expanded.terms : [expanded];
+      final results = <Expr>[];
+      for (final t in terms) {
+        final res = antiDerivative(
+          (t / right).simplify(assumptions: assumptions),
+          variable,
+          depth: 2,
+          assumptions: assumptions,
+        );
+        if (hasUnevaluatedIntegral(res, variable)) return null;
+        results.add(res);
+      }
+      return Add(results).simplify(assumptions: assumptions);
+    }
+  }
+
+  final Expr inner;
+  if (left case Sin(:final expr)) {
+    inner = expr;
+  } else if (left case Cos(:final expr)) {
+    inner = expr;
+  } else if (left case Sinh(:final expr)) {
+    inner = expr;
+  } else if (left case Cosh(:final expr)) {
+    inner = expr;
+  } else {
+    return null;
+  }
+
+  final linNum = inner.matchLinear(variable);
+  if (linNum == null) return null;
+  final (a: b, b: a) = linNum;
+
+  Expr integrateBase(Expr fn) {
+    final beta = (b / d).simplify(assumptions: assumptions);
+    final alpha = (a - b * c / d).simplify(assumptions: assumptions);
+    final arg = (beta * linBase).simplify(assumptions: assumptions);
+    return switch (fn) {
+      Sin() =>
+        ((Cos(alpha) * SinIntegralSi(arg) + Sin(alpha) * CosIntegralCi(arg)) /
+                d)
+            .simplify(assumptions: assumptions),
+      Cos() =>
+        ((Cos(alpha) * CosIntegralCi(arg) - Sin(alpha) * SinIntegralSi(arg)) /
+                d)
+            .simplify(assumptions: assumptions),
+      Sinh() =>
+        ((Cosh(alpha) * SinhIntegralShi(arg) +
+                    Sinh(alpha) * CoshIntegralChi(arg)) /
+                d)
+            .simplify(assumptions: assumptions),
+      Cosh() =>
+        ((Cosh(alpha) * CoshIntegralChi(arg) +
+                    Sinh(alpha) * SinhIntegralShi(arg)) /
+                d)
+            .simplify(assumptions: assumptions),
+      _ => throw StateError('Unreachable'),
+    };
+  }
+
+  Expr integrateK(Expr fn, int m) {
+    if (m == 1) return integrateBase(fn);
+    final m1 = IntegerNumber.of(m - 1);
+    final denomPow = m - 1 == 1 ? linBase : Pow(linBase, m1);
+    final term1 = (-fn / (d * m1 * denomPow)).simplify(
+      assumptions: assumptions,
+    );
+    final (Expr derivScale, Expr nextFn) = switch (fn) {
+      Sin() => (b, Cos(inner)),
+      Cos() => (-b, Sin(inner)),
+      Sinh() => (b, Cosh(inner)),
+      Cosh() => (b, Sinh(inner)),
+      _ => throw StateError('Unreachable'),
+    };
+    final rem = integrateK(nextFn, m - 1);
+    return (term1 + (derivScale / (d * m1)) * rem).simplify(
+      assumptions: assumptions,
+    );
+  }
+
+  return integrateK(left, k);
 }
