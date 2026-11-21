@@ -2,13 +2,15 @@ name: data
 version: 0.16.0
 
 homepage: https://github.com/renggli/dart-data
-description: A time and space efficient collection of data structures and
-  algorithms to deal with data in Dart.
+description: Scientific computing for Dart — vectors, matrices, tensors, 
+  linear algebra (BLAS/LAPACK), Arrow DataFrames, statistics, probability,
+  symbolic calculus, FFT, and numeric solvers.
 topics:
   - math
-  - numeric
-  - stats
+  - matrix
   - tensor
+  - dataframe
+  - statistics
 
 environment:
   sdk: ^3.14.0
