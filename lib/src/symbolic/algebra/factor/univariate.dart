@@ -431,7 +431,7 @@ List<Integer> divisors(Integer n) {
     }
     result = next;
   }
-  result.sort();
+  result.sort((a, b) => a.compareTo(b));
   return result;
 }
 

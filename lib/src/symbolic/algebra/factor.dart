@@ -296,7 +296,7 @@ List<({Integer prime, int exponent})> _factorPositiveIntegerFactors(Integer n) {
           }
         }
       }
-      bigFactors.sort();
+      bigFactors.sort((a, b) => a.compareTo(b));
       var idx = 0;
       while (idx < bigFactors.length) {
         final p = bigFactors[idx];

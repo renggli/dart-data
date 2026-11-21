@@ -110,6 +110,10 @@ void main() {
       ]);
       check(Expr.parse('x^2 - 3*2^31*x + 2^63').factor())
           .equals(Expr.parse('(x - 2^31)*(x - 2^32)').simplify());
+      final mixedDivs = divisors(Integer.big(BigInt.one << 60));
+      check(mixedDivs.length).equals(61);
+      check(mixedDivs.first).equals(Integer.one);
+      check(mixedDivs.last).equals(Integer.big(BigInt.one << 60));
     });
   });
 }
