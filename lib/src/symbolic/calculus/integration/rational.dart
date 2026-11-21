@@ -620,6 +620,15 @@ Expr? tryAntiDerivDiv(
         case final linPowRes?) {
       return linPowRes;
     }
+    if (_tryTwoLinearPowersDenominator(
+          left,
+          right,
+          variable,
+          assumptions: assumptions,
+        )
+        case final twoLinPowRes?) {
+      return twoLinPowRes;
+    }
     final rawDegLeft = polynomialDegree(left, variable);
     final rawDegRight = polynomialDegree(right, variable);
     if (rawDegLeft != null && rawDegRight != null && rawDegRight >= 4) {
@@ -1981,4 +1990,278 @@ Expr _splitScaledVarLn(Expr node, String variable) {
     }
   }
   return node.mapChildren((c) => _splitScaledVarLn(c, variable));
+}
+
+Expr? _tryTwoLinearPowersDenominator(
+  Expr left,
+  Expr right,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final factors = right is Mul ? right.factors : [right];
+  var scale = IntegerNumber.one as Expr;
+  final linFactors = <Expr, int>{};
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      scale = (scale * f).simplify(assumptions: assumptions);
+      continue;
+    }
+    if (f.matchLinear(variable) != null) {
+      linFactors[f] = (linFactors[f] ?? 0) + 1;
+      continue;
+    }
+    if (f case Pow(:final base, exponent: IntegerNumber(asInt: final exp?))
+        when exp >= 1 && exp <= 20 && base.matchLinear(variable) != null) {
+      linFactors[base] = (linFactors[base] ?? 0) + exp;
+      continue;
+    }
+    return null;
+  }
+
+  if (linFactors.length == 3 && !left.dependsOn(variable)) {
+    final entries = linFactors.entries.toList();
+    final u1 = entries[0].key;
+    final p1 = entries[0].value;
+    final u2 = entries[1].key;
+    final p2 = entries[1].value;
+    final u3 = entries[2].key;
+    final p3 = entries[2].value;
+    if (p1 + p2 + p3 > 16) return null;
+    final l1 = u1.matchLinear(variable)!;
+    final l2 = u2.matchLinear(variable)!;
+    final l3 = u3.matchLinear(variable)!;
+    final det12 = (l1.a * l2.b - l1.b * l2.a).expand().simplify(
+      assumptions: assumptions,
+    );
+    final det13 = (l1.a * l3.b - l1.b * l3.a).expand().simplify(
+      assumptions: assumptions,
+    );
+    final det23 = (l2.a * l3.b - l2.b * l3.a).expand().simplify(
+      assumptions: assumptions,
+    );
+    if ((det12 is Number && det12.isZero) ||
+        (det13 is Number && det13.isZero) ||
+        (det23 is Number && det23.isZero)) {
+      return null;
+    }
+    final decomp23 = _decomposeTwoLinearPowers(
+      (left / scale).simplify(assumptions: assumptions),
+      u2,
+      p2,
+      u3,
+      p3,
+      l2.a,
+      l3.a,
+      det23,
+      assumptions,
+    );
+    final terms = <Expr>[];
+    for (final (:coeff, :factor, :power) in decomp23) {
+      if (factor == u2) {
+        terms.add(
+          _integrateTwoLinearPowersConst(
+            coeff,
+            u1,
+            p1,
+            u2,
+            power,
+            l1.a,
+            l2.a,
+            det12,
+            assumptions,
+          ),
+        );
+      } else {
+        terms.add(
+          _integrateTwoLinearPowersConst(
+            coeff,
+            u1,
+            p1,
+            u3,
+            power,
+            l1.a,
+            l3.a,
+            det13,
+            assumptions,
+          ),
+        );
+      }
+    }
+    return Add(terms).simplify(assumptions: assumptions);
+  }
+
+  if (linFactors.length != 2) return null;
+  final entries = linFactors.entries.toList();
+  final u = entries[0].key;
+  final p = entries[0].value;
+  final v = entries[1].key;
+  final q = entries[1].value;
+  if (p + q > 20) return null;
+
+  final uLin = u.matchLinear(variable)!;
+  final vLin = v.matchLinear(variable)!;
+  final b = uLin.a;
+  final a = uLin.b;
+  final d = vLin.a;
+  final c = vLin.b;
+  final det = (b * c - a * d).expand().simplify(assumptions: assumptions);
+  if (det is Number && det.isZero) return null;
+
+  if (!left.dependsOn(variable)) {
+    return _integrateTwoLinearPowersConst(
+      (left / scale).simplify(assumptions: assumptions),
+      u,
+      p,
+      v,
+      q,
+      b,
+      d,
+      det,
+      assumptions,
+    );
+  }
+
+  final degLeft = polynomialDegree(left, variable);
+  if (degLeft == null || degLeft > 4) return null;
+
+  // Decompose left in powers of u: left = sum c_m * u^m
+  final coeffsInU = <Expr>[];
+  var cur = left.expand().simplify(assumptions: assumptions);
+  for (var m = 0; m <= degLeft; m++) {
+    final (:quotient, :remainder) = cur.polynomialDivide(
+      u,
+      variable,
+      assumptions: assumptions,
+    );
+    coeffsInU.add(remainder);
+    cur = quotient;
+  }
+
+  final terms = <Expr>[];
+  for (var m = 0; m < coeffsInU.length; m++) {
+    final cm = coeffsInU[m];
+    if (cm is Number && cm.isZero) continue;
+    final scaledCm = (cm / scale).simplify(assumptions: assumptions);
+    if (m < p) {
+      terms.add(
+        _integrateTwoLinearPowersConst(
+          scaledCm,
+          u,
+          p - m,
+          v,
+          q,
+          b,
+          d,
+          det,
+          assumptions,
+        ),
+      );
+    } else {
+      final numExpr = m == p
+          ? scaledCm
+          : (scaledCm * Pow(u, IntegerNumber.of(m - p))).simplify();
+      final remInt = _tryLinearPowerDenominator(
+        numExpr,
+        Pow(v, IntegerNumber.of(q)),
+        variable,
+        assumptions: assumptions,
+      );
+      if (remInt == null) return null;
+      terms.add(remInt);
+    }
+  }
+  return terms.isEmpty
+      ? IntegerNumber.zero
+      : Add(terms).simplify(assumptions: assumptions);
+}
+
+List<({Expr coeff, Expr factor, int power})> _decomposeTwoLinearPowers(
+  Expr coeff,
+  Expr u,
+  int p,
+  Expr v,
+  int q,
+  Expr b,
+  Expr d,
+  Expr det,
+  Assumptions assumptions,
+) {
+  final result = <({Expr coeff, Expr factor, int power})>[];
+  final negD = (-d).simplify(assumptions: assumptions);
+
+  // Terms A_i / u^i for 1 <= i <= p:
+  // A_i = C(p - i + q - 1, q - 1) * (-d)^(p - i) * b^q / det^(p - i + q)
+  final bPowQ = Pow(b, IntegerNumber.of(q));
+  for (var i = 1; i <= p; i++) {
+    final binom = Integer.from(p - i + q - 1).binomial(Integer.from(q - 1));
+    final ai =
+        (coeff *
+                IntegerNumber(binom) *
+                Pow(negD, IntegerNumber.of(p - i)) *
+                bPowQ /
+                Pow(det, IntegerNumber.of(p - i + q)))
+            .simplify(assumptions: assumptions);
+    result.add((coeff: ai, factor: u, power: i));
+  }
+
+  // Terms B_j / v^j for 1 <= j <= q:
+  // B_j = C(p - 1 + q - j, p - 1) * (-d)^p * b^(q - j) / det^(p + q - j)
+  final negDPowP = Pow(negD, IntegerNumber.of(p));
+  for (var j = 1; j <= q; j++) {
+    final binom = Integer.from(p - 1 + q - j).binomial(Integer.from(p - 1));
+    final bj =
+        (coeff *
+                IntegerNumber(binom) *
+                negDPowP *
+                Pow(b, IntegerNumber.of(q - j)) /
+                Pow(det, IntegerNumber.of(p + q - j)))
+            .simplify(assumptions: assumptions);
+    result.add((coeff: bj, factor: v, power: j));
+  }
+
+  return result;
+}
+
+Expr _integrateTwoLinearPowersConst(
+  Expr coeff,
+  Expr u,
+  int p,
+  Expr v,
+  int q,
+  Expr b,
+  Expr d,
+  Expr det,
+  Assumptions assumptions,
+) {
+  final decomp = _decomposeTwoLinearPowers(
+    coeff,
+    u,
+    p,
+    v,
+    q,
+    b,
+    d,
+    det,
+    assumptions,
+  );
+  final terms = <Expr>[];
+  for (final (:coeff, :factor, :power) in decomp) {
+    final slope = factor == u ? b : d;
+    if (power == 1) {
+      terms.add(
+        ((coeff / slope) * logAntiderivative(factor, assumptions)).simplify(
+          assumptions: assumptions,
+        ),
+      );
+    } else {
+      final oneMinusPow = IntegerNumber.of(1 - power);
+      terms.add(
+        ((coeff / (slope * oneMinusPow)) * Pow(factor, oneMinusPow)).simplify(
+          assumptions: assumptions,
+        ),
+      );
+    }
+  }
+  return Add(terms).simplify(assumptions: assumptions);
 }

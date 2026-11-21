@@ -177,5 +177,27 @@ void main() {
         );
       },
     );
+
+    test('integrates products of two and three linear powers via fast partial fractions', () {
+      check(Expr.parse('1 / (x^3 * (a + b * x)^10)').integrate('x'))
+          .isNotA<Integral>();
+      check(Expr.parse('1 / ((a + b * x)^3 * (c + d * x)^3)').integrate('x'))
+          .isNotA<Integral>();
+      check(Expr.parse('1 / (x^2 * (a + b * x) * (c + d * x))').integrate('x'))
+          .isNotA<Integral>();
+
+      verifyAntiderivative(
+        Expr.parse('1 / ((1 + 2 * x)^3 * (3 + 5 * x)^2)'),
+        points: const [0.2, 0.6, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('(x^2 + 1) / ((1 + 2 * x)^3 * (3 + 5 * x)^2)'),
+        points: const [0.2, 0.6, 1.1],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / (x^2 * (1 + 2 * x) * (3 + 5 * x))'),
+        points: const [0.2, 0.6, 1.1],
+      );
+    });
   });
 }
