@@ -74,12 +74,21 @@ ExprSyntax buildCasSyntax({bool renameE = false, bool renameI = false}) =>
         if (renameE) 'e': const Variable('e'),
         if (renameI) 'i': const Variable('i'),
       },
-      unaryFunctions: {'Abs': Abs.new, 'ceiling': Ceil.new, 'log': Ln.new},
+      unaryFunctions: {
+        'Abs': Abs.new,
+        'ceiling': Ceil.new,
+        'log': Ln.new,
+        'elliptic_k': (m) => EllipticK(Pow(m, FractionNumber.half)),
+        'elliptic_e': (m) => EllipticE(Pow(m, FractionNumber.half)),
+      },
       binaryFunctions: {
         'Max': (a, b) => VariableFunction('Max', [a, b]),
         'Min': (a, b) => VariableFunction('Min', [a, b]),
         'Mod': Mod.new,
         'Rational': (a, b) => a / b,
+        'elliptic_f': (phi, m) => EllipticF(phi, Pow(m, FractionNumber.half)),
+        'elliptic_e': (phi, m) =>
+            EllipticEIncomplete(phi, Pow(m, FractionNumber.half)),
       },
       variadicFunctions: {
         'Derivative': ExprSyntax.standardVariadicFunctions['diff']!,
