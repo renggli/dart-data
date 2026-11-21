@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../algebra/expand.dart';
+import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/simplify/domain.dart';
 import '../../algebra/term_accumulator.dart';
@@ -76,6 +77,18 @@ Expr evaluateDefiniteIntegral(
     )) {
       return IntegerNumber.zero;
     }
+  }
+
+  // King's property reflection symmetry: int_a^b f(x) dx = 1/2 int_a^b (f(x) + f(a+b-x)) dx
+  if (_tryKingsProperty(
+        function,
+        variable,
+        fromExpr,
+        toExpr,
+        assumptions: assumptions,
+      )
+      case final kingsRes?) {
+    return kingsRes;
   }
 
   final antiDeriv = antiDerivative(
@@ -1271,4 +1284,86 @@ List<({double value, Expr expr})>? _antiderivativeJumps(
   if (tooMany) return null;
   jumps.sort((x, y) => x.value.compareTo(y.value));
   return jumps;
+}
+
+Expr? _tryKingsProperty(
+  Expr function,
+  String variable,
+  Expr fromExpr,
+  Expr toExpr, {
+  required Assumptions assumptions,
+}) {
+  if (isInfiniteBound(fromExpr) || isInfiniteBound(toExpr)) return null;
+  final numFrom = evaluateBoundNumeric(fromExpr);
+  final numTo = evaluateBoundNumeric(toExpr);
+  if (numFrom == null ||
+      numTo == null ||
+      numFrom.isNaN ||
+      numTo.isNaN ||
+      !numFrom.isFinite ||
+      !numTo.isFinite) {
+    return null;
+  }
+  final low = numFrom < numTo ? numFrom : numTo;
+  final high = numFrom < numTo ? numTo : numFrom;
+  if (_hasInteriorPole(function, variable, low, high)) return null;
+
+  final reflected = function
+      .substitute(
+        variable,
+        (fromExpr + toExpr - Variable(variable)).simplify(
+          assumptions: assumptions,
+        ),
+      )
+      .simplify(assumptions: assumptions);
+  if (reflected == function) return null;
+
+  Expr normalizeReciprocalNegPow(Expr e) {
+    if (e case Pow(
+      base: Add(terms: [final t0, final t1]),
+      exponent: Number(isNegativeOne: true),
+    )) {
+      Expr? findNegPow(Expr t) {
+        if (t case Pow(:final base, exponent: RealNumeric(:final sign))
+            when sign < 0) {
+          return Pow(base, (-t.exponent).simplify(assumptions: assumptions));
+        }
+        if (t case Mul(:final factors)) {
+          for (final f in factors) {
+            if (f case Pow(:final base, exponent: RealNumeric(:final sign))
+                when sign < 0) {
+              return Pow(
+                base,
+                (-f.exponent).simplify(assumptions: assumptions),
+              );
+            }
+          }
+        }
+        return null;
+      }
+
+      final posPow = findNegPow(t0) ?? findNegPow(t1);
+      if (posPow != null) {
+        final newDen = (posPow * t0 + posPow * t1).simplify(
+          assumptions: assumptions,
+        );
+        return (posPow / newDen).simplify(assumptions: assumptions);
+      }
+    }
+    return e;
+  }
+
+  final normRefl = normalizeReciprocalNegPow(reflected);
+  var sum = (function + normRefl).simplify(assumptions: assumptions);
+  if (sum.dependsOn(variable) && sum is Add) {
+    sum = sum
+        .together(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+  }
+  if (!sum.dependsOn(variable)) {
+    return (sum * (toExpr - fromExpr) / IntegerNumber.two).simplify(
+      assumptions: assumptions,
+    );
+  }
+  return null;
 }

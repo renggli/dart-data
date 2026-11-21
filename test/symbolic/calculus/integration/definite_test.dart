@@ -387,6 +387,16 @@ void main() {
         Expr.parse('sin(x)^(1/2) * cos(x)^(1/3)')
             .integrate('x', from: 0, to: Expr.parse('pi / 2')),
       ).equals(Expr.parse('beta(3/4, 2/3) / 2').simplify());
+
+      // King's property reflection symmetry:
+      check(
+        Expr.parse('sqrt(x) / (sqrt(x) + sqrt(10 - x))')
+            .integrate('x', from: 1, to: 9),
+      ).equals(IntegerNumber.of(4));
+      check(
+        Expr.parse('1 / (1 + tan(x)^2017)')
+            .integrate('x', from: 0, to: Expr.parse('pi / 2')),
+      ).equals(Expr.parse('pi / 4').simplify());
     });
   });
 }

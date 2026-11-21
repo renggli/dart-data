@@ -262,6 +262,26 @@ Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
     return IntegerNumber.zero;
   }
 
+  // Quarter-period shift: tan(k*pi/2 + rest) = -1 / tan(rest) for odd k
+  if (expr case Add(:final terms)) {
+    for (var i = 0; i < terms.length; i++) {
+      final m = matchPiMultiple(terms[i]);
+      if (m != null && m.denominator == Integer.two && m.numerator.isOdd) {
+        final rest = simplifyAdd([
+          for (var j = 0; j < terms.length; j++)
+            if (j != i) terms[j],
+        ], assumptions: assumptions);
+        final tanRest = simplifyTan(rest, assumptions: assumptions);
+        if (tanRest is Number && tanRest.isZero) return Constant.undefined;
+        return simplifyDiv(
+          IntegerNumber.negativeOne,
+          tanRest,
+          assumptions: assumptions,
+        );
+      }
+    }
+  }
+
   return Tan(expr, isSimplified: true);
 }
 
