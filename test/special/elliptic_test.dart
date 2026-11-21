@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
 void main() {
@@ -75,6 +76,60 @@ void main() {
       check(ellipticE(0.5, phi: double.infinity)).equals(double.infinity);
       check(ellipticE(0.5, phi: double.negativeInfinity))
           .equals(double.negativeInfinity);
+    });
+
+    test('real and complex elliptic Pi and complex K/F/E', () {
+      // Real agreement
+      check(ellipticKComplex(const Complex(0.5)).a)
+          .isCloseTo(ellipticK(0.5), 1e-12);
+      check(ellipticEComplex(const Complex(0.5)).a)
+          .isCloseTo(ellipticE(0.5), 1e-12);
+      check(ellipticFComplex(const Complex(0.7), const Complex(0.5)).a)
+          .isCloseTo(ellipticF(0.7, 0.5), 1e-12);
+      check(ellipticEComplex(const Complex(0.5), phi: const Complex(0.7)).a)
+          .isCloseTo(ellipticE(0.5, phi: 0.7), 1e-12);
+
+      // ellipticPi special & general cases
+      check(ellipticPi(0, 0.5)).isCloseTo(ellipticK(0.5), 1e-12);
+      check(ellipticPi(0, 0.5, phi: 0.7)).isCloseTo(ellipticF(0.7, 0.5), 1e-12);
+      check(ellipticPi(0.5, 0.5, phi: math.pi / 2.0))
+          .isCloseTo(ellipticPi(0.5, 0.5), 1e-12);
+      check(ellipticPiComplex(const Complex(0.3), const Complex(0.5)).a)
+          .isCloseTo(ellipticPi(0.3, 0.5), 1e-12);
+      check(
+        ellipticPiComplex(
+          const Complex(0.3),
+          const Complex(0.5),
+          phi: const Complex(0.7),
+        ).a,
+      ).isCloseTo(ellipticPi(0.3, 0.5, phi: 0.7), 1e-12);
+
+      // Complex finite-difference derivatives wrt phi
+      const phi = Complex(0.6, 0.3);
+      const k = Complex(0.4, 0.25);
+      const n = Complex(0.3, -0.2);
+      const h = Complex(1e-7);
+      final sinPhi = phi.sin();
+      final sin2 = sinPhi * sinPhi;
+      final deltaSqrt = (Complex.one - k * k * sin2).sqrt();
+
+      final dF =
+          (ellipticFComplex(phi + h, k) - ellipticFComplex(phi - h, k)) /
+          (const Complex(2.0) * h);
+      check((dF - Complex.one / deltaSqrt).abs()).isLessThan(1e-8);
+
+      final dE =
+          (ellipticEComplex(k, phi: phi + h) -
+              ellipticEComplex(k, phi: phi - h)) /
+          (const Complex(2.0) * h);
+      check((dE - deltaSqrt).abs()).isLessThan(1e-8);
+
+      final dPi =
+          (ellipticPiComplex(n, k, phi: phi + h) -
+              ellipticPiComplex(n, k, phi: phi - h)) /
+          (const Complex(2.0) * h);
+      final expectedDPi = Complex.one / ((Complex.one - n * sin2) * deltaSqrt);
+      check((dPi - expectedDPi).abs()).isLessThan(1e-8);
     });
   });
 }
