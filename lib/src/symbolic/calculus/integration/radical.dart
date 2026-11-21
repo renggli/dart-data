@@ -246,6 +246,127 @@ Expr? tryHalfAngleTrigRadical(
   return null;
 }
 
+/// Rewrites products of linear square roots and perfect-square trig factors
+/// inside `sqrt(...)` for real antiderivative computation.
+Expr? tryRealRadicalRewrite(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2) return null;
+
+  // 1. Product of two linear square roots: sqrt(a1*x + b1) * sqrt(a2*x + b2)
+  if (expr case Mul(:final factors)) {
+    final sqrtLinIndices = <int>[];
+    for (var i = 0; i < factors.length; i++) {
+      if (factors[i]
+          case Pow(
+            :final base,
+            exponent: FractionNumber(
+              numerator: Integer(asInt: 1),
+              denominator: Integer(asInt: 2),
+            ),
+          )
+          when base.matchLinear(variable) != null) {
+        sqrtLinIndices.add(i);
+      }
+    }
+    if (sqrtLinIndices.length >= 2) {
+      final i0 = sqrtLinIndices[0];
+      final i1 = sqrtLinIndices[1];
+      final b0 = (factors[i0] as Pow).base;
+      final b1 = (factors[i1] as Pow).base;
+      final merged = Pow(
+        (b0 * b1).expand().simplify(assumptions: assumptions),
+        FractionNumber.half,
+      );
+      final rebuilt = Mul([
+        merged,
+        for (var j = 0; j < factors.length; j++)
+          if (j != i0 && j != i1) factors[j],
+      ]).simplify(assumptions: assumptions);
+      final res = antiDerivative(
+        rebuilt,
+        variable,
+        depth: depth + 1,
+        assumptions: assumptions,
+      );
+      if (!hasUnevaluatedIntegral(res, variable)) return res;
+    }
+  }
+
+  // 2. Trig Pythagorean identity & even-power extraction inside sqrt(...)
+  Expr rewriteSqrt(Expr node) {
+    final mapped = node.mapChildren(rewriteSqrt);
+    if (mapped case Pow(
+      :final base,
+      exponent: FractionNumber(
+        numerator: Integer(asInt: 1),
+        denominator: Integer(asInt: 2),
+      ),
+    )) {
+      if (base case Add(terms: [final t0, final t1])) {
+        Expr? tanSq;
+        if (t0 == IntegerNumber.one) {
+          tanSq = t1;
+        } else if (t1 == IntegerNumber.one) {
+          tanSq = t0;
+        }
+        if (tanSq case Pow(
+          base: Tan(expr: final u),
+          exponent: IntegerNumber(asInt: 2),
+        )) {
+          return Pow(Cos(u), IntegerNumber.negativeOne);
+        }
+      }
+      if (base case Mul(:final factors)) {
+        final pulled = <Expr>[];
+        final remaining = <Expr>[];
+        for (final f in factors) {
+          if (f
+              case Pow(
+                base: final inner,
+                exponent: IntegerNumber(asInt: final p?),
+              )
+              when p.isEven && (inner is Sin || inner is Cos)) {
+            pulled.add(Pow(inner, IntegerNumber.of(p ~/ 2)));
+          } else {
+            remaining.add(f);
+          }
+        }
+        if (pulled.isNotEmpty) {
+          final remSqrt = switch (remaining) {
+            [] => IntegerNumber.one,
+            [Pow(:final base, exponent: Number(isNegativeOne: true))] => Pow(
+              base,
+              const FractionNumber(Integer(-1), Integer(2)),
+            ),
+            _ => Pow(
+              Mul(remaining).simplify(assumptions: assumptions),
+              FractionNumber.half,
+            ),
+          };
+          return (Mul(pulled) * remSqrt).simplify(assumptions: assumptions);
+        }
+      }
+    }
+    return mapped;
+  }
+
+  final rewritten = rewriteSqrt(expr).simplify(assumptions: assumptions);
+  if (rewritten != expr) {
+    final res = antiDerivative(
+      rewritten,
+      variable,
+      depth: depth + 1,
+      assumptions: assumptions,
+    );
+    if (!hasUnevaluatedIntegral(res, variable)) return res;
+  }
+  return null;
+}
+
 /// Integrates square-root binomial quadratics `sqrt(a +/- u^2)` or `sqrt(u^2 - a)`.
 Expr? tryRadicalQuadratic(Expr base, String variable) {
   if (base case Add(terms: [final t0, final t1])) {

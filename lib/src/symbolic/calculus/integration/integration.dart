@@ -368,6 +368,15 @@ Expr antiDerivative(
         case final halfAngleRes?) {
       return halfAngleRes;
     }
+    if (tryRealRadicalRewrite(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final realRadRes?) {
+      return realRadRes;
+    }
     if (tryUSubstitution(node, variable, assumptions: assumptions, depth: depth)
         case final uSubRes?) {
       return uSubRes;

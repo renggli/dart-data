@@ -222,5 +222,20 @@ void main() {
         points: const [0.3, 0.8, 1.5],
       );
     });
+
+    test('rewrites products of linear square roots and trig radicals', () {
+      verifyAntiderivative(
+        Expr.parse('sqrt(x - 1) * sqrt(2 - x)'),
+        points: const [1.2, 1.5, 1.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('sqrt(1 / sin(x) - sin(x))'),
+        points: const [0.2, 0.6, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(x) * sqrt(1 + tan(x)^2)'),
+        points: const [0.2, 0.6, 1.0],
+      );
+    });
   });
 }
