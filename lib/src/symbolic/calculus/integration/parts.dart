@@ -57,7 +57,9 @@ Expr? tryIntegrationByParts(
       final uPrime = vExpr
           .derivative(variable)
           .simplify(assumptions: assumptions);
-      final remIntegrand = (v * uPrime).simplify(assumptions: assumptions);
+      final remIntegrand = (v * uPrime)
+          .together(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
       final remIntegral = antiDerivative(
         remIntegrand,
         variable,
@@ -201,7 +203,9 @@ Expr? tryIntegrationByParts(
       final uPrime = vExpr
           .derivative(variable)
           .simplify(assumptions: assumptions);
-      final remIntegrand = (v * uPrime).simplify(assumptions: assumptions);
+      final remIntegrand = (v * uPrime)
+          .together(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
       final remIntegral = antiDerivative(
         remIntegrand,
         variable,
@@ -299,7 +303,9 @@ Expr? tryIntegrationByParts(
       final uPrime = vExpr
           .derivative(variable)
           .simplify(assumptions: assumptions);
-      final remIntegrand = (v * uPrime).simplify(assumptions: assumptions);
+      final remIntegrand = (v * uPrime)
+          .together(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
       final remIntegral = antiDerivative(
         remIntegrand,
         variable,

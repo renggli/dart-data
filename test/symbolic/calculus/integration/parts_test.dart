@@ -112,5 +112,24 @@ void main() {
         points: const [0.2, 0.6, 1.0],
       );
     });
+
+    test('integrates powered inverse trig and inverse hyperbolic products', () {
+      check(
+        Expr.parse('(a + b * asinh(c * x))^2 * (d + e * x^2)').integrate('x'),
+      ).isNotA<Integral>();
+      check(
+        Expr.parse('(a + b * asin(c * x)) * (d + e * x^2)^2 / x^2')
+            .integrate('x'),
+      ).isNotA<Integral>();
+
+      verifyAntiderivative(
+        Expr.parse('(1 + 2 * asinh(3 * x))^2 * (1 + 2 * x^2)'),
+        points: const [0.2, 0.5, 0.8],
+      );
+      verifyAntiderivative(
+        Expr.parse('(1 + 2 * asin(x / 2)) * (1 + 2 * x^2)^2 / x^2'),
+        points: const [0.3, 0.6, 0.9],
+      );
+    });
   });
 }

@@ -1572,6 +1572,43 @@ Expr _antiDerivMul(
     }
   }
 
+  // 4b. Expand powered Add factors (2 <= m <= 4) when combined with inverse trig/hyperbolic functions:
+  if (depth < 2) {
+    bool isInvTrigOrHyp(Expr n) =>
+        n is Asin ||
+        n is Acos ||
+        n is Atan ||
+        n is Asinh ||
+        n is Acosh ||
+        n is Atanh;
+    final hasPoweredAdd = varFactors.any(
+      (f) =>
+          f is Pow &&
+          f.base is Add &&
+          f.exponent is IntegerNumber &&
+          ((f.exponent as IntegerNumber).asInt ?? 0) >= 2 &&
+          ((f.exponent as IntegerNumber).asInt ?? 0) <= 4,
+    );
+    if (hasPoweredAdd && varFactors.any((f) => f.anyNode(isInvTrigOrHyp))) {
+      final expandedFactors = <Expr>[
+        for (final f in varFactors)
+          if (f case Pow(base: Add(), exponent: IntegerNumber(asInt: final m?))
+              when m >= 2 && m <= 4)
+            f.expand(assumptions: assumptions)
+          else
+            f,
+      ];
+      final rewritten = Mul(expandedFactors).simplify(assumptions: assumptions);
+      final res = antiDerivative(
+        rewritten,
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(res, variable)) return res;
+    }
+  }
+
   // 5. Distributive expansion across additions:
   for (var i = 0; i < varFactors.length; i++) {
     if (varFactors[i] case Add(:final terms)) {
