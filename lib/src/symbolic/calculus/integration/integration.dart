@@ -341,6 +341,15 @@ Expr antiDerivative(
         case final factorRadRes?) {
       return factorRadRes;
     }
+    if (tryVariableRootSubstitution(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final varRootRes?) {
+      return varRootRes;
+    }
     if (tryChebyshevBinomial(
           node,
           variable,
@@ -407,6 +416,17 @@ Expr antiDerivative(
         )
         case final hypSubRes?) {
       return hypSubRes;
+    }
+  }
+  if (depth == 2 && node is! Add && hasUnevaluatedIntegral(result, variable)) {
+    if (tryRealRadicalRewrite(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final realRadRes?) {
+      return realRadRes;
     }
   }
   return result;

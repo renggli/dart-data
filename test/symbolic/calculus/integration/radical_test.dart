@@ -269,5 +269,27 @@ void main() {
         points: const [0.3, 0.8, 2.0],
       );
     });
+
+    test(
+      'integrates fractional variable powers via rational-power substitution',
+      () {
+        verifyAntiderivative(
+          Expr.parse('x^(13/2) * sqrt(1 + x^(5/2))'),
+          points: const [0.2, 0.6, 1.2],
+        );
+        verifyAntiderivative(
+          Expr.parse('1 / ((1 + sqrt(x)) * sqrt(x - x^2))'),
+          points: const [0.1, 0.4, 0.8],
+        );
+        verifyAntiderivative(
+          Expr.parse('1 / (x^(41/25) + x^(9/25))'),
+          points: const [0.2, 0.7, 1.5],
+        );
+        verifyAntiderivative(
+          Expr.parse('1 / sqrt(x^(3/2) - x^2)'),
+          points: const [0.1, 0.4, 0.8],
+        );
+      },
+    );
   });
 }

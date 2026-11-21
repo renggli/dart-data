@@ -298,37 +298,44 @@ Expr? tryRealRadicalRewrite(
   required Assumptions assumptions,
   int depth = 0,
 }) {
-  if (depth >= 2) return null;
+  if (depth >= 3) return null;
 
   // 1. Product of two linear square roots: sqrt(a1*x + b1) * sqrt(a2*x + b2)
+  //    or 1 / (sqrt(a1*x + b1) * sqrt(a2*x + b2))
   if (expr case Mul(:final factors)) {
-    final sqrtLinIndices = <int>[];
+    final posIndices = <int>[];
+    final negIndices = <int>[];
     for (var i = 0; i < factors.length; i++) {
-      if (factors[i]
-          case Pow(
-            :final base,
-            exponent: FractionNumber(
-              numerator: Integer(asInt: 1),
-              denominator: Integer(asInt: 2),
-            ),
-          )
+      if (factors[i] case Pow(:final base, :final exponent)
           when base.matchLinear(variable) != null) {
-        sqrtLinIndices.add(i);
+        final h = halfIntExponent(exponent);
+        if (h == 1) {
+          posIndices.add(i);
+        } else if (h == -1) {
+          negIndices.add(i);
+        }
       }
     }
-    if (sqrtLinIndices.length >= 2) {
-      final i0 = sqrtLinIndices[0];
-      final i1 = sqrtLinIndices[1];
-      final b0 = (factors[i0] as Pow).base;
-      final b1 = (factors[i1] as Pow).base;
+    final pair = posIndices.length >= 2
+        ? (i0: posIndices[0], i1: posIndices[1], exp: FractionNumber.half)
+        : (negIndices.length >= 2
+              ? (
+                  i0: negIndices[0],
+                  i1: negIndices[1],
+                  exp: const FractionNumber(Integer(-1), Integer(2)),
+                )
+              : null);
+    if (pair != null) {
+      final b0 = (factors[pair.i0] as Pow).base;
+      final b1 = (factors[pair.i1] as Pow).base;
       final merged = Pow(
         (b0 * b1).expand().simplify(assumptions: assumptions),
-        FractionNumber.half,
+        pair.exp,
       );
       final rebuilt = Mul([
         merged,
         for (var j = 0; j < factors.length; j++)
-          if (j != i0 && j != i1) factors[j],
+          if (j != pair.i0 && j != pair.i1) factors[j],
       ]).simplify(assumptions: assumptions);
       final res = antiDerivative(
         rebuilt,
@@ -422,6 +429,106 @@ Expr? tryRealRadicalRewrite(
     }
   }
   return null;
+}
+
+/// Integrates expressions containing fractional powers `x^(p/q)` via `x = t^d`.
+Expr? tryVariableRootSubstitution(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2) return null;
+
+  final denoms = <int>{};
+  var hasNonVarFracPow = false;
+  var hasTranscendental = false;
+
+  void collect(Expr node) {
+    if (node
+        case Pow(
+          base: Variable(:final name),
+          exponent: FractionNumber(:final denominator),
+        )
+        when name == variable && denominator.toInt() >= 2) {
+      denoms.add(denominator.toInt());
+      return;
+    }
+    if (node is Pow &&
+        node.exponent is FractionNumber &&
+        node.dependsOn(variable)) {
+      hasNonVarFracPow = true;
+    } else if (node is UnaryExpr && node.dependsOn(variable)) {
+      hasTranscendental = true;
+    }
+    node.mapChildren((c) {
+      collect(c);
+      return c;
+    });
+  }
+
+  collect(expr);
+  if (denoms.isEmpty) return null;
+
+  int gcd(int a, int b) {
+    var x = a.abs();
+    var y = b.abs();
+    while (y != 0) {
+      final t = x % y;
+      x = y;
+      y = t;
+    }
+    return x;
+  }
+
+  var d = 1;
+  for (final q in denoms) {
+    d = (d ~/ gcd(d, q)) * q;
+    if (d > 25) return null;
+  }
+  if (d < 2) return null;
+  if (d > 6 && (hasNonVarFracPow || hasTranscendental)) return null;
+
+  final tName = '_rt$depth';
+  final tVar = Variable(tName);
+
+  Expr replaceX(Expr node) {
+    if (node
+        case Pow(
+          base: Variable(:final name),
+          exponent: FractionNumber(:final numerator, :final denominator),
+        )
+        when name == variable) {
+      final exp = numerator.toInt() * (d ~/ denominator.toInt());
+      return Pow(tVar, IntegerNumber.of(exp));
+    }
+    if (node is Variable && node.name == variable) {
+      return Pow(tVar, IntegerNumber.of(d));
+    }
+    return node.mapChildren(replaceX);
+  }
+
+  final substituted = replaceX(expr).simplify(assumptions: assumptions);
+  if (substituted.dependsOn(variable)) return null;
+
+  final dxFactor = (IntegerNumber.of(d) * Pow(tVar, IntegerNumber.of(d - 1)))
+      .simplify(assumptions: assumptions);
+  final transformed = (substituted * dxFactor).simplify(
+    assumptions: assumptions,
+  );
+  final res = antiDerivative(
+    transformed,
+    tName,
+    depth: depth + 1,
+    assumptions: assumptions,
+  );
+  if (hasUnevaluatedIntegral(res, tName)) return null;
+
+  final xRoot = Pow(
+    Variable(variable),
+    FractionNumber(Integer.one, Integer(d)),
+  );
+  return res.substitute(tName, xRoot).simplify(assumptions: assumptions);
 }
 
 /// Integrates square-root binomial quadratics `sqrt(a +/- u^2)` or `sqrt(u^2 - a)`.
@@ -930,26 +1037,81 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
         final a = coeffs[2] ?? IntegerNumber.zero;
         final b = coeffs[1] ?? IntegerNumber.zero;
         final c = coeffs[0] ?? IntegerNumber.zero;
-        if (c != IntegerNumber.zero) {
-          const tName = '_inv';
-          const tVar = Variable(tName);
-          final qT = (c * tVar * tVar + b * tVar + a).simplify();
-          final numT =
-              (-left *
-                      (k == 1
-                          ? IntegerNumber.one
-                          : Pow(tVar, IntegerNumber.of(k - 1))))
-                  .simplify();
-          final tInt = antiDerivative(
-            (numT / Pow(qT, FractionNumber.half)).simplify(),
-            tName,
-            assumptions: Assumptions.none,
-            depth: 2,
-          );
-          if (!hasUnevaluatedIntegral(tInt, tName)) {
-            return tInt
-                .substitute(tName, IntegerNumber.one / Variable(variable))
+        const tName = '_inv';
+        const tVar = Variable(tName);
+        final qT = (c * tVar * tVar + b * tVar + a).simplify();
+        final numT =
+            (-left *
+                    (k == 1
+                        ? IntegerNumber.one
+                        : Pow(tVar, IntegerNumber.of(k - 1))))
                 .simplify();
+        final tInt = antiDerivative(
+          (numT / Pow(qT, FractionNumber.half)).simplify(),
+          tName,
+          assumptions: Assumptions.none,
+          depth: 2,
+        );
+        if (!hasUnevaluatedIntegral(tInt, tName)) {
+          return tInt
+              .substitute(tName, IntegerNumber.one / Variable(variable))
+              .simplify();
+        }
+      }
+    }
+  }
+
+  // Case 3b: P(x) / ((c*x + d)^k * sqrt(Ax^2 + Bx + C)) (k >= 1, d != 0)
+  // via u = c*x + d.
+  if (right is Mul) {
+    final factors = right.factors;
+    var k = 0;
+    Expr? linBase;
+    Pow? rad;
+    final constFactors = <Expr>[];
+    var valid = true;
+    for (final f in factors) {
+      if (!f.dependsOn(variable)) {
+        constFactors.add(f);
+      } else if (f is Pow && halfIntExponent(f.exponent) == 1 && rad == null) {
+        rad = f;
+      } else if (f.matchLinear(variable) != null &&
+          (linBase == null || linBase == f)) {
+        linBase = f;
+        k += 1;
+      } else if (f
+          case Pow(:final base, exponent: IntegerNumber(asInt: final p?))
+          when p >= 1 &&
+              base.matchLinear(variable) != null &&
+              (linBase == null || linBase == base)) {
+        linBase = base;
+        k += p;
+      } else {
+        valid = false;
+        break;
+      }
+    }
+    if (valid && k >= 1 && k <= 8 && linBase != null && rad != null) {
+      if (linBase.matchLinear(variable)
+          case (a: final slope, b: final intercept)
+          when !(intercept is Number && intercept.isZero)) {
+        final coeffs = extractPolynomialCoefficients(rad.base, variable);
+        if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
+          const uName = '_lin';
+          const uVar = Variable(uName);
+          final xOfU = ((uVar - intercept) / slope).simplify();
+          final constScale = constFactors.isEmpty
+              ? IntegerNumber.one
+              : Mul(constFactors).simplify();
+          final numU = (left.substitute(variable, xOfU) / (constScale * slope))
+              .simplify();
+          final qU = rad.base.substitute(variable, xOfU).simplify();
+          final denU =
+              (Pow(uVar, IntegerNumber.of(k)) * Pow(qU, FractionNumber.half))
+                  .simplify();
+          final uRes = tryPolynomialOverSqrtQuadratic(numU, denU, uName);
+          if (uRes != null && !hasUnevaluatedIntegral(uRes, uName)) {
+            return uRes.substitute(uName, linBase).simplify();
           }
         }
       }

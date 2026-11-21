@@ -1105,15 +1105,32 @@ Expr? _tryPowerSubstitution(
   if (depth >= 2) return null;
   final numCoeffs = extractPolynomialCoefficients(left, variable);
   final denCoeffs = extractPolynomialCoefficients(right, variable);
-  if (numCoeffs == null || denCoeffs == null || denCoeffs.isEmpty) return null;
+  if (numCoeffs == null ||
+      denCoeffs == null ||
+      numCoeffs.isEmpty ||
+      denCoeffs.isEmpty) {
+    return null;
+  }
 
+  var n0 = numCoeffs.keys.first;
+  for (final e in numCoeffs.keys) {
+    if (e < n0) n0 = e;
+  }
   var d0 = denCoeffs.keys.first;
   for (final e in denCoeffs.keys) {
     if (e < d0) d0 = e;
   }
+  final common = n0 < d0 ? n0 : d0;
+  final shiftedNum = {
+    for (final MapEntry(:key, :value) in numCoeffs.entries) key - common: value,
+  };
+  final shiftedDen = {
+    for (final MapEntry(:key, :value) in denCoeffs.entries) key - common: value,
+  };
+  d0 -= common;
 
   var k = 0;
-  for (final e in denCoeffs.keys) {
+  for (final e in shiftedDen.keys) {
     final diff = e - d0;
     if (diff > 0) {
       k = k == 0 ? diff : k.gcd(diff);
@@ -1121,16 +1138,18 @@ Expr? _tryPowerSubstitution(
   }
   if (k < 2) return null;
 
-  for (final e in numCoeffs.keys) {
+  for (final e in shiftedNum.keys) {
     final shifted = e + 1 - d0;
-    if (shifted < 0 || shifted % k != 0) return null;
+    if (shifted < 0) return null;
+    if (shifted > 0) k = k.gcd(shifted);
   }
+  if (k < 2) return null;
 
   final uName = '_upow$depth';
   final uVar = Variable(uName);
 
   var uNum = IntegerNumber.zero as Expr;
-  for (final MapEntry(key: e, value: c) in numCoeffs.entries) {
+  for (final MapEntry(key: e, value: c) in shiftedNum.entries) {
     final q = (e + 1 - d0) ~/ k;
     final uPow = q == 0
         ? IntegerNumber.one
@@ -1139,7 +1158,7 @@ Expr? _tryPowerSubstitution(
   }
 
   var uDen = IntegerNumber.zero as Expr;
-  for (final MapEntry(key: e, value: c) in denCoeffs.entries) {
+  for (final MapEntry(key: e, value: c) in shiftedDen.entries) {
     final q = (e - d0) ~/ k;
     final uPow = q == 0
         ? IntegerNumber.one
