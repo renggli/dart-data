@@ -124,5 +124,32 @@ void main() {
         verifyAntiderivative(Expr.parse(expr), points: const [0.3, 0.8]);
       }
     });
+
+    test('integrates powered trig binomials times trig powers', () {
+      verifyAntiderivative(
+        Expr.parse('1 / cos(1 + 3 * x)^7'),
+        points: const [0.1, 0.3],
+      );
+      verifyAntiderivative(
+        Expr.parse('sin(1 + 3 * x)^2 / cos(1 + 3 * x)^7'),
+        points: const [0.1, 0.3],
+      );
+      verifyAntiderivative(
+        Expr.parse('(2 + 2 * sin(1 + 3 * x))^2 * cos(1 + 3 * x)^6'),
+        points: const [0.1, 0.4],
+      );
+      verifyAntiderivative(
+        Expr.parse('(2 + 2 * sin(1 + 3 * x))^2 / cos(1 + 3 * x)^7'),
+        points: const [0.1, 0.3],
+      );
+      check(
+        Expr.parse('(a + a * sin(c + d * x))^2 * cos(c + d * x)^6')
+            .integrate('x'),
+      ).isNotA<Integral>();
+      check(
+        Expr.parse('(a + a * sin(c + d * x))^2 / cos(c + d * x)^7')
+            .integrate('x'),
+      ).isNotA<Integral>();
+    });
   });
 }

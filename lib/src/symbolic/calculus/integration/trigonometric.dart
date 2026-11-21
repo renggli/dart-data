@@ -9,6 +9,98 @@ import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
 
+/// Expands powered trigonometric or hyperbolic binomials `(a + b*sin(u))^m`
+/// multiplied by other trig/hyperbolic powers and integrates term-by-term.
+Expr? tryExpandTrigBinomialProduct(
+  List<Expr> varFactors,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2 || varFactors.length < 2) return null;
+
+  bool isLinearTrigOrHyp(Expr node) => switch (node) {
+    Sin(:final expr) ||
+    Cos(:final expr) ||
+    Tan(:final expr) ||
+    Sinh(:final expr) ||
+    Cosh(:final expr) ||
+    Tanh(:final expr) => expr.matchLinear(variable) != null,
+    _ => false,
+  };
+
+  bool isTrigOrHypPower(Expr node) => switch (node) {
+    Pow(:final base, exponent: IntegerNumber()) => isLinearTrigOrHyp(base),
+    _ => isLinearTrigOrHyp(node),
+  };
+
+  var binomIdx = -1;
+  for (var i = 0; i < varFactors.length; i++) {
+    if (varFactors[i]
+        case Pow(
+          base: final Add addBase,
+          exponent: IntegerNumber(asInt: final m?),
+        )
+        when m >= 2 && m <= 6 && addBase.terms.length <= 3) {
+      if (addBase.anyNode(isLinearTrigOrHyp)) {
+        binomIdx = i;
+        break;
+      }
+    }
+  }
+  if (binomIdx < 0) return null;
+
+  for (var i = 0; i < varFactors.length; i++) {
+    if (i != binomIdx && !isTrigOrHypPower(varFactors[i])) return null;
+  }
+
+  final expandedBinom = varFactors[binomIdx]
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  var scaleFactor = IntegerNumber.one as Expr;
+  Add? expandedAdd;
+  if (expandedBinom is Add) {
+    expandedAdd = expandedBinom;
+  } else if (expandedBinom is Mul) {
+    final rest = <Expr>[];
+    for (final f in expandedBinom.factors) {
+      if (f is Add && expandedAdd == null) {
+        expandedAdd = f;
+      } else {
+        rest.add(f);
+      }
+    }
+    if (rest.isNotEmpty) {
+      scaleFactor = Mul(rest).simplify(assumptions: assumptions);
+    }
+  }
+  if (expandedAdd == null) return null;
+
+  final otherFactors = <Expr>[
+    for (var i = 0; i < varFactors.length; i++)
+      if (i != binomIdx) varFactors[i],
+  ];
+  final otherExpr = otherFactors.length == 1
+      ? otherFactors.first
+      : Mul(otherFactors).simplify(assumptions: assumptions);
+
+  final results = <Expr>[];
+  for (final term in expandedAdd.terms) {
+    final prod = (scaleFactor * term * otherExpr).simplify(
+      assumptions: assumptions,
+    );
+    final res = antiDerivative(
+      prod,
+      variable,
+      depth: depth + 1,
+      assumptions: assumptions,
+    );
+    if (hasUnevaluatedIntegral(res, variable)) return null;
+    results.add(res);
+  }
+  return Add(results).simplify(assumptions: assumptions);
+}
+
 /// Integrates products of two sines or cosines via product-to-sum identities.
 Expr? tryTrigProduct(Expr left, Expr right, String variable) {
   if (left case Sin(expr: final a) when a.matchLinear(variable) != null) {
@@ -226,6 +318,57 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
       );
       if (!hasUnevaluatedIntegral(res, variable)) return res;
     }
+  }
+
+  // Even positive numerator power times odd negative denominator power:
+  // sin(u)^(2k) / cos(u)^m = sum_{j=0}^k C(k,j) * (-1)^j * cos(u)^(2j - m)
+  if (p >= 2 && p.isEven && q < 0 && q.isOdd) {
+    final k = p ~/ 2;
+    final terms = <Expr>[];
+    var binom = 1;
+    for (var j = 0; j <= k; j++) {
+      if (j > 0) binom = (binom * (k - j + 1)) ~/ j;
+      final coeff = j.isOdd ? -binom : binom;
+      final termInt = antiDerivative(
+        (scale *
+                IntegerNumber.of(coeff) *
+                Pow(Cos(inner), IntegerNumber.of(q + 2 * j)))
+            .simplify(),
+        variable,
+        depth: 2,
+        assumptions: Assumptions.none,
+      );
+      if (hasUnevaluatedIntegral(termInt, variable)) {
+        terms.clear();
+        break;
+      }
+      terms.add(termInt);
+    }
+    if (terms.isNotEmpty) return Add(terms).simplify();
+  }
+  if (q >= 2 && q.isEven && p < 0 && p.isOdd) {
+    final k = q ~/ 2;
+    final terms = <Expr>[];
+    var binom = 1;
+    for (var j = 0; j <= k; j++) {
+      if (j > 0) binom = (binom * (k - j + 1)) ~/ j;
+      final coeff = j.isOdd ? -binom : binom;
+      final termInt = antiDerivative(
+        (scale *
+                IntegerNumber.of(coeff) *
+                Pow(Sin(inner), IntegerNumber.of(p + 2 * j)))
+            .simplify(),
+        variable,
+        depth: 2,
+        assumptions: Assumptions.none,
+      );
+      if (hasUnevaluatedIntegral(termInt, variable)) {
+        terms.clear();
+        break;
+      }
+      terms.add(termInt);
+    }
+    if (terms.isNotEmpty) return Add(terms).simplify();
   }
 
   return null;

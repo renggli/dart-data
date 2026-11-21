@@ -1112,6 +1112,45 @@ Expr _antiDerivPow(
         }
       }
     }
+    // Negative powers of sin and cos: sin(ax+b)^(-k), cos(ax+b)^(-k) for 3 <= k <= 12
+    if (exponent case IntegerNumber(asInt: final negK?)
+        when negK <= -3 && negK >= -12) {
+      final k = -negK;
+      final km1 = IntegerNumber.of(k - 1);
+      final km2 = IntegerNumber.of(k - 2);
+      if (base case Cos(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final term1 = (Sin(inner) / (km1 * a * Pow(Cos(inner), km1)))
+              .simplify(assumptions: assumptions);
+          final rem = antiDerivative(
+            Pow(Cos(inner), -km2).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+          if (!hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 + (km2 / km1) * rem).simplify(
+              assumptions: assumptions,
+            );
+          }
+        }
+      }
+      if (base case Sin(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final term1 = (-Cos(inner) / (km1 * a * Pow(Sin(inner), km1)))
+              .simplify(assumptions: assumptions);
+          final rem = antiDerivative(
+            Pow(Sin(inner), -km2).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+          if (!hasUnevaluatedIntegral(rem, variable)) {
+            return (term1 + (km2 / km1) * rem).simplify(
+              assumptions: assumptions,
+            );
+          }
+        }
+      }
+    }
     // Powers of logarithms: ln(ax + b)^k for 2 <= k <= 6 and ln(ax + b)^(-k) for 2 <= k <= 6
     if (base case Ln(expr: final inner)) {
       if (exponent case IntegerNumber(asInt: final k?) when k >= 2 && k <= 6) {
@@ -1445,6 +1484,15 @@ Expr _antiDerivMul(
   if (tryTrigPowerProduct(original, IntegerNumber.one, variable)
       case final trigPowRes?) {
     return trigPowRes;
+  }
+  if (tryExpandTrigBinomialProduct(
+        varFactors,
+        variable,
+        assumptions: assumptions,
+        depth: depth,
+      )
+      case final trigBinomRes?) {
+    return trigBinomRes;
   }
 
   // 3c. Linear polynomial times quadratic radical: (px + q) * (Ax^2 + Bx + C)^(k/2)
