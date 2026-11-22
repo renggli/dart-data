@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -314,5 +315,72 @@ void main() {
         );
       },
     );
+
+    test('preserves signs and branch cuts across radical & complex cases', () {
+      final prodRad = Expr.parse('sqrt(a + b * x) * sqrt(c + d * x)')
+          .integrate('x');
+      final diffProd =
+          (prodRad.derivative('x') -
+                  Expr.parse('sqrt(a + b * x) * sqrt(c + d * x)'))
+              .simplify();
+      check(
+        diffProd.evaluate({
+          'a': 1.37,
+          'b': 1.78,
+          'c': 2.19,
+          'd': 2.60,
+          'x': 0.5,
+        }),
+      ).isCloseTo(0.0, 1e-9);
+
+      final linDenom = Expr.parse(
+        '(A + B * x) / ((d + e * x) * sqrt(b * x + c * x^2))',
+      ).integrate('x');
+      final diffLin =
+          (linDenom.derivative('x') -
+                  Expr.parse(
+                    '(A + B * x) / ((d + e * x) * sqrt(b * x + c * x^2))',
+                  ))
+              .simplify();
+      check(
+        diffLin.evaluate({
+          'A': 1.1,
+          'B': 1.5,
+          'b': 1.3,
+          'c': 1.7,
+          'd': 2.1,
+          'e': 2.5,
+          'x': 0.7,
+        }),
+      ).isCloseTo(0.0, 1e-9);
+
+      verifyAntiderivative(
+        Expr.parse('1 / (sqrt(4 * x^2) * (2 + 3 * x))'),
+        points: const [0.3, 0.8, 1.5],
+      );
+
+      verifyAntiderivative(
+        Expr.parse('sqrt(-2 * sin(1 + 2 * x)^2 + 2) * tan(1 + 2 * x)^3'),
+        points: const [0.3, 0.7, 1.2, 2.0],
+      );
+
+      final oppRad = Expr.parse('1 / (sqrt(-3 * x - 2) * sqrt(3 * x + 2))')
+          .integrate('x');
+      check(oppRad).isNotA<Integral>();
+      final diffOpp =
+          (oppRad.derivative('x') -
+                  Expr.parse('1 / (sqrt(-3 * x - 2) * sqrt(3 * x + 2))'))
+              .simplify();
+      check(diffOpp.evaluateComplex({'x': const Complex(0.37, 0.29)}).abs())
+          .isCloseTo(0.0, 1e-9);
+
+      final complexTrig = Expr.parse(
+        '(i * a * tan(c + d * x) + a) * cot(c + d * x)^2',
+      ).integrate('x');
+      check(complexTrig.anyNode((n) => n is Abs)).isFalse;
+
+      final nestedLn = Expr.parse('1 / (x * ln(-x))').integrate('x');
+      check(nestedLn.anyNode((n) => n is Abs)).isFalse;
+    });
   });
 }

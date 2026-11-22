@@ -132,7 +132,17 @@ Expr? tryFactorRadicandPower(
               depth: depth + 1,
               assumptions: assumptions,
             );
-            if (!hasUnevaluatedIntegral(res, variable)) return res;
+            if (!hasUnevaluatedIntegral(res, variable)) {
+              final halfExp = halfIntExponent(exp);
+              if (halfExp != null &&
+                  !isPositiveExpr(inner, assumptions: assumptions) &&
+                  !inner.anyNode((n) => n is ComplexNumber) &&
+                  !isSyntacticallyNegative(a) &&
+                  !isSyntacticallyNegative(c)) {
+                return (Sign(inner) * res).simplify(assumptions: assumptions);
+              }
+              return res;
+            }
           }
         }
       }
@@ -328,22 +338,43 @@ Expr? tryRealRadicalRewrite(
     if (pair != null) {
       final b0 = (factors[pair.i0] as Pow).base;
       final b1 = (factors[pair.i1] as Pow).base;
-      final merged = Pow(
-        (b0 * b1).expand().simplify(assumptions: assumptions),
-        pair.exp,
-      );
-      final rebuilt = Mul([
-        merged,
-        for (var j = 0; j < factors.length; j++)
-          if (j != pair.i0 && j != pair.i1) factors[j],
-      ]).simplify(assumptions: assumptions);
-      final res = antiDerivative(
-        rebuilt,
-        variable,
-        depth: depth + 1,
-        assumptions: assumptions,
-      );
-      if (!hasUnevaluatedIntegral(res, variable)) return res;
+      final isOpposite =
+          (b0 + b1).simplify(assumptions: assumptions) == IntegerNumber.zero;
+      final ratio = isOpposite
+          ? IntegerNumber.negativeOne
+          : (b0 / b1)
+                .cancel(assumptions: assumptions)
+                .simplify(assumptions: assumptions);
+      if (ratio is RealNumeric && ratio.sign < 0) {
+        if (factors.length == 2 &&
+            pair.exp == const FractionNumber(Integer(-1), Integer(2))) {
+          final posBase = isSyntacticallyNegative(b0) ? b1 : b0;
+          final negBase = isSyntacticallyNegative(b0) ? b0 : b1;
+          if (posBase.matchLinear(variable) case (:final a, b: _)) {
+            return (Pow(posBase, FractionNumber.half) *
+                    Ln(posBase) /
+                    (a * Pow(negBase, FractionNumber.half)))
+                .simplify(assumptions: assumptions);
+          }
+        }
+      } else {
+        final merged = Pow(
+          (b0 * b1).expand().simplify(assumptions: assumptions),
+          pair.exp,
+        );
+        final rebuilt = Mul([
+          merged,
+          for (var j = 0; j < factors.length; j++)
+            if (j != pair.i0 && j != pair.i1) factors[j],
+        ]).simplify(assumptions: assumptions);
+        final res = antiDerivative(
+          rebuilt,
+          variable,
+          depth: depth + 1,
+          assumptions: assumptions,
+        );
+        if (!hasUnevaluatedIntegral(res, variable)) return res;
+      }
     }
   }
 
@@ -1053,9 +1084,17 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
           depth: 2,
         );
         if (!hasUnevaluatedIntegral(tInt, tName)) {
-          return tInt
+          final res = tInt
               .substitute(tName, IntegerNumber.one / Variable(variable))
               .simplify();
+          if (!isPositiveExpr(
+                Variable(variable),
+                assumptions: Assumptions.none,
+              ) &&
+              !res.anyNode((n) => n is ComplexNumber)) {
+            return (Sign(Variable(variable)) * res).simplify();
+          }
+          return res;
         }
       }
     }
@@ -1201,7 +1240,9 @@ Expr? _tryQuadraticRadicalConst(
 ) {
   final twoA = (IntegerNumber.two * a).simplify();
   final twoAxPlusB = (twoA * Variable(variable) + b).simplify();
-  final disc = (const IntegerNumber(Integer(4)) * a * c - b * b).simplify();
+  final disc = (const IntegerNumber(Integer(4)) * a * c - b * b)
+      .expand()
+      .simplify();
 
   if (halfExp == -1) {
     if (disc == IntegerNumber.zero) return null;
@@ -1214,7 +1255,7 @@ Expr? _tryQuadraticRadicalConst(
       return (Asin(arg) / sqrtNegA).simplify();
     }
     final sqrtA = Pow(a, FractionNumber.half).simplify();
-    if (isSyntacticallyNegative(disc) || isNegativeConstant(disc)) {
+    if (!isPositiveExpr(disc, assumptions: Assumptions.none)) {
       final rad = Pow(quad, FractionNumber.half).simplify();
       final logArg = (twoAxPlusB + IntegerNumber.two * sqrtA * rad).simplify();
       return (Ln(logArg) / sqrtA).simplify();

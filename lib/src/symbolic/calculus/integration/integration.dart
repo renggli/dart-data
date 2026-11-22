@@ -194,6 +194,15 @@ Expr antiDerivative(
             (n.exponent as RealNumeric).isNegative &&
             n.base.dependsOn(variable),
       )) {
+    if (tryRealRadicalRewrite(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final realRadRes?) {
+      return realRadRes;
+    }
     if (tryAffineRadicalSubstitution(
           node,
           variable,
@@ -349,6 +358,15 @@ Expr antiDerivative(
     if (tryMixedTrigLogExp(node, variable, assumptions: assumptions)
         case final mixedRes?) {
       return mixedRes;
+    }
+    if (tryRealRadicalRewrite(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final realRadRes?) {
+      return realRadRes;
     }
     if (tryAffineRadicalSubstitution(
           node,
@@ -1920,11 +1938,19 @@ bool _mayBeComplexExpr(Expr expr) => expr.anyNode(
           node.exponent is FractionNumber &&
           (node.exponent as FractionNumber).denominator.isEven &&
           (isSyntacticallyNegative(node.base) ||
-              isNegativeConstant(node.base))),
+              isNegativeConstant(node.base))) ||
+      (node is Ln &&
+          (isSyntacticallyNegative(node.expr) ||
+              isNegativeConstant(node.expr))),
 );
 
+Expr _stripAbs(Expr expr) => switch (expr) {
+  Abs(:final expr) => _stripAbs(expr),
+  _ => expr.mapChildren(_stripAbs),
+};
+
 Expr _stripAbsInLn(Expr expr) => switch (expr) {
-  Ln(expr: Abs(:final expr)) => Ln(_stripAbsInLn(expr)),
+  Ln(:final expr) => Ln(_stripAbs(expr)),
   _ => expr.mapChildren(_stripAbsInLn),
 };
 

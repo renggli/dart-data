@@ -218,5 +218,23 @@ void main() {
         points: const [0.3, 0.7, 1.2],
       );
     });
+
+    test('integrates high-power linear product denominators', () {
+      final res1 = Expr.parse('1 / ((a + b*x) * (c + d*x)^8)').integrate('x');
+      final deriv1 = res1.derivative('x');
+      final diff1 = (deriv1 - Expr.parse('1 / ((a + b*x) * (c + d*x)^8)'))
+          .simplify();
+      check(diff1.evaluate({'a': 1.0, 'b': 1.0, 'c': 1.0, 'd': 2.0, 'x': 1.0}))
+          .isCloseTo(0.0, 1e-6);
+
+      final res2 = Expr.parse('1 / (x^2 * (a + b*x)^3 * (c + d*x)^3)')
+          .integrate('x');
+      final diff2 =
+          (res2.derivative('x') -
+                  Expr.parse('1 / (x^2 * (a + b*x)^3 * (c + d*x)^3)'))
+              .simplify();
+      check(diff2.evaluate({'a': 1.0, 'b': 1.0, 'c': 1.0, 'd': 2.0, 'x': 1.0}))
+          .isCloseTo(0.0, 1e-6);
+    });
   });
 }
