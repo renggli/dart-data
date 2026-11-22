@@ -148,7 +148,9 @@ void main() {
         check(absComplex).equals(const RealNumber(5.0));
 
         // Unary function where complex evaluation is NaN or infinite
-        final badUnary = LambertW(IntegerNumber.negativeOne).approximate();
+        final badUnary = Gamma(
+          ComplexNumber.of(IntegerNumber.negativeOne, IntegerNumber.zero),
+        ).approximate();
         check(badUnary).equals(Constant.undefined);
 
         final infUnary = Sinh(

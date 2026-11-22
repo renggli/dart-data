@@ -241,5 +241,10 @@ void main() {
       // Non-denestable stays as Pow
       check(Expr.parse('sqrt(2 + sqrt(2))').simplify()).isA<Pow>();
     });
+
+    test('reduces beta(x, n) for small positive integer n', () {
+      check(Expr.parse('beta(x, 3)').simplify())
+          .equals(Expr.parse('2 / (x * (x + 1) * (x + 2))').simplify());
+    });
   });
 }

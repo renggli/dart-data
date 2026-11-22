@@ -787,6 +787,25 @@ Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
         assumptions: assumptions,
       );
     }
+    if (m <= 12) {
+      var fact = 1;
+      for (var j = 2; j < m; j++) {
+        fact *= j;
+      }
+      final factors = <Expr>[
+        b,
+        for (var j = 1; j < m; j++)
+          simplifyAdd([b, IntegerNumber.of(j)], assumptions: assumptions),
+      ];
+      return simplifyMul([
+        IntegerNumber.of(fact),
+        simplifyPow(
+          simplifyMul(factors, assumptions: assumptions),
+          IntegerNumber.negativeOne,
+          assumptions: assumptions,
+        ),
+      ], assumptions: assumptions);
+    }
   }
   if (b == IntegerNumber.one) {
     return simplifyPow(a, IntegerNumber.negativeOne, assumptions: assumptions);

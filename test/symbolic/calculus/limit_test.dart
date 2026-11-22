@@ -626,6 +626,9 @@ void main() {
         Expr.parse('sqrt(75) * x^2 - sqrt(12) * x^2 + sqrt(27) * x')
             .limit('x', -Constant.infinity),
       ).equals(Constant.infinity);
+
+      check(Expr.parse('x * x!').limit('x', Constant.infinity))
+          .equals(Constant.infinity);
     });
   });
 }

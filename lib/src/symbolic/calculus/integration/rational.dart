@@ -664,6 +664,21 @@ Expr? tryAntiDerivDiv(
       final degLeft = polynomialDegree(leftExp, variable);
       final degRight = polynomialDegree(rightExp, variable);
       if (degLeft != null && degRight != null && degRight >= 1) {
+        if (depth < 2 && degLeft <= 12 && degRight <= 12) {
+          final canceled = (leftExp / rightExp).cancel(
+            assumptions: assumptions,
+          );
+          final (_, cDen) = splitNumeratorDenominator(canceled);
+          final cDegDen = polynomialDegree(cDen.expand().simplify(), variable);
+          if (cDegDen != null && cDegDen < degRight) {
+            return antiDerivative(
+              canceled,
+              variable,
+              depth: depth + 1,
+              assumptions: assumptions,
+            );
+          }
+        }
         if (degLeft >= degRight && degRight <= 24) {
           final (:quotient, :remainder) = leftExp.polynomialDivide(
             rightExp,

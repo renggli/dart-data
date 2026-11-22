@@ -235,5 +235,11 @@ void main() {
         IntegerNumber.two,
       ]);
     });
+
+    test('solves sums of rational functions via together and cancel', () {
+      final roots = Expr.parse('1 / (x - 1) + 1 / (x + 1) - 2 * x / (x^2 + 1)')
+          .solve('x');
+      check(roots).deepEquals([IntegerNumber.zero]);
+    });
   });
 }

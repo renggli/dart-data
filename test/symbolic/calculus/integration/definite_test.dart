@@ -421,6 +421,15 @@ void main() {
         final divInt = Expr.parse('1 / (x * (x + 1))')
             .integrate('x', from: -Constant.infinity, to: Constant.infinity);
         check(divInt).isA<Integral>();
+
+        // Cyclic IBP and arithmetico-geometric improper integrals
+        check(
+          Expr.parse('exp(-x) * sin(2 * x)')
+              .integrate('x', from: 0, to: Constant.infinity),
+        ).equals(RationalNumber(2, 5));
+        check(
+          Expr.parse('x / 2^x').integrate('x', from: 0, to: Constant.infinity),
+        ).equals(Expr.parse('1 / ln(2)^2').simplify());
       },
     );
   });

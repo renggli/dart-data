@@ -426,7 +426,7 @@ final List<ExpressionPreset> expressionPresets = [
     name: 'Telescoping Rational Series',
     category: 'Series, Summations & Products',
     formula: '1 / (x * (x + 1))',
-    description: 'Decomposes into 1/x - 1/(x + 1), antidifference -1/x, closed-form finite sum ∑_{x=1}^n = n/(n + 1), and improper integral ∫₁^∞ = 1.',
+    description: 'Decomposes into 1/x - 1/(x + 1), antidifference -1/x, closed-form finite sum ∑_{x=1}^n = n/(n + 1), and improper integral ∫₁^∞ = ln(2).',
     defaultMinX: 0.2,
     defaultMaxX: 6.0,
     defaultPointX: '1',

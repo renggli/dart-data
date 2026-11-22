@@ -1,5 +1,6 @@
 import '../algebra/approximate.dart';
 import '../algebra/factor.dart';
+import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/domain.dart';
 import '../algebra/term_accumulator.dart';
@@ -156,6 +157,22 @@ List<Expr> _solveUnfiltered(
     final expanded = expandBinomial(expr).simplify(assumptions: assumptions);
     if (expanded != expr) {
       return _solveUnfiltered(expanded, variable, assumptions);
+    }
+  }
+
+  if (expr is Add &&
+      expr.anyNode(
+        (n) =>
+            n is Pow &&
+            n.exponent is RealNumeric &&
+            (n.exponent as RealNumeric).isNegative &&
+            n.base.dependsOn(variable),
+      )) {
+    final combined = expr
+        .together(assumptions: assumptions)
+        .cancel(assumptions: assumptions);
+    if (combined != expr && combined is! Add) {
+      return _solveUnfiltered(combined, variable, assumptions);
     }
   }
 

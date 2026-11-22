@@ -323,6 +323,21 @@ Expr computeLimit(
     }
   }
 
+  if (expr case Factorial(expr: final inner) || Gamma(expr: final inner)) {
+    try {
+      final innerLim = computeLimit(
+        inner,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      if (_isPositiveInfinity(innerLim)) return Constant.infinity;
+    } on Object {
+      // Fall through
+    }
+  }
+
   if (expr case LambertW(expr: final inner, :final branch)) {
     try {
       final innerLim = computeLimit(
@@ -717,6 +732,46 @@ Expr _computeInfiniteLimit(
     return expPolyLim.simplify(assumptions: posAssumptions);
   }
 
+  if (combined case Mul(:final factors)) {
+    var hasInf = false;
+    var sign = 1;
+    var allResolved = true;
+    for (final f in factors) {
+      try {
+        final fLim = computeLimit(
+          f,
+          variable,
+          Constant.infinity,
+          assumptions: posAssumptions,
+        );
+        if (_isPositiveInfinity(fLim)) {
+          hasInf = true;
+        } else if (_isNegativeInfinity(fLim)) {
+          hasInf = true;
+          sign = -sign;
+        } else if (fLim is Number && fLim.isZero ||
+            fLim.anyNode((n) => n is Limit) ||
+            fLim == Constant.undefined) {
+          allResolved = false;
+          break;
+        } else {
+          final s = _getSign(fLim, posAssumptions);
+          if (s == 0) {
+            allResolved = false;
+            break;
+          }
+          sign *= s;
+        }
+      } on Object {
+        allResolved = false;
+        break;
+      }
+    }
+    if (allResolved && hasInf) {
+      return sign > 0 ? Constant.infinity : _negInfinity;
+    }
+  }
+
   final stirlingRewritten = _rewriteStirlingAtPosInf(
     combined,
     variable,
@@ -975,30 +1030,43 @@ Expr? _exponentialPolynomialLimitAtInfinity(
   Assumptions assumptions,
 ) {
   if (expr case Mul(:final factors)) {
-    Expr? expFactor;
+    RealNumeric? expBase;
+    RealNumeric? expScale;
     final polyFactors = <Expr>[];
     for (final f in factors) {
-      if (f case Pow(:final base, exponent: Variable(name: final v))
-          when v == variable && base is RealNumeric && !base.isZero) {
-        if (expFactor == null) {
-          expFactor = f;
-          continue;
+      if (expBase == null) {
+        if (f case Pow(:final RealNumeric base, :final exponent)
+            when !base.isZero) {
+          final scale = switch (exponent) {
+            Variable(:final name) when name == variable => IntegerNumber.one,
+            Mul(factors: [final RealNumeric c, Variable(:final name)]) ||
+            Mul(
+              factors: [Variable(:final name), final RealNumeric c],
+            ) when name == variable && !c.isZero => c,
+            _ => null,
+          };
+          if (scale != null) {
+            expBase = base;
+            expScale = scale;
+            continue;
+          }
         }
       }
       polyFactors.add(f);
     }
-    if (expFactor case Pow(:final RealNumeric base, exponent: _)) {
+    if (expBase != null && expScale != null) {
       final poly = polyFactors.isEmpty
           ? IntegerNumber.one
           : Mul(polyFactors).simplify(assumptions: assumptions);
       final polyDeg = _polynomialDegreeAndLead(poly, variable);
       if (polyDeg != null) {
-        final (deg, lead) = polyDeg;
-        final cmpOne = base.abs().compareTo(IntegerNumber.one);
+        final (_, lead) = polyDeg;
+        final cmpOne =
+            expBase.abs().compareTo(IntegerNumber.one) * expScale.sign;
         if (cmpOne < 0) {
           return IntegerNumber.zero;
         }
-        if (cmpOne > 0 && base.sign > 0) {
+        if (cmpOne > 0 && expBase.sign > 0) {
           final sign = _getSign(lead, assumptions);
           if (sign == 0) {
             throw UnsupportedError(
@@ -1007,7 +1075,7 @@ Expr? _exponentialPolynomialLimitAtInfinity(
           }
           return sign > 0 ? Constant.infinity : _negInfinity;
         }
-        if (cmpOne > 0 && base.sign < 0) {
+        if (cmpOne > 0 && expBase.sign < 0) {
           throw UnsupportedError('Limit does not exist due to oscillation');
         }
       }
@@ -1539,8 +1607,28 @@ bool _isBoundedOscillator(Expr expr, String variable) => switch (expr) {
   Pow(:final base, exponent: final RealNumeric exp)
       when !exp.isNegative && !exp.isZero =>
     _isBoundedOscillator(base, variable),
+  Add(:final terms) =>
+    terms.any((t) => _isBoundedOscillator(t, variable)) &&
+        terms.every((t) => _isBoundedAtInfinity(t, variable)),
+  Mul(:final factors) =>
+    factors.any((f) => _isBoundedOscillator(f, variable)) &&
+        factors.every((f) => _isBoundedAtInfinity(f, variable)),
   _ => false,
 };
+
+bool _isBoundedAtInfinity(Expr expr, String variable) {
+  if (!expr.dependsOn(variable)) return true;
+  return switch (expr) {
+    Sin() || Cos() || Atan() || Tanh() => true,
+    Add(:final terms) => terms.every((t) => _isBoundedAtInfinity(t, variable)),
+    Mul(:final factors) => factors.every(
+      (f) => _isBoundedAtInfinity(f, variable),
+    ),
+    Pow(:final base, exponent: final RealNumeric exp) when !exp.isNegative =>
+      _isBoundedAtInfinity(base, variable),
+    _ => false,
+  };
+}
 
 bool _isEverywhereContinuous(Expr expr, String variable) => switch (expr) {
   Number() || Constant() || Variable() => true,
