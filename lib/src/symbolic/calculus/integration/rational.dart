@@ -350,7 +350,7 @@ Expr? tryAntiDerivDiv(
   if (!left.dependsOn(variable)) {
     if (right case Ln(expr: final inner)) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((left / a) * LogIntegralLi(inner)).simplify();
+        return ((left / a) * LogIntegral(inner)).simplify();
       }
     }
     if (_matchLinearLog(right, variable) case (
@@ -362,7 +362,7 @@ Expr? tryAntiDerivDiv(
         final ratio = (a / b).simplify(assumptions: assumptions);
         return ((left / (b * c)) *
                 Pow(Constant.e, -ratio) *
-                LogIntegralLi(inner * Pow(Constant.e, ratio)))
+                LogIntegral(inner * Pow(Constant.e, ratio)))
             .simplify(assumptions: assumptions);
       }
     }
@@ -405,7 +405,7 @@ Expr? tryAntiDerivDiv(
       if (right.matchLinear(variable) case (a: final c1, b: final d1)) {
         final shift = (b - (a * d1) / c1).simplify();
         final eiArg = (a * right / c1).simplify();
-        return (Pow(Constant.e, shift) * ExpIntegralEi(eiArg) / c1).simplify();
+        return (Pow(Constant.e, shift) * ExpIntegral(eiArg) / c1).simplify();
       }
       if (right
           case Pow(base: final rBase, exponent: IntegerNumber(asInt: final k?))
@@ -468,8 +468,8 @@ Expr? tryAntiDerivDiv(
         case Sin(expr: final inner):
           if (shiftedTrigInt(
                 inner,
-                SinIntegralSi.new,
-                CosIntegralCi.new,
+                SinIntegral.new,
+                CosIntegral.new,
                 Cos.new,
                 Sin.new,
                 1,
@@ -480,8 +480,8 @@ Expr? tryAntiDerivDiv(
         case Cos(expr: final inner):
           if (shiftedTrigInt(
                 inner,
-                CosIntegralCi.new,
-                SinIntegralSi.new,
+                CosIntegral.new,
+                SinIntegral.new,
                 Cos.new,
                 Sin.new,
                 -1,
@@ -492,8 +492,8 @@ Expr? tryAntiDerivDiv(
         case Sinh(expr: final inner):
           if (shiftedTrigInt(
                 inner,
-                SinhIntegralShi.new,
-                CoshIntegralChi.new,
+                SinhIntegral.new,
+                CoshIntegral.new,
                 Cosh.new,
                 Sinh.new,
                 1,
@@ -504,8 +504,8 @@ Expr? tryAntiDerivDiv(
         case Cosh(expr: final inner):
           if (shiftedTrigInt(
                 inner,
-                CoshIntegralChi.new,
-                SinhIntegralShi.new,
+                CoshIntegral.new,
+                SinhIntegral.new,
                 Cosh.new,
                 Sinh.new,
                 1,
@@ -517,7 +517,7 @@ Expr? tryAntiDerivDiv(
           if (expInner.matchLinear(variable) case (:final a, :final b)) {
             final phi = (b - (a * d1) / c1).simplify();
             final u = ((a / c1) * right).simplify();
-            return (scale * Pow(Constant.e, phi) * ExpIntegralEi(u) / c1)
+            return (scale * Pow(Constant.e, phi) * ExpIntegral(u) / c1)
                 .simplify();
           }
         default:
@@ -1696,9 +1696,9 @@ Expr? _tryPowerOverLogPower(
   Expr integrateK(int m) {
     if (m == 1) {
       if (isZeroN) {
-        return (LogIntegralLi(inner) / c).simplify(assumptions: assumptions);
+        return (LogIntegral(inner) / c).simplify(assumptions: assumptions);
       }
-      return (ExpIntegralEi((np1 * lnExpr).simplify(assumptions: assumptions)) /
+      return (ExpIntegral((np1 * lnExpr).simplify(assumptions: assumptions)) /
               Pow(c, np1))
           .simplify(assumptions: assumptions);
     }
@@ -1784,21 +1784,17 @@ Expr? _tryTrigOrHypOverLinearPower(
     final arg = (beta * linBase).simplify(assumptions: assumptions);
     return switch (fn) {
       Sin() =>
-        ((Cos(alpha) * SinIntegralSi(arg) + Sin(alpha) * CosIntegralCi(arg)) /
-                d)
+        ((Cos(alpha) * SinIntegral(arg) + Sin(alpha) * CosIntegral(arg)) / d)
             .simplify(assumptions: assumptions),
       Cos() =>
-        ((Cos(alpha) * CosIntegralCi(arg) - Sin(alpha) * SinIntegralSi(arg)) /
-                d)
+        ((Cos(alpha) * CosIntegral(arg) - Sin(alpha) * SinIntegral(arg)) / d)
             .simplify(assumptions: assumptions),
       Sinh() =>
-        ((Cosh(alpha) * SinhIntegralShi(arg) +
-                    Sinh(alpha) * CoshIntegralChi(arg)) /
+        ((Cosh(alpha) * SinhIntegral(arg) + Sinh(alpha) * CoshIntegral(arg)) /
                 d)
             .simplify(assumptions: assumptions),
       Cosh() =>
-        ((Cosh(alpha) * CoshIntegralChi(arg) +
-                    Sinh(alpha) * SinhIntegralShi(arg)) /
+        ((Cosh(alpha) * CoshIntegral(arg) + Sinh(alpha) * SinhIntegral(arg)) /
                 d)
             .simplify(assumptions: assumptions),
       _ => throw StateError('Unreachable'),
@@ -1887,7 +1883,7 @@ Expr? _tryExpOverRational(
           (a - b * c / d).simplify(assumptions: assumptions),
         );
         final arg = ((b / d) * linBase).simplify(assumptions: assumptions);
-        return (scale * shift * ExpIntegralEi(arg) / d).simplify(
+        return (scale * shift * ExpIntegral(arg) / d).simplify(
           assumptions: assumptions,
         );
       }

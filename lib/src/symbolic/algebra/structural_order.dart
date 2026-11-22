@@ -69,17 +69,16 @@ int nodeTag(Expr expr) => switch (expr) {
   Erfi() => 59,
   FresnelS() => 60,
   FresnelC() => 61,
-  ExpIntegralEi() => 62,
-  LogIntegralLi() => 63,
-  SinIntegralSi() => 64,
-  CosIntegralCi() => 65,
-  SinhIntegralShi() => 66,
-  CoshIntegralChi() => 67,
+  ExpIntegral() => 62,
+  LogIntegral() => 63,
+  SinIntegral() => 64,
+  CosIntegral() => 65,
+  SinhIntegral() => 66,
+  CoshIntegral() => 67,
   UpperGamma() => 68,
   LowerGamma() => 69,
   Polylog() => 70,
   EllipticF() => 71,
-  EllipticEIncomplete() => 72,
   Atan2() => 73,
   EllipticPi() => 74,
   ExpIntegralE() => 75,
@@ -122,6 +121,11 @@ int compareStructural(Expr a, Expr b) {
       final cmpExpr = compareStructural(za.expr, zb.expr);
       if (cmpExpr != 0) return cmpExpr;
       return _compareNullable(za.shift, zb.shift);
+    }(),
+    (final EllipticE ea, final EllipticE eb) => () {
+      final cmpExpr = compareStructural(ea.expr, eb.expr);
+      if (cmpExpr != 0) return cmpExpr;
+      return _compareNullable(ea.amplitude, eb.amplitude);
     }(),
     (final BinaryExpr ba, final BinaryExpr bb) => () {
       final cmpLeft = compareStructural(ba.left, bb.left);

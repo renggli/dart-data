@@ -572,12 +572,10 @@ void main() {
       check(FresnelC(x).series('x', order: 2, includeOrder: false).simplify())
           .equals(x);
       check(
-        SinIntegralSi(x).series('x', order: 4, includeOrder: false).simplify(),
+        SinIntegral(x).series('x', order: 4, includeOrder: false).simplify(),
       ).equals(Expr.parse('x - x^3/18').simplify());
       check(
-        SinhIntegralShi(x)
-            .series('x', order: 4, includeOrder: false)
-            .simplify(),
+        SinhIntegral(x).series('x', order: 4, includeOrder: false).simplify(),
       ).equals(Expr.parse('x + x^3/18').simplify());
       check(
         Polylog(
@@ -592,9 +590,9 @@ void main() {
         ).series('x', order: 4, includeOrder: false).simplify(),
       ).equals(Expr.parse('x + x^3/24').simplify());
       check(
-        EllipticEIncomplete(
-          x,
+        EllipticE(
           FractionNumber.half,
+          amplitude: x,
         ).series('x', order: 4, includeOrder: false).simplify(),
       ).equals(Expr.parse('x - x^3/24').simplify());
       final kSeries = EllipticK(x)
@@ -622,22 +620,22 @@ void main() {
             .evaluate({'x': 0.2}),
       ).isCloseTo(EllipticE(const RealNumber(0.2)).evaluate(), 1e-6);
       check(
-        ExpIntegralEi(x)
+        ExpIntegral(x)
             .series('x', point: 1, order: 2, includeOrder: false)
             .simplify(),
       ).equals(Expr.parse('Ei(1) + e*(x - 1)').simplify());
       check(
-        LogIntegralLi(x)
+        LogIntegral(x)
             .series('x', point: 2, order: 2, includeOrder: false)
             .simplify(),
       ).equals(Expr.parse('li(2) + (x - 2)/ln(2)').simplify());
       check(
-        CosIntegralCi(x)
+        CosIntegral(x)
             .series('x', point: 1, order: 2, includeOrder: false)
             .simplify(),
       ).equals(Expr.parse('Ci(1) + cos(1)*(x - 1)').simplify());
       check(
-        CoshIntegralChi(x)
+        CoshIntegral(x)
             .series('x', point: 1, order: 2, includeOrder: false)
             .simplify(),
       ).equals(Expr.parse('Chi(1) + cosh(1)*(x - 1)').simplify());

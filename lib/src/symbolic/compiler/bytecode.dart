@@ -541,9 +541,15 @@ BytecodeEvaluator compileToBytecode(
       case EllipticK(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.ellipticK));
-      case EllipticE(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.ellipticE));
+      case EllipticE(:final expr, :final amplitude):
+        if (amplitude == null) {
+          emit(expr);
+          instructions.add(const Instruction.op(Op.ellipticE));
+        } else {
+          emit(amplitude);
+          emit(expr);
+          instructions.add(const Instruction.op(Op.ellipticEIncomplete));
+        }
       case Erfi(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.erfi));
@@ -553,22 +559,22 @@ BytecodeEvaluator compileToBytecode(
       case FresnelC(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.fresnelC));
-      case ExpIntegralEi(:final expr):
+      case ExpIntegral(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.expIntegralEi));
-      case LogIntegralLi(:final expr):
+      case LogIntegral(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.logIntegralLi));
-      case SinIntegralSi(:final expr):
+      case SinIntegral(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.sinIntegralSi));
-      case CosIntegralCi(:final expr):
+      case CosIntegral(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.cosIntegralCi));
-      case SinhIntegralShi(:final expr):
+      case SinhIntegral(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.sinhIntegralShi));
-      case CoshIntegralChi(:final expr):
+      case CoshIntegral(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.coshIntegralChi));
       case UpperGamma(:final left, :final right):
@@ -587,10 +593,6 @@ BytecodeEvaluator compileToBytecode(
         emit(left);
         emit(right);
         instructions.add(const Instruction.op(Op.ellipticF));
-      case EllipticEIncomplete(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.ellipticEIncomplete));
       case EllipticPi(:final characteristic, :final amplitude, :final modulus):
         emit(characteristic);
         emit(amplitude);
@@ -815,6 +817,9 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
     case Zeta(:final expr, :final shift):
       visit(expr);
       if (shift != null) visit(shift);
+    case EllipticE(:final expr, :final amplitude):
+      visit(expr);
+      if (amplitude != null) visit(amplitude);
     case Hypergeometric(:final upper, :final lower, :final argument):
       for (final u in upper) {
         visit(u);

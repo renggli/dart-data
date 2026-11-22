@@ -361,22 +361,22 @@ void main() {
       check(FresnelC(x).toMathMl()).equals(
         '<math><mrow><mi>C</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(ExpIntegralEi(x).toMathMl()).equals(
+      check(ExpIntegral(x).toMathMl()).equals(
         '<math><mrow><mi>Ei</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(LogIntegralLi(x).toMathMl()).equals(
+      check(LogIntegral(x).toMathMl()).equals(
         '<math><mrow><mi>li</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(SinIntegralSi(x).toMathMl()).equals(
+      check(SinIntegral(x).toMathMl()).equals(
         '<math><mrow><mi>Si</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(CosIntegralCi(x).toMathMl()).equals(
+      check(CosIntegral(x).toMathMl()).equals(
         '<math><mrow><mi>Ci</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(SinhIntegralShi(x).toMathMl()).equals(
+      check(SinhIntegral(x).toMathMl()).equals(
         '<math><mrow><mi>Shi</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(CoshIntegralChi(x).toMathMl()).equals(
+      check(CoshIntegral(x).toMathMl()).equals(
         '<math><mrow><mi>Chi</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
       check(UpperGamma(IntegerNumber.two, x).toMathMl()).equals(
@@ -391,7 +391,7 @@ void main() {
       check(EllipticF(x, k).toMathMl()).equals(
         '<math><mrow><mi>F</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>k</mi><mo>)</mo></mrow></math>',
       );
-      check(EllipticEIncomplete(x, k).toMathMl()).equals(
+      check(EllipticE(k, amplitude: x).toMathMl()).equals(
         '<math><mrow><mi>E</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>k</mi><mo>)</mo></mrow></math>',
       );
     });

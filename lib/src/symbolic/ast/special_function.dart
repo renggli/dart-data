@@ -238,13 +238,51 @@ final class EllipticK extends UnaryExpr {
   Expr _withExpr(Expr expr) => EllipticK(expr);
 }
 
-/// Complete elliptic integral of the second kind: $E(k) = \int_0^{\pi/2} \sqrt{1 - k^2 \sin^2\theta}\,d\theta$.
-final class EllipticE extends UnaryExpr {
-  /// Creates a complete elliptic integral of the second kind $E(k)$.
-  new(super.expr, {super.isSimplified = false});
+/// Complete (`amplitude == null`) or incomplete elliptic integral of the
+/// second kind: `E(k)` or `E(phi, k)`.
+final class EllipticE extends Expr {
+  /// Creates a complete or incomplete elliptic integral of the second kind.
+  new(this.expr, {this.amplitude, this.isSimplified = false});
+
+  /// The modulus `k`.
+  final Expr expr;
+
+  /// Optional amplitude `phi` for the incomplete integral `E(phi, k)`.
+  final Expr? amplitude;
 
   @override
-  Expr _withExpr(Expr expr) => EllipticE(expr);
+  final bool isSimplified;
+
+  @override
+  late final int hashCode = Object.hash(runtimeType, expr, amplitude);
+
+  @override
+  late final Set<String> freeVariables = amplitude == null
+      ? expr.freeVariables
+      : Set.unmodifiable({...expr.freeVariables, ...amplitude!.freeVariables});
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final nextExpr = transform(expr);
+    final nextAmp = amplitude == null ? null : transform(amplitude!);
+    return identical(nextExpr, expr) && identical(nextAmp, amplitude)
+        ? this
+        : EllipticE(nextExpr, amplitude: nextAmp);
+  }
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) ||
+      expr.anyNode(predicate) ||
+      (amplitude != null && amplitude!.anyNode(predicate));
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EllipticE &&
+          hashCode == other.hashCode &&
+          expr == other.expr &&
+          amplitude == other.amplitude);
 }
 
 /// Imaginary error function node: $\operatorname{erfi}(x) = -i\operatorname{erf}(ix)$.
@@ -275,12 +313,12 @@ final class FresnelC extends UnaryExpr {
 }
 
 /// Exponential integral node: $\operatorname{Ei}(x) = -\operatorname{PV}\int_{-x}^\infty \frac{e^{-t}}{t}\,dt$.
-final class ExpIntegralEi extends UnaryExpr {
+final class ExpIntegral extends UnaryExpr {
   /// Creates an exponential integral node $\operatorname{Ei}(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr _withExpr(Expr expr) => ExpIntegralEi(expr);
+  Expr _withExpr(Expr expr) => ExpIntegral(expr);
 }
 
 /// Generalized exponential integral node `E_n(z)`.
@@ -299,48 +337,48 @@ final class ExpIntegralE extends BinaryExpr {
 }
 
 /// Logarithmic integral node: $\operatorname{li}(x) = \int_0^x \frac{dt}{\ln t}$.
-final class LogIntegralLi extends UnaryExpr {
+final class LogIntegral extends UnaryExpr {
   /// Creates a logarithmic integral node $\operatorname{li}(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr _withExpr(Expr expr) => LogIntegralLi(expr);
+  Expr _withExpr(Expr expr) => LogIntegral(expr);
 }
 
 /// Sine integral node: $\operatorname{Si}(x) = \int_0^x \frac{\sin t}{t}\,dt$.
-final class SinIntegralSi extends UnaryExpr {
+final class SinIntegral extends UnaryExpr {
   /// Creates a sine integral node $\operatorname{Si}(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr _withExpr(Expr expr) => SinIntegralSi(expr);
+  Expr _withExpr(Expr expr) => SinIntegral(expr);
 }
 
 /// Cosine integral node: $\operatorname{Ci}(x) = \gamma + \ln x + \int_0^x \frac{\cos t - 1}{t}\,dt$.
-final class CosIntegralCi extends UnaryExpr {
+final class CosIntegral extends UnaryExpr {
   /// Creates a cosine integral node $\operatorname{Ci}(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr _withExpr(Expr expr) => CosIntegralCi(expr);
+  Expr _withExpr(Expr expr) => CosIntegral(expr);
 }
 
 /// Hyperbolic sine integral node: $\operatorname{Shi}(x) = \int_0^x \frac{\sinh t}{t}\,dt$.
-final class SinhIntegralShi extends UnaryExpr {
+final class SinhIntegral extends UnaryExpr {
   /// Creates a hyperbolic sine integral node $\operatorname{Shi}(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr _withExpr(Expr expr) => SinhIntegralShi(expr);
+  Expr _withExpr(Expr expr) => SinhIntegral(expr);
 }
 
 /// Hyperbolic cosine integral node: $\operatorname{Chi}(x) = \gamma + \ln x + \int_0^x \frac{\cosh t - 1}{t}\,dt$.
-final class CoshIntegralChi extends UnaryExpr {
+final class CoshIntegral extends UnaryExpr {
   /// Creates a hyperbolic cosine integral node $\operatorname{Chi}(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
 
   @override
-  Expr _withExpr(Expr expr) => CoshIntegralChi(expr);
+  Expr _withExpr(Expr expr) => CoshIntegral(expr);
 }
 
 /// Upper incomplete gamma function node: $\Gamma(s, x) = \int_x^\infty t^{s-1} e^{-t}\,dt$.
@@ -401,21 +439,6 @@ final class EllipticF extends BinaryExpr {
 
   @override
   Expr _withOperands(Expr left, Expr right) => EllipticF(left, right);
-}
-
-/// Incomplete elliptic integral of the second kind: $E(\phi, k) = \int_0^\phi \sqrt{1 - k^2 \sin^2\theta}\,d\theta$.
-final class EllipticEIncomplete extends BinaryExpr {
-  /// Creates an incomplete elliptic integral of the second kind $E(\text{left}, \text{right})$.
-  new(super.left, super.right, {super.isSimplified = false});
-
-  /// The amplitude $\phi$.
-  Expr get amplitude => left;
-
-  /// The modulus $k$.
-  Expr get modulus => right;
-
-  @override
-  Expr _withOperands(Expr left, Expr right) => EllipticEIncomplete(left, right);
 }
 
 /// Incomplete elliptic integral of the third kind: $\Pi(n; \phi \mid k) = \int_0^\phi \frac{d\theta}{(1 - n\sin^2\theta)\sqrt{1 - k^2\sin^2\theta}}$.

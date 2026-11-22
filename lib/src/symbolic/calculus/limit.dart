@@ -1603,6 +1603,9 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
         for (final argument in arguments) {
           scan(argument);
         }
+      case EllipticE(:final expr, :final amplitude):
+        scan(expr);
+        if (amplitude != null) scan(amplitude);
       case EllipticPi(:final characteristic, :final amplitude, :final modulus):
         scan(characteristic);
         scan(amplitude);
@@ -1770,8 +1773,8 @@ bool _isEverywhereContinuous(Expr expr, String variable) => switch (expr) {
   Erfi(:final expr) ||
   FresnelS(:final expr) ||
   FresnelC(:final expr) ||
-  SinIntegralSi(:final expr) ||
-  SinhIntegralShi(:final expr) ||
+  SinIntegral(:final expr) ||
+  SinhIntegral(:final expr) ||
   Abs(:final expr) => _isEverywhereContinuous(expr, variable),
   _ => false,
 };

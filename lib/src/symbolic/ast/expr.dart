@@ -269,7 +269,7 @@ sealed class Expr {
       _ => _isRealSubtree(left) && _isRealSubtree(right),
     },
     UnaryExpr(:final expr) => switch (node) {
-      LogIntegralLi() || CosIntegralCi() || CoshIntegralChi() =>
+      LogIntegral() || CosIntegral() || CoshIntegral() =>
         _isRealSubtree(expr) &&
             !(expr is RealNumeric && expr.toDouble() <= 0.0) &&
             !(expr is Constant && (expr.value.b != 0.0 || expr.value.a <= 0.0)),
@@ -301,6 +301,8 @@ sealed class Expr {
           _isRealSubtree(modulus),
     Zeta(:final expr, :final shift) =>
       _isRealSubtree(expr) && (shift == null || _isRealSubtree(shift)),
+    EllipticE(:final expr, :final amplitude) =>
+      _isRealSubtree(expr) && (amplitude == null || _isRealSubtree(amplitude)),
     Hypergeometric(:final upper, :final lower, :final argument) =>
       upper.every(_isRealSubtree) &&
           lower.every(_isRealSubtree) &&

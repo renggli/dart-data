@@ -320,7 +320,7 @@ void main() {
         (variable: 'y', from: 0, to: 1),
         (variable: 'x', from: 0, to: 1),
       ]);
-      check(nested).equals(SinIntegralSi(IntegerNumber.one));
+      check(nested).equals(SinIntegral(IntegerNumber.one));
       // \int_0^1 \int_0^1 cos(x*y) dy dx = \int_0^1 sin(x)/x dx = Si(1) \approx 0.946083070367
       check(nested.evaluate()).isCloseTo(0.946083070367183, 1e-12);
 
@@ -645,7 +645,7 @@ void main() {
 
       final shiftedCi = Expr.parse('cos(2 * x + 1) / (3 * x + 4)')
           .integrate('x');
-      check(shiftedCi.anyNode((n) => n is CosIntegralCi)).isTrue;
+      check(shiftedCi.anyNode((n) => n is CosIntegral)).isTrue;
       final diffCi =
           (shiftedCi.derivative('x') -
                   Expr.parse('cos(2 * x + 1) / (3 * x + 4)'))

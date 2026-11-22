@@ -218,18 +218,18 @@ void main() {
       check(Erfi(x).toLatex()).equals(r'\operatorname{erfi}(x)');
       check(FresnelS(x).toLatex()).equals('S(x)');
       check(FresnelC(x).toLatex()).equals('C(x)');
-      check(ExpIntegralEi(x).toLatex()).equals(r'\operatorname{Ei}(x)');
-      check(LogIntegralLi(x).toLatex()).equals(r'\operatorname{li}(x)');
-      check(SinIntegralSi(x).toLatex()).equals(r'\operatorname{Si}(x)');
-      check(CosIntegralCi(x).toLatex()).equals(r'\operatorname{Ci}(x)');
-      check(SinhIntegralShi(x).toLatex()).equals(r'\operatorname{Shi}(x)');
-      check(CoshIntegralChi(x).toLatex()).equals(r'\operatorname{Chi}(x)');
+      check(ExpIntegral(x).toLatex()).equals(r'\operatorname{Ei}(x)');
+      check(LogIntegral(x).toLatex()).equals(r'\operatorname{li}(x)');
+      check(SinIntegral(x).toLatex()).equals(r'\operatorname{Si}(x)');
+      check(CosIntegral(x).toLatex()).equals(r'\operatorname{Ci}(x)');
+      check(SinhIntegral(x).toLatex()).equals(r'\operatorname{Shi}(x)');
+      check(CoshIntegral(x).toLatex()).equals(r'\operatorname{Chi}(x)');
       check(UpperGamma(IntegerNumber.two, x).toLatex()).equals(r'\Gamma(2, x)');
       check(LowerGamma(IntegerNumber.two, x).toLatex()).equals(r'\gamma(2, x)');
       check(Polylog(IntegerNumber.two, x).toLatex())
           .equals(r'\operatorname{Li}_{2}(x)');
       check(EllipticF(x, k).toLatex()).equals('F(x, k)');
-      check(EllipticEIncomplete(x, k).toLatex()).equals('E(x, k)');
+      check(EllipticE(k, amplitude: x).toLatex()).equals('E(x, k)');
     });
 
     test('formats negative-shifted OrderTerm and subscripted variables', () {

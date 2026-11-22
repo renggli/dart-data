@@ -214,9 +214,9 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
         (inner * (IntegerNumber.one - Pow(inner, IntegerNumber.two))),
     _differentiate(inner, variable),
   ]),
-  EllipticE(expr: final inner) => Mul([
-    (EllipticE(inner) - EllipticK(inner)) / inner,
-    _differentiate(inner, variable),
+  EllipticE(:final expr, amplitude: null) => Mul([
+    (EllipticE(expr) - EllipticK(expr)) / expr,
+    _differentiate(expr, variable),
   ]),
   Erfi(expr: final inner) => Mul([
     IntegerNumber.two / Pow(Constant.pi, FractionNumber.half),
@@ -231,25 +231,24 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     Cos(Constant.pi * Pow(inner, IntegerNumber.two) / IntegerNumber.two),
     _differentiate(inner, variable),
   ]),
-  ExpIntegralEi(expr: final inner) => Mul([
+  ExpIntegral(expr: final inner) => Mul([
     Pow(Constant.e, inner) / inner,
     _differentiate(inner, variable),
   ]),
-  LogIntegralLi(expr: final inner) =>
-    _differentiate(inner, variable) / Ln(inner),
-  SinIntegralSi(expr: final inner) => Mul([
+  LogIntegral(expr: final inner) => _differentiate(inner, variable) / Ln(inner),
+  SinIntegral(expr: final inner) => Mul([
     Sin(inner) / inner,
     _differentiate(inner, variable),
   ]),
-  CosIntegralCi(expr: final inner) => Mul([
+  CosIntegral(expr: final inner) => Mul([
     Cos(inner) / inner,
     _differentiate(inner, variable),
   ]),
-  SinhIntegralShi(expr: final inner) => Mul([
+  SinhIntegral(expr: final inner) => Mul([
     Sinh(inner) / inner,
     _differentiate(inner, variable),
   ]),
-  CoshIntegralChi(expr: final inner) => Mul([
+  CoshIntegral(expr: final inner) => Mul([
     Cosh(inner) / inner,
     _differentiate(inner, variable),
   ]),
@@ -286,7 +285,7 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     if (right.dependsOn(variable)) {
       final oneMinusK2 = IntegerNumber.one - Pow(right, IntegerNumber.two);
       final dFdk =
-          (EllipticEIncomplete(left, right) -
+          (EllipticE(right, amplitude: left) -
               oneMinusK2 * EllipticF(left, right) -
               Pow(right, IntegerNumber.two) *
                   Sin(left) *
@@ -301,20 +300,20 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
       _ => Add(terms),
     };
   }(),
-  EllipticEIncomplete(:final left, :final right) => () {
+  EllipticE(:final expr, amplitude: final phi?) => () {
     final terms = <Expr>[];
-    if (left.dependsOn(variable)) {
+    if (phi.dependsOn(variable)) {
       final delta =
           IntegerNumber.one -
-          Pow(right, IntegerNumber.two) * Pow(Sin(left), IntegerNumber.two);
+          Pow(expr, IntegerNumber.two) * Pow(Sin(phi), IntegerNumber.two);
       terms.add(
-        Pow(delta, FractionNumber.half) * _differentiate(left, variable),
+        Pow(delta, FractionNumber.half) * _differentiate(phi, variable),
       );
     }
-    if (right.dependsOn(variable)) {
+    if (expr.dependsOn(variable)) {
       final dEdk =
-          (EllipticEIncomplete(left, right) - EllipticF(left, right)) / right;
-      terms.add(dEdk * _differentiate(right, variable));
+          (EllipticE(expr, amplitude: phi) - EllipticF(phi, expr)) / expr;
+      terms.add(dEdk * _differentiate(expr, variable));
     }
     return switch (terms) {
       [] => IntegerNumber.zero,
@@ -342,7 +341,7 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
       final k2Minus1 = k2 - IntegerNumber.one;
       final dPidK =
           (k / (n - k2)) *
-          (EllipticEIncomplete(phi, k) / k2Minus1 +
+          (EllipticE(k, amplitude: phi) / k2Minus1 +
               EllipticPi(n, phi, k) -
               (k2 * sinPhi * Cos(phi)) /
                   (k2Minus1 * Pow(delta, FractionNumber.half)));
@@ -350,7 +349,7 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     }
     if (n.dependsOn(variable)) {
       final dPidN =
-          (EllipticEIncomplete(phi, k) +
+          (EllipticE(k, amplitude: phi) +
               ((k2 - n) / n) * EllipticF(phi, k) +
               ((Pow(n, IntegerNumber.two) - k2) / n) * EllipticPi(n, phi, k) -
               (n * sinPhi * Cos(phi) * Pow(delta, FractionNumber.half)) /

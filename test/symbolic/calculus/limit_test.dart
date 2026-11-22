@@ -539,7 +539,7 @@ void main() {
     test('limits involving special integral functions', () {
       const x = Variable('x');
       check(
-        ((SinIntegralSi(x) - x) / x.pow(IntegerNumber.of(3))).limit(
+        ((SinIntegral(x) - x) / x.pow(IntegerNumber.of(3))).limit(
           'x',
           IntegerNumber.zero,
         ),

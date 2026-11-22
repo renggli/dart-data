@@ -377,22 +377,22 @@ Expr _antiDerivativeCore(
     FresnelC(expr: final inner) =>
       _antiDerivFresnelC(inner, variable) ??
           unsupportedIntegral(node, variable),
-    ExpIntegralEi(expr: final inner) =>
+    ExpIntegral(expr: final inner) =>
       _antiDerivExpIntegralEi(inner, variable) ??
           unsupportedIntegral(node, variable),
-    LogIntegralLi(expr: final inner) =>
+    LogIntegral(expr: final inner) =>
       _antiDerivLogIntegralLi(inner, variable) ??
           unsupportedIntegral(node, variable),
-    SinIntegralSi(expr: final inner) =>
+    SinIntegral(expr: final inner) =>
       _antiDerivSinIntegralSi(inner, variable) ??
           unsupportedIntegral(node, variable),
-    CosIntegralCi(expr: final inner) =>
+    CosIntegral(expr: final inner) =>
       _antiDerivCosIntegralCi(inner, variable) ??
           unsupportedIntegral(node, variable),
-    SinhIntegralShi(expr: final inner) =>
+    SinhIntegral(expr: final inner) =>
       _antiDerivSinhIntegralShi(inner, variable) ??
           unsupportedIntegral(node, variable),
-    CoshIntegralChi(expr: final inner) =>
+    CoshIntegral(expr: final inner) =>
       _antiDerivCoshIntegralChi(inner, variable) ??
           unsupportedIntegral(node, variable),
     Asinh(expr: final inner) =>
@@ -884,7 +884,7 @@ Expr? _antiDerivLn(
   }
   if (inner case Ln(expr: final arg)) {
     if (arg.matchLinear(variable) case (:final a, b: _)) {
-      return ((arg * Ln(inner) - LogIntegralLi(arg)) / a).simplify(
+      return ((arg * Ln(inner) - LogIntegral(arg)) / a).simplify(
         assumptions: assumptions,
       );
     }
@@ -1007,48 +1007,47 @@ Expr? _antiDerivFresnelC(Expr inner, String variable) =>
       null => null,
     };
 
-Expr? _antiDerivExpIntegralEi(Expr inner, String variable) => switch (inner
-    .matchLinear(variable)) {
-  (:final a, b: _) =>
-    ((inner * ExpIntegralEi(inner) - Pow(Constant.e, inner)) / a).simplify(),
-  null => null,
-};
-
-Expr? _antiDerivLogIntegralLi(Expr inner, String variable) =>
+Expr? _antiDerivExpIntegralEi(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * LogIntegralLi(inner) -
-                    ExpIntegralEi(IntegerNumber.two * Ln(inner))) /
-                a)
-            .simplify(),
+        ((inner * ExpIntegral(inner) - Pow(Constant.e, inner)) / a).simplify(),
       null => null,
     };
+
+Expr? _antiDerivLogIntegralLi(Expr inner, String variable) => switch (inner
+    .matchLinear(variable)) {
+  (:final a, b: _) =>
+    ((inner * LogIntegral(inner) - ExpIntegral(IntegerNumber.two * Ln(inner))) /
+            a)
+        .simplify(),
+  null => null,
+};
 
 Expr? _antiDerivSinIntegralSi(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * SinIntegralSi(inner) + Cos(inner)) / a).simplify(),
+        ((inner * SinIntegral(inner) + Cos(inner)) / a).simplify(),
       null => null,
     };
 
 Expr? _antiDerivCosIntegralCi(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * CosIntegralCi(inner) - Sin(inner)) / a).simplify(),
+        ((inner * CosIntegral(inner) - Sin(inner)) / a).simplify(),
       null => null,
     };
 
 Expr? _antiDerivSinhIntegralShi(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * SinhIntegralShi(inner) - Cosh(inner)) / a).simplify(),
+        ((inner * SinhIntegral(inner) - Cosh(inner)) / a).simplify(),
       null => null,
     };
 
 Expr? _antiDerivCoshIntegralChi(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * CoshIntegralChi(inner) - Sinh(inner)) / a).simplify(),
+        ((inner * CoshIntegral(inner) - Sinh(inner)) / a).simplify(),
       null => null,
     };
 
@@ -1576,16 +1575,14 @@ Expr _antiDerivPow(
       // e^(e^(a*x + b)) -> Ei(e^(a*x + b)) / a
       if (exponent case Pow(base: Constant.e, exponent: final innerExp)) {
         if (innerExp.matchLinear(variable) case (:final a, b: _)) {
-          return (ExpIntegralEi(exponent) / a).simplify(
-            assumptions: assumptions,
-          );
+          return (ExpIntegral(exponent) / a).simplify(assumptions: assumptions);
         }
       }
 
       // e^(a/x) -> x * e^(a/x) - a * Ei(a/x)
       final prod = (exponent * Variable(variable)).simplify();
       if (!prod.dependsOn(variable)) {
-        return (Variable(variable) * original - prod * ExpIntegralEi(exponent))
+        return (Variable(variable) * original - prod * ExpIntegral(exponent))
             .simplify();
       }
     }
@@ -1721,7 +1718,7 @@ Expr _antiDerivMul(
     )) {
       final uPrime = innerU.derivative(variable).simplify();
       if (otherExpr.matchScalarMultiple(uPrime, variable) case final k?) {
-        return (k * ExpIntegralEi(Pow(Constant.e, innerU))).simplify(
+        return (k * ExpIntegral(Pow(Constant.e, innerU))).simplify(
           assumptions: assumptions,
         );
       }

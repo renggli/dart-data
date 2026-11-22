@@ -73,12 +73,12 @@ void main() {
         Erfi(x),
         FresnelS(x),
         FresnelC(x),
-        ExpIntegralEi(x),
-        LogIntegralLi(x),
-        SinIntegralSi(x),
-        CosIntegralCi(x),
-        SinhIntegralShi(x),
-        CoshIntegralChi(x),
+        ExpIntegral(x),
+        LogIntegral(x),
+        SinIntegral(x),
+        CosIntegral(x),
+        SinhIntegral(x),
+        CoshIntegral(x),
       ];
       for (final node in unaryNodes) {
         check(node.substitute('x', y)).equals(node.mapChildren((_) => y));
@@ -108,24 +108,24 @@ void main() {
       check(ef.substitute('x', two)).equals(EllipticF(two, y));
       check(ef.mapChildren((c) => c == x ? two : c)).equals(EllipticF(two, y));
 
-      final ee = EllipticEIncomplete(x, y);
+      final ee = EllipticE(y, amplitude: x);
       check(ee.amplitude).equals(x);
-      check(ee.modulus).equals(y);
-      check(ee.substitute('x', two)).equals(EllipticEIncomplete(two, y));
+      check(ee.expr).equals(y);
+      check(ee.substitute('x', two)).equals(EllipticE(y, amplitude: two));
       check(ee.mapChildren((c) => c == x ? two : c))
-          .equals(EllipticEIncomplete(two, y));
+          .equals(EllipticE(y, amplitude: two));
 
       // isReal branch cuts
-      check(LogIntegralLi(two).isReal).isTrue;
-      check(LogIntegralLi(IntegerNumber.negativeOne).isReal).isFalse;
-      check(CosIntegralCi(two).isReal).isTrue;
-      check(CosIntegralCi(IntegerNumber.zero).isReal).isFalse;
-      check(CoshIntegralChi(two).isReal).isTrue;
-      check(CoshIntegralChi(IntegerNumber.negativeOne).isReal).isFalse;
+      check(LogIntegral(two).isReal).isTrue;
+      check(LogIntegral(IntegerNumber.negativeOne).isReal).isFalse;
+      check(CosIntegral(two).isReal).isTrue;
+      check(CosIntegral(IntegerNumber.zero).isReal).isFalse;
+      check(CoshIntegral(two).isReal).isTrue;
+      check(CoshIntegral(IntegerNumber.negativeOne).isReal).isFalse;
       check(Polylog(two, FractionNumber.half).isReal).isTrue;
       check(Polylog(two, two).isReal).isFalse;
       check(Polylog(two, Constant.pi).isReal).isFalse;
-      check(CosIntegralCi(ComplexNumber.i).isReal).isFalse;
+      check(CosIntegral(ComplexNumber.i).isReal).isFalse;
     });
   });
 }

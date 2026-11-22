@@ -523,7 +523,7 @@ void main() {
       check(Polygamma(n, z).evaluateComplex().isFinite).isTrue;
       check(BesselJ(n, z).evaluateComplex().isFinite).isTrue;
       check(EllipticF(z, k).evaluateComplex().isFinite).isTrue;
-      check(EllipticEIncomplete(z, k).evaluateComplex().isFinite).isTrue;
+      check(EllipticE(k, amplitude: z).evaluateComplex().isFinite).isTrue;
       check(UpperGamma(n, z).evaluateComplex().isFinite).isTrue;
       check(Beta(z, n).evaluateComplex().isFinite).isTrue;
       check(Binomial(z, n).evaluateComplex().isFinite).isTrue;

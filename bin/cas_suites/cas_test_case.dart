@@ -88,7 +88,7 @@ ExprSyntax buildCasSyntax({bool renameE = false, bool renameI = false}) =>
         'Rational': (a, b) => a / b,
         'elliptic_f': (phi, m) => EllipticF(phi, Pow(m, FractionNumber.half)),
         'elliptic_e': (phi, m) =>
-            EllipticEIncomplete(phi, Pow(m, FractionNumber.half)),
+            EllipticE(Pow(m, FractionNumber.half), amplitude: phi),
         'elliptic_pi': (n, m) => EllipticPi(
           n,
           FractionNumber.half * Constant.pi,

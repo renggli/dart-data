@@ -284,28 +284,28 @@ void main() {
       check(Erfi(x).toString()).equals('erfi(x)');
       check(FresnelS(x).toString()).equals('fresnels(x)');
       check(FresnelC(x).toString()).equals('fresnelc(x)');
-      check(ExpIntegralEi(x).toString()).equals('Ei(x)');
-      check(LogIntegralLi(x).toString()).equals('li(x)');
-      check(SinIntegralSi(x).toString()).equals('Si(x)');
-      check(CosIntegralCi(x).toString()).equals('Ci(x)');
-      check(SinhIntegralShi(x).toString()).equals('Shi(x)');
-      check(CoshIntegralChi(x).toString()).equals('Chi(x)');
+      check(ExpIntegral(x).toString()).equals('Ei(x)');
+      check(LogIntegral(x).toString()).equals('li(x)');
+      check(SinIntegral(x).toString()).equals('Si(x)');
+      check(CosIntegral(x).toString()).equals('Ci(x)');
+      check(SinhIntegral(x).toString()).equals('Shi(x)');
+      check(CoshIntegral(x).toString()).equals('Chi(x)');
       check(UpperGamma(IntegerNumber.two, x).toString())
           .equals('uppergamma(2, x)');
       check(LowerGamma(IntegerNumber.two, x).toString())
           .equals('lowergamma(2, x)');
       check(Polylog(IntegerNumber.two, x).toString()).equals('polylog(2, x)');
       check(EllipticF(x, k).toString()).equals('elliptic_f(x, k)');
-      check(EllipticEIncomplete(x, k).toString()).equals('elliptic_e(x, k)');
+      check(EllipticE(k, amplitude: x).toString()).equals('elliptic_e(x, k)');
 
       // Parser aliases and arity disambiguation
-      check(Expr.parse('Ei(x)')).equals(ExpIntegralEi(x));
-      check(Expr.parse('expIntegralEi(x)')).equals(ExpIntegralEi(x));
-      check(Expr.parse('li(x)')).equals(LogIntegralLi(x));
-      check(Expr.parse('Li(x)')).equals(LogIntegralLi(x));
+      check(Expr.parse('Ei(x)')).equals(ExpIntegral(x));
+      check(Expr.parse('expIntegralEi(x)')).equals(ExpIntegral(x));
+      check(Expr.parse('li(x)')).equals(LogIntegral(x));
+      check(Expr.parse('Li(x)')).equals(LogIntegral(x));
       check(Expr.parse('Li(2, x)')).equals(Polylog(IntegerNumber.two, x));
       check(Expr.parse('elliptic_e(x)')).equals(EllipticE(x));
-      check(Expr.parse('elliptic_e(x, k)')).equals(EllipticEIncomplete(x, k));
+      check(Expr.parse('elliptic_e(x, k)')).equals(EllipticE(k, amplitude: x));
       check(Expr.parse('ellipticF(x, k)')).equals(EllipticF(x, k));
       check(Expr.parse('upperGamma(2, x)'))
           .equals(UpperGamma(IntegerNumber.two, x));

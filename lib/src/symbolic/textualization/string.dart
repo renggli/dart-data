@@ -109,21 +109,21 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
       'besselk(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     EllipticK(:final expr) =>
       'elliptick(${_formatExpr(expr, 0, decimalPlaces)})',
-    EllipticE(:final expr) =>
-      'elliptice(${_formatExpr(expr, 0, decimalPlaces)})',
+    EllipticE(:final expr, :final amplitude) =>
+      amplitude == null
+          ? 'elliptice(${_formatExpr(expr, 0, decimalPlaces)})'
+          : 'elliptic_e(${_formatExpr(amplitude, 0, decimalPlaces)}, ${_formatExpr(expr, 0, decimalPlaces)})',
     Erfi(:final expr) => 'erfi(${_formatExpr(expr, 0, decimalPlaces)})',
     FresnelS(:final expr) => 'fresnels(${_formatExpr(expr, 0, decimalPlaces)})',
     FresnelC(:final expr) => 'fresnelc(${_formatExpr(expr, 0, decimalPlaces)})',
-    ExpIntegralEi(:final expr) => 'Ei(${_formatExpr(expr, 0, decimalPlaces)})',
+    ExpIntegral(:final expr) => 'Ei(${_formatExpr(expr, 0, decimalPlaces)})',
     ExpIntegralE(:final left, :final right) =>
       'expint(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    LogIntegralLi(:final expr) => 'li(${_formatExpr(expr, 0, decimalPlaces)})',
-    SinIntegralSi(:final expr) => 'Si(${_formatExpr(expr, 0, decimalPlaces)})',
-    CosIntegralCi(:final expr) => 'Ci(${_formatExpr(expr, 0, decimalPlaces)})',
-    SinhIntegralShi(:final expr) =>
-      'Shi(${_formatExpr(expr, 0, decimalPlaces)})',
-    CoshIntegralChi(:final expr) =>
-      'Chi(${_formatExpr(expr, 0, decimalPlaces)})',
+    LogIntegral(:final expr) => 'li(${_formatExpr(expr, 0, decimalPlaces)})',
+    SinIntegral(:final expr) => 'Si(${_formatExpr(expr, 0, decimalPlaces)})',
+    CosIntegral(:final expr) => 'Ci(${_formatExpr(expr, 0, decimalPlaces)})',
+    SinhIntegral(:final expr) => 'Shi(${_formatExpr(expr, 0, decimalPlaces)})',
+    CoshIntegral(:final expr) => 'Chi(${_formatExpr(expr, 0, decimalPlaces)})',
     UpperGamma(:final left, :final right) =>
       'uppergamma(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     LowerGamma(:final left, :final right) =>
@@ -132,8 +132,6 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
       'polylog(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     EllipticF(:final left, :final right) =>
       'elliptic_f(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    EllipticEIncomplete(:final left, :final right) =>
-      'elliptic_e(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
       'elliptic_pi(${_formatExpr(characteristic, 0, decimalPlaces)}, ${_formatExpr(amplitude, 0, decimalPlaces)}, ${_formatExpr(modulus, 0, decimalPlaces)})',
     Hypergeometric(:final upper, :final lower, :final argument) =>

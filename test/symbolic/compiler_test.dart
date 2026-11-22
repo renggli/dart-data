@@ -126,12 +126,12 @@ void main() {
         (Erfi(x), 1.6504257587975428),
         (FresnelS(x), 0.43825914739035476),
         (FresnelC(x), 0.7798934003768228),
-        (ExpIntegralEi(x), 1.8951178163559368),
-        (LogIntegralLi(IntegerNumber.two * x), 1.0451637801174928),
-        (SinIntegralSi(x), 0.946083070367183),
-        (CosIntegralCi(x), 0.33740392290096813),
-        (SinhIntegralShi(x), 1.0572508753757285),
-        (CoshIntegralChi(x), 0.8378669409802082),
+        (ExpIntegral(x), 1.8951178163559368),
+        (LogIntegral(IntegerNumber.two * x), 1.0451637801174928),
+        (SinIntegral(x), 0.946083070367183),
+        (CosIntegral(x), 0.33740392290096813),
+        (SinhIntegral(x), 1.0572508753757285),
+        (CoshIntegral(x), 0.8378669409802082),
         (UpperGamma(IntegerNumber.two, x), 0.7357588823428847),
         (LowerGamma(IntegerNumber.two, x), 0.2642411176571153),
         (
@@ -139,7 +139,7 @@ void main() {
           0.5822405264650125,
         ),
         (EllipticF(x, FractionNumber.half), 1.0373561200021775),
-        (EllipticEIncomplete(x, FractionNumber.half), 0.9648764542686274),
+        (EllipticE(FractionNumber.half, amplitude: x), 0.9648764542686274),
       ];
 
       for (final (expr, expected) in realCases) {
@@ -163,16 +163,16 @@ void main() {
         Erfi(x),
         FresnelS(x),
         FresnelC(x),
-        ExpIntegralEi(x),
-        LogIntegralLi(x),
-        SinIntegralSi(x),
-        CosIntegralCi(x),
-        SinhIntegralShi(x),
-        CoshIntegralChi(x),
+        ExpIntegral(x),
+        LogIntegral(x),
+        SinIntegral(x),
+        CosIntegral(x),
+        SinhIntegral(x),
+        CoshIntegral(x),
         UpperGamma(IntegerNumber.two, x),
         LowerGamma(IntegerNumber.two, x),
         EllipticF(x, FractionNumber.half),
-        EllipticEIncomplete(x, FractionNumber.half),
+        EllipticE(FractionNumber.half, amplitude: x),
       ]) {
         check(expr.evaluateComplex({'x': z}).isFinite).isTrue;
       }

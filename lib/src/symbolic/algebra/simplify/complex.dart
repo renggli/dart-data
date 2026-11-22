@@ -224,12 +224,12 @@ Expr simplifyConjugate(Expr expr, {required Assumptions assumptions}) {
         simplifyConjugate(expr, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case SinIntegralSi(:final expr):
+    case SinIntegral(:final expr):
       return simplifySinIntegralSi(
         simplifyConjugate(expr, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case SinhIntegralShi(:final expr):
+    case SinhIntegral(:final expr):
       return simplifySinhIntegralShi(
         simplifyConjugate(expr, assumptions: assumptions),
         assumptions: assumptions,

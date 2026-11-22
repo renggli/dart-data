@@ -70,9 +70,9 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
   Erfi(:final expr) ||
   FresnelS(:final expr) ||
   FresnelC(:final expr) ||
-  ExpIntegralEi(:final expr) ||
-  SinIntegralSi(:final expr) ||
-  SinhIntegralShi(:final expr) => isProvenReal(expr, assumptions),
+  ExpIntegral(:final expr) ||
+  SinIntegral(:final expr) ||
+  SinhIntegral(:final expr) => isProvenReal(expr, assumptions),
   Zeta(:final expr, :final shift) =>
     isProvenReal(expr, assumptions) &&
         (shift == null || isProvenReal(shift, assumptions)),
@@ -91,9 +91,9 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
               final v? => v > 0.0 || (v != v.floorToDouble()),
               _ => false,
             }),
-  LogIntegralLi(:final expr) ||
-  CosIntegralCi(:final expr) ||
-  CoshIntegralChi(:final expr) =>
+  LogIntegral(:final expr) ||
+  CosIntegral(:final expr) ||
+  CoshIntegral(:final expr) =>
     isProvenReal(expr, assumptions) &&
         switch (tryStaticRealValue(expr)) {
           final v? => v > 0.0,
@@ -105,15 +105,17 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
           final v? => v.abs() < 1.0,
           _ => false,
         },
-  EllipticE(:final expr) =>
-    isProvenReal(expr, assumptions) &&
-        switch (tryStaticRealValue(expr)) {
-          final v? => v.abs() <= 1.0,
-          _ => false,
-        },
+  EllipticE(:final expr, :final amplitude) =>
+    amplitude == null
+        ? isProvenReal(expr, assumptions) &&
+              switch (tryStaticRealValue(expr)) {
+                final v? => v.abs() <= 1.0,
+                _ => false,
+              }
+        : isProvenReal(expr, assumptions) &&
+              isProvenReal(amplitude, assumptions),
   Polygamma(:final left, :final right) ||
   EllipticF(:final left, :final right) ||
-  EllipticEIncomplete(:final left, :final right) ||
   Atan2(
     :final left,
     :final right,

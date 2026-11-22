@@ -188,8 +188,8 @@ void main() {
         Erfi(z),
         FresnelS(z),
         FresnelC(z),
-        SinIntegralSi(z),
-        SinhIntegralShi(z),
+        SinIntegral(z),
+        SinhIntegral(z),
       ]) {
         final conj = Conjugate(fn).simplify();
         check(conj.toString()).not(.it()..startsWith('conj('));

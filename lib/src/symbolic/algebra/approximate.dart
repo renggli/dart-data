@@ -74,7 +74,12 @@ Expr _approximateNode(Expr node) => switch (node) {
     return rebuilt.simplify();
   }(),
   BinaryExpr() => _approximateBinary(node),
-  EllipticPi() || Zeta() || Hypergeometric() || Min() || Max() => () {
+  EllipticPi() ||
+  EllipticE() ||
+  Zeta() ||
+  Hypergeometric() ||
+  Min() ||
+  Max() => () {
     final rebuilt = node.mapChildren(_approximateNode);
     if (rebuilt.freeVariables.isEmpty) {
       if (rebuilt.anyNode((n) => n is ComplexNumber)) {

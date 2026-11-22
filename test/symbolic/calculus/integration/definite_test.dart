@@ -366,7 +366,7 @@ void main() {
       check(Expr.parse('sin(x^3) / (x^2 - 4)').integrate('x', from: -1, to: 1))
           .equals(IntegerNumber.zero);
       check(Expr.parse('sin(x^3) / x').integrate('x', from: -1, to: 1)).equals(
-        (RationalNumber(2, 3) * SinIntegralSi(IntegerNumber.one)).simplify(),
+        (RationalNumber(2, 3) * SinIntegral(IntegerNumber.one)).simplify(),
       );
       check(Expr.parse('1 / (x - 1)^2').integrate('x', from: 0, to: 2))
           .equals(Constant.infinity);

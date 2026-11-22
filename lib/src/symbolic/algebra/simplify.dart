@@ -212,8 +212,11 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
       _simplify(expr, assumptions, cache),
       assumptions: assumptions,
     ),
-    EllipticE(:final expr) => simplifyEllipticE(
+    EllipticE(:final expr, :final amplitude) => simplifyEllipticE(
       _simplify(expr, assumptions, cache),
+      amplitude: amplitude == null
+          ? null
+          : _simplify(amplitude, assumptions, cache),
       assumptions: assumptions,
     ),
     Erfi(:final expr) => simplifyErfi(
@@ -228,24 +231,24 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
       _simplify(expr, assumptions, cache),
       assumptions: assumptions,
     ),
-    ExpIntegralEi(:final expr) => simplifyExpIntegralEi(
+    ExpIntegral(:final expr) => simplifyExpIntegralEi(
       _simplify(expr, assumptions, cache),
     ),
-    LogIntegralLi(:final expr) => simplifyLogIntegralLi(
+    LogIntegral(:final expr) => simplifyLogIntegralLi(
       _simplify(expr, assumptions, cache),
     ),
-    SinIntegralSi(:final expr) => simplifySinIntegralSi(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    CosIntegralCi(:final expr) => simplifyCosIntegralCi(
-      _simplify(expr, assumptions, cache),
-    ),
-    SinhIntegralShi(:final expr) => simplifySinhIntegralShi(
+    SinIntegral(:final expr) => simplifySinIntegralSi(
       _simplify(expr, assumptions, cache),
       assumptions: assumptions,
     ),
-    CoshIntegralChi(:final expr) => simplifyCoshIntegralChi(
+    CosIntegral(:final expr) => simplifyCosIntegralCi(
+      _simplify(expr, assumptions, cache),
+    ),
+    SinhIntegral(:final expr) => simplifySinhIntegralShi(
+      _simplify(expr, assumptions, cache),
+      assumptions: assumptions,
+    ),
+    CoshIntegral(:final expr) => simplifyCoshIntegralChi(
       _simplify(expr, assumptions, cache),
     ),
     UpperGamma(:final left, :final right) => simplifyUpperGamma(
@@ -268,12 +271,6 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
       _simplify(right, assumptions, cache),
       assumptions: assumptions,
     ),
-    EllipticEIncomplete(:final left, :final right) =>
-      simplifyEllipticEIncomplete(
-        _simplify(left, assumptions, cache),
-        _simplify(right, assumptions, cache),
-        assumptions: assumptions,
-      ),
     EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
       simplifyEllipticPi(
         _simplify(characteristic, assumptions, cache),

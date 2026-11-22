@@ -340,7 +340,7 @@ void main() {
 
   group('Special integral and polylogarithm AST functions', () {
     test(
-      'differentiates Erfi, FresnelS, FresnelC, ExpIntegralEi, LogIntegralLi',
+      'differentiates Erfi, FresnelS, FresnelC, ExpIntegral, LogIntegral',
       () {
         check(
           (Expr.parse('erfi(2 * x)').derivative('x') -
@@ -370,79 +370,90 @@ void main() {
       },
     );
 
-    test('differentiates SinIntegralSi, CosIntegralCi, SinhIntegralShi, CoshIntegralChi', () {
-      check(
-        (Expr.parse('Si(3 * x)').derivative('x') - Expr.parse('sin(3 * x) / x'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
-      check(
-        (Expr.parse('Ci(x^2)').derivative('x') - Expr.parse('2 * cos(x^2) / x'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
-      check(
-        (Expr.parse('Shi(x)').derivative('x') - Expr.parse('sinh(x) / x'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
-      check(
-        (Expr.parse('Chi(x)').derivative('x') - Expr.parse('cosh(x) / x'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
-    });
+    test(
+      'differentiates SinIntegral, CosIntegral, SinhIntegral, CoshIntegral',
+      () {
+        check(
+          (Expr.parse('Si(3 * x)').derivative('x') -
+                  Expr.parse('sin(3 * x) / x'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('Ci(x^2)').derivative('x') -
+                  Expr.parse('2 * cos(x^2) / x'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('Shi(x)').derivative('x') - Expr.parse('sinh(x) / x'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('Chi(x)').derivative('x') - Expr.parse('cosh(x) / x'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+      },
+    );
 
-    test('differentiates UpperGamma, LowerGamma, Polylog, EllipticF, EllipticEIncomplete', () {
-      check(
-        (Expr.parse('uppergamma(3, x^2)').derivative('x') -
-                Expr.parse('-2 * x^5 * exp(-x^2)'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
-      check(
-        (Expr.parse('lowergamma(3, x^2)').derivative('x') -
-                Expr.parse('2 * x^5 * exp(-x^2)'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
-      check(
-        (Expr.parse('polylog(1, x)').derivative('x') -
-                Expr.parse('1 / (1 - x)'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
-      check(
-        (Expr.parse('polylog(3, x^2)').derivative('x') -
-                Expr.parse('2 * polylog(2, x^2) / x'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
-      check(
-        (Expr.parse('elliptic_f(x, k)').derivative('x') -
-                Expr.parse('1 / sqrt(1 - k^2 * sin(x)^2)'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
-      check(
-        (Expr.parse('elliptic_e(x, k)').derivative('x') -
-                Expr.parse('sqrt(1 - k^2 * sin(x)^2)'))
-            .simplify(),
-      ).equals(IntegerNumber.zero);
+    test(
+      'differentiates UpperGamma, LowerGamma, Polylog, EllipticF, EllipticE',
+      () {
+        check(
+          (Expr.parse('uppergamma(3, x^2)').derivative('x') -
+                  Expr.parse('-2 * x^5 * exp(-x^2)'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('lowergamma(3, x^2)').derivative('x') -
+                  Expr.parse('2 * x^5 * exp(-x^2)'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('polylog(1, x)').derivative('x') -
+                  Expr.parse('1 / (1 - x)'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('polylog(3, x^2)').derivative('x') -
+                  Expr.parse('2 * polylog(2, x^2) / x'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('elliptic_f(x, k)').derivative('x') -
+                  Expr.parse('1 / sqrt(1 - k^2 * sin(x)^2)'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+        check(
+          (Expr.parse('elliptic_e(x, k)').derivative('x') -
+                  Expr.parse('sqrt(1 - k^2 * sin(x)^2)'))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
 
-      // Parameter-dependent differentiation falls back to Derivative
-      check(UpperGamma(x, IntegerNumber.two).derivative('x')).isA<Derivative>();
-      check(LowerGamma(x, IntegerNumber.two).derivative('x')).isA<Derivative>();
-      check(Polylog(x, FractionNumber.half).derivative('x')).isA<Derivative>();
+        // Parameter-dependent differentiation falls back to Derivative
+        check(UpperGamma(x, IntegerNumber.two).derivative('x'))
+            .isA<Derivative>();
+        check(LowerGamma(x, IntegerNumber.two).derivative('x'))
+            .isA<Derivative>();
+        check(Polylog(x, FractionNumber.half).derivative('x'))
+            .isA<Derivative>();
 
-      // Modulus differentiation of incomplete elliptic integrals
-      const k = Variable('k');
-      final piOver4 = Constant.pi / IntegerNumber.of(4);
-      final piOver3 = Constant.pi / IntegerNumber.of(3);
-      check(EllipticEIncomplete(piOver4, k).derivative('k')).equals(
-        ((EllipticEIncomplete(piOver4, k) - EllipticF(piOver4, k)) / k)
-            .simplify(),
-      );
+        // Modulus differentiation of incomplete elliptic integrals
+        const k = Variable('k');
+        final piOver4 = Constant.pi / IntegerNumber.of(4);
+        final piOver3 = Constant.pi / IntegerNumber.of(3);
+        check(EllipticE(k, amplitude: piOver4).derivative('k')).equals(
+          ((EllipticE(k, amplitude: piOver4) - EllipticF(piOver4, k)) / k)
+              .simplify(),
+        );
 
-      final dFdk = EllipticF(piOver3, k).derivative('k');
-      const h = 1e-6;
-      final fd =
-          (EllipticF(piOver3, k).evaluate({'k': 0.5 + h}) -
-              EllipticF(piOver3, k).evaluate({'k': 0.5 - h})) /
-          (2.0 * h);
-      check(dFdk.evaluate({'k': 0.5})).isCloseTo(fd, 1e-6);
-    });
+        final dFdk = EllipticF(piOver3, k).derivative('k');
+        const h = 1e-6;
+        final fd =
+            (EllipticF(piOver3, k).evaluate({'k': 0.5 + h}) -
+                EllipticF(piOver3, k).evaluate({'k': 0.5 - h})) /
+            (2.0 * h);
+        check(dFdk.evaluate({'k': 0.5})).isCloseTo(fd, 1e-6);
+      },
+    );
 
     test('differentiates symbolic Product via logarithmic differentiation', () {
       const t = Variable('t');

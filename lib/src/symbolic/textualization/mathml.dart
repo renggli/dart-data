@@ -114,27 +114,29 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><msub><mi>K</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   EllipticK(:final expr) =>
     '<mrow><mi>K</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  EllipticE(:final expr) =>
-    '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  EllipticE(:final expr, :final amplitude) =>
+    amplitude == null
+        ? '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>'
+        : '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(amplitude, decimalPlaces)}<mo>,</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Erfi(:final expr) =>
     '<mrow><mi>erfi</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   FresnelS(:final expr) =>
     '<mrow><mi>S</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   FresnelC(:final expr) =>
     '<mrow><mi>C</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  ExpIntegralEi(:final expr) =>
+  ExpIntegral(:final expr) =>
     '<mrow><mi>Ei</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   ExpIntegralE(:final left, :final right) =>
     '<mrow><msub><mi>E</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  LogIntegralLi(:final expr) =>
+  LogIntegral(:final expr) =>
     '<mrow><mi>li</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  SinIntegralSi(:final expr) =>
+  SinIntegral(:final expr) =>
     '<mrow><mi>Si</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  CosIntegralCi(:final expr) =>
+  CosIntegral(:final expr) =>
     '<mrow><mi>Ci</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  SinhIntegralShi(:final expr) =>
+  SinhIntegral(:final expr) =>
     '<mrow><mi>Shi</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  CoshIntegralChi(:final expr) =>
+  CoshIntegral(:final expr) =>
     '<mrow><mi>Chi</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   UpperGamma(:final left, :final right) =>
     '<mrow><mi>Γ</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
@@ -144,8 +146,6 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><msub><mi>Li</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   EllipticF(:final left, :final right) =>
     '<mrow><mi>F</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  EllipticEIncomplete(:final left, :final right) =>
-    '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
     '<mrow><mi>Π</mi><mo>(</mo>${_toMathMl(characteristic, decimalPlaces)}<mo>;</mo>${_toMathMl(amplitude, decimalPlaces)}<mo>|</mo>${_toMathMl(modulus, decimalPlaces)}<mo>)</mo></mrow>',
   Hypergeometric(:final upper, :final lower, :final argument) =>

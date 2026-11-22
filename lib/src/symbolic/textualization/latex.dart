@@ -79,23 +79,26 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
   BesselK(:final left, :final right) =>
     'K_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
   EllipticK(:final expr) => 'K(${_toLatex(expr, decimalPlaces)})',
-  EllipticE(:final expr) => 'E(${_toLatex(expr, decimalPlaces)})',
+  EllipticE(:final expr, :final amplitude) =>
+    amplitude == null
+        ? 'E(${_toLatex(expr, decimalPlaces)})'
+        : 'E(${_toLatex(amplitude, decimalPlaces)}, ${_toLatex(expr, decimalPlaces)})',
   Erfi(:final expr) => '\\operatorname{erfi}(${_toLatex(expr, decimalPlaces)})',
   FresnelS(:final expr) => 'S(${_toLatex(expr, decimalPlaces)})',
   FresnelC(:final expr) => 'C(${_toLatex(expr, decimalPlaces)})',
-  ExpIntegralEi(:final expr) =>
+  ExpIntegral(:final expr) =>
     '\\operatorname{Ei}(${_toLatex(expr, decimalPlaces)})',
   ExpIntegralE(:final left, :final right) =>
     'E_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
-  LogIntegralLi(:final expr) =>
+  LogIntegral(:final expr) =>
     '\\operatorname{li}(${_toLatex(expr, decimalPlaces)})',
-  SinIntegralSi(:final expr) =>
+  SinIntegral(:final expr) =>
     '\\operatorname{Si}(${_toLatex(expr, decimalPlaces)})',
-  CosIntegralCi(:final expr) =>
+  CosIntegral(:final expr) =>
     '\\operatorname{Ci}(${_toLatex(expr, decimalPlaces)})',
-  SinhIntegralShi(:final expr) =>
+  SinhIntegral(:final expr) =>
     '\\operatorname{Shi}(${_toLatex(expr, decimalPlaces)})',
-  CoshIntegralChi(:final expr) =>
+  CoshIntegral(:final expr) =>
     '\\operatorname{Chi}(${_toLatex(expr, decimalPlaces)})',
   UpperGamma(:final left, :final right) =>
     '\\Gamma(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
@@ -105,8 +108,6 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
     '\\operatorname{Li}_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
   EllipticF(:final left, :final right) =>
     'F(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
-  EllipticEIncomplete(:final left, :final right) =>
-    'E(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
     '\\Pi(${_toLatex(characteristic, decimalPlaces)}; ${_toLatex(amplitude, decimalPlaces)} \\mid ${_toLatex(modulus, decimalPlaces)})',
   Hypergeometric(:final upper, :final lower, :final argument) =>

@@ -368,9 +368,41 @@ Expr simplifyEllipticK(Expr expr, {required Assumptions assumptions}) {
   return EllipticK(expr, isSimplified: true);
 }
 
-/// Simplifies a complete elliptic integral of the second kind `ellipticE(k)`.
-Expr simplifyEllipticE(Expr expr, {required Assumptions assumptions}) {
-  if (expr == Constant.undefined) return Constant.undefined;
+/// Simplifies a complete or incomplete elliptic integral of the second kind
+/// `ellipticE(k)` or `ellipticE(k, amplitude: phi)`.
+Expr simplifyEllipticE(
+  Expr expr, {
+  Expr? amplitude,
+  required Assumptions assumptions,
+}) {
+  if (expr == Constant.undefined || amplitude == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (amplitude != null) {
+    if (_isFloatComplexPair(amplitude, expr)) {
+      return _complexToExpr(
+        special_elliptic.ellipticEComplex(
+          _toComplex(expr),
+          phi: _toComplex(amplitude),
+        ),
+      );
+    }
+    if (amplitude == IntegerNumber.zero) return IntegerNumber.zero;
+    if (expr == IntegerNumber.zero) return amplitude;
+    if (amplitude ==
+        simplifyMul([
+          FractionNumber.half,
+          Constant.pi,
+        ], assumptions: assumptions)) {
+      return simplifyEllipticE(expr, assumptions: assumptions);
+    }
+    if (amplitude is RealNumber && expr is RealNumber) {
+      return RealNumber.fromDouble(
+        special_elliptic.ellipticE(expr.value, phi: amplitude.value),
+      );
+    }
+    return EllipticE(expr, amplitude: amplitude, isSimplified: true);
+  }
   if (_isFloatComplex(expr)) {
     return _complexToExpr(special_elliptic.ellipticEComplex(_toComplex(expr)));
   }
@@ -458,7 +490,7 @@ Expr simplifyExpIntegralEi(Expr expr) {
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.expIntegral(expr.value));
   }
-  return ExpIntegralEi(expr, isSimplified: true);
+  return ExpIntegral(expr, isSimplified: true);
 }
 
 /// Simplifies a logarithmic integral `li(x)`.
@@ -471,7 +503,7 @@ Expr simplifyLogIntegralLi(Expr expr) {
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.logIntegral(expr.value));
   }
-  return LogIntegralLi(expr, isSimplified: true);
+  return LogIntegral(expr, isSimplified: true);
 }
 
 /// Simplifies a sine integral `Si(x)`.
@@ -493,7 +525,7 @@ Expr simplifySinIntegralSi(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  return SinIntegralSi(expr, isSimplified: true);
+  return SinIntegral(expr, isSimplified: true);
 }
 
 /// Simplifies a cosine integral `Ci(x)`.
@@ -507,7 +539,7 @@ Expr simplifyCosIntegralCi(Expr expr) {
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_trig_int.cosIntegral(expr.value));
   }
-  return CosIntegralCi(expr, isSimplified: true);
+  return CosIntegral(expr, isSimplified: true);
 }
 
 /// Simplifies a hyperbolic sine integral `Shi(x)`.
@@ -529,7 +561,7 @@ Expr simplifySinhIntegralShi(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  return SinhIntegralShi(expr, isSimplified: true);
+  return SinhIntegral(expr, isSimplified: true);
 }
 
 /// Simplifies a hyperbolic cosine integral `Chi(x)`.
@@ -543,7 +575,7 @@ Expr simplifyCoshIntegralChi(Expr expr) {
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_trig_int.coshIntegral(expr.value));
   }
-  return CoshIntegralChi(expr, isSimplified: true);
+  return CoshIntegral(expr, isSimplified: true);
 }
 
 /// Simplifies an upper incomplete gamma function `upperGamma(s, x)`.
@@ -695,36 +727,6 @@ Expr simplifyEllipticF(Expr phi, Expr k, {required Assumptions assumptions}) {
 }
 
 /// Simplifies an incomplete elliptic integral of the second kind `ellipticE(phi, k)`.
-Expr simplifyEllipticEIncomplete(
-  Expr phi,
-  Expr k, {
-  required Assumptions assumptions,
-}) {
-  if (phi == Constant.undefined || k == Constant.undefined) {
-    return Constant.undefined;
-  }
-  if (_isFloatComplexPair(phi, k)) {
-    return _complexToExpr(
-      special_elliptic.ellipticEComplex(_toComplex(k), phi: _toComplex(phi)),
-    );
-  }
-  if (phi == IntegerNumber.zero) return IntegerNumber.zero;
-  if (k == IntegerNumber.zero) return phi;
-  if (phi ==
-      simplifyMul([
-        FractionNumber.half,
-        Constant.pi,
-      ], assumptions: assumptions)) {
-    return simplifyEllipticE(k, assumptions: assumptions);
-  }
-  if (phi is RealNumber && k is RealNumber) {
-    return RealNumber.fromDouble(
-      special_elliptic.ellipticE(k.value, phi: phi.value),
-    );
-  }
-  return EllipticEIncomplete(phi, k, isSimplified: true);
-}
-
 /// Simplifies an incomplete elliptic integral of the third kind $\Pi(n; \phi \mid k)$.
 Expr simplifyEllipticPi(
   Expr n,

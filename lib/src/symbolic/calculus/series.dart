@@ -626,14 +626,14 @@ PowerSeries _expandToPowerSeries(
 
   FresnelC(:final expr) => _expandFresnelC(expr, variable, point, order),
 
-  SinIntegralSi(:final expr) => _expandSinIntegralSi(
+  SinIntegral(:final expr) => _expandSinIntegralSi(
     expr,
     variable,
     point,
     order,
   ),
 
-  SinhIntegralShi(:final expr) => _expandSinhIntegralShi(
+  SinhIntegral(:final expr) => _expandSinhIntegralShi(
     expr,
     variable,
     point,
@@ -656,21 +656,21 @@ PowerSeries _expandToPowerSeries(
     point,
     order,
   ),
-  EllipticE(expr: final inner) => _expandEllipticE(
+  EllipticE(expr: final inner, amplitude: null) => _expandEllipticE(
     expr,
     inner,
     variable,
     point,
     order,
   ),
-  ExpIntegralEi() ||
-  LogIntegralLi() ||
-  CosIntegralCi() ||
-  CoshIntegralChi() ||
+  ExpIntegral() ||
+  LogIntegral() ||
+  CosIntegral() ||
+  CoshIntegral() ||
   UpperGamma() ||
   LowerGamma() ||
   EllipticF() ||
-  EllipticEIncomplete() ||
+  EllipticE() ||
   EllipticPi() ||
   ExpIntegralE() ||
   Hypergeometric() ||
@@ -1228,7 +1228,7 @@ PowerSeries _expandSinIntegralSi(
   order,
   name: 'Si',
   alternating: true,
-  evaluateAt: (u0) => SinIntegralSi(u0).simplify(),
+  evaluateAt: (u0) => SinIntegral(u0).simplify(),
   numeratorSeries: (u) => _expandSinCosFromSeries(u).sin,
 );
 
@@ -1244,7 +1244,7 @@ PowerSeries _expandSinhIntegralShi(
   order,
   name: 'Shi',
   alternating: false,
-  evaluateAt: (u0) => SinhIntegralShi(u0).simplify(),
+  evaluateAt: (u0) => SinhIntegral(u0).simplify(),
   numeratorSeries: (u) => _expandSinhCoshFromSeries(u).sinh,
 );
 
