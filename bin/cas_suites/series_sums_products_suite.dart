@@ -222,6 +222,23 @@ final CasTestSuite seriesSumsProductsSuite = CasTestSuite(
     sumCase('sum_inf_exp_shifted', 'x^k / k!', 'k', '1', 'oo', 'exp(x) - 1'),
     sumCase('sum_inf_bell_1', 'k * x^k / k!', 'k', '0', 'oo', 'x * exp(x)'),
     sumCase('sum_inf_telescope', '1 / (k * (k + 1))', 'k', '1', 'oo', '1'),
+    sumCase('sum_inf_eta_2', '(-1)^(k - 1) / k^2', 'k', '1', 'oo', 'pi^2 / 12'),
+    sumCase(
+      'sum_inf_gregory_leibniz',
+      '(-1)^k / (2*k + 1)',
+      'k',
+      '0',
+      'oo',
+      'pi / 4',
+    ),
+    sumCase(
+      'sum_inf_digamma_two_pole',
+      '1 / ((k + 1) * (k + 1/2))',
+      'k',
+      '0',
+      'oo',
+      '2 * (digamma(1) - digamma(1/2))',
+    ),
 
     // Finite & Infinite Symbolic Products
     productCase('prod_finite_const', 'c', 'k', '1', 'n', 'c^n'),

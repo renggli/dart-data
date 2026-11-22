@@ -593,5 +593,20 @@ void main() {
       check(Expr.parse('x * atanh(1 / x)').limit('x', Constant.infinity))
           .equals(IntegerNumber.one);
     });
+
+    test('evaluates Stirling asymptotic limits for Factorial and Gamma', () {
+      check(
+        Expr.parse('x! / (sqrt(2*pi*x) * (x / e)^x)')
+            .limit('x', Constant.infinity),
+      ).equals(IntegerNumber.one);
+      check(
+        Expr.parse('gamma(x) / (sqrt(2*pi/x) * (x / e)^x)')
+            .limit('x', Constant.infinity),
+      ).equals(IntegerNumber.one);
+      check(
+        Expr.parse('(2*x)! / (x!^2 * 4^x / sqrt(pi*x))')
+            .limit('x', Constant.infinity),
+      ).equals(IntegerNumber.one);
+    });
   });
 }

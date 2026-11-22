@@ -224,5 +224,19 @@ final CasTestSuite gruntzLimitsSuite = CasTestSuite(
     limitCase('limit_squeeze_cos', 'exp(-x) * cos(x)', 'x', 'oo', '0'),
     limitDoesNotExistCase('limit_osc_sin_inf', 'sin(x)', 'x', 'oo'),
     limitDoesNotExistCase('limit_osc_neg_exp', '(-2)^x * x', 'x', 'oo'),
+    limitCase(
+      'limit_stirling_fact',
+      'x! / (sqrt(2*pi*x) * (x / e)^x)',
+      'x',
+      'oo',
+      '1',
+    ),
+    limitCase(
+      'limit_stirling_gamma',
+      'gamma(x) / (sqrt(2*pi/x) * (x / e)^x)',
+      'x',
+      'oo',
+      '1',
+    ),
   ],
 );

@@ -596,5 +596,19 @@ void main() {
       check(Expr.parse('product(2^(1 / n^2), n, 1, infinity)').simplify())
           .equals(Expr.parse('2^(pi^2 / 6)').simplify());
     });
+
+    test('evaluates two-pole Digamma and alternating infinite sums', () {
+      check(
+        Expr.parse('sum(1 / ((k + 1) * (k + 1/2)), k, 0, infinity)').simplify(),
+      ).equals(Expr.parse('2 * (digamma(1) - digamma(1/2))').simplify());
+      check(
+        Expr.parse('sum(1 / (k + 1) - 1 / (k + 3/2), k, 0, infinity)')
+            .simplify(),
+      ).equals(Expr.parse('digamma(3/2) - digamma(1)').simplify());
+      check(Expr.parse('sum((-1)^(k - 1) / k^2, k, 1, infinity)').simplify())
+          .equals(Expr.parse('pi^2 / 12').simplify());
+      check(Expr.parse('sum((-1)^k / (2*k + 1), k, 0, infinity)').simplify())
+          .equals(Expr.parse('pi / 4').simplify());
+    });
   });
 }

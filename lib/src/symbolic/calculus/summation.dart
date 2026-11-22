@@ -1102,6 +1102,123 @@ Expr? _matchInfiniteSeriesFamily(
   );
   if (powerDenRes != null) return powerDenRes;
 
+  // 3. Two-pole Digamma infinite sums:
+  //    c / ((m1*k + d1) * (m2*k + d2)) or c1/(m1*k + d1) + c2/(m2*k + d2)
+  final digammaRes = _matchTwoPoleDigammaSeries(
+    term,
+    variable,
+    startInt,
+    assumptions: assumptions,
+  );
+  if (digammaRes != null) return digammaRes;
+
+  return null;
+}
+
+Expr? _matchTwoPoleDigammaSeries(
+  Expr term,
+  String variable,
+  int startInt, {
+  required Assumptions assumptions,
+}) {
+  final startExpr = IntegerNumber.of(startInt);
+
+  bool isValidDigammaArg(Expr arg) {
+    if (arg is IntegerNumber) return arg.value > Integer.zero;
+    if (arg is RationalNumber) return !arg.isNegative && !arg.isZero;
+    return true;
+  }
+
+  // Form A: c / ((m1*k + d1) * (m2*k + d2))
+  final (num, den) = splitNumeratorDenominator(term);
+  if (!num.dependsOn(variable)) {
+    final denFactors = den is Mul ? den.factors : [den];
+    final linPoles = <({Expr m, Expr d})>[];
+    final constDen = <Expr>[];
+    var valid = true;
+    for (final f in denFactors) {
+      if (!f.dependsOn(variable)) {
+        constDen.add(f);
+        continue;
+      }
+      if (f.matchLinear(variable) case (:final a, :final b)
+          when a != IntegerNumber.zero) {
+        linPoles.add((m: a, d: b));
+      } else {
+        valid = false;
+        break;
+      }
+    }
+    if (valid && linPoles.length == 2) {
+      final p1 = linPoles[0];
+      final p2 = linPoles[1];
+      final a = (p1.d / p1.m).simplify(assumptions: assumptions);
+      final b = (p2.d / p2.m).simplify(assumptions: assumptions);
+      final diff = (b - a).simplify(assumptions: assumptions);
+      if (diff != IntegerNumber.zero) {
+        final argA = (startExpr + a).simplify(assumptions: assumptions);
+        final argB = (startExpr + b).simplify(assumptions: assumptions);
+        if (isValidDigammaArg(argA) && isValidDigammaArg(argB)) {
+          final totalDen = Mul([...constDen, p1.m, p2.m, diff])
+              .simplify(assumptions: assumptions);
+          return ((num / totalDen) * (Digamma(argB) - Digamma(argA))).simplify(
+            assumptions: assumptions,
+          );
+        }
+      }
+    }
+  }
+
+  // Form B: c1 / (m1*k + d1) + c2 / (m2*k + d2) with c1/m1 + c2/m2 == 0
+  if (term case Add(terms: [final t1, final t2])) {
+    ({Expr coeff, Expr shift})? parseSinglePole(Expr t) {
+      final (tn, td) = splitNumeratorDenominator(t);
+      if (tn.dependsOn(variable)) return null;
+      final factors = td is Mul ? td.factors : [td];
+      Expr? m;
+      Expr? d;
+      final consts = <Expr>[];
+      for (final f in factors) {
+        if (!f.dependsOn(variable)) {
+          consts.add(f);
+        } else if (m == null) {
+          if (f.matchLinear(variable) case (:final a, :final b)
+              when a != IntegerNumber.zero) {
+            m = a;
+            d = b;
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      }
+      if (m == null || d == null) return null;
+      final denConst = consts.isEmpty
+          ? m
+          : Mul([...consts, m]).simplify(assumptions: assumptions);
+      return (
+        coeff: (tn / denConst).simplify(assumptions: assumptions),
+        shift: (d / m).simplify(assumptions: assumptions),
+      );
+    }
+
+    final p1 = parseSinglePole(t1);
+    final p2 = parseSinglePole(t2);
+    if (p1 != null && p2 != null) {
+      final sumCoeff = (p1.coeff + p2.coeff).simplify(assumptions: assumptions);
+      if (sumCoeff == IntegerNumber.zero && p1.shift != p2.shift) {
+        final arg1 = (startExpr + p1.shift).simplify(assumptions: assumptions);
+        final arg2 = (startExpr + p2.shift).simplify(assumptions: assumptions);
+        if (isValidDigammaArg(arg1) && isValidDigammaArg(arg2)) {
+          return (p1.coeff * (Digamma(arg2) - Digamma(arg1))).simplify(
+            assumptions: assumptions,
+          );
+        }
+      }
+    }
+  }
+
   return null;
 }
 

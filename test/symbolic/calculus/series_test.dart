@@ -666,5 +666,42 @@ void main() {
         );
       },
     );
+
+    test('expands Maclaurin series for Erf, Erfc, Erfi, Si, Shi, FresnelS, FresnelC', () {
+      check(
+        (Expr.parse('erf(x)').series('x', order: 4) -
+                Expr.parse('2 / sqrt(pi) * x - 2 / (3 * sqrt(pi)) * x^3'))
+            .simplify(),
+      ).equals(const OrderTerm('x', 4));
+      check(
+        (Expr.parse('erfc(x)').series('x', order: 4) -
+                Expr.parse('1 - 2 / sqrt(pi) * x + 2 / (3 * sqrt(pi)) * x^3'))
+            .simplify(),
+      ).equals(const OrderTerm('x', 4));
+      check(
+        (Expr.parse('erfi(x)').series('x', order: 4) -
+                Expr.parse('2 / sqrt(pi) * x + 2 / (3 * sqrt(pi)) * x^3'))
+            .simplify(),
+      ).equals(const OrderTerm('x', 4));
+      check(
+        (Expr.parse('Si(x)').series('x', order: 4) -
+                Expr.parse('x - 1/18 * x^3'))
+            .simplify(),
+      ).equals(const OrderTerm('x', 4));
+      check(
+        (Expr.parse('Shi(x)').series('x', order: 4) -
+                Expr.parse('x + 1/18 * x^3'))
+            .simplify(),
+      ).equals(const OrderTerm('x', 4));
+      check(
+        (Expr.parse('fresnels(x)').series('x', order: 4) -
+                Expr.parse('1/6 * pi * x^3'))
+            .simplify(),
+      ).equals(const OrderTerm('x', 4));
+      check(
+        (Expr.parse('fresnelc(x)').series('x', order: 4) - Expr.parse('x'))
+            .simplify(),
+      ).equals(const OrderTerm('x', 4));
+    });
   });
 }

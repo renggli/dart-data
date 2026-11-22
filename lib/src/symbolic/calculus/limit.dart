@@ -707,7 +707,95 @@ Expr _computeInfiniteLimit(
     return expPolyLim.simplify(assumptions: posAssumptions);
   }
 
+  final stirlingRewritten = _rewriteStirlingAtPosInf(
+    combined,
+    variable,
+    posAssumptions,
+  );
+  if (stirlingRewritten != combined) {
+    return computeLimit(
+      stirlingRewritten,
+      variable,
+      Constant.infinity,
+      assumptions: posAssumptions,
+    );
+  }
+
   return _gruntzLimit(combined, variable, posAssumptions);
+}
+
+Expr _rewriteStirlingAtPosInf(
+  Expr expr,
+  String variable,
+  Assumptions assumptions,
+) {
+  switch (expr) {
+    case Factorial(expr: final inner) when inner.dependsOn(variable):
+      final rewrittenInner = _rewriteStirlingAtPosInf(
+        inner,
+        variable,
+        assumptions,
+      );
+      final innerLim = computeLimit(
+        rewrittenInner,
+        variable,
+        Constant.infinity,
+        assumptions: assumptions,
+      );
+      if (_isPositiveInfinity(innerLim)) {
+        return Pow(
+              IntegerNumber.two * Constant.pi * rewrittenInner,
+              FractionNumber.half,
+            ) *
+            _stirlingPower(rewrittenInner) *
+            Pow(
+              Constant.e,
+              IntegerNumber.one / (IntegerNumber.of(12) * rewrittenInner),
+            );
+      }
+      return Factorial(rewrittenInner);
+    case Gamma(expr: final inner) when inner.dependsOn(variable):
+      final rewrittenInner = _rewriteStirlingAtPosInf(
+        inner,
+        variable,
+        assumptions,
+      );
+      final innerLim = computeLimit(
+        rewrittenInner,
+        variable,
+        Constant.infinity,
+        assumptions: assumptions,
+      );
+      if (_isPositiveInfinity(innerLim)) {
+        return Pow(
+              (IntegerNumber.two * Constant.pi) / rewrittenInner,
+              FractionNumber.half,
+            ) *
+            _stirlingPower(rewrittenInner) *
+            Pow(
+              Constant.e,
+              IntegerNumber.one / (IntegerNumber.of(12) * rewrittenInner),
+            );
+      }
+      return Gamma(rewrittenInner);
+    default:
+      return expr.mapChildren(
+        (c) => _rewriteStirlingAtPosInf(c, variable, assumptions),
+      );
+  }
+}
+
+Expr _stirlingPower(Expr u) {
+  if (u case Mul(:final factors)
+      when factors.length >= 2 &&
+          factors.first is RationalNumber &&
+          !(factors.first as RationalNumber).isNegative &&
+          !(factors.first as RationalNumber).isZero) {
+    final c = factors.first;
+    final rest = factors.length == 2 ? factors[1] : Mul(factors.sublist(1));
+    return Pow(c, u) * Pow(rest / Constant.e, u);
+  }
+  return Pow(u / Constant.e, u);
 }
 
 Expr _combineNumericPowers(
