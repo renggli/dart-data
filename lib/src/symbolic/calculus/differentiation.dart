@@ -364,6 +364,36 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
       _ => Add(terms),
     };
   }(),
+  Binomial(:final left, :final right) => () {
+    if (right case IntegerNumber(asInt: final k?) when k >= 0 && k <= 20) {
+      if (k == 0) return IntegerNumber.zero;
+      final factors = <Expr>[
+        for (var j = 0; j < k; j++)
+          (j == 0 ? left : left - IntegerNumber.of(j)) /
+              IntegerNumber.of(j + 1),
+      ];
+      final expanded = factors.length == 1 ? factors.first : Mul(factors);
+      return _differentiate(expanded, variable);
+    }
+    final dn = _differentiate(left, variable);
+    final dk = _differentiate(right, variable);
+    final psiNK1 = Polygamma(
+      IntegerNumber.zero,
+      left - right + IntegerNumber.one,
+    );
+    final terms = <Expr>[];
+    if (dn != IntegerNumber.zero) {
+      final psiN1 = Polygamma(IntegerNumber.zero, left + IntegerNumber.one);
+      terms.add((psiN1 - psiNK1) * dn);
+    }
+    if (dk != IntegerNumber.zero) {
+      final psiK1 = Polygamma(IntegerNumber.zero, right + IntegerNumber.one);
+      terms.add(-(psiK1 - psiNK1) * dk);
+    }
+    if (terms.isEmpty) return IntegerNumber.zero;
+    final sum = terms.length == 1 ? terms.first : Add(terms);
+    return expr * sum;
+  }(),
   UpperGamma() ||
   LowerGamma() ||
   Polylog() ||
@@ -373,7 +403,6 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   BesselI() ||
   BesselK() ||
   Zeta() ||
-  Binomial() ||
   Arg() => Derivative(expr, variable),
   Re(expr: final inner) => Re(_differentiate(inner, variable)),
   Im(expr: final inner) => Im(_differentiate(inner, variable)),

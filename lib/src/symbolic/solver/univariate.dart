@@ -137,6 +137,28 @@ List<Expr> _solveUnfiltered(
         .toList();
   }
 
+  if (expr.anyNode((n) => n is Binomial)) {
+    Expr expandBinomial(Expr e) {
+      final mapped = e.mapChildren(expandBinomial);
+      if (mapped
+          case Binomial(left: final u, right: IntegerNumber(asInt: final k?))
+          when k >= 0 && k <= 20) {
+        if (k == 0) return IntegerNumber.one;
+        final factors = <Expr>[
+          for (var j = 0; j < k; j++)
+            (j == 0 ? u : u - IntegerNumber.of(j)) / IntegerNumber.of(j + 1),
+        ];
+        return factors.length == 1 ? factors.first : Mul(factors);
+      }
+      return mapped;
+    }
+
+    final expanded = expandBinomial(expr).simplify(assumptions: assumptions);
+    if (expanded != expr) {
+      return _solveUnfiltered(expanded, variable, assumptions);
+    }
+  }
+
   // Linear form: a * x + b = 0
   if (expr.matchLinear(variable) case (:final a, :final b)) {
     return [((-b) / a).simplify(assumptions: assumptions)];

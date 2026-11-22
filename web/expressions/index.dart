@@ -1894,6 +1894,51 @@ void detectRootsAndExtrema() {
   return (minY: minY, maxY: maxY);
 }
 
+final _curveSampleCache =
+    <
+      String,
+      ({
+        Object fnKey,
+        double minX,
+        double maxX,
+        int maxPoints,
+        CurveSample sample,
+      })
+    >{};
+
+CurveSample _cachedCurveSample(
+  String cacheKey,
+  Object fnKey,
+  PlotViewport vp,
+  double Function(double x) fn, {
+  double stepPx = 1.5,
+}) {
+  final maxPoints = math.max(256, (vp.plotWidth / stepPx).ceil() * 2);
+  final cached = _curveSampleCache[cacheKey];
+  if (cached != null &&
+      identical(cached.fnKey, fnKey) &&
+      cached.minX == vp.minX &&
+      cached.maxX == vp.maxX &&
+      cached.maxPoints == maxPoints) {
+    return cached.sample;
+  }
+  final sample = sampleCurve(
+    fn,
+    vp.minX,
+    vp.maxX,
+    maxPoints: maxPoints,
+    initialPoints: 97,
+  );
+  _curveSampleCache[cacheKey] = (
+    fnKey: fnKey,
+    minX: vp.minX,
+    maxX: vp.maxX,
+    maxPoints: maxPoints,
+    sample: sample,
+  );
+  return sample;
+}
+
 void drawCharts() {
   if (parsedExpr != null && parsedExpr!.freeVariables.length == 2) {
     _renderMultivariable3dSurface(parsedExpr!);
@@ -2012,6 +2057,7 @@ void drawCharts() {
 
   // 3. Primary Curve Re f(x) or f(x)
   if (showFx) {
+    final fnKey = fnCompiled ?? fnComplexCompiled!;
     drawCurve(
       ctx,
       vp,
@@ -2019,6 +2065,7 @@ void drawCharts() {
       strokeColor: '#3b82f6',
       lineWidth: 2.5,
       fillColor: hasImaginary ? null : 'rgba(59, 130, 246, 0.08)',
+      sample: _cachedCurveSample('fx', fnKey, vp, realFn),
     );
   }
 
@@ -2031,11 +2078,13 @@ void drawCharts() {
       strokeColor: '#a855f7',
       lineWidth: 2.0,
       lineDash: [4, 4],
+      sample: _cachedCurveSample('imfx', fnComplexCompiled!, vp, imagFn),
     );
   }
 
   // 4. First Derivative f'(x)
   if (showDfx && realDf != null) {
+    final dfKey = dfCompiled ?? dfComplexCompiled!;
     drawCurve(
       ctx,
       vp,
@@ -2043,11 +2092,13 @@ void drawCharts() {
       strokeColor: '#ef4444',
       lineWidth: 1.8,
       lineDash: [4, 4],
+      sample: _cachedCurveSample('dfx', dfKey, vp, realDf),
     );
   }
 
   // 5. Second Derivative f''(x)
   if (showD2fx && realD2f != null) {
+    final d2fKey = d2fCompiled ?? d2fComplexCompiled!;
     drawCurve(
       ctx,
       vp,
@@ -2055,11 +2106,13 @@ void drawCharts() {
       strokeColor: '#a855f7',
       lineWidth: 1.5,
       lineDash: [2, 3],
+      sample: _cachedCurveSample('d2fx', d2fKey, vp, realD2f),
     );
   }
 
   // 5b. Third Derivative f'''(x)
   if (showD3fx && realD3f != null) {
+    final d3fKey = d3fCompiled ?? d3fComplexCompiled!;
     drawCurve(
       ctx,
       vp,
@@ -2067,11 +2120,13 @@ void drawCharts() {
       strokeColor: '#ec4899',
       lineWidth: 1.5,
       lineDash: [1, 3],
+      sample: _cachedCurveSample('d3fx', d3fKey, vp, realD3f),
     );
   }
 
   // 6. Taylor Polynomial Approximation
   if (showTaylor && realTaylor != null) {
+    final taylorKey = taylorCompiled ?? taylorComplexCompiled!;
     drawCurve(
       ctx,
       vp,
@@ -2079,6 +2134,7 @@ void drawCharts() {
       strokeColor: '#f59e0b',
       lineWidth: 2.0,
       lineDash: [6, 3],
+      sample: _cachedCurveSample('taylor', taylorKey, vp, realTaylor),
     );
   }
 

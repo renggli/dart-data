@@ -507,6 +507,7 @@ void drawCurve(
   String? fillColor,
   double stepPx = 1.5,
   double? fillBaseY = 0.0,
+  CurveSample? sample,
 }) {
   ctx.save();
   ctx.strokeStyle = strokeColor.toJS;
@@ -529,17 +530,19 @@ void drawCurve(
   final yMinPx = vp.topMargin - 50.0;
   final yMaxPx = vp.topMargin + vp.plotHeight + 50.0;
   final maxPoints = math.max(256, (vp.plotWidth / stepPx).ceil() * 2);
-  final sample = sampleCurve(
-    fn,
-    vp.minX,
-    vp.maxX,
-    maxPoints: maxPoints,
-    initialPoints: 97,
-  );
+  final resolvedSample =
+      sample ??
+      sampleCurve(
+        fn,
+        vp.minX,
+        vp.maxX,
+        maxPoints: maxPoints,
+        initialPoints: 97,
+      );
 
   final glLayer = WebGL2ChartLayer.of(ctx.canvas);
   if (glLayer != null && glLayer.isAvailable) {
-    for (final segment in sample.segments) {
+    for (final segment in resolvedSample.segments) {
       if (segment.x.length < 2) continue;
       final buf = Float32List(segment.x.length * 2);
       var count = 0;
@@ -608,7 +611,7 @@ void drawCurve(
     return;
   }
 
-  for (final segment in sample.segments) {
+  for (final segment in resolvedSample.segments) {
     var inPath = false;
     var pathStartX = vp.leftMargin;
     var lastX = vp.leftMargin;

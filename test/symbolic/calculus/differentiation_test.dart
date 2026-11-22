@@ -496,5 +496,19 @@ void main() {
         check(da2.evaluate({'x': 1.2})).isCloseTo(fdA2, 1e-6);
       },
     );
+
+    test('differentiates binomial coefficients', () {
+      final dPoly = Expr.parse('binomial(x, 3)').derivative('x').expand();
+      check(dPoly).equals(Expr.parse('(3 * x^2 - 6 * x + 2) / 6').expand());
+
+      final general = Expr.parse('binomial(x, 25)').derivative('x');
+      check(general.anyNode((n) => n is Polygamma)).isTrue;
+      check(general.evaluate({'x': 27.0})).isCloseTo(
+        (Expr.parse('binomial(x, 25)').evaluate({'x': 27.0 + 1e-6}) -
+                Expr.parse('binomial(x, 25)').evaluate({'x': 27.0 - 1e-6})) /
+            2e-6,
+        1e-4,
+      );
+    });
   });
 }

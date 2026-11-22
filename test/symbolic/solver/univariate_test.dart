@@ -226,5 +226,14 @@ void main() {
               .solve('x');
       check(closeRoots).unorderedEquals([IntegerNumber.one, closeRat]);
     });
+
+    test('solves binomial equations with non-negative integer second arg', () {
+      final roots = Expr.parse('binomial(x, 3)').solve('x');
+      check(roots).unorderedEquals([
+        IntegerNumber.zero,
+        IntegerNumber.one,
+        IntegerNumber.two,
+      ]);
+    });
   });
 }

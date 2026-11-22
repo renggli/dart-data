@@ -464,7 +464,7 @@ final class BytecodeEvaluator {
               pc = instr.index;
             }
           case Op.evalNode:
-            if (instr.node case Integral(isDefinite: true)) {
+            if (instr.node case Integral(isDefinite: true) || Derivative()) {
               var allReal = true;
               final realCtx = <String, double>{};
               for (var i = 0; i < variables.length; i++) {
@@ -894,7 +894,16 @@ double _evalNodeReal(
         : context[variable];
     if (evalPt == null || evalPt.isNaN) return double.nan;
     final evalContext = Map<String, double>.of(context)..[variable] = evalPt;
-    return compileInner(d).evaluateMap(evalContext);
+    if (!d.anyNode((n) => n is Derivative)) {
+      return compileInner(d).evaluateMap(evalContext);
+    }
+    return _numericDerivativeReal(
+      compileInner(substituted),
+      variable,
+      evalContext,
+      evalPt,
+      order,
+    );
   }
   if (node case Limit(
     :final expr,
@@ -1093,4 +1102,45 @@ Complex _complexPow(Complex base, Complex exponent) {
     return result;
   }
   return base.pow(exponent);
+}
+
+double _numericDerivativeReal(
+  BytecodeEvaluator eval,
+  String variable,
+  Map<String, double> context,
+  double x,
+  int order,
+) {
+  if (order <= 0) {
+    context[variable] = x;
+    return eval.evaluateMap(context);
+  }
+  if (order == 1) {
+    final h = 1.0e-5 * math.max(1.0, x.abs());
+    context[variable] = x + 2.0 * h;
+    final fp2 = eval.evaluateMap(context);
+    context[variable] = x + h;
+    final fp1 = eval.evaluateMap(context);
+    context[variable] = x - h;
+    final fm1 = eval.evaluateMap(context);
+    context[variable] = x - 2.0 * h;
+    final fm2 = eval.evaluateMap(context);
+    return (-fp2 + 8.0 * fp1 - 8.0 * fm1 + fm2) / (12.0 * h);
+  }
+  final h = 1.0e-3 * math.max(1.0, x.abs());
+  final fPlus = _numericDerivativeReal(
+    eval,
+    variable,
+    context,
+    x + h,
+    order - 1,
+  );
+  final fMinus = _numericDerivativeReal(
+    eval,
+    variable,
+    context,
+    x - h,
+    order - 1,
+  );
+  return (fPlus - fMinus) / (2.0 * h);
 }

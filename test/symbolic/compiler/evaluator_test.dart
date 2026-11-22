@@ -549,5 +549,15 @@ void main() {
         }).isFinite,
       ).isTrue;
     });
+
+    test('unevaluated Derivative falls back to numeric finite difference', () {
+      final dZeta = Expr.parse('zeta(x)').derivative('x');
+      final fn = dZeta.toFunction1D('x');
+      check(fn(2.0)).isCloseTo(-0.9375482543158437, 1e-8);
+
+      final d2Zeta = Expr.parse('zeta(x)').derivative('x', order: 2);
+      final fn2 = d2Zeta.toFunction1D('x');
+      check(fn2(2.0)).isCloseTo(1.989280234298901, 5e-5);
+    });
   });
 }
