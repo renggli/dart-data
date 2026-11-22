@@ -1,3 +1,5 @@
+import 'package:more/math.dart' show LcmIntegerExtension;
+
 import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
 import '../../algebra/rational.dart';
@@ -719,7 +721,7 @@ Expr? tryAffineRadicalSubstitution(
 
   var n = 1;
   for (final r in radicals) {
-    n = _lcmInt(n, r.q);
+    n = n.lcm(r.q);
     if (n > 6) return null;
   }
   if (n < 2) return null;
@@ -846,19 +848,6 @@ Expr? _tryQuadraticRadicalConst(
 
   return null;
 }
-
-int _gcdInt(int a, int b) {
-  var x = a.abs();
-  var y = b.abs();
-  while (y != 0) {
-    final t = x % y;
-    x = y;
-    y = t;
-  }
-  return x;
-}
-
-int _lcmInt(int a, int b) => (a * b) ~/ _gcdInt(a, b);
 
 ({int p, int q})? fractionalExponent(Expr exponent) {
   if (exponent case FractionNumber(:final numerator, :final denominator)) {

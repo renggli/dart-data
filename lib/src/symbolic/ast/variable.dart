@@ -79,19 +79,13 @@ final class VariableFunction extends Expr {
       predicate(this) || arguments.any((arg) => arg.anyNode(predicate));
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! VariableFunction ||
-        hashCode != other.hashCode ||
-        name != other.name ||
-        arguments.length != other.arguments.length) {
-      return false;
-    }
-    for (var i = 0; i < arguments.length; i++) {
-      if (arguments[i] != other.arguments[i]) return false;
-    }
-    return true;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VariableFunction &&
+          hashCode == other.hashCode &&
+          name == other.name &&
+          arguments.length == other.arguments.length &&
+          const ListEquality<Expr>().equals(arguments, other.arguments));
 
   @override
   late final int hashCode = Object.hash(

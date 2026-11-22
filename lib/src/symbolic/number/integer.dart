@@ -219,8 +219,14 @@ extension type const Integer._(Object _value) {
   /// Returns `0` if either value is zero.
   Integer lcm(Integer other) {
     if (isZero || other.isZero) return zero;
-    final g = gcd(other);
-    return (abs() ~/ g) * other.abs();
+    final a = _value, b = other._value;
+    if (a is int && b is int) {
+      final g = a.gcd(b);
+      final q = a.abs() ~/ g;
+      final bits = q.bitLength + b.abs().bitLength;
+      if (bits <= 53) return Integer._small(q * b.abs());
+    }
+    return Integer.big(toBigInt().lcm(other.toBigInt()));
   }
 
   /// Returns the exact integer square root if this is a perfect square, or

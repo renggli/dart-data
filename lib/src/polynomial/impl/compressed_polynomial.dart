@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart' show ListEquality, binarySearch;
 import 'package:more/number.dart' show Complex;
 
 import '../../type/data_type.dart';
@@ -145,20 +146,8 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     if (exponent < 0 || _exponents.isEmpty || exponent > _exponents.last) {
       return type.field.additiveIdentity;
     }
-    var low = 0;
-    var high = _exponents.length - 1;
-    while (low <= high) {
-      final mid = (low + high) >>> 1;
-      final midExp = _exponents[mid];
-      if (midExp == exponent) {
-        return _coefficients[mid];
-      } else if (midExp < exponent) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-    return type.field.additiveIdentity;
+    final idx = binarySearch(_exponents, exponent);
+    return idx >= 0 ? _coefficients[idx] : type.field.additiveIdentity;
   }
 
   @override
@@ -568,14 +557,8 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     if (deg != other.degree) return false;
     if (deg < 0) return true;
     if (other is CompressedPolynomial<T>) {
-      if (_exponents.length != other._exponents.length) return false;
-      for (var i = 0; i < _exponents.length; i++) {
-        if (_exponents[i] != other._exponents[i] ||
-            _coefficients[i] != other._coefficients[i]) {
-          return false;
-        }
-      }
-      return true;
+      return const ListEquality<int>().equals(_exponents, other._exponents) &&
+          ListEquality<T>().equals(_coefficients, other._coefficients);
     }
     if (_exponents.length != other.termCount) return false;
     for (var i = 0; i < _exponents.length; i++) {

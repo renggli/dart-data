@@ -125,18 +125,12 @@ final class Add extends Expr {
   }
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! Add ||
-        terms.length != other.terms.length ||
-        hashCode != other.hashCode) {
-      return false;
-    }
-    for (var i = 0; i < terms.length; i++) {
-      if (terms[i] != other.terms[i]) return false;
-    }
-    return true;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Add &&
+          terms.length == other.terms.length &&
+          hashCode == other.hashCode &&
+          const ListEquality<Expr>().equals(terms, other.terms));
 }
 
 /// N-ary multiplication node: $\prod_{i} f_i$.
@@ -173,18 +167,12 @@ final class Mul extends Expr {
   }
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! Mul ||
-        factors.length != other.factors.length ||
-        hashCode != other.hashCode) {
-      return false;
-    }
-    for (var i = 0; i < factors.length; i++) {
-      if (factors[i] != other.factors[i]) return false;
-    }
-    return true;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Mul &&
+          factors.length == other.factors.length &&
+          hashCode == other.hashCode &&
+          const ListEquality<Expr>().equals(factors, other.factors));
 }
 
 /// Exponentiation node: $\text{base}^{\text{exponent}}$.

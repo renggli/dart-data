@@ -573,23 +573,15 @@ final class Hypergeometric extends Expr {
       argument.anyNode(predicate);
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! Hypergeometric ||
-        hashCode != other.hashCode ||
-        upper.length != other.upper.length ||
-        lower.length != other.lower.length ||
-        argument != other.argument) {
-      return false;
-    }
-    for (var i = 0; i < upper.length; i++) {
-      if (upper[i] != other.upper[i]) return false;
-    }
-    for (var i = 0; i < lower.length; i++) {
-      if (lower[i] != other.lower[i]) return false;
-    }
-    return true;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Hypergeometric &&
+          hashCode == other.hashCode &&
+          upper.length == other.upper.length &&
+          lower.length == other.lower.length &&
+          argument == other.argument &&
+          const ListEquality<Expr>().equals(upper, other.upper) &&
+          const ListEquality<Expr>().equals(lower, other.lower));
 }
 
 /// Base class for variadic expression nodes (`min`, `max`, `gcd`, `lcm`, `tuple`).
@@ -630,19 +622,13 @@ sealed class _VariadicExpr extends Expr {
       predicate(this) || args.any((a) => a.anyNode(predicate));
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! _VariadicExpr ||
-        runtimeType != other.runtimeType ||
-        hashCode != other.hashCode ||
-        args.length != other.args.length) {
-      return false;
-    }
-    for (var i = 0; i < args.length; i++) {
-      if (args[i] != other.args[i]) return false;
-    }
-    return true;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is _VariadicExpr &&
+          runtimeType == other.runtimeType &&
+          hashCode == other.hashCode &&
+          args.length == other.args.length &&
+          const ListEquality<Expr>().equals(args, other.args));
 }
 
 /// Minimum function node `min(a_1, ..., a_n)`.

@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/math.dart' show PolynomialIterableExtension;
+
 import '../descriptive.dart';
 import '../distributions/continuous/normal.dart';
 import 'hypothesis_test_result.dart';
@@ -84,9 +86,9 @@ HypothesisTestResult shapiroWilkTest(
     a[2] = 1.0 / sqrt(2.0);
   } else {
     final u = 1.0 / sqrt(n);
-    final a1 = _poly(_c1, u) + m[n - 1] / mNorm;
+    final a1 = _c1.polynomial(u).toDouble() + m[n - 1] / mNorm;
     if (n > 5) {
-      final a2 = _poly(_c2, u) + m[n - 2] / mNorm;
+      final a2 = _c2.polynomial(u).toDouble() + m[n - 2] / mNorm;
       final fac = sqrt(
         (mNormSq - 2.0 * m[n - 1] * m[n - 1] - 2.0 * m[n - 2] * m[n - 2]) /
             (1.0 - 2.0 * a1 * a1 - 2.0 * a2 * a2),
@@ -140,16 +142,16 @@ HypothesisTestResult shapiroWilkTest(
       pValue = 0.0;
     } else {
       final y = -log(gamma - log1MinusW);
-      final mu = _poly(_c3, n.toDouble());
-      final sigma = exp(_poly(_c4, n.toDouble()));
+      final mu = _c3.polynomial(n.toDouble()).toDouble();
+      final sigma = exp(_c4.polynomial(n.toDouble()).toDouble());
       final z = (y - mu) / sigma;
       pValue = norm.survival(z).clamp(0.0, 1.0);
     }
   } else {
     final y = log(1.0 - w);
     final logN = log(n.toDouble());
-    final mu = _poly(_c5, logN);
-    final sigma = exp(_poly(_c6, logN));
+    final mu = _c5.polynomial(logN).toDouble();
+    final sigma = exp(_c6.polynomial(logN).toDouble());
     final z = (y - mu) / sigma;
     pValue = norm.survival(z).clamp(0.0, 1.0);
   }
@@ -161,14 +163,6 @@ HypothesisTestResult shapiroWilkTest(
     degreesOfFreedom: n.toDouble(),
     alpha: alpha,
   );
-}
-
-double _poly(List<double> cc, double x) {
-  var p = x * cc.last;
-  for (var i = cc.length - 2; i >= 1; i--) {
-    p = (p + cc[i]) * x;
-  }
-  return cc[0] + p;
 }
 
 const _c1 = [0.0, 0.221157, -0.147981, -2.07119, 4.434685, -2.706056];

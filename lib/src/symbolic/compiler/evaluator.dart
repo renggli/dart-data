@@ -383,11 +383,7 @@ final class BytecodeEvaluator {
                 b != b.roundToDouble()) {
               stack[sp++] = double.nan;
             } else {
-              final ia = a.round().abs();
-              final ib = b.round().abs();
-              stack[sp++] = (ia == 0 || ib == 0)
-                  ? 0.0
-                  : ((ia ~/ ia.gcd(ib)) * ib).toDouble();
+              stack[sp++] = a.round().abs().lcm(b.round().abs()).toDouble();
             }
           case Op.beta:
             final b = stack[--sp];

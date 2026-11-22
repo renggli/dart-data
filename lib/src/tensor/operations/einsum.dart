@@ -1,4 +1,5 @@
 import '../tensor.dart';
+import 'contraction.dart' show isIdentityPermutation;
 import 'matmul.dart';
 
 /// Evaluates Einstein summation convention on [operands] according to
@@ -190,10 +191,10 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
         final sizeFreeB = shapeFreeB.fold(1, (prod, d) => prod * d);
         final sizeContracted = shapeContracted.fold(1, (prod, d) => prod * d);
 
-        final transA = _isIdentityPermutation(permA)
+        final transA = isIdentityPermutation(permA)
             ? opA
             : opA.transpose(permA);
-        final transB = _isIdentityPermutation(permB)
+        final transB = isIdentityPermutation(permB)
             ? opB
             : opB.transpose(permB);
 
@@ -331,11 +332,4 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
   }
 
   return outTensor;
-}
-
-bool _isIdentityPermutation(List<int> perm) {
-  for (var i = 0; i < perm.length; i++) {
-    if (perm[i] != i) return false;
-  }
-  return true;
 }

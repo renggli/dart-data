@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:collection/collection.dart' show ListEquality, MapEquality;
+
 import '../algebra/expand.dart';
 import '../algebra/factor/multivariate.dart';
 import '../algebra/simplify.dart';
@@ -106,7 +108,7 @@ class Monomial {
       identical(this, other) ||
       (other is Monomial &&
           totalDegree == other.totalDegree &&
-          _listEquals(exponents, other.exponents));
+          const ListEquality<int>().equals(exponents, other.exponents));
 
   @override
   int get hashCode => Object.hash(totalDegree, Object.hashAll(exponents));
@@ -218,7 +220,7 @@ class MultivariatePolynomial {
 
   /// Adds [other] polynomial to this polynomial.
   MultivariatePolynomial operator +(MultivariatePolynomial other) {
-    assert(_listEquals(variables, other.variables));
+    assert(const ListEquality<String>().equals(variables, other.variables));
     final newTerms = Map<Monomial, RationalNumber>.of(terms);
     for (final MapEntry(:key, :value) in other.terms.entries) {
       final cur = newTerms[key] ?? IntegerNumber.zero;
@@ -238,7 +240,7 @@ class MultivariatePolynomial {
 
   /// Subtracts [other] polynomial from this polynomial.
   MultivariatePolynomial operator -(MultivariatePolynomial other) {
-    assert(_listEquals(variables, other.variables));
+    assert(const ListEquality<String>().equals(variables, other.variables));
     final newTerms = Map<Monomial, RationalNumber>.of(terms);
     for (final MapEntry(:key, :value) in other.terms.entries) {
       final cur = newTerms[key] ?? IntegerNumber.zero;
@@ -294,7 +296,7 @@ class MultivariatePolynomial {
 
   /// Multiplies this polynomial by [other] polynomial.
   MultivariatePolynomial operator *(MultivariatePolynomial other) {
-    assert(_listEquals(variables, other.variables));
+    assert(const ListEquality<String>().equals(variables, other.variables));
     if (isZero || other.isZero) {
       return MultivariatePolynomial.zero(variables);
     }
@@ -375,7 +377,7 @@ class MultivariatePolynomial {
     MultivariatePolynomial g, {
     MonomialOrder order = MonomialOrder.grevlex,
   }) {
-    assert(_listEquals(f.variables, g.variables));
+    assert(const ListEquality<String>().equals(f.variables, g.variables));
     final (lmF, lcF) = f.leadingTerm(order);
     final (lmG, lcG) = g.leadingTerm(order);
     final m = lmF.lcm(lmG);
@@ -467,8 +469,11 @@ class MultivariatePolynomial {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is MultivariatePolynomial &&
-          _listEquals(variables, other.variables) &&
-          _mapsEqual(terms, other.terms));
+          const ListEquality<String>().equals(variables, other.variables) &&
+          const MapEquality<Monomial, RationalNumber>().equals(
+            terms,
+            other.terms,
+          ));
 
   @override
   int get hashCode => Object.hash(
@@ -502,23 +507,4 @@ class MultivariatePolynomial {
     }
     return maxDeg;
   }
-}
-
-bool _listEquals<T>(List<T> a, List<T> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
-}
-
-bool _mapsEqual(
-  Map<Monomial, RationalNumber> a,
-  Map<Monomial, RationalNumber> b,
-) {
-  if (a.length != b.length) return false;
-  for (final MapEntry(:key, :value) in a.entries) {
-    if (b[key] != value) return false;
-  }
-  return true;
 }

@@ -131,20 +131,14 @@ final class Piecewise extends Expr {
   }
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! Piecewise ||
-        branches.length != other.branches.length ||
-        hashCode != other.hashCode ||
-        otherwise != other.otherwise) {
-      return false;
-    }
-    for (var i = 0; i < branches.length; i++) {
-      if (branches[i].relation != other.branches[i].relation ||
-          branches[i].expr != other.branches[i].expr) {
-        return false;
-      }
-    }
-    return true;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Piecewise &&
+          branches.length == other.branches.length &&
+          hashCode == other.hashCode &&
+          otherwise == other.otherwise &&
+          const ListEquality<PiecewiseBranch>().equals(
+            branches,
+            other.branches,
+          ));
 }

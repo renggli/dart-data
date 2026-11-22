@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart' show ListEquality;
 import 'package:more/number.dart' show Complex, Fraction;
 
 import 'algebra/simplify.dart';

@@ -1,9 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:data/symbolic.dart';
+import 'package:more/diff.dart' show CloseMatchesOnStringIterable;
 import 'package:petitparser/petitparser.dart';
 
+import '../engine/commands.dart';
 import 'ast.dart';
+import 'completion.dart';
 
 /// Structured parse error with a 0-based character [offset] and an optional
 /// quick-fix [suggestion].
@@ -565,184 +568,14 @@ final class CalcGrammar {
     return 'Check operator syntax or press Ctrl+/ for the syntax guide.';
   }
 
-  /// Finds the closest built-in function or command name within Levenshtein
-  /// distance $\le 2$.
+  /// Finds the closest built-in function or command name using
+  /// `CloseMatchesOnStringIterable.closeMatches` from `package:more/diff.dart`.
   static String? suggestClosestIdentifier(String typo) {
     final target = typo.toLowerCase();
-    const candidates = <String>[
-      'simplify',
-      'expand',
-      'factor',
-      'subs',
-      'solve',
-      'numer',
-      'denom',
-      'apart',
-      'together',
-      'cancel',
-      'collect',
-      'diff',
-      'integrate',
-      'taylor',
-      'series',
-      'limit',
-      'sum',
-      'product',
-      'gradient',
-      'hessian',
-      'jacobian',
-      'laplacian',
-      'divergence',
-      'curl',
-      'analyze',
-      'det',
-      'inv',
-      'transpose',
-      'trace',
-      'charpoly',
-      'rank',
-      'rref',
-      'nullspace',
-      'eigenvals',
-      'eigenvects',
-      'identity',
-      'zeros',
-      'dot',
-      'cross',
-      'norm',
-      're',
-      'im',
-      'conj',
-      'arg',
-      'abs',
-      'polar',
-      'rect',
-      'approx',
-      'exact',
-      'gcd',
-      'lcm',
-      'min',
-      'max',
-      'mod',
-      'isprime',
-      'factorial',
-      'binomial',
-      'floor',
-      'ceil',
-      'round',
-      'sign',
-      'nintegrate',
-      'nsolve',
-      'nminimize',
-      'nderivative',
-      'plot',
-      'plot3d',
-      'parametric',
-      'ode',
-      'clear',
-      'clearall',
-      'vars',
-      'help',
-      'sin',
-      'cos',
-      'tan',
-      'asin',
-      'acos',
-      'atan',
-      'atan2',
-      'sinh',
-      'cosh',
-      'tanh',
-      'asinh',
-      'acosh',
-      'atanh',
-      'sqrt',
-      'root',
-      'exp',
-      'ln',
-      'log',
-      'log2',
-      'log10',
-      'asec',
-      'acsc',
-      'acot',
-      'sech',
-      'csch',
-      'coth',
-      'asech',
-      'acsch',
-      'acoth',
-      'erf',
-      'erfc',
-      'erfi',
-      'fresnels',
-      'fresnelc',
-      'Ei',
-      'expint',
-      'li',
-      'Si',
-      'Ci',
-      'Shi',
-      'Chi',
-      'gamma',
-      'uppergamma',
-      'lowergamma',
-      'digamma',
-      'polygamma',
-      'zeta',
-      'polylog',
-      'beta',
-      'elliptick',
-      'elliptice',
-      'elliptic_f',
-      'elliptic_e',
-      'elliptic_pi',
-      'besselj',
-      'bessely',
-      'besseli',
-      'besselk',
-      'hyper',
-      'hypergeometric',
-      'lambertw',
-      'chebyshevt',
-      'chebyshevu',
-      'legendrep',
-      'hermiteh',
-      'hermitehe',
-      'laguerrel',
-      'piecewise',
+    final candidates = <String>[
+      for (final cmd in CommandRegistry.all) cmd.name,
+      for (final fn in CalcCompletion.mathFunctions) fn.name,
     ];
-    String? best;
-    var bestDist = 3;
-    for (final candidate in candidates) {
-      final d = _levenshtein(target, candidate);
-      if (d < bestDist) {
-        bestDist = d;
-        best = candidate;
-      }
-    }
-    return best;
-  }
-
-  static int _levenshtein(String a, String b) {
-    if (a == b) return 0;
-    if (a.isEmpty) return b.length;
-    if (b.isEmpty) return a.length;
-    final prev = List<int>.generate(b.length + 1, (j) => j);
-    final curr = List<int>.filled(b.length + 1, 0);
-    for (var i = 1; i <= a.length; i++) {
-      curr[0] = i;
-      for (var j = 1; j <= b.length; j++) {
-        final cost = a.codeUnitAt(i - 1) == b.codeUnitAt(j - 1) ? 0 : 1;
-        curr[j] = math.min(
-          math.min(curr[j - 1] + 1, prev[j] + 1),
-          prev[j - 1] + cost,
-        );
-      }
-      for (var j = 0; j <= b.length; j++) {
-        prev[j] = curr[j];
-      }
-    }
-    return prev[b.length];
+    return candidates.closeMatches(target, count: 1, cutoff: 0.7).firstOrNull;
   }
 }

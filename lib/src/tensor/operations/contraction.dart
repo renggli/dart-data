@@ -117,10 +117,10 @@ Tensor<T> _tensorDot<T>(
   final sizeContracted = axesA.fold(1, (prod, ax) => prod * a.shape[ax]);
   final sizeFreeB = shapeFreeB.fold(1, (prod, dim) => prod * dim);
 
-  final transA = permA.isEmpty || _isIdentityPermutation(permA)
+  final transA = permA.isEmpty || isIdentityPermutation(permA)
       ? a
       : a.transpose(permA);
-  final transB = permB.isEmpty || _isIdentityPermutation(permB)
+  final transB = permB.isEmpty || isIdentityPermutation(permB)
       ? b
       : b.transpose(permB);
 
@@ -176,7 +176,8 @@ List<int> _normalizeAxes(int rank, List<int> axes) {
   return result;
 }
 
-bool _isIdentityPermutation(List<int> perm) {
+/// Returns `true` if [perm] is the identity permutation `[0, 1, ..., n - 1]`.
+bool isIdentityPermutation(List<int> perm) {
   for (var i = 0; i < perm.length; i++) {
     if (perm[i] != i) return false;
   }
