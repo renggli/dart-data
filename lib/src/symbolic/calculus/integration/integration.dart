@@ -1535,6 +1535,45 @@ Expr _antiDerivMul(
     if (binomRes != null) return binomRes;
   }
 
+  // Expand x^m * P(x) for symbolic or non-integer exponent m and polynomial P(x).
+  if (varFactors.length >= 2) {
+    final powIdx = varFactors.indexWhere(
+      (f) =>
+          f is Pow &&
+          f.base is Variable &&
+          (f.base as Variable).name == variable &&
+          !f.exponent.dependsOn(variable),
+    );
+    if (powIdx != -1) {
+      final powFactor = varFactors[powIdx] as Pow;
+      final restFactors = <Expr>[
+        for (var i = 0; i < varFactors.length; i++)
+          if (i != powIdx) varFactors[i],
+      ];
+      final restExpr = restFactors.length == 1
+          ? restFactors.first
+          : Mul(restFactors).simplify(assumptions: assumptions);
+      final deg = polynomialDegree(restExpr, variable);
+      if (deg != null && deg <= 16) {
+        final expandedPoly = restExpr.expand().simplify(
+          assumptions: assumptions,
+        );
+        final terms = expandedPoly is Add ? expandedPoly.terms : [expandedPoly];
+        if (terms.length > 1) {
+          return Add([
+            for (final t in terms)
+              antiDerivative(
+                (powFactor * t).simplify(assumptions: assumptions),
+                variable,
+                assumptions: assumptions,
+                depth: depth,
+              ),
+          ]).simplify(assumptions: assumptions);
+        }
+      }
+    }
+  }
+
   // 3. Chain-rule substitution across any factor as candidate and remaining product as factor:
   for (var i = 0; i < varFactors.length; i++) {
     final candidate = varFactors[i];

@@ -583,6 +583,18 @@ Expr? tryAntiDerivDiv(
     }
   }
 
+  // Ostrogradsky reduction for x^k / (a + b*x^n)^m
+  if (_tryBinomialPowerOstrogradsky(
+        left,
+        right,
+        variable,
+        depth: depth,
+        assumptions: assumptions,
+      )
+      case final ostroRes?) {
+    return ostroRes;
+  }
+
   // Rationalize P(x) / (c1 * sqrt(A) + c2 * sqrt(B)) denominators when A - B is radical-free
   if (depth < 2 && right is Add && right.terms.length == 2) {
     final conjRes = _tryConjugateRadicalDenominator(
@@ -2264,4 +2276,118 @@ Expr _integrateTwoLinearPowersConst(
     }
   }
   return Add(terms).simplify(assumptions: assumptions);
+}
+
+Expr? _tryBinomialPowerOstrogradsky(
+  Expr left,
+  Expr right,
+  String variable, {
+  required int depth,
+  required Assumptions assumptions,
+}) {
+  if (depth > 8) return null;
+  if (right is! Pow) return null;
+  final base = right.base;
+  final mExpr = right.exponent;
+  if (mExpr.dependsOn(variable) || mExpr == IntegerNumber.one) return null;
+  if (base is! Add || base.terms.length != 2) return null;
+  final t0 = base.terms[0];
+  final t1 = base.terms[1];
+
+  final Expr a;
+  final Expr bXn;
+  if (!t0.dependsOn(variable) && t1.dependsOn(variable)) {
+    a = t0;
+    bXn = t1;
+  } else if (!t1.dependsOn(variable) && t0.dependsOn(variable)) {
+    a = t1;
+    bXn = t0;
+  } else {
+    return null;
+  }
+  if (a == IntegerNumber.zero) return null;
+
+  ({Expr coeff, Expr exp})? extractMonomial(Expr e) {
+    if (!e.dependsOn(variable)) return (coeff: e, exp: IntegerNumber.zero);
+    if (e is Variable && e.name == variable) {
+      return (coeff: IntegerNumber.one, exp: IntegerNumber.one);
+    }
+    if (e case Pow(base: Variable(:final name), exponent: final exp)
+        when name == variable && !exp.dependsOn(variable)) {
+      return (coeff: IntegerNumber.one, exp: exp);
+    }
+    if (e case Mul(:final factors)) {
+      final consts = <Expr>[];
+      Expr? xPow;
+      for (final f in factors) {
+        if (!f.dependsOn(variable)) {
+          consts.add(f);
+        } else if (xPow == null) {
+          xPow = f;
+        } else {
+          return null;
+        }
+      }
+      if (xPow == null) return null;
+      final inner = extractMonomial(xPow);
+      if (inner == null) return null;
+      final c = consts.isEmpty
+          ? IntegerNumber.one
+          : Mul(consts).simplify(assumptions: assumptions);
+      return (
+        coeff: (c * inner.coeff).simplify(assumptions: assumptions),
+        exp: inner.exp,
+      );
+    }
+    return null;
+  }
+
+  final bxnInfo = extractMonomial(bXn);
+  if (bxnInfo == null || bxnInfo.exp == IntegerNumber.zero) return null;
+  final leftInfo = extractMonomial(left);
+  if (leftInfo == null) return null;
+
+  final n = bxnInfo.exp;
+  final k = leftInfo.exp;
+  final c = leftInfo.coeff;
+  final mMinus1 = (mExpr - IntegerNumber.one).simplify(
+    assumptions: assumptions,
+  );
+  if (mMinus1 == IntegerNumber.zero) return null;
+
+  final remNum = (n * mMinus1 - k - IntegerNumber.one).simplify(
+    assumptions: assumptions,
+  );
+  final isIntM =
+      mExpr is IntegerNumber &&
+      mExpr.value >= const Integer(2) &&
+      mExpr.value <= const Integer(10);
+  if (!isIntM && remNum != IntegerNumber.zero) return null;
+
+  final xVar = Variable(variable);
+  final denomFactor = (a * n * mMinus1).simplify(assumptions: assumptions);
+  if (denomFactor == IntegerNumber.zero) return null;
+
+  final term1 =
+      (Pow(xVar, (k + IntegerNumber.one).simplify(assumptions: assumptions)) /
+              (denomFactor * Pow(base, mMinus1)))
+          .simplify(assumptions: assumptions);
+
+  if (remNum == IntegerNumber.zero) {
+    return (c * term1).simplify(assumptions: assumptions);
+  }
+
+  final reducedIntegrand = (Pow(xVar, k) / Pow(base, mMinus1)).simplify(
+    assumptions: assumptions,
+  );
+  final reducedIntegral = antiDerivative(
+    reducedIntegrand,
+    variable,
+    depth: depth + 1,
+    assumptions: assumptions,
+  );
+  final term2 = ((remNum / denomFactor) * reducedIntegral).simplify(
+    assumptions: assumptions,
+  );
+  return (c * (term1 + term2)).simplify(assumptions: assumptions);
 }

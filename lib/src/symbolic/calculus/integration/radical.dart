@@ -1217,7 +1217,7 @@ Expr? _tryQuadraticRadicalConst(
     if (isSyntacticallyNegative(disc) || isNegativeConstant(disc)) {
       final rad = Pow(quad, FractionNumber.half).simplify();
       final logArg = (twoAxPlusB + IntegerNumber.two * sqrtA * rad).simplify();
-      return (Ln(Abs(logArg)) / sqrtA).simplify();
+      return (Ln(logArg) / sqrtA).simplify();
     }
     final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
     final arg = (twoAxPlusB / sqrtDisc).simplify();

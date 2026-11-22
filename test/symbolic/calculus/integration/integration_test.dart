@@ -598,6 +598,15 @@ void main() {
           Ln(Pow(IntegerNumber.two, Cos(x))),
           points: const [0.3, 0.8, 1.4],
         );
+
+        // Symbolic-exponent polynomial products x^m * P(x)
+        final xmPoly = Expr.parse('x^m * (a + b*x + c*x^2)').integrate('x');
+        check(xmPoly).isNotA<Integral>();
+        check(
+          (xmPoly.derivative('x') - Expr.parse('x^m * (a + b*x + c*x^2)'))
+              .expand()
+              .simplify(),
+        ).equals(IntegerNumber.zero);
       },
     );
   });

@@ -298,5 +298,21 @@ void main() {
         points: const [2.5, 3.0, 4.0],
       );
     });
+
+    test(
+      'omits Abs inside Ln for negative-discriminant quadratic radicals',
+      () {
+        final res = Expr.parse('1 / sqrt(x^2 - 1)').integrate('x');
+        check(res.anyNode((n) => n is Abs)).isFalse;
+        verifyAntiderivative(
+          Expr.parse('1 / sqrt(x^2 - 1)'),
+          points: const [1.5, 2.0, 3.0],
+        );
+        verifyAntiderivative(
+          Expr.parse('1 / sqrt(2 * x^2 - 5 * x + 2)'),
+          points: const [2.5, 3.0, 4.0],
+        );
+      },
+    );
   });
 }

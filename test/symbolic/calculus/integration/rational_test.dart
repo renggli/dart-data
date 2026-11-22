@@ -199,5 +199,24 @@ void main() {
         points: const [0.2, 0.6, 1.1],
       );
     });
+
+    test('applies Ostrogradsky reduction to x^k / (a + b*x^n)^m', () {
+      // Pure rational case: k + 1 == n * (m - 1)
+      final exact = Expr.parse('x^2 / (a + b*x^3)^2').integrate('x');
+      check(exact).isNotA<Integral>();
+
+      // Reduced case with symbolic n
+      final sym = Expr.parse('x^k / (a + b*x^n)^2').integrate('x');
+      check(sym).isA<Add>();
+      final diff = (sym.derivative('x') - Expr.parse('x^k / (a + b*x^n)^2'))
+          .simplify();
+      check(diff.evaluate({'a': 2.0, 'b': 3.0, 'k': 1.5, 'n': 2.5, 'x': 0.7}))
+          .isCloseTo(0.0, 1e-12);
+
+      verifyAntiderivative(
+        Expr.parse('x / (1 + 2 * x^3)^2'),
+        points: const [0.3, 0.7, 1.2],
+      );
+    });
   });
 }
