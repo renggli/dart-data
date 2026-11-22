@@ -155,5 +155,56 @@ void main() {
       );
       check((actualOut - expectedOut).abs()).isLessThan(1e-11);
     });
+
+    test('hypergeometricPFQ and hypergeometricPFQComplex', () {
+      // 0F0(; ; z) = exp(z)
+      check(hypergeometricPFQ([], [], 1.5)).isCloseTo(math.exp(1.5), 1e-14);
+      const z0 = Complex(0.7, -0.5);
+      check((hypergeometricPFQComplex([], [], z0) - z0.exp()).abs())
+          .isLessThan(1e-14);
+
+      // 1F0(a; ; z) = (1 - z)^(-a)
+      check(hypergeometricPFQ([2.5], [], 0.3))
+          .isCloseTo(math.pow(0.7, -2.5), 1e-14);
+      check(
+        (hypergeometricPFQComplex([const Complex(2.5)], [], z0) -
+                (Complex.one - z0).pow(const Complex(-2.5)))
+            .abs(),
+      ).isLessThan(1e-13);
+
+      // 0F1(; b; -x^2/4) = Gamma(b) * (x/2)^(1-b) * J_{b-1}(x)
+      const x = 1.6;
+      check(hypergeometricPFQ([], [1.0], -x * x / 4.0))
+          .isCloseTo(besselJ(0, x), 1e-8);
+
+      // 1F1 and 2F1 delegation
+      check(hypergeometricPFQ([1.0], [1.0], 0.5))
+          .isCloseTo(hypergeometric1F1(1.0, 1.0, 0.5), 1e-14);
+      check(hypergeometricPFQ([1.0, 1.0], [2.0], 0.5))
+          .isCloseTo(hypergeometric2F1(1.0, 1.0, 2.0, 0.5), 1e-14);
+
+      // 3F2(1, 1, 1; 2, 2; z) = Li_2(z) / z
+      const z32 = 0.4;
+      check(hypergeometricPFQ([1.0, 1.0, 1.0], [2.0, 2.0], z32))
+          .isCloseTo(polylog(2, z32) / z32, 1e-12);
+      const zc32 = Complex(0.3, 0.25);
+      check(
+        (hypergeometricPFQComplex(
+                  [Complex.one, Complex.one, Complex.one],
+                  [const Complex(2), const Complex(2)],
+                  zc32,
+                ) -
+                polylogComplex(const Complex(2), zc32) / zc32)
+            .abs(),
+      ).isLessThan(1e-12);
+
+      // Terminating polynomial when a contains 0 or negative integer
+      check(hypergeometricPFQ([0.0, 2.0], [0.0, 3.0], 0.5)).equals(1.0);
+      // 3F2(-2, 1, 1; 2, 3; z) = 1 - 1/3*z + 1/18*z^2
+      check(hypergeometricPFQ([-2.0, 1.0, 1.0], [2.0, 3.0], 0.6))
+          .isCloseTo(1.0 - 0.2 + 0.02, 1e-14);
+      check(hypergeometricPFQ([1.0], [0.0, 2.0], 0.5)).isNaN;
+      check(hypergeometricPFQ([double.nan], [1.0], 0.5)).isNaN;
+    });
   });
 }

@@ -121,14 +121,23 @@ Complex zetaComplex(Complex s) {
 }
 
 /// Returns the Hurwitz zeta function `ζ(s, a) = ∑_{n=0}^∞ (n + a)^(-s)`.
+///
+/// See https://en.wikipedia.org/wiki/Hurwitz_zeta_function for details.
 double hurwitzZeta(num s, num a) {
   if (s.isNaN || a.isNaN) return double.nan;
   final sd = s.toDouble();
   final ad = a.toDouble();
   if (ad == 1.0) return zeta(sd);
   if (sd == 1.0) return double.infinity;
+  if (sd == 0.0) return 0.5 - ad;
   if (ad <= 0.0 && ad.roundToDouble() == ad) {
-    return sd <= 0.0 ? 0.0 : double.nan;
+    if (sd > 0.0) return double.nan;
+    final m = (-ad).round();
+    var sum = zeta(sd);
+    for (var j = 1; j <= m; j++) {
+      sum += pow(-j.toDouble(), -sd).toDouble();
+    }
+    return sum;
   }
   final z = hurwitzZetaComplex(Complex(sd), Complex(ad));
   return z.b.abs() <= 1e-12 * max(1.0, z.a.abs()) ? z.a.toDouble() : double.nan;

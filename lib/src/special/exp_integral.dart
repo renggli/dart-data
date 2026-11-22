@@ -78,6 +78,62 @@ Complex expIntegralComplex(Complex z) {
   return -expIntegralE1Complex(-z) + branch;
 }
 
+/// Returns the generalized exponential integral
+/// `E_n(x) = ∫_1^∞ e^(-x*t) / t^n dt`.
+///
+/// See https://en.wikipedia.org/wiki/Exponential_integral for details.
+double expIntegralE(num n, num x) {
+  if (n.isNaN || x.isNaN) return double.nan;
+  final nd = n.toDouble();
+  final xd = x.toDouble();
+  if (nd == 0.0) return exp(-xd) / xd;
+  if (xd == 0.0) return nd > 1.0 ? 1.0 / (nd - 1.0) : double.infinity;
+  if (xd < 0.0) {
+    final z = expIntegralEComplex(Complex(nd), Complex(xd));
+    return z.b.abs() <= 1e-12 * max(1.0, z.a.abs())
+        ? z.a.toDouble()
+        : double.nan;
+  }
+  if (xd > 1.0 && nd > 0.0) {
+    return _expIntegralECf(nd, xd);
+  }
+  if (nd > 0.0 && nd.roundToDouble() == nd && nd <= 100.0) {
+    final k = nd.toInt();
+    var e = _expIntegralE1(xd);
+    final ex = exp(-xd);
+    for (var m = 1; m < k; m++) {
+      e = (ex - xd * e) / m;
+    }
+    return e;
+  }
+  final z = expIntegralEComplex(Complex(nd), Complex(xd));
+  return z.a.toDouble();
+}
+
+/// Returns the complex generalized exponential integral `E_n(z)`.
+///
+/// See https://en.wikipedia.org/wiki/Exponential_integral for details.
+Complex expIntegralEComplex(Complex n, Complex z) {
+  if (n.isNaN || z.isNaN) return Complex.nan;
+  if (n == Complex.zero) return (-z).exp() / z;
+  if (z == Complex.zero) {
+    return n.a > 1.0 ? Complex.one / (n - 1.0) : const Complex(double.infinity);
+  }
+  if (z.abs() > 1.0 && z.a > -0.5 * z.b.abs() && n.a > 0.0) {
+    return _expIntegralECfComplex(n, z);
+  }
+  if (n.b == 0.0 && n.a >= 1.0 && n.a.roundToDouble() == n.a && n.a <= 100.0) {
+    final k = n.a.toInt();
+    var e = expIntegralE1Complex(z);
+    final ez = (-z).exp();
+    for (var m = 1; m < k; m++) {
+      e = (ez - z * e) / m;
+    }
+    return e;
+  }
+  return z.pow(n - 1.0) * upperGammaComplex(Complex.one - n, z);
+}
+
 /// Returns the logarithmic integral `li(x) = ∫_0^x dt / ln(t) = Ei(ln(x))`.
 ///
 /// Defined for `x >= 0`, with `li(0) = 0` and `li(1) = -∞`.
@@ -153,47 +209,28 @@ double _expIntegralE1(double t) {
   return exp(-t) * h;
 }
 
-/// Returns the generalized exponential integral `E_n(x) = ∫_1^∞ e^(-x*t) / t^n dt`.
-double expIntegralE(num n, num x) {
-  if (n.isNaN || x.isNaN) return double.nan;
-  final nd = n.toDouble();
-  final xd = x.toDouble();
-  if (nd == 0.0) return exp(-xd) / xd;
-  if (xd == 0.0) return nd > 1.0 ? 1.0 / (nd - 1.0) : double.infinity;
-  if (xd < 0.0) {
-    final z = expIntegralEComplex(Complex(nd), Complex(xd));
-    return z.b.abs() <= 1e-12 * max(1.0, z.a.abs())
-        ? z.a.toDouble()
-        : double.nan;
+double _expIntegralECf(double n, double x) {
+  var b = x + n;
+  var c = 1.0 / tinyDouble;
+  var d = 1.0 / b;
+  var h = d;
+  for (var i = 1; i <= 200; i++) {
+    final a = -i * (n - 1.0 + i);
+    b += 2.0;
+    d = 1.0 / (a * d + b);
+    c = b + a / c;
+    final del = c * d;
+    h *= del;
+    if ((del - 1.0).abs() <= 1e-15) break;
   }
-  if (nd > 0.0 && nd.roundToDouble() == nd && nd <= 100.0) {
-    final k = nd.toInt();
-    var e = _expIntegralE1(xd);
-    final ex = exp(-xd);
-    for (var m = 1; m < k; m++) {
-      e = (ex - xd * e) / m;
-    }
-    return e;
-  }
-  final z = expIntegralEComplex(Complex(nd), Complex(xd));
-  return z.a.toDouble();
+  return exp(-x) * h;
 }
 
-/// Returns the complex generalized exponential integral `E_n(z)`.
-Complex expIntegralEComplex(Complex n, Complex z) {
-  if (n.isNaN || z.isNaN) return Complex.nan;
-  if (n == Complex.zero) return (-z).exp() / z;
-  if (z == Complex.zero) {
-    return n.a > 1.0 ? Complex.one / (n - 1.0) : const Complex(double.infinity);
-  }
-  if (n.b == 0.0 && n.a >= 1.0 && n.a.roundToDouble() == n.a && n.a <= 100.0) {
-    final k = n.a.toInt();
-    var e = expIntegralE1Complex(z);
-    final ez = (-z).exp();
-    for (var m = 1; m < k; m++) {
-      e = (ez - z * e) / m;
-    }
-    return e;
-  }
-  return z.pow(n - 1.0) * upperGammaComplex(Complex.one - n, z);
+Complex _expIntegralECfComplex(Complex n, Complex z) {
+  final h = lentzCFComplex(
+    z + n,
+    (i) => Complex(-i) * (n - 1.0 + i.toDouble()),
+    (i) => z + n + Complex(2.0 * i),
+  );
+  return (-z).exp() * h;
 }

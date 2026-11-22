@@ -343,6 +343,85 @@ Complex hypergeometric2F1Complex(Complex a, Complex b, Complex c, Complex z) {
   return sum;
 }
 
+/// Evaluates the generalized hypergeometric function `pFq(a; b; z)`.
+///
+/// See https://en.wikipedia.org/wiki/Generalized_hypergeometric_function for
+/// details.
+double hypergeometricPFQ(List<num> a, List<num> b, num z) {
+  if (z.isNaN || a.any((v) => v.isNaN) || b.any((v) => v.isNaN)) {
+    return double.nan;
+  }
+  if (a.isEmpty && b.isEmpty) return exp(z.toDouble());
+  if (a.length == 1 && b.isEmpty) {
+    return pow(1.0 - z.toDouble(), -a[0].toDouble()).toDouble();
+  }
+  if (a.length == 2 && b.length == 1) {
+    return hypergeometric2F1(a[0], a[1], b[0], z);
+  }
+  if (a.length == 1 && b.length == 1) {
+    return hypergeometric1F1(a[0], b[0], z);
+  }
+  final zd = z.toDouble();
+  if (zd == 0.0) return 1.0;
+  var sum = 1.0;
+  var term = 1.0;
+  for (var k = 0; k < 400; k++) {
+    var numProd = 1.0;
+    for (final ai in a) {
+      numProd *= ai.toDouble() + k;
+    }
+    if (numProd == 0.0) break;
+    var denProd = (k + 1).toDouble();
+    for (final bj in b) {
+      final denom = bj.toDouble() + k;
+      if (denom == 0.0) return double.nan;
+      denProd *= denom;
+    }
+    term *= numProd * zd / denProd;
+    sum += term;
+    if (term.abs() <= 1e-15 * sum.abs()) break;
+  }
+  return sum;
+}
+
+/// Evaluates the complex generalized hypergeometric function `pFq(a; b; z)`.
+///
+/// See https://en.wikipedia.org/wiki/Generalized_hypergeometric_function for
+/// details.
+Complex hypergeometricPFQComplex(List<Complex> a, List<Complex> b, Complex z) {
+  if (z.isNaN || a.any((v) => v.isNaN) || b.any((v) => v.isNaN)) {
+    return Complex.nan;
+  }
+  if (a.isEmpty && b.isEmpty) return z.exp();
+  if (a.length == 1 && b.isEmpty) return (Complex.one - z).pow(-a[0]);
+  if (a.length == 2 && b.length == 1) {
+    return hypergeometric2F1Complex(a[0], a[1], b[0], z);
+  }
+  if (a.length == 1 && b.length == 1) {
+    return hypergeometric1F1Complex(a[0], b[0], z);
+  }
+  if (z == Complex.zero) return Complex.one;
+  var sum = Complex.one;
+  var term = Complex.one;
+  for (var k = 0; k < 400; k++) {
+    var numProd = Complex.one;
+    for (final ai in a) {
+      numProd *= ai + k.toDouble();
+    }
+    if (numProd == Complex.zero) break;
+    var denProd = Complex(k + 1);
+    for (final bj in b) {
+      final denom = bj + k.toDouble();
+      if (denom == Complex.zero) return Complex.nan;
+      denProd *= denom;
+    }
+    term *= numProd * z / denProd;
+    sum += term;
+    if (term.abs() <= 1e-15 * sum.abs()) break;
+  }
+  return sum;
+}
+
 bool _isNonPosInt(double x) => x.isFinite && x <= 0.0 && x.roundToDouble() == x;
 
 bool _isComplexNonPosInt(Complex z) =>
@@ -409,71 +488,6 @@ double _hypergeometric2F1Direct(double a, double b, double c, double z) {
     if (term.abs() < 1.0e-15 * sum.abs()) {
       break;
     }
-  }
-  return sum;
-}
-
-/// Evaluates the generalized hypergeometric function `pFq(a; b; z)`.
-double hypergeometricPFQ(List<num> a, List<num> b, num z) {
-  if (z.isNaN || a.any((v) => v.isNaN) || b.any((v) => v.isNaN)) {
-    return double.nan;
-  }
-  if (a.length == 2 && b.length == 1) {
-    return hypergeometric2F1(a[0], a[1], b[0], z);
-  }
-  if (a.length == 1 && b.length == 1) {
-    return hypergeometric1F1(a[0], b[0], z);
-  }
-  final zd = z.toDouble();
-  if (zd == 0.0) return 1.0;
-  var sum = 1.0;
-  var term = 1.0;
-  for (var k = 0; k < 400; k++) {
-    var numProd = 1.0;
-    for (final ai in a) {
-      numProd *= ai.toDouble() + k;
-    }
-    var denProd = (k + 1).toDouble();
-    for (final bj in b) {
-      final denom = bj.toDouble() + k;
-      if (denom == 0.0) return double.nan;
-      denProd *= denom;
-    }
-    term *= numProd * zd / denProd;
-    sum += term;
-    if (term == 0.0 || term.abs() <= 1e-15 * sum.abs()) break;
-  }
-  return sum;
-}
-
-/// Evaluates the complex generalized hypergeometric function `pFq(a; b; z)`.
-Complex hypergeometricPFQComplex(List<Complex> a, List<Complex> b, Complex z) {
-  if (z.isNaN || a.any((v) => v.isNaN) || b.any((v) => v.isNaN)) {
-    return Complex.nan;
-  }
-  if (a.length == 2 && b.length == 1) {
-    return hypergeometric2F1Complex(a[0], a[1], b[0], z);
-  }
-  if (a.length == 1 && b.length == 1) {
-    return hypergeometric1F1Complex(a[0], b[0], z);
-  }
-  if (z == Complex.zero) return Complex.one;
-  var sum = Complex.one;
-  var term = Complex.one;
-  for (var k = 0; k < 400; k++) {
-    var numProd = Complex.one;
-    for (final ai in a) {
-      numProd *= ai + k.toDouble();
-    }
-    var denProd = Complex(k + 1);
-    for (final bj in b) {
-      final denom = bj + k.toDouble();
-      if (denom == Complex.zero) return Complex.nan;
-      denProd *= denom;
-    }
-    term *= numProd * z / denProd;
-    sum += term;
-    if (term == Complex.zero || term.abs() <= 1e-15 * sum.abs()) break;
   }
   return sum;
 }

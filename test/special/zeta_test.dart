@@ -65,5 +65,39 @@ void main() {
       check(zNegLarge.a.isFinite).isTrue;
       check(zNegLarge.b.isFinite).isTrue;
     });
+
+    test('hurwitzZeta and hurwitzZetaComplex', () {
+      check(hurwitzZeta(double.nan, 1.0)).isNaN;
+      check(hurwitzZeta(2.0, double.nan)).isNaN;
+      check(hurwitzZeta(1.0, 2.0)).equals(double.infinity);
+      check(hurwitzZeta(2.0, 1.0)).isCloseTo(zeta(2.0), 1e-14);
+      check(hurwitzZeta(2.0, 0.5)).isCloseTo(math.pi * math.pi / 2.0, 1e-12);
+      check(hurwitzZeta(3.0, 0.5)).isCloseTo(7.0 * zeta(3.0), 1e-12);
+
+      // Bernoulli polynomial identities at non-positive integer s
+      check(hurwitzZeta(0.0, 0.25)).isCloseTo(0.25, 1e-12);
+      check(hurwitzZeta(0.0, 0.0)).equals(0.5);
+      check(hurwitzZeta(-1.0, 0.5)).isCloseTo(1.0 / 24.0, 1e-12);
+      check(hurwitzZeta(-1.0, 0.0)).isCloseTo(-1.0 / 12.0, 1e-12);
+      check(hurwitzZeta(2.0, 0.0)).isNaN;
+      check(hurwitzZeta(2.0, -2.0)).isNaN;
+
+      // Shift identity: ζ(s, a) = a^(-s) + ζ(s, a + 1)
+      const s = Complex(2.3, 1.1);
+      const a = Complex(0.4, 0.6);
+      check(
+        (hurwitzZetaComplex(s, a) -
+                (a.pow(-s) + hurwitzZetaComplex(s, a + Complex.one)))
+            .abs(),
+      ).isLessThan(1e-12);
+
+      // Negative real part shift in complex Hurwitz zeta
+      const aNeg = Complex(-1.3, 0.5);
+      check(
+        (hurwitzZetaComplex(s, aNeg) -
+                (aNeg.pow(-s) + hurwitzZetaComplex(s, aNeg + Complex.one)))
+            .abs(),
+      ).isLessThan(1e-12);
+    });
   });
 }

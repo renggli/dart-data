@@ -52,5 +52,44 @@ void main() {
       check(expIntegralE1Complex(Complex.one).a.toDouble())
           .isCloseTo(-expIntegral(-1.0), 1e-12);
     });
+
+    test('expIntegralE and expIntegralEComplex', () {
+      check(expIntegralE(double.nan, 1.0)).isNaN;
+      check(expIntegralE(1.0, double.nan)).isNaN;
+      check(expIntegralE(0.0, 2.0)).isCloseTo(math.exp(-2.0) / 2.0, 1e-14);
+      check(expIntegralE(2.0, 0.0)).equals(1.0);
+      check(expIntegralE(3.0, 0.0)).equals(0.5);
+      check(expIntegralE(1.0, 0.0)).equals(double.infinity);
+      check(expIntegralE(1.0, 1.0)).isCloseTo(-expIntegral(-1.0), 1e-12);
+
+      // Recurrence identity: n * E_{n+1}(x) + x * E_n(x) = exp(-x)
+      // Including large x and n where naive forward recurrence is unstable
+      for (final (n, x) in [
+        (1.0, 0.5),
+        (2.0, 0.8),
+        (1.5, 2.5),
+        (10.0, 20.0),
+        (20.0, 30.0),
+      ]) {
+        final en = expIntegralE(n, x);
+        final en1 = expIntegralE(n + 1.0, x);
+        final rhs = math.exp(-x);
+        check(n * en1 + x * en).isCloseTo(rhs, 1e-12 * rhs);
+      }
+
+      // Complex recurrence identity: n * E_{n+1}(z) + z * E_n(z) = exp(-z)
+      const zn = Complex(2.5, 0.4);
+      const zz = Complex(3.0, -1.2);
+      final cen = expIntegralEComplex(zn, zz);
+      final cen1 = expIntegralEComplex(zn + Complex.one, zz);
+      check((zn * cen1 + zz * cen - (-zz).exp()).abs()).isLessThan(1e-12);
+
+      // Small |z| complex branch
+      const zSmall = Complex(0.4, 0.3);
+      final ces = expIntegralEComplex(const Complex(2.0), zSmall);
+      final ces1 = expIntegralEComplex(const Complex(3.0), zSmall);
+      check((const Complex(2.0) * ces1 + zSmall * ces - (-zSmall).exp()).abs())
+          .isLessThan(1e-12);
+    });
   });
 }

@@ -16,23 +16,25 @@
 ///   integral of the first kind `B(a, b)`, and the regularized incomplete beta
 ///   function.
 /// - **Psi, Zeta & Polylogarithm Functions** ([digamma], [polygamma], [zeta],
-///   [polylog], [polylogComplex]): Logarithmic derivatives of the gamma function
-///   `ψ^(m)(x)`, the Riemann zeta function `ζ(s)`, and the polylogarithm
-///   `Li_s(z)`.
+///   [hurwitzZeta], [polylog], [polylogComplex]): Logarithmic derivatives of
+///   the gamma function `ψ^(m)(x)`, the Riemann and Hurwitz zeta functions
+///   `ζ(s)` and `ζ(s, a)`, and the polylogarithm `Li_s(z)`.
 /// - **Error & Fresnel Functions** ([erf], [erfc], [erfi], [erfInv],
 ///   [erfcInv], [fresnelS], [fresnelC]): Gaussian error integrals and
 ///   normalized Fresnel sine and cosine integrals.
 /// - **Exponential, Trigonometric & Hyperbolic Integrals** ([expIntegral],
-///   [logIntegral], [sinIntegral], [cosIntegral], [sinhIntegral],
-///   [coshIntegral]): Classical non-elementary integral functions.
+///   [expIntegralE], [logIntegral], [sinIntegral], [cosIntegral],
+///   [sinhIntegral], [coshIntegral]): Classical non-elementary integral
+///   functions.
 /// - **Bessel Functions** ([besselJ], [besselY], [besselI], [besselK]):
 ///   Solutions to Bessel's differential equation describing radial and wave
 ///   behavior in cylindrical geometries.
-/// - **Elliptic Integrals** ([ellipticK], [ellipticE], [ellipticF]): Complete
-///   and incomplete Legendre elliptic integrals of the 1st and 2nd kinds.
-/// - **Hypergeometric Functions** ([hypergeometric1F1], [hypergeometric2F1]):
-///   Kummer's confluent series `1F1(a; b; z)` and Gauss's generalized series
-///   `2F1(a, b; c; z)`.
+/// - **Elliptic Integrals** ([ellipticK], [ellipticE], [ellipticF],
+///   [ellipticPi]): Complete and incomplete Legendre elliptic integrals of the
+///   1st, 2nd, and 3rd kinds.
+/// - **Hypergeometric Functions** ([hypergeometric1F1], [hypergeometric2F1],
+///   [hypergeometricPFQ]): Kummer's confluent series `1F1(a; b; z)`, Gauss's
+///   series `2F1(a, b; c; z)`, and the generalized series `pFq(a; b; z)`.
 /// - **Lambert W** ([lambertW]): The principal and secondary real branches of
 ///   the product log function solving `W(x) * exp(W(x)) = x`.
 ///
