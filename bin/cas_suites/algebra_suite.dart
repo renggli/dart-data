@@ -151,5 +151,10 @@ final CasTestSuite algebraSuite = CasTestSuite(
       'cos(x - y)',
       'cos(x)*cos(y) + sin(x)*sin(y)',
     ),
+    simplifyCase('alg_exp_invhyp_1', 'exp(2 * atanh(x))', '(1 + x) / (1 - x)'),
+    simplifyCase('alg_exp_invhyp_2', 'exp(asinh(x))', 'sqrt(x^2 + 1) + x'),
+    simplifyCase('alg_exp_invhyp_3', 'exp(-asinh(x))', 'sqrt(x^2 + 1) - x'),
+    simplifyCase('alg_exp_invhyp_4', 'exp(acosh(x))', 'x + sqrt(x^2 - 1)'),
+    simplifyCase('alg_exp_invhyp_5', 'exp(-acosh(x))', 'x - sqrt(x^2 - 1)'),
   ],
 );

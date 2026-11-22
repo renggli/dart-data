@@ -209,5 +209,22 @@ void main() {
       const ord = OrderTerm('x', 2);
       check(identical(ord.simplify(assumptions: Assumptions.real), ord)).isTrue;
     });
+
+    test('simplifies exp of inverse hyperbolic functions', () {
+      check(Expr.parse('exp(atanh(x))').simplify())
+          .equals(Expr.parse('((1 + x) / (1 - x))^(1/2)').simplify());
+      check(Expr.parse('exp(2 * atanh(x))').simplify())
+          .equals(Expr.parse('(1 + x) / (1 - x)').simplify());
+      check(Expr.parse('exp(-2 * atanh(x))').simplify())
+          .equals(Expr.parse('(1 - x) / (1 + x)').simplify());
+      check(Expr.parse('exp(asinh(x))').simplify())
+          .equals(Expr.parse('sqrt(x^2 + 1) + x').simplify());
+      check(Expr.parse('exp(-asinh(x))').simplify())
+          .equals(Expr.parse('sqrt(x^2 + 1) - x').simplify());
+      check(Expr.parse('exp(acosh(x))').simplify())
+          .equals(Expr.parse('x + sqrt(x^2 - 1)').simplify());
+      check(Expr.parse('exp(-acosh(x))').simplify())
+          .equals(Expr.parse('x - sqrt(x^2 - 1)').simplify());
+    });
   });
 }

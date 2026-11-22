@@ -121,6 +121,8 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
         }
       }
     }
+    final invHyp = _simplifyExpInvHyperbolic(exponent, assumptions);
+    if (invHyp != null) return invHyp;
     return Pow(Constant.e, exponent, isSimplified: true);
   }
 
@@ -521,4 +523,91 @@ Expr? _extractRationalRadical(
   }
 
   return (root, restored * unfactored);
+}
+
+Expr? _simplifyExpInvHyperbolic(Expr exponent, Assumptions assumptions) {
+  RationalNumber? k;
+  Expr? fn;
+  if (exponent is Atanh || exponent is Asinh || exponent is Acosh) {
+    k = IntegerNumber.one;
+    fn = exponent;
+  } else if (exponent is Mul && exponent.factors.length == 2) {
+    final f0 = exponent.factors[0];
+    final f1 = exponent.factors[1];
+    if (f0 is RationalNumber && (f1 is Atanh || f1 is Asinh || f1 is Acosh)) {
+      k = f0;
+      fn = f1;
+    } else if (f1 is RationalNumber &&
+        (f0 is Atanh || f0 is Asinh || f0 is Acosh)) {
+      k = f1;
+      fn = f0;
+    }
+  }
+  if (k == null || fn == null) return null;
+
+  switch (fn) {
+    case Atanh(expr: final u):
+      final num = simplifyAdd([IntegerNumber.one, u], assumptions: assumptions);
+      final negU = simplifyMul([
+        IntegerNumber.negativeOne,
+        u,
+      ], assumptions: assumptions);
+      final den = simplifyAdd([
+        IntegerNumber.one,
+        negU,
+      ], assumptions: assumptions);
+      final ratio = simplifyMul([
+        num,
+        simplifyPow(den, IntegerNumber.negativeOne, assumptions: assumptions),
+      ], assumptions: assumptions);
+      final expHalf = simplifyMul([
+        k,
+        FractionNumber.half,
+      ], assumptions: assumptions);
+      return simplifyPow(ratio, expHalf, assumptions: assumptions);
+    case Asinh(expr: final u) when k is IntegerNumber:
+      final u2Plus1 = simplifyAdd([
+        simplifyPow(u, IntegerNumber.two, assumptions: assumptions),
+        IntegerNumber.one,
+      ], assumptions: assumptions);
+      final root = simplifyPow(
+        u2Plus1,
+        FractionNumber.half,
+        assumptions: assumptions,
+      );
+      final signedU = k.isNegative
+          ? simplifyMul([
+              IntegerNumber.negativeOne,
+              u,
+            ], assumptions: assumptions)
+          : u;
+      final base = simplifyAdd([root, signedU], assumptions: assumptions);
+      final absK = IntegerNumber(k.value.abs());
+      return absK == IntegerNumber.one
+          ? base
+          : simplifyPow(base, absK, assumptions: assumptions);
+    case Acosh(expr: final u) when k is IntegerNumber:
+      final u2Minus1 = simplifyAdd([
+        simplifyPow(u, IntegerNumber.two, assumptions: assumptions),
+        IntegerNumber.negativeOne,
+      ], assumptions: assumptions);
+      final root = simplifyPow(
+        u2Minus1,
+        FractionNumber.half,
+        assumptions: assumptions,
+      );
+      final signedRoot = k.isNegative
+          ? simplifyMul([
+              IntegerNumber.negativeOne,
+              root,
+            ], assumptions: assumptions)
+          : root;
+      final base = simplifyAdd([u, signedRoot], assumptions: assumptions);
+      final absK = IntegerNumber(k.value.abs());
+      return absK == IntegerNumber.one
+          ? base
+          : simplifyPow(base, absK, assumptions: assumptions);
+    default:
+      return null;
+  }
 }
