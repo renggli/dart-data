@@ -295,6 +295,10 @@ sealed class Expr {
       :final upper,
     ) => _isRealSubtree(expr) && _isRealSubtree(lower) && _isRealSubtree(upper),
     VariableFunction(:final arguments) => arguments.every(_isRealSubtree),
+    EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
+      _isRealSubtree(characteristic) &&
+          _isRealSubtree(amplitude) &&
+          _isRealSubtree(modulus),
   };
 }
 

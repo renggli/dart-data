@@ -74,6 +74,20 @@ Expr _approximateNode(Expr node) => switch (node) {
     return rebuilt.simplify();
   }(),
   BinaryExpr() => _approximateBinary(node),
+  EllipticPi() => () {
+    final rebuilt = node.mapChildren(_approximateNode) as EllipticPi;
+    if (rebuilt.freeVariables.isEmpty) {
+      if (rebuilt.characteristic is ComplexNumber ||
+          rebuilt.amplitude is ComplexNumber ||
+          rebuilt.modulus is ComplexNumber) {
+        return _complexToExpr(rebuilt.evaluateComplex());
+      }
+      final realVal = rebuilt.evaluate();
+      if (!realVal.isNaN) return RealNumber.fromDouble(realVal);
+      return _complexToExpr(rebuilt.evaluateComplex());
+    }
+    return rebuilt.simplify();
+  }(),
 };
 
 Expr _approximateMul(Mul node) {

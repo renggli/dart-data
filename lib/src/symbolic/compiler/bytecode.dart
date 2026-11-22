@@ -70,6 +70,9 @@ enum Op {
   /// Arctangent (`atan(a)`).
   atan,
 
+  /// Two-argument arctangent (`atan2(y, x)`).
+  atan2,
+
   /// Hyperbolic sine (`sinh(a)`).
   sinh,
 
@@ -167,7 +170,11 @@ enum Op {
   ellipticF,
 
   /// Incomplete elliptic integral of the second kind (`elliptic_e(phi, k)`).
+  /// Incomplete elliptic integral of the second kind (`elliptic_e(phi, k)`).
   ellipticEIncomplete,
+
+  /// Incomplete elliptic integral of the third kind (`elliptic_pi(n, phi, k)`).
+  ellipticPi,
 
   /// Beta function (`B(a, b)`).
   beta,
@@ -435,6 +442,10 @@ BytecodeEvaluator compileToBytecode(
       case Atan(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.atan));
+      case Atan2(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.atan2));
       case Sinh(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.sinh));
@@ -556,6 +567,11 @@ BytecodeEvaluator compileToBytecode(
         emit(left);
         emit(right);
         instructions.add(const Instruction.op(Op.ellipticEIncomplete));
+      case EllipticPi(:final characteristic, :final amplitude, :final modulus):
+        emit(characteristic);
+        emit(amplitude);
+        emit(modulus);
+        instructions.add(const Instruction.op(Op.ellipticPi));
       case Beta(:final left, :final right):
         emit(left);
         emit(right);
@@ -733,6 +749,10 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
       for (final argument in arguments) {
         visit(argument);
       }
+    case EllipticPi(:final characteristic, :final amplitude, :final modulus):
+      visit(characteristic);
+      visit(amplitude);
+      visit(modulus);
     case Integral() ||
         Derivative() ||
         Limit() ||
@@ -791,6 +811,7 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.polylog ||
           Op.ellipticF ||
           Op.ellipticEIncomplete ||
+          Op.atan2 ||
           Op.mod ||
           Op.lt ||
           Op.le ||
@@ -799,6 +820,8 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.eq ||
           Op.ne:
         current = math.max(0, current - 1);
+      case Op.ellipticPi:
+        current = math.max(0, current - 2);
       case Op.storeReg ||
           Op.neg ||
           Op.sin ||

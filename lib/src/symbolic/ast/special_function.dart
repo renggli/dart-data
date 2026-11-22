@@ -365,3 +365,69 @@ final class EllipticEIncomplete extends BinaryExpr {
   @override
   Expr _withOperands(Expr left, Expr right) => EllipticEIncomplete(left, right);
 }
+
+/// Incomplete elliptic integral of the third kind: $\Pi(n; \phi \mid k) = \int_0^\phi \frac{d\theta}{(1 - n\sin^2\theta)\sqrt{1 - k^2\sin^2\theta}}$.
+final class EllipticPi extends Expr {
+  /// Creates an incomplete elliptic integral of the third kind $\Pi(n; \phi \mid k)$.
+  new(
+    this.characteristic,
+    this.amplitude,
+    this.modulus, {
+    this.isSimplified = false,
+  });
+
+  /// The characteristic $n$.
+  final Expr characteristic;
+
+  /// The amplitude $\phi$.
+  final Expr amplitude;
+
+  /// The modulus $k$.
+  final Expr modulus;
+
+  @override
+  final bool isSimplified;
+
+  @override
+  late final int hashCode = Object.hash(
+    runtimeType,
+    characteristic,
+    amplitude,
+    modulus,
+  );
+
+  @override
+  late final Set<String> freeVariables = Set.unmodifiable({
+    ...characteristic.freeVariables,
+    ...amplitude.freeVariables,
+    ...modulus.freeVariables,
+  });
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final nextN = transform(characteristic);
+    final nextPhi = transform(amplitude);
+    final nextK = transform(modulus);
+    return identical(nextN, characteristic) &&
+            identical(nextPhi, amplitude) &&
+            identical(nextK, modulus)
+        ? this
+        : EllipticPi(nextN, nextPhi, nextK);
+  }
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) ||
+      characteristic.anyNode(predicate) ||
+      amplitude.anyNode(predicate) ||
+      modulus.anyNode(predicate);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EllipticPi &&
+          hashCode == other.hashCode &&
+          characteristic == other.characteristic &&
+          amplitude == other.amplitude &&
+          modulus == other.modulus);
+}

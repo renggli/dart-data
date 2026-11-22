@@ -237,6 +237,10 @@ final class BytecodeEvaluator {
             stack[sp - 1] = math.acos(stack[sp - 1]);
           case Op.atan:
             stack[sp - 1] = math.atan(stack[sp - 1]);
+          case Op.atan2:
+            final x = stack[--sp];
+            final y = stack[--sp];
+            stack[sp++] = math.atan2(y, x);
           case Op.sinh:
             stack[sp - 1] = stack[sp - 1].sinh();
           case Op.cosh:
@@ -323,6 +327,11 @@ final class BytecodeEvaluator {
             final k = stack[--sp];
             final phi = stack[--sp];
             stack[sp++] = special_elliptic.ellipticE(k, phi: phi);
+          case Op.ellipticPi:
+            final k = stack[--sp];
+            final phi = stack[--sp];
+            final n = stack[--sp];
+            stack[sp++] = special_elliptic.ellipticPi(n, k, phi: phi);
           case Op.beta:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -509,6 +518,18 @@ final class BytecodeEvaluator {
             stack[sp - 1] = stack[sp - 1].acos();
           case Op.atan:
             stack[sp - 1] = stack[sp - 1].atan();
+          case Op.atan2:
+            final zX = stack[--sp];
+            final zY = stack[--sp];
+            if (zX.b == 0.0 && zY.b == 0.0) {
+              stack[sp++] = Complex(
+                math.atan2(zY.a.toDouble(), zX.a.toDouble()),
+              );
+            } else {
+              stack[sp++] =
+                  -Complex.i *
+                  ((zX + Complex.i * zY) / (zX * zX + zY * zY).sqrt()).log();
+            }
           case Op.sinh:
             stack[sp - 1] = stack[sp - 1].sinh();
           case Op.cosh:
@@ -603,6 +624,11 @@ final class BytecodeEvaluator {
             final zK = stack[--sp];
             final zPhi = stack[--sp];
             stack[sp++] = special_elliptic.ellipticEComplex(zK, phi: zPhi);
+          case Op.ellipticPi:
+            final zK = stack[--sp];
+            final zPhi = stack[--sp];
+            final zN = stack[--sp];
+            stack[sp++] = special_elliptic.ellipticPiComplex(zN, zK, phi: zPhi);
           case Op.beta:
             final zB = stack[--sp];
             final zA = stack[--sp];

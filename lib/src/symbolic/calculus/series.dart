@@ -670,7 +670,9 @@ PowerSeries _expandToPowerSeries(
   UpperGamma() ||
   LowerGamma() ||
   EllipticF() ||
-  EllipticEIncomplete() => _expandTaylorSeries(expr, variable, point, order),
+  EllipticEIncomplete() ||
+  EllipticPi() ||
+  Atan2() => _expandTaylorSeries(expr, variable, point, order),
 
   Asinh(:final expr) => _expandAsinh(expr, variable, point, order),
 

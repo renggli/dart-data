@@ -227,6 +227,14 @@ class ExprSyntax {
         'elliptic_e': EllipticEIncomplete.new,
         'ellipticE': EllipticEIncomplete.new,
         'EllipticEIncomplete': EllipticEIncomplete.new,
+        'elliptic_pi': (n, k) =>
+            EllipticPi(n, FractionNumber.half * Constant.pi, k),
+        'ellipticPi': (n, k) =>
+            EllipticPi(n, FractionNumber.half * Constant.pi, k),
+        'EllipticPi': (n, k) =>
+            EllipticPi(n, FractionNumber.half * Constant.pi, k),
+        'atan2': Atan2.new,
+        'Atan2': Atan2.new,
         'binomial': Binomial.new,
         'nCr': Binomial.new,
         'mod': Mod.new,
@@ -247,6 +255,9 @@ class ExprSyntax {
     <String, Expr Function(List<Expr>)>{
       'piecewise': _parsePiecewiseArgs,
       'Piecewise': _parsePiecewiseArgs,
+      'elliptic_pi': _parseEllipticPiArgs,
+      'ellipticPi': _parseEllipticPiArgs,
+      'EllipticPi': _parseEllipticPiArgs,
       'integrate': _parseIntegralArgs,
       'integral': _parseIntegralArgs,
       'diff': _parseDerivativeArgs,
@@ -872,4 +883,10 @@ class ExprSyntax {
     }
     return acc;
   }
+
+  static Expr _parseEllipticPiArgs(List<Expr> args) => switch (args) {
+    [final n, final k] => EllipticPi(n, FractionNumber.half * Constant.pi, k),
+    [final n, final phi, final k] => EllipticPi(n, phi, k),
+    _ => throw const FormatException('elliptic_pi requires 2 or 3 arguments'),
+  };
 }

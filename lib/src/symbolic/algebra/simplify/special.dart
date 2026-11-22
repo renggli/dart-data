@@ -694,6 +694,56 @@ Expr simplifyEllipticEIncomplete(
   return EllipticEIncomplete(phi, k, isSimplified: true);
 }
 
+/// Simplifies an incomplete elliptic integral of the third kind $\Pi(n; \phi \mid k)$.
+Expr simplifyEllipticPi(
+  Expr n,
+  Expr phi,
+  Expr k, {
+  required Assumptions assumptions,
+}) {
+  if (n == Constant.undefined ||
+      phi == Constant.undefined ||
+      k == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (phi == IntegerNumber.zero) return IntegerNumber.zero;
+  if (n == IntegerNumber.zero) {
+    return simplifyEllipticF(phi, k, assumptions: assumptions);
+  }
+  if (_isFloatComplex(n) || _isFloatComplex(phi) || _isFloatComplex(k)) {
+    if ((n is RealNumeric || _isFloatComplex(n)) &&
+        (phi is RealNumeric || _isFloatComplex(phi)) &&
+        (k is RealNumeric || _isFloatComplex(k))) {
+      return _complexToExpr(
+        special_elliptic.ellipticPiComplex(
+          _toComplex(n),
+          _toComplex(k),
+          phi: _toComplex(phi),
+        ),
+      );
+    }
+  }
+  if (n is RealNumeric &&
+      phi is RealNumeric &&
+      k is RealNumeric &&
+      (n is RealNumber || phi is RealNumber || k is RealNumber)) {
+    final val = special_elliptic.ellipticPi(
+      n.toDouble(),
+      k.toDouble(),
+      phi: phi.toDouble(),
+    );
+    if (!val.isNaN) return RealNumber.fromDouble(val);
+    return _complexToExpr(
+      special_elliptic.ellipticPiComplex(
+        _toComplex(n),
+        _toComplex(k),
+        phi: _toComplex(phi),
+      ),
+    );
+  }
+  return EllipticPi(n, phi, k, isSimplified: true);
+}
+
 /// Simplifies an Euler beta function expression `beta(a, b)`.
 Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
   if (a == Constant.undefined || b == Constant.undefined) {

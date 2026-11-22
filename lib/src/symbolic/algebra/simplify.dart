@@ -123,6 +123,11 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
       _simplify(expr, assumptions, cache),
       assumptions: assumptions,
     ),
+    Atan2(:final left, :final right) => simplifyAtan2(
+      _simplify(left, assumptions, cache),
+      _simplify(right, assumptions, cache),
+      assumptions: assumptions,
+    ),
     Sinh(:final expr) => simplifySinh(
       _simplify(expr, assumptions, cache),
       assumptions: assumptions,
@@ -264,6 +269,13 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
       simplifyEllipticEIncomplete(
         _simplify(left, assumptions, cache),
         _simplify(right, assumptions, cache),
+        assumptions: assumptions,
+      ),
+    EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
+      simplifyEllipticPi(
+        _simplify(characteristic, assumptions, cache),
+        _simplify(amplitude, assumptions, cache),
+        _simplify(modulus, assumptions, cache),
         assumptions: assumptions,
       ),
     Beta(:final left, :final right) => simplifyBeta(

@@ -47,6 +47,8 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
   Asin(:final expr) => '\\arcsin(${_toLatex(expr, decimalPlaces)})',
   Acos(:final expr) => '\\arccos(${_toLatex(expr, decimalPlaces)})',
   Atan(:final expr) => '\\arctan(${_toLatex(expr, decimalPlaces)})',
+  Atan2(:final left, :final right) =>
+    '\\operatorname{atan2}(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   Sinh(:final expr) => '\\sinh(${_toLatex(expr, decimalPlaces)})',
   Cosh(:final expr) => '\\cosh(${_toLatex(expr, decimalPlaces)})',
   Tanh(:final expr) => '\\tanh(${_toLatex(expr, decimalPlaces)})',
@@ -100,6 +102,8 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
     'F(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   EllipticEIncomplete(:final left, :final right) =>
     'E(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
+  EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
+    '\\Pi(${_toLatex(characteristic, decimalPlaces)}; ${_toLatex(amplitude, decimalPlaces)} \\mid ${_toLatex(modulus, decimalPlaces)})',
   Beta(:final left, :final right) =>
     '\\operatorname{B}(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   Factorial(:final expr) => '${_formatPowBase(expr, decimalPlaces)}!',

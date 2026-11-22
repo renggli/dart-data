@@ -79,6 +79,9 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   Atan(expr: final inner) =>
     _differentiate(inner, variable) /
         (IntegerNumber.one + Pow(inner, IntegerNumber.two)),
+  Atan2(left: final y, right: final x) =>
+    (x * _differentiate(y, variable) - y * _differentiate(x, variable)) /
+        (Pow(x, IntegerNumber.two) + Pow(y, IntegerNumber.two)),
   Sinh(expr: final inner) => Mul([
     Cosh(inner),
     _differentiate(inner, variable),
@@ -312,6 +315,48 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
       final dEdk =
           (EllipticEIncomplete(left, right) - EllipticF(left, right)) / right;
       terms.add(dEdk * _differentiate(right, variable));
+    }
+    return switch (terms) {
+      [] => IntegerNumber.zero,
+      [final single] => single,
+      _ => Add(terms),
+    };
+  }(),
+  EllipticPi(:final characteristic, :final amplitude, :final modulus) => () {
+    final n = characteristic;
+    final phi = amplitude;
+    final k = modulus;
+    final terms = <Expr>[];
+    final sinPhi = Sin(phi);
+    final sin2Phi = Pow(sinPhi, IntegerNumber.two);
+    final k2 = Pow(k, IntegerNumber.two);
+    final delta = IntegerNumber.one - k2 * sin2Phi;
+    final oneMinusNSin2 = IntegerNumber.one - n * sin2Phi;
+    if (phi.dependsOn(variable)) {
+      final dPidPhi =
+          Pow(oneMinusNSin2, IntegerNumber.negativeOne) *
+          Pow(delta, FractionNumber.negativeHalf);
+      terms.add(dPidPhi * _differentiate(phi, variable));
+    }
+    if (k.dependsOn(variable)) {
+      final k2Minus1 = k2 - IntegerNumber.one;
+      final dPidK =
+          (k / (n - k2)) *
+          (EllipticEIncomplete(phi, k) / k2Minus1 +
+              EllipticPi(n, phi, k) -
+              (k2 * sinPhi * Cos(phi)) /
+                  (k2Minus1 * Pow(delta, FractionNumber.half)));
+      terms.add(dPidK * _differentiate(k, variable));
+    }
+    if (n.dependsOn(variable)) {
+      final dPidN =
+          (EllipticEIncomplete(phi, k) +
+              ((k2 - n) / n) * EllipticF(phi, k) +
+              ((Pow(n, IntegerNumber.two) - k2) / n) * EllipticPi(n, phi, k) -
+              (n * sinPhi * Cos(phi) * Pow(delta, FractionNumber.half)) /
+                  oneMinusNSin2) /
+          (IntegerNumber.two * (k2 - n) * (n - IntegerNumber.one));
+      terms.add(dPidN * _differentiate(n, variable));
     }
     return switch (terms) {
       [] => IntegerNumber.zero,

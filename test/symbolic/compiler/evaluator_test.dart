@@ -528,6 +528,26 @@ void main() {
       check(Beta(z, n).evaluateComplex().isFinite).isTrue;
       check(Binomial(z, n).evaluateComplex().isFinite).isTrue;
       check(LambertW(z).evaluateComplex().isFinite).isTrue;
+
+      final piExpr = EllipticPi(n, z, k);
+      check(piExpr.evaluateComplex().isFinite).isTrue;
+      check(
+        EllipticPi(
+          const RealNumber(0.3),
+          const RealNumber(0.8),
+          const RealNumber(0.5),
+        ).evaluate(),
+      ).isFinite;
+
+      final a2 = Atan2(const Variable('y'), const Variable('x'));
+      check(a2.evaluate({'y': 1.0, 'x': -1.0}))
+          .isCloseTo(3.0 * 3.141592653589793 / 4.0, 1e-12);
+      check(
+        a2.evaluateComplex({
+          'y': const Complex(0.5, 0.2),
+          'x': const Complex(1.0, -0.3),
+        }).isFinite,
+      ).isTrue;
     });
   });
 }

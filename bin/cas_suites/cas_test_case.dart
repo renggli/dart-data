@@ -89,9 +89,19 @@ ExprSyntax buildCasSyntax({bool renameE = false, bool renameI = false}) =>
         'elliptic_f': (phi, m) => EllipticF(phi, Pow(m, FractionNumber.half)),
         'elliptic_e': (phi, m) =>
             EllipticEIncomplete(phi, Pow(m, FractionNumber.half)),
+        'elliptic_pi': (n, m) => EllipticPi(
+          n,
+          FractionNumber.half * Constant.pi,
+          Pow(m, FractionNumber.half),
+        ),
       },
       variadicFunctions: {
         'Derivative': ExprSyntax.standardVariadicFunctions['diff']!,
+        'elliptic_pi': (args) => args.length == 3
+            ? EllipticPi(args[0], args[1], Pow(args[2], FractionNumber.half))
+            : throw const FormatException(
+                'elliptic_pi requires 2 or 3 arguments',
+              ),
       },
     );
 

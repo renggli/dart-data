@@ -103,10 +103,15 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
         },
   Polygamma(:final left, :final right) ||
   EllipticF(:final left, :final right) ||
-  EllipticEIncomplete(
+  EllipticEIncomplete(:final left, :final right) ||
+  Atan2(
     :final left,
     :final right,
   ) => isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
+  EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
+    isProvenReal(characteristic, assumptions) &&
+        isProvenReal(amplitude, assumptions) &&
+        isProvenReal(modulus, assumptions),
   BesselJ(:final left, :final right) || BesselI(:final left, :final right) =>
     isProvenReal(left, assumptions) &&
         isProvenReal(right, assumptions) &&

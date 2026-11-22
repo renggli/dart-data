@@ -455,5 +455,46 @@ void main() {
       check(Product(Cos(x * t), 't', IntegerNumber.one, x).derivative('x'))
           .isA<Derivative>();
     });
+
+    test(
+      'differentiates EllipticPi and Atan2 with finite-difference checks',
+      () {
+        const h = 1e-6;
+
+        // EllipticPi wrt amplitude
+        final piPhi = Expr.parse('elliptic_pi(n, x, k)');
+        check(
+          (piPhi.derivative('x') -
+                  Expr.parse(
+                    '1 / ((1 - n * sin(x)^2) * sqrt(1 - k^2 * sin(x)^2))',
+                  ))
+              .simplify(),
+        ).equals(IntegerNumber.zero);
+
+        // EllipticPi wrt modulus k
+        final piK = Expr.parse('elliptic_pi(0.3, 0.8, x)');
+        final dPidK = piK.derivative('x');
+        final fdK =
+            (piK.evaluate({'x': 0.5 + h}) - piK.evaluate({'x': 0.5 - h})) /
+            (2.0 * h);
+        check(dPidK.evaluate({'x': 0.5})).isCloseTo(fdK, 1e-6);
+
+        // EllipticPi wrt characteristic n
+        final piN = Expr.parse('elliptic_pi(x, 0.8, 0.5)');
+        final dPidN = piN.derivative('x');
+        final fdN =
+            (piN.evaluate({'x': 0.3 + h}) - piN.evaluate({'x': 0.3 - h})) /
+            (2.0 * h);
+        check(dPidN.evaluate({'x': 0.3})).isCloseTo(fdN, 1e-6);
+
+        // Atan2 wrt y and x
+        final a2 = Expr.parse('atan2(x^2, 2*x + 1)');
+        final da2 = a2.derivative('x');
+        final fdA2 =
+            (a2.evaluate({'x': 1.2 + h}) - a2.evaluate({'x': 1.2 - h})) /
+            (2.0 * h);
+        check(da2.evaluate({'x': 1.2})).isCloseTo(fdA2, 1e-6);
+      },
+    );
   });
 }

@@ -72,6 +72,8 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><mi>arccos</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Atan(:final expr) =>
     '<mrow><mi>arctan</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  Atan2(:final left, :final right) =>
+    '<mrow><mi>atan2</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   Sinh(:final expr) =>
     '<mrow><mi>sinh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Cosh(:final expr) =>
@@ -140,6 +142,8 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><mi>F</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   EllipticEIncomplete(:final left, :final right) =>
     '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
+  EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
+    '<mrow><mi>Π</mi><mo>(</mo>${_toMathMl(characteristic, decimalPlaces)}<mo>;</mo>${_toMathMl(amplitude, decimalPlaces)}<mo>|</mo>${_toMathMl(modulus, decimalPlaces)}<mo>)</mo></mrow>',
   Beta(:final left, :final right) =>
     '<mrow><mi>B</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   Factorial(:final expr) =>

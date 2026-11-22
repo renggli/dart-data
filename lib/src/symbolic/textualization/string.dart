@@ -65,6 +65,8 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
     Asin(:final expr) => 'asin(${_formatExpr(expr, 0, decimalPlaces)})',
     Acos(:final expr) => 'acos(${_formatExpr(expr, 0, decimalPlaces)})',
     Atan(:final expr) => 'atan(${_formatExpr(expr, 0, decimalPlaces)})',
+    Atan2(:final left, :final right) =>
+      'atan2(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     Sinh(:final expr) => 'sinh(${_formatExpr(expr, 0, decimalPlaces)})',
     Cosh(:final expr) => 'cosh(${_formatExpr(expr, 0, decimalPlaces)})',
     Tanh(:final expr) => 'tanh(${_formatExpr(expr, 0, decimalPlaces)})',
@@ -127,6 +129,8 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
       'elliptic_f(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     EllipticEIncomplete(:final left, :final right) =>
       'elliptic_e(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
+    EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
+      'elliptic_pi(${_formatExpr(characteristic, 0, decimalPlaces)}, ${_formatExpr(amplitude, 0, decimalPlaces)}, ${_formatExpr(modulus, 0, decimalPlaces)})',
     Beta(:final left, :final right) =>
       'beta(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     Factorial(:final expr) => '${_formatExpr(expr, 5, decimalPlaces)}!',

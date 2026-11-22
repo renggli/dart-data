@@ -4,6 +4,7 @@ import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/integer.dart';
 import '../exact_constants.dart';
+import '../simplify.dart';
 import 'additive.dart';
 import 'complex.dart';
 import 'domain.dart';
@@ -435,6 +436,52 @@ Expr simplifyAtan(Expr expr, {required Assumptions assumptions}) {
   }
 
   return Atan(expr, isSimplified: true);
+}
+
+/// Simplifies a two-argument arctangent expression $\operatorname{atan2}(y, x)$.
+Expr simplifyAtan2(Expr y, Expr x, {required Assumptions assumptions}) {
+  if (y == Constant.undefined || x == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (y is RealNumeric &&
+      x is RealNumeric &&
+      (y is RealNumber || x is RealNumber)) {
+    return RealNumber.fromDouble(math.atan2(y.toDouble(), x.toDouble()));
+  }
+  if (y == IntegerNumber.zero) {
+    if (isPositiveExpr(x, assumptions: assumptions)) return IntegerNumber.zero;
+    if (isNegativeExpr(x, assumptions: assumptions)) return Constant.pi;
+  }
+  if (x == IntegerNumber.zero) {
+    if (isPositiveExpr(y, assumptions: assumptions)) {
+      return Mul([FractionNumber.half, Constant.pi], isSimplified: true);
+    }
+    if (isNegativeExpr(y, assumptions: assumptions)) {
+      return Mul([
+        const FractionNumber(Integer.negativeOne, Integer.two),
+        Constant.pi,
+      ], isSimplified: true);
+    }
+  }
+  if (isPositiveExpr(x, assumptions: assumptions)) {
+    return simplifyAtan(
+      (y / x).simplify(assumptions: assumptions),
+      assumptions: assumptions,
+    );
+  }
+  if (isNegativeExpr(x, assumptions: assumptions)) {
+    final base = simplifyAtan(
+      (y / x).simplify(assumptions: assumptions),
+      assumptions: assumptions,
+    );
+    if (isPositiveExpr(y, assumptions: assumptions)) {
+      return (base + Constant.pi).simplify(assumptions: assumptions);
+    }
+    if (isNegativeExpr(y, assumptions: assumptions)) {
+      return (base - Constant.pi).simplify(assumptions: assumptions);
+    }
+  }
+  return Atan2(y, x, isSimplified: true);
 }
 
 /// Simplifies a hyperbolic sine expression $\sinh(expr)$.

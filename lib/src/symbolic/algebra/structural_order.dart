@@ -80,6 +80,8 @@ int nodeTag(Expr expr) => switch (expr) {
   Polylog() => 70,
   EllipticF() => 71,
   EllipticEIncomplete() => 72,
+  Atan2() => 73,
+  EllipticPi() => 74,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.
@@ -116,6 +118,13 @@ int compareStructural(Expr a, Expr b) {
       final cmpLeft = compareStructural(ba.left, bb.left);
       if (cmpLeft != 0) return cmpLeft;
       return compareStructural(ba.right, bb.right);
+    }(),
+    (final EllipticPi pa, final EllipticPi pb) => () {
+      final cmpN = compareStructural(pa.characteristic, pb.characteristic);
+      if (cmpN != 0) return cmpN;
+      final cmpPhi = compareStructural(pa.amplitude, pb.amplitude);
+      if (cmpPhi != 0) return cmpPhi;
+      return compareStructural(pa.modulus, pb.modulus);
     }(),
     (final Add aa, final Add ab) => _compareList(aa.terms, ab.terms),
     (final Mul ma, final Mul mb) => _compareList(ma.factors, mb.factors),

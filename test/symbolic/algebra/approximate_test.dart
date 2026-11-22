@@ -304,5 +304,31 @@ void main() {
       check(EllipticF(z, w).simplify()).isA<ComplexNumber>();
       check(LambertW(z).simplify()).isA<ComplexNumber>();
     });
+
+    test(
+      'parses, formats, simplifies, and approximates EllipticPi and Atan2',
+      () {
+        final piParsed = Expr.parse('elliptic_pi(0, x, k)');
+        check(piParsed.simplify()).equals(Expr.parse('elliptic_f(x, k)'));
+        check(Expr.parse('elliptic_pi(n, 0, k)').simplify())
+            .equals(IntegerNumber.zero);
+
+        final piFull = Expr.parse('elliptic_pi(0.3, 0.8, 0.5)');
+        check(piFull.approximate()).isA<RealNumber>();
+        check(piFull.toString()).equals('elliptic_pi(0.3, 0.8, 0.5)');
+        check(piFull.toLatex()).contains('\\Pi(');
+        check(piFull.toMathMl()).contains('<mi>Π</mi>');
+
+        check(Expr.parse('atan2(1, 1)').simplify())
+            .equals((Constant.pi / IntegerNumber.of(4)).simplify());
+        check(Expr.parse('atan2(0, -1)').simplify()).equals(Constant.pi);
+        check(Expr.parse('atan2(1, 0)').simplify())
+            .equals((Constant.pi / IntegerNumber.two).simplify());
+        final a2 = Expr.parse('atan2(y, x)');
+        check(a2.toString()).equals('atan2(y, x)');
+        check(a2.toLatex()).contains('\\operatorname{atan2}');
+        check(a2.toMathMl()).contains('<mi>atan2</mi>');
+      },
+    );
   });
 }

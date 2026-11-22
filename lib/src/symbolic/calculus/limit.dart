@@ -1291,6 +1291,10 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
         for (final argument in arguments) {
           scan(argument);
         }
+      case EllipticPi(:final characteristic, :final amplitude, :final modulus):
+        scan(characteristic);
+        scan(amplitude);
+        scan(modulus);
       case Number() || Constant() || Variable() || OrderTerm():
         break;
     }

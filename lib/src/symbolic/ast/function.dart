@@ -54,6 +54,21 @@ final class Atan extends UnaryExpr {
   Expr _withExpr(Expr expr) => Atan(expr);
 }
 
+/// Two-argument arctangent function node: $\operatorname{atan2}(y, x)$.
+final class Atan2 extends BinaryExpr {
+  /// Creates a two-argument arctangent node $\operatorname{atan2}(\text{left}, \text{right})$.
+  new(super.left, super.right, {super.isSimplified = false});
+
+  /// The $y$-coordinate operand.
+  Expr get y => left;
+
+  /// The $x$-coordinate operand.
+  Expr get x => right;
+
+  @override
+  Expr _withOperands(Expr left, Expr right) => Atan2(left, right);
+}
+
 /// Hyperbolic sine function node: $\sinh(x)$.
 final class Sinh extends UnaryExpr {
   /// Creates a hyperbolic sine node $\sinh(\text{expr})$.
