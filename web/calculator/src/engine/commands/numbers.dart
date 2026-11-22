@@ -4,8 +4,8 @@ import '../../model/value.dart';
 import '../commands.dart';
 
 /// Builds canonical number theory & rounding commands (`approx`, `exact`,
-/// `gcd`, `lcm`, `mod`, `isprime`, `factorial`, `binomial`, `floor`, `ceil`,
-/// `round`).
+/// `gcd`, `lcm`, `min`, `max`, `mod`, `isprime`, `factorial`, `binomial`,
+/// `floor`, `ceil`, `round`, `sign`).
 List<Command> buildNumbersCommands() => [
   Command(
     name: 'approx',
@@ -61,7 +61,7 @@ List<Command> buildNumbersCommands() => [
     category: CommandCategory.numbers,
     signature: 'gcd(a, b, ...)',
     paramSpecs: const [ParamSpec.expr('a'), ParamSpec.expr('b')],
-    minArity: 2,
+    minArity: 1,
     maxArity: 16,
     doc: 'Computes the greatest common divisor of integers or rationals.',
     examples: const ['gcd(84, 126)', 'gcd(12, 18, 30)'],
@@ -71,13 +71,9 @@ List<Command> buildNumbersCommands() => [
     chipLabel: 'gcd',
     buildChipCall: (id, _) => 'gcd(r[$id], 1)',
     run: (args, ctx) {
-      checkCommandArity('gcd', args, 2, 16);
-      final exprArgs = [for (final a in args) expectCommandExpr(a, 'gcd')];
-      return ExprValue(
-        ExprSyntax.standardVariadicFunctions['gcd']!(exprArgs).simplify(
-          assumptions: ctx.assumptions,
-        ),
-      );
+      checkCommandArity('gcd', args, 1, 16);
+      final exprArgs = _flattenNumberArgs(args, 'gcd');
+      return ExprValue(Gcd(exprArgs).simplify(assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -85,7 +81,7 @@ List<Command> buildNumbersCommands() => [
     category: CommandCategory.numbers,
     signature: 'lcm(a, b, ...)',
     paramSpecs: const [ParamSpec.expr('a'), ParamSpec.expr('b')],
-    minArity: 2,
+    minArity: 1,
     maxArity: 16,
     doc: 'Computes the least common multiple of integers or rationals.',
     examples: const ['lcm(12, 18)', 'lcm(4, 6, 15)'],
@@ -95,13 +91,49 @@ List<Command> buildNumbersCommands() => [
     chipLabel: 'lcm',
     buildChipCall: (id, _) => 'lcm(r[$id], 1)',
     run: (args, ctx) {
-      checkCommandArity('lcm', args, 2, 16);
-      final exprArgs = [for (final a in args) expectCommandExpr(a, 'lcm')];
-      return ExprValue(
-        ExprSyntax.standardVariadicFunctions['lcm']!(exprArgs).simplify(
-          assumptions: ctx.assumptions,
-        ),
-      );
+      checkCommandArity('lcm', args, 1, 16);
+      final exprArgs = _flattenNumberArgs(args, 'lcm');
+      return ExprValue(Lcm(exprArgs).simplify(assumptions: ctx.assumptions));
+    },
+  ),
+  Command(
+    name: 'min',
+    category: CommandCategory.numbers,
+    signature: 'min(a, b, ...)',
+    paramSpecs: const [ParamSpec.expr('a'), ParamSpec.expr('b')],
+    minArity: 1,
+    maxArity: 16,
+    doc: 'Computes the minimum of real or symbolic expressions.',
+    examples: const ['min(3, -5, 2)', 'min([4, 1, 9])'],
+    rpnLabel: 'Min',
+    rpnArity: 2,
+    appliesTo: (_) => false,
+    chipLabel: 'min',
+    buildChipCall: (id, _) => 'min(r[$id], 0)',
+    run: (args, ctx) {
+      checkCommandArity('min', args, 1, 16);
+      final exprArgs = _flattenNumberArgs(args, 'min');
+      return ExprValue(Min(exprArgs).simplify(assumptions: ctx.assumptions));
+    },
+  ),
+  Command(
+    name: 'max',
+    category: CommandCategory.numbers,
+    signature: 'max(a, b, ...)',
+    paramSpecs: const [ParamSpec.expr('a'), ParamSpec.expr('b')],
+    minArity: 1,
+    maxArity: 16,
+    doc: 'Computes the maximum of real or symbolic expressions.',
+    examples: const ['max(3, -5, 2)', 'max([4, 1, 9])'],
+    rpnLabel: 'Max',
+    rpnArity: 2,
+    appliesTo: (_) => false,
+    chipLabel: 'max',
+    buildChipCall: (id, _) => 'max(r[$id], 0)',
+    run: (args, ctx) {
+      checkCommandArity('max', args, 1, 16);
+      final exprArgs = _flattenNumberArgs(args, 'max');
+      return ExprValue(Max(exprArgs).simplify(assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -260,7 +292,40 @@ List<Command> buildNumbersCommands() => [
       );
     },
   ),
+  Command(
+    name: 'sign',
+    category: CommandCategory.numbers,
+    signature: 'sign(x)',
+    paramSpecs: const [ParamSpec.expr('x')],
+    minArity: 1,
+    maxArity: 1,
+    doc: 'Computes the signum function sgn(x) (-1, 0, or 1 for real x).',
+    examples: const ['sign(-42)', 'sign(pi)'],
+    rpnLabel: 'Sign',
+    rpnArity: 1,
+    appliesTo: (_) => false,
+    chipLabel: 'sign',
+    buildChipCall: (id, _) => 'sign(r[$id])',
+    run: (args, ctx) {
+      checkCommandArity('sign', args, 1, 1);
+      return liftUnaryCommand(
+        args[0],
+        (e) => Sign(e).simplify(assumptions: ctx.assumptions),
+      );
+    },
+  ),
 ];
+
+List<Expr> _flattenNumberArgs(List<CalcValue> args, String cmdName) {
+  if (args.length == 1 && (args[0] is VectorValue || args[0] is ListValue)) {
+    final list = extractCommandExprList(args[0], cmdName);
+    if (list.isEmpty) {
+      throw ArgumentError('$cmdName expects at least 1 element.');
+    }
+    return list;
+  }
+  return [for (final a in args) expectCommandExpr(a, cmdName)];
+}
 
 Expr _approxWithDigits(Expr expr, int? digits) {
   final approx = expr.approximate();

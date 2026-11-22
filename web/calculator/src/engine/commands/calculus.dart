@@ -4,7 +4,8 @@ import '../../model/value.dart';
 import '../commands.dart';
 
 /// Builds canonical calculus commands (`diff`, `integrate`, `taylor`, `series`,
-/// `limit`, `sum`, `product`, `gradient`, `hessian`, `jacobian`).
+/// `limit`, `sum`, `product`, `gradient`, `hessian`, `jacobian`, `laplacian`,
+/// `divergence`, `curl`, `analyze`).
 List<Command> buildCalculusCommands() => [
   Command(
     name: 'diff',
@@ -481,6 +482,83 @@ List<Command> buildCalculusCommands() => [
     },
   ),
   Command(
+    name: 'laplacian',
+    category: CommandCategory.calculus,
+    signature: 'laplacian(expr, [vars])',
+    paramSpecs: const [
+      ParamSpec.expr('expr'),
+      ParamSpec.optionalExpr('[vars]'),
+    ],
+    minArity: 1,
+    maxArity: 2,
+    doc: 'Computes the symbolic Laplacian scalar field Δf = ∇²f.',
+    examples: const ['laplacian(x^3 - 3 * x * y^2, [x, y])'],
+    rpnLabel: 'Laplacian',
+    rpnArity: 2,
+    appliesTo: (_) => false,
+    chipLabel: 'Δf',
+    buildChipCall: (id, v) {
+      final vars = (v as ExprValue).expr.freeVariables.join(', ');
+      return 'laplacian(r[$id], [$vars])';
+    },
+    run: (args, ctx) {
+      checkCommandArity('laplacian', args, 1, 2);
+      final expr = expectCommandExpr(args[0], 'laplacian');
+      final vars = args.length == 2
+          ? extractCommandVarNameList(args[1], 'laplacian')
+          : (expr.freeVariables.isNotEmpty
+                ? (expr.freeVariables.toList()..sort())
+                : ['x']);
+      return ExprValue(expr.laplacian(vars, assumptions: ctx.assumptions));
+    },
+  ),
+  Command(
+    name: 'divergence',
+    category: CommandCategory.calculus,
+    signature: 'divergence([F], [vars])',
+    paramSpecs: const [ParamSpec.expr('[F]'), ParamSpec.optionalExpr('[vars]')],
+    minArity: 1,
+    maxArity: 2,
+    doc: 'Computes the symbolic divergence ∇ · F of a vector field.',
+    examples: const ['divergence([x^2 * y, x * y^2], [x, y])'],
+    rpnLabel: 'Div',
+    rpnArity: 2,
+    appliesTo: (_) => false,
+    chipLabel: '∇·F',
+    buildChipCall: (id, _) => 'divergence(r[$id])',
+    run: (args, ctx) {
+      checkCommandArity('divergence', args, 1, 2);
+      final exprs = extractCommandExprList(args[0], 'divergence');
+      final vars = args.length == 2
+          ? extractCommandVarNameList(args[1], 'divergence')
+          : _inferFieldVariables(exprs, exprs.length);
+      return ExprValue(exprs.divergence(vars, assumptions: ctx.assumptions));
+    },
+  ),
+  Command(
+    name: 'curl',
+    category: CommandCategory.calculus,
+    signature: 'curl([Fx, Fy, Fz], [vars])',
+    paramSpecs: const [ParamSpec.expr('[F]'), ParamSpec.optionalExpr('[vars]')],
+    minArity: 1,
+    maxArity: 2,
+    doc: 'Computes the symbolic curl ∇ × F of a 3D vector field.',
+    examples: const ['curl([-y, x, 0], [x, y, z])'],
+    rpnLabel: 'Curl',
+    rpnArity: 2,
+    appliesTo: (_) => false,
+    chipLabel: '∇×F',
+    buildChipCall: (id, _) => 'curl(r[$id], [x, y, z])',
+    run: (args, ctx) {
+      checkCommandArity('curl', args, 1, 2);
+      final exprs = extractCommandExprList(args[0], 'curl');
+      final vars = args.length == 2
+          ? extractCommandVarNameList(args[1], 'curl')
+          : _inferFieldVariables(exprs, 3);
+      return VectorValue(exprs.curl(vars, assumptions: ctx.assumptions));
+    },
+  ),
+  Command(
     name: 'analyze',
     category: CommandCategory.calculus,
     signature: 'analyze(expr, [var])',
@@ -600,4 +678,20 @@ LimitDirection _parseLimitDir(CalcValue v) {
     };
   }
   return LimitDirection.both;
+}
+
+List<String> _inferFieldVariables(List<Expr> exprs, int targetCount) {
+  final inferred = inferSystemVariables(exprs);
+  if (inferred.length == targetCount) return inferred;
+  const defaults = ['x', 'y', 'z', 'w'];
+  if (targetCount <= defaults.length &&
+      inferred.every(defaults.take(targetCount).contains)) {
+    return defaults.sublist(0, targetCount);
+  }
+  final result = <String>[...inferred];
+  for (final d in defaults) {
+    if (result.length >= targetCount) break;
+    if (!result.contains(d)) result.add(d);
+  }
+  return result;
 }

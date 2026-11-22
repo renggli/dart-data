@@ -174,6 +174,25 @@ Expr simplifyZeta(Expr expr, {Expr? shift}) {
       );
     }
     if (expr == IntegerNumber.one) return Constant.undefined;
+    if (shift case IntegerNumber(asInt: final m?) when m > 1 && m <= 20) {
+      final base = simplifyZeta(expr);
+      if (base is! Zeta) {
+        final terms = <Expr>[base];
+        for (var k = 1; k < m; k++) {
+          terms.add(
+            simplifyNeg(
+              simplifyPow(
+                IntegerNumber.of(k),
+                simplifyNeg(expr, assumptions: Assumptions.none),
+                assumptions: Assumptions.none,
+              ),
+              assumptions: Assumptions.none,
+            ),
+          );
+        }
+        return simplifyAdd(terms, assumptions: Assumptions.none);
+      }
+    }
     return Zeta(expr, shift: shift, isSimplified: true);
   }
   if (isFloatComplex(expr)) {

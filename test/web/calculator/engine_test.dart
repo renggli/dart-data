@@ -588,6 +588,86 @@ void main() {
       // Binary case-insensitive fallback
       check(eval.evaluateScroll('ROOT(27, 3)').value.toCanonicalText())
           .equals('3');
+
+      // Newly exposed functions & commands in Scroll and RPN modes
+      check(eval.evaluateScroll('atan2(1, 1)').value.toCanonicalText())
+          .equals('1/4 * pi');
+      check(eval.evaluateScroll('expint(2, 0)').value.toCanonicalText())
+          .equals('1');
+      check(eval.evaluateScroll('zeta(2, 2)').value.toCanonicalText())
+          .equals('-1 + 1/6 * pi ^ 2');
+      check(
+        eval
+            .evaluateScroll('elliptic_pi(0, pi / 2, 0)')
+            .value
+            .toCanonicalText(),
+      ).equals('1/2 * pi');
+      check(
+        eval
+            .evaluateScroll('hyper([1, 2], [2], 1 / 2)')
+            .value
+            .toCanonicalText(),
+      ).equals('2');
+      check(eval.evaluateScroll('min(3, -5, 2)').value.toCanonicalText())
+          .equals('-5');
+      check(eval.evaluateScroll('max(3, -5, 2)').value.toCanonicalText())
+          .equals('3');
+      check(eval.evaluateScroll('min([4, 1, 9])').value.toCanonicalText())
+          .equals('1');
+      check(eval.evaluateScroll('max([4, 1, 9])').value.toCanonicalText())
+          .equals('9');
+      check(eval.evaluateScroll('gcd([84, 126])').value.toCanonicalText())
+          .equals('42');
+      check(eval.evaluateScroll('lcm([12, 18])').value.toCanonicalText())
+          .equals('36');
+      check(eval.evaluateScroll('sign(-42)').value.toCanonicalText())
+          .equals('-1');
+      check(eval.evaluateScroll('chebyshevt(3, x)').value.toCanonicalText())
+          .equals('-3 * x + 4 * x ^ 3');
+      check(eval.evaluateScroll('chebyshevu(2, x)').value.toCanonicalText())
+          .equals('-1 + 4 * x ^ 2');
+      check(eval.evaluateScroll('legendrep(2, x)').value.toCanonicalText())
+          .equals('-1/2 + 3/2 * x ^ 2');
+      check(eval.evaluateScroll('hermiteh(2, x)').value.toCanonicalText())
+          .equals('-2 + 4 * x ^ 2');
+      check(eval.evaluateScroll('hermitehe(2, x)').value.toCanonicalText())
+          .equals('-1 + x ^ 2');
+      check(eval.evaluateScroll('laguerrel(1, x)').value.toCanonicalText())
+          .equals('1 - x');
+      check(
+        eval
+            .evaluateScroll('laplacian(x^3 - 3 * x * y^2, [x, y])')
+            .value
+            .toCanonicalText(),
+      ).equals('0');
+      check(
+        eval
+            .evaluateScroll('divergence([x^2 * y, x * y^2], [x, y])')
+            .value
+            .toCanonicalText(),
+      ).equals('4 * x * y');
+      check(
+        eval
+            .evaluateScroll('curl([-y, x, 0], [x, y, z])')
+            .value
+            .toCanonicalText(),
+      ).equals('[0, 0, 2]');
+
+      // RPN mode checks for new functions & commands
+      final rpn = RpnInterpreter(stack: RpnStack(), evaluator: eval);
+      check(rpn.executeLine('1 1 atan2')).isNull;
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('1/4 * pi');
+      check(rpn.executeLine('[1, 2] [2] 1 2 / hyper')).isNull;
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('2');
+      check(rpn.executeLine('0 pi 2 / 0 elliptic_pi')).isNull;
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('1/2 * pi');
+      check(rpn.executeLine('3 chebyshevt')).isNull;
+      check(rpn.stack.level(1).value.toCanonicalText())
+          .equals('-3 * x + 4 * x ^ 3');
+      check(rpn.executeLine("'x^3 - 3*x*y^2' laplacian")).isNull;
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('0');
+      check(rpn.executeLine('[-y, x, 0] curl')).isNull;
+      check(rpn.stack.level(1).value.toCanonicalText()).equals('[0, 0, 2]');
     });
   });
 }

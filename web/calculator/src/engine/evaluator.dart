@@ -457,35 +457,66 @@ final class CalcEvaluator {
     }
 
     // 3. Standard ExprSyntax unary/binary/variadic functions
-    if (evaluatedArgs.every((a) => a is ExprValue)) {
-      final exprArgs = [for (final a in evaluatedArgs) (a as ExprValue).expr];
-      final unaryFn =
-          ExprSyntax.standardUnaryFunctions[canonicalName] ??
-          ExprSyntax.standardUnaryFunctions[name] ??
-          ExprSyntax.standardUnaryFunctions[canonicalName.toLowerCase()];
-      if (exprArgs.length == 1 && unaryFn != null) {
-        return ExprValue(unaryFn(exprArgs[0]));
-      }
-      if (exprArgs.length == 2) {
-        final binaryFn =
-            ExprSyntax.standardBinaryFunctions[canonicalName] ??
-            ExprSyntax.standardBinaryFunctions[name] ??
-            ExprSyntax.standardBinaryFunctions[canonicalName.toLowerCase()];
-        if (binaryFn != null) {
-          return ExprValue(binaryFn(exprArgs[0], exprArgs[1]));
+    if (evaluatedArgs.every(
+      (a) => a is ExprValue || a is VectorValue || a is ListValue,
+    )) {
+      final exprArgs = <Expr>[
+        for (final a in evaluatedArgs)
+          switch (a) {
+            ExprValue(:final expr) => expr,
+            VectorValue(:final vector) => Tuple([
+              for (var i = 0; i < vector.length; i++) vector.getUnchecked(i),
+            ]),
+            ListValue(:final elements) => Tuple([
+              for (final e in elements)
+                if (e is ExprValue)
+                  e.expr
+                else
+                  throw ArgumentError(
+                    'Function $name expects scalar list elements, got ${e.kind}.',
+                  ),
+            ]),
+            _ => throw StateError('Unreachable'),
+          },
+      ];
+      if (evaluatedArgs.every((a) => a is ExprValue)) {
+        final unaryFn =
+            ExprSyntax.standardUnaryFunctions[canonicalName] ??
+            ExprSyntax.standardUnaryFunctions[name] ??
+            ExprSyntax.standardUnaryFunctions[canonicalName.toLowerCase()];
+        if (exprArgs.length == 1 && unaryFn != null) {
+          return ExprValue(unaryFn(exprArgs[0]));
         }
+        if (exprArgs.length == 2) {
+          final binaryFn =
+              ExprSyntax.standardBinaryFunctions[canonicalName] ??
+              ExprSyntax.standardBinaryFunctions[name] ??
+              ExprSyntax.standardBinaryFunctions[canonicalName.toLowerCase()];
+          if (binaryFn != null) {
+            return ExprValue(binaryFn(exprArgs[0], exprArgs[1]));
+          }
+        }
+        final ortho = _evalOrthogonalPolynomial(canonicalName, exprArgs);
+        if (ortho != null) return ExprValue(ortho);
       }
-      if (ExprSyntax.standardVariadicFunctions.containsKey(name)) {
-        return ExprValue(ExprSyntax.standardVariadicFunctions[name]!(exprArgs));
+      final variadicFn =
+          ExprSyntax.standardVariadicFunctions[canonicalName] ??
+          ExprSyntax.standardVariadicFunctions[name] ??
+          ExprSyntax.standardVariadicFunctions[canonicalName.toLowerCase()];
+      if (variadicFn != null) {
+        return ExprValue(variadicFn(exprArgs));
       }
-      // 4. Undefined symbolic function -> VariableFunction(name, args)
-      return ExprValue(VariableFunction(name, exprArgs));
+      if (evaluatedArgs.every((a) => a is ExprValue)) {
+        // 4. Undefined symbolic function -> VariableFunction(name, args)
+        return ExprValue(VariableFunction(name, exprArgs));
+      }
     }
 
     // Element-wise lifting of standard unary math functions over Vector/Matrix
     final unaryFn =
         ExprSyntax.standardUnaryFunctions[canonicalName] ??
-        ExprSyntax.standardUnaryFunctions[name];
+        ExprSyntax.standardUnaryFunctions[name] ??
+        ExprSyntax.standardUnaryFunctions[canonicalName.toLowerCase()];
     if (evaluatedArgs.length == 1 && unaryFn != null) {
       final arg = evaluatedArgs.first;
       if (arg case VectorValue(:final vector)) {
@@ -833,6 +864,91 @@ final class CalcEvaluator {
 
   static bool _isNonZeroComplexExpr(Expr expr) =>
       expr is ComplexNumber && !expr.imaginary.isZero;
+
+  static Expr? _evalOrthogonalPolynomial(String name, List<Expr> args) {
+    final lower = name.toLowerCase();
+    int? asNonNegInt(Expr e) => switch (e) {
+      IntegerNumber(asInt: final n?) when n >= 0 => n,
+      _ => null,
+    };
+    return switch (lower) {
+      'chebyshevt' || 'chebyshev_t' => switch (args) {
+        [final nExpr] when asNonNegInt(nExpr) != null => chebyshevT(
+          asNonNegInt(nExpr)!,
+        ),
+        [final nExpr, final x] when asNonNegInt(nExpr) != null => chebyshevT(
+          asNonNegInt(nExpr)!,
+          x,
+        ),
+        _ => throw ArgumentError(
+          '$name expects (n, [x]) with non-negative integer degree n.',
+        ),
+      },
+      'chebyshevu' || 'chebyshev_u' => switch (args) {
+        [final nExpr] when asNonNegInt(nExpr) != null => chebyshevU(
+          asNonNegInt(nExpr)!,
+        ),
+        [final nExpr, final x] when asNonNegInt(nExpr) != null => chebyshevU(
+          asNonNegInt(nExpr)!,
+          x,
+        ),
+        _ => throw ArgumentError(
+          '$name expects (n, [x]) with non-negative integer degree n.',
+        ),
+      },
+      'legendrep' || 'legendre_p' => switch (args) {
+        [final nExpr] when asNonNegInt(nExpr) != null => legendreP(
+          asNonNegInt(nExpr)!,
+        ),
+        [final nExpr, final x] when asNonNegInt(nExpr) != null => legendreP(
+          asNonNegInt(nExpr)!,
+          x,
+        ),
+        _ => throw ArgumentError(
+          '$name expects (n, [x]) with non-negative integer degree n.',
+        ),
+      },
+      'hermiteh' || 'hermite_h' => switch (args) {
+        [final nExpr] when asNonNegInt(nExpr) != null => hermiteH(
+          asNonNegInt(nExpr)!,
+        ),
+        [final nExpr, final x] when asNonNegInt(nExpr) != null => hermiteH(
+          asNonNegInt(nExpr)!,
+          x,
+        ),
+        _ => throw ArgumentError(
+          '$name expects (n, [x]) with non-negative integer degree n.',
+        ),
+      },
+      'hermitehe' || 'hermite_he' => switch (args) {
+        [final nExpr] when asNonNegInt(nExpr) != null => hermiteHe(
+          asNonNegInt(nExpr)!,
+        ),
+        [final nExpr, final x] when asNonNegInt(nExpr) != null => hermiteHe(
+          asNonNegInt(nExpr)!,
+          x,
+        ),
+        _ => throw ArgumentError(
+          '$name expects (n, [x]) with non-negative integer degree n.',
+        ),
+      },
+      'laguerrel' || 'laguerre_l' => switch (args) {
+        [final nExpr] when asNonNegInt(nExpr) != null => laguerreL(
+          asNonNegInt(nExpr)!,
+        ),
+        [final nExpr, final x] when asNonNegInt(nExpr) != null => laguerreL(
+          asNonNegInt(nExpr)!,
+          x,
+        ),
+        [final nExpr, final x, final alpha] when asNonNegInt(nExpr) != null =>
+          laguerreL(asNonNegInt(nExpr)!, x, alpha),
+        _ => throw ArgumentError(
+          '$name expects (n, [x], [alpha]) with non-negative integer degree n.',
+        ),
+      },
+      _ => null,
+    };
+  }
 
   static String _cleanExceptionMessage(Object error) {
     final raw = error.toString();

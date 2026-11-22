@@ -149,6 +149,12 @@ abstract final class CalcCompletion {
       examples: ['atan(1)'],
     ),
     MathFunctionInfo(
+      name: 'atan2',
+      params: ['y', 'x'],
+      doc: 'Two-argument quadrant-aware inverse tangent atan2(y, x).',
+      examples: ['atan2(1, 1)', 'atan2(0, -1)'],
+    ),
+    MathFunctionInfo(
       name: 'asec',
       params: ['x'],
       doc: 'Inverse secant arcsec(x).',
@@ -317,6 +323,12 @@ abstract final class CalcCompletion {
       examples: ['Ei(1)'],
     ),
     MathFunctionInfo(
+      name: 'expint',
+      params: ['n', 'x'],
+      doc: 'Generalized exponential integral E_n(x).',
+      examples: ['expint(1, 2)', 'expint(2, 0)'],
+    ),
+    MathFunctionInfo(
       name: 'li',
       params: ['x'],
       doc: 'Logarithmic integral li(x).',
@@ -378,9 +390,9 @@ abstract final class CalcCompletion {
     ),
     MathFunctionInfo(
       name: 'zeta',
-      params: ['s'],
-      doc: 'Riemann zeta function ζ(s).',
-      examples: ['zeta(2)'],
+      params: ['s', '[a]'],
+      doc: 'Riemann zeta ζ(s) or Hurwitz zeta ζ(s, a).',
+      examples: ['zeta(2)', 'zeta(2, 2)'],
     ),
     MathFunctionInfo(
       name: 'polylog',
@@ -396,27 +408,36 @@ abstract final class CalcCompletion {
     ),
     MathFunctionInfo(
       name: 'elliptick',
-      params: ['m'],
-      doc: 'Complete elliptic integral of the first kind K(m).',
+      params: ['k'],
+      doc: 'Complete elliptic integral of the first kind K(k).',
       examples: ['elliptick(1 / 2)'],
     ),
     MathFunctionInfo(
       name: 'elliptice',
-      params: ['m'],
-      doc: 'Complete elliptic integral of the second kind E(m).',
+      params: ['k'],
+      doc: 'Complete elliptic integral of the second kind E(k).',
       examples: ['elliptice(1 / 2)'],
     ),
     MathFunctionInfo(
       name: 'elliptic_f',
-      params: ['phi', 'm'],
-      doc: 'Incomplete elliptic integral of the first kind F(φ, m).',
+      params: ['phi', 'k'],
+      doc: 'Incomplete elliptic integral of the first kind F(φ, k).',
       examples: ['elliptic_f(pi / 3, 1 / 2)'],
     ),
     MathFunctionInfo(
       name: 'elliptic_e',
-      params: ['phi', 'm'],
-      doc: 'Incomplete elliptic integral of the second kind E(φ, m).',
+      params: ['phi', 'k'],
+      doc: 'Incomplete elliptic integral of the second kind E(φ, k).',
       examples: ['elliptic_e(pi / 3, 1 / 2)'],
+    ),
+    MathFunctionInfo(
+      name: 'elliptic_pi',
+      params: ['n', '[phi]', 'k'],
+      doc: 'Complete Π(n, k) or incomplete Π(n, φ, k) elliptic integral of the third kind.',
+      examples: [
+        'elliptic_pi(1 / 4, 1 / 2)',
+        'elliptic_pi(1 / 4, pi / 3, 1 / 2)',
+      ],
     ),
     MathFunctionInfo(
       name: 'besselj',
@@ -443,10 +464,52 @@ abstract final class CalcCompletion {
       examples: ['besselk(0, 1)'],
     ),
     MathFunctionInfo(
+      name: 'hyper',
+      params: ['[a]', '[b]', 'z'],
+      doc: 'Generalized hypergeometric function _pF_q(a; b; z).',
+      examples: ['hyper([1, 2], [3], 1 / 2)', 'hyper([], [], 1)'],
+    ),
+    MathFunctionInfo(
       name: 'lambertw',
       params: ['z', '[branch]'],
       doc: 'Lambert W function W_k(z).',
-      examples: ['lambertw(1)'],
+      examples: ['lambertw(1)', 'lambertw(-1 / (2 * e), -1)'],
+    ),
+    MathFunctionInfo(
+      name: 'chebyshevt',
+      params: ['n', '[x]'],
+      doc: 'Chebyshev polynomial of the first kind T_n(x).',
+      examples: ['chebyshevt(3, x)'],
+    ),
+    MathFunctionInfo(
+      name: 'chebyshevu',
+      params: ['n', '[x]'],
+      doc: 'Chebyshev polynomial of the second kind U_n(x).',
+      examples: ['chebyshevu(2, x)'],
+    ),
+    MathFunctionInfo(
+      name: 'legendrep',
+      params: ['n', '[x]'],
+      doc: 'Legendre polynomial P_n(x).',
+      examples: ['legendrep(3, x)'],
+    ),
+    MathFunctionInfo(
+      name: 'hermiteh',
+      params: ['n', '[x]'],
+      doc: "Physicists' Hermite polynomial H_n(x).",
+      examples: ['hermiteh(3, x)'],
+    ),
+    MathFunctionInfo(
+      name: 'hermitehe',
+      params: ['n', '[x]'],
+      doc: "Probabilists' Hermite polynomial He_n(x).",
+      examples: ['hermitehe(3, x)'],
+    ),
+    MathFunctionInfo(
+      name: 'laguerrel',
+      params: ['n', '[x]', '[alpha]'],
+      doc: 'Generalized Laguerre polynomial L_n^(α)(x).',
+      examples: ['laguerrel(2, x)'],
     ),
     MathFunctionInfo(
       name: 'piecewise',

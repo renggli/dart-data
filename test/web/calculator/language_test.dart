@@ -229,6 +229,33 @@ void main() {
         for (final fn in CalcCompletion.mathFunctions) {
           check(fn.examples).isNotEmpty;
         }
+
+        // New functions completion and signature hints
+        final hyperComp = CalcCompletion.complete(
+          'hyp',
+          3,
+          environment: env,
+          session: session,
+        );
+        check(hyperComp.items.map((i) => i.label)).contains('hyper');
+
+        final ellComp = CalcCompletion.complete(
+          'elliptic',
+          8,
+          environment: env,
+          session: session,
+        );
+        check(ellComp.items.map((i) => i.label)).contains('elliptic_pi');
+
+        final atan2Hint = CalcCompletion.complete(
+          'atan2(1, ',
+          9,
+          environment: env,
+          session: session,
+        );
+        check(atan2Hint.signatureHint).isNotNull();
+        check(atan2Hint.signatureHint!.name).equals('atan2');
+        check(atan2Hint.signatureHint!.activeParamIndex).equals(1);
       },
     );
   });

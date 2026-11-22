@@ -448,6 +448,14 @@ Expr simplifyExpIntegralE(Expr n, Expr z) {
   if (n is Number && n.isZero) {
     return (Pow(Constant.e, -z) / z).simplify();
   }
+  if (z is Number && z.isZero) {
+    if (n is RationalNumber && n.compareTo(IntegerNumber.one) > 0) {
+      return (IntegerNumber.one / (n - IntegerNumber.one)).simplify();
+    }
+    if (n is RealNumeric && n.toDouble() <= 1.0) {
+      return Constant.undefined;
+    }
+  }
   if (n is Number && z is Number && (n is RealNumber || z is RealNumber)) {
     if (isFloatComplex(n) || isFloatComplex(z)) {
       return complexToExpr(
@@ -486,6 +494,13 @@ Expr simplifyHypergeometric(List<Expr> upper, List<Expr> lower, Expr z) {
     } else {
       remUpper.add(u);
     }
+  }
+
+  if (remUpper.isEmpty && remLower.isEmpty) {
+    return Pow(Constant.e, z).simplify();
+  }
+  if (remUpper.length == 1 && remLower.isEmpty) {
+    return Pow(IntegerNumber.one - z, -remUpper.first).simplify();
   }
 
   if (z is Number &&

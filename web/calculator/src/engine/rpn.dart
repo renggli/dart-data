@@ -300,23 +300,56 @@ final class RpnInterpreter {
       return;
     }
 
-    // 6. Standard unary / binary math functions (`sin`, `cos`, `sqrt`, `exp`, `ln`, ...)
-    if (ExprSyntax.standardUnaryFunctions.containsKey(lower)) {
+    // 6. Standard unary / binary / variadic math functions (`sin`, `cos`, `sqrt`, `exp`, `ln`, ...)
+    if (lower == 'elliptic_pi' || lower == 'ellipticpi') {
+      final arity = stack.depth >= 3 ? 3 : 2;
+      final args = stack.popArgs(arity);
+      final res = evaluator.evalNode(
+        CallNode(rawName, [for (final a in args) _valueToNode(a.value)]),
+      );
+      _cleanupPoppedLiterals(args);
+      _pushResult(
+        _postProcessValue(res),
+        inputText:
+            '$rawName(${args.map((a) => a.value.toCanonicalText()).join(', ')})',
+      );
+      return;
+    }
+    if (lower == 'hyper' || lower == 'hypergeometric') {
+      final args = stack.popArgs(3);
+      final res = evaluator.evalNode(
+        CallNode(rawName, [
+          _valueToNode(args[0].value),
+          _valueToNode(args[1].value),
+          _valueToNode(args[2].value),
+        ]),
+      );
+      _cleanupPoppedLiterals(args);
+      _pushResult(
+        _postProcessValue(res),
+        inputText:
+            '$rawName(${args[0].value.toCanonicalText()}, ${args[1].value.toCanonicalText()}, ${args[2].value.toCanonicalText()})',
+      );
+      return;
+    }
+    if (ExprSyntax.standardUnaryFunctions.containsKey(lower) ||
+        ExprSyntax.standardUnaryFunctions.containsKey(rawName)) {
       final arg = stack.popArgs(1).first;
       final res = evaluator.evalNode(
-        CallNode(lower, [_valueToNode(arg.value)]),
+        CallNode(rawName, [_valueToNode(arg.value)]),
       );
       _cleanupPoppedLiterals([arg]);
       _pushResult(
         _postProcessValue(res),
-        inputText: '$lower(${arg.value.toCanonicalText()})',
+        inputText: '$rawName(${arg.value.toCanonicalText()})',
       );
       return;
     }
-    if (ExprSyntax.standardBinaryFunctions.containsKey(lower)) {
+    if (ExprSyntax.standardBinaryFunctions.containsKey(lower) ||
+        ExprSyntax.standardBinaryFunctions.containsKey(rawName)) {
       final args = stack.popArgs(2);
       final res = evaluator.evalNode(
-        CallNode(lower, [
+        CallNode(rawName, [
           _valueToNode(args[0].value),
           _valueToNode(args[1].value),
         ]),
@@ -325,7 +358,39 @@ final class RpnInterpreter {
       _pushResult(
         _postProcessValue(res),
         inputText:
-            '$lower(${args[0].value.toCanonicalText()}, ${args[1].value.toCanonicalText()})',
+            '$rawName(${args[0].value.toCanonicalText()}, ${args[1].value.toCanonicalText()})',
+      );
+      return;
+    }
+    if (const {
+      'chebyshevt',
+      'chebyshev_t',
+      'chebyshevu',
+      'chebyshev_u',
+      'legendrep',
+      'legendre_p',
+      'hermiteh',
+      'hermite_h',
+      'hermitehe',
+      'hermite_he',
+      'laguerrel',
+      'laguerre_l',
+    }.contains(lower)) {
+      final arity =
+          stack.depth >= 2 &&
+              _looksLikeInteger(stack.level(2).value) &&
+              !_looksLikeInteger(stack.level(1).value)
+          ? 2
+          : 1;
+      final args = stack.popArgs(arity);
+      final res = evaluator.evalNode(
+        CallNode(rawName, [for (final a in args) _valueToNode(a.value)]),
+      );
+      _cleanupPoppedLiterals(args);
+      _pushResult(
+        _postProcessValue(res),
+        inputText:
+            '$rawName(${args.map((a) => a.value.toCanonicalText()).join(', ')})',
       );
       return;
     }
@@ -458,13 +523,30 @@ final class RpnInterpreter {
         } else {
           effectiveArity = 1;
         }
-      case 'gradient' || 'hessian' || 'jacobian':
+      case 'gradient' || 'hessian' || 'laplacian':
         if (stack.depth >= 2 &&
             (stack.level(1).value is VectorValue ||
                 stack.level(1).value is ListValue)) {
           effectiveArity = 2;
         } else {
           effectiveArity = 1;
+        }
+      case 'jacobian' || 'divergence' || 'curl':
+        if (stack.depth >= 2 &&
+            _looksLikeVariableList(stack.level(1).value) &&
+            (stack.level(2).value is VectorValue ||
+                stack.level(2).value is ListValue)) {
+          effectiveArity = 2;
+        } else {
+          effectiveArity = 1;
+        }
+      case 'min' || 'max' || 'gcd' || 'lcm':
+        if (stack.depth == 1 &&
+            (stack.level(1).value is VectorValue ||
+                stack.level(1).value is ListValue)) {
+          effectiveArity = 1;
+        } else {
+          effectiveArity = 2;
         }
       case 'zeros':
         if (stack.depth >= 2 &&
@@ -535,6 +617,16 @@ final class RpnInterpreter {
 
   static bool _looksLikeVariable(CalcValue v) =>
       v is ExprValue && v.expr is Variable;
+
+  static bool _looksLikeVariableList(CalcValue v) => switch (v) {
+    VectorValue(:final vector) =>
+      vector.length > 0 &&
+          Iterable<int>.generate(vector.length)
+              .every((i) => vector.getUnchecked(i) is Variable),
+    ListValue(:final elements) =>
+      elements.isNotEmpty && elements.every(_looksLikeVariable),
+    _ => false,
+  };
 
   static bool _looksLikeInteger(CalcValue v) =>
       v is ExprValue && v.expr is IntegerNumber;
