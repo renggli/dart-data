@@ -420,10 +420,10 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
         ),
   Acosh(expr: final inner) =>
     _differentiate(inner, variable) /
-        Pow(
-          Pow(inner, IntegerNumber.two) - IntegerNumber.one,
-          FractionNumber.half,
-        ),
+        Mul([
+          Pow(inner - IntegerNumber.one, FractionNumber.half),
+          Pow(inner + IntegerNumber.one, FractionNumber.half),
+        ]),
   Atanh(expr: final inner) =>
     _differentiate(inner, variable) /
         (IntegerNumber.one - Pow(inner, IntegerNumber.two)),

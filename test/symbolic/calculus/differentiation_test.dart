@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -509,6 +510,38 @@ void main() {
             2e-6,
         1e-4,
       );
+    });
+
+    test('preserves branch cuts for Acosh and fractional trig powers', () {
+      final dAcosh = Expr.parse('-acosh(-b * x / 2) / b').derivative('x');
+      final expAcosh = Expr.parse('1 / (sqrt(-b * x - 2) * sqrt(-b * x + 2))');
+      final zEnv = {
+        'b': const Complex(0.43, 0.17),
+        'x': const Complex(0.72, 0.17),
+      };
+      check(
+        (dAcosh.evaluateComplex(zEnv) - expAcosh.evaluateComplex(zEnv)).abs(),
+      ).isCloseTo(0.0, 1e-12);
+
+      final dTrig = Expr.parse(
+        '2 * (c * sin(a + b * x))^(3/2) / (3 * b * c * d * (d * cos(a + b * x))^(3/2))',
+      ).derivative('x');
+      final expTrig = Expr.parse(
+        'sqrt(c * sin(a + b * x)) / (d * cos(a + b * x))^(5/2)',
+      );
+      final rEnv = {'a': 1.54, 'b': 1.83, 'c': 2.12, 'd': 2.41, 'x': 2.70};
+      check(dTrig.evaluate(rEnv)).isCloseTo(expTrig.evaluate(rEnv), 1e-12);
+      final cEnv = {
+        'a': const Complex(0.63, 0.19),
+        'b': const Complex(0.94, 0.12),
+        'c': const Complex(1.25, 0.05),
+        'd': const Complex(1.56, -0.02),
+        'x': const Complex(0.37, 0.29),
+      };
+      check(
+        (dTrig.evaluateComplex(cEnv) - expTrig.evaluateComplex(cEnv)).abs(),
+        because: 'dTrig=$dTrig',
+      ).isCloseTo(0.0, 1e-9);
     });
   });
 }
