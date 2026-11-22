@@ -84,7 +84,23 @@ Complex hypergeometric1F1Complex(Complex a, Complex b, Complex z) {
   if (a.isNaN || b.isNaN || z.isNaN) {
     return Complex.nan;
   }
-  if (b.b == 0.0 && b.a <= 0.0 && b.a == b.a.roundToDouble()) {
+  final isANonPosInt = _isComplexNonPosInt(a);
+  final isBNonPosInt = _isComplexNonPosInt(b);
+  if (isANonPosInt) {
+    final n = (-a.a).round();
+    if (isBNonPosInt && (-b.a).round() < n) {
+      return Complex.nan;
+    }
+    if ((z.a == 0.0 && z.b == 0.0) || n == 0) return Complex.one;
+    var sum = Complex.one;
+    var term = Complex.one;
+    for (var k = 1; k <= n; k++) {
+      term *= (a + Complex(k - 1)) / (b + Complex(k - 1)) * z / Complex(k);
+      sum += term;
+    }
+    return sum;
+  }
+  if (isBNonPosInt) {
     return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) return Complex.one;
@@ -210,7 +226,36 @@ Complex hypergeometric2F1Complex(Complex a, Complex b, Complex c, Complex z) {
   if (a.isNaN || b.isNaN || c.isNaN || z.isNaN) {
     return Complex.nan;
   }
-  if (c.b == 0.0 && c.a <= 0.0 && c.a == c.a.roundToDouble()) {
+  final isANonPosInt = _isComplexNonPosInt(a);
+  final isBNonPosInt = _isComplexNonPosInt(b);
+  final isCNonPosInt = _isComplexNonPosInt(c);
+  if (isANonPosInt || isBNonPosInt) {
+    final int n;
+    if (isANonPosInt && isBNonPosInt) {
+      n = min((-a.a).round(), (-b.a).round());
+    } else if (isANonPosInt) {
+      n = (-a.a).round();
+    } else {
+      n = (-b.a).round();
+    }
+    if (isCNonPosInt && (-c.a).round() < n) {
+      return Complex.nan;
+    }
+    if ((z.a == 0.0 && z.b == 0.0) || n == 0) return Complex.one;
+    var sum = Complex.one;
+    var term = Complex.one;
+    for (var k = 1; k <= n; k++) {
+      term *=
+          (a + Complex(k - 1)) *
+          (b + Complex(k - 1)) /
+          (c + Complex(k - 1)) *
+          z /
+          Complex(k);
+      sum += term;
+    }
+    return sum;
+  }
+  if (isCNonPosInt) {
     return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) return Complex.one;
@@ -224,22 +269,61 @@ Complex hypergeometric2F1Complex(Complex a, Complex b, Complex c, Complex z) {
     if (oneMinusZ.abs() < 0.8) {
       final diff = c - a - b;
       if (diff.b != 0.0 || diff.a != diff.a.roundToDouble()) {
-        final t1 =
-            gammaComplex(c) *
-            gammaComplex(diff) /
-            (gammaComplex(c - a) * gammaComplex(c - b)) *
-            hypergeometric2F1Complex(a, b, a + b - c + Complex.one, oneMinusZ);
-        final t2 =
-            gammaComplex(c) *
-            gammaComplex(-diff) /
-            (gammaComplex(a) * gammaComplex(b)) *
-            oneMinusZ.pow(diff) *
-            hypergeometric2F1Complex(
-              c - a,
-              c - b,
-              c - a - b + Complex.one,
-              oneMinusZ,
-            );
+        final t1 = (_isComplexNonPosInt(c - a) || _isComplexNonPosInt(c - b))
+            ? Complex.zero
+            : gammaComplex(c) *
+                  gammaComplex(diff) /
+                  (gammaComplex(c - a) * gammaComplex(c - b)) *
+                  hypergeometric2F1Complex(
+                    a,
+                    b,
+                    a + b - c + Complex.one,
+                    oneMinusZ,
+                  );
+        final t2 = (_isComplexNonPosInt(a) || _isComplexNonPosInt(b))
+            ? Complex.zero
+            : gammaComplex(c) *
+                  gammaComplex(-diff) /
+                  (gammaComplex(a) * gammaComplex(b)) *
+                  oneMinusZ.pow(diff) *
+                  hypergeometric2F1Complex(
+                    c - a,
+                    c - b,
+                    c - a - b + Complex.one,
+                    oneMinusZ,
+                  );
+        return t1 + t2;
+      }
+    }
+    if (z.abs() > 1.25) {
+      final abDiff = a - b;
+      if (abDiff.b != 0.0 || abDiff.a != abDiff.a.roundToDouble()) {
+        final invZ = z.reciprocal();
+        final negZ = -z;
+        final t1 = (_isComplexNonPosInt(b) || _isComplexNonPosInt(c - a))
+            ? Complex.zero
+            : gammaComplex(c) *
+                  gammaComplex(-abDiff) /
+                  (gammaComplex(b) * gammaComplex(c - a)) *
+                  negZ.pow(-a) *
+                  hypergeometric2F1Complex(
+                    a,
+                    a - c + Complex.one,
+                    abDiff + Complex.one,
+                    invZ,
+                  );
+        final t2 = (_isComplexNonPosInt(a) || _isComplexNonPosInt(c - b))
+            ? Complex.zero
+            : gammaComplex(c) *
+                  gammaComplex(abDiff) /
+                  (gammaComplex(a) * gammaComplex(c - b)) *
+                  negZ.pow(-b) *
+                  hypergeometric2F1Complex(
+                    b,
+                    b - c + Complex.one,
+                    -abDiff + Complex.one,
+                    invZ,
+                  );
         return t1 + t2;
       }
     }
@@ -260,6 +344,9 @@ Complex hypergeometric2F1Complex(Complex a, Complex b, Complex c, Complex z) {
 }
 
 bool _isNonPosInt(double x) => x.isFinite && x <= 0.0 && x.roundToDouble() == x;
+
+bool _isComplexNonPosInt(Complex z) =>
+    z.b == 0.0 && z.a.isFinite && z.a <= 0.0 && z.a == z.a.roundToDouble();
 
 double _hypergeometric2F1Logarithmic(
   double a,

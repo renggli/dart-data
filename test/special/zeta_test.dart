@@ -55,6 +55,15 @@ void main() {
           gammaComplex(Complex.one - s) *
           zetaComplex(Complex.one - s);
       check((zetaComplex(s) - rhs).abs()).isLessThan(1e-12);
+
+      // Exact trivial zeros at negative even integers
+      check(zetaComplex(const Complex(-2))).equals(Complex.zero);
+      check(zetaComplex(const Complex(-120))).equals(Complex.zero);
+
+      // Large negative real part uses log-space reflection without overflow
+      final zNegLarge = zetaComplex(const Complex(-105.5, 1.0));
+      check(zNegLarge.a.isFinite).isTrue;
+      check(zNegLarge.b.isFinite).isTrue;
     });
   });
 }

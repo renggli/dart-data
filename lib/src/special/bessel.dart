@@ -130,7 +130,8 @@ Complex besselJComplex(Complex nu, Complex z) {
   }
   if (z.abs() > max(12.0, nu.abs() * nu.abs())) {
     if (z.a < 0.0) {
-      return (Complex.i * const Complex(pi) * nu).exp() *
+      final phase = z.b < 0.0 ? -pi : pi;
+      return (Complex.i * Complex(phase) * nu).exp() *
           _hankelAsymptoticComplex(nu, -z).j;
     }
     return _hankelAsymptoticComplex(nu, z).j;
@@ -195,7 +196,10 @@ Complex besselYComplex(Complex nu, Complex z) {
     return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) {
-    return const Complex(double.negativeInfinity, double.nan);
+    return Complex.nan;
+  }
+  if (nu.b == 0.0 && z.b == 0.0 && z.a > 0.0) {
+    return Complex(besselY(nu.a.toDouble(), z.a.toDouble()));
   }
   if (z.abs() > max(12.0, nu.abs() * nu.abs()) && z.a >= 0.0) {
     return _hankelAsymptoticComplex(nu, z).y;
@@ -318,7 +322,8 @@ Complex besselIComplex(Complex nu, Complex z) {
   }
   if (z.abs() > max(12.0, nu.abs() * nu.abs())) {
     if (z.a < 0.0) {
-      return (Complex.i * const Complex(pi) * nu).exp() *
+      final phase = z.b < 0.0 ? -pi : pi;
+      return (Complex.i * Complex(phase) * nu).exp() *
           _modifiedBesselAsymptoticComplex(nu, -z).i;
     }
     return _modifiedBesselAsymptoticComplex(nu, z).i;
@@ -381,6 +386,9 @@ Complex besselKComplex(Complex nu, Complex z) {
   }
   if (z.a == 0.0 && z.b == 0.0) {
     return const Complex(double.infinity);
+  }
+  if (nu.b == 0.0 && z.b == 0.0 && z.a > 0.0) {
+    return Complex(besselK(nu.a.toDouble(), z.a.toDouble()));
   }
   if (z.abs() > max(12.0, nu.abs() * nu.abs()) && z.a >= 0.0) {
     return _modifiedBesselAsymptoticComplex(nu, z).k;

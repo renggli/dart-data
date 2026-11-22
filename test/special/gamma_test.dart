@@ -184,6 +184,37 @@ void main() {
       final sumSmall =
           upperGammaComplex(s, wSmall) + lowerGammaComplex(s, wSmall);
       check((sumSmall - gammaComplex(s)).abs()).isLessThan(1e-12);
+
+      // Large |z| gammaComplex overflow avoidance
+      final gLarge = gammaComplex(const Complex(120, 1));
+      check(gLarge.a.isFinite).isTrue;
+      check(gLarge.b.isFinite).isTrue;
+      check(
+        (gLarge - gammaLnComplex(const Complex(120, 1)).exp()).abs() /
+            gLarge.abs(),
+      ).isLessThan(1e-12);
+
+      // Large s upperGamma overflow avoidance
+      check(upperGamma(160.0, 170.0).isFinite).isTrue;
+      check(upperGamma(160.0, 170.0)).isGreaterThan(0.0);
+
+      // Non-positive integer s in upperGammaComplex
+      const zSmall = Complex(0.5, 0.2);
+      check(
+        (upperGammaComplex(Complex.zero, zSmall) - expIntegralE1Complex(zSmall))
+            .abs(),
+      ).isLessThan(1e-12);
+      final ugNeg1 = upperGammaComplex(const Complex(-1), zSmall);
+      final expectedUgNeg1 =
+          (zSmall.pow(const Complex(-1)) * (-zSmall).exp()) -
+          upperGammaComplex(Complex.zero, zSmall);
+      check((ugNeg1 - expectedUgNeg1).abs()).isLessThan(1e-12);
+      final ugNeg2 = upperGammaComplex(const Complex(-2), zSmall);
+      final expectedUgNeg2 =
+          (upperGammaComplex(const Complex(-1), zSmall) -
+              zSmall.pow(const Complex(-2)) * (-zSmall).exp()) /
+          const Complex(-2);
+      check((ugNeg2 - expectedUgNeg2).abs()).isLessThan(1e-12);
     });
   });
 }

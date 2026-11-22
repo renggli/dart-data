@@ -24,13 +24,17 @@ double erf(num x) => _erfCore(x, complementary: false);
 Complex erfComplex(Complex z) {
   if (z.isNaN) return Complex.nan;
   if (z == Complex.zero) return Complex.zero;
+  if (z.b == 0.0) return Complex(erf(z.a.toDouble()));
+  if (z.a == 0.0) return Complex(0.0, erfi(z.b.toDouble()));
   if (z.a < 0.0) return -erfComplex(-z);
-  if (z.abs() >= 4.0) return Complex.one - erfcComplex(z);
+  if (z.abs() >= 4.0 && z.a >= 0.5 * z.b.abs()) {
+    return Complex.one - erfcComplex(z);
+  }
 
   final z2 = -z * z;
   var sum = z;
   var term = z;
-  for (var n = 1; n <= 100; n++) {
+  for (var n = 1; n <= 250; n++) {
     term *= z2 / Complex(n);
     final add = term / Complex(2 * n + 1);
     sum += add;
@@ -76,8 +80,11 @@ double erfc(num x) => _erfCore(x, complementary: true);
 /// for details.
 Complex erfcComplex(Complex z) {
   if (z.isNaN) return Complex.nan;
+  if (z.b == 0.0) return Complex(erfc(z.a.toDouble()));
   if (z.a < 0.0) return const Complex(2.0) - erfcComplex(-z);
-  if (z.abs() < 4.0) return Complex.one - erfComplex(z);
+  if (z.abs() < 4.0 || z.a < 0.5 * z.b.abs()) {
+    return Complex.one - erfComplex(z);
+  }
 
   final h = lentzCFComplex(z, (k) => Complex(0.5 * k), (_) => z);
   return (-z.square()).exp() * invSqrtPi * h;

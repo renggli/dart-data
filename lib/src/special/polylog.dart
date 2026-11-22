@@ -37,6 +37,7 @@ double polylog(num s, num z) {
 ///
 /// See https://en.wikipedia.org/wiki/Polylogarithm for details.
 Complex polylogComplex(Complex s, Complex z) {
+  if (s.isNaN || z.isNaN) return Complex.nan;
   if (z.a == 0.0 && z.b == 0.0) return Complex.zero;
 
   if (s.b == 0.0) {

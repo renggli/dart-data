@@ -49,16 +49,29 @@ Complex expIntegralComplex(Complex z) {
   if (z.isNaN) return Complex.nan;
   if (z == Complex.zero) return const Complex(double.negativeInfinity);
   if (z.b == 0.0) return Complex(expIntegral(z.a.toDouble()));
-  if (z.abs() < 4.0) {
+  final absZ = z.abs();
+  if (absZ < 4.0 || (z.a > 0.0 && absZ <= 30.0)) {
     var sum = z.log() + eulerMascheroni;
     var term = z;
-    for (var k = 1; k <= 100; k++) {
+    for (var k = 1; k <= 200; k++) {
       final add = term / k;
       sum += add;
       if (add.abs() <= 1e-16 * sum.abs()) break;
       term *= z / (k + 1);
     }
     return sum;
+  }
+  if (z.a > 30.0 && z.b.abs() < 0.5 * z.a) {
+    var sum = Complex.one;
+    var term = Complex.one;
+    for (var k = 1; k <= 40; k++) {
+      final next = term * Complex(k) / z;
+      if (next.abs() > term.abs()) break;
+      term = next;
+      sum += term;
+      if (term.abs() <= 1e-16 * sum.abs()) break;
+    }
+    return z.exp() / z * sum;
   }
   final branch = z.b > 0.0 ? const Complex(0.0, pi) : const Complex(0.0, -pi);
   return -expIntegralE1Complex(-z) + branch;
@@ -83,9 +96,23 @@ double logIntegral(num x) {
 /// See https://en.wikipedia.org/wiki/Logarithmic_integral_function for details.
 Complex logIntegralComplex(Complex z) => expIntegralComplex(z.log());
 
-/// Package-internal helper computing `E_1(z)` via modified Lentz continued
-/// fraction.
+/// Package-internal helper computing `E_1(z)` via power series or modified
+/// Lentz continued fraction.
 Complex expIntegralE1Complex(Complex z) {
+  if (z.isNaN) return Complex.nan;
+  if (z == Complex.zero) return const Complex(double.infinity);
+  final absZ = z.abs();
+  if (absZ < 4.0 || (z.a < 0.0 && z.b.abs() < 2.0 && absZ <= 30.0)) {
+    var sum = -const Complex(eulerMascheroni) - z.log();
+    var term = Complex.one;
+    for (var k = 1; k <= 200; k++) {
+      term *= -z / k;
+      final add = -term / k;
+      sum += add;
+      if (add.abs() <= 1e-16 * sum.abs()) break;
+    }
+    return sum;
+  }
   final h = lentzCFComplex(
     z + 1.0,
     (i) => Complex(-i * i.toDouble()),

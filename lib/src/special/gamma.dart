@@ -48,6 +48,9 @@ Complex gammaComplex(Complex z) {
     final piZ = const Complex(pi) * z;
     return const Complex(pi) / (piZ.sin() * gammaComplex(Complex.one - z));
   }
+  if (z.a > 100.0 || z.b.abs() > 100.0) {
+    return gammaLnComplex(z).exp();
+  }
   final zAdj = z - 1;
   var y = Complex(lanczosCoeffs[0]);
   for (var i = 1; i < lanczosCoeffs.length; i++) {
@@ -300,7 +303,13 @@ double upperGamma(num s, num x) {
   final xd = x.toDouble();
   if (xd == double.infinity) return 0.0;
   if (xd == 0.0) return sd > 0.0 ? gamma(sd) : double.nan;
-  if (sd > 0.0) return gamma(sd) * gammaQ(sd, xd);
+  if (sd > 0.0) {
+    final q = gammaQ(sd, xd);
+    if (sd > 150.0) {
+      return q == 0.0 ? 0.0 : exp(gammaLn(sd) + log(q));
+    }
+    return gamma(sd) * q;
+  }
   if (sd == 0.0) return -expIntegral(-xd);
   return (upperGamma(sd + 1.0, xd) - pow(xd, sd) * exp(-xd)) / sd;
 }
@@ -311,6 +320,7 @@ double upperGamma(num s, num x) {
 Complex upperGammaComplex(Complex s, Complex z) {
   if (s.isNaN || z.isNaN) return Complex.nan;
   if (z == Complex.zero) return s.a > 0.0 ? gammaComplex(s) : Complex.nan;
+  if (s == Complex.zero) return expIntegralE1Complex(z);
   if (z.abs() >= s.abs() + 1.0 && z.a > -z.b.abs()) {
     final h = lentzCFComplex(
       z + 1.0 - s,
@@ -318,6 +328,9 @@ Complex upperGammaComplex(Complex s, Complex z) {
       (k) => z + 1.0 - s + 2.0 * k,
     );
     return z.pow(s) * (-z).exp() * h;
+  }
+  if (s.b == 0.0 && s.a < 0.0 && s.a == s.a.roundToDouble()) {
+    return (upperGammaComplex(s + Complex.one, z) - z.pow(s) * (-z).exp()) / s;
   }
   return gammaComplex(s) - lowerGammaComplex(s, z);
 }

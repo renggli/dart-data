@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
 void main() {
@@ -168,6 +169,33 @@ void main() {
         final k2 = besselK(2, x);
         check(k2 - k0).isCloseTo((2.0 / x) * k1, 1e-8);
       }
+    });
+
+    test('complex Bessel functions and branch symmetry', () {
+      // Conjugate symmetry for real order in third quadrant (asymptotic branch)
+      const nu = Complex(0.5);
+      const zQ2 = Complex(-15.0, 1.0);
+      const zQ3 = Complex(-15.0, -1.0);
+      final jQ2 = besselJComplex(nu, zQ2);
+      final jQ3 = besselJComplex(nu, zQ3);
+      check((jQ3 - jQ2.conjugate()).abs()).isLessThan(1e-10);
+
+      // Exact half-integer formula: J_{1/2}(z) = sqrt(2 / (pi * z)) * sin(z)
+      final expectedJQ3 =
+          (const Complex(2.0 / math.pi) / zQ3).sqrt() * zQ3.sin();
+      check((jQ3 - expectedJQ3).abs() / expectedJQ3.abs()).isLessThan(1e-10);
+
+      // Same conjugate symmetry for modified Bessel I in third quadrant
+      final iQ2 = besselIComplex(nu, zQ2);
+      final iQ3 = besselIComplex(nu, zQ3);
+      check((iQ3 - iQ2.conjugate()).abs() / iQ2.abs()).isLessThan(1e-10);
+
+      // Real-axis delegation avoids eps perturbation error on integer orders
+      check(besselYComplex(const Complex(2), const Complex(3)).a.toDouble())
+          .equals(besselY(2, 3));
+      check(besselKComplex(const Complex(2), const Complex(3)).a.toDouble())
+          .equals(besselK(2, 3));
+      check(besselYComplex(Complex.zero, Complex.zero).isNaN).isTrue;
     });
   });
 }

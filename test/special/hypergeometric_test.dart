@@ -113,6 +113,47 @@ void main() {
                 expectedLarge)
             .abs(),
       ).isLessThan(1e-12);
+
+      // Terminating polynomial when both a and b (or c) are non-positive integers
+      // 1F1(-2; -3; z) = 1 + (-2)/(-3)*z + (-2)(-1)/((-3)(-2))*z^2/2 = 1 + 2/3 z + 1/6 z^2
+      const zPoly = Complex(1.0, 1.0);
+      final expected1F1Poly =
+          Complex.one +
+          const Complex(2.0 / 3.0) * zPoly +
+          const Complex(1.0 / 6.0) * zPoly * zPoly;
+      check(
+        (hypergeometric1F1Complex(const Complex(-2), const Complex(-3), zPoly) -
+                expected1F1Poly)
+            .abs(),
+      ).isLessThan(1e-12);
+
+      // 2F1(-1, 2; -2; z) = 1 + (-1)(2)/(-2)*z = 1 + z
+      check(
+        (hypergeometric2F1Complex(
+                  const Complex(-1),
+                  const Complex(2),
+                  const Complex(-2),
+                  zPoly,
+                ) -
+                (Complex.one + zPoly))
+            .abs(),
+      ).isLessThan(1e-12);
+
+      // 1/z linear transformation for |z| > 1.25 with Re(z) > 1
+      // 2F1(1/2, 1; 3/2; z) = atanh(sqrt(z)) / sqrt(z) = 0.5 * ln((1+sqrt(z))/(1-sqrt(z))) / sqrt(z)
+      const zOut = Complex(2.0, 0.5);
+      final sqrtZ = zOut.sqrt();
+      final expectedOut =
+          const Complex(0.5) *
+          ((Complex.one + sqrtZ) / (Complex.one - sqrtZ)).log() /
+          sqrtZ;
+      final actualOut = hypergeometric2F1Complex(
+        const Complex(0.5),
+        Complex.one,
+        const Complex(1.5),
+        zOut,
+      );
+      check((actualOut - expectedOut).abs()).isLessThan(1e-11);
     });
   });
 }

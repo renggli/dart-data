@@ -59,6 +59,10 @@ void main() {
       );
       check(complexOrder.a.isFinite).isTrue;
       check(complexOrder.b.isFinite).isTrue;
+
+      // NaN propagation even when z == 0
+      check(polylogComplex(Complex.nan, Complex.zero).isNaN).isTrue;
+      check(polylogComplex(const Complex(2), Complex.nan).isNaN).isTrue;
     });
   });
 }

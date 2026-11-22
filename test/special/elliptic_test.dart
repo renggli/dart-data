@@ -130,6 +130,14 @@ void main() {
           (const Complex(2.0) * h);
       final expectedDPi = Complex.one / ((Complex.one - n * sin2) * deltaSqrt);
       check((dPi - expectedDPi).abs()).isLessThan(1e-8);
+
+      // Boundary k = ±1 for complete ellipticEComplex and ellipticPiComplex
+      check(ellipticEComplex(Complex.one)).equals(Complex.one);
+      check(ellipticEComplex(const Complex(-1))).equals(Complex.one);
+      check(ellipticPiComplex(Complex.one, const Complex(0.5)).a)
+          .equals(double.infinity);
+      check(ellipticPiComplex(const Complex(0.5), Complex.one).a)
+          .equals(double.infinity);
     });
   });
 }

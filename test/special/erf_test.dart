@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
 void main() {
@@ -82,6 +83,30 @@ void main() {
       check(erfi(2.0)).isCloseTo(18.564802414575553, 1e-11);
       check(erfi(double.nan)).isNaN;
       check(erfi(double.infinity)).equals(double.infinity);
+    });
+
+    test('erfComplex, erfcComplex, and erfiComplex', () {
+      // Exact on imaginary axis (erf(i*y) = i*erfi(y)) and large erfiComplex
+      final erfImag = erfComplex(const Complex(0.0, 5.0));
+      check(erfImag.a.toDouble()).equals(0.0);
+      check(erfImag.b.toDouble()).isCloseTo(erfi(5.0), 1e-6);
+
+      final erfiLarge = erfiComplex(const Complex(5.0, 0.0));
+      check(erfiLarge.a.toDouble()).isCloseTo(erfi(5.0), 1e-6);
+      check(erfiLarge.b.toDouble()).equals(0.0);
+
+      // Near imaginary axis where Lentz CF diverges
+      const nearImag = Complex(0.2, 5.0);
+      final erfNear = erfComplex(nearImag);
+      final erfcNear = erfcComplex(nearImag);
+      check(erfNear.a.isFinite).isTrue;
+      check(erfNear.b.isFinite).isTrue;
+      check((erfNear + erfcNear - Complex.one).abs()).isLessThan(1e-6);
+
+      // Real axis and right-half-plane CF sector
+      const zRhp = Complex(5.0, 1.0);
+      check((erfComplex(zRhp) + erfcComplex(zRhp) - Complex.one).abs())
+          .isLessThan(1e-12);
     });
   });
 }

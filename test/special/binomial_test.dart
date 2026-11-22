@@ -38,6 +38,12 @@ void main() {
           .equals(Complex.one);
       check(binomialComplex(const Complex(5, 1), const Complex(-1)))
           .equals(Complex.zero);
+      // Negative integer n with k > 20 uses exact product loop without NaN
+      final negN = binomialComplex(const Complex(-5), const Complex(25));
+      check(negN.a.isFinite).isTrue;
+      check(negN.b).equals(0.0);
+      // C(-5, 25) = (-1)^25 * C(29, 25) = -C(29, 4) = -23751
+      check(negN.a.toDouble()).isCloseTo(-23751.0, 1e-8);
     });
   });
 }

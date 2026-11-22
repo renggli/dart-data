@@ -68,7 +68,7 @@ Complex binomialComplex(Complex n, Complex k) {
   if (k.b == 0.0 && k.a == k.a.roundToDouble()) {
     final kInt = k.a.toInt();
     if (kInt < 0) return Complex.zero;
-    if (kInt <= 20) {
+    if (kInt <= 1000) {
       var res = Complex.one;
       for (var i = 0; i < kInt; i++) {
         res = res * (n - i) / (i + 1);

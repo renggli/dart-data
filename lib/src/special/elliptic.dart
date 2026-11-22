@@ -93,6 +93,9 @@ Complex ellipticEComplex(Complex k, {Complex? phi}) {
   if (k.isNaN) return Complex.nan;
   if (phi == null) {
     if (k.a == 0.0 && k.b == 0.0) return const Complex(pi / 2.0);
+    if ((k - Complex.one).abs() == 0.0 || (k + Complex.one).abs() == 0.0) {
+      return Complex.one;
+    }
     final k2 = k * k;
     final q = Complex.one - k2;
     return _carlsonRFComplex(Complex.zero, q, Complex.one) -
@@ -223,6 +226,11 @@ Complex ellipticPiComplex(Complex n, Complex k, {Complex? phi}) {
   }
   if (phi == null) {
     if (n.a == 0.0 && n.b == 0.0) return ellipticKComplex(k);
+    if ((n - Complex.one).abs() == 0.0 ||
+        (k - Complex.one).abs() == 0.0 ||
+        (k + Complex.one).abs() == 0.0) {
+      return const Complex(double.infinity);
+    }
     final q = Complex.one - k * k;
     return _carlsonRFComplex(Complex.zero, q, Complex.one) +
         (n / const Complex(3.0)) *
@@ -277,7 +285,7 @@ double _carlsonRF(double x, double y, double z) {
   var xn = x;
   var yn = y;
   var zn = z;
-  while (true) {
+  for (var iter = 0; iter < 100; iter++) {
     final sqrtX = sqrt(xn);
     final sqrtY = sqrt(yn);
     final sqrtZ = sqrt(zn);
@@ -301,6 +309,7 @@ double _carlsonRF(double x, double y, double z) {
     yn = 0.25 * (yn + lambda);
     zn = 0.25 * (zn + lambda);
   }
+  return double.nan;
 }
 
 double _carlsonRC(double x, double y) {
@@ -529,7 +538,7 @@ double _carlsonRD(double x, double y, double z) {
   var zn = z;
   var sum = 0.0;
   var fac = 1.0;
-  while (true) {
+  for (var iter = 0; iter < 100; iter++) {
     final sqrtX = sqrt(xn);
     final sqrtY = sqrt(yn);
     final sqrtZ = sqrt(zn);
@@ -560,4 +569,5 @@ double _carlsonRD(double x, double y, double z) {
               (mu * sqrt(mu));
     }
   }
+  return double.nan;
 }

@@ -79,9 +79,23 @@ Complex zetaComplex(Complex s) {
   if (s.isNaN) return Complex.nan;
   if (s == Complex.one) return const Complex(double.infinity);
   if (s == Complex.zero) return const Complex(-0.5);
+  if (s.b == 0.0 &&
+      s.a < 0.0 &&
+      s.a == s.a.roundToDouble() &&
+      s.a.toInt().isEven) {
+    return Complex.zero;
+  }
 
   if (s.a < 0.5) {
     final oneMinusS = Complex.one - s;
+    if (s.a < -100.0) {
+      return (s * const Complex(ln2) +
+              (s - Complex.one) * const Complex(_lnPi) +
+              (const Complex(0.5 * pi) * s).sin().log() +
+              gammaLnComplex(oneMinusS) +
+              zetaComplex(oneMinusS).log())
+          .exp();
+    }
     return const Complex(2.0).pow(s) *
         const Complex(pi).pow(s - Complex.one) *
         (const Complex(0.5 * pi) * s).sin() *
