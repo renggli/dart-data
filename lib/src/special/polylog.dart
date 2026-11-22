@@ -57,6 +57,13 @@ Complex polylogComplex(Complex s, Complex z) {
   }
 
   final absZ = z.abs();
+  if (s.b == 0.0 && s.a == 2.0 && z.a < 0.0 && absZ >= 0.5 && absZ <= 1.0) {
+    final w = z / (z - 1);
+    if (w.abs() < absZ) {
+      final log1mZ = (Complex.one - z).log();
+      return -polylogComplex(const Complex(2.0), w) - log1mZ.square() * 0.5;
+    }
+  }
   if (absZ <= 0.95 && (z - Complex.one).abs() >= 0.4) {
     return _polylogSeries(s, z, maxTerms: 600);
   }
@@ -66,7 +73,7 @@ Complex polylogComplex(Complex s, Complex z) {
     if ((z - Complex.one).abs() < 0.4) {
       return _polylogLogExpansion(n, z);
     }
-    if (absZ > 1.05) {
+    if (absZ > 1.0) {
       return _polylogInversion(n, z);
     }
     return _polylogSeries(s, z, maxTerms: 2000);

@@ -64,5 +64,39 @@ void main() {
       check(polylogComplex(Complex.nan, Complex.zero).isNaN).isTrue;
       check(polylogComplex(const Complex(2), Complex.nan).isNaN).isTrue;
     });
+
+    test('polylog(2, x) continuity and accuracy across x = -1', () {
+      const li2AtMinus1 = -math.pi * math.pi / 12.0;
+      check(polylog(2, -1.0)).isCloseTo(li2AtMinus1, 1e-12);
+      check(polylogComplex(const Complex(2), const Complex(-1.0)).a)
+          .isCloseTo(li2AtMinus1, 1e-12);
+
+      // Finite differences of Li_2(x) match d/dx Li_2(x) = -ln(1 - x) / x
+      const h = 1e-6;
+      for (final x in [
+        -1.2,
+        -1.05,
+        -1.04,
+        -1.02,
+        -1.01,
+        -1.001,
+        -0.999,
+        -0.95,
+        -0.7,
+        -0.5,
+      ]) {
+        final v = polylog(2, x);
+        check(v.isFinite).isTrue;
+        check(v).isGreaterThan(-1.2);
+        check(v).isLessThan(-0.4);
+
+        final z = Complex(x);
+        final cPlus = polylogComplex(const Complex(2), Complex(x + h));
+        final cMinus = polylogComplex(const Complex(2), Complex(x - h));
+        final fd = (cPlus - cMinus) / (2.0 * h);
+        final expectedDeriv = -(Complex.one - z).log() / z;
+        check((fd - expectedDeriv).abs()).isLessThan(1e-7);
+      }
+    });
   });
 }
