@@ -70,6 +70,22 @@ void main() {
       final wMinus1 = lambertWComplex(const Complex(-0.2, 0.3), branch: -1);
       check((wMinus1 * wMinus1.exp() - const Complex(-0.2, 0.3)).abs())
           .isLessThan(1e-12);
+      for (final x in [
+        -2.0,
+        -1.4,
+        -1.1,
+        -1.0,
+        -0.95,
+        -0.8,
+        -0.668,
+        -0.5,
+        -0.4,
+      ]) {
+        final z = Complex(x);
+        final w = lambertWComplex(z);
+        check((w * w.exp() - z).abs()).isLessThan(1e-13);
+        check(w.b.toDouble()).isGreaterThan(0.0);
+      }
       check(() => lambertWComplex(Complex.one, branch: 2))
           .throws<ArgumentError>();
     });

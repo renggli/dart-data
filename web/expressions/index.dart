@@ -1692,17 +1692,24 @@ void detectRootsAndExtrema() {
   }
 
   // Supplement plot markers for periodic/transcendental functions within [minX, maxX]
-  final realFn =
-      fnCompiled ??
-      (fnComplexCompiled != null
-          ? (double x) {
-              try {
-                return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
-              } catch (_) {
-                return double.nan;
-              }
-            }
-          : null);
+  final realFn = (hasImaginary && fnComplexCompiled != null)
+      ? (double x) {
+          try {
+            return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
+          } catch (_) {
+            return double.nan;
+          }
+        }
+      : fnCompiled ??
+            (fnComplexCompiled != null
+                ? (double x) {
+                    try {
+                      return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
+                    } catch (_) {
+                      return double.nan;
+                    }
+                  }
+                : null);
 
   final realDf =
       dfCompiled ??
@@ -1951,17 +1958,24 @@ void drawCharts() {
   if (init == null) return;
   final (:ctx, :width, :height) = init;
 
-  final realFn =
-      fnCompiled ??
-      (fnComplexCompiled != null
-          ? (double x) {
-              try {
-                return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
-              } catch (_) {
-                return double.nan;
-              }
-            }
-          : null);
+  final realFn = (hasImaginary && fnComplexCompiled != null)
+      ? (double x) {
+          try {
+            return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
+          } catch (_) {
+            return double.nan;
+          }
+        }
+      : fnCompiled ??
+            (fnComplexCompiled != null
+                ? (double x) {
+                    try {
+                      return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
+                    } catch (_) {
+                      return double.nan;
+                    }
+                  }
+                : null);
   final imagFn = (hasImaginary && fnComplexCompiled != null)
       ? (double x) {
           try {

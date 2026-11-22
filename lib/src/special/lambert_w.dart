@@ -50,7 +50,7 @@ Complex lambertWComplex(Complex z, {int branch = 0}) {
         final p = ((z * e + 1) * 2).sqrt();
         return p - 1 - p.square() / 3.0 + p * p.square() * (11.0 / 72.0);
       }
-      if (z.abs() < 1.5) return z / (z + 1);
+      if (z.a >= 0.0 && z.abs() < 1.5) return z / (z + 1);
       final lz = z.log();
       return lz - lz.log();
     }(),
