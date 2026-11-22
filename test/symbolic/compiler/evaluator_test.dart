@@ -558,6 +558,22 @@ void main() {
       final d2Zeta = Expr.parse('zeta(x)').derivative('x', order: 2);
       final fn2 = d2Zeta.toFunction1D('x');
       check(fn2(2.0)).isCloseTo(1.989280234298901, 5e-5);
+
+      // Improper and definite Integral evaluation via numeric.integrate
+      final gaussHalf = Integral(
+        Expr.parse('exp(-x^2)'),
+        'x',
+        lower: IntegerNumber.zero,
+        upper: Constant.infinity,
+      );
+      check(gaussHalf.evaluate()).isCloseTo(0.8862269254527579, 1e-8);
+      final gaussFull = Integral(
+        Expr.parse('exp(-x^2)'),
+        'x',
+        lower: -Constant.infinity,
+        upper: Constant.infinity,
+      );
+      check(gaussFull.evaluate()).isCloseTo(1.7724538509055159, 1e-8);
     });
 
     test('unevaluated Limit returns NaN instead of recursing infinitely', () {

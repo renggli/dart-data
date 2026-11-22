@@ -33,6 +33,7 @@ digraph {
   8 -> 7 [arrowsize="0.8"];
   8 -> 2 [arrowsize="0.8"];
   8 -> 5 [arrowsize="0.8"];
+  8 -> 6 [arrowsize="0.8"];
   9 -> 2 [arrowsize="0.8"];
   9 -> 0 [arrowsize="0.8"];
   9 -> 3 [arrowsize="0.8"];

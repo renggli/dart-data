@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:more/number.dart' show Complex;
 
+import '../../numeric/calculus/derivative.dart' as numeric_derivative;
+import '../../numeric/integration/integration.dart' as numeric_integration;
 import '../../special/binomial.dart' as special_binomial;
 import '../../special/gamma.dart' as special_gamma;
 import '../ast.dart';
@@ -108,13 +110,15 @@ double evalNodeReal(
     if (a == b) return 0.0;
     final integrandEval = compileInner(integrand);
     final localContext = Map<String, double>.of(context);
-    return _quadratureDefinite(
+    return numeric_integration.integrate(
       (x) {
         localContext[variable] = x;
-        return integrandEval.evaluateMap(localContext);
+        final y = integrandEval.evaluateMap(localContext);
+        return y.isFinite ? y : 0.0;
       },
       a,
       b,
+      onWarning: (_, _) {},
     );
   }
   if (node case Derivative(
@@ -138,13 +142,22 @@ double evalNodeReal(
     if (!d.anyNode((n) => n is Derivative)) {
       return compileInner(d).evaluateMap(evalContext);
     }
-    return _numericDerivativeReal(
-      compileInner(substituted),
-      variable,
-      evalContext,
-      evalPt,
-      order,
-    );
+    if (order <= 0) {
+      return compileInner(substituted).evaluateMap(evalContext);
+    }
+    if (order <= 6) {
+      final eval = compileInner(substituted);
+      return numeric_derivative.derivative(
+        (x) {
+          evalContext[variable] = x;
+          return eval.evaluateMap(evalContext);
+        },
+        evalPt,
+        order: order,
+        accuracy: 4,
+      );
+    }
+    return double.nan;
   }
   if (node case Limit(
     :final expr,
@@ -229,88 +242,6 @@ double evalNodeReal(
   return double.nan;
 }
 
-double _quadratureDefinite(double Function(double) f, double a, double b) {
-  if (b < a) {
-    return -_quadratureDefinite(f, b, a);
-  }
-  if (a == double.negativeInfinity && b == double.infinity) {
-    return _gaussLegendre16(
-      (t) {
-        final denom = 1.0 - t * t;
-        if (denom == 0.0) return 0.0;
-        final x = t / denom;
-        final dx = (1.0 + t * t) / (denom * denom);
-        return f(x) * dx;
-      },
-      -1.0,
-      1.0,
-    );
-  }
-  if (a.isFinite && b == double.infinity) {
-    return _gaussLegendre16(
-      (t) {
-        if (t >= 1.0) return 0.0;
-        final d = 1.0 - t;
-        final x = a + t / d;
-        final dx = 1.0 / (d * d);
-        return f(x) * dx;
-      },
-      0.0,
-      1.0,
-    );
-  }
-  if (a == double.negativeInfinity && b.isFinite) {
-    return _gaussLegendre16(
-      (t) {
-        if (t >= 1.0) return 0.0;
-        final d = 1.0 - t;
-        final x = b - t / d;
-        final dx = 1.0 / (d * d);
-        return f(x) * dx;
-      },
-      0.0,
-      1.0,
-    );
-  }
-  return _gaussLegendre16(f, a, b);
-}
-
-const _glNodes8 = <double>[
-  0.09501250983763744,
-  0.2816035507792589,
-  0.45801677765722737,
-  0.6178762444026438,
-  0.755404408355003,
-  0.8656312023878318,
-  0.9445750230732326,
-  0.9894009349916499,
-];
-
-const _glWeights8 = <double>[
-  0.1894506104550685,
-  0.18260341504492358,
-  0.16915651939500254,
-  0.14959598881657674,
-  0.12462897125553388,
-  0.09515851168249279,
-  0.062253523938647894,
-  0.027152459411754096,
-];
-
-double _gaussLegendre16(double Function(double) f, double a, double b) {
-  final half = 0.5 * (b - a);
-  final mid = 0.5 * (a + b);
-  var sum = 0.0;
-  for (var i = 0; i < 8; i++) {
-    final dx = half * _glNodes8[i];
-    final y1 = f(mid - dx);
-    final y2 = f(mid + dx);
-    sum +=
-        _glWeights8[i] * ((y1.isFinite ? y1 : 0.0) + (y2.isFinite ? y2 : 0.0));
-  }
-  return half * sum;
-}
-
 double realPow(double base, double exponent, [int oddRootMode = 0]) {
   if (oddRootMode != 0 && base < 0.0) {
     final mag = math.pow(-base, exponent).toDouble();
@@ -346,45 +277,4 @@ Complex complexPow(Complex base, Complex exponent) {
     return result;
   }
   return base.pow(exponent);
-}
-
-double _numericDerivativeReal(
-  BytecodeEvaluator eval,
-  String variable,
-  Map<String, double> context,
-  double x,
-  int order,
-) {
-  if (order <= 0) {
-    context[variable] = x;
-    return eval.evaluateMap(context);
-  }
-  if (order == 1) {
-    final h = 1.0e-5 * math.max(1.0, x.abs());
-    context[variable] = x + 2.0 * h;
-    final fp2 = eval.evaluateMap(context);
-    context[variable] = x + h;
-    final fp1 = eval.evaluateMap(context);
-    context[variable] = x - h;
-    final fm1 = eval.evaluateMap(context);
-    context[variable] = x - 2.0 * h;
-    final fm2 = eval.evaluateMap(context);
-    return (-fp2 + 8.0 * fp1 - 8.0 * fm1 + fm2) / (12.0 * h);
-  }
-  final h = 1.0e-3 * math.max(1.0, x.abs());
-  final fPlus = _numericDerivativeReal(
-    eval,
-    variable,
-    context,
-    x + h,
-    order - 1,
-  );
-  final fMinus = _numericDerivativeReal(
-    eval,
-    variable,
-    context,
-    x - h,
-    order - 1,
-  );
-  return (fPlus - fMinus) / (2.0 * h);
 }
