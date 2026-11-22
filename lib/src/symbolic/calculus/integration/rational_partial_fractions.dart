@@ -189,40 +189,7 @@ Expr? trySophieGermainQuartic(Expr left, Expr right, String variable) {
       (Pow(IntegerNumber.two, FractionNumber.half) *
               Pow(c, const FractionNumber(Integer.one, Integer(4))))
           .simplify();
-  final xVar = Variable(variable);
-  final q1 = (xVar * xVar - s * xVar + r).simplify();
-  final q2 = (xVar * xVar + s * xVar + r).simplify();
-
-  final diffAlpha = ((p2 - p0 / r) / s).simplify();
-  final sumBeta = (p0 / r).simplify();
-  final diffBeta = ((p1 - r * p3) / s).simplify();
-
-  final alpha1 = ((p3 + diffAlpha) / IntegerNumber.two).simplify();
-  final alpha2 = ((p3 - diffAlpha) / IntegerNumber.two).simplify();
-  final beta1 = ((sumBeta + diffBeta) / IntegerNumber.two).simplify();
-  final beta2 = ((sumBeta - diffBeta) / IntegerNumber.two).simplify();
-
-  final int1 = integrateLinearOverQuad(
-    alpha1,
-    beta1,
-    q1,
-    IntegerNumber.one,
-    (-s).simplify(),
-    variable,
-  );
-  final int2 = integrateLinearOverQuad(
-    alpha2,
-    beta2,
-    q2,
-    IntegerNumber.one,
-    s,
-    variable,
-  );
-  if (hasUnevaluatedIntegral(int1, variable) ||
-      hasUnevaluatedIntegral(int2, variable)) {
-    return null;
-  }
-  return (int1 + int2).simplify();
+  return _integrateSymmetricQuartic(p0, p1, p2, p3, r, s, variable);
 }
 
 Expr? tryBiquadraticDenominator(Expr left, Expr right, String variable) {
@@ -295,6 +262,19 @@ Expr? tryBiquadraticDenominator(Expr left, Expr right, String variable) {
   if (!isSymbolicPositive(sSq)) return null;
   final s = Pow(sSq, FractionNumber.half).simplify();
 
+  return _integrateSymmetricQuartic(p0, p1, p2, p3, r, s, variable);
+}
+
+Expr? _integrateSymmetricQuartic(
+  Expr p0,
+  Expr p1,
+  Expr p2,
+  Expr p3,
+  Expr r,
+  Expr s,
+  String variable,
+) {
+  final xVar = Variable(variable);
   final q1 = (xVar * xVar - s * xVar + r).simplify();
   final q2 = (xVar * xVar + s * xVar + r).simplify();
 

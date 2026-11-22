@@ -196,30 +196,7 @@ List<Expr> _solveUnfiltered(
   collectFactors(expr, factors);
   final varFactors = factors.where((f) => f.dependsOn(variable)).toList();
   if (varFactors.length > 1) {
-    final allRoots = <Expr>[];
-    for (final factor in varFactors) {
-      allRoots.addAll(_solveUnfiltered(factor, variable, assumptions));
-    }
-    final validRoots = allRoots.where((root) {
-      for (final other in factors) {
-        final sub = other
-            .substitute(variable, root)
-            .simplify(assumptions: assumptions);
-        if (sub == Constant.undefined ||
-            sub == Constant.infinity ||
-            sub == -Constant.infinity ||
-            sub.anyNode(
-              (n) =>
-                  n == Constant.undefined ||
-                  n == Constant.infinity ||
-                  (n is RealNumber && !n.value.isFinite),
-            )) {
-          return false;
-        }
-      }
-      return true;
-    }).toList();
-    return deduplicateRoots(validRoots);
+    return _solveProductFactors(varFactors, factors, variable, assumptions);
   }
 
   // Polynomial factoring step (degree > 2 or multi-term polynomials):
@@ -236,30 +213,12 @@ List<Expr> _solveUnfiltered(
       _ => false,
     };
     if (shouldSolveFactors) {
-      final allRoots = <Expr>[];
-      for (final factor in varFactored) {
-        allRoots.addAll(_solveUnfiltered(factor, variable, assumptions));
-      }
-      final validRoots = allRoots.where((root) {
-        for (final other in factoredList) {
-          final sub = other
-              .substitute(variable, root)
-              .simplify(assumptions: assumptions);
-          if (sub == Constant.undefined ||
-              sub == Constant.infinity ||
-              sub == -Constant.infinity ||
-              sub.anyNode(
-                (n) =>
-                    n == Constant.undefined ||
-                    n == Constant.infinity ||
-                    (n is RealNumber && !n.value.isFinite),
-              )) {
-            return false;
-          }
-        }
-        return true;
-      }).toList();
-      return deduplicateRoots(validRoots);
+      return _solveProductFactors(
+        varFactored,
+        factoredList,
+        variable,
+        assumptions,
+      );
     }
   }
 
@@ -390,4 +349,36 @@ bool _isValidRoot(
     }
   }
   return true;
+}
+
+List<Expr> _solveProductFactors(
+  List<Expr> varFactors,
+  List<Expr> allFactors,
+  String variable,
+  Assumptions assumptions,
+) {
+  final allRoots = <Expr>[];
+  for (final factor in varFactors) {
+    allRoots.addAll(_solveUnfiltered(factor, variable, assumptions));
+  }
+  final validRoots = allRoots.where((root) {
+    for (final other in allFactors) {
+      final sub = other
+          .substitute(variable, root)
+          .simplify(assumptions: assumptions);
+      if (sub == Constant.undefined ||
+          sub == Constant.infinity ||
+          sub == -Constant.infinity ||
+          sub.anyNode(
+            (n) =>
+                n == Constant.undefined ||
+                n == Constant.infinity ||
+                (n is RealNumber && !n.value.isFinite),
+          )) {
+        return false;
+      }
+    }
+    return true;
+  }).toList();
+  return deduplicateRoots(validRoots);
 }

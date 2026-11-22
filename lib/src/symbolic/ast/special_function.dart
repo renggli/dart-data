@@ -592,9 +592,8 @@ final class Hypergeometric extends Expr {
   }
 }
 
-/// Minimum function node `min(a_1, ..., a_n)`.
-final class Min extends Expr {
-  /// Creates a minimum expression node.
+/// Base class for variadic order-statistics functions (`min`, `max`).
+sealed class _OrderExpr extends Expr {
   new(List<Expr> args, {this.isSimplified = false})
     : args = List<Expr>.unmodifiable(args);
 
@@ -612,6 +611,8 @@ final class Min extends Expr {
     for (final a in args) ...a.freeVariables,
   });
 
+  Expr _withArgs(List<Expr> args);
+
   @override
   Expr mapChildren(Expr Function(Expr) transform) {
     var changed = false;
@@ -621,7 +622,7 @@ final class Min extends Expr {
       if (!identical(na, a)) changed = true;
       next.add(na);
     }
-    return changed ? Min(next) : this;
+    return changed ? _withArgs(next) : this;
   }
 
   @override
@@ -631,7 +632,8 @@ final class Min extends Expr {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! Min ||
+    if (other is! _OrderExpr ||
+        runtimeType != other.runtimeType ||
         hashCode != other.hashCode ||
         args.length != other.args.length) {
       return false;
@@ -643,53 +645,20 @@ final class Min extends Expr {
   }
 }
 
+/// Minimum function node `min(a_1, ..., a_n)`.
+final class Min extends _OrderExpr {
+  /// Creates a minimum expression node.
+  new(super.args, {super.isSimplified = false});
+
+  @override
+  Expr _withArgs(List<Expr> args) => Min(args);
+}
+
 /// Maximum function node `max(a_1, ..., a_n)`.
-final class Max extends Expr {
+final class Max extends _OrderExpr {
   /// Creates a maximum expression node.
-  new(List<Expr> args, {this.isSimplified = false})
-    : args = List<Expr>.unmodifiable(args);
-
-  /// Operand expressions.
-  final List<Expr> args;
+  new(super.args, {super.isSimplified = false});
 
   @override
-  final bool isSimplified;
-
-  @override
-  late final int hashCode = Object.hash(runtimeType, Object.hashAll(args));
-
-  @override
-  late final Set<String> freeVariables = Set.unmodifiable({
-    for (final a in args) ...a.freeVariables,
-  });
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) {
-    var changed = false;
-    final next = <Expr>[];
-    for (final a in args) {
-      final na = transform(a);
-      if (!identical(na, a)) changed = true;
-      next.add(na);
-    }
-    return changed ? Max(next) : this;
-  }
-
-  @override
-  bool anyNode(bool Function(Expr) predicate) =>
-      predicate(this) || args.any((a) => a.anyNode(predicate));
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! Max ||
-        hashCode != other.hashCode ||
-        args.length != other.args.length) {
-      return false;
-    }
-    for (var i = 0; i < args.length; i++) {
-      if (args[i] != other.args[i]) return false;
-    }
-    return true;
-  }
+  Expr _withArgs(List<Expr> args) => Max(args);
 }

@@ -410,6 +410,54 @@ void main() {
           .isCloseTo(1.0, 1e-12);
       check(Max([x, IntegerNumber.two]).derivative('x').evaluate({'x': 1.0}))
           .isCloseTo(0.0, 1e-12);
+
+      // Float & float-complex simplification coverage for special functions
+      final zf = ComplexNumber(const RealNumber(1.5), const RealNumber(0.5));
+      check(
+        Zeta(const RealNumber(2.0), shift: const RealNumber(0.5)).simplify(),
+      ).isA<RealNumber>();
+      check(Zeta(zf, shift: const RealNumber(1.5)).simplify())
+          .isA<ComplexNumber>();
+      check(Zeta(zf).simplify()).isA<ComplexNumber>();
+      check(Zeta(const RealNumber(2.0)).simplify()).isA<RealNumber>();
+      for (final n in [-5, -7, -9, -11, -13, -15]) {
+        check(Zeta(IntegerNumber.of(n)).simplify()).isA<RationalNumber>();
+      }
+      check(Digamma(zf).simplify()).isA<ComplexNumber>();
+      check(Polygamma(IntegerNumber.one, zf).simplify()).isA<ComplexNumber>();
+      check(BesselJ(IntegerNumber.zero, zf).simplify()).isA<ComplexNumber>();
+      check(BesselY(IntegerNumber.zero, zf).simplify()).isA<ComplexNumber>();
+      check(BesselI(IntegerNumber.zero, zf).simplify()).isA<ComplexNumber>();
+      check(BesselK(IntegerNumber.zero, zf).simplify()).isA<ComplexNumber>();
+      check(
+        EllipticPi(
+          const RealNumber(0.3),
+          const RealNumber(0.7),
+          const RealNumber(0.5),
+        ).simplify(),
+      ).isA<RealNumber>();
+      check(
+        EllipticPi(const RealNumber(0.3), zf, const RealNumber(0.5)).simplify(),
+      ).isA<ComplexNumber>();
+      check(
+        ExpIntegralE(const RealNumber(2.0), const RealNumber(1.5)).simplify(),
+      ).isA<RealNumber>();
+      check(ExpIntegralE(const RealNumber(2.0), zf).simplify())
+          .isA<ComplexNumber>();
+      check(
+        Hypergeometric(
+          [const RealNumber(1.0), const RealNumber(2.0)],
+          [const RealNumber(3.0)],
+          const RealNumber(0.5),
+        ).simplify(),
+      ).isA<RealNumber>();
+      check(
+        Hypergeometric(
+          [const RealNumber(1.0), const RealNumber(2.0)],
+          [const RealNumber(3.0)],
+          ComplexNumber(const RealNumber(0.3), const RealNumber(0.2)),
+        ).simplify(),
+      ).isA<ComplexNumber>();
     });
   });
 }

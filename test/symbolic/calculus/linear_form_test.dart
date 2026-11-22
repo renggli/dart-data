@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/src/symbolic/calculus/linear_form.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 

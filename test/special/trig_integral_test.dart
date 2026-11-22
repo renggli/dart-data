@@ -43,6 +43,24 @@ void main() {
           .isCloseTo(cosIntegral(1.0), 1e-12);
       check(coshIntegralComplex(const Complex(1.0)).a)
           .isCloseTo(coshIntegral(1.0), 1e-12);
+
+      // Large |z| >= 4 branches (positive/negative real parts and upper/lower half-planes)
+      const zLargePos = Complex(5.0, 1.0);
+      const zLargeNeg = Complex(-5.0, -1.0);
+      check(
+        (sinIntegralComplex(zLargePos) + sinIntegralComplex(-zLargePos)).abs(),
+      ).isLessThan(1e-12);
+      check(sinIntegralComplex(const Complex(5.0)).a.toDouble())
+          .isCloseTo(sinIntegral(5.0), 1e-12);
+      check(cosIntegralComplex(const Complex(5.0)).a.toDouble())
+          .isCloseTo(cosIntegral(5.0), 1e-12);
+      check(cosIntegralComplex(const Complex(-5.0, 1.0)).a.isFinite).isTrue;
+      check(cosIntegralComplex(zLargeNeg).a.isFinite).isTrue;
+      check(sinhIntegralComplex(const Complex(5.0, 0.5)).a.isFinite).isTrue;
+      check(coshIntegralComplex(const Complex(5.0, 1.0)).a.isFinite).isTrue;
+      check(coshIntegralComplex(const Complex(5.0, -1.0)).a.isFinite).isTrue;
+      check(coshIntegralComplex(const Complex(5.0, 0.0)).a.toDouble())
+          .isCloseTo(coshIntegral(5.0), 1e-10);
     });
   });
 }

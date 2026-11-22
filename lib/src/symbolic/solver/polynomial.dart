@@ -30,20 +30,10 @@ List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
 
   switch (disc) {
     case RationalNumber(isNegative: true):
-      final sqrtDiscAbs = sqrtConstant(disc.neg());
-      final realPart = ((-b) / twoA).simplify();
-      final imagPart = (sqrtDiscAbs / twoA).simplify();
-      final (r1, r2) = switch (realPart) {
-        Number(isZero: true) => (
-          (imagPart * ComplexNumber.i).simplify(),
-          ((-imagPart) * ComplexNumber.i).simplify(),
-        ),
-        _ => (
-          (realPart + imagPart * ComplexNumber.i).simplify(),
-          (realPart - imagPart * ComplexNumber.i).simplify(),
-        ),
-      };
-      return deduplicateRoots([r1, r2]);
+      return _complexConjugateRoots(
+        ((-b) / twoA).simplify(),
+        (sqrtConstant(disc.neg()) / twoA).simplify(),
+      );
     case RationalNumber(isZero: true):
       return [((-b) / twoA).simplify()];
     case RationalNumber():
@@ -52,20 +42,10 @@ List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
       final r2 = (((-b) - sqrtDisc) / twoA).simplify();
       return deduplicateRoots([r1, r2]);
     case RealNumber(:final value) when value < 0:
-      final sqrtDiscAbs = RealNumber(math.sqrt(-value));
-      final realPart = ((-b) / twoA).simplify();
-      final imagPart = (sqrtDiscAbs / twoA).simplify();
-      final (r1, r2) = switch (realPart) {
-        Number(isZero: true) => (
-          (imagPart * ComplexNumber.i).simplify(),
-          ((-imagPart) * ComplexNumber.i).simplify(),
-        ),
-        _ => (
-          (realPart + imagPart * ComplexNumber.i).simplify(),
-          (realPart - imagPart * ComplexNumber.i).simplify(),
-        ),
-      };
-      return deduplicateRoots([r1, r2]);
+      return _complexConjugateRoots(
+        ((-b) / twoA).simplify(),
+        (RealNumber(math.sqrt(-value)) / twoA).simplify(),
+      );
     case _:
       final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
       final r1 = (((-b) + sqrtDisc) / twoA).simplify();
@@ -128,3 +108,17 @@ Expr rootConstant(Expr c, int n) {
 }
 
 bool _isZero(Expr expr) => isZeroExpr(expr);
+
+List<Expr> _complexConjugateRoots(Expr realPart, Expr imagPart) {
+  final (r1, r2) = switch (realPart) {
+    Number(isZero: true) => (
+      (imagPart * ComplexNumber.i).simplify(),
+      ((-imagPart) * ComplexNumber.i).simplify(),
+    ),
+    _ => (
+      (realPart + imagPart * ComplexNumber.i).simplify(),
+      (realPart - imagPart * ComplexNumber.i).simplify(),
+    ),
+  };
+  return deduplicateRoots([r1, r2]);
+}

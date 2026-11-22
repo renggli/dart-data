@@ -47,29 +47,14 @@ Expr? tryIntegrationByParts(
     _ => false,
   };
   if (isInverseTrigOrHyp) {
-    final v = antiDerivative(
+    final result = _applySingleStepIbp(
       pExpr,
+      vExpr,
       variable,
       assumptions: assumptions,
-      depth: 2,
+      depth: depth,
     );
-    if (!hasUnevaluatedIntegral(v, variable)) {
-      final uPrime = vExpr
-          .derivative(variable)
-          .simplify(assumptions: assumptions);
-      final remIntegrand = (v * uPrime)
-          .together(assumptions: assumptions)
-          .simplify(assumptions: assumptions);
-      final remIntegral = antiDerivative(
-        remIntegrand,
-        variable,
-        assumptions: assumptions,
-        depth: depth + 1,
-      );
-      if (!hasUnevaluatedIntegral(remIntegral, variable)) {
-        return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
-      }
-    }
+    if (result != null) return result;
   }
   // Cyclic IBP: exp(ax + b) * sin(cx + d) or exp(ax + b) * cos(cx + d)
   if (pExpr case Pow(base: Constant.e, exponent: final expInner)) {
@@ -325,29 +310,14 @@ Expr? tryIntegrationByParts(
     _ => false,
   };
   if (depth < 2 && isLogFactor) {
-    final v = antiDerivative(
+    final result = _applySingleStepIbp(
       pExpr,
+      vExpr,
       variable,
       assumptions: assumptions,
-      depth: 2,
+      depth: depth,
     );
-    if (!hasUnevaluatedIntegral(v, variable)) {
-      final uPrime = vExpr
-          .derivative(variable)
-          .simplify(assumptions: assumptions);
-      final remIntegrand = (v * uPrime)
-          .together(assumptions: assumptions)
-          .simplify(assumptions: assumptions);
-      final remIntegral = antiDerivative(
-        remIntegrand,
-        variable,
-        assumptions: assumptions,
-        depth: depth + 1,
-      );
-      if (!hasUnevaluatedIntegral(remIntegral, variable)) {
-        return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
-      }
-    }
+    if (result != null) return result;
   }
 
   // General polynomial fallback: P(x) of degree 1..3 times any integrable vExpr
@@ -478,4 +448,27 @@ bool _isExpTrigPair(Expr expNode, Expr trigNode, String variable) {
     };
   }
   return false;
+}
+
+Expr? _applySingleStepIbp(
+  Expr pExpr,
+  Expr vExpr,
+  String variable, {
+  required Assumptions assumptions,
+  required int depth,
+}) {
+  final v = antiDerivative(pExpr, variable, assumptions: assumptions, depth: 2);
+  if (hasUnevaluatedIntegral(v, variable)) return null;
+  final uPrime = vExpr.derivative(variable).simplify(assumptions: assumptions);
+  final remIntegrand = (v * uPrime)
+      .together(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  final remIntegral = antiDerivative(
+    remIntegrand,
+    variable,
+    assumptions: assumptions,
+    depth: depth + 1,
+  );
+  if (hasUnevaluatedIntegral(remIntegral, variable)) return null;
+  return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
 }

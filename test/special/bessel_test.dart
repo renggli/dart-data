@@ -196,6 +196,41 @@ void main() {
       check(besselKComplex(const Complex(2), const Complex(3)).a.toDouble())
           .equals(besselK(2, 3));
       check(besselYComplex(Complex.zero, Complex.zero).isNaN).isTrue;
+
+      // Asymptotic real/complex branches (x > 25) and non-integer/negative orders
+      check(besselJ(2, 30.0)).isCloseTo(
+        besselJComplex(const Complex(2), const Complex(30)).a.toDouble(),
+        1e-10,
+      );
+      check(besselY(2, 30.0)).isCloseTo(
+        besselYComplex(const Complex(2), const Complex(30)).a.toDouble(),
+        1e-10,
+      );
+      check(besselY(0.5, 2.0))
+          .isCloseTo(-math.sqrt(2.0 / (math.pi * 2.0)) * math.cos(2.0), 1e-10);
+      check(besselI(2, 30.0).isFinite).isTrue;
+      check(besselI(2, -1.5)).isCloseTo(besselI(2, 1.5), 1e-10);
+      check(besselI(3, -1.5)).isCloseTo(-besselI(3, 1.5), 1e-10);
+      check(besselI(2, 1e-5).isFinite).isTrue;
+      check(besselK(0.5, 2.0))
+          .isCloseTo(math.sqrt(math.pi / (2.0 * 2.0)) * math.exp(-2.0), 1e-10);
+      check(besselK(2, 30.0).isFinite).isTrue;
+
+      // Complex zero, negative integer, and complex-argument branches
+      check(besselJComplex(Complex.zero, Complex.zero)).equals(Complex.one);
+      check(besselJComplex(const Complex(-2), const Complex(2, 1)))
+          .equals(besselJComplex(const Complex(2), const Complex(2, 1)));
+      check(besselIComplex(Complex.zero, Complex.zero)).equals(Complex.one);
+      check(besselIComplex(const Complex(-2), const Complex(2, 1)))
+          .equals(besselIComplex(const Complex(2), const Complex(2, 1)));
+      check(besselYComplex(const Complex(2), const Complex(2, 1)).a.isFinite)
+          .isTrue;
+      check(besselYComplex(const Complex(0.5), const Complex(15, 1)).a.isFinite)
+          .isTrue;
+      check(besselKComplex(const Complex(2), const Complex(2, 1)).a.isFinite)
+          .isTrue;
+      check(besselKComplex(const Complex(0.5), const Complex(15, 1)).a.isFinite)
+          .isTrue;
     });
   });
 }

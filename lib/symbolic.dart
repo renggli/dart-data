@@ -135,7 +135,6 @@ export 'src/symbolic/calculus/differentiation.dart'
 export 'src/symbolic/calculus/integration/integration.dart'
     show IntegrationBound, IntegrationExtension;
 export 'src/symbolic/calculus/limit.dart' show LimitExtension;
-export 'src/symbolic/calculus/linear_form.dart' show LinearFormExtension;
 export 'src/symbolic/calculus/multivariable.dart'
     show
         MultivariableExtension,
@@ -162,4 +161,4 @@ export 'src/symbolic/textualization/latex.dart' show LatexExtension;
 export 'src/symbolic/textualization/mathml.dart' show MathMlExtension;
 export 'src/symbolic/textualization/string.dart' show TextExtension;
 export 'src/symbolic/type/expr_data_type.dart'
-    show ExprDataType, ExprField, exprDataType, isZeroExpr;
+    show ExprDataType, ExprField, exprDataType;

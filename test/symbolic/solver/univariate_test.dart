@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/solver/univariate.dart';
+import 'package:data/src/symbolic/type/expr_data_type.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
