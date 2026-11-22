@@ -429,8 +429,8 @@ Expr? tryAntiDerivDiv(
     }
   }
 
-  // c * sin(ax)/x, cos(ax)/x, sinh(ax)/x, cosh(ax)/x, exp(ax+b)/x
-  if (right is Variable && right.name == variable) {
+  // c * (sin|cos|sinh|cosh|exp)(a*x + b) / (c1*x + d1)
+  if (right.matchLinear(variable) case (a: final c1, b: final d1)) {
     final (:constFactors, :varFactors) = partitionFactors(
       left is Mul ? left.factors : [left],
       variable,
@@ -441,32 +441,83 @@ Expr? tryAntiDerivDiv(
         [final single] => single,
         _ => Mul(constFactors).simplify(),
       };
+      Expr? shiftedTrigInt(
+        Expr inner,
+        Expr Function(Expr) sameFn,
+        Expr Function(Expr) crossFn,
+        Expr Function(Expr) sameWeight,
+        Expr Function(Expr) crossWeight,
+        int crossSign,
+      ) {
+        if (inner.matchLinear(variable) case (:final a, :final b)) {
+          final alpha = (a / c1).simplify();
+          final u = (alpha * right).simplify();
+          final phi = (b - (a * d1) / c1).simplify();
+          if (phi is Number && phi.isZero) {
+            return (scale * sameFn(u) / c1).simplify();
+          }
+          final sum = crossSign > 0
+              ? sameWeight(phi) * sameFn(u) + crossWeight(phi) * crossFn(u)
+              : sameWeight(phi) * sameFn(u) - crossWeight(phi) * crossFn(u);
+          return (scale * sum / c1).simplify();
+        }
+        return null;
+      }
+
       switch (vf) {
         case Sin(expr: final inner):
-          if (inner.matchLinear(variable) case (a: _, b: final b)
-              when b == IntegerNumber.zero) {
-            return (scale * SinIntegralSi(inner)).simplify();
+          if (shiftedTrigInt(
+                inner,
+                SinIntegralSi.new,
+                CosIntegralCi.new,
+                Cos.new,
+                Sin.new,
+                1,
+              )
+              case final res?) {
+            return res;
           }
         case Cos(expr: final inner):
-          if (inner.matchLinear(variable) case (a: _, b: final b)
-              when b == IntegerNumber.zero) {
-            return (scale * CosIntegralCi(inner)).simplify();
+          if (shiftedTrigInt(
+                inner,
+                CosIntegralCi.new,
+                SinIntegralSi.new,
+                Cos.new,
+                Sin.new,
+                -1,
+              )
+              case final res?) {
+            return res;
           }
         case Sinh(expr: final inner):
-          if (inner.matchLinear(variable) case (a: _, b: final b)
-              when b == IntegerNumber.zero) {
-            return (scale * SinhIntegralShi(inner)).simplify();
+          if (shiftedTrigInt(
+                inner,
+                SinhIntegralShi.new,
+                CoshIntegralChi.new,
+                Cosh.new,
+                Sinh.new,
+                1,
+              )
+              case final res?) {
+            return res;
           }
         case Cosh(expr: final inner):
-          if (inner.matchLinear(variable) case (a: _, b: final b)
-              when b == IntegerNumber.zero) {
-            return (scale * CoshIntegralChi(inner)).simplify();
+          if (shiftedTrigInt(
+                inner,
+                CoshIntegralChi.new,
+                SinhIntegralShi.new,
+                Cosh.new,
+                Sinh.new,
+                1,
+              )
+              case final res?) {
+            return res;
           }
         case Pow(base: Constant.e, exponent: final expInner):
           if (expInner.matchLinear(variable) case (:final a, :final b)) {
-            return (scale *
-                    Pow(Constant.e, b) *
-                    ExpIntegralEi(a * Variable(variable)))
+            final phi = (b - (a * d1) / c1).simplify();
+            final u = ((a / c1) * right).simplify();
+            return (scale * Pow(Constant.e, phi) * ExpIntegralEi(u) / c1)
                 .simplify();
           }
         default:

@@ -1734,6 +1734,33 @@ Expr _antiDerivMul(
       return trigRes;
     }
   }
+  if (varFactors.length == 2) {
+    final (f0, f1) = (varFactors[0], varFactors[1]);
+    final (Pow? xPow, Pow? expPow) =
+        (f0 is Pow &&
+            f0.base == Variable(variable) &&
+            f1 is Pow &&
+            f1.base == Constant.e)
+        ? (f0, f1)
+        : (f1 is Pow &&
+              f1.base == Variable(variable) &&
+              f0 is Pow &&
+              f0.base == Constant.e)
+        ? (f1, f0)
+        : (null, null);
+    if (xPow != null &&
+        expPow != null &&
+        xPow.exponent is! IntegerNumber &&
+        !xPow.exponent.dependsOn(variable)) {
+      if (expPow.exponent.matchLinear(variable) case (:final a, :final b)) {
+        final s = xPow.exponent;
+        return (-Pow(Constant.e, b) *
+                Pow(Variable(variable), s + IntegerNumber.one) *
+                ExpIntegralE(-s, -a * Variable(variable)))
+            .simplify(assumptions: assumptions);
+      }
+    }
+  }
   // Mixed hyperbolic-trigonometric products: rewrite sinh/cosh as exponentials
   final hasTrig = varFactors.any(
     (f) =>

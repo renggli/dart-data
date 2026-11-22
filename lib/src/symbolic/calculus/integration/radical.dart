@@ -895,6 +895,28 @@ Expr? tryChebyshevBinomial(
     }
   }
 
+  if (m != -1 && isSymbolicPositive(a)) {
+    final alpha = FractionNumber(Integer(m + 1), Integer(n));
+    final beta = FractionNumber(Integer(-p), Integer(q));
+    final alphaPlus1 = (alpha + IntegerNumber.one).simplify(
+      assumptions: assumptions,
+    );
+    final xVar = Variable(variable);
+    final aPow = Pow(
+      a,
+      FractionNumber(Integer(p), Integer(q)),
+    ).simplify(assumptions: assumptions);
+    final arg = (-b * Pow(xVar, IntegerNumber.of(n)) / a).simplify(
+      assumptions: assumptions,
+    );
+    return (constScale *
+            aPow *
+            Pow(xVar, IntegerNumber.of(m + 1)) *
+            Hypergeometric([alpha, beta], [alphaPlus1], arg) /
+            IntegerNumber.of(m + 1))
+        .simplify(assumptions: assumptions);
+  }
+
   return null;
 }
 

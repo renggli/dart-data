@@ -623,5 +623,34 @@ void main() {
       ).integrate('x');
       check(solvableTrig).isNotA<Integral>();
     });
+
+    test('integrates Chebyshev binomials via Hypergeometric and x^s * exp(a*x) via ExpIntegralE', () {
+      final binomHyper = Expr.parse('x * (2 + 3 * x^3)^(1/2)').integrate('x');
+      check(binomHyper.anyNode((n) => n is Hypergeometric)).isTrue;
+      verifyAntiderivative(
+        binomHyper.derivative('x'),
+        points: const [0.1, 0.3],
+      );
+      final diffHyper =
+          (binomHyper.derivative('x') - Expr.parse('x * (2 + 3 * x^3)^(1/2)'))
+              .simplify();
+      check(diffHyper.evaluate({'x': 0.25})).isCloseTo(0.0, 1e-8);
+
+      final expE = Expr.parse('x^(-1/3) * exp(-2 * x + 1)').integrate('x');
+      check(expE.anyNode((n) => n is ExpIntegralE)).isTrue;
+      final diffExpE =
+          (expE.derivative('x') - Expr.parse('x^(-1/3) * exp(-2 * x + 1)'))
+              .simplify();
+      check(diffExpE.evaluate({'x': 0.5})).isCloseTo(0.0, 1e-8);
+
+      final shiftedCi = Expr.parse('cos(2 * x + 1) / (3 * x + 4)')
+          .integrate('x');
+      check(shiftedCi.anyNode((n) => n is CosIntegralCi)).isTrue;
+      final diffCi =
+          (shiftedCi.derivative('x') -
+                  Expr.parse('cos(2 * x + 1) / (3 * x + 4)'))
+              .simplify();
+      check(diffCi.evaluate({'x': 0.7})).isCloseTo(0.0, 1e-9);
+    });
   });
 }
