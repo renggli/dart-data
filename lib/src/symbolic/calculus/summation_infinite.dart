@@ -8,6 +8,7 @@ import '../algebra/simplify/transcendental.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../number/combinatorics.dart';
 import '../number/integer.dart';
 import 'linear_form.dart';
 
@@ -565,18 +566,7 @@ List<Expr>? _toFallingFactorialBasis(Map<int, Expr> polyCoeffs) {
     if (d > maxDeg) maxDeg = d;
   }
 
-  // Compute Stirling numbers of the second kind S(n, k) up to maxDeg
-  final stirling = List<List<Integer>>.generate(
-    maxDeg + 1,
-    (_) => List<Integer>.filled(maxDeg + 1, Integer.zero),
-  );
-  stirling[0][0] = Integer.one;
-  for (var n = 1; n <= maxDeg; n++) {
-    for (var k = 1; k <= n; k++) {
-      stirling[n][k] =
-          Integer.from(k) * stirling[n - 1][k] + stirling[n - 1][k - 1];
-    }
-  }
+  final stirling = stirlingSecondKind(maxDeg);
 
   final c = List<Expr>.filled(maxDeg + 1, IntegerNumber.zero);
   for (final entry in polyCoeffs.entries) {

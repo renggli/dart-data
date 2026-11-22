@@ -8,6 +8,7 @@ import '../algebra/simplify/multiplicative.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../number/combinatorics.dart';
 import '../number/integer.dart';
 import 'limit.dart';
 import 'linear_form.dart';
@@ -251,7 +252,7 @@ Expr computeSum(
 
 /// Computes $\zeta(2m) = \frac{|B_{2m}| (2\pi)^{2m}}{2 (2m)!}$ for even $p = 2m \ge 2$.
 Expr evenZetaValue(int p) {
-  final bernoulli = _bernoulliNumbers(p);
+  final bernoulli = bernoulliNumbers(p);
   final bpAbs = bernoulli[p].abs();
   final twoPowP = Integer.big(BigInt.two.pow(p));
   final factP = Integer.from(p).factorial();
@@ -378,7 +379,7 @@ Expr? _antidifferenceCore(Expr term, String variable) {
 Expr _faulhaberAntidifference(String variable, int p) {
   final kVar = Variable(variable);
   if (p == 0) return kVar;
-  final bernoulli = _bernoulliNumbers(p);
+  final bernoulli = bernoulliNumbers(p);
   final pPlus1 = p + 1;
   final terms = <Expr>[];
   for (var j = 0; j <= p; j++) {
@@ -393,30 +394,6 @@ Expr _faulhaberAntidifference(String variable, int p) {
     terms.add(coeff.isOne ? kPow : coeff * kPow);
   }
   return simplifyAdd(terms, assumptions: Assumptions.none);
-}
-
-List<RationalNumber> _bernoulliNumbers(int maxIndex) {
-  final b = <RationalNumber>[IntegerNumber.one];
-  for (var m = 1; m <= maxIndex; m++) {
-    if (m == 1) {
-      b.add(FractionNumber.negativeHalf);
-      continue;
-    }
-    if (m.isOdd) {
-      b.add(IntegerNumber.zero);
-      continue;
-    }
-    var sum = IntegerNumber.zero as RationalNumber;
-    for (var j = 0; j < m; j++) {
-      if (b[j].isZero) continue;
-      final binom = IntegerNumber(
-        Integer.from(m + 1).binomial(Integer.from(j)),
-      );
-      sum = sum.addRational(binom.mulRational(b[j]));
-    }
-    b.add(sum.neg().divRational(IntegerNumber.of(m + 1)));
-  }
-  return b;
 }
 
 ({Expr ratio, Expr scale})? _matchGeometric(Expr term, String variable) {
@@ -863,14 +840,7 @@ Expr? _tryBinomialSum(
     return null;
   }
 
-  // Stirling numbers of the second kind S(i, j) for i, j <= 4
-  const stirling2 = <List<int>>[
-    [1],
-    [0, 1],
-    [0, 1, 1],
-    [0, 1, 3, 1],
-    [0, 1, 7, 6, 1],
-  ];
+  final stirling2 = stirlingSecondKind(maxDeg);
 
   // Express P(k) = sum_{j=0}^maxDeg s_j * k^{falling j}
   final sCoeffs = List<Expr>.filled(maxDeg + 1, IntegerNumber.zero);
@@ -880,8 +850,8 @@ Expr? _tryBinomialSum(
       final ci = coeffs[i];
       if (ci != null) {
         final s = stirling2[i][j];
-        if (s != 0) {
-          sj = (sj + IntegerNumber.of(s) * ci).simplify();
+        if (!s.isZero) {
+          sj = (sj + IntegerNumber(s) * ci).simplify();
         }
       }
     }
