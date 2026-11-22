@@ -143,47 +143,6 @@ void main() {
       check(gamma(105.0).isFinite).isTrue;
     });
 
-    test('factorial and combinations', () {
-      check(factorial(0)).isCloseTo(1.0, 1e-8);
-      check(factorial(5)).isCloseTo(120.0, 1e-8);
-      check(factorial(-1)).isNaN;
-      check(factorial(double.nan)).isNaN;
-      check(factorialLn(5)).isCloseTo(math.log(120.0), 1e-6);
-      check(factorialLn(double.nan)).isNaN;
-      check(binomial(5, 2)).equals(10.0);
-      check(binomial(10, 3)).equals(120.0);
-      check(binomial(20, 10)).equals(184756.0);
-      check(binomial(60, 5)).equals(5461512.0);
-      check(binomial(62, 31)).isCloseTo(4.654283532552611e17, 1e8);
-      check(binomial(100, 10)).isCloseTo(1.731030945644e13, 1e5);
-      check(binomial(200, 2)).equals(19900.0);
-      check(binomial(5, 0)).equals(1.0);
-      check(binomial(5, 5)).equals(1.0);
-      check(binomial(5, 6)).equals(0.0);
-      check(binomial(5, -1)).equals(0.0);
-      check(binomial(5.5, 2.5)).isGreaterThan(0.0);
-      check(binomial(double.nan, 2)).isNaN;
-      check(binomial(5, double.nan)).isNaN;
-      check(binomial(double.infinity, 2)).equals(double.infinity);
-      check(binomial(double.infinity, double.infinity)).isNaN;
-      check(binomial(double.infinity, 1.5)).isNaN;
-      check(binomialLn(5, 2)).isCloseTo(math.log(10.0), 1e-6);
-
-      check(permutation(5, 2)).equals(20.0);
-      check(permutation(10, 3)).equals(720.0);
-      check(permutation(20, 3)).equals(6840.0);
-      check(permutation(50, 10)).isCloseTo(3.7276043023296e16, 1e10);
-      check(permutation(200, 2)).equals(39800.0);
-      check(permutation(5, 0)).equals(1.0);
-      check(permutation(5, 6)).equals(0.0);
-      check(permutation(5, -1)).equals(0.0);
-      check(permutation(double.nan, 2)).isNaN;
-      check(permutation(5, double.nan)).isNaN;
-      check(permutation(double.infinity, 2)).equals(double.infinity);
-      check(permutation(double.infinity, double.infinity)).isNaN;
-      check(permutationLn(5, 2)).isCloseTo(math.log(20.0), 1e-6);
-    });
-
     test('upperGamma and lowerGamma', () {
       check(upperGamma(1.0, 2.0)).isCloseTo(math.exp(-2.0), 1e-12);
       check(lowerGamma(1.0, 2.0)).isCloseTo(1.0 - math.exp(-2.0), 1e-12);

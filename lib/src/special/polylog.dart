@@ -8,6 +8,8 @@ import 'zeta.dart';
 ///
 /// Defined on R for `z <= 1` (and `z < 1` when `s <= 1`).
 /// Returns `double.nan` on the branch cut `z > 1`.
+///
+/// See https://en.wikipedia.org/wiki/Polylogarithm for details.
 double polylog(num s, num z) {
   if (s.isNaN || z.isNaN) return double.nan;
   final sd = s.toDouble();
@@ -32,6 +34,8 @@ double polylog(num s, num z) {
 }
 
 /// Returns the complex-valued polylogarithm `Li_s(z)`.
+///
+/// See https://en.wikipedia.org/wiki/Polylogarithm for details.
 Complex polylogComplex(Complex s, Complex z) {
   if (z.a == 0.0 && z.b == 0.0) return Complex.zero;
 
@@ -71,7 +75,7 @@ Complex polylogComplex(Complex s, Complex z) {
   if (absZ < 1.0) {
     return _polylogSeries(s, z, maxTerms: 1000);
   }
-  return const Complex(double.nan, double.nan);
+  return Complex.nan;
 }
 
 Complex _polylogSeries(Complex s, Complex z, {int maxTerms = 200}) {
@@ -87,20 +91,9 @@ Complex _polylogSeries(Complex s, Complex z, {int maxTerms = 200}) {
 }
 
 Complex _polylogInversion(int n, Complex z) {
-  final inv = polylogComplex(Complex(n.toDouble()), Complex.one / z);
+  final inv = polylogComplex(Complex(n.toDouble()), z.reciprocal());
   final sign = n.isEven ? -1.0 : 1.0;
   final logNegZ = (-z).log();
-
-  // Even Bernoulli numbers B_0, B_2, ..., B_12
-  const bernoulliEven = [
-    1.0,
-    1.0 / 6.0,
-    -1.0 / 30.0,
-    1.0 / 42.0,
-    -1.0 / 30.0,
-    5.0 / 66.0,
-    -691.0 / 2730.0,
-  ];
 
   var polySum = Complex.zero;
   var fact2k = 1.0;
@@ -116,7 +109,7 @@ Complex _polylogInversion(int n, Complex z) {
     }
     final bernoulliShift = k == 0
         ? 1.0
-        : (math.pow(2.0, 1 - 2 * k) - 1.0) * bernoulliEven[k];
+        : (math.pow(2.0, 1 - 2 * k) - 1.0) * _bernoulliEven[k];
     final coeff = twoPiIPow * Complex(bernoulliShift / (fact2k * factRem));
     final logPow = rem == 0
         ? Complex.one
@@ -158,3 +151,14 @@ Complex _polylogLogExpansion(int n, Complex z) {
   }
   return sum;
 }
+
+/// Even Bernoulli numbers `B_0, B_2, ..., B_12`.
+const List<double> _bernoulliEven = [
+  1.0,
+  1.0 / 6.0,
+  -1.0 / 30.0,
+  1.0 / 42.0,
+  -1.0 / 30.0,
+  5.0 / 66.0,
+  -691.0 / 2730.0,
+];

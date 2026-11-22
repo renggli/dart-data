@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
+import '../../../special/factorial.dart';
 import '../../../special/gamma.dart';
 import '../continuous/normal.dart';
 import '../continuous/uniform.dart';

@@ -3,17 +3,26 @@ import 'dart:math';
 import 'package:more/number.dart' show Complex;
 
 import 'erf.dart';
+import 'utils.dart';
 
 /// Returns the Fresnel sine integral `S(x) = ∫_0^x sin(π/2 * t^2) dt`.
+///
+/// See https://en.wikipedia.org/wiki/Fresnel_integral for details.
 double fresnelS(num x) => _fresnelPair(x).s;
 
 /// Returns the complex Fresnel sine integral `S(z) = ∫_0^z sin(π/2 * t^2) dt`.
+///
+/// See https://en.wikipedia.org/wiki/Fresnel_integral for details.
 Complex fresnelSComplex(Complex z) => _fresnelPairComplex(z).s;
 
 /// Returns the Fresnel cosine integral `C(x) = ∫_0^x cos(π/2 * t^2) dt`.
+///
+/// See https://en.wikipedia.org/wiki/Fresnel_integral for details.
 double fresnelC(num x) => _fresnelPair(x).c;
 
 /// Returns the complex Fresnel cosine integral `C(z) = ∫_0^z cos(π/2 * t^2) dt`.
+///
+/// See https://en.wikipedia.org/wiki/Fresnel_integral for details.
 Complex fresnelCComplex(Complex z) => _fresnelPairComplex(z).c;
 
 ({double c, double s}) _fresnelPair(num x) {
@@ -53,27 +62,17 @@ Complex fresnelCComplex(Complex z) => _fresnelPairComplex(z).c;
 
   // Lentz continued fraction for auxiliary functions f, g
   final pix2 = pi * ax * ax;
-  const tiny = 1e-30;
-  var b = Complex(1.0, -pix2);
-  var c = const Complex(1.0 / tiny);
-  var d = const Complex(1.0) / b;
-  var h = d;
-  var n = -1.0;
-  for (var k = 2; k <= 100; k++) {
-    n += 2.0;
-    final a = -n * (n + 1.0);
-    b = b + const Complex(4.0);
-    d = Complex(a) * d + b;
-    if (d.abs() < tiny) d = const Complex(tiny);
-    c = b + Complex(a) / c;
-    if (c.abs() < tiny) c = const Complex(tiny);
-    d = const Complex(1.0) / d;
-    final del = d * c;
-    h = h * del;
-    if ((del - const Complex(1.0)).abs() <= 1e-15) break;
-  }
+  final h = lentzCFComplex(
+    Complex(1.0, -pix2),
+    (int k) {
+      final n = 2 * k - 1;
+      return Complex(-n * (n + 1).toDouble());
+    },
+    (int k) => Complex(1.0 + 4.0 * k, -pix2),
+    maxIter: 99,
+  );
 
-  final xh = h * Complex(ax);
+  final xh = h * ax;
   final g = xh.a.toDouble();
   final f = xh.b.toDouble();
   final arg = 0.5 * pix2;
@@ -86,11 +85,8 @@ Complex fresnelCComplex(Complex z) => _fresnelPairComplex(z).c;
 }
 
 ({Complex c, Complex s}) _fresnelPairComplex(Complex z) {
-  if (z.a.isNaN || z.b.isNaN) {
-    return (
-      c: const Complex(double.nan, double.nan),
-      s: const Complex(double.nan, double.nan),
-    );
+  if (z.isNaN) {
+    return (c: Complex.nan, s: Complex.nan);
   }
   if (z.a == 0.0 && z.b == 0.0) return (c: Complex.zero, s: Complex.zero);
 

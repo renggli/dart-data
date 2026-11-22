@@ -2,16 +2,11 @@ import 'dart:math';
 
 import 'package:more/number.dart' show Complex;
 
-/// Returns the digamma function (also known as the psi function), which is the
-/// logarithmic derivative of the gamma function:
-/// $\psi(x) = \Gamma'(x)/\Gamma(x)$.
+/// Returns the digamma function `ψ(x) = Γ'(x) / Γ(x)`.
 ///
-/// Conceptually, digamma calculates the rate of change of the logarithm of the
-/// gamma function at any point. At $x=1$, it equals $-\gamma$ (the negative
-/// Euler-Mascheroni constant $\approx -0.5772$). Formally, this calculates the
-/// logarithmic derivative
-/// $\psi(x) = \frac{d}{dx}\ln\Gamma(x) = \frac{\Gamma'(x)}{\Gamma(x)}$,
-/// evaluated using harmonic recurrence and asymptotic Bernoulli expansion.
+/// Logarithmic derivative of the gamma function; at `x = 1` it equals `-γ`
+/// (the negative Euler-Mascheroni constant `≈ -0.5772`). Evaluated using
+/// harmonic recurrence and asymptotic Bernoulli expansion.
 ///
 /// See https://en.wikipedia.org/wiki/Digamma_function for details.
 ///
@@ -52,11 +47,13 @@ double digamma(num x) {
   return result - shift;
 }
 
-/// Returns the complex digamma function $\psi(z) = \Gamma'(z) / \Gamma(z)$.
+/// Returns the complex digamma function `ψ(z) = Γ'(z) / Γ(z)`.
+///
+/// See https://en.wikipedia.org/wiki/Digamma_function for details.
 Complex digammaComplex(Complex z) {
-  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.isNaN) return Complex.nan;
   if (z.b == 0.0 && z.a <= 0.0 && z.a == z.a.roundToDouble()) {
-    return const Complex(double.nan, double.nan);
+    return Complex.nan;
   }
   if (z.a < 0.5) {
     final piZ = const Complex(pi) * z;
@@ -66,12 +63,12 @@ Complex digammaComplex(Complex z) {
   var shift = Complex.zero;
   var cur = z;
   while (cur.abs() < 8.0) {
-    shift += Complex.one / cur;
-    cur += Complex.one;
+    shift += cur.reciprocal();
+    cur += 1;
   }
-  final invVal = Complex.one / cur;
-  final r2 = invVal * invVal;
-  final r4 = r2 * r2;
+  final invVal = cur.reciprocal();
+  final r2 = invVal.square();
+  final r4 = r2.square();
   final r6 = r4 * r2;
   final r8 = r6 * r2;
   final r10 = r8 * r2;
@@ -86,12 +83,12 @@ Complex digammaComplex(Complex z) {
   return result - shift;
 }
 
-/// Returns the polygamma function of order [m], which is the $(m+1)$-th
-/// derivative of the logarithm of the gamma function:
-/// $\psi^{(m)}(x) = \frac{d^{m+1}}{dx^{m+1}} \ln \Gamma(x)$.
+/// Returns the polygamma function of order [m], `ψ^(m)(x) = d^(m+1)/dx^(m+1) ln(Γ(x))`.
 ///
-/// For $m = 0$, this equals [digamma]. For $m = 1$, this is the trigamma
-/// function $\psi_1(x) = \psi'(x)$.
+/// For `m == 0`, this equals [digamma]. For `m == 1`, this is the trigamma
+/// function `ψ_1(x) = ψ'(x)`.
+///
+/// See https://en.wikipedia.org/wiki/Polygamma_function for details.
 double polygamma(int m, num x) {
   if (m < 0) {
     throw ArgumentError.value(m, 'm', 'Order must be non-negative');
@@ -130,22 +127,13 @@ double polygamma(int m, num x) {
   var asymptotic =
       mMinus1Fact * pow(invVal, m) + 0.5 * mFact * pow(invVal, m + 1);
 
-  const bCoeffs = [
-    1.0 / 12.0,
-    -1.0 / 720.0,
-    1.0 / 30240.0,
-    -1.0 / 1209600.0,
-    1.0 / 47900160.0,
-    -691.0 / 1307674368000.0,
-    1.0 / 74724249600.0,
-  ];
-
-  for (var k = 1; k <= bCoeffs.length; k++) {
+  for (var k = 1; k <= _polygammaBernoulliCoeffs.length; k++) {
     var factor = 1.0;
     for (var j = 1; j <= 2 * k + m - 1; j++) {
       factor *= j;
     }
-    final term = bCoeffs[k - 1] * factor * pow(invVal, 2 * k + m);
+    final term =
+        _polygammaBernoulliCoeffs[k - 1] * factor * pow(invVal, 2 * k + m);
     asymptotic += term;
     if (term.abs() < 1e-15 * asymptotic.abs()) break;
   }
@@ -154,15 +142,17 @@ double polygamma(int m, num x) {
 }
 
 /// Returns the complex polygamma function of order [m],
-/// $\psi^{(m)}(z) = \frac{d^{m+1}}{dz^{m+1}} \ln \Gamma(z)$.
+/// `ψ^(m)(z) = d^(m+1)/dz^(m+1) ln(Γ(z))`.
+///
+/// See https://en.wikipedia.org/wiki/Polygamma_function for details.
 Complex polygammaComplex(int m, Complex z) {
   if (m < 0) {
     throw ArgumentError.value(m, 'm', 'Order must be non-negative');
   }
   if (m == 0) return digammaComplex(z);
-  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.isNaN) return Complex.nan;
   if (z.b == 0.0 && z.a <= 0.0 && z.a == z.a.roundToDouble()) {
-    return const Complex(double.nan, double.nan);
+    return Complex.nan;
   }
   if (z.a < 0.5) {
     final refl = polygammaComplex(m, Complex.one - z);
@@ -183,30 +173,22 @@ Complex polygammaComplex(int m, Complex z) {
   var cur = z;
   while (cur.abs() < 8.0) {
     shift += Complex(shiftSign * mFact) / cur.pow(m + 1);
-    cur += Complex.one;
+    cur += 1;
   }
 
-  final invVal = Complex.one / cur;
+  final invVal = cur.reciprocal();
   var asymptotic =
       Complex(mMinus1Fact) * invVal.pow(m) +
       Complex(0.5 * mFact) * invVal.pow(m + 1);
 
-  const bCoeffs = [
-    1.0 / 12.0,
-    -1.0 / 720.0,
-    1.0 / 30240.0,
-    -1.0 / 1209600.0,
-    1.0 / 47900160.0,
-    -691.0 / 1307674368000.0,
-    1.0 / 74724249600.0,
-  ];
-
-  for (var k = 1; k <= bCoeffs.length; k++) {
+  for (var k = 1; k <= _polygammaBernoulliCoeffs.length; k++) {
     var factor = 1.0;
     for (var j = 1; j <= 2 * k + m - 1; j++) {
       factor *= j;
     }
-    final term = Complex(bCoeffs[k - 1] * factor) * invVal.pow(2 * k + m);
+    final term =
+        Complex(_polygammaBernoulliCoeffs[k - 1] * factor) *
+        invVal.pow(2 * k + m);
     asymptotic += term;
     if (term.abs() < 1e-15 * asymptotic.abs()) break;
   }
@@ -250,13 +232,7 @@ double _trigamma(num x) {
   return result + shift;
 }
 
-double _cotDerivative(int m, double x) {
-  final rem = x - x.floorToDouble();
-  final px = pi * rem;
-  final sinVal = sin(px);
-  final cosVal = cos(px);
-  final t = cosVal / sinVal;
-
+List<double> _cotDerivativePoly(int m) {
   var poly = <double>[0.0, 1.0]; // P_0(t) = t
   for (var k = 0; k < m; k++) {
     final next = List<double>.filled(k + 3, 0.0);
@@ -270,7 +246,13 @@ double _cotDerivative(int m, double x) {
     }
     poly = next;
   }
+  return poly;
+}
 
+double _cotDerivative(int m, double x) {
+  final px = pi * (x - x.floorToDouble());
+  final t = cos(px) / sin(px);
+  final poly = _cotDerivativePoly(m);
   var val = 0.0;
   for (var i = poly.length - 1; i >= 0; i--) {
     val = val * t + poly[i];
@@ -281,24 +263,21 @@ double _cotDerivative(int m, double x) {
 Complex _cotDerivativeComplex(int m, Complex z) {
   final px = const Complex(pi) * z;
   final t = px.cos() / px.sin();
-
-  var poly = <double>[0.0, 1.0];
-  for (var k = 0; k < m; k++) {
-    final next = List<double>.filled(k + 3, 0.0);
-    for (var j = 1; j < poly.length; j++) {
-      final c = poly[j];
-      if (c != 0.0) {
-        final d = j * c;
-        next[j - 1] -= d;
-        next[j + 1] -= d;
-      }
-    }
-    poly = next;
-  }
-
+  final poly = _cotDerivativePoly(m);
   var val = Complex.zero;
   for (var i = poly.length - 1; i >= 0; i--) {
-    val = val * t + Complex(poly[i]);
+    val = val * t + poly[i];
   }
   return val;
 }
+
+/// Bernoulli-derived asymptotic coefficients `B_{2k} / (2k)!` for polygamma.
+const List<double> _polygammaBernoulliCoeffs = [
+  1.0 / 12.0,
+  -1.0 / 720.0,
+  1.0 / 30240.0,
+  -1.0 / 1209600.0,
+  1.0 / 47900160.0,
+  -691.0 / 1307674368000.0,
+  1.0 / 74724249600.0,
+];

@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:more/printer.dart';
 
 import '../../../special/beta.dart';
-import '../../../special/gamma.dart';
+import '../../../special/binomial.dart';
 import '../continuous/uniform.dart';
 import '../discrete.dart';
 

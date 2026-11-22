@@ -9,14 +9,17 @@ import 'package:more/number.dart' show Complex;
 import '../../linear/vector.dart';
 import '../../special/bessel.dart' as special_bessel;
 import '../../special/beta.dart' as special_beta;
+import '../../special/binomial.dart' as special_binomial;
 import '../../special/digamma.dart' as special_digamma;
 import '../../special/elliptic.dart' as special_elliptic;
 import '../../special/erf.dart' as special_erf;
 import '../../special/exp_integral.dart' as special_exp_int;
+import '../../special/factorial.dart' as special_factorial;
 import '../../special/fresnel.dart' as special_fresnel;
 import '../../special/gamma.dart' as special_gamma;
 import '../../special/lambert_w.dart' as special_lambert;
 import '../../special/polylog.dart' as special_polylog;
+import '../../special/trig_integral.dart' as special_trig_int;
 import '../../special/zeta.dart' as special_zeta;
 import '../ast.dart';
 import '../calculus/differentiation.dart';
@@ -300,13 +303,13 @@ final class BytecodeEvaluator {
           case Op.logIntegralLi:
             stack[sp - 1] = special_exp_int.logIntegral(stack[sp - 1]);
           case Op.sinIntegralSi:
-            stack[sp - 1] = special_exp_int.sinIntegral(stack[sp - 1]);
+            stack[sp - 1] = special_trig_int.sinIntegral(stack[sp - 1]);
           case Op.cosIntegralCi:
-            stack[sp - 1] = special_exp_int.cosIntegral(stack[sp - 1]);
+            stack[sp - 1] = special_trig_int.cosIntegral(stack[sp - 1]);
           case Op.sinhIntegralShi:
-            stack[sp - 1] = special_exp_int.sinhIntegral(stack[sp - 1]);
+            stack[sp - 1] = special_trig_int.sinhIntegral(stack[sp - 1]);
           case Op.coshIntegralChi:
-            stack[sp - 1] = special_exp_int.coshIntegral(stack[sp - 1]);
+            stack[sp - 1] = special_trig_int.coshIntegral(stack[sp - 1]);
           case Op.upperGamma:
             final x = stack[--sp];
             final s = stack[--sp];
@@ -597,13 +600,13 @@ final class BytecodeEvaluator {
           case Op.logIntegralLi:
             stack[sp - 1] = special_exp_int.logIntegralComplex(stack[sp - 1]);
           case Op.sinIntegralSi:
-            stack[sp - 1] = special_exp_int.sinIntegralComplex(stack[sp - 1]);
+            stack[sp - 1] = special_trig_int.sinIntegralComplex(stack[sp - 1]);
           case Op.cosIntegralCi:
-            stack[sp - 1] = special_exp_int.cosIntegralComplex(stack[sp - 1]);
+            stack[sp - 1] = special_trig_int.cosIntegralComplex(stack[sp - 1]);
           case Op.sinhIntegralShi:
-            stack[sp - 1] = special_exp_int.sinhIntegralComplex(stack[sp - 1]);
+            stack[sp - 1] = special_trig_int.sinhIntegralComplex(stack[sp - 1]);
           case Op.coshIntegralChi:
-            stack[sp - 1] = special_exp_int.coshIntegralComplex(stack[sp - 1]);
+            stack[sp - 1] = special_trig_int.coshIntegralComplex(stack[sp - 1]);
           case Op.upperGamma:
             final zX = stack[--sp];
             final zS = stack[--sp];
@@ -634,11 +637,11 @@ final class BytecodeEvaluator {
             final zA = stack[--sp];
             stack[sp++] = special_beta.betaComplex(zA, zB);
           case Op.factorial:
-            stack[sp - 1] = special_gamma.factorialComplex(stack[sp - 1]);
+            stack[sp - 1] = special_factorial.factorialComplex(stack[sp - 1]);
           case Op.binomial:
             final zK = stack[--sp];
             final zN = stack[--sp];
-            stack[sp++] = special_gamma.binomialComplex(zN, zK);
+            stack[sp++] = special_binomial.binomialComplex(zN, zK);
           case Op.floor:
             final z = stack[sp - 1];
             if (z.b != 0.0) {
@@ -774,10 +777,10 @@ double evalRealBinomial(double n, double k) {
   }
   if (k == 0.0) return 1.0;
   if (n >= 0.0 && k >= 0.0 && k <= n) {
-    return special_gamma.binomial(n, k);
+    return special_binomial.binomial(n, k);
   }
   if (n <= -1.0 && k == k.roundToDouble() && k >= 0.0) {
-    final absVal = special_gamma.binomial(-n + k - 1.0, k);
+    final absVal = special_binomial.binomial(-n + k - 1.0, k);
     final isOdd = (k - 2.0 * (k / 2.0).floorToDouble()) != 0.0;
     return isOdd ? -absVal : absVal;
   }
@@ -819,10 +822,10 @@ double evalRealBinomial(double n, double k) {
   }
   if (k == 0.0) return (logAbs: 0.0, sign: 1);
   if (n >= 0.0 && k >= 0.0 && k <= n) {
-    return (logAbs: special_gamma.binomialLn(n, k), sign: 1);
+    return (logAbs: special_binomial.binomialLn(n, k), sign: 1);
   }
   if (n <= -1.0 && k == k.roundToDouble() && k >= 0.0) {
-    final logAbs = special_gamma.binomialLn(-n + k - 1.0, k);
+    final logAbs = special_binomial.binomialLn(-n + k - 1.0, k);
     final isOdd = (k - 2.0 * (k / 2.0).floorToDouble()) != 0.0;
     return (logAbs: logAbs, sign: isOdd ? -1 : 1);
   }

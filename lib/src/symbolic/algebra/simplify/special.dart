@@ -2,14 +2,17 @@ import 'package:more/number.dart' show Complex;
 
 import '../../../special/bessel.dart' as special_bessel;
 import '../../../special/beta.dart' as special_beta;
+import '../../../special/binomial.dart' as special_binomial;
 import '../../../special/digamma.dart' as special_digamma;
 import '../../../special/elliptic.dart' as special_elliptic;
 import '../../../special/erf.dart' as special_erf;
 import '../../../special/exp_integral.dart' as special_exp_int;
+import '../../../special/factorial.dart' as special_factorial;
 import '../../../special/fresnel.dart' as special_fresnel;
 import '../../../special/gamma.dart' as special_gamma;
 import '../../../special/lambert_w.dart' as special_lambert;
 import '../../../special/polylog.dart' as special_polylog;
+import '../../../special/trig_integral.dart' as special_trig_int;
 import '../../../special/zeta.dart' as special_zeta;
 import '../../assumptions.dart';
 import '../../ast.dart';
@@ -451,11 +454,13 @@ Expr simplifyLogIntegralLi(Expr expr) {
 Expr simplifySinIntegralSi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (_isFloatComplex(expr)) {
-    return _complexToExpr(special_exp_int.sinIntegralComplex(_toComplex(expr)));
+    return _complexToExpr(
+      special_trig_int.sinIntegralComplex(_toComplex(expr)),
+    );
   }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.sinIntegral(expr.value));
+    return RealNumber.fromDouble(special_trig_int.sinIntegral(expr.value));
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
@@ -471,10 +476,12 @@ Expr simplifySinIntegralSi(Expr expr, {required Assumptions assumptions}) {
 Expr simplifyCosIntegralCi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (_isFloatComplex(expr)) {
-    return _complexToExpr(special_exp_int.cosIntegralComplex(_toComplex(expr)));
+    return _complexToExpr(
+      special_trig_int.cosIntegralComplex(_toComplex(expr)),
+    );
   }
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.cosIntegral(expr.value));
+    return RealNumber.fromDouble(special_trig_int.cosIntegral(expr.value));
   }
   return CosIntegralCi(expr, isSimplified: true);
 }
@@ -484,12 +491,12 @@ Expr simplifySinhIntegralShi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (_isFloatComplex(expr)) {
     return _complexToExpr(
-      special_exp_int.sinhIntegralComplex(_toComplex(expr)),
+      special_trig_int.sinhIntegralComplex(_toComplex(expr)),
     );
   }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.sinhIntegral(expr.value));
+    return RealNumber.fromDouble(special_trig_int.sinhIntegral(expr.value));
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
@@ -506,11 +513,11 @@ Expr simplifyCoshIntegralChi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (_isFloatComplex(expr)) {
     return _complexToExpr(
-      special_exp_int.coshIntegralComplex(_toComplex(expr)),
+      special_trig_int.coshIntegralComplex(_toComplex(expr)),
     );
   }
   if (expr is RealNumber) {
-    return RealNumber.fromDouble(special_exp_int.coshIntegral(expr.value));
+    return RealNumber.fromDouble(special_trig_int.coshIntegral(expr.value));
   }
   return CoshIntegralChi(expr, isSimplified: true);
 }
@@ -814,7 +821,7 @@ Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
 Expr simplifyFactorial(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (_isFloatComplex(expr)) {
-    return _complexToExpr(special_gamma.factorialComplex(_toComplex(expr)));
+    return _complexToExpr(special_factorial.factorialComplex(_toComplex(expr)));
   }
   if (expr is RealNumber) {
     return simplifyGamma(
@@ -849,7 +856,7 @@ Expr simplifyBinomial(
   }
   if (_isFloatComplexPair(nExpr, kExpr)) {
     return _complexToExpr(
-      special_gamma.binomialComplex(_toComplex(nExpr), _toComplex(kExpr)),
+      special_binomial.binomialComplex(_toComplex(nExpr), _toComplex(kExpr)),
     );
   }
   if (nExpr is RealNumeric &&

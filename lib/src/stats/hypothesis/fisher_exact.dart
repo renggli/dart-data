@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import '../../linear/matrix.dart';
-import '../../special/gamma.dart';
+import '../../special/binomial.dart';
 import 'hypothesis_test_result.dart';
 
 /// Fisher's exact test for 2x2 contingency tables.

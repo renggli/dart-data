@@ -3,10 +3,11 @@ import 'dart:math';
 import 'package:more/number.dart' show Complex;
 
 import 'digamma.dart';
+import 'factorial.dart';
 import 'gamma.dart';
 
-/// Returns the confluent hypergeometric function $_1F_1(a; b; z)$ (also known
-/// as Kummer's function $M(a, b, z)$).
+/// Returns the confluent hypergeometric function `1F1(a; b; z)` (also known
+/// as Kummer's function `M(a, b, z)`).
 ///
 /// See https://en.wikipedia.org/wiki/Confluent_hypergeometric_function for
 /// details.
@@ -75,18 +76,16 @@ double hypergeometric1F1(num a, num b, num z) {
   return sum;
 }
 
-/// Returns the complex confluent hypergeometric function $_1F_1(a; b; z)$.
+/// Returns the complex confluent hypergeometric function `1F1(a; b; z)`.
+///
+/// See https://en.wikipedia.org/wiki/Confluent_hypergeometric_function for
+/// details.
 Complex hypergeometric1F1Complex(Complex a, Complex b, Complex z) {
-  if (a.a.isNaN ||
-      a.b.isNaN ||
-      b.a.isNaN ||
-      b.b.isNaN ||
-      z.a.isNaN ||
-      z.b.isNaN) {
-    return const Complex(double.nan, double.nan);
+  if (a.isNaN || b.isNaN || z.isNaN) {
+    return Complex.nan;
   }
   if (b.b == 0.0 && b.a <= 0.0 && b.a == b.a.roundToDouble()) {
-    return const Complex(double.nan, double.nan);
+    return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) return Complex.one;
   if (z.a < 0.0) {
@@ -102,9 +101,9 @@ Complex hypergeometric1F1Complex(Complex a, Complex b, Complex z) {
   return sum;
 }
 
-/// Returns the Gauss hypergeometric function $_2F_1(a, b; c; z)$.
+/// Returns the Gauss hypergeometric function `2F1(a, b; c; z)`.
 ///
-/// Handles transformations for $z < -1$ and $z \approx 1$ to ensure rapid
+/// Handles transformations for `z < -1` and `z ≈ 1` to ensure rapid
 /// convergence.
 ///
 /// See https://en.wikipedia.org/wiki/Hypergeometric_function for details.
@@ -204,20 +203,15 @@ double hypergeometric2F1(num a, num b, num c, num z) {
   return _hypergeometric2F1Direct(ad, bd, cd, zd);
 }
 
-/// Returns the complex Gauss hypergeometric function $_2F_1(a, b; c; z)$.
+/// Returns the complex Gauss hypergeometric function `2F1(a, b; c; z)`.
+///
+/// See https://en.wikipedia.org/wiki/Hypergeometric_function for details.
 Complex hypergeometric2F1Complex(Complex a, Complex b, Complex c, Complex z) {
-  if (a.a.isNaN ||
-      a.b.isNaN ||
-      b.a.isNaN ||
-      b.b.isNaN ||
-      c.a.isNaN ||
-      c.b.isNaN ||
-      z.a.isNaN ||
-      z.b.isNaN) {
-    return const Complex(double.nan, double.nan);
+  if (a.isNaN || b.isNaN || c.isNaN || z.isNaN) {
+    return Complex.nan;
   }
   if (c.b == 0.0 && c.a <= 0.0 && c.a == c.a.roundToDouble()) {
-    return const Complex(double.nan, double.nan);
+    return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) return Complex.one;
   if (z.abs() >= 0.8) {

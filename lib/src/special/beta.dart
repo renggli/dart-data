@@ -4,14 +4,9 @@ import 'package:more/number.dart' show Complex;
 
 import 'gamma.dart';
 
-/// Beta function based on the [gamma] function.
+/// Beta function `B(x, y) = ∫_0^1 t^(x-1) * (1 - t)^(y-1) dt = Γ(x) * Γ(y) / Γ(x + y)`.
 ///
-/// Conceptually, the beta function connects two continuous parameters $x$ and
-/// $y$, playing a fundamental role in combinatorics, calculus, and Bayesian
-/// probability distributions. Formally, this calculates the Euler integral of
-/// the first kind
-/// $B(x, y) = \int_0^1 t^{x-1} (1-t)^{y-1} dt$
-/// $= \frac{\Gamma(x)\Gamma(y)}{\Gamma(x+y)}$.
+/// See https://en.wikipedia.org/wiki/Beta_function for details.
 ///
 /// ```dart
 /// final val = beta(2, 3); // ~ 0.08333333333333333 (1/12)
@@ -26,23 +21,23 @@ double beta(num x, num y) {
   return gamma(x) * gamma(y) / gamma(x + y);
 }
 
-/// Returns the complex beta function $B(a, b) = \frac{\Gamma(a)\Gamma(b)}{\Gamma(a + b)}$.
+/// Returns the complex beta function `B(a, b) = Γ(a) * Γ(b) / Γ(a + b)`.
+///
+/// See https://en.wikipedia.org/wiki/Beta_function for details.
 Complex betaComplex(Complex a, Complex b) {
-  if (a.a.isNaN || a.b.isNaN || b.a.isNaN || b.b.isNaN) {
-    return const Complex(double.nan, double.nan);
-  }
+  if (a.isNaN || b.isNaN) return Complex.nan;
   if (a.abs() < 50.0 && b.abs() < 50.0) {
     return gammaComplex(a) * gammaComplex(b) / gammaComplex(a + b);
   }
   return betaLnComplex(a, b).exp();
 }
 
-/// Logarithm of the beta function based on the [gammaLn] function.
+/// Natural logarithm of the beta function `ln(B(x, y)) = ln(Γ(x)) + ln(Γ(y)) - ln(Γ(x + y))`.
 ///
-/// Conceptually, this computes $\ln(B(x, y))$ directly to prevent numerical
-/// overflow when calculating ratios of large factorials or probability
-/// densities. Formally, this calculates
-/// $\ln B(x, y) = \ln \Gamma(x) + \ln \Gamma(y) - \ln \Gamma(x+y)$.
+/// Computes `ln(B(x, y))` directly to prevent numerical overflow when
+/// evaluating ratios of large factorials or probability densities.
+///
+/// See https://en.wikipedia.org/wiki/Beta_function for details.
 ///
 /// ```dart
 /// final val = betaLn(2, 3); // ~ -2.484906649788
@@ -51,17 +46,19 @@ double betaLn(num x, num y) => x.isNaN || y.isNaN || x <= 0 || y <= 0
     ? double.nan
     : gammaLn(x) + gammaLn(y) - gammaLn(x + y);
 
-/// Returns the complex log-beta function $\ln B(a, b) = \ln \Gamma(a) + \ln \Gamma(b) - \ln \Gamma(a + b)$.
+/// Returns the complex log-beta function `ln(B(a, b)) = ln(Γ(a)) + ln(Γ(b)) - ln(Γ(a + b))`.
+///
+/// See https://en.wikipedia.org/wiki/Beta_function for details.
 Complex betaLnComplex(Complex a, Complex b) =>
     gammaLnComplex(a) + gammaLnComplex(b) - gammaLnComplex(a + b);
 
-/// Incomplete beta function $I_x(a, b)$.
+/// Regularized incomplete beta function `I_x(a, b)`.
 ///
-/// Conceptually, this calculates the cumulative probability area under a beta
-/// distribution curve from 0 up to point $x$. Formally, this evaluates the
-/// regularized incomplete beta function
-/// $I_x(a, b) = \frac{1}{B(a, b)} \int_0^x t^{a-1} (1-t)^{b-1} dt$ via
-/// continued fractions.
+/// Evaluates `I_x(a, b) = (1 / B(a, b)) * ∫_0^x t^(a-1) * (1 - t)^(b-1) dt`
+/// via continued fractions.
+///
+/// See https://en.wikipedia.org/wiki/Beta_function#Incomplete_beta_function for
+/// details.
 ///
 /// ```dart
 /// final p = betaI(0.5, 2, 3); // 0.6875
@@ -85,13 +82,13 @@ double betaI(num x, num a, num b) {
   }
 }
 
-/// Inverse of the incomplete beta function $I_p^{-1}(a, b)$.
+/// Inverse of the regularized incomplete beta function `I_p^-1(a, b)`.
 ///
-/// Conceptually, this computes the inverse cumulative distribution: given a
-/// target probability or percentile $p$, it determines the cutoff value $x$
-/// such that $I_x(a, b) = p$. Formally, it computes the quantile function
-/// $x = I_p^{-1}(a, b)$ satisfying $I_x(a, b) = p$, utilizing asymptotic
+/// Computes the quantile `x` such that `I_x(a, b) = p`, utilizing asymptotic
 /// expansions followed by iterative root refinement.
+///
+/// See https://en.wikipedia.org/wiki/Beta_function#Incomplete_beta_function for
+/// details.
 ///
 /// ```dart
 /// final x = betaIInv(0.6875, 2, 3); // ~ 0.5

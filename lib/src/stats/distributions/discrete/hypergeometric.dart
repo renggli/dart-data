@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
-import '../../../special/gamma.dart';
+import '../../../special/binomial.dart';
 import '../discrete.dart';
 
 /// The Hypergeometric distribution is a discrete probability distribution that

@@ -3,15 +3,14 @@ import 'dart:math';
 import 'package:more/number.dart' show Complex;
 
 import 'exp_integral.dart';
+import 'utils.dart';
 
-/// Returns an approximation of the gamma function $\Gamma(x)$.
+/// Returns an approximation of the gamma function `Γ(x)`.
 ///
-/// Conceptually, the gamma function is a continuous extension of the factorial
-/// function: $\Gamma(n) = (n - 1)!$ for any positive integer $n$ (for example,
-/// $\Gamma(5) = 4! = 24$). Formally, this calculates the Euler integral of the
-/// second kind $\Gamma(x) = \int_0^\infty t^{x-1} e^{-t} dt$ for $x > 0$,
-/// extended analytically across $\mathbb{R} \setminus \{0, -1, -2, \dots\}$ via
-/// reflection and Lanczos series.
+/// Extends the factorial to non-integer values: `Γ(n) = (n - 1)!` for any
+/// positive integer `n`. Calculated via the Euler integral of the second kind
+/// `Γ(x) = ∫_0^∞ t^(x-1) * exp(-t) dt` for `x > 0`, extended analytically
+/// across `R \ {0, -1, -2, ...}` via Euler reflection and Lanczos series.
 ///
 /// See https://en.wikipedia.org/wiki/Gamma_function for details.
 ///
@@ -19,81 +18,51 @@ import 'exp_integral.dart';
 /// final val = gamma(5); // 24.0
 /// ```
 double gamma(num x) {
-  if (x.isNaN) return double.nan;
+  if (x.isNaN || x == double.negativeInfinity) return double.nan;
   if (x == double.infinity) return double.infinity;
-  if (x == double.negativeInfinity) return double.nan;
-  const lanczosG = 7;
-  const lanczosCoeffs = [
-    0.99999999999980993,
-    676.5203681218851,
-    -1259.1392167224028,
-    771.32342877765313,
-    -176.61502916214059,
-    12.507343278686905,
-    -0.13857109526572012,
-    9.9843695780195716e-6,
-    1.5056327351493116e-7,
-  ];
   if (x < 0.5) {
-    if (x.roundToDouble() == x) {
-      return double.nan;
-    } else {
-      return pi / (sin(pi * x) * gamma(1 - x));
-    }
-  } else if (x > 100.0) {
-    return exp(gammaLn(x));
-  } else {
-    final xAdj = x - 1.0;
-    var y = lanczosCoeffs[0];
-    for (var i = 1; i < lanczosG + 2; i++) {
-      y += lanczosCoeffs[i] / (xAdj + i);
-    }
-    final tVal = xAdj + lanczosG + 0.5;
-    return sqrt(2.0 * pi) * pow(tVal, xAdj + 0.5) * exp(-tVal) * y;
+    if (x.roundToDouble() == x) return double.nan;
+    return pi / (sin(pi * x) * gamma(1 - x));
   }
+  if (x > 100.0) return exp(gammaLn(x));
+
+  final xAdj = x - 1.0;
+  var y = lanczosCoeffs[0];
+  for (var i = 1; i < lanczosCoeffs.length; i++) {
+    y += lanczosCoeffs[i] / (xAdj + i);
+  }
+  final tVal = xAdj + lanczosG + 0.5;
+  return sqrt(2.0 * pi) * pow(tVal, xAdj + 0.5) * exp(-tVal) * y;
 }
 
-/// Returns the complex gamma function $\Gamma(z)$ via Lanczos approximation
-/// and Euler reflection.
+/// Returns the complex gamma function `Γ(z)` via Lanczos approximation and
+/// Euler reflection.
+///
+/// See https://en.wikipedia.org/wiki/Gamma_function for details.
 Complex gammaComplex(Complex z) {
-  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.isNaN) return Complex.nan;
   if (z.b == 0.0 && z.a <= 0.0 && z.a == z.a.roundToDouble()) {
-    return const Complex(double.nan, double.nan);
+    return Complex.nan;
   }
   if (z.a < 0.5) {
     final piZ = const Complex(pi) * z;
     return const Complex(pi) / (piZ.sin() * gammaComplex(Complex.one - z));
   }
-  const lanczosG = 7;
-  const lanczosCoeffs = [
-    0.99999999999980993,
-    676.5203681218851,
-    -1259.1392167224028,
-    771.32342877765313,
-    -176.61502916214059,
-    12.507343278686905,
-    -0.13857109526572012,
-    9.9843695780195716e-6,
-    1.5056327351493116e-7,
-  ];
-  final zAdj = z - Complex.one;
+  final zAdj = z - 1;
   var y = Complex(lanczosCoeffs[0]);
-  for (var i = 1; i < lanczosG + 2; i++) {
-    y += Complex(lanczosCoeffs[i]) / (zAdj + Complex(i));
+  for (var i = 1; i < lanczosCoeffs.length; i++) {
+    y += Complex(lanczosCoeffs[i]) / (zAdj + i);
   }
-  final tVal = zAdj + const Complex(lanczosG + 0.5);
-  return Complex(sqrt(2.0 * pi)) *
-      tVal.pow(zAdj + const Complex(0.5)) *
-      (-tVal).exp() *
-      y;
+  final tVal = zAdj + (lanczosG + 0.5);
+  return tVal.pow(zAdj + 0.5) * (-tVal).exp() * y * sqrt(2.0 * pi);
 }
 
-/// Returns the natural logarithm of the gamma function $\ln \Gamma(x)$.
+/// Returns the natural logarithm of the gamma function `ln(Γ(x))`.
 ///
-/// Conceptually, calculating $\ln(\Gamma(x))$ enables operations on very large
-/// factorials and combinations without causing floating-point overflow.
-/// Formally, this directly evaluates $\ln \Gamma(x)$ via Lanczos expansion,
-/// preserving numerical precision and dynamic range.
+/// Evaluates `ln(Γ(x))` directly via Lanczos expansion to preserve numerical
+/// precision and avoid floating-point overflow for large arguments.
+///
+/// See https://en.wikipedia.org/wiki/Gamma_function for details.
 ///
 /// ```dart
 /// final logVal = gammaLn(5); // ~ 3.17805383
@@ -102,77 +71,44 @@ double gammaLn(num x) {
   if (x.isNaN) return double.nan;
   if (x == double.infinity) return double.infinity;
   if (x <= 0.0) return double.nan;
-  const lanczosG = 607 / 128;
-  const lanczosCoeffs = [
-    0.99999999999999709182,
-    57.156235665862923517,
-    -59.597960355475491248,
-    14.136097974741747174,
-    -0.49191381609762019978,
-    0.33994649984811888699e-4,
-    0.46523628927048575665e-4,
-    -0.98374475304879564677e-4,
-    0.15808870322491248884e-3,
-    -0.21026444172410488319e-3,
-    0.21743961811521264320e-3,
-    -0.16431810653676389022e-3,
-    0.84418223983852743293e-4,
-    -0.26190838401581408670e-4,
-    0.36899182659531622704e-5,
-  ];
-  var y = lanczosCoeffs[0];
-  for (var i = lanczosCoeffs.length - 1; i > 0; --i) {
-    y += lanczosCoeffs[i] / (x + i);
+  var y = _lanczosLnCoeffs[0];
+  for (var i = _lanczosLnCoeffs.length - 1; i > 0; --i) {
+    y += _lanczosLnCoeffs[i] / (x + i);
   }
-  final tVal = x + lanczosG + 0.5;
-  return 0.5 * log(2.0 * pi) + (x + 0.5) * log(tVal) - tVal + log(y) - log(x);
+  final tVal = x + _lanczosLnG + 0.5;
+  return _halfLog2Pi + (x + 0.5) * log(tVal) - tVal + log(y) - log(x);
 }
 
-/// Returns the complex log-gamma function $\ln \Gamma(z)$ via Lanczos
-/// approximation and Euler reflection.
+/// Returns the complex log-gamma function `ln(Γ(z))` via Lanczos approximation
+/// and Euler reflection.
+///
+/// See https://en.wikipedia.org/wiki/Gamma_function for details.
 Complex gammaLnComplex(Complex z) {
-  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.isNaN) return Complex.nan;
   if (z.b == 0.0 && z.a <= 0.0 && z.a == z.a.roundToDouble()) {
-    return const Complex(double.nan, double.nan);
+    return Complex.nan;
   }
   if (z.a < 0.5) {
     final sinPiZ = (const Complex(pi) * z).sin();
     return Complex(log(pi)) - sinPiZ.log() - gammaLnComplex(Complex.one - z);
   }
-  const lanczosG = 607 / 128;
-  const lanczosCoeffs = [
-    0.99999999999999709182,
-    57.156235665862923517,
-    -59.597960355475491248,
-    14.136097974741747174,
-    -0.49191381609762019978,
-    0.33994649984811888699e-4,
-    0.46523628927048575665e-4,
-    -0.98374475304879564677e-4,
-    0.15808870322491248884e-3,
-    -0.21026444172410488319e-3,
-    0.21743961811521264320e-3,
-    -0.16431810653676389022e-3,
-    0.84418223983852743293e-4,
-    -0.26190838401581408670e-4,
-    0.36899182659531622704e-5,
-  ];
-  var y = Complex(lanczosCoeffs[0]);
-  for (var i = lanczosCoeffs.length - 1; i > 0; --i) {
-    y += Complex(lanczosCoeffs[i]) / (z + Complex(i));
+  var y = Complex(_lanczosLnCoeffs[0]);
+  for (var i = _lanczosLnCoeffs.length - 1; i > 0; --i) {
+    y += Complex(_lanczosLnCoeffs[i]) / (z + i);
   }
-  final tVal = z + const Complex(lanczosG + 0.5);
-  return Complex(0.5 * log(2.0 * pi)) +
+  final tVal = z + const Complex(_lanczosLnG + 0.5);
+  return const Complex(_halfLog2Pi) +
       (z + const Complex(0.5)) * tVal.log() -
       tVal +
       y.log() -
       z.log();
 }
 
-/// Returns the upper regularized incomplete gamma function $Q(a, x) = 1 - P(a, x)$.
+/// Returns the upper regularized incomplete gamma function `Q(a, x) = 1 - P(a, x)`.
 ///
-/// Follows standard numerical conventions (e.g. SciPy `gammaincc` and Numerical
-/// Recipes $Q(a, x) = \frac{\Gamma(a, x)}{\Gamma(a)}$).
+/// Defined as `Q(a, x) = Γ(a, x) / Γ(a)`.
+///
+/// See https://en.wikipedia.org/wiki/Incomplete_gamma_function for details.
 double gammaQ(num a, num x) {
   if (x.isNaN || a.isNaN || x < 0 || a <= 0) {
     return double.nan;
@@ -231,9 +167,9 @@ double gammaPInv(num probability, num a) {
   if (probability == 1.0) {
     return double.infinity;
   }
-  const epsilon = 1.0e-14;
-  final a1 = a - 1.0;
-  final gln = gammaLn(a);
+  final ad = a.toDouble();
+  final a1 = ad - 1.0;
+  final gln = gammaLn(ad);
   var x = 0.0;
   var afac = 0.0;
   var lna1 = 0.0;
@@ -261,56 +197,21 @@ double gammaPInv(num probability, num a) {
       x = 1.0 - log(1.0 - (probability - tVal) / (1.0 - tVal));
     }
   }
-  var xMin = 0.0;
-  var xMax = double.infinity;
-  if (x <= 0.0 || x.isNaN) {
-    x = 1.0;
-  }
-  for (var j = 0; j < 60; j++) {
-    if (x <= xMin || x >= xMax) {
-      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
-    }
-    final curProb = gammaP(a, x);
-    final err = curProb - probability;
-    if (err > 0) {
-      if (x < xMax) xMax = x;
-    } else {
-      if (x > xMin) xMin = x;
-    }
-    if (err.abs() <= 1.0e-15 ||
-        (xMax.isFinite && (xMax - xMin) <= epsilon * x)) {
-      break;
-    }
-    final tVal = a > 1.0
-        ? afac * exp(-(x - a1) + a1 * (log(x) - lna1))
-        : exp(-x + a1 * log(x) - gln);
-    if (tVal <= 0.0 || !tVal.isFinite) {
-      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
-      continue;
-    }
-    final uVal = err / tVal;
-    final denom = 1.0 - 0.5 * min(1.0, uVal * ((a - 1.0) / x - 1.0));
-    if (denom <= 0.0 || denom.isNaN) {
-      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
-      continue;
-    }
-    final step = uVal / denom;
-    final nextX = x - step;
-    if (nextX <= xMin || nextX >= xMax || nextX.isNaN) {
-      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
-    } else {
-      final change = (x - nextX).abs();
-      x = nextX;
-      if (change < epsilon * x) {
-        break;
-      }
-    }
-  }
-  return x;
+  return _gammaInvHalley(
+    x,
+    ad,
+    a1,
+    lna1,
+    afac,
+    gln,
+    (curX) => gammaP(ad, curX) - probability,
+  );
 }
 
 /// Returns the inverse of the upper regularized incomplete gamma function
-/// $x = Q^{-1}(a, q)$ such that $Q(a, x) = q$.
+/// `x = Q^-1(a, q)` such that `Q(a, x) = q`.
+///
+/// See https://en.wikipedia.org/wiki/Incomplete_gamma_function for details.
 double gammaQInv(num probability, num a) {
   if (probability.isNaN ||
       a.isNaN ||
@@ -331,65 +232,31 @@ double gammaQInv(num probability, num a) {
   }
   final ad = a.toDouble();
   final qd = probability.toDouble();
-  const epsilon = 1.0e-14;
   final gln = gammaLn(ad);
   final a1 = ad - 1.0;
   final lna1 = log(a1 > 0 ? a1 : 1.0);
   final afac = exp(a1 * (lna1 - 1.0) - gln);
 
   var x = gammaPInv(1.0 - qd, ad);
-  var xMin = 0.0;
-  var xMax = double.infinity;
   if (x <= 0.0 || !x.isFinite) {
     x = ad > 1.0 ? ad + sqrt(ad) : 1.0;
   }
-  for (var j = 0; j < 60; j++) {
-    if (x <= xMin || x >= xMax) {
-      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
-    }
-    final curQ = gammaQ(ad, x);
-    final err = curQ - qd;
-    if (err > 0) {
-      if (x > xMin) xMin = x;
-    } else {
-      if (x < xMax) xMax = x;
-    }
-    if (err.abs() <= 1.0e-15 ||
-        (xMax.isFinite && (xMax - xMin) <= epsilon * x)) {
-      break;
-    }
-    final tVal = ad > 1.0
-        ? afac * exp(-(x - a1) + a1 * (log(x) - lna1))
-        : exp(-x + a1 * log(x) - gln);
-    if (tVal <= 0.0 || !tVal.isFinite) {
-      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
-      continue;
-    }
-    final uVal = err / tVal;
-    final denom = 1.0 + 0.5 * max(-1.0, uVal * ((ad - 1.0) / x - 1.0));
-    if (denom <= 0.0 || denom.isNaN) {
-      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
-      continue;
-    }
-    final step = uVal / denom;
-    final nextX = x + step;
-    if (nextX <= xMin || nextX >= xMax || nextX.isNaN) {
-      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
-    } else {
-      final change = (x - nextX).abs();
-      x = nextX;
-      if (change < epsilon * x) {
-        break;
-      }
-    }
-  }
-  return x;
+  return _gammaInvHalley(
+    x,
+    ad,
+    a1,
+    lna1,
+    afac,
+    gln,
+    (curX) => qd - gammaQ(ad, curX),
+  );
 }
 
-/// Returns the lower regularized incomplete gamma function $P(a, x)$.
+/// Returns the lower regularized incomplete gamma function `P(a, x)`.
 ///
-/// Follows standard numerical conventions (e.g. SciPy `gammainc` and Numerical
-/// Recipes $P(a, x) = \frac{\gamma(a, x)}{\Gamma(a)}$).
+/// Defined as `P(a, x) = γ(a, x) / Γ(a)`.
+///
+/// See https://en.wikipedia.org/wiki/Incomplete_gamma_function for details.
 double gammaP(num a, num x) {
   if (x.isNaN || a.isNaN || x < 0 || a <= 0) {
     return double.nan;
@@ -424,161 +291,9 @@ double gammaP(num a, num x) {
   return sum * exp(-x + a * log(x) - aln);
 }
 
-/// Returns the factorial based on the [gamma] function.
+/// Returns the upper incomplete gamma function `Γ(s, x) = ∫_x^∞ t^(s-1) * exp(-t) dt`.
 ///
-/// ```dart
-/// print(factorial(5));  // 120.0
-/// ```
-double factorial(num value) =>
-    value.isNaN || value < 0.0 ? double.nan : gamma(1.0 + value);
-
-/// Returns the complex factorial $z! = \Gamma(z + 1)$.
-Complex factorialComplex(Complex z) => gammaComplex(z + Complex.one);
-
-/// Returns the logarithm of the factorial based on the [gammaLn] function.
-double factorialLn(num value) =>
-    value.isNaN || value < 0.0 ? double.nan : gammaLn(1.0 + value);
-
-/// Returns the combinations based on the [gamma] function.
-///
-/// ```dart
-/// print(binomial(5, 2));  // 10.0
-/// ```
-double binomial(num total, num choose) {
-  if (total.isNaN || choose.isNaN) {
-    return double.nan;
-  }
-  if (choose < 0 || choose > total) {
-    return 0.0;
-  }
-  if (choose == 0) {
-    return 1.0;
-  }
-  if (total.isInfinite) {
-    if (choose.isInfinite || choose.floorToDouble() != choose) {
-      return double.nan;
-    }
-    return double.infinity;
-  }
-  if (choose == total) {
-    return 1.0;
-  }
-  var k = choose;
-  if (k > total - k) {
-    k = total - k;
-  }
-  final isTotalInt = total.isFinite && total.roundToDouble() == total;
-  final isChooseInt = k.isFinite && k.roundToDouble() == k;
-  if (isTotalInt && isChooseInt && k <= 1000) {
-    final totalInt = total.toInt();
-    final kInt = k.toInt();
-    const maxSafe = 9007199254740991; // 2^53 - 1, exact across VM and Web
-    var res = 1;
-    var canUseInt = true;
-    for (var i = 1; i <= kInt; i++) {
-      final term = totalInt - i + 1;
-      final g = term.gcd(i);
-      final numPart = term ~/ g;
-      final denPart = i ~/ g;
-      res = res ~/ denPart;
-      if (res > maxSafe ~/ numPart) {
-        canUseInt = false;
-        break;
-      }
-      res *= numPart;
-    }
-    if (canUseInt) {
-      return res.toDouble();
-    }
-    var bigRes = BigInt.one;
-    final totalBig = BigInt.from(total);
-    for (var i = 1; i <= kInt; i++) {
-      bigRes = (bigRes * (totalBig - BigInt.from(kInt - i))) ~/ BigInt.from(i);
-    }
-    return bigRes.toDouble();
-  }
-  return exp(binomialLn(total, choose));
-}
-
-/// Returns the complex binomial coefficient $\binom{n}{k} = \frac{\Gamma(n + 1)}{\Gamma(k + 1)\Gamma(n - k + 1)}$.
-Complex binomialComplex(Complex n, Complex k) {
-  if (n.a.isNaN || n.b.isNaN || k.a.isNaN || k.b.isNaN) {
-    return const Complex(double.nan, double.nan);
-  }
-  if (k == Complex.zero) return Complex.one;
-  if (k.b == 0.0 && k.a == k.a.roundToDouble()) {
-    final kInt = k.a.toInt();
-    if (kInt < 0) return Complex.zero;
-    if (kInt <= 20) {
-      var res = Complex.one;
-      for (var i = 0; i < kInt; i++) {
-        res = res * (n - Complex(i)) / Complex(i + 1);
-      }
-      return res;
-    }
-  }
-  return (gammaLnComplex(n + Complex.one) -
-          gammaLnComplex(k + Complex.one) -
-          gammaLnComplex(n - k + Complex.one))
-      .exp();
-}
-
-/// Returns the logarithm of the combinations based on the [gammaLn] function.
-double binomialLn(num total, num choose) =>
-    factorialLn(total) - factorialLn(choose) - factorialLn(total - choose);
-
-/// Returns the permutations based on the [gamma] function.
-///
-/// ```dart
-/// print(permutation(5, 2));  // 20.0
-/// ```
-double permutation(num total, num count) {
-  if (total.isNaN || count.isNaN) {
-    return double.nan;
-  }
-  if (count < 0 || count > total) {
-    return 0.0;
-  }
-  if (count == 0) {
-    return 1.0;
-  }
-  if (total.isInfinite) {
-    return count.isInfinite ? double.nan : double.infinity;
-  }
-  final isTotalInt = total.isFinite && total.roundToDouble() == total;
-  final isCountInt = count.isFinite && count.roundToDouble() == count;
-  if (isTotalInt && isCountInt && count <= 1000) {
-    final totalInt = total.toInt();
-    final countInt = count.toInt();
-    const maxSafe = 9007199254740991; // 2^53 - 1, exact across VM and Web
-    var res = 1;
-    var canUseInt = true;
-    for (var i = 0; i < countInt; i++) {
-      final term = totalInt - i;
-      if (res > maxSafe ~/ term) {
-        canUseInt = false;
-        break;
-      }
-      res *= term;
-    }
-    if (canUseInt) {
-      return res.toDouble();
-    }
-    var bigRes = BigInt.one;
-    final totalBig = BigInt.from(total);
-    for (var i = 0; i < countInt; i++) {
-      bigRes *= totalBig - BigInt.from(i);
-    }
-    return bigRes.toDouble();
-  }
-  return exp(permutationLn(total, count));
-}
-
-/// Returns the logarithm of the permutations based on the [gammaLn] function.
-double permutationLn(num total, num count) =>
-    factorialLn(total) - factorialLn(total - count);
-
-/// Returns the upper incomplete gamma function $\Gamma(s, x) = \int_x^\infty t^{s-1} e^{-t}\,dt$.
+/// See https://en.wikipedia.org/wiki/Incomplete_gamma_function for details.
 double upperGamma(num s, num x) {
   if (s.isNaN || x.isNaN || x < 0.0) return double.nan;
   final sd = s.toDouble();
@@ -590,38 +305,26 @@ double upperGamma(num s, num x) {
   return (upperGamma(sd + 1.0, xd) - pow(xd, sd) * exp(-xd)) / sd;
 }
 
-/// Returns the complex upper incomplete gamma function $\Gamma(s, z) = \int_z^\infty t^{s-1} e^{-t}\,dt$.
+/// Returns the complex upper incomplete gamma function `Γ(s, z) = ∫_z^∞ t^(s-1) * exp(-t) dt`.
+///
+/// See https://en.wikipedia.org/wiki/Incomplete_gamma_function for details.
 Complex upperGammaComplex(Complex s, Complex z) {
-  if (s.a.isNaN || s.b.isNaN || z.a.isNaN || z.b.isNaN) {
-    return const Complex(double.nan, double.nan);
-  }
-  if (z.a == 0.0 && z.b == 0.0) {
-    return s.a > 0.0 ? gammaComplex(s) : const Complex(double.nan, double.nan);
-  }
+  if (s.isNaN || z.isNaN) return Complex.nan;
+  if (z == Complex.zero) return s.a > 0.0 ? gammaComplex(s) : Complex.nan;
   if (z.abs() >= s.abs() + 1.0 && z.a > -z.b.abs()) {
-    const tiny = 1.0e-30;
-    var b = z + Complex.one - s;
-    var c = const Complex(1.0 / tiny);
-    var d = b.abs() < tiny ? const Complex(1.0 / tiny) : Complex.one / b;
-    var h = d;
-    for (var k = 1; k <= 200; k++) {
-      final a = Complex(-k) * (Complex(k) - s);
-      b += const Complex(2.0);
-      d = a * d + b;
-      if (d.abs() < tiny) d = const Complex(tiny);
-      c = b + a / c;
-      if (c.abs() < tiny) c = const Complex(tiny);
-      d = Complex.one / d;
-      final delta = d * c;
-      h *= delta;
-      if ((delta - Complex.one).abs() < 1.0e-15) break;
-    }
+    final h = lentzCFComplex(
+      z + 1.0 - s,
+      (k) => Complex(-k) * (Complex(k) - s),
+      (k) => z + 1.0 - s + 2.0 * k,
+    );
     return z.pow(s) * (-z).exp() * h;
   }
   return gammaComplex(s) - lowerGammaComplex(s, z);
 }
 
-/// Returns the lower incomplete gamma function $\gamma(s, x) = \int_0^x t^{s-1} e^{-t}\,dt$.
+/// Returns the lower incomplete gamma function `γ(s, x) = ∫_0^x t^(s-1) * exp(-t) dt`.
+///
+/// See https://en.wikipedia.org/wiki/Incomplete_gamma_function for details.
 double lowerGamma(num s, num x) {
   if (s.isNaN || x.isNaN || x < 0.0) return double.nan;
   final sd = s.toDouble();
@@ -632,28 +335,105 @@ double lowerGamma(num s, num x) {
   return gamma(sd) - upperGamma(sd, xd);
 }
 
-/// Returns the complex lower incomplete gamma function $\gamma(s, z) = \int_0^z t^{s-1} e^{-t}\,dt$.
+/// Returns the complex lower incomplete gamma function `γ(s, z) = ∫_0^z t^(s-1) * exp(-t) dt`.
+///
+/// See https://en.wikipedia.org/wiki/Incomplete_gamma_function for details.
 Complex lowerGammaComplex(Complex s, Complex z) {
-  if (s.a.isNaN || s.b.isNaN || z.a.isNaN || z.b.isNaN) {
-    return const Complex(double.nan, double.nan);
-  }
-  if (z.a == 0.0 && z.b == 0.0) {
-    return s.a > 0.0 ? Complex.zero : const Complex(double.nan, double.nan);
-  }
+  if (s.isNaN || z.isNaN) return Complex.nan;
+  if (z == Complex.zero) return s.a > 0.0 ? Complex.zero : Complex.nan;
   if (s.b == 0.0 && s.a <= 0.0 && s.a == s.a.roundToDouble()) {
-    return const Complex(double.nan, double.nan);
+    return Complex.nan;
   }
   if (z.abs() >= s.abs() + 1.0 && z.a > -z.b.abs()) {
     return gammaComplex(s) - upperGammaComplex(s, z);
   }
   var ap = s;
-  var del = Complex.one / s;
+  var del = s.reciprocal();
   var sum = del;
   for (var n = 1; n <= 120; n++) {
-    ap += Complex.one;
+    ap += 1;
     del *= z / ap;
     sum += del;
     if (del.abs() <= 1.0e-15 * sum.abs()) break;
   }
   return z.pow(s) * (-z).exp() * sum;
 }
+
+double _gammaInvHalley(
+  double initialX,
+  double a,
+  double a1,
+  double lna1,
+  double afac,
+  double gln,
+  double Function(double x) signedError,
+) {
+  const epsilon = 1.0e-14;
+  var x = initialX <= 0.0 || initialX.isNaN ? 1.0 : initialX;
+  var xMin = 0.0;
+  var xMax = double.infinity;
+  for (var j = 0; j < 60; j++) {
+    if (x <= xMin || x >= xMax) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+    }
+    final err = signedError(x);
+    if (err > 0) {
+      if (x < xMax) xMax = x;
+    } else {
+      if (x > xMin) xMin = x;
+    }
+    if (err.abs() <= 1.0e-15 ||
+        (xMax.isFinite && (xMax - xMin) <= epsilon * x)) {
+      break;
+    }
+    final tVal = a > 1.0
+        ? afac * exp(-(x - a1) + a1 * (log(x) - lna1))
+        : exp(-x + a1 * log(x) - gln);
+    if (tVal <= 0.0 || !tVal.isFinite) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+      continue;
+    }
+    final uVal = err / tVal;
+    final denom = 1.0 - 0.5 * min(1.0, uVal * (a1 / x - 1.0));
+    if (denom <= 0.0 || denom.isNaN) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+      continue;
+    }
+    final nextX = x - uVal / denom;
+    if (nextX <= xMin || nextX >= xMax || nextX.isNaN) {
+      x = xMax.isFinite ? 0.5 * (xMin + xMax) : (xMin > 0.0 ? xMin * 2.0 : 1.0);
+    } else {
+      final change = (x - nextX).abs();
+      x = nextX;
+      if (change < epsilon * x) {
+        break;
+      }
+    }
+  }
+  return x;
+}
+
+/// `0.5 * ln(2 * pi)` for log-gamma Lanczos normalization.
+const double _halfLog2Pi = 0.91893853320467274178;
+
+/// High-precision Lanczos parameter `g = 607 / 128` for `gammaLn`.
+const double _lanczosLnG = 607 / 128;
+
+/// High-precision Lanczos coefficients for `g = 607 / 128` (15 terms).
+const List<double> _lanczosLnCoeffs = [
+  0.99999999999999709182,
+  57.156235665862923517,
+  -59.597960355475491248,
+  14.136097974741747174,
+  -0.49191381609762019978,
+  0.33994649984811888699e-4,
+  0.46523628927048575665e-4,
+  -0.98374475304879564677e-4,
+  0.15808870322491248884e-3,
+  -0.21026444172410488319e-3,
+  0.21743961811521264320e-3,
+  -0.16431810653676389022e-3,
+  0.84418223983852743293e-4,
+  -0.26190838401581408670e-4,
+  0.36899182659531622704e-5,
+];

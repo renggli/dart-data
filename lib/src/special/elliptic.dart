@@ -2,9 +2,9 @@ import 'dart:math';
 
 import 'package:more/number.dart' show Complex;
 
-/// Returns the complete elliptic integral of the first kind $K(k)$.
+/// Returns the complete elliptic integral of the first kind `K(k)`.
 ///
-/// Defined for $-1 \le k \le 1$.
+/// Defined for `-1 <= k <= 1`.
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 double ellipticK(num k) {
@@ -33,9 +33,11 @@ double ellipticK(num k) {
   return pi / (2.0 * a);
 }
 
-/// Returns the complex complete elliptic integral of the first kind $K(k)$.
+/// Returns the complex complete elliptic integral of the first kind `K(k)`.
+///
+/// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 Complex ellipticKComplex(Complex k) {
-  if (k.a.isNaN || k.b.isNaN) return const Complex(double.nan, double.nan);
+  if (k.isNaN) return Complex.nan;
   if ((k - Complex.one).abs() == 0.0 || (k + Complex.one).abs() == 0.0) {
     return const Complex(double.infinity);
   }
@@ -43,11 +45,11 @@ Complex ellipticKComplex(Complex k) {
   return _carlsonRFComplex(Complex.zero, Complex.one - k * k, Complex.one);
 }
 
-/// Returns the elliptic integral of the second kind $E(k)$ or $E(\phi, k)$.
+/// Returns the elliptic integral of the second kind `E(k)` or `E(φ, k)`.
 ///
-/// When [phi] is omitted, returns the complete integral $E(k)$ defined for
-/// $-1 \le k \le 1$. When [phi] is provided, returns the incomplete integral
-/// $E(\phi, k) = \int_0^\phi \sqrt{1 - k^2 \sin^2 \theta} \, d\theta$.
+/// When [phi] is omitted, returns the complete integral `E(k)` defined for
+/// `-1 <= k <= 1`. When [phi] is provided, returns the incomplete integral
+/// `E(φ, k) = ∫_0^φ sqrt(1 - k^2 * sin(θ)^2) dθ`.
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 double ellipticE(num k, {num? phi}) {
@@ -84,9 +86,11 @@ double ellipticE(num k, {num? phi}) {
   return (pi / (2.0 * a)) * (1.0 - sum);
 }
 
-/// Returns the complex elliptic integral of the second kind $E(k)$ or $E(\phi, k)$.
+/// Returns the complex elliptic integral of the second kind `E(k)` or `E(φ, k)`.
+///
+/// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 Complex ellipticEComplex(Complex k, {Complex? phi}) {
-  if (k.a.isNaN || k.b.isNaN) return const Complex(double.nan, double.nan);
+  if (k.isNaN) return Complex.nan;
   if (phi == null) {
     if (k.a == 0.0 && k.b == 0.0) return const Complex(pi / 2.0);
     final k2 = k * k;
@@ -95,7 +99,7 @@ Complex ellipticEComplex(Complex k, {Complex? phi}) {
         (k2 / const Complex(3.0)) *
             _carlsonRDComplex(Complex.zero, q, Complex.one);
   }
-  if (phi.a.isNaN || phi.b.isNaN) return const Complex(double.nan, double.nan);
+  if (phi.isNaN) return Complex.nan;
   if (phi.a == 0.0 && phi.b == 0.0) return Complex.zero;
   if (k.a == 0.0 && k.b == 0.0) return phi;
 
@@ -113,12 +117,13 @@ Complex ellipticEComplex(Complex k, {Complex? phi}) {
   return m == 0 ? ePsi : Complex(2.0 * m) * ellipticEComplex(k) + ePsi;
 }
 
-/// Returns the incomplete elliptic integral of the first kind $F(\phi, k)$:
-/// $F(\phi, k) = \int_0^\phi \frac{d\theta}{\sqrt{1 - k^2 \sin^2 \theta}}$.
+/// Returns the incomplete elliptic integral of the first kind
+/// `F(φ, k) = ∫_0^φ dθ / sqrt(1 - k^2 * sin(θ)^2)`.
 ///
-/// For $\phi = \pi / 2$, this equals the complete integral [ellipticK].
+/// For `φ = π / 2`, this equals the complete integral [ellipticK].
+/// Evaluated via Carlson's symmetric form `R_F`.
 ///
-/// Evaluated via Carlson's symmetric form $R_F$.
+/// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 double ellipticF(num phi, num k) {
   final phiD = phi.toDouble();
   final kd = k.toDouble();
@@ -147,10 +152,12 @@ double ellipticF(num phi, num k) {
   return m == 0 ? fPsi : 2.0 * m * ellipticK(kd) + fPsi;
 }
 
-/// Returns the complex incomplete elliptic integral of the first kind $F(\phi, k)$.
+/// Returns the complex incomplete elliptic integral of the first kind `F(φ, k)`.
+///
+/// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 Complex ellipticFComplex(Complex phi, Complex k) {
-  if (phi.a.isNaN || phi.b.isNaN || k.a.isNaN || k.b.isNaN) {
-    return const Complex(double.nan, double.nan);
+  if (phi.isNaN || k.isNaN) {
+    return Complex.nan;
   }
   if (phi.a == 0.0 && phi.b == 0.0) return Complex.zero;
   if (k.a == 0.0 && k.b == 0.0) return phi;
@@ -164,11 +171,13 @@ Complex ellipticFComplex(Complex phi, Complex k) {
   return m == 0 ? fPsi : Complex(2.0 * m) * ellipticKComplex(k) + fPsi;
 }
 
-/// Returns the elliptic integral of the third kind $\Pi(n, k)$ or $\Pi(n, \phi, k)$.
+/// Returns the elliptic integral of the third kind `Π(n, k)` or `Π(n, φ, k)`.
 ///
-/// When [phi] is omitted, returns the complete integral $\Pi(n, k)$ defined for
-/// $n < 1$ and $-1 \le k \le 1$. When [phi] is provided, returns the incomplete
-/// integral $\Pi(n, \phi, k) = \int_0^\phi \frac{d\theta}{(1 - n \sin^2 \theta)\sqrt{1 - k^2 \sin^2 \theta}}$.
+/// When [phi] is omitted, returns the complete integral `Π(n, k)` defined for
+/// `n < 1` and `-1 <= k <= 1`. When [phi] is provided, returns the incomplete
+/// integral `Π(n, φ, k) = ∫_0^φ dθ / ((1 - n * sin(θ)^2) * sqrt(1 - k^2 * sin(θ)^2))`.
+///
+/// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 double ellipticPi(num n, num k, {num? phi}) {
   final nd = n.toDouble();
   final kd = k.toDouble();
@@ -204,11 +213,13 @@ double ellipticPi(num n, num k, {num? phi}) {
   return m == 0 ? piPsi : 2.0 * m * ellipticPi(nd, kd) + piPsi;
 }
 
-/// Returns the complex elliptic integral of the third kind $\Pi(n, k)$ or
-/// $\Pi(n, \phi, k)$.
+/// Returns the complex elliptic integral of the third kind `Π(n, k)` or
+/// `Π(n, φ, k)`.
+///
+/// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 Complex ellipticPiComplex(Complex n, Complex k, {Complex? phi}) {
-  if (n.a.isNaN || n.b.isNaN || k.a.isNaN || k.b.isNaN) {
-    return const Complex(double.nan, double.nan);
+  if (n.isNaN || k.isNaN) {
+    return Complex.nan;
   }
   if (phi == null) {
     if (n.a == 0.0 && n.b == 0.0) return ellipticKComplex(k);
@@ -217,7 +228,7 @@ Complex ellipticPiComplex(Complex n, Complex k, {Complex? phi}) {
         (n / const Complex(3.0)) *
             _carlsonRJComplex(Complex.zero, q, Complex.one, Complex.one - n);
   }
-  if (phi.a.isNaN || phi.b.isNaN) return const Complex(double.nan, double.nan);
+  if (phi.isNaN) return Complex.nan;
   if (phi.a == 0.0 && phi.b == 0.0) return Complex.zero;
   if (n.a == 0.0 && n.b == 0.0) return ellipticFComplex(phi, k);
 
@@ -390,7 +401,7 @@ Complex _carlsonRFComplex(Complex x, Complex y, Complex z) {
           mu.sqrt();
     }
   }
-  return const Complex(double.nan, double.nan);
+  return Complex.nan;
 }
 
 Complex _carlsonRDComplex(Complex x, Complex y, Complex z) {
@@ -430,7 +441,7 @@ Complex _carlsonRDComplex(Complex x, Complex y, Complex z) {
               (mu * mu.sqrt());
     }
   }
-  return const Complex(double.nan, double.nan);
+  return Complex.nan;
 }
 
 Complex _carlsonRCComplex(Complex x, Complex y) {
@@ -455,7 +466,7 @@ Complex _carlsonRCComplex(Complex x, Complex y) {
           mu.sqrt();
     }
   }
-  return const Complex(double.nan, double.nan);
+  return Complex.nan;
 }
 
 Complex _carlsonRJComplex(Complex x, Complex y, Complex z, Complex p) {
@@ -509,7 +520,7 @@ Complex _carlsonRJComplex(Complex x, Complex y, Complex z, Complex p) {
       return const Complex(3.0) * sum + fac * (s1 + s2) / (mu * mu.sqrt());
     }
   }
-  return const Complex(double.nan, double.nan);
+  return Complex.nan;
 }
 
 double _carlsonRD(double x, double y, double z) {

@@ -3,12 +3,15 @@ import 'dart:math';
 import 'package:more/number.dart' show Complex;
 
 import 'gamma.dart';
+import 'utils.dart';
 
-/// Returns the Bessel function of the first kind $J_\nu(x)$ of real order [nu].
+/// Returns the Bessel function of the first kind `J_ν(x)` of real order [nu].
 ///
-/// For integer order [nu], this evaluates $J_n(x)$ via Miller's backward
-/// recurrence or forward recurrence. For non-integer order, evaluates via
-/// the series definition $\sum_{m=0}^\infty \frac{(-1)^m}{m! \Gamma(m + \nu + 1)} (x/2)^{2m + \nu}$.
+/// For integer order [nu], evaluates `J_n(x)` via Miller's backward
+/// recurrence or forward recurrence; for non-integer order, uses the series
+/// definition `∑_{m=0}^∞ (-1)^m / (m! * Γ(m + ν + 1)) * (x/2)^(2m + ν)`.
+///
+/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double besselJ(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
@@ -105,10 +108,12 @@ double besselJ(num nu, num x) {
   return sum;
 }
 
-/// Returns the complex modified Bessel function of the first kind $I_\nu(z)$.
+/// Returns the complex Bessel function of the first kind `J_ν(z)`.
+///
+/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 Complex besselJComplex(Complex nu, Complex z) {
-  if (nu.a.isNaN || nu.b.isNaN || z.a.isNaN || z.b.isNaN) {
-    return const Complex(double.nan, double.nan);
+  if (nu.isNaN || z.isNaN) {
+    return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) {
     if (nu.a == 0.0 && nu.b == 0.0) return Complex.one;
@@ -116,7 +121,7 @@ Complex besselJComplex(Complex nu, Complex z) {
         (nu.b == 0.0 && nu.a < 0.0 && nu.a == nu.a.roundToDouble())) {
       return Complex.zero;
     }
-    return const Complex(double.nan, double.nan);
+    return Complex.nan;
   }
   if (nu.b == 0.0 && nu.a < 0.0 && nu.a == nu.a.roundToDouble()) {
     final n = nu.a.round();
@@ -142,7 +147,9 @@ Complex besselJComplex(Complex nu, Complex z) {
   return sum;
 }
 
-/// Returns the complex modified Bessel function of the first kind $I_\nu(z)$.
+/// Returns the Bessel function of the second kind `Y_ν(x)` of real order [nu].
+///
+/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double besselY(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
@@ -180,10 +187,12 @@ double besselY(num nu, num x) {
   return (besselJ(nud, xd) * cos(pi * nud) - besselJ(-nud, xd)) / sinPiNu;
 }
 
-/// Returns the complex Bessel function of the second kind $Y_\nu(z)$.
+/// Returns the complex Bessel function of the second kind `Y_ν(z)`.
+///
+/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 Complex besselYComplex(Complex nu, Complex z) {
-  if (nu.a.isNaN || nu.b.isNaN || z.a.isNaN || z.b.isNaN) {
-    return const Complex(double.nan, double.nan);
+  if (nu.isNaN || z.isNaN) {
+    return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) {
     return const Complex(double.negativeInfinity, double.nan);
@@ -202,7 +211,7 @@ Complex besselYComplex(Complex nu, Complex z) {
       sinPiNu;
 }
 
-/// Returns the modified Bessel function of the first kind $I_\nu(x)$ of real order [nu].
+/// Returns the modified Bessel function of the first kind `I_ν(x)` of real order [nu].
 double besselI(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
@@ -288,10 +297,13 @@ double besselI(num nu, num x) {
   return sum;
 }
 
-/// Returns the complex modified Bessel function of the first kind $I_\nu(z)$.
+/// Returns the complex modified Bessel function of the first kind `I_ν(z)`.
+///
+/// See https://en.wikipedia.org/wiki/Bessel_function#Modified_Bessel_functions
+/// for details.
 Complex besselIComplex(Complex nu, Complex z) {
-  if (nu.a.isNaN || nu.b.isNaN || z.a.isNaN || z.b.isNaN) {
-    return const Complex(double.nan, double.nan);
+  if (nu.isNaN || z.isNaN) {
+    return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) {
     if (nu.a == 0.0 && nu.b == 0.0) return Complex.one;
@@ -299,7 +311,7 @@ Complex besselIComplex(Complex nu, Complex z) {
         (nu.b == 0.0 && nu.a < 0.0 && nu.a == nu.a.roundToDouble())) {
       return Complex.zero;
     }
-    return const Complex(double.nan, double.nan);
+    return Complex.nan;
   }
   if (nu.b == 0.0 && nu.a < 0.0 && nu.a == nu.a.roundToDouble()) {
     return besselIComplex(-nu, z);
@@ -323,7 +335,7 @@ Complex besselIComplex(Complex nu, Complex z) {
   return sum;
 }
 
-/// Returns the modified Bessel function of the second kind $K_\nu(x)$ of real order [nu].
+/// Returns the modified Bessel function of the second kind `K_ν(x)` of real order [nu].
 double besselK(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
@@ -359,10 +371,13 @@ double besselK(num nu, num x) {
   return (pi / 2.0) * (besselI(-absNu, xd) - besselI(absNu, xd)) / sinPiNu;
 }
 
-/// Returns the complex modified Bessel function of the second kind $K_\nu(z)$.
+/// Returns the complex modified Bessel function of the second kind `K_ν(z)`.
+///
+/// See https://en.wikipedia.org/wiki/Bessel_function#Modified_Bessel_functions
+/// for details.
 Complex besselKComplex(Complex nu, Complex z) {
-  if (nu.a.isNaN || nu.b.isNaN || z.a.isNaN || z.b.isNaN) {
-    return const Complex(double.nan, double.nan);
+  if (nu.isNaN || z.isNaN) {
+    return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) {
     return const Complex(double.infinity);
@@ -507,63 +522,18 @@ Complex besselKComplex(Complex nu, Complex z) {
   return (i: factorI * sumI, k: factorK * sumK);
 }
 
-/// Returns the modified Bessel function $I_0(x)$ of the first kind of order 0.
-///
-/// Conceptually, modified Bessel functions describe physical diffusion
-/// processes, such as heat dissipation or electric fields around cylindrical
-/// conductors. Formally, this calculates the non-oscillatory modified Bessel
-/// function
-/// $I_0(x) = J_0(i x)$
-/// $= \sum_{m=0}^\infty \frac{1}{(m!)^2} \left( \frac{x}{2} \right)^{2m}$.
-///
-/// See https://en.wikipedia.org/wiki/Bessel_function for details.
-///
-/// ```dart
-/// final val = _besselI0(0.0); // 1.0
-/// ```
 double _besselI0(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 1.0;
   if (x.isInfinite) return double.infinity;
   final ax = x.abs().toDouble();
   if (ax < 3.75) {
-    final tVal = x / 3.75;
-    final y = tVal * tVal;
-    return 1.0 +
-        y *
-            (3.5156229 +
-                y *
-                    (3.0899424 +
-                        y *
-                            (1.2067492 +
-                                y *
-                                    (0.2659732 +
-                                        y * (0.0360768 + y * 0.0045813)))));
-  } else {
-    final y = 3.75 / ax;
-    return (exp(ax) / sqrt(ax)) *
-        (0.39894228 +
-            y *
-                (0.01328592 +
-                    y *
-                        (0.00225319 +
-                            y *
-                                (-0.00157565 +
-                                    y *
-                                        (0.00916281 +
-                                            y *
-                                                (-0.02057706 +
-                                                    y *
-                                                        (0.02635537 +
-                                                            y *
-                                                                (-0.01647633 +
-                                                                    y * 0.00392377))))))));
+    final t = x / 3.75;
+    return horner(t * t, _i0SmallCoeffs);
   }
+  return (exp(ax) / sqrt(ax)) * horner(3.75 / ax, _i0LargeCoeffs);
 }
 
-/// Returns the modified Bessel function $I_1(x)$ of the first kind of order 1.
-///
-/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double _besselI1(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 0.0;
@@ -571,333 +541,283 @@ double _besselI1(num x) {
     return x.isNegative ? double.negativeInfinity : double.infinity;
   }
   final ax = x.abs().toDouble();
-  if (ax < 3.75) {
-    final tVal = x / 3.75;
-    final y = tVal * tVal;
-    final ans =
-        ax *
-        (0.5 +
-            y *
-                (0.87890594 +
-                    y *
-                        (0.51498869 +
-                            y *
-                                (0.15084934 +
-                                    y *
-                                        (0.02658733 +
-                                            y *
-                                                (0.00301532 +
-                                                    y * 0.00032411))))));
-    return x.isNegative ? -ans : ans;
-  } else {
-    final y = 3.75 / ax;
-    final ans =
-        (exp(ax) / sqrt(ax)) *
-        (0.39894228 +
-            y *
-                (-0.03988024 +
-                    y *
-                        (-0.00362018 +
-                            y *
-                                (0.00163801 +
-                                    y *
-                                        (-0.01031555 +
-                                            y *
-                                                (0.02282967 +
-                                                    y *
-                                                        (-0.02895312 +
-                                                            y *
-                                                                (0.01787654 -
-                                                                    y * 0.00420059))))))));
-    return x.isNegative ? -ans : ans;
-  }
+  final ans = ax < 3.75
+      ? ax * horner((x / 3.75) * (x / 3.75), _i1SmallCoeffs)
+      : (exp(ax) / sqrt(ax)) * horner(3.75 / ax, _i1LargeCoeffs);
+  return x.isNegative ? -ans : ans;
 }
 
-/// Returns the modified Bessel function $K_0(x)$ of the second kind of order 0.
-///
-/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double _besselK0(num x) {
   if (x.isNaN || x <= 0) return double.nan;
   if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd <= 2.0) {
-    final y = xd * xd / 4.0;
     return -log(xd / 2.0) * _besselI0(xd) +
-        (-0.57721566 +
-            y *
-                (0.42278420 +
-                    y *
-                        (0.23069756 +
-                            y *
-                                (0.03488590 +
-                                    y *
-                                        (0.00262698 +
-                                            y *
-                                                (0.00010750 +
-                                                    y * 0.00000740))))));
-  } else {
-    final y = 2.0 / xd;
-    return (exp(-xd) / sqrt(xd)) *
-        (1.25331414 +
-            y *
-                (-0.07832358 +
-                    y *
-                        (0.02189568 +
-                            y *
-                                (-0.01062446 +
-                                    y *
-                                        (0.00587872 +
-                                            y *
-                                                (-0.00251540 +
-                                                    y * 0.00053208))))));
+        horner(xd * xd / 4.0, _k0SmallCoeffs);
   }
+  return (exp(-xd) / sqrt(xd)) * horner(2.0 / xd, _k0LargeCoeffs);
 }
 
-/// Returns the modified Bessel function $K_1(x)$ of the second kind of order 1.
-///
-/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double _besselK1(num x) {
   if (x.isNaN || x <= 0) return double.nan;
   if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd <= 2.0) {
-    final y = xd * xd / 4.0;
     return log(xd / 2.0) * _besselI1(xd) +
-        (1.0 / xd) *
-            (1.0 +
-                y *
-                    (0.15443144 +
-                        y *
-                            (-0.67278579 +
-                                y *
-                                    (-0.18156897 +
-                                        y *
-                                            (-0.01919402 +
-                                                y *
-                                                    (-0.00110404 -
-                                                        y * 0.00004686))))));
-  } else {
-    final y = 2.0 / xd;
-    return (exp(-xd) / sqrt(xd)) *
-        (1.25331414 +
-            y *
-                (0.23498619 +
-                    y *
-                        (-0.03655620 +
-                            y *
-                                (0.01504268 +
-                                    y *
-                                        (-0.00780353 +
-                                            y *
-                                                (0.00325614 -
-                                                    y * 0.00068245))))));
+        (1.0 / xd) * horner(xd * xd / 4.0, _k1SmallCoeffs);
   }
+  return (exp(-xd) / sqrt(xd)) * horner(2.0 / xd, _k1LargeCoeffs);
 }
 
-/// Returns the Bessel function $J_0(x)$ of the first kind of order 0.
-///
-/// Conceptually, Bessel functions describe radial wave phenomena, such as
-/// concentric ripple patterns on water surfaces or the vibrational modes of a
-/// circular drumhead. Formally, this is the solution to Bessel's differential
-/// equation $x^2 y'' + x y' + x^2 y = 0$ that is non-singular at $x=0$, given
-/// by
-/// $J_0(x) =$
-/// $\sum_{m=0}^\infty \frac{(-1)^m}{(m!)^2} \left( \frac{x}{2} \right)^{2m}$.
-///
-/// See https://en.wikipedia.org/wiki/Bessel_function for details.
-///
-/// ```dart
-/// final val = _besselJ0(0.0); // 1.0
-/// ```
 double _besselJ0(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 1.0;
   if (x.isInfinite) return 0.0;
   final ax = x.abs().toDouble();
-  if (ax < 8.0) {
-    final y = ax * ax;
-    final num =
-        57568490574.0 +
-        y *
-            (-13362590354.0 +
-                y *
-                    (651619640.7 +
-                        y *
-                            (-11214424.18 +
-                                y * (77392.33017 - y * 184.9052456))));
-    final den =
-        57568490411.0 +
-        y *
-            (1029532985.0 +
-                y * (9494680.718 + y * (59272.64853 + y * (267.8532712 + y))));
-    return num / den;
-  } else {
-    final z = 8.0 / ax;
-    final y = z * z;
-    final xx = ax - (pi / 4.0);
-    final f0 =
-        1.0 +
-        y *
-            (-0.001098628627 +
-                y *
-                    (0.00002734510407 +
-                        y * (-0.000002073370912 + y * 0.0000002093887211)));
-    final g0 =
-        -0.01562499995 +
-        y *
-            (0.0001430488765 +
-                y *
-                    (-0.0000190333399 +
-                        y * (0.0000017122914 - y * 0.000000122476)));
-    return sqrt(2.0 / (pi * ax)) * (f0 * cos(xx) - z * g0 * sin(xx));
-  }
+  if (ax < 8.0) return hornerRatio(ax * ax, _j0Num, _j0Den);
+  final z = 8.0 / ax;
+  final y = z * z;
+  final xx = ax - pi / 4.0;
+  return sqrt(2.0 / (pi * ax)) *
+      (horner(y, _f0Coeffs) * cos(xx) - z * horner(y, _g0Coeffs) * sin(xx));
 }
 
-/// Returns the Bessel function $J_1(x)$ of the first kind of order 1.
-///
-/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double _besselJ1(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 0.0;
   if (x.isInfinite) return 0.0;
   final ax = x.abs().toDouble();
+  final double ans;
   if (ax < 8.0) {
-    final y = ax * ax;
-    final num =
-        ax *
-        (72362614232.0 +
-            y *
-                (-7895059235.0 +
-                    y *
-                        (242396853.1 +
-                            y *
-                                (-2972611.439 +
-                                    y * (15704.48260 - y * 30.16036606)))));
-    final den =
-        144725228442.0 +
-        y *
-            (2300535178.0 +
-                y * (18583304.74 + y * (99447.43394 + y * (376.9991397 + y))));
-    final ans = num / den;
-    return x.isNegative ? -ans : ans;
+    ans = ax * hornerRatio(ax * ax, _j1Num, _j1Den);
   } else {
     final z = 8.0 / ax;
     final y = z * z;
     final xx = ax - _threePiOver4;
-    final f1 =
-        1.0 +
-        y *
-            (0.00183105 +
-                y *
-                    (-0.00003516396496 +
-                        y * (0.000002457520174 - y * 0.000000240337019)));
-    final g1 =
-        0.04687499995 +
-        y *
-            (-0.0002002690873 +
-                y *
-                    (0.000008449199096 +
-                        y * (-0.00000088228987 + y * 0.000000105787412)));
-    final ans = sqrt(2.0 / (pi * ax)) * (f1 * cos(xx) - z * g1 * sin(xx));
-    return x.isNegative ? -ans : ans;
+    ans =
+        sqrt(2.0 / (pi * ax)) *
+        (horner(y, _f1Coeffs) * cos(xx) - z * horner(y, _g1Coeffs) * sin(xx));
   }
+  return x.isNegative ? -ans : ans;
 }
 
-/// Returns the Bessel function $Y_0(x)$ of the second kind of order 0.
-///
-/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double _besselY0(num x) {
   if (x.isNaN || x <= 0) return double.nan;
   if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd < 8.0) {
-    final y = xd * xd;
-    final num =
-        -2957821389.0 +
-        y *
-            (7062834065.0 +
-                y *
-                    (-512359803.6 +
-                        y *
-                            (10879881.29 +
-                                y * (-86327.92757 + y * 228.4622733))));
-    final den =
-        40076544269.0 +
-        y *
-            (745249964.8 +
-                y * (7189466.438 + y * (47447.26470 + y * (226.1030244 + y))));
-    return (2.0 / pi) * log(xd) * _besselJ0(xd) + num / den;
-  } else {
-    final z = 8.0 / xd;
-    final y = z * z;
-    final xx = xd - (pi / 4.0);
-    final f0 =
-        1.0 +
-        y *
-            (-0.001098628627 +
-                y *
-                    (0.00002734510407 +
-                        y * (-0.000002073370912 + y * 0.0000002093887211)));
-    final g0 =
-        -0.01562499995 +
-        y *
-            (0.0001430488765 +
-                y *
-                    (-0.0000190333399 +
-                        y * (0.0000017122914 - y * 0.000000122476)));
-    return sqrt(2.0 / (pi * xd)) * (f0 * sin(xx) + z * g0 * cos(xx));
+    return (2.0 / pi) * log(xd) * _besselJ0(xd) +
+        hornerRatio(xd * xd, _y0Num, _y0Den);
   }
+  final z = 8.0 / xd;
+  final y = z * z;
+  final xx = xd - pi / 4.0;
+  return sqrt(2.0 / (pi * xd)) *
+      (horner(y, _f0Coeffs) * sin(xx) + z * horner(y, _g0Coeffs) * cos(xx));
 }
 
-/// Returns the Bessel function $Y_1(x)$ of the second kind of order 1.
-///
-/// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double _besselY1(num x) {
   if (x.isNaN || x <= 0) return double.nan;
   if (x.isInfinite) return 0.0;
   final xd = x.toDouble();
   if (xd < 8.0) {
-    final y = xd * xd;
-    const r1 = -0.4900604943e13;
-    const r2 = 0.1275274390e13;
-    const r3 = -0.5153438139e11;
-    const r4 = 0.7349264551e9;
-    const r5 = -0.4237922726e7;
-    const r6 = 0.8511937935e4;
-
-    const s1 = 0.2499580570e14;
-    const s2 = 0.4244419664e12;
-    const s3 = 0.3733650367e10;
-    const s4 = 0.2245904002e8;
-    const s5 = 0.1020426050e6;
-    const s6 = 0.3549632885e3;
-    const s7 = 1.0;
-
-    final num = xd * (r1 + y * (r2 + y * (r3 + y * (r4 + y * (r5 + y * r6)))));
-    final den =
-        s1 + y * (s2 + y * (s3 + y * (s4 + y * (s5 + y * (s6 + y * s7)))));
-
-    return (2.0 / pi) * (log(xd) * _besselJ1(xd) - 1.0 / xd) + num / den;
-  } else {
-    final z = 8.0 / xd;
-    final y = z * z;
-    final xx = xd - _threePiOver4;
-    final f1 =
-        1.0 +
-        y *
-            (0.00183105 +
-                y *
-                    (-0.00003516396496 +
-                        y * (0.000002457520174 - y * 0.000000240337019)));
-    final g1 =
-        0.04687499995 +
-        y *
-            (-0.0002002690873 +
-                y *
-                    (0.000008449199096 +
-                        y * (-0.00000088228987 + y * 0.000000105787412)));
-    return sqrt(2.0 / (pi * xd)) * (f1 * sin(xx) + z * g1 * cos(xx));
+    return (2.0 / pi) * (log(xd) * _besselJ1(xd) - 1.0 / xd) +
+        xd * hornerRatio(xd * xd, _y1Num, _y1Den);
   }
+  final z = 8.0 / xd;
+  final y = z * z;
+  final xx = xd - _threePiOver4;
+  return sqrt(2.0 / (pi * xd)) *
+      (horner(y, _f1Coeffs) * sin(xx) + z * horner(y, _g1Coeffs) * cos(xx));
 }
 
-const _threePiOver4 = 2.356194490192345;
+const double _threePiOver4 = 2.356194490192345;
+
+const List<double> _i0SmallCoeffs = [
+  1.0,
+  3.5156229,
+  3.0899424,
+  1.2067492,
+  0.2659732,
+  0.0360768,
+  0.0045813,
+];
+
+const List<double> _i0LargeCoeffs = [
+  0.39894228,
+  0.01328592,
+  0.00225319,
+  -0.00157565,
+  0.00916281,
+  -0.02057706,
+  0.02635537,
+  -0.01647633,
+  0.00392377,
+];
+
+const List<double> _i1SmallCoeffs = [
+  0.5,
+  0.87890594,
+  0.51498869,
+  0.15084934,
+  0.02658733,
+  0.00301532,
+  0.00032411,
+];
+
+const List<double> _i1LargeCoeffs = [
+  0.39894228,
+  -0.03988024,
+  -0.00362018,
+  0.00163801,
+  -0.01031555,
+  0.02282967,
+  -0.02895312,
+  0.01787654,
+  -0.00420059,
+];
+
+const List<double> _k0SmallCoeffs = [
+  -0.57721566,
+  0.42278420,
+  0.23069756,
+  0.03488590,
+  0.00262698,
+  0.00010750,
+  0.00000740,
+];
+
+const List<double> _k0LargeCoeffs = [
+  1.25331414,
+  -0.07832358,
+  0.02189568,
+  -0.01062446,
+  0.00587872,
+  -0.00251540,
+  0.00053208,
+];
+
+const List<double> _k1SmallCoeffs = [
+  1.0,
+  0.15443144,
+  -0.67278579,
+  -0.18156897,
+  -0.01919402,
+  -0.00110404,
+  -0.00004686,
+];
+
+const List<double> _k1LargeCoeffs = [
+  1.25331414,
+  0.23498619,
+  -0.03655620,
+  0.01504268,
+  -0.00780353,
+  0.00325614,
+  -0.00068245,
+];
+
+const List<double> _j0Num = [
+  57568490574.0,
+  -13362590354.0,
+  651619640.7,
+  -11214424.18,
+  77392.33017,
+  -184.9052456,
+];
+
+const List<double> _j0Den = [
+  57568490411.0,
+  1029532985.0,
+  9494680.718,
+  59272.64853,
+  267.8532712,
+  1.0,
+];
+
+const List<double> _j1Num = [
+  72362614232.0,
+  -7895059235.0,
+  242396853.1,
+  -2972611.439,
+  15704.48260,
+  -30.16036606,
+];
+
+const List<double> _j1Den = [
+  144725228442.0,
+  2300535178.0,
+  18583304.74,
+  99447.43394,
+  376.9991397,
+  1.0,
+];
+
+const List<double> _y0Num = [
+  -2957821389.0,
+  7062834065.0,
+  -512359803.6,
+  10879881.29,
+  -86327.92757,
+  228.4622733,
+];
+
+const List<double> _y0Den = [
+  40076544269.0,
+  745249964.8,
+  7189466.438,
+  47447.26470,
+  226.1030244,
+  1.0,
+];
+
+const List<double> _y1Num = [
+  -0.4900604943e13,
+  0.1275274390e13,
+  -0.5153438139e11,
+  0.7349264551e9,
+  -0.4237922726e7,
+  0.8511937935e4,
+];
+
+const List<double> _y1Den = [
+  0.2499580570e14,
+  0.4244419664e12,
+  0.3733650367e10,
+  0.2245904002e8,
+  0.1020426050e6,
+  0.3549632885e3,
+  1.0,
+];
+
+const List<double> _f0Coeffs = [
+  1.0,
+  -0.001098628627,
+  0.00002734510407,
+  -0.000002073370912,
+  0.0000002093887211,
+];
+
+const List<double> _g0Coeffs = [
+  -0.01562499995,
+  0.0001430488765,
+  -0.0000190333399,
+  0.0000017122914,
+  -0.000000122476,
+];
+
+const List<double> _f1Coeffs = [
+  1.0,
+  0.00183105,
+  -0.00003516396496,
+  0.000002457520174,
+  -0.000000240337019,
+];
+
+const List<double> _g1Coeffs = [
+  0.04687499995,
+  -0.0002002690873,
+  0.000008449199096,
+  -0.00000088228987,
+  0.000000105787412,
+];

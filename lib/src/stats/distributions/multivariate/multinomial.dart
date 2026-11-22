@@ -4,7 +4,7 @@ import 'package:more/printer.dart';
 
 import '../../../linear/matrix.dart';
 import '../../../linear/vector.dart';
-import '../../../special/gamma.dart';
+import '../../../special/factorial.dart';
 import '../../../type/data_type.dart';
 import 'multivariate_distribution.dart';
 
