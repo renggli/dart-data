@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../../acceleration/utils/norm_accumulator.dart';
 import '../matrix.dart';
 import 'svd.dart';
 
@@ -24,26 +25,13 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// print(m.normFrobenius); // 5.0
   /// ```
   double get normFrobenius {
-    var scale = 0.0;
-    var sumsq = 1.0;
+    final acc = ScaledNormAccumulator();
     for (var row = 0; row < rowCount; row++) {
       for (var col = 0; col < colCount; col++) {
-        final val = getUnchecked(row, col).toDouble();
-        if (val != 0.0) {
-          final absVal = val.abs();
-          if (absVal.isNaN) return double.nan;
-          if (absVal.isInfinite) {
-            scale = double.infinity;
-          } else if (scale < absVal) {
-            sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
-            scale = absVal;
-          } else if (scale.isFinite) {
-            sumsq += (absVal / scale) * (absVal / scale);
-          }
-        }
+        acc.add(getUnchecked(row, col).toDouble());
       }
     }
-    return scale * math.sqrt(sumsq);
+    return acc.norm;
   }
 
   /// Returns the 1-norm: maximum absolute column sum $\max_j \sum_i |a_{ij}|$.

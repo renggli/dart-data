@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../../acceleration/blas/blas.dart';
 import '../../type/data_type.dart';
 import '../matrix.dart';
 import '../vector.dart';
@@ -243,25 +244,7 @@ class QRDecomposition<T> {
     final qrData = _qr.tensor.data as Float64List;
 
     for (var k = 0; k < _n; k++) {
-      var scale = 0.0;
-      var sumsq = 1.0;
-      for (var i = k; i < _m; i++) {
-        final val = qrData[i * _n + k];
-        if (val != 0.0) {
-          final absVal = val.abs();
-          if (absVal.isNaN) {
-            scale = double.nan;
-          } else if (absVal.isInfinite) {
-            if (!scale.isNaN) scale = double.infinity;
-          } else if (scale < absVal) {
-            sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
-            scale = absVal;
-          } else if (scale.isFinite) {
-            sumsq += (absVal / scale) * (absVal / scale);
-          }
-        }
-      }
-      var nrm = scale * math.sqrt(sumsq);
+      var nrm = Blas.dnrm2(n: _m - k, x: qrData, xOffset: k * _n + k, incX: _n);
 
       if (nrm != 0.0) {
         if (qrData[k * _n + k] < 0) {

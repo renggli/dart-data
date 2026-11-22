@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../acceleration/blas/blas.dart';
+import '../acceleration/utils/norm_accumulator.dart';
 import '../tensor/layout.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
@@ -323,23 +324,11 @@ class Vector<T> {
         );
       }
 
-      var scale = 0.0;
-      var sumsq = 1.0;
+      final acc = ScaledNormAccumulator();
       for (var i = 0; i < length; i++) {
-        final absVal = field.norm(getUnchecked(i));
-        if (absVal != 0.0) {
-          if (absVal.isNaN) return double.nan;
-          if (absVal.isInfinite) {
-            scale = double.infinity;
-          } else if (scale < absVal) {
-            sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
-            scale = absVal;
-          } else if (scale.isFinite) {
-            sumsq += (absVal / scale) * (absVal / scale);
-          }
-        }
+        acc.addAbs(field.norm(getUnchecked(i)));
       }
-      return scale * math.sqrt(sumsq);
+      return acc.norm;
     }
     var sumP = 0.0;
     for (var i = 0; i < length; i++) {

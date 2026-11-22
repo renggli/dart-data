@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../utils/norm_accumulator.dart';
+
 import 'blas_validation.dart';
 import 'cblas_constants.dart';
 
@@ -68,24 +70,11 @@ abstract final class BlasDart {
   }) {
     if (n <= 0 || incX <= 0) return 0.0;
     if (n == 1) return x[xOffset].abs();
-    var scale = 0.0;
-    var sumsq = 1.0;
+    final acc = ScaledNormAccumulator();
     for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
-      final val = x[xi];
-      if (val != 0.0) {
-        final absVal = val.abs();
-        if (absVal.isNaN) return double.nan;
-        if (absVal.isInfinite) {
-          scale = double.infinity;
-        } else if (scale < absVal) {
-          sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
-          scale = absVal;
-        } else if (scale.isFinite) {
-          sumsq += (absVal / scale) * (absVal / scale);
-        }
-      }
+      acc.add(x[xi]);
     }
-    return scale * math.sqrt(sumsq);
+    return acc.norm;
   }
 
   /// Computes Euclidean norm of a [Float32List] vector.
@@ -100,24 +89,11 @@ abstract final class BlasDart {
   }) {
     if (n <= 0 || incX <= 0) return 0.0;
     if (n == 1) return x[xOffset].abs();
-    var scale = 0.0;
-    var sumsq = 1.0;
+    final acc = ScaledNormAccumulator();
     for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
-      final val = x[xi];
-      if (val != 0.0) {
-        final absVal = val.abs();
-        if (absVal.isNaN) return double.nan;
-        if (absVal.isInfinite) {
-          scale = double.infinity;
-        } else if (scale < absVal) {
-          sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
-          scale = absVal;
-        } else if (scale.isFinite) {
-          sumsq += (absVal / scale) * (absVal / scale);
-        }
-      }
+      acc.add(x[xi]);
     }
-    return scale * math.sqrt(sumsq);
+    return acc.norm;
   }
 
   /// Computes in-place scaled addition `y = alpha * x + y` for [Float64List].
