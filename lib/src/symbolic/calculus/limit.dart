@@ -65,7 +65,10 @@ Expr computeLimit(
           direction: direction,
           assumptions: assumptions,
         );
-      } on UnsupportedError {
+      } on UnsupportedError catch (e) {
+        if (e.message?.contains('in R:') ?? false) {
+          rethrow;
+        }
         indeterminate = true;
         break;
       }
@@ -231,12 +234,23 @@ Expr computeLimit(
           !exponent.isZero) {
         return exponent.isNegative ? IntegerNumber.zero : Constant.infinity;
       }
+      if (_isNegativeInfinity(baseLim) &&
+          exponent is FractionNumber &&
+          exponent.denominator.isEven) {
+        throw UnsupportedError(
+          'Limit does not exist in R: even root of negative infinity',
+        );
+      }
       if (baseLim is Number &&
           baseLim.isZero &&
           exponent is RealNumeric &&
           !exponent.isNegative &&
           !exponent.isZero) {
         return exponent is RealNumber ? RealNumber.zero : IntegerNumber.zero;
+      }
+    } on UnsupportedError catch (e) {
+      if (e.message?.contains('does not exist') ?? false) {
+        rethrow;
       }
     } on Object {
       // Fall through
@@ -280,6 +294,10 @@ Expr computeLimit(
         if (!innerLim.anyNode((n) => n is Limit)) {
           return Pow(base, innerLim).simplify(assumptions: assumptions);
         }
+      }
+    } on UnsupportedError catch (e) {
+      if (e.message?.contains('does not exist') ?? false) {
+        rethrow;
       }
     } on Object {
       // Fall through
@@ -338,6 +356,10 @@ Expr computeLimit(
         assumptions: assumptions,
       );
       if (_isPositiveInfinity(innerLim)) return Constant.infinity;
+    } on UnsupportedError catch (e) {
+      if (e.message?.contains('does not exist') ?? false) {
+        rethrow;
+      }
     } on Object {
       // Fall through
     }

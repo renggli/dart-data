@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
@@ -107,25 +108,164 @@ void main() {
     });
 
     test(
-      'all presets support symbolic differentiation, limits, and compilation',
+      'all presets pass full demo pipeline within per-preset latency budget',
       () {
         for (final preset in expressionPresets) {
+          final sw = Stopwatch()..start();
           final expr = Expr.parse(preset.formula);
           final assumptions = preset.defaultDomain == VariableDomain.unknown
               ? Assumptions.none
               : Assumptions(defaultDomain: preset.defaultDomain);
 
+          // 1. Outputs & Normal Forms
+          final simplified = expr.simplify(assumptions: assumptions);
+          check(simplified.format().isNotEmpty).isTrue;
+          check(simplified.toLatex().isNotEmpty).isTrue;
+          final mathml = simplified.toMathMl();
+          check(mathml.startsWith('<math>')).isTrue;
+          check(mathml.endsWith('</math>')).isTrue;
+          check(expr.expand(assumptions: assumptions).toString().isNotEmpty)
+              .isTrue;
+          check(expr.factor(assumptions: assumptions).toString().isNotEmpty)
+              .isTrue;
+          check(expr.approximate().toString().isNotEmpty).isTrue;
+          check(expr.rationalize().toString().isNotEmpty).isTrue;
+
+          // 2. Rational & Trig/Complex Algebra
+          check(expr.apart('x', assumptions: assumptions).toString().isNotEmpty)
+              .isTrue;
+          check(expr.together(assumptions: assumptions).toString().isNotEmpty)
+              .isTrue;
+          check(expr.cancel(assumptions: assumptions).toString().isNotEmpty)
+              .isTrue;
+          check(
+            expr.collect('x', assumptions: assumptions).toString().isNotEmpty,
+          ).isTrue;
+          check(expr.numerator.toString().isNotEmpty).isTrue;
+          check(expr.denominator.toString().isNotEmpty).isTrue;
+          check(expr.expandTrig(assumptions: assumptions).toString().isNotEmpty)
+              .isTrue;
+          check(
+            expr.simplifyTrig(assumptions: assumptions).toString().isNotEmpty,
+          ).isTrue;
+          check(
+            expr
+                .rewrite(RewriteTarget.exp, assumptions: assumptions)
+                .toString()
+                .isNotEmpty,
+          ).isTrue;
+          check(
+            expr
+                .rewrite(RewriteTarget.trig, assumptions: assumptions)
+                .toString()
+                .isNotEmpty,
+          ).isTrue;
+          check(
+            expr.toRectangular(assumptions: assumptions).toString().isNotEmpty,
+          ).isTrue;
+          check(expr.toPolar(assumptions: assumptions).toString().isNotEmpty)
+              .isTrue;
+
+          // 3. Calculus (Differentiation & Integration)
           final d1 = expr
               .derivative('x', assumptions: assumptions)
               .simplify(assumptions: assumptions);
           final d2 = d1
               .derivative('x', assumptions: assumptions)
               .simplify(assumptions: assumptions);
+          final d3 = d2
+              .derivative('x', assumptions: assumptions)
+              .simplify(assumptions: assumptions);
           check(d1.toString().isNotEmpty).isTrue;
           check(d2.toString().isNotEmpty).isTrue;
+          check(d3.toString().isNotEmpty).isTrue;
 
+          check(
+            expr.integrate('x', assumptions: assumptions).toString().isNotEmpty,
+          ).isTrue;
+          final aExpr = _parsePresetBound(preset.defaultIntA);
+          final bExpr = _parsePresetBound(preset.defaultIntB);
+          check(
+            expr
+                .integrate(
+                  'x',
+                  from: aExpr,
+                  to: bExpr,
+                  assumptions: assumptions,
+                )
+                .simplify(assumptions: assumptions)
+                .toString()
+                .isNotEmpty,
+          ).isTrue;
+          check(
+            expr
+                .integrate(
+                  'x',
+                  from: IntegerNumber.zero,
+                  to: Constant.infinity,
+                  assumptions: assumptions,
+                )
+                .toString()
+                .isNotEmpty,
+          ).isTrue;
+          check(
+            expr
+                .integrate(
+                  'x',
+                  from: -Constant.infinity,
+                  to: Constant.infinity,
+                  assumptions: assumptions,
+                )
+                .toString()
+                .isNotEmpty,
+          ).isTrue;
+
+          // 4. Series, Sums, Products & Limits
           final x0Expr = _parsePresetBound(preset.defaultPointX);
           final ptDouble = x0Expr.evaluateComplex().a.toDouble();
+          for (final pt in [IntegerNumber.zero, x0Expr]) {
+            try {
+              final s = expr.series(
+                'x',
+                point: pt,
+                order: 4,
+                includeOrder: false,
+                assumptions: assumptions,
+              );
+              check(s.toString().isNotEmpty).isTrue;
+            } on UnsupportedError {
+              // Non-elementary series at point.
+            }
+          }
+          check(
+            expr
+                .sum(
+                  'x',
+                  IntegerNumber.one,
+                  const Variable('n'),
+                  assumptions: assumptions,
+                )
+                .toString()
+                .isNotEmpty,
+          ).isTrue;
+          check(
+            expr
+                .indefiniteSum('x', assumptions: assumptions)
+                .toString()
+                .isNotEmpty,
+          ).isTrue;
+          check(
+            expr
+                .product(
+                  'x',
+                  IntegerNumber.one,
+                  const Variable('n'),
+                  assumptions: assumptions,
+                )
+                .toString()
+                .isNotEmpty,
+          ).isTrue;
+
           Expr lim;
           try {
             lim = expr.limit('x', x0Expr, assumptions: assumptions);
@@ -146,10 +286,47 @@ void main() {
             check(limLeft).not(.it()..equals(limRight));
             lim = Constant.undefined;
           }
+          for (final dir in [
+            LimitDirection.fromBelow,
+            LimitDirection.fromAbove,
+          ]) {
+            try {
+              check(
+                expr
+                    .limit(
+                      'x',
+                      x0Expr,
+                      direction: dir,
+                      assumptions: assumptions,
+                    )
+                    .toString()
+                    .isNotEmpty,
+              ).isTrue;
+            } on UnsupportedError {
+              // Non-existent one-sided limit.
+            }
+          }
+          for (final infPt in [Constant.infinity, -Constant.infinity]) {
+            try {
+              check(
+                expr
+                    .limit('x', infPt, assumptions: assumptions)
+                    .toString()
+                    .isNotEmpty,
+              ).isTrue;
+            } on UnsupportedError {
+              // Oscillatory or undefined at infinity.
+            }
+          }
 
-          final hasUnevaluatedDerivative = d1.anyNode(
-            (node) => node is Derivative,
-          );
+          // 5. Roots, Extrema & Multivariable
+          for (final target in [expr, d1, d2]) {
+            try {
+              target.solve('x', assumptions: assumptions);
+            } on UnsupportedError {
+              // Transcendental equations without closed-form roots.
+            }
+          }
 
           if (preset.defaultMvVars != null) {
             final vars = preset.defaultMvVars!
@@ -161,87 +338,92 @@ void main() {
             final hessian = expr.hessian(vars, assumptions: assumptions);
             check(hessian.rowCount).equals(vars.length);
             check(hessian.colCount).equals(vars.length);
+            check(hessian.determinant().toString().isNotEmpty).isTrue;
+            check(hessian.trace.toString().isNotEmpty).isTrue;
+            try {
+              grad.toList().solve(vars, assumptions: assumptions);
+            } on UnsupportedError {
+              // Nonlinear gradient system without closed-form solution.
+            } on ArgumentError {
+              // Non-polynomial gradient system.
+            }
             final bc = expr.toBytecode(variables: vars);
             check(bc.instructions.isNotEmpty).isTrue;
-          } else if (containsImaginary(expr)) {
+          } else {
+            // 6. Bytecode Compilation & Curve Sampling (including unevaluated derivatives)
+            final isComplex = containsImaginary(expr);
+            final fn = isComplex ? null : expr.toFunction1D('x');
             final cfn = expr.toComplexFunction1D('x');
-            final y0 = cfn(Complex(ptDouble, 0));
-            check(y0.a.isNaN).isFalse;
-            check(y0.b.isNaN).isFalse;
-            if (!hasUnevaluatedDerivative) {
-              final cdf = d1.toComplexFunction1D('x');
+            final df = containsImaginary(d1) ? null : d1.toFunction1D('x');
+            final cdf = d1.toComplexFunction1D('x');
+
+            if (isComplex) {
+              final y0 = cfn(Complex(ptDouble, 0));
+              check(y0.a.isNaN).isFalse;
+              check(y0.b.isNaN).isFalse;
               final slope = cdf(Complex(ptDouble, 0));
               check(slope.a.isNaN).isFalse;
               check(slope.b.isNaN).isFalse;
-            }
-          } else {
-            final fn = expr.toFunction1D('x');
-            final y0 = fn(ptDouble);
-            check(y0.isFinite || lim != Constant.undefined).isTrue;
-            if (!hasUnevaluatedDerivative) {
-              final df = d1.toFunction1D('x');
-              final slope = df(ptDouble);
+            } else {
+              final y0 = fn!(ptDouble);
+              check(y0.isFinite || lim != Constant.undefined).isTrue;
+              final slope = df!(ptDouble);
               check(
                 slope.isFinite ||
                     lim != Constant.undefined ||
                     preset.id == 'piecewise_jump',
               ).isTrue;
             }
+
+            double evalSafeReal(double Function(double) f, double x) {
+              try {
+                return f(x);
+              } on Object {
+                return double.nan;
+              }
+            }
+
+            final fSample = sampleCurve(
+              (x) => fn == null
+                  ? cfn(Complex(x, 0)).a.toDouble()
+                  : evalSafeReal(fn, x),
+              preset.defaultMinX,
+              preset.defaultMaxX,
+              maxPoints: 1200,
+              initialPoints: 97,
+            );
+            check(fSample.segments).isNotEmpty;
+
+            final d1Sample = sampleCurve(
+              (x) => df == null
+                  ? cdf(Complex(x, 0)).a.toDouble()
+                  : evalSafeReal(df, x),
+              preset.defaultMinX,
+              preset.defaultMaxX,
+              maxPoints: 1200,
+              initialPoints: 97,
+            );
+            check(d1Sample.segments).isNotEmpty;
+
+            if (preset.id == 'dilogarithm') {
+              for (final seg in fSample.segments) {
+                for (var i = 0; i < seg.y.length; i++) {
+                  check(seg.y[i].abs()).isLessThan(1e12);
+                }
+              }
+            }
           }
+
+          // 7. Per-Preset Latency Guard (< 1000ms VM, < 2500ms JS)
+          sw.stop();
+          const budgetMs = identical(0, 0.0) ? 2500 : 1000;
+          check(
+            sw.elapsedMilliseconds,
+            because: 'Preset ${preset.id} took ${sw.elapsedMilliseconds}ms',
+          ).isLessThan(budgetMs);
         }
       },
     );
-
-    test('all presets support symbolic definite integration, series, and summation', () {
-      for (final preset in expressionPresets) {
-        final expr = Expr.parse(preset.formula);
-        final assumptions = preset.defaultDomain == VariableDomain.unknown
-            ? Assumptions.none
-            : Assumptions(defaultDomain: preset.defaultDomain);
-
-        final aExpr = _parsePresetBound(preset.defaultIntA);
-        final bExpr = _parsePresetBound(preset.defaultIntB);
-        final defInt = expr
-            .integrate('x', from: aExpr, to: bExpr, assumptions: assumptions)
-            .simplify(assumptions: assumptions);
-        check(defInt.toString().isNotEmpty).isTrue;
-
-        final sumExpr = expr
-            .sum(
-              'x',
-              IntegerNumber.one,
-              const Variable('n'),
-              assumptions: assumptions,
-            )
-            .simplify(assumptions: assumptions);
-        check(sumExpr.toString().isNotEmpty).isTrue;
-
-        final prodExpr = expr
-            .product(
-              'x',
-              IntegerNumber.one,
-              const Variable('n'),
-              assumptions: assumptions,
-            )
-            .simplify(assumptions: assumptions);
-        check(prodExpr.toString().isNotEmpty).isTrue;
-
-        try {
-          final taylor = expr
-              .series(
-                'x',
-                point: _parsePresetBound(preset.defaultPointX),
-                order: 3,
-                includeOrder: false,
-                assumptions: assumptions,
-              )
-              .simplify(assumptions: assumptions);
-          check(taylor.toString().isNotEmpty).isTrue;
-        } on UnsupportedError {
-          // Functions with non-elementary series at the point throw UnsupportedError.
-        }
-      }
-    });
   });
 
   group('Web Expressions Algebra Utilities', () {
