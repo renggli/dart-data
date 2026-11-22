@@ -608,5 +608,19 @@ void main() {
             .limit('x', Constant.infinity),
       ).equals(IntegerNumber.one);
     });
+
+    test('combines logarithmic terms in infinity - infinity forms', () {
+      check(
+        Expr.parse(
+          '-2 * ln(abs(x)) + 2 * ln(abs(2 * sqrt(4 + x) - 4) / abs(2 * sqrt(4 + x) + 4))',
+        ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromAbove),
+      ).equals(Expr.parse('-8 * ln(2)').simplify());
+
+      check(
+        Expr.parse(
+          '-1/2 * ln(abs(2 * x - 2) / abs(2 * x + 2)) + 1/2 * ln(x^2 - 1)',
+        ).limit('x', IntegerNumber.one, direction: LimitDirection.fromAbove),
+      ).equals(Expr.parse('ln(2)').simplify());
+    });
   });
 }

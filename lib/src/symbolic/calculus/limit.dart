@@ -1,4 +1,5 @@
 import '../algebra/expand.dart';
+import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/domain.dart';
 import '../algebra/term_accumulator.dart';
@@ -88,6 +89,15 @@ Expr computeLimit(
           combinedSum != Constant.undefined) {
         return combinedSum;
       }
+    } else if (_combineLogAddTerms(terms, variable, assumptions)
+        case final combinedLogs? when combinedLogs != expr) {
+      return computeLimit(
+        combinedLogs,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
     }
   }
 
@@ -928,26 +938,34 @@ Expr? _rationalFunctionLimitAtInfinity(
   String variable,
   Assumptions assumptions,
 ) {
-  final (num, den) = splitNumeratorDenominator(expr);
+  Expr? evalQuotient(Expr candidate) {
+    final (num, den) = splitNumeratorDenominator(candidate);
+    if ((
+          _polynomialDegreeAndLead(num, variable),
+          _polynomialDegreeAndLead(den, variable),
+        )
+        case ((final dP, final cP), (final dQ, final cQ))) {
+      if (dP < dQ) return IntegerNumber.zero;
+      if (dP == dQ) {
+        return (cP / cQ).simplify(assumptions: assumptions);
+      }
 
-  if ((
-        _polynomialDegreeAndLead(num, variable),
-        _polynomialDegreeAndLead(den, variable),
-      )
-      case ((final dP, final cP), (final dQ, final cQ))) {
-    if (dP < dQ) return IntegerNumber.zero;
-    if (dP == dQ) {
-      return (cP / cQ).simplify(assumptions: assumptions);
+      final ratio = (cP / cQ).simplify(assumptions: assumptions);
+      final sign = _getSign(ratio, assumptions);
+      if (sign == 0) {
+        throw UnsupportedError('Sign of leading coefficient $ratio is unknown');
+      }
+      return sign > 0 ? Constant.infinity : _negInfinity;
     }
-
-    final ratio = (cP / cQ).simplify(assumptions: assumptions);
-    final sign = _getSign(ratio, assumptions);
-    if (sign == 0) {
-      throw UnsupportedError('Sign of leading coefficient $ratio is unknown');
-    }
-    return sign > 0 ? Constant.infinity : _negInfinity;
+    return null;
   }
 
+  final direct = evalQuotient(expr);
+  if (direct != null) return direct;
+  final combined = expr.together(assumptions: assumptions);
+  if (combined != expr) {
+    return evalQuotient(combined);
+  }
   return null;
 }
 
@@ -1073,6 +1091,9 @@ Expr _rewriteHyperbolicsToExp(Expr expr, Assumptions assumptions) {
 }
 
 Expr _gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
+  if (_exceedsAstLimit(expr, 4000)) {
+    return Limit(expr, variable, Constant.infinity);
+  }
   var f = _rewriteHyperbolicsToExp(
     expr.simplify(assumptions: assumptions),
     assumptions,
@@ -1878,4 +1899,83 @@ Expr _splitPolyExpTerms(Expr expr, String variable, Assumptions assumptions) {
     }
   }
   return expr.mapChildren((c) => _splitPolyExpTerms(c, variable, assumptions));
+}
+
+Expr? _combineLogAddTerms(
+  List<Expr> terms,
+  String variable,
+  Assumptions assumptions,
+) {
+  final logTerms = <({Expr coeff, Expr arg})>[];
+  final otherTerms = <Expr>[];
+  for (final t in terms) {
+    if (t case Ln(:final expr)) {
+      logTerms.add((coeff: IntegerNumber.one, arg: expr));
+    } else if (t case Mul(:final factors)) {
+      Ln? lnNode;
+      final coeffFactors = <Expr>[];
+      var valid = true;
+      for (final f in factors) {
+        if (f is Ln && lnNode == null) {
+          lnNode = f;
+        } else if (f is RealNumeric) {
+          coeffFactors.add(f);
+        } else {
+          valid = false;
+          break;
+        }
+      }
+      if (valid && lnNode != null && coeffFactors.isNotEmpty) {
+        final coeff = coeffFactors.length == 1
+            ? coeffFactors.first
+            : Mul(coeffFactors).simplify(assumptions: assumptions);
+        logTerms.add((coeff: coeff, arg: lnNode.expr));
+      } else {
+        otherTerms.add(t);
+      }
+    } else {
+      otherTerms.add(t);
+    }
+  }
+  if (logTerms.length < 2) return null;
+  var lcmDen = 1;
+  var allRational = true;
+  for (final (:coeff, arg: _) in logTerms) {
+    if (coeff case RationalNumber(:final denominator)
+        when denominator.asInt != null) {
+      final den = denominator.asInt!.abs();
+      lcmDen = (lcmDen * den) ~/ lcmDen.gcd(den);
+    } else {
+      allRational = false;
+      break;
+    }
+  }
+  final scale = allRational && lcmDen > 1
+      ? IntegerNumber.of(lcmDen)
+      : IntegerNumber.one;
+  final combinedArg = Mul([
+    for (final (:coeff, :arg) in logTerms)
+      Pow(arg, (coeff * scale).simplify(assumptions: assumptions)),
+  ]).simplify(assumptions: assumptions);
+  final combinedLog = scale == IntegerNumber.one
+      ? Ln(combinedArg)
+      : Ln(combinedArg) / scale;
+  if (otherTerms.isEmpty) return combinedLog;
+  return Add([...otherTerms, combinedLog]).simplify(assumptions: assumptions);
+}
+
+bool _exceedsAstLimit(Expr expr, int maxNodes) {
+  var count = 0;
+  var exceeded = false;
+  bool visit(Expr node) {
+    count++;
+    if (count > maxNodes) {
+      exceeded = true;
+      return true;
+    }
+    return false;
+  }
+
+  expr.anyNode(visit);
+  return exceeded;
 }

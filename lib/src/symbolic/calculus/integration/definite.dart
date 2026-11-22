@@ -251,7 +251,10 @@ Expr evaluateDefiniteIntegral(
             break;
           }
         }
-        if (ok && !(hasPosInf && hasNegInf)) {
+        if (ok && hasPosInf && hasNegInf) {
+          return Integral(function, variable, lower: fromExpr, upper: toExpr);
+        }
+        if (ok) {
           if (hasPosInf) {
             return isAscending ? Constant.infinity : _negInfinity;
           }

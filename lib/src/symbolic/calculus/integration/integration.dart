@@ -152,6 +152,18 @@ Expr antiDerivative(
     return (node * Variable(variable)).simplify(assumptions: assumptions);
   }
 
+  if (depth < 2 && _isRationalIn(node, variable)) {
+    final canceled = node.cancel(assumptions: assumptions);
+    if (canceled != node) {
+      return antiDerivative(
+        canceled,
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+    }
+  }
+
   if (depth < 2 && node.anyNode((n) => n is Binomial)) {
     Expr expandBinomial(Expr e) {
       final mapped = e.mapChildren(expandBinomial);

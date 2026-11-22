@@ -401,5 +401,27 @@ void main() {
             .integrate('x', from: 0, to: Expr.parse('pi / 2')),
       ).equals(Expr.parse('pi / 4').simplify());
     });
+
+    test(
+      'handles removable rational poles, radical limits, and divergent poles',
+      () {
+        // Rational GCD cancellation: (x^3 - 1) / (x^2 - 1) on [0, 2]
+        check(
+          Expr.parse('(x^3 - 1) / (x^2 - 1)').integrate('x', from: 0, to: 2),
+        ).equals(Expr.parse('2 + ln(3)').simplify());
+
+        // Radical conjugate definite integral on [0, 5]
+        final radInt = Expr.parse('(sqrt(x + 4) - 2) / x')
+            .integrate('x', from: 0, to: 5);
+        check(radInt.anyNode((n) => n is Integral)).isFalse;
+        check(radInt.evaluate())
+            .isCloseTo(Expr.parse('2 + 4 * ln(4 / 5)').evaluate(), 1e-12);
+
+        // Divergent interior poles on (-inf, inf) short-circuits cleanly
+        final divInt = Expr.parse('1 / (x * (x + 1))')
+            .integrate('x', from: -Constant.infinity, to: Constant.infinity);
+        check(divInt).isA<Integral>();
+      },
+    );
   });
 }
