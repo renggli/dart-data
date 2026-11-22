@@ -8,7 +8,7 @@ import '../ast.dart';
 import '../compiler.dart';
 import '../number/integer.dart';
 import '../type/expr_data_type.dart';
-import 'differentiation.dart';
+import 'series_functions.dart';
 
 /// Extension providing formal power series and Laurent expansion on [Expr].
 extension SeriesExtension on Expr {
@@ -45,10 +45,10 @@ extension SeriesExtension on Expr {
     Object point = IntegerNumber.zero,
     int order = 6,
     Assumptions assumptions = Assumptions.none,
-  }) => _expandToPowerSeries(
+  }) => expandToPowerSeries(
     assumptions.isEmpty ? this : simplify(assumptions: assumptions),
     variable,
-    _wrapSeriesPoint(point),
+    wrapSeriesPoint(point),
     order,
   );
 
@@ -77,7 +77,7 @@ extension SeriesExtension on Expr {
       return Polynomial<T>.zero(type: effectiveType);
     }
     final around = point.toDouble();
-    final pointExpr = _wrapSeriesPoint(point);
+    final pointExpr = wrapSeriesPoint(point);
     final ps = toPowerSeries(variable, point: pointExpr, order: order + 1);
     if (ps.poleOrder > 0) {
       throw UnsupportedError(
@@ -254,7 +254,7 @@ class PowerSeries {
   /// Scalar multiplication.
   PowerSeries scale(Expr scalar) {
     final s = scalar.simplify();
-    if (_isZero(s)) {
+    if (isZero(s)) {
       return PowerSeries(variable, point, const {}, order);
     }
     final newCoeffs = <int, Expr>{};
@@ -316,12 +316,12 @@ class PowerSeries {
       for (var j = 1; j <= k; j++) {
         final uj = u[j];
         final vj = v[k - j] ?? IntegerNumber.zero;
-        if (!_isZero(uj) && !_isZero(vj)) {
+        if (!isZero(uj) && !isZero(vj)) {
           final term = (uj * vj).simplify();
           sum = (sum + term).simplify();
         }
       }
-      if (!_isZero(sum)) {
+      if (!isZero(sum)) {
         v[k] = (-(invC0 * sum)).simplify();
       }
     }
@@ -413,7 +413,7 @@ class PowerSeries {
       for (var j = 1; j <= k; j++) {
         final cj = coefficients[j];
         final qj = q[k - j] ?? IntegerNumber.zero;
-        if (cj != null && !_isZero(cj) && !_isZero(qj)) {
+        if (cj != null && !isZero(cj) && !isZero(qj)) {
           final factor =
               ((IntegerNumber.one + exponent) * IntegerNumber.of(j) -
                       IntegerNumber.of(k))
@@ -422,7 +422,7 @@ class PowerSeries {
           sum = (sum + term).simplify();
         }
       }
-      if (!_isZero(sum)) {
+      if (!isZero(sum)) {
         q[k] = ((invC0 * sum) / IntegerNumber.of(k)).simplify();
       }
     }
@@ -454,7 +454,7 @@ class PowerSeries {
     }
     final newOrder = order + 1;
     final newCoeffs = <int, Expr>{};
-    if (constant != null && !_isZero(constant)) {
+    if (constant != null && !isZero(constant)) {
       newCoeffs[0] = constant;
     }
     for (final entry in coefficients.entries) {
@@ -470,7 +470,7 @@ class PowerSeries {
   /// Converts this power series to a canonical [Expr] AST with [OrderTerm].
   Expr toExpr({bool includeOrder = true}) {
     final sortedKeys = coefficients.keys.toList()..sort();
-    final isCenterZero = _isZero(point);
+    final isCenterZero = isZero(point);
     final terms = <Expr>[];
 
     for (final k in sortedKeys) {
@@ -519,7 +519,7 @@ class PowerSeries {
     for (final entry in raw.entries) {
       if (entry.key < order) {
         final simplified = entry.value.simplify();
-        if (!_isZero(simplified)) {
+        if (!isZero(simplified)) {
           result[entry.key] = simplified;
         }
       }
@@ -527,10 +527,10 @@ class PowerSeries {
     return Map.unmodifiable(result);
   }
 
-  static bool _isZero(Expr expr) => isZeroExpr(expr);
+  static bool isZero(Expr expr) => isZeroExpr(expr);
 }
 
-PowerSeries _expandToPowerSeries(
+PowerSeries expandToPowerSeries(
   Expr expr,
   String variable,
   Expr point,
@@ -553,21 +553,21 @@ PowerSeries _expandToPowerSeries(
   Add(:final terms) => () {
     var sum = PowerSeries(variable, point, const {}, order);
     for (final term in terms) {
-      sum = sum + _expandToPowerSeries(term, variable, point, order);
+      sum = sum + expandToPowerSeries(term, variable, point, order);
     }
     return sum;
   }(),
 
   Mul(:final factors) => _expandMulFactors(factors, variable, point, order),
 
-  Pow(base: Constant.e, :final exponent) => _expandExp(
+  Pow(base: Constant.e, :final exponent) => expandExp(
     exponent,
     variable,
     point,
     order,
   ),
 
-  Pow(:final base, :final exponent) => _expandPow(
+  Pow(:final base, :final exponent) => expandPow(
     base,
     exponent,
     variable,
@@ -577,70 +577,65 @@ PowerSeries _expandToPowerSeries(
 
   Ln(:final expr) => _expandLn(expr, variable, point, order),
 
-  Sin(:final expr) => _expandSin(expr, variable, point, order),
+  Sin(:final expr) => expandSin(expr, variable, point, order),
 
-  Cos(:final expr) => _expandCos(expr, variable, point, order),
+  Cos(:final expr) => expandCos(expr, variable, point, order),
 
   Tan(:final expr) => () {
-    final sc = _expandSinCos(expr, variable, point, order);
+    final sc = expandSinCos(expr, variable, point, order);
     return sc.sin / sc.cos;
   }(),
 
-  Sinh(:final expr) => _expandSinh(expr, variable, point, order),
+  Sinh(:final expr) => expandSinh(expr, variable, point, order),
 
-  Cosh(:final expr) => _expandCosh(expr, variable, point, order),
+  Cosh(:final expr) => expandCosh(expr, variable, point, order),
 
   Tanh(:final expr) => () {
-    final sc = _expandSinhCosh(expr, variable, point, order);
+    final sc = expandSinhCosh(expr, variable, point, order);
     return sc.sinh / sc.cosh;
   }(),
 
-  Asin(:final expr) => _expandAsin(expr, variable, point, order),
+  Asin(:final expr) => expandAsin(expr, variable, point, order),
 
   Acos(:final expr) =>
     PowerSeries(variable, point, {
           0: (Constant.pi / IntegerNumber.two).simplify(),
         }, order) -
-        _expandAsin(expr, variable, point, order),
+        expandAsin(expr, variable, point, order),
 
-  Atan(:final expr) => _expandAtan(expr, variable, point, order),
+  Atan(:final expr) => expandAtan(expr, variable, point, order),
 
-  Abs(:final expr) => _expandAbs(expr, variable, point, order),
+  Abs(:final expr) => expandAbs(expr, variable, point, order),
 
   LambertW(:final expr, :final branch) =>
     branch == 0
-        ? _expandLambertW(expr, variable, point, order)
+        ? expandLambertW(expr, variable, point, order)
         : throw UnsupportedError(
             'Power series only supported for principal branch W_0',
           ),
 
-  Erf(:final expr) => _expandErf(expr, variable, point, order),
+  Erf(:final expr) => expandErf(expr, variable, point, order),
 
   Erfc(:final expr) =>
     PowerSeries(variable, point, const {0: IntegerNumber.one}, order) -
-        _expandErf(expr, variable, point, order),
+        expandErf(expr, variable, point, order),
 
-  Erfi(:final expr) => _expandErfi(expr, variable, point, order),
+  Erfi(:final expr) => expandErfi(expr, variable, point, order),
 
-  FresnelS(:final expr) => _expandFresnelS(expr, variable, point, order),
+  FresnelS(:final expr) => expandFresnelS(expr, variable, point, order),
 
-  FresnelC(:final expr) => _expandFresnelC(expr, variable, point, order),
+  FresnelC(:final expr) => expandFresnelC(expr, variable, point, order),
 
-  SinIntegral(:final expr) => _expandSinIntegralSi(
+  SinIntegral(:final expr) => expandSinIntegralSi(expr, variable, point, order),
+
+  SinhIntegral(:final expr) => expandSinhIntegralShi(
     expr,
     variable,
     point,
     order,
   ),
 
-  SinhIntegral(:final expr) => _expandSinhIntegralShi(
-    expr,
-    variable,
-    point,
-    order,
-  ),
-
-  Polylog(:final left, :final right) => _expandPolylog(
+  Polylog(:final left, :final right) => expandPolylog(
     expr,
     left,
     right,
@@ -649,14 +644,14 @@ PowerSeries _expandToPowerSeries(
     order,
   ),
 
-  EllipticK(expr: final inner) => _expandEllipticK(
+  EllipticK(expr: final inner) => expandEllipticK(
     expr,
     inner,
     variable,
     point,
     order,
   ),
-  EllipticE(expr: final inner, amplitude: null) => _expandEllipticE(
+  EllipticE(expr: final inner, amplitude: null) => expandEllipticE(
     expr,
     inner,
     variable,
@@ -676,15 +671,15 @@ PowerSeries _expandToPowerSeries(
   Hypergeometric() ||
   Min() ||
   Max() ||
-  Atan2() => _expandTaylorSeries(expr, variable, point, order),
+  Atan2() => expandTaylorSeries(expr, variable, point, order),
 
-  Asinh(:final expr) => _expandAsinh(expr, variable, point, order),
+  Asinh(:final expr) => expandAsinh(expr, variable, point, order),
 
-  Acosh(:final expr) => _expandAcosh(expr, variable, point, order),
+  Acosh(:final expr) => expandAcosh(expr, variable, point, order),
 
-  Atanh(:final expr) => _expandAtanh(expr, variable, point, order),
+  Atanh(:final expr) => expandAtanh(expr, variable, point, order),
 
-  Piecewise(:final branches, :final otherwise) => _expandPiecewise(
+  Piecewise(:final branches, :final otherwise) => expandPiecewise(
     branches,
     otherwise,
     variable,
@@ -692,19 +687,19 @@ PowerSeries _expandToPowerSeries(
     order,
   ),
 
-  Sign(:final expr) => _expandSign(expr, variable, point, order),
+  Sign(:final expr) => expandSign(expr, variable, point, order),
 
-  Floor(:final expr) => _expandFloor(expr, variable, point, order),
+  Floor(:final expr) => expandFloor(expr, variable, point, order),
 
-  Ceil(:final expr) => _expandCeil(expr, variable, point, order),
+  Ceil(:final expr) => expandCeil(expr, variable, point, order),
 
-  Round(:final expr) => _expandRound(expr, variable, point, order),
+  Round(:final expr) => expandRound(expr, variable, point, order),
 
-  Gamma(:final expr) => _expandGamma(expr, variable, point, order),
+  Gamma(:final expr) => expandGamma(expr, variable, point, order),
 
-  Digamma(:final expr) => _expandDigamma(expr, variable, point, order),
+  Digamma(:final expr) => expandDigamma(expr, variable, point, order),
 
-  Polygamma(:final left, :final right) => _expandPolygamma(
+  Polygamma(:final left, :final right) => expandPolygamma(
     left,
     right,
     variable,
@@ -714,10 +709,10 @@ PowerSeries _expandToPowerSeries(
 
   Zeta(expr: final s, :final shift) =>
     shift == null
-        ? _expandZeta(s, variable, point, order)
-        : _expandTaylorSeries(expr, variable, point, order),
+        ? expandZeta(s, variable, point, order)
+        : expandTaylorSeries(expr, variable, point, order),
 
-  BesselJ(:final left, :final right) => _expandBessel(
+  BesselJ(:final left, :final right) => expandBessel(
     left,
     right,
     variable,
@@ -725,7 +720,7 @@ PowerSeries _expandToPowerSeries(
     order,
     isModified: false,
   ),
-  BesselI(:final left, :final right) => _expandBessel(
+  BesselI(:final left, :final right) => expandBessel(
     left,
     right,
     variable,
@@ -733,20 +728,20 @@ PowerSeries _expandToPowerSeries(
     order,
     isModified: true,
   ),
-  Factorial(:final expr) => _expandGamma(
+  Factorial(:final expr) => expandGamma(
     (expr + IntegerNumber.one).simplify(),
     variable,
     point,
     order,
   ),
-  Beta(:final left, :final right) => _expandBeta(
+  Beta(:final left, :final right) => expandBeta(
     left,
     right,
     variable,
     point,
     order,
   ),
-  Binomial(:final left, :final right) => _expandBinomial(
+  Binomial(:final left, :final right) => expandBinomial(
     left,
     right,
     variable,
@@ -776,7 +771,7 @@ PowerSeries _expandToPowerSeries(
   ),
 };
 
-void _checkNoPole(PowerSeries u, String functionName) {
+void checkNoPole(PowerSeries u, String functionName) {
   if (u.valuation < 0) {
     throw UnsupportedError(
       'Essential singularity: cannot expand $functionName of a series with a pole of order ${-u.valuation}',
@@ -802,7 +797,7 @@ PowerSeries _expandMulFactors(
     return PowerSeries(variable, point, const {}, order);
   }
   if (factors.length == 1) {
-    return _expandToPowerSeries(factors[0], variable, point, order);
+    return expandToPowerSeries(factors[0], variable, point, order);
   }
   if (factors.length == 2) {
     return _expandBinaryMul(factors[0], factors[1], variable, point, order);
@@ -813,7 +808,7 @@ PowerSeries _expandMulFactors(
   var totalPoleOrder = 0;
 
   for (final factor in factors) {
-    final s = _expandToPowerSeries(factor, variable, point, order);
+    final s = expandToPowerSeries(factor, variable, point, order);
     final p = s.poleOrder;
     seriesList.add(s);
     poleOrders.add(p);
@@ -835,7 +830,7 @@ PowerSeries _expandMulFactors(
       boostedSeriesList.add(seriesList[i]);
     } else {
       boostedSeriesList.add(
-        _expandToPowerSeries(factors[i], variable, point, order + otherPoles),
+        expandToPowerSeries(factors[i], variable, point, order + otherPoles),
       );
     }
   }
@@ -854,29 +849,29 @@ PowerSeries _expandBinaryMul(
   Expr point,
   int order,
 ) {
-  final sLeft = _expandToPowerSeries(left, variable, point, order);
-  final sRight = _expandToPowerSeries(right, variable, point, order);
+  final sLeft = expandToPowerSeries(left, variable, point, order);
+  final sRight = expandToPowerSeries(right, variable, point, order);
   final p = sLeft.poleOrder;
   final q = sRight.poleOrder;
   if (p == 0 && q == 0) return sLeft * sRight;
   final boostedLeft = q == 0
       ? sLeft
-      : _expandToPowerSeries(left, variable, point, order + q);
+      : expandToPowerSeries(left, variable, point, order + q);
   final boostedRight = p == 0
       ? sRight
-      : _expandToPowerSeries(right, variable, point, order + p);
+      : expandToPowerSeries(right, variable, point, order + p);
   return boostedLeft * boostedRight;
 }
 
-PowerSeries _expandExp(Expr inner, String variable, Expr point, int order) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  return _expandExpFromSeries(u);
+PowerSeries expandExp(Expr inner, String variable, Expr point, int order) {
+  final u = expandToPowerSeries(inner, variable, point, order);
+  return expandExpFromSeries(u);
 }
 
-PowerSeries _expandExpFromSeries(PowerSeries u) {
-  _checkNoPole(u, 'exp');
+PowerSeries expandExpFromSeries(PowerSeries u) {
+  checkNoPole(u, 'exp');
   final u0 = u.constantTerm;
-  final isU0Zero = PowerSeries._isZero(u0);
+  final isU0Zero = PowerSeries.isZero(u0);
   final order = u.order;
 
   final q = <int, Expr>{};
@@ -887,12 +882,12 @@ PowerSeries _expandExpFromSeries(PowerSeries u) {
     for (var j = 1; j <= k; j++) {
       final uj = u.coefficients[j];
       final qj = q[k - j] ?? IntegerNumber.zero;
-      if (uj != null && !PowerSeries._isZero(uj) && !PowerSeries._isZero(qj)) {
+      if (uj != null && !PowerSeries.isZero(uj) && !PowerSeries.isZero(qj)) {
         final term = (IntegerNumber.of(j) * uj * qj).simplify();
         sum = (sum + term).simplify();
       }
     }
-    if (!PowerSeries._isZero(sum)) {
+    if (!PowerSeries.isZero(sum)) {
       q[k] = (sum / IntegerNumber.of(k)).simplify();
     }
   }
@@ -901,10 +896,10 @@ PowerSeries _expandExpFromSeries(PowerSeries u) {
 }
 
 PowerSeries _expandLn(Expr inner, String variable, Expr point, int order) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'ln');
+  final u = expandToPowerSeries(inner, variable, point, order);
+  checkNoPole(u, 'ln');
   final u0 = u.constantTerm;
-  if (PowerSeries._isZero(u0)) {
+  if (PowerSeries.isZero(u0)) {
     throw UnsupportedError(
       'Logarithmic singularity: cannot expand ln(u) when u(0) = 0',
     );
@@ -920,920 +915,15 @@ PowerSeries _expandLn(Expr inner, String variable, Expr point, int order) {
     for (var j = 1; j < k; j++) {
       final uj = u.coefficients[j];
       final qj = q[k - j] ?? IntegerNumber.zero;
-      if (uj != null && !PowerSeries._isZero(uj) && !PowerSeries._isZero(qj)) {
+      if (uj != null && !PowerSeries.isZero(uj) && !PowerSeries.isZero(qj)) {
         final term = (IntegerNumber.of(k - j) * uj * qj).simplify();
         sum = (sum + term).simplify();
       }
     }
     final adjusted = (uk - (sum / IntegerNumber.of(k))).simplify();
-    if (!PowerSeries._isZero(adjusted)) {
+    if (!PowerSeries.isZero(adjusted)) {
       q[k] = (invU0 * adjusted).simplify();
     }
   }
   return PowerSeries(variable, point, q, order);
 }
-
-PowerSeries _expandSin(Expr inner, String variable, Expr point, int order) =>
-    _expandSinCos(inner, variable, point, order).sin;
-
-PowerSeries _expandCos(Expr inner, String variable, Expr point, int order) =>
-    _expandSinCos(inner, variable, point, order).cos;
-
-({PowerSeries sin, PowerSeries cos}) _expandSinCos(
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'sin/cos');
-  return _expandSinCosFromSeries(u);
-}
-
-({PowerSeries sin, PowerSeries cos}) _expandSinCosFromSeries(PowerSeries u) {
-  final variable = u.variable;
-  final point = u.point;
-  final order = u.order;
-  final u0 = u.constantTerm;
-
-  final s = <int, Expr>{};
-  final c = <int, Expr>{};
-  s[0] = IntegerNumber.zero;
-  c[0] = IntegerNumber.one;
-
-  for (var k = 1; k < order; k++) {
-    Expr sumS = IntegerNumber.zero;
-    Expr sumC = IntegerNumber.zero;
-    for (var j = 1; j <= k; j++) {
-      final uj = u.coefficients[j];
-      if (uj != null && !PowerSeries._isZero(uj)) {
-        final weight = (IntegerNumber.of(j) * uj).simplify();
-        final cPrev = c[k - j] ?? IntegerNumber.zero;
-        if (!PowerSeries._isZero(cPrev)) {
-          sumS = (sumS + weight * cPrev).simplify();
-        }
-        final sPrev = s[k - j] ?? IntegerNumber.zero;
-        if (!PowerSeries._isZero(sPrev)) {
-          sumC = (sumC + weight * sPrev).simplify();
-        }
-      }
-    }
-    if (!PowerSeries._isZero(sumS)) {
-      s[k] = (sumS / IntegerNumber.of(k)).simplify();
-    }
-    if (!PowerSeries._isZero(sumC)) {
-      c[k] = (-(sumC / IntegerNumber.of(k))).simplify();
-    }
-  }
-
-  final sinBase = PowerSeries(variable, point, s, order);
-  final cosBase = PowerSeries(variable, point, c, order);
-
-  if (PowerSeries._isZero(u0)) {
-    return (sin: sinBase, cos: cosBase);
-  }
-  final sinVal = Sin(u0).simplify();
-  final cosVal = Cos(u0).simplify();
-  final sinFull = cosBase.scale(sinVal) + sinBase.scale(cosVal);
-  final cosFull = cosBase.scale(cosVal) - sinBase.scale(sinVal);
-  return (sin: sinFull, cos: cosFull);
-}
-
-({PowerSeries sinh, PowerSeries cosh}) _expandSinhCosh(
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'sinh/cosh');
-  return _expandSinhCoshFromSeries(u);
-}
-
-({PowerSeries sinh, PowerSeries cosh}) _expandSinhCoshFromSeries(
-  PowerSeries u,
-) {
-  final expU = _expandExpFromSeries(u);
-  final expNegU = _expandExpFromSeries(-u);
-  return (
-    sinh: (expU - expNegU).scale(FractionNumber.half),
-    cosh: (expU + expNegU).scale(FractionNumber.half),
-  );
-}
-
-PowerSeries _expandSinh(Expr inner, String variable, Expr point, int order) =>
-    _expandSinhCosh(inner, variable, point, order).sinh;
-
-PowerSeries _expandCosh(Expr inner, String variable, Expr point, int order) =>
-    _expandSinhCosh(inner, variable, point, order).cosh;
-
-PowerSeries _expandAtan(Expr inner, String variable, Expr point, int order) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'atan');
-  final u0 = u.constantTerm;
-  final uPrime = u.derivative();
-  final denom =
-      PowerSeries(variable, point, {0: IntegerNumber.one}, order) + (u * u);
-  final deriv = uPrime / denom;
-  final constant = Atan(u0).simplify();
-  return deriv.integrate(constant: constant);
-}
-
-PowerSeries _expandAsin(Expr inner, String variable, Expr point, int order) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'asin');
-  final u0 = u.constantTerm;
-  final uPrime = u.derivative();
-  final oneMinusU2 =
-      PowerSeries(variable, point, {0: IntegerNumber.one}, order) - (u * u);
-  if (PowerSeries._isZero(oneMinusU2.constantTerm)) {
-    throw UnsupportedError('Branch point singularity');
-  }
-  final invSqrt = oneMinusU2.pow(FractionNumber.negativeHalf);
-  final deriv = uPrime * invSqrt;
-  final constant = Asin(u0).simplify();
-  return deriv.integrate(constant: constant);
-}
-
-PowerSeries _expandPow(
-  Expr base,
-  Expr exponent,
-  String variable,
-  Expr point,
-  int order,
-) {
-  if (!exponent.dependsOn(variable)) {
-    final expSimp = exponent.simplify();
-    final sBase = _expandToPowerSeries(base, variable, point, order);
-    if (expSimp is IntegerNumber) {
-      if (expSimp.isNegative) {
-        final k = -(expSimp.asInt ?? 1);
-        final m = sBase.valuation;
-        if (m > 0) {
-          final boostedBase = _expandToPowerSeries(
-            base,
-            variable,
-            point,
-            order + 2 * k * m,
-          );
-          return boostedBase.pow(expSimp);
-        }
-      } else {
-        final n = expSimp.asInt;
-        final m = sBase.valuation;
-        if (n != null && n > 1 && m < 0) {
-          final boostedBase = _expandToPowerSeries(
-            base,
-            variable,
-            point,
-            order + (n - 1) * (-m),
-          );
-          return boostedBase.pow(expSimp);
-        }
-      }
-    }
-    return sBase.pow(expSimp);
-  }
-  return _expandExp(exponent * Ln(base), variable, point, order);
-}
-
-PowerSeries _expandAbs(Expr inner, String variable, Expr point, int order) {
-  final sInner = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(sInner, 'abs');
-  final c0 = sInner.constantTerm;
-  if (c0 is RealNumeric) {
-    if (c0.sign > 0) return sInner;
-    if (c0.sign < 0) return -sInner;
-  }
-  if (!c0.dependsOn(variable) && c0.freeVariables.isEmpty) {
-    try {
-      final val = c0.evaluate();
-      if (val > 0) return sInner;
-      if (val < 0) return -sInner;
-    } on Object {
-      // Fall through
-    }
-  }
-  throw UnsupportedError('abs is non-differentiable at zero');
-}
-
-RationalNumber _lambertWMaclaurinCoeff(int k) {
-  final numBig = BigInt.from(k).pow(k - 1);
-  final denBig = Integer.from(k).factorial().toBigInt();
-  final g = numBig.gcd(denBig);
-  var numRed = Integer.big(numBig ~/ g);
-  final denRed = Integer.big(denBig ~/ g);
-  if ((k - 1).isOdd) {
-    numRed = -numRed;
-  }
-  return RationalNumber.of(numRed, denRed);
-}
-
-PowerSeries _expandLambertW(
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'lambertw');
-  final c0 = u.constantTerm.simplify();
-  if (c0 == (-Pow(Constant.e, IntegerNumber.negativeOne)).simplify()) {
-    throw UnsupportedError('LambertW branch point at -1/e');
-  }
-  if (!PowerSeries._isZero(c0)) {
-    return _expandTaylorSeries(LambertW(inner), variable, point, order);
-  }
-  if (u.coefficients.isEmpty) {
-    return PowerSeries(variable, point, const {}, order);
-  }
-  var res = PowerSeries(variable, point, const {}, order);
-  var uPow = PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
-  final val = u.valuation;
-  for (var k = 1; k * val < order; k++) {
-    uPow = uPow * u;
-    final ck = _lambertWMaclaurinCoeff(k);
-    res = res + uPow.scale(ck);
-  }
-  return res;
-}
-
-PowerSeries _expandErf(Expr inner, String variable, Expr point, int order) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'erf');
-  final u0 = u.constantTerm;
-  final uPrime = u.derivative();
-  final expNegU2 = _expandExpFromSeries(-(u * u));
-  final factor = IntegerNumber.two / Pow(Constant.pi, FractionNumber.half);
-  final deriv = (uPrime * expNegU2).scale(factor);
-  final constant = Erf(u0).simplify();
-  return deriv.integrate(constant: constant);
-}
-
-PowerSeries _expandErfi(Expr inner, String variable, Expr point, int order) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'erfi');
-  final u0 = u.constantTerm;
-  final uPrime = u.derivative();
-  final expU2 = _expandExpFromSeries(u * u);
-  final factor = IntegerNumber.two / Pow(Constant.pi, FractionNumber.half);
-  final deriv = (uPrime * expU2).scale(factor);
-  final constant = Erfi(u0).simplify();
-  return deriv.integrate(constant: constant);
-}
-
-PowerSeries _expandFresnelS(
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'fresnelS');
-  final u0 = u.constantTerm;
-  final uPrime = u.derivative();
-  final arg = (u * u).scale(Constant.pi * FractionNumber.half);
-  final sinArg = _expandSinCosFromSeries(arg).sin;
-  final deriv = uPrime * sinArg;
-  final constant = FresnelS(u0).simplify();
-  return deriv.integrate(constant: constant);
-}
-
-PowerSeries _expandFresnelC(
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'fresnelC');
-  final u0 = u.constantTerm;
-  final uPrime = u.derivative();
-  final arg = (u * u).scale(Constant.pi * FractionNumber.half);
-  final cosArg = _expandSinCosFromSeries(arg).cos;
-  final deriv = uPrime * cosArg;
-  final constant = FresnelC(u0).simplify();
-  return deriv.integrate(constant: constant);
-}
-
-PowerSeries _expandSinIntegralSi(
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) => _expandHyperbolicOrTrigIntegral(
-  inner,
-  variable,
-  point,
-  order,
-  name: 'Si',
-  alternating: true,
-  evaluateAt: (u0) => SinIntegral(u0).simplify(),
-  numeratorSeries: (u) => _expandSinCosFromSeries(u).sin,
-);
-
-PowerSeries _expandSinhIntegralShi(
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) => _expandHyperbolicOrTrigIntegral(
-  inner,
-  variable,
-  point,
-  order,
-  name: 'Shi',
-  alternating: false,
-  evaluateAt: (u0) => SinhIntegral(u0).simplify(),
-  numeratorSeries: (u) => _expandSinhCoshFromSeries(u).sinh,
-);
-
-PowerSeries _expandHyperbolicOrTrigIntegral(
-  Expr inner,
-  String variable,
-  Expr point,
-  int order, {
-  required String name,
-  required bool alternating,
-  required Expr Function(Expr) evaluateAt,
-  required PowerSeries Function(PowerSeries) numeratorSeries,
-}) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, name);
-  final u0 = u.constantTerm;
-  if (!PowerSeries._isZero(u0)) {
-    final uPrime = u.derivative();
-    final deriv = uPrime * (numeratorSeries(u) / u);
-    return deriv.integrate(constant: evaluateAt(u0));
-  }
-  if (u.coefficients.isEmpty) {
-    return PowerSeries(variable, point, const {}, order);
-  }
-  final m = u.valuation;
-  var result = PowerSeries(variable, point, const {}, order);
-  var power = u;
-  final uSquared = u * u;
-  var fact = BigInt.one;
-  for (var k = 0; (2 * k + 1) * m < order; k++) {
-    final n = 2 * k + 1;
-    if (k > 0) {
-      fact *= BigInt.from(2 * k) * BigInt.from(n);
-      power = power * uSquared;
-    }
-    final denom = IntegerNumber(Integer.big(BigInt.from(n) * fact));
-    final coeff =
-        (alternating && k.isOdd
-                ? -IntegerNumber.one / denom
-                : IntegerNumber.one / denom)
-            .simplify();
-    result = result + power.scale(coeff);
-  }
-  return result;
-}
-
-PowerSeries _expandPolylog(
-  Expr expr,
-  Expr s,
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) {
-  if (!s.dependsOn(variable)) {
-    final u = _expandToPowerSeries(inner, variable, point, order);
-    _checkNoPole(u, 'polylog');
-    if (PowerSeries._isZero(u.constantTerm)) {
-      if (u.coefficients.isEmpty) {
-        return PowerSeries(variable, point, const {}, order);
-      }
-      final m = u.valuation;
-      var result = PowerSeries(variable, point, const {}, order);
-      var power = u;
-      for (var k = 1; k * m < order; k++) {
-        if (k > 1) {
-          power = power * u;
-        }
-        final coeff = Pow(IntegerNumber.of(k), -s).simplify();
-        result = result + power.scale(coeff);
-      }
-      return result;
-    }
-  }
-  return _expandTaylorSeries(expr, variable, point, order);
-}
-
-PowerSeries _expandEllipticK(
-  Expr expr,
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) => _expandCompleteElliptic(
-  expr,
-  inner,
-  variable,
-  point,
-  order,
-  isSecondKind: false,
-);
-
-PowerSeries _expandEllipticE(
-  Expr expr,
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) => _expandCompleteElliptic(
-  expr,
-  inner,
-  variable,
-  point,
-  order,
-  isSecondKind: true,
-);
-
-PowerSeries _expandCompleteElliptic(
-  Expr expr,
-  Expr inner,
-  String variable,
-  Expr point,
-  int order, {
-  required bool isSecondKind,
-}) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, isSecondKind ? 'ellipticE' : 'ellipticK');
-  if (!PowerSeries._isZero(u.constantTerm)) {
-    return _expandTaylorSeries(expr, variable, point, order);
-  }
-  final piHalf = (Constant.pi * FractionNumber.half).simplify();
-  var result = PowerSeries(variable, point, {0: piHalf}, order);
-  if (u.coefficients.isEmpty) {
-    return result;
-  }
-  final u2 = u * u;
-  if (u2.coefficients.isEmpty) {
-    return result;
-  }
-  final m2 = u2.valuation;
-  var power = PowerSeries(variable, point, {0: IntegerNumber.one}, order);
-  var sqCoeff = IntegerNumber.one as Expr;
-  for (var n = 1; n * m2 < order; n++) {
-    power = power * u2;
-    final ratio = IntegerNumber.of(2 * n - 1) / IntegerNumber.of(2 * n);
-    sqCoeff = (sqCoeff * ratio * ratio).simplify();
-    final termCoeff = isSecondKind
-        ? (piHalf * sqCoeff / IntegerNumber.of(1 - 2 * n)).simplify()
-        : (piHalf * sqCoeff).simplify();
-    result = result + power.scale(termCoeff);
-  }
-  return result;
-}
-
-PowerSeries _expandAsinh(Expr inner, String variable, Expr point, int order) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'asinh');
-  final u0 = u.constantTerm;
-  final uPrime = u.derivative();
-  final onePlusU2 =
-      PowerSeries(variable, point, const {0: IntegerNumber.one}, order) +
-      (u * u);
-  final invSqrt = onePlusU2.pow(FractionNumber.negativeHalf);
-  final deriv = uPrime * invSqrt;
-  final constant = Asinh(u0).simplify();
-  return deriv.integrate(constant: constant);
-}
-
-PowerSeries _expandAcosh(Expr inner, String variable, Expr point, int order) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'acosh');
-  final u0 = u.constantTerm;
-  if (!u0.dependsOn(variable)) {
-    try {
-      if (u0.evaluate(const {}) <= 1.0) {
-        throw UnsupportedError(
-          'Acosh series requires inner constant term > 1 (got $u0)',
-        );
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on Object {
-      // Ignore numeric evaluation errors on symbolic constants
-    }
-  }
-  final uPrime = u.derivative();
-  final u2MinusOne =
-      (u * u) -
-      PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
-  if (PowerSeries._isZero(u2MinusOne.constantTerm)) {
-    throw UnsupportedError('Branch point singularity');
-  }
-  final invSqrt = u2MinusOne.pow(FractionNumber.negativeHalf);
-  final deriv = uPrime * invSqrt;
-  final constant = Acosh(u0).simplify();
-  return deriv.integrate(constant: constant);
-}
-
-PowerSeries _expandAtanh(Expr inner, String variable, Expr point, int order) {
-  final u = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(u, 'atanh');
-  final u0 = u.constantTerm;
-  final uPrime = u.derivative();
-  final oneMinusU2 =
-      PowerSeries(variable, point, const {0: IntegerNumber.one}, order) -
-      (u * u);
-  if (PowerSeries._isZero(oneMinusU2.constantTerm)) {
-    throw UnsupportedError('Branch point singularity');
-  }
-  final deriv = uPrime / oneMinusU2;
-  final constant = Atanh(u0).simplify();
-  return deriv.integrate(constant: constant);
-}
-
-PowerSeries _expandPiecewise(
-  List<PiecewiseBranch> branches,
-  Expr? otherwise,
-  String variable,
-  Expr point,
-  int order,
-) {
-  if (!point.dependsOn(variable)) {
-    try {
-      final ptVal = point.evaluate(const {});
-      for (final (:relation, :expr) in branches) {
-        final atPt = relation.evaluate({variable: ptVal});
-        final leftVal = relation.evaluate({variable: ptVal - 1e-7});
-        final rightVal = relation.evaluate({variable: ptVal + 1e-7});
-        if (atPt != leftVal || atPt != rightVal) {
-          throw UnsupportedError(
-            'Piecewise expression is not analytic at boundary point $point',
-          );
-        }
-        if (atPt == 1.0) {
-          return _expandToPowerSeries(expr, variable, point, order);
-        }
-      }
-      if (otherwise != null) {
-        return _expandToPowerSeries(otherwise, variable, point, order);
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on Object {
-      // Fall through if point is not numerically evaluable
-    }
-  }
-  throw UnsupportedError(
-    'Power series expansion not supported for Piecewise at $point',
-  );
-}
-
-PowerSeries _expandSign(Expr inner, String variable, Expr point, int order) {
-  final sInner = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(sInner, 'sign');
-  final c0 = sInner.constantTerm;
-  if (PowerSeries._isZero(c0)) {
-    throw UnsupportedError('Sign is non-differentiable at zero');
-  }
-  if (c0.freeVariables.isEmpty) {
-    try {
-      final v = c0.evaluate();
-      if (v == 0.0) {
-        throw UnsupportedError('Sign is non-differentiable at zero');
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on Object {
-      // Ignore evaluation errors
-    }
-  }
-  return PowerSeries(variable, point, {0: Sign(c0).simplify()}, order);
-}
-
-PowerSeries _expandFloor(Expr inner, String variable, Expr point, int order) {
-  final sInner = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(sInner, 'floor');
-  final c0 = sInner.constantTerm;
-  if (c0 is IntegerNumber) {
-    throw UnsupportedError('Floor is discontinuous at integers');
-  }
-  if (c0.freeVariables.isEmpty) {
-    try {
-      final v = c0.evaluate();
-      if (v == v.floorToDouble()) {
-        throw UnsupportedError('Floor is discontinuous at integers');
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on Object {
-      // Ignore evaluation errors
-    }
-  }
-  return PowerSeries(variable, point, {0: Floor(c0).simplify()}, order);
-}
-
-PowerSeries _expandCeil(Expr inner, String variable, Expr point, int order) {
-  final sInner = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(sInner, 'ceil');
-  final c0 = sInner.constantTerm;
-  if (c0 is IntegerNumber) {
-    throw UnsupportedError('Ceil is discontinuous at integers');
-  }
-  if (c0.freeVariables.isEmpty) {
-    try {
-      final v = c0.evaluate();
-      if (v == v.ceilToDouble()) {
-        throw UnsupportedError('Ceil is discontinuous at integers');
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on Object {
-      // Ignore evaluation errors
-    }
-  }
-  return PowerSeries(variable, point, {0: Ceil(c0).simplify()}, order);
-}
-
-PowerSeries _expandRound(Expr inner, String variable, Expr point, int order) {
-  final sInner = _expandToPowerSeries(inner, variable, point, order);
-  _checkNoPole(sInner, 'round');
-  final c0 = sInner.constantTerm;
-  if (c0.freeVariables.isEmpty) {
-    try {
-      final v = c0.evaluate();
-      if ((v - 0.5) == (v - 0.5).floorToDouble()) {
-        throw UnsupportedError('Round is discontinuous at half-integers');
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on Object {
-      // Ignore evaluation errors
-    }
-  }
-  return PowerSeries(variable, point, {0: Round(c0).simplify()}, order);
-}
-
-PowerSeries _expandTaylorSeries(
-  Expr expr,
-  String variable,
-  Expr point,
-  int order, {
-  void Function(Expr atPoint)? checkSingularity,
-}) {
-  final coeffs = <int, Expr>{};
-  var currentDeriv = expr;
-  var currentFact = BigInt.one;
-
-  for (var k = 0; k < order; k++) {
-    if (k > 0) {
-      currentFact *= BigInt.from(k);
-    }
-    final atPoint = currentDeriv.substitute(variable, point).simplify();
-    if (k == 0 && checkSingularity != null) {
-      checkSingularity(atPoint);
-    }
-    if (atPoint == Constant.undefined) {
-      throw UnsupportedError('Function is non-analytic or undefined at $point');
-    }
-    if (!PowerSeries._isZero(atPoint)) {
-      final coeff = (atPoint / IntegerNumber(Integer.big(currentFact)))
-          .simplify();
-      if (!PowerSeries._isZero(coeff)) {
-        coeffs[k] = coeff;
-      }
-    }
-    if (k < order - 1) {
-      currentDeriv = currentDeriv.derivative(variable).simplify();
-    }
-  }
-  return PowerSeries(variable, point, coeffs, order);
-}
-
-PowerSeries _expandGamma(Expr inner, String variable, Expr point, int order) {
-  void checkGammaPole(Expr atPoint) {
-    final u0 = inner.substitute(variable, point).simplify();
-    if (u0 is IntegerNumber && u0.value <= Integer.zero) {
-      throw UnsupportedError('Gamma has poles at non-positive integers ($u0)');
-    }
-    if (u0.freeVariables.isEmpty) {
-      try {
-        final val = u0.evaluate();
-        if (val <= 0.0 && val == val.floorToDouble()) {
-          throw UnsupportedError(
-            'Gamma has poles at non-positive integers ($val)',
-          );
-        }
-      } on UnsupportedError {
-        rethrow;
-      } on Object {
-        // Ignore evaluation errors
-      }
-    }
-  }
-
-  return _expandTaylorSeries(
-    Gamma(inner),
-    variable,
-    point,
-    order,
-    checkSingularity: checkGammaPole,
-  );
-}
-
-PowerSeries _expandDigamma(Expr inner, String variable, Expr point, int order) {
-  void checkDigammaPole(Expr atPoint) {
-    final u0 = inner.substitute(variable, point).simplify();
-    if (u0 is IntegerNumber && u0.value <= Integer.zero) {
-      throw UnsupportedError(
-        'Digamma has poles at non-positive integers ($u0)',
-      );
-    }
-    if (u0.freeVariables.isEmpty) {
-      try {
-        final val = u0.evaluate();
-        if (val <= 0.0 && val == val.floorToDouble()) {
-          throw UnsupportedError(
-            'Digamma has poles at non-positive integers ($val)',
-          );
-        }
-      } on UnsupportedError {
-        rethrow;
-      } on Object {
-        // Ignore evaluation errors
-      }
-    }
-  }
-
-  return _expandTaylorSeries(
-    Digamma(inner),
-    variable,
-    point,
-    order,
-    checkSingularity: checkDigammaPole,
-  );
-}
-
-PowerSeries _expandPolygamma(
-  Expr m,
-  Expr inner,
-  String variable,
-  Expr point,
-  int order,
-) {
-  void checkPolygammaPole(Expr atPoint) {
-    final u0 = inner.substitute(variable, point).simplify();
-    if (u0 is IntegerNumber && u0.value <= Integer.zero) {
-      throw UnsupportedError(
-        'Polygamma has poles at non-positive integers ($u0)',
-      );
-    }
-    if (u0.freeVariables.isEmpty) {
-      try {
-        final val = u0.evaluate();
-        if (val <= 0.0 && val == val.floorToDouble()) {
-          throw UnsupportedError(
-            'Polygamma has poles at non-positive integers ($val)',
-          );
-        }
-      } on UnsupportedError {
-        rethrow;
-      } on Object {
-        // Ignore evaluation errors
-      }
-    }
-  }
-
-  return _expandTaylorSeries(
-    Polygamma(m, inner),
-    variable,
-    point,
-    order,
-    checkSingularity: checkPolygammaPole,
-  );
-}
-
-PowerSeries _expandZeta(Expr inner, String variable, Expr point, int order) {
-  void checkZetaPole(Expr atPoint) {
-    final u0 = inner.substitute(variable, point).simplify();
-    if (u0 == IntegerNumber.one) {
-      throw UnsupportedError('Zeta has a pole at 1');
-    }
-    if (u0.freeVariables.isEmpty) {
-      try {
-        final val = u0.evaluate();
-        if (val == 1.0) {
-          throw UnsupportedError('Zeta has a pole at 1');
-        }
-      } on UnsupportedError {
-        rethrow;
-      } on Object {
-        // Ignore evaluation errors
-      }
-    }
-  }
-
-  return _expandTaylorSeries(
-    Zeta(inner),
-    variable,
-    point,
-    order,
-    checkSingularity: checkZetaPole,
-  );
-}
-
-PowerSeries _expandBessel(
-  Expr nu,
-  Expr inner,
-  String variable,
-  Expr point,
-  int order, {
-  required bool isModified,
-}) {
-  final fnName = isModified ? 'BesselI' : 'BesselJ';
-  void checkBesselSingularity(Expr atPoint) {
-    final u0 = inner.substitute(variable, point).simplify();
-    final isNuInt =
-        nu is IntegerNumber ||
-        (nu.freeVariables.isEmpty &&
-            () {
-              try {
-                final v = nu.evaluate();
-                return v == v.floorToDouble();
-              } on Object {
-                return false;
-              }
-            }());
-    if (PowerSeries._isZero(u0) && !isNuInt) {
-      throw UnsupportedError(
-        '$fnName has a branch point at zero for non-integer orders',
-      );
-    }
-  }
-
-  return _expandTaylorSeries(
-    isModified ? BesselI(nu, inner) : BesselJ(nu, inner),
-    variable,
-    point,
-    order,
-    checkSingularity: checkBesselSingularity,
-  );
-}
-
-PowerSeries _expandBeta(
-  Expr left,
-  Expr right,
-  String variable,
-  Expr point,
-  int order,
-) {
-  void checkBetaPole(Expr atPoint) {
-    for (final arg in [left, right]) {
-      final vExpr = arg.substitute(variable, point).simplify();
-      if (vExpr is IntegerNumber && (vExpr.isZero || vExpr.isNegative)) {
-        throw UnsupportedError(
-          'Beta has a pole at non-positive integer $vExpr',
-        );
-      }
-    }
-  }
-
-  return _expandTaylorSeries(
-    Beta(left, right),
-    variable,
-    point,
-    order,
-    checkSingularity: checkBetaPole,
-  );
-}
-
-PowerSeries _expandBinomial(
-  Expr left,
-  Expr right,
-  String variable,
-  Expr point,
-  int order,
-) {
-  if (right case IntegerNumber(asInt: final k?) when k >= 0 && k <= 20) {
-    if (k == 0) {
-      return PowerSeries(variable, point, {0: IntegerNumber.one}, order);
-    }
-    var acc = _expandToPowerSeries(left, variable, point, order);
-    for (var j = 1; j < k; j++) {
-      final factor = _expandToPowerSeries(
-        (left - IntegerNumber.of(j)).simplify(),
-        variable,
-        point,
-        order,
-      );
-      acc = acc * factor;
-    }
-    final invFact = RationalNumber.of(Integer.one, Integer.from(k).factorial());
-    return acc.scale(invFact);
-  }
-  final gammaExpr =
-      (Gamma(left + IntegerNumber.one) /
-              (Gamma(right + IntegerNumber.one) *
-                  Gamma(left - right + IntegerNumber.one)))
-          .simplify();
-  return _expandTaylorSeries(gammaExpr, variable, point, order);
-}
-
-Expr _wrapSeriesPoint(Object point) => Expr.wrap(point);

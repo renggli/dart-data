@@ -1,10 +1,10 @@
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
+import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/multiplicative.dart';
 import '../algebra/simplify/transcendental.dart';
-import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../number/integer.dart';

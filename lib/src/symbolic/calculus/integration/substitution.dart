@@ -1,13 +1,14 @@
 import '../../algebra/expand.dart';
+import '../../algebra/helpers.dart';
 import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
-import '../../algebra/term_accumulator.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
+import 'integration_elementary.dart';
 
 /// Attempts exponential substitution `u = B^(alpha_0 * x)` for rational or
 /// algebraic integrands whose variable dependence is confined to `B^(a_i*x + b_i)`.

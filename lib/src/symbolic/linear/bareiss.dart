@@ -3,9 +3,9 @@ import '../../linear/vector.dart';
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/factor/fraction.dart';
+import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
-import '../algebra/term_accumulator.dart';
 import '../ast.dart';
 import '../type/expr_data_type.dart';
 

@@ -1,9 +1,9 @@
 import '../algebra/approximate.dart';
 import '../algebra/factor.dart';
+import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/domain.dart';
-import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';

@@ -8,6 +8,7 @@ import 'domain.dart';
 import 'multiplicative.dart';
 import 'power.dart';
 import 'special.dart';
+import 'special_integrals.dart';
 import 'transcendental.dart';
 
 /// Simplifies a real-part expression `re(z)`.

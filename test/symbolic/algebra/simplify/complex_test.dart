@@ -3,6 +3,7 @@ import 'package:data/src/symbolic/algebra/simplify/complex.dart';
 import 'package:data/src/symbolic/algebra/simplify/discrete.dart';
 import 'package:data/src/symbolic/algebra/simplify/domain.dart';
 import 'package:data/src/symbolic/algebra/simplify/special.dart';
+import 'package:data/src/symbolic/algebra/simplify/special_integrals.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
 import 'package:data/src/symbolic/algebra/structural_order.dart';
 import 'package:data/symbolic.dart';

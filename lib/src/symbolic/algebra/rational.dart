@@ -7,6 +7,7 @@ import '../type/expr_data_type.dart';
 import 'expand.dart';
 import 'factor.dart';
 import 'factor/fraction.dart';
+import 'helpers.dart';
 import 'simplify.dart';
 import 'simplify/additive.dart';
 import 'simplify/multiplicative.dart';

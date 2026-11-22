@@ -1,9 +1,9 @@
 import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
 import '../algebra/expand.dart';
+import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
-import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/differentiation.dart';

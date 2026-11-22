@@ -5,6 +5,7 @@ import '../../ast.dart';
 import '../../number/integer.dart';
 import '../expand.dart';
 import '../factor.dart';
+import '../helpers.dart';
 import '../simplify.dart';
 import '../simplify/additive.dart';
 import '../simplify/multiplicative.dart';
