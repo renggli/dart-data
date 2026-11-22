@@ -350,4 +350,66 @@ void main() {
           .isCloseTo(1.4674622093394272, 1e-12);
     });
   });
+
+  group('Hypergeometric, ExpIntegralE, Hurwitz Zeta, Min, and Max', () {
+    test(
+      'simplifies, differentiates, evaluates, and formats Hypergeometric',
+      () {
+        final h = Expr.parse('hyper([1, 2], [3], x)');
+        check(h).isA<Hypergeometric>();
+        check(h.toString()).equals('hyper([1, 2], [3], x)');
+        check(Expr.parse('hyper([1, 2], [3], 0)').simplify())
+            .equals(IntegerNumber.one);
+        check(Expr.parse('hyper([1, 2], [2, 3], x)').simplify())
+            .equals(Expr.parse('hyper([1], [3], x)'));
+        check(h.evaluate({'x': 0.5})).isCloseTo(1.5451774444795623, 1e-10);
+        final dh = h.derivative('x');
+        final fd =
+            (h.evaluate({'x': 0.4 + 1e-6}) - h.evaluate({'x': 0.4 - 1e-6})) /
+            2e-6;
+        check(dh.evaluate({'x': 0.4})).isCloseTo(fd, 1e-6);
+      },
+    );
+
+    test('simplifies, differentiates, evaluates, and formats ExpIntegralE', () {
+      const x = Variable('x');
+      final e2 = Expr.parse('expint(2, x)');
+      check(e2).isA<ExpIntegralE>();
+      check(e2.toString()).equals('expint(2, x)');
+      check(Expr.parse('expint(0, x)').simplify())
+          .equals(Expr.parse('exp(-x) / x').simplify());
+      check(e2.evaluate({'x': 1.0})).isCloseTo(0.14849550677592205, 1e-10);
+      check(e2.derivative('x')).equals(-ExpIntegralE(IntegerNumber.one, x));
+    });
+
+    test('simplifies, differentiates, and evaluates Hurwitz Zeta', () {
+      const x = Variable('x');
+      final hz = Expr.parse('zeta(3, x)');
+      check(hz).isA<Zeta>();
+      check(hz.toString()).equals('zeta(3, x)');
+      check(Expr.parse('zeta(3, 1)').simplify())
+          .equals(Zeta(IntegerNumber.of(3)));
+      check(hz.evaluate({'x': 1.0})).isCloseTo(1.202056903159594, 1e-10);
+      check(hz.evaluate({'x': 2.0})).isCloseTo(0.202056903159594, 1e-10);
+      check(hz.derivative('x')).equals(
+        (-IntegerNumber.of(3) * Zeta(IntegerNumber.of(4), shift: x)).simplify(),
+      );
+    });
+
+    test('simplifies, differentiates, evaluates, and formats Min and Max', () {
+      const x = Variable('x');
+      final mn = Expr.parse('min(x, 3, 5)').simplify();
+      final mx = Expr.parse('max(x, 3, 5)').simplify();
+      check(mn).equals(Min([IntegerNumber.of(3), x]));
+      check(mx).equals(Max([IntegerNumber.of(5), x]));
+      check(mn.evaluate({'x': 1.0})).equals(1.0);
+      check(mn.evaluate({'x': 4.0})).equals(3.0);
+      check(mx.evaluate({'x': 1.0})).equals(5.0);
+      check(mx.evaluate({'x': 8.0})).equals(8.0);
+      check(Min([x, IntegerNumber.two]).derivative('x').evaluate({'x': 1.0}))
+          .isCloseTo(1.0, 1e-12);
+      check(Max([x, IntegerNumber.two]).derivative('x').evaluate({'x': 1.0}))
+          .isCloseTo(0.0, 1e-12);
+    });
+  });
 }

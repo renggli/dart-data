@@ -92,7 +92,10 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
     Erf(:final expr) => 'erf(${_formatExpr(expr, 0, decimalPlaces)})',
     Erfc(:final expr) => 'erfc(${_formatExpr(expr, 0, decimalPlaces)})',
     Gamma(:final expr) => 'gamma(${_formatExpr(expr, 0, decimalPlaces)})',
-    Zeta(:final expr) => 'zeta(${_formatExpr(expr, 0, decimalPlaces)})',
+    Zeta(:final expr, :final shift) =>
+      shift == null
+          ? 'zeta(${_formatExpr(expr, 0, decimalPlaces)})'
+          : 'zeta(${_formatExpr(expr, 0, decimalPlaces)}, ${_formatExpr(shift, 0, decimalPlaces)})',
     Digamma(:final expr) => 'digamma(${_formatExpr(expr, 0, decimalPlaces)})',
     Polygamma(:final left, :final right) =>
       'polygamma(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
@@ -112,6 +115,8 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
     FresnelS(:final expr) => 'fresnels(${_formatExpr(expr, 0, decimalPlaces)})',
     FresnelC(:final expr) => 'fresnelc(${_formatExpr(expr, 0, decimalPlaces)})',
     ExpIntegralEi(:final expr) => 'Ei(${_formatExpr(expr, 0, decimalPlaces)})',
+    ExpIntegralE(:final left, :final right) =>
+      'expint(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     LogIntegralLi(:final expr) => 'li(${_formatExpr(expr, 0, decimalPlaces)})',
     SinIntegralSi(:final expr) => 'Si(${_formatExpr(expr, 0, decimalPlaces)})',
     CosIntegralCi(:final expr) => 'Ci(${_formatExpr(expr, 0, decimalPlaces)})',
@@ -131,6 +136,12 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
       'elliptic_e(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
       'elliptic_pi(${_formatExpr(characteristic, 0, decimalPlaces)}, ${_formatExpr(amplitude, 0, decimalPlaces)}, ${_formatExpr(modulus, 0, decimalPlaces)})',
+    Hypergeometric(:final upper, :final lower, :final argument) =>
+      'hyper([${upper.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')}], [${lower.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')}], ${_formatExpr(argument, 0, decimalPlaces)})',
+    Min(:final args) =>
+      'min(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
+    Max(:final args) =>
+      'max(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
     Beta(:final left, :final right) =>
       'beta(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     Factorial(:final expr) => '${_formatExpr(expr, 5, decimalPlaces)}!',

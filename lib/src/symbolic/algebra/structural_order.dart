@@ -82,6 +82,10 @@ int nodeTag(Expr expr) => switch (expr) {
   EllipticEIncomplete() => 72,
   Atan2() => 73,
   EllipticPi() => 74,
+  ExpIntegralE() => 75,
+  Hypergeometric() => 76,
+  Min() => 77,
+  Max() => 78,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.
@@ -114,6 +118,11 @@ int compareStructural(Expr a, Expr b) {
       ua.expr,
       ub.expr,
     ),
+    (final Zeta za, final Zeta zb) => () {
+      final cmpExpr = compareStructural(za.expr, zb.expr);
+      if (cmpExpr != 0) return cmpExpr;
+      return _compareNullable(za.shift, zb.shift);
+    }(),
     (final BinaryExpr ba, final BinaryExpr bb) => () {
       final cmpLeft = compareStructural(ba.left, bb.left);
       if (cmpLeft != 0) return cmpLeft;
@@ -126,6 +135,15 @@ int compareStructural(Expr a, Expr b) {
       if (cmpPhi != 0) return cmpPhi;
       return compareStructural(pa.modulus, pb.modulus);
     }(),
+    (final Hypergeometric ha, final Hypergeometric hb) => () {
+      final cmpU = _compareList(ha.upper, hb.upper);
+      if (cmpU != 0) return cmpU;
+      final cmpL = _compareList(ha.lower, hb.lower);
+      if (cmpL != 0) return cmpL;
+      return compareStructural(ha.argument, hb.argument);
+    }(),
+    (final Min ma, final Min mb) => _compareList(ma.args, mb.args),
+    (final Max ma, final Max mb) => _compareList(ma.args, mb.args),
     (final Add aa, final Add ab) => _compareList(aa.terms, ab.terms),
     (final Mul ma, final Mul mb) => _compareList(ma.factors, mb.factors),
     (final Integral ia, final Integral ib) => () {

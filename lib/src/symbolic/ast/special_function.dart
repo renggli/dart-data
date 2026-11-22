@@ -99,13 +99,50 @@ final class Mod extends BinaryExpr {
   Expr _withOperands(Expr left, Expr right) => Mod(left, right);
 }
 
-/// Riemann zeta function node: $\zeta(s) = \sum_{n=1}^\infty \frac{1}{n^s}$.
-final class Zeta extends UnaryExpr {
-  /// Creates a Riemann zeta function node $\zeta(\text{expr})$.
-  new(super.expr, {super.isSimplified = false});
+/// Riemann or Hurwitz zeta function node: `zeta(s)` or `zeta(s, a)`.
+final class Zeta extends Expr {
+  /// Creates a Riemann (`shift == null`) or Hurwitz zeta function node.
+  new(this.expr, {this.shift, this.isSimplified = false});
+
+  /// The exponent argument `s`.
+  final Expr expr;
+
+  /// Optional Hurwitz shift parameter `a`.
+  final Expr? shift;
 
   @override
-  Expr _withExpr(Expr expr) => Zeta(expr);
+  final bool isSimplified;
+
+  @override
+  late final int hashCode = Object.hash(runtimeType, expr, shift);
+
+  @override
+  late final Set<String> freeVariables = shift == null
+      ? expr.freeVariables
+      : Set.unmodifiable({...expr.freeVariables, ...shift!.freeVariables});
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final nextExpr = transform(expr);
+    final nextShift = shift == null ? null : transform(shift!);
+    return identical(nextExpr, expr) && identical(nextShift, shift)
+        ? this
+        : Zeta(nextExpr, shift: nextShift);
+  }
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) ||
+      expr.anyNode(predicate) ||
+      (shift != null && shift!.anyNode(predicate));
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Zeta &&
+          hashCode == other.hashCode &&
+          expr == other.expr &&
+          shift == other.shift);
 }
 
 /// Digamma function node (psi function): $\psi(x) = \frac{d}{dx} \ln \Gamma(x) = \frac{\Gamma'(x)}{\Gamma(x)}$.
@@ -244,6 +281,21 @@ final class ExpIntegralEi extends UnaryExpr {
 
   @override
   Expr _withExpr(Expr expr) => ExpIntegralEi(expr);
+}
+
+/// Generalized exponential integral node `E_n(z)`.
+final class ExpIntegralE extends BinaryExpr {
+  /// Creates a generalized exponential integral node `E_order(argument)`.
+  new(super.left, super.right, {super.isSimplified = false});
+
+  /// The order `n`.
+  Expr get order => left;
+
+  /// The argument `z`.
+  Expr get argument => right;
+
+  @override
+  Expr _withOperands(Expr left, Expr right) => ExpIntegralE(left, right);
 }
 
 /// Logarithmic integral node: $\operatorname{li}(x) = \int_0^x \frac{dt}{\ln t}$.
@@ -430,4 +482,191 @@ final class EllipticPi extends Expr {
           characteristic == other.characteristic &&
           amplitude == other.amplitude &&
           modulus == other.modulus);
+}
+
+/// Generalized hypergeometric function node `pFq(upper; lower; argument)`.
+final class Hypergeometric extends Expr {
+  /// Creates a generalized hypergeometric function node.
+  new(
+    List<Expr> upper,
+    List<Expr> lower,
+    this.argument, {
+    this.isSimplified = false,
+  }) : upper = List<Expr>.unmodifiable(upper),
+       lower = List<Expr>.unmodifiable(lower);
+
+  /// Upper parameter list `[a_1, ..., a_p]`.
+  final List<Expr> upper;
+
+  /// Lower parameter list `[b_1, ..., b_q]`.
+  final List<Expr> lower;
+
+  /// Argument expression `z`.
+  final Expr argument;
+
+  @override
+  final bool isSimplified;
+
+  @override
+  late final int hashCode = Object.hash(
+    runtimeType,
+    Object.hashAll(upper),
+    Object.hashAll(lower),
+    argument,
+  );
+
+  @override
+  late final Set<String> freeVariables = Set.unmodifiable({
+    for (final u in upper) ...u.freeVariables,
+    for (final l in lower) ...l.freeVariables,
+    ...argument.freeVariables,
+  });
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) {
+    var changed = false;
+    final nextUpper = <Expr>[];
+    for (final u in upper) {
+      final nu = transform(u);
+      if (!identical(nu, u)) changed = true;
+      nextUpper.add(nu);
+    }
+    final nextLower = <Expr>[];
+    for (final l in lower) {
+      final nl = transform(l);
+      if (!identical(nl, l)) changed = true;
+      nextLower.add(nl);
+    }
+    final nextArg = transform(argument);
+    if (!identical(nextArg, argument)) changed = true;
+    return changed ? Hypergeometric(nextUpper, nextLower, nextArg) : this;
+  }
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) ||
+      upper.any((u) => u.anyNode(predicate)) ||
+      lower.any((l) => l.anyNode(predicate)) ||
+      argument.anyNode(predicate);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Hypergeometric ||
+        hashCode != other.hashCode ||
+        upper.length != other.upper.length ||
+        lower.length != other.lower.length ||
+        argument != other.argument) {
+      return false;
+    }
+    for (var i = 0; i < upper.length; i++) {
+      if (upper[i] != other.upper[i]) return false;
+    }
+    for (var i = 0; i < lower.length; i++) {
+      if (lower[i] != other.lower[i]) return false;
+    }
+    return true;
+  }
+}
+
+/// Minimum function node `min(a_1, ..., a_n)`.
+final class Min extends Expr {
+  /// Creates a minimum expression node.
+  new(List<Expr> args, {this.isSimplified = false})
+    : args = List<Expr>.unmodifiable(args);
+
+  /// Operand expressions.
+  final List<Expr> args;
+
+  @override
+  final bool isSimplified;
+
+  @override
+  late final int hashCode = Object.hash(runtimeType, Object.hashAll(args));
+
+  @override
+  late final Set<String> freeVariables = Set.unmodifiable({
+    for (final a in args) ...a.freeVariables,
+  });
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) {
+    var changed = false;
+    final next = <Expr>[];
+    for (final a in args) {
+      final na = transform(a);
+      if (!identical(na, a)) changed = true;
+      next.add(na);
+    }
+    return changed ? Min(next) : this;
+  }
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) || args.any((a) => a.anyNode(predicate));
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Min ||
+        hashCode != other.hashCode ||
+        args.length != other.args.length) {
+      return false;
+    }
+    for (var i = 0; i < args.length; i++) {
+      if (args[i] != other.args[i]) return false;
+    }
+    return true;
+  }
+}
+
+/// Maximum function node `max(a_1, ..., a_n)`.
+final class Max extends Expr {
+  /// Creates a maximum expression node.
+  new(List<Expr> args, {this.isSimplified = false})
+    : args = List<Expr>.unmodifiable(args);
+
+  /// Operand expressions.
+  final List<Expr> args;
+
+  @override
+  final bool isSimplified;
+
+  @override
+  late final int hashCode = Object.hash(runtimeType, Object.hashAll(args));
+
+  @override
+  late final Set<String> freeVariables = Set.unmodifiable({
+    for (final a in args) ...a.freeVariables,
+  });
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) {
+    var changed = false;
+    final next = <Expr>[];
+    for (final a in args) {
+      final na = transform(a);
+      if (!identical(na, a)) changed = true;
+      next.add(na);
+    }
+    return changed ? Max(next) : this;
+  }
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) || args.any((a) => a.anyNode(predicate));
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Max ||
+        hashCode != other.hashCode ||
+        args.length != other.args.length) {
+      return false;
+    }
+    for (var i = 0; i < args.length; i++) {
+      if (args[i] != other.args[i]) return false;
+    }
+    return true;
+  }
 }

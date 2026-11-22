@@ -82,8 +82,8 @@ ExprSyntax buildCasSyntax({bool renameE = false, bool renameI = false}) =>
         'elliptic_e': (m) => EllipticE(Pow(m, FractionNumber.half)),
       },
       binaryFunctions: {
-        'Max': (a, b) => VariableFunction('Max', [a, b]),
-        'Min': (a, b) => VariableFunction('Min', [a, b]),
+        'Max': (a, b) => Max([a, b]),
+        'Min': (a, b) => Min([a, b]),
         'Mod': Mod.new,
         'Rational': (a, b) => a / b,
         'elliptic_f': (phi, m) => EllipticF(phi, Pow(m, FractionNumber.half)),

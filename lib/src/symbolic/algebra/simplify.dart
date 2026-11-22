@@ -181,7 +181,10 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
       _simplify(expr, assumptions, cache),
       assumptions: assumptions,
     ),
-    Zeta(:final expr) => simplifyZeta(_simplify(expr, assumptions, cache)),
+    Zeta(:final expr, :final shift) => simplifyZeta(
+      _simplify(expr, assumptions, cache),
+      shift: shift == null ? null : _simplify(shift, assumptions, cache),
+    ),
     Digamma(:final expr) => simplifyDigamma(
       _simplify(expr, assumptions, cache),
     ),
@@ -278,6 +281,22 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
         _simplify(modulus, assumptions, cache),
         assumptions: assumptions,
       ),
+    ExpIntegralE(:final left, :final right) => simplifyExpIntegralE(
+      _simplify(left, assumptions, cache),
+      _simplify(right, assumptions, cache),
+    ),
+    Hypergeometric(:final upper, :final lower, :final argument) =>
+      simplifyHypergeometric(
+        upper.map((u) => _simplify(u, assumptions, cache)).toList(),
+        lower.map((l) => _simplify(l, assumptions, cache)).toList(),
+        _simplify(argument, assumptions, cache),
+      ),
+    Min(:final args) => simplifyMin(
+      args.map((a) => _simplify(a, assumptions, cache)).toList(),
+    ),
+    Max(:final args) => simplifyMax(
+      args.map((a) => _simplify(a, assumptions, cache)).toList(),
+    ),
     Beta(:final left, :final right) => simplifyBeta(
       _simplify(left, assumptions, cache),
       _simplify(right, assumptions, cache),

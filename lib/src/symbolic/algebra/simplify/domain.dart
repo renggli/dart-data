@@ -72,8 +72,18 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
   FresnelC(:final expr) ||
   ExpIntegralEi(:final expr) ||
   SinIntegralSi(:final expr) ||
-  SinhIntegralShi(:final expr) ||
-  Zeta(:final expr) => isProvenReal(expr, assumptions),
+  SinhIntegralShi(:final expr) => isProvenReal(expr, assumptions),
+  Zeta(:final expr, :final shift) =>
+    isProvenReal(expr, assumptions) &&
+        (shift == null || isProvenReal(shift, assumptions)),
+  ExpIntegralE(:final left, :final right) =>
+    isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
+  Hypergeometric(:final upper, :final lower, :final argument) =>
+    upper.every((e) => isProvenReal(e, assumptions)) &&
+        lower.every((e) => isProvenReal(e, assumptions)) &&
+        isProvenReal(argument, assumptions),
+  Min(:final args) ||
+  Max(:final args) => args.every((e) => isProvenReal(e, assumptions)),
   Gamma(:final expr) || Digamma(:final expr) =>
     isProvenReal(expr, assumptions) &&
         (isPositiveExpr(expr, assumptions: assumptions) ||

@@ -394,6 +394,51 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     final sum = terms.length == 1 ? terms.first : Add(terms);
     return expr * sum;
   }(),
+  Zeta(:final expr, :final shift)
+      when shift != null && !expr.dependsOn(variable) =>
+    Mul([
+      IntegerNumber.negativeOne,
+      expr,
+      Zeta(expr + IntegerNumber.one, shift: shift),
+      _differentiate(shift, variable),
+    ]),
+  ExpIntegralE(:final left, :final right) when !left.dependsOn(variable) => Mul(
+    [
+      IntegerNumber.negativeOne,
+      ExpIntegralE(left - IntegerNumber.one, right),
+      _differentiate(right, variable),
+    ],
+  ),
+  Hypergeometric(:final upper, :final lower, :final argument)
+      when upper.every((e) => !e.dependsOn(variable)) &&
+          lower.every((e) => !e.dependsOn(variable)) =>
+    () {
+      final numProd = upper.isEmpty
+          ? IntegerNumber.one
+          : (upper.length == 1 ? upper.first : Mul(upper));
+      final denProd = lower.isEmpty
+          ? IntegerNumber.one
+          : (lower.length == 1 ? lower.first : Mul(lower));
+      return Mul([
+        numProd / denProd,
+        Hypergeometric(
+          [for (final u in upper) u + IntegerNumber.one],
+          [for (final l in lower) l + IntegerNumber.one],
+          argument,
+        ),
+        _differentiate(argument, variable),
+      ]);
+    }(),
+  Min(args: [final a, final b]) => () {
+    final da = _differentiate(a, variable);
+    final db = _differentiate(b, variable);
+    return FractionNumber.half * ((da + db) - Sign(a - b) * (da - db));
+  }(),
+  Max(args: [final a, final b]) => () {
+    final da = _differentiate(a, variable);
+    final db = _differentiate(b, variable);
+    return FractionNumber.half * ((da + db) + Sign(a - b) * (da - db));
+  }(),
   UpperGamma() ||
   LowerGamma() ||
   Polylog() ||
@@ -403,6 +448,10 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   BesselI() ||
   BesselK() ||
   Zeta() ||
+  ExpIntegralE() ||
+  Hypergeometric() ||
+  Min() ||
+  Max() ||
   Arg() => Derivative(expr, variable),
   Re(expr: final inner) => Re(_differentiate(inner, variable)),
   Im(expr: final inner) => Im(_differentiate(inner, variable)),

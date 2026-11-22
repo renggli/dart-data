@@ -17,6 +17,7 @@ import '../../special/exp_integral.dart' as special_exp_int;
 import '../../special/factorial.dart' as special_factorial;
 import '../../special/fresnel.dart' as special_fresnel;
 import '../../special/gamma.dart' as special_gamma;
+import '../../special/hypergeometric.dart' as special_hyper;
 import '../../special/lambert_w.dart' as special_lambert;
 import '../../special/polylog.dart' as special_polylog;
 import '../../special/trig_integral.dart' as special_trig_int;
@@ -335,6 +336,35 @@ final class BytecodeEvaluator {
             final phi = stack[--sp];
             final n = stack[--sp];
             stack[sp++] = special_elliptic.ellipticPi(n, k, phi: phi);
+          case Op.hurwitzZeta:
+            final a = stack[--sp];
+            final s = stack[--sp];
+            stack[sp++] = special_zeta.hurwitzZeta(s, a);
+          case Op.expIntegralE:
+            final z = stack[--sp];
+            final n = stack[--sp];
+            stack[sp++] = special_exp_int.expIntegralE(n, z);
+          case Op.hypergeometric:
+            final p = instr.index >> 8;
+            final q = instr.index & 0xff;
+            final z = stack[--sp];
+            final lower = List<double>.filled(q, 0.0);
+            for (var i = q - 1; i >= 0; i--) {
+              lower[i] = stack[--sp];
+            }
+            final upper = List<double>.filled(p, 0.0);
+            for (var i = p - 1; i >= 0; i--) {
+              upper[i] = stack[--sp];
+            }
+            stack[sp++] = special_hyper.hypergeometricPFQ(upper, lower, z);
+          case Op.min:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = math.min(a, b);
+          case Op.max:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = math.max(a, b);
           case Op.beta:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -632,6 +662,35 @@ final class BytecodeEvaluator {
             final zPhi = stack[--sp];
             final zN = stack[--sp];
             stack[sp++] = special_elliptic.ellipticPiComplex(zN, zK, phi: zPhi);
+          case Op.hurwitzZeta:
+            final zA = stack[--sp];
+            final zS = stack[--sp];
+            stack[sp++] = special_zeta.hurwitzZetaComplex(zS, zA);
+          case Op.expIntegralE:
+            final zArg = stack[--sp];
+            final zN = stack[--sp];
+            stack[sp++] = special_exp_int.expIntegralEComplex(zN, zArg);
+          case Op.hypergeometric:
+            final p = instr.index >> 8;
+            final q = instr.index & 0xff;
+            final zArg = stack[--sp];
+            final lower = List<Complex>.filled(q, Complex.zero);
+            for (var i = q - 1; i >= 0; i--) {
+              lower[i] = stack[--sp];
+            }
+            final upper = List<Complex>.filled(p, Complex.zero);
+            for (var i = p - 1; i >= 0; i--) {
+              upper[i] = stack[--sp];
+            }
+            stack[sp++] = special_hyper.hypergeometricPFQComplex(
+              upper,
+              lower,
+              zArg,
+            );
+          case Op.min || Op.max:
+            throw UnsupportedError(
+              'Complex Min/Max evaluation is only supported on R',
+            );
           case Op.beta:
             final zB = stack[--sp];
             final zA = stack[--sp];

@@ -176,6 +176,21 @@ enum Op {
   /// Incomplete elliptic integral of the third kind (`elliptic_pi(n, phi, k)`).
   ellipticPi,
 
+  /// Hurwitz zeta function (`zeta(s, a)`).
+  hurwitzZeta,
+
+  /// Generalized exponential integral (`expint(n, z)`).
+  expIntegralE,
+
+  /// Generalized hypergeometric function (`hyper(upper, lower, z)`).
+  hypergeometric,
+
+  /// Minimum of two values (`min(a, b)`).
+  min,
+
+  /// Maximum of two values (`max(a, b)`).
+  max,
+
   /// Beta function (`B(a, b)`).
   beta,
 
@@ -267,6 +282,10 @@ final class Instruction {
 
   /// Creates a CSE register-store instruction for [regIndex].
   const new storeReg(int regIndex) : this._(Op.storeReg, index: regIndex);
+
+  /// Creates a generalized hypergeometric instruction with [p] upper and [q] lower parameters.
+  const new hypergeometric(int p, int q)
+    : this._(Op.hypergeometric, index: (p << 8) | q);
 
   /// Creates a CSE register-load instruction for [regIndex].
   const new loadReg(int regIndex) : this._(Op.loadReg, index: regIndex);
@@ -488,9 +507,14 @@ BytecodeEvaluator compileToBytecode(
       case Gamma(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.gamma));
-      case Zeta(:final expr):
+      case Zeta(:final expr, :final shift):
         emit(expr);
-        instructions.add(const Instruction.op(Op.zeta));
+        if (shift == null) {
+          instructions.add(const Instruction.op(Op.zeta));
+        } else {
+          emit(shift);
+          instructions.add(const Instruction.op(Op.hurwitzZeta));
+        }
       case Digamma(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.digamma));
@@ -572,6 +596,41 @@ BytecodeEvaluator compileToBytecode(
         emit(amplitude);
         emit(modulus);
         instructions.add(const Instruction.op(Op.ellipticPi));
+      case ExpIntegralE(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.expIntegralE));
+      case Hypergeometric(:final upper, :final lower, :final argument):
+        for (final u in upper) {
+          emit(u);
+        }
+        for (final l in lower) {
+          emit(l);
+        }
+        emit(argument);
+        instructions.add(
+          Instruction.hypergeometric(upper.length, lower.length),
+        );
+      case Min(:final args):
+        if (args.isEmpty) {
+          instructions.add(Instruction.pushReal(double.nan));
+        } else {
+          emit(args.first);
+          for (var i = 1; i < args.length; i++) {
+            emit(args[i]);
+            instructions.add(const Instruction.op(Op.min));
+          }
+        }
+      case Max(:final args):
+        if (args.isEmpty) {
+          instructions.add(Instruction.pushReal(double.nan));
+        } else {
+          emit(args.first);
+          for (var i = 1; i < args.length; i++) {
+            emit(args[i]);
+            instructions.add(const Instruction.op(Op.max));
+          }
+        }
       case Beta(:final left, :final right):
         emit(left);
         emit(right);
@@ -753,6 +812,21 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
       visit(characteristic);
       visit(amplitude);
       visit(modulus);
+    case Zeta(:final expr, :final shift):
+      visit(expr);
+      if (shift != null) visit(shift);
+    case Hypergeometric(:final upper, :final lower, :final argument):
+      for (final u in upper) {
+        visit(u);
+      }
+      for (final l in lower) {
+        visit(l);
+      }
+      visit(argument);
+    case Min(:final args) || Max(:final args):
+      for (final a in args) {
+        visit(a);
+      }
     case Integral() ||
         Derivative() ||
         Limit() ||
@@ -813,6 +887,10 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.ellipticEIncomplete ||
           Op.atan2 ||
           Op.mod ||
+          Op.hurwitzZeta ||
+          Op.expIntegralE ||
+          Op.min ||
+          Op.max ||
           Op.lt ||
           Op.le ||
           Op.gt ||
@@ -822,6 +900,10 @@ int _computeMaxStack(List<Instruction> instructions) {
         current = math.max(0, current - 1);
       case Op.ellipticPi:
         current = math.max(0, current - 2);
+      case Op.hypergeometric:
+        final p = instr.index >> 8;
+        final q = instr.index & 0xff;
+        current = math.max(0, current - (p + q));
       case Op.storeReg ||
           Op.neg ||
           Op.sin ||

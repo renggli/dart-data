@@ -96,8 +96,10 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><mi>erfc</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Gamma(:final expr) =>
     '<mrow><mi>Γ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Zeta(:final expr) =>
-    '<mrow><mi>ζ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  Zeta(:final expr, :final shift) =>
+    shift == null
+        ? '<mrow><mi>ζ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>'
+        : '<mrow><mi>ζ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>,</mo>${_toMathMl(shift, decimalPlaces)}<mo>)</mo></mrow>',
   Digamma(:final expr) =>
     '<mrow><mi>ψ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Polygamma(:final left, :final right) =>
@@ -122,6 +124,8 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><mi>C</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   ExpIntegralEi(:final expr) =>
     '<mrow><mi>Ei</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  ExpIntegralE(:final left, :final right) =>
+    '<mrow><msub><mi>E</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   LogIntegralLi(:final expr) =>
     '<mrow><mi>li</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   SinIntegralSi(:final expr) =>
@@ -144,6 +148,12 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
     '<mrow><mi>Π</mi><mo>(</mo>${_toMathMl(characteristic, decimalPlaces)}<mo>;</mo>${_toMathMl(amplitude, decimalPlaces)}<mo>|</mo>${_toMathMl(modulus, decimalPlaces)}<mo>)</mo></mrow>',
+  Hypergeometric(:final upper, :final lower, :final argument) =>
+    '<mrow><mmultiscripts><mi>F</mi><mn>${lower.length}</mn><none/><mprescripts/><mn>${upper.length}</mn><none/></mmultiscripts><mo>(</mo>${upper.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>;</mo>${lower.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>;</mo>${_toMathMl(argument, decimalPlaces)}<mo>)</mo></mrow>',
+  Min(:final args) =>
+    '<mrow><mi>min</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
+  Max(:final args) =>
+    '<mrow><mi>max</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
   Beta(:final left, :final right) =>
     '<mrow><mi>B</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   Factorial(:final expr) =>

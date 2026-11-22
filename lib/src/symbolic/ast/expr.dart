@@ -299,6 +299,13 @@ sealed class Expr {
       _isRealSubtree(characteristic) &&
           _isRealSubtree(amplitude) &&
           _isRealSubtree(modulus),
+    Zeta(:final expr, :final shift) =>
+      _isRealSubtree(expr) && (shift == null || _isRealSubtree(shift)),
+    Hypergeometric(:final upper, :final lower, :final argument) =>
+      upper.every(_isRealSubtree) &&
+          lower.every(_isRealSubtree) &&
+          _isRealSubtree(argument),
+    Min(:final args) || Max(:final args) => args.every(_isRealSubtree),
   };
 }
 

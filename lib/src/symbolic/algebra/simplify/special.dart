@@ -10,6 +10,7 @@ import '../../../special/exp_integral.dart' as special_exp_int;
 import '../../../special/factorial.dart' as special_factorial;
 import '../../../special/fresnel.dart' as special_fresnel;
 import '../../../special/gamma.dart' as special_gamma;
+import '../../../special/hypergeometric.dart' as special_hyper;
 import '../../../special/lambert_w.dart' as special_lambert;
 import '../../../special/polylog.dart' as special_polylog;
 import '../../../special/trig_integral.dart' as special_trig_int;
@@ -19,6 +20,7 @@ import '../../ast.dart';
 import '../../calculus/summation.dart' show evenZetaValue;
 import '../../compiler/evaluator.dart';
 import '../../number/integer.dart';
+import '../simplify.dart';
 import '../structural_order.dart';
 import 'additive.dart';
 import 'multiplicative.dart';
@@ -156,9 +158,31 @@ Expr simplifyGamma(Expr expr, {required Assumptions assumptions}) {
   return Gamma(expr, isSimplified: true);
 }
 
-/// Simplifies a Riemann zeta function expression `zeta(s)`.
-Expr simplifyZeta(Expr expr) {
-  if (expr == Constant.undefined) return Constant.undefined;
+/// Simplifies a Riemann or Hurwitz zeta function expression `zeta(s)` or `zeta(s, a)`.
+Expr simplifyZeta(Expr expr, {Expr? shift}) {
+  if (expr == Constant.undefined || shift == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (shift == IntegerNumber.one) {
+    shift = null;
+  }
+  if (shift != null) {
+    if (_isFloatComplex(expr) ||
+        _isFloatComplex(shift) ||
+        ((expr is RealNumber || shift is RealNumber) &&
+            expr is Number &&
+            shift is Number)) {
+      if (expr is RealNumber && shift is RealNumber) {
+        final v = special_zeta.hurwitzZeta(expr.value, shift.value);
+        if (!v.isNaN) return RealNumber.fromDouble(v);
+      }
+      return _complexToExpr(
+        special_zeta.hurwitzZetaComplex(_toComplex(expr), _toComplex(shift)),
+      );
+    }
+    if (expr == IntegerNumber.one) return Constant.undefined;
+    return Zeta(expr, shift: shift, isSimplified: true);
+  }
   if (_isFloatComplex(expr)) {
     return _complexToExpr(special_zeta.zetaComplex(_toComplex(expr)));
   }
@@ -749,6 +773,125 @@ Expr simplifyEllipticPi(
     );
   }
   return EllipticPi(n, phi, k, isSimplified: true);
+}
+
+/// Simplifies a generalized exponential integral `E_n(z)`.
+Expr simplifyExpIntegralE(Expr n, Expr z) {
+  if (n == Constant.undefined || z == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (n is Number && n.isZero) {
+    return (Pow(Constant.e, -z) / z).simplify();
+  }
+  if (n is Number && z is Number && (n is RealNumber || z is RealNumber)) {
+    if (_isFloatComplex(n) || _isFloatComplex(z)) {
+      return _complexToExpr(
+        special_exp_int.expIntegralEComplex(_toComplex(n), _toComplex(z)),
+      );
+    }
+    final val = special_exp_int.expIntegralE(
+      (n as RealNumeric).toDouble(),
+      (z as RealNumeric).toDouble(),
+    );
+    if (!val.isNaN) return RealNumber.fromDouble(val);
+    return _complexToExpr(
+      special_exp_int.expIntegralEComplex(_toComplex(n), _toComplex(z)),
+    );
+  }
+  return ExpIntegralE(n, z, isSimplified: true);
+}
+
+/// Simplifies a generalized hypergeometric function `pFq(upper; lower; z)`.
+Expr simplifyHypergeometric(List<Expr> upper, List<Expr> lower, Expr z) {
+  if (z == Constant.undefined ||
+      upper.any((e) => e == Constant.undefined) ||
+      lower.any((e) => e == Constant.undefined)) {
+    return Constant.undefined;
+  }
+  if (z is Number && z.isZero) return IntegerNumber.one;
+  if (upper.any((e) => e is Number && e.isZero)) return IntegerNumber.one;
+
+  // Cancel identical upper and lower parameters.
+  final remUpper = <Expr>[];
+  final remLower = List<Expr>.from(lower);
+  for (final u in upper) {
+    final idx = remLower.indexOf(u);
+    if (idx != -1) {
+      remLower.removeAt(idx);
+    } else {
+      remUpper.add(u);
+    }
+  }
+
+  if (z is Number &&
+      remUpper.every((e) => e is Number) &&
+      remLower.every((e) => e is Number) &&
+      (z is RealNumber ||
+          remUpper.any((e) => e is RealNumber) ||
+          remLower.any((e) => e is RealNumber))) {
+    if (_isFloatComplex(z) ||
+        remUpper.any(_isFloatComplex) ||
+        remLower.any(_isFloatComplex)) {
+      return _complexToExpr(
+        special_hyper.hypergeometricPFQComplex(
+          remUpper.map(_toComplex).toList(),
+          remLower.map(_toComplex).toList(),
+          _toComplex(z),
+        ),
+      );
+    }
+    final val = special_hyper.hypergeometricPFQ(
+      remUpper.map((e) => (e as RealNumeric).toDouble()).toList(),
+      remLower.map((e) => (e as RealNumeric).toDouble()).toList(),
+      (z as RealNumeric).toDouble(),
+    );
+    if (!val.isNaN) return RealNumber.fromDouble(val);
+  }
+
+  return Hypergeometric(remUpper, remLower, z, isSimplified: true);
+}
+
+/// Simplifies a `min(...)` expression.
+Expr simplifyMin(List<Expr> args) => _simplifyMinMax(args, isMin: true);
+
+/// Simplifies a `max(...)` expression.
+Expr simplifyMax(List<Expr> args) => _simplifyMinMax(args, isMin: false);
+
+Expr _simplifyMinMax(List<Expr> args, {required bool isMin}) {
+  if (args.isEmpty) return Constant.undefined;
+  final flat = <Expr>[];
+  for (final a in args) {
+    if (a == Constant.undefined) return Constant.undefined;
+    if (isMin && a is Min) {
+      flat.addAll(a.args);
+    } else if (!isMin && a is Max) {
+      flat.addAll(a.args);
+    } else {
+      flat.add(a);
+    }
+  }
+  RealNumeric? bestNum;
+  final other = <Expr>[];
+  final seen = <Expr>{};
+  for (final a in flat) {
+    if (a is RealNumeric) {
+      if (bestNum == null) {
+        bestNum = a;
+      } else {
+        final takeA = isMin
+            ? a.toDouble() < bestNum.toDouble()
+            : a.toDouble() > bestNum.toDouble();
+        if (takeA) bestNum = a;
+      }
+    } else if (seen.add(a)) {
+      other.add(a);
+    }
+  }
+  final merged = <Expr>[?bestNum, ...other]..sort(compareStructural);
+  if (merged.length == 1) return merged.first;
+  return isMin
+      ? Min(merged, isSimplified: true)
+      : Max(merged, isSimplified: true);
 }
 
 /// Simplifies an Euler beta function expression `beta(a, b)`.

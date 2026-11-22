@@ -189,6 +189,7 @@ class ExprSyntax {
         'W': LambertW.new,
         'w': LambertW.new,
         'O': _parseOrderTerm,
+        'tuple': (a) => VariableFunction('tuple', [a]),
       });
 
   /// Standard 2-argument mathematical functions.
@@ -235,6 +236,15 @@ class ExprSyntax {
             EllipticPi(n, FractionNumber.half * Constant.pi, k),
         'atan2': Atan2.new,
         'Atan2': Atan2.new,
+        'zeta': (s, a) => Zeta(s, shift: a),
+        'Zeta': (s, a) => Zeta(s, shift: a),
+        'expint': ExpIntegralE.new,
+        'expIntegralE': ExpIntegralE.new,
+        'ExpIntegralE': ExpIntegralE.new,
+        'min': (a, b) => Min([a, b]),
+        'Min': (a, b) => Min([a, b]),
+        'max': (a, b) => Max([a, b]),
+        'Max': (a, b) => Max([a, b]),
         'binomial': Binomial.new,
         'nCr': Binomial.new,
         'mod': Mod.new,
@@ -258,6 +268,14 @@ class ExprSyntax {
       'elliptic_pi': _parseEllipticPiArgs,
       'ellipticPi': _parseEllipticPiArgs,
       'EllipticPi': _parseEllipticPiArgs,
+      'hyper': _parseHypergeometricArgs,
+      'hypergeometric': _parseHypergeometricArgs,
+      'Hypergeometric': _parseHypergeometricArgs,
+      'tuple': (args) => VariableFunction('tuple', args),
+      'min': Min.new,
+      'Min': Min.new,
+      'max': Max.new,
+      'Max': Max.new,
       'integrate': _parseIntegralArgs,
       'integral': _parseIntegralArgs,
       'diff': _parseDerivativeArgs,
@@ -440,6 +458,12 @@ class ExprSyntax {
               .skip(before: char('(').trim(), after: char(')').trim())
               .optional(),
         ).map2(_createBinding),
+      )
+      ..primitive(
+        builder.loopback
+            .starSeparated(char(',').trim())
+            .map((list) => VariableFunction('tuple', list.elements))
+            .skip(before: char('[').trim(), after: char(']').trim()),
       );
 
     // Parentheses (highest precedence wrapper)
@@ -889,4 +913,17 @@ class ExprSyntax {
     [final n, final phi, final k] => EllipticPi(n, phi, k),
     _ => throw const FormatException('elliptic_pi requires 2 or 3 arguments'),
   };
+
+  static Expr _parseHypergeometricArgs(List<Expr> args) {
+    if (args.length != 3) {
+      throw FormatException(
+        'hypergeometric requires 3 arguments, got ${args.length}',
+      );
+    }
+    List<Expr> unpack(Expr e) => switch (e) {
+      VariableFunction(name: 'tuple', :final arguments) => arguments,
+      _ => [e],
+    };
+    return Hypergeometric(unpack(args[0]), unpack(args[1]), args[2]);
+  }
 }

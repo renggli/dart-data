@@ -1607,6 +1607,21 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
         scan(characteristic);
         scan(amplitude);
         scan(modulus);
+      case Zeta(:final expr, :final shift):
+        scan(expr);
+        if (shift != null) scan(shift);
+      case Hypergeometric(:final upper, :final lower, :final argument):
+        for (final u in upper) {
+          scan(u);
+        }
+        for (final l in lower) {
+          scan(l);
+        }
+        scan(argument);
+      case Min(:final args) || Max(:final args):
+        for (final a in args) {
+          scan(a);
+        }
       case Number() || Constant() || Variable() || OrderTerm():
         break;
     }

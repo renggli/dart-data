@@ -120,6 +120,66 @@ Complex zetaComplex(Complex s) {
   return -sum / denom;
 }
 
+/// Returns the Hurwitz zeta function `ζ(s, a) = ∑_{n=0}^∞ (n + a)^(-s)`.
+double hurwitzZeta(num s, num a) {
+  if (s.isNaN || a.isNaN) return double.nan;
+  final sd = s.toDouble();
+  final ad = a.toDouble();
+  if (ad == 1.0) return zeta(sd);
+  if (sd == 1.0) return double.infinity;
+  if (ad <= 0.0 && ad.roundToDouble() == ad) {
+    return sd <= 0.0 ? 0.0 : double.nan;
+  }
+  final z = hurwitzZetaComplex(Complex(sd), Complex(ad));
+  return z.b.abs() <= 1e-12 * max(1.0, z.a.abs()) ? z.a.toDouble() : double.nan;
+}
+
+/// Returns the complex Hurwitz zeta function `ζ(s, a)`.
+Complex hurwitzZetaComplex(Complex s, Complex a) {
+  if (s.isNaN || a.isNaN) return Complex.nan;
+  if (a == Complex.one) return zetaComplex(s);
+  if (s == Complex.one) return const Complex(double.infinity);
+
+  // Shift `a` so Re(a) >= 12 for rapid Euler-Maclaurin convergence.
+  var sum = Complex.zero;
+  var curA = a;
+  if (curA.a < 1.0) {
+    final shift = (1.0 - curA.a).ceil();
+    for (var k = 0; k < shift; k++) {
+      final termA = curA + k.toDouble();
+      if (termA == Complex.zero) return Complex.nan;
+      sum += termA.pow(-s);
+    }
+    curA += shift.toDouble();
+  }
+
+  const m = 12;
+  for (var k = 0; k < m; k++) {
+    sum += (curA + k.toDouble()).pow(-s);
+  }
+  final aM = curA + m.toDouble();
+  sum += aM.pow(Complex.one - s) / (s - Complex.one);
+  sum += aM.pow(-s) * 0.5;
+
+  final invAM2 = Complex.one / (aM * aM);
+  var coeff = s * aM.pow(-s - Complex.one);
+  for (var k = 0; k < _eulerMaclaurinCoeffs.length; k++) {
+    sum += coeff * _eulerMaclaurinCoeffs[k];
+    final twoK = 2 * k + 1;
+    coeff *= (s + twoK.toDouble()) * (s + (twoK + 1).toDouble()) * invAM2;
+  }
+  return sum;
+}
+
+const List<double> _eulerMaclaurinCoeffs = <double>[
+  1.0 / 12.0,
+  -1.0 / 720.0,
+  1.0 / 30240.0,
+  -1.0 / 1209600.0,
+  1.0 / 47900160.0,
+  -691.0 / 1307674368000.0,
+];
+
 const double _lnPi = 1.1447298858494002;
 const int _borweinN = 18;
 const double _borweinDn = 30122754096401.0;

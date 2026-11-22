@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:more/number.dart' show Complex;
 
+import 'gamma.dart';
 import 'utils.dart';
 
 /// Returns the exponential integral `Ei(x) = -PV ∫_{-x}^∞ exp(-t) / t dt`.
@@ -150,4 +151,49 @@ double _expIntegralE1(double t) {
     if ((del - 1.0).abs() <= 1e-15) break;
   }
   return exp(-t) * h;
+}
+
+/// Returns the generalized exponential integral `E_n(x) = ∫_1^∞ e^(-x*t) / t^n dt`.
+double expIntegralE(num n, num x) {
+  if (n.isNaN || x.isNaN) return double.nan;
+  final nd = n.toDouble();
+  final xd = x.toDouble();
+  if (nd == 0.0) return exp(-xd) / xd;
+  if (xd == 0.0) return nd > 1.0 ? 1.0 / (nd - 1.0) : double.infinity;
+  if (xd < 0.0) {
+    final z = expIntegralEComplex(Complex(nd), Complex(xd));
+    return z.b.abs() <= 1e-12 * max(1.0, z.a.abs())
+        ? z.a.toDouble()
+        : double.nan;
+  }
+  if (nd > 0.0 && nd.roundToDouble() == nd && nd <= 100.0) {
+    final k = nd.toInt();
+    var e = _expIntegralE1(xd);
+    final ex = exp(-xd);
+    for (var m = 1; m < k; m++) {
+      e = (ex - xd * e) / m;
+    }
+    return e;
+  }
+  final z = expIntegralEComplex(Complex(nd), Complex(xd));
+  return z.a.toDouble();
+}
+
+/// Returns the complex generalized exponential integral `E_n(z)`.
+Complex expIntegralEComplex(Complex n, Complex z) {
+  if (n.isNaN || z.isNaN) return Complex.nan;
+  if (n == Complex.zero) return (-z).exp() / z;
+  if (z == Complex.zero) {
+    return n.a > 1.0 ? Complex.one / (n - 1.0) : const Complex(double.infinity);
+  }
+  if (n.b == 0.0 && n.a >= 1.0 && n.a.roundToDouble() == n.a && n.a <= 100.0) {
+    final k = n.a.toInt();
+    var e = expIntegralE1Complex(z);
+    final ez = (-z).exp();
+    for (var m = 1; m < k; m++) {
+      e = (ez - z * e) / m;
+    }
+    return e;
+  }
+  return z.pow(n - 1.0) * upperGammaComplex(Complex.one - n, z);
 }

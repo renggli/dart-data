@@ -63,7 +63,10 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
   Erf(:final expr) => '\\operatorname{erf}(${_toLatex(expr, decimalPlaces)})',
   Erfc(:final expr) => '\\operatorname{erfc}(${_toLatex(expr, decimalPlaces)})',
   Gamma(:final expr) => '\\Gamma(${_toLatex(expr, decimalPlaces)})',
-  Zeta(:final expr) => '\\zeta(${_toLatex(expr, decimalPlaces)})',
+  Zeta(:final expr, :final shift) =>
+    shift == null
+        ? '\\zeta(${_toLatex(expr, decimalPlaces)})'
+        : '\\zeta(${_toLatex(expr, decimalPlaces)}, ${_toLatex(shift, decimalPlaces)})',
   Digamma(:final expr) => '\\psi(${_toLatex(expr, decimalPlaces)})',
   Polygamma(:final left, :final right) =>
     '\\psi^{(${_toLatex(left, decimalPlaces)})}(${_toLatex(right, decimalPlaces)})',
@@ -82,6 +85,8 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
   FresnelC(:final expr) => 'C(${_toLatex(expr, decimalPlaces)})',
   ExpIntegralEi(:final expr) =>
     '\\operatorname{Ei}(${_toLatex(expr, decimalPlaces)})',
+  ExpIntegralE(:final left, :final right) =>
+    'E_{${_toLatex(left, decimalPlaces)}}(${_toLatex(right, decimalPlaces)})',
   LogIntegralLi(:final expr) =>
     '\\operatorname{li}(${_toLatex(expr, decimalPlaces)})',
   SinIntegralSi(:final expr) =>
@@ -104,6 +109,12 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
     'E(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
     '\\Pi(${_toLatex(characteristic, decimalPlaces)}; ${_toLatex(amplitude, decimalPlaces)} \\mid ${_toLatex(modulus, decimalPlaces)})',
+  Hypergeometric(:final upper, :final lower, :final argument) =>
+    '{}_{${upper.length}}F_{${lower.length}}\\left(${upper.map((e) => _toLatex(e, decimalPlaces)).join(', ')}; ${lower.map((e) => _toLatex(e, decimalPlaces)).join(', ')}; ${_toLatex(argument, decimalPlaces)}\\right)',
+  Min(:final args) =>
+    '\\min\\left(${args.map((e) => _toLatex(e, decimalPlaces)).join(', ')}\\right)',
+  Max(:final args) =>
+    '\\max\\left(${args.map((e) => _toLatex(e, decimalPlaces)).join(', ')}\\right)',
   Beta(:final left, :final right) =>
     '\\operatorname{B}(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   Factorial(:final expr) => '${_formatPowBase(expr, decimalPlaces)}!',

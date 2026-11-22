@@ -672,6 +672,10 @@ PowerSeries _expandToPowerSeries(
   EllipticF() ||
   EllipticEIncomplete() ||
   EllipticPi() ||
+  ExpIntegralE() ||
+  Hypergeometric() ||
+  Min() ||
+  Max() ||
   Atan2() => _expandTaylorSeries(expr, variable, point, order),
 
   Asinh(:final expr) => _expandAsinh(expr, variable, point, order),
@@ -708,7 +712,10 @@ PowerSeries _expandToPowerSeries(
     order,
   ),
 
-  Zeta(:final expr) => _expandZeta(expr, variable, point, order),
+  Zeta(expr: final s, :final shift) =>
+    shift == null
+        ? _expandZeta(s, variable, point, order)
+        : _expandTaylorSeries(expr, variable, point, order),
 
   BesselJ(:final left, :final right) => _expandBessel(
     left,
