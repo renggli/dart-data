@@ -96,7 +96,42 @@ extension IntegrationExtension on Expr {
   }
 }
 
-/// Evaluates the indefinite or definite symbolic integral of [function] with
+final class _IntegrationBudget {
+  static const int maxSteps = 250;
+  static const int maxDepth = 8;
+  static const int maxElapsedMs = 250;
+
+  final Stopwatch _stopwatch = Stopwatch()..start();
+  final Map<(Expr, String), Expr> memo = <(Expr, String), Expr>{};
+  int steps = 0;
+
+  bool get isExhausted =>
+      steps >= maxSteps || _stopwatch.elapsedMilliseconds >= maxElapsedMs;
+}
+
+_IntegrationBudget? _activeBudget;
+
+/// Whether the current [symbolicIntegrate] budget has been exhausted.
+bool isIntegrationBudgetExhausted() => _activeBudget?.isExhausted ?? false;
+
+/// Returns whether [expr] has at least [limit] AST nodes.
+bool exceedsNodeBudget(Expr expr, [int limit = 500]) {
+  var count = 0;
+  bool visit(Expr n) {
+    count++;
+    if (count >= limit) return true;
+    var exceeded = false;
+    n.mapChildren((c) {
+      if (!exceeded && visit(c)) exceeded = true;
+      return c;
+    });
+    return exceeded;
+  }
+
+  return visit(expr);
+}
+
+/// Computes the symbolic indefinite or definite integral of [function] with
 /// respect to [variable].
 Expr symbolicIntegrate(
   Expr function,
@@ -110,29 +145,38 @@ Expr symbolicIntegrate(
       'Both "from" and "to" must be provided for definite integration.',
     );
   }
-  if (from != null && to != null) {
-    return evaluateDefiniteIntegral(
-      function,
-      variable,
-      from,
-      to,
-      assumptions: assumptions,
-      antiDerivative: antiDerivative,
-    );
+  final prevBudget = _activeBudget;
+  final ownBudget = prevBudget == null ? _IntegrationBudget() : null;
+  if (ownBudget != null) {
+    _activeBudget = ownBudget;
   }
-
   try {
-    var res = antiDerivative(function, variable, assumptions: assumptions);
-    if (_mayBeComplexExpr(function)) {
-      res = _stripAbsInLn(res);
+    if (from != null && to != null) {
+      return evaluateDefiniteIntegral(
+        function,
+        variable,
+        from,
+        to,
+        assumptions: assumptions,
+        antiDerivative: antiDerivative,
+      );
     }
-    return res.simplify(assumptions: assumptions);
-  } on Object {
-    return Integral(
-      function.simplify(assumptions: assumptions),
-      variable,
-      isSimplified: true,
-    );
+
+    try {
+      var res = antiDerivative(function, variable, assumptions: assumptions);
+      if (_mayBeComplexExpr(function)) {
+        res = _stripAbsInLn(res);
+      }
+      return res.simplify(assumptions: assumptions);
+    } on Object {
+      return Integral(
+        function.simplify(assumptions: assumptions),
+        variable,
+        isSimplified: true,
+      );
+    }
+  } finally {
+    _activeBudget = prevBudget;
   }
 }
 
@@ -152,6 +196,46 @@ Expr antiDerivative(
     return (node * Variable(variable)).simplify(assumptions: assumptions);
   }
 
+  if (depth > _IntegrationBudget.maxDepth) {
+    return unsupportedIntegral(node, variable);
+  }
+
+  final budget = _activeBudget;
+  if (budget != null) {
+    if (budget.isExhausted) {
+      return unsupportedIntegral(node, variable);
+    }
+    final key = (node, variable);
+    if (budget.memo[key] case final cached?) {
+      return cached;
+    }
+    budget.steps++;
+    final res = _antiDerivativeCore(
+      node,
+      variable,
+      assumptions: assumptions,
+      depth: depth,
+    );
+    if (!budget.isExhausted) {
+      budget.memo[key] = res;
+    }
+    return res;
+  }
+
+  return _antiDerivativeCore(
+    node,
+    variable,
+    assumptions: assumptions,
+    depth: depth,
+  );
+}
+
+Expr _antiDerivativeCore(
+  Expr node,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
   if (depth < 2 && node.anyNode((n) => n is Binomial)) {
     Expr expandBinomial(Expr e) {
       final mapped = e.mapChildren(expandBinomial);
@@ -1861,7 +1945,9 @@ Expr _antiDerivMul(
   }
 
   // 6. Full polynomial expansion fallback (e.g. factored polynomials like (x-1)*(x-2)*(x+2)):
-  if (polynomialDegree(original, variable) != null) {
+  if (!isIntegrationBudgetExhausted() &&
+      !exceedsNodeBudget(original, 300) &&
+      polynomialDegree(original, variable) != null) {
     final expanded = original.expand().simplify(assumptions: assumptions);
     if (expanded != original) {
       return antiDerivative(

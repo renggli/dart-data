@@ -658,7 +658,10 @@ Expr? tryAntiDerivDiv(
     if (rawDegLeft != null &&
         rawDegRight != null &&
         rawDegRight >= 1 &&
-        (rawDegLeft >= rawDegRight ? rawDegRight <= 24 : rawDegRight <= 12)) {
+        (rawDegLeft >= rawDegRight ? rawDegRight <= 24 : rawDegRight <= 12) &&
+        !isIntegrationBudgetExhausted() &&
+        !exceedsNodeBudget(left, 250) &&
+        !exceedsNodeBudget(right, 250)) {
       final leftExp = left.expand().simplify();
       final rightExp = right.expand().simplify();
       final degLeft = polynomialDegree(leftExp, variable);
@@ -1328,9 +1331,19 @@ Expr _makeMonic(Expr poly, String variable) {
 }
 
 Expr? _polyGcd(Expr a, Expr b, String variable) {
+  if (isIntegrationBudgetExhausted() ||
+      exceedsNodeBudget(a, 250) ||
+      exceedsNodeBudget(b, 250)) {
+    return null;
+  }
   var u = a.expand().simplify();
   var v = b.expand().simplify();
-  for (var iter = 0; iter < 30; iter++) {
+  for (var iter = 0; iter < 20; iter++) {
+    if (isIntegrationBudgetExhausted() ||
+        exceedsNodeBudget(u, 250) ||
+        exceedsNodeBudget(v, 250)) {
+      return null;
+    }
     final degV = polynomialDegree(v, variable);
     if (degV == null) return null;
     if (v is Number && v.isZero) {

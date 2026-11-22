@@ -609,5 +609,19 @@ void main() {
         ).equals(IntegerNumber.zero);
       },
     );
+
+    test('terminates within budget on large or unsolvable integrands', () {
+      final sw = Stopwatch()..start();
+      final unsolvable = Expr.parse('(c + d * x) / (a + b * sin(e + f * x))^2')
+          .integrate('x');
+      sw.stop();
+      check(unsolvable).isA<Integral>();
+      check(sw.elapsedMilliseconds).isLessThan(1000);
+
+      final solvableTrig = Expr.parse(
+        'cos(c + d * x)^2 / (a + b * sin(c + d * x))',
+      ).integrate('x');
+      check(solvableTrig).isNotA<Integral>();
+    });
   });
 }

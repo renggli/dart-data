@@ -18,7 +18,7 @@ Expr? tryIntegrationByParts(
   required Assumptions assumptions,
   int depth = 0,
 }) {
-  if (depth >= 3) return null;
+  if (depth >= 3 || isIntegrationBudgetExhausted()) return null;
 
   // Symbolic power times logarithm: x^n * ln(a*x)
   if (vExpr case Ln(expr: final inner)) {

@@ -253,6 +253,7 @@ Expr? tryUSubstitution(
   required Assumptions assumptions,
   int depth = 0,
 }) {
+  if (isIntegrationBudgetExhausted()) return null;
   final candidates = <Expr>{};
   _collectUCandidates(expr, variable, candidates);
   if (candidates.isEmpty) return null;
@@ -269,6 +270,7 @@ Expr? tryUSubstitution(
   final uVar = Variable(uName);
 
   for (final candidate in candidates) {
+    if (isIntegrationBudgetExhausted()) return null;
     if (!candidate.dependsOn(variable)) continue;
     if (candidate is Variable && candidate.name == variable) continue;
     final gPrime = candidate
@@ -277,6 +279,7 @@ Expr? tryUSubstitution(
     if (gPrime is Number && gPrime.isZero) continue;
 
     for (final variant in exprVariants) {
+      if (isIntegrationBudgetExhausted()) return null;
       final quot = (variant / gPrime).simplify(assumptions: assumptions);
       var replaced = _replaceUCandidate(quot, candidate, uVar, variable);
       var fU = replaced.simplify(assumptions: assumptions);
@@ -288,10 +291,12 @@ Expr? tryUSubstitution(
           fU = replaced.simplify(assumptions: assumptions);
         }
       }
-      if (fU.dependsOn(variable)) {
+      if (fU.dependsOn(variable) && !exceedsNodeBudget(replaced, 350)) {
         fU = replaced.expand().simplify(assumptions: assumptions);
       }
-      if (fU.dependsOn(variable) && !_hasLargeIntegerExponent(quot)) {
+      if (fU.dependsOn(variable) &&
+          !_hasLargeIntegerExponent(quot) &&
+          !exceedsNodeBudget(quot, 350)) {
         final normQuot = quot
             .together(assumptions: assumptions)
             .cancel(assumptions: assumptions);
@@ -303,11 +308,11 @@ Expr? tryUSubstitution(
             variable,
           );
           fU = normReplaced.simplify(assumptions: assumptions);
-          if (fU.dependsOn(variable)) {
+          if (fU.dependsOn(variable) && !exceedsNodeBudget(normReplaced, 350)) {
             fU = normReplaced.expand().simplify(assumptions: assumptions);
           }
         }
-        if (fU.dependsOn(variable)) {
+        if (fU.dependsOn(variable) && !exceedsNodeBudget(normQuot, 350)) {
           fU =
               _tryLinearTranscendentalReplace(
                 normQuot: normQuot,
