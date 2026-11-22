@@ -57,6 +57,16 @@ final CasTestSuite solversLinearSuite = CasTestSuite(
     solveCase('sol_lambertW', 'x * exp(x) - 2', 'x', ['LambertW(2)']),
     solveCase('sol_trig_sin', 'sin(x) - 1/2', 'x', ['pi / 6', '5 * pi / 6']),
     solveCase('sol_trig_cos', 'cos(x) - 1/2', 'x', ['pi / 3', '5 * pi / 3']),
+    solveCase('sol_trig_quad_1', 'sin(x)^2 - 2*sin(x)*cos(x) + cos(x)^2', 'x', [
+      'pi / 4',
+      '5 * pi / 4',
+    ]),
+    solveCase('sol_trig_quad_2', 'sin(x)^2 + sin(x)*cos(x) - 1', 'x', [
+      'pi / 2',
+      '3 * pi / 2',
+      'pi / 4',
+      '5 * pi / 4',
+    ]),
 
     // Linear & Nonlinear Polynomial Systems
     customCase(

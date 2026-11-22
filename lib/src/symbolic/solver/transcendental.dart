@@ -103,6 +103,14 @@ List<Expr>? isolateAndInvert(
   );
   if (multiTrigRoots != null) return multiTrigRoots;
 
+  // Case 3e: Quadratic trigonometric equations a*sin^2 + b*sin*cos + c*cos^2 + d = 0
+  final quadTrigRoots = solveQuadraticTrig(
+    expr,
+    variable,
+    assumptions: assumptions,
+  );
+  if (quadTrigRoots != null) return quadTrigRoots;
+
   // Case 4: expr is alone (equated to 0)
   return invertEquation(
     expr,

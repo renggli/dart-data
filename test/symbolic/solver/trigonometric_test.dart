@@ -144,4 +144,44 @@ void main() {
       check(quadComp.length).equals(4);
     });
   });
+
+  group('solveQuadraticTrig', () {
+    test(
+      'solves homogeneous and constant-shifted quadratic trig equations',
+      () {
+        check(
+          solveQuadraticTrig(
+            Expr.parse('sin(x)^2 - cos(x)^2'),
+            'x',
+            assumptions: Assumptions.none,
+          ),
+        ).isNotNull().unorderedEquals([
+          _piFrac(1, 4),
+          _piFrac(3, 4),
+          _piFrac(5, 4),
+          _piFrac(7, 4),
+        ]);
+
+        // Degenerate a + d == 0 includes cos(x) == 0
+        check(Expr.parse('sin(x)^2 + sin(x)*cos(x) - 1').solve('x'))
+            .unorderedEquals([
+              _piFrac(1, 2),
+              _piFrac(3, 2),
+              _piFrac(1, 4),
+              _piFrac(5, 4),
+            ]);
+
+        // General non-special roots verify numerically
+        final gen = Expr.parse('2*sin(x)^2 - 3*sin(x)*cos(x) + cos(x)^2')
+            .solve('x');
+        check(gen.length).equals(4);
+        for (final r in gen) {
+          final v = r.evaluate();
+          final s = math.sin(v);
+          final c = math.cos(v);
+          check(2 * s * s - 3 * s * c + c * c).isCloseTo(0.0, 1e-12);
+        }
+      },
+    );
+  });
 }
