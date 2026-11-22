@@ -349,6 +349,22 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
     }
   }
 
+  // 7c. Square-root radical denesting: sqrt(a ± b*sqrt(c))
+  if (base is Add &&
+      (exponent == FractionNumber.half ||
+          exponent == FractionNumber.negativeHalf)) {
+    final denested = _denestSqrt(base, assumptions);
+    if (denested != null) {
+      return exponent == FractionNumber.half
+          ? denested
+          : simplifyPow(
+              denested,
+              IntegerNumber.negativeOne,
+              assumptions: assumptions,
+            );
+    }
+  }
+
   // 8. |u|^2 => u^2 for real u
   if (base is Abs && _isTwo(exponent) && isProvenReal(base.expr, assumptions)) {
     return simplifyPow(base.expr, exponent, assumptions: assumptions);
@@ -610,4 +626,80 @@ Expr? _simplifyExpInvHyperbolic(Expr exponent, Assumptions assumptions) {
     default:
       return null;
   }
+}
+
+Expr? _denestSqrt(Add base, Assumptions assumptions) {
+  if (base.terms.length != 2) return null;
+  RationalNumber? a;
+  Expr? other;
+  if (base.terms[0] is RationalNumber) {
+    a = base.terms[0] as RationalNumber;
+    other = base.terms[1];
+  } else if (base.terms[1] is RationalNumber) {
+    a = base.terms[1] as RationalNumber;
+    other = base.terms[0];
+  }
+  if (a == null || other == null || a.isNegative || a.isZero) return null;
+
+  RationalNumber? b;
+  RationalNumber? c;
+  switch (other) {
+    case Pow(base: final RationalNumber rc, exponent: final exp)
+        when exp == FractionNumber.half:
+      b = IntegerNumber.one;
+      c = rc;
+    case Mul(factors: [final f0, final f1]):
+      if (f0 is RationalNumber &&
+          f1 is Pow &&
+          f1.exponent == FractionNumber.half &&
+          f1.base is RationalNumber) {
+        b = f0;
+        c = f1.base as RationalNumber;
+      } else if (f1 is RationalNumber &&
+          f0 is Pow &&
+          f0.exponent == FractionNumber.half &&
+          f0.base is RationalNumber) {
+        b = f1;
+        c = f0.base as RationalNumber;
+      }
+    default:
+      break;
+  }
+  if (b == null || c == null || c.isNegative || c.isZero || b.isZero) {
+    return null;
+  }
+
+  final disc = simplifyAdd([
+    simplifyPow(a, IntegerNumber.two, assumptions: assumptions),
+    simplifyMul([
+      IntegerNumber.negativeOne,
+      simplifyPow(b, IntegerNumber.two, assumptions: assumptions),
+      c,
+    ], assumptions: assumptions),
+  ], assumptions: assumptions);
+  if (disc is! RationalNumber || disc.isNegative) return null;
+
+  final d = disc.powNumber(FractionNumber.half);
+  if (d is! RationalNumber) return null;
+
+  final u = simplifyMul([
+    simplifyAdd([a, d], assumptions: assumptions),
+    FractionNumber.half,
+  ], assumptions: assumptions);
+  final v = simplifyMul([
+    simplifyAdd([
+      a,
+      simplifyMul([IntegerNumber.negativeOne, d], assumptions: assumptions),
+    ], assumptions: assumptions),
+    FractionNumber.half,
+  ], assumptions: assumptions);
+  final sqrtU = simplifyPow(u, FractionNumber.half, assumptions: assumptions);
+  final sqrtV = simplifyPow(v, FractionNumber.half, assumptions: assumptions);
+  final signedSqrtV = b.isNegative
+      ? simplifyMul([
+          IntegerNumber.negativeOne,
+          sqrtV,
+        ], assumptions: assumptions)
+      : sqrtV;
+  return simplifyAdd([sqrtU, signedSqrtV], assumptions: assumptions);
 }

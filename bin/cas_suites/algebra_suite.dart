@@ -156,5 +156,9 @@ final CasTestSuite algebraSuite = CasTestSuite(
     simplifyCase('alg_exp_invhyp_3', 'exp(-asinh(x))', 'sqrt(x^2 + 1) - x'),
     simplifyCase('alg_exp_invhyp_4', 'exp(acosh(x))', 'x + sqrt(x^2 - 1)'),
     simplifyCase('alg_exp_invhyp_5', 'exp(-acosh(x))', 'x - sqrt(x^2 - 1)'),
+    simplifyCase('alg_denest_1', 'sqrt(3 + 2*sqrt(2))', '1 + sqrt(2)'),
+    simplifyCase('alg_denest_2', 'sqrt(3 - 2*sqrt(2))', 'sqrt(2) - 1'),
+    simplifyCase('alg_denest_3', 'sqrt(5 + 2*sqrt(6))', 'sqrt(2) + sqrt(3)'),
+    simplifyCase('alg_denest_4', 'sqrt(7 - 4*sqrt(3))', '2 - sqrt(3)'),
   ],
 );

@@ -226,5 +226,20 @@ void main() {
       check(Expr.parse('exp(-acosh(x))').simplify())
           .equals(Expr.parse('x - sqrt(x^2 - 1)').simplify());
     });
+
+    test('denests square-root radicals sqrt(a +- b*sqrt(c))', () {
+      check(Expr.parse('sqrt(3 + 2*sqrt(2))').simplify())
+          .equals(Expr.parse('1 + sqrt(2)').simplify());
+      check(Expr.parse('sqrt(3 - 2*sqrt(2))').simplify())
+          .equals(Expr.parse('sqrt(2) - 1').simplify());
+      check(Expr.parse('sqrt(5 + 2*sqrt(6))').simplify())
+          .equals(Expr.parse('sqrt(2) + sqrt(3)').simplify());
+      check(Expr.parse('sqrt(7 - 4*sqrt(3))').simplify())
+          .equals(Expr.parse('2 - sqrt(3)').simplify());
+      check(Expr.parse('sqrt(3/2 + sqrt(2))').simplify())
+          .equals(Expr.parse('1 + sqrt(2)/2').simplify());
+      // Non-denestable stays as Pow
+      check(Expr.parse('sqrt(2 + sqrt(2))').simplify()).isA<Pow>();
+    });
   });
 }
