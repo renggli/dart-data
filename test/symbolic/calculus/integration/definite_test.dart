@@ -410,7 +410,12 @@ void main() {
           Expr.parse('(x^3 - 1) / (x^2 - 1)').integrate('x', from: 0, to: 2),
         ).equals(Expr.parse('2 + ln(3)').simplify());
 
-        // Radical conjugate definite integral on [0, 5]
+        // Radical conjugate indefinite + definite integral on [0, 5]
+        final radIndef = Expr.parse('(sqrt(x + 4) - 2) / x').integrate('x');
+        check(radIndef).equals(
+          Expr.parse('2 * sqrt(4 + x) - 4 * ln(abs(2 + sqrt(4 + x)))')
+              .simplify(),
+        );
         final radInt = Expr.parse('(sqrt(x + 4) - 2) / x')
             .integrate('x', from: 0, to: 5);
         check(radInt.anyNode((n) => n is Integral)).isFalse;

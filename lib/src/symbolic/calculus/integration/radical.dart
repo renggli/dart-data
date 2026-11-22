@@ -704,9 +704,9 @@ Expr? tryAffineRadicalSubstitution(
     b,
   );
   final dx = (IntegerNumber.of(n) * Pow(uVar, IntegerNumber.of(n - 1))) / a;
-  final transformed = (replaced * dx).expand().simplify(
-    assumptions: assumptions,
-  );
+  final transformed = (replaced * dx)
+      .together(assumptions: assumptions)
+      .cancel(assumptions: assumptions);
   if (transformed.dependsOn(variable)) return null;
 
   final uAntideriv = antiDerivative(

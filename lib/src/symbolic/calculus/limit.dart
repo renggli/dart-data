@@ -226,6 +226,11 @@ Expr computeLimit(
         direction: direction,
         assumptions: assumptions,
       );
+      if (_isPositiveInfinity(baseLim) &&
+          exponent is RealNumeric &&
+          !exponent.isZero) {
+        return exponent.isNegative ? IntegerNumber.zero : Constant.infinity;
+      }
       if (baseLim is Number &&
           baseLim.isZero &&
           exponent is RealNumeric &&
@@ -732,6 +737,13 @@ Expr _computeInfiniteLimit(
     return expPolyLim.simplify(assumptions: posAssumptions);
   }
 
+  final logPowerLim = _tryLogVsPowerDominance(
+    combined,
+    variable,
+    posAssumptions,
+  );
+  if (logPowerLim != null) return logPowerLim;
+
   if (combined case Mul(:final factors)) {
     var hasInf = false;
     var sign = 1;
@@ -1209,9 +1221,15 @@ Expr _gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
   }
 
   f = _expandLogArguments(f, variable);
+  if (_exceedsAstLimit(f, 4000)) {
+    return Limit(expr, variable, Constant.infinity);
+  }
   final expandedExp = _expandSubdominantExponentials(f, variable, assumptions);
   if (expandedExp != f) {
     f = expandedExp;
+    if (_exceedsAstLimit(f, 4000)) {
+      return Limit(expr, variable, Constant.infinity);
+    }
     if (!f.dependsOn(variable)) return f;
     if (f is Pow && f.base == Constant.e) {
       return computeLimit(
@@ -1258,6 +1276,41 @@ Expr _gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
     final rewritten = f
         .substitute(variable, IntegerNumber.one / omega)
         .simplify(assumptions: assumptions);
+
+    final (numExpr, denExpr) = splitNumeratorDenominator(rewritten);
+    if (denExpr != IntegerNumber.one) {
+      for (final ord in const [4, 10]) {
+        try {
+          final sNum = numExpr.toPowerSeries(
+            omegaName,
+            point: IntegerNumber.zero,
+            order: ord,
+          );
+          final sDen = denExpr.toPowerSeries(
+            omegaName,
+            point: IntegerNumber.zero,
+            order: ord,
+          );
+          if ((sNum.leadingTerm, sDen.leadingTerm) case (
+            final leadNum?,
+            final leadDen?,
+          )) {
+            final m = leadNum.exponent - leadDen.exponent;
+            final cm = (leadNum.coefficient / leadDen.coefficient).simplify(
+              assumptions: assumptions,
+            );
+            if (m > 0) return IntegerNumber.zero;
+            if (m == 0) return cm;
+            final sign = _asymptoticSignAtInfinity(cm, variable);
+            if (sign != 0) {
+              return sign > 0 ? Constant.infinity : _negInfinity;
+            }
+          }
+        } on Object {
+          break;
+        }
+      }
+    }
 
     for (final ord in const [4, 10]) {
       try {
@@ -1748,7 +1801,7 @@ int _asymptoticSignAtInfinity(
   }
 
   var agreedSign = 0;
-  for (final sample in const [1e4, 1e8, 1e16]) {
+  for (final sample in const [1e3, 1e6, 1e9]) {
     try {
       final val = s.evaluate({variable: sample});
       if (!val.isFinite || val == 0.0) return 0;
@@ -2075,13 +2128,31 @@ Expr? _combineLogAddTerms(
   final scale = allRational && lcmDen > 1
       ? IntegerNumber.of(lcmDen)
       : IntegerNumber.one;
+  var gcdNum = 0;
+  if (allRational) {
+    for (final (:coeff, arg: _) in logTerms) {
+      if (coeff case RationalNumber(:final numerator, :final denominator)
+          when numerator.asInt != null && denominator.asInt != null) {
+        final scaledNum =
+            numerator.asInt!.abs() * (lcmDen ~/ denominator.asInt!.abs());
+        gcdNum = gcdNum == 0 ? scaledNum : gcdNum.gcd(scaledNum);
+      } else {
+        gcdNum = 1;
+        break;
+      }
+    }
+  }
+  final factorGcd = allRational && gcdNum > 1
+      ? IntegerNumber.of(gcdNum)
+      : IntegerNumber.one;
   final combinedArg = Mul([
     for (final (:coeff, :arg) in logTerms)
-      Pow(arg, (coeff * scale).simplify(assumptions: assumptions)),
+      Pow(arg, (coeff * scale / factorGcd).simplify(assumptions: assumptions)),
   ]).simplify(assumptions: assumptions);
-  final combinedLog = scale == IntegerNumber.one
+  final outerCoeff = (factorGcd / scale).simplify(assumptions: assumptions);
+  final combinedLog = outerCoeff == IntegerNumber.one
       ? Ln(combinedArg)
-      : Ln(combinedArg) / scale;
+      : outerCoeff * Ln(combinedArg);
   if (otherTerms.isEmpty) return combinedLog;
   return Add([...otherTerms, combinedLog]).simplify(assumptions: assumptions);
 }
@@ -2101,3 +2172,68 @@ bool _exceedsAstLimit(Expr expr, int maxNodes) {
   expr.anyNode(visit);
   return exceeded;
 }
+
+Expr? _tryLogVsPowerDominance(
+  Expr expr,
+  String variable,
+  Assumptions assumptions,
+) {
+  if (expr is! Add) return null;
+  final logTerms = <Expr>[];
+  final otherTerms = <Expr>[];
+  for (final t in expr.terms) {
+    if (!t.dependsOn(variable)) {
+      otherTerms.add(t);
+      continue;
+    }
+    final innerLn = switch (t) {
+      Ln(:final expr) => expr,
+      Mul(:final factors) => () {
+        Ln? found;
+        for (final f in factors) {
+          if (f is Ln && found == null) {
+            found = f;
+          } else if (f.dependsOn(variable)) {
+            return null;
+          }
+        }
+        return found?.expr;
+      }(),
+      _ => null,
+    };
+    if (innerLn != null && _isPurelyAlgebraic(innerLn)) {
+      logTerms.add(t);
+    } else {
+      otherTerms.add(t);
+    }
+  }
+  if (logTerms.isEmpty || otherTerms.isEmpty) return null;
+  final otherExpr = otherTerms.length == 1
+      ? otherTerms.first
+      : Add(otherTerms).simplify(assumptions: assumptions);
+  if (!otherExpr.dependsOn(variable) || !_isPurelyAlgebraic(otherExpr)) {
+    return null;
+  }
+  try {
+    final otherLim = computeLimit(
+      otherExpr,
+      variable,
+      Constant.infinity,
+      assumptions: assumptions,
+    );
+    if (_isPositiveInfinity(otherLim)) return Constant.infinity;
+    if (_isNegativeInfinity(otherLim)) return _negInfinity;
+  } on Object {
+    // Fall through
+  }
+  return null;
+}
+
+bool _isPurelyAlgebraic(Expr expr) => switch (expr) {
+  Number() || Constant() || Variable() => true,
+  Add(:final terms) => terms.every(_isPurelyAlgebraic),
+  Mul(:final factors) => factors.every(_isPurelyAlgebraic),
+  Pow(:final base, exponent: RealNumeric()) => _isPurelyAlgebraic(base),
+  Abs(:final expr) => _isPurelyAlgebraic(expr),
+  _ => false,
+};

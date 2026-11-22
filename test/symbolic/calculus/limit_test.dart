@@ -629,6 +629,17 @@ void main() {
 
       check(Expr.parse('x * x!').limit('x', Constant.infinity))
           .equals(Constant.infinity);
+
+      // Log-vs-power dominance and GCD-factored logarithmic combination
+      const radicalAntideriv =
+          '-2 * ln(abs(x)) + 2 * ln(abs(-4 + 2 * sqrt(4 + x)) / abs(4 + 2 * sqrt(4 + x))) + 2 * sqrt(4 + x)';
+      check(
+        Expr.parse(
+          radicalAntideriv,
+        ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromAbove),
+      ).equals(Expr.parse('4 - 8 * ln(2)').simplify());
+      check(Expr.parse(radicalAntideriv).limit('x', Constant.infinity))
+          .equals(Constant.infinity);
     });
   });
 }

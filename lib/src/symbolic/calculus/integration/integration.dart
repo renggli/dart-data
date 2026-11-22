@@ -180,6 +180,31 @@ Expr antiDerivative(
     }
   }
 
+  if (depth == 0 &&
+      node.anyNode(
+        (n) =>
+            n is Pow &&
+            n.exponent is FractionNumber &&
+            n.base.dependsOn(variable),
+      ) &&
+      node.anyNode(
+        (n) =>
+            n is Pow &&
+            n.exponent is RealNumeric &&
+            (n.exponent as RealNumeric).isNegative &&
+            n.base.dependsOn(variable),
+      )) {
+    if (tryAffineRadicalSubstitution(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final affineRes?) {
+      return affineRes;
+    }
+  }
+
   final result = switch (node) {
     Derivative(:final expr, variable: final v, :final order)
         when v == variable =>
