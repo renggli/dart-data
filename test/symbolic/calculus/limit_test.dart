@@ -621,6 +621,11 @@ void main() {
           '-1/2 * ln(abs(2 * x - 2) / abs(2 * x + 2)) + 1/2 * ln(x^2 - 1)',
         ).limit('x', IntegerNumber.one, direction: LimitDirection.fromAbove),
       ).equals(Expr.parse('ln(2)').simplify());
+
+      check(
+        Expr.parse('sqrt(75) * x^2 - sqrt(12) * x^2 + sqrt(27) * x')
+            .limit('x', -Constant.infinity),
+      ).equals(Constant.infinity);
     });
   });
 }

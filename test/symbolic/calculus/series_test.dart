@@ -597,10 +597,30 @@ void main() {
           FractionNumber.half,
         ).series('x', order: 4, includeOrder: false).simplify(),
       ).equals(Expr.parse('x - x^3/24').simplify());
-      check(EllipticK(x).series('x', order: 2, includeOrder: false).simplify())
-          .equals(Expr.parse('pi/2 + pi/8*x').simplify());
-      check(EllipticE(x).series('x', order: 2, includeOrder: false).simplify())
-          .equals(Expr.parse('pi/2 - pi/8*x').simplify());
+      final kSeries = EllipticK(x)
+          .series('x', order: 5, includeOrder: false)
+          .simplify();
+      check(kSeries)
+          .equals(Expr.parse('pi/2 + pi/8*x^2 + 9*pi/128*x^4').simplify());
+      check(kSeries.evaluate({'x': 0.2}))
+          .isCloseTo(EllipticK(const RealNumber(0.2)).evaluate(), 2e-5);
+      check(
+        EllipticK(x)
+            .series('x', order: 7, includeOrder: false)
+            .evaluate({'x': 0.2}),
+      ).isCloseTo(EllipticK(const RealNumber(0.2)).evaluate(), 1e-6);
+      final eSeries = EllipticE(x)
+          .series('x', order: 5, includeOrder: false)
+          .simplify();
+      check(eSeries)
+          .equals(Expr.parse('pi/2 - pi/8*x^2 - 3*pi/128*x^4').simplify());
+      check(eSeries.evaluate({'x': 0.2}))
+          .isCloseTo(EllipticE(const RealNumber(0.2)).evaluate(), 1e-5);
+      check(
+        EllipticE(x)
+            .series('x', order: 7, includeOrder: false)
+            .evaluate({'x': 0.2}),
+      ).isCloseTo(EllipticE(const RealNumber(0.2)).evaluate(), 1e-6);
       check(
         ExpIntegralEi(x)
             .series('x', point: 1, order: 2, includeOrder: false)

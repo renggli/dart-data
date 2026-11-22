@@ -1022,23 +1022,57 @@ Expr? _exponentialPolynomialLimitAtInfinity(
     return (0, expanded);
   }
 
-  final acc = MonomialAccumulator(assumptions: Assumptions.none);
-  acc.add(expanded);
+  final terms = expanded is Add ? expanded.terms : [expanded];
+  final byDegree = <int, List<Expr>>{};
 
-  var maxDegree = -1;
-  Expr? leadCoeff;
+  for (final term in terms) {
+    final parsed = _splitMonomialTerm(term, variable);
+    if (parsed == null) return null;
+    final (:degree, :coeff) = parsed;
+    (byDegree[degree] ??= <Expr>[]).add(coeff);
+  }
 
-  for (final entry in acc.terms.entries) {
-    final (base, coeff) = (entry.key, entry.value);
-    final deg = _monomialDegree(base, variable);
-    if (deg == null) return null;
-    if (deg > maxDegree) {
-      maxDegree = deg;
-      leadCoeff = coeff;
+  final degrees = byDegree.keys.toList()..sort((a, b) => b.compareTo(a));
+  for (final deg in degrees) {
+    final coeffs = byDegree[deg]!;
+    final sum = coeffs.length == 1
+        ? coeffs.first.simplify()
+        : Add(coeffs).simplify();
+    if (sum != IntegerNumber.zero) {
+      return (deg, sum);
     }
   }
 
-  return (maxDegree, leadCoeff ?? IntegerNumber.one);
+  return (0, IntegerNumber.zero);
+}
+
+({int degree, Expr coeff})? _splitMonomialTerm(Expr term, String variable) {
+  if (!term.dependsOn(variable)) {
+    return (degree: 0, coeff: term);
+  }
+  if (_monomialDegree(term, variable) case final deg?) {
+    return (degree: deg, coeff: IntegerNumber.one);
+  }
+  if (term case Mul(:final factors)) {
+    var degree = 0;
+    final coeffFactors = <Expr>[];
+    for (final factor in factors) {
+      if (!factor.dependsOn(variable)) {
+        coeffFactors.add(factor);
+      } else if (_monomialDegree(factor, variable) case final deg?) {
+        degree += deg;
+      } else {
+        return null;
+      }
+    }
+    final coeff = switch (coeffFactors) {
+      [] => IntegerNumber.one,
+      [final single] => single,
+      _ => Mul(coeffFactors).simplify(),
+    };
+    return (degree: degree, coeff: coeff);
+  }
+  return null;
 }
 
 int? _monomialDegree(Expr base, String variable) => switch (base) {

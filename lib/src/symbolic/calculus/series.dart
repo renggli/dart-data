@@ -1363,11 +1363,15 @@ PowerSeries _expandCompleteElliptic(
   if (u.coefficients.isEmpty) {
     return result;
   }
-  final m = u.valuation;
+  final u2 = u * u;
+  if (u2.coefficients.isEmpty) {
+    return result;
+  }
+  final m2 = u2.valuation;
   var power = PowerSeries(variable, point, {0: IntegerNumber.one}, order);
   var sqCoeff = IntegerNumber.one as Expr;
-  for (var n = 1; n * m < order; n++) {
-    power = power * u;
+  for (var n = 1; n * m2 < order; n++) {
+    power = power * u2;
     final ratio = IntegerNumber.of(2 * n - 1) / IntegerNumber.of(2 * n);
     sqCoeff = (sqCoeff * ratio * ratio).simplify();
     final termCoeff = isSecondKind
