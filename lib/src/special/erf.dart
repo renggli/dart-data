@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/number.dart' show Complex;
+
 /// Returns an approximation of the error function $\operatorname{erf}(x)$.
 ///
 /// Conceptually, the error function measures the cumulative probability that a
@@ -60,6 +62,25 @@ double erf(num x) {
     res = (0.5 - res) + 0.5;
     return xVal.isNegative ? -res : res;
   }
+}
+
+/// Returns the complex error function $\operatorname{erf}(z) = \frac{2}{\sqrt{\pi}} \int_0^z e^{-t^2}\,dt$.
+Complex erfComplex(Complex z) {
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.a == 0.0 && z.b == 0.0) return Complex.zero;
+  if (z.a < 0.0) return -erfComplex(-z);
+  if (z.abs() >= 4.0) return Complex.one - erfcComplex(z);
+
+  final z2 = -z * z;
+  var sum = z;
+  var term = z;
+  for (var n = 1; n <= 100; n++) {
+    term *= z2 / Complex(n);
+    final add = term / Complex(2 * n + 1);
+    sum += add;
+    if (add.abs() <= 1e-16 * sum.abs()) break;
+  }
+  return Complex(2.0 * _sqrPi) * sum;
 }
 
 /// Returns the inverse error function $\operatorname{erf}^{-1}(x)$.
@@ -160,6 +181,31 @@ double erfc(num x) {
   }
 }
 
+/// Returns the complex complementary error function $\operatorname{erfc}(z) = 1 - \operatorname{erf}(z)$.
+Complex erfcComplex(Complex z) {
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.a < 0.0) return const Complex(2.0) - erfcComplex(-z);
+  if (z.abs() < 4.0) return Complex.one - erfComplex(z);
+
+  const tiny = 1e-30;
+  final b = z;
+  var c = const Complex(1.0 / tiny);
+  var d = b.abs() < tiny ? const Complex(1.0 / tiny) : Complex.one / b;
+  var h = d;
+  for (var k = 1; k <= 200; k++) {
+    final a = Complex(0.5 * k);
+    d = a * d + b;
+    if (d.abs() < tiny) d = const Complex(tiny);
+    c = b + a / c;
+    if (c.abs() < tiny) c = const Complex(tiny);
+    d = Complex.one / d;
+    final del = d * c;
+    h *= del;
+    if ((del - Complex.one).abs() <= 1e-15) break;
+  }
+  return (-z * z).exp() * Complex(_sqrPi) * h;
+}
+
 /// Returns the inverse complementary error function $\operatorname{erfc}^{-1}(x)$.
 double erfcInv(num x) {
   if (x.isNaN) return double.nan;
@@ -232,6 +278,10 @@ double erfi(num x) {
   }
   return sign * (2.0 / sqrt(pi)) * sum;
 }
+
+/// Returns the complex imaginary error function $\operatorname{erfi}(z) = -i\operatorname{erf}(iz)$.
+Complex erfiComplex(Complex z) =>
+    const Complex(0.0, -1.0) * erfComplex(Complex.i * z);
 
 final _sqrPi = 1.0 / sqrt(pi);
 const _thresh = 0.46875;

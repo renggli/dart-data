@@ -42,6 +42,26 @@ double expIntegral(num x) {
   }
 }
 
+/// Returns the complex exponential integral $\operatorname{Ei}(z)$.
+Complex expIntegralComplex(Complex z) {
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.a == 0.0 && z.b == 0.0) return const Complex(double.negativeInfinity);
+  if (z.b == 0.0) return Complex(expIntegral(z.a.toDouble()));
+  if (z.abs() < 4.0) {
+    var sum = const Complex(_eulerMascheroni) + z.log();
+    var term = z;
+    for (var k = 1; k <= 100; k++) {
+      final add = term / Complex(k);
+      sum += add;
+      if (add.abs() <= 1e-16 * sum.abs()) break;
+      term *= z / Complex(k + 1);
+    }
+    return sum;
+  }
+  final branch = z.b > 0.0 ? const Complex(0.0, pi) : const Complex(0.0, -pi);
+  return -_expIntegralE1Complex(-z) + branch;
+}
+
 /// Returns the logarithmic integral `li(x) = ∫_0^x dt / ln(t) = Ei(ln(x))`.
 ///
 /// Defined for `x >= 0`, with `li(0) = 0` and `li(1) = -∞`.
@@ -53,6 +73,9 @@ double logIntegral(num x) {
   if (xd == double.infinity) return double.infinity;
   return expIntegral(log(xd));
 }
+
+/// Returns the complex logarithmic integral $\operatorname{li}(z) = \operatorname{Ei}(\ln(z))$.
+Complex logIntegralComplex(Complex z) => expIntegralComplex(z.log());
 
 /// Returns the sine integral `Si(x) = ∫_0^x sin(t) / t dt`.
 double sinIntegral(num x) {
@@ -81,6 +104,29 @@ double sinIntegral(num x) {
   return sign * (pi / 2.0 + e1.b);
 }
 
+/// Returns the complex sine integral $\operatorname{Si}(z) = \int_0^z \frac{\sin(t)}{t}\,dt$.
+Complex sinIntegralComplex(Complex z) {
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.a == 0.0 && z.b == 0.0) return Complex.zero;
+  if (z.abs() < 4.0) {
+    final z2 = z * z;
+    var sum = z;
+    var term = z;
+    for (var n = 1; n <= 50; n++) {
+      term *= -z2 / Complex((2 * n) * (2 * n + 1));
+      final add = term / Complex(2 * n + 1);
+      sum += add;
+      if (add.abs() <= 1e-16 * sum.abs()) break;
+    }
+    return sum;
+  }
+  if (z.a < 0.0) return -sinIntegralComplex(-z);
+  final iz = Complex.i * z;
+  final e1Plus = _expIntegralE1Complex(iz);
+  final e1Minus = _expIntegralE1Complex(-iz);
+  return const Complex(pi / 2.0) + (e1Plus - e1Minus) / const Complex(0.0, 2.0);
+}
+
 /// Returns the cosine integral `Ci(x) = γ + ln(x) + ∫_0^x (cos(t) - 1) / t dt`.
 ///
 /// Defined for `x > 0`, with `Ci(0) = -∞`.
@@ -105,6 +151,33 @@ double cosIntegral(num x) {
 
   final e1 = _expIntegralE1Complex(Complex(0.0, xd));
   return -e1.a.toDouble();
+}
+
+/// Returns the complex cosine integral $\operatorname{Ci}(z)$.
+Complex cosIntegralComplex(Complex z) {
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.a == 0.0 && z.b == 0.0) return const Complex(double.negativeInfinity);
+  if (z.abs() < 4.0) {
+    final z2 = z * z;
+    var sum = const Complex(_eulerMascheroni) + z.log();
+    var term = Complex.one;
+    for (var n = 1; n <= 50; n++) {
+      term *= -z2 / Complex((2 * n - 1) * (2 * n));
+      final add = term / Complex(2 * n);
+      sum += add;
+      if (add.abs() <= 1e-16 * sum.abs()) break;
+    }
+    return sum;
+  }
+  if (z.a < 0.0) {
+    final branch = z.b >= 0.0
+        ? const Complex(0.0, pi)
+        : const Complex(0.0, -pi);
+    return cosIntegralComplex(-z) + branch;
+  }
+  final iz = Complex.i * z;
+  return -const Complex(0.5) *
+      (_expIntegralE1Complex(iz) + _expIntegralE1Complex(-iz));
 }
 
 /// Returns the hyperbolic sine integral `Shi(x) = ∫_0^x sinh(t) / t dt`.
@@ -132,6 +205,25 @@ double sinhIntegral(num x) {
   return sign * 0.5 * (expIntegral(ax) - expIntegral(-ax));
 }
 
+/// Returns the complex hyperbolic sine integral $\operatorname{Shi}(z) = \int_0^z \frac{\sinh(t)}{t}\,dt$.
+Complex sinhIntegralComplex(Complex z) {
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.a == 0.0 && z.b == 0.0) return Complex.zero;
+  if (z.abs() < 4.0) {
+    final z2 = z * z;
+    var sum = z;
+    var term = z;
+    for (var n = 1; n <= 50; n++) {
+      term *= z2 / Complex((2 * n) * (2 * n + 1));
+      final add = term / Complex(2 * n + 1);
+      sum += add;
+      if (add.abs() <= 1e-16 * sum.abs()) break;
+    }
+    return sum;
+  }
+  return const Complex(0.0, -1.0) * sinIntegralComplex(Complex.i * z);
+}
+
 /// Returns the hyperbolic cosine integral `Chi(x) = γ + ln(x) + ∫_0^x (cosh(t) - 1) / t dt`.
 ///
 /// Defined for `x > 0`, with `Chi(0) = -∞`.
@@ -155,6 +247,29 @@ double coshIntegral(num x) {
   }
 
   return 0.5 * (expIntegral(xd) + expIntegral(-xd));
+}
+
+/// Returns the complex hyperbolic cosine integral $\operatorname{Chi}(z)$.
+Complex coshIntegralComplex(Complex z) {
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.a == 0.0 && z.b == 0.0) return const Complex(double.negativeInfinity);
+  if (z.abs() < 4.0) {
+    final z2 = z * z;
+    var sum = const Complex(_eulerMascheroni) + z.log();
+    var term = Complex.one;
+    for (var n = 1; n <= 50; n++) {
+      term *= z2 / Complex((2 * n - 1) * (2 * n));
+      final add = term / Complex(2 * n);
+      sum += add;
+      if (add.abs() <= 1e-16 * sum.abs()) break;
+    }
+    return sum;
+  }
+  final branch = z.b > 0.0
+      ? const Complex(0.0, 0.5 * pi)
+      : (z.b < 0.0 ? const Complex(0.0, -0.5 * pi) : Complex.zero);
+  return const Complex(0.5) * (expIntegralComplex(z) + expIntegralComplex(-z)) +
+      branch;
 }
 
 const _eulerMascheroni = 0.57721566490153286060651209008240243;

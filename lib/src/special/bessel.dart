@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/number.dart' show Complex;
+
 import 'gamma.dart';
 
 /// Returns the Bessel function of the first kind $J_\nu(x)$ of real order [nu].
@@ -103,7 +105,44 @@ double besselJ(num nu, num x) {
   return sum;
 }
 
-/// Returns the Bessel function of the second kind $Y_\nu(x)$ of real order [nu].
+/// Returns the complex modified Bessel function of the first kind $I_\nu(z)$.
+Complex besselJComplex(Complex nu, Complex z) {
+  if (nu.a.isNaN || nu.b.isNaN || z.a.isNaN || z.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a == 0.0 && z.b == 0.0) {
+    if (nu.a == 0.0 && nu.b == 0.0) return Complex.one;
+    if (nu.a > 0.0 ||
+        (nu.b == 0.0 && nu.a < 0.0 && nu.a == nu.a.roundToDouble())) {
+      return Complex.zero;
+    }
+    return const Complex(double.nan, double.nan);
+  }
+  if (nu.b == 0.0 && nu.a < 0.0 && nu.a == nu.a.roundToDouble()) {
+    final n = nu.a.round();
+    final pos = besselJComplex(Complex(-n), z);
+    return n.isOdd ? -pos : pos;
+  }
+  if (z.abs() > max(12.0, nu.abs() * nu.abs())) {
+    if (z.a < 0.0) {
+      return (Complex.i * const Complex(pi) * nu).exp() *
+          _hankelAsymptoticComplex(nu, -z).j;
+    }
+    return _hankelAsymptoticComplex(nu, z).j;
+  }
+  final halfZ = const Complex(0.5) * z;
+  var term = halfZ.pow(nu) / gammaComplex(nu + Complex.one);
+  var sum = term;
+  final halfZ2 = -halfZ * halfZ;
+  for (var m = 1; m <= 80; m++) {
+    term *= halfZ2 / (Complex(m) * (Complex(m) + nu));
+    sum += term;
+    if (term.abs() <= 1.0e-15 * sum.abs()) break;
+  }
+  return sum;
+}
+
+/// Returns the complex modified Bessel function of the first kind $I_\nu(z)$.
 double besselY(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
@@ -139,6 +178,28 @@ double besselY(num nu, num x) {
     return besselY(nud.round(), xd);
   }
   return (besselJ(nud, xd) * cos(pi * nud) - besselJ(-nud, xd)) / sinPiNu;
+}
+
+/// Returns the complex Bessel function of the second kind $Y_\nu(z)$.
+Complex besselYComplex(Complex nu, Complex z) {
+  if (nu.a.isNaN || nu.b.isNaN || z.a.isNaN || z.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a == 0.0 && z.b == 0.0) {
+    return const Complex(double.negativeInfinity, double.nan);
+  }
+  if (z.abs() > max(12.0, nu.abs() * nu.abs()) && z.a >= 0.0) {
+    return _hankelAsymptoticComplex(nu, z).y;
+  }
+  final sinPiNu = (const Complex(pi) * nu).sin();
+  if (sinPiNu.abs() < 1e-12) {
+    const eps = Complex(1e-6);
+    return (besselYComplex(nu + eps, z) + besselYComplex(nu - eps, z)) *
+        const Complex(0.5);
+  }
+  return (besselJComplex(nu, z) * (const Complex(pi) * nu).cos() -
+          besselJComplex(-nu, z)) /
+      sinPiNu;
 }
 
 /// Returns the modified Bessel function of the first kind $I_\nu(x)$ of real order [nu].
@@ -227,6 +288,41 @@ double besselI(num nu, num x) {
   return sum;
 }
 
+/// Returns the complex modified Bessel function of the first kind $I_\nu(z)$.
+Complex besselIComplex(Complex nu, Complex z) {
+  if (nu.a.isNaN || nu.b.isNaN || z.a.isNaN || z.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a == 0.0 && z.b == 0.0) {
+    if (nu.a == 0.0 && nu.b == 0.0) return Complex.one;
+    if (nu.a > 0.0 ||
+        (nu.b == 0.0 && nu.a < 0.0 && nu.a == nu.a.roundToDouble())) {
+      return Complex.zero;
+    }
+    return const Complex(double.nan, double.nan);
+  }
+  if (nu.b == 0.0 && nu.a < 0.0 && nu.a == nu.a.roundToDouble()) {
+    return besselIComplex(-nu, z);
+  }
+  if (z.abs() > max(12.0, nu.abs() * nu.abs())) {
+    if (z.a < 0.0) {
+      return (Complex.i * const Complex(pi) * nu).exp() *
+          _modifiedBesselAsymptoticComplex(nu, -z).i;
+    }
+    return _modifiedBesselAsymptoticComplex(nu, z).i;
+  }
+  final halfZ = const Complex(0.5) * z;
+  var term = halfZ.pow(nu) / gammaComplex(nu + Complex.one);
+  var sum = term;
+  final halfZ2 = halfZ * halfZ;
+  for (var m = 1; m <= 80; m++) {
+    term *= halfZ2 / (Complex(m) * (Complex(m) + nu));
+    sum += term;
+    if (term.abs() <= 1.0e-15 * sum.abs()) break;
+  }
+  return sum;
+}
+
 /// Returns the modified Bessel function of the second kind $K_\nu(x)$ of real order [nu].
 double besselK(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
@@ -261,6 +357,28 @@ double besselK(num nu, num x) {
     return besselK(absNu.round(), xd);
   }
   return (pi / 2.0) * (besselI(-absNu, xd) - besselI(absNu, xd)) / sinPiNu;
+}
+
+/// Returns the complex modified Bessel function of the second kind $K_\nu(z)$.
+Complex besselKComplex(Complex nu, Complex z) {
+  if (nu.a.isNaN || nu.b.isNaN || z.a.isNaN || z.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a == 0.0 && z.b == 0.0) {
+    return const Complex(double.infinity);
+  }
+  if (z.abs() > max(12.0, nu.abs() * nu.abs()) && z.a >= 0.0) {
+    return _modifiedBesselAsymptoticComplex(nu, z).k;
+  }
+  final sinPiNu = (const Complex(pi) * nu).sin();
+  if (sinPiNu.abs() < 1e-12) {
+    const eps = Complex(1e-6);
+    return (besselKComplex(nu + eps, z) + besselKComplex(nu - eps, z)) *
+        const Complex(0.5);
+  }
+  return const Complex(pi / 2.0) *
+      (besselIComplex(-nu, z) - besselIComplex(nu, z)) /
+      sinPiNu;
 }
 
 ({double j, double y}) _hankelAsymptotic(double nu, double x) {
@@ -320,6 +438,71 @@ double besselK(num nu, num x) {
 
   final factorI = exp(x) / sqrt(2.0 * pi * x);
   final factorK = sqrt(pi / (2.0 * x)) * exp(-x);
+
+  return (i: factorI * sumI, k: factorK * sumK);
+}
+
+({Complex j, Complex y}) _hankelAsymptoticComplex(Complex nu, Complex z) {
+  final mu = const Complex(4.0) * nu * nu;
+  final eightZ = const Complex(8.0) * z;
+  var p = Complex.one;
+  var q = Complex.zero;
+  var term = Complex.one;
+  var sign = 1.0;
+
+  for (var k = 1; k <= 20; k++) {
+    final prevTerm = term.abs();
+    final num = mu - Complex((2 * k - 1) * (2 * k - 1));
+    term = term * num / (Complex(k) * eightZ);
+    if (k > 2 && term.abs() >= prevTerm) break;
+    if (k.isOdd) {
+      q += Complex(sign) * term;
+      sign = -sign;
+    } else {
+      p += Complex(sign) * term;
+    }
+    if (term.abs() < 1e-16) break;
+  }
+
+  final theta =
+      z - (nu * const Complex(0.5) + const Complex(0.25)) * const Complex(pi);
+  final cosTheta = theta.cos();
+  final sinTheta = theta.sin();
+  final factor = (const Complex(2.0) / (const Complex(pi) * z)).sqrt();
+
+  return (
+    j: factor * (p * cosTheta - q * sinTheta),
+    y: factor * (p * sinTheta + q * cosTheta),
+  );
+}
+
+({Complex i, Complex k}) _modifiedBesselAsymptoticComplex(
+  Complex nu,
+  Complex z,
+) {
+  final mu = const Complex(4.0) * nu * nu;
+  final eightZ = const Complex(8.0) * z;
+  var sumI = Complex.one;
+  var sumK = Complex.one;
+  var termI = Complex.one;
+  var termK = Complex.one;
+
+  for (var k = 1; k <= 30; k++) {
+    final prevTerm = termI.abs();
+    final factor =
+        (mu - Complex((2 * k - 1) * (2 * k - 1))) / (Complex(k) * eightZ);
+    termI *= factor;
+    termK *= -factor;
+    if (k > 2 && termI.abs() >= prevTerm) break;
+    sumI += termI;
+    sumK += termK;
+    if (termI.abs() < 1e-16 * sumI.abs() && termK.abs() < 1e-16 * sumK.abs()) {
+      break;
+    }
+  }
+
+  final factorI = z.exp() / (const Complex(2.0 * pi) * z).sqrt();
+  final factorK = (const Complex(pi / 2.0) / z).sqrt() * (-z).exp();
 
   return (i: factorI * sumI, k: factorK * sumK);
 }

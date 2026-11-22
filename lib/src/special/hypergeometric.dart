@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/number.dart' show Complex;
+
 import 'digamma.dart';
 import 'gamma.dart';
 
@@ -69,6 +71,33 @@ double hypergeometric1F1(num a, num b, num z) {
     if (term.abs() < 1.0e-15 * sum.abs()) {
       break;
     }
+  }
+  return sum;
+}
+
+/// Returns the complex confluent hypergeometric function $_1F_1(a; b; z)$.
+Complex hypergeometric1F1Complex(Complex a, Complex b, Complex z) {
+  if (a.a.isNaN ||
+      a.b.isNaN ||
+      b.a.isNaN ||
+      b.b.isNaN ||
+      z.a.isNaN ||
+      z.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (b.b == 0.0 && b.a <= 0.0 && b.a == b.a.roundToDouble()) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a == 0.0 && z.b == 0.0) return Complex.one;
+  if (z.a < 0.0) {
+    return z.exp() * hypergeometric1F1Complex(b - a, b, -z);
+  }
+  var sum = Complex.one;
+  var term = Complex.one;
+  for (var k = 1; k <= 1500; k++) {
+    term *= (a + Complex(k - 1)) / (b + Complex(k - 1)) * z / Complex(k);
+    sum += term;
+    if (term.abs() < 1e-15 * sum.abs()) break;
   }
   return sum;
 }
@@ -173,6 +202,67 @@ double hypergeometric2F1(num a, num b, num c, num z) {
     return term1 + term2;
   }
   return _hypergeometric2F1Direct(ad, bd, cd, zd);
+}
+
+/// Returns the complex Gauss hypergeometric function $_2F_1(a, b; c; z)$.
+Complex hypergeometric2F1Complex(Complex a, Complex b, Complex c, Complex z) {
+  if (a.a.isNaN ||
+      a.b.isNaN ||
+      b.a.isNaN ||
+      b.b.isNaN ||
+      c.a.isNaN ||
+      c.b.isNaN ||
+      z.a.isNaN ||
+      z.b.isNaN) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (c.b == 0.0 && c.a <= 0.0 && c.a == c.a.roundToDouble()) {
+    return const Complex(double.nan, double.nan);
+  }
+  if (z.a == 0.0 && z.b == 0.0) return Complex.one;
+  if (z.abs() >= 0.8) {
+    final w = z / (z - Complex.one);
+    if (w.abs() < 0.8) {
+      return (Complex.one - z).pow(-a) *
+          hypergeometric2F1Complex(a, c - b, c, w);
+    }
+    final oneMinusZ = Complex.one - z;
+    if (oneMinusZ.abs() < 0.8) {
+      final diff = c - a - b;
+      if (diff.b != 0.0 || diff.a != diff.a.roundToDouble()) {
+        final t1 =
+            gammaComplex(c) *
+            gammaComplex(diff) /
+            (gammaComplex(c - a) * gammaComplex(c - b)) *
+            hypergeometric2F1Complex(a, b, a + b - c + Complex.one, oneMinusZ);
+        final t2 =
+            gammaComplex(c) *
+            gammaComplex(-diff) /
+            (gammaComplex(a) * gammaComplex(b)) *
+            oneMinusZ.pow(diff) *
+            hypergeometric2F1Complex(
+              c - a,
+              c - b,
+              c - a - b + Complex.one,
+              oneMinusZ,
+            );
+        return t1 + t2;
+      }
+    }
+  }
+  var sum = Complex.one;
+  var term = Complex.one;
+  for (var k = 1; k <= 1500; k++) {
+    term *=
+        (a + Complex(k - 1)) *
+        (b + Complex(k - 1)) /
+        (c + Complex(k - 1)) *
+        z /
+        Complex(k);
+    sum += term;
+    if (term.abs() < 1e-15 * sum.abs()) break;
+  }
+  return sum;
 }
 
 bool _isNonPosInt(double x) => x.isFinite && x <= 0.0 && x.roundToDouble() == x;

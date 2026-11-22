@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
 void main() {
@@ -67,6 +68,51 @@ void main() {
       check(hypergeometric2F1(2, 2, 3, 0.95))
           .isCloseTo(35.466521277442666, 1e-10);
       check(hypergeometric2F1(1, 1, 4, 0.95)).isGreaterThan(0.0);
+    });
+
+    test('hypergeometric1F1Complex and hypergeometric2F1Complex', () {
+      check(
+        hypergeometric1F1Complex(
+          const Complex(2.0),
+          const Complex(2.0),
+          const Complex(0.5),
+        ).a,
+      ).isCloseTo(math.exp(0.5), 1e-12);
+
+      // 1F1(1; 1; z) = exp(z)
+      const z1 = Complex(0.8, -0.6);
+      check(
+        (hypergeometric1F1Complex(Complex.one, Complex.one, z1) - z1.exp())
+            .abs(),
+      ).isLessThan(1e-12);
+
+      // 2F1(1, 1; 2; z) = -ln(1 - z) / z
+      const z2 = Complex(0.3, 0.4);
+      final expected2 = -(Complex.one - z2).log() / z2;
+      check(
+        (hypergeometric2F1Complex(
+                  Complex.one,
+                  Complex.one,
+                  const Complex(2),
+                  z2,
+                ) -
+                expected2)
+            .abs(),
+      ).isLessThan(1e-12);
+
+      // Pfaff transformation region |z| >= 0.8
+      const zLarge = Complex(-2.0, 0.5);
+      final expectedLarge = -(Complex.one - zLarge).log() / zLarge;
+      check(
+        (hypergeometric2F1Complex(
+                  Complex.one,
+                  Complex.one,
+                  const Complex(2),
+                  zLarge,
+                ) -
+                expectedLarge)
+            .abs(),
+      ).isLessThan(1e-12);
     });
   });
 }

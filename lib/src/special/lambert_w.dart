@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/number.dart' show Complex;
+
 /// Returns the real Lambert W function $W_{\text{branch}}(z)$.
 ///
 /// Conceptually, the Lambert W function solves transcendental equations where
@@ -21,6 +23,60 @@ double lambertW(num z, {int branch = 0}) => switch (branch) {
   -1 => _lambertW1(z),
   _ => throw ArgumentError.value(branch, 'branch', 'Branch must be 0 or -1'),
 };
+
+/// Returns the complex Lambert W function $W_{\text{branch}}(z)$.
+///
+/// Supports `branch: 0` (principal branch) and `branch: -1`.
+Complex lambertWComplex(Complex z, {int branch = 0}) {
+  if (branch != 0 && branch != -1) {
+    throw ArgumentError.value(branch, 'branch', 'Branch must be 0 or -1');
+  }
+  if (z.a.isNaN || z.b.isNaN) return const Complex(double.nan, double.nan);
+  if (z.a == 0.0 && z.b == 0.0) {
+    return branch == 0 ? Complex.zero : const Complex(double.negativeInfinity);
+  }
+  if (branch == 0 && z.b == 0.0 && z.a >= -_invE) {
+    return Complex(_lambertW0(z.a.toDouble()));
+  }
+  if (branch == -1 && z.b == 0.0 && z.a >= -_invE && z.a < 0.0) {
+    return Complex(_lambertW1(z.a.toDouble()));
+  }
+
+  var w = switch (branch) {
+    0 => () {
+      if ((z + const Complex(_invE)).abs() < 0.3) {
+        final p = (const Complex(2.0) * (const Complex(e) * z + Complex.one))
+            .sqrt();
+        return const Complex(-1.0) +
+            p -
+            (const Complex(1.0 / 3.0)) * p * p +
+            (const Complex(11.0 / 72.0)) * p * p * p;
+      }
+      if (z.abs() < 1.5) return z / (Complex.one + z);
+      final lz = z.log();
+      return lz - lz.log();
+    }(),
+    _ => () {
+      final lz = z.log() - const Complex(0.0, 2.0 * pi);
+      return lz - (-lz).log();
+    }(),
+  };
+
+  for (var i = 0; i < 30; i++) {
+    final ew = w.exp();
+    final f = w * ew - z;
+    if (f.abs() <= 1e-15 * (1.0 + w.abs()) * ew.abs()) break;
+    final w1 = w + Complex.one;
+    if (w1.abs() < 1e-15) break;
+    final denom =
+        ew * w1 - (w + const Complex(2.0)) * f / (const Complex(2.0) * w1);
+    if (denom.abs() == 0.0) break;
+    final step = f / denom;
+    w -= step;
+    if (step.abs() <= 1e-15 * (1.0 + w.abs())) break;
+  }
+  return w;
+}
 
 double _lambertW0(num z) {
   if (z.isNaN || z < -_invE - 1e-15) {

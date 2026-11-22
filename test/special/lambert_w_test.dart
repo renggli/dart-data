@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
 
 void main() {
@@ -50,6 +51,27 @@ void main() {
       const invE = 1.0 / math.e;
       check(lambertW(-invE + 2e-15)).isCloseTo(-1.0, 1e-6);
       check(() => lambertW(0.0, branch: 1)).throws<ArgumentError>();
+    });
+
+    test('lambertWComplex', () {
+      check(lambertWComplex(const Complex(2.0)).a)
+          .isCloseTo(lambertW(2.0), 1e-12);
+      check(lambertWComplex(const Complex(-0.1), branch: -1).a)
+          .isCloseTo(lambertW(-0.1, branch: -1), 1e-12);
+
+      for (final z in [
+        const Complex(-1.5, 0.4),
+        const Complex(0.5, 1.2),
+        const Complex(10.0, -3.0),
+      ]) {
+        final w0 = lambertWComplex(z);
+        check((w0 * w0.exp() - z).abs()).isLessThan(1e-12);
+      }
+      final wMinus1 = lambertWComplex(const Complex(-0.2, 0.3), branch: -1);
+      check((wMinus1 * wMinus1.exp() - const Complex(-0.2, 0.3)).abs())
+          .isLessThan(1e-12);
+      check(() => lambertWComplex(Complex.one, branch: 2))
+          .throws<ArgumentError>();
     });
   });
 }
