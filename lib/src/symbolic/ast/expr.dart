@@ -307,7 +307,11 @@ sealed class Expr {
       upper.every(_isRealSubtree) &&
           lower.every(_isRealSubtree) &&
           _isRealSubtree(argument),
-    Min(:final args) || Max(:final args) => args.every(_isRealSubtree),
+    Min(:final args) ||
+    Max(:final args) ||
+    Gcd(:final args) ||
+    Lcm(:final args) ||
+    Tuple(:final args) => args.every(_isRealSubtree),
   };
 }
 

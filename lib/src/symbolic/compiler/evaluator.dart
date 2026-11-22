@@ -363,6 +363,32 @@ final class BytecodeEvaluator {
             final b = stack[--sp];
             final a = stack[--sp];
             stack[sp++] = math.max(a, b);
+          case Op.gcd:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            if (!a.isFinite ||
+                !b.isFinite ||
+                a != a.roundToDouble() ||
+                b != b.roundToDouble()) {
+              stack[sp++] = double.nan;
+            } else {
+              stack[sp++] = a.round().abs().gcd(b.round().abs()).toDouble();
+            }
+          case Op.lcm:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            if (!a.isFinite ||
+                !b.isFinite ||
+                a != a.roundToDouble() ||
+                b != b.roundToDouble()) {
+              stack[sp++] = double.nan;
+            } else {
+              final ia = a.round().abs();
+              final ib = b.round().abs();
+              stack[sp++] = (ia == 0 || ib == 0)
+                  ? 0.0
+                  : ((ia ~/ ia.gcd(ib)) * ib).toDouble();
+            }
           case Op.beta:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -685,9 +711,9 @@ final class BytecodeEvaluator {
               lower,
               zArg,
             );
-          case Op.min || Op.max:
+          case Op.min || Op.max || Op.gcd || Op.lcm:
             throw UnsupportedError(
-              'Complex Min/Max evaluation is only supported on R',
+              'Complex Min/Max/Gcd/Lcm evaluation is only supported on R',
             );
           case Op.beta:
             final zB = stack[--sp];

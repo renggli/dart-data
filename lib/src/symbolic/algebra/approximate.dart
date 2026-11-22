@@ -79,7 +79,9 @@ Expr _approximateNode(Expr node) => switch (node) {
   Zeta() ||
   Hypergeometric() ||
   Min() ||
-  Max() => () {
+  Max() ||
+  Gcd() ||
+  Lcm() => () {
     final rebuilt = node.mapChildren(_approximateNode);
     if (rebuilt.freeVariables.isEmpty) {
       if (rebuilt.anyNode((n) => n is ComplexNumber)) {
@@ -87,12 +89,16 @@ Expr _approximateNode(Expr node) => switch (node) {
       }
       final realVal = rebuilt.evaluate();
       if (!realVal.isNaN) return RealNumber.fromDouble(realVal);
-      if (rebuilt is! Min && rebuilt is! Max) {
+      if (rebuilt is! Min &&
+          rebuilt is! Max &&
+          rebuilt is! Gcd &&
+          rebuilt is! Lcm) {
         return _complexToExpr(rebuilt.evaluateComplex());
       }
     }
     return rebuilt.simplify();
   }(),
+  Tuple() => node.mapChildren(_approximateNode),
 };
 
 Expr _approximateMul(Mul node) {

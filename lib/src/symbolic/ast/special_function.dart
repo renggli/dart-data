@@ -592,8 +592,8 @@ final class Hypergeometric extends Expr {
   }
 }
 
-/// Base class for variadic order-statistics functions (`min`, `max`).
-sealed class _OrderExpr extends Expr {
+/// Base class for variadic expression nodes (`min`, `max`, `gcd`, `lcm`, `tuple`).
+sealed class _VariadicExpr extends Expr {
   new(List<Expr> args, {this.isSimplified = false})
     : args = List<Expr>.unmodifiable(args);
 
@@ -632,7 +632,7 @@ sealed class _OrderExpr extends Expr {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! _OrderExpr ||
+    if (other is! _VariadicExpr ||
         runtimeType != other.runtimeType ||
         hashCode != other.hashCode ||
         args.length != other.args.length) {
@@ -646,7 +646,7 @@ sealed class _OrderExpr extends Expr {
 }
 
 /// Minimum function node `min(a_1, ..., a_n)`.
-final class Min extends _OrderExpr {
+final class Min extends _VariadicExpr {
   /// Creates a minimum expression node.
   new(super.args, {super.isSimplified = false});
 
@@ -655,10 +655,37 @@ final class Min extends _OrderExpr {
 }
 
 /// Maximum function node `max(a_1, ..., a_n)`.
-final class Max extends _OrderExpr {
+final class Max extends _VariadicExpr {
   /// Creates a maximum expression node.
   new(super.args, {super.isSimplified = false});
 
   @override
   Expr _withArgs(List<Expr> args) => Max(args);
+}
+
+/// Greatest common divisor node `gcd(a_1, ..., a_n)`.
+final class Gcd extends _VariadicExpr {
+  /// Creates a greatest common divisor expression node.
+  new(super.args, {super.isSimplified = false});
+
+  @override
+  Expr _withArgs(List<Expr> args) => Gcd(args);
+}
+
+/// Least common multiple node `lcm(a_1, ..., a_n)`.
+final class Lcm extends _VariadicExpr {
+  /// Creates a least common multiple expression node.
+  new(super.args, {super.isSimplified = false});
+
+  @override
+  Expr _withArgs(List<Expr> args) => Lcm(args);
+}
+
+/// Ordered symbolic tuple node `[a_1, ..., a_n]`.
+final class Tuple extends _VariadicExpr {
+  /// Creates an ordered tuple expression node.
+  new(super.args, {super.isSimplified = false});
+
+  @override
+  Expr _withArgs(List<Expr> args) => Tuple(args);
 }

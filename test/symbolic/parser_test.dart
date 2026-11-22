@@ -273,40 +273,36 @@ void main() {
             .throws<FormatException>();
         check(() => syntax.parse('product(x, x, 1)')).throws<FormatException>();
 
-        check(syntax.parse('gcd(12, 18, 24)')).equals(IntegerNumber.of(6));
-        check(syntax.parse('lcm(4, 6, 8)')).equals(IntegerNumber.of(24));
+        check(syntax.parse('gcd(12, 18, 24)')).equals(
+          Gcd([
+            IntegerNumber.of(12),
+            IntegerNumber.of(18),
+            IntegerNumber.of(24),
+          ]),
+        );
+        check(syntax.parse('gcd(12, 18, 24)').simplify())
+            .equals(IntegerNumber.of(6));
+        check(syntax.parse('lcm(4, 6, 8)')).equals(
+          Lcm([IntegerNumber.of(4), IntegerNumber.of(6), IntegerNumber.of(8)]),
+        );
+        check(syntax.parse('lcm(4, 6, 8)').simplify())
+            .equals(IntegerNumber.of(24));
         check(syntax.parse('gcd(x, 12)'))
-            .equals(VariableFunction('gcd', [x, IntegerNumber.of(12)]));
+            .equals(Gcd([x, IntegerNumber.of(12)]));
         check(syntax.parse('lcm(x, 12)'))
-            .equals(VariableFunction('lcm', [x, IntegerNumber.of(12)]));
-        check(syntax.parse('gcd(12, x, 18)')).equals(
-          VariableFunction('gcd', [
-            IntegerNumber.of(12),
-            x,
-            IntegerNumber.of(18),
-          ]),
-        );
-        check(syntax.parse('lcm(12, x, 18)')).equals(
-          VariableFunction('lcm', [
-            IntegerNumber.of(12),
-            x,
-            IntegerNumber.of(18),
-          ]),
-        );
-        check(syntax.parse('gcd(x, 12, 18)')).equals(
-          VariableFunction('gcd', [
-            x,
-            IntegerNumber.of(12),
-            IntegerNumber.of(18),
-          ]),
-        );
-        check(syntax.parse('lcm(x, 12, 18)')).equals(
-          VariableFunction('lcm', [
-            x,
-            IntegerNumber.of(12),
-            IntegerNumber.of(18),
-          ]),
-        );
+            .equals(Lcm([x, IntegerNumber.of(12)]));
+        check(syntax.parse('gcd(12, x, 18)'))
+            .equals(Gcd([IntegerNumber.of(12), x, IntegerNumber.of(18)]));
+        check(syntax.parse('lcm(12, x, 18)'))
+            .equals(Lcm([IntegerNumber.of(12), x, IntegerNumber.of(18)]));
+        check(syntax.parse('gcd(x, 12, 18)'))
+            .equals(Gcd([x, IntegerNumber.of(12), IntegerNumber.of(18)]));
+        check(syntax.parse('lcm(x, 12, 18)'))
+            .equals(Lcm([x, IntegerNumber.of(12), IntegerNumber.of(18)]));
+        check(syntax.parse('[1, x, 2]'))
+            .equals(Tuple([IntegerNumber.one, x, IntegerNumber.two]));
+        check(syntax.parse('tuple(1, x)'))
+            .equals(Tuple([IntegerNumber.one, x]));
 
         final vec = syntax.parseVector('[1, x, 2]');
         check(vec.length).equals(3);

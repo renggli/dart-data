@@ -671,6 +671,9 @@ PowerSeries expandToPowerSeries(
   Hypergeometric() ||
   Min() ||
   Max() ||
+  Gcd() ||
+  Lcm() ||
+  Tuple() ||
   Atan2() => expandTaylorSeries(expr, variable, point, order),
 
   Asinh(:final expr) => expandAsinh(expr, variable, point, order),

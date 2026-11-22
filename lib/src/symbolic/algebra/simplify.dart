@@ -295,6 +295,16 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
     Max(:final args) => simplifyMax(
       args.map((a) => _simplify(a, assumptions, cache)).toList(),
     ),
+    Gcd(:final args) => simplifyGcd(
+      args.map((a) => _simplify(a, assumptions, cache)).toList(),
+    ),
+    Lcm(:final args) => simplifyLcm(
+      args.map((a) => _simplify(a, assumptions, cache)).toList(),
+    ),
+    Tuple(:final args) => Tuple(
+      args.map((a) => _simplify(a, assumptions, cache)).toList(),
+      isSimplified: true,
+    ),
     Beta(:final left, :final right) => simplifyBeta(
       _simplify(left, assumptions, cache),
       _simplify(right, assumptions, cache),

@@ -85,6 +85,9 @@ int nodeTag(Expr expr) => switch (expr) {
   Hypergeometric() => 76,
   Min() => 77,
   Max() => 78,
+  Gcd() => 79,
+  Lcm() => 80,
+  Tuple() => 81,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.
@@ -148,6 +151,9 @@ int compareStructural(Expr a, Expr b) {
     }(),
     (final Min ma, final Min mb) => _compareList(ma.args, mb.args),
     (final Max ma, final Max mb) => _compareList(ma.args, mb.args),
+    (final Gcd ga, final Gcd gb) => _compareList(ga.args, gb.args),
+    (final Lcm la, final Lcm lb) => _compareList(la.args, lb.args),
+    (final Tuple ta, final Tuple tb) => _compareList(ta.args, tb.args),
     (final Add aa, final Add ab) => _compareList(aa.terms, ab.terms),
     (final Mul ma, final Mul mb) => _compareList(ma.factors, mb.factors),
     (final Integral ia, final Integral ib) => () {

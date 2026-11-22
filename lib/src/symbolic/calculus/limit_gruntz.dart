@@ -377,7 +377,11 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
           scan(l);
         }
         scan(argument);
-      case Min(:final args) || Max(:final args):
+      case Min(:final args) ||
+          Max(:final args) ||
+          Gcd(:final args) ||
+          Lcm(:final args) ||
+          Tuple(:final args):
         for (final a in args) {
           scan(a);
         }

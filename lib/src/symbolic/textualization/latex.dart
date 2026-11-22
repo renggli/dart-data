@@ -116,6 +116,12 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
     '\\min\\left(${args.map((e) => _toLatex(e, decimalPlaces)).join(', ')}\\right)',
   Max(:final args) =>
     '\\max\\left(${args.map((e) => _toLatex(e, decimalPlaces)).join(', ')}\\right)',
+  Gcd(:final args) =>
+    '\\gcd\\left(${args.map((e) => _toLatex(e, decimalPlaces)).join(', ')}\\right)',
+  Lcm(:final args) =>
+    '\\operatorname{lcm}\\left(${args.map((e) => _toLatex(e, decimalPlaces)).join(', ')}\\right)',
+  Tuple(:final args) =>
+    '\\left[${args.map((e) => _toLatex(e, decimalPlaces)).join(', ')}\\right]',
   Beta(:final left, :final right) =>
     '\\operatorname{B}(${_toLatex(left, decimalPlaces)}, ${_toLatex(right, decimalPlaces)})',
   Factorial(:final expr) => '${_formatPowBase(expr, decimalPlaces)}!',

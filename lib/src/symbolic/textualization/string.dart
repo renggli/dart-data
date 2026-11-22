@@ -140,6 +140,12 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
       'min(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
     Max(:final args) =>
       'max(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
+    Gcd(:final args) =>
+      'gcd(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
+    Lcm(:final args) =>
+      'lcm(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
+    Tuple(:final args) =>
+      '[${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')}]',
     Beta(:final left, :final right) =>
       'beta(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     Factorial(:final expr) => '${_formatExpr(expr, 5, decimalPlaces)}!',

@@ -83,7 +83,10 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
         lower.every((e) => isProvenReal(e, assumptions)) &&
         isProvenReal(argument, assumptions),
   Min(:final args) ||
-  Max(:final args) => args.every((e) => isProvenReal(e, assumptions)),
+  Max(:final args) ||
+  Gcd(:final args) ||
+  Lcm(:final args) ||
+  Tuple(:final args) => args.every((e) => isProvenReal(e, assumptions)),
   Gamma(:final expr) || Digamma(:final expr) =>
     isProvenReal(expr, assumptions) &&
         (isPositiveExpr(expr, assumptions: assumptions) ||

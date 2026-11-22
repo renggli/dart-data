@@ -451,7 +451,12 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   Hypergeometric() ||
   Min() ||
   Max() ||
+  Gcd() ||
+  Lcm() ||
   Arg() => Derivative(expr, variable),
+  Tuple(:final args) => Tuple([
+    for (final a in args) _differentiate(a, variable),
+  ]),
   Re(expr: final inner) => Re(_differentiate(inner, variable)),
   Im(expr: final inner) => Im(_differentiate(inner, variable)),
   Conjugate(expr: final inner) => Conjugate(_differentiate(inner, variable)),

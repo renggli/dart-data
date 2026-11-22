@@ -118,8 +118,45 @@ void main() {
       ).equals(IntegerNumber.one);
       check(Expr.parse('mod(17, 5)').simplify()).equals(IntegerNumber.of(2));
       check(Expr.parse('mod(-7, 5)').simplify()).equals(IntegerNumber.of(3));
-      check(Expr.parse('gcd(12, 18)')).equals(IntegerNumber.of(6));
-      check(Expr.parse('lcm(12, 18)')).equals(IntegerNumber.of(36));
+      check(Expr.parse('gcd(12, 18)').simplify()).equals(IntegerNumber.of(6));
+      check(Expr.parse('lcm(12, 18)').simplify()).equals(IntegerNumber.of(36));
+
+      // First-class Gcd, Lcm, and Tuple AST nodes
+      final gcdSym = Expr.parse('gcd(x, 12, 18)').simplify();
+      check(gcdSym).equals(Gcd([IntegerNumber.of(6), const Variable('x')]));
+      check(gcdSym.substitute('x', IntegerNumber.of(15)).simplify())
+          .equals(IntegerNumber.of(3));
+      check(gcdSym.evaluate({'x': 15.0})).equals(3.0);
+      check(gcdSym.toString()).equals('gcd(6, x)');
+      check(gcdSym.toLatex()).equals(r'\gcd\left(6, x\right)');
+      check(gcdSym.toMathMl()).equals(
+        '<math><mrow><mi>gcd</mi><mo>(</mo><mn>6</mn><mo>,</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+
+      final lcmSym = Expr.parse('lcm(x, 4, 6)').simplify();
+      check(lcmSym).equals(Lcm([IntegerNumber.of(12), const Variable('x')]));
+      check(lcmSym.substitute('x', IntegerNumber.of(8)).simplify())
+          .equals(IntegerNumber.of(24));
+      check(lcmSym.evaluate({'x': 8.0})).equals(24.0);
+      check(Expr.parse('lcm(x, 0)').simplify()).equals(IntegerNumber.zero);
+      check(Expr.parse('gcd(x, 0)').simplify()).equals(const Variable('x'));
+      check(lcmSym.toString()).equals('lcm(12, x)');
+      check(lcmSym.toLatex()).equals(r'\operatorname{lcm}\left(12, x\right)');
+      check(lcmSym.toMathMl()).equals(
+        '<math><mrow><mi>lcm</mi><mo>(</mo><mn>12</mn><mo>,</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+
+      final tup = Expr.parse('[x + x, 6 / 2]').simplify();
+      check(tup).equals(
+        Tuple([IntegerNumber.two * const Variable('x'), IntegerNumber.of(3)]),
+      );
+      check(tup.derivative('x'))
+          .equals(Tuple([IntegerNumber.two, IntegerNumber.zero]));
+      check(tup.toString()).equals('[2 * x, 3]');
+      check(tup.toLatex()).equals(r'\left[2 x, 3\right]');
+      check(tup.toMathMl()).equals(
+        '<math><mrow><mo>[</mo><mrow><mn>2</mn><mi>x</mi></mrow><mo>,</mo><mn>3</mn><mo>]</mo></mrow></math>',
+      );
 
       for (final source in [
         'floor(x)',

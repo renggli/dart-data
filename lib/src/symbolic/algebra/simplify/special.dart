@@ -386,6 +386,52 @@ Expr _simplifyMinMax(List<Expr> args, {required bool isMin}) {
       : Max(merged, isSimplified: true);
 }
 
+/// Simplifies a greatest common divisor `gcd(...)` expression.
+Expr simplifyGcd(List<Expr> args) => _simplifyGcdLcm(args, isGcd: true);
+
+/// Simplifies a least common multiple `lcm(...)` expression.
+Expr simplifyLcm(List<Expr> args) => _simplifyGcdLcm(args, isGcd: false);
+
+Expr _simplifyGcdLcm(List<Expr> args, {required bool isGcd}) {
+  if (args.isEmpty) return Constant.undefined;
+  final flat = <Expr>[];
+  for (final a in args) {
+    if (a == Constant.undefined) return Constant.undefined;
+    if (isGcd && a is Gcd) {
+      flat.addAll(a.args);
+    } else if (!isGcd && a is Lcm) {
+      flat.addAll(a.args);
+    } else {
+      flat.add(a);
+    }
+  }
+  RationalNumber? acc;
+  final other = <Expr>[];
+  final seen = <Expr>{};
+  for (final a in flat) {
+    if (a is RationalNumber) {
+      final absA = a.abs();
+      acc = acc == null ? absA : (isGcd ? acc.gcd(absA) : acc.lcm(absA));
+    } else if (seen.add(a)) {
+      other.add(a);
+    }
+  }
+  if (!isGcd && acc != null && acc.isZero) {
+    return IntegerNumber.zero;
+  }
+  if (isGcd && acc != null && acc.isZero && other.isNotEmpty) {
+    acc = null;
+  }
+  if (other.isEmpty) {
+    return acc ?? IntegerNumber.zero;
+  }
+  final merged = <Expr>[?acc, ...other]..sort(compareStructural);
+  if (merged.length == 1) return merged.first;
+  return isGcd
+      ? Gcd(merged, isSimplified: true)
+      : Lcm(merged, isSimplified: true);
+}
+
 /// Simplifies an Euler beta function expression `beta(a, b)`.
 Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
   if (a == Constant.undefined || b == Constant.undefined) {

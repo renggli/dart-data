@@ -191,6 +191,12 @@ enum Op {
   /// Maximum of two values (`max(a, b)`).
   max,
 
+  /// Greatest common divisor of two integers (`gcd(a, b)`).
+  gcd,
+
+  /// Least common multiple of two integers (`lcm(a, b)`).
+  lcm,
+
   /// Beta function (`B(a, b)`).
   beta,
 
@@ -633,6 +639,30 @@ BytecodeEvaluator compileToBytecode(
             instructions.add(const Instruction.op(Op.max));
           }
         }
+      case Gcd(:final args):
+        if (args.isEmpty) {
+          instructions.add(Instruction.pushReal(double.nan));
+        } else {
+          emit(args.first);
+          for (var i = 1; i < args.length; i++) {
+            emit(args[i]);
+            instructions.add(const Instruction.op(Op.gcd));
+          }
+        }
+      case Lcm(:final args):
+        if (args.isEmpty) {
+          instructions.add(Instruction.pushReal(double.nan));
+        } else {
+          emit(args.first);
+          for (var i = 1; i < args.length; i++) {
+            emit(args[i]);
+            instructions.add(const Instruction.op(Op.lcm));
+          }
+        }
+      case Tuple():
+        throw UnsupportedError(
+          'Cannot compile symbolic Tuple to scalar bytecode',
+        );
       case Beta(:final left, :final right):
         emit(left);
         emit(right);
@@ -828,7 +858,11 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
         visit(l);
       }
       visit(argument);
-    case Min(:final args) || Max(:final args):
+    case Min(:final args) ||
+        Max(:final args) ||
+        Gcd(:final args) ||
+        Lcm(:final args) ||
+        Tuple(:final args):
       for (final a in args) {
         visit(a);
       }
@@ -896,6 +930,8 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.expIntegralE ||
           Op.min ||
           Op.max ||
+          Op.gcd ||
+          Op.lcm ||
           Op.lt ||
           Op.le ||
           Op.gt ||

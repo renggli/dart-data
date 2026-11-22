@@ -2,7 +2,6 @@ import 'package:petitparser/petitparser.dart';
 
 import '../linear/matrix.dart';
 import '../linear/vector.dart';
-import 'algebra/simplify.dart';
 import 'ast.dart';
 import 'number/integer.dart';
 import 'type/expr_data_type.dart';
@@ -189,7 +188,9 @@ class ExprSyntax {
         'W': LambertW.new,
         'w': LambertW.new,
         'O': _parseOrderTerm,
-        'tuple': (a) => VariableFunction('tuple', [a]),
+        'tuple': (a) => Tuple([a]),
+        'gcd': (a) => Gcd([a]),
+        'lcm': (a) => Lcm([a]),
       });
 
   /// Standard 2-argument mathematical functions.
@@ -248,8 +249,9 @@ class ExprSyntax {
         'binomial': Binomial.new,
         'nCr': Binomial.new,
         'mod': Mod.new,
-        'gcd': _evalGcdBinary,
-        'lcm': _evalLcmBinary,
+        'gcd': (a, b) => Gcd([a, b]),
+        'lcm': (a, b) => Lcm([a, b]),
+        'tuple': (a, b) => Tuple([a, b]),
         'lambertw': _parseLambertWBinary,
         'LambertW': _parseLambertWBinary,
         'W': _parseLambertWBinary,
@@ -271,7 +273,7 @@ class ExprSyntax {
       'hyper': _parseHypergeometricArgs,
       'hypergeometric': _parseHypergeometricArgs,
       'Hypergeometric': _parseHypergeometricArgs,
-      'tuple': (args) => VariableFunction('tuple', args),
+      'tuple': Tuple.new,
       'min': Min.new,
       'Min': Min.new,
       'max': Max.new,
@@ -283,8 +285,8 @@ class ExprSyntax {
       'limit': _parseLimitArgs,
       'sum': _parseSumArgs,
       'product': _parseProductArgs,
-      'gcd': _evalGcdVariadic,
-      'lcm': _evalLcmVariadic,
+      'gcd': _parseGcdVariadic,
+      'lcm': _parseLcmVariadic,
       'O': _parseOrderTermArgs,
     },
   );
@@ -462,7 +464,7 @@ class ExprSyntax {
       ..primitive(
         builder.loopback
             .starSeparated(char(',').trim())
-            .map((list) => VariableFunction('tuple', list.elements))
+            .map((list) => Tuple(list.elements))
             .skip(before: char('[').trim(), after: char(']').trim()),
       );
 
@@ -852,60 +854,18 @@ class ExprSyntax {
     _ => null,
   };
 
-  static Expr _evalGcdBinary(Expr a, Expr b) {
-    final sa = a.simplify();
-    final sb = b.simplify();
-    if (sa is RationalNumber && sb is RationalNumber) {
-      return sa.gcd(sb);
-    }
-    return VariableFunction('gcd', [a, b]);
-  }
-
-  static Expr _evalLcmBinary(Expr a, Expr b) {
-    final sa = a.simplify();
-    final sb = b.simplify();
-    if (sa is RationalNumber && sb is RationalNumber) {
-      return sa.lcm(sb);
-    }
-    return VariableFunction('lcm', [a, b]);
-  }
-
-  static Expr _evalGcdVariadic(List<Expr> args) {
+  static Expr _parseGcdVariadic(List<Expr> args) {
     if (args.isEmpty) {
       throw const FormatException('gcd requires at least 1 argument');
     }
-    final current = args.first.simplify();
-    if (current is! RationalNumber) {
-      return VariableFunction('gcd', args);
-    }
-    var acc = current.abs();
-    for (var i = 1; i < args.length; i++) {
-      final next = args[i].simplify();
-      if (next is! RationalNumber) {
-        return VariableFunction('gcd', args);
-      }
-      acc = acc.gcd(next);
-    }
-    return acc;
+    return Gcd(args);
   }
 
-  static Expr _evalLcmVariadic(List<Expr> args) {
+  static Expr _parseLcmVariadic(List<Expr> args) {
     if (args.isEmpty) {
       throw const FormatException('lcm requires at least 1 argument');
     }
-    final current = args.first.simplify();
-    if (current is! RationalNumber) {
-      return VariableFunction('lcm', args);
-    }
-    var acc = current.abs();
-    for (var i = 1; i < args.length; i++) {
-      final next = args[i].simplify();
-      if (next is! RationalNumber) {
-        return VariableFunction('lcm', args);
-      }
-      acc = acc.lcm(next);
-    }
-    return acc;
+    return Lcm(args);
   }
 
   static Expr _parseEllipticPiArgs(List<Expr> args) => switch (args) {
@@ -921,7 +881,7 @@ class ExprSyntax {
       );
     }
     List<Expr> unpack(Expr e) => switch (e) {
-      VariableFunction(name: 'tuple', :final arguments) => arguments,
+      Tuple(:final args) => args,
       _ => [e],
     };
     return Hypergeometric(unpack(args[0]), unpack(args[1]), args[2]);

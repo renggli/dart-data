@@ -154,6 +154,12 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><mi>min</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
   Max(:final args) =>
     '<mrow><mi>max</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
+  Gcd(:final args) =>
+    '<mrow><mi>gcd</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
+  Lcm(:final args) =>
+    '<mrow><mi>lcm</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
+  Tuple(:final args) =>
+    '<mrow><mo>[</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>]</mo></mrow>',
   Beta(:final left, :final right) =>
     '<mrow><mi>B</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   Factorial(:final expr) =>
