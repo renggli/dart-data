@@ -1,3 +1,5 @@
+import 'package:more/number.dart' show Complex;
+
 import '../../../special/bessel.dart' as special_bessel;
 import '../../../special/beta.dart' as special_beta;
 import '../../../special/digamma.dart' as special_digamma;
@@ -27,6 +29,11 @@ Expr simplifyLambertW(
   required Assumptions assumptions,
 }) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(
+      special_lambert.lambertWComplex(_toComplex(expr), branch: branch),
+    );
+  }
   if (expr is RealNumber) {
     final v = expr.value;
     final res = branch == 0
@@ -57,6 +64,9 @@ Expr simplifyLambertW(
 /// Simplifies an error function expression `erf(expr)`.
 Expr simplifyErf(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_erf.erfComplex(_toComplex(expr)));
+  }
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_erf.erf(expr.value));
   }
@@ -79,6 +89,9 @@ Expr simplifyErf(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies a complementary error function expression `erfc(expr)`.
 Expr simplifyErfc(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_erf.erfcComplex(_toComplex(expr)));
+  }
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_erf.erfc(expr.value));
   }
@@ -98,6 +111,9 @@ Expr simplifyErfc(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies an Euler gamma function expression `gamma(expr)`.
 Expr simplifyGamma(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_gamma.gammaComplex(_toComplex(expr)));
+  }
   if (expr is RealNumber) {
     final v = expr.value;
     if (v <= 0.0 && v == v.roundToDouble()) return Constant.undefined;
@@ -140,6 +156,9 @@ Expr simplifyGamma(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies a Riemann zeta function expression `zeta(s)`.
 Expr simplifyZeta(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_zeta.zetaComplex(_toComplex(expr)));
+  }
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_zeta.zeta(expr.value));
   }
@@ -175,6 +194,9 @@ Expr simplifyZeta(Expr expr) {
 /// Simplifies a digamma function expression `digamma(x)`.
 Expr simplifyDigamma(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_digamma.digammaComplex(_toComplex(expr)));
+  }
   if (expr is RealNumber) {
     final v = expr.value;
     if (v <= 0.0 && v == v.roundToDouble()) return Constant.undefined;
@@ -187,6 +209,14 @@ Expr simplifyDigamma(Expr expr) {
 Expr simplifyPolygamma(Expr m, Expr x) {
   if (m == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
+  }
+  if (m is IntegerNumber &&
+      m.asInt != null &&
+      m.asInt! >= 0 &&
+      _isFloatComplex(x)) {
+    return _complexToExpr(
+      special_digamma.polygammaComplex(m.asInt!, _toComplex(x)),
+    );
   }
   if (m is RealNumeric &&
       x is RealNumeric &&
@@ -210,6 +240,11 @@ Expr simplifyBesselJ(Expr nu, Expr x) {
   if (nu == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
   }
+  if (_isFloatComplexPair(nu, x)) {
+    return _complexToExpr(
+      special_bessel.besselJComplex(_toComplex(nu), _toComplex(x)),
+    );
+  }
   if (x == IntegerNumber.zero) {
     if (nu == IntegerNumber.zero) return IntegerNumber.one;
     if (nu is RealNumeric && !nu.isNegative) return IntegerNumber.zero;
@@ -229,6 +264,11 @@ Expr simplifyBesselY(Expr nu, Expr x) {
   if (nu == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
   }
+  if (_isFloatComplexPair(nu, x)) {
+    return _complexToExpr(
+      special_bessel.besselYComplex(_toComplex(nu), _toComplex(x)),
+    );
+  }
   if (nu is RealNumeric &&
       x is RealNumeric &&
       (nu is RealNumber || x is RealNumber)) {
@@ -243,6 +283,11 @@ Expr simplifyBesselY(Expr nu, Expr x) {
 Expr simplifyBesselI(Expr nu, Expr x) {
   if (nu == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
+  }
+  if (_isFloatComplexPair(nu, x)) {
+    return _complexToExpr(
+      special_bessel.besselIComplex(_toComplex(nu), _toComplex(x)),
+    );
   }
   if (x == IntegerNumber.zero) {
     if (nu == IntegerNumber.zero) return IntegerNumber.one;
@@ -263,6 +308,11 @@ Expr simplifyBesselK(Expr nu, Expr x) {
   if (nu == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
   }
+  if (_isFloatComplexPair(nu, x)) {
+    return _complexToExpr(
+      special_bessel.besselKComplex(_toComplex(nu), _toComplex(x)),
+    );
+  }
   if (nu is RealNumeric &&
       x is RealNumeric &&
       (nu is RealNumber || x is RealNumber)) {
@@ -276,6 +326,9 @@ Expr simplifyBesselK(Expr nu, Expr x) {
 /// Simplifies a complete elliptic integral of the first kind `ellipticK(k)`.
 Expr simplifyEllipticK(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_elliptic.ellipticKComplex(_toComplex(expr)));
+  }
   if (expr == IntegerNumber.zero) {
     return simplifyMul([
       FractionNumber.half,
@@ -291,6 +344,9 @@ Expr simplifyEllipticK(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies a complete elliptic integral of the second kind `ellipticE(k)`.
 Expr simplifyEllipticE(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_elliptic.ellipticEComplex(_toComplex(expr)));
+  }
   if (expr == IntegerNumber.zero) {
     return simplifyMul([
       FractionNumber.half,
@@ -309,6 +365,9 @@ Expr simplifyEllipticE(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies an imaginary error function `erfi(x)`.
 Expr simplifyErfi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_erf.erfiComplex(_toComplex(expr)));
+  }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_erf.erfi(expr.value));
@@ -326,6 +385,9 @@ Expr simplifyErfi(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies a Fresnel sine integral `fresnelS(x)`.
 Expr simplifyFresnelS(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_fresnel.fresnelSComplex(_toComplex(expr)));
+  }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_fresnel.fresnelS(expr.value));
@@ -343,6 +405,9 @@ Expr simplifyFresnelS(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies a Fresnel cosine integral `fresnelC(x)`.
 Expr simplifyFresnelC(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_fresnel.fresnelCComplex(_toComplex(expr)));
+  }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_fresnel.fresnelC(expr.value));
@@ -360,6 +425,9 @@ Expr simplifyFresnelC(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies an exponential integral `Ei(x)`.
 Expr simplifyExpIntegralEi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_exp_int.expIntegralComplex(_toComplex(expr)));
+  }
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.expIntegral(expr.value));
   }
@@ -369,6 +437,9 @@ Expr simplifyExpIntegralEi(Expr expr) {
 /// Simplifies a logarithmic integral `li(x)`.
 Expr simplifyLogIntegralLi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_exp_int.logIntegralComplex(_toComplex(expr)));
+  }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.logIntegral(expr.value));
@@ -379,6 +450,9 @@ Expr simplifyLogIntegralLi(Expr expr) {
 /// Simplifies a sine integral `Si(x)`.
 Expr simplifySinIntegralSi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_exp_int.sinIntegralComplex(_toComplex(expr)));
+  }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.sinIntegral(expr.value));
@@ -396,6 +470,9 @@ Expr simplifySinIntegralSi(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies a cosine integral `Ci(x)`.
 Expr simplifyCosIntegralCi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_exp_int.cosIntegralComplex(_toComplex(expr)));
+  }
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.cosIntegral(expr.value));
   }
@@ -405,6 +482,11 @@ Expr simplifyCosIntegralCi(Expr expr) {
 /// Simplifies a hyperbolic sine integral `Shi(x)`.
 Expr simplifySinhIntegralShi(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(
+      special_exp_int.sinhIntegralComplex(_toComplex(expr)),
+    );
+  }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.sinhIntegral(expr.value));
@@ -422,6 +504,11 @@ Expr simplifySinhIntegralShi(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies a hyperbolic cosine integral `Chi(x)`.
 Expr simplifyCoshIntegralChi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(
+      special_exp_int.coshIntegralComplex(_toComplex(expr)),
+    );
+  }
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.coshIntegral(expr.value));
   }
@@ -432,6 +519,11 @@ Expr simplifyCoshIntegralChi(Expr expr) {
 Expr simplifyUpperGamma(Expr s, Expr x, {required Assumptions assumptions}) {
   if (s == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
+  }
+  if (_isFloatComplexPair(s, x)) {
+    return _complexToExpr(
+      special_gamma.upperGammaComplex(_toComplex(s), _toComplex(x)),
+    );
   }
   if (x == IntegerNumber.zero && s is RealNumeric && s.sign > 0) {
     return simplifyGamma(s, assumptions: assumptions);
@@ -453,6 +545,11 @@ Expr simplifyUpperGamma(Expr s, Expr x, {required Assumptions assumptions}) {
 Expr simplifyLowerGamma(Expr s, Expr x, {required Assumptions assumptions}) {
   if (s == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
+  }
+  if (_isFloatComplexPair(s, x)) {
+    return _complexToExpr(
+      special_gamma.lowerGammaComplex(_toComplex(s), _toComplex(x)),
+    );
   }
   if (x == IntegerNumber.zero && s is RealNumeric && s.sign > 0) {
     return IntegerNumber.zero;
@@ -480,6 +577,11 @@ Expr simplifyLowerGamma(Expr s, Expr x, {required Assumptions assumptions}) {
 Expr simplifyPolylog(Expr s, Expr z, {required Assumptions assumptions}) {
   if (s == Constant.undefined || z == Constant.undefined) {
     return Constant.undefined;
+  }
+  if (_isFloatComplexPair(s, z)) {
+    return _complexToExpr(
+      special_polylog.polylogComplex(_toComplex(s), _toComplex(z)),
+    );
   }
   if (z == IntegerNumber.zero) return IntegerNumber.zero;
   if (s == IntegerNumber.one) {
@@ -539,6 +641,11 @@ Expr simplifyEllipticF(Expr phi, Expr k, {required Assumptions assumptions}) {
   if (phi == Constant.undefined || k == Constant.undefined) {
     return Constant.undefined;
   }
+  if (_isFloatComplexPair(phi, k)) {
+    return _complexToExpr(
+      special_elliptic.ellipticFComplex(_toComplex(phi), _toComplex(k)),
+    );
+  }
   if (phi == IntegerNumber.zero) return IntegerNumber.zero;
   if (k == IntegerNumber.zero) return phi;
   if (phi ==
@@ -565,6 +672,11 @@ Expr simplifyEllipticEIncomplete(
   if (phi == Constant.undefined || k == Constant.undefined) {
     return Constant.undefined;
   }
+  if (_isFloatComplexPair(phi, k)) {
+    return _complexToExpr(
+      special_elliptic.ellipticEComplex(_toComplex(k), phi: _toComplex(phi)),
+    );
+  }
   if (phi == IntegerNumber.zero) return IntegerNumber.zero;
   if (k == IntegerNumber.zero) return phi;
   if (phi ==
@@ -586,6 +698,11 @@ Expr simplifyEllipticEIncomplete(
 Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
   if (a == Constant.undefined || b == Constant.undefined) {
     return Constant.undefined;
+  }
+  if (_isFloatComplexPair(a, b)) {
+    return _complexToExpr(
+      special_beta.betaComplex(_toComplex(a), _toComplex(b)),
+    );
   }
   if (a is RealNumeric &&
       b is RealNumeric &&
@@ -646,6 +763,9 @@ Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
 /// Simplifies a factorial expression `n!`.
 Expr simplifyFactorial(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (_isFloatComplex(expr)) {
+    return _complexToExpr(special_gamma.factorialComplex(_toComplex(expr)));
+  }
   if (expr is RealNumber) {
     return simplifyGamma(
       RealNumber.fromDouble(expr.value + 1.0),
@@ -676,6 +796,11 @@ Expr simplifyBinomial(
 }) {
   if (nExpr == Constant.undefined || kExpr == Constant.undefined) {
     return Constant.undefined;
+  }
+  if (_isFloatComplexPair(nExpr, kExpr)) {
+    return _complexToExpr(
+      special_gamma.binomialComplex(_toComplex(nExpr), _toComplex(kExpr)),
+    );
   }
   if (nExpr is RealNumeric &&
       kExpr is RealNumeric &&
@@ -717,4 +842,34 @@ Expr simplifyBinomial(
     }
   }
   return Binomial(nExpr, kExpr, isSimplified: true);
+}
+
+bool _isFloatComplex(Expr expr) =>
+    expr is ComplexNumber &&
+    (expr.real is RealNumber || expr.imaginary is RealNumber);
+
+bool _isFloatComplexPair(Expr a, Expr b) =>
+    a is Number &&
+    b is Number &&
+    (_isFloatComplex(a) ||
+        _isFloatComplex(b) ||
+        ((a is ComplexNumber || b is ComplexNumber) &&
+            (a is RealNumber || b is RealNumber)));
+
+Complex _toComplex(Expr expr) => switch (expr) {
+  ComplexNumber(:final real, :final imaginary) => Complex(
+    real.toDouble(),
+    imaginary.toDouble(),
+  ),
+  RealNumeric() => Complex(expr.toDouble()),
+  _ => const Complex(double.nan, double.nan),
+};
+
+Expr _complexToExpr(Complex c) {
+  if (c.isNaN) return Constant.undefined;
+  final re = c.a.toDouble();
+  final im = c.b.toDouble();
+  if (!re.isFinite || !im.isFinite) return Constant.undefined;
+  if (im == 0.0) return RealNumber.fromDouble(re);
+  return ComplexNumber.of(RealNumber(re), RealNumber(im));
 }

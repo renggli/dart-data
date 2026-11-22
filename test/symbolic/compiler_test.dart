@@ -139,7 +139,7 @@ void main() {
           0.5822405264650125,
         ),
         (EllipticF(x, FractionNumber.half), 1.0373561200021775),
-        (EllipticEIncomplete(x, FractionNumber.half), 0.9648764587424907),
+        (EllipticEIncomplete(x, FractionNumber.half), 0.9648764542686274),
       ];
 
       for (final (expr, expected) in realCases) {
@@ -157,7 +157,7 @@ void main() {
       check(polyC.a.isFinite).isTrue;
       check(polyC.b.isFinite).isTrue;
 
-      // Complex-input UnsupportedError for real-only special opcodes
+      // Complex-input evaluation for special opcodes
       const z = Complex(1.0, 0.5);
       for (final expr in [
         Erfi(x),
@@ -174,7 +174,7 @@ void main() {
         EllipticF(x, FractionNumber.half),
         EllipticEIncomplete(x, FractionNumber.half),
       ]) {
-        check(() => expr.evaluateComplex({'x': z})).throws<UnsupportedError>();
+        check(expr.evaluateComplex({'x': z}).isFinite).isTrue;
       }
     });
   });

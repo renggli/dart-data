@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Fraction;
+import 'package:more/number.dart' show Complex, Fraction;
 
 import '../assumptions.dart';
 import '../ast.dart';
@@ -160,10 +160,13 @@ Expr _approximateMul(Mul node) {
 
 Expr _approximateConstant(Constant c) {
   if (c == Constant.infinity || c == Constant.undefined) return c;
-  final val = c.value;
-  if (val.isNaN) return Constant.undefined;
-  final re = val.a.toDouble();
-  final im = val.b.toDouble();
+  return _complexToExpr(c.value);
+}
+
+Expr _complexToExpr(Complex c) {
+  if (c.isNaN) return Constant.undefined;
+  final re = c.a.toDouble();
+  final im = c.b.toDouble();
   if (im == 0.0) {
     return RealNumber.fromDouble(re);
   }
@@ -179,13 +182,7 @@ Expr _approximatePow(Expr base, Expr exponent) {
       final b = base.toDouble();
       final e = exponent.toDouble();
       if (b < 0 && e != e.truncateToDouble()) {
-        final c = Pow(base, exponent).evaluateComplex();
-        final re = c.a.toDouble();
-        final im = c.b.toDouble();
-        if (c.isNaN || !re.isFinite || !im.isFinite) {
-          return Constant.undefined;
-        }
-        return ComplexNumber.of(RealNumber(re), RealNumber(im));
+        return _complexToExpr(Pow(base, exponent).evaluateComplex());
       }
     }
     if (base.isZero && exponent is RealNumeric && exponent.isNegative) {
@@ -206,17 +203,7 @@ Expr _approximateUnary(UnaryExpr node, Expr approxChild) {
         return RealNumber.fromDouble(realVal);
       }
     }
-    final complexVal = rebuilt.evaluateComplex();
-    if (complexVal.isNaN) return Constant.undefined;
-    final re = complexVal.a.toDouble();
-    final im = complexVal.b.toDouble();
-    if (im == 0.0) {
-      return RealNumber.fromDouble(re);
-    }
-    if (!re.isFinite || !im.isFinite) {
-      return Constant.undefined;
-    }
-    return ComplexNumber.of(RealNumber(re), RealNumber(im));
+    return _complexToExpr(rebuilt.evaluateComplex());
   }
   return rebuilt.simplify();
 }
@@ -227,9 +214,14 @@ Expr _approximateBinary(BinaryExpr node) {
   final rebuilt = node.mapChildren(
     (child) => identical(child, node.left) ? approxLeft : approxRight,
   );
-  if (approxLeft is RealNumeric && approxRight is RealNumeric) {
-    final realVal = rebuilt.evaluate();
-    return realVal.isNaN ? Constant.undefined : RealNumber.fromDouble(realVal);
+  if (approxLeft is Number && approxRight is Number) {
+    if (approxLeft is RealNumeric && approxRight is RealNumeric) {
+      final realVal = rebuilt.evaluate();
+      if (!realVal.isNaN) {
+        return RealNumber.fromDouble(realVal);
+      }
+    }
+    return _complexToExpr(rebuilt.evaluateComplex());
   }
   return rebuilt.simplify();
 }

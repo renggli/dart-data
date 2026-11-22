@@ -520,240 +520,77 @@ final class BytecodeEvaluator {
           case Op.sqrt:
             stack[sp - 1] = stack[sp - 1].sqrt();
           case Op.lambertW0:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex LambertW evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_lambert.lambertW(z.a.toDouble()));
+            stack[sp - 1] = special_lambert.lambertWComplex(stack[sp - 1]);
           case Op.lambertW1:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex LambertW evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(
-              special_lambert.lambertW(z.a.toDouble(), branch: -1),
+            stack[sp - 1] = special_lambert.lambertWComplex(
+              stack[sp - 1],
+              branch: -1,
             );
           case Op.erf:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex Erf evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_erf.erf(z.a.toDouble()));
+            stack[sp - 1] = special_erf.erfComplex(stack[sp - 1]);
           case Op.erfc:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex Erfc evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_erf.erfc(z.a.toDouble()));
+            stack[sp - 1] = special_erf.erfcComplex(stack[sp - 1]);
           case Op.gamma:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex Gamma evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_gamma.gamma(z.a.toDouble()));
+            stack[sp - 1] = special_gamma.gammaComplex(stack[sp - 1]);
           case Op.zeta:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex Zeta evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_zeta.zeta(z.a.toDouble()));
+            stack[sp - 1] = special_zeta.zetaComplex(stack[sp - 1]);
           case Op.digamma:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex Digamma evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_digamma.digamma(z.a.toDouble()));
+            stack[sp - 1] = special_digamma.digammaComplex(stack[sp - 1]);
           case Op.polygamma:
             final zX = stack[--sp];
             final zM = stack[--sp];
-            if (zM.b != 0.0 || zX.b != 0.0) {
+            if (zM.b != 0.0 || zM.a != zM.a.roundToDouble()) {
               throw UnsupportedError(
-                'Complex Polygamma evaluation is only supported on R',
+                'Complex Polygamma order must be a real integer',
               );
             }
-            stack[sp++] = Complex(
-              special_digamma.polygamma(zM.a.toInt(), zX.a.toDouble()),
-            );
+            stack[sp++] = special_digamma.polygammaComplex(zM.a.toInt(), zX);
           case Op.besselJ:
             final zX = stack[--sp];
             final zNu = stack[--sp];
-            if (zNu.b != 0.0 || zX.b != 0.0) {
-              throw UnsupportedError(
-                'Complex BesselJ evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              special_bessel.besselJ(zNu.a.toDouble(), zX.a.toDouble()),
-            );
+            stack[sp++] = special_bessel.besselJComplex(zNu, zX);
           case Op.besselY:
             final zX = stack[--sp];
             final zNu = stack[--sp];
-            if (zNu.b != 0.0 || zX.b != 0.0) {
-              throw UnsupportedError(
-                'Complex BesselY evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              special_bessel.besselY(zNu.a.toDouble(), zX.a.toDouble()),
-            );
+            stack[sp++] = special_bessel.besselYComplex(zNu, zX);
           case Op.besselI:
             final zX = stack[--sp];
             final zNu = stack[--sp];
-            if (zNu.b != 0.0 || zX.b != 0.0) {
-              throw UnsupportedError(
-                'Complex BesselI evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              special_bessel.besselI(zNu.a.toDouble(), zX.a.toDouble()),
-            );
+            stack[sp++] = special_bessel.besselIComplex(zNu, zX);
           case Op.besselK:
             final zX = stack[--sp];
             final zNu = stack[--sp];
-            if (zNu.b != 0.0 || zX.b != 0.0) {
-              throw UnsupportedError(
-                'Complex BesselK evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              special_bessel.besselK(zNu.a.toDouble(), zX.a.toDouble()),
-            );
+            stack[sp++] = special_bessel.besselKComplex(zNu, zX);
           case Op.ellipticK:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex EllipticK evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_elliptic.ellipticK(z.a.toDouble()));
+            stack[sp - 1] = special_elliptic.ellipticKComplex(stack[sp - 1]);
           case Op.ellipticE:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex EllipticE evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_elliptic.ellipticE(z.a.toDouble()));
+            stack[sp - 1] = special_elliptic.ellipticEComplex(stack[sp - 1]);
           case Op.erfi:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex Erfi evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_erf.erfi(z.a.toDouble()));
+            stack[sp - 1] = special_erf.erfiComplex(stack[sp - 1]);
           case Op.fresnelS:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex FresnelS evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_fresnel.fresnelS(z.a.toDouble()));
+            stack[sp - 1] = special_fresnel.fresnelSComplex(stack[sp - 1]);
           case Op.fresnelC:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex FresnelC evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_fresnel.fresnelC(z.a.toDouble()));
+            stack[sp - 1] = special_fresnel.fresnelCComplex(stack[sp - 1]);
           case Op.expIntegralEi:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex ExpIntegralEi evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(
-              special_exp_int.expIntegral(z.a.toDouble()),
-            );
+            stack[sp - 1] = special_exp_int.expIntegralComplex(stack[sp - 1]);
           case Op.logIntegralLi:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex LogIntegralLi evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(
-              special_exp_int.logIntegral(z.a.toDouble()),
-            );
+            stack[sp - 1] = special_exp_int.logIntegralComplex(stack[sp - 1]);
           case Op.sinIntegralSi:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex SinIntegralSi evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(
-              special_exp_int.sinIntegral(z.a.toDouble()),
-            );
+            stack[sp - 1] = special_exp_int.sinIntegralComplex(stack[sp - 1]);
           case Op.cosIntegralCi:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex CosIntegralCi evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(
-              special_exp_int.cosIntegral(z.a.toDouble()),
-            );
+            stack[sp - 1] = special_exp_int.cosIntegralComplex(stack[sp - 1]);
           case Op.sinhIntegralShi:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex SinhIntegralShi evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(
-              special_exp_int.sinhIntegral(z.a.toDouble()),
-            );
+            stack[sp - 1] = special_exp_int.sinhIntegralComplex(stack[sp - 1]);
           case Op.coshIntegralChi:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex CoshIntegralChi evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(
-              special_exp_int.coshIntegral(z.a.toDouble()),
-            );
+            stack[sp - 1] = special_exp_int.coshIntegralComplex(stack[sp - 1]);
           case Op.upperGamma:
             final zX = stack[--sp];
             final zS = stack[--sp];
-            if (zS.b != 0.0 || zX.b != 0.0) {
-              throw UnsupportedError(
-                'Complex UpperGamma evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              special_gamma.upperGamma(zS.a.toDouble(), zX.a.toDouble()),
-            );
+            stack[sp++] = special_gamma.upperGammaComplex(zS, zX);
           case Op.lowerGamma:
             final zX = stack[--sp];
             final zS = stack[--sp];
-            if (zS.b != 0.0 || zX.b != 0.0) {
-              throw UnsupportedError(
-                'Complex LowerGamma evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              special_gamma.lowerGamma(zS.a.toDouble(), zX.a.toDouble()),
-            );
+            stack[sp++] = special_gamma.lowerGammaComplex(zS, zX);
           case Op.polylog:
             final zArg = stack[--sp];
             final zOrder = stack[--sp];
@@ -761,58 +598,21 @@ final class BytecodeEvaluator {
           case Op.ellipticF:
             final zK = stack[--sp];
             final zPhi = stack[--sp];
-            if (zPhi.b != 0.0 || zK.b != 0.0) {
-              throw UnsupportedError(
-                'Complex EllipticF evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              special_elliptic.ellipticF(zPhi.a.toDouble(), zK.a.toDouble()),
-            );
+            stack[sp++] = special_elliptic.ellipticFComplex(zPhi, zK);
           case Op.ellipticEIncomplete:
             final zK = stack[--sp];
             final zPhi = stack[--sp];
-            if (zPhi.b != 0.0 || zK.b != 0.0) {
-              throw UnsupportedError(
-                'Complex EllipticEIncomplete evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              special_elliptic.ellipticE(
-                zK.a.toDouble(),
-                phi: zPhi.a.toDouble(),
-              ),
-            );
+            stack[sp++] = special_elliptic.ellipticEComplex(zK, phi: zPhi);
           case Op.beta:
             final zB = stack[--sp];
             final zA = stack[--sp];
-            if (zA.b != 0.0 || zB.b != 0.0) {
-              throw UnsupportedError(
-                'Complex Beta evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              special_beta.beta(zA.a.toDouble(), zB.a.toDouble()),
-            );
+            stack[sp++] = special_beta.betaComplex(zA, zB);
           case Op.factorial:
-            final z = stack[sp - 1];
-            if (z.b != 0.0) {
-              throw UnsupportedError(
-                'Complex Factorial evaluation is only supported on R',
-              );
-            }
-            stack[sp - 1] = Complex(special_gamma.gamma(z.a.toDouble() + 1.0));
+            stack[sp - 1] = special_gamma.factorialComplex(stack[sp - 1]);
           case Op.binomial:
             final zK = stack[--sp];
             final zN = stack[--sp];
-            if (zN.b != 0.0 || zK.b != 0.0) {
-              throw UnsupportedError(
-                'Complex Binomial evaluation is only supported on R',
-              );
-            }
-            stack[sp++] = Complex(
-              evalRealBinomial(zN.a.toDouble(), zK.a.toDouble()),
-            );
+            stack[sp++] = special_gamma.binomialComplex(zN, zK);
           case Op.floor:
             final z = stack[sp - 1];
             if (z.b != 0.0) {

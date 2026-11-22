@@ -102,8 +102,7 @@ void main() {
       final gammaEval = compileToBytecode(Gamma(x), ['x']);
       check(gammaEval.evaluate1D(0.0)).isNaN;
       check(gammaEval.evaluate1D(-2.0)).isNaN;
-      check(() => gammaEval.evaluateComplex1D(const Complex(1, 1)))
-          .throws<UnsupportedError>();
+      check(gammaEval.evaluateComplex1D(const Complex(1, 1)).isFinite).isTrue;
 
       final acoshEval = compileToBytecode(Acosh(x), ['x']);
       check(acoshEval.evaluate1D(0.5).isNaN).isTrue;
@@ -115,51 +114,51 @@ void main() {
       check(atanhEval.evaluate1D(-1.0)).equals(double.negativeInfinity);
 
       check(
-        () => compileToBytecode(LambertW(x), [
+        compileToBytecode(LambertW(x), [
           'x',
-        ]).evaluateComplex1D(const Complex(1, 1)),
-      ).throws<UnsupportedError>();
+        ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
+      ).isTrue;
       check(
-        () => compileToBytecode(LambertW(x, branch: -1), [
+        compileToBytecode(LambertW(x, branch: -1), [
           'x',
-        ]).evaluateComplex1D(const Complex(-0.2, 1)),
-      ).throws<UnsupportedError>();
+        ]).evaluateComplex1D(const Complex(-0.2, 1)).isFinite,
+      ).isTrue;
       check(
-        () => compileToBytecode(Erf(x), [
+        compileToBytecode(Erf(x), [
           'x',
-        ]).evaluateComplex1D(const Complex(1, 1)),
-      ).throws<UnsupportedError>();
+        ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
+      ).isTrue;
       check(
-        () => compileToBytecode(Erfc(x), [
+        compileToBytecode(Erfc(x), [
           'x',
-        ]).evaluateComplex1D(const Complex(1, 1)),
-      ).throws<UnsupportedError>();
+        ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
+      ).isTrue;
       check(
-        () => compileToBytecode(Beta(x, y), [
-          'x',
-          'y',
-        ]).evaluateComplexList([const Complex(1, 1), const Complex(2, 0)]),
-      ).throws<UnsupportedError>();
+        compileToBytecode(Beta(x, y), ['x', 'y']).evaluateComplexList([
+          const Complex(1, 1),
+          const Complex(2, 0),
+        ]).isFinite,
+      ).isTrue;
       check(
-        () => compileToBytecode(Zeta(x), [
+        compileToBytecode(Zeta(x), [
           'x',
-        ]).evaluateComplex1D(const Complex(1, 1)),
-      ).throws<UnsupportedError>();
+        ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
+      ).isTrue;
       check(
-        () => compileToBytecode(Digamma(x), [
+        compileToBytecode(Digamma(x), [
           'x',
-        ]).evaluateComplex1D(const Complex(1, 1)),
-      ).throws<UnsupportedError>();
+        ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
+      ).isTrue;
       check(
-        () => compileToBytecode(BesselJ(IntegerNumber.zero, x), [
+        compileToBytecode(BesselJ(IntegerNumber.zero, x), [
           'x',
-        ]).evaluateComplex1D(const Complex(1, 1)),
-      ).throws<UnsupportedError>();
+        ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
+      ).isTrue;
       check(
-        () => compileToBytecode(EllipticK(x), [
+        compileToBytecode(EllipticK(x), [
           'x',
-        ]).evaluateComplex1D(const Complex(1, 1)),
-      ).throws<UnsupportedError>();
+        ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
+      ).isTrue;
 
       final powEval = compileToBytecode(Pow(x, y), ['x', 'y'], optimize: false);
       check(powEval.evaluateComplexList([const Complex(2, 3), Complex.zero]))
@@ -203,11 +202,11 @@ void main() {
         ]).a,
       ).isCloseTo(10.0, 1e-12);
       check(
-        () => binomEval.evaluateComplexList([
+        binomEval.evaluateComplexList([
           const Complex(1, 1),
           const Complex(2, 0),
-        ]),
-      ).throws<UnsupportedError>();
+        ]).a,
+      ).isCloseTo(-0.5, 1e-12);
 
       final modEval = compileToBytecode(Mod(x, y), ['x', 'y']);
       check(modEval.evaluateList([17.0, 5.0])).equals(2.0);
@@ -222,7 +221,14 @@ void main() {
         ]),
       ).throws<UnsupportedError>();
 
-      for (final node in <Expr>[Factorial(x), Floor(x), Ceil(x), Round(x)]) {
+      final factEval = compileToBytecode(Factorial(x), ['x']);
+      check(factEval.evaluate1D(3.5))
+          .isCloseTo(Factorial(x).evaluate({'x': 3.5}), 1e-12);
+      check(factEval.evaluateComplex1D(const Complex(3.5)).a)
+          .isCloseTo(Factorial(x).evaluate({'x': 3.5}), 1e-12);
+      check(factEval.evaluateComplex1D(const Complex(1, 1)).isFinite).isTrue;
+
+      for (final node in <Expr>[Floor(x), Ceil(x), Round(x)]) {
         final eval = compileToBytecode(node, ['x']);
         check(eval.evaluate1D(3.5)).isCloseTo(node.evaluate({'x': 3.5}), 1e-12);
         check(eval.evaluateComplex1D(const Complex(3.5)).a)
@@ -417,18 +423,15 @@ void main() {
 
         check(Erf(x).evaluateComplex({'x': realZ}).a)
             .isCloseTo(Erf(x).evaluate({'x': 0.5}), 1e-14);
-        check(() => Erf(x).evaluateComplex({'x': nonRealZ}))
-            .throws<UnsupportedError>();
+        check(Erf(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
 
         check(Erfc(x).evaluateComplex({'x': realZ}).a)
             .isCloseTo(Erfc(x).evaluate({'x': 0.5}), 1e-14);
-        check(() => Erfc(x).evaluateComplex({'x': nonRealZ}))
-            .throws<UnsupportedError>();
+        check(Erfc(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
 
         check(Gamma(x).evaluateComplex({'x': const Complex(4.0)}).a)
             .isCloseTo(6.0, 1e-12);
-        check(() => Gamma(x).evaluateComplex({'x': nonRealZ}))
-            .throws<UnsupportedError>();
+        check(Gamma(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
 
         check(
           Beta(x, y).evaluateComplex({
@@ -436,11 +439,10 @@ void main() {
             'y': const Complex(3.0),
           }).a,
         ).isCloseTo(1.0 / 12.0, 1e-12);
-        check(() => Beta(x, y).evaluateComplex({'x': nonRealZ, 'y': realZ}))
-            .throws<UnsupportedError>();
+        check(Beta(x, y).evaluateComplex({'x': nonRealZ, 'y': realZ}).isFinite)
+            .isTrue;
 
-        check(() => LambertW(x).evaluateComplex({'x': nonRealZ}))
-            .throws<UnsupportedError>();
+        check(LambertW(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
 
         final pw = Piecewise([
           (relation: LessThan(x, IntegerNumber.zero), expr: -x),
@@ -497,5 +499,35 @@ void main() {
         check(const OrderTerm('x', 3).evaluateComplex()).equals(Complex.zero);
       },
     );
+
+    test('evaluates special functions at complex points', () {
+      final z = ComplexNumber(const RealNumber(0.5), const RealNumber(0.25));
+      final n = IntegerNumber.of(2);
+      const k = RealNumber(0.5);
+
+      check(Erf(z).evaluateComplex()).isNotNull();
+      check(Erf(z).evaluateComplex().abs())
+          .isCloseTo(Erf(z).evaluateComplex().abs(), 1e-12);
+      check((Erf(z) + Erfc(z)).evaluateComplex().real).isCloseTo(1.0, 1e-12);
+      check((Erf(z) + Erfc(z)).evaluateComplex().imaginary)
+          .isCloseTo(0.0, 1e-12);
+
+      // Gamma(z + 1) == z * Gamma(z)
+      final gz = Gamma(z).evaluateComplex();
+      final gz1 = Gamma(z + IntegerNumber.one).evaluateComplex();
+      check(gz1.real).isCloseTo((const Complex(0.5, 0.25) * gz).real, 1e-12);
+      check(gz1.imaginary)
+          .isCloseTo((const Complex(0.5, 0.25) * gz).imaginary, 1e-12);
+
+      check(Digamma(z).evaluateComplex().isFinite).isTrue;
+      check(Polygamma(n, z).evaluateComplex().isFinite).isTrue;
+      check(BesselJ(n, z).evaluateComplex().isFinite).isTrue;
+      check(EllipticF(z, k).evaluateComplex().isFinite).isTrue;
+      check(EllipticEIncomplete(z, k).evaluateComplex().isFinite).isTrue;
+      check(UpperGamma(n, z).evaluateComplex().isFinite).isTrue;
+      check(Beta(z, n).evaluateComplex().isFinite).isTrue;
+      check(Binomial(z, n).evaluateComplex().isFinite).isTrue;
+      check(LambertW(z).evaluateComplex().isFinite).isTrue;
+    });
   });
 }

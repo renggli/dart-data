@@ -277,5 +277,32 @@ void main() {
         check(rat.anyNode((n) => n == RationalNumber(1, 8))).isTrue;
       },
     );
+
+    test('approximates binary special functions with complex operands', () {
+      final z = ComplexNumber(const RealNumber(1.5), const RealNumber(0.5));
+      const w = RealNumber(0.5);
+
+      check(Beta(z, w).approximate()).isA<ComplexNumber>();
+      check(Binomial(z, w).approximate()).isA<ComplexNumber>();
+      check(UpperGamma(w, z).approximate()).isA<ComplexNumber>();
+      check(EllipticF(z, w).approximate()).isA<ComplexNumber>();
+
+      // Domain-crossed real binary special function falls back to ComplexNumber
+      check(
+        EllipticF(const RealNumber(1.0), const RealNumber(2.0)).approximate(),
+      ).isA<ComplexNumber>();
+    });
+
+    test('simplifies special functions with floating-point complex inputs', () {
+      final z = ComplexNumber(const RealNumber(0.5), const RealNumber(0.25));
+      const w = RealNumber(0.5);
+
+      check(Erf(z).simplify()).isA<ComplexNumber>();
+      check(Gamma(z).simplify()).isA<ComplexNumber>();
+      check(BesselJ(w, z).simplify()).isA<ComplexNumber>();
+      check(Beta(z, w).simplify()).isA<ComplexNumber>();
+      check(EllipticF(z, w).simplify()).isA<ComplexNumber>();
+      check(LambertW(z).simplify()).isA<ComplexNumber>();
+    });
   });
 }
