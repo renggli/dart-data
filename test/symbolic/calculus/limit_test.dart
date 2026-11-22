@@ -640,6 +640,17 @@ void main() {
       ).equals(Expr.parse('4 - 8 * ln(2)').simplify());
       check(Expr.parse(radicalAntideriv).limit('x', Constant.infinity))
           .equals(Constant.infinity);
+
+      // Abs composition at ±infinity propagates real-domain errors immediately
+      check(
+        Expr.parse('-4 * ln(abs(2 + sqrt(4 + x))) + 2 * sqrt(4 + x)')
+            .limit('x', Constant.infinity),
+      ).equals(Constant.infinity);
+      check(
+        () =>
+            Expr.parse('-4 * ln(abs(2 + sqrt(4 + x))) + 2 * sqrt(4 + x)')
+                .limit('x', -Constant.infinity),
+      ).throws<UnsupportedError>();
     });
   });
 }

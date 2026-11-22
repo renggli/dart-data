@@ -304,6 +304,32 @@ Expr computeLimit(
     }
   }
 
+  if (expr case Abs(expr: final inner)) {
+    try {
+      final innerLim = computeLimit(
+        inner,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      if (_isPositiveInfinity(innerLim) || _isNegativeInfinity(innerLim)) {
+        return Constant.infinity;
+      }
+      if (!innerLim.dependsOn(variable) &&
+          !innerLim.anyNode((n) => n is Limit) &&
+          innerLim != Constant.undefined) {
+        return Abs(innerLim).simplify(assumptions: assumptions);
+      }
+    } on UnsupportedError catch (e) {
+      if (e.message?.contains('in R:') ?? false) {
+        rethrow;
+      }
+    } on Object {
+      // Fall through
+    }
+  }
+
   if (expr case Ln(expr: final inner)) {
     try {
       final innerLim = computeLimit(

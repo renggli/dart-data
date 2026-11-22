@@ -919,8 +919,11 @@ double _evalNodeReal(
     }
     final ptVal = compileInner(point).evaluateMap(context);
     if (ptVal.isNaN) return double.nan;
-    final ptExpr = Expr.wrap(ptVal);
+    final ptExpr = ptVal.isInfinite
+        ? (ptVal > 0 ? Constant.infinity : -Constant.infinity)
+        : Expr.wrap(ptVal);
     final lim = substituted.limit(variable, ptExpr, direction: direction);
+    if (lim.anyNode((n) => n is Limit)) return double.nan;
     return compileInner(lim).evaluateMap(context);
   }
   if (node case Sum(:final expr, :final variable, :final lower, :final upper)) {
@@ -945,7 +948,7 @@ double _evalNodeReal(
       return total;
     }
     final s = expr.sum(variable, Expr.wrap(a), Expr.wrap(b));
-    if (s is! Sum) {
+    if (!s.anyNode((n) => n is Sum)) {
       return compileInner(s).evaluateMap(context);
     }
     return double.nan;
@@ -977,7 +980,7 @@ double _evalNodeReal(
       return total;
     }
     final p = expr.product(variable, Expr.wrap(a), Expr.wrap(b));
-    if (p is! Product) {
+    if (!p.anyNode((n) => n is Product)) {
       return compileInner(p).evaluateMap(context);
     }
     return double.nan;

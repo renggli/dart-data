@@ -421,6 +421,10 @@ void main() {
         check(radInt.anyNode((n) => n is Integral)).isFalse;
         check(radInt.evaluate())
             .isCloseTo(Expr.parse('2 + 4 * ln(4 / 5)').evaluate(), 1e-12);
+        check(
+          Expr.parse('(sqrt(x + 4) - 2) / x')
+              .integrate('x', from: 0, to: Constant.infinity),
+        ).equals(Constant.infinity);
 
         // Divergent interior poles on (-inf, inf) short-circuits cleanly
         final divInt = Expr.parse('1 / (x * (x + 1))')

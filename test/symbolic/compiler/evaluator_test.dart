@@ -559,5 +559,15 @@ void main() {
       final fn2 = d2Zeta.toFunction1D('x');
       check(fn2(2.0)).isCloseTo(1.989280234298901, 5e-5);
     });
+
+    test('unevaluated Limit returns NaN instead of recursing infinitely', () {
+      final limInf = Limit(
+        Expr.parse('(-2 + sqrt(4 + x)) / x'),
+        'x',
+        Constant.infinity,
+      );
+      check(limInf.evaluate()).isNaN;
+      check(limInf.evaluateComplex().isNaN).isTrue;
+    });
   });
 }

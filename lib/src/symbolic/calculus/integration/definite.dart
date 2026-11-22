@@ -358,8 +358,8 @@ Expr evaluateDefiniteIntegral(
                   assumptions: assumptions,
                 )
               : effectiveAntiDeriv.substitute(variable, fromExpr);
-          final diff = (upper - lower).simplify(assumptions: assumptions);
-          if (!diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+          final diff = _subtractEndpointValues(upper, lower, assumptions);
+          if (diff != null) {
             return diff;
           }
         } on Object {
@@ -399,8 +399,8 @@ Expr evaluateDefiniteIntegral(
                       : LimitDirection.fromBelow,
                   assumptions: assumptions,
                 );
-          final diff = (upper - lower).simplify(assumptions: assumptions);
-          if (!diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+          final diff = _subtractEndpointValues(upper, lower, assumptions);
+          if (diff != null) {
             return diff;
           }
         } on Object {
@@ -1369,4 +1369,27 @@ Expr? _tryKingsProperty(
     );
   }
   return null;
+}
+
+Expr? _subtractEndpointValues(Expr upper, Expr lower, Assumptions assumptions) {
+  final u = upper.simplify(assumptions: assumptions);
+  final l = lower.simplify(assumptions: assumptions);
+  if (u.anyNode((n) => n is Limit || n == Constant.undefined) ||
+      l.anyNode((n) => n is Limit || n == Constant.undefined)) {
+    return null;
+  }
+  final uPosInf = u == Constant.infinity;
+  final uNegInf = u == _negInfinity;
+  final lPosInf = l == Constant.infinity;
+  final lNegInf = l == _negInfinity;
+  if (uPosInf || uNegInf || lPosInf || lNegInf) {
+    if ((uPosInf && lPosInf) || (uNegInf && lNegInf)) return null;
+    if (uPosInf || lNegInf) return Constant.infinity;
+    return _negInfinity;
+  }
+  final diff = (u - l).simplify(assumptions: assumptions);
+  if (diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
+    return null;
+  }
+  return diff;
 }
