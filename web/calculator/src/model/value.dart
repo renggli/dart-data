@@ -7,10 +7,11 @@ import 'package:data/symbolic.dart';
 
 /// Sampled polyline segment for a 2D curve without vertical asymptotes.
 final class PlotSegmentData {
-  const new({required this.x, required this.y});
+  const new({required this.x, required this.y, this.t});
 
   final Float64List x;
   final Float64List y;
+  final Float64List? t;
 
   Map<String, Object?> toJson() => {
     'x': [
@@ -21,20 +22,35 @@ final class PlotSegmentData {
       for (final v in y)
         if (v.isFinite) v else null,
     ],
+    if (t != null)
+      't': [
+        for (final v in t!)
+          if (v.isFinite) v else null,
+      ],
   };
 
-  factory fromJson(Map<String, Object?> json) => PlotSegmentData(
-    x: Float64List.fromList(
-      (json['x'] as List<Object?>)
-          .map((e) => e == null ? double.nan : (e as num).toDouble())
-          .toList(),
-    ),
-    y: Float64List.fromList(
-      (json['y'] as List<Object?>)
-          .map((e) => e == null ? double.nan : (e as num).toDouble())
-          .toList(),
-    ),
-  );
+  factory fromJson(Map<String, Object?> json) {
+    final rawT = json['t'] as List<Object?>?;
+    return PlotSegmentData(
+      x: Float64List.fromList(
+        (json['x'] as List<Object?>)
+            .map((e) => e == null ? double.nan : (e as num).toDouble())
+            .toList(),
+      ),
+      y: Float64List.fromList(
+        (json['y'] as List<Object?>)
+            .map((e) => e == null ? double.nan : (e as num).toDouble())
+            .toList(),
+      ),
+      t: rawT == null
+          ? null
+          : Float64List.fromList(
+              rawT
+                  .map((e) => e == null ? double.nan : (e as num).toDouble())
+                  .toList(),
+            ),
+    );
+  }
 }
 
 /// Notable point marker on a plotted curve (root, local minimum, local maximum).
@@ -189,6 +205,84 @@ final class Surface3dData {
                   )),
     );
   }
+}
+
+/// Pre-sampled 3D parametric space curve $(x(t), y(t), z(t))$ over $t \in [\text{minT}, \text{maxT}]$.
+final class Parametric3dData {
+  const new({
+    required this.tVar,
+    required this.minT,
+    required this.maxT,
+    required this.minX,
+    required this.maxX,
+    required this.minY,
+    required this.maxY,
+    required this.minZ,
+    required this.maxZ,
+    required this.tValues,
+    required this.xValues,
+    required this.yValues,
+    required this.zValues,
+  });
+
+  final String tVar;
+  final double minT;
+  final double maxT;
+  final double minX;
+  final double maxX;
+  final double minY;
+  final double maxY;
+  final double minZ;
+  final double maxZ;
+  final Float64List tValues;
+  final Float64List xValues;
+  final Float64List yValues;
+  final Float64List zValues;
+
+  Map<String, Object?> toJson() => {
+    'tVar': tVar,
+    'minT': minT,
+    'maxT': maxT,
+    'minX': minX,
+    'maxX': maxX,
+    'minY': minY,
+    'maxY': maxY,
+    'minZ': minZ,
+    'maxZ': maxZ,
+    'tValues': _encodeFloatList(tValues),
+    'xValues': _encodeFloatList(xValues),
+    'yValues': _encodeFloatList(yValues),
+    'zValues': _encodeFloatList(zValues),
+  };
+
+  factory fromJson(Map<String, Object?> json) => Parametric3dData(
+    tVar: json['tVar'] as String? ?? 't',
+    minT: (json['minT']! as num).toDouble(),
+    maxT: (json['maxT']! as num).toDouble(),
+    minX: (json['minX']! as num).toDouble(),
+    maxX: (json['maxX']! as num).toDouble(),
+    minY: (json['minY']! as num).toDouble(),
+    maxY: (json['maxY']! as num).toDouble(),
+    minZ: (json['minZ']! as num).toDouble(),
+    maxZ: (json['maxZ']! as num).toDouble(),
+    tValues: _decodeFloatList(json['tValues']! as List<Object?>),
+    xValues: _decodeFloatList(json['xValues']! as List<Object?>),
+    yValues: _decodeFloatList(json['yValues']! as List<Object?>),
+    zValues: _decodeFloatList(json['zValues']! as List<Object?>),
+  );
+
+  static List<double?> _encodeFloatList(Float64List list) => [
+    for (final v in list)
+      if (v.isFinite) v else null,
+  ];
+
+  static Float64List _decodeFloatList(List<Object?> raw) => raw is Float64List
+      ? raw
+      : Float64List.fromList(
+          raw
+              .map((e) => e == null ? double.nan : (e as num).toDouble())
+              .toList(),
+        );
 }
 
 /// Sealed hierarchy representing all calculator values in Scroll and RPN modes.
@@ -485,6 +579,7 @@ final class PlotValue extends CalcValue {
     this.minT,
     this.maxT,
     this.surface3d,
+    this.parametric3d,
   });
 
   final List<Expr> expressions;
@@ -501,9 +596,10 @@ final class PlotValue extends CalcValue {
   final double? minT;
   final double? maxT;
   final Surface3dData? surface3d;
+  final Parametric3dData? parametric3d;
 
-  /// Whether this plot is a 3D surface plot $z = f(x, y)$.
-  bool get is3d => surface3d != null;
+  /// Whether this plot is a 3D surface or 3D parametric space curve.
+  bool get is3d => surface3d != null || parametric3d != null;
 
   @override
   String get kind => 'plot';
@@ -513,6 +609,10 @@ final class PlotValue extends CalcValue {
 
   @override
   String toCanonicalText() {
+    final p3d = parametric3d;
+    if (p3d != null && expressions.length >= 3) {
+      return 'parametric([${expressions[0]}, ${expressions[1]}, ${expressions[2]}], ${p3d.tVar}, ${fmtBound(p3d.minT)}, ${fmtBound(p3d.maxT)})';
+    }
     final s3d = surface3d;
     if (s3d != null && expressions.isNotEmpty) {
       if (isComplex) {

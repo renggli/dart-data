@@ -49,6 +49,7 @@ abstract final class CalcSerialization {
         :final minT,
         :final maxT,
         :final surface3d,
+        :final parametric3d,
       ) =>
         {
           ...base,
@@ -66,6 +67,7 @@ abstract final class CalcSerialization {
           'minT': ?minT,
           'maxT': ?maxT,
           if (surface3d != null) 'surface3d': surface3d.toJson(),
+          if (parametric3d != null) 'parametric3d': parametric3d.toJson(),
         },
       InfoValue(:final message, :final title) => {
         ...base,
@@ -128,6 +130,7 @@ abstract final class CalcSerialization {
             .cast<String>()
             .toList();
         final rawS3d = json['surface3d'] as Map<String, Object?>?;
+        final rawP3d = json['parametric3d'] as Map<String, Object?>?;
         return PlotValue(
           expressions: exprs,
           variable: json['variable'] as String? ?? 'x',
@@ -143,6 +146,9 @@ abstract final class CalcSerialization {
           minT: (json['minT'] as num?)?.toDouble(),
           maxT: (json['maxT'] as num?)?.toDouble(),
           surface3d: rawS3d != null ? Surface3dData.fromJson(rawS3d) : null,
+          parametric3d: rawP3d != null
+              ? Parametric3dData.fromJson(rawP3d)
+              : null,
         );
       case 'info':
         return InfoValue(

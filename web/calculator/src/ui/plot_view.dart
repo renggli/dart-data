@@ -139,6 +139,24 @@ final class PlotView {
       activeComplexPass = null;
     }
 
+    final complexCurveFns = <int, Complex Function(Complex)>{};
+    void rebuild1dComplexFns() {
+      complexCurveFns.clear();
+      if (plot.isComplex || plot.isParametric || plot.isOde) return;
+      for (var i = 0; i < plot.curves.length; i++) {
+        if (!plot.curves[i].hasImaginary || i >= plot.expressions.length) {
+          continue;
+        }
+        var expr = plot.expressions[i];
+        for (final p in plot.parameters) {
+          expr = expr.substitute(p, RealNumber(paramValues[p] ?? 1.0));
+        }
+        complexCurveFns[i] = expr.toComplexFunction1D(plot.variable);
+      }
+    }
+
+    rebuild1dComplexFns();
+
     void rebuildComplexFn() {
       if (!plot.isComplex || plot.expressions.isEmpty) return;
       var expr = plot.expressions.first;
@@ -345,15 +363,124 @@ final class PlotView {
           final re = fz.real.toDouble();
           final im = fz.imaginary.toDouble();
           final mag = math.sqrt(re * re + im * im);
-          final imSign = im < 0 ? '-' : '+';
-          final wySign = wy < 0 ? '-' : '+';
+          final arg = math.atan2(im, re);
+          final zText = _formatComplex(wx, wy);
+          final fText = _formatComplex(re, im);
           readout.textContent =
-              'z = ${formatRealDigits(wx, 3)} $wySign ${formatRealDigits(wy.abs(), 3)}i | '
-              'f(z) = ${formatRealDigits(re, 3)} $imSign ${formatRealDigits(im.abs(), 3)}i '
-              '(|f| = ${formatRealDigits(mag, 3)})';
+              '${plot.variable} = $zText | f(${plot.variable}) = $fText (|f| = ${formatRealDigits(mag, 3)})';
+          _drawPlotTooltip(ctx, vp, hx, hy, [
+            '${plot.variable} = $zText',
+            'f(${plot.variable}) = $fText',
+            '|f| = ${formatRealDigits(mag, 4)}',
+            'arg(f) = ${formatRealDigits(arg, 4)}',
+            if (plot.parameters.isNotEmpty)
+              _formatParamSummary(plot.parameters, paramValues),
+          ], borderColor: 'rgba(56, 189, 248, 0.55)');
         } else {
-          readout.textContent =
-              '(${formatRealDigits(wx, 4)}, ${formatRealDigits(wy, 4)})';
+          final nearest = _findNearestCurvePoint(
+            plot.curves,
+            palette,
+            vp,
+            hx,
+            hy,
+          );
+          if (nearest != null) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'.toJS;
+            ctx.beginPath();
+            ctx.arc(nearest.px, nearest.py, 7.0, 0.0, 2 * math.pi);
+            ctx.fill();
+            ctx.fillStyle = nearest.color.toJS;
+            ctx.beginPath();
+            ctx.arc(nearest.px, nearest.py, 4.0, 0.0, 2 * math.pi);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff'.toJS;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+
+            final List<String> lines;
+            if (plot.isParametric) {
+              readout.textContent = nearest.t != null
+                  ? '${plot.variable} = ${formatRealDigits(nearest.t!, 4)}, (${formatRealDigits(nearest.x, 4)}, ${formatRealDigits(nearest.y, 4)})'
+                  : '(${formatRealDigits(nearest.x, 4)}, ${formatRealDigits(nearest.y, 4)})';
+              lines = [
+                if (nearest.t != null)
+                  '${plot.variable} = ${formatRealDigits(nearest.t!, 4)}',
+                'x = ${formatRealDigits(nearest.x, 4)}',
+                'y = ${formatRealDigits(nearest.y, 4)}',
+                if (plot.parameters.isNotEmpty)
+                  _formatParamSummary(plot.parameters, paramValues),
+              ];
+            } else if (plot.isOde) {
+              readout.textContent =
+                  '(${formatRealDigits(nearest.x, 4)}, ${formatRealDigits(nearest.y, 4)})';
+              lines = [
+                '${plot.variable} = ${formatRealDigits(nearest.x, 4)}',
+                'y = ${formatRealDigits(nearest.y, 4)}',
+              ];
+            } else if (nearest.hasImaginary) {
+              final fnC = complexCurveFns[nearest.curveIndex];
+              var fz = Complex.nan;
+              if (fnC != null) {
+                try {
+                  fz = fnC(Complex(nearest.x));
+                } on Object {
+                  fz = Complex.nan;
+                }
+              }
+              final re = fz.real.toDouble();
+              final im = fz.imaginary.toDouble();
+              final mag = math.sqrt(re * re + im * im);
+              final arg = math.atan2(im, re);
+              final fText = _formatComplex(re, im);
+              readout.textContent =
+                  '${plot.variable} = ${formatRealDigits(nearest.x, 4)} | f(${plot.variable}) = $fText';
+              lines = [
+                if (plot.curves.length > 1) nearest.label,
+                '${plot.variable} = ${formatRealDigits(nearest.x, 4)}',
+                'f(${plot.variable}) = $fText',
+                '|f| = ${formatRealDigits(mag, 4)}',
+                'arg(f) = ${formatRealDigits(arg, 4)}',
+                if (plot.parameters.isNotEmpty)
+                  _formatParamSummary(plot.parameters, paramValues),
+              ];
+            } else {
+              readout.textContent =
+                  '(${formatRealDigits(nearest.x, 4)}, ${formatRealDigits(nearest.y, 4)})';
+              lines = [
+                if (plot.curves.length > 1) nearest.label,
+                '${plot.variable} = ${formatRealDigits(nearest.x, 4)}',
+                'f(${plot.variable}) = ${formatRealDigits(nearest.y, 4)}',
+                if (plot.parameters.isNotEmpty)
+                  _formatParamSummary(plot.parameters, paramValues),
+              ];
+            }
+
+            _drawPlotTooltip(
+              ctx,
+              vp,
+              nearest.px,
+              nearest.py,
+              lines,
+              borderColor: nearest.color,
+            );
+          } else {
+            final coordText =
+                '(${formatRealDigits(wx, 4)}, ${formatRealDigits(wy, 4)})';
+            readout.textContent = coordText;
+            _drawPlotTooltip(ctx, vp, hx, hy, [
+              if (plot.isParametric) ...[
+                'x = ${formatRealDigits(wx, 4)}',
+                'y = ${formatRealDigits(wy, 4)}',
+              ] else ...[
+                '${plot.variable} = ${formatRealDigits(wx, 4)}',
+                'y = ${formatRealDigits(wy, 4)}',
+              ],
+              if (plot.parameters.isNotEmpty)
+                _formatParamSummary(plot.parameters, paramValues),
+            ]);
+          }
         }
       } else {
         readout.textContent = idleReadout();
@@ -415,6 +542,7 @@ final class PlotView {
                 parameterValues: paramValues,
                 maxPoints: targetMaxPoints(),
               );
+              rebuild1dComplexFns();
             }
             draw();
           }).toJS,
@@ -542,16 +670,27 @@ final class PlotView {
       ..className = 'calc-plot-legend';
     final item = web.document.createElement('span') as web.HTMLSpanElement
       ..className = 'calc-plot-legend-item';
+    final p3dInitial = plot.parametric3d;
+    final s3dInitial = plot.surface3d;
     final swatch = web.document.createElement('span') as web.HTMLSpanElement
       ..className = 'calc-plot-swatch'
-      ..style.background = plot.isComplex
-          ? 'conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)'
-          : 'linear-gradient(135deg, #2563eb, #10b981, #fbbf24)';
-    final exprLabel = plot.expressions.isNotEmpty
-        ? (plot.isComplex
-              ? '|f(${plot.variable})| = |${plot.expressions.first}|'
-              : 'z = ${plot.expressions.first}')
-        : (plot.isComplex ? '|f(z)|' : 'z = f(x, y)');
+      ..style.background = p3dInitial != null
+          ? '#38bdf8'
+          : (plot.isComplex
+                ? 'conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)'
+                : 'linear-gradient(135deg, #2563eb, #10b981, #fbbf24)');
+    final String exprLabel;
+    if (p3dInitial != null) {
+      exprLabel = plot.expressions.length >= 3
+          ? '[${plot.expressions[0]}, ${plot.expressions[1]}, ${plot.expressions[2]}]'
+          : '[x(${p3dInitial.tVar}), y(${p3dInitial.tVar}), z(${p3dInitial.tVar})]';
+    } else if (plot.expressions.isNotEmpty) {
+      exprLabel = plot.isComplex
+          ? '|f(${plot.variable})| = |${plot.expressions.first}|'
+          : 'z = ${plot.expressions.first}';
+    } else {
+      exprLabel = plot.isComplex ? '|f(z)|' : 'z = f(x, y)';
+    }
     final text = web.document.createElement('span') as web.HTMLSpanElement
       ..textContent = exprLabel;
     item
@@ -559,9 +698,9 @@ final class PlotView {
       ..append(text);
     legend.append(item);
 
-    final s3dInitial = plot.surface3d!;
-    final defaultReadout =
-        '${s3dInitial.xVar} ∈ [${formatRealDigits(s3dInitial.minX, 3)}, ${formatRealDigits(s3dInitial.maxX, 3)}], ${s3dInitial.yVar} ∈ [${formatRealDigits(s3dInitial.minY, 3)}, ${formatRealDigits(s3dInitial.maxY, 3)}]';
+    final defaultReadout = p3dInitial != null
+        ? '${p3dInitial.tVar} ∈ [${formatRealDigits(p3dInitial.minT, 3)}, ${formatRealDigits(p3dInitial.maxT, 3)}]'
+        : '${s3dInitial!.xVar} ∈ [${formatRealDigits(s3dInitial.minX, 3)}, ${formatRealDigits(s3dInitial.maxX, 3)}], ${s3dInitial.yVar} ∈ [${formatRealDigits(s3dInitial.minY, 3)}, ${formatRealDigits(s3dInitial.maxY, 3)}]';
     final readout = web.document.createElement('span') as web.HTMLSpanElement
       ..textContent = defaultReadout;
 
@@ -599,6 +738,26 @@ final class PlotView {
     late final WebGLSurfaceRenderer renderer;
 
     void draw() {
+      final extra = plot.parameters.isNotEmpty
+          ? _formatParamSummary(plot.parameters, paramValues)
+          : null;
+      if (plot.parametric3d case final p3d?) {
+        renderer.renderParametricCurve(
+          tValues: p3d.tValues,
+          xValues: p3d.xValues,
+          yValues: p3d.yValues,
+          zValues: p3d.zValues,
+          minX: p3d.minX,
+          maxX: p3d.maxX,
+          minY: p3d.minY,
+          maxY: p3d.maxY,
+          minZ: p3d.minZ,
+          maxZ: p3d.maxZ,
+          tVar: p3d.tVar,
+          extraInfo: extra,
+        );
+        return;
+      }
       final s3d = plot.surface3d;
       if (s3d == null) return;
       renderer.renderSurface(
@@ -614,6 +773,7 @@ final class PlotView {
         xVar: s3d.xVar,
         yVar: s3d.yVar,
         title: exprLabel,
+        extraInfo: extra,
       );
     }
 
@@ -621,7 +781,7 @@ final class PlotView {
       canvas,
       onUpdate: draw,
       onHoverReadout: (txt) {
-        readout.textContent = txt;
+        readout.textContent = txt.isEmpty ? defaultReadout : txt;
       },
     );
 
@@ -651,29 +811,41 @@ final class PlotView {
             final v = double.tryParse(slider.value) ?? 1.0;
             paramValues[param] = v;
             valSpan.textContent = '$param = ${v.toStringAsFixed(2)}';
-            final cur = plot.surface3d!;
-            plot = plot.isComplex
-                ? buildComplex3dPlotValue(
-                    plot.expressions.first,
-                    plot.variable,
-                    cur.minX,
-                    cur.maxX,
-                    cur.minY,
-                    cur.maxY,
-                    parameterValues: paramValues,
-                    gridSize: 52,
-                  )
-                : buildSurface3dPlotValue(
-                    plot.expressions.first,
-                    cur.xVar,
-                    cur.minX,
-                    cur.maxX,
-                    cur.yVar,
-                    cur.minY,
-                    cur.maxY,
-                    parameterValues: paramValues,
-                    gridSize: 48,
-                  );
+            if (plot.parametric3d case final p3d?) {
+              plot = buildParametric3dPlotValue(
+                plot.expressions[0],
+                plot.expressions[1],
+                plot.expressions[2],
+                p3d.tVar,
+                p3d.minT,
+                p3d.maxT,
+                parameterValues: paramValues,
+              );
+            } else {
+              final cur = plot.surface3d!;
+              plot = plot.isComplex
+                  ? buildComplex3dPlotValue(
+                      plot.expressions.first,
+                      plot.variable,
+                      cur.minX,
+                      cur.maxX,
+                      cur.minY,
+                      cur.maxY,
+                      parameterValues: paramValues,
+                      gridSize: 52,
+                    )
+                  : buildSurface3dPlotValue(
+                      plot.expressions.first,
+                      cur.xVar,
+                      cur.minX,
+                      cur.maxX,
+                      cur.yVar,
+                      cur.minY,
+                      cur.maxY,
+                      parameterValues: paramValues,
+                      gridSize: 48,
+                    );
+            }
             draw();
           }).toJS,
         );
@@ -699,7 +871,9 @@ final class PlotView {
         final dataUrl = WebGLSurfaceRenderer.exportPngDataUrl(canvas);
         final a = web.document.createElement('a') as web.HTMLAnchorElement
           ..href = dataUrl
-          ..download = plot.isComplex ? 'plotcomplex3d.png' : 'plot3d.png';
+          ..download = plot.parametric3d != null
+              ? 'parametric3d.png'
+              : (plot.isComplex ? 'plotcomplex3d.png' : 'plot3d.png');
         web.document.body?.append(a);
         a.click();
         a.remove();
@@ -923,5 +1097,182 @@ final class PlotView {
       ..append(btn)
       ..append(menu);
     return wrap;
+  }
+
+  static String _formatComplex(double re, double im) {
+    final sign = im < 0 ? '-' : '+';
+    return '${formatRealDigits(re, 4)} $sign ${formatRealDigits(im.abs(), 4)}i';
+  }
+
+  static String _formatParamSummary(
+    List<String> parameters,
+    Map<String, double> paramValues,
+  ) => parameters
+      .map((p) => '$p = ${(paramValues[p] ?? 1.0).toStringAsFixed(2)}')
+      .join(', ');
+
+  static ({
+    double x,
+    double y,
+    double? t,
+    double px,
+    double py,
+    String color,
+    String label,
+    int curveIndex,
+    bool hasImaginary,
+  })?
+  _findNearestCurvePoint(
+    List<PlotCurveData> curves,
+    List<String> palette,
+    PlotViewport vp,
+    double hx,
+    double hy, {
+    double maxDistPx = 28.0,
+  }) {
+    var bestDistSq = maxDistPx * maxDistPx;
+    ({
+      double x,
+      double y,
+      double? t,
+      double px,
+      double py,
+      String color,
+      String label,
+      int curveIndex,
+      bool hasImaginary,
+    })?
+    best;
+
+    void scanSegments(
+      List<PlotSegmentData> segments,
+      String color,
+      String label,
+      int curveIndex,
+      bool hasImaginary,
+    ) {
+      for (final seg in segments) {
+        final len = seg.x.length;
+        final tData = seg.t;
+        for (var i = 0; i < len; i++) {
+          final x0 = seg.x[i];
+          final y0 = seg.y[i];
+          if (!x0.isFinite || !y0.isFinite) continue;
+          final px0 = vp.toPixelX(x0);
+          final py0 = vp.toPixelY(y0);
+
+          if (i + 1 < len && seg.x[i + 1].isFinite && seg.y[i + 1].isFinite) {
+            final x1 = seg.x[i + 1];
+            final y1 = seg.y[i + 1];
+            final px1 = vp.toPixelX(x1);
+            final py1 = vp.toPixelY(y1);
+            final dx = px1 - px0;
+            final dy = py1 - py0;
+            final lenSq = dx * dx + dy * dy;
+            final alpha = lenSq > 1e-6
+                ? (((hx - px0) * dx + (hy - py0) * dy) / lenSq).clamp(0.0, 1.0)
+                : 0.0;
+            final px = px0 + alpha * dx;
+            final py = py0 + alpha * dy;
+            final dSq = (px - hx) * (px - hx) + (py - hy) * (py - hy);
+            if (dSq < bestDistSq) {
+              bestDistSq = dSq;
+              final tVal = tData != null && i + 1 < tData.length
+                  ? tData[i] + alpha * (tData[i + 1] - tData[i])
+                  : null;
+              best = (
+                x: x0 + alpha * (x1 - x0),
+                y: y0 + alpha * (y1 - y0),
+                t: tVal,
+                px: px,
+                py: py,
+                color: color,
+                label: label,
+                curveIndex: curveIndex,
+                hasImaginary: hasImaginary,
+              );
+            }
+          } else {
+            final dSq = (px0 - hx) * (px0 - hx) + (py0 - hy) * (py0 - hy);
+            if (dSq < bestDistSq) {
+              bestDistSq = dSq;
+              best = (
+                x: x0,
+                y: y0,
+                t: tData != null && i < tData.length ? tData[i] : null,
+                px: px0,
+                py: py0,
+                color: color,
+                label: label,
+                curveIndex: curveIndex,
+                hasImaginary: hasImaginary,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    for (var i = 0; i < curves.length; i++) {
+      final curve = curves[i];
+      final color = palette[i % palette.length];
+      scanSegments(curve.segments, color, curve.label, i, curve.hasImaginary);
+      scanSegments(
+        curve.imaginarySegments,
+        color,
+        curve.label,
+        i,
+        curve.hasImaginary,
+      );
+    }
+    return best;
+  }
+
+  static void _drawPlotTooltip(
+    web.CanvasRenderingContext2D ctx,
+    PlotViewport vp,
+    double anchorX,
+    double anchorY,
+    List<String> lines, {
+    String borderColor = 'rgba(148, 163, 184, 0.45)',
+  }) {
+    if (lines.isEmpty) return;
+    ctx.save();
+    ctx.font = 'bold 10.5px Inter, ui-monospace, sans-serif';
+    var maxTextW = 0.0;
+    for (final line in lines) {
+      final w = ctx.measureText(line).width;
+      if (w > maxTextW) maxTextW = w;
+    }
+
+    const padX = 8.0;
+    const padY = 6.0;
+    const lineH = 14.0;
+    final tipW = maxTextW + padX * 2;
+    final tipH = lines.length * lineH + padY * 2 - 2.0;
+
+    final maxRight = vp.leftMargin + vp.plotWidth - 4.0;
+    final maxBottom = vp.topMargin + vp.plotHeight - 4.0;
+    final tipX = (anchorX + 12.0 + tipW > maxRight)
+        ? math.max(vp.leftMargin + 4.0, anchorX - tipW - 12.0)
+        : anchorX + 12.0;
+    final tipY = (anchorY - tipH - 10.0 < vp.topMargin + 4.0)
+        ? math.min(maxBottom - tipH, anchorY + 12.0)
+        : anchorY - tipH - 10.0;
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)'.toJS;
+    ctx.strokeStyle = borderColor.toJS;
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.rect(tipX, tipY, tipW, tipH);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#f8fafc'.toJS;
+    ctx.textAlign = 'left';
+    for (var i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], tipX + padX, tipY + padY + 9.5 + i * lineH);
+    }
+    ctx.restore();
   }
 }

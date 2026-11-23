@@ -160,6 +160,49 @@ void main() {
       check(nanRestored.curves.first.segments.first.y[0].isNaN).isTrue;
       check(nanRestored.curves.first.segments.first.y[1].isNaN).isTrue;
 
+      final p3dPlot = PlotValue(
+        expressions: [
+          Expr.parse('cos(t)'),
+          Expr.parse('sin(t)'),
+          Expr.parse('t / 2'),
+        ],
+        variable: 't',
+        minX: -1,
+        maxX: 1,
+        minY: -1,
+        maxY: 1,
+        isParametric: true,
+        minT: 0,
+        maxT: 2,
+        parametric3d: Parametric3dData(
+          tVar: 't',
+          minT: 0,
+          maxT: 2,
+          minX: -1,
+          maxX: 1,
+          minY: -1,
+          maxY: 1,
+          minZ: 0,
+          maxZ: 1,
+          tValues: Float64List.fromList([0.0, 1.0, 2.0]),
+          xValues: Float64List.fromList([1.0, 0.54, -0.41]),
+          yValues: Float64List.fromList([0.0, 0.84, 0.91]),
+          zValues: Float64List.fromList([0.0, 0.5, 1.0]),
+        ),
+      );
+      final p3dEncoded = jsonEncode(CalcSerialization.toJson(p3dPlot));
+      final p3dRestored = CalcSerialization.fromJson(
+        jsonDecode(p3dEncoded) as Map<String, Object?>,
+      ) as PlotValue;
+      check(p3dRestored.is3d).isTrue;
+      check(p3dRestored.isParametric).isTrue;
+      check(p3dRestored.parametric3d).isNotNull();
+      check(p3dRestored.parametric3d!.tVar).equals('t');
+      check(p3dRestored.parametric3d!.zValues.toList())
+          .deepEquals([0.0, 0.5, 1.0]);
+      check(p3dPlot.toCanonicalText())
+          .equals('parametric([cos(t), sin(t), t / 2], t, 0, 2)');
+
       // LaTeX escaping in InfoValue and ErrorValue
       check(const InfoValue(r'a_b & c% $1 #2 {x}').toLatex())
           .equals(r'\text{a\_b \& c\% \$1 \#2 \{x\}}');

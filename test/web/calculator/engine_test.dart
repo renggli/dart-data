@@ -740,8 +740,37 @@ void main() {
       check(rpn.executeLine('[a * cos(t), b * sin(t)] 0 6.28 parametric'))
           .isNull;
       check(rpn.stack.level(1).value).isA<PlotValue>();
-      check((rpn.stack.level(1).value as PlotValue).parameters)
-          .deepEquals(['a', 'b']);
+      final p2d = rpn.stack.level(1).value as PlotValue;
+      check(p2d.parameters).deepEquals(['a', 'b']);
+      check(p2d.curves.first.segments.first.t).isNotNull();
+      check(p2d.curves.first.segments.first.t!.length)
+          .equals(p2d.curves.first.segments.first.x.length);
+
+      check(rpn.executeLine('[a * cos(t), a * sin(t), t / 4] 0 10 parametric'))
+          .isNull;
+      check(rpn.stack.level(1).value).isA<PlotValue>();
+      final p3d = rpn.stack.level(1).value as PlotValue;
+      check(p3d.isParametric).isTrue;
+      check(p3d.is3d).isTrue;
+      check(p3d.parametric3d).isNotNull();
+      check(p3d.parametric3d!.tVar).equals('t');
+      check(p3d.parametric3d!.minT).equals(0.0);
+      check(p3d.parametric3d!.maxT).equals(10.0);
+      check(p3d.parametric3d!.tValues.length).isGreaterThan(100);
+      check(p3d.parameters).deepEquals(['a']);
+
+      final scrollEval = CalcEvaluator(
+        environment: Environment(),
+        session: Session(),
+      );
+      final scrollP3d = scrollEval.evaluateScroll(
+        'parametric([cos(u), sin(u), u], u, 0, 4)',
+      );
+      check(scrollP3d.value).isA<PlotValue>();
+      final scrollPlot = scrollP3d.value as PlotValue;
+      check(scrollPlot.is3d).isTrue;
+      check(scrollPlot.parametric3d!.tVar).equals('u');
+      check(scrollPlot.parametric3d!.maxZ).isGreaterThan(3.5);
     });
   });
 }

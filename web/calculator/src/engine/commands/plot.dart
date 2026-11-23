@@ -58,21 +58,27 @@ List<Command> buildPlotCommands() => [
       final varName = args.length >= 2
           ? expectCommandVarName(args[1], 'plot')
           : inferredVar;
-      // 2D Parametric curve when [x(t), y(t)] is plotted with parameter t
-      if (args[0] is VectorValue && exprs.length == 2 && varName == 't') {
+      // 2D/3D Parametric curve when [x(t), y(t)] or [x(t), y(t), z(t)] is
+      // plotted with parameter t
+      if (args[0] is VectorValue &&
+          (exprs.length == 2 || exprs.length == 3) &&
+          varName == 't') {
         final tMin = args.length >= 3
             ? expectCommandDouble(args[2], 'plot')
             : 0.0;
         final tMax = args.length >= 4
             ? expectCommandDouble(args[3], 'plot')
             : 2 * math.pi;
-        return buildParametricPlotValue(
-          exprs[0],
-          exprs[1],
-          varName,
-          tMin,
-          tMax,
-        );
+        return exprs.length == 3
+            ? buildParametric3dPlotValue(
+                exprs[0],
+                exprs[1],
+                exprs[2],
+                varName,
+                tMin,
+                tMax,
+              )
+            : buildParametricPlotValue(exprs[0], exprs[1], varName, tMin, tMax);
       }
       final a = args.length >= 3 ? expectCommandDouble(args[2], 'plot') : -5.0;
       final b = args.length >= 4 ? expectCommandDouble(args[3], 'plot') : 5.0;
@@ -239,31 +245,33 @@ List<Command> buildPlotCommands() => [
   Command(
     name: 'parametric',
     category: CommandCategory.plot,
-    signature: 'parametric([x(t), y(t)], [t], [tMin, tMax])',
+    signature: 'parametric([x(t), y(t), ...], [t], [tMin, tMax])',
     paramSpecs: const [
-      ParamSpec.expr('[x(t), y(t)]'),
+      ParamSpec.expr('[x(t), y(t)] or [x(t), y(t), z(t)]'),
       ParamSpec.symbol('[t]'),
       ParamSpec.optionalExpr('[tMin]'),
       ParamSpec.optionalExpr('[tMax]'),
     ],
     minArity: 1,
     maxArity: 4,
-    doc: 'Plots a 2D parametric curve (x(t), y(t)) over t ∈ [tMin, tMax].',
+    doc: 'Plots a 2D or 3D parametric curve over t ∈ [tMin, tMax].',
     examples: const [
       'parametric([cos(3 * t), sin(2 * t)], t, 0, 2 * pi)',
+      'parametric([cos(t), sin(t), t / 4], t, 0, 6 * pi)',
       'parametric([t * cos(t), t * sin(t)], t, 0, 4 * pi)',
     ],
     rpnLabel: 'Parametric',
     rpnArity: 1,
-    appliesTo: (v) => v is VectorValue && v.vector.length == 2,
+    appliesTo: (v) =>
+        v is VectorValue && (v.vector.length == 2 || v.vector.length == 3),
     chipLabel: 'Parametric',
     buildChipCall: (id, _) => 'parametric(r[$id], t, 0, 2 * pi)',
     run: (args, ctx) {
       checkCommandArity('parametric', args, 1, 4);
       final exprs = _extractPlotExpressions(args[0]);
-      if (exprs.length != 2) {
+      if (exprs.length != 2 && exprs.length != 3) {
         throw ArgumentError(
-          'parametric expects a 2-element vector [x(t), y(t)].',
+          'parametric expects a 2- or 3-element vector [x(t), y(t)] or [x(t), y(t), z(t)].',
         );
       }
       final (:varName, :tMin, :tMax) = _resolveParametricDomain(
@@ -272,7 +280,16 @@ List<Command> buildPlotCommands() => [
         'parametric',
         defaultMax: 2 * math.pi,
       );
-      return buildParametricPlotValue(exprs[0], exprs[1], varName, tMin, tMax);
+      return exprs.length == 3
+          ? buildParametric3dPlotValue(
+              exprs[0],
+              exprs[1],
+              exprs[2],
+              varName,
+              tMin,
+              tMax,
+            )
+          : buildParametricPlotValue(exprs[0], exprs[1], varName, tMin, tMax);
     },
   ),
   Command(

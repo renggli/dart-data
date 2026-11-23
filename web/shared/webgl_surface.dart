@@ -176,6 +176,7 @@ final class WebGLSurfaceRenderer {
     required String xVar,
     required String yVar,
     String? title,
+    String? extraInfo,
   }) {
     isActive = true;
     WebGL2ChartLayer.setVisible(_hudCanvas, false);
@@ -264,7 +265,172 @@ final class WebGLSurfaceRenderer {
       spanZ: spanZ,
       xVar: xVar,
       yVar: yVar,
+      extraInfo: extraInfo,
     );
+  }
+
+  /// Renders an interactive 3D parametric space curve `(x(t), y(t), z(t))`
+  /// inside the orbitable bounding box with hover snapping and stacked
+  /// coordinate tooltips.
+  void renderParametricCurve({
+    required Float64List tValues,
+    required Float64List xValues,
+    required Float64List yValues,
+    required Float64List zValues,
+    required double minX,
+    required double maxX,
+    required double minY,
+    required double maxY,
+    required double minZ,
+    required double maxZ,
+    required String tVar,
+    String? extraInfo,
+  }) {
+    isActive = true;
+    WebGL2ChartLayer.setVisible(_hudCanvas, false);
+    _glCanvas.style.display = 'none';
+
+    final parentRect = _hudCanvas.parentElement?.getBoundingClientRect();
+    final selfRect = _hudCanvas.getBoundingClientRect();
+    final cssW = (parentRect != null && parentRect.width > 0)
+        ? parentRect.width
+        : selfRect.width;
+    final cssH = (parentRect != null && parentRect.height > 0)
+        ? parentRect.height
+        : selfRect.height;
+    if (cssW <= 0 || cssH <= 0) return;
+
+    final dpr = web.window.devicePixelRatio;
+    final targetW = (cssW * dpr).toInt();
+    final targetH = (cssH * dpr).toInt();
+    if (_hudCanvas.width != targetW) _hudCanvas.width = targetW;
+    if (_hudCanvas.height != targetH) _hudCanvas.height = targetH;
+    _hudCanvas.style
+      ..width = '${cssW}px'
+      ..height = '${cssH}px';
+
+    final ctx = _hudCanvas.context2D;
+    ctx.setTransform(1.0.toJS, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    final spanX = (maxX - minX).abs() < 1e-9 ? 1.0 : (maxX - minX);
+    final spanY = (maxY - minY).abs() < 1e-9 ? 1.0 : (maxY - minY);
+    final spanZ = (maxZ - minZ).abs() < 1e-9 ? 1.0 : (maxZ - minZ);
+    final mvp = _buildMvpMatrix(cssW / math.max(1.0, cssH));
+
+    ctx.save();
+    _drawBoxAndAxisLabels(
+      ctx,
+      cssW,
+      cssH,
+      mvp: mvp,
+      minX: minX,
+      maxX: maxX,
+      minY: minY,
+      maxY: maxY,
+      minZ: minZ,
+      maxZ: maxZ,
+      xVar: 'x',
+      yVar: 'y',
+    );
+
+    // Draw projected 3D curve segments
+    final n = tValues.length;
+    ctx.strokeStyle = '#38bdf8'.toJS;
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    var penDown = false;
+    for (var i = 0; i < n; i++) {
+      final x = xValues[i];
+      final y = yValues[i];
+      final z = zValues[i];
+      if (!x.isFinite || !y.isFinite || !z.isFinite) {
+        penDown = false;
+        continue;
+      }
+      final nx = ((x - minX) / spanX) * 2.0 - 1.0;
+      final ny = ((y - minY) / spanY) * 2.0 - 1.0;
+      final nz = ((z - minZ) / spanZ) * 1.5 - 0.75;
+      final proj = _projectPoint(mvp, nx, ny, nz, cssW, cssH);
+      if (!penDown) {
+        ctx.moveTo(proj.px, proj.py);
+        penDown = true;
+      } else {
+        ctx.lineTo(proj.px, proj.py);
+      }
+    }
+    ctx.stroke();
+
+    // Hover point snapping & stacked tooltip
+    final hx = _hoverPx;
+    final hy = _hoverPy;
+    if (hx != null && hy != null) {
+      var bestDistSq = 400.0;
+      double? bestT;
+      double? bestX;
+      double? bestY;
+      double? bestZ;
+      double? bestPx;
+      double? bestPy;
+
+      final probeStep = math.max(1, n ~/ 512);
+      for (var i = 0; i < n; i += probeStep) {
+        final x = xValues[i];
+        final y = yValues[i];
+        final z = zValues[i];
+        if (!x.isFinite || !y.isFinite || !z.isFinite) continue;
+        final nx = ((x - minX) / spanX) * 2.0 - 1.0;
+        final ny = ((y - minY) / spanY) * 2.0 - 1.0;
+        final nz = ((z - minZ) / spanZ) * 1.5 - 0.75;
+        final proj = _projectPoint(mvp, nx, ny, nz, cssW, cssH);
+        final dx = proj.px - hx;
+        final dy = proj.py - hy;
+        final dSq = dx * dx + dy * dy;
+        if (dSq < bestDistSq) {
+          bestDistSq = dSq;
+          bestT = tValues[i];
+          bestX = x;
+          bestY = y;
+          bestZ = z;
+          bestPx = proj.px;
+          bestPy = proj.py;
+        }
+      }
+
+      if (bestT != null &&
+          bestX != null &&
+          bestY != null &&
+          bestZ != null &&
+          bestPx != null &&
+          bestPy != null) {
+        final readoutStr =
+            '($tVar: ${_fmt(bestT)}, x: ${_fmt(bestX)}, y: ${_fmt(bestY)}, z: ${_fmt(bestZ)})';
+        _onHoverReadout?.call(
+          extraInfo != null ? '$readoutStr | $extraInfo' : readoutStr,
+        );
+        _drawHoverTooltip(
+          ctx,
+          cssW,
+          bestPx,
+          bestPy,
+          lines: [
+            '$tVar = ${_fmt(bestT)}',
+            'x = ${_fmt(bestX)}',
+            'y = ${_fmt(bestY)}',
+            'z = ${_fmt(bestZ)}',
+            ?extraInfo,
+          ],
+        );
+      } else {
+        _onHoverReadout?.call('');
+      }
+    } else {
+      _onHoverReadout?.call('');
+    }
+    ctx.restore();
   }
 
   void _renderWebGLSurface({
@@ -592,10 +758,119 @@ final class WebGLSurfaceRenderer {
     required double spanZ,
     required String xVar,
     required String yVar,
+    String? extraInfo,
   }) {
     ctx.save();
 
-    // 1. 3D Bounding Box Edges in normalized space [-1, 1] × [-1, 1] × [-0.75, 0.75]
+    _drawBoxAndAxisLabels(
+      ctx,
+      cssW,
+      cssH,
+      mvp: mvp,
+      minX: minX,
+      maxX: maxX,
+      minY: minY,
+      maxY: maxY,
+      minZ: minZ,
+      maxZ: maxZ,
+      xVar: xVar,
+      yVar: yVar,
+    );
+
+    // 3. Hover Vertex Readout & Highlight Dot
+    final hx = _hoverPx;
+    final hy = _hoverPy;
+    if (hx != null && hy != null) {
+      var bestDistSq = 400.0; // within 20px radius
+      double? bestX;
+      double? bestY;
+      double? bestZ;
+      double? bestPhase;
+      double? bestPx;
+      double? bestPy;
+
+      final probeStep = math.max(1, gridSize ~/ 36);
+      for (var iy = 0; iy < gridSize; iy += probeStep) {
+        final v = iy / math.max(1, gridSize - 1);
+        final ny = v * 2.0 - 1.0;
+        final worldY = minY + v * (maxY - minY);
+        for (var ix = 0; ix < gridSize; ix += probeStep) {
+          final rawZ = zValues[iy * gridSize + ix];
+          if (!rawZ.isFinite) continue;
+          final u = ix / math.max(1, gridSize - 1);
+          final nx = u * 2.0 - 1.0;
+          final nz = (((rawZ - minZ) / spanZ).clamp(-0.25, 1.25)) * 1.5 - 0.75;
+          final proj = _projectPoint(mvp, nx, ny, nz, cssW, cssH);
+          final dx = proj.px - hx;
+          final dy = proj.py - hy;
+          final dSq = dx * dx + dy * dy;
+          if (dSq < bestDistSq) {
+            bestDistSq = dSq;
+            bestX = minX + u * (maxX - minX);
+            bestY = worldY;
+            bestZ = rawZ;
+            bestPhase = phaseValues != null
+                ? phaseValues[iy * gridSize + ix]
+                : null;
+            bestPx = proj.px;
+            bestPy = proj.py;
+          }
+        }
+      }
+
+      if (bestX != null &&
+          bestY != null &&
+          bestZ != null &&
+          bestPx != null &&
+          bestPy != null) {
+        final readoutStr = phaseValues != null
+            ? '($xVar: ${_fmt(bestX)}, $yVar: ${_fmt(bestY)}, |f|: ${_fmt(bestZ)})'
+            : '($xVar: ${_fmt(bestX)}, $yVar: ${_fmt(bestY)}, z: ${_fmt(bestZ)})';
+        _onHoverReadout?.call(
+          extraInfo != null ? '$readoutStr | $extraInfo' : readoutStr,
+        );
+
+        _drawHoverTooltip(
+          ctx,
+          cssW,
+          bestPx,
+          bestPy,
+          lines: [
+            '$xVar = ${_fmt(bestX)}',
+            '$yVar = ${_fmt(bestY)}',
+            if (phaseValues != null) ...[
+              '|f| = ${_fmt(bestZ)}',
+              if (bestPhase != null && bestPhase.isFinite)
+                'arg(f) = ${_fmt(bestPhase)}',
+            ] else
+              'z = ${_fmt(bestZ)}',
+            ?extraInfo,
+          ],
+        );
+      } else {
+        _onHoverReadout?.call('');
+      }
+    } else {
+      _onHoverReadout?.call('');
+    }
+
+    ctx.restore();
+  }
+
+  void _drawBoxAndAxisLabels(
+    web.CanvasRenderingContext2D ctx,
+    double cssW,
+    double cssH, {
+    required Float32List mvp,
+    required double minX,
+    required double maxX,
+    required double minY,
+    required double maxY,
+    required double minZ,
+    required double maxZ,
+    required String xVar,
+    required String yVar,
+  }) {
     const boxEdges = <({List<double> a, List<double> b})>[
       (a: [-1, -1, -0.75], b: [1, -1, -0.75]),
       (a: [1, -1, -0.75], b: [1, 1, -0.75]),
@@ -636,7 +911,6 @@ final class WebGLSurfaceRenderer {
       ctx.stroke();
     }
 
-    // 2. Axis Labels at base corners
     ctx.font = 'bold 11px Inter, ui-monospace, sans-serif';
     final pxLabel = _projectPoint(mvp, 0.0, -1.18, -0.78, cssW, cssH);
     ctx.fillStyle = '#60a5fa'.toJS;
@@ -661,92 +935,51 @@ final class WebGLSurfaceRenderer {
     ctx.font = '10px Inter, ui-monospace, sans-serif';
     ctx.fillText(_fmt(maxZ), pzTop.px, pzTop.py);
     ctx.fillText(_fmt(minZ), pzBot.px, pzBot.py);
+  }
 
-    // 3. Hover Vertex Readout & Highlight Dot
-    final hx = _hoverPx;
-    final hy = _hoverPy;
-    if (hx != null && hy != null) {
-      var bestDistSq = 400.0; // within 20px radius
-      double? bestX;
-      double? bestY;
-      double? bestZ;
-      double? bestPx;
-      double? bestPy;
+  void _drawHoverTooltip(
+    web.CanvasRenderingContext2D ctx,
+    double cssW,
+    double bestPx,
+    double bestPy, {
+    required List<String> lines,
+  }) {
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.35)'.toJS;
+    ctx.beginPath();
+    ctx.arc(bestPx, bestPy, 7.0, 0.0, 2 * math.pi);
+    ctx.fill();
 
-      final probeStep = math.max(1, gridSize ~/ 36);
-      for (var iy = 0; iy < gridSize; iy += probeStep) {
-        final v = iy / math.max(1, gridSize - 1);
-        final ny = v * 2.0 - 1.0;
-        final worldY = minY + v * (maxY - minY);
-        for (var ix = 0; ix < gridSize; ix += probeStep) {
-          final rawZ = zValues[iy * gridSize + ix];
-          if (!rawZ.isFinite) continue;
-          final u = ix / math.max(1, gridSize - 1);
-          final nx = u * 2.0 - 1.0;
-          final nz = (((rawZ - minZ) / spanZ).clamp(-0.25, 1.25)) * 1.5 - 0.75;
-          final proj = _projectPoint(mvp, nx, ny, nz, cssW, cssH);
-          final dx = proj.px - hx;
-          final dy = proj.py - hy;
-          final dSq = dx * dx + dy * dy;
-          if (dSq < bestDistSq) {
-            bestDistSq = dSq;
-            bestX = minX + u * (maxX - minX);
-            bestY = worldY;
-            bestZ = rawZ;
-            bestPx = proj.px;
-            bestPy = proj.py;
-          }
-        }
-      }
+    ctx.fillStyle = '#fbbf24'.toJS;
+    ctx.beginPath();
+    ctx.arc(bestPx, bestPy, 3.5, 0.0, 2 * math.pi);
+    ctx.fill();
 
-      if (bestX != null &&
-          bestY != null &&
-          bestZ != null &&
-          bestPx != null &&
-          bestPy != null) {
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.35)'.toJS;
-        ctx.beginPath();
-        ctx.arc(bestPx, bestPy, 7.0, 0.0, 2 * math.pi);
-        ctx.fill();
-
-        ctx.fillStyle = '#fbbf24'.toJS;
-        ctx.beginPath();
-        ctx.arc(bestPx, bestPy, 3.5, 0.0, 2 * math.pi);
-        ctx.fill();
-
-        final readoutStr = phaseValues != null
-            ? '($xVar: ${_fmt(bestX)}, $yVar: ${_fmt(bestY)}, |f|: ${_fmt(bestZ)})'
-            : '($xVar: ${_fmt(bestX)}, $yVar: ${_fmt(bestY)}, z: ${_fmt(bestZ)})';
-        _onHoverReadout?.call(readoutStr);
-
-        // Tooltip pill near cursor
-        const tipW = 195.0;
-        const tipH = 26.0;
-        final tipX = (bestPx + 12.0 + tipW > cssW)
-            ? bestPx - tipW - 12.0
-            : bestPx + 12.0;
-        final tipY = (bestPy - tipH - 8.0 < 8.0)
-            ? bestPy + 10.0
-            : bestPy - tipH - 8.0;
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)'.toJS;
-        ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)'.toJS;
-        ctx.beginPath();
-        ctx.rect(tipX, tipY, tipW, tipH);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = '#f8fafc'.toJS;
-        ctx.font = 'bold 10.5px Inter, ui-monospace, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(readoutStr, tipX + 8.0, tipY + 17.0);
-      } else {
-        _onHoverReadout?.call('');
-      }
-    } else {
-      _onHoverReadout?.call('');
+    ctx.font = 'bold 10.5px Inter, ui-monospace, sans-serif';
+    var maxW = 0.0;
+    for (final line in lines) {
+      final w = ctx.measureText(line).width;
+      if (w > maxW) maxW = w;
     }
+    final tipW = maxW + 16.0;
+    final tipH = lines.length * 14.0 + 12.0;
+    final tipX = (bestPx + 12.0 + tipW > cssW)
+        ? bestPx - tipW - 12.0
+        : bestPx + 12.0;
+    final tipY = (bestPy - tipH - 8.0 < 8.0)
+        ? bestPy + 10.0
+        : bestPy - tipH - 8.0;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)'.toJS;
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)'.toJS;
+    ctx.beginPath();
+    ctx.rect(tipX, tipY, tipW, tipH);
+    ctx.fill();
+    ctx.stroke();
 
-    ctx.restore();
+    ctx.fillStyle = '#f8fafc'.toJS;
+    ctx.textAlign = 'left';
+    for (var i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], tipX + 8.0, tipY + 17.0 + i * 14.0);
+    }
   }
 
   Float32List _buildMvpMatrix(double aspect) {

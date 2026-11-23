@@ -198,6 +198,73 @@ PlotValue buildParametricPlotValue(
   );
 }
 
+/// Samples a 3D parametric space curve $(x(t), y(t), z(t))$ over
+/// $t \in [\text{minT}, \text{maxT}]$ using adaptive chord-deviation
+/// subdivision.
+PlotValue buildParametric3dPlotValue(
+  Expr xExpr,
+  Expr yExpr,
+  Expr zExpr,
+  String variable,
+  double minT,
+  double maxT, {
+  Map<String, double>? parameterValues,
+  int maxPoints = 4096,
+}) {
+  final t0 = math.min(minT, maxT);
+  final t1 = math.max(minT, maxT) == t0
+      ? t0 + 2 * math.pi
+      : math.max(minT, maxT);
+  final paramSet = <String>{
+    ...xExpr.freeVariables,
+    ...yExpr.freeVariables,
+    ...zExpr.freeVariables,
+  }..remove(variable);
+  final parameters = paramSet.toList()..sort();
+  final substMap = <String, Expr>{
+    for (final p in parameters) p: RealNumber(parameterValues?[p] ?? 1.0),
+  };
+
+  final fnX = _compileRealFn(_substituteParams(xExpr, substMap), variable);
+  final fnY = _compileRealFn(_substituteParams(yExpr, substMap), variable);
+  final fnZ = _compileRealFn(_substituteParams(zExpr, substMap), variable);
+
+  final sampled = _sampleParametric3d(
+    (t) => (x: _safeCall(fnX, t), y: _safeCall(fnY, t), z: _safeCall(fnZ, t)),
+    t0,
+    t1,
+    maxPoints: maxPoints,
+  );
+
+  return PlotValue(
+    expressions: [xExpr, yExpr, zExpr],
+    variable: variable,
+    minX: sampled.minX,
+    maxX: sampled.maxX,
+    minY: sampled.minY,
+    maxY: sampled.maxY,
+    parameters: parameters,
+    isParametric: true,
+    minT: t0,
+    maxT: t1,
+    parametric3d: Parametric3dData(
+      tVar: variable,
+      minT: t0,
+      maxT: t1,
+      minX: sampled.minX,
+      maxX: sampled.maxX,
+      minY: sampled.minY,
+      maxY: sampled.maxY,
+      minZ: sampled.minZ,
+      maxZ: sampled.maxZ,
+      tValues: sampled.tValues,
+      xValues: sampled.xValues,
+      yValues: sampled.yValues,
+      zValues: sampled.zValues,
+    ),
+  );
+}
+
 /// Builds a domain-coloring complex plot value for $f(z)$ over
 /// $[\text{minRe}, \text{maxRe}] \times [\text{minIm}, \text{maxIm}]$.
 PlotValue buildComplexPlotValue(
@@ -311,8 +378,8 @@ PlotValue buildComplex3dPlotValue(
     parameters: parameters,
     isComplex: true,
     surface3d: Surface3dData(
-      xVar: 'Re',
-      yVar: 'Im',
+      xVar: 'Re($variable)',
+      yVar: 'Im($variable)',
       minX: loRe,
       maxX: hiRe,
       minY: loIm,
@@ -626,6 +693,7 @@ _sampleParametric(
 
   final outX = <double>[initialPts.first.x];
   final outY = <double>[initialPts.first.y];
+  final outT = <double>[initialT.first];
 
   var intervalBudget = 0;
 
@@ -639,6 +707,7 @@ _sampleParametric(
     if (remainingBudget <= 0 || intervalBudget <= 0 || depth >= maxDepth) {
       outX.add(pb.x);
       outY.add(pb.y);
+      outT.add(tb);
       return;
     }
 
@@ -646,6 +715,7 @@ _sampleParametric(
     if (tm <= ta || tm >= tb) {
       outX.add(pb.x);
       outY.add(pb.y);
+      outT.add(tb);
       return;
     }
 
@@ -654,6 +724,7 @@ _sampleParametric(
     if (!fa && !fb) {
       outX.add(pb.x);
       outY.add(pb.y);
+      outT.add(tb);
       return;
     }
 
@@ -681,8 +752,10 @@ _sampleParametric(
     } else {
       outX.add(pm.x);
       outY.add(pm.y);
+      outT.add(tm);
       outX.add(pb.x);
       outY.add(pb.y);
+      outT.add(tb);
     }
   }
 
@@ -696,6 +769,7 @@ _sampleParametric(
   final segments = <PlotSegmentData>[];
   var curX = <double>[];
   var curY = <double>[];
+  var curT = <double>[];
   final finiteX = <double>[];
   final finiteY = <double>[];
 
@@ -705,16 +779,19 @@ _sampleParametric(
         PlotSegmentData(
           x: Float64List.fromList(curX),
           y: Float64List.fromList(curY),
+          t: Float64List.fromList(curT),
         ),
       );
       curX = <double>[];
       curY = <double>[];
+      curT = <double>[];
     }
   }
 
   for (var i = 0; i < outX.length; i++) {
     final x = outX[i];
     final y = outY[i];
+    final t = outT[i];
     if (!x.isFinite ||
         !y.isFinite ||
         (x - centerX).abs() > cutoffX ||
@@ -731,6 +808,7 @@ _sampleParametric(
     }
     curX.add(x);
     curY.add(y);
+    curT.add(t);
     finiteX.add(x);
     finiteY.add(y);
   }
@@ -744,6 +822,196 @@ _sampleParametric(
     maxX: xRange.maxY,
     minY: yRange.minY,
     maxY: yRange.maxY,
+  );
+}
+
+({
+  Float64List tValues,
+  Float64List xValues,
+  Float64List yValues,
+  Float64List zValues,
+  double minX,
+  double maxX,
+  double minY,
+  double maxY,
+  double minZ,
+  double maxZ,
+})
+_sampleParametric3d(
+  ({double x, double y, double z}) Function(double t) evaluate,
+  double t0,
+  double t1, {
+  int maxPoints = 4096,
+}) {
+  final initialPoints = math.min(maxPoints, math.max(129, maxPoints ~/ 16));
+  final step = (t1 - t0) / (initialPoints - 1);
+  const jitter = 1e-9 * 0.6180339887498949;
+  final initialT = List<double>.generate(initialPoints, (i) {
+    if (i == 0) return t0;
+    if (i == initialPoints - 1) return t1;
+    return t0 + (i + jitter) * step;
+  });
+  final initialPts = List<({double x, double y, double z})>.generate(
+    initialPoints,
+    (i) => evaluate(initialT[i]),
+  );
+
+  final (scale: scaleX, center: centerX) = _estimateScaleAndCenter([
+    for (final p in initialPts)
+      if (p.x.isFinite) p.x,
+  ]);
+  final (scale: scaleY, center: centerY) = _estimateScaleAndCenter([
+    for (final p in initialPts)
+      if (p.y.isFinite) p.y,
+  ]);
+  final (scale: scaleZ, center: centerZ) = _estimateScaleAndCenter([
+    for (final p in initialPts)
+      if (p.z.isFinite) p.z,
+  ]);
+
+  const tolerance = 1.5e-3;
+  final maxDepth = math.min(
+    12,
+    math.max(1, (math.log(maxPoints / initialPoints) / math.ln2).ceil() + 4),
+  );
+  var remainingBudget = maxPoints - initialPoints;
+  final maxPerInterval = math.max(
+    16,
+    (maxPoints - initialPoints) ~/ math.max(1, initialPoints ~/ 4),
+  );
+
+  final outT = <double>[initialT.first];
+  final outX = <double>[initialPts.first.x];
+  final outY = <double>[initialPts.first.y];
+  final outZ = <double>[initialPts.first.z];
+
+  var intervalBudget = 0;
+
+  void refine(
+    double ta,
+    ({double x, double y, double z}) pa,
+    double tb,
+    ({double x, double y, double z}) pb,
+    int depth,
+  ) {
+    if (remainingBudget <= 0 || intervalBudget <= 0 || depth >= maxDepth) {
+      outT.add(tb);
+      outX.add(pb.x);
+      outY.add(pb.y);
+      outZ.add(pb.z);
+      return;
+    }
+
+    final tm = 0.5 * (ta + tb);
+    if (tm <= ta || tm >= tb) {
+      outT.add(tb);
+      outX.add(pb.x);
+      outY.add(pb.y);
+      outZ.add(pb.z);
+      return;
+    }
+
+    final fa = pa.x.isFinite && pa.y.isFinite && pa.z.isFinite;
+    final fb = pb.x.isFinite && pb.y.isFinite && pb.z.isFinite;
+    if (!fa && !fb) {
+      outT.add(tb);
+      outX.add(pb.x);
+      outY.add(pb.y);
+      outZ.add(pb.z);
+      return;
+    }
+
+    final pm = evaluate(tm);
+    remainingBudget--;
+    intervalBudget--;
+    final fm = pm.x.isFinite && pm.y.isFinite && pm.z.isFinite;
+
+    if (fa != fb || !fm) {
+      refine(ta, pa, tm, pm, depth + 1);
+      refine(tm, pm, tb, pb, depth + 1);
+      return;
+    }
+
+    final errX = (pm.x - 0.5 * (pa.x + pb.x)).abs() / scaleX;
+    final errY = (pm.y - 0.5 * (pa.y + pb.y)).abs() / scaleY;
+    final errZ = (pm.z - 0.5 * (pa.z + pb.z)).abs() / scaleZ;
+    final chordX = (pb.x - pa.x).abs() / scaleX;
+    final chordY = (pb.y - pa.y).abs() / scaleY;
+    final chordZ = (pb.z - pa.z).abs() / scaleZ;
+    final maxErr = math.max(errX, math.max(errY, errZ));
+    final maxChord = math.max(chordX, math.max(chordY, chordZ));
+
+    if (maxErr > tolerance || (maxChord > 0.08 && depth < 6)) {
+      refine(ta, pa, tm, pm, depth + 1);
+      refine(tm, pm, tb, pb, depth + 1);
+    } else {
+      outT.add(tm);
+      outX.add(pm.x);
+      outY.add(pm.y);
+      outZ.add(pm.z);
+      outT.add(tb);
+      outX.add(pb.x);
+      outY.add(pb.y);
+      outZ.add(pb.z);
+    }
+  }
+
+  for (var i = 0; i < initialPoints - 1; i++) {
+    intervalBudget = maxPerInterval;
+    refine(initialT[i], initialPts[i], initialT[i + 1], initialPts[i + 1], 0);
+  }
+
+  final cutoffX = 100.0 * scaleX;
+  final cutoffY = 100.0 * scaleY;
+  final cutoffZ = 100.0 * scaleZ;
+  final n = outT.length;
+  final tValues = Float64List(n);
+  final xValues = Float64List(n);
+  final yValues = Float64List(n);
+  final zValues = Float64List(n);
+  final finiteX = <double>[];
+  final finiteY = <double>[];
+  final finiteZ = <double>[];
+
+  for (var i = 0; i < n; i++) {
+    final t = outT[i];
+    final x = outX[i];
+    final y = outY[i];
+    final z = outZ[i];
+    tValues[i] = t;
+    if (!x.isFinite ||
+        !y.isFinite ||
+        !z.isFinite ||
+        (x - centerX).abs() > cutoffX ||
+        (y - centerY).abs() > cutoffY ||
+        (z - centerZ).abs() > cutoffZ) {
+      xValues[i] = double.nan;
+      yValues[i] = double.nan;
+      zValues[i] = double.nan;
+    } else {
+      xValues[i] = x;
+      yValues[i] = y;
+      zValues[i] = z;
+      finiteX.add(x);
+      finiteY.add(y);
+      finiteZ.add(z);
+    }
+  }
+
+  final xRange = _computeRobustYRange(finiteX);
+  final yRange = _computeRobustYRange(finiteY);
+  final zRange = _computeRobustYRange(finiteZ);
+  return (
+    tValues: tValues,
+    xValues: xValues,
+    yValues: yValues,
+    zValues: zValues,
+    minX: xRange.minY,
+    maxX: xRange.maxY,
+    minY: yRange.minY,
+    maxY: yRange.maxY,
+    minZ: zRange.minY,
+    maxZ: zRange.maxY,
   );
 }
 
