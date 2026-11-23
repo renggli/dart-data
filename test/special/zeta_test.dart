@@ -9,11 +9,19 @@ void main() {
   group('zeta function', () {
     test('zeta positive arguments', () {
       check(zeta(1)).equals(double.infinity);
-      check(zeta(2)).isCloseTo(math.pi * math.pi / 6.0, 1e-10);
-      check(zeta(3)).isCloseTo(1.2020569031595942, 1e-10);
-      check(zeta(4)).isCloseTo(math.pow(math.pi, 4) / 90.0, 1e-10);
-      check(zeta(10)).isCloseTo(1.000994575127818, 1e-10);
+      check(zeta(2)).isCloseTo(math.pi * math.pi / 6.0, 1e-14);
+      check(zeta(3)).isCloseTo(1.2020569031595942, 1e-14);
+      check(zeta(4)).isCloseTo(math.pow(math.pi, 4) / 90.0, 1e-14);
+      check(zeta(10)).isCloseTo(1.000994575127818, 1e-14);
+      check(zeta(30)).isCloseTo(
+        1.0 + math.pow(2.0, -30) + math.pow(3.0, -30) + math.pow(4.0, -30),
+        1e-15,
+      );
+      check(zeta(60)).equals(1.0);
       check(zeta(double.infinity)).equals(1.0);
+      // Near pole s = 1 + eps: ζ(s) ≈ 1/(s - 1) + γ
+      const sNear = 1.0 + 1e-8;
+      check(zeta(sNear) - 1.0 / (sNear - 1.0)).isCloseTo(0.5772156649, 1e-6);
     });
 
     test('zeta zero and negative arguments', () {
@@ -43,9 +51,25 @@ void main() {
         check(zc.a).isCloseTo(zeta(s), 1e-12);
         check(zc.b).isCloseTo(0.0, 1e-12);
       }
-      // First non-trivial Riemann zero ~ 0.5 + 14.134725141734693i
-      final zZero = zetaComplex(const Complex(0.5, 14.134725141734693));
-      check(zZero.abs()).isLessThan(1e-5);
+      // Non-trivial Riemann zeros on the critical line (1st, 2nd, 10th, 100th)
+      for (final (t, tol) in const [
+        (14.13472514173469379, 1e-13),
+        (21.02203963877155499, 1e-13),
+        (49.77383247767230218, 1e-12),
+        (236.5242296658162058, 1e-11),
+      ]) {
+        check(zetaComplex(Complex(0.5, t)).abs()).isLessThan(tol);
+        check(zetaComplex(Complex(0.5, -t)).abs()).isLessThan(tol);
+      }
+
+      // No spurious pole at 1 - 2^(1 - s) = 0 (s = 1 + 2πi / ln 2)
+      const spuriousPole = Complex(1.0, 2.0 * math.pi / math.ln2);
+      final zAtSpurious = zetaComplex(spuriousPole);
+      check(zAtSpurious.a.isFinite).isTrue;
+      check(zAtSpurious.b.isFinite).isTrue;
+      check(zAtSpurious.a).isCloseTo(1.3465795428363176, 1e-13);
+      check(zAtSpurious.b).isCloseTo(0.1098831367962698, 1e-13);
+
       // Functional equation at complex point s = 0.3 + 1.5i
       const s = Complex(0.3, 1.5);
       final rhs =
@@ -55,6 +79,14 @@ void main() {
           gammaComplex(Complex.one - s) *
           zetaComplex(Complex.one - s);
       check((zetaComplex(s) - rhs).abs()).isLessThan(1e-12);
+
+      // Log-space reflection at large imaginary part (t = 50 and t = 500)
+      final zReflect50 = zetaComplex(const Complex(0.2, 50.0));
+      check(zReflect50.a.isFinite).isTrue;
+      check(zReflect50.b.isFinite).isTrue;
+      final zReflect500 = zetaComplex(const Complex(0.2, 500.0));
+      check(zReflect500.a.isFinite).isTrue;
+      check(zReflect500.b.isFinite).isTrue;
 
       // Exact trivial zeros at negative even integers
       check(zetaComplex(const Complex(-2))).equals(Complex.zero);
@@ -90,6 +122,13 @@ void main() {
                 (a.pow(-s) + hurwitzZetaComplex(s, a + Complex.one)))
             .abs(),
       ).isLessThan(1e-12);
+
+      // Shift identity at large imaginary part (relative error < 1e-14)
+      const sLarge = Complex(0.5, 25.0);
+      final lhsLarge = hurwitzZetaComplex(sLarge, a);
+      final rhsLarge =
+          a.pow(-sLarge) + hurwitzZetaComplex(sLarge, a + Complex.one);
+      check((lhsLarge - rhsLarge).abs() / lhsLarge.abs()).isLessThan(1e-14);
 
       // Negative real part shift in complex Hurwitz zeta
       const aNeg = Complex(-1.3, 0.5);
