@@ -4,20 +4,23 @@
 /// determinants, integration, simplification, polynomial factorization, and
 /// multivariate polynomial system solving (Gröbner basis via Buchberger with
 /// Sugar strategy and FGLM).
-///
-/// Run with:
-/// ```sh
-/// dart run benchmark/symbolic_benchmark.dart [filter ...]
-/// ```
 library;
 
 import 'package:data/linear.dart';
 import 'package:data/symbolic.dart';
 
-import 'runner.dart';
+import 'benchmark_suite.dart';
 
-/// Integrands that the current integrator handles in closed form.
-const integrals = [
+/// Symbolic mathematics benchmark suite.
+final BenchmarkSuite symbolicSuite = BenchmarkSuite(
+  name: 'symbolic',
+  title: 'Symbolic Subsystem Benchmark',
+  description: 'Evaluates exact AST manipulation, simplification, integration, and Gröbner basis solving.',
+  buildSpecs: _buildSpecs,
+);
+
+/// Integrands that the symbolic integrator handles in closed form.
+const List<String> integrals = [
   '1', 'x', 'x^2', 'x^5 + 3*x^2 - 7', '1/x', 'x^(-2)', 'sqrt(x)', //
   '1/sqrt(x)', 'sin(x)', 'cos(x)', 'tan(x)', 'exp(x)', 'exp(2*x+1)',
   'sin(3*x)', 'cos(2*x - 1)', 'x*exp(x)', 'x*sin(x)', 'x*cos(x)',
@@ -30,7 +33,7 @@ const integrals = [
 ];
 
 /// Valid expressions drawn from the parser and simplifier test suites.
-const simplifications = [
+const List<String> simplifications = [
   '- -x', '-(x + 1)', '-3^2', '-sin(x)^2 - cos(x)^2', '(-3)^2', '(-x)^2', //
   '((x + 1) * (y - 2)) / (x + y)', '(1 + 2) * 3', '(2 * 3) ^ 2',
   '1 - cos(x)^2', '1 - sin(x)^2', '1 + 2 * 3', '1 + sinh(x)^2', '1/2',
@@ -54,16 +57,6 @@ const simplifications = [
   'x + ln(a * b)', 'x^2 + 1', '(x + 1)^2 - x^2 - 2*x - 1',
   'x*y + 2*x*y - 3*y*x', '1/3 + 1/6 + 1/2', '0.5 * x + 0.25 * x',
 ];
-
-void main(List<String> arguments) {
-  _suite.run(arguments);
-}
-
-final _suite = BenchmarkSuite(
-  name: 'Symbolic Subsystem Benchmark',
-  description: 'Evaluates exact AST manipulation, simplification, integration, and Gröbner basis solving.',
-  specs: _buildSpecs(),
-);
 
 List<BenchmarkSpec> _buildSpecs() {
   final expandExpr = Expr.parse('(x + y + z + 1)^12');

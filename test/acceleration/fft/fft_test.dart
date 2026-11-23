@@ -10,18 +10,20 @@ import '../test_utils.dart';
 void main() {
   group('Fft Transforms', () {
     accelerationTest('1D FFT / IFFT in-place roundtrip (powers of 2)', () {
-      final buffer = Float64ComplexList(8);
-      for (var i = 0; i < 8; i++) {
-        buffer[i] = Complex(i.toDouble(), (8 - i).toDouble());
-      }
-      final orig = Float64List.fromList(buffer.data);
+      for (final n in [8, 1024, 16384]) {
+        final buffer = Float64ComplexList(n);
+        for (var i = 0; i < n; i++) {
+          buffer[i] = Complex((i % 17).toDouble(), ((n - i) % 13).toDouble());
+        }
+        final orig = Float64List.fromList(buffer.data);
 
-      Fft.fft(buffer: buffer);
-      Fft.fft(buffer: buffer, inverse: true);
+        Fft.fft(buffer: buffer);
+        Fft.fft(buffer: buffer, inverse: true);
 
-      for (var i = 0; i < 8; i++) {
-        check(buffer[i].a).isCloseTo(orig[2 * i], 1e-10);
-        check(buffer[i].b).isCloseTo(orig[2 * i + 1], 1e-10);
+        for (var i = 0; i < n; i++) {
+          check(buffer[i].a).isCloseTo(orig[2 * i], 1e-9);
+          check(buffer[i].b).isCloseTo(orig[2 * i + 1], 1e-9);
+        }
       }
     }, isSupported: Fft.isAvailable);
 

@@ -10,8 +10,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-// ignore: depend_on_referenced_packages internal tool
 import 'package:args/args.dart';
+import 'package:more/printer.dart';
 
 import 'cas_suites/algebra_suite.dart';
 import 'cas_suites/cas_test_case.dart';
@@ -92,10 +92,6 @@ final ArgParser parser = ArgParser()
     valueHelp: 'ms',
     help: 'Per-case timeout in milliseconds.',
   );
-
-enum _Verbosity { all, failures, errors, quiet }
-
-typedef _CaseIndexRequest = ({int suiteIndex, int caseIndex});
 
 Future<void> main(List<String> arguments) async {
   final ArgResults argResults;
@@ -234,7 +230,7 @@ Future<void> main(List<String> arguments) async {
           };
           final buffer = StringBuffer('  [$badge] ${testCase.name}');
           if (showTime) {
-            buffer.write(' (${_formatDuration(result.elapsedUs)})');
+            buffer.write(' (${_durationPrinter(result.elapsedUs)})');
           }
           if (result.detail != null && result.detail!.isNotEmpty) {
             buffer.write(': ${result.detail}');
@@ -262,9 +258,8 @@ Future<void> main(List<String> arguments) async {
     stdout.writeln(
       [
         '$label:'.padRight(10),
-        count.toString().padLeft(10),
-        if (total > 0)
-          '${(100 * count / total).toStringAsFixed(1)}%'.padLeft(10),
+        _countPrinter(count).padLeft(10),
+        if (total > 0) _percentPrinter(100 * count / total).padLeft(10),
       ].join(''),
     );
   }
@@ -274,8 +269,23 @@ Future<void> main(List<String> arguments) async {
   }
 }
 
-String _formatDuration(int us) =>
-    us >= 1000 ? '${(us / 1000).toStringAsFixed(1)}ms' : '${us}us';
+enum _Verbosity { all, failures, errors, quiet }
+
+typedef _CaseIndexRequest = ({int suiteIndex, int caseIndex});
+
+final Printer<num> _durationPrinter = Printer<num>.switcher({
+  (us) => us >= 1000000: FixedNumberPrinter<num>(precision: 2)
+      .after('s')
+      .onResultOf((us) => us / 1000000),
+  (us) => us >= 1000: FixedNumberPrinter<num>(precision: 1)
+      .after('ms')
+      .onResultOf((us) => us / 1000),
+}, otherwise: FixedNumberPrinter<num>().after('µs'));
+
+final Printer<int> _countPrinter = FixedNumberPrinter<int>(separator: ',');
+
+final Printer<double> _percentPrinter = FixedNumberPrinter<double>(precision: 1)
+    .after('%');
 
 class _Worker {
   new _(this._isolate, this._sendPort, this._responses, this._exitPort);

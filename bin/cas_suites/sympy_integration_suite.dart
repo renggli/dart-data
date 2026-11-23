@@ -13,20 +13,6 @@ import 'dart:io';
 
 import 'cas_test_case.dart';
 
-const _repoUrl = 'https://github.com/sympy/integration-test-suites.git';
-const _checkoutDir = '.dart_tool/integration-test-suites';
-
-const _corpusNames = <String>[
-  'blake',
-  'hebisch',
-  'independent',
-  'mit_bee',
-  'mit_bee_official',
-  'rubi',
-];
-
-var _ensuredInProcess = false;
-
 /// All integration and differentiation [CasTestSuite]s from
 /// `sympy/integration-test-suites`.
 ///
@@ -51,6 +37,20 @@ final List<CasTestSuite> sympyIntegrationSuites = [
     ),
   ],
 ];
+
+const _repoUrl = 'https://github.com/sympy/integration-test-suites.git';
+const _checkoutDir = '.dart_tool/integration-test-suites';
+
+const _corpusNames = <String>[
+  'blake',
+  'hebisch',
+  'independent',
+  'mit_bee',
+  'mit_bee_official',
+  'rubi',
+];
+
+var _ensuredInProcess = false;
 
 void _ensureIntegrationRepo({bool forceUpdate = false}) {
   final dir = Directory(_checkoutDir);

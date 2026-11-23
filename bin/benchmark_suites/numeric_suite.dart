@@ -4,11 +4,6 @@
 /// - [AccelerationMode.dart]: forces pure Dart scalar / SIMD routines
 /// - [AccelerationMode.accelerated]: forces native hardware acceleration
 ///   (BLAS / LAPACK / Apple vDSP & vForce via leaf direct-address `@ffi.Native`)
-///
-/// Run with:
-/// ```sh
-/// dart run benchmark/numeric_benchmark.dart [filter ...]
-/// ```
 library;
 
 import 'dart:math' as math;
@@ -19,16 +14,15 @@ import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
 
-import 'runner.dart';
+import 'benchmark_suite.dart';
 
-void main(List<String> arguments) {
-  _suite.run(arguments, compareModes: true);
-}
-
-final _suite = BenchmarkSuite(
-  name: 'Numeric Methods & Hardware Acceleration Benchmark',
+/// Numeric and hardware acceleration benchmark suite.
+final BenchmarkSuite numericSuite = BenchmarkSuite(
+  name: 'numeric',
+  title: 'Numeric Methods & Hardware Acceleration Benchmark',
   description: 'Evaluates BLAS Levels 1-3, LAPACK solvers, Apple vDSP FFTs, and vForce transcendentals.',
-  specs: _buildSpecs(),
+  compareModes: true,
+  buildSpecs: _buildSpecs,
 );
 
 List<BenchmarkSpec> _buildSpecs() {
@@ -148,9 +142,7 @@ List<BenchmarkSpec> _buildSpecs() {
   );
 
   return [
-    // -------------------------------------------------------------------------
     // BLAS Level 3: Matrix Multiplication
-    // -------------------------------------------------------------------------
     BenchmarkSpec(
       name: 'dgemm 64x64',
       category: 'BLAS Level 3 (GEMM)',
@@ -192,9 +184,7 @@ List<BenchmarkSpec> _buildSpecs() {
       inner: 2,
     ),
 
-    // -------------------------------------------------------------------------
     // BLAS Level 2: Matrix-Vector Multiplication
-    // -------------------------------------------------------------------------
     BenchmarkSpec(
       name: 'dgemv 256x256',
       category: 'BLAS Level 2 (GEMV)',
@@ -212,9 +202,7 @@ List<BenchmarkSpec> _buildSpecs() {
       inner: 2,
     ),
 
-    // -------------------------------------------------------------------------
     // BLAS Level 1: Vector-Vector Operations
-    // -------------------------------------------------------------------------
     BenchmarkSpec(
       name: 'ddot 10,000',
       category: 'BLAS Level 1',
@@ -240,9 +228,7 @@ List<BenchmarkSpec> _buildSpecs() {
       inner: 5,
     ),
 
-    // -------------------------------------------------------------------------
     // LAPACK: Direct Solvers & Decompositions
-    // -------------------------------------------------------------------------
     BenchmarkSpec(
       name: 'solve 64x64 (dgesv)',
       category: 'LAPACK Solvers & Decompositions',
@@ -292,9 +278,7 @@ List<BenchmarkSpec> _buildSpecs() {
       inner: 2,
     ),
 
-    // -------------------------------------------------------------------------
     // Apple vDSP: Fast Fourier Transforms
-    // -------------------------------------------------------------------------
     BenchmarkSpec(
       name: 'fft 1D 1,024',
       category: 'Fast Fourier Transform',
@@ -328,9 +312,7 @@ List<BenchmarkSpec> _buildSpecs() {
       inner: 1,
     ),
 
-    // -------------------------------------------------------------------------
     // Apple vForce: Vector Transcendentals
-    // -------------------------------------------------------------------------
     BenchmarkSpec(
       name: 'vForce sin 10,000',
       category: 'Vector Transcendentals (vForce)',
@@ -364,9 +346,7 @@ List<BenchmarkSpec> _buildSpecs() {
       inner: 20,
     ),
 
-    // -------------------------------------------------------------------------
     // Apple vDSP: Vector Reductions
-    // -------------------------------------------------------------------------
     BenchmarkSpec(
       name: 'vectorSum 100,000',
       category: 'Vector Reductions (vDSP)',

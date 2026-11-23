@@ -57,12 +57,6 @@ final class CasTestCase {
 /// Default SymPy-compatible parser (`E`, `I`, `oo`, `Abs`, `ceiling`, `log`, `Rational`).
 final ExprSyntax casSyntax = buildCasSyntax();
 
-final ExprSyntax _casSyntaxRenameE = buildCasSyntax(renameE: true);
-final ExprSyntax _casSyntaxRenameEI = buildCasSyntax(
-  renameE: true,
-  renameI: true,
-);
-
 /// Builds a SymPy-compatible [ExprSyntax], optionally treating lowercase `e` or
 /// `i` as symbolic variables (for Rubi and Blake integration suites).
 ExprSyntax buildCasSyntax({bool renameE = false, bool renameI = false}) =>
@@ -521,8 +515,8 @@ CasTestCase seriesCase(
         actual == exp ||
         diff == OrderTerm(variable, order, point: pt) ||
         verifyExprEquivalent(
-          _stripOrderTerm(actual),
-          _stripOrderTerm(exp),
+          actual.removeOrder(),
+          exp.removeOrder(),
           assumptions: assumptions,
         );
     return (
@@ -861,12 +855,14 @@ String rewriteSympySpecialForms(String s) {
           'det(${m[1]!.replaceAllMapped(RegExp(r'\[([^\[\]]+)\]'), (r) => 'row(${r[1]})')})',
     );
   }
-  for (final pair in const [
+  for (final (symName, targetName) in const [
     ('Sum', 'sum'),
     ('Product', 'product'),
     ('Integral', 'integrate'),
   ]) {
-    if (s.contains('${pair.$1}(')) s = _rewriteTupleBounds(s, pair.$1, pair.$2);
+    if (s.contains('$symName(')) {
+      s = _rewriteTupleBounds(s, symName, targetName);
+    }
   }
   if (s.contains('hyper(')) s = _rewriteHyper(s);
   return s;
@@ -1020,14 +1016,11 @@ bool _verifyRootSetsEqual(
   return true;
 }
 
-Expr _stripOrderTerm(Expr expr) => switch (expr) {
-  OrderTerm() => IntegerNumber.zero,
-  Add(:final terms) => Add([
-    for (final t in terms)
-      if (t is! OrderTerm) t,
-  ]).simplify(),
-  _ => expr,
-};
+final ExprSyntax _casSyntaxRenameE = buildCasSyntax(renameE: true);
+final ExprSyntax _casSyntaxRenameEI = buildCasSyntax(
+  renameE: true,
+  renameI: true,
+);
 
 bool _hasUnevaluatedCalculusNode(Expr expr) => expr.anyNode(
   (n) => n is Limit || n is Sum || n is Product || n is Integral,

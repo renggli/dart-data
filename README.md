@@ -182,6 +182,20 @@ Then navigate to:
 - `http://localhost:8080/expressions/` for the Symbolic Expressions Explorer
 - `http://localhost:8080/distributions/` for the Probability Distributions Dashboard
 
+## Benchmarks
+
+Run the performance and Computer Algebra System (CAS) benchmark suites from the project root:
+
+```bash
+# Run numeric hardware-acceleration and symbolic performance benchmarks
+dart run bin/benchmark_runner.dart
+
+# Run symbolic CAS diagnostic benchmark suites (Wester, Gruntz, SymPy)
+dart run bin/cas_runner.dart -s "wester|gruntz|algebra|series|solvers"
+```
+
+See [bin/README.md](bin/README.md) for detailed baseline tables, confidence intervals, and suite breakdowns.
+
 ## Related Packages
 
 - [**more**](https://pub.dev/packages/more): General data structures, collections, math utilities, and discrete graph algorithms (pathfinding, search, traversals, topological sorting, max flow).

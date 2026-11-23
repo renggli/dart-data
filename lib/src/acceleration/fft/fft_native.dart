@@ -1,5 +1,6 @@
 // coverage:ignore-file
 import 'dart:ffi' as ffi;
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../../type/types/complex.dart';
@@ -138,21 +139,20 @@ abstract final class FftNative {
       _butterfly2or4(data, 0, n, inverse);
     } else {
       final setup = _getVdspSetup(n, inverse);
-      if (setup == null || setup == ffi.nullptr) {
-        if (_hasFftw) {
-          return _fft1dFftw(buffer: buffer, log2n: log2n, inverse: inverse);
+      if (setup != null && setup != ffi.nullptr) {
+        if (data.offsetInBytes % 16 == 0) {
+          _vdspDftInterleavedExecuteD(setup, data.address, data.address);
+        } else {
+          final totalFloats = 2 * n;
+          final aligned = Float64List(totalFloats)
+            ..setRange(0, totalFloats, data);
+          _vdspDftInterleavedExecuteD(setup, aligned.address, aligned.address);
+          data.setRange(0, totalFloats, aligned);
         }
+      } else if (_hasFftw) {
+        return _fft1dFftw(buffer: buffer, log2n: log2n, inverse: inverse);
+      } else if (!_fft1dVdspFourStep(data, log2n, inverse)) {
         return false;
-      }
-
-      if (data.offsetInBytes % 16 == 0) {
-        _vdspDftInterleavedExecuteD(setup, data.address, data.address);
-      } else {
-        final totalFloats = 2 * n;
-        final aligned = Float64List(totalFloats)
-          ..setRange(0, totalFloats, data);
-        _vdspDftInterleavedExecuteD(setup, aligned.address, aligned.address);
-        data.setRange(0, totalFloats, aligned);
       }
     }
 
@@ -161,6 +161,87 @@ abstract final class FftNative {
       final totalFloats = 2 * n;
       for (var i = 0; i < totalFloats; i++) {
         data[i] *= factor;
+      }
+    }
+    return true;
+  }
+
+  /// Computes a large 1D transform of size `1 << log2n` via Bailey's four-step
+  /// decomposition using vDSP interleaved kernels on the factor dimensions.
+  static bool _fft1dVdspFourStep(Float64List data, int log2n, bool inverse) {
+    final log2Rows = log2n >> 1;
+    final log2Cols = log2n - log2Rows;
+    final rows = 1 << log2Rows;
+    final cols = 1 << log2Cols;
+    final n = 1 << log2n;
+
+    final setupRows = _getVdspSetup(rows, inverse);
+    final setupCols = _getVdspSetup(cols, inverse);
+    if (setupRows == null ||
+        setupRows == ffi.nullptr ||
+        setupCols == null ||
+        setupCols == ffi.nullptr) {
+      return false;
+    }
+
+    final colBuf = Float64List(rows << 1);
+    final work = Float64List(n << 1);
+    final rowStride = cols << 1;
+    final sign = inverse ? 1.0 : -1.0;
+    final baseAngle = sign * 2.0 * math.pi / n;
+
+    // 1. Transform each of the `cols` columns of length `rows` and apply twiddles.
+    for (var c = 0; c < cols; c++) {
+      var srcIdx = c << 1;
+      for (var r = 0; r < rows; r++) {
+        final r2 = r << 1;
+        colBuf[r2] = data[srcIdx];
+        colBuf[r2 + 1] = data[srcIdx + 1];
+        srcIdx += rowStride;
+      }
+      _vdspDftInterleavedExecuteD(setupRows, colBuf.address, colBuf.address);
+
+      final delta = baseAngle * c;
+      final stepR = math.cos(delta);
+      final stepI = math.sin(delta);
+      var wr = 1.0;
+      var wi = 0.0;
+      var dstIdx = c << 1;
+      for (var r = 0; r < rows; r++) {
+        final r2 = r << 1;
+        final re = colBuf[r2];
+        final im = colBuf[r2 + 1];
+        work[dstIdx] = re * wr - im * wi;
+        work[dstIdx + 1] = re * wi + im * wr;
+        final nextWr = wr * stepR - wi * stepI;
+        wi = wr * stepI + wi * stepR;
+        wr = nextWr;
+        dstIdx += rowStride;
+      }
+    }
+
+    // 2. Transform each of the `rows` contiguous rows of length `cols` and transpose.
+    final outColStride = rows << 1;
+    for (var r = 0; r < rows; r++) {
+      final rowOffset = r * rowStride;
+      final rowSlice = Float64List.sublistView(
+        work,
+        rowOffset,
+        rowOffset + rowStride,
+      );
+      _vdspDftInterleavedExecuteD(
+        setupCols,
+        rowSlice.address,
+        rowSlice.address,
+      );
+
+      var srcIdx = rowOffset;
+      var dstIdx = r << 1;
+      for (var c = 0; c < cols; c++) {
+        data[dstIdx] = work[srcIdx];
+        data[dstIdx + 1] = work[srcIdx + 1];
+        srcIdx += 2;
+        dstIdx += outColStride;
       }
     }
     return true;
