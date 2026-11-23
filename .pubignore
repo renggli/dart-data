@@ -8,21 +8,22 @@ TASKS.md
 # Non-package directories
 benchmark/
 doc/
-test/
 web/
 
 # Build artifacts, dependencies, and IDE files
 .config/
 .dart_tool/
 .DS_Store
+.github/
 .idea/
+.opencode/
 .packages
 .pub/
-.opencode/
-*.iml
-pubspec.lock
-coverage/
+.vscode/
 *.dart.js
-*.dart.js.map
 *.dart.js.deps
+*.dart.js.map
+*.iml
+coverage/
+pubspec.lock
 
