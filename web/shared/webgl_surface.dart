@@ -158,9 +158,15 @@ final class WebGLSurfaceRenderer {
 
   /// Renders a 3D surface grid `zValues` of size `gridSize × gridSize` over
   /// `[minX, maxX] × [minY, maxY]` with vertical range `[minZ, maxZ]`.
+  ///
+  /// When [phaseValues] (angles in radians, length `gridSize * gridSize`) is
+  /// provided, the surface is shaded with a perceptually uniform cyclic OKLCH
+  /// phase colormap (analytic landscape / `ComplexPlot3D` style) instead of the
+  /// height colormap.
   void renderSurface({
     required int gridSize,
     required Float64List zValues,
+    Float64List? phaseValues,
     required double minX,
     required double maxX,
     required double minY,
@@ -218,6 +224,7 @@ final class WebGLSurfaceRenderer {
       _renderWebGLSurface(
         gridSize: gridSize,
         zValues: zValues,
+        phaseValues: phaseValues,
         minZ: minZ,
         maxZ: maxZ,
         spanZ: spanZ,
@@ -232,6 +239,7 @@ final class WebGLSurfaceRenderer {
         cssH,
         gridSize: gridSize,
         zValues: zValues,
+        phaseValues: phaseValues,
         minZ: minZ,
         maxZ: maxZ,
         spanZ: spanZ,
@@ -246,6 +254,7 @@ final class WebGLSurfaceRenderer {
       mvp: mvp,
       gridSize: gridSize,
       zValues: zValues,
+      phaseValues: phaseValues,
       minX: minX,
       maxX: maxX,
       minY: minY,
@@ -261,6 +270,7 @@ final class WebGLSurfaceRenderer {
   void _renderWebGLSurface({
     required int gridSize,
     required Float64List zValues,
+    Float64List? phaseValues,
     required double minZ,
     required double maxZ,
     required double spanZ,
@@ -273,9 +283,10 @@ final class WebGLSurfaceRenderer {
     final vbo = _vbo!;
     final ibo = _ibo!;
 
-    // 9 floats per vertex: nx, ny, nz, normX, normY, normZ, u, v, t
+    // 11 floats per vertex: nx, ny, nz, normX, normY, normZ, u, v, t, cosPhase, sinPhase
     final n = gridSize;
-    final verts = Float32List(n * n * 9);
+    final verts = Float32List(n * n * 11);
+    final usePhase = phaseValues != null && phaseValues.length >= n * n;
     final zLimitMin = minZ - spanZ * 0.25;
     final zLimitMax = maxZ + spanZ * 0.25;
 
@@ -324,6 +335,10 @@ final class WebGLSurfaceRenderer {
           snz /= nLen;
         }
 
+        final phase = usePhase ? phaseValues[iy * n + ix] : 0.0;
+        final cosPhase = usePhase && phase.isFinite ? math.cos(phase) : 1.0;
+        final sinPhase = usePhase && phase.isFinite ? math.sin(phase) : 0.0;
+
         verts[vIdx++] = nx;
         verts[vIdx++] = ny;
         verts[vIdx++] = nz.isFinite ? nz : 0.0;
@@ -333,6 +348,8 @@ final class WebGLSurfaceRenderer {
         verts[vIdx++] = u;
         verts[vIdx++] = v;
         verts[vIdx++] = t;
+        verts[vIdx++] = cosPhase;
+        verts[vIdx++] = sinPhase;
       }
     }
 
@@ -408,11 +425,12 @@ final class WebGLSurfaceRenderer {
       web.WebGLRenderingContext.STREAM_DRAW,
     );
 
-    const stride = 9 * 4;
+    const stride = 11 * 4;
     final posLoc = gl.getAttribLocation(prog, 'a_pos');
     final normLoc = gl.getAttribLocation(prog, 'a_normal');
     final uvLoc = gl.getAttribLocation(prog, 'a_uv');
     final tLoc = gl.getAttribLocation(prog, 'a_t');
+    final phaseLoc = gl.getAttribLocation(prog, 'a_phase');
 
     if (posLoc >= 0) {
       gl.enableVertexAttribArray(posLoc);
@@ -458,8 +476,20 @@ final class WebGLSurfaceRenderer {
         32,
       );
     }
+    if (phaseLoc >= 0) {
+      gl.enableVertexAttribArray(phaseLoc);
+      gl.vertexAttribPointer(
+        phaseLoc,
+        2,
+        web.WebGLRenderingContext.FLOAT,
+        false,
+        stride,
+        36,
+      );
+    }
 
     gl.uniformMatrix4fv(gl.getUniformLocation(prog, 'u_mvp'), false, mvp.toJS);
+    gl.uniform1i(gl.getUniformLocation(prog, 'u_usePhase'), usePhase ? 1 : 0);
 
     gl.drawElements(
       web.WebGLRenderingContext.TRIANGLES,
@@ -485,6 +515,7 @@ final class WebGLSurfaceRenderer {
     double cssH, {
     required int gridSize,
     required Float64List zValues,
+    Float64List? phaseValues,
     required double minZ,
     required double maxZ,
     required double spanZ,
@@ -551,6 +582,7 @@ final class WebGLSurfaceRenderer {
     required Float32List mvp,
     required int gridSize,
     required Float64List zValues,
+    Float64List? phaseValues,
     required double minX,
     required double maxX,
     required double minY,
@@ -682,8 +714,9 @@ final class WebGLSurfaceRenderer {
         ctx.arc(bestPx, bestPy, 3.5, 0.0, 2 * math.pi);
         ctx.fill();
 
-        final readoutStr =
-            '($xVar: ${_fmt(bestX)}, $yVar: ${_fmt(bestY)}, z: ${_fmt(bestZ)})';
+        final readoutStr = phaseValues != null
+            ? '($xVar: ${_fmt(bestX)}, $yVar: ${_fmt(bestY)}, |f|: ${_fmt(bestZ)})'
+            : '($xVar: ${_fmt(bestX)}, $yVar: ${_fmt(bestY)}, z: ${_fmt(bestZ)})';
         _onHoverReadout?.call(readoutStr);
 
         // Tooltip pill near cursor
@@ -892,6 +925,7 @@ in vec3 a_pos;
 in vec3 a_normal;
 in vec2 a_uv;
 in float a_t;
+in vec2 a_phase;
 
 uniform mat4 u_mvp;
 
@@ -899,6 +933,7 @@ out vec3 v_pos;
 out vec3 v_normal;
 out vec2 v_uv;
 out float v_t;
+out vec2 v_phase;
 
 void main() {
   gl_Position = u_mvp * vec4(a_pos, 1.0);
@@ -906,6 +941,7 @@ void main() {
   v_normal = a_normal;
   v_uv = a_uv;
   v_t = a_t;
+  v_phase = a_phase;
 }
 ''';
 
@@ -915,6 +951,9 @@ in vec3 v_pos;
 in vec3 v_normal;
 in vec2 v_uv;
 in float v_t;
+in vec2 v_phase;
+
+uniform int u_usePhase;
 
 out vec4 outColor;
 
@@ -929,6 +968,39 @@ vec3 scientificColormap(float t) {
   if (s < 0.50) return mix(c1, c2, (s - 0.25) * 4.0);
   if (s < 0.75) return mix(c2, c3, (s - 0.50) * 4.0);
   return mix(c3, c4, (s - 0.75) * 4.0);
+}
+
+vec3 linearToSrgb(vec3 c) {
+  vec3 cl = clamp(c, 0.0, 1.0);
+  return mix(
+    12.92 * cl,
+    1.055 * pow(cl, vec3(1.0 / 2.4)) - 0.055,
+    step(vec3(0.0031308), cl)
+  );
+}
+
+vec3 oklchPhaseColormap(vec2 phaseVec) {
+  float len = length(phaseVec);
+  vec2 dir = len > 0.0001 ? phaseVec / len : vec2(1.0, 0.0);
+  float L = 0.72;
+  float C = 0.145;
+  float a = C * dir.x;
+  float b = C * dir.y;
+
+  float l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  float m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  float s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+
+  float lmsL = l_ * l_ * l_;
+  float lmsM = m_ * m_ * m_;
+  float lmsS = s_ * s_ * s_;
+
+  vec3 linRgb = vec3(
+    4.0767416621 * lmsL - 3.3077115913 * lmsM + 0.2309699292 * lmsS,
+    -1.2684380046 * lmsL + 2.6097574011 * lmsM - 0.3413193965 * lmsS,
+    -0.0041960863 * lmsL - 0.7034186147 * lmsM + 1.7076147010 * lmsS
+  );
+  return linearToSrgb(linRgb);
 }
 
 void main() {
@@ -946,7 +1018,9 @@ void main() {
   float diff2 = max(dot(N, lightDir2), 0.0) * 0.35;
   float spec = pow(max(dot(N, halfVec), 0.0), 28.0) * 0.28;
 
-  vec3 baseColor = scientificColormap(v_t);
+  vec3 baseColor = u_usePhase == 1
+      ? oklchPhaseColormap(v_phase)
+      : scientificColormap(v_t);
 
   // Screen-space anti-aliased parameter mesh lines (16 x 16 grid)
   vec2 gridUv = v_uv * 16.0;

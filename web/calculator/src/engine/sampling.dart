@@ -8,6 +8,13 @@ import 'package:data/type.dart';
 
 import '../model/value.dart';
 
+/// Returns whether [expr] contains non-real complex constants or `i`.
+bool containsComplexConst(Expr expr) => expr.anyNode(
+  (n) =>
+      (n is ComplexNumber && !n.imaginary.isZero) ||
+      (n is Constant && !n.isReal),
+);
+
 /// Samples one or more symbolic [expressions] over `[minX, maxX]` using
 /// adaptive curvature/discontinuity subdivision (`sampleCurve`) and robust
 /// quantile auto-scaling.
@@ -38,7 +45,7 @@ PlotValue buildPlotValue(
 
   for (final expr in expressions) {
     final prepared = _substituteParams(expr, substMap);
-    final hasImaginary = _containsComplexConst(prepared);
+    final hasImaginary = containsComplexConst(prepared);
 
     if (hasImaginary) {
       final fnC = prepared.toComplexFunction1D(variable);
@@ -135,7 +142,8 @@ PlotValue buildPlotValue(
   );
 }
 
-/// Samples a 2D parametric curve $(x(t), y(t))$ over $t \in [\text{minT}, \text{maxT}]$.
+/// Samples a 2D parametric curve $(x(t), y(t))$ over $t \in [\text{minT}, \text{maxT}]$
+/// using adaptive chord-deviation subdivision.
 PlotValue buildParametricPlotValue(
   Expr xExpr,
   Expr yExpr,
@@ -143,7 +151,7 @@ PlotValue buildParametricPlotValue(
   double minT,
   double maxT, {
   Map<String, double>? parameterValues,
-  int steps = 360,
+  int maxPoints = 4096,
 }) {
   final t0 = math.min(minT, maxT);
   final t1 = math.max(minT, maxT) == t0
@@ -159,52 +167,162 @@ PlotValue buildParametricPlotValue(
   final prepX = _substituteParams(xExpr, substMap);
   final prepY = _substituteParams(yExpr, substMap);
 
-  final fnX = prepX.toFunction1D(variable);
-  final fnY = prepY.toFunction1D(variable);
+  final fnX = _compileRealFn(prepX, variable);
+  final fnY = _compileRealFn(prepY, variable);
 
-  final xs = <double>[];
-  final ys = <double>[];
-  final dt = (t1 - t0) / steps;
-  for (var i = 0; i <= steps; i++) {
-    final t = t0 + i * dt;
-    final x = _safeCall(fnX, t);
-    final y = _safeCall(fnY, t);
-    if (x.isFinite && y.isFinite) {
-      xs.add(x);
-      ys.add(y);
-    }
-  }
-
-  final segs = xs.isEmpty
-      ? const <PlotSegmentData>[]
-      : [
-          PlotSegmentData(
-            x: Float64List.fromList(xs),
-            y: Float64List.fromList(ys),
-          ),
-        ];
-
-  final (:minY, :maxY) = _computeRobustYRange(ys);
-  final xRange = _computeRobustYRange(xs);
+  final sampled = _sampleParametric(
+    (t) => (x: _safeCall(fnX, t), y: _safeCall(fnY, t)),
+    t0,
+    t1,
+    maxPoints: maxPoints,
+  );
 
   return PlotValue(
     expressions: [xExpr, yExpr],
     variable: variable,
-    minX: xRange.minY,
-    maxX: xRange.maxY,
-    minY: minY,
-    maxY: maxY,
+    minX: sampled.minX,
+    maxX: sampled.maxX,
+    minY: sampled.minY,
+    maxY: sampled.maxY,
     curves: [
       PlotCurveData(
         label: '($xExpr, $yExpr)',
         exprText: '[$xExpr, $yExpr]',
-        segments: segs,
+        segments: sampled.segments,
       ),
     ],
     parameters: parameters,
     isParametric: true,
     minT: t0,
     maxT: t1,
+  );
+}
+
+/// Builds a domain-coloring complex plot value for $f(z)$ over
+/// $[\text{minRe}, \text{maxRe}] \times [\text{minIm}, \text{maxIm}]$.
+PlotValue buildComplexPlotValue(
+  Expr expr,
+  String variable,
+  double minRe,
+  double maxRe,
+  double minIm,
+  double maxIm,
+) {
+  final loRe = math.min(minRe, maxRe);
+  final hiRe = math.max(minRe, maxRe) == loRe
+      ? loRe + 6.0
+      : math.max(minRe, maxRe);
+  final loIm = math.min(minIm, maxIm);
+  final hiIm = math.max(minIm, maxIm) == loIm
+      ? loIm + 6.0
+      : math.max(minIm, maxIm);
+
+  final paramSet = <String>{...expr.freeVariables}..remove(variable);
+  final parameters = paramSet.toList()..sort();
+
+  return PlotValue(
+    expressions: [expr],
+    variable: variable,
+    minX: loRe,
+    maxX: hiRe,
+    minY: loIm,
+    maxY: hiIm,
+    curves: [
+      PlotCurveData(
+        label: 'ℂ: $expr',
+        exprText: expr.toString(),
+        segments: const [],
+      ),
+    ],
+    parameters: parameters,
+    isComplex: true,
+  );
+}
+
+/// Samples a 3D analytic landscape (`ComplexPlot3D`) of $f(z)$ over
+/// $[\text{minRe}, \text{maxRe}] \times [\text{minIm}, \text{maxIm}]$ with
+/// surface height $|f(z)|$ and cyclic OKLCH phase coloring $\arg(f(z))$.
+PlotValue buildComplex3dPlotValue(
+  Expr expr,
+  String variable,
+  double minRe,
+  double maxRe,
+  double minIm,
+  double maxIm, {
+  Map<String, double> parameterValues = const {},
+  int gridSize = 72,
+}) {
+  final loRe = math.min(minRe, maxRe);
+  final hiRe = math.max(minRe, maxRe) == loRe
+      ? loRe + 6.0
+      : math.max(minRe, maxRe);
+  final loIm = math.min(minIm, maxIm);
+  final hiIm = math.max(minIm, maxIm) == loIm
+      ? loIm + 6.0
+      : math.max(minIm, maxIm);
+
+  final paramSet = <String>{...expr.freeVariables}..remove(variable);
+  final parameters = paramSet.toList()..sort();
+  final substMap = <String, Expr>{
+    for (final p in parameters) p: RealNumber(parameterValues[p] ?? 1.0),
+  };
+
+  final prepared = _substituteParams(expr, substMap);
+  final fnC = prepared.toComplexFunction1D(variable);
+
+  final zValues = Float64List(gridSize * gridSize);
+  final phaseValues = Float64List(gridSize * gridSize);
+  final finiteMag = <double>[];
+
+  for (var iy = 0; iy < gridSize; iy++) {
+    final v = iy / math.max(1, gridSize - 1);
+    final im = loIm + v * (hiIm - loIm);
+    for (var ix = 0; ix < gridSize; ix++) {
+      final u = ix / math.max(1, gridSize - 1);
+      final re = loRe + u * (hiRe - loRe);
+      final idx = iy * gridSize + ix;
+      Complex w;
+      try {
+        w = fnC(Complex(re, im));
+      } on Object {
+        w = Complex.nan;
+      }
+      final wRe = w.real.toDouble();
+      final wIm = w.imaginary.toDouble();
+      final mag = (wRe.isFinite && wIm.isFinite)
+          ? math.sqrt(wRe * wRe + wIm * wIm)
+          : double.nan;
+      zValues[idx] = mag;
+      phaseValues[idx] = mag.isFinite ? math.atan2(wIm, wRe) : double.nan;
+      if (mag.isFinite) {
+        finiteMag.add(mag);
+      }
+    }
+  }
+
+  final (:minZ, :maxZ) = _computeComplexHeightRange(finiteMag);
+  return PlotValue(
+    expressions: [expr],
+    variable: variable,
+    minX: loRe,
+    maxX: hiRe,
+    minY: loIm,
+    maxY: hiIm,
+    parameters: parameters,
+    isComplex: true,
+    surface3d: Surface3dData(
+      xVar: 'Re',
+      yVar: 'Im',
+      minX: loRe,
+      maxX: hiRe,
+      minY: loIm,
+      maxY: hiIm,
+      minZ: minZ,
+      maxZ: maxZ,
+      gridSize: gridSize,
+      zValues: zValues,
+      phaseValues: phaseValues,
+    ),
   );
 }
 
@@ -341,6 +459,21 @@ PlotValue buildSurface3dPlotValue(
   );
 }
 
+({double minZ, double maxZ}) _computeComplexHeightRange(List<double> mags) {
+  if (mags.isEmpty) return (minZ: 0.0, maxZ: 5.0);
+  final sorted = List<double>.of(mags)..sort();
+  final n = sorted.length;
+  final lo = sorted.first;
+  // Clip tall poles at the 95th percentile so zeros and saddles remain legible.
+  final p95 = sorted[(n * 0.95).floor().clamp(0, n - 1)];
+  final hi = (sorted.last <= p95 * 2.5) ? sorted.last : p95;
+  final minZ = lo < hi * 0.15 ? 0.0 : lo;
+  if ((hi - minZ).abs() < 1e-9) {
+    return (minZ: math.max(0.0, minZ - 1.0), maxZ: hi + 1.0);
+  }
+  return (minZ: minZ, maxZ: hi * 1.08);
+}
+
 ({double minY, double maxY}) _computeRobustYRange(List<double> values) {
   if (values.isEmpty) return (minY: -5.0, maxY: 5.0);
   final sorted = List<double>.of(values)..sort();
@@ -437,11 +570,196 @@ double _safeCall(double Function(double) fn, double x) {
   }
 }
 
-bool _containsComplexConst(Expr expr) => expr.anyNode(
-  (n) =>
-      (n is ComplexNumber && !n.imaginary.isZero) ||
-      (n is Constant && !n.isReal),
-);
+double Function(double) _compileRealFn(Expr expr, String variable) {
+  if (containsComplexConst(expr)) {
+    final fnC = expr.toComplexFunction1D(variable);
+    return (t) => fnC(Complex(t)).real.toDouble();
+  }
+  return expr.toFunction1D(variable);
+}
+
+({
+  List<PlotSegmentData> segments,
+  double minX,
+  double maxX,
+  double minY,
+  double maxY,
+})
+_sampleParametric(
+  ({double x, double y}) Function(double t) evaluate,
+  double t0,
+  double t1, {
+  int maxPoints = 4096,
+}) {
+  final initialPoints = math.min(maxPoints, math.max(129, maxPoints ~/ 16));
+  final step = (t1 - t0) / (initialPoints - 1);
+  const jitter = 1e-9 * 0.6180339887498949;
+  final initialT = List<double>.generate(initialPoints, (i) {
+    if (i == 0) return t0;
+    if (i == initialPoints - 1) return t1;
+    return t0 + (i + jitter) * step;
+  });
+  final initialPts = List<({double x, double y})>.generate(
+    initialPoints,
+    (i) => evaluate(initialT[i]),
+  );
+
+  final (scale: scaleX, center: centerX) = _estimateScaleAndCenter([
+    for (final p in initialPts)
+      if (p.x.isFinite) p.x,
+  ]);
+  final (scale: scaleY, center: centerY) = _estimateScaleAndCenter([
+    for (final p in initialPts)
+      if (p.y.isFinite) p.y,
+  ]);
+
+  const tolerance = 1.5e-3;
+  final maxDepth = math.min(
+    12,
+    math.max(1, (math.log(maxPoints / initialPoints) / math.ln2).ceil() + 4),
+  );
+  var remainingBudget = maxPoints - initialPoints;
+  final maxPerInterval = math.max(
+    16,
+    (maxPoints - initialPoints) ~/ math.max(1, initialPoints ~/ 4),
+  );
+
+  final outX = <double>[initialPts.first.x];
+  final outY = <double>[initialPts.first.y];
+
+  var intervalBudget = 0;
+
+  void refine(
+    double ta,
+    ({double x, double y}) pa,
+    double tb,
+    ({double x, double y}) pb,
+    int depth,
+  ) {
+    if (remainingBudget <= 0 || intervalBudget <= 0 || depth >= maxDepth) {
+      outX.add(pb.x);
+      outY.add(pb.y);
+      return;
+    }
+
+    final tm = 0.5 * (ta + tb);
+    if (tm <= ta || tm >= tb) {
+      outX.add(pb.x);
+      outY.add(pb.y);
+      return;
+    }
+
+    final fa = pa.x.isFinite && pa.y.isFinite;
+    final fb = pb.x.isFinite && pb.y.isFinite;
+    if (!fa && !fb) {
+      outX.add(pb.x);
+      outY.add(pb.y);
+      return;
+    }
+
+    final pm = evaluate(tm);
+    remainingBudget--;
+    intervalBudget--;
+    final fm = pm.x.isFinite && pm.y.isFinite;
+
+    if (fa != fb || !fm) {
+      refine(ta, pa, tm, pm, depth + 1);
+      refine(tm, pm, tb, pb, depth + 1);
+      return;
+    }
+
+    final errX = (pm.x - 0.5 * (pa.x + pb.x)).abs() / scaleX;
+    final errY = (pm.y - 0.5 * (pa.y + pb.y)).abs() / scaleY;
+    final chordX = (pb.x - pa.x).abs() / scaleX;
+    final chordY = (pb.y - pa.y).abs() / scaleY;
+
+    if (errX > tolerance ||
+        errY > tolerance ||
+        (math.max(chordX, chordY) > 0.08 && depth < 6)) {
+      refine(ta, pa, tm, pm, depth + 1);
+      refine(tm, pm, tb, pb, depth + 1);
+    } else {
+      outX.add(pm.x);
+      outY.add(pm.y);
+      outX.add(pb.x);
+      outY.add(pb.y);
+    }
+  }
+
+  for (var i = 0; i < initialPoints - 1; i++) {
+    intervalBudget = maxPerInterval;
+    refine(initialT[i], initialPts[i], initialT[i + 1], initialPts[i + 1], 0);
+  }
+
+  final cutoffX = 100.0 * scaleX;
+  final cutoffY = 100.0 * scaleY;
+  final segments = <PlotSegmentData>[];
+  var curX = <double>[];
+  var curY = <double>[];
+  final finiteX = <double>[];
+  final finiteY = <double>[];
+
+  void flush() {
+    if (curX.isNotEmpty) {
+      segments.add(
+        PlotSegmentData(
+          x: Float64List.fromList(curX),
+          y: Float64List.fromList(curY),
+        ),
+      );
+      curX = <double>[];
+      curY = <double>[];
+    }
+  }
+
+  for (var i = 0; i < outX.length; i++) {
+    final x = outX[i];
+    final y = outY[i];
+    if (!x.isFinite ||
+        !y.isFinite ||
+        (x - centerX).abs() > cutoffX ||
+        (y - centerY).abs() > cutoffY) {
+      flush();
+      continue;
+    }
+    if (curX.isNotEmpty) {
+      final jumpX = (x - curX.last).abs() / scaleX;
+      final jumpY = (y - curY.last).abs() / scaleY;
+      if (jumpX > 2.5 || jumpY > 2.5) {
+        flush();
+      }
+    }
+    curX.add(x);
+    curY.add(y);
+    finiteX.add(x);
+    finiteY.add(y);
+  }
+  flush();
+
+  final xRange = _computeRobustYRange(finiteX);
+  final yRange = _computeRobustYRange(finiteY);
+  return (
+    segments: segments,
+    minX: xRange.minY,
+    maxX: xRange.maxY,
+    minY: yRange.minY,
+    maxY: yRange.maxY,
+  );
+}
+
+({double scale, double center}) _estimateScaleAndCenter(List<double> values) {
+  if (values.isEmpty) return (scale: 1.0, center: 0.0);
+  final sorted = List<double>.of(values)..sort();
+  final center = sorted[sorted.length ~/ 2];
+  final lo = sorted[(sorted.length * 0.1).floor()];
+  final hi = sorted[((sorted.length - 1) * 0.9).ceil()];
+  final span = (hi - lo).abs();
+  if (span > 1e-9) return (scale: span, center: center);
+  final fullSpan = (sorted.last - sorted.first).abs();
+  if (fullSpan > 1e-9) return (scale: fullSpan, center: center);
+  final maxAbs = math.max(sorted.first.abs(), sorted.last.abs());
+  return (scale: maxAbs > 1e-9 ? maxAbs : 1.0, center: center);
+}
 
 Expr _substituteParams(Expr expr, Map<String, Expr> substMap) {
   var cur = expr;

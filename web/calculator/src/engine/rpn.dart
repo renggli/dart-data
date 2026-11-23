@@ -494,23 +494,10 @@ final class RpnInterpreter {
         } else {
           effectiveArity = 1;
         }
-      case 'plot':
-        if (stack.depth >= 4 && _looksLikeVariable(stack.level(3).value)) {
-          effectiveArity = 4;
-        } else if (stack.depth >= 3 &&
-            !_looksLikeVariable(stack.level(2).value) &&
-            !_looksLikeVariable(stack.level(1).value) &&
-            stack.level(1).value is ExprValue &&
-            stack.level(2).value is ExprValue &&
-            (stack.level(1).value as ExprValue).expr.freeVariables.isEmpty &&
-            (stack.level(2).value as ExprValue).expr.freeVariables.isEmpty) {
-          effectiveArity = 3;
-        } else if (stack.depth >= 2 &&
-            _looksLikeVariable(stack.level(1).value)) {
-          effectiveArity = 2;
-        } else {
-          effectiveArity = 1;
-        }
+      case 'plotcomplex' || 'plotcomplex3d':
+        effectiveArity = _resolvePlotArity(stack, maxArity: 6);
+      case 'plot' || 'parametric':
+        effectiveArity = _resolvePlotArity(stack, maxArity: 4);
       case 'limit':
         if (stack.depth >= 4 && _looksLikeVariable(stack.level(3).value)) {
           effectiveArity = 4;
@@ -627,6 +614,37 @@ final class RpnInterpreter {
       elements.isNotEmpty && elements.every(_looksLikeVariable),
     _ => false,
   };
+
+  static int _resolvePlotArity(RpnStack stack, {required int maxArity}) {
+    bool isConstantBound(int level) =>
+        stack.level(level).value is ExprValue &&
+        !_looksLikeVariable(stack.level(level).value) &&
+        (stack.level(level).value as ExprValue).expr.freeVariables.isEmpty;
+
+    if (maxArity >= 6 &&
+        stack.depth >= 6 &&
+        _looksLikeVariable(stack.level(5).value)) {
+      return 6;
+    }
+    if (maxArity >= 5 &&
+        stack.depth >= 5 &&
+        isConstantBound(4) &&
+        isConstantBound(3) &&
+        isConstantBound(2) &&
+        isConstantBound(1)) {
+      return 5;
+    }
+    if (stack.depth >= 4 && _looksLikeVariable(stack.level(3).value)) {
+      return 4;
+    }
+    if (stack.depth >= 3 && isConstantBound(2) && isConstantBound(1)) {
+      return 3;
+    }
+    if (stack.depth >= 2 && _looksLikeVariable(stack.level(1).value)) {
+      return 2;
+    }
+    return 1;
+  }
 
   static bool _looksLikeInteger(CalcValue v) =>
       v is ExprValue && v.expr is IntegerNumber;

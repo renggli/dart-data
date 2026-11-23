@@ -120,6 +120,7 @@ final class Surface3dData {
     required this.maxZ,
     required this.gridSize,
     required this.zValues,
+    this.phaseValues,
   });
 
   final String xVar;
@@ -132,6 +133,7 @@ final class Surface3dData {
   final double maxZ;
   final int gridSize;
   final Float64List zValues;
+  final Float64List? phaseValues;
 
   Map<String, Object?> toJson() => {
     'xVar': xVar,
@@ -147,10 +149,16 @@ final class Surface3dData {
       for (final v in zValues)
         if (v.isFinite) v else null,
     ],
+    if (phaseValues != null)
+      'phaseValues': [
+        for (final v in phaseValues!)
+          if (v.isFinite) v else null,
+      ],
   };
 
   factory fromJson(Map<String, Object?> json) {
     final rawZ = json['zValues']! as List<Object?>;
+    final rawPhase = json['phaseValues'] as List<Object?>?;
     return Surface3dData(
       xVar: json['xVar'] as String? ?? 'x',
       yVar: json['yVar'] as String? ?? 'y',
@@ -168,6 +176,17 @@ final class Surface3dData {
                   .map((e) => e == null ? double.nan : (e as num).toDouble())
                   .toList(),
             ),
+      phaseValues: rawPhase == null
+          ? null
+          : (rawPhase is Float64List
+                ? rawPhase
+                : Float64List.fromList(
+                    rawPhase
+                        .map(
+                          (e) => e == null ? double.nan : (e as num).toDouble(),
+                        )
+                        .toList(),
+                  )),
     );
   }
 }
@@ -461,6 +480,7 @@ final class PlotValue extends CalcValue {
     this.curves = const [],
     this.parameters = const [],
     this.isParametric = false,
+    this.isComplex = false,
     this.isOde = false,
     this.minT,
     this.maxT,
@@ -476,6 +496,7 @@ final class PlotValue extends CalcValue {
   final List<PlotCurveData> curves;
   final List<String> parameters;
   final bool isParametric;
+  final bool isComplex;
   final bool isOde;
   final double? minT;
   final double? maxT;
@@ -494,7 +515,13 @@ final class PlotValue extends CalcValue {
   String toCanonicalText() {
     final s3d = surface3d;
     if (s3d != null && expressions.isNotEmpty) {
+      if (isComplex) {
+        return 'plotcomplex3d(${expressions.first}, $variable, ${fmtBound(s3d.minX)}, ${fmtBound(s3d.maxX)}, ${fmtBound(s3d.minY)}, ${fmtBound(s3d.maxY)})';
+      }
       return 'plot3d(${expressions.first}, ${s3d.xVar}, ${fmtBound(s3d.minX)}, ${fmtBound(s3d.maxX)}, ${s3d.yVar}, ${fmtBound(s3d.minY)}, ${fmtBound(s3d.maxY)})';
+    }
+    if (isComplex && expressions.isNotEmpty) {
+      return 'plotcomplex(${expressions.first}, $variable, ${fmtBound(minX)}, ${fmtBound(maxX)}, ${fmtBound(minY)}, ${fmtBound(maxY)})';
     }
     if (isParametric && expressions.length >= 2) {
       final t0 = minT ?? minX;
@@ -531,6 +558,7 @@ final class PlotValue extends CalcValue {
           minX == other.minX &&
           maxX == other.maxX &&
           isParametric == other.isParametric &&
+          isComplex == other.isComplex &&
           is3d == other.is3d &&
           const ListEquality<Expr>().equals(expressions, other.expressions));
 
@@ -541,6 +569,7 @@ final class PlotValue extends CalcValue {
     minX,
     maxX,
     isParametric,
+    isComplex,
     is3d,
     Object.hashAll(expressions),
   );

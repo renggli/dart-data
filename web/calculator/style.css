@@ -1514,6 +1514,31 @@ body.calc-body {
   cursor: crosshair;
 }
 
+.calc-plot-resize-handle {
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+  margin-top: -2px;
+}
+
+.calc-plot-resize-grip {
+  width: 36px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border-color);
+  transition: background-color 0.15s ease, width 0.15s ease;
+}
+
+.calc-plot-resize-handle:hover .calc-plot-resize-grip,
+.calc-plot-resize-handle.resizing .calc-plot-resize-grip {
+  width: 52px;
+  background: var(--accent-color);
+}
+
 .calc-plot-sliders {
   display: flex;
   flex-wrap: wrap;

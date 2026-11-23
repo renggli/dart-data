@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:math' as math;
 
+import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:web/web.dart' as web;
 
 import '../../../shared/chart.dart';
@@ -9,6 +12,7 @@ import '../../../shared/webgl_surface.dart';
 import '../engine/sampling.dart';
 import '../model/value.dart';
 import 'chips.dart';
+import 'domain_coloring.dart';
 import 'persistence.dart';
 
 /// Extra action item shown inside a plot card's top-right `⋯` menu.
@@ -53,8 +57,12 @@ final class PlotView {
       final item = web.document.createElement('span') as web.HTMLSpanElement
         ..className = 'calc-plot-legend-item';
       final swatch = web.document.createElement('span') as web.HTMLSpanElement
-        ..className = 'calc-plot-swatch'
-        ..style.backgroundColor = color;
+        ..className = 'calc-plot-swatch';
+      if (plot.isComplex) {
+        swatch.style.background = 'conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)';
+      } else {
+        swatch.style.backgroundColor = color;
+      }
       final text = web.document.createElement('span') as web.HTMLSpanElement
         ..textContent = curve.label;
       item
@@ -64,8 +72,12 @@ final class PlotView {
     }
 
     final readout = web.document.createElement('span') as web.HTMLSpanElement
-      ..textContent =
-          '${plot.variable} ∈ [${formatRealDigits(plot.minX, 4)}, ${formatRealDigits(plot.maxX, 4)}]';
+      ..textContent = plot.isComplex
+          ? 'Re ∈ [${formatRealDigits(plot.minX, 3)}, ${formatRealDigits(plot.maxX, 3)}], '
+                'Im ∈ [${formatRealDigits(plot.minY, 3)}, ${formatRealDigits(plot.maxY, 3)}]'
+          : plot.isParametric
+          ? '${plot.variable} ∈ [${formatRealDigits(plot.minT ?? 0.0, 4)}, ${formatRealDigits(plot.maxT ?? 2 * math.pi, 4)}]'
+          : '${plot.variable} ∈ [${formatRealDigits(plot.minX, 4)}, ${formatRealDigits(plot.maxX, 4)}]';
 
     final resetBtn =
         web.document.createElement('button') as web.HTMLButtonElement
@@ -100,46 +112,208 @@ final class PlotView {
 
     late final InteractiveChartController controller;
 
-    void draw() {
+    String idleReadout() {
+      if (plot.isComplex) {
+        return 'Re ∈ [${formatRealDigits(controller.minX, 3)}, ${formatRealDigits(controller.maxX, 3)}], '
+            'Im ∈ [${formatRealDigits(controller.minY, 3)}, ${formatRealDigits(controller.maxY, 3)}]';
+      }
+      if (plot.isParametric) {
+        return '${plot.variable} ∈ [${formatRealDigits(plot.minT ?? 0.0, 4)}, ${formatRealDigits(plot.maxT ?? 2 * math.pi, 4)}]';
+      }
+      return '${plot.variable} ∈ [${formatRealDigits(controller.minX, 4)}, ${formatRealDigits(controller.maxX, 4)}]';
+    }
+
+    Complex Function(Complex z)? complexFn;
+    web.HTMLCanvasElement? complexFrontCanvas;
+    web.HTMLCanvasElement? complexWorkCanvas;
+    DomainColoringPass? completedComplexPass;
+    DomainColoringPass? activeComplexPass;
+    Timer? complexDebounceTimer;
+    var complexAspectInitialized = false;
+    var complexParamVersion = 0;
+    var complexRenderGeneration = 0;
+
+    void cancelComplexWork() {
+      complexDebounceTimer?.cancel();
+      complexRenderGeneration++;
+      activeComplexPass = null;
+    }
+
+    void rebuildComplexFn() {
+      if (!plot.isComplex || plot.expressions.isEmpty) return;
+      var expr = plot.expressions.first;
+      for (final p in plot.parameters) {
+        expr = expr.substitute(p, RealNumber(paramValues[p] ?? 1.0));
+      }
+      complexFn = expr.toComplexFunction1D(plot.variable);
+      complexFrontCanvas ??=
+          web.document.createElement('canvas') as web.HTMLCanvasElement;
+      complexWorkCanvas ??=
+          web.document.createElement('canvas') as web.HTMLCanvasElement;
+      complexParamVersion++;
+    }
+
+    if (plot.isComplex) {
+      rebuildComplexFn();
+    }
+
+    late final void Function() draw;
+
+    void pumpComplexPass(int generation) {
+      final pass = activeComplexPass;
+      if (generation != complexRenderGeneration ||
+          pass == null ||
+          !canvas.isConnected) {
+        return;
+      }
+      if (pass.renderChunk(budgetMs: 12)) {
+        // Swap work canvas into front canvas and redraw crisp result.
+        final prevFront = complexFrontCanvas;
+        complexFrontCanvas = pass.offscreenCanvas;
+        complexWorkCanvas = prevFront;
+        completedComplexPass = pass;
+        activeComplexPass = null;
+        draw();
+
+        // Automatically refine from coarse (step 2) to full resolution (step 1).
+        if (pass.pixelStep > 1 && generation == complexRenderGeneration) {
+          final nextCanvas = complexWorkCanvas;
+          final fn = complexFn;
+          if (nextCanvas != null && fn != null) {
+            activeComplexPass = DomainColoringPass(
+              offscreenCanvas: nextCanvas,
+              fn: fn,
+              minX: pass.minX,
+              maxX: pass.maxX,
+              minY: pass.minY,
+              maxY: pass.maxY,
+              plotWidth: pass.plotWidth,
+              plotHeight: pass.plotHeight,
+              paramVersion: pass.paramVersion,
+              pixelStep: 1,
+            );
+            web.window.requestAnimationFrame(
+              ((num _) => pumpComplexPass(generation)).toJS,
+            );
+          }
+        }
+      } else {
+        web.window.requestAnimationFrame(
+          ((num _) => pumpComplexPass(generation)).toJS,
+        );
+      }
+    }
+
+    void startComplexPass(PlotViewport vp, {required int pixelStep}) {
+      final fn = complexFn;
+      final work = complexWorkCanvas;
+      if (fn == null || work == null) return;
+      final generation = ++complexRenderGeneration;
+      activeComplexPass = DomainColoringPass(
+        offscreenCanvas: work,
+        fn: fn,
+        minX: vp.minX,
+        maxX: vp.maxX,
+        minY: vp.minY,
+        maxY: vp.maxY,
+        plotWidth: vp.plotWidth,
+        plotHeight: vp.plotHeight,
+        paramVersion: complexParamVersion,
+        pixelStep: pixelStep,
+      );
+      pumpComplexPass(generation);
+    }
+
+    void scheduleComplexRerender({bool redrawNow = false}) {
+      if (!plot.isComplex) {
+        if (redrawNow) draw();
+        return;
+      }
+      cancelComplexWork();
+      if (redrawNow) draw();
+      complexDebounceTimer = Timer(const Duration(milliseconds: 75), () {
+        if (!canvas.isConnected) return;
+        final rect = canvas.parentElement?.getBoundingClientRect();
+        if (rect == null || rect.width <= 0 || rect.height <= 0) return;
+        final vp = controller.viewport(rect.width, rect.height);
+        final cached = completedComplexPass;
+        if (cached != null &&
+            cached.matches(vp, complexParamVersion) &&
+            cached.pixelStep == 1) {
+          return;
+        }
+        startComplexPass(vp, pixelStep: 2);
+      });
+    }
+
+    draw = () {
       final init = initCanvas(canvas);
       if (init == null) return;
       final (:ctx, width: cssW, height: cssH) = init;
 
+      if (plot.isComplex && !complexAspectInitialized) {
+        complexAspectInitialized = true;
+        final spanX = plot.maxX - plot.minX;
+        final spanY = plot.maxY - plot.minY;
+        if ((spanX - spanY).abs() < 1e-9) {
+          final vp0 = controller.viewport(cssW, cssH);
+          final aspect = vp0.plotWidth / vp0.plotHeight;
+          final cx = 0.5 * (plot.minX + plot.maxX);
+          final halfX = 0.5 * spanY * aspect;
+          controller.setBounds(
+            minX: cx - halfX,
+            maxX: cx + halfX,
+            asDefault: true,
+          );
+        }
+      }
+
       final vp = controller.viewport(cssW, cssH);
-      drawGrid(ctx, vp);
 
-      for (var cIdx = 0; cIdx < plot.curves.length; cIdx++) {
-        final curve = plot.curves[cIdx];
-        final color = palette[cIdx % palette.length];
+      if (plot.isComplex && complexFn != null) {
+        final cached = completedComplexPass;
+        if (cached != null) {
+          cached.drawOnto(ctx, vp);
+        } else if (activeComplexPass == null) {
+          startComplexPass(vp, pixelStep: 2);
+        }
+        drawGrid(ctx, vp);
+      } else {
+        drawGrid(ctx, vp);
 
-        drawSampledSegments(
-          ctx,
-          vp,
-          curve.segments.map((s) => (x: s.x, y: s.y)),
-          strokeColor: color,
-          lineWidth: 2.2,
-        );
+        for (var cIdx = 0; cIdx < plot.curves.length; cIdx++) {
+          final curve = plot.curves[cIdx];
+          final color = palette[cIdx % palette.length];
 
-        if (curve.imaginarySegments.isNotEmpty) {
           drawSampledSegments(
             ctx,
             vp,
-            curve.imaginarySegments.map((s) => (x: s.x, y: s.y)),
+            curve.segments.map((s) => (x: s.x, y: s.y)),
             strokeColor: color,
-            lineWidth: 1.6,
-            lineDash: const [5, 4],
+            lineWidth: 2.2,
           );
-        }
 
-        for (final marker in curve.markers) {
-          drawPointMarker(
-            ctx,
-            vp,
-            marker.x,
-            marker.y,
-            color: color,
-            radius: 4.0,
-          );
+          if (curve.imaginarySegments.isNotEmpty) {
+            drawSampledSegments(
+              ctx,
+              vp,
+              curve.imaginarySegments.map((s) => (x: s.x, y: s.y)),
+              strokeColor: color,
+              lineWidth: 1.6,
+              lineDash: const [5, 4],
+            );
+          }
+
+          for (final marker in curve.markers) {
+            drawPointMarker(
+              ctx,
+              vp,
+              marker.x,
+              marker.y,
+              color: color,
+              radius: 4.0,
+            );
+          }
         }
       }
 
@@ -150,7 +324,7 @@ final class PlotView {
         final wy = vp.fromPixelY(hy);
 
         ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'.toJS;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'.toJS;
         ctx.lineWidth = 0.8;
         ctx.setLineDash(<JSNumber>[3.toJS, 3.toJS].toJS);
         ctx.beginPath();
@@ -161,13 +335,30 @@ final class PlotView {
         ctx.stroke();
         ctx.restore();
 
-        readout.textContent =
-            '(${formatRealDigits(wx, 4)}, ${formatRealDigits(wy, 4)})';
+        if (plot.isComplex && complexFn != null) {
+          Complex fz;
+          try {
+            fz = complexFn!(Complex(wx, wy));
+          } on Object {
+            fz = Complex.nan;
+          }
+          final re = fz.real.toDouble();
+          final im = fz.imaginary.toDouble();
+          final mag = math.sqrt(re * re + im * im);
+          final imSign = im < 0 ? '-' : '+';
+          final wySign = wy < 0 ? '-' : '+';
+          readout.textContent =
+              'z = ${formatRealDigits(wx, 3)} $wySign ${formatRealDigits(wy.abs(), 3)}i | '
+              'f(z) = ${formatRealDigits(re, 3)} $imSign ${formatRealDigits(im.abs(), 3)}i '
+              '(|f| = ${formatRealDigits(mag, 3)})';
+        } else {
+          readout.textContent =
+              '(${formatRealDigits(wx, 4)}, ${formatRealDigits(wy, 4)})';
+        }
       } else {
-        readout.textContent =
-            '${plot.variable} ∈ [${formatRealDigits(controller.minX, 4)}, ${formatRealDigits(controller.maxX, 4)}]';
+        readout.textContent = idleReadout();
       }
-    }
+    };
 
     int targetMaxPoints() {
       final w = canvas.clientWidth;
@@ -201,15 +392,19 @@ final class PlotView {
             final v = double.tryParse(slider.value) ?? 1.0;
             paramValues[param] = v;
             valSpan.textContent = '$param = ${v.toStringAsFixed(2)}';
-            if (plot.isParametric && plot.expressions.length == 2) {
+            if (plot.isComplex && plot.expressions.isNotEmpty) {
+              rebuildComplexFn();
+              scheduleComplexRerender();
+              return;
+            } else if (plot.isParametric && plot.expressions.length == 2) {
               plot = buildParametricPlotValue(
                 plot.expressions[0],
                 plot.expressions[1],
                 plot.variable,
                 plot.minT ?? 0.0,
-                plot.maxT ?? 6.283185307179586,
+                plot.maxT ?? 2 * math.pi,
                 parameterValues: paramValues,
-                steps: 720,
+                maxPoints: targetMaxPoints().clamp(2048, 4096),
               );
             } else {
               plot = buildPlotValue(
@@ -234,6 +429,10 @@ final class PlotView {
 
     Timer? resampleTimer;
     void scheduleAutoResample() {
+      if (plot.isComplex) {
+        scheduleComplexRerender();
+        return;
+      }
       if (plot.isParametric || plot.isOde || plot.expressions.isEmpty) return;
       resampleTimer?.cancel();
       resampleTimer = Timer(const Duration(milliseconds: 60), () {
@@ -273,7 +472,9 @@ final class PlotView {
       onViewportChanged: (minX, maxX, minY, maxY) => scheduleAutoResample(),
       onReset: () {
         plot = initialPlot;
-        draw();
+        complexAspectInitialized = false;
+        completedComplexPass = null;
+        cancelComplexWork();
       },
     );
 
@@ -304,9 +505,14 @@ final class PlotView {
         web.window.removeEventListener('resize', resizeListener);
         return;
       }
-      draw();
+      scheduleComplexRerender(redrawNow: true);
     }).toJS;
     web.window.addEventListener('resize', resizeListener);
+
+    _attachVerticalResizeHandle(
+      canvasWrap,
+      () => scheduleComplexRerender(redrawNow: true),
+    );
 
     web.window.requestAnimationFrame(
       ((num _) {
@@ -338,10 +544,14 @@ final class PlotView {
       ..className = 'calc-plot-legend-item';
     final swatch = web.document.createElement('span') as web.HTMLSpanElement
       ..className = 'calc-plot-swatch'
-      ..style.background = 'linear-gradient(135deg, #2563eb, #10b981, #fbbf24)';
+      ..style.background = plot.isComplex
+          ? 'conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)'
+          : 'linear-gradient(135deg, #2563eb, #10b981, #fbbf24)';
     final exprLabel = plot.expressions.isNotEmpty
-        ? 'z = ${plot.expressions.first}'
-        : 'z = f(x, y)';
+        ? (plot.isComplex
+              ? '|f(${plot.variable})| = |${plot.expressions.first}|'
+              : 'z = ${plot.expressions.first}')
+        : (plot.isComplex ? '|f(z)|' : 'z = f(x, y)');
     final text = web.document.createElement('span') as web.HTMLSpanElement
       ..textContent = exprLabel;
     item
@@ -394,6 +604,7 @@ final class PlotView {
       renderer.renderSurface(
         gridSize: s3d.gridSize,
         zValues: s3d.zValues,
+        phaseValues: s3d.phaseValues,
         minX: s3d.minX,
         maxX: s3d.maxX,
         minY: s3d.minY,
@@ -441,17 +652,28 @@ final class PlotView {
             paramValues[param] = v;
             valSpan.textContent = '$param = ${v.toStringAsFixed(2)}';
             final cur = plot.surface3d!;
-            plot = buildSurface3dPlotValue(
-              plot.expressions.first,
-              cur.xVar,
-              cur.minX,
-              cur.maxX,
-              cur.yVar,
-              cur.minY,
-              cur.maxY,
-              parameterValues: paramValues,
-              gridSize: 48,
-            );
+            plot = plot.isComplex
+                ? buildComplex3dPlotValue(
+                    plot.expressions.first,
+                    plot.variable,
+                    cur.minX,
+                    cur.maxX,
+                    cur.minY,
+                    cur.maxY,
+                    parameterValues: paramValues,
+                    gridSize: 52,
+                  )
+                : buildSurface3dPlotValue(
+                    plot.expressions.first,
+                    cur.xVar,
+                    cur.minX,
+                    cur.maxX,
+                    cur.yVar,
+                    cur.minY,
+                    cur.maxY,
+                    parameterValues: paramValues,
+                    gridSize: 48,
+                  );
             draw();
           }).toJS,
         );
@@ -477,7 +699,7 @@ final class PlotView {
         final dataUrl = WebGLSurfaceRenderer.exportPngDataUrl(canvas);
         final a = web.document.createElement('a') as web.HTMLAnchorElement
           ..href = dataUrl
-          ..download = 'plot3d.png';
+          ..download = plot.isComplex ? 'plotcomplex3d.png' : 'plot3d.png';
         web.document.body?.append(a);
         a.click();
         a.remove();
@@ -495,6 +717,8 @@ final class PlotView {
     }).toJS;
     web.window.addEventListener('resize', resizeListener);
 
+    _attachVerticalResizeHandle(canvasWrap, draw);
+
     web.window.requestAnimationFrame(
       ((num _) {
         draw();
@@ -502,6 +726,106 @@ final class PlotView {
     );
 
     return container;
+  }
+
+  static void _attachVerticalResizeHandle(
+    web.HTMLDivElement canvasWrap,
+    void Function() onResize,
+  ) {
+    final handle = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'calc-plot-resize-handle'
+      ..title = 'Drag to resize plot height (double-click to reset)';
+    handle.setAttribute('role', 'separator');
+    handle.setAttribute('aria-orientation', 'horizontal');
+    handle.setAttribute('aria-label', 'Resize plot height');
+    handle.append(
+      web.document.createElement('span') as web.HTMLSpanElement
+        ..className = 'calc-plot-resize-grip',
+    );
+    canvasWrap.after(handle);
+
+    var isResizing = false;
+    var startY = 0.0;
+    var startHeight = 0.0;
+
+    void applyResize(double clientY) {
+      final nextHeight = (startHeight + (clientY - startY)).clamp(160.0, 800.0);
+      canvasWrap.style.height = '${nextHeight.round()}px';
+      onResize();
+    }
+
+    final onMouseMove = ((web.MouseEvent e) {
+      if (!isResizing) return;
+      applyResize(e.clientY.toDouble());
+    }).toJS;
+
+    late final web.EventListener onMouseUp;
+    onMouseUp = ((web.Event _) {
+      if (!isResizing) return;
+      isResizing = false;
+      handle.classList.remove('resizing');
+      web.window.removeEventListener('mousemove', onMouseMove);
+      web.window.removeEventListener('mouseup', onMouseUp);
+    }).toJS;
+
+    handle.addEventListener(
+      'mousedown',
+      ((web.MouseEvent e) {
+        if (e.button != 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        startY = e.clientY.toDouble();
+        startHeight = canvasWrap.getBoundingClientRect().height;
+        handle.classList.add('resizing');
+        web.window.addEventListener('mousemove', onMouseMove);
+        web.window.addEventListener('mouseup', onMouseUp);
+      }).toJS,
+    );
+
+    final onTouchMove = ((web.TouchEvent e) {
+      if (!isResizing || e.touches.length == 0) return;
+      e.preventDefault();
+      final touch = e.touches.item(0);
+      if (touch != null) {
+        applyResize(touch.clientY.toDouble());
+      }
+    }).toJS;
+
+    late final web.EventListener onTouchEnd;
+    onTouchEnd = ((web.Event _) {
+      if (!isResizing) return;
+      isResizing = false;
+      handle.classList.remove('resizing');
+      web.window.removeEventListener('touchmove', onTouchMove);
+      web.window.removeEventListener('touchend', onTouchEnd);
+      web.window.removeEventListener('touchcancel', onTouchEnd);
+    }).toJS;
+
+    handle.addEventListener(
+      'touchstart',
+      ((web.TouchEvent e) {
+        if (e.touches.length != 1) return;
+        final touch = e.touches.item(0);
+        if (touch == null) return;
+        e.preventDefault();
+        isResizing = true;
+        startY = touch.clientY.toDouble();
+        startHeight = canvasWrap.getBoundingClientRect().height;
+        handle.classList.add('resizing');
+        web.window.addEventListener('touchmove', onTouchMove);
+        web.window.addEventListener('touchend', onTouchEnd);
+        web.window.addEventListener('touchcancel', onTouchEnd);
+      }).toJS,
+    );
+
+    handle.addEventListener(
+      'dblclick',
+      ((web.Event _) {
+        canvasWrap.style.height = '';
+        onResize();
+      }).toJS,
+    );
   }
 
   static web.HTMLElement _buildCompactPlotMenu({

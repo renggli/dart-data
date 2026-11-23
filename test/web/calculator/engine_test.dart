@@ -407,6 +407,67 @@ void main() {
       check(paramPlot.curves.length).equals(1);
       check(paramPlot.curves.first.segments).isNotEmpty;
 
+      // 2b. Parametric plot with undefined parameter (sliders) & omitted var
+      final paramSliderCell = eval.evaluateScroll(
+        'parametric([a * cos(t), b * sin(t)], 0, 6.28)',
+      );
+      check(paramSliderCell.value).isA<PlotValue>();
+      final paramSliderPlot = paramSliderCell.value as PlotValue;
+      check(paramSliderPlot.isParametric).isTrue;
+      check(paramSliderPlot.variable).equals('t');
+      check(paramSliderPlot.parameters).deepEquals(['a', 'b']);
+
+      // 2c. Adaptive parametric plot of zeta critical line over t = 1..50
+      final zetaParamCell = eval.evaluateScroll(
+        'parametric([re(zeta(1/2 + i * t)), im(zeta(1/2 + i * t))], t, 1, 50)',
+      );
+      check(zetaParamCell.value).isA<PlotValue>();
+      final zetaParamPlot = zetaParamCell.value as PlotValue;
+      final zetaParamPts = zetaParamPlot.curves.first.segments.fold<int>(
+        0,
+        (sum, s) => sum + s.x.length,
+      );
+      check(zetaParamPts).isGreaterThan(500);
+
+      // 2c-ii. Parametric plot with pole at t = 0 clips cleanly without starving
+      final poleParamCell = eval.evaluateScroll(
+        'parametric([1 / t, sin(t)], t, 0, 5)',
+      );
+      check(poleParamCell.value).isA<PlotValue>();
+      final poleParamPlot = poleParamCell.value as PlotValue;
+      check(poleParamPlot.minX.isFinite).isTrue;
+      check(poleParamPlot.maxX.isFinite).isTrue;
+      check(poleParamPlot.curves.first.segments).isNotEmpty;
+
+      // 2d. Dedicated complex domain-coloring plot (plotcomplex) in Scroll and RPN modes
+      final complexPlotCell = eval.evaluateScroll(
+        'plotcomplex((z^2 - 1) * (z - a - i)^2 / (z^2 + 2 + 2 * i), z, -4, 4, -3, 3)',
+      );
+      check(complexPlotCell.value).isA<PlotValue>();
+      final complexPlot = complexPlotCell.value as PlotValue;
+      check(complexPlot.isComplex).isTrue;
+      check(complexPlot.isParametric).isFalse;
+      check(complexPlot.variable).equals('z');
+      check(complexPlot.minX).equals(-4.0);
+      check(complexPlot.maxX).equals(4.0);
+      check(complexPlot.minY).equals(-3.0);
+      check(complexPlot.maxY).equals(3.0);
+      check(complexPlot.parameters).deepEquals(['a']);
+
+      // 2e. 3D complex analytic landscape (plotcomplex3d)
+      final complex3dCell = eval.evaluateScroll(
+        'plotcomplex3d((z^2 - 1) * (z - a - i)^2 / (z^2 + 2 + 2 * i), z, -3, 3, -2, 2)',
+      );
+      check(complex3dCell.value).isA<PlotValue>();
+      final complex3dPlot = complex3dCell.value as PlotValue;
+      check(complex3dPlot.isComplex).isTrue;
+      check(complex3dPlot.is3d).isTrue;
+      check(complex3dPlot.parameters).deepEquals(['a']);
+      check(complex3dPlot.surface3d!.phaseValues).isNotNull();
+      check(complex3dPlot.surface3d!.phaseValues!.length)
+          .equals(complex3dPlot.surface3d!.zValues.length);
+      check(complex3dPlot.toCanonicalText()).startsWith('plotcomplex3d(');
+
       // 3. ODE plot: ode(-y, 1, 0, 2)
       final odeCell = eval.evaluateScroll('ode(-y, 1, 0, 2)');
       check(odeCell.value).isA<PlotValue>();
@@ -668,6 +729,19 @@ void main() {
       check(rpn.stack.level(1).value.toCanonicalText()).equals('0');
       check(rpn.executeLine('[-y, x, 0] curl')).isNull;
       check(rpn.stack.level(1).value.toCanonicalText()).equals('[0, 0, 2]');
+      check(rpn.executeLine("'sin(z)' -3 3 plotcomplex")).isNull;
+      check(rpn.stack.level(1).value).isA<PlotValue>();
+      check((rpn.stack.level(1).value as PlotValue).isComplex).isTrue;
+      check((rpn.stack.level(1).value as PlotValue).minY).equals(-3.0);
+      check(rpn.executeLine("'sin(z)' -3 3 plotcomplex3d")).isNull;
+      check(rpn.stack.level(1).value).isA<PlotValue>();
+      check((rpn.stack.level(1).value as PlotValue).isComplex).isTrue;
+      check((rpn.stack.level(1).value as PlotValue).is3d).isTrue;
+      check(rpn.executeLine('[a * cos(t), b * sin(t)] 0 6.28 parametric'))
+          .isNull;
+      check(rpn.stack.level(1).value).isA<PlotValue>();
+      check((rpn.stack.level(1).value as PlotValue).parameters)
+          .deepEquals(['a', 'b']);
     });
   });
 }

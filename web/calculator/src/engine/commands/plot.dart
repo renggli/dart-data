@@ -6,7 +6,7 @@ import '../../model/value.dart';
 import '../commands.dart';
 import '../sampling.dart';
 
-/// Builds canonical plotting commands (`plot`, `plot3d`, `parametric`, `ode`).
+/// Builds canonical plotting commands (`plot`, `plotcomplex`, `plotcomplex3d`, `plot3d`, `parametric`, `ode`).
 List<Command> buildPlotCommands() => [
   Command(
     name: 'plot',
@@ -77,6 +77,87 @@ List<Command> buildPlotCommands() => [
       final a = args.length >= 3 ? expectCommandDouble(args[2], 'plot') : -5.0;
       final b = args.length >= 4 ? expectCommandDouble(args[3], 'plot') : 5.0;
       return buildPlotValue(exprs, varName, a, b);
+    },
+  ),
+  Command(
+    name: 'plotcomplex',
+    category: CommandCategory.plot,
+    signature: 'plotcomplex(expr, [z], [minRe, maxRe, minIm, maxIm])',
+    paramSpecs: const [
+      ParamSpec.expr('expr'),
+      ParamSpec.symbol('[z]'),
+      ParamSpec.optionalExpr('[minRe]'),
+      ParamSpec.optionalExpr('[maxRe]'),
+      ParamSpec.optionalExpr('[minIm]'),
+      ParamSpec.optionalExpr('[maxIm]'),
+    ],
+    minArity: 1,
+    maxArity: 6,
+    doc: 'Plots a complex function f(z) using OKLCH domain coloring with Wegert log-magnitude and phase contours.',
+    examples: const [
+      'plotcomplex((z^2 - 1) * (z - 2 - i)^2 / (z^2 + 2 + 2 * i))',
+      'plotcomplex(zeta(z), z, -20, 20, -20, 20)',
+      'plotcomplex(sin(z), z, -pi, pi)',
+    ],
+    rpnLabel: 'Plot ℂ',
+    rpnArity: 1,
+    appliesTo: (v) =>
+        v is ExprValue &&
+        !v.isEquation &&
+        (containsComplexConst(v.expr) || v.expr.freeVariables.contains('z')) &&
+        v.expr.freeVariables.length <= 1,
+    chipLabel: 'Plot ℂ',
+    buildChipCall: (id, v) =>
+        'plotcomplex(r[$id], ${primaryCommandVar(v) ?? 'z'}, -3, 3)',
+    run: (args, ctx) {
+      checkCommandArity('plotcomplex', args, 1, 6);
+      final expr = expectCommandExpr(args[0], 'plotcomplex');
+      final (:varName, :minRe, :maxRe, :minIm, :maxIm) = _resolveComplexDomain(
+        expr,
+        args,
+      );
+      return buildComplexPlotValue(expr, varName, minRe, maxRe, minIm, maxIm);
+    },
+  ),
+  Command(
+    name: 'plotcomplex3d',
+    category: CommandCategory.plot,
+    signature: 'plotcomplex3d(expr, [z], [minRe, maxRe, minIm, maxIm])',
+    paramSpecs: const [
+      ParamSpec.expr('expr'),
+      ParamSpec.symbol('[z]'),
+      ParamSpec.optionalExpr('[minRe]'),
+      ParamSpec.optionalExpr('[maxRe]'),
+      ParamSpec.optionalExpr('[minIm]'),
+      ParamSpec.optionalExpr('[maxIm]'),
+    ],
+    minArity: 1,
+    maxArity: 6,
+    doc: 'Plots a 3D analytic landscape of f(z) with height |f(z)| and OKLCH phase coloring arg(f(z)).',
+    examples: const [
+      'plotcomplex3d((z^2 - 1) * (z - 2 - i)^2 / (z^2 + 2 + 2 * i))',
+      'plotcomplex3d(gamma(z), z, -3.5, 3.5, -2.5, 2.5)',
+      'plotcomplex3d(sin(z), z, -pi, pi)',
+    ],
+    rpnLabel: 'Plot ℂ 3D',
+    rpnArity: 1,
+    appliesTo: (v) =>
+        v is ExprValue &&
+        !v.isEquation &&
+        (containsComplexConst(v.expr) || v.expr.freeVariables.contains('z')) &&
+        v.expr.freeVariables.length <= 1,
+    chipLabel: 'Plot ℂ 3D',
+    buildChipCall: (id, v) =>
+        'plotcomplex3d(r[$id], ${primaryCommandVar(v) ?? 'z'}, -3, 3)',
+    run: (args, ctx) {
+      checkCommandArity('plotcomplex3d', args, 1, 6);
+      final expr = expectCommandExpr(args[0], 'plotcomplex3d');
+      final (:varName, :minRe, :maxRe, :minIm, :maxIm) = _resolveComplexDomain(
+        expr,
+        args,
+        'plotcomplex3d',
+      );
+      return buildComplex3dPlotValue(expr, varName, minRe, maxRe, minIm, maxIm);
     },
   ),
   Command(
@@ -185,15 +266,12 @@ List<Command> buildPlotCommands() => [
           'parametric expects a 2-element vector [x(t), y(t)].',
         );
       }
-      final varName = args.length >= 2
-          ? expectCommandVarName(args[1], 'parametric')
-          : _inferPlotVariable(exprs);
-      final tMin = args.length >= 3
-          ? expectCommandDouble(args[2], 'parametric')
-          : 0.0;
-      final tMax = args.length >= 4
-          ? expectCommandDouble(args[3], 'parametric')
-          : 2 * math.pi;
+      final (:varName, :tMin, :tMax) = _resolveParametricDomain(
+        exprs,
+        args,
+        'parametric',
+        defaultMax: 2 * math.pi,
+      );
       return buildParametricPlotValue(exprs[0], exprs[1], varName, tMin, tMax);
     },
   ),
@@ -257,6 +335,117 @@ String _inferPlotVariable(List<Expr> exprs) {
     if (free.isNotEmpty) return free.first;
   }
   return 'x';
+}
+
+String _inferParametricVariable(List<Expr> exprs) {
+  for (final e in exprs) {
+    final free = e.freeVariables;
+    if (free.contains('t')) return 't';
+    if (free.contains('x')) return 'x';
+    if (free.isNotEmpty) return free.first;
+  }
+  return 't';
+}
+
+({String varName, double minRe, double maxRe, double minIm, double maxIm})
+_resolveComplexDomain(
+  Expr expr,
+  List<CalcValue> args, [
+  String commandName = 'plotcomplex',
+]) {
+  final free = expr.freeVariables;
+  final inferredVar = free.contains('z')
+      ? 'z'
+      : (free.contains('x')
+            ? 'x'
+            : (free.contains('t')
+                  ? 't'
+                  : (free.isNotEmpty ? free.first : 'z')));
+
+  if (args.length == 1) {
+    return (
+      varName: inferredVar,
+      minRe: -3.0,
+      maxRe: 3.0,
+      minIm: -3.0,
+      maxIm: 3.0,
+    );
+  }
+  if (args.length == 2) {
+    return (
+      varName: expectCommandVarName(args[1], commandName),
+      minRe: -3.0,
+      maxRe: 3.0,
+      minIm: -3.0,
+      maxIm: 3.0,
+    );
+  }
+  if (args.length == 3 &&
+      args[1] is ExprValue &&
+      (args[1] as ExprValue).expr is! Variable) {
+    final a = expectCommandDouble(args[1], commandName);
+    final b = expectCommandDouble(args[2], commandName);
+    return (varName: inferredVar, minRe: a, maxRe: b, minIm: a, maxIm: b);
+  }
+  if (args.length == 5 &&
+      args[1] is ExprValue &&
+      (args[1] as ExprValue).expr is! Variable) {
+    return (
+      varName: inferredVar,
+      minRe: expectCommandDouble(args[1], commandName),
+      maxRe: expectCommandDouble(args[2], commandName),
+      minIm: expectCommandDouble(args[3], commandName),
+      maxIm: expectCommandDouble(args[4], commandName),
+    );
+  }
+  final varName = expectCommandVarName(args[1], commandName);
+  final minRe = args.length >= 3
+      ? expectCommandDouble(args[2], commandName)
+      : -3.0;
+  final maxRe = args.length >= 4
+      ? expectCommandDouble(args[3], commandName)
+      : 3.0;
+  final minIm = args.length >= 5
+      ? expectCommandDouble(args[4], commandName)
+      : minRe;
+  final maxIm = args.length >= 6
+      ? expectCommandDouble(args[5], commandName)
+      : maxRe;
+  return (
+    varName: varName,
+    minRe: minRe,
+    maxRe: maxRe,
+    minIm: minIm,
+    maxIm: maxIm,
+  );
+}
+
+({String varName, double tMin, double tMax}) _resolveParametricDomain(
+  List<Expr> exprs,
+  List<CalcValue> args,
+  String commandName, {
+  required double defaultMax,
+}) {
+  final inferredVar = _inferParametricVariable(exprs);
+  if (args.length == 3 &&
+      args[1] is ExprValue &&
+      (args[1] as ExprValue).expr is! Variable) {
+    return (
+      varName: inferredVar,
+      tMin: expectCommandDouble(args[1], commandName),
+      tMax: expectCommandDouble(args[2], commandName),
+    );
+  }
+  final varName = args.length >= 2
+      ? expectCommandVarName(args[1], commandName)
+      : inferredVar;
+  final tMin = args.length >= 3
+      ? expectCommandDouble(args[2], commandName)
+      : 0.0;
+  final tMax = args.length >= 4
+      ? expectCommandDouble(args[3], commandName)
+      : defaultMax;
+  return (varName: varName, tMin: tMin, tMax: tMax);
 }
 
 ({String xVar, String yVar}) _inferSurfaceVars(Expr expr) {
