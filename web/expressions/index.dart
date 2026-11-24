@@ -94,9 +94,6 @@ late web.HTMLElement parseErrorCaret;
 late web.HTMLElement parseErrorText;
 
 late web.HTMLElement plotGraphHost;
-late web.HTMLInputElement rangeMinX;
-late web.HTMLInputElement rangeMaxX;
-late web.HTMLButtonElement btnZoomReset;
 
 late web.HTMLInputElement toggleFx;
 late web.HTMLInputElement toggleIm;
@@ -247,12 +244,6 @@ void initDom() {
       web.document.querySelector('#parse-error-text') as web.HTMLElement;
 
   plotGraphHost = web.document.querySelector('#plot-graph') as web.HTMLElement;
-  rangeMinX =
-      web.document.querySelector('#range-min-x') as web.HTMLInputElement;
-  rangeMaxX =
-      web.document.querySelector('#range-max-x') as web.HTMLInputElement;
-  btnZoomReset =
-      web.document.querySelector('#btn-zoom-reset') as web.HTMLButtonElement;
 
   toggleFx = web.document.querySelector('#toggle-fx') as web.HTMLInputElement;
   toggleIm = web.document.querySelector('#toggle-im') as web.HTMLInputElement;
@@ -484,8 +475,6 @@ void selectPreset(ExpressionPreset preset) {
 
   minX = preset.defaultMinX;
   maxX = preset.defaultMaxX;
-  rangeMinX.value = minX.toString();
-  rangeMaxX.value = maxX.toString();
 
   pointXStr = preset.defaultPointX;
   inputPointX.value = pointXStr;
@@ -606,45 +595,6 @@ void attachEventListeners() {
       }
     }.toJS,
   );
-
-  // Range inputs
-  rangeMinX.onChange.listen((_) {
-    final val = double.tryParse(rangeMinX.value);
-    if (val != null && val < maxX) {
-      minX = val;
-      updateImaginaryDetection();
-      detectRootsAndExtrema();
-      drawCharts();
-      updateUrlHash();
-    }
-  });
-
-  rangeMaxX.onChange.listen((_) {
-    final val = double.tryParse(rangeMaxX.value);
-    if (val != null && val > minX) {
-      maxX = val;
-      updateImaginaryDetection();
-      detectRootsAndExtrema();
-      drawCharts();
-      updateUrlHash();
-    }
-  });
-
-  btnZoomReset.onClick.listen((_) {
-    if (activePreset != null) {
-      minX = activePreset!.defaultMinX;
-      maxX = activePreset!.defaultMaxX;
-    } else {
-      minX = -5.0;
-      maxX = 5.0;
-    }
-    rangeMinX.value = minX.toString();
-    rangeMaxX.value = maxX.toString();
-    updateImaginaryDetection();
-    detectRootsAndExtrema();
-    drawCharts();
-    updateUrlHash();
-  });
 
   // Layer toggles
   void setupToggle(
@@ -1990,6 +1940,7 @@ void drawCharts() {
           color: '#3b82f6',
           width: 0.5,
           fill: const AreaFill(color: '#3b82f6', opacity: 0.22),
+          dynamicResample: false,
         ),
       );
     }
@@ -2094,8 +2045,8 @@ void drawCharts() {
       ReferenceLine(
         value: ptX,
         isVertical: true,
-        color: 'rgba(148, 163, 184, 0.45)',
-        label: 'x₀ = ',
+        color: 'rgba(148, 163, 184, 0.75)',
+        label: 'x₀ = ${formatNumber(ptX)}',
       ),
   ];
 
@@ -2196,8 +2147,6 @@ void loadFromUrlHash() {
     highlightActiveSidebarItem(null);
   }
 
-  rangeMinX.value = minX.toString();
-  rangeMaxX.value = maxX.toString();
   inputPointX.value = pointXStr;
   inputIntA.value = intAStr;
   inputIntB.value = intBStr;
@@ -2380,6 +2329,7 @@ void _renderMultivariable3dSurface(Expr expr) {
     yMax: maxX,
     nx: gridSize,
     ny: gridSize,
+    wireframe: true,
   );
   final scene = Scene3D(
     datasets: [ds],

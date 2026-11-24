@@ -99,6 +99,14 @@ Field2DDataset sampleComplexDomainGrid({
     showRaster: true,
     showVectors: false,
     rgbaPixels: pixels,
+    resampler: (nextDomain) => sampleComplexDomainGrid(
+      id: id,
+      label: label,
+      fn: fn,
+      domain: nextDomain,
+      cols: safeCols,
+      rows: safeRows,
+    ),
   );
 }
 

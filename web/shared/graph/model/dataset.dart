@@ -1,3 +1,5 @@
+import 'package:more/printer.dart';
+
 import 'style.dart';
 
 /// Interactive pointer probe coordinates in data space.
@@ -69,16 +71,28 @@ abstract class GraphDataset {
   LegendReadout? readout(GraphProbe? probe);
 }
 
-/// Formats a finite scalar concisely for HUD and legend readouts.
-String formatGraphNumber(double value) {
-  if (!value.isFinite) return value.isNaN ? 'NaN' : value.toString();
-  if (value == 0.0) return '0';
-  final abs = value.abs();
-  if (abs >= 1e5 || (abs > 0 && abs < 1e-4)) {
-    return value.toStringAsExponential(3);
+final _graphFixedPrinters = <int, FixedNumberPrinter<double>>{
+  for (var p = 0; p <= 6; p++)
+    p: FixedNumberPrinter<double>(precision: p, infinity: '∞', nan: 'NaN'),
+};
+final _graphScientificPrinter = ScientificNumberPrinter<double>(
+  precision: 3,
+  infinity: '∞',
+  nan: 'NaN',
+);
+
+/// Formats a scalar using `package:more` printers for HUD, tick, and legend readouts.
+String formatGraphNumber(double value, {int? precision}) {
+  if (value.isNaN) return 'NaN';
+  if (value.isInfinite) return value.isNegative ? '-∞' : '∞';
+  final normalized = value.abs() < 1e-12 ? 0.0 : value;
+  if (precision != null) {
+    final p = precision.clamp(0, 6);
+    return _graphFixedPrinters[p]!.print(normalized);
   }
-  final fixed = value.toStringAsFixed(4);
-  return fixed.contains('.')
-      ? fixed.replaceFirst(RegExp(r'\.?0+$'), '')
-      : fixed;
+  final abs = normalized.abs();
+  if (abs >= 1e5 || (abs > 0 && abs < 1e-4)) {
+    return _graphScientificPrinter.print(normalized);
+  }
+  return _graphFixedPrinters[4]!.print(normalized);
 }

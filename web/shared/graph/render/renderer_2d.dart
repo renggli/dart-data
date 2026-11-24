@@ -9,6 +9,7 @@ import '../model/axis.dart';
 import '../model/dataset.dart';
 import '../model/dataset_2d.dart';
 import '../model/style.dart';
+import '../sampling/sampler_2d.dart';
 
 /// Interactive 2D graph renderer using a WebGL2 raster underlay and Canvas2D HUD.
 class Renderer2D {
@@ -69,6 +70,9 @@ class Renderer2D {
   late final JSFunction _onWheelJs;
   late final JSFunction _onDblClickJs;
 
+  /// Currently active scene (reflecting any viewport resampling).
+  Scene2D get scene => _scene;
+
   /// Updates the active 2D scene and resets viewport bounds.
   void setScene(Scene2D scene, {bool preserveView = false}) {
     _scene = scene;
@@ -78,6 +82,10 @@ class Renderer2D {
     _defaultBounds = _padBounds(computed);
     if (!preserveView) {
       _viewBounds = _applyEqualAspect(_defaultBounds);
+      if (_viewBounds.xMin < computed.xMin ||
+          _viewBounds.xMax > computed.xMax) {
+        _resampleForViewport();
+      }
     }
     _syncTextures();
     render();
@@ -98,6 +106,7 @@ class Renderer2D {
   /// Resets pan/zoom back to the scene's initial bounds.
   void resetView() {
     _viewBounds = _applyEqualAspect(_defaultBounds);
+    _resampleForViewport();
     render();
   }
 
@@ -123,6 +132,7 @@ class Renderer2D {
       y2Min: y2Min,
       y2Max: y2Max,
     );
+    _resampleForViewport();
     render();
   }
 
@@ -189,6 +199,55 @@ class Renderer2D {
     }
     _glCanvas.remove();
     _hudCanvas.remove();
+  }
+
+  void _resampleForViewport() {
+    if (_scene.datasets.isEmpty || !_viewBounds.isValid) return;
+    var changed = false;
+    var texturesDirty = false;
+    final updated = <Dataset2D>[];
+
+    for (final ds in _scene.datasets) {
+      if (ds is Function2DDataset && ds.evaluator != null) {
+        final resampled = sampleFunction2D(
+          id: ds.id,
+          label: ds.label,
+          fn: ds.evaluator!,
+          xMin: _viewBounds.xMin,
+          xMax: _viewBounds.xMax,
+          color: ds.color,
+          width: ds.width,
+          dashed: ds.dashed,
+          mode: ds.mode,
+          yAxis: ds.yAxis,
+          fill: ds.fill,
+          markers: ds.markers,
+          references: ds.references,
+        );
+        updated.add(resampled);
+        changed = true;
+      } else if (ds is Field2DDataset && ds.resampler != null) {
+        final resampled = ds.resampler!(_viewBounds);
+        updated.add(resampled);
+        changed = true;
+        if (resampled.showRaster) texturesDirty = true;
+      } else {
+        updated.add(ds);
+      }
+    }
+
+    if (changed) {
+      _scene = Scene2D(
+        datasets: updated,
+        xAxis: _scene.xAxis,
+        yAxis: _scene.yAxis,
+        y2Axis: _scene.y2Axis,
+        initialBounds: _scene.initialBounds,
+        equalAspect: _scene.equalAspect,
+        references: _scene.references,
+      );
+      if (texturesDirty) _syncTextures();
+    }
   }
 
   bool _isVisible(Dataset2D ds) => _visibilityOverrides[ds.id] ?? ds.visible;
@@ -390,10 +449,27 @@ void main() {
     );
     ctx.scale(_dpr, _dpr);
 
-    // Clip plot area for curves, fields, and references.
+    // Clip plot area for curves, fields, and references, expanding vertically
+    // by half the maximum stroke width so lines at yMin/yMax are not clipped.
+    var maxLineWidth = 2.0;
+    for (final ds in _scene.datasets) {
+      if (!_isVisible(ds)) continue;
+      final w = switch (ds) {
+        Function2DDataset() => ds.width,
+        Parametric2DDataset() => ds.width,
+        Field2DDataset() => 1.5,
+      };
+      if (w > maxLineWidth) maxLineWidth = w;
+    }
+    final clipPadY = maxLineWidth * 0.5 + 0.5;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(plot.left, plot.top, plot.width, plot.height);
+    ctx.rect(
+      plot.left,
+      plot.top - clipPadY,
+      plot.width,
+      plot.height + clipPadY * 2.0,
+    );
     ctx.clip();
 
     // Draw grid and zero axes.
@@ -466,8 +542,15 @@ void main() {
       }
     }
 
+    final placedVerticalLabels = <({double x, double y, double w})>[];
     for (final ref in _scene.references) {
-      _drawReferenceLine(ctx, ref, plot, YAxisSide.left);
+      _drawReferenceLine(
+        ctx,
+        ref,
+        plot,
+        YAxisSide.left,
+        placedVerticalLabels: placedVerticalLabels,
+      );
     }
 
     // Hover crosshair.
@@ -490,25 +573,31 @@ void main() {
 
     ctx.restore(); // end clip
 
-    // Frame border & ticks.
-    ctx.strokeStyle = _theme.axisColor.toJS;
-    ctx.lineWidth = 1.0;
-    ctx.strokeRect(plot.left, plot.top, plot.width, plot.height);
-
+    // Ticks & axis labels.
     ctx.fillStyle = _theme.mutedTextColor.toJS;
     ctx.font = '11px system-ui, -apple-system, sans-serif';
+    final xTickPrec = _tickPrecision(xTicks);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (final x in xTicks) {
       final px = _dataToPxX(x, plot);
-      ctx.fillText(formatGraphNumber(x), px, plot.top + plot.height + 5);
+      ctx.fillText(
+        formatGraphNumber(x, precision: xTickPrec),
+        px,
+        plot.top + plot.height + 5,
+      );
     }
 
+    final yTickPrec = _tickPrecision(yTicks);
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     for (final y in yTicks) {
       final py = _dataToPxY(y, plot, YAxisSide.left);
-      ctx.fillText(formatGraphNumber(y), plot.left - 6, py);
+      ctx.fillText(
+        formatGraphNumber(y, precision: yTickPrec),
+        plot.left - 6,
+        py,
+      );
     }
 
     if (_viewBounds.y2Min != null && _viewBounds.y2Max != null) {
@@ -518,10 +607,15 @@ void main() {
         5,
         isInteger: _scene.y2Axis?.isInteger ?? false,
       );
+      final y2TickPrec = _tickPrecision(y2Ticks);
       ctx.textAlign = 'left';
       for (final y2 in y2Ticks) {
         final py = _dataToPxY(y2, plot, YAxisSide.right);
-        ctx.fillText(formatGraphNumber(y2), plot.left + plot.width + 6, py);
+        ctx.fillText(
+          formatGraphNumber(y2, precision: y2TickPrec),
+          plot.left + plot.width + 6,
+          py,
+        );
       }
     }
 
@@ -544,6 +638,17 @@ void main() {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(_scene.yAxis.label, 0, 0);
+      ctx.restore();
+    }
+
+    if (_scene.y2Axis != null && _scene.y2Axis!.label.isNotEmpty) {
+      ctx.save();
+      ctx.fillStyle = _theme.textColor.toJS;
+      ctx.translate(_width - 14, plot.top + plot.height * 0.5);
+      ctx.rotate(math.pi * 0.5);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(_scene.y2Axis!.label, 0, 0);
       ctx.restore();
     }
 
@@ -858,12 +963,13 @@ void main() {
     web.CanvasRenderingContext2D ctx,
     ReferenceLine ref,
     _PlotRect plot,
-    YAxisSide yAxis,
-  ) {
+    YAxisSide yAxis, {
+    List<({double x, double y, double w})>? placedVerticalLabels,
+  }) {
     if (!ref.value.isFinite) return;
     ctx.save();
     ctx.strokeStyle = ref.color.toJS;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.25;
     if (ref.dashed) {
       ctx.setLineDash([5.0.toJS, 4.0.toJS].toJS);
     }
@@ -872,12 +978,66 @@ void main() {
       final px = _dataToPxX(ref.value, plot);
       ctx.moveTo(px, plot.top);
       ctx.lineTo(px, plot.top + plot.height);
+      ctx.stroke();
+
+      final label = ref.label;
+      if (label != null &&
+          label.isNotEmpty &&
+          px >= plot.left - 2 &&
+          px <= plot.left + plot.width + 2) {
+        ctx.setLineDash(<JSNumber>[].toJS);
+        ctx.font = '600 11px system-ui, -apple-system, sans-serif';
+        final textW = ctx.measureText(label).width;
+        const padX = 5.0;
+        const boxH = 16.0;
+        final boxW = textW + padX * 2;
+        var lx = px + 4;
+        if (lx + boxW > plot.left + plot.width - 2) {
+          lx = px - boxW - 4;
+        }
+        var ly = plot.top + 6;
+        if (placedVerticalLabels != null) {
+          for (final prev in placedVerticalLabels) {
+            final overlapX = lx < prev.x + prev.w + 4 && lx + boxW + 4 > prev.x;
+            final overlapY = (ly - prev.y).abs() < boxH + 3;
+            if (overlapX && overlapY) {
+              ly = prev.y + boxH + 4;
+            }
+          }
+          placedVerticalLabels.add((x: lx, y: ly, w: boxW));
+        }
+
+        ctx.fillStyle = _theme.surface.toJS;
+        ctx.globalAlpha = 0.88;
+        ctx.beginPath();
+        ctx.roundRect(lx, ly, boxW, boxH, 4.0.toJS);
+        ctx.fill();
+
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = ref.color.toJS;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, lx + padX, ly + boxH * 0.5);
+      }
     } else {
       final py = _dataToPxY(ref.value, plot, yAxis);
       ctx.moveTo(plot.left, py);
       ctx.lineTo(plot.left + plot.width, py);
+      ctx.stroke();
+
+      final label = ref.label;
+      if (label != null &&
+          label.isNotEmpty &&
+          py >= plot.top - 2 &&
+          py <= plot.top + plot.height + 2) {
+        ctx.setLineDash(<JSNumber>[].toJS);
+        ctx.font = '600 11px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = ref.color.toJS;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(label, plot.left + 6, py - 3);
+      }
     }
-    ctx.stroke();
     ctx.restore();
   }
 
@@ -905,20 +1065,23 @@ void main() {
   }
 
   Bounds2D _padBounds(Bounds2D b) {
+    if (_scene.initialBounds != null && _scene.initialBounds!.isValid) {
+      return b;
+    }
     final padX = b.xSpan * 0.05;
     final padY = b.ySpan * 0.08;
     var y2Min = b.y2Min;
     var y2Max = b.y2Max;
     if (y2Min != null && y2Max != null) {
       final padY2 = (y2Max - y2Min) * 0.08;
-      y2Min -= padY2;
-      y2Max += padY2;
+      if (_scene.y2Axis?.min == null) y2Min -= padY2;
+      if (_scene.y2Axis?.max == null) y2Max += padY2;
     }
     return Bounds2D(
-      xMin: b.xMin - padX,
-      xMax: b.xMax + padX,
-      yMin: b.yMin - padY,
-      yMax: b.yMax + padY,
+      xMin: _scene.xAxis.min ?? (b.xMin - padX),
+      xMax: _scene.xAxis.max ?? (b.xMax + padX),
+      yMin: _scene.yAxis.min ?? (b.yMin - padY),
+      yMax: _scene.yAxis.max ?? (b.yMax + padY),
       y2Min: y2Min,
       y2Max: y2Max,
     );
@@ -977,6 +1140,7 @@ void main() {
           y2Min: y2Min,
           y2Max: y2Max,
         );
+        _resampleForViewport();
         render();
         return;
       }
@@ -1056,6 +1220,7 @@ void main() {
         y2Min: y2Min,
         y2Max: y2Max,
       );
+      _resampleForViewport();
       render();
     }).toJS;
 
@@ -1092,6 +1257,14 @@ class _TextureEntry {
   final web.WebGLTexture texture;
   final int cols;
   final int rows;
+}
+
+int _tickPrecision(List<double> ticks) {
+  if (ticks.length < 2) return 0;
+  final step = (ticks[1] - ticks[0]).abs();
+  if (step <= 0 || !step.isFinite) return 0;
+  if (step >= 1.0 && (step - step.roundToDouble()).abs() < 1e-9) return 0;
+  return (-(math.log(step) / math.ln10).floor()).clamp(0, 6);
 }
 
 List<double> _computeTicks(

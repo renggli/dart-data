@@ -169,72 +169,62 @@
 /* Accent-specific active tinting for maximum clarity */
 #toggle-lbl-fx .layer-dot { color: var(--accent-blue); background-color: var(--accent-blue); }
 #toggle-lbl-fx.active {
-  background-color: rgba(59, 130, 246, 0.16);
-  border-color: rgba(59, 130, 246, 0.45);
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: var(--accent-blue-tint);
+  border-color: rgba(59, 130, 246, 0.35);
 }
 
-#toggle-lbl-tangent .layer-dot { color: #f8fafc; background-color: #f8fafc; }
+#toggle-lbl-tangent .layer-dot { color: #94a3b8; background-color: #94a3b8; }
 #toggle-lbl-tangent.active {
-  background-color: rgba(248, 250, 252, 0.15);
-  border-color: rgba(248, 250, 252, 0.45);
-  box-shadow: 0 0 8px rgba(248, 250, 252, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.35);
 }
 
 #toggle-lbl-dfx .layer-dot { color: var(--accent-red); background-color: var(--accent-red); }
 #toggle-lbl-dfx.active {
-  background-color: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.45);
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: var(--accent-red-tint);
+  border-color: rgba(239, 68, 68, 0.35);
 }
 
 #toggle-lbl-d2fx .layer-dot { color: var(--accent-purple); background-color: var(--accent-purple); }
 #toggle-lbl-d2fx.active {
-  background-color: rgba(168, 85, 247, 0.16);
-  border-color: rgba(168, 85, 247, 0.45);
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: var(--accent-purple-tint);
+  border-color: rgba(168, 85, 247, 0.35);
 }
 
 #toggle-lbl-d3fx .layer-dot { color: var(--accent-pink); background-color: var(--accent-pink); }
 #toggle-lbl-d3fx.active {
-  background-color: rgba(236, 72, 153, 0.16);
-  border-color: rgba(236, 72, 153, 0.45);
-  box-shadow: 0 0 8px rgba(236, 72, 153, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: rgba(236, 72, 153, 0.12);
+  border-color: rgba(236, 72, 153, 0.35);
 }
 
 #toggle-lbl-integral .layer-dot { color: var(--accent-emerald); background-color: var(--accent-emerald); }
 #toggle-lbl-integral.active {
-  background-color: rgba(16, 185, 129, 0.16);
-  border-color: rgba(16, 185, 129, 0.45);
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: var(--accent-emerald-tint);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 #toggle-lbl-taylor .layer-dot { color: var(--accent-amber); background-color: var(--accent-amber); }
 #toggle-lbl-taylor.active {
-  background-color: rgba(245, 158, 11, 0.16);
-  border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: var(--accent-amber-tint);
+  border-color: rgba(245, 158, 11, 0.35);
 }
 
 #toggle-lbl-roots .layer-dot { color: var(--accent-emerald); background-color: var(--accent-emerald); }
 #toggle-lbl-roots.active {
-  background-color: rgba(16, 185, 129, 0.16);
-  border-color: rgba(16, 185, 129, 0.45);
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: var(--accent-emerald-tint);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 #toggle-lbl-min .layer-dot { color: var(--accent-cyan); background-color: var(--accent-cyan); }
 #toggle-lbl-min.active {
-  background-color: rgba(6, 182, 212, 0.16);
-  border-color: rgba(6, 182, 212, 0.45);
-  box-shadow: 0 0 8px rgba(6, 182, 212, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: var(--accent-cyan-tint);
+  border-color: rgba(6, 182, 212, 0.35);
 }
 
 #toggle-lbl-max .layer-dot { color: var(--accent-amber); background-color: var(--accent-amber); }
 #toggle-lbl-max.active {
-  background-color: rgba(245, 158, 11, 0.16);
-  border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-color: var(--accent-amber-tint);
+  border-color: rgba(245, 158, 11, 0.35);
 }
 
 /* Sidebar Non-wrapping Labels & Formulas */

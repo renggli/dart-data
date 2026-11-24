@@ -59,6 +59,9 @@ Map<String, Object?> valueToJson(CalcValue value) => switch (value) {
     :final showGrid,
     :final showMarkers,
     :final showContours,
+    :final plotKind,
+    :final yVariable,
+    :final gridSize,
   ) =>
     {
       'type': 'plot',
@@ -81,6 +84,9 @@ Map<String, Object?> valueToJson(CalcValue value) => switch (value) {
       'showGrid': showGrid,
       'showMarkers': showMarkers,
       'showContours': showContours,
+      'plotKind': plotKind.name,
+      'yVariable': ?yVariable,
+      'gridSize': gridSize,
     },
   InfoValue(:final message, :final title) => {
     'type': 'info',
@@ -170,6 +176,12 @@ CalcValue valueFromJson(Map<String, Object?> json) {
         showGrid: json['showGrid'] as bool? ?? true,
         showMarkers: json['showMarkers'] as bool? ?? true,
         showContours: json['showContours'] as bool? ?? true,
+        plotKind: PlotKind.values.firstWhere(
+          (k) => k.name == json['plotKind'],
+          orElse: () => PlotKind.function2d,
+        ),
+        yVariable: json['yVariable'] as String?,
+        gridSize: (json['gridSize'] as num?)?.toInt() ?? 48,
       );
     case 'info':
       return InfoValue(

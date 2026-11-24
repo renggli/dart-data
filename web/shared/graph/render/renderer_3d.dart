@@ -66,6 +66,7 @@ class Renderer3D {
 
   web.WebGLProgram? _meshProgram;
   web.WebGLProgram? _lineProgram;
+  web.WebGLProgram? _wireProgram;
   final Map<String, _SurfaceMeshBuffers> _surfaceMeshes =
       <String, _SurfaceMeshBuffers>{};
   final Map<String, _LineBuffers> _lineBuffers = <String, _LineBuffers>{};
@@ -175,6 +176,7 @@ class Renderer3D {
     if (gl != null) {
       if (_meshProgram != null) gl.deleteProgram(_meshProgram);
       if (_lineProgram != null) gl.deleteProgram(_lineProgram);
+      if (_wireProgram != null) gl.deleteProgram(_wireProgram);
     }
     _glCanvas.remove();
     _hudCanvas.remove();
@@ -230,8 +232,24 @@ void main() {
   outColor = vec4(vColor, 1.0);
 }''';
 
+    const wireVert = '''#version 300 es
+uniform mat4 uMvp;
+in vec3 aPos;
+void main() {
+  gl_Position = uMvp * vec4(aPos, 1.0);
+}''';
+
+    const wireFrag = '''#version 300 es
+precision mediump float;
+uniform vec4 uColor;
+out vec4 outColor;
+void main() {
+  outColor = uColor;
+}''';
+
     _meshProgram = compileProgram(gl, meshVert, meshFrag);
     _lineProgram = compileProgram(gl, lineVert, lineFrag);
+    _wireProgram = compileProgram(gl, wireVert, wireFrag);
   }
 
   void _clearGpuBuffers() {
@@ -545,6 +563,9 @@ void main() {
       final aNormal = gl.getAttribLocation(meshProg, 'aNormal');
       final aColor = gl.getAttribLocation(meshProg, 'aColor');
 
+      gl.enable(web.WebGLRenderingContext.POLYGON_OFFSET_FILL);
+      gl.polygonOffset(1.0, 1.0);
+
       for (final ds in _scene.datasets) {
         if (!_isVisible(ds) || ds is! Surface3DDataset) continue;
         final mesh = _surfaceMeshes[ds.id];
@@ -592,6 +613,53 @@ void main() {
           0,
         );
       }
+      gl.disable(web.WebGLRenderingContext.POLYGON_OFFSET_FILL);
+    }
+
+    final wireProg = _wireProgram;
+    if (wireProg != null) {
+      gl.enable(web.WebGLRenderingContext.BLEND);
+      gl.blendFunc(
+        web.WebGLRenderingContext.SRC_ALPHA,
+        web.WebGLRenderingContext.ONE_MINUS_SRC_ALPHA,
+      );
+      gl.useProgram(wireProg);
+      final uMvp = gl.getUniformLocation(wireProg, 'uMvp');
+      final uColor = gl.getUniformLocation(wireProg, 'uColor');
+      gl.uniformMatrix4fv(uMvp, false, mvp.toJS);
+      gl.uniform4f(uColor, 0.06, 0.09, 0.16, 0.28);
+      final aPos = gl.getAttribLocation(wireProg, 'aPos');
+
+      for (final ds in _scene.datasets) {
+        if (!_isVisible(ds) || ds is! Surface3DDataset) continue;
+        final mesh = _surfaceMeshes[ds.id];
+        if (mesh == null || mesh.wireIbo == null || mesh.wireCount == 0) {
+          continue;
+        }
+        gl.bindBuffer(web.WebGLRenderingContext.ARRAY_BUFFER, mesh.vbo);
+        if (aPos >= 0) {
+          gl.enableVertexAttribArray(aPos);
+          gl.vertexAttribPointer(
+            aPos,
+            3,
+            web.WebGLRenderingContext.FLOAT,
+            false,
+            36,
+            0,
+          );
+        }
+        gl.bindBuffer(
+          web.WebGLRenderingContext.ELEMENT_ARRAY_BUFFER,
+          mesh.wireIbo,
+        );
+        gl.drawElements(
+          web.WebGLRenderingContext.LINES,
+          mesh.wireCount,
+          web.WebGLRenderingContext.UNSIGNED_INT,
+          0,
+        );
+      }
+      gl.disable(web.WebGLRenderingContext.BLEND);
     }
 
     final lineProg = _lineProgram;
@@ -689,6 +757,28 @@ void main() {
       ctx.moveTo(p0.x, p0.y);
       ctx.lineTo(p1.x, p1.y);
       ctx.stroke();
+    }
+
+    // Floor gridlines on z = -1 plane.
+    const gridSteps = 5;
+    for (var i = 1; i < gridSteps; i++) {
+      final t = -1.0 + 2.0 * (i / gridSteps);
+      final x0 = _project(t, -1, -1, mvp);
+      final x1 = _project(t, 1, -1, mvp);
+      if (x0 != null && x1 != null) {
+        ctx.beginPath();
+        ctx.moveTo(x0.x, x0.y);
+        ctx.lineTo(x1.x, x1.y);
+        ctx.stroke();
+      }
+      final y0 = _project(-1, t, -1, mvp);
+      final y1 = _project(1, t, -1, mvp);
+      if (y0 != null && y1 != null) {
+        ctx.beginPath();
+        ctx.moveTo(y0.x, y0.y);
+        ctx.lineTo(y1.x, y1.y);
+        ctx.stroke();
+      }
     }
 
     // Highlighted primary X, Y, Z axes along bottom/side edges.

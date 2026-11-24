@@ -23,6 +23,7 @@ Function2DDataset sampleFunction2D({
   AreaFill? fill,
   List<PointMarker> markers = const <PointMarker>[],
   List<ReferenceLine> references = const <ReferenceLine>[],
+  bool dynamicResample = true,
 }) {
   final count = math.max(8, baseSamples);
   final xs = <double>[];
@@ -101,6 +102,7 @@ Function2DDataset sampleFunction2D({
     fill: fill,
     markers: markers,
     references: references,
+    evaluator: dynamicResample ? fn : null,
   );
 }
 
@@ -211,6 +213,15 @@ Field2DDataset sampleScalarField2D({
     rgbaPixels: pixels,
     minLabel: zMin.isFinite ? formatGraphNumber(zMin) : '',
     maxLabel: zMax.isFinite ? formatGraphNumber(zMax) : '',
+    resampler: (nextDomain) => sampleScalarField2D(
+      id: id,
+      label: label,
+      fn: fn,
+      domain: nextDomain,
+      cols: safeCols,
+      rows: safeRows,
+      colormap: colormap,
+    ),
   );
 }
 
@@ -284,6 +295,16 @@ Field2DDataset sampleVectorField2D({
     rgbaPixels: pixels,
     minLabel: '0',
     maxLabel: formatGraphNumber(maxMag),
+    resampler: (nextDomain) => sampleVectorField2D(
+      id: id,
+      label: label,
+      fn: fn,
+      domain: nextDomain,
+      cols: safeCols,
+      rows: safeRows,
+      colormap: colormap,
+      showRaster: showRaster,
+    ),
   );
 }
 

@@ -162,6 +162,7 @@ final List<Command> plotCommands = [
         maxT: maxT,
         title: args.stringOrNull('title'),
         showGrid: args.boolVal('grid', fallback: true),
+        plotKind: PlotKind.parametric2d,
         scene2d: scene,
       );
     },
@@ -224,6 +225,9 @@ final List<Command> plotCommands = [
         minY: yFrom,
         maxY: yTo,
         title: args.stringOrNull('title'),
+        plotKind: PlotKind.surface3d,
+        yVariable: yVar,
+        gridSize: grid,
         scene3d: scene,
       );
     },
@@ -293,6 +297,7 @@ final List<Command> plotCommands = [
         isComplex: true,
         showContours: args.boolVal('contours', fallback: true),
         title: args.stringOrNull('title'),
+        plotKind: PlotKind.complex2d,
         scene2d: scene,
       );
     },
@@ -358,6 +363,8 @@ final List<Command> plotCommands = [
         maxY: imTo,
         isComplex: true,
         title: args.stringOrNull('title'),
+        plotKind: PlotKind.complex3d,
+        gridSize: grid,
         scene3d: scene,
       );
     },
@@ -438,6 +445,7 @@ final List<Command> plotCommands = [
         maxY: b.yMax,
         isOde: true,
         title: args.stringOrNull('title'),
+        plotKind: PlotKind.ode2d,
         scene2d: scene,
       );
     },
@@ -503,6 +511,9 @@ final List<Command> plotCommands = [
         minY: yFrom,
         maxY: yTo,
         title: args.stringOrNull('title'),
+        plotKind: PlotKind.vectorField2d,
+        yVariable: yVar,
+        gridSize: grid,
         scene2d: scene,
       );
     },
@@ -562,6 +573,9 @@ final List<Command> plotCommands = [
         minY: yFrom,
         maxY: yTo,
         title: args.stringOrNull('title'),
+        plotKind: PlotKind.heatmap2d,
+        yVariable: yVar,
+        gridSize: grid,
         scene2d: scene,
       );
     },
@@ -634,6 +648,9 @@ final List<Command> plotCommands = [
         minY: from,
         maxY: to,
         title: args.stringOrNull('title'),
+        plotKind: PlotKind.vectorField3d,
+        yVariable: yVar,
+        gridSize: grid,
         scene3d: scene,
       );
     },

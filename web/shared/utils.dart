@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'package:data/linear.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
+import 'package:more/printer.dart';
 import 'package:web/web.dart' as web;
 
 /// Checks whether an [element] is currently hidden.
@@ -238,7 +239,13 @@ void initGlobalCopyHandler() {
   );
 }
 
-/// Prettily formats numeric values, handling NaN, Infinities, and negative zero.
+final _fixedIntPrinter = FixedNumberPrinter<num>(
+  precision: 0,
+  infinity: '∞',
+  nan: 'Undefined',
+);
+
+/// Prettily formats numeric values using `package:more` printers.
 String formatNumber(num value, {int precision = 4}) {
   if (value.isNaN) return 'Undefined';
   if (value.isInfinite) return value.isNegative ? '-∞' : '∞';
@@ -246,9 +253,13 @@ String formatNumber(num value, {int precision = 4}) {
   if (value == DataType.integer.safeMax) return '∞';
   if (value.abs() < 1e-12) return '0';
   if (value % 1 == 0 && value.abs() < 1e12) {
-    return value.toInt().toString();
+    return _fixedIntPrinter.print(value.toInt());
   }
-  return value.toStringAsFixed(precision);
+  return FixedNumberPrinter<num>(
+    precision: precision,
+    infinity: '∞',
+    nan: 'Undefined',
+  ).print(value);
 }
 
 /// Safe getter for dynamic computations that might throw exceptions or be undefined.

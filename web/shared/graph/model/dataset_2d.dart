@@ -111,6 +111,7 @@ final class Function2DDataset extends Dataset2D {
     this.fill,
     this.markers = const <PointMarker>[],
     this.references = const <ReferenceLine>[],
+    this.evaluator,
   });
 
   /// Sampled X coordinates.
@@ -139,6 +140,9 @@ final class Function2DDataset extends Dataset2D {
 
   /// Optional reference lines associated with this dataset.
   final List<ReferenceLine> references;
+
+  /// Optional evaluator used to resample when the viewport bounds change.
+  final double Function(double x)? evaluator;
 
   @override
   LegendSwatch get swatch =>
@@ -197,8 +201,17 @@ final class Function2DDataset extends Dataset2D {
 
   /// Evaluates or interpolates the series at [x], or returns `null` if out of range.
   double? evaluateAt(double x) {
+    if (!x.isFinite) return null;
+    if (evaluator != null) {
+      try {
+        final y = evaluator!(x);
+        return y.isFinite ? y : null;
+      } catch (_) {
+        return null;
+      }
+    }
     final n = math.min(xs.length, ys.length);
-    if (n == 0 || !x.isFinite) return null;
+    if (n == 0) return null;
 
     if (mode == CurveRenderMode.scatter || mode == CurveRenderMode.stem) {
       var bestIdx = -1;
@@ -386,6 +399,7 @@ final class Field2DDataset extends Dataset2D {
     this.rgbaPixels,
     this.minLabel = '',
     this.maxLabel = '',
+    this.resampler,
     super.visible = true,
     super.yAxis = YAxisSide.left,
   });
@@ -419,6 +433,9 @@ final class Field2DDataset extends Dataset2D {
 
   /// High-end label for gradient swatch.
   final String maxLabel;
+
+  /// Optional callback to resample this field when viewport bounds change.
+  final Field2DDataset Function(Bounds2D domain)? resampler;
 
   @override
   LegendSwatch get swatch => colormap == Colormap.oklchPhase
@@ -499,17 +516,34 @@ class Scene2D {
     if (initialBounds != null && initialBounds!.isValid) {
       return initialBounds;
     }
-    final datasetBounds = Bounds2D.union(
-      datasets.where((d) => d.visible).map((d) => d.bounds),
+    final visible = datasets.where((d) => d.visible).toList(growable: false);
+    if (visible.isEmpty) return null;
+
+    final leftBounds = Bounds2D.union(
+      visible.where((d) => d.yAxis == YAxisSide.left).map((d) => d.bounds),
     );
-    if (datasetBounds == null) return null;
+    final rightBounds = Bounds2D.union(
+      visible.where((d) => d.yAxis == YAxisSide.right).map((d) => d.bounds),
+    );
+
+    final xMin =
+        xAxis.min ?? leftBounds?.xMin ?? rightBounds?.xMin ?? double.nan;
+    final xMax =
+        xAxis.max ?? leftBounds?.xMax ?? rightBounds?.xMax ?? double.nan;
+    final yMin = yAxis.min ?? leftBounds?.yMin ?? 0.0;
+    final yMax = yAxis.max ?? leftBounds?.yMax ?? 1.0;
+
+    if (!xMin.isFinite || !xMax.isFinite || !yMin.isFinite || !yMax.isFinite) {
+      return null;
+    }
+
     return Bounds2D(
-      xMin: xAxis.min ?? datasetBounds.xMin,
-      xMax: xAxis.max ?? datasetBounds.xMax,
-      yMin: yAxis.min ?? datasetBounds.yMin,
-      yMax: yAxis.max ?? datasetBounds.yMax,
-      y2Min: y2Axis?.min ?? datasetBounds.y2Min,
-      y2Max: y2Axis?.max ?? datasetBounds.y2Max,
+      xMin: xMin,
+      xMax: xMax,
+      yMin: yMin,
+      yMax: yMax,
+      y2Min: y2Axis?.min ?? rightBounds?.y2Min,
+      y2Max: y2Axis?.max ?? rightBounds?.y2Max,
     );
   }
 }

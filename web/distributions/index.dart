@@ -19,9 +19,8 @@ final List<num> generatedSamples = [];
 final List<void Function()> _paramSyncCallbacks = [];
 bool isAppInitialized = false;
 
-// Interactive graph widgets
-GraphWidget? pdfGraph;
-GraphWidget? cdfGraph;
+// Interactive graph widget
+GraphWidget? distGraph;
 
 // DOM references
 late web.HTMLElement continuousGroup;
@@ -40,8 +39,7 @@ late web.HTMLElement valSkewness;
 late web.HTMLElement valKurtosis;
 late web.HTMLElement valBounds;
 
-late web.HTMLElement pdfGraphHost;
-late web.HTMLElement cdfGraphHost;
+late web.HTMLElement distGraphHost;
 
 late web.HTMLButtonElement btnSample1;
 late web.HTMLButtonElement btnSample10;
@@ -92,8 +90,7 @@ void main() {
   valKurtosis = web.document.querySelector('#val-kurtosis') as web.HTMLElement;
   valBounds = web.document.querySelector('#val-bounds') as web.HTMLElement;
 
-  pdfGraphHost = web.document.querySelector('#pdf-graph') as web.HTMLElement;
-  cdfGraphHost = web.document.querySelector('#cdf-graph') as web.HTMLElement;
+  distGraphHost = web.document.querySelector('#dist-graph') as web.HTMLElement;
 
   btnSample1 =
       web.document.querySelector('#btn-sample-1') as web.HTMLButtonElement;
@@ -147,8 +144,7 @@ void main() {
   buildSidebar();
   setupSidebarToggle(
     onToggled: () {
-      pdfGraph?.resize();
-      cdfGraph?.resize();
+      distGraph?.resize();
     },
   );
 
@@ -682,7 +678,7 @@ Map<String, double> getGraphBounds() {
   return {'min': minX, 'max': maxX};
 }
 
-/// Renders PDF/PMF and CDF scenes into [GraphWidget] instances.
+/// Renders PDF/PMF and CDF together in a single dual-axis [GraphWidget].
 void drawCharts() {
   final bounds = getGraphBounds();
   final minX = bounds['min']!;
@@ -695,8 +691,8 @@ void drawCharts() {
       ReferenceLine(
         value: meanVal,
         isVertical: true,
-        label: 'μ',
-        color: 'rgba(239, 68, 68, 0.7)',
+        label: 'Mean μ',
+        color: 'rgba(239, 68, 68, 0.85)',
       ),
     );
   }
@@ -706,8 +702,8 @@ void drawCharts() {
       ReferenceLine(
         value: medianVal,
         isVertical: true,
-        label: 'Med',
-        color: 'rgba(16, 185, 129, 0.7)',
+        label: 'Median',
+        color: 'rgba(16, 185, 129, 0.85)',
       ),
     );
   }
@@ -718,12 +714,12 @@ void drawCharts() {
         value: modeVal,
         isVertical: true,
         label: 'Mode',
-        color: 'rgba(168, 85, 247, 0.7)',
+        color: 'rgba(168, 85, 247, 0.85)',
       ),
     );
   }
 
-  final pdfDatasets = <Dataset2D>[];
+  final datasets = <Dataset2D>[];
   if (generatedSamples.isNotEmpty) {
     final n = generatedSamples.length;
     if (activeDef.isContinuous) {
@@ -736,7 +732,7 @@ void drawCharts() {
           bins[idx]++;
         }
       }
-      pdfDatasets.add(
+      datasets.add(
         Function2DDataset(
           id: 'hist',
           label: 'Empirical',
@@ -758,7 +754,7 @@ void drawCharts() {
       }
       final sortedKeys = freqMap.keys.toList()..sort();
       if (sortedKeys.isNotEmpty) {
-        pdfDatasets.add(
+        datasets.add(
           Function2DDataset(
             id: 'hist',
             label: 'Empirical',
@@ -774,7 +770,7 @@ void drawCharts() {
 
   if (activeDef.id == 'degenerate_continuous') {
     final k = activeDist.lowerBound.toDouble();
-    pdfDatasets.add(
+    datasets.add(
       Function2DDataset(
         id: 'pdf',
         label: 'Impulse',
@@ -785,7 +781,7 @@ void drawCharts() {
       ),
     );
   } else if (activeDef.isContinuous) {
-    pdfDatasets.add(
+    datasets.add(
       sampleFunction2D(
         id: 'pdf',
         label: 'PDF',
@@ -810,7 +806,7 @@ void drawCharts() {
         ps.add(p);
       }
     }
-    pdfDatasets.add(
+    datasets.add(
       Function2DDataset(
         id: 'pmf',
         label: 'PMF',
@@ -822,22 +818,8 @@ void drawCharts() {
     );
   }
 
-  final pdfScene = Scene2D(
-    datasets: pdfDatasets,
-    xAxis: AxisConfig(min: minX, max: maxX, isInteger: !activeDef.isContinuous),
-    yAxis: const AxisConfig(min: 0.0),
-    references: refs,
-  );
-  if (pdfGraph == null) {
-    pdfGraph = GraphWidget.view2d(pdfScene, height: 270);
-    pdfGraphHost.appendChild(pdfGraph!.element);
-  } else {
-    pdfGraph!.setScene2D(pdfScene);
-  }
-
-  final cdfDatasets = <Dataset2D>[];
   if (activeDef.isContinuous) {
-    cdfDatasets.add(
+    datasets.add(
       sampleFunction2D(
         id: 'cdf',
         label: 'CDF',
@@ -845,6 +827,7 @@ void drawCharts() {
         xMin: minX,
         xMax: maxX,
         color: '#f59e0b',
+        yAxis: YAxisSide.right,
       ),
     );
   } else {
@@ -858,7 +841,7 @@ void drawCharts() {
       ks.add(k.toDouble());
       cs.add(evalDistCumulativeProbability(k));
     }
-    cdfDatasets.add(
+    datasets.add(
       Function2DDataset(
         id: 'cdf',
         label: 'CDF',
@@ -866,21 +849,23 @@ void drawCharts() {
         ys: cs,
         color: '#f59e0b',
         mode: CurveRenderMode.step,
+        yAxis: YAxisSide.right,
       ),
     );
   }
 
-  final cdfScene = Scene2D(
-    datasets: cdfDatasets,
+  final scene = Scene2D(
+    datasets: datasets,
     xAxis: AxisConfig(min: minX, max: maxX, isInteger: !activeDef.isContinuous),
-    yAxis: const AxisConfig(min: 0.0, max: 1.0),
+    yAxis: AxisConfig(label: activeDef.isContinuous ? 'PDF' : 'PMF', min: 0.0),
+    y2Axis: const AxisConfig(label: 'CDF', min: 0.0, max: 1.0),
     references: refs,
   );
-  if (cdfGraph == null) {
-    cdfGraph = GraphWidget.view2d(cdfScene, height: 270);
-    cdfGraphHost.appendChild(cdfGraph!.element);
+  if (distGraph == null) {
+    distGraph = GraphWidget.view2d(scene, height: 360);
+    distGraphHost.appendChild(distGraph!.element);
   } else {
-    cdfGraph!.setScene2D(cdfScene);
+    distGraph!.setScene2D(scene);
   }
 }
 

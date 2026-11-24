@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:js_interop';
+import 'dart:math' as math;
 
 import 'package:web/web.dart' as web;
 
@@ -70,7 +72,7 @@ class GraphWidget {
     element.appendChild(_viewport);
 
     if (showToolbar) {
-      _viewport.appendChild(_buildToolbar());
+      _attachContextMenu();
     }
 
     _resizeObserver = web.ResizeObserver(
@@ -116,6 +118,17 @@ class GraphWidget {
   final Map<String, web.HTMLSpanElement> _readoutEls =
       <String, web.HTMLSpanElement>{};
   web.HTMLSpanElement? _probePill;
+  web.HTMLDivElement? _contextMenu;
+  bool _menuOpen = false;
+  Timer? _longPressTimer;
+  double _touchStartX = 0.0;
+  double _touchStartY = 0.0;
+  JSFunction? _onContextMenuJs;
+  JSFunction? _onTouchDownJs;
+  JSFunction? _onTouchMoveJs;
+  JSFunction? _onTouchEndJs;
+  JSFunction? _onDocPointerDownJs;
+  JSFunction? _onDocKeyDownJs;
 
   /// Updates the widget with a new 2D [scene].
   void setScene2D(Scene2D scene, {bool preserveView = false}) {
@@ -160,6 +173,28 @@ class GraphWidget {
 
   /// Disposes observers and renderer resources.
   void dispose() {
+    _longPressTimer?.cancel();
+    _longPressTimer = null;
+    if (_onContextMenuJs != null) {
+      _viewport.removeEventListener('contextmenu', _onContextMenuJs);
+    }
+    if (_onTouchDownJs != null) {
+      _viewport.removeEventListener('pointerdown', _onTouchDownJs);
+    }
+    if (_onTouchMoveJs != null) {
+      _viewport.removeEventListener('pointermove', _onTouchMoveJs);
+    }
+    if (_onTouchEndJs != null) {
+      _viewport.removeEventListener('pointerup', _onTouchEndJs);
+      _viewport.removeEventListener('pointercancel', _onTouchEndJs);
+    }
+    if (_onDocPointerDownJs != null) {
+      web.document.removeEventListener('pointerdown', _onDocPointerDownJs);
+    }
+    if (_onDocKeyDownJs != null) {
+      web.document.removeEventListener('keydown', _onDocKeyDownJs);
+    }
+    _contextMenu?.remove();
     _resizeObserver.disconnect();
     _themeObserver.disconnect();
     _renderer2d?.dispose();
@@ -189,6 +224,34 @@ class GraphWidget {
   }
 
   void _onProbeChanged(GraphProbe? probe) {
+    final datasets =
+        _renderer2d?.scene.datasets ??
+        _scene2d?.datasets ??
+        _scene3d?.datasets ??
+        const <GraphDataset>[];
+    var hasCurveReadout = false;
+    var hasSurfaceReadout = false;
+
+    for (final ds in datasets) {
+      final readoutEl = _readoutEls[ds.id];
+      if (readoutEl == null) continue;
+      final r = ds.readout(probe);
+      if (r == null || r.valueText == null) {
+        readoutEl.textContent = '';
+      } else {
+        if (ds is Function2DDataset || ds is Parametric2DDataset) {
+          hasCurveReadout = true;
+        } else if (ds is Surface3DDataset) {
+          hasSurfaceReadout = true;
+        }
+        if (r.detailText != null) {
+          readoutEl.textContent = '${r.valueText} (${r.detailText})';
+        } else {
+          readoutEl.textContent = r.valueText;
+        }
+      }
+    }
+
     final pill = _probePill;
     if (pill != null) {
       if (probe == null) {
@@ -198,27 +261,14 @@ class GraphWidget {
         pill.style.display = 'inline-flex';
         pill.textContent = switch (probe) {
           Probe2D() =>
-            probe.y2 != null
-                ? 'x: ${formatGraphNumber(probe.x)}, y: ${formatGraphNumber(probe.y)}, y₂: ${formatGraphNumber(probe.y2!)}'
+            hasCurveReadout
+                ? 'x = ${formatGraphNumber(probe.x)}'
                 : '(${formatGraphNumber(probe.x)}, ${formatGraphNumber(probe.y)})',
           Probe3D() =>
-            '(${formatGraphNumber(probe.x)}, ${formatGraphNumber(probe.y)}, ${formatGraphNumber(probe.z)})',
+            hasSurfaceReadout
+                ? '(${formatGraphNumber(probe.x)}, ${formatGraphNumber(probe.y)})'
+                : '(${formatGraphNumber(probe.x)}, ${formatGraphNumber(probe.y)}, ${formatGraphNumber(probe.z)})',
         };
-      }
-    }
-
-    final datasets =
-        _scene2d?.datasets ?? _scene3d?.datasets ?? const <GraphDataset>[];
-    for (final ds in datasets) {
-      final readoutEl = _readoutEls[ds.id];
-      if (readoutEl == null) continue;
-      final r = ds.readout(probe);
-      if (r == null || r.valueText == null) {
-        readoutEl.textContent = '';
-      } else if (r.detailText != null) {
-        readoutEl.textContent = '${r.valueText} (${r.detailText})';
-      } else {
-        readoutEl.textContent = r.valueText;
       }
     }
   }
@@ -300,30 +350,38 @@ class GraphWidget {
     return el;
   }
 
-  web.HTMLDivElement _buildToolbar() {
-    final bar = web.document.createElement('div') as web.HTMLDivElement
-      ..className = 'graph-toolbar';
+  void _attachContextMenu() {
+    final menu = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'graph-context-menu'
+      ..setAttribute('role', 'menu')
+      ..setAttribute('hidden', '');
 
-    bar.appendChild(
-      _toolbarBtn('+', 'Zoom in', () {
+    menu.appendChild(
+      _menuItem('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>', 'Zoom in', () {
         _renderer2d?.zoomBy(0.8);
         _renderer3d?.zoomBy(0.85);
       }),
     );
-    bar.appendChild(
-      _toolbarBtn('−', 'Zoom out', () {
+    menu.appendChild(
+      _menuItem('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3.5 8h9"/></svg>', 'Zoom out', () {
         _renderer2d?.zoomBy(1.25);
         _renderer3d?.zoomBy(1.18);
       }),
     );
-    bar.appendChild(
-      _toolbarBtn('↺', 'Reset view', () {
+    menu.appendChild(
+      _menuItem('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a5 5 0 1 0 1.4-3.5L3 6"/><path d="M3 3v3h3"/></svg>', 'Reset view', () {
         _renderer2d?.resetView();
         _renderer3d?.resetView();
       }),
     );
-    bar.appendChild(
-      _toolbarBtn('⤓', 'Export PNG', () {
+
+    final divider = web.document.createElement('div') as web.HTMLDivElement
+      ..className = 'graph-menu-divider'
+      ..setAttribute('role', 'separator');
+    menu.appendChild(divider);
+
+    menu.appendChild(
+      _menuItem('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v7.5M5 7l3 3 3-3M3 12.5h10"/></svg>', 'Download PNG', () {
         final url =
             _renderer2d?.exportPngDataUrl() ?? _renderer3d?.exportPngDataUrl();
         if (url == null) return;
@@ -333,20 +391,106 @@ class GraphWidget {
         link.click();
       }),
     );
-    return bar;
+
+    _contextMenu = menu;
+    _viewport.appendChild(menu);
+
+    _onContextMenuJs = ((web.MouseEvent e) {
+      e.preventDefault();
+      _openContextMenu(e.clientX.toDouble(), e.clientY.toDouble());
+    }).toJS;
+    _viewport.addEventListener('contextmenu', _onContextMenuJs);
+
+    _onTouchDownJs = ((web.PointerEvent e) {
+      if (e.pointerType != 'touch') return;
+      _touchStartX = e.clientX.toDouble();
+      _touchStartY = e.clientY.toDouble();
+      _longPressTimer?.cancel();
+      _longPressTimer = Timer(const Duration(milliseconds: 480), () {
+        _openContextMenu(_touchStartX, _touchStartY);
+      });
+    }).toJS;
+    _onTouchMoveJs = ((web.PointerEvent e) {
+      if (_longPressTimer == null) return;
+      final dx = e.clientX.toDouble() - _touchStartX;
+      final dy = e.clientY.toDouble() - _touchStartY;
+      if (dx * dx + dy * dy > 64.0) {
+        _longPressTimer?.cancel();
+        _longPressTimer = null;
+      }
+    }).toJS;
+    _onTouchEndJs = ((web.PointerEvent _) {
+      _longPressTimer?.cancel();
+      _longPressTimer = null;
+    }).toJS;
+
+    _viewport.addEventListener('pointerdown', _onTouchDownJs);
+    _viewport.addEventListener('pointermove', _onTouchMoveJs);
+    _viewport.addEventListener('pointerup', _onTouchEndJs);
+    _viewport.addEventListener('pointercancel', _onTouchEndJs);
+
+    _onDocPointerDownJs = ((web.PointerEvent e) {
+      if (!_menuOpen) return;
+      final target = e.target;
+      if (target != null &&
+          target.isA<web.Node>() &&
+          menu.contains(target as web.Node)) {
+        return;
+      }
+      _closeContextMenu();
+    }).toJS;
+    _onDocKeyDownJs = ((web.KeyboardEvent e) {
+      if (_menuOpen && e.key == 'Escape') {
+        _closeContextMenu();
+      }
+    }).toJS;
+
+    web.document.addEventListener('pointerdown', _onDocPointerDownJs);
+    web.document.addEventListener('keydown', _onDocKeyDownJs);
   }
 
-  web.HTMLButtonElement _toolbarBtn(
-    String text,
-    String title,
+  void _openContextMenu(double clientX, double clientY) {
+    final menu = _contextMenu;
+    if (menu == null) return;
+    _menuOpen = true;
+    menu.removeAttribute('hidden');
+    final rect = menu.getBoundingClientRect();
+    final maxX = math.max(8.0, web.window.innerWidth - rect.width - 8.0);
+    final maxY = math.max(8.0, web.window.innerHeight - rect.height - 8.0);
+    menu.style.left = '${clientX.clamp(8.0, maxX)}px';
+    menu.style.top = '${clientY.clamp(8.0, maxY)}px';
+  }
+
+  void _closeContextMenu() {
+    _menuOpen = false;
+    _contextMenu?.setAttribute('hidden', '');
+  }
+
+  web.HTMLButtonElement _menuItem(
+    String svgIcon,
+    String label,
     void Function() onClick,
   ) {
     final btn = web.document.createElement('button') as web.HTMLButtonElement
       ..type = 'button'
-      ..className = 'graph-tool-btn'
-      ..title = title
-      ..textContent = text;
-    btn.addEventListener('click', ((web.Event _) => onClick()).toJS);
+      ..className = 'graph-menu-item'
+      ..setAttribute('role', 'menuitem');
+
+    final iconSpan = web.document.createElement('span') as web.HTMLSpanElement
+      ..className = 'graph-menu-icon'
+      ..innerHTML = svgIcon.toJS;
+    final labelSpan = web.document.createElement('span') as web.HTMLSpanElement
+      ..textContent = label;
+    btn.appendChild(iconSpan);
+    btn.appendChild(labelSpan);
+
+    btn.addEventListener(
+      'click',
+      ((web.Event _) {
+        _closeContextMenu();
+        onClick();
+      }).toJS,
+    );
     return btn;
   }
 }

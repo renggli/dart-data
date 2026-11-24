@@ -115,7 +115,7 @@ void main() {
 
       final r = ds.readout(const Probe2D(x: 0.5, y: 1.0));
       check(r).isNotNull();
-      check(r!.valueText).equals('1');
+      check(r!.valueText).equals('1.0000');
       check(ds.readout(const Probe2D(x: -1.0, y: 0.0))).isNull;
       check(ds.readout(const Probe3D(x: 0.5, y: 1.0, z: 0.0))).isNull;
     });
@@ -131,7 +131,7 @@ void main() {
       );
       final r = ds.readout(const Probe2D(x: 0.1, y: 0.9));
       check(r).isNotNull();
-      check(r!.detailText).equals('t = 1');
+      check(r!.detailText).equals('t = 1.0000');
     });
 
     test('Field2DDataset computes scalar and vector readouts', () {
@@ -152,8 +152,8 @@ void main() {
       );
       final r = ds.readout(const Probe2D(x: 0.95, y: 0.05));
       check(r).isNotNull();
-      check(r!.valueText).equals('(0, 2)');
-      check(r.detailText).equals('|v| = 2');
+      check(r!.valueText).equals('(0.0000, 2.0000)');
+      check(r.detailText).equals('|v| = 2.0000');
       check(ds.readout(const Probe2D(x: 2.0, y: 0.5))).isNull;
     });
 
@@ -201,7 +201,7 @@ void main() {
       check(b.zMax).equals(3.0);
       final r = ds.readout(const Probe3D(x: 1.0, y: 1.0, z: 3.0));
       check(r).isNotNull();
-      check(r!.valueText).equals('z = 3');
+      check(r!.valueText).equals('z = 3.0000');
     });
 
     test('Parametric3DDataset and VectorField3DDataset compute bounds and readouts', () {
@@ -216,7 +216,7 @@ void main() {
       );
       check(p3.bounds).isNotNull();
       check(p3.readout(const Probe3D(x: 0.0, y: 1.0, z: 2.0))!.detailText)
-          .equals('t = 1');
+          .equals('t = 1.0000');
 
       const vf = VectorField3DDataset(
         id: 'vf3',
@@ -225,7 +225,7 @@ void main() {
       );
       final r = vf.readout(const Probe3D(x: 0, y: 0, z: 0));
       check(r).isNotNull();
-      check(r!.detailText).equals('|v| = 5');
+      check(r!.detailText).equals('|v| = 5.0000');
 
       const scene = Scene3D(datasets: [p3, vf]);
       check(scene.computeBounds()).isNotNull();

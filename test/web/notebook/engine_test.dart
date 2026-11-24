@@ -3,6 +3,7 @@ import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 
 import '../../../web/notebook/src/engine/evaluator.dart';
+import '../../../web/notebook/src/model/serialization.dart';
 import '../../../web/notebook/src/model/value.dart';
 
 void main() {
@@ -68,6 +69,11 @@ void main() {
 
       final p3d = eval.evaluate('plot3d(x^2 + y^2, x, y, grid: 16)').value;
       check((p3d as PlotValue).is3d).isTrue;
+      check(p3d.plotKind).equals(PlotKind.surface3d);
+      final roundTrip3d = valueFromJson(valueToJson(p3d)) as PlotValue;
+      check(roundTrip3d.is3d).isTrue;
+      check(roundTrip3d.plotKind).equals(PlotKind.surface3d);
+      check(roundTrip3d.yVariable).equals('y');
 
       final pC = eval.evaluate('plotcomplex(z^2, z, contours: false)').value;
       check((pC as PlotValue).isComplex).isTrue;

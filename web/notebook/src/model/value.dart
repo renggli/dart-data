@@ -535,6 +535,19 @@ final class SeriesValue extends CalcValue {
   int get hashCode => Object.hash(SeriesValue, exprWithOrder);
 }
 
+/// Kind of plot represented by a [PlotValue] across worker boundaries.
+enum PlotKind {
+  function2d,
+  parametric2d,
+  complex2d,
+  ode2d,
+  vectorField2d,
+  heatmap2d,
+  surface3d,
+  complex3d,
+  vectorField3d,
+}
+
 /// Interactive 2D, 3D, or complex domain-coloring plot value.
 final class PlotValue extends CalcValue {
   const new({
@@ -557,6 +570,9 @@ final class PlotValue extends CalcValue {
     this.showGrid = true,
     this.showMarkers = true,
     this.showContours = true,
+    this.plotKind = PlotKind.function2d,
+    this.yVariable,
+    this.gridSize = 48,
     this.scene2d,
     this.scene3d,
   });
@@ -580,10 +596,19 @@ final class PlotValue extends CalcValue {
   final bool showGrid;
   final bool showMarkers;
   final bool showContours;
+  final PlotKind plotKind;
+  final String? yVariable;
+  final int gridSize;
   final Scene2D? scene2d;
   final Scene3D? scene3d;
 
-  bool get is3d => scene3d != null || surface3d != null || parametric3d != null;
+  bool get is3d =>
+      plotKind == PlotKind.surface3d ||
+      plotKind == PlotKind.complex3d ||
+      plotKind == PlotKind.vectorField3d ||
+      scene3d != null ||
+      surface3d != null ||
+      parametric3d != null;
 
   @override
   String get kind => 'plot';

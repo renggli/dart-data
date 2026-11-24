@@ -19,23 +19,8 @@
       display: block;
       min-height: 100vh;
       padding-top: 52px;
-      background:
-        radial-gradient(circle at 15% 10%, rgba(59, 130, 246, 0.14), transparent 40%),
-        radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.12), transparent 40%),
-        radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.10), transparent 45%),
-        var(--bg-primary);
+      background: var(--bg-primary);
       color: var(--text-primary);
-    }
-
-    .home-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-family: var(--font-display);
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text-primary);
-      text-decoration: none;
     }
 
     .home-brand-badge {
@@ -47,12 +32,6 @@
       background: var(--accent-blue-tint);
       color: var(--accent-blue);
       border: 1px solid rgba(59, 130, 246, 0.25);
-    }
-
-    .home-topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
     }
 
     .ext-link {
@@ -95,9 +74,7 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: 1.12;
-      background: linear-gradient(135deg, var(--text-primary) 20%, var(--accent-blue) 65%, var(--accent-purple) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--text-primary);
       margin-bottom: 14px;
     }
 
@@ -124,37 +101,14 @@
       border-radius: 16px;
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
-      box-shadow: var(--panel-shadow);
       text-decoration: none;
       color: var(--text-primary);
-      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-      overflow: hidden;
-    }
-
-    .app-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 16px;
-      padding: 1.5px;
-      background: linear-gradient(135deg, var(--card-accent, var(--accent-blue)), transparent 65%);
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      opacity: 0.45;
-      transition: opacity 0.2s ease;
-      pointer-events: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
 
     .app-card:hover {
-      transform: translateY(-3px);
       background: var(--bg-tertiary);
       border-color: var(--border-hover);
-      box-shadow: var(--panel-shadow);
-    }
-
-    .app-card:hover::before {
-      opacity: 1;
     }
 
     .app-card-top {
@@ -380,9 +334,6 @@
       }
       .hero h1 {
         font-size: 34px;
-      }
-      .home-topbar {
-        padding: 12px 16px;
       }
       .home-container {
         padding: 32px 16px;
