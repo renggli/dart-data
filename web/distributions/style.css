@@ -1,10 +1,4 @@
 /* Distribution-Specific Layout Tweaks */
-:root,
-[data-theme="light"] {
-  --app-accent: var(--accent-blue);
-  --app-accent-tint: var(--accent-blue-tint);
-}
-
 .sampler-controls {
   display: flex;
   flex-wrap: wrap;

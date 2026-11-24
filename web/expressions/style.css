@@ -1,9 +1,4 @@
 /* Expressions Specific Styling */
-:root,
-[data-theme="light"] {
-  --app-accent: var(--accent-purple);
-  --app-accent-tint: var(--accent-purple-tint);
-}
 
 .domain-menu-container {
   position: relative;

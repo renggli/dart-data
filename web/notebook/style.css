@@ -1,9 +1,4 @@
 /* Document-First Symbolic Notebook Stylesheet */
-:root,
-[data-theme="light"] {
-  --app-accent: var(--accent-emerald);
-  --app-accent-tint: var(--accent-emerald-tint);
-}
 
 body.nb-body {
   background-color: var(--bg-primary);
