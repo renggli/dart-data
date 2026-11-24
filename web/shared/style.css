@@ -26,6 +26,9 @@
   --accent-red: #f87171;
   --accent-red-tint: rgba(248, 113, 113, 0.14);
 
+  --app-accent: var(--accent-blue);
+  --app-accent-tint: var(--accent-blue-tint);
+
   --border-color: rgba(255, 255, 255, 0.08);
   --border-hover: rgba(255, 255, 255, 0.16);
   --panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
@@ -58,6 +61,9 @@
   --accent-indigo-tint: rgba(79, 70, 229, 0.10);
   --accent-red: #dc2626;
   --accent-red-tint: rgba(220, 38, 38, 0.10);
+
+  --app-accent: var(--accent-blue);
+  --app-accent-tint: var(--accent-blue-tint);
 
   --border-color: rgba(24, 24, 27, 0.10);
   --border-hover: rgba(24, 24, 27, 0.20);
@@ -127,6 +133,10 @@ body {
   gap: 8px;
 }
 
+.app-switcher-brand svg {
+  color: var(--app-accent);
+}
+
 .app-switcher-title {
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -178,7 +188,7 @@ body {
 }
 
 .app-switcher-item.active {
-  background-color: var(--accent-blue-tint);
+  background-color: var(--app-accent-tint);
   border: 1px solid var(--border-hover);
   color: var(--text-primary);
 }
@@ -363,8 +373,8 @@ body.sidebar-collapsed .sidebar-expand-btn {
 }
 
 .sidebar-item.active {
-  background-color: var(--accent-blue-tint);
-  color: var(--accent-blue);
+  background-color: var(--app-accent-tint);
+  color: var(--app-accent);
   border-color: var(--border-hover);
 }
 
@@ -492,6 +502,11 @@ body.sidebar-collapsed .sidebar-expand-btn {
   white-space: nowrap;
 }
 
+.card-title-text svg {
+  color: var(--app-accent);
+  flex-shrink: 0;
+}
+
 .card-actions {
   margin-left: auto;
   display: inline-flex;
@@ -546,10 +561,9 @@ body.sidebar-collapsed .sidebar-expand-btn {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--accent-blue);
+  background: var(--app-accent);
   cursor: pointer;
   transition: transform 0.1s ease;
-  box-shadow: 0 0 8px var(--accent-blue);
 }
 
 .custom-slider::-webkit-slider-thumb:hover {
@@ -879,13 +893,12 @@ body.sidebar-collapsed .sidebar-expand-btn {
 }
 
 .btn-primary {
-  background-color: var(--accent-blue);
+  background-color: var(--app-accent);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #2563eb;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+  filter: brightness(0.92);
 }
 
 .btn-secondary {
