@@ -465,4 +465,42 @@ void main() {
       check(() => Expr.parse('limit(x)')).throws<FormatException>();
     });
   });
+
+  group('orthogonal polynomials and metadata', () {
+    test('parses orthogonal polynomials with integer degree', () {
+      check(Expr.parse('chebyshevT(3, x)')).equals(chebyshevT(3));
+      check(Expr.parse('chebyshevU(2, x)')).equals(chebyshevU(2));
+      check(Expr.parse('legendreP(2, x)')).equals(legendreP(2));
+      check(Expr.parse('hermiteH(3, x)')).equals(hermiteH(3));
+      check(Expr.parse('hermiteHe(3, x)')).equals(hermiteHe(3));
+      check(Expr.parse('laguerreL(2, x)')).equals(laguerreL(2));
+      check(Expr.parse('laguerreL(2, x, a)'))
+          .equals(laguerreL(2, const Variable('x'), const Variable('a')));
+      check(() => Expr.parse('chebyshevT(-1, x)')).throws<FormatException>();
+      check(() => Expr.parse('laguerreL(x, x)')).throws<FormatException>();
+    });
+
+    test('parses relational operators', () {
+      check(Expr.parse('x = 1')).isA<Equal>();
+      check(Expr.parse('x != 0')).isA<NotEqual>();
+      check(Expr.parse('x < 2')).isA<LessThan>();
+      check(Expr.parse('x <= 2')).isA<LessEqual>();
+      check(Expr.parse('x > 0')).isA<GreaterThan>();
+      check(Expr.parse('x >= 0')).isA<GreaterEqual>();
+    });
+
+    test('standardFunctions covers built-in functions', () {
+      final names = {
+        for (final info in ExprSyntax.standardFunctions) info.name,
+      };
+      check(names).contains('sin');
+      check(names).contains('chebyshevT');
+      check(names).contains('laguerreL');
+      check(names).contains('hypergeometric');
+      for (final info in ExprSyntax.standardFunctions) {
+        check(info.name).isNotEmpty;
+        check(info.doc).isNotEmpty;
+      }
+    });
+  });
 }

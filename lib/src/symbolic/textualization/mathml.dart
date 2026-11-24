@@ -1,4 +1,5 @@
 import '../ast.dart';
+import '../calculus/series.dart';
 import '../number/integer.dart';
 import 'formatting.dart';
 
@@ -31,6 +32,23 @@ extension MathMlExtension on Expr {
     final attr = display ? ' display="block"' : '';
     return '<math$attr>$inner</math>';
   }
+}
+
+/// MathML serialization extension on [PowerSeries].
+extension PowerSeriesMathMlExtension on PowerSeries {
+  /// Formats this power series into W3C MathML markup.
+  ///
+  /// Converts the series to its symbolic [Expr] form (with or without the
+  /// asymptotic [OrderTerm] controlled by [includeOrder]) and delegates to
+  /// [MathMlExtension.toMathMl].
+  String toMathMl({
+    bool display = false,
+    bool root = true,
+    int decimalPlaces = 4,
+    bool includeOrder = true,
+  }) =>
+      toExpr(includeOrder: includeOrder)
+          .toMathMl(display: display, root: root, decimalPlaces: decimalPlaces);
 }
 
 String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {

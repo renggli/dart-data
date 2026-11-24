@@ -2,9 +2,38 @@ import 'package:petitparser/petitparser.dart';
 
 import '../linear/matrix.dart';
 import '../linear/vector.dart';
+import 'algebra/orthogonal.dart';
 import 'ast.dart';
 import 'number/integer.dart';
 import 'type/expr_data_type.dart';
+
+/// Metadata describing a built-in symbolic function in [ExprSyntax].
+final class ExprFunctionInfo {
+  /// Creates metadata for a built-in symbolic function.
+  const new({
+    required this.name,
+    required this.params,
+    required this.doc,
+    this.aliases = const [],
+    this.category = 'elementary',
+  });
+
+  /// Canonical function name.
+  final String name;
+
+  /// Parameter names or signature descriptors (e.g. `['x']`, `['n', 'x']`).
+  final List<String> params;
+
+  /// Concise human-readable description of the function.
+  final String doc;
+
+  /// Alternative accepted names or case variants.
+  final List<String> aliases;
+
+  /// Logical category (e.g. `'elementary'`, `'trig'`, `'special'`,
+  /// `'orthogonal'`, `'calculus'`, `'number'`).
+  final String category;
+}
 
 /// Extensible case-sensitive syntax and parser for mathematical [Expr] strings.
 ///
@@ -259,6 +288,14 @@ class ExprSyntax {
         'integrate': (a, b) => _parseIntegralArgs([a, b]),
         'integral': (a, b) => _parseIntegralArgs([a, b]),
         'O': (a, b) => _parseOrderTermArgs([a, b]),
+        'chebyshevT': (n, x) =>
+            _parseOrthogonal('chebyshevT', n, x, chebyshevT),
+        'chebyshevU': (n, x) =>
+            _parseOrthogonal('chebyshevU', n, x, chebyshevU),
+        'legendreP': (n, x) => _parseOrthogonal('legendreP', n, x, legendreP),
+        'hermiteH': (n, x) => _parseOrthogonal('hermiteH', n, x, hermiteH),
+        'hermiteHe': (n, x) => _parseOrthogonal('hermiteHe', n, x, hermiteHe),
+        'laguerreL': (n, x) => _parseOrthogonal('laguerreL', n, x, laguerreL),
       });
 
   /// Standard variadic mathematical functions.
@@ -288,8 +325,602 @@ class ExprSyntax {
       'gcd': _parseGcdVariadic,
       'lcm': _parseLcmVariadic,
       'O': _parseOrderTermArgs,
+      'laguerreL': _parseLaguerreLArgs,
     },
   );
+
+  /// Metadata for all standard built-in symbolic functions.
+  static final List<ExprFunctionInfo>
+  standardFunctions = List.unmodifiable(const <ExprFunctionInfo>[
+    // Elementary
+    ExprFunctionInfo(
+      name: 'abs',
+      params: ['x'],
+      doc: 'Absolute value or complex modulus',
+    ),
+    ExprFunctionInfo(name: 'sqrt', params: ['x'], doc: 'Principal square root'),
+    ExprFunctionInfo(
+      name: 'root',
+      params: ['x', 'n'],
+      doc: 'Principal n-th root of x',
+    ),
+    ExprFunctionInfo(name: 'pow', params: ['x', 'y'], doc: 'Power x^y'),
+    ExprFunctionInfo(
+      name: 'exp',
+      params: ['x'],
+      doc: 'Natural exponential e^x',
+    ),
+    ExprFunctionInfo(
+      name: 'ln',
+      params: ['x'],
+      doc: 'Natural logarithm',
+      aliases: ['log'],
+    ),
+    ExprFunctionInfo(
+      name: 'log',
+      params: ['base', 'x'],
+      doc: 'Logarithm of x to the given base',
+    ),
+    ExprFunctionInfo(name: 'log2', params: ['x'], doc: 'Base-2 logarithm'),
+    ExprFunctionInfo(name: 'log10', params: ['x'], doc: 'Base-10 logarithm'),
+
+    // Trigonometric
+    ExprFunctionInfo(
+      name: 'sin',
+      params: ['x'],
+      doc: 'Sine of x (radians)',
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'cos',
+      params: ['x'],
+      doc: 'Cosine of x (radians)',
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'tan',
+      params: ['x'],
+      doc: 'Tangent of x (radians)',
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'sec',
+      params: ['x'],
+      doc: 'Secant 1/cos(x)',
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'csc',
+      params: ['x'],
+      doc: 'Cosecant 1/sin(x)',
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'cot',
+      params: ['x'],
+      doc: 'Cotangent cos(x)/sin(x)',
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'asin',
+      params: ['x'],
+      doc: 'Inverse sine (arcsine)',
+      aliases: ['arcsin'],
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'acos',
+      params: ['x'],
+      doc: 'Inverse cosine (arccosine)',
+      aliases: ['arccos'],
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'atan',
+      params: ['x'],
+      doc: 'Inverse tangent (arctangent)',
+      aliases: ['arctan'],
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'atan2',
+      params: ['y', 'x'],
+      doc: 'Two-argument arctangent of y/x',
+      aliases: ['Atan2'],
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'asec',
+      params: ['x'],
+      doc: 'Inverse secant',
+      aliases: ['arcsec'],
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'acsc',
+      params: ['x'],
+      doc: 'Inverse cosecant',
+      aliases: ['arccsc'],
+      category: 'trig',
+    ),
+    ExprFunctionInfo(
+      name: 'acot',
+      params: ['x'],
+      doc: 'Inverse cotangent',
+      aliases: ['arccot'],
+      category: 'trig',
+    ),
+
+    // Hyperbolic
+    ExprFunctionInfo(
+      name: 'sinh',
+      params: ['x'],
+      doc: 'Hyperbolic sine',
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'cosh',
+      params: ['x'],
+      doc: 'Hyperbolic cosine',
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'tanh',
+      params: ['x'],
+      doc: 'Hyperbolic tangent',
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'sech',
+      params: ['x'],
+      doc: 'Hyperbolic secant',
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'csch',
+      params: ['x'],
+      doc: 'Hyperbolic cosecant',
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'coth',
+      params: ['x'],
+      doc: 'Hyperbolic cotangent',
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'asinh',
+      params: ['x'],
+      doc: 'Inverse hyperbolic sine',
+      aliases: ['arcsinh'],
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'acosh',
+      params: ['x'],
+      doc: 'Inverse hyperbolic cosine',
+      aliases: ['arccosh'],
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'atanh',
+      params: ['x'],
+      doc: 'Inverse hyperbolic tangent',
+      aliases: ['arctanh'],
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'asech',
+      params: ['x'],
+      doc: 'Inverse hyperbolic secant',
+      aliases: ['arcsech'],
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'acsch',
+      params: ['x'],
+      doc: 'Inverse hyperbolic cosecant',
+      aliases: ['arccsch'],
+      category: 'hyperbolic',
+    ),
+    ExprFunctionInfo(
+      name: 'acoth',
+      params: ['x'],
+      doc: 'Inverse hyperbolic cotangent',
+      aliases: ['arccoth'],
+      category: 'hyperbolic',
+    ),
+
+    // Number & Combinatorics
+    ExprFunctionInfo(
+      name: 'factorial',
+      params: ['n'],
+      doc: 'Factorial n!',
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'binomial',
+      params: ['n', 'k'],
+      doc: 'Binomial coefficient C(n, k)',
+      aliases: ['nCr'],
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'floor',
+      params: ['x'],
+      doc: 'Greatest integer <= x',
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'ceil',
+      params: ['x'],
+      doc: 'Smallest integer >= x',
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'round',
+      params: ['x'],
+      doc: 'Nearest integer to x',
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'sign',
+      params: ['x'],
+      doc: 'Signum (-1, 0, or 1)',
+      aliases: ['sgn'],
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'mod',
+      params: ['a', 'b'],
+      doc: 'Modulo remainder a mod b',
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'gcd',
+      params: ['a', 'b', '...'],
+      doc: 'Greatest common divisor',
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'lcm',
+      params: ['a', 'b', '...'],
+      doc: 'Least common multiple',
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'min',
+      params: ['a', 'b', '...'],
+      doc: 'Minimum of arguments',
+      aliases: ['Min'],
+      category: 'number',
+    ),
+    ExprFunctionInfo(
+      name: 'max',
+      params: ['a', 'b', '...'],
+      doc: 'Maximum of arguments',
+      aliases: ['Max'],
+      category: 'number',
+    ),
+
+    // Complex
+    ExprFunctionInfo(
+      name: 're',
+      params: ['z'],
+      doc: 'Real part of z',
+      category: 'complex',
+    ),
+    ExprFunctionInfo(
+      name: 'im',
+      params: ['z'],
+      doc: 'Imaginary part of z',
+      category: 'complex',
+    ),
+    ExprFunctionInfo(
+      name: 'arg',
+      params: ['z'],
+      doc: 'Principal argument (phase angle) of z',
+      category: 'complex',
+    ),
+    ExprFunctionInfo(
+      name: 'conj',
+      params: ['z'],
+      doc: 'Complex conjugate of z',
+      aliases: ['conjugate'],
+      category: 'complex',
+    ),
+
+    // Special Functions
+    ExprFunctionInfo(
+      name: 'gamma',
+      params: ['z'],
+      doc: 'Euler gamma function',
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'beta',
+      params: ['a', 'b'],
+      doc: 'Euler beta function B(a, b)',
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'upperGamma',
+      params: ['s', 'x'],
+      doc: 'Upper incomplete gamma function',
+      aliases: ['uppergamma', 'UpperGamma'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'lowerGamma',
+      params: ['s', 'x'],
+      doc: 'Lower incomplete gamma function',
+      aliases: ['lowergamma', 'LowerGamma'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'digamma',
+      params: ['z'],
+      doc: 'Digamma function psi(z)',
+      aliases: ['psi'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'polygamma',
+      params: ['n', 'z'],
+      doc: 'Polygamma function psi^(n)(z)',
+      aliases: ['Polygamma'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'zeta',
+      params: ['s', '[a]'],
+      doc: 'Riemann or Hurwitz zeta function',
+      aliases: ['Zeta'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'polylog',
+      params: ['s', 'z'],
+      doc: 'Polylogarithm Li_s(z)',
+      aliases: ['Polylog', 'Li'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'erf',
+      params: ['z'],
+      doc: 'Error function',
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'erfc',
+      params: ['z'],
+      doc: 'Complementary error function',
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'erfi',
+      params: ['z'],
+      doc: 'Imaginary error function',
+      aliases: ['Erfi'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'fresnelS',
+      params: ['z'],
+      doc: 'Fresnel sine integral S(z)',
+      aliases: ['fresnels', 'FresnelS'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'fresnelC',
+      params: ['z'],
+      doc: 'Fresnel cosine integral C(z)',
+      aliases: ['fresnelc', 'FresnelC'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'expIntegralEi',
+      params: ['x'],
+      doc: 'Exponential integral Ei(x)',
+      aliases: ['Ei', 'ei', 'ExpIntegral'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'expIntegralE',
+      params: ['n', 'x'],
+      doc: 'Generalized exponential integral E_n(x)',
+      aliases: ['expint', 'ExpIntegralE'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'logIntegralLi',
+      params: ['x'],
+      doc: 'Logarithmic integral li(x)',
+      aliases: ['li', 'Li', 'LogIntegral'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'sinIntegralSi',
+      params: ['x'],
+      doc: 'Sine integral Si(x)',
+      aliases: ['Si', 'si', 'SinIntegral'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'cosIntegralCi',
+      params: ['x'],
+      doc: 'Cosine integral Ci(x)',
+      aliases: ['Ci', 'ci', 'CosIntegral'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'sinhIntegralShi',
+      params: ['x'],
+      doc: 'Hyperbolic sine integral Shi(x)',
+      aliases: ['Shi', 'shi', 'SinhIntegral'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'coshIntegralChi',
+      params: ['x'],
+      doc: 'Hyperbolic cosine integral Chi(x)',
+      aliases: ['Chi', 'chi', 'CoshIntegral'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'lambertW',
+      params: ['z', '[k]'],
+      doc: 'Lambert W function (principal branch or k = -1)',
+      aliases: ['lambertw', 'LambertW', 'W', 'w'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'besselJ',
+      params: ['n', 'z'],
+      doc: 'Bessel function of the first kind J_n(z)',
+      aliases: ['besselj', 'BesselJ'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'besselY',
+      params: ['n', 'z'],
+      doc: 'Bessel function of the second kind Y_n(z)',
+      aliases: ['bessely', 'BesselY'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'besselI',
+      params: ['n', 'z'],
+      doc: 'Modified Bessel function of the first kind I_n(z)',
+      aliases: ['besseli', 'BesselI'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'besselK',
+      params: ['n', 'z'],
+      doc: 'Modified Bessel function of the second kind K_n(z)',
+      aliases: ['besselk', 'BesselK'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'besselj0',
+      params: ['z'],
+      doc: 'Bessel function J_0(z)',
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'besselj1',
+      params: ['z'],
+      doc: 'Bessel function J_1(z)',
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'bessely0',
+      params: ['z'],
+      doc: 'Bessel function Y_0(z)',
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'bessely1',
+      params: ['z'],
+      doc: 'Bessel function Y_1(z)',
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'ellipticK',
+      params: ['k'],
+      doc: 'Complete elliptic integral of the first kind K(k)',
+      aliases: ['elliptick', 'elliptic_k'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'ellipticE',
+      params: ['phi_or_k', '[k]'],
+      doc: 'Complete or incomplete elliptic integral of the second kind',
+      aliases: ['elliptice', 'elliptic_e', 'EllipticE'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'ellipticF',
+      params: ['phi', 'k'],
+      doc: 'Incomplete elliptic integral of the first kind F(phi, k)',
+      aliases: ['elliptic_f', 'EllipticF'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'ellipticPi',
+      params: ['n', '[phi]', 'k'],
+      doc: 'Elliptic integral of the third kind',
+      aliases: ['elliptic_pi', 'EllipticPi'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'hypergeometric',
+      params: ['upper', 'lower', 'z'],
+      doc: 'Generalized hypergeometric function pFq',
+      aliases: ['hyper', 'Hypergeometric'],
+      category: 'special',
+    ),
+
+    // Orthogonal Polynomials
+    ExprFunctionInfo(
+      name: 'chebyshevT',
+      params: ['n', 'x'],
+      doc: 'Chebyshev polynomial of the first kind T_n(x)',
+      category: 'orthogonal',
+    ),
+    ExprFunctionInfo(
+      name: 'chebyshevU',
+      params: ['n', 'x'],
+      doc: 'Chebyshev polynomial of the second kind U_n(x)',
+      category: 'orthogonal',
+    ),
+    ExprFunctionInfo(
+      name: 'legendreP',
+      params: ['n', 'x'],
+      doc: 'Legendre polynomial P_n(x)',
+      category: 'orthogonal',
+    ),
+    ExprFunctionInfo(
+      name: 'hermiteH',
+      params: ['n', 'x'],
+      doc: 'Physicists\' Hermite polynomial H_n(x)',
+      category: 'orthogonal',
+    ),
+    ExprFunctionInfo(
+      name: 'hermiteHe',
+      params: ['n', 'x'],
+      doc: 'Probabilists\' Hermite polynomial He_n(x)',
+      category: 'orthogonal',
+    ),
+    ExprFunctionInfo(
+      name: 'laguerreL',
+      params: ['n', 'x', '[alpha]'],
+      doc: 'Generalized Laguerre polynomial L_n^(alpha)(x)',
+      category: 'orthogonal',
+    ),
+
+    // Structural & Calculus AST Forms
+    ExprFunctionInfo(
+      name: 'piecewise',
+      params: ['cond1', 'expr1', '...', '[otherwise]'],
+      doc: 'Piecewise-defined expression',
+      aliases: ['Piecewise'],
+      category: 'calculus',
+    ),
+    ExprFunctionInfo(
+      name: 'O',
+      params: ['term'],
+      doc: 'Big-O asymptotic order term',
+      category: 'calculus',
+    ),
+    ExprFunctionInfo(
+      name: 'tuple',
+      params: ['a', '...'],
+      doc: 'Ordered tuple of expressions',
+      category: 'calculus',
+    ),
+  ]);
 
   /// Registered named constants.
   final Map<String, Expr> constants;
@@ -886,4 +1517,36 @@ class ExprSyntax {
     };
     return Hypergeometric(unpack(args[0]), unpack(args[1]), args[2]);
   }
+
+  static Expr _parseOrthogonal(
+    String name,
+    Expr nExpr,
+    Expr x,
+    Expr Function(int, Expr) builder,
+  ) {
+    if (nExpr case IntegerNumber(asInt: final n?) when n >= 0) {
+      return builder(n, x);
+    }
+    throw FormatException(
+      '$name degree must be a non-negative integer, got: $nExpr',
+    );
+  }
+
+  static Expr _parseLaguerreLArgs(List<Expr> args) => switch (args) {
+    [final nExpr, final x] => _parseOrthogonal(
+      'laguerreL',
+      nExpr,
+      x,
+      laguerreL,
+    ),
+    [final nExpr, final x, final alpha] => switch (nExpr) {
+      IntegerNumber(asInt: final n?) when n >= 0 => laguerreL(n, x, alpha),
+      _ => throw FormatException(
+        'laguerreL degree must be a non-negative integer, got: $nExpr',
+      ),
+    },
+    _ => throw FormatException(
+      'laguerreL requires 2 or 3 arguments, got ${args.length}',
+    ),
+  };
 }

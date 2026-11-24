@@ -433,5 +433,13 @@ void main() {
         );
       },
     );
+
+    test('formats PowerSeries via toMathMl', () {
+      final s = Expr.parse('sin(x)').toPowerSeries('x', order: 4);
+      final ml = s.toMathMl();
+      check(ml).contains('<math>');
+      check(ml).contains('<mi>O</mi>');
+      check(s.toMathMl(includeOrder: false).contains('<mi>O</mi>')).isFalse;
+    });
   });
 }

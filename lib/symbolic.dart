@@ -152,13 +152,14 @@ export 'src/symbolic/compiler/evaluator.dart' show BytecodeEvaluator;
 export 'src/symbolic/linear/matrix.dart'
     show SymbolicEigenpair, SymbolicMatrixExtension, SymbolicVectorExtension;
 export 'src/symbolic/number/integer.dart' show Integer;
-export 'src/symbolic/parser.dart' show ExprSyntax;
+export 'src/symbolic/parser.dart' show ExprFunctionInfo, ExprSyntax;
 export 'src/symbolic/solver/ode.dart' show OdeExtension;
 export 'src/symbolic/solver/polynomial_system.dart' show PolynomialSystemMethod;
 export 'src/symbolic/solver/system.dart' show SystemSolverExtension;
 export 'src/symbolic/solver/univariate.dart' show SolverExtension;
 export 'src/symbolic/textualization/latex.dart' show LatexExtension;
-export 'src/symbolic/textualization/mathml.dart' show MathMlExtension;
+export 'src/symbolic/textualization/mathml.dart'
+    show MathMlExtension, PowerSeriesMathMlExtension;
 export 'src/symbolic/textualization/string.dart' show TextExtension;
 export 'src/symbolic/type/expr_data_type.dart'
     show ExprDataType, ExprField, exprDataType;
