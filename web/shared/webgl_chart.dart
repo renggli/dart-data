@@ -49,8 +49,9 @@ final class WebGL2ChartLayer {
   /// PNG data URL for image export.
   static String exportPngDataUrl(
     web.HTMLCanvasElement hudCanvas, {
-    String backgroundColor = '#0f172a',
+    String? backgroundColor,
   }) {
+    final bg = backgroundColor ?? _resolveCssBg('#121316');
     final layer = _layers[hudCanvas];
     if (layer == null || !layer.isAvailable) {
       return hudCanvas.toDataURL('image/png');
@@ -59,11 +60,21 @@ final class WebGL2ChartLayer {
       ..width = hudCanvas.width
       ..height = hudCanvas.height;
     final ctx = out.context2D;
-    ctx.fillStyle = backgroundColor.toJS;
+    ctx.fillStyle = bg.toJS;
     ctx.fillRect(0, 0, out.width.toDouble(), out.height.toDouble());
     ctx.drawImage(layer._glCanvas, 0, 0);
     ctx.drawImage(hudCanvas, 0, 0);
     return out.toDataURL('image/png');
+  }
+
+  static String _resolveCssBg(String fallback) {
+    final root = web.document.documentElement;
+    if (root == null) return fallback;
+    final value = web.window
+        .getComputedStyle(root)
+        .getPropertyValue('--bg-primary')
+        .trim();
+    return value.isEmpty ? fallback : value;
   }
 
   new _(this._hudCanvas, this._glCanvas, this._underlayCtx, this._shared);

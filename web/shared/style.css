@@ -1,37 +1,67 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import url('https://fred-wang.github.io/MathFonts/LatinModern/mathfonts.css');
 
-:root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  
-  --accent-blue: #3b82f6;
-  --accent-blue-glow: rgba(59, 130, 246, 0.15);
-  --accent-emerald: #10b981;
-  --accent-emerald-glow: rgba(16, 185, 129, 0.15);
-  --accent-amber: #f59e0b;
-  --accent-amber-glow: rgba(245, 158, 11, 0.15);
-  --accent-pink: #ec4899;
-  --accent-purple: #a855f7;
-  --accent-purple-glow: rgba(168, 85, 247, 0.15);
-  --accent-cyan: #06b6d4;
-  --accent-cyan-glow: rgba(6, 182, 212, 0.15);
-  --accent-indigo: #6366f1;
-  --accent-indigo-glow: rgba(99, 102, 241, 0.15);
-  --accent-red: #ef4444;
-  --accent-red-glow: rgba(239, 68, 68, 0.15);
-  
-  --border-color: rgba(255, 255, 255, 0.06);
-  --border-hover: rgba(255, 255, 255, 0.12);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --border-radius: 12px;
+:root,
+[data-theme="dark"] {
+  --bg-primary: #121316;
+  --bg-secondary: #181a1f;
+  --bg-tertiary: #22252b;
+  --text-primary: #eceef2;
+  --text-secondary: #a1a8b5;
+  --text-muted: #6e7685;
+
+  --accent-blue: #60a5fa;
+  --accent-blue-tint: rgba(96, 165, 250, 0.14);
+  --accent-emerald: #34d399;
+  --accent-emerald-tint: rgba(52, 211, 153, 0.14);
+  --accent-amber: #fbbf24;
+  --accent-amber-tint: rgba(251, 191, 36, 0.14);
+  --accent-pink: #f472b6;
+  --accent-purple: #c084fc;
+  --accent-purple-tint: rgba(192, 132, 252, 0.14);
+  --accent-cyan: #22d3ee;
+  --accent-cyan-tint: rgba(34, 211, 238, 0.14);
+  --accent-indigo: #818cf8;
+  --accent-indigo-tint: rgba(129, 140, 248, 0.14);
+  --accent-red: #f87171;
+  --accent-red-tint: rgba(248, 113, 113, 0.14);
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  --panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
+  --border-radius: 10px;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: 'Outfit', var(--font-sans);
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f8f7;
+  --bg-tertiary: #f1f1ef;
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+
+  --accent-blue: #2563eb;
+  --accent-blue-tint: rgba(37, 99, 235, 0.10);
+  --accent-emerald: #059669;
+  --accent-emerald-tint: rgba(5, 150, 105, 0.10);
+  --accent-amber: #d97706;
+  --accent-amber-tint: rgba(217, 119, 6, 0.10);
+  --accent-pink: #db2777;
+  --accent-purple: #7c3aed;
+  --accent-purple-tint: rgba(124, 58, 237, 0.10);
+  --accent-cyan: #0891b2;
+  --accent-cyan-tint: rgba(8, 145, 178, 0.10);
+  --accent-indigo: #4f46e5;
+  --accent-indigo-tint: rgba(79, 70, 229, 0.10);
+  --accent-red: #dc2626;
+  --accent-red-tint: rgba(220, 38, 38, 0.10);
+
+  --border-color: rgba(24, 24, 27, 0.10);
+  --border-hover: rgba(24, 24, 27, 0.20);
+  --panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 *:where(:not(math, math *)) {
@@ -70,14 +100,14 @@ body {
   gap: 8px;
   padding: 5px 10px;
   border-radius: 8px;
-  background-color: rgba(15, 23, 42, 0.65);
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -87,7 +117,7 @@ body {
 
 .app-switcher summary:hover,
 .app-switcher[open] summary {
-  background-color: rgba(51, 65, 85, 0.55);
+  background-color: var(--bg-tertiary);
   border-color: var(--border-hover);
 }
 
@@ -98,9 +128,8 @@ body {
 }
 
 .app-switcher-title {
-  background: linear-gradient(135deg, #fff 30%, var(--accent-blue) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 .app-switcher-caret {
@@ -122,12 +151,10 @@ body {
   left: 0;
   min-width: 240px;
   padding: 6px;
-  border-radius: 12px;
-  background-color: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border-radius: 10px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--panel-shadow);
   z-index: 500;
   display: flex;
   flex-direction: column;
@@ -142,17 +169,17 @@ body {
   border-radius: 8px;
   text-decoration: none;
   color: var(--text-secondary);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .app-switcher-item:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--bg-tertiary);
   color: var(--text-primary);
 }
 
 .app-switcher-item.active {
-  background-color: var(--accent-blue-glow);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background-color: var(--accent-blue-tint);
+  border: 1px solid var(--border-hover);
   color: var(--text-primary);
 }
 
@@ -193,9 +220,8 @@ body {
 /* Sidebar Layout */
 .sidebar {
   width: 320px;
-  background-color: rgba(30, 41, 59, 0.5);
+  background-color: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
-  backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -303,9 +329,9 @@ body.sidebar-collapsed .sidebar-expand-btn {
 }
 
 .sidebar-item.active {
-  background-color: var(--accent-blue-glow);
+  background-color: var(--accent-blue-tint);
   color: var(--accent-blue);
-  border-color: rgba(59, 130, 246, 0.2);
+  border-color: var(--border-hover);
   font-weight: 600;
 }
 
@@ -401,12 +427,10 @@ body.sidebar-collapsed .sidebar-expand-btn {
 }
 
 .card {
-  background-color: rgba(30, 41, 59, 0.4);
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: 16px;
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(8px);
   min-width: 0;
   overflow: hidden;
 }
@@ -939,17 +963,16 @@ body.sidebar-collapsed .sidebar-expand-btn {
   position: relative;
   display: flex;
   flex-direction: column;
-  background-color: rgba(15, 23, 42, 0.7);
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: 8px 16px;
-  box-shadow: var(--glass-shadow);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .formula-input-bar:focus-within {
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px var(--accent-blue-glow);
+  box-shadow: 0 0 0 2px var(--accent-blue-tint);
 }
 
 .formula-input-bar.invalid {
@@ -1019,13 +1042,11 @@ body.sidebar-collapsed .sidebar-expand-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1e1114;
-  border: 1px solid rgba(239, 68, 68, 0.7);
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-red);
   border-radius: 6px;
   padding: 6px 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(239, 68, 68, 0.25);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--panel-shadow);
 }
 
 .parse-error-icon {
@@ -1189,4 +1210,120 @@ body.sidebar-collapsed .sidebar-expand-btn {
   .charts-layout .chart-card {
     margin-bottom: 0;
   }
+}
+
+/* Shared Icon Button */
+.icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+  flex-shrink: 0;
+}
+
+.icon-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.icon-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Shared Syntax Highlighting Tokens */
+.tok-number {
+  color: var(--accent-amber);
+}
+
+.tok-string {
+  color: var(--accent-emerald);
+}
+
+.tok-boolean {
+  color: var(--accent-purple);
+  font-weight: 500;
+}
+
+.tok-constant {
+  color: var(--accent-purple);
+  font-weight: 500;
+}
+
+.tok-command {
+  color: var(--accent-blue);
+  font-weight: 500;
+}
+
+.tok-math-func {
+  color: var(--accent-cyan);
+}
+
+.tok-user-func {
+  color: var(--accent-indigo);
+  font-weight: 500;
+}
+
+.tok-variable {
+  color: var(--text-primary);
+}
+
+.tok-param-label {
+  color: var(--accent-pink);
+}
+
+.tok-result-ref {
+  color: var(--accent-amber);
+  font-weight: 500;
+}
+
+.tok-operator {
+  color: var(--text-secondary);
+}
+
+.tok-comment {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.tok-error {
+  color: var(--accent-red);
+  text-decoration: underline wavy var(--accent-red);
+}
+
+.tok-bracket-0 {
+  color: var(--text-secondary);
+}
+
+.tok-bracket-1 {
+  color: var(--accent-blue);
+}
+
+.tok-bracket-2 {
+  color: var(--accent-purple);
+}
+
+.tok-bracket-match {
+  background-color: var(--accent-blue-tint);
+  border-radius: 2px;
+}
+
+.tok-bracket-mismatch {
+  color: var(--accent-red);
+  background-color: var(--accent-red-tint);
+  border-radius: 2px;
 }

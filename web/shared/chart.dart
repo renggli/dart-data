@@ -7,6 +7,82 @@ import 'package:web/web.dart' as web;
 
 import 'webgl_chart.dart';
 
+/// Colorblind-safe scientific curve palette (Okabe-Ito inspired).
+const List<String> chartCurvePalette = [
+  '#2563eb', // Cobalt blue
+  '#e69f00', // Orange
+  '#009e73', // Bluish green
+  '#cc79a7', // Reddish purple
+  '#56b4e9', // Sky blue
+  '#d55e00', // Vermilion
+  '#0072b2', // Deep blue
+  '#f0e442', // Yellow
+];
+
+/// Theme-aware colors resolved from CSS custom properties on `:root`.
+final class ChartTheme {
+  const new({
+    required this.background,
+    required this.grid,
+    required this.axis,
+    required this.label,
+    required this.tooltipBg,
+    required this.tooltipBorder,
+    required this.tooltipText,
+  });
+
+  /// Resolves the active theme colors from computed CSS variables.
+  factory current() {
+    final root = web.document.documentElement;
+    if (root == null) return dark;
+    final style = web.window.getComputedStyle(root);
+    String read(String name, String fallback) {
+      final value = style.getPropertyValue(name).trim();
+      return value.isEmpty ? fallback : value;
+    }
+
+    return .new(
+      background: read('--bg-primary', dark.background),
+      grid: read('--border-color', dark.grid),
+      axis: read('--text-muted', dark.axis),
+      label: read('--text-secondary', dark.label),
+      tooltipBg: read('--bg-secondary', dark.tooltipBg),
+      tooltipBorder: read('--border-hover', dark.tooltipBorder),
+      tooltipText: read('--text-primary', dark.tooltipText),
+    );
+  }
+
+  /// Default dark theme palette.
+  static const ChartTheme dark = ChartTheme(
+    background: '#121316',
+    grid: 'rgba(255, 255, 255, 0.08)',
+    axis: '#6e7685',
+    label: '#a1a8b5',
+    tooltipBg: '#181a1f',
+    tooltipBorder: 'rgba(255, 255, 255, 0.16)',
+    tooltipText: '#eceef2',
+  );
+
+  /// Default light theme palette.
+  static const ChartTheme light = ChartTheme(
+    background: '#ffffff',
+    grid: 'rgba(24, 24, 27, 0.08)',
+    axis: '#71717a',
+    label: '#52525b',
+    tooltipBg: '#f8f8f7',
+    tooltipBorder: 'rgba(24, 24, 27, 0.18)',
+    tooltipText: '#18181b',
+  );
+
+  final String background;
+  final String grid;
+  final String axis;
+  final String label;
+  final String tooltipBg;
+  final String tooltipBorder;
+  final String tooltipText;
+}
+
 /// Mathematical plotting viewport defining domain, range, and pixel geometry.
 class PlotViewport {
   const new({
