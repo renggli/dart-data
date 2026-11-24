@@ -250,10 +250,22 @@
     }
 
     .cap-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       font-family: var(--font-display);
       font-size: 15px;
       font-weight: 600;
       color: var(--text-primary);
+    }
+
+    .cap-title::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cap-accent, var(--accent-blue));
+      flex-shrink: 0;
     }
 
     .cap-desc {
@@ -266,11 +278,11 @@
     .cap-tag {
       font-family: var(--font-mono);
       font-size: 10px;
-      color: var(--text-muted);
-      padding: 2px 6px;
+      font-weight: 600;
+      color: var(--cap-accent, var(--accent-blue));
+      padding: 2px 7px;
       border-radius: 4px;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
+      background: var(--cap-tint, var(--accent-blue-tint));
     }
 
     .cap-tags-row {
@@ -503,7 +515,7 @@
     </div>
 
     <section class="capabilities-grid">
-      <div class="cap-card">
+      <div class="cap-card" style="--cap-accent: var(--accent-purple); --cap-tint: var(--accent-purple-tint);">
         <div>
           <div class="cap-header">
             <span class="cap-title">Symbolic Algebra &amp; Calculus</span>
@@ -536,7 +548,7 @@
         </div>
       </div>
 
-      <div class="cap-card">
+      <div class="cap-card" style="--cap-accent: var(--accent-blue); --cap-tint: var(--accent-blue-tint);">
         <div>
           <div class="cap-header">
             <span class="cap-title">Linear Algebra &amp; Solvers</span>
@@ -560,7 +572,7 @@
         </div>
       </div>
 
-      <div class="cap-card">
+      <div class="cap-card" style="--cap-accent: var(--accent-cyan); --cap-tint: var(--accent-cyan-tint);">
         <div>
           <div class="cap-header">
             <span class="cap-title">N-Dimensional Tensors</span>
@@ -586,7 +598,7 @@
         </div>
       </div>
 
-      <div class="cap-card">
+      <div class="cap-card" style="--cap-accent: var(--accent-amber); --cap-tint: var(--accent-amber-tint);">
         <div>
           <div class="cap-header">
             <span class="cap-title">Numerical Analysis &amp; ODEs</span>
@@ -615,7 +627,7 @@
         </div>
       </div>
 
-      <div class="cap-card">
+      <div class="cap-card" style="--cap-accent: var(--accent-indigo); --cap-tint: var(--accent-indigo-tint);">
         <div>
           <div class="cap-header">
             <span class="cap-title">Special Functions &amp; Polynomials</span>
@@ -645,7 +657,7 @@
         </div>
       </div>
 
-      <div class="cap-card">
+      <div class="cap-card" style="--cap-accent: var(--accent-emerald); --cap-tint: var(--accent-emerald-tint);">
         <div>
           <div class="cap-header">
             <span class="cap-title">DataFrames &amp; Statistics</span>
