@@ -35,9 +35,12 @@
       btn.addEventListener('click', () => {
         const cur = root.getAttribute('data-theme') || 'dark';
         const next = cur === 'light' ? 'dark' : 'light';
+        root.classList.add('no-transition');
         root.setAttribute('data-theme', next);
         localStorage.setItem(THEME_KEY, next);
         syncButtons(next);
+        void root.offsetHeight;
+        root.classList.remove('no-transition');
       });
     });
 

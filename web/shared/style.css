@@ -307,9 +307,11 @@ body {
   display: none;
 }
 
-.no-transition .sidebar,
-.no-transition .main-content {
+.no-transition *,
+.no-transition *::before,
+.no-transition *::after {
   transition: none !important;
+  animation: none !important;
 }
 
 body.sidebar-collapsed .sidebar {
@@ -1114,9 +1116,11 @@ body.sidebar-collapsed .sidebar-expand-btn {
     transform: none !important;
   }
 
-  .no-transition .sidebar,
-.no-transition .main-content {
+  .no-transition *,
+.no-transition *::before,
+.no-transition *::after {
   transition: none !important;
+  animation: none !important;
 }
 
 body.sidebar-collapsed .sidebar {
