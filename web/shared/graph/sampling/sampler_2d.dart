@@ -213,13 +213,13 @@ Field2DDataset sampleScalarField2D({
     rgbaPixels: pixels,
     minLabel: zMin.isFinite ? formatGraphNumber(zMin) : '',
     maxLabel: zMax.isFinite ? formatGraphNumber(zMax) : '',
-    resampler: (nextDomain) => sampleScalarField2D(
+    resampler: (nextDomain, {cols, rows}) => sampleScalarField2D(
       id: id,
       label: label,
       fn: fn,
       domain: nextDomain,
-      cols: safeCols,
-      rows: safeRows,
+      cols: cols ?? safeCols,
+      rows: rows ?? safeRows,
       colormap: colormap,
     ),
   );
@@ -295,13 +295,13 @@ Field2DDataset sampleVectorField2D({
     rgbaPixels: pixels,
     minLabel: '0',
     maxLabel: formatGraphNumber(maxMag),
-    resampler: (nextDomain) => sampleVectorField2D(
+    resampler: (nextDomain, {cols, rows}) => sampleVectorField2D(
       id: id,
       label: label,
       fn: fn,
       domain: nextDomain,
       cols: safeCols,
-      rows: safeRows,
+      rows: rows ?? safeRows,
       colormap: colormap,
       showRaster: showRaster,
     ),

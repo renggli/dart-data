@@ -400,6 +400,7 @@ final class Field2DDataset extends Dataset2D {
     this.minLabel = '',
     this.maxLabel = '',
     this.resampler,
+    this.evaluator,
     super.visible = true,
     super.yAxis = YAxisSide.left,
   });
@@ -434,8 +435,12 @@ final class Field2DDataset extends Dataset2D {
   /// High-end label for gradient swatch.
   final String maxLabel;
 
-  /// Optional callback to resample this field when viewport bounds change.
-  final Field2DDataset Function(Bounds2D domain)? resampler;
+  /// Optional callback to resample this field when viewport bounds or size change.
+  final Field2DDataset Function(Bounds2D domain, {int? cols, int? rows})?
+  resampler;
+
+  /// Optional exact evaluator for hover readouts without storing all grid samples.
+  final Field2DSample Function(double x, double y)? evaluator;
 
   @override
   LegendSwatch get swatch => colormap == Colormap.oklchPhase
@@ -451,23 +456,27 @@ final class Field2DDataset extends Dataset2D {
 
   @override
   LegendReadout? readout(GraphProbe? probe) {
-    if (probe is! Probe2D || cols <= 0 || rows <= 0 || samples.isEmpty) {
-      return null;
-    }
+    if (probe is! Probe2D) return null;
     if (probe.x < domain.xMin ||
         probe.x > domain.xMax ||
         probe.y < domain.yMin ||
         probe.y > domain.yMax) {
       return null;
     }
-    final fx = (probe.x - domain.xMin) / domain.xSpan;
-    final fy = (probe.y - domain.yMin) / domain.ySpan;
-    final col = (fx * (cols - 1)).round().clamp(0, cols - 1);
-    final row = (fy * (rows - 1)).round().clamp(0, rows - 1);
-    final idx = row * cols + col;
-    if (idx < 0 || idx >= samples.length) return null;
-    final s = samples[idx];
-    if (showVectors) {
+    final Field2DSample s;
+    if (evaluator != null) {
+      s = evaluator!(probe.x, probe.y);
+    } else {
+      if (cols <= 0 || rows <= 0 || samples.isEmpty) return null;
+      final fx = (probe.x - domain.xMin) / domain.xSpan;
+      final fy = (probe.y - domain.yMin) / domain.ySpan;
+      final col = (fx * (cols - 1)).round().clamp(0, cols - 1);
+      final row = (fy * (rows - 1)).round().clamp(0, rows - 1);
+      final idx = row * cols + col;
+      if (idx < 0 || idx >= samples.length) return null;
+      s = samples[idx];
+    }
+    if (showVectors || colormap == Colormap.oklchPhase) {
       return LegendReadout(
         valueText: '(${formatGraphNumber(s.u)}, ${formatGraphNumber(s.v)})',
         detailText: '|v| = ${formatGraphNumber(s.scalar)}',

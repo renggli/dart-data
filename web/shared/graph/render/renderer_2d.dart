@@ -83,7 +83,12 @@ class Renderer2D {
     if (!preserveView) {
       _viewBounds = _applyEqualAspect(_defaultBounds);
       if (_viewBounds.xMin < computed.xMin ||
-          _viewBounds.xMax > computed.xMax) {
+          _viewBounds.xMax > computed.xMax ||
+          (_width > 1 &&
+              _height > 1 &&
+              _scene.datasets.any(
+                (d) => d is Field2DDataset && d.resampler != null,
+              ))) {
         _resampleForViewport();
       }
     }
@@ -147,6 +152,11 @@ class Renderer2D {
 
     final pxW = (cssW * _dpr).round();
     final pxH = (cssH * _dpr).round();
+    final sizeChanged =
+        _glCanvas.width != pxW ||
+        _glCanvas.height != pxH ||
+        _hudCanvas.width != pxW ||
+        _hudCanvas.height != pxH;
     if (_glCanvas.width != pxW || _glCanvas.height != pxH) {
       _glCanvas.width = pxW;
       _glCanvas.height = pxH;
@@ -154,6 +164,17 @@ class Renderer2D {
     if (_hudCanvas.width != pxW || _hudCanvas.height != pxH) {
       _hudCanvas.width = pxW;
       _hudCanvas.height = pxH;
+    }
+    if (sizeChanged &&
+        cssW > 1 &&
+        cssH > 1 &&
+        _scene.datasets.any(
+          (d) => d is Field2DDataset && d.resampler != null,
+        )) {
+      if (_scene.equalAspect) {
+        _viewBounds = _applyEqualAspect(_defaultBounds);
+      }
+      _resampleForViewport();
     }
     render();
   }
@@ -201,11 +222,14 @@ class Renderer2D {
     _hudCanvas.remove();
   }
 
-  void _resampleForViewport() {
+  void _resampleForViewport({bool resampleFields = true}) {
     if (_scene.datasets.isEmpty || !_viewBounds.isValid) return;
     var changed = false;
     var texturesDirty = false;
     final updated = <Dataset2D>[];
+    final plot = _plotRect();
+    final targetCols = (plot.width * _dpr).round().clamp(64, 1280);
+    final targetRows = (plot.height * _dpr).round().clamp(64, 960);
 
     for (final ds in _scene.datasets) {
       if (ds is Function2DDataset && ds.evaluator != null) {
@@ -226,8 +250,14 @@ class Renderer2D {
         );
         updated.add(resampled);
         changed = true;
-      } else if (ds is Field2DDataset && ds.resampler != null) {
-        final resampled = ds.resampler!(_viewBounds);
+      } else if (resampleFields &&
+          ds is Field2DDataset &&
+          ds.resampler != null) {
+        final resampled = ds.resampler!(
+          _viewBounds,
+          cols: targetCols,
+          rows: targetRows,
+        );
         updated.add(resampled);
         changed = true;
         if (resampled.showRaster) texturesDirty = true;
@@ -1140,7 +1170,7 @@ void main() {
           y2Min: y2Min,
           y2Max: y2Max,
         );
-        _resampleForViewport();
+        _resampleForViewport(resampleFields: false);
         render();
         return;
       }
@@ -1175,10 +1205,18 @@ void main() {
     }).toJS;
 
     _onPointerUpJs = ((web.PointerEvent e) {
+      final wasDragging = _dragging;
       _dragging = false;
       _dragStartBounds = null;
       if (_hudCanvas.hasPointerCapture(e.pointerId)) {
         _hudCanvas.releasePointerCapture(e.pointerId);
+      }
+      if (wasDragging &&
+          _scene.datasets.any(
+            (d) => d is Field2DDataset && d.resampler != null,
+          )) {
+        _resampleForViewport();
+        render();
       }
     }).toJS;
 

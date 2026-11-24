@@ -57,12 +57,13 @@ Field2DDataset sampleComplexDomainGrid({
   required String label,
   required ({double re, double im}) Function(double x, double y) fn,
   required Bounds2D domain,
-  int cols = 160,
-  int rows = 160,
+  int cols = 480,
+  int rows = 320,
 }) {
   final safeCols = math.max(2, cols);
   final safeRows = math.max(2, rows);
   final pixels = Uint8List(safeCols * safeRows * 4);
+  final storeSamples = safeCols * safeRows <= 40000;
   final samples = <Field2DSample>[];
 
   for (var row = 0; row < safeRows; row++) {
@@ -76,15 +77,17 @@ Field2DDataset sampleComplexDomainGrid({
       pixels[base + 1] = rgba.g;
       pixels[base + 2] = rgba.b;
       pixels[base + 3] = rgba.a;
-      samples.add(
-        Field2DSample(
-          x: x,
-          y: y,
-          u: z.re,
-          v: z.im,
-          scalar: math.sqrt(z.re * z.re + z.im * z.im),
-        ),
-      );
+      if (storeSamples) {
+        samples.add(
+          Field2DSample(
+            x: x,
+            y: y,
+            u: z.re,
+            v: z.im,
+            scalar: math.sqrt(z.re * z.re + z.im * z.im),
+          ),
+        );
+      }
     }
   }
 
@@ -99,13 +102,23 @@ Field2DDataset sampleComplexDomainGrid({
     showRaster: true,
     showVectors: false,
     rgbaPixels: pixels,
-    resampler: (nextDomain) => sampleComplexDomainGrid(
+    evaluator: (x, y) {
+      final z = fn(x, y);
+      return Field2DSample(
+        x: x,
+        y: y,
+        u: z.re,
+        v: z.im,
+        scalar: math.sqrt(z.re * z.re + z.im * z.im),
+      );
+    },
+    resampler: (nextDomain, {cols, rows}) => sampleComplexDomainGrid(
       id: id,
       label: label,
       fn: fn,
       domain: nextDomain,
-      cols: safeCols,
-      rows: safeRows,
+      cols: cols ?? safeCols,
+      rows: rows ?? safeRows,
     ),
   );
 }
