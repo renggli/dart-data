@@ -2,12 +2,16 @@ import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 
+import '../../../web/notebook/src/engine/commands.dart';
 import '../../../web/notebook/src/language/ast.dart';
+import '../../../web/notebook/src/language/completion.dart';
 import '../../../web/notebook/src/language/grammar.dart';
 import '../../../web/notebook/src/language/lexer.dart';
 import '../../../web/notebook/src/language/signature.dart';
+import '../../../web/notebook/src/model/environment.dart';
 import '../../../web/notebook/src/model/serialization.dart';
 import '../../../web/notebook/src/model/value.dart';
+import '../../../web/notebook/src/ui/highlighter.dart';
 
 void main() {
   group('CalcLexer', () {
@@ -189,6 +193,65 @@ void main() {
         final decoded = valueFromJson(valueToJson(v));
         check(decoded).equals(v);
       }
+    });
+  });
+
+  group('NotebookCompletion & SyntaxHighlighter', () {
+    final registry = CommandRegistry();
+    final env = Environment();
+
+    test(
+      'suggests commands, math functions, named params, and enum values',
+      () {
+        final topRes = NotebookCompletion.suggest(
+          'cheb',
+          4,
+          registry: registry,
+          env: env,
+        );
+        check(topRes.items.any((i) => i.label == 'chebyshevT')).isTrue;
+
+        const srcNamed = 'integrate(sin(x), x, ';
+        final namedRes = NotebookCompletion.suggest(
+          srcNamed,
+          srcNamed.length,
+          registry: registry,
+          env: env,
+        );
+        check(namedRes.items.any((i) => i.label == 'from:')).isTrue;
+        check(namedRes.items.any((i) => i.label == 'to:')).isTrue;
+        check(namedRes.signatureHint?.functionName).equals('integrate');
+
+        const srcEnum = "limit(1/x, x, 0, direction: 'r";
+        final enumRes = NotebookCompletion.suggest(
+          srcEnum,
+          srcEnum.length,
+          registry: registry,
+          env: env,
+        );
+        check(enumRes.items.any((i) => i.label == "'right'")).isTrue;
+        check(enumRes.signatureHint?.activeParamName).equals('direction');
+      },
+    );
+
+    test('highlights math and markdown into .tok-* spans', () {
+      final mathHtml = SyntaxHighlighter.highlightMathHtml(
+        'plot(sin(x), from: 0)',
+        registry: registry,
+        env: env,
+        cursorOffset: 4,
+      );
+      check(mathHtml).contains('tok-command');
+      check(mathHtml).contains('tok-math-func');
+      check(mathHtml).contains('tok-param-label');
+      check(mathHtml).contains('tok-bracket-match');
+
+      final mdHtml = SyntaxHighlighter.highlightMarkdownHtml(
+        '# Title\nValue {{r[1]}} and \$x^2\$',
+      );
+      check(mdHtml).contains('tok-command');
+      check(mdHtml).contains('tok-result-ref');
+      check(mdHtml).contains('tok-math-func');
     });
   });
 }
