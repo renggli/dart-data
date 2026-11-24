@@ -14,38 +14,40 @@
   <meta name="description" content="Interactive symbolic mathematics engine with algebraic simplification, rational and trigonometric rewriting, exact calculus, series, summations, and equation solving.">
   <link rel="stylesheet" href="../shared/style.css">
   <link rel="stylesheet" href="style.css">
+  <script src="../shared/theme.js"></script>
 </head>
 <body>
-
-  <!-- Navigation Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
+  <header class="app-header">
+    <div class="app-header-left">
+      <button type="button" class="sidebar-toggle-btn" data-sidebar-toggle title="Toggle sidebar" aria-label="Toggle sidebar">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>
+      </button>
       <details class="app-switcher">
         <summary>
           <span class="app-switcher-brand">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12c2-7 4-7 6-2s3 5 4-4"/></svg>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 3.5H4l4.5 4.5L4 12.5h8.5"/></svg>
             <span class="app-switcher-title">Expressions</span>
           </span>
           <span class="app-switcher-caret">▾</span>
         </summary>
         <nav class="app-switcher-menu" aria-label="Switch Application">
           <a href="../" class="app-switcher-item">
-            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5L8 2.5l5.5 5v6H10V9.5H6v4H2.5z"/></svg></span>
+            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l5 3v6l-5 3-5-3V5z"/><path d="M8 8l5-3M8 8v6M8 8L3 5"/></svg></span>
             <span class="app-switcher-item-text">
-              <span class="app-switcher-item-name">Dart Data Home</span>
+              <span class="app-switcher-item-name">Dart Data</span>
               <span class="app-switcher-item-desc">Overview &amp; subsystems</span>
             </span>
           </a>
           <div class="app-switcher-divider"></div>
           <a href="../distributions/" class="app-switcher-item">
-            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13c2.5 0 3.5-9 6-9s3.5 9 6 9"/></svg></span>
+            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 13C4 13 5 3.5 8 3.5S12 13 14.5 13"/></svg></span>
             <span class="app-switcher-item-text">
               <span class="app-switcher-item-name">Distributions</span>
               <span class="app-switcher-item-desc">Probability &amp; statistics</span>
             </span>
           </a>
           <a href="../expressions/" class="app-switcher-item active">
-            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-7 4-7 6-2s3 5 4-4"/></svg></span>
+            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 3.5H4l4.5 4.5L4 12.5h8.5"/></svg></span>
             <span class="app-switcher-item-text">
               <span class="app-switcher-item-name">Expressions</span>
               <span class="app-switcher-item-desc">Symbolic algebra &amp; calculus</span>
@@ -60,8 +62,14 @@
           </a>
         </nav>
       </details>
-      <button class="sidebar-toggle-btn" id="sidebar-collapse-btn" title="Close sidebar" aria-label="Close sidebar">◀</button>
     </div>
+    <div class="app-header-right">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle theme"></button>
+    </div>
+  </header>
+
+  <!-- Navigation Sidebar -->
+  <aside class="sidebar">
     <nav class="sidebar-list" id="presets-list">
       <!-- Injected dynamically from presets -->
     </nav>
@@ -71,7 +79,6 @@
   <main class="main-content">
     <header class="main-header">
       <div class="header-title-container">
-        <button class="sidebar-toggle-btn sidebar-expand-btn" id="sidebar-expand-btn" title="Open sidebar" aria-label="Open sidebar">☰</button>
         <h2 class="page-title" id="display-title">Factored Cubic Polynomial</h2>
         <span class="badge badge-symbolic" id="category-badge">Polynomial & Rational Algebra</span>
       </div>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,11 +8,15 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="../shared/style.css">
   <link rel="stylesheet" href="style.css">
+  <script src="../shared/theme.js"></script>
   <script defer src="index.dart.js"></script>
 </head>
 <body class="nb-body">
-  <header class="nb-header">
-    <div class="nb-header-left">
+  <header class="app-header">
+    <div class="app-header-left">
+      <button type="button" class="sidebar-toggle-btn" data-sidebar-toggle title="Toggle sidebar" aria-label="Toggle sidebar">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>
+      </button>
       <details class="app-switcher">
         <summary>
           <span class="app-switcher-brand">
@@ -24,23 +28,23 @@
           </span>
           <span class="app-switcher-caret">&#9662;</span>
         </summary>
-        <div class="app-switcher-menu">
+        <nav class="app-switcher-menu" aria-label="Switch Application">
           <a class="app-switcher-item" href="../">
             <span class="app-switcher-item-icon">
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2.5 7.5L8 2.5l5.5 5v6H10V9.5H6v4H2.5z"/>
+                <path d="M8 2l5 3v6l-5 3-5-3V5z"/><path d="M8 8l5-3M8 8v6M8 8L3 5"/>
               </svg>
             </span>
             <span class="app-switcher-item-text">
-              <span class="app-switcher-item-name">Home</span>
-              <span class="app-switcher-item-desc">All interactive demos</span>
+              <span class="app-switcher-item-name">Dart Data</span>
+              <span class="app-switcher-item-desc">Overview &amp; subsystems</span>
             </span>
           </a>
           <div class="app-switcher-divider"></div>
           <a class="app-switcher-item" href="../distributions/">
             <span class="app-switcher-item-icon">
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 13c2.5 0 3.5-9 6-9s3.5 9 6 9"/>
+                <path d="M1.5 13C4 13 5 3.5 8 3.5S12 13 14.5 13"/>
               </svg>
             </span>
             <span class="app-switcher-item-text">
@@ -51,12 +55,12 @@
           <a class="app-switcher-item" href="../expressions/">
             <span class="app-switcher-item-icon">
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 12c2-7 4-7 6-2s3 5 4-4"/>
+                <path d="M12.5 3.5H4l4.5 4.5L4 12.5h8.5"/>
               </svg>
             </span>
             <span class="app-switcher-item-text">
               <span class="app-switcher-item-name">Expressions</span>
-              <span class="app-switcher-item-desc">Symbolic calculus &amp; plots</span>
+              <span class="app-switcher-item-desc">Symbolic algebra &amp; calculus</span>
             </span>
           </a>
           <a class="app-switcher-item active" href="./">
@@ -71,22 +75,34 @@
               <span class="app-switcher-item-desc">Interactive symbolic math notebook</span>
             </span>
           </a>
-        </div>
+        </nav>
       </details>
       <span id="nb-busy" class="nb-busy-badge"></span>
     </div>
-    <div class="nb-header-right">
-      <button id="nb-undo" type="button" class="icon-btn" title="Undo (Cmd/Ctrl+Z)" disabled></button>
-      <button id="nb-redo" type="button" class="icon-btn" title="Redo (Cmd/Ctrl+Shift+Z)" disabled></button>
-      <button id="nb-palette-btn" type="button" class="icon-btn" title="Command Palette (Cmd/Ctrl+K)"></button>
-      <button id="nb-matrix-btn" type="button" class="icon-btn" title="Insert Matrix"></button>
-      <button id="nb-theme-btn" type="button" class="icon-btn" title="Toggle Theme"></button>
-      <button id="nb-help-btn" type="button" class="icon-btn" title="Command Reference"></button>
-      <button id="nb-settings-btn" type="button" class="icon-btn" title="Notebook Settings"></button>
+    <div class="app-header-right">
+      <button id="nb-undo" type="button" class="icon-btn" title="Undo (Cmd/Ctrl+Z)" aria-label="Undo" disabled></button>
+      <button id="nb-redo" type="button" class="icon-btn" title="Redo (Cmd/Ctrl+Shift+Z)" aria-label="Redo" disabled></button>
+      <button id="nb-load-btn" type="button" class="icon-btn" title="Load notebook (.md or .json)" aria-label="Load notebook"></button>
+      <button id="nb-save-btn" type="button" class="icon-btn" title="Save notebook (.md)" aria-label="Save notebook"></button>
+      <button id="nb-clear-btn" type="button" class="icon-btn" title="Clear notebook" aria-label="Clear notebook"></button>
+      <button id="nb-palette-btn" type="button" class="icon-btn" title="Command Palette (Cmd/Ctrl+K)" aria-label="Command Palette"></button>
+      <button id="nb-matrix-btn" type="button" class="icon-btn" title="Insert Matrix" aria-label="Insert Matrix"></button>
+      <button id="nb-help-btn" type="button" class="icon-btn" title="Command Reference" aria-label="Command Reference"></button>
+      <button id="nb-settings-btn" type="button" class="icon-btn" title="Notebook Settings" aria-label="Notebook Settings"></button>
+      <button id="nb-theme-btn" type="button" class="icon-btn" title="Toggle Theme" aria-label="Toggle Theme"></button>
     </div>
   </header>
 
-  <main class="nb-main">
+  <!-- Navigation Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-list">
+      <div class="group-heading">Document Outline</div>
+      <div id="nb-outline-list"></div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content nb-main">
     <div id="notebook-mount"></div>
   </main>
 </body>

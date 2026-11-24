@@ -13,30 +13,18 @@
   <title>Dart Data — Scientific Computing, CAS &amp; Data Science</title>
   <meta name="description" content="High-performance scientific computing, symbolic computer algebra, linear algebra, N-dimensional tensors, probability distributions, and columnar DataFrames for Dart.">
   <link rel="stylesheet" href="shared/style.css">
+  <script src="shared/theme.js"></script>
   <style>
     .home-body {
       display: block;
       min-height: 100vh;
+      padding-top: 52px;
       background:
         radial-gradient(circle at 15% 10%, rgba(59, 130, 246, 0.14), transparent 40%),
         radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.12), transparent 40%),
         radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.10), transparent 45%),
         var(--bg-primary);
       color: var(--text-primary);
-    }
-
-    .home-topbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 32px;
-      background: rgba(15, 23, 42, 0.82);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border-color);
     }
 
     .home-brand {
@@ -77,7 +65,7 @@
       font-weight: 600;
       color: var(--text-secondary);
       text-decoration: none;
-      background: rgba(30, 41, 59, 0.6);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       transition: all 0.2s ease;
     }
@@ -85,7 +73,7 @@
     .ext-link:hover {
       color: var(--text-primary);
       border-color: var(--border-hover);
-      background: rgba(51, 65, 85, 0.6);
+      background: var(--bg-tertiary);
     }
 
     .home-container {
@@ -107,7 +95,7 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: 1.12;
-      background: linear-gradient(135deg, #ffffff 20%, #93c5fd 65%, #c084fc 100%);
+      background: linear-gradient(135deg, var(--text-primary) 20%, var(--accent-blue) 65%, var(--accent-purple) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 14px;
@@ -134,9 +122,9 @@
       justify-content: space-between;
       padding: 26px 24px;
       border-radius: 16px;
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.72) 0%, rgba(15, 23, 42, 0.65) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.45);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--panel-shadow);
       text-decoration: none;
       color: var(--text-primary);
       transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
@@ -153,16 +141,16 @@
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
       mask-composite: exclude;
-      opacity: 0.55;
+      opacity: 0.45;
       transition: opacity 0.2s ease;
       pointer-events: none;
     }
 
     .app-card:hover {
-      transform: translateY(-4px);
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.88) 0%, rgba(15, 23, 42, 0.8) 100%);
-      border-color: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 18px 44px -8px rgba(0, 0, 0, 0.6), 0 0 24px -4px var(--card-accent, var(--accent-blue));
+      transform: translateY(-3px);
+      background: var(--bg-tertiary);
+      border-color: var(--border-hover);
+      box-shadow: var(--panel-shadow);
     }
 
     .app-card:hover::before {
@@ -192,7 +180,7 @@
       font-size: 12px;
       font-weight: 600;
       color: var(--text-secondary);
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
       padding: 3px 10px;
       border-radius: 999px;
@@ -220,7 +208,7 @@
       min-height: 76px;
       padding: 12px 14px;
       border-radius: 10px;
-      background: rgba(15, 23, 42, 0.65);
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
       font-size: 1.05rem;
       overflow-x: auto;
@@ -261,35 +249,6 @@
       color: var(--text-secondary);
     }
 
-    .live-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(16, 185, 129, 0.12);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      font-size: 11px;
-      font-weight: 600;
-      font-family: var(--font-mono);
-      letter-spacing: 0.02em;
-    }
-
-    .live-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 6px #10b981;
-      animation: live-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes live-pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-    }
-
     /* Capabilities & Formulas Grid */
     .section-title {
       display: flex;
@@ -319,7 +278,7 @@
       justify-content: space-between;
       padding: 22px 20px;
       border-radius: 14px;
-      background: rgba(30, 41, 59, 0.35);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-color);
     }
 
@@ -350,7 +309,7 @@
       color: var(--text-muted);
       padding: 2px 6px;
       border-radius: 4px;
-      background: rgba(15, 23, 42, 0.6);
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
     }
 
@@ -366,7 +325,7 @@
       color: var(--text-secondary);
       padding: 2px 8px;
       border-radius: 6px;
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
     }
 
@@ -377,7 +336,7 @@
       min-height: 72px;
       padding: 12px;
       border-radius: 10px;
-      background: rgba(15, 23, 42, 0.55);
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
       font-size: 1.05rem;
       overflow-x: auto;
@@ -438,8 +397,11 @@
 </head>
 <body class="home-body">
 
-  <header class="home-topbar">
-    <div style="display: flex; align-items: center; gap: 10px;">
+  <header class="app-header">
+    <div class="app-header-left">
+      <button type="button" class="sidebar-toggle-btn" disabled title="No sidebar" aria-label="Sidebar" style="opacity: 0.35; cursor: default;">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>
+      </button>
       <details class="app-switcher">
         <summary>
           <span class="app-switcher-brand">
@@ -450,22 +412,22 @@
         </summary>
         <nav class="app-switcher-menu" aria-label="Switch Application">
           <a href="./" class="app-switcher-item active">
-            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5L8 2.5l5.5 5v6H10V9.5H6v4H2.5z"/></svg></span>
+            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l5 3v6l-5 3-5-3V5z"/><path d="M8 8l5-3M8 8v6M8 8L3 5"/></svg></span>
             <span class="app-switcher-item-text">
-              <span class="app-switcher-item-name">Dart Data Home</span>
+              <span class="app-switcher-item-name">Dart Data</span>
               <span class="app-switcher-item-desc">Overview &amp; subsystems</span>
             </span>
           </a>
           <div class="app-switcher-divider"></div>
           <a href="distributions/" class="app-switcher-item">
-            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13c2.5 0 3.5-9 6-9s3.5 9 6 9"/></svg></span>
+            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 13C4 13 5 3.5 8 3.5S12 13 14.5 13"/></svg></span>
             <span class="app-switcher-item-text">
               <span class="app-switcher-item-name">Distributions</span>
               <span class="app-switcher-item-desc">Probability &amp; statistics</span>
             </span>
           </a>
           <a href="expressions/" class="app-switcher-item">
-            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-7 4-7 6-2s3 5 4-4"/></svg></span>
+            <span class="app-switcher-item-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 3.5H4l4.5 4.5L4 12.5h8.5"/></svg></span>
             <span class="app-switcher-item-text">
               <span class="app-switcher-item-name">Expressions</span>
               <span class="app-switcher-item-desc">Symbolic algebra &amp; calculus</span>
@@ -483,9 +445,10 @@
       <span class="home-brand-badge">package:data</span>
     </div>
 
-    <div class="home-topbar-right">
+    <div class="app-header-right">
       <a href="https://pub.dev/packages/data" class="ext-link" target="_blank" rel="noopener">pub.dev ↗</a>
       <a href="https://github.com/renggli/dart-data" class="ext-link" target="_blank" rel="noopener">GitHub ↗</a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle theme"></button>
     </div>
   </header>
 
@@ -500,14 +463,13 @@
         <h2 class="section-heading-apps">Web Applications</h2>
         <span class="section-subtitle">Interactive tools running fully client-side in the browser</span>
       </div>
-      <span class="live-pill"><span class="live-dot"></span> Live in Browser</span>
     </div>
 
     <section class="apps-grid">
       <a href="distributions/" class="app-card" style="--card-accent: var(--accent-blue);">
         <div>
           <div class="app-card-top">
-            <div class="app-card-title"><span>📊</span> Distributions</div>
+            <div class="app-card-title"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 13C4 13 5 3.5 8 3.5S12 13 14.5 13"/></svg> Distributions</div>
             <span class="app-card-launch">Launch <span>→</span></span>
           </div>
           <p class="app-card-desc">24 continuous and discrete probability distributions with interactive PDF/CDF curves, quantile plots, summary statistics, and random sampling.</p>
@@ -537,7 +499,7 @@
       <a href="expressions/" class="app-card" style="--card-accent: var(--accent-purple);">
         <div>
           <div class="app-card-top">
-            <div class="app-card-title"><span>⚡</span> Expressions</div>
+            <div class="app-card-title"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 3.5H4l4.5 4.5L4 12.5h8.5"/></svg> Expressions</div>
             <span class="app-card-launch">Launch <span>→</span></span>
           </div>
           <p class="app-card-desc">Symbolic rewriting, polynomial factorization, exact roots and extrema, domain assumptions, Taylor series, and definite integration.</p>

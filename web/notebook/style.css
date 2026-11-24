@@ -1,31 +1,55 @@
 /* Document-First Symbolic Notebook Stylesheet */
 
 body.nb-body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
   background-color: var(--bg-primary);
   color: var(--text-primary);
 }
 
-/* Top Bar */
+/* Top Bar inside main-content */
 .nb-header {
-  position: sticky;
-  top: 0;
-  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 20px;
-  background-color: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
-.nb-header-left,
 .nb-header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nb-header-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.nb-header-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.nb-outline-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.nb-outline-empty {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .nb-busy-badge {
@@ -41,9 +65,7 @@ body.nb-body {
 
 /* Document Canvas */
 .nb-main {
-  flex: 1;
-  width: 100%;
-  padding: 32px 24px 96px;
+  padding-bottom: 96px;
 }
 
 .nb-document {

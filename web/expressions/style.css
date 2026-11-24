@@ -12,8 +12,8 @@
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-secondary);
   font-family: var(--font-sans);
@@ -26,8 +26,8 @@
 }
 
 .domain-menu-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(59, 130, 246, 0.4);
+  background: var(--bg-tertiary);
+  border-color: var(--border-hover);
   color: var(--text-primary);
 }
 
@@ -77,12 +77,10 @@
   top: calc(100% + 8px);
   right: 0;
   min-width: 240px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-hover);
   border-radius: 8px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--panel-shadow);
   padding: 8px;
   z-index: 1000;
   display: flex;
@@ -99,7 +97,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 6px 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-color);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -120,7 +118,7 @@
 
 .domain-dropdown-close:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-tertiary);
 }
 
 .domain-dropdown-list {
@@ -138,11 +136,11 @@
   gap: 8px;
   padding: 4px 6px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-primary);
 }
 
 .domain-dropdown-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-tertiary);
 }
 
 .domain-var-label {

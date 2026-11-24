@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:js_interop';
 
 import 'package:data/symbolic.dart';
 import 'package:web/web.dart' as web;
 
+import '../model/notebook.dart';
 import '../worker/engine_client.dart';
 import 'help.dart';
 import 'icons.dart';
@@ -33,14 +35,13 @@ final class NotebookApp {
   late final web.HTMLButtonElement _undoBtn;
   late final web.HTMLButtonElement _redoBtn;
   late final web.HTMLButtonElement _themeBtn;
+  late final web.HTMLElement _outlineList;
 
   Future<void> _init() async {
-    final saved = NotebookPersistence.loadInitialSnapshot();
-    if (saved != null) {
-      await _client.loadSnapshot(saved);
-    }
-
-    _applyTheme(_client.env.settings.theme);
+    final sharedTheme = web.window.localStorage.getItem('data_theme');
+    final initialTheme = (sharedTheme == 'light' || sharedTheme == 'dark')
+        ? sharedTheme!
+        : _client.env.settings.theme;
 
     _notebookView = NotebookView(_client);
     _palette = CommandPalette(
@@ -68,6 +69,7 @@ final class NotebookApp {
 
     _buildSettingsDrawer();
     _wireHeader();
+    _applyTheme(initialTheme);
 
     final mount = web.document.getElementById('notebook-mount');
     mount?.append(_notebookView.root);
@@ -76,6 +78,11 @@ final class NotebookApp {
     web.document.body?.append(_helpDrawer.backdrop);
     web.document.body?.append(_matrixModal.backdrop);
     web.document.body?.append(_settingsBackdrop);
+
+    final saved = NotebookPersistence.loadInitialSnapshot();
+    if (saved != null) {
+      await _client.loadSnapshot(saved);
+    }
 
     NotebookShortcuts.attach(
       onOpenPalette: _palette.open,
@@ -88,16 +95,84 @@ final class NotebookApp {
     );
 
     _notebookView.render();
+    _renderOutline();
   }
 
   void _wireHeader() {
     _busyBadge = web.document.getElementById('nb-busy')! as web.HTMLSpanElement;
+    _outlineList =
+        web.document.getElementById('nb-outline-list')! as web.HTMLElement;
+
+    final collapseBtn = web.document.getElementById('sidebar-collapse-btn');
+    collapseBtn?.addEventListener(
+      'click',
+      ((web.Event _) {
+        web.document.body?.classList.toggle('sidebar-collapsed');
+      }).toJS,
+    );
+    final expandBtn = web.document.getElementById('sidebar-expand-btn');
+    expandBtn?.addEventListener(
+      'click',
+      ((web.Event _) {
+        web.document.body?.classList.remove('sidebar-collapsed');
+      }).toJS,
+    );
+
     _undoBtn = web.document.getElementById('nb-undo')! as web.HTMLButtonElement
       ..innerHTML = NbIcons.undo.toJS
       ..onclick = ((web.MouseEvent _) => _client.undo()).toJS;
     _redoBtn = web.document.getElementById('nb-redo')! as web.HTMLButtonElement
       ..innerHTML = NbIcons.redo.toJS
       ..onclick = ((web.MouseEvent _) => _client.redo()).toJS;
+
+    final loadInput =
+        (web.document.createElement('input') as web.HTMLInputElement)
+          ..type = 'file'
+          ..accept = '.md,.markdown,.json,.txt'
+          ..style.display = 'none';
+    loadInput.onchange = ((web.Event _) {
+      final files = loadInput.files;
+      if (files == null || files.length == 0) return;
+      final file = files.item(0);
+      if (file == null) return;
+      final reader = web.FileReader();
+      reader.onload = ((web.Event _) async {
+        final text = (reader.result as JSString?)?.toDart ?? '';
+        if (file.name.toLowerCase().endsWith('.json')) {
+          try {
+            final snap = (jsonDecode(text) as Map).cast<String, Object?>();
+            await _client.loadSnapshot(snap);
+            return;
+          } on Object {
+            // Fall through to markdown import
+          }
+        }
+        await _client.importMarkdown(text);
+      }).toJS;
+      reader.readAsText(file);
+    }).toJS;
+    web.document.body?.append(loadInput);
+
+    (web.document.getElementById('nb-load-btn')! as web.HTMLButtonElement)
+      ..innerHTML = NbIcons.upload.toJS
+      ..onclick = ((web.MouseEvent _) {
+        loadInput.value = '';
+        loadInput.click();
+      }).toJS;
+
+    (web.document.getElementById('nb-save-btn')! as web.HTMLButtonElement)
+      ..innerHTML = NbIcons.download.toJS
+      ..onclick = ((web.MouseEvent _) async {
+        final md = await _client.exportMarkdown();
+        NotebookPersistence.downloadFile('notebook.md', md, 'text/markdown');
+      }).toJS;
+
+    (web.document.getElementById('nb-clear-btn')! as web.HTMLButtonElement)
+      ..innerHTML = NbIcons.clearDoc.toJS
+      ..onclick = ((web.MouseEvent _) async {
+        _notebookView.focusCell(null);
+        await _client.importMarkdown('');
+      }).toJS;
 
     (web.document.getElementById('nb-palette-btn')! as web.HTMLButtonElement)
       ..innerHTML = NbIcons.search.toJS
@@ -287,6 +362,11 @@ final class NotebookApp {
 
   void _applyTheme(String theme) {
     web.document.documentElement?.setAttribute('data-theme', theme);
+    try {
+      web.window.localStorage.setItem('data_theme', theme);
+    } on Object {
+      // Ignore storage errors
+    }
     _updateThemeIcon(theme);
   }
 
@@ -312,5 +392,50 @@ final class NotebookApp {
     _redoBtn.disabled = !_client.canRedo;
     NotebookPersistence.saveSnapshot(_client.document);
     _notebookView.render(focusEditorUid: _notebookView.focusedUid);
+    _renderOutline();
+  }
+
+  void _renderOutline() {
+    _outlineList.innerHTML = ''.toJS;
+    final cells = _client.document.cells;
+    if (cells.isEmpty) {
+      final empty = (web.document.createElement('div') as web.HTMLDivElement)
+        ..className = 'nb-outline-empty'
+        ..textContent = 'No cells yet.';
+      _outlineList.append(empty);
+      return;
+    }
+
+    for (final cell in cells) {
+      final item = (web.document.createElement('div') as web.HTMLDivElement)
+        ..className = cell.uid == _notebookView.focusedUid
+            ? 'sidebar-item active'
+            : 'sidebar-item';
+      final label = (web.document.createElement('span') as web.HTMLSpanElement)
+        ..className = 'nb-outline-label';
+      final tag = (web.document.createElement('span') as web.HTMLSpanElement)
+        ..className = 'badge';
+
+      switch (cell) {
+        case MarkdownCell(:final source):
+          final firstLine = source.trim().split('\n').first;
+          label.textContent = firstLine.isEmpty
+              ? 'Text cell'
+              : firstLine.replaceFirst(RegExp(r'^#+\s*'), '');
+          tag.textContent = 'Text';
+        case MathCell(:final id, :final source):
+          final firstLine = source.trim().split('\n').first;
+          label.textContent = firstLine.isEmpty ? 'Math cell' : firstLine;
+          tag.textContent = 'r[$id]';
+      }
+
+      item
+        ..append(label)
+        ..append(tag)
+        ..onclick = ((web.MouseEvent _) {
+          _notebookView.focusCell(cell.uid);
+        }).toJS;
+      _outlineList.append(item);
+    }
   }
 }

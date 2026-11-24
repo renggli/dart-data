@@ -10,8 +10,18 @@
 .sampler-controls .btn {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 4px 6px;
-  font-size: 11px;
+  padding: 6px 10px;
+  font-size: 12px;
+  min-height: 30px;
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .properties-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
 }
 
 .sampler-card {
@@ -44,7 +54,7 @@
 
 .sampler-card .samples-box .attr-value:hover {
   color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-hover);
 }
 
 @media (max-width: 767px) {

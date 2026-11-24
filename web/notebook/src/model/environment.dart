@@ -19,7 +19,7 @@ final class NotebookSettings {
     this.complexDisplay = ComplexDisplayMode.rectangular,
     this.domain = VariableDomain.complex,
     this.variableDomains = const {},
-    this.theme = 'light',
+    this.theme = 'dark',
     this.timeoutMs = 5000,
   });
 
@@ -46,7 +46,7 @@ final class NotebookSettings {
             orElse: () => VariableDomain.complex,
           ),
       },
-      theme: json['theme'] as String? ?? 'light',
+      theme: json['theme'] as String? ?? 'dark',
       timeoutMs: (json['timeoutMs'] as num?)?.toInt() ?? 5000,
     );
   }

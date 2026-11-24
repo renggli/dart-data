@@ -1088,16 +1088,18 @@ void drawCrosshairAndTooltip(
   required double targetY,
   required List<String> tooltipLines,
   required String color,
+  List<String?>? tooltipColors,
 }) {
   final px = vp.toPixelX(targetX);
   final py = vp
       .toPixelY(targetY)
       .clamp(vp.topMargin, vp.topMargin + vp.plotHeight);
+  final theme = ChartTheme.current();
 
   ctx.save();
 
   // 1. Crosshair lines
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'.toJS;
+  ctx.strokeStyle = theme.grid.toJS;
   ctx.lineWidth = 1.0;
   ctx.beginPath();
   ctx.moveTo(px, vp.topMargin);
@@ -1116,13 +1118,26 @@ void drawCrosshairAndTooltip(
   ctx.arc(px, py, 3.0, 0.0, 2 * math.pi);
   ctx.fill();
 
-  // 3. Floating Tooltip Card
-  const cardW = 140.0;
-  final cardH = 20.0 + tooltipLines.length * 16.0;
+  // 3. Tightly-fitted Floating Tooltip Card
+  var maxTextW = 0.0;
+  for (var i = 0; i < tooltipLines.length; i++) {
+    ctx.font = i == 0 ? '600 11px Inter, sans-serif' : '11px Inter, sans-serif';
+    final hasSwatch =
+        tooltipColors != null &&
+        i < tooltipColors.length &&
+        tooltipColors[i] != null;
+    final w = ctx.measureText(tooltipLines[i]).width + (hasSwatch ? 12.0 : 0.0);
+    if (w > maxTextW) maxTextW = w;
+  }
+  final cardW = math.max(48.0, maxTextW + 16.0);
+  final cardH = 12.0 + tooltipLines.length * 16.0;
 
   var cardX = px + 12.0;
   if (cardX + cardW > vp.leftMargin + vp.plotWidth) {
     cardX = px - cardW - 12.0;
+  }
+  if (cardX < vp.leftMargin) {
+    cardX = vp.leftMargin + 4.0;
   }
 
   var cardY = py - cardH - 12.0;
@@ -1133,25 +1148,32 @@ void drawCrosshairAndTooltip(
     cardY = vp.topMargin + vp.plotHeight - cardH;
   }
 
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.90)'.toJS;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'.toJS;
+  ctx.fillStyle = theme.tooltipBg.toJS;
+  ctx.strokeStyle = theme.tooltipBorder.toJS;
   ctx.lineWidth = 1.0;
   ctx.beginPath();
   ctx.rect(cardX, cardY, cardW, cardH);
   ctx.fill();
   ctx.stroke();
 
-  // Text Lines
+  // Text Lines with optional per-line color swatches
   ctx.textAlign = 'left';
   for (var i = 0; i < tooltipLines.length; i++) {
-    if (i == 0) {
-      ctx.fillStyle = '#f8fafc'.toJS;
-      ctx.font = 'bold 11px Inter, sans-serif';
-    } else {
-      ctx.fillStyle = 'rgba(248, 250, 252, 0.75)'.toJS;
-      ctx.font = '10px Inter, sans-serif';
+    final lineY = cardY + 17.0 + i * 16.0;
+    final swatch = (tooltipColors != null && i < tooltipColors.length)
+        ? tooltipColors[i]
+        : null;
+    var textX = cardX + 8.0;
+    if (swatch != null) {
+      ctx.fillStyle = swatch.toJS;
+      ctx.beginPath();
+      ctx.arc(textX + 3.0, lineY - 3.5, 3.0, 0.0, 2 * math.pi);
+      ctx.fill();
+      textX += 11.0;
     }
-    ctx.fillText(tooltipLines[i], cardX + 8.0, cardY + 16.0 + i * 16.0);
+    ctx.fillStyle = (i == 0 ? theme.tooltipText : theme.label).toJS;
+    ctx.font = i == 0 ? '600 11px Inter, sans-serif' : '11px Inter, sans-serif';
+    ctx.fillText(tooltipLines[i], textX, lineY);
   }
 
   ctx.restore();

@@ -18,6 +18,10 @@ final class NbIcons {
       '<svg viewBox="0 0 16 16"><path d="M3 8a5 5 0 1 0 1.5-3.5L3 6"/><path d="M3 2.5V6h3.5"/></svg>';
   static const String download =
       '<svg viewBox="0 0 16 16"><path d="M8 2.5v8M4.5 7.5L8 11l3.5-3.5M3 13.5h10"/></svg>';
+  static const String upload =
+      '<svg viewBox="0 0 16 16"><path d="M8 10.5v-8M4.5 5.5L8 2l3.5 3.5M3 13.5h10"/></svg>';
+  static const String clearDoc =
+      '<svg viewBox="0 0 16 16"><path d="M4 2.5h5.5L13 6v7.5H4z"/><path d="M9.5 2.5V6H13M6.5 8.5l3 3M9.5 8.5l-3 3"/></svg>';
   static const String settings =
       '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.8 3.8l1 1M11.2 11.2l1 1M12.2 3.8l-1 1M4.8 11.2l-1 1"/></svg>';
   static const String help =

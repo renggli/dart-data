@@ -2253,27 +2253,54 @@ void drawCharts() {
       final hJerk = realD3f != null
           ? safeGet(() => realD3f(hx))?.toDouble()
           : null;
-      final tooltipLines = [
-        'x: ${formatNumber(hx, precision: 4)}',
-        if (hasImaginary) ...[
-          'Re f(x): ${formatNumber(hyReal, precision: 4)}',
-          if (hyImag != null && hyImag.isFinite)
-            'Im f(x): ${formatNumber(hyImag, precision: 4)}',
-        ] else
-          'f(x): ${formatNumber(hyReal, precision: 4)}',
-        if (hSlope != null && hSlope.isFinite)
+      final hTaylor = showTaylor && realTaylor != null
+          ? safeGet(() => realTaylor(hx))?.toDouble()
+          : null;
+      final tooltipLines = <String>['x: ${formatNumber(hx, precision: 4)}'];
+      final tooltipColors = <String?>[null];
+
+      if (showFx) {
+        if (hasImaginary) {
+          tooltipLines.add('Re f(x): ${formatNumber(hyReal, precision: 4)}');
+          tooltipColors.add('#3b82f6');
+        } else {
+          tooltipLines.add('f(x): ${formatNumber(hyReal, precision: 4)}');
+          tooltipColors.add('#3b82f6');
+        }
+      }
+      if (showIm && hyImag != null && hyImag.isFinite) {
+        tooltipLines.add('Im f(x): ${formatNumber(hyImag, precision: 4)}');
+        tooltipColors.add('#a855f7');
+      }
+      if (showDfx && hSlope != null && hSlope.isFinite) {
+        tooltipLines.add(
           '${hasImaginary ? "Re " : ""}df/dx: ${formatNumber(hSlope, precision: 4)}',
-        if (showD2fx && hCurv != null && hCurv.isFinite)
+        );
+        tooltipColors.add('#ef4444');
+      }
+      if (showD2fx && hCurv != null && hCurv.isFinite) {
+        tooltipLines.add(
           '${hasImaginary ? "Re " : ""}d²f/dx²: ${formatNumber(hCurv, precision: 4)}',
-        if (showD3fx && hJerk != null && hJerk.isFinite)
+        );
+        tooltipColors.add('#a855f7');
+      }
+      if (showD3fx && hJerk != null && hJerk.isFinite) {
+        tooltipLines.add(
           '${hasImaginary ? "Re " : ""}d³f/dx³: ${formatNumber(hJerk, precision: 4)}',
-      ];
+        );
+        tooltipColors.add('#ec4899');
+      }
+      if (hTaylor != null && hTaylor.isFinite) {
+        tooltipLines.add('Taylor: ${formatNumber(hTaylor, precision: 4)}');
+        tooltipColors.add('#f59e0b');
+      }
       drawCrosshairAndTooltip(
         ctx,
         vp,
         targetX: hx,
         targetY: hyReal,
         tooltipLines: tooltipLines,
+        tooltipColors: tooltipColors,
         color: '#3b82f6',
       );
     }

@@ -1182,20 +1182,16 @@ void renderCanvas(
       final colorStr = isCdf
           ? '#f59e0b'
           : (activeDef.isContinuous ? '#3b82f6' : '#10b981');
-      final labelX = activeDef.isContinuous
-          ? 'x: ${targetX.toStringAsFixed(4)}'
-          : 'k: ${k.toInt()}';
-      final labelY = isCdf
-          ? 'F(x): ${yVal.toStringAsFixed(4)}'
-          : (activeDef.isContinuous
-                ? 'f(x): ${yVal.toStringAsFixed(4)}'
-                : 'P(k): ${yVal.toStringAsFixed(4)}');
+      final xStr = activeDef.isContinuous
+          ? targetX.toStringAsFixed(4)
+          : '${k.toInt()}';
+      final yStr = yVal.toStringAsFixed(4);
       drawCrosshairAndTooltip(
         ctx,
         vp,
         targetX: targetX,
         targetY: yVal,
-        tooltipLines: [labelX, labelY],
+        tooltipLines: ['($xStr, $yStr)'],
         color: colorStr,
       );
     }

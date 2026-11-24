@@ -292,6 +292,8 @@ void setupSidebarToggle({void Function()? onToggled}) {
   final stored = web.window.localStorage.getItem('data_sidebar_collapsed');
   if (stored == 'true') {
     web.document.body?.classList.add('sidebar-collapsed');
+  } else if (stored == 'false') {
+    web.document.body?.classList.remove('sidebar-collapsed');
   }
 
   collapseBtn?.addEventListener(
