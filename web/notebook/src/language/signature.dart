@@ -24,11 +24,14 @@ enum ParamType {
 
 /// Specification of a single positional or named parameter.
 final class ParamSpec {
-  const new positional(this.name, {this.type = ParamType.expr, this.doc = ''})
-    : isPositional = true,
-      isRequired = true,
-      defaultValue = null,
-      enumValues = null;
+  const new positional(
+    this.name, {
+    this.type = ParamType.expr,
+    this.enumValues,
+    this.doc = '',
+  }) : isPositional = true,
+       isRequired = true,
+       defaultValue = null;
 
   const new optional(
     this.name, {
