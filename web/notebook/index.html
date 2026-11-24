@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notebook — Symbolic Mathematics</title>
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="../shared/style.css">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="index.dart.js"></script>
+</head>
+<body class="nb-body">
+  <header class="nb-header">
+    <div class="nb-header-left">
+      <details class="app-switcher">
+        <summary>
+          <span class="app-switcher-brand">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2.5" y="2" width="11" height="12" rx="1.5"/>
+              <path d="M5.5 5.5h5M5.5 8.5h5M5.5 11.5h3"/>
+            </svg>
+            <span class="app-switcher-title">Notebook</span>
+          </span>
+          <span class="app-switcher-caret">&#9662;</span>
+        </summary>
+        <div class="app-switcher-menu">
+          <a class="app-switcher-item" href="../">
+            <span class="app-switcher-item-icon">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.5 7.5L8 2.5l5.5 5v6H10V9.5H6v4H2.5z"/>
+              </svg>
+            </span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Home</span>
+              <span class="app-switcher-item-desc">All interactive demos</span>
+            </span>
+          </a>
+          <div class="app-switcher-divider"></div>
+          <a class="app-switcher-item" href="../distributions/">
+            <span class="app-switcher-item-icon">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 13c2.5 0 3.5-9 6-9s3.5 9 6 9"/>
+              </svg>
+            </span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Distributions</span>
+              <span class="app-switcher-item-desc">Probability &amp; statistics</span>
+            </span>
+          </a>
+          <a class="app-switcher-item" href="../expressions/">
+            <span class="app-switcher-item-icon">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12c2-7 4-7 6-2s3 5 4-4"/>
+              </svg>
+            </span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Expressions</span>
+              <span class="app-switcher-item-desc">Symbolic calculus &amp; plots</span>
+            </span>
+          </a>
+          <a class="app-switcher-item active" href="./">
+            <span class="app-switcher-item-icon">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="2" width="11" height="12" rx="1.5"/>
+                <path d="M5.5 5.5h5M5.5 8.5h5M5.5 11.5h3"/>
+              </svg>
+            </span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Notebook</span>
+              <span class="app-switcher-item-desc">Interactive symbolic math notebook</span>
+            </span>
+          </a>
+        </div>
+      </details>
+      <span id="nb-busy" class="nb-busy-badge"></span>
+    </div>
+    <div class="nb-header-right">
+      <button id="nb-undo" type="button" class="icon-btn" title="Undo (Cmd/Ctrl+Z)" disabled></button>
+      <button id="nb-redo" type="button" class="icon-btn" title="Redo (Cmd/Ctrl+Shift+Z)" disabled></button>
+      <button id="nb-palette-btn" type="button" class="icon-btn" title="Command Palette (Cmd/Ctrl+K)"></button>
+      <button id="nb-matrix-btn" type="button" class="icon-btn" title="Insert Matrix"></button>
+      <button id="nb-theme-btn" type="button" class="icon-btn" title="Toggle Theme"></button>
+      <button id="nb-help-btn" type="button" class="icon-btn" title="Command Reference"></button>
+      <button id="nb-settings-btn" type="button" class="icon-btn" title="Notebook Settings"></button>
+    </div>
+  </header>
+
+  <main class="nb-main">
+    <div id="notebook-mount"></div>
+  </main>
+</body>
+</html>

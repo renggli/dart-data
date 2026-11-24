@@ -497,10 +497,12 @@ void drawGrid(
   int xTicks = 6,
   int yTicks = 5,
   bool drawZeroAxes = true,
+  ChartTheme? theme,
 }) {
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'.toJS;
+  final t = theme ?? ChartTheme.current();
+  ctx.strokeStyle = t.grid.toJS;
   ctx.lineWidth = 1.0;
-  ctx.fillStyle = '#64748b'.toJS;
+  ctx.fillStyle = t.axis.toJS;
   ctx.font = '10px Inter, ui-monospace, sans-serif';
 
   // 1. Vertical grid lines & nice X ticks
@@ -539,8 +541,8 @@ void drawGrid(
 
   // 3. Highlighted Zero axes
   if (drawZeroAxes) {
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)'.toJS;
-    ctx.lineWidth = 1.15;
+    ctx.strokeStyle = t.label.toJS;
+    ctx.lineWidth = 1.0;
 
     // Y = 0 axis line
     if (vp.minY <= 0 && vp.maxY >= 0) {
