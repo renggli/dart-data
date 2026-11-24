@@ -1363,3 +1363,165 @@ body.sidebar-collapsed .sidebar {
   background-color: var(--accent-red-tint);
   border-radius: 2px;
 }
+
+/* ==========================================================================
+   Unified Graph Widget & Renderer Layers
+   ========================================================================== */
+
+.graph-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-panel, transparent);
+  overflow: hidden;
+}
+
+.graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.graph-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.graph-legend-item:hover {
+  background: var(--bg-hover, rgba(148, 163, 184, 0.12));
+}
+
+.graph-legend-item.is-hidden {
+  opacity: 0.42;
+  text-decoration: line-through;
+}
+
+.graph-legend-label {
+  font-weight: 500;
+}
+
+.graph-legend-readout {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.graph-probe-pill {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--bg-hover, rgba(148, 163, 184, 0.12));
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.graph-swatch-line {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top: 2.5px solid currentColor;
+}
+
+.graph-swatch-line.is-dashed {
+  border-top-style: dashed;
+}
+
+.graph-swatch-marker {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.graph-swatch-gradient {
+  display: inline-block;
+  width: 28px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.graph-swatch-phase {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: conic-gradient(#f87171, #facc15, #4ade80, #38bdf8, #a78bfa, #f87171);
+}
+
+.graph-viewport {
+  position: relative;
+  width: 100%;
+  min-height: 180px;
+  user-select: none;
+  touch-action: none;
+}
+
+.graph-canvas-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.graph-gl-layer {
+  pointer-events: none;
+}
+
+.graph-hud-layer {
+  cursor: crosshair;
+}
+
+.graph-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.graph-viewport:hover .graph-toolbar,
+.graph-toolbar:focus-within {
+  opacity: 1;
+}
+
+.graph-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background: var(--bg-panel, rgba(15, 23, 42, 0.85));
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.graph-tool-btn:hover {
+  background: var(--bg-hover, rgba(148, 163, 184, 0.2));
+}
