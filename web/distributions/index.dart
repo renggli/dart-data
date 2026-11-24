@@ -4,7 +4,10 @@ import 'dart:math' as math;
 import 'package:data/stats.dart';
 import 'package:web/web.dart' as web;
 
-import '../shared/chart.dart';
+import '../shared/graph/model/axis.dart';
+import '../shared/graph/model/dataset_2d.dart';
+import '../shared/graph/sampling/sampler_2d.dart';
+import '../shared/graph/ui/graph_widget.dart';
 import '../shared/utils.dart';
 import 'config.dart';
 
@@ -16,9 +19,9 @@ final List<num> generatedSamples = [];
 final List<void Function()> _paramSyncCallbacks = [];
 bool isAppInitialized = false;
 
-// Interactive chart controllers
-late InteractiveChartController pdfController;
-late InteractiveChartController cdfController;
+// Interactive graph widgets
+GraphWidget? pdfGraph;
+GraphWidget? cdfGraph;
 
 // DOM references
 late web.HTMLElement continuousGroup;
@@ -37,10 +40,8 @@ late web.HTMLElement valSkewness;
 late web.HTMLElement valKurtosis;
 late web.HTMLElement valBounds;
 
-late web.HTMLCanvasElement pdfCanvas;
-late web.HTMLCanvasElement cdfCanvas;
-late web.HTMLButtonElement btnPdfReset;
-late web.HTMLButtonElement btnCdfReset;
+late web.HTMLElement pdfGraphHost;
+late web.HTMLElement cdfGraphHost;
 
 late web.HTMLButtonElement btnSample1;
 late web.HTMLButtonElement btnSample10;
@@ -91,14 +92,8 @@ void main() {
   valKurtosis = web.document.querySelector('#val-kurtosis') as web.HTMLElement;
   valBounds = web.document.querySelector('#val-bounds') as web.HTMLElement;
 
-  pdfCanvas =
-      web.document.querySelector('#pdf-canvas') as web.HTMLCanvasElement;
-  cdfCanvas =
-      web.document.querySelector('#cdf-canvas') as web.HTMLCanvasElement;
-  btnPdfReset =
-      web.document.querySelector('#btn-pdf-reset') as web.HTMLButtonElement;
-  btnCdfReset =
-      web.document.querySelector('#btn-cdf-reset') as web.HTMLButtonElement;
+  pdfGraphHost = web.document.querySelector('#pdf-graph') as web.HTMLElement;
+  cdfGraphHost = web.document.querySelector('#cdf-graph') as web.HTMLElement;
 
   btnSample1 =
       web.document.querySelector('#btn-sample-1') as web.HTMLButtonElement;
@@ -150,7 +145,12 @@ void main() {
 
   // Render Sidebar & Setup Collapse Toggle
   buildSidebar();
-  setupSidebarToggle(onToggled: drawCharts);
+  setupSidebarToggle(
+    onToggled: () {
+      pdfGraph?.resize();
+      cdfGraph?.resize();
+    },
+  );
 
   // Random Sampler Button bindings
   btnSample1.onClick.listen((_) => drawSamples(1));
@@ -166,59 +166,6 @@ void main() {
       drawCharts();
     }.toJS,
   );
-
-  void syncChartBounds(double newMinX, double newMaxX) {
-    pdfController.setBounds(minX: newMinX, maxX: newMaxX);
-    cdfController.setBounds(minX: newMinX, maxX: newMaxX);
-    pdfController.hasUserPannedOrZoomed = true;
-    cdfController.hasUserPannedOrZoomed = true;
-  }
-
-  void resetChartBounds() {
-    final bounds = getGraphBounds();
-    final minX = bounds['min']!;
-    final maxX = bounds['max']!;
-    pdfController.setBounds(
-      minX: minX,
-      maxX: maxX,
-      asDefault: true,
-      clearUserInteraction: true,
-    );
-    cdfController.setBounds(
-      minX: minX,
-      maxX: maxX,
-      asDefault: true,
-      clearUserInteraction: true,
-    );
-    drawCharts();
-  }
-
-  pdfController = InteractiveChartController(
-    pdfCanvas,
-    minX: -5.0,
-    maxX: 5.0,
-    panY: false,
-    zoomY: false,
-    onUpdate: drawCharts,
-    onViewportChanged: (newMinX, newMaxX, _, _) =>
-        syncChartBounds(newMinX, newMaxX),
-    onReset: resetChartBounds,
-  );
-
-  cdfController = InteractiveChartController(
-    cdfCanvas,
-    minX: -5.0,
-    maxX: 5.0,
-    panY: false,
-    zoomY: false,
-    onUpdate: drawCharts,
-    onViewportChanged: (newMinX, newMaxX, _, _) =>
-        syncChartBounds(newMinX, newMaxX),
-    onReset: resetChartBounds,
-  );
-
-  btnPdfReset.onClick.listen((_) => resetChartBounds());
-  btnCdfReset.onClick.listen((_) => resetChartBounds());
 
   // Listen to hashchange events for browser history navigation
   web.window.addEventListener(
@@ -550,19 +497,6 @@ void recreateDistribution() {
     cb();
   }
   activeDist = activeDef.creator(currentParamValues);
-  final bounds = getGraphBounds();
-  pdfController.setBounds(
-    minX: bounds['min'],
-    maxX: bounds['max'],
-    asDefault: true,
-    clearUserInteraction: true,
-  );
-  cdfController.setBounds(
-    minX: bounds['min'],
-    maxX: bounds['max'],
-    asDefault: true,
-    clearUserInteraction: true,
-  );
   clearSamples(redraw: false);
   updateTelemetry();
   updateQuantileCalculator();
@@ -748,453 +682,205 @@ Map<String, double> getGraphBounds() {
   return {'min': minX, 'max': maxX};
 }
 
-/// Custom Canvas Rendering Engine.
+/// Renders PDF/PMF and CDF scenes into [GraphWidget] instances.
 void drawCharts() {
-  if (!pdfController.hasUserPannedOrZoomed) {
-    final bounds = getGraphBounds();
-    pdfController.setBounds(
-      minX: bounds['min'],
-      maxX: bounds['max'],
-      asDefault: true,
-    );
-    cdfController.setBounds(
-      minX: bounds['min'],
-      maxX: bounds['max'],
-      asDefault: true,
+  final bounds = getGraphBounds();
+  final minX = bounds['min']!;
+  final maxX = bounds['max']!;
+
+  final refs = <ReferenceLine>[];
+  final meanVal = safeGet(() => activeDist.mean)?.toDouble();
+  if (meanVal != null && meanVal.isFinite) {
+    refs.add(
+      ReferenceLine(
+        value: meanVal,
+        isVertical: true,
+        label: 'μ',
+        color: 'rgba(239, 68, 68, 0.7)',
+      ),
     );
   }
-  final minX = pdfController.minX;
-  final maxX = pdfController.maxX;
-
-  renderCanvas(
-    pdfCanvas,
-    controller: pdfController,
-    isCdf: false,
-    minX: minX,
-    maxX: maxX,
-  );
-
-  renderCanvas(
-    cdfCanvas,
-    controller: cdfController,
-    isCdf: true,
-    minX: minX,
-    maxX: maxX,
-  );
-}
-
-void renderCanvas(
-  web.HTMLCanvasElement canvas, {
-  required InteractiveChartController controller,
-  required bool isCdf,
-  required double minX,
-  required double maxX,
-}) {
-  final setup = initCanvas(canvas);
-  if (setup == null) return;
-  final (:ctx, :width, :height) = setup;
-
-  // Calculate dynamic Y-axis maximum bounds
-  const minY = 0.0;
-  var maxY = 1.0;
-
-  if (isCdf) {
-    maxY = 1.0;
-  } else {
-    // Scan X intervals to capture maximum probability density peak
-    var peak = 0.0;
-    if (activeDef.id == 'degenerate_continuous') {
-      peak = 1.0;
-    } else if (activeDef.isContinuous) {
-      const steps = 100;
-      for (var s = 0; s <= steps; s++) {
-        final x = minX + s * (maxX - minX) / steps;
-        final p = activeDist.probability(x);
-        if (p.isFinite && p > peak) {
-          peak = p;
-        }
-      }
-    } else {
-      // Discrete scanning
-      final iMin = minX.floor();
-      final iMax = maxX.ceil();
-      final span = iMax - iMin;
-      final step = span > 500 ? (span / 500).ceil() : 1;
-      for (var k = iMin; k <= iMax; k += step) {
-        final p = evalDistProbability(k);
-        if (p.isFinite && p > peak) {
-          peak = p;
-        }
-      }
-    }
-
-    // Capture empirical peaks to ensure generated samples fit the y-axis perfectly
-    var empiricalPeak = 0.0;
-    if (generatedSamples.isNotEmpty) {
-      final n = generatedSamples.length;
-      if (activeDef.isContinuous) {
-        const binCount = 20;
-        final binWidth = (maxX - minX) / binCount;
-        final bins = List<int>.filled(binCount, 0);
-
-        for (final s in generatedSamples) {
-          if (s >= minX && s <= maxX) {
-            final binIdx = ((s - minX) / binWidth).floor().clamp(
-              0,
-              binCount - 1,
-            );
-            bins[binIdx]++;
-          }
-        }
-
-        for (var b = 0; b < binCount; b++) {
-          final count = bins[b];
-          if (count > 0) {
-            final density = count / (n * binWidth);
-            if (density > empiricalPeak) {
-              empiricalPeak = density;
-            }
-          }
-        }
-      } else {
-        final iMin = minX.floor();
-        final iMax = maxX.ceil();
-        final freqMap = <int, int>{};
-
-        for (final s in generatedSamples) {
-          final val = s.toInt();
-          if (val >= iMin && val <= iMax) {
-            freqMap[val] = (freqMap[val] ?? 0) + 1;
-          }
-        }
-
-        for (final count in freqMap.values) {
-          if (count > 0) {
-            final empiricalProb = count / n;
-            if (empiricalProb > empiricalPeak) {
-              empiricalPeak = empiricalProb;
-            }
-          }
-        }
-      }
-    }
-    peak = math.max(peak, empiricalPeak);
-
-    maxY = peak * 1.15; // Provide 15% headroom
-    if (maxY <= 0.0 || maxY.isNaN || !maxY.isFinite) {
-      maxY = 1.0;
-    }
+  final medianVal = safeGet(() => activeDist.median)?.toDouble();
+  if (medianVal != null && medianVal.isFinite) {
+    refs.add(
+      ReferenceLine(
+        value: medianVal,
+        isVertical: true,
+        label: 'Med',
+        color: 'rgba(16, 185, 129, 0.7)',
+      ),
+    );
+  }
+  final modeVal = safeGet(() => activeDist.mode)?.toDouble();
+  if (modeVal != null && modeVal.isFinite) {
+    refs.add(
+      ReferenceLine(
+        value: modeVal,
+        isVertical: true,
+        label: 'Mode',
+        color: 'rgba(168, 85, 247, 0.7)',
+      ),
+    );
   }
 
-  final vp = controller.viewport(
-    width,
-    height,
-    overrideMinY: minY,
-    overrideMaxY: maxY,
-  );
-  final leftMargin = vp.leftMargin;
-  final topMargin = vp.topMargin;
-  final plotWidth = vp.plotWidth;
-  final plotHeight = vp.plotHeight;
-  double toPixelX(double x) => vp.toPixelX(x);
-  double fromPixelX(double px) => vp.fromPixelX(px);
-  double toPixelY(double y) => vp.toPixelY(y);
-
-  // ==================== DRAW GRID & LABELS ====================
-  drawGrid(ctx, vp, drawZeroAxes: false);
-
-  // Clip inner plotting region so dragged/zoomed curves stay inside the axes box,
-  // with padding for stroke thickness so boundary-adjacent curves (e.g. CDF at 0 and 1,
-  // or PDF at 0) don't get their strokes clipped in half.
-  const strokePad = 2.0;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(
-    leftMargin,
-    topMargin - strokePad,
-    plotWidth,
-    plotHeight + strokePad * 2.0,
-  );
-  ctx.clip();
-
-  // ==================== OVERLAY EMPIRICAL HISTOGRAM ====================
-  // For PDF, overlay a transparent histogram
-  if (!isCdf && generatedSamples.isNotEmpty) {
-    ctx.fillStyle = 'rgba(168, 85, 247, 0.18)'.toJS;
-    ctx.strokeStyle = 'rgba(168, 85, 247, 0.45)'.toJS;
-    ctx.lineWidth = 1.0;
-
+  final pdfDatasets = <Dataset2D>[];
+  if (generatedSamples.isNotEmpty) {
     final n = generatedSamples.length;
-
     if (activeDef.isContinuous) {
-      // Draw continuous bin intervals
       const binCount = 20;
       final binWidth = (maxX - minX) / binCount;
       final bins = List<int>.filled(binCount, 0);
-
       for (final s in generatedSamples) {
         if (s >= minX && s <= maxX) {
-          final binIdx = ((s - minX) / binWidth).floor().clamp(0, binCount - 1);
-          bins[binIdx]++;
+          final idx = ((s - minX) / binWidth).floor().clamp(0, binCount - 1);
+          bins[idx]++;
         }
       }
-
-      for (var b = 0; b < binCount; b++) {
-        final count = bins[b];
-        if (count == 0) continue;
-
-        // Density = count / (n * binWidth)
-        final density = count / (n * binWidth);
-        final bMinX = minX + b * binWidth;
-        final pxMin = toPixelX(bMinX);
-        final pxMax = toPixelX(bMinX + binWidth);
-        final py = toPixelY(density);
-
-        ctx.beginPath();
-        ctx.rect(pxMin, py, pxMax - pxMin, (topMargin + plotHeight) - py);
-        ctx.fill();
-        ctx.stroke();
-      }
+      pdfDatasets.add(
+        Function2DDataset(
+          id: 'hist',
+          label: 'Empirical',
+          xs: [for (var b = 0; b < binCount; b++) minX + (b + 0.5) * binWidth],
+          ys: [for (var b = 0; b < binCount; b++) bins[b] / (n * binWidth)],
+          color: '#a855f7',
+          mode: CurveRenderMode.histogram,
+        ),
+      );
     } else {
-      // Discrete empirical probabilities - overlay bars
       final iMin = minX.floor();
       final iMax = maxX.ceil();
       final freqMap = <int, int>{};
-
       for (final s in generatedSamples) {
         final val = s.toInt();
         if (val >= iMin && val <= iMax) {
           freqMap[val] = (freqMap[val] ?? 0) + 1;
         }
       }
-
-      for (final entry in freqMap.entries) {
-        final k = entry.key;
-        final count = entry.value;
-        if (count == 0) continue;
-
-        final empiricalProb = count / n;
-        final px = toPixelX(k.toDouble());
-        final py = toPixelY(empiricalProb);
-
-        // Slightly wide bar centered around integer k
-        final barWidth = math.max(6.0, plotWidth / (maxX - minX) * 0.4);
-
-        ctx.beginPath();
-        ctx.rect(
-          px - barWidth / 2,
-          py,
-          barWidth,
-          (topMargin + plotHeight) - py,
+      final sortedKeys = freqMap.keys.toList()..sort();
+      if (sortedKeys.isNotEmpty) {
+        pdfDatasets.add(
+          Function2DDataset(
+            id: 'hist',
+            label: 'Empirical',
+            xs: [for (final k in sortedKeys) k.toDouble()],
+            ys: [for (final k in sortedKeys) freqMap[k]! / n],
+            color: '#a855f7',
+            mode: CurveRenderMode.histogram,
+          ),
         );
-        ctx.fill();
-        ctx.stroke();
       }
     }
   }
 
-  // ==================== PLOT MATHEMATICAL CURVE ====================
-  ctx.lineWidth = 2.0;
-
-  if (isCdf) {
-    // ---------------- CDF PLOTTING ----------------
-    ctx.strokeStyle = '#f59e0b'.toJS; // Amber/Gold color
-
-    if (activeDef.isContinuous) {
-      // Continuous CDF - WebGL2 GPU-accelerated smooth curve
-      drawCurve(
-        ctx,
-        vp,
-        evalDistCumulativeProbability,
-        strokeColor: '#f59e0b',
-        lineWidth: 2.2,
-        fillColor: null,
-      );
-    } else {
-      // Discrete CDF - step function representation (horizontal segments + dots)
-      final iMin = minX.floor() - 1;
-      final iMax = maxX.ceil() + 1;
-      final span = iMax - iMin;
-      final step = span > 500 ? (span / 500).ceil() : 1;
-
-      for (var k = iMin; k <= iMax; k += step) {
-        final cdfVal = evalDistCumulativeProbability(k);
-        final pxStart = toPixelX(k.toDouble());
-        final pxEnd = toPixelX((k + step).toDouble());
-        final py = toPixelY(cdfVal);
-
-        // Horizontal step bar
-        ctx.beginPath();
-        ctx.moveTo(math.max(leftMargin, pxStart), py);
-        ctx.lineTo(math.min(leftMargin + plotWidth, pxEnd), py);
-        ctx.stroke();
-
-        // Connect vertical jump
-        if (k > iMin) {
-          final prevCdfVal = evalDistCumulativeProbability(k - step);
-          final pyPrev = toPixelY(prevCdfVal);
-          ctx.strokeStyle =
-              'rgba(245, 158, 11, 0.35)'.toJS; // Faint vertical jump line
-          ctx.lineWidth = 1.0;
-          ctx.beginPath();
-          ctx.moveTo(pxStart, pyPrev);
-          ctx.lineTo(pxStart, py);
-          ctx.stroke();
-
-          ctx.strokeStyle = '#f59e0b'.toJS; // Restore thickness
-          ctx.lineWidth = 2.0;
-        }
-      }
-    }
+  if (activeDef.id == 'degenerate_continuous') {
+    final k = activeDist.lowerBound.toDouble();
+    pdfDatasets.add(
+      Function2DDataset(
+        id: 'pdf',
+        label: 'Impulse',
+        xs: [k],
+        ys: [1.0],
+        color: '#3b82f6',
+        mode: CurveRenderMode.stem,
+      ),
+    );
+  } else if (activeDef.isContinuous) {
+    pdfDatasets.add(
+      sampleFunction2D(
+        id: 'pdf',
+        label: 'PDF',
+        fn: (x) => activeDist.probability(x),
+        xMin: minX,
+        xMax: maxX,
+        color: '#3b82f6',
+        fill: const AreaFill(color: '#3b82f6', opacity: 0.20),
+      ),
+    );
   } else {
-    // ---------------- PDF PLOTTING ----------------
-    if (activeDef.id == 'degenerate_continuous') {
-      final k = activeDist.lowerBound.toDouble();
-      if (k >= minX && k <= maxX) {
-        final px = toPixelX(k);
-        final py = toPixelY(1.0);
-        ctx.strokeStyle = '#3b82f6'.toJS;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(px, topMargin + plotHeight);
-        ctx.lineTo(px, py);
-        ctx.stroke();
-
-        ctx.fillStyle = '#3b82f6'.toJS;
-        ctx.beginPath();
-        ctx.arc(px, py, 4.0, 0.0, 2 * math.pi);
-        ctx.fill();
-      }
-    } else if (activeDef.isContinuous) {
-      // Continuous PDF - WebGL2 GPU-accelerated curve + gradient area fill
-      drawCurve(
-        ctx,
-        vp,
-        (x) => activeDist.probability(x),
-        strokeColor: '#3b82f6',
-        lineWidth: 2.2,
-        fillColor: 'rgba(59, 130, 246, 0.20)',
-        fillBaseY: 0.0,
-      );
-    } else {
-      // Discrete PDF - lollipop lines (vertical line + terminal dot)
-      final iMin = minX.floor();
-      final iMax = maxX.ceil();
-      final span = iMax - iMin;
-      final step = span > 500 ? (span / 500).ceil() : 1;
-
-      for (var k = iMin; k <= iMax; k += step) {
-        final p = evalDistProbability(k);
-        if (p.isNaN || p <= 0.0) continue;
-
-        final px = toPixelX(k.toDouble());
-        final py = toPixelY(p);
-
-        // Lollipop stem
-        ctx.strokeStyle = '#10b981'.toJS; // Emerald Green
-        ctx.beginPath();
-        ctx.moveTo(px, topMargin + plotHeight);
-        ctx.lineTo(px, py);
-        ctx.stroke();
-
-        // Lollipop head dot
-        ctx.fillStyle = '#10b981'.toJS;
-        ctx.beginPath();
-        ctx.arc(px, py, 3.5, 0.0, 2 * math.pi);
-        ctx.fill();
+    final iMin = minX.floor();
+    final iMax = maxX.ceil();
+    final span = iMax - iMin;
+    final step = span > 500 ? (span / 500).ceil() : 1;
+    final ks = <double>[];
+    final ps = <double>[];
+    for (var k = iMin; k <= iMax; k += step) {
+      final p = evalDistProbability(k);
+      if (p.isFinite && p >= 0.0) {
+        ks.add(k.toDouble());
+        ps.add(p);
       }
     }
-  }
-
-  ctx.restore();
-
-  // ==================== PLOT ATTRIBUTE REFERENCE LINES ====================
-  final meanVal = safeGet(() => activeDist.mean)?.toDouble();
-  if (meanVal != null && meanVal.isFinite) {
-    drawReferenceLine(
-      ctx,
-      vp,
-      meanVal,
-      color: 'rgba(239, 68, 68, 0.7)',
-      label: 'μ',
+    pdfDatasets.add(
+      Function2DDataset(
+        id: 'pmf',
+        label: 'PMF',
+        xs: ks,
+        ys: ps,
+        color: '#10b981',
+        mode: CurveRenderMode.stem,
+      ),
     );
   }
 
-  final medianVal = safeGet(() => activeDist.median)?.toDouble();
-  if (medianVal != null && medianVal.isFinite) {
-    var yOffset = 0.0;
-    if (meanVal != null &&
-        meanVal.isFinite &&
-        (medianVal - meanVal).abs() < (maxX - minX) * 0.05) {
-      yOffset = 10.0;
+  final pdfScene = Scene2D(
+    datasets: pdfDatasets,
+    xAxis: AxisConfig(min: minX, max: maxX, isInteger: !activeDef.isContinuous),
+    yAxis: const AxisConfig(min: 0.0),
+    references: refs,
+  );
+  if (pdfGraph == null) {
+    pdfGraph = GraphWidget.view2d(pdfScene, height: 270);
+    pdfGraphHost.appendChild(pdfGraph!.element);
+  } else {
+    pdfGraph!.setScene2D(pdfScene);
+  }
+
+  final cdfDatasets = <Dataset2D>[];
+  if (activeDef.isContinuous) {
+    cdfDatasets.add(
+      sampleFunction2D(
+        id: 'cdf',
+        label: 'CDF',
+        fn: evalDistCumulativeProbability,
+        xMin: minX,
+        xMax: maxX,
+        color: '#f59e0b',
+      ),
+    );
+  } else {
+    final iMin = minX.floor() - 1;
+    final iMax = maxX.ceil() + 1;
+    final span = iMax - iMin;
+    final step = span > 500 ? (span / 500).ceil() : 1;
+    final ks = <double>[];
+    final cs = <double>[];
+    for (var k = iMin; k <= iMax; k += step) {
+      ks.add(k.toDouble());
+      cs.add(evalDistCumulativeProbability(k));
     }
-    drawReferenceLine(
-      ctx,
-      vp,
-      medianVal,
-      color: 'rgba(16, 185, 129, 0.7)',
-      label: 'Med',
-      labelYOffset: yOffset,
+    cdfDatasets.add(
+      Function2DDataset(
+        id: 'cdf',
+        label: 'CDF',
+        xs: ks,
+        ys: cs,
+        color: '#f59e0b',
+        mode: CurveRenderMode.step,
+      ),
     );
   }
 
-  final modeVal = safeGet(() => activeDist.mode)?.toDouble();
-  if (modeVal != null && modeVal.isFinite) {
-    var yOffset = 0.0;
-    final closeToMean =
-        meanVal != null &&
-        meanVal.isFinite &&
-        (modeVal - meanVal).abs() < (maxX - minX) * 0.05;
-    final closeToMedian =
-        medianVal != null &&
-        medianVal.isFinite &&
-        (modeVal - medianVal).abs() < (maxX - minX) * 0.05;
-    if (closeToMean || closeToMedian) {
-      yOffset = (closeToMean && closeToMedian) ? 20.0 : 10.0;
-    }
-    drawReferenceLine(
-      ctx,
-      vp,
-      modeVal,
-      color: 'rgba(168, 85, 247, 0.7)',
-      label: 'Mode',
-      labelYOffset: yOffset,
-    );
-  }
-
-  // ==================== INTERACTIVE HOVER COORDINATES ====================
-  final mouseX = controller.hoverPixelX;
-  final mouseY = controller.hoverPixelY;
-
-  if (mouseX != null && mouseY != null && vp.containsPixel(mouseX, mouseY)) {
-    final xVal = fromPixelX(mouseX);
-
-    // Determine discrete target k
-    final k = xVal.round();
-    final targetX = activeDef.isContinuous ? xVal : k.toDouble();
-
-    final yVal = isCdf
-        ? evalDistCumulativeProbability(targetX)
-        : evalDistProbability(targetX);
-    final hasVal = yVal.isFinite && !yVal.isNaN && yVal >= 0.0;
-
-    if (hasVal) {
-      final colorStr = isCdf
-          ? '#f59e0b'
-          : (activeDef.isContinuous ? '#3b82f6' : '#10b981');
-      final xStr = activeDef.isContinuous
-          ? targetX.toStringAsFixed(4)
-          : '${k.toInt()}';
-      final yStr = yVal.toStringAsFixed(4);
-      drawCrosshairAndTooltip(
-        ctx,
-        vp,
-        targetX: targetX,
-        targetY: yVal,
-        tooltipLines: ['($xStr, $yStr)'],
-        color: colorStr,
-      );
-    }
+  final cdfScene = Scene2D(
+    datasets: cdfDatasets,
+    xAxis: AxisConfig(min: minX, max: maxX, isInteger: !activeDef.isContinuous),
+    yAxis: const AxisConfig(min: 0.0, max: 1.0),
+    references: refs,
+  );
+  if (cdfGraph == null) {
+    cdfGraph = GraphWidget.view2d(cdfScene, height: 270);
+    cdfGraphHost.appendChild(cdfGraph!.element);
+  } else {
+    cdfGraph!.setScene2D(cdfScene);
   }
 }
 

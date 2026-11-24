@@ -5,6 +5,9 @@ import 'package:collection/collection.dart';
 import 'package:data/linear.dart';
 import 'package:data/symbolic.dart';
 
+import '../../../shared/graph/model/dataset_2d.dart';
+import '../../../shared/graph/model/dataset_3d.dart';
+
 /// Sampled polyline segment for a 2D curve without vertical asymptotes.
 final class PlotSegmentData {
   const new({required this.x, required this.y, this.t});
@@ -554,6 +557,8 @@ final class PlotValue extends CalcValue {
     this.showGrid = true,
     this.showMarkers = true,
     this.showContours = true,
+    this.scene2d,
+    this.scene3d,
   });
 
   final List<Expr> expressions;
@@ -575,8 +580,10 @@ final class PlotValue extends CalcValue {
   final bool showGrid;
   final bool showMarkers;
   final bool showContours;
+  final Scene2D? scene2d;
+  final Scene3D? scene3d;
 
-  bool get is3d => surface3d != null || parametric3d != null;
+  bool get is3d => scene3d != null || surface3d != null || parametric3d != null;
 
   @override
   String get kind => 'plot';

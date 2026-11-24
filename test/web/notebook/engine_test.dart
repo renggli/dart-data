@@ -58,7 +58,8 @@ void main() {
           .value;
       check(p2d).isA<PlotValue>();
       check((p2d as PlotValue).title).equals('Wave');
-      check(p2d.curves).isNotEmpty;
+      check(p2d.scene2d).isNotNull();
+      check(p2d.scene2d!.datasets).isNotEmpty;
 
       final pParam = eval
           .evaluate('parametric(cos(t), sin(t), t, from: 0, to: 6.28)')
@@ -76,6 +77,18 @@ void main() {
           .evaluate("ode(-y, y, t, y0: 1, from: 0, to: 2, method: 'rk4')")
           .value;
       check((pOde as PlotValue).isOde).isTrue;
+
+      final pVf = eval.evaluate('vectorfield(-y, x, x, y, grid: 6)').value;
+      check((pVf as PlotValue).scene2d).isNotNull();
+      check(pVf.scene2d!.datasets).isNotEmpty;
+
+      final pHm = eval.evaluate('heatmap(x^2 + y^2, x, y, grid: 16)').value;
+      check((pHm as PlotValue).scene2d).isNotNull();
+
+      final pVf3 = eval
+          .evaluate('vectorfield3d(-y, x, z, x, y, z, grid: 3)')
+          .value;
+      check((pVf3 as PlotValue).is3d).isTrue;
     });
 
     test('evaluates nintegrate, nsolve, nminimize, and nderivative', () {

@@ -1,6 +1,5 @@
 import 'dart:js_interop';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
@@ -8,9 +7,13 @@ import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
 import 'package:web/web.dart' as web;
 
-import '../shared/chart.dart';
+import '../shared/graph/model/axis.dart';
+import '../shared/graph/model/dataset_2d.dart';
+import '../shared/graph/model/dataset_3d.dart';
+import '../shared/graph/sampling/sampler_2d.dart';
+import '../shared/graph/sampling/sampler_3d.dart';
+import '../shared/graph/ui/graph_widget.dart';
 import '../shared/utils.dart';
-import '../shared/webgl_surface.dart';
 import 'algebra.dart';
 import 'presets.dart';
 
@@ -63,7 +66,7 @@ bool showMin = true;
 bool showMax = true;
 bool hasImaginary = false;
 
-late InteractiveChartController chartController;
+GraphWidget? plotGraph;
 
 typedef ExtremumPoint = ({double x, double y});
 
@@ -90,7 +93,7 @@ late web.HTMLElement parseErrorPopup;
 late web.HTMLElement parseErrorCaret;
 late web.HTMLElement parseErrorText;
 
-late web.HTMLCanvasElement plotCanvas;
+late web.HTMLElement plotGraphHost;
 late web.HTMLInputElement rangeMinX;
 late web.HTMLInputElement rangeMaxX;
 late web.HTMLButtonElement btnZoomReset;
@@ -207,7 +210,7 @@ void main() {
   initDom();
   initGlobalCopyHandler();
   buildSidebar();
-  setupSidebarToggle(onToggled: drawCharts);
+  setupSidebarToggle(onToggled: () => plotGraph?.resize());
   attachEventListeners();
   loadFromUrlHash();
 }
@@ -243,8 +246,7 @@ void initDom() {
   parseErrorText =
       web.document.querySelector('#parse-error-text') as web.HTMLElement;
 
-  plotCanvas =
-      web.document.querySelector('#plot-canvas') as web.HTMLCanvasElement;
+  plotGraphHost = web.document.querySelector('#plot-graph') as web.HTMLElement;
   rangeMinX =
       web.document.querySelector('#range-min-x') as web.HTMLInputElement;
   rangeMaxX =
@@ -484,12 +486,6 @@ void selectPreset(ExpressionPreset preset) {
   maxX = preset.defaultMaxX;
   rangeMinX.value = minX.toString();
   rangeMaxX.value = maxX.toString();
-  chartController.setBounds(
-    minX: minX,
-    maxX: maxX,
-    asDefault: true,
-    clearUserInteraction: true,
-  );
 
   pointXStr = preset.defaultPointX;
   inputPointX.value = pointXStr;
@@ -531,22 +527,6 @@ void highlightActiveSidebarItem(String? id) {
 }
 
 void attachEventListeners() {
-  chartController = InteractiveChartController(
-    plotCanvas,
-    minX: minX,
-    maxX: maxX,
-    onUpdate: drawCharts,
-    onViewportChanged: (newMinX, newMaxX, _, _) {
-      minX = double.parse(newMinX.toStringAsFixed(4));
-      maxX = double.parse(newMaxX.toStringAsFixed(4));
-      rangeMinX.value = formatNumber(minX, precision: 3);
-      rangeMaxX.value = formatNumber(maxX, precision: 3);
-      updateImaginaryDetection();
-      detectRootsAndExtrema();
-      updateUrlHash();
-    },
-  );
-
   exprInput.onInput.listen((_) {
     currentFormula = exprInput.value.trim();
     activePreset = null;
@@ -555,7 +535,6 @@ void attachEventListeners() {
     displayDesc.textContent =
         'Interactive symbolic algebra and calculus exploration.';
     highlightActiveSidebarItem(null);
-    chartController.hasUserPannedOrZoomed = false;
     updateAll();
     updateUrlHash();
   });
@@ -633,7 +612,6 @@ void attachEventListeners() {
     final val = double.tryParse(rangeMinX.value);
     if (val != null && val < maxX) {
       minX = val;
-      chartController.setBounds(minX: minX, clearUserInteraction: true);
       updateImaginaryDetection();
       detectRootsAndExtrema();
       drawCharts();
@@ -645,7 +623,6 @@ void attachEventListeners() {
     final val = double.tryParse(rangeMaxX.value);
     if (val != null && val > minX) {
       maxX = val;
-      chartController.setBounds(maxX: maxX, clearUserInteraction: true);
       updateImaginaryDetection();
       detectRootsAndExtrema();
       drawCharts();
@@ -663,16 +640,6 @@ void attachEventListeners() {
     }
     rangeMinX.value = minX.toString();
     rangeMaxX.value = maxX.toString();
-    chartController.setBounds(
-      minX: minX,
-      maxX: maxX,
-      asDefault: true,
-      clearUserInteraction: true,
-    );
-    WebGLSurfaceRenderer.forCanvas(
-      plotCanvas,
-      onUpdate: drawCharts,
-    ).resetCamera();
     updateImaginaryDetection();
     detectRootsAndExtrema();
     drawCharts();
@@ -1901,81 +1868,41 @@ void detectRootsAndExtrema() {
   return (minY: minY, maxY: maxY);
 }
 
-final _curveSampleCache =
-    <
-      String,
-      ({
-        Object fnKey,
-        double minX,
-        double maxX,
-        int maxPoints,
-        CurveSample sample,
-      })
-    >{};
-
-CurveSample _cachedCurveSample(
-  String cacheKey,
-  Object fnKey,
-  PlotViewport vp,
-  double Function(double x) fn, {
-  double stepPx = 1.5,
-}) {
-  final maxPoints = math.max(256, (vp.plotWidth / stepPx).ceil() * 2);
-  final cached = _curveSampleCache[cacheKey];
-  if (cached != null &&
-      identical(cached.fnKey, fnKey) &&
-      cached.minX == vp.minX &&
-      cached.maxX == vp.maxX &&
-      cached.maxPoints == maxPoints) {
-    return cached.sample;
-  }
-  final sample = sampleCurve(
-    fn,
-    vp.minX,
-    vp.maxX,
-    maxPoints: maxPoints,
-    initialPoints: 97,
-  );
-  _curveSampleCache[cacheKey] = (
-    fnKey: fnKey,
-    minX: vp.minX,
-    maxX: vp.maxX,
-    maxPoints: maxPoints,
-    sample: sample,
-  );
-  return sample;
-}
-
 void drawCharts() {
   if (parsedExpr != null && parsedExpr!.freeVariables.length == 2) {
     _renderMultivariable3dSurface(parsedExpr!);
     return;
   }
-  WebGLSurfaceRenderer.setActive(plotCanvas, false);
-  chartController.enabled = true;
 
-  final init = initCanvas(plotCanvas);
-  if (init == null) return;
-  final (:ctx, :width, :height) = init;
+  double? evalReal(
+    double Function(double)? realFn,
+    Complex Function(Complex)? complexFn,
+    double x,
+  ) {
+    if (realFn != null) {
+      try {
+        return realFn(x);
+      } catch (_) {
+        return double.nan;
+      }
+    }
+    if (complexFn != null) {
+      try {
+        return complexFn(Complex(x, 0)).a.toDouble();
+      } catch (_) {
+        return double.nan;
+      }
+    }
+    return null;
+  }
 
   final realFn = (hasImaginary && fnComplexCompiled != null)
-      ? (double x) {
-          try {
-            return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
-          } catch (_) {
-            return double.nan;
-          }
-        }
-      : fnCompiled ??
+      ? (double x) => evalReal(null, fnComplexCompiled, x) ?? double.nan
+      : (fnCompiled ??
             (fnComplexCompiled != null
-                ? (double x) {
-                    try {
-                      return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
-                    } catch (_) {
-                      return double.nan;
-                    }
-                  }
-                : null);
+                ? (double x) =>
+                      evalReal(null, fnComplexCompiled, x) ?? double.nan
+                : null));
   final imagFn = (hasImaginary && fnComplexCompiled != null)
       ? (double x) {
           try {
@@ -1989,321 +1916,204 @@ void drawCharts() {
   final realDf =
       dfCompiled ??
       (dfComplexCompiled != null
-          ? (double x) {
-              try {
-                return dfComplexCompiled!(Complex(x, 0)).a.toDouble();
-              } catch (_) {
-                return double.nan;
-              }
-            }
+          ? (double x) => evalReal(null, dfComplexCompiled, x) ?? double.nan
           : null);
-
   final realD2f =
       d2fCompiled ??
       (d2fComplexCompiled != null
-          ? (double x) {
-              try {
-                return d2fComplexCompiled!(Complex(x, 0)).a.toDouble();
-              } catch (_) {
-                return double.nan;
-              }
-            }
+          ? (double x) => evalReal(null, d2fComplexCompiled, x) ?? double.nan
           : null);
-
   final realD3f =
       d3fCompiled ??
       (d3fComplexCompiled != null
-          ? (double x) {
-              try {
-                return d3fComplexCompiled!(Complex(x, 0)).a.toDouble();
-              } catch (_) {
-                return double.nan;
-              }
-            }
+          ? (double x) => evalReal(null, d3fComplexCompiled, x) ?? double.nan
           : null);
-
   final realTaylor =
       taylorCompiled ??
       (taylorComplexCompiled != null
-          ? (double x) {
-              try {
-                return taylorComplexCompiled!(Complex(x, 0)).a.toDouble();
-              } catch (_) {
-                return double.nan;
-              }
-            }
+          ? (double x) => evalReal(null, taylorComplexCompiled, x) ?? double.nan
           : null);
 
   if (realFn == null) return;
 
-  if (!chartController.hasUserPannedOrZoomed) {
-    final (minY: autoMinY, maxY: autoMaxY) = estimateYBounds(realFn, imagFn);
-    chartController.setBounds(
-      minX: minX,
-      maxX: maxX,
-      minY: autoMinY,
-      maxY: autoMaxY,
-      asDefault: true,
-    );
+  final (minY: autoMinY, maxY: autoMaxY) = estimateYBounds(realFn, imagFn);
+  final datasets = <Dataset2D>[];
+  final markers = <PointMarker>[];
+
+  if (showRoots) {
+    for (final rx in plotRoots) {
+      if (rx >= minX && rx <= maxX) {
+        markers.add(PointMarker(x: rx, y: 0.0, color: '#ef4444', radius: 4.5));
+      }
+    }
+  }
+  if (showMin) {
+    for (final pt in localMinima) {
+      if (pt.x >= minX && pt.x <= maxX) {
+        markers.add(
+          PointMarker(x: pt.x, y: pt.y, color: '#10b981', radius: 4.5),
+        );
+      }
+    }
+  }
+  if (showMax) {
+    for (final pt in localMaxima) {
+      if (pt.x >= minX && pt.x <= maxX) {
+        markers.add(
+          PointMarker(x: pt.x, y: pt.y, color: '#f59e0b', radius: 4.5),
+        );
+      }
+    }
   }
 
-  final vp = chartController.viewport(width, height);
+  final ptX = _currentPointPlotX();
+  if (ptX != null && ptX >= minX && ptX <= maxX) {
+    final py = realFn(ptX);
+    if (py.isFinite) {
+      markers.add(
+        PointMarker(x: ptX, y: py, color: '#22c55e', radius: 5.0, label: 'x₀'),
+      );
+    }
+  }
 
-  // 1. Grid & Axes
-  drawGrid(ctx, vp);
-
-  // 2. Shaded Integral Area
   if (showIntegral) {
     final plotA = _boundToPlotCoordinate(_parsePointExpr(intAStr));
     final plotB = _boundToPlotCoordinate(_parsePointExpr(intBStr));
-    if (plotA != null && plotB != null) {
-      drawShadedInterval(
-        ctx,
-        vp,
-        realFn,
-        plotA,
-        plotB,
-        fillColor: 'rgba(16, 185, 129, 0.20)',
-        strokeColor: '#10b981',
+    if (plotA != null && plotB != null && plotB > plotA) {
+      datasets.add(
+        sampleFunction2D(
+          id: 'integral',
+          label: '∫ f(x) dx',
+          fn: realFn,
+          xMin: math.max(minX, plotA),
+          xMax: math.min(maxX, plotB),
+          color: '#3b82f6',
+          width: 0.5,
+          fill: const AreaFill(color: '#3b82f6', opacity: 0.22),
+        ),
       );
     }
   }
 
-  // 3. Primary Curve Re f(x) or f(x)
   if (showFx) {
-    final fnKey = fnCompiled ?? fnComplexCompiled!;
-    drawCurve(
-      ctx,
-      vp,
-      realFn,
-      strokeColor: '#3b82f6',
-      lineWidth: 2.5,
-      fillColor: hasImaginary ? null : 'rgba(59, 130, 246, 0.08)',
-      sample: _cachedCurveSample('fx', fnKey, vp, realFn),
-    );
-  }
-
-  // 3b. Imaginary Component Curve Im f(x)
-  if (showIm && imagFn != null) {
-    drawCurve(
-      ctx,
-      vp,
-      imagFn,
-      strokeColor: '#a855f7',
-      lineWidth: 2.0,
-      lineDash: [4, 4],
-      sample: _cachedCurveSample('imfx', fnComplexCompiled!, vp, imagFn),
-    );
-  }
-
-  // 4. First Derivative f'(x)
-  if (showDfx && realDf != null) {
-    final dfKey = dfCompiled ?? dfComplexCompiled!;
-    drawCurve(
-      ctx,
-      vp,
-      realDf,
-      strokeColor: '#ef4444',
-      lineWidth: 1.8,
-      lineDash: [4, 4],
-      sample: _cachedCurveSample('dfx', dfKey, vp, realDf),
-    );
-  }
-
-  // 5. Second Derivative f''(x)
-  if (showD2fx && realD2f != null) {
-    final d2fKey = d2fCompiled ?? d2fComplexCompiled!;
-    drawCurve(
-      ctx,
-      vp,
-      realD2f,
-      strokeColor: '#a855f7',
-      lineWidth: 1.5,
-      lineDash: [2, 3],
-      sample: _cachedCurveSample('d2fx', d2fKey, vp, realD2f),
-    );
-  }
-
-  // 5b. Third Derivative f'''(x)
-  if (showD3fx && realD3f != null) {
-    final d3fKey = d3fCompiled ?? d3fComplexCompiled!;
-    drawCurve(
-      ctx,
-      vp,
-      realD3f,
-      strokeColor: '#ec4899',
-      lineWidth: 1.5,
-      lineDash: [1, 3],
-      sample: _cachedCurveSample('d3fx', d3fKey, vp, realD3f),
-    );
-  }
-
-  // 6. Taylor Polynomial Approximation
-  if (showTaylor && realTaylor != null) {
-    final taylorKey = taylorCompiled ?? taylorComplexCompiled!;
-    drawCurve(
-      ctx,
-      vp,
-      realTaylor,
-      strokeColor: '#f59e0b',
-      lineWidth: 2.0,
-      lineDash: [6, 3],
-      sample: _cachedCurveSample('taylor', taylorKey, vp, realTaylor),
-    );
-  }
-
-  // 7. Tangent Line & Reference Line at x0
-  final ptX = _currentPointPlotX();
-  if (ptX != null && showTangent && realDf != null) {
-    final y0 = safeGet(() => realFn(ptX))?.toDouble();
-    final slope = safeGet(() => realDf(ptX))?.toDouble();
-    if (y0 != null && slope != null && y0.isFinite && slope.isFinite) {
-      double tangentLine(double x) => slope * (x - ptX) + y0;
-      drawCurve(
-        ctx,
-        vp,
-        tangentLine,
-        strokeColor: 'rgba(255, 255, 255, 0.65)',
-        lineWidth: 1.2,
-      );
-      drawPointMarker(
-        ctx,
-        vp,
-        ptX,
-        y0,
-        color: '#f8fafc',
-        radius: 3.5,
-        label: 'x₀',
-      );
-    }
-  }
-
-  // 8. Roots Markers
-  if (showRoots) {
-    for (final r in plotRoots) {
-      drawPointMarker(
-        ctx,
-        vp,
-        r,
-        0.0,
-        color: '#10b981',
-        radius: 4.5,
-        label: 'root',
-      );
-    }
-  }
-
-  // 8b. Local Minima Markers
-  if (showMin) {
-    for (final minPt in localMinima) {
-      drawPointMarker(
-        ctx,
-        vp,
-        minPt.x,
-        minPt.y,
-        color: '#06b6d4',
-        radius: 4.5,
-        label: 'min',
-      );
-    }
-  }
-
-  // 8c. Local Maxima Markers
-  if (showMax) {
-    for (final maxPt in localMaxima) {
-      drawPointMarker(
-        ctx,
-        vp,
-        maxPt.x,
-        maxPt.y,
-        color: '#f59e0b',
-        radius: 4.5,
-        label: 'max',
-      );
-    }
-  }
-
-  // 9. Reference line for x0
-  if (ptX != null) {
-    drawReferenceLine(
-      ctx,
-      vp,
-      ptX,
-      color: 'rgba(248, 250, 252, 0.4)',
-      label: 'x₀ = $pointXStr',
-    );
-  }
-
-  // 10. Mouse Hover Crosshair & Tooltip
-  final mx = chartController.hoverPixelX;
-  final my = chartController.hoverPixelY;
-  if (mx != null && my != null && vp.containsPixel(mx, my)) {
-    final hx = vp.fromPixelX(mx);
-    final hyReal = safeGet(() => realFn(hx))?.toDouble();
-    final hyImag = imagFn != null
-        ? safeGet(() => imagFn(hx))?.toDouble()
-        : null;
-    if (hyReal != null && hyReal.isFinite) {
-      final hSlope = realDf != null
-          ? safeGet(() => realDf(hx))?.toDouble()
-          : null;
-      final hCurv = realD2f != null
-          ? safeGet(() => realD2f(hx))?.toDouble()
-          : null;
-      final hJerk = realD3f != null
-          ? safeGet(() => realD3f(hx))?.toDouble()
-          : null;
-      final hTaylor = showTaylor && realTaylor != null
-          ? safeGet(() => realTaylor(hx))?.toDouble()
-          : null;
-      final tooltipLines = <String>['x: ${formatNumber(hx, precision: 4)}'];
-      final tooltipColors = <String?>[null];
-
-      if (showFx) {
-        if (hasImaginary) {
-          tooltipLines.add('Re f(x): ${formatNumber(hyReal, precision: 4)}');
-          tooltipColors.add('#3b82f6');
-        } else {
-          tooltipLines.add('f(x): ${formatNumber(hyReal, precision: 4)}');
-          tooltipColors.add('#3b82f6');
-        }
-      }
-      if (showIm && hyImag != null && hyImag.isFinite) {
-        tooltipLines.add('Im f(x): ${formatNumber(hyImag, precision: 4)}');
-        tooltipColors.add('#a855f7');
-      }
-      if (showDfx && hSlope != null && hSlope.isFinite) {
-        tooltipLines.add(
-          '${hasImaginary ? "Re " : ""}df/dx: ${formatNumber(hSlope, precision: 4)}',
-        );
-        tooltipColors.add('#ef4444');
-      }
-      if (showD2fx && hCurv != null && hCurv.isFinite) {
-        tooltipLines.add(
-          '${hasImaginary ? "Re " : ""}d²f/dx²: ${formatNumber(hCurv, precision: 4)}',
-        );
-        tooltipColors.add('#a855f7');
-      }
-      if (showD3fx && hJerk != null && hJerk.isFinite) {
-        tooltipLines.add(
-          '${hasImaginary ? "Re " : ""}d³f/dx³: ${formatNumber(hJerk, precision: 4)}',
-        );
-        tooltipColors.add('#ec4899');
-      }
-      if (hTaylor != null && hTaylor.isFinite) {
-        tooltipLines.add('Taylor: ${formatNumber(hTaylor, precision: 4)}');
-        tooltipColors.add('#f59e0b');
-      }
-      drawCrosshairAndTooltip(
-        ctx,
-        vp,
-        targetX: hx,
-        targetY: hyReal,
-        tooltipLines: tooltipLines,
-        tooltipColors: tooltipColors,
+    datasets.add(
+      sampleFunction2D(
+        id: 'fx',
+        label: hasImaginary ? 'Re f(x)' : 'f(x)',
+        fn: realFn,
+        xMin: minX,
+        xMax: maxX,
         color: '#3b82f6',
+        width: 2.5,
+        markers: markers,
+      ),
+    );
+  }
+  if (showIm && imagFn != null) {
+    datasets.add(
+      sampleFunction2D(
+        id: 'imfx',
+        label: 'Im f(x)',
+        fn: imagFn,
+        xMin: minX,
+        xMax: maxX,
+        color: '#a855f7',
+        dashed: true,
+      ),
+    );
+  }
+  if (showDfx && realDf != null) {
+    datasets.add(
+      sampleFunction2D(
+        id: 'dfx',
+        label: 'df/dx',
+        fn: realDf,
+        xMin: minX,
+        xMax: maxX,
+        color: '#ef4444',
+      ),
+    );
+  }
+  if (showD2fx && realD2f != null) {
+    datasets.add(
+      sampleFunction2D(
+        id: 'd2fx',
+        label: 'd²f/dx²',
+        fn: realD2f,
+        xMin: minX,
+        xMax: maxX,
+        color: '#a855f7',
+      ),
+    );
+  }
+  if (showD3fx && realD3f != null) {
+    datasets.add(
+      sampleFunction2D(
+        id: 'd3fx',
+        label: 'd³f/dx³',
+        fn: realD3f,
+        xMin: minX,
+        xMax: maxX,
+        color: '#ec4899',
+      ),
+    );
+  }
+  if (showTaylor && realTaylor != null) {
+    datasets.add(
+      sampleFunction2D(
+        id: 'taylor',
+        label: 'Taylor',
+        fn: realTaylor,
+        xMin: minX,
+        xMax: maxX,
+        color: '#f59e0b',
+        dashed: true,
+      ),
+    );
+  }
+  if (showTangent && ptX != null && realDf != null) {
+    final y0 = realFn(ptX);
+    final slope = realDf(ptX);
+    if (y0.isFinite && slope.isFinite) {
+      datasets.add(
+        sampleFunction2D(
+          id: 'tangent',
+          label: 'Tangent',
+          fn: (x) => y0 + slope * (x - ptX),
+          xMin: minX,
+          xMax: maxX,
+          color: '#22c55e',
+          dashed: true,
+        ),
       );
     }
+  }
+
+  final refs = <ReferenceLine>[
+    if (ptX != null && ptX.isFinite)
+      ReferenceLine(
+        value: ptX,
+        isVertical: true,
+        color: 'rgba(148, 163, 184, 0.45)',
+        label: 'x₀ = ',
+      ),
+  ];
+
+  final scene = Scene2D(
+    datasets: datasets,
+    xAxis: AxisConfig(
+      label: parsedExpr?.freeVariables.firstOrNull ?? 'x',
+      min: minX,
+      max: maxX,
+    ),
+    yAxis: AxisConfig(min: autoMinY, max: autoMaxY),
+    references: refs,
+  );
+  if (plotGraph == null) {
+    plotGraph = GraphWidget.view2d(scene, height: 420);
+    plotGraphHost.appendChild(plotGraph!.element);
+  } else {
+    plotGraph!.setScene2D(scene);
   }
 }
 
@@ -2391,12 +2201,6 @@ void loadFromUrlHash() {
   inputPointX.value = pointXStr;
   inputIntA.value = intAStr;
   inputIntB.value = intBStr;
-  chartController.setBounds(
-    minX: minX,
-    maxX: maxX,
-    asDefault: true,
-    clearUserInteraction: true,
-  );
 
   updateAll();
 }
@@ -2560,73 +2364,33 @@ String _formatInstruction(int pc, Instruction instr, [List<String>? varNames]) {
   return '${pc.toString().padLeft(3)}: $opName $payload'.trimRight();
 }
 
-String _cached3dKey = '';
-Float64List _cached3dZ = Float64List(0);
-double _cached3dMinZ = -1.0;
-double _cached3dMaxZ = 1.0;
-String _cached3dXVar = 'x';
-String _cached3dYVar = 'y';
-
 void _renderMultivariable3dSurface(Expr expr) {
   final free = expr.freeVariables.toList()..sort();
   final xVar = (free.contains('x') && free.contains('y')) ? 'x' : free[0];
   final yVar = (free.contains('x') && free.contains('y')) ? 'y' : free[1];
-  const gridSize = 64;
-  final key = '${expr.toString()}|$minX|$maxX|$xVar|$yVar';
-
-  if (_cached3dKey != key) {
-    _cached3dKey = key;
-    _cached3dXVar = xVar;
-    _cached3dYVar = yVar;
-    final vecFn = expr.toVectorFunction([xVar, yVar]);
-    final zVals = Float64List(gridSize * gridSize);
-    final finite = <double>[];
-    final vecView = Vector<double>.filled(2, 0.0, type: DataType.float64);
-    for (var iy = 0; iy < gridSize; iy++) {
-      final v = iy / (gridSize - 1);
-      vecView.setUnchecked(1, minX + v * (maxX - minX));
-      for (var ix = 0; ix < gridSize; ix++) {
-        final u = ix / (gridSize - 1);
-        vecView.setUnchecked(0, minX + u * (maxX - minX));
-        double z;
-        try {
-          z = vecFn(vecView);
-        } catch (_) {
-          z = double.nan;
-        }
-        zVals[iy * gridSize + ix] = z;
-        if (z.isFinite) finite.add(z);
-      }
-    }
-    _cached3dZ = zVals;
-    if (finite.isEmpty) {
-      _cached3dMinZ = -1.0;
-      _cached3dMaxZ = 1.0;
-    } else {
-      finite.sort();
-      final lo = finite[(finite.length * 0.02).floor()];
-      final hi = finite[(finite.length * 0.98).floor()];
-      final span = (hi - lo).abs() < 1e-6 ? 1.0 : (hi - lo);
-      _cached3dMinZ = lo - span * 0.08;
-      _cached3dMaxZ = hi + span * 0.08;
-    }
+  const gridSize = 56;
+  final vecFn = expr.toVectorFunction([xVar, yVar]);
+  final ds = sampleSurface3D(
+    id: 'surf3d',
+    label: expr.toString(),
+    fn: (x, y) => vecFn(Vector.fromList([x, y])),
+    xMin: minX,
+    xMax: maxX,
+    yMin: minX,
+    yMax: maxX,
+    nx: gridSize,
+    ny: gridSize,
+  );
+  final scene = Scene3D(
+    datasets: [ds],
+    xAxis: AxisConfig(label: xVar),
+    yAxis: AxisConfig(label: yVar),
+    zAxis: const AxisConfig(label: 'z'),
+  );
+  if (plotGraph == null) {
+    plotGraph = GraphWidget.view3d(scene, height: 420);
+    plotGraphHost.appendChild(plotGraph!.element);
+  } else {
+    plotGraph!.setScene3D(scene);
   }
-
-  chartController.enabled = false;
-  final surfaceRenderer = WebGLSurfaceRenderer.forCanvas(
-    plotCanvas,
-    onUpdate: drawCharts,
-  );
-  surfaceRenderer.renderSurface(
-    gridSize: gridSize,
-    zValues: _cached3dZ,
-    minX: minX,
-    maxX: maxX,
-    minY: minX,
-    maxY: maxX,
-    minZ: _cached3dMinZ,
-    maxZ: _cached3dMaxZ,
-    xVar: _cached3dXVar,
-    yVar: _cached3dYVar,
-  );
 }
