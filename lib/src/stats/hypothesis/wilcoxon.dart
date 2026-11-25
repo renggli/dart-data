@@ -1,47 +1,72 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
-import '../descriptive.dart';
 import '../distributions/continuous/normal.dart';
 import 'hypothesis_test_result.dart';
+import 'utils.dart';
 
-/// Wilcoxon signed-rank test for paired samples or one-sample median against 0.
+/// Wilcoxon signed-rank test for paired samples or one-sample median against
+/// zero.
 ///
-/// If [y] is provided, tests paired differences $x_i - y_i$. If [y] is omitted,
-/// tests $x_i$ directly against a symmetric median of 0.
+/// If [y] is provided, tests paired differences `x_i - y_i`; if [y] is
+/// omitted, tests `x_i` directly against zero. After removing zero differences,
+/// uses exact signed-rank permutation p-values when [exact] is `true`, or when
+/// [exact] is omitted for untied samples with `n <= 25`. Otherwise uses the
+/// tie-corrected normal approximation with optional [continuityCorrection].
 ///
-/// Uses the asymptotic normal approximation with tie correction and optional
-/// [continuityCorrection] (defaults to `true`).
+/// Throws [ArgumentError] if [x] is empty, paired lengths differ, [alpha] is
+/// outside `(0, 1)`, or `exact: true` is requested when tied magnitudes exist.
+/// Returns `NaN` statistic and p-value if any observation is `NaN`.
 HypothesisTestResult wilcoxonSignedRankTest(
   Iterable<num> x, {
   Iterable<num>? y,
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
   bool continuityCorrection = true,
+  bool? exact,
 }) {
-  final xList = x.map((val) => val.toDouble()).toList();
-  final List<double> diffs;
+  validateAlpha(alpha);
+  final nonZeroDiffs = <double>[];
+  var hasNan = false;
+  var totalCount = 0;
+
   if (y != null) {
-    final yList = y.map((val) => val.toDouble()).toList();
-    if (xList.length != yList.length) {
+    final xIter = x.iterator;
+    final yIter = y.iterator;
+    while (xIter.moveNext()) {
+      if (!yIter.moveNext()) {
+        throw ArgumentError('Paired samples must have equal length');
+      }
+      totalCount++;
+      final diff = xIter.current.toDouble() - yIter.current.toDouble();
+      if (diff.isNaN) hasNan = true;
+      if (diff != 0.0) nonZeroDiffs.add(diff);
+    }
+    if (yIter.moveNext()) {
       throw ArgumentError('Paired samples must have equal length');
     }
-    diffs = List<double>.generate(xList.length, (i) => xList[i] - yList[i]);
   } else {
-    diffs = xList;
-  }
-
-  for (var i = 0; i < diffs.length; i++) {
-    if (diffs[i].isNaN) {
-      return HypothesisTestResult(
-        testName: 'Wilcoxon Signed-Rank Test',
-        statistic: double.nan,
-        pValue: double.nan,
-        alpha: alpha,
-      );
+    for (final val in x) {
+      totalCount++;
+      final diff = val.toDouble();
+      if (diff.isNaN) hasNan = true;
+      if (diff != 0.0) nonZeroDiffs.add(diff);
     }
   }
 
-  final nonZeroDiffs = diffs.where((d) => d != 0.0).toList();
+  if (totalCount == 0) {
+    throw ArgumentError('Sample cannot be empty');
+  }
+  if (hasNan) {
+    return HypothesisTestResult(
+      testName: 'Wilcoxon Signed-Rank Test',
+      statistic: double.nan,
+      pValue: double.nan,
+      alpha: alpha,
+      alternative: alternative,
+    );
+  }
+
   final n = nonZeroDiffs.length;
   if (n == 0) {
     return HypothesisTestResult(
@@ -49,45 +74,57 @@ HypothesisTestResult wilcoxonSignedRankTest(
       statistic: 0.0,
       pValue: 1.0,
       alpha: alpha,
+      alternative: alternative,
     );
   }
 
-  final absDiffs = nonZeroDiffs.map((d) => d.abs()).toList();
-  final ranks = rankData(absDiffs);
+  final absDiffs = [for (final d in nonZeroDiffs) d.abs()];
+  final ranked = rankDataWithTies(absDiffs);
+  if (exact == true) {
+    if (ranked.hasTies) {
+      throw ArgumentError(
+        'Exact Wilcoxon signed-rank p-value requires untied non-zero differences',
+      );
+    }
+    if (n > 50) {
+      throw ArgumentError(
+        'Exact Wilcoxon signed-rank p-value requires at most 50 non-zero differences',
+      );
+    }
+  }
 
   var wPlus = 0.0;
   var wMinus = 0.0;
   for (var i = 0; i < n; i++) {
     if (nonZeroDiffs[i] > 0.0) {
-      wPlus += ranks[i];
+      wPlus += ranked.ranks[i];
     } else {
-      wMinus += ranks[i];
+      wMinus += ranked.ranks[i];
     }
   }
 
   final wStat = switch (alternative) {
     AlternativeHypothesis.twoSided => math.min(wPlus, wMinus),
-    AlternativeHypothesis.greater => wPlus,
-    AlternativeHypothesis.less => wPlus,
+    AlternativeHypothesis.greater || AlternativeHypothesis.less => wPlus,
   };
 
-  // Normal approximation with tie correction
-  final muW = (n * (n + 1.0)) / 4.0;
-
-  // Tie correction
-  final tieCounts = <double, int>{};
-  for (final ad in absDiffs) {
-    tieCounts[ad] = (tieCounts[ad] ?? 0) + 1;
-  }
-  var tieTerm = 0.0;
-  for (final count in tieCounts.values) {
-    if (count > 1) {
-      final c = count.toDouble();
-      tieTerm += c * c * c - c;
-    }
+  final useExact = exact ?? (!ranked.hasTies && n <= 25);
+  if (useExact && n <= 50) {
+    final pValue = _exactWilcoxonPValue(wPlus.round(), n, alternative);
+    return HypothesisTestResult(
+      testName: 'Wilcoxon Signed-Rank Test',
+      statistic: wStat,
+      pValue: pValue,
+      alpha: alpha,
+      alternative: alternative,
+    );
   }
 
-  final varW = (n * (n + 1.0) * (2.0 * n + 1.0) - 0.5 * tieTerm) / 24.0;
+  final nd = n.toDouble();
+  final muW = 0.25 * nd * (nd + 1.0);
+  final varW =
+      (nd * (nd + 1.0) * (2.0 * nd + 1.0) - 0.5 * ranked.tieCorrectionSum) /
+      24.0;
   final sigmaW = varW > 0.0 ? math.sqrt(varW) : 1e-15;
 
   const normal = NormalDistribution.standard();
@@ -98,18 +135,17 @@ HypothesisTestResult wilcoxonSignedRankTest(
       final adjustedDiff = continuityCorrection
           ? math.max(0.0, diff - 0.5)
           : diff;
-      final z = adjustedDiff / sigmaW;
-      pValue = (2.0 * normal.survival(z)).clamp(0.0, 1.0);
+      pValue = (2.0 * normal.survival(adjustedDiff / sigmaW)).clamp(0.0, 1.0);
     case AlternativeHypothesis.greater:
       final diff = wPlus - muW;
       final adjustedDiff = continuityCorrection ? diff - 0.5 : diff;
-      final z = adjustedDiff / sigmaW;
-      pValue = normal.survival(z).clamp(0.0, 1.0);
+      pValue = normal.survival(adjustedDiff / sigmaW).clamp(0.0, 1.0);
     case AlternativeHypothesis.less:
       final diff = wPlus - muW;
       final adjustedDiff = continuityCorrection ? diff + 0.5 : diff;
-      final z = adjustedDiff / sigmaW;
-      pValue = normal.cumulativeProbability(z).clamp(0.0, 1.0);
+      pValue = normal
+          .cumulativeProbability(adjustedDiff / sigmaW)
+          .clamp(0.0, 1.0);
   }
 
   return HypothesisTestResult(
@@ -119,4 +155,34 @@ HypothesisTestResult wilcoxonSignedRankTest(
     alpha: alpha,
     alternative: alternative,
   );
+}
+
+double _exactWilcoxonPValue(
+  int wPlus,
+  int n,
+  AlternativeHypothesis alternative,
+) {
+  final maxSum = n * (n + 1) ~/ 2;
+  final dp = Float64List(maxSum + 1);
+  dp[0] = 1.0;
+  for (var r = 1; r <= n; r++) {
+    final limit = r * (r + 1) ~/ 2;
+    for (var s = limit; s >= r; s--) {
+      dp[s] += dp[s - r];
+    }
+  }
+  final total = math.pow(2.0, n).toDouble();
+  final target = switch (alternative) {
+    AlternativeHypothesis.twoSided => math.min(wPlus, maxSum - wPlus),
+    AlternativeHypothesis.less => wPlus,
+    AlternativeHypothesis.greater => maxSum - wPlus,
+  };
+  var sum = 0.0;
+  for (var s = 0; s <= target; s++) {
+    sum += dp[s];
+  }
+  final prob = sum / total;
+  return alternative == AlternativeHypothesis.twoSided
+      ? (2.0 * prob).clamp(0.0, 1.0)
+      : prob.clamp(0.0, 1.0);
 }

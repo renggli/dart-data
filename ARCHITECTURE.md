@@ -459,11 +459,11 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Comprehensive summary profiles of empirical distributions.
 - **Implementation & Constraints**:
-  - Measures of location and dispersion: `quantile`, `median`, `iqr`, sample `skewness`, and excess `kurtosis`.
-  - Weighted statistics: `weightedMean` and `weightedVariance` supporting observation weights and Bessel reliability weight correction ($s_w^2 = \frac{\sum w_i}{(\sum w_i)^2 - \sum w_i^2} \sum w_i (x_i - \bar{x}_w)^2$).
-  - Moving window aggregations: Simple moving average (`movingAverage`) over rolling windows in $\mathcal{O}(N)$ time with $\mathcal{O}(1)$ updates per step, and exponential moving average (`exponentialMovingAverage`) with smoothing parameter $\alpha \in (0, 1]$.
-  - Association matrices: `covarianceMatrix`, `correlationMatrix` (Pearson linear correlation and Spearman rank-order correlation).
-  - Principal Component Analysis (`pca`): Computes centered covariance matrices, orthogonal eigenvectors, eigenvalues, and explained variance ratios for dimensionality reduction.
+  - Measures of location and dispersion: `mean`, `geometricMean`, `harmonicMean`, `quantile`, `quantiles`, `median`, `iqr`, `medianAbsoluteDeviation`, scale-normalized sample `skewness`, and excess `kurtosis`.
+  - Weighted statistics: `weightedMean`, `weightedVariance` (supporting observation weights and Bessel reliability weight correction with max-weight normalization), and `weightedStandardDeviation`.
+  - Moving window aggregations: Simple moving average (`movingAverage`) over rolling windows in $\mathcal{O}(N)$ amortized time with periodic/spike-triggered exact refresh to prevent drift and `NaN` poisoning, and exponential moving average (`exponentialMovingAverage`) with smoothing parameter $\alpha \in (0, 1]$.
+  - Association matrices: `covarianceMatrix`, `correlationMatrix` (`pearsonCorrelationMatrix`, `spearmanCorrelationMatrix`, and `kendallCorrelationMatrix` / `kendallCorrelation` $\tau_b$ in $\mathcal{O}(n \log n)$).
+  - Principal Component Analysis (`pca`): Computes SVD directly on centered/standardized matrices for small-to-medium sample sizes ($n \le 512$) and symmetric covariance eigendecomposition for tall matrices, enforcing deterministic component sign orientation and returning `PcaResult` with `singularValues`, `explainedVariance`, `explainedVarianceRatio`, and `cumulativeExplainedVarianceRatio`.
 
 ### 7.2 Parametric Distributions & Maximum Likelihood Estimation (MLE)
 
@@ -482,30 +482,27 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Rigorous statistical inference for experimental hypothesis testing, goodness-of-fit validation, and non-parametric paired testing.
 - **Implementation & Constraints**:
-  - `tTestOneSample`: Student's t-test comparing sample mean against hypothesized value.
-  - `tTestTwoSample`: Two-sample t-test supporting Student's pooled variance and Welch's t-test for unequal variances.
-  - `tTestPaired`: Paired-difference t-test.
-  - `oneWayAnova`: One-way Analysis of Variance testing equality of three or more group means.
-  - `chiSquaredTest` and `chiSquaredContingency`: Goodness-of-fit and contingency table test of independence.
-  - `fisherExactTest`: Exact test for independence in $2 \times 2$ contingency tables based on hypergeometric distribution without large-sample approximations.
-  - `shapiroWilkTest`: Normality test based on correlation between ordered sample data and theoretical normal order statistics.
-  - `mannWhitneyUTest`: Non-parametric test for equality of two continuous distributions.
-  - `kolmogorovSmirnovTest`: One-sample Kolmogorov-Smirnov test evaluating maximum supremum distance $D = \max(D^+, D^-)$ between empirical CDF and continuous theoretical distribution with asymptotic Stephens approximation for $p$-values.
-  - `kolmogorovSmirnovTwoSample`: Two-sample Kolmogorov-Smirnov test assessing whether two independent empirical samples originate from the same continuous distribution using effective sample size $n_e = \frac{n_1 n_2}{n_1 + n_2}$.
-  - `jarqueBeraTest`: Normality test matching sample skewness $S$ and kurtosis $K$ against normal expectations ($S = 0, K = 3$), testing asymptotic statistic $JB = \frac{n}{6}(S^2 + \frac{(K-3)^2}{4}) \sim \chi^2(2)$.
-  - `wilcoxonSignedRankTest`: Non-parametric paired signed-rank test (or one-sample median against 0) with rank-sum calculation, tie-corrected variance, and continuity-corrected normal approximation.
+  - `tTestOneSample`: Single-pass Welford Student's t-test comparing sample mean against hypothesized value.
+  - `tTestTwoSample`: Two-sample t-test supporting Student's pooled variance and Welch's t-test for unequal variances with overflow-safe Satterthwaite degrees of freedom.
+  - `tTestPaired`: Paired-difference t-test supporting hypothesized difference `mu0`.
+  - `oneWayAnova`: One-way Analysis of Variance testing equality of two or more group means, reporting both numerator and denominator degrees of freedom.
+  - `kruskalWallisTest`: Non-parametric k-sample rank test with tie correction against $\chi^2(k - 1)$.
+  - `chiSquaredTest` and `chiSquaredContingency`: Goodness-of-fit and contingency table test of independence with optional Yates' continuity correction for $2 \times 2$ tables.
+  - `fisherExactTest`: Exact test for independence in $2 \times 2$ `Matrix<int>` contingency tables based on `HypergeometricDistribution` without large-sample approximations.
+  - `shapiroWilkTest`: Normality test based on Royston's AS R94 with translation-invariant symmetric pairing.
+  - `mannWhitneyUTest`: Non-parametric test for equality of two independent continuous distributions with exact small-sample permutation DP and tie-corrected normal approximation.
+  - `kolmogorovSmirnovTest`: One-sample Kolmogorov-Smirnov test for `ContinuousDistribution` supporting `twoSided`, `greater`, and `less` alternatives with exact small-sample ($n \le 100$) Smirnov / Marsaglia-Tsang-Wang probabilities and asymptotics.
+  - `kolmogorovSmirnovTwoSample`: Two-sample Kolmogorov-Smirnov test supporting `twoSided`, `greater`, and `less` alternatives with exact untied lattice-path DP ($n_1 n_2 \le 10000$) and asymptotic probabilities.
+  - `jarqueBeraTest`: Normality test matching scaled central-moment skewness $S$ and excess kurtosis $K - 3$, testing $JB = \frac{n}{6}(S^2 + \frac{(K-3)^2}{4}) \sim \chi^2(2)$.
+  - `wilcoxonSignedRankTest`: Non-parametric paired signed-rank test (or one-sample median against 0) with exact subset-sum DP for small untied samples ($n \le 25$) and tie-corrected normal approximation.
 
 ### 7.4 Non-Parametric & Parametric Bootstrap Resampling
 
 - **Reasoning**: Estimating standard errors and confidence intervals without distribution assumptions.
 - **Implementation & Constraints**:
-  - `Bootstrap`: Generates $B$ resampled datasets with replacement.
-  - `Bootstrap.parametric`: Generates synthetic resamples using a generative sampler.
-  - `Bootstrap.distribution`: Generates synthetic resamples from a theoretical probability distribution.
-  - `Jackknife`: Leave-one-out resampling generating $n$ jackknife pseudo-values to estimate parameter bias, variance, and individual observation influence values.
-  - Confidence interval algorithms:
-    - Percentile interval: Direct empirical quantiles of the bootstrap distribution.
-    - BCa (Bias-Corrected and Accelerated) interval: Corrects for both median bias and skewness (acceleration parameter $a$ computed via jackknife influence values).
+  - `@immutable` `Bootstrap`: Defensively copies input samples, generates $B$ non-parametric, custom-sampler (`Bootstrap.parametric`), or distribution-sampled (`Bootstrap.distribution<T>`) resamples.
+  - `@immutable` `Jackknife`: Leave-one-out resampling computing unmodifiable `resamples`, `resampleEstimates`, `pseudoValues`, `influenceValues`, bias, standard error, and scale-normalized BCa `acceleration`.
+  - Confidence interval algorithms on `Bootstrap`: `normalInterval`, `basicInterval`, `percentileInterval`, and `bcaInterval` (reusing `Jackknife.acceleration` and `NormalDistribution.standard()`).
 
 ---
 

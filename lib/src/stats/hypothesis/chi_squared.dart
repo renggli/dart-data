@@ -1,16 +1,32 @@
+import 'dart:math' as math;
+
 import '../../linear/matrix.dart';
 import '../distributions/continuous/chi_squared.dart';
 import 'hypothesis_test_result.dart';
+import 'utils.dart';
 
-/// Chi-squared goodness-of-fit test.
+/// Chi-squared goodness-of-fit test comparing [observed] counts against
+/// [expected] counts.
 ///
-/// Compares [observed] frequencies against [expected] frequencies.
+/// When [expected] is omitted, assumes a uniform distribution across all
+/// categories. When [expected] is provided, scales expected values to match
+/// the observed total if they differ beyond relative tolerance `1e-7`. Adjusts
+/// degrees of freedom as `categories - 1 - ddof`.
+///
+/// Throws [ArgumentError] if fewer than 2 categories exist, counts are
+/// negative/non-finite, [expected] entries are non-positive or length-mismatched,
+/// [ddof] is negative, resulting degrees of freedom are non-positive, or
+/// [alpha] is outside `(0, 1)`.
 HypothesisTestResult chiSquaredTest(
   Iterable<num> observed, {
   Iterable<num>? expected,
   int ddof = 0,
   double alpha = 0.05,
 }) {
+  validateAlpha(alpha);
+  if (ddof < 0) {
+    throw ArgumentError.value(ddof, 'ddof', 'ddof must be non-negative');
+  }
   final obs = <double>[];
   var obsSum = 0.0;
   for (final val in observed) {
@@ -34,10 +50,8 @@ HypothesisTestResult chiSquaredTest(
   }
 
   final List<double> exp;
-
   if (expected == null) {
-    final uniformExp = obsSum / numCategories;
-    exp = List<double>.filled(numCategories, uniformExp);
+    exp = List<double>.filled(numCategories, obsSum / numCategories);
   } else {
     exp = <double>[];
     var expSum = 0.0;
@@ -56,7 +70,7 @@ HypothesisTestResult chiSquaredTest(
     if (exp.length != numCategories) {
       throw ArgumentError('Expected length must match observed length');
     }
-    if ((expSum - obsSum).abs() > 1e-7 && expSum > 0.0) {
+    if ((expSum - obsSum).abs() > 1e-7 * obsSum) {
       final factor = obsSum / expSum;
       for (var i = 0; i < numCategories; i++) {
         exp[i] *= factor;
@@ -64,22 +78,18 @@ HypothesisTestResult chiSquaredTest(
     }
   }
 
-  var chi2 = 0.0;
-  for (var i = 0; i < numCategories; i++) {
-    if (exp[i] <= 0.0) {
-      throw ArgumentError('Expected counts must be positive');
-    }
-    final diff = obs[i] - exp[i];
-    chi2 += (diff * diff) / exp[i];
-  }
-
   final dof = (numCategories - 1 - ddof).toDouble();
   if (dof <= 0.0) {
     throw ArgumentError('Degrees of freedom must be positive');
   }
 
-  final dist = ChiSquaredDistribution(dof);
-  final pValue = dist.survival(chi2).clamp(0.0, 1.0);
+  var chi2 = 0.0;
+  for (var i = 0; i < numCategories; i++) {
+    final diff = obs[i] - exp[i];
+    chi2 += (diff * diff) / exp[i];
+  }
+
+  final pValue = ChiSquaredDistribution(dof).survival(chi2).clamp(0.0, 1.0);
 
   return HypothesisTestResult(
     testName: 'Chi-Squared Goodness-of-Fit Test',
@@ -91,10 +101,19 @@ HypothesisTestResult chiSquaredTest(
 }
 
 /// Chi-squared test of independence for contingency [table].
+///
+/// For 2x2 contingency tables, setting [continuityCorrection] to `true` applies
+/// Yates' continuity correction subtracting `min(0.5, |O - E|)` before squaring.
+///
+/// Throws [ArgumentError] if dimensions are smaller than 2x2, any entry is
+/// negative or non-finite, any row/column marginal sum is zero, or [alpha] is
+/// outside `(0, 1)`.
 HypothesisTestResult chiSquaredContingency(
   Matrix<num> table, {
+  bool continuityCorrection = false,
   double alpha = 0.05,
 }) {
+  validateAlpha(alpha);
   final rowCount = table.rowCount;
   final colCount = table.colCount;
   if (rowCount < 2 || colCount < 2) {
@@ -107,7 +126,7 @@ HypothesisTestResult chiSquaredContingency(
 
   for (var i = 0; i < rowCount; i++) {
     for (var j = 0; j < colCount; j++) {
-      final val = table.get(i, j).toDouble();
+      final val = table.getUnchecked(i, j).toDouble();
       if (val < 0.0 || !val.isFinite) {
         throw ArgumentError.value(
           val,
@@ -134,19 +153,22 @@ HypothesisTestResult chiSquaredContingency(
     }
   }
 
+  final applyYates = continuityCorrection && rowCount == 2 && colCount == 2;
   var chi2 = 0.0;
   for (var i = 0; i < rowCount; i++) {
     for (var j = 0; j < colCount; j++) {
       final expected = (rowSums[i] * colSums[j]) / total;
-      final observed = table.get(i, j).toDouble();
-      final diff = observed - expected;
-      chi2 += (diff * diff) / expected;
+      final observed = table.getUnchecked(i, j).toDouble();
+      var absDiff = (observed - expected).abs();
+      if (applyYates) {
+        absDiff = math.max(0.0, absDiff - 0.5);
+      }
+      chi2 += (absDiff * absDiff) / expected;
     }
   }
 
   final dof = ((rowCount - 1) * (colCount - 1)).toDouble();
-  final dist = ChiSquaredDistribution(dof);
-  final pValue = dist.survival(chi2).clamp(0.0, 1.0);
+  final pValue = ChiSquaredDistribution(dof).survival(chi2).clamp(0.0, 1.0);
 
   return HypothesisTestResult(
     testName: 'Chi-Squared Test of Independence',

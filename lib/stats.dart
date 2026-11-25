@@ -6,10 +6,14 @@
 ///
 /// ## Core Modules
 ///
-/// - **Descriptive Statistics**: [mean], [median], [variance],
-///   [standardDeviation], [quantile], [iqr], [skewness], [kurtosis],
-///   [covariance], [pearsonCorrelation], [spearmanCorrelation], [pca], and
-///   [movingAverage].
+/// - **Descriptive Statistics**: [mean], [geometricMean], [harmonicMean],
+///   [median], [variance], [standardDeviation], [quantile], [quantiles], [iqr],
+///   [medianAbsoluteDeviation], [skewness], [kurtosis], [covariance],
+///   [pearsonCorrelation], [spearmanCorrelation], [kendallCorrelation],
+///   [covarianceMatrix], [pearsonCorrelationMatrix],
+///   [spearmanCorrelationMatrix], [kendallCorrelationMatrix], [weightedMean],
+///   [weightedVariance], [weightedStandardDeviation], [pca], [movingAverage],
+///   and [exponentialMovingAverage].
 /// - **Univariate Continuous Distributions**: [ContinuousDistribution] base
 ///   class, [NormalDistribution], [StudentDistribution], [FDistribution],
 ///   [ChiSquaredDistribution], [ExponentialDistribution], [GammaDistribution],
@@ -27,12 +31,12 @@
 ///   [MultinomialDistribution].
 /// - **Hypothesis Testing**: [tTestOneSample], [tTestTwoSample] (Student's and
 ///   Welch's t-tests), [tTestPaired], [oneWayAnova] (F-test),
-///   [chiSquaredTest], [chiSquaredContingency], [mannWhitneyUTest],
-///   [wilcoxonSignedRankTest], [kolmogorovSmirnovTest],
+///   [kruskalWallisTest], [chiSquaredTest], [chiSquaredContingency],
+///   [mannWhitneyUTest], [wilcoxonSignedRankTest], [kolmogorovSmirnovTest],
 ///   [kolmogorovSmirnovTwoSample], [jarqueBeraTest], [shapiroWilkTest], and
 ///   [fisherExactTest].
-/// - **Resampling & Inference**: [Bootstrap] (non-parametric confidence
-///   intervals and distributions) and [Jackknife].
+/// - **Resampling & Inference**: [Bootstrap] (normal, basic, percentile, and
+///   BCa confidence intervals) and [Jackknife].
 /// - **Distribution Infrastructure**: [Distribution] abstract contract and
 ///   [InvalidProbability] validation error.
 ///
@@ -98,6 +102,7 @@ import 'src/stats/hypothesis/chi_squared.dart';
 import 'src/stats/hypothesis/fisher_exact.dart';
 import 'src/stats/hypothesis/jarque_bera.dart';
 import 'src/stats/hypothesis/kolmogorov_smirnov.dart';
+import 'src/stats/hypothesis/kruskal_wallis.dart';
 import 'src/stats/hypothesis/mann_whitney.dart';
 import 'src/stats/hypothesis/shapiro_wilk.dart';
 import 'src/stats/hypothesis/t_test.dart';
@@ -145,10 +150,11 @@ export 'src/stats/hypothesis/fisher_exact.dart';
 export 'src/stats/hypothesis/hypothesis_test_result.dart';
 export 'src/stats/hypothesis/jarque_bera.dart';
 export 'src/stats/hypothesis/kolmogorov_smirnov.dart';
+export 'src/stats/hypothesis/kruskal_wallis.dart';
 export 'src/stats/hypothesis/mann_whitney.dart';
 export 'src/stats/hypothesis/shapiro_wilk.dart';
 export 'src/stats/hypothesis/t_test.dart';
 export 'src/stats/hypothesis/wilcoxon.dart';
 export 'src/stats/pca.dart';
 export 'src/stats/resampling/bootstrap.dart';
-export 'src/stats/resampling/jackknife.dart' hide JackknifeResampling;
+export 'src/stats/resampling/jackknife.dart';

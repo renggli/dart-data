@@ -2,32 +2,28 @@ import 'dart:math';
 
 import 'package:more/math.dart' show PolynomialIterableExtension;
 
-import '../descriptive.dart';
 import '../distributions/continuous/normal.dart';
 import 'hypothesis_test_result.dart';
+import 'utils.dart';
 
 /// Shapiro-Wilk test for sample normality.
 ///
 /// Tests the null hypothesis that [sample] is drawn from a normally distributed
-/// population. Computes the test statistic $W$ and the corresponding $p$-value
-/// using Royston's standard approximation for sample sizes $3 \le n \le 5000$.
+/// population using Royston's AS R94 algorithm for sample sizes `3 <= n <= 5000`.
 ///
-/// Returns a [HypothesisTestResult] containing the $W$ test statistic and $p$-value.
+/// Throws [ArgumentError] if `sample.length < 3`, `sample.length > 5000`, or
+/// [alpha] is outside `(0, 1)`. Returns `NaN` statistic and p-value if any
+/// observation is non-finite or all values are identical.
 HypothesisTestResult shapiroWilkTest(
   Iterable<num> sample, {
   double alpha = 0.05,
 }) {
+  validateAlpha(alpha);
   final list = <double>[];
+  var hasNonFinite = false;
   for (final x in sample) {
     final val = x.toDouble();
-    if (val.isNaN) {
-      return HypothesisTestResult(
-        testName: 'Shapiro-Wilk Normality Test',
-        statistic: double.nan,
-        pValue: double.nan,
-        alpha: alpha,
-      );
-    }
+    if (!val.isFinite) hasNonFinite = true;
     list.add(val);
   }
 
@@ -43,15 +39,29 @@ HypothesisTestResult shapiroWilkTest(
     throw ArgumentError.value(
       n,
       'sample',
-      'Shapiro-Wilk test is recommended for sample sizes up to 5000',
+      'Shapiro-Wilk test supports sample sizes up to 5000',
+    );
+  }
+  if (hasNonFinite) {
+    return HypothesisTestResult(
+      testName: 'Shapiro-Wilk Normality Test',
+      statistic: double.nan,
+      pValue: double.nan,
+      alpha: alpha,
     );
   }
 
   list.sort();
-  final meanVal = mean(list);
+  // Shift by list[0] for complete translation invariance in sum-of-squares.
+  final shift = list[0];
+  var shiftedMean = 0.0;
+  for (var i = 0; i < n; i++) {
+    shiftedMean += list[i] - shift;
+  }
+  shiftedMean /= n;
   var ssTot = 0.0;
-  for (final x in list) {
-    final diff = x - meanVal;
+  for (var i = 0; i < n; i++) {
+    final diff = (list[i] - shift) - shiftedMean;
     ssTot += diff * diff;
   }
 
@@ -60,12 +70,10 @@ HypothesisTestResult shapiroWilkTest(
       testName: 'Shapiro-Wilk Normality Test',
       statistic: double.nan,
       pValue: double.nan,
-      degreesOfFreedom: n.toDouble(),
       alpha: alpha,
     );
   }
 
-  // Expected standard normal order statistics (Blom's approximation)
   const norm = NormalDistribution.standard();
   final m = List<double>.generate(n, (i) {
     final p = (i + 1 - 0.375) / (n + 0.25);
@@ -78,12 +86,10 @@ HypothesisTestResult shapiroWilkTest(
   }
   final mNorm = sqrt(mNormSq);
 
-  // Weights vector a
   final a = List<double>.filled(n, 0.0);
   if (n == 3) {
-    a[0] = -1.0 / sqrt(2.0);
-    a[1] = 0.0;
     a[2] = 1.0 / sqrt(2.0);
+    a[0] = -a[2];
   } else {
     final u = 1.0 / sqrt(n);
     final a1 = _c1.polynomial(u).toDouble() + m[n - 1] / mNorm;
@@ -116,25 +122,21 @@ HypothesisTestResult shapiroWilkTest(
     }
   }
 
-  // W test statistic
+  // Symmetric pairing prevents offset cancellation in numerator sum.
   var sumA = 0.0;
-  for (var i = 0; i < n; i++) {
-    sumA += a[i] * list[i];
+  final half = n ~/ 2;
+  for (var i = 0; i < half; i++) {
+    sumA += a[n - 1 - i] * (list[n - 1 - i] - list[i]);
   }
   final rawW = (sumA * sumA) / ssTot;
   final w = (1.0 - rawW).abs() <= 1e-12 ? 1.0 : rawW.clamp(0.0, 1.0);
 
-  // p-value calculation via Royston's normalizing transformation
   final double pValue;
-  if (n == 3) {
-    if (w >= 1.0) {
-      pValue = 1.0;
-    } else {
-      final pVal = (6.0 / pi) * (asin(sqrt(w)) - asin(sqrt(0.75)));
-      pValue = pVal.clamp(0.0, 1.0);
-    }
-  } else if (w >= 1.0) {
+  if (w >= 1.0) {
     pValue = 1.0;
+  } else if (n == 3) {
+    final pVal = (6.0 / pi) * (asin(sqrt(w)) - asin(sqrt(0.75)));
+    pValue = pVal.clamp(0.0, 1.0);
   } else if (n <= 11) {
     final gamma = _g[0] + _g[1] * n;
     final log1MinusW = log(1.0 - w);
@@ -160,7 +162,6 @@ HypothesisTestResult shapiroWilkTest(
     testName: 'Shapiro-Wilk Normality Test',
     statistic: w,
     pValue: pValue,
-    degreesOfFreedom: n.toDouble(),
     alpha: alpha,
   );
 }

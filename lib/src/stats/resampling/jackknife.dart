@@ -2,19 +2,24 @@ import 'dart:collection' show ListBase;
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
-import 'package:more/collection.dart' show IntegerRange;
+import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show ObjectPrinter, ToStringPrinter;
 
-import '../../special/erf.dart';
 import '../descriptive.dart';
+import '../distributions/continuous/normal.dart';
 
-/// A deterministic Jackknife resampling technique to estimate variance, bias,
-/// and confidence intervals.
+/// Deterministic leave-one-out Jackknife resampling estimator for bias,
+/// standard error, confidence intervals, pseudo-values, and influence values.
 ///
 /// See https://en.wikipedia.org/wiki/Jackknife_resampling.
+@immutable
 class Jackknife<T> with ToStringPrinter {
   /// Constructs a Jackknife estimator over [samples] for [statistic].
-  new(this.samples, this.statistic, {this.confidenceLevel = 0.95}) {
+  ///
+  /// Throws [ArgumentError] if fewer than 2 samples are provided or
+  /// [confidenceLevel] is not finite in `(0, 1)`.
+  new(List<T> samples, this.statistic, {this.confidenceLevel = 0.95})
+    : samples = List<T>.unmodifiable(samples) {
     if (samples.length < 2) {
       throw ArgumentError.value(
         samples,
@@ -22,7 +27,9 @@ class Jackknife<T> with ToStringPrinter {
         'At least 2 samples required for jackknife',
       );
     }
-    if (!(0 < confidenceLevel && confidenceLevel < 1)) {
+    if (!(confidenceLevel.isFinite &&
+        0.0 < confidenceLevel &&
+        confidenceLevel < 1.0)) {
       throw ArgumentError.value(
         confidenceLevel,
         'confidenceLevel',
@@ -31,43 +38,61 @@ class Jackknife<T> with ToStringPrinter {
     }
   }
 
-  /// The sample data.
+  /// An unmodifiable copy of the input sample data.
   final List<T> samples;
 
-  /// The statistical function to measure.
+  /// The statistical function evaluated on each resample.
   final double Function(List<T> list) statistic;
 
-  /// The confidence level for the confidence interval.
+  /// The confidence level in `(0, 1)` for [confidenceInterval].
   final double confidenceLevel;
 
-  /// The resamples of the data.
-  late final List<List<T>> resamples = IntegerRange(samples.length)
-      .map((index) => JackknifeResampling<T>(samples, index))
-      .toList();
+  /// The `n` unmodifiable leave-one-out sample views.
+  late final List<List<T>> resamples = List<List<T>>.unmodifiable([
+    for (var i = 0; i < samples.length; i++)
+      _JackknifeResampling<T>(samples, i),
+  ]);
 
-  /// The bias.
+  /// The `n` leave-one-out statistic evaluations `theta_(-i)`.
+  late final List<double> resampleEstimates = List<double>.unmodifiable(
+    resamples.map(statistic),
+  );
+
+  /// The `n` jackknife pseudo-values `n * theta_hat - (n - 1) * theta_(-i)`.
+  late final List<double> pseudoValues = List<double>.unmodifiable([
+    for (final estimate in resampleEstimates)
+      samples.length * _sampleMeasure - (samples.length - 1) * estimate,
+  ]);
+
+  /// The empirical influence values `(n - 1) * (theta_(.) - theta_(-i))`.
+  late final List<double> influenceValues = List<double>.unmodifiable([
+    for (final estimate in resampleEstimates)
+      (samples.length - 1) * (_meanResampleMeasure - estimate),
+  ]);
+
+  /// BCa skewness acceleration parameter `a` computed from [influenceValues]
+  /// with scale normalization to prevent overflow.
+  late final double acceleration = _computeAcceleration();
+
+  /// Estimated jackknife bias `(n - 1) * (mean(theta_(-i)) - theta_hat)`.
   late final double bias =
       (samples.length - 1) * (_meanResampleMeasure - _sampleMeasure);
 
-  /// The bias corrected estimate.
+  /// Bias-corrected jackknife point estimate `theta_hat - bias`.
   late final double estimate = _sampleMeasure - bias;
 
-  /// The standard error.
+  /// Estimated jackknife standard error.
   late final double standardError = math.sqrt(
-    (samples.length - 1) *
-        _resampleMeasures
-            .map((value) => value - _meanResampleMeasure)
-            .map((value) => value * value)
-            .mean(),
+    (samples.length - 1) * resampleEstimates.variance(population: true),
   );
 
-  /// The lower bound of the confidence interval.
+  /// Lower bound of the normal-theory jackknife confidence interval.
   late final double lowerBound = estimate - _zScore * standardError;
 
-  /// The upper bound of the confidence interval.
+  /// Upper bound of the normal-theory jackknife confidence interval.
   late final double upperBound = estimate + _zScore * standardError;
 
-  /// The confidence interval.
+  /// Normal-theory jackknife confidence interval `(lower, upper)`.
   ({double lower, double upper}) get confidenceInterval =>
       (lower: lowerBound, upper: upperBound);
 
@@ -80,27 +105,37 @@ class Jackknife<T> with ToStringPrinter {
     ..addValue(upperBound, name: 'upperBound')
     ..addValue(confidenceLevel, name: 'confidenceLevel');
 
-  late final _sampleMeasure = statistic(samples);
-  late final _resampleMeasures = resamples.map(statistic).toList();
-  late final _meanResampleMeasure = _resampleMeasures.mean();
-  late final _zScore = math.sqrt2 * erfInv(confidenceLevel);
+  late final double _sampleMeasure = statistic(samples);
+  late final double _meanResampleMeasure = resampleEstimates.mean();
+  late final double _zScore = const NormalDistribution.standard()
+      .inverseSurvival(0.5 * (1.0 - confidenceLevel));
+
+  double _computeAcceleration() {
+    var maxAbs = 0.0;
+    for (final u in influenceValues) {
+      final au = u.abs();
+      if (!au.isFinite) return 0.0;
+      if (au > maxAbs) maxAbs = au;
+    }
+    if (maxAbs == 0.0) return 0.0;
+    final inv = 1.0 / maxAbs;
+    var num = 0.0;
+    var den = 0.0;
+    for (final u in influenceValues) {
+      final s = u * inv;
+      final s2 = s * s;
+      num += s2 * s;
+      den += s2;
+    }
+    return den > 0.0 ? num / (6.0 * math.pow(den, 1.5)) : 0.0;
+  }
 }
 
-/// An unmodifiable view of a [List] with the element at [index] omitted.
-class JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
-  /// Constructs a leave-one-out view of [list] omitting [index].
-  new(this.list, this.index) {
-    if (list.isEmpty) {
-      throw ArgumentError.value(list, 'list', 'Non-empty list expected');
-    }
-    RangeError.checkValidIndex(index, list, 'index');
-  }
+class _JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
+  new(this.list, this.omittedIndex);
 
-  /// The underlying list.
   final List<T> list;
-
-  /// The omitted index.
-  final int index;
+  final int omittedIndex;
 
   @override
   int get length => list.length - 1;
@@ -108,7 +143,7 @@ class JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
   @override
   T operator [](int index) {
     RangeError.checkValidIndex(index, this, 'index');
-    return index < this.index ? list[index] : list[index + 1];
+    return index < omittedIndex ? list[index] : list[index + 1];
   }
 
   @override

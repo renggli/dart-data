@@ -1,52 +1,62 @@
 import 'dart:math' as math;
 
+import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show ObjectPrinter, ToStringPrinter;
 
-import '../../special/erf.dart';
 import '../descriptive.dart';
 import '../distribution.dart';
+import '../distributions/continuous/normal.dart';
+import '../distributions/utils.dart';
 import 'jackknife.dart';
 
-/// A Bootstrap resampling technique to estimate standard errors, bias, and
-/// confidence intervals (Percentile and BCa).
+/// Bootstrap resampling estimator for standard errors, bias, and confidence
+/// intervals (normal, basic, percentile, and BCa).
 ///
 /// See https://en.wikipedia.org/wiki/Bootstrapping_(statistics).
+@immutable
 class Bootstrap<T> with ToStringPrinter {
-  /// Computes non-parametric bootstrap estimates and confidence intervals
-  /// by resampling [samples] with replacement.
+  /// Computes non-parametric bootstrap estimates and confidence intervals by
+  /// resampling an unmodifiable copy of [samples] with replacement.
+  ///
+  /// Throws [ArgumentError] if `samples.length < 2`, `resamples < 10`, or
+  /// [confidenceLevel] is not finite in `(0, 1)`.
   new(
-    this.samples,
+    List<T> samples,
     this.statistic, {
     this.resamples = 1000,
     this.confidenceLevel = 0.95,
     this.random,
-  }) : sampler = null {
+  }) : samples = List<T>.unmodifiable(samples),
+       sampler = null {
     _validateParameters(samples, resamples, confidenceLevel);
   }
 
   /// Computes parametric bootstrap estimates and confidence intervals by
   /// generating synthetic samples via [sampler].
+  ///
+  /// Throws [ArgumentError] if `samples.length < 2`, `resamples < 10`, or
+  /// [confidenceLevel] is not finite in `(0, 1)`.
   new parametric({
-    required this.samples,
+    required List<T> samples,
     required this.statistic,
     required List<T> Function(math.Random random) this.sampler,
     this.resamples = 1000,
     this.confidenceLevel = 0.95,
     this.random,
-  }) {
+  }) : samples = List<T>.unmodifiable(samples) {
     _validateParameters(samples, resamples, confidenceLevel);
   }
 
   /// Computes parametric bootstrap estimates by drawing synthetic samples
   /// from a fitted probability [distribution].
-  static Bootstrap<num> distribution({
-    required List<num> samples,
-    required double Function(List<num> list) statistic,
-    required Distribution<num> distribution,
+  static Bootstrap<T> distribution<T extends num>({
+    required List<T> samples,
+    required double Function(List<T> list) statistic,
+    required Distribution<T> distribution,
     int resamples = 1000,
     double confidenceLevel = 0.95,
     math.Random? random,
-  }) => Bootstrap<num>.parametric(
+  }) => Bootstrap<T>.parametric(
     samples: samples,
     statistic: statistic,
     sampler: (rng) => [
@@ -57,16 +67,16 @@ class Bootstrap<T> with ToStringPrinter {
     random: random,
   );
 
-  /// The sample data.
+  /// An unmodifiable copy of the input sample data.
   final List<T> samples;
 
-  /// The statistical function to measure.
+  /// The statistical function evaluated on each resample.
   final double Function(List<T> list) statistic;
 
   /// The number of bootstrap resamples.
   final int resamples;
 
-  /// The confidence level (e.g. 0.95).
+  /// The confidence level in `(0, 1)` for confidence intervals.
   final double confidenceLevel;
 
   /// Optional random number generator.
@@ -75,25 +85,42 @@ class Bootstrap<T> with ToStringPrinter {
   /// Optional custom generative sampler for parametric bootstrap.
   final List<T> Function(math.Random random)? sampler;
 
-  /// The point estimate evaluated on the original sample.
+  /// The point estimate evaluated on [samples].
   late final double estimate = statistic(samples);
 
-  /// The distribution of bootstrap estimates sorted in ascending order.
+  /// The unmodifiable list of bootstrap estimates sorted in ascending order.
   late final List<double> bootstrapEstimates = _computeBootstrapEstimates();
 
-  /// The empirical standard error of the bootstrap estimates.
+  /// The empirical standard error of [bootstrapEstimates].
   late final double standardError = standardDeviation(bootstrapEstimates);
 
-  /// The empirical bias of the bootstrap estimates.
+  /// The empirical bias `mean(bootstrapEstimates) - estimate`.
   late final double bias = mean(bootstrapEstimates) - estimate;
 
-  /// Percentile confidence interval (lower, upper).
-  late final ({double lower, double upper}) percentileInterval = (
-    lower: quantile(bootstrapEstimates, _alpha / 2.0),
-    upper: quantile(bootstrapEstimates, 1.0 - _alpha / 2.0),
+  /// Normal-approximation confidence interval correcting for [bias].
+  late final ({double lower, double upper}) normalInterval = () {
+    const normal = NormalDistribution.standard();
+    final z = normal.inverseSurvival(0.5 * _alpha);
+    final centered = estimate - bias;
+    return (
+      lower: centered - z * standardError,
+      upper: centered + z * standardError,
+    );
+  }();
+
+  /// Basic (reverse-percentile) bootstrap confidence interval.
+  late final ({double lower, double upper}) basicInterval = (
+    lower: 2.0 * estimate - percentileInterval.upper,
+    upper: 2.0 * estimate - percentileInterval.lower,
   );
 
-  /// Bias-corrected and accelerated (BCa) confidence interval (lower, upper).
+  /// Percentile bootstrap confidence interval `(lower, upper)`.
+  late final ({double lower, double upper}) percentileInterval = (
+    lower: _sortedQuantile(bootstrapEstimates, 0.5 * _alpha),
+    upper: _sortedQuantile(bootstrapEstimates, 1.0 - 0.5 * _alpha),
+  );
+
+  /// Bias-corrected and accelerated (BCa) confidence interval `(lower, upper)`.
   late final ({double lower, double upper}) bcaInterval = _computeBcaInterval();
 
   /// The lower bound of the BCa confidence interval.
@@ -113,10 +140,10 @@ class Bootstrap<T> with ToStringPrinter {
     ..addValue(bcaInterval, name: 'bcaCI')
     ..addValue(confidenceLevel, name: 'confidenceLevel');
 
-  late final _alpha = 1.0 - confidenceLevel;
+  late final double _alpha = 1.0 - confidenceLevel;
 
   List<double> _computeBootstrapEstimates() {
-    final rng = random ?? math.Random();
+    final rng = random ?? defaultRandom;
     final effectiveSampler = sampler;
     final sampleSize = samples.length;
     final estimates = List<double>.filled(resamples, 0.0);
@@ -134,58 +161,55 @@ class Bootstrap<T> with ToStringPrinter {
       }
     }
     estimates.sort();
-    return estimates;
+    return List<double>.unmodifiable(estimates);
   }
 
   ({double lower, double upper}) _computeBcaInterval() {
-    final sortedEstimates = bootstrapEstimates;
-    final n = resamples;
+    final sorted = bootstrapEstimates;
+    if (sorted.first == sorted.last) {
+      return (lower: sorted.first, upper: sorted.last);
+    }
 
-    // 1. z0 bias correction
+    const normal = NormalDistribution.standard();
     var lessCount = 0;
-    for (final est in sortedEstimates) {
+    for (final est in sorted) {
       if (est < estimate) lessCount++;
     }
-    final fracLess = (lessCount / n).clamp(1e-6, 1.0 - 1e-6);
-    final z0 = math.sqrt2 * erfInv(2.0 * fracLess - 1.0);
+    final fracLess = (lessCount / resamples).clamp(1e-6, 1.0 - 1e-6);
+    final z0 = normal.inverseCumulativeProbability(fracLess);
+    final accel = Jackknife<T>(samples, statistic).acceleration;
 
-    // 2. Acceleration parameter a via jackknife
-    final sampleSize = samples.length;
-    final jackEstimates = List<double>.filled(sampleSize, 0.0);
-    for (var i = 0; i < sampleSize; i++) {
-      final jackSample = JackknifeResampling<T>(samples, i);
-      jackEstimates[i] = statistic(jackSample);
-    }
-    final jackMean = mean(jackEstimates);
-    var numA = 0.0;
-    var denA = 0.0;
-    for (var i = 0; i < sampleSize; i++) {
-      final diff = jackMean - jackEstimates[i];
-      numA += diff * diff * diff;
-      denA += diff * diff;
-    }
-    final accel = denA > 0.0 ? numA / (6.0 * math.pow(denA, 1.5)) : 0.0;
+    final zAlphaLow = normal.inverseCumulativeProbability(0.5 * _alpha);
+    final zAlphaHigh = -zAlphaLow;
 
-    // 3. Adjusted quantiles
-    final zAlpha2 = math.sqrt2 * erfInv(2.0 * (_alpha / 2.0) - 1.0);
-    final z1MinusAlpha2 = math.sqrt2 * erfInv(2.0 * (1.0 - _alpha / 2.0) - 1.0);
+    final denomLow = 1.0 - accel * (z0 + zAlphaLow);
+    final qLowRaw = denomLow > 0.0
+        ? normal.cumulativeProbability(z0 + (z0 + zAlphaLow) / denomLow)
+        : 0.0;
 
-    double phi(double z) => 0.5 * (1.0 + erf(z / math.sqrt2));
+    final denomHigh = 1.0 - accel * (z0 + zAlphaHigh);
+    final qHighRaw = denomHigh > 0.0
+        ? normal.cumulativeProbability(z0 + (z0 + zAlphaHigh) / denomHigh)
+        : 1.0;
 
-    final denomLower = 1.0 - accel * (z0 + zAlpha2);
-    final q1 = denomLower != 0.0
-        ? phi(z0 + (z0 + zAlpha2) / denomLower).clamp(0.0, 1.0)
-        : _alpha / 2.0;
+    final q1 = math.min(qLowRaw, qHighRaw).clamp(0.0, 1.0);
+    final q2 = math.max(qLowRaw, qHighRaw).clamp(0.0, 1.0);
 
-    final denomUpper = 1.0 - accel * (z0 + z1MinusAlpha2);
-    final q2 = denomUpper != 0.0
-        ? phi(z0 + (z0 + z1MinusAlpha2) / denomUpper).clamp(0.0, 1.0)
-        : 1.0 - _alpha / 2.0;
+    return (
+      lower: _sortedQuantile(sorted, q1),
+      upper: _sortedQuantile(sorted, q2),
+    );
+  }
 
-    final bcaLower = quantile(sortedEstimates, q1);
-    final bcaUpper = quantile(sortedEstimates, q2);
-
-    return (lower: bcaLower, upper: bcaUpper);
+  static double _sortedQuantile(List<double> sorted, double q) {
+    if (sorted.any((v) => v.isNaN)) return double.nan;
+    if (q <= 0.0) return sorted.first;
+    if (q >= 1.0) return sorted.last;
+    final idx = q * (sorted.length - 1);
+    final baseIdx = idx.floor();
+    final frac = idx - baseIdx;
+    if (baseIdx >= sorted.length - 1) return sorted.last;
+    return sorted[baseIdx] + frac * (sorted[baseIdx + 1] - sorted[baseIdx]);
   }
 
   static void _validateParameters(
@@ -207,7 +231,9 @@ class Bootstrap<T> with ToStringPrinter {
         'At least 10 resamples required',
       );
     }
-    if (!(0 < confidenceLevel && confidenceLevel < 1)) {
+    if (!(confidenceLevel.isFinite &&
+        0.0 < confidenceLevel &&
+        confidenceLevel < 1.0)) {
       throw ArgumentError.value(
         confidenceLevel,
         'confidenceLevel',

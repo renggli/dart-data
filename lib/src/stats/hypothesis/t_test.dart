@@ -1,20 +1,22 @@
 import 'dart:math' as math;
 
-import '../descriptive.dart';
 import '../distributions/continuous/student_t.dart';
 import 'hypothesis_test_result.dart';
+import 'utils.dart';
 
 /// One-sample Student's t-test for the null hypothesis that the population mean
 /// equals [mu0].
 ///
-/// Conceptually, this tests whether the sample mean differs significantly from
-/// a specified hypothesized value $\mu_0$. Formally, this evaluates
-/// $H_0: \mu = \mu_0$ using Student's $t$ statistic
-/// $t = \frac{\bar{x} - \mu_0}{s / \sqrt{n}} \sim t_{n-1}$.
+/// Computes `t = (x_bar - mu0) / (s / sqrt(n))` and evaluates p-values and
+/// confidence intervals under `StudentDistribution(n - 1)` in a single Welford
+/// pass.
+///
+/// Throws [ArgumentError] if [sample] has fewer than 2 elements, [mu0] is not
+/// finite, or [alpha] is outside `(0, 1)`. Returns `NaN` statistic and p-value
+/// if any observation is non-finite.
 ///
 /// ```dart
 /// final res = tTestOneSample([10.0, 11.0, 9.5, 10.5, 10.2], mu0: 10.0);
-/// // res.pValue, res.isSignificant
 /// ```
 HypothesisTestResult tTestOneSample(
   Iterable<num> sample, {
@@ -22,248 +24,171 @@ HypothesisTestResult tTestOneSample(
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  final list = <double>[];
-  for (final val in sample) {
-    final v = val.toDouble();
-    if (v.isNaN) {
-      return HypothesisTestResult(
-        testName: 'One-Sample t-test',
-        statistic: double.nan,
-        pValue: double.nan,
-        degreesOfFreedom: double.nan,
-        alpha: alpha,
-        alternative: alternative,
-      );
-    }
-    list.add(v);
+  validateAlpha(alpha);
+  if (!mu0.isFinite) {
+    throw ArgumentError.value(mu0, 'mu0', 'Hypothesized mean must be finite');
   }
-  final count = list.length;
-  if (count < 2) {
+  final stats = _welfordPass(sample);
+  if (stats.count < 2) {
     throw ArgumentError('Sample must contain at least 2 observations');
   }
-  final sampleMean = mean(list);
-  final sampleStd = standardDeviation(list);
-  final se = sampleStd / math.sqrt(count);
-  final diff = sampleMean - mu0;
-  final dof = (count - 1).toDouble();
-  final dist = StudentDistribution(dof);
-
-  final double tStat;
-  final double pValue;
-  if (se <= 0.0) {
-    if (diff == 0.0) {
-      tStat = 0.0;
-      pValue = 1.0;
-    } else {
-      tStat = diff > 0.0 ? double.infinity : double.negativeInfinity;
-      switch (alternative) {
-        case AlternativeHypothesis.twoSided:
-          pValue = 0.0;
-        case AlternativeHypothesis.less:
-          pValue = diff < 0.0 ? 0.0 : 1.0;
-        case AlternativeHypothesis.greater:
-          pValue = diff > 0.0 ? 0.0 : 1.0;
-      }
-    }
-  } else {
-    tStat = diff / se;
-    switch (alternative) {
-      case AlternativeHypothesis.twoSided:
-        pValue = (2.0 * dist.survival(tStat.abs())).clamp(0.0, 1.0);
-      case AlternativeHypothesis.less:
-        pValue = dist.cumulativeProbability(tStat).clamp(0.0, 1.0);
-      case AlternativeHypothesis.greater:
-        pValue = dist.survival(tStat).clamp(0.0, 1.0);
-    }
+  final dof = (stats.count - 1).toDouble();
+  if (stats.hasNonFinite) {
+    return HypothesisTestResult(
+      testName: 'One-Sample t-test',
+      statistic: double.nan,
+      pValue: double.nan,
+      degreesOfFreedom: double.nan,
+      alpha: alpha,
+      alternative: alternative,
+    );
   }
 
-  final ci = switch (alternative) {
-    AlternativeHypothesis.twoSided => () {
-      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
-      return (lower: sampleMean - tCrit * se, upper: sampleMean + tCrit * se);
-    }(),
-    AlternativeHypothesis.less => () {
-      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha);
-      return (lower: double.negativeInfinity, upper: sampleMean + tCrit * se);
-    }(),
-    AlternativeHypothesis.greater => () {
-      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha);
-      return (lower: sampleMean - tCrit * se, upper: double.infinity);
-    }(),
-  };
-
-  return HypothesisTestResult(
+  final se = stats.scale * math.sqrt((stats.m2Scaled / dof) / stats.count);
+  return _buildTResult(
     testName: 'One-Sample t-test',
-    statistic: tStat,
-    pValue: pValue,
-    degreesOfFreedom: dof,
-    confidenceInterval: ci,
+    estimate: stats.mean,
+    diff: stats.mean - mu0,
+    se: se,
+    dof: dof,
     alpha: alpha,
     alternative: alternative,
   );
 }
 
 /// Two-sample independent t-test for difference in means between [sample1] and
-/// [sample2].
+/// [sample2] against hypothesized difference [mu0] (`H0: mu1 - mu2 = mu0`).
 ///
-/// Conceptually, this tests whether the difference between the means of two
-/// independent groups is statistically significant or could have occurred by
-/// chance alone. Formally, this evaluates $H_0: \mu_1 = \mu_2$ using Welch's
-/// $t$-test with Satterthwaite-Welch degrees of freedom when [equalVariance] is
-/// false, or pooled variance Student's $t$ when [equalVariance] is true.
+/// If [equalVariance] is `true`, uses pooled-variance Student's t-test. If
+/// `false` (default), uses Welch's t-test with Satterthwaite degrees of
+/// freedom.
+///
+/// Throws [ArgumentError] if either sample has fewer than 2 observations, [mu0]
+/// is not finite, or [alpha] is outside `(0, 1)`. Returns `NaN` statistic and
+/// p-value if any observation is non-finite.
 ///
 /// ```dart
 /// final res = tTestTwoSample([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]);
-/// // res.pValue, res.statistic
 /// ```
-///
-/// If [equalVariance] is true, uses standard Student's t-test with pooled
-/// variance. If [equalVariance] is false (default), uses Welch's t-test with
-/// Satterthwaite degrees of freedom.
 HypothesisTestResult tTestTwoSample(
   Iterable<num> sample1,
   Iterable<num> sample2, {
+  double mu0 = 0.0,
   bool equalVariance = false,
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  final list1 = <double>[];
-  for (final val in sample1) {
-    final v = val.toDouble();
-    if (v.isNaN) {
-      return HypothesisTestResult(
-        testName: equalVariance
-            ? "Student's Two-Sample t-test"
-            : "Welch's Two-Sample t-test",
-        statistic: double.nan,
-        pValue: double.nan,
-        degreesOfFreedom: double.nan,
-        alpha: alpha,
-        alternative: alternative,
-      );
-    }
-    list1.add(v);
+  validateAlpha(alpha);
+  if (!mu0.isFinite) {
+    throw ArgumentError.value(
+      mu0,
+      'mu0',
+      'Hypothesized difference must be finite',
+    );
   }
-  final list2 = <double>[];
-  for (final val in sample2) {
-    final v = val.toDouble();
-    if (v.isNaN) {
-      return HypothesisTestResult(
-        testName: equalVariance
-            ? "Student's Two-Sample t-test"
-            : "Welch's Two-Sample t-test",
-        statistic: double.nan,
-        pValue: double.nan,
-        degreesOfFreedom: double.nan,
-        alpha: alpha,
-        alternative: alternative,
-      );
-    }
-    list2.add(v);
-  }
-  final n1 = list1.length;
-  final n2 = list2.length;
-  if (n1 < 2 || n2 < 2) {
+  final testName = equalVariance
+      ? "Student's Two-Sample t-test"
+      : "Welch's Two-Sample t-test";
+
+  final s1 = _welfordPass(sample1);
+  final s2 = _welfordPass(sample2);
+  if (s1.count < 2 || s2.count < 2) {
     throw ArgumentError('Both samples must contain at least 2 observations');
   }
+  if (s1.hasNonFinite || s2.hasNonFinite) {
+    return HypothesisTestResult(
+      testName: testName,
+      statistic: double.nan,
+      pValue: double.nan,
+      degreesOfFreedom: double.nan,
+      alpha: alpha,
+      alternative: alternative,
+    );
+  }
 
-  final m1 = mean(list1);
-  final m2 = mean(list2);
-  final v1 = variance(list1);
-  final v2 = variance(list2);
+  final n1 = s1.count;
+  final n2 = s2.count;
+  final se1 = s1.scale * math.sqrt((s1.m2Scaled / (n1 - 1.0)) / n1);
+  final se2 = s2.scale * math.sqrt((s2.m2Scaled / (n2 - 1.0)) / n2);
 
   final double se;
   final double dof;
-
   if (equalVariance) {
-    final pooledVar = ((n1 - 1.0) * v1 + (n2 - 1.0) * v2) / (n1 + n2 - 2.0);
-    se = math.sqrt(pooledVar * (1.0 / n1 + 1.0 / n2));
-    dof = n1 + n2 - 2.0;
-  } else {
-    final se1Sq = v1 / n1;
-    final se2Sq = v2 / n2;
-    se = math.sqrt(se1Sq + se2Sq);
-    final num = (se1Sq + se2Sq) * (se1Sq + se2Sq);
-    final den = (se1Sq * se1Sq) / (n1 - 1.0) + (se2Sq * se2Sq) / (n2 - 1.0);
-    dof = (den.isNaN || num.isNaN) ? double.nan : (den > 0.0 ? num / den : 1.0);
-  }
-
-  final diff = m1 - m2;
-  final dist = StudentDistribution(dof);
-
-  final double tStat;
-  final double pValue;
-  if (se <= 0.0) {
-    if (diff == 0.0) {
-      tStat = 0.0;
-      pValue = 1.0;
+    final maxScale = math.max(s1.scale, s2.scale);
+    if (maxScale <= 0.0) {
+      se = 0.0;
     } else {
-      tStat = diff > 0.0 ? double.infinity : double.negativeInfinity;
-      switch (alternative) {
-        case AlternativeHypothesis.twoSided:
-          pValue = 0.0;
-        case AlternativeHypothesis.less:
-          pValue = diff < 0.0 ? 0.0 : 1.0;
-        case AlternativeHypothesis.greater:
-          pValue = diff > 0.0 ? 0.0 : 1.0;
-      }
+      final f1 = s1.scale / maxScale;
+      final f2 = s2.scale / maxScale;
+      final pooledScaled =
+          (f1 * f1 * s1.m2Scaled + f2 * f2 * s2.m2Scaled) / (n1 + n2 - 2.0);
+      se = maxScale * math.sqrt(pooledScaled * (1.0 / n1 + 1.0 / n2));
     }
+    dof = (n1 + n2 - 2).toDouble();
   } else {
-    tStat = diff / se;
-    switch (alternative) {
-      case AlternativeHypothesis.twoSided:
-        pValue = (2.0 * dist.survival(tStat.abs())).clamp(0.0, 1.0);
-      case AlternativeHypothesis.less:
-        pValue = dist.cumulativeProbability(tStat).clamp(0.0, 1.0);
-      case AlternativeHypothesis.greater:
-        pValue = dist.survival(tStat).clamp(0.0, 1.0);
+    final maxSe = math.max(se1, se2);
+    if (maxSe <= 0.0) {
+      se = 0.0;
+      dof = (n1 + n2 - 2).toDouble();
+    } else {
+      final u1 = se1 / maxSe;
+      final u2 = se2 / maxSe;
+      final r1 = u1 * u1;
+      final r2 = u2 * u2;
+      se = maxSe * math.sqrt(r1 + r2);
+      final sumR = r1 + r2;
+      final den = (r1 * r1) / (n1 - 1.0) + (r2 * r2) / (n2 - 1.0);
+      dof = (sumR * sumR) / den;
     }
   }
 
-  final ci = switch (alternative) {
-    AlternativeHypothesis.twoSided => () {
-      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
-      return (lower: diff - tCrit * se, upper: diff + tCrit * se);
-    }(),
-    AlternativeHypothesis.less => () {
-      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha);
-      return (lower: double.negativeInfinity, upper: diff + tCrit * se);
-    }(),
-    AlternativeHypothesis.greater => () {
-      final tCrit = dist.inverseCumulativeProbability(1.0 - alpha);
-      return (lower: diff - tCrit * se, upper: double.infinity);
-    }(),
-  };
-
-  return HypothesisTestResult(
-    testName: equalVariance
-        ? "Student's Two-Sample t-test"
-        : "Welch's Two-Sample t-test",
-    statistic: tStat,
-    pValue: pValue,
-    degreesOfFreedom: dof,
-    confidenceInterval: ci,
+  final rawDiff = s1.mean - s2.mean;
+  return _buildTResult(
+    testName: testName,
+    estimate: rawDiff,
+    diff: rawDiff - mu0,
+    se: se,
+    dof: dof,
     alpha: alpha,
     alternative: alternative,
   );
 }
 
-/// Paired Student's t-test for dependent samples [sample1] and [sample2].
+/// Paired Student's t-test for the mean difference between dependent samples
+/// [sample1] and [sample2] against [mu0] (`H0: mean(x - y) = mu0`).
+///
+/// Throws [ArgumentError] if samples differ in length, have fewer than 2 pairs,
+/// [mu0] is not finite, or [alpha] is outside `(0, 1)`.
 HypothesisTestResult tTestPaired(
   Iterable<num> sample1,
   Iterable<num> sample2, {
+  double mu0 = 0.0,
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  final list1 = sample1.map((val) => val.toDouble()).toList();
-  final list2 = sample2.map((val) => val.toDouble()).toList();
-  if (list1.length != list2.length) {
+  validateAlpha(alpha);
+  if (!mu0.isFinite) {
+    throw ArgumentError.value(
+      mu0,
+      'mu0',
+      'Hypothesized mean difference must be finite',
+    );
+  }
+  final iter1 = sample1.iterator;
+  final iter2 = sample2.iterator;
+  final diffs = <double>[];
+  while (iter1.moveNext()) {
+    if (!iter2.moveNext()) {
+      throw ArgumentError('Paired samples must have equal length');
+    }
+    diffs.add(iter1.current.toDouble() - iter2.current.toDouble());
+  }
+  if (iter2.moveNext()) {
     throw ArgumentError('Paired samples must have equal length');
   }
-  final diffs = List<double>.generate(list1.length, (i) => list1[i] - list2[i]);
   final res = tTestOneSample(
     diffs,
-    mu0: 0.0,
+    mu0: mu0,
     alternative: alternative,
     alpha: alpha,
   );
@@ -273,6 +198,104 @@ HypothesisTestResult tTestPaired(
     pValue: res.pValue,
     degreesOfFreedom: res.degreesOfFreedom,
     confidenceInterval: res.confidenceInterval,
+    alpha: alpha,
+    alternative: alternative,
+  );
+}
+
+({int count, double mean, double scale, double m2Scaled, bool hasNonFinite})
+_welfordPass(Iterable<num> sample) {
+  var count = 0;
+  var scale = 0.0;
+  var meanScaled = 0.0;
+  var m2Scaled = 0.0;
+  var hasNonFinite = false;
+  for (final val in sample) {
+    final v = val.toDouble();
+    count++;
+    if (!v.isFinite) {
+      hasNonFinite = true;
+      continue;
+    }
+    final av = v.abs();
+    if (av > scale) {
+      if (scale > 0.0) {
+        final ratio = scale / av;
+        meanScaled *= ratio;
+        m2Scaled *= ratio * ratio;
+      }
+      scale = av;
+    }
+    final sv = scale > 0.0 ? v / scale : 0.0;
+    final delta = sv - meanScaled;
+    meanScaled += delta / count;
+    m2Scaled += delta * (sv - meanScaled);
+  }
+  return (
+    count: count,
+    mean: meanScaled * scale,
+    scale: scale,
+    m2Scaled: m2Scaled,
+    hasNonFinite: hasNonFinite,
+  );
+}
+
+HypothesisTestResult _buildTResult({
+  required String testName,
+  required double estimate,
+  required double diff,
+  required double se,
+  required double dof,
+  required double alpha,
+  required AlternativeHypothesis alternative,
+}) {
+  final dist = StudentDistribution(dof);
+  final double tStat;
+  final double pValue;
+  if (se <= 0.0) {
+    if (diff == 0.0) {
+      tStat = 0.0;
+      pValue = 1.0;
+    } else {
+      tStat = diff > 0.0 ? double.infinity : double.negativeInfinity;
+      pValue = switch (alternative) {
+        AlternativeHypothesis.twoSided => 0.0,
+        AlternativeHypothesis.less => diff < 0.0 ? 0.0 : 1.0,
+        AlternativeHypothesis.greater => diff > 0.0 ? 0.0 : 1.0,
+      };
+    }
+  } else {
+    tStat = diff / se;
+    pValue = switch (alternative) {
+      AlternativeHypothesis.twoSided =>
+        (2.0 * dist.survival(tStat.abs())).clamp(0.0, 1.0),
+      AlternativeHypothesis.less =>
+        dist.cumulativeProbability(tStat).clamp(0.0, 1.0),
+      AlternativeHypothesis.greater => dist.survival(tStat).clamp(0.0, 1.0),
+    };
+  }
+
+  final ci = switch (alternative) {
+    AlternativeHypothesis.twoSided => () {
+      final tCrit = dist.inverseSurvival(alpha / 2.0);
+      return (lower: estimate - tCrit * se, upper: estimate + tCrit * se);
+    }(),
+    AlternativeHypothesis.less => () {
+      final tCrit = dist.inverseSurvival(alpha);
+      return (lower: double.negativeInfinity, upper: estimate + tCrit * se);
+    }(),
+    AlternativeHypothesis.greater => () {
+      final tCrit = dist.inverseSurvival(alpha);
+      return (lower: estimate - tCrit * se, upper: double.infinity);
+    }(),
+  };
+
+  return HypothesisTestResult(
+    testName: testName,
+    statistic: tStat,
+    pValue: pValue,
+    degreesOfFreedom: dof,
+    confidenceInterval: ci,
     alpha: alpha,
     alternative: alternative,
   );
