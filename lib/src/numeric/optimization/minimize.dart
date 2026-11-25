@@ -46,11 +46,39 @@ OptimizationResult minimize(
   double step = 1.0,
   int memorySize = 7,
 }) {
-  if (tolerance <= 0) {
-    throw ArgumentError('Tolerance must be positive: $tolerance');
+  if (tolerance <= 0 || !tolerance.isFinite) {
+    throw ArgumentError.value(
+      tolerance,
+      'tolerance',
+      'Tolerance must be positive and finite.',
+    );
   }
   if (maxIterations <= 0) {
-    throw ArgumentError('Max iterations must be positive: $maxIterations');
+    throw ArgumentError.value(
+      maxIterations,
+      'maxIterations',
+      'Max iterations must be positive.',
+    );
+  }
+  if (step <= 0 || !step.isFinite) {
+    throw ArgumentError.value(
+      step,
+      'step',
+      'Step must be positive and finite.',
+    );
+  }
+  if (memorySize <= 0) {
+    throw ArgumentError.value(
+      memorySize,
+      'memorySize',
+      'Memory size must be positive.',
+    );
+  }
+  if (a != null && !a.isFinite) {
+    throw ArgumentError.value(a, 'a', 'Lower interval bound must be finite.');
+  }
+  if (b != null && !b.isFinite) {
+    throw ArgumentError.value(b, 'b', 'Upper interval bound must be finite.');
   }
 
   var init = initialPoint;
@@ -59,7 +87,9 @@ OptimizationResult minimize(
 
   if (init == null) {
     if (a != null && b != null) {
-      init = Vector<double>.fromList([(a + b) / 2.0], type: DataType.float64);
+      init = Vector<double>.fromList([
+        a + 0.5 * (b - a),
+      ], type: DataType.float64);
       bnds ??= [BoxBound(lower: a, upper: b)];
       final hasExtraConstraints =
           (inequalities != null && inequalities.isNotEmpty) ||
@@ -121,6 +151,27 @@ OptimizationResult minimize(
           'OptimizationMethod.brent only supports 1D problems, got dimension ${init.length}.',
         );
       }
+      if (bnds != null && bnds.isNotEmpty) {
+        if (bnds.length != 1) {
+          throw ArgumentError(
+            'Bounds length (${bnds.length}) must match dimension (1).',
+          );
+        }
+        final b0 = bnds[0];
+        final lo = b0.lower;
+        final hi = b0.upper;
+        if (lo != null && lo.isNaN) {
+          throw ArgumentError('Lower bound cannot be NaN.');
+        }
+        if (hi != null && hi.isNaN) {
+          throw ArgumentError('Upper bound cannot be NaN.');
+        }
+        if (lo != null && hi != null && lo >= hi) {
+          throw ArgumentError(
+            'Lower bound ($lo) must be strictly less than upper bound ($hi).',
+          );
+        }
+      }
       final low =
           a ??
           (bnds != null && bnds.isNotEmpty ? bnds[0].lower : null) ??
@@ -169,7 +220,7 @@ OptimizationResult minimize(
         value: res.value,
         iterations: res.iterations,
         gradientNorm: res.gradientNorm,
-        converged: res.gradientNorm <= tolerance,
+        converged: res.converged,
       );
     case OptimizationMethod.lbfgs:
       final res = lbfgs(
@@ -185,7 +236,7 @@ OptimizationResult minimize(
         value: res.value,
         iterations: res.iterations,
         gradientNorm: res.gradientNorm,
-        converged: res.gradientNorm <= tolerance,
+        converged: res.converged,
       );
   }
 }

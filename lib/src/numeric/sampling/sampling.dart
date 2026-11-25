@@ -57,6 +57,12 @@ Vector<double> linearSpaced(
   bool endpoint = true,
   DataType<double>? type,
 }) {
+  if (!start.isFinite) {
+    throw ArgumentError.value(start, 'start', 'Must be finite.');
+  }
+  if (!stop.isFinite) {
+    throw ArgumentError.value(stop, 'stop', 'Must be finite.');
+  }
   if (count < 0) {
     throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
   }
@@ -65,15 +71,21 @@ Vector<double> linearSpaced(
   if (count == 1) {
     data[0] = start;
   } else if (count > 1) {
-    final divisor = endpoint ? count - 1 : count;
-    for (var i = 0; i < count; i++) {
-      if (i == 0) {
+    if (start == stop) {
+      for (var i = 0; i < count; i++) {
         data[i] = start;
-      } else if (endpoint && i == count - 1) {
-        data[i] = stop;
-      } else {
-        final t = i / divisor;
-        data[i] = start * (1.0 - t) + stop * t;
+      }
+    } else {
+      final divisor = endpoint ? count - 1 : count;
+      for (var i = 0; i < count; i++) {
+        if (i == 0) {
+          data[i] = start;
+        } else if (endpoint && i == count - 1) {
+          data[i] = stop;
+        } else {
+          final t = i / divisor;
+          data[i] = start * (1.0 - t) + stop * t;
+        }
       }
     }
   }
@@ -106,11 +118,21 @@ Vector<double> logarithmicSpaced(
   bool endpoint = true,
   DataType<double>? type,
 }) {
+  if (!start.isFinite) {
+    throw ArgumentError.value(start, 'start', 'Must be finite.');
+  }
+  if (!stop.isFinite) {
+    throw ArgumentError.value(stop, 'stop', 'Must be finite.');
+  }
   if (count < 0) {
     throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
   }
-  if (base <= 0.0) {
-    throw ArgumentError.value(base, 'base', 'Base must be positive.');
+  if (base <= 0.0 || !base.isFinite) {
+    throw ArgumentError.value(
+      base,
+      'base',
+      'Base must be positive and finite.',
+    );
   }
   final effectiveType = type ?? DataType.float64;
   final data = effectiveType.newList(count);
@@ -157,6 +179,12 @@ Vector<double> geometricSpaced(
   bool endpoint = true,
   DataType<double>? type,
 }) {
+  if (!start.isFinite) {
+    throw ArgumentError.value(start, 'start', 'Must be finite.');
+  }
+  if (!stop.isFinite) {
+    throw ArgumentError.value(stop, 'stop', 'Must be finite.');
+  }
   if (count < 0) {
     throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
   }
@@ -251,8 +279,11 @@ CurveSample sampleCurve(
     throw ArgumentError.value(tolerance, 'tolerance', 'Must be positive');
   }
 
-  final span = b - a;
-  final step = span / (initialPoints - 1);
+  final rawSpan = b - a;
+  final step = rawSpan.isFinite
+      ? rawSpan / (initialPoints - 1)
+      : (b / (initialPoints - 1)) - (a / (initialPoints - 1));
+  final span = rawSpan.isFinite ? rawSpan : double.maxFinite;
   // Slight irrational jitter on interior grid nodes avoids landing exactly on
   // symmetric rational poles while keeping endpoints exact.
   const jitter = 1e-9 * 0.6180339887498949;
@@ -283,7 +314,7 @@ CurveSample sampleCurve(
       return;
     }
 
-    final xm = 0.5 * (x0 + x1);
+    final xm = 0.5 * x0 + 0.5 * x1;
     if (xm <= x0 || xm >= x1) {
       pointsX.add(x1);
       pointsY.add(y1);
@@ -411,8 +442,8 @@ CurveSample _buildSegments(
       // 1. Asymptotic sign-reversal jump (e.g. tan(x) or 1/x across pole)
       final isAsymptoteFlip =
           absDy > 2.5 * yScale &&
-          ((prevDy != 0 && dy * prevDy < 0) ||
-              (nextDy != 0 && dy * nextDy < 0));
+          ((prevDy != 0.0 && (dy > 0.0) != (prevDy > 0.0)) ||
+              (nextDy != 0.0 && (dy > 0.0) != (nextDy > 0.0)));
 
       // 2. Step / jump discontinuity (e.g. floor(x), sign(x), piecewise jump)
       final neighborMaxDy = math.max(prevDy.abs(), nextDy.abs());
@@ -438,7 +469,7 @@ CurveSample _buildSegments(
   ]..sort();
 
   if (allFiniteY.isEmpty) {
-    return CurveSample(segments: segments, yMin: -1.0, yMax: 1.0);
+    return const CurveSample(segments: [], yMin: -1.0, yMax: 1.0);
   }
 
   final hasDiscontinuity = segments.length > 1;

@@ -4,7 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('solveOde', () {
@@ -63,7 +63,7 @@ void main() {
       },
     );
 
-    test('validates non-positive arguments', () {
+    test('validates arguments including empty initial state', () {
       Vector<double> derivative(double time, Vector<double> y) => y;
       final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
 
@@ -73,6 +73,14 @@ void main() {
       ).throws<ArgumentError>();
       check(
         () => solveOde(f: derivative, t0: 0.0, tEnd: 1.0, y0: y0, maxSteps: 0),
+      ).throws<ArgumentError>();
+      check(
+        () => solveOde(
+          f: derivative,
+          t0: 0.0,
+          tEnd: 1.0,
+          y0: Vector<double>.fromList([]),
+        ),
       ).throws<ArgumentError>();
     });
 
@@ -323,5 +331,126 @@ void main() {
       );
       check(sol.converged).isFalse;
     });
+
+    test(
+      'handles tiny intervals, large time offsets, and exact final tEnd',
+      () {
+        Vector<double> expDecay(double t, Vector<double> y) =>
+            Vector<double>.fromList([-y[0]], type: DataType.float64);
+
+        // Tiny interval smaller than absolute 1e-12
+        final tiny = solveOde(
+          f: expDecay,
+          t0: 0.0,
+          tEnd: 1e-13,
+          y0: Vector<double>.fromList([1.0], type: DataType.float64),
+          stepSize: 1e-13,
+          minStep: 1e-15,
+        );
+        check(tiny.converged).isTrue;
+        check(tiny.t.last).equals(1e-13);
+        check(tiny.last[0]).isCloseTo(math.exp(-1e-13), 1e-12);
+
+        // Large time offset
+        const tStart = 1e6;
+        const tStop = 1e6 + 0.5;
+        for (final method in OdeMethod.values) {
+          final sol = solveOde(
+            f: expDecay,
+            t0: tStart,
+            tEnd: tStop,
+            y0: Vector<double>.fromList([1.0], type: DataType.float64),
+            method: method,
+            stepSize: 0.05,
+          );
+          check(sol.converged).isTrue;
+          check(sol.t.last).equals(tStop);
+          check(sol.last[0]).isCloseTo(math.exp(-0.5), 1e-4);
+        }
+      },
+    );
+
+    test('RK4 aborts with converged=false on non-finite state', () {
+      final sol = solveOde(
+        f: (t, y) => Vector<double>.fromList([
+          if (y[0] > 2.0) double.nan else 100.0,
+        ], type: DataType.float64),
+        t0: 0.0,
+        tEnd: 1.0,
+        y0: Vector<double>.fromList([0.0], type: DataType.float64),
+        method: OdeMethod.rk4,
+        stepSize: 0.1,
+      );
+      check(sol.converged).isFalse;
+    });
+
+    test('BDF2 handles truncated first step, nonlinear Jacobian refresh, and singular recovery', () {
+      // Truncated first step (tEnd < stepSize)
+      final shortSol = solveOde(
+        f: (t, y) => Vector<double>.fromList([-y[0]], type: DataType.float64),
+        t0: 0.0,
+        tEnd: 0.005,
+        y0: Vector<double>.fromList([1.0], type: DataType.float64),
+        method: OdeMethod.bdf2,
+        stepSize: 0.1,
+      );
+      check(shortSol.converged).isTrue;
+      check(shortSol.t.last).equals(0.005);
+
+      // Strongly nonlinear problem requiring Newton Jacobian refresh (iter >= 3)
+      final nonLin = solveOde(
+        f: (t, y) => Vector<double>.fromList([
+          -50.0 * y[0] * y[0] * y[0],
+        ], type: DataType.float64),
+        t0: 0.0,
+        tEnd: 0.5,
+        y0: Vector<double>.fromList([1.0], type: DataType.float64),
+        method: OdeMethod.bdf2,
+        stepSize: 0.1,
+        relativeTolerance: 1e-8,
+        absoluteTolerance: 1e-10,
+      );
+      check(nonLin.converged).isTrue;
+      check(nonLin.last[0]).isCloseTo(1.0 / math.sqrt(1.0 + 100.0 * 0.5), 1e-3);
+
+      // Non-finite derivative mid-step recovers or aborts cleanly
+      final badJac = solveOde(
+        f: (t, y) => Vector<double>.fromList([
+          if (t > 0.2) double.nan else -y[0],
+        ], type: DataType.float64),
+        t0: 0.0,
+        tEnd: 0.5,
+        y0: Vector<double>.fromList([1.0], type: DataType.float64),
+        method: OdeMethod.bdf2,
+        stepSize: 0.05,
+        minStep: 0.02,
+      );
+      check(badJac.converged).isFalse;
+    });
+
+    test(
+      'Hermite interpolation handles NaN tEval and single-step solution',
+      () {
+        final singleNaN = solveOde(
+          f: (t, y) => y,
+          t0: 1.0,
+          tEnd: 1.0,
+          y0: Vector<double>.fromList([2.0], type: DataType.float64),
+          tEval: [double.nan, 1.0],
+        );
+        check(singleNaN.y[0][0].isNaN).isTrue;
+        check(singleNaN.y[1][0]).equals(2.0);
+
+        final multiNaN = solveOde(
+          f: (t, y) => Vector<double>.fromList([y[0]], type: DataType.float64),
+          t0: 0.0,
+          tEnd: 0.1,
+          y0: Vector<double>.fromList([1.0], type: DataType.float64),
+          tEval: [double.nan, 0.05],
+        );
+        check(multiNaN.y[0][0].isNaN).isTrue;
+        check(multiNaN.y[1][0]).isCloseTo(math.exp(0.05), 1e-5);
+      },
+    );
   });
 }

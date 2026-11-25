@@ -35,19 +35,18 @@ class IntegrateError extends Error {
   String toString() => 'IntegrateError: $type near x = $x';
 }
 
-/// Computes the definite or improper integral $\int_a^b f(x) dx$ using the
+/// Computes the definite or improper integral ∫_a^b f(x) dx using the
 /// specified quadrature [method].
 ///
 /// Conceptually, calculating an integral evaluates the total accumulated area
-/// underneath a curve between two boundary points $x = a$ and $x = b$.
+/// underneath a curve between two boundary points `x = a` and `x = b`.
 /// Formally, it recursively subdivides intervals using the selected [method]
 /// ([IntegrationMethod.gaussKronrod] by default, or
 /// [IntegrationMethod.simpson]).
 ///
 /// Supports:
-/// - Infinite and semi-infinite integration domains ($\[-\infty, \infty\]$,
-///   $\[-\infty, b\]$, $\[a, \infty\)$) via reciprocal coordinate transformations
-///   ($t \in \[\epsilon, 1\]$).
+/// - Infinite and semi-infinite integration domains (`[-∞, +∞]`, `[-∞, b]`,
+///   `[a, +∞)`) via reciprocal coordinate transformations (`t ∈ (0, 1]`).
 /// - Known poles and non-differentiable singularities via interval partitioning
 ///   ([poles]).
 /// - Convergence error diagnostics and handling via [IntegrateWarning],
@@ -191,7 +190,9 @@ double integrate(
       (t) {
         if (t <= 0.0) return 0.0;
         final t2 = t * t;
-        final res = 2.0 * function(b - (1.0 - t2) / t2) / (t2 * t);
+        final fx = function(b - (1.0 - t2) / t2);
+        if (fx == 0.0) return 0.0;
+        final res = 2.0 * fx / (t2 * t);
         return res.isNaN && t < 1e-6 ? 0.0 : res;
       },
       0.0,
@@ -206,7 +207,9 @@ double integrate(
       (t) {
         if (t <= 0.0) return 0.0;
         final t2 = t * t;
-        final res = 2.0 * function(a + (1.0 - t2) / t2) / (t2 * t);
+        final fx = function(a + (1.0 - t2) / t2);
+        if (fx == 0.0) return 0.0;
+        final res = 2.0 * fx / (t2 * t);
         return res.isNaN && t < 1e-6 ? 0.0 : res;
       },
       0.0,
@@ -222,7 +225,7 @@ double integrate(
     case IntegrationMethod.gaussKronrod:
       return _gaussKronrodStep(function, a, b, tolerance, maxDepth, onWarning);
     case IntegrationMethod.simpson:
-      final mid = 0.5 * (a + b);
+      final mid = 0.5 * a + 0.5 * b;
       final fa = function(a);
       final fb = function(b);
       final fMid = function(mid);
@@ -278,95 +281,41 @@ double _integratePoles(
   // Partition [a, b] into segments with endpoints in sortedPts
   final sortedPts = <double>{a, ...mergedPoles, b}.toList()..sort();
   final poleSet = mergedPoles.toSet();
+  final subTol = tolerance / (sortedPts.length - 1);
 
-  double integrateSubinterval(double u, double v) {
+  double integrateSubinterval(double u, double v, double tol) {
     if ((v - u).abs() <= 1e-15) return 0.0;
     final uIsPole = poleSet.any((p) => (p - u).abs() < 1e-9);
     final vIsPole = poleSet.any((p) => (p - v).abs() < 1e-9);
 
     if (uIsPole && vIsPole) {
-      final m = 0.5 * (u + v);
-      return integrateSubinterval(u, m) + integrateSubinterval(m, v);
+      final m = 0.5 * u + 0.5 * v;
+      return integrateSubinterval(u, m, 0.5 * tol) +
+          integrateSubinterval(m, v, 0.5 * tol);
     }
 
     if (uIsPole) {
-      final length = v - u;
-      final limit = math.sqrt(length);
-      double transformed(double t) {
-        if (t == 0.0) {
-          final delta = math.min(1e-7 * length, 1e-7);
-          try {
-            final fx = function(u + delta * delta);
-            if (fx.isNaN || fx.isInfinite) return double.nan;
-            final res = 2.0 * delta * fx;
-            return res.isFinite ? res : double.nan;
-          } on ArgumentError {
-            return double.nan;
-          }
-        }
-        final x = u + t * t;
-        if (x == u) {
-          return double.nan;
-        }
-        try {
-          final fx = function(x);
-          if (fx.isNaN || fx.isInfinite) return double.nan;
-          final res = 2.0 * t * fx;
-          return res.isFinite ? res : double.nan;
-        } on ArgumentError {
-          return double.nan;
-        }
-      }
-
-      return integrate(
-        transformed,
-        0.0,
-        limit,
+      return _integrateEndpointPole(
+        function,
+        pole: u,
+        otherEnd: v,
+        sign: 1.0,
         method: method,
-        tolerance: tolerance,
+        tolerance: tol,
         maxDepth: maxDepth,
-        poles: const [],
         onWarning: onWarning,
       );
     }
 
     if (vIsPole) {
-      final length = v - u;
-      final limit = math.sqrt(length);
-      double transformed(double t) {
-        if (t == 0.0) {
-          final delta = math.min(1e-7 * length, 1e-7);
-          try {
-            final fx = function(v - delta * delta);
-            if (fx.isNaN || fx.isInfinite) return double.nan;
-            final res = 2.0 * delta * fx;
-            return res.isFinite ? res : double.nan;
-          } on ArgumentError {
-            return double.nan;
-          }
-        }
-        final x = v - t * t;
-        if (x == v) {
-          return double.nan;
-        }
-        try {
-          final fx = function(x);
-          if (fx.isNaN || fx.isInfinite) return double.nan;
-          final res = 2.0 * t * fx;
-          return res.isFinite ? res : double.nan;
-        } on ArgumentError {
-          return double.nan;
-        }
-      }
-
-      return integrate(
-        transformed,
-        0.0,
-        limit,
+      return _integrateEndpointPole(
+        function,
+        pole: v,
+        otherEnd: u,
+        sign: -1.0,
         method: method,
-        tolerance: tolerance,
+        tolerance: tol,
         maxDepth: maxDepth,
-        poles: const [],
         onWarning: onWarning,
       );
     }
@@ -376,7 +325,7 @@ double _integratePoles(
       u,
       v,
       method: method,
-      tolerance: tolerance,
+      tolerance: tol,
       maxDepth: maxDepth,
       poles: const [],
       onWarning: onWarning,
@@ -385,9 +334,52 @@ double _integratePoles(
 
   var total = 0.0;
   for (var i = 0; i < sortedPts.length - 1; i++) {
-    total += integrateSubinterval(sortedPts[i], sortedPts[i + 1]);
+    total += integrateSubinterval(sortedPts[i], sortedPts[i + 1], subTol);
   }
   return total;
+}
+
+double _integrateEndpointPole(
+  double Function(double) function, {
+  required double pole,
+  required double otherEnd,
+  required double sign,
+  required IntegrationMethod method,
+  required double tolerance,
+  required int maxDepth,
+  required void Function(IntegrateWarning type, double x)? onWarning,
+}) {
+  final length = (otherEnd - pole).abs();
+  final limit = math.sqrt(length);
+  final minOffset = math.sqrt(
+    16.0 * 2.220446049250313e-16 * math.max(1.0, pole.abs()),
+  );
+  final delta = math.min(0.5 * limit, math.max(1e-7, minOffset));
+
+  double evalTransformed(double t) {
+    final tEff = t == 0.0 ? delta : t;
+    final x = pole + sign * tEff * tEff;
+    if (x == pole) return double.nan;
+    try {
+      final fx = function(x);
+      if (!fx.isFinite) return double.nan;
+      final res = 2.0 * tEff * fx;
+      return res.isFinite ? res : double.nan;
+    } on ArgumentError {
+      return double.nan;
+    }
+  }
+
+  return integrate(
+    evalTransformed,
+    0.0,
+    limit,
+    method: method,
+    tolerance: tolerance,
+    maxDepth: maxDepth,
+    poles: const [],
+    onWarning: onWarning,
+  );
 }
 
 double _adaptiveSimpsonStep(
@@ -402,9 +394,9 @@ double _adaptiveSimpsonStep(
   int depth,
   void Function(IntegrateWarning type, double x)? onWarning,
 ) {
-  final mid = 0.5 * (a + b);
-  final leftMid = 0.5 * (a + mid);
-  final rightMid = 0.5 * (mid + b);
+  final mid = 0.5 * a + 0.5 * b;
+  final leftMid = 0.5 * a + 0.5 * mid;
+  final rightMid = 0.5 * mid + 0.5 * b;
   final fd = fn(leftMid);
   final fe = fn(rightMid);
 
@@ -422,7 +414,10 @@ double _adaptiveSimpsonStep(
     return sum;
   }
 
-  final threshold = math.max(15.0 * tol, 1e-10 * sum.abs());
+  final threshold = math.max(
+    15.0 * tol,
+    64.0 * 2.220446049250313e-16 * sum.abs(),
+  );
   if (delta.abs() <= threshold) {
     return sum + delta / 15.0;
   }
@@ -501,8 +496,8 @@ double _gaussKronrodStep(
   int depth,
   void Function(IntegrateWarning type, double x)? onWarning,
 ) {
-  final center = 0.5 * (a + b);
-  final halfWidth = 0.5 * (b - a);
+  final center = 0.5 * a + 0.5 * b;
+  final halfWidth = 0.5 * b - 0.5 * a;
 
   final fCenter = fn(center);
   var kronrodSum = _gk15WeightsKronrod[0] * fCenter;
@@ -541,7 +536,10 @@ double _gaussKronrodStep(
     return kronrodResult;
   }
 
-  final threshold = math.max(tol, 1e-10 * kronrodResult.abs());
+  final threshold = math.max(
+    tol,
+    64.0 * 2.220446049250313e-16 * kronrodResult.abs(),
+  );
   if (error <= threshold) {
     return kronrodResult;
   }

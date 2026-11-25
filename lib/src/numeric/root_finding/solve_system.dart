@@ -3,15 +3,13 @@ import '../../linear/vector.dart';
 import '../../type/data_type.dart';
 import '../calculus/jacobian.dart' as calculus;
 
-/// Solves a system of equations $F(\mathbf{x}) = \mathbf{0}$ using multivariate
-/// Newton-Raphson iteration.
+/// Solves a system of equations `F(x) = 0` using multivariate Newton-Raphson
+/// iteration.
 ///
 /// Conceptually, this finds coordinates where multiple equations simultaneously
-/// equal zero. Formally, starting from [initialGuess] $\mathbf{x}_0$, it
-/// iteratively updates:
-/// $$\mathbf{x}_{k+1} = \mathbf{x}_k - J_F(\mathbf{x}_k)^{-1} F(\mathbf{x}_k)$$
-/// where $J_F(\mathbf{x}_k)$ is the Jacobian matrix computed either via
-/// [jacobian] or central finite differences.
+/// equal zero. Formally, starting from [initialGuess] `x₀`, it iteratively
+/// updates `x_{k+1} = x_k - J_F(x_k)^(-1) F(x_k)` where `J_F(x_k)` is the
+/// Jacobian matrix computed either via [jacobian] or central finite differences.
 ///
 /// ```dart
 /// final sol = solveSystem([
@@ -34,11 +32,11 @@ Vector<double> solveSystem(
       'Number of equations (${equations.length}) must match dimension of initialGuess ($n).',
     );
   }
-  if (tolerance <= 0) {
+  if (tolerance <= 0 || !tolerance.isFinite) {
     throw ArgumentError.value(
       tolerance,
       'tolerance',
-      'Tolerance must be positive.',
+      'Tolerance must be positive and finite.',
     );
   }
   if (maxIterations <= 0) {
@@ -66,8 +64,10 @@ Vector<double> solveSystem(
     final residual = evalEquations(x);
     var maxRes = 0.0;
     for (var i = 0; i < n; i++) {
-      final val = residual[i];
-      if (val.isNaN) throw StateError('Function evaluation returned NaN');
+      final val = residual.getUnchecked(i);
+      if (!val.isFinite) {
+        throw StateError('Function evaluation returned non-finite value.');
+      }
       final r = val.abs();
       if (r > maxRes) maxRes = r;
     }
@@ -92,14 +92,20 @@ Vector<double> solveSystem(
       );
     }
     for (var i = 0; i < n; i++) {
-      x[i] -= delta[i];
+      final stepI = delta.getUnchecked(i);
+      if (!stepI.isFinite) {
+        throw StateError('Failed to converge: non-finite Newton step.');
+      }
+      x.setUnchecked(i, x.getUnchecked(i) - stepI);
     }
   }
-  final finalResidual = Vector<double>.generate(n, (i) => equations[i](x));
+  final finalResidual = evalEquations(x);
   var maxRes = 0.0;
   for (var i = 0; i < n; i++) {
-    final val = finalResidual[i];
-    if (val.isNaN) throw StateError('Function evaluation returned NaN');
+    final val = finalResidual.getUnchecked(i);
+    if (!val.isFinite) {
+      throw StateError('Function evaluation returned non-finite value.');
+    }
     final r = val.abs();
     if (r > maxRes) maxRes = r;
   }

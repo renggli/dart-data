@@ -3,7 +3,7 @@ import 'package:data/linear.dart';
 import 'package:data/src/numeric/optimization/constrained.dart';
 import 'package:data/src/numeric/optimization/optimization_types.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('minimizeConstrained', () {
@@ -75,7 +75,7 @@ void main() {
       check(eq(res.point).abs()).isLessThan(1e-2);
     });
 
-    test('argument validation', () {
+    test('argument validation and non-finite constraints', () {
       final start = Vector<double>.fromList([1.0], type: DataType.float64);
 
       check(
@@ -88,6 +88,10 @@ void main() {
           .throws<ArgumentError>();
       check(() => minimizeConstrained((v) => 0.0, start, maxIterations: 0))
           .throws<ArgumentError>();
+      check(() => minimizeConstrained((v) => 0.0, start, step: 0.0))
+          .throws<ArgumentError>();
+      check(() => minimizeConstrained((v) => 0.0, start, memorySize: 0))
+          .throws<ArgumentError>();
       check(
         () => minimizeConstrained(
           (v) => 0.0,
@@ -95,6 +99,35 @@ void main() {
           bounds: const [BoxBound(), BoxBound()],
         ),
       ).throws<ArgumentError>();
+      check(
+        () => minimizeConstrained(
+          (v) => 0.0,
+          start,
+          bounds: const [BoxBound(lower: double.infinity)],
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => minimizeConstrained(
+          (v) => 0.0,
+          start,
+          bounds: const [BoxBound(upper: double.negativeInfinity)],
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => minimizeConstrained(
+          (v) => 0.0,
+          start,
+          bounds: const [BoxBound(lower: double.nan)],
+        ),
+      ).throws<ArgumentError>();
+
+      final nanConstraintRes = minimizeConstrained(
+        (v) => v[0] * v[0],
+        start,
+        inequalities: [(_) => double.nan],
+        maxIterations: 10,
+      );
+      check(nanConstraintRes.converged).isFalse;
     });
   });
 }

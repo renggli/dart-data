@@ -13,6 +13,31 @@ nelderMead(
   int maxIterations = 1000,
 }) {
   final dim = initialPoint.length;
+  if (dim == 0) {
+    throw ArgumentError('Initial point cannot be empty.');
+  }
+  if (step <= 0.0 || !step.isFinite) {
+    throw ArgumentError.value(
+      step,
+      'step',
+      'Step must be positive and finite.',
+    );
+  }
+  if (tolerance <= 0.0 || !tolerance.isFinite) {
+    throw ArgumentError.value(
+      tolerance,
+      'tolerance',
+      'Tolerance must be positive and finite.',
+    );
+  }
+  if (maxIterations <= 0) {
+    throw ArgumentError.value(
+      maxIterations,
+      'maxIterations',
+      'Max iterations must be positive.',
+    );
+  }
+
   final simplex = <Vector<double>>[initialPoint.copy()];
   for (var i = 0; i < dim; i++) {
     final vertex = initialPoint.copy();
@@ -21,6 +46,8 @@ nelderMead(
   }
 
   final values = [for (final pt in simplex) fn(pt)];
+  final indices = List<int>.generate(dim + 1, (i) => i);
+  final centroid = Vector<double>.filled(dim, 0.0, type: DataType.float64);
 
   const alpha = 1.0; // reflection
   const gamma = 2.0; // expansion
@@ -29,12 +56,9 @@ nelderMead(
 
   var iter = 0;
   for (; iter < maxIterations; iter++) {
-    final indices = List<int>.generate(dim + 1, (i) => i)
-      ..sort((a, b) {
-        final va = values[a].isNaN ? double.infinity : values[a];
-        final vb = values[b].isNaN ? double.infinity : values[b];
-        return va.compareTo(vb);
-      });
+    indices.sort(
+      (a, b) => _safeValue(values[a]).compareTo(_safeValue(values[b])),
+    );
 
     final bestIdx = indices[0];
     final worstIdx = indices[dim];
@@ -66,32 +90,42 @@ nelderMead(
       );
     }
 
-    final centroid = Vector<double>.filled(dim, 0.0, type: DataType.float64);
+    for (var dimIdx = 0; dimIdx < dim; dimIdx++) {
+      centroid.setUnchecked(dimIdx, 0.0);
+    }
     for (var i = 0; i < dim; i++) {
-      final idx = indices[i];
+      final v = simplex[indices[i]];
       for (var dimIdx = 0; dimIdx < dim; dimIdx++) {
-        centroid[dimIdx] += simplex[idx][dimIdx];
+        centroid.setUnchecked(
+          dimIdx,
+          centroid.getUnchecked(dimIdx) + v.getUnchecked(dimIdx),
+        );
       }
     }
     for (var dimIdx = 0; dimIdx < dim; dimIdx++) {
-      centroid[dimIdx] /= dim;
+      centroid.setUnchecked(dimIdx, centroid.getUnchecked(dimIdx) / dim);
     }
+
+    final safeBest = _safeValue(values[bestIdx]);
+    final safeSecondWorst = _safeValue(values[secondWorstIdx]);
+    final safeWorst = _safeValue(values[worstIdx]);
 
     // 1. Reflection
     final xR = centroid + (centroid - simplex[worstIdx]).scale(alpha);
     final fR = fn(xR);
+    final safeR = _safeValue(fR);
 
-    if (fR < values[secondWorstIdx] && fR >= values[bestIdx]) {
+    if (safeR < safeSecondWorst && safeR >= safeBest) {
       simplex[worstIdx] = xR;
       values[worstIdx] = fR;
       continue;
     }
 
     // 2. Expansion
-    if (fR < values[bestIdx]) {
+    if (safeR < safeBest) {
       final xE = centroid + (xR - centroid).scale(gamma);
       final fE = fn(xE);
-      if (fE < fR) {
+      if (_safeValue(fE) < safeR) {
         simplex[worstIdx] = xE;
         values[worstIdx] = fE;
       } else {
@@ -102,10 +136,10 @@ nelderMead(
     }
 
     // 3. Contraction
-    if (fR < values[worstIdx]) {
+    if (safeR < safeWorst) {
       final xC = centroid + (xR - centroid).scale(rho);
       final fC = fn(xC);
-      if (fC <= fR) {
+      if (_safeValue(fC) <= safeR) {
         simplex[worstIdx] = xC;
         values[worstIdx] = fC;
         continue;
@@ -113,7 +147,7 @@ nelderMead(
     } else {
       final xC = centroid + (simplex[worstIdx] - centroid).scale(rho);
       final fC = fn(xC);
-      if (fC < values[worstIdx]) {
+      if (_safeValue(fC) < safeWorst) {
         simplex[worstIdx] = xC;
         values[worstIdx] = fC;
         continue;
@@ -144,3 +178,5 @@ nelderMead(
     converged: false,
   );
 }
+
+double _safeValue(double value) => value.isNaN ? double.infinity : value;

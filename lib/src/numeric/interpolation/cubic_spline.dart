@@ -9,7 +9,7 @@ import 'search.dart';
 /// Boundary condition for cubic spline interpolation.
 enum CubicSplineBoundary {
   /// Natural spline: second derivative at endpoints is zero
-  /// ($S''(x_0) = S''(x_n) = 0$).
+  /// (`S''(x_0) = S''(x_n) = 0`).
   natural,
 
   /// Clamped spline: first derivative at endpoints is fixed to specified
@@ -22,9 +22,9 @@ enum CubicSplineBoundary {
 ///
 /// Conceptually, rather than connecting data points with straight lines or
 /// sharp angles, a cubic spline fits a smooth curve through every point with
-/// continuous curvature. Formally, it constructs a $C^2$ twice continuously
-/// differentiable piecewise cubic polynomial satisfying continuity of $S(x)$,
-/// $S'(x)$, and $S''(x)$ across all knots via a tridiagonal linear system.
+/// continuous curvature. Formally, it constructs a C² twice continuously
+/// differentiable piecewise cubic polynomial satisfying continuity of `S(x)`,
+/// `S'(x)`, and `S''(x)` across all knots via a tridiagonal linear system.
 ///
 /// ```dart
 /// final spline = CubicSpline([0.0, 1.0, 2.0], [0.0, 1.0, 8.0]);
@@ -47,9 +47,30 @@ class CubicSpline implements Interpolator {
     if (count < 2) {
       throw ArgumentError('At least 2 points required for cubic spline.');
     }
+    for (final x in _xs) {
+      if (!x.isFinite) {
+        throw ArgumentError('xs must contain only finite values.');
+      }
+    }
     for (var i = 0; i < count - 1; i++) {
       if (!(_xs[i] < _xs[i + 1])) {
         throw ArgumentError('xs must be strictly monotonically increasing.');
+      }
+    }
+    if (boundary == CubicSplineBoundary.clamped) {
+      if (!leftSlope.isFinite) {
+        throw ArgumentError.value(
+          leftSlope,
+          'leftSlope',
+          'Clamped boundary slope must be finite.',
+        );
+      }
+      if (!rightSlope.isFinite) {
+        throw ArgumentError.value(
+          rightSlope,
+          'rightSlope',
+          'Clamped boundary slope must be finite.',
+        );
       }
     }
 
@@ -128,16 +149,27 @@ class CubicSpline implements Interpolator {
   @override
   double call(num x) {
     final xd = x.toDouble();
+    if (xd.isNaN) return double.nan;
     final idx = binarySearchInterval(_xs, xd);
     final dx = xd - _xs[idx];
-    return _a[idx] + _b[idx] * dx + _c[idx] * dx * dx + _d[idx] * dx * dx * dx;
+    return ((_d[idx] * dx + _c[idx]) * dx + _b[idx]) * dx + _a[idx];
   }
 
   /// Evaluates the first derivative of the spline at [x].
   double derivative(num x) {
     final xd = x.toDouble();
+    if (xd.isNaN) return double.nan;
     final idx = binarySearchInterval(_xs, xd);
     final dx = xd - _xs[idx];
     return _b[idx] + 2.0 * _c[idx] * dx + 3.0 * _d[idx] * dx * dx;
+  }
+
+  /// Evaluates the second derivative of the spline at [x].
+  double secondDerivative(num x) {
+    final xd = x.toDouble();
+    if (xd.isNaN) return double.nan;
+    final idx = binarySearchInterval(_xs, xd);
+    final dx = xd - _xs[idx];
+    return 2.0 * _c[idx] + 6.0 * _d[idx] * dx;
   }
 }

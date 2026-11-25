@@ -4,7 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/numeric/curve_fit/curve_fit.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Curve Fitting & Regression', () {
@@ -555,6 +555,108 @@ void main() {
       check(res.residualStandardError.isNaN).isTrue;
       check(res.standardErrors[0].isNaN).isTrue;
       check(res.standardErrors[1].isNaN).isTrue;
+    });
+
+    test('fitNonlinear supports box bounds and validates parameters', () {
+      final bounded = fitNonlinear(
+        residualFunction: (v) =>
+            Vector<double>.fromList([v[0] - 5.0, v[1] - 5.0]),
+        initialParams: Vector<double>.fromList([0.0, 0.0]),
+        lowerBounds: Vector<double>.fromList([0.0, 0.0]),
+        upperBounds: Vector<double>.fromList([2.0, 3.0]),
+      );
+      check(bounded[0]).isCloseTo(2.0, 1e-5);
+      check(bounded[1]).isCloseTo(3.0, 1e-5);
+
+      Vector<double> okRes(Vector<double> v) => v;
+      final validInit = Vector<double>.fromList([1.0]);
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: Vector<double>.fromList([]),
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          tolerance: 0.0,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          maxIterations: 0,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          damping: 0.0,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          dampingStepUp: 0.5,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          dampingStepDown: 1.5,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          lowerBounds: Vector<double>.fromList([5.0]),
+          upperBounds: Vector<double>.fromList([2.0]),
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          lowerBounds: Vector<double>.fromList([double.nan]),
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          upperBounds: Vector<double>.fromList([double.nan]),
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          lowerBounds: Vector<double>.fromList([0.0, 1.0]),
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => fitNonlinear(
+          residualFunction: okRes,
+          initialParams: validInit,
+          upperBounds: Vector<double>.fromList([0.0, 1.0]),
+        ),
+      ).throws<ArgumentError>();
+
+      // NaN candidate cost in LM backs off via lambda growth without overwriting params
+      final nanRecovered = fitNonlinear(
+        residualFunction: (v) => Vector<double>.fromList([
+          if (v[0] < 0.0) double.nan else v[0] - 0.1,
+        ]),
+        initialParams: Vector<double>.fromList([1.0]),
+        maxIterations: 15,
+      );
+      check(nanRecovered[0].isFinite).isTrue;
     });
   });
 }

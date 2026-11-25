@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('gradient', () {
@@ -31,5 +31,24 @@ void main() {
         check((grad[1] - 4e9).abs() / 4e9).isLessThan(1e-4);
       },
     );
+
+    test('empty point returns empty vector without evaluating function', () {
+      var called = false;
+      final res = gradient((v) {
+        called = true;
+        return 0.0;
+      }, Vector<double>.fromList([], type: DataType.float64));
+      check(res.length).equals(0);
+      check(called).isFalse;
+    });
+
+    test('validates positive finite step', () {
+      final pt = Vector<double>.fromList([1.0], type: DataType.float64);
+      check(() => gradient((v) => v[0], pt, step: 0.0)).throws<ArgumentError>();
+      check(() => gradient((v) => v[0], pt, step: double.nan))
+          .throws<ArgumentError>();
+      check(() => gradient((v) => v[0], pt, step: double.infinity))
+          .throws<ArgumentError>();
+    });
   });
 }

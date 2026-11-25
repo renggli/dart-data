@@ -19,6 +19,11 @@ class PchipInterpolation implements Interpolator {
         'At least 2 points required for PCHIP interpolation.',
       );
     }
+    for (final x in _xs) {
+      if (!x.isFinite) {
+        throw ArgumentError('xs must contain only finite values.');
+      }
+    }
     for (var i = 0; i < count - 1; i++) {
       if (!(_xs[i] < _xs[i + 1])) {
         throw ArgumentError('xs must be strictly monotonically increasing.');
@@ -42,7 +47,7 @@ class PchipInterpolation implements Interpolator {
     for (var i = 1; i < count - 1; i++) {
       final d0 = _delta[i - 1];
       final d1 = _delta[i];
-      if (d0 * d1 <= 0.0) {
+      if (!_sameNonZeroSign(d0, d1)) {
         _d[i] = 0.0;
       } else {
         final w1 = 2.0 * _h[i] + _h[i - 1];
@@ -55,9 +60,9 @@ class PchipInterpolation implements Interpolator {
     _d[0] =
         ((2.0 * _h[0] + _h[1]) * _delta[0] - _h[0] * _delta[1]) /
         (_h[0] + _h[1]);
-    if (_d[0] * _delta[0] <= 0.0) {
+    if (!_sameNonZeroSign(_d[0], _delta[0])) {
       _d[0] = 0.0;
-    } else if (_delta[0] * _delta[1] <= 0.0 &&
+    } else if (!_sameNonZeroSign(_delta[0], _delta[1]) &&
         _d[0].abs() > 3.0 * _delta[0].abs()) {
       _d[0] = 3.0 * _delta[0];
     }
@@ -67,9 +72,9 @@ class PchipInterpolation implements Interpolator {
         ((2.0 * _h[last - 1] + _h[last - 2]) * _delta[last - 1] -
             _h[last - 1] * _delta[last - 2]) /
         (_h[last - 1] + _h[last - 2]);
-    if (_d[last] * _delta[last - 1] <= 0.0) {
+    if (!_sameNonZeroSign(_d[last], _delta[last - 1])) {
       _d[last] = 0.0;
-    } else if (_delta[last - 1] * _delta[last - 2] <= 0.0 &&
+    } else if (!_sameNonZeroSign(_delta[last - 1], _delta[last - 2]) &&
         _d[last].abs() > 3.0 * _delta[last - 1].abs()) {
       _d[last] = 3.0 * _delta[last - 1];
     }
@@ -84,6 +89,7 @@ class PchipInterpolation implements Interpolator {
   @override
   double call(num x) {
     final xd = x.toDouble();
+    if (xd.isNaN) return double.nan;
     final idx = binarySearchInterval(_xs, xd);
     final x0 = _xs[idx];
     final y0 = _ys[idx];
@@ -104,4 +110,26 @@ class PchipInterpolation implements Interpolator {
 
     return h00 * y0 + h10 * step * d0 + h01 * y1 + h11 * step * d1;
   }
+
+  /// Evaluates the first derivative of the PCHIP interpolant at [x].
+  double derivative(num x) {
+    final xd = x.toDouble();
+    if (xd.isNaN) return double.nan;
+    final idx = binarySearchInterval(_xs, xd);
+    final x0 = _xs[idx];
+    final y0 = _ys[idx];
+    final y1 = _ys[idx + 1];
+    final step = _h[idx];
+    final d0 = _d[idx];
+    final d1 = _d[idx + 1];
+
+    final t = (xd - x0) / step;
+    final t2 = t * t;
+    return (6.0 * (t2 - t) * (y0 - y1)) / step +
+        (3.0 * t2 - 4.0 * t + 1.0) * d0 +
+        (3.0 * t2 - 2.0 * t) * d1;
+  }
+
+  static bool _sameNonZeroSign(double a, double b) =>
+      (a > 0.0 && b > 0.0) || (a < 0.0 && b < 0.0);
 }

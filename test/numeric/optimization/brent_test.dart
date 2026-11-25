@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/src/numeric/optimization/brent.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('brentMinimize', () {
@@ -39,6 +39,32 @@ void main() {
         maxIterations: 2,
       );
       check(res.iterations).isLessOrEqual(2);
+      check(res.converged).isFalse;
+    });
+
+    test('handles NaN objective values safely without corrupting bracket', () {
+      final initNan = brentMinimize((_) => double.nan, a: 0.0, b: 1.0);
+      check(initNan.value.isNaN).isTrue;
+      check(initNan.converged).isFalse;
+
+      final loopNan = brentMinimize(
+        (x) => x > 0.4 ? double.nan : (x - 0.8) * (x - 0.8),
+        a: 0.0,
+        b: 1.0,
+      );
+      check(loopNan.converged).isFalse;
+      check(loopNan.value.isNaN).isFalse;
+    });
+
+    test('validates finite bounds, tolerance, and maxIterations', () {
+      check(() => brentMinimize((x) => x, a: double.nan, b: 1.0))
+          .throws<ArgumentError>();
+      check(() => brentMinimize((x) => x, a: 0.0, b: double.infinity))
+          .throws<ArgumentError>();
+      check(() => brentMinimize((x) => x, a: 0.0, b: 1.0, tolerance: 0.0))
+          .throws<ArgumentError>();
+      check(() => brentMinimize((x) => x, a: 0.0, b: 1.0, maxIterations: 0))
+          .throws<ArgumentError>();
     });
   });
 }

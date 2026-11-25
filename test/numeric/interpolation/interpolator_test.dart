@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/numeric/interpolation/interpolator.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 class _CustomInterpolator implements Interpolator {
   @override

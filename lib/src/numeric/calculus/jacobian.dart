@@ -4,14 +4,13 @@ import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
 import '../../type/data_type.dart';
 
-/// Computes the Jacobian matrix $J_{i, j} = \frac{\partial f_i}{\partial x_j}$
-/// of vector function [function] at [point].
+/// Computes the Jacobian matrix `J[i, j] = ∂fᵢ/∂xⱼ` of vector function
+/// [function] at [point].
 ///
 /// Conceptually, the Jacobian is a matrix of partial slopes describing how a
 /// multi-output vector field distorts, rotates, or shears coordinate space near
 /// a point. Formally, it computes the best local linear affine approximation
-/// $D\mathbf{f}(\mathbf{x}) \in \mathbb{R}^{m \times n}$ where
-/// $J_{i, j} = \frac{\partial f_i}{\partial x_j}$.
+/// `Df(x) ∈ R^(m×n)` where `J[i, j] = ∂fᵢ/∂xⱼ`.
 ///
 /// ```dart
 /// final p = Vector<double>.fromList([1.0, 2.0]);
@@ -37,13 +36,13 @@ Matrix<double> jacobian(
   Matrix<double>? result;
   final xWork = point.copy();
   for (var col = 0; col < dim; col++) {
-    final original = point[col];
+    final original = point.getUnchecked(col);
     final h = step * math.max(1.0, original.abs());
-    xWork[col] = original + h;
+    xWork.setUnchecked(col, original + h);
     final fPlus = function(xWork);
-    xWork[col] = original - h;
+    xWork.setUnchecked(col, original - h);
     final fMinus = function(xWork);
-    xWork[col] = original;
+    xWork.setUnchecked(col, original);
 
     if (result == null) {
       final numFuncs = fPlus.length;
@@ -58,7 +57,11 @@ Matrix<double> jacobian(
 
     final invTwoH = 1.0 / (2.0 * h);
     for (var row = 0; row < result.rowCount; row++) {
-      result.set(row, col, (fPlus[row] - fMinus[row]) * invTwoH);
+      result.setUnchecked(
+        row,
+        col,
+        (fPlus.getUnchecked(row) - fMinus.getUnchecked(row)) * invTwoH,
+      );
     }
   }
   return result!;

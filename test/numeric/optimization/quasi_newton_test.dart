@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/numeric/optimization/quasi_newton.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('bfgs', () {
@@ -85,6 +85,53 @@ void main() {
       // (Without reuse of fxCandidate, an extra redundant eval fn(xNext) occurred = 4 evals)
       check(res.iterations).equals(1);
       check(evalCount).equals(3);
+      check(res.converged).isTrue;
+    });
+
+    test('handles tiny-scale objective and non-finite failures safely', () {
+      final tiny = bfgs(
+        (v) => 1e-12 * (v[0] - 3.0) * (v[0] - 3.0),
+        Vector<double>.fromList([0.0], type: DataType.float64),
+        gradient: (v) => Vector<double>.fromList([
+          2e-12 * (v[0] - 3.0),
+        ], type: DataType.float64),
+        tolerance: 1e-18,
+      );
+      check(tiny.point[0]).isCloseTo(3.0, 1e-5);
+      check(tiny.converged).isTrue;
+
+      final nanInit = bfgs(
+        (v) => double.nan,
+        Vector<double>.fromList([1.0], type: DataType.float64),
+      );
+      check(nanInit.converged).isFalse;
+
+      final nanLine = bfgs(
+        (v) => v[0] == 1.0 ? 1.0 : double.nan,
+        Vector<double>.fromList([1.0], type: DataType.float64),
+        gradient: (v) => Vector<double>.fromList([1.0], type: DataType.float64),
+      );
+      check(nanLine.converged).isFalse;
+      check(nanLine.value).equals(1.0);
+
+      final maxIterRes = bfgs(
+        (v) =>
+            (1.0 - v[0]) * (1.0 - v[0]) +
+            100.0 * (v[1] - v[0] * v[0]) * (v[1] - v[0] * v[0]),
+        Vector<double>.fromList([-1.2, 1.0], type: DataType.float64),
+        maxIterations: 1,
+      );
+      check(maxIterRes.converged).isFalse;
+    });
+
+    test('validates bfgs arguments', () {
+      final valid = Vector<double>.fromList([1.0], type: DataType.float64);
+      check(() => bfgs((v) => 0.0, Vector<double>.fromList([])))
+          .throws<ArgumentError>();
+      check(() => bfgs((v) => 0.0, valid, tolerance: 0.0))
+          .throws<ArgumentError>();
+      check(() => bfgs((v) => 0.0, valid, maxIterations: 0))
+          .throws<ArgumentError>();
     });
   });
 
@@ -108,9 +155,10 @@ void main() {
       check(res.point[2]).isCloseTo(3.0, 1e-5);
       check(res.value).isCloseTo(0.0, 1e-5);
       check(res.gradientNorm).isLessThan(1e-4);
+      check(res.converged).isTrue;
     });
 
-    test('supports memorySize truncation', () {
+    test('supports memorySize truncation and validates arguments', () {
       double f(Vector<double> v) => v[0] * v[0] + v[1] * v[1];
       final start = Vector<double>.fromList([
         5.0,
@@ -120,6 +168,28 @@ void main() {
 
       check(res.point[0]).isCloseTo(0.0, 1e-5);
       check(res.point[1]).isCloseTo(0.0, 1e-5);
+
+      check(() => lbfgs(f, Vector<double>.fromList([])))
+          .throws<ArgumentError>();
+      check(() => lbfgs(f, start, memorySize: 0)).throws<ArgumentError>();
+      check(() => lbfgs(f, start, tolerance: double.nan))
+          .throws<ArgumentError>();
+      check(() => lbfgs(f, start, maxIterations: 0)).throws<ArgumentError>();
+
+      final nanInit = lbfgs(
+        (v) => double.nan,
+        Vector<double>.fromList([1.0], type: DataType.float64),
+      );
+      check(nanInit.converged).isFalse;
+
+      final maxIterRes = lbfgs(
+        (v) =>
+            (1.0 - v[0]) * (1.0 - v[0]) +
+            100.0 * (v[1] - v[0] * v[0]) * (v[1] - v[0] * v[0]),
+        Vector<double>.fromList([-1.2, 1.0], type: DataType.float64),
+        maxIterations: 1,
+      );
+      check(maxIterRes.converged).isFalse;
     });
   });
 }

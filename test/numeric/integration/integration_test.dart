@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/src/numeric/integration/integration.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Canonical Numerical Integration (integrate)', () {
@@ -259,14 +259,48 @@ void main() {
           x == 1.0 ? double.infinity : 1.0 / math.pow(1.0 - x, 2);
       check(() => integrate(divX2, 0.0, 1.0, poles: [1.0]))
           .throws<IntegrateError>();
+    });
 
-      // Validation errors, multiple distinct interior poles, and Simpson depthTooShallow
+    test('validates bounds, tolerance, and maxDepth arguments', () {
       check(() => integrate((x) => x, 0.0, 1.0, tolerance: 0.0))
+          .throws<ArgumentError>();
+      check(() => integrate((x) => x, 0.0, 1.0, tolerance: double.infinity))
           .throws<ArgumentError>();
       check(() => integrate((x) => x, 0.0, 1.0, maxDepth: -1))
           .throws<ArgumentError>();
-      check(integrate((x) => 1.0, 0.0, 2.0, poles: [0.5, 1.5]))
-          .isCloseTo(2.0, 1e-8);
+    });
+
+    test(
+      'splits multiple interior poles and handles ArgumentError near pole',
+      () {
+        check(integrate((x) => 1.0, 0.0, 2.0, poles: [0.5, 1.5]))
+            .isCloseTo(2.0, 1e-8);
+
+        // Integrand throws ArgumentError right at endpoint pole; transformed integral recovers
+        check(
+          integrate(
+            (x) {
+              if (x <= 0.0) throw ArgumentError('x <= 0');
+              return 1.0 / math.sqrt(x);
+            },
+            0.0,
+            1.0,
+            poles: [0.0],
+          ),
+        ).isCloseTo(2.0, 1e-6);
+
+        // Large-coordinate endpoint pole (x = 1e4) still moves delta off pole
+        final shiftedPole = integrate(
+          (x) => 1.0 / math.sqrt((x - 1e4).abs()),
+          1e4,
+          1e4 + 1.0,
+          poles: [1e4],
+        );
+        check(shiftedPole).isCloseTo(2.0, 1e-6);
+      },
+    );
+
+    test('Simpson depthTooShallow throws or invokes onWarning', () {
       check(
         () => integrate(
           math.sin,
@@ -277,6 +311,7 @@ void main() {
           tolerance: 1e-15,
         ),
       ).throws<IntegrateError>();
+
       var simpWarned = false;
       integrate(
         math.sin,
@@ -288,7 +323,9 @@ void main() {
         onWarning: (w, x) => simpWarned = true,
       );
       check(simpWarned).isTrue;
+    });
 
+    test('improper integrals with poles at boundary and tight tolerances', () {
       // \int_{-\infty}^0 1 / (sqrt(-x) * (1 + x^2)) dx = pi / sqrt(2)
       final resNegInfinite = integrate(
         (x) => 1.0 / (math.sqrt(-x) * (1.0 + x * x)),
@@ -297,6 +334,32 @@ void main() {
         poles: [0.0],
       );
       check(resNegInfinite).isCloseTo(math.pi / math.sqrt(2.0), 1e-4);
+
+      // \int_0^{+\infty} 1 / (sqrt(x) * (1 + x^2)) dx = pi / sqrt(2)
+      final resPosInfinite = integrate(
+        (x) => 1.0 / (math.sqrt(x) * (1.0 + x * x)),
+        0.0,
+        double.infinity,
+        poles: [0.0],
+      );
+      check(resPosInfinite).isCloseTo(math.pi / math.sqrt(2.0), 1e-4);
+
+      // Compact support semi-infinite integrand (returns 0 on tail without NaN)
+      final compactTail = integrate(
+        (x) => x > 100.0 ? 0.0 : math.exp(-x),
+        0.0,
+        double.infinity,
+      );
+      check(compactTail).isCloseTo(1.0, 1e-6);
+
+      // Tight tolerance 1e-12 on large-magnitude integral (> 100)
+      final largeVal = integrate(
+        (x) => 1000.0 * math.cos(x),
+        0.0,
+        1.0,
+        tolerance: 1e-12,
+      );
+      check(largeVal).isCloseTo(1000.0 * math.sin(1.0), 1e-10);
     });
   });
 }

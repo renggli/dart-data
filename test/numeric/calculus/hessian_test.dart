@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('hessian', () {
@@ -52,5 +52,23 @@ void main() {
         check((h.get(0, 0) - 6e8).abs() / 6e8).isLessThan(1e-3);
       },
     );
+
+    test('empty point returns 0x0 matrix without evaluating function', () {
+      var called = false;
+      final res = hessian((v) {
+        called = true;
+        return 0.0;
+      }, Vector<double>.fromList([], type: DataType.float64));
+      check(res.rowCount).equals(0);
+      check(res.colCount).equals(0);
+      check(called).isFalse;
+    });
+
+    test('validates positive finite step', () {
+      final pt = Vector<double>.fromList([1.0], type: DataType.float64);
+      check(() => hessian((v) => v[0], pt, step: 0.0)).throws<ArgumentError>();
+      check(() => hessian((v) => v[0], pt, step: double.nan))
+          .throws<ArgumentError>();
+    });
   });
 }

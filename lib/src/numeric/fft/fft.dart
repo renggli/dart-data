@@ -11,11 +11,10 @@ import '../../type/types/complex.dart';
 ///
 /// Conceptually, the Fast Fourier Transform acts like a prism: it decomposes a
 /// signal measured over time into its constituent sinusoidal frequencies and
-/// their corresponding amplitudes and phases. Formally, it computes the
-/// discrete Fourier transform $X_k = \sum_{n=0}^{N-1} x_n e^{-2\pi i k n / N}$
-/// in $\mathcal{O}(N \log N)$ time for arbitrary signal lengths (using
-/// Cooley-Tukey radix-2 for power-of-2 lengths and Bluestein's chirp Z-transform
-/// for arbitrary lengths).
+/// their corresponding amplitudes and phases. Formally, it computes
+/// `X_k = ∑_{n=0}^{N-1} x_n · exp(-2πi·k·n/N)` in O(N log N) time for arbitrary
+/// signal lengths (using Cooley-Tukey radix-2 for power-of-2 lengths and
+/// Bluestein's chirp Z-transform for arbitrary lengths).
 ///
 /// If [buffer] is a [Float64ComplexList], the transform executes directly
 /// in-place on its internal interleaved storage array with zero memory
@@ -62,15 +61,14 @@ void fft(List<Complex> buffer, {bool inverse = false}) {
 /// Conceptually, 2D FFT analyzes 2D grids (such as images or spatial fields) to
 /// identify directional wave patterns, textures, and spatial frequencies.
 /// Formally, it computes the separable 2D DFT by transforming rows then columns
-/// in $\mathcal{O}(M N \log(M N))$ time with hardware acceleration when
-/// available.
+/// in O(M·N·log(M·N)) time with hardware acceleration when available.
 ///
 /// If [flat] is a [Float64ComplexList], the transform executes directly
 /// in-place on its internal interleaved storage array with zero memory
 /// allocations or copies.
 ///
-/// The dimensions [rows] and [cols] must each be a power of 2, and the length
-/// of [flat] must equal `rows * cols`.
+/// The dimensions [rows] and [cols] must each be a power of 2 (or zero with an
+/// empty [flat] buffer), and the length of [flat] must equal `rows * cols`.
 ///
 /// ```dart
 /// final image = Float64ComplexList.fromList([
@@ -86,7 +84,22 @@ void fft2(
   required int cols,
   bool inverse = false,
 }) {
-  if (rows <= 0 || cols <= 0) return;
+  if (rows < 0) {
+    throw ArgumentError.value(rows, 'rows', 'Rows must be non-negative');
+  }
+  if (cols < 0) {
+    throw ArgumentError.value(cols, 'cols', 'Cols must be non-negative');
+  }
+  if (rows == 0 || cols == 0) {
+    if (flat.isNotEmpty) {
+      throw ArgumentError.value(
+        flat.length,
+        'flat.length',
+        'Buffer must be empty when rows or cols is zero ($rows * $cols = 0)',
+      );
+    }
+    return;
+  }
   if ((rows & (rows - 1)) != 0) {
     throw ArgumentError.value(rows, 'rows', 'Rows must be a power of 2');
   }
@@ -120,17 +133,17 @@ void fft2(
   }
 }
 
-/// Mode of 1-dimensional discrete linear convolution.
+/// Mode of 1-dimensional discrete linear convolution and cross-correlation.
 enum ConvolutionMode {
-  /// The output is the full linear convolution of length $N + M - 1$.
+  /// The output is the full linear operation of length `N + M - 1`.
   full,
 
   /// The output has the same length as the input signal, centered with respect
-  /// to the full convolution.
+  /// to the full result.
   same,
 
   /// The output consists only of those elements that do not rely on
-  /// zero-padding, of length $\max(N - M + 1, 0)$.
+  /// zero-padding, of length `max(N - M + 1, 0)`.
   valid,
 }
 
@@ -139,7 +152,7 @@ enum ConvolutionMode {
 ///
 /// Conceptually, convolution filters or transforms an input signal by sliding
 /// a filter kernel across it and computing weighted sums. Formally, it computes
-/// $(s * f)_n = \sum_p s_p f_{n-p}$ according to the chosen [mode].
+/// `(s * f)[n] = ∑_p s[p] · f[n - p]` according to the chosen [mode].
 ///
 /// ```dart
 /// final signal = [1.0, 2.0, 3.0, 4.0];
@@ -152,12 +165,12 @@ List<double> convolve(
   Iterable<num> filter, {
   ConvolutionMode mode = ConvolutionMode.full,
 }) {
-  final s = Float64List.fromList([for (final x in signal) x.toDouble()]);
-  final f = Float64List.fromList([for (final x in filter) x.toDouble()]);
+  final s = _toFloat64List(signal);
+  final f = _toFloat64List(filter);
   final n = s.length;
   final m = f.length;
 
-  if (n == 0 || m == 0) return const [];
+  if (n == 0 || m == 0) return Float64List(0);
 
   switch (mode) {
     case ConvolutionMode.valid:
@@ -179,17 +192,54 @@ List<double> convolve(
 /// [filter].
 ///
 /// Conceptually, cross-correlation measures the similarity of two waveforms as
-/// a function of the displacement of one relative to the other. Formally, it
-/// computes $r_n = \sum_{p=0}^{P-1} s_{n+p} f_p$ for valid overlap length
-/// $N = \text{signal.length} - \text{filter.length} + 1$.
+/// a function of the displacement of one relative to the other. Formally, for
+/// [ConvolutionMode.valid] (default), it computes
+/// `r[n] = ∑_{p=0}^{P-1} s[n + p] · f[p]` for valid overlap length
+/// `max(signal.length - filter.length + 1, 0)`. Supports [ConvolutionMode.full]
+/// and [ConvolutionMode.same] with zero-padding.
 ///
 /// ```dart
 /// final signal = [1.0, 2.0, 3.0, 4.0];
 /// final pattern = [2.0, 3.0];
 /// final match = correlate(signal, pattern);
 /// ```
-List<double> correlate(Iterable<num> signal, Iterable<num> filter) {
-  final s = Float64List.fromList([for (final x in signal) x.toDouble()]);
-  final f = Float64List.fromList([for (final x in filter) x.toDouble()]);
-  return Vforce.correlate(signal: s, filter: f);
+List<double> correlate(
+  Iterable<num> signal,
+  Iterable<num> filter, {
+  ConvolutionMode mode = ConvolutionMode.valid,
+}) {
+  final s = _toFloat64List(signal);
+  final f = _toFloat64List(filter);
+  final n = s.length;
+  final m = f.length;
+
+  if (n == 0 || m == 0) return Float64List(0);
+
+  switch (mode) {
+    case ConvolutionMode.valid:
+      return Vforce.correlate(signal: s, filter: f);
+    case ConvolutionMode.full:
+      final padded = Float64List(n + 2 * m - 2);
+      padded.setRange(m - 1, m - 1 + n, s);
+      return Vforce.correlate(signal: padded, filter: f);
+    case ConvolutionMode.same:
+      final padded = Float64List(n + 2 * m - 2);
+      padded.setRange(m - 1, m - 1 + n, s);
+      final full = Vforce.correlate(signal: padded, filter: f);
+      final start = (m - 1) ~/ 2;
+      return full.sublist(start, start + n);
+  }
+}
+
+Float64List _toFloat64List(Iterable<num> input) {
+  if (input is Float64List) return input;
+  if (input is List<num>) {
+    final len = input.length;
+    final out = Float64List(len);
+    for (var i = 0; i < len; i++) {
+      out[i] = input[i].toDouble();
+    }
+    return out;
+  }
+  return Float64List.fromList([for (final x in input) x.toDouble()]);
 }

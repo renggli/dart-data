@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/numeric/optimization/nelder_mead.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('nelderMead', () {
@@ -55,15 +55,43 @@ void main() {
       check(res.iterations).isLessOrEqual(5);
     });
 
-    test('does not select NaN vertex on maxIterations exhaustion', () {
-      double f(Vector<double> v) {
-        if (v[0] < 0.0) return double.nan;
-        return (v[0] - 1.0) * (v[0] - 1.0) + (v[1] - 1.0) * (v[1] - 1.0);
-      }
+    test(
+      'does not select NaN vertex and replaces NaN vertices with finite trials',
+      () {
+        double f(Vector<double> v) {
+          if (v[0] < 0.0) return double.nan;
+          return (v[0] - 1.0) * (v[0] - 1.0) + (v[1] - 1.0) * (v[1] - 1.0);
+        }
 
-      final start = Vector<double>.fromList([0.1, 0.1], type: DataType.float64);
-      final res = nelderMead(f, start, step: 0.5, maxIterations: 1);
-      check(res.value.isNaN).isFalse;
+        final start = Vector<double>.fromList([
+          0.1,
+          0.1,
+        ], type: DataType.float64);
+        final limited = nelderMead(f, start, step: 0.5, maxIterations: 1);
+        check(limited.value.isNaN).isFalse;
+
+        final full = nelderMead(
+          (v) => v[0] < 0.0 || v[1] < 0.0
+              ? double.nan
+              : (v[0] - 2.0) * (v[0] - 2.0) + (v[1] - 2.0) * (v[1] - 2.0),
+          Vector<double>.fromList([0.2, 0.2], type: DataType.float64),
+          step: 0.5,
+        );
+        check(full.point[0]).isCloseTo(2.0, 1e-3);
+        check(full.point[1]).isCloseTo(2.0, 1e-3);
+      },
+    );
+
+    test('validates arguments', () {
+      final valid = Vector<double>.fromList([1.0], type: DataType.float64);
+      check(() => nelderMead((v) => 0.0, Vector<double>.fromList([])))
+          .throws<ArgumentError>();
+      check(() => nelderMead((v) => 0.0, valid, step: 0.0))
+          .throws<ArgumentError>();
+      check(() => nelderMead((v) => 0.0, valid, tolerance: double.nan))
+          .throws<ArgumentError>();
+      check(() => nelderMead((v) => 0.0, valid, maxIterations: 0))
+          .throws<ArgumentError>();
     });
   });
 }

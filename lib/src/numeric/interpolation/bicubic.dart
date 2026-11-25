@@ -6,13 +6,13 @@ import '../../type/data_type.dart';
 import 'interpolator.dart';
 import 'search.dart';
 
-/// 2D Bicubic surface interpolation over a rectilinear grid with $C^1$
-/// continuity.
+/// 2D Bicubic surface interpolation over a rectilinear grid with C¹ continuity.
 class BicubicInterpolation implements Interpolator2D {
   /// Constructs a bicubic interpolator.
   ///
-  /// Points in [xs] and [ys] must be strictly monotonically increasing with
-  /// length $\ge 2$. [values] must have shape `[xs.length, ys.length]`.
+  /// Points in [xs] and [ys] must be finite and strictly monotonically
+  /// increasing with length ≥ 2. [values] must have shape
+  /// `[xs.length, ys.length]`.
   new(Iterable<num> xs, Iterable<num> ys, Matrix<num> values)
     : _xs = [for (final x in xs) x.toDouble()],
       _ys = [for (final y in ys) y.toDouble()] {
@@ -24,6 +24,16 @@ class BicubicInterpolation implements Interpolator2D {
     }
     if (ny < 2) {
       throw ArgumentError('ys must contain at least 2 points.');
+    }
+    for (final x in _xs) {
+      if (!x.isFinite) {
+        throw ArgumentError('xs must contain only finite values.');
+      }
+    }
+    for (final y in _ys) {
+      if (!y.isFinite) {
+        throw ArgumentError('ys must contain only finite values.');
+      }
     }
     for (var i = 0; i < nx - 1; i++) {
       if (!(_xs[i] < _xs[i + 1])) {
@@ -214,6 +224,7 @@ class BicubicInterpolation implements Interpolator2D {
 
   @override
   double call(double x, double y) {
+    if (x.isNaN || y.isNaN) return double.nan;
     final xClamped = x.clamp(_xs.first, _xs.last);
     final yClamped = y.clamp(_ys.first, _ys.last);
 
@@ -251,10 +262,14 @@ class BicubicInterpolation implements Interpolator2D {
     return ((row3 * u + row2) * u + row1) * u + row0;
   }
 
-  /// Computes the gradient
-  /// $(\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y})$ at ([x],
-  /// [y]).
+  /// Computes the gradient `(∂f/∂x, ∂f/∂y)` at ([x], [y]).
   Vector<double> gradient(double x, double y) {
+    if (x.isNaN || y.isNaN) {
+      return Vector<double>.fromList([
+        double.nan,
+        double.nan,
+      ], type: DataType.float64);
+    }
     final xClamped = x.clamp(_xs.first, _xs.last);
     final yClamped = y.clamp(_ys.first, _ys.last);
 

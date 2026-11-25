@@ -3,16 +3,13 @@ import 'dart:math' as math;
 import '../../linear/vector.dart';
 import '../../type/data_type.dart';
 
-/// Computes the gradient vector $\nabla f(\mathbf{x})$ of multivariate function
-/// [function] at [point].
+/// Computes the gradient vector ∇f(x) of multivariate function [function] at
+/// [point].
 ///
 /// Conceptually, the gradient is a vector pointing in the direction of steepest
 /// ascent on a multivariate surface, with its Euclidean norm representing the
-/// steepness. Formally, it computes
-/// $\nabla f(\mathbf{x}) =$
-/// $\left(\frac{\partial f}{\partial x_1}, \dots,\right.$
-/// $\left.\frac{\partial f}{\partial x_n}\right)^T$
-/// via coordinate-wise central finite differences.
+/// steepness. Formally, it computes `(∂f/∂x₁, ..., ∂f/∂xₙ)ᵀ` via
+/// coordinate-wise central finite differences.
 ///
 /// ```dart
 /// final p = Vector<double>.fromList([1.0, 2.0]);
@@ -33,14 +30,14 @@ Vector<double> gradient(
 
   final xWork = point.copy();
   for (var i = 0; i < dim; i++) {
-    final xi = point[i];
+    final xi = point.getUnchecked(i);
     final h = step * math.max(1.0, xi.abs());
-    xWork[i] = xi + h;
+    xWork.setUnchecked(i, xi + h);
     final fPlus = function(xWork);
-    xWork[i] = xi - h;
+    xWork.setUnchecked(i, xi - h);
     final fMinus = function(xWork);
-    xWork[i] = xi;
-    result[i] = (fPlus - fMinus) / (2.0 * h);
+    xWork.setUnchecked(i, xi);
+    result.setUnchecked(i, (fPlus - fMinus) / (2.0 * h));
   }
   return result;
 }

@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../../acceleration/lapack/lapack.dart';
-import '../../linear/decomposition/qr.dart';
 import '../../linear/decomposition/svd.dart';
 import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
@@ -13,14 +12,14 @@ import '../calculus/jacobian.dart' as calculus;
 /// Curve fitting and regression algorithms using numerically stable QR and SVD
 /// matrix decompositions.
 
-/// Solves the general linear least squares problem $\min \|A x - b\|_2$.
+/// Solves the general linear least squares problem `min ‖A·x - b‖₂`.
 ///
 /// Conceptually, when an overdetermined system has more observations than
 /// parameters, an exact solution may not exist. Least squares finds the
 /// parameters that best fit the data by minimizing the sum of squared
-/// residuals. Formally, it computes $\hat{\mathbf{x}} = A^+ \mathbf{b}$ using
-/// Householder QR factorization for full-rank systems, and Golub-Reinsch SVD
-/// for rank-deficient systems.
+/// residuals. Formally, it computes `x̂ = A⁺·b` using Householder QR
+/// factorization for full-rank systems, and Golub-Reinsch SVD for rank-deficient
+/// systems.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([
@@ -56,9 +55,11 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
       );
     } else {
       aData = DataType.float64.newList(rows * cols);
-      final aFlat = a.values.toList(growable: false);
-      for (var i = 0; i < aFlat.length; i++) {
-        aData[i] = aFlat[i].toDouble();
+      var k = 0;
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < cols; c++) {
+          aData[k++] = a.getUnchecked(r, c).toDouble();
+        }
       }
     }
     final Float64List bData;
@@ -70,7 +71,7 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
     } else {
       bData = DataType.float64.newList(rows);
       for (var i = 0; i < rows; i++) {
-        bData[i] = b[i].toDouble();
+        bData[i] = b.getUnchecked(i).toDouble();
       }
     }
     final success = Lapack.dgels(
@@ -104,23 +105,15 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
           (i) => b.getUnchecked(i).toDouble(),
           type: DataType.float64,
         );
-  if (rows >= cols) {
-    final qr = aDouble.qr;
-    if (qr.isFullRank) {
-      return qr.solveVector(bDouble);
-    }
-  }
   return aDouble.svd.solveVector(bDouble);
 }
 
-/// Simple univariate linear regression fitting
-/// $y = \text{slope} \cdot x + \text{intercept}$.
+/// Simple univariate linear regression fitting `y = slope · x + intercept`.
 ///
 /// Conceptually, this fits an optimal straight trendline through scattered data
 /// points, determining the slope and vertical intercept. Formally, it fits an
-/// ordinary least squares affine model minimizing
-/// $\sum (y_i - (\beta_0 + \beta_1 x_i))^2$ and computes the coefficient of
-/// determination $R^2$.
+/// ordinary least squares affine model minimizing `∑ (y_i - (β_0 + β_1·x_i))²`
+/// and computes the coefficient of determination R².
 ///
 /// ```dart
 /// final xs = Vector<double>.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -200,9 +193,11 @@ Polynomial<double> polynomialRegression(
   if (degree < 0) {
     throw ArgumentError.value(degree, 'degree', 'Degree must be non-negative.');
   }
-  if (lambda < 0.0) {
-    throw ArgumentError(
-      'Regularization parameter lambda must be non-negative: $lambda',
+  if (lambda < 0.0 || !lambda.isFinite) {
+    throw ArgumentError.value(
+      lambda,
+      'lambda',
+      'Regularization parameter lambda must be non-negative and finite.',
     );
   }
   final numPoints = xs.length;
@@ -216,39 +211,40 @@ Polynomial<double> polynomialRegression(
     throw ArgumentError('At least 1 point is required for regression.');
   }
 
-  final Matrix<double> designMatrix;
+  final totalRows = lambda == 0.0 ? numPoints : numPoints + numCoeffs;
+  final designMatrix = Matrix<double>.filled(
+    totalRows,
+    numCoeffs,
+    0.0,
+    type: DataType.float64,
+  );
+  for (var row = 0; row < numPoints; row++) {
+    final xi = xs.getUnchecked(row).toDouble();
+    var p = 1.0;
+    for (var col = 0; col < numCoeffs; col++) {
+      designMatrix.setUnchecked(row, col, p);
+      p *= xi;
+    }
+  }
   final Vector<double> targetVector;
-
   if (lambda == 0.0) {
-    designMatrix = Matrix<double>.generate(
-      numPoints,
-      numCoeffs,
-      (row, col) => math.pow(xs[row].toDouble(), col).toDouble(),
-      type: DataType.float64,
-    );
     targetVector = ys is Vector<double>
         ? ys
         : Vector<double>.generate(
             numPoints,
-            (i) => ys[i].toDouble(),
+            (i) => ys.getUnchecked(i).toDouble(),
             type: DataType.float64,
           );
   } else {
     // Augment Vandermonde matrix with sqrt(lambda) * I (leaving intercept
     // column 0 unpenalized)
     final sqrtLambda = math.sqrt(lambda);
-    final totalRows = numPoints + numCoeffs;
-    designMatrix = Matrix<double>.generate(totalRows, numCoeffs, (row, col) {
-      if (row < numPoints) {
-        return math.pow(xs[row].toDouble(), col).toDouble();
-      }
-      final penaltyIdx = row - numPoints;
-      // Do not penalize intercept (col == 0)
-      return (penaltyIdx > 0 && penaltyIdx == col) ? sqrtLambda : 0.0;
-    }, type: DataType.float64);
+    for (var col = 1; col < numCoeffs; col++) {
+      designMatrix.setUnchecked(numPoints + col, col, sqrtLambda);
+    }
     targetVector = Vector<double>.generate(
       totalRows,
-      (i) => i < numPoints ? ys[i].toDouble() : 0.0,
+      (i) => i < numPoints ? ys.getUnchecked(i).toDouble() : 0.0,
       type: DataType.float64,
     );
   }
@@ -260,7 +256,7 @@ Polynomial<double> polynomialRegression(
   );
 }
 
-/// Multiple linear regression fitting $y = X \beta + \epsilon$.
+/// Multiple linear regression fitting `y = X·β + ε`.
 ({
   Vector<double> coefficients,
   double intercept,
@@ -358,27 +354,25 @@ class CurveFitResult {
     required this.standardErrors,
   });
 
-  /// The optimal parameter vector $\hat{\boldsymbol{\theta}}$.
+  /// The optimal parameter vector `θ̂`.
   final Vector<double> parameters;
 
-  /// Predictor function evaluating the fitted model
-  /// $\hat{y} = f(x; \hat{\boldsymbol{\theta}})$.
+  /// Predictor function evaluating the fitted model `ŷ = f(x; θ̂)`.
   final double Function(double x) predict;
 
-  /// Coefficient of determination $R^2 \in (-\infty, 1]$, measuring
-  /// goodness-of-fit.
+  /// Coefficient of determination `R² ∈ (−∞, 1]`, measuring goodness-of-fit.
   final double rSquared;
 
-  /// Residual standard error $\sqrt{\frac{\sum r_i^2}{N - P}}$.
+  /// Residual standard error `sqrt(∑ r_i² / (N - P))`.
   final double residualStandardError;
 
-  /// The residual vector $\mathbf{r}$ where $r_i = \hat{y}_i - y_i$.
+  /// The residual vector `r` where `r_i = ŷ_i - y_i`.
   final Vector<double> residuals;
 
   /// The number of optimization iterations performed.
   final int iterations;
 
-  /// The estimated parameter covariance matrix $(J^T J)^{-1} \cdot \text{RSE}^2$.
+  /// The estimated parameter covariance matrix `(Jᵀ·J)⁻¹ · RSE²`.
   final Matrix<double> covariance;
 
   /// The standard errors for each fitted parameter.
@@ -387,21 +381,20 @@ class CurveFitResult {
 
 /// Predefined parametric models for non-linear curve fitting with [curveFit].
 abstract final class CurveModels {
-  /// Exponential model: $f(x; a, b) = a e^{b x}$. Parameters: `[a, b]`.
+  /// Exponential model: `f(x; a, b) = a · exp(b·x)`. Parameters: `[a, b]`.
   static double exponential(double x, Vector<double> params) =>
       params[0] * math.exp(params[1] * x);
 
-  /// Power-law model: $f(x; a, b) = a x^b$. Parameters: `[a, b]`.
+  /// Power-law model: `f(x; a, b) = a · x^b`. Parameters: `[a, b]`.
   static double power(double x, Vector<double> params) =>
       params[0] * math.pow(x, params[1]).toDouble();
 
-  /// Logarithmic model: $f(x; a, b) = a + b \ln x$. Parameters: `[a, b]`.
+  /// Logarithmic model: `f(x; a, b) = a + b · ln(x)`. Parameters: `[a, b]`.
   static double logarithmic(double x, Vector<double> params) =>
       params[0] + params[1] * math.log(x);
 
-  /// Gaussian peak model:
-  /// $f(x; a, \mu, \sigma) = a e^{-\frac{(x - \mu)^2}{2\sigma^2}}$. Parameters:
-  /// `[a, mu, sigma]`.
+  /// Gaussian peak model: `f(x; a, μ, σ) = a · exp(-(x - μ)² / (2·σ²))`.
+  /// Parameters: `[a, mu, sigma]`.
   static double gaussian(double x, Vector<double> params) {
     final diff = x - params[1];
     final s = params[2];
@@ -409,18 +402,16 @@ abstract final class CurveModels {
   }
 }
 
-/// Fits non-linear parameters $\hat{\boldsymbol{\theta}}$ to data points ([xs],
-/// [ys]) using [model].
+/// Fits non-linear parameters `θ̂` to data points ([xs], [ys]) using [model].
 ///
 /// Conceptually, curve fitting determines the optimal parameters of a
 /// mathematical function that best trace the trend of experimental or observed
 /// data points. Formally, it minimizes the sum of squared residuals
-/// $\sum_{i=1}^N (f(x_i; \boldsymbol{\theta}) - y_i)^2$ using
-/// Levenberg-Marquardt damped least-squares with optional box constraints
-/// ([lowerBounds] and [upperBounds]).
+/// `∑_{i=1}^N (f(x_i; θ) - y_i)²` using Levenberg-Marquardt damped least-squares
+/// with optional box constraints ([lowerBounds] and [upperBounds]).
 ///
 /// Returns a [CurveFitResult] containing the optimal parameters, predictor
-/// function, $R^2$ goodness-of-fit, and residual metrics.
+/// function, R² goodness-of-fit, and residual metrics.
 ///
 /// ```dart
 /// final xs = Vector<double>.fromList([0.0, 1.0, 2.0, 3.0]);
@@ -454,6 +445,9 @@ CurveFitResult curveFit({
     throw ArgumentError('xs length ($n) must match ys length (${ys.length}).');
   }
   final numParams = initialParams.length;
+  if (numParams == 0) {
+    throw ArgumentError('initialParams cannot be empty.');
+  }
   if (n < numParams) {
     throw ArgumentError(
       'Number of data points ($n) must be at least number of parameters ($numParams).',
@@ -591,10 +585,13 @@ CurveFitResult curveFit({
 }
 
 /// Fits non-linear parameters using the Levenberg-Marquardt damped
-/// least-squares algorithm.
+/// least-squares algorithm, with optional box constraints ([lowerBounds] and
+/// [upperBounds]).
 Vector<double> fitNonlinear({
   required Vector<double> Function(Vector<double> params) residualFunction,
   required Vector<double> initialParams,
+  Vector<double>? lowerBounds,
+  Vector<double>? upperBounds,
   double damping = 1e-2,
   double dampingStepUp = 10.0,
   double dampingStepDown = 0.1,
@@ -603,6 +600,8 @@ Vector<double> fitNonlinear({
 }) => _levenbergMarquardt(
   residualFunction: residualFunction,
   initialParams: initialParams,
+  lowerBounds: lowerBounds,
+  upperBounds: upperBounds,
   damping: damping,
   dampingStepUp: dampingStepUp,
   dampingStepDown: dampingStepDown,
@@ -623,12 +622,74 @@ _levenbergMarquardt({
   int maxIterations = 100,
 }) {
   final numParams = initialParams.length;
+  if (numParams == 0) {
+    throw ArgumentError('initialParams cannot be empty.');
+  }
+  if (tolerance <= 0.0 || !tolerance.isFinite) {
+    throw ArgumentError.value(
+      tolerance,
+      'tolerance',
+      'Tolerance must be positive and finite.',
+    );
+  }
+  if (maxIterations <= 0) {
+    throw ArgumentError.value(
+      maxIterations,
+      'maxIterations',
+      'Max iterations must be positive.',
+    );
+  }
+  if (damping <= 0.0 || !damping.isFinite) {
+    throw ArgumentError.value(
+      damping,
+      'damping',
+      'Damping must be positive and finite.',
+    );
+  }
+  if (dampingStepUp <= 1.0 || !dampingStepUp.isFinite) {
+    throw ArgumentError.value(
+      dampingStepUp,
+      'dampingStepUp',
+      'Damping step-up factor must be finite and > 1.0.',
+    );
+  }
+  if (dampingStepDown <= 0.0 ||
+      dampingStepDown >= 1.0 ||
+      !dampingStepDown.isFinite) {
+    throw ArgumentError.value(
+      dampingStepDown,
+      'dampingStepDown',
+      'Damping step-down factor must be strictly between 0.0 and 1.0.',
+    );
+  }
+  if (lowerBounds != null && lowerBounds.length != numParams) {
+    throw ArgumentError(
+      'lowerBounds length (${lowerBounds.length}) must match initialParams length ($numParams).',
+    );
+  }
+  if (upperBounds != null && upperBounds.length != numParams) {
+    throw ArgumentError(
+      'upperBounds length (${upperBounds.length}) must match initialParams length ($numParams).',
+    );
+  }
+
   final params = initialParams.copy();
   if (lowerBounds != null || upperBounds != null) {
     for (var k = 0; k < numParams; k++) {
-      final lo = lowerBounds?[k] ?? double.negativeInfinity;
-      final hi = upperBounds?[k] ?? double.infinity;
-      params[k] = params[k].clamp(lo, hi);
+      final lo = lowerBounds?.getUnchecked(k) ?? double.negativeInfinity;
+      final hi = upperBounds?.getUnchecked(k) ?? double.infinity;
+      if (lo.isNaN) {
+        throw ArgumentError('lowerBounds[$k] cannot be NaN.');
+      }
+      if (hi.isNaN) {
+        throw ArgumentError('upperBounds[$k] cannot be NaN.');
+      }
+      if (lo > hi) {
+        throw ArgumentError(
+          'lowerBounds[$k] ($lo) must be <= upperBounds[$k] ($hi).',
+        );
+      }
+      params.setUnchecked(k, params.getUnchecked(k).clamp(lo, hi));
     }
   }
 
@@ -638,7 +699,7 @@ _levenbergMarquardt({
   var iter = 0;
 
   for (; iter < maxIterations; iter++) {
-    if (math.sqrt(currentCost) < tolerance) break;
+    if (!currentCost.isFinite || math.sqrt(currentCost) < tolerance) break;
 
     final j = calculus.jacobian(residualFunction, params, step: 1e-7);
 
@@ -647,7 +708,7 @@ _levenbergMarquardt({
     final jTr = j.applyTranspose(residuals);
 
     final a = Matrix<double>.generate(numParams, numParams, (row, col) {
-      var val = jTj.get(row, col);
+      var val = jTj.getUnchecked(row, col);
       if (row == col) {
         val += lambda * (val.abs() > 1e-6 ? val.abs() : 1.0);
       }
@@ -657,29 +718,30 @@ _levenbergMarquardt({
     final rhs = -jTr;
     final delta = leastSquares(a, rhs);
 
-    if (delta.norm() < tolerance) break;
+    if (delta.norm() < tolerance * math.max(1.0, params.norm())) break;
 
     final pCandidate = params + delta;
     if (lowerBounds != null || upperBounds != null) {
       for (var k = 0; k < numParams; k++) {
-        final lo = lowerBounds?[k] ?? double.negativeInfinity;
-        final hi = upperBounds?[k] ?? double.infinity;
-        pCandidate[k] = pCandidate[k].clamp(lo, hi);
+        final lo = lowerBounds?.getUnchecked(k) ?? double.negativeInfinity;
+        final hi = upperBounds?.getUnchecked(k) ?? double.infinity;
+        pCandidate.setUnchecked(k, pCandidate.getUnchecked(k).clamp(lo, hi));
       }
     }
 
     final rCandidate = residualFunction(pCandidate);
     final candidateCost = rCandidate.dot(rCandidate);
 
-    if (candidateCost < currentCost) {
+    if (candidateCost.isFinite && candidateCost < currentCost) {
       for (var k = 0; k < numParams; k++) {
-        params[k] = pCandidate[k];
+        params.setUnchecked(k, pCandidate.getUnchecked(k));
       }
       residuals = rCandidate;
       currentCost = candidateCost;
       lambda *= dampingStepDown;
     } else {
-      lambda *= dampingStepUp;
+      lambda = math.min(lambda * dampingStepUp, 1e16);
+      if (lambda >= 1e16) break;
     }
   }
 

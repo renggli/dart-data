@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/numeric.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('CubicSpline', () {
@@ -23,6 +23,11 @@ void main() {
       }
 
       check(spline(math.pi / 4.0)).isCloseTo(math.sin(math.pi / 4.0), 0.05);
+      check(spline.secondDerivative(0.0)).isCloseTo(0.0, 1e-9);
+      check(spline.secondDerivative(2.0 * math.pi)).isCloseTo(0.0, 1e-9);
+      check(spline(double.nan)).isNaN;
+      check(spline.derivative(double.nan)).isNaN;
+      check(spline.secondDerivative(double.nan)).isNaN;
     });
 
     test('clamped cubic spline interpolation', () {
@@ -42,12 +47,34 @@ void main() {
       check(spline(2.0)).isCloseTo(8.0, 1e-9);
       check(spline.derivative(0.0)).isCloseTo(0.0, 1e-9);
       check(spline.derivative(2.0)).isCloseTo(12.0, 1e-9);
+      // Exact cubic y = x^3 => S''(x) = 6x
+      check(spline.secondDerivative(0.0)).isCloseTo(0.0, 1e-9);
+      check(spline.secondDerivative(1.0)).isCloseTo(6.0, 1e-9);
+      check(spline.secondDerivative(2.0)).isCloseTo(12.0, 1e-9);
     });
 
     test('constructor errors', () {
       check(() => CubicSpline([1.0], [1.0])).throws<ArgumentError>();
       check(() => CubicSpline([1.0, 2.0], [1.0])).throws<ArgumentError>();
       check(() => CubicSpline([2.0, 1.0], [1.0, 2.0])).throws<ArgumentError>();
+      check(() => CubicSpline([0.0, double.infinity], [1.0, 2.0]))
+          .throws<ArgumentError>();
+      check(
+        () => CubicSpline(
+          [0.0, 1.0],
+          [1.0, 2.0],
+          boundary: CubicSplineBoundary.clamped,
+          leftSlope: double.nan,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CubicSpline(
+          [0.0, 1.0],
+          [1.0, 2.0],
+          boundary: CubicSplineBoundary.clamped,
+          rightSlope: double.infinity,
+        ),
+      ).throws<ArgumentError>();
     });
   });
 }

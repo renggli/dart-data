@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/numeric/optimization/optimization_types.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('OptimizationMethod', () {
@@ -56,6 +56,36 @@ void main() {
       check(result.iterations).equals(15);
       check(result.gradientNorm).equals(1e-5);
       check(result.converged).isTrue;
+    });
+
+    test('equality and hashCode', () {
+      final p1 = Vector<double>.fromList([1.0, 2.0]);
+      final p2 = Vector<double>.fromList([1.0, 2.0]);
+      final r1 = OptimizationResult(
+        point: p1,
+        value: 3.0,
+        iterations: 5,
+        gradientNorm: 1e-8,
+        converged: true,
+      );
+      final r2 = OptimizationResult(
+        point: p2,
+        value: 3.0,
+        iterations: 5,
+        gradientNorm: 1e-8,
+        converged: true,
+      );
+      final r3 = OptimizationResult(
+        point: p2,
+        value: 4.0,
+        iterations: 5,
+        gradientNorm: 1e-8,
+        converged: true,
+      );
+
+      check(r1).equals(r2);
+      check(r1.hashCode).equals(r2.hashCode);
+      check(r1 == r3).isFalse;
     });
 
     test('toString formatting', () {

@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/numeric.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Step Interpolation', () {
@@ -65,6 +65,8 @@ void main() {
       check(() => NearestInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
       check(() => NearestInterpolation([1.0, double.nan], ys2))
           .throws<ArgumentError>();
+      check(() => NearestInterpolation([1.0, double.infinity], ys2))
+          .throws<ArgumentError>();
 
       // Previous
       check(() => PreviousInterpolation(xs2, ys1)).throws<ArgumentError>();
@@ -73,6 +75,8 @@ void main() {
       check(() => PreviousInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
       check(() => PreviousInterpolation([1.0, double.nan], ys2))
           .throws<ArgumentError>();
+      check(() => PreviousInterpolation([double.negativeInfinity, 1.0], ys2))
+          .throws<ArgumentError>();
 
       // Next
       check(() => NextInterpolation(xs2, ys1)).throws<ArgumentError>();
@@ -80,6 +84,8 @@ void main() {
           .throws<ArgumentError>();
       check(() => NextInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
       check(() => NextInterpolation([1.0, double.nan], ys2))
+          .throws<ArgumentError>();
+      check(() => NextInterpolation([1.0, double.infinity], ys2))
           .throws<ArgumentError>();
     });
   });

@@ -1,7 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
 import 'package:data/src/numeric/fft/fft.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Fast Fourier Transform (FFT)', () {
@@ -153,25 +155,52 @@ void main() {
       check(valid[3]).isCloseTo(13.0, 1e-9);
     });
 
-    test('correlate 1D valid cross-correlation', () {
+    test('correlate 1D valid, full, same, and empty inputs', () {
       final signal = [1.0, 2.0, 3.0, 4.0, 5.0];
       final filter = [1.0, 2.0];
-      final result = correlate(signal, filter);
-      check(result.length).equals(4);
-      check(result[0]).isCloseTo(5.0, 1e-9);
-      check(result[1]).isCloseTo(8.0, 1e-9);
-      check(result[2]).isCloseTo(11.0, 1e-9);
-      check(result[3]).isCloseTo(14.0, 1e-9);
+
+      final valid = correlate(signal, filter);
+      check(valid.length).equals(4);
+      check(valid[0]).isCloseTo(5.0, 1e-9);
+      check(valid[1]).isCloseTo(8.0, 1e-9);
+      check(valid[2]).isCloseTo(11.0, 1e-9);
+      check(valid[3]).isCloseTo(14.0, 1e-9);
+
+      final full = correlate(signal, filter, mode: ConvolutionMode.full);
+      check(full.length).equals(6);
+      check(full[0]).isCloseTo(2.0, 1e-9);
+      check(full[1]).isCloseTo(5.0, 1e-9);
+      check(full[2]).isCloseTo(8.0, 1e-9);
+      check(full[3]).isCloseTo(11.0, 1e-9);
+      check(full[4]).isCloseTo(14.0, 1e-9);
+      check(full[5]).isCloseTo(5.0, 1e-9);
+
+      final same = correlate(signal, filter, mode: ConvolutionMode.same);
+      check(same.length).equals(5);
+      check(same[0]).isCloseTo(2.0, 1e-9);
+      check(same[1]).isCloseTo(5.0, 1e-9);
+      check(same[2]).isCloseTo(8.0, 1e-9);
+      check(same[3]).isCloseTo(11.0, 1e-9);
+      check(same[4]).isCloseTo(14.0, 1e-9);
+
+      check(correlate(const <double>[], filter)).isEmpty;
+      check(correlate(signal, const <double>[])).isEmpty;
+      check(convolve(const <double>[], filter)).isEmpty;
+      check(convolve(Float64List.fromList([1.0, 2.0]), [3.0]))
+          .deepEquals([3.0, 6.0]);
+      // Iterable (non-List) inputs for _toFloat64List fallback branch
+      check(convolve(signal.map((x) => x), [1.0], mode: ConvolutionMode.valid))
+          .deepEquals([1.0, 2.0, 3.0, 4.0, 5.0]);
     });
 
-    test(
-      'fft2 validation errors for non-power-of-two and mismatched length',
-      () {
-        final buf = Float64ComplexList(4);
-        check(() => fft2(buf, rows: 3, cols: 2)).throws<ArgumentError>();
-        check(() => fft2(buf, rows: 2, cols: 3)).throws<ArgumentError>();
-        check(() => fft2(buf, rows: 2, cols: 4)).throws<ArgumentError>();
-      },
-    );
+    test('fft2 validation errors for negative dimensions, non-power-of-two, and mismatched length', () {
+      final buf = Float64ComplexList(4);
+      check(() => fft2(buf, rows: -1, cols: 2)).throws<ArgumentError>();
+      check(() => fft2(buf, rows: 2, cols: -1)).throws<ArgumentError>();
+      check(() => fft2(buf, rows: 0, cols: 2)).throws<ArgumentError>();
+      check(() => fft2(buf, rows: 3, cols: 2)).throws<ArgumentError>();
+      check(() => fft2(buf, rows: 2, cols: 3)).throws<ArgumentError>();
+      check(() => fft2(buf, rows: 2, cols: 4)).throws<ArgumentError>();
+    });
   });
 }

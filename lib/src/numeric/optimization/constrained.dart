@@ -33,11 +33,33 @@ minimizeConstrained(
   if (dim == 0) {
     throw ArgumentError('Initial point cannot be empty.');
   }
-  if (tolerance <= 0) {
-    throw ArgumentError('Tolerance must be positive: $tolerance');
+  if (tolerance <= 0.0 || !tolerance.isFinite) {
+    throw ArgumentError.value(
+      tolerance,
+      'tolerance',
+      'Tolerance must be positive and finite.',
+    );
   }
   if (maxIterations <= 0) {
-    throw ArgumentError('Max iterations must be positive: $maxIterations');
+    throw ArgumentError.value(
+      maxIterations,
+      'maxIterations',
+      'Max iterations must be positive.',
+    );
+  }
+  if (step <= 0.0 || !step.isFinite) {
+    throw ArgumentError.value(
+      step,
+      'step',
+      'Step must be positive and finite.',
+    );
+  }
+  if (memorySize <= 0) {
+    throw ArgumentError.value(
+      memorySize,
+      'memorySize',
+      'Memory size must be positive.',
+    );
   }
   if (bounds != null && bounds.isNotEmpty && bounds.length != dim) {
     throw ArgumentError(
@@ -251,20 +273,22 @@ minimizeConstrained(
     var maxViolation = 0.0;
     for (var j = 0; j < numIneq; j++) {
       final gj = parsedIneqs[j].evaluate(currentPoint);
-      if (gj > maxViolation) maxViolation = gj;
-    }
-    for (var k = 0; k < numEq; k++) {
-      final hk = parsedEqs[k].evaluate(currentPoint).abs();
-      if (hk > maxViolation) maxViolation = hk;
-    }
-
-    for (var j = 0; j < numIneq; j++) {
-      final gj = parsedIneqs[j].evaluate(currentPoint);
-      lambda[j] = math.max(0.0, lambda[j] + mu * gj);
+      if (!gj.isFinite) {
+        maxViolation = double.infinity;
+      } else {
+        if (gj > maxViolation) maxViolation = gj;
+        lambda[j] = math.max(0.0, lambda[j] + mu * gj);
+      }
     }
     for (var k = 0; k < numEq; k++) {
       final hk = parsedEqs[k].evaluate(currentPoint);
-      nu[k] += mu * hk;
+      if (!hk.isFinite) {
+        maxViolation = double.infinity;
+      } else {
+        final absHk = hk.abs();
+        if (absHk > maxViolation) maxViolation = absHk;
+        nu[k] += mu * hk;
+      }
     }
 
     if (maxViolation <= tolerance && subResult.gradientNorm <= tolerance * 10) {
@@ -295,69 +319,81 @@ minimizeConstrained(
 }
 
 class _BoxTransform {
-  new(this.bounds) {
-    final bnds = bounds;
-    if (bnds != null) {
-      for (var i = 0; i < bnds.length; i++) {
-        final b = bnds[i];
-        final rawLower = b.lower;
-        final rawUpper = b.upper;
-        final lower = (rawLower == null || rawLower.isInfinite)
-            ? null
-            : rawLower;
-        final upper = (rawUpper == null || rawUpper.isInfinite)
-            ? null
-            : rawUpper;
-        if (lower != null && upper != null && lower >= upper) {
-          throw ArgumentError(
-            'Lower bound ($lower) must be strictly less than upper bound ($upper) at index $i.',
-          );
-        }
-      }
+  new(List<BoxBound>? bounds) {
+    if (bounds == null) {
+      _lowers = null;
+      _uppers = null;
+      return;
     }
+    final lowers = List<double?>.filled(bounds.length, null);
+    final uppers = List<double?>.filled(bounds.length, null);
+    for (var i = 0; i < bounds.length; i++) {
+      final b = bounds[i];
+      final rawLower = b.lower;
+      final rawUpper = b.upper;
+      if (rawLower != null && (rawLower.isNaN || rawLower == double.infinity)) {
+        throw ArgumentError('Invalid lower bound ($rawLower) at index $i.');
+      }
+      if (rawUpper != null &&
+          (rawUpper.isNaN || rawUpper == double.negativeInfinity)) {
+        throw ArgumentError('Invalid upper bound ($rawUpper) at index $i.');
+      }
+      final lower = (rawLower == null || rawLower == double.negativeInfinity)
+          ? null
+          : rawLower;
+      final upper = (rawUpper == null || rawUpper == double.infinity)
+          ? null
+          : rawUpper;
+      if (lower != null && upper != null && lower >= upper) {
+        throw ArgumentError(
+          'Lower bound ($lower) must be strictly less than upper bound ($upper) at index $i.',
+        );
+      }
+      lowers[i] = lower;
+      uppers[i] = upper;
+    }
+    _lowers = lowers;
+    _uppers = uppers;
   }
 
-  final List<BoxBound>? bounds;
+  late final List<double?>? _lowers;
+  late final List<double?>? _uppers;
 
   Vector<double> toX(Vector<double> y) {
-    final bnds = bounds;
-    if (bnds == null) return y.copy();
+    final lowers = _lowers;
+    final uppers = _uppers;
+    if (lowers == null || uppers == null) return y.copy();
     final dim = y.length;
     final x = Vector<double>.filled(dim, 0.0, type: DataType.float64);
     for (var i = 0; i < dim; i++) {
-      final b = bnds[i];
-      final rawLower = b.lower;
-      final rawUpper = b.upper;
-      final lower = (rawLower == null || rawLower.isInfinite) ? null : rawLower;
-      final upper = (rawUpper == null || rawUpper.isInfinite) ? null : rawUpper;
-      final yi = y[i];
+      final lower = lowers[i];
+      final upper = uppers[i];
+      final yi = y.getUnchecked(i);
       if (lower != null && upper != null) {
-        x[i] = lower + (upper - lower) * _sigmoid(yi);
+        x.setUnchecked(i, lower + (upper - lower) * _sigmoid(yi));
       } else if (lower != null) {
         final clampedYi = yi.clamp(-50.0, 50.0);
-        x[i] = lower + math.exp(clampedYi);
+        x.setUnchecked(i, lower + math.exp(clampedYi));
       } else if (upper != null) {
         final clampedYi = yi.clamp(-50.0, 50.0);
-        x[i] = upper - math.exp(-clampedYi);
+        x.setUnchecked(i, upper - math.exp(-clampedYi));
       } else {
-        x[i] = yi;
+        x.setUnchecked(i, yi);
       }
     }
     return x;
   }
 
   Vector<double> toY(Vector<double> x) {
-    final bnds = bounds;
-    if (bnds == null) return x.copy();
+    final lowers = _lowers;
+    final uppers = _uppers;
+    if (lowers == null || uppers == null) return x.copy();
     final dim = x.length;
     final y = Vector<double>.filled(dim, 0.0, type: DataType.float64);
     for (var i = 0; i < dim; i++) {
-      final b = bnds[i];
-      final rawLower = b.lower;
-      final rawUpper = b.upper;
-      final lower = (rawLower == null || rawLower.isInfinite) ? null : rawLower;
-      final upper = (rawUpper == null || rawUpper.isInfinite) ? null : rawUpper;
-      final xi = x[i];
+      final lower = lowers[i];
+      final upper = uppers[i];
+      final xi = x.getUnchecked(i);
       if (lower != null && upper != null) {
         final span = upper - lower;
         final double t;
@@ -368,32 +404,30 @@ class _BoxTransform {
         } else {
           t = ((xi - lower) / span).clamp(1e-12, 1.0 - 1e-12);
         }
-        y[i] = math.log(t / (1.0 - t));
+        y.setUnchecked(i, math.log(t / (1.0 - t)));
       } else if (lower != null) {
         final d = xi <= lower ? 0.1 : math.max(xi - lower, 1e-12);
-        y[i] = math.log(d);
+        y.setUnchecked(i, math.log(d));
       } else if (upper != null) {
         final d = xi >= upper ? 0.1 : math.max(upper - xi, 1e-12);
-        y[i] = -math.log(d);
+        y.setUnchecked(i, -math.log(d));
       } else {
-        y[i] = xi;
+        y.setUnchecked(i, xi);
       }
     }
     return y;
   }
 
   Vector<double> chainRuleGradient(Vector<double> gradX, Vector<double> y) {
-    final bnds = bounds;
-    if (bnds == null) return gradX.copy();
+    final lowers = _lowers;
+    final uppers = _uppers;
+    if (lowers == null || uppers == null) return gradX.copy();
     final dim = y.length;
     final gradY = Vector<double>.filled(dim, 0.0, type: DataType.float64);
     for (var i = 0; i < dim; i++) {
-      final b = bnds[i];
-      final rawLower = b.lower;
-      final rawUpper = b.upper;
-      final lower = (rawLower == null || rawLower.isInfinite) ? null : rawLower;
-      final upper = (rawUpper == null || rawUpper.isInfinite) ? null : rawUpper;
-      final yi = y[i];
+      final lower = lowers[i];
+      final upper = uppers[i];
+      final yi = y.getUnchecked(i);
       final double dxiDyi;
       if (lower != null && upper != null) {
         dxiDyi = (upper - lower) * _sigmoidDeriv(yi);
@@ -406,7 +440,7 @@ class _BoxTransform {
       } else {
         dxiDyi = 1.0;
       }
-      gradY[i] = gradX[i] * dxiDyi;
+      gradY.setUnchecked(i, gradX.getUnchecked(i) * dxiDyi);
     }
     return gradY;
   }
@@ -416,39 +450,41 @@ class _BoxTransform {
     Vector<double>? gradX,
     double tolerance = 1e-6,
   }) {
-    final bnds = bounds;
-    if (bnds == null) return x.copy();
+    final lowers = _lowers;
+    final uppers = _uppers;
+    if (lowers == null || uppers == null) return x.copy();
     final dim = x.length;
     final res = Vector<double>.filled(dim, 0.0, type: DataType.float64);
     for (var i = 0; i < dim; i++) {
-      final b = bnds[i];
-      final rawLower = b.lower;
-      final rawUpper = b.upper;
-      final lower = (rawLower == null || rawLower.isInfinite) ? null : rawLower;
-      final upper = (rawUpper == null || rawUpper.isInfinite) ? null : rawUpper;
-      var xi = x[i];
+      final lower = lowers[i];
+      final upper = uppers[i];
+      var xi = x.getUnchecked(i);
       if (lower != null && upper != null) {
         final span = upper - lower;
         final tol = math.max(tolerance, span * tolerance);
         if (xi <= lower ||
-            (xi - lower <= tol && (gradX == null || gradX[i] > 0.0))) {
+            (xi - lower <= tol &&
+                (gradX == null || gradX.getUnchecked(i) > 0.0))) {
           xi = lower;
         } else if (xi >= upper ||
-            (upper - xi <= tol && (gradX == null || gradX[i] < 0.0))) {
+            (upper - xi <= tol &&
+                (gradX == null || gradX.getUnchecked(i) < 0.0))) {
           xi = upper;
         }
       } else if (lower != null) {
         if (xi <= lower ||
-            (xi - lower <= tolerance && (gradX == null || gradX[i] > 0.0))) {
+            (xi - lower <= tolerance &&
+                (gradX == null || gradX.getUnchecked(i) > 0.0))) {
           xi = lower;
         }
       } else if (upper != null) {
         if (xi >= upper ||
-            (upper - xi <= tolerance && (gradX == null || gradX[i] < 0.0))) {
+            (upper - xi <= tolerance &&
+                (gradX == null || gradX.getUnchecked(i) < 0.0))) {
           xi = upper;
         }
       }
-      res[i] = xi;
+      res.setUnchecked(i, xi);
     }
     return res;
   }

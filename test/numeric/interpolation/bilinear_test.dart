@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('BilinearInterpolation', () {
@@ -71,6 +71,12 @@ void main() {
       // Outside top-right (should clamp to (1, 1))
       check(bilinear(10.0, 10.0)).isCloseTo(values.getUnchecked(1, 1), 1e-10);
       check(bilinear.gradient(10.0, 10.0).toList()).deepEquals([0.0, 0.0]);
+
+      // NaN evaluation
+      check(bilinear(double.nan, 0.5)).isNaN;
+      check(bilinear(0.5, double.nan)).isNaN;
+      check(bilinear.gradient(double.nan, 0.5)[0]).isNaN;
+      check(bilinear.gradient(0.5, double.nan)[1]).isNaN;
     });
 
     test('error validation', () {
@@ -82,7 +88,17 @@ void main() {
       check(() => BilinearInterpolation([1.0, 2.0], [1.0], values))
           .throws<ArgumentError>();
 
-      // Non-monotonic points
+      // Non-finite or non-monotonic points
+      check(
+        () => BilinearInterpolation([1.0, double.infinity], [1.0, 2.0], values),
+      ).throws<ArgumentError>();
+      check(
+        () => BilinearInterpolation(
+          [1.0, 2.0],
+          [double.negativeInfinity, 2.0],
+          values,
+        ),
+      ).throws<ArgumentError>();
       check(() => BilinearInterpolation([2.0, 1.0], [1.0, 2.0], values))
           .throws<ArgumentError>();
       check(() => BilinearInterpolation([1.0, 2.0], [2.0, 1.0], values))

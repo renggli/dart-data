@@ -47,6 +47,20 @@ class OptimizationResult {
   double get point1D => point[0];
 
   @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OptimizationResult &&
+          other.point == point &&
+          other.value == value &&
+          other.iterations == iterations &&
+          other.gradientNorm == gradientNorm &&
+          other.converged == converged;
+
+  @override
+  int get hashCode =>
+      Object.hash(point, value, iterations, gradientNorm, converged);
+
+  @override
   String toString() =>
       'OptimizationResult(point: $point, value: $value, iterations: $iterations, converged: $converged)';
 }
@@ -56,10 +70,10 @@ class BoxBound {
   /// Creates a box bound with optional [lower] and [upper] limits.
   const new({this.lower, this.upper});
 
-  /// The lower bound, or `null` if unbounded below ($-\infty$).
+  /// The lower bound, or `null` if unbounded below (−∞).
   final double? lower;
 
-  /// The upper bound, or `null` if unbounded above ($+\infty$).
+  /// The upper bound, or `null` if unbounded above (+∞).
   final double? upper;
 
   @override

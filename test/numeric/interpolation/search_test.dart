@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/numeric/interpolation/search.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('binarySearchInterval', () {
@@ -30,6 +30,10 @@ void main() {
       check(binarySearchInterval(two, 15.0)).equals(0);
       check(binarySearchInterval(two, 20.0)).equals(0);
       check(binarySearchInterval(two, 25.0)).equals(0);
+    });
+
+    test('fallback bound clamp on NaN query', () {
+      check(binarySearchInterval(xs, double.nan)).equals(0);
     });
   });
 }

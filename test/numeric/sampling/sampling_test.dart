@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('linearSpaced', () {
@@ -72,8 +72,17 @@ void main() {
       check(v2[0]).equals(5.0);
     });
 
-    test('count < 0 throws ArgumentError', () {
+    test('count < 0 or non-finite bounds throw ArgumentError', () {
       check(() => linearSpaced(0.0, 1.0, count: -1)).throws<ArgumentError>();
+      check(() => linearSpaced(double.nan, 1.0)).throws<ArgumentError>();
+      check(() => linearSpaced(0.0, double.infinity)).throws<ArgumentError>();
+    });
+
+    test('start == stop fills exact constant values without drift', () {
+      final v = linearSpaced(3.141592653589793, 3.141592653589793, count: 10);
+      for (var i = 0; i < 10; i++) {
+        check(v[i]).equals(3.141592653589793);
+      }
     });
 
     test('custom DataType and native buffer', () {
@@ -134,15 +143,20 @@ void main() {
       check(v[0]).isCloseTo(100.0, 1e-12);
     });
 
-    test('count < 0 throws ArgumentError', () {
+    test('count < 0 or non-finite args throw ArgumentError', () {
       check(() => logarithmicSpaced(0.0, 3.0, count: -1))
+          .throws<ArgumentError>();
+      check(() => logarithmicSpaced(double.nan, 3.0)).throws<ArgumentError>();
+      check(() => logarithmicSpaced(0.0, double.infinity))
           .throws<ArgumentError>();
     });
 
-    test('base <= 0 throws ArgumentError', () {
+    test('base <= 0 or non-finite throws ArgumentError', () {
       check(() => logarithmicSpaced(0.0, 3.0, base: 0.0))
           .throws<ArgumentError>();
       check(() => logarithmicSpaced(0.0, 3.0, base: -2.0))
+          .throws<ArgumentError>();
+      check(() => logarithmicSpaced(0.0, 3.0, base: double.infinity))
           .throws<ArgumentError>();
     });
   });
@@ -170,25 +184,6 @@ void main() {
       for (var i = 0; i < 4; i++) {
         check(v[i + 1] / v[i]).isCloseTo(2.0, 1e-12);
       }
-
-      // sampleCurve edge cases: constant curve, all-NaN curve, and exception handling
-      check(sampleCurve((x) => 5.0, 0.0, 1.0).segments).isNotEmpty;
-      check(sampleCurve((x) => double.nan, 0.0, 1.0).segments).isEmpty;
-      check(
-        sampleCurve(
-          (x) => x < 0.2
-              ? (throw ArgumentError())
-              : x < 0.4
-              ? (throw StateError('bad'))
-              : x < 0.6
-              ? (throw UnsupportedError('bad'))
-              : x < 0.8
-              ? (throw const FormatException('bad'))
-              : x,
-          0.0,
-          1.0,
-        ).segments,
-      ).isNotEmpty;
     });
 
     test('endpoint = false excludes stop', () {
@@ -306,6 +301,47 @@ void main() {
       check(() => sampleCurve((x) => x, 0.0, 1.0, tolerance: 0.0))
           .throws<ArgumentError>();
     });
+
+    test(
+      'handles constant, all-NaN, throwing, ULP-narrow, and tiny-scale curves',
+      () {
+        check(sampleCurve((x) => 5.0, 0.0, 1.0).segments).isNotEmpty;
+        final allNan = sampleCurve((x) => double.nan, 0.0, 1.0);
+        check(allNan.segments).isEmpty;
+        check(
+          sampleCurve(
+            (x) => x < 0.2
+                ? (throw ArgumentError())
+                : x < 0.4
+                ? (throw StateError('bad'))
+                : x < 0.6
+                ? (throw UnsupportedError('bad'))
+                : x < 0.8
+                ? (throw const FormatException('bad'))
+                : x,
+            0.0,
+            1.0,
+          ).segments,
+        ).isNotEmpty;
+
+        // ULP-narrow interval where midpoint equals endpoint
+        final narrow = sampleCurve(
+          (x) => (x - 1.0) * 1e14,
+          1.0,
+          1.0 + 1e-13,
+          initialPoints: 5,
+        );
+        check(narrow.segments).isNotEmpty;
+
+        // Tiny-scale sign reversal without multiplicative underflow to -0.0
+        final tinyAsymp = sampleCurve(
+          (x) => x < 0.0 ? -1e-315 * (x + 1.0) : (x < 0.5 ? 10.0 : -10.0),
+          -1.0,
+          1.0,
+        );
+        check(tinyAsymp.segments.length).isGreaterOrEqual(2);
+      },
+    );
   });
 
   group('package:data/numeric.dart exports', () {

@@ -8,8 +8,8 @@ import '../interpolation/search.dart';
 import 'ode_method.dart';
 import 'ode_solution.dart';
 
-/// Solves an initial value problem $\frac{dy}{dt} = f(t, y)$ from [t0] to
-/// [tEnd] starting at state [y0] using the specified [method].
+/// Solves an initial value problem `dy/dt = f(t, y)` from [t0] to [tEnd]
+/// starting at state [y0] using the specified [method].
 ///
 /// Conceptually, this simulates how a dynamic system evolves over time (such as
 /// an orbital trajectory or harmonic oscillator). Formally, it executes the
@@ -47,6 +47,13 @@ OdeSolution solveOde({
   }
   if (!tEnd.isFinite) {
     throw ArgumentError.value(tEnd, 'tEnd', 'Must be finite');
+  }
+  if (y0.length == 0) {
+    throw ArgumentError.value(
+      y0.length,
+      'y0.length',
+      'Initial state vector cannot be empty',
+    );
   }
   if (stepSize <= 0 || !stepSize.isFinite) {
     throw ArgumentError.value(
@@ -91,6 +98,14 @@ OdeSolution solveOde({
     );
   }
 
+  final timeSpan = (tEnd - t0).abs();
+  final timeTol = timeSpan == 0.0
+      ? 0.0
+      : math.max(
+          1e-12 * timeSpan,
+          4.0 * 2.220446049250313e-16 * math.max(t0.abs(), tEnd.abs()),
+        );
+
   final rawSol = switch (method) {
     OdeMethod.rk4 => _rk4(
       f: f,
@@ -99,6 +114,7 @@ OdeSolution solveOde({
       y0: y0,
       stepSize: stepSize,
       maxSteps: maxSteps,
+      timeTol: timeTol,
     ),
     OdeMethod.dormandPrince45 => _rk45(
       f: f,
@@ -111,6 +127,7 @@ OdeSolution solveOde({
       minStep: minStep,
       maxStep: maxStep,
       maxSteps: maxSteps,
+      timeTol: timeTol,
     ),
     OdeMethod.bdf2 => _bdf2(
       f: f,
@@ -123,6 +140,7 @@ OdeSolution solveOde({
       minStep: minStep,
       maxStep: maxStep,
       maxSteps: maxSteps,
+      timeTol: timeTol,
     ),
   };
 
@@ -137,8 +155,9 @@ OdeSolution _rk4({
   required double t0,
   required double tEnd,
   required Vector<double> y0,
-  double stepSize = 0.01,
-  int maxSteps = 100000,
+  required double stepSize,
+  required int maxSteps,
+  required double timeTol,
 }) {
   final tList = <double>[t0];
   final yList = <Vector<double>>[y0.copy()];
@@ -149,10 +168,12 @@ OdeSolution _rk4({
   var step = direction * stepSize.abs();
 
   var stepCount = 0;
-  while ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
+  while ((tEnd - currentTime) * direction > timeTol && stepCount < maxSteps) {
     stepCount++;
+    var truncated = false;
     if ((currentTime + step - tEnd) * direction > 0.0) {
       step = tEnd - currentTime;
+      truncated = true;
     }
 
     final k1 = f(currentTime, y);
@@ -172,13 +193,16 @@ OdeSolution _rk4({
       ..addScaled(k4, 1.0)
       ..scaleInPlace(step / 6.0);
     y.addScaled(dy, 1.0);
-    currentTime += step;
+    if (!_isFiniteVector(y)) {
+      return OdeSolution(t: tList, y: yList, converged: false);
+    }
+    currentTime = truncated ? tEnd : currentTime + step;
 
     tList.add(currentTime);
     yList.add(y.copy());
   }
 
-  final converged = (tEnd - currentTime).abs() <= 1e-12;
+  final converged = (tEnd - currentTime).abs() <= timeTol;
   return OdeSolution(t: tList, y: yList, converged: converged);
 }
 
@@ -187,12 +211,13 @@ OdeSolution _rk45({
   required double t0,
   required double tEnd,
   required Vector<double> y0,
-  double initialStep = 0.01,
-  double relativeTolerance = 1e-6,
-  double absoluteTolerance = 1e-8,
-  double minStep = 1e-12,
-  double maxStep = 1.0,
-  int maxSteps = 100000,
+  required double initialStep,
+  required double relativeTolerance,
+  required double absoluteTolerance,
+  required double minStep,
+  required double maxStep,
+  required int maxSteps,
+  required double timeTol,
 }) {
   final tList = <double>[t0];
   final yList = <Vector<double>>[y0.copy()];
@@ -206,7 +231,7 @@ OdeSolution _rk45({
   var k1 = f(currentTime, y);
 
   var stepCount = 0;
-  while ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
+  while ((tEnd - currentTime) * direction > timeTol && stepCount < maxSteps) {
     stepCount++;
     var truncated = false;
     if ((currentTime + step - tEnd) * direction > 0.0) {
@@ -268,14 +293,15 @@ OdeSolution _rk45({
 
     var maxErrorRatio = 0.0;
     for (var i = 0; i < y.length; i++) {
-      if (!y5[i].isFinite) {
+      final y5i = y5.getUnchecked(i);
+      if (!y5i.isFinite) {
         maxErrorRatio = double.infinity;
         break;
       }
       final sc =
           absoluteTolerance +
-          relativeTolerance * math.max(y[i].abs(), y5[i].abs());
-      final ratio = errorVec[i].abs() / sc;
+          relativeTolerance * math.max(y.getUnchecked(i).abs(), y5i.abs());
+      final ratio = errorVec.getUnchecked(i).abs() / sc;
       if (ratio.isNaN) {
         maxErrorRatio = double.infinity;
         break;
@@ -284,7 +310,7 @@ OdeSolution _rk45({
     }
 
     if (maxErrorRatio <= 1.0) {
-      currentTime += step;
+      currentTime = truncated ? tEnd : currentTime + step;
       y = y5;
       k1 = k7;
       tList.add(currentTime);
@@ -305,7 +331,7 @@ OdeSolution _rk45({
         math.min(maxStep, math.max(lowerStepBound, (step * factor).abs()));
   }
 
-  final converged = (tEnd - currentTime).abs() <= 1e-12;
+  final converged = (tEnd - currentTime).abs() <= timeTol;
   return OdeSolution(t: tList, y: yList, converged: converged);
 }
 
@@ -314,13 +340,14 @@ OdeSolution _bdf2({
   required double t0,
   required double tEnd,
   required Vector<double> y0,
-  double initialStep = 0.01,
-  double relativeTolerance = 1e-6,
-  double absoluteTolerance = 1e-8,
-  double minStep = 1e-12,
-  double maxStep = 1.0,
+  required double initialStep,
+  required double relativeTolerance,
+  required double absoluteTolerance,
+  required double minStep,
+  required double maxStep,
+  required int maxSteps,
+  required double timeTol,
   int maxNewtonIters = 20,
-  int maxSteps = 100000,
 }) {
   final tList = <double>[t0];
   final yList = <Vector<double>>[y0.copy()];
@@ -334,15 +361,20 @@ OdeSolution _bdf2({
   var stepCount = 0;
   var allStepsConverged = true;
 
+  Vector<double>? cachedFN;
+  Vector<double>? cachedFPrev;
+
   // Step 1: implicit trapezoidal rule
-  while ((tEnd - currentTime) * direction > 1e-12 &&
+  while ((tEnd - currentTime) * direction > timeTol &&
       stepCount < maxSteps &&
       tList.length < 2) {
     stepCount++;
+    var truncated = false;
     if ((currentTime + step - tEnd) * direction > 0.0) {
       step = tEnd - currentTime;
+      truncated = true;
     }
-    final t1 = currentTime + step;
+    final t1 = truncated ? tEnd : currentTime + step;
     final f0 = f(currentTime, y0);
     var y1 = y0 + f0.scale(step);
     final gamma = step * 0.5;
@@ -352,7 +384,11 @@ OdeSolution _bdf2({
     for (var iter = 0; iter < maxNewtonIters; iter++) {
       final f1 = f(t1, y1);
       final residual = y1 - y0 - (f0 + f1).scale(gamma);
-      if (residual.norm() < absoluteTolerance) {
+      final resNorm = residual.norm();
+      if (!resNorm.isFinite) break;
+      final newtonTol =
+          0.1 * (absoluteTolerance + relativeTolerance * y1.norm());
+      if (resNorm < newtonTol) {
         stepConverged = true;
         break;
       }
@@ -361,13 +397,21 @@ OdeSolution _bdf2({
         final jac = calculus.jacobian((v) => f(t1, v), y1, step: 1e-6);
         mat = Matrix<double>.generate(dim, dim, (r, c) {
           final id = r == c ? 1.0 : 0.0;
-          return id - gamma * jac.get(r, c);
+          return id - gamma * jac.getUnchecked(r, c);
         }, type: DataType.float64);
       }
 
-      final delta = mat.solveVector(-residual);
+      final Vector<double> delta;
+      try {
+        delta = mat.solveVector(-residual);
+      } on StateError {
+        break;
+      } on ArgumentError {
+        break;
+      }
+      if (!_isFiniteVector(delta)) break;
       y1 += delta;
-      if (delta.norm() < absoluteTolerance) {
+      if (delta.norm() < newtonTol) {
         stepConverged = true;
         break;
       }
@@ -387,14 +431,15 @@ OdeSolution _bdf2({
     final errorVec = (f1Final - f0)..scaleInPlace(0.5 * step.abs());
     var maxErrorRatio = 0.0;
     for (var i = 0; i < dim; i++) {
-      if (!y1[i].isFinite) {
+      final y1i = y1.getUnchecked(i);
+      if (!y1i.isFinite) {
         maxErrorRatio = double.infinity;
         break;
       }
       final sc =
           absoluteTolerance +
-          relativeTolerance * math.max(y0[i].abs(), y1[i].abs());
-      final ratio = errorVec[i].abs() / sc;
+          relativeTolerance * math.max(y0.getUnchecked(i).abs(), y1i.abs());
+      final ratio = errorVec.getUnchecked(i).abs() / sc;
       if (ratio.isNaN) {
         maxErrorRatio = double.infinity;
         break;
@@ -406,6 +451,8 @@ OdeSolution _bdf2({
       currentTime = t1;
       tList.add(currentTime);
       yList.add(y1.copy());
+      cachedFPrev = f0;
+      cachedFN = f1Final;
       var factor =
           0.9 *
           math.pow(maxErrorRatio > 0.0 ? 1.0 / maxErrorRatio : 10.0, 1.0 / 2.0);
@@ -422,7 +469,7 @@ OdeSolution _bdf2({
   }
 
   if (tList.length < 2) {
-    final reachedEnd = (tEnd - currentTime).abs() <= 1e-12;
+    final reachedEnd = (tEnd - currentTime).abs() <= timeTol;
     return OdeSolution(
       t: tList,
       y: yList,
@@ -433,15 +480,17 @@ OdeSolution _bdf2({
   // Subsequent steps: adaptive BDF2 (Modified Newton with local truncation error control)
   double? cachedGamma;
   Matrix<double>? cachedMat;
+  var fPrev = cachedFPrev!;
+  var fN = cachedFN!;
 
-  while ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
+  while ((tEnd - currentTime) * direction > timeTol && stepCount < maxSteps) {
     stepCount++;
     var truncated = false;
     if ((currentTime + step - tEnd) * direction > 0.0) {
       step = tEnd - currentTime;
       truncated = true;
     }
-    final tNext = currentTime + step;
+    final tNext = truncated ? tEnd : currentTime + step;
     final yN = yList[yList.length - 1];
     final yPrev = yList[yList.length - 2];
 
@@ -464,7 +513,7 @@ OdeSolution _bdf2({
       cachedGamma = gamma;
       cachedMat = Matrix<double>.generate(dim, dim, (r, c) {
         final id = r == c ? 1.0 : 0.0;
-        return id - gamma * jac.get(r, c);
+        return id - gamma * jac.getUnchecked(r, c);
       }, type: DataType.float64);
     }
 
@@ -473,7 +522,11 @@ OdeSolution _bdf2({
       final fNext = f(tNext, yNext);
       final residual =
           yNext - yN.scale(alpha) + yPrev.scale(beta) - fNext.scale(gamma);
-      if (residual.norm() < absoluteTolerance) {
+      final resNorm = residual.norm();
+      if (!resNorm.isFinite) break;
+      final newtonTol =
+          0.1 * (absoluteTolerance + relativeTolerance * yNext.norm());
+      if (resNorm < newtonTol) {
         stepConverged = true;
         break;
       }
@@ -482,13 +535,21 @@ OdeSolution _bdf2({
         final jac = calculus.jacobian((v) => f(tNext, v), yNext, step: 1e-6);
         cachedMat = Matrix<double>.generate(dim, dim, (r, c) {
           final id = r == c ? 1.0 : 0.0;
-          return id - gamma * jac.get(r, c);
+          return id - gamma * jac.getUnchecked(r, c);
         }, type: DataType.float64);
       }
 
-      final delta = cachedMat!.solveVector(-residual);
+      final Vector<double> delta;
+      try {
+        delta = cachedMat!.solveVector(-residual);
+      } on StateError {
+        break;
+      } on ArgumentError {
+        break;
+      }
+      if (!_isFiniteVector(delta)) break;
       yNext += delta;
-      if (delta.norm() < absoluteTolerance) {
+      if (delta.norm() < newtonTol) {
         stepConverged = true;
         break;
       }
@@ -507,21 +568,20 @@ OdeSolution _bdf2({
     // Local truncation error estimate for BDF2 via second backward difference of f:
     // LTE ~= (2/9) * step * (f(t_next) - (1 + omega)*f(t_n) + omega*f(t_{n-1}))
     final fNextFinal = f(tNext, yNext);
-    final fN = f(currentTime, yN);
-    final fPrev = f(tList[tList.length - 2], yPrev);
     final d2f = fNextFinal - fN.scale(1.0 + omega) + fPrev.scale(omega);
     final errorVec = d2f..scaleInPlace((2.0 / 9.0) * step.abs());
 
     var maxErrorRatio = 0.0;
     for (var i = 0; i < dim; i++) {
-      if (!yNext[i].isFinite) {
+      final yNextI = yNext.getUnchecked(i);
+      if (!yNextI.isFinite) {
         maxErrorRatio = double.infinity;
         break;
       }
       final sc =
           absoluteTolerance +
-          relativeTolerance * math.max(yN[i].abs(), yNext[i].abs());
-      final ratio = errorVec[i].abs() / sc;
+          relativeTolerance * math.max(yN.getUnchecked(i).abs(), yNextI.abs());
+      final ratio = errorVec.getUnchecked(i).abs() / sc;
       if (ratio.isNaN) {
         maxErrorRatio = double.infinity;
         break;
@@ -533,6 +593,8 @@ OdeSolution _bdf2({
       currentTime = tNext;
       tList.add(currentTime);
       yList.add(yNext.copy());
+      fPrev = fN;
+      fN = fNextFinal;
     } else if (!truncated && step.abs() <= minStep * (1.0 + 1e-12)) {
       allStepsConverged = false;
       break;
@@ -550,7 +612,7 @@ OdeSolution _bdf2({
         math.min(maxStep, math.max(lowerStepBound, step.abs() * factor));
   }
 
-  final reachedEnd = (tEnd - currentTime).abs() <= 1e-12;
+  final reachedEnd = (tEnd - currentTime).abs() <= timeTol;
   return OdeSolution(
     t: tList,
     y: yList,
@@ -566,13 +628,17 @@ OdeSolution _interpolateHermite({
   final tRaw = raw.t;
   final yRaw = raw.y;
   final n = tRaw.length;
-  if (n == 0) {
-    return OdeSolution(t: const [], y: const [], converged: raw.converged);
-  }
+  final dim = yRaw[0].length;
   if (n == 1) {
     return OdeSolution(
       t: [for (final t in tEval) t],
-      y: [for (final _ in tEval) yRaw[0].copy()],
+      y: [
+        for (final t in tEval)
+          if (t.isNaN)
+            Vector<double>.filled(dim, double.nan, type: DataType.float64)
+          else
+            yRaw[0].copy(),
+      ],
       converged: raw.converged,
     );
   }
@@ -580,13 +646,16 @@ OdeSolution _interpolateHermite({
   final fRaw = <Vector<double>>[
     for (var i = 0; i < n; i++) f(tRaw[i], yRaw[i]),
   ];
-  final dim = yRaw[0].length;
 
   final evalT = <double>[];
   final evalY = <Vector<double>>[];
 
   for (final t in tEval) {
     evalT.add(t);
+    if (t.isNaN) {
+      evalY.add(Vector<double>.filled(dim, double.nan, type: DataType.float64));
+      continue;
+    }
     var k = 0;
     final isAscending = tRaw.last >= tRaw.first;
     if (isAscending) {
@@ -646,11 +715,22 @@ OdeSolution _interpolateHermite({
 
     final interp = Vector<double>.generate(
       dim,
-      (i) => h00 * y0[i] + h10 * f0[i] + h01 * y1[i] + h11 * f1[i],
+      (i) =>
+          h00 * y0.getUnchecked(i) +
+          h10 * f0.getUnchecked(i) +
+          h01 * y1.getUnchecked(i) +
+          h11 * f1.getUnchecked(i),
       type: DataType.float64,
     );
     evalY.add(interp);
   }
 
   return OdeSolution(t: evalT, y: evalY, converged: raw.converged);
+}
+
+bool _isFiniteVector(Vector<double> v) {
+  for (var i = 0; i < v.length; i++) {
+    if (!v.getUnchecked(i).isFinite) return false;
+  }
+  return true;
 }

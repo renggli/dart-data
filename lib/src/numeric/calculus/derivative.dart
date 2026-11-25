@@ -4,9 +4,10 @@ import 'dart:math' as math;
 ///
 /// Conceptually, the derivative is the instantaneous slope or rate of change of
 /// a curve at a single point (such as a speedometer reading representing the
-/// derivative of position). Formally, it computes the $n$-th derivative
-/// $f^{(n)}(x)$ using central finite differences for the specified [order] (1
-/// through 6) and stencil [accuracy] (2, 4, 6, or 8 points).
+/// derivative of position). Formally, it computes the `n`-th derivative
+/// `f^(n)(x)` using central finite differences for the specified [order] (1
+/// through 6) and stencil [accuracy] (2, 4, 6, or 8 points). Returns
+/// [double.nan] if [x] is not finite.
 ///
 /// ```dart
 /// final slope = derivative((x) => x * x, 3.0); // ~6.0
@@ -34,6 +35,9 @@ double derivative(
   }
   if (step != null && (step <= 0.0 || !step.isFinite)) {
     throw ArgumentError.value(step, 'step', 'Step must be positive and finite');
+  }
+  if (!x.isFinite) {
+    return double.nan;
   }
   final h =
       step ??

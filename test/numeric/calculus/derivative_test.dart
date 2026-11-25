@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/numeric.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('derivative', () {
@@ -61,5 +61,18 @@ void main() {
         check(derivative(fSingularAt0, 0.0, order: 1)).isCloseTo(0.0, 1e-5);
       },
     );
+
+    test('returns NaN without evaluating function for non-finite x', () {
+      var called = false;
+      double fn(double x) {
+        called = true;
+        return x;
+      }
+
+      check(derivative(fn, double.nan)).isNaN;
+      check(derivative(fn, double.infinity)).isNaN;
+      check(derivative(fn, double.negativeInfinity)).isNaN;
+      check(called).isFalse;
+    });
   });
 }

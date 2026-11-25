@@ -389,7 +389,7 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Finding minima of complex objective functions is ubiquitous in machine learning, engineering design, and parameter fitting.
 - **Implementation & Constraints**:
-  - `minimize`: Unified entry point for univariate and multivariate optimization selecting algorithms via `OptimizationMethod`:
+  - `minimize`: Unified entry point for univariate and multivariate optimization selecting algorithms via `OptimizationMethod` and returning an `OptimizationResult` (with value equality and `hashCode`):
     - `OptimizationMethod.brent`: Univariate golden-section search combined with parabolic interpolation, achieving superlinear convergence without derivative requirements.
     - `OptimizationMethod.nelderMead`: Multivariate derivative-free simplex method, resilient to non-smooth or noisy objective functions.
     - `OptimizationMethod.bfgs`: Quasi-Newton Broyden-Fletcher-Goldfarb-Shanno method utilizing numerical gradients and Armijo line search with $\mathcal{O}(N^2)$ rank-2 updates to maintain a positive-definite Hessian approximation.
@@ -426,19 +426,20 @@ This document describes the achieved architecture across all subsystems of `pack
     - `fft`: 1D complex-to-complex in-place transform on `List<Complex> buffer` with optional `inverse: true`. Leverages radix-2 Cooley-Tukey for power-of-2 lengths and Bluestein's Chirp-Z transform algorithm for arbitrary non-power-of-2 lengths in $\mathcal{O}(N \log N)$ time.
     - `fft2`: 2D transforms executing row-column separable passes over 2D complex matrices with optional `inverse: true`.
     - `convolve`: 1D discrete signal convolution supporting `ConvolutionMode.full`, `ConvolutionMode.same`, and `ConvolutionMode.valid`.
+    - `correlate`: 1D discrete cross-correlation supporting `ConvolutionMode.valid` (default), `ConvolutionMode.full`, and `ConvolutionMode.same`.
 
 ### 6.5 Stable Interpolation & Curve Fitting
 
 - **Reasoning**: Continuous estimation from discrete empirical samples.
 - **Implementation & Constraints**:
-  - `CubicSpline`: $C^2$ continuous cubic spline interpolation supporting natural ($S''(x) = 0$) and clamped ($S'(x) = f'$) boundary conditions. Formulates spline second derivatives as a tridiagonal linear system solved in $\mathcal{O}(N)$ time via `solveTridiagonal`.
-  - `PchipInterpolation`: Piecewise Cubic Hermite Interpolating Polynomial preserving monotonicity and preventing overshoot between data points.
+  - `CubicSpline`: $C^2$ continuous cubic spline interpolation supporting natural ($S''(x) = 0$) and clamped ($S'(x) = f'$) boundary conditions, with first (`derivative`) and second (`secondDerivative`) evaluation. Formulates spline second derivatives as a tridiagonal linear system solved in $\mathcal{O}(N)$ time via `solveTridiagonal`.
+  - `PchipInterpolation`: Piecewise Cubic Hermite Interpolating Polynomial preserving monotonicity and preventing overshoot between data points, with exact piecewise first derivative evaluation (`derivative`).
   - `BilinearInterpolation`: 2D rectilinear grid interpolation using four-point convex weighting with partial gradient evaluation.
   - `BicubicInterpolation`: 2D surface interpolation over a rectilinear grid with $C^1$ continuity using 16-coefficient bicubic patches ($A = M F M^T$) with partial derivatives and continuous gradient extraction.
-  - `leastSquares`: General linear regression using LAPACK `dgels`, Householder QR, or SVD.
+  - `leastSquares`: General linear regression using LAPACK `dgels` for full-rank systems and SVD fallback for rank-deficient systems.
   - `polynomialRegression`: Vandermonde polynomial fitting using QR decomposition with optional Tikhonov / Ridge L2 regularization (`lambda`) suppressing high-frequency Runge oscillations and conditioning rank-deficient systems.
   - `linearRegression` and `multipleLinearRegression`: Standard univariate and multivariate ordinary least-squares regression.
-  - `curveFit` and `fitNonlinear`: Damped Gauss-Newton / Levenberg-Marquardt nonlinear least-squares curve fitting returning `CurveFitResult` with parameter estimates, parameter covariance matrix ($(J^T J)^{-1} \cdot \text{RSE}^2$), and standard errors.
+  - `curveFit` and `fitNonlinear`: Damped Gauss-Newton / Levenberg-Marquardt nonlinear least-squares curve fitting with optional parameter box bounds (`lowerBounds`, `upperBounds`), returning `CurveFitResult` (from `curveFit`) with parameter estimates, parameter covariance matrix ($(J^T J)^{-1} \cdot \text{RSE}^2$), and standard errors.
 
 ### 6.6 Precision in Numerical Solvers
 

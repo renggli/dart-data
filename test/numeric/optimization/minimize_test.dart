@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Canonical Numerical Optimization (minimize)', () {
@@ -469,6 +469,68 @@ void main() {
       check(lbfgsRes.point[1]).isCloseTo(1.0, 1e-4);
     });
 
+    test(
+      'Validates non-finite bounds, step, memorySize, and 1D Brent bounds',
+      () {
+        final start = Vector<double>.fromList([1.0], type: DataType.float64);
+        check(() => minimize((v) => 0.0, a: double.nan, b: 1.0))
+            .throws<ArgumentError>();
+        check(() => minimize((v) => 0.0, a: 0.0, b: double.infinity))
+            .throws<ArgumentError>();
+        check(() => minimize((v) => 0.0, initialPoint: start, step: 0.0))
+            .throws<ArgumentError>();
+        check(() => minimize((v) => 0.0, initialPoint: start, memorySize: 0))
+            .throws<ArgumentError>();
+        check(
+          () => minimize(
+            (v) => 0.0,
+            initialPoint: start,
+            method: OptimizationMethod.brent,
+            bounds: const [BoxBound(lower: 1.0), BoxBound(upper: 2.0)],
+          ),
+        ).throws<ArgumentError>();
+        check(
+          () => minimize(
+            (v) => 0.0,
+            initialPoint: start,
+            method: OptimizationMethod.brent,
+            bounds: const [BoxBound(lower: 2.0, upper: 1.0)],
+          ),
+        ).throws<ArgumentError>();
+        check(
+          () => minimize(
+            (v) => 0.0,
+            initialPoint: start,
+            method: OptimizationMethod.brent,
+            bounds: const [BoxBound(lower: double.nan, upper: 1.0)],
+          ),
+        ).throws<ArgumentError>();
+        check(
+          () => minimize(
+            (v) => 0.0,
+            initialPoint: start,
+            method: OptimizationMethod.brent,
+            bounds: const [BoxBound(lower: 0.0, upper: double.nan)],
+          ),
+        ).throws<ArgumentError>();
+
+        final aBEq = minimize(
+          (v) => v[0] * v[0],
+          a: 0.0,
+          b: 5.0,
+          equalities: [(v) => v[0] - 2.0],
+        );
+        check(aBEq.point[0]).isCloseTo(2.0, 1e-2);
+        check(
+          () => minimize(
+            (v) => 0.0,
+            initialPoint: Vector<double>.fromList([1.0, 2.0]),
+            method: OptimizationMethod.brent,
+          ),
+        ).throws<ArgumentError>();
+      },
+    );
+
     test('Line search rejects NaN steps and Nelder-Mead handles x = -1.0', () {
       // Domain restricted to x < 1.0; large step produces NaN
       double fLog(Vector<double> v) {
@@ -499,15 +561,6 @@ void main() {
       check(nmRes.point[0]).isCloseTo(2.0, 1e-3);
       check(nmRes.point[1]).isCloseTo(3.0, 1e-3);
 
-      // OptimizationMethod.brent rejects multi-dimensional initialPoint
-      check(
-        () => minimize(
-          (v) => 0.0,
-          initialPoint: Vector<double>.fromList([1.0, 2.0]),
-          method: OptimizationMethod.brent,
-        ),
-      ).throws<ArgumentError>();
-
       // OptimizationMethod.brent with 1D initialPoint and no explicit a/b or bounds
       final brent1d = minimize(
         (v) => (v[0] - 0.5) * (v[0] - 0.5),
@@ -515,32 +568,37 @@ void main() {
         method: OptimizationMethod.brent,
       );
       check(brent1d.point[0]).isCloseTo(0.5, 1e-5);
+    });
 
-      // Constrained optimization with equalities only (triggers hasConstraints via equalities)
-      final eqOnly = minimize(
-        (v) => v[0] * v[0] + v[1] * v[1],
-        initialPoint: Vector<double>.fromList([0.5, 0.5]),
-        equalities: [(v) => v[0] + v[1] - 2.0],
-      );
-      check(eqOnly.point[0]).isCloseTo(1.0, 1e-2);
+    test(
+      'Equality-constrained optimization with BFGS, Nelder-Mead, and L-BFGS',
+      () {
+        final eqOnly = minimize(
+          (v) => v[0] * v[0] + v[1] * v[1],
+          initialPoint: Vector<double>.fromList([0.5, 0.5]),
+          equalities: [(v) => v[0] + v[1] - 2.0],
+        );
+        check(eqOnly.point[0]).isCloseTo(1.0, 1e-2);
 
-      final eqNm = minimize(
-        (v) => v[0] * v[0] + v[1] * v[1],
-        initialPoint: Vector<double>.fromList([0.5, 0.5]),
-        equalities: [(v) => v[0] + v[1] - 2.0],
-        method: OptimizationMethod.nelderMead,
-      );
-      check(eqNm.point[0]).isCloseTo(1.0, 0.1);
+        final eqNm = minimize(
+          (v) => v[0] * v[0] + v[1] * v[1],
+          initialPoint: Vector<double>.fromList([0.5, 0.5]),
+          equalities: [(v) => v[0] + v[1] - 2.0],
+          method: OptimizationMethod.nelderMead,
+        );
+        check(eqNm.point[0]).isCloseTo(1.0, 0.1);
 
-      final eqLbfgs = minimize(
-        (v) => v[0] * v[0] + v[1] * v[1],
-        initialPoint: Vector<double>.fromList([0.5, 0.5]),
-        equalities: [(v) => v[0] + v[1] - 2.0],
-        method: OptimizationMethod.lbfgs,
-      );
-      check(eqLbfgs.point[0]).isCloseTo(1.0, 1e-2);
+        final eqLbfgs = minimize(
+          (v) => v[0] * v[0] + v[1] * v[1],
+          initialPoint: Vector<double>.fromList([0.5, 0.5]),
+          equalities: [(v) => v[0] + v[1] - 2.0],
+          method: OptimizationMethod.lbfgs,
+        );
+        check(eqLbfgs.point[0]).isCloseTo(1.0, 1e-2);
+      },
+    );
 
-      // Nelder-Mead with objective that returns NaN in invalid region
+    test('Nelder-Mead avoids NaN domain regions', () {
       double fWithNan(Vector<double> v) {
         if (v[0] <= 0.0) return double.nan;
         return (v[0] - 0.2) * (v[0] - 0.2) + (v[1] - 0.2) * (v[1] - 0.2);

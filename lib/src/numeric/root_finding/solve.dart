@@ -3,18 +3,18 @@ import 'dart:math' as math;
 import '../calculus/derivative.dart' as calculus;
 import 'root_method.dart';
 
-/// Finds a root of $f(x) = 0$ using the specified [method].
+/// Finds a root of `f(x) = 0` using the specified [method].
 ///
 /// Conceptually, finding a root identifies where a continuous curve crosses the
-/// horizontal axis ($f(x) = 0$), solving the non-linear equation for $x$.
+/// horizontal axis (`f(x) = 0`), solving the non-linear equation for `x`.
 /// Formally, it executes the chosen [method] ([RootMethod.brent] by default
 /// when [b] is provided, [RootMethod.newtonRaphson] when only [a] is provided,
 /// or [RootMethod.bisection]).
 ///
 /// For bracketed methods ([RootMethod.brent] and [RootMethod.bisection]), both
-/// [a] and [b] are required and must satisfy $f(a) \cdot f(b) \le 0$. For open
-/// methods ([RootMethod.newtonRaphson]), [a] serves as the initial guess $x_0$,
-/// and [b] is ignored.
+/// [a] and [b] are required, must be finite, and must satisfy `f(a) * f(b) ≤ 0`.
+/// For open methods ([RootMethod.newtonRaphson]), [a] serves as the finite
+/// initial guess `x₀`, and [b] is ignored.
 ///
 /// ```dart
 /// final root = solve((x) => x * x - 4.0, 0.0, b: 5.0); // 2.0
@@ -28,6 +28,9 @@ double solve(
   int maxIterations = 100,
   double Function(double)? derivative,
 }) {
+  if (!a.isFinite) {
+    throw ArgumentError.value(a, 'a', 'Initial point or bound must be finite.');
+  }
   if (tolerance <= 0 || !tolerance.isFinite) {
     throw ArgumentError.value(
       tolerance,
@@ -46,9 +49,11 @@ double solve(
       method ?? (b != null ? RootMethod.brent : RootMethod.newtonRaphson);
   switch (resolvedMethod) {
     case RootMethod.brent:
-      if (b == null) {
-        throw ArgumentError(
-          'RootMethod.brent requires both interval bounds a and b.',
+      if (b == null || !b.isFinite) {
+        throw ArgumentError.value(
+          b,
+          'b',
+          'RootMethod.brent requires finite interval bounds a and b.',
         );
       }
       return _brent(
@@ -59,9 +64,11 @@ double solve(
         maxIterations: maxIterations,
       );
     case RootMethod.bisection:
-      if (b == null) {
-        throw ArgumentError(
-          'RootMethod.bisection requires both interval bounds a and b.',
+      if (b == null || !b.isFinite) {
+        throw ArgumentError.value(
+          b,
+          'b',
+          'RootMethod.bisection requires finite interval bounds a and b.',
         );
       }
       return _bisection(
@@ -93,7 +100,7 @@ double _brent(
   var fb = fn(b);
 
   if (fa.isNaN || fb.isNaN) return double.nan;
-  if (fa * fb > 0.0) {
+  if (_sameSign(fa, fb)) {
     throw ArgumentError(
       'Root is not bracketed: f($a) = $fa and f($b) = $fb have identical signs.',
     );
@@ -109,7 +116,7 @@ double _brent(
   var eStep = 0.0;
 
   for (var iter = 0; iter < maxIterations; iter++) {
-    if ((fb > 0.0 && fc > 0.0) || (fb < 0.0 && fc < 0.0)) {
+    if (_sameSign(fb, fc)) {
       xC = xA;
       fc = fa;
       dStep = xB - xA;
@@ -187,23 +194,38 @@ double _newtonRaphson(
   var x = x0;
   for (var i = 0; i < maxIterations; i++) {
     final fx = fn(x);
+    if (!fx.isFinite) {
+      throw StateError(
+        'Function evaluation returned non-finite value at x = $x.',
+      );
+    }
     if (fx == 0.0) return x;
     final dfx = dfn(x);
-    if (dfx.abs() < 1e-15) {
+    if (!dfx.isFinite) {
+      throw StateError('Derivative returned non-finite value at x = $x.');
+    }
+    if (dfx == 0.0) {
       if (fx.abs() < tolerance) return x;
-      throw StateError('Derivative near zero at x = $x.');
+      throw StateError('Derivative is zero at x = $x.');
     }
     final step = fx / dfx;
+    if (!step.isFinite) {
+      if (fx.abs() < tolerance) return x;
+      throw StateError('Newton step overflowed near x = $x.');
+    }
     x -= step;
-    if (step.abs() < tolerance) {
+    if (!x.isFinite) {
+      throw StateError('Newton iterate became non-finite.');
+    }
+    if (step.abs() <= tolerance * math.max(1.0, x.abs())) {
       final newFx = fn(x);
-      if (newFx.abs() <= math.max(tolerance, 1e-6)) {
+      if (newFx.isFinite && newFx.abs() <= math.max(tolerance, 1e-6)) {
         return x;
       }
     }
   }
   final finalFx = fn(x);
-  if (finalFx == 0.0 || finalFx.abs() <= tolerance) {
+  if (finalFx.isFinite && (finalFx == 0.0 || finalFx.abs() <= tolerance)) {
     return x;
   }
   throw StateError(
@@ -222,7 +244,7 @@ double _bisection(
   var fb = fn(b);
 
   if (fa.isNaN || fb.isNaN) return double.nan;
-  if (fa * fb > 0.0) {
+  if (_sameSign(fa, fb)) {
     throw ArgumentError(
       'Root is not bracketed: f($a) = $fa and f($b) = $fb have identical signs.',
     );
@@ -233,13 +255,14 @@ double _bisection(
   var xA = a;
   var xB = b;
   for (var i = 0; i < maxIterations; i++) {
-    final mid = 0.5 * (xA + xB);
+    final halfSpan = 0.5 * (xB - xA);
+    final mid = xA + halfSpan;
     final fMid = fn(mid);
     if (fMid.isNaN) return double.nan;
-    if (fMid == 0.0 || 0.5 * (xB - xA).abs() <= tolerance) {
+    if (fMid == 0.0 || halfSpan.abs() <= tolerance || mid == xA || mid == xB) {
       return mid;
     }
-    if (fa * fMid < 0.0) {
+    if (_oppositeSign(fa, fMid)) {
       xB = mid;
       fb = fMid;
     } else {
@@ -247,5 +270,11 @@ double _bisection(
       fa = fMid;
     }
   }
-  return 0.5 * (xA + xB);
+  return xA + 0.5 * (xB - xA);
 }
+
+bool _sameSign(double a, double b) =>
+    (a > 0.0 && b > 0.0) || (a < 0.0 && b < 0.0);
+
+bool _oppositeSign(double a, double b) =>
+    (a < 0.0 && b > 0.0) || (a > 0.0 && b < 0.0);

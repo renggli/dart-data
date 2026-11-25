@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/numeric.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('solve', () {
@@ -148,12 +148,116 @@ void main() {
             .isCloseTo(5.0, 1e-8);
         check(solve(f, 0.0, method: RootMethod.newtonRaphson))
             .isCloseTo(5.0, 1e-6);
+      },
+    );
 
-        // Validation errors and iteration exhaustion
-        check(() => solve(f, 0.0, b: 10.0, tolerance: 0.0))
-            .throws<ArgumentError>();
-        check(() => solve(f, 0.0, b: 10.0, maxIterations: 0))
-            .throws<ArgumentError>();
+    test('validates finite bounds, tolerance, and maxIterations', () {
+      double f(double x) => x - 5.0;
+      check(() => solve(f, double.nan, b: 10.0)).throws<ArgumentError>();
+      check(() => solve(f, double.infinity)).throws<ArgumentError>();
+      check(() => solve(f, 0.0, b: double.infinity)).throws<ArgumentError>();
+      check(() => solve(f, 0.0, b: double.nan, method: RootMethod.bisection))
+          .throws<ArgumentError>();
+      check(() => solve(f, 0.0, b: 10.0, tolerance: 0.0))
+          .throws<ArgumentError>();
+      check(() => solve(f, 0.0, b: 10.0, tolerance: double.infinity))
+          .throws<ArgumentError>();
+      check(() => solve(f, 0.0, b: 10.0, maxIterations: 0))
+          .throws<ArgumentError>();
+    });
+
+    test(
+      'handles underflow-prone tiny brackets (1e-200) and large midpoints',
+      () {
+        double tinyBracketed(double x) => 1e-200 * (x - 3.0);
+        double tinyUnbracketed(double x) => 1e-200 * (x * x + 1.0);
+
+        check(solve(tinyBracketed, 0.0, b: 5.0, method: RootMethod.brent))
+            .isCloseTo(3.0, 1e-9);
+        check(solve(tinyBracketed, 0.0, b: 5.0, method: RootMethod.bisection))
+            .isCloseTo(3.0, 1e-9);
+        check(
+          () => solve(tinyUnbracketed, 0.0, b: 5.0, method: RootMethod.brent),
+        ).throws<ArgumentError>();
+        check(
+          () =>
+              solve(tinyUnbracketed, 0.0, b: 5.0, method: RootMethod.bisection),
+        ).throws<ArgumentError>();
+
+        // Midpoint overflow avoidance near double.maxFinite
+        final largeRoot = solve(
+          (x) => x < 1.1e308 ? -1.0 : 1.0,
+          1.0e308,
+          b: 1.2e308,
+          method: RootMethod.bisection,
+          tolerance: 1e300,
+        );
+        check(largeRoot.isFinite).isTrue;
+        check(largeRoot).isCloseTo(1.1e308, 1e301);
+      },
+    );
+
+    test(
+      'Newton-Raphson handles tiny-scale, large roots, and non-finite outputs',
+      () {
+        check(
+          solve(
+            (x) => 1e-18 * (x - 2.0),
+            0.0,
+            method: RootMethod.newtonRaphson,
+            derivative: (_) => 1e-18,
+          ),
+        ).isCloseTo(2.0, 1e-9);
+
+        final bigRoot = solve(
+          (x) => (x - 1e6) * (x - 1e6) - 1.0,
+          1e6 + 0.5,
+          method: RootMethod.newtonRaphson,
+          derivative: (x) => 2.0 * (x - 1e6),
+          tolerance: 1e-12,
+        );
+        check(bigRoot).isCloseTo(1e6 + 1.0, 1e-6);
+
+        check(
+          () => solve(
+            (x) => double.infinity,
+            1.0,
+            method: RootMethod.newtonRaphson,
+          ),
+        ).throws<StateError>();
+        check(
+          () => solve(
+            (x) => 1.0,
+            1.0,
+            method: RootMethod.newtonRaphson,
+            derivative: (_) => double.nan,
+          ),
+        ).throws<StateError>();
+        check(
+          () => solve(
+            (x) => 1e300,
+            1.0,
+            method: RootMethod.newtonRaphson,
+            derivative: (_) => 1e-20,
+          ),
+        ).throws<StateError>();
+        check(
+          solve(
+            (x) => 1e-13,
+            1.0,
+            method: RootMethod.newtonRaphson,
+            derivative: (_) => 1e-322,
+            tolerance: 1e-12,
+          ),
+        ).equals(1.0);
+        check(
+          () => solve(
+            (x) => -1e308,
+            1e308,
+            method: RootMethod.newtonRaphson,
+            derivative: (_) => 0.5,
+          ),
+        ).throws<StateError>();
         check(
           () => solve(
             (x) => x * x - 4.0,

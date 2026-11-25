@@ -737,7 +737,6 @@ digraph {
   88 -> 34 [color="#888888", arrowsize="0.7"];
   88 -> 1 [color="#888888", arrowsize="0.7"];
   89 -> 191 [color="#888888", arrowsize="0.7"];
-  89 -> 22 [color="#888888", arrowsize="0.7"];
   89 -> 23 [color="#888888", arrowsize="0.7"];
   89 -> 26 [color="#888888", arrowsize="0.7"];
   89 -> 34 [color="#888888", arrowsize="0.7"];

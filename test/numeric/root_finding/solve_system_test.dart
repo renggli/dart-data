@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('solveSystem', () {
@@ -99,19 +99,65 @@ void main() {
       ).throws<StateError>();
     });
 
-    test('throws StateError when equation evaluation returns NaN', () {
-      final eq = <double Function(Vector<double>)>[
-        (v) => double.nan,
-        (v) => v[1] - 1.0,
-      ];
-      check(() => solveSystem(eq, Vector.fromList([0.0, 0.0])))
-          .throws<StateError>();
-    });
+    test(
+      'throws StateError when equation evaluation returns non-finite value',
+      () {
+        check(
+          () => solveSystem([
+            (v) => double.nan,
+            (v) => v[1] - 1.0,
+          ], Vector.fromList([0.0, 0.0])),
+        ).throws<StateError>();
 
-    test('validates tolerance and maxIterations arguments', () {
+        check(
+          () => solveSystem([
+            (v) => double.infinity,
+            (v) => v[1] - 1.0,
+          ], Vector.fromList([0.0, 0.0])),
+        ).throws<StateError>();
+
+        // Explicit wrong-dimension Jacobian triggers ArgumentError catch
+        check(
+          () => solveSystem(
+            [(v) => v[0] - 1.0],
+            Vector.fromList([0.0]),
+            jacobian: (_) => Matrix<double>.identity(2),
+          ),
+        ).throws<StateError>();
+
+        // Overflowing step and non-finite final residual after maxIterations
+        check(
+          () => solveSystem(
+            [(v) => 1e200],
+            Vector.fromList([0.0]),
+            jacobian: (_) => Matrix<double>.fromRows([
+              [1e-200],
+            ]),
+          ),
+        ).throws<StateError>();
+
+        check(
+          () => solveSystem(
+            [(v) => v[0] == 0.0 ? 10.0 : double.nan],
+            Vector.fromList([0.0]),
+            jacobian: (_) => Matrix<double>.identity(1),
+            maxIterations: 1,
+          ),
+        ).throws<StateError>();
+      },
+    );
+
+    test('validates tolerance, maxIterations, and step arguments', () {
       final eq = <double Function(Vector<double>)>[(v) => v[0]];
       check(() => solveSystem(eq, Vector.fromList([0.0]), tolerance: 0.0))
           .throws<ArgumentError>();
+      check(
+        () => solveSystem(eq, Vector.fromList([0.0]), tolerance: double.nan),
+      ).throws<ArgumentError>();
+      check(
+        () =>
+            solveSystem(eq, Vector.fromList([0.0]), tolerance: double.infinity),
+      ).throws<ArgumentError>();
       check(() => solveSystem(eq, Vector.fromList([0.0]), maxIterations: 0))
           .throws<ArgumentError>();
       check(() => solveSystem(eq, Vector.fromList([0.0]), step: 0.0))

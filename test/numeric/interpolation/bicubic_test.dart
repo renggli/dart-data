@@ -4,7 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('BicubicInterpolation', () {
@@ -80,6 +80,12 @@ void main() {
       // Outside top-right (should clamp to (1, 1))
       check(bicubic(10.0, 10.0)).isCloseTo(values.getUnchecked(1, 1), 1e-10);
       check(bicubic.gradient(10.0, 10.0).toList()).deepEquals([0.0, 0.0]);
+
+      // NaN evaluation
+      check(bicubic(double.nan, 0.5)).isNaN;
+      check(bicubic(0.5, double.nan)).isNaN;
+      check(bicubic.gradient(double.nan, 0.5)[0]).isNaN;
+      check(bicubic.gradient(0.5, double.nan)[1]).isNaN;
     });
 
     test('error validation', () {
@@ -91,7 +97,17 @@ void main() {
       check(() => BicubicInterpolation([1.0, 2.0], [1.0], values))
           .throws<ArgumentError>();
 
-      // Non-monotonic points
+      // Non-finite or non-monotonic points
+      check(
+        () => BicubicInterpolation([1.0, double.infinity], [1.0, 2.0], values),
+      ).throws<ArgumentError>();
+      check(
+        () => BicubicInterpolation(
+          [1.0, 2.0],
+          [double.negativeInfinity, 2.0],
+          values,
+        ),
+      ).throws<ArgumentError>();
       check(() => BicubicInterpolation([2.0, 1.0], [1.0, 2.0], values))
           .throws<ArgumentError>();
       check(() => BicubicInterpolation([1.0, 2.0], [2.0, 1.0], values))

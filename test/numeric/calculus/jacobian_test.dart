@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('jacobian', () {
@@ -59,5 +59,41 @@ void main() {
         check((jac.get(0, 0) - 2e9).abs() / 2e9).isLessThan(1e-4);
       },
     );
+
+    test('handles zero input or zero output dimension', () {
+      final emptyIn = Vector<double>.fromList([], type: DataType.float64);
+      final jacEmptyIn = jacobian(
+        (v) => Vector<double>.fromList([1.0, 2.0], type: DataType.float64),
+        emptyIn,
+      );
+      check(jacEmptyIn.rowCount).equals(2);
+      check(jacEmptyIn.colCount).equals(0);
+
+      final pt = Vector<double>.fromList([1.0], type: DataType.float64);
+      final jacEmptyOut = jacobian(
+        (v) => Vector<double>.fromList([], type: DataType.float64),
+        pt,
+      );
+      check(jacEmptyOut.rowCount).equals(0);
+      check(jacEmptyOut.colCount).equals(1);
+    });
+
+    test('validates positive finite step', () {
+      final pt = Vector<double>.fromList([1.0], type: DataType.float64);
+      check(
+        () => jacobian(
+          (v) => Vector<double>.fromList([v[0]], type: DataType.float64),
+          pt,
+          step: 0.0,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => jacobian(
+          (v) => Vector<double>.fromList([v[0]], type: DataType.float64),
+          pt,
+          step: double.nan,
+        ),
+      ).throws<ArgumentError>();
+    });
   });
 }

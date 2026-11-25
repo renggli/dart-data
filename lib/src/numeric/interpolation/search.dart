@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-/// Finds the interval index $i$ such that $x_i \le x < x_{i+1}$ for strictly
+/// Finds the interval index `i` such that `x_i ≤ x < x_{i+1}` for strictly
 /// increasing [xs].
 int binarySearchInterval(List<double> xs, double x) {
   if (x <= xs.first) return 0;
