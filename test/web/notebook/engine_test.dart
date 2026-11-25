@@ -59,8 +59,8 @@ void main() {
           .value;
       check(p2d).isA<PlotValue>();
       check((p2d as PlotValue).title).equals('Wave');
-      check(p2d.scene2d).isNotNull();
-      check(p2d.scene2d!.datasets).isNotEmpty;
+      check(p2d.plotKind).equals(PlotKind.function2d);
+      check(p2d.expressions.length).equals(1);
 
       final pParam = eval
           .evaluate('parametric(cos(t), sin(t), t, from: 0, to: 6.28)')
@@ -85,11 +85,12 @@ void main() {
       check((pOde as PlotValue).isOde).isTrue;
 
       final pVf = eval.evaluate('vectorfield(-y, x, x, y, grid: 6)').value;
-      check((pVf as PlotValue).scene2d).isNotNull();
-      check(pVf.scene2d!.datasets).isNotEmpty;
+      check((pVf as PlotValue).plotKind).equals(PlotKind.vectorField2d);
+      check(pVf.gridSize).equals(6);
 
       final pHm = eval.evaluate('heatmap(x^2 + y^2, x, y, grid: 16)').value;
-      check((pHm as PlotValue).scene2d).isNotNull();
+      check((pHm as PlotValue).plotKind).equals(PlotKind.heatmap2d);
+      check(pHm.gridSize).equals(16);
 
       final pVf3 = eval
           .evaluate('vectorfield3d(-y, x, z, x, y, z, grid: 3)')

@@ -166,6 +166,22 @@ class GraphTheme {
   final bool isDark;
 }
 
+/// Parses a `#RRGGBB` CSS hex color into normalized `[0, 1]` RGB channels.
+({double r, double g, double b}) parseHexColor(String hex) {
+  final clean = hex.startsWith('#') ? hex.substring(1) : hex;
+  if (clean.length == 6) {
+    final v = int.tryParse(clean, radix: 16);
+    if (v != null) {
+      return (
+        r: ((v >> 16) & 0xff) / 255.0,
+        g: ((v >> 8) & 0xff) / 255.0,
+        b: (v & 0xff) / 255.0,
+      );
+    }
+  }
+  return (r: 0.38, g: 0.65, b: 0.98);
+}
+
 const List<({int r, int g, int b})> _viridisStops = [
   (r: 68, g: 1, b: 84),
   (r: 59, g: 82, b: 139),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:js_interop';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -10,20 +11,15 @@ import '../model/dataset.dart';
 import '../model/dataset_2d.dart';
 import '../model/style.dart';
 import '../sampling/sampler_2d.dart';
+import 'renderer_base.dart';
 
 /// Interactive 2D graph renderer using a WebGL2 raster underlay and Canvas2D HUD.
-class Renderer2D {
+final class Renderer2D extends GraphRenderer {
   /// Creates a 2D renderer mounted inside the container element.
-  new(this._container, {this._theme = GraphTheme.dark, this.onProbeChanged}) {
-    _glCanvas = web.HTMLCanvasElement()
-      ..className = 'graph-canvas-layer graph-gl-layer';
-    _hudCanvas = web.HTMLCanvasElement()
-      ..className = 'graph-canvas-layer graph-hud-layer';
-    _container.appendChild(_glCanvas);
-    _container.appendChild(_hudCanvas);
-
-    _gl = _glCanvas.getContext('webgl2') as web.WebGL2RenderingContext?;
-    _hud = _hudCanvas.getContext('2d') as web.CanvasRenderingContext2D?;
+  new(super.container, {super.theme = GraphTheme.dark, this.onProbeChanged}) {
+    _staticHudCanvas = web.HTMLCanvasElement();
+    _staticHud =
+        _staticHudCanvas.getContext('2d') as web.CanvasRenderingContext2D?;
     _initGl();
     _attachEvents();
     resize();
@@ -32,15 +28,14 @@ class Renderer2D {
   /// Callback invoked when the pointer probe moves or leaves the plot area.
   final void Function(Probe2D? probe)? onProbeChanged;
 
-  final web.HTMLElement _container;
-  late final web.HTMLCanvasElement _glCanvas;
-  late final web.HTMLCanvasElement _hudCanvas;
-  web.WebGL2RenderingContext? _gl;
-  web.CanvasRenderingContext2D? _hud;
+  late final web.HTMLCanvasElement _staticHudCanvas;
+  web.CanvasRenderingContext2D? _staticHud;
+  bool _staticHudDirty = true;
 
-  GraphTheme _theme;
+  Timer? _refineTimer;
+  int _refineGeneration = 0;
+
   Scene2D _scene = const Scene2D(datasets: <Dataset2D>[]);
-  final Map<String, bool> _visibilityOverrides = <String, bool>{};
   Bounds2D _viewBounds = const Bounds2D(xMin: -5, xMax: 5, yMin: -5, yMax: 5);
   Bounds2D _defaultBounds = const Bounds2D(
     xMin: -5,
@@ -49,10 +44,6 @@ class Renderer2D {
     yMax: 5,
   );
   Probe2D? _probe;
-
-  int _width = 1;
-  int _height = 1;
-  double _dpr = 1.0;
 
   bool _dragging = false;
   double _dragStartX = 0.0;
@@ -73,50 +64,59 @@ class Renderer2D {
   /// Currently active scene (reflecting any viewport resampling).
   Scene2D get scene => _scene;
 
+  bool get _hasResamplableField =>
+      _scene.datasets.any((d) => d is Field2DDataset && d.resampler != null);
+
+  @override
+  void onStyleOrVisibilityChanged() {
+    _staticHudDirty = true;
+  }
+
   /// Updates the active 2D scene and resets viewport bounds.
   void setScene(Scene2D scene, {bool preserveView = false}) {
+    _cancelRefinement();
     _scene = scene;
+    _staticHudDirty = true;
     final computed =
         scene.computeBounds() ??
         const Bounds2D(xMin: -5, xMax: 5, yMin: -5, yMax: 5);
     _defaultBounds = _padBounds(computed);
     if (!preserveView) {
       _viewBounds = _applyEqualAspect(_defaultBounds);
-      if (_viewBounds.xMin < computed.xMin ||
-          _viewBounds.xMax > computed.xMax ||
-          (_width > 1 &&
-              _height > 1 &&
-              _scene.datasets.any(
-                (d) => d is Field2DDataset && d.resampler != null,
-              ))) {
-        _resampleForViewport();
+    }
+    if (width > 1 && height > 1) {
+      if (_hasResamplableField) {
+        _scheduleProgressiveRefinement();
+        return;
+      }
+      if (!preserveView &&
+          (_viewBounds.xMin < computed.xMin ||
+              _viewBounds.xMax > computed.xMax)) {
+        _resampleForViewport(resampleFields: false);
       }
     }
     _syncTextures();
     render();
   }
 
-  /// Updates the active theme and re-renders.
-  void setTheme(GraphTheme theme) {
-    _theme = theme;
-    render();
-  }
-
-  /// Overrides visibility for [datasetId] without rebuilding the scene.
-  void setVisibility(String datasetId, bool visible) {
-    _visibilityOverrides[datasetId] = visible;
-    render();
-  }
-
   /// Resets pan/zoom back to the scene's initial bounds.
+  @override
   void resetView() {
+    _cancelRefinement();
     _viewBounds = _applyEqualAspect(_defaultBounds);
-    _resampleForViewport();
+    _staticHudDirty = true;
+    if (_hasResamplableField) {
+      _scheduleProgressiveRefinement();
+      return;
+    }
+    _resampleForViewport(resampleFields: false);
     render();
   }
 
   /// Zooms the current viewport around its center by [factor] (`< 1` zooms in).
+  @override
   void zoomBy(double factor) {
+    _cancelRefinement();
     final cx = 0.5 * (_viewBounds.xMin + _viewBounds.xMax);
     final cy = 0.5 * (_viewBounds.yMin + _viewBounds.yMax);
     final halfW = 0.5 * _viewBounds.xSpan * factor;
@@ -137,99 +137,116 @@ class Renderer2D {
       y2Min: y2Min,
       y2Max: y2Max,
     );
-    _resampleForViewport();
+    _staticHudDirty = true;
+    if (_hasResamplableField) {
+      _scheduleProgressiveRefinement();
+      return;
+    }
+    _resampleForViewport(resampleFields: false);
     render();
   }
 
   /// Synchronizes canvas pixel dimensions to the container's CSS layout box.
+  @override
   void resize() {
-    final rect = _container.getBoundingClientRect();
-    final cssW = math.max(1, rect.width.round());
-    final cssH = math.max(1, rect.height.round());
-    _dpr = web.window.devicePixelRatio.clamp(1.0, 3.0);
-    _width = cssW;
-    _height = cssH;
-
-    final pxW = (cssW * _dpr).round();
-    final pxH = (cssH * _dpr).round();
-    final sizeChanged =
-        _glCanvas.width != pxW ||
-        _glCanvas.height != pxH ||
-        _hudCanvas.width != pxW ||
-        _hudCanvas.height != pxH;
-    if (_glCanvas.width != pxW || _glCanvas.height != pxH) {
-      _glCanvas.width = pxW;
-      _glCanvas.height = pxH;
+    final sizeChanged = syncCanvasSize();
+    if (_staticHudCanvas.width != hudCanvas.width ||
+        _staticHudCanvas.height != hudCanvas.height) {
+      _staticHudCanvas.width = hudCanvas.width;
+      _staticHudCanvas.height = hudCanvas.height;
+      _staticHudDirty = true;
     }
-    if (_hudCanvas.width != pxW || _hudCanvas.height != pxH) {
-      _hudCanvas.width = pxW;
-      _hudCanvas.height = pxH;
-    }
-    if (sizeChanged &&
-        cssW > 1 &&
-        cssH > 1 &&
-        _scene.datasets.any(
-          (d) => d is Field2DDataset && d.resampler != null,
-        )) {
-      if (_scene.equalAspect) {
-        _viewBounds = _applyEqualAspect(_defaultBounds);
+    if (sizeChanged) {
+      _staticHudDirty = true;
+      if (width > 1 && height > 1 && _hasResamplableField) {
+        if (_scene.equalAspect) {
+          _viewBounds = _applyEqualAspect(_defaultBounds);
+        }
+        _scheduleProgressiveRefinement();
+        return;
       }
-      _resampleForViewport();
     }
     render();
   }
 
-  /// Composites the WebGL2 and Canvas2D layers into a PNG data URL.
-  String? exportPngDataUrl() {
-    final out = web.HTMLCanvasElement()
-      ..width = _hudCanvas.width
-      ..height = _hudCanvas.height;
-    final ctx = out.getContext('2d') as web.CanvasRenderingContext2D?;
-    if (ctx == null) return null;
-    ctx.fillStyle = _theme.background.toJS;
-    ctx.fillRect(0, 0, out.width.toDouble(), out.height.toDouble());
-    ctx.drawImage(_glCanvas, 0, 0);
-    ctx.drawImage(_hudCanvas, 0, 0);
-    return out.toDataURL('image/png');
-  }
-
-  /// Renders both the WebGL2 underlay and Canvas2D HUD.
-  void render() {
+  /// Renders the 2D scene. When [probeOnly] is `true` and the static HUD cache
+  /// is clean, skips WebGL and curve/grid redraws and only blits the cached
+  /// HUD plus hover crosshair.
+  @override
+  void render({bool probeOnly = false}) {
     final plot = _plotRect();
-    _renderGl(plot);
-    _renderHud(plot);
+    if (!probeOnly || _staticHudDirty) {
+      _renderGl(plot);
+      _renderStaticHud(plot);
+      _staticHudDirty = false;
+    }
+    _compositeHudAndCrosshair(plot);
   }
 
-  /// Releases DOM listeners and WebGL resources.
+  /// Releases DOM listeners, timers, and WebGL resources.
+  @override
   void dispose() {
-    _hudCanvas.removeEventListener('pointerdown', _onPointerDownJs);
-    _hudCanvas.removeEventListener('pointermove', _onPointerMoveJs);
-    _hudCanvas.removeEventListener('pointerup', _onPointerUpJs);
-    _hudCanvas.removeEventListener('pointerleave', _onPointerLeaveJs);
-    _hudCanvas.removeEventListener('wheel', _onWheelJs);
-    _hudCanvas.removeEventListener('dblclick', _onDblClickJs);
+    _cancelRefinement();
+    hudCanvas.removeEventListener('pointerdown', _onPointerDownJs);
+    hudCanvas.removeEventListener('pointermove', _onPointerMoveJs);
+    hudCanvas.removeEventListener('pointerup', _onPointerUpJs);
+    hudCanvas.removeEventListener('pointerleave', _onPointerLeaveJs);
+    hudCanvas.removeEventListener('wheel', _onWheelJs);
+    hudCanvas.removeEventListener('dblclick', _onDblClickJs);
 
-    final gl = _gl;
-    if (gl != null) {
+    final glCtx = gl;
+    if (glCtx != null) {
       for (final entry in _textures.values) {
-        gl.deleteTexture(entry.texture);
+        glCtx.deleteTexture(entry.texture);
       }
       _textures.clear();
-      if (_quadBuffer != null) gl.deleteBuffer(_quadBuffer);
-      if (_texProgram != null) gl.deleteProgram(_texProgram);
+      if (_quadBuffer != null) glCtx.deleteBuffer(_quadBuffer);
+      if (_texProgram != null) glCtx.deleteProgram(_texProgram);
     }
-    _glCanvas.remove();
-    _hudCanvas.remove();
+    super.dispose();
   }
 
-  void _resampleForViewport({bool resampleFields = true}) {
+  void _cancelRefinement() {
+    _refineTimer?.cancel();
+    _refineTimer = null;
+    _refineGeneration++;
+  }
+
+  /// Renders a fast 1/4-resolution raster preview immediately, then refines
+  /// progressively to 1/2 and full canvas resolution while idle.
+  void _scheduleProgressiveRefinement() {
+    _cancelRefinement();
+    final gen = _refineGeneration;
+    _resampleForViewport(resampleFields: true, fieldScale: 0.25);
+    _staticHudDirty = true;
+    render();
+
+    _refineTimer = Timer(const Duration(milliseconds: 50), () {
+      if (_refineGeneration != gen || _dragging) return;
+      _resampleForViewport(resampleFields: true, fieldScale: 0.5);
+      _staticHudDirty = true;
+      render();
+
+      _refineTimer = Timer(const Duration(milliseconds: 110), () {
+        if (_refineGeneration != gen || _dragging) return;
+        _resampleForViewport(resampleFields: true, fieldScale: 1.0);
+        _staticHudDirty = true;
+        render();
+      });
+    });
+  }
+
+  void _resampleForViewport({
+    bool resampleFields = true,
+    double fieldScale = 1.0,
+  }) {
     if (_scene.datasets.isEmpty || !_viewBounds.isValid) return;
     var changed = false;
     var texturesDirty = false;
     final updated = <Dataset2D>[];
     final plot = _plotRect();
-    final targetCols = (plot.width * _dpr).round().clamp(64, 1280);
-    final targetRows = (plot.height * _dpr).round().clamp(64, 960);
+    final targetCols = (plot.width * dpr * fieldScale).round().clamp(48, 1280);
+    final targetRows = (plot.height * dpr * fieldScale).round().clamp(48, 960);
 
     for (final ds in _scene.datasets) {
       if (ds is Function2DDataset && ds.evaluator != null) {
@@ -245,9 +262,8 @@ class Renderer2D {
           mode: ds.mode,
           yAxis: ds.yAxis,
           fill: ds.fill,
-          markers: ds.markers,
-          references: ds.references,
           markerSampler: ds.markerSampler,
+          referenceSampler: ds.referenceSampler,
         );
         updated.add(resampled);
         changed = true;
@@ -278,10 +294,20 @@ class Renderer2D {
         references: _scene.references,
       );
       if (texturesDirty) _syncTextures();
+      _staticHudDirty = true;
     }
   }
 
-  bool _isVisible(Dataset2D ds) => _visibilityOverrides[ds.id] ?? ds.visible;
+  bool _isVisible(Dataset2D ds) => isDatasetVisible(ds.id, ds.visible);
+
+  web.WebGL2RenderingContext? get _gl => gl;
+  web.CanvasRenderingContext2D? get _hud => hud;
+  web.HTMLCanvasElement get _glCanvas => glCanvas;
+  web.HTMLCanvasElement get _hudCanvas => hudCanvas;
+  GraphTheme get _theme => theme;
+  int get _width => width;
+  int get _height => height;
+  double get _dpr => dpr;
 
   _PlotRect _plotRect() {
     final hasY2 =
@@ -466,8 +492,8 @@ void main() {
     gl.disable(web.WebGLRenderingContext.SCISSOR_TEST);
   }
 
-  void _renderHud(_PlotRect plot) {
-    final ctx = _hud;
+  void _renderStaticHud(_PlotRect plot) {
+    final ctx = _staticHud;
     if (ctx == null) return;
 
     ctx.save();
@@ -475,8 +501,8 @@ void main() {
     ctx.clearRect(
       0,
       0,
-      _hudCanvas.width.toDouble(),
-      _hudCanvas.height.toDouble(),
+      _staticHudCanvas.width.toDouble(),
+      _staticHudCanvas.height.toDouble(),
     );
     ctx.scale(_dpr, _dpr);
 
@@ -584,24 +610,6 @@ void main() {
       );
     }
 
-    // Hover crosshair.
-    final probe = _probe;
-    if (probe != null) {
-      final px = _dataToPxX(probe.x, plot);
-      final py = _dataToPxY(probe.y, plot, YAxisSide.left);
-      ctx.save();
-      ctx.strokeStyle = _theme.mutedTextColor.toJS;
-      ctx.lineWidth = 1.0;
-      ctx.setLineDash([4.0.toJS, 4.0.toJS].toJS);
-      ctx.beginPath();
-      ctx.moveTo(px, plot.top);
-      ctx.lineTo(px, plot.top + plot.height);
-      ctx.moveTo(plot.left, py);
-      ctx.lineTo(plot.left + plot.width, py);
-      ctx.stroke();
-      ctx.restore();
-    }
-
     ctx.restore(); // end clip
 
     // Ticks & axis labels.
@@ -683,6 +691,41 @@ void main() {
       ctx.restore();
     }
 
+    ctx.restore();
+  }
+
+  void _compositeHudAndCrosshair(_PlotRect plot) {
+    final ctx = _hud;
+    if (ctx == null) return;
+
+    ctx.save();
+    ctx.setTransform(1.0.toJS, 0, 0, 1.0, 0, 0);
+    ctx.clearRect(
+      0,
+      0,
+      _hudCanvas.width.toDouble(),
+      _hudCanvas.height.toDouble(),
+    );
+    ctx.drawImage(_staticHudCanvas, 0, 0);
+
+    final probe = _probe;
+    if (probe != null) {
+      ctx.scale(_dpr, _dpr);
+      ctx.beginPath();
+      ctx.rect(plot.left, plot.top, plot.width, plot.height);
+      ctx.clip();
+      final px = _dataToPxX(probe.x, plot);
+      final py = _dataToPxY(probe.y, plot, YAxisSide.left);
+      ctx.strokeStyle = _theme.mutedTextColor.toJS;
+      ctx.lineWidth = 1.0;
+      ctx.setLineDash([4.0.toJS, 4.0.toJS].toJS);
+      ctx.beginPath();
+      ctx.moveTo(px, plot.top);
+      ctx.lineTo(px, plot.top + plot.height);
+      ctx.moveTo(plot.left, py);
+      ctx.lineTo(plot.left + plot.width, py);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
@@ -1163,6 +1206,7 @@ void main() {
           y2Min += dy2;
           y2Max += dy2;
         }
+        _cancelRefinement();
         _viewBounds = Bounds2D(
           xMin: start.xMin - dx,
           xMax: start.xMax - dx,
@@ -1171,7 +1215,11 @@ void main() {
           y2Min: y2Min,
           y2Max: y2Max,
         );
-        _resampleForViewport(resampleFields: false);
+        _resampleForViewport(
+          resampleFields: _hasResamplableField,
+          fieldScale: 0.22,
+        );
+        _staticHudDirty = true;
         render();
         return;
       }
@@ -1183,7 +1231,7 @@ void main() {
         if (_probe != null) {
           _probe = null;
           onProbeChanged?.call(null);
-          render();
+          render(probeOnly: true);
         }
         return;
       }
@@ -1202,7 +1250,7 @@ void main() {
       }
       _probe = Probe2D(x: x, y: y, y2: y2);
       onProbeChanged?.call(_probe);
-      render();
+      render(probeOnly: true);
     }).toJS;
 
     _onPointerUpJs = ((web.PointerEvent e) {
@@ -1212,12 +1260,8 @@ void main() {
       if (_hudCanvas.hasPointerCapture(e.pointerId)) {
         _hudCanvas.releasePointerCapture(e.pointerId);
       }
-      if (wasDragging &&
-          _scene.datasets.any(
-            (d) => d is Field2DDataset && d.resampler != null,
-          )) {
-        _resampleForViewport();
-        render();
+      if (wasDragging && _hasResamplableField) {
+        _scheduleProgressiveRefinement();
       }
     }).toJS;
 
@@ -1225,7 +1269,7 @@ void main() {
       if (!_dragging && _probe != null) {
         _probe = null;
         onProbeChanged?.call(null);
-        render();
+        render(probeOnly: true);
       }
     }).toJS;
 
@@ -1259,7 +1303,12 @@ void main() {
         y2Min: y2Min,
         y2Max: y2Max,
       );
-      _resampleForViewport();
+      _staticHudDirty = true;
+      if (_hasResamplableField) {
+        _scheduleProgressiveRefinement();
+        return;
+      }
+      _resampleForViewport(resampleFields: false);
       render();
     }).toJS;
 

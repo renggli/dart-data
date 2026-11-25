@@ -4,6 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:test/scaffolding.dart';
 
 import '../../../web/shared/graph/model/axis.dart';
+import '../../../web/shared/graph/model/dataset_2d.dart';
 import '../../../web/shared/graph/sampling/oklch.dart';
 import '../../../web/shared/graph/sampling/sampler_2d.dart';
 import '../../../web/shared/graph/sampling/sampler_3d.dart';
@@ -55,6 +56,31 @@ void main() {
         check(ds.ys.any((y) => y.isNaN)).isTrue;
       },
     );
+
+    test('sampleFunction2D populates markers and references via samplers', () {
+      final ds = sampleFunction2D(
+        id: 'sin',
+        label: 'sin(x)',
+        fn: math.sin,
+        xMin: -4.0,
+        xMax: 4.0,
+        color: '#60a5fa',
+        markerSampler: (a, b) => const [
+          PointMarker(x: 0.0, y: 0.0, label: 'root'),
+        ],
+        referenceSampler: (a, b) => [
+          ReferenceLine(value: a, isVertical: true),
+          ReferenceLine(value: b, isVertical: true),
+        ],
+      );
+      check(ds.evaluator).isNotNull();
+      check(ds.markerSampler).isNotNull();
+      check(ds.referenceSampler).isNotNull();
+      check(ds.markers.length).equals(1);
+      check(ds.references.length).equals(2);
+      check(ds.references.first.value).equals(-4.0);
+      check(ds.references.last.value).equals(4.0);
+    });
 
     test('sampleParametric2D samples unit circle', () {
       final ds = sampleParametric2D(

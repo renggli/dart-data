@@ -52,6 +52,9 @@ import '../model/style.dart';
 }
 
 /// Samples a complex function `f(x + i*y)` onto a [Field2DDataset] with OKLCH domain coloring.
+///
+/// When [lazy] is `true`, skips initial rasterization and lets the renderer
+/// populate progressive resolution passes on mount.
 Field2DDataset sampleComplexDomainGrid({
   required String id,
   required String label,
@@ -59,7 +62,45 @@ Field2DDataset sampleComplexDomainGrid({
   required Bounds2D domain,
   int cols = 480,
   int rows = 320,
+  bool lazy = false,
 }) {
+  Field2DSample evalAt(double x, double y) {
+    final z = fn(x, y);
+    return Field2DSample(
+      x: x,
+      y: y,
+      u: z.re,
+      v: z.im,
+      scalar: math.sqrt(z.re * z.re + z.im * z.im),
+    );
+  }
+
+  Field2DDataset resample(Bounds2D nextDomain, {int? cols, int? rows}) =>
+      sampleComplexDomainGrid(
+        id: id,
+        label: label,
+        fn: fn,
+        domain: nextDomain,
+        cols: cols ?? 480,
+        rows: rows ?? 320,
+      );
+
+  if (lazy) {
+    return Field2DDataset(
+      id: id,
+      label: label,
+      cols: 0,
+      rows: 0,
+      domain: domain,
+      samples: const <Field2DSample>[],
+      colormap: Colormap.oklchPhase,
+      showRaster: true,
+      showVectors: false,
+      evaluator: evalAt,
+      resampler: resample,
+    );
+  }
+
   final safeCols = math.max(2, cols);
   final safeRows = math.max(2, rows);
   final pixels = Uint8List(safeCols * safeRows * 4);
@@ -102,24 +143,8 @@ Field2DDataset sampleComplexDomainGrid({
     showRaster: true,
     showVectors: false,
     rgbaPixels: pixels,
-    evaluator: (x, y) {
-      final z = fn(x, y);
-      return Field2DSample(
-        x: x,
-        y: y,
-        u: z.re,
-        v: z.im,
-        scalar: math.sqrt(z.re * z.re + z.im * z.im),
-      );
-    },
-    resampler: (nextDomain, {cols, rows}) => sampleComplexDomainGrid(
-      id: id,
-      label: label,
-      fn: fn,
-      domain: nextDomain,
-      cols: cols ?? safeCols,
-      rows: rows ?? safeRows,
-    ),
+    evaluator: evalAt,
+    resampler: resample,
   );
 }
 

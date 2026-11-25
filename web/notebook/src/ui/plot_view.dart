@@ -30,11 +30,11 @@ final class PlotView {
       root.append(titleEl);
     }
 
-    final scene3d = plot.scene3d ?? _reconstructScene3D(plot);
+    final scene3d = _reconstructScene3D(plot);
     if (scene3d != null) {
       _widget = GraphWidget.view3d(scene3d, height: 340);
     } else {
-      final scene2d = plot.scene2d ?? _reconstructScene2D(plot);
+      final scene2d = _reconstructScene2D(plot);
       _widget = GraphWidget.view2d(scene2d, height: 300);
     }
     root.append(_widget.element);
@@ -173,6 +173,7 @@ Scene2D _reconstructScene2D(PlotValue plot) {
         yMin: plot.minY,
         yMax: plot.maxY,
       ),
+      lazy: true,
     );
     return Scene2D(
       datasets: [ds],
@@ -241,6 +242,7 @@ Scene2D _reconstructScene2D(PlotValue plot) {
       ),
       cols: grid,
       rows: grid,
+      lazy: true,
     );
     return Scene2D(
       datasets: [ds],

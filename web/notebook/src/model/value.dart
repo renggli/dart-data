@@ -4,9 +4,6 @@ import 'package:collection/collection.dart';
 import 'package:data/linear.dart';
 import 'package:data/symbolic.dart';
 
-import '../../../shared/graph/model/dataset_2d.dart';
-import '../../../shared/graph/model/dataset_3d.dart';
-
 /// Sealed hierarchy representing all evaluated values in the symbolic notebook.
 sealed class CalcValue {
   const new();
@@ -349,8 +346,6 @@ final class PlotValue extends CalcValue {
     this.plotKind = PlotKind.function2d,
     this.yVariable,
     this.gridSize = 48,
-    this.scene2d,
-    this.scene3d,
   });
 
   final List<Expr> expressions;
@@ -372,14 +367,11 @@ final class PlotValue extends CalcValue {
   final PlotKind plotKind;
   final String? yVariable;
   final int gridSize;
-  final Scene2D? scene2d;
-  final Scene3D? scene3d;
 
   bool get is3d =>
       plotKind == PlotKind.surface3d ||
       plotKind == PlotKind.complex3d ||
-      plotKind == PlotKind.vectorField3d ||
-      scene3d != null;
+      plotKind == PlotKind.vectorField3d;
 
   @override
   String get kind => 'plot';

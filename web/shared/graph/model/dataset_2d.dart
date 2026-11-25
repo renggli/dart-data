@@ -113,6 +113,7 @@ final class Function2DDataset extends Dataset2D {
     this.references = const <ReferenceLine>[],
     this.evaluator,
     this.markerSampler,
+    this.referenceSampler,
   });
 
   /// Sampled X coordinates.
@@ -148,6 +149,11 @@ final class Function2DDataset extends Dataset2D {
   /// Optional callback used to recompute markers (such as roots and extrema)
   /// whenever the visible X range changes via pan or zoom.
   final List<PointMarker> Function(double xMin, double xMax)? markerSampler;
+
+  /// Optional callback used to recompute reference lines (such as vertical
+  /// asymptotes) whenever the visible X range changes via pan or zoom.
+  final List<ReferenceLine> Function(double xMin, double xMax)?
+  referenceSampler;
 
   @override
   LegendSwatch get swatch =>

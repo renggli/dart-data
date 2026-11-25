@@ -2042,13 +2042,12 @@ void drawCharts() {
         sampleFunction2D(
           id: 'integral',
           label: '∫ f(x) dx',
-          fn: realFn,
-          xMin: math.max(minX, plotA),
-          xMax: math.min(maxX, plotB),
+          fn: (x) => (x >= plotA && x <= plotB) ? realFn(x) : double.nan,
+          xMin: minX,
+          xMax: maxX,
           color: '#3b82f6',
           width: 0.5,
           fill: const AreaFill(color: '#3b82f6', opacity: 0.22),
-          dynamicResample: false,
         ),
       );
     }

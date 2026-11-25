@@ -9,20 +9,12 @@ import '../model/axis.dart';
 import '../model/dataset.dart';
 import '../model/dataset_3d.dart';
 import '../model/style.dart';
+import 'renderer_base.dart';
 
 /// Interactive 3D graph renderer using depth-buffered WebGL2 and a Canvas2D HUD.
-class Renderer3D {
+final class Renderer3D extends GraphRenderer {
   /// Creates a 3D renderer mounted inside the container element.
-  new(this._container, {this._theme = GraphTheme.dark, this.onProbeChanged}) {
-    _glCanvas = web.HTMLCanvasElement()
-      ..className = 'graph-canvas-layer graph-gl-layer';
-    _hudCanvas = web.HTMLCanvasElement()
-      ..className = 'graph-canvas-layer graph-hud-layer';
-    _container.appendChild(_glCanvas);
-    _container.appendChild(_hudCanvas);
-
-    _gl = _glCanvas.getContext('webgl2') as web.WebGL2RenderingContext?;
-    _hud = _hudCanvas.getContext('2d') as web.CanvasRenderingContext2D?;
+  new(super.container, {super.theme = GraphTheme.dark, this.onProbeChanged}) {
     _initGl();
     _attachEvents();
     resize();
@@ -31,15 +23,7 @@ class Renderer3D {
   /// Callback invoked when the 3D pointer probe updates or clears.
   final void Function(Probe3D? probe)? onProbeChanged;
 
-  final web.HTMLElement _container;
-  late final web.HTMLCanvasElement _glCanvas;
-  late final web.HTMLCanvasElement _hudCanvas;
-  web.WebGL2RenderingContext? _gl;
-  web.CanvasRenderingContext2D? _hud;
-
-  GraphTheme _theme;
   Scene3D _scene = const Scene3D(datasets: <Dataset3D>[]);
-  final Map<String, bool> _visibilityOverrides = <String, bool>{};
   Bounds3D _bounds = const Bounds3D(
     xMin: -1,
     xMax: 1,
@@ -52,10 +36,6 @@ class Renderer3D {
   double _yaw = -0.68;
   double _pitch = 0.48;
   double _distance = 3.2;
-
-  int _width = 1;
-  int _height = 1;
-  double _dpr = 1.0;
 
   bool _dragging = false;
   double _dragStartX = 0.0;
@@ -93,19 +73,8 @@ class Renderer3D {
     render();
   }
 
-  /// Updates the active theme and re-renders.
-  void setTheme(GraphTheme theme) {
-    _theme = theme;
-    render();
-  }
-
-  /// Overrides visibility for [datasetId] without rebuilding buffers.
-  void setVisibility(String datasetId, bool visible) {
-    _visibilityOverrides[datasetId] = visible;
-    render();
-  }
-
   /// Resets orbit angles and zoom distance to default.
+  @override
   void resetView() {
     _yaw = -0.68;
     _pitch = 0.48;
@@ -114,48 +83,21 @@ class Renderer3D {
   }
 
   /// Zooms the camera distance by [factor] (`< 1` zooms in).
+  @override
   void zoomBy(double factor) {
     _distance = (_distance * factor).clamp(1.4, 12.0);
     render();
   }
 
   /// Synchronizes canvas backing sizes to the container CSS layout box.
+  @override
   void resize() {
-    final rect = _container.getBoundingClientRect();
-    final cssW = math.max(1, rect.width.round());
-    final cssH = math.max(1, rect.height.round());
-    _dpr = web.window.devicePixelRatio.clamp(1.0, 3.0);
-    _width = cssW;
-    _height = cssH;
-
-    final pxW = (cssW * _dpr).round();
-    final pxH = (cssH * _dpr).round();
-    if (_glCanvas.width != pxW || _glCanvas.height != pxH) {
-      _glCanvas.width = pxW;
-      _glCanvas.height = pxH;
-    }
-    if (_hudCanvas.width != pxW || _hudCanvas.height != pxH) {
-      _hudCanvas.width = pxW;
-      _hudCanvas.height = pxH;
-    }
+    syncCanvasSize();
     render();
   }
 
-  /// Composites the WebGL2 and Canvas2D layers into a PNG data URL.
-  String? exportPngDataUrl() {
-    final out = web.HTMLCanvasElement()
-      ..width = _hudCanvas.width
-      ..height = _hudCanvas.height;
-    final ctx = out.getContext('2d') as web.CanvasRenderingContext2D?;
-    if (ctx == null) return null;
-    ctx.fillStyle = _theme.background.toJS;
-    ctx.fillRect(0, 0, out.width.toDouble(), out.height.toDouble());
-    ctx.drawImage(_glCanvas, 0, 0);
-    ctx.drawImage(_hudCanvas, 0, 0);
-    return out.toDataURL('image/png');
-  }
-
   /// Renders the 3D WebGL2 scene and Canvas2D axes/labels HUD.
+  @override
   void render() {
     final mvp = _computeMvpMatrix();
     _renderGl(mvp);
@@ -163,26 +105,35 @@ class Renderer3D {
   }
 
   /// Releases DOM listeners and WebGL resources.
+  @override
   void dispose() {
-    _hudCanvas.removeEventListener('pointerdown', _onPointerDownJs);
-    _hudCanvas.removeEventListener('pointermove', _onPointerMoveJs);
-    _hudCanvas.removeEventListener('pointerup', _onPointerUpJs);
-    _hudCanvas.removeEventListener('pointerleave', _onPointerLeaveJs);
-    _hudCanvas.removeEventListener('wheel', _onWheelJs);
-    _hudCanvas.removeEventListener('dblclick', _onDblClickJs);
+    hudCanvas.removeEventListener('pointerdown', _onPointerDownJs);
+    hudCanvas.removeEventListener('pointermove', _onPointerMoveJs);
+    hudCanvas.removeEventListener('pointerup', _onPointerUpJs);
+    hudCanvas.removeEventListener('pointerleave', _onPointerLeaveJs);
+    hudCanvas.removeEventListener('wheel', _onWheelJs);
+    hudCanvas.removeEventListener('dblclick', _onDblClickJs);
 
     _clearGpuBuffers();
-    final gl = _gl;
-    if (gl != null) {
-      if (_meshProgram != null) gl.deleteProgram(_meshProgram);
-      if (_lineProgram != null) gl.deleteProgram(_lineProgram);
-      if (_wireProgram != null) gl.deleteProgram(_wireProgram);
+    final glCtx = gl;
+    if (glCtx != null) {
+      if (_meshProgram != null) glCtx.deleteProgram(_meshProgram);
+      if (_lineProgram != null) glCtx.deleteProgram(_lineProgram);
+      if (_wireProgram != null) glCtx.deleteProgram(_wireProgram);
     }
-    _glCanvas.remove();
-    _hudCanvas.remove();
+    super.dispose();
   }
 
-  bool _isVisible(Dataset3D ds) => _visibilityOverrides[ds.id] ?? ds.visible;
+  bool _isVisible(Dataset3D ds) => isDatasetVisible(ds.id, ds.visible);
+
+  web.WebGL2RenderingContext? get _gl => gl;
+  web.CanvasRenderingContext2D? get _hud => hud;
+  web.HTMLCanvasElement get _glCanvas => glCanvas;
+  web.HTMLCanvasElement get _hudCanvas => hudCanvas;
+  GraphTheme get _theme => theme;
+  int get _width => width;
+  int get _height => height;
+  double get _dpr => dpr;
 
   void _initGl() {
     final gl = _gl;
@@ -402,7 +353,7 @@ void main() {
   ) {
     final n = math.min(ds.xs.length, math.min(ds.ys.length, ds.zs.length));
     if (n < 2) return;
-    final rgb = _parseHexColor(ds.color);
+    final rgb = parseHexColor(ds.color);
     final floats = <double>[];
     for (var i = 0; i < n - 1; i++) {
       final x0 = ds.xs[i];
@@ -1038,21 +989,6 @@ class _LineBuffers {
 
   final web.WebGLBuffer vbo;
   final int vertexCount;
-}
-
-({double r, double g, double b}) _parseHexColor(String hex) {
-  final clean = hex.startsWith('#') ? hex.substring(1) : hex;
-  if (clean.length == 6) {
-    final val = int.tryParse(clean, radix: 16);
-    if (val != null) {
-      return (
-        r: ((val >> 16) & 0xff) / 255.0,
-        g: ((val >> 8) & 0xff) / 255.0,
-        b: (val & 0xff) / 255.0,
-      );
-    }
-  }
-  return (r: 0.38, g: 0.65, b: 0.98);
 }
 
 Float32List _perspective(double fovY, double aspect, double near, double far) {

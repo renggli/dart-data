@@ -21,10 +21,8 @@ Function2DDataset sampleFunction2D({
   CurveRenderMode mode = CurveRenderMode.continuous,
   YAxisSide yAxis = YAxisSide.left,
   AreaFill? fill,
-  List<PointMarker> markers = const <PointMarker>[],
-  List<ReferenceLine> references = const <ReferenceLine>[],
-  bool dynamicResample = true,
   List<PointMarker> Function(double xMin, double xMax)? markerSampler,
+  List<ReferenceLine> Function(double xMin, double xMax)? referenceSampler,
 }) {
   final count = math.max(8, baseSamples);
   final xs = <double>[];
@@ -101,10 +99,11 @@ Function2DDataset sampleFunction2D({
     mode: mode,
     yAxis: yAxis,
     fill: fill,
-    markers: markerSampler != null ? markerSampler(xMin, xMax) : markers,
-    references: references,
-    evaluator: dynamicResample ? fn : null,
-    markerSampler: dynamicResample ? markerSampler : null,
+    markers: markerSampler?.call(xMin, xMax) ?? const <PointMarker>[],
+    references: referenceSampler?.call(xMin, xMax) ?? const <ReferenceLine>[],
+    evaluator: fn,
+    markerSampler: markerSampler,
+    referenceSampler: referenceSampler,
   );
 }
 
@@ -152,6 +151,9 @@ Parametric2DDataset sampleParametric2D({
 }
 
 /// Samples a 2D scalar field `z = fn(x, y)` into a rasterized [Field2DDataset].
+///
+/// When [lazy] is `true`, skips initial rasterization and lets the renderer
+/// populate progressive resolution passes on mount.
 Field2DDataset sampleScalarField2D({
   required String id,
   required String label,
@@ -160,32 +162,70 @@ Field2DDataset sampleScalarField2D({
   int cols = 96,
   int rows = 96,
   Colormap colormap = Colormap.viridis,
+  bool lazy = false,
 }) {
+  Field2DDataset resample(Bounds2D nextDomain, {int? cols, int? rows}) =>
+      sampleScalarField2D(
+        id: id,
+        label: label,
+        fn: fn,
+        domain: nextDomain,
+        cols: cols ?? 96,
+        rows: rows ?? 96,
+        colormap: colormap,
+      );
+
+  Field2DSample evalAt(double x, double y) =>
+      Field2DSample(x: x, y: y, scalar: _safeEval2(fn, x, y));
+
+  if (lazy) {
+    return Field2DDataset(
+      id: id,
+      label: label,
+      cols: 0,
+      rows: 0,
+      domain: domain,
+      samples: const <Field2DSample>[],
+      colormap: colormap,
+      showRaster: true,
+      showVectors: false,
+      evaluator: evalAt,
+      resampler: resample,
+    );
+  }
+
   final safeCols = math.max(2, cols);
   final safeRows = math.max(2, rows);
+  final total = safeCols * safeRows;
+  final scalars = Float64List(total);
+  final storeSamples = total <= 40000;
   final samples = <Field2DSample>[];
   var zMin = double.infinity;
   var zMax = double.negativeInfinity;
 
   for (var row = 0; row < safeRows; row++) {
     final y = domain.yMin + (row / (safeRows - 1)) * domain.ySpan;
+    final rowOffset = row * safeCols;
     for (var col = 0; col < safeCols; col++) {
       final x = domain.xMin + (col / (safeCols - 1)) * domain.xSpan;
       final z = _safeEval2(fn, x, y);
+      scalars[rowOffset + col] = z;
       if (z.isFinite) {
         if (z < zMin) zMin = z;
         if (z > zMax) zMax = z;
       }
-      samples.add(Field2DSample(x: x, y: y, scalar: z));
+      if (storeSamples) {
+        samples.add(Field2DSample(x: x, y: y, scalar: z));
+      }
     }
   }
 
-  final pixels = Uint8List(safeCols * safeRows * 4);
+  final pixels = Uint8List(total * 4);
   final span = (zMax - zMin).abs();
   final hasRange = zMin.isFinite && zMax.isFinite && span > 0;
 
-  for (var i = 0; i < samples.length; i++) {
-    final z = samples[i].scalar;
+  for (var i = 0; i < total; i++) {
+    final z = scalars[i];
     final base = i * 4;
     if (!z.isFinite) {
       pixels[base] = 0;
@@ -215,15 +255,8 @@ Field2DDataset sampleScalarField2D({
     rgbaPixels: pixels,
     minLabel: zMin.isFinite ? formatGraphNumber(zMin) : '',
     maxLabel: zMax.isFinite ? formatGraphNumber(zMax) : '',
-    resampler: (nextDomain, {cols, rows}) => sampleScalarField2D(
-      id: id,
-      label: label,
-      fn: fn,
-      domain: nextDomain,
-      cols: cols ?? safeCols,
-      rows: rows ?? safeRows,
-      colormap: colormap,
-    ),
+    evaluator: evalAt,
+    resampler: resample,
   );
 }
 

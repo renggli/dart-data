@@ -10,6 +10,7 @@ import '../model/dataset_3d.dart';
 import '../model/style.dart';
 import '../render/renderer_2d.dart';
 import '../render/renderer_3d.dart';
+import '../render/renderer_base.dart';
 
 /// Unified interactive graph widget wrapping [Renderer2D] or [Renderer3D],
 /// a compact wrapping top legend with live readouts, and a hover toolbar.
@@ -109,8 +110,7 @@ class GraphWidget {
 
   GraphTheme _theme;
   final bool _showLegend;
-  Renderer2D? _renderer2d;
-  Renderer3D? _renderer3d;
+  GraphRenderer? _renderer;
   Scene2D? _scene2d;
   Scene3D? _scene3d;
 
@@ -134,42 +134,38 @@ class GraphWidget {
   void setScene2D(Scene2D scene, {bool preserveView = false}) {
     _scene2d = scene;
     _scene3d = null;
-    if (_renderer2d == null) {
-      _renderer3d?.dispose();
-      _renderer3d = null;
-      _mount2D(scene);
+    if (_renderer case final Renderer2D r2d) {
+      r2d.setScene(scene, preserveView: preserveView);
+      _rebuildLegend(scene.datasets);
       return;
     }
-    _renderer2d!.setScene(scene, preserveView: preserveView);
-    _rebuildLegend(scene.datasets);
+    _renderer?.dispose();
+    _renderer = null;
+    _mount2D(scene);
   }
 
   /// Updates the widget with a new 3D [scene].
   void setScene3D(Scene3D scene, {bool preserveView = false}) {
     _scene3d = scene;
     _scene2d = null;
-    if (_renderer3d == null) {
-      _renderer2d?.dispose();
-      _renderer2d = null;
-      _mount3D(scene);
+    if (_renderer case final Renderer3D r3d) {
+      r3d.setScene(scene, preserveView: preserveView);
+      _rebuildLegend(scene.datasets);
       return;
     }
-    _renderer3d!.setScene(scene, preserveView: preserveView);
-    _rebuildLegend(scene.datasets);
+    _renderer?.dispose();
+    _renderer = null;
+    _mount3D(scene);
   }
 
   /// Updates the active theme on the underlying renderer.
   void setTheme(GraphTheme theme) {
     _theme = theme;
-    _renderer2d?.setTheme(theme);
-    _renderer3d?.setTheme(theme);
+    _renderer?.setTheme(theme);
   }
 
   /// Triggers a layout-aware canvas resize.
-  void resize() {
-    _renderer2d?.resize();
-    _renderer3d?.resize();
-  }
+  void resize() => _renderer?.resize();
 
   /// Disposes observers and renderer resources.
   void dispose() {
@@ -197,15 +193,13 @@ class GraphWidget {
     _contextMenu?.remove();
     _resizeObserver.disconnect();
     _themeObserver.disconnect();
-    _renderer2d?.dispose();
-    _renderer3d?.dispose();
-    _renderer2d = null;
-    _renderer3d = null;
+    _renderer?.dispose();
+    _renderer = null;
   }
 
   void _mount2D(Scene2D scene) {
     _scene2d = scene;
-    _renderer2d = Renderer2D(
+    _renderer = Renderer2D(
       _viewport,
       theme: _theme,
       onProbeChanged: _onProbeChanged,
@@ -215,7 +209,7 @@ class GraphWidget {
 
   void _mount3D(Scene3D scene) {
     _scene3d = scene;
-    _renderer3d = Renderer3D(
+    _renderer = Renderer3D(
       _viewport,
       theme: _theme,
       onProbeChanged: _onProbeChanged,
@@ -224,8 +218,9 @@ class GraphWidget {
   }
 
   void _onProbeChanged(GraphProbe? probe) {
+    final r = _renderer;
     final datasets =
-        _renderer2d?.scene.datasets ??
+        (r is Renderer2D ? r.scene.datasets : null) ??
         _scene2d?.datasets ??
         _scene3d?.datasets ??
         const <GraphDataset>[];
@@ -313,8 +308,7 @@ class GraphWidget {
           final next = !(_visibility[ds.id] ?? true);
           _visibility[ds.id] = next;
           item.classList.toggle('is-hidden', !next);
-          _renderer2d?.setVisibility(ds.id, next);
-          _renderer3d?.setVisibility(ds.id, next);
+          _renderer?.setVisibility(ds.id, next);
         }).toJS,
       );
 
@@ -358,20 +352,17 @@ class GraphWidget {
 
     menu.appendChild(
       _menuItem('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>', 'Zoom in', () {
-        _renderer2d?.zoomBy(0.8);
-        _renderer3d?.zoomBy(0.85);
+        _renderer?.zoomBy(_renderer is Renderer3D ? 0.85 : 0.8);
       }),
     );
     menu.appendChild(
       _menuItem('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3.5 8h9"/></svg>', 'Zoom out', () {
-        _renderer2d?.zoomBy(1.25);
-        _renderer3d?.zoomBy(1.18);
+        _renderer?.zoomBy(_renderer is Renderer3D ? 1.18 : 1.25);
       }),
     );
     menu.appendChild(
       _menuItem('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a5 5 0 1 0 1.4-3.5L3 6"/><path d="M3 3v3h3"/></svg>', 'Reset view', () {
-        _renderer2d?.resetView();
-        _renderer3d?.resetView();
+        _renderer?.resetView();
       }),
     );
 
@@ -382,8 +373,7 @@ class GraphWidget {
 
     menu.appendChild(
       _menuItem('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v7.5M5 7l3 3 3-3M3 12.5h10"/></svg>', 'Download PNG', () {
-        final url =
-            _renderer2d?.exportPngDataUrl() ?? _renderer3d?.exportPngDataUrl();
+        final url = _renderer?.exportPngDataUrl();
         if (url == null) return;
         final link = web.document.createElement('a') as web.HTMLAnchorElement
           ..href = url
