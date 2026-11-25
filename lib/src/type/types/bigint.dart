@@ -112,7 +112,20 @@ final class BigIntField extends ExtendedField<BigInt> {
   BigInt remainder(BigInt a, BigInt b) => a.remainder(b);
 
   @override
-  BigInt pow(BigInt base, BigInt exponent) => base.pow(exponent.toInt());
+  BigInt pow(BigInt base, BigInt exponent) {
+    if (exponent < BigInt.zero) {
+      throw ArgumentError.value(exponent, 'exponent', 'Must be non-negative');
+    }
+    if (base == BigInt.zero) {
+      return exponent == BigInt.zero ? BigInt.one : BigInt.zero;
+    }
+    if (base == BigInt.one) return BigInt.one;
+    if (base == -BigInt.one) return exponent.isEven ? BigInt.one : -BigInt.one;
+    if (!exponent.isValidInt || exponent.bitLength > 53) {
+      throw ArgumentError.value(exponent, 'exponent', 'Exponent overflow');
+    }
+    return base.pow(exponent.toInt());
+  }
 
   @override
   BigInt modPow(BigInt base, BigInt exponent, BigInt modulus) =>
@@ -134,26 +147,35 @@ final class BigIntField extends ExtendedField<BigInt> {
   BigInt sqrt(BigInt a) {
     if (a < BigInt.zero) throw ArgumentError.value(a, 'a', 'Negative value');
     if (a == BigInt.zero) return BigInt.zero;
-    var x0 = a >> 1;
-    if (x0 > BigInt.zero) {
-      var x1 = (x0 + a ~/ x0) >> 1;
-      while (x1 < x0) {
-        x0 = x1;
-        x1 = (x0 + a ~/ x0) >> 1;
-      }
-      return x0;
+    if (a < BigInt.from(4)) return BigInt.one;
+    var x0 = BigInt.one << ((a.bitLength + 1) >> 1);
+    var x1 = (x0 + a ~/ x0) >> 1;
+    while (x1 < x0) {
+      x0 = x1;
+      x1 = (x0 + a ~/ x0) >> 1;
     }
-    return BigInt.one;
+    return x0;
   }
 
   @override
-  BigInt exp(BigInt a) => BigInt.from(math.exp(a.toDouble()).round());
+  BigInt exp(BigInt a) {
+    final result = math.exp(a.toDouble());
+    if (!result.isFinite) {
+      throw ArgumentError.value(a, 'a', 'Exponential overflow');
+    }
+    return BigInt.from(result.round());
+  }
 
   @override
   BigInt log(BigInt a) {
     if (a <= BigInt.zero) {
       throw ArgumentError.value(a, 'a', 'Non-positive value');
     }
-    return BigInt.from(math.log(a.toDouble()).round());
+    if (a.bitLength < 1024) {
+      return BigInt.from(math.log(a.toDouble()).round());
+    }
+    final shift = a.bitLength - 53;
+    final mantissa = (a >> shift).toDouble();
+    return BigInt.from((math.log(mantissa) + shift * math.ln2).round());
   }
 }

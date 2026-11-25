@@ -66,7 +66,12 @@ final class ComplexEquality extends NaturalEquality<Complex> {
   const new();
 
   @override
-  bool isClose(Complex a, Complex b, double epsilon) => a.closeTo(b, epsilon);
+  bool isClose(Complex a, Complex b, double epsilon) =>
+      !epsilon.isNaN &&
+      epsilon >= 0 &&
+      a.isFinite &&
+      b.isFinite &&
+      const ComplexField().norm(a - b) <= epsilon;
 }
 
 /// Algebraic field operations over [Complex] numbers.
@@ -124,15 +129,16 @@ final class ComplexField extends ExtendedField<Complex> {
 
   @override
   double norm(Complex a) {
-    final absA = a.a.abs();
-    final absB = a.b.abs();
-    if (absA > absB) {
-      final r = a.b / a.a;
+    final absA = a.a.abs().toDouble();
+    final absB = a.b.abs().toDouble();
+    if (absA.isInfinite || absB.isInfinite) return double.infinity;
+    if (absA.isNaN || absB.isNaN) return double.nan;
+    if (absA == 0.0 && absB == 0.0) return 0.0;
+    if (absA >= absB) {
+      final r = absB / absA;
       return absA * math.sqrt(1.0 + r * r);
-    } else if (absB == 0.0) {
-      return 0.0;
     } else {
-      final r = a.a / a.b;
+      final r = absA / absB;
       return absB * math.sqrt(1.0 + r * r);
     }
   }
@@ -168,8 +174,15 @@ class Float64ComplexList with ListMixin<Complex> {
 
   /// Constructs a [Float64ComplexList] wrapping the provided interleaved [data]
   /// buffer of length `2 * length`.
-  new fromData(this.data)
-    : assert(data.length.isEven, 'Data length must be even');
+  new fromData(this.data) {
+    if (data.length.isOdd) {
+      throw ArgumentError.value(
+        data.length,
+        'data.length',
+        'Complex list data length must be even',
+      );
+    }
+  }
 
   /// Constructs a [Float64ComplexList] from an iterable of [Complex] numbers.
   factory fromList(Iterable<Complex> elements) {

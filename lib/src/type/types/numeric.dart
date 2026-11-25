@@ -123,5 +123,7 @@ final class NumericEquality extends NaturalEquality<num> {
   const new();
 
   @override
-  bool isClose(num a, num b, double epsilon) => a.closeTo(b, epsilon);
+  @override
+  bool isClose(num a, num b, double epsilon) =>
+      !epsilon.isNaN && epsilon >= 0 && a.closeTo(b, epsilon);
 }

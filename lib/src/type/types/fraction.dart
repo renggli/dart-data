@@ -24,10 +24,11 @@ final class FractionDataType extends DataType<Fraction> {
   Fraction cast(Object? value) {
     if (value is Fraction) {
       return value;
-    } else if (value is int) {
-      return Fraction(value);
-    } else if (value is double) {
-      return Fraction.fromDouble(value);
+    } else if (value is num) {
+      if (!value.isFinite) return super.cast(value);
+      return value is int
+          ? Fraction(value)
+          : Fraction.fromDouble(value.toDouble());
     } else if (value is BigInt) {
       if (value.isValidInt) {
         return Fraction(value.toInt());
@@ -52,7 +53,8 @@ final class FractionEquality extends NaturalEquality<Fraction> {
   const new();
 
   @override
-  bool isClose(Fraction a, Fraction b, double epsilon) => a.closeTo(b, epsilon);
+  bool isClose(Fraction a, Fraction b, double epsilon) =>
+      !epsilon.isNaN && epsilon >= 0 && a.closeTo(b, epsilon);
 }
 
 /// Algebraic field operations over [Fraction] numbers.
@@ -82,18 +84,31 @@ final class FractionField extends ExtendedField<Fraction> {
   Fraction mul(Fraction a, Fraction b) => a * b;
 
   @override
-  Fraction scale(Fraction a, num factor) =>
-      factor is int ? a * factor : a * Fraction.fromDouble(factor.toDouble());
+  Fraction scale(Fraction a, num factor) {
+    if (!factor.isFinite) {
+      throw ArgumentError.value(factor, 'factor', 'Must be finite');
+    }
+    if (factor is int) return a * factor;
+    return a * Fraction.fromDouble(factor.toDouble());
+  }
 
   @override
   Fraction div(Fraction a, Fraction b) => a / b;
 
   @override
-  Fraction pow(Fraction base, Fraction exponent) => exponent.denominator == 1
-      ? base.pow(exponent.numerator)
-      : Fraction.fromDouble(
-          math.pow(base.toDouble(), exponent.toDouble()).toDouble(),
-        );
+  Fraction pow(Fraction base, Fraction exponent) {
+    if (exponent.denominator == 1) {
+      if (base == Fraction.zero && exponent.numerator < 0) {
+        throw ArgumentError.value(exponent, 'exponent', 'Division by zero');
+      }
+      return base.pow(exponent.numerator);
+    }
+    final result = math.pow(base.toDouble(), exponent.toDouble()).toDouble();
+    if (!result.isFinite) {
+      throw ArgumentError.value(base, 'base', 'Non-finite power result');
+    }
+    return Fraction.fromDouble(result);
+  }
 
   @override
   Fraction abs(Fraction a) => a.abs();
@@ -102,11 +117,26 @@ final class FractionField extends ExtendedField<Fraction> {
   double norm(Fraction a) => a.abs().toDouble();
 
   @override
-  Fraction sqrt(Fraction a) => Fraction.fromDouble(math.sqrt(a.toDouble()));
+  Fraction sqrt(Fraction a) {
+    if (a.isNegative) throw ArgumentError.value(a, 'a', 'Negative value');
+    if (!a.isFinite) throw ArgumentError.value(a, 'a', 'Non-finite value');
+    return Fraction.fromDouble(math.sqrt(a.toDouble()));
+  }
 
   @override
-  Fraction exp(Fraction a) => Fraction.fromDouble(math.exp(a.toDouble()));
+  Fraction exp(Fraction a) {
+    final result = math.exp(a.toDouble());
+    if (!result.isFinite) {
+      throw ArgumentError.value(a, 'a', 'Exponential overflow');
+    }
+    return Fraction.fromDouble(result);
+  }
 
   @override
-  Fraction log(Fraction a) => Fraction.fromDouble(math.log(a.toDouble()));
+  Fraction log(Fraction a) {
+    if (a <= Fraction.zero || !a.isFinite) {
+      throw ArgumentError.value(a, 'a', 'Non-positive or non-finite value');
+    }
+    return Fraction.fromDouble(math.log(a.toDouble()));
+  }
 }

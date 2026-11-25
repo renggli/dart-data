@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -52,8 +52,16 @@ void main() {
       check(equality.isClose(null, 1.0, 1e-6)).isFalse;
       check(equality.isClose(1.0, 1.0 + 1e-8, 1e-6)).isTrue;
       check(equality.isClose(1.0, 2.0, 1e-6)).isFalse;
+      check(equality.isEqual(double.nan, double.nan)).isFalse;
+      check(equality.isClose(double.nan, double.nan, 0.1)).isFalse;
+      check(equality.isClose(null, null, double.nan)).isFalse;
+      check(equality.isClose(null, null, -1.0)).isFalse;
       check(equality.hash(null)).equals(0);
       check(equality.hash(1.0)).equals(DataType.float64.equality.hash(1.0));
+      check(equality == DataType.float64.nullable.equality).isTrue;
+      check(equality == DataType.int32.nullable.equality).isFalse;
+      check(equality.hashCode)
+          .equals(DataType.float64.nullable.equality.hashCode);
     });
 
     checkListOperations(type, <List<int?>>[

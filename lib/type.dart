@@ -13,8 +13,8 @@
 ///   numbers ([DataType.bigInt], [DataType.fraction]), [DataType.string],
 ///   [DataType.boolean], and generic objects ([DataType.object]).
 /// - **Algebraic Fields ([Field])**: Axiomatic algebraic structures specifying
-///   additive identity ($0$), multiplicative identity ($1$), operations ($+$,
-///   $-$, $\times$, $\div$), and inversion over a type.
+///   additive identity (`0`), multiplicative identity (`1`), operations (`+`,
+///   `−`, `×`, `÷`), and inversion over a type.
 /// - **Memory Storage**: Flat typed byte buffers that enable zero-copy passing
 ///   to native FFI algorithms and hardware accelerators.
 /// - **Equivalence & Ordering**: [Equality] and comparator utilities for

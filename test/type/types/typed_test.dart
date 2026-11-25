@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('TypedDataType', () {
@@ -37,6 +37,16 @@ void main() {
       check(copy).isA<Float64List>();
       check(copy).which(.it()..deepEquals([1.0, 2.0, 3.0]));
       check(callCount).equals(1);
+    });
+
+    test('copyList fills tail with custom fillValue when extended', () {
+      final copy = DataType.float64.copyList(
+        [1.0, 2.0],
+        length: 5,
+        fillValue: 9.0,
+      );
+      check(copy).isA<Float64List>();
+      check(copy).deepEquals([1.0, 2.0, 9.0, 9.0, 9.0]);
     });
   });
 }

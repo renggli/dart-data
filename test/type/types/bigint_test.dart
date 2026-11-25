@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -55,6 +55,7 @@ void main() {
       check(equality.isClose(bigA, bigB, double.infinity)).isTrue;
       check(equality.isClose(bigA, bigB, double.nan)).isFalse;
       check(equality.isClose(bigA, bigB, -1.0)).isFalse;
+      check(equality.isClose(BigInt.one, BigInt.from(2), 1e20)).isTrue;
 
       final field = type.field;
       check(() => field.scale(BigInt.from(10), double.nan))
@@ -99,6 +100,19 @@ void main() {
       check(() => field.nan).throws<UnsupportedError>();
       check(() => field.infinity).throws<UnsupportedError>();
       check(() => field.negativeInfinity).throws<UnsupportedError>();
+      check(() => field.pow(BigInt.two, -BigInt.one)).throws<ArgumentError>();
+      final hugeExp = BigInt.one << 100;
+      check(field.pow(BigInt.zero, hugeExp)).equals(BigInt.zero);
+      check(field.pow(BigInt.one, hugeExp)).equals(BigInt.one);
+      check(field.pow(-BigInt.one, hugeExp)).equals(BigInt.one);
+      check(field.pow(-BigInt.one, hugeExp + BigInt.one)).equals(-BigInt.one);
+      check(() => field.pow(BigInt.two, hugeExp)).throws<ArgumentError>();
+      final rootTarget = BigInt.one << 500;
+      check(field.sqrt(rootTarget * rootTarget)).equals(rootTarget);
+      check(field.sqrt(rootTarget * rootTarget + BigInt.one))
+          .equals(rootTarget);
+      check(() => field.exp(BigInt.from(1000))).throws<ArgumentError>();
+      check(field.log(BigInt.one << 2000)).equals(BigInt.from(1386));
     });
   });
 }

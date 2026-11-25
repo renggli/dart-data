@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/src/type/utils/memory.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -64,12 +64,38 @@ void main() {
       check(field.norm(const Complex(3, 4))).equals(5.0);
       check(field.norm(const Complex(1e200, 0.0))).equals(1e200);
       check(field.norm(const Complex(0.0, 1e200))).equals(1e200);
+      check(field.norm(const Complex(1e200, 1e200)))
+          .isCloseTo(1.4142135623730951e200, 1e186);
+      check(field.norm(Complex.zero)).equals(0.0);
+      check(field.norm(const Complex(double.nan, 0.0)).isNaN).isTrue;
+      check(field.norm(const Complex(0.0, double.nan)).isNaN).isTrue;
+      check(field.norm(const Complex(double.infinity, double.infinity)))
+          .equals(double.infinity);
+      check(
+        type.equality.isClose(
+          const Complex(1e200, 0),
+          const Complex(1e200, 0.5),
+          1.0,
+        ),
+      ).isTrue;
+      check(type.equality.isClose(Complex.one, Complex.one, double.nan))
+          .isFalse;
+      check(type.equality.isClose(Complex.one, Complex.one, -0.1)).isFalse;
+      check(type.equality.isClose(Complex.nan, Complex.nan, 1.0)).isFalse;
       check(field.abs(const Complex(1e200, 0.0)))
           .equals(const Complex(1e200, 0.0));
       check(field.div(const Complex(1e200, 0.0), const Complex(1e200, 0.0)))
           .equals(const Complex(1.0, 0.0));
       check(field.div(const Complex(0.0, 1e200), const Complex(1e200, 0.0)))
           .equals(const Complex(0.0, 1.0));
+      check(
+        field
+            .div(const Complex(5, 10), const Complex(1, 3))
+            .closeTo(const Complex(3.5, -0.5), 1e-12),
+      ).isTrue;
+      check(
+        Float64ComplexList.fromList([const Complex(1, 2), const Complex(3, 4)]),
+      ).deepEquals([const Complex(1, 2), const Complex(3, 4)]);
       check(field.inv(const Complex(1e200, 0.0)))
           .equals(const Complex(1e-200, 0.0));
       check(field.conjugate(const Complex(2, 3))).equals(const Complex(2, -3));
@@ -236,6 +262,8 @@ void main() {
       check(sharesMemory(a, b)).isFalse;
       check(hasOverlap(a, 0, a, 1, 2)).isTrue;
       check(hasOverlap(a, 0, b, 0, 2)).isFalse;
+      check(() => Float64ComplexList.fromData(Float64List(3)))
+          .throws<ArgumentError>();
     });
   });
 }

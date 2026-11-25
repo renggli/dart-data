@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -65,6 +65,7 @@ void main() {
         check(type.cast(0)).equals(0.0);
         check(type.cast(1.5)).equals(1.5);
         check(type.cast('3.25')).equals(3.25);
+        check(() => type.cast(null)).throws<ArgumentError>();
       });
 
       checkListOperations(type, <List<double>>[
@@ -98,6 +99,8 @@ void main() {
       check(field.negativeInfinity.isInfinite).isTrue;
       check(() => field.modInverse(2.0, 5.0)).throws<UnsupportedError>();
       check(() => field.gcd(2.0, 5.0)).throws<UnsupportedError>();
+      check(DataType.float64.equality.isClose(1.0, 1.0, double.nan)).isFalse;
+      check(DataType.float64.equality.isClose(1.0, 1.0, -0.1)).isFalse;
     });
   });
 }

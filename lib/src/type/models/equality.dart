@@ -22,7 +22,8 @@ base class NaturalEquality<T> implements Equality<T> {
   bool isEqual(T a, T b) => a == b;
 
   @override
-  bool isClose(T a, T b, double epsilon) => isEqual(a, b);
+  bool isClose(T a, T b, double epsilon) =>
+      !epsilon.isNaN && epsilon >= 0 && isEqual(a, b);
 
   @override
   int hash(T a) => a.hashCode;

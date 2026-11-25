@@ -211,5 +211,7 @@ final class FloatEquality extends NaturalEquality<double> {
   const new();
 
   @override
-  bool isClose(double a, double b, double epsilon) => a.closeTo(b, epsilon);
+  @override
+  bool isClose(double a, double b, double epsilon) =>
+      !epsilon.isNaN && epsilon >= 0 && a.closeTo(b, epsilon);
 }

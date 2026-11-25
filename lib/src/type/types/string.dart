@@ -54,7 +54,10 @@ int _editDistance(String a, String b) {
     for (var j = 0; j < b.length; j++) {
       v1[j + 1] = math.min(
         v0[j + 1] + 1,
-        math.min(v1[j] + 1, a[i] == b[j] ? v0[j] : v0[j] + 1),
+        math.min(
+          v1[j] + 1,
+          a.codeUnitAt(i) == b.codeUnitAt(j) ? v0[j] : v0[j] + 1,
+        ),
       );
     }
     final temp = v0;

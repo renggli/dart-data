@@ -383,8 +383,8 @@ final class IntegerField extends ExtendedField<int> {
     var e = exponent;
     while (e > 0) {
       if (e.isOdd) result *= b;
-      b *= b;
       e >>= 1;
+      if (e > 0) b *= b;
     }
     return result;
   }

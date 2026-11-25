@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Native attributes', () {
@@ -62,6 +62,9 @@ void main() {
       check(DataType.float64.bytesPerElement).equals(8);
 
       check(DataType.boolean.isNative).isFalse;
+      check(DataType.boolean.isSigned).isTrue;
+      check(DataType.boolean.copyList([true, false].map((e) => e)))
+          .deepEquals([true, false]);
       check(DataType.string.isNative).isFalse;
       check(DataType.object.isNative).isFalse;
     });
@@ -472,6 +475,9 @@ void main() {
         check(type.isNative).isTrue;
       }
       check(DataType.boolean.isNative).isFalse;
+      check(DataType.boolean.isSigned).isTrue;
+      check(DataType.boolean.copyList([true, false].map((e) => e)))
+          .deepEquals([true, false]);
       check(DataType.string.isNative).isFalse;
       check(DataType.object.isNative).isFalse;
       check(DataType.float32.bits).equals(32);
@@ -528,6 +534,8 @@ void main() {
         () => Float64ComplexList.fromBuffers(Float64List(2), Float64List(3)),
       ).throws<ArgumentError>();
       check(() => Float64ComplexList(2).setRange(0, 1, [Complex.zero], -1))
+          .throws<ArgumentError>();
+      check(() => const ObjectDataType<int>().cast('not-an-int'))
           .throws<ArgumentError>();
     });
   });

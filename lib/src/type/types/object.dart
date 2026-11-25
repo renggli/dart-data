@@ -26,7 +26,10 @@ final class ObjectDataType<T> extends DataType<T> {
       : ObjectDataType<T?>(_defaultValue);
 
   @override
-  T cast(Object? value) => value as T;
+  @override
+  T cast(Object? value) => value is T
+      ? value
+      : throw ArgumentError.value(value, 'value', 'Invalid type');
 
   @override
   int get hashCode => Object.hash(T, _defaultValue);

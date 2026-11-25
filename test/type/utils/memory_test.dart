@@ -2,7 +2,8 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/src/type/utils/memory.dart';
-import 'package:test/test.dart';
+import 'package:data/type.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Memory', () {
@@ -49,6 +50,30 @@ void main() {
       check(hasOverlap(list1, 0, list1, 3, 1, 1)).isFalse;
       check(hasOverlap(list1, 0, list2, 0, 5)).isFalse;
       check(hasOverlap(list1, 0, list1, 0, 0)).isFalse;
+    });
+
+    test('sameStartAddress and NullableList unwrapping', () {
+      final base = Float64List(10);
+      final viewZero = Float64List.view(base.buffer, 0, 5);
+      final viewOffset = Float64List.view(base.buffer, 8 * 2, 5);
+      final other = Float64List(10);
+      final complexList = Float64ComplexList.fromData(base);
+      final complexUnmod = complexList.asUnmodifiableView();
+      final nullableWrapped = DataType.float64.nullable.copyList(base);
+
+      check(sameStartAddress(base, 0, viewZero, 0)).isTrue;
+      check(sameStartAddress(base, 2, viewOffset, 0)).isTrue;
+      check(sameStartAddress(base, 0, viewOffset, 0)).isFalse;
+      check(sameStartAddress(base, 0, complexList, 0)).isFalse;
+      check(sameStartAddress(complexList, 0, complexUnmod, 0)).isTrue;
+      check(sameStartAddress(base, 0, other, 0)).isFalse;
+      check(sharesMemory(base, nullableWrapped)).isFalse;
+
+      final plain = <int>[1, 2, 3];
+      final otherPlain = <int>[1, 2, 3];
+      check(sameStartAddress(plain, 1, plain, 1)).isTrue;
+      check(sameStartAddress(plain, 0, plain, 1)).isFalse;
+      check(sameStartAddress(plain, 0, otherPlain, 0)).isFalse;
     });
   });
 }

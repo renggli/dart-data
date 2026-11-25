@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Field', () {
@@ -83,5 +83,43 @@ void main() {
       check(() => bigIntField.infinity).throws<UnsupportedError>();
       check(() => bigIntField.negativeInfinity).throws<UnsupportedError>();
     });
+
+    test('Field defaults throw UnsupportedError', () {
+      const field = _StubField();
+      check(() => field.pow(1, 2)).throws<UnsupportedError>();
+      check(() => field.abs(1)).throws<UnsupportedError>();
+      check(() => field.norm(1)).throws<UnsupportedError>();
+    });
   });
+}
+
+final class _StubField extends Field<int> {
+  const new();
+
+  @override
+  int get additiveIdentity => 0;
+
+  @override
+  int neg(int a) => -a;
+
+  @override
+  int add(int a, int b) => a + b;
+
+  @override
+  int sub(int a, int b) => a - b;
+
+  @override
+  int get multiplicativeIdentity => 1;
+
+  @override
+  int inv(int a) => 1 ~/ a;
+
+  @override
+  int mul(int a, int b) => a * b;
+
+  @override
+  int scale(int a, num factor) => (a * factor).round();
+
+  @override
+  int div(int a, int b) => a ~/ b;
 }

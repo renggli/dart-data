@@ -50,8 +50,12 @@ abstract base class TypedDataType<T, L extends List<T>> extends DataType<T> {
         : iterable.toList(growable: false);
     final listLength = list.length;
     final targetLength = length ?? listLength;
-    final result = newList(targetLength, fillValue: fillValue ?? defaultValue);
-    result.setRange(0, math.min(targetLength, listLength), list);
+    final result = emptyList(targetLength);
+    final copyLength = math.min(targetLength, listLength);
+    result.setRange(0, copyLength, list);
+    if (fillValue != null && copyLength < targetLength) {
+      result.fillRange(copyLength, targetLength, fillValue);
+    }
     return readonly ? readonlyList(result) : result;
   }
 

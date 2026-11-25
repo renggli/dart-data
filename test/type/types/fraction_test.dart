@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -32,6 +32,8 @@ void main() {
     test('cast error', () {
       check(() => type.cast('abc')).throws<ArgumentError>();
       check(() => type.cast(null)).throws<ArgumentError>();
+      check(() => type.cast(double.nan)).throws<ArgumentError>();
+      check(() => type.cast(double.infinity)).throws<ArgumentError>();
       check(
         () => type.cast(
           BigInt.parse('10000000000000000000000000000000000000000'),
@@ -54,6 +56,7 @@ void main() {
       final field = type.field;
       check(field.inv(Fraction(2, 3))).equals(Fraction(3, 2));
       check(field.scale(Fraction(2, 3), 3)).equals(Fraction(2));
+      check(field.scale(Fraction(2, 3), 1.5)).equals(Fraction(1));
       check(field.div(Fraction(1, 2), Fraction(1, 4))).equals(Fraction(2));
       check(field.pow(Fraction(2, 3), Fraction(2))).equals(Fraction(4, 9));
       check(field.pow(Fraction(2, 3), Fraction(-2))).equals(Fraction(9, 4));
@@ -82,6 +85,23 @@ void main() {
           .throws<UnsupportedError>();
       check(() => field.gcd(Fraction(1), Fraction(2)))
           .throws<UnsupportedError>();
+      check(type.equality.isClose(Fraction(1), Fraction(1), double.nan))
+          .isFalse;
+      check(type.equality.isClose(Fraction(1), Fraction(1), -0.1)).isFalse;
+      check(() => field.scale(Fraction(1), double.nan)).throws<ArgumentError>();
+      check(() => field.scale(Fraction(1), double.infinity))
+          .throws<ArgumentError>();
+      check(() => field.pow(Fraction.zero, Fraction(-1)))
+          .throws<ArgumentError>();
+      check(() => field.pow(Fraction(-1), Fraction(1, 2)))
+          .throws<ArgumentError>();
+      check(() => field.pow(Fraction(1000), Fraction(1000, 3)))
+          .throws<ArgumentError>();
+      check(() => field.sqrt(Fraction(-1, 2))).throws<ArgumentError>();
+      check(() => field.sqrt(Fraction.infinity)).throws<ArgumentError>();
+      check(() => field.log(Fraction.zero)).throws<ArgumentError>();
+      check(() => field.log(Fraction(-1))).throws<ArgumentError>();
+      check(() => field.exp(Fraction(1000))).throws<ArgumentError>();
     });
   });
 }

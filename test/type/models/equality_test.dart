@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Equality', () {
@@ -10,6 +10,8 @@ void main() {
       check(eq.isEqual('a', 'b')).isFalse;
       check(eq.isClose('a', 'a', 0.01)).isTrue;
       check(eq.isClose('a', 'b', 0.01)).isFalse;
+      check(eq.isClose('a', 'a', double.nan)).isFalse;
+      check(eq.isClose('a', 'a', -0.1)).isFalse;
       check(eq.hash('a')).equals('a'.hashCode);
     });
 

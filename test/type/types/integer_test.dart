@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -88,6 +88,7 @@ void main() {
     );
 
     test('safeBits, safeMin, safeMax, and string casting wrap', () {
+      check(DataType.int8.safeBits).equals(8);
       check(DataType.int64.safeBits).isGreaterThan(50);
       check(DataType.int64.safeMin).isLessThan(0);
       check(DataType.int64.safeMax).isGreaterThan(0);

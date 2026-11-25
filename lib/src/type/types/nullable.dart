@@ -104,13 +104,17 @@ final class NullableEquality<T> implements Equality<T?> {
   final Equality<T> delegate;
 
   @override
-  bool isEqual(T? a, T? b) =>
-      identical(a, b) || (a != null && b != null && delegate.isEqual(a, b));
+  bool isEqual(T? a, T? b) {
+    if (a == null || b == null) return a == null && b == null;
+    return delegate.isEqual(a, b);
+  }
 
   @override
-  bool isClose(T? a, T? b, double epsilon) =>
-      identical(a, b) ||
-      (a != null && b != null && delegate.isClose(a, b, epsilon));
+  bool isClose(T? a, T? b, double epsilon) {
+    if (epsilon.isNaN || epsilon < 0) return false;
+    if (a == null || b == null) return a == null && b == null;
+    return delegate.isClose(a, b, epsilon);
+  }
 
   @override
   int hash(T? a) => a == null ? 0 : delegate.hash(a);

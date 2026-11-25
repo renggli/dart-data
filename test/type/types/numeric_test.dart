@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -49,6 +49,8 @@ void main() {
       check(field.exp(0)).equals(1.0);
       check(field.log(1)).equals(0.0);
       check(field.conjugate(5)).equals(5);
+      check(type.equality.isClose(1.0, 1.0, double.nan)).isFalse;
+      check(type.equality.isClose(1.0, 1.0, -1.0)).isFalse;
     });
 
     test('cast error', () {

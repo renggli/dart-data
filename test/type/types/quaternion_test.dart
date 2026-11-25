@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -83,6 +83,42 @@ void main() {
           .throws<UnsupportedError>();
       check(() => field.gcd(Quaternion.zero, Quaternion.zero))
           .throws<UnsupportedError>();
+
+      check(
+        type.equality.isClose(
+          const Quaternion(1e200, 1, 2, 3),
+          const Quaternion(1e200, 1, 2, 3.5),
+          1.0,
+        ),
+      ).isTrue;
+      check(type.equality.isClose(Quaternion.one, Quaternion.one, double.nan))
+          .isFalse;
+      check(type.equality.isClose(Quaternion.one, Quaternion.one, -0.1))
+          .isFalse;
+      check(type.equality.isClose(Quaternion.nan, Quaternion.nan, 1.0)).isFalse;
+
+      check(field.norm(Quaternion.zero)).equals(0.0);
+      check(field.norm(const Quaternion(double.nan, 0, 0, 0)).isNaN).isTrue;
+      check(field.norm(const Quaternion(double.infinity, 0, 0, 0)).isInfinite)
+          .isTrue;
+      check(field.norm(const Quaternion(1e200, 1e200, 1e200, 1e200)))
+          .isCloseTo(2e200, 1e186);
+
+      check(field.inv(Quaternion.zero).isNaN).isTrue;
+      check(field.inv(Quaternion.nan).isNaN).isTrue;
+      final invLarge = field.inv(const Quaternion(2e200, 0, 0, 0));
+      check(invLarge.w).isCloseTo(5e-201, 1e-215);
+      final invSmall = field.inv(const Quaternion(2e-200, 0, 0, 0));
+      check(invSmall.w).isCloseTo(5e199, 1e185);
+
+      check(field.div(Quaternion.zero, Quaternion.one)).equals(Quaternion.zero);
+      check(field.div(Quaternion.one, Quaternion.zero).isNaN).isTrue;
+      check(
+        field.div(
+          const Quaternion(0, 2e200, 0, 0),
+          const Quaternion(0, 1e200, 0, 0),
+        ),
+      ).equals(const Quaternion(2));
     });
   });
 }
