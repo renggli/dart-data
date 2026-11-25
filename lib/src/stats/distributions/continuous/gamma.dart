@@ -119,7 +119,7 @@ class GammaDistribution extends ContinuousDistribution {
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return gammaPInv(probability, shape) * scale;
+    return gammaPInv(shape, probability) * scale;
   }
 
   @override

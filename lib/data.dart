@@ -32,9 +32,9 @@
 ///   polynomials ([Polynomial.chebyshevT], [Polynomial.legendreP],
 ///   [Polynomial.hermiteH], [Polynomial.laguerreL]).
 /// - **Special Functions** (`special.dart`): Accurate implementations of
-///   $\Gamma(z)$ ([gamma]), $\beta(a, b)$ ([beta]), Bessel
-///   $J_\nu, Y_\nu, I_\nu, K_\nu$ ([besselJ], [besselY]), error function
-///   $\operatorname{erf}(z)$ ([erf]), and Lambert $W$ ([lambertW]).
+///   `Γ(z)` ([gamma]), `B(a, b)` ([beta]), Bessel `J_ν, Y_ν, I_ν, K_ν`
+///   ([besselJ], [besselY], [besselI], [besselK]), error function `erf(z)`
+///   ([erf]), and Lambert `W` ([lambertW]).
 /// - **Statistics** (`stats.dart`): Parametric probability distributions
 ///   ([NormalDistribution], [StudentDistribution]), hypothesis testing
 ///   ([tTestOneSample], [tTestTwoSample], [oneWayAnova], [chiSquaredTest]), and

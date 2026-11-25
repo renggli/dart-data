@@ -8,7 +8,8 @@ import 'utils.dart';
 ///
 /// Solves `w * exp(w) = z` for `w`. Supports the principal branch `W_0(z)`
 /// (`branch: 0`, defined for `z >= -1/e`) and the secondary real branch
-/// `W_{-1}(z)` (`branch: -1`, defined for `-1/e <= z < 0`).
+/// `W_{-1}(z)` (`branch: -1`, defined for `-1/e <= z <= 0`, with
+/// `W_{-1}(0) = -∞`). Returns `double.nan` outside the branch domain.
 ///
 /// Throws an [ArgumentError] if [branch] is not `0` or `-1`.
 ///
@@ -26,7 +27,8 @@ double lambertW(num z, {int branch = 0}) => switch (branch) {
 
 /// Returns the complex Lambert W function `W_branch(z)`.
 ///
-/// Supports `branch: 0` (principal branch) and `branch: -1`.
+/// Supports `branch: 0` (principal branch) and `branch: -1`. Throws an
+/// [ArgumentError] if [branch] is not `0` or `-1`.
 ///
 /// See https://en.wikipedia.org/wiki/Lambert_W_function for details.
 Complex lambertWComplex(Complex z, {int branch = 0}) {
@@ -34,31 +36,53 @@ Complex lambertWComplex(Complex z, {int branch = 0}) {
     throw ArgumentError.value(branch, 'branch', 'Branch must be 0 or -1');
   }
   if (z.isNaN) return Complex.nan;
+  if (z.b == 0.0 && z.a == double.infinity) {
+    return branch == 0 ? const Complex(double.infinity) : Complex.nan;
+  }
+  if (!z.a.isFinite || !z.b.isFinite) return Complex.nan;
   if (z.a == 0.0 && z.b == 0.0) {
     return branch == 0 ? Complex.zero : const Complex(double.negativeInfinity);
   }
   if (branch == 0 && z.b == 0.0 && z.a >= -invE) {
     return Complex(_lambertW0(z.a.toDouble()));
   }
-  if (branch == -1 && z.b == 0.0 && z.a >= -invE && z.a < 0.0) {
+  if (branch == -1 && z.b == 0.0 && z.a >= -invE && z.a <= 0.0) {
     return Complex(_lambertW1(z.a.toDouble()));
   }
 
+  final absZ = z.abs();
   var w = switch (branch) {
     0 => () {
       if ((z + invE).abs() < 0.3) {
         final p = ((z * e + 1) * 2).sqrt();
-        return p - 1 - p.square() / 3.0 + p * p.square() * (11.0 / 72.0);
+        return p - 1.0 - p.square() / 3.0 + p * p.square() * (11.0 / 72.0);
       }
-      if (z.a >= 0.0 && z.abs() < 1.5) return z / (z + 1);
+      if (z.a >= 0.0 && absZ < 1.5) return z / (z + 1);
       final lz = z.log();
       return lz - lz.log();
     }(),
     _ => () {
+      if ((z + invE).abs() < 0.3) {
+        final p = -((z * e + 1) * 2).sqrt();
+        return p - 1.0 - p.square() / 3.0 + p * p.square() * (11.0 / 72.0);
+      }
       final lz = z.log() - const Complex(0.0, 2.0 * pi);
-      return lz - (-lz).log();
+      return lz - lz.log();
     }(),
   };
+
+  if (absZ > 1e100 || (branch == -1 && absZ < 1e-100)) {
+    final lz = branch == 0 ? z.log() : z.log() - const Complex(0.0, 2.0 * pi);
+    for (var i = 0; i < 20; i++) {
+      final r = w + w.log() - lz;
+      final w1 = w + 1;
+      if (w1.abs() < 1e-15) break;
+      final step = (r * w / w1) / (Complex.one + r / (w1 * w1 * 2.0));
+      w -= step;
+      if (step.abs() <= 1e-15 * (1.0 + w.abs())) break;
+    }
+    return w;
+  }
 
   for (var i = 0; i < 30; i++) {
     final ew = w.exp();
@@ -76,16 +100,16 @@ Complex lambertWComplex(Complex z, {int branch = 0}) {
 }
 
 double _lambertW0(num z) {
-  if (z.isNaN || z < -invE - 1e-15) {
-    return double.nan;
-  }
-  if ((z + invE).abs() <= 1e-15) return -1.0;
-  if (z == 0.0) return 0.0;
-  if (z.isInfinite) return double.infinity;
+  if (z.isNaN) return double.nan;
   final zd = z.toDouble();
+  if (zd < -invE) return double.nan;
+  if (zd == -invE) return -1.0;
+  if (zd == 0.0) return 0.0;
+  if (zd == double.infinity) return double.infinity;
+
   var wVal = 0.0;
   if (zd < -0.3) {
-    final pVal = sqrt(2.0 * (e * zd + 1.0));
+    final pVal = sqrt(max(0.0, 2.0 * (e * zd + 1.0)));
     wVal =
         -1.0 +
         pVal -
@@ -103,7 +127,7 @@ double _lambertW0(num z) {
     for (var i = 0; i < 20; i++) {
       final r = wVal + log(wVal) - lz;
       final w1 = wVal + 1.0;
-      final step = (r * wVal / w1) / (1.0 - r / (2.0 * w1 * w1));
+      final step = (r * wVal / w1) / (1.0 + r / (2.0 * w1 * w1));
       wVal -= step;
       if (step.abs() <= 1e-15 * wVal) break;
     }
@@ -113,14 +137,15 @@ double _lambertW0(num z) {
 }
 
 double _lambertW1(num z) {
-  if (z.isNaN || z < -invE - 1e-15 || z >= 0.0) {
-    return double.nan;
-  }
-  if ((z + invE).abs() <= 1e-15) return -1.0;
+  if (z.isNaN) return double.nan;
   final zd = z.toDouble();
+  if (zd < -invE || zd > 0.0) return double.nan;
+  if (zd == -invE) return -1.0;
+  if (zd == 0.0) return double.negativeInfinity;
+
   var wVal = -1.0;
   if (zd < -0.3) {
-    final pVal = -sqrt(2.0 * (e * zd + 1.0));
+    final pVal = -sqrt(max(0.0, 2.0 * (e * zd + 1.0)));
     wVal =
         -1.0 +
         pVal -
@@ -136,7 +161,7 @@ double _lambertW1(num z) {
     for (var i = 0; i < 20; i++) {
       final r = wVal + log(-wVal) - lnNegZ;
       final w1 = wVal + 1.0;
-      final step = (r * wVal / w1) / (1.0 - r / (2.0 * w1 * w1));
+      final step = (r * wVal / w1) / (1.0 + r / (2.0 * w1 * w1));
       wVal -= step;
       if (step.abs() <= 1e-15 * wVal.abs()) break;
     }

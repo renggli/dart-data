@@ -7,9 +7,13 @@ import 'utils.dart';
 
 /// Returns the Bessel function of the first kind `J_ν(x)` of real order [nu].
 ///
-/// For integer order [nu], evaluates `J_n(x)` via Miller's backward
-/// recurrence or forward recurrence; for non-integer order, uses the series
-/// definition `∑_{m=0}^∞ (-1)^m / (m! * Γ(m + ν + 1)) * (x/2)^(2m + ν)`.
+/// Evaluates `J_ν(x)` to 15-16 digits of relative precision using power series
+/// for small `|x| <= 2`, Miller's backward recurrence and upward recurrence for
+/// intermediate `x`, and Hankel's asymptotic expansion for large `x`.
+///
+/// For non-integer [nu], requires `x >= 0` (with `J_ν(0) = NaN` for negative
+/// non-integer [nu]). For integer `ν = n`, defined for all real `x` with
+/// `J_{-n}(x) = (-1)^n J_n(x)` and `J_n(±∞) = 0`.
 ///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double besselJ(num nu, num x) {
@@ -17,15 +21,13 @@ double besselJ(num nu, num x) {
   final nud = nu.toDouble();
   final xd = x.toDouble();
   if (!nud.isFinite) return double.nan;
-  if (nud == 0.0) return _besselJ0(xd);
-  if (nud == 1.0) return _besselJ1(xd);
+
+  final isInt = nud.abs() <= maxSafeInt && nud.roundToDouble() == nud;
   if (xd.isInfinite) {
-    if (xd.isNegative) return double.nan;
+    if (xd.isNegative && !isInt) return double.nan;
     return 0.0;
   }
-
-  // Integer order branch
-  if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
+  if (isInt) {
     final n = nud.toInt();
     if (n < 0) {
       final jPos = besselJ(-n, xd);
@@ -36,83 +38,66 @@ double besselJ(num nu, num x) {
       final jPos = besselJ(n, -xd);
       return n.isOdd ? -jPos : jPos;
     }
-    if (xd < 1e-4) {
-      final halfX = 0.5 * xd;
-      var term = pow(halfX, n) / gamma(n + 1.0);
-      var sum = term;
-      final halfX2 = -halfX * halfX;
-      for (var m = 1; m <= 20; m++) {
-        term *= halfX2 / (m * (m + n));
-        sum += term;
-        if (term.abs() <= 1.0e-15 * sum.abs()) break;
-      }
-      return sum;
-    }
-    if (xd > max(25.0, n * n.toDouble())) {
-      return _hankelAsymptotic(nud, xd).j;
-    }
+    if (xd <= 2.0) return _besselJSeries(n.toDouble(), xd);
+    if (xd > max(25.0, n * n.toDouble())) return _hankelAsymptotic(nud, xd).j;
+    if (n == 0) return _besselJMillerPair(0.0, xd).j0;
+    if (n == 1) return _besselJMillerPair(0.0, xd).j1;
     if (xd > n) {
-      // Forward recurrence
-      var jPrev = _besselJ0(xd);
-      var jCur = _besselJ1(xd);
+      final pair = _besselJMillerPair(0.0, xd);
+      var j0 = pair.j0;
+      var j1 = pair.j1;
       for (var k = 1; k < n; k++) {
-        final jNext = (2.0 * k / xd) * jCur - jPrev;
-        jPrev = jCur;
-        jCur = jNext;
+        final jNext = (2.0 * k / xd) * j1 - j0;
+        j0 = j1;
+        j1 = jNext;
       }
-      return jCur;
-    } else {
-      // Backward recurrence (Miller's algorithm)
-      final m = 2 * (n + sqrt(40.0 * n).toInt() + 10);
-      var fNext = 0.0;
-      var fCur = 1.0e-30;
-      var fn = 0.0;
-      var sum = 0.0;
-      for (var k = m; k > 0; k--) {
-        final fPrev = (2.0 * k / xd) * fCur - fNext;
-        fNext = fCur;
-        fCur = fPrev;
-        if (fCur.abs() > 1e100) {
-          fCur *= 1e-100;
-          fNext *= 1e-100;
-          fn *= 1e-100;
-          sum *= 1e-100;
-        }
-        if (k - 1 == n) fn = fCur;
-        if ((k - 1).isEven) {
-          sum += (k - 1 == 0) ? fCur : 2.0 * fCur;
-        }
-      }
-      return (sum == 0.0) ? 0.0 : (fn / sum);
+      return j1;
     }
+    return _besselJMillerNth(0.0, n, xd);
   }
 
-  // Non-integer order branch
   if (xd < 0.0) return double.nan;
-  if (xd == 0.0) return nud == 0.0 ? 1.0 : 0.0;
-  if (xd > max(25.0, nud * nud)) {
-    return _hankelAsymptotic(nud, xd).j;
-  }
+  if (xd == 0.0) return nud > 0.0 ? 0.0 : double.nan;
+  if (xd <= 2.0) return _besselJSeries(nud, xd);
+  if (xd > max(25.0, nud * nud)) return _hankelAsymptotic(nud, xd).j;
 
-  final halfX = 0.5 * xd;
-  final gammaVal = gamma(nud + 1.0);
-  if (gammaVal.isInfinite) return 0.0;
-  var term = pow(halfX, nud) / gammaVal;
-  var sum = term;
-  final halfX2 = -halfX * halfX;
-  for (var m = 1; m <= 100; m++) {
-    term *= halfX2 / (m * (m + nud));
-    sum += term;
-    if (term.abs() <= 1.0e-15 * sum.abs()) break;
+  // Decompose nu = n + mu with mu in (-0.5, 0.5]
+  final n = (nud + 0.5).floor();
+  final mu = nud - n;
+  if (n < 0) {
+    // Downward recurrence from (J_mu, J_{mu+1}) is unconditionally stable.
+    final (:j0, :j1) = _besselJMillerPair(mu, xd);
+    var cur = j0;
+    var next = j1;
+    for (var k = 0; k > n; k--) {
+      final prev = (2.0 * (k + mu) / xd) * cur - next;
+      next = cur;
+      cur = prev;
+    }
+    return cur;
   }
-  return sum;
+  if (xd > nud) {
+    final pair = _besselJMillerPair(mu, xd);
+    var j0 = pair.j0;
+    var j1 = pair.j1;
+    if (n == 0) return j0;
+    if (n == 1) return j1;
+    for (var k = 1; k < n; k++) {
+      final jNext = (2.0 * (k + mu) / xd) * j1 - j0;
+      j0 = j1;
+      j1 = jNext;
+    }
+    return j1;
+  }
+  return _besselJMillerNth(mu, n, xd);
 }
 
 /// Returns the complex Bessel function of the first kind `J_ν(z)`.
 ///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 Complex besselJComplex(Complex nu, Complex z) {
-  if (nu.isNaN || z.isNaN) {
+  if (nu.isNaN || z.isNaN) return Complex.nan;
+  if (!nu.a.isFinite || !nu.b.isFinite || !z.a.isFinite || !z.b.isFinite) {
     return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) {
@@ -125,7 +110,7 @@ Complex besselJComplex(Complex nu, Complex z) {
   }
   if (nu.b == 0.0 && nu.a < 0.0 && nu.a == nu.a.roundToDouble()) {
     final n = nu.a.round();
-    final pos = besselJComplex(Complex(-n), z);
+    final pos = besselJComplex(Complex(-n.toDouble()), z);
     return n.isOdd ? -pos : pos;
   }
   if (z.abs() > max(12.0, nu.abs() * nu.abs())) {
@@ -141,7 +126,7 @@ Complex besselJComplex(Complex nu, Complex z) {
   var sum = term;
   final halfZ2 = -halfZ * halfZ;
   for (var m = 1; m <= 80; m++) {
-    term *= halfZ2 / (Complex(m) * (Complex(m) + nu));
+    term *= halfZ2 / (Complex(m.toDouble()) * (Complex(m.toDouble()) + nu));
     sum += term;
     if (term.abs() <= 1.0e-15 * sum.abs()) break;
   }
@@ -150,6 +135,11 @@ Complex besselJComplex(Complex nu, Complex z) {
 
 /// Returns the Bessel function of the second kind `Y_ν(x)` of real order [nu].
 ///
+/// Defined for `x > 0` and finite real [nu]; returns `0.0` at `+∞` and
+/// `double.nan` for `x <= 0`, non-finite [nu], or `NaN`. Uses Temme's small-`x`
+/// series for `0 < x < 2`, Miller + Steed's CF2 for `2 <= x <= max(25, nu^2)`
+/// (eliminating near-integer cancellation), and Hankel asymptotics for large `x`.
+///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 double besselY(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
@@ -157,47 +147,52 @@ double besselY(num nu, num x) {
   final xd = x.toDouble();
   if (!nud.isFinite || xd <= 0.0) return double.nan;
   if (xd.isInfinite) return 0.0;
-  if (nud == 0.0) return _besselY0(xd);
-  if (nud == 1.0) return _besselY1(xd);
-  if (xd > max(25.0, nud * nud)) {
-    return _hankelAsymptotic(nud, xd).y;
+  if (xd > max(25.0, nud * nud)) return _hankelAsymptotic(nud, xd).y;
+
+  final n = (nud + 0.5).floor();
+  final mu = nud - n;
+  final double y0;
+  final double y1;
+  if (xd < 2.0) {
+    (y0: y0, y1: y1) = _besselYTemmeSmall(mu, xd);
+  } else {
+    final (:j0, :j1) = _besselJMillerPair(mu, xd);
+    final (:p, :q) = _steedCF2(mu, xd);
+    y0 = ((p - mu / xd) * j0 + j1) / q;
+    y1 = (mu / xd - p) * y0 - q * j0;
   }
 
-  // Integer order branch via forward recurrence
-  if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
-    final n = nud.toInt();
-    if (n < 0) {
-      final yPos = besselY(-n, xd);
-      return n.isOdd ? -yPos : yPos;
+  if (n == 0) return y0;
+  if (n == 1) return y1;
+  if (n < 0) {
+    var cur = y0;
+    var next = y1;
+    for (var k = 0; k > n; k--) {
+      final prev = (2.0 * (k + mu) / xd) * cur - next;
+      next = cur;
+      cur = prev;
     }
-    var yPrev = _besselY0(xd);
-    var yCur = _besselY1(xd);
-    for (var k = 1; k < n; k++) {
-      final yNext = (2.0 * k / xd) * yCur - yPrev;
-      yPrev = yCur;
-      yCur = yNext;
-    }
-    return yCur;
+    return cur;
   }
-
-  // Non-integer order via relation to J_nu and J_{-nu}
-  final sinPiNu = sin(pi * nud);
-  if (sinPiNu.abs() < 1e-15) {
-    return besselY(nud.round(), xd);
+  var prev = y0;
+  var cur = y1;
+  for (var k = 1; k < n; k++) {
+    final next = (2.0 * (k + mu) / xd) * cur - prev;
+    prev = cur;
+    cur = next;
   }
-  return (besselJ(nud, xd) * cos(pi * nud) - besselJ(-nud, xd)) / sinPiNu;
+  return cur;
 }
 
 /// Returns the complex Bessel function of the second kind `Y_ν(z)`.
 ///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
 Complex besselYComplex(Complex nu, Complex z) {
-  if (nu.isNaN || z.isNaN) {
+  if (nu.isNaN || z.isNaN) return Complex.nan;
+  if (!nu.a.isFinite || !nu.b.isFinite || !z.a.isFinite || !z.b.isFinite) {
     return Complex.nan;
   }
-  if (z.a == 0.0 && z.b == 0.0) {
-    return Complex.nan;
-  }
+  if (z.a == 0.0 && z.b == 0.0) return Complex.nan;
   if (nu.b == 0.0 && z.b == 0.0 && z.a > 0.0) {
     return Complex(besselY(nu.a.toDouble(), z.a.toDouble()));
   }
@@ -206,99 +201,59 @@ Complex besselYComplex(Complex nu, Complex z) {
   }
   final sinPiNu = (const Complex(pi) * nu).sin();
   if (sinPiNu.abs() < 1e-12) {
-    const eps = Complex(1e-6);
-    return (besselYComplex(nu + eps, z) + besselYComplex(nu - eps, z)) *
-        const Complex(0.5);
+    return _besselYIntComplex(nu.a.round(), z);
   }
   return (besselJComplex(nu, z) * (const Complex(pi) * nu).cos() -
           besselJComplex(-nu, z)) /
       sinPiNu;
 }
 
-/// Returns the modified Bessel function of the first kind `I_ν(x)` of real order [nu].
+/// Returns the modified Bessel function of the first kind `I_ν(x)` of real
+/// order [nu].
+///
+/// For non-integer [nu], requires `x >= 0` (returning `double.nan` at `x = 0`
+/// for negative non-integer [nu]). For integer `ν = n`, defined for all real
+/// `x` with `I_{-n}(x) = I_n(x)` and `I_n(-x) = (-1)^n I_n(x)`.
+///
+/// See https://en.wikipedia.org/wiki/Bessel_function#Modified_Bessel_functions
+/// for details.
 double besselI(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
   final xd = x.toDouble();
   if (!nud.isFinite) return double.nan;
+
+  final isInt = nud.abs() <= maxSafeInt && nud.roundToDouble() == nud;
   if (xd.isInfinite) {
     if (xd.isNegative) {
-      if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
-        return nud.toInt().isOdd ? double.negativeInfinity : double.infinity;
-      }
-      return double.nan;
+      if (!isInt) return double.nan;
+      return nud.toInt().isOdd ? double.negativeInfinity : double.infinity;
     }
     return double.infinity;
   }
-  if (nud == 0.0) return _besselI0(xd);
-  if (nud == 1.0) return _besselI1(xd);
-
-  // Integer order branch
-  if (nud.abs() <= 1e7 && nud.roundToDouble() == nud) {
-    final n = nud.toInt();
-    if (n < 0) {
-      return besselI(-n, xd);
-    }
-    if (n == 0) return _besselI0(xd);
-    if (n == 1) return _besselI1(xd);
-    if (xd == 0.0) return 0.0;
+  if (isInt) {
+    final n = nud.toInt().abs();
+    if (xd == 0.0) return n == 0 ? 1.0 : 0.0;
     if (xd < 0.0) {
       final iPos = besselI(n, -xd);
       return n.isOdd ? -iPos : iPos;
     }
-    if (xd < 1e-4) {
-      final halfX = 0.5 * xd;
-      var term = pow(halfX, n) / gamma(n + 1.0);
-      var sum = term;
-      final halfX2 = halfX * halfX;
-      for (var m = 1; m <= 20; m++) {
-        term *= halfX2 / (m * (m + n));
-        sum += term;
-        if (term.abs() <= 1.0e-15 * sum.abs()) break;
-      }
-      return sum;
-    }
     if (xd > max(25.0, n * n.toDouble())) {
-      return _modifiedBesselAsymptotic(nud, xd).i;
+      return _modifiedBesselAsymptotic(n.toDouble(), xd).i;
     }
-    final m = 2 * (n + sqrt(40.0 * n).toInt() + 10);
-    var fNext = 0.0;
-    var fCur = 1.0e-30;
-    var fn = 0.0;
-    for (var k = m; k > 0; k--) {
-      final fPrev = (2.0 * k / xd) * fCur + fNext;
-      fNext = fCur;
-      fCur = fPrev;
-      if (fCur.abs() > 1e100) {
-        fCur *= 1e-100;
-        fNext *= 1e-100;
-        fn *= 1e-100;
-      }
-      if (k - 1 == n) fn = fCur;
-    }
-    final trueI0 = _besselI0(xd);
-    return fCur == 0.0 ? 0.0 : fn * (trueI0 / fCur);
+    return _besselISeries(n.toDouble(), xd);
   }
 
-  // Non-integer order branch
   if (xd < 0.0) return double.nan;
-  if (xd == 0.0) return nud == 0.0 ? 1.0 : 0.0;
-  if (xd > max(25.0, nud * nud)) {
-    return _modifiedBesselAsymptotic(nud, xd).i;
-  }
+  if (xd == 0.0) return nud > 0.0 ? 0.0 : double.nan;
+  if (xd > max(25.0, nud * nud)) return _modifiedBesselAsymptotic(nud, xd).i;
+  if (nud >= -0.5) return _besselISeries(nud, xd);
 
-  final halfX = 0.5 * xd;
-  final gammaVal = gamma(nud + 1.0);
-  if (gammaVal.isInfinite) return 0.0;
-  var term = pow(halfX, nud) / gammaVal;
-  var sum = term;
-  final halfX2 = halfX * halfX;
-  for (var m = 1; m <= 100; m++) {
-    term *= halfX2 / (m * (m + nud));
-    sum += term;
-    if (term.abs() <= 1.0e-15 * sum.abs()) break;
-  }
-  return sum;
+  // Negative non-integer order via I_{-nu}(x) = I_{nu}(x) + (2/pi)*sin(pi*nu)*K_{nu}(x)
+  final posNu = -nud;
+  final r = posNu - 2.0 * (posNu / 2.0).roundToDouble();
+  return _besselISeries(posNu, xd) +
+      (2.0 / pi) * sin(pi * r) * besselK(posNu, xd);
 }
 
 /// Returns the complex modified Bessel function of the first kind `I_ν(z)`.
@@ -306,7 +261,8 @@ double besselI(num nu, num x) {
 /// See https://en.wikipedia.org/wiki/Bessel_function#Modified_Bessel_functions
 /// for details.
 Complex besselIComplex(Complex nu, Complex z) {
-  if (nu.isNaN || z.isNaN) {
+  if (nu.isNaN || z.isNaN) return Complex.nan;
+  if (!nu.a.isFinite || !nu.b.isFinite || !z.a.isFinite || !z.b.isFinite) {
     return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) {
@@ -333,47 +289,70 @@ Complex besselIComplex(Complex nu, Complex z) {
   var sum = term;
   final halfZ2 = halfZ * halfZ;
   for (var m = 1; m <= 80; m++) {
-    term *= halfZ2 / (Complex(m) * (Complex(m) + nu));
+    term *= halfZ2 / (Complex(m.toDouble()) * (Complex(m.toDouble()) + nu));
     sum += term;
     if (term.abs() <= 1.0e-15 * sum.abs()) break;
   }
   return sum;
 }
 
-/// Returns the modified Bessel function of the second kind `K_ν(x)` of real order [nu].
+/// Returns the modified Bessel function of the second kind `K_ν(x)` of real
+/// order [nu].
+///
+/// Even in [nu] (`K_{-ν}(x) = K_ν(x)`), defined for `x > 0` and finite real
+/// [nu], returning `0.0` at `+∞` and `double.nan` for `x <= 0`, non-finite
+/// [nu], or `NaN`. Uses exponentially scaled trapezoidal quadrature for
+/// `|μ| <= 0.5` combined with unconditionally stable upward recurrence, avoiding
+/// `I_{-ν} - I_ν` cancellation.
+///
+/// See https://en.wikipedia.org/wiki/Bessel_function#Modified_Bessel_functions
+/// for details.
 double besselK(num nu, num x) {
   if (nu.isNaN || x.isNaN) return double.nan;
   final nud = nu.toDouble();
   final xd = x.toDouble();
   if (!nud.isFinite || xd <= 0.0) return double.nan;
   if (xd.isInfinite) return 0.0;
-  if (nud == 0.0) return _besselK0(xd);
-  if (nud == 1.0) return _besselK1(xd);
 
   final absNu = nud.abs();
   if (xd > max(25.0, absNu * absNu)) {
     return _modifiedBesselAsymptotic(absNu, xd).k;
   }
 
-  // Integer order branch via forward recurrence
-  if (absNu <= 1e7 && absNu.roundToDouble() == absNu) {
-    final n = absNu.toInt();
-    var kPrev = _besselK0(xd);
-    var kCur = _besselK1(xd);
-    for (var k = 1; k < n; k++) {
-      final kNext = (2.0 * k / xd) * kCur + kPrev;
-      kPrev = kCur;
-      kCur = kNext;
-    }
-    return kCur;
+  final n = (absNu + 0.5).floor();
+  final mu = absNu - n;
+
+  final double k0;
+  final double k1;
+  if (xd < 1e-4 && mu.abs() > 1e-4) {
+    final sinPiMu = sin(pi * mu);
+    k0 =
+        (pi / 2.0) *
+        (_besselISeries(-mu, xd) - _besselISeries(mu, xd)) /
+        sinPiMu;
+    k1 =
+        (pi / 2.0) *
+        (_besselISeries(-(mu + 1.0), xd) - _besselISeries(mu + 1.0, xd)) /
+        (-sinPiMu);
+  } else if (xd < 0.5 && mu == 0.0) {
+    k0 = _besselK0Series(xd);
+    k1 = _besselK1Series(xd);
+  } else {
+    k0 = _besselKTrap(mu, xd);
+    k1 = _besselKTrap(mu + 1.0, xd);
   }
 
-  // Non-integer order via relation to I_{-nu} and I_{nu}
-  final sinPiNu = sin(pi * absNu);
-  if (sinPiNu.abs() < 1e-15) {
-    return besselK(absNu.round(), xd);
+  if (n == 0) return k0;
+  if (n == 1) return k1;
+  var kPrev = k0;
+  var kCur = k1;
+  for (var k = 1; k < n; k++) {
+    final kNext = (2.0 * (k + mu) / xd) * kCur + kPrev;
+    kPrev = kCur;
+    kCur = kNext;
+    if (!kCur.isFinite) return double.infinity;
   }
-  return (pi / 2.0) * (besselI(-absNu, xd) - besselI(absNu, xd)) / sinPiNu;
+  return kCur;
 }
 
 /// Returns the complex modified Bessel function of the second kind `K_ν(z)`.
@@ -381,11 +360,12 @@ double besselK(num nu, num x) {
 /// See https://en.wikipedia.org/wiki/Bessel_function#Modified_Bessel_functions
 /// for details.
 Complex besselKComplex(Complex nu, Complex z) {
-  if (nu.isNaN || z.isNaN) {
+  if (nu.isNaN || z.isNaN) return Complex.nan;
+  if (!nu.a.isFinite || !nu.b.isFinite || !z.a.isFinite || !z.b.isFinite) {
     return Complex.nan;
   }
   if (z.a == 0.0 && z.b == 0.0) {
-    return const Complex(double.infinity);
+    return nu.b == 0.0 ? const Complex(double.infinity) : Complex.nan;
   }
   if (nu.b == 0.0 && z.b == 0.0 && z.a > 0.0) {
     return Complex(besselK(nu.a.toDouble(), z.a.toDouble()));
@@ -395,13 +375,297 @@ Complex besselKComplex(Complex nu, Complex z) {
   }
   final sinPiNu = (const Complex(pi) * nu).sin();
   if (sinPiNu.abs() < 1e-12) {
-    const eps = Complex(1e-6);
-    return (besselKComplex(nu + eps, z) + besselKComplex(nu - eps, z)) *
-        const Complex(0.5);
+    return _besselKIntComplex(nu.a.round(), z);
   }
   return const Complex(pi / 2.0) *
       (besselIComplex(-nu, z) - besselIComplex(nu, z)) /
       sinPiNu;
+}
+
+double _besselJSeries(double nu, double x) {
+  final halfX = 0.5 * x;
+  double term;
+  if (nu > 100.0) {
+    final g = logAbsGammaWithSign(nu + 1.0);
+    if (g.sign == 0) return 0.0;
+    final logTerm = nu * log(halfX) - g.logAbs;
+    if (logTerm < -745.0) return 0.0;
+    term = g.sign * exp(logTerm);
+  } else {
+    final gammaVal = gamma(nu + 1.0);
+    if (gammaVal.isInfinite || gammaVal.isNaN) return 0.0;
+    term = pow(halfX, nu).toDouble() / gammaVal;
+  }
+  var sum = term;
+  final halfX2 = -halfX * halfX;
+  for (var m = 1; m <= 100; m++) {
+    term *= halfX2 / (m * (m + nu));
+    sum += term;
+    if (term.abs() <= 1.0e-16 * sum.abs()) break;
+  }
+  return sum;
+}
+
+double _besselISeries(double nu, double x) {
+  final halfX = 0.5 * x;
+  double term;
+  if (nu > 100.0) {
+    final g = logAbsGammaWithSign(nu + 1.0);
+    if (g.sign == 0) return 0.0;
+    final logTerm = nu * log(halfX) - g.logAbs;
+    if (logTerm < -745.0) return 0.0;
+    term = g.sign * exp(logTerm);
+  } else {
+    final gammaVal = gamma(nu + 1.0);
+    if (gammaVal.isInfinite || gammaVal.isNaN) return 0.0;
+    term = pow(halfX, nu).toDouble() / gammaVal;
+  }
+  var sum = term;
+  final halfX2 = halfX * halfX;
+  for (var m = 1; m <= 150; m++) {
+    term *= halfX2 / (m * (m + nu));
+    sum += term;
+    if (term.abs() <= 1.0e-16 * sum.abs()) break;
+  }
+  return sum;
+}
+
+({double j0, double j1}) _besselJMillerPair(double mu, double x) {
+  final m = 2 * (x.toInt() + sqrt(40.0 * max(x, 1.0)).toInt() + 15);
+  final halfM = m ~/ 2;
+  var fNext = 0.0;
+  var fCur = 1.0e-30;
+  var j0 = 0.0;
+  var j1 = 0.0;
+  var norm = 0.0;
+
+  if (mu == 0.0) {
+    for (var k = m; k > 0; k--) {
+      final fPrev = (2.0 * k / x) * fCur - fNext;
+      fNext = fCur;
+      fCur = fPrev;
+      if (fCur.abs() > 1e100) {
+        fCur *= 1e-100;
+        fNext *= 1e-100;
+        norm *= 1e-100;
+        j0 *= 1e-100;
+        j1 *= 1e-100;
+      }
+      final idx = k - 1;
+      if (idx == 1) j1 = fCur;
+      if (idx == 0) {
+        j0 = fCur;
+        norm += fCur;
+      } else if (idx.isEven) {
+        norm += 2.0 * fCur;
+      }
+    }
+    return norm == 0.0 ? (j0: 0.0, j1: 0.0) : (j0: j0 / norm, j1: j1 / norm);
+  }
+
+  final weights = List<double>.filled(halfM + 1, 0.0);
+  weights[0] = 1.0;
+  var p = 1.0;
+  for (var k = 1; k <= halfM; k++) {
+    if (k > 1) p *= (mu + k - 1.0) / k;
+    weights[k] = (mu + 2.0 * k) * p;
+  }
+
+  for (var k = m; k > 0; k--) {
+    final fPrev = (2.0 * (k + mu) / x) * fCur - fNext;
+    fNext = fCur;
+    fCur = fPrev;
+    if (fCur.abs() > 1e100) {
+      fCur *= 1e-100;
+      fNext *= 1e-100;
+      norm *= 1e-100;
+      j0 *= 1e-100;
+      j1 *= 1e-100;
+    }
+    final idx = k - 1;
+    if (idx == 1) j1 = fCur;
+    if (idx == 0) {
+      j0 = fCur;
+      norm += fCur;
+    } else if (idx.isEven) {
+      norm += weights[idx ~/ 2] * fCur;
+    }
+  }
+  if (norm == 0.0) return (j0: 0.0, j1: 0.0);
+  final rhs = pow(0.5 * x, mu).toDouble() / gamma(mu + 1.0);
+  final scale = rhs / norm;
+  return (j0: j0 * scale, j1: j1 * scale);
+}
+
+double _besselJMillerNth(double mu, int n, double x) {
+  final m = 2 * (max(n, x.toInt()) + sqrt(40.0 * max(n, 1)).toInt() + 15);
+  var fNext = 0.0;
+  var fCur = 1.0e-30;
+  var fn = 0.0;
+  var norm = 0.0;
+
+  if (mu == 0.0) {
+    for (var k = m; k > 0; k--) {
+      final fPrev = (2.0 * k / x) * fCur - fNext;
+      fNext = fCur;
+      fCur = fPrev;
+      if (fCur.abs() > 1e100) {
+        fCur *= 1e-100;
+        fNext *= 1e-100;
+        fn *= 1e-100;
+        norm *= 1e-100;
+      }
+      final idx = k - 1;
+      if (idx == n) fn = fCur;
+      if (idx.isEven) {
+        norm += idx == 0 ? fCur : 2.0 * fCur;
+      }
+    }
+    return norm == 0.0 ? 0.0 : fn / norm;
+  }
+
+  final halfM = m ~/ 2;
+  final weights = List<double>.filled(halfM + 1, 0.0);
+  weights[0] = 1.0;
+  var p = 1.0;
+  for (var k = 1; k <= halfM; k++) {
+    if (k > 1) p *= (mu + k - 1.0) / k;
+    weights[k] = (mu + 2.0 * k) * p;
+  }
+  for (var k = m; k > 0; k--) {
+    final fPrev = (2.0 * (k + mu) / x) * fCur - fNext;
+    fNext = fCur;
+    fCur = fPrev;
+    if (fCur.abs() > 1e100) {
+      fCur *= 1e-100;
+      fNext *= 1e-100;
+      fn *= 1e-100;
+      norm *= 1e-100;
+    }
+    final idx = k - 1;
+    if (idx == n) fn = fCur;
+    if (idx.isEven) {
+      norm += weights[idx ~/ 2] * fCur;
+    }
+  }
+  if (norm == 0.0) return 0.0;
+  final rhs = pow(0.5 * x, mu).toDouble() / gamma(mu + 1.0);
+  return fn * (rhs / norm);
+}
+
+({double p, double q}) _steedCF2(double mu, double x) {
+  final mu2 = mu * mu;
+  final h = lentzCFComplex(
+    Complex(2.0 * x, 2.0),
+    (k) => Complex((k + 0.5) * (k + 0.5) - mu2),
+    (k) => Complex(2.0 * x, 2.0 * (k + 1)),
+    maxIter: 400,
+    tol: 1e-15,
+  );
+  final pq = Complex(-0.5 / x, 1.0) + Complex(0.0, (0.25 - mu2) / x) * h;
+  return (p: pq.a.toDouble(), q: pq.b.toDouble());
+}
+
+({double y0, double y1}) _besselYTemmeSmall(double mu, double x) {
+  final x2 = 0.5 * x;
+  final fact = mu == 0.0 ? 1.0 : (pi * mu) / sin(pi * mu);
+  final d = -log(x2);
+  final eVal = mu * d;
+  final fact2 = eVal.abs() < 1e-8
+      ? 1.0
+      : (exp(eVal) - exp(-eVal)) / (2.0 * eVal);
+  final mu2 = mu * mu;
+  var even = 0.0;
+  for (var i = _invGammaTaylor.length - 1; i >= 0; i -= 2) {
+    even = even * mu2 + _invGammaTaylor[i];
+  }
+  var odd = 0.0;
+  for (var i = _invGammaTaylor.length - 2; i >= 1; i -= 2) {
+    odd = odd * mu2 + _invGammaTaylor[i];
+  }
+  final gam1 = -odd;
+  final gam2 = even;
+  final gampl = gam2 - mu * gam1;
+  final gammi = gam2 + mu * gam1;
+  final coshE = 0.5 * (exp(eVal) + exp(-eVal));
+  var ff = 2.0 / pi * fact * (gam1 * coshE + gam2 * fact2 * d);
+  final expE = exp(eVal);
+  var p = expE / (gampl * pi);
+  var q = 1.0 / (expE * pi * gammi);
+  final pimu2 = 0.5 * pi * mu;
+  final fact3 = pimu2.abs() < 1e-8 ? 1.0 : sin(pimu2) / pimu2;
+  final r = pi * pimu2 * fact3 * fact3;
+  var c = 1.0;
+  final dSq = -x2 * x2;
+  var sumY = ff + r * q;
+  var sum1 = p;
+  for (var i = 1; i <= 100; i++) {
+    ff = (i * ff + p + q) / (i * i - mu2);
+    c *= dSq / i;
+    p /= i - mu;
+    q /= i + mu;
+    final delY = c * (ff + r * q);
+    sumY += delY;
+    sum1 += c * p - i * delY;
+    if (delY.abs() <= (1.0 + sumY.abs()) * 1e-16) break;
+  }
+  return (y0: -sumY, y1: -sum1 * 2.0 / x);
+}
+
+double _besselKTrap(double mu, double x) {
+  final h = min(0.22, 0.5 / sqrt(x));
+  var sum = 0.5;
+  for (var k = 1; k < 4000; k++) {
+    final t = k * h;
+    final halfT = 0.5 * t;
+    final sh = 0.5 * (exp(halfT) - exp(-halfT));
+    final arg = -2.0 * x * sh * sh;
+    final e1 = arg + mu * t;
+    final e2 = arg - mu * t;
+    if (e1 < -40.0 && e2 < -40.0) break;
+    final term = 0.5 * (exp(e1) + exp(e2));
+    sum += term;
+    if (term < 1e-17 * sum) break;
+  }
+  return h * exp(-x) * sum;
+}
+
+double _besselK0Series(double x) {
+  final hx = 0.5 * x;
+  final hx2 = hx * hx;
+  var i0 = 1.0;
+  var term = 1.0;
+  var h = 0.0;
+  var sum = 0.0;
+  for (var m = 1; m <= 30; m++) {
+    term *= hx2 / (m * m);
+    i0 += term;
+    h += 1.0 / m;
+    final add = term * h;
+    sum += add;
+    if (add.abs() <= 1e-16 * max(1.0, sum.abs())) break;
+  }
+  return -(log(hx) + eulerMascheroni) * i0 + sum;
+}
+
+double _besselK1Series(double x) {
+  final hx = 0.5 * x;
+  final hx2 = hx * hx;
+  var i1 = hx;
+  var term = hx;
+  var hk = 0.0;
+  var hk1 = 1.0;
+  var sum = hx;
+  for (var k = 1; k <= 30; k++) {
+    term *= hx2 / (k * (k + 1));
+    i1 += term;
+    hk = hk1;
+    hk1 += 1.0 / (k + 1);
+    final add = term * (hk + hk1);
+    sum += add;
+    if (add.abs() <= 1e-16 * max(1.0, sum.abs())) break;
+  }
+  return 1.0 / x + (log(hx) + eulerMascheroni) * i1 - 0.5 * sum;
 }
 
 ({double j, double y}) _hankelAsymptotic(double nu, double x) {
@@ -449,8 +713,8 @@ Complex besselKComplex(Complex nu, Complex z) {
   for (var k = 1; k <= 30; k++) {
     final prevTerm = termI.abs();
     final factor = (mu - (2 * k - 1) * (2 * k - 1)) / (k * eightX);
-    termI *= factor;
-    termK *= -factor;
+    termI *= -factor;
+    termK *= factor;
     if (k > 2 && termI.abs() >= prevTerm) break;
     sumI += termI;
     sumK += termK;
@@ -459,10 +723,16 @@ Complex besselKComplex(Complex nu, Complex z) {
     }
   }
 
-  final factorI = exp(x) / sqrt(2.0 * pi * x);
-  final factorK = sqrt(pi / (2.0 * x)) * exp(-x);
-
-  return (i: factorI * sumI, k: factorK * sumK);
+  final invSqrt2PiX = 1.0 / sqrt(2.0 * pi * x);
+  final double valI;
+  if (x > 700.0) {
+    final halfExp = exp(0.5 * x);
+    valI = halfExp * (halfExp * invSqrt2PiX * sumI);
+  } else {
+    valI = exp(x) * invSqrt2PiX * sumI;
+  }
+  final valK = sqrt(pi / (2.0 * x)) * exp(-x) * sumK;
+  return (i: valI, k: valK);
 }
 
 ({Complex j, Complex y}) _hankelAsymptoticComplex(Complex nu, Complex z) {
@@ -475,8 +745,8 @@ Complex besselKComplex(Complex nu, Complex z) {
 
   for (var k = 1; k <= 20; k++) {
     final prevTerm = term.abs();
-    final num = mu - Complex((2 * k - 1) * (2 * k - 1));
-    term = term * num / (Complex(k) * eightZ);
+    final num = mu - Complex(((2 * k - 1) * (2 * k - 1)).toDouble());
+    term = term * num / (Complex(k.toDouble()) * eightZ);
     if (k > 2 && term.abs() >= prevTerm) break;
     if (k.isOdd) {
       q += Complex(sign) * term;
@@ -513,9 +783,10 @@ Complex besselKComplex(Complex nu, Complex z) {
   for (var k = 1; k <= 30; k++) {
     final prevTerm = termI.abs();
     final factor =
-        (mu - Complex((2 * k - 1) * (2 * k - 1))) / (Complex(k) * eightZ);
-    termI *= factor;
-    termK *= -factor;
+        (mu - Complex(((2 * k - 1) * (2 * k - 1)).toDouble())) /
+        (Complex(k.toDouble()) * eightZ);
+    termI *= -factor;
+    termK *= factor;
     if (k > 2 && termI.abs() >= prevTerm) break;
     sumI += termI;
     sumK += termK;
@@ -526,306 +797,115 @@ Complex besselKComplex(Complex nu, Complex z) {
 
   final factorI = z.exp() / (const Complex(2.0 * pi) * z).sqrt();
   final factorK = (const Complex(pi / 2.0) / z).sqrt() * (-z).exp();
-
-  return (i: factorI * sumI, k: factorK * sumK);
-}
-
-double _besselI0(num x) {
-  if (x.isNaN) return double.nan;
-  if (x == 0) return 1.0;
-  if (x.isInfinite) return double.infinity;
-  final ax = x.abs().toDouble();
-  if (ax < 3.75) {
-    final t = x / 3.75;
-    return horner(t * t, _i0SmallCoeffs);
+  var valI = factorI * sumI;
+  if (z.a < 20.0) {
+    final stokesPhase = z.b >= 0.0 ? 1.0 : -1.0;
+    final stokesExp = (Complex(0.0, stokesPhase * pi) * (nu + 0.5)).exp();
+    valI +=
+        stokesExp * (-z).exp() / (const Complex(2.0 * pi) * z).sqrt() * sumK;
   }
-  return (exp(ax) / sqrt(ax)) * horner(3.75 / ax, _i0LargeCoeffs);
+  return (i: valI, k: factorK * sumK);
 }
 
-double _besselI1(num x) {
-  if (x.isNaN) return double.nan;
-  if (x == 0) return 0.0;
-  if (x.isInfinite) {
-    return x.isNegative ? double.negativeInfinity : double.infinity;
+Complex _besselYIntComplex(int n, Complex z) {
+  if (n < 0) {
+    final pos = _besselYIntComplex(-n, z);
+    return n.isOdd ? -pos : pos;
   }
-  final ax = x.abs().toDouble();
-  final ans = ax < 3.75
-      ? ax * horner((x / 3.75) * (x / 3.75), _i1SmallCoeffs)
-      : (exp(ax) / sqrt(ax)) * horner(3.75 / ax, _i1LargeCoeffs);
-  return x.isNegative ? -ans : ans;
-}
-
-double _besselK0(num x) {
-  if (x.isNaN || x <= 0) return double.nan;
-  if (x.isInfinite) return 0.0;
-  final xd = x.toDouble();
-  if (xd <= 2.0) {
-    return -log(xd / 2.0) * _besselI0(xd) +
-        horner(xd * xd / 4.0, _k0SmallCoeffs);
+  final hz = const Complex(0.5) * z;
+  final hz2 = hz * hz;
+  var fin = Complex.zero;
+  if (n > 0) {
+    var fTerm = Complex(exp(gammaLn(n.toDouble())));
+    for (var k = 0; k < n; k++) {
+      fin += fTerm;
+      if (k + 1 < n) {
+        fTerm *= hz2 / Complex(((k + 1) * (n - 1 - k)).toDouble());
+      }
+    }
+    fin *= hz.pow(Complex(-n.toDouble()));
   }
-  return (exp(-xd) / sqrt(xd)) * horner(2.0 / xd, _k0LargeCoeffs);
-}
-
-double _besselK1(num x) {
-  if (x.isNaN || x <= 0) return double.nan;
-  if (x.isInfinite) return 0.0;
-  final xd = x.toDouble();
-  if (xd <= 2.0) {
-    return log(xd / 2.0) * _besselI1(xd) +
-        (1.0 / xd) * horner(xd * xd / 4.0, _k1SmallCoeffs);
+  var hk = 0.0;
+  var hkn = 0.0;
+  for (var j = 1; j <= n; j++) {
+    hkn += 1.0 / j;
   }
-  return (exp(-xd) / sqrt(xd)) * horner(2.0 / xd, _k1LargeCoeffs);
-}
-
-double _besselJ0(num x) {
-  if (x.isNaN) return double.nan;
-  if (x == 0) return 1.0;
-  if (x.isInfinite) return 0.0;
-  final ax = x.abs().toDouble();
-  if (ax < 8.0) return hornerRatio(ax * ax, _j0Num, _j0Den);
-  final z = 8.0 / ax;
-  final y = z * z;
-  final xx = ax - pi / 4.0;
-  return sqrt(2.0 / (pi * ax)) *
-      (horner(y, _f0Coeffs) * cos(xx) - z * horner(y, _g0Coeffs) * sin(xx));
-}
-
-double _besselJ1(num x) {
-  if (x.isNaN) return double.nan;
-  if (x == 0) return 0.0;
-  if (x.isInfinite) return 0.0;
-  final ax = x.abs().toDouble();
-  final double ans;
-  if (ax < 8.0) {
-    ans = ax * hornerRatio(ax * ax, _j1Num, _j1Den);
-  } else {
-    final z = 8.0 / ax;
-    final y = z * z;
-    final xx = ax - _threePiOver4;
-    ans =
-        sqrt(2.0 / (pi * ax)) *
-        (horner(y, _f1Coeffs) * cos(xx) - z * horner(y, _g1Coeffs) * sin(xx));
+  var iTerm = Complex(exp(-gammaLn(n + 1.0)));
+  var infSum = iTerm * Complex(hk + hkn);
+  for (var k = 1; k <= 80; k++) {
+    iTerm *= -hz2 / Complex((k * (n + k)).toDouble());
+    hk += 1.0 / k;
+    hkn += 1.0 / (n + k);
+    final add = iTerm * Complex(hk + hkn);
+    infSum += add;
+    if (add.abs() <= 1e-15 * max(1.0, infSum.abs())) break;
   }
-  return x.isNegative ? -ans : ans;
+  infSum *= hz.pow(Complex(n.toDouble()));
+  return const Complex(2.0 / pi) *
+          (hz.log() + const Complex(eulerMascheroni)) *
+          besselJComplex(Complex(n.toDouble()), z) -
+      (fin + infSum) / const Complex(pi);
 }
 
-double _besselY0(num x) {
-  if (x.isNaN || x <= 0) return double.nan;
-  if (x.isInfinite) return 0.0;
-  final xd = x.toDouble();
-  if (xd < 8.0) {
-    return (2.0 / pi) * log(xd) * _besselJ0(xd) +
-        hornerRatio(xd * xd, _y0Num, _y0Den);
+Complex _besselKIntComplex(int n, Complex z) {
+  final m = n.abs();
+  final hz = const Complex(0.5) * z;
+  final hz2 = hz * hz;
+  var fin = Complex.zero;
+  if (m > 0) {
+    var fTerm = Complex(exp(gammaLn(m.toDouble())));
+    for (var k = 0; k < m; k++) {
+      fin += fTerm;
+      if (k + 1 < m) {
+        fTerm *= -hz2 / Complex(((k + 1) * (m - 1 - k)).toDouble());
+      }
+    }
+    fin *= const Complex(0.5) * hz.pow(Complex(-m.toDouble()));
   }
-  final z = 8.0 / xd;
-  final y = z * z;
-  final xx = xd - pi / 4.0;
-  return sqrt(2.0 / (pi * xd)) *
-      (horner(y, _f0Coeffs) * sin(xx) + z * horner(y, _g0Coeffs) * cos(xx));
-}
-
-double _besselY1(num x) {
-  if (x.isNaN || x <= 0) return double.nan;
-  if (x.isInfinite) return 0.0;
-  final xd = x.toDouble();
-  if (xd < 8.0) {
-    return (2.0 / pi) * (log(xd) * _besselJ1(xd) - 1.0 / xd) +
-        xd * hornerRatio(xd * xd, _y1Num, _y1Den);
+  var hk = 0.0;
+  var hkm = 0.0;
+  for (var j = 1; j <= m; j++) {
+    hkm += 1.0 / j;
   }
-  final z = 8.0 / xd;
-  final y = z * z;
-  final xx = xd - _threePiOver4;
-  return sqrt(2.0 / (pi * xd)) *
-      (horner(y, _f1Coeffs) * sin(xx) + z * horner(y, _g1Coeffs) * cos(xx));
+  var iTerm = Complex(exp(-gammaLn(m + 1.0)));
+  var infSum = iTerm * Complex(hk + hkm);
+  for (var k = 1; k <= 80; k++) {
+    iTerm *= hz2 / Complex((k * (m + k)).toDouble());
+    hk += 1.0 / k;
+    hkm += 1.0 / (m + k);
+    final add = iTerm * Complex(hk + hkm);
+    infSum += add;
+    if (add.abs() <= 1e-15 * max(1.0, infSum.abs())) break;
+  }
+  final sign = m.isEven ? 1.0 : -1.0;
+  return fin -
+      Complex(sign) *
+          (hz.log() + const Complex(eulerMascheroni)) *
+          besselIComplex(Complex(m.toDouble()), z) +
+      Complex(0.5 * sign) * hz.pow(Complex(m.toDouble())) * infSum;
 }
 
-const double _threePiOver4 = 2.356194490192345;
-
-const List<double> _i0SmallCoeffs = [
+/// Taylor coefficients of `1 / Γ(1 + x)` around `x = 0`.
+const List<double> _invGammaTaylor = [
   1.0,
-  3.5156229,
-  3.0899424,
-  1.2067492,
-  0.2659732,
-  0.0360768,
-  0.0045813,
-];
-
-const List<double> _i0LargeCoeffs = [
-  0.39894228,
-  0.01328592,
-  0.00225319,
-  -0.00157565,
-  0.00916281,
-  -0.02057706,
-  0.02635537,
-  -0.01647633,
-  0.00392377,
-];
-
-const List<double> _i1SmallCoeffs = [
-  0.5,
-  0.87890594,
-  0.51498869,
-  0.15084934,
-  0.02658733,
-  0.00301532,
-  0.00032411,
-];
-
-const List<double> _i1LargeCoeffs = [
-  0.39894228,
-  -0.03988024,
-  -0.00362018,
-  0.00163801,
-  -0.01031555,
-  0.02282967,
-  -0.02895312,
-  0.01787654,
-  -0.00420059,
-];
-
-const List<double> _k0SmallCoeffs = [
-  -0.57721566,
-  0.42278420,
-  0.23069756,
-  0.03488590,
-  0.00262698,
-  0.00010750,
-  0.00000740,
-];
-
-const List<double> _k0LargeCoeffs = [
-  1.25331414,
-  -0.07832358,
-  0.02189568,
-  -0.01062446,
-  0.00587872,
-  -0.00251540,
-  0.00053208,
-];
-
-const List<double> _k1SmallCoeffs = [
-  1.0,
-  0.15443144,
-  -0.67278579,
-  -0.18156897,
-  -0.01919402,
-  -0.00110404,
-  -0.00004686,
-];
-
-const List<double> _k1LargeCoeffs = [
-  1.25331414,
-  0.23498619,
-  -0.03655620,
-  0.01504268,
-  -0.00780353,
-  0.00325614,
-  -0.00068245,
-];
-
-const List<double> _j0Num = [
-  57568490574.0,
-  -13362590354.0,
-  651619640.7,
-  -11214424.18,
-  77392.33017,
-  -184.9052456,
-];
-
-const List<double> _j0Den = [
-  57568490411.0,
-  1029532985.0,
-  9494680.718,
-  59272.64853,
-  267.8532712,
-  1.0,
-];
-
-const List<double> _j1Num = [
-  72362614232.0,
-  -7895059235.0,
-  242396853.1,
-  -2972611.439,
-  15704.48260,
-  -30.16036606,
-];
-
-const List<double> _j1Den = [
-  144725228442.0,
-  2300535178.0,
-  18583304.74,
-  99447.43394,
-  376.9991397,
-  1.0,
-];
-
-const List<double> _y0Num = [
-  -2957821389.0,
-  7062834065.0,
-  -512359803.6,
-  10879881.29,
-  -86327.92757,
-  228.4622733,
-];
-
-const List<double> _y0Den = [
-  40076544269.0,
-  745249964.8,
-  7189466.438,
-  47447.26470,
-  226.1030244,
-  1.0,
-];
-
-const List<double> _y1Num = [
-  -0.4900604943e13,
-  0.1275274390e13,
-  -0.5153438139e11,
-  0.7349264551e9,
-  -0.4237922726e7,
-  0.8511937935e4,
-];
-
-const List<double> _y1Den = [
-  0.2499580570e14,
-  0.4244419664e12,
-  0.3733650367e10,
-  0.2245904002e8,
-  0.1020426050e6,
-  0.3549632885e3,
-  1.0,
-];
-
-const List<double> _f0Coeffs = [
-  1.0,
-  -0.001098628627,
-  0.00002734510407,
-  -0.000002073370912,
-  0.0000002093887211,
-];
-
-const List<double> _g0Coeffs = [
-  -0.01562499995,
-  0.0001430488765,
-  -0.0000190333399,
-  0.0000017122914,
-  -0.000000122476,
-];
-
-const List<double> _f1Coeffs = [
-  1.0,
-  0.00183105,
-  -0.00003516396496,
-  0.000002457520174,
-  -0.000000240337019,
-];
-
-const List<double> _g1Coeffs = [
-  0.04687499995,
-  -0.0002002690873,
-  0.000008449199096,
-  -0.00000088228987,
-  0.000000105787412,
+  0.57721566490153286061,
+  -0.65587807152025388108,
+  -0.04200263503409523553,
+  0.16653861138229148950,
+  -0.04219773455554433675,
+  -0.00962197152787697356,
+  0.00721894324666309954,
+  -0.00116516759185906511,
+  -0.00021524167411495097,
+  0.00012805028238811619,
+  -0.00002013485478078824,
+  -0.00000125049348214267,
+  0.00000113302723198170,
+  -0.00000020563384169776,
+  0.00000000611609510448,
+  0.00000000500200764447,
+  -0.00000000118127457049,
+  0.00000000010434267117,
+  0.00000000000778226344,
+  -0.00000000000369680562,
 ];

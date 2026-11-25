@@ -1,42 +1,53 @@
 /// High-precision mathematical special functions of mathematical physics and
 /// applied analysis.
 ///
-/// Implements transcendent special functions essential in probability theory,
-/// quantum mechanics, fluid dynamics, electromagnetism, and engineering.
+/// Implements transcendental special functions essential in probability theory,
+/// quantum mechanics, fluid dynamics, electromagnetism, and engineering across
+/// both real and complex domains.
 ///
 /// ## Implemented Function Families
 ///
-/// - **Gamma & Factorial Functions** ([gamma], [gammaLn], [gammaP],
-///   [gammaQ], [gammaPInv], [gammaQInv], [upperGamma], [lowerGamma],
-///   [factorial], [factorialLn], [binomial], [binomialLn], [permutation],
+/// - **Gamma & Factorial Functions** ([gamma], [gammaComplex], [gammaLn],
+///   [gammaLnComplex], [gammaP], [gammaQ], [gammaPInv], [gammaQInv],
+///   [lowerGamma], [lowerGammaComplex], [upperGamma], [upperGammaComplex],
+///   [factorial], [factorialComplex], [factorialLn], [binomial],
+///   [binomialComplex], [binomialLn], [permutation], [permutationComplex],
 ///   [permutationLn]): The continuous extension of the factorial
 ///   `Γ(n) = (n - 1)!` and its regularized and unregularized incomplete forms,
-///   implemented via Lanczos approximation with 15 digits of numerical precision.
-/// - **Beta Functions** ([beta], [betaLn], [betaI], [betaIInv]): Euler's
-///   integral of the first kind `B(a, b)`, and the regularized incomplete beta
-///   function.
-/// - **Psi, Zeta & Polylogarithm Functions** ([digamma], [polygamma], [zeta],
-///   [hurwitzZeta], [polylog], [polylogComplex]): Logarithmic derivatives of
-///   the gamma function `ψ^(m)(x)`, the Riemann and Hurwitz zeta functions
-///   `ζ(s)` and `ζ(s, a)`, and the polylogarithm `Li_s(z)`.
-/// - **Error & Fresnel Functions** ([erf], [erfc], [erfi], [erfInv],
-///   [erfcInv], [fresnelS], [fresnelC]): Gaussian error integrals and
-///   normalized Fresnel sine and cosine integrals.
+///   evaluated via 15-term Lanczos approximation with 15-16 digits of precision.
+/// - **Beta Functions** ([beta], [betaComplex], [betaLn], [betaLnComplex],
+///   [betaI], [betaIInv]): Euler's integral of the first kind `B(a, b)`, and
+///   the regularized incomplete beta function and its inverse.
+/// - **Psi, Zeta & Polylogarithm Functions** ([digamma], [digammaComplex],
+///   [polygamma], [polygammaComplex], [zeta], [zetaComplex], [hurwitzZeta],
+///   [hurwitzZetaComplex], [polylog], [polylogComplex]): Logarithmic
+///   derivatives of the gamma function `ψ^(m)(x)`, the Riemann and Hurwitz
+///   zeta functions `ζ(s)` and `ζ(s, a)`, and the polylogarithm `Li_s(z)`.
+/// - **Error & Fresnel Functions** ([erf], [erfComplex], [erfc],
+///   [erfcComplex], [erfi], [erfiComplex], [erfInv], [erfcInv], [fresnelS],
+///   [fresnelSComplex], [fresnelC], [fresnelCComplex]): Gaussian error
+///   integrals and normalized Fresnel sine and cosine integrals.
 /// - **Exponential, Trigonometric & Hyperbolic Integrals** ([expIntegral],
-///   [expIntegralE], [logIntegral], [sinIntegral], [cosIntegral],
-///   [sinhIntegral], [coshIntegral]): Classical non-elementary integral
-///   functions.
-/// - **Bessel Functions** ([besselJ], [besselY], [besselI], [besselK]):
-///   Solutions to Bessel's differential equation describing radial and wave
-///   behavior in cylindrical geometries.
-/// - **Elliptic Integrals** ([ellipticK], [ellipticE], [ellipticF],
-///   [ellipticPi]): Complete and incomplete Legendre elliptic integrals of the
-///   1st, 2nd, and 3rd kinds.
-/// - **Hypergeometric Functions** ([hypergeometric1F1], [hypergeometric2F1],
-///   [hypergeometricPFQ]): Kummer's confluent series `1F1(a; b; z)`, Gauss's
-///   series `2F1(a, b; c; z)`, and the generalized series `pFq(a; b; z)`.
-/// - **Lambert W** ([lambertW]): The principal and secondary real branches of
-///   the product log function solving `W(x) * exp(W(x)) = x`.
+///   [expIntegralComplex], [expIntegralE], [expIntegralEComplex],
+///   [logIntegral], [logIntegralComplex], [sinIntegral], [sinIntegralComplex],
+///   [cosIntegral], [cosIntegralComplex], [sinhIntegral],
+///   [sinhIntegralComplex], [coshIntegral], [coshIntegralComplex]): Classical
+///   non-elementary integral functions.
+/// - **Bessel Functions** ([besselJ], [besselJComplex], [besselY],
+///   [besselYComplex], [besselI], [besselIComplex], [besselK],
+///   [besselKComplex]): Solutions to Bessel's differential equation describing
+///   radial and wave behavior in cylindrical geometries.
+/// - **Elliptic Integrals** ([ellipticK], [ellipticKComplex], [ellipticE],
+///   [ellipticEComplex], [ellipticF], [ellipticFComplex], [ellipticPi],
+///   [ellipticPiComplex]): Complete and incomplete Legendre elliptic integrals
+///   of the 1st, 2nd, and 3rd kinds.
+/// - **Hypergeometric Functions** ([hypergeometric1F1],
+///   [hypergeometric1F1Complex], [hypergeometric2F1],
+///   [hypergeometric2F1Complex], [hypergeometricPFQ],
+///   [hypergeometricPFQComplex]): Kummer's confluent series `1F1(a; b; z)`,
+///   Gauss's series `2F1(a, b; c; z)`, and the generalized series `pFq(a; b; z)`.
+/// - **Lambert W** ([lambertW], [lambertWComplex]): The principal and secondary
+///   branches of the product log function solving `W(z) * exp(W(z)) = z`.
 ///
 /// ## Example
 ///
@@ -79,10 +90,10 @@ export 'src/special/binomial.dart';
 export 'src/special/digamma.dart';
 export 'src/special/elliptic.dart';
 export 'src/special/erf.dart';
-export 'src/special/exp_integral.dart';
+export 'src/special/exp_integral.dart' hide expIntegralE1Complex;
 export 'src/special/factorial.dart';
 export 'src/special/fresnel.dart';
-export 'src/special/gamma.dart';
+export 'src/special/gamma.dart' hide logAbsGammaWithSign;
 export 'src/special/hypergeometric.dart';
 export 'src/special/lambert_w.dart';
 export 'src/special/permutation.dart';

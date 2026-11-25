@@ -4,12 +4,10 @@ import 'package:more/number.dart' show Complex;
 
 import 'utils.dart';
 
-/// Returns an approximation of the error function `erf(x)`.
+/// Returns the error function `erf(x) = (2 / √π) * ∫_0^x exp(-t^2) dt`.
 ///
-/// Measures the cumulative probability that a standard Gaussian random variable
-/// falls within `[-x * sqrt(2), x * sqrt(2)]`, defined by
-/// `erf(x) = (2 / √π) * ∫_0^x exp(-t^2) dt`. Evaluated via Cody's rational
-/// Chebyshev minimax approximation.
+/// Evaluated via Cody's rational Chebyshev minimax approximation. Returns `-1.0`
+/// at `-∞`, `1.0` at `+∞`, and `double.nan` for `NaN`.
 ///
 /// See https://en.wikipedia.org/wiki/Error_function for details.
 ///
@@ -20,30 +18,31 @@ double erf(num x) => _erfCore(x, complementary: false);
 
 /// Returns the complex error function `erf(z) = (2 / √π) * ∫_0^z exp(-t^2) dt`.
 ///
+/// Uses Cody's minimax approximation on the real axis, [erfi] on the imaginary
+/// axis, Salzer's windowed series (A&S 7.1.29) when `|z| < 4` or
+/// `Re(z) < 0.5 * |Im(z)|`, and the continued fraction for [erfcComplex]
+/// elsewhere in the right half-plane.
+///
 /// See https://en.wikipedia.org/wiki/Error_function for details.
 Complex erfComplex(Complex z) {
   if (z.isNaN) return Complex.nan;
-  if (z == Complex.zero) return Complex.zero;
-  if (z.b == 0.0) return Complex(erf(z.a.toDouble()));
+  if (z.b == 0.0) {
+    if (z.a == double.infinity) return Complex.one;
+    if (z.a == double.negativeInfinity) return const Complex(-1.0);
+    return Complex(erf(z.a.toDouble()));
+  }
+  if (!z.a.isFinite || !z.b.isFinite) return Complex.nan;
   if (z.a == 0.0) return Complex(0.0, erfi(z.b.toDouble()));
   if (z.a < 0.0) return -erfComplex(-z);
   if (z.abs() >= 4.0 && z.a >= 0.5 * z.b.abs()) {
     return Complex.one - erfcComplex(z);
   }
-
-  final z2 = -z * z;
-  var sum = z;
-  var term = z;
-  for (var n = 1; n <= 250; n++) {
-    term *= z2 / Complex(n);
-    final add = term / Complex(2 * n + 1);
-    sum += add;
-    if (add.abs() <= 1e-16 * sum.abs()) break;
-  }
-  return const Complex(2.0 * invSqrtPi) * sum;
+  return _erfSalzerComplex(z.a.toDouble(), z.b.toDouble());
 }
 
-/// Returns the inverse error function `erf^-1(x)` on `(-1, 1)`.
+/// Returns the inverse error function `erf^-1(p)` on `[-1, 1]`.
+///
+/// Returns `-∞` at `-1`, `+∞` at `+1`, and `double.nan` outside `[-1, 1]`.
 ///
 /// See https://en.wikipedia.org/wiki/Error_function#Inverse_functions for
 /// details.
@@ -51,24 +50,33 @@ Complex erfComplex(Complex z) {
 /// ```dart
 /// final x = erfInv(0.8427007929497149); // ~ 1.0
 /// ```
-double erfInv(num x) {
-  if (x.isNaN || x < -1.0 || x > 1.0) return double.nan;
-  if (x == -1.0) return double.negativeInfinity;
-  if (x == 1.0) return double.infinity;
-  if (x == 0) return x.toDouble();
+double erfInv(num p) {
+  if (p.isNaN || p < -1.0 || p > 1.0) return double.nan;
+  if (p == -1.0) return double.negativeInfinity;
+  if (p == 1.0) return double.infinity;
+  if (p == 0.0) return 0.0;
+  final pd = p.toDouble();
   const x0 = 0.7;
-  if (x < -x0) return -erfcInv(1.0 + x);
-  if (x > x0) return erfcInv(1.0 - x);
+  if (pd < -x0) return -erfcInv(1.0 + pd);
+  if (pd > x0) return erfcInv(1.0 - pd);
 
-  final z = (x * x).toDouble();
-  var result = x * hornerRatio(z, _invA, _invB);
-  for (var i = 0; i < 2; i++) {
-    result -= (erf(result) - x) / (2.0 * invSqrtPi * exp(-result * result));
+  var result = pd * hornerRatio(pd * pd, _invA, _invB);
+  for (var i = 0; i < 4; i++) {
+    final f = erf(result) - pd;
+    final fPrime = 2.0 * invSqrtPi * exp(-result * result);
+    final u = f / fPrime;
+    final denom = 1.0 + result * u;
+    final step = denom == 0.0 ? u : u / denom;
+    result -= step;
+    if (step.abs() <= 1e-15 * result.abs()) break;
   }
   return result;
 }
 
 /// Returns the complementary error function `erfc(x) = 1 - erf(x)`.
+///
+/// Maintains full relative precision into the deep tail (`x > 0`) without
+/// catastrophic cancellation.
 ///
 /// See https://en.wikipedia.org/wiki/Error_function#Complementary_error_function
 /// for details.
@@ -80,7 +88,12 @@ double erfc(num x) => _erfCore(x, complementary: true);
 /// for details.
 Complex erfcComplex(Complex z) {
   if (z.isNaN) return Complex.nan;
-  if (z.b == 0.0) return Complex(erfc(z.a.toDouble()));
+  if (z.b == 0.0) {
+    if (z.a == double.infinity) return Complex.zero;
+    if (z.a == double.negativeInfinity) return const Complex(2.0);
+    return Complex(erfc(z.a.toDouble()));
+  }
+  if (!z.a.isFinite || !z.b.isFinite) return Complex.nan;
   if (z.a < 0.0) return const Complex(2.0) - erfcComplex(-z);
   if (z.abs() < 4.0 || z.a < 0.5 * z.b.abs()) {
     return Complex.one - erfComplex(z);
@@ -90,40 +103,51 @@ Complex erfcComplex(Complex z) {
   return (-z.square()).exp() * invSqrtPi * h;
 }
 
-/// Returns the inverse complementary error function `erfc^-1(x)` on `(0, 2)`.
+/// Returns the inverse complementary error function `erfc^-1(p)` on `[0, 2]`.
+///
+/// Returns `+∞` at `0`, `-∞` at `2`, `0.0` at `1`, and `double.nan` outside
+/// `[0, 2]`.
 ///
 /// See https://en.wikipedia.org/wiki/Error_function#Inverse_functions for
 /// details.
-double erfcInv(num x) {
-  if (x.isNaN || x < 0.0 || x > 2.0) return double.nan;
-  if (x == 0.0) return double.infinity;
-  if (x == 2.0) return double.negativeInfinity;
-  if (x == 1.0) return 0.0;
+double erfcInv(num p) {
+  if (p.isNaN || p < 0.0 || p > 2.0) return double.nan;
+  if (p == 0.0) return double.infinity;
+  if (p == 2.0) return double.negativeInfinity;
+  if (p == 1.0) return 0.0;
 
-  final xVal = x.toDouble();
+  final xVal = p.toDouble();
   if (xVal > 1.0) return -erfcInv(2.0 - xVal);
 
   var result = 0.0;
   if (xVal > 0.3) {
     final u = 1.0 - xVal;
     result = u * hornerRatio(u * u, _invA, _invB);
-  } else {
-    final z = sqrt(-log(xVal / 2.0));
+  } else if (xVal >= 1e-4) {
+    final z = sqrt(-log(0.5 * xVal));
     result = hornerRatio(z, _invC, _invD);
+  } else {
+    final t = -log(sqrtPi * xVal);
+    result = sqrt(t - 0.5 * log(t));
   }
 
-  for (var i = 0; i < 3; i++) {
+  for (var i = 0; i < 8; i++) {
     final f = erfc(result) - xVal;
     final fPrime = -2.0 * invSqrtPi * exp(-result * result);
     if (fPrime == 0.0) break;
     final u = f / fPrime;
     final denom = 1.0 + result * u;
-    result -= denom == 0.0 ? u : u / denom;
+    final step = denom == 0.0 ? u : u / denom;
+    result -= step;
+    if (step.abs() <= 1e-15 * result.abs()) break;
   }
   return result;
 }
 
-/// Returns the imaginary error function `erfi(x) = -i * erf(i * x) = (2 / √π) * ∫_0^x exp(t^2) dt`.
+/// Returns the imaginary error function
+/// `erfi(x) = -i * erf(i * x) = (2 / √π) * ∫_0^x exp(t^2) dt`.
+///
+/// Returns `±∞` for `|x| > 26.7` or `±∞`, and `double.nan` for `NaN`.
 ///
 /// See https://en.wikipedia.org/wiki/Error_function#Imaginary_error_function
 /// for details.
@@ -136,10 +160,26 @@ double erfi(num x) {
   final ax = xd.abs();
   if (ax > 26.7) return sign * double.infinity;
 
+  if (ax >= 7.0) {
+    final inv2x2 = 0.5 / (ax * ax);
+    var term = 1.0;
+    var sum = 1.0;
+    for (var k = 1; k <= 40; k++) {
+      final next = term * (2 * k - 1) * inv2x2;
+      if (next >= term) break;
+      term = next;
+      sum += term;
+      if (term <= 1e-16 * sum) break;
+    }
+    final halfX2 = 0.5 * ax * ax;
+    final eHalf = exp(halfX2);
+    return sign * eHalf * (eHalf * (invSqrtPi / ax) * sum);
+  }
+
   final x2 = ax * ax;
   var sum = ax;
   var term = ax;
-  for (var n = 1; n <= 1000; n++) {
+  for (var n = 1; n <= 200; n++) {
     term *= x2 / n;
     final add = term / (2 * n + 1);
     sum += add;
@@ -154,6 +194,47 @@ double erfi(num x) {
 /// for details.
 Complex erfiComplex(Complex z) =>
     const Complex(0.0, -1.0) * erfComplex(Complex.i * z);
+
+/// Evaluates `erf(x + i*y)` for `x >= 0` via Salzer's series (A&S 7.1.29),
+/// summing the Gaussian peak around `n0 = round(2 * |y|)` to prevent overflow.
+Complex _erfSalzerComplex(double x, double y) {
+  final c2 = cos(2.0 * x * y);
+  final s2 = sin(2.0 * x * y);
+  final ex2 = exp(-x * x);
+  var re = erf(x);
+  double im;
+  if (x < 1e-4) {
+    final sxy = sin(x * y);
+    re += x == 0.0 ? 0.0 : ex2 * (sxy * sxy) / (pi * x);
+    im = ex2 * (x == 0.0 ? y / pi : s2 / (2.0 * pi * x));
+  } else {
+    re += ex2 / (2.0 * pi * x) * (1.0 - c2);
+    im = ex2 / (2.0 * pi * x) * s2;
+  }
+  const scale = 2.0 / pi;
+  for (var n = 1; n < 20; n++) {
+    final e0 = exp(-0.25 * n * n - x * x);
+    if (e0 == 0.0) break;
+    re += scale * e0 / (n * n + 4.0 * x * x) * (2.0 * x);
+  }
+  final ay = y.abs();
+  final sy = y >= 0.0 ? 1.0 : -1.0;
+  final n0 = (2.0 * ay).round();
+  final lo = max(1, n0 - 16);
+  final hi = n0 + 16;
+  for (var n = lo; n <= hi; n++) {
+    final den = n * n + 4.0 * x * x;
+    final diff = n - 2.0 * ay;
+    final sum = n + 2.0 * ay;
+    final ep = 0.5 * exp(-0.25 * diff * diff + ay * ay - x * x);
+    final em = 0.5 * exp(-0.25 * sum * sum + ay * ay - x * x);
+    final ch = ep + em;
+    final sh = ep - em;
+    re += scale / den * (-2.0 * x * ch * c2 + n * sh * s2 * sy);
+    im += scale / den * (2.0 * x * ch * s2 + n * sh * c2 * sy);
+  }
+  return Complex(re, im);
+}
 
 double _erfCore(num x, {required bool complementary}) {
   if (x.isNaN) return double.nan;
@@ -216,7 +297,7 @@ double _erfCore(num x, {required bool complementary}) {
 
 const double _thresh = 0.46875;
 const double _xSmall = 1.11e-16;
-const double _xBig = 26.543;
+const double _xBig = 27.3;
 
 const List<double> _invA = [
   0.886226899,

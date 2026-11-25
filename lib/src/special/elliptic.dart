@@ -4,7 +4,9 @@ import 'package:more/number.dart' show Complex;
 
 /// Returns the complete elliptic integral of the first kind `K(k)`.
 ///
-/// Defined for `-1 <= k <= 1`.
+/// Defined for real modulus `-1 <= k <= 1` as
+/// `K(k) = ∫_0^(π/2) dθ / sqrt(1 - k^2 * sin(θ)^2)`. Returns `double.infinity`
+/// at `k = ±1` and `double.nan` for `|k| > 1` or `NaN`.
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 double ellipticK(num k) {
@@ -37,7 +39,7 @@ double ellipticK(num k) {
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 Complex ellipticKComplex(Complex k) {
-  if (k.isNaN) return Complex.nan;
+  if (k.isNaN || !k.a.isFinite || !k.b.isFinite) return Complex.nan;
   if ((k - Complex.one).abs() == 0.0 || (k + Complex.one).abs() == 0.0) {
     return const Complex(double.infinity);
   }
@@ -90,7 +92,7 @@ double ellipticE(num k, {num? phi}) {
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 Complex ellipticEComplex(Complex k, {Complex? phi}) {
-  if (k.isNaN) return Complex.nan;
+  if (k.isNaN || !k.a.isFinite || !k.b.isFinite) return Complex.nan;
   if (phi == null) {
     if (k.a == 0.0 && k.b == 0.0) return const Complex(pi / 2.0);
     if ((k - Complex.one).abs() == 0.0 || (k + Complex.one).abs() == 0.0) {
@@ -102,7 +104,7 @@ Complex ellipticEComplex(Complex k, {Complex? phi}) {
         (k2 / const Complex(3.0)) *
             _carlsonRDComplex(Complex.zero, q, Complex.one);
   }
-  if (phi.isNaN) return Complex.nan;
+  if (phi.isNaN || !phi.a.isFinite || !phi.b.isFinite) return Complex.nan;
   if (phi.a == 0.0 && phi.b == 0.0) return Complex.zero;
   if (k.a == 0.0 && k.b == 0.0) return phi;
 
@@ -137,7 +139,6 @@ double ellipticF(num phi, num k) {
   if (phiD == 0.0) return 0.0;
   if (kd == 0.0) return phiD;
 
-  // Quasi-periodicity: phi = m * pi + psi with psi in [-pi/2, pi/2]
   final m = (phiD / pi).round();
   final psi = phiD - m * pi;
   final sign = psi >= 0 ? 1.0 : -1.0;
@@ -159,7 +160,12 @@ double ellipticF(num phi, num k) {
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 Complex ellipticFComplex(Complex phi, Complex k) {
-  if (phi.isNaN || k.isNaN) {
+  if (phi.isNaN ||
+      k.isNaN ||
+      !phi.a.isFinite ||
+      !phi.b.isFinite ||
+      !k.a.isFinite ||
+      !k.b.isFinite) {
     return Complex.nan;
   }
   if (phi.a == 0.0 && phi.b == 0.0) return Complex.zero;
@@ -177,8 +183,9 @@ Complex ellipticFComplex(Complex phi, Complex k) {
 /// Returns the elliptic integral of the third kind `Π(n, k)` or `Π(n, φ, k)`.
 ///
 /// When [phi] is omitted, returns the complete integral `Π(n, k)` defined for
-/// `n < 1` and `-1 <= k <= 1`. When [phi] is provided, returns the incomplete
-/// integral `Π(n, φ, k) = ∫_0^φ dθ / ((1 - n * sin(θ)^2) * sqrt(1 - k^2 * sin(θ)^2))`.
+/// `n < 1` and `-1 <= k <= 1` (returning `double.infinity` at `n = 1` or
+/// `|k| = 1`, and `double.nan` for `n > 1` or `|k| > 1`). When [phi] is
+/// provided, returns `Π(n, φ, k) = ∫_0^φ dθ / ((1 - n * sin(θ)^2) * sqrt(1 - k^2 * sin(θ)^2))`.
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 double ellipticPi(num n, num k, {num? phi}) {
@@ -186,7 +193,8 @@ double ellipticPi(num n, num k, {num? phi}) {
   final kd = k.toDouble();
   if (nd.isNaN || kd.isNaN || kd.abs() > 1.0) return double.nan;
   if (phi == null) {
-    if (nd >= 1.0) return double.nan;
+    if (nd > 1.0) return double.nan;
+    if (nd == 1.0 || kd.abs() == 1.0) return double.infinity;
     if (nd == 0.0) return ellipticK(kd);
     final k2 = kd * kd;
     final q = 1.0 - k2;
@@ -195,8 +203,8 @@ double ellipticPi(num n, num k, {num? phi}) {
   }
   final phiD = phi.toDouble();
   if (phiD.isNaN) return double.nan;
-  if (phiD.isInfinite) return phiD;
   if (phiD == 0.0) return 0.0;
+  if (phiD.isInfinite) return nd >= 1.0 ? double.nan : phiD;
   if (nd == 0.0) return ellipticF(phiD, kd);
 
   final m = (phiD / pi).round();
@@ -207,7 +215,10 @@ double ellipticPi(num n, num k, {num? phi}) {
   final c = cos(absPsi);
   final s2 = s * s;
   final p = 1.0 - nd * s2;
-  if (p <= 0.0) return double.nan;
+  if (p <= 0.0 || (m != 0 && nd >= 1.0)) return double.nan;
+  if (kd.abs() == 1.0 && (absPsi >= pi / 2.0 - 1e-15 || m != 0)) {
+    return double.infinity * phiD.sign;
+  }
   final q = 1.0 - kd * kd * s2;
   final piPsi =
       sign *
@@ -221,7 +232,12 @@ double ellipticPi(num n, num k, {num? phi}) {
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
 Complex ellipticPiComplex(Complex n, Complex k, {Complex? phi}) {
-  if (n.isNaN || k.isNaN) {
+  if (n.isNaN ||
+      k.isNaN ||
+      !n.a.isFinite ||
+      !n.b.isFinite ||
+      !k.a.isFinite ||
+      !k.b.isFinite) {
     return Complex.nan;
   }
   if (phi == null) {
@@ -236,7 +252,7 @@ Complex ellipticPiComplex(Complex n, Complex k, {Complex? phi}) {
         (n / const Complex(3.0)) *
             _carlsonRJComplex(Complex.zero, q, Complex.one, Complex.one - n);
   }
-  if (phi.isNaN) return Complex.nan;
+  if (phi.isNaN || !phi.a.isFinite || !phi.b.isFinite) return Complex.nan;
   if (phi.a == 0.0 && phi.b == 0.0) return Complex.zero;
   if (n.a == 0.0 && n.b == 0.0) return ellipticFComplex(phi, k);
 
@@ -269,13 +285,17 @@ double _ellipticEIncomplete(num phi, num k) {
   final psi = phiD - m * pi;
   final sign = psi >= 0 ? 1.0 : -1.0;
   final absPsi = psi.abs();
-
   final s = sin(absPsi);
+
+  if (kd.abs() == 1.0) {
+    return 2.0 * m + sign * s;
+  }
+
   final c = cos(absPsi);
   final k2 = kd * kd;
   final q = 1.0 - k2 * s * s;
   final rf = _carlsonRF(c * c, q, 1.0);
-  final rd = (k2 == 0.0 || s == 0.0) ? 0.0 : _carlsonRD(c * c, q, 1.0);
+  final rd = s == 0.0 ? 0.0 : _carlsonRD(c * c, q, 1.0);
   final ePsi = sign * (s * rf - (k2 * s * s * s / 3.0) * rd);
 
   return m == 0 ? ePsi : 2.0 * m * ellipticE(kd) + ePsi;
@@ -374,9 +394,50 @@ double _carlsonRJ(double x, double y, double z, double p) {
           e3 * (1.0 / 6.0);
       final s2 =
           pDev *
-          (-3.0 / 22.0 * (2.0 * eb + pDev * (ea - ec)) +
-              3.0 / 26.0 * eb * pDev);
+          (-3.0 / 22.0 * (2.0 * eb + pDev * ea) + 3.0 / 26.0 * eb * pDev);
       return 3.0 * sum + fac * (s1 + s2) / (mu * sqrt(mu));
+    }
+  }
+  return double.nan;
+}
+
+double _carlsonRD(double x, double y, double z) {
+  var xn = x;
+  var yn = y;
+  var zn = z;
+  var sum = 0.0;
+  var fac = 1.0;
+  for (var iter = 0; iter < 100; iter++) {
+    final sqrtX = sqrt(xn);
+    final sqrtY = sqrt(yn);
+    final sqrtZ = sqrt(zn);
+    final lambda = sqrtX * (sqrtY + sqrtZ) + sqrtY * sqrtZ;
+    sum += fac / (sqrtZ * (zn + lambda));
+    fac *= 0.25;
+    xn = 0.25 * (xn + lambda);
+    yn = 0.25 * (yn + lambda);
+    zn = 0.25 * (zn + lambda);
+    final mu = (xn + yn + 3.0 * zn) * 0.2;
+    final xDev = (mu - xn) / mu;
+    final yDev = (mu - yn) / mu;
+    final zDev = (mu - zn) / mu;
+    final maxDev = max(xDev.abs(), max(yDev.abs(), zDev.abs()));
+    if (maxDev < 0.0002) {
+      final ea = xDev * yDev;
+      final eb = zDev * zDev;
+      final ec = ea - eb;
+      final ed = ea - 6.0 * eb;
+      final ee = ed + 2.0 * ec;
+      return 3.0 * sum +
+          fac *
+              (1.0 -
+                  (3.0 / 14.0) * ed +
+                  (1.0 / 6.0) * zDev * ee +
+                  (9.0 / 88.0) * ed * ed -
+                  (9.0 / 22.0) * ec * eb -
+                  (9.0 / 52.0) * ed * zDev * ee +
+                  (3.0 / 26.0) * ea * eb * zDev) /
+              (mu * sqrt(mu));
     }
   }
   return double.nan;
@@ -445,7 +506,9 @@ Complex _carlsonRDComplex(Complex x, Complex y, Complex z) {
               (Complex.one -
                   const Complex(3.0 / 14.0) * ed +
                   const Complex(1.0 / 6.0) * zDev * ee +
+                  const Complex(9.0 / 88.0) * ed * ed -
                   const Complex(9.0 / 22.0) * ec * eb -
+                  const Complex(9.0 / 52.0) * ed * zDev * ee +
                   const Complex(3.0 / 26.0) * ea * eb * zDev) /
               (mu * mu.sqrt());
     }
@@ -523,51 +586,10 @@ Complex _carlsonRJComplex(Complex x, Complex y, Complex z, Complex p) {
           e3 * const Complex(1.0 / 6.0);
       final s2 =
           pDev *
-          (const Complex(-3.0 / 22.0) *
-                  (const Complex(2.0) * eb + pDev * (ea - ec)) +
+          (const Complex(-3.0 / 22.0) * (const Complex(2.0) * eb + pDev * ea) +
               const Complex(3.0 / 26.0) * eb * pDev);
       return const Complex(3.0) * sum + fac * (s1 + s2) / (mu * mu.sqrt());
     }
   }
   return Complex.nan;
-}
-
-double _carlsonRD(double x, double y, double z) {
-  var xn = x;
-  var yn = y;
-  var zn = z;
-  var sum = 0.0;
-  var fac = 1.0;
-  for (var iter = 0; iter < 100; iter++) {
-    final sqrtX = sqrt(xn);
-    final sqrtY = sqrt(yn);
-    final sqrtZ = sqrt(zn);
-    final lambda = sqrtX * (sqrtY + sqrtZ) + sqrtY * sqrtZ;
-    sum += fac / (sqrtZ * (zn + lambda));
-    fac *= 0.25;
-    xn = 0.25 * (xn + lambda);
-    yn = 0.25 * (yn + lambda);
-    zn = 0.25 * (zn + lambda);
-    final mu = (xn + yn + 3.0 * zn) * 0.2;
-    final xDev = (mu - xn) / mu;
-    final yDev = (mu - yn) / mu;
-    final zDev = (mu - zn) / mu;
-    final maxDev = max(xDev.abs(), max(yDev.abs(), zDev.abs()));
-    if (maxDev < 0.0002) {
-      final ea = xDev * yDev;
-      final eb = zDev * zDev;
-      final ec = ea - eb;
-      final ed = ea - 6.0 * eb;
-      final ee = ed + 2.0 * ec;
-      return 3.0 * sum +
-          fac *
-              (1.0 -
-                  (3.0 / 14.0) * ed +
-                  (1.0 / 6.0) * zDev * ee +
-                  (9.0 / 22.0) * ec * eb -
-                  (3.0 / 26.0) * ea * eb * zDev) /
-              (mu * sqrt(mu));
-    }
-  }
-  return double.nan;
 }

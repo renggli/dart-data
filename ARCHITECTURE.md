@@ -676,79 +676,77 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 10.1 High-Precision Transcendental Function Architecture
 
-- **Reasoning**: Applied physics, engineering, and probability theory require numerically stable implementations of non-elementary transcendental functions that avoid underflow/overflow and preserve 15 digits (53-bit IEEE-754) of precision.
+- **Reasoning**: Applied physics, engineering, and probability theory require numerically stable implementations of non-elementary transcendental functions across both real and complex domains that avoid underflow/overflow and preserve 15–16 digits (53-bit IEEE-754) of precision.
 - **Implementation & Constraints**:
-  - Pure Dart mathematical functions in `lib/src/special/`, exported directly via `lib/special.dart`.
-  - Zero external dependencies: routines rely strictly on IEEE-754 floating-point operations with analytical reflection formulas, continued fractions, and asymptotic expansions.
+  - Pure Dart mathematical functions in `lib/src/special/`, exported directly via `lib/special.dart` (with internal helpers `expIntegralE1Complex`, `logAbsGammaWithSign`, and `utils.dart` kept package-internal).
+  - Depends only on `dart:math` and `package:more/number.dart` (`Complex`); routines rely strictly on IEEE-754 floating-point operations with analytical reflection formulas, continued fractions, quadrature, and asymptotic expansions.
 
-### 10.2 Gamma, Beta & Factorial Families (`lib/src/special/gamma.dart`, `beta.dart`, `digamma.dart`, `zeta.dart`)
+### 10.2 Gamma, Beta & Factorial Families (`lib/src/special/gamma.dart`, `beta.dart`, `digamma.dart`, `zeta.dart`, `factorial.dart`, `binomial.dart`, `permutation.dart`)
 
 - **Gamma Functions**:
-  - `gamma(x)`: Complete gamma function $\Gamma(x)$ computed via Lanczos approximation ($g=7, n=9$) yielding 15 digits of relative precision, with Euler's reflection formula $\Gamma(1-z)\Gamma(z) = \frac{\pi}{\sin(\pi z)}$ handling negative non-integer poles.
-  - `gammaLn(x)`: Logarithm of the absolute value of $\Gamma(x)$, preventing overflow for large inputs up to $x \approx 10^{300}$.
-  - `gammap(a, x)` and `gammaq(a, x)`: Lower $P(a, x) = \frac{\gamma(a, x)}{\Gamma(a)}$ and upper $Q(a, x) = \frac{\Gamma(a, x)}{\Gamma(a)}$ regularized incomplete gamma functions. Evaluated via rapidly converging power series when $x < a + 1$, and via Legendre's continued fraction using Lentz's method when $x \ge a + 1$.
-  - `lowerGamma(s, x)` and `upperGamma(s, x)`: Unregularized lower `γ(s, x) = ∫_0^x t^(s-1) e^(-t) dt` and upper `Γ(s, x) = ∫_x^∞ t^(s-1) e^(-t) dt` incomplete gamma functions.
-  - `gammapInv(a, p)` and `gammaqInv(a, q)`: Inverses of the regularized incomplete lower and upper gamma functions via initial rational approximations refined by Halley iterations.
+  - `gamma(x)` and `gammaComplex(z)`: Complete gamma function `Γ(x)` computed via exact lookup for integers `1..23`, 15-term Lanczos approximation (`g = 607 / 128`) yielding 15–16 digits of relative precision, and Euler's reflection formula `Γ(1 - z) * Γ(z) = π / sin(π * z)` with log-space overflow protection for `x < -100`.
+  - `gammaLn(x)` and `gammaLnComplex(z)`: Logarithm of `Γ(z)`, using overflow-free `logSinPiComplex` in the left half-plane and preventing overflow up to `x ≈ 10^300`.
+  - `gammaP(a, x)` and `gammaQ(a, x)`: Lower `P(a, x) = γ(a, x) / Γ(a)` and upper `Q(a, x) = Γ(a, x) / Γ(a)` regularized incomplete gamma functions. Evaluated via power series when `x < a + 1`, and Legendre's continued fraction via modified Lentz's method when `x >= a + 1`.
+  - `lowerGamma(s, x)`, `lowerGammaComplex(s, z)`, `upperGamma(s, x)`, and `upperGammaComplex(s, z)`: Unregularized incomplete gamma functions with iterative negative-`s` recurrence.
+  - `gammaPInv(a, p)` and `gammaQInv(a, q)`: Inverses of the regularized incomplete lower and upper gamma functions (shape `a` first, probability second), using Wilson-Hilferty / asymptotic initial approximations refined by bracketed Halley iterations with probability-scaled convergence tolerances.
 - **Beta Functions**:
-  - `beta(a, b)` and `betaLn(a, b)`: Euler's beta function `B(a, b) = Γ(a)Γ(b) / Γ(a+b)` and log-beta `ln B(a, b) = ln Γ(a) + ln Γ(b) - ln Γ(a+b)`.
-  - `ibeta(a, b, x)`: Regularized incomplete beta function `I_x(a, b) = B(x; a, b) / B(a, b)`, evaluated via continued fraction expansion with symmetry transformation `I_x(a, b) = 1 - I_{1-x}(b, a)` when `x > (a + 1) / (a + b + 2)`.
-  - `ibetaInv(a, b, p)`: Inverse incomplete beta function using Carter's normal approximation refined by Newton-Raphson/Halley steps.
+  - `beta(a, b)`, `betaComplex(a, b)`, `betaLn(a, b)`, and `betaLnComplex(a, b)`: Euler's beta function `B(a, b) = Γ(a) * Γ(b) / Γ(a + b)` and log-beta `ln B(a, b)`, guarding asymmetric overflow when `a + b > 150`.
+  - `betaI(x, a, b)`: Regularized incomplete beta function `I_x(a, b) = B(x; a, b) / B(a, b)`, evaluated via continued fraction with symmetry transformation `I_x(a, b) = 1 - I_{1-x}(b, a)` when `x >= (a + 1) / (a + b + 2)`.
+  - `betaIInv(p, a, b)`: Inverse incomplete beta function `x` such that `I_x(a, b) = p` using asymptotic approximations refined by bracketed Halley steps with relative tail tolerance.
 - **Logarithmic Derivatives & Zeta Functions**:
-  - `digamma(x)`: First derivative of `ln Γ(x)`, `ψ(x) = Γ'(x) / Γ(x)`, evaluated via recurrence `ψ(x+1) = ψ(x) + 1/x` shifted to `x >= 8` and Bernoulli asymptotic expansion.
-  - `trigamma(x)`: Second derivative `ψ'(x)` of `ln Γ(x)` evaluated via shifted recurrence and asymptotic series.
-  - `polygamma(m, x)`: Order-`m` logarithmic derivative `ψ^(m)(x)` of `ln Γ(x)`.
-  - `zeta(s)`: Riemann zeta function `ζ(s) = ∑_{n=1}^∞ n^(-s)`, computed via Borwein's accelerated alternating Dirichlet eta method for `Re(s) > 0` and Riemann reflection for `Re(s) < 0`.
+  - `digamma(x)` and `digammaComplex(z)`: Logarithmic derivative `ψ(z) = Γ'(z) / Γ(z)`, evaluated via recurrence shifted to `|z| >= 10`, 14th-order Bernoulli asymptotic expansion, and overflow-free `cotPiComplex` reflection.
+  - `polygamma(m, x)` and `polygammaComplex(m, z)`: Order-`m` logarithmic derivative `ψ^(m)(z)` with incremental 10-term Bernoulli asymptotic expansion and log-space factorial scaling for `m > 150`.
+  - `zeta(s)` and `zetaComplex(s)`: Riemann zeta function `ζ(s)`, computed via Borwein's accelerated alternating series (`n = 21`) near the real axis, adaptive Euler–Maclaurin summation for larger `|Im(s)|`, and log-space Riemann reflection for `Re(s) < 0.5`.
+  - `hurwitzZeta(s, a)` and `hurwitzZetaComplex(s, a)`: Hurwitz zeta function `ζ(s, a)` via exact Bernoulli polynomials `-B_{n+1}(a) / (n + 1)` at non-positive integers `s = -n` and shifted Euler–Maclaurin summation elsewhere.
 - **Combinatorics**:
-  - Exact and floating-point combinatorics: `factorial`, `factorialLn`, `combination`, `combinationLn`, `permutation`, and `permutationLn`.
+  - `factorial`, `factorialComplex`, `factorialLn`, `binomial`, `binomialComplex`, `binomialLn`, `permutation`, `permutationComplex`, and `permutationLn` with exact safe-integer / `BigInt` fast paths, generalized real/complex extensions, and cancellation-free small-`k` log-sums.
 
 ### 10.3 Gaussian Error & Fresnel Functions (`lib/src/special/erf.dart`, `fresnel.dart`)
 
 - **Reasoning**: Fundamental to cumulative normal distributions, Brownian motion, diffusion equations, and wave diffraction.
 - **Implementation & Constraints**:
-  - `erf(x)`: Error function `(2 / √π) ∫_0^x e^(-t^2) dt`, computed via rational Chebyshev approximations across partitioned intervals.
-  - `erfc(x)`: Complementary error function `1 - erf(x)`, maintaining high relative precision without catastrophic cancellation for large `x > 0`.
-  - `erfi(x)`: Imaginary error function `erfi(x) = -i * erf(i * x) = (2 / √π) ∫_0^x e^(t^2) dt`.
-  - `erfInv(p)` and `erfcInv(p)`: Inverse error functions combining rational polynomial approximations with Halley root refinement.
-  - `fresnelS(x)` and `fresnelC(x)`: Normalized Fresnel sine `S(x) = ∫_0^x sin(π/2 * t^2) dt` and cosine `C(x) = ∫_0^x cos(π/2 * t^2) dt` integrals.
+  - `erf(x)` and `erfc(x)`: Error and complementary error functions `(2 / √π) ∫_0^x exp(-t^2) dt` and `1 - erf(x)`, computed via Cody's rational Chebyshev minimax approximations preserving subnormal tail precision down to `x ≈ 27.3`.
+  - `erfComplex(z)` and `erfcComplex(z)`: Complex error and complementary error functions via Salzer's windowed series (A&S 7.1.29) and right-half-plane Lentz continued fractions.
+  - `erfi(x)` and `erfiComplex(z)`: Imaginary error function `erfi(z) = -i * erf(i * z)` using power series for `|x| < 7` and split-exponential asymptotic expansion for `|x| >= 7`.
+  - `erfInv(p)` and `erfcInv(p)`: Inverse error functions combining minimax/asymptotic tail initializations with Halley root refinement.
+  - `fresnelS(x)`, `fresnelSComplex(z)`, `fresnelC(x)`, and `fresnelCComplex(z)`: Normalized Fresnel sine `S(z) = ∫_0^z sin(π/2 * t^2) dt` and cosine `C(z) = ∫_0^z cos(π/2 * t^2) dt` integrals via power series, Lentz continued fraction with modular phase reduction, and `erfComplex` continuation.
 
 ### 10.4 Cylindrical & Modified Bessel Functions (`lib/src/special/bessel.dart`)
 
 - **Reasoning**: Solutions to Bessel's differential equation `x^2 y'' + x y' + (x^2 - ν^2) y = 0` in cylindrical wave propagation and heat conduction.
 - **Implementation & Constraints**:
-  - `besselJ(nu, x)` and `besselY(nu, x)`: Bessel functions of the first and second kinds of arbitrary real order `ν`.
-  - `besselI(nu, x)` and `besselK(nu, x)`: Modified Bessel functions of the first and second kinds of arbitrary real order `ν`.
-  - `besselJ0(x)` and `besselJ1(x)`: Bessel functions of the first kind (order 0 and 1) computed using minimax rational approximations for `|x| <= 8` and Hankel asymptotic series for `|x| > 8`.
-  - `besselY0(x)` and `besselY1(x)`: Bessel functions of the second kind (Neumann functions, order 0 and 1).
-  - `besselI0(x)` and `besselI1(x)`: Modified Bessel functions of the first kind (order 0 and 1) computed with exponentially scaled Chebyshev expansions.
-  - `besselK0(x)` and `besselK1(x)`: Modified Bessel functions of the second kind (Macdonald functions, order 0 and 1).
+  - `besselJ(nu, x)` and `besselJComplex(nu, z)`: Bessel functions of the first kind of arbitrary real/complex order `ν`, achieving 15–16 digits via power series (`x <= 2`), unified Miller backward recurrence and directional recurrence (`2 < x <= max(25, ν^2)`), and Hankel's asymptotic expansion (`x > max(25, ν^2)`).
+  - `besselY(nu, x)` and `besselYComplex(nu, z)`: Bessel functions of the second kind (Neumann functions), evaluated via Temme's small-`x` series (`x < 2`), Miller + Steed's CF2 Wronskian solver (`2 <= x <= max(25, ν^2)`), and Hankel asymptotics (`x > max(25, ν^2)`), eliminating near-integer `sin(πν)` cancellation.
+  - `besselI(nu, x)` and `besselIComplex(nu, z)`: Modified Bessel functions of the first kind via positive-term power series, asymptotic expansion, and `I_{-ν} = I_ν + (2/π) sin(πν) K_ν` for negative non-integer orders.
+  - `besselK(nu, x)` and `besselKComplex(nu, z)`: Modified Bessel functions of the second kind (Macdonald functions) via exponentially scaled trapezoidal quadrature for `|μ| <= 0.5` paired with unconditionally stable upward recurrence, small-`x` series, and asymptotic expansion.
 
 ### 10.5 Complete & Incomplete Elliptic Integrals (`lib/src/special/elliptic.dart`)
 
 - **Reasoning**: Exact arc length of ellipses, planetary orbits, and pendulum periods.
 - **Implementation & Constraints**:
-  - `ellipticK(m)`: Complete Legendre elliptic integral of the first kind `K(m) = ∫_0^(π/2) dθ / √(1 - m sin^2 θ)`, evaluated via the Arithmetic-Geometric Mean (AGM) algorithm (`a_{n+1} = (a_n + b_n) / 2`, `b_{n+1} = √(a_n b_n)`) converging quadratically to machine precision.
-  - `ellipticE(m)`: Complete Legendre elliptic integral of the second kind `E(m) = ∫_0^(π/2) √(1 - m sin^2 θ) dθ`, evaluated via simultaneous AGM progression and quadratic recurrence sums.
-  - `ellipticF(phi, m)`: Incomplete Legendre elliptic integral of the first kind `F(φ, m) = ∫_0^φ dθ / √(1 - m sin^2 θ)`, evaluated via Carlson symmetric elliptic integral `R_F`.
-  - `ellipticEIncomplete(phi, m)`: Incomplete Legendre elliptic integral of the second kind `E(φ, m) = ∫_0^φ √(1 - m sin^2 θ) dθ`, evaluated via Carlson symmetric elliptic integrals `R_F` and `R_D`.
+  - `ellipticK(k)` and `ellipticKComplex(k)`: Complete Legendre elliptic integral of the first kind `K(k) = ∫_0^(π/2) dθ / √(1 - k^2 sin^2 θ)` in modulus `k` (`-1 <= k <= 1`), evaluated via the Arithmetic-Geometric Mean (AGM) for real `k` and Carlson's `R_F` for complex `k`.
+  - `ellipticE(k, {phi})` and `ellipticEComplex(k, {phi})`: Complete (`phi` omitted) and incomplete (`phi` provided) Legendre elliptic integrals of the second kind in modulus `k`, evaluated via AGM or Carlson's `R_F` and `R_D` with quasi-periodicity reduction.
+  - `ellipticF(phi, k)` and `ellipticFComplex(phi, k)`: Incomplete Legendre elliptic integral of the first kind `F(φ, k)` via Carlson's `R_F`.
+  - `ellipticPi(n, k, {phi})` and `ellipticPiComplex(n, k, {phi})`: Complete and incomplete Legendre elliptic integrals of the third kind `Π(n, k)` and `Π(n, φ, k)` via Carlson's `R_F` and `R_J`.
 
 ### 10.6 Generalized Hypergeometric Series (`lib/src/special/hypergeometric.dart`)
 
 - **Reasoning**: Unifying framework subsuming exponential, trigonometric, Bessel, and orthogonal polynomial series.
 - **Implementation & Constraints**:
-  - `hypergeometric1F1(a, b, z)`: Kummer confluent hypergeometric function `1F1(a; b; z) = ∑_{n=0}^∞ ((a)_n / (b)_n) (z^n / n!)`.
-  - `hypergeometric2F1(a, b, c, z)`: Gauss hypergeometric function `2F1(a, b; c; z) = ∑_{n=0}^∞ ((a)_n (b)_n / (c)_n) (z^n / n!)`, utilizing Euler/Pfaff linear transformations to map `|z| >= 1` into the unit disk `|z| < 1`.
+  - `hypergeometric1F1(a, b, z)` and `hypergeometric1F1Complex(a, b, z)`: Kummer confluent hypergeometric function `1F1(a; b; z)` with terminating polynomial detection, Kummer's first transformation, and log-gamma asymptotic expansion for large negative `z`.
+  - `hypergeometric2F1(a, b, c, z)` and `hypergeometric2F1Complex(a, b, c, z)`: Gauss hypergeometric function `2F1(a, b; c; z)`, utilizing parameter symmetry, Pfaff/Euler linear transformations, and logarithmic `1 - z` series for integer `c - a - b` near `z = 1`.
+  - `hypergeometricPFQ(a, b, z)` and `hypergeometricPFQComplex(a, b, z)`: Generalized hypergeometric series `pFq(a; b; z)` with pole precedence checking and closed-form delegation for `0F0`, `1F0`, `1F1`, and `2F1`.
 
 ### 10.7 Lambert W Function (`lib/src/special/lambert_w.dart`)
 
-- **Reasoning**: Solutions to transcendental equations of the form `W(x) e^(W(x)) = x`, appearing in tree enumeration, diode physics, enzyme kinetics, and delay differential equations.
+- **Reasoning**: Solutions to transcendental equations of the form `W(z) exp(W(z)) = z`, appearing in tree enumeration, diode physics, enzyme kinetics, and delay differential equations.
 - **Implementation & Constraints**:
-  - `lambertW0(x)`: Principal real branch defined for `x >= -1/e ≈ -0.367879`. Initialized via Taylor expansion near branch point `-1/e`, Fritsch approximation for intermediate `x`, or asymptotic logarithmic expansion `ln(x) - ln(ln(x))` for large `x`, followed by cubic Halley iteration.
-  - `lambertW1(x)`: Secondary real branch defined for `-1/e <= x < 0`, taking values `W_{-1}(x) ∈ (-∞, -1]`.
+  - `lambertW(z, {branch = 0})` and `lambertWComplex(z, {branch = 0})`: Principal (`branch: 0`, `z >= -1/e`) and secondary (`branch: -1`, `-1/e <= z <= 0` with `W_{-1}(0) = -∞`) branches initialized via branch-point Taylor series, Padé, or asymptotic logarithmic expansions and refined by standard or log-space Halley iterations.
 
-### 10.8 Exponential, Trigonometric, Hyperbolic Integrals & Polylogarithm (`lib/src/special/exp_integral.dart`, `polylog.dart`)
+### 10.8 Exponential, Trigonometric, Hyperbolic Integrals & Polylogarithm (`lib/src/special/exp_integral.dart`, `trig_integral.dart`, `polylog.dart`)
 
 - **Reasoning**: Non-elementary antiderivatives of rational-exponential, rational-trigonometric, and rational-hyperbolic kernels, plus polylogarithms appearing in Bose-Einstein/Fermi-Dirac statistics and dilogarithm identities.
 - **Implementation & Constraints**:
-  - `expIntegralEi(x)` and `logIntegralLi(x)`: Exponential integral `Ei(x) = -PV ∫_{-x}^∞ e^(-t) / t dt` and logarithmic integral `li(x) = Ei(ln x)`.
-  - `sinIntegralSi(x)`, `cosIntegralCi(x)`, `sinhIntegralShi(x)`, `coshIntegralChi(x)`: Sine, cosine, hyperbolic sine, and hyperbolic cosine integrals.
-  - `polylog(s, z)`: Polylogarithm `Li_s(z) = ∑_{k=1}^∞ z^k / k^s` with analytic continuation via inversion/reflection formulas.
+  - `expIntegral(x)`, `expIntegralComplex(z)`, `expIntegralE(n, x)`, `expIntegralEComplex(n, z)`, `logIntegral(x)`, and `logIntegralComplex(z)`: Exponential, generalized exponential `E_n`, and logarithmic integrals evaluated via power series, modified Lentz continued fractions, upward recurrence, and split-exponential asymptotics.
+  - `sinIntegral(x)`, `sinIntegralComplex(z)`, `cosIntegral(x)`, `cosIntegralComplex(z)`, `sinhIntegral(x)`, `sinhIntegralComplex(z)`, `coshIntegral(x)`, and `coshIntegralComplex(z)`: Sine, cosine, hyperbolic sine, and hyperbolic cosine integrals with branch-consistent continuation across negative real and imaginary axes.
+  - `polylog(s, z)` and `polylogComplex(s, z)`: Polylogarithm `Li_s(z)` with exact Eulerian rational forms for negative integer orders, Landen/duplication acceleration near `z = -1`, singular logarithmic expansion near `z = 1`, and inversion for `|z| > 1`.

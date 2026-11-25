@@ -2,32 +2,45 @@ import 'dart:math' as math;
 
 import 'package:more/number.dart' show Complex;
 
+import 'utils.dart';
 import 'zeta.dart';
 
 /// Returns the real-valued polylogarithm `Li_s(z) = ∑_{k=1}^∞ z^k / k^s`.
 ///
 /// Defined on R for `z <= 1` (and `z < 1` when `s <= 1`).
-/// Returns `double.nan` on the branch cut `z > 1`.
+/// Returns `double.nan` on the branch cut `z > 1` or for `NaN` arguments.
 ///
 /// See https://en.wikipedia.org/wiki/Polylogarithm for details.
 double polylog(num s, num z) {
   if (s.isNaN || z.isNaN) return double.nan;
   final sd = s.toDouble();
   final zd = z.toDouble();
-  if (zd > 1.0) return double.nan;
+  if (!sd.isFinite || zd > 1.0) return double.nan;
   if (zd == 0.0) return 0.0;
   if (sd == 1.0) {
     if (zd == 1.0) return double.infinity;
-    return -math.log(1.0 - zd);
+    if (zd == double.negativeInfinity) return double.negativeInfinity;
+    return zd.abs() < 0.5 ? -log1p(-zd) : -math.log(1.0 - zd);
   }
   if (sd == 0.0) {
-    return zd == 1.0 ? double.infinity : zd / (1.0 - zd);
+    if (zd == 1.0) return double.infinity;
+    if (zd == double.negativeInfinity) return -1.0;
+    return zd / (1.0 - zd);
   }
   if (sd == -1.0) {
-    return zd == 1.0 ? double.infinity : zd / ((1.0 - zd) * (1.0 - zd));
+    if (zd == 1.0) return double.infinity;
+    if (zd == double.negativeInfinity) return 0.0;
+    return zd / ((1.0 - zd) * (1.0 - zd));
   }
   if (zd == 1.0) {
     return sd > 1.0 ? zeta(sd) : double.infinity;
+  }
+  if (zd == double.negativeInfinity) {
+    if (sd > 0.0) return double.negativeInfinity;
+    return 0.0;
+  }
+  if (sd < 0.0 && sd.roundToDouble() == sd && sd >= -20.0) {
+    return _polylogNegInt((-sd).round(), Complex(zd)).a.toDouble();
   }
   final res = polylogComplex(Complex(sd), Complex(zd));
   return res.a.toDouble();
@@ -38,6 +51,9 @@ double polylog(num s, num z) {
 /// See https://en.wikipedia.org/wiki/Polylogarithm for details.
 Complex polylogComplex(Complex s, Complex z) {
   if (s.isNaN || z.isNaN) return Complex.nan;
+  if (!s.a.isFinite || !s.b.isFinite || !z.a.isFinite || !z.b.isFinite) {
+    return Complex.nan;
+  }
   if (z.a == 0.0 && z.b == 0.0) return Complex.zero;
 
   if (s.b == 0.0) {
@@ -48,10 +64,14 @@ Complex polylogComplex(Complex s, Complex z) {
       final omz = Complex.one - z;
       return z / (omz * omz);
     }
+    if (sr < 0.0 && sr.roundToDouble() == sr && sr >= -20.0) {
+      return _polylogNegInt((-sr).round(), z);
+    }
     if (z.a == 1.0 && z.b == 0.0) {
       return sr > 1.0 ? Complex(zeta(sr)) : const Complex(double.infinity);
     }
-    if (z.a == -1.0 && z.b == 0.0 && sr > 1.0) {
+    if (z.a == -1.0 && z.b == 0.0) {
+      if (sr == 0.0) return const Complex(-0.5);
       return Complex(-(1.0 - math.pow(2.0, 1.0 - sr)) * zeta(sr));
     }
   }
@@ -64,22 +84,28 @@ Complex polylogComplex(Complex s, Complex z) {
       return -polylogComplex(const Complex(2.0), w) - log1mZ.square() * 0.5;
     }
   }
-  if (absZ <= 0.95 && (z - Complex.one).abs() >= 0.4) {
+  if (absZ <= 0.95 &&
+      (z - Complex.one).abs() >= 0.4 &&
+      (z + Complex.one).abs() >= 0.4) {
     return _polylogSeries(s, z, maxTerms: 600);
   }
 
   if (s.b == 0.0 && s.a == s.a.roundToDouble() && s.a >= 2 && s.a <= 12) {
     final n = s.a.toInt();
+    if (absZ > 1.0) {
+      return _polylogInversion(n, z);
+    }
     if ((z - Complex.one).abs() < 0.4) {
       return _polylogLogExpansion(n, z);
     }
-    if (absZ > 1.0) {
-      return _polylogInversion(n, z);
+    if ((z + Complex.one).abs() < 0.4 && z != const Complex(-1.0)) {
+      return Complex(math.pow(2.0, 1 - n).toDouble()) *
+              polylogComplex(s, z * z) -
+          polylogComplex(s, -z);
     }
     return _polylogSeries(s, z, maxTerms: 2000);
   }
 
-  // Fallback for general s with |z| < 1
   if (absZ < 1.0) {
     return _polylogSeries(s, z, maxTerms: 1000);
   }
@@ -96,6 +122,28 @@ Complex _polylogSeries(Complex s, Complex z, {int maxTerms = 200}) {
     zk = zk * z;
   }
   return sum;
+}
+
+Complex _polylogNegInt(int n, Complex z) {
+  // Li_{-n}(z) = sum_{k=0}^{n-1} A(n, k) * z^{k+1} / (1 - z)^{n+1}
+  if (z == Complex.one) return const Complex(double.infinity);
+  var row = <double>[1.0];
+  for (var m = 2; m <= n; m++) {
+    final next = List<double>.filled(m, 0.0);
+    for (var k = 0; k < m; k++) {
+      final a1 = k < row.length ? (k + 1) * row[k] : 0.0;
+      final a2 = k > 0 ? (m - k) * row[k - 1] : 0.0;
+      next[k] = a1 + a2;
+    }
+    row = next;
+  }
+  var poly = Complex.zero;
+  var zk = z;
+  for (final a in row) {
+    poly += zk * a;
+    zk *= z;
+  }
+  return poly / (Complex.one - z).pow(n + 1);
 }
 
 Complex _polylogInversion(int n, Complex z) {
@@ -152,7 +200,11 @@ Complex _polylogLogExpansion(int n, Complex z) {
       final zVal = zeta((n - k).toDouble());
       final term = muPow * Complex(zVal / factK);
       sum = sum + term;
-      if (k > n && term.abs() <= 1e-15 * math.max(1e-30, sum.abs())) break;
+      if (k > n &&
+          zVal != 0.0 &&
+          term.abs() <= 1e-15 * math.max(1e-30, sum.abs())) {
+        break;
+      }
     }
     muPow = muPow * mu;
     factK *= k + 1;

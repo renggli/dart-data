@@ -7,6 +7,8 @@ import 'utils.dart';
 
 /// Returns the Fresnel sine integral `S(x) = ∫_0^x sin(π/2 * t^2) dt`.
 ///
+/// Odd function with `S(±∞) = ±0.5` and `S(0) = 0`.
+///
 /// See https://en.wikipedia.org/wiki/Fresnel_integral for details.
 double fresnelS(num x) => _fresnelPair(x).s;
 
@@ -16,6 +18,8 @@ double fresnelS(num x) => _fresnelPair(x).s;
 Complex fresnelSComplex(Complex z) => _fresnelPairComplex(z).s;
 
 /// Returns the Fresnel cosine integral `C(x) = ∫_0^x cos(π/2 * t^2) dt`.
+///
+/// Odd function with `C(±∞) = ±0.5` and `C(0) = 0`.
 ///
 /// See https://en.wikipedia.org/wiki/Fresnel_integral for details.
 double fresnelC(num x) => _fresnelPair(x).c;
@@ -75,7 +79,7 @@ Complex fresnelCComplex(Complex z) => _fresnelPairComplex(z).c;
   final xh = h * ax;
   final g = xh.a.toDouble();
   final f = xh.b.toDouble();
-  final arg = 0.5 * pix2;
+  final arg = 0.5 * pi * ((ax * ax) % 4.0);
   final sinArg = sin(arg);
   final cosArg = cos(arg);
 
@@ -88,7 +92,13 @@ Complex fresnelCComplex(Complex z) => _fresnelPairComplex(z).c;
   if (z.isNaN) {
     return (c: Complex.nan, s: Complex.nan);
   }
-  if (z.a == 0.0 && z.b == 0.0) return (c: Complex.zero, s: Complex.zero);
+  if (z.b == 0.0) {
+    final pair = _fresnelPair(z.a.toDouble());
+    return (c: Complex(pair.c), s: Complex(pair.s));
+  }
+  if (!z.a.isFinite || !z.b.isFinite) {
+    return (c: Complex.nan, s: Complex.nan);
+  }
 
   if (z.abs() < 2.0) {
     final pix2 = const Complex(0.5 * pi) * z * z;
@@ -115,7 +125,7 @@ Complex fresnelCComplex(Complex z) => _fresnelPairComplex(z).c;
     return (c: cSum, s: sSum);
   }
 
-  final scale = Complex(0.5 * sqrt(pi));
+  const scale = Complex(0.5 * sqrtPi);
   final wMinus = erfComplex(scale * const Complex(1.0, -1.0) * z);
   final wPlus = erfComplex(scale * const Complex(1.0, 1.0) * z);
   final termA = const Complex(1.0, 1.0) * wMinus;

@@ -89,7 +89,7 @@ class ChiSquaredDistribution extends ContinuousDistribution {
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return gammaPInv(probability, 0.5 * dof) * 2.0;
+    return gammaPInv(0.5 * dof, probability) * 2.0;
   }
 
   @override

@@ -3,13 +3,14 @@ import 'dart:math';
 import 'package:more/number.dart' show Complex;
 
 import 'gamma.dart';
+import 'utils.dart';
 
 /// Returns the Riemann zeta function `ζ(s) = ∑_{n=1}^∞ n^(-s)`.
 ///
 /// Analytic continuation of Dirichlet's series across `R \ {1}`, with a simple
-/// pole at `s = 1`. Evaluated via Borwein's accelerated alternating series
-/// (`n = 21`) for `0 < s <= 25`, direct summation for `s > 25`, and Riemann's
-/// functional reflection equation for `s < 0`.
+/// pole at `s = 1` (`ζ(1) = +∞`). Evaluated via Borwein's accelerated
+/// alternating series (`n = 21`) for `0 < s <= 25`, direct summation for
+/// `s > 25`, and Riemann's functional reflection equation for `s < 0`.
 ///
 /// See https://en.wikipedia.org/wiki/Riemann_zeta_function for details.
 ///
@@ -23,15 +24,12 @@ double zeta(num s) {
   if (sd == 1.0) return double.infinity;
   if (sd == 0.0) return -0.5;
 
-  // Trivial zeros at negative even integers.
-  if (sd < 0.0 && sd.roundToDouble() == sd && sd.toInt().isEven) {
+  if (sd < 0.0 && sd.roundToDouble() == sd && sd % 2.0 == 0.0) {
     return 0.0;
   }
 
-  // Reflection formula for negative s.
   if (sd < 0.0) {
     final oneMinusS = 1.0 - sd;
-    // Exact argument reduction mod 4 avoids sin(pi/2 * s) drift for large |s|.
     final sinVal = sin(0.5 * pi * (sd % 4.0));
     if (sinVal == 0.0) return 0.0;
     if (sd < -50.0) {
@@ -53,7 +51,6 @@ double zeta(num s) {
         zeta(oneMinusS);
   }
 
-  // Direct summation for large positive s.
   if (sd > 55.0) return 1.0;
   if (sd > 25.0) {
     return 1.0 +
@@ -62,13 +59,11 @@ double zeta(num s) {
         exp(-sd * _lnTable[3]);
   }
 
-  // Borwein's algorithm with precomputed normalized weights (n = 21).
   var sum = _borweinWeights[0];
   for (var k = 1; k < _borweinN; k++) {
     sum += _borweinWeights[k] * exp(-sd * _lnTable[k]);
   }
 
-  // Accurate 1 - 2^(1 - s) near s = 1 to avoid catastrophic cancellation.
   final u = (1.0 - sd) * ln2;
   final oneMinusTwoPow = u.abs() < 1e-4
       ? -(u * (1.0 + u * (0.5 + u * (_oneSixth + u * _oneTwentyFourth))))
@@ -79,10 +74,9 @@ double zeta(num s) {
 /// Returns the complex Riemann zeta function `ζ(s)`.
 ///
 /// Uses Borwein's accelerated alternating series (`n = 21`) for `Re(s) >= 0.5`
-/// and `|Im(s)| <= 6`, adaptive Euler–Maclaurin summation for larger `|Im(s)|`
-/// (avoiding both Borwein's exponential precision loss and spurious poles at
-/// `s = 1 + 2πik / ln 2`), conjugate symmetry `ζ(s̄) = ζ(s)̄`, and
-/// overflow-safe log-space reflection for `Re(s) < 0.5`.
+/// and `|Im(s)| <= 6`, adaptive Euler–Maclaurin summation for larger `|Im(s)|`,
+/// conjugate symmetry `ζ(conj(s)) = conj(ζ(s))`, and overflow-safe log-space
+/// reflection for `Re(s) < 0.5`.
 ///
 /// See https://en.wikipedia.org/wiki/Riemann_zeta_function for details.
 Complex zetaComplex(Complex s) {
@@ -93,20 +87,18 @@ Complex zetaComplex(Complex s) {
   if (tRaw == 0.0) {
     return Complex(zeta(sigma));
   }
+  if (!sigma.isFinite || !tRaw.isFinite) return Complex.nan;
 
-  // Conjugate symmetry: ζ(conj(s)) = conj(ζ(s)); restrict to t > 0.
   if (tRaw < 0.0) {
     return zetaComplex(Complex(sigma, -tRaw)).conjugate();
   }
   final t = tRaw;
 
-  // Reflection formula for Re(s) < 0.5.
   if (sigma < 0.5) {
     final oneMinusS = Complex(1.0 - sigma, -t);
     final zetaReflected = zetaComplex(oneMinusS);
     if (sigma < -50.0 || t > 20.0) {
-      // Log-space reflection avoids overflow in sin(pi*s/2) and underflow in Γ(1-s).
-      final logSin = _logSinPiHalf(sigma, t);
+      final logSin = logSinPiComplex(Complex(0.5 * sigma, 0.5 * t));
       final logFactor =
           Complex(sigma * ln2 + (sigma - 1.0) * _lnPi, t * (ln2 + _lnPi)) +
           logSin +
@@ -122,8 +114,6 @@ Complex zetaComplex(Complex s) {
 
   if (sigma > 55.0) return Complex.one;
 
-  // Fast unboxed Borwein path for small imaginary parts (well below first
-  // spurious denominator zero at t = 2π / ln(2) ≈ 9.0647).
   if (t <= 6.0) {
     var sumRe = _borweinWeights[0];
     var sumIm = 0.0;
@@ -140,20 +130,32 @@ Complex zetaComplex(Complex s) {
     return Complex(-sumRe, -sumIm) / denom;
   }
 
-  // Adaptive Euler–Maclaurin summation for general complex s (Re(s) >= 0.5).
   return _zetaEulerMaclaurin(sigma, t);
 }
 
 /// Returns the Hurwitz zeta function `ζ(s, a) = ∑_{n=0}^∞ (n + a)^(-s)`.
+///
+/// Uses exact Bernoulli polynomial evaluation `-B_{n+1}(a) / (n + 1)` at
+/// non-positive integers `s = -n` (`0 <= n <= 50`) to eliminate cancellation,
+/// and shifted Euler–Maclaurin summation elsewhere.
 ///
 /// See https://en.wikipedia.org/wiki/Hurwitz_zeta_function for details.
 double hurwitzZeta(num s, num a) {
   if (s.isNaN || a.isNaN) return double.nan;
   final sd = s.toDouble();
   final ad = a.toDouble();
+  if (!sd.isFinite || !ad.isFinite) {
+    if (sd == double.infinity && ad > 0.0 && ad.isFinite) {
+      return ad == 1.0 ? 1.0 : (ad < 1.0 ? double.infinity : 0.0);
+    }
+    if (ad == double.infinity && sd > 1.0 && sd.isFinite) return 0.0;
+    return double.nan;
+  }
   if (ad == 1.0) return zeta(sd);
   if (sd == 1.0) return double.infinity;
-  if (sd == 0.0) return 0.5 - ad;
+  if (sd <= 0.0 && sd >= -50.0 && sd.roundToDouble() == sd) {
+    return _hurwitzBernoulliReal((-sd).round(), ad);
+  }
   if (ad <= 0.0 && ad.roundToDouble() == ad) {
     if (sd > 0.0) return double.nan;
     final m = (-ad).round();
@@ -168,20 +170,29 @@ double hurwitzZeta(num s, num a) {
 }
 
 /// Returns the complex Hurwitz zeta function `ζ(s, a)`.
+///
+/// See https://en.wikipedia.org/wiki/Hurwitz_zeta_function for details.
 Complex hurwitzZetaComplex(Complex s, Complex a) {
   if (s.isNaN || a.isNaN) return Complex.nan;
+  if (!s.a.isFinite || !s.b.isFinite || !a.a.isFinite || !a.b.isFinite) {
+    return Complex.nan;
+  }
   if (a == Complex.one) return zetaComplex(s);
   if (s == Complex.one) return const Complex(double.infinity);
-  if (s == Complex.zero) return const Complex(0.5) - a;
+  if (s.b == 0.0 && s.a <= 0.0 && s.a >= -50.0 && s.a == s.a.roundToDouble()) {
+    return _hurwitzBernoulliComplex((-s.a).round(), a);
+  }
 
-  // Shift `a` so Re(a) >= 1 before Euler–Maclaurin summation.
   var sum = Complex.zero;
   var curA = a;
   if (curA.a < 1.0) {
     final shift = (1.0 - curA.a).ceil();
     for (var k = 0; k < shift; k++) {
       final termA = curA + k.toDouble();
-      if (termA == Complex.zero) return Complex.nan;
+      if (termA == Complex.zero) {
+        if (s.a < 0.0) continue;
+        return Complex.nan;
+      }
       sum += termA.pow(-s);
     }
     curA += shift.toDouble();
@@ -208,6 +219,55 @@ Complex hurwitzZetaComplex(Complex s, Complex a) {
   return sum;
 }
 
+double _hurwitzBernoulliReal(int n, double a) {
+  final m = n + 1;
+  final b = _bernoulliNumbers(m);
+  var binom = 1.0;
+  var sum = b[m];
+  var aPow = 1.0;
+  for (var j = 1; j <= m; j++) {
+    aPow *= a;
+    binom = binom * (m - j + 1) / j;
+    final bk = b[m - j];
+    if (bk != 0.0) {
+      sum += binom * bk * aPow;
+    }
+  }
+  return -sum / m;
+}
+
+Complex _hurwitzBernoulliComplex(int n, Complex a) {
+  final m = n + 1;
+  final b = _bernoulliNumbers(m);
+  var binom = 1.0;
+  var sum = Complex(b[m]);
+  var aPow = Complex.one;
+  for (var j = 1; j <= m; j++) {
+    aPow *= a;
+    binom = binom * (m - j + 1) / j;
+    final bk = b[m - j];
+    if (bk != 0.0) {
+      sum += aPow * (binom * bk);
+    }
+  }
+  return -sum / m.toDouble();
+}
+
+List<double> _bernoulliNumbers(int maxM) {
+  if (_bernoulliCache.length > maxM) return _bernoulliCache;
+  while (_bernoulliCache.length <= maxM) {
+    final m = _bernoulliCache.length;
+    var sum = 0.0;
+    var binom = 1.0;
+    for (var k = 0; k < m; k++) {
+      sum += binom * _bernoulliCache[k];
+      binom = binom * (m + 1 - k) / (k + 1);
+    }
+    _bernoulliCache.add(-sum / (m + 1));
+  }
+  return _bernoulliCache;
+}
+
 Complex _zetaEulerMaclaurin(double sigma, double t) {
   final s = Complex(sigma, t);
   final sAbs = sqrt(sigma * sigma + t * t);
@@ -218,14 +278,14 @@ Complex _zetaEulerMaclaurin(double sigma, double t) {
   var sumRe = 1.0;
   var sumIm = 0.0;
   for (var k = 2; k < n; k++) {
-    final lnK = _lnCache[k];
+    final lnK = k < _lnCache.length ? _lnCache[k] : log(k);
     final mag = exp(-sigma * lnK);
     final ang = -t * lnK;
     sumRe += mag * cos(ang);
     sumIm += mag * sin(ang);
   }
 
-  final lnN = _lnCache[n];
+  final lnN = n < _lnCache.length ? _lnCache[n] : log(n);
   final nMag = exp(-sigma * lnN);
   final nAng = -t * lnN;
   final nPowNegS = Complex(nMag * cos(nAng), nMag * sin(nAng));
@@ -248,25 +308,21 @@ Complex _zetaEulerMaclaurin(double sigma, double t) {
   return total;
 }
 
-Complex _logSinPiHalf(double sigma, double t) {
-  if (t > 20.0) {
-    // sin(pi/2 * (sigma + i*t)) = (i/2) * exp(pi/2 * t - i*pi/2 * sigma) * (1 - exp(-pi*t + i*pi*sigma))
-    // For t > 20, exp(-pi * t) < 5e-28 < double epsilon.
-    return Complex(0.5 * pi * t - ln2, 0.5 * pi * (1.0 - sigma));
-  }
-  return Complex(0.5 * pi * (sigma % 4.0), 0.5 * pi * t).sin().log();
-}
-
 void _ensureLnCache(int n) {
-  while (_lnCache.length <= n) {
+  final limit = min(n, _maxLnCacheSize);
+  while (_lnCache.length <= limit) {
     _lnCache.add(log(_lnCache.length));
   }
 }
+
+const int _maxLnCacheSize = 4096;
 
 final List<double> _lnCache = <double>[
   0.0,
   for (var k = 1; k <= 64; k++) log(k),
 ];
+
+final List<double> _bernoulliCache = <double>[1.0];
 
 /// Precomputed `B_{2k} / (2k)!` for `k = 1..10`.
 const List<double> _eulerMaclaurinCoeffs = <double>[
