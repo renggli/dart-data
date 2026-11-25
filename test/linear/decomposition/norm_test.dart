@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('MatrixNormExtension', () {
@@ -81,6 +81,35 @@ void main() {
 
       final empty = Matrix<double>.fromRows(const [], type: DataType.float64);
       check(empty.rank).equals(0);
+    });
+
+    test('handles rectangular zero-dimension and non-finite inputs', () {
+      final zeroByThree = Matrix<double>.filled(0, 3, 0.0);
+      final threeByZero = Matrix<double>.filled(3, 0, 0.0);
+      for (final m in [zeroByThree, threeByZero]) {
+        check(m.normFrobenius).equals(0.0);
+        check(m.norm1).equals(0.0);
+        check(m.norm2).equals(0.0);
+        check(m.normInfinity).equals(0.0);
+        check(m.cond).equals(0.0);
+        check(m.rank).equals(0);
+      }
+
+      final nanMat = Matrix<double>.fromRows([
+        [double.nan, 1.0],
+        [2.0, 3.0],
+      ]);
+      check(nanMat.normFrobenius.isNaN).isTrue;
+      check(nanMat.norm1.isNaN).isTrue;
+      check(nanMat.normInfinity.isNaN).isTrue;
+      check(nanMat.norm2.isNaN).isTrue;
+
+      final infMat = Matrix<double>.fromRows([
+        [double.infinity, 1.0],
+        [2.0, 3.0],
+      ]);
+      check(infMat.norm1).equals(double.infinity);
+      check(infMat.normInfinity).equals(double.infinity);
     });
   });
 }

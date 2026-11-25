@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../../test_utils.dart';
 
@@ -271,6 +271,35 @@ void main() {
       final eigPerm = perm5.eigenvalue;
       check(eigPerm.eigenvalues.length).equals(5);
       check(eigPerm.v.rowCount).equals(5);
+    });
+
+    test('exposes isSymmetric, copies v safely, and returns NaN on non-symmetric non-finite input', () {
+      final sym = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [1.0, 2.0],
+      ]);
+      final eigSym = sym.eigenvalue;
+      check(eigSym.isSymmetric).isTrue;
+      final vCopy = eigSym.v;
+      vCopy.set(0, 0, 999.0);
+      check(eigSym.v.get(0, 0) == 999.0).isFalse;
+
+      final nonSym = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [0.0, 3.0],
+      ]);
+      check(nonSym.eigenvalue.isSymmetric).isFalse;
+
+      for (final bad in [double.nan, double.infinity]) {
+        final badNonSym = Matrix<double>.fromRows([
+          [1.0, bad],
+          [0.0, 2.0],
+        ]);
+        final eigBad = badNonSym.eigenvalue;
+        check(eigBad.isSymmetric).isFalse;
+        check(eigBad.realEigenvalues[0].isNaN).isTrue;
+        check(eigBad.v.get(0, 0).isNaN).isTrue;
+      }
     });
   });
 }

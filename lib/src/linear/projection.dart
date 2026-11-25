@@ -5,14 +5,11 @@ import 'vector.dart';
 extension VectorProjectionExtension<T extends num> on Vector<T> {
   /// Computes the orthogonal projection of this vector onto [onto].
   ///
-  /// $$
-  /// \operatorname{proj}_{\mathbf{v}}(\mathbf{u}) =
-  /// \frac{\langle \mathbf{u}, \mathbf{v} \rangle}{\|\mathbf{v}\|_2^2}
-  /// \mathbf{v}
-  /// $$
+  /// Computes `(<u, v> / ||v||_2^2) * v` using max-abs scaling to avoid
+  /// intermediate overflow or underflow.
   ///
-  /// Throws an [ArgumentError] if vector lengths do not match or if the squared
-  /// $L_2$ norm of [onto] is less than $1\text{e-}15$.
+  /// Throws an [ArgumentError] if vector lengths do not match, if [onto] is
+  /// empty or the zero vector, or if [onto] contains non-finite elements.
   ///
   /// ```dart
   /// final u = Vector<double>.fromList([3.0, 4.0]);
@@ -26,10 +23,43 @@ extension VectorProjectionExtension<T extends num> on Vector<T> {
         'Vector lengths must match: $length vs ${onto.length}',
       );
     }
-    var dotProduct = 0.0;
-    var vNormSq = 0.0;
+    if (length == 0) {
+      throw ArgumentError('Cannot project onto empty vector.');
+    }
     final t1 = tensor;
     final t2 = onto.tensor;
+    var maxAbs = 0.0;
+    if (t2.isContiguous) {
+      final d2 = t2.data;
+      final o2 = t2.offset;
+      for (var i = 0; i < length; i++) {
+        final vi = d2[o2 + i].toDouble();
+        if (!vi.isFinite) {
+          throw ArgumentError(
+            'Cannot project onto non-finite vector element at index $i: $vi',
+          );
+        }
+        final absV = vi.abs();
+        if (absV > maxAbs) maxAbs = absV;
+      }
+    } else {
+      for (var i = 0; i < length; i++) {
+        final vi = onto.getUnchecked(i).toDouble();
+        if (!vi.isFinite) {
+          throw ArgumentError(
+            'Cannot project onto non-finite vector element at index $i: $vi',
+          );
+        }
+        final absV = vi.abs();
+        if (absV > maxAbs) maxAbs = absV;
+      }
+    }
+    if (maxAbs == 0.0) {
+      throw ArgumentError('Cannot project onto zero vector.');
+    }
+
+    var dotScaled = 0.0;
+    var sNormSq = 0.0;
     if (t1.isContiguous && t2.isContiguous) {
       final d1 = t1.data;
       final d2 = t2.data;
@@ -37,24 +67,43 @@ extension VectorProjectionExtension<T extends num> on Vector<T> {
       final o2 = t2.offset;
       for (var i = 0; i < length; i++) {
         final ui = d1[o1 + i].toDouble();
-        final vi = d2[o2 + i].toDouble();
-        dotProduct += ui * vi;
-        vNormSq += vi * vi;
+        final si = d2[o2 + i].toDouble() / maxAbs;
+        dotScaled += ui * si;
+        sNormSq += si * si;
       }
     } else {
       for (var i = 0; i < length; i++) {
         final ui = getUnchecked(i).toDouble();
-        final vi = onto.getUnchecked(i).toDouble();
-        dotProduct += ui * vi;
-        vNormSq += vi * vi;
+        final si = onto.getUnchecked(i).toDouble() / maxAbs;
+        dotScaled += ui * si;
+        sNormSq += si * si;
       }
     }
-    if (vNormSq < 1e-15 || !vNormSq.isFinite) {
-      throw ArgumentError(
-        'Cannot project onto vector with squared norm: $vNormSq',
-      );
+
+    var uScale = 1.0;
+    if (!dotScaled.isFinite) {
+      var maxU = 0.0;
+      var allUFinite = true;
+      for (var i = 0; i < length; i++) {
+        final absU = getUnchecked(i).toDouble().abs();
+        if (!absU.isFinite) {
+          allUFinite = false;
+          break;
+        }
+        if (absU > maxU) maxU = absU;
+      }
+      if (allUFinite && maxU > 0.0) {
+        uScale = maxU;
+        dotScaled = 0.0;
+        for (var i = 0; i < length; i++) {
+          final ui = getUnchecked(i).toDouble() / maxU;
+          final si = onto.getUnchecked(i).toDouble() / maxAbs;
+          dotScaled += ui * si;
+        }
+      }
     }
-    final scale = dotProduct / vNormSq;
+
+    final scale = dotScaled / sNormSq;
     final result = Vector<double>.filled(length, 0.0, type: DataType.float64);
     if (t2.isContiguous && result.tensor.isContiguous) {
       final src = t2.data;
@@ -62,26 +111,24 @@ extension VectorProjectionExtension<T extends num> on Vector<T> {
       final srcOffset = t2.offset;
       final dstOffset = result.tensor.offset;
       for (var i = 0; i < length; i++) {
-        dst[dstOffset + i] = scale * src[srcOffset + i].toDouble();
+        dst[dstOffset + i] =
+            (scale * (src[srcOffset + i].toDouble() / maxAbs)) * uScale;
       }
     } else {
       for (var i = 0; i < length; i++) {
-        result.setUnchecked(i, scale * onto.getUnchecked(i).toDouble());
+        result.setUnchecked(
+          i,
+          (scale * (onto.getUnchecked(i).toDouble() / maxAbs)) * uScale,
+        );
       }
     }
     return result;
   }
 
-  /// Computes the orthogonal rejection of this vector from [from].
+  /// Computes the orthogonal rejection of this vector from [from]: `u - proj_v(u)`.
   ///
-  /// The rejection represents the component of this vector orthogonal to
-  /// $$
-  /// \operatorname{oproj}_{\mathbf{v}}(\mathbf{u})
-  ///     = \mathbf{u} - \operatorname{proj}_{\mathbf{v}}(\mathbf{u})
-  /// $$
-  ///
-  /// Throws an [ArgumentError] if vector lengths do not match or if the squared
-  /// $L_2$ norm of [from] is less than $1\text{e-}15$.
+  /// Throws an [ArgumentError] if vector lengths do not match, if [from] is
+  /// empty or the zero vector, or if [from] contains non-finite elements.
   ///
   /// ```dart
   /// final u = Vector<double>.fromList([3.0, 4.0]);

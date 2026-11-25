@@ -14,7 +14,7 @@ import 'vector.dart';
 ///
 /// This provides a 1D vector optimized to store 64-bit floating-point numbers
 /// in contiguous memory for high-speed mathematical operations. Formally, it
-/// provides an unboxed vector representation over $\mathbb{R}^n$ backed by flat
+/// provides an unboxed vector representation over `R^n` backed by flat
 /// IEEE 754 double-precision arrays compatible with BLAS level 1 and 2
 /// operations.
 ///
@@ -51,7 +51,7 @@ extension type Float64Vector._(Vector<double> _vector)
   /// to a [Float64List] if not already backed by one.
   factory fromDoubleVector(Vector<double> vector) {
     if (vector.tensor.data is Float64List) {
-      return Float64Vector._(vector);
+      return Float64Vector(vector);
     }
     return Float64Vector._(
       Vector<double>.generate(
@@ -126,9 +126,9 @@ extension type Float64Vector._(Vector<double> _vector)
   @redeclare
   double dot(Vector<double> other) => _vector.dot(other);
 
-  /// Computes the $p$-norm of this vector.
+  /// Computes the `p`-norm of this vector.
   ///
-  /// For $p = 2$ (default Euclidean norm), routes directly to BLAS `dnrm2`.
+  /// For `p = 2` (default Euclidean norm), routes directly to BLAS `dnrm2`.
   @redeclare
   double norm([num pNorm = 2]) {
     if (pNorm == 2) {
@@ -234,7 +234,7 @@ extension type Float64Vector._(Vector<double> _vector)
   @redeclare
   Float64Vector normalized() => Float64Vector._(_vector.normalized());
 
-  /// Computes the 3-dimensional vector cross product $u \times v$ with [other].
+  /// Computes the 3-dimensional vector cross product `u × v` with [other].
   @redeclare
   Float64Vector cross(Vector<double> other) =>
       Float64Vector._(_vector.cross(other));

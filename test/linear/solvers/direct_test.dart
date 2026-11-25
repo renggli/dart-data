@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:more/number.dart' show Fraction;
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Direct linear solvers', () {
@@ -49,6 +49,29 @@ void main() {
       check(x.get(0, 0)).isCloseTo(1.0, 1e-10);
       check(x.get(1, 0)).isCloseTo(1.0, 1e-10);
       check(x.get(2, 0)).isCloseTo(1.0, 1e-10);
+    });
+
+    test('solveDirect handles 0-col, 0-row, and m x 0 consistent/inconsistent systems', () {
+      final empty = Matrix<double>.filled(0, 0, 0.0);
+      check(solveDirect(empty, empty).rowCount).equals(0);
+
+      final zeroCols = Matrix<double>.filled(2, 0, 0.0);
+      final zeroRhs = Matrix<double>.filled(2, 2, 0.0);
+      final sol = solveDirect(zeroCols, zeroRhs);
+      check(sol.rowCount).equals(0);
+      check(sol.colCount).equals(2);
+
+      final nonZeroRhs = Matrix<double>.fromRows([
+        [0.0],
+        [1.0],
+      ]);
+      check(() => solveDirect(zeroCols, nonZeroRhs)).throws<StateError>();
+
+      final emptyColRhs = Matrix<double>.filled(2, 0, 0.0);
+      final sq2 = Matrix<double>.identity(2);
+      final emptyColSol = solveDirect(sq2, emptyColRhs);
+      check(emptyColSol.rowCount).equals(2);
+      check(emptyColSol.colCount).equals(0);
     });
   });
 }

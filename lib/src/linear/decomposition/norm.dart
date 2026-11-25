@@ -7,15 +7,9 @@ import 'svd.dart';
 /// Extension methods for matrix norms, condition estimators, and numerical
 /// rank.
 extension MatrixNormExtension<T extends num> on Matrix<T> {
-  /// Returns the Frobenius norm: $\|A\|_F = \sqrt{\sum_{i,j} |a_{ij}|^2}$.
+  /// Returns the Frobenius norm: `sqrt(sum(|a_ij|^2))`.
   ///
-  /// Conceptually, this calculates the overall magnitude or Euclidean size of
-  /// the matrix by summing the squares of all entries and taking the square
-  /// root. Formally, it computes the Frobenius (Hilbert-Schmidt) norm
-  /// $\|A\|_F = \sqrt{\operatorname{Tr}(A^T A)}$
-  /// $= \sqrt{\sum_{i=1}^{\min(m, n)} \sigma_i^2}$,
-  /// implemented via scaled summation to prevent intermediate underflow and
-  /// overflow.
+  /// Uses scaled summation to prevent intermediate underflow and overflow.
   ///
   /// ```dart
   /// final m = Matrix<double>.fromRows([
@@ -34,12 +28,7 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
     return acc.norm;
   }
 
-  /// Returns the 1-norm: maximum absolute column sum $\max_j \sum_i |a_{ij}|$.
-  ///
-  /// Conceptually, this adds up the absolute values in each column and returns
-  /// the maximum column sum. Formally, it computes the induced operator 1-norm
-  /// $\|A\|_1 = \max_{\|\mathbf{x}\|_1 = 1} \|A \mathbf{x}\|_1$
-  /// $= \max_{1 \le j \le n} \sum_{i=1}^m |a_{ij}|$.
+  /// Returns the 1-norm: maximum absolute column sum `max_j sum_i |a_ij|`.
   ///
   /// ```dart
   /// final m = Matrix<double>.fromRows([
@@ -55,17 +44,13 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
       for (var row = 0; row < rowCount; row++) {
         sum += getUnchecked(row, col).abs().toDouble();
       }
+      if (sum.isNaN) return double.nan;
       result = math.max(result, sum);
     }
     return result;
   }
 
-  /// Returns the 2-norm: largest singular value $\sigma_{\max}(A)$.
-  ///
-  /// Conceptually, this measures the maximum factor by which the matrix can
-  /// stretch the length of any vector. Formally, it computes the induced
-  /// spectral 2-norm
-  /// $\|A\|_2 = \max_{\|\mathbf{x}\|_2 = 1} \|A \mathbf{x}\|_2 = \sigma_1(A)$.
+  /// Returns the 2-norm: largest singular value `sigma_max(A)`.
   ///
   /// ```dart
   /// final m = Matrix<double>.fromRows([
@@ -74,23 +59,11 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// ]);
   /// print(m.norm2); // 5.0
   /// ```
-  double get norm2 {
-    if (rowCount == 0 || colCount == 0) return 0.0;
-    final singularValues = SingularValueDecomposition(
-      this,
-      computeVectors: false,
-    ).s;
-    return singularValues.length == 0 ? 0.0 : singularValues[0];
-  }
+  double get norm2 => rowCount == 0 || colCount == 0
+      ? 0.0
+      : SingularValueDecomposition(this, computeVectors: false).norm2;
 
-  /// Returns the infinity norm: maximum absolute row sum
-  /// $\max_i \sum_j |a_{ij}|$.
-  ///
-  /// Conceptually, this adds up the absolute values along each row and returns
-  /// the maximum row sum. Formally, it computes the induced operator infinity
-  /// norm
-  /// $\|A\|_\infty = \max_{\|\mathbf{x}\|_\infty = 1} \|A \mathbf{x}\|_\infty$
-  /// $= \max_{1 \le i \le m} \sum_{j=1}^n |a_{ij}|$.
+  /// Returns the infinity norm: maximum absolute row sum `max_i sum_j |a_ij|`.
   ///
   /// ```dart
   /// final m = Matrix<double>.fromRows([
@@ -106,53 +79,24 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
       for (var col = 0; col < colCount; col++) {
         sum += getUnchecked(row, col).abs().toDouble();
       }
+      if (sum.isNaN) return double.nan;
       result = math.max(result, sum);
     }
     return result;
   }
 
-  /// Returns the 2-norm condition number
-  /// $\kappa(A) = \sigma_{\max} / \sigma_{\min}$.
-  ///
-  /// Conceptually, the condition number indicates how sensitive or numerically
-  /// unstable solving $A x = b$ will be. A condition number near 1 indicates a
-  /// well-conditioned matrix; a very large condition number means rounding
-  /// errors or slight perturbations will degrade the solution. Formally, it
-  /// computes
-  /// $\kappa_2(A) = \|A\|_2 \|A^{-1}\|_2$
-  /// $= \frac{\sigma_{\max}}{\sigma_{\min}}$,
-  /// which bounds relative solution error:
-  /// $\frac{\|\delta \mathbf{x}\|}{\|\mathbf{x}\|} \le$
-  /// $\kappa(A) \frac{\|\delta \mathbf{b}\|}{\|\mathbf{b}\|}$.
+  /// Returns the 2-norm condition number `sigma_max / sigma_min`.
   ///
   /// ```dart
   /// final id = Matrix<double>.identity(2);
   /// print(id.cond); // 1.0
   /// ```
-  double get cond {
-    if (rowCount == 0 || colCount == 0) return 0.0;
-    final singularValues = SingularValueDecomposition(
-      this,
-      computeVectors: false,
-    ).s;
-    if (singularValues.length == 0) return 0.0;
-    final maxDim = math.max(rowCount, colCount);
-    final tol = maxDim * singularValues[0] * 2.220446049250313e-16;
-    final minSingular = singularValues[singularValues.length - 1];
-    return minSingular <= tol
-        ? double.infinity
-        : singularValues[0] / minSingular;
-  }
+  double get cond => rowCount == 0 || colCount == 0
+      ? 0.0
+      : SingularValueDecomposition(this, computeVectors: false).cond;
 
-  /// Returns the effective numerical rank of the matrix.
-  ///
-  /// Conceptually, rank is the number of linearly independent rows or columns
-  /// in the matrix that provide unique, non-redundant information. Formally, it
-  /// computes
-  /// $\operatorname{rank}(A) =$
-  /// $\#\{\sigma_i > \max(m, n) \cdot \sigma_1 \cdot \epsilon_{\text{mach}}\}$,
-  /// identifying the dimension of the column space robustly in floating-point
-  /// arithmetic.
+  /// Returns the effective numerical rank of the matrix via SVD singular-value
+  /// thresholding.
   ///
   /// ```dart
   /// final m = Matrix<double>.fromRows([
@@ -161,19 +105,7 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// ]);
   /// print(m.rank); // 1
   /// ```
-  int get rank {
-    if (rowCount == 0 || colCount == 0) return 0;
-    final singularValues = SingularValueDecomposition(
-      this,
-      computeVectors: false,
-    ).s;
-    if (singularValues.length == 0) return 0;
-    final eps = math.pow(2.0, -52).toDouble();
-    final tol = math.max(rowCount, colCount) * singularValues[0] * eps;
-    var count = 0;
-    for (var i = 0; i < singularValues.length; i++) {
-      if (singularValues[i] > tol) count++;
-    }
-    return count;
-  }
+  int get rank => rowCount == 0 || colCount == 0
+      ? 0
+      : SingularValueDecomposition(this, computeVectors: false).rank;
 }

@@ -12,9 +12,9 @@ import 'matrix.dart';
 /// 1-dimensional mathematical vector backed by a 1D [Tensor].
 ///
 /// Conceptually, a vector is an ordered list of numbers with a magnitude
-/// (length) and direction, like a geometric arrow $(x, y, z)$. Mathematically,
-/// a vector represents an element of a finite-dimensional vector space
-/// $V \cong T^n$ over the scalar field $T$.
+/// (length) and direction, like a geometric arrow `(x, y, z)`. Mathematically,
+/// a vector represents an element of a finite-dimensional vector space `T^n`
+/// over the scalar field `T`.
 ///
 /// ```dart
 /// final v = Vector<double>.fromList([1.0, 2.0, 3.0]);
@@ -82,6 +82,12 @@ class Vector<T> {
   /// The number of elements in this vector.
   int get length => tensor.length;
 
+  /// Returns `true` if this vector has zero elements.
+  bool get isEmpty => length == 0;
+
+  /// Returns `true` if this vector has at least one element.
+  bool get isNotEmpty => length > 0;
+
   /// The data type of the elements.
   DataType<T> get type => tensor.type;
 
@@ -134,12 +140,11 @@ class Vector<T> {
   /// Computes the algebraic inner product (dot product) with [other].
   ///
   /// Conceptually, the dot product multiplies corresponding components and sums
-  /// them: $u \cdot v = u_1 v_1 + u_2 v_2 + \dots$. If the dot product is zero,
-  /// the vectors are orthogonal (perpendicular). More formally, this calculates
-  /// the standard Hermitian inner product
-  /// $\langle u, v \rangle = \sum_{i=1}^n \bar{u}_i v_i$, using conjugate
-  /// multiplication for complex fields and hardware BLAS acceleration when
-  /// available.
+  /// them: `u · v = u_1 v_1 + u_2 v_2 + ...`. If the dot product is zero, the
+  /// vectors are orthogonal (perpendicular). More formally, this calculates
+  /// the standard Hermitian inner product `⟨u, v⟩ = sum(conj(u_i) * v_i)`,
+  /// using conjugate multiplication for complex fields and hardware BLAS
+  /// acceleration when available.
   ///
   /// ```dart
   /// final a = Vector<double>.fromList([1.0, 2.0, 3.0]);
@@ -208,12 +213,11 @@ class Vector<T> {
     return sum;
   }
 
-  /// Computes the outer product with [other], producing an $M \times N$ matrix.
+  /// Computes the outer product with [other], producing an `M x N` matrix.
   ///
   /// Conceptually, this multiplies each element of the first vector by each
   /// element of the second vector, producing a full rank-2 [Matrix]. Formally,
-  /// this calculates the rank-1 tensor product
-  /// $u \otimes v = u v^T \in T^{M \times N}$.
+  /// this calculates the rank-1 tensor product `u ⊗ v = u * v^T`.
   ///
   /// ```dart
   /// final a = Vector<int>.fromList([1, 2]);
@@ -234,12 +238,11 @@ class Vector<T> {
     return res;
   }
 
-  /// Computes the 3-dimensional vector cross product $u \times v$ with [other].
+  /// Computes the 3-dimensional vector cross product `u × v` with [other].
   ///
   /// Conceptually, the cross product produces a vector perpendicular to both
-  /// input vectors in 3-dimensional space. Formally:
-  ///
-  /// $$u \times v = (u_2 v_3 - u_3 v_2,\, u_3 v_1 - u_1 v_3,\, u_1 v_2 - u_2 v_1)$$
+  /// input vectors in 3-dimensional space:
+  /// `(u_2 v_3 - u_3 v_2, u_3 v_1 - u_1 v_3, u_1 v_2 - u_2 v_1)`.
   ///
   /// Throws an [ArgumentError] if either vector does not have length 3.
   ///
@@ -268,13 +271,12 @@ class Vector<T> {
     ], type: type);
   }
 
-  /// Computes the $L_p$ norm (length or magnitude) of this vector.
+  /// Computes the `L_p` norm (length or magnitude) of this vector.
   ///
-  /// Conceptually, the default norm ($p=2$) is the standard Euclidean length
-  /// calculated via the Pythagorean theorem: $\sqrt{x^2 + y^2 + \dots}$.
-  /// Formally, this calculates the $L_p$ metric
-  /// $\|v\|_p = \left( \sum_{i=1}^n |v_i|^p \right)^{1/p}$, supporting $p=1$
-  /// (Manhattan norm), $p=2$ (Euclidean norm), and $p=\infty$ (Chebyshev norm).
+  /// Conceptually, the default norm (`p = 2`) is the standard Euclidean length
+  /// `sqrt(x^2 + y^2 + ...)`. Formally, this calculates `||v||_p = (sum(|v_i|^p))^(1/p)`,
+  /// supporting `p = 1` (Manhattan norm), `p = 2` (Euclidean norm), and
+  /// `p = infinity` (Chebyshev norm), with max-abs scaling for finite `p`.
   ///
   /// ```dart
   /// final v = Vector<double>.fromList([3.0, 4.0]);
@@ -330,14 +332,21 @@ class Vector<T> {
       }
       return acc.norm;
     }
+    var maxAbs = 0.0;
+    for (var i = 0; i < length; i++) {
+      final val = field.norm(getUnchecked(i));
+      if (val.isNaN) return double.nan;
+      if (val > maxAbs) maxAbs = val;
+    }
+    if (maxAbs == 0.0 || maxAbs.isInfinite) return maxAbs;
     var sumP = 0.0;
     for (var i = 0; i < length; i++) {
-      sumP += math.pow(field.norm(getUnchecked(i)), pNorm);
+      sumP += math.pow(field.norm(getUnchecked(i)) / maxAbs, pNorm);
     }
-    return math.pow(sumP, 1.0 / pNorm).toDouble();
+    return maxAbs * math.pow(sumP, 1.0 / pNorm).toDouble();
   }
 
-  /// Adds scaled [other] vector in-place: $y \leftarrow y + \alpha \cdot x$.
+  /// Adds scaled [other] vector in-place: `y <- y + alpha * x`.
   void addScaled(Vector<T> other, T alpha) {
     if (length != other.length) {
       throw ArgumentError(
@@ -388,7 +397,7 @@ class Vector<T> {
     }
   }
 
-  /// Scales every element in-place by [scalar]: $x \leftarrow \alpha \cdot x$.
+  /// Scales every element in-place by [scalar]: `x <- alpha * x`.
   void scaleInPlace(T scalar) {
     if (T == double &&
         scalar is num &&
@@ -422,19 +431,38 @@ class Vector<T> {
   }
 
   /// Returns the unit vector in the same direction.
+  ///
+  /// Throws a [StateError] if this is the zero vector. Handles subnormal and
+  /// large finite vectors without reciprocal overflow.
   Vector<T> normalized() {
     final normVal = norm();
     if (normVal == 0.0) throw StateError('Cannot normalize zero vector');
     final field = type.field;
-    final inv = field.div(
-      field.multiplicativeIdentity,
-      field.scale(field.multiplicativeIdentity, normVal),
+    if (normVal.isInfinite) {
+      var maxAbs = 0.0;
+      for (var i = 0; i < length; i++) {
+        final a = field.norm(getUnchecked(i));
+        if (a.isNaN || a.isInfinite) {
+          maxAbs = double.nan;
+          break;
+        }
+        if (a > maxAbs) maxAbs = a;
+      }
+      if (maxAbs.isFinite && maxAbs > 0.0) {
+        final scaleT = field.scale(field.multiplicativeIdentity, maxAbs);
+        final scaled = Vector(
+          tensor.unaryOperation((val) => field.div(val, scaleT), type: type),
+        );
+        return scaled.normalized();
+      }
+    }
+    final normT = field.scale(field.multiplicativeIdentity, normVal);
+    return Vector(
+      tensor.unaryOperation((val) => field.div(val, normT), type: type),
     );
-    return scale(inv);
   }
 
-  /// Converts this vector into a matrix (as column $N \times 1$ or row
-  /// $1 \times N$).
+  /// Converts this vector into a matrix (as column `N x 1` or row `1 x N`).
   Matrix<T> toMatrix({bool asColumn = true}) {
     final shape = asColumn ? [length, 1] : [1, length];
     return Matrix(tensor.reshape(shape));
@@ -474,8 +502,8 @@ class Vector<T> {
 
   /// Computes the cumulative sum (prefix sum) along this vector.
   ///
-  /// Each element at index $i$ in the resulting vector is the sum of all
-  /// elements from index $0$ to $i$.
+  /// Each element at index `i` in the resulting vector is the sum of all
+  /// elements from index `0` to `i`.
   ///
   /// If [target] is provided, writes the result into [target] (which may be
   /// `this` for in-place computation) and returns it.
@@ -492,8 +520,8 @@ class Vector<T> {
 
   /// Computes the cumulative product (prefix product) along this vector.
   ///
-  /// Each element at index $i$ in the resulting vector is the product of all
-  /// elements from index $0$ to $i$.
+  /// Each element at index `i` in the resulting vector is the product of all
+  /// elements from index `0` to `i`.
   ///
   /// If [target] is provided, writes the result into [target] (which may be
   /// `this` for in-place computation) and returns it.

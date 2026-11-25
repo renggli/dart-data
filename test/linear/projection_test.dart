@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Vector project and reject', () {
@@ -192,19 +192,69 @@ void main() {
       check(() => u.reject(v)).throws<ArgumentError>();
     });
 
-    test('throws ArgumentError on zero or near-zero target vector norm', () {
-      final u = Vector<double>.fromList([1.0, 2.0], type: DataType.float64);
-      final vZero = Vector<double>.fromList([0.0, 0.0], type: DataType.float64);
-      final vNearZero = Vector<double>.fromList([
-        1e-8,
+    test('supports tiny and huge scales via max-abs scaling', () {
+      final uSmall = Vector<double>.fromList([
+        3e-200,
+        4e-200,
+      ], type: DataType.float64);
+      final vSmall = Vector<double>.fromList([
+        1e-200,
         0.0,
-      ], type: DataType.float64); // normSq = 1e-16 < 1e-15
+      ], type: DataType.float64);
+      final projSmall = uSmall.project(vSmall);
+      check(projSmall[0]).isCloseTo(3e-200, 1e-210);
+      check(projSmall[1]).isCloseTo(0.0, 1e-210);
 
-      check(() => u.project(vZero)).throws<ArgumentError>();
-      check(() => u.reject(vZero)).throws<ArgumentError>();
+      final uHuge = Vector<double>.fromList([
+        3e200,
+        4e200,
+      ], type: DataType.float64);
+      final vHuge = Vector<double>.fromList([
+        1e200,
+        0.0,
+      ], type: DataType.float64);
+      final projHuge = uHuge.project(vHuge);
+      check(projHuge[0]).isCloseTo(3e200, 1e190);
+      check(projHuge[1]).isCloseTo(0.0, 1e190);
 
-      check(() => u.project(vNearZero)).throws<ArgumentError>();
-      check(() => u.reject(vNearZero)).throws<ArgumentError>();
+      final uNearOverflow = Vector<double>.fromList([
+        1e308,
+        1e308,
+      ], type: DataType.float64);
+      final projOverflow = uNearOverflow.project(
+        Vector<double>.fromList([1e200, 1e200], type: DataType.float64),
+      );
+      check(projOverflow[0]).isCloseTo(1e308, 1e295);
+      check(projOverflow[1]).isCloseTo(1e308, 1e295);
     });
+
+    test(
+      'throws ArgumentError on empty, zero, or non-finite target vector',
+      () {
+        final empty = Vector<double>.filled(0, 0.0, type: DataType.float64);
+        check(() => empty.project(empty)).throws<ArgumentError>();
+
+        final u = Vector<double>.fromList([1.0, 2.0], type: DataType.float64);
+        final vZero = Vector<double>.fromList([
+          0.0,
+          0.0,
+        ], type: DataType.float64);
+        final vNan = Vector<double>.fromList([
+          double.nan,
+          1.0,
+        ], type: DataType.float64);
+        final vInf = Vector<double>.fromList([
+          double.infinity,
+          1.0,
+        ], type: DataType.float64);
+
+        check(() => u.project(vZero)).throws<ArgumentError>();
+        check(() => u.reject(vZero)).throws<ArgumentError>();
+        check(() => u.project(vNan)).throws<ArgumentError>();
+        check(() => u.project(vInf)).throws<ArgumentError>();
+        check(() => u.project(Vector<double>(vInf.tensor.flip())))
+            .throws<ArgumentError>();
+      },
+    );
   });
 }

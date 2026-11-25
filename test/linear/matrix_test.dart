@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Matrix element access', () {
@@ -1273,10 +1273,13 @@ void main() {
       check(aH.get(2, 1)).equals(const Complex(6.0, -1.0));
     });
 
-    test('0-dimension matrix operations, normFrobenius with multiple infinities, and Float64 redeclares', () {
+    test('0-dimension matrix operations and norms', () {
       final m20 = Matrix<double>.filled(2, 0, 0.0);
       final m02 = Matrix<double>.filled(0, 2, 0.0);
+      check(m20.isEmpty).isTrue;
+      check(m20.isNotEmpty).isFalse;
       final prod = m20 * m02;
+      check(prod.isNotEmpty).isTrue;
       check(prod.rowCount).equals(2);
       check(prod.colCount).equals(2);
 
@@ -1295,7 +1298,9 @@ void main() {
 
       final nanVec = Vector<double>.fromList([1.0, double.nan, 3.0]);
       check(nanVec.norm(double.infinity).isNaN).isTrue;
+    });
 
+    test('Float64Vector and Float64Matrix typed wrappers', () {
       final f64v = Float64Vector.fromList([3.0, 4.0]);
       check(f64v.normalized().norm()).isCloseTo(1.0, 1e-12);
       check(f64v.copy()).equals(f64v);
@@ -1311,6 +1316,7 @@ void main() {
       check(f64m.flippedHorizontal()[0][0]).equals(1.0);
       check(f64m.flippedVertical()[0][0]).equals(1.0);
       check(f64m.rotated(1).rowCount).equals(2);
+      check(f64m.rotated(3)[0][0]).equals(1.0);
       check(f64m.concatHorizontal(f64m).colCount).equals(4);
       check(f64m.concatVertical(f64m).rowCount).equals(4);
       check(f64m.solveVector(f64v).length).equals(2);
@@ -1318,15 +1324,16 @@ void main() {
       check(f64m.applyTranspose(f64v).length).equals(2);
       check(f64m.applyConjugateTranspose(f64v).length).equals(2);
       check(f64m.syrk().rowCount).equals(2);
+    });
 
-      // Additional coverage: rotated(3), unary -, fromColumns mismatch, Float32 solve/syrk/apply, rank-deficient underdetermined
-      check(f64m.rotated(3)[0][0]).equals(1.0);
+    test('matrix negation, operator -, fromColumns, and dimension checks', () {
       final genericMat = Matrix<int>.fromRows([
         [1, -2],
         [3, -4],
       ]);
       final negMat = -genericMat;
       check(negMat[0][0]).equals(-1);
+      check((genericMat - genericMat).get(1, 1)).equals(0);
       check(genericMat.toString()).contains('Matrix(2 x 2');
       check(genericMat.hashCode).equals(genericMat.tensor.hashCode);
       check(
@@ -1336,6 +1343,72 @@ void main() {
         ]),
       ).throws<ArgumentError>();
 
+      final badLenVec = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final sq2 = Matrix<double>.identity(2);
+      check(() => sq2.apply(badLenVec)).throws<ArgumentError>();
+      check(() => sq2.applyTranspose(badLenVec)).throws<ArgumentError>();
+      final cMat2 = Matrix<Complex>.fromRows([
+        [Complex.one, Complex.zero],
+        [Complex.zero, Complex.one],
+      ], type: DataType.complex);
+      final badComplexVec = Vector<Complex>.fromList([
+        Complex.one,
+      ], type: DataType.complex);
+      check(() => cMat2.applyConjugateTranspose(badComplexVec))
+          .throws<ArgumentError>();
+    });
+
+    test(
+      'fromRows and fromColumns infer unified type across all rows/columns',
+      () {
+        final mixedRows = Matrix<num>.fromRows([
+          [1, 2],
+          [3.5, 4.5],
+        ]);
+        check(mixedRows.type).equals(DataType.numeric);
+        check(mixedRows.get(1, 0)).equals(3.5);
+
+        final mixedCols = Matrix<num>.fromColumns([
+          [1, 2],
+          [3.5, 4.5],
+        ]);
+        check(mixedCols.type).equals(DataType.numeric);
+        check(mixedCols.get(0, 1)).equals(3.5);
+      },
+    );
+
+    test(
+      'isHermitian identifies real symmetric and complex Hermitian matrices',
+      () {
+        final herm = Matrix<Complex>.fromRows([
+          [const Complex(2.0, 0.0), const Complex(1.0, -3.0)],
+          [const Complex(1.0, 3.0), const Complex(5.0, 0.0)],
+        ], type: DataType.complex);
+        check(herm.isHermitian).isTrue;
+
+        final nonRealDiag = Matrix<Complex>.fromRows([
+          [const Complex(2.0, 1.0), const Complex(1.0, -3.0)],
+          [const Complex(1.0, 3.0), const Complex(5.0, 0.0)],
+        ], type: DataType.complex);
+        check(nonRealDiag.isHermitian).isFalse;
+
+        final nonHermOff = Matrix<Complex>.fromRows([
+          [const Complex(2.0, 0.0), const Complex(1.0, 3.0)],
+          [const Complex(1.0, 3.0), const Complex(5.0, 0.0)],
+        ], type: DataType.complex);
+        check(nonHermOff.isHermitian).isFalse;
+        check(
+          Matrix<Complex>.filled(
+            2,
+            3,
+            Complex.zero,
+            type: DataType.complex,
+          ).isHermitian,
+        ).isFalse;
+      },
+    );
+
+    test('float32, non-contiguous, RREF, and syrk edge paths', () {
       final f32Mat = Matrix<double>.fromRows([
         [2.0, 1.0],
         [1.0, 3.0],
@@ -1346,8 +1419,7 @@ void main() {
         [7.0],
         [2.0],
       ], type: DataType.float32);
-      final f32Sol = f32Mat.solve(f32B);
-      check(f32Sol.rowCount).equals(2);
+      check(f32Mat.solve(f32B).rowCount).equals(2);
       check(f32Mat.syrk().rowCount).equals(3);
       check(f32Mat.transposed.syrk(transpose: true).rowCount).equals(3);
       final f32Vec = Vector<double>.fromList([
@@ -1373,7 +1445,6 @@ void main() {
       ], type: DataType.float32);
       check(() => rankDefUnder.solve(f32UnderB)).throws<StateError>();
 
-      // Rank-deficient float64 rectangular matrices falling back from Lapack.dgels
       final rankDefRectTall = Matrix<double>.fromRows([
         [1.0, 2.0],
         [2.0, 4.0],
@@ -1396,7 +1467,6 @@ void main() {
       ]);
       check(() => rankDefRectWide.solve(rectWideB)).throws<StateError>();
 
-      // Non-contiguous float64 matrix solve (exercises _copyTensorToFloat64List non-contiguous branch)
       final subMatA = Matrix<double>.fromRows([
         [2.0, 1.0, 9.0],
         [1.0, 3.0, 9.0],
@@ -1409,7 +1479,6 @@ void main() {
       check(subSol[0][0]).isCloseTo(2.0, 1e-12);
       check(subSol[1][0]).isCloseTo(1.0, 1e-12);
 
-      // RREF solver with row swap (Fraction matrix where row 0 has 0 in col 0)
       final rrefSwapA = Matrix<Fraction>.fromRows([
         [Fraction.zero, Fraction.one],
         [Fraction.one, Fraction(2)],
@@ -1422,24 +1491,21 @@ void main() {
       check(rrefSwapSol[0][0]).equals(Fraction.one);
       check(rrefSwapSol[1][0]).equals(Fraction(3));
 
-      // Dimension mismatch in apply, applyTranspose, and applyConjugateTranspose
-      final badLenVec = Vector<double>.fromList([1.0, 2.0, 3.0]);
-      check(() => f64m.apply(badLenVec)).throws<ArgumentError>();
-      check(() => f64m.applyTranspose(badLenVec)).throws<ArgumentError>();
-      final cMat2 = Matrix<Complex>.fromRows([
-        [Complex.one, Complex.zero],
-        [Complex.zero, Complex.one],
-      ], type: DataType.complex);
-      final badComplexVec = Vector<Complex>.fromList([
-        Complex.one,
-      ], type: DataType.complex);
-      check(() => cMat2.applyConjugateTranspose(badComplexVec))
-          .throws<ArgumentError>();
-
-      // Generic syrk fallback (on Fraction matrix)
       final ratSyrk = rrefSwapA.syrk();
       check(ratSyrk.rowCount).equals(2);
       check(ratSyrk[0][0]).equals(Fraction.one);
+
+      // syrk dimension mismatch on target and alpha == 0, beta == 0 zeroing of NaN
+      final nanTarget = Matrix<double>.filled(2, 2, double.nan);
+      final zeroed = Matrix<double>.identity(2)
+          .syrk(alpha: 0.0, beta: 0.0, target: nanTarget);
+      check(zeroed.get(0, 0)).equals(0.0);
+      check(zeroed.get(1, 1)).equals(0.0);
+      check(
+        () =>
+            Matrix<double>.identity(2)
+                .syrk(target: Matrix<double>.filled(3, 3, 0.0)),
+      ).throws<ArgumentError>();
     });
   });
 

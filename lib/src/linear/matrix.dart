@@ -16,8 +16,8 @@ import 'vector.dart';
 ///
 /// Conceptually, a matrix is a rectangular grid or table of numbers organized
 /// into rows and columns. Mathematically, a matrix represents a linear
-/// transformation between finite-dimensional vector spaces $T^n \to T^m$ with
-/// components in $T$.
+/// transformation between finite-dimensional vector spaces `T^n -> T^m` with
+/// components in `T`.
 ///
 /// ```dart
 /// final m = Matrix<double>.filled(2, 3, 0.0);
@@ -75,12 +75,11 @@ class Matrix<T> implements LinearOperator<T> {
     final field = effectiveType.field;
     final one = field.multiplicativeIdentity;
     final zero = field.additiveIdentity;
-    return Matrix.generate(
-      size,
-      size,
-      (row, col) => row == col ? one : zero,
-      type: effectiveType,
-    );
+    final result = Matrix<T>.filled(size, size, zero, type: effectiveType);
+    for (var i = 0; i < size; i++) {
+      result.setUnchecked(i, i, one);
+    }
+    return result;
   }
 
   /// Constructs a [Matrix] from row vectors or row iterables.
@@ -96,19 +95,21 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final rCount = rowList.length;
     final cCount = rowList.first.length;
-    final dataType =
-        type ??
-        (rowList.first.isEmpty
-            ? DataType.fromType<T>()
-            : DataType.fromIterable(rowList.first));
-    final data = dataType.newList(rCount * cCount);
-    var index = 0;
     for (final row in rowList) {
       if (row.length != cCount) {
         throw ArgumentError(
           'All rows must have identical length ($cCount), got ${row.length}',
         );
       }
+    }
+    final dataType =
+        type ??
+        (cCount == 0
+            ? DataType.fromType<T>()
+            : DataType.fromIterable(rowList.expand((row) => row)));
+    final data = dataType.newList(rCount * cCount);
+    var index = 0;
+    for (final row in rowList) {
       for (var col = 0; col < cCount; col++) {
         data[index++] = row[col];
       }
@@ -142,9 +143,9 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final dataType =
         type ??
-        (colList.first.isEmpty
+        (rCount == 0
             ? DataType.fromType<T>()
-            : DataType.fromIterable(colList.first));
+            : DataType.fromIterable(colList.expand((col) => col)));
     final data = dataType.newList(rCount * cCount);
     var index = 0;
     for (var row = 0; row < rCount; row++) {
@@ -176,12 +177,11 @@ class Matrix<T> implements LinearOperator<T> {
     final dim = diagonal.length;
     final dataType = diagonal.type;
     final zero = dataType.field.additiveIdentity;
-    return Matrix.generate(
-      dim,
-      dim,
-      (row, col) => row == col ? diagonal[row] : zero,
-      type: dataType,
-    );
+    final result = Matrix<T>.filled(dim, dim, zero, type: dataType);
+    for (var i = 0; i < dim; i++) {
+      result.setUnchecked(i, i, diagonal.getUnchecked(i));
+    }
+    return result;
   }
 
   /// The underlying 2D tensor.
@@ -195,6 +195,12 @@ class Matrix<T> implements LinearOperator<T> {
 
   @override
   DataType<T> get type => tensor.type;
+
+  /// Returns `true` if this matrix has zero rows or zero columns.
+  bool get isEmpty => rowCount == 0 || colCount == 0;
+
+  /// Returns `true` if this matrix has at least one row and one column.
+  bool get isNotEmpty => !isEmpty;
 
   /// Returns an iterable over the elements in row-major traversal order.
   Iterable<T> get values => tensor.values;
@@ -266,8 +272,8 @@ class Matrix<T> implements LinearOperator<T> {
   /// Returns a zero-copy transposed view of this matrix.
   Matrix<T> get transposed => Matrix(tensor.transpose([1, 0]));
 
-  /// Returns the conjugate transpose (Hermitian adjoint $A^* = (\bar{A})^T$) of
-  /// this matrix.
+  /// Returns the conjugate transpose (Hermitian adjoint `A^* = (conj(A))^T`)
+  /// of this matrix.
   Matrix<T> get conjugateTranspose {
     final field = type.field;
     return Matrix<T>.generate(
@@ -292,11 +298,7 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Returns the trace of this square matrix.
-  ///
-  /// The trace is defined as the sum of the main diagonal elements:
-  ///
-  /// $$\operatorname{tr}(A) = \sum_{i=1}^n A_{ii}$$
+  /// Returns the trace of this square matrix: `sum(A[i, i])`.
   ///
   /// Throws an [ArgumentError] if the matrix is not square.
   T get trace {
@@ -313,10 +315,10 @@ class Matrix<T> implements LinearOperator<T> {
     return sum;
   }
 
-  /// Tests if this matrix is square ($M = N$).
+  /// Tests if this matrix is square (`rowCount == colCount`).
   bool get isSquare => rowCount == colCount;
 
-  /// Tests if this matrix is symmetric ($A = A^T$).
+  /// Tests if this matrix is symmetric (`A == A^T`).
   bool get isSymmetric {
     if (!isSquare) return false;
     final eq = type.equality;
@@ -330,7 +332,29 @@ class Matrix<T> implements LinearOperator<T> {
     return true;
   }
 
-  /// Tests if this matrix is a diagonal matrix ($a_{ij} = 0$ for $i \ne j$).
+  /// Tests if this matrix is Hermitian (`A == A^*`).
+  bool get isHermitian {
+    if (!isSquare) return false;
+    final eq = type.equality;
+    final field = type.field;
+    for (var row = 0; row < rowCount; row++) {
+      final diag = getUnchecked(row, row);
+      if (!eq.isEqual(diag, field.conjugate(diag))) {
+        return false;
+      }
+      for (var col = 0; col < row; col++) {
+        if (!eq.isEqual(
+          getUnchecked(row, col),
+          field.conjugate(getUnchecked(col, row)),
+        )) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Tests if this matrix is a diagonal matrix (`a_ij == 0` for `i != j`).
   bool get isDiagonal {
     final eq = type.equality;
     final zero = type.defaultValue;
@@ -344,7 +368,7 @@ class Matrix<T> implements LinearOperator<T> {
     return true;
   }
 
-  /// Tests if this matrix is lower triangular ($a_{ij} = 0$ for $j > i$).
+  /// Tests if this matrix is lower triangular (`a_ij == 0` for `j > i`).
   bool get isLowerTriangular {
     final eq = type.equality;
     final zero = type.defaultValue;
@@ -358,7 +382,7 @@ class Matrix<T> implements LinearOperator<T> {
     return true;
   }
 
-  /// Tests if this matrix is upper triangular ($a_{ij} = 0$ for $i > j$).
+  /// Tests if this matrix is upper triangular (`a_ij == 0` for `i > j`).
   bool get isUpperTriangular {
     final eq = type.equality;
     final zero = type.defaultValue;
@@ -424,12 +448,12 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Solves the linear system $A x = b$ or linear least-squares problem
-  /// $A x \approx b$ for a vector right-hand side [b].
+  /// Solves the linear system `A * x = b` or linear least-squares problem
+  /// `A * x ~= b` for a vector right-hand side [b].
   ///
-  /// For square matrices ($m = n$), the system is solved via LU decomposition
+  /// For square matrices (`m == n`), the system is solved via LU decomposition
   /// with partial pivoting (`dgesv` or pure-Dart LU). For rectangular matrices
-  /// ($m \ne n$), the least-squares solution is computed via QR/LQ
+  /// (`m != n`), the least-squares solution is computed via QR/LQ
   /// decomposition (`dgels` or pure-Dart QR).
   ///
   /// ```dart
@@ -456,12 +480,12 @@ class Matrix<T> implements LinearOperator<T> {
     return solve(b.toMatrix()).col(0).copy();
   }
 
-  /// Solves the linear system $A X = B$ or linear least-squares problem
-  /// $A X \approx B$ for a matrix right-hand side [b].
+  /// Solves the linear system `A * X = B` or linear least-squares problem
+  /// `A * X ~= B` for a matrix right-hand side [b].
   ///
-  /// For square matrices ($m = n$), the system is solved via LU decomposition
+  /// For square matrices (`m == n`), the system is solved via LU decomposition
   /// with partial pivoting (`dgesv` or pure-Dart LU). For rectangular matrices
-  /// ($m \ne n$), the least-squares solution is computed via QR/LQ
+  /// (`m != n`), the least-squares solution is computed via QR/LQ
   /// decomposition (`dgels` or pure-Dart QR).
   ///
   /// ```dart
@@ -517,12 +541,11 @@ class Matrix<T> implements LinearOperator<T> {
   /// Element-wise Hadamard product.
   Matrix<T> hadamard(Matrix<T> other) => Matrix(tensor * other.tensor);
 
-  /// Computes the Kronecker product $A \otimes B$ with [other].
+  /// Computes the Kronecker product `A (x) B` with [other].
   ///
-  /// Conceptually, the Kronecker product replaces each element $a_{i,j}$ of
-  /// this matrix with the block $a_{i,j} B$. If this matrix is $m \times n$ and
-  /// [other] is $p \times q$, the resulting matrix has size
-  /// $(m \cdot p) \times (n \cdot q)$.
+  /// Conceptually, the Kronecker product replaces each element `a_ij` of
+  /// this matrix with the block `a_ij * B`. If this matrix is `m x n` and
+  /// [other] is `p x q`, the resulting matrix has size `(m * p) x (n * q)`.
   Matrix<T> kronecker(Matrix<T> other) {
     final m = rowCount;
     final n = colCount;
@@ -758,8 +781,8 @@ class Matrix<T> implements LinearOperator<T> {
     return res;
   }
 
-  /// Computes symmetric rank-k update $C = \alpha A A^T + \beta C$ (or
-  /// $A^T A$).
+  /// Computes symmetric rank-k update `C = alpha * A * A^T + beta * C` (or
+  /// `A^T * A`).
   Matrix<T> syrk({
     double alpha = 1.0,
     double beta = 0.0,
@@ -778,7 +801,14 @@ class Matrix<T> implements LinearOperator<T> {
         target ??
         Matrix<T>.filled(dim, dim, field.additiveIdentity, type: type);
     if (dim == 0 || kDim == 0 || alpha == 0.0) {
-      if (beta != 1.0) {
+      if (beta == 0.0 && target != null) {
+        final zero = field.additiveIdentity;
+        for (var r = 0; r < dim; r++) {
+          for (var c = 0; c < dim; c++) {
+            result.setUnchecked(r, c, zero);
+          }
+        }
+      } else if (beta != 1.0) {
         final scaled = result.scale(
           field.scale(field.multiplicativeIdentity, beta),
         );

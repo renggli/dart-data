@@ -132,11 +132,11 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - `Matrix<T>` wraps a `Tensor<T>` where `rank == 2`. Dimensions are `rowCount = shape[0]` and `colCount = shape[1]`.
   - `Vector<T>` wraps a `Tensor<T>` where `rank == 1`. Dimension is `length = shape[0]`.
-  - Operations like `matrix.transposed`, `matrix.conjugateTranspose`, `matrix.row(i)`, `matrix.col(j)`, and `matrix.diagonal()` return views or conjugated adjoints backed by the underlying tensor elements.
+  - Operations like `matrix.transposed`, `matrix.conjugateTranspose`, `matrix.row(i)`, `matrix.col(j)`, and `matrix.diagonal()` return views or conjugated adjoints backed by the underlying tensor elements (`Float64Matrix.conjugateTranspose` redeclares to `transposed`). Matrices expose `isEmpty`, `isNotEmpty`, `isSquare`, `isSymmetric`, `isHermitian`, `isDiagonal`, `isLowerTriangular`, and `isUpperTriangular`; vectors expose `isEmpty` and `isNotEmpty`.
   - **Trace & Diagonal Extraction**:
-    - `matrix.diagonal()` returns a zero-copy 1D view of the main diagonal.
-    - `matrix.trace` sums main diagonal elements $A_{ii}$ for square matrices, returning `T` via `type.field.add` and throwing `ArgumentError` if non-square ($M \ne N$). The property is unified strictly on `Matrix<T>`, eliminating shadowing from `MatrixNormExtension`.
-    - `matrix.conjugateTranspose` computes the Hermitian adjoint $A^* = (\bar{A})^T$ mapping elements through `type.field.conjugate`.
+    - `matrix.diagonal()` returns a zero-copy 1D view of the main diagonal; `Matrix.identity` and `Matrix.diagonal` initialize diagonals in `O(N)` writes without per-element closures.
+    - `matrix.trace` sums main diagonal elements `A_ii` for square matrices, returning `T` via `type.field.add` and throwing `ArgumentError` if non-square (`M != N`). The property is unified strictly on `Matrix<T>`, eliminating shadowing from `MatrixNormExtension`.
+    - `matrix.conjugateTranspose` computes the Hermitian adjoint `A^* = conj(A)^T` mapping elements through `type.field.conjugate`.
   - **Direct Fast-Path Indexing**:
     - `Tensor.get2D(r, c)`, `Tensor.set2D(r, c, v)`, `Tensor.get1D(idx)`, and `Tensor.set1D(idx, v)` provide `@pragma('vm:prefer-inline')` unchecked scalar access without heap `List<int>` coordinate allocations.
     - `Matrix<T>` provides `getUnchecked(row, col)` and `setUnchecked(row, col, value)` for performance-critical inner loops (factorizations, transformations), alongside 2D indexing `matrix[r][c]`, bounds-checked `get(row, col)`, `set(row, col, value)`, and row assignment `operator []=(int, Vector<T>)`.
@@ -168,13 +168,13 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Large-scale scientific and graph problems contain $>99\%$ zero entries. Dense storage wastes memory and induces $\mathcal{O}(N^2)$ operation costs.
 - **Implementation & Constraints**:
   - **Compressed Sparse Row (`CsrMatrix`)**:
-    - Stores non-zero elements in `values`, corresponding column indices in `colIndices`, and row start pointers in `rowPointers` of size $M + 1$.
-    - Optimal for row slicing, matrix-vector multiplication $y = A x$, and standard linear system solves.
+    - Stores non-zero elements in `values`, corresponding column indices in `colIndices`, and row start pointers in `rowPointers` of size `M + 1`.
+    - Optimal for row slicing, `O(log k)` binary-search element lookup (`get`), matrix-vector multiplication `y = A * x`, `O(nnz + m + n)` `transposed`, `conjugateTranspose`, and `toCsc()` conversion, and standard linear system solves.
   - **Compressed Sparse Column (`CscMatrix`)**:
-    - Stores column start pointers in `colPointers` of size $N + 1$.
-    - Optimal for column slicing and computing transpose products $y = A^T x$.
+    - Stores column start pointers in `colPointers` of size `N + 1`.
+    - Optimal for column slicing, `O(log k)` binary-search element lookup (`get`), transposed products `y = A^T * x`, and `O(nnz + m + n)` `transposed`, `conjugateTranspose`, and `toCsr()` conversion.
   - **Coordinate List (`CooMatrix`)**:
-    - Flat triplets `(row, col, value)`. Ideal for dynamic assembly and incremental sparse matrix construction before converting to CSR/CSC via `toCsr()` or `toCsc()`.
+    - Flat triplets `(row, col, value)` with `transposed` and `conjugateTranspose`. Ideal for dynamic assembly and incremental sparse matrix construction before converting to CSR/CSC via `toCsr()` or `toCsc()`.
 
 ### 3.4 Tridiagonal & Matrix-Free Iterative Solvers
 
@@ -191,28 +191,29 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - **Modular Type-Safe Extensions**: Factorization entry points are declared at the top of their dedicated decomposition files in `lib/src/linear/decomposition/` and exported via `package:data/linear.dart`:
     - `CholeskyMatrixExtension<T>` in `cholesky.dart` (`.cholesky`)
-    - `LuMatrixExtension<T>` in `lu.dart` (`.lu`, `.det`, `.inverse`)
+    - `LuMatrixExtension<T>` in `lu.dart` (`.lu`, `.det`, `.inverse`; `Matrix.inverse` delegates directly to `solve(identity)` for LAPACK `dgesv` acceleration)
     - `QrMatrixExtension<T>` in `qr.dart` (`.qr`)
     - `SvdMatrixExtension<T extends num>` in `svd.dart` (`.svd`)
     - `EigenvalueMatrixExtension<T extends num>` in `eigenvalue.dart` (`.eigenvalue`)
   - **Generic Decomposition Classes**: `LUDecomposition<T>`, `QRDecomposition<T>`, and `CholeskyDecomposition<T>` execute specialized primitive double fast-paths when `type == DataType.float64` and generic algebraic field operations via `type.field` for general scalar fields (including `Complex`).
-  - **LU Decomposition (`LUDecomposition<T>`)**: Doolittle algorithm with partial row pivoting ($P A = L U$) based on modulus norm (`field.norm`). Provides determinant computation and triangular back-substitution solves for both real and complex fields.
-  - **QR Decomposition (`QRDecomposition<T>`)**: Complex Householder reflector transformations yielding unitary/orthogonal $Q$ ($Q^* Q = I$) and upper-triangular $R$. Uses phase factor $\mu = x_k / |x_k|$ to guarantee numerical stability and provides full-rank least-squares solves via canonical `solve(Matrix<T> b)` and `solveVector(Vector<T> b)`.
-  - **Cholesky Factorization (`CholeskyDecomposition<T>`)**: $A = L L^*$ for symmetric/Hermitian positive-definite matrices, executing in $\frac{1}{3} N^3$ operations ($2\times$ faster than LU). Enforces strictly positive real diagonal entries $L_{ii} > 0$ and verifies Hermitian symmetry $A_{kj} = \overline{A_{jk}}$.
-  - **Singular Value Decomposition (`SingularValueDecomposition`)**: Golub-Reinsch bidiagonalization with implicit QR shifts computing $A = U \Sigma V^T$. Provides pseudo-inverses, rank estimation, and singular value inspection.
-  - **Eigenvalue Decomposition (`EigenvalueDecomposition`)**: Reduction to Hessenberg form followed by Francis shifted double-step QR algorithm computing real and complex eigenvalues/eigenvectors.
+  - **LU Decomposition (`LUDecomposition<T>`)**: Doolittle algorithm with partial row pivoting (`P * A = L * U`) based on modulus norm (`field.norm`). Provides determinant computation, `inverse`, and triangular back-substitution solves for both real and complex fields.
+  - **QR Decomposition (`QRDecomposition<T>`)**: Complex Householder reflector transformations yielding unitary/orthogonal `Q` (`Q^* * Q = I`) and upper-triangular `R`. Uses phase factor `mu = x_k / |x_k|` to guarantee numerical stability and provides full-rank least-squares solves via canonical `solve(Matrix<T> b)` and `solveVector(Vector<T> b)`.
+  - **Cholesky Factorization (`CholeskyDecomposition<T>`)**: `A = L * L^*` for symmetric/Hermitian positive-definite matrices, executing in roughly one-third `N^3` operations (twice as fast as LU). Enforces strictly positive real diagonal entries `L_ii > 0`, verifies Hermitian symmetry `A_kj = conj(A_jk)`, and provides `inverse` and `solve`/`solveVector`.
+  - **Singular Value Decomposition (`SingularValueDecomposition`)**: Golub-Reinsch / LAPACK `dgesvd` computing `A = U * Sigma * V^T` (returning defensive copies from `u`, `vt`, `v` and identity factors on `m == 0` or `n == 0`). Provides pseudo-inverses, rank estimation, condition numbers, and singular value inspection.
+  - **Eigenvalue Decomposition (`EigenvalueDecomposition`)**: Symmetric inputs route through `dsyev` (avoiding dense Hessenberg scratch allocations); general inputs reduce to Hessenberg form and apply Francis shifted double-step QR iteration. Exposes `isSymmetric`, defensive `v`, `d`, and real/imaginary/complex eigenvalues.
+  - **Matrix Norms (`MatrixNormExtension`)**: Computes `normFrobenius`, `norm1`, `normInfinity`, and delegates `norm2`, `cond`, and `rank` to `SingularValueDecomposition`.
 
 ### 3.6 Vector Operations, Cumulative Scans & Geometric Decompositions
 
 - **Reasoning**: Geometric and functional operations on vectors are foundational across numerical analysis, optimization, and signal processing.
 - **Implementation & Constraints**:
-  - Generalized $L_p$ norm: `norm([p = 2.0])` supports $L_1$ (Manhattan), $L_2$ (Euclidean), and $L_\infty$ (Chebyshev maximum absolute).
+  - Generalized `L_p` norm: `norm([p = 2.0])` supports `L_1` (Manhattan), `L_2` (Euclidean via BLAS / `ScaledNormAccumulator`), `L_inf` (Chebyshev maximum absolute), and max-abs scaled general `p >= 1`.
   - Cumulative prefix scans:
-    - `cumsum({Vector<T>? target})`: Computes prefix sum in $\mathcal{O}(N)$ single pass using `field.add`. Fast paths iterate contiguous buffers directly; supports in-place accumulation (`target: this`) and safe defensive copying for overlapping slice aliases.
-    - `cumprod({Vector<T>? target})`: Computes prefix product in $\mathcal{O}(N)$ single pass starting from `field.multiplicativeIdentity` using `field.mul`.
+    - `cumsum({Vector<T>? target})`: Computes prefix sum in `O(N)` single pass using `field.add`. Fast paths iterate contiguous buffers directly; supports in-place accumulation (`target: this`) and safe defensive copying for overlapping slice aliases.
+    - `cumprod({Vector<T>? target})`: Computes prefix product in `O(N)` single pass starting from `field.multiplicativeIdentity` using `field.mul`.
   - Orthogonal decomposition (`VectorProjectionExtension<T extends num>` in `lib/src/linear/projection.dart`):
-    - `project(onto)`: Computes $\operatorname{proj}_{\mathbf{v}}(\mathbf{u}) = \frac{\langle \mathbf{u}, \mathbf{v} \rangle}{\|\mathbf{v}\|_2^2} \mathbf{v}$. Throws `ArgumentError` if lengths mismatch or if $\|\mathbf{v}\|_2^2 < 1\text{e-}15$.
-    - `reject(from)`: Computes $\operatorname{oproj}_{\mathbf{v}}(\mathbf{u}) = \mathbf{u} - \operatorname{proj}_{\mathbf{v}}(\mathbf{u})$ via in-place reusable buffer update with zero extraneous allocations.
+    - `project(onto)`: Computes `(<u, v> / ||v||_2^2) * v` using max-abs scaling across subnormal and near-overflow magnitudes. Throws `ArgumentError` if lengths mismatch or if `onto` is empty, zero, or contains non-finite elements.
+    - `reject(from)`: Computes `u - proj_v(u)` via in-place reusable buffer update with zero extraneous allocations.
   - Utility operations: `normalized()`, dot product `u.dot(v)`, outer product `u.outer(v)`, in-place scaling `scaleInPlace(factor)`, and scaled addition `addScaled(v, factor)`.
 
 ---

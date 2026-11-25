@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('CscMatrix construction and conversions', () {
@@ -329,6 +329,104 @@ void main() {
 
     test('string conversion', () {
       check(a.toString()).contains('CscMatrix<double>(2 x 3, nnz: 3)');
+    });
+
+    test('binary-search get, O(nnz) toCsr/transposed/conjugateTranspose, scale(0), and cross-type ==', () {
+      final denseLike = CscMatrix<double>(
+        rowCount: 5,
+        colCount: 2,
+        colPointers: [0, 4, 5],
+        rowIndices: [0, 1, 3, 4, 2],
+        values: [10.0, 20.0, 30.0, 40.0, 50.0],
+        type: DataType.float64,
+      );
+      check(denseLike.get(0, 0)).equals(10.0);
+      check(denseLike.get(1, 0)).equals(20.0);
+      check(denseLike.get(2, 0)).equals(0.0);
+      check(denseLike.get(3, 0)).equals(30.0);
+      check(denseLike.get(4, 0)).equals(40.0);
+      check(denseLike.get(2, 1)).equals(50.0);
+
+      final csrFromDenseLike = denseLike.toCsr();
+      check(csrFromDenseLike.get(3, 0)).equals(30.0);
+      check(csrFromDenseLike.get(2, 1)).equals(50.0);
+      check(denseLike.transposed.get(0, 3)).equals(30.0);
+
+      final dZero = CscMatrix<double>(
+        rowCount: 1,
+        colCount: 1,
+        colPointers: [0, 1],
+        rowIndices: [0],
+        values: [0.0],
+        type: DataType.float64,
+      );
+      final iNonZero = CscMatrix<int>(
+        rowCount: 1,
+        colCount: 1,
+        colPointers: [0, 1],
+        rowIndices: [0],
+        values: [5],
+        type: DataType.int32,
+      );
+      check(dZero == iNonZero).isFalse;
+      check(dZero.toCsr().nnz).equals(0);
+
+      final cCsc = CscMatrix<Complex>.fromEntries(2, 2, const [
+        (0, 1, Complex(1.0, 2.0)),
+      ], type: DataType.complex);
+      final adj = cCsc.conjugateTranspose;
+      check(adj.get(1, 0)).equals(const Complex(1.0, -2.0));
+
+      final infCsc = CscMatrix<double>.fromEntries(2, 1, const [
+        (0, 0, 2.0),
+        (1, 0, double.infinity),
+      ]);
+      final zeroScaled = infCsc.scale(0.0);
+      check(zeroScaled.get(0, 0)).equals(0.0);
+      check(zeroScaled.get(1, 0).isNaN).isTrue;
+    });
+
+    test('pointer validation and sparse merge edge branches', () {
+      check(
+        () => CscMatrix<double>(
+          rowCount: 2,
+          colCount: 1,
+          colPointers: [0, 0],
+          rowIndices: [0],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CscMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          colPointers: [0, 1, 0],
+          rowIndices: const [],
+          values: const [],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+
+      final mLeft = CscMatrix<double>.fromEntries(4, 1, const [
+        (1, 0, 2.0),
+        (3, 0, 4.0),
+      ]);
+      final mRight = CscMatrix<double>.fromEntries(4, 1, const [
+        (0, 0, 1.0),
+        (2, 0, 3.0),
+      ]);
+      final added = mLeft + mRight;
+      check(added.get(0, 0)).equals(1.0);
+      check(added.get(1, 0)).equals(2.0);
+      check(added.get(2, 0)).equals(3.0);
+      check(added.get(3, 0)).equals(4.0);
+
+      final subbed = mLeft - mRight;
+      check(subbed.get(0, 0)).equals(-1.0);
+      check(subbed.get(1, 0)).equals(2.0);
+      check(subbed.get(2, 0)).equals(-3.0);
+      check(subbed.get(3, 0)).equals(4.0);
     });
   });
 }

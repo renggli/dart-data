@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:more/number.dart' show Complex;
+
 import '../../type/data_type.dart';
 import '../../type/models/field.dart';
 import '../matrix.dart';
@@ -17,26 +19,26 @@ extension LuMatrixExtension<T> on Matrix<T> {
   /// Returns the multiplicative inverse of this square, non-singular matrix.
   ///
   /// Throws an [ArgumentError] if the matrix is not square, or a [StateError]
-  /// if singular ($\det = 0$).
+  /// if singular (`det == 0`).
   Matrix<T> get inverse {
     if (rowCount != colCount) {
       throw ArgumentError(
         'Matrix must be square to be inverted, got $rowCount x $colCount.',
       );
     }
-    return lu.solve(Matrix<T>.identity(rowCount, type: type));
+    return solve(Matrix<T>.identity(rowCount, type: type));
   }
 }
 
-/// LU Decomposition of an $m \times n$ matrix $A$.
+/// LU Decomposition of an `m x n` matrix `A`.
 ///
 /// Conceptually, LU decomposition is Gaussian elimination stored in a
 /// structured, reusable format: it factors a matrix into a lower-triangular
-/// matrix ($L$) and an upper-triangular matrix ($U$), making repeated solving
-/// of $A x = b$ rapid and straightforward. More formally, it computes the
-/// $P A = L U$ factorization using Gaussian elimination with row partial
-/// pivoting, where $P$ is a permutation matrix represented by [pivot], $L$ is
-/// unit lower triangular, and $U$ is upper triangular.
+/// matrix (`L`) and an upper-triangular matrix (`U`), making repeated solving
+/// of `A * x = b` rapid and straightforward. More formally, it computes the
+/// `P * A = L * U` factorization using Gaussian elimination with row partial
+/// pivoting, where `P` is a permutation matrix represented by [pivot], `L` is
+/// unit lower triangular, and `U` is upper triangular.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([
@@ -75,7 +77,7 @@ class LUDecomposition<T> {
   /// Number of columns.
   int get n => _n;
 
-  /// Whether the matrix is square and non-singular ($\det \ne 0$).
+  /// Whether the matrix is square and non-singular (`det != 0`).
   bool get isNonsingular {
     if (_m != _n) return false;
     final field = _type.field;
@@ -83,7 +85,8 @@ class LUDecomposition<T> {
     for (var j = 0; j < _n; j++) {
       final val = _lu.getUnchecked(j, j);
       if (field.add(val, zero) == zero ||
-          (val is num && val.isNaN) ||
+          (val is num && !val.isFinite) ||
+          (val is Complex && (!val.real.isFinite || !val.imaginary.isFinite)) ||
           val != val) {
         return false;
       }
@@ -91,7 +94,7 @@ class LUDecomposition<T> {
     return true;
   }
 
-  /// Returns the unit lower triangular factor $L$.
+  /// Returns the unit lower triangular factor `L`.
   Matrix<T> get lower {
     final field = _type.field;
     final zero = field.additiveIdentity;
@@ -110,7 +113,7 @@ class LUDecomposition<T> {
     return result;
   }
 
-  /// Returns the upper triangular factor $U$.
+  /// Returns the upper triangular factor `U`.
   Matrix<T> get upper {
     final field = _type.field;
     final zero = field.additiveIdentity;
@@ -142,7 +145,20 @@ class LUDecomposition<T> {
     return _pivSign == 1 ? detVal : field.neg(detVal);
   }
 
-  /// Solves $A X = B$ for $X$.
+  /// Computes the matrix inverse `A^-1` using this LU factorization.
+  ///
+  /// Throws an [ArgumentError] if the matrix is not square, or a [StateError]
+  /// if singular.
+  Matrix<T> get inverse {
+    if (_m != _n) {
+      throw ArgumentError(
+        'Matrix must be square to be inverted, got $_m x $_n.',
+      );
+    }
+    return solve(Matrix<T>.identity(_n, type: _type));
+  }
+
+  /// Solves `A * X = B` for `X`.
   Matrix<T> solve(Matrix<T> b) {
     if (b.rowCount != _m) {
       throw ArgumentError(
@@ -159,7 +175,7 @@ class LUDecomposition<T> {
     }
   }
 
-  /// Solves $A x = b$ for vector $x$.
+  /// Solves `A * x = b` for vector `x`.
   Vector<T> solveVector(Vector<T> b) {
     final mat = solve(b.toMatrix());
     return mat.col(0);

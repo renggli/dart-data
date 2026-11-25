@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('CsrMatrix construction and conversions', () {
@@ -449,6 +449,105 @@ void main() {
 
     test('string conversion', () {
       check(a.toString()).contains('CsrMatrix<double>(2 x 3, nnz: 3)');
+    });
+
+    test('binary-search get, O(nnz) toCsc/transposed/conjugateTranspose, scale(0), and cross-type ==', () {
+      final denseLike = CsrMatrix<double>(
+        rowCount: 2,
+        colCount: 5,
+        rowPointers: [0, 4, 5],
+        colIndices: [0, 1, 3, 4, 2],
+        values: [10.0, 20.0, 30.0, 40.0, 50.0],
+        type: DataType.float64,
+      );
+      check(denseLike.get(0, 0)).equals(10.0);
+      check(denseLike.get(0, 1)).equals(20.0);
+      check(denseLike.get(0, 2)).equals(0.0);
+      check(denseLike.get(0, 3)).equals(30.0);
+      check(denseLike.get(0, 4)).equals(40.0);
+      check(denseLike.get(1, 2)).equals(50.0);
+
+      final cscFromDenseLike = denseLike.toCsc();
+      check(cscFromDenseLike.get(0, 3)).equals(30.0);
+      check(cscFromDenseLike.get(1, 2)).equals(50.0);
+      check(denseLike.transposed.get(3, 0)).equals(30.0);
+
+      // Explicit zeros in CSR are stripped on toCsc and skipped in operator == across types
+      final dZero = CsrMatrix<double>(
+        rowCount: 1,
+        colCount: 1,
+        rowPointers: [0, 1],
+        colIndices: [0],
+        values: [0.0],
+        type: DataType.float64,
+      );
+      final iNonZero = CsrMatrix<int>(
+        rowCount: 1,
+        colCount: 1,
+        rowPointers: [0, 1],
+        colIndices: [0],
+        values: [5],
+        type: DataType.int32,
+      );
+      check(dZero == iNonZero).isFalse;
+      check(dZero.toCsc().nnz).equals(0);
+
+      final cCsr = CsrMatrix<Complex>.fromEntries(2, 2, const [
+        (0, 1, Complex(1.0, 2.0)),
+      ], type: DataType.complex);
+      final adj = cCsr.conjugateTranspose;
+      check(adj.get(1, 0)).equals(const Complex(1.0, -2.0));
+
+      final infCsr = CsrMatrix<double>.fromEntries(1, 2, const [
+        (0, 0, 2.0),
+        (0, 1, double.infinity),
+      ]);
+      final zeroScaled = infCsr.scale(0.0);
+      check(zeroScaled.get(0, 0)).equals(0.0);
+      check(zeroScaled.get(0, 1).isNaN).isTrue;
+    });
+
+    test('pointer validation and sparse merge edge branches', () {
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 1,
+          colCount: 2,
+          rowPointers: [0, 0],
+          colIndices: [0],
+          values: [1.0],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => CsrMatrix<double>(
+          rowCount: 2,
+          colCount: 2,
+          rowPointers: [0, 1, 0],
+          colIndices: const [],
+          values: const [],
+          type: DataType.float64,
+        ),
+      ).throws<ArgumentError>();
+
+      final mLeft = CsrMatrix<double>.fromEntries(1, 4, const [
+        (0, 1, 2.0),
+        (0, 3, 4.0),
+      ]);
+      final mRight = CsrMatrix<double>.fromEntries(1, 4, const [
+        (0, 0, 1.0),
+        (0, 2, 3.0),
+      ]);
+      final added = mLeft + mRight;
+      check(added.get(0, 0)).equals(1.0);
+      check(added.get(0, 1)).equals(2.0);
+      check(added.get(0, 2)).equals(3.0);
+      check(added.get(0, 3)).equals(4.0);
+
+      final subbed = mLeft - mRight;
+      check(subbed.get(0, 0)).equals(-1.0);
+      check(subbed.get(0, 1)).equals(2.0);
+      check(subbed.get(0, 2)).equals(-3.0);
+      check(subbed.get(0, 3)).equals(4.0);
     });
   });
 }

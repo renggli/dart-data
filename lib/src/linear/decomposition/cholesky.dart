@@ -17,12 +17,12 @@ extension CholeskyMatrixExtension<T> on Matrix<T> {
 }
 
 /// Cholesky Decomposition of a symmetric (or Hermitian) positive-definite
-/// matrix $A$.
+/// matrix `A`.
 ///
 /// Conceptually, Cholesky decomposition is like taking the square root of a
 /// positive matrix: it factors a symmetric positive matrix into a
-/// lower-triangular matrix times its transpose ($A = L L^T$). Formally, it
-/// computes the unique lower triangular factor $L$ such that $A = L L^*$ with
+/// lower-triangular matrix times its transpose (`A = L * L^T`). Formally, it
+/// computes the unique lower triangular factor `L` such that `A = L * L^*` with
 /// strictly positive real diagonal entries, executing in roughly half the
 /// floating-point operations of standard LU factorization.
 ///
@@ -64,10 +64,10 @@ class CholeskyDecomposition<T> {
   /// Whether the matrix is symmetric (or Hermitian) and positive definite.
   bool get isSymmetricPositiveDefinite => _isSymmetricPositiveDefinite;
 
-  /// Returns the lower triangular factor $L$.
+  /// Returns the lower triangular factor `L`.
   Matrix<T> get l => _l.copy();
 
-  /// Returns the determinant of $A = (\prod L_{ii})^2$.
+  /// Returns the determinant of `A = (prod L_ii) * conj(prod L_ii)`.
   T get det {
     if (!_isSymmetricPositiveDefinite) {
       throw StateError('Matrix is not symmetric positive definite.');
@@ -80,7 +80,12 @@ class CholeskyDecomposition<T> {
     return field.mul(detVal, field.conjugate(detVal));
   }
 
-  /// Solves $A X = B$ for $X$ using forward and back substitution.
+  /// Computes the matrix inverse `A^-1` using the Cholesky factor.
+  ///
+  /// Throws a [StateError] if the matrix is not symmetric positive definite.
+  Matrix<T> get inverse => solve(Matrix<T>.identity(_n, type: _type));
+
+  /// Solves `A * X = B` for `X` using forward and back substitution.
   Matrix<T> solve(Matrix<T> b) {
     if (b.rowCount != _n) {
       throw ArgumentError(
@@ -97,7 +102,7 @@ class CholeskyDecomposition<T> {
     }
   }
 
-  /// Solves $A x = b$ for vector $x$.
+  /// Solves `A * x = b` for vector `x`.
   Vector<T> solveVector(Vector<T> b) {
     final mat = solve(b.toMatrix());
     return mat.col(0);
@@ -110,7 +115,7 @@ class CholeskyDecomposition<T> {
     for (var i = 0; i < _n; i++) {
       for (var j = 0; j < _n; j++) {
         final val = matrix.getUnchecked(i, j).abs();
-        if (val.isNaN) {
+        if (!val.isFinite) {
           _isSymmetricPositiveDefinite = false;
           return;
         }
@@ -172,7 +177,7 @@ class CholeskyDecomposition<T> {
     for (var i = 0; i < _n; i++) {
       for (var j = 0; j < _n; j++) {
         final norm = field.norm(matrix.getUnchecked(i, j));
-        if (norm.isNaN) {
+        if (!norm.isFinite) {
           _isSymmetricPositiveDefinite = false;
           return;
         }
@@ -208,21 +213,25 @@ class CholeskyDecomposition<T> {
         // Check Hermitian symmetry A_kj == conjugate(A_jk)
         final akj = matrix.getUnchecked(k, j);
         final ajkConj = field.conjugate(matrix.getUnchecked(j, k));
-        _isSymmetricPositiveDefinite =
-            _isSymmetricPositiveDefinite && equality.isClose(akj, ajkConj, tol);
+        if (!equality.isClose(akj, ajkConj, tol)) {
+          _isSymmetricPositiveDefinite = false;
+          return;
+        }
       }
       final diagVal = field.sub(matrix.getUnchecked(j, j), diagSum);
       final isPos = switch (diagVal) {
-        final num val => val > 0.0,
-        final Complex c => c.real > 0.0 && c.imaginary.abs() < tol,
+        final num val => val > 0.0 && val.isFinite,
+        final Complex c =>
+          c.real > 0.0 && c.real.isFinite && c.imaginary.abs() < tol,
         _ => _type.comparator(diagVal, zero) > 0,
       };
-      _isSymmetricPositiveDefinite = _isSymmetricPositiveDefinite && isPos;
+      if (!isPos) {
+        _isSymmetricPositiveDefinite = false;
+        return;
+      }
 
       final T sqrtVal;
-      if (!isPos) {
-        sqrtVal = zero;
-      } else if (diagVal is Complex) {
+      if (diagVal is Complex) {
         sqrtVal = Complex(math.sqrt(math.max(diagVal.real, 0.0)), 0.0) as T;
       } else {
         sqrtVal = field.sqrt(diagVal);
@@ -235,50 +244,40 @@ class CholeskyDecomposition<T> {
   }
 
   Matrix<double> _solveFloat64(Matrix<double> b) {
-    final l = _l as Matrix<double>;
+    final lData = (_l as Matrix<double>).tensor.data;
     final nx = b.colCount;
     final result = Matrix<double>.generate(
       _n,
       nx,
       (row, col) => b.getUnchecked(row, col),
-      type: DataType.float64,
+      type: _type as DataType<double>,
     );
+    final resData = result.tensor.data;
 
     // Solve L * Y = B
     for (var k = 0; k < _n; k++) {
+      final kOff = k * nx;
+      final lkOff = k * _n;
+      final lkk = lData[lkOff + k];
       for (var j = 0; j < nx; j++) {
+        var sum = resData[kOff + j];
         for (var i = 0; i < k; i++) {
-          result.setUnchecked(
-            k,
-            j,
-            result.getUnchecked(k, j) -
-                result.getUnchecked(i, j) * l.getUnchecked(k, i),
-          );
+          sum -= resData[i * nx + j] * lData[lkOff + i];
         }
-        result.setUnchecked(
-          k,
-          j,
-          result.getUnchecked(k, j) / l.getUnchecked(k, k),
-        );
+        resData[kOff + j] = sum / lkk;
       }
     }
 
     // Solve L^T * X = Y
     for (var k = _n - 1; k >= 0; k--) {
+      final kOff = k * nx;
+      final lkk = lData[k * _n + k];
       for (var j = 0; j < nx; j++) {
+        var sum = resData[kOff + j];
         for (var i = k + 1; i < _n; i++) {
-          result.setUnchecked(
-            k,
-            j,
-            result.getUnchecked(k, j) -
-                result.getUnchecked(i, j) * l.getUnchecked(i, k),
-          );
+          sum -= resData[i * nx + j] * lData[i * _n + k];
         }
-        result.setUnchecked(
-          k,
-          j,
-          result.getUnchecked(k, j) / l.getUnchecked(k, k),
-        );
+        resData[kOff + j] = sum / lkk;
       }
     }
     return result;

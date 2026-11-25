@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 extension on Subject<Complex> {
   void isCloseTo(Complex other, double delta) {
@@ -335,5 +335,45 @@ void main() {
       ]);
       check(infMat.qr.isFullRank).isFalse;
     });
+
+    test(
+      'Complex QR handles zero diagonal before pivot and Infinity entries',
+      () {
+        final zeroDiag = Matrix<Complex>.fromRows([
+          [Complex.zero, Complex.one],
+          [const Complex(1.0, 1.0), Complex.zero],
+        ], type: DataType.complex);
+        final qr = zeroDiag.qr;
+        check(qr.isFullRank).isTrue;
+        final q = qr.q;
+        final r = qr.r;
+        final qrProd = q * r;
+        for (var i = 0; i < 2; i++) {
+          for (var j = 0; j < 2; j++) {
+            check(qrProd.get(i, j)).isCloseTo(zeroDiag.get(i, j), 1e-10);
+          }
+        }
+
+        final infC = Matrix<Complex>.fromRows([
+          [const Complex(double.infinity, 0.0), Complex.one],
+          [Complex.zero, Complex.one],
+        ], type: DataType.complex);
+        check(infC.qr.isFullRank).isFalse;
+
+        // Tall solve returns compact n x nrhs matrix without oversized backing buffer
+        final tallA = Matrix<double>.fromRows([
+          [1.0, 1.0],
+          [1.0, 2.0],
+          [1.0, 3.0],
+        ]);
+        final tallB = Matrix<double>.fromRows([
+          [3.0],
+          [5.0],
+          [7.0],
+        ]);
+        final sol = tallA.qr.solve(tallB);
+        check(sol.tensor.data.length).equals(2);
+      },
+    );
   });
 }

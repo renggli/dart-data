@@ -8,7 +8,7 @@
 /// ## Core Data Structures
 ///
 /// - [Vector]: 1-dimensional mathematical vector supporting dot product, cross
-///   product, $L_1$, $L_2$, and $L_\infty$ norms, and projections
+///   product, L1, L2, and L-infinity norms, and projections
 ///   ([VectorProjectionExtension]).
 /// - [Matrix]: 2-dimensional matrix supporting matrix multiplication,
 ///   transposition, inversion, determinant, trace, and block slicing.
@@ -22,25 +22,25 @@
 ///
 /// ## Matrix Factorizations & Decompositions
 ///
-/// - [LUDecomposition] ($P A = L U$): Invert matrices, compute determinants,
+/// - [LUDecomposition] (`P * A = L * U`): Invert matrices, compute determinants,
 ///   and solve square systems.
-/// - [QRDecomposition] ($A = Q R$): Orthogonal factorization for linear least
+/// - [QRDecomposition] (`A = Q * R`): Orthogonal factorization for linear least
 ///   squares and orthonormalization.
-/// - [CholeskyDecomposition] ($A = L L^T$): Efficient factorization for
+/// - [CholeskyDecomposition] (`A = L * L^*`): Efficient factorization for
 ///   symmetric positive-definite systems.
-/// - [SingularValueDecomposition] ($A = U \Sigma V^T$): Low-rank
+/// - [SingularValueDecomposition] (`A = U * Sigma * V^T`): Low-rank
 ///   approximations, pseudo-inverses, and PCA.
-/// - [EigenvalueDecomposition] ($A V = V \Lambda$): Eigenvalues and
+/// - [EigenvalueDecomposition] (`A * V = V * Lambda`): Eigenvalues and
 ///   eigenvectors of square matrices.
-/// - Matrix norms: [MatrixNormExtension] computes induced $L_1$, $L_2$,
-///   $L_\infty$, and Frobenius norms.
+/// - Matrix norms: [MatrixNormExtension] computes induced L1, L2,
+///   L-infinity, and Frobenius norms.
 ///
 /// ## Solvers
 ///
 /// - [solveIterative]: Iterative Krylov solver
 ///   ([IterativeMethod.conjugateGradient] for symmetric positive-definite,
 ///   [IterativeMethod.gmres] for general square systems).
-/// - [solveTridiagonal]: Fast $\mathcal{O}(n)$ Thomas algorithm for tridiagonal
+/// - [solveTridiagonal]: Fast `O(n)` Thomas algorithm for tridiagonal
 ///   systems.
 ///
 /// ## Example

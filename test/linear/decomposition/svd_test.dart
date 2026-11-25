@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Singular Value Decomposition (SVD)', () {
@@ -242,6 +242,58 @@ void main() {
 
       final noVectors = SingularValueDecomposition(a, computeVectors: false);
       check(noVectors.pseudoinverse).throws<StateError>();
+    });
+
+    test('handles zero-dimension matrices, defensive copies, NaN/Inf propagation, and arg validation', () {
+      final m03 = Matrix<double>.filled(0, 3, 0.0);
+      final svd03 = m03.svd;
+      check(svd03.u.rowCount).equals(0);
+      check(svd03.vt.isClose(Matrix<double>.identity(3))).isTrue;
+      check(svd03.v.isClose(Matrix<double>.identity(3))).isTrue;
+
+      final m30 = Matrix<double>.filled(3, 0, 0.0);
+      final svd30 = m30.svd;
+      check(svd30.u.isClose(Matrix<double>.identity(3))).isTrue;
+      check(svd30.vt.rowCount).equals(0);
+
+      // Mutating u/vt copies does not corrupt internal SVD factors
+      final a = Matrix<double>.fromRows([
+        [2.0, 0.0],
+        [0.0, 1.0],
+      ]);
+      final svd = a.svd;
+      final origU00 = svd.u.get(0, 0);
+      final uCopy = svd.u;
+      uCopy.set(0, 0, 999.0);
+      check(origU00 == 999.0).isFalse;
+      check(svd.u.get(0, 0)).equals(origU00);
+      final origVt00 = svd.vt.get(0, 0);
+      final vtCopy = svd.vt;
+      vtCopy.set(0, 0, 999.0);
+      check(origVt00 == 999.0).isFalse;
+      check(svd.vt.get(0, 0)).equals(origVt00);
+
+      // Invalid tolerance / rcond throw ArgumentError
+      final bVec = Vector<double>.fromList([1.0, 1.0]);
+      final bMat = Matrix<double>.filled(2, 1, 1.0);
+      check(() => svd.solveVector(bVec, tolerance: -1.0))
+          .throws<ArgumentError>();
+      check(() => svd.solveVector(bVec, tolerance: double.nan))
+          .throws<ArgumentError>();
+      check(() => svd.solve(bMat, tolerance: -1.0)).throws<ArgumentError>();
+      check(() => svd.solve(bMat, tolerance: double.nan))
+          .throws<ArgumentError>();
+      check(() => svd.pseudoinverse(rcond: -1.0)).throws<ArgumentError>();
+      check(() => svd.pseudoinverse(rcond: double.nan)).throws<ArgumentError>();
+
+      // NaN / Infinity inputs propagate NaN to solve, solveVector, and pseudoinverse
+      final nanSvd = Matrix<double>.fromRows([
+        [1.0, double.nan],
+        [0.0, 1.0],
+      ]).svd;
+      check(nanSvd.solveVector(bVec)[0].isNaN).isTrue;
+      check(nanSvd.solve(bMat).get(0, 0).isNaN).isTrue;
+      check(nanSvd.pseudoinverse().get(0, 0).isNaN).isTrue;
     });
   });
 }

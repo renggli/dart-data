@@ -10,9 +10,8 @@ import 'csc_matrix.dart';
 /// Conceptually, CSR organizes non-zero sparse matrix entries row by row so
 /// that matrix-vector multiplication is fast and memory-efficient.
 /// Mathematically, this represents a sparse matrix with compressed row
-/// intervals $[\text{rowPointers}_i, \text{rowPointers}_{i+1})$ indexing column
-/// numbers and values, providing optimal $O(\text{nnz})$ row slicing and SpMV
-/// performance.
+/// intervals `[rowPointers[i], rowPointers[i + 1])` indexing column numbers and
+/// values, providing `O(nnz)` row slicing and SpMV performance.
 ///
 /// ```dart
 /// final csr = CsrMatrix<double>(
@@ -128,16 +127,20 @@ class CsrMatrix<T> implements LinearOperator<T> {
         'Coordinates ($row, $col) out of bounds for matrix ($rowCount x $colCount)',
       );
     }
-    final field = type.field;
-    var sum = field.additiveIdentity;
-    final start = rowPointers[row];
-    final end = rowPointers[row + 1];
-    for (var ptr = start; ptr < end; ptr++) {
-      if (colIndices[ptr] == col) {
-        sum = field.add(sum, values[ptr]);
+    var lo = rowPointers[row];
+    var hi = rowPointers[row + 1] - 1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >>> 1;
+      final midCol = colIndices[mid];
+      if (midCol < col) {
+        lo = mid + 1;
+      } else if (midCol > col) {
+        hi = mid - 1;
+      } else {
+        return values[mid];
       }
     }
-    return sum;
+    return type.field.additiveIdentity;
   }
 
   @override
@@ -166,10 +169,13 @@ class CsrMatrix<T> implements LinearOperator<T> {
         }
       } else {
         for (var ptr = start; ptr < end; ptr++) {
-          sum = field.add(sum, field.mul(values[ptr], x[colIndices[ptr]]));
+          sum = field.add(
+            sum,
+            field.mul(values[ptr], x.getUnchecked(colIndices[ptr])),
+          );
         }
       }
-      res[i] = sum;
+      res.setUnchecked(i, sum);
     }
     return res;
   }
@@ -184,12 +190,15 @@ class CsrMatrix<T> implements LinearOperator<T> {
     final field = type.field;
     final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
     for (var i = 0; i < rowCount; i++) {
-      final xi = x[i];
+      final xi = x.getUnchecked(i);
       final start = rowPointers[i];
       final end = rowPointers[i + 1];
       for (var ptr = start; ptr < end; ptr++) {
         final col = colIndices[ptr];
-        res[col] = field.add(res[col], field.mul(values[ptr], xi));
+        res.setUnchecked(
+          col,
+          field.add(res.getUnchecked(col), field.mul(values[ptr], xi)),
+        );
       }
     }
     return res;
@@ -205,14 +214,17 @@ class CsrMatrix<T> implements LinearOperator<T> {
     final field = type.field;
     final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
     for (var i = 0; i < rowCount; i++) {
-      final xi = x[i];
+      final xi = x.getUnchecked(i);
       final start = rowPointers[i];
       final end = rowPointers[i + 1];
       for (var ptr = start; ptr < end; ptr++) {
         final col = colIndices[ptr];
-        res[col] = field.add(
-          res[col],
-          field.mul(field.conjugate(values[ptr]), xi),
+        res.setUnchecked(
+          col,
+          field.add(
+            res.getUnchecked(col),
+            field.mul(field.conjugate(values[ptr]), xi),
+          ),
         );
       }
     }
@@ -240,23 +252,36 @@ class CsrMatrix<T> implements LinearOperator<T> {
   }
 
   /// Returns the transposed sparse matrix.
-  CsrMatrix<T> get transposed => toCoo().transposed.toCsr();
+  CsrMatrix<T> get transposed {
+    final transposed = _transposeArrays(conjugate: false);
+    return CsrMatrix(
+      rowCount: colCount,
+      colCount: rowCount,
+      rowPointers: transposed.colPointers,
+      colIndices: transposed.rowIndices,
+      values: transposed.values,
+      type: type,
+    );
+  }
+
+  /// Returns the conjugate transpose (Hermitian adjoint) sparse matrix.
+  CsrMatrix<T> get conjugateTranspose {
+    final transposed = _transposeArrays(conjugate: true);
+    return CsrMatrix(
+      rowCount: colCount,
+      colCount: rowCount,
+      rowPointers: transposed.colPointers,
+      colIndices: transposed.rowIndices,
+      values: transposed.values,
+      type: type,
+    );
+  }
 
   /// Scales every element by [scalar].
   CsrMatrix<T> scale(T scalar) {
     final field = type.field;
     final equality = type.equality;
     final zero = field.additiveIdentity;
-    if (equality.isEqual(scalar, zero)) {
-      return CsrMatrix(
-        rowCount: rowCount,
-        colCount: colCount,
-        rowPointers: List<int>.filled(rowCount + 1, 0),
-        colIndices: const [],
-        values: type.newList(0),
-        type: type,
-      );
-    }
     final newRowPointers = List<int>.filled(rowCount + 1, 0);
     final newColIndices = <int>[];
     final newValuesList = <T>[];
@@ -281,149 +306,19 @@ class CsrMatrix<T> implements LinearOperator<T> {
       rowCount: rowCount,
       colCount: colCount,
       rowPointers: newRowPointers,
-      colIndices: newColIndices,
+      colIndices: List<int>.of(newColIndices, growable: false),
       values: newValues,
       type: type,
     );
   }
 
   /// Adds [other] sparse matrix to this matrix.
-  CsrMatrix<T> operator +(CsrMatrix<T> other) {
-    if (rowCount != other.rowCount || colCount != other.colCount) {
-      throw ArgumentError(
-        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
-      );
-    }
-    final field = type.field;
-    final equality = type.equality;
-    final zero = field.additiveIdentity;
-    final newRowPointers = List<int>.filled(rowCount + 1, 0);
-    final newCols = <int>[];
-    final newVals = <T>[];
-
-    for (var r = 0; r < rowCount; r++) {
-      var p1 = rowPointers[r];
-      final end1 = rowPointers[r + 1];
-      var p2 = other.rowPointers[r];
-      final end2 = other.rowPointers[r + 1];
-
-      while (p1 < end1 && p2 < end2) {
-        final c1 = colIndices[p1];
-        final c2 = other.colIndices[p2];
-        if (c1 < c2) {
-          newCols.add(c1);
-          newVals.add(values[p1]);
-          p1++;
-        } else if (c2 < c1) {
-          newCols.add(c2);
-          newVals.add(other.values[p2]);
-          p2++;
-        } else {
-          final sum = field.add(values[p1], other.values[p2]);
-          if (!equality.isEqual(sum, zero)) {
-            newCols.add(c1);
-            newVals.add(sum);
-          }
-          p1++;
-          p2++;
-        }
-      }
-      while (p1 < end1) {
-        newCols.add(colIndices[p1]);
-        newVals.add(values[p1]);
-        p1++;
-      }
-      while (p2 < end2) {
-        newCols.add(other.colIndices[p2]);
-        newVals.add(other.values[p2]);
-        p2++;
-      }
-      newRowPointers[r + 1] = newCols.length;
-    }
-
-    final valList = type.newList(newVals.length);
-    for (var i = 0; i < newVals.length; i++) {
-      valList[i] = newVals[i];
-    }
-
-    return CsrMatrix(
-      rowCount: rowCount,
-      colCount: colCount,
-      rowPointers: newRowPointers,
-      colIndices: List<int>.of(newCols, growable: false),
-      values: valList,
-      type: type,
-    );
-  }
+  CsrMatrix<T> operator +(CsrMatrix<T> other) =>
+      _combine(other, subtract: false);
 
   /// Subtracts [other] sparse matrix from this matrix.
-  CsrMatrix<T> operator -(CsrMatrix<T> other) {
-    if (rowCount != other.rowCount || colCount != other.colCount) {
-      throw ArgumentError(
-        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
-      );
-    }
-    final field = type.field;
-    final equality = type.equality;
-    final zero = field.additiveIdentity;
-    final newRowPointers = List<int>.filled(rowCount + 1, 0);
-    final newCols = <int>[];
-    final newVals = <T>[];
-
-    for (var r = 0; r < rowCount; r++) {
-      var p1 = rowPointers[r];
-      final end1 = rowPointers[r + 1];
-      var p2 = other.rowPointers[r];
-      final end2 = other.rowPointers[r + 1];
-
-      while (p1 < end1 && p2 < end2) {
-        final c1 = colIndices[p1];
-        final c2 = other.colIndices[p2];
-        if (c1 < c2) {
-          newCols.add(c1);
-          newVals.add(values[p1]);
-          p1++;
-        } else if (c2 < c1) {
-          newCols.add(c2);
-          newVals.add(field.neg(other.values[p2]));
-          p2++;
-        } else {
-          final diff = field.sub(values[p1], other.values[p2]);
-          if (!equality.isEqual(diff, zero)) {
-            newCols.add(c1);
-            newVals.add(diff);
-          }
-          p1++;
-          p2++;
-        }
-      }
-      while (p1 < end1) {
-        newCols.add(colIndices[p1]);
-        newVals.add(values[p1]);
-        p1++;
-      }
-      while (p2 < end2) {
-        newCols.add(other.colIndices[p2]);
-        newVals.add(field.neg(other.values[p2]));
-        p2++;
-      }
-      newRowPointers[r + 1] = newCols.length;
-    }
-
-    final valList = type.newList(newVals.length);
-    for (var i = 0; i < newVals.length; i++) {
-      valList[i] = newVals[i];
-    }
-
-    return CsrMatrix(
-      rowCount: rowCount,
-      colCount: colCount,
-      rowPointers: newRowPointers,
-      colIndices: List<int>.of(newCols, growable: false),
-      values: valList,
-      type: type,
-    );
-  }
+  CsrMatrix<T> operator -(CsrMatrix<T> other) =>
+      _combine(other, subtract: true);
 
   /// Unary matrix negation.
   CsrMatrix<T> operator -() {
@@ -473,6 +368,8 @@ class CsrMatrix<T> implements LinearOperator<T> {
     }
 
     final zero = type.field.additiveIdentity;
+    final otherEq = other.type.equality;
+    final otherZero = other.type.field.additiveIdentity;
     for (var r = 0; r < rowCount; r++) {
       var pA = rowPointers[r];
       final endA = rowPointers[r + 1];
@@ -483,9 +380,7 @@ class CsrMatrix<T> implements LinearOperator<T> {
         while (pA < endA && type.equality.isEqual(values[pA], zero)) {
           pA++;
         }
-        while (pB < endB &&
-            (other.values[pB] is! T ||
-                type.equality.isEqual(other.values[pB] as T, zero))) {
+        while (pB < endB && otherEq.isEqual(other.values[pB], otherZero)) {
           pB++;
         }
         if (pA >= endA && pB >= endB) break;
@@ -554,8 +449,19 @@ class CsrMatrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Converts this CSR matrix to Compressed Sparse Column (CSC) format.
-  CscMatrix<T> toCsc() => toCoo().toCsc();
+  /// Converts this CSR matrix to Compressed Sparse Column (CSC) format in
+  /// `O(nnz + m + n)` time.
+  CscMatrix<T> toCsc() {
+    final csc = _transposeArrays(conjugate: false);
+    return CscMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      colPointers: csc.colPointers,
+      rowIndices: csc.rowIndices,
+      values: csc.values,
+      type: type,
+    );
+  }
 
   /// Converts this CSR matrix to a dense [Matrix].
   Matrix<T> toDense() {
@@ -571,10 +477,120 @@ class CsrMatrix<T> implements LinearOperator<T> {
       final end = rowPointers[i + 1];
       for (var ptr = start; ptr < end; ptr++) {
         final c = colIndices[ptr];
-        res.set(i, c, field.add(res.get(i, c), values[ptr]));
+        res.setUnchecked(i, c, field.add(res.getUnchecked(i, c), values[ptr]));
       }
     }
     return res;
+  }
+
+  ({List<int> colPointers, List<int> rowIndices, List<T> values})
+  _transposeArrays({required bool conjugate}) {
+    final field = type.field;
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
+    final colPointers = List<int>.filled(colCount + 1, 0);
+    for (var r = 0; r < rowCount; r++) {
+      final start = rowPointers[r];
+      final end = rowPointers[r + 1];
+      for (var p = start; p < end; p++) {
+        if (!equality.isEqual(values[p], zero)) {
+          colPointers[colIndices[p] + 1]++;
+        }
+      }
+    }
+    for (var c = 0; c < colCount; c++) {
+      colPointers[c + 1] += colPointers[c];
+    }
+    final totalNnz = colPointers[colCount];
+    final nextPos = List<int>.of(colPointers);
+    final outRows = List<int>.filled(totalNnz, 0);
+    final outVals = type.newList(totalNnz);
+    for (var r = 0; r < rowCount; r++) {
+      final start = rowPointers[r];
+      final end = rowPointers[r + 1];
+      for (var p = start; p < end; p++) {
+        final val = values[p];
+        if (!equality.isEqual(val, zero)) {
+          final c = colIndices[p];
+          final dst = nextPos[c]++;
+          outRows[dst] = r;
+          outVals[dst] = conjugate ? field.conjugate(val) : val;
+        }
+      }
+    }
+    return (colPointers: colPointers, rowIndices: outRows, values: outVals);
+  }
+
+  CsrMatrix<T> _combine(CsrMatrix<T> other, {required bool subtract}) {
+    if (rowCount != other.rowCount || colCount != other.colCount) {
+      throw ArgumentError(
+        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
+      );
+    }
+    final field = type.field;
+    final equality = type.equality;
+    final zero = field.additiveIdentity;
+    final newRowPointers = List<int>.filled(rowCount + 1, 0);
+    final newCols = <int>[];
+    final newVals = <T>[];
+
+    for (var r = 0; r < rowCount; r++) {
+      var p1 = rowPointers[r];
+      final end1 = rowPointers[r + 1];
+      var p2 = other.rowPointers[r];
+      final end2 = other.rowPointers[r + 1];
+
+      while (p1 < end1 && p2 < end2) {
+        final c1 = colIndices[p1];
+        final c2 = other.colIndices[p2];
+        if (c1 < c2) {
+          newCols.add(c1);
+          newVals.add(values[p1]);
+          p1++;
+        } else if (c2 < c1) {
+          newCols.add(c2);
+          newVals.add(
+            subtract ? field.neg(other.values[p2]) : other.values[p2],
+          );
+          p2++;
+        } else {
+          final combined = subtract
+              ? field.sub(values[p1], other.values[p2])
+              : field.add(values[p1], other.values[p2]);
+          if (!equality.isEqual(combined, zero)) {
+            newCols.add(c1);
+            newVals.add(combined);
+          }
+          p1++;
+          p2++;
+        }
+      }
+      while (p1 < end1) {
+        newCols.add(colIndices[p1]);
+        newVals.add(values[p1]);
+        p1++;
+      }
+      while (p2 < end2) {
+        newCols.add(other.colIndices[p2]);
+        newVals.add(subtract ? field.neg(other.values[p2]) : other.values[p2]);
+        p2++;
+      }
+      newRowPointers[r + 1] = newCols.length;
+    }
+
+    final valList = type.newList(newVals.length);
+    for (var i = 0; i < newVals.length; i++) {
+      valList[i] = newVals[i];
+    }
+
+    return CsrMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowPointers: newRowPointers,
+      colIndices: List<int>.of(newCols, growable: false),
+      values: valList,
+      type: type,
+    );
   }
 
   CsrMatrix<T> _matmulSparse(CsrMatrix<T> other) {
@@ -682,7 +698,7 @@ class CsrMatrix<T> implements LinearOperator<T> {
       final otherCol = other.apply(eJ);
       final thisCol = apply(otherCol);
       for (var i = 0; i < m; i++) {
-        res.setUnchecked(i, j, thisCol[i]);
+        res.setUnchecked(i, j, thisCol.getUnchecked(i));
       }
     }
     return res;

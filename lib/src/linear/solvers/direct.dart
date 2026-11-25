@@ -11,8 +11,8 @@ import '../decomposition/lu.dart';
 import '../decomposition/qr.dart';
 import '../matrix.dart';
 
-/// Solves the linear system $A X = B$ or linear least-squares problem
-/// $A X \approx B$ for matrix right-hand side [b] using direct methods.
+/// Solves the linear system `A * X = B` or linear least-squares problem
+/// `A * X ~= B` for matrix right-hand side [b] using direct methods.
 Matrix<T> solveDirect<T>(Matrix<T> a, Matrix<T> b) {
   if (b.rowCount != a.rowCount) {
     throw ArgumentError(
@@ -34,15 +34,17 @@ Matrix<T> solveDirect<T>(Matrix<T> a, Matrix<T> b) {
   }
   if (colCount == 0) {
     final zero = type.field.additiveIdentity;
+    final eq = type.equality;
     for (final val in b.values) {
-      if (val != zero) {
+      if (!eq.isEqual(val, zero)) {
         throw StateError('Linear system is inconsistent.');
       }
     }
     return Matrix<T>.filled(0, nrhs, zero, type: type);
   }
+  final DataType<Object?> rawType = type;
   if (rowCount == colCount) {
-    if ((type as DataType) == DataType.float64) {
+    if (rawType == DataType.float64) {
       final aData = _copyTensorToFloat64List(a.tensor, rowCount * colCount);
       final bData = _copyTensorToFloat64List(b.tensor, rowCount * nrhs);
       final success = Lapack.dgesv(
@@ -64,7 +66,7 @@ Matrix<T> solveDirect<T>(Matrix<T> a, Matrix<T> b) {
       }
     }
     return LUDecomposition<T>(a).solve(b);
-  } else if ((type as DataType) == DataType.float64) {
+  } else if (rawType == DataType.float64) {
     final aData = _copyTensorToFloat64List(a.tensor, rowCount * colCount);
     final maxMN = math.max(rowCount, colCount);
     final bData = _copyTensorToFloat64List(b.tensor, maxMN * nrhs);
@@ -178,8 +180,8 @@ Matrix<T> solveRref<T>(Matrix<T> a, Matrix<T> b) {
   return result;
 }
 
-/// Solves an underdetermined linear system ($m < n$) using QR decomposition
-/// of the conjugate transpose $A^* = Q R$.
+/// Solves an underdetermined linear system (`m < n`) using QR decomposition
+/// of the conjugate transpose `A^* = Q * R`.
 Matrix<T> solveUnderdeterminedMatrix<T>(Matrix<T> a, Matrix<T> b) {
   final at = a.conjugateTranspose;
   final qr = QRDecomposition<T>(at);

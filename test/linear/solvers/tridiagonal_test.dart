@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('solveTridiagonal base cases', () {
@@ -255,6 +255,34 @@ void main() {
 
       check(diag.tensor.isContiguous).isFalse;
       check(() => solveTridiagonal(sub, diag, sup, rhs)).throws<StateError>();
+    });
+
+    test('validates n == 0 off-diagonals and rejects zero/non-finite n == 1 or n > 1 pivots', () {
+      final empty = Vector<double>.filled(0, 0.0);
+      final one = Vector<double>.fromList([1.0]);
+      check(() => solveTridiagonal(one, empty, empty, empty))
+          .throws<ArgumentError>();
+      check(() => solveTridiagonal(empty, empty, one, empty))
+          .throws<ArgumentError>();
+
+      for (final bad in [0.0, double.nan, double.infinity]) {
+        check(
+          () => solveTridiagonal(
+            empty,
+            Vector<double>.fromList([bad]),
+            empty,
+            one,
+          ),
+        ).throws<StateError>();
+        check(
+          () => solveTridiagonal(
+            one,
+            Vector<double>.fromList([bad, 1.0]),
+            one,
+            Vector<double>.fromList([1.0, 1.0]),
+          ),
+        ).throws<StateError>();
+      }
     });
   });
 }

@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Conjugate Gradient', () {
@@ -265,13 +265,67 @@ void main() {
           .throws<ArgumentError>();
       check(() => solveIterative(eye, b, restart: 0)).throws<ArgumentError>();
       check(() => solveIterative(eye, b, restart: -5)).throws<ArgumentError>();
+    });
 
-      check(DataType.int32.safeBits).equals(32);
-      final emptyCoo = CooMatrix<double>.fromEntries(2, 2, const []);
-      check(emptyCoo.nnz).equals(0);
+    test('CG and GMRES are scale-invariant on tiny and huge systems and handle 0x0', () {
+      final emptyA = Matrix<double>.filled(0, 0, 0.0);
+      final emptyB = Vector<double>.filled(0, 0.0);
       check(
-        () => emptyCoo.applyConjugateTranspose(Vector<double>.fromList([1.0])),
-      ).throws<ArgumentError>();
+        solveIterative(
+          emptyA,
+          emptyB,
+          method: IterativeMethod.conjugateGradient,
+        ).length,
+      ).equals(0);
+      check(
+        solveIterative(emptyA, emptyB, method: IterativeMethod.gmres).length,
+      ).equals(0);
+
+      final tinyA = Matrix<double>.fromRows([
+        [4e-18, 1e-18],
+        [1e-18, 3e-18],
+      ]);
+      final tinyB = Vector<double>.fromList([5e-18, 4e-18]);
+      final tinyCg = solveIterative(
+        tinyA,
+        tinyB,
+        method: IterativeMethod.conjugateGradient,
+      );
+      check(tinyCg[0]).isCloseTo(1.0, 1e-8);
+      check(tinyCg[1]).isCloseTo(1.0, 1e-8);
+      final tinyGmres = solveIterative(
+        tinyA,
+        tinyB,
+        method: IterativeMethod.gmres,
+      );
+      check(tinyGmres[0]).isCloseTo(1.0, 1e-8);
+      check(tinyGmres[1]).isCloseTo(1.0, 1e-8);
+
+      final hugeCgA = Matrix<double>.fromRows([
+        [4e80, 1e80],
+        [1e80, 3e80],
+      ]);
+      final hugeCgB = Vector<double>.fromList([5e80, 4e80]);
+      final hugeCg = solveIterative(
+        hugeCgA,
+        hugeCgB,
+        method: IterativeMethod.conjugateGradient,
+      );
+      check(hugeCg[0]).isCloseTo(1.0, 1e-8);
+      check(hugeCg[1]).isCloseTo(1.0, 1e-8);
+
+      final hugeGmresA = Matrix<double>.fromRows([
+        [4e150, 1e150],
+        [1e150, 3e150],
+      ]);
+      final hugeGmresB = Vector<double>.fromList([5e150, 4e150]);
+      final hugeGmres = solveIterative(
+        hugeGmresA,
+        hugeGmresB,
+        method: IterativeMethod.gmres,
+      );
+      check(hugeGmres[0]).isCloseTo(1.0, 1e-8);
+      check(hugeGmres[1]).isCloseTo(1.0, 1e-8);
     });
   });
 }

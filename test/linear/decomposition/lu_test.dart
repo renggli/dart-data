@@ -385,10 +385,34 @@ void main() {
         type: DataType.complex,
       );
       check(() => rectC.inverse).throws<ArgumentError>();
+      check(() => rectC.lu.inverse).throws<ArgumentError>();
       check(() => nanMat.lu.solve(Matrix<double>.filled(3, 1, 1.0)))
           .throws<ArgumentError>();
       check(() => nanMat.lu.solve(Matrix<double>.filled(2, 1, 1.0)))
           .throws<StateError>();
+
+      final infMat = Matrix<double>.fromRows([
+        [double.infinity, 0.0],
+        [0.0, 1.0],
+      ]);
+      check(infMat.lu.isNonsingular).isFalse;
+
+      final infC = Matrix<Complex>.fromRows([
+        [const Complex(double.infinity, 0.0), Complex.zero],
+        [Complex.zero, Complex.one],
+      ], type: DataType.complex);
+      check(infC.lu.isNonsingular).isFalse;
+
+      final spd = Matrix<double>.fromRows([
+        [4.0, 7.0],
+        [2.0, 6.0],
+      ]);
+      final luInv = spd.lu.inverse;
+      final matInv = spd.inverse;
+      check((spd * luInv).isClose(Matrix<double>.identity(2), epsilon: 1e-10))
+          .isTrue;
+      check((spd * matInv).isClose(Matrix<double>.identity(2), epsilon: 1e-10))
+          .isTrue;
     });
   });
 }

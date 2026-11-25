@@ -18,7 +18,7 @@ import 'vector.dart';
 ///
 /// This provides a 2D matrix optimized to store 64-bit floating-point numbers
 /// in contiguous memory for high-performance linear algebra. Formally, it
-/// provides an unboxed matrix representation over the real field $\mathbb{R}$
+/// provides an unboxed matrix representation over the real field `double`
 /// backed by flat IEEE 754 double-precision arrays compatible with BLAS level 3
 /// operations.
 ///
@@ -110,14 +110,22 @@ extension type Float64Matrix._(Matrix<double> _matrix)
       Float64Matrix._(Matrix<double>.identity(size, type: DataType.float64));
 
   /// Constructs a diagonal matrix from [diagonal] vector.
-  factory diagonal(Vector<double> diagonal) => Float64Matrix._(
-    Matrix<double>.generate(
-      diagonal.length,
-      diagonal.length,
-      (row, col) => row == col ? diagonal[row] : 0.0,
-      type: DataType.float64,
-    ),
-  );
+  factory diagonal(Vector<double> diagonal) {
+    final dim = diagonal.length;
+    final data = Float64List(dim * dim);
+    for (var i = 0; i < dim; i++) {
+      data[i * dim + i] = diagonal.getUnchecked(i);
+    }
+    return Float64Matrix._(
+      Matrix(
+        Tensor.internal(
+          type: DataType.float64,
+          layout: Layout(shape: [dim, dim]),
+          data: data,
+        ),
+      ),
+    );
+  }
 
   /// Direct zero-copy access to the underlying [Float64List] buffer.
   Float64List get asTypedList => _matrix.tensor.data as Float64List;
@@ -221,6 +229,10 @@ extension type Float64Matrix._(Matrix<double> _matrix)
   /// Returns a zero-copy transposed view as [Float64Matrix].
   @redeclare
   Float64Matrix get transposed => Float64Matrix._(_matrix.transposed);
+
+  /// Returns a zero-copy conjugate transpose view as [Float64Matrix].
+  @redeclare
+  Float64Matrix get conjugateTranspose => transposed;
 
   /// Returns a zero-copy 1D view of the main diagonal.
   @redeclare
@@ -332,12 +344,12 @@ extension type Float64Matrix._(Matrix<double> _matrix)
   Float64Matrix hadamard(Matrix<double> other) =>
       Float64Matrix._(_matrix.hadamard(other));
 
-  /// Computes the Kronecker product $A \otimes B$ with [other] as [Float64Matrix].
+  /// Computes the Kronecker product `A (x) B` with [other] as [Float64Matrix].
   @redeclare
   Float64Matrix kronecker(Matrix<double> other) =>
       Float64Matrix._(_matrix.kronecker(other));
 
-  /// Computes the Moore-Penrose pseudoinverse $A^+$ using SVD as [Float64Matrix].
+  /// Computes the Moore-Penrose pseudoinverse `A^+` using SVD as [Float64Matrix].
   Float64Matrix pseudoinverse({double rcond = 1e-15}) =>
       Float64Matrix._(_matrix.pseudoinverse(rcond: rcond));
 
@@ -365,21 +377,21 @@ extension type Float64Matrix._(Matrix<double> _matrix)
   Float64Matrix concatVertical(Matrix<double> other) =>
       Float64Matrix._(_matrix.concatVertical(other));
 
-  /// Solves $A X = B$ or $A X \approx B$ as [Float64Matrix].
+  /// Solves `A * X = B` or `A * X ~= B` as [Float64Matrix].
   @redeclare
   Float64Matrix solve(Matrix<double> b) => Float64Matrix._(_matrix.solve(b));
 
-  /// Solves $A x = b$ or $A x \approx b$ as [Float64Vector].
+  /// Solves `A * x = b` or `A * x ~= b` as [Float64Vector].
   @redeclare
   Float64Vector solveVector(Vector<double> b) =>
       Float64Vector(_matrix.solveVector(b));
 
-  /// Computes $A^T x$ as [Float64Vector].
+  /// Computes `A^T * x` as [Float64Vector].
   @redeclare
   Float64Vector applyTranspose(Vector<double> x) =>
       Float64Vector(_matrix.applyTranspose(x));
 
-  /// Computes $A^H x$ as [Float64Vector].
+  /// Computes `A^H * x` as [Float64Vector].
   @redeclare
   Float64Vector applyConjugateTranspose(Vector<double> x) =>
       Float64Vector(_matrix.applyConjugateTranspose(x));

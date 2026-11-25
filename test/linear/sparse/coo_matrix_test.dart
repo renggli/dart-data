@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('CooMatrix construction and conversions', () {
@@ -252,6 +252,41 @@ void main() {
 
     test('string conversion', () {
       check(a.toString()).contains('CooMatrix<double>(2 x 3, nnz: 3)');
+    });
+
+    test('conjugateTranspose, fromEntries validation/inference, and scale(0) non-finite preservation', () {
+      check(() => CooMatrix<double>.fromEntries(-1, 2, const []))
+          .throws<ArgumentError>();
+      check(
+        () => CooMatrix<double>.fromEntries(
+          2,
+          2,
+          const [],
+        ).applyConjugateTranspose(Vector<double>.fromList([1.0])),
+      ).throws<ArgumentError>();
+
+      final mixed = CooMatrix<num>.fromEntries(2, 2, const [
+        (0, 0, 1),
+        (1, 1, 2.5),
+      ]);
+      check(mixed.type).equals(DataType.numeric);
+      check(mixed.get(1, 1)).equals(2.5);
+
+      final cCoo = CooMatrix<Complex>.fromEntries(2, 2, const [
+        (0, 1, Complex(2.0, -3.0)),
+      ], type: DataType.complex);
+      final adj = cCoo.conjugateTranspose;
+      check(adj.get(1, 0)).equals(const Complex(2.0, 3.0));
+
+      final nonFinite = CooMatrix<double>.fromEntries(2, 2, const [
+        (0, 0, 5.0),
+        (0, 1, double.nan),
+        (1, 0, double.infinity),
+      ]);
+      final zeroScaled = nonFinite.scale(0.0);
+      check(zeroScaled.get(0, 0)).equals(0.0);
+      check(zeroScaled.get(0, 1).isNaN).isTrue;
+      check(zeroScaled.get(1, 0).isNaN).isTrue;
     });
   });
 }

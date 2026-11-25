@@ -6,7 +6,7 @@ import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Float64Vector', () {
@@ -268,6 +268,10 @@ void main() {
       final f64 = Float64Vector(raw);
       check(f64.type).equals(DataType.float64);
       check(f64.tensor.type).equals(DataType.float64);
+
+      final viaFromDouble = Float64Vector.fromDoubleVector(raw);
+      check(viaFromDouble.type).equals(DataType.float64);
+      check(viaFromDouble.tensor.type).equals(DataType.float64);
     });
   });
 }

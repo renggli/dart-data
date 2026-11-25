@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../../acceleration/blas/blas.dart';
+import '../../acceleration/utils/norm_accumulator.dart';
 import '../../type/data_type.dart';
 import '../matrix.dart';
 import '../vector.dart';
@@ -12,14 +13,14 @@ extension QrMatrixExtension<T> on Matrix<T> {
   QRDecomposition<T> get qr => QRDecomposition<T>(this);
 }
 
-/// QR Decomposition of an $m \times n$ matrix $A$ with $m \ge n$.
+/// QR Decomposition of an `m x n` matrix `A` with `m >= n`.
 ///
 /// Conceptually, QR decomposition untangles a matrix into mutually
 /// perpendicular (orthogonal) coordinate directions and an upper-triangular
 /// scaling matrix, making least-squares data fitting simple and numerically
 /// stable. More formally, it computes the Householder reflection factorization
-/// $A = Q R$ where $Q \in \mathbb{R}^{m \times n}$ has orthonormal columns
-/// ($Q^T Q = I_n$) and $R \in \mathbb{R}^{n \times n}$ is upper triangular.
+/// `A = Q * R` where `Q` (`m x n`) has orthonormal columns (`Q^T * Q = I_n`)
+/// and `R` (`n x n`) is upper triangular.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([
@@ -78,7 +79,7 @@ class QRDecomposition<T> {
     var maxDiag = 0.0;
     for (var j = 0; j < _n; j++) {
       final norm = field.norm(_rdiag[j]);
-      if (norm.isNaN) return false;
+      if (!norm.isFinite) return false;
       if (norm > maxDiag) maxDiag = norm;
     }
     if (maxDiag == 0.0) return false;
@@ -92,7 +93,7 @@ class QRDecomposition<T> {
     return true;
   }
 
-  /// Returns the upper triangular factor $R$.
+  /// Returns the upper triangular factor `R`.
   Matrix<T> get r {
     final field = _type.field;
     final zero = field.additiveIdentity;
@@ -109,8 +110,8 @@ class QRDecomposition<T> {
     return result;
   }
 
-  /// Returns the economy-sized orthogonal (or unitary) factor $Q$ of size
-  /// $m \times n$.
+  /// Returns the economy-sized orthogonal (or unitary) factor `Q` of size
+  /// `m x n`.
   Matrix<T> get q {
     if (_qr.tensor.data is Float64List) {
       return _qFloat64() as Matrix<T>;
@@ -154,7 +155,7 @@ class QRDecomposition<T> {
     return result;
   }
 
-  /// Solves the least squares problem $A x \approx b$ for vector [b].
+  /// Solves the least squares problem `A * x ~= b` for vector [b].
   Vector<T> solveVector(Vector<T> b) {
     if (b.length != _m) {
       throw ArgumentError(
@@ -168,7 +169,7 @@ class QRDecomposition<T> {
     return mat.col(0);
   }
 
-  /// Solves the least squares problem $A X \approx B$ for matrix [b].
+  /// Solves the least squares problem `A * X ~= B` for matrix [b].
   Matrix<T> solve(Matrix<T> b) {
     if (b.rowCount != _m) {
       throw ArgumentError(
@@ -237,7 +238,7 @@ class QRDecomposition<T> {
       }
     }
 
-    return x.subMatrix(rowStart: 0, rowEnd: _n, colStart: 0, colEnd: nx);
+    return x.subMatrix(rowStart: 0, rowEnd: _n, colStart: 0, colEnd: nx).copy();
   }
 
   void _decomposeFloat64() {
@@ -276,24 +277,11 @@ class QRDecomposition<T> {
     final zero = field.additiveIdentity;
 
     for (var k = 0; k < _n; k++) {
-      var scale = 0.0;
-      var sumsq = 1.0;
+      final acc = ScaledNormAccumulator();
       for (var i = k; i < _m; i++) {
-        final norm = field.norm(_qr.getUnchecked(i, k));
-        if (norm != 0.0) {
-          if (norm.isNaN) {
-            scale = double.nan;
-          } else if (norm.isInfinite) {
-            if (!scale.isNaN) scale = double.infinity;
-          } else if (scale < norm) {
-            sumsq = 1.0 + sumsq * (scale / norm) * (scale / norm);
-            scale = norm;
-          } else if (scale.isFinite) {
-            sumsq += (norm / scale) * (norm / scale);
-          }
-        }
+        acc.addAbs(field.norm(_qr.getUnchecked(i, k)));
       }
-      final nrm = scale * math.sqrt(sumsq);
+      final nrm = acc.norm;
 
       if (nrm != 0.0) {
         final xk = _qr.getUnchecked(k, k);
@@ -414,6 +402,6 @@ class QRDecomposition<T> {
       }
     }
 
-    return x.subMatrix(rowStart: 0, rowEnd: _n, colStart: 0, colEnd: nx);
+    return x.subMatrix(rowStart: 0, rowEnd: _n, colStart: 0, colEnd: nx).copy();
   }
 }

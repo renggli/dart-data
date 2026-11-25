@@ -5,7 +5,7 @@ import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Float64Matrix', () {
@@ -365,6 +365,25 @@ void main() {
       final f64 = Float64Matrix(raw);
       check(f64.type).equals(DataType.float64);
       check(f64.tensor.type).equals(DataType.float64);
+    });
+
+    test('conjugateTranspose returns transposed Float64Matrix', () {
+      final m = Float64Matrix.fromList(2, 3, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+      final ct = m.conjugateTranspose;
+      check(ct).isA<Float64Matrix>();
+      check(ct.rowCount).equals(3);
+      check(ct.colCount).equals(2);
+      check(ct.get(2, 1)).equals(6.0);
+    });
+
+    test('syrk updates explicit Float64Matrix target', () {
+      final a = Float64Matrix.fromList(2, 2, [1.0, 2.0, 3.0, 4.0]);
+      final target = Float64Matrix.identity(2);
+      final out = a.syrk(alpha: 1.0, beta: 2.0, target: target);
+      check(identical(out, target)).isTrue;
+      check(target.get(0, 0)).isCloseTo(7.0, 1e-10);
+      check(target.get(0, 1)).isCloseTo(11.0, 1e-10);
+      check(target.get(1, 1)).isCloseTo(27.0, 1e-10);
     });
   });
 }

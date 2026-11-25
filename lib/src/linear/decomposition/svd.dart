@@ -15,20 +15,18 @@ extension SvdMatrixExtension<T extends num> on Matrix<T> {
   SingularValueDecomposition get svd =>
       SingularValueDecomposition(toDoubleMatrix());
 
-  /// Computes the Moore-Penrose pseudoinverse $A^+$ of this matrix using SVD.
+  /// Computes the Moore-Penrose pseudoinverse `A^+` of this matrix using SVD.
   Matrix<double> pseudoinverse({double rcond = 1e-15}) =>
       svd.pseudoinverse(rcond: rcond);
 }
 
-/// Singular Value Decomposition (SVD) of an $m \times n$ matrix $A$.
+/// Singular Value Decomposition (SVD) of an `m x n` matrix `A`.
 ///
 /// Conceptually, SVD breaks any matrix down into three intuitive geometric
-/// steps: an initial rotation ($V^T$), scaling along coordinate axes
-/// ($\Sigma$), and a second rotation ($U$). More formally, it computes
-/// $A = U \Sigma V^T$ where $U \in \mathbb{R}^{m \times m}$ and
-/// $V \in \mathbb{R}^{n \times n}$ are orthogonal matrices and $\Sigma$
-/// contains singular values $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$ in
-/// non-increasing order.
+/// steps: an initial rotation (`V^T`), scaling along coordinate axes (`Sigma`),
+/// and a second rotation (`U`). More formally, it computes `A = U * Sigma * V^T`
+/// where `U` (`m x m`) and `V` (`n x n`) are orthogonal matrices and `Sigma`
+/// contains singular values `s_1 >= s_2 >= ... >= 0` in non-increasing order.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([
@@ -55,22 +53,10 @@ class SingularValueDecomposition {
           ),
         ),
         computeVectors
-            ? Matrix<double>(
-                Tensor.internal(
-                  type: DataType.float64,
-                  layout: Layout(shape: [rowsA, rowsA]),
-                  data: Float64List(0),
-                ),
-              )
+            ? Matrix<double>.identity(rowsA, type: DataType.float64)
             : null,
         computeVectors
-            ? Matrix<double>(
-                Tensor.internal(
-                  type: DataType.float64,
-                  layout: Layout(shape: [colsA, colsA]),
-                  data: Float64List(0),
-                ),
-              )
+            ? Matrix<double>.identity(colsA, type: DataType.float64)
             : null,
         computeVectors,
         rowsA,
@@ -175,19 +161,21 @@ class SingularValueDecomposition {
   final int _rowCount;
   final int _colCount;
 
-  /// The left singular vectors as an $m \times m$ orthogonal matrix.
+  /// The left singular vectors as an `m x m` orthogonal matrix.
   Matrix<double> get u =>
-      _u ?? (throw StateError('Singular vectors were not computed.'));
+      _u?.copy() ?? (throw StateError('Singular vectors were not computed.'));
 
-  /// The transpose of right singular vectors as an $n \times n$ orthogonal
+  /// The transpose of right singular vectors as an `n x n` orthogonal
   /// matrix.
   Matrix<double> get vt =>
-      _vt ?? (throw StateError('Singular vectors were not computed.'));
+      _vt?.copy() ?? (throw StateError('Singular vectors were not computed.'));
 
-  /// The right singular vectors as an $n \times n$ orthogonal matrix.
-  Matrix<double> get v => vt.transposed;
+  /// The right singular vectors as an `n x n` orthogonal matrix.
+  Matrix<double> get v =>
+      _vt?.transposed.copy() ??
+      (throw StateError('Singular vectors were not computed.'));
 
-  /// Returns the diagonal matrix of singular values of size $m \times n$.
+  /// Returns the diagonal matrix of singular values of size `m x n`.
   Matrix<double> get sigma => Matrix<double>.generate(
     _rowCount,
     _colCount,
@@ -211,7 +199,7 @@ class SingularValueDecomposition {
   /// The 2-norm (largest singular value).
   double get norm2 => s.length > 0 ? s[0].abs() : 0.0;
 
-  /// Condition number $\sigma_{\max} / \sigma_{\min}$.
+  /// Condition number `sigma_max / sigma_min`.
   double get cond {
     if (s.length == 0) return 0.0;
     final maxDim = math.max(_rowCount, _colCount);
@@ -220,39 +208,48 @@ class SingularValueDecomposition {
     return minS <= tol ? double.infinity : s[0].abs() / minS;
   }
 
-  /// Solves the linear system $A x \approx b$ using minimum norm least squares.
+  /// Solves the linear system `A * x ~= b` using minimum norm least squares.
   Vector<double> solveVector(Vector<num> b, {double? tolerance}) {
-    if (!vectorsComputed) {
+    final uMat = _u;
+    final vtMat = _vt;
+    if (!vectorsComputed || uMat == null || vtMat == null) {
       throw StateError('Singular vectors were not computed.');
     }
-    if (u.rowCount != b.length) {
+    if (uMat.rowCount != b.length) {
       throw ArgumentError(
-        'Vector length (${b.length}) must match rowCount (${u.rowCount}).',
+        'Vector length (${b.length}) must match rowCount (${uMat.rowCount}).',
       );
     }
-    final cols = vt.colCount;
-    final mn = math.min(u.rowCount, cols);
-    final tmp = Float64List(cols);
-    final maxDim = math.max(u.rowCount, cols);
+    if (tolerance != null && (tolerance.isNaN || tolerance < 0.0)) {
+      throw ArgumentError.value(
+        tolerance,
+        'tolerance',
+        'Tolerance must be non-negative and non-NaN.',
+      );
+    }
+    final cols = vtMat.colCount;
+    if (s.length > 0 && !s[0].isFinite) {
+      return Vector<double>.filled(cols, double.nan, type: DataType.float64);
+    }
+    final mn = math.min(uMat.rowCount, cols);
+    final tmp = Float64List(mn);
+    final maxDim = math.max(uMat.rowCount, cols);
     final maxS = s.length > 0 ? s[0].abs() : 0.0;
     final tol = tolerance ?? maxDim * maxS * 2.220446049250313e-16;
 
-    for (var j = 0; j < cols; j++) {
+    for (var j = 0; j < mn; j++) {
       var val = 0.0;
-      if (j < mn) {
-        for (var i = 0; i < u.rowCount; i++) {
-          val += u.getUnchecked(i, j) * b.getUnchecked(i).toDouble();
-        }
-        val = s[j].abs() > tol ? val / s[j] : 0.0;
+      for (var i = 0; i < uMat.rowCount; i++) {
+        val += uMat.getUnchecked(i, j) * b.getUnchecked(i).toDouble();
       }
-      tmp[j] = val;
+      tmp[j] = s[j].abs() > tol ? val / s[j] : 0.0;
     }
 
     final result = Float64List(cols);
     for (var j = 0; j < cols; j++) {
       var val = 0.0;
-      for (var i = 0; i < cols; i++) {
-        val += vt.getUnchecked(i, j) * tmp[i];
+      for (var i = 0; i < mn; i++) {
+        val += vtMat.getUnchecked(i, j) * tmp[i];
       }
       result[j] = val;
     }
@@ -266,20 +263,37 @@ class SingularValueDecomposition {
     );
   }
 
-  /// Solves the linear system $A X \approx B$ using minimum norm least squares.
+  /// Solves the linear system `A * X ~= B` using minimum norm least squares.
   Matrix<double> solve(Matrix<num> b, {double? tolerance}) {
-    if (!vectorsComputed) {
+    final uMat = _u;
+    final vtMat = _vt;
+    if (!vectorsComputed || uMat == null || vtMat == null) {
       throw StateError('Singular vectors were not computed.');
     }
-    if (u.rowCount != b.rowCount) {
+    if (uMat.rowCount != b.rowCount) {
       throw ArgumentError(
-        'Matrix row count (${b.rowCount}) must match rowCount (${u.rowCount}).',
+        'Matrix row count (${b.rowCount}) must match rowCount (${uMat.rowCount}).',
       );
     }
-    final cols = vt.colCount;
+    if (tolerance != null && (tolerance.isNaN || tolerance < 0.0)) {
+      throw ArgumentError.value(
+        tolerance,
+        'tolerance',
+        'Tolerance must be non-negative and non-NaN.',
+      );
+    }
+    final cols = vtMat.colCount;
     final nrhs = b.colCount;
-    final mn = math.min(u.rowCount, cols);
-    final maxDim = math.max(u.rowCount, cols);
+    if (s.length > 0 && !s[0].isFinite) {
+      return Matrix<double>.filled(
+        cols,
+        nrhs,
+        double.nan,
+        type: DataType.float64,
+      );
+    }
+    final mn = math.min(uMat.rowCount, cols);
+    final maxDim = math.max(uMat.rowCount, cols);
     final maxS = s.length > 0 ? s[0].abs() : 0.0;
     final tol = tolerance ?? maxDim * maxS * 2.220446049250313e-16;
 
@@ -289,24 +303,21 @@ class SingularValueDecomposition {
       0.0,
       type: DataType.float64,
     );
-    final tmp = Float64List(cols);
+    final tmp = Float64List(mn);
 
     for (var col = 0; col < nrhs; col++) {
-      for (var j = 0; j < cols; j++) {
+      for (var j = 0; j < mn; j++) {
         var val = 0.0;
-        if (j < mn) {
-          for (var i = 0; i < u.rowCount; i++) {
-            val += u.getUnchecked(i, j) * b.getUnchecked(i, col).toDouble();
-          }
-          val = s[j].abs() > tol ? val / s[j] : 0.0;
+        for (var i = 0; i < uMat.rowCount; i++) {
+          val += uMat.getUnchecked(i, j) * b.getUnchecked(i, col).toDouble();
         }
-        tmp[j] = val;
+        tmp[j] = s[j].abs() > tol ? val / s[j] : 0.0;
       }
 
       for (var j = 0; j < cols; j++) {
         var val = 0.0;
-        for (var i = 0; i < cols; i++) {
-          val += vt.getUnchecked(i, j) * tmp[i];
+        for (var i = 0; i < mn; i++) {
+          val += vtMat.getUnchecked(i, j) * tmp[i];
         }
         result.setUnchecked(j, col, val);
       }
@@ -315,18 +326,30 @@ class SingularValueDecomposition {
     return result;
   }
 
-  /// Computes the Moore-Penrose pseudoinverse $A^+$ of size $n \times m$.
+  /// Computes the Moore-Penrose pseudoinverse `A^+` of size `n x m`.
   Matrix<double> pseudoinverse({double rcond = 1e-15}) {
-    if (!vectorsComputed) {
+    final uMat = _u;
+    final vtMat = _vt;
+    if (!vectorsComputed || uMat == null || vtMat == null) {
       throw StateError('Singular vectors were not computed.');
+    }
+    if (rcond.isNaN || rcond < 0.0) {
+      throw ArgumentError.value(
+        rcond,
+        'rcond',
+        'rcond must be non-negative and non-NaN.',
+      );
     }
     final m = _rowCount;
     final n = _colCount;
-    final result = Matrix<double>.filled(n, m, 0.0, type: DataType.float64);
     final k = s.length;
+    if (k > 0 && !s[0].isFinite) {
+      return Matrix<double>.filled(n, m, double.nan, type: DataType.float64);
+    }
+    final result = Matrix<double>.filled(n, m, 0.0, type: DataType.float64);
     if (k == 0) return result;
     final maxS = s[0].abs();
-    if (maxS == 0.0 || !maxS.isFinite) return result;
+    if (maxS == 0.0) return result;
     final tol = rcond * maxS;
 
     for (var i = 0; i < k; i++) {
@@ -334,12 +357,12 @@ class SingularValueDecomposition {
       if (sVal.abs() > tol) {
         final invS = 1.0 / sVal;
         for (var r = 0; r < n; r++) {
-          final vVal = vt.getUnchecked(i, r) * invS;
+          final vVal = vtMat.getUnchecked(i, r) * invS;
           for (var c = 0; c < m; c++) {
             result.setUnchecked(
               r,
               c,
-              result.getUnchecked(r, c) + vVal * u.getUnchecked(c, i),
+              result.getUnchecked(r, c) + vVal * uMat.getUnchecked(c, i),
             );
           }
         }

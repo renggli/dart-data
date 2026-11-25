@@ -5,7 +5,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Vector element access', () {
@@ -315,35 +315,50 @@ void main() {
       check(sub.toList()).deepEquals([2.0, 3.0]);
     });
 
-    test('Vector comprehensive constructors, operations, and errors', () {
+    test('constructors, isEmpty/isNotEmpty, sum, and hashCode', () {
       final filledVec = Vector<double>.filled(3, 7.0);
       check(filledVec.toList()).deepEquals([7.0, 7.0, 7.0]);
+      check(filledVec.isEmpty).isFalse;
+      check(filledVec.isNotEmpty).isTrue;
+
+      final emptyVec = Vector<double>.fromList([]);
+      check(emptyVec.isEmpty).isTrue;
+      check(emptyVec.isNotEmpty).isFalse;
+      check(emptyVec.norm(2)).equals(0.0);
 
       final genVec = Vector<int>.generate(4, (i) => i * 3);
       check(genVec.toList()).deepEquals([0, 3, 6, 9]);
-
-      final nativeVec = Vector<double>.filled(3, 0.0);
-      check(nativeVec.length).equals(3);
 
       final fromIter = Vector<int>.fromIterable([10, 20, 30]);
       check(fromIter.toList()).deepEquals([10, 20, 30]);
       check(fromIter.values).deepEquals([10, 20, 30]);
 
       final copyVec = fromIter.copy();
-      check(copyVec.toList()).deepEquals(fromIter.toList());
+      check(copyVec).equals(fromIter);
+      check(copyVec.hashCode).equals(fromIter.hashCode);
       check(copyVec.sum).equals(60);
       check(copyVec.toString()).equals('Vector([10, 20, 30])');
-
       check(fromIter.subVector(1).toList()).deepEquals([20, 30]);
+    });
 
+    test('norms, scaling stability, and normalization edge cases', () {
       final vector = Vector<double>.fromList([1.0, 2.0, 2.0]);
       check(vector.norm(3)).isCloseTo(2.57128159, 1e-5);
 
-      final intNormVec = Vector<int>.fromList([3, 4]);
-      check(intNormVec.norm(2)).equals(5.0);
       check(() => vector.norm(0)).throws<ArgumentError>();
       check(() => vector.norm(-1)).throws<ArgumentError>();
       check(() => vector.norm(double.nan)).throws<ArgumentError>();
+
+      final hugeP = Vector<double>.fromList([1e200, 1e200]);
+      check(hugeP.norm(3)).isCloseTo(math.pow(2.0, 1.0 / 3.0) * 1e200, 1e188);
+
+      final subP = Vector<double>.fromList([1e-200, 1e-200]);
+      check(subP.norm(3)).isCloseTo(math.pow(2.0, 1.0 / 3.0) * 1e-200, 1e-210);
+
+      final nanP = Vector<double>.fromList([1.0, double.nan]);
+      check(nanP.norm(3).isNaN).isTrue;
+      final infP = Vector<double>.fromList([1.0, double.infinity]);
+      check(infP.norm(3)).equals(double.infinity);
 
       final largeNumVec = Vector<num>.fromList([
         3e160,
@@ -363,11 +378,29 @@ void main() {
         ], type: DataType.float32).tensor.flip(),
       );
       check(flippedF32.norm(2)).isCloseTo(5.0, 1e-5);
-      check(Vector<double>.fromList([]).norm(2)).equals(0.0);
 
       final zeroVec = Vector<double>.fromList([0.0, 0.0]);
       check(zeroVec.normalized).throws<StateError>();
 
+      // Subnormal normalization without reciprocal overflow
+      final subnormal = Vector<double>.fromList([1e-310, 1e-310]);
+      final subNorm = subnormal.normalized();
+      check(subNorm[0]).isCloseTo(math.sqrt(0.5), 1e-10);
+      check(subNorm[1]).isCloseTo(math.sqrt(0.5), 1e-10);
+
+      // Huge finite normalization where L2 norm overflows to infinity
+      final huge = Vector<double>.fromList([1e308, 1e308, 1e308, 1e308]);
+      final hugeNorm = huge.normalized();
+      check(hugeNorm[0]).isCloseTo(0.5, 1e-10);
+      check(hugeNorm[3]).isCloseTo(0.5, 1e-10);
+
+      final infVec = Vector<double>.fromList([double.infinity, 1.0])
+          .normalized();
+      check(infVec[0].isNaN).isTrue;
+      check(infVec[1]).equals(0.0);
+    });
+
+    test('in-place addScaled, scaleInPlace, and float32 fast paths', () {
       final v3 = Vector<double>.fromList([1.0, 2.0, 3.0]);
       final v2 = Vector<double>.fromList([1.0, 2.0]);
       check(() => v3.dot(v2)).throws<ArgumentError>();
@@ -375,6 +408,7 @@ void main() {
 
       final vInt1 = Vector<int>.fromList([1, 2, 3]);
       final vInt2 = Vector<int>.fromList([10, 20, 30]);
+      check(vInt1.dot(vInt2)).equals(140);
       vInt1.addScaled(vInt2, 2);
       check(vInt1.toList()).deepEquals([21, 42, 63]);
 
@@ -399,8 +433,9 @@ void main() {
 
       f32_1.scaleInPlace(0.5);
       check(f32_1.toList()[0]).isCloseTo(4.5, 1e-4);
+    });
 
-      // Non-contiguous dot and non-contiguous cumsum/cumprod target
+    test('non-contiguous dot and aliased cumsum target views', () {
       final mat = Matrix<int>.fromRows([
         [1, 2],
         [3, 4],
@@ -413,14 +448,11 @@ void main() {
       col0.cumsum(target: targetCol);
       check(targetCol.toList()).deepEquals([1, 4, 9]);
 
-      // Reversed in-place cumsum
       final vRev = Vector<int>.fromList([1, 2, 3, 4]);
-      // Reversed view: flip(axis: 0) gives elements [4, 3, 2, 1]
       final revView = Vector<int>(vRev.tensor.flip());
       revView.cumsum(target: revView);
-      check(revView.toList()).which(.it()..deepEquals([4, 7, 9, 10]));
+      check(revView.toList()).deepEquals([4, 7, 9, 10]);
 
-      // Overlapping sublistView cumsum
       final bufferData = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0]);
       final vSrc = Vector<double>(
         Tensor<double>.internal(
@@ -436,10 +468,8 @@ void main() {
           data: Float64List.sublistView(bufferData, 1, 5),
         ),
       );
-      // vSrc is [1, 2, 3, 4]
-      // cumsum into vDst should produce [1, 3, 6, 10] in bufferData[1..5]
       vSrc.cumsum(target: vDst);
-      check(vDst.toList()).which(.it()..deepEquals([1.0, 3.0, 6.0, 10.0]));
+      check(vDst.toList()).deepEquals([1.0, 3.0, 6.0, 10.0]);
     });
 
     test('cross product and isClose', () {

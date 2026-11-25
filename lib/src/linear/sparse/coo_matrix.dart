@@ -9,8 +9,8 @@ import 'csr_matrix.dart';
 ///
 /// Conceptually, a sparse matrix only stores non-zero entries by recording each
 /// entry's row index, column index, and value. Mathematically, this stores the
-/// multiset of non-zero entries $\{ (i_k, j_k, v_k) \}_{k=0}^{N-1}$ allowing
-/// $O(1)$ dynamic appending.
+/// multiset of non-zero entries `{(i_k, j_k, v_k)}` allowing `O(1)` dynamic
+/// appending.
 ///
 /// ```dart
 /// final coo = CooMatrix<double>(
@@ -63,13 +63,17 @@ class CooMatrix<T> implements LinearOperator<T> {
     Iterable<(int, int, T)> entries, {
     DataType<T>? type,
   }) {
+    if (rowCount < 0 || colCount < 0) {
+      throw ArgumentError(
+        'Dimensions must be non-negative: ($rowCount x $colCount)',
+      );
+    }
     final list = entries.toList(growable: false);
     final effectiveType =
         type ??
-        (switch (list) {
-          [(_, _, final firstVal), ...] => DataType.fromInstance(firstVal),
-          _ => DataType.fromType<T>(),
-        });
+        (list.isEmpty
+            ? DataType.fromType<T>()
+            : DataType.fromIterable([for (final (_, _, v) in list) v]));
     final rowIndices = <int>[];
     final colIndices = <int>[];
     final values = <T>[];
@@ -102,7 +106,7 @@ class CooMatrix<T> implements LinearOperator<T> {
     final values = <T>[];
     for (var row = 0; row < matrix.rowCount; row++) {
       for (var col = 0; col < matrix.colCount; col++) {
-        final val = matrix.get(row, col);
+        final val = matrix.getUnchecked(row, col);
         if (!type.equality.isEqual(val, zero)) {
           rowIndices.add(row);
           colIndices.add(col);
@@ -170,8 +174,13 @@ class CooMatrix<T> implements LinearOperator<T> {
     for (var k = 0; k < nnz; k++) {
       final row = rowIndices[k];
       final col = colIndices[k];
-      final val = values[k];
-      res[row] = field.add(res[row], field.mul(val, x[col]));
+      res.setUnchecked(
+        row,
+        field.add(
+          res.getUnchecked(row),
+          field.mul(values[k], x.getUnchecked(col)),
+        ),
+      );
     }
     return res;
   }
@@ -188,8 +197,13 @@ class CooMatrix<T> implements LinearOperator<T> {
     for (var k = 0; k < nnz; k++) {
       final row = rowIndices[k];
       final col = colIndices[k];
-      final val = values[k];
-      res[col] = field.add(res[col], field.mul(val, x[row]));
+      res.setUnchecked(
+        col,
+        field.add(
+          res.getUnchecked(col),
+          field.mul(values[k], x.getUnchecked(row)),
+        ),
+      );
     }
     return res;
   }
@@ -206,8 +220,13 @@ class CooMatrix<T> implements LinearOperator<T> {
     for (var k = 0; k < nnz; k++) {
       final row = rowIndices[k];
       final col = colIndices[k];
-      final val = values[k];
-      res[col] = field.add(res[col], field.mul(field.conjugate(val), x[row]));
+      res.setUnchecked(
+        col,
+        field.add(
+          res.getUnchecked(col),
+          field.mul(field.conjugate(values[k]), x.getUnchecked(row)),
+        ),
+      );
     }
     return res;
   }
@@ -222,21 +241,28 @@ class CooMatrix<T> implements LinearOperator<T> {
     type: type,
   );
 
+  /// Returns the conjugate transpose (Hermitian adjoint) sparse matrix.
+  CooMatrix<T> get conjugateTranspose {
+    final field = type.field;
+    final conjValues = type.newList(values.length);
+    for (var i = 0; i < values.length; i++) {
+      conjValues[i] = field.conjugate(values[i]);
+    }
+    return CooMatrix(
+      rowCount: colCount,
+      colCount: rowCount,
+      rowIndices: List<int>.of(colIndices, growable: false),
+      colIndices: List<int>.of(rowIndices, growable: false),
+      values: conjValues,
+      type: type,
+    );
+  }
+
   /// Scales every element by [scalar].
   CooMatrix<T> scale(T scalar) {
     final field = type.field;
     final equality = type.equality;
     final zero = field.additiveIdentity;
-    if (equality.isEqual(scalar, zero)) {
-      return CooMatrix(
-        rowCount: rowCount,
-        colCount: colCount,
-        rowIndices: const [],
-        colIndices: const [],
-        values: type.newList(0),
-        type: type,
-      );
-    }
     final newRowIndices = <int>[];
     final newColIndices = <int>[];
     final newValuesList = <T>[];
@@ -255,48 +281,20 @@ class CooMatrix<T> implements LinearOperator<T> {
     return CooMatrix(
       rowCount: rowCount,
       colCount: colCount,
-      rowIndices: newRowIndices,
-      colIndices: newColIndices,
+      rowIndices: List<int>.of(newRowIndices, growable: false),
+      colIndices: List<int>.of(newColIndices, growable: false),
       values: newValues,
       type: type,
     );
   }
 
   /// Adds [other] sparse matrix to this matrix.
-  CooMatrix<T> operator +(CooMatrix<T> other) {
-    if (rowCount != other.rowCount || colCount != other.colCount) {
-      throw ArgumentError(
-        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
-      );
-    }
-    return CooMatrix(
-      rowCount: rowCount,
-      colCount: colCount,
-      rowIndices: [...rowIndices, ...other.rowIndices],
-      colIndices: [...colIndices, ...other.colIndices],
-      values: [...values, ...other.values],
-      type: type,
-    );
-  }
+  CooMatrix<T> operator +(CooMatrix<T> other) =>
+      _combine(other, subtract: false);
 
   /// Subtracts [other] sparse matrix from this matrix.
-  CooMatrix<T> operator -(CooMatrix<T> other) {
-    if (rowCount != other.rowCount || colCount != other.colCount) {
-      throw ArgumentError(
-        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
-      );
-    }
-    final field = type.field;
-    final negatedOtherValues = [for (final v in other.values) field.neg(v)];
-    return CooMatrix(
-      rowCount: rowCount,
-      colCount: colCount,
-      rowIndices: [...rowIndices, ...other.rowIndices],
-      colIndices: [...colIndices, ...other.colIndices],
-      values: [...values, ...negatedOtherValues],
-      type: type,
-    );
-  }
+  CooMatrix<T> operator -(CooMatrix<T> other) =>
+      _combine(other, subtract: true);
 
   /// Unary matrix negation.
   CooMatrix<T> operator -() {
@@ -453,8 +451,38 @@ class CooMatrix<T> implements LinearOperator<T> {
     for (var k = 0; k < nnz; k++) {
       final r = rowIndices[k];
       final c = colIndices[k];
-      res.set(r, c, field.add(res.get(r, c), values[k]));
+      res.setUnchecked(r, c, field.add(res.getUnchecked(r, c), values[k]));
     }
     return res;
+  }
+
+  CooMatrix<T> _combine(CooMatrix<T> other, {required bool subtract}) {
+    if (rowCount != other.rowCount || colCount != other.colCount) {
+      throw ArgumentError(
+        'Matrix dimensions must agree: ($rowCount x $colCount) vs (${other.rowCount} x ${other.colCount})',
+      );
+    }
+    final combinedVals = type.newList(nnz + other.nnz);
+    for (var i = 0; i < nnz; i++) {
+      combinedVals[i] = values[i];
+    }
+    if (subtract) {
+      final field = type.field;
+      for (var i = 0; i < other.nnz; i++) {
+        combinedVals[nnz + i] = field.neg(other.values[i]);
+      }
+    } else {
+      for (var i = 0; i < other.nnz; i++) {
+        combinedVals[nnz + i] = other.values[i];
+      }
+    }
+    return CooMatrix(
+      rowCount: rowCount,
+      colCount: colCount,
+      rowIndices: [...rowIndices, ...other.rowIndices],
+      colIndices: [...colIndices, ...other.colIndices],
+      values: combinedVals,
+      type: type,
+    );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 extension on Subject<Complex> {
   void isCloseTo(Complex other, double delta) {
@@ -211,6 +211,56 @@ void main() {
       ]);
       check(() => spd.cholesky.solve(Matrix<double>.filled(3, 1, 1.0)))
           .throws<ArgumentError>();
+    });
+
+    test('computes inverse, preserves float32, and handles 0x0 and non-finite inputs', () {
+      final empty = Matrix<double>.filled(0, 0, 0.0);
+      final emptyChol = empty.cholesky;
+      check(emptyChol.isSymmetricPositiveDefinite).isTrue;
+      check(emptyChol.det).equals(1.0);
+      check(emptyChol.inverse.rowCount).equals(0);
+
+      final spdF32 = Matrix<double>.fromRows([
+        [4.0, 1.0],
+        [1.0, 3.0],
+      ], type: DataType.float32);
+      final cholF32 = spdF32.cholesky;
+      final invF32 = cholF32.inverse;
+      check(invF32.type).equals(DataType.float32);
+      check(
+        (spdF32 * invF32).isClose(
+          Matrix<double>.identity(2, type: DataType.float32),
+          epsilon: 1e-5,
+        ),
+      ).isTrue;
+
+      final spd = Matrix<double>.fromRows([
+        [4.0, 1.0],
+        [1.0, 3.0],
+      ]);
+      final inv = spd.cholesky.inverse;
+      check((spd * inv).isClose(Matrix<double>.identity(2), epsilon: 1e-10))
+          .isTrue;
+
+      for (final bad in [0.0, double.nan, double.infinity]) {
+        final m = Matrix<double>.fromRows([
+          [bad, 0.0],
+          [0.0, bad],
+        ]);
+        check(m.cholesky.isSymmetricPositiveDefinite).isFalse;
+      }
+
+      for (final badC in [
+        Complex.zero,
+        const Complex(double.nan, 0.0),
+        const Complex(double.infinity, 0.0),
+      ]) {
+        final mc = Matrix<Complex>.fromRows([
+          [badC, Complex.zero],
+          [Complex.zero, badC],
+        ], type: DataType.complex);
+        check(mc.cholesky.isSymmetricPositiveDefinite).isFalse;
+      }
     });
   });
 }
