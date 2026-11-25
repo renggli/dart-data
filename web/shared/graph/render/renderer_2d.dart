@@ -247,6 +247,7 @@ class Renderer2D {
           fill: ds.fill,
           markers: ds.markers,
           references: ds.references,
+          markerSampler: ds.markerSampler,
         );
         updated.add(resampled);
         changed = true;

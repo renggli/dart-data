@@ -58,9 +58,13 @@ late web.HTMLElement eStdDev;
 late web.HTMLInputElement calcPSlider;
 late web.HTMLInputElement calcPInput;
 late web.HTMLElement valQuantile;
+late web.HTMLElement valUpperQuantile;
 late web.HTMLElement valCdfEval;
 late web.HTMLElement valSurvivalEval;
 late web.HTMLElement valPdfEval;
+late web.HTMLElement valLogPdfEval;
+late web.HTMLElement valHazardEval;
+late web.HTMLElement valOddsEval;
 double currentEvalP = 0.50;
 
 /// Prettily formats statistical results.
@@ -115,10 +119,17 @@ void main() {
   calcPInput =
       web.document.querySelector('#calc-p-input') as web.HTMLInputElement;
   valQuantile = web.document.querySelector('#val-quantile') as web.HTMLElement;
+  valUpperQuantile =
+      web.document.querySelector('#val-upper-quantile') as web.HTMLElement;
   valCdfEval = web.document.querySelector('#val-cdf-eval') as web.HTMLElement;
   valSurvivalEval =
       web.document.querySelector('#val-survival-eval') as web.HTMLElement;
   valPdfEval = web.document.querySelector('#val-pdf-eval') as web.HTMLElement;
+  valLogPdfEval =
+      web.document.querySelector('#val-log-pdf-eval') as web.HTMLElement;
+  valHazardEval =
+      web.document.querySelector('#val-hazard-eval') as web.HTMLElement;
+  valOddsEval = web.document.querySelector('#val-odds-eval') as web.HTMLElement;
 
   void updateEvalP(double p) {
     currentEvalP = p.clamp(0.0, 1.0);
@@ -570,15 +581,21 @@ double evalDistSurvival(num x) {
 /// Update quantile and probability evaluation card.
 void updateQuantileCalculator() {
   try {
-    num q;
-    if (currentEvalP == 0.0 && activeDist.isLowerBoundOpen) {
-      q = activeDist.lowerBound;
-    } else if (currentEvalP == 1.0 && activeDist.isUpperBoundOpen) {
-      q = activeDist.upperBound;
-    } else {
-      q = activeDist.inverseCumulativeProbability(currentEvalP);
+    num evalQuantileAt(double p) {
+      if (p <= 0.0 && activeDist.isLowerBoundOpen) {
+        return activeDist.lowerBound;
+      }
+      if (p >= 1.0 && activeDist.isUpperBoundOpen) {
+        return activeDist.upperBound;
+      }
+      return activeDist.inverseCumulativeProbability(p);
     }
+
+    final q = evalQuantileAt(currentEvalP);
     setAttrValue(valQuantile, formatNumber(q));
+
+    final upperQ = evalQuantileAt(1.0 - currentEvalP);
+    setAttrValue(valUpperQuantile, formatNumber(upperQ));
 
     // Evaluate cumulative CDF at q
     final cdfAtQ = evalDistCumulativeProbability(q);
@@ -591,11 +608,31 @@ void updateQuantileCalculator() {
     // Density / Mass at q
     final pdfAtQ = evalDistProbability(q);
     setAttrValue(valPdfEval, formatNumber(pdfAtQ));
+
+    // Log-density ln f(x)
+    final logPdf = pdfAtQ > 0 ? math.log(pdfAtQ) : double.negativeInfinity;
+    setAttrValue(valLogPdfEval, formatNumber(logPdf));
+
+    // Hazard rate h(x) = f(x) / S(x)
+    final hazard = survAtQ > 0
+        ? pdfAtQ / survAtQ
+        : (pdfAtQ > 0 ? double.infinity : double.nan);
+    setAttrValue(valHazardEval, hazard.isNaN ? '-' : formatNumber(hazard));
+
+    // Odds p / (1 - p)
+    final odds = currentEvalP >= 1.0
+        ? double.infinity
+        : currentEvalP / (1.0 - currentEvalP);
+    setAttrValue(valOddsEval, formatNumber(odds));
   } catch (_) {
     setAttrValue(valQuantile, '-');
+    setAttrValue(valUpperQuantile, '-');
     setAttrValue(valCdfEval, '-');
     setAttrValue(valSurvivalEval, '-');
     setAttrValue(valPdfEval, '-');
+    setAttrValue(valLogPdfEval, '-');
+    setAttrValue(valHazardEval, '-');
+    setAttrValue(valOddsEval, '-');
   }
 }
 

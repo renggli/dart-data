@@ -691,8 +691,7 @@ body.sidebar-collapsed .sidebar-expand-btn {
   gap: 6px;
 }
 
-.attr-item.attr-scroll .attr-value,
-.attr-item.attr-block .attr-value {
+.attr-item.attr-scroll .attr-value {
   width: 100%;
   text-align: left;
   white-space: pre;
@@ -703,10 +702,7 @@ body.sidebar-collapsed .sidebar-expand-btn {
   scrollbar-width: thin;
   font-size: 11px;
   line-height: 1.45;
-  padding: 8px 10px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  padding: 2px 0;
   cursor: text;
 }
 
@@ -721,25 +717,19 @@ body.sidebar-collapsed .sidebar-expand-btn {
   scrollbar-width: thin;
   font-size: 11px;
   line-height: 1.5;
-  padding: 8px 10px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  padding: 2px 0;
 }
 
-.attr-item.attr-scroll .attr-value:hover,
-.attr-item.attr-block .attr-value:hover {
+.attr-item.attr-scroll .attr-value:hover {
   color: var(--text-primary);
 }
 
-.attr-item.attr-scroll .attr-value::-webkit-scrollbar,
-.attr-item.attr-block .attr-value::-webkit-scrollbar {
+.attr-item.attr-scroll .attr-value::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 
-.attr-item.attr-scroll .attr-value::-webkit-scrollbar-thumb,
-.attr-item.attr-block .attr-value::-webkit-scrollbar-thumb {
+.attr-item.attr-scroll .attr-value::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
@@ -1248,7 +1238,7 @@ body.sidebar-collapsed .sidebar {
   display: flex;
   flex-direction: column;
   width: 100%;
-  background: var(--bg-primary);
+  background: transparent;
   overflow: hidden;
 }
 

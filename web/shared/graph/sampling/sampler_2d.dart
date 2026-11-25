@@ -24,6 +24,7 @@ Function2DDataset sampleFunction2D({
   List<PointMarker> markers = const <PointMarker>[],
   List<ReferenceLine> references = const <ReferenceLine>[],
   bool dynamicResample = true,
+  List<PointMarker> Function(double xMin, double xMax)? markerSampler,
 }) {
   final count = math.max(8, baseSamples);
   final xs = <double>[];
@@ -100,9 +101,10 @@ Function2DDataset sampleFunction2D({
     mode: mode,
     yAxis: yAxis,
     fill: fill,
-    markers: markers,
+    markers: markerSampler != null ? markerSampler(xMin, xMax) : markers,
     references: references,
     evaluator: dynamicResample ? fn : null,
+    markerSampler: dynamicResample ? markerSampler : null,
   );
 }
 

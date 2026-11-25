@@ -119,24 +119,24 @@ class GraphTheme {
 
   /// Default dark theme matching the web workspace.
   static const GraphTheme dark = GraphTheme(
-    background: '#0f172a',
-    surface: '#1e293b',
+    background: '#181a1f',
+    surface: '#22252b',
     gridColor: 'rgba(148, 163, 184, 0.16)',
     axisColor: 'rgba(148, 163, 184, 0.45)',
-    textColor: '#e2e8f0',
-    mutedTextColor: '#94a3b8',
+    textColor: '#eceef2',
+    mutedTextColor: '#a1a8b5',
     palette: defaultGraphPalette,
     isDark: true,
   );
 
   /// Default light theme matching the web workspace.
   static const GraphTheme light = GraphTheme(
-    background: '#ffffff',
-    surface: '#f8fafc',
-    gridColor: 'rgba(15, 23, 42, 0.10)',
-    axisColor: 'rgba(15, 23, 42, 0.35)',
-    textColor: '#0f172a',
-    mutedTextColor: '#475569',
+    background: '#f8f8f7',
+    surface: '#ffffff',
+    gridColor: 'rgba(24, 24, 27, 0.09)',
+    axisColor: 'rgba(24, 24, 27, 0.32)',
+    textColor: '#18181b',
+    mutedTextColor: '#52525b',
     palette: defaultGraphPalette,
     isDark: false,
   );

@@ -1888,42 +1888,150 @@ void drawCharts() {
 
   final (minY: autoMinY, maxY: autoMaxY) = estimateYBounds(realFn, imagFn);
   final datasets = <Dataset2D>[];
-  final markers = <PointMarker>[];
-
-  if (showRoots) {
-    for (final rx in plotRoots) {
-      if (rx >= minX && rx <= maxX) {
-        markers.add(PointMarker(x: rx, y: 0.0, color: '#ef4444', radius: 4.5));
-      }
-    }
-  }
-  if (showMin) {
-    for (final pt in localMinima) {
-      if (pt.x >= minX && pt.x <= maxX) {
-        markers.add(
-          PointMarker(x: pt.x, y: pt.y, color: '#10b981', radius: 4.5),
-        );
-      }
-    }
-  }
-  if (showMax) {
-    for (final pt in localMaxima) {
-      if (pt.x >= minX && pt.x <= maxX) {
-        markers.add(
-          PointMarker(x: pt.x, y: pt.y, color: '#f59e0b', radius: 4.5),
-        );
-      }
-    }
-  }
-
   final ptX = _currentPointPlotX();
-  if (ptX != null && ptX >= minX && ptX <= maxX) {
-    final py = realFn(ptX);
-    if (py.isFinite) {
-      markers.add(
-        PointMarker(x: ptX, y: py, color: '#22c55e', radius: 5.0, label: 'x₀'),
-      );
+
+  List<PointMarker> sampleMarkersForRange(double viewMinX, double viewMaxX) {
+    final result = <PointMarker>[];
+    if (!viewMinX.isFinite || !viewMaxX.isFinite || viewMaxX <= viewMinX) {
+      return result;
     }
+    final span = viewMaxX - viewMinX;
+    final tol = math.max(1e-4, span * 1e-4);
+
+    if (showRoots) {
+      final foundRoots = <double>[];
+      for (final rx in plotRoots) {
+        if (rx >= viewMinX &&
+            rx <= viewMaxX &&
+            !foundRoots.any((r) => (r - rx).abs() < tol)) {
+          foundRoots.add(rx);
+        }
+      }
+      const steps = 80;
+      final stepSize = span / steps;
+      var prevX = viewMinX;
+      var prevY = safeGet(() => realFn(prevX))?.toDouble();
+      for (var i = 1; i <= steps; i++) {
+        final curX = viewMinX + i * stepSize;
+        final curY = safeGet(() => realFn(curX))?.toDouble();
+        if (prevY != null &&
+            curY != null &&
+            prevY.isFinite &&
+            curY.isFinite &&
+            prevY * curY <= 0) {
+          try {
+            final root = solve(
+              realFn,
+              prevX,
+              b: curX,
+              method: RootMethod.brent,
+            );
+            if (root.isFinite &&
+                realFn(root).abs() < 1e-3 &&
+                !foundRoots.any((r) => (r - root).abs() < tol)) {
+              foundRoots.add(root);
+            }
+          } catch (_) {}
+        }
+        prevX = curX;
+        prevY = curY;
+      }
+      for (final rx in foundRoots) {
+        result.add(PointMarker(x: rx, y: 0.0, color: '#ef4444', radius: 4.5));
+      }
+    }
+
+    if ((showMin || showMax) && realDf != null) {
+      final foundMin = <ExtremumPoint>[];
+      final foundMax = <ExtremumPoint>[];
+      final extTol = math.max(1e-3, span * 1e-3);
+      for (final pt in localMinima) {
+        if (pt.x >= viewMinX &&
+            pt.x <= viewMaxX &&
+            !foundMin.any((m) => (m.x - pt.x).abs() < extTol)) {
+          foundMin.add(pt);
+        }
+      }
+      for (final pt in localMaxima) {
+        if (pt.x >= viewMinX &&
+            pt.x <= viewMaxX &&
+            !foundMax.any((m) => (m.x - pt.x).abs() < extTol)) {
+          foundMax.add(pt);
+        }
+      }
+      const steps = 80;
+      final stepSize = span / steps;
+      var prevX = viewMinX;
+      var prevSlope = safeGet(() => realDf(prevX))?.toDouble();
+      for (var i = 1; i <= steps; i++) {
+        final curX = viewMinX + i * stepSize;
+        final curSlope = safeGet(() => realDf(curX))?.toDouble();
+        if (prevSlope != null &&
+            curSlope != null &&
+            prevSlope.isFinite &&
+            curSlope.isFinite &&
+            prevSlope * curSlope <= 0) {
+          try {
+            final critX = solve(
+              realDf,
+              prevX,
+              b: curX,
+              method: RootMethod.brent,
+            );
+            if (critX.isFinite && realDf(critX).abs() < 1e-3) {
+              final yVal = safeGet(() => realFn(critX))?.toDouble();
+              final curvature = realD2f != null
+                  ? safeGet(() => realD2f(critX))?.toDouble()
+                  : null;
+              if (yVal != null && yVal.isFinite) {
+                if (curvature != null && curvature > 1e-6) {
+                  if (!foundMin.any((m) => (m.x - critX).abs() < extTol)) {
+                    foundMin.add((x: critX, y: yVal));
+                  }
+                } else if (curvature != null && curvature < -1e-6) {
+                  if (!foundMax.any((m) => (m.x - critX).abs() < extTol)) {
+                    foundMax.add((x: critX, y: yVal));
+                  }
+                }
+              }
+            }
+          } catch (_) {}
+        }
+        prevX = curX;
+        prevSlope = curSlope;
+      }
+      if (showMin) {
+        for (final pt in foundMin) {
+          result.add(
+            PointMarker(x: pt.x, y: pt.y, color: '#10b981', radius: 4.5),
+          );
+        }
+      }
+      if (showMax) {
+        for (final pt in foundMax) {
+          result.add(
+            PointMarker(x: pt.x, y: pt.y, color: '#f59e0b', radius: 4.5),
+          );
+        }
+      }
+    }
+
+    if (ptX != null && ptX >= viewMinX && ptX <= viewMaxX) {
+      final py = realFn(ptX);
+      if (py.isFinite) {
+        result.add(
+          PointMarker(
+            x: ptX,
+            y: py,
+            color: '#22c55e',
+            radius: 5.0,
+            label: 'x₀',
+          ),
+        );
+      }
+    }
+
+    return result;
   }
 
   if (showIntegral) {
@@ -1956,7 +2064,7 @@ void drawCharts() {
         xMax: maxX,
         color: '#3b82f6',
         width: 2.5,
-        markers: markers,
+        markerSampler: sampleMarkersForRange,
       ),
     );
   }
