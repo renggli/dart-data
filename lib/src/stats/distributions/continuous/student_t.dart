@@ -4,12 +4,13 @@ import 'package:more/printer.dart';
 
 import '../../../special/beta.dart';
 import '../../../special/gamma.dart';
+import '../../../special/utils.dart';
 import '../continuous.dart';
 import '../errors.dart';
 import 'gamma.dart';
 import 'normal.dart';
 
-/// The Student's t-distribution.
+/// The Student's t-distribution with [dof] ν > 0 degrees of freedom.
 ///
 /// See https://en.wikipedia.org/wiki/Student%27s_t-distribution.
 class StudentDistribution extends ContinuousDistribution {
@@ -48,7 +49,7 @@ class StudentDistribution extends ContinuousDistribution {
           (gammaLn(0.5 * (nu + 1.0)) - gammaLn(0.5 * nu) - 0.5 * log(nu * pi));
       var term2 = 0.0;
       for (final x in list) {
-        term2 += log(1.0 + (x * x) / nu);
+        term2 += log1p((x * x) / nu);
       }
       return term1 - 0.5 * (nu + 1.0) * term2;
     }
@@ -114,12 +115,21 @@ class StudentDistribution extends ContinuousDistribution {
   double probability(double x) {
     if (x.isNaN) return double.nan;
     if (x.isInfinite) return 0.0;
-    return exp(
-      gammaLn(0.5 * (dof + 1.0)) -
-          gammaLn(0.5 * dof) -
-          0.5 * log(dof * pi) -
-          0.5 * (dof + 1.0) * log(1.0 + x * x / dof),
-    );
+    return exp(logProbability(x));
+  }
+
+  @override
+  double logProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x.isInfinite) return double.negativeInfinity;
+    final t = x.abs() / sqrt(dof);
+    final logOnePlus = t > 1e8
+        ? 2.0 * log(t) + log1p(1.0 / (t * t))
+        : log1p(t * t);
+    return gammaLn(0.5 * (dof + 1.0)) -
+        gammaLn(0.5 * dof) -
+        0.5 * log(dof * pi) -
+        0.5 * (dof + 1.0) * logOnePlus;
   }
 
   @override
@@ -128,7 +138,8 @@ class StudentDistribution extends ContinuousDistribution {
     if (x == double.infinity) return 1.0;
     if (x == double.negativeInfinity) return 0.0;
     if (x == 0.0) return 0.5;
-    final z = dof / (dof + x * x);
+    final t = x.abs() / sqrt(dof);
+    final z = t > 1e8 ? (1.0 / t) * (1.0 / t) : 1.0 / (1.0 + t * t);
     final halfIbeta = 0.5 * betaI(z, 0.5 * dof, 0.5);
     return x > 0.0 ? 1.0 - halfIbeta : halfIbeta;
   }
@@ -139,7 +150,8 @@ class StudentDistribution extends ContinuousDistribution {
     if (x == double.infinity) return 0.0;
     if (x == double.negativeInfinity) return 1.0;
     if (x == 0.0) return 0.5;
-    final z = dof / (dof + x * x);
+    final t = x.abs() / sqrt(dof);
+    final z = t > 1e8 ? (1.0 / t) * (1.0 / t) : 1.0 / (1.0 + t * t);
     final halfIbeta = 0.5 * betaI(z, 0.5 * dof, 0.5);
     return x > 0.0 ? halfIbeta : 1.0 - halfIbeta;
   }
@@ -147,9 +159,23 @@ class StudentDistribution extends ContinuousDistribution {
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
+    if (probability == 0.0) return double.negativeInfinity;
+    if (probability == 1.0) return double.infinity;
+    if (probability == 0.5) return 0.0;
     var x = betaIInv(2.0 * min(probability, 1.0 - probability), 0.5 * dof, 0.5);
     x = sqrt(dof * (1.0 - x) / x);
     return probability > 0.5 ? x : -x;
+  }
+
+  @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0.0) return double.infinity;
+    if (probability == 1.0) return double.negativeInfinity;
+    if (probability == 0.5) return 0.0;
+    var x = betaIInv(2.0 * min(probability, 1.0 - probability), 0.5 * dof, 0.5);
+    x = sqrt(dof * (1.0 - x) / x);
+    return probability < 0.5 ? x : -x;
   }
 
   @override

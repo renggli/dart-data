@@ -2,11 +2,11 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
-import '../continuous/uniform.dart';
 import '../discrete.dart';
 import '../errors.dart';
+import '../utils.dart';
 
-/// The Bernoulli distribution over $\{0, 1\}$.
+/// The Bernoulli distribution over `{0, 1}` with success probability [p].
 ///
 /// See https://en.wikipedia.org/wiki/Bernoulli_distribution.
 class BernoulliDistribution extends DiscreteDistribution {
@@ -38,17 +38,23 @@ class BernoulliDistribution extends DiscreteDistribution {
     return BernoulliDistribution(sum / count);
   }
 
-  /// Probability of success $p$.
+  /// Probability of success p.
   final double p;
 
-  /// Probability of failure $q = 1 - p$.
+  /// Probability of failure q = 1 - p.
   double get q => 1.0 - p;
 
   @override
   int get lowerBound => 0;
 
   @override
+  bool get isLowerBoundOpen => false;
+
+  @override
   int get upperBound => 1;
+
+  @override
+  bool get isUpperBoundOpen => false;
 
   @override
   double get mean => p;
@@ -73,10 +79,24 @@ class BernoulliDistribution extends DiscreteDistribution {
   double probability(int k) => k == 1 ? p : (k == 0 ? q : 0.0);
 
   @override
+  double logProbability(int x) {
+    if (x == 1) return log(p);
+    if (x == 0) return log(q);
+    return double.negativeInfinity;
+  }
+
+  @override
   double cumulativeProbability(int k) {
     if (k < 0) return 0.0;
     if (k == 0) return q;
     return 1.0;
+  }
+
+  @override
+  double survival(int x) {
+    if (x < 0) return 1.0;
+    if (x == 0) return p;
+    return 0.0;
   }
 
   @override
@@ -86,10 +106,14 @@ class BernoulliDistribution extends DiscreteDistribution {
   }
 
   @override
-  int sample({Random? random}) {
-    const uniform = UniformDistribution.standard();
-    return uniform.sample(random: random) < p ? 1 : 0;
+  int inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    return probability >= p ? 0 : 1;
   }
+
+  @override
+  int sample({Random? random}) =>
+      (random ?? defaultRandom).nextDouble() < p ? 1 : 0;
 
   @override
   bool operator ==(Object other) =>

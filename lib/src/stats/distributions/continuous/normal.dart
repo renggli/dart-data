@@ -5,6 +5,7 @@ import 'package:more/printer.dart';
 import '../../../special/erf.dart';
 import '../continuous.dart';
 import '../errors.dart';
+import '../utils.dart';
 
 /// Normal (or Gaussian) distribution described by [mean] μ and
 /// [standardDeviation] σ.
@@ -35,31 +36,9 @@ class NormalDistribution extends ContinuousDistribution {
   /// Fits a normal distribution to [samples] using maximum likelihood
   /// estimation.
   factory fit(Iterable<num> samples) {
-    var count = 0;
-    var sum = 0.0;
-    for (final x in samples) {
-      if (!x.isFinite) {
-        throw ArgumentError.value(x, 'samples', 'Samples must be finite');
-      }
-      count++;
-      sum += x;
-    }
-    if (count < 2) {
-      throw ArgumentError.value(
-        samples,
-        'samples',
-        'At least 2 samples required to estimate variance',
-      );
-    }
-    final mean = sum / count;
-    var sumSqDiff = 0.0;
-    for (final x in samples) {
-      final diff = x - mean;
-      sumSqDiff += diff * diff;
-    }
-    final variance = sumSqDiff / (count - 1);
-    final stdDev = sqrt(variance);
-    return NormalDistribution(mean, stdDev > 0 ? stdDev : 1e-15);
+    final stats = welfordSampleStats(samples, minCount: 2);
+    final stdDev = sqrt(stats.variance);
+    return NormalDistribution(stats.mean, stdDev > 0 ? stdDev : 1e-15);
   }
 
   @override
@@ -87,6 +66,14 @@ class NormalDistribution extends ContinuousDistribution {
   double probability(double x) {
     final z = (x - mean) / (sqrt2 * standardDeviation);
     return exp(-z * z) / (sqrt2 * sqrt(pi) * standardDeviation);
+  }
+
+  @override
+  double logProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x.isInfinite) return double.negativeInfinity;
+    final z = (x - mean) / standardDeviation;
+    return -0.5 * _ln2pi - log(standardDeviation) - 0.5 * z * z;
   }
 
   @override
@@ -124,7 +111,7 @@ class NormalDistribution extends ContinuousDistribution {
 
   @override
   double sample({Random? random}) {
-    final rng = random ?? _random;
+    final rng = random ?? defaultRandom;
     double xVal, yVal, rSq;
     do {
       xVal = 2.0 * rng.nextDouble() - 1.0;
@@ -136,7 +123,7 @@ class NormalDistribution extends ContinuousDistribution {
 
   @override
   Iterable<double> samples({Random? random}) sync* {
-    final rng = random ?? _random;
+    final rng = random ?? defaultRandom;
     for (;;) {
       double xVal, yVal, rSq;
       do {
@@ -165,4 +152,4 @@ class NormalDistribution extends ContinuousDistribution {
     ..addValue(standardDeviation, name: 'σ');
 }
 
-final _random = Random();
+final double _ln2pi = log(2.0 * pi);

@@ -24,19 +24,49 @@ class DegenerateDistribution extends ContinuousDistribution {
     }
   }
 
-  /// A standard degenerate distribution with $k = 0$.
+  /// A standard degenerate distribution with `k = 0`.
   const new standard() : this._(0.0);
 
   const new _(this.k);
 
-  /// The parameter k.
+  /// Fits a degenerate distribution to constant finite [samples].
+  factory fit(Iterable<num> samples) {
+    double? value;
+    for (final x in samples) {
+      final xd = x.toDouble();
+      if (!xd.isFinite) {
+        throw ArgumentError.value(x, 'samples', 'Samples must be finite');
+      }
+      if (value == null) {
+        value = xd == 0.0 ? 0.0 : xd;
+      } else if (xd != value) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Degenerate samples must all be identical ($value)',
+        );
+      }
+    }
+    if (value == null) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    return DegenerateDistribution(value);
+  }
+
+  /// The point mass value k.
   final double k;
 
   @override
   double get lowerBound => k;
 
   @override
+  bool get isLowerBoundOpen => false;
+
+  @override
   double get upperBound => k;
+
+  @override
+  bool get isUpperBoundOpen => false;
 
   @override
   double get mean => k;
@@ -60,14 +90,27 @@ class DegenerateDistribution extends ContinuousDistribution {
   double get excessKurtosis => double.nan;
 
   @override
-  double probability(double x) => x.isNaN ? double.nan : (x != k ? 0 : 1);
+  double probability(double x) => x.isNaN ? double.nan : (x == k ? 1.0 : 0.0);
+
+  @override
+  double logProbability(double x) =>
+      x.isNaN ? double.nan : (x == k ? 0.0 : double.negativeInfinity);
 
   @override
   double cumulativeProbability(double x) =>
-      x.isNaN ? double.nan : (x < k ? 0 : 1);
+      x.isNaN ? double.nan : (x < k ? 0.0 : 1.0);
+
+  @override
+  double survival(double x) => x.isNaN ? double.nan : (x < k ? 1.0 : 0.0);
 
   @override
   double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return k;
+  }
+
+  @override
+  double inverseSurvival(num probability) {
     InvalidProbability.check(probability);
     return k;
   }

@@ -7,12 +7,9 @@ import 'distributions/errors.dart';
 
 /// Abstract base class representing a probability distribution over [T].
 ///
-/// Conceptually, a probability distribution describes all possible outcomes of
-/// a random process and how likely each outcome is (such as rolling dice or
-/// measuring natural variations in a population). Formally, this formalizes a
-/// probability space $(\Omega, \mathcal{F}, P)$ and random variable
-/// $X: \Omega \to \mathbb{R}$ with support, density, and cumulative
-/// distribution functions.
+/// Describes the support, moments, density or mass, cumulative distribution,
+/// quantiles, survival function, and random sampling of a random variable `X`
+/// over numeric values of type [T].
 @immutable
 abstract class Distribution<T extends num> with ToStringPrinter {
   /// Abstract constant constructor for subclassing [Distribution].
@@ -58,18 +55,17 @@ abstract class Distribution<T extends num> with ToStringPrinter {
   /// probability mass (PMF) at [x].
   double logProbability(T x) => log(probability(x));
 
-  /// Returns the cumulative distribution function (CDF) at [x], i.e.,
-  /// $P(X \le x)$.
+  /// Returns the cumulative distribution function (CDF) at [x], `P(X ≤ x)`.
   double cumulativeProbability(T x);
 
   /// Returns the quantile (percent-point function / inverse CDF) for
-  /// [probability].
+  /// [probability] in `[0, 1]`.
   T inverseCumulativeProbability(num probability);
 
-  /// Returns the survival function $S(x) = P(X > x) = 1 - F(x)$.
+  /// Returns the survival function `S(x) = P(X > x) = 1 - F(x)`.
   double survival(T x) => 1.0 - cumulativeProbability(x);
 
-  /// Returns the inverse survival function for [probability].
+  /// Returns the inverse survival function for [probability] in `[0, 1]`.
   T inverseSurvival(num probability) {
     InvalidProbability.check(probability);
     return inverseCumulativeProbability(1.0 - probability);

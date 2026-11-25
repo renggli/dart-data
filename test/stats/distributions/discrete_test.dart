@@ -3,225 +3,288 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/stats.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
-void main() {
-  group('DiscreteDistribution contracts and defaults', () {
-    test('default implementations and bounds', () {
-      final custom = _TestDiscreteDist();
-      check(custom.lowerBound).equals(DataType.integer.safeMin);
-      check(custom.probability(0)).equals(0.5);
-      check(custom.inverseCumulativeProbability(1)).equals(custom.upperBound);
-      check(custom.inverseCumulativeProbability(0.75)).equals(0);
+class _GenericDiscrete extends DiscreteDistribution {
+  const new(this.min, this.max);
 
-      const posLower = _BoundedDiscreteDist(lower: 5, upper: 100);
-      check(posLower.inverseCumulativeProbability(0.8)).equals(15);
-
-      const negUpper = _BoundedDiscreteDist(lower: -100, upper: -5);
-      check(negUpper.inverseCumulativeProbability(0.2)).equals(-15);
-    });
-
-    test('equality, hashCode, default random, and sampling branches', () {
-      // Bernoulli
-      final b1 = BernoulliDistribution(0.4);
-      final b2 = BernoulliDistribution(0.4);
-      final b3 = BernoulliDistribution(0.6);
-      check(b1 == b2).isTrue;
-      check(b1 == b3).isFalse;
-      check(b1.hashCode).equals(b2.hashCode);
-      check(b1.sample()).isNotNull();
-
-      // Binomial
-      final bin1 = BinomialDistribution(10, 0.4);
-      final bin2 = BinomialDistribution(10, 0.4);
-      final bin3 = BinomialDistribution(10, 0.5);
-      check(bin1 == bin2).isTrue;
-      check(bin1 == bin3).isFalse;
-      check(bin1.hashCode).equals(bin2.hashCode);
-      check(bin1.sample()).isNotNull();
-
-      // Poisson rate >= 30 (normal approximation)
-      final p1 = PoissonDistribution(50.0);
-      final p2 = PoissonDistribution(50.0);
-      final p3 = PoissonDistribution(10.0);
-      check(p1 == p2).isTrue;
-      check(p1 == p3).isFalse;
-      check(p1.hashCode).equals(p2.hashCode);
-      check(p1.sample()).isNotNull();
-      check(p3.sample()).isNotNull();
-
-      // Geometric
-      final g1 = GeometricDistribution(0.3);
-      final g2 = GeometricDistribution(0.3);
-      final g3 = GeometricDistribution(0.7);
-      check(g1 == g2).isTrue;
-      check(g1 == g3).isFalse;
-      check(g1.hashCode).equals(g2.hashCode);
-      check(g1.sample()).isNotNull();
-
-      // Hypergeometric early breaks (K == 0, K == N)
-      final h1 = HypergeometricDistribution(50, 20, 10);
-      final h2 = HypergeometricDistribution(50, 20, 10);
-      final h3 = HypergeometricDistribution(50, 25, 10);
-      check(h1 == h2).isTrue;
-      check(h1 == h3).isFalse;
-      check(h1.hashCode).equals(h2.hashCode);
-      check(h1.sample()).isNotNull();
-
-      final hZeroK = HypergeometricDistribution(10, 0, 5);
-      check(hZeroK.sample()).equals(0);
-
-      final hAllK = HypergeometricDistribution(10, 10, 5);
-      check(hAllK.sample()).equals(5);
-
-      // Negative Binomial
-      final nb1 = NegativeBinomialDistribution(5, 0.5);
-      final nb2 = NegativeBinomialDistribution(5, 0.5);
-      final nb3 = NegativeBinomialDistribution(5, 0.6);
-      check(nb1 == nb2).isTrue;
-      check(nb1 == nb3).isFalse;
-      check(nb1.hashCode).equals(nb2.hashCode);
-      check(nb1.sample()).isNotNull();
-
-      // Rademacher
-      const r1 = RademacherDistribution();
-      const r2 = RademacherDistribution();
-      check(r1 == r2).isTrue;
-      check(r1.hashCode).equals(r2.hashCode);
-      check(r1.sample()).isNotNull();
-
-      // Uniform Discrete
-      final u1 = UniformDiscreteDistribution(1, 6);
-      final u2 = UniformDiscreteDistribution(1, 6);
-      final u3 = UniformDiscreteDistribution(1, 10);
-      check(u1 == u2).isTrue;
-      check(u1 == u3).isFalse;
-      check(u1.hashCode).equals(u2.hashCode);
-      check(u1.sample()).isNotNull();
-
-      // Degenerate skewness/kurtosis and p=0 quantile
-      check(BernoulliDistribution(0.0).skewness).isNaN;
-      check(BernoulliDistribution(0.0).excessKurtosis).isNaN;
-      check(BinomialDistribution(10, 0.0).skewness).isNaN;
-      check(BinomialDistribution(10, 0.0).excessKurtosis).isNaN;
-      check(BinomialDistribution(10, 0.0).inverseCumulativeProbability(1))
-          .equals(0);
-      check(UniformDiscreteDistribution(5, 5).skewness).isNaN;
-      check(UniformDiscreteDistribution(5, 5).excessKurtosis).isNaN;
-
-      // NaN / Infinity parameter and fit validation
-      check(() => BernoulliDistribution(double.nan)).throws<ArgumentError>();
-      check(() => BinomialDistribution(10, double.nan)).throws<ArgumentError>();
-      check(() => BinomialDistribution.fit(const [double.nan]))
-          .throws<ArgumentError>();
-      check(() => BinomialDistribution.fit(const [1, 5], n: 3))
-          .throws<ArgumentError>();
-      check(() => GeometricDistribution(double.nan)).throws<ArgumentError>();
-      check(() => HypergeometricDistribution(0, 0, 0)).throws<ArgumentError>();
-      check(() => NegativeBinomialDistribution(double.nan, 0.5))
-          .throws<ArgumentError>();
-      check(() => PoissonDistribution(double.nan)).throws<ArgumentError>();
-      check(() => PoissonDistribution.fit(const [double.infinity]))
-          .throws<ArgumentError>();
-    });
-  });
-
-  group('DiscreteDistribution quantiles and probability', () {
-    test('quantiles for large parameters do not hang', () {
-      final pois = PoissonDistribution(1000.0);
-      final pQuant = pois.inverseCumulativeProbability(0.999);
-      check(pQuant).isGreaterThan(1000);
-      check(pois.cumulativeProbability(pQuant)).isGreaterOrEqual(0.999);
-
-      final binom = BinomialDistribution(10000, 0.5);
-      final bQuant = binom.inverseCumulativeProbability(0.5);
-      check(bQuant).equals(5000);
-
-      final nbinom = NegativeBinomialDistribution(50, 0.4);
-      final nbQuant = nbinom.inverseCumulativeProbability(0.95);
-      check(nbQuant).isGreaterThan(0);
-      check(nbinom.cumulativeProbability(nbQuant)).isGreaterOrEqual(0.95);
-    });
-
-    test('logProbability evaluation', () {
-      final binom = BinomialDistribution(10, 0.5);
-      check(binom.logProbability(5))
-          .isCloseTo(math.log(binom.probability(5)), 1e-12);
-
-      final pois = PoissonDistribution(4.0);
-      check(pois.logProbability(3))
-          .isCloseTo(math.log(pois.probability(3)), 1e-12);
-    });
-  });
-
-  group('InvalidProbability errors', () {
-    test('error creation and toString', () {
-      final err = InvalidProbability(1.5);
-      check(err.probability).equals(1.5);
-      check(err.toString()).contains('Invalid probability');
-    });
-
-    test('InvalidProbability.check throws on NaN', () {
-      check(() => InvalidProbability.check(double.nan))
-          .throws<InvalidProbability>();
-    });
-  });
-}
-
-class _TestDiscreteDist extends DiscreteDistribution {
-  @override
-  double cumulativeProbability(int k) => k >= 0 ? 1.0 : 0.5;
+  final int min;
+  final int max;
 
   @override
-  int sample({math.Random? random}) => 0;
+  int get lowerBound => min;
 
   @override
-  double get mean => 0.0;
-  @override
-  double get median => 0.0;
-  @override
-  double get mode => 0.0;
-  @override
-  double get variance => 0.0;
-  @override
-  double get skewness => 0.0;
-  @override
-  double get excessKurtosis => 0.0;
-}
-
-class _BoundedDiscreteDist extends DiscreteDistribution {
-  const new({required this.lower, required this.upper});
-
-  final int lower;
-  final int upper;
+  bool get isLowerBoundOpen => false;
 
   @override
-  int get lowerBound => lower;
+  int get upperBound => max;
 
   @override
-  int get upperBound => upper;
+  bool get isUpperBoundOpen => false;
 
   @override
-  double cumulativeProbability(int k) {
-    if (lower > 0) {
-      return k >= 15 ? 1.0 : 0.1;
-    }
-    return k >= -15 ? 0.9 : 0.0;
+  double get mean => 0.5 * min + 0.5 * max;
+
+  @override
+  double get median => mean;
+
+  @override
+  double get mode => double.nan;
+
+  @override
+  double get variance {
+    final count = (max - min + 1).toDouble();
+    return (count * count - 1.0) / 12.0;
   }
 
   @override
-  int sample({math.Random? random}) => lower;
+  double get skewness => 0.0;
+
+  @override
+  double get excessKurtosis => -1.2;
+
+  @override
+  double probability(int k) => k < min || k > max ? 0.0 : 1.0 / (max - min + 1);
+
+  @override
+  int sample({math.Random? random}) => min;
+}
+
+class _UnboundedDiscrete extends DiscreteDistribution {
+  const new();
 
   @override
   double get mean => double.nan;
+
   @override
-  double get median => double.nan;
+  double get median => 0.0;
+
   @override
-  double get mode => double.nan;
+  double get mode => 0.0;
+
   @override
-  double get variance => double.nan;
+  double get variance => double.infinity;
+
   @override
   double get skewness => double.nan;
+
   @override
   double get excessKurtosis => double.nan;
+
+  @override
+  double cumulativeProbability(int k) =>
+      k < 0 ? 0.0 : 1.0 - math.pow(0.5, k + 1);
+
+  @override
+  int sample({math.Random? random}) => 0;
+}
+
+class _LargeRangeDiscrete extends DiscreteDistribution {
+  const new();
+
+  @override
+  int get lowerBound => 0;
+
+  @override
+  int get upperBound => 1000000;
+
+  @override
+  double get mean => 500000.0;
+
+  @override
+  double get median => 500000.0;
+
+  @override
+  double get mode => 500000.0;
+
+  @override
+  double get variance => double.infinity;
+
+  @override
+  double get skewness => 0.0;
+
+  @override
+  double get excessKurtosis => 0.0;
+
+  @override
+  double cumulativeProbability(int k) {
+    if (k < 0) return 0.0;
+    if (k >= 1000000) return 1.0;
+    return (k + 1) / 1000001.0;
+  }
+
+  @override
+  int sample({math.Random? random}) => 0;
+}
+
+class _NegativeLargeRangeDiscrete extends DiscreteDistribution {
+  const new();
+
+  @override
+  int get lowerBound => -1000000;
+
+  @override
+  int get upperBound => -1;
+
+  @override
+  double get mean => double.nan;
+
+  @override
+  double get median => -500000.5;
+
+  @override
+  double get mode => double.nan;
+
+  @override
+  double get variance => double.infinity;
+
+  @override
+  double get skewness => 0.0;
+
+  @override
+  double get excessKurtosis => 0.0;
+
+  @override
+  double cumulativeProbability(int k) {
+    if (k < -1000000) return 0.0;
+    if (k >= -1) return 1.0;
+    return (k + 1000001) / 1000000.0;
+  }
+
+  @override
+  int sample({math.Random? random}) => -1;
+}
+
+class _ShiftedBoundsDiscrete extends DiscreteDistribution {
+  const new(this.min, this.max);
+
+  final int min;
+  final int max;
+
+  @override
+  int get lowerBound => min;
+
+  @override
+  bool get isLowerBoundOpen => false;
+
+  @override
+  int get upperBound => max;
+
+  @override
+  bool get isUpperBoundOpen => false;
+
+  @override
+  double get mean => double.nan;
+
+  @override
+  double get median => mean;
+
+  @override
+  double get mode => double.nan;
+
+  @override
+  double get variance => double.nan;
+
+  @override
+  double get skewness => 0.0;
+
+  @override
+  double get excessKurtosis => 0.0;
+
+  @override
+  double cumulativeProbability(int k) {
+    if (k < min) return 0.0;
+    if (k >= max) return 1.0;
+    return (k - min + 1) / (max - min + 1);
+  }
+
+  @override
+  int sample({math.Random? random}) => min;
+}
+
+void main() {
+  group('DiscreteDistribution defaults and bounds', () {
+    test('defaults bounds to safeMin and safeMax', () {
+      const dist = _UnboundedDiscrete();
+      check(dist.lowerBound).equals(DataType.integer.safeMin);
+      check(dist.isLowerBoundOpen).isTrue;
+      check(dist.upperBound).equals(DataType.integer.safeMax);
+      check(dist.isUpperBoundOpen).isTrue;
+      check(dist.probability(-1)).equals(0.0);
+      check(dist.probability(0)).equals(0.5);
+      check(dist.probability(1)).equals(0.25);
+    });
+
+    test('computes default cumulativeProbability from probability sum', () {
+      const dist = _GenericDiscrete(1, 5);
+      check(dist.cumulativeProbability(0)).equals(0.0);
+      check(dist.cumulativeProbability(3)).isCloseTo(0.6, 1e-12);
+      check(dist.cumulativeProbability(5)).equals(1.0);
+      check(dist.cumulativeProbability(6)).equals(1.0);
+    });
+  });
+
+  group('DiscreteDistribution inverseCumulativeProbability', () {
+    test('brackets and resolves small and negative-crossing supports', () {
+      const dist = _GenericDiscrete(-2, 2);
+      check(dist.inverseCumulativeProbability(0.0)).equals(-2);
+      check(dist.inverseCumulativeProbability(0.2)).equals(-2);
+      check(dist.inverseCumulativeProbability(0.5)).equals(0);
+      check(dist.inverseCumulativeProbability(0.9)).equals(2);
+      check(dist.inverseCumulativeProbability(1.0)).equals(2);
+    });
+
+    test('uses open upperBound and shifted-bound fallbacks', () {
+      const unbounded = _UnboundedDiscrete();
+      check(unbounded.inverseCumulativeProbability(0.5)).equals(0);
+      check(unbounded.inverseCumulativeProbability(0.875)).equals(2);
+      check(unbounded.inverseCumulativeProbability(1.0))
+          .equals(DataType.integer.safeMax);
+
+      const positiveOnly = _ShiftedBoundsDiscrete(5, 10);
+      check(positiveOnly.inverseCumulativeProbability(0.5)).equals(7);
+      check(positiveOnly.inverseCumulativeProbability(1.0)).equals(10);
+
+      const negativeOnly = _ShiftedBoundsDiscrete(-10, -5);
+      check(negativeOnly.inverseCumulativeProbability(0.5)).equals(-8);
+      check(negativeOnly.inverseCumulativeProbability(1.0)).equals(-5);
+    });
+
+    test(
+      'exponentially steps across large ranges when variance is infinite',
+      () {
+        const large = _LargeRangeDiscrete();
+        check(large.inverseCumulativeProbability(0.75)).equals(750000);
+        check(large.inverseCumulativeProbability(0.1)).equals(100000);
+
+        const negLarge = _NegativeLargeRangeDiscrete();
+        check(negLarge.inverseCumulativeProbability(0.1)).equals(-900001);
+        check(negLarge.inverseSurvival(0.25)).equals(-250001);
+      },
+    );
+  });
+
+  group('DiscreteDistribution inverseSurvival', () {
+    test('handles closed and open upper bounds and tail searches', () {
+      const closed = _GenericDiscrete(-2, 2);
+      check(closed.inverseSurvival(0.8)).equals(-2);
+      check(closed.inverseSurvival(0.2)).equals(1);
+      check(closed.inverseSurvival(0.0)).equals(2);
+      check(() => closed.inverseSurvival(-0.1)).throws<InvalidProbability>();
+
+      const unbounded = _UnboundedDiscrete();
+      check(unbounded.inverseSurvival(0.0)).equals(DataType.integer.safeMax);
+      check(unbounded.inverseSurvival(0.25)).equals(1);
+
+      const positiveOnly = _ShiftedBoundsDiscrete(5, 10);
+      check(positiveOnly.inverseSurvival(0.25)).equals(9);
+
+      const negativeOnly = _ShiftedBoundsDiscrete(-10, -5);
+      check(negativeOnly.inverseSurvival(0.25)).equals(-6);
+
+      const large = _LargeRangeDiscrete();
+      check(large.inverseSurvival(0.1)).equals(900000);
+    });
+  });
 }

@@ -1,132 +1,231 @@
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
-import 'package:data/src/stats/distributions/multivariate/dirichlet.dart';
-import 'package:test/test.dart';
+import 'package:data/stats.dart';
+import 'package:data/type.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
-  group('DirichletDistribution', () {
-    test('uniform Dirichlet (alpha = 1, 1, 1)', () {
-      final dist = DirichletDistribution.symmetric(3, 1.0);
-      check(dist.dimensions).equals(3);
+  final alpha = Vector<double>.fromList(type: DataType.float, const [
+    2.0,
+    3.0,
+    5.0,
+  ]);
+  final dirichlet = DirichletDistribution(alpha);
+  final symmetric = DirichletDistribution.symmetric(3, 1.0);
 
-      final pt = Vector<double>.fromList([1.0 / 3, 1.0 / 3, 1.0 / 3]);
-      // B(1, 1, 1) = Gamma(1)^3 / Gamma(3) = 1 / 2! = 0.5.
-      // pdf = 1 / 0.5 = 2.0.
-      check(dist.probability(pt)).isCloseTo(2.0, 1e-6);
+  group('DirichletDistribution parameters, moments, and immutability', () {
+    test('computes dimensions, mean, and covariance', () {
+      check(dirichlet.dimensions).equals(3);
+      check(dirichlet.alpha[0]).equals(2.0);
+      check(dirichlet.alpha[1]).equals(3.0);
+      check(dirichlet.alpha[2]).equals(5.0);
 
-      // Outside simplex
-      final bad = Vector<double>.fromList([0.5, 0.5, 0.5]);
-      check(dist.probability(bad)).equals(0.0);
-      check(dist.logProbability(bad)).equals(double.negativeInfinity);
+      check(dirichlet.mean[0]).isCloseTo(0.2, 1e-12);
+      check(dirichlet.mean[1]).isCloseTo(0.3, 1e-12);
+      check(dirichlet.mean[2]).isCloseTo(0.5, 1e-12);
+
+      final cov = dirichlet.covariance;
+      check(cov[0][0]).isCloseTo((0.2 * 0.8) / 11.0, 1e-12);
+      check(cov[0][1]).isCloseTo(-(0.2 * 0.3) / 11.0, 1e-12);
+      check(cov[1][0]).equals(cov[0][1]);
     });
 
-    test('mean and covariance', () {
-      final alpha = Vector<double>.fromList([2.0, 3.0, 5.0]);
-      final dist = DirichletDistribution(alpha);
-      check(dist.mean.getUnchecked(0)).isCloseTo(0.2, 1e-6);
-      check(dist.mean.getUnchecked(1)).isCloseTo(0.3, 1e-6);
-      check(dist.mean.getUnchecked(2)).isCloseTo(0.5, 1e-6);
+    test('defensively copies constructor input and getter output', () {
+      final mutable = Vector<double>.fromList(type: DataType.float, [1.0, 2.0]);
+      final dist = DirichletDistribution(mutable);
+      mutable[0] = 99.0;
+      check(dist.alpha[0]).equals(1.0);
+      final exposed = dist.alpha;
+      exposed[1] = 88.0;
+      check(dist.alpha[1]).equals(2.0);
+    });
+  });
 
-      // alpha0 = 10, denom = 100 * 11 = 1100
-      // var(0) = 2 * 8 / 1100 = 16 / 1100
-      check(dist.covariance.getUnchecked(0, 0)).isCloseTo(16.0 / 1100.0, 1e-6);
-      // cov(0, 1) = -2 * 3 / 1100 = -6 / 1100
-      check(dist.covariance.getUnchecked(0, 1)).isCloseTo(-6.0 / 1100.0, 1e-6);
+  group('DirichletDistribution probabilities', () {
+    test('probability and logProbability on uniform symmetric simplex', () {
+      final point = Vector<double>.fromList(type: DataType.float, const [
+        0.2,
+        0.3,
+        0.5,
+      ]);
+      // For Dirichlet(1, 1, 1), density is 2! = 2 everywhere on the open simplex.
+      check(symmetric.probability(point)).isCloseTo(2.0, 1e-12);
+      check(symmetric.logProbability(point)).isCloseTo(math.ln2, 1e-12);
     });
 
-    test('sampling empirical moments', () {
-      final alpha = Vector<double>.fromList([2.0, 3.0, 5.0]);
-      final dist = DirichletDistribution(alpha);
-      final rng = Random(123);
-      const sampleCount = 3000;
-      var sumX0 = 0.0;
-      var sumX1 = 0.0;
-      var sumX2 = 0.0;
-      for (var i = 0; i < sampleCount; i++) {
-        final s = dist.sample(random: rng);
-        // Elements must sum to 1.0
-        check(s.getUnchecked(0) + s.getUnchecked(1) + s.getUnchecked(2))
-            .isCloseTo(1.0, 1e-6);
-        sumX0 += s.getUnchecked(0);
-        sumX1 += s.getUnchecked(1);
-        sumX2 += s.getUnchecked(2);
+    test(
+      'handles zero coordinates permutation-invariantly when alpha_i != 1',
+      () {
+        // Permutation invariance when alpha_0 > 1 and alpha_1 > 1.
+        final p0 = Vector<double>.fromList(type: DataType.float, const [
+          0.0,
+          0.5,
+          0.5,
+        ]);
+        final p1 = Vector<double>.fromList(type: DataType.float, const [
+          0.5,
+          0.0,
+          0.5,
+        ]);
+        check(dirichlet.probability(p0)).equals(0.0);
+        check(dirichlet.logProbability(p0)).equals(double.negativeInfinity);
+        check(dirichlet.probability(p1)).equals(0.0);
+        check(dirichlet.logProbability(p1)).equals(double.negativeInfinity);
+
+        // When alpha_i < 1 at x_i == 0, logProbability is +infinity regardless of order.
+        final sparse = DirichletDistribution(
+          Vector<double>.fromList(type: DataType.float, const [0.5, 0.5, 2.0]),
+        );
+        check(
+          sparse.logProbability(
+            Vector<double>.fromList(type: DataType.float, const [
+              0.0,
+              0.5,
+              0.5,
+            ]),
+          ),
+        ).equals(double.infinity);
+        check(
+          sparse.logProbability(
+            Vector<double>.fromList(type: DataType.float, const [
+              0.5,
+              0.0,
+              0.5,
+            ]),
+          ),
+        ).equals(double.infinity);
+        // Incompatible boundary conditions yield indeterminate NaN.
+        check(
+          sparse
+              .logProbability(
+                Vector<double>.fromList(type: DataType.float, const [
+                  0.0,
+                  1.0,
+                  0.0,
+                ]),
+              )
+              .isNaN,
+        ).isTrue;
+      },
+    );
+
+    test(
+      'returns 0 / -infinity outside simplex and NaN on NaN coordinates',
+      () {
+        check(
+          dirichlet.probability(
+            Vector<double>.fromList(type: DataType.float, const [
+              0.5,
+              0.5,
+              0.5,
+            ]),
+          ),
+        ).equals(0.0);
+        check(
+          dirichlet.probability(
+            Vector<double>.fromList(type: DataType.float, const [
+              -0.1,
+              0.6,
+              0.5,
+            ]),
+          ),
+        ).equals(0.0);
+        check(
+          dirichlet
+              .logProbability(
+                Vector<double>.fromList(type: DataType.float, const [
+                  double.nan,
+                  0.5,
+                  0.5,
+                ]),
+              )
+              .isNaN,
+        ).isTrue;
+        check(
+          () => dirichlet.probability(
+            Vector<double>.fromList(type: DataType.float, const [1.0]),
+          ),
+        ).throws<ArgumentError>();
+      },
+    );
+  });
+
+  group('DirichletDistribution sampling, validation, and equality', () {
+    test('samples lie on simplex and handle extreme small alpha', () {
+      check(dirichlet.sample().length).equals(3);
+      final rng = math.Random(42);
+      final draws = dirichlet.samples(random: rng).take(1000).toList();
+      final sumMean = [0.0, 0.0, 0.0];
+      for (final s in draws) {
+        final total = s[0] + s[1] + s[2];
+        check(total).isCloseTo(1.0, 1e-12);
+        for (var i = 0; i < 3; i++) {
+          check(s[i]).isGreaterOrEqual(0.0);
+          sumMean[i] += s[i];
+        }
       }
-      check(sumX0 / sampleCount).isCloseTo(0.2, 0.02);
-      check(sumX1 / sampleCount).isCloseTo(0.3, 0.02);
-      check(sumX2 / sampleCount).isCloseTo(0.5, 0.02);
+      check(sumMean[0] / draws.length).isCloseTo(0.2, 0.03);
+      check(sumMean[1] / draws.length).isCloseTo(0.3, 0.03);
+
+      // Extreme tiny alpha uses log-space normalized Gamma fallback on underflow.
+      final mixed = DirichletDistribution(
+        Vector<double>.fromList(type: DataType.float, const [1e-4, 2.0]),
+      );
+      final mixedDraws = mixed
+          .samples(random: math.Random(9))
+          .take(50)
+          .toList();
+      for (final s in mixedDraws) {
+        check(s[0] + s[1]).isCloseTo(1.0, 1e-12);
+        check(s[0].isFinite && s[1].isFinite).isTrue;
+      }
+
+      final allTiny = DirichletDistribution.symmetric(2, 1e-4);
+      final allTinyDraws = allTiny
+          .samples(random: math.Random(3))
+          .take(100)
+          .toList();
+      for (final s in allTinyDraws) {
+        check(s[0] + s[1]).isCloseTo(1.0, 1e-12);
+        check(s[0].isFinite && s[1].isFinite).isTrue;
+      }
     });
 
-    test('argument validation', () {
-      check(() => DirichletDistribution(Vector<double>.fromList([1.0])))
-          .throws<ArgumentError>();
-      check(() => DirichletDistribution(Vector<double>.fromList([1.0, -0.5])))
-          .throws<ArgumentError>();
+    test('constructor validation', () {
       check(
-        () => DirichletDistribution(Vector<double>.fromList([1.0, double.nan])),
+        () => DirichletDistribution(
+          Vector<double>.fromList(type: DataType.float, const <double>[]),
+        ),
       ).throws<ArgumentError>();
-      check(() => DirichletDistribution.symmetric(1, 1.0))
-          .throws<ArgumentError>();
-      check(() => DirichletDistribution.symmetric(2, -1.0))
-          .throws<ArgumentError>();
-      check(() => DirichletDistribution.symmetric(2, double.nan))
-          .throws<ArgumentError>();
-
-      final dist = DirichletDistribution.symmetric(2, 1.0);
-      check(() => dist.logProbability(Vector<double>.fromList([1.0])))
-          .throws<ArgumentError>();
       check(
-        dist.logProbability(Vector<double>.fromList([0.5, double.nan])).isNaN,
-      ).isTrue;
-      check(dist.probability(Vector<double>.fromList([0.5, double.nan])).isNaN)
-          .isTrue;
-    });
-
-    test('boundary evaluations where xi == 0', () {
-      final distSmall = DirichletDistribution(
-        Vector<double>.fromList([0.5, 1.5]),
-      );
-      check(distSmall.logProbability(Vector<double>.fromList([0.0, 1.0])))
-          .equals(double.infinity);
-
-      final distLarge = DirichletDistribution(
-        Vector<double>.fromList([1.5, 0.5]),
-      );
-      check(distLarge.logProbability(Vector<double>.fromList([0.0, 1.0])))
-          .equals(double.negativeInfinity);
-
-      // Invalid simplex sum or negative or NaN later coordinates take precedence over xi == 0
-      check(distSmall.logProbability(Vector<double>.fromList([0.0, 2.0])))
-          .equals(double.negativeInfinity);
-      check(distSmall.logProbability(Vector<double>.fromList([0.0, -1.0])))
-          .equals(double.negativeInfinity);
+        () => DirichletDistribution(
+          Vector<double>.fromList(type: DataType.float, const [1.0, 0.0]),
+        ),
+      ).throws<ArgumentError>();
       check(
-        distSmall.logProbability(Vector<double>.fromList([0.0, double.nan])),
-      ).isNaN;
+        () => DirichletDistribution(
+          Vector<double>.fromList(type: DataType.float, const [
+            1.0,
+            double.infinity,
+          ]),
+        ),
+      ).throws<ArgumentError>();
+      check(() => DirichletDistribution.symmetric(0, 1.0))
+          .throws<ArgumentError>();
+      check(() => DirichletDistribution.symmetric(2, 0.0))
+          .throws<ArgumentError>();
     });
 
-    test('equality, hashCode, and toString', () {
-      final alpha1 = Vector<double>.fromList([2.0, 3.0]);
-      final alpha2 = Vector<double>.fromList([2.0, 3.0]);
-      final dist1 = DirichletDistribution(alpha1);
-      final dist2 = DirichletDistribution(alpha2);
-      final dist3 = DirichletDistribution.symmetric(3, 3.0);
-
-      check(dist1 == dist2).isTrue;
-      check(dist1 == dist3).isFalse;
-      check(dist1.hashCode).equals(dist2.hashCode);
-      check(dist1.toString()).contains('DirichletDistribution');
-    });
-
-    test('sample with very small alpha does not yield NaN', () {
-      final dist = DirichletDistribution.symmetric(3, 1e-4);
-      final s = dist.sample(random: Random(42));
-      check(s.getUnchecked(0).isNaN).isFalse;
-      check(s.getUnchecked(1).isNaN).isFalse;
-      check(s.getUnchecked(2).isNaN).isFalse;
-      check(s.getUnchecked(0) + s.getUnchecked(1) + s.getUnchecked(2))
-          .isCloseTo(1.0, 1e-6);
+    test('equality, hashCode, and string representation', () {
+      final same = DirichletDistribution(
+        Vector<double>.fromList(type: DataType.float, const [2.0, 3.0, 5.0]),
+      );
+      check(dirichlet == same).isTrue;
+      check(dirichlet.hashCode).equals(same.hashCode);
+      check(dirichlet == symmetric).isFalse;
+      check(dirichlet.toString()).contains('DirichletDistribution');
     });
   });
 }

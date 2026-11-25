@@ -2,12 +2,13 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
+import '../../../special/utils.dart';
 import '../discrete.dart';
 import '../errors.dart';
+import '../utils.dart';
 
-/// The Geometric distribution is a discrete probability distribution which
-/// models the number of failures before the first success in a sequence of
-/// independent Bernoulli trials with success probability [p].
+/// The Geometric distribution modeling the number of failures before the first
+/// success in independent Bernoulli trials with success probability [p].
 ///
 /// See https://en.wikipedia.org/wiki/Geometric_distribution.
 ///
@@ -16,7 +17,7 @@ import '../errors.dart';
 /// print(distribution.mean);  // 1.0
 /// ```
 class GeometricDistribution extends DiscreteDistribution {
-  /// A geometric distribution with parameter [p].
+  /// A geometric distribution with success probability [p] in `(0, 1]`.
   new(this.p) {
     if (p.isNaN || p <= 0.0 || p > 1.0) {
       throw ArgumentError.value(p, 'p', 'Must be in (0.0, 1.0]');
@@ -25,81 +26,101 @@ class GeometricDistribution extends DiscreteDistribution {
 
   /// Fits a geometric distribution to non-negative integer [samples].
   factory fit(Iterable<num> samples) {
-    var count = 0;
-    var sum = 0.0;
-    for (final x in samples) {
-      if (x < 0 || x.roundToDouble() != x) {
-        throw ArgumentError.value(
-          x,
-          'samples',
-          'Geometric samples must be non-negative integers',
-        );
-      }
-      count++;
-      sum += x;
-    }
-    if (count == 0) {
-      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
-    }
-    final mean = sum / count;
-    final p = 1.0 / (1.0 + mean);
-    return GeometricDistribution(p);
+    final stats = welfordSampleStats(
+      samples,
+      isValid: (value) => value >= 0.0 && value.roundToDouble() == value,
+      invalidMessage: 'Geometric samples must be non-negative integers',
+    );
+    return GeometricDistribution(1.0 / (1.0 + stats.mean));
   }
 
-  /// Success probability of each trial (0..1].
+  /// Success probability of each trial in `(0, 1]`.
   final double p;
 
   @override
   int get lowerBound => 0;
 
   @override
-  double get mean => (1 - p) / p;
+  bool get isLowerBoundOpen => false;
 
   @override
-  double get median =>
-      p == 1 ? 0.0 : (-1 / (log(1 - p) / ln2)).ceilToDouble() - 1;
+  double get mean => (1.0 - p) / p;
+
+  @override
+  double get median => p == 1.0 ? 0.0 : (-ln2 / log1p(-p)).ceilToDouble() - 1.0;
 
   @override
   double get mode => 0.0;
 
   @override
-  double get variance => (1 - p) / (p * p);
+  double get variance => (1.0 - p) / (p * p);
 
   @override
-  double get skewness => p == 1 ? double.nan : (2 - p) / sqrt(1 - p);
+  double get skewness => p == 1.0 ? double.nan : (2.0 - p) / sqrt(1.0 - p);
 
   @override
-  double get excessKurtosis => p == 1 ? double.nan : 6 + (p * p) / (1 - p);
+  double get excessKurtosis =>
+      p == 1.0 ? double.nan : 6.0 + (p * p) / (1.0 - p);
 
   @override
   double probability(int k) {
-    if (k < 0) return 0;
-    if (p == 1) return k == 0 ? 1 : 0;
-    return exp(k * log(1 - p)) * p;
+    if (k < 0) return 0.0;
+    if (p == 1.0) return k == 0 ? 1.0 : 0.0;
+    return exp(k * log1p(-p)) * p;
+  }
+
+  @override
+  double logProbability(int x) {
+    if (x < 0) return double.negativeInfinity;
+    if (p == 1.0) return x == 0 ? 0.0 : double.negativeInfinity;
+    return x * log1p(-p) + log(p);
   }
 
   @override
   double cumulativeProbability(int k) {
-    if (k < 0) return 0;
-    if (p == 1) return 1;
-    return 1 - pow(1 - p, k + 1).toDouble();
+    if (k < 0) return 0.0;
+    if (p == 1.0) return 1.0;
+    return -expm1((k + 1) * log1p(-p));
+  }
+
+  @override
+  double survival(int x) {
+    if (x < 0) return 1.0;
+    if (p == 1.0) return 0.0;
+    return exp((x + 1) * log1p(-p));
   }
 
   @override
   int inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    if (p == 1) return 0;
-    if (probability == 0) return 0;
+    if (p == 1.0 || probability == 0) return 0;
     if (probability == 1) return upperBound;
-    return (log(1 - probability) / log(1 - p)).ceil() - 1;
+    final ratio = log1p(-probability.toDouble()) / log1p(-p);
+    if (!ratio.isFinite) return upperBound;
+    final val = ratio.ceilToDouble() - 1.0;
+    if (val <= 0.0) return 0;
+    if (val >= upperBound.toDouble()) return upperBound;
+    return val.toInt();
+  }
+
+  @override
+  int inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (p == 1.0 || probability == 1) return 0;
+    if (probability == 0) return upperBound;
+    final ratio = log(probability.toDouble()) / log1p(-p);
+    if (!ratio.isFinite) return upperBound;
+    final val = ratio.ceilToDouble() - 1.0;
+    if (val <= 0.0) return 0;
+    if (val >= upperBound.toDouble()) return upperBound;
+    return val.toInt();
   }
 
   @override
   int sample({Random? random}) {
-    if (p == 1) return 0;
-    final uniform = (random ?? _random).nextDouble();
-    if (uniform == 0) return 0;
-    return (log(uniform) / log(1 - p)).floor();
+    if (p == 1.0) return 0;
+    final uniform = nextOpenUnit(random ?? defaultRandom);
+    return (log(uniform) / log1p(-p)).floor();
   }
 
   @override
@@ -113,5 +134,3 @@ class GeometricDistribution extends DiscreteDistribution {
   ObjectPrinter get toStringPrinter =>
       super.toStringPrinter..addValue(p, name: 'p');
 }
-
-final _random = Random();

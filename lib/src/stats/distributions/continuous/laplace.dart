@@ -4,6 +4,7 @@ import 'package:more/printer.dart';
 
 import '../continuous.dart';
 import '../errors.dart';
+import '../utils.dart';
 
 /// The Laplace distribution is a continuous probability distribution defined by
 /// its [location] and [scale] parameters. It is also known as the double
@@ -96,13 +97,35 @@ class LaplaceDistribution extends ContinuousDistribution {
   double get excessKurtosis => 3;
 
   @override
-  double probability(double x) =>
-      exp(-(x - location).abs() / scale) / (2 * scale);
+  double probability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x.isInfinite) return 0.0;
+    return exp(-(x - location).abs() / scale) / (2.0 * scale);
+  }
+
+  @override
+  double logProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x.isInfinite) return double.negativeInfinity;
+    return -log(2.0 * scale) - (x - location).abs() / scale;
+  }
 
   @override
   double cumulativeProbability(double x) {
+    if (x.isNaN) return double.nan;
     final diff = x - location;
-    return diff < 0 ? 0.5 * exp(diff / scale) : 1 - 0.5 * exp(-diff / scale);
+    return diff < 0.0
+        ? 0.5 * exp(diff / scale)
+        : 1.0 - 0.5 * exp(-diff / scale);
+  }
+
+  @override
+  double survival(double x) {
+    if (x.isNaN) return double.nan;
+    final diff = x - location;
+    return diff < 0.0
+        ? 1.0 - 0.5 * exp(diff / scale)
+        : 0.5 * exp(-diff / scale);
   }
 
   @override
@@ -110,17 +133,32 @@ class LaplaceDistribution extends ContinuousDistribution {
     InvalidProbability.check(probability);
     if (probability == 0) return double.negativeInfinity;
     if (probability == 1) return double.infinity;
-    if (probability < 0.5) {
-      return location + scale * log(2 * probability);
-    } else {
-      return location - scale * log(2 * (1 - probability));
-    }
+    final pd = probability.toDouble();
+    return pd < 0.5
+        ? location + scale * log(2.0 * pd)
+        : location - scale * log(2.0 * (1.0 - pd));
+  }
+
+  @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0) return double.infinity;
+    if (probability == 1) return double.negativeInfinity;
+    final pd = probability.toDouble();
+    return pd < 0.5
+        ? location - scale * log(2.0 * pd)
+        : location + scale * log(2.0 * (1.0 - pd));
   }
 
   @override
   double sample({Random? random}) {
-    final uniform = (random ?? _random).nextDouble();
-    return inverseCumulativeProbability(uniform);
+    final rng = random ?? defaultRandom;
+    final u = rng.nextDouble() - 0.5;
+    final absU = u.abs();
+    final step = absU == 0.5 ? nextOpenUnit(rng) : 1.0 - 2.0 * absU;
+    final sign = u < 0.0 ? 1.0 : -1.0;
+    return location -
+        scale * sign * log(step == 0.0 ? nextOpenUnit(rng) : step);
   }
 
   @override
@@ -137,5 +175,3 @@ class LaplaceDistribution extends ContinuousDistribution {
     ..addValue(location, name: 'location')
     ..addValue(scale, name: 'scale');
 }
-
-final _random = Random();

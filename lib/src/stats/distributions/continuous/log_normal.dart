@@ -5,10 +5,11 @@ import 'package:more/printer.dart';
 import '../../../special/erf.dart';
 import '../continuous.dart';
 import '../errors.dart';
+import '../utils.dart';
 import 'normal.dart';
 
 /// Log-normal distribution of a random variable whose logarithm is normally
-/// distributed.
+/// distributed with mean [mu] and standard deviation [sigma].
 ///
 /// See https://en.wikipedia.org/wiki/Log-normal_distribution.
 ///
@@ -36,11 +37,12 @@ class LogNormalDistribution extends ContinuousDistribution {
 
   const new _(this.mu, this.sigma);
 
-  /// Fits a log-normal distribution to positive [samples] using maximum likelihood estimation.
+  /// Fits a log-normal distribution to positive [samples] using maximum
+  /// likelihood estimation.
   factory fit(Iterable<num> samples) {
     var count = 0;
-    var sumLog = 0.0;
-    final logVals = <double>[];
+    var mean = 0.0;
+    var m2 = 0.0;
     for (final x in samples) {
       final val = x.toDouble();
       if (!val.isFinite || val <= 0.0) {
@@ -51,23 +53,18 @@ class LogNormalDistribution extends ContinuousDistribution {
         );
       }
       final lVal = log(val);
-      logVals.add(lVal);
-      sumLog += lVal;
       count++;
+      final delta = lVal - mean;
+      mean += delta / count;
+      m2 += delta * (lVal - mean);
     }
     if (count == 0) {
       throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
     }
-    final mu = sumLog / count;
-    var sumSq = 0.0;
-    for (final lVal in logVals) {
-      final diff = lVal - mu;
-      sumSq += diff * diff;
-    }
-    final variance = count > 1 ? sumSq / (count - 1) : 0.0;
+    final variance = count > 1 ? m2 / (count - 1) : 0.0;
     var sigma = sqrt(variance);
     if (sigma <= 0.0 || !sigma.isFinite) sigma = 1.0;
-    return LogNormalDistribution(mu, sigma);
+    return LogNormalDistribution(mean, sigma);
   }
 
   /// The parameter μ (mean of logarithm).
@@ -80,7 +77,7 @@ class LogNormalDistribution extends ContinuousDistribution {
   double get lowerBound => 0.0;
 
   @override
-  double get mean => exp(mu + sigma * sigma / 2);
+  double get mean => exp(mu + 0.5 * sigma * sigma);
 
   @override
   double get median => exp(mu);
@@ -89,37 +86,78 @@ class LogNormalDistribution extends ContinuousDistribution {
   double get mode => exp(mu - sigma * sigma);
 
   @override
-  double get variance => (exp(sigma * sigma) - 1) * exp(2 * mu + sigma * sigma);
+  double get variance {
+    final s2 = sigma * sigma;
+    return expm1(s2) * exp(2.0 * mu + s2);
+  }
 
   @override
-  double get skewness =>
-      (exp(sigma * sigma) + 2) * sqrt(exp(sigma * sigma) - 1);
+  double get skewness {
+    final s2 = sigma * sigma;
+    return (exp(s2) + 2.0) * sqrt(expm1(s2));
+  }
 
   @override
-  double get excessKurtosis =>
-      exp(4 * sigma * sigma) +
-      2 * exp(3 * sigma * sigma) +
-      3 * exp(2 * sigma * sigma) -
-      6;
+  double get excessKurtosis {
+    final s2 = sigma * sigma;
+    return exp(4.0 * s2) + 2.0 * exp(3.0 * s2) + 3.0 * exp(2.0 * s2) - 6.0;
+  }
 
   @override
-  double probability(double x) => x <= 0
-      ? 0
-      : exp(
-          -log(x) -
-              0.5 * log(2 * pi) -
-              log(sigma) -
-              pow(log(x) - mu, 2) / (2 * sigma * sigma),
-        );
+  double probability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0 || x == double.infinity) return 0.0;
+    return exp(logProbability(x));
+  }
 
   @override
-  double cumulativeProbability(double x) =>
-      x <= 0.0 ? 0.0 : 0.5 * erfc(-(log(x) - mu) / (sqrt2 * sigma));
+  double logProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0 || x == double.infinity) return double.negativeInfinity;
+    final z = (log(x) - mu) / sigma;
+    return -log(x) - 0.5 * _ln2pi - log(sigma) - 0.5 * z * z;
+  }
+
+  @override
+  double cumulativeProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0) return 0.0;
+    if (x == double.infinity) return 1.0;
+    final z = (log(x) - mu) / (sqrt2 * sigma);
+    return z < 0.0 ? 0.5 * erfc(-z) : 0.5 * (1.0 + erf(z));
+  }
+
+  @override
+  double survival(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0) return 1.0;
+    if (x == double.infinity) return 0.0;
+    final z = (log(x) - mu) / (sqrt2 * sigma);
+    return z < 0.0 ? 0.5 * (1.0 + erf(-z)) : 0.5 * erfc(z);
+  }
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return exp(-sqrt2 * sigma * erfcInv(2 * probability) + mu);
+    if (probability == 0.0) return 0.0;
+    if (probability == 1.0) return double.infinity;
+    final pd = probability.toDouble();
+    final z = pd < 0.5
+        ? -sqrt2 * erfcInv(2.0 * pd)
+        : sqrt2 * erfcInv(2.0 * (1.0 - pd));
+    return exp(mu + sigma * z);
+  }
+
+  @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0.0) return double.infinity;
+    if (probability == 1.0) return 0.0;
+    final pd = probability.toDouble();
+    final z = pd < 0.5
+        ? sqrt2 * erfcInv(2.0 * pd)
+        : -sqrt2 * erfcInv(2.0 * (1.0 - pd));
+    return exp(mu + sigma * z);
   }
 
   @override
@@ -128,12 +166,10 @@ class LogNormalDistribution extends ContinuousDistribution {
   );
 
   @override
-  Iterable<double> samples({Random? random}) {
-    const normal = NormalDistribution.standard();
-    return normal
-        .samples(random: random)
-        .map((value) => exp(value * sigma + mu));
-  }
+  Iterable<double> samples({Random? random}) =>
+      const NormalDistribution.standard()
+          .samples(random: random)
+          .map((value) => exp(value * sigma + mu));
 
   @override
   bool operator ==(Object other) =>
@@ -147,3 +183,5 @@ class LogNormalDistribution extends ContinuousDistribution {
     ..addValue(mu, name: 'mu')
     ..addValue(sigma, name: 'sigma');
 }
+
+final double _ln2pi = log(2.0 * pi);

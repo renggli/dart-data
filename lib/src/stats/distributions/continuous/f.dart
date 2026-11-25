@@ -3,8 +3,10 @@ import 'dart:math';
 import 'package:more/printer.dart';
 
 import '../../../special/beta.dart';
+import '../../../special/utils.dart';
 import '../continuous.dart';
 import '../errors.dart';
+import '../utils.dart';
 import 'chi_squared.dart';
 
 /// The Fisher-Snedecor F-distribution.
@@ -24,47 +26,26 @@ class FDistribution extends ContinuousDistribution {
 
   /// Fits an F-distribution to [samples] using method of moments estimation.
   factory fit(Iterable<num> samples) {
-    var count = 0;
-    var sum = 0.0;
-    for (final x in samples) {
-      if (!x.isFinite || x <= 0) {
-        throw ArgumentError.value(
-          x,
-          'samples',
-          'F-distribution samples must be positive',
-        );
-      }
-      count++;
-      sum += x;
-    }
-    if (count < 4) {
-      throw ArgumentError.value(
-        samples,
-        'samples',
-        'At least 4 samples required to fit F-distribution',
-      );
-    }
-    final mean = sum / count;
-    var sumSqDiff = 0.0;
-    for (final x in samples) {
-      final diff = x - mean;
-      sumSqDiff += diff * diff;
-    }
-    final variance = sumSqDiff / (count - 1);
-
+    final stats = welfordSampleStats(
+      samples,
+      isValid: (value) => value > 0.0,
+      invalidMessage: 'F-distribution samples must be positive',
+      minCount: 4,
+    );
+    final mean = stats.mean;
     var d2 = mean > 1.0 ? (2.0 * mean) / (mean - 1.0) : 6.0;
     d2 = d2.clamp(2.1, 100.0);
-    final denom = variance * (d2 - 4.0) - 2.0 * mean * mean;
+    final denom = stats.variance * (d2 - 4.0) - 2.0 * mean * mean;
     var d1 = denom > 0.0 ? (2.0 * mean * mean * (d2 - 2.0)) / denom : 5.0;
     if (d1.isNaN || d1 <= 0.0) d1 = 5.0;
     d1 = d1.clamp(0.5, 100.0);
     return FDistribution(d1, d2);
   }
 
-  /// Numerator degrees of freedom $d_1$.
+  /// Numerator degrees of freedom d1.
   final double d1;
 
-  /// Denominator degrees of freedom $d_2$.
+  /// Denominator degrees of freedom d2.
   final double d2;
 
   @override
@@ -117,9 +98,13 @@ class FDistribution extends ContinuousDistribution {
       if (d1 == 2.0) return 0.0;
       return double.negativeInfinity;
     }
-    return 0.5 * d1 * log(d1 / d2) +
+    final z = (d1 / d2) * x;
+    final logOnePlusZ = z > 1e8 || !z.isFinite
+        ? log(d1) - log(d2) + log(x) + (z.isFinite ? log1p(1.0 / z) : 0.0)
+        : log1p(z);
+    return 0.5 * d1 * (log(d1) - log(d2)) +
         (0.5 * d1 - 1.0) * log(x) -
-        0.5 * (d1 + d2) * log(1.0 + (d1 / d2) * x) -
+        0.5 * (d1 + d2) * logOnePlusZ -
         betaLn(0.5 * d1, 0.5 * d2);
   }
 
@@ -128,7 +113,8 @@ class FDistribution extends ContinuousDistribution {
     if (x.isNaN) return double.nan;
     if (x <= 0.0) return 0.0;
     if (x == double.infinity) return 1.0;
-    final z = (d1 * x) / (d1 * x + d2);
+    final ratio = (d2 / d1) / x;
+    final z = ratio == 0.0 ? 1.0 : 1.0 / (1.0 + ratio);
     return betaI(z, 0.5 * d1, 0.5 * d2);
   }
 
@@ -137,7 +123,8 @@ class FDistribution extends ContinuousDistribution {
     if (x.isNaN) return double.nan;
     if (x <= 0.0) return 1.0;
     if (x == double.infinity) return 0.0;
-    final z = d2 / (d1 * x + d2);
+    final ratio = (d2 / d1) / x;
+    final z = ratio.isInfinite ? 1.0 : ratio / (1.0 + ratio);
     return betaI(z, 0.5 * d2, 0.5 * d1);
   }
 
@@ -148,6 +135,15 @@ class FDistribution extends ContinuousDistribution {
     if (probability == 1.0) return double.infinity;
     final betaVal = betaIInv(probability, 0.5 * d1, 0.5 * d2);
     return (d2 * betaVal) / (d1 * (1.0 - betaVal));
+  }
+
+  @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0.0) return double.infinity;
+    if (probability == 1.0) return 0.0;
+    final betaVal = betaIInv(probability, 0.5 * d2, 0.5 * d1);
+    return (d2 * (1.0 - betaVal)) / (d1 * betaVal);
   }
 
   @override

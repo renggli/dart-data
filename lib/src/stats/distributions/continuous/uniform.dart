@@ -4,6 +4,7 @@ import 'package:more/printer.dart';
 
 import '../continuous.dart';
 import '../errors.dart';
+import '../utils.dart';
 
 /// Continuous uniform distribution between [min] and [max].
 ///
@@ -29,9 +30,7 @@ class UniformDistribution extends ContinuousDistribution {
 
   /// Fits a uniform distribution to [samples] using minimum and maximum values.
   factory fit(Iterable<num> samples) {
-    if (samples.isEmpty) {
-      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
-    }
+    var count = 0;
     var minVal = double.infinity;
     var maxVal = double.negativeInfinity;
     for (final x in samples) {
@@ -41,6 +40,10 @@ class UniformDistribution extends ContinuousDistribution {
       }
       if (val < minVal) minVal = val;
       if (val > maxVal) maxVal = val;
+      count++;
+    }
+    if (count == 0) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
     }
     if (minVal == maxVal) {
       maxVal = minVal + 1.0;
@@ -67,7 +70,7 @@ class UniformDistribution extends ContinuousDistribution {
   bool get isUpperBoundOpen => false;
 
   @override
-  double get mean => 0.5 * (min + max);
+  double get mean => 0.5 * min + 0.5 * max;
 
   @override
   double get median => mean;
@@ -89,15 +92,24 @@ class UniformDistribution extends ContinuousDistribution {
       x.isNaN ? double.nan : ((min <= x && x <= max) ? 1.0 / (max - min) : 0.0);
 
   @override
+  double logProbability(double x) => x.isNaN
+      ? double.nan
+      : ((min <= x && x <= max) ? -log(max - min) : double.negativeInfinity);
+
+  @override
   double cumulativeProbability(double x) {
     if (x.isNaN) return double.nan;
-    if (x < min) {
-      return 0.0;
-    } else if (x > max) {
-      return 1.0;
-    } else {
-      return (x - min) / (max - min);
-    }
+    if (x < min) return 0.0;
+    if (x > max) return 1.0;
+    return (x - min) / (max - min);
+  }
+
+  @override
+  double survival(double x) {
+    if (x.isNaN) return double.nan;
+    if (x < min) return 1.0;
+    if (x > max) return 0.0;
+    return (max - x) / (max - min);
   }
 
   @override
@@ -107,8 +119,14 @@ class UniformDistribution extends ContinuousDistribution {
   }
 
   @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    return max - probability * (max - min);
+  }
+
+  @override
   double sample({Random? random}) {
-    final rng = (random ?? _random).nextDouble();
+    final rng = (random ?? defaultRandom).nextDouble();
     return min + rng * (max - min);
   }
 
@@ -124,5 +142,3 @@ class UniformDistribution extends ContinuousDistribution {
     ..addValue(min, name: 'min')
     ..addValue(max, name: 'max');
 }
-
-final _random = Random();

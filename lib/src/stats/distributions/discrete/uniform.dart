@@ -2,9 +2,9 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
-import '../../../type/data_type.dart';
 import '../discrete.dart';
 import '../errors.dart';
+import '../utils.dart';
 
 /// The discrete uniform distribution over integers between [min] and [max]
 /// inclusive.
@@ -25,18 +25,18 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   /// Fits a discrete uniform distribution to [samples] using min and max
   /// values.
   factory fit(Iterable<num> samples) {
-    if (samples.isEmpty) {
-      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
-    }
-    var minVal = DataType.integer.safeMax;
-    var maxVal = DataType.integer.safeMin;
+    int? minVal;
+    int? maxVal;
     for (final x in samples) {
       if (!x.isFinite || x.round() != x) {
         throw ArgumentError.value(x, 'samples', 'Samples must be integers');
       }
       final intVal = x.round();
-      if (intVal < minVal) minVal = intVal;
-      if (intVal > maxVal) maxVal = intVal;
+      if (minVal == null || intVal < minVal) minVal = intVal;
+      if (maxVal == null || intVal > maxVal) maxVal = intVal;
+    }
+    if (minVal == null || maxVal == null) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
     }
     return UniformDiscreteDistribution(minVal, maxVal);
   }
@@ -47,7 +47,7 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   /// Maximum value of the distribution.
   final int max;
 
-  /// Number of possible outcomes $n = \text{max} - \text{min} + 1$.
+  /// Number of possible outcomes `n = max - min + 1`.
   int get n => max - min + 1;
 
   @override
@@ -63,7 +63,7 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   bool get isUpperBoundOpen => false;
 
   @override
-  double get mean => 0.5 * (min + max);
+  double get mean => 0.5 * min + 0.5 * max;
 
   @override
   double get median => mean;
@@ -72,40 +72,74 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double get mode => double.nan;
 
   @override
-  double get variance => (n * n - 1.0) / 12.0;
+  double get variance {
+    final nd = max.toDouble() - min.toDouble() + 1.0;
+    return (nd * nd - 1.0) / 12.0;
+  }
 
   @override
-  double get skewness => n <= 1 ? double.nan : 0.0;
+  double get skewness => min == max ? double.nan : 0.0;
 
   @override
-  double get excessKurtosis =>
-      n <= 1 ? double.nan : -6.0 * (n * n + 1.0) / (5.0 * (n * n - 1.0));
+  double get excessKurtosis {
+    if (min == max) return double.nan;
+    final nd = max.toDouble() - min.toDouble() + 1.0;
+    final n2 = nd * nd;
+    return -6.0 * (n2 + 1.0) / (5.0 * (n2 - 1.0));
+  }
 
   @override
-  double probability(int k) => (min <= k && k <= max) ? 1.0 / n : 0.0;
+  double probability(int k) => (min <= k && k <= max)
+      ? 1.0 / (max.toDouble() - min.toDouble() + 1.0)
+      : 0.0;
+
+  @override
+  double logProbability(int x) => (min <= x && x <= max)
+      ? -log(max.toDouble() - min.toDouble() + 1.0)
+      : double.negativeInfinity;
 
   @override
   double cumulativeProbability(int k) {
-    if (k < min) {
-      return 0.0;
-    } else if (k > max) {
-      return 1.0;
-    } else {
-      return (k - min + 1.0) / n;
-    }
+    if (k < min) return 0.0;
+    if (k >= max) return 1.0;
+    return (k.toDouble() - min.toDouble() + 1.0) /
+        (max.toDouble() - min.toDouble() + 1.0);
+  }
+
+  @override
+  double survival(int x) {
+    if (x < min) return 1.0;
+    if (x >= max) return 0.0;
+    return (max.toDouble() - x.toDouble()) /
+        (max.toDouble() - min.toDouble() + 1.0);
   }
 
   @override
   int inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
     if (probability == 0) return min;
-    return (min + (probability * n).ceil() - 1).clamp(min, max);
+    if (probability == 1) return max;
+    final nd = max.toDouble() - min.toDouble() + 1.0;
+    return (min + (probability * nd).ceil() - 1).clamp(min, max);
+  }
+
+  @override
+  int inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0) return max;
+    if (probability == 1) return min;
+    final nd = max.toDouble() - min.toDouble() + 1.0;
+    return (max - (probability * nd).floor()).clamp(min, max);
   }
 
   @override
   int sample({Random? random}) {
-    final rng = random ?? _random;
-    return min + rng.nextInt(n);
+    final rng = random ?? defaultRandom;
+    final nd = max.toDouble() - min.toDouble() + 1.0;
+    if (nd <= 0x100000000) {
+      return min + rng.nextInt(n);
+    }
+    return min + (rng.nextDouble() * nd).floor();
   }
 
   @override
@@ -122,5 +156,3 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
     ..addValue(min, name: 'min')
     ..addValue(max, name: 'max');
 }
-
-final _random = Random();

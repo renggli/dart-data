@@ -4,14 +4,15 @@ import 'package:more/printer.dart';
 
 import '../../../special/beta.dart';
 import '../../../special/binomial.dart';
+import '../../../special/utils.dart';
 import '../continuous/gamma.dart';
 import '../discrete.dart';
+import '../utils.dart';
 import 'poisson.dart';
 
-/// The Negative Binomial distribution is a discrete probability distribution
-/// which models the number of successes in a sequence of independent and
-/// identically distributed Bernoulli trials before a specified (non-random)
-/// number of failures (denoted r) occurs.
+/// The Negative Binomial distribution modeling the number of successes before
+/// [r] failures occur in independent Bernoulli trials with success probability
+/// [p].
 ///
 /// See https://en.wikipedia.org/wiki/Negative_binomial_distribution.
 ///
@@ -33,59 +34,43 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
   /// Fits a negative binomial distribution to non-negative integer [samples]
   /// using method of moments, with optional pre-specified [r].
   factory fit(Iterable<num> samples, {num? r}) {
-    var count = 0;
-    var sum = 0.0;
-    for (final x in samples) {
-      if (x < 0 || x.roundToDouble() != x) {
-        throw ArgumentError.value(
-          x,
-          'samples',
-          'Negative binomial samples must be non-negative integers',
-        );
-      }
-      count++;
-      sum += x;
-    }
-    if (count == 0) {
-      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
-    }
-    final mean = sum / count;
+    final stats = welfordSampleStats(
+      samples,
+      isValid: (value) => value >= 0.0 && value.roundToDouble() == value,
+      invalidMessage: 'Negative binomial samples must be non-negative integers',
+    );
+    final mean = stats.mean;
     if (r != null) {
       final rd = r.toDouble();
       if (rd <= 0.0 || !rd.isFinite) {
         throw ArgumentError.value(r, 'r', 'Must be positive and finite');
       }
-      final p = mean / (mean + rd);
-      final pClamped = p.clamp(1e-6, 1.0 - 1e-6);
-      return NegativeBinomialDistribution(rd, pClamped);
+      final p = (mean / (mean + rd)).clamp(1e-6, 1.0 - 1e-6);
+      return NegativeBinomialDistribution(rd, p);
     }
-    var sumSq = 0.0;
-    for (final x in samples) {
-      final diff = x.toDouble() - mean;
-      sumSq += diff * diff;
-    }
-    final variance = count > 1 ? sumSq / (count - 1) : 0.0;
-    if (variance > mean) {
-      final p = (1.0 - mean / variance).clamp(1e-6, 1.0 - 1e-6);
+    if (stats.variance > mean) {
+      final p = (1.0 - mean / stats.variance).clamp(1e-6, 1.0 - 1e-6);
       final rEst = (mean * (1.0 - p) / p).clamp(1e-6, 1e9);
       return NegativeBinomialDistribution(rEst, p);
-    } else {
-      final p = (mean / (mean + 1.0)).clamp(1e-6, 1.0 - 1e-6);
-      return NegativeBinomialDistribution(1.0, p);
     }
+    final p = (mean / (mean + 1.0)).clamp(1e-6, 1.0 - 1e-6);
+    return NegativeBinomialDistribution(1.0, p);
   }
 
   /// Number of failures until the experiment is stopped.
   final double r;
 
-  /// Success probability of each trial (0..1).
+  /// Success probability of each trial in `(0, 1)`.
   final double p;
 
-  /// Failure probability of each trial (0..1).
-  double get q => 1 - p;
+  /// Failure probability of each trial in `(0, 1)`.
+  double get q => 1.0 - p;
 
   @override
   int get lowerBound => 0;
+
+  @override
+  bool get isLowerBoundOpen => false;
 
   @override
   double get mean => p * r / q;
@@ -94,35 +79,42 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
   double get median => inverseCumulativeProbability(0.5).toDouble();
 
   @override
-  double get mode => r > 1 ? (p * (r - 1) / q).floorToDouble() : 0;
+  double get mode => r > 1.0 ? (p * (r - 1.0) / q).floorToDouble() : 0.0;
 
   @override
-  double get variance => p * r / pow(q, 2);
+  double get variance => p * r / (q * q);
 
   @override
-  double get skewness => (1 + p) / sqrt(p * r);
+  double get skewness => (1.0 + p) / sqrt(p * r);
 
   @override
-  double get excessKurtosis => 6 / r + pow(1 - p, 2) / (p * r);
+  double get excessKurtosis => 6.0 / r + (q * q) / (p * r);
 
   @override
   double probability(int k) {
-    if (k < 0) return 0;
-    return exp(binomialLn(k + r - 1, k) + k * log(p) + r * log(q));
+    if (k < 0) return 0.0;
+    return exp(logProbability(k));
   }
 
   @override
-  double cumulativeProbability(int k) {
-    if (k < 0) return 0.0;
-    return betaI(q, r, k + 1);
+  double logProbability(int x) {
+    if (x < 0) return double.negativeInfinity;
+    return binomialLn(x + r - 1.0, x) + x * log(p) + r * log1p(-p);
   }
+
+  @override
+  double cumulativeProbability(int k) => k < 0 ? 0.0 : betaI(q, r, k + 1);
+
+  @override
+  double survival(int x) => x < 0 ? 1.0 : betaI(p, x + 1, r);
 
   @override
   int sample({Random? random}) {
-    final gammaDistribution = GammaDistribution(r, p / q);
-    final lambda = gammaDistribution.sample(random: random);
-    if (lambda == 0) return 0;
-    return PoissonDistribution(lambda).sample(random: random);
+    final rng = random ?? defaultRandom;
+    final lambda = GammaDistribution(r, p / q).sample(random: rng);
+    if (lambda <= 0.0) return 0;
+    if (!lambda.isFinite) return upperBound;
+    return PoissonDistribution(lambda).sample(random: rng);
   }
 
   @override

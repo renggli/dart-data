@@ -3,11 +3,12 @@ import 'dart:math';
 import 'package:more/printer.dart';
 
 import '../../../special/gamma.dart';
+import '../../../special/utils.dart';
 import '../continuous.dart';
 import '../errors.dart';
-import 'uniform.dart';
+import '../utils.dart';
 
-/// The Weibull distribution.
+/// The Weibull distribution with [shape] k > 0 and [scale] λ > 0.
 ///
 /// See https://en.wikipedia.org/wiki/Weibull_distribution.
 ///
@@ -16,7 +17,7 @@ import 'uniform.dart';
 /// print(distribution.mean);  // 1.0
 /// ```
 class WeibullDistribution extends ContinuousDistribution {
-  /// A weibull distribution with parameters [shape] k and [scale] λ.
+  /// A Weibull distribution with parameters [shape] k and [scale] λ.
   new(this.shape, this.scale) {
     if (!shape.isFinite || shape <= 0) {
       throw ArgumentError.value(shape, 'shape', 'Shape must be positive');
@@ -26,16 +27,17 @@ class WeibullDistribution extends ContinuousDistribution {
     }
   }
 
-  /// A standard weibull distribution with shape 1 and scale 1.
+  /// A standard Weibull distribution with shape 1 and scale 1.
   const new standard() : this._(1.0, 1.0);
 
   const new _(this.shape, this.scale);
 
-  /// Fits a Weibull distribution to positive [samples] using log-moments estimation.
+  /// Fits a Weibull distribution to positive [samples] using log-moments
+  /// estimation.
   factory fit(Iterable<num> samples) {
     var count = 0;
-    var sumLog = 0.0;
-    final logVals = <double>[];
+    var meanLog = 0.0;
+    var m2 = 0.0;
     for (final x in samples) {
       final val = x.toDouble();
       if (!val.isFinite || val <= 0.0) {
@@ -46,25 +48,19 @@ class WeibullDistribution extends ContinuousDistribution {
         );
       }
       final lVal = log(val);
-      logVals.add(lVal);
-      sumLog += lVal;
       count++;
+      final delta = lVal - meanLog;
+      meanLog += delta / count;
+      m2 += delta * (lVal - meanLog);
     }
     if (count == 0) {
       throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
     }
-    final meanLog = sumLog / count;
-    var sumSq = 0.0;
-    for (final lVal in logVals) {
-      final diff = lVal - meanLog;
-      sumSq += diff * diff;
-    }
-    final varLog = count > 1 ? sumSq / (count - 1) : 0.0;
+    final varLog = count > 1 ? m2 / (count - 1) : 0.0;
     final stdLog = sqrt(varLog);
     var shape = stdLog > 1e-12 ? (pi / (sqrt(6.0) * stdLog)) : 1.0;
     if (shape <= 0.0 || !shape.isFinite) shape = 1.0;
-    const eulerGamma = 0.5772156649015329;
-    var scale = exp(meanLog + eulerGamma / shape);
+    var scale = exp(meanLog + eulerMascheroni / shape);
     if (scale <= 0.0 || !scale.isFinite) scale = 1.0;
     return WeibullDistribution(shape, scale);
   }
@@ -79,55 +75,58 @@ class WeibullDistribution extends ContinuousDistribution {
   double get lowerBound => 0.0;
 
   @override
-  double get mean => scale * gamma(1 + 1 / shape);
+  bool get isLowerBoundOpen => false;
 
   @override
-  double get median => scale * pow(ln2, 1 / shape);
+  double get mean => scale * gamma(1.0 + 1.0 / shape);
+
+  @override
+  double get median => scale * pow(ln2, 1.0 / shape);
 
   @override
   double get mode =>
-      shape > 1 ? scale * pow((shape - 1) / shape, 1 / shape) : 0;
+      shape > 1.0 ? scale * pow((shape - 1.0) / shape, 1.0 / shape) : 0.0;
 
   @override
-  double get variance =>
-      scale * scale * (gamma(1 + 2 / shape) - pow(gamma(1 + 1 / shape), 2));
+  double get variance {
+    final g1 = gamma(1.0 + 1.0 / shape);
+    final g2 = gamma(1.0 + 2.0 / shape);
+    return scale * scale * (g2 - g1 * g1);
+  }
 
   @override
   double get skewness {
-    final mu = mean, tau = standardDeviation;
-    return (gamma(1 + 3 / shape) * pow(scale, 3) -
-            3 * mu * pow(tau, 2) -
-            pow(mu, 3)) /
-        pow(tau, 3);
+    final g1 = gamma(1.0 + 1.0 / shape);
+    final g2 = gamma(1.0 + 2.0 / shape);
+    final g3 = gamma(1.0 + 3.0 / shape);
+    final sigma2 = g2 - g1 * g1;
+    final sigma = sqrt(sigma2);
+    return (g3 - 3.0 * g1 * g2 + 2.0 * g1 * g1 * g1) / (sigma2 * sigma);
   }
 
   @override
   double get excessKurtosis {
-    final g1 = gamma(1 + 1 / shape);
-    final g2 = gamma(1 + 2 / shape);
-    final g3 = gamma(1 + 3 / shape);
-    final g4 = gamma(1 + 4 / shape);
-    final mu = scale * g1;
-    final sigma2 = scale * scale * (g2 - g1 * g1);
-    return (g4 * pow(scale, 4) -
-                4 * g3 * pow(scale, 3) * mu +
-                6 * g2 * scale * scale * mu * mu -
-                3 * pow(mu, 4)) /
+    final g1 = gamma(1.0 + 1.0 / shape);
+    final g2 = gamma(1.0 + 2.0 / shape);
+    final g3 = gamma(1.0 + 3.0 / shape);
+    final g4 = gamma(1.0 + 4.0 / shape);
+    final g1Sq = g1 * g1;
+    final sigma2 = g2 - g1Sq;
+    return (g4 - 4.0 * g3 * g1 + 6.0 * g2 * g1Sq - 3.0 * g1Sq * g1Sq) /
             (sigma2 * sigma2) -
-        3;
+        3.0;
   }
 
   @override
   double probability(double x) {
     if (x.isNaN) return double.nan;
-    if (x < 0 || x == double.infinity) return 0;
-    if (x == 0) {
+    if (x < 0.0 || x == double.infinity) return 0.0;
+    if (x == 0.0) {
       if (shape < 1.0) return double.infinity;
       if (shape == 1.0) return 1.0 / scale;
       return 0.0;
     }
     final logP = logProbability(x);
-    if (logP.isNaN) return double.nan;
     if (logP <= -745.0) return 0.0;
     return exp(logP);
   }
@@ -135,8 +134,8 @@ class WeibullDistribution extends ContinuousDistribution {
   @override
   double logProbability(double x) {
     if (x.isNaN) return double.nan;
-    if (x < 0 || x == double.infinity) return double.negativeInfinity;
-    if (x == 0) {
+    if (x < 0.0 || x == double.infinity) return double.negativeInfinity;
+    if (x == 0.0) {
       if (shape < 1.0) return double.infinity;
       if (shape == 1.0) return -log(scale);
       return double.negativeInfinity;
@@ -144,23 +143,43 @@ class WeibullDistribution extends ContinuousDistribution {
     final xOverScale = x / scale;
     final term = pow(xOverScale, shape).toDouble();
     if (term.isInfinite) return double.negativeInfinity;
-    return log(shape) - log(scale) + (shape - 1) * log(xOverScale) - term;
+    return log(shape) - log(scale) + (shape - 1.0) * log(xOverScale) - term;
   }
 
   @override
-  double cumulativeProbability(double x) =>
-      x < 0 ? 0 : 1 - exp(-pow(x / scale, shape));
+  double cumulativeProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0) return 0.0;
+    return -expm1(-pow(x / scale, shape).toDouble());
+  }
+
+  @override
+  double survival(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0) return 1.0;
+    return exp(-pow(x / scale, shape).toDouble());
+  }
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return scale * pow(-log(1 - probability), 1 / shape);
+    if (probability == 0.0) return 0.0;
+    if (probability == 1.0) return double.infinity;
+    return scale * pow(-log1p(-probability.toDouble()), 1.0 / shape).toDouble();
+  }
+
+  @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0.0) return double.infinity;
+    if (probability == 1.0) return 0.0;
+    return scale * pow(-log(probability.toDouble()), 1.0 / shape).toDouble();
   }
 
   @override
   double sample({Random? random}) {
-    const uniform = UniformDistribution.standard();
-    return scale * pow(-log(1.0 - uniform.sample(random: random)), 1 / shape);
+    final uniform = nextOpenUnit(random ?? defaultRandom);
+    return scale * pow(-log(uniform), 1.0 / shape).toDouble();
   }
 
   @override

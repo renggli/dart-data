@@ -6,7 +6,9 @@ import '../../../linear/matrix.dart';
 import '../../../linear/vector.dart';
 import '../../../special/factorial.dart';
 import '../../../type/data_type.dart';
-import 'multivariate_distribution.dart';
+import '../discrete/binomial.dart';
+import '../multivariate.dart';
+import '../utils.dart';
 
 /// Multinomial distribution generalizing the binomial distribution to
 /// [dimensions] categories over [trials] independent experiments with category
@@ -16,7 +18,9 @@ import 'multivariate_distribution.dart';
 class MultinomialDistribution extends MultivariateDistribution<int> {
   /// Constructs a multinomial distribution with given [trials] count and
   /// category [probabilities].
-  new(this.trials, this.probabilities) : dimensions = probabilities.length {
+  new(this.trials, Vector<double> probabilities)
+    : _probabilities = probabilities.copy(),
+      dimensions = probabilities.length {
     if (trials < 0) {
       throw ArgumentError.value(
         trials,
@@ -24,16 +28,16 @@ class MultinomialDistribution extends MultivariateDistribution<int> {
         'Trials must be non-negative.',
       );
     }
-    if (probabilities.length < 2) {
+    if (dimensions < 2) {
       throw ArgumentError.value(
-        probabilities.length,
+        dimensions,
         'probabilities.length',
         'Multinomial distribution requires at least 2 categories.',
       );
     }
     var sum = 0.0;
     for (var i = 0; i < dimensions; i++) {
-      final p = probabilities.getUnchecked(i);
+      final p = _probabilities.getUnchecked(i);
       if (!p.isFinite || p < 0.0 || p > 1.0) {
         throw ArgumentError.value(
           p,
@@ -52,30 +56,32 @@ class MultinomialDistribution extends MultivariateDistribution<int> {
     }
   }
 
-  /// The number of trials $n$.
+  /// The number of trials n.
   final int trials;
-
-  /// The category probabilities vector $p$.
-  final Vector<double> probabilities;
 
   @override
   final int dimensions;
 
+  final Vector<double> _probabilities;
+
+  /// The category probabilities vector p.
+  Vector<double> get probabilities => _probabilities.copy();
+
   @override
   Vector<double> get mean => Vector<double>.generate(
     dimensions,
-    (i) => trials * probabilities.getUnchecked(i),
+    (i) => trials * _probabilities.getUnchecked(i),
     type: DataType.float64,
   );
 
   @override
   Matrix<double> get covariance =>
       Matrix<double>.generate(dimensions, dimensions, (r, c) {
-        final pr = probabilities.getUnchecked(r);
+        final pr = _probabilities.getUnchecked(r);
         if (r == c) {
           return trials * pr * (1.0 - pr);
         } else {
-          return -trials * pr * probabilities.getUnchecked(c);
+          return -trials * pr * _probabilities.getUnchecked(c);
         }
       }, type: DataType.float64);
 
@@ -94,7 +100,7 @@ class MultinomialDistribution extends MultivariateDistribution<int> {
       if (xi < 0) return double.negativeInfinity;
       sumX += xi;
       sumLogFact += factorialLn(xi);
-      final p = probabilities.getUnchecked(i);
+      final p = _probabilities.getUnchecked(i);
       if (xi > 0) {
         if (p <= 0.0) return double.negativeInfinity;
         sumWeightedLogP += xi * log(p);
@@ -109,27 +115,30 @@ class MultinomialDistribution extends MultivariateDistribution<int> {
   @override
   double probability(Vector<int> x) {
     final logP = logProbability(x);
-    return logP.isInfinite && logP < 0 ? 0.0 : exp(logP);
+    return logP == double.negativeInfinity ? 0.0 : exp(logP);
   }
 
   @override
   Vector<int> sample({Random? random}) {
     final counts = List<int>.filled(dimensions, 0);
-    final rng = random ?? _random;
-    for (var t = 0; t < trials; t++) {
-      final u = rng.nextDouble();
-      var cum = 0.0;
-      var selected = dimensions - 1;
-      for (var i = 0; i < dimensions - 1; i++) {
-        cum += probabilities.getUnchecked(i);
-        if (u < cum) {
-          selected = i;
-          break;
-        }
+    final rng = random ?? defaultRandom;
+    var remainingTrials = trials;
+    var remainingProb = 1.0;
+    for (var i = 0; i < dimensions - 1 && remainingTrials > 0; i++) {
+      final pi = _probabilities.getUnchecked(i);
+      if (pi > 0.0 && remainingProb > 0.0) {
+        final condP = (pi / remainingProb).clamp(0.0, 1.0);
+        final draw = BinomialDistribution(
+          remainingTrials,
+          condP,
+        ).sample(random: rng);
+        counts[i] = draw;
+        remainingTrials -= draw;
       }
-      counts[selected]++;
+      remainingProb -= pi;
     }
-    return Vector<int>.fromList(counts, type: DataType.int32);
+    counts[dimensions - 1] = remainingTrials;
+    return Vector<int>.fromList(counts, type: DataType.integer);
   }
 
   @override
@@ -137,16 +146,14 @@ class MultinomialDistribution extends MultivariateDistribution<int> {
       other is MultinomialDistribution &&
       trials == other.trials &&
       dimensions == other.dimensions &&
-      probabilities == other.probabilities;
+      _probabilities == other._probabilities;
 
   @override
   int get hashCode =>
-      Object.hash(MultinomialDistribution, trials, probabilities);
+      Object.hash(MultinomialDistribution, trials, _probabilities);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(trials, name: 'trials')
-    ..addValue(probabilities, name: 'p');
+    ..addValue(_probabilities, name: 'p');
 }
-
-final _random = Random();

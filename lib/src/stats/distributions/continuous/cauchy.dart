@@ -2,12 +2,14 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
+import '../../../special/utils.dart';
 import '../continuous.dart';
 import '../errors.dart';
+import '../utils.dart';
 
 /// The Cauchy distribution, also called the Lorentz distribution, is a
-/// continuous probability distribution parameterized by [location] parameter
-/// and [scale] parameter (γ).
+/// continuous probability distribution parameterized by [location] and [scale]
+/// (γ).
 ///
 /// See https://en.wikipedia.org/wiki/Cauchy_distribution.
 ///
@@ -35,7 +37,8 @@ class CauchyDistribution extends ContinuousDistribution {
 
   const new _(this.location, this.scale);
 
-  /// Fits a Cauchy distribution to [samples] using median and interquartile range.
+  /// Fits a Cauchy distribution to [samples] using median and interquartile
+  /// range.
   factory fit(Iterable<num> samples) {
     final list = <double>[];
     for (final x in samples) {
@@ -93,24 +96,63 @@ class CauchyDistribution extends ContinuousDistribution {
   double get excessKurtosis => double.nan;
 
   @override
-  double probability(double x) =>
-      1 / (pi * scale * (1 + pow((x - location) / scale, 2)));
+  double probability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x.isInfinite) return 0.0;
+    final z = (x - location) / scale;
+    return 1.0 / (pi * scale * (1.0 + z * z));
+  }
 
   @override
-  double cumulativeProbability(double x) =>
-      atan((x - location) / scale) / pi + 0.5;
+  double logProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x.isInfinite) return double.negativeInfinity;
+    final z = (x - location).abs() / scale;
+    if (z > 1e8) {
+      return -log(pi) - log(scale) - 2.0 * log(z) - log1p(1.0 / (z * z));
+    }
+    return -log(pi * scale) - log1p(z * z);
+  }
+
+  @override
+  double cumulativeProbability(double x) {
+    if (x.isNaN) return double.nan;
+    return atan2(scale, location - x) / pi;
+  }
+
+  @override
+  double survival(double x) {
+    if (x.isNaN) return double.nan;
+    return atan2(scale, x - location) / pi;
+  }
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
     if (probability == 0) return double.negativeInfinity;
     if (probability == 1) return double.infinity;
-    return location + scale * tan(pi * (probability - 0.5));
+    final pd = probability.toDouble();
+    if (pd < 0.25) {
+      return location - scale / tan(pi * pd);
+    }
+    return location + scale * tan(pi * (pd - 0.5));
+  }
+
+  @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0) return double.infinity;
+    if (probability == 1) return double.negativeInfinity;
+    final pd = probability.toDouble();
+    if (pd < 0.25) {
+      return location + scale / tan(pi * pd);
+    }
+    return location - scale * tan(pi * (pd - 0.5));
   }
 
   @override
   double sample({Random? random}) {
-    final uniform = (random ?? _random).nextDouble();
+    final uniform = nextOpenUnit(random ?? defaultRandom);
     return location + scale * tan(pi * (uniform - 0.5));
   }
 
@@ -128,5 +170,3 @@ class CauchyDistribution extends ContinuousDistribution {
     ..addValue(location, name: 'location')
     ..addValue(scale, name: 'scale');
 }
-
-final _random = Random();

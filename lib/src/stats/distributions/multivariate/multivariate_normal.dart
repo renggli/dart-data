@@ -6,8 +6,8 @@ import '../../../linear/decomposition/cholesky.dart';
 import '../../../linear/matrix.dart';
 import '../../../linear/vector.dart';
 import '../../../type/data_type.dart';
-import '../continuous/normal.dart';
-import 'multivariate_distribution.dart';
+import '../multivariate.dart';
+import '../utils.dart';
 
 /// Multivariate normal (Gaussian) distribution parameterized by [mean] vector
 /// μ and [covariance] matrix Σ.
@@ -16,7 +16,10 @@ import 'multivariate_distribution.dart';
 class MultivariateNormalDistribution extends MultivariateDistribution<double> {
   /// Constructs a multivariate normal distribution with given [mean] and
   /// [covariance].
-  new(this.mean, this.covariance) : dimensions = mean.length {
+  new(Vector<double> mean, Matrix<double> covariance)
+    : _mean = mean.copy(),
+      _covariance = covariance.copy(),
+      dimensions = mean.length {
     if (dimensions <= 0) {
       throw ArgumentError.value(
         dimensions,
@@ -24,19 +27,19 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
         'Dimensions must be positive.',
       );
     }
-    if (mean.length != covariance.rowCount ||
-        covariance.rowCount != covariance.colCount) {
+    if (dimensions != _covariance.rowCount ||
+        _covariance.rowCount != _covariance.colCount) {
       throw ArgumentError(
-        'Mean length (${mean.length}) must match square covariance dimension (${covariance.rowCount}x${covariance.colCount}).',
+        'Mean length ($dimensions) must match square covariance dimension (${_covariance.rowCount}x${_covariance.colCount}).',
       );
     }
     for (var i = 0; i < dimensions; i++) {
-      final m = mean.getUnchecked(i);
+      final m = _mean.getUnchecked(i);
       if (!m.isFinite) {
         throw ArgumentError.value(m, 'mean[$i]', 'Mean must be finite.');
       }
       for (var j = 0; j < dimensions; j++) {
-        final c = covariance.getUnchecked(i, j);
+        final c = _covariance.getUnchecked(i, j);
         if (!c.isFinite) {
           throw ArgumentError.value(
             c,
@@ -46,7 +49,7 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
         }
       }
     }
-    final chol = covariance.cholesky;
+    final chol = _covariance.cholesky;
     if (!chol.isSymmetricPositiveDefinite) {
       throw ArgumentError(
         'Covariance matrix must be symmetric positive definite.',
@@ -83,14 +86,16 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
   @override
   final int dimensions;
 
-  @override
-  final Vector<double> mean;
-
-  @override
-  final Matrix<double> covariance;
-
+  final Vector<double> _mean;
+  final Matrix<double> _covariance;
   late final Matrix<double> _l;
   late final double _logDetSigma;
+
+  @override
+  Vector<double> get mean => _mean.copy();
+
+  @override
+  Matrix<double> get covariance => _covariance.copy();
 
   @override
   double logProbability(Vector<double> x) {
@@ -100,10 +105,18 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
       );
     }
     final n = dimensions;
+    var hasNonFinite = false;
+    for (var i = 0; i < n; i++) {
+      final xi = x.getUnchecked(i);
+      if (xi.isNaN) return double.nan;
+      if (!xi.isFinite) hasNonFinite = true;
+    }
+    if (hasNonFinite) return double.negativeInfinity;
+
     var sumSq = 0.0;
     final y = List<double>.filled(n, 0.0);
     for (var i = 0; i < n; i++) {
-      var diff = x.getUnchecked(i) - mean.getUnchecked(i);
+      var diff = x.getUnchecked(i) - _mean.getUnchecked(i);
       for (var j = 0; j < i; j++) {
         diff -= _l.getUnchecked(i, j) * y[j];
       }
@@ -115,19 +128,32 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
   }
 
   @override
-  double probability(Vector<double> x) => exp(logProbability(x));
+  double probability(Vector<double> x) {
+    final logP = logProbability(x);
+    if (logP.isNaN) return double.nan;
+    return logP == double.negativeInfinity ? 0.0 : exp(logP);
+  }
 
   @override
   Vector<double> sample({Random? random}) {
-    const normal = NormalDistribution.standard();
+    final rng = random ?? defaultRandom;
     final n = dimensions;
-    final z = List<double>.generate(
-      n,
-      (_) => normal.sample(random: random),
-      growable: false,
-    );
+    final z = List<double>.filled(n, 0.0);
+    for (var i = 0; i < n; i += 2) {
+      double xVal, yVal, rSq;
+      do {
+        xVal = 2.0 * rng.nextDouble() - 1.0;
+        yVal = 2.0 * rng.nextDouble() - 1.0;
+        rSq = xVal * xVal + yVal * yVal;
+      } while (rSq >= 1.0 || rSq == 0.0);
+      final factor = sqrt(-2.0 * log(rSq) / rSq);
+      z[i] = xVal * factor;
+      if (i + 1 < n) {
+        z[i + 1] = yVal * factor;
+      }
+    }
     return Vector<double>.generate(n, (i) {
-      var val = mean.getUnchecked(i);
+      var val = _mean.getUnchecked(i);
       for (var j = 0; j <= i; j++) {
         val += _l.getUnchecked(i, j) * z[j];
       }
@@ -139,18 +165,18 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
   bool operator ==(Object other) =>
       other is MultivariateNormalDistribution &&
       dimensions == other.dimensions &&
-      mean == other.mean &&
-      covariance == other.covariance;
+      _mean == other._mean &&
+      _covariance == other._covariance;
 
   @override
   int get hashCode =>
-      Object.hash(MultivariateNormalDistribution, mean, covariance);
+      Object.hash(MultivariateNormalDistribution, _mean, _covariance);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(dimensions, name: 'dimensions')
-    ..addValue(mean, name: 'μ')
-    ..addValue(covariance, name: 'Σ');
+    ..addValue(_mean, name: 'μ')
+    ..addValue(_covariance, name: 'Σ');
 }
 
 final double _ln2pi = log(2.0 * pi);

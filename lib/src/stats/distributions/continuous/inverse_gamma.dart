@@ -5,9 +5,10 @@ import 'package:more/printer.dart';
 import '../../../special/gamma.dart';
 import '../continuous.dart';
 import '../errors.dart';
+import '../utils.dart';
 import 'gamma.dart';
 
-/// The inverse gamma distribution.
+/// The inverse gamma distribution with [shape] α > 0 and [scale] β > 0.
 ///
 /// See https://en.wikipedia.org/wiki/Inverse-gamma_distribution.
 class InverseGammaDistribution extends ContinuousDistribution {
@@ -21,37 +22,20 @@ class InverseGammaDistribution extends ContinuousDistribution {
     }
   }
 
-  /// Fits an inverse gamma distribution to positive [samples] using method of moments.
+  /// Fits an inverse gamma distribution to positive [samples] using method of
+  /// moments.
   factory fit(Iterable<num> samples) {
-    var count = 0;
-    var sum = 0.0;
-    for (final x in samples) {
-      final val = x.toDouble();
-      if (!val.isFinite || val <= 0.0) {
-        throw ArgumentError.value(
-          x,
-          'samples',
+    final stats = welfordSampleStats(
+      samples,
+      isValid: (value) => value > 0.0,
+      invalidMessage:
           'Inverse gamma samples must be strictly positive and finite',
-        );
-      }
-      count++;
-      sum += val;
-    }
-    if (count < 2) {
-      throw ArgumentError.value(
-        samples,
-        'samples',
-        'At least 2 samples required',
-      );
-    }
-    final mean = sum / count;
-    var sumSqDiff = 0.0;
-    for (final x in samples) {
-      final diff = x.toDouble() - mean;
-      sumSqDiff += diff * diff;
-    }
-    final variance = sumSqDiff / (count - 1);
-    var shape = variance > 1e-12 ? (mean * mean / variance + 2.0) : 3.0;
+      minCount: 2,
+    );
+    final mean = stats.mean;
+    var shape = stats.variance > 1e-12
+        ? (mean * mean / stats.variance + 2.0)
+        : 3.0;
     if (shape <= 0.0 || !shape.isFinite) shape = 3.0;
     var scale = mean * (shape - 1.0);
     if (scale <= 0.0 || !scale.isFinite) scale = 1.0;
@@ -88,23 +72,52 @@ class InverseGammaDistribution extends ContinuousDistribution {
       : double.nan;
 
   @override
-  double probability(double x) => x <= 0.0
-      ? 0.0
-      : exp(
-          -(shape + 1.0) * log(x) -
-              scale / x -
-              gammaLn(shape) +
-              shape * log(scale),
-        );
+  double probability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0 || x == double.infinity) return 0.0;
+    return exp(logProbability(x));
+  }
 
   @override
-  double cumulativeProbability(double x) =>
-      x <= 0.0 ? 0.0 : gammaQ(shape, scale / x);
+  double logProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0 || x == double.infinity) return double.negativeInfinity;
+    return -(shape + 1.0) * log(x) -
+        scale / x -
+        gammaLn(shape) +
+        shape * log(scale);
+  }
+
+  @override
+  double cumulativeProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0) return 0.0;
+    if (x == double.infinity) return 1.0;
+    return gammaQ(shape, scale / x);
+  }
+
+  @override
+  double survival(double x) {
+    if (x.isNaN) return double.nan;
+    if (x <= 0.0) return 1.0;
+    if (x == double.infinity) return 0.0;
+    return gammaP(shape, scale / x);
+  }
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return scale / gammaPInv(shape, 1.0 - probability);
+    if (probability == 0.0) return 0.0;
+    if (probability == 1.0) return double.infinity;
+    return scale / gammaQInv(shape, probability);
+  }
+
+  @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0.0) return double.infinity;
+    if (probability == 1.0) return 0.0;
+    return scale / gammaPInv(shape, probability);
   }
 
   @override

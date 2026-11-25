@@ -3,8 +3,8 @@ import 'dart:math';
 import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show ToStringPrinter;
 
-import '../../../linear/matrix.dart';
-import '../../../linear/vector.dart';
+import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
 
 /// Abstract base class representing a multivariate probability distribution
 /// over vectors of [T].

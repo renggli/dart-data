@@ -26,7 +26,7 @@
 ///   [MultivariateNormalDistribution], [DirichletDistribution], and
 ///   [MultinomialDistribution].
 /// - **Hypothesis Testing**: [tTestOneSample], [tTestTwoSample] (Student's and
-///   Welch's $t$-tests), [tTestPaired], [oneWayAnova] ($F$-test),
+///   Welch's t-tests), [tTestPaired], [oneWayAnova] (F-test),
 ///   [chiSquaredTest], [chiSquaredContingency], [mannWhitneyUTest],
 ///   [wilcoxonSignedRankTest], [kolmogorovSmirnovTest],
 ///   [kolmogorovSmirnovTwoSample], [jarqueBeraTest], [shapiroWilkTest], and
@@ -89,9 +89,9 @@ import 'src/stats/distributions/discrete/poisson.dart';
 import 'src/stats/distributions/discrete/rademacher.dart';
 import 'src/stats/distributions/discrete/uniform.dart';
 import 'src/stats/distributions/errors.dart';
+import 'src/stats/distributions/multivariate.dart';
 import 'src/stats/distributions/multivariate/dirichlet.dart';
 import 'src/stats/distributions/multivariate/multinomial.dart';
-import 'src/stats/distributions/multivariate/multivariate_distribution.dart';
 import 'src/stats/distributions/multivariate/multivariate_normal.dart';
 import 'src/stats/hypothesis/anova.dart';
 import 'src/stats/hypothesis/chi_squared.dart';
@@ -135,9 +135,9 @@ export 'src/stats/distributions/discrete/poisson.dart';
 export 'src/stats/distributions/discrete/rademacher.dart';
 export 'src/stats/distributions/discrete/uniform.dart';
 export 'src/stats/distributions/errors.dart';
+export 'src/stats/distributions/multivariate.dart';
 export 'src/stats/distributions/multivariate/dirichlet.dart';
 export 'src/stats/distributions/multivariate/multinomial.dart';
-export 'src/stats/distributions/multivariate/multivariate_distribution.dart';
 export 'src/stats/distributions/multivariate/multivariate_normal.dart';
 export 'src/stats/hypothesis/anova.dart';
 export 'src/stats/hypothesis/chi_squared.dart';

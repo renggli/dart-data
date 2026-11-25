@@ -1,11 +1,10 @@
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
-import 'package:data/special.dart';
 import 'package:data/stats.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
-class _SimpleDistribution extends Distribution<double> {
+class _MinimalDistribution extends Distribution<double> {
   const new();
 
   @override
@@ -15,86 +14,76 @@ class _SimpleDistribution extends Distribution<double> {
   bool get isLowerBoundOpen => false;
 
   @override
-  double get upperBound => 10.0;
+  double get upperBound => 1.0;
 
   @override
   bool get isUpperBoundOpen => false;
 
   @override
-  double get mean => 5.0;
+  double get mean => 0.5;
 
   @override
-  double get median => 5.0;
+  double get median => 0.5;
 
   @override
-  double get mode => 5.0;
+  double get mode => double.nan;
 
   @override
-  double get variance => 4.0;
+  double get variance => 1.0 / 12.0;
 
   @override
   double get skewness => 0.0;
 
   @override
-  double get excessKurtosis => 0.0;
+  double get excessKurtosis => -1.2;
 
   @override
-  double probability(double x) => (x >= 0.0 && x <= 10.0) ? 0.1 : 0.0;
+  double probability(double x) => (x >= 0.0 && x <= 1.0) ? 1.0 : 0.0;
 
   @override
-  double cumulativeProbability(double x) {
-    if (x <= 0.0) return 0.0;
-    if (x >= 10.0) return 1.0;
-    return x / 10.0;
+  double cumulativeProbability(double x) => x.clamp(0.0, 1.0);
+
+  @override
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return probability.toDouble();
   }
 
   @override
-  double inverseCumulativeProbability(num probability) =>
-      probability.toDouble() * 10.0;
-
-  @override
-  double sample({Random? random}) => (random?.nextDouble() ?? 0.5) * 10.0;
+  double sample({math.Random? random}) =>
+      (random ?? math.Random()).nextDouble();
 }
 
 void main() {
-  group('Distribution base class', () {
-    const dist = _SimpleDistribution();
+  const distribution = _MinimalDistribution();
 
-    test('derived moments and bounds', () {
-      check(dist.standardDeviation).equals(2.0);
-      check(dist.excessKurtosis).equals(0.0);
-      check(dist.lowerBound).equals(0.0);
-      check(dist.upperBound).equals(10.0);
-      check(dist.isLowerBoundOpen).isFalse;
-      check(dist.isUpperBoundOpen).isFalse;
+  group('Distribution base contract', () {
+    test('computes standardDeviation from variance', () {
+      check(distribution.standardDeviation)
+          .isCloseTo(math.sqrt(1.0 / 12.0), 1e-12);
     });
 
-    test('probabilities and CDF', () {
-      check(dist.probability(5.0)).equals(0.1);
-      check(dist.cumulativeProbability(5.0)).equals(0.5);
-      check(dist.inverseCumulativeProbability(0.5)).equals(5.0);
-      check(dist.survival(5.0)).equals(0.5);
-      check(dist.inverseSurvival(0.25)).equals(7.5);
+    test('computes default logProbability via probability', () {
+      check(distribution.logProbability(0.5)).equals(0.0);
+      check(distribution.logProbability(-1.0)).equals(double.negativeInfinity);
     });
 
-    test('sampling', () {
-      final s = dist.sample();
-      check(s).isGreaterOrEqual(0.0);
-      check(s).isLessOrEqual(10.0);
+    test('computes default survival and inverseSurvival', () {
+      check(distribution.survival(0.25)).isCloseTo(0.75, 1e-12);
+      check(distribution.inverseSurvival(0.25)).isCloseTo(0.75, 1e-12);
+      check(() => distribution.inverseSurvival(-0.1))
+          .throws<InvalidProbability>();
+      check(() => distribution.inverseSurvival(1.1))
+          .throws<InvalidProbability>();
+    });
 
-      final list = dist.samples().take(5).toList();
-      check(list.length).equals(5);
-
-      final gammaDist = GammaDistribution(2.0, 1.0);
-      check(gammaDist.survival(-1.0)).equals(1.0);
-      check(gammaDist.survival(1.0)).isGreaterThan(0.0);
-
-      final invGamma = InverseGammaDistribution(5.0, 1.0);
-      check(invGamma.excessKurtosis).isCloseTo(42.0, 1e-12);
-
-      check(binomial(5, 4)).equals(5.0);
-      check(binomial(5.5, 2.5)).isGreaterThan(10.0);
-      check(permutation(5.5, 2.5)).isGreaterThan(20.0);
+    test('generates lazy infinite samples stream', () {
+      final draws = distribution
+          .samples(random: math.Random(7))
+          .take(5)
+          .toList();
+      check(draws.length).equals(5);
+      check(draws.every((value) => value >= 0.0 && value < 1.0)).isTrue;
     });
   });
 }

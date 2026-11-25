@@ -2,12 +2,14 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
+import '../../../special/utils.dart';
 import '../continuous.dart';
 import '../errors.dart';
+import '../utils.dart';
 
 /// The Pareto distribution is a power-law probability distribution defined on
-/// the interval [scale, infinity) parameterized by shape parameter [shape] (α)
-/// and scale parameter [scale] (xo).
+/// `[scale, infinity)` parameterized by shape parameter [shape] (α) and scale
+/// parameter [scale] (x₀).
 ///
 /// See https://en.wikipedia.org/wiki/Pareto_distribution.
 ///
@@ -31,7 +33,8 @@ class ParetoDistribution extends ContinuousDistribution {
 
   const new _(this.shape, this.scale);
 
-  /// Fits a Pareto distribution to positive [samples] using maximum likelihood estimation.
+  /// Fits a Pareto distribution to positive [samples] using maximum likelihood
+  /// estimation.
   factory fit(Iterable<num> samples) {
     var minVal = double.infinity;
     final list = <double>[];
@@ -62,11 +65,14 @@ class ParetoDistribution extends ContinuousDistribution {
   /// The shape parameter (α).
   final double shape;
 
-  /// The scale parameter (xo).
+  /// The scale parameter (x₀).
   final double scale;
 
   @override
   double get lowerBound => scale;
+
+  @override
+  bool get isLowerBoundOpen => false;
 
   @override
   double get mean => shape > 1 ? shape * scale / (shape - 1) : double.infinity;
@@ -79,7 +85,7 @@ class ParetoDistribution extends ContinuousDistribution {
 
   @override
   double get variance => shape > 2
-      ? shape * scale * scale / (pow(shape - 1, 2).toDouble() * (shape - 2))
+      ? shape * scale * scale / ((shape - 1.0) * (shape - 1.0) * (shape - 2.0))
       : (shape > 1 ? double.infinity : double.nan);
 
   @override
@@ -88,28 +94,20 @@ class ParetoDistribution extends ContinuousDistribution {
       : double.nan;
 
   @override
-  double get excessKurtosis => shape > 4
-      ? 6 *
-            (pow(shape, 3).toDouble() +
-                pow(shape, 2).toDouble() -
-                6 * shape -
-                2) /
-            (shape * (shape - 3) * (shape - 4))
-      : double.nan;
+  double get excessKurtosis {
+    if (shape <= 4.0) return double.nan;
+    final s2 = shape * shape;
+    return 6.0 *
+        (s2 * shape + s2 - 6.0 * shape - 2.0) /
+        (shape * (shape - 3.0) * (shape - 4.0));
+  }
 
   @override
   double probability(double x) {
     if (x.isNaN) return double.nan;
-    if (x < scale) return 0.0;
-    if (shape <= 50.0 && scale <= 1e10 && x <= 1e10) {
-      final numVal = shape * pow(scale, shape).toDouble();
-      final denVal = pow(x, shape + 1).toDouble();
-      if (numVal.isFinite && denVal.isFinite && denVal > 0.0) {
-        return numVal / denVal;
-      }
-    }
+    if (x < scale || x == double.infinity) return 0.0;
+    if (x == scale) return shape / scale;
     final logP = logProbability(x);
-    if (logP.isNaN) return double.nan;
     if (logP <= -745.0) return 0.0;
     return exp(logP);
   }
@@ -117,24 +115,47 @@ class ParetoDistribution extends ContinuousDistribution {
   @override
   double logProbability(double x) {
     if (x.isNaN) return double.nan;
-    if (x < scale) return double.negativeInfinity;
-    return log(shape) + shape * log(scale) - (shape + 1) * log(x);
+    if (x < scale || x == double.infinity) return double.negativeInfinity;
+    if (x == scale) return log(shape) - log(scale);
+    return log(shape) - log(x) + shape * log(scale / x);
   }
 
   @override
-  double cumulativeProbability(double x) =>
-      x < scale ? 0.0 : 1.0 - pow(scale / x, shape).toDouble();
+  double cumulativeProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x < scale) return 0.0;
+    if (x == double.infinity) return 1.0;
+    return -expm1(shape * log(scale / x));
+  }
+
+  @override
+  double survival(double x) {
+    if (x.isNaN) return double.nan;
+    if (x < scale) return 1.0;
+    if (x == double.infinity) return 0.0;
+    return exp(shape * log(scale / x));
+  }
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return scale / pow(1 - probability, 1 / shape).toDouble();
+    if (probability == 0.0) return scale;
+    if (probability == 1.0) return double.infinity;
+    return scale * exp(-log1p(-probability.toDouble()) / shape);
+  }
+
+  @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0.0) return double.infinity;
+    if (probability == 1.0) return scale;
+    return scale * exp(-log(probability.toDouble()) / shape);
   }
 
   @override
   double sample({Random? random}) {
-    final uniform = (random ?? _random).nextDouble();
-    return scale / pow(1.0 - uniform, 1 / shape).toDouble();
+    final uniform = nextOpenUnit(random ?? defaultRandom);
+    return scale * exp(-log(uniform) / shape);
   }
 
   @override
@@ -151,5 +172,3 @@ class ParetoDistribution extends ContinuousDistribution {
     ..addValue(shape, name: 'shape')
     ..addValue(scale, name: 'scale');
 }
-
-final _random = Random();

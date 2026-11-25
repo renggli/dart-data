@@ -17,7 +17,7 @@
 - **Linear Algebra**: Vectors and Matrices, zero-cost `Float64Matrix` and `Float64Vector` extension types, full decompositions (Cholesky, LU, QR, SVD, Eigenvalue), matrix norms and condition numbers, plus iterative Krylov subspace solvers (GMRES, Conjugate Gradient).
 - **Columnar DataFrames & Arrow**: Apache Arrow-aligned columnar tables with zero-copy chunking, schema inference, streaming CSV parser, relational joins, grouping, aggregations, Arrow IPC streaming/file format, and the Arrow C Data interface for zero-copy memory sharing with Python, C++, DuckDB, and Polars.
 - **Exact Symbolic Mathematics**: Symbolic expression ASTs, exact numeric tower (`Integer`, `RationalNumber`, `ComplexNumber`), canonical simplification under domain assumptions, closed-form summation and products, exact calculus (derivatives, integration, limits, power series), polynomial/transcendental equation solving, Gröbner bases, multivariable calculus (`gradient`, `hessian`, `jacobian`), LaTeX/MathML generation, and fast bytecode VM compilation to Dart closures.
-- **Probability & Statistics**: 26 continuous, discrete, and multivariate probability distributions with exact probability density, cumulative probability, and quantile calculations, random sampling, descriptive statistics, Pearson/Spearman correlation, PCA, hypothesis testing (t-tests, ANOVA, Chi-squared, Kolmogorov-Smirnov, Mann-Whitney U, Wilcoxon, Jarque-Bera), and non-parametric Bootstrap & Jackknife resampling.
+- **Probability & Statistics**: 27 continuous, discrete, and multivariate probability distributions with exact probability density, cumulative probability, and quantile calculations, random sampling, descriptive statistics, Pearson/Spearman correlation, PCA, hypothesis testing (t-tests, ANOVA, Chi-squared, Kolmogorov-Smirnov, Mann-Whitney U, Wilcoxon, Jarque-Bera), and non-parametric Bootstrap & Jackknife resampling.
 - **Numeric Algorithms & Special Functions**: Differential equations (`solveOde` with Dormand-Prince 45 and RK4), non-linear optimization (`minimize` with Nelder-Mead, BFGS, L-BFGS, Brent), numerical integration (`integrate` with adaptive Simpson and Gauss-Kronrod), root finding (`solve` with Brent-Dekker, Newton-Raphson, Bisection, and `solveSystem`), 1D/2D interpolation (Linear, Cubic Spline, PCHIP, Bilinear, Bicubic), curve fitting (`curveFit`, `leastSquares`, `linearRegression`, `polynomialRegression`, `fitNonlinear`), coordinate sampling & adaptive curve sampling (`linearSpaced`, `sampleCurve`), cross-platform 1D FFT, and real/complex special functions (Γ, B, ψ, ζ, Li_s, erf/erfc/erfi, Fresnel S/C, exponential/trig/hyperbolic integrals, Bessel J_ν/Y_ν/I_ν/K_ν, elliptic K/E/F/Π, hypergeometric 1F1/2F1/pFq, and Lambert W).
 
 ## Interactive Web Examples
@@ -125,7 +125,7 @@ print(fastDf(0.0)); // 1.0 (since 3*(0)^2 + cos(0) = 1)
 
 ### 5. Probability Distributions
 
-26 discrete, continuous, and multivariate probability distributions with statistics, probability density, cumulative probability, and quantiles:
+27 discrete, continuous, and multivariate probability distributions with statistics, probability density, cumulative probability, and quantiles:
 
 ```dart
 // Standard Normal distribution N(0, 1)

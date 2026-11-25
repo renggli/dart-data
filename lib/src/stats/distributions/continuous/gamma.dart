@@ -5,10 +5,10 @@ import 'package:more/printer.dart';
 import '../../../special/gamma.dart';
 import '../continuous.dart';
 import '../errors.dart';
+import '../utils.dart';
 import 'normal.dart';
-import 'uniform.dart';
 
-/// The gamma distribution.
+/// The gamma distribution with [shape] α > 0 and [scale] β > 0.
 ///
 /// See https://en.wikipedia.org/wiki/Gamma_distribution.
 class GammaDistribution extends ContinuousDistribution {
@@ -27,34 +27,20 @@ class GammaDistribution extends ContinuousDistribution {
 
   /// Fits a gamma distribution to [samples] using method of moments.
   factory fit(Iterable<num> samples) {
-    var count = 0;
-    var sum = 0.0;
-    for (final x in samples) {
-      if (!x.isFinite || x <= 0) {
-        throw ArgumentError.value(x, 'samples', 'All samples must be positive');
-      }
-      count++;
-      sum += x;
+    final stats = welfordSampleStats(
+      samples,
+      isValid: (value) => value > 0.0,
+      invalidMessage: 'All samples must be positive',
+      minCount: 2,
+    );
+    if (stats.variance <= 0.0) {
+      return GammaDistribution(1e6, stats.mean / 1e6);
     }
-    if (count < 2) {
-      throw ArgumentError.value(
-        samples,
-        'samples',
-        'At least 2 samples required',
-      );
-    }
-    final mean = sum / count;
-    var sumSqDiff = 0.0;
-    for (final x in samples) {
-      final diff = x - mean;
-      sumSqDiff += diff * diff;
-    }
-    final variance = sumSqDiff / (count - 1);
-    final scale = variance / mean;
-    final shape = mean / scale;
+    final scale = stats.variance / stats.mean;
+    final shape = stats.mean / scale;
     return GammaDistribution(
-      shape > 0 ? shape : 1e-6,
-      scale > 0 ? scale : 1e-6,
+      shape > 0.0 && shape.isFinite ? shape : 1.0,
+      scale > 0.0 && scale.isFinite ? scale : 1.0,
     );
   }
 
@@ -110,11 +96,16 @@ class GammaDistribution extends ContinuousDistribution {
   }
 
   @override
-  double cumulativeProbability(double x) =>
-      x <= 0.0 ? 0.0 : gammaP(shape, x / scale);
+  double cumulativeProbability(double x) {
+    if (x.isNaN) return double.nan;
+    return x <= 0.0 ? 0.0 : gammaP(shape, x / scale);
+  }
 
   @override
-  double survival(double x) => x <= 0.0 ? 1.0 : gammaQ(shape, x / scale);
+  double survival(double x) {
+    if (x.isNaN) return double.nan;
+    return x <= 0.0 ? 1.0 : gammaQ(shape, x / scale);
+  }
 
   @override
   double inverseCumulativeProbability(num probability) {
@@ -123,29 +114,34 @@ class GammaDistribution extends ContinuousDistribution {
   }
 
   @override
+  double inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    return gammaQInv(shape, probability) * scale;
+  }
+
+  @override
   double sample({Random? random}) {
+    final rng = random ?? defaultRandom;
     const normal = NormalDistribution.standard();
-    const uniform = UniformDistribution.standard();
     final correctedShape = shape < 1.0 ? shape + 1.0 : shape;
-    double uSample, vVal, x;
+    double uSample, vVal, x, x2;
     final a1 = correctedShape - 1.0 / 3.0;
     final a2 = 1.0 / sqrt(9.0 * a1);
     do {
       do {
-        x = normal.sample(random: random);
+        x = normal.sample(random: rng);
         vVal = 1.0 + a2 * x;
       } while (vVal <= 0.0);
       vVal = vVal * vVal * vVal;
-      uSample = uniform.sample(random: random);
-    } while (uSample > 1.0 - 0.331 * pow(x, 4) &&
-        log(uSample) > 0.5 * x * x + a1 * (1.0 - vVal + log(vVal)));
+      x2 = x * x;
+      uSample = rng.nextDouble();
+    } while (uSample > 1.0 - 0.331 * x2 * x2 &&
+        log(uSample) > 0.5 * x2 + a1 * (1.0 - vVal + log(vVal)));
     if (shape == correctedShape) {
       return a1 * vVal * scale;
     }
-    do {
-      uSample = uniform.sample(random: random);
-    } while (uSample == 0.0);
-    return pow(uSample, 1.0 / shape) * a1 * vVal * scale;
+    final boost = nextOpenUnit(rng);
+    return pow(boost, 1.0 / shape) * a1 * vVal * scale;
   }
 
   @override

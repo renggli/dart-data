@@ -1,9 +1,11 @@
 import 'dart:math';
 
 import '../discrete.dart';
+import '../errors.dart';
+import '../utils.dart';
 
-/// The Rademacher distribution is a discrete probability function which takes
-/// value 1 with probability 1/2 and value −1 with probability 1/2.
+/// The Rademacher distribution over `{-1, 1}` taking each value with
+/// probability `1/2`.
 ///
 /// See https://en.wikipedia.org/wiki/Rademacher_distribution.
 ///
@@ -15,7 +17,7 @@ class RademacherDistribution extends DiscreteDistribution {
   /// A Rademacher distribution.
   const new();
 
-  /// Validates that [samples] consist of values in {-1, 1} and returns a
+  /// Validates that [samples] consist of values in `{-1, 1}` and returns a
   /// [RademacherDistribution].
   factory fit(Iterable<num> samples) {
     var count = 0;
@@ -39,39 +41,68 @@ class RademacherDistribution extends DiscreteDistribution {
   int get lowerBound => -1;
 
   @override
+  bool get isLowerBoundOpen => false;
+
+  @override
   int get upperBound => 1;
 
   @override
-  double get mean => 0;
+  bool get isUpperBoundOpen => false;
 
   @override
-  double get median => 0;
+  double get mean => 0.0;
+
+  @override
+  double get median => 0.0;
 
   @override
   double get mode => double.nan;
 
   @override
-  double get variance => 1;
+  double get variance => 1.0;
 
   @override
-  double get skewness => 0;
+  double get skewness => 0.0;
 
   @override
-  double get excessKurtosis => -2;
+  double get excessKurtosis => -2.0;
 
   @override
-  double probability(int k) => k == -1 || k == 1 ? 0.5 : 0;
+  double probability(int k) => k == -1 || k == 1 ? 0.5 : 0.0;
+
+  @override
+  double logProbability(int x) =>
+      x == -1 || x == 1 ? -ln2 : double.negativeInfinity;
 
   @override
   double cumulativeProbability(int k) => k < -1
-      ? 0
+      ? 0.0
       : k < 1
       ? 0.5
-      : 1;
+      : 1.0;
+
+  @override
+  double survival(int x) => x < -1
+      ? 1.0
+      : x < 1
+      ? 0.5
+      : 0.0;
+
+  @override
+  int inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return probability <= 0.5 ? -1 : 1;
+  }
+
+  @override
+  int inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    return probability >= 0.5 ? -1 : 1;
+  }
 
   @override
   int sample({Random? random}) =>
-      (random ?? _random).nextDouble() < 0.5 ? -1 : 1;
+      (random ?? defaultRandom).nextDouble() < 0.5 ? -1 : 1;
 
   @override
   bool operator ==(Object other) => other is RademacherDistribution;
@@ -79,5 +110,3 @@ class RademacherDistribution extends DiscreteDistribution {
   @override
   int get hashCode => 70196453;
 }
-
-final _random = Random();

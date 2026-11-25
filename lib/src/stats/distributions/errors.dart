@@ -1,5 +1,4 @@
-/// Error thrown when a probability value lies outside the valid
-/// $\lbrack 0, 1 \rbrack$ interval.
+/// Error thrown when a probability value lies outside `[0, 1]`.
 class InvalidProbability extends ArgumentError {
   /// Creates an error for an invalid [probability] argument.
   new(this.probability, [String? name])
@@ -8,8 +7,8 @@ class InvalidProbability extends ArgumentError {
   /// The invalid probability value that caused the error.
   final num probability;
 
-  /// Validates that [probability] is within the interval
-  /// $\lbrack 0, 1 \rbrack$, throwing an [InvalidProbability] otherwise.
+  /// Validates that [probability] is within `[0, 1]`, throwing an
+  /// [InvalidProbability] otherwise.
   static void check(num probability) {
     if (!(probability >= 0 && probability <= 1)) {
       throw InvalidProbability(probability);
