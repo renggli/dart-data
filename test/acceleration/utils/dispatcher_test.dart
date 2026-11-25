@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/src/acceleration/utils/dispatcher.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Dispatcher', () {

@@ -2,8 +2,6 @@
 import 'dart:ffi' as ffi;
 import 'dart:typed_data';
 
-import 'package:ffi/ffi.dart';
-
 import '../utils/library_loader_ffi.dart';
 
 /// Native Apple vForce / vDSP bindings via dart:ffi.
@@ -23,11 +21,22 @@ abstract final class VforceNative {
   static final bool _hasVsaddD = hasSymbol('vDSP_vsaddD', _libs);
   static final bool _hasSvesqD = hasSymbol('vDSP_svesqD', _libs);
 
-  /// Whether native vForce or vDSP vector acceleration is available.
-  static bool get isAvailable => _libs.isNotEmpty && (_hasVvsin || _hasConvD);
+  static final Int32List _nBuf = Int32List(1);
+  static final Float64List _scalarBuf = Float64List(1);
+  static final Float64List _outBuf = Float64List(1);
 
-  /// Whether native vForce transcendentals are available.
-  static bool get hasVForce => _hasVvsin;
+  /// Whether native vForce or vDSP vector acceleration is available.
+  static bool get isAvailable =>
+      _libs.isNotEmpty && (hasVForce || hasReductions || hasConvolution);
+
+  /// Whether all native vForce transcendentals are available.
+  static bool get hasVForce =>
+      _hasVvsin &&
+      _hasVvcos &&
+      _hasVvexp &&
+      _hasVvlog &&
+      _hasVvsqrt &&
+      _hasVvpow;
 
   /// Whether native vector reductions are available.
   static bool get hasReductions =>
@@ -44,11 +53,9 @@ abstract final class VforceNative {
     if (!_hasVvsin || n <= 0 || input.length < n || output.length < n) {
       return false;
     }
-    return using((arena) {
-      final nPtr = arena<ffi.Int32>()..value = n;
-      _vvsin(output.address, input.address, nPtr);
-      return true;
-    });
+    _nBuf[0] = n;
+    _vvsin(output.address, input.address, _nBuf.address);
+    return true;
   }
 
   static bool vcos({
@@ -59,11 +66,9 @@ abstract final class VforceNative {
     if (!_hasVvcos || n <= 0 || input.length < n || output.length < n) {
       return false;
     }
-    return using((arena) {
-      final nPtr = arena<ffi.Int32>()..value = n;
-      _vvcos(output.address, input.address, nPtr);
-      return true;
-    });
+    _nBuf[0] = n;
+    _vvcos(output.address, input.address, _nBuf.address);
+    return true;
   }
 
   static bool vexp({
@@ -74,11 +79,9 @@ abstract final class VforceNative {
     if (!_hasVvexp || n <= 0 || input.length < n || output.length < n) {
       return false;
     }
-    return using((arena) {
-      final nPtr = arena<ffi.Int32>()..value = n;
-      _vvexp(output.address, input.address, nPtr);
-      return true;
-    });
+    _nBuf[0] = n;
+    _vvexp(output.address, input.address, _nBuf.address);
+    return true;
   }
 
   static bool vlog({
@@ -89,11 +92,9 @@ abstract final class VforceNative {
     if (!_hasVvlog || n <= 0 || input.length < n || output.length < n) {
       return false;
     }
-    return using((arena) {
-      final nPtr = arena<ffi.Int32>()..value = n;
-      _vvlog(output.address, input.address, nPtr);
-      return true;
-    });
+    _nBuf[0] = n;
+    _vvlog(output.address, input.address, _nBuf.address);
+    return true;
   }
 
   static bool vsqrt({
@@ -104,11 +105,9 @@ abstract final class VforceNative {
     if (!_hasVvsqrt || n <= 0 || input.length < n || output.length < n) {
       return false;
     }
-    return using((arena) {
-      final nPtr = arena<ffi.Int32>()..value = n;
-      _vvsqrt(output.address, input.address, nPtr);
-      return true;
-    });
+    _nBuf[0] = n;
+    _vvsqrt(output.address, input.address, _nBuf.address);
+    return true;
   }
 
   static bool vpow({
@@ -124,29 +123,30 @@ abstract final class VforceNative {
         base.length < n) {
       return false;
     }
-    return using((arena) {
-      final nPtr = arena<ffi.Int32>()..value = n;
-      _vvpow(output.address, exponent.address, base.address, nPtr);
-      return true;
-    });
+    _nBuf[0] = n;
+    _vvpow(output.address, exponent.address, base.address, _nBuf.address);
+    return true;
   }
 
   static double? sum({required Float64List x, required int n}) {
     if (!_hasSveD || n <= 0 || x.length < n) return null;
-    return using((arena) {
-      final outPtr = arena<ffi.Double>();
-      _vdspSveD(x.address, 1, outPtr, n);
-      return outPtr.value;
-    });
+    _vdspSveD(x.address, 1, _outBuf.address, n);
+    return _outBuf[0];
   }
 
   static double? mean({required Float64List x, required int n}) {
     if (!_hasMeanvD || n <= 0 || x.length < n) return null;
-    return using((arena) {
-      final outPtr = arena<ffi.Double>();
-      _vdspMeanvD(x.address, 1, outPtr, n);
-      return outPtr.value;
-    });
+    _vdspMeanvD(x.address, 1, _outBuf.address, n);
+    final res = _outBuf[0];
+    if (res.isFinite) return res;
+    for (var i = 0; i < n; i++) {
+      if (!x[i].isFinite) return res;
+    }
+    var welfordMean = 0.0;
+    for (var i = 0; i < n; i++) {
+      welfordMean += (x[i] - welfordMean) / (i + 1);
+    }
+    return welfordMean;
   }
 
   static double? variance({
@@ -155,27 +155,36 @@ abstract final class VforceNative {
     required bool sample,
   }) {
     final minCount = sample ? 2 : 1;
-    if (!_hasMeanvD ||
-        !_hasVsaddD ||
-        !_hasSvesqD ||
-        n < minCount ||
-        x.length < n) {
+    if (!hasReductions || n < minCount || x.length < n) {
       return null;
     }
 
-    return using((arena) {
-      final meanPtr = arena<ffi.Double>();
-      final diff = Float64List(n);
-      final sumSqPtr = arena<ffi.Double>();
+    final avg = mean(x: x, n: n)!;
+    if (!avg.isFinite) return double.nan;
 
-      _vdspMeanvD(x.address, 1, meanPtr, n);
-      final negMean = arena<ffi.Double>()..value = -meanPtr.value;
-      _vdspVsaddD(x.address, 1, negMean, diff.address, 1, n);
-      _vdspSvesqD(diff.address, 1, sumSqPtr, n);
+    final diff = Float64List(n);
+    _scalarBuf[0] = -avg;
+    _vdspVsaddD(x.address, 1, _scalarBuf.address, diff.address, 1, n);
+    _vdspSvesqD(diff.address, 1, _outBuf.address, n);
 
-      final divisor = sample ? n - 1 : n;
-      return sumSqPtr.value / divisor;
-    });
+    final sumSq = _outBuf[0];
+    final divisor = sample ? n - 1 : n;
+    if (sumSq.isFinite) {
+      return sumSq / divisor;
+    }
+    var maxDiff = 0.0;
+    for (var i = 0; i < n; i++) {
+      final ad = diff[i].abs();
+      if (!ad.isFinite) return double.nan;
+      if (ad > maxDiff) maxDiff = ad;
+    }
+    if (maxDiff == 0.0) return 0.0;
+    var scaledSumSq = 0.0;
+    for (var i = 0; i < n; i++) {
+      final d = diff[i] / maxDiff;
+      scaledSumSq += d * d;
+    }
+    return maxDiff * maxDiff * (scaledSumSq / divisor);
   }
 
   static bool convolve({
@@ -192,22 +201,16 @@ abstract final class VforceNative {
     if (resultLen <= 0 || output.length < resultLen) return false;
 
     final filterEndView = Float64List.sublistView(filter, filterLen - 1);
-    final needsCopy =
-        output.buffer == signal.buffer || output.buffer == filter.buffer;
-    final target = needsCopy ? Float64List(resultLen) : output;
     _vdspConvD(
       signal.address,
       1,
       filterEndView.address,
       -1,
-      target.address,
+      output.address,
       1,
       resultLen,
       filterLen,
     );
-    if (needsCopy) {
-      output.setRange(0, resultLen, target);
-    }
     return true;
   }
 
@@ -224,22 +227,16 @@ abstract final class VforceNative {
     final resultLen = signalLen - filterLen + 1;
     if (resultLen <= 0 || output.length < resultLen) return false;
 
-    final needsCopy =
-        output.buffer == signal.buffer || output.buffer == filter.buffer;
-    final target = needsCopy ? Float64List(resultLen) : output;
     _vdspConvD(
       signal.address,
       1,
       filter.address,
       1,
-      target.address,
+      output.address,
       1,
       resultLen,
       filterLen,
     );
-    if (needsCopy) {
-      output.setRange(0, resultLen, target);
-    }
     return true;
   }
 }

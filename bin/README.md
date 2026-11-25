@@ -41,32 +41,32 @@ Evaluates every workload under two execution modes:
 
 | Benchmark | Category | Pure Dart (µs) | Dart 95% CI | Native (µs) | Native 95% CI | Speedup |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| `dgemm 64x64` | BLAS Level 3 (GEMM) | 151 | [149, 154] | 11.0 | [10.4, 15.4] | **13.7×** |
-| `dgemm 256x256` | BLAS Level 3 (GEMM) | 8,600 | [8,529, 8,945] | 125 | [123, 127] | **68.8×** |
-| `dgemm 512x512` | BLAS Level 3 (GEMM) | 71,038 | [70,760, 71,544] | 647 | [475, 800] | **109.8×** |
-| `sgemm 256x256 (float32)` | BLAS Level 3 (GEMM) | 9,915 | [9,831, 10,127] | 114 | [63.0, 172] | **87.0×** |
-| `dsyrk 128x128` | BLAS Level 3 (GEMM) | 1,133 | [1,104, 1,213] | 21.0 | [21.0, 21.5] | **54.0×** |
-| `dgemv 256x256` | BLAS Level 2 (GEMV) | 207 | [204, 219] | 3.90 | [3.80, 4.30] | **53.0×** |
-| `dgemv 1024x1024` | BLAS Level 2 (GEMV) | 3,273 | [3,251, 3,300] | 34.0 | [34.0, 34.0] | **96.3×** |
-| `ddot 10,000` | BLAS Level 1 | 6.80 | [6.72, 7.32] | 0.94 | [0.94, 0.96] | **7.2×** |
-| `ddot 100,000` | BLAS Level 1 | 64.1 | [63.0, 65.3] | 2.90 | [2.90, 2.90] | **22.1×** |
-| `dnrm2 100,000` | BLAS Level 1 | 151 | [144, 158] | 21.2 | [21.2, 21.2] | **7.1×** |
-| `solve 64x64 (dgesv)` | LAPACK Solvers & Decompositions | 76.0 | [75.6, 86.0] | 37.4 | [36.4, 39.6] | **2.0×** |
-| `solve 128x128 (dgesv)` | LAPACK Solvers & Decompositions | 495 | [490, 507] | 82.0 | [81.5, 82.5] | **6.0×** |
-| `leastSquares 200x20 (dgels)` | LAPACK Solvers & Decompositions | 88.4 | [79.2, 89.8] | 50.8 | [50.2, 61.0] | **1.7×** |
-| `eigenvalue 64x64 (dsyev)` | LAPACK Solvers & Decompositions | 567 | [553, 590] | 299 | [298, 335] | **1.9×** |
-| `eigenvalue 128x128 (dsyev)` | LAPACK Solvers & Decompositions | 4,314 | [4,175, 4,361] | 1,487 | [1,473, 1,574] | **2.9×** |
-| `svd 32x32 (dgesvd)` | LAPACK Solvers & Decompositions | 172 | [171, 175] | 166 | [150, 205] | **1.0×** |
-| `fft 1D 1,024` | Fast Fourier Transform | 11.7 | [10.5, 12.2] | 2.00 | [2.00, 2.10] | **5.8×** |
-| `fft 1D 16,384` | Fast Fourier Transform | 231 | [230, 245] | 140 | [130, 211] | **1.7×** |
-| `fft 2D 64x64` | Fast Fourier Transform | 63.0 | [62.4, 66.6] | 18.4 | [17.8, 18.6] | **3.4×** |
-| `fft 2D 256x256` | Fast Fourier Transform | 1,465 | [1,385, 1,476] | 454 | [452, 471] | **3.2×** |
-| `vForce sin 10,000` | Vector Transcendentals (vForce) | 25.1 | [24.1, 25.8] | 9.70 | [9.60, 10.2] | **2.6×** |
-| `vForce exp 10,000` | Vector Transcendentals (vForce) | 20.5 | [20.3, 20.9] | 12.3 | [12.0, 13.7] | **1.7×** |
-| `vForce log 10,000` | Vector Transcendentals (vForce) | 22.9 | [22.4, 24.1] | 12.3 | [12.3, 14.3] | **1.9×** |
-| `vForce sqrt 10,000` | Vector Transcendentals (vForce) | 6.20 | [6.10, 6.35] | 4.35 | [4.20, 5.65] | **1.4×** |
-| `vectorSum 100,000` | Vector Reductions (vDSP) | 59.2 | [58.2, 60.7] | 8.70 | [8.70, 8.95] | **6.8×** |
-| `vectorMean 100,000` | Vector Reductions (vDSP) | 59.2 | [58.2, 61.7] | 8.70 | [8.65, 8.95] | **6.8×** |
+| `dgemm 64x64` | BLAS Level 3 (GEMM) | 151 | [147, 159] | 25.4 | [10.6, 33.2] | **5.9×** |
+| `dgemm 256x256` | BLAS Level 3 (GEMM) | 9,241 | [8,817, 9,321] | 128 | [126, 136] | **72.2×** |
+| `dgemm 512x512` | BLAS Level 3 (GEMM) | 71,556 | [71,109, 72,744] | 445 | [437, 741] | **160.8×** |
+| `sgemm 256x256 (float32)` | BLAS Level 3 (GEMM) | 9,855 | [9,778, 9,913] | 53.0 | [48.0, 57.0] | **185.9×** |
+| `dsyrk 128x128` | BLAS Level 3 (GEMM) | 1,135 | [1,126, 1,193] | 21.5 | [21.0, 22.0] | **52.8×** |
+| `dgemv 256x256` | BLAS Level 2 (GEMV) | 206 | [200, 212] | 3.70 | [3.70, 3.80] | **55.7×** |
+| `dgemv 1024x1024` | BLAS Level 2 (GEMV) | 3,335 | [3,312, 3,384] | 38.5 | [36.5, 44.0] | **86.6×** |
+| `ddot 10,000` | BLAS Level 1 | 7.52 | [7.36, 7.94] | 0.98 | [0.94, 1.12] | **7.7×** |
+| `ddot 100,000` | BLAS Level 1 | 64.8 | [63.7, 66.3] | 2.90 | [2.80, 2.90] | **22.3×** |
+| `dnrm2 100,000` | BLAS Level 1 | 314 | [302, 327] | 21.2 | [21.2, 21.2] | **14.8×** |
+| `solve 64x64 (dgesv)` | LAPACK Solvers & Decompositions | 85.8 | [79.2, 89.2] | 36.4 | [35.4, 38.2] | **2.4×** |
+| `solve 128x128 (dgesv)` | LAPACK Solvers & Decompositions | 506 | [500, 518] | 87.5 | [84.0, 91.0] | **5.8×** |
+| `leastSquares 200x20 (dgels)` | LAPACK Solvers & Decompositions | 77.8 | [72.4, 95.0] | 54.2 | [50.4, 79.6] | **1.4×** |
+| `eigenvalue 64x64 (dsyev)` | LAPACK Solvers & Decompositions | 560 | [551, 592] | 311 | [303, 351] | **1.8×** |
+| `eigenvalue 128x128 (dsyev)` | LAPACK Solvers & Decompositions | 4,323 | [4,071, 4,452] | 1,533 | [1,495, 1,610] | **2.8×** |
+| `svd 32x32 (dgesvd)` | LAPACK Solvers & Decompositions | 165 | [163, 173] | 162 | [150, 207] | **1.0×** |
+| `fft 1D 1,024` | Fast Fourier Transform | 13.5 | [12.5, 14.2] | 2.30 | [2.20, 2.60] | **5.9×** |
+| `fft 1D 16,384` | Fast Fourier Transform | 278 | [273, 296] | 185 | [180, 229] | **1.5×** |
+| `fft 2D 64x64` | Fast Fourier Transform | 62.8 | [61.4, 64.4] | 23.4 | [20.8, 24.2] | **2.7×** |
+| `fft 2D 256x256` | Fast Fourier Transform | 1,414 | [1,377, 1,468] | 454 | [448, 471] | **3.1×** |
+| `vForce sin 10,000` | Vector Transcendentals (vForce) | 26.6 | [26.3, 27.1] | 9.70 | [9.60, 10.7] | **2.7×** |
+| `vForce exp 10,000` | Vector Transcendentals (vForce) | 20.6 | [20.4, 21.4] | 11.4 | [11.4, 11.6] | **1.8×** |
+| `vForce log 10,000` | Vector Transcendentals (vForce) | 23.7 | [23.3, 24.1] | 11.8 | [11.7, 12.3] | **2.0×** |
+| `vForce sqrt 10,000` | Vector Transcendentals (vForce) | 6.10 | [6.05, 6.35] | 3.75 | [3.75, 3.80] | **1.6×** |
+| `vectorSum 100,000` | Vector Reductions (vDSP) | 58.4 | [58.3, 58.9] | 7.90 | [7.85, 8.10] | **7.4×** |
+| `vectorMean 100,000` | Vector Reductions (vDSP) | 58.5 | [58.1, 60.2] | 7.85 | [7.85, 7.90] | **7.5×** |
 
 ### 2. Symbolic Subsystem (`symbolic`)
 
@@ -74,14 +74,14 @@ Evaluates exact AST manipulation, canonical simplification, Taylor series expans
 
 | Benchmark | Category | Median (µs) | 95% CI (µs) | Min–Max (µs) |
 | --- | --- | ---: | ---: | ---: |
-| `expand((x+y+z+1)^12)` | Algebraic Expansion | 2,491 | [2,381, 2,646] | 2,166–3,424 |
-| `series(exp(sin(x)), x, 0, 20)` | Series & Calculus | 109 | [108, 110] | 103–141 |
-| `det 6x6 symbolic` | Symbolic Linear Algebra | 28,812 | [28,604, 28,893] | 28,225–29,702 |
-| `integrate corpus (45)` | Series & Calculus | 614 | [521, 723] | 476–1,218 |
-| `simplify corpus (80)` | Simplification | 96.0 | [94.2, 101] | 87.3–185 |
-| `factor(x^24 - 1)` | Polynomial Factorization | 19.5 | [18.7, 21.4] | 17.6–29.5 |
-| `solvePolynomialSystem katsura-2` | Gröbner Basis Systems | 1,267 | [1,173, 1,334] | 959–2,079 |
-| `solvePolynomialSystem katsura-3` | Gröbner Basis Systems | 5,598 | [4,271, 9,494] | 4,271–9,494 |
+| `expand((x+y+z+1)^12)` | Algebraic Expansion | 2,438 | [2,361, 2,510] | 2,163–3,249 |
+| `series(exp(sin(x)), x, 0, 20)` | Series & Calculus | 109 | [107, 110] | 101–141 |
+| `det 6x6 symbolic` | Symbolic Linear Algebra | 28,131 | [28,097, 28,303] | 27,318–29,131 |
+| `integrate corpus (45)` | Series & Calculus | 618 | [504, 735] | 474–1,149 |
+| `simplify corpus (80)` | Simplification | 96.7 | [95.4, 98.9] | 86.1–195 |
+| `factor(x^24 - 1)` | Polynomial Factorization | 19.5 | [19.0, 20.6] | 18.1–32.7 |
+| `solvePolynomialSystem katsura-2` | Gröbner Basis Systems | 1,219 | [1,176, 1,412] | 1,044–1,976 |
+| `solvePolynomialSystem katsura-3` | Gröbner Basis Systems | 7,041 | [4,707, 11,954] | 4,707–11,954 |
 
 #### Historical Comparison (Pre- vs Post-Refactoring)
 
@@ -89,14 +89,14 @@ Comparison against the original baseline captured before the numeric-tower and N
 
 | Benchmark | Baseline VM (µs) | Latest VM (µs) | 95% CI (µs) | VM Speedup |
 | --- | ---: | ---: | ---: | ---: |
-| `expand((x+y+z+1)^12)` | 6,679 | 2,491 | [2,381, 2,646] | **2.7×** |
-| `series(exp(sin(x)), x, 0, 20)` | 74 | 109 | [108, 110] | **0.7×** |
-| `det` 6×6 symbolic (`(r+1)^c + x^((r+c)%3)*y`) | 638,445 | 28,812 | [28,604, 28,893] | **22.2×** |
-| `integrate` corpus (45 integrands) | 194 | 614 | [521, 723] | **0.3×** |
-| `simplify` corpus (80 expressions) | 53 | 96.0 | [94.2, 101] | **0.6×** |
-| `factor(x^24 - 1)` | 32 | 19.5 | [18.7, 21.4] | **1.6×** |
-| `solvePolynomialSystem` Katsura-2 | 922 | 1,267 | [1,173, 1,334] | **0.7×** |
-| `solvePolynomialSystem` Katsura-3 | 3,860,962 | 5,598 | [4,271, 9,494] | **689.7×** |
+| `expand((x+y+z+1)^12)` | 6,679 | 2,438 | [2,361, 2,510] | **2.7×** |
+| `series(exp(sin(x)), x, 0, 20)` | 74 | 109 | [107, 110] | **0.7×** |
+| `det` 6×6 symbolic (`(r+1)^c + x^((r+c)%3)*y`) | 638,445 | 28,131 | [28,097, 28,303] | **22.7×** |
+| `integrate` corpus (45 integrands) | 194 | 618 | [504, 735] | **0.3×** |
+| `simplify` corpus (80 expressions) | 53 | 96.7 | [95.4, 98.9] | **0.5×** |
+| `factor(x^24 - 1)` | 32 | 19.5 | [19.0, 20.6] | **1.6×** |
+| `solvePolynomialSystem` Katsura-2 | 922 | 1,219 | [1,176, 1,412] | **0.8×** |
+| `solvePolynomialSystem` Katsura-3 | 3,860,962 | 7,041 | [4,707, 11,954] | **548.4×** |
 
 ---
 

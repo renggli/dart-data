@@ -12,43 +12,42 @@ abstract final class FftNative {
   /// Whether native FFT is available.
   static bool get isAvailable => _backend != _FftBackend.none;
 
-  /// Computes 1D in-place complex FFT on [buffer] with zero heap copying.
+  /// Computes 1D in-place complex FFT on [buffer] of size [length].
   static bool fft1d({
     required Float64ComplexList buffer,
-    required int log2n,
+    required int length,
     required bool inverse,
   }) => switch (_backend) {
     _FftBackend.vdsp => _fft1dVdsp(
       buffer: buffer,
-      log2n: log2n,
+      length: length,
       inverse: inverse,
     ),
     _FftBackend.fftw => _fft1dFftw(
       buffer: buffer,
-      log2n: log2n,
+      length: length,
       inverse: inverse,
     ),
     _FftBackend.none => false,
   };
 
-  /// Computes 2D in-place complex FFT on flat row-major [buffer] with zero
-  /// heap copying.
+  /// Computes 2D in-place complex FFT on flat row-major [buffer].
   static bool fft2d({
     required Float64ComplexList buffer,
-    required int log2rows,
-    required int log2cols,
+    required int rows,
+    required int cols,
     required bool inverse,
   }) => switch (_backend) {
     _FftBackend.vdsp => _fft2dVdsp(
       buffer: buffer,
-      log2rows: log2rows,
-      log2cols: log2cols,
+      rows: rows,
+      cols: cols,
       inverse: inverse,
     ),
     _FftBackend.fftw => _fft2dFftw(
       buffer: buffer,
-      log2rows: log2rows,
-      log2cols: log2cols,
+      rows: rows,
+      cols: cols,
       inverse: inverse,
     ),
     _FftBackend.none => false,
@@ -127,38 +126,40 @@ abstract final class FftNative {
 
   static bool _fft1dVdsp({
     required Float64ComplexList buffer,
-    required int log2n,
+    required int length,
     required bool inverse,
   }) {
-    final n = 1 << log2n;
-    if (buffer.length < n) return false;
-    if (n <= 1) return true;
+    if (length <= 1) return true;
+    if (buffer.length < length) return false;
 
     final data = buffer.data;
-    if (n == 2 || n == 4) {
-      _butterfly2or4(data, 0, n, inverse);
+    if (length == 2 || length == 4) {
+      _butterfly2or4(data, 0, length, inverse);
     } else {
-      final setup = _getVdspSetup(n, inverse);
+      final setup = _getVdspSetup(length, inverse);
       if (setup != null && setup != ffi.nullptr) {
         if (data.offsetInBytes % 16 == 0) {
           _vdspDftInterleavedExecuteD(setup, data.address, data.address);
         } else {
-          final totalFloats = 2 * n;
+          final totalFloats = 2 * length;
           final aligned = Float64List(totalFloats)
             ..setRange(0, totalFloats, data);
           _vdspDftInterleavedExecuteD(setup, aligned.address, aligned.address);
           data.setRange(0, totalFloats, aligned);
         }
       } else if (_hasFftw) {
-        return _fft1dFftw(buffer: buffer, log2n: log2n, inverse: inverse);
-      } else if (!_fft1dVdspFourStep(data, log2n, inverse)) {
+        return _fft1dFftw(buffer: buffer, length: length, inverse: inverse);
+      } else if ((length & (length - 1)) == 0 &&
+          _fft1dVdspFourStep(data, _log2(length), inverse)) {
+        // Handled by 4-step power-of-2 decomposition.
+      } else {
         return false;
       }
     }
 
     if (inverse) {
-      final factor = 1.0 / n;
-      final totalFloats = 2 * n;
+      final factor = 1.0 / length;
+      final totalFloats = 2 * length;
       for (var i = 0; i < totalFloats; i++) {
         data[i] *= factor;
       }
@@ -202,20 +203,16 @@ abstract final class FftNative {
       _vdspDftInterleavedExecuteD(setupRows, colBuf.address, colBuf.address);
 
       final delta = baseAngle * c;
-      final stepR = math.cos(delta);
-      final stepI = math.sin(delta);
-      var wr = 1.0;
-      var wi = 0.0;
       var dstIdx = c << 1;
       for (var r = 0; r < rows; r++) {
+        final angle = delta * r;
+        final wr = math.cos(angle);
+        final wi = math.sin(angle);
         final r2 = r << 1;
         final re = colBuf[r2];
         final im = colBuf[r2 + 1];
         work[dstIdx] = re * wr - im * wi;
         work[dstIdx + 1] = re * wi + im * wr;
-        final nextWr = wr * stepR - wi * stepI;
-        wi = wr * stepI + wi * stepR;
-        wr = nextWr;
         dstIdx += rowStride;
       }
     }
@@ -249,24 +246,33 @@ abstract final class FftNative {
 
   static bool _fft2dVdsp({
     required Float64ComplexList buffer,
-    required int log2rows,
-    required int log2cols,
+    required int rows,
+    required int cols,
     required bool inverse,
   }) {
-    final rows = 1 << log2rows;
-    final cols = 1 << log2cols;
+    if (rows <= 0 || cols <= 0) return true;
     final total = rows * cols;
     if (buffer.length < total) return false;
 
-    final setupCols = cols >= 8 ? _getVdspSetup(cols, inverse) : null;
-    final setupRows = rows >= 8 ? _getVdspSetup(rows, inverse) : null;
-    if ((cols >= 8 && (setupCols == null || setupCols == ffi.nullptr)) ||
-        (rows >= 8 && (setupRows == null || setupRows == ffi.nullptr))) {
+    final setupCols = (cols != 1 && cols != 2 && cols != 4)
+        ? _getVdspSetup(cols, inverse)
+        : null;
+    final setupRows = (rows != 1 && rows != 2 && rows != 4)
+        ? _getVdspSetup(rows, inverse)
+        : null;
+    if ((cols != 1 &&
+            cols != 2 &&
+            cols != 4 &&
+            (setupCols == null || setupCols == ffi.nullptr)) ||
+        (rows != 1 &&
+            rows != 2 &&
+            rows != 4 &&
+            (setupRows == null || setupRows == ffi.nullptr))) {
       if (_hasFftw) {
         return _fft2dFftw(
           buffer: buffer,
-          log2rows: log2rows,
-          log2cols: log2cols,
+          rows: rows,
+          cols: cols,
           inverse: inverse,
         );
       }
@@ -282,7 +288,7 @@ abstract final class FftNative {
       for (var r = 0; r < rows; r++, rowOffset += rowStride) {
         _butterfly2or4(data, rowOffset, cols, inverse);
       }
-    } else if (cols >= 8 && setupCols != null) {
+    } else if (setupCols != null) {
       if (data.offsetInBytes % 16 == 0) {
         var rowOffset = 0;
         for (var r = 0; r < rows; r++, rowOffset += rowStride) {
@@ -414,15 +420,14 @@ abstract final class FftNative {
 
   static bool _fft1dFftw({
     required Float64ComplexList buffer,
-    required int log2n,
+    required int length,
     required bool inverse,
   }) {
     if (!_hasFftw) return false;
-    final n = 1 << log2n;
-    if (buffer.length < n) return false;
-    if (n <= 1) return true;
+    if (buffer.length < length) return false;
+    if (length <= 1) return true;
 
-    final plan = _getFftw1dPlan(n, inverse);
+    final plan = _getFftw1dPlan(length, inverse);
     if (plan == null || plan == ffi.nullptr) {
       return false;
     }
@@ -431,8 +436,8 @@ abstract final class FftNative {
     _fftwExecuteDft(plan, data.address, data.address);
 
     if (inverse) {
-      final factor = 1.0 / n;
-      final totalFloats = 2 * n;
+      final factor = 1.0 / length;
+      final totalFloats = 2 * length;
       for (var i = 0; i < totalFloats; i++) {
         data[i] *= factor;
       }
@@ -442,13 +447,12 @@ abstract final class FftNative {
 
   static bool _fft2dFftw({
     required Float64ComplexList buffer,
-    required int log2rows,
-    required int log2cols,
+    required int rows,
+    required int cols,
     required bool inverse,
   }) {
     if (!_hasFftw) return false;
-    final rows = 1 << log2rows;
-    final cols = 1 << log2cols;
+    if (rows <= 0 || cols <= 0) return true;
     final total = rows * cols;
     if (buffer.length < total) return false;
     if (total <= 1) return true;
@@ -469,6 +473,16 @@ abstract final class FftNative {
       }
     }
     return true;
+  }
+
+  static int _log2(int value) {
+    var v = value;
+    var log = 0;
+    while (v > 1) {
+      v >>= 1;
+      log++;
+    }
+    return log;
   }
 
   static final List<ffi.DynamicLibrary> _libs = platformFftLibraries;

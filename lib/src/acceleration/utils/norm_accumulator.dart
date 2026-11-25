@@ -11,7 +11,16 @@ final class ScaledNormAccumulator {
   bool _hasNaN = false;
 
   /// Adds a non-negative magnitude [absVal] to the accumulator.
+  ///
+  /// Throws [ArgumentError] if [absVal] is negative.
   void addAbs(double absVal) {
+    if (absVal < 0.0) {
+      throw ArgumentError.value(
+        absVal,
+        'absVal',
+        'Magnitude must be non-negative',
+      );
+    }
     if (absVal == 0.0) return;
     if (absVal.isNaN) {
       _hasNaN = true;

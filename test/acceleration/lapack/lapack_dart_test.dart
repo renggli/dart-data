@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/src/acceleration/blas/cblas_constants.dart';
 import 'package:data/src/acceleration/lapack/lapack_dart.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('LapackDart Edge Cases', () {
@@ -447,6 +447,256 @@ void main() {
         check(u[i].isNaN).isFalse;
         check(vt[i].isNaN).isFalse;
       }
+    });
+
+    test('dgesvd avoids overflow and underflow on extreme singular values', () {
+      final huge = Float64List.fromList([1e200, 0.0, 0.0, 2e200]);
+      final sHuge = Float64List(2);
+      final uHuge = Float64List(4);
+      final vtHuge = Float64List(4);
+      check(
+        LapackDart.dgesvd(
+          jobu: 'A',
+          jobvt: 'A',
+          m: 2,
+          n: 2,
+          a: huge,
+          aOffset: 0,
+          lda: 2,
+          s: sHuge,
+          sOffset: 0,
+          u: uHuge,
+          vt: vtHuge,
+        ),
+      ).isTrue;
+      check(sHuge[0]).isCloseTo(2e200, 1e186);
+      check(sHuge[1]).isCloseTo(1e200, 1e186);
+
+      final tiny = Float64List.fromList([1e-200, 0.0, 0.0, 2e-200]);
+      final sTiny = Float64List(2);
+      final uTiny = Float64List(4);
+      final vtTiny = Float64List(4);
+      check(
+        LapackDart.dgesvd(
+          jobu: 'A',
+          jobvt: 'A',
+          m: 2,
+          n: 2,
+          a: tiny,
+          aOffset: 0,
+          lda: 2,
+          s: sTiny,
+          sOffset: 0,
+          u: uTiny,
+          vt: vtTiny,
+        ),
+      ).isTrue;
+      check(sTiny[0]).isCloseTo(2e-200, 1e-214);
+      check(sTiny[1]).isCloseTo(1e-200, 1e-214);
+    });
+
+    test(
+      'dpotrf rejects non-finite entries and ignores unreferenced triangle',
+      () {
+        check(
+          LapackDart.dpotrf(
+            uplo: cblasUpper,
+            n: 2,
+            a: Float64List.fromList([4.0, double.infinity, 2.0, 5.0]),
+            aOffset: 0,
+            lda: 2,
+          ),
+        ).isFalse;
+        check(
+          LapackDart.dpotrf(
+            uplo: cblasLower,
+            n: 2,
+            a: Float64List.fromList([4.0, 2.0, double.nan, 5.0]),
+            aOffset: 0,
+            lda: 2,
+          ),
+        ).isFalse;
+
+        // Unreferenced triangle contains NaN
+        final upper = Float64List.fromList([4.0, 2.0, double.nan, 5.0]);
+        check(
+          LapackDart.dpotrf(
+            uplo: cblasUpper,
+            n: 2,
+            a: upper,
+            aOffset: 0,
+            lda: 2,
+          ),
+        ).isTrue;
+        check(upper[0]).isCloseTo(2.0, 1e-10);
+        check(upper[1]).isCloseTo(1.0, 1e-10);
+        check(upper[3]).isCloseTo(2.0, 1e-10);
+      },
+    );
+
+    test(
+      'dgels handles tiny well-conditioned matrices and rank deficiency',
+      () {
+        final tinyA = Float64List.fromList([1e-15, 0.0, 0.0, 1e-15]);
+        final tinyB = Float64List.fromList([1e-15, 2e-15]);
+        check(
+          LapackDart.dgels(
+            m: 2,
+            n: 2,
+            nrhs: 1,
+            a: tinyA,
+            aOffset: 0,
+            lda: 2,
+            b: tinyB,
+            bOffset: 0,
+            ldb: 1,
+          ),
+        ).isTrue;
+        check(tinyB[0]).isCloseTo(1.0, 1e-10);
+        check(tinyB[1]).isCloseTo(2.0, 1e-10);
+
+        final zeroA = Float64List(4);
+        final zeroB = Float64List.fromList([1.0, 2.0]);
+        check(
+          LapackDart.dgels(
+            m: 2,
+            n: 2,
+            nrhs: 1,
+            a: zeroA,
+            aOffset: 0,
+            lda: 2,
+            b: zeroB,
+            bOffset: 0,
+            ldb: 1,
+          ),
+        ).isFalse;
+      },
+    );
+
+    test('dsyev and ssyev support jobz N, lower triangle, sorting, zero, and scaling', () {
+      // Unreferenced triangle contains NaN for both cblasUpper and cblasLower
+      final upperMat = Float64List.fromList([
+        5.0, 0.0, 0.0, //
+        double.nan, 1.0, 0.0,
+        double.nan, double.nan, 3.0,
+      ]);
+      final wUpper = Float64List(3);
+      check(
+        LapackDart.dsyev(
+          jobz: 'N',
+          uplo: cblasUpper,
+          n: 3,
+          a: upperMat,
+          aOffset: 0,
+          lda: 3,
+          w: wUpper,
+          wOffset: 0,
+        ),
+      ).isTrue;
+      check(wUpper[0]).isCloseTo(1.0, 1e-10);
+      check(wUpper[1]).isCloseTo(3.0, 1e-10);
+      check(wUpper[2]).isCloseTo(5.0, 1e-10);
+
+      final lowerMat = Float32List.fromList([
+        2.0, double.nan, //
+        1.0, 2.0,
+      ]);
+      final wLower = Float32List(2);
+      check(
+        LapackDart.ssyev(
+          jobz: 'V',
+          uplo: cblasLower,
+          n: 2,
+          a: lowerMat,
+          aOffset: 0,
+          lda: 2,
+          w: wLower,
+          wOffset: 0,
+        ),
+      ).isTrue;
+      check(wLower[0]).isCloseTo(1.0, 1e-5);
+      check(wLower[1]).isCloseTo(3.0, 1e-5);
+
+      // Zero matrix and extreme scaling
+      final zeroSym = Float64List(4);
+      final wZero = Float64List(2);
+      check(
+        LapackDart.dsyev(
+          jobz: 'V',
+          uplo: cblasUpper,
+          n: 2,
+          a: zeroSym,
+          aOffset: 0,
+          lda: 2,
+          w: wZero,
+          wOffset: 0,
+        ),
+      ).isTrue;
+      check(wZero).deepEquals([0.0, 0.0]);
+      check(zeroSym).deepEquals([1.0, 0.0, 0.0, 1.0]);
+
+      final hugeSym = Float64List.fromList([1e200, 1e200, 1e200, 1e200]);
+      final wHuge = Float64List(2);
+      check(
+        LapackDart.dsyev(
+          jobz: 'V',
+          uplo: cblasUpper,
+          n: 2,
+          a: hugeSym,
+          aOffset: 0,
+          lda: 2,
+          w: wHuge,
+          wOffset: 0,
+        ),
+      ).isTrue;
+      check(wHuge[0]).isCloseTo(0.0, 1e186);
+      check(wHuge[1]).isCloseTo(2e200, 1e186);
+
+      // jobz == 'V' with out-of-order diagonal exercises eigenvector column swaps
+      final unsortedSym = Float64List.fromList([
+        5.0, 0.0, 0.0, //
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 3.0,
+      ]);
+      final wUnsorted = Float64List(3);
+      check(
+        LapackDart.dsyev(
+          jobz: 'V',
+          uplo: cblasUpper,
+          n: 3,
+          a: unsortedSym,
+          aOffset: 0,
+          lda: 3,
+          w: wUnsorted,
+          wOffset: 0,
+        ),
+      ).isTrue;
+      check(wUnsorted).deepEquals([1.0, 3.0, 5.0]);
+
+      // Rank-deficient column-zero matrix in dgesvd exercises kase==2 & zero column U fill
+      final zeroColSvd = Float64List.fromList([0.0, 3.0, 0.0, 4.0]);
+      final sZeroCol = Float64List(2);
+      final uZeroCol = Float64List(4);
+      final vtZeroCol = Float64List(4);
+      check(
+        LapackDart.dgesvd(
+          jobu: 'A',
+          jobvt: 'A',
+          m: 2,
+          n: 2,
+          a: zeroColSvd,
+          aOffset: 0,
+          lda: 2,
+          s: sZeroCol,
+          sOffset: 0,
+          u: uZeroCol,
+          ldu: 2,
+          vt: vtZeroCol,
+          ldvt: 2,
+        ),
+      ).isTrue;
+      check(sZeroCol[0]).isCloseTo(5.0, 1e-10);
+      check(sZeroCol[1]).isCloseTo(0.0, 1e-10);
     });
   });
 }

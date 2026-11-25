@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/src/acceleration/fft/fft_dart.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('FftDart 1D', () {
@@ -52,6 +52,10 @@ void main() {
           .throws<ArgumentError>();
       check(() => FftDart.fft2(buffer: b8, rows: 4, cols: 4, inverse: false))
           .throws<ArgumentError>();
+      check(() => FftDart.fft2(buffer: b8, rows: -2, cols: 4, inverse: false))
+          .throws<ArgumentError>();
+      check(() => FftDart.fft2(buffer: b8, rows: 2, cols: -4, inverse: false))
+          .throws<ArgumentError>();
     });
 
     test('fft2 on arbitrary dimensions computes 2D DFT and inverts', () {
@@ -68,6 +72,37 @@ void main() {
         check(b6[i].a).isCloseTo(orig[2 * i], 1e-10);
         check(b6[i].b).isCloseTo(orig[2 * i + 1], 1e-10);
       }
+    });
+
+    test('fft2 validates rows=0 length mismatch and allows empty matrix', () {
+      final empty = Float64ComplexList(0);
+      FftDart.fft2(buffer: empty, rows: 0, cols: 3, inverse: false);
+      check(empty.length).equals(0);
+
+      final nonEmpty = Float64ComplexList(2);
+      check(
+        () => FftDart.fft2(buffer: nonEmpty, rows: 0, cols: 3, inverse: false),
+      ).throws<ArgumentError>();
+      check(
+        () => FftDart.fft2(buffer: nonEmpty, rows: 3, cols: 0, inverse: false),
+      ).throws<ArgumentError>();
+    });
+
+    test('nextPowerOf2 handles bounds, powers, and overflow', () {
+      check(FftDart.nextPowerOf2(value: -5)).equals(1);
+      check(FftDart.nextPowerOf2(value: 0)).equals(1);
+      check(FftDart.nextPowerOf2(value: 1)).equals(1);
+      check(FftDart.nextPowerOf2(value: 2)).equals(2);
+      check(FftDart.nextPowerOf2(value: 3)).equals(4);
+      check(FftDart.nextPowerOf2(value: 5)).equals(8);
+      check(FftDart.nextPowerOf2(value: 0x40000000)).equals(0x40000000);
+      check(FftDart.nextPowerOf2(value: 0x40000001)).equals(0x80000000);
+
+      final overflowInput = identical(1, 1.0)
+          ? 0x80000001
+          : int.parse('4000000000000001', radix: 16);
+      check(() => FftDart.nextPowerOf2(value: overflowInput))
+          .throws<RangeError>();
     });
   });
 }

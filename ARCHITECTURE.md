@@ -321,37 +321,38 @@ This document describes the achieved architecture across all subsystems of `pack
   - `lib/src/acceleration/lapack/`: Linear system solvers and matrix decompositions in `Lapack`.
   - `lib/src/acceleration/fft/`: In-place 1D and 2D complex Fast Fourier Transforms on interleaved complex `Float64ComplexList` buffers in `Fft`.
   - `lib/src/acceleration/vforce/`: Vectorized transcendental functions, reductions, and 1D convolutions in `Vforce`.
-  - `lib/src/acceleration/utils/`: Shared dynamic library resolution and platform symbol probing (`library_loader_ffi.dart`).
-- **Acceleration Coordination**: `AccelerationManager` serves as a lightweight coordinator controlling execution `mode` (`AccelerationMode.auto`, `AccelerationMode.accelerated`, `AccelerationMode.dart`) and reporting active hardware acceleration status (`isAccelerated`). Each domain module exposes its own `isAvailable` boolean flag.
+  - `lib/src/acceleration/utils/`: Shared dynamic library resolution and platform symbol probing (`library_loader_ffi.dart`), dispatch helpers (`dispatcher.dart`), and Blue/LAPACK scaled norm accumulation (`norm_accumulator.dart`).
+- **Acceleration Coordination**: `AccelerationManager` serves as an `abstract final` coordinator controlling execution `mode` (`AccelerationMode.auto`, `AccelerationMode.accelerated`, `AccelerationMode.dart`) and reporting active hardware acceleration status (`isAccelerated`). Errors use the sealed hierarchy `AccelerationError` (`AccelerationUnavailableError`, `AccelerationFailedError`). Each domain module exposes its own `isAvailable` boolean flag.
 
 ### 5.2 Dynamic Library Discovery & Platform Detection
 
-- **Reasoning**: High-performance linear algebra transparently leverages hardware-tuned BLAS, LAPACK, and Apple vDSP vendor libraries available on the host OS.
+- **Reasoning**: High-performance linear algebra transparently leverages hardware-tuned BLAS, LAPACK, FFTW3, and Apple Accelerate vendor libraries available on the host OS.
 - **Implementation & Constraints**:
-  - `loadPlatformLibraries()` in `lib/src/acceleration/utils/library_loader_ffi.dart` dynamically queries system libraries:
-    - macOS: Apple Accelerate framework (`Accelerate.framework/Accelerate`).
-    - Linux: `libopenblas.so`, `libblas.so`, `liblapack.so`.
-    - Windows: `openblas.dll`.
-  - `hasSymbol(symbol, libraries)` tests symbol export availability across candidate libraries using `DynamicLibrary.process().providesSymbol(...)` or loaded handles.
+  - `platformBlasLibraries`, `platformVdspLibraries`, and `platformFftLibraries` in `lib/src/acceleration/utils/library_loader_ffi.dart` dynamically query system libraries using a shared `_openLibraries` loader with platform-accurate POSIX flags (`RTLD_LAZY | RTLD_GLOBAL`: `0x1 | 0x8` on Darwin, `0x1 | 0x100` on Linux/Android):
+    - macOS/iOS: Apple Accelerate framework (`Accelerate.framework/Accelerate`), `libBLAS.dylib`, `liblapack.dylib`, `libfftw3.dylib`.
+    - Linux/Android: `libopenblas.so.0`, `libopenblas.so`, `liblapacke.so.3`, `liblapacke.so`, `libblas.so.3`, `liblapack.so.3`, `libfftw3.so.3`, `libfftw3.so`.
+    - Windows: `openblas.dll`, `libopenblas.dll`, `liblapacke.dll`, `lapack.dll`, `libfftw3-3.dll`, `fftw3.dll`.
+  - `hasSymbol(symbol, libraries)` tests symbol export availability across loaded handles via `providesSymbol(symbol)`.
   - Platforms without FFI support conditionally compile against stubs (`*_stub.dart`) with zero runtime overhead or code bloat.
 
 ### 5.3 Unified BLAS Subsystem (`lib/src/acceleration/blas/`)
 
 - **Reasoning**: Unifies vector-vector, matrix-vector, and matrix-matrix routines under a single, coherent `Blas` interface, replacing fragmented level-specific classes.
 - **Routines**:
-  - Level 1: `ddot`, `sdot` (dot products), `dnrm2`, `snrm2` (Euclidean norms), `daxpy`, `saxpy` ($y \leftarrow \alpha x + y$), `dscal`, `sscal` (vector scaling).
-  - Level 2: `dgemv`, `sgemv` (matrix-vector multiplication), `dsyr2`, `ssyr2` (symmetric rank-2 update), `dtrmv`, `strmv` (triangular matrix-vector multiplication).
-  - Level 3: `dgemm`, `sgemm` (general matrix multiplication), `dsyrk`, `ssyrk` (symmetric rank-$k$ update with automatic upper/lower triangle mirroring), `dsymm`, `ssymm` (symmetric matrix multiplication), `dtrmm`, `strmm` (triangular matrix multiplication).
-- **Pure Dart Fallback (`BlasDart`)**: Provides high-efficiency pure Dart implementations with cache-blocked tiled GEMM ($32 \times 32$ block tiles fitting within L1 data caches) and $4\times$ loop unrolling, supporting all transposition combinations (`cblasNoTrans`, `cblasTrans`) and accumulation scalings ($\alpha$, $\beta$).
+  - Level 1: `ddot`, `sdot` (dot products), `dnrm2`, `snrm2` (Euclidean norms via `ScaledNormAccumulator`), `daxpy`, `saxpy` ($y \leftarrow \alpha x + y$), `dscal`, `sscal` (vector scaling).
+  - Level 2: `dgemv`, `sgemv` (matrix-vector multiplication), `dsyr2`, `ssyr2` (symmetric rank-2 update with automatic upper/lower triangle mirroring), `dtrmv`, `strmv` (in-place triangular matrix-vector multiplication), `dtrsv`, `strsv` (in-place triangular linear solves).
+  - Level 3: `dgemm`, `sgemm` (general matrix multiplication), `dsyrk`, `ssyrk` (symmetric rank-$k$ update with automatic upper/lower triangle mirroring), `dsymm`, `ssymm` (symmetric matrix multiplication), `dtrmm`, `strmm` (in-place triangular matrix multiplication), `dtrsm`, `strsm` (in-place triangular matrix solves).
+- **Pure Dart Fallback (`BlasDart`)**: Provides high-efficiency pure Dart implementations with cache-blocked tiled GEMM ($32 \times 32$ block tiles fitting within L1 data caches) and $4\times$ loop unrolling across all four transposition combinations (`cblasNoTrans`, `cblasTrans`, `cblasConjTrans`) and accumulation scalings ($\alpha$, $\beta$), zero-allocation dependency-ordered in-place triangular multiplies (`dtrmv`, `strmv`, `dtrmm`, `strmm`) and solves (`dtrsv`, `strsv`, `dtrsm`, `strsm`), and triangle-strict symmetric indexing in `dsymm`/`ssymm`.
 
 ### 5.4 LAPACK Solvers & Factorizations (`lib/src/acceleration/lapack/`)
 
 - **Reasoning**: Production scientific systems rely on LAPACK for numerically stable factorizations and solves.
 - **Routines**:
-  - `dgesv`: General linear system solver $A X = B$ with partial pivoting. Multi-RHS matrices ($N \times \text{nrhs}$) and strided RHS matrices transparently gather to column-major layout for Fortran LAPACK routines (`dgetrf`/`dgetrs` or `dgesv_`) and scatter back to row-major format, with a zero-copy fast path for contiguous single RHS ($nrhs = 1, ldb = 1$).
-  - `dpotrf`: Cholesky factorization of symmetric positive-definite matrices.
-  - `dgels`: Linear least-squares solver $\min \|A X - B\|_2$ via QR/LQ factorizations.
-  - `dsyev`, `ssyev`: Real symmetric eigenvalue solvers computing eigenvalues in ascending order and orthonormal eigenvectors. Transparently dispatched by `EigenvalueDecomposition` when matrices are symmetric with `DataType.float64` under active hardware acceleration, seamlessly falling back to pure Dart Householder tridiagonal reduction (`_tred2`) and implicit QL iteration (`_tql2`).
+  - `dgesv`: General linear system solver $A X = B$ with partial pivoting. Multi-RHS matrices ($N \times \text{nrhs}$) and strided RHS matrices transparently gather to column-major layout for Fortran LAPACK routines (`dgesv_`) or compacted LAPACKE buffers and scatter back to row-major format, with a zero-copy fast path for contiguous single RHS ($nrhs = 1, ldb = 1$).
+  - `dpotrf`: Cholesky factorization of symmetric positive-definite matrices, reading only the referenced triangle and validating finiteness before overwriting.
+  - `dgels`: Linear least-squares solver $\min \|A X - B\|_2$ via QR (overdetermined) and LQ (underdetermined) factorizations using scale-invariant relative rank tolerances (`10 * max(m, n) * eps * maxDiag`).
+  - `dsyev`, `ssyev`: Real symmetric eigenvalue solvers computing eigenvalues in ascending order and optional orthonormal eigenvectors (`jobz: 'V'` or `'N'`). Pure Dart fallbacks equilibrate by $\max|A|$ to prevent overflow/underflow, skip eigenvector updates when `jobz == 'N'`, and read only the referenced `uplo` triangle (matching Fortran paths).
+  - `dgesvd`: Singular Value Decomposition $A = U \Sigma V^T$ without mutating input `A`, using Golub-Reinsch bidiagonalization equilibrated by $\max|A|$ with `ScaledNormAccumulator` column/row norms in pure Dart and native LAPACKE/Fortran bindings when available.
 
 ### 5.5 Fast Fourier Transform Subsystem (`lib/src/acceleration/fft/`)
 
@@ -359,23 +360,23 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - `Float64ComplexList`: Dedicated interleaved complex typed data list implementing `TypedDataList<Complex>` backed by a single contiguous interleaved `Float64List data` storage array `[re0, im0, re1, im1, ...]`.
   - In-Place Execution: `Fft.fft` and `Fft.fft2` operate directly in-place on `Float64ComplexList` buffers without copying or intermediate allocations, accepting a boolean `inverse` flag (no redundant wrapper functions like `ifft`/`ifft2`).
-  - Cross-Platform Native Acceleration (`FftNative`): Binds directly to Apple Accelerate's interleaved double-precision DFT routines (`vDSP_DFT_Interleaved_CreateSetupD`, `vDSP_DFT_Interleaved_ExecuteD`) on macOS/iOS, and to FFTW3 (`fftw_plan_dft_1d`, `fftw_plan_dft_2d`, `fftw_execute_dft`) on Linux, Android, and Windows.
-  - Pure Dart Fallback (`FftDart`): Cooley-Tukey decimation-in-time radix-2 in-place 1D and separable 2D Fourier transforms operating directly on interleaved float buffers.
+  - Cross-Platform Native Acceleration (`FftNative`): Binds directly to Apple Accelerate's interleaved double-precision DFT routines (`vDSP_DFT_Interleaved_CreateSetupD`, `vDSP_DFT_Interleaved_ExecuteD`) for supported sizes $f \cdot 2^p$ ($f \in \{1, 3, 5, 15\}$) plus four-step power-of-2 fallback on macOS/iOS, and directly to FFTW3 (`fftw_plan_dft_1d`, `fftw_plan_dft_2d`, `fftw_execute_dft`) for arbitrary 1D/2D sizes on Linux, Android, and Windows, delegating unsupported lengths to Bluestein's algorithm (`FftDart.bluestein`) and separable row/column passes (`FftDart.fft2Separable`).
+  - Pure Dart Fallback (`FftDart`): Cooley-Tukey decimation-in-time radix-2 in-place 1D and separable 2D Fourier transforms using precomputed exact trigonometric twiddle tables without phase drift, Bluestein's chirp-Z algorithm for arbitrary sizes, and 32/64-bit safe `nextPowerOf2`.
 
 ### 5.6 Vectorized Functions & Signal Processing (`lib/src/acceleration/vforce/`)
 
 - **Reasoning**: Bulk element-wise math and reductions benefit dramatically from vectorized hardware pipelines.
 - **Routines**:
-  - Element-wise Transcendental Math: `vsin`, `vcos`, `vexp`, `vlog`, `vsqrt`, `vpow` operating directly across input/output `Float64List` buffers.
-  - Vector Reductions: `sum`, `mean`, `variance` (sample and population) operating in-place with native Apple vDSP vector reductions (`vDSP_sveD`, `vDSP_meanvD`).
-  - 1D Signal Processing: `convolve` (linear convolution) and `correlate` (cross-correlation).
+  - Element-wise Transcendental Math: `vsin`, `vcos`, `vexp`, `vlog`, `vsqrt`, `vpow` operating directly across input/output `Float64List` buffers, supporting zero-copy same-address in-place execution while automatically guarding shifted overlapping views via `hasOverlap` and `sameStartAddress`.
+  - Vector Reductions: `sum`, `mean`, `variance` (sample and population) operating with native Apple vDSP vector reductions (`vDSP_sveD`, `vDSP_meanvD`, `vDSP_vsaddD`, `vDSP_svesqD`) and overflow-safe Welford/scaled fallbacks when all-finite sums overflow IEEE-754 bounds.
+  - 1D Signal Processing: `convolve` (linear convolution) and `correlate` (cross-correlation) with exact range-based overlap guards.
 
 ### 5.7 Zero-Copy Direct Memory Address & Leaf Calls
 
 - **Reasoning**: Passing memory directly between Dart and native code avoids expensive off-heap memory management and copies.
 - **Implementation & Constraints**:
   - Direct Typed Data Addresses: Hardware acceleration routines bind to native symbols via `@ffi.Native(isLeaf: true)` external declarations.
-  - Zero-Copy Addresses: Standard `Float64List` and `Float32List` buffers pass directly to native routines via `.address` (or `Float64List.sublistView(list, offset).address` for offset slices).
+  - Zero-Copy Addresses: Standard `Float64List` and `Float32List` buffers pass directly to native routines via `.address` (or `Float64List.sublistView(list, offset).address` for offset slices), with static per-isolate 1-element typed-data scratch buffers avoiding per-call FFI heap allocations in `VforceNative`.
   - Leaf Calls: Native functions are marked `isLeaf: true`, allowing the Dart runtime to pin typed data memory during the call without garbage collector interference.
   - Strict Parameter Contracts: Internal native and fallback methods enforce strictly named, non-null, `required` parameters with zero optionals, guaranteeing unambiguous call signatures.
 

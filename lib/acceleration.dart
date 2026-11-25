@@ -17,23 +17,22 @@
 /// ## Core Components
 ///
 /// - [Blas]: Basic Linear Algebra Subprograms covering vector-vector (Level 1),
-///   matrix-vector (Level 2), and general matrix-matrix multiplication (Level 3).
-/// - [Lapack]: Linear system solvers, matrix factorizations (Cholesky, LU, QR),
-///   and eigenvalue/eigenvector decompositions.
+///   matrix-vector (Level 2: GEMV, SYR2, TRMV, TRSV), and matrix-matrix
+///   (Level 3: GEMM, SYRK, SYMM, TRMM, TRSM) routines.
+/// - [Lapack]: Linear system solvers (`dgesv`, `dgels`), Cholesky
+///   factorization (`dpotrf`), symmetric eigensolvers (`dsyev`, `ssyev`), and
+///   singular value decomposition (`dgesvd`).
 /// - [Fft]: In-place 1D and 2D complex Fourier transforms on [Float64ComplexList].
-/// - [Vforce]: Elementwise transcendental functions (sin, cos, exp, log, sqrt, pow),
-///   vector reductions (sum, mean, variance), and 1D signal convolutions.
+/// - [Vforce]: Elementwise transcendental functions (`vsin`, `vcos`, `vexp`,
+///   `vlog`, `vsqrt`, `vpow`), vector reductions (`sum`, `mean`, `variance`),
+///   and 1D convolution/correlation (`convolve`, `correlate`).
 /// - [AccelerationManager]: Subsystem coordinator controlling [AccelerationMode]
 ///   and querying hardware acceleration availability flags.
 /// - [Float64ComplexList]: Contiguous typed complex list backing zero-allocation
-///   interleaved/split complex Fourier transforms.
-/// - [AccelerationError]: Base class for exceptions thrown when accelerated
-///   execution fails or is unavailable.
-/// - [AccelerationUnavailableError]: Dedicated exception thrown when hardware
-///   acceleration is requested in [AccelerationMode.accelerated] but is
-///   unavailable.
-/// - [AccelerationFailedError]: Dedicated exception thrown when native hardware
-///   execution fails.
+///   interleaved complex Fourier transforms.
+/// - [AccelerationError]: Sealed base class for errors thrown when accelerated
+///   execution fails or is unavailable ([AccelerationUnavailableError],
+///   [AccelerationFailedError]).
 ///
 /// ## Example
 ///

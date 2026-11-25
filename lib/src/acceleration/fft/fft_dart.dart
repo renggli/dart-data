@@ -6,7 +6,7 @@ import '../../type/types/complex.dart';
 /// Pure Dart reference implementation of Fast Fourier Transforms.
 abstract final class FftDart {
   /// Computes the 1D discrete Fourier transform in-place on [buffer].
-  static void fft({required Float64ComplexList buffer, required bool inverse}) {
+  static void fft({required Float64ComplexList buffer, bool inverse = false}) {
     final length = buffer.length;
     if (length <= 1) return;
     if ((length & (length - 1)) == 0) {
@@ -17,8 +17,7 @@ abstract final class FftDart {
   }
 
   /// Computes the discrete Fourier transform of an arbitrary-length [buffer]
-  /// using Bluestein's chirp Z-transform algorithm in $\mathcal{O}(N \log N)$
-  /// time.
+  /// using Bluestein's chirp Z-transform algorithm in `O(N log N)` time.
   static void bluestein({
     required Float64ComplexList buffer,
     required bool inverse,
@@ -109,8 +108,11 @@ abstract final class FftDart {
     required int length,
     required bool inverse,
     int offset = 0,
+    Float64List? twiddle,
   }) {
-    // Bit-reversal permutation on interleaved buffer
+    if (length <= 1) return;
+
+    // Bit-reversal permutation on interleaved buffer.
     for (var i = 1, j = 0; i < length; i++) {
       var bit = length >> 1;
       for (; j & bit != 0; bit >>= 1) {
@@ -129,19 +131,21 @@ abstract final class FftDart {
       }
     }
 
-    // Cooley-Tukey decimation-in-time radix-2 FFT
+    final table = twiddle ?? _buildTwiddleTable(length, inverse);
+
+    // Cooley-Tukey decimation-in-time radix-2 FFT using exact twiddle table.
     for (var len = 2; len <= length; len <<= 1) {
       final halfLen = len >> 1;
       final step = halfLen << 1;
-      final angle = (inverse ? 2.0 : -2.0) * math.pi / len;
-      final wStepR = math.cos(angle);
-      final wStepI = math.sin(angle);
+      final twStride = length ~/ len;
       for (var i = 0; i < length; i += len) {
-        var omegaR = 1.0;
-        var omegaI = 0.0;
         var uIdx = offset + (i << 1);
         var vIdx = uIdx + step;
         for (var j = 0; j < halfLen; j++) {
+          final twIdx = (j * twStride) << 1;
+          final omegaR = table[twIdx];
+          final omegaI = table[twIdx + 1];
+
           final uR = data[uIdx];
           final uI = data[uIdx + 1];
           final vR = data[vIdx];
@@ -154,11 +158,6 @@ abstract final class FftDart {
           data[uIdx + 1] = uI + vProdI;
           data[vIdx] = uR - vProdR;
           data[vIdx + 1] = uI - vProdI;
-
-          final nextOmegaR = omegaR * wStepR - omegaI * wStepI;
-          final nextOmegaI = omegaR * wStepI + omegaI * wStepR;
-          omegaR = nextOmegaR;
-          omegaI = nextOmegaI;
 
           uIdx += 2;
           vIdx += 2;
@@ -183,7 +182,12 @@ abstract final class FftDart {
     required int cols,
     required bool inverse,
   }) {
-    if (rows <= 0 || cols <= 0) return;
+    if (rows < 0) {
+      throw ArgumentError.value(rows, 'rows', 'Rows must be non-negative');
+    }
+    if (cols < 0) {
+      throw ArgumentError.value(cols, 'cols', 'Cols must be non-negative');
+    }
     if (buffer.length != rows * cols) {
       throw ArgumentError.value(
         buffer.length,
@@ -191,6 +195,7 @@ abstract final class FftDart {
         'Buffer length must equal rows * cols ($rows * $cols = ${rows * cols})',
       );
     }
+    if (rows == 0 || cols == 0) return;
     if ((rows & (rows - 1)) == 0 && (cols & (cols - 1)) == 0) {
       fft2Interleaved(
         data: buffer.data,
@@ -201,24 +206,36 @@ abstract final class FftDart {
       return;
     }
 
+    fft2Separable(
+      buffer: buffer,
+      rows: rows,
+      cols: cols,
+      inverse: inverse,
+      innerFft: fft,
+    );
+  }
+
+  /// Computes a separable 2D DFT by transforming rows and columns via [innerFft].
+  static void fft2Separable({
+    required Float64ComplexList buffer,
+    required int rows,
+    required int cols,
+    required bool inverse,
+    required void Function({required Float64ComplexList buffer, bool inverse})
+    innerFft,
+  }) {
     final data = buffer.data;
     final rowStride = cols << 1;
 
-    // 1. Row transforms
     final rowBuf = Float64ComplexList(cols);
     final rowData = rowBuf.data;
     for (var r = 0; r < rows; r++) {
       final rowOffset = r * rowStride;
-      for (var c = 0; c < rowStride; c++) {
-        rowData[c] = data[rowOffset + c];
-      }
-      fft(buffer: rowBuf, inverse: inverse);
-      for (var c = 0; c < rowStride; c++) {
-        data[rowOffset + c] = rowData[c];
-      }
+      rowData.setRange(0, rowStride, data, rowOffset);
+      innerFft(buffer: rowBuf, inverse: inverse);
+      data.setRange(rowOffset, rowOffset + rowStride, rowData);
     }
 
-    // 2. Column transforms
     final colBuf = Float64ComplexList(rows);
     final colData = colBuf.data;
     for (var c = 0; c < cols; c++) {
@@ -230,7 +247,7 @@ abstract final class FftDart {
         colIdx += 2;
         srcIdx += rowStride;
       }
-      fft(buffer: colBuf, inverse: inverse);
+      innerFft(buffer: colBuf, inverse: inverse);
       var dstIdx = c << 1;
       colIdx = 0;
       for (var r = 0; r < rows; r++) {
@@ -251,8 +268,9 @@ abstract final class FftDart {
     required bool inverse,
   }) {
     final rowStride = cols << 1;
+    final rowTwiddle = cols > 1 ? _buildTwiddleTable(cols, inverse) : null;
+    final colTwiddle = rows > 1 ? _buildTwiddleTable(rows, inverse) : null;
 
-    // 1. In-place 1D row transforms directly on contiguous interleaved data
     var rowOffset = 0;
     for (var r = 0; r < rows; r++, rowOffset += rowStride) {
       fftInterleaved(
@@ -260,10 +278,10 @@ abstract final class FftDart {
         length: cols,
         inverse: inverse,
         offset: rowOffset,
+        twiddle: rowTwiddle,
       );
     }
 
-    // 2. In-place 1D column transforms with pointer stepping
     final colBuffer = Float64List(rows << 1);
     for (var c = 0; c < cols; c++) {
       var srcIdx = c << 1;
@@ -274,7 +292,12 @@ abstract final class FftDart {
         colIdx += 2;
         srcIdx += rowStride;
       }
-      fftInterleaved(data: colBuffer, length: rows, inverse: inverse);
+      fftInterleaved(
+        data: colBuffer,
+        length: rows,
+        inverse: inverse,
+        twiddle: colTwiddle,
+      );
       var dstIdx = c << 1;
       colIdx = 0;
       for (var r = 0; r < rows; r++) {
@@ -286,16 +309,41 @@ abstract final class FftDart {
     }
   }
 
-  /// Computes next power of 2 for [value].
+  /// Computes next power of 2 >= [value].
   static int nextPowerOf2({required int value}) {
     if (value <= 1) return 1;
+    if (value > 0x40000000) {
+      var power = 1 << 30;
+      while (power > 0 && power < value) {
+        power <<= 1;
+      }
+      if (power <= 0) {
+        throw RangeError.value(
+          value,
+          'value',
+          'Next power of 2 overflows signed integer range',
+        );
+      }
+      return power;
+    }
     var power = value - 1;
     power |= power >> 1;
     power |= power >> 2;
     power |= power >> 4;
     power |= power >> 8;
     power |= power >> 16;
-    power |= power >> 32;
     return power + 1;
+  }
+
+  static Float64List _buildTwiddleTable(int length, bool inverse) {
+    final halfLen = length >> 1;
+    final table = Float64List(length);
+    final angle = (inverse ? 2.0 : -2.0) * math.pi / length;
+    for (var k = 0; k < halfLen; k++) {
+      final theta = k * angle;
+      table[k << 1] = math.cos(theta);
+      table[(k << 1) + 1] = math.sin(theta);
+    }
+    return table;
   }
 }

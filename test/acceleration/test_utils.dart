@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:meta/meta.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 /// Runs [body] under different [AccelerationMode] settings in separate tests
 /// within a group named [description].

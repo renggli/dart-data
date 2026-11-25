@@ -29,116 +29,83 @@ bool hasSymbol(String symbolName, List<ffi.DynamicLibrary> libraries) {
   return false;
 }
 
-List<ffi.DynamicLibrary> _loadBlasLibraries() {
+List<ffi.DynamicLibrary> _openLibraries(List<String> names) {
   final libs = <ffi.DynamicLibrary>[];
-  void tryOpen(String name) {
+  final rtldFlags = (Platform.isMacOS || Platform.isIOS)
+      ? (0x1 | 0x8) // RTLD_LAZY | RTLD_GLOBAL on Darwin
+      : (0x1 | 0x100); // RTLD_LAZY | RTLD_GLOBAL on Linux/Android
+  for (final name in names) {
     try {
       libs.add(ffi.DynamicLibrary.open(name));
       if (!Platform.isWindows) {
         using((arena) {
           final str = name.toNativeUtf8(allocator: arena);
-          _posixDlopen(str.cast(), 1 | 0x100);
+          _posixDlopen(str.cast(), rtldFlags);
         });
       }
     } catch (_) {
       // Dynamic library probing: ignore missing candidate libraries.
     }
   }
+  return libs;
+}
 
-  // Dynamic library candidate probing: catch failed opens across search paths.
+List<ffi.DynamicLibrary> _loadBlasLibraries() {
   try {
     if (Platform.isMacOS || Platform.isIOS) {
-      for (final name in [
+      return _openLibraries(const [
         '/System/Library/Frameworks/Accelerate.framework/Accelerate',
         'libBLAS.dylib',
         'liblapack.dylib',
-      ]) {
-        tryOpen(name);
-      }
+      ]);
     } else if (Platform.isLinux || Platform.isAndroid) {
-      for (final name in [
+      return _openLibraries(const [
         'libopenblas.so.0',
         'libopenblas.so',
         'liblapacke.so.3',
         'liblapacke.so',
         'libblas.so.3',
         'liblapack.so.3',
-      ]) {
-        tryOpen(name);
-      }
+      ]);
     } else if (Platform.isWindows) {
-      for (final name in [
+      return _openLibraries(const [
         'openblas.dll',
         'libopenblas.dll',
         'liblapacke.dll',
         'lapack.dll',
-      ]) {
-        tryOpen(name);
-      }
+      ]);
     }
   } catch (_) {
     // Dynamic library candidate probing: catch failed opens across search paths.
   }
-  return libs;
+  return <ffi.DynamicLibrary>[];
 }
 
 List<ffi.DynamicLibrary> _loadVdspLibraries() {
-  final libs = <ffi.DynamicLibrary>[];
-  if (!Platform.isMacOS && !Platform.isIOS) return libs;
-
-  // Dynamic library candidate probing: catch failed opens.
-  try {
-    libs.add(
-      ffi.DynamicLibrary.open(
-        '/System/Library/Frameworks/Accelerate.framework/Accelerate',
-      ),
-    );
-  } catch (_) {
-    // Dynamic library probing: ignore missing candidate library.
-  }
-  return libs;
+  if (!Platform.isMacOS && !Platform.isIOS) return <ffi.DynamicLibrary>[];
+  return _openLibraries(const [
+    '/System/Library/Frameworks/Accelerate.framework/Accelerate',
+  ]);
 }
 
 List<ffi.DynamicLibrary> _loadFftLibraries() {
-  final libs = <ffi.DynamicLibrary>[];
-  void tryOpen(String name) {
-    try {
-      libs.add(ffi.DynamicLibrary.open(name));
-      if (!Platform.isWindows) {
-        using((arena) {
-          final str = name.toNativeUtf8(allocator: arena);
-          _posixDlopen(str.cast(), 1 | 0x100);
-        });
-      }
-    } catch (_) {
-      // Dynamic library probing: ignore missing candidate libraries.
-    }
-  }
-
-  // Dynamic library candidate probing: catch failed opens across search paths.
   try {
     if (Platform.isMacOS || Platform.isIOS) {
-      tryOpen('/System/Library/Frameworks/Accelerate.framework/Accelerate');
-      for (final name in [
+      return _openLibraries(const [
+        '/System/Library/Frameworks/Accelerate.framework/Accelerate',
         '/opt/homebrew/lib/libfftw3.dylib',
         '/usr/local/lib/libfftw3.dylib',
         'libfftw3.dylib',
-      ]) {
-        tryOpen(name);
-      }
+      ]);
     } else if (Platform.isLinux || Platform.isAndroid) {
-      for (final name in ['libfftw3.so.3', 'libfftw3.so']) {
-        tryOpen(name);
-      }
+      return _openLibraries(const ['libfftw3.so.3', 'libfftw3.so']);
     } else if (Platform.isWindows) {
-      for (final name in ['libfftw3-3.dll', 'fftw3.dll']) {
-        tryOpen(name);
-      }
+      return _openLibraries(const ['libfftw3-3.dll', 'fftw3.dll']);
     }
   } catch (_) {
     // Dynamic library candidate probing: catch failed opens across search paths.
   }
-  return libs;
+  return <ffi.DynamicLibrary>[];
 }
 
 @ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Char>, ffi.Int32)>(

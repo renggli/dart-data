@@ -1,5 +1,3 @@
-// ignore_for_file: constant_identifier_names
-
 /// CBLAS Row-Major matrix layout order.
 const int cblasRowMajor = 101;
 
@@ -27,8 +25,8 @@ const int cblasNonUnit = 131;
 /// CBLAS Diagonal option: Unit diagonal.
 const int cblasUnit = 132;
 
-/// CBLAS Operation side: Multiply on the left ($A \cdot X$).
+/// CBLAS Operation side: Multiply on the left (`A * X`).
 const int cblasLeft = 141;
 
-/// CBLAS Operation side: Multiply on the right ($X \cdot A$).
+/// CBLAS Operation side: Multiply on the right (`X * A`).
 const int cblasRight = 142;

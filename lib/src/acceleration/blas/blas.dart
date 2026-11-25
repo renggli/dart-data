@@ -17,7 +17,7 @@ abstract final class Blas {
 
   // --- BLAS Level 1: Vector-Vector Operations ---
 
-  /// Computes dot product of two [Float64List] vectors: $x \cdot y$.
+  /// Computes dot product of two [Float64List] vectors: `x · y`.
   static double ddot({
     required int n,
     required Float64List x,
@@ -58,7 +58,7 @@ abstract final class Blas {
     );
   }
 
-  /// Computes dot product of two [Float32List] vectors: $x \cdot y$.
+  /// Computes dot product of two [Float32List] vectors: `x · y`.
   static double sdot({
     required int n,
     required Float32List x,
@@ -99,10 +99,10 @@ abstract final class Blas {
     );
   }
 
-  /// Computes Euclidean norm of [Float64List] vector: $\|x\|_2$.
+  /// Computes Euclidean norm of [Float64List] vector: `||x||_2`.
   ///
-  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
-  /// return `0.0`.
+  /// Throws [ArgumentError] if [incX] is `0`. Conforming to CBLAS
+  /// specification, negative strides ([incX] < 0) return `0.0`.
   static double dnrm2({
     required int n,
     required Float64List x,
@@ -122,10 +122,10 @@ abstract final class Blas {
     );
   }
 
-  /// Computes Euclidean norm of [Float32List] vector: $\|x\|_2$.
+  /// Computes Euclidean norm of [Float32List] vector: `||x||_2`.
   ///
-  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
-  /// return `0.0`.
+  /// Throws [ArgumentError] if [incX] is `0`. Conforming to CBLAS
+  /// specification, negative strides ([incX] < 0) return `0.0`.
   static double snrm2({
     required int n,
     required Float32List x,
@@ -145,7 +145,7 @@ abstract final class Blas {
     );
   }
 
-  /// Computes $y \leftarrow \alpha x + y$ for [Float64List] vectors.
+  /// Computes `y := alpha * x + y` for [Float64List] vectors.
   static bool daxpy({
     required int n,
     required double alpha,
@@ -189,7 +189,7 @@ abstract final class Blas {
     );
   }
 
-  /// Computes $y \leftarrow \alpha x + y$ for [Float32List] vectors.
+  /// Computes `y := alpha * x + y` for [Float32List] vectors.
   static bool saxpy({
     required int n,
     required double alpha,
@@ -233,10 +233,10 @@ abstract final class Blas {
     );
   }
 
-  /// Scales [Float64List] vector: $x \leftarrow \alpha x$.
+  /// Scales [Float64List] vector: `x := alpha * x`.
   ///
-  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
-  /// are a no-op.
+  /// Throws [ArgumentError] if [incX] is `0`. Conforming to CBLAS
+  /// specification, negative strides ([incX] < 0) are a no-op.
   static bool dscal({
     required int n,
     required double alpha,
@@ -268,10 +268,10 @@ abstract final class Blas {
     );
   }
 
-  /// Scales [Float32List] vector: $x \leftarrow \alpha x$.
+  /// Scales [Float32List] vector: `x := alpha * x`.
   ///
-  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
-  /// are a no-op.
+  /// Throws [ArgumentError] if [incX] is `0`. Conforming to CBLAS
+  /// specification, negative strides ([incX] < 0) are a no-op.
   static bool sscal({
     required int n,
     required double alpha,
@@ -305,8 +305,8 @@ abstract final class Blas {
 
   // --- BLAS Level 2: Matrix-Vector Operations ---
 
-  /// Computes matrix-vector product $y \leftarrow \alpha A x + \beta y$ or
-  /// $y \leftarrow \alpha A^T x + \beta y$ for [Float64List].
+  /// Computes matrix-vector product `y := alpha * op(A) * x + beta * y` for
+  /// [Float64List].
   static bool dgemv({
     int transA = cblasNoTrans,
     required int m,
@@ -375,8 +375,8 @@ abstract final class Blas {
     );
   }
 
-  /// Computes matrix-vector product $y \leftarrow \alpha A x + \beta y$ or
-  /// $y \leftarrow \alpha A^T x + \beta y$ for [Float32List].
+  /// Computes matrix-vector product `y := alpha * op(A) * x + beta * y` for
+  /// [Float32List].
   static bool sgemv({
     int transA = cblasNoTrans,
     required int m,
@@ -445,8 +445,8 @@ abstract final class Blas {
     );
   }
 
-  /// Performs symmetric rank-2 update: $A \leftarrow \alpha x y^T + \alpha y x^T + A$
-  /// for [Float64List].
+  /// Performs symmetric rank-2 update `A := alpha * x * y^T + alpha * y * x^T + A`
+  /// for [Float64List] and mirrors the updated triangle across the diagonal.
   static bool dsyr2({
     int uplo = cblasUpper,
     required int n,
@@ -506,8 +506,8 @@ abstract final class Blas {
     );
   }
 
-  /// Performs symmetric rank-2 update: $A \leftarrow \alpha x y^T + \alpha y x^T + A$
-  /// for [Float32List].
+  /// Performs symmetric rank-2 update `A := alpha * x * y^T + alpha * y * x^T + A`
+  /// for [Float32List] and mirrors the updated triangle across the diagonal.
   static bool ssyr2({
     int uplo = cblasUpper,
     required int n,
@@ -567,8 +567,8 @@ abstract final class Blas {
     );
   }
 
-  /// Computes triangular matrix-vector multiplication $x \leftarrow A x$ or
-  /// $x \leftarrow A^T x$ for [Float64List].
+  /// Computes triangular matrix-vector multiplication `x := op(A) * x` for
+  /// [Float64List].
   static bool dtrmv({
     int uplo = cblasUpper,
     int trans = cblasNoTrans,
@@ -621,8 +621,8 @@ abstract final class Blas {
     );
   }
 
-  /// Computes triangular matrix-vector multiplication $x \leftarrow A x$ or
-  /// $x \leftarrow A^T x$ for [Float32List].
+  /// Computes triangular matrix-vector multiplication `x := op(A) * x` for
+  /// [Float32List].
   static bool strmv({
     int uplo = cblasUpper,
     int trans = cblasNoTrans,
@@ -675,9 +675,117 @@ abstract final class Blas {
     );
   }
 
+  /// Solves the triangular linear system `op(A) * x = b` in-place for
+  /// [Float64List].
+  static bool dtrsv({
+    int uplo = cblasUpper,
+    int trans = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int n,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List x,
+    int xOffset = 0,
+    int incX = 1,
+  }) {
+    checkBlasUplo(uplo, 'uplo');
+    checkBlasTrans(trans, 'trans');
+    checkBlasDiag(diag, 'diag');
+    checkBlasInc(incX, 'incX');
+    checkBlasOffset(aOffset, a.length, 'aOffset');
+    checkBlasOffset(xOffset, x.length, 'xOffset');
+    checkBlasMatrixLeadingDim(lda, 'lda', n);
+    checkBlasMatrixBounds(a.length, n, n, aOffset, lda, 'a');
+    checkBlasVectorBounds(x.length, n, xOffset, incX, 'x');
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'dtrsv',
+      isAvailable: isAvailable,
+      accelerate: () => BlasNative.dtrsv(
+        uplo: uplo,
+        trans: trans,
+        diag: diag,
+        n: n,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        x: x,
+        xOffset: xOffset,
+        incX: incX,
+      ),
+      fallback: () => BlasDart.dtrsv(
+        uplo: uplo,
+        trans: trans,
+        diag: diag,
+        n: n,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        x: x,
+        xOffset: xOffset,
+        incX: incX,
+      ),
+    );
+  }
+
+  /// Solves the triangular linear system `op(A) * x = b` in-place for
+  /// [Float32List].
+  static bool strsv({
+    int uplo = cblasUpper,
+    int trans = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int n,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List x,
+    int xOffset = 0,
+    int incX = 1,
+  }) {
+    checkBlasUplo(uplo, 'uplo');
+    checkBlasTrans(trans, 'trans');
+    checkBlasDiag(diag, 'diag');
+    checkBlasInc(incX, 'incX');
+    checkBlasOffset(aOffset, a.length, 'aOffset');
+    checkBlasOffset(xOffset, x.length, 'xOffset');
+    checkBlasMatrixLeadingDim(lda, 'lda', n);
+    checkBlasMatrixBounds(a.length, n, n, aOffset, lda, 'a');
+    checkBlasVectorBounds(x.length, n, xOffset, incX, 'x');
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'strsv',
+      isAvailable: isAvailable,
+      accelerate: () => BlasNative.strsv(
+        uplo: uplo,
+        trans: trans,
+        diag: diag,
+        n: n,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        x: x,
+        xOffset: xOffset,
+        incX: incX,
+      ),
+      fallback: () => BlasDart.strsv(
+        uplo: uplo,
+        trans: trans,
+        diag: diag,
+        n: n,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        x: x,
+        xOffset: xOffset,
+        incX: incX,
+      ),
+    );
+  }
+
   // --- BLAS Level 3: Matrix-Matrix Operations ---
 
-  /// Computes general matrix multiplication $C \leftarrow \alpha A B + \beta C$
+  /// Computes general matrix multiplication `C := alpha * op(A) * op(B) + beta * C`
   /// for [Float64List].
   static bool dgemm({
     int transA = cblasNoTrans,
@@ -755,7 +863,7 @@ abstract final class Blas {
     );
   }
 
-  /// Computes general matrix multiplication $C \leftarrow \alpha A B + \beta C$
+  /// Computes general matrix multiplication `C := alpha * op(A) * op(B) + beta * C`
   /// for [Float32List].
   static bool sgemm({
     int transA = cblasNoTrans,
@@ -833,8 +941,9 @@ abstract final class Blas {
     );
   }
 
-  /// Performs symmetric rank-$k$ update: $C \leftarrow \alpha A A^T + \beta C$
-  /// or $C \leftarrow \alpha A^T A + \beta C$ for [Float64List].
+  /// Performs symmetric rank-k update `C := alpha * A * A^T + beta * C`
+  /// or `C := alpha * A^T * A + beta * C` for [Float64List] and mirrors the
+  /// updated triangle across the diagonal.
   static bool dsyrk({
     int uplo = cblasUpper,
     int trans = cblasNoTrans,
@@ -894,8 +1003,9 @@ abstract final class Blas {
     );
   }
 
-  /// Performs symmetric rank-$k$ update: $C \leftarrow \alpha A A^T + \beta C$
-  /// or $C \leftarrow \alpha A^T A + \beta C$ for [Float32List].
+  /// Performs symmetric rank-k update `C := alpha * A * A^T + beta * C`
+  /// or `C := alpha * A^T * A + beta * C` for [Float32List] and mirrors the
+  /// updated triangle across the diagonal.
   static bool ssyrk({
     int uplo = cblasUpper,
     int trans = cblasNoTrans,
@@ -955,8 +1065,8 @@ abstract final class Blas {
     );
   }
 
-  /// Computes symmetric matrix multiplication $C \leftarrow \alpha A B + \beta C$
-  /// or $C \leftarrow \alpha B A + \beta C$ for [Float64List].
+  /// Computes symmetric matrix multiplication `C := alpha * A * B + beta * C`
+  /// or `C := alpha * B * A + beta * C` for [Float64List].
   static bool dsymm({
     int side = cblasLeft,
     int uplo = cblasUpper,
@@ -1027,8 +1137,8 @@ abstract final class Blas {
     );
   }
 
-  /// Computes symmetric matrix multiplication $C \leftarrow \alpha A B + \beta C$
-  /// or $C \leftarrow \alpha B A + \beta C$ for [Float32List].
+  /// Computes symmetric matrix multiplication `C := alpha * A * B + beta * C`
+  /// or `C := alpha * B * A + beta * C` for [Float32List].
   static bool ssymm({
     int side = cblasLeft,
     int uplo = cblasUpper,
@@ -1099,8 +1209,8 @@ abstract final class Blas {
     );
   }
 
-  /// Computes triangular matrix-matrix multiplication $B \leftarrow \alpha A B$
-  /// or $B \leftarrow \alpha B A$ for [Float64List].
+  /// Computes triangular matrix-matrix multiplication `B := alpha * op(A) * B`
+  /// or `B := alpha * B * op(A)` in-place for [Float64List].
   static bool dtrmm({
     int side = cblasLeft,
     int uplo = cblasUpper,
@@ -1164,8 +1274,8 @@ abstract final class Blas {
     );
   }
 
-  /// Computes triangular matrix-matrix multiplication $B \leftarrow \alpha A B$
-  /// or $B \leftarrow \alpha B A$ for [Float32List].
+  /// Computes triangular matrix-matrix multiplication `B := alpha * op(A) * B`
+  /// or `B := alpha * B * op(A)` in-place for [Float32List].
   static bool strmm({
     int side = cblasLeft,
     int uplo = cblasUpper,
@@ -1212,6 +1322,136 @@ abstract final class Blas {
         ldb: ldb,
       ),
       fallback: () => BlasDart.strmm(
+        side: side,
+        uplo: uplo,
+        transA: transA,
+        diag: diag,
+        m: m,
+        n: n,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+      ),
+    );
+  }
+
+  /// Solves triangular matrix equations `op(A) * X = alpha * B` or
+  /// `X * op(A) = alpha * B` in-place for [Float64List].
+  static bool dtrsm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    int transA = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int m,
+    required int n,
+    double alpha = 1.0,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List b,
+    int bOffset = 0,
+    required int ldb,
+  }) {
+    checkBlasSide(side, 'side');
+    checkBlasUplo(uplo, 'uplo');
+    checkBlasTrans(transA, 'transA');
+    checkBlasDiag(diag, 'diag');
+    checkBlasOffset(aOffset, a.length, 'aOffset');
+    checkBlasOffset(bOffset, b.length, 'bOffset');
+    final aDim = side == cblasLeft ? m : n;
+    checkBlasMatrixLeadingDim(lda, 'lda', aDim);
+    checkBlasMatrixLeadingDim(ldb, 'ldb', n);
+    checkBlasMatrixBounds(a.length, aDim, aDim, aOffset, lda, 'a');
+    checkBlasMatrixBounds(b.length, m, n, bOffset, ldb, 'b');
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'dtrsm',
+      isAvailable: isAvailable,
+      accelerate: () => BlasNative.dtrsm(
+        side: side,
+        uplo: uplo,
+        transA: transA,
+        diag: diag,
+        m: m,
+        n: n,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+      ),
+      fallback: () => BlasDart.dtrsm(
+        side: side,
+        uplo: uplo,
+        transA: transA,
+        diag: diag,
+        m: m,
+        n: n,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+      ),
+    );
+  }
+
+  /// Solves triangular matrix equations `op(A) * X = alpha * B` or
+  /// `X * op(A) = alpha * B` in-place for [Float32List].
+  static bool strsm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    int transA = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int m,
+    required int n,
+    double alpha = 1.0,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List b,
+    int bOffset = 0,
+    required int ldb,
+  }) {
+    checkBlasSide(side, 'side');
+    checkBlasUplo(uplo, 'uplo');
+    checkBlasTrans(transA, 'transA');
+    checkBlasDiag(diag, 'diag');
+    checkBlasOffset(aOffset, a.length, 'aOffset');
+    checkBlasOffset(bOffset, b.length, 'bOffset');
+    final aDim = side == cblasLeft ? m : n;
+    checkBlasMatrixLeadingDim(lda, 'lda', aDim);
+    checkBlasMatrixLeadingDim(ldb, 'ldb', n);
+    checkBlasMatrixBounds(a.length, aDim, aDim, aOffset, lda, 'a');
+    checkBlasMatrixBounds(b.length, m, n, bOffset, ldb, 'b');
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'strsm',
+      isAvailable: isAvailable,
+      accelerate: () => BlasNative.strsm(
+        side: side,
+        uplo: uplo,
+        transA: transA,
+        diag: diag,
+        m: m,
+        n: n,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+      ),
+      fallback: () => BlasDart.strsm(
         side: side,
         uplo: uplo,
         transA: transA,

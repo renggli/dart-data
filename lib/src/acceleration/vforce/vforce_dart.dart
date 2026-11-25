@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../../type/utils/memory.dart';
+
 /// Pure Dart reference implementation of vectorized math, reductions, and
 /// signal processing routines.
 abstract final class VforceDart {
@@ -83,7 +85,16 @@ abstract final class VforceDart {
   /// Computes the arithmetic mean of vector elements.
   static double mean({required Float64List x, required int n}) {
     if (n == 0) return double.nan;
-    return sum(x: x, n: n) / n;
+    final avg = sum(x: x, n: n) / n;
+    if (avg.isFinite) return avg;
+    for (var i = 0; i < n; i++) {
+      if (!x[i].isFinite) return avg;
+    }
+    var welfordMean = 0.0;
+    for (var i = 0; i < n; i++) {
+      welfordMean += (x[i] - welfordMean) / (i + 1);
+    }
+    return welfordMean;
   }
 
   /// Computes the sample or population variance of vector elements.
@@ -94,12 +105,29 @@ abstract final class VforceDart {
   }) {
     if (n == 0 || (sample && n < 2)) return double.nan;
     final avg = mean(x: x, n: n);
+    if (!avg.isFinite) return double.nan;
     var sumSq = 0.0;
     for (var i = 0; i < n; i++) {
       final diff = x[i] - avg;
       sumSq += diff * diff;
     }
-    return sumSq / (sample ? (n - 1) : n);
+    final divisor = sample ? n - 1 : n;
+    if (sumSq.isFinite) {
+      return sumSq / divisor;
+    }
+    var maxDiff = 0.0;
+    for (var i = 0; i < n; i++) {
+      final ad = (x[i] - avg).abs();
+      if (!ad.isFinite) return double.nan;
+      if (ad > maxDiff) maxDiff = ad;
+    }
+    if (maxDiff == 0.0) return 0.0;
+    var scaledSumSq = 0.0;
+    for (var i = 0; i < n; i++) {
+      final d = (x[i] - avg) / maxDiff;
+      scaledSumSq += d * d;
+    }
+    return maxDiff * maxDiff * (scaledSumSq / divisor);
   }
 
   /// Computes valid 1D linear convolution:
@@ -112,10 +140,11 @@ abstract final class VforceDart {
   }) {
     if (resultLength <= 0) return;
     final fLen = filter.length;
-    final target =
-        (output.buffer == signal.buffer || output.buffer == filter.buffer)
-        ? Float64List(resultLength)
-        : output;
+    final sLen = signal.length;
+    final needsCopy =
+        hasOverlap(output, 0, signal, 0, resultLength, sLen) ||
+        hasOverlap(output, 0, filter, 0, resultLength, fLen);
+    final target = needsCopy ? Float64List(resultLength) : output;
     for (var n = 0; n < resultLength; n++) {
       var s = 0.0;
       for (var p = 0; p < fLen; p++) {
@@ -123,7 +152,7 @@ abstract final class VforceDart {
       }
       target[n] = s;
     }
-    if (!identical(target, output)) {
+    if (needsCopy) {
       output.setRange(0, resultLength, target);
     }
   }
@@ -138,10 +167,11 @@ abstract final class VforceDart {
   }) {
     if (resultLength <= 0) return;
     final fLen = filter.length;
-    final target =
-        (output.buffer == signal.buffer || output.buffer == filter.buffer)
-        ? Float64List(resultLength)
-        : output;
+    final sLen = signal.length;
+    final needsCopy =
+        hasOverlap(output, 0, signal, 0, resultLength, sLen) ||
+        hasOverlap(output, 0, filter, 0, resultLength, fLen);
+    final target = needsCopy ? Float64List(resultLength) : output;
     for (var n = 0; n < resultLength; n++) {
       var s = 0.0;
       for (var p = 0; p < fLen; p++) {
@@ -149,7 +179,7 @@ abstract final class VforceDart {
       }
       target[n] = s;
     }
-    if (!identical(target, output)) {
+    if (needsCopy) {
       output.setRange(0, resultLength, target);
     }
   }

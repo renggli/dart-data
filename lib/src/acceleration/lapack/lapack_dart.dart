@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../blas/cblas_constants.dart';
+import '../utils/norm_accumulator.dart';
 
 /// Pure Dart reference implementation of LAPACK decomposition and solver routines.
 abstract final class LapackDart {
@@ -14,6 +15,14 @@ abstract final class LapackDart {
     required int lda,
   }) {
     if (n == 0) return true;
+    final isUpper = uplo == cblasUpper;
+    for (var i = 0; i < n; i++) {
+      final start = isUpper ? i : 0;
+      final end = isUpper ? n : i + 1;
+      for (var j = start; j < end; j++) {
+        if (!a[aOffset + i * lda + j].isFinite) return false;
+      }
+    }
     final lower = Float64List(n * n);
     for (var i = 0; i < n; i++) {
       for (var j = 0; j <= i; j++) {
@@ -23,12 +32,12 @@ abstract final class LapackDart {
         }
         if (i == j) {
           final val = a[aOffset + i * lda + i] - sum;
-          if (!(val > 0.0)) return false;
+          if (!val.isFinite || !(val > 0.0)) return false;
           lower[i * n + j] = math.sqrt(val);
         } else {
           final denom = lower[j * n + j];
-          if (!(denom > 0.0)) return false;
-          final aij = uplo == cblasUpper
+          if (!denom.isFinite || !(denom > 0.0)) return false;
+          final aij = isUpper
               ? a[aOffset + j * lda + i]
               : a[aOffset + i * lda + j];
           lower[i * n + j] = (aij - sum) / denom;
@@ -36,7 +45,7 @@ abstract final class LapackDart {
       }
     }
 
-    if (uplo == cblasUpper) {
+    if (isUpper) {
       for (var i = 0; i < n; i++) {
         for (var j = i; j < n; j++) {
           a[aOffset + i * lda + j] = lower[j * n + i];
@@ -52,7 +61,7 @@ abstract final class LapackDart {
     return true;
   }
 
-  /// Solves $A X = B$ for general square matrix A using LU decomposition.
+  /// Solves `A * X = B` for general square matrix A using LU decomposition.
   static bool dgesv({
     required int n,
     required int nrhs,
@@ -244,7 +253,8 @@ abstract final class LapackDart {
         final d = qr[k * n + k].abs();
         if (d > maxDiag) maxDiag = d;
       }
-      final tol = math.max(1e-12, m * 2.220446049250313e-16 * maxDiag);
+      if (!(maxDiag > 0.0)) return false;
+      final tol = 10.0 * m * 2.220446049250313e-16 * maxDiag;
       for (var k = 0; k < n; k++) {
         if (!(qr[k * n + k].abs() >= tol)) return false;
       }
@@ -323,7 +333,8 @@ abstract final class LapackDart {
         final d = lq[k * n + k].abs();
         if (d > maxDiag) maxDiag = d;
       }
-      final tol = math.max(1e-12, n * 2.220446049250313e-16 * maxDiag);
+      if (!(maxDiag > 0.0)) return false;
+      final tol = 10.0 * n * 2.220446049250313e-16 * maxDiag;
       for (var k = 0; k < m; k++) {
         if (!(lq[k * n + k].abs() >= tol)) return false;
       }
@@ -378,20 +389,39 @@ abstract final class LapackDart {
     required int wOffset,
   }) {
     if (n == 0) return true;
+    final computeVectors = jobz.toUpperCase() == 'V';
+    var maxAbs = 0.0;
     for (var i = 0; i < n; i++) {
       if (uplo == cblasUpper) {
         for (var j = i; j < n; j++) {
-          if (!a[aOffset + i * lda + j].isFinite) return false;
+          final val = a[aOffset + i * lda + j];
+          if (!val.isFinite) return false;
+          final absVal = val.abs();
+          if (absVal > maxAbs) maxAbs = absVal;
         }
       } else {
         for (var j = 0; j <= i; j++) {
-          if (!a[aOffset + i * lda + j].isFinite) return false;
+          final val = a[aOffset + i * lda + j];
+          if (!val.isFinite) return false;
+          final absVal = val.abs();
+          if (absVal > maxAbs) maxAbs = absVal;
         }
       }
     }
+    if (maxAbs == 0.0) {
+      w.fillRange(wOffset, wOffset + n, 0.0);
+      if (computeVectors) {
+        for (var i = 0; i < n; i++) {
+          for (var j = 0; j < n; j++) {
+            a[aOffset + i * lda + j] = i == j ? 1.0 : 0.0;
+          }
+        }
+      }
+      return true;
+    }
     if (n == 1) {
       w[wOffset] = a[aOffset];
-      if (jobz.toUpperCase() == 'V') a[aOffset] = 1.0;
+      if (computeVectors) a[aOffset] = 1.0;
       return true;
     }
 
@@ -409,7 +439,7 @@ abstract final class LapackDart {
           r = i >= j ? i : j;
           c = i >= j ? j : i;
         }
-        v[i * n + j] = a[aOffset + r * lda + c];
+        v[i * n + j] = a[aOffset + r * lda + c] / maxAbs;
       }
     }
 
@@ -437,7 +467,9 @@ abstract final class LapackDart {
           v[i * n + l] = f - g;
           f = 0.0;
           for (var j = 0; j <= l; j++) {
-            v[j * n + i] = v[i * n + j] / h;
+            if (computeVectors) {
+              v[j * n + i] = v[i * n + j] / h;
+            }
             g = 0.0;
             for (var k = 0; k <= j; k++) {
               g += v[j * n + k] * v[i * n + k];
@@ -465,24 +497,30 @@ abstract final class LapackDart {
 
     d[0] = 0.0;
     e[0] = 0.0;
-    for (var i = 0; i < n; i++) {
-      final l = i - 1;
-      if (d[i] != 0.0) {
-        for (var j = 0; j <= l; j++) {
-          var g = 0.0;
-          for (var k = 0; k <= l; k++) {
-            g += v[i * n + k] * v[k * n + j];
-          }
-          for (var k = 0; k <= l; k++) {
-            v[k * n + j] -= g * v[k * n + i];
+    if (computeVectors) {
+      for (var i = 0; i < n; i++) {
+        final l = i - 1;
+        if (d[i] != 0.0) {
+          for (var j = 0; j <= l; j++) {
+            var g = 0.0;
+            for (var k = 0; k <= l; k++) {
+              g += v[i * n + k] * v[k * n + j];
+            }
+            for (var k = 0; k <= l; k++) {
+              v[k * n + j] -= g * v[k * n + i];
+            }
           }
         }
+        d[i] = v[i * n + i];
+        v[i * n + i] = 1.0;
+        for (var j = 0; j <= l; j++) {
+          v[j * n + i] = 0.0;
+          v[i * n + j] = 0.0;
+        }
       }
-      d[i] = v[i * n + i];
-      v[i * n + i] = 1.0;
-      for (var j = 0; j <= l; j++) {
-        v[j * n + i] = 0.0;
-        v[i * n + j] = 0.0;
+    } else {
+      for (var i = 0; i < n; i++) {
+        d[i] = v[i * n + i];
       }
     }
 
@@ -542,10 +580,12 @@ abstract final class LapackDart {
             pVal = cosVal * d[i] - sinVal * gVal;
             d[i + 1] = hVal + sinVal * (cosVal * gVal + sinVal * d[i]);
 
-            for (var k = 0; k < n; k++) {
-              hVal = v[k * n + (i + 1)];
-              v[k * n + (i + 1)] = sinVal * v[k * n + i] + cosVal * hVal;
-              v[k * n + i] = cosVal * v[k * n + i] - sinVal * hVal;
+            if (computeVectors) {
+              for (var k = 0; k < n; k++) {
+                hVal = v[k * n + (i + 1)];
+                v[k * n + (i + 1)] = sinVal * v[k * n + i] + cosVal * hVal;
+                v[k * n + i] = cosVal * v[k * n + i] - sinVal * hVal;
+              }
             }
           }
           pVal = -sinVal * sin2Val * cos3Val * el1 * e[lIdx] / dl1;
@@ -570,18 +610,20 @@ abstract final class LapackDart {
       if (k != i) {
         d[k] = d[i];
         d[i] = pVal;
-        for (var j = 0; j < n; j++) {
-          pVal = v[j * n + i];
-          v[j * n + i] = v[j * n + k];
-          v[j * n + k] = pVal;
+        if (computeVectors) {
+          for (var j = 0; j < n; j++) {
+            pVal = v[j * n + i];
+            v[j * n + i] = v[j * n + k];
+            v[j * n + k] = pVal;
+          }
         }
       }
     }
 
     for (var i = 0; i < n; i++) {
-      w[wOffset + i] = d[i];
+      w[wOffset + i] = d[i] == 0.0 ? 0.0 : d[i] * maxAbs;
     }
-    if (jobz.toUpperCase() == 'V') {
+    if (computeVectors) {
       for (var i = 0; i < n; i++) {
         for (var j = 0; j < n; j++) {
           a[aOffset + i * lda + j] = v[i * n + j];
@@ -642,7 +684,7 @@ abstract final class LapackDart {
     return true;
   }
 
-  /// Computes the Singular Value Decomposition (SVD) of an $m \times n$ matrix
+  /// Computes the Singular Value Decomposition (SVD) of an `m x n` matrix
   /// for [Float64List].
   static bool dgesvd({
     required String jobu,
@@ -683,20 +725,42 @@ abstract final class LapackDart {
       return false;
     }
 
+    var maxAbs = 0.0;
     for (var i = 0; i < m; i++) {
       for (var j = 0; j < n; j++) {
         final val = a[aOffset + i * lda + j];
         if (!val.isFinite) return false;
+        final absVal = val.abs();
+        if (absVal > maxAbs) maxAbs = absVal;
       }
     }
 
     final computeU = normJobu == 'A';
     final computeVt = normJobvt == 'A';
 
+    if (maxAbs == 0.0) {
+      s.fillRange(sOffset, sOffset + minMN, 0.0);
+      if (computeU) {
+        for (var i = 0; i < m; i++) {
+          for (var j = 0; j < m; j++) {
+            u![uOffset + i * effLdu + j] = i == j ? 1.0 : 0.0;
+          }
+        }
+      }
+      if (computeVt) {
+        for (var i = 0; i < n; i++) {
+          for (var j = 0; j < n; j++) {
+            vt![vtOffset + i * effLdvt + j] = i == j ? 1.0 : 0.0;
+          }
+        }
+      }
+      return true;
+    }
+
     final aCol = Float64List(m * n);
     for (var i = 0; i < m; i++) {
       for (var j = 0; j < n; j++) {
-        aCol[j * m + i] = a[aOffset + i * lda + j];
+        aCol[j * m + i] = a[aOffset + i * lda + j] / maxAbs;
       }
     }
 
@@ -717,7 +781,7 @@ abstract final class LapackDart {
     if (!converged) return false;
 
     for (var i = 0; i < minMN; i++) {
-      s[sOffset + i] = sVals[i];
+      s[sOffset + i] = sVals[i] == 0.0 ? 0.0 : sVals[i] * maxAbs;
     }
     if (computeU) {
       for (var i = 0; i < m; i++) {
@@ -787,12 +851,11 @@ abstract final class LapackDart {
     for (var lIdx = 0; lIdx < lu; lIdx++) {
       final lp1 = lIdx + 1;
       if (lIdx < nct) {
-        var sum = 0.0;
+        final colNorm = ScaledNormAccumulator();
         for (var i = lIdx; i < rowsA; i++) {
-          final val = a[lIdx * rowsA + i];
-          sum += val * val;
+          colNorm.add(a[lIdx * rowsA + i]);
         }
-        stemp[lIdx] = math.sqrt(sum);
+        stemp[lIdx] = colNorm.norm;
         if (stemp[lIdx] != 0.0) {
           if (a[lIdx * rowsA + lIdx] != 0.0) {
             stemp[lIdx] =
@@ -828,11 +891,11 @@ abstract final class LapackDart {
       }
 
       if (lIdx < nrt) {
-        var enorm = 0.0;
+        final rowNorm = ScaledNormAccumulator();
         for (var i = lp1; i < eList.length; i++) {
-          enorm += eList[i] * eList[i];
+          rowNorm.add(eList[i]);
         }
-        eList[lIdx] = math.sqrt(enorm);
+        eList[lIdx] = rowNorm.norm;
         if (eList[lIdx] != 0.0) {
           if (eList[lp1] != 0.0) {
             eList[lIdx] = eList[lIdx].abs() * (eList[lp1] / eList[lp1].abs());

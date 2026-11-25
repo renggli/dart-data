@@ -25,6 +25,8 @@ abstract final class BlasNative {
   static final bool _hasSsyr2 = hasSymbol('cblas_ssyr2', _libs);
   static final bool _hasDtrmv = hasSymbol('cblas_dtrmv', _libs);
   static final bool _hasStrmv = hasSymbol('cblas_strmv', _libs);
+  static final bool _hasDtrsv = hasSymbol('cblas_dtrsv', _libs);
+  static final bool _hasStrsv = hasSymbol('cblas_strsv', _libs);
 
   static final bool _hasDgemm = hasSymbol('cblas_dgemm', _libs);
   static final bool _hasSgemm = hasSymbol('cblas_sgemm', _libs);
@@ -34,12 +36,11 @@ abstract final class BlasNative {
   static final bool _hasSsymm = hasSymbol('cblas_ssymm', _libs);
   static final bool _hasDtrmm = hasSymbol('cblas_dtrmm', _libs);
   static final bool _hasStrmm = hasSymbol('cblas_strmm', _libs);
+  static final bool _hasDtrsm = hasSymbol('cblas_dtrsm', _libs);
+  static final bool _hasStrsm = hasSymbol('cblas_strsm', _libs);
 
   /// Whether native BLAS is loaded and available.
   static bool get isAvailable => _libs.isNotEmpty && _hasDgemm;
-
-  static bool get hasDgemm => _hasDgemm;
-  static bool get hasSgemm => _hasSgemm;
 
   // --- BLAS Level 1 ---
 
@@ -396,6 +397,66 @@ abstract final class BlasNative {
     final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
     _cblasStrmv(
+      cblasRowMajor,
+      uplo,
+      trans,
+      diag,
+      n,
+      aView.address,
+      lda,
+      xView.address,
+      incX,
+    );
+    return true;
+  }
+
+  static bool dtrsv({
+    required int uplo,
+    required int trans,
+    required int diag,
+    required int n,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List x,
+    required int xOffset,
+    required int incX,
+  }) {
+    if (n <= 0) return true;
+    if (!_hasDtrsv) return false;
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
+    _cblasDtrsv(
+      cblasRowMajor,
+      uplo,
+      trans,
+      diag,
+      n,
+      aView.address,
+      lda,
+      xView.address,
+      incX,
+    );
+    return true;
+  }
+
+  static bool strsv({
+    required int uplo,
+    required int trans,
+    required int diag,
+    required int n,
+    required Float32List a,
+    required int aOffset,
+    required int lda,
+    required Float32List x,
+    required int xOffset,
+    required int incX,
+  }) {
+    if (n <= 0) return true;
+    if (!_hasStrsv) return false;
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
+    _cblasStrsv(
       cblasRowMajor,
       uplo,
       trans,
@@ -805,6 +866,92 @@ abstract final class BlasNative {
     final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float32List.sublistView(b, bOffset);
     _cblasStrmm(
+      cblasRowMajor,
+      side,
+      uplo,
+      transA,
+      diag,
+      m,
+      n,
+      alpha,
+      aView.address,
+      lda,
+      bView.address,
+      ldb,
+    );
+    return true;
+  }
+
+  static bool dtrsm({
+    required int side,
+    required int uplo,
+    required int transA,
+    required int diag,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List b,
+    required int bOffset,
+    required int ldb,
+  }) {
+    if (m <= 0 || n <= 0) return true;
+    if (alpha == 0.0) {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        b.fillRange(bRow, bRow + n, 0.0);
+      }
+      return true;
+    }
+    if (!_hasDtrsm) return false;
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
+    _cblasDtrsm(
+      cblasRowMajor,
+      side,
+      uplo,
+      transA,
+      diag,
+      m,
+      n,
+      alpha,
+      aView.address,
+      lda,
+      bView.address,
+      ldb,
+    );
+    return true;
+  }
+
+  static bool strsm({
+    required int side,
+    required int uplo,
+    required int transA,
+    required int diag,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float32List a,
+    required int aOffset,
+    required int lda,
+    required Float32List b,
+    required int bOffset,
+    required int ldb,
+  }) {
+    if (m <= 0 || n <= 0) return true;
+    if (alpha == 0.0) {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        b.fillRange(bRow, bRow + n, 0.0);
+      }
+      return true;
+    }
+    if (!_hasStrsm) return false;
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    final bView = bOffset == 0 ? b : Float32List.sublistView(b, bOffset);
+    _cblasStrsm(
       cblasRowMajor,
       side,
       uplo,
@@ -1336,6 +1483,118 @@ external void _cblasDtrmm(
   )
 >(symbol: 'cblas_strmm', isLeaf: true)
 external void _cblasStrmm(
+  int layout,
+  int side,
+  int uplo,
+  int transA,
+  int diag,
+  int m,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+  ffi.Pointer<ffi.Float> b,
+  int ldb,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_dtrsv', isLeaf: true)
+external void _cblasDtrsv(
+  int layout,
+  int uplo,
+  int trans,
+  int diag,
+  int n,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_strsv', isLeaf: true)
+external void _cblasStrsv(
+  int layout,
+  int uplo,
+  int trans,
+  int diag,
+  int n,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_dtrsm', isLeaf: true)
+external void _cblasDtrsm(
+  int layout,
+  int side,
+  int uplo,
+  int transA,
+  int diag,
+  int m,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  ffi.Pointer<ffi.Double> b,
+  int ldb,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_strsm', isLeaf: true)
+external void _cblasStrsm(
   int layout,
   int side,
   int uplo,

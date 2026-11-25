@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('AccelerationManager status & configuration', () {
@@ -34,7 +34,7 @@ void main() {
       }
     });
 
-    test('error hierarchy formatting', () {
+    test('error hierarchy formatting and exhaustive sealed dispatch', () {
       final unavail = AccelerationUnavailableError('vForce');
       check(unavail).isA<AccelerationUnavailableError>();
       check(unavail.feature).equals('vForce');
@@ -55,6 +55,13 @@ void main() {
       check(failedFactory).isA<AccelerationFailedError>();
       check((failedFactory as AccelerationFailedError).operation)
           .equals('dgesv');
+
+      String describe(AccelerationError err) => switch (err) {
+        AccelerationUnavailableError(:final feature) => 'unavailable:$feature',
+        AccelerationFailedError(:final operation) => 'failed:$operation',
+      };
+      check(describe(unavail)).equals('unavailable:vForce');
+      check(describe(failed)).equals('failed:dgemm');
     });
   });
 }

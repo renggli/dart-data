@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -16,7 +16,7 @@ void main() {
       check(a[0]).isCloseTo(2.0, 1e-10);
       check(a[1]).isCloseTo(1.0, 1e-10);
       check(a[3]).isCloseTo(2.0, 1e-10);
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest(
       'dpotrf on non-SPD matrix returns false without throwing',
@@ -25,6 +25,7 @@ void main() {
         final ok = Lapack.dpotrf(n: 2, a: a, lda: 2);
         check(ok).isFalse;
       },
+      isSupported: Lapack.isAvailable,
     );
 
     accelerationTest('dgesv linear system solve', () {
@@ -34,7 +35,7 @@ void main() {
       check(ok).isTrue;
       check(b[0]).isCloseTo(2.0, 1e-10);
       check(b[1]).isCloseTo(1.0, 1e-10);
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest(
       'dgesv on singular matrix returns false without throwing',
@@ -44,6 +45,7 @@ void main() {
         final ok = Lapack.dgesv(n: 2, nrhs: 1, a: a, lda: 2, b: b, ldb: 1);
         check(ok).isFalse;
       },
+      isSupported: Lapack.isAvailable,
     );
 
     accelerationTest('dgels linear least squares overdetermined', () {
@@ -65,7 +67,7 @@ void main() {
       check(b[0 * 2 + 1]).isCloseTo(1.0, 1e-9);
       check(b[1 * 2 + 0]).isCloseTo(1.0, 1e-9);
       check(b[1 * 2 + 1]).isCloseTo(0.0, 1e-9);
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest('dsyev symmetric eigenvalue solve', () {
       final a0 = [2.0, 1.0, 0.0, 1.0, 3.0, 1.0, 0.0, 1.0, 2.0];
@@ -90,7 +92,7 @@ void main() {
           check(avI).isCloseTo(lvI, 1e-9);
         }
       }
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest('ssyev float32 eigenvalue solve', () {
       final a0 = [2.0, 1.0, 1.0, 2.0];
@@ -112,7 +114,7 @@ void main() {
           check(avI).isCloseTo(lvI, 1e-5);
         }
       }
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest('dgesvd singular value decomposition', () {
       // 3x2 matrix A:
@@ -176,7 +178,7 @@ void main() {
           check(dot).isCloseTo(r == c ? 1.0 : 0.0, 1e-5);
         }
       }
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest('dgesvd values-only with jobu: N, jobvt: N', () {
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
@@ -194,7 +196,7 @@ void main() {
       check(ok).isTrue;
       check(s[0]).isCloseTo(9.525518, 1e-4);
       check(s[1]).isCloseTo(0.514300, 1e-4);
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest('dgesvd wide matrix (m < n)', () {
       final a0 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
@@ -226,7 +228,7 @@ void main() {
           check(sum).isCloseTo(a0[r * 3 + c], 1e-5);
         }
       }
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest('Lapack routines handle n = 0 without error', () {
       final empty64 = Float64List(0);
@@ -258,7 +260,7 @@ void main() {
           jobvt: 'N',
         ),
       ).isTrue;
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest('dgesvd does not mutate input matrix a', () {
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
@@ -275,7 +277,7 @@ void main() {
       );
       check(ok).isTrue;
       check(a).deepEquals(aExpected);
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest('dgels does not mutate input matrix a', () {
       final a = Float64List.fromList([1.0, 1.0, 1.0, 2.0, 1.0, 3.0]);
@@ -284,7 +286,7 @@ void main() {
       final ok = Lapack.dgels(m: 3, n: 2, nrhs: 1, a: a, lda: 2, b: b, ldb: 1);
       check(ok).isTrue;
       check(a).deepEquals(aExpected);
-    });
+    }, isSupported: Lapack.isAvailable);
 
     accelerationTest('Lapack returns false on NaN inputs', () {
       final nanMat1 = Float64List.fromList([double.nan, 0.0, 0.0, 1.0]);
@@ -307,6 +309,20 @@ void main() {
       check(
         Lapack.dgels(m: 2, n: 2, nrhs: 1, a: validA2, lda: 2, b: nanB2, ldb: 1),
       ).isFalse;
+
+      final infPotrf = Float64List.fromList([4.0, 0.0, 0.0, double.infinity]);
+      check(Lapack.dpotrf(uplo: cblasUpper, n: 2, a: infPotrf, lda: 2)).isFalse;
+      final infOffPotrf = Float64List.fromList([
+        4.0,
+        double.infinity,
+        0.0,
+        5.0,
+      ]);
+      check(Lapack.dpotrf(uplo: cblasUpper, n: 2, a: infOffPotrf, lda: 2))
+          .isFalse;
+      final singleInfPotrf = Float64List.fromList([double.infinity]);
+      check(Lapack.dpotrf(uplo: cblasUpper, n: 1, a: singleInfPotrf, lda: 1))
+          .isFalse;
 
       final nanSym1 = Float64List.fromList([double.nan]);
       final w1 = Float64List(1);
@@ -336,7 +352,134 @@ void main() {
           jobvt: 'N',
         ),
       ).isFalse;
-    });
+    }, isSupported: Lapack.isAvailable);
+
+    accelerationTest('dpotrf and dsyev ignore unreferenced triangle', () {
+      final upperSpd = Float64List.fromList([4.0, 2.0, double.nan, 5.0]);
+      check(Lapack.dpotrf(uplo: cblasUpper, n: 2, a: upperSpd, lda: 2)).isTrue;
+      check(upperSpd[0]).isCloseTo(2.0, 1e-10);
+      check(upperSpd[1]).isCloseTo(1.0, 1e-10);
+      check(upperSpd[3]).isCloseTo(2.0, 1e-10);
+
+      final lowerSym = Float64List.fromList([2.0, double.nan, 1.0, 2.0]);
+      final wSym = Float64List(2);
+      check(
+        Lapack.dsyev(
+          jobz: 'V',
+          uplo: cblasLower,
+          n: 2,
+          a: lowerSym,
+          lda: 2,
+          w: wSym,
+        ),
+      ).isTrue;
+      check(wSym[0]).isCloseTo(1.0, 1e-10);
+      check(wSym[1]).isCloseTo(3.0, 1e-10);
+
+      final lowerSym32 = Float32List.fromList([2.0, double.nan, 1.0, 2.0]);
+      final wSym32 = Float32List(2);
+      check(
+        Lapack.ssyev(
+          jobz: 'N',
+          uplo: cblasLower,
+          n: 2,
+          a: lowerSym32,
+          lda: 2,
+          w: wSym32,
+        ),
+      ).isTrue;
+      check(wSym32[0]).isCloseTo(1.0, 1e-5);
+      check(wSym32[1]).isCloseTo(3.0, 1e-5);
+    }, isSupported: Lapack.isAvailable);
+
+    accelerationTest(
+      'dsyev and dgesvd handle zero and extreme-scale matrices',
+      () {
+        final zeroSym = Float64List(4);
+        final wZero = Float64List(2);
+        check(Lapack.dsyev(jobz: 'N', n: 2, a: zeroSym, lda: 2, w: wZero))
+            .isTrue;
+        check(wZero).deepEquals([0.0, 0.0]);
+
+        final hugeSym = Float64List.fromList([1e200, 1e200, 1e200, 1e200]);
+        final wHuge = Float64List(2);
+        check(Lapack.dsyev(n: 2, a: hugeSym, lda: 2, w: wHuge)).isTrue;
+        check(wHuge[0]).isCloseTo(0.0, 1e186);
+        check(wHuge[1]).isCloseTo(2e200, 1e186);
+
+        final zeroSvd = Float64List(4);
+        final sZero = Float64List(2);
+        final uZero = Float64List(4);
+        final vtZero = Float64List(4);
+        check(
+          Lapack.dgesvd(
+            m: 2,
+            n: 2,
+            a: zeroSvd,
+            lda: 2,
+            s: sZero,
+            u: uZero,
+            ldu: 2,
+            vt: vtZero,
+            ldvt: 2,
+          ),
+        ).isTrue;
+        check(sZero).deepEquals([0.0, 0.0]);
+
+        final hugeSvd = Float64List.fromList([1e200, 0.0, 0.0, 2e200]);
+        final sHuge = Float64List(2);
+        check(
+          Lapack.dgesvd(
+            jobu: 'N',
+            jobvt: 'N',
+            m: 2,
+            n: 2,
+            a: hugeSvd,
+            lda: 2,
+            s: sHuge,
+          ),
+        ).isTrue;
+        check(sHuge[0]).isCloseTo(2e200, 1e186);
+        check(sHuge[1]).isCloseTo(1e200, 1e186);
+
+        final tinySvd = Float64List.fromList([1e-200, 0.0, 0.0, 2e-200]);
+        final sTiny = Float64List(2);
+        check(
+          Lapack.dgesvd(
+            jobu: 'N',
+            jobvt: 'N',
+            m: 2,
+            n: 2,
+            a: tinySvd,
+            lda: 2,
+            s: sTiny,
+          ),
+        ).isTrue;
+        check(sTiny[0]).isCloseTo(2e-200, 1e-214);
+        check(sTiny[1]).isCloseTo(1e-200, 1e-214);
+      },
+      isSupported: Lapack.isAvailable,
+    );
+
+    accelerationTest(
+      'dgels solves tiny scaled systems and rejects zero matrices',
+      () {
+        final tinyA = Float64List.fromList([1e-15, 0.0, 0.0, 1e-15]);
+        final tinyB = Float64List.fromList([1e-15, 2e-15]);
+        check(
+          Lapack.dgels(m: 2, n: 2, nrhs: 1, a: tinyA, lda: 2, b: tinyB, ldb: 1),
+        ).isTrue;
+        check(tinyB[0]).isCloseTo(1.0, 1e-10);
+        check(tinyB[1]).isCloseTo(2.0, 1e-10);
+
+        final zeroA = Float64List(4);
+        final zeroB = Float64List.fromList([1.0, 2.0]);
+        check(
+          Lapack.dgels(m: 2, n: 2, nrhs: 1, a: zeroA, lda: 2, b: zeroB, ldb: 1),
+        ).isFalse;
+      },
+      isSupported: Lapack.isAvailable,
+    );
 
     test('Lapack routines validate bounds and argument constraints', () {
       final a = Float64List(4);
@@ -401,8 +544,16 @@ void main() {
         () => Lapack.dgesvd(m: 2, n: 2, a: a, lda: 2, s: w, jobu: 'A', u: null),
       ).throws<ArgumentError>();
       check(
-        () =>
-            Lapack.dgesvd(m: 2, n: 2, a: a, lda: 2, s: w, jobvt: 'A', vt: null),
+        () => Lapack.dgesvd(
+          m: 2,
+          n: 2,
+          a: a,
+          lda: 2,
+          s: w,
+          jobu: 'N',
+          jobvt: 'A',
+          vt: null,
+        ),
       ).throws<ArgumentError>();
     });
   });

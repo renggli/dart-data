@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/src/acceleration/blas/blas_validation.dart';
 import 'package:data/src/acceleration/blas/cblas_constants.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('BLAS Validation', () {
@@ -74,10 +74,24 @@ void main() {
           .throws<ArgumentError>();
     });
 
-    test('mirrorSymmetricDouble mirrors upper to lower', () {
-      final c = Float64List.fromList([1.0, 2.0, 0.0, 3.0]);
-      mirrorSymmetricDouble(c, 0, 2, 2, cblasUpper);
-      check(c[2]).equals(2.0);
+    test('mirrorSymmetricDouble mirrors upper and lower triangles', () {
+      final cUpper = Float64List.fromList([1.0, 2.0, 0.0, 3.0]);
+      mirrorSymmetricDouble(cUpper, 0, 2, 2, cblasUpper);
+      check(cUpper[2]).equals(2.0);
+
+      final cLower = Float64List.fromList([1.0, 0.0, 4.0, 3.0]);
+      mirrorSymmetricDouble(cLower, 0, 2, 2, cblasLower);
+      check(cLower[1]).equals(4.0);
+    });
+
+    test('mirrorSymmetricFloat mirrors upper and lower triangles', () {
+      final cUpper = Float32List.fromList([1.0, 2.0, 0.0, 3.0]);
+      mirrorSymmetricFloat(cUpper, 0, 2, 2, cblasUpper);
+      check(cUpper[2]).equals(2.0);
+
+      final cLower = Float32List.fromList([1.0, 0.0, 4.0, 3.0]);
+      mirrorSymmetricFloat(cLower, 0, 2, 2, cblasLower);
+      check(cLower[1]).equals(4.0);
     });
   });
 }

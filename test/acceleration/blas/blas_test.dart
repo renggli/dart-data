@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -927,59 +927,98 @@ void main() {
       check(y).deepEquals([1.0, 2.0]);
     });
 
-    accelerationTest('blocked sgemm and dgemm, dtrmv/strmv, dsyr2/ssyr2, dsyrk/ssyrk, dsymm/ssymm, and dtrmm/strmm', () {
-      const dim = 72;
-      final a32 = Float32List.fromList(
-        List.generate(dim * dim, (i) => ((i % 7) + 1).toDouble()),
-      );
-      final b32 = Float32List.fromList(
-        List.generate(dim * dim, (i) => ((i % 5) + 1).toDouble()),
-      );
+    accelerationTest('blocked sgemm across all transpose combinations', () {
+      const m = 70;
+      const n = 67;
+      const k = 73;
       for (final transA in [cblasNoTrans, cblasTrans]) {
         for (final transB in [cblasNoTrans, cblasTrans]) {
-          final c32 = Float32List.fromList(List.filled(dim * dim, 1.0));
+          final aRows = transA == cblasNoTrans ? m : k;
+          final aCols = transA == cblasNoTrans ? k : m;
+          final bRows = transB == cblasNoTrans ? k : n;
+          final bCols = transB == cblasNoTrans ? n : k;
+          final a = Float32List.fromList(
+            List<double>.generate(aRows * aCols, (i) => ((i % 7) + 1) * 0.25),
+          );
+          final b = Float32List.fromList(
+            List<double>.generate(bRows * bCols, (i) => ((i % 5) + 1) * 0.5),
+          );
+          final c = Float32List(m * n)..fillRange(0, m * n, 1.0);
+          final beta = transA == cblasNoTrans ? 0.0 : 2.0;
           check(
             Blas.sgemm(
               transA: transA,
               transB: transB,
-              m: dim,
-              n: dim,
-              k: dim,
+              m: m,
+              n: n,
+              k: k,
               alpha: 1.0,
-              a: a32,
-              lda: dim,
-              b: b32,
-              ldb: dim,
-              beta: transA == cblasNoTrans ? 0.0 : 2.0,
-              c: c32,
-              ldc: dim,
+              a: a,
+              lda: aCols,
+              b: b,
+              ldb: bCols,
+              beta: beta,
+              c: c,
+              ldc: n,
             ),
           ).isTrue;
-          check(c32[0].isFinite).isTrue;
+          var ref00 = beta * 1.0;
+          for (var p = 0; p < k; p++) {
+            final a0 = transA == cblasNoTrans ? a[p] : a[p * aCols];
+            final b0 = transB == cblasNoTrans ? b[p * bCols] : b[p];
+            ref00 += a0 * b0;
+          }
+          check(c[0]).isCloseTo(ref00, 1e-3);
         }
       }
+    });
 
-      final a64 = Float64List.fromList(a32);
-      final b64 = Float64List.fromList(b32);
-      final c64 = Float64List.fromList(List.filled(dim * dim, 1.0));
-      check(
-        Blas.dgemm(
-          transA: cblasNoTrans,
-          transB: cblasTrans,
-          m: dim,
-          n: dim,
-          k: dim,
-          alpha: 1.0,
-          a: a64,
-          lda: dim,
-          b: b64,
-          ldb: dim,
-          beta: 2.0,
-          c: c64,
-          ldc: dim,
-        ),
-      ).isTrue;
+    accelerationTest('blocked dgemm across all transpose combinations', () {
+      const m = 70;
+      const n = 67;
+      const k = 73;
+      for (final transA in [cblasNoTrans, cblasTrans]) {
+        for (final transB in [cblasNoTrans, cblasTrans]) {
+          final aRows = transA == cblasNoTrans ? m : k;
+          final aCols = transA == cblasNoTrans ? k : m;
+          final bRows = transB == cblasNoTrans ? k : n;
+          final bCols = transB == cblasNoTrans ? n : k;
+          final a = Float64List.fromList(
+            List<double>.generate(aRows * aCols, (i) => ((i % 7) + 1) * 0.25),
+          );
+          final b = Float64List.fromList(
+            List<double>.generate(bRows * bCols, (i) => ((i % 5) + 1) * 0.5),
+          );
+          final c = Float64List(m * n)..fillRange(0, m * n, 1.0);
+          check(
+            Blas.dgemm(
+              transA: transA,
+              transB: transB,
+              m: m,
+              n: n,
+              k: k,
+              alpha: 1.0,
+              a: a,
+              lda: aCols,
+              b: b,
+              ldb: bCols,
+              beta: 2.0,
+              c: c,
+              ldc: n,
+            ),
+          ).isTrue;
+          var ref00 = 2.0 * 1.0;
+          for (var p = 0; p < k; p++) {
+            final a0 = transA == cblasNoTrans ? a[p] : a[p * aCols];
+            final b0 = transB == cblasNoTrans ? b[p * bCols] : b[p];
+            ref00 += a0 * b0;
+          }
+          check(c[0]).isCloseTo(ref00, 1e-10);
+        }
+      }
+    });
 
+    accelerationTest('sgemv handles transpose and alpha zero', () {
       final y32 = Float32List.fromList([2.0, 3.0]);
       check(
         Blas.sgemv(
@@ -994,6 +1033,24 @@ void main() {
           y: y32,
         ),
       ).isTrue;
+      check(y32[0]).isCloseTo(4.0, 1e-5);
+      check(y32[1]).isCloseTo(6.0, 1e-5);
+
+      check(
+        Blas.sgemv(
+          m: 2,
+          n: 2,
+          alpha: 0.0,
+          a: Float32List.fromList([double.nan, 0.0, 0.0, 0.0]),
+          lda: 2,
+          x: Float32List.fromList([double.nan, 0.0]),
+          beta: 2.0,
+          y: y32,
+        ),
+      ).isTrue;
+      check(y32[0]).isCloseTo(8.0, 1e-5);
+      check(y32[1]).isCloseTo(12.0, 1e-5);
+
       check(
         Blas.sgemv(
           m: 2,
@@ -1006,21 +1063,12 @@ void main() {
           y: y32,
         ),
       ).isTrue;
-      check(
-        Blas.sgemv(
-          m: 2,
-          n: 2,
-          alpha: 0.0,
-          a: Float32List(4),
-          lda: 2,
-          x: Float32List(2),
-          beta: 2.0,
-          y: y32,
-        ),
-      ).isTrue;
+      check(y32).deepEquals([0.0, 0.0]);
+    });
 
-      final mat2f = Float32List.fromList([2.0, 3.0, 4.0, 5.0]);
-      final mat2d = Float64List.fromList([2.0, 3.0, 4.0, 5.0]);
+    accelerationTest('dtrmv/dtrsv and strmv/strsv invert each other', () {
+      final a64 = Float64List.fromList([2.0, 3.0, 4.0, 5.0]);
+      final a32 = Float32List.fromList(a64);
       for (final uplo in [cblasUpper, cblasLower]) {
         for (final trans in [cblasNoTrans, cblasTrans]) {
           for (final diag in [cblasNonUnit, cblasUnit]) {
@@ -1031,11 +1079,25 @@ void main() {
                 trans: trans,
                 diag: diag,
                 n: 2,
-                a: mat2d,
+                a: a64,
                 lda: 2,
                 x: xd,
               ),
             ).isTrue;
+            check(
+              Blas.dtrsv(
+                uplo: uplo,
+                trans: trans,
+                diag: diag,
+                n: 2,
+                a: a64,
+                lda: 2,
+                x: xd,
+              ),
+            ).isTrue;
+            check(xd[0]).isCloseTo(1.0, 1e-10);
+            check(xd[1]).isCloseTo(2.0, 1e-10);
+
             final xf = Float32List.fromList([1.0, 2.0]);
             check(
               Blas.strmv(
@@ -1043,15 +1105,64 @@ void main() {
                 trans: trans,
                 diag: diag,
                 n: 2,
-                a: mat2f,
+                a: a32,
                 lda: 2,
                 x: xf,
               ),
             ).isTrue;
+            check(
+              Blas.strsv(
+                uplo: uplo,
+                trans: trans,
+                diag: diag,
+                n: 2,
+                a: a32,
+                lda: 2,
+                x: xf,
+              ),
+            ).isTrue;
+            check(xf[0]).isCloseTo(1.0, 1e-5);
+            check(xf[1]).isCloseTo(2.0, 1e-5);
+          }
+        }
+      }
+    });
 
-            final bd = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
-            final bf = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+    accelerationTest('dtrsv and strsv support negative strides', () {
+      // Lower triangular L = [2 0; 3 4]; x = [1, 2]
+      // Forward solve L*y = [2, 11] -> y = [1, 2]
+      // Logical order with incX = -1: stored [11.0, 2.0] -> x[0]=11 (logical idx 1), x[1]=2 (logical idx 0)
+      final l64 = Float64List.fromList([2.0, 0.0, 3.0, 4.0]);
+      final x64 = Float64List.fromList([11.0, 2.0]);
+      check(
+        Blas.dtrsv(uplo: cblasLower, n: 2, a: l64, lda: 2, x: x64, incX: -1),
+      ).isTrue;
+      check(x64[0]).isCloseTo(2.0, 1e-10);
+      check(x64[1]).isCloseTo(1.0, 1e-10);
+
+      final x32 = Float32List.fromList([11.0, 2.0]);
+      check(
+        Blas.strsv(
+          uplo: cblasLower,
+          n: 2,
+          a: Float32List.fromList(l64),
+          lda: 2,
+          x: x32,
+          incX: -1,
+        ),
+      ).isTrue;
+      check(x32[0]).isCloseTo(2.0, 1e-5);
+      check(x32[1]).isCloseTo(1.0, 1e-5);
+    });
+
+    accelerationTest('dtrmm/dtrsm and strmm/strsm invert each other', () {
+      final a64 = Float64List.fromList([2.0, 3.0, 4.0, 5.0]);
+      final a32 = Float32List.fromList(a64);
+      for (final uplo in [cblasUpper, cblasLower]) {
+        for (final trans in [cblasNoTrans, cblasTrans]) {
+          for (final diag in [cblasNonUnit, cblasUnit]) {
             for (final side in [cblasLeft, cblasRight]) {
+              final bd = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
               check(
                 Blas.dtrmm(
                   side: side,
@@ -1061,12 +1172,33 @@ void main() {
                   m: 2,
                   n: 2,
                   alpha: 2.0,
-                  a: mat2d,
+                  a: a64,
                   lda: 2,
                   b: bd,
                   ldb: 2,
                 ),
               ).isTrue;
+              check(
+                Blas.dtrsm(
+                  side: side,
+                  uplo: uplo,
+                  transA: trans,
+                  diag: diag,
+                  m: 2,
+                  n: 2,
+                  alpha: 0.5,
+                  a: a64,
+                  lda: 2,
+                  b: bd,
+                  ldb: 2,
+                ),
+              ).isTrue;
+              check(bd[0]).isCloseTo(1.0, 1e-10);
+              check(bd[1]).isCloseTo(2.0, 1e-10);
+              check(bd[2]).isCloseTo(3.0, 1e-10);
+              check(bd[3]).isCloseTo(4.0, 1e-10);
+
+              final bf = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
               check(
                 Blas.strmm(
                   side: side,
@@ -1076,27 +1208,75 @@ void main() {
                   m: 2,
                   n: 2,
                   alpha: 2.0,
-                  a: mat2f,
+                  a: a32,
                   lda: 2,
                   b: bf,
                   ldb: 2,
                 ),
               ).isTrue;
+              check(
+                Blas.strsm(
+                  side: side,
+                  uplo: uplo,
+                  transA: trans,
+                  diag: diag,
+                  m: 2,
+                  n: 2,
+                  alpha: 0.5,
+                  a: a32,
+                  lda: 2,
+                  b: bf,
+                  ldb: 2,
+                ),
+              ).isTrue;
+              check(bf[0]).isCloseTo(1.0, 1e-4);
+              check(bf[1]).isCloseTo(2.0, 1e-4);
+              check(bf[2]).isCloseTo(3.0, 1e-4);
+              check(bf[3]).isCloseTo(4.0, 1e-4);
             }
           }
         }
       }
+
+      // alpha == 0 zeros B without reading A
+      final bZero64 = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       check(
-        Blas.strmm(
+        Blas.dtrsm(
           m: 2,
           n: 2,
           alpha: 0.0,
-          a: mat2f,
+          a: Float64List.fromList([double.nan, 0.0, 0.0, 0.0]),
           lda: 2,
-          b: Float32List(4),
+          b: bZero64,
           ldb: 2,
         ),
       ).isTrue;
+      check(bZero64).deepEquals([0.0, 0.0, 0.0, 0.0]);
+
+      final bZero32 = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+      check(
+        Blas.strmm(m: 2, n: 2, alpha: 0.0, a: a32, lda: 2, b: bZero32, ldb: 2),
+      ).isTrue;
+      check(bZero32).deepEquals([0.0, 0.0, 0.0, 0.0]);
+    });
+
+    accelerationTest('dsyr2 and ssyr2 compute symmetric rank-2 update', () {
+      final syr2d = Float64List(4);
+      check(
+        Blas.dsyr2(
+          uplo: cblasLower,
+          n: 2,
+          alpha: 2.0,
+          x: Float64List.fromList([1.0, 2.0]),
+          y: Float64List.fromList([3.0, 4.0]),
+          a: syr2d,
+          lda: 2,
+        ),
+      ).isTrue;
+      check(syr2d[0]).isCloseTo(12.0, 1e-10);
+      check(syr2d[1]).isCloseTo(20.0, 1e-10);
+      check(syr2d[2]).isCloseTo(20.0, 1e-10);
+      check(syr2d[3]).isCloseTo(32.0, 1e-10);
 
       final syr2f = Float32List(4);
       check(
@@ -1110,24 +1290,17 @@ void main() {
           lda: 2,
         ),
       ).isTrue;
+      check(syr2f[0]).isCloseTo(12.0, 1e-5);
+      check(syr2f[1]).isCloseTo(20.0, 1e-5);
+      check(syr2f[2]).isCloseTo(20.0, 1e-5);
+      check(syr2f[3]).isCloseTo(32.0, 1e-5);
+    });
 
+    accelerationTest('dsyrk and ssyrk compute symmetric rank-k update', () {
+      final mat2d = Float64List.fromList([2.0, 3.0, 4.0, 5.0]);
+      final mat2f = Float32List.fromList(mat2d);
       for (final uplo in [cblasUpper, cblasLower]) {
         for (final trans in [cblasNoTrans, cblasTrans]) {
-          final cf = Float32List.fromList([1.0, 0.0, 0.0, 1.0]);
-          check(
-            Blas.ssyrk(
-              uplo: uplo,
-              trans: trans,
-              n: 2,
-              k: 2,
-              alpha: 1.5,
-              a: mat2f,
-              lda: 2,
-              beta: 0.5,
-              c: cf,
-              ldc: 2,
-            ),
-          ).isTrue;
           final cd = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
           check(
             Blas.dsyrk(
@@ -1143,7 +1316,26 @@ void main() {
               ldc: 2,
             ),
           ).isTrue;
+          check(cd[1]).isCloseTo(cd[2], 1e-10);
+
+          final cf = Float32List.fromList([1.0, 0.0, 0.0, 1.0]);
+          check(
+            Blas.ssyrk(
+              uplo: uplo,
+              trans: trans,
+              n: 2,
+              k: 2,
+              alpha: 1.5,
+              a: mat2f,
+              lda: 2,
+              beta: 0.5,
+              c: cf,
+              ldc: 2,
+            ),
+          ).isTrue;
+          check(cf[1]).isCloseTo(cf[2], 1e-5);
         }
+        final czf = Float32List.fromList([1.0, 2.0, 2.0, 3.0]);
         check(
           Blas.ssyrk(
             uplo: uplo,
@@ -1153,87 +1345,142 @@ void main() {
             a: mat2f,
             lda: 2,
             beta: 2.0,
-            c: Float32List(4),
+            c: czf,
             ldc: 2,
           ),
         ).isTrue;
-        for (final side in [cblasLeft, cblasRight]) {
-          check(
-            Blas.dsymm(
-              side: side,
-              uplo: uplo,
-              m: 2,
-              n: 2,
-              alpha: 1.0,
-              a: mat2d,
-              lda: 2,
-              b: mat2d,
-              ldb: 2,
-              beta: 0.5,
-              c: Float64List(4),
-              ldc: 2,
-            ),
-          ).isTrue;
-          check(
-            Blas.ssymm(
-              side: side,
-              uplo: uplo,
-              m: 2,
-              n: 2,
-              alpha: 1.0,
-              a: mat2f,
-              lda: 2,
-              b: mat2f,
-              ldb: 2,
-              beta: 0.5,
-              c: Float32List(4),
-              ldc: 2,
-            ),
-          ).isTrue;
-        }
+        check(czf[0]).isCloseTo(2.0, 1e-5);
+        check(czf[3]).isCloseTo(6.0, 1e-5);
       }
+    });
+
+    accelerationTest(
+      'dsymm and ssymm read only referenced triangle and mirror output',
+      () {
+        final aUpper = Float64List.fromList([
+          2.0, 3.0, //
+          double.nan, 5.0,
+        ]);
+        final aLower = Float64List.fromList([
+          2.0, double.nan, //
+          3.0, 5.0,
+        ]);
+        final b = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+        // Left: A * B = [2*1+3*3, 2*2+3*4; 3*1+5*3, 3*2+5*4] = [11, 16, 18, 26]
+        // Right: B * A = [1*2+2*3, 1*3+2*5; 3*2+4*3, 3*3+4*5] = [8, 13, 18, 29]
+        for (final (uplo, aMat) in [
+          (cblasUpper, aUpper),
+          (cblasLower, aLower),
+        ]) {
+          for (final side in [cblasLeft, cblasRight]) {
+            final c64 = Float64List(4)..fillRange(0, 4, 2.0);
+            check(
+              Blas.dsymm(
+                side: side,
+                uplo: uplo,
+                m: 2,
+                n: 2,
+                alpha: 1.0,
+                a: aMat,
+                lda: 2,
+                b: b,
+                ldb: 2,
+                beta: 0.5,
+                c: c64,
+                ldc: 2,
+              ),
+            ).isTrue;
+            final expected = side == cblasLeft
+                ? [12.0, 17.0, 19.0, 27.0]
+                : [9.0, 14.0, 19.0, 30.0];
+            for (var i = 0; i < 4; i++) {
+              check(c64[i]).isCloseTo(expected[i], 1e-10);
+            }
+
+            final c32 = Float32List(4)..fillRange(0, 4, 2.0);
+            check(
+              Blas.ssymm(
+                side: side,
+                uplo: uplo,
+                m: 2,
+                n: 2,
+                alpha: 1.0,
+                a: Float32List.fromList(aMat),
+                lda: 2,
+                b: Float32List.fromList(b),
+                ldb: 2,
+                beta: 0.5,
+                c: c32,
+                ldc: 2,
+              ),
+            ).isTrue;
+            for (var i = 0; i < 4; i++) {
+              check(c32[i]).isCloseTo(expected[i], 1e-5);
+            }
+          }
+        }
+
+        // alpha == 0 paths
+        final cAlpha0 = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+        check(
+          Blas.dsymm(
+            m: 2,
+            n: 2,
+            alpha: 0.0,
+            a: aUpper,
+            lda: 2,
+            b: b,
+            ldb: 2,
+            beta: 2.0,
+            c: cAlpha0,
+            ldc: 2,
+          ),
+        ).isTrue;
+        check(cAlpha0).deepEquals([2.0, 4.0, 6.0, 8.0]);
+
+        final cAlpha0f = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+        check(
+          Blas.ssymm(
+            m: 2,
+            n: 2,
+            alpha: 0.0,
+            a: Float32List.fromList(aLower),
+            lda: 2,
+            b: Float32List.fromList(b),
+            ldb: 2,
+            beta: 0.0,
+            c: cAlpha0f,
+            ldc: 2,
+          ),
+        ).isTrue;
+        check(cAlpha0f).deepEquals([0.0, 0.0, 0.0, 0.0]);
+      },
+    );
+
+    test('dtrsv, strsv, dtrsm, and strsm validate arguments and bounds', () {
+      final a64 = Float64List(4);
+      final x64 = Float64List(2);
+      final a32 = Float32List(4);
+      final x32 = Float32List(2);
+      check(() => Blas.dtrsv(uplo: 999, n: 2, a: a64, lda: 2, x: x64))
+          .throws<ArgumentError>();
+      check(() => Blas.strsv(diag: 999, n: 2, a: a32, lda: 2, x: x32))
+          .throws<ArgumentError>();
+      check(() => Blas.dtrsv(n: 2, a: a64, lda: 2, x: x64, incX: 0))
+          .throws<ArgumentError>();
       check(
-        Blas.dsymm(
-          m: 2,
-          n: 2,
-          alpha: 0.0,
-          a: mat2d,
-          lda: 2,
-          b: mat2d,
-          ldb: 2,
-          beta: 2.0,
-          c: Float64List(4),
-          ldc: 2,
-        ),
-      ).isTrue;
+        () => Blas.dtrsm(side: 999, m: 2, n: 2, a: a64, lda: 2, b: a64, ldb: 2),
+      ).throws<ArgumentError>();
       check(
-        Blas.ssymm(
-          m: 2,
-          n: 2,
-          alpha: 0.0,
-          a: mat2f,
-          lda: 2,
-          b: mat2f,
-          ldb: 2,
-          beta: 0.0,
-          c: Float32List(4),
-          ldc: 2,
-        ),
-      ).isTrue;
+        () =>
+            Blas.strsm(transA: 999, m: 2, n: 2, a: a32, lda: 2, b: a32, ldb: 2),
+      ).throws<ArgumentError>();
       check(
-        Blas.ssymm(
-          m: 2,
-          n: 2,
-          alpha: 0.0,
-          a: mat2f,
-          lda: 2,
-          b: mat2f,
-          ldb: 2,
-          beta: 2.0,
-          c: Float32List(4),
-          ldc: 2,
-        ),
-      ).isTrue;
+        () => Blas.dtrsm(m: 2, n: 2, a: Float64List(2), lda: 2, b: a64, ldb: 2),
+      ).throws<RangeError>();
+      check(
+        () => Blas.strsm(m: 2, n: 2, a: a32, lda: 2, b: Float32List(2), ldb: 2),
+      ).throws<RangeError>();
     });
   });
 }

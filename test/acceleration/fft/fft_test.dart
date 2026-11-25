@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../test_utils.dart';
 
@@ -128,9 +128,58 @@ void main() {
         }
       }
 
-      // Fft.fft2 buffer length mismatch throws ArgumentError
+      // Fft.fft2 buffer length mismatch and negative dimensions throw ArgumentError
       check(() => Fft.fft2(buffer: Float64ComplexList(3), rows: 2, cols: 2))
           .throws<ArgumentError>();
+      check(() => Fft.fft2(buffer: Float64ComplexList(4), rows: 0, cols: 4))
+          .throws<ArgumentError>();
+      check(() => Fft.fft2(buffer: Float64ComplexList(4), rows: -2, cols: 2))
+          .throws<ArgumentError>();
+      check(() => Fft.fft2(buffer: Float64ComplexList(4), rows: 2, cols: -2))
+          .throws<ArgumentError>();
+
+      // Fft.nextPowerOf2 forwards cleanly
+      check(Fft.nextPowerOf2(value: 0)).equals(1);
+      check(Fft.nextPowerOf2(value: 8)).equals(8);
+      check(Fft.nextPowerOf2(value: 9)).equals(16);
     }, isSupported: Fft.isAvailable);
+
+    accelerationTest(
+      '1D and 2D FFT / IFFT handle f*2^p and composite non-power-of-two sizes',
+      () {
+        for (final n in [12, 24, 30, 48]) {
+          final buffer = Float64ComplexList(n);
+          for (var i = 0; i < n; i++) {
+            buffer[i] = Complex((i + 1).toDouble(), ((n - i) % 5).toDouble());
+          }
+          final orig = Float64List.fromList(buffer.data);
+
+          Fft.fft(buffer: buffer);
+          Fft.fft(buffer: buffer, inverse: true);
+
+          for (var i = 0; i < n; i++) {
+            check(buffer[i].a).isCloseTo(orig[2 * i], 1e-9);
+            check(buffer[i].b).isCloseTo(orig[2 * i + 1], 1e-9);
+          }
+        }
+
+        const rows = 12;
+        const cols = 20;
+        final buffer2d = Float64ComplexList(rows * cols);
+        for (var i = 0; i < rows * cols; i++) {
+          buffer2d[i] = Complex((i % 11).toDouble(), ((i * 3) % 7).toDouble());
+        }
+        final orig2d = Float64List.fromList(buffer2d.data);
+
+        Fft.fft2(buffer: buffer2d, rows: rows, cols: cols);
+        Fft.fft2(buffer: buffer2d, rows: rows, cols: cols, inverse: true);
+
+        for (var i = 0; i < rows * cols; i++) {
+          check(buffer2d[i].a).isCloseTo(orig2d[2 * i], 1e-9);
+          check(buffer2d[i].b).isCloseTo(orig2d[2 * i + 1], 1e-9);
+        }
+      },
+      isSupported: Fft.isAvailable,
+    );
   });
 }

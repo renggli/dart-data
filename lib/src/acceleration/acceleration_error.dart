@@ -1,7 +1,7 @@
 import 'acceleration_mode.dart';
 
 /// Base class for errors thrown by the acceleration subsystem.
-abstract class AccelerationError extends StateError {
+sealed class AccelerationError extends StateError {
   /// Constructs an [AccelerationError] with a descriptive [message].
   new(super.message);
 
@@ -17,7 +17,7 @@ abstract class AccelerationError extends StateError {
 /// Error thrown when hardware acceleration is requested in
 /// [AccelerationMode.accelerated] but is unsupported or unavailable on the
 /// current platform.
-class AccelerationUnavailableError extends AccelerationError {
+final class AccelerationUnavailableError extends AccelerationError {
   /// Creates an error indicating that [feature] acceleration is unavailable.
   new(this.feature) : super('Native $feature acceleration is unavailable.');
 
@@ -26,7 +26,7 @@ class AccelerationUnavailableError extends AccelerationError {
 }
 
 /// Error thrown when native hardware execution of an accelerated operation fails.
-class AccelerationFailedError extends AccelerationError {
+final class AccelerationFailedError extends AccelerationError {
   /// Creates an error indicating that native execution of [operation] failed.
   new(this.operation) : super('Native $operation execution failed.');
 

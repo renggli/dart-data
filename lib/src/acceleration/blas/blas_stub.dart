@@ -4,8 +4,6 @@ import 'dart:typed_data';
 /// Stub for native BLAS when FFI is unavailable.
 abstract final class BlasNative {
   static bool get isAvailable => false;
-  static bool get hasDgemm => false;
-  static bool get hasSgemm => false;
 
   static double? ddot({
     required int n,
@@ -169,6 +167,32 @@ abstract final class BlasNative {
     required int incX,
   }) => false;
 
+  static bool dtrsv({
+    required int uplo,
+    required int trans,
+    required int diag,
+    required int n,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List x,
+    required int xOffset,
+    required int incX,
+  }) => false;
+
+  static bool strsv({
+    required int uplo,
+    required int trans,
+    required int diag,
+    required int n,
+    required Float32List a,
+    required int aOffset,
+    required int lda,
+    required Float32List x,
+    required int xOffset,
+    required int incX,
+  }) => false;
+
   static bool dgemm({
     required int transA,
     required int transB,
@@ -290,6 +314,38 @@ abstract final class BlasNative {
   }) => false;
 
   static bool strmm({
+    required int side,
+    required int uplo,
+    required int transA,
+    required int diag,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float32List a,
+    required int aOffset,
+    required int lda,
+    required Float32List b,
+    required int bOffset,
+    required int ldb,
+  }) => false;
+
+  static bool dtrsm({
+    required int side,
+    required int uplo,
+    required int transA,
+    required int diag,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List b,
+    required int bOffset,
+    required int ldb,
+  }) => false;
+
+  static bool strsm({
     required int side,
     required int uplo,
     required int transA,

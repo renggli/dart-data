@@ -60,7 +60,7 @@ abstract final class BlasDart {
 
   /// Computes Euclidean norm of a [Float64List] vector.
   ///
-  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
+  /// Conforming to CBLAS specification, negative strides ([incX] <= 0)
   /// return `0.0`.
   static double dnrm2({
     required int n,
@@ -79,7 +79,7 @@ abstract final class BlasDart {
 
   /// Computes Euclidean norm of a [Float32List] vector.
   ///
-  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
+  /// Conforming to CBLAS specification, negative strides ([incX] <= 0)
   /// return `0.0`.
   static double snrm2({
     required int n,
@@ -146,7 +146,7 @@ abstract final class BlasDart {
 
   /// In-place scaling `x = alpha * x` for [Float64List].
   ///
-  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
+  /// Conforming to CBLAS specification, non-positive strides ([incX] <= 0)
   /// are a no-op.
   static bool dscal({
     required int n,
@@ -164,7 +164,7 @@ abstract final class BlasDart {
 
   /// In-place scaling `x = alpha * x` for [Float32List].
   ///
-  /// Conforming to CBLAS specification, non-positive strides ([incX] $\le 0$)
+  /// Conforming to CBLAS specification, non-positive strides ([incX] <= 0)
   /// are a no-op.
   static bool sscal({
     required int n,
@@ -374,7 +374,8 @@ abstract final class BlasDart {
     return true;
   }
 
-  /// Computes matrix-vector product for a triangular matrix for [Float64List].
+  /// Computes matrix-vector product for a triangular matrix in-place without
+  /// auxiliary allocations for [Float64List].
   static bool dtrmv({
     required int uplo,
     required int trans,
@@ -388,38 +389,62 @@ abstract final class BlasDart {
     required int incX,
   }) {
     if (n <= 0) return true;
-    final temp = Float64List(n);
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
     final isNoTrans = trans == cblasNoTrans;
     final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
 
-    for (var i = 0; i < n; i++) {
-      var sum = 0.0;
-      if (isNoTrans) {
-        final start = isUpper ? i : 0;
-        final end = isUpper ? n : i + 1;
-        for (var j = start; j < end; j++) {
-          final aVal = (i == j && isUnit) ? 1.0 : a[aOffset + i * lda + j];
-          sum += aVal * x[startX + j * incX];
+    // Effective upper when (Upper, NoTrans) or (Lower, Trans).
+    // Safe in-place order: forward i = 0..n-1 for effective upper,
+    // backward i = n-1..0 for effective lower.
+    if (isUpper && isNoTrans) {
+      for (var i = 0; i < n; i++) {
+        var sum = isUnit
+            ? x[startX + i * incX]
+            : a[aOffset + i * lda + i] * x[startX + i * incX];
+        final aRow = aOffset + i * lda;
+        for (var j = i + 1; j < n; j++) {
+          sum += a[aRow + j] * x[startX + j * incX];
         }
-      } else {
-        final start = isUpper ? 0 : i;
-        final end = isUpper ? i + 1 : n;
-        for (var j = start; j < end; j++) {
-          final aVal = (i == j && isUnit) ? 1.0 : a[aOffset + j * lda + i];
-          sum += aVal * x[startX + j * incX];
-        }
+        x[startX + i * incX] = sum;
       }
-      temp[i] = sum;
-    }
-    for (var i = 0; i < n; i++) {
-      x[startX + i * incX] = temp[i];
+    } else if (!isUpper && isNoTrans) {
+      for (var i = n - 1; i >= 0; i--) {
+        final aRow = aOffset + i * lda;
+        var sum = isUnit
+            ? x[startX + i * incX]
+            : a[aRow + i] * x[startX + i * incX];
+        for (var j = 0; j < i; j++) {
+          sum += a[aRow + j] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = sum;
+      }
+    } else if (isUpper && !isNoTrans) {
+      for (var i = n - 1; i >= 0; i--) {
+        var sum = isUnit
+            ? x[startX + i * incX]
+            : a[aOffset + i * lda + i] * x[startX + i * incX];
+        for (var j = 0; j < i; j++) {
+          sum += a[aOffset + j * lda + i] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = sum;
+      }
+    } else {
+      for (var i = 0; i < n; i++) {
+        var sum = isUnit
+            ? x[startX + i * incX]
+            : a[aOffset + i * lda + i] * x[startX + i * incX];
+        for (var j = i + 1; j < n; j++) {
+          sum += a[aOffset + j * lda + i] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = sum;
+      }
     }
     return true;
   }
 
-  /// Computes matrix-vector product for a triangular matrix for [Float32List].
+  /// Computes matrix-vector product for a triangular matrix in-place without
+  /// auxiliary allocations for [Float32List].
   static bool strmv({
     required int uplo,
     required int trans,
@@ -433,40 +458,176 @@ abstract final class BlasDart {
     required int incX,
   }) {
     if (n <= 0) return true;
-    final temp = Float32List(n);
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
     final isNoTrans = trans == cblasNoTrans;
     final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
 
-    for (var i = 0; i < n; i++) {
-      var sum = 0.0;
-      if (isNoTrans) {
-        final start = isUpper ? i : 0;
-        final end = isUpper ? n : i + 1;
-        for (var j = start; j < end; j++) {
-          final aVal = (i == j && isUnit) ? 1.0 : a[aOffset + i * lda + j];
-          sum += aVal * x[startX + j * incX];
+    if (isUpper && isNoTrans) {
+      for (var i = 0; i < n; i++) {
+        var sum = isUnit
+            ? x[startX + i * incX]
+            : a[aOffset + i * lda + i] * x[startX + i * incX];
+        final aRow = aOffset + i * lda;
+        for (var j = i + 1; j < n; j++) {
+          sum += a[aRow + j] * x[startX + j * incX];
         }
-      } else {
-        final start = isUpper ? 0 : i;
-        final end = isUpper ? i + 1 : n;
-        for (var j = start; j < end; j++) {
-          final aVal = (i == j && isUnit) ? 1.0 : a[aOffset + j * lda + i];
-          sum += aVal * x[startX + j * incX];
-        }
+        x[startX + i * incX] = sum;
       }
-      temp[i] = sum;
+    } else if (!isUpper && isNoTrans) {
+      for (var i = n - 1; i >= 0; i--) {
+        final aRow = aOffset + i * lda;
+        var sum = isUnit
+            ? x[startX + i * incX]
+            : a[aRow + i] * x[startX + i * incX];
+        for (var j = 0; j < i; j++) {
+          sum += a[aRow + j] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = sum;
+      }
+    } else if (isUpper && !isNoTrans) {
+      for (var i = n - 1; i >= 0; i--) {
+        var sum = isUnit
+            ? x[startX + i * incX]
+            : a[aOffset + i * lda + i] * x[startX + i * incX];
+        for (var j = 0; j < i; j++) {
+          sum += a[aOffset + j * lda + i] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = sum;
+      }
+    } else {
+      for (var i = 0; i < n; i++) {
+        var sum = isUnit
+            ? x[startX + i * incX]
+            : a[aOffset + i * lda + i] * x[startX + i * incX];
+        for (var j = i + 1; j < n; j++) {
+          sum += a[aOffset + j * lda + i] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = sum;
+      }
     }
-    for (var i = 0; i < n; i++) {
-      x[startX + i * incX] = temp[i];
+    return true;
+  }
+
+  /// Solves the triangular linear system `op(A) * x = b` in-place for
+  /// [Float64List].
+  static bool dtrsv({
+    required int uplo,
+    required int trans,
+    required int diag,
+    required int n,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List x,
+    required int xOffset,
+    required int incX,
+  }) {
+    if (n <= 0) return true;
+    final isUpper = uplo == cblasUpper;
+    final isUnit = diag == cblasUnit;
+    final isNoTrans = trans == cblasNoTrans;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+
+    if (isUpper && isNoTrans) {
+      for (var i = n - 1; i >= 0; i--) {
+        final aRow = aOffset + i * lda;
+        var sum = x[startX + i * incX];
+        for (var j = i + 1; j < n; j++) {
+          sum -= a[aRow + j] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = isUnit ? sum : sum / a[aRow + i];
+      }
+    } else if (!isUpper && isNoTrans) {
+      for (var i = 0; i < n; i++) {
+        final aRow = aOffset + i * lda;
+        var sum = x[startX + i * incX];
+        for (var j = 0; j < i; j++) {
+          sum -= a[aRow + j] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = isUnit ? sum : sum / a[aRow + i];
+      }
+    } else if (isUpper && !isNoTrans) {
+      for (var i = 0; i < n; i++) {
+        var sum = x[startX + i * incX];
+        for (var j = 0; j < i; j++) {
+          sum -= a[aOffset + j * lda + i] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = isUnit ? sum : sum / a[aOffset + i * lda + i];
+      }
+    } else {
+      for (var i = n - 1; i >= 0; i--) {
+        var sum = x[startX + i * incX];
+        for (var j = i + 1; j < n; j++) {
+          sum -= a[aOffset + j * lda + i] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = isUnit ? sum : sum / a[aOffset + i * lda + i];
+      }
+    }
+    return true;
+  }
+
+  /// Solves the triangular linear system `op(A) * x = b` in-place for
+  /// [Float32List].
+  static bool strsv({
+    required int uplo,
+    required int trans,
+    required int diag,
+    required int n,
+    required Float32List a,
+    required int aOffset,
+    required int lda,
+    required Float32List x,
+    required int xOffset,
+    required int incX,
+  }) {
+    if (n <= 0) return true;
+    final isUpper = uplo == cblasUpper;
+    final isUnit = diag == cblasUnit;
+    final isNoTrans = trans == cblasNoTrans;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+
+    if (isUpper && isNoTrans) {
+      for (var i = n - 1; i >= 0; i--) {
+        final aRow = aOffset + i * lda;
+        var sum = x[startX + i * incX];
+        for (var j = i + 1; j < n; j++) {
+          sum -= a[aRow + j] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = isUnit ? sum : sum / a[aRow + i];
+      }
+    } else if (!isUpper && isNoTrans) {
+      for (var i = 0; i < n; i++) {
+        final aRow = aOffset + i * lda;
+        var sum = x[startX + i * incX];
+        for (var j = 0; j < i; j++) {
+          sum -= a[aRow + j] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = isUnit ? sum : sum / a[aRow + i];
+      }
+    } else if (isUpper && !isNoTrans) {
+      for (var i = 0; i < n; i++) {
+        var sum = x[startX + i * incX];
+        for (var j = 0; j < i; j++) {
+          sum -= a[aOffset + j * lda + i] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = isUnit ? sum : sum / a[aOffset + i * lda + i];
+      }
+    } else {
+      for (var i = n - 1; i >= 0; i--) {
+        var sum = x[startX + i * incX];
+        for (var j = i + 1; j < n; j++) {
+          sum -= a[aOffset + j * lda + i] * x[startX + j * incX];
+        }
+        x[startX + i * incX] = isUnit ? sum : sum / a[aOffset + i * lda + i];
+      }
     }
     return true;
   }
 
   // --- BLAS Level 3: Matrix-Matrix Operations ---
 
-  /// General matrix multiplication $C = \alpha \operatorname{op}(A) \operatorname{op}(B) + \beta C$
+  /// General matrix multiplication `C = alpha * op(A) * op(B) + beta * C`
   /// for [Float64List].
   static bool dgemm({
     required int transA,
@@ -597,22 +758,40 @@ abstract final class BlasDart {
       }
     } else {
       // Both transposed
-      for (var i = 0; i < m; i++) {
-        final cRow = cOffset + i * ldc;
-        for (var j = 0; j < n; j++) {
-          final bRow = bOffset + j * ldb;
-          var sum = 0.0;
-          for (var p = 0; p < k; p++) {
-            sum += a[aOffset + p * lda + i] * b[bRow + p];
+      for (var ii = 0; ii < m; ii += _gemmBlockSize) {
+        final iLimit = math.min(ii + _gemmBlockSize, m);
+        for (var jj = 0; jj < n; jj += _gemmBlockSize) {
+          final jLimit = math.min(jj + _gemmBlockSize, n);
+          for (var kk = 0; kk < k; kk += _gemmBlockSize) {
+            final kLimit = math.min(kk + _gemmBlockSize, k);
+            for (var i = ii; i < iLimit; i++) {
+              final cRow = cOffset + i * ldc;
+              for (var j = jj; j < jLimit; j++) {
+                final bRow = bOffset + j * ldb;
+                var sum = 0.0;
+                var p = kk;
+                final unrolledEnd = kk + ((kLimit - kk) & ~3);
+                for (; p < unrolledEnd; p += 4) {
+                  sum +=
+                      a[aOffset + p * lda + i] * b[bRow + p] +
+                      a[aOffset + (p + 1) * lda + i] * b[bRow + p + 1] +
+                      a[aOffset + (p + 2) * lda + i] * b[bRow + p + 2] +
+                      a[aOffset + (p + 3) * lda + i] * b[bRow + p + 3];
+                }
+                for (; p < kLimit; p++) {
+                  sum += a[aOffset + p * lda + i] * b[bRow + p];
+                }
+                c[cRow + j] += alpha * sum;
+              }
+            }
           }
-          c[cRow + j] += alpha * sum;
         }
       }
     }
     return true;
   }
 
-  /// General matrix multiplication $C = \alpha \operatorname{op}(A) \operatorname{op}(B) + \beta C$
+  /// General matrix multiplication `C = alpha * op(A) * op(B) + beta * C`
   /// for [Float32List].
   static bool sgemm({
     required int transA,
@@ -742,23 +921,41 @@ abstract final class BlasDart {
         }
       }
     } else {
-      for (var i = 0; i < m; i++) {
-        final cRow = cOffset + i * ldc;
-        for (var j = 0; j < n; j++) {
-          final bRow = bOffset + j * ldb;
-          var sum = 0.0;
-          for (var p = 0; p < k; p++) {
-            sum += a[aOffset + p * lda + i] * b[bRow + p];
+      for (var ii = 0; ii < m; ii += _gemmBlockSize) {
+        final iLimit = math.min(ii + _gemmBlockSize, m);
+        for (var jj = 0; jj < n; jj += _gemmBlockSize) {
+          final jLimit = math.min(jj + _gemmBlockSize, n);
+          for (var kk = 0; kk < k; kk += _gemmBlockSize) {
+            final kLimit = math.min(kk + _gemmBlockSize, k);
+            for (var i = ii; i < iLimit; i++) {
+              final cRow = cOffset + i * ldc;
+              for (var j = jj; j < jLimit; j++) {
+                final bRow = bOffset + j * ldb;
+                var sum = 0.0;
+                var p = kk;
+                final unrolledEnd = kk + ((kLimit - kk) & ~3);
+                for (; p < unrolledEnd; p += 4) {
+                  sum +=
+                      a[aOffset + p * lda + i] * b[bRow + p] +
+                      a[aOffset + (p + 1) * lda + i] * b[bRow + p + 1] +
+                      a[aOffset + (p + 2) * lda + i] * b[bRow + p + 2] +
+                      a[aOffset + (p + 3) * lda + i] * b[bRow + p + 3];
+                }
+                for (; p < kLimit; p++) {
+                  sum += a[aOffset + p * lda + i] * b[bRow + p];
+                }
+                c[cRow + j] += alpha * sum;
+              }
+            }
           }
-          c[cRow + j] += alpha * sum;
         }
       }
     }
     return true;
   }
 
-  /// Performs symmetric rank-$k$ update: $C = \alpha A A^T + \beta C$ or
-  /// $C = \alpha A^T A + \beta C$ for [Float64List].
+  /// Performs symmetric rank-k update: `C = alpha * A * A^T + beta * C` or
+  /// `C = alpha * A^T * A + beta * C` for [Float64List].
   static bool dsyrk({
     required int uplo,
     required int trans,
@@ -810,7 +1007,7 @@ abstract final class BlasDart {
     return true;
   }
 
-  /// Performs symmetric rank-$k$ update for [Float32List].
+  /// Performs symmetric rank-k update for [Float32List].
   static bool ssyrk({
     required int uplo,
     required int trans,
@@ -862,8 +1059,8 @@ abstract final class BlasDart {
     return true;
   }
 
-  /// Performs symmetric matrix-matrix multiplication $C = \alpha A B + \beta C$
-  /// or $C = \alpha B A + \beta C$ for [Float64List].
+  /// Performs symmetric matrix-matrix multiplication `C = alpha * A * B + beta * C`
+  /// or `C = alpha * B * A + beta * C` for [Float64List].
   static bool dsymm({
     required int side,
     required int uplo,
@@ -900,26 +1097,67 @@ abstract final class BlasDart {
     }
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        if (isLeft) {
-          for (var k = 0; k < m; k++) {
-            final aVal = (isUpper ? (k >= i) : (k <= i))
-                ? a[aOffset + (isUpper ? i * lda + k : k * lda + i)]
-                : a[aOffset + (isUpper ? k * lda + i : i * lda + k)];
-            sum += aVal * b[bOffset + k * ldb + j];
+    if (isLeft && isUpper) {
+      for (var i = 0; i < m; i++) {
+        for (var j = 0; j < n; j++) {
+          var sum = 0.0;
+          for (var k = 0; k < i; k++) {
+            sum += a[aOffset + k * lda + i] * b[bOffset + k * ldb + j];
           }
-        } else {
-          for (var k = 0; k < n; k++) {
-            final aVal = (isUpper ? (k >= j) : (k <= j))
-                ? a[aOffset + (isUpper ? j * lda + k : k * lda + j)]
-                : a[aOffset + (isUpper ? k * lda + j : j * lda + k)];
-            sum += b[bOffset + i * ldb + k] * aVal;
+          final aRow = aOffset + i * lda;
+          for (var k = i; k < m; k++) {
+            sum += a[aRow + k] * b[bOffset + k * ldb + j];
           }
+          final cIdx = cOffset + i * ldc + j;
+          c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
         }
-        final cIdx = cOffset + i * ldc + j;
-        c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
+      }
+    } else if (isLeft && !isUpper) {
+      for (var i = 0; i < m; i++) {
+        for (var j = 0; j < n; j++) {
+          var sum = 0.0;
+          final aRow = aOffset + i * lda;
+          for (var k = 0; k <= i; k++) {
+            sum += a[aRow + k] * b[bOffset + k * ldb + j];
+          }
+          for (var k = i + 1; k < m; k++) {
+            sum += a[aOffset + k * lda + i] * b[bOffset + k * ldb + j];
+          }
+          final cIdx = cOffset + i * ldc + j;
+          c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
+        }
+      }
+    } else if (!isLeft && isUpper) {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        final cRow = cOffset + i * ldc;
+        for (var j = 0; j < n; j++) {
+          var sum = 0.0;
+          for (var k = 0; k < j; k++) {
+            sum += b[bRow + k] * a[aOffset + k * lda + j];
+          }
+          final aRow = aOffset + j * lda;
+          for (var k = j; k < n; k++) {
+            sum += b[bRow + k] * a[aRow + k];
+          }
+          c[cRow + j] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cRow + j]);
+        }
+      }
+    } else {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        final cRow = cOffset + i * ldc;
+        for (var j = 0; j < n; j++) {
+          var sum = 0.0;
+          final aRow = aOffset + j * lda;
+          for (var k = 0; k <= j; k++) {
+            sum += b[bRow + k] * a[aRow + k];
+          }
+          for (var k = j + 1; k < n; k++) {
+            sum += b[bRow + k] * a[aOffset + k * lda + j];
+          }
+          c[cRow + j] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cRow + j]);
+        }
       }
     }
     return true;
@@ -962,33 +1200,74 @@ abstract final class BlasDart {
     }
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        if (isLeft) {
-          for (var k = 0; k < m; k++) {
-            final aVal = (isUpper ? (k >= i) : (k <= i))
-                ? a[aOffset + (isUpper ? i * lda + k : k * lda + i)]
-                : a[aOffset + (isUpper ? k * lda + i : i * lda + k)];
-            sum += aVal * b[bOffset + k * ldb + j];
+    if (isLeft && isUpper) {
+      for (var i = 0; i < m; i++) {
+        for (var j = 0; j < n; j++) {
+          var sum = 0.0;
+          for (var k = 0; k < i; k++) {
+            sum += a[aOffset + k * lda + i] * b[bOffset + k * ldb + j];
           }
-        } else {
-          for (var k = 0; k < n; k++) {
-            final aVal = (isUpper ? (k >= j) : (k <= j))
-                ? a[aOffset + (isUpper ? j * lda + k : k * lda + j)]
-                : a[aOffset + (isUpper ? k * lda + j : j * lda + k)];
-            sum += b[bOffset + i * ldb + k] * aVal;
+          final aRow = aOffset + i * lda;
+          for (var k = i; k < m; k++) {
+            sum += a[aRow + k] * b[bOffset + k * ldb + j];
           }
+          final cIdx = cOffset + i * ldc + j;
+          c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
         }
-        final cIdx = cOffset + i * ldc + j;
-        c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
+      }
+    } else if (isLeft && !isUpper) {
+      for (var i = 0; i < m; i++) {
+        for (var j = 0; j < n; j++) {
+          var sum = 0.0;
+          final aRow = aOffset + i * lda;
+          for (var k = 0; k <= i; k++) {
+            sum += a[aRow + k] * b[bOffset + k * ldb + j];
+          }
+          for (var k = i + 1; k < m; k++) {
+            sum += a[aOffset + k * lda + i] * b[bOffset + k * ldb + j];
+          }
+          final cIdx = cOffset + i * ldc + j;
+          c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
+        }
+      }
+    } else if (!isLeft && isUpper) {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        final cRow = cOffset + i * ldc;
+        for (var j = 0; j < n; j++) {
+          var sum = 0.0;
+          for (var k = 0; k < j; k++) {
+            sum += b[bRow + k] * a[aOffset + k * lda + j];
+          }
+          final aRow = aOffset + j * lda;
+          for (var k = j; k < n; k++) {
+            sum += b[bRow + k] * a[aRow + k];
+          }
+          c[cRow + j] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cRow + j]);
+        }
+      }
+    } else {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        final cRow = cOffset + i * ldc;
+        for (var j = 0; j < n; j++) {
+          var sum = 0.0;
+          final aRow = aOffset + j * lda;
+          for (var k = 0; k <= j; k++) {
+            sum += b[bRow + k] * a[aRow + k];
+          }
+          for (var k = j + 1; k < n; k++) {
+            sum += b[bRow + k] * a[aOffset + k * lda + j];
+          }
+          c[cRow + j] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cRow + j]);
+        }
       }
     }
     return true;
   }
 
-  /// Performs triangular matrix-matrix multiplication $B = \alpha \operatorname{op}(A) B$
-  /// or $B = \alpha B \operatorname{op}(A)$ for [Float64List].
+  /// Performs triangular matrix-matrix multiplication `B = alpha * op(A) * B`
+  /// or `B = alpha * B * op(A)` in-place for [Float64List].
   static bool dtrmm({
     required int side,
     required int uplo,
@@ -1012,63 +1291,132 @@ abstract final class BlasDart {
       }
       return true;
     }
-    final temp = Float64List(m * n);
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
     final isTransA = transA == cblasTrans || transA == cblasConjTrans;
 
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        if (isLeft) {
-          if (!isTransA) {
-            final start = isUpper ? i : 0;
-            final end = isUpper ? m : i + 1;
-            for (var k = start; k < end; k++) {
-              final aVal = (i == k && isUnit) ? 1.0 : a[aOffset + i * lda + k];
-              sum += aVal * b[bOffset + k * ldb + j];
-            }
-          } else {
-            final start = isUpper ? 0 : i;
-            final end = isUpper ? i + 1 : m;
-            for (var k = start; k < end; k++) {
-              final aVal = (i == k && isUnit) ? 1.0 : a[aOffset + k * lda + i];
-              sum += aVal * b[bOffset + k * ldb + j];
-            }
+    if (isLeft) {
+      if (isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          final diagScale = isUnit ? alpha : alpha * a[aOffset + i * lda + i];
+          for (var j = 0; j < n; j++) {
+            b[bRow + j] *= diagScale;
           }
-        } else {
-          if (!isTransA) {
-            final start = isUpper ? 0 : j;
-            final end = isUpper ? j + 1 : n;
-            for (var k = start; k < end; k++) {
-              final aVal = (k == j && isUnit) ? 1.0 : a[aOffset + k * lda + j];
-              sum += b[bOffset + i * ldb + k] * aVal;
-            }
-          } else {
-            final start = isUpper ? j : 0;
-            final end = isUpper ? n : j + 1;
-            for (var k = start; k < end; k++) {
-              final aVal = (j == k && isUnit) ? 1.0 : a[aOffset + j * lda + k];
-              sum += b[bOffset + i * ldb + k] * aVal;
+          for (var k = i + 1; k < m; k++) {
+            final aVal = alpha * a[aOffset + i * lda + k];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] += aVal * b[bkRow + j];
             }
           }
         }
-        temp[i * n + j] = alpha * sum;
+      } else if (!isUpper && !isTransA) {
+        for (var i = m - 1; i >= 0; i--) {
+          final bRow = bOffset + i * ldb;
+          final diagScale = isUnit ? alpha : alpha * a[aOffset + i * lda + i];
+          for (var j = 0; j < n; j++) {
+            b[bRow + j] *= diagScale;
+          }
+          for (var k = 0; k < i; k++) {
+            final aVal = alpha * a[aOffset + i * lda + k];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] += aVal * b[bkRow + j];
+            }
+          }
+        }
+      } else if (isUpper && isTransA) {
+        for (var i = m - 1; i >= 0; i--) {
+          final bRow = bOffset + i * ldb;
+          final diagScale = isUnit ? alpha : alpha * a[aOffset + i * lda + i];
+          for (var j = 0; j < n; j++) {
+            b[bRow + j] *= diagScale;
+          }
+          for (var k = 0; k < i; k++) {
+            final aVal = alpha * a[aOffset + k * lda + i];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] += aVal * b[bkRow + j];
+            }
+          }
+        }
+      } else {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          final diagScale = isUnit ? alpha : alpha * a[aOffset + i * lda + i];
+          for (var j = 0; j < n; j++) {
+            b[bRow + j] *= diagScale;
+          }
+          for (var k = i + 1; k < m; k++) {
+            final aVal = alpha * a[aOffset + k * lda + i];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] += aVal * b[bkRow + j];
+            }
+          }
+        }
       }
-    }
-
-    for (var i = 0; i < m; i++) {
-      final bRow = bOffset + i * ldb;
-      final tempRow = i * n;
-      for (var j = 0; j < n; j++) {
-        b[bRow + j] = temp[tempRow + j];
+    } else {
+      if (isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = n - 1; j >= 0; j--) {
+            var sum = isUnit
+                ? alpha * b[bRow + j]
+                : alpha * b[bRow + j] * a[aOffset + j * lda + j];
+            for (var k = 0; k < j; k++) {
+              sum += alpha * b[bRow + k] * a[aOffset + k * lda + j];
+            }
+            b[bRow + j] = sum;
+          }
+        }
+      } else if (!isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = 0; j < n; j++) {
+            var sum = isUnit
+                ? alpha * b[bRow + j]
+                : alpha * b[bRow + j] * a[aOffset + j * lda + j];
+            for (var k = j + 1; k < n; k++) {
+              sum += alpha * b[bRow + k] * a[aOffset + k * lda + j];
+            }
+            b[bRow + j] = sum;
+          }
+        }
+      } else if (isUpper && isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = 0; j < n; j++) {
+            var sum = isUnit
+                ? alpha * b[bRow + j]
+                : alpha * b[bRow + j] * a[aOffset + j * lda + j];
+            for (var k = j + 1; k < n; k++) {
+              sum += alpha * b[bRow + k] * a[aOffset + j * lda + k];
+            }
+            b[bRow + j] = sum;
+          }
+        }
+      } else {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = n - 1; j >= 0; j--) {
+            var sum = isUnit
+                ? alpha * b[bRow + j]
+                : alpha * b[bRow + j] * a[aOffset + j * lda + j];
+            for (var k = 0; k < j; k++) {
+              sum += alpha * b[bRow + k] * a[aOffset + j * lda + k];
+            }
+            b[bRow + j] = sum;
+          }
+        }
       }
     }
     return true;
   }
 
-  /// Performs triangular matrix-matrix multiplication for [Float32List].
+  /// Performs triangular matrix-matrix multiplication in-place for [Float32List].
   static bool strmm({
     required int side,
     required int uplo,
@@ -1092,57 +1440,442 @@ abstract final class BlasDart {
       }
       return true;
     }
-    final temp = Float32List(m * n);
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
     final isTransA = transA == cblasTrans || transA == cblasConjTrans;
 
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        if (isLeft) {
-          if (!isTransA) {
-            final start = isUpper ? i : 0;
-            final end = isUpper ? m : i + 1;
-            for (var k = start; k < end; k++) {
-              final aVal = (i == k && isUnit) ? 1.0 : a[aOffset + i * lda + k];
-              sum += aVal * b[bOffset + k * ldb + j];
-            }
-          } else {
-            final start = isUpper ? 0 : i;
-            final end = isUpper ? i + 1 : m;
-            for (var k = start; k < end; k++) {
-              final aVal = (i == k && isUnit) ? 1.0 : a[aOffset + k * lda + i];
-              sum += aVal * b[bOffset + k * ldb + j];
-            }
+    if (isLeft) {
+      if (isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          final diagScale = isUnit ? alpha : alpha * a[aOffset + i * lda + i];
+          for (var j = 0; j < n; j++) {
+            b[bRow + j] *= diagScale;
           }
-        } else {
-          if (!isTransA) {
-            final start = isUpper ? 0 : j;
-            final end = isUpper ? j + 1 : n;
-            for (var k = start; k < end; k++) {
-              final aVal = (k == j && isUnit) ? 1.0 : a[aOffset + k * lda + j];
-              sum += b[bOffset + i * ldb + k] * aVal;
-            }
-          } else {
-            final start = isUpper ? j : 0;
-            final end = isUpper ? n : j + 1;
-            for (var k = start; k < end; k++) {
-              final aVal = (j == k && isUnit) ? 1.0 : a[aOffset + j * lda + k];
-              sum += b[bOffset + i * ldb + k] * aVal;
+          for (var k = i + 1; k < m; k++) {
+            final aVal = alpha * a[aOffset + i * lda + k];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] += aVal * b[bkRow + j];
             }
           }
         }
-        temp[i * n + j] = alpha * sum;
+      } else if (!isUpper && !isTransA) {
+        for (var i = m - 1; i >= 0; i--) {
+          final bRow = bOffset + i * ldb;
+          final diagScale = isUnit ? alpha : alpha * a[aOffset + i * lda + i];
+          for (var j = 0; j < n; j++) {
+            b[bRow + j] *= diagScale;
+          }
+          for (var k = 0; k < i; k++) {
+            final aVal = alpha * a[aOffset + i * lda + k];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] += aVal * b[bkRow + j];
+            }
+          }
+        }
+      } else if (isUpper && isTransA) {
+        for (var i = m - 1; i >= 0; i--) {
+          final bRow = bOffset + i * ldb;
+          final diagScale = isUnit ? alpha : alpha * a[aOffset + i * lda + i];
+          for (var j = 0; j < n; j++) {
+            b[bRow + j] *= diagScale;
+          }
+          for (var k = 0; k < i; k++) {
+            final aVal = alpha * a[aOffset + k * lda + i];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] += aVal * b[bkRow + j];
+            }
+          }
+        }
+      } else {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          final diagScale = isUnit ? alpha : alpha * a[aOffset + i * lda + i];
+          for (var j = 0; j < n; j++) {
+            b[bRow + j] *= diagScale;
+          }
+          for (var k = i + 1; k < m; k++) {
+            final aVal = alpha * a[aOffset + k * lda + i];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] += aVal * b[bkRow + j];
+            }
+          }
+        }
+      }
+    } else {
+      if (isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = n - 1; j >= 0; j--) {
+            var sum = isUnit
+                ? alpha * b[bRow + j]
+                : alpha * b[bRow + j] * a[aOffset + j * lda + j];
+            for (var k = 0; k < j; k++) {
+              sum += alpha * b[bRow + k] * a[aOffset + k * lda + j];
+            }
+            b[bRow + j] = sum;
+          }
+        }
+      } else if (!isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = 0; j < n; j++) {
+            var sum = isUnit
+                ? alpha * b[bRow + j]
+                : alpha * b[bRow + j] * a[aOffset + j * lda + j];
+            for (var k = j + 1; k < n; k++) {
+              sum += alpha * b[bRow + k] * a[aOffset + k * lda + j];
+            }
+            b[bRow + j] = sum;
+          }
+        }
+      } else if (isUpper && isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = 0; j < n; j++) {
+            var sum = isUnit
+                ? alpha * b[bRow + j]
+                : alpha * b[bRow + j] * a[aOffset + j * lda + j];
+            for (var k = j + 1; k < n; k++) {
+              sum += alpha * b[bRow + k] * a[aOffset + j * lda + k];
+            }
+            b[bRow + j] = sum;
+          }
+        }
+      } else {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = n - 1; j >= 0; j--) {
+            var sum = isUnit
+                ? alpha * b[bRow + j]
+                : alpha * b[bRow + j] * a[aOffset + j * lda + j];
+            for (var k = 0; k < j; k++) {
+              sum += alpha * b[bRow + k] * a[aOffset + j * lda + k];
+            }
+            b[bRow + j] = sum;
+          }
+        }
       }
     }
+    return true;
+  }
 
-    for (var i = 0; i < m; i++) {
-      final bRow = bOffset + i * ldb;
-      final tempRow = i * n;
-      for (var j = 0; j < n; j++) {
-        b[bRow + j] = temp[tempRow + j];
+  /// Solves triangular matrix equations `op(A) * X = alpha * B` or
+  /// `X * op(A) = alpha * B` in-place for [Float64List].
+  static bool dtrsm({
+    required int side,
+    required int uplo,
+    required int transA,
+    required int diag,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List b,
+    required int bOffset,
+    required int ldb,
+  }) {
+    if (m <= 0 || n <= 0) return true;
+    if (alpha == 0.0) {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        b.fillRange(bRow, bRow + n, 0.0);
+      }
+      return true;
+    }
+    if (alpha != 1.0) {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        for (var j = 0; j < n; j++) {
+          b[bRow + j] *= alpha;
+        }
+      }
+    }
+    final isLeft = side == cblasLeft;
+    final isUpper = uplo == cblasUpper;
+    final isUnit = diag == cblasUnit;
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
+
+    if (isLeft) {
+      if (isUpper && !isTransA) {
+        for (var i = m - 1; i >= 0; i--) {
+          final bRow = bOffset + i * ldb;
+          for (var k = i + 1; k < m; k++) {
+            final aVal = a[aOffset + i * lda + k];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] -= aVal * b[bkRow + j];
+            }
+          }
+          if (!isUnit) {
+            final diagVal = a[aOffset + i * lda + i];
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] /= diagVal;
+            }
+          }
+        }
+      } else if (!isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var k = 0; k < i; k++) {
+            final aVal = a[aOffset + i * lda + k];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] -= aVal * b[bkRow + j];
+            }
+          }
+          if (!isUnit) {
+            final diagVal = a[aOffset + i * lda + i];
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] /= diagVal;
+            }
+          }
+        }
+      } else if (isUpper && isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var k = 0; k < i; k++) {
+            final aVal = a[aOffset + k * lda + i];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] -= aVal * b[bkRow + j];
+            }
+          }
+          if (!isUnit) {
+            final diagVal = a[aOffset + i * lda + i];
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] /= diagVal;
+            }
+          }
+        }
+      } else {
+        for (var i = m - 1; i >= 0; i--) {
+          final bRow = bOffset + i * ldb;
+          for (var k = i + 1; k < m; k++) {
+            final aVal = a[aOffset + k * lda + i];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] -= aVal * b[bkRow + j];
+            }
+          }
+          if (!isUnit) {
+            final diagVal = a[aOffset + i * lda + i];
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] /= diagVal;
+            }
+          }
+        }
+      }
+    } else {
+      if (isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = 0; j < n; j++) {
+            var sum = b[bRow + j];
+            for (var k = 0; k < j; k++) {
+              sum -= b[bRow + k] * a[aOffset + k * lda + j];
+            }
+            b[bRow + j] = isUnit ? sum : sum / a[aOffset + j * lda + j];
+          }
+        }
+      } else if (!isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = n - 1; j >= 0; j--) {
+            var sum = b[bRow + j];
+            for (var k = j + 1; k < n; k++) {
+              sum -= b[bRow + k] * a[aOffset + k * lda + j];
+            }
+            b[bRow + j] = isUnit ? sum : sum / a[aOffset + j * lda + j];
+          }
+        }
+      } else if (isUpper && isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = n - 1; j >= 0; j--) {
+            var sum = b[bRow + j];
+            for (var k = j + 1; k < n; k++) {
+              sum -= b[bRow + k] * a[aOffset + j * lda + k];
+            }
+            b[bRow + j] = isUnit ? sum : sum / a[aOffset + j * lda + j];
+          }
+        }
+      } else {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = 0; j < n; j++) {
+            var sum = b[bRow + j];
+            for (var k = 0; k < j; k++) {
+              sum -= b[bRow + k] * a[aOffset + j * lda + k];
+            }
+            b[bRow + j] = isUnit ? sum : sum / a[aOffset + j * lda + j];
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Solves triangular matrix equations `op(A) * X = alpha * B` or
+  /// `X * op(A) = alpha * B` in-place for [Float32List].
+  static bool strsm({
+    required int side,
+    required int uplo,
+    required int transA,
+    required int diag,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float32List a,
+    required int aOffset,
+    required int lda,
+    required Float32List b,
+    required int bOffset,
+    required int ldb,
+  }) {
+    if (m <= 0 || n <= 0) return true;
+    if (alpha == 0.0) {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        b.fillRange(bRow, bRow + n, 0.0);
+      }
+      return true;
+    }
+    if (alpha != 1.0) {
+      for (var i = 0; i < m; i++) {
+        final bRow = bOffset + i * ldb;
+        for (var j = 0; j < n; j++) {
+          b[bRow + j] *= alpha;
+        }
+      }
+    }
+    final isLeft = side == cblasLeft;
+    final isUpper = uplo == cblasUpper;
+    final isUnit = diag == cblasUnit;
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
+
+    if (isLeft) {
+      if (isUpper && !isTransA) {
+        for (var i = m - 1; i >= 0; i--) {
+          final bRow = bOffset + i * ldb;
+          for (var k = i + 1; k < m; k++) {
+            final aVal = a[aOffset + i * lda + k];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] -= aVal * b[bkRow + j];
+            }
+          }
+          if (!isUnit) {
+            final diagVal = a[aOffset + i * lda + i];
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] /= diagVal;
+            }
+          }
+        }
+      } else if (!isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var k = 0; k < i; k++) {
+            final aVal = a[aOffset + i * lda + k];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] -= aVal * b[bkRow + j];
+            }
+          }
+          if (!isUnit) {
+            final diagVal = a[aOffset + i * lda + i];
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] /= diagVal;
+            }
+          }
+        }
+      } else if (isUpper && isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var k = 0; k < i; k++) {
+            final aVal = a[aOffset + k * lda + i];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] -= aVal * b[bkRow + j];
+            }
+          }
+          if (!isUnit) {
+            final diagVal = a[aOffset + i * lda + i];
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] /= diagVal;
+            }
+          }
+        }
+      } else {
+        for (var i = m - 1; i >= 0; i--) {
+          final bRow = bOffset + i * ldb;
+          for (var k = i + 1; k < m; k++) {
+            final aVal = a[aOffset + k * lda + i];
+            final bkRow = bOffset + k * ldb;
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] -= aVal * b[bkRow + j];
+            }
+          }
+          if (!isUnit) {
+            final diagVal = a[aOffset + i * lda + i];
+            for (var j = 0; j < n; j++) {
+              b[bRow + j] /= diagVal;
+            }
+          }
+        }
+      }
+    } else {
+      if (isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = 0; j < n; j++) {
+            var sum = b[bRow + j];
+            for (var k = 0; k < j; k++) {
+              sum -= b[bRow + k] * a[aOffset + k * lda + j];
+            }
+            b[bRow + j] = isUnit ? sum : sum / a[aOffset + j * lda + j];
+          }
+        }
+      } else if (!isUpper && !isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = n - 1; j >= 0; j--) {
+            var sum = b[bRow + j];
+            for (var k = j + 1; k < n; k++) {
+              sum -= b[bRow + k] * a[aOffset + k * lda + j];
+            }
+            b[bRow + j] = isUnit ? sum : sum / a[aOffset + j * lda + j];
+          }
+        }
+      } else if (isUpper && isTransA) {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = n - 1; j >= 0; j--) {
+            var sum = b[bRow + j];
+            for (var k = j + 1; k < n; k++) {
+              sum -= b[bRow + k] * a[aOffset + j * lda + k];
+            }
+            b[bRow + j] = isUnit ? sum : sum / a[aOffset + j * lda + j];
+          }
+        }
+      } else {
+        for (var i = 0; i < m; i++) {
+          final bRow = bOffset + i * ldb;
+          for (var j = 0; j < n; j++) {
+            var sum = b[bRow + j];
+            for (var k = 0; k < j; k++) {
+              sum -= b[bRow + k] * a[aOffset + j * lda + k];
+            }
+            b[bRow + j] = isUnit ? sum : sum / a[aOffset + j * lda + j];
+          }
+        }
       }
     }
     return true;

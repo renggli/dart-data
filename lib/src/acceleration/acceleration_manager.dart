@@ -14,9 +14,7 @@ import 'vforce/vforce.dart';
 /// - [Fft]: In-place 1D and 2D complex and real Fast Fourier Transforms.
 /// - [Vforce]: Vectorized transcendental functions, reductions, and 1D signal
 ///   operations.
-class AccelerationManager {
-  new _(); // coverage:ignore-line
-
+abstract final class AccelerationManager {
   /// The active acceleration mode across all mathematical modules. Defaults to
   /// [AccelerationMode.auto].
   static AccelerationMode mode = AccelerationMode.auto;

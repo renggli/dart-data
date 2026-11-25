@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/acceleration/utils/norm_accumulator.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('ScaledNormAccumulator', () {
@@ -42,7 +42,13 @@ void main() {
       final nanAcc = ScaledNormAccumulator()
         ..add(double.infinity)
         ..add(double.nan);
-      check(nanAcc.norm).isNaN;
+      check(nanAcc.norm.isNaN).isTrue;
+    });
+
+    test('rejects negative magnitudes in addAbs', () {
+      final acc = ScaledNormAccumulator();
+      check(() => acc.addAbs(-1.0)).throws<ArgumentError>();
+      check(() => acc.addAbs(-0.0)).returnsNormally();
     });
   });
 }

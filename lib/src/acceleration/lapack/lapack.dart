@@ -17,7 +17,11 @@ abstract final class Lapack {
   static bool get isAvailable => LapackNative.isAvailable;
 
   /// Computes the Cholesky factorization of a symmetric positive-definite
-  /// matrix A: $A = U^T U$ or $A = L L^T$.
+  /// matrix A in-place: `A = U^T * U` (upper) or `A = L * L^T` (lower).
+  ///
+  /// Only the triangle selected by [uplo] is read and overwritten; returns
+  /// `false` if any referenced entry is non-finite or the matrix is not
+  /// strictly positive definite.
   static bool dpotrf({
     int uplo = cblasUpper,
     required int n,
@@ -49,8 +53,13 @@ abstract final class Lapack {
     );
   }
 
-  /// Solves the general linear system $A X = B$ for general square matrix A
-  /// using LU decomposition with partial pivoting.
+  /// Solves the general linear system `A * X = B` for a square `n x n` matrix
+  /// [a] and right-hand side matrix [b] using LU decomposition with partial
+  /// pivoting.
+  ///
+  /// Copies [a] internally so [a] is left unmodified, and overwrites [b] with
+  /// the solution `X`. Returns `false` if [a] is singular or any input entry
+  /// is non-finite.
   static bool dgesv({
     required int n,
     required int nrhs,
@@ -105,8 +114,13 @@ abstract final class Lapack {
     );
   }
 
-  /// Solves overdetermined or underdetermined linear least squares
-  /// $\min \|A X - B\|_2$ using QR or LQ factorization.
+  /// Solves full-rank overdetermined (`m >= n`) or minimum-norm underdetermined
+  /// (`m < n`) linear least-squares problems `min ||A * X - B||_2` via QR or
+  /// LQ factorization.
+  ///
+  /// Leaves [a] unmodified and overwrites the leading `n x nrhs` rows of [b]
+  /// with `X`. Returns `false` if [a] is rank-deficient or any input is
+  /// non-finite.
   static bool dgels({
     required int m,
     required int n,
@@ -274,22 +288,24 @@ abstract final class Lapack {
     );
   }
 
-  /// Computes the Singular Value Decomposition (SVD) of an $m \times n$ matrix
-  /// $A$: $A = U \Sigma V^T$.
+  /// Computes the Singular Value Decomposition (SVD) of an `m x n` matrix
+  /// `A = U * Sigma * V^T`.
   ///
-  /// - [jobu]: `'A'` to compute all $m$ left singular vectors in [u], or `'N'`
+  /// Leaves [a] unmodified.
+  ///
+  /// - [jobu]: `'A'` to compute all `m` left singular vectors in [u], or `'N'`
   ///   for none.
-  /// - [jobvt]: `'A'` to compute all $n$ right singular vectors in [vt], or `'N'`
+  /// - [jobvt]: `'A'` to compute all `n` right singular vectors in [vt], or `'N'`
   ///   for none.
-  /// - [m]: Number of rows in $A$.
-  /// - [n]: Number of columns in $A$.
-  /// - [a]: $m \times n$ matrix in row-major layout with leading dimension [lda].
-  /// - [lda]: Leading dimension of $A$, $lda \ge \max(1, n)$.
-  /// - [s]: Output buffer for singular values $\sigma_1 \ge \dots \ge \sigma_{\min(m, n)} \ge 0$.
+  /// - [m]: Number of rows in `A`.
+  /// - [n]: Number of columns in `A`.
+  /// - [a]: `m x n` matrix in row-major layout with leading dimension [lda].
+  /// - [lda]: Leading dimension of `A`, `lda >= max(1, n)`.
+  /// - [s]: Output buffer for singular values `s_0 >= ... >= s_{min(m,n)-1} >= 0`.
   /// - [u]: Output buffer for left singular vectors if [jobu] is `'A'`.
-  /// - [ldu]: Leading dimension of $U$, $ldu \ge \max(1, m)$.
+  /// - [ldu]: Leading dimension of `U`, `ldu >= max(1, m)`.
   /// - [vt]: Output buffer for right singular vectors if [jobvt] is `'A'`.
-  /// - [ldvt]: Leading dimension of $V^T$, $ldvt \ge \max(1, n)$.
+  /// - [ldvt]: Leading dimension of `V^T`, `ldvt >= max(1, n)`.
   static bool dgesvd({
     String jobu = 'A',
     String jobvt = 'A',

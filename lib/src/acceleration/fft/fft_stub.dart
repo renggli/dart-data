@@ -6,18 +6,18 @@ abstract final class FftNative {
   /// Whether native FFT is available.
   static bool get isAvailable => false;
 
-  /// Computes 1D in-place complex FFT on [buffer] of size $2^{\text{log2n}}$.
+  /// Computes 1D in-place complex FFT on [buffer] of size [length].
   static bool fft1d({
     required Float64ComplexList buffer,
-    required int log2n,
+    required int length,
     required bool inverse,
   }) => false;
 
   /// Computes 2D in-place complex FFT on flat row-major [buffer].
   static bool fft2d({
     required Float64ComplexList buffer,
-    required int log2rows,
-    required int log2cols,
+    required int rows,
+    required int cols,
     required bool inverse,
   }) => false;
 }

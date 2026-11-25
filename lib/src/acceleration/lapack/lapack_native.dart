@@ -55,6 +55,14 @@ abstract final class LapackNative {
     if (n < 0 || lda < n) return false;
     if (uplo != cblasUpper && uplo != cblasLower) return false;
     if (n == 0) return true;
+    final isUpper = uplo == cblasUpper;
+    for (var i = 0; i < n; i++) {
+      final start = isUpper ? i : 0;
+      final end = isUpper ? n : i + 1;
+      for (var j = start; j < end; j++) {
+        if (!a[aOffset + i * lda + j].isFinite) return false;
+      }
+    }
     final aRequired = aOffset + (n - 1) * lda + n;
     if (a.length < aRequired) return false;
 
@@ -63,21 +71,22 @@ abstract final class LapackNative {
     if (_hasLapackeDpotrf) {
       final info = _lapackeDpotrf(
         cblasRowMajor,
-        uplo == cblasUpper ? 85 : 76,
+        isUpper ? 85 : 76,
         n,
         aView.address,
         lda,
       );
       if (info != 0) return false;
       for (var i = 0; i < n; i++) {
-        if (!(aView[i * lda + i] > 0.0)) return false;
+        final d = aView[i * lda + i];
+        if (!d.isFinite || !(d > 0.0)) return false;
       }
       return true;
     }
 
     if (_hasDpotrf) {
       return using((arena) {
-        final fortranUplo = uplo == cblasUpper ? 76 : 85;
+        final fortranUplo = isUpper ? 76 : 85;
         final uploPtr = arena<ffi.Uint8>()..value = fortranUplo;
         final nPtr = arena<ffi.Int32>()..value = n;
         final ldaPtr = arena<ffi.Int32>()..value = lda;
@@ -86,7 +95,8 @@ abstract final class LapackNative {
         _fortranDpotrf(uploPtr, nPtr, aView.address, ldaPtr, info);
         if (info.value != 0) return false;
         for (var i = 0; i < n; i++) {
-          if (!(aView[i * lda + i] > 0.0)) return false;
+          final d = aView[i * lda + i];
+          if (!d.isFinite || !(d > 0.0)) return false;
         }
         return true;
       });
@@ -290,11 +300,15 @@ abstract final class LapackNative {
       }
     }
 
-    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
 
     if (_hasLapackeDgels) {
-      final aCopy = Float64List.fromList(aView);
+      final aCopy = Float64List(m * n);
+      for (var i = 0; i < m; i++) {
+        for (var j = 0; j < n; j++) {
+          aCopy[i * n + j] = a[aOffset + i * lda + j];
+        }
+      }
       final info = _lapackeDgels(
         cblasRowMajor,
         78, // 'N'
@@ -302,7 +316,7 @@ abstract final class LapackNative {
         n,
         nrhs,
         aCopy.address,
-        lda,
+        n,
         bView.address,
         ldb,
       );
@@ -311,12 +325,13 @@ abstract final class LapackNative {
         final maxMN = m > n ? m : n;
         var maxDiag = 0.0;
         for (var k = 0; k < minMN; k++) {
-          final d = aCopy[k * lda + k].abs();
+          final d = aCopy[k * n + k].abs();
           if (d > maxDiag) maxDiag = d;
         }
-        final tol = math.max(1e-12, maxMN * 2.220446049250313e-16 * maxDiag);
+        if (!(maxDiag > 0.0)) return false;
+        final tol = 10.0 * maxMN * 2.220446049250313e-16 * maxDiag;
         for (var k = 0; k < minMN; k++) {
-          if (!(aCopy[k * lda + k].abs() >= tol)) return false;
+          if (!(aCopy[k * n + k].abs() >= tol)) return false;
         }
         return true;
       }
@@ -385,12 +400,14 @@ abstract final class LapackNative {
         );
         if (info.value == 0) {
           final minMN = m < n ? m : n;
+          final maxMN = m > n ? m : n;
           var maxDiag = 0.0;
           for (var k = 0; k < minMN; k++) {
             final d = fA[k * m + k].abs();
             if (d > maxDiag) maxDiag = d;
           }
-          final tol = math.max(1e-12, maxMN * 2.220446049250313e-16 * maxDiag);
+          if (!(maxDiag > 0.0)) return false;
+          final tol = 10.0 * maxMN * 2.220446049250313e-16 * maxDiag;
           for (var k = 0; k < minMN; k++) {
             if (!(fA[k * m + k].abs() >= tol)) return false;
           }
@@ -470,7 +487,15 @@ abstract final class LapackNative {
         final fA = arena<ffi.Double>(n * n);
         for (var i = 0; i < n; i++) {
           for (var j = 0; j < n; j++) {
-            fA[j * n + i] = a[aOffset + i * lda + j];
+            final int r, c;
+            if (uplo == cblasUpper) {
+              r = i <= j ? i : j;
+              c = i <= j ? j : i;
+            } else {
+              r = i >= j ? i : j;
+              c = i >= j ? j : i;
+            }
+            fA[j * n + i] = a[aOffset + r * lda + c];
           }
         }
         final jobzPtr = arena<ffi.Uint8>()..value = normJobz.codeUnitAt(0);
@@ -596,7 +621,15 @@ abstract final class LapackNative {
         final fA = arena<ffi.Float>(n * n);
         for (var i = 0; i < n; i++) {
           for (var j = 0; j < n; j++) {
-            fA[j * n + i] = a[aOffset + i * lda + j];
+            final int r, c;
+            if (uplo == cblasUpper) {
+              r = i <= j ? i : j;
+              c = i <= j ? j : i;
+            } else {
+              r = i >= j ? i : j;
+              c = i >= j ? j : i;
+            }
+            fA[j * n + i] = a[aOffset + r * lda + c];
           }
         }
         final jobzPtr = arena<ffi.Uint8>()..value = normJobz.codeUnitAt(0);
