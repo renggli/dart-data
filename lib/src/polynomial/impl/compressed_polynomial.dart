@@ -1,3 +1,5 @@
+import 'dart:collection' show SplayTreeMap;
+
 import 'package:collection/collection.dart' show ListEquality, binarySearch;
 import 'package:more/number.dart' show Complex;
 
@@ -12,10 +14,10 @@ import 'formatting.dart';
 ///
 /// Conceptually, a sparse polynomial represents an algebraic polynomial where
 /// only a small subset of possible terms have non-zero coefficients (for
-/// example, $x^{10000} - 1$). Formally, it stores strictly increasing exponents
+/// example, `x^10000 - 1`). Formally, it stores strictly increasing exponents
 /// and their corresponding non-zero coefficients in unmodifiable parallel
 /// arrays, avoiding the memory overhead of allocating contiguous dense arrays
-/// of size $\mathcal{O}(\deg(P))$.
+/// of size `O(degree)`.
 ///
 /// ```dart
 /// final p = CompressedPolynomial<double>.fromMap(
@@ -28,8 +30,8 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   /// Constructs a [CompressedPolynomial] from parallel [exponents] and
   /// [coefficients].
   ///
-  /// Combines like exponents, strips zero coefficients, and validates
-  /// non-negative exponents.
+  /// Combines duplicate exponents, strips zero coefficients, normalizes negative
+  /// zeros, and validates non-negative exponents.
   factory(
     Iterable<int> exponents,
     Iterable<T> coefficients, {
@@ -51,13 +53,13 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     for (var i = 0; i < expList.length; i++) {
       final exp = expList[i];
       RangeError.checkNotNegative(exp, 'exponent');
-      final coeff = coeffList[i];
+      final coeff = normalizeCoefficient(coeffList[i], zero);
       if (coeff != zero) {
         final existing = terms[exp];
         if (existing == null) {
           terms[exp] = coeff;
         } else {
-          final sum = field.add(existing, coeff);
+          final sum = normalizeCoefficient(field.add(existing, coeff), zero);
           if (sum == zero) {
             terms.remove(exp);
           } else {
@@ -83,8 +85,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   /// [entries].
   factory fromMap(Map<int, T> entries, {DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromIterable(entries.values);
-    final field = effectiveType.field;
-    final zero = field.additiveIdentity;
+    final zero = effectiveType.field.additiveIdentity;
 
     final sortedExps = <int>[];
     final sortedCoeffs = <T>[];
@@ -94,7 +95,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
       final val = entries[exp];
       if (val != null && val != zero) {
         sortedExps.add(exp);
-        sortedCoeffs.add(val);
+        sortedCoeffs.add(normalizeCoefficient(val, zero));
       }
     }
 
@@ -105,7 +106,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     );
   }
 
-  /// Constructs an empty zero polynomial of degree -1.
+  /// Constructs an empty zero polynomial of degree `-1`.
   factory zero({DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromType<T>();
     return CompressedPolynomial._(const [], const [], type: effectiveType);
@@ -130,7 +131,6 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   @override
   int get termCount => _exponents.length;
 
-  /// Returns the non-zero terms as `(exponent, coefficient)` pairs.
   @override
   Iterable<({int exponent, T coefficient})> get nonZeroTerms sync* {
     for (var i = 0; i < _exponents.length; i++) {
@@ -171,12 +171,17 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   T evaluate(T x) {
     if (_exponents.isEmpty) return type.field.additiveIdentity;
     final field = type.field;
+    var prevExp = 0;
+    var power = field.multiplicativeIdentity;
     var sum = field.additiveIdentity;
     for (var i = 0; i < _exponents.length; i++) {
       final exp = _exponents[i];
-      final coeff = _coefficients[i];
-      final term = field.mul(coeff, _fieldPower(field, x, exp));
-      sum = field.add(sum, term);
+      final delta = exp - prevExp;
+      if (delta > 0) {
+        power = field.mul(power, _fieldPower(field, x, delta));
+        prevExp = exp;
+      }
+      sum = field.add(sum, field.mul(_coefficients[i], power));
     }
     return sum;
   }
@@ -185,12 +190,17 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   double evaluateDouble(num x) {
     if (_exponents.isEmpty) return 0.0;
     final xd = x.toDouble();
+    var prevExp = 0;
+    var power = 1.0;
     var sum = 0.0;
     for (var i = 0; i < _exponents.length; i++) {
       final exp = _exponents[i];
-      final coeff = coeffToDouble(_coefficients[i]);
-      final p = _doublePower(xd, exp);
-      sum += coeff * p;
+      final delta = exp - prevExp;
+      if (delta > 0) {
+        power *= _doublePower(xd, delta);
+        prevExp = exp;
+      }
+      sum += coeffToDouble(_coefficients[i]) * power;
     }
     return sum;
   }
@@ -198,17 +208,24 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   @override
   Complex evaluateComplex(Complex x) {
     if (_exponents.isEmpty) return Complex.zero;
+    var prevExp = 0;
+    var power = Complex.one;
     var sum = Complex.zero;
     for (var i = 0; i < _exponents.length; i++) {
       final exp = _exponents[i];
-      final coeff = _coeffToComplex(_coefficients[i]);
-      sum = sum + coeff * x.pow(exp);
+      final delta = exp - prevExp;
+      if (delta > 0) {
+        power = power * _complexPower(x, delta);
+        prevExp = exp;
+      }
+      sum = sum + coeffToComplex(_coefficients[i]) * power;
     }
     return sum;
   }
 
   @override
   Polynomial<T> operator +(Polynomial<T> other) {
+    checkSamePolynomialType(type, other.type);
     final comp = other is CompressedPolynomial<T>
         ? other
         : other.toCompressed();
@@ -222,7 +239,10 @@ class CompressedPolynomial<T> extends Polynomial<T> {
       final e1 = _exponents[i];
       final e2 = comp._exponents[j];
       if (e1 == e2) {
-        final sum = field.add(_coefficients[i], comp._coefficients[j]);
+        final sum = normalizeCoefficient(
+          field.add(_coefficients[i], comp._coefficients[j]),
+          zero,
+        );
         if (sum != zero) {
           resExps.add(e1);
           resCoeffs.add(sum);
@@ -258,6 +278,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
 
   @override
   Polynomial<T> operator -(Polynomial<T> other) {
+    checkSamePolynomialType(type, other.type);
     final comp = other is CompressedPolynomial<T>
         ? other
         : other.toCompressed();
@@ -271,7 +292,10 @@ class CompressedPolynomial<T> extends Polynomial<T> {
       final e1 = _exponents[i];
       final e2 = comp._exponents[j];
       if (e1 == e2) {
-        final diff = field.sub(_coefficients[i], comp._coefficients[j]);
+        final diff = normalizeCoefficient(
+          field.sub(_coefficients[i], comp._coefficients[j]),
+          zero,
+        );
         if (diff != zero) {
           resExps.add(e1);
           resCoeffs.add(diff);
@@ -284,7 +308,9 @@ class CompressedPolynomial<T> extends Polynomial<T> {
         i++;
       } else {
         resExps.add(e2);
-        resCoeffs.add(field.neg(comp._coefficients[j]));
+        resCoeffs.add(
+          normalizeCoefficient(field.neg(comp._coefficients[j]), zero),
+        );
         j++;
       }
     }
@@ -295,7 +321,9 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     }
     while (j < comp._exponents.length) {
       resExps.add(comp._exponents[j]);
-      resCoeffs.add(field.neg(comp._coefficients[j]));
+      resCoeffs.add(
+        normalizeCoefficient(field.neg(comp._coefficients[j]), zero),
+      );
       j++;
     }
     return CompressedPolynomial<T>._(
@@ -307,8 +335,12 @@ class CompressedPolynomial<T> extends Polynomial<T> {
 
   @override
   Polynomial<T> operator -() {
+    if (_exponents.isEmpty) return this;
     final field = type.field;
-    final negCoeffs = _coefficients.map(field.neg).toList(growable: false);
+    final zero = field.additiveIdentity;
+    final negCoeffs = _coefficients
+        .map((c) => normalizeCoefficient(field.neg(c), zero))
+        .toList(growable: false);
     return CompressedPolynomial<T>._(
       _exponents,
       List.unmodifiable(negCoeffs),
@@ -319,7 +351,8 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   @override
   Polynomial<T> scale(T scalar) {
     final field = type.field;
-    if (scalar == field.additiveIdentity || _exponents.isEmpty) {
+    final zero = field.additiveIdentity;
+    if (scalar == zero || _exponents.isEmpty) {
       return CompressedPolynomial<T>.zero(type: type);
     }
     if (scalar == field.multiplicativeIdentity) {
@@ -328,8 +361,11 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     final resExps = <int>[];
     final resCoeffs = <T>[];
     for (var i = 0; i < _exponents.length; i++) {
-      final prod = field.mul(_coefficients[i], scalar);
-      if (prod != field.additiveIdentity) {
+      final prod = normalizeCoefficient(
+        field.mul(_coefficients[i], scalar),
+        zero,
+      );
+      if (prod != zero) {
         resExps.add(_exponents[i]);
         resCoeffs.add(prod);
       }
@@ -343,6 +379,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
 
   @override
   Polynomial<T> operator *(Polynomial<T> other) {
+    checkSamePolynomialType(type, other.type);
     final comp = other is CompressedPolynomial<T>
         ? other
         : other.toCompressed();
@@ -359,13 +396,13 @@ class CompressedPolynomial<T> extends Polynomial<T> {
         final e2 = comp._exponents[j];
         final c2 = comp._coefficients[j];
         final exp = e1 + e2;
-        final prod = field.mul(c1, c2);
+        final prod = normalizeCoefficient(field.mul(c1, c2), zero);
         if (prod != zero) {
           final existing = terms[exp];
           if (existing == null) {
             terms[exp] = prod;
           } else {
-            final sum = field.add(existing, prod);
+            final sum = normalizeCoefficient(field.add(existing, prod), zero);
             if (sum == zero) {
               terms.remove(exp);
             } else {
@@ -388,7 +425,8 @@ class CompressedPolynomial<T> extends Polynomial<T> {
 
   @override
   Polynomial<T> compose(Polynomial<T> other) {
-    if (_exponents.isEmpty) return CompressedPolynomial<T>.zero(type: type);
+    checkSamePolynomialType(type, other.type);
+    if (_exponents.isEmpty) return this;
     final compOther = other is CompressedPolynomial<T>
         ? other
         : other.toCompressed();
@@ -407,8 +445,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
           break;
         }
         currentPower =
-            (currentPower * _polyPower(compOther, delta))
-                as CompressedPolynomial<T>;
+            (currentPower * compOther.pow(delta)) as CompressedPolynomial<T>;
         currentExp = exp;
       }
       result =
@@ -422,6 +459,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   ({Polynomial<T> quotient, Polynomial<T> remainder}) divide(
     Polynomial<T> divisor,
   ) {
+    checkSamePolynomialType(type, divisor.type);
     final degB = divisor.degree;
     if (degB < 0) {
       throw UnsupportedError('Division by zero polynomial.');
@@ -440,85 +478,104 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     final field = type.field;
     final zero = field.additiveIdentity;
     final leadB = compDivisor.leadingCoefficient;
+    final divLen = compDivisor._exponents.length;
     final qTerms = <int, T>{};
-    var rem = this;
-    final isFloat = type.defaultValue is double;
-    var tol = 0.0;
-    if (isFloat) {
-      var maxCoeff = 0.0;
-      for (var i = 0; i < _coefficients.length; i++) {
-        final v = (_coefficients[i] as num).toDouble().abs();
-        if (v > maxCoeff) maxCoeff = v;
+    final remMap = SplayTreeMap<int, T>();
+    final isFloat = isFloatPolynomialType(type);
+    final absScale = isFloat ? <int, double>{} : null;
+
+    for (var i = 0; i < _exponents.length; i++) {
+      final exp = _exponents[i];
+      final coeff = _coefficients[i];
+      remMap[exp] = coeff;
+      if (absScale != null) {
+        absScale[exp] = (coeff as num).toDouble().abs();
       }
-      tol = 1e-12 * maxCoeff;
     }
 
-    while (rem.degree >= degB && rem.degree >= 0) {
-      final degR = rem.degree;
-      final leadR = rem.leadingCoefficient;
+    while (remMap.isNotEmpty) {
+      final degR = remMap.lastKey()!;
+      if (degR < degB) break;
+      final leadR = remMap[degR] as T;
       final factor = field.div(leadR, leadB);
-      if (factor == zero) {
-        break;
-      }
+      if (factor == zero) break;
+
       final qExp = degR - degB;
-      final existing = qTerms[qExp];
-      qTerms[qExp] = existing == null ? factor : field.add(existing, factor);
-      final term = CompressedPolynomial<T>._([qExp], [factor], type: type);
-      rem = (rem - (term * compDivisor)).toCompressed();
-      if (rem.degree >= degR || isFloat) {
-        final newExps = <int>[];
-        final newCoeffs = <T>[];
-        for (var k = 0; k < rem._exponents.length; k++) {
-          final e = rem._exponents[k];
-          final c = rem._coefficients[k];
-          if (e < degR && (!isFloat || (c as num).toDouble().abs() > tol)) {
-            newExps.add(e);
-            newCoeffs.add(c);
+      final existingQ = qTerms[qExp];
+      qTerms[qExp] = existingQ == null ? factor : field.add(existingQ, factor);
+
+      if (isFloat) {
+        remMap.remove(degR);
+        absScale!.remove(degR);
+        final factorAbs = (factor as num).toDouble().abs();
+        for (var j = 0; j < divLen - 1; j++) {
+          final targetExp = qExp + compDivisor._exponents[j];
+          final dc = compDivisor._coefficients[j];
+          final subTerm = field.mul(factor, dc);
+          final prev = remMap[targetExp] ?? zero;
+          final updated = normalizeCoefficient(field.sub(prev, subTerm), zero);
+          final contrib = factorAbs * (dc as num).toDouble().abs();
+          final scale = absScale[targetExp] ?? 0.0;
+          final newScale = contrib > scale ? contrib : scale;
+          if (updated == zero ||
+              (newScale.isFinite &&
+                  (updated as num).toDouble().abs() <= 1e-12 * newScale)) {
+            remMap.remove(targetExp);
+            absScale.remove(targetExp);
+          } else {
+            remMap[targetExp] = updated;
+            absScale[targetExp] = newScale;
           }
         }
-        rem = CompressedPolynomial<T>._(
-          List.unmodifiable(newExps),
-          List.unmodifiable(newCoeffs),
-          type: type,
-        );
+      } else {
+        for (var j = 0; j < divLen; j++) {
+          final targetExp = qExp + compDivisor._exponents[j];
+          final subTerm = field.mul(factor, compDivisor._coefficients[j]);
+          final prev = remMap[targetExp] ?? zero;
+          final updated = field.sub(prev, subTerm);
+          if (updated == zero) {
+            remMap.remove(targetExp);
+          } else {
+            remMap[targetExp] = updated;
+          }
+        }
+        if (remMap.containsKey(degR)) {
+          break;
+        }
       }
     }
 
+    final remainder = remMap.isEmpty
+        ? CompressedPolynomial<T>.zero(type: type)
+        : CompressedPolynomial<T>._(
+            List<int>.unmodifiable(remMap.keys),
+            List<T>.unmodifiable(remMap.values),
+            type: type,
+          );
     return (
       quotient: CompressedPolynomial<T>.fromMap(qTerms, type: type),
-      remainder: rem,
+      remainder: remainder,
     );
   }
 
   @override
-  Polynomial<T> derivative() {
-    if (_exponents.isEmpty) return CompressedPolynomial<T>.zero(type: type);
-    final field = type.field;
-    final zero = field.additiveIdentity;
-    final resExps = <int>[];
-    final resCoeffs = <T>[];
-    for (var i = 0; i < _exponents.length; i++) {
-      final exp = _exponents[i];
-      if (exp > 0) {
-        final coeff = field.scale(_coefficients[i], exp);
-        if (coeff != zero) {
-          resExps.add(exp - 1);
-          resCoeffs.add(coeff);
-        }
-      }
+  Polynomial<T> derivative({int order = 1}) {
+    RangeError.checkNotNegative(order, 'order');
+    if (order == 0) return this;
+    if (order > degree) return CompressedPolynomial<T>.zero(type: type);
+    var current = _derivativeOnce();
+    for (var k = 1; k < order; k++) {
+      if (current.isZero) return current;
+      current = current._derivativeOnce();
     }
-    return CompressedPolynomial<T>._(
-      List.unmodifiable(resExps),
-      List.unmodifiable(resCoeffs),
-      type: type,
-    );
+    return current;
   }
 
   @override
   Polynomial<T> integrate([T? constant]) {
     final field = type.field;
     final zero = field.additiveIdentity;
-    final c0 = constant ?? zero;
+    final c0 = normalizeCoefficient(constant ?? zero, zero);
     final resExps = <int>[];
     final resCoeffs = <T>[];
     if (c0 != zero) {
@@ -526,10 +583,12 @@ class CompressedPolynomial<T> extends Polynomial<T> {
       resCoeffs.add(c0);
     }
     for (var i = 0; i < _exponents.length; i++) {
-      final exp = _exponents[i];
-      final newExp = exp + 1;
+      final newExp = _exponents[i] + 1;
       final denom = field.scale(field.multiplicativeIdentity, newExp);
-      final coeff = field.div(_coefficients[i], denom);
+      final coeff = normalizeCoefficient(
+        field.div(_coefficients[i], denom),
+        zero,
+      );
       if (coeff != zero) {
         resExps.add(newExp);
         resCoeffs.add(coeff);
@@ -589,7 +648,31 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     return formatPolynomialTerms(type, terms);
   }
 
-  Complex _coeffToComplex(T val) => coeffToComplex(val);
+  CompressedPolynomial<T> _derivativeOnce() {
+    if (_exponents.isEmpty) return this;
+    final field = type.field;
+    final zero = field.additiveIdentity;
+    final resExps = <int>[];
+    final resCoeffs = <T>[];
+    for (var i = 0; i < _exponents.length; i++) {
+      final exp = _exponents[i];
+      if (exp > 0) {
+        final coeff = normalizeCoefficient(
+          field.scale(_coefficients[i], exp),
+          zero,
+        );
+        if (coeff != zero) {
+          resExps.add(exp - 1);
+          resCoeffs.add(coeff);
+        }
+      }
+    }
+    return CompressedPolynomial<T>._(
+      List.unmodifiable(resExps),
+      List.unmodifiable(resCoeffs),
+      type: type,
+    );
+  }
 }
 
 T _fieldPower<T>(Field<T> field, T base, int exponent) {
@@ -628,26 +711,18 @@ double _doublePower(double base, int exponent) {
   return res;
 }
 
-CompressedPolynomial<T> _polyPower<T>(
-  CompressedPolynomial<T> base,
-  int exponent,
-) {
-  final one = CompressedPolynomial<T>._(
-    const [0],
-    [base.type.field.multiplicativeIdentity],
-    type: base.type,
-  );
-  if (exponent == 0) return one;
+Complex _complexPower(Complex base, int exponent) {
+  if (exponent == 0) return Complex.one;
   if (exponent == 1) return base;
-  var res = one;
+  var res = Complex.one;
   var b = base;
   var e = exponent;
   while (e > 0) {
     if (e.isOdd) {
-      res = (res * b) as CompressedPolynomial<T>;
+      res = res * b;
     }
     if (e > 1) {
-      b = (b * b) as CompressedPolynomial<T>;
+      b = b * b;
     }
     e ~/= 2;
   }

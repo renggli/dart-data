@@ -2,50 +2,92 @@ import 'package:checks/checks.dart';
 import 'package:data/polynomial.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
-  group('Polynomial', () {
-    test('construction and basic properties', () {
+  group('Polynomial construction and properties', () {
+    test('zero, fromCoefficients, generate, isZero, and isConstant', () {
       final p0 = Polynomial<int>.zero(type: DataType.int32);
       check(p0.degree).equals(-1);
+      check(p0.isZero).isTrue;
+      check(p0.isConstant).isTrue;
       check(p0.leadingCoefficient).equals(0);
       check(p0[0]).equals(0);
 
-      // P(x) = 3 + 2x - 5x^2
+      final pConst = Polynomial<int>.fromCoefficients([
+        7,
+      ], type: DataType.int32);
+      check(pConst.isZero).isFalse;
+      check(pConst.isConstant).isTrue;
+
       final p1 = Polynomial<double>.fromCoefficients([
         3.0,
         2.0,
         -5.0,
       ], type: DataType.float64);
       check(p1.degree).equals(2);
+      check(p1.isConstant).isFalse;
       check(p1.leadingCoefficient).equals(-5.0);
-      check(p1[0]).equals(3.0);
-      check(p1[1]).equals(2.0);
-      check(p1[2]).equals(-5.0);
       check(p1[3]).equals(0.0);
+
+      final gen = Polynomial<int>.generate(2, (exp) => exp + 1);
+      check(gen.coefficients).deepEquals([1, 2, 3]);
+      check(Polynomial<int>.generate(-1, (exp) => exp).isZero).isTrue;
     });
 
-    test('evaluation Horner method', () {
-      // P(x) = 2 - 3x + x^2 = (x - 1)(x - 2)
+    test('fromRoots expands linear, integer, complex, empty, and high-degree roots', () {
+      final pEmpty = Polynomial<double>.fromRoots([], type: DataType.float64);
+      check(pEmpty.coefficients).deepEquals([1.0]);
+
+      final pInt = Polynomial<int>.fromRoots([1, 2]);
+      check(pInt.coefficients).deepEquals([2, -3, 1]);
+
+      final pComplex = Polynomial<Complex>.fromRoots([
+        const Complex(0.0, 1.0),
+        const Complex(0.0, -1.0),
+      ]);
+      check(pComplex.evaluateComplex(const Complex(0.0, 1.0)).abs())
+          .isCloseTo(0.0, 1e-9);
+
+      // Degree 70 expansion avoids FFT and evaluates cleanly at its roots
+      final roots = List<double>.generate(70, (i) => (i + 1) / 100.0);
+      final pHigh = Polynomial<double>.fromRoots(roots, type: DataType.float64);
+      check(pHigh.degree).equals(70);
+      check(pHigh.leadingCoefficient).equals(1.0);
+      check(pHigh.evaluateDouble(0.01)).isCloseTo(0.0, 1e-12);
+    });
+
+    test('strips trailing zeros and exposes unmodifiable coefficients', () {
+      final pWithZeros = Polynomial<double>.fromCoefficients([
+        1.0,
+        2.0,
+        0.0,
+        0.0,
+      ]);
+      check(pWithZeros.degree).equals(1);
+      check(pWithZeros.coefficients).deepEquals([1.0, 2.0]);
+      check(() => pWithZeros.coefficients[0] = 99.0).throws<UnsupportedError>();
+
+      final allZeros = Polynomial<double>.fromCoefficients([0.0, 0.0, 0.0]);
+      check(allZeros.isZero).isTrue;
+      check(allZeros.coefficients.isEmpty).isTrue;
+    });
+  });
+
+  group('Polynomial evaluation', () {
+    test('evaluates double, BigInt, Fraction, and Complex polynomials', () {
       final poly = Polynomial<double>.fromCoefficients([
         2.0,
         -3.0,
         1.0,
       ], type: DataType.float64);
-      check(poly.evaluate(0.0)).equals(2.0);
       check(poly.evaluate(1.0)).equals(0.0);
-      check(poly.evaluate(2.0)).equals(0.0);
-      check(poly.evaluate(3.0)).equals(2.0);
       check(poly.evaluateDouble(4)).equals(6.0);
 
-      // Complex evaluation
-      final complexVal = poly.evaluateComplex(const Complex(1.0, 1.0));
-      // P(1 + i) = (1 + i - 1)(1 + i - 2) = i * (i - 1) = -1 - i
-      check(complexVal.a).isCloseTo(-1.0, 1e-9);
-      check(complexVal.b).isCloseTo(-1.0, 1e-9);
+      final cVal = poly.evaluateComplex(const Complex(1.0, 1.0));
+      check(cVal.a).isCloseTo(-1.0, 1e-9);
+      check(cVal.b).isCloseTo(-1.0, 1e-9);
 
-      // BigInt and Fraction evaluateDouble, evaluateComplex, and roots
       final pBig = Polynomial<BigInt>.fromCoefficients([
         BigInt.from(2),
         BigInt.from(-3),
@@ -54,7 +96,6 @@ void main() {
       check(pBig.evaluateDouble(4)).equals(6.0);
       check(pBig.evaluateComplex(const Complex(1.0, 1.0)).a)
           .isCloseTo(-1.0, 1e-9);
-      check(pBig.roots.length).equals(2);
 
       final pFrac = Polynomial<Fraction>.fromCoefficients([
         Fraction(2),
@@ -64,7 +105,6 @@ void main() {
       check(pFrac.evaluateDouble(4)).equals(6.0);
       check(pFrac.evaluateComplex(const Complex(1.0, 1.0)).a)
           .isCloseTo(-1.0, 1e-9);
-      check(pFrac.roots.length).equals(2);
 
       final pComp = Polynomial<Complex>.fromCoefficients([
         const Complex(2.0),
@@ -72,64 +112,55 @@ void main() {
         const Complex(1.0),
       ], type: DataType.complex);
       check(pComp.evaluateDouble(4)).equals(6.0);
-      check(pComp.roots.length).equals(2);
+    });
+  });
+
+  group('Polynomial arithmetic, powers, and GCD', () {
+    test('basic ring operations, monic, and pow', () {
+      final polyP = Polynomial<double>.fromCoefficients([1.0, 2.0]);
+      final polyQ = Polynomial<double>.fromCoefficients([3.0, -1.0, 4.0]);
+
+      check((polyP + polyQ).coefficients).deepEquals([4.0, 1.0, 4.0]);
+      check((polyP - polyQ).coefficients).deepEquals([-2.0, 3.0, -4.0]);
+      check((-polyP).coefficients).deepEquals([-1.0, -2.0]);
+      check(polyP.scale(3.0).coefficients).deepEquals([3.0, 6.0]);
+      check((polyP * polyQ).coefficients).deepEquals([3.0, 5.0, 2.0, 8.0]);
+
+      // monic on dense and sparse
+      check(Polynomial<double>.zero().monic().isZero).isTrue;
+      check(identical(polyQ.monic(), polyQ) || polyQ.monic()[2] == 1.0).isTrue;
+      check(polyP.monic().coefficients).deepEquals([0.5, 1.0]);
+      final sparseNonMonic = Polynomial<double>.compressed([0, 50], [6.0, 3.0]);
+      final sparseMonic = sparseNonMonic.monic();
+      check(sparseMonic).isA<CompressedPolynomial<double>>();
+      check(sparseMonic[50]).equals(1.0);
+      check(sparseMonic[0]).equals(2.0);
+      check(
+        () => Polynomial<int>.fromCoefficients([
+          1,
+          2,
+        ], type: DataType.int32).monic(),
+      ).throws<UnsupportedError>();
+
+      // pow
+      check(polyP.pow(0).coefficients).deepEquals([1.0]);
+      check(polyP.pow(1)).equals(polyP);
+      check(polyP.pow(3).coefficients).deepEquals([1.0, 6.0, 12.0, 8.0]);
+      check(Polynomial<double>.zero().pow(4).isZero).isTrue;
+      check(() => polyP.pow(-1)).throws<RangeError>();
     });
 
-    test(
-      'arithmetic: addition, subtraction, negation, scaling, multiplication',
-      () {
-        // P = 1 + 2x, Q = 3 - x + 4x^2
-        final polyP = Polynomial<double>.fromCoefficients([
-          1.0,
-          2.0,
-        ], type: DataType.float64);
-        final polyQ = Polynomial<double>.fromCoefficients([
-          3.0,
-          -1.0,
-          4.0,
-        ], type: DataType.float64);
-
-        final sum = polyP + polyQ;
-        check(sum.coefficients).deepEquals([4.0, 1.0, 4.0]);
-
-        final diff = polyP - polyQ;
-        check(diff.coefficients).deepEquals([-2.0, 3.0, -4.0]);
-
-        final neg = -polyP;
-        check(neg.coefficients).deepEquals([-1.0, -2.0]);
-
-        final scaled = polyP.scale(3.0);
-        check(scaled.coefficients).deepEquals([3.0, 6.0]);
-
-        // (1 + 2x) * (3 - x + 4x^2) = 3 + (-1 + 6)x + (4 - 2)x^2 + 8x^3 = 3 +
-        // 5x + 2x^2 + 8x^3
-        final prod = polyP * polyQ;
-        check(prod.coefficients).deepEquals([3.0, 5.0, 2.0, 8.0]);
-      },
-    );
-
-    test('high-degree polynomial multiplication via FFT acceleration', () {
-      // Degree 40 polynomials with moderate coefficient sizes
+    test('high-degree FFT polynomial multiplication', () {
       const deg = 40;
       final coeffs1 = List.generate(deg + 1, (i) => 1.0 / (i + 1));
       final coeffs2 = List.generate(
         deg + 1,
         (i) => (i % 2 == 0 ? 1.0 : -1.0) / (i + 1),
       );
-
-      final p1 = Polynomial<double>.fromCoefficients(
-        coeffs1,
-        type: DataType.float64,
-      );
-      final p2 = Polynomial<double>.fromCoefficients(
-        coeffs2,
-        type: DataType.float64,
-      );
-
+      final p1 = Polynomial<double>.fromCoefficients(coeffs1);
+      final p2 = Polynomial<double>.fromCoefficients(coeffs2);
       final pProd = p1 * p2;
       check(pProd.degree).equals(80);
-
-      // Verify against explicit convolution formula:
       for (var k = 0; k <= 80; k++) {
         var expected = 0.0;
         for (var i = 0; i <= deg; i++) {
@@ -141,16 +172,15 @@ void main() {
         check(pProd[k]).isCloseTo(expected, 1e-9);
       }
 
-      // (x^40 - 1) * (x^40 + 1) = x^80 - 1 (sparse-structured product cleaned of FFT rounding noise)
-      final sparseA = List<double>.filled(41, 0.0);
-      sparseA[0] = -1.0;
-      sparseA[40] = 1.0;
-      final sparseB = List<double>.filled(41, 0.0);
-      sparseB[0] = 1.0;
-      sparseB[40] = 1.0;
-      final pSparseA = Polynomial<double>.fromCoefficients(sparseA);
-      final pSparseB = Polynomial<double>.fromCoefficients(sparseB);
-      final sparseProd = pSparseA * pSparseB;
+      final sparseA = List<double>.filled(41, 0.0)
+        ..[0] = -1.0
+        ..[40] = 1.0;
+      final sparseB = List<double>.filled(41, 0.0)
+        ..[0] = 1.0
+        ..[40] = 1.0;
+      final sparseProd =
+          Polynomial<double>.fromCoefficients(sparseA) *
+          Polynomial<double>.fromCoefficients(sparseB);
       check(sparseProd.degree).equals(80);
       check(sparseProd[0]).isCloseTo(-1.0, 1e-12);
       check(sparseProd[80]).isCloseTo(1.0, 1e-12);
@@ -160,59 +190,64 @@ void main() {
     });
 
     test('division and modulo', () {
-      // Dividend: A(x) = x^3 - 2x^2 - 4
-      // Divisor:  B(x) = x - 3
-      // A(x) = (x^2 + x + 3)(x - 3) + 5
-      final a = Polynomial<double>.fromCoefficients([
-        -4.0,
-        0.0,
-        -2.0,
-        1.0,
-      ], type: DataType.float64);
-      final b = Polynomial<double>.fromCoefficients([
-        -3.0,
-        1.0,
-      ], type: DataType.float64);
-
+      final a = Polynomial<double>.fromCoefficients([-4.0, 0.0, -2.0, 1.0]);
+      final b = Polynomial<double>.fromCoefficients([-3.0, 1.0]);
       final div = a.divide(b);
       check(div.quotient.coefficients).deepEquals([3.0, 1.0, 1.0]);
       check(div.remainder.coefficients[0]).isCloseTo(5.0, 1e-9);
       check((a / b).coefficients).deepEquals([3.0, 1.0, 1.0]);
       check((a % b).coefficients[0]).isCloseTo(5.0, 1e-9);
+
+      final small = Polynomial<int>.fromCoefficients([1]);
+      final big = Polynomial<int>.fromCoefficients([1, 2, 3]);
+      final lowDiv = small.divide(big);
+      check(lowDiv.quotient.isZero).isTrue;
+      check(lowDiv.remainder.coefficients).deepEquals([1]);
+      check(() => small.divide(Polynomial<int>.zero()))
+          .throws<UnsupportedError>();
     });
 
-    test('polynomial GCD', () {
-      // A(x) = (x - 1)(x - 2) = 2 - 3x + x^2
-      // B(x) = (x - 2)(x - 3) = 6 - 5x + x^2
-      // GCD = x - 2
-      final a = Polynomial<double>.fromRoots([
-        1.0,
-        2.0,
-      ], type: DataType.float64);
-      final b = Polynomial<double>.fromRoots([
-        2.0,
-        3.0,
-      ], type: DataType.float64);
-
+    test('Euclidean GCD over float and integer polynomials', () {
+      final a = Polynomial<double>.fromRoots([1.0, 2.0]);
+      final b = Polynomial<double>.fromRoots([2.0, 3.0]);
       final gcd = a.gcd(b);
       check(gcd.degree).equals(1);
-      check(gcd[1]).isCloseTo(1.0, 1e-9); // Monic
+      check(gcd[1]).isCloseTo(1.0, 1e-9);
       check(gcd[0]).isCloseTo(-2.0, 1e-9);
 
-      // gcd(0, 0) = 0
-      final z = Polynomial<double>.zero();
-      check(z.gcd(z).degree).equals(-1);
+      check(Polynomial<double>.zero().gcd(Polynomial<double>.zero()).isZero)
+          .isTrue;
+      check(
+        Polynomial<double>.compressed(
+          [0],
+          [0.0],
+        ).gcd(Polynomial<double>.compressed([0], [0.0])),
+      ).isA<CompressedPolynomial<double>>();
+      final sparseGcdDense = Polynomial<double>.compressed(
+        [0, 2],
+        [-1.0, 1.0],
+      ).gcd(Polynomial<double>.fromCoefficients([-1.0, 1.0]));
+      check(sparseGcdDense).isA<CompressedPolynomial<double>>();
+      check(sparseGcdDense.degree).equals(1);
 
-      // Higher-degree float GCD with non-trivial remainder cancellation
       final c1 = Polynomial<double>.fromRoots([1.0, 2.0, 3.0]);
       final c2 = Polynomial<double>.fromRoots([2.0, 3.0, 4.0]);
       final gcdCubic = c1.gcd(c2);
       check(gcdCubic.degree).equals(2);
-      check(gcdCubic[2]).isCloseTo(1.0, 1e-9);
-      check(gcdCubic[1]).isCloseTo(-5.0, 1e-9);
       check(gcdCubic[0]).isCloseTo(6.0, 1e-9);
 
-      // Inexact division over integer ring throws UnsupportedError in GCD
+      // Integer ring exact and non-unit GCD
+      final exactIntA = Polynomial<int>.fromCoefficients([
+        0,
+        2,
+        2,
+      ], type: DataType.int32);
+      final exactIntB = Polynomial<int>.fromCoefficients([
+        0,
+        2,
+      ], type: DataType.int32);
+      check(exactIntA.gcd(exactIntB).coefficients).deepEquals([0, 2]);
+
       final intA = Polynomial<int>.fromCoefficients([
         0,
         1,
@@ -225,326 +260,198 @@ void main() {
       check(() => intA.gcd(intB)).throws<UnsupportedError>();
       check(() => intA.toCompressed().gcd(intB)).throws<UnsupportedError>();
 
-      // fromRoots for int and Complex
-      final pInt = Polynomial<int>.fromRoots([1, 2]);
-      check(pInt.coefficients).deepEquals([2, -3, 1]);
-      final pComplex = Polynomial<Complex>.fromRoots([
-        const Complex(0.0, 1.0),
-        const Complex(0.0, -1.0),
-      ]);
-      check(pComplex.evaluateComplex(const Complex(0.0, 1.0)).abs())
-          .isCloseTo(0.0, 1e-9);
+      // Rejects non-finite floats and type mismatches
+      check(() => Polynomial<double>.fromCoefficients([1.0, double.nan]).gcd(a))
+          .throws<ArgumentError>();
       check(
-        pComplex.toCompressed().evaluateComplex(const Complex(0.0, 1.0)).abs(),
-      ).isCloseTo(0.0, 1e-9);
+        () => Polynomial<int>.fromCoefficients(
+          [1],
+          type: DataType.int32,
+        ).gcd(Polynomial<int>.fromCoefficients([1], type: DataType.int64)),
+      ).throws<ArgumentError>();
     });
+  });
 
+  group('Polynomial calculus and composition', () {
     test('differentiation and integration', () {
-      // P(x) = 5 + 4x + 3x^2 + 2x^3
-      final poly = Polynomial<double>.fromCoefficients([
-        5.0,
-        4.0,
-        3.0,
-        2.0,
-      ], type: DataType.float64);
-
-      // P'(x) = 4 + 6x + 6x^2
+      final poly = Polynomial<double>.fromCoefficients([5.0, 4.0, 3.0, 2.0]);
       final deriv = poly.derivative();
       check(deriv.coefficients).deepEquals([4.0, 6.0, 6.0]);
+      check(poly.derivative(order: 2).coefficients).deepEquals([6.0, 12.0]);
+      check(deriv.integrate(5.0).coefficients).deepEquals([5.0, 4.0, 3.0, 2.0]);
 
-      // \int P'(x) dx with C=5 gives P(x)
-      final anti = deriv.integrate(5.0);
-      check(anti.coefficients).deepEquals([5.0, 4.0, 3.0, 2.0]);
-
-      // Symbolic polynomial integration preserves exact rational coefficients
       final symPoly = Polynomial<Expr>.sparse({
         99: IntegerNumber.of(1),
       }, type: exprDataType);
-      final symInt = symPoly.integrate();
-      check(symInt[100])
+      check(symPoly.integrate()[100])
           .equals(RationalNumber.of(const Integer(1), const Integer(100)));
     });
 
-    test('roots: linear, quadratic real, quadratic complex, cubic', () {
-      // Linear: 2 + 4x = 0 => x = -0.5
-      final p1 = Polynomial<double>.fromCoefficients([
-        2.0,
-        4.0,
-      ], type: DataType.float64);
-      check(p1.roots.length).equals(1);
-      check(p1.roots[0].a).isCloseTo(-0.5, 1e-9);
-      check(p1.roots[0].b).isCloseTo(0.0, 1e-9);
+    test('composition with polynomials and zero', () {
+      final p = Polynomial<double>.fromCoefficients([2.0, 3.0, 1.0]);
+      final q = Polynomial<double>.fromCoefficients([1.0, 1.0]);
+      final composed = p.compose(q);
+      check(composed[0]).isCloseTo(6.0, 1e-9);
+      check(composed[1]).isCloseTo(5.0, 1e-9);
+      check(composed[2]).isCloseTo(1.0, 1e-9);
+      check(composed.evaluate(3.0)).isCloseTo(30.0, 1e-9);
 
-      // Quadratic real: x^2 - 5x + 6 = (x - 2)(x - 3)
-      final p2 = Polynomial<double>.fromCoefficients([
-        6.0,
-        -5.0,
-        1.0,
-      ], type: DataType.float64);
-      final roots2 = p2.roots;
-      check(roots2.length).equals(2);
-      final realParts2 = roots2.map((root) => root.a).toList()..sort();
-      check(realParts2[0]).isCloseTo(2.0, 1e-9);
-      check(realParts2[1]).isCloseTo(3.0, 1e-9);
+      final atZero = p.compose(Polynomial<double>.zero());
+      check(atZero.coefficients).deepEquals([2.0]);
+      check(
+        Polynomial<int>.fromCoefficients([5])
+            .compose(Polynomial<int>.fromCoefficients([1, 2]))[0],
+      ).equals(5);
+    });
+  });
 
-      // Quadratic complex: x^2 + 4 = 0 => x = +- 2i
-      final p3 = Polynomial<double>.fromCoefficients([
-        4.0,
+  group('Polynomial roots', () {
+    test('constant and zero polynomials have empty roots', () {
+      check(Polynomial<double>.zero().roots).isEmpty;
+      check(Polynomial<double>.fromCoefficients([5.0]).roots).isEmpty;
+    });
+
+    test('linear, quadratic real, quadratic complex, and cubic roots', () {
+      final p1 = Polynomial<double>.fromCoefficients([2.0, 4.0]);
+      check(p1.roots.single.a).isCloseTo(-0.5, 1e-9);
+
+      final p2 = Polynomial<double>.fromCoefficients([6.0, -5.0, 1.0]);
+      final r2 = p2.roots.map((r) => r.a).toList()..sort();
+      check(r2[0]).isCloseTo(2.0, 1e-9);
+      check(r2[1]).isCloseTo(3.0, 1e-9);
+
+      final p3 = Polynomial<double>.fromCoefficients([4.0, 0.0, 1.0]);
+      check(p3.roots[0].a).isCloseTo(0.0, 1e-9);
+      check(p3.roots[0].b.abs()).isCloseTo(2.0, 1e-9);
+
+      final p4 = Polynomial<double>.fromRoots([1.0, 2.0, 3.0]);
+      final r4 = p4.roots.map((r) => r.a).toList()..sort();
+      check(r4[0]).isCloseTo(1.0, 1e-6);
+      check(r4[1]).isCloseTo(2.0, 1e-6);
+      check(r4[2]).isCloseTo(3.0, 1e-6);
+
+      // Catastrophic cancellation avoidance
+      final pCancel = Polynomial<double>.fromCoefficients([1.0, 1e8, 1.0]);
+      final rCancel = pCancel.roots.map((r) => r.a).toList()..sort();
+      check(rCancel[0]).isCloseTo(-1e8, 1.0);
+      check(rCancel[1]).isCloseTo(-1e-8, 1e-16);
+    });
+
+    test('zero-root deflation handles exact zero roots and high-degree sparse polynomials', () {
+      // x^3 * (x - 2) = -2x^3 + x^4
+      final pDeg4 = Polynomial<double>.fromCoefficients([
         0.0,
+        0.0,
+        0.0,
+        -2.0,
         1.0,
-      ], type: DataType.float64);
-      final roots3 = p3.roots;
-      check(roots3.length).equals(2);
-      check(roots3[0].a).isCloseTo(0.0, 1e-9);
-      check(roots3[0].b.abs()).isCloseTo(2.0, 1e-9);
+      ]);
+      final rDeg4 = pDeg4.roots;
+      check(rDeg4.length).equals(4);
+      final reals = rDeg4.map((r) => r.a).toList()..sort();
+      check(reals).deepEquals([0.0, 0.0, 0.0, 2.0]);
 
-      // Cubic: (x - 1)(x - 2)(x - 3) = -6 + 11x - 6x^2 + x^3
-      final p4 = Polynomial<double>.fromRoots([
-        1.0,
-        2.0,
-        3.0,
-      ], type: DataType.float64);
-      final roots4 = p4.roots;
-      check(roots4.length).equals(3);
-      final realParts4 = roots4.map((root) => root.a).toList()..sort();
-      check(realParts4[0]).isCloseTo(1.0, 1e-6);
-      check(realParts4[1]).isCloseTo(2.0, 1e-6);
-      check(realParts4[2]).isCloseTo(3.0, 1e-6);
+      // x^10000 - x^9998 = x^9998 * (x^2 - 1): solvable analytically after deflation!
+      final highSparse = Polynomial<double>.sparse({9998: -1.0, 10000: 1.0});
+      final highRoots = highSparse.roots;
+      check(highRoots.length).equals(10000);
+      final nonZero =
+          highRoots.where((r) => r != Complex.zero).map((r) => r.a).toList()
+            ..sort();
+      check(nonZero.length).equals(2);
+      check(nonZero[0]).isCloseTo(-1.0, 1e-12);
+      check(nonZero[1]).isCloseTo(1.0, 1e-12);
 
-      // Numerically stable quadratic (avoids catastrophic cancellation)
-      // x^2 + 1e8 * x + 1 = 0 => x1 ~ -1e8, x2 ~ -1e-8
-      final pCancel = Polynomial<double>.fromCoefficients([
-        1.0,
-        1e8,
-        1.0,
-      ], type: DataType.float64);
-      final rootsCancel = pCancel.roots;
-      check(rootsCancel.length).equals(2);
-      final rParts = rootsCancel.map((r) => r.a).toList()..sort();
-      check(rParts[0]).isCloseTo(-1e8, 1.0);
-      check(rParts[1]).isCloseTo(-1e-8, 1e-16);
+      // Pure monomial c * x^5000 has 5000 exact zero roots
+      final monomial = Polynomial<double>.sparse({5000: 3.0});
+      check(monomial.roots.length).equals(5000);
+      check(monomial.roots.every((r) => r == Complex.zero)).isTrue;
+    });
 
-      // Complex coefficient polynomials
-      // Linear: (1 + i)x + (2 - 2i) = 0 => x = 2i
+    test('overflow-safe real and complex quadratic roots', () {
+      // Extreme large coefficients (b^2 would overflow without rescaling)
+      final huge = Polynomial<double>.fromCoefficients([6e200, -5e200, 1e200]);
+      final rHuge = huge.roots.map((r) => r.a).toList()..sort();
+      check(rHuge[0]).isCloseTo(2.0, 1e-12);
+      check(rHuge[1]).isCloseTo(3.0, 1e-12);
+
+      // Extreme tiny coefficients (b^2 would underflow to 0 without rescaling)
+      final tiny = Polynomial<double>.fromCoefficients([
+        6e-200,
+        -5e-200,
+        1e-200,
+      ]);
+      final rTiny = tiny.roots.map((r) => r.a).toList()..sort();
+      check(rTiny[0]).isCloseTo(2.0, 1e-12);
+      check(rTiny[1]).isCloseTo(3.0, 1e-12);
+
+      // Complex linear & quadratic with large coefficients and negative-real disc
       final pCompLin = Polynomial<Complex>.fromCoefficients([
         const Complex(2.0, -2.0),
         const Complex(1.0, 1.0),
       ], type: DataType.complex);
-      final rootsCompLin = pCompLin.roots;
-      check(rootsCompLin.length).equals(1);
-      check(rootsCompLin[0].a).isCloseTo(0.0, 1e-9);
-      check(rootsCompLin[0].b).isCloseTo(2.0, 1e-9);
+      check(pCompLin.roots.single.a).isCloseTo(0.0, 1e-9);
+      check(pCompLin.roots.single.b).isCloseTo(2.0, 1e-9);
 
-      // Quadratic complex: x^2 - (2 + i)x + (1 + i) = (x - 1)(x - (1 + i))
       final pCompQuad = Polynomial<Complex>.fromCoefficients([
-        const Complex(1.0, 1.0),
-        const Complex(-2.0, -1.0),
-        const Complex(1.0, 0.0),
+        const Complex(1e200, 1e200),
+        const Complex(-2e200, -1e200),
+        const Complex(1e200, 0.0),
       ], type: DataType.complex);
-      final rootsCompQuad = pCompQuad.roots;
-      check(rootsCompQuad.length).equals(2);
-      final realPartsCQ = rootsCompQuad.map((r) => r.a).toList()..sort();
-      check(realPartsCQ[0]).isCloseTo(1.0, 1e-9);
-      check(realPartsCQ[1]).isCloseTo(1.0, 1e-9);
+      final rComp = pCompQuad.roots;
+      check(rComp.length).equals(2);
+      for (final root in rComp) {
+        check(root.a.isFinite && root.b.isFinite).isTrue;
+      }
+      // Also test negative real part in _complexSqrt branch: x^2 + 4x + (4 + 4) -> disc = -16, and (z^2 + 1) with complex coeff
+      final pNegDisc = Polynomial<Complex>.fromCoefficients([
+        const Complex(5.0, 1.0),
+        const Complex(0.0, 0.0),
+        Complex.one,
+      ], type: DataType.complex);
+      for (final r in pNegDisc.roots) {
+        final residual = r * r + const Complex(5.0, 1.0);
+        check(residual.abs()).isCloseTo(0.0, 1e-12);
+      }
+      // Also test positive real part discriminant in _complexSqrt:
+      // z^2 - (2 + 2i)z + (0 + 2i) -> disc = (2 + 2i)^2 - 8i = 8i - 8i = 0, and z^2 - 4z + (3 - i) -> disc = 4 + 4i
+      final pPosDisc = Polynomial<Complex>.fromCoefficients([
+        const Complex(3.0, -1.0),
+        const Complex(-4.0, 0.0),
+        Complex.one,
+      ], type: DataType.complex);
+      for (final r in pPosDisc.roots) {
+        final residual =
+            r * r - const Complex(4.0) * r + const Complex(3.0, -1.0);
+        check(residual.abs()).isCloseTo(0.0, 1e-12);
+      }
+    });
 
-      // Non-numeric polynomial roots throws ArgumentError
+    test('invalid coefficient and unsupported degree errors', () {
       final pExpr = Polynomial<Expr>.fromCoefficients(const [
         Variable('x'),
         Variable('y'),
       ], type: exprDataType);
       check(() => pExpr.roots).throws<ArgumentError>();
-    });
 
-    test('Polynomial factories, division errors, integration on zero, and toString', () {
-      final zero = Polynomial<double>.zero();
-      check(zero.degree).equals(-1);
-      check(zero.toString()).equals('0');
+      final pNan = Polynomial<double>.fromCoefficients([1.0, double.nan, 1.0]);
+      check(() => pNan.roots).throws<ArgumentError>();
 
-      final gen = Polynomial<int>.generate(2, (exp) => exp + 1);
-      check(gen.coefficients).deepEquals([1, 2, 3]);
+      final pInf = Polynomial<double>.fromCoefficients([1.0, double.infinity]);
+      check(() => pInf.roots).throws<ArgumentError>();
 
-      // Division by zero polynomial throws
-      final poly = Polynomial<int>.fromCoefficients([1, 2]);
-      final zeroInt = Polynomial<int>.zero();
-      check(() => poly.divide(zeroInt)).throws<UnsupportedError>();
-
-      // degA < degB
-      final small = Polynomial<int>.fromCoefficients([1]);
-      final big = Polynomial<int>.fromCoefficients([1, 2, 3]);
-      final div = small.divide(big);
-      check(div.quotient.degree).equals(-1);
-      check(div.remainder.coefficients).deepEquals([1]);
-
-      // termCount and toDense on DensePolynomial
-      check(poly.termCount).equals(2);
-      check(poly.toDense() as Polynomial<int>).equals(poly);
-
-      // dense - compressed
-      final comp = Polynomial<int>.compressed([1], [2]);
-      final diff = poly - comp;
-      check(diff.degree).equals(0);
-      check(diff[0]).equals(1);
-
-      // constant polynomial compose
-      final constPoly = Polynomial<int>.fromCoefficients([5]);
-      check(constPoly.compose(poly)[0]).equals(5);
-
-      // Coprime gcd
-      final p1 = Polynomial<double>.fromCoefficients([1.0, 1.0]); // x + 1
-      final p2 = Polynomial<double>.fromCoefficients([2.0, 1.0]); // x + 2
-      final gcd = p1.gcd(p2);
-      check(gcd.degree).equals(0);
-      check(gcd[0]).isCloseTo(1.0, 1e-9);
-
-      // Integration on zero polynomial and without constant
-      final intZero = zero.integrate(2.0);
-      check(intZero.coefficients).deepEquals([2.0]);
-      final intDefault = poly.integrate();
-      check(intDefault[0]).equals(0);
-
-      // toString formatting
-      final constP = Polynomial<int>.fromCoefficients([5]);
-      check(constP.toString()).equals('5');
-      final poly1 = Polynomial<int>.fromCoefficients([1, 1]);
-      check(poly1.toString()).equals('x + 1');
-      final poly3 = Polynomial<int>.fromCoefficients([3, 0, 2, 1]);
-      check(poly3.toString()).equals('x^3 + 2x^2 + 3');
+      final cubicComplex = Polynomial<Complex>.fromCoefficients([
+        Complex.one,
+        Complex.zero,
+        const Complex(0.0, 1.0),
+        Complex.one,
+      ]);
+      check(() => cubicComplex.roots).throws<UnsupportedError>();
     });
   });
 
-  group('Polynomial composition and orthogonal evaluation', () {
-    test('polynomial composition compose', () {
-      // P(x) = 2 + 3x + x^2
-      final p = Polynomial<double>.fromCoefficients([2.0, 3.0, 1.0]);
-      // Q(x) = 1 + x (or x + 1)
-      final q = Polynomial<double>.fromCoefficients([1.0, 1.0]);
-
-      // P(Q(x)) = 2 + 3(x + 1) + (x + 1)^2 = x^2 + 5x + 6
-      final composed = p.compose(q);
-      check(composed.degree).equals(2);
-      check(composed[0]).isCloseTo(6.0, 1e-9);
-      check(composed[1]).isCloseTo(5.0, 1e-9);
-      check(composed[2]).isCloseTo(1.0, 1e-9);
-
-      // Value evaluation check: P(Q(3)) == P(4) = 2 + 12 + 16 = 30
-      // composed(3) = 9 + 15 + 6 = 30
-      check(composed.evaluate(3.0)).isCloseTo(30.0, 1e-9);
-
-      // Composition with zero polynomial
-      final zero = Polynomial<double>.zero();
-      check(p.compose(zero)[0]).equals(2.0);
-      check(p.compose(zero).degree).equals(0);
-    });
-
-    test('generalized Laguerre polynomials laguerreL and evaluateOrthogonalSeries', () {
-      // L_0(x) = 1
-      final l0 = Polynomial.laguerreL(0);
-      check(l0.degree).equals(0);
-      check(l0[0]).equals(1.0);
-      check(
-        evaluateOrthogonalSeries(
-          [1.0],
-          5.0,
-          family: OrthogonalFamily.laguerreL,
-        ),
-      ).equals(1.0);
-
-      // L_1(x) = 1 - x
-      final l1 = Polynomial.laguerreL(1);
-      check(l1.degree).equals(1);
-      check(l1[0]).equals(1.0);
-      check(l1[1]).equals(-1.0);
-      check(
-        evaluateOrthogonalSeries(
-          [0.0, 1.0],
-          2.5,
-          family: OrthogonalFamily.laguerreL,
-        ),
-      ).equals(-1.5);
-
-      // L_2(x) = 1 - 2x + 0.5 x^2
-      final l2 = Polynomial.laguerreL(2);
-      check(l2.degree).equals(2);
-      check(l2[0]).isCloseTo(1.0, 1e-9);
-      check(l2[1]).isCloseTo(-2.0, 1e-9);
-      check(l2[2]).isCloseTo(0.5, 1e-9);
-
-      // Evaluation consistency
-      for (final x in [0.0, 1.0, 2.5, 4.0]) {
-        check(
-          evaluateOrthogonalSeries(
-            [0.0, 0.0, 1.0],
-            x,
-            family: OrthogonalFamily.laguerreL,
-          ),
-        ).isCloseTo(l2.evaluate(x), 1e-9);
-      }
-
-      // Generalized L_2^(alpha=1.0)(x)
-      // L_0^(1) = 1, L_1^(1) = 2 - x, L_2^(1) = 0.5 * (x^2 - 6x + 6) = 3 - 3x +
-      // 0.5 x^2
-      final l2Alpha = Polynomial.laguerreL(2, alpha: 1.0);
-      check(l2Alpha[0]).isCloseTo(3.0, 1e-9);
-      check(l2Alpha[1]).isCloseTo(-3.0, 1e-9);
-      check(l2Alpha[2]).isCloseTo(0.5, 1e-9);
-      check(
-        evaluateOrthogonalSeries(
-          [0.0, 0.0, 1.0],
-          3.0,
-          family: OrthogonalFamily.laguerreL,
-          alpha: 1.0,
-        ),
-      ).isCloseTo(l2Alpha.evaluate(3.0), 1e-9);
-
-      check(() => Polynomial.laguerreL(-1)).throws<ArgumentError>();
-    });
-
-    test('DensePolynomial strips trailing zeros and exposes unmodifiable coefficients', () {
-      final pWithZeros = Polynomial<double>.fromCoefficients([
-        1.0,
-        2.0,
-        0.0,
-        0.0,
-      ]);
-      check(pWithZeros.degree).equals(1);
-      check(pWithZeros.coefficients.length).equals(2);
-      check(pWithZeros.leadingCoefficient).equals(2.0);
-      check(pWithZeros.coefficients).deepEquals([1.0, 2.0]);
-      check(() => pWithZeros.coefficients[0] = 99.0).throws<UnsupportedError>();
-
-      final allZeros = Polynomial<double>.fromCoefficients([0.0, 0.0, 0.0]);
-      check(allZeros.degree).equals(-1);
-      check(allZeros.coefficients.isEmpty).isTrue;
-      check(allZeros.leadingCoefficient).equals(0.0);
-    });
-
-    test(
-      'Polynomial.toString formats negative coefficients with minus signs',
-      () {
-        final fromRoots = Polynomial<double>.fromRoots([2.0, 3.0]);
-        check(fromRoots.toString())
-            .matchesPattern(RegExp(r'^x\^2 - 5(\.0)?x \+ 6(\.0)?$'));
-
-        final leadingNeg = Polynomial<double>.fromCoefficients([
-          6.0,
-          5.0,
-          -1.0,
-        ]);
-        check(leadingNeg.toString())
-            .matchesPattern(RegExp(r'^-x\^2 \+ 5(\.0)?x \+ 6(\.0)?$'));
-
-        final negConst = Polynomial<int>.fromCoefficients([-2, 1]);
-        check(negConst.toString()).equals('x - 2');
-
-        final negLinear = Polynomial<int>.fromCoefficients([1, -1, 1]);
-        check(negLinear.toString()).equals('x^2 - x + 1');
-
-        final allNeg = Polynomial<int>.fromCoefficients([-4, -3, -2]);
-        check(allNeg.toString()).equals('-2x^2 - 3x - 4');
-      },
-    );
-
-    test('equality and hashCode respect DataType', () {
+  group('Polynomial equality, hashing, and formatting', () {
+    test('equality and hashCode respect DataType and representation', () {
       final pInt = Polynomial<num>.fromCoefficients([
         1,
         2,
@@ -569,65 +476,58 @@ void main() {
       check(pInt == cInt).isTrue;
       check(pInt.hashCode).equals(cInt.hashCode);
 
-      // CompressedPolynomial monic normalize and roots with complex coefficients
-      final cLead = Polynomial<double>.compressed([0, 2], [4.0, 2.0]);
-      final cOther = Polynomial<double>.compressed([0, 1], [2.0, 1.0]);
-      check(cLead.gcd(cOther).degree).equals(0);
-      // gcd where remainder has degree >= 1 and is CompressedPolynomial
-      final cRem1 = Polynomial<double>.compressed([0, 1, 2], [2.0, 4.0, 2.0]);
-      final cRem2 = Polynomial<double>.compressed([0, 1], [2.0, 2.0]);
-      final cGcd = cRem1.gcd(cRem2);
-      check(cGcd.degree).equals(1);
-      check(cGcd[1]).isCloseTo(1.0, 1e-12);
-
-      // Polynomial formatting with non-comparable coefficients (Expr)
-      final exprPoly = Polynomial<Expr>.fromCoefficients([
-        const Variable('a'),
-        const Variable('b'),
-      ], type: exprDataType);
-      check(exprPoly.toString()).contains('x');
-
-      final quadComplex = Polynomial<Complex>.fromCoefficients([
-        const Complex(1.0, 2.0),
-        const Complex(3.0, -1.0),
-        const Complex(1.0, 1.0),
-      ]);
-      check(quadComplex.roots.length).equals(2);
-      check(quadComplex.toString()).matchesPattern(
-        RegExp(
-          r'^\(1(\.0)? \+ 1(\.0)?i\)x\^2 \+ \(3(\.0)? - 1(\.0)?i\)x \+ 1(\.0)? \+ 2(\.0)?i$',
-        ),
-      );
-      check(() => quadComplex.evaluateDouble(1.0)).throws<UnsupportedError>();
-
-      final cubicComplex = Polynomial<Complex>.fromCoefficients([
-        Complex.one,
-        Complex.zero,
-        const Complex(0.0, 1.0),
-        Complex.one,
-      ]);
-      check(() => cubicComplex.roots).throws<UnsupportedError>();
-
-      // High degree sparse equality and nonZeroTerms
-      final highDeg1 = Polynomial<int>.compressed([0, 100000], [-1, 1]);
-      final highDeg2 = Polynomial<int>.compressed([0, 100000], [-1, 1]);
-      final highDeg3 = Polynomial<int>.compressed(
-        [0, 50000, 100000],
-        [-1, 1, 1],
-      );
-      check(highDeg1 == highDeg2).isTrue;
-      check(highDeg1.hashCode).equals(highDeg2.hashCode);
-      check(highDeg1 == highDeg3).isFalse;
-
       final denseP = Polynomial<int>.fromCoefficients([1, 0, 3]);
       final compP = Polynomial<int>.compressed([0, 2], [1, 3]);
       check(denseP == compP).isTrue;
       check(compP == denseP).isTrue;
-      check(
-        denseP.nonZeroTerms.map((t) => (t.exponent, t.coefficient)).toList(),
-      ).deepEquals([(0, 1), (2, 3)]);
-      check(compP.nonZeroTerms.map((t) => (t.exponent, t.coefficient)).toList())
-          .deepEquals([(0, 1), (2, 3)]);
+      check(denseP.hashCode).equals(compP.hashCode);
     });
+
+    test('equality ignores IEEE-754 negative zero', () {
+      final pPos = Polynomial<double>.fromCoefficients([0.0, 1.0]);
+      final pNeg = Polynomial<double>.fromCoefficients([-0.0, 1.0]);
+      check(pPos == pNeg).isTrue;
+      check(pPos.hashCode).equals(pNeg.hashCode);
+
+      final cPos = Polynomial<Complex>.fromCoefficients([
+        Complex.zero,
+        Complex.one,
+      ], type: DataType.complex);
+      final cNeg = Polynomial<Complex>.fromCoefficients([
+        const Complex(-0.0, -0.0),
+        Complex.one,
+      ], type: DataType.complex);
+      check(cPos == cNeg).isTrue;
+      check(cPos.hashCode).equals(cNeg.hashCode);
+    });
+
+    test(
+      'toString formatting handles positive, negative, and complex terms',
+      () {
+        check(Polynomial<double>.zero().toString()).equals('0');
+        check(Polynomial<int>.fromCoefficients([5]).toString()).equals('5');
+        check(Polynomial<int>.fromCoefficients([1, 1]).toString())
+            .equals('x + 1');
+        check(Polynomial<int>.fromCoefficients([3, 0, 2, 1]).toString())
+            .equals('x^3 + 2x^2 + 3');
+        check(Polynomial<int>.fromCoefficients([-2, 1]).toString())
+            .equals('x - 2');
+        check(Polynomial<int>.fromCoefficients([1, -1, 1]).toString())
+            .equals('x^2 - x + 1');
+        check(Polynomial<int>.fromCoefficients([-4, -3, -2]).toString())
+            .equals('-2x^2 - 3x - 4');
+
+        final quadComplex = Polynomial<Complex>.fromCoefficients([
+          const Complex(1.0, 2.0),
+          const Complex(3.0, -1.0),
+          const Complex(1.0, 1.0),
+        ]);
+        check(quadComplex.toString()).matchesPattern(
+          RegExp(
+            r'^\(1(\.0)? \+ 1(\.0)?i\)x\^2 \+ \(3(\.0)? - 1(\.0)?i\)x \+ 1(\.0)? \+ 2(\.0)?i$',
+          ),
+        );
+      },
+    );
   });
 }

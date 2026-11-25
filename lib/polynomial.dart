@@ -1,7 +1,7 @@
 /// Univariate polynomial algebra, calculus, root isolation, rational functions,
 /// and orthogonal polynomial families.
 ///
-/// Implements arithmetic in the polynomial ring `$K\[x\]$` over any
+/// Implements arithmetic in the polynomial ring `K[x]` over any
 /// mathematical field, along with exact differentiation, indefinite
 /// integration, root isolation, and specialized evaluation schemes for
 /// orthogonal polynomials.
@@ -11,18 +11,20 @@
 /// - **Polynomial Ring Operations**: Exact addition, subtraction,
 ///   multiplication, Euclidean polynomial long division (`/`, `%`), and
 ///   greatest common divisor (GCD).
-/// - **Fast Evaluation**: Efficient $\mathcal{O}(n)$ Horner's rule via
+/// - **Fast Evaluation**: Efficient O(n) Horner's rule via
 ///   [Polynomial.evaluate].
 /// - **Calculus**: Analytical derivatives ([Polynomial.derivative]) and
 ///   anti-derivatives ([Polynomial.integrate]).
 /// - **Root Finding**: Finds all real and complex roots of polynomials using
 ///   companion matrix eigenvalues via [Polynomial.roots].
 /// - **Rational Functions**: [RationalFunction] represents quotients
-///   $P(x) / Q(x)$ with exact simplification and evaluation.
+///   `P(x) / Q(x)` with exact simplification, arithmetic, powers, and
+///   evaluation.
 /// - **Orthogonal Polynomials**: [Polynomial.chebyshevT],
 ///   [Polynomial.chebyshevU], [Polynomial.legendreP], [Polynomial.hermiteH],
-///   [Polynomial.hermiteHe], and [Polynomial.laguerreL] with stable
-///   $\mathcal{O}(n)$ Clenshaw recurrence evaluation ([evaluateOrthogonalSeries]).
+///   [Polynomial.hermiteHe], and [Polynomial.laguerreL] with stable O(n)
+///   recurrence point evaluation ([evaluateOrthogonal]) and Clenshaw series
+///   evaluation ([evaluateOrthogonalSeries]).
 ///
 /// ## Example
 ///
@@ -53,6 +55,6 @@ import 'src/polynomial/rational.dart';
 export 'src/polynomial/impl/compressed_polynomial.dart';
 export 'src/polynomial/impl/dense_polynomial.dart';
 export 'src/polynomial/orthogonal.dart'
-    show OrthogonalFamily, evaluateOrthogonalSeries, laguerreEvaluate;
+    show OrthogonalFamily, evaluateOrthogonal, evaluateOrthogonalSeries;
 export 'src/polynomial/polynomial.dart';
 export 'src/polynomial/rational.dart';

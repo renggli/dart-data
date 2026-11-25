@@ -515,41 +515,43 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: The legacy polynomial implementation used mutable coefficient buffers and `copyInto` methods, leading to aliasing bugs and state pollution.
 - **Implementation & Constraints**:
-  - `Polynomial<T>` is strictly immutable, backed by an unmodifiable list of coefficients ordered from degree 0 to $N$.
-  - All operations return newly allocated, canonicalized `Polynomial<T>` instances with trailing zero coefficients stripped.
+  - `Polynomial<T>` is strictly immutable, backed either by an unmodifiable contiguous dense list (`DensePolynomial<T>`, degree `0..N`) or sorted sparse `(exponent, coefficient)` arrays (`CompressedPolynomial<T>`).
+  - All operations return newly allocated, canonicalized `Polynomial<T>` instances with trailing zero coefficients stripped and IEEE-754 negative zeros (`-0.0`) normalized.
+  - Binary algebraic operations (`+`, `-`, `*`, `compose`, `divide`, `gcd`) enforce identical coefficient `DataType<T>` instances.
 
 ### 8.2 Orthogonal Polynomial Families & Clenshaw Recurrence
 
 - **Reasoning**: Orthogonal polynomials are essential for spectral methods, approximation theory, and numerical quadrature.
 - **Implementation & Constraints**:
-  - Static factory generators:
-    - Chebyshev polynomials of the first kind ($T_n(x)$) and second kind ($U_n(x)$).
-    - Legendre polynomials ($P_n(x)$).
-    - Hermite polynomials (physicist $H_n(x)$ and probabilist $He_n(x)$).
-    - Generalized Laguerre polynomials ($L_n^{(\alpha)}(x)$ via `Polynomial.laguerreL`) computed via 3-term recurrence: $L_{k+1}^{(\alpha)}(x) = \frac{1}{k+1} ((2k + 1 + \alpha - x) L_k^{(\alpha)}(x) - (k + \alpha) L_{k-1}^{(\alpha)}(x))$. Direct point evaluation available via `evaluateOrthogonalSeries(OrthogonalFamily.laguerreL, n, x, alpha: alpha)`.
-  - Evaluated via `evaluateOrthogonalSeries` (`lib/src/polynomial/orthogonal.dart`), which evaluates three-term recurrence relations stably without expanding polynomial coefficients.
+  - Static factory generators (`Polynomial.chebyshevT`, `Polynomial.chebyshevU`, `Polynomial.legendreP`, `Polynomial.hermiteH`, `Polynomial.hermiteHe`, `Polynomial.laguerreL`) compute recurrence coefficients directly in reusable `Float64List` buffers in `O(n^2)` time without intermediate polynomial allocations or FFT rounding noise.
+  - Single-point `O(n)` recurrence evaluation across all six families is provided via `evaluateOrthogonal(degree, x, family: ..., alpha: ...)` (`lib/src/polynomial/orthogonal.dart`).
+  - Linear combinations are evaluated in `O(n)` time and `O(1)` auxiliary space via Clenshaw recurrence (`evaluateOrthogonalSeries`). Generalized Laguerre functions validate finite `alpha`.
 
 ### 8.3 Formal Polynomial Arithmetic, Composition & Root Isolation
 
 - **Reasoning**: Exact algebraic manipulation, composition, and root finding for arbitrary degrees.
 - **Implementation & Constraints**:
-  - Formal division with remainder (`divide`, `/`, `%`) and Euclidean Greatest Common Divisor (`gcd`).
-  - Composition: `poly.compose(other)` evaluates $(P \circ Q)(x) = P(Q(x))$ algebraically using Horner's recurrence.
-  - Differentiation (`derivative()`) and anti-differentiation (`integrate()`).
-  - Root isolation:
-    - Degree 1: Analytical linear root.
-    - Degree 2: Numerically stable quadratic formula with sign preservation to prevent catastrophic cancellation.
-    - Degree $\ge 3$: Constructs Frobenius companion matrix of monic polynomial and solves for complex roots via `EigenvalueDecomposition`.
+  - `Polynomial.fromRoots` expands linear root factors in a single in-place `O(n^2)` pass.
+  - Queries and algebraic utilities include `isZero`, `isConstant`, `monic()`, and binary exponentiation `pow(exponent)`.
+  - Formal division with remainder (`divide`, `/`, `%`) tracks per-coefficient cancellation magnitudes for floating-point operands so untouched small terms survive while leading-term residuals and genuine cancellation noise are eliminated cleanly across both dense and `SplayTreeMap`-backed sparse implementations.
+  - Euclidean `gcd` validates finite floating-point coefficients and normalizes monic results while preserving sparse representation.
+  - Composition: `poly.compose(other)` evaluates `(P ∘ Q)(x) = P(Q(x))` algebraically using Horner's recurrence (dense) or incremental binary exponentiation (sparse).
+  - Differentiation (`derivative({int order = 1})`) and anti-differentiation (`integrate()`).
+  - Root isolation (`roots`):
+    - Rejects non-finite and non-numeric coefficients with `ArgumentError`.
+    - Deflates zero roots (`x^k` factors) analytically prior to solving the reduced polynomial.
+    - Effective degrees `1` and `2` use overflow-safe component-rescaled real and complex closed-form formulas.
+    - Effective degree >= 3 constructs the Frobenius companion matrix of the deflated monic polynomial and solves for complex roots via `EigenvalueDecomposition`.
 
 ### 8.4 Rational Functions (`RationalFunction<T>`)
 
-- **Reasoning**: Many scientific modeling and transfer function problems involve ratios of polynomials $R(x) = \frac{P(x)}{Q(x)}$.
+- **Reasoning**: Many scientific modeling and transfer function problems involve ratios of polynomials `R(x) = P(x) / Q(x)`.
 - **Implementation & Constraints**:
   - `RationalFunction<T>` in `lib/src/polynomial/rational.dart` encapsulates numerator and denominator polynomials.
-  - Automatic and explicit GCD simplification via `simplify()` dividing out $\gcd(P, Q)$ and normalizing the denominator to monic form.
-  - Arithmetic overloads (`+`, `-`, `*`, `/`, `unary-`) with automatic cross-multiplication and canonical simplification.
-  - Exact evaluation (`evaluate`, `evaluateDouble`) with pole zero-division error handling.
-  - Formal derivative (`derivative()`) computed using the quotient rule: $\left(\frac{P}{Q}\right)' = \frac{P' Q - P Q'}{Q^2}$.
+  - Automatic and explicit GCD simplification via `simplify()` canonicalizes zero numerators (`0 / 1`), divides out `gcd(P, Q)`, and normalizes invertible denominators to monic form using direct scalar division while preserving `CompressedPolynomial` representations.
+  - Properties and arithmetic include `isZero`, `isPolynomial`, `reciprocal()`, `pow(exponent)`, `+`, `-`, `*`, `/`, and unary negation `-`.
+  - Evaluation (`evaluate`, `evaluateDouble`, `evaluateComplex`) handles pole zero-division with `UnsupportedError`.
+  - Formal derivative (`derivative({int order = 1})`) computed iteratively using the quotient rule `(P' Q - P Q') / Q^2`.
 
 ---
 

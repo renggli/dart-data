@@ -2,12 +2,44 @@ import 'package:more/number.dart' show Complex, Fraction;
 
 import '../../type/data_type.dart';
 
-/// Formats polynomial terms in descending degree order into a mathematical string.
+/// Validates that [left] and [right] have identical [DataType]s.
+void checkSamePolynomialType<T>(DataType<T> left, DataType<T> right) {
+  if (left != right) {
+    throw ArgumentError(
+      'Polynomials must have the same DataType: $left != $right.',
+    );
+  }
+}
+
+/// Returns `true` when [type] is an IEEE-754 floating-point type (`float32` or
+/// `float64`).
+///
+/// Checking [DataType] identity rather than `defaultValue is double` is
+/// required for consistent behavior on JavaScript targets where integer and
+/// double runtime types overlap.
+bool isFloatPolynomialType(DataType<Object?> type) =>
+    type == DataType.float32 || type == DataType.float64;
+
+/// Canonicalizes a coefficient [value] against [zero] so that negative zeros
+/// (`-0.0` or `Complex(-0.0, -0.0)`) are normalized to positive zero.
+T normalizeCoefficient<T>(T value, T zero) {
+  if (value == zero) return zero;
+  if (value is Complex && (value.a == 0.0 || value.b == 0.0)) {
+    return Complex(
+      value.a == 0.0 ? 0.0 : value.a,
+      value.b == 0.0 ? 0.0 : value.b,
+    ) as T;
+  }
+  return value;
+}
+
+/// Formats polynomial [terms] in descending degree order into a readable
+/// algebraic string.
 String formatPolynomialTerms<T>(
   DataType<T> type,
   Iterable<({int exponent, T coefficient})> terms,
 ) {
-  final termList = terms.toList();
+  final termList = terms.toList(growable: false);
   if (termList.isEmpty) return '0';
 
   final buffer = StringBuffer();
@@ -45,7 +77,10 @@ String formatPolynomialTerms<T>(
   return buffer.toString();
 }
 
-/// Converts a coefficient value [val] to [double].
+/// Converts a numeric coefficient [val] to [double].
+///
+/// Throws an [UnsupportedError] for non-real complex numbers or non-numeric
+/// coefficients.
 double coeffToDouble(Object? val) {
   if (val is num) return val.toDouble();
   if (val is BigInt) return val.toDouble();
@@ -61,7 +96,9 @@ double coeffToDouble(Object? val) {
   throw UnsupportedError('Cannot convert coefficient $val to double.');
 }
 
-/// Converts a coefficient value [val] to [Complex].
+/// Converts a numeric or complex coefficient [val] to [Complex].
+///
+/// Throws an [UnsupportedError] for non-numeric coefficients.
 Complex coeffToComplex(Object? val) {
   if (val is Complex) return val;
   if (val is num) return Complex(val.toDouble());
@@ -72,14 +109,16 @@ Complex coeffToComplex(Object? val) {
 
 String _formatCoefficient(Object? coeff) {
   if (coeff is Complex) {
-    if (coeff.b == 0.0) {
-      return '${coeff.a}';
-    } else if (coeff.a == 0.0) {
-      return '${coeff.b}i';
-    } else if (coeff.b < 0) {
-      return '${coeff.a} - ${-coeff.b}i';
+    final a = coeff.a == 0.0 ? 0.0 : coeff.a;
+    final b = coeff.b == 0.0 ? 0.0 : coeff.b;
+    if (b == 0.0) {
+      return '$a';
+    } else if (a == 0.0) {
+      return '${b}i';
+    } else if (b < 0.0) {
+      return '$a - ${-b}i';
     } else {
-      return '${coeff.a} + ${coeff.b}i';
+      return '$a + ${b}i';
     }
   }
   return '$coeff';
@@ -103,13 +142,13 @@ bool _isMultiTerm(String s) {
 bool _isNegativeCoefficient<T>(DataType<T> type, T value) {
   if (value is num) return value < 0;
   if (value is BigInt) return value.isNegative;
-  try {
-    return type.comparator(value, type.field.additiveIdentity) < 0;
-  } on UnsupportedError {
-    return false;
-  } on ArgumentError {
-    return false;
-  } on TypeError {
-    return false;
+  if (value is Fraction) return value < Fraction.zero;
+  if (value is Complex) {
+    return (value.b == 0.0 && value.a < 0.0) ||
+        (value.a == 0.0 && value.b < 0.0);
   }
+  if (value is Comparable) {
+    return type.comparator(value, type.field.additiveIdentity) < 0;
+  }
+  return false;
 }

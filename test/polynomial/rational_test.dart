@@ -1,55 +1,82 @@
 import 'package:checks/checks.dart';
 import 'package:data/polynomial.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
-  group('RationalFunction', () {
-    test('construction and basic properties', () {
-      final num = Polynomial<double>.fromCoefficients([1.0, 2.0]); // 1 + 2x
-      final den = Polynomial<double>.fromCoefficients([
-        3.0,
-        0.0,
-        1.0,
-      ]); // 3 + x^2
-
+  group('RationalFunction construction and queries', () {
+    test('construction, fromPolynomial, isZero, and isPolynomial', () {
+      final num = Polynomial<double>.fromCoefficients([1.0, 2.0]);
+      final den = Polynomial<double>.fromCoefficients([3.0, 0.0, 1.0]);
       final rf = RationalFunction(num, den);
       check(rf.numerator).equals(num);
       check(rf.denominator).equals(den);
+      check(rf.isZero).isFalse;
+      check(rf.isPolynomial).isFalse;
       check(rf.toString()).contains('/');
 
       final fromP = RationalFunction.fromPolynomial(num);
-      check(fromP.denominator.degree).equals(0);
+      check(fromP.isPolynomial).isTrue;
       check(fromP.evaluate(2.0)).equals(5.0);
 
+      final sparseFromP = RationalFunction.fromPolynomial(
+        Polynomial<double>.compressed([0, 50], [1.0, 2.0]),
+      );
+      check(sparseFromP.denominator).isA<CompressedPolynomial<double>>();
+
       final zero = Polynomial<double>.zero();
+      check(RationalFunction.fromPolynomial(zero).isZero).isTrue;
       check(() => RationalFunction(num, zero)).throws<UnsupportedError>();
     });
 
-    test('evaluation and pole exception', () {
+    test('mismatched DataType throws ArgumentError', () {
+      check(
+        () => RationalFunction<num>(
+          Polynomial<num>.fromCoefficients([1.0], type: DataType.float64),
+          Polynomial<num>.fromCoefficients([1], type: DataType.int32),
+        ),
+      ).throws<ArgumentError>();
+    });
+  });
+
+  group('RationalFunction evaluation', () {
+    test('real, double, and complex evaluation with pole handling', () {
       // R(x) = (x + 2) / (x - 1)
       final num = Polynomial<double>.fromCoefficients([2.0, 1.0]);
       final den = Polynomial<double>.fromCoefficients([-1.0, 1.0]);
       final rf = RationalFunction(num, den);
 
-      check(rf.evaluate(2.0)).equals(4.0); // (2 + 2) / (2 - 1) = 4
-      check(rf.evaluateDouble(0.0)).equals(-2.0); // 2 / -1 = -2
+      check(rf.evaluate(2.0)).equals(4.0);
+      check(rf.evaluateDouble(0.0)).equals(-2.0);
       check(() => rf.evaluate(1.0)).throws<UnsupportedError>();
       check(() => rf.evaluateDouble(1.0)).throws<UnsupportedError>();
-    });
 
-    test('automatic and explicit GCD simplification', () {
-      // (x^2 - 1) / (x - 1) = (x - 1)(x + 1) / (x - 1) = x + 1
+      final complexRf = RationalFunction(
+        Polynomial<double>.fromCoefficients([1.0, 1.0]),
+        den,
+      );
+      final val = complexRf.evaluateComplex(const Complex(1.0, 1.0));
+      check(val.a).isCloseTo(1.0, 1e-9);
+      check(val.b).isCloseTo(-2.0, 1e-9);
+      check(() => complexRf.evaluateComplex(const Complex(1.0, 0.0)))
+          .throws<UnsupportedError>();
+    });
+  });
+
+  group('RationalFunction simplification and equality', () {
+    test('automatic and explicit GCD simplification preserves sparse type', () {
       final num = Polynomial<double>.fromCoefficients([-1.0, 0.0, 1.0]);
       final den = Polynomial<double>.fromCoefficients([-1.0, 1.0]);
-      final rf = RationalFunction(num, den);
-
-      final simplified = rf.simplify();
-      check(simplified.denominator.degree).equals(0);
+      final simplified = RationalFunction.simplified(num, den);
+      check(simplified.isPolynomial).isTrue;
       check(simplified.numerator.degree).equals(1);
       check(simplified.evaluate(3.0)).equals(4.0);
+      check(identical(simplified.simplify(), simplified)).isTrue;
 
-      // Preserves CompressedPolynomial representation when normalizing
+      final unsimplified = RationalFunction(num, den);
+      check(unsimplified == simplified).isTrue;
+      check(unsimplified.hashCode).equals(simplified.hashCode);
+
       final sparseNum = Polynomial<double>.compressed([0, 100], [2.0, 4.0]);
       final sparseDen = Polynomial<double>.compressed([0], [2.0]);
       final sparseRf = RationalFunction(sparseNum, sparseDen).simplify();
@@ -59,29 +86,78 @@ void main() {
       check(sparseRf.denominator[0]).equals(1.0);
     });
 
-    test('arithmetic: addition and subtraction', () {
-      // 1 / x
-      final p1 = Polynomial<double>.fromCoefficients([1.0]);
-      final px = Polynomial<double>.fromCoefficients([0.0, 1.0]);
-      final r1 = RationalFunction(p1, px);
+    test('zero numerator and non-dyadic denominator canonicalization', () {
+      // Integer ring zero numerators canonicalize to 0 / 1
+      final zInt1 = RationalFunction(
+        Polynomial<int>.zero(type: DataType.int32),
+        Polynomial<int>.fromCoefficients([5, 3], type: DataType.int32),
+      );
+      final zInt2 = RationalFunction(
+        Polynomial<int>.zero(type: DataType.int32),
+        Polynomial<int>.fromCoefficients([7], type: DataType.int32),
+      );
+      check(zInt1 == zInt2).isTrue;
+      check(zInt1.hashCode).equals(zInt2.hashCode);
+      check(zInt1.simplify().denominator.coefficients).deepEquals([1]);
 
-      // 1 / (x + 1)
-      final pxPlus1 = Polynomial<double>.fromCoefficients([1.0, 1.0]);
-      final r2 = RationalFunction(p1, pxPlus1);
+      // Exact monic normalization even for non-power-of-two float denominators
+      final r49a = RationalFunction(
+        Polynomial<double>.fromCoefficients([49.0]),
+        Polynomial<double>.fromCoefficients([49.0]),
+      ).simplify();
+      final r49b = RationalFunction.fromPolynomial(
+        Polynomial<double>.fromCoefficients([1.0]),
+      );
+      check(r49a == r49b).isTrue;
+      check(r49a.denominator[0]).equals(1.0);
+    });
+  });
 
-      // 1/x + 1/(x+1) = (2x + 1) / (x^2 + x)
-      final sum = r1 + r2;
-      check(sum.evaluate(2.0)).isCloseTo(0.5 + (1.0 / 3.0), 1e-9);
+  group('RationalFunction algebra, powers, and calculus', () {
+    test(
+      'addition, subtraction, negation, scaling, multiplication, division',
+      () {
+        final p1 = Polynomial<double>.fromCoefficients([1.0]);
+        final px = Polynomial<double>.fromCoefficients([0.0, 1.0]);
+        final pxPlus1 = Polynomial<double>.fromCoefficients([1.0, 1.0]);
+        final pxMinus1 = Polynomial<double>.fromCoefficients([-1.0, 1.0]);
 
-      // 1/x - 1/(x+1) = 1 / (x^2 + x)
-      final diff = r1 - r2;
-      check(diff.evaluate(2.0)).isCloseTo(0.5 - (1.0 / 3.0), 1e-9);
+        final r1 = RationalFunction(p1, px);
+        final r2 = RationalFunction(p1, pxPlus1);
 
-      // Negation
-      final neg = -r1;
-      check(neg.evaluate(2.0)).equals(-0.5);
+        check((r1 + r2).evaluate(2.0)).isCloseTo(0.5 + 1.0 / 3.0, 1e-9);
+        check((r1 - r2).evaluate(2.0)).isCloseTo(0.5 - 1.0 / 3.0, 1e-9);
+        check((-r1).evaluate(2.0)).equals(-0.5);
 
-      // Type mismatch throws ArgumentError
+        final scaled = RationalFunction(
+          pxPlus1,
+          Polynomial<double>.fromCoefficients([2.0, 1.0]),
+        ).scale(3.0);
+        check(scaled.evaluate(0.0)).isCloseTo(1.5, 1e-9);
+        check(r1.scale(0.0).isZero).isTrue;
+        final sparseScaledZero = RationalFunction.fromPolynomial(
+          Polynomial<double>.compressed([10], [2.0]),
+        ).scale(0.0);
+        check(sparseScaledZero.numerator).isA<CompressedPolynomial<double>>();
+
+        final prod =
+            RationalFunction(px, pxPlus1) *
+            RationalFunction(
+              pxPlus1,
+              Polynomial<double>.fromCoefficients([0.0, 0.0, 1.0]),
+            );
+        check(prod.evaluate(4.0)).isCloseTo(0.25, 1e-9);
+
+        final quot =
+            RationalFunction(px, pxPlus1) / RationalFunction(px, pxMinus1);
+        check(quot.evaluate(3.0)).isCloseTo(0.5, 1e-9);
+        check(
+          () => r1 / RationalFunction.fromPolynomial(Polynomial<double>.zero()),
+        ).throws<UnsupportedError>();
+      },
+    );
+
+    test('type mismatches in binary operators throw ArgumentError', () {
       final rInt32 = RationalFunction(
         Polynomial<int>.fromCoefficients([1, 1], type: DataType.int32),
         Polynomial<int>.fromCoefficients([2, 1], type: DataType.int32),
@@ -96,128 +172,44 @@ void main() {
       check(() => rInt32 / rInt64).throws<ArgumentError>();
     });
 
-    test('arithmetic: multiplication and division', () {
-      // x / (x + 1)
-      final px = Polynomial<double>.fromCoefficients([0.0, 1.0]);
-      final pxPlus1 = Polynomial<double>.fromCoefficients([1.0, 1.0]);
-      final r1 = RationalFunction(px, pxPlus1);
+    test('reciprocal and integer powers', () {
+      final rf = RationalFunction(
+        Polynomial<double>.fromCoefficients([1.0, 1.0]), // x + 1
+        Polynomial<double>.fromCoefficients([2.0, 1.0]), // x + 2
+      );
+      final rec = rf.reciprocal();
+      check(rec.evaluate(3.0)).isCloseTo(5.0 / 4.0, 1e-9);
 
-      // (x + 1) / x^2
-      final pxSq = Polynomial<double>.fromCoefficients([0.0, 0.0, 1.0]);
-      final r2 = RationalFunction(pxPlus1, pxSq);
+      check(rf.pow(0).evaluate(3.0)).equals(1.0);
+      check(rf.pow(1)).equals(rf);
+      check(rf.pow(2).evaluate(3.0)).isCloseTo(16.0 / 25.0, 1e-9);
+      check(rf.pow(-2).evaluate(3.0)).isCloseTo(25.0 / 16.0, 1e-9);
 
-      // Product: 1 / x
-      final prod = r1 * r2;
-      check(prod.evaluate(4.0)).isCloseTo(0.25, 1e-9);
-
-      // Division: (x / (x+1)) / (x / (x-1)) = (x - 1) / (x + 1)
-      final pxMinus1 = Polynomial<double>.fromCoefficients([-1.0, 1.0]);
-      final r3 = RationalFunction(px, pxMinus1);
-      final quot = r1 / r3;
-      check(quot.evaluate(3.0))
-          .isCloseTo(0.5, 1e-9); // (3 - 1) / (3 + 1) = 2/4 = 0.5
-
-      // Division by zero rational function
       final zeroRf = RationalFunction.fromPolynomial(Polynomial<double>.zero());
-      check(() => r1 / zeroRf).throws<UnsupportedError>();
+      check(zeroRf.pow(0).evaluate(3.0)).equals(1.0);
+      check(zeroRf.pow(3).isZero).isTrue;
+      check(zeroRf.reciprocal).throws<UnsupportedError>();
+      check(() => zeroRf.pow(-1)).throws<UnsupportedError>();
     });
 
-    test('derivative using quotient rule', () {
-      // R(x) = 1 / x -> R'(x) = -1 / x^2
-      final p1 = Polynomial<double>.fromCoefficients([1.0]);
-      final px = Polynomial<double>.fromCoefficients([0.0, 1.0]);
-      final r = RationalFunction(p1, px);
-
-      final deriv = r.derivative();
-      check(deriv.evaluate(2.0)).isCloseTo(-0.25, 1e-9);
-      check(deriv.evaluate(3.0)).isCloseTo(-1.0 / 9.0, 1e-9);
-
-      // R(x) = x^2 / (x + 1) -> R'(x) = (2x(x+1) - x^2) / (x+1)^2 = (x^2 + 2x)
-      // / (x+1)^2
-      final pxSq = Polynomial<double>.fromCoefficients([0.0, 0.0, 1.0]);
-      final pxPlus1 = Polynomial<double>.fromCoefficients([1.0, 1.0]);
-      final r2 = RationalFunction(pxSq, pxPlus1);
-      final deriv2 = r2.derivative();
-      // At x = 1: (1 + 2) / 4 = 0.75
-      check(deriv2.evaluate(1.0)).isCloseTo(0.75, 1e-9);
-    });
-
-    test('equality and hashCode', () {
-      final num1 = Polynomial<double>.fromCoefficients([2.0, 4.0]); // 2 + 4x
-      final den1 = Polynomial<double>.fromCoefficients([1.0, 1.0]); // 1 + x
-
-      final num2 = Polynomial<double>.fromCoefficients([4.0, 8.0]); // 4 + 8x
-      final den2 = Polynomial<double>.fromCoefficients([2.0, 2.0]); // 2 + 2x
-
-      final rf1 = RationalFunction(num1, den1);
-      final rf2 = RationalFunction(num2, den2);
-
-      check(rf1 == rf2).isTrue;
-      check(rf1.hashCode).equals(rf2.hashCode);
-
-      // Non-power-of-two scaling (3 vs 6) preserves == and hashCode consistency
-      final rf3 = RationalFunction(
-        Polynomial<double>.fromCoefficients([2.0, 4.0]),
-        Polynomial<double>.fromCoefficients([1.0, 3.0]),
+    test('derivative with order parameter', () {
+      final r = RationalFunction(
+        Polynomial<double>.fromCoefficients([1.0]),
+        Polynomial<double>.fromCoefficients([0.0, 1.0]),
       );
-      final rf4 = RationalFunction(
-        Polynomial<double>.fromCoefficients([4.0, 8.0]),
-        Polynomial<double>.fromCoefficients([2.0, 6.0]),
-      );
-      check(rf3 == rf4).isTrue;
-      check(rf3.hashCode).equals(rf4.hashCode);
+      check(r.derivative(order: 0)).equals(r);
+      check(r.derivative().evaluate(2.0)).isCloseTo(-0.25, 1e-9);
+      // d^2/dx^2 (1/x) = 2 / x^3 -> at x = 2: 0.25
+      check(r.derivative(order: 2).evaluate(2.0)).isCloseTo(0.25, 1e-9);
+      check(() => r.derivative(order: -1)).throws<RangeError>();
 
-      // Mismatched DataType throws ArgumentError
+      final zeroRf = RationalFunction.fromPolynomial(Polynomial<double>.zero());
+      check(zeroRf.derivative().isZero).isTrue;
       check(
-        () => RationalFunction<num>(
-          Polynomial<num>.fromCoefficients([1.0], type: DataType.float64),
-          Polynomial<num>.fromCoefficients([1], type: DataType.int32),
-        ),
-      ).throws<ArgumentError>();
-    });
-
-    test('evaluateComplex with valid values and pole handling', () {
-      // R(z) = (z + 1) / (z - 1)
-      final num = Polynomial<double>.fromCoefficients([1.0, 1.0]);
-      final den = Polynomial<double>.fromCoefficients([-1.0, 1.0]);
-      final rf = RationalFunction(num, den);
-
-      // At z = 1 + i: (2 + i) / i = 1 - 2i
-      final result = rf.evaluateComplex(const Complex(1.0, 1.0));
-      check(result.a).isCloseTo(1.0, 1e-9);
-      check(result.b).isCloseTo(-2.0, 1e-9);
-
-      // Pole at z = 1 + 0i throws
-      check(() => rf.evaluateComplex(const Complex(1.0, 0.0)))
-          .throws<UnsupportedError>();
-    });
-
-    test('scale by non-zero and zero scalar', () {
-      final num = Polynomial<double>.fromCoefficients([1.0, 1.0]);
-      final den = Polynomial<double>.fromCoefficients([2.0, 1.0]);
-      final rf = RationalFunction(num, den);
-
-      final scaled = rf.scale(3.0);
-      check(scaled.evaluate(0.0)).isCloseTo(1.5, 1e-9); // 3 * 0.5 = 1.5
-
-      final scaledZero = rf.scale(0.0);
-      check(scaledZero.numerator.degree).equals(-1);
-    });
-
-    test('RationalFunction.simplified factory', () {
-      // (x^2 - 1) / (x - 1) -> x + 1
-      final num = Polynomial<double>.fromCoefficients([-1.0, 0.0, 1.0]);
-      final den = Polynomial<double>.fromCoefficients([-1.0, 1.0]);
-      final rf = RationalFunction.simplified(num, den);
-      check(rf.denominator.degree).equals(0);
-      check(rf.numerator.degree).equals(1);
-      check(rf.evaluate(3.0)).equals(4.0);
-
-      // Equality and cached simplify
-      final unsimplified = RationalFunction(num, den);
-      check(unsimplified == rf).isTrue;
-      check(unsimplified.hashCode).equals(rf.hashCode);
-      check(identical(rf.simplify(), rf)).isTrue;
+        RationalFunction.fromPolynomial(
+          Polynomial<double>.fromCoefficients([3.0]),
+        ).derivative(order: 2).isZero,
+      ).isTrue;
     });
   });
 }

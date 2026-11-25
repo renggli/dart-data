@@ -2,176 +2,173 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/polynomial.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
-  group('Orthogonal Polynomials and Clenshaw Recurrence', () {
-    test('Chebyshev T_n known polynomials and evaluation', () {
-      // T_0 = 1
+  group('Orthogonal polynomial generators', () {
+    test('Chebyshev T_n known polynomials and identity', () {
       check(Polynomial.chebyshevT(0).coefficients).deepEquals([1.0]);
-      // T_1 = x
       check(Polynomial.chebyshevT(1).coefficients).deepEquals([0.0, 1.0]);
-      // T_2 = 2x^2 - 1
       check(Polynomial.chebyshevT(2).coefficients).deepEquals([-1.0, 0.0, 2.0]);
-      // T_3 = 4x^3 - 3x
       check(Polynomial.chebyshevT(3).coefficients)
           .deepEquals([0.0, -3.0, 0.0, 4.0]);
-      // T_4 = 8x^4 - 8x^2 + 1
       check(Polynomial.chebyshevT(4).coefficients)
           .deepEquals([1.0, 0.0, -8.0, 0.0, 8.0]);
 
-      // Trigonometric identity: T_n(cos(theta)) = cos(n * theta)
       for (var deg = 0; deg <= 4; deg++) {
         final poly = Polynomial.chebyshevT(deg);
         const theta = 0.7;
         final x = math.cos(theta);
-        check(poly.evaluateDouble(x)).isCloseTo(math.cos(deg * theta), 1e-6);
+        check(poly.evaluateDouble(x)).isCloseTo(math.cos(deg * theta), 1e-9);
       }
+      check(() => Polynomial.chebyshevT(-1)).throws<RangeError>();
     });
 
     test('Chebyshev U_n known polynomials', () {
-      // U_0 = 1
       check(Polynomial.chebyshevU(0).coefficients).deepEquals([1.0]);
-      // U_1 = 2x
       check(Polynomial.chebyshevU(1).coefficients).deepEquals([0.0, 2.0]);
-      // U_2 = 4x^2 - 1
       check(Polynomial.chebyshevU(2).coefficients).deepEquals([-1.0, 0.0, 4.0]);
-      // U_3 = 8x^3 - 4x
       check(Polynomial.chebyshevU(3).coefficients)
           .deepEquals([0.0, -4.0, 0.0, 8.0]);
+      check(() => Polynomial.chebyshevU(-1)).throws<RangeError>();
     });
 
     test('Legendre P_n known polynomials', () {
-      // P_0 = 1
       check(Polynomial.legendreP(0).coefficients).deepEquals([1.0]);
-      // P_1 = x
       check(Polynomial.legendreP(1).coefficients).deepEquals([0.0, 1.0]);
-      // P_2 = 1.5 x^2 - 0.5
       final p2 = Polynomial.legendreP(2);
       check(p2[0]).isCloseTo(-0.5, 1e-9);
       check(p2[1]).isCloseTo(0.0, 1e-9);
       check(p2[2]).isCloseTo(1.5, 1e-9);
-      // P_3 = 2.5 x^3 - 1.5 x
       final p3 = Polynomial.legendreP(3);
       check(p3[0]).isCloseTo(0.0, 1e-9);
       check(p3[1]).isCloseTo(-1.5, 1e-9);
       check(p3[2]).isCloseTo(0.0, 1e-9);
       check(p3[3]).isCloseTo(2.5, 1e-9);
+      check(() => Polynomial.legendreP(-1)).throws<RangeError>();
     });
 
     test('Hermite H_n and He_n known polynomials', () {
-      // H_0 = 1, H_1 = 2x, H_2 = 4x^2 - 2, H_3 = 8x^3 - 12x
       check(Polynomial.hermiteH(0).coefficients).deepEquals([1.0]);
       check(Polynomial.hermiteH(1).coefficients).deepEquals([0.0, 2.0]);
       check(Polynomial.hermiteH(2).coefficients).deepEquals([-2.0, 0.0, 4.0]);
       check(Polynomial.hermiteH(3).coefficients)
           .deepEquals([0.0, -12.0, 0.0, 8.0]);
 
-      // He_0 = 1, He_1 = x, He_2 = x^2 - 1, He_3 = x^3 - 3x
       check(Polynomial.hermiteHe(0).coefficients).deepEquals([1.0]);
       check(Polynomial.hermiteHe(1).coefficients).deepEquals([0.0, 1.0]);
       check(Polynomial.hermiteHe(2).coefficients).deepEquals([-1.0, 0.0, 1.0]);
       check(Polynomial.hermiteHe(3).coefficients)
           .deepEquals([0.0, -3.0, 0.0, 1.0]);
+      check(() => Polynomial.hermiteH(-1)).throws<RangeError>();
+      check(() => Polynomial.hermiteHe(-1)).throws<RangeError>();
     });
 
-    test('Clenshaw evaluation matches explicit linear combination', () {
-      final coeffs = [2.5, -1.2, 0.8, 0.3];
-      const x = 0.65;
+    test('Laguerre L_n^(alpha) known polynomials and validation', () {
+      check(Polynomial.laguerreL(0).coefficients).deepEquals([1.0]);
+      check(Polynomial.laguerreL(1).coefficients).deepEquals([1.0, -1.0]);
+      final l2 = Polynomial.laguerreL(2);
+      check(l2[0]).isCloseTo(1.0, 1e-12);
+      check(l2[1]).isCloseTo(-2.0, 1e-12);
+      check(l2[2]).isCloseTo(0.5, 1e-12);
 
-      // Chebyshev T
-      final tDirect =
-          coeffs[0] * Polynomial.chebyshevT(0).evaluateDouble(x) +
-          coeffs[1] * Polynomial.chebyshevT(1).evaluateDouble(x) +
-          coeffs[2] * Polynomial.chebyshevT(2).evaluateDouble(x) +
-          coeffs[3] * Polynomial.chebyshevT(3).evaluateDouble(x);
-      final tClenshaw = evaluateOrthogonalSeries(
-        coeffs,
-        x,
-        family: OrthogonalFamily.chebyshevT,
-      );
-      check(tClenshaw).isCloseTo(tDirect, 1e-9);
+      final l2Alpha = Polynomial.laguerreL(2, alpha: 1.0);
+      check(l2Alpha[0]).isCloseTo(3.0, 1e-12);
+      check(l2Alpha[1]).isCloseTo(-3.0, 1e-12);
+      check(l2Alpha[2]).isCloseTo(0.5, 1e-12);
 
-      // Chebyshev U
-      final uDirect =
-          coeffs[0] * Polynomial.chebyshevU(0).evaluateDouble(x) +
-          coeffs[1] * Polynomial.chebyshevU(1).evaluateDouble(x) +
-          coeffs[2] * Polynomial.chebyshevU(2).evaluateDouble(x) +
-          coeffs[3] * Polynomial.chebyshevU(3).evaluateDouble(x);
-      final uClenshaw = evaluateOrthogonalSeries(
-        coeffs,
-        x,
-        family: OrthogonalFamily.chebyshevU,
-      );
-      check(uClenshaw).isCloseTo(uDirect, 1e-9);
-
-      // Legendre P
-      final pDirect =
-          coeffs[0] * Polynomial.legendreP(0).evaluateDouble(x) +
-          coeffs[1] * Polynomial.legendreP(1).evaluateDouble(x) +
-          coeffs[2] * Polynomial.legendreP(2).evaluateDouble(x) +
-          coeffs[3] * Polynomial.legendreP(3).evaluateDouble(x);
-      final pClenshaw = evaluateOrthogonalSeries(
-        coeffs,
-        x,
-        family: OrthogonalFamily.legendreP,
-      );
-      check(pClenshaw).isCloseTo(pDirect, 1e-9);
-
-      // Hermite H
-      final hDirect =
-          coeffs[0] * Polynomial.hermiteH(0).evaluateDouble(x) +
-          coeffs[1] * Polynomial.hermiteH(1).evaluateDouble(x) +
-          coeffs[2] * Polynomial.hermiteH(2).evaluateDouble(x) +
-          coeffs[3] * Polynomial.hermiteH(3).evaluateDouble(x);
-      final hClenshaw = evaluateOrthogonalSeries(
-        coeffs,
-        x,
-        family: OrthogonalFamily.hermiteH,
-      );
-      check(hClenshaw).isCloseTo(hDirect, 1e-9);
-
-      // Hermite He
-      final heDirect =
-          coeffs[0] * Polynomial.hermiteHe(0).evaluateDouble(x) +
-          coeffs[1] * Polynomial.hermiteHe(1).evaluateDouble(x) +
-          coeffs[2] * Polynomial.hermiteHe(2).evaluateDouble(x) +
-          coeffs[3] * Polynomial.hermiteHe(3).evaluateDouble(x);
-      final heClenshaw = evaluateOrthogonalSeries(
-        coeffs,
-        x,
-        family: OrthogonalFamily.hermiteHe,
-      );
-      check(heClenshaw).isCloseTo(heDirect, 1e-9);
-
-      // Laguerre L
-      final lDirect =
-          coeffs[0] * Polynomial.laguerreL(0, alpha: 0.5).evaluateDouble(x) +
-          coeffs[1] * Polynomial.laguerreL(1, alpha: 0.5).evaluateDouble(x) +
-          coeffs[2] * Polynomial.laguerreL(2, alpha: 0.5).evaluateDouble(x) +
-          coeffs[3] * Polynomial.laguerreL(3, alpha: 0.5).evaluateDouble(x);
-      final lClenshaw = evaluateOrthogonalSeries(
-        coeffs,
-        x,
-        family: OrthogonalFamily.laguerreL,
-        alpha: 0.5,
-      );
-      check(lClenshaw).isCloseTo(lDirect, 1e-9);
+      check(() => Polynomial.laguerreL(-1)).throws<RangeError>();
+      check(() => Polynomial.laguerreL(0, alpha: double.nan))
+          .throws<ArgumentError>();
+      check(() => Polynomial.laguerreL(2, alpha: double.infinity))
+          .throws<ArgumentError>();
     });
 
-    test('laguerreEvaluate matches explicit polynomial evaluations', () {
-      check(() => laguerreEvaluate(-1, 0.5)).throws<ArgumentError>();
+    test('high-degree generators avoid FFT noise and match endpoints', () {
+      // T_70(1) == 1, T_70(-1) == 1, T_70(0) == -1
+      final t70 = Polynomial.chebyshevT(70);
+      check(t70.degree).equals(70);
+      check(t70[0]).equals(-1.0);
+      check(t70[1]).equals(0.0);
+      check(t70[70]).equals(math.pow(2.0, 69).toDouble());
 
-      for (final alpha in [0.0, 0.5, 2.0]) {
+      // U_70(0) == -1, P_65(1) == 1
+      final u70 = Polynomial.chebyshevU(70);
+      check(u70[0]).equals(-1.0);
+      final p65 = Polynomial.legendreP(65);
+      check(p65.degree).equals(65);
+      check(p65[0]).equals(0.0);
+      check(p65.evaluateDouble(0.0)).equals(0.0);
+    });
+  });
+
+  group('Orthogonal single-point and Clenshaw evaluation', () {
+    test('evaluateOrthogonal matches all polynomial generators', () {
+      for (final family in OrthogonalFamily.values) {
         for (var n = 0; n <= 6; n++) {
-          final poly = Polynomial.laguerreL(n, alpha: alpha);
-          for (final x in [0.0, 0.5, 1.2, 3.5]) {
-            final expected = poly.evaluateDouble(x);
-            final actual = laguerreEvaluate(n, x, alpha: alpha);
-            check(actual).isCloseTo(expected, 1e-9);
+          final poly = switch (family) {
+            OrthogonalFamily.chebyshevT => Polynomial.chebyshevT(n),
+            OrthogonalFamily.chebyshevU => Polynomial.chebyshevU(n),
+            OrthogonalFamily.legendreP => Polynomial.legendreP(n),
+            OrthogonalFamily.hermiteH => Polynomial.hermiteH(n),
+            OrthogonalFamily.hermiteHe => Polynomial.hermiteHe(n),
+            OrthogonalFamily.laguerreL => Polynomial.laguerreL(n, alpha: 0.75),
+          };
+          for (final x in [0.0, 0.5, 1.25]) {
+            check(evaluateOrthogonal(n, x, family: family, alpha: 0.75))
+                .isCloseTo(poly.evaluateDouble(x), 1e-9);
           }
         }
       }
+      check(
+        () => evaluateOrthogonal(-1, 0.5, family: OrthogonalFamily.chebyshevT),
+      ).throws<RangeError>();
+      check(
+        () => evaluateOrthogonal(
+          0,
+          0.5,
+          family: OrthogonalFamily.laguerreL,
+          alpha: double.nan,
+        ),
+      ).throws<ArgumentError>();
+    });
+
+    test('Clenshaw evaluation matches explicit linear combinations and handles edge inputs', () {
+      final coeffs = [2.5, -1.2, 0.8, 0.3];
+      const x = 0.65;
+
+      for (final family in OrthogonalFamily.values) {
+        var direct = 0.0;
+        for (var k = 0; k < coeffs.length; k++) {
+          direct +=
+              coeffs[k] * evaluateOrthogonal(k, x, family: family, alpha: 0.5);
+        }
+        check(evaluateOrthogonalSeries(coeffs, x, family: family, alpha: 0.5))
+            .isCloseTo(direct, 1e-9);
+      }
+
+      check(
+        evaluateOrthogonalSeries(
+          const [],
+          0.5,
+          family: OrthogonalFamily.legendreP,
+        ),
+      ).equals(0.0);
+      check(
+        evaluateOrthogonalSeries(
+          const [3.5],
+          0.5,
+          family: OrthogonalFamily.legendreP,
+        ),
+      ).equals(3.5);
+      check(
+        () => evaluateOrthogonalSeries(
+          const [],
+          0.5,
+          family: OrthogonalFamily.laguerreL,
+          alpha: double.infinity,
+        ),
+      ).throws<ArgumentError>();
     });
   });
 }
