@@ -196,8 +196,8 @@ void exportDataFrameToArrowC({
       final col = dataFrame.columns[i];
       final childSchema = calloc<ArrowSchema>();
       final childArray = calloc<ArrowArray>();
-      schemaChildren![i] = childSchema;
-      arrayChildren![i] = childArray;
+      schemaChildren?[i] = childSchema;
+      arrayChildren?[i] = childArray;
       outSchemaPtr.ref.n_children = i + 1;
       outArrayPtr.ref.n_children = i + 1;
       exportSeriesToArrowC(
@@ -230,6 +230,15 @@ DataFrame importDataFrameFromArrowC({
   }
 
   try {
+    if (schemaPtr.ref.format == ffi.nullptr) {
+      throw const FormatException('ArrowSchema format pointer is null.');
+    }
+    if (schemaPtr.ref.dictionary != ffi.nullptr ||
+        arrayPtr.ref.dictionary != ffi.nullptr) {
+      throw UnsupportedError(
+        'Dictionary-encoded Arrow structs are not supported.',
+      );
+    }
     final formatStr = schemaPtr.ref.format.toDartString();
     if (formatStr != '+s') {
       throw FormatException(
@@ -240,6 +249,11 @@ DataFrame importDataFrameFromArrowC({
     final parentLength = arrayPtr.ref.length;
     final parentOffset = arrayPtr.ref.offset;
     final parentNullCount = arrayPtr.ref.null_count;
+    if (parentLength < 0 || parentOffset < 0) {
+      throw FormatException(
+        'ArrowArray has negative length ($parentLength) or offset ($parentOffset).',
+      );
+    }
 
     final parentMask = _extractValidityMask(
       buffers: arrayPtr.ref.buffers,
@@ -360,12 +374,13 @@ void exportSeriesToArrowC({
 
     // Allocate validity mask buffer if nulls are present
     var maskBuffer = ffi.Pointer<ffi.Void>.fromAddress(0);
-    if (series.nullCount > 0 && series.mask != null) {
+    final seriesMask = series.mask;
+    if (series.nullCount > 0 && seriesMask != null) {
       final maskBytes = (series.length + 7) ~/ 8;
       final maskPtr = calloc<ffi.Uint8>(maskBytes);
       maskPtr
           .asTypedList(maskBytes)
-          .setAll(0, series.mask!.bytes.sublist(0, maskBytes));
+          .setAll(0, Uint8List.sublistView(seriesMask.bytes, 0, maskBytes));
       maskBuffer = maskPtr.cast();
     }
 
@@ -381,10 +396,12 @@ void exportSeriesToArrowC({
           .setAll(0, Uint8List.sublistView(series.offsets));
       buffers[1] = offsetsPtr.cast();
 
-      final bytesLength = series.bytes.length;
+      final bytesLength = series.offsets[series.length];
       final bytesPtr = calloc<ffi.Uint8>(bytesLength == 0 ? 1 : bytesLength);
       if (bytesLength > 0) {
-        bytesPtr.asTypedList(bytesLength).setAll(0, series.bytes);
+        bytesPtr
+            .asTypedList(bytesLength)
+            .setAll(0, Uint8List.sublistView(series.bytes, 0, bytesLength));
       }
       buffers[2] = bytesPtr.cast();
       outArrayPtr.ref.buffers = buffers;
@@ -460,6 +477,15 @@ Series<Object?> importSeriesFromArrowC({
   }
 
   try {
+    if (schemaPtr.ref.format == ffi.nullptr) {
+      throw const FormatException('ArrowSchema format pointer is null.');
+    }
+    if (schemaPtr.ref.dictionary != ffi.nullptr ||
+        arrayPtr.ref.dictionary != ffi.nullptr) {
+      throw UnsupportedError(
+        'Dictionary-encoded Arrow arrays are not supported.',
+      );
+    }
     final name = schemaPtr.ref.name == ffi.nullptr
         ? 'col'
         : schemaPtr.ref.name.toDartString();
@@ -467,6 +493,11 @@ Series<Object?> importSeriesFromArrowC({
     final length = arrayPtr.ref.length;
     final nullCount = arrayPtr.ref.null_count;
     final offset = arrayPtr.ref.offset;
+    if (length < 0 || offset < 0) {
+      throw FormatException(
+        'ArrowArray has negative length ($length) or offset ($offset).',
+      );
+    }
 
     if (length == 0) {
       return _createEmptySeries(name: name, format: format);
@@ -606,16 +637,27 @@ Series<Object?> importSeriesFromArrowC({
           offset + length + 1,
         );
         final baseByte = rawOffsets[offset];
-        final totalBytes = rawOffsets[offset + length] - baseByte;
         final sliceOffsets = Uint32List(length + 1);
         for (var i = 0; i <= length; i++) {
-          sliceOffsets[i] = rawOffsets[offset + i] - baseByte;
+          final cur = rawOffsets[offset + i];
+          if (i > 0 && cur < rawOffsets[offset + i - 1]) {
+            throw const FormatException(
+              'Arrow string offsets are not monotonically non-decreasing.',
+            );
+          }
+          sliceOffsets[i] = cur - baseByte;
         }
+        final totalBytes = sliceOffsets[length];
 
         Uint8List bytes;
         if (totalBytes == 0) {
           bytes = Uint8List(0);
         } else {
+          if (arrayPtr.ref.buffers[2] == ffi.nullptr) {
+            throw const FormatException(
+              'Arrow string character buffer pointer is null when totalBytes > 0.',
+            );
+          }
           final rawBytes = arrayPtr.ref.buffers[2]
               .cast<ffi.Uint8>()
               .asTypedList(baseByte + totalBytes);
@@ -735,6 +777,11 @@ ValidityMask? _extractValidityMask({
   // Arrow C Data specification: null_count == 0 means no nulls (validity bitmap may be null).
   // null_count == -1 means null count unknown; validity bitmap is present if buffers[0] != nullptr.
   // null_count > 0 means validity bitmap is present at buffers[0].
+  if (nullCount > 0 && (buffers == ffi.nullptr || buffers[0] == ffi.nullptr)) {
+    throw FormatException(
+      'ArrowArray has null_count = $nullCount but validity bitmap pointer is null.',
+    );
+  }
   if (nullCount == 0 || buffers == ffi.nullptr || buffers[0] == ffi.nullptr) {
     return null;
   }
@@ -803,26 +850,14 @@ String _getFormatCode(Series<Object?> series) {
   );
 }
 
-ValidityMask _combineMasks(ValidityMask parentMask, ValidityMask? childMask) {
-  if (childMask == null) {
-    return parentMask;
-  }
-  final len = parentMask.length;
-  final numBytes = (len + 7) ~/ 8;
-  final pBytes = parentMask.bytes;
-  final cBytes = childMask.bytes;
-  final combined = Uint8List(numBytes);
-  for (var i = 0; i < numBytes; i++) {
-    combined[i] = pBytes[i] & cBytes[i];
-  }
-  return ValidityMask.fromBytes(len, combined);
-}
-
 Series<Object?> _applyParentMask(
   Series<Object?> series,
   ValidityMask parentMask,
 ) {
-  final combinedMask = _combineMasks(parentMask, series.mask);
+  final childMask = series.mask;
+  final combinedMask = childMask != null
+      ? parentMask.and(childMask)
+      : parentMask;
   return switch (series) {
     final TypedSeries<int> s => TypedSeries<int>(
       name: s.name,

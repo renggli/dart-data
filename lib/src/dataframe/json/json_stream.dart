@@ -16,6 +16,13 @@ abstract final class DataFrameJsonStream {
     int chunkSize = 1000,
     Map<String, DataType<Object?>>? columnTypes,
   }) async* {
+    if (chunkSize <= 0) {
+      throw RangeError.value(
+        chunkSize,
+        'chunkSize',
+        'Chunk size must be positive.',
+      );
+    }
     final lineStream = stream.transform(const LineSplitter());
     final buffer = <Map<String, Object?>>[];
 

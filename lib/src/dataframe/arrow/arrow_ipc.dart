@@ -298,8 +298,9 @@ class _ArrowIpcStreamWriter {
         // Buffer 1: offsets
         final offsetsBytes = Uint8List.sublistView(col.offsets);
         addBuffer(offsetsBytes);
-        // Buffer 2: UTF-8 data
-        addBuffer(col.bytes);
+        // Buffer 2: UTF-8 data (active slice only)
+        final usedBytes = col.offsets[col.length];
+        addBuffer(Uint8List.sublistView(col.bytes, 0, usedBytes));
       } else if (col.dataType == DataType.string) {
         final strSeries = ArrowStringSeries.fromList(col.name, [
           for (var i = 0; i < col.length; i++) col[i] as String?,
@@ -418,6 +419,7 @@ class _ArrowIpcStreamReader {
   DataFrame read() {
     List<_ArrowFieldDesc>? schemaFields;
     final batches = <DataFrame>[];
+    var sawEos = false;
 
     while (_cursor + 8 <= bytes.length) {
       final headerView = ByteData.sublistView(bytes, _cursor, _cursor + 8);
@@ -432,6 +434,8 @@ class _ArrowIpcStreamReader {
 
       if (metaLength == 0) {
         // End-of-Stream
+        _cursor += 8;
+        sawEos = true;
         break;
       }
 
@@ -494,6 +498,10 @@ class _ArrowIpcStreamReader {
           batches.add(batchDf);
         }
       }
+    }
+
+    if (!sawEos && _cursor < bytes.length) {
+      throw const FormatException('Truncated Arrow IPC stream');
     }
 
     if (batches.length == 1) {
@@ -686,6 +694,30 @@ class _ArrowIpcStreamReader {
       return DataFrame([]);
     }
 
+    final nodeCount = reader.vectorLength(nodesVec);
+    final bufferCount = reader.vectorLength(buffersVec);
+    if (nodeCount < fields.length) {
+      throw FormatException(
+        'Arrow IPC RecordBatch nodeCount ($nodeCount) is smaller than field count (${fields.length}).',
+      );
+    }
+
+    (int, int) readBufferDesc(int index) {
+      if (index >= bufferCount) {
+        throw const FormatException(
+          'Arrow IPC RecordBatch buffer descriptor index out of bounds.',
+        );
+      }
+      final offset = buffersVec + 4 + index * 16;
+      if (offset + 16 > fbBytes.length) {
+        throw const FormatException(
+          'Arrow IPC RecordBatch buffer descriptor exceeds metadata bounds.',
+        );
+      }
+      final data = ByteData.sublistView(fbBytes, offset, offset + 16);
+      return (readInt64LE(data, 0), readInt64LE(data, 8));
+    }
+
     final columns = <Series<Object?>>[];
     var bufferIdx = 0;
 
@@ -694,6 +726,11 @@ class _ArrowIpcStreamReader {
 
       // Read FieldNode: length (int64), null_count (int64) = 16 bytes
       final nodeOffset = nodesVec + 4 + i * 16;
+      if (nodeOffset + 16 > fbBytes.length) {
+        throw const FormatException(
+          'Arrow IPC RecordBatch FieldNode exceeds metadata bounds.',
+        );
+      }
       final nodeData = ByteData.sublistView(
         fbBytes,
         nodeOffset,
@@ -701,16 +738,14 @@ class _ArrowIpcStreamReader {
       );
       final colLength = readInt64LE(nodeData, 0);
       final nullCount = readInt64LE(nodeData, 8);
+      if (colLength < 0 || nullCount < -1 || nullCount > colLength) {
+        throw FormatException(
+          'Invalid Arrow IPC FieldNode (length: $colLength, nullCount: $nullCount) in field "${field.name}".',
+        );
+      }
 
       // Read Buffer 0 (Validity)
-      final buf0Offset = buffersVec + 4 + bufferIdx * 16;
-      final buf0Data = ByteData.sublistView(
-        fbBytes,
-        buf0Offset,
-        buf0Offset + 16,
-      );
-      final vOffset = readInt64LE(buf0Data, 0);
-      final vLength = readInt64LE(buf0Data, 8);
+      final (vOffset, vLength) = readBufferDesc(bufferIdx);
       bufferIdx++;
 
       if (vLength > 0 && (vOffset < 0 || vOffset + vLength > body.length)) {
@@ -737,24 +772,10 @@ class _ArrowIpcStreamReader {
       // Read data buffers based on type
       if (field.typeCode == 5) {
         // String: Buffer 1 = offsets, Buffer 2 = bytes
-        final buf1Offset = buffersVec + 4 + bufferIdx * 16;
-        final buf1Data = ByteData.sublistView(
-          fbBytes,
-          buf1Offset,
-          buf1Offset + 16,
-        );
-        final offOffset = readInt64LE(buf1Data, 0);
-        final offLen = readInt64LE(buf1Data, 8);
+        final (offOffset, offLen) = readBufferDesc(bufferIdx);
         bufferIdx++;
 
-        final buf2Offset = buffersVec + 4 + bufferIdx * 16;
-        final buf2Data = ByteData.sublistView(
-          fbBytes,
-          buf2Offset,
-          buf2Offset + 16,
-        );
-        final bytesOffset = readInt64LE(buf2Data, 0);
-        final bytesLen = readInt64LE(buf2Data, 8);
+        final (bytesOffset, bytesLen) = readBufferDesc(bufferIdx);
         bufferIdx++;
 
         if (offLen > 0 && (offOffset < 0 || offOffset + offLen > body.length)) {
@@ -771,6 +792,8 @@ class _ArrowIpcStreamReader {
 
         final requiredOffsets = colLength + 1;
         final Uint32List offsets;
+        var baseByte = 0;
+        var activeBytesLen = 0;
         if (colLength == 0) {
           offsets = Uint32List(1);
         } else {
@@ -784,18 +807,28 @@ class _ArrowIpcStreamReader {
             offOffset,
             offOffset + requiredOffsets * 4,
           );
+          baseByte = offView.getUint32(0, Endian.little);
           offsets = Uint32List(requiredOffsets);
+          var prevOffset = baseByte;
           for (var j = 0; j < requiredOffsets; j++) {
-            offsets[j] = offView.getUint32(j * 4, Endian.little);
+            final rawOff = offView.getUint32(j * 4, Endian.little);
+            if (rawOff < prevOffset || rawOff > bytesLen) {
+              throw FormatException(
+                'Invalid string offsets in field "${field.name}" ($rawOff vs prev $prevOffset, bytesLen $bytesLen).',
+              );
+            }
+            offsets[j] = rawOff - baseByte;
+            prevOffset = rawOff;
           }
+          activeBytesLen = prevOffset - baseByte;
         }
-        final strBytes = bytesLen == 0
+        final strBytes = activeBytesLen == 0
             ? Uint8List(0)
             : Uint8List.fromList(
                 Uint8List.sublistView(
                   body,
-                  bytesOffset,
-                  bytesOffset + bytesLen,
+                  bytesOffset + baseByte,
+                  bytesOffset + baseByte + activeBytesLen,
                 ),
               );
 
@@ -809,13 +842,7 @@ class _ArrowIpcStreamReader {
         );
       } else if (field.typeCode == 6) {
         // Bool: Buffer 1 = bitmask
-        final buf1Offset = buffersVec + 4 + bufferIdx * 16;
-        final buf1Data = ByteData.sublistView(
-          fbBytes,
-          buf1Offset,
-          buf1Offset + 16,
-        );
-        final bOffset = readInt64LE(buf1Data, 0);
+        final (bOffset, _) = readBufferDesc(bufferIdx);
         bufferIdx++;
 
         final boolByteLen = (colLength + 7) ~/ 8;
@@ -834,13 +861,7 @@ class _ArrowIpcStreamReader {
         columns.add(BoolSeries(name: field.name, data: boolData, mask: mask));
       } else {
         // Primitive TypedSeries
-        final buf1Offset = buffersVec + 4 + bufferIdx * 16;
-        final buf1Data = ByteData.sublistView(
-          fbBytes,
-          buf1Offset,
-          buf1Offset + 16,
-        );
-        final dOffset = readInt64LE(buf1Data, 0);
+        final (dOffset, _) = readBufferDesc(bufferIdx);
         bufferIdx++;
 
         final elemBytes = _elemBytesForTypeCode(field.typeCode);
@@ -1089,7 +1110,7 @@ class _ArrowIpcStreamReader {
       var totalBytes = 0;
       for (final s in seriesList) {
         if (s is ArrowStringSeries) {
-          totalBytes += s.bytes.length;
+          totalBytes += s.offsets[s.length];
         } else {
           for (var i = 0; i < s.length; i++) {
             final val = s[i] as String?;
@@ -1107,15 +1128,19 @@ class _ArrowIpcStreamReader {
         if (s is ArrowStringSeries) {
           final sBytes = s.bytes;
           final sOffsets = s.offsets;
-          combinedBytes.setRange(
-            byteOffset,
-            byteOffset + sBytes.length,
-            sBytes,
-          );
+          final usedBytes = sOffsets[s.length];
+          if (usedBytes > 0) {
+            combinedBytes.setRange(
+              byteOffset,
+              byteOffset + usedBytes,
+              sBytes,
+              0,
+            );
+          }
           for (var i = 0; i < s.length; i++) {
             combinedOffsets[rowOffset + i + 1] = byteOffset + sOffsets[i + 1];
           }
-          byteOffset += sBytes.length;
+          byteOffset += usedBytes;
         } else {
           for (var i = 0; i < s.length; i++) {
             final val = s[i] as String?;

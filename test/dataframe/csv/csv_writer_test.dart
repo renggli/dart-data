@@ -154,5 +154,20 @@ void main() {
       check(restored.rowCount).equals(2);
       check(restored['y'].toList()).deepEquals(['a|b', 'c']);
     });
+
+    test(
+      'returns empty string for empty DataFrame and rejects empty separator',
+      () {
+        check(CsvWriter.write(DataFrame([]))).equals('');
+        check(
+          () => CsvWriter.write(
+            DataFrame.fromColumns({
+              'a': [1],
+            }),
+            separator: '',
+          ),
+        ).throws<ArgumentError>();
+      },
+    );
   });
 }

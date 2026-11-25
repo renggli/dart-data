@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
 import 'package:data/src/dataframe/json/json_encoder.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('DataFrameJsonEncoder', () {

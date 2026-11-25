@@ -15,7 +15,7 @@ import 'series.dart';
 /// specification:
 /// - A flat contiguous `Uint8List` buffer containing all concatenated UTF-8
 ///   string bytes.
-/// - A contiguous `Uint32List` of $N + 1$ byte offsets where row $i$ spans
+/// - A contiguous `Uint32List` of `N + 1` byte offsets where row `i` spans
 ///   `[offsets[i], offsets[i + 1])`.
 /// - An optional [ValidityMask] bitmask for tracking null values.
 ///
@@ -270,16 +270,21 @@ class ArrowStringSeries extends Series<String> {
   Series<Object?> concat(Series<Object?> other) {
     if (other is ArrowStringSeries) {
       final newLen = length + other.length;
-      final totalBytes = bytes.length + other.bytes.length;
+      final usedBytesA = offsets[length];
+      final usedBytesB = other.offsets[other.length];
+      final totalBytes = usedBytesA + usedBytesB;
       final newBytes = Uint8List(totalBytes);
-      newBytes.setRange(0, bytes.length, bytes);
-      newBytes.setRange(bytes.length, totalBytes, other.bytes);
+      if (usedBytesA > 0) {
+        newBytes.setRange(0, usedBytesA, bytes, 0);
+      }
+      if (usedBytesB > 0) {
+        newBytes.setRange(usedBytesA, totalBytes, other.bytes, 0);
+      }
 
       final newOffsets = Uint32List(newLen + 1);
       newOffsets.setRange(0, length + 1, offsets);
-      final byteOffset = bytes.length;
       for (var i = 1; i <= other.length; i++) {
-        newOffsets[length + i] = byteOffset + other.offsets[i];
+        newOffsets[length + i] = usedBytesA + other.offsets[i];
       }
 
       final newMask = ValidityMask.concatMasks(
@@ -297,6 +302,10 @@ class ArrowStringSeries extends Series<String> {
     }
     return super.concat(other);
   }
+
+  @override
+  ArrowStringSeries? tryFillNull(Object value) =>
+      value is String ? fillNull(value) : null;
 
   @override
   ArrowStringSeries fillNull(String value) {
@@ -325,6 +334,7 @@ class ArrowStringSeries extends Series<String> {
     );
   }
 
+  /// Sorts elements using unsigned UTF-8 byte-order comparison.
   @override
   Series<String> sort({bool ascending = true, bool nullsLast = true}) {
     final indices = List<int>.generate(length, (i) => i);
@@ -356,24 +366,7 @@ class ArrowStringSeries extends Series<String> {
     mask: mask,
   );
 
-  static int _compareBytes(
-    Uint8List bytes,
-    int startA,
-    int endA,
-    int startB,
-    int endB,
-  ) {
-    final lenA = endA - startA;
-    final lenB = endB - startB;
-    final minLen = lenA < lenB ? lenA : lenB;
-    for (var k = 0; k < minLen; k++) {
-      final byteA = bytes[startA + k];
-      final byteB = bytes[startB + k];
-      if (byteA != byteB) return byteA.compareTo(byteB);
-    }
-    return lenA.compareTo(lenB);
-  }
-
+  /// Minimum string value using unsigned UTF-8 byte-order comparison, ignoring nulls.
   @override
   String? get min {
     int? bestIdx;
@@ -395,6 +388,7 @@ class ArrowStringSeries extends Series<String> {
     return bestIdx == null ? null : this[bestIdx];
   }
 
+  /// Maximum string value using unsigned UTF-8 byte-order comparison, ignoring nulls.
   @override
   String? get max {
     int? bestIdx;
@@ -433,4 +427,22 @@ class ArrowStringSeries extends Series<String> {
 
   @override
   double? quantile(double p) => null;
+
+  static int _compareBytes(
+    Uint8List bytes,
+    int startA,
+    int endA,
+    int startB,
+    int endB,
+  ) {
+    final lenA = endA - startA;
+    final lenB = endB - startB;
+    final minLen = lenA < lenB ? lenA : lenB;
+    for (var k = 0; k < minLen; k++) {
+      final byteA = bytes[startA + k];
+      final byteB = bytes[startB + k];
+      if (byteA != byteB) return byteA.compareTo(byteB);
+    }
+    return lenA.compareTo(lenB);
+  }
 }

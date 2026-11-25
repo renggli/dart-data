@@ -75,16 +75,9 @@ abstract interface class RowKeyExtractor {
   /// Extracts the composite key for the row at [rowIndex].
   Object? extractKey(int rowIndex);
 
-  /// Extracts the composite key for the row at [rowIndex], or returns `null` if
-  /// any key column at [rowIndex] is null.
-  Object? extractKeyOrNull(int rowIndex);
-
   /// Extracts the composite join key for the row at [rowIndex], or returns
   /// `null` if any key column at [rowIndex] is null or [double.nan].
   Object? extractJoinKeyOrNull(int rowIndex);
-
-  /// Returns `true` if any key column at [rowIndex] is null.
-  bool hasNull(int rowIndex);
 
   /// Returns `true` if any key column at [rowIndex] is null or [double.nan].
   bool hasNullOrNan(int rowIndex);
@@ -99,19 +92,10 @@ final class _SingleKeyExtractor implements RowKeyExtractor {
   Object? extractKey(int rowIndex) => canonicalizeKey(_col[rowIndex]);
 
   @override
-  Object? extractKeyOrNull(int rowIndex) {
-    final v = _col[rowIndex];
-    return v == null ? null : canonicalizeKey(v);
-  }
-
-  @override
   Object? extractJoinKeyOrNull(int rowIndex) {
     final v = _col[rowIndex];
     return _isMissingOrNan(v) ? null : canonicalizeKey(v);
   }
-
-  @override
-  bool hasNull(int rowIndex) => _col[rowIndex] == null;
 
   @override
   bool hasNullOrNan(int rowIndex) => _isMissingOrNan(_col[rowIndex]);
@@ -128,15 +112,6 @@ final class _PairKeyExtractor implements RowKeyExtractor {
       (canonicalizeKey(_col0[rowIndex]), canonicalizeKey(_col1[rowIndex]));
 
   @override
-  Object? extractKeyOrNull(int rowIndex) {
-    final v0 = _col0[rowIndex];
-    if (v0 == null) return null;
-    final v1 = _col1[rowIndex];
-    if (v1 == null) return null;
-    return (canonicalizeKey(v0), canonicalizeKey(v1));
-  }
-
-  @override
   Object? extractJoinKeyOrNull(int rowIndex) {
     final v0 = _col0[rowIndex];
     if (_isMissingOrNan(v0)) return null;
@@ -144,10 +119,6 @@ final class _PairKeyExtractor implements RowKeyExtractor {
     if (_isMissingOrNan(v1)) return null;
     return (canonicalizeKey(v0), canonicalizeKey(v1));
   }
-
-  @override
-  bool hasNull(int rowIndex) =>
-      _col0[rowIndex] == null || _col1[rowIndex] == null;
 
   @override
   bool hasNullOrNan(int rowIndex) =>
@@ -169,17 +140,6 @@ final class _TripleKeyExtractor implements RowKeyExtractor {
   );
 
   @override
-  Object? extractKeyOrNull(int rowIndex) {
-    final v0 = _col0[rowIndex];
-    if (v0 == null) return null;
-    final v1 = _col1[rowIndex];
-    if (v1 == null) return null;
-    final v2 = _col2[rowIndex];
-    if (v2 == null) return null;
-    return (canonicalizeKey(v0), canonicalizeKey(v1), canonicalizeKey(v2));
-  }
-
-  @override
   Object? extractJoinKeyOrNull(int rowIndex) {
     final v0 = _col0[rowIndex];
     if (_isMissingOrNan(v0)) return null;
@@ -189,12 +149,6 @@ final class _TripleKeyExtractor implements RowKeyExtractor {
     if (_isMissingOrNan(v2)) return null;
     return (canonicalizeKey(v0), canonicalizeKey(v1), canonicalizeKey(v2));
   }
-
-  @override
-  bool hasNull(int rowIndex) =>
-      _col0[rowIndex] == null ||
-      _col1[rowIndex] == null ||
-      _col2[rowIndex] == null;
 
   @override
   bool hasNullOrNan(int rowIndex) =>
@@ -209,18 +163,12 @@ final class _MultiKeyExtractor implements RowKeyExtractor {
   final List<Series<Object?>> _columns;
 
   @override
-  Object? extractKey(int rowIndex) =>
-      TupleKey([for (final col in _columns) col[rowIndex]]);
-
-  @override
-  Object? extractKeyOrNull(int rowIndex) {
+  Object? extractKey(int rowIndex) {
     final values = List<Object?>.filled(_columns.length, null);
     for (var i = 0; i < _columns.length; i++) {
-      final val = _columns[i][rowIndex];
-      if (val == null) return null;
-      values[i] = val;
+      values[i] = canonicalizeKey(_columns[i][rowIndex]);
     }
-    return TupleKey(values);
+    return TupleKey._(values);
   }
 
   @override
@@ -229,17 +177,9 @@ final class _MultiKeyExtractor implements RowKeyExtractor {
     for (var i = 0; i < _columns.length; i++) {
       final val = _columns[i][rowIndex];
       if (_isMissingOrNan(val)) return null;
-      values[i] = val;
+      values[i] = canonicalizeKey(val);
     }
-    return TupleKey(values);
-  }
-
-  @override
-  bool hasNull(int rowIndex) {
-    for (var i = 0; i < _columns.length; i++) {
-      if (_columns[i][rowIndex] == null) return true;
-    }
-    return false;
+    return TupleKey._(values);
   }
 
   @override
@@ -253,3 +193,30 @@ final class _MultiKeyExtractor implements RowKeyExtractor {
 
 bool _isMissingOrNan(Object? val) =>
     val == null || (val is num && val.isNaN) || val is NaNKey;
+
+/// Compares two non-null values with safe handling of booleans, numbers
+/// (placing `NaN` after finite/infinite numbers), homogeneous [Comparable]
+/// types, and heterogeneous fallback ordering.
+int compareDynamicValues(Object a, Object b) {
+  if (a is bool && b is bool) {
+    return (a ? 1 : 0).compareTo(b ? 1 : 0);
+  }
+  if (a is num && b is num) {
+    final isNanA = a.isNaN;
+    final isNanB = b.isNaN;
+    if (isNanA && isNanB) return 0;
+    if (isNanA) return 1;
+    if (isNanB) return -1;
+    if (a == 0 && b == 0) return 0;
+    return a.compareTo(b);
+  }
+  if (a is Comparable && a.runtimeType == b.runtimeType) {
+    return a.compareTo(b);
+  }
+  if (identical(a, b) || a == b) return 0;
+  final typeCmp = a.runtimeType.toString().compareTo(b.runtimeType.toString());
+  if (typeCmp != 0) return typeCmp;
+  final strCmp = a.toString().compareTo(b.toString());
+  if (strCmp != 0) return strCmp;
+  return identityHashCode(a).compareTo(identityHashCode(b));
+}

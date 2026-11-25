@@ -84,11 +84,14 @@ class ValidityMask {
   final Uint8List _bytes;
   int _nullCount;
 
-  /// The underlying raw byte buffer.
-  Uint8List get bytes => _bytes;
+  /// Unmodifiable view of the underlying raw byte buffer.
+  Uint8List get bytes => _bytes.asUnmodifiableView();
 
-  /// Returns the total count of null entries in $\mathcal{O}(1)$ time.
+  /// Returns the total count of null entries in `O(1)` time.
   int get nullCount => _nullCount;
+
+  /// Returns the total count of valid (non-null) entries in `O(1)` time.
+  int get validCount => length - _nullCount;
 
   /// Returns true if this mask contains at least one null entry.
   bool get hasNulls => _nullCount > 0;
@@ -103,6 +106,9 @@ class ValidityMask {
 
   /// Returns true if the entry at [index] is valid (non-null).
   bool isValid(int index) => !isNull(index);
+
+  /// Returns true if the entry at [index] is valid (non-null).
+  bool operator [](int index) => isValid(index);
 
   /// Sets the entry at [index] as null.
   void setNull(int index) {
@@ -167,6 +173,48 @@ class ValidityMask {
   ValidityMask copy() =>
       ValidityMask._(length, Uint8List.fromList(_bytes), _nullCount);
 
+  /// Returns a new [ValidityMask] representing the bitwise logical AND of
+  /// `this` and [other] (an entry is valid iff it is valid in both masks).
+  ///
+  /// Throws an [ArgumentError] if [length] does not match [other]'s length.
+  ValidityMask and(ValidityMask other) {
+    if (length != other.length) {
+      throw ArgumentError(
+        'Cannot intersect ValidityMasks with different lengths ($length vs ${other.length}).',
+      );
+    }
+    if (_nullCount == 0) return other.copy();
+    if (other._nullCount == 0) return copy();
+    if (_nullCount == length || other._nullCount == other.length) {
+      return ValidityMask.allNull(length);
+    }
+    final combined = Uint8List(_bytes.length);
+    for (var i = 0; i < combined.length; i++) {
+      combined[i] = _bytes[i] & other._bytes[i];
+    }
+    return ValidityMask.fromBytes(length, combined);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ValidityMask ||
+        length != other.length ||
+        _nullCount != other._nullCount) {
+      return false;
+    }
+    for (var i = 0; i < _bytes.length; i++) {
+      if (_bytes[i] != other._bytes[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(length, _nullCount, Object.hashAll(_bytes));
+
+  @override
+  String toString() => 'ValidityMask(length: $length, nullCount: $_nullCount)';
+
   /// Concatenates [other] to the end of this validity mask.
   ValidityMask concat(ValidityMask other) {
     final newLen = length + other.length;
@@ -179,18 +227,25 @@ class ValidityMask {
     final result = ValidityMask(newLen);
     if ((length & 7) == 0) {
       result._bytes.setRange(0, _bytes.length, _bytes);
-    } else if (_nullCount > 0) {
-      for (var i = 0; i < length; i++) {
-        if (isNull(i)) {
-          result._bytes[i >> 3] &= ~(1 << (i & 7));
+      result._bytes.setRange(
+        _bytes.length,
+        _bytes.length + other._bytes.length,
+        other._bytes,
+      );
+    } else {
+      if (_nullCount > 0) {
+        for (var i = 0; i < length; i++) {
+          if (isNull(i)) {
+            result._bytes[i >> 3] &= ~(1 << (i & 7));
+          }
         }
       }
-    }
-    if (other._nullCount > 0) {
-      for (var i = 0; i < other.length; i++) {
-        if (other.isNull(i)) {
-          final idx = length + i;
-          result._bytes[idx >> 3] &= ~(1 << (idx & 7));
+      if (other._nullCount > 0) {
+        for (var i = 0; i < other.length; i++) {
+          if (other.isNull(i)) {
+            final idx = length + i;
+            result._bytes[idx >> 3] &= ~(1 << (idx & 7));
+          }
         }
       }
     }

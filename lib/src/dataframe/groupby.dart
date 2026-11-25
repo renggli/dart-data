@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../type/data_type.dart';
 import 'dataframe.dart';
+import 'numeric_stats.dart';
 import 'series.dart';
 import 'tuple_key.dart';
 
@@ -42,8 +43,8 @@ enum Agg {
 ///
 /// Conceptually, grouping organizes table rows into buckets based on shared
 /// values (such as grouping records by department or category). Mathematically,
-/// this induces a quotient partition $R / \sim$ over the relation based on
-/// equivalence under the projection $\pi_{\text{byColumns}}(r)$.
+/// this induces a quotient partition `R / ~` over the relation based on
+/// equivalence under the projection onto [byColumns].
 ///
 /// ```dart
 /// final df = DataFrame.fromColumns({
@@ -56,9 +57,16 @@ enum Agg {
 class GroupBy {
   /// Creates a grouped view of [dataFrame] partitioned by values in
   /// [byColumns].
-  new(this.dataFrame, this.byColumns) {
-    if (byColumns.isEmpty) {
+  new(this.dataFrame, List<String> byColumns)
+    : byColumns = List<String>.unmodifiable(byColumns) {
+    if (this.byColumns.isEmpty) {
       throw ArgumentError('byColumns cannot be empty');
+    }
+    final seen = <String>{};
+    for (final col in this.byColumns) {
+      if (!seen.add(col)) {
+        throw ArgumentError('Duplicate group-by column "$col".');
+      }
     }
     _buildGroups();
   }
@@ -66,7 +74,7 @@ class GroupBy {
   /// The source [DataFrame] being partitioned.
   final DataFrame dataFrame;
 
-  /// The column names whose values define group partitions.
+  /// The unmodifiable column names whose values define group partitions.
   final List<String> byColumns;
 
   // Group key -> list of row indices
@@ -74,29 +82,34 @@ class GroupBy {
   // Group key -> original key values
   final Map<Object?, List<Object?>> _groupKeys = {};
 
+  /// Returns the number of distinct groups.
+  int get groupCount => _groups.length;
+
   /// Evaluates aggregations across each group and produces a new [DataFrame].
   DataFrame aggregate(Map<String, List<Agg>> aggregations) {
     final resultCols = <String, List<Object?>>{};
     final outTypes = <String, DataType<Object?>>{};
+    final usedNames = <String>{};
     // Initialize group key columns
     for (final col in byColumns) {
       resultCols[col] = [];
       outTypes[col] = dataFrame.column(col).dataType;
+      usedNames.add(col);
     }
 
     // Initialize aggregation output columns
-    final aggOutNames = <(String, Agg), String>{};
+    final specs = <({Series<Object?> col, Agg agg, String outName})>[];
     for (final entry in aggregations.entries) {
       final colName = entry.key;
       final srcCol = dataFrame.column(colName);
       for (final agg in entry.value) {
         var outName = '${colName}_${agg.name}';
         var counter = 1;
-        while (resultCols.containsKey(outName) || byColumns.contains(outName)) {
+        while (!usedNames.add(outName)) {
           outName = '${colName}_${agg.name}_$counter';
           counter++;
         }
-        aggOutNames[(colName, agg)] = outName;
+        specs.add((col: srcCol, agg: agg, outName: outName));
         resultCols[outName] = [];
         outTypes[outName] = switch (agg) {
           Agg.count => DataType.int32,
@@ -127,16 +140,15 @@ class GroupBy {
       }
 
       // Compute aggregations
-      for (final aggEntry in aggregations.entries) {
-        final colName = aggEntry.key;
-        final col = dataFrame.column(colName);
-
-        for (final agg in aggEntry.value) {
-          final outName = aggOutNames[(colName, agg)]!;
-          final aggResult = _computeAgg(col, indices, agg, medianScratch);
-          final outList = resultCols[outName];
-          if (outList != null) outList.add(aggResult);
-        }
+      for (final spec in specs) {
+        final aggResult = _computeAgg(
+          spec.col,
+          indices,
+          spec.agg,
+          medianScratch,
+        );
+        final outList = resultCols[spec.outName];
+        if (outList != null) outList.add(aggResult);
       }
     }
 
@@ -144,7 +156,7 @@ class GroupBy {
       if (byColumns.contains(entry.key)) continue;
       final list = entry.value;
       if (outTypes[entry.key] == DataType.float64 ||
-          list.any((v) => v is num && v is! int)) {
+          list.any((v) => v is num && (!v.isFinite || v is! int))) {
         outTypes[entry.key] = DataType.float64;
         resultCols[entry.key] = [
           for (final v in list)
@@ -170,41 +182,45 @@ class GroupBy {
   }
 
   /// Computes mean of all numeric columns per group.
-  DataFrame mean() {
-    final numCols = dataFrame.columnNames
-        .where(
-          (col) =>
-              !byColumns.contains(col) && dataFrame.column(col) is TypedSeries,
-        )
-        .toList();
-    return aggregate({
-      for (final col in numCols) col: [Agg.mean],
-    });
-  }
+  DataFrame mean() => _aggregateCols(_numericTargetColumns(), Agg.mean);
 
   /// Computes sum of all numeric columns per group.
-  DataFrame sum() {
-    final numCols = dataFrame.columnNames
-        .where(
-          (col) =>
-              !byColumns.contains(col) && dataFrame.column(col) is TypedSeries,
-        )
-        .toList();
-    return aggregate({
-      for (final col in numCols) col: [Agg.sum],
-    });
-  }
+  DataFrame sum() => _aggregateCols(_numericTargetColumns(), Agg.sum);
+
+  /// Computes minimum of all non-key columns per group.
+  DataFrame min() => _aggregateCols(_nonKeyColumns(), Agg.min);
+
+  /// Computes maximum of all non-key columns per group.
+  DataFrame max() => _aggregateCols(_nonKeyColumns(), Agg.max);
+
+  /// Computes sample standard deviation of all numeric columns per group.
+  DataFrame std() => _aggregateCols(_numericTargetColumns(), Agg.std);
+
+  /// Computes sample variance of all numeric columns per group.
+  DataFrame variance() => _aggregateCols(_numericTargetColumns(), Agg.variance);
+
+  /// Computes median of all numeric columns per group.
+  DataFrame median() => _aggregateCols(_numericTargetColumns(), Agg.median);
 
   /// Computes count of entries per group.
   DataFrame count() {
-    final targetCols = dataFrame.columnNames
-        .where((col) => !byColumns.contains(col))
-        .toList();
+    final targetCols = _nonKeyColumns();
     final cols = targetCols.isNotEmpty ? targetCols : [byColumns.first];
-    return aggregate({
-      for (final col in cols) col: [Agg.count],
-    });
+    return _aggregateCols(cols, Agg.count);
   }
+
+  List<String> _nonKeyColumns() =>
+      dataFrame.columnNames.where((col) => !byColumns.contains(col)).toList();
+
+  List<String> _numericTargetColumns() => dataFrame.columnNames.where((name) {
+    if (byColumns.contains(name)) return false;
+    final col = dataFrame.column(name);
+    return col.dataType.isNumeric || col is Series<num>;
+  }).toList();
+
+  DataFrame _aggregateCols(List<String> cols, Agg agg) => aggregate({
+    for (final col in cols) col: [agg],
+  });
 
   void _buildGroups() {
     final keyCols = byColumns.map(dataFrame.column).toList();
@@ -259,74 +275,47 @@ class GroupBy {
         }
         return hasValid ? total : null;
       case Agg.mean:
-        num total = 0;
-        var count = 0;
-        for (var i = 0; i < indices.length; i++) {
+        return computeNumericMean(indices.length, (i) {
           final val = col[indices[i]];
-          if (val is num) {
-            total += val;
-            count++;
-          }
-        }
-        return count > 0 ? total.toDouble() / count : null;
+          return val is num ? val.toDouble() : null;
+        });
       case Agg.min:
-        Comparable<Object?>? minVal;
+        Object? minVal;
         for (var i = 0; i < indices.length; i++) {
           final val = col[indices[i]];
-          if (val is double && val.isNaN) return double.nan;
-          if (val is Comparable<Object?>) {
-            if (minVal == null || val.compareTo(minVal) < 0) {
-              minVal = val;
-            }
+          if (val == null) continue;
+          if (val is num && val.isNaN) return double.nan;
+          if (minVal == null) {
+            minVal = val;
+          } else if (compareDynamicValues(val, minVal) < 0) {
+            minVal = val;
           }
         }
         return minVal;
       case Agg.max:
-        Comparable<Object?>? maxVal;
+        Object? maxVal;
         for (var i = 0; i < indices.length; i++) {
           final val = col[indices[i]];
-          if (val is double && val.isNaN) return double.nan;
-          if (val is Comparable<Object?>) {
-            if (maxVal == null || val.compareTo(maxVal) > 0) {
-              maxVal = val;
-            }
+          if (val == null) continue;
+          if (val is num && val.isNaN) return double.nan;
+          if (maxVal == null) {
+            maxVal = val;
+          } else if (compareDynamicValues(val, maxVal) > 0) {
+            maxVal = val;
           }
         }
         return maxVal;
       case Agg.std:
-        var count = 0;
-        var mean = 0.0;
-        var m2 = 0.0;
-        for (var i = 0; i < indices.length; i++) {
+        final variance = computeNumericVariance(indices.length, (i) {
           final val = col[indices[i]];
-          if (val is num) {
-            count++;
-            final delta = val - mean;
-            mean += delta / count;
-            final delta2 = val - mean;
-            m2 += delta * delta2;
-          }
-        }
-        if (count < 2) return null;
-        final variance = m2 / (count - 1);
-        return math.sqrt(variance < 0.0 ? 0.0 : variance);
+          return val is num ? val.toDouble() : null;
+        }, population: false);
+        return variance != null ? math.sqrt(variance) : null;
       case Agg.variance:
-        var count = 0;
-        var mean = 0.0;
-        var m2 = 0.0;
-        for (var i = 0; i < indices.length; i++) {
+        return computeNumericVariance(indices.length, (i) {
           final val = col[indices[i]];
-          if (val is num) {
-            count++;
-            final delta = val - mean;
-            mean += delta / count;
-            final delta2 = val - mean;
-            m2 += delta * delta2;
-          }
-        }
-        if (count < 2) return null;
-        final variance = m2 / (count - 1);
-        return variance < 0.0 ? 0.0 : variance;
+          return val is num ? val.toDouble() : null;
+        }, population: false);
       case Agg.median:
         scratch.clear();
         for (var i = 0; i < indices.length; i++) {
@@ -335,60 +324,7 @@ class GroupBy {
             scratch.add(val.toDouble());
           }
         }
-        final n = scratch.length;
-        if (n == 0) return null;
-        for (var i = 0; i < n; i++) {
-          if (scratch[i].isNaN) return double.nan;
-        }
-        final mid1 = (n - 1) ~/ 2;
-        final mid2 = n ~/ 2;
-        _quickselect(scratch, mid1);
-        if (mid1 != mid2) {
-          _quickselect(scratch, mid2, mid1 + 1, n - 1);
-        }
-        return (scratch[mid1] + scratch[mid2]) / 2.0;
+        return computeQuantileInPlace(scratch, 0.5);
     }
   }
-}
-
-void _quickselect(List<double> list, int k, [int left = 0, int? right]) {
-  var l = left;
-  var r = right ?? list.length - 1;
-  while (l < r) {
-    final mid = l + (r - l) ~/ 2;
-    if (list[l] > list[mid]) _swap(list, l, mid);
-    if (list[l] > list[r]) _swap(list, l, r);
-    if (list[mid] > list[r]) _swap(list, mid, r);
-    final pivot = list[mid];
-
-    var i = l;
-    var lt = l;
-    var gt = r;
-    while (i <= gt) {
-      if (list[i] < pivot) {
-        _swap(list, lt, i);
-        lt++;
-        i++;
-      } else if (list[i] > pivot) {
-        _swap(list, i, gt);
-        gt--;
-      } else {
-        i++;
-      }
-    }
-
-    if (k < lt) {
-      r = lt - 1;
-    } else if (k > gt) {
-      l = gt + 1;
-    } else {
-      return;
-    }
-  }
-}
-
-void _swap(List<double> list, int i, int j) {
-  final temp = list[i];
-  list[i] = list[j];
-  list[j] = temp;
 }

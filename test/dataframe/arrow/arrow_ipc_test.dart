@@ -4,7 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
 import 'package:data/src/dataframe/arrow/flatbuffer.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Arrow IPC Streaming', () {
@@ -787,6 +787,80 @@ void main() {
       final bufOffsetPos = msg2Pos + 8 + buffersVecPos + 4 + 16 + 0;
       byteData.setInt32(bufOffsetPos, 999999, Endian.little);
 
+      check(() => DataFrame.fromArrowIpc(bytes)).throws<FormatException>();
+    });
+
+    test('throws FormatException on truncated trailing bytes without EOS', () {
+      final df = DataFrame.fromColumns({
+        'x': [1, 2],
+      });
+      final full = df.toArrowIpc();
+      // Drop final 5 bytes (partial EOS marker).
+      final truncated = Uint8List.sublistView(full, 0, full.length - 5);
+      check(() => DataFrame.fromArrowIpc(truncated)).throws<FormatException>();
+    });
+
+    test('encodes and concatenates ArrowStringSeries with trailing slack bytes cleanly', () {
+      final paddedBatch = DataFrame([
+        ArrowStringSeries(
+          name: 's',
+          bytes: Uint8List.fromList([65, 66, 99, 99, 99]),
+          offsets: Uint32List.fromList([0, 1, 2]),
+        ),
+      ]);
+      final secondBatch = DataFrame([
+        ArrowStringSeries(
+          name: 's',
+          bytes: Uint8List.fromList([67, 88, 88]),
+          offsets: Uint32List.fromList([0, 1]),
+        ),
+      ]);
+      final ipcBytes = ArrowIpc.encodeBatches([paddedBatch, secondBatch]);
+      final decoded = DataFrame.fromArrowIpc(ipcBytes);
+      check(decoded['s'].toList()).deepEquals(['A', 'B', 'C']);
+    });
+
+    test('normalizes non-zero initial string offsets in Arrow IPC stream', () {
+      final df = DataFrame.fromColumns({
+        's': ['apple', 'banana'],
+      });
+      final bytes = Uint8List.fromList(df.toArrowIpc());
+      final byteData = ByteData.sublistView(bytes);
+
+      final meta1Len = byteData.getUint32(4, Endian.little);
+      final msg2Pos = 8 + meta1Len;
+      final meta2Len = byteData.getUint32(msg2Pos + 4, Endian.little);
+      final fbBytes2 = Uint8List.sublistView(
+        bytes,
+        msg2Pos + 8,
+        msg2Pos + 8 + meta2Len,
+      );
+      final fbReader = FlatBufferReader(fbBytes2);
+      final rootPos = fbReader.rootTableOffset;
+      final headerPos = fbReader.readTableOffset(rootPos, 2)!;
+      final buffersVecPos = fbReader.readVectorOffset(headerPos, 2)!;
+
+      final offDescOffsetPos = msg2Pos + 8 + buffersVecPos + 4 + 16;
+      final strDescOffsetPos = msg2Pos + 8 + buffersVecPos + 4 + 32;
+      final bodyStart = msg2Pos + 8 + meta2Len;
+      final offOffset = byteData.getInt32(offDescOffsetPos, Endian.little);
+      final bytesOffset = byteData.getInt32(strDescOffsetPos, Endian.little);
+
+      // Shift offset[0] from 0 -> 2 (should read 'ple', 'banana') cleanly.
+      byteData.setUint32(bodyStart + offOffset, 2, Endian.little);
+      check(byteData.getInt32(strDescOffsetPos + 8, Endian.little)).equals(11);
+      final decoded = DataFrame.fromArrowIpc(bytes);
+      check(decoded['s'].toList()).deepEquals(['ple', 'banana']);
+
+      // Setting non-monotonic offset [2, 1, 11] must throw FormatException.
+      byteData.setUint32(bodyStart + offOffset + 4, 1, Endian.little);
+      check(() => DataFrame.fromArrowIpc(bytes)).throws<FormatException>();
+      // Restore valid offset and corrupt FieldNode negative length.
+      byteData.setUint32(bodyStart + offOffset + 4, 5, Endian.little);
+      check(bytesOffset > 0).isTrue;
+      final nodesVecPos = fbReader.readVectorOffset(headerPos, 1)!;
+      final nodeLenPos = msg2Pos + 8 + nodesVecPos + 4;
+      byteData.setInt32(nodeLenPos, -1, Endian.little);
       check(() => DataFrame.fromArrowIpc(bytes)).throws<FormatException>();
     });
   });

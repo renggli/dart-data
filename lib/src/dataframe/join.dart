@@ -19,13 +19,12 @@ enum JoinType {
 
 /// Supported relational database join methods.
 enum JoinMethod {
-  /// Hash join utilizing an in-memory hash table of keys ($\mathcal{O}(M)$
-  /// auxiliary memory).
+  /// Hash join utilizing an in-memory hash table of keys (`O(M)` auxiliary
+  /// memory).
   hash,
 
   /// Sort-merge join traversing ordered key streams with dual cursors
-  /// ($\mathcal{O}(M + N)$ time, $\mathcal{O}(1)$ auxiliary memory when
-  /// sorted).
+  /// (`O(M + N)` time, `O(1)` auxiliary memory when pre-sorted).
   sortMerge,
 }
 
@@ -35,12 +34,12 @@ extension JoinDataFrameExtension on DataFrame {
   ///
   /// Conceptually, a join merges two tables together by matching up common
   /// identifiers (such as matching records across tables by an ID column).
-  /// Mathematically, this calculates the relational algebra join
-  /// $R \bowtie_{p} S$ based on key equality.
+  /// Mathematically, this calculates the relational equi-join based on key
+  /// equality.
   ///
   /// Supports [JoinMethod.hash] (default) and [JoinMethod.sortMerge]. When
-  /// [isSorted] is `true` with [JoinMethod.sortMerge], executes in
-  /// $\mathcal{O}(M + N)$ time and $\mathcal{O}(1)$ auxiliary memory.
+  /// [isSorted] is `true` with [JoinMethod.sortMerge], executes in `O(M + N)`
+  /// time and `O(1)` auxiliary memory.
   ///
   /// ```dart
   /// final left = DataFrame.fromColumns({
@@ -92,13 +91,25 @@ extension JoinDataFrameExtension on DataFrame {
       );
     }
 
+    if (effectiveLeftOn.isEmpty) {
+      throw ArgumentError('Join key columns cannot be empty.');
+    }
+    if (effectiveOn != null) {
+      final seen = <String>{};
+      for (final col in effectiveOn) {
+        if (!seen.add(col)) {
+          throw ArgumentError('Duplicate join column "$col" in on.');
+        }
+      }
+    }
+
     for (final col in effectiveLeftOn) {
-      if (!columnNames.contains(col)) {
+      if (!containsColumn(col)) {
         throw ArgumentError('Join column "$col" missing in left DataFrame');
       }
     }
     for (final col in effectiveRightOn) {
-      if (!other.columnNames.contains(col)) {
+      if (!other.containsColumn(col)) {
         throw ArgumentError('Join column "$col" missing in right DataFrame');
       }
     }
@@ -151,11 +162,9 @@ extension JoinDataFrameExtension on DataFrame {
           if (leftIdx != null) {
             final v = leftCol[leftIdx];
             vals.add(v == null ? null : combinedType.cast(v));
-          } else if (rightIdx != null) {
-            final v = rightCol[rightIdx];
-            vals.add(v == null ? null : combinedType.cast(v));
           } else {
-            vals.add(null);
+            final v = rightCol[rightIdx!];
+            vals.add(v == null ? null : combinedType.cast(v));
           }
         }
         final outName = disambiguate(keyCol);
@@ -276,60 +285,51 @@ List<(int?, int?)> _sortMergeJoinPairs(
       if (valA == null && valB == null) continue;
       if (valA == null) return 1;
       if (valB == null) return -1;
-      final isNanA = valA is num && valA.isNaN;
-      final isNanB = valB is num && valB.isNaN;
-      if (isNanA && isNanB) continue;
-      if (isNanA) return 1;
-      if (isNanB) return -1;
-      if (valA == valB) continue;
-      if (valA is num && valB is num) {
-        final diff = valA.compareTo(valB);
-        if (diff != 0) return diff;
-      } else if (valA is Comparable && valB is Comparable) {
-        final diff = valA.compareTo(valB);
-        if (diff != 0) return diff;
-      } else {
-        final diff = valA.toString().compareTo(valB.toString());
-        if (diff != 0) return diff;
-      }
+      final cmp = compareDynamicValues(valA, valB);
+      if (cmp != 0) return cmp;
     }
     return 0;
   }
 
-  List<int> leftOrder;
-  List<int> rightOrder;
+  final leftCount = left.rowCount;
+  final rightCount = right.rowCount;
+  final List<int>? leftOrder;
+  final List<int>? rightOrder;
 
   if (isSorted) {
-    for (var i = 1; i < left.rowCount; i++) {
+    for (var i = 1; i < leftCount; i++) {
       if (compareRows(leftCols, i - 1, leftCols, i) > 0) {
         throw ArgumentError(
           'Left DataFrame is not sorted by join keys ($leftOn) at row $i',
         );
       }
     }
-    for (var i = 1; i < right.rowCount; i++) {
+    for (var i = 1; i < rightCount; i++) {
       if (compareRows(rightCols, i - 1, rightCols, i) > 0) {
         throw ArgumentError(
           'Right DataFrame is not sorted by join keys ($rightOn) at row $i',
         );
       }
     }
-    leftOrder = List<int>.generate(left.rowCount, (i) => i);
-    rightOrder = List<int>.generate(right.rowCount, (i) => i);
+    leftOrder = null;
+    rightOrder = null;
   } else {
-    leftOrder = List<int>.generate(left.rowCount, (i) => i)
+    leftOrder = List<int>.generate(leftCount, (i) => i)
       ..sort((a, b) => compareRows(leftCols, a, leftCols, b));
-    rightOrder = List<int>.generate(right.rowCount, (i) => i)
+    rightOrder = List<int>.generate(rightCount, (i) => i)
       ..sort((a, b) => compareRows(rightCols, a, rightCols, b));
   }
+
+  int leftRowAt(int idx) => leftOrder != null ? leftOrder[idx] : idx;
+  int rightRowAt(int idx) => rightOrder != null ? rightOrder[idx] : idx;
 
   final matchedPairs = <(int?, int?)>[];
   var p = 0;
   var q = 0;
 
-  while (p < leftOrder.length && q < rightOrder.length) {
-    final leftRow = leftOrder[p];
-    final rightRow = rightOrder[q];
+  while (p < leftCount && q < rightCount) {
+    final leftRow = leftRowAt(p);
+    final rightRow = rightRowAt(q);
 
     if (leftExtractor.hasNullOrNan(leftRow)) {
       if (type == JoinType.left || type == JoinType.outer) {
@@ -361,24 +361,24 @@ List<(int?, int?)> _sortMergeJoinPairs(
     } else {
       // Find runs of duplicate keys
       var pEnd = p + 1;
-      while (pEnd < leftOrder.length &&
-          !leftExtractor.hasNullOrNan(leftOrder[pEnd]) &&
-          compareRows(leftCols, leftOrder[p], leftCols, leftOrder[pEnd]) == 0) {
+      while (pEnd < leftCount &&
+          !leftExtractor.hasNullOrNan(leftRowAt(pEnd)) &&
+          compareRows(leftCols, leftRow, leftCols, leftRowAt(pEnd)) == 0) {
         pEnd++;
       }
 
       var qEnd = q + 1;
-      while (qEnd < rightOrder.length &&
-          !rightExtractor.hasNullOrNan(rightOrder[qEnd]) &&
-          compareRows(rightCols, rightOrder[q], rightCols, rightOrder[qEnd]) ==
-              0) {
+      while (qEnd < rightCount &&
+          !rightExtractor.hasNullOrNan(rightRowAt(qEnd)) &&
+          compareRows(rightCols, rightRow, rightCols, rightRowAt(qEnd)) == 0) {
         qEnd++;
       }
 
       // Cartesian product of the duplicate runs
       for (var i = p; i < pEnd; i++) {
+        final li = leftRowAt(i);
         for (var j = q; j < qEnd; j++) {
-          matchedPairs.add((leftOrder[i], rightOrder[j]));
+          matchedPairs.add((li, rightRowAt(j)));
         }
       }
 
@@ -389,16 +389,16 @@ List<(int?, int?)> _sortMergeJoinPairs(
 
   // Remaining left rows
   if (type == JoinType.left || type == JoinType.outer) {
-    while (p < leftOrder.length) {
-      matchedPairs.add((leftOrder[p], null));
+    while (p < leftCount) {
+      matchedPairs.add((leftRowAt(p), null));
       p++;
     }
   }
 
   // Remaining right rows
   if (type == JoinType.right || type == JoinType.outer) {
-    while (q < rightOrder.length) {
-      matchedPairs.add((null, rightOrder[q]));
+    while (q < rightCount) {
+      matchedPairs.add((null, rightRowAt(q)));
       q++;
     }
   }

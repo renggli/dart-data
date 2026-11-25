@@ -4,7 +4,7 @@ import 'dart:convert' show utf8;
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('CsvStream', () {
@@ -318,6 +318,86 @@ void main() {
       check(chunks[1]['a'].toList()).deepEquals([42]);
       check(chunks[1]['b'].dataType).equals(DataType.float64);
       check(chunks[1]['b'].toList()).deepEquals([20.5]);
+    });
+
+    test('readChunks throws RangeError on non-positive chunkSize', () async {
+      await check(
+        CsvStream.readChunks(Stream.value('a\n1\n'), chunkSize: 0).toList(),
+      ).throws<RangeError>();
+      await check(
+        CsvStream.readByteChunks(
+          Stream.value(utf8.encode('a\n1\n')),
+          chunkSize: -5,
+        ).toList(),
+      ).throws<RangeError>();
+    });
+
+    test(
+      'header: true with explicit columnNames skips first CSV header row',
+      () async {
+        const csv = 'raw_a,raw_b\n1,2\n3,4\n';
+        final streamDf = await CsvStream.readStream(
+          Stream.value(csv),
+          header: true,
+          columnNames: ['x', 'y'],
+        );
+        check(streamDf.columnNames).deepEquals(['x', 'y']);
+        check(streamDf.rowCount).equals(2);
+        check(streamDf['x'].toList()).deepEquals([1, 3]);
+
+        final chunks = await CsvStream.readChunks(
+          Stream.value(csv),
+          header: true,
+          columnNames: ['x', 'y'],
+          chunkSize: 10,
+        ).toList();
+        check(chunks.length).equals(1);
+        check(chunks[0].columnNames).deepEquals(['x', 'y']);
+        check(chunks[0]['x'].toList()).deepEquals([1, 3]);
+      },
+    );
+
+    test('infers int64 across chunks and validates transformer separator/quoteChar', () async {
+      const csv64 = 'n\n5000000000\n10\n';
+      final chunks = await CsvStream.readChunks(
+        Stream.value(csv64),
+        chunkSize: 1,
+      ).toList();
+      check(chunks.length).equals(2);
+      check(chunks[0]['n'].dataType).equals(DataType.int64);
+      check(chunks[1]['n'].dataType).equals(DataType.int64);
+
+      check(() => CsvStreamTransformer(separator: '"', quoteChar: '"'))
+          .throws<ArgumentError>();
+      check(() => CsvStreamTransformer(separator: '\n'))
+          .throws<ArgumentError>();
+      check(() => CsvStreamTransformer(quoteChar: '\r'))
+          .throws<ArgumentError>();
+      await check(
+        CsvStream.readChunks(Stream.value('a\n1\n'), separator: '').toList(),
+      ).throws<ArgumentError>();
+    });
+
+    test('readChunks handles explicit columnTypes with ragged rows and trailing all-null chunks', () async {
+      const csv = 'a,b\n1,2\n3\n';
+      final typedChunks = await CsvStream.readChunks(
+        Stream.value(csv),
+        chunkSize: 1,
+        columnTypes: {'a': DataType.int32, 'b': DataType.int32},
+      ).toList();
+      check(typedChunks.length).equals(2);
+      check(typedChunks[1]['a'].toList()).deepEquals([3]);
+      check(typedChunks[1]['b'].toList()).deepEquals([null]);
+
+      const trailingNullsCsv = 'x\n10\n\n';
+      final inferredChunks = await CsvStream.readChunks(
+        Stream.value(trailingNullsCsv),
+        chunkSize: 1,
+      ).toList();
+      check(inferredChunks.length).equals(2);
+      check(inferredChunks[0]['x'].dataType).equals(DataType.int32);
+      check(inferredChunks[1]['x'].dataType).equals(DataType.int32);
+      check(inferredChunks[1]['x'].toList()).deepEquals([null]);
     });
   });
 }

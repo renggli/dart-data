@@ -85,7 +85,14 @@ abstract final class DataFrameJsonDecoder {
       );
     }
     if (decoded is Map) {
-      if (decoded.containsKey('columns') && decoded.containsKey('data')) {
+      final rawCols = decoded['columns'];
+      final rawData = decoded['data'];
+      if (rawCols is List &&
+          rawData is List &&
+          (rawData.isEmpty || rawData.first is List) &&
+          decoded.keys.every(
+            (k) => k == 'columns' || k == 'data' || k == 'index',
+          )) {
         return JsonOrient.split;
       }
       return JsonOrient.columns;
@@ -158,6 +165,14 @@ abstract final class DataFrameJsonDecoder {
 
     final colNames = rawCols.map((c) => c.toString()).toList(growable: false);
     final rowCount = rawData.length;
+    for (var rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+      final row = rawData[rowIdx];
+      if (row is! List) {
+        throw FormatException(
+          'Row at index $rowIdx in split "data" must be a List, got ${row.runtimeType}',
+        );
+      }
+    }
     final columns = <Series<Object?>>[];
 
     for (var colIdx = 0; colIdx < colNames.length; colIdx++) {
@@ -165,12 +180,7 @@ abstract final class DataFrameJsonDecoder {
       final type = columnTypes?[name];
       final values = <Object?>[];
       for (var rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-        final row = rawData[rowIdx];
-        if (row is! List) {
-          throw FormatException(
-            'Row at index $rowIdx in split "data" must be a List, got ${row.runtimeType}',
-          );
-        }
+        final row = rawData[rowIdx] as List;
         final val = colIdx < row.length ? row[colIdx] : null;
         values.add(val != null && type != null ? type.cast(val) : val);
       }

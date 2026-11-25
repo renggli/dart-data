@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('incremental nullCount updates', () {
@@ -402,6 +402,93 @@ void main() {
         check(sliced.isNull(17)).isTrue; // orig 25
         check(sliced.isNull(18)).isTrue; // orig 26
         check(sliced.isValid(1)).isTrue; // orig 9
+      },
+    );
+
+    test(
+      'exposes unmodifiable bytes, validCount, [], toString, and ==/hashCode',
+      () {
+        final a = ValidityMask(10)..setNull(3);
+        final b = ValidityMask(10)..setNull(3);
+        final c = ValidityMask(10)..setNull(4);
+
+        check(a.validCount).equals(9);
+        check(a[0]).isTrue;
+        check(a[3]).isFalse;
+        check(a == b).isTrue;
+        check(a.hashCode).equals(b.hashCode);
+        check(a == c).isFalse;
+        check(a.toString()).equals('ValidityMask(length: 10, nullCount: 1)');
+        check(() => a.bytes[0] = 0).throws<UnsupportedError>();
+      },
+    );
+
+    test('and() intersects two ValidityMasks and validates lengths', () {
+      final m1 = ValidityMask(10)
+        ..setNull(1)
+        ..setNull(3);
+      final m2 = ValidityMask(10)
+        ..setNull(3)
+        ..setNull(7);
+      final intersected = m1.and(m2);
+      check(intersected.nullCount).equals(3);
+      check(intersected.isNull(1)).isTrue;
+      check(intersected.isNull(3)).isTrue;
+      check(intersected.isNull(7)).isTrue;
+      check(intersected.isValid(0)).isTrue;
+
+      final allValid = ValidityMask(10);
+      check(allValid.and(m1)).equals(m1);
+      check(m1.and(allValid)).equals(m1);
+
+      final allNull = ValidityMask.allNull(10);
+      check(m1.and(allNull).nullCount).equals(10);
+
+      check(() => m1.and(ValidityMask(5))).throws<ArgumentError>();
+    });
+
+    test(
+      'concat preserves byte-aligned blocks and all-valid/all-null fast paths',
+      () {
+        final validA = ValidityMask(8);
+        final validB = ValidityMask(8);
+        final validConcat = validA.concat(validB);
+        check(validConcat.length).equals(16);
+        check(validConcat.nullCount).equals(0);
+
+        final allNullA = ValidityMask.allNull(8);
+        final allNullB = ValidityMask.allNull(4);
+        final nullConcat = allNullA.concat(allNullB);
+        check(nullConcat.length).equals(12);
+        check(nullConcat.nullCount).equals(12);
+
+        final aligned = ValidityMask(8)..setNull(2);
+        final other = ValidityMask(6)..setNull(4);
+        final combined = aligned.concat(other);
+        check(combined.length).equals(14);
+        check(combined.nullCount).equals(2);
+        check(combined.isNull(2)).isTrue;
+        check(combined.isNull(12)).isTrue;
+      },
+    );
+
+    test(
+      'fromBytes pads short byte buffer and concatMasks covers nullable pairs',
+      () {
+        final padded = ValidityMask.fromBytes(16, Uint8List.fromList([0xff]));
+        check(padded.length).equals(16);
+        check(padded.validCount).equals(8);
+        check(padded.nullCount).equals(8);
+
+        final noNull = ValidityMask(3);
+        check(ValidityMask.concatMasks(null, 3, null, 2)).isNull;
+        check(ValidityMask.concatMasks(noNull, 3, noNull, 2)).isNull;
+
+        final rightNull = ValidityMask(2)..setNull(1);
+        final combined = ValidityMask.concatMasks(null, 3, rightNull, 2);
+        check(combined).isNotNull();
+        check(combined!.length).equals(5);
+        check(combined.isNull(4)).isTrue;
       },
     );
   });

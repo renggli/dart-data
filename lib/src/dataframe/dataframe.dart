@@ -14,6 +14,7 @@ import 'groupby.dart';
 import 'json/json_decoder.dart';
 import 'json/json_encoder.dart';
 import 'json/json_orient.dart';
+import 'numeric_stats.dart';
 import 'series.dart';
 import 'tuple_key.dart';
 
@@ -22,8 +23,8 @@ import 'tuple_key.dart';
 /// Conceptually, a [DataFrame] is organized like a spreadsheet table with named
 /// columns (such as 'Name', 'Age', 'Score') where each column has the same
 /// number of rows. Mathematically, it represents a finite relation
-/// $R \subseteq T_1 \times T_2 \times \dots \times T_k$ over typed attributes,
-/// isomorphic to a columnar database table supporting relational algebra.
+/// `R <= T_1 x T_2 x ... x T_k` over typed attributes, isomorphic to a columnar
+/// database table supporting relational algebra.
 ///
 /// ```dart
 /// final df = DataFrame.fromColumns({
@@ -54,25 +55,6 @@ class DataFrame {
     return DataFrame(cols);
   }
 
-  /// Constructs a [DataFrame] from a list of row maps.
-  factory fromRows(List<Map<String, Object?>> rows) {
-    if (rows.isEmpty) return DataFrame([]);
-    final colNames = <String>{};
-    for (final row in rows) {
-      colNames.addAll(row.keys);
-    }
-    final colData = <String, List<Object?>>{
-      for (final name in colNames) name: [],
-    };
-    for (final row in rows) {
-      for (final name in colNames) {
-        final colList = colData[name];
-        if (colList != null) colList.add(row[name]);
-      }
-    }
-    return DataFrame.fromColumns(colData);
-  }
-
   /// Parses a CSV string into a [DataFrame].
   factory fromCsv(
     String csv, {
@@ -85,6 +67,13 @@ class DataFrame {
     header: header,
     columnTypes: columnTypes,
   );
+
+  /// Parses a TSV string into a [DataFrame].
+  factory fromTsv(
+    String tsv, {
+    bool header = true,
+    Map<String, DataType<Object?>>? columnTypes,
+  }) => CsvReader.parseTsv(tsv, header: header, columnTypes: columnTypes);
 
   /// Parses a JSON string into a [DataFrame].
   factory fromJson(
@@ -118,7 +107,9 @@ class DataFrame {
     final seriesList = <Series<Object?>>[];
     for (var c = 0; c < cols; c++) {
       final name = columnNames != null ? columnNames[c] : 'col_$c';
-      seriesList.add(_seriesFromMatrixColumn(matrix, c, name, rows));
+      seriesList.add(
+        _seriesFromGrid(matrix.type, rows, name, (r) => matrix.get(r, c)),
+      );
     }
     return DataFrame(seriesList);
   }
@@ -143,7 +134,9 @@ class DataFrame {
     final seriesList = <Series<Object?>>[];
     for (var c = 0; c < cols; c++) {
       final name = columnNames != null ? columnNames[c] : 'col_$c';
-      seriesList.add(_seriesFromTensorColumn(tensor, c, name, rows));
+      seriesList.add(
+        _seriesFromGrid(tensor.type, rows, name, (r) => tensor.get2D(r, c)),
+      );
     }
     return DataFrame(seriesList);
   }
@@ -153,11 +146,11 @@ class DataFrame {
   factory fromArrowIpc(Uint8List bytes) => ArrowIpc.decode(bytes);
 
   new _(List<Series<Object?>> list)
-    : _columns = list,
+    : _columns = List<Series<Object?>>.unmodifiable(list),
       rowCount = list.isEmpty ? 0 : list[0].length,
       _columnIndex = {} {
-    for (var i = 0; i < list.length; i++) {
-      final col = list[i];
+    for (var i = 0; i < _columns.length; i++) {
+      final col = _columns[i];
       if (_columnIndex.containsKey(col.name)) {
         throw ArgumentError('Duplicate column name "${col.name}" in DataFrame');
       }
@@ -190,7 +183,16 @@ class DataFrame {
   /// Number of columns.
   int get columnCount => _columns.length;
 
-  /// Ordered list of all column [Series] in this DataFrame.
+  /// Returns `true` if this [DataFrame] has zero rows.
+  bool get isEmpty => rowCount == 0;
+
+  /// Returns `true` if this [DataFrame] has at least one row.
+  bool get isNotEmpty => rowCount > 0;
+
+  /// Returns `true` if a column with [name] exists in this [DataFrame].
+  bool containsColumn(String name) => _columnIndex.containsKey(name);
+
+  /// Ordered unmodifiable list of all column [Series] in this DataFrame.
   List<Series<Object?>> get columns => _columns;
 
   /// List of column names in schema order.
@@ -326,8 +328,8 @@ class DataFrame {
   /// If [keepFirst] is `true` (default), the first occurrence is kept;
   /// otherwise, the last occurrence is kept.
   DataFrame dropDuplicates({List<String>? subset, bool keepFirst = true}) {
-    if (rowCount == 0) return this;
     final targetCols = subset != null ? subset.map(column).toList() : _columns;
+    if (rowCount == 0) return this;
     final extractor = RowKeyExtractor(targetCols);
     final seen = <Object?>{};
     final mask = List<bool>.filled(rowCount, false);
@@ -363,16 +365,35 @@ class DataFrame {
     String varName = 'variable',
     String valueName = 'value',
   }) {
+    final seenIds = <String>{};
     for (final id in idVars) {
       if (!_columnIndex.containsKey(id)) {
         throw ArgumentError('Identifier column "$id" not found in DataFrame.');
       }
+      if (!seenIds.add(id)) {
+        throw ArgumentError('Duplicate identifier column "$id" in idVars.');
+      }
+    }
+    if (varName == valueName) {
+      throw ArgumentError(
+        'varName and valueName must be distinct (both were "$varName").',
+      );
+    }
+    if (seenIds.contains(varName)) {
+      throw ArgumentError(
+        'varName "$varName" conflicts with an identifier column.',
+      );
+    }
+    if (seenIds.contains(valueName)) {
+      throw ArgumentError(
+        'valueName "$valueName" conflicts with an identifier column.',
+      );
     }
     final effectiveValueVars =
         valueVars ??
         _columns
             .map((c) => c.name)
-            .where((name) => !idVars.contains(name))
+            .where((name) => !seenIds.contains(name))
             .toList();
 
     for (final val in effectiveValueVars) {
@@ -390,7 +411,7 @@ class DataFrame {
     if (valCols.isNotEmpty) {
       valueDataType = valCols.first.dataType;
       for (var i = 1; i < valCols.length; i++) {
-        valueDataType = valueDataType!.promoteWith(valCols[i].dataType);
+        valueDataType = valueDataType?.promoteWith(valCols[i].dataType);
       }
     }
 
@@ -404,17 +425,18 @@ class DataFrame {
       return DataFrame(newCols);
     }
 
-    final newIdData = <String, List<Object?>>{
-      for (final id in idVars) id: List<Object?>.filled(totalRows, null),
-    };
+    final newIdData = List<List<Object?>>.generate(
+      idCols.length,
+      (_) => List<Object?>.filled(totalRows, null),
+    );
     final newVarData = List<String>.filled(totalRows, '');
     final newValData = List<Object?>.filled(totalRows, null);
 
     var writeIdx = 0;
     for (final valCol in valCols) {
       for (var r = 0; r < rowCount; r++) {
-        for (final idCol in idCols) {
-          newIdData[idCol.name]![writeIdx] = idCol[r];
+        for (var i = 0; i < idCols.length; i++) {
+          newIdData[i][writeIdx] = idCols[i][r];
         }
         newVarData[writeIdx] = valCol.name;
         newValData[writeIdx] = valCol[r];
@@ -423,12 +445,8 @@ class DataFrame {
     }
 
     final newCols = <Series<Object?>>[
-      for (final idCol in idCols)
-        Series.fromList(
-          idCol.name,
-          newIdData[idCol.name]!,
-          type: idCol.dataType,
-        ),
+      for (var i = 0; i < idCols.length; i++)
+        Series.fromList(idCols[i].name, newIdData[i], type: idCols[i].dataType),
       Series<String>.fromList(varName, newVarData),
       Series.fromList(valueName, newValData, type: valueDataType),
     ];
@@ -454,6 +472,7 @@ class DataFrame {
     final valCol = column(values);
 
     final orderedIndexValues = <Object?>[];
+    final orderedIndexKeys = <Object?>[];
     final seenIndices = <Object?>{};
     final orderedColValues = <Object?>[];
     final seenCols = <Object?>{};
@@ -470,6 +489,7 @@ class DataFrame {
 
       if (seenIndices.add(idxKey)) {
         orderedIndexValues.add(idxVal);
+        orderedIndexKeys.add(idxKey);
       }
       if (seenCols.add(colKey)) {
         orderedColValues.add(colVal);
@@ -494,17 +514,21 @@ class DataFrame {
       }
     }
 
-    final newCols = <Series<Object?>>[];
-    newCols.add(
+    final pivotColNames = <String>{index};
+    final newCols = <Series<Object?>>[
       Series.fromList(index, orderedIndexValues, type: indexCol.dataType),
-    );
+    ];
 
     for (final colVal in orderedColValues) {
       final colKey = canonicalizeKey(colVal);
       final colName = colVal?.toString() ?? 'null';
+      if (!pivotColNames.add(colName)) {
+        throw ArgumentError(
+          'Pivoted column name "$colName" collides with an existing column.',
+        );
+      }
       final cellValues = <Object?>[];
-      for (final idxVal in orderedIndexValues) {
-        final idxKey = canonicalizeKey(idxVal);
+      for (final idxKey in orderedIndexKeys) {
         final list = table[idxKey]?[colKey];
         if (list == null || list.isEmpty) {
           cellValues.add(null);
@@ -532,6 +556,11 @@ class DataFrame {
   /// to their respective replacement values. If a single [value] is not compatible with a column's
   /// data type, that column is left unmodified instead of throwing a type error.
   DataFrame fillNull(Object value, {List<String>? columns}) {
+    if (columns != null) {
+      for (final name in columns) {
+        column(name);
+      }
+    }
     final colSet = columns?.toSet();
     final newCols = <Series<Object?>>[];
     for (final col in _columns) {
@@ -567,11 +596,7 @@ class DataFrame {
         newCols.add(col);
         continue;
       }
-      try {
-        newCols.add(col.fillNull(castValue));
-      } on TypeError {
-        newCols.add(col);
-      }
+      newCols.add(col.tryFillNull(castValue) ?? col);
     }
     return DataFrame(newCols);
   }
@@ -610,17 +635,13 @@ class DataFrame {
         ];
       } else {
         nonNulls.sort();
-        var sum = 0.0;
-        for (var i = 0; i < n; i++) {
-          sum += nonNulls[i];
-        }
-        final mean = sum / n;
-        var varSum = 0.0;
-        for (var i = 0; i < n; i++) {
-          final diff = nonNulls[i] - mean;
-          varSum += diff * diff;
-        }
-        final std = n > 1 ? math.sqrt(varSum / (n - 1)) : double.nan;
+        final mean = computeNumericMean(n, (i) => nonNulls[i]) ?? double.nan;
+        final variance = computeNumericVariance(
+          n,
+          (i) => nonNulls[i],
+          population: false,
+        );
+        final std = variance != null ? math.sqrt(variance) : double.nan;
         final min = nonNulls.first;
         final max = nonNulls.last;
 
@@ -629,7 +650,7 @@ class DataFrame {
           final low = idx.floor();
           final frac = idx - low;
           if (low >= n - 1) return nonNulls.last;
-          return nonNulls[low] + frac * (nonNulls[low + 1] - nonNulls[low]);
+          return interpolateQuantile(nonNulls[low], nonNulls[low + 1], frac);
         }
 
         stats[col.name] = [
@@ -705,6 +726,13 @@ class DataFrame {
     if (count == 0) {
       return slice(0, 0);
     }
+    if (rowCount == 0) {
+      throw ArgumentError.value(
+        count,
+        'count',
+        'Cannot sample from an empty DataFrame.',
+      );
+    }
     final rng = random ?? math.Random();
     final List<int> indices;
     if (replace) {
@@ -742,17 +770,35 @@ class DataFrame {
       throw ArgumentError.value(by, 'by', 'Must be a String or List<String>');
     }
 
-    final ascList = ascending is List<bool>
-        ? ascending
-        : List<bool>.filled(sortCols.length, ascending as bool);
+    final List<bool> ascList;
+    if (ascending is bool) {
+      ascList = List<bool>.filled(sortCols.length, ascending);
+    } else if (ascending is List<bool>) {
+      ascList = ascending;
+    } else {
+      throw ArgumentError.value(
+        ascending,
+        'ascending',
+        'Must be a bool or List<bool>',
+      );
+    }
     if (ascList.length != sortCols.length) {
       throw ArgumentError(
         'ascending list length (${ascList.length}) must match columns length (${sortCols.length}).',
       );
     }
-    final nullsList = nullsLast is List<bool>
-        ? nullsLast
-        : List<bool>.filled(sortCols.length, nullsLast as bool);
+    final List<bool> nullsList;
+    if (nullsLast is bool) {
+      nullsList = List<bool>.filled(sortCols.length, nullsLast);
+    } else if (nullsLast is List<bool>) {
+      nullsList = nullsLast;
+    } else {
+      throw ArgumentError.value(
+        nullsLast,
+        'nullsLast',
+        'Must be a bool or List<bool>',
+      );
+    }
     if (nullsList.length != sortCols.length) {
       throw ArgumentError(
         'nullsLast list length (${nullsList.length}) must match columns length (${sortCols.length}).',
@@ -760,6 +806,7 @@ class DataFrame {
     }
 
     final cols = sortCols.map(column).toList(growable: false);
+    if (sortCols.isEmpty || rowCount <= 1) return this;
     final indices = List<int>.generate(rowCount, (i) => i);
     indices.sort((a, b) {
       for (var c = 0; c < sortCols.length; c++) {
@@ -770,26 +817,7 @@ class DataFrame {
         final nLast = nullsList[c];
         if (valA == null) return nLast ? 1 : -1;
         if (valB == null) return nLast ? -1 : 1;
-        final int cmp;
-        if (valA is bool && valB is bool) {
-          cmp = (valA ? 1 : 0).compareTo(valB ? 1 : 0);
-        } else if (valA is num && valB is num) {
-          final isNanA = valA.isNaN;
-          final isNanB = valB.isNaN;
-          if (isNanA && isNanB) {
-            cmp = 0;
-          } else if (isNanA) {
-            cmp = 1;
-          } else if (isNanB) {
-            cmp = -1;
-          } else {
-            cmp = valA.compareTo(valB);
-          }
-        } else if (valA is Comparable) {
-          cmp = valA.compareTo(valB);
-        } else {
-          cmp = '$valA'.compareTo('$valB');
-        }
+        final cmp = compareDynamicValues(valA, valB);
         if (cmp != 0) {
           return ascList[c] ? cmp : -cmp;
         }
@@ -977,85 +1005,38 @@ class DataFrame {
     return buffer.toString();
   }
 
-  static Series<Object?> _seriesFromMatrixColumn(
-    Matrix<Object?> matrix,
-    int col,
-    String name,
+  static Series<Object?> _seriesFromGrid(
+    DataType<Object?> type,
     int rows,
+    String name,
+    Object? Function(int row) getAt,
   ) {
-    final type = matrix.type;
     if (type is DataType<double>) {
       final data = type.newList(rows);
       for (var r = 0; r < rows; r++) {
-        data[r] = matrix.get(r, col) as double;
+        data[r] = getAt(r) as double;
       }
       return TypedSeries<double>(name: name, data: data, dataType: type);
     } else if (type is DataType<int>) {
       final data = type.newList(rows);
       for (var r = 0; r < rows; r++) {
-        data[r] = matrix.get(r, col) as int;
+        data[r] = getAt(r) as int;
       }
       return TypedSeries<int>(name: name, data: data, dataType: type);
     } else if (type is DataType<num>) {
       final data = type.newList(rows);
       for (var r = 0; r < rows; r++) {
-        data[r] = matrix.get(r, col) as num;
+        data[r] = getAt(r) as num;
       }
       return TypedSeries<num>(name: name, data: data, dataType: type);
     } else if (type is DataType<bool>) {
-      final data = List<bool>.generate(rows, (r) => matrix.get(r, col) as bool);
+      final data = List<bool>.generate(rows, (r) => getAt(r) as bool);
       return BoolSeries(name: name, data: data);
     } else if (type is DataType<String>) {
-      final data = List<String>.generate(
-        rows,
-        (r) => matrix.get(r, col) as String,
-      );
+      final data = List<String>.generate(rows, (r) => getAt(r) as String);
       return ArrowStringSeries.fromList(name, data);
     } else {
-      final values = List<Object?>.generate(rows, (r) => matrix.get(r, col));
-      return Series.fromList(name, values, type: type);
-    }
-  }
-
-  static Series<Object?> _seriesFromTensorColumn(
-    Tensor<Object?> tensor,
-    int col,
-    String name,
-    int rows,
-  ) {
-    final type = tensor.type;
-    if (type is DataType<double>) {
-      final data = type.newList(rows);
-      for (var r = 0; r < rows; r++) {
-        data[r] = tensor.get2D(r, col) as double;
-      }
-      return TypedSeries<double>(name: name, data: data, dataType: type);
-    } else if (type is DataType<int>) {
-      final data = type.newList(rows);
-      for (var r = 0; r < rows; r++) {
-        data[r] = tensor.get2D(r, col) as int;
-      }
-      return TypedSeries<int>(name: name, data: data, dataType: type);
-    } else if (type is DataType<num>) {
-      final data = type.newList(rows);
-      for (var r = 0; r < rows; r++) {
-        data[r] = tensor.get2D(r, col) as num;
-      }
-      return TypedSeries<num>(name: name, data: data, dataType: type);
-    } else if (type is DataType<bool>) {
-      final data = List<bool>.generate(
-        rows,
-        (r) => tensor.get2D(r, col) as bool,
-      );
-      return BoolSeries(name: name, data: data);
-    } else if (type is DataType<String>) {
-      final data = List<String>.generate(
-        rows,
-        (r) => tensor.get2D(r, col) as String,
-      );
-      return ArrowStringSeries.fromList(name, data);
-    } else {
-      final values = List<Object?>.generate(rows, (r) => tensor.get2D(r, col));
+      final values = List<Object?>.generate(rows, getAt);
       return Series.fromList(name, values, type: type);
     }
   }

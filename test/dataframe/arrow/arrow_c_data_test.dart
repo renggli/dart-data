@@ -15,7 +15,7 @@ import 'package:data/dataframe.dart'
 import 'package:data/src/dataframe/arrow/arrow_c_data_ffi.dart';
 import 'package:data/type.dart';
 import 'package:ffi/ffi.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Apache Arrow C Data Interface', () {
@@ -705,6 +705,53 @@ void main() {
         calloc.free(array);
       },
     );
+
+    test('validates negative length/offset, null format, dictionary, and missing bitmap', () {
+      final schema = calloc<ArrowSchema>();
+      final array = calloc<ArrowArray>();
+      schema.ref.format = 'i'.toNativeUtf8();
+      schema.ref.name = 'x'.toNativeUtf8();
+      schema.ref.release = _mockReleaseSchemaPtr;
+      array.ref.length = -1;
+      array.ref.release = _mockReleaseArrayPtr;
+
+      check(
+        () => Series.importFrom(schema: schema, array: array, release: false),
+      ).throws<FormatException>();
+
+      array.ref.length = 2;
+      array.ref.null_count = 1;
+      array.ref.n_buffers = 2;
+      final bufs = calloc<ffi.Pointer<ffi.Void>>(2);
+      final data = calloc<ffi.Int32>(2);
+      bufs[0] = ffi.nullptr;
+      bufs[1] = data.cast();
+      array.ref.buffers = bufs;
+      _lastReleasedBuffers = bufs.cast();
+      _lastReleasedData = data.cast();
+
+      check(
+        () => Series.importFrom(schema: schema, array: array, release: false),
+      ).throws<FormatException>();
+
+      // Non-null dictionary throws UnsupportedError
+      final dictSchema = calloc<ArrowSchema>();
+      schema.ref.dictionary = dictSchema;
+      check(
+        () => Series.importFrom(schema: schema, array: array, release: false),
+      ).throws<UnsupportedError>();
+      schema.ref.dictionary = ffi.nullptr;
+      calloc.free(dictSchema);
+
+      // Null format pointer throws FormatException
+      calloc.free(schema.ref.format);
+      schema.ref.format = ffi.nullptr;
+      check(() => Series.importFrom(schema: schema, array: array))
+          .throws<FormatException>();
+
+      calloc.free(schema);
+      calloc.free(array);
+    });
   });
 }
 

@@ -491,7 +491,7 @@ void main() {
 
     test('coerces values for string and boolean series', () {
       final sStr = Series.fromList('s', [123, 'abc'], type: DataType.string);
-      check(sStr).isA<StringSeries>();
+      check(sStr).isA<ArrowStringSeries>();
       check(sStr.toList()).deepEquals(['123', 'abc']);
 
       final sBool = Series.fromList('b', [true, false], type: DataType.boolean);
@@ -772,6 +772,106 @@ void main() {
       check(sortedFirst[1]).equals(1.0);
       check(sortedFirst[2]).equals(2.0);
       check((sortedFirst[3] as double).isNaN).isTrue;
+    });
+
+    test('fromList preserves typed ArrowStringSeries and BoolSeries when empty or all-null', () {
+      final emptyStr = Series<String>.fromList('s', []);
+      check(emptyStr).isA<ArrowStringSeries>();
+      check(emptyStr.length).equals(0);
+
+      final allNullStr = Series<String?>.fromList('s', [null, null]);
+      check(allNullStr).isA<ArrowStringSeries>();
+      check(allNullStr.nullCount).equals(2);
+
+      final emptyBool = Series<bool>.fromList('b', []);
+      check(emptyBool).isA<BoolSeries>();
+      check(emptyBool.length).equals(0);
+
+      final allNullBool = Series<bool?>.fromList('b', [null]);
+      check(allNullBool).isA<BoolSeries>();
+      check(allNullBool.nullCount).equals(1);
+    });
+
+    test('hashCode and == agree on 0, 0.0, -0.0, and NaN in ObjectSeries', () {
+      final sInt = ObjectSeries<Object?>(
+        name: 'n',
+        data: [0, 1],
+        dataType: DataType.object,
+      );
+      final sDbl = ObjectSeries<Object?>(
+        name: 'n',
+        data: [-0.0, 1.0],
+        dataType: DataType.object,
+      );
+      check(sInt == sDbl).isTrue;
+      check(sInt.hashCode).equals(sDbl.hashCode);
+    });
+
+    test('valueCounts disambiguates when series name is "count"', () {
+      final counts = Series<String>.fromList('count', [
+        'a',
+        'a',
+        'b',
+      ]).valueCounts();
+      check(counts.columnNames).deepEquals(['count', 'count_1']);
+      check(counts['count'].toList()).deepEquals(['a', 'b']);
+      check(counts['count_1'].toList()).deepEquals([2, 1]);
+    });
+
+    test('TypedSeries handles huge finite mean/variance and O(N) quantile', () {
+      final huge = TypedSeries<double>.fromList('x', [1e308, 1e308]);
+      check(huge.mean!).isCloseTo(1e308, 1e294);
+      check(huge.variance()).equals(0.0);
+
+      final unsorted = TypedSeries<int>.fromList('q', [50, 10, 40, 20, 30]);
+      check(unsorted.quantile(0.25)).equals(20.0);
+      check(unsorted.median()).equals(30.0);
+      check(unsorted.quantile(0.75)).equals(40.0);
+    });
+
+    test('ObjectSeries min/max/sort handle NaN and mixed types safely', () {
+      final objNaN = ObjectSeries<Object?>(
+        name: 'm',
+        data: [2.0, double.nan, 1.0],
+        dataType: DataType.object,
+      );
+      check((objNaN.min as num).isNaN).isTrue;
+      check((objNaN.max as num).isNaN).isTrue;
+
+      final objMixed = ObjectSeries<Object?>(
+        name: 'm',
+        data: [1, 'a', true],
+        dataType: DataType.object,
+      );
+      check(objMixed.min).isNull;
+      check(objMixed.max).isNull;
+      final sorted = objMixed.sort();
+      check(sorted.length).equals(3);
+
+      final numObj = ObjectSeries<num>.fromList('n', [3, 1.5, 2]);
+      check(numObj.min).equals(1.5);
+      check(numObj.max).equals(3);
+      check(numObj.tryFillNull(0)).identicalTo(numObj);
+
+      final nullableObj = ObjectSeries<Object?>(
+        name: 'o',
+        data: [1, null, 3],
+        dataType: DataType.numeric,
+        mask: ValidityMask(3)..setNull(1),
+      );
+      check(nullableObj.tryFillNull(2.0)!.toList()).deepEquals([1, 2.0, 3]);
+      check(nullableObj.concat(ArrowStringSeries.fromList('s', ['x'])).toList())
+          .deepEquals([1, null, 3, 'x']);
+
+      final unmaskedNullObj = ObjectSeries<Object?>(
+        name: 'u',
+        data: [1, null, 3],
+        dataType: DataType.object,
+      );
+      check(unmaskedNullObj.sort(nullsLast: false).toList())
+          .deepEquals([null, 1, 3]);
+      check(unmaskedNullObj.sort(nullsLast: true).toList())
+          .deepEquals([1, 3, null]);
     });
   });
 }

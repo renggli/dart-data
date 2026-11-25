@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('GroupBy - Safe Composite Keys', () {
@@ -206,7 +206,43 @@ void main() {
 
       final countDf = grouped.count();
       check(countDf['score_count'].toList()).deepEquals([2, 1]);
+
+      check(grouped.groupCount).equals(2);
+      check(grouped.min()['score_min'].toList()).deepEquals([10.0, 30.0]);
+      check(grouped.max()['score_max'].toList()).deepEquals([20.0, 30.0]);
+      check(grouped.median()['score_median'].toList()).deepEquals([15.0, 30.0]);
+      check(grouped.std()['score_std'][0] as double)
+          .isCloseTo(math.sqrt(50.0), 1e-9);
+      check(grouped.std()['score_std'][1]).isNull;
+      check(grouped.variance()['score_variance'][0]).equals(50.0);
     });
+
+    test(
+      'rejects duplicate byColumns and supports duplicate (col, agg) requests',
+      () {
+        final df = DataFrame.fromColumns({
+          'g': ['a', 'a'],
+          'v': [1e308, 1e308],
+          'b': [true, false],
+        });
+        check(() => df.groupBy(['g', 'g'])).throws<ArgumentError>();
+
+        final dupAgg = df.groupBy(['g']).aggregate({
+          'v': [Agg.sum, Agg.sum],
+          'b': [Agg.min, Agg.max],
+        });
+        check(dupAgg.columnNames)
+            .deepEquals(['g', 'v_sum', 'v_sum_1', 'b_min', 'b_max']);
+        check(dupAgg['b_min'][0]).equals(false);
+        check(dupAgg['b_max'][0]).equals(true);
+
+        final extreme = df.groupBy(['g']).aggregate({
+          'v': [Agg.mean, Agg.variance],
+        });
+        check(extreme['v_mean'][0] as double).isCloseTo(1e308, 1e294);
+        check(extreme['v_variance'][0]).equals(0.0);
+      },
+    );
 
     test('count() counts non-null entries for every non-key column', () {
       final df = DataFrame.fromColumns({

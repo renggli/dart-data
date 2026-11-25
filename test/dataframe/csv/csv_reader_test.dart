@@ -155,5 +155,10 @@ void main() {
       check(df['code'].toList()).deepEquals(['007', '042']);
       check(df['code'].dataType).equals(DataType.string);
     });
+
+    test('throws ArgumentError on empty separator', () {
+      check(() => CsvReader.parse('a,b\n1,2', separator: ''))
+          .throws<ArgumentError>();
+    });
   });
 }

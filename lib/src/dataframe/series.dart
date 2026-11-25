@@ -6,6 +6,7 @@ import 'arrow/arrow_c_data.dart';
 import 'arrow_string_series.dart';
 import 'bitmask.dart';
 import 'dataframe.dart';
+import 'numeric_stats.dart';
 import 'tuple_key.dart';
 
 /// 1-dimensional columnar series with optional Apache Arrow validity bitmask.
@@ -13,9 +14,9 @@ import 'tuple_key.dart';
 /// Conceptually, a [Series] is a single named column in a table (such as a
 /// "Score" or "Age" column in a spreadsheet) holding values for each row.
 /// Mathematically, it represents an ordered 1-tuple sequence
-/// $(x_0, \dots, x_{n-1})$ over a domain $T \cup \{\bot\}$, backed by
-/// contiguous typed buffers and a separate null bitmap for $\mathcal{O}(1)$
-/// random access without boxing primitive types.
+/// `(x_0, ..., x_{n-1})` over a domain `T U {null}`, backed by contiguous
+/// typed buffers and a separate null bitmap for `O(1)` random access without
+/// boxing primitive types.
 ///
 /// ```dart
 /// final series = Series<double>.fromList('scores', [95.0, 88.0, 92.5]);
@@ -68,7 +69,7 @@ abstract class Series<T> {
               (element) => element == null ? null : effectiveType.cast(element),
             )
             .toList(growable: false);
-        return StringSeries.fromList(name, strList) as Series<T>;
+        return ArrowStringSeries.fromList(name, strList) as Series<T>;
       } else if (effectiveType is DataType<bool>) {
         final boolList = list
             .map(
@@ -121,24 +122,42 @@ abstract class Series<T> {
           )
           .toList(growable: false);
       return TypedSeries<double>.fromList(name, dblList) as Series<T>;
-    } else if (list is List<String> ||
+    } else if (T == String ||
+        T == _typeOf<String?>() ||
+        list is List<String> ||
         list is List<String?> ||
         (firstNonNull is String &&
             list.every((e) => e == null || e is String))) {
       final strList = list
-          .map((element) => element as String?)
+          .map(
+            (element) => element == null
+                ? null
+                : (element is String ? element : DataType.string.cast(element)),
+          )
           .toList(growable: false);
-      return StringSeries.fromList(name, strList) as Series<T>;
-    } else if (list is List<bool> ||
+      return ArrowStringSeries.fromList(name, strList) as Series<T>;
+    } else if (T == bool ||
+        T == _typeOf<bool?>() ||
+        list is List<bool> ||
         list is List<bool?> ||
         (firstNonNull is bool && list.every((e) => e == null || e is bool))) {
       final boolList = list
-          .map((element) => element as bool?)
+          .map(
+            (element) => element == null
+                ? null
+                : (element is bool ? element : DataType.boolean.cast(element)),
+          )
           .toList(growable: false);
       return BoolSeries.fromList(name, boolList) as Series<T>;
     } else if (firstNonNull is num &&
         list.every((e) => e == null || e is num)) {
-      if (list.every((e) => e == null || e is int)) {
+      if (list.every(
+        (e) =>
+            e == null ||
+            (e is int &&
+                (!identical(1, 1.0) ||
+                    (e >= -9007199254740991 && e <= 9007199254740991))),
+      )) {
         final intList = list
             .map((element) => element as int?)
             .toList(growable: false);
@@ -189,7 +208,7 @@ abstract class Series<T> {
   int get nullCount;
 
   /// Optional validity bitmask tracking null values.
-  ValidityMask? get mask => null;
+  ValidityMask? get mask;
 
   /// Returns true if this series contains one or more missing (null) values.
   bool get hasNulls => nullCount > 0;
@@ -227,6 +246,7 @@ abstract class Series<T> {
     if (other is! Series) return false;
     if (name != other.name ||
         length != other.length ||
+        nullCount != other.nullCount ||
         dataType != other.dataType) {
       return false;
     }
@@ -243,17 +263,17 @@ abstract class Series<T> {
 
   @override
   int get hashCode {
-    var hash = Object.hash(name, length, dataType);
+    var hash = Object.hash(name, length, nullCount, dataType);
     for (var i = 0; i < length; i++) {
       final val = this[i];
       final Object? elem;
       if (val is num) {
         if (val.isNaN) {
           elem = 0x7fc00000;
-        } else if (val is double && val == 0.0) {
-          elem = 0.0;
+        } else if (val == 0) {
+          elem = 0.hashCode;
         } else {
-          elem = dataType.equality.hash(val as T);
+          elem = val.hashCode;
         }
       } else if (val != null) {
         elem = dataType.equality.hash(val);
@@ -303,14 +323,11 @@ abstract class Series<T> {
   }
 
   /// Returns a copy of this series with null values replaced by [value].
-  Series<T> fillNull(T value) {
-    if (!hasNulls) return this;
-    final list = [
-      for (var i = 0; i < length; i++)
-        if (isNull(i)) value else this[i],
-    ];
-    return Series.fromList(name, list, type: dataType);
-  }
+  Series<T> fillNull(T value);
+
+  /// Attempts to replace null values with [value] if [value] is compatible
+  /// with this series type, returning `null` otherwise.
+  Series<T>? tryFillNull(Object value);
 
   /// Transforms elements of this series using [fn], ignoring null entries.
   Series<R> map<R>(R Function(T value) fn, {String? name, DataType<R>? type}) {
@@ -337,7 +354,11 @@ abstract class Series<T> {
   }
 
   /// Returns a [DataFrame] containing unique values and their occurrence counts.
-  DataFrame valueCounts({bool ascending = false, bool dropNulls = false}) {
+  DataFrame valueCounts({
+    bool ascending = false,
+    bool dropNulls = false,
+    String countName = 'count',
+  }) {
     final counts = <Object?, int>{};
     final keyToValue = <Object?, T?>{};
     for (var i = 0; i < length; i++) {
@@ -352,11 +373,17 @@ abstract class Series<T> {
       (a, b) =>
           ascending ? a.value.compareTo(b.value) : b.value.compareTo(a.value),
     );
+    var outCountName = countName;
+    var counter = 1;
+    while (outCountName == name) {
+      outCountName = '${countName}_$counter';
+      counter++;
+    }
     final valueList = [for (final e in entries) keyToValue[e.key]];
     final countList = [for (final e in entries) e.value];
     return DataFrame([
       Series.fromList(name, valueList, type: dataType),
-      Series<int>.fromList('count', countList, type: DataType.int32),
+      Series<int>.fromList(outCountName, countList, type: DataType.int32),
     ]);
   }
 
@@ -582,6 +609,10 @@ class TypedSeries<T extends num> extends Series<T> {
   }
 
   @override
+  TypedSeries<T>? tryFillNull(Object value) =>
+      value is num ? fillNull(dataType.cast(value)) : null;
+
+  @override
   TypedSeries<T> fillNull(T value) {
     if (!hasNulls) return this;
     final castValue = dataType.cast(value);
@@ -691,6 +722,17 @@ class TypedSeries<T extends num> extends Series<T> {
 
   @override
   num? get sum {
+    if (dataType is DataType<double>) {
+      var total = 0.0;
+      var count = 0;
+      for (var i = 0; i < length; i++) {
+        if (!isNull(i)) {
+          total += data[i].toDouble();
+          count++;
+        }
+      }
+      return count > 0 ? total : null;
+    }
     num total = 0;
     var count = 0;
     for (var i = 0; i < length; i++) {
@@ -703,35 +745,15 @@ class TypedSeries<T extends num> extends Series<T> {
   }
 
   @override
-  double? get mean {
-    final currentSum = sum;
-    final validCount = length - nullCount;
-    return (currentSum != null && validCount > 0)
-        ? currentSum.toDouble() / validCount
-        : null;
-  }
+  double? get mean =>
+      computeNumericMean(length, (i) => isNull(i) ? null : data[i].toDouble());
 
   @override
-  double? variance({bool population = false}) {
-    var validCount = 0;
-    var mean = 0.0;
-    var m2 = 0.0;
-    for (var i = 0; i < length; i++) {
-      if (!isNull(i)) {
-        final val = data[i].toDouble();
-        if (val.isNaN) return double.nan;
-        validCount++;
-        final delta = val - mean;
-        mean += delta / validCount;
-        final delta2 = val - mean;
-        m2 += delta * delta2;
-      }
-    }
-    final divisor = population ? validCount : validCount - 1;
-    if (divisor <= 0) return null;
-    final v = m2 / divisor;
-    return v < 0.0 ? 0.0 : v;
-  }
+  double? variance({bool population = false}) => computeNumericVariance(
+    length,
+    (i) => isNull(i) ? null : data[i].toDouble(),
+    population: population,
+  );
 
   @override
   double? std({bool population = false}) {
@@ -747,28 +769,13 @@ class TypedSeries<T extends num> extends Series<T> {
     if (p < 0.0 || p > 1.0 || p.isNaN) {
       throw RangeError.value(p, 'p', 'Must be between 0.0 and 1.0');
     }
-    final nonNulls = <double>[];
-    for (var i = 0; i < length; i++) {
-      if (!isNull(i)) {
-        final val = data[i].toDouble();
-        if (val.isNaN) return double.nan;
-        nonNulls.add(val);
-      }
-    }
-    final n = nonNulls.length;
-    if (n == 0) return null;
-    nonNulls.sort();
-    final idx = p * (n - 1);
-    final low = idx.floor();
-    final frac = idx - low;
-    if (low >= n - 1) return nonNulls.last;
-    return nonNulls[low] + frac * (nonNulls[low + 1] - nonNulls[low]);
+    final nonNulls = <double>[
+      for (var i = 0; i < length; i++)
+        if (!isNull(i)) data[i].toDouble(),
+    ];
+    return computeQuantileInPlace(nonNulls, p);
   }
 }
-
-/// String [Series] column representation backed by Apache Arrow-compliant
-/// [ArrowStringSeries].
-typedef StringSeries = ArrowStringSeries;
 
 /// Boolean [Series] column representation.
 class BoolSeries extends Series<bool> {
@@ -889,6 +896,10 @@ class BoolSeries extends Series<bool> {
     }
     return BoolSeries(name: name, data: permutedData, mask: permutedMask);
   }
+
+  @override
+  BoolSeries? tryFillNull(Object value) =>
+      value is bool ? fillNull(value) : null;
 
   @override
   BoolSeries fillNull(bool value) {
@@ -1145,6 +1156,16 @@ class ObjectSeries<T> extends Series<T> {
   }
 
   @override
+  ObjectSeries<T>? tryFillNull(Object value) {
+    if (value is T) return fillNull(value as T);
+    if (dataType.isNumeric && value is num) {
+      final cast = dataType.cast(value);
+      return fillNull(cast);
+    }
+    return null;
+  }
+
+  @override
   ObjectSeries<T> fillNull(T value) {
     if (!hasNulls) return this;
     final newData = List<T>.of(data);
@@ -1190,25 +1211,6 @@ class ObjectSeries<T> extends Series<T> {
   @override
   Series<T> sort({bool ascending = true, bool nullsLast = true}) {
     final indices = List<int>.generate(length, (i) => i);
-    var supportsDataTypeCmp = true;
-    for (var i = 0; i < length; i++) {
-      if (!isNull(i)) {
-        try {
-          dataType.comparator(data[i], data[i]);
-        } on UnsupportedError {
-          supportsDataTypeCmp = false;
-        }
-        break;
-      }
-    }
-    final cmp = supportsDataTypeCmp
-        ? dataType.comparator
-        : (T a, T b) {
-            if (a is Comparable) {
-              return (a as Comparable).compareTo(b);
-            }
-            return '$a'.compareTo('$b');
-          };
     indices.sort((a, b) {
       final aNull = isNull(a);
       final bNull = isNull(b);
@@ -1217,22 +1219,10 @@ class ObjectSeries<T> extends Series<T> {
       if (bNull) return nullsLast ? -1 : 1;
       final valA = data[a];
       final valB = data[b];
-      final int comparison;
-      if (valA is num && valB is num) {
-        final isNanA = valA.isNaN;
-        final isNanB = valB.isNaN;
-        if (isNanA && isNanB) {
-          comparison = 0;
-        } else if (isNanA) {
-          comparison = 1;
-        } else if (isNanB) {
-          comparison = -1;
-        } else {
-          comparison = cmp(valA, valB);
-        }
-      } else {
-        comparison = cmp(valA, valB);
-      }
+      if (valA == null && valB == null) return 0;
+      if (valA == null) return nullsLast ? 1 : -1;
+      if (valB == null) return nullsLast ? -1 : 1;
+      final comparison = compareDynamicValues(valA, valB);
       return ascending ? comparison : -comparison;
     });
     return permute(indices);
@@ -1249,9 +1239,12 @@ class ObjectSeries<T> extends Series<T> {
       if (!isNull(i)) {
         final val = data[i];
         if (val == null) continue;
+        if (val is num && val.isNaN) return val;
         if (result == null) {
           result = val;
-        } else if (val is Comparable) {
+        } else if (val is num && result is num) {
+          if (val.compareTo(result) < 0) result = val;
+        } else if (val is Comparable && val.runtimeType == result.runtimeType) {
           if (val.compareTo(result) < 0) result = val;
         } else {
           return null;
@@ -1268,9 +1261,12 @@ class ObjectSeries<T> extends Series<T> {
       if (!isNull(i)) {
         final val = data[i];
         if (val == null) continue;
+        if (val is num && val.isNaN) return val;
         if (result == null) {
           result = val;
-        } else if (val is Comparable) {
+        } else if (val is num && result is num) {
+          if (val.compareTo(result) > 0) result = val;
+        } else if (val is Comparable && val.runtimeType == result.runtimeType) {
           if (val.compareTo(result) > 0) result = val;
         } else {
           return null;
@@ -1297,33 +1293,32 @@ class ObjectSeries<T> extends Series<T> {
 
   @override
   double? get mean {
-    final s = sum;
-    final valid = length - nullCount;
-    return (s != null && valid > 0) ? s.toDouble() / valid : null;
+    var hasNonNumeric = false;
+    final result = computeNumericMean(length, (i) {
+      if (isNull(i)) return null;
+      final raw = data[i];
+      if (raw is! num) {
+        hasNonNumeric = true;
+        return null;
+      }
+      return raw.toDouble();
+    });
+    return hasNonNumeric ? null : result;
   }
 
   @override
   double? variance({bool population = false}) {
-    var validCount = 0;
-    var mean = 0.0;
-    var m2 = 0.0;
-    for (var i = 0; i < length; i++) {
-      if (!isNull(i)) {
-        final raw = data[i];
-        if (raw is! num) return null;
-        final val = raw.toDouble();
-        if (val.isNaN) return double.nan;
-        validCount++;
-        final delta = val - mean;
-        mean += delta / validCount;
-        final delta2 = val - mean;
-        m2 += delta * delta2;
+    var hasNonNumeric = false;
+    final result = computeNumericVariance(length, (i) {
+      if (isNull(i)) return null;
+      final raw = data[i];
+      if (raw is! num) {
+        hasNonNumeric = true;
+        return null;
       }
-    }
-    final divisor = population ? validCount : validCount - 1;
-    if (divisor <= 0) return null;
-    final v = m2 / divisor;
-    return v < 0.0 ? 0.0 : v;
+      return raw.toDouble();
+    }, population: population);
+    return hasNonNumeric ? null : result;
   }
 
   @override
@@ -1345,19 +1340,10 @@ class ObjectSeries<T> extends Series<T> {
       if (!isNull(i)) {
         final raw = data[i];
         if (raw is! num) return null;
-        final val = raw.toDouble();
-        if (val.isNaN) return double.nan;
-        nonNulls.add(val);
+        nonNulls.add(raw.toDouble());
       }
     }
-    final n = nonNulls.length;
-    if (n == 0) return null;
-    nonNulls.sort();
-    final idx = p * (n - 1);
-    final low = idx.floor();
-    final frac = idx - low;
-    if (low >= n - 1) return nonNulls.last;
-    return nonNulls[low] + frac * (nonNulls[low + 1] - nonNulls[low]);
+    return computeQuantileInPlace(nonNulls, p);
   }
 }
 

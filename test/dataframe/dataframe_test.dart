@@ -6,7 +6,7 @@ import 'package:data/dataframe.dart';
 import 'package:data/linear.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('ValidityMask', () {
@@ -93,8 +93,8 @@ void main() {
       check(allNull.mean).isNull;
     });
 
-    test('StringSeries and BoolSeries', () {
-      final strCol = StringSeries.fromList('names', [
+    test('ArrowStringSeries and BoolSeries', () {
+      final strCol = ArrowStringSeries.fromList('names', [
         'Alice',
         'Bob',
         null,
@@ -191,7 +191,7 @@ void main() {
         'a',
         'b',
       ], type: DataType.string);
-      check(sSeries).isA<StringSeries>();
+      check(sSeries).isA<ArrowStringSeries>();
       final bSeries = Series.fromList('b_col', [
         true,
         false,
@@ -224,8 +224,8 @@ void main() {
       check(() => df.getRow(-1)).throws<RangeError>();
       check(() => df.getRow(10)).throws<RangeError>();
 
-      // Empty fromRows
-      final emptyDf = DataFrame.fromRows([]);
+      // Empty fromRecords
+      final emptyDf = DataFrame.fromRecords([]);
       check(emptyDf.rowCount).equals(0);
       check(emptyDf.columnCount).equals(0);
 
@@ -639,24 +639,25 @@ line 2",10
       check(emptySeries.dataType.name).equals('float64');
     });
 
-    test('DataFrame.fromRows, CSV edge cases, Joins, and Series sorting', () {
-      // 1. DataFrame.fromRows
-      final dfRows = DataFrame.fromRows([
+    test('DataFrame.fromRecords constructs from sparse record maps', () {
+      final dfRows = DataFrame.fromRecords([
         {'id': 1, 'name': 'Alice'},
         {'id': 2, 'name': 'Bob'},
       ]);
       check(dfRows.rowCount).equals(2);
       check(dfRows['name'].toList()).deepEquals(['Alice', 'Bob']);
-      check(DataFrame.fromRows([]).rowCount).equals(0);
+      check(DataFrame.fromRecords([]).rowCount).equals(0);
+    });
 
-      // 2. sortBy on non-Comparable objects
+    test('sortBy handles non-Comparable objects deterministically', () {
       final dfCustom = DataFrame.fromColumns({
         'obj': [Object(), Object()],
       });
       final sortedCustom = dfCustom.sortBy('obj');
       check(sortedCustom.rowCount).equals(2);
+    });
 
-      // 3. CSV header: false, CRLF, only nulls column, and escaping
+    test('CSV header: false, CRLF, only nulls column, and escaping', () {
       const noHeaderCsv = '10,foo\r\n20,bar';
       final dfNoHeader = DataFrame.fromCsv(noHeaderCsv, header: false);
       check(dfNoHeader.columnNames).deepEquals(['col_0', 'col_1']);
@@ -672,26 +673,31 @@ line 2",10
       final csvOut = dfEscaped.toCsv();
       check(csvOut).contains('"hello, world"');
       check(csvOut).contains('"quote ""test"""');
+    });
 
-      // 4. Join column errors & left join with null key
-      final dfA = DataFrame.fromColumns({
-        'k': [1, null],
-      });
-      final dfB = DataFrame.fromColumns({
-        'k': [1],
-      });
-      check(() => dfA.join(dfB, on: ['missing'])).throws<ArgumentError>();
-      check(() => dfA.join(dfB, on: ['k'], suffix: '_b')).returnsNormally();
-      final dfBNoK = DataFrame.fromColumns({
-        'other': [1],
-      });
-      check(() => dfA.join(dfBNoK, on: ['k'])).throws<ArgumentError>();
+    test(
+      'join validates missing columns and preserves unmatched left nulls',
+      () {
+        final dfA = DataFrame.fromColumns({
+          'k': [1, null],
+        });
+        final dfB = DataFrame.fromColumns({
+          'k': [1],
+        });
+        check(() => dfA.join(dfB, on: ['missing'])).throws<ArgumentError>();
+        check(() => dfA.join(dfB, on: ['k'], suffix: '_b')).returnsNormally();
+        final dfBNoK = DataFrame.fromColumns({
+          'other': [1],
+        });
+        check(() => dfA.join(dfBNoK, on: ['k'])).throws<ArgumentError>();
 
-      final leftWithNull = dfA.join(dfB, on: ['k'], type: JoinType.left);
-      check(leftWithNull.rowCount).equals(2);
-      check(leftWithNull['k'][1]).isNull;
+        final leftWithNull = dfA.join(dfB, on: ['k'], type: JoinType.left);
+        check(leftWithNull.rowCount).equals(2);
+        check(leftWithNull['k'][1]).isNull;
+      },
+    );
 
-      // 5. StringSeries, BoolSeries, and ObjectSeries descending / custom sorts
+    test('Series.sort handles descending order on strings, bools, and ObjectSeries', () {
       final strSeries = Series<String?>.fromList('s', [
         'banana',
         'apple',
@@ -936,7 +942,7 @@ line 2",10
           .throws<ArgumentError>();
     });
 
-    test('rejects duplicate column names and unions fromRows keys', () {
+    test('rejects duplicate column names and unions fromRecords keys', () {
       check(
         () => DataFrame([
           Series.fromList('a', [1, 2]),
@@ -944,60 +950,60 @@ line 2",10
         ]),
       ).throws<ArgumentError>();
 
-      final dfRows = DataFrame.fromRows([
+      final dfRows = DataFrame.fromRecords([
         {'a': 1},
         {'a': 2, 'b': 'hello'},
       ]);
       check(dfRows.columnNames).deepEquals(['a', 'b']);
       check(dfRows['b'].toList()).deepEquals([null, 'hello']);
+    });
 
-      // CSV 64-bit integer preservation
+    test('CSV 64-bit integer preservation', () {
       final dfCsv = DataFrame.fromCsv('id\n5000000000\n-5000000000');
       check(dfCsv['id'].dataType).equals(DataType.int64);
       check(dfCsv['id'].toList()).deepEquals([5000000000, -5000000000]);
-
-      // DataFrame equality, hashCode, toRecords, and toTensor edge cases
-      final dfA = DataFrame.fromColumns({
-        'x': [1, 2],
-        'y': ['a', 'b'],
-      });
-      final dfB = DataFrame.fromColumns({
-        'x': [1, 2],
-        'y': ['a', 'b'],
-      });
-      final dfC = DataFrame.fromColumns({
-        'x': [1, 3],
-        'y': ['a', 'b'],
-      });
-      check(dfA == dfB).isTrue;
-      check(dfA.hashCode).equals(dfB.hashCode);
-      check(dfA == dfC).isFalse;
-      check(dfA.toRecords()).deepEquals([
-        {'x': 1, 'y': 'a'},
-        {'x': 2, 'y': 'b'},
-      ]);
-      check(dfA.toTensor).throws<UnsupportedError>();
-
-      final dfObjNum = DataFrame([
-        ObjectSeries<num>.fromList('n', [1.5, null], type: DataType.float64),
-      ]);
-      final tensor = dfObjNum.toTensor();
-      check(tensor.getValue([0, 0])).equals(1.5);
-      check(tensor.getValue([1, 0]).isNaN).isTrue;
-
-      // DataFrame.fromRecords, fillNull on column without nulls, sortBy invalid by
-      final dfRec = DataFrame.fromRecords([
-        {'a': 1, 'b': 2},
-      ]);
-      check(dfRec.rowCount).equals(1);
-      final dfFilled = DataFrame([
-        Series<int>.fromList('no_nulls', [1, 2]),
-        Series<int>.fromList('with_nulls', [null, 4]),
-      ]).fillNull(0);
-      check(dfFilled['no_nulls'].toList()).deepEquals([1, 2]);
-      check(dfFilled['with_nulls'].toList()).deepEquals([0, 4]);
-      check(() => dfRec.sortBy(123)).throws<ArgumentError>();
     });
+
+    test(
+      'DataFrame equality, hashCode, toRecords, and toTensor edge cases',
+      () {
+        final dfA = DataFrame.fromColumns({
+          'x': [1, 2],
+          'y': ['a', 'b'],
+        });
+        final dfB = DataFrame.fromColumns({
+          'x': [1, 2],
+          'y': ['a', 'b'],
+        });
+        final dfC = DataFrame.fromColumns({
+          'x': [1, 3],
+          'y': ['a', 'b'],
+        });
+        check(dfA == dfB).isTrue;
+        check(dfA.hashCode).equals(dfB.hashCode);
+        check(dfA == dfC).isFalse;
+        check(dfA.toRecords()).deepEquals([
+          {'x': 1, 'y': 'a'},
+          {'x': 2, 'y': 'b'},
+        ]);
+        check(dfA.toTensor).throws<UnsupportedError>();
+
+        final dfObjNum = DataFrame([
+          ObjectSeries<num>.fromList('n', [1.5, null], type: DataType.float64),
+        ]);
+        final tensor = dfObjNum.toTensor();
+        check(tensor.getValue([0, 0])).equals(1.5);
+        check(tensor.getValue([1, 0]).isNaN).isTrue;
+
+        final dfFilled = DataFrame([
+          Series<int>.fromList('no_nulls', [1, 2]),
+          Series<int>.fromList('with_nulls', [null, 4]),
+        ]).fillNull(0);
+        check(dfFilled['no_nulls'].toList()).deepEquals([1, 2]);
+        check(dfFilled['with_nulls'].toList()).deepEquals([0, 4]);
+        check(() => dfA.sortBy(123)).throws<ArgumentError>();
+      },
+    );
 
     group('fromMatrix & fromTensor', () {
       test('fromMatrix with default and custom column names', () {
@@ -1258,6 +1264,100 @@ line 2",10
         check(pivoted['A'].dataType).equals(DataType.int32);
         check(pivoted['B'].dataType).equals(DataType.int32);
       });
+
+      test(
+        'validates collisions in melt/pivot and new convenience helpers',
+        () {
+          final emptyDf = DataFrame.fromColumns({'a': <int>[]});
+          check(emptyDf.isEmpty).isTrue;
+          check(emptyDf.isNotEmpty).isFalse;
+          check(emptyDf.containsColumn('a')).isTrue;
+          check(emptyDf.containsColumn('missing')).isFalse;
+          check(() => emptyDf.columns.add(Series.fromList('x', <int>[])))
+              .throws<UnsupportedError>();
+          check(() => emptyDf.sample(1, replace: true)).throws<ArgumentError>();
+          check(() => emptyDf.dropDuplicates(subset: ['missing']))
+              .throws<ArgumentError>();
+
+          final tsvDf = DataFrame.fromTsv('a\tb\n1\tx\n2\ty\n');
+          check(tsvDf.rowCount).equals(2);
+          check(tsvDf['a'].toList()).deepEquals([1, 2]);
+          check(tsvDf['b'].toList()).deepEquals(['x', 'y']);
+
+          final meltDf = DataFrame.fromColumns({
+            'id': [1],
+            'val': [2],
+          });
+          check(() => meltDf.melt(idVars: ['id', 'id']))
+              .throws<ArgumentError>();
+          check(() => meltDf.melt(idVars: ['id'], varName: 'id'))
+              .throws<ArgumentError>();
+          check(() => meltDf.melt(idVars: ['id'], valueName: 'id'))
+              .throws<ArgumentError>();
+          check(() => meltDf.melt(idVars: ['id'], varName: 'v', valueName: 'v'))
+              .throws<ArgumentError>();
+
+          final nullDf = DataFrame.fromColumns({
+            'a': [1, null],
+            'b': ['x', null],
+          });
+          final unchangedMap = nullDf.fillNull({'other': 99, 'a': null});
+          check(unchangedMap['a'].toList()).deepEquals([1, null]);
+
+          final pivotCollision = DataFrame.fromColumns({
+            'id': [1],
+            'k': ['id'],
+            'v': [10],
+          });
+          check(
+            () => pivotCollision.pivot(index: 'id', columns: 'k', values: 'v'),
+          ).throws<ArgumentError>();
+
+          check(() => meltDf.fillNull(0, columns: ['missing']))
+              .throws<ArgumentError>();
+          check(() => meltDf.sortBy('id', ascending: 'bad'))
+              .throws<ArgumentError>();
+          check(() => meltDf.sortBy('id', nullsLast: 'bad'))
+              .throws<ArgumentError>();
+
+          final badObjDf = DataFrame([
+            ObjectSeries<Object?>.fromList('a', ['bad']),
+          ]);
+          check(badObjDf.toTensor).throws<UnsupportedError>();
+
+          final numTypedDf = DataFrame([
+            TypedSeries<num>.fromList('a', [1, 2.5], type: DataType.numeric),
+          ]);
+          final numTensor = numTypedDf.toTensor();
+          check(numTensor.get2D(0, 0)).equals(1.0);
+          check(numTensor.get2D(1, 0)).equals(2.5);
+
+          final fromAnyMatrix = DataFrame.fromMatrix(
+            Matrix<Object?>.fromRows([
+              ['x'],
+              ['y'],
+            ], type: DataType.object),
+          );
+          check(fromAnyMatrix.rowCount).equals(2);
+          check(fromAnyMatrix['col_0'].toList()).deepEquals(['x', 'y']);
+
+          final fromNumMatrix = DataFrame.fromMatrix(
+            Matrix<num>.fromRows([
+              [1],
+              [2.5],
+            ], type: DataType.numeric),
+          );
+          check(fromNumMatrix['col_0'].toList()).deepEquals([1, 2.5]);
+
+          final hugeDf = DataFrame.fromColumns({
+            'big': [1e308, 1e308],
+          });
+          final desc = hugeDf.describe();
+          check(desc['big'][1] as double).isCloseTo(1e308, 1e294);
+          check(desc['big'][2]).equals(0.0);
+          check(desc['big'][4] as double).isCloseTo(1e308, 1e294);
+        },
+      );
     });
   });
 }

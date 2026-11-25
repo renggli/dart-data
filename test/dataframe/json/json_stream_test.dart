@@ -3,7 +3,7 @@ import 'dart:convert' show utf8;
 
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('DataFrameJsonStream', () {
@@ -63,6 +63,21 @@ void main() {
         DataFrameJsonStream.readNdjsonChunks(Stream.value('[1, 2, 3]\n'))
             .toList(),
       ).throws<FormatException>();
+    });
+
+    test('throws RangeError when chunkSize is non-positive', () async {
+      await check(
+        DataFrameJsonStream.readNdjsonChunks(
+          Stream.value('{"a": 1}\n'),
+          chunkSize: 0,
+        ).toList(),
+      ).throws<RangeError>();
+      await check(
+        DataFrameJsonStream.readByteChunks(
+          Stream.value(utf8.encode('{"a": 1}\n')),
+          chunkSize: -1,
+        ).toList(),
+      ).throws<RangeError>();
     });
   });
 }

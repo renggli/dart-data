@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
 import 'package:data/src/dataframe/json/json_decoder.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('DataFrameJsonDecoder', () {
@@ -271,6 +271,45 @@ void main() {
           columnTypes: {'a': DataType.int32},
         ).columnNames,
       ).deepEquals(['a']);
+    });
+
+    test(
+      'detectOrient does not misclassify columns JSON named columns and data',
+      () {
+        const colsJson = '{"columns": [1, 2], "data": [3, 4]}';
+        final df = DataFrameJsonDecoder.decode(colsJson);
+        check(df.rowCount).equals(2);
+        check(df['columns'].toList()).deepEquals([1, 2]);
+        check(df['data'].toList()).deepEquals([3, 4]);
+
+        const colsWithExtra = '{"columns": ["a"], "data": [[1]], "extra": [9]}';
+        final dfExtra = DataFrameJsonDecoder.decode(colsWithExtra);
+        check(dfExtra.columnNames).deepEquals(['columns', 'data', 'extra']);
+      },
+    );
+
+    test(
+      '_decodeSplit validates row lists even when columns array is empty',
+      () {
+        check(
+          () => DataFrame.fromJson(
+            '{"columns": [], "data": ["not_a_list"]}',
+            orient: JsonOrient.split,
+          ),
+        ).throws<FormatException>();
+      },
+    );
+
+    test('decodes columns orient with explicit columnTypes', () {
+      final df = DataFrame.fromJson(
+        '{"a": [1, 2], "b": {"0": "10", "1": "20"}}',
+        orient: JsonOrient.columns,
+        columnTypes: {'a': DataType.float64, 'b': DataType.int32},
+      );
+      check(df['a'].dataType).equals(DataType.float64);
+      check(df['a'].toList()).deepEquals([1.0, 2.0]);
+      check(df['b'].dataType).equals(DataType.int32);
+      check(df['b'].toList()).deepEquals([10, 20]);
     });
   });
 }

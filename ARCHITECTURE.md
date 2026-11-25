@@ -223,16 +223,16 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Row-oriented tabular storage wastes memory on heterogeneous object headers and exhibits poor cache locality during analytical queries. Columnar storage groups identical types contiguously in memory, enabling vectorization and high-throughput analytical scans.
 - **Implementation & Constraints**:
-  - `DataFrame` represents a collection of named `Series<T>` instances of identical length.
-  - Column access (`df['col']`, `df.typedColumn<T>('col')`) is $\mathcal{O}(1)$.
+  - `DataFrame` represents a collection of named `Series<T>` instances of identical length exposed through an unmodifiable `columns` list.
+  - Column access (`df['col']`, `df.typedColumn<T>('col')`, `df.containsColumn('col')`) is `O(1)`.
   - Slicing and filtering operate column-by-column across independent series.
 
 ### 4.2 Null Tracking via Validity Bitmasks
 
 - **Reasoning**: Storing boxed `null` values inside primitive numeric arrays degrades memory density and prevents unboxed typed storage.
 - **Implementation & Constraints**:
-  - `ValidityMask` (`lib/src/dataframe/bitmask.dart`) uses 1 bit per row entry packed into `Uint8List` byte buffers, matching the Apache Arrow specification (bit = 1 indicates valid, bit = 0 indicates null).
-  - Null counts are queried in $\mathcal{O}(1)$ time via an internal `_nullCount` counter updated incrementally on bit state transitions (`setNull`, `setValid`). Bulk byte constructors compute null counts using 32-bit parallel Hamming weight via `int.bitCount` (`package:more/math.dart`) across word chunks with unused tail bits masked out.
+  - `ValidityMask` (`lib/src/dataframe/bitmask.dart`) uses 1 bit per row entry packed into `Uint8List` byte buffers, matching the Apache Arrow specification (bit = 1 indicates valid, bit = 0 indicates null), exposing an unmodifiable `bytes` view alongside `and`, `validCount`, `[]`, and structural equality/hashing.
+  - Null counts are queried in `O(1)` time via an internal `_nullCount` counter updated incrementally on bit state transitions (`setNull`, `setValid`). Bulk byte constructors compute null counts using 32-bit parallel Hamming weight via `int.bitCount` (`package:more/math.dart`) across word chunks with unused tail bits masked out.
   - Unboxed numeric series maintain contiguous `TypedData` lists (`Float64List`, `Int32List`) alongside a `ValidityMask`, ensuring data arrays remain primitive and unboxed.
 
 ### 4.3 Columnar Series Hierarchy & Zero-Allocation Operations
@@ -243,7 +243,8 @@ This document describes the achieved architecture across all subsystems of `pack
     - Zero-allocation `filter`: Counts valid entries in `filterMask`, pre-allocates target typed array of exact length (`dataType.newList(count)`), copies unboxed elements directly, and maps the validity bitmask without boxing primitives.
     - Zero-allocation `slice`: Slices underlying typed array directly via `data.sublist(start, end)` and slices validity mask via `ValidityMask.slice(start, end)`.
     - Zero-overhead scalar access: `getNonNull(int index)` retrieves non-null values (throwing `StateError` on missing entries) without requiring `!` assertions from callers; `getUnchecked(int index)` provides inline raw array access when `hasNulls == false`.
-  - `ArrowStringSeries`: Backed by Arrow-compatible UTF-8 byte and offset buffers for textual data.
+    - Shared overflow-safe reductions and `O(N)` expected-time selection (`lib/src/dataframe/numeric_stats.dart`) compute `mean`, `variance`, `std`, `median`, `quantile`, `GroupBy` statistics, and `DataFrame.describe()` without intermediate full sorting or finite-input overflow.
+  - `ArrowStringSeries`: Backed by Arrow-compatible UTF-8 byte and offset buffers for textual data (with UTF-8 byte-order comparisons for `sort`, `min`, and `max`).
   - `BoolSeries`: Boolean series backed by a `List<bool>` data buffer with an optional `ValidityMask` for null tracking.
   - `ObjectSeries`: General object reference series for complex domain models.
 
@@ -255,13 +256,12 @@ This document describes the achieved architecture across all subsystems of `pack
     - `RowKeyExtractor` performs specialized zero-allocation record-based key extraction for 1 column (direct scalar `key`), 2 columns (record `(a, b)`), and 3 columns (record `(a, b, c)`).
     - Falls back to `TupleKey` with cached hash code and `DeepCollectionEquality` for 4 or more key columns.
     - Prevents delimiter injection attacks and eliminates null-string collisions (`null` vs `'null'`) and numeric type erasure (`1` vs `'1'`).
-  - Hash join engine (`lib/src/dataframe/join.dart`):
-    - Constructs `Map<Object?, List<int>>` hash index maps over right table join keys.
-    - Probes index using left table keys to support `inner`, `left`, `right`, and `outer` joins. Null keys never match in joins.
+  - Join engine (`lib/src/dataframe/join.dart`):
+    - Supports hash join (`JoinMethod.hash`) and zero-copy pre-sorted sort-merge join (`JoinMethod.sortMerge`) across `inner`, `left`, `right`, and `outer` joins. Null and `NaN` keys never match in joins.
   - `GroupBy` engine (`lib/src/dataframe/groupby.dart`):
     - Partitions row indices into buckets based on composite key objects (`Map<Object?, List<int>>`).
-    - Aggregates groups across columns with `Agg.count`, `Agg.sum`, `Agg.mean`, `Agg.min`, `Agg.max`, `Agg.std`, `Agg.variance`, `Agg.median`, `Agg.first`, and `Agg.last`.
-    - Numerically stable single-pass Welford accumulators for sample variance (`Agg.variance`, with Bessel's correction $n - 1$, returning `null` when $n < 2$) and sample standard deviation (`Agg.std`).
+    - Aggregates groups across columns with `Agg.count`, `Agg.sum`, `Agg.mean`, `Agg.min`, `Agg.max`, `Agg.std`, `Agg.variance`, `Agg.median`, `Agg.first`, and `Agg.last`, plus shorthand methods `mean()`, `sum()`, `min()`, `max()`, `std()`, `variance()`, `median()`, and `count()`.
+    - Overflow-safe single-pass Welford accumulators (with two-pass scaled fallback on huge finite inputs) for sample variance (`Agg.variance`, with Bessel's correction `n - 1`, returning `null` when `n < 2`) and sample standard deviation (`Agg.std`).
     - In-place Dutch National Flag 3-way Quickselect for median (`Agg.median`) operating on a reused group scratch buffer without temporary heap allocations.
 
 ### 4.5 Tabular Parsing (PetitParser), CSV/TSV Serialization & Container Conversions
@@ -272,10 +272,10 @@ This document describes the achieved architecture across all subsystems of `pack
     - Typed combinators: Uses `[...].toChoiceParser()`, `.skip(before: quote.not())`, and `plusString()` for zero-allocation field character repetitions.
     - Full linter compliance: Grammar passes PetitParser's `linter(parser)` with zero structural defects, verifying absence of left-recursion, unbounded loops, or unreachable rules.
     - Preconfigured definitions for `TabularDefinition.csv()` (RFC 4180 with `""` quote escaping) and `TabularDefinition.tsv()` (tab delimiters supporting both RFC 4180 quotes and Unix backslash escapes `\t`, `\n`, `\r`, `\\`), with support for arbitrary user-defined delimiters and delimiters passed dynamically.
-  - `CsvReader` (`lib/src/dataframe/csv/csv_reader.dart`):
+  - `CsvReader` (`lib/src/dataframe/csv/csv_reader.dart`) & `DataFrame.fromTsv`:
     - Parses tabular records and lines via `TabularDefinition`, handling LF and CRLF newlines, multiline fields, and optional trailing line breaks without discarding valid empty rows or 1-column null data.
-    - Automated columnar type inference (`int` -> `double` -> `bool` -> `String`) and null detection (`''`, `'null'`, `'NA'`).
-    - Dedicated `CsvReader.parseTsv` helper configured with `TabularDefinition.tsv()`.
+    - Automated columnar type inference (`int32` / `int64` -> `double` -> `bool` -> `String`) and null detection (`''`, `'null'`, `'NA'`).
+    - Dedicated `CsvReader.parseTsv` and `DataFrame.fromTsv` helpers configured with `TabularDefinition.tsv()`.
   - `CsvWriter` (`lib/src/dataframe/csv/csv_writer.dart`):
     - Serializes DataFrames to delimited text.
     - Proper delimiter-aware escaping: quotes and doubles quotes for fields containing the active `separator` (regardless of whether `,`, `\t`, `;`, `|`, etc.), `"` quotes, `\n`, or `\r`.

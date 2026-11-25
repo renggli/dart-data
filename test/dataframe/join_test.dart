@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('DataFrame.join - Safe Composite Keys', () {
@@ -760,10 +760,47 @@ void main() {
       check(joinedEmptySuffix.columnNames)
           .deepEquals(['id', 'val', 'val_other', 'val_other2']);
     });
+
+    test(
+      'rejects empty or duplicate join keys and compares mixed keys safely',
+      () {
+        final df = DataFrame.fromColumns({
+          'k': [1, 2],
+          'v': ['a', 'b'],
+        });
+        check(() => df.join(df, on: [])).throws<ArgumentError>();
+        check(() => df.join(df, on: ['k', 'k'])).throws<ArgumentError>();
+        check(() => df.join(df, leftOn: [], rightOn: []))
+            .throws<ArgumentError>();
+
+        final leftMixed = DataFrame([
+          ObjectSeries<Object?>.fromList('k', [const _Item('same'), 1]),
+          Series.fromList('lv', ['x', 'n']),
+        ]);
+        final rightMixed = DataFrame([
+          ObjectSeries<Object?>.fromList('k', [const _OtherItem('same'), '1']),
+          Series.fromList('rv', ['y', 's']),
+        ]);
+        final joined = leftMixed.join(
+          rightMixed,
+          on: ['k'],
+          method: JoinMethod.sortMerge,
+        );
+        check(joined.rowCount).equals(0);
+      },
+    );
   });
 }
 
 final class _Item {
+  const new(this.name);
+  final String name;
+
+  @override
+  String toString() => name;
+}
+
+final class _OtherItem {
   const new(this.name);
   final String name;
 

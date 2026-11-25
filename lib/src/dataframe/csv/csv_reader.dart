@@ -6,19 +6,28 @@ import 'csv_stream.dart';
 import 'parser.dart';
 
 /// Fast CSV parser with automatic column type inference.
-class CsvReader {
+abstract final class CsvReader {
   /// Parses CSV string into a [DataFrame].
   static DataFrame parse(
     String csv, {
     String separator = ',',
     bool header = true,
     Map<String, DataType<Object?>>? columnTypes,
-  }) => _parse(
-    csv,
-    parser: TabularDefinition.csv(delimiter: separator.toParser()).build(),
-    header: header,
-    columnTypes: columnTypes,
-  );
+  }) {
+    if (separator.isEmpty) {
+      throw ArgumentError.value(
+        separator,
+        'separator',
+        'Separator must not be empty.',
+      );
+    }
+    return _parse(
+      csv,
+      parser: TabularDefinition.csv(delimiter: separator.toParser()).build(),
+      header: header,
+      columnTypes: columnTypes,
+    );
+  }
 
   /// Parses TSV string into a [DataFrame].
   static DataFrame parseTsv(

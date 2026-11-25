@@ -29,10 +29,18 @@ abstract final class CsvStream {
         'Separator must be a single character.',
       );
     }
+    if (chunkSize <= 0) {
+      throw RangeError.value(
+        chunkSize,
+        'chunkSize',
+        'Chunk size must be positive.',
+      );
+    }
     final rowStream = stream.transform(
       CsvStreamTransformer(separator: separator),
     );
     var headers = columnNames;
+    var skippedHeader = !header;
     final explicitTypes = columnTypes != null
         ? Map<String, DataType<Object?>>.of(columnTypes)
         : null;
@@ -41,14 +49,12 @@ abstract final class CsvStream {
 
     var totalRows = 0;
     await for (final row in rowStream) {
-      if (headers == null) {
-        if (header) {
-          headers = row;
-          continue;
-        } else {
-          headers = List.generate(row.length, (i) => 'col_$i');
-        }
+      if (!skippedHeader) {
+        skippedHeader = true;
+        headers ??= row;
+        continue;
       }
+      headers ??= List.generate(row.length, (i) => 'col_$i');
 
       buffer.add(row);
       totalRows++;
@@ -103,17 +109,16 @@ abstract final class CsvStream {
       CsvStreamTransformer(separator: separator),
     );
     var headers = columnNames;
+    var skippedHeader = !header;
     final allRows = <List<String>>[];
 
     await for (final row in rowStream) {
-      if (headers == null) {
-        if (header) {
-          headers = row;
-          continue;
-        } else {
-          headers = List.generate(row.length, (i) => 'col_$i');
-        }
+      if (!skippedHeader) {
+        skippedHeader = true;
+        headers ??= row;
+        continue;
       }
+      headers ??= List.generate(row.length, (i) => 'col_$i');
       allRows.add(row);
     }
 
@@ -205,6 +210,7 @@ abstract final class CsvStream {
       }
 
       var canBeInt = true;
+      var needsInt64 = false;
       var canBeDouble = true;
       var canBeBool = true;
       final rawVals = <String?>[];
@@ -217,7 +223,14 @@ abstract final class CsvStream {
           rawVals.add(null);
         } else {
           rawVals.add(val);
-          if (canBeInt && int.tryParse(trimmed) == null) canBeInt = false;
+          if (canBeInt) {
+            final parsed = int.tryParse(trimmed);
+            if (parsed == null) {
+              canBeInt = false;
+            } else if (parsed < -0x80000000 || parsed > 0x7FFFFFFF) {
+              needsInt64 = true;
+            }
+          }
           if (canBeDouble && double.tryParse(trimmed) == null) {
             canBeDouble = false;
           }
@@ -241,7 +254,7 @@ abstract final class CsvStream {
 
       final DataType<Object?> chunkType;
       if (canBeInt) {
-        chunkType = DataType.int32;
+        chunkType = needsInt64 ? DataType.int64 : DataType.int32;
       } else if (canBeDouble) {
         chunkType = DataType.float64;
       } else if (canBeBool) {
@@ -266,12 +279,24 @@ abstract final class CsvStream {
         final dblVals = rawVals
             .map((v) => v != null ? double.parse(v.trim()) : null)
             .toList(growable: false);
-        columns.add(TypedSeries<double>.fromList(name, dblVals));
+        columns.add(
+          TypedSeries<double>.fromList(
+            name,
+            dblVals,
+            type: resolvedType as DataType<double>,
+          ),
+        );
       } else if (resolvedType.isInteger) {
         final intVals = rawVals
             .map((v) => v != null ? int.parse(v.trim()) : null)
             .toList(growable: false);
-        columns.add(TypedSeries<int>.fromList(name, intVals));
+        columns.add(
+          TypedSeries<int>.fromList(
+            name,
+            intVals,
+            type: resolvedType as DataType<int>,
+          ),
+        );
       } else if (resolvedType == DataType.boolean) {
         final boolVals = rawVals
             .map((v) => v != null ? v.trim().toLowerCase() == 'true' : null)
@@ -304,6 +329,25 @@ class CsvStreamTransformer extends StreamTransformerBase<String, List<String>> {
         quoteChar,
         'quoteChar',
         'Quote character must be a single character.',
+      );
+    }
+    if (separator == quoteChar) {
+      throw ArgumentError(
+        'Separator and quoteChar must be distinct (both were "$separator").',
+      );
+    }
+    if (separator == '\n' || separator == '\r') {
+      throw ArgumentError.value(
+        separator,
+        'separator',
+        'Separator cannot be a newline character.',
+      );
+    }
+    if (quoteChar == '\n' || quoteChar == '\r') {
+      throw ArgumentError.value(
+        quoteChar,
+        'quoteChar',
+        'Quote character cannot be a newline character.',
       );
     }
   }

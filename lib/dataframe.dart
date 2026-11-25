@@ -10,21 +10,23 @@
 /// ## Key Capabilities
 ///
 /// - **Columnar Series Hierarchy**: Specialized unboxed typed series
-///   ([TypedSeries]), Arrow UTF-8 strings ([ArrowStringSeries],
-///   [StringSeries]), packed booleans ([BoolSeries]), and general objects
-///   ([ObjectSeries]).
+///   ([TypedSeries]), Arrow UTF-8 strings ([ArrowStringSeries]), packed booleans
+///   ([BoolSeries]), and general objects ([ObjectSeries]).
 /// - **Zero-Allocation Slicing & Filtering**: Subsetting and filtering numeric
 ///   columns copies contiguous typed buffers directly without boxing overhead.
-/// - **Relational Hash Joins**: Inner, left, right, and full outer joins
-///   ([JoinType]) powered by collision-free composite keys.
+/// - **Relational Joins**: Inner, left, right, and full outer joins
+///   ([JoinType]) using hash or sort-merge execution ([JoinMethod]) powered by
+///   collision-free composite keys.
 /// - **Group-by & Aggregations**: Grouping rows by one or more keys and
 ///   aggregating with numerically stable Welford variance ([Agg.variance]), median
 ///   ([Agg.median]), mean ([Agg.mean]), sum ([Agg.sum]), min ([Agg.min]), and
 ///   max ([Agg.max]).
 /// - **Data Ingestion & Export**: Robust RFC 4180 CSV/TSV parsing
-///   ([DataFrame.fromCsv]), CSV formatting ([DataFrame.toCsv]), and JSON serialization
-///   ([DataFrame.fromJson], [DataFrame.toJson]) supporting [JsonOrient.records],
-///   [JsonOrient.split], [JsonOrient.columns], and [JsonOrient.array] orientations.
+///   ([DataFrame.fromCsv], [DataFrame.fromTsv]), CSV formatting
+///   ([DataFrame.toCsv]), direct record construction ([DataFrame.fromRecords]),
+///   and JSON serialization ([DataFrame.fromJson], [DataFrame.toJson]) supporting
+///   [JsonOrient.records], [JsonOrient.split], [JsonOrient.columns], and
+///   [JsonOrient.array] orientations.
 ///
 /// ## Example
 ///

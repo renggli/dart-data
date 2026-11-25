@@ -266,5 +266,27 @@ void main() {
       final validSeries = ArrowStringSeries.fromList('s', ['a', 'b']);
       check(() => validSeries.filter([true])).throws<ArgumentError>();
     });
+
+    test('concat slices active bytes ignoring slack bytes', () {
+      final paddedA = ArrowStringSeries(
+        name: 's',
+        bytes: Uint8List.fromList([65, 66, 99, 99, 99]), // 'AB' + 3 slack bytes
+        offsets: Uint32List.fromList([0, 1, 2]),
+      );
+      final paddedB = ArrowStringSeries(
+        name: 's',
+        bytes: Uint8List.fromList([67, 88, 88]), // 'C' + 2 slack bytes
+        offsets: Uint32List.fromList([0, 1]),
+      );
+      final joined = paddedA.concat(paddedB) as ArrowStringSeries;
+      check(joined.toList()).deepEquals(['A', 'B', 'C']);
+      check(joined.bytes.length).equals(3);
+    });
+
+    test('tryFillNull accepts String and rejects incompatible types', () {
+      final s = ArrowStringSeries.fromList('s', ['a', null]);
+      check(s.tryFillNull('x')!.toList()).deepEquals(['a', 'x']);
+      check(s.tryFillNull(123)).isNull;
+    });
   });
 }

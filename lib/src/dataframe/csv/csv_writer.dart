@@ -1,12 +1,20 @@
 import '../dataframe.dart';
 
 /// CSV serialization for [DataFrame].
-class CsvWriter {
+abstract final class CsvWriter {
   /// Serializes [DataFrame] to a CSV formatted string.
   static String write(DataFrame df, {String separator = ','}) {
-    final sb = StringBuffer();
+    if (separator.isEmpty) {
+      throw ArgumentError.value(
+        separator,
+        'separator',
+        'Separator must not be empty.',
+      );
+    }
     final columns = df.columns;
     final numCols = columns.length;
+    if (numCols == 0) return '';
+    final sb = StringBuffer();
 
     // Header
     for (var i = 0; i < numCols; i++) {

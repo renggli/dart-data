@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
 import 'package:data/src/dataframe/tuple_key.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('TupleKey', () {
@@ -40,27 +40,19 @@ void main() {
       final extractor = RowKeyExtractor([col]);
 
       check(extractor.extractKey(0)).equals(10);
-      check(extractor.extractKeyOrNull(0)).equals(10);
       check(extractor.extractJoinKeyOrNull(0)).equals(10);
-      check(extractor.hasNull(0)).isFalse;
       check(extractor.hasNullOrNan(0)).isFalse;
 
       check(extractor.extractKey(1)).isNull;
-      check(extractor.extractKeyOrNull(1)).isNull;
       check(extractor.extractJoinKeyOrNull(1)).isNull;
-      check(extractor.hasNull(1)).isTrue;
       check(extractor.hasNullOrNan(1)).isTrue;
 
       check(extractor.extractKey(2)).equals(20);
-      check(extractor.extractKeyOrNull(2)).equals(20);
       check(extractor.extractJoinKeyOrNull(2)).equals(20);
-      check(extractor.hasNull(2)).isFalse;
       check(extractor.hasNullOrNan(2)).isFalse;
 
       check(extractor.extractKey(3)).equals(nanKey);
-      check(extractor.extractKeyOrNull(3)).equals(nanKey);
       check(extractor.extractJoinKeyOrNull(3)).isNull;
-      check(extractor.hasNull(3)).isFalse;
       check(extractor.hasNullOrNan(3)).isTrue;
     });
 
@@ -99,59 +91,67 @@ void main() {
       final extractor = RowKeyExtractor([c0, c1]);
 
       check(extractor.extractKey(0)).equals(('x', 1));
-      check(extractor.extractKeyOrNull(0)).equals(('x', 1));
-      check(extractor.hasNull(0)).isFalse;
+      check(extractor.extractJoinKeyOrNull(0)).equals(('x', 1));
+      check(extractor.hasNullOrNan(0)).isFalse;
 
       check(extractor.extractKey(1)).equals(('x', null));
-      check(extractor.extractKeyOrNull(1)).isNull;
-      check(extractor.hasNull(1)).isTrue;
+      check(extractor.extractJoinKeyOrNull(1)).isNull;
+      check(extractor.hasNullOrNan(1)).isTrue;
 
       check(extractor.extractKey(2)).equals((null, 2));
-      check(extractor.extractKeyOrNull(2)).isNull;
-      check(extractor.hasNull(2)).isTrue;
+      check(extractor.extractJoinKeyOrNull(2)).isNull;
+      check(extractor.hasNullOrNan(2)).isTrue;
 
       check(extractor.extractKey(3)).equals(('x', 3));
-      check(extractor.extractKeyOrNull(3)).equals(('x', 3));
-      check(extractor.hasNull(3)).isFalse;
+      check(extractor.extractJoinKeyOrNull(3)).equals(('x', 3));
+      check(extractor.hasNullOrNan(3)).isFalse;
     });
 
     test('3 column extractor', () {
-      final c0 = Series<num>.fromList('c0', [1, 1]);
-      final c1 = Series<String>.fromList('c1', ['a', null]);
-      final c2 = Series<bool>.fromList('c2', [true, false]);
+      final c0 = Series<num>.fromList('c0', [1, 1, 1]);
+      final c1 = Series<String>.fromList('c1', ['a', null, 'b']);
+      final c2 = Series<double>.fromList('c2', [1.5, 2.5, double.nan]);
       final extractor = RowKeyExtractor([c0, c1, c2]);
 
-      check(extractor.extractKey(0)).equals((1, 'a', true));
-      check(extractor.extractKeyOrNull(0)).equals((1, 'a', true));
-      check(extractor.hasNull(0)).isFalse;
+      check(extractor.extractKey(0)).equals((1, 'a', 1.5));
+      check(extractor.extractJoinKeyOrNull(0)).equals((1, 'a', 1.5));
+      check(extractor.hasNullOrNan(0)).isFalse;
 
-      check(extractor.extractKey(1)).equals((1, null, false));
-      check(extractor.extractKeyOrNull(1)).isNull;
-      check(extractor.hasNull(1)).isTrue;
+      check(extractor.extractKey(1)).equals((1, null, 2.5));
+      check(extractor.extractJoinKeyOrNull(1)).isNull;
+      check(extractor.hasNullOrNan(1)).isTrue;
+
+      check(extractor.extractKey(2)).equals((1, 'b', nanKey));
+      check(extractor.extractJoinKeyOrNull(2)).isNull;
+      check(extractor.hasNullOrNan(2)).isTrue;
     });
 
     test('4 column extractor (TupleKey fallback)', () {
-      final c0 = Series<num>.fromList('c0', [1, 1]);
-      final c1 = Series<num>.fromList('c1', [2, 2]);
-      final c2 = Series<num>.fromList('c2', [3, null]);
-      final c3 = Series<num>.fromList('c3', [4, 4]);
+      final c0 = Series<num>.fromList('c0', [1, 1, 1]);
+      final c1 = Series<num>.fromList('c1', [2, 2, 2]);
+      final c2 = Series<double>.fromList('c2', [3.0, null, double.nan]);
+      final c3 = Series<num>.fromList('c3', [4, 4, 4]);
       final extractor = RowKeyExtractor([c0, c1, c2, c3]);
 
       final key0 = extractor.extractKey(0);
       check(key0).isA<TupleKey>();
-      check((key0 as TupleKey).values).deepEquals([1, 2, 3, 4]);
-      check(extractor.extractKeyOrNull(0)).isA<TupleKey>();
-      check(extractor.hasNull(0)).isFalse;
+      check((key0 as TupleKey).values).deepEquals([1, 2, 3.0, 4]);
+      check(extractor.extractJoinKeyOrNull(0)).isA<TupleKey>();
+      check(extractor.hasNullOrNan(0)).isFalse;
 
-      check(extractor.extractKeyOrNull(1)).isNull;
-      check(extractor.hasNull(1)).isTrue;
+      check(extractor.extractJoinKeyOrNull(1)).isNull;
+      check(extractor.hasNullOrNan(1)).isTrue;
+
+      check(extractor.extractJoinKeyOrNull(2)).isNull;
+      check(extractor.hasNullOrNan(2)).isTrue;
     });
 
     test('0 column extractor', () {
       final extractor = RowKeyExtractor([]);
       check(extractor.extractKey(0)).isA<TupleKey>();
-      check(extractor.extractKeyOrNull(0)).isA<TupleKey>();
-      check(extractor.hasNull(0)).isFalse;
+      check(extractor.extractJoinKeyOrNull(0)).isA<TupleKey>();
+      check(extractor.hasNullOrNan(0)).isFalse;
+      check(nanKey.toString()).equals('NaN');
     });
   });
 }
