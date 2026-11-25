@@ -89,13 +89,22 @@ final class FunctionSignature {
       final namedParts = [
         for (final n in named)
           if (n.defaultValue != null)
-            '${n.name}: ${n.defaultValue}'
+            '${n.name}: ${_formatDefault(n.defaultValue!)}'
           else
             n.name,
       ];
       parts.add('{${namedParts.join(', ')}}');
     }
     return '$name(${parts.join(', ')})';
+  }
+
+  static String _formatDefault(Object value) {
+    if (value is double &&
+        value.isFinite &&
+        value == value.truncateToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toString();
   }
 }
 

@@ -135,7 +135,7 @@ void main() {
 
     test('formats signature and binds defaults', () {
       check(sig.format('limit'))
-          .equals('limit(expr, [var], {from: -5.0, to: 5.0, direction: both})');
+          .equals('limit(expr, [var], {from: -5, to: 5, direction: both})');
       final bound = ArgumentBinder.bind(
         'limit',
         sig,
