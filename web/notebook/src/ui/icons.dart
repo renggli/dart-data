@@ -14,8 +14,6 @@ final class NbIcons {
       '<svg viewBox="0 0 16 16"><path d="M3 4.5h10M6 4.5V3h4v1.5M5 4.5l.5 8.5h5l.5-8.5"/></svg>';
   static const String check =
       '<svg viewBox="0 0 16 16"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg>';
-  static const String reset =
-      '<svg viewBox="0 0 16 16"><path d="M3 8a5 5 0 1 0 1.5-3.5L3 6"/><path d="M3 2.5V6h3.5"/></svg>';
   static const String download =
       '<svg viewBox="0 0 16 16"><path d="M8 2.5v8M4.5 7.5L8 11l3.5-3.5M3 13.5h10"/></svg>';
   static const String upload =
@@ -28,10 +26,6 @@ final class NbIcons {
       '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M6.2 6.2a1.8 1.8 0 0 1 3.5.6c0 1.2-1.7 1.5-1.7 2.5"/><circle cx="8" cy="11.8" r="0.6"/></svg>';
   static const String search =
       '<svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>';
-  static const String sun =
-      '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M12.6 3.4l-1 1M4.4 11.6l-1 1"/></svg>';
-  static const String moon =
-      '<svg viewBox="0 0 16 16"><path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z"/></svg>';
   static const String undo =
       '<svg viewBox="0 0 16 16"><path d="M4 6h5.5a3.5 3.5 0 1 1 0 7H7"/><path d="M6.5 3.5L4 6l2.5 2.5"/></svg>';
   static const String redo =

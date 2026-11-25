@@ -273,19 +273,6 @@
   opacity: 0.85;
 }
 
-/* Subtle Numeric Approximation Icon */
-.numeric-icon {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: inherit;
-  opacity: 0.75;
-  margin-left: 4px;
-  vertical-align: baseline;
-  user-select: none;
-}
-
 .page-desc {
   height: 48px;
   overflow: hidden;

@@ -46,15 +46,12 @@ Map<String, Object?> valueToJson(CalcValue value) => switch (value) {
     :final maxX,
     :final minY,
     :final maxY,
-    :final curves,
-    :final parameters,
     :final isParametric,
     :final isComplex,
     :final isOde,
     :final minT,
     :final maxT,
-    :final surface3d,
-    :final parametric3d,
+    :final odeY0,
     :final title,
     :final showGrid,
     :final showMarkers,
@@ -71,15 +68,12 @@ Map<String, Object?> valueToJson(CalcValue value) => switch (value) {
       'maxX': maxX,
       'minY': minY,
       'maxY': maxY,
-      'curves': [for (final c in curves) c.toJson()],
-      'parameters': parameters,
       'isParametric': isParametric,
       'isComplex': isComplex,
       'isOde': isOde,
       'minT': ?minT,
       'maxT': ?maxT,
-      if (surface3d != null) 'surface3d': surface3d.toJson(),
-      if (parametric3d != null) 'parametric3d': parametric3d.toJson(),
+      'odeY0': ?odeY0,
       'title': ?title,
       'showGrid': showGrid,
       'showMarkers': showMarkers,
@@ -141,8 +135,6 @@ CalcValue valueFromJson(Map<String, Object?> json) {
       };
       return SeriesValue(PowerSeries(variable, point, coeffs, order));
     case 'plot':
-      final rawSurface = json['surface3d'] as Map<String, Object?>?;
-      final rawParam3d = json['parametric3d'] as Map<String, Object?>?;
       return PlotValue(
         expressions: [
           for (final s in json['expressions']! as List<Object?>)
@@ -153,25 +145,12 @@ CalcValue valueFromJson(Map<String, Object?> json) {
         maxX: (json['maxX']! as num).toDouble(),
         minY: (json['minY']! as num).toDouble(),
         maxY: (json['maxY']! as num).toDouble(),
-        curves: [
-          for (final c in json['curves'] as List<Object?>? ?? const [])
-            PlotCurveData.fromJson(c! as Map<String, Object?>),
-        ],
-        parameters: [
-          for (final p in json['parameters'] as List<Object?>? ?? const [])
-            p! as String,
-        ],
         isParametric: json['isParametric'] as bool? ?? false,
         isComplex: json['isComplex'] as bool? ?? false,
         isOde: json['isOde'] as bool? ?? false,
         minT: (json['minT'] as num?)?.toDouble(),
         maxT: (json['maxT'] as num?)?.toDouble(),
-        surface3d: rawSurface == null
-            ? null
-            : Surface3dData.fromJson(rawSurface),
-        parametric3d: rawParam3d == null
-            ? null
-            : Parametric3dData.fromJson(rawParam3d),
+        odeY0: (json['odeY0'] as num?)?.toDouble(),
         title: json['title'] as String?,
         showGrid: json['showGrid'] as bool? ?? true,
         showMarkers: json['showMarkers'] as bool? ?? true,

@@ -34,16 +34,10 @@ final class NotebookApp {
   late final web.HTMLSpanElement _busyBadge;
   late final web.HTMLButtonElement _undoBtn;
   late final web.HTMLButtonElement _redoBtn;
-  late final web.HTMLButtonElement _themeBtn;
   late final web.HTMLElement _outlineList;
 
   Future<void> _init() async {
-    final sharedTheme = web.window.localStorage.getItem('data_theme');
-    final initialTheme = (sharedTheme == 'light' || sharedTheme == 'dark')
-        ? sharedTheme!
-        : _client.env.settings.theme;
-
-    _notebookView = NotebookView(_client);
+    _notebookView = NotebookView(_client, onFocusChanged: _renderOutline);
     _palette = CommandPalette(
       registry: _client.registry,
       env: _client.env,
@@ -69,7 +63,6 @@ final class NotebookApp {
 
     _buildSettingsDrawer();
     _wireHeader();
-    _applyTheme(initialTheme);
 
     final mount = web.document.getElementById('notebook-mount');
     mount?.append(_notebookView.root);
@@ -102,21 +95,6 @@ final class NotebookApp {
     _busyBadge = web.document.getElementById('nb-busy')! as web.HTMLSpanElement;
     _outlineList =
         web.document.getElementById('nb-outline-list')! as web.HTMLElement;
-
-    final collapseBtn = web.document.getElementById('sidebar-collapse-btn');
-    collapseBtn?.addEventListener(
-      'click',
-      ((web.Event _) {
-        web.document.body?.classList.toggle('sidebar-collapsed');
-      }).toJS,
-    );
-    final expandBtn = web.document.getElementById('sidebar-expand-btn');
-    expandBtn?.addEventListener(
-      'click',
-      ((web.Event _) {
-        web.document.body?.classList.remove('sidebar-collapsed');
-      }).toJS,
-    );
 
     _undoBtn = web.document.getElementById('nb-undo')! as web.HTMLButtonElement
       ..innerHTML = NbIcons.undo.toJS
@@ -181,19 +159,6 @@ final class NotebookApp {
     (web.document.getElementById('nb-matrix-btn')! as web.HTMLButtonElement)
       ..innerHTML = NbIcons.matrix.toJS
       ..onclick = ((web.MouseEvent _) => _matrixModal.open()).toJS;
-
-    _themeBtn =
-        web.document.getElementById('nb-theme-btn')! as web.HTMLButtonElement
-          ..onclick = ((web.MouseEvent _) async {
-            final next = _client.env.settings.theme == 'light'
-                ? 'dark'
-                : 'light';
-            await _client.updateSettings(
-              _client.env.settings.copyWith(theme: next),
-            );
-            _applyTheme(next);
-          }).toJS;
-    _updateThemeIcon(_client.env.settings.theme);
 
     (web.document.getElementById('nb-help-btn')! as web.HTMLButtonElement)
       ..innerHTML = NbIcons.help.toJS
@@ -265,44 +230,14 @@ final class NotebookApp {
       _client.updateSettings(_client.env.settings.copyWith(digits: d));
     }).toJS;
 
-    // Export / Import / Share actions
-    final exportMd = _actionBtn('Export Markdown (.md)', () async {
-      final md = await _client.exportMarkdown();
-      NotebookPersistence.downloadFile('notebook.md', md, 'text/markdown');
-    });
-
+    // Export / Share / Session actions
     final exportJson = _actionBtn('Export JSON (.json)', () {
       NotebookPersistence.downloadFile(
         'notebook.json',
-        _client.document.toJson().toString(),
+        const JsonEncoder.withIndent('  ').convert(_client.document.toJson()),
         'application/json',
       );
     });
-
-    final importInput =
-        (web.document.createElement('input') as web.HTMLInputElement)
-          ..type = 'file'
-          ..accept = '.md,.markdown,.txt'
-          ..style.display = 'none';
-    importInput.onchange = ((web.Event _) {
-      final files = importInput.files;
-      if (files == null || files.length == 0) return;
-      final file = files.item(0);
-      if (file == null) return;
-      final reader = web.FileReader();
-      reader.onload = ((web.Event _) async {
-        final text = (reader.result as JSString?)?.toDart ?? '';
-        await _client.importMarkdown(text);
-        _settingsBackdrop.style.display = 'none';
-      }).toJS;
-      reader.readAsText(file);
-    }).toJS;
-
-    final importMd = _actionBtn(
-      'Import Markdown (.md)',
-      // ignore: unnecessary_lambdas
-      () => importInput.click(),
-    );
 
     final shareBtn = _actionBtn('Copy Share URL', () {
       final url = NotebookPersistence.buildShareUrl(_client.document);
@@ -321,9 +256,6 @@ final class NotebookApp {
     body
       ..append(_settingRow('Default Domain', domSelect))
       ..append(_settingRow('Approx Digits', digitsInput))
-      ..append(exportMd)
-      ..append(importMd)
-      ..append(importInput)
       ..append(exportJson)
       ..append(shareBtn)
       ..append(recomputeBtn)
@@ -358,23 +290,6 @@ final class NotebookApp {
       ..textContent = label;
     b.onclick = ((web.MouseEvent _) => onTap()).toJS;
     return b;
-  }
-
-  void _applyTheme(String theme) {
-    web.document.documentElement?.setAttribute('data-theme', theme);
-    try {
-      web.window.localStorage.setItem('data_theme', theme);
-    } on Object {
-      // Ignore storage errors
-    }
-    _updateThemeIcon(theme);
-  }
-
-  void _updateThemeIcon(String theme) {
-    _themeBtn.innerHTML = (theme == 'light' ? NbIcons.moon : NbIcons.sun).toJS;
-    _themeBtn.title = theme == 'light'
-        ? 'Switch to dark theme'
-        : 'Switch to light theme';
   }
 
   void _onBusyChanged(bool isBusy, int elapsedMs) {

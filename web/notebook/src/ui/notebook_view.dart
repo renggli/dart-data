@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
@@ -9,34 +10,96 @@ import 'math_cell_view.dart';
 
 /// Main document-first notebook canvas rendering ordered [MarkdownCell]s and
 /// [MathCell]s in a centered `820px` editorial column.
+///
+/// Focus changes update only the affected cells in-place so plots never
+/// flicker and scroll position stays stable.
 final class NotebookView {
-  new(this.client) {
+  new(this.client, {this.onFocusChanged}) {
     root = (web.document.createElement('div') as web.HTMLDivElement)
       ..className = 'nb-document';
+    _attachOutsideClickBlur();
     render();
   }
 
   final EngineClient client;
+  final void Function()? onFocusChanged;
   late final web.HTMLDivElement root;
 
   String? _focusedUid;
-  final List<MathCellView> _activeMathViews = [];
+  final Map<String, MathCellView> _mathViews = {};
+  final Map<String, MarkdownCellView> _mdViews = {};
 
   String? get focusedUid => _focusedUid;
 
+  /// Switches focus to [uid] in-place without rebuilding the document DOM or
+  /// recreating WebGL plots. Any unsaved Markdown draft on the previously
+  /// focused cell is committed automatically.
   void focusCell(String? uid, {bool moveToEnd = true}) {
+    final prevUid = _focusedUid;
+    if (prevUid == uid) {
+      if (uid != null) {
+        _mathViews[uid]?.focusEditor(moveToEnd: moveToEnd);
+        _mdViews[uid]?.focusEditor(moveToEnd: moveToEnd);
+      }
+      return;
+    }
+
+    // Commit unsaved Markdown edits cleanly when leaving a Markdown cell
+    if (prevUid != null) {
+      final prevMd = _mdViews[prevUid];
+      if (prevMd != null && prevMd.isEditing) {
+        final draft = prevMd.currentSource;
+        prevMd.setEditing(false);
+        if (draft != prevMd.cell.source) {
+          unawaited(client.updateMarkdown(prevUid, draft));
+        }
+      }
+      _mathViews[prevUid]?.setFocused(false);
+    }
+
     _focusedUid = uid;
-    render(focusEditorUid: uid, moveToEnd: moveToEnd);
+
+    if (uid != null) {
+      final nextMath = _mathViews[uid];
+      final nextMd = _mdViews[uid];
+      if (nextMath != null) {
+        nextMath.setFocused(true, focusInput: true, moveToEnd: moveToEnd);
+      } else if (nextMd != null) {
+        nextMd.setEditing(true, focusInput: true, moveToEnd: moveToEnd);
+      } else {
+        // Cell not yet mounted in DOM; fall back to full sync.
+        render(focusEditorUid: uid, moveToEnd: moveToEnd);
+        onFocusChanged?.call();
+        return;
+      }
+    }
+
+    onFocusChanged?.call();
   }
 
+  /// Synchronizes the document DOM with `client.document`, preserving existing
+  /// mounted cell views (and their WebGL plots) whenever possible.
   void render({String? focusEditorUid, bool moveToEnd = true}) {
-    for (final v in _activeMathViews) {
-      v.dispose();
-    }
-    _activeMathViews.clear();
-    root.innerHTML = ''.toJS;
-
     final doc = client.document;
+    final byUid = {for (final c in doc.cells) c.uid: c};
+
+    // Dispose views for cells that were removed or changed type
+    for (final uid in _mathViews.keys.toList()) {
+      if (byUid[uid] is! MathCell) {
+        _mathViews.remove(uid)?.dispose();
+      }
+    }
+    for (final uid in _mdViews.keys.toList()) {
+      if (byUid[uid] is! MarkdownCell) {
+        _mdViews.remove(uid);
+      }
+    }
+    if (_focusedUid != null && !byUid.containsKey(_focusedUid)) {
+      _focusedUid = null;
+    }
+
+    final scrollY = web.window.scrollY;
+    root.replaceChildren(<JSAny>[].toJS);
 
     // Minimal stale banner only when downstream cells need recomputation
     final staleCount = doc.cells
@@ -71,8 +134,7 @@ final class NotebookView {
 
     root.append(_buildInsertDivider(0));
 
-    MathCellView? targetMathView;
-    MarkdownCellView? targetMdView;
+    final newlyMountedMath = <MathCellView>[];
 
     for (var i = 0; i < doc.cells.length; i++) {
       final cell = doc.cells[i];
@@ -80,103 +142,159 @@ final class NotebookView {
 
       switch (cell) {
         case MarkdownCell():
-          late final MarkdownCellView mdView;
-          mdView = MarkdownCellView(
-            cell: cell,
-            document: doc,
-            registry: client.registry,
-            isEditing: isActive,
-            onStartEdit: () => focusCell(cell.uid),
-            onCommit: (src, {required bool advance}) async {
-              await client.updateMarkdown(cell.uid, src);
-              if (advance) {
-                if (i + 1 < doc.cells.length) {
-                  focusCell(doc.cells[i + 1].uid);
+          var mdView = _mdViews[cell.uid];
+          if (mdView == null) {
+            mdView = MarkdownCellView(
+              cell: cell,
+              document: doc,
+              registry: client.registry,
+              isEditing: isActive,
+              onStartEdit: () => focusCell(cell.uid),
+              onCommit: (src, {required bool advance}) async {
+                await client.updateMarkdown(cell.uid, src);
+                if (advance) {
+                  final idx = client.document.indexOfUid(cell.uid);
+                  if (idx >= 0 && idx + 1 < client.document.cells.length) {
+                    focusCell(client.document.cells[idx + 1].uid);
+                  } else {
+                    final nextUid = await client.evalCell('');
+                    focusCell(nextUid);
+                  }
                 } else {
-                  final nextUid = await client.evalCell('');
-                  focusCell(nextUid);
+                  focusCell(null);
                 }
-              } else {
+              },
+              onMoveUp: () async {
+                final idx = client.document.indexOfUid(cell.uid);
+                if (idx > 0) await client.moveCell(cell.uid, idx - 1);
+              },
+              onMoveDown: () async {
+                final idx = client.document.indexOfUid(cell.uid);
+                if (idx >= 0 && idx + 1 < client.document.cells.length) {
+                  await client.moveCell(cell.uid, idx + 1);
+                }
+              },
+              onConvertToMath: () async {
+                final nextUid = await client.convertCell(cell.uid);
+                focusCell(nextUid);
+              },
+              onDelete: () async {
                 _focusedUid = null;
-                render();
-              }
-            },
-            onMoveUp: () async {
-              if (i > 0) await client.moveCell(cell.uid, i - 1);
-            },
-            onMoveDown: () async {
-              if (i + 1 < doc.cells.length) {
-                await client.moveCell(cell.uid, i + 1);
-              }
-            },
-            onConvertToMath: () async {
-              final nextUid = await client.convertCell(cell.uid);
-              focusCell(nextUid);
-            },
-            onDelete: () async {
-              _focusedUid = null;
-              await client.deleteCell(cell.uid);
-            },
-          );
-          if (focusEditorUid == cell.uid) targetMdView = mdView;
+                await client.deleteCell(cell.uid);
+              },
+            );
+            _mdViews[cell.uid] = mdView;
+          } else {
+            mdView.update(cell, doc);
+            mdView.setEditing(isActive);
+          }
           root.append(mdView.root);
 
         case MathCell():
-          final mathView = MathCellView(
-            cell: cell,
-            env: doc.env,
-            registry: client.registry,
-            isFocused: isActive,
-            onFocus: () => focusCell(cell.uid),
-            onRun: (src, {required bool advance, required bool approx}) async {
-              await client.evalCell(src, uid: cell.uid, forceApprox: approx);
-              if (advance) {
-                final idx = doc.indexOfUid(cell.uid);
-                if (idx >= 0 && idx + 1 < doc.cells.length) {
-                  focusCell(doc.cells[idx + 1].uid);
-                } else {
-                  final nextUid = await client.evalCell('');
-                  focusCell(nextUid);
+          var mathView = _mathViews[cell.uid];
+          if (mathView == null) {
+            mathView = MathCellView(
+              cell: cell,
+              env: doc.env,
+              registry: client.registry,
+              isFocused: isActive,
+              onFocus: () => focusCell(cell.uid),
+              onRun:
+                  (src, {required bool advance, required bool approx}) async {
+                    await client.evalCell(
+                      src,
+                      uid: cell.uid,
+                      forceApprox: approx,
+                    );
+                    if (advance) {
+                      final idx = client.document.indexOfUid(cell.uid);
+                      if (idx >= 0 && idx + 1 < client.document.cells.length) {
+                        focusCell(client.document.cells[idx + 1].uid);
+                      } else {
+                        final nextUid = await client.evalCell('');
+                        focusCell(nextUid);
+                      }
+                    } else {
+                      focusCell(cell.uid);
+                    }
+                  },
+              onInsertFollowUp: (call) async {
+                final idx = client.document.indexOfUid(cell.uid);
+                final insertAt = idx >= 0
+                    ? idx + 1
+                    : client.document.cells.length;
+                final nextUid = await client.evalCell(call, index: insertAt);
+                focusCell(nextUid);
+              },
+              onMoveUp: () async {
+                final idx = client.document.indexOfUid(cell.uid);
+                if (idx > 0) await client.moveCell(cell.uid, idx - 1);
+              },
+              onMoveDown: () async {
+                final idx = client.document.indexOfUid(cell.uid);
+                if (idx >= 0 && idx + 1 < client.document.cells.length) {
+                  await client.moveCell(cell.uid, idx + 1);
                 }
-              } else {
-                focusCell(cell.uid);
-              }
-            },
-            onMoveUp: () async {
-              if (i > 0) await client.moveCell(cell.uid, i - 1);
-            },
-            onMoveDown: () async {
-              if (i + 1 < doc.cells.length) {
-                await client.moveCell(cell.uid, i + 1);
-              }
-            },
-            onConvertToText: () async {
-              final nextUid = await client.convertCell(cell.uid);
-              focusCell(nextUid);
-            },
-            onDelete: () async {
-              _focusedUid = null;
-              await client.deleteCell(cell.uid);
-            },
-            onBlurExit: () {
-              _focusedUid = null;
-              render();
-            },
-          );
-          _activeMathViews.add(mathView);
-          if (focusEditorUid == cell.uid) targetMathView = mathView;
+              },
+              onConvertToText: () async {
+                final nextUid = await client.convertCell(cell.uid);
+                focusCell(nextUid);
+              },
+              onDelete: () async {
+                _focusedUid = null;
+                await client.deleteCell(cell.uid);
+              },
+              onBlurExit: () => focusCell(null),
+            );
+            _mathViews[cell.uid] = mathView;
+            newlyMountedMath.add(mathView);
+          } else {
+            mathView.update(cell, doc.env);
+            mathView.setFocused(isActive);
+          }
           root.append(mathView.root);
       }
 
-      root.append(_buildInsertDivider(i + 1));
+      if (i + 1 < doc.cells.length) {
+        root.append(_buildInsertDivider(i + 1));
+      }
     }
 
-    // Mount plots after DOM attachment so boundingClientRect is non-zero
-    for (final mv in _activeMathViews) {
+    // Stable, always-visible footer actions to append a new cell
+    root.append(_buildBottomAddBar(doc.cells.length));
+
+    for (final mv in newlyMountedMath) {
       mv.mountRenderables();
     }
-    targetMathView?.focusEditor(moveToEnd: moveToEnd);
-    targetMdView?.focusEditor(moveToEnd: moveToEnd);
+    if (focusEditorUid != null) {
+      _mathViews[focusEditorUid]?.focusEditor(moveToEnd: moveToEnd);
+      _mdViews[focusEditorUid]?.focusEditor(moveToEnd: moveToEnd);
+    } else if (scrollY > 0) {
+      web.window.scrollTo(0.toJS, scrollY);
+    }
+  }
+
+  void _attachOutsideClickBlur() {
+    web.document.addEventListener(
+      'mousedown',
+      ((web.MouseEvent e) {
+        if (_focusedUid == null) return;
+        final target = e.target;
+        if (target == null || !target.isA<web.Element>()) return;
+        final el = target as web.Element;
+        // Keep focus when clicking inside a cell, modal, drawer, header, or sidebar
+        if (el.closest('.nb-cell') != null ||
+            el.closest('.nb-modal') != null ||
+            el.closest('.nb-drawer') != null ||
+            el.closest('.app-header') != null ||
+            el.closest('.sidebar') != null ||
+            el.closest('.nb-insert-divider') != null ||
+            el.closest('.nb-bottom-add') != null) {
+          return;
+        }
+        focusCell(null);
+      }).toJS,
+    );
   }
 
   web.HTMLDivElement _buildInsertDivider(int index) {
@@ -216,6 +334,41 @@ final class NotebookView {
       ..append(addText);
     div.append(actions);
     return div;
+  }
+
+  web.HTMLDivElement _buildBottomAddBar(int index) {
+    final bar = (web.document.createElement('div') as web.HTMLDivElement)
+      ..className = 'nb-bottom-add';
+
+    final addMath =
+        (web.document.createElement('button') as web.HTMLButtonElement)
+          ..type = 'button'
+          ..className = 'nb-insert-btn'
+          ..textContent = '+ Math';
+    addMath.onclick = ((web.MouseEvent _) async {
+      final uid = await client.evalCell('', index: index);
+      focusCell(uid);
+    }).toJS;
+
+    final sep = (web.document.createElement('span') as web.HTMLSpanElement)
+      ..className = 'nb-insert-sep'
+      ..textContent = '·';
+
+    final addText =
+        (web.document.createElement('button') as web.HTMLButtonElement)
+          ..type = 'button'
+          ..className = 'nb-insert-btn'
+          ..textContent = '+ Text';
+    addText.onclick = ((web.MouseEvent _) async {
+      final uid = await client.insertMarkdown('', index: index);
+      focusCell(uid);
+    }).toJS;
+
+    bar
+      ..append(addMath)
+      ..append(sep)
+      ..append(addText);
+    return bar;
   }
 
   web.HTMLDivElement _buildEmptyState() {
@@ -274,24 +427,24 @@ final class NotebookView {
   }
 
   static const String _starterTemplate = '''
-# Harmonic Oscillator & Symbolic Calculus
+# Damped Harmonic Oscillator
 
-Consider a damped wave function \$f(x) = e^{-x/5} \\cdot \\sin(2 x)\$ on \$[0, 4\\pi]\$.
+Consider a damped oscillation \$f(x) = exp(-x/5) * sin(2 * x)\$ for \$0 <= x <= 4 * pi\$.
 
 ```math
-f(x) := exp(-x/5) * sin(2*x)
+f(x) := exp(-x/5) * sin(2 * x)
 ```
 
-Its exact derivative is {{r[1]}}'s rate of change:
+Compute its exact derivative with respect to \$x\$:
 
 ```math
 diff(f(x), x)
 ```
 
-Visualizing both the function and its envelope:
+Using the live result, the rate of change is {{r[2]}}. Plotting \$f(x)\$ alongside its exponential envelope:
 
 ```math
-plot([f(x), exp(-x/5), -exp(-x/5)], x, from: 0, to: 12, title: 'Damped Oscillation')
+plot([f(x), exp(-x/5), -exp(-x/5)], x, from: 0, to: 12)
 ```
 ''';
 }

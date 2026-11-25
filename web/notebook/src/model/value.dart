@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:data/linear.dart';
@@ -7,226 +6,6 @@ import 'package:data/symbolic.dart';
 
 import '../../../shared/graph/model/dataset_2d.dart';
 import '../../../shared/graph/model/dataset_3d.dart';
-
-/// Sampled polyline segment for a 2D curve without vertical asymptotes.
-final class PlotSegmentData {
-  const new({required this.x, required this.y, this.t});
-
-  factory fromJson(Map<String, Object?> json) {
-    final rawT = json['t'] as List<Object?>?;
-    return PlotSegmentData(
-      x: _decodeFloatList(json['x']! as List<Object?>),
-      y: _decodeFloatList(json['y']! as List<Object?>),
-      t: rawT == null ? null : _decodeFloatList(rawT),
-    );
-  }
-
-  final Float64List x;
-  final Float64List y;
-  final Float64List? t;
-
-  Map<String, Object?> toJson() => {
-    'x': _encodeFloatList(x),
-    'y': _encodeFloatList(y),
-    if (t != null) 't': _encodeFloatList(t!),
-  };
-}
-
-/// Notable point marker on a plotted curve (`root`, `min`, or `max`).
-final class PlotMarkerData {
-  const new({
-    required this.x,
-    required this.y,
-    required this.label,
-    required this.kind,
-  });
-
-  factory fromJson(Map<String, Object?> json) => PlotMarkerData(
-    x: json['x'] == null ? double.nan : (json['x']! as num).toDouble(),
-    y: json['y'] == null ? double.nan : (json['y']! as num).toDouble(),
-    label: json['label']! as String,
-    kind: json['kind']! as String,
-  );
-
-  final double x;
-  final double y;
-  final String label;
-  final String kind;
-
-  Map<String, Object?> toJson() => {
-    'x': x.isFinite ? x : null,
-    'y': y.isFinite ? y : null,
-    'label': label,
-    'kind': kind,
-  };
-}
-
-/// Sampled data for a single curve in a [PlotValue].
-final class PlotCurveData {
-  const new({
-    required this.label,
-    required this.exprText,
-    required this.segments,
-    this.imaginarySegments = const [],
-    this.markers = const [],
-  });
-
-  factory fromJson(Map<String, Object?> json) => PlotCurveData(
-    label: json['label']! as String,
-    exprText: json['exprText']! as String,
-    segments: (json['segments'] as List<Object?>? ?? const [])
-        .map((e) => PlotSegmentData.fromJson(e! as Map<String, Object?>))
-        .toList(),
-    imaginarySegments: (json['imaginarySegments'] as List<Object?>? ?? const [])
-        .map((e) => PlotSegmentData.fromJson(e! as Map<String, Object?>))
-        .toList(),
-    markers: (json['markers'] as List<Object?>? ?? const [])
-        .map((e) => PlotMarkerData.fromJson(e! as Map<String, Object?>))
-        .toList(),
-  );
-
-  final String label;
-  final String exprText;
-  final List<PlotSegmentData> segments;
-  final List<PlotSegmentData> imaginarySegments;
-  final List<PlotMarkerData> markers;
-
-  bool get hasImaginary => imaginarySegments.isNotEmpty;
-
-  Map<String, Object?> toJson() => {
-    'label': label,
-    'exprText': exprText,
-    'segments': [for (final s in segments) s.toJson()],
-    'imaginarySegments': [for (final s in imaginarySegments) s.toJson()],
-    'markers': [for (final m in markers) m.toJson()],
-  };
-}
-
-/// Pre-sampled 3D surface grid data for `z = f(x, y)`.
-final class Surface3dData {
-  const new({
-    required this.xVar,
-    required this.yVar,
-    required this.minX,
-    required this.maxX,
-    required this.minY,
-    required this.maxY,
-    required this.minZ,
-    required this.maxZ,
-    required this.gridSize,
-    required this.zValues,
-    this.phaseValues,
-  });
-
-  factory fromJson(Map<String, Object?> json) {
-    final rawZ = json['zValues']! as List<Object?>;
-    final rawPhase = json['phaseValues'] as List<Object?>?;
-    return Surface3dData(
-      xVar: json['xVar'] as String? ?? 'x',
-      yVar: json['yVar'] as String? ?? 'y',
-      minX: (json['minX']! as num).toDouble(),
-      maxX: (json['maxX']! as num).toDouble(),
-      minY: (json['minY']! as num).toDouble(),
-      maxY: (json['maxY']! as num).toDouble(),
-      minZ: (json['minZ']! as num).toDouble(),
-      maxZ: (json['maxZ']! as num).toDouble(),
-      gridSize: (json['gridSize']! as num).toInt(),
-      zValues: _decodeFloatList(rawZ),
-      phaseValues: rawPhase == null ? null : _decodeFloatList(rawPhase),
-    );
-  }
-
-  final String xVar;
-  final String yVar;
-  final double minX;
-  final double maxX;
-  final double minY;
-  final double maxY;
-  final double minZ;
-  final double maxZ;
-  final int gridSize;
-  final Float64List zValues;
-  final Float64List? phaseValues;
-
-  Map<String, Object?> toJson() => {
-    'xVar': xVar,
-    'yVar': yVar,
-    'minX': minX,
-    'maxX': maxX,
-    'minY': minY,
-    'maxY': maxY,
-    'minZ': minZ,
-    'maxZ': maxZ,
-    'gridSize': gridSize,
-    'zValues': _encodeFloatList(zValues),
-    if (phaseValues != null) 'phaseValues': _encodeFloatList(phaseValues!),
-  };
-}
-
-/// Pre-sampled 3D parametric space curve `(x(t), y(t), z(t))`.
-final class Parametric3dData {
-  const new({
-    required this.tVar,
-    required this.minT,
-    required this.maxT,
-    required this.minX,
-    required this.maxX,
-    required this.minY,
-    required this.maxY,
-    required this.minZ,
-    required this.maxZ,
-    required this.tValues,
-    required this.xValues,
-    required this.yValues,
-    required this.zValues,
-  });
-
-  factory fromJson(Map<String, Object?> json) => Parametric3dData(
-    tVar: json['tVar'] as String? ?? 't',
-    minT: (json['minT']! as num).toDouble(),
-    maxT: (json['maxT']! as num).toDouble(),
-    minX: (json['minX']! as num).toDouble(),
-    maxX: (json['maxX']! as num).toDouble(),
-    minY: (json['minY']! as num).toDouble(),
-    maxY: (json['maxY']! as num).toDouble(),
-    minZ: (json['minZ']! as num).toDouble(),
-    maxZ: (json['maxZ']! as num).toDouble(),
-    tValues: _decodeFloatList(json['tValues']! as List<Object?>),
-    xValues: _decodeFloatList(json['xValues']! as List<Object?>),
-    yValues: _decodeFloatList(json['yValues']! as List<Object?>),
-    zValues: _decodeFloatList(json['zValues']! as List<Object?>),
-  );
-
-  final String tVar;
-  final double minT;
-  final double maxT;
-  final double minX;
-  final double maxX;
-  final double minY;
-  final double maxY;
-  final double minZ;
-  final double maxZ;
-  final Float64List tValues;
-  final Float64List xValues;
-  final Float64List yValues;
-  final Float64List zValues;
-
-  Map<String, Object?> toJson() => {
-    'tVar': tVar,
-    'minT': minT,
-    'maxT': maxT,
-    'minX': minX,
-    'maxX': maxX,
-    'minY': minY,
-    'maxY': maxY,
-    'minZ': minZ,
-    'maxZ': maxZ,
-    'tValues': _encodeFloatList(tValues),
-    'xValues': _encodeFloatList(xValues),
-    'yValues': _encodeFloatList(yValues),
-    'zValues': _encodeFloatList(zValues),
-  };
-}
 
 /// Sealed hierarchy representing all evaluated values in the symbolic notebook.
 sealed class CalcValue {
@@ -557,15 +336,12 @@ final class PlotValue extends CalcValue {
     required this.maxX,
     required this.minY,
     required this.maxY,
-    this.curves = const [],
-    this.parameters = const [],
     this.isParametric = false,
     this.isComplex = false,
     this.isOde = false,
     this.minT,
     this.maxT,
-    this.surface3d,
-    this.parametric3d,
+    this.odeY0,
     this.title,
     this.showGrid = true,
     this.showMarkers = true,
@@ -583,15 +359,12 @@ final class PlotValue extends CalcValue {
   final double maxX;
   final double minY;
   final double maxY;
-  final List<PlotCurveData> curves;
-  final List<String> parameters;
   final bool isParametric;
   final bool isComplex;
   final bool isOde;
   final double? minT;
   final double? maxT;
-  final Surface3dData? surface3d;
-  final Parametric3dData? parametric3d;
+  final double? odeY0;
   final String? title;
   final bool showGrid;
   final bool showMarkers;
@@ -606,9 +379,7 @@ final class PlotValue extends CalcValue {
       plotKind == PlotKind.surface3d ||
       plotKind == PlotKind.complex3d ||
       plotKind == PlotKind.vectorField3d ||
-      scene3d != null ||
-      surface3d != null ||
-      parametric3d != null;
+      scene3d != null;
 
   @override
   String get kind => 'plot';
@@ -618,21 +389,18 @@ final class PlotValue extends CalcValue {
 
   @override
   String toCanonicalText() {
-    final p3d = parametric3d;
-    if (p3d != null && expressions.length >= 3) {
-      return 'parametric([${expressions[0]}, ${expressions[1]}, ${expressions[2]}], ${p3d.tVar}, from: ${fmtBound(p3d.minT)}, to: ${fmtBound(p3d.maxT)})';
+    if (plotKind == PlotKind.complex3d && expressions.isNotEmpty) {
+      return 'plotcomplex3d(${expressions.first}, $variable, reFrom: ${fmtBound(minX)}, reTo: ${fmtBound(maxX)}, imFrom: ${fmtBound(minY)}, imTo: ${fmtBound(maxY)})';
     }
-    final s3d = surface3d;
-    if (s3d != null && expressions.isNotEmpty) {
-      if (isComplex) {
-        return 'plotcomplex3d(${expressions.first}, $variable, reFrom: ${fmtBound(s3d.minX)}, reTo: ${fmtBound(s3d.maxX)}, imFrom: ${fmtBound(s3d.minY)}, imTo: ${fmtBound(s3d.maxY)})';
-      }
-      return 'plot3d(${expressions.first}, ${s3d.xVar}, ${s3d.yVar}, xFrom: ${fmtBound(s3d.minX)}, xTo: ${fmtBound(s3d.maxX)}, yFrom: ${fmtBound(s3d.minY)}, yTo: ${fmtBound(s3d.maxY)})';
+    if (plotKind == PlotKind.surface3d && expressions.isNotEmpty) {
+      return 'plot3d(${expressions.first}, $variable, ${yVariable ?? 'y'}, xFrom: ${fmtBound(minX)}, xTo: ${fmtBound(maxX)}, yFrom: ${fmtBound(minY)}, yTo: ${fmtBound(maxY)})';
     }
-    if (isComplex && expressions.isNotEmpty) {
+    if ((plotKind == PlotKind.complex2d || isComplex) &&
+        expressions.isNotEmpty) {
       return 'plotcomplex(${expressions.first}, $variable, reFrom: ${fmtBound(minX)}, reTo: ${fmtBound(maxX)}, imFrom: ${fmtBound(minY)}, imTo: ${fmtBound(maxY)})';
     }
-    if (isParametric && expressions.length >= 2) {
+    if ((plotKind == PlotKind.parametric2d || isParametric) &&
+        expressions.length >= 2) {
       final t0 = minT ?? minX;
       final t1 = maxT ?? maxX;
       return 'parametric(${expressions[0]}, ${expressions[1]}, $variable, from: ${fmtBound(t0)}, to: ${fmtBound(t1)})';
@@ -663,9 +431,17 @@ final class PlotValue extends CalcValue {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is PlotValue &&
+          plotKind == other.plotKind &&
           variable == other.variable &&
+          yVariable == other.yVariable &&
           minX == other.minX &&
           maxX == other.maxX &&
+          minY == other.minY &&
+          maxY == other.maxY &&
+          minT == other.minT &&
+          maxT == other.maxT &&
+          odeY0 == other.odeY0 &&
+          gridSize == other.gridSize &&
           isParametric == other.isParametric &&
           isComplex == other.isComplex &&
           is3d == other.is3d &&
@@ -675,9 +451,17 @@ final class PlotValue extends CalcValue {
   @override
   int get hashCode => Object.hash(
     PlotValue,
+    plotKind,
     variable,
+    yVariable,
     minX,
     maxX,
+    minY,
+    maxY,
+    minT,
+    maxT,
+    odeY0,
+    gridSize,
     isParametric,
     isComplex,
     is3d,
@@ -791,18 +575,6 @@ String _formatComplexDigits(double re, double im, int digits) {
 }
 
 bool _containsRealNumber(Expr expr) => expr.anyNode((n) => n is RealNumber);
-
-List<double?> _encodeFloatList(Float64List list) => [
-  for (final v in list)
-    if (v.isFinite) v else null,
-];
-
-Float64List _decodeFloatList(List<Object?> raw) => raw is Float64List
-    ? raw
-    : Float64List.fromList([
-        for (final e in raw)
-          if (e == null) double.nan else (e as num).toDouble(),
-      ]);
 
 String _escapeXml(String text) => text
     .replaceAll('&', '&amp;')

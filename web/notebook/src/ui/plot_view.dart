@@ -59,57 +59,6 @@ final class PlotView {
 }
 
 Scene3D? _reconstructScene3D(PlotValue plot) {
-  final s3d = plot.surface3d;
-  if (s3d != null) {
-    final n = s3d.gridSize;
-    final xs = List<double>.generate(
-      n,
-      (i) => s3d.minX + (i / math.max(1, n - 1)) * (s3d.maxX - s3d.minX),
-      growable: false,
-    );
-    final ys = List<double>.generate(
-      n,
-      (j) => s3d.minY + (j / math.max(1, n - 1)) * (s3d.maxY - s3d.minY),
-      growable: false,
-    );
-    return Scene3D(
-      datasets: [
-        Surface3DDataset(
-          id: 's0',
-          label: plot.expressions.isNotEmpty
-              ? plot.expressions.first.toString()
-              : 'z',
-          nx: n,
-          ny: n,
-          xs: xs,
-          ys: ys,
-          zs: s3d.zValues,
-          colormap: plot.isComplex ? Colormap.plasma : Colormap.viridis,
-        ),
-      ],
-      xAxis: AxisConfig(label: s3d.xVar),
-      yAxis: AxisConfig(label: s3d.yVar),
-      zAxis: const AxisConfig(label: 'z'),
-    );
-  }
-
-  final p3d = plot.parametric3d;
-  if (p3d != null) {
-    return Scene3D(
-      datasets: [
-        Parametric3DDataset(
-          id: 'p3d',
-          label: plot.expressions.join(', '),
-          ts: p3d.tValues,
-          xs: p3d.xValues,
-          ys: p3d.yValues,
-          zs: p3d.zValues,
-          color: defaultGraphPalette[0],
-        ),
-      ],
-    );
-  }
-
   switch (plot.plotKind) {
     case PlotKind.surface3d:
       if (plot.expressions.isEmpty) return null;
@@ -311,7 +260,7 @@ Scene2D _reconstructScene2D(PlotValue plot) {
       ]),
       t0: plot.minX,
       tEnd: plot.maxX,
-      y0: Vector.fromList([1.0]),
+      y0: Vector.fromList([plot.odeY0 ?? 1.0]),
     );
     return Scene2D(
       datasets: [
@@ -329,48 +278,19 @@ Scene2D _reconstructScene2D(PlotValue plot) {
   }
 
   final datasets = <Dataset2D>[];
-  for (var i = 0; i < plot.curves.length; i++) {
-    final curve = plot.curves[i];
-    final xs = <double>[];
-    final ys = <double>[];
-    for (final seg in curve.segments) {
-      if (xs.isNotEmpty) {
-        xs.add(double.nan);
-        ys.add(double.nan);
-      }
-      xs.addAll(seg.x);
-      ys.addAll(seg.y);
-    }
+  for (var i = 0; i < plot.expressions.length; i++) {
+    final expr = plot.expressions[i];
+    final fn = expr.toFunction1D(plot.variable);
     datasets.add(
-      Function2DDataset(
-        id: 'c$i',
-        label: curve.label,
-        xs: xs,
-        ys: ys,
+      sampleFunction2D(
+        id: 'f$i',
+        label: expr.toString(),
+        fn: fn,
+        xMin: plot.minX,
+        xMax: plot.maxX,
         color: defaultGraphPalette[i % defaultGraphPalette.length],
-        markers: [
-          for (final m in curve.markers)
-            PointMarker(x: m.x, y: m.y, label: m.label),
-        ],
       ),
     );
-  }
-
-  if (datasets.isEmpty && plot.expressions.isNotEmpty) {
-    for (var i = 0; i < plot.expressions.length; i++) {
-      final expr = plot.expressions[i];
-      final fn = expr.toFunction1D(plot.variable);
-      datasets.add(
-        sampleFunction2D(
-          id: 'f$i',
-          label: expr.toString(),
-          fn: fn,
-          xMin: plot.minX,
-          xMax: plot.maxX,
-          color: defaultGraphPalette[i % defaultGraphPalette.length],
-        ),
-      );
-    }
   }
 
   return Scene2D(

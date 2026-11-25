@@ -256,9 +256,9 @@ class GraphWidget {
     if (pill != null) {
       if (probe == null) {
         pill.textContent = '';
-        pill.style.display = 'none';
+        pill.style.visibility = 'hidden';
       } else {
-        pill.style.display = 'inline-flex';
+        pill.style.visibility = 'visible';
         pill.textContent = switch (probe) {
           Probe2D() =>
             hasCurveReadout
@@ -323,7 +323,7 @@ class GraphWidget {
 
     final pill = web.document.createElement('span') as web.HTMLSpanElement
       ..className = 'graph-probe-pill'
-      ..style.display = 'none';
+      ..style.visibility = 'hidden';
     _probePill = pill;
     _legendBar.appendChild(pill);
   }

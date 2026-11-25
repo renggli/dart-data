@@ -9,7 +9,9 @@ import 'icons.dart';
 import 'markdown_render.dart';
 
 /// Document-first view for a [MarkdownCell]: pure prose + MathML at rest,
-/// revealing an inline [CodeEditor] and compact toolbar only while editing.
+/// revealing an inline [CodeEditor] and floating toolbar only while editing.
+///
+/// Supports in-place [setEditing] toggling without rebuilding sibling cells.
 final class MarkdownCellView {
   new({
     required this.cell,
@@ -26,10 +28,10 @@ final class MarkdownCellView {
     _buildDom();
   }
 
-  final MarkdownCell cell;
-  final NotebookDocument document;
+  MarkdownCell cell;
+  NotebookDocument document;
   final CommandRegistry registry;
-  final bool isEditing;
+  bool isEditing;
 
   final void Function() onStartEdit;
   final void Function(String source, {required bool advance}) onCommit;
@@ -39,10 +41,44 @@ final class MarkdownCellView {
   final void Function() onDelete;
 
   late final web.HTMLDivElement root;
+  late final web.HTMLDivElement _toolbar;
+  late final web.HTMLDivElement _contentSlot;
   CodeEditor? _editor;
+
+  /// Latest edited source text (falling back to persisted `cell.source`).
+  String get currentSource => _editor?.value ?? cell.source;
 
   void focusEditor({bool moveToEnd = true}) {
     _editor?.focus(moveToEnd: moveToEnd);
+  }
+
+  /// Toggles editing mode in-place.
+  void setEditing(
+    bool editing, {
+    bool focusInput = false,
+    bool moveToEnd = true,
+  }) {
+    if (isEditing == editing) {
+      if (editing && focusInput) focusEditor(moveToEnd: moveToEnd);
+      return;
+    }
+    isEditing = editing;
+    root.classList.toggle('focused', editing);
+    _toolbar.style.display = editing ? 'flex' : 'none';
+    _rebuildContentSlot();
+    if (editing && focusInput) {
+      focusEditor(moveToEnd: moveToEnd);
+    }
+  }
+
+  /// Updates cell data and re-renders prose when not actively editing.
+  void update(MarkdownCell nextCell, NotebookDocument nextDoc) {
+    cell = nextCell;
+    document = nextDoc;
+    root.classList.toggle('stale', cell.stale);
+    if (!isEditing) {
+      _rebuildContentSlot();
+    }
   }
 
   void _buildDom() {
@@ -52,8 +88,22 @@ final class MarkdownCellView {
           : (cell.stale ? 'nb-cell nb-cell-md stale' : 'nb-cell nb-cell-md')
       ..setAttribute('data-uid', cell.uid);
 
+    _toolbar = _buildToolbar()..style.display = isEditing ? 'flex' : 'none';
+    _contentSlot = (web.document.createElement('div') as web.HTMLDivElement)
+      ..className = 'nb-md-slot';
+
+    root
+      ..append(_toolbar)
+      ..append(_contentSlot);
+
+    _rebuildContentSlot();
+  }
+
+  void _rebuildContentSlot() {
+    _contentSlot.innerHTML = ''.toJS;
+    _editor = null;
+
     if (isEditing) {
-      final toolbar = _buildToolbar();
       final editor = CodeEditor(
         mode: CodeEditorMode.markdown,
         registry: registry,
@@ -62,12 +112,10 @@ final class MarkdownCellView {
         placeholder: 'Write Markdown prose, \$inline math\$, or {{r[1]}}...',
         onRunAndAdvance: (val) => onCommit(val, advance: true),
         onRunInPlace: (val) => onCommit(val, advance: false),
-        onEscape: () => onCommit(_editor?.value ?? cell.source, advance: false),
+        onEscape: () => onCommit(currentSource, advance: false),
       );
       _editor = editor;
-      root
-        ..append(toolbar)
-        ..append(editor.root);
+      _contentSlot.append(editor.root);
     } else {
       final prose = (web.document.createElement('div') as web.HTMLDivElement)
         ..className = 'nb-md-prose'
@@ -84,7 +132,7 @@ final class MarkdownCellView {
         }
         onStartEdit();
       }).toJS;
-      root.append(prose);
+      _contentSlot.append(prose);
     }
   }
 
@@ -97,7 +145,7 @@ final class MarkdownCellView {
         _btn(
           'Done (Shift+Enter)',
           NbIcons.check,
-          () => onCommit(_editor?.value ?? cell.source, advance: false),
+          () => onCommit(currentSource, advance: false),
         ),
       )
       ..append(_btn('Move up', NbIcons.arrowUp, onMoveUp))

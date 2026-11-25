@@ -439,10 +439,12 @@ final List<Command> plotCommands = [
       return PlotValue(
         expressions: [rhs],
         variable: tVar,
+        yVariable: yVar,
         minX: b.xMin,
         maxX: b.xMax,
         minY: b.yMin,
         maxY: b.yMax,
+        odeY0: y0,
         isOde: true,
         title: args.stringOrNull('title'),
         plotKind: PlotKind.ode2d,
