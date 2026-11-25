@@ -66,10 +66,12 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - `Layout` (`lib/src/tensor/layout.dart`) models dimensions (`shape`), step sizes (`strides`), buffer displacement (`offset`), and whether storage is contiguous (`isContiguous`).
   - Zero-copy transformations produce new `Layout` instances referencing the same underlying `data` buffer:
-    - `transpose(axes)`: Reorders shape and strides arrays.
+    - `transpose(axes)` / `swapAxes(axis1, axis2)`: Reorder shape and strides arrays.
+    - `squeeze([axis])` / `unsqueeze(axis)`: Remove or insert singleton axes of length `1`.
     - `reshape(newShape)`: Recomputes contiguous strides if layout permits; otherwise triggers a contiguous buffer copy.
     - `getRange({required int axis, int? start, int? end, int step = 1})`: Offsets the start pointer and truncates the dimension along `axis`.
     - `flip(axis)`: Negates the stride along `axis` and offsets the pointer to the end of the axis.
+    - `isEmpty` / `isNotEmpty`: Reflect element count (`length == 0` / `length > 0`).
 
 ### 2.2 Contiguous Fast-Path Loops vs. Strided Iterators
 
@@ -93,13 +95,14 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Data science workflows require flexible axis aggregations and structural reshaping.
 - **Implementation & Constraints**:
-  - Reductions in `lib/src/tensor/operations/reduction.dart` (`sum`, `mean`, `min`, `max`, `std`, `variance`, `argmin`, `argmax`) support arbitrary `axis` and `keepDims` options.
-  - Axis reductions maintain accumulator buffers indexed by outer/inner layout strides.
+  - Reductions in `lib/src/tensor/operations/reduction.dart` (`sum`, `prod`, `mean`, `min`, `max`, `std`, `variance`, `argmin`, `argmax`, and boolean quantifiers `all`, `any`) support arbitrary `axis`, `keepDims`, and `target` options, with overflow-safe Welford mean and `ScaledNormAccumulator` standard deviation / `L_p` norm fallbacks.
+  - Axis reductions maintain accumulator buffers and stride directly along fibers without per-element coordinate allocation.
+  - Element-wise comparisons include `equalTo` and `notEqualTo`; boolean operations include `~`, `&`, `|`, and `^`.
   - Structural operations in `lib/src/tensor/operations/manipulation.dart`:
-    - `concatenate` / `concatenateAll`: Joins tensors along an existing axis.
+    - `concatenate` / `concatenateAll`: Joins tensors along an existing axis using contiguous block copies or zero-allocation strided odometers.
     - `stack` / `stackAll`: Inserts a new dimension and concatenates along it.
     - `tile`: Replicates tensor dimensions periodically.
-    - `pad`: Pads boundaries with specified constant values or boundary reflections.
+    - `pad`: Pads boundaries with specified constant fill values.
     - `split`: Divides a tensor along a specified axis into equal chunks as zero-copy views; validates positive chunk count and exact divisibility.
     - `splitWithSizes`: Partitions a tensor along a specified axis into chunks matching given partition sizes as zero-copy views; validates non-negative sizes and exact size sum matching.
   - Multi-axis strided slicing in `lib/src/tensor/layout.dart` and `lib/src/tensor/tensor.dart`:
@@ -120,7 +123,7 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - `tensordot` (`lib/src/tensor/operations/contraction.dart`): Contracts arbitrary subsets of axes between two tensors. Permutes free and contracted axes to form contiguous 2D block shapes, dispatches to accelerated 2D `matmul` (mapping to BLAS GEMM when float32/float64), and reshapes to output dimensions.
   - `innerProduct` and `outerProduct`: Specialized contractions representing full multi-axis inner products (yielding rank-0 scalar tensors) and zero-contraction outer products.
-  - `einsum` (`lib/src/tensor/operations/einsum.dart`): Evaluates Einstein summation convention matching NumPy notation (e.g. `'ij,jk->ik'`, `'ii->'`, `'bij,bjk->bik'`, `'i,j,k->ijk'`). Automatically parses explicit (`->`) and implicit output conventions, routes 2-operand contractions to optimized `tensordot` when applicable, and executes universal multi-index odometer evaluation for general contractions, diagonals, traces, and batched equations.
+  - `einsum` (`lib/src/tensor/operations/einsum.dart`): Evaluates Einstein summation convention matching NumPy notation (e.g. `'ij,jk->ik'`, `'ii->'`, `'ij,ij->ij'`, `'bij,bjk->bik'`, `'i,j,k->ijk'`). Validates alphabetic subscript labels, strips arbitrary whitespace, parses explicit (`->`) and implicit output conventions, routes 2-operand Hadamard products to aligned element-wise multiplication and 2-operand contractions to `matmul`, and executes universal multi-index odometer evaluation for general contractions, diagonals, traces, and batched equations.
 
 ---
 

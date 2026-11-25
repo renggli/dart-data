@@ -30,6 +30,65 @@ void main() {
         final layout = Layout(shape: [1, 3], strides: [0, 1]);
         check(layout.isContiguous).isFalse;
       });
+
+      test('isEmpty and isNotEmpty report element emptiness', () {
+        final empty = Layout(shape: [0, 3]);
+        check(empty.isEmpty).isTrue;
+        check(empty.isNotEmpty).isFalse;
+        final nonEmpty = Layout(shape: [2, 3]);
+        check(nonEmpty.isEmpty).isFalse;
+        check(nonEmpty.isNotEmpty).isTrue;
+      });
+    });
+
+    group('swapAxes, squeeze, and unsqueeze', () {
+      test('swapAxes swaps arbitrary and negative axes', () {
+        final layout = Layout(shape: [2, 3, 4], offset: 5);
+        final swapped = layout.swapAxes(0, -1);
+        check(swapped.shape).deepEquals([4, 3, 2]);
+        check(swapped.strides).deepEquals([1, 4, 12]);
+        check(swapped.offset).equals(5);
+        check(identical(layout.swapAxes(1, 1), layout)).isTrue;
+        check(() => layout.swapAxes(0, 5)).throws<RangeError>();
+        check(() => layout.swapAxes(-5, 0)).throws<RangeError>();
+      });
+
+      test('squeeze removes singleton dimensions or specified axis', () {
+        final layout = Layout(shape: [1, 3, 1, 2], offset: 2);
+        final allSqueezed = layout.squeeze();
+        check(allSqueezed.shape).deepEquals([3, 2]);
+        check(allSqueezed.strides).deepEquals([2, 1]);
+        check(allSqueezed.offset).equals(2);
+
+        final singleSqueezed = layout.squeeze(-2);
+        check(singleSqueezed.shape).deepEquals([1, 3, 2]);
+        check(singleSqueezed.strides).deepEquals([6, 2, 1]);
+
+        final noSingletons = Layout(shape: [2, 3]);
+        check(identical(noSingletons.squeeze(), noSingletons)).isTrue;
+        check(() => layout.squeeze(1)).throws<ArgumentError>();
+        check(() => layout.squeeze(5)).throws<RangeError>();
+      });
+
+      test(
+        'unsqueeze inserts singleton axis on contiguous and strided layouts',
+        () {
+          final contig = Layout(shape: [2, 3], offset: 4);
+          final u0 = contig.unsqueeze(0);
+          check(u0.shape).deepEquals([1, 2, 3]);
+          check(u0.offset).equals(4);
+          check(contig.unsqueeze(-1).shape).deepEquals([2, 3, 1]);
+
+          final strided = Layout(shape: [2, 3], strides: [6, 2], offset: 1);
+          final uStrided = strided.unsqueeze(1);
+          check(uStrided.shape).deepEquals([2, 1, 3]);
+          check(uStrided.strides).deepEquals([6, 6, 2]);
+          check(strided.unsqueeze(-1).strides).deepEquals([6, 2, 1]);
+
+          check(() => contig.unsqueeze(4)).throws<RangeError>();
+          check(() => contig.unsqueeze(-5)).throws<RangeError>();
+        },
+      );
     });
 
     group('transpose', () {

@@ -7,7 +7,8 @@ import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';
 
-/// Matrix multiplication and batched matrix multiplication operations on tensors.
+/// Matrix multiplication and batched matrix multiplication operations on
+/// tensors.
 extension MatmulTensorExtension<T> on Tensor<T> {
   /// Multiplies this tensor with [other] using matrix multiplication semantics.
   ///
@@ -16,9 +17,9 @@ extension MatmulTensorExtension<T> on Tensor<T> {
   /// For 3D or higher tensors, it performs the multiplication on each matrix in
   /// the stack (batch).
   ///
-  /// Formally, this calculates $C = A B$ where
-  /// $C_{ij} = \sum_{k} A_{ik} B_{kj}$, generalized across broadcasted batch
-  /// dimensions: $(\dots, M, K) \times (\dots, K, N) \to (\dots, M, N)$.
+  /// Formally, this calculates `C = A * B` where `C_ij = ∑_k A_ik * B_kj`,
+  /// generalized across broadcasted batch dimensions:
+  /// `(..., M, K) x (..., K, N) -> (..., M, N)`.
   ///
   /// Supports 2D and batched N-D matrix multiplication.
   ///
@@ -130,16 +131,6 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     int colsB,
     Field<T> field,
   ) {
-    if (rowsA == 0 || colsB == 0) return;
-    if (innerDim == 0) {
-      for (var i = 0; i < rowsA; i++) {
-        for (var j = 0; j < colsB; j++) {
-          tensorC.set2D(i, j, field.additiveIdentity);
-        }
-      }
-      return;
-    }
-
     // Transparent hardware acceleration when contiguous or transposed row-major
     int? transA;
     int? lda;
@@ -147,13 +138,13 @@ extension MatmulTensorExtension<T> on Tensor<T> {
         (tensorA.layout.strides[0] >= innerDim || rowsA == 1)) {
       transA = cblasNoTrans;
       lda = rowsA == 1
-          ? (innerDim > 0 ? innerDim : 1)
+          ? innerDim
           : (tensorA.layout.strides[0] > 0 ? tensorA.layout.strides[0] : 1);
     } else if (tensorA.layout.strides[0] == 1 &&
         (tensorA.layout.strides[1] >= rowsA || innerDim == 1)) {
       transA = cblasTrans;
       lda = innerDim == 1
-          ? (rowsA > 0 ? rowsA : 1)
+          ? rowsA
           : (tensorA.layout.strides[1] > 0 ? tensorA.layout.strides[1] : 1);
     }
 
@@ -163,13 +154,13 @@ extension MatmulTensorExtension<T> on Tensor<T> {
         (tensorB.layout.strides[0] >= colsB || innerDim == 1)) {
       transB = cblasNoTrans;
       ldb = innerDim == 1
-          ? (colsB > 0 ? colsB : 1)
+          ? colsB
           : (tensorB.layout.strides[0] > 0 ? tensorB.layout.strides[0] : 1);
     } else if (tensorB.layout.strides[0] == 1 &&
         (tensorB.layout.strides[1] >= innerDim || colsB == 1)) {
       transB = cblasTrans;
       ldb = colsB == 1
-          ? (innerDim > 0 ? innerDim : 1)
+          ? innerDim
           : (tensorB.layout.strides[1] > 0 ? tensorB.layout.strides[1] : 1);
     }
 
@@ -177,7 +168,7 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     if (tensorC.layout.strides[1] == 1 &&
         (tensorC.layout.strides[0] >= colsB || rowsA == 1)) {
       ldc = rowsA == 1
-          ? (colsB > 0 ? colsB : 1)
+          ? colsB
           : (tensorC.layout.strides[0] > 0 ? tensorC.layout.strides[0] : 1);
     }
 

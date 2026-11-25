@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../../acceleration/test_utils.dart';
 

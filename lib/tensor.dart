@@ -1,18 +1,20 @@
 /// Multi-dimensional array (Tensor) engine with arbitrary ranks, generalized
 /// stride layouts, and tensor contractions.
 ///
-/// Generalizes 1D vectors and 2D matrices to $N$-dimensional arrays. Provides
-/// zero-copy views (reshaping, slicing, transposing, broadcasting) backed by
-/// flat contiguous memory buffers and arbitrary stride arithmetic.
+/// Generalizes 1D vectors and 2D matrices to N-dimensional arrays. Provides
+/// zero-copy views (reshaping, slicing, transposing, swapping, squeezing,
+/// unsqueezing, broadcasting) backed by flat memory buffers and arbitrary
+/// stride arithmetic.
 ///
 /// ## Key Capabilities
 ///
 /// - **Arbitrary Rank & Shape**: [Tensor] supports rank-0 (scalars), rank-1
 ///   (vectors), rank-2 (matrices), and higher-dimensional tensors.
 /// - **Generalized Stride Layouts ([Layout])**: Strided indexing mapping
-///   $N$-dimensional coordinates $\mathbf{k} = (k_0, \dots, k_{r-1})$ to flat
-///   buffer offsets in $\mathcal{O}(1)$ time.
-/// - **Zero-Copy Views**: [Tensor.reshape], [Tensor.transpose], and
+///   N-dimensional coordinates `(k_0, ..., k_{r-1})` to flat buffer offsets in
+///   `O(1)` time.
+/// - **Zero-Copy Views**: [Tensor.reshape], [Tensor.transpose],
+///   [Tensor.swapAxes], [Tensor.squeeze], [Tensor.unsqueeze], and
 ///   [Tensor.slice] manipulate stride metadata without copying data.
 /// - **Broadcasting & Operations**: [OperationTensorExtension] handles
 ///   element-wise operations and automatic broadcasting following NumPy
@@ -26,9 +28,10 @@
 ///   contractions specified by index strings or axis indices.
 /// - **Hardware-Accelerated Math**: Fast batch matrix multiplication
 ///   ([MatmulTensorExtension.matmul]), [Float64Tensor] unboxed buffers, and
-///   reductions ([ReductionTensorExtension.sum],
+///   reductions ([ReductionTensorExtension.sum], [ReductionTensorExtension.prod],
 ///   [ReductionTensorExtension.mean], [ReductionTensorExtension.min],
-///   [ReductionTensorExtension.max]) across specified axes.
+///   [ReductionTensorExtension.max], [LogicalReductionTensorExtension.all],
+///   [LogicalReductionTensorExtension.any]) across specified axes.
 ///
 /// ## Example
 ///

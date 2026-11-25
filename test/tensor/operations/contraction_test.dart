@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('tensordot contraction', () {
@@ -86,6 +86,21 @@ void main() {
       // Each cell sums 3 * 4 = 12 terms of 1.0 * 2.0 = 24.0
       check(res.getValue([0, 0])).equals(24.0);
       check(res.getValue([1, 4])).equals(24.0);
+    });
+
+    test('non-identity axis permutations on both operands', () {
+      // A: [3, 2], B: [4, 3] contracted along axes ([0], [1]) -> [2, 4]
+      final a = Tensor<int>.fromIterable([1, 2, 3, 4, 5, 6], shape: [3, 2]);
+      final b = Tensor<int>.fromIterable(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        shape: [4, 3],
+      );
+      final res = a.tensordot(b, contractAxes: (self: [0], other: [1]));
+      check(res.shape).deepEquals([2, 4]);
+      // col 0 of a is [1, 3, 5]; row 0 of b is [1, 2, 3] => 1 + 6 + 15 = 22
+      check(res.getValue([0, 0])).equals(22);
+      // col 1 of a is [2, 4, 6]; row 3 of b is [10, 11, 12] => 20 + 44 + 72 = 136
+      check(res.getValue([1, 3])).equals(136);
     });
   });
 

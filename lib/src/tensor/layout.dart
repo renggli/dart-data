@@ -15,7 +15,7 @@ class Slice {
   /// Ending index along the axis (exclusive), or `null` for default.
   final int? end;
 
-  /// Stride step along the axis. Defaults to 1. Cannot be 0.
+  /// Stride step along the axis. Defaults to `1`. Cannot be `0`.
   final int step;
 
   @override
@@ -40,7 +40,7 @@ class Slice {
 /// columns) maps into a single flat list in computer memory.
 ///
 /// Formally, this defines an affine coordinate chart
-/// $\phi(k_0, \dots, k_{n-1}) = \text{offset} + \sum_{i=0}^{n-1} k_i s_i$.
+/// `φ(k_0, ..., k_{n-1}) = offset + ∑_{i=0}^{n-1} k_i * s_i`.
 ///
 /// ```dart
 /// final layout = Layout(shape: [2, 3]);
@@ -135,7 +135,7 @@ class Layout {
     required this.isContiguous,
   });
 
-  /// An empty layout with shape `[0]` and length 0.
+  /// An empty layout with shape `[0]` and length `0`.
   static final Layout empty = Layout(shape: const [0]);
 
   /// The number of dimensions (axes) in this layout.
@@ -143,6 +143,12 @@ class Layout {
 
   /// The total number of elements spanning this layout.
   final int length;
+
+  /// Whether this layout contains zero elements (`length == 0`).
+  bool get isEmpty => length == 0;
+
+  /// Whether this layout contains at least one element (`length > 0`).
+  bool get isNotEmpty => length > 0;
 
   /// The starting linear buffer offset for the origin key.
   final int offset;
@@ -176,13 +182,13 @@ class Layout {
     return (minOffset: minIdx, maxOffset: maxIdx);
   }
 
-  /// Converts an $N$-dimensional key into a flat buffer index.
+  /// Converts an N-dimensional [key] into a flat buffer index.
   ///
-  /// Conceptually, this maps an $N$-dimensional coordinate (such as
+  /// Conceptually, this maps an N-dimensional coordinate (such as
   /// `[row, column]`) to its corresponding offset within the underlying flat
   /// storage buffer.
   ///
-  /// Formally, this computes $\text{offset} + \sum_{i=0}^{n-1} k_i s_i$.
+  /// Formally, this computes `offset + ∑_{i=0}^{n-1} k_i * s_i`.
   ///
   /// ```dart
   /// final layout = Layout(shape: [2, 3]);
@@ -209,7 +215,7 @@ class Layout {
     return index;
   }
 
-  /// Converts a flat index (0 to length-1) to an $N$-dimensional key.
+  /// Converts a flat index (`0` to `length - 1`) to an N-dimensional key.
   List<int> toKey(int linearIndex) {
     if (linearIndex < 0 || linearIndex >= length) {
       throw RangeError.range(linearIndex, 0, length - 1, 'linearIndex');
@@ -252,10 +258,7 @@ class Layout {
     final seen = List<bool>.filled(rank, false);
     for (var i = 0; i < rank; i++) {
       final axis = perm[i];
-      final normAxis = axis < 0 ? axis + rank : axis;
-      if (normAxis < 0 || normAxis >= rank) {
-        throw RangeError.range(axis, -rank, rank - 1, 'axes');
-      }
+      final normAxis = _normalizeAxis(axis, rank, 'axes');
       if (seen[normAxis]) {
         throw ArgumentError('Duplicate axis $axis in permutation: $axes');
       }
@@ -267,7 +270,77 @@ class Layout {
     return Layout(shape: newShape, strides: newStrides, offset: offset);
   }
 
-  /// Reshapes this layout to a [newShape].
+  /// Swaps two axes [axis1] and [axis2] (supporting negative indexing).
+  Layout swapAxes(int axis1, int axis2) {
+    final norm1 = _normalizeAxis(axis1, rank, 'axis1');
+    final norm2 = _normalizeAxis(axis2, rank, 'axis2');
+    if (norm1 == norm2) return this;
+    final newShape = List<int>.from(shape);
+    final newStrides = List<int>.from(strides);
+    final tmpShape = newShape[norm1];
+    newShape[norm1] = newShape[norm2];
+    newShape[norm2] = tmpShape;
+    final tmpStride = newStrides[norm1];
+    newStrides[norm1] = newStrides[norm2];
+    newStrides[norm2] = tmpStride;
+    return Layout(shape: newShape, strides: newStrides, offset: offset);
+  }
+
+  /// Removes axes of length `1`.
+  ///
+  /// When [axis] is provided, only that axis (supporting negative indexing) is
+  /// removed and an [ArgumentError] is thrown if `shape[axis] != 1`.
+  Layout squeeze([int? axis]) {
+    if (axis != null) {
+      final normAxis = _normalizeAxis(axis, rank, 'axis');
+      if (shape[normAxis] != 1) {
+        throw ArgumentError.value(
+          axis,
+          'axis',
+          'Cannot squeeze axis $axis of length ${shape[normAxis]} != 1',
+        );
+      }
+      final newShape = <int>[];
+      final newStrides = <int>[];
+      for (var i = 0; i < rank; i++) {
+        if (i != normAxis) {
+          newShape.add(shape[i]);
+          newStrides.add(strides[i]);
+        }
+      }
+      return Layout(shape: newShape, strides: newStrides, offset: offset);
+    }
+    final newShape = <int>[];
+    final newStrides = <int>[];
+    for (var i = 0; i < rank; i++) {
+      if (shape[i] != 1) {
+        newShape.add(shape[i]);
+        newStrides.add(strides[i]);
+      }
+    }
+    if (newShape.length == rank) return this;
+    return Layout(shape: newShape, strides: newStrides, offset: offset);
+  }
+
+  /// Inserts a singleton axis of length `1` at [axis] (supporting negative
+  /// indexing in `[-rank - 1, rank]`).
+  Layout unsqueeze(int axis) {
+    final newRank = rank + 1;
+    final normAxis = _normalizeAxis(axis, newRank, 'axis');
+    final newShape = List<int>.from(shape)..insert(normAxis, 1);
+    if (isContiguous) {
+      return Layout(shape: newShape, offset: offset);
+    }
+    final insertedStride =
+        normAxis < rank && shape[normAxis] > 0 && strides[normAxis] > 0
+        ? shape[normAxis] * strides[normAxis]
+        : 1;
+    final newStrides = List<int>.from(strides)
+      ..insert(normAxis, insertedStride);
+    return Layout(shape: newShape, strides: newStrides, offset: offset);
+  }
+
+  /// Reshapes this contiguous layout to a [newShape].
   Layout reshape(List<int> newShape) {
     var newLength = 1;
     var inferredIndex = -1;
@@ -314,10 +387,7 @@ class Layout {
 
   /// Flips layout along the specified [axis].
   Layout flip({int axis = 0}) {
-    final normAxis = axis < 0 ? axis + rank : axis;
-    if (normAxis < 0 || normAxis >= rank) {
-      throw RangeError.value(axis, 'axis', 'Out of bounds [0, $rank)');
-    }
+    final normAxis = _normalizeAxis(axis, rank, 'axis');
     final dim = shape[normAxis];
     if (dim <= 1) return this;
     final newStrides = List<int>.from(strides);
@@ -371,10 +441,7 @@ class Layout {
 
   /// Slices a range along [axis].
   Layout getRange({required int axis, int? start, int? end, int step = 1}) {
-    final normAxis = axis < 0 ? axis + rank : axis;
-    if (normAxis < 0 || normAxis >= rank) {
-      throw RangeError.value(axis, 'axis', 'Out of bounds [0, $rank)');
-    }
+    final normAxis = _normalizeAxis(axis, rank, 'axis');
     final dim = shape[normAxis];
     final startIdx = start ?? 0;
     final endIdx = end ?? dim;
@@ -561,6 +628,14 @@ class Layout {
   @override
   String toString() =>
       'Layout(rank: $rank, length: $length, offset: $offset, shape: $shape, strides: $strides, isContiguous: $isContiguous)';
+
+  static int _normalizeAxis(int axis, int rank, String name) {
+    final normalized = axis < 0 ? axis + rank : axis;
+    if (normalized < 0 || normalized >= rank) {
+      throw RangeError.value(axis, name, 'Out of bounds [0, $rank)');
+    }
+    return normalized;
+  }
 }
 
 /// Returns whether two shapes [a] and [b] are structurally identical.

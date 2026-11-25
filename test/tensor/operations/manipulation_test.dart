@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Slice', () {
@@ -578,6 +578,17 @@ void main() {
         [6, 8],
       ]);
 
+      // Concatenate with empty slice along axis 0
+      final emptyAxis0 = Tensor<int>.filled(0, shape: [0, 2]);
+      final catWithEmpty = ManipulationTensorExtension.concatenateAll([
+        a,
+        emptyAxis0,
+        bT,
+      ], axis: 0);
+      check(catWithEmpty.shape).deepEquals([4, 2]);
+      check(catWithEmpty.toNestedList() as List)
+          .deepEquals(cat0.toNestedList() as List);
+
       // Concatenate along axis 1
       final cat1 = ManipulationTensorExtension.concatenateAll([a, bT], axis: 1);
       check(cat1.shape).deepEquals([2, 4]);
@@ -659,6 +670,11 @@ void main() {
       // Row 2 has padded [[2, 4]] starting at col 2
       check(padded.getValue([2, 2])).equals(2);
       check(padded.getValue([2, 3])).equals(4);
+
+      // Rank-0 scalar pad preserves value
+      final paddedScalar = Tensor<int>.filled(9, shape: []).pad([]);
+      check(paddedScalar.rank).equals(0);
+      check(paddedScalar.getValue([])).equals(9);
     });
 
     test('Tensor.generate population order and flat buffer', () {

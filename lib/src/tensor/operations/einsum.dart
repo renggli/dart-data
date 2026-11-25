@@ -1,13 +1,14 @@
 import '../tensor.dart';
 import 'contraction.dart' show isIdentityPermutation;
 import 'matmul.dart';
+import 'operation.dart';
 
 /// Evaluates Einstein summation convention on [operands] according to
 /// [equation].
 ///
 /// Conceptually, Einstein summation provides a concise notation for specifying
 /// multidimensional tensor transformations, products, and contractions through
-/// index subscript labels.
+/// alphabetic index subscript labels (`A-Z`, `a-z`).
 ///
 /// Formally, this calculates general tensor contractions defined by index
 /// subscript labels: repeated indices across input operands that do not appear
@@ -17,12 +18,17 @@ import 'matmul.dart';
 /// - Matrix multiplication: `'ij,jk->ik'`
 /// - Dot product: `'i,i->'` or `'i,i'`
 /// - Outer product: `'i,j->ij'`
+/// - Element-wise Hadamard product: `'ij,ij->ij'`
 /// - Transpose: `'ij->ji'`
 /// - Diagonal extraction: `'ii->i'`
 /// - Matrix trace: `'ii->'`
 /// - Batched matrix multiplication: `'bij,bjk->bik'`
 /// - Sum of elements: `'ij->'`
 /// - Multi-tensor contractions: `'ijk,jkl,klm->im'`
+///
+/// Throws an [ArgumentError] on empty operands, malformed `->` delimiters,
+/// non-alphabetic subscript labels, rank mismatches, inconsistent axis sizes,
+/// missing input indices in output labels, or duplicate output indices.
 ///
 /// ```dart
 /// final a = Tensor<int>.fromObject([[1, 2], [3, 4]]);
@@ -46,15 +52,16 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
         'Invalid einsum equation format: multiple "->" delimiters',
       );
     }
-    inputsPart = parts[0].replaceAll(' ', '');
-    outputPart = parts[1].replaceAll(' ', '');
+    inputsPart = parts[0].replaceAll(RegExp(r'\s+'), '');
+    outputPart = parts[1].replaceAll(RegExp(r'\s+'), '');
   } else {
-    inputsPart = equation.replaceAll(' ', '');
+    inputsPart = equation.replaceAll(RegExp(r'\s+'), '');
     // NumPy convention: indices occurring exactly once, sorted alphabetically
     final counts = <String, int>{};
     for (var i = 0; i < inputsPart.length; i++) {
       final ch = inputsPart[i];
       if (ch != ',') {
+        _validateSubscriptChar(ch, equation);
         counts[ch] = (counts[ch] ?? 0) + 1;
       }
     }
@@ -83,6 +90,7 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
     }
     for (var axis = 0; axis < label.length; axis++) {
       final ch = label[axis];
+      _validateSubscriptChar(ch, equation);
       final dim = op.shape[axis];
       if (dimMap.containsKey(ch)) {
         if (dimMap[ch] != dim) {
@@ -100,6 +108,7 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
   final seenOut = <String>{};
   for (var i = 0; i < outputPart.length; i++) {
     final ch = outputPart[i];
+    _validateSubscriptChar(ch, equation);
     if (!dimMap.containsKey(ch)) {
       throw ArgumentError(
         'Output index "$ch" does not appear in any input subscript',
@@ -151,9 +160,31 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
       if (freeA.every(outSet.contains) &&
           freeB.every(outSet.contains) &&
           outSet.length == batch.length + freeA.length + freeB.length &&
-          (contracted.isNotEmpty || freeA.isNotEmpty || freeB.isNotEmpty)) {
+          (contracted.isNotEmpty ||
+              freeA.isNotEmpty ||
+              freeB.isNotEmpty ||
+              batch.isNotEmpty)) {
         final opA = operands[0];
         final opB = operands[1];
+
+        // Pure batch element-wise Hadamard product (e.g., 'ij,ij->ij', 'ij,ji->ij')
+        if (contracted.isEmpty && freeA.isEmpty && freeB.isEmpty) {
+          final permA = [
+            for (var i = 0; i < outputPart.length; i++)
+              labelA.indexOf(outputPart[i]),
+          ];
+          final permB = [
+            for (var i = 0; i < outputPart.length; i++)
+              labelB.indexOf(outputPart[i]),
+          ];
+          final alignedA = isIdentityPermutation(permA)
+              ? opA
+              : opA.transpose(permA);
+          final alignedB = isIdentityPermutation(permB)
+              ? opB
+              : opB.transpose(permB);
+          return alignedA * alignedB;
+        }
 
         // Maintain consistent batch order matching outputPart
         final batchList = [
@@ -228,7 +259,6 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
 
   // Universal multi-index contraction loop
   final uniqueLabels = <String>[];
-  // Prioritize output labels first, followed by contracted labels
   for (var i = 0; i < outputPart.length; i++) {
     uniqueLabels.add(outputPart[i]);
   }
@@ -304,16 +334,13 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
   final currentCoords = List<int>.filled(numVars, 0);
 
   for (var step = 0; step < totalSteps; step++) {
-    // Compute operand product
     var prod = opData[0][opOffsets[0]];
     for (var opIdx = 1; opIdx < numOps; opIdx++) {
       prod = field.mul(prod, opData[opIdx][opOffsets[opIdx]]);
     }
 
-    // Accumulate into output
     outData[outOffset] = field.add(outData[outOffset], prod);
 
-    // Advance odometer
     for (var d = numVars - 1; d >= 0; d--) {
       currentCoords[d]++;
       if (currentCoords[d] < varDims[d]) {
@@ -332,4 +359,17 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
   }
 
   return outTensor;
+}
+
+void _validateSubscriptChar(String ch, String equation) {
+  final code = ch.codeUnitAt(0);
+  final isUpper = code >= 65 && code <= 90;
+  final isLower = code >= 97 && code <= 122;
+  if (!isUpper && !isLower) {
+    throw ArgumentError.value(
+      equation,
+      'equation',
+      'Invalid subscript character "$ch" in einsum equation',
+    );
+  }
 }

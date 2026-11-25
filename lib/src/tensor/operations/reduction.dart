@@ -8,20 +8,15 @@ import '../../type/data_type.dart';
 import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';
-import 'operation.dart';
 
 /// Multi-axis reduction and aggregation operations on tensors.
 extension ReductionTensorExtension<T> on Tensor<T> {
   /// Computes the sum of elements over the given [axis], or all elements if
-  /// [axis] is null.
+  /// [axis] is `null`.
   Tensor<T> sum({int? axis, bool keepDims = false, Tensor<T>? target}) {
     if (axis == null && layout.isContiguous && data is Float64List) {
       final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
-      if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
-        throw ArgumentError(
-          'Target shape ${target.layout.shape} does not match reduced shape $outShape',
-        );
-      }
+      _validateTargetShape(target, outShape);
       final double result;
       if (length == 0) {
         result = 0.0;
@@ -52,8 +47,24 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     );
   }
 
+  /// Computes the product of elements over the given [axis], or all elements
+  /// if [axis] is `null`.
+  Tensor<T> prod({int? axis, bool keepDims = false, Tensor<T>? target}) {
+    final field = type.field;
+    return _reduceAxis(
+      axis: axis,
+      keepDims: keepDims,
+      target: target,
+      initialValue: field.multiplicativeIdentity,
+      combine: field.mul,
+    );
+  }
+
   /// Computes the arithmetic mean over the given [axis], or all elements if
-  /// [axis] is null.
+  /// [axis] is `null`.
+  ///
+  /// Uses overflow-safe summation fallback when direct summation overflows on
+  /// large finite inputs.
   Tensor<double> mean({
     int? axis,
     bool keepDims = false,
@@ -63,11 +74,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       final count = length;
       if (count == 0) throw StateError('Cannot compute mean of empty tensor');
       final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
-      if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
-        throw ArgumentError(
-          'Target shape ${target.layout.shape} does not match reduced shape $outShape',
-        );
-      }
+      _validateTargetShape(target, outShape);
       final double result;
       if (data is Float64List && layout.isContiguous) {
         final f64Data = data as Float64List;
@@ -80,11 +87,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
               );
         result = Vforce.mean(x: view);
       } else {
-        var sum = 0.0;
-        for (final val in values) {
-          sum += _toDouble(val);
-        }
-        result = sum / count;
+        result = _safeMeanIterable(values, count);
       }
       if (target != null) {
         target.setValue(List<int>.filled(outShape.length, 0), result);
@@ -97,27 +100,12 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       );
     }
 
-    final normalizedAxis = axis < 0 ? axis + rank : axis;
-    if (normalizedAxis < 0 || normalizedAxis >= rank) {
-      throw RangeError.range(axis, -rank, rank - 1, 'axis');
-    }
+    final normalizedAxis = _normalizeReductionAxis(axis, rank);
     final count = layout.shape[normalizedAxis];
     if (count == 0) throw StateError('Cannot compute mean of empty tensor');
 
-    final outShape = <int>[];
-    for (var i = 0; i < rank; i++) {
-      if (i == normalizedAxis) {
-        if (keepDims) outShape.add(1);
-      } else {
-        outShape.add(layout.shape[i]);
-      }
-    }
-
-    if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
-      throw ArgumentError(
-        'Target shape ${target.layout.shape} does not match reduced shape $outShape',
-      );
-    }
+    final outShape = _reducedShape(layout.shape, normalizedAxis, keepDims);
+    _validateTargetShape(target, outShape);
 
     final hasHazard = target != null && sharesMemory(target.data, data);
     final outTensor = (target != null && !hasHazard)
@@ -128,20 +116,11 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     final axisStride = layout.strides[normalizedAxis];
 
     for (final key in outLayout.keys) {
-      final inKey = List<int>.from(key);
-      if (!keepDims) {
-        inKey.insert(normalizedAxis, 0);
-      }
-      inKey[normalizedAxis] = 0;
-      final baseOffset = layout.toIndex(inKey);
-
-      var sum = 0.0;
-      var offset = baseOffset;
-      for (var k = 0; k < count; k++) {
-        sum += _toDouble(data[offset]);
-        offset += axisStride;
-      }
-      outTensor.setValue(key, sum / count);
+      final baseOffset = _fiberBaseOffset(key, normalizedAxis, keepDims);
+      outTensor.setValue(
+        key,
+        _safeMeanFiber(data, baseOffset, count, axisStride),
+      );
     }
 
     if (hasHazard) {
@@ -152,7 +131,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   }
 
   /// Computes the minimum value over the given [axis], or all elements if
-  /// [axis] is null.
+  /// [axis] is `null`.
   Tensor<T> min({int? axis, bool keepDims = false, Tensor<T>? target}) {
     if (axis == null && length == 0) {
       throw StateError('Cannot compute min of empty tensor');
@@ -171,7 +150,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   }
 
   /// Computes the maximum value over the given [axis], or all elements if
-  /// [axis] is null.
+  /// [axis] is `null`.
   Tensor<T> max({int? axis, bool keepDims = false, Tensor<T>? target}) {
     if (axis == null && length == 0) {
       throw StateError('Cannot compute max of empty tensor');
@@ -190,13 +169,16 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   }
 
   /// Computes the variance over the given [axis], or all elements if [axis] is
-  /// null.
+  /// `null`.
   ///
   /// Conceptually, variance measures how spread out the values are from their
   /// arithmetic mean. A variance of zero indicates all values are identical.
   ///
   /// Formally, this calculates the sample or population variance
-  /// $\sigma^2 = \frac{1}{N - \text{ddof}} \sum_{i=1}^N (x_i - \bar{x})^2$.
+  /// `σ^2 = (1 / (N - ddof)) * ∑_{i=1}^N (x_i - mean)^2`.
+  ///
+  /// Throws a [RangeError] if [ddof] is negative, or a [StateError] if
+  /// `N - ddof <= 0`.
   ///
   /// ```dart
   /// final t = Tensor<double>.fromIterable(
@@ -210,17 +192,14 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     int ddof = 0,
     Tensor<double>? target,
   }) {
+    RangeError.checkNotNegative(ddof, 'ddof');
     if (axis == null) {
       final count = length;
       final denom = count - ddof;
       if (denom <= 0) throw StateError('Degrees of freedom <= 0');
 
       final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
-      if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
-        throw ArgumentError(
-          'Target shape ${target.layout.shape} does not match reduced shape $outShape',
-        );
-      }
+      _validateTargetShape(target, outShape);
 
       final double v;
       if (data is Float64List && layout.isContiguous) {
@@ -238,15 +217,10 @@ extension ReductionTensorExtension<T> on Tensor<T> {
           v = Vforce.variance(x: view, sample: true);
         } else {
           final popVar = Vforce.variance(x: view, sample: false);
-          v = (popVar * count) / denom;
+          v = popVar * (count / denom);
         }
       } else {
-        var sum = 0.0;
-        for (final val in values) {
-          sum += _toDouble(val);
-        }
-        final meanVal = sum / count;
-
+        final meanVal = _safeMeanIterable(values, count);
         var sumSq = 0.0;
         for (final val in values) {
           final diff = _toDouble(val) - meanVal;
@@ -262,28 +236,13 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       return Tensor<double>.filled(v, shape: outShape, type: DataType.float64);
     }
 
-    final normalizedAxis = axis < 0 ? axis + rank : axis;
-    if (normalizedAxis < 0 || normalizedAxis >= rank) {
-      throw RangeError.range(axis, -rank, rank - 1, 'axis');
-    }
+    final normalizedAxis = _normalizeReductionAxis(axis, rank);
     final count = layout.shape[normalizedAxis];
     final denom = count - ddof;
     if (denom <= 0) throw StateError('Degrees of freedom <= 0');
 
-    final outShape = <int>[];
-    for (var i = 0; i < rank; i++) {
-      if (i == normalizedAxis) {
-        if (keepDims) outShape.add(1);
-      } else {
-        outShape.add(layout.shape[i]);
-      }
-    }
-
-    if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
-      throw ArgumentError(
-        'Target shape ${target.layout.shape} does not match reduced shape $outShape',
-      );
-    }
+    final outShape = _reducedShape(layout.shape, normalizedAxis, keepDims);
+    _validateTargetShape(target, outShape);
 
     final hasHazard = target != null && sharesMemory(target.data, data);
     final outTensor = (target != null && !hasHazard)
@@ -294,23 +253,11 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     final axisStride = layout.strides[normalizedAxis];
 
     for (final key in outLayout.keys) {
-      final inKey = List<int>.from(key);
-      if (!keepDims) {
-        inKey.insert(normalizedAxis, 0);
-      }
-      inKey[normalizedAxis] = 0;
-      final baseOffset = layout.toIndex(inKey);
-
-      var sum = 0.0;
-      var offset = baseOffset;
-      for (var k = 0; k < count; k++) {
-        sum += _toDouble(data[offset]);
-        offset += axisStride;
-      }
-      final meanVal = sum / count;
+      final baseOffset = _fiberBaseOffset(key, normalizedAxis, keepDims);
+      final meanVal = _safeMeanFiber(data, baseOffset, count, axisStride);
 
       var sumSq = 0.0;
-      offset = baseOffset;
+      var offset = baseOffset;
       for (var k = 0; k < count; k++) {
         final diff = _toDouble(data[offset]) - meanVal;
         sumSq += diff * diff;
@@ -327,26 +274,61 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   }
 
   /// Computes the standard deviation over the given [axis].
+  ///
+  /// Uses [ScaledNormAccumulator] fallback when squaring deviations overflows
+  /// or underflows for finite inputs.
   Tensor<double> std({
     int? axis,
     bool keepDims = false,
     int ddof = 0,
     Tensor<double>? target,
   }) {
-    final varTensor = variance(
+    RangeError.checkNotNegative(ddof, 'ddof');
+    final hasHazard = target != null && sharesMemory(target.data, data);
+    final safeTarget = hasHazard ? null : target;
+    final outTensor = variance(
       axis: axis,
       keepDims: keepDims,
       ddof: ddof,
-      target: target,
+      target: safeTarget,
     );
-    return varTensor.unaryOperation<double>(
-      math.sqrt,
-      type: DataType.float64,
-      target: varTensor,
-    );
+
+    if (axis == null) {
+      final v = outTensor.data[outTensor.layout.offset];
+      final double s;
+      if (v.isFinite && v > 0.0) {
+        s = math.sqrt(v);
+      } else {
+        s = _safeStdIterable(values, length, length - ddof);
+      }
+      outTensor.data[outTensor.layout.offset] = s;
+    } else {
+      final normalizedAxis = _normalizeReductionAxis(axis, rank);
+      final count = layout.shape[normalizedAxis];
+      final denom = count - ddof;
+      final axisStride = layout.strides[normalizedAxis];
+      for (final key in outTensor.layout.keys) {
+        final v = outTensor.getValue(key);
+        if (v.isFinite && v > 0.0) {
+          outTensor.setValue(key, math.sqrt(v));
+        } else {
+          final baseOffset = _fiberBaseOffset(key, normalizedAxis, keepDims);
+          outTensor.setValue(
+            key,
+            _safeStdFiber(data, baseOffset, count, axisStride, denom),
+          );
+        }
+      }
+    }
+
+    if (hasHazard) {
+      outTensor.copy(target: target);
+      return target;
+    }
+    return outTensor;
   }
 
-  /// Computes the $L_p$ norm of this tensor.
+  /// Computes the `L_p` norm of this tensor.
   double norm([num pNorm = 2]) {
     if (pNorm.isNaN || pNorm < 1) {
       throw ArgumentError.value(pNorm, 'pNorm', 'pNorm must be >= 1');
@@ -388,21 +370,41 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       }
       return acc.norm;
     } else {
+      var maxVal = 0.0;
+      for (final val in values) {
+        final absVal = type.field.norm(val);
+        if (absVal.isNaN) return double.nan;
+        if (absVal > maxVal) maxVal = absVal;
+      }
+      if (maxVal == 0.0 || maxVal.isInfinite) return maxVal;
       var sum = 0.0;
       for (final val in values) {
-        sum += math.pow(type.field.norm(val), pNorm);
+        final scaled = type.field.norm(val) / maxVal;
+        sum += math.pow(scaled, pNorm);
       }
-      return math.pow(sum, 1.0 / pNorm).toDouble();
+      return maxVal * math.pow(sum, 1.0 / pNorm).toDouble();
     }
   }
 
-  /// Finds the index of the minimum value.
-  Tensor<int> argmin({int? axis, bool keepDims = false}) =>
-      _argReduceAxis(axis: axis, keepDims: keepDims, findMin: true);
+  /// Finds the index of the minimum value along [axis], or globally when
+  /// [axis] is `null`.
+  Tensor<int> argmin({int? axis, bool keepDims = false, Tensor<int>? target}) =>
+      _argReduceAxis(
+        axis: axis,
+        keepDims: keepDims,
+        findMin: true,
+        target: target,
+      );
 
-  /// Finds the index of the maximum value.
-  Tensor<int> argmax({int? axis, bool keepDims = false}) =>
-      _argReduceAxis(axis: axis, keepDims: keepDims, findMin: false);
+  /// Finds the index of the maximum value along [axis], or globally when
+  /// [axis] is `null`.
+  Tensor<int> argmax({int? axis, bool keepDims = false, Tensor<int>? target}) =>
+      _argReduceAxis(
+        axis: axis,
+        keepDims: keepDims,
+        findMin: false,
+        target: target,
+      );
 
   Tensor<T> _reduceAxis({
     int? axis,
@@ -413,11 +415,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   }) {
     if (axis == null) {
       final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
-      if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
-        throw ArgumentError(
-          'Target shape ${target.layout.shape} does not match reduced shape $outShape',
-        );
-      }
+      _validateTargetShape(target, outShape);
       T result;
       if (layout.isContiguous && length > 0) {
         final start = layout.offset;
@@ -451,29 +449,13 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       return Tensor<T>.filled(result, shape: outShape, type: type);
     }
 
-    final normalizedAxis = axis < 0 ? axis + rank : axis;
-    if (normalizedAxis < 0 || normalizedAxis >= rank) {
-      throw RangeError.value(axis, 'axis', 'Axis out of range [0, $rank)');
-    }
-
+    final normalizedAxis = _normalizeReductionAxis(axis, rank);
     final axisLen = layout.shape[normalizedAxis];
     if (axisLen == 0 && initialValue == null) {
       throw StateError('Cannot reduce empty axis without initialValue');
     }
-    final outShape = <int>[];
-    for (var i = 0; i < rank; i++) {
-      if (i == normalizedAxis) {
-        if (keepDims) outShape.add(1);
-      } else {
-        outShape.add(layout.shape[i]);
-      }
-    }
-
-    if (target != null && !areShapesEqual(target.layout.shape, outShape)) {
-      throw ArgumentError(
-        'Target shape ${target.layout.shape} does not match reduced shape $outShape',
-      );
-    }
+    final outShape = _reducedShape(layout.shape, normalizedAxis, keepDims);
+    _validateTargetShape(target, outShape);
 
     final outLayout = Layout(shape: outShape);
     final hasHazard = target != null && sharesMemory(target.data, data);
@@ -481,17 +463,23 @@ extension ReductionTensorExtension<T> on Tensor<T> {
         ? target
         : Tensor<T>.filled(type.defaultValue, shape: outShape, type: type);
 
+    final axisStride = layout.strides[normalizedAxis];
     for (final key in outLayout.keys) {
-      final inKey = List<int>.from(key);
-      if (!keepDims) {
-        inKey.insert(normalizedAxis, 0);
-      }
-      inKey[normalizedAxis] = 0;
-      var acc = initialValue ?? getValue(inKey);
-      final startK = initialValue == null ? 1 : 0;
-      for (var k = startK; k < axisLen; k++) {
-        inKey[normalizedAxis] = k;
-        acc = combine(acc, getValue(inKey));
+      var offset = _fiberBaseOffset(key, normalizedAxis, keepDims);
+      T acc;
+      if (initialValue != null) {
+        acc = initialValue;
+        for (var k = 0; k < axisLen; k++) {
+          acc = combine(acc, data[offset]);
+          offset += axisStride;
+        }
+      } else {
+        acc = data[offset];
+        offset += axisStride;
+        for (var k = 1; k < axisLen; k++) {
+          acc = combine(acc, data[offset]);
+          offset += axisStride;
+        }
       }
       outTensor.setValue(key, acc);
     }
@@ -506,71 +494,66 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     int? axis,
     required bool keepDims,
     required bool findMin,
+    Tensor<int>? target,
   }) {
     final cmp = type.comparator;
     if (axis == null) {
       if (length == 0) throw StateError('Cannot arg-reduce empty tensor');
-      var bestIdx = 0;
-      var bestVal = values.first;
-      var idx = 0;
-      for (final val in values) {
-        if (val is double && val.isNaN) {
-          bestVal = val;
-          bestIdx = idx;
-          break;
-        }
-        final isBetter = findMin
-            ? cmp(val, bestVal) < 0
-            : cmp(val, bestVal) > 0;
-        if (isBetter) {
-          bestVal = val;
-          bestIdx = idx;
-        }
-        idx++;
-      }
       final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
+      _validateTargetShape(target, outShape);
+
+      final it = values.iterator..moveNext();
+      var bestIdx = 0;
+      var bestVal = it.current;
+      if (bestVal is! double || !bestVal.isNaN) {
+        var idx = 1;
+        while (it.moveNext()) {
+          final val = it.current;
+          if (val is double && val.isNaN) {
+            bestIdx = idx;
+            break;
+          }
+          final isBetter = findMin
+              ? cmp(val, bestVal) < 0
+              : cmp(val, bestVal) > 0;
+          if (isBetter) {
+            bestVal = val;
+            bestIdx = idx;
+          }
+          idx++;
+        }
+      }
+      if (target != null) {
+        target.setValue(List<int>.filled(outShape.length, 0), bestIdx);
+        return target;
+      }
       return Tensor<int>.filled(bestIdx, shape: outShape, type: DataType.int32);
     }
 
-    final normalizedAxis = axis < 0 ? axis + rank : axis;
-    if (normalizedAxis < 0 || normalizedAxis >= rank) {
-      throw RangeError.value(axis, 'axis', 'Axis out of range [0, $rank)');
-    }
-
+    final normalizedAxis = _normalizeReductionAxis(axis, rank);
     final axisLen = layout.shape[normalizedAxis];
     if (axisLen == 0) {
       throw StateError('Cannot arg-reduce empty axis');
     }
-    final outShape = <int>[];
-    for (var i = 0; i < rank; i++) {
-      if (i == normalizedAxis) {
-        if (keepDims) outShape.add(1);
-      } else {
-        outShape.add(layout.shape[i]);
-      }
-    }
+    final outShape = _reducedShape(layout.shape, normalizedAxis, keepDims);
+    _validateTargetShape(target, outShape);
 
     final outLayout = Layout(shape: outShape);
-    final outTensor = Tensor<int>.filled(
-      0,
-      shape: outShape,
-      type: DataType.int32,
-    );
+    final hasHazard = target != null && sharesMemory(target.data, data);
+    final outTensor = (target != null && !hasHazard)
+        ? target
+        : Tensor<int>.filled(0, shape: outShape, type: DataType.int32);
 
+    final axisStride = layout.strides[normalizedAxis];
     for (final key in outLayout.keys) {
-      final inKey = List<int>.from(key);
-      if (!keepDims) {
-        inKey.insert(normalizedAxis, 0);
-      }
-      inKey[normalizedAxis] = 0;
+      var offset = _fiberBaseOffset(key, normalizedAxis, keepDims);
       var bestIdx = 0;
-      var bestVal = getValue(inKey);
+      var bestVal = data[offset];
       if (bestVal is! double || !bestVal.isNaN) {
+        offset += axisStride;
         for (var k = 1; k < axisLen; k++) {
-          inKey[normalizedAxis] = k;
-          final currentVal = getValue(inKey);
+          final currentVal = data[offset];
           if (currentVal is double && currentVal.isNaN) {
-            bestVal = currentVal;
             bestIdx = k;
             break;
           }
@@ -581,12 +564,153 @@ extension ReductionTensorExtension<T> on Tensor<T> {
             bestVal = currentVal;
             bestIdx = k;
           }
+          offset += axisStride;
         }
       }
       outTensor.setValue(key, bestIdx);
     }
+    if (hasHazard) {
+      outTensor.copy(target: target);
+      return target;
+    }
     return outTensor;
   }
+
+  int _fiberBaseOffset(List<int> outKey, int normalizedAxis, bool keepDims) {
+    final inKey = List<int>.from(outKey);
+    if (!keepDims) {
+      inKey.insert(normalizedAxis, 0);
+    } else {
+      inKey[normalizedAxis] = 0;
+    }
+    return layout.toIndex(inKey);
+  }
+}
+
+/// Boolean quantifier reductions on [Tensor<bool>].
+extension LogicalReductionTensorExtension on Tensor<bool> {
+  /// Returns whether all elements along [axis] (or the whole tensor) are
+  /// `true`.
+  Tensor<bool> all({int? axis, bool keepDims = false, Tensor<bool>? target}) =>
+      _reduceAxis(
+        axis: axis,
+        keepDims: keepDims,
+        target: target,
+        initialValue: true,
+        combine: (a, b) => a && b,
+      );
+
+  /// Returns whether any element along [axis] (or the whole tensor) is `true`.
+  Tensor<bool> any({int? axis, bool keepDims = false, Tensor<bool>? target}) =>
+      _reduceAxis(
+        axis: axis,
+        keepDims: keepDims,
+        target: target,
+        initialValue: false,
+        combine: (a, b) => a || b,
+      );
+}
+
+int _normalizeReductionAxis(int axis, int rank) {
+  final normalized = axis < 0 ? axis + rank : axis;
+  if (normalized < 0 || normalized >= rank) {
+    throw RangeError.range(axis, -rank, rank - 1, 'axis');
+  }
+  return normalized;
+}
+
+List<int> _reducedShape(List<int> shape, int normalizedAxis, bool keepDims) {
+  final outShape = <int>[];
+  for (var i = 0; i < shape.length; i++) {
+    if (i == normalizedAxis) {
+      if (keepDims) outShape.add(1);
+    } else {
+      outShape.add(shape[i]);
+    }
+  }
+  return outShape;
+}
+
+void _validateTargetShape<R>(Tensor<R>? target, List<int> expectedShape) {
+  if (target != null && !areShapesEqual(target.layout.shape, expectedShape)) {
+    throw ArgumentError(
+      'Target shape ${target.layout.shape} does not match reduced shape $expectedShape',
+    );
+  }
+}
+
+double _safeMeanIterable(Iterable<Object?> items, int count) {
+  var sum = 0.0;
+  for (final val in items) {
+    sum += _toDouble(val);
+  }
+  final avg = sum / count;
+  if (avg.isFinite) return avg;
+  for (final val in items) {
+    if (!_toDouble(val).isFinite) return avg;
+  }
+  var welford = 0.0;
+  var i = 0;
+  for (final val in items) {
+    welford += (_toDouble(val) - welford) / (++i);
+  }
+  return welford;
+}
+
+double _safeMeanFiber(
+  List<Object?> data,
+  int baseOffset,
+  int count,
+  int stride,
+) {
+  var sum = 0.0;
+  var offset = baseOffset;
+  for (var k = 0; k < count; k++) {
+    sum += _toDouble(data[offset]);
+    offset += stride;
+  }
+  final avg = sum / count;
+  if (avg.isFinite) return avg;
+  offset = baseOffset;
+  for (var k = 0; k < count; k++) {
+    if (!_toDouble(data[offset]).isFinite) return avg;
+    offset += stride;
+  }
+  var welford = 0.0;
+  offset = baseOffset;
+  for (var k = 0; k < count; k++) {
+    welford += (_toDouble(data[offset]) - welford) / (k + 1);
+    offset += stride;
+  }
+  return welford;
+}
+
+double _safeStdIterable(Iterable<Object?> items, int count, int denom) {
+  final meanVal = _safeMeanIterable(items, count);
+  if (!meanVal.isFinite) return double.nan;
+  final acc = ScaledNormAccumulator();
+  for (final val in items) {
+    acc.addAbs((_toDouble(val) - meanVal).abs());
+  }
+  return acc.norm / math.sqrt(denom);
+}
+
+double _safeStdFiber(
+  List<Object?> data,
+  int baseOffset,
+  int count,
+  int stride,
+  int denom,
+) {
+  final meanVal = _safeMeanFiber(data, baseOffset, count, stride);
+  if (!meanVal.isFinite) return double.nan;
+  final acc = ScaledNormAccumulator();
+  var offset = baseOffset;
+  for (var k = 0; k < count; k++) {
+    acc.addAbs((_toDouble(data[offset]) - meanVal).abs());
+    offset += stride;
+  }
+  return acc.norm / math.sqrt(denom);
 }
 
 double _toDouble(Object? value) {

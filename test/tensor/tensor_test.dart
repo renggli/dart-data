@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Layout', () {
@@ -1001,6 +1001,74 @@ void main() {
       check(t1.isClose(t3, epsilon: 0.2)).isTrue;
       check(t1.isClose(tDiffShape)).isFalse;
       check(empty1.isClose(empty2)).isTrue;
+
+      // NaN is not close even to itself, and negative/NaN epsilon throws
+      final tNan = Tensor<double>.fromIterable([1.0, double.nan]);
+      check(tNan.isClose(tNan)).isFalse;
+      check(tNan.transpose().isClose(tNan.transpose())).isFalse;
+      check(() => t1.isClose(t2, epsilon: -1e-9)).throws<ArgumentError>();
+      check(() => t1.isClose(t2, epsilon: double.nan)).throws<ArgumentError>();
+    });
+
+    test('isEmpty, isNotEmpty, get1D/set1D, get2D/set2D, swapAxes, squeeze, and unsqueeze', () {
+      final tEmpty = Tensor<int>.filled(0, shape: [0, 3]);
+      check(tEmpty.isEmpty).isTrue;
+      check(tEmpty.isNotEmpty).isFalse;
+
+      final v = Tensor<int>.fromIterable([10, 20, 30], shape: [3]);
+      check(v.isEmpty).isFalse;
+      check(v.isNotEmpty).isTrue;
+      check(v.get1D(1)).equals(20);
+      v.set1D(1, 99);
+      check(v.get1D(1)).equals(99);
+
+      final m = Tensor<int>.fromIterable([1, 2, 3, 4], shape: [1, 2, 2]);
+      final sq = m.squeeze();
+      check(sq.shape).deepEquals([2, 2]);
+      check(sq.get2D(1, 0)).equals(3);
+      sq.set2D(1, 0, 77);
+      check(m.getValue([0, 1, 0])).equals(77);
+
+      check(sq.swapAxes(0, 1).toNestedList() as List).deepEquals([
+        [1, 77],
+        [2, 4],
+      ]);
+      check(sq.unsqueeze(1).shape).deepEquals([2, 1, 2]);
+      check(sq.transpose().isClose(sq.transpose())).isTrue;
+      check(sq.transpose() == sq.transpose()).isTrue;
+      check(sq.transpose().hashCode).equals(sq.copy().transpose().hashCode);
+    });
+
+    test('fromObject materializes lazy iterables in a single pass and validates leaves', () {
+      var yields = 0;
+      Iterable<int> rowGen(int base) sync* {
+        yields++;
+        yield base;
+        yield base + 1;
+      }
+
+      Iterable<Iterable<int>> outerGen() sync* {
+        yield rowGen(1);
+        yield rowGen(3);
+      }
+
+      final t = Tensor<int>.fromObject(outerGen());
+      check(yields).equals(2);
+      check(t.shape).deepEquals([2, 2]);
+      check(t.toFlatList()).deepEquals([1, 2, 3, 4]);
+
+      check(
+        () => Tensor<int>.fromObject([
+          [1, 2],
+          [
+            3,
+            [4],
+          ],
+        ]),
+      ).throws<ArgumentError>();
+      check(Tensor<int>.fromObject(<List<int>>[[], []]).shape)
+          .deepEquals([2, 0]);
+      check(() => Tensor<int>.fromObject([1, 'bad'])).throws<ArgumentError>();
     });
   });
 }

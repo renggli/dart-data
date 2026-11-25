@@ -10,12 +10,12 @@ import 'tensor.dart';
 /// Zero-cost extension type wrapping [Tensor] with direct [Float64List] buffer
 /// access.
 ///
-/// Conceptually, this is an $N$-dimensional grid of decimal numbers optimized
+/// Conceptually, this is an N-dimensional grid of decimal numbers optimized
 /// for speed and direct memory access.
 ///
-/// Formally, provides an unboxed multi-dimensional array over
-/// $\mathbb{R}^{d_1 \times \dots \times d_k}$ backed by flat IEEE 754
-/// double-precision buffers with strided index layouts.
+/// Formally, this provides an unboxed multi-dimensional array over
+/// `R^(d_0 × ... × d_{k-1})` backed by flat IEEE-754 double-precision buffers
+/// with strided index layouts.
 ///
 /// ```dart
 /// final t = Float64Tensor.filled(0.0, shape: [2, 3]);
@@ -23,7 +23,8 @@ import 'tensor.dart';
 /// ```
 extension type Float64Tensor._(Tensor<double> _tensor)
     implements Tensor<double> {
-  /// Constructs a [Float64Tensor] wrapping [tensor].
+  /// Constructs a [Float64Tensor] wrapping [tensor], normalizing `tensor.type`
+  /// to [DataType.float64].
   ///
   /// Throws an [ArgumentError] if `tensor.data` is not a [Float64List].
   factory(Tensor<double> tensor) {
@@ -45,10 +46,11 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   }
 
   /// Constructs a [Float64Tensor] from any [Tensor<double>], copying elements
-  /// to a [Float64List] if not already backed by one.
+  /// to a [Float64List] if not already backed by one and normalizing
+  /// [Tensor.type] to [DataType.float64].
   factory fromDoubleTensor(Tensor<double> tensor) {
     if (tensor.data is Float64List) {
-      return Float64Tensor._(tensor);
+      return Float64Tensor(tensor);
     }
     final len = tensor.length;
     final copy = Float64List(len);
@@ -86,7 +88,7 @@ extension type Float64Tensor._(Tensor<double> _tensor)
     Tensor<double>.generate(generator, shape: shape, type: DataType.float64),
   );
 
-  /// Constructs a [Float64Tensor] from an iterable.
+  /// Constructs a [Float64Tensor] from an [iterable].
   factory fromIterable(Iterable<double> iterable, {List<int>? shape}) =>
       Float64Tensor._(
         Tensor<double>.fromIterable(
@@ -96,7 +98,7 @@ extension type Float64Tensor._(Tensor<double> _tensor)
         ),
       );
 
-  /// Constructs a [Float64Tensor] from nested Dart lists or scalar objects.
+  /// Constructs a [Float64Tensor] from nested Dart iterables or scalar objects.
   factory fromObject(Object? object) => Float64Tensor._(
     Tensor<double>.fromObject(object, type: DataType.float64),
   );
@@ -140,6 +142,19 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   @redeclare
   Float64Tensor transpose([List<int>? permutation]) =>
       Float64Tensor._(_tensor.transpose(permutation));
+
+  /// Returns a view swapping [axis1] and [axis2] as [Float64Tensor].
+  @redeclare
+  Float64Tensor swapAxes(int axis1, int axis2) =>
+      Float64Tensor._(_tensor.swapAxes(axis1, axis2));
+
+  /// Returns a squeezed view as [Float64Tensor].
+  @redeclare
+  Float64Tensor squeeze([int? axis]) => Float64Tensor._(_tensor.squeeze(axis));
+
+  /// Returns an unsqueezed view as [Float64Tensor].
+  @redeclare
+  Float64Tensor unsqueeze(int axis) => Float64Tensor._(_tensor.unsqueeze(axis));
 
   /// Returns a flipped view along [axis] as [Float64Tensor].
   @redeclare
@@ -188,6 +203,46 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   Float64Tensor operator /(Tensor<double> other) =>
       _binaryOp(other, 3, (a, b) => a / b);
 
+  /// Inlined unary negation.
+  Float64Tensor operator -() {
+    if (isContiguous) {
+      final a = asTypedList;
+      final out = Float64List(length);
+      final aOff = offset;
+      for (var i = 0; i < length; i++) {
+        out[i] = -a[aOff + i];
+      }
+      return Float64Tensor._(
+        Tensor.internal(
+          type: DataType.float64,
+          layout: Layout(shape: shape),
+          data: out,
+        ),
+      );
+    }
+    return Float64Tensor._(-_tensor);
+  }
+
+  /// Scales all elements by [scalar].
+  Float64Tensor scale(double scalar) {
+    if (isContiguous) {
+      final a = asTypedList;
+      final out = Float64List(length);
+      final aOff = offset;
+      for (var i = 0; i < length; i++) {
+        out[i] = a[aOff + i] * scalar;
+      }
+      return Float64Tensor._(
+        Tensor.internal(
+          type: DataType.float64,
+          layout: Layout(shape: shape),
+          data: out,
+        ),
+      );
+    }
+    return Float64Tensor._(_tensor.unaryOperation((val) => val * scalar));
+  }
+
   Float64Tensor _binaryOp(
     Tensor<double> other,
     int op,
@@ -228,45 +283,5 @@ extension type Float64Tensor._(Tensor<double> _tensor)
       );
     }
     return Float64Tensor._(fallback(_tensor, other));
-  }
-
-  /// Inlined unary negation.
-  Float64Tensor operator -() {
-    if (isContiguous) {
-      final a = asTypedList;
-      final out = Float64List(length);
-      final aOff = offset;
-      for (var i = 0; i < length; i++) {
-        out[i] = -a[aOff + i];
-      }
-      return Float64Tensor._(
-        Tensor.internal(
-          type: DataType.float64,
-          layout: Layout(shape: shape),
-          data: out,
-        ),
-      );
-    }
-    return Float64Tensor._(-_tensor);
-  }
-
-  /// Scales all elements by [scalar].
-  Float64Tensor scale(double scalar) {
-    if (isContiguous) {
-      final a = asTypedList;
-      final out = Float64List(length);
-      final aOff = offset;
-      for (var i = 0; i < length; i++) {
-        out[i] = a[aOff + i] * scalar;
-      }
-      return Float64Tensor._(
-        Tensor.internal(
-          type: DataType.float64,
-          layout: Layout(shape: shape),
-          data: out,
-        ),
-      );
-    }
-    return Float64Tensor._(_tensor.unaryOperation((val) => val * scalar));
   }
 }

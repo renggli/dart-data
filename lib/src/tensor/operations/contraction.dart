@@ -3,20 +3,19 @@ import 'matmul.dart';
 
 /// Extension providing generalized tensor contraction and products on [Tensor].
 extension ContractionTensorExtension<T> on Tensor<T> {
-  /// Computes the tensor dot product (contraction) along specified [axes].
+  /// Computes the tensor dot product (contraction) along specified [axes] or
+  /// [contractAxes].
   ///
   /// Conceptually, this generalizes matrix multiplication and dot products to
   /// multidimensional tensors along chosen axes.
   ///
   /// Formally, this calculates the tensor contraction:
-  /// $C_{i_1\dots i_m j_1\dots j_n} =$
-  /// $\sum_{k_1\dots k_p} A_{i_1\dots i_m k_1\dots k_p}$
-  /// $B_{k_1\dots k_p j_1\dots j_n}$.
+  /// `C[i_1,...,i_m, j_1,...,j_n] = ∑_{k_1,...,k_p} A[i_1,...,i_m, k_1,...,k_p] * B[k_1,...,k_p, j_1,...,j_n]`.
   ///
-  /// - If [axes] is an integer $N$, contracts the last $N$ axes of `this` with
-  ///   the first $N$ axes of [other].
-  /// - If [axes] is a tuple `(axesA, axesB)`, contracts the listed axes of
-  ///   `this` with the corresponding listed axes of [other].
+  /// - When [contractAxes] is omitted, contracts the last [axes] axes of
+  ///   `this` with the first [axes] axes of [other].
+  /// - When [contractAxes] is provided, contracts the listed axes in
+  ///   `contractAxes.self` with `contractAxes.other`.
   ///
   /// Maps to 2D matrix multiplication ([matmul]), leveraging hardware BLAS
   /// acceleration when available.
@@ -40,7 +39,7 @@ extension ContractionTensorExtension<T> on Tensor<T> {
   /// them into a single scalar value.
   ///
   /// Formally, this calculates the Frobenius inner product
-  /// $\langle A, B \rangle_F = \sum A_{i_1\dots i_k} B_{i_1\dots i_k}$.
+  /// `<A, B>_F = ∑ A[i_1,...,i_k] * B[i_1,...,i_k]`.
   ///
   /// Contracts all corresponding axes, resulting in a rank-0 scalar tensor.
   ///
@@ -63,9 +62,8 @@ extension ContractionTensorExtension<T> on Tensor<T> {
   /// Conceptually, this multiplies every entry of the first tensor by every
   /// entry of the second, creating a higher-dimensional tensor of products.
   ///
-  /// Formally, this computes the tensor product $A \otimes B$ with
-  /// $(A \otimes B)_{i_1\dots i_m j_1\dots j_n} =$
-  /// $A_{i_1\dots i_m} B_{j_1\dots j_n}$.
+  /// Formally, this computes the tensor product `A ⊗ B` with
+  /// `(A ⊗ B)[i_1,...,i_m, j_1,...,j_n] = A[i_1,...,i_m] * B[j_1,...,j_n]`.
   ///
   /// No axes are contracted, producing a tensor of rank
   /// `this.rank + other.rank`.
@@ -78,13 +76,23 @@ extension ContractionTensorExtension<T> on Tensor<T> {
   Tensor<T> outerProduct(Tensor<T> other) => _tensorDot(this, other, axes: 0);
 }
 
+/// Returns `true` if [perm] is the identity permutation `[0, 1, ..., n - 1]`.
+bool isIdentityPermutation(List<int> perm) {
+  for (var i = 0; i < perm.length; i++) {
+    if (perm[i] != i) return false;
+  }
+  return true;
+}
+
 Tensor<T> _tensorDot<T>(
   Tensor<T> a,
   Tensor<T> b, {
   int axes = 2,
   ({List<int> self, List<int> other})? contractAxes,
 }) {
-  final (axesA, axesB) = _parseAxes(a.rank, b.rank, axes, contractAxes);
+  final parsed = _parseAxes(a.rank, b.rank, axes, contractAxes);
+  final axesA = parsed.self;
+  final axesB = parsed.other;
   if (axesA.length != axesB.length) {
     throw ArgumentError(
       'Number of contracted axes must match: ${axesA.length} != ${axesB.length}',
@@ -132,7 +140,7 @@ Tensor<T> _tensorDot<T>(
   return prodMat.reshape(outShape);
 }
 
-(List<int>, List<int>) _parseAxes(
+({List<int> self, List<int> other}) _parseAxes(
   int rankA,
   int rankB,
   int axes,
@@ -140,8 +148,8 @@ Tensor<T> _tensorDot<T>(
 ) {
   if (contractAxes != null) {
     return (
-      _normalizeAxes(rankA, contractAxes.self),
-      _normalizeAxes(rankB, contractAxes.other),
+      self: _normalizeAxes(rankA, contractAxes.self),
+      other: _normalizeAxes(rankB, contractAxes.other),
     );
   }
   if (axes < 0) {
@@ -158,7 +166,7 @@ Tensor<T> _tensorDot<T>(
   }
   final axesA = List<int>.generate(axes, (i) => rankA - axes + i);
   final axesB = List<int>.generate(axes, (i) => i);
-  return (axesA, axesB);
+  return (self: axesA, other: axesB);
 }
 
 List<int> _normalizeAxes(int rank, List<int> axes) {
@@ -174,12 +182,4 @@ List<int> _normalizeAxes(int rank, List<int> axes) {
     result.add(norm);
   }
   return result;
-}
-
-/// Returns `true` if [perm] is the identity permutation `[0, 1, ..., n - 1]`.
-bool isIdentityPermutation(List<int> perm) {
-  for (var i = 0; i < perm.length; i++) {
-    if (perm[i] != i) return false;
-  }
-  return true;
 }

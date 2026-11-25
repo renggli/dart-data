@@ -8,7 +8,7 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   /// Conceptually, this joins two tensors side-by-side or end-to-end along
   /// [axis].
   ///
-  /// Formally, this forms a direct concatenation along coordinate axis $k$.
+  /// Formally, this forms a direct concatenation along coordinate axis `k`.
   ///
   /// ```dart
   /// final a = Tensor<int>.fromObject([[1, 2]]);
@@ -83,16 +83,13 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
           resultData.setRange(rStart, rStart + sliceLen, tData, tStart);
         }
       } else {
-        final tData = tensor.data;
-        final tLayout = tensor.layout;
-        for (final key in tLayout.keys) {
-          var rIdx = 0;
-          for (var a = 0; a < rank; a++) {
-            final coord = a == normalizedAxis ? key[a] + axisOffset : key[a];
-            rIdx += coord * resultStrides[a];
-          }
-          resultData[rIdx] = tData[tLayout.toIndex(key)];
-        }
+        _copyStrided(
+          srcData: tensor.data,
+          srcLayout: tensor.layout,
+          dstData: resultData,
+          dstBaseOffset: axisOffset * resultStrides[normalizedAxis],
+          dstAxisStrides: resultStrides,
+        );
       }
       axisOffset += tLen;
     }
@@ -151,6 +148,10 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
         .fold(1, (prod, d) => prod * d);
     final resultOuterStride = tensors.length * innerDim;
     final resultStrides = result.layout.strides;
+    final dstMappedStrides = List<int>.generate(
+      rank,
+      (a) => resultStrides[a < normalizedAxis ? a : a + 1],
+    );
 
     for (var i = 0; i < tensors.length; i++) {
       final tensor = tensors[i];
@@ -167,17 +168,13 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
           resultData.setRange(rStart, rStart + sliceLen, tData, tStart);
         }
       } else {
-        final tData = tensor.data;
-        final tLayout = tensor.layout;
-        for (final key in tLayout.keys) {
-          var rIdx = 0;
-          for (var a = 0; a < rank; a++) {
-            final outAxis = a < normalizedAxis ? a : a + 1;
-            rIdx += key[a] * resultStrides[outAxis];
-          }
-          rIdx += i * resultStrides[normalizedAxis];
-          resultData[rIdx] = tData[tLayout.toIndex(key)];
-        }
+        _copyStrided(
+          srcData: tensor.data,
+          srcLayout: tensor.layout,
+          dstData: resultData,
+          dstBaseOffset: i * resultStrides[normalizedAxis],
+          dstAxisStrides: dstMappedStrides,
+        );
       }
     }
     return result;
@@ -263,7 +260,7 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   /// [fillValue].
   ///
   /// Formally, this embeds the tensor into an enlarged index domain with
-  /// constant boundary conditions.
+  /// constant boundary values.
   ///
   /// ```dart
   /// final a = Tensor<int>.fromObject([1, 2]);
@@ -293,44 +290,19 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
     final totalElements = length;
     if (totalElements == 0) return result;
 
-    final resultData = result.data;
-    final thisData = data;
     final resultStrides = result.layout.strides;
-    final inStrides = layout.strides;
-    final shape = layout.shape;
-
     var resultBaseOffset = 0;
     for (var i = 0; i < rank; i++) {
       resultBaseOffset += padding[i][0] * resultStrides[i];
     }
 
-    var outOffset = resultBaseOffset;
-    var inOffset = layout.offset;
-
-    final outDelta = resultStrides;
-    final outReset = [
-      for (var d = 0; d < rank; d++) -(shape[d] - 1) * resultStrides[d],
-    ];
-    final inDelta = inStrides;
-    final inReset = [
-      for (var d = 0; d < rank; d++) -(shape[d] - 1) * inStrides[d],
-    ];
-
-    final coords = List<int>.filled(rank, 0);
-
-    for (var step = 0; step < totalElements; step++) {
-      resultData[outOffset] = thisData[inOffset];
-      for (var d = rank - 1; d >= 0; d--) {
-        if (++coords[d] < shape[d]) {
-          outOffset += outDelta[d];
-          inOffset += inDelta[d];
-          break;
-        }
-        coords[d] = 0;
-        outOffset += outReset[d];
-        inOffset += inReset[d];
-      }
-    }
+    _copyStrided(
+      srcData: data,
+      srcLayout: layout,
+      dstData: result.data,
+      dstBaseOffset: resultBaseOffset,
+      dstAxisStrides: resultStrides,
+    );
     return result;
   }
 
@@ -339,7 +311,7 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   /// Conceptually, this partitions the tensor into [parts] equally sized slices
   /// along [axis].
   ///
-  /// Formally, this partitions the index domain along axis $k$ into $p$ equal
+  /// Formally, this partitions the index domain along axis `k` into `p` equal
   /// subdomains.
   ///
   /// ```dart
@@ -381,7 +353,7 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   /// Conceptually, this partitions the tensor into slices along [axis] with
   /// lengths given by [splitSizes].
   ///
-  /// Formally, this partitions the index domain along axis $k$ according to the
+  /// Formally, this partitions the index domain along axis `k` according to the
   /// integer partition [splitSizes].
   ///
   /// ```dart
@@ -427,5 +399,45 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
       currentOffset += size;
     }
     return result;
+  }
+
+  static void _copyStrided<E>({
+    required List<E> srcData,
+    required Layout srcLayout,
+    required List<E> dstData,
+    required int dstBaseOffset,
+    required List<int> dstAxisStrides,
+  }) {
+    final r = srcLayout.rank;
+    final total = srcLayout.length;
+    if (r == 0) {
+      dstData[dstBaseOffset] = srcData[srcLayout.offset];
+      return;
+    }
+    final shape = srcLayout.shape;
+    final srcStrides = srcLayout.strides;
+    final srcReset = [
+      for (var d = 0; d < r; d++) -(shape[d] - 1) * srcStrides[d],
+    ];
+    final dstReset = [
+      for (var d = 0; d < r; d++) -(shape[d] - 1) * dstAxisStrides[d],
+    ];
+    final coords = List<int>.filled(r, 0);
+    var srcOffset = srcLayout.offset;
+    var dstOffset = dstBaseOffset;
+
+    for (var step = 0; step < total; step++) {
+      dstData[dstOffset] = srcData[srcOffset];
+      for (var d = r - 1; d >= 0; d--) {
+        if (++coords[d] < shape[d]) {
+          srcOffset += srcStrides[d];
+          dstOffset += dstAxisStrides[d];
+          break;
+        }
+        coords[d] = 0;
+        srcOffset += srcReset[d];
+        dstOffset += dstReset[d];
+      }
+    }
   }
 }

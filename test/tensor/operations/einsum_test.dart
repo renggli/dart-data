@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('einsum basic contractions', () {
@@ -280,6 +280,35 @@ void main() {
         type: DataType.float64,
       );
 
+      // Matrix transpose: 'ji,jk->ik' and 'ij,kj->ik' (non-identity operand permutations)
+      final a32 = Tensor<double>.fromIterable(
+        [1, 2, 3, 4, 5, 6],
+        shape: [3, 2],
+        type: DataType.float64,
+      );
+      final b32 = Tensor<double>.fromIterable(
+        [7, 8, 9, 10, 11, 12],
+        shape: [3, 2],
+        type: DataType.float64,
+      );
+      final resAT = einsum('ji,jk->ik', [a32, b32]);
+      check(resAT.shape).deepEquals([2, 2]);
+      check(resAT.getValue([0, 0])).equals(89.0);
+      final resBT = einsum('ij,kj->ik', [a32, b32]);
+      check(resBT.shape).deepEquals([3, 3]);
+      check(resBT.getValue([0, 0])).equals(23.0);
+
+      // Element-wise Hadamard fast paths ('ij,ij->ij' and 'ij,ji->ij') and whitespace tolerance
+      final m = Tensor<double>.fromIterable(
+        [1, 2, 3, 4],
+        shape: [2, 2],
+        type: DataType.float64,
+      );
+      final hadamard = einsum(' ij , ij -> ij ', [m, m]);
+      check(hadamard.toFlatList()).deepEquals([1.0, 4.0, 9.0, 16.0]);
+      final symHadamard = einsum('ij,\tji\n->ij', [m, m]);
+      check(symHadamard.toFlatList()).deepEquals([1.0, 6.0, 6.0, 16.0]);
+
       // Transposed b has shape [3, 2]
       final bT = b.transpose([1, 0]);
       final c = einsum('ij,jk->ik', [a, bT]);
@@ -439,6 +468,11 @@ void main() {
       // Duplicate output index
       check(() => einsum('ij,jk->ii', [a, b])).throws<ArgumentError>();
       check(() => einsum('ij->jk->ik', [a])).throws<ArgumentError>();
+
+      // Invalid non-alphabetic subscript labels
+      check(() => einsum('i1,1j->ij', [a, b])).throws<ArgumentError>();
+      check(() => einsum('12', [a])).throws<ArgumentError>();
+      check(() => einsum('ij->i2', [a])).throws<ArgumentError>();
     });
   });
 }

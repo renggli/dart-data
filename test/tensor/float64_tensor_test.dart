@@ -4,7 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Float64Tensor', () {
@@ -236,6 +236,28 @@ void main() {
       check(sum.type).equals(DataType.float64);
       check(sum.asTypedList).isA<Float64List>();
       check(sum.toFlatList()).deepEquals([2.0, 6.0, 4.0, 8.0]);
+
+      final fromExisting = Float64Tensor.fromDoubleTensor(raw);
+      check(fromExisting.type).equals(DataType.float64);
+      check(fromExisting.asTypedList).identicalTo(raw.data as Float64List);
+    });
+
+    test('swapAxes, squeeze, and unsqueeze return Float64Tensor views', () {
+      final t = Float64Tensor.fromIterable(
+        [1.0, 2.0, 3.0, 4.0],
+        shape: [1, 2, 2],
+      );
+      final squeezed = t.squeeze();
+      check(squeezed.shape).deepEquals([2, 2]);
+      check(squeezed.asTypedList).identicalTo(t.asTypedList);
+
+      final swapped = squeezed.swapAxes(0, 1);
+      check(swapped.shape).deepEquals([2, 2]);
+      check(swapped.get2D(0, 1)).equals(3.0);
+
+      final unsqueezed = swapped.unsqueeze(2);
+      check(unsqueezed.shape).deepEquals([2, 2, 1]);
+      check(unsqueezed.asTypedList).identicalTo(t.asTypedList);
     });
   });
 }

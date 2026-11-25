@@ -16,9 +16,8 @@ import 'operations/operation.dart';
 ///   image)
 ///
 /// Formally, a tensor represents a multi-linear array over
-/// $\mathbb{R}^{d_1 \times \dots \times d_k}$ backed by a contiguous 1D memory
-/// array and an affine strided indexing layout
-/// $\text{offset} + \sum_{i=0}^{k-1} c_i \cdot s_i$.
+/// `R^(d_0 × ... × d_{k-1})` backed by a flat 1D memory buffer and an affine
+/// strided indexing layout `offset + ∑_{i=0}^{k-1} c_i * s_i`.
 ///
 /// ```dart
 /// final t = Tensor<double>.filled(0.0, shape: [2, 3]);
@@ -43,8 +42,8 @@ class Tensor<T> {
   /// Conceptually, this creates a tensor where every cell contains the
   /// specified [value].
   ///
-  /// Formally, this initializes $T \in S^{d_0 \times \dots \times d_{k-1}}$
-  /// where $T_{i_0,\dots,i_{k-1}} = \text{value}$ for all indices.
+  /// Formally, this initializes `T ∈ S^(d_0 × ... × d_{k-1})` where
+  /// `T[i_0, ..., i_{k-1}] = value` for all indices.
   ///
   /// ```dart
   /// final t = Tensor<int>.filled(7, shape: [2, 3]);
@@ -71,7 +70,7 @@ class Tensor<T> {
   /// multi-dimensional coordinate key.
   ///
   /// Formally, this evaluates a coordinate map
-  /// $f: \prod_{j=0}^{k-1} \{0, \dots, d_j - 1\} \to T$.
+  /// `f: ∏_{j=0}^{k-1} {0, ..., d_j - 1} -> T`.
   ///
   /// ```dart
   /// final t = Tensor<int>.generate(
@@ -105,7 +104,7 @@ class Tensor<T> {
   /// into a multi-dimensional tensor of the requested [shape].
   ///
   /// Formally, this reads elements in lexicographical (row-major) order into
-  /// the tensor $T \in S^{d_0 \times \dots \times d_{k-1}}$.
+  /// the tensor `T ∈ S^(d_0 × ... × d_{k-1})`.
   ///
   /// ```dart
   /// final t = Tensor<int>.fromIterable([1, 2, 3, 4, 5, 6], shape: [2, 3]);
@@ -137,13 +136,14 @@ class Tensor<T> {
     );
   }
 
-  /// Constructs a [Tensor] from nested Dart lists or scalar objects.
+  /// Constructs a [Tensor] from nested Dart iterables or a scalar object in a
+  /// single pass.
   ///
-  /// Conceptually, this constructs a tensor from nested Dart lists or scalar
-  /// objects (such as `[[1, 2], [3, 4]]`).
+  /// Conceptually, this constructs a tensor from nested Dart lists or lazy
+  /// iterables (such as `[[1, 2], [3, 4]]`).
   ///
-  /// Formally, this performs recursive isomorphism between nested lists and
-  /// multidimensional strided buffers.
+  /// Throws an [ArgumentError] if the nesting is ragged, leaves do not have
+  /// uniform depth, or leaves are not of type [T].
   ///
   /// ```dart
   /// final t = Tensor<int>.fromObject([[1, 2, 3], [4, 5, 6]]);
@@ -156,50 +156,55 @@ class Tensor<T> {
       }
       throw ArgumentError.value(object, 'object', 'Expected an Iterable');
     }
-    if (object.isEmpty) {
-      final effectiveType = type ?? DataType.fromType<T>();
-      return Tensor.fromIterable(<T>[], shape: const [0], type: effectiveType);
-    }
-    final shape = <int>[];
-    Object? current = object;
-    while (current is Iterable) {
-      final curList = current is List
-          ? current
-          : current.toList(growable: false);
-      shape.add(curList.length);
-      if (curList.isEmpty) break;
-      current = curList.first;
-    }
 
+    final shape = <int>[];
     final flatList = <T>[];
-    void validateAndFlatten(Object? item, int depth) {
-      if (depth < shape.length) {
-        if (item is! Iterable) {
-          throw ArgumentError(
-            'Expected an Iterable at depth $depth, got $item',
-          );
-        }
-        final itemIter = item is List ? item : item.toList(growable: false);
-        if (itemIter.length != shape[depth]) {
-          throw ArgumentError(
-            'Ragged nested list: expected length ${shape[depth]} at depth $depth, '
-            'but got ${itemIter.length}',
-          );
-        }
-        for (final child in itemIter) {
-          validateAndFlatten(child, depth + 1);
-        }
-      } else {
-        if (item is Iterable) {
+    int? leafDepth;
+
+    void visit(Object? item, int depth) {
+      if (item is Iterable) {
+        if (leafDepth != null && depth >= leafDepth!) {
           throw ArgumentError(
             'Unexpected Iterable at leaf depth $depth: $item',
           );
         }
-        flatList.add(item as T);
+        final list = item is List ? item : item.toList(growable: false);
+        if (depth == shape.length) {
+          shape.add(list.length);
+        } else if (list.length != shape[depth]) {
+          throw ArgumentError(
+            'Ragged nested list: expected length ${shape[depth]} at depth $depth, '
+            'but got ${list.length}',
+          );
+        }
+        if (list.isEmpty) {
+          if (shape.length == depth + 1) {
+            leafDepth ??= depth + 1;
+          }
+        } else {
+          for (final child in list) {
+            visit(child, depth + 1);
+          }
+        }
+      } else {
+        if (shape.length > depth && (leafDepth == null || depth < leafDepth!)) {
+          throw ArgumentError(
+            'Expected an Iterable at depth $depth, got $item',
+          );
+        }
+        leafDepth ??= depth;
+        if (item is! T) {
+          throw ArgumentError.value(
+            item,
+            'object',
+            'Expected element of type $T, got ${item.runtimeType}',
+          );
+        }
+        flatList.add(item);
       }
     }
 
-    validateAndFlatten(object, 0);
+    visit(object, 0);
     return Tensor.fromIterable(flatList, shape: shape, type: type);
   }
 
@@ -218,11 +223,17 @@ class Tensor<T> {
 
   /// The number of dimensions (axes) in this tensor.
   ///
-  /// Rank 0 is a scalar, rank 1 is a vector, rank 2 is a matrix.
+  /// Rank `0` is a scalar, rank `1` is a vector, rank `2` is a matrix.
   int get rank => layout.rank;
 
   /// The total count of elements across all dimensions.
   int get length => layout.length;
+
+  /// Whether this tensor contains zero elements (`length == 0`).
+  bool get isEmpty => layout.isEmpty;
+
+  /// Whether this tensor contains at least one element (`length > 0`).
+  bool get isNotEmpty => layout.isNotEmpty;
 
   /// The dimensions of the tensor along each axis.
   List<int> get shape => layout.shape;
@@ -236,29 +247,42 @@ class Tensor<T> {
   /// Whether the elements are stored contiguously in standard row-major order.
   bool get isContiguous => layout.isContiguous;
 
-  /// Returns an iterable over the values in index order.
-  Iterable<T> get values => layout.indices.map((idx) => data[idx]);
+  /// Returns an iterable over the values in logical row-major index order.
+  Iterable<T> get values sync* {
+    if (layout.length == 0) return;
+    if (layout.isContiguous) {
+      final start = layout.offset;
+      final end = start + layout.length;
+      for (var i = start; i < end; i++) {
+        yield data[i];
+      }
+      return;
+    }
+    for (final idx in layout.indices) {
+      yield data[idx];
+    }
+  }
 
   /// Returns the flattened elements as a list.
   List<T> toFlatList() => values.toList(growable: false);
 
-  /// Converts the tensor to a nested Dart list structure matching [shape].
+  /// Converts the tensor to a nested Dart list (or scalar for rank 0) matching
+  /// [shape].
   Object? toNestedList() {
-    Object? build(List<int> prefix, int dim) {
+    Object? build(int currentOffset, int dim) {
       if (dim == rank) {
-        return getValue(prefix);
+        return data[currentOffset];
       }
-      final len = shape[dim];
-      final res = List<Object?>.filled(len, null, growable: false);
-      for (var i = 0; i < len; i++) {
-        prefix.add(i);
-        res[i] = build(prefix, dim + 1);
-        prefix.removeLast();
-      }
-      return res;
+      final len = layout.shape[dim];
+      final stride = layout.strides[dim];
+      return List<Object?>.generate(
+        len,
+        (i) => build(currentOffset + i * stride, dim + 1),
+        growable: false,
+      );
     }
 
-    return build(<int>[], 0);
+    return build(layout.offset, 0);
   }
 
   /// Gets the value at the given coordinate key.
@@ -296,6 +320,24 @@ class Tensor<T> {
   /// Zero-copy transposition of axes.
   Tensor<T> transpose([List<int>? axes]) =>
       Tensor.internal(type: type, layout: layout.transpose(axes), data: data);
+
+  /// Zero-copy view swapping [axis1] and [axis2].
+  Tensor<T> swapAxes(int axis1, int axis2) => Tensor.internal(
+    type: type,
+    layout: layout.swapAxes(axis1, axis2),
+    data: data,
+  );
+
+  /// Zero-copy view removing axes of length `1`.
+  ///
+  /// If [axis] is specified, only that axis is removed and an [ArgumentError]
+  /// is thrown if its length is not `1`.
+  Tensor<T> squeeze([int? axis]) =>
+      Tensor.internal(type: type, layout: layout.squeeze(axis), data: data);
+
+  /// Zero-copy view inserting a singleton axis of length `1` at [axis].
+  Tensor<T> unsqueeze(int axis) =>
+      Tensor.internal(type: type, layout: layout.unsqueeze(axis), data: data);
 
   /// Zero-copy reshape if contiguous, otherwise copies.
   Tensor<T> reshape(List<int> newShape) {
@@ -355,15 +397,37 @@ class Tensor<T> {
 
   /// Returns whether this tensor is element-wise close to [other] within
   /// absolute tolerance [epsilon].
+  ///
+  /// Throws an [ArgumentError] if [epsilon] is negative or `NaN`.
   bool isClose(Tensor<Object?> other, {double epsilon = 1e-9}) {
-    if (identical(this, other)) return true;
+    if (epsilon.isNaN || epsilon < 0) {
+      throw ArgumentError.value(
+        epsilon,
+        'epsilon',
+        'Tolerance must be non-negative',
+      );
+    }
     if (!areShapesEqual(layout.shape, other.layout.shape)) return false;
-    if (length == 0) return true;
+    final len = layout.length;
+    if (len == 0) return true;
+    final eq = type.equality;
+    if (layout.isContiguous && other.layout.isContiguous) {
+      final off1 = layout.offset;
+      final off2 = other.layout.offset;
+      final otherData = other.data;
+      for (var i = 0; i < len; i++) {
+        final v2 = otherData[off2 + i];
+        if (v2 is! T || !eq.isClose(data[off1 + i], v2, epsilon)) {
+          return false;
+        }
+      }
+      return true;
+    }
     final it1 = values.iterator;
     final it2 = other.values.iterator;
     while (it1.moveNext() && it2.moveNext()) {
       final v2 = it2.current;
-      if (v2 is! T || !type.equality.isClose(it1.current, v2, epsilon)) {
+      if (v2 is! T || !eq.isClose(it1.current, v2, epsilon)) {
         return false;
       }
     }
@@ -375,12 +439,24 @@ class Tensor<T> {
     if (identical(this, other)) return true;
     if (other is! Tensor) return false;
     if (!areShapesEqual(layout.shape, other.layout.shape)) return false;
-    if (length == 0) return true;
+    final len = layout.length;
+    if (len == 0) return true;
+    final eq = type.equality;
+    if (layout.isContiguous && other.layout.isContiguous) {
+      final off1 = layout.offset;
+      final off2 = other.layout.offset;
+      final otherData = other.data;
+      for (var i = 0; i < len; i++) {
+        final v2 = otherData[off2 + i];
+        if (v2 is! T || !eq.isEqual(data[off1 + i], v2)) return false;
+      }
+      return true;
+    }
     final it1 = values.iterator;
     final it2 = other.values.iterator;
     while (it1.moveNext() && it2.moveNext()) {
       final v2 = it2.current;
-      if (v2 is! T || !type.equality.isEqual(it1.current, v2)) return false;
+      if (v2 is! T || !eq.isEqual(it1.current, v2)) return false;
     }
     return true;
   }
@@ -391,8 +467,17 @@ class Tensor<T> {
     for (var i = 0; i < rank; i++) {
       hash = Object.hash(hash, layout.shape[i]);
     }
-    for (final v in values) {
-      hash = Object.hash(hash, type.equality.hash(v));
+    final eq = type.equality;
+    if (layout.isContiguous) {
+      final start = layout.offset;
+      final end = start + layout.length;
+      for (var i = start; i < end; i++) {
+        hash = Object.hash(hash, eq.hash(data[i]));
+      }
+    } else {
+      for (final v in values) {
+        hash = Object.hash(hash, eq.hash(v));
+      }
     }
     return hash;
   }

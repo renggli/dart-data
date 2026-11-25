@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 import '../../acceleration/test_utils.dart';
 
@@ -38,6 +38,33 @@ void main() {
       check(sumAxis1.shape).deepEquals([2]);
       check(sumAxis1.getValue([0])).isCloseTo(6.0, 1e-10);
       check(sumAxis1.getValue([1])).isCloseTo(15.0, 1e-10);
+
+      // Sliced Float64List (offset > 0) for sum/mean/variance/std and target
+      final sliced = t[1]; // [4.0, 5.0, 6.0] with offset 3
+      final sumTarget = Tensor<double>.filled(0.0, shape: []);
+      check(sliced.sum(target: sumTarget).getValue([])).isCloseTo(15.0, 1e-10);
+      final meanTarget = Tensor<double>.filled(0.0, shape: []);
+      check(sliced.mean(target: meanTarget).getValue([])).isCloseTo(5.0, 1e-10);
+      final varTarget = Tensor<double>.filled(0.0, shape: []);
+      check(sliced.variance(ddof: 1, target: varTarget).getValue([]))
+          .isCloseTo(1.0, 1e-10);
+      check(sliced.std(ddof: 1).getValue([])).isCloseTo(1.0, 1e-10);
+    });
+
+    test('prod, all, and any reductions', () {
+      final t = Tensor<int>.fromIterable([1, 2, 3, 4], shape: [2, 2]);
+      check(t.prod().getValue([])).equals(24);
+      check(t.prod(axis: 0).toFlatList()).deepEquals([3, 8]);
+      check(t.prod(axis: 1, keepDims: true).shape).deepEquals([2, 1]);
+
+      final b = Tensor<bool>.fromObject([
+        [true, false],
+        [true, true],
+      ]);
+      check(b.all().getValue([])).isFalse;
+      check(b.any().getValue([])).isTrue;
+      check(b.all(axis: 1).toFlatList()).deepEquals([false, true]);
+      check(b.any(axis: 0).toFlatList()).deepEquals([true, true]);
     });
 
     accelerationTest('mean along axis and global', () {
@@ -291,7 +318,83 @@ void main() {
           data: [3e160, 0.0, 4e160, 0.0],
         );
         check(largeStrided.norm(2)).isCloseTo(5e160, 1e148);
+        check(largeStrided.norm(3))
+            .isCloseTo(math.pow(27 + 64, 1 / 3) * 1e160, 1e148);
+        check(Tensor<double>.fromIterable([1.0, double.nan]).norm(3).isNaN)
+            .isTrue;
+        check(Tensor<double>.fromIterable([0.0, 0.0]).norm(3)).equals(0.0);
       },
     );
+
+    test('overflow-safe mean, overflow/underflow-safe std, ddof validation, and argmin/argmax targets', () {
+      // Non-Float64List and axis mean with near-max finite values
+      final hugeF32 = Tensor<double>.fromIterable(
+        [1e308, 1e308],
+        shape: [1, 2],
+        type: DataType.float32,
+      );
+      // float32 cannot hold 1e308, so use Fraction / ObjectDataType<double> for finite 1e308
+      final hugeObj = Tensor<double>.internal(
+        type: const ObjectDataType<double>(),
+        layout: Layout(shape: [1, 2]),
+        data: [1e308, 1e308],
+      );
+      check(hugeObj.mean().getValue([])).isCloseTo(1e308, 1e295);
+      check(hugeObj.mean(axis: 1).getValue([0])).isCloseTo(1e308, 1e295);
+      check(hugeF32.mean().getValue([]).isInfinite).isTrue;
+
+      // Overflowing variance -> finite std via ScaledNormAccumulator (global and per-axis)
+      final hugeStd = Tensor<double>.fromIterable(
+        [1e200, 2e200, 1e-200, 2e-200],
+        shape: [2, 2],
+      );
+      check(hugeStd[0].std(ddof: 0).getValue([])).isCloseTo(5e199, 1e186);
+      check(hugeStd[1].std(ddof: 0).getValue([])).isCloseTo(5e-201, 1e-214);
+      final axisStd = hugeStd.std(axis: 1, ddof: 0);
+      check(axisStd.getValue([0])).isCloseTo(5e199, 1e186);
+      check(axisStd.getValue([1])).isCloseTo(5e-201, 1e-214);
+      check(
+        Tensor<double>.fromIterable([double.infinity, 1.0])
+            .std()
+            .getValue([])
+            .isNaN,
+      ).isTrue;
+
+      // Negative ddof throws RangeError
+      check(() => hugeStd.variance(ddof: -1)).throws<RangeError>();
+      check(() => hugeStd.std(ddof: -1)).throws<RangeError>();
+
+      // Hazard-safe std and argmin/argmax target support
+      final t2D = Tensor<double>.fromIterable(
+        [1.0, 2.0, 3.0, 4.0],
+        shape: [2, 2],
+      );
+      final sharedDoubleTarget = Tensor<double>.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [2]),
+        data: t2D.data,
+      );
+      check(t2D.std(axis: 1, target: sharedDoubleTarget))
+          .equals(sharedDoubleTarget);
+      check(sharedDoubleTarget.getValue([0])).isCloseTo(0.5, 1e-12);
+
+      final argGlobalTarget = Tensor<int>.filled(-1, shape: []);
+      check(t2D.argmin(target: argGlobalTarget)).equals(argGlobalTarget);
+      check(argGlobalTarget.getValue([])).equals(0);
+
+      final intGrid = Tensor<int>.fromIterable([5, 2, 1, 9], shape: [2, 2]);
+      final sharedArgTarget = Tensor<int>.internal(
+        type: DataType.int32,
+        layout: Layout(shape: [2]),
+        data: intGrid.data,
+      );
+      check(intGrid.argmax(axis: 1, target: sharedArgTarget))
+          .equals(sharedArgTarget);
+      check(sharedArgTarget.getValue([0])).equals(0);
+      check(sharedArgTarget.getValue([1])).equals(1);
+
+      check(() => t2D.argmin(target: Tensor<int>.filled(0, shape: [2])))
+          .throws<ArgumentError>();
+    });
   });
 }

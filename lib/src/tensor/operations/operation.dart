@@ -3,7 +3,8 @@ import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';
 
-/// Element-wise unary and binary operations, mapping, and broadcasting on tensors.
+/// Element-wise unary and binary operations, mapping, and broadcasting on
+/// tensors.
 extension OperationTensorExtension<T> on Tensor<T> {
   /// Element-wise unary operation evaluated into [target] or a new tensor.
   ///
@@ -106,13 +107,11 @@ extension OperationTensorExtension<T> on Tensor<T> {
         isTargetMatching) {
       final len = layout.length;
       if (target == null) {
-        final resultType =
-            type ??
-            (R == T
-                ? this.type as DataType<R>
-                : (R == O
-                      ? other.type as DataType<R>
-                      : DataType.fromType<R>()));
+        final resultType = _resolveBinaryResultType<T, O, R>(
+          this.type,
+          other.type,
+          type,
+        );
         final resultData = resultType.newList(len);
         final s1 = layout.offset, s2 = other.layout.offset;
         for (var i = 0; i < len; i++) {
@@ -147,11 +146,11 @@ extension OperationTensorExtension<T> on Tensor<T> {
     );
 
     if (target == null) {
-      final resultType =
-          type ??
-          (R == T
-              ? this.type as DataType<R>
-              : (R == O ? other.type as DataType<R> : DataType.fromType<R>()));
+      final resultType = _resolveBinaryResultType<T, O, R>(
+        this.type,
+        other.type,
+        type,
+      );
       final resultData = resultType.newList(thisLayout.length);
       final thisIter = thisLayout.indices.iterator;
       final otherIter = otherLayout.indices.iterator;
@@ -213,23 +212,23 @@ extension OperationTensorExtension<T> on Tensor<T> {
     }
   }
 
-  /// Computes the element-wise negation $(-A)$.
+  /// Computes the element-wise negation `(-A)`.
   Tensor<T> operator -() => unaryOperation<T>(type.field.neg, type: type);
 
-  /// Computes element-wise addition $(A + B)$ supporting broadcasting.
+  /// Computes element-wise addition `(A + B)` supporting broadcasting.
   Tensor<T> operator +(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.add, type: type);
 
-  /// Computes element-wise subtraction $(A - B)$ supporting broadcasting.
+  /// Computes element-wise subtraction `(A - B)` supporting broadcasting.
   Tensor<T> operator -(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.sub, type: type);
 
-  /// Computes element-wise Hadamard multiplication $(A \odot B)$ supporting
+  /// Computes element-wise Hadamard multiplication `(A ⊙ B)` supporting
   /// broadcasting.
   Tensor<T> operator *(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.mul, type: type);
 
-  /// Computes element-wise division $(A / B)$ supporting broadcasting.
+  /// Computes element-wise division `(A / B)` supporting broadcasting.
   Tensor<T> operator /(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.div, type: type);
 
@@ -245,52 +244,70 @@ extension OperationTensorExtension<T> on Tensor<T> {
   /// Computes the element-wise natural logarithm.
   Tensor<T> log() => unaryOperation<T>(type.field.log, type: type);
 
-  /// Computes element-wise strictly less-than $(A < B)$ producing a boolean
+  /// Computes element-wise strictly less-than `(A < B)` producing a boolean
   /// tensor.
   Tensor<bool> operator <(Tensor<T> other) => binaryOperation<T, bool>(
     other,
     (a, b) => a is num && b is num ? a < b : type.comparator(a, b) < 0,
   );
 
-  /// Computes element-wise less-than or equal-to $(A \le B)$ producing a
+  /// Computes element-wise less-than or equal-to `(A <= B)` producing a
   /// boolean tensor.
   Tensor<bool> operator <=(Tensor<T> other) => binaryOperation<T, bool>(
     other,
     (a, b) => a is num && b is num ? a <= b : type.comparator(a, b) <= 0,
   );
 
-  /// Computes element-wise strictly greater-than $(A > B)$ producing a boolean
+  /// Computes element-wise strictly greater-than `(A > B)` producing a boolean
   /// tensor.
   Tensor<bool> operator >(Tensor<T> other) => binaryOperation<T, bool>(
     other,
     (a, b) => a is num && b is num ? a > b : type.comparator(a, b) > 0,
   );
 
-  /// Computes element-wise greater-than or equal-to $(A \ge B)$ producing a
+  /// Computes element-wise greater-than or equal-to `(A >= B)` producing a
   /// boolean tensor.
   Tensor<bool> operator >=(Tensor<T> other) => binaryOperation<T, bool>(
     other,
     (a, b) => a is num && b is num ? a >= b : type.comparator(a, b) >= 0,
   );
 
-  /// Computes element-wise equality $(A == B)$ producing a boolean tensor.
+  /// Computes element-wise equality `(A == B)` producing a boolean tensor.
   Tensor<bool> equalTo(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.equality.isEqual(a, b));
+
+  /// Computes element-wise inequality `(A != B)` producing a boolean tensor.
+  Tensor<bool> notEqualTo(Tensor<T> other) =>
+      binaryOperation<T, bool>(other, (a, b) => !type.equality.isEqual(a, b));
 }
 
 /// Logical bitwise operations on boolean tensors.
 extension LogicalTensorExtension on Tensor<bool> {
-  /// Computes element-wise logical NOT $(\neg A)$.
+  /// Computes element-wise logical NOT `(~A)`.
   Tensor<bool> operator ~() => unaryOperation<bool>((a) => !a, type: type);
 
-  /// Computes element-wise logical AND $(A \land B)$ supporting broadcasting.
+  /// Computes element-wise logical AND `(A & B)` supporting broadcasting.
   Tensor<bool> operator &(Tensor<bool> other) =>
       binaryOperation<bool, bool>(other, (a, b) => a && b, type: type);
 
-  /// Computes element-wise logical OR $(A \lor B)$ supporting broadcasting.
+  /// Computes element-wise logical OR `(A | B)` supporting broadcasting.
   Tensor<bool> operator |(Tensor<bool> other) =>
       binaryOperation<bool, bool>(other, (a, b) => a || b, type: type);
+
+  /// Computes element-wise logical XOR `(A ^ B)` supporting broadcasting.
+  Tensor<bool> operator ^(Tensor<bool> other) =>
+      binaryOperation<bool, bool>(other, (a, b) => a != b, type: type);
 }
+
+DataType<R> _resolveBinaryResultType<T, O, R>(
+  DataType<T> leftType,
+  DataType<O> rightType,
+  DataType<R>? explicitType,
+) =>
+    explicitType ??
+    (R == T
+        ? leftType as DataType<R>
+        : (R == O ? rightType as DataType<R> : DataType.fromType<R>()));
 
 bool _hasMemoryHazard(
   List<Object?> targetData,
@@ -298,6 +315,7 @@ bool _hasMemoryHazard(
   List<Object?> opData,
   Layout opLayout,
 ) {
+  if (targetLayout.length == 0 || opLayout.length == 0) return false;
   if (!sharesMemory(targetData, opData)) return false;
   final targetSpan = targetLayout.memorySpan;
   final opSpan = opLayout.memorySpan;

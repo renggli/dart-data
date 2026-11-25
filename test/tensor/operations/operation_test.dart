@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Tensor.unaryOperation target validation', () {
@@ -770,6 +770,16 @@ void main() {
       check(target.layout.isContiguous).isTrue;
       t1.binaryOperation<int, int>(t1, (a, b) => a + b, target: target);
       check(target.toFlatList()).deepEquals([2, 4, 6]);
+    });
+
+    test('notEqualTo and boolean XOR operator (^)', () {
+      final a = Tensor<int>.fromIterable([1, 2, 3]);
+      final b = Tensor<int>.fromIterable([1, 5, 3]);
+      check(a.notEqualTo(b).toFlatList()).deepEquals([false, true, false]);
+
+      final p = Tensor<bool>.fromIterable([true, true, false, false]);
+      final q = Tensor<bool>.fromIterable([true, false, true, false]);
+      check((p ^ q).toFlatList()).deepEquals([false, true, true, false]);
     });
   });
 }
