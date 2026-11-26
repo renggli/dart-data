@@ -547,6 +547,15 @@ Expr _antiDerivativeCore(
         case final expSubRes?) {
       return expSubRes;
     }
+    if (tryOddTrigHypSubstitution(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final oddTrigHypRes?) {
+      return oddTrigHypRes;
+    }
     if (tryRationalTrigSubstitution(
           node,
           variable,

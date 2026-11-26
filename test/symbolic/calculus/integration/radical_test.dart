@@ -589,5 +589,38 @@ void main() {
         ).isCloseTo(0.0, 1e-7);
       }
     });
+
+    test('integrates half-angle trig and secant radicals with cofactors', () {
+      for (final (source, env) in const [
+        (
+          'cos(c + d * x)^3 * sqrt(a + a * cos(c + d * x))',
+          {'x': 0.3, 'a': 1.8, 'c': 0.2, 'd': 0.7},
+        ),
+        (
+          'sin(c + d * x)^2 * sqrt(a + a * sin(c + d * x))',
+          {'x': 0.3, 'a': 1.8, 'c': 0.2, 'd': 0.7},
+        ),
+        (
+          '(A + C * cos(c + d * x)^2) * sqrt(a + a * cos(c + d * x)) * cos(c + d * x)',
+          {'x': 0.3, 'a': 1.8, 'A': 1.2, 'C': 0.7, 'c': 0.2, 'd': 0.7},
+        ),
+        (
+          'sqrt(a + a / cos(c + d * x)) / cos(c + d * x)^3',
+          {'x': 0.3, 'a': 1.8, 'c': 0.2, 'd': 0.7},
+        ),
+        (
+          'sqrt(a - a / cos(c + d * x)) / cos(c + d * x)^2',
+          {'x': 0.3, 'a': -1.8, 'c': 0.2, 'd': 0.7},
+        ),
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+              .abs(),
+        ).isCloseTo(0.0, 1e-7);
+      }
+    });
   });
 }

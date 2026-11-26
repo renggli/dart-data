@@ -245,7 +245,122 @@ Expr replaceTrigWithTan(Expr node, Expr inner, Variable tVar) {
       IntegerNumber.of(n ~/ 2),
     );
   }
+  if (node is Mul) {
+    var p = 0;
+    var q = 0;
+    final otherFactors = <Expr>[];
+    final sinCosFactors = <Expr>[];
+    for (final f in node.factors) {
+      if (f is Sin && f.expr == inner) {
+        p += 1;
+        sinCosFactors.add(f);
+      } else if (f is Cos && f.expr == inner) {
+        q += 1;
+        sinCosFactors.add(f);
+      } else if (f
+          case Pow(
+            base: Sin(expr: final arg),
+            exponent: IntegerNumber(asInt: final n?),
+          )
+          when arg == inner) {
+        p += n;
+        sinCosFactors.add(f);
+      } else if (f
+          case Pow(
+            base: Cos(expr: final arg),
+            exponent: IntegerNumber(asInt: final n?),
+          )
+          when arg == inner) {
+        q += n;
+        sinCosFactors.add(f);
+      } else {
+        otherFactors.add(replaceTrigWithTan(f, inner, tVar));
+      }
+    }
+    if ((p != 0 || q != 0) && (p + q).isEven) {
+      final tPart = p == 0 ? IntegerNumber.one : Pow(tVar, IntegerNumber.of(p));
+      final secPart = -(p + q) ~/ 2 == 0
+          ? IntegerNumber.one
+          : Pow(
+              IntegerNumber.one + tVar * tVar,
+              IntegerNumber.of(-(p + q) ~/ 2),
+            );
+      return Mul([tPart, secPart, ...otherFactors]).simplify();
+    }
+    return Mul([
+      for (final f in sinCosFactors) replaceTrigWithTan(f, inner, tVar),
+      ...otherFactors,
+    ]).simplify();
+  }
   return node.mapChildren((c) => replaceTrigWithTan(c, inner, tVar));
+}
+
+/// Rewrites even-degree hyperbolic expressions in [inner] as rational
+/// functions of `tVar = tanh(inner)`.
+Expr replaceHypWithTanh(Expr node, Expr inner, Variable tVar) {
+  if (node is Tanh && node.expr == inner) return tVar;
+  final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
+  if (node
+      case Pow(
+        base: Sinh(expr: final arg),
+        exponent: IntegerNumber(asInt: final n?),
+      )
+      when arg == inner && n.isEven) {
+    return Pow((tVar * tVar) / oneMT2, IntegerNumber.of(n ~/ 2));
+  }
+  if (node
+      case Pow(
+        base: Cosh(expr: final arg),
+        exponent: IntegerNumber(asInt: final n?),
+      )
+      when arg == inner && n.isEven) {
+    return Pow(IntegerNumber.one / oneMT2, IntegerNumber.of(n ~/ 2));
+  }
+  if (node is Mul) {
+    var p = 0;
+    var q = 0;
+    final otherFactors = <Expr>[];
+    final hypFactors = <Expr>[];
+    for (final f in node.factors) {
+      if (f is Sinh && f.expr == inner) {
+        p += 1;
+        hypFactors.add(f);
+      } else if (f is Cosh && f.expr == inner) {
+        q += 1;
+        hypFactors.add(f);
+      } else if (f
+          case Pow(
+            base: Sinh(expr: final arg),
+            exponent: IntegerNumber(asInt: final n?),
+          )
+          when arg == inner) {
+        p += n;
+        hypFactors.add(f);
+      } else if (f
+          case Pow(
+            base: Cosh(expr: final arg),
+            exponent: IntegerNumber(asInt: final n?),
+          )
+          when arg == inner) {
+        q += n;
+        hypFactors.add(f);
+      } else {
+        otherFactors.add(replaceHypWithTanh(f, inner, tVar));
+      }
+    }
+    if ((p != 0 || q != 0) && (p + q).isEven) {
+      final tPart = p == 0 ? IntegerNumber.one : Pow(tVar, IntegerNumber.of(p));
+      final coshPart = -(p + q) ~/ 2 == 0
+          ? IntegerNumber.one
+          : Pow(oneMT2, IntegerNumber.of(-(p + q) ~/ 2));
+      return Mul([tPart, coshPart, ...otherFactors]).simplify();
+    }
+    return Mul([
+      for (final f in hypFactors) replaceHypWithTanh(f, inner, tVar),
+      ...otherFactors,
+    ]).simplify();
+  }
+  return node.mapChildren((c) => replaceHypWithTanh(c, inner, tVar));
 }
 
 Expr? collectAffineHypInner(Expr node, String variable) {

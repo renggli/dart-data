@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -258,5 +259,94 @@ void main() {
         }
       },
     );
+
+    test('integrates tangent radicals, odd cofactors, and high-degree trig binomials', () {
+      for (final (source, env) in const [
+        (
+          '(a + a * sin(c + d * x))^8 * cos(c + d * x)^5',
+          {'x': 0.35, 'a': 1.3, 'c': 0.2, 'd': 0.7},
+        ),
+        (
+          '(a + a * sin(c + d * x))^8 * cos(c + d * x)^2',
+          {'x': 0.35, 'a': 1.3, 'c': 0.2, 'd': 0.7},
+        ),
+        (
+          '1 / (sin(a + b * x)^2 * cos(a + b * x)^5)',
+          {'x': 0.4, 'a': 0.3, 'b': 0.8},
+        ),
+        (
+          '1 / (sin(a + b * x)^3 * cos(a + b * x)^4)',
+          {'x': 0.4, 'a': 0.3, 'b': 0.8},
+        ),
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+              .abs(),
+        ).isCloseTo(0.0, 1e-7);
+      }
+
+      for (final source in const [
+        'cos(c + d * x)^3 / (sin(c + d * x)^3 * (a + i * a * tan(c + d * x))^2)',
+        '(A + B * tan(c + d * x)) * cos(c + d * x) / (sin(c + d * x) * (a + i * a * tan(c + d * x))^3)',
+        'sqrt(a + i * a * tan(c + d * x)) * tan(c + d * x)',
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        final cEnv = {
+          'x': const Complex(0.35, 0.2),
+          'a': const Complex(1.4, 0.25),
+          'c': const Complex(0.2, 0.1),
+          'd': const Complex(0.7, 0.15),
+          'A': const Complex(1.1, 0.1),
+          'B': const Complex(0.8, 0.2),
+        };
+        check(
+          (antideriv.derivative('x').evaluateComplex(cEnv) -
+                  integrand.evaluateComplex(cEnv))
+              .abs(),
+        ).isCloseTo(0.0, 1e-7);
+      }
+    });
+
+    test('integrates hyperbolic power quotients, tanh forms, and polynomial over sinh', () {
+      for (final (source, env) in const [
+        (
+          '1 / (sinh(a + b * x)^2 * cosh(a + b * x)^5)',
+          {'x': 0.4, 'a': 0.3, 'b': 0.8},
+        ),
+        (
+          '1 / (sinh(a + b * x)^3 * cosh(a + b * x)^4)',
+          {'x': 0.4, 'a': 0.3, 'b': 0.8},
+        ),
+        (
+          '1 / (sinh(a + b * x)^3 * cosh(a + b * x)^5)',
+          {'x': 0.4, 'a': 0.3, 'b': 0.8},
+        ),
+        (
+          'sinh(c + d * x)^4 / (a + b * sinh(c + d * x)^2)^2',
+          {'x': 0.35, 'a': 2.1, 'b': 0.7, 'c': 0.2, 'd': 0.6},
+        ),
+        (
+          '1 / (sinh(c + d * x)^5 * (a + b * sinh(c + d * x)^2))',
+          {'x': 0.45, 'a': 2.1, 'b': 0.7, 'c': 0.2, 'd': 0.6},
+        ),
+        (
+          '(c + d * x)^2 / sinh(a + b * x)',
+          {'x': -0.8, 'a': -0.3, 'b': 0.7, 'c': 0.5, 'd': 0.9},
+        ),
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+              .abs(),
+        ).isCloseTo(0.0, 1e-7);
+      }
+    });
   });
 }

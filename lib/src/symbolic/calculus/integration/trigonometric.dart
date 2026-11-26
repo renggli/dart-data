@@ -42,7 +42,7 @@ Expr? tryExpandTrigBinomialProduct(
           base: final Add addBase,
           exponent: IntegerNumber(asInt: final m?),
         )
-        when m >= 2 && m <= 6 && addBase.terms.length <= 3) {
+        when m >= 2 && m <= 8 && addBase.terms.length <= 3) {
       if (addBase.anyNode(isLinearTrigOrHyp)) {
         binomIdx = i;
         break;
@@ -240,21 +240,22 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
     return integrateCotPower(q, inner, a, variable).scale(scale);
   }
 
-  const tName = '_wt';
-  const tVar = Variable(tName);
+  final tName = freshIntegrationVar('_wt', num / den, variable, 0);
+  final tVar = Variable(tName);
 
-  if (p >= 1 && p.isOdd) {
+  if (p.isOdd && p >= -9 && p <= 9) {
     final k = (p - 1) ~/ 2;
-    final integrand =
-        ((-scale / a) *
-                Pow(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k)) *
-                Pow(tVar, IntegerNumber.of(q)))
-            .expand()
-            .simplify();
+    final cosPow = k == 0
+        ? IntegerNumber.one
+        : Pow(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k));
+    final rawIntegrand = (-scale / a) * cosPow * Pow(tVar, IntegerNumber.of(q));
+    final integrand = k >= 0
+        ? rawIntegrand.expand().simplify()
+        : rawIntegrand.simplify();
     final tInt = antiDerivative(
       integrand,
       tName,
-      depth: 2,
+      depth: 1,
       assumptions: Assumptions.none,
     );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
@@ -262,18 +263,19 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
     }
   }
 
-  if (q >= 1 && q.isOdd) {
+  if (q.isOdd && q >= -9 && q <= 9) {
     final k = (q - 1) ~/ 2;
-    final integrand =
-        ((scale / a) *
-                Pow(tVar, IntegerNumber.of(p)) *
-                Pow(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k)))
-            .expand()
-            .simplify();
+    final sinPow = k == 0
+        ? IntegerNumber.one
+        : Pow(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k));
+    final rawIntegrand = (scale / a) * Pow(tVar, IntegerNumber.of(p)) * sinPow;
+    final integrand = k >= 0
+        ? rawIntegrand.expand().simplify()
+        : rawIntegrand.simplify();
     final tInt = antiDerivative(
       integrand,
       tName,
-      depth: 2,
+      depth: 1,
       assumptions: Assumptions.none,
     );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
@@ -292,7 +294,7 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
     final tInt = antiDerivative(
       integrand,
       tName,
-      depth: 2,
+      depth: 1,
       assumptions: Assumptions.none,
     );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
@@ -530,6 +532,34 @@ Expr? tryRationalTrigSubstitution(
         );
       }
     }
+    if (!isIntegrationBudgetExhausted()) {
+      final tanInner = _findSingleLinearTanInner(expr, variable);
+      if (tanInner != null) {
+        final kTan = tanInner.matchLinear(variable)!.a;
+        final tName = freshIntegrationVar('_rt', expr, variable, depth);
+        final tVar = Variable(tName);
+        final tanReplaced = replaceTrigWithTan(expr, tanInner, tVar);
+        if (!tanReplaced.dependsOn(variable)) {
+          final rawIntegrand =
+              (tanReplaced / (kTan * (IntegerNumber.one + tVar * tVar)))
+                  .simplify(assumptions: assumptions);
+          if (!exceedsNodeBudget(rawIntegrand, 250)) {
+            final integrand = rawIntegrand.together(assumptions: assumptions);
+            final tInt = antiDerivative(
+              integrand,
+              tName,
+              assumptions: assumptions,
+              depth: depth + 1,
+            );
+            if (!hasUnevaluatedIntegral(tInt, tName)) {
+              return tInt
+                  .substitute(tName, Tan(tanInner))
+                  .simplify(assumptions: assumptions);
+            }
+          }
+        }
+      }
+    }
     return null;
   }
   final k = inner.matchLinear(variable)!.a;
@@ -546,8 +576,8 @@ Expr? tryRationalTrigSubstitution(
   }
 
   // 1. Try t = tan(u) if expression is even in (sin, cos)
-  const tName = '_rt';
-  const tVar = Variable(tName);
+  final tName = freshIntegrationVar('_rt', expr, variable, depth);
+  final tVar = Variable(tName);
   if (!isIntegrationBudgetExhausted()) {
     final tanReplaced = replaceTrigWithTan(expr, inner, tVar);
     if (!tanReplaced.dependsOn(variable)) {
@@ -559,7 +589,7 @@ Expr? tryRationalTrigSubstitution(
           integrand,
           tName,
           assumptions: assumptions,
-          depth: 2,
+          depth: depth + 1,
         );
         if (!hasUnevaluatedIntegral(tInt, tName)) {
           return tInt
@@ -589,7 +619,7 @@ Expr? tryRationalTrigSubstitution(
               integrand,
               tName,
               assumptions: assumptions,
-              depth: 2,
+              depth: depth + 1,
             );
             if (!hasUnevaluatedIntegral(tInt, tName)) {
               return tInt
@@ -608,8 +638,268 @@ Expr? tryRationalTrigSubstitution(
   return null;
 }
 
+/// Integrates products containing an odd positive power of `cos`, `sin`, `cosh`,
+/// or `sinh` paired with functions of the dual trig/hyperbolic function.
+Expr? tryOddTrigHypSubstitution(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2 || expr is! Mul) return null;
+  final factors = expr.factors;
+  for (var i = 0; i < factors.length; i++) {
+    final f = factors[i];
+    final Expr fnBase;
+    final int exp;
+    if (f case Pow(:final base, exponent: IntegerNumber(asInt: final k?))
+        when k.abs() <= 11 && k.isOdd) {
+      fnBase = base;
+      exp = k;
+    } else if (f is Cos || f is Sin || f is Cosh || f is Sinh) {
+      fnBase = f;
+      exp = 1;
+    } else {
+      continue;
+    }
+
+    final Expr inner;
+    final int kind; // 0: cos, 1: sin, 2: cosh, 3: sinh
+    if (fnBase case Cos(expr: final u)) {
+      inner = u;
+      kind = 0;
+    } else if (fnBase case Sin(expr: final u)) {
+      inner = u;
+      kind = 1;
+    } else if (fnBase case Cosh(expr: final u)) {
+      inner = u;
+      kind = 2;
+    } else if (fnBase case Sinh(expr: final u)) {
+      inner = u;
+      kind = 3;
+    } else {
+      continue;
+    }
+
+    final lin = inner.matchLinear(variable);
+    if (lin == null) continue;
+    final kSlope = lin.a;
+
+    final otherFactors = <Expr>[
+      for (var j = 0; j < factors.length; j++)
+        if (j != i) factors[j],
+    ];
+    final otherExpr = otherFactors.length == 1
+        ? otherFactors.first
+        : Mul(otherFactors).simplify(assumptions: assumptions);
+
+    final sName = freshIntegrationVar('_ts', expr, variable, depth);
+    final sVar = Variable(sName);
+    final sqExpr = switch (kind) {
+      0 || 1 => (IntegerNumber.one - sVar * sVar).simplify(),
+      2 => (IntegerNumber.one + sVar * sVar).simplify(),
+      _ => (sVar * sVar - IntegerNumber.one).simplify(),
+    };
+    final subTarget = switch (kind) {
+      0 => Sin(inner),
+      1 => Cos(inner),
+      2 => Sinh(inner),
+      _ => Cosh(inner),
+    };
+    final derivSign = kind == 1 ? IntegerNumber.negativeOne : IntegerNumber.one;
+
+    Expr? replaceOther(Expr node) {
+      if (!node.dependsOn(variable)) return node;
+      if (node == subTarget) return sVar;
+      if (node
+          case Pow(base: final pBase, exponent: IntegerNumber(asInt: final m?))
+          when pBase == fnBase && m.isEven && m.abs() <= 12) {
+        return Pow(sqExpr, IntegerNumber.of(m ~/ 2));
+      }
+      if (node is Add) {
+        final mapped = <Expr>[];
+        for (final t in node.terms) {
+          final rt = replaceOther(t);
+          if (rt == null) return null;
+          mapped.add(rt);
+        }
+        return Add(mapped);
+      }
+      if (node is Mul) {
+        final mapped = <Expr>[];
+        for (final mf in node.factors) {
+          final rm = replaceOther(mf);
+          if (rm == null) return null;
+          mapped.add(rm);
+        }
+        return Mul(mapped);
+      }
+      if (node is Pow && !node.exponent.dependsOn(variable)) {
+        final rb = replaceOther(node.base);
+        if (rb == null) return null;
+        return Pow(rb, node.exponent);
+      }
+      return null;
+    }
+
+    final replacedOther = replaceOther(otherExpr);
+    if (replacedOther == null || replacedOther.dependsOn(variable)) continue;
+
+    final r = (exp - 1) ~/ 2;
+    final remCos = r == 0
+        ? IntegerNumber.one
+        : Pow(sqExpr, IntegerNumber.of(r));
+    final transformed = (derivSign * replacedOther * remCos / kSlope).simplify(
+      assumptions: assumptions,
+    );
+    if (exceedsNodeBudget(transformed, 250)) continue;
+
+    final sRes = antiDerivative(
+      transformed,
+      sName,
+      assumptions: assumptions,
+      depth: depth + 1,
+    );
+    if (!hasUnevaluatedIntegral(sRes, sName)) {
+      return sRes
+          .substitute(sName, subTarget)
+          .simplify(assumptions: assumptions);
+    }
+  }
+  return null;
+}
+
+/// Integrates products and quotients of integer powers `sinh(u)^p * cosh(u)^q`.
+Expr? tryHypPowerProduct(
+  Expr num,
+  Expr den,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final numInfo = _extractHypPowers(num, variable);
+  final denInfo = _extractHypPowers(den, variable);
+  if (numInfo == null || denInfo == null) return null;
+
+  final inner = numInfo.inner ?? denInfo.inner;
+  if (inner == null) return null;
+  if (numInfo.inner != null &&
+      denInfo.inner != null &&
+      numInfo.inner != denInfo.inner) {
+    return null;
+  }
+  final linear = inner.matchLinear(variable);
+  if (linear == null) return null;
+  final a = linear.a;
+
+  final p = numInfo.sinhExp - denInfo.sinhExp;
+  final q = numInfo.coshExp - denInfo.coshExp;
+  if (p == 0 && q == 0) return null;
+  if (p.abs() > 10 || q.abs() > 10) return null;
+  final scale = (numInfo.scale / denInfo.scale).simplify(
+    assumptions: assumptions,
+  );
+
+  final tName = freshIntegrationVar('_ht', num / den, variable, 0);
+  final tVar = Variable(tName);
+
+  if ((p + q).isEven && p + q <= -2) {
+    final m = -(p + q) ~/ 2 - 1;
+    final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
+    final integrand =
+        ((scale / a) *
+                Pow(tVar, IntegerNumber.of(p)) *
+                Pow(oneMT2, IntegerNumber.of(m)))
+            .expand()
+            .simplify(assumptions: assumptions);
+    final tInt = antiDerivative(
+      integrand,
+      tName,
+      depth: 1,
+      assumptions: assumptions,
+    );
+    if (!hasUnevaluatedIntegral(tInt, tName)) {
+      return tInt
+          .substitute(tName, Tanh(inner))
+          .simplify(assumptions: assumptions);
+    }
+  }
+
+  if (p.isOdd && p >= -9 && p <= 9) {
+    final k = (p - 1) ~/ 2;
+    final coshPow = k == 0
+        ? IntegerNumber.one
+        : Pow(
+            (tVar * tVar - IntegerNumber.one).simplify(),
+            IntegerNumber.of(k),
+          );
+    final rawIntegrand = (scale / a) * coshPow * Pow(tVar, IntegerNumber.of(q));
+    final integrand = k >= 0
+        ? rawIntegrand.expand().simplify(assumptions: assumptions)
+        : rawIntegrand.simplify(assumptions: assumptions);
+    final tInt = antiDerivative(
+      integrand,
+      tName,
+      depth: 1,
+      assumptions: assumptions,
+    );
+    if (!hasUnevaluatedIntegral(tInt, tName)) {
+      return tInt
+          .substitute(tName, Cosh(inner))
+          .simplify(assumptions: assumptions);
+    }
+  }
+
+  if (q.isOdd && q >= -9 && q <= 9) {
+    final k = (q - 1) ~/ 2;
+    final sinhPow = k == 0
+        ? IntegerNumber.one
+        : Pow(
+            (IntegerNumber.one + tVar * tVar).simplify(),
+            IntegerNumber.of(k),
+          );
+    final rawIntegrand = (scale / a) * Pow(tVar, IntegerNumber.of(p)) * sinhPow;
+    final integrand = k >= 0
+        ? rawIntegrand.expand().simplify(assumptions: assumptions)
+        : rawIntegrand.simplify(assumptions: assumptions);
+    final tInt = antiDerivative(
+      integrand,
+      tName,
+      depth: 1,
+      assumptions: assumptions,
+    );
+    if (!hasUnevaluatedIntegral(tInt, tName)) {
+      return tInt
+          .substitute(tName, Sinh(inner))
+          .simplify(assumptions: assumptions);
+    }
+  }
+
+  if (p >= 0 && q >= 0 && p.isEven && q.isEven) {
+    final twoInner = (IntegerNumber.two * inner).simplify();
+    final sinh2 = (Cosh(twoInner) - IntegerNumber.one) / IntegerNumber.two;
+    final cosh2 = (Cosh(twoInner) + IntegerNumber.one) / IntegerNumber.two;
+    final expanded =
+        (scale *
+                Pow(sinh2, IntegerNumber.of(p ~/ 2)) *
+                Pow(cosh2, IntegerNumber.of(q ~/ 2)))
+            .expand()
+            .simplify(assumptions: assumptions);
+    if (expanded is Add || expanded != (num / den).simplify()) {
+      final res = antiDerivative(
+        expanded,
+        variable,
+        depth: 2,
+        assumptions: assumptions,
+      );
+      if (!hasUnevaluatedIntegral(res, variable)) return res;
+    }
+  }
+
+  return null;
+}
+
 /// Integrates rational hyperbolic functions `R(sinh(u), cosh(u), tanh(u))` via
-/// exponential substitution `w = exp(u)`.
+/// `t = tanh(u)` or exponential substitution `w = exp(u)`.
 Expr? tryHyperbolicRationalSubstitution(
   Expr expr,
   String variable, {
@@ -621,8 +911,34 @@ Expr? tryHyperbolicRationalSubstitution(
   if (inner == null) return null;
   final k = inner.matchLinear(variable)!.a;
 
-  const wName = '_hw';
-  const wVar = Variable(wName);
+  // 1. Try t = tanh(u) for even hyperbolic functions
+  final tName = freshIntegrationVar('_ht', expr, variable, depth);
+  final tVar = Variable(tName);
+  final tanhReplaced = replaceHypWithTanh(expr, inner, tVar);
+  if (!tanhReplaced.dependsOn(variable)) {
+    final rawIntegrand =
+        (tanhReplaced / (k * (IntegerNumber.one - tVar * tVar))).simplify(
+          assumptions: assumptions,
+        );
+    if (!exceedsNodeBudget(rawIntegrand, 300)) {
+      final integrand = rawIntegrand.together(assumptions: assumptions);
+      final tInt = antiDerivative(
+        integrand,
+        tName,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(tInt, tName)) {
+        return tInt
+            .substitute(tName, Tanh(inner))
+            .simplify(assumptions: assumptions);
+      }
+    }
+  }
+
+  // 2. General exponential substitution w = exp(u)
+  final wName = freshIntegrationVar('_hw', expr, variable, depth);
+  final wVar = Variable(wName);
   final replaced = replaceHypWithExp(expr, inner, wVar);
   if (replaced.dependsOn(variable) || exceedsNodeBudget(replaced, 300)) {
     return null;
@@ -641,13 +957,112 @@ Expr? tryHyperbolicRationalSubstitution(
     integrand,
     wName,
     assumptions: assumptions,
-    depth: 2,
+    depth: depth + 1,
   );
   if (hasUnevaluatedIntegral(wInt, wName)) return null;
 
   return wInt
       .substitute(wName, Pow(Constant.e, inner))
       .simplify(assumptions: assumptions);
+}
+
+Expr? _findSingleLinearTanInner(Expr expr, String variable) {
+  Expr? found;
+  var hasTan = false;
+  var valid = true;
+  void scan(Expr n) {
+    if (!valid || !n.dependsOn(variable)) return;
+    switch (n) {
+      case Tan(:final expr):
+        if (expr.matchLinear(variable) == null) {
+          valid = false;
+          return;
+        }
+        hasTan = true;
+        if (found == null) {
+          found = expr;
+        } else if (found != expr) {
+          valid = false;
+        }
+      case Sin(:final expr) || Cos(:final expr):
+        if (expr.matchLinear(variable) == null) {
+          valid = false;
+          return;
+        }
+        if (found == null) {
+          found = expr;
+        } else if (found != expr) {
+          valid = false;
+        }
+      case Add(:final terms):
+        for (final t in terms) {
+          scan(t);
+        }
+      case Mul(:final factors):
+        for (final f in factors) {
+          scan(f);
+        }
+      case Pow(:final base, :final exponent) when !exponent.dependsOn(variable):
+        scan(base);
+      default:
+        valid = false;
+    }
+  }
+
+  scan(expr);
+  return (valid && hasTan) ? found : null;
+}
+
+({Expr scale, int sinhExp, int coshExp, Expr? inner})? _extractHypPowers(
+  Expr expr,
+  String variable,
+) {
+  final factors = expr is Mul ? expr.factors : [expr];
+  var scale = IntegerNumber.one as Expr;
+  var sinhExp = 0;
+  var coshExp = 0;
+  Expr? inner;
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      scale = (scale * f).simplify();
+      continue;
+    }
+    var base = f;
+    var exp = 1;
+    if (f case Pow(base: final pBase, exponent: IntegerNumber(:final asInt))
+        when asInt != null && asInt.abs() <= 10) {
+      base = pBase;
+      exp = asInt;
+    }
+    switch (base) {
+      case Sinh(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        sinhExp += exp;
+      case Cosh(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        coshExp += exp;
+      case Tanh(expr: final arg):
+        if (inner == null) {
+          inner = arg;
+        } else if (inner != arg) {
+          return null;
+        }
+        sinhExp += exp;
+        coshExp -= exp;
+      default:
+        return null;
+    }
+  }
+  return (scale: scale, sinhExp: sinhExp, coshExp: coshExp, inner: inner);
 }
 
 ({Expr scale, int sinExp, int cosExp, Expr? inner})? _extractTrigPowers(

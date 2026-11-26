@@ -354,84 +354,308 @@ Expr? tryHalfAngleTrigRadical(
 }) {
   if (depth >= 2) return null;
 
+  ({Expr a, int sign, bool isSin, bool isRecip, Expr u, int k})?
+  matchHalfAnglePow(Pow node) {
+    final k = halfIntExponent(node.exponent);
+    if (k == null || k.isEven || k.abs() > 9) return null;
+    if (node.base case Add(terms: [final t0, final t1])) {
+      final Expr a;
+      final Expr trigTerm;
+      if (!t0.dependsOn(variable) && t1.dependsOn(variable)) {
+        a = t0;
+        trigTerm = t1;
+      } else if (!t1.dependsOn(variable) && t0.dependsOn(variable)) {
+        a = t1;
+        trigTerm = t0;
+      } else {
+        return null;
+      }
+      final trigFactors = trigTerm is Mul ? trigTerm.factors : [trigTerm];
+      final trigConst = <Expr>[];
+      final trigVar = <Expr>[];
+      for (final f in trigFactors) {
+        if (f.dependsOn(variable)) {
+          trigVar.add(f);
+        } else {
+          trigConst.add(f);
+        }
+      }
+      if (trigVar.length != 1) return null;
+      var tv = trigVar.first;
+      var isRecip = false;
+      if (tv case Pow(
+        base: final b,
+        exponent: IntegerNumber(isNegativeOne: true),
+      )) {
+        isRecip = true;
+        tv = b;
+      }
+      final bool isSin;
+      final Expr u;
+      if (tv case Sin(:final expr)) {
+        isSin = true;
+        u = expr;
+      } else if (tv case Cos(:final expr)) {
+        isSin = false;
+        u = expr;
+      } else {
+        return null;
+      }
+      if (u.matchLinear(variable) == null) return null;
+      final coeff = trigConst.isEmpty
+          ? IntegerNumber.one
+          : Mul(trigConst).simplify(assumptions: assumptions);
+      final ratio = (coeff / a).simplify(assumptions: assumptions);
+      final int sign;
+      if (ratio == IntegerNumber.one) {
+        sign = 1;
+      } else if (ratio == IntegerNumber.negativeOne) {
+        sign = -1;
+      } else {
+        return null;
+      }
+      return (a: a, sign: sign, isSin: isSin, isRecip: isRecip, u: u, k: k);
+    }
+    return null;
+  }
+
   var constScale = IntegerNumber.one as Expr;
   Pow? targetPow;
+  ({Expr a, int sign, bool isSin, bool isRecip, Expr u, int k})? matched;
+
   if (expr is Pow) {
-    targetPow = expr;
+    final m = matchHalfAnglePow(expr);
+    if (m != null && !m.isRecip) {
+      targetPow = expr;
+      matched = m;
+    } else if (m != null && m.isRecip) {
+      targetPow = expr;
+      matched = m;
+    }
   } else if (expr is Mul) {
     final consts = <Expr>[];
-    final vars = <Expr>[];
+    final varOthers = <Expr>[];
     for (final f in expr.factors) {
-      if (f.dependsOn(variable)) {
-        vars.add(f);
-      } else {
+      if (!f.dependsOn(variable)) {
         consts.add(f);
+      } else if (f is Pow && targetPow == null) {
+        final m = matchHalfAnglePow(f);
+        if (m != null) {
+          targetPow = f;
+          matched = m;
+        } else {
+          varOthers.add(f);
+        }
+      } else {
+        varOthers.add(f);
       }
     }
-    if (vars.length == 1 && vars.first is Pow) {
-      targetPow = vars.first as Pow;
+    if (targetPow != null && matched != null) {
       if (consts.isNotEmpty) {
         constScale = Mul(consts).simplify(assumptions: assumptions);
       }
-    }
-  }
-  if (targetPow == null) return null;
+      if (varOthers.isNotEmpty) {
+        final uTarget = matched.u;
+        bool onlySinCosOfU(Expr n) {
+          if (!n.dependsOn(variable)) return true;
+          if ((n is Sin || n is Cos || n is Tan) &&
+              ((n as UnaryExpr).expr == uTarget)) {
+            return true;
+          }
+          if (n is Add) return n.terms.every(onlySinCosOfU);
+          if (n is Mul) return n.factors.every(onlySinCosOfU);
+          if (n is Pow &&
+              !n.exponent.dependsOn(variable) &&
+              n.exponent is IntegerNumber) {
+            return onlySinCosOfU(n.base);
+          }
+          return false;
+        }
 
-  final k = halfIntExponent(targetPow.exponent);
-  if (k == null || k.isEven || k.abs() > 9) return null;
+        if (!varOthers.every(onlySinCosOfU)) return null;
 
-  if (targetPow.base case Add(terms: [final t0, final t1])) {
-    final Expr? a;
-    final Expr trigTerm;
-    if (!t0.dependsOn(variable) && t1.dependsOn(variable)) {
-      a = t0;
-      trigTerm = t1;
-    } else if (!t1.dependsOn(variable) && t0.dependsOn(variable)) {
-      a = t1;
-      trigTerm = t0;
-    } else {
-      return null;
-    }
+        final sign = matched.sign;
+        final isSin = matched.isSin;
+        final isRecip = matched.isRecip;
+        final k = matched.k;
+        final duFactor = uTarget
+            .matchLinear(variable)!
+            .a
+            .simplify(assumptions: assumptions);
+        final v = isSin
+            ? (uTarget / IntegerNumber.two - Constant.pi / IntegerNumber.of(4))
+                  .simplify(assumptions: assumptions)
+            : (uTarget / IntegerNumber.two).simplify(assumptions: assumptions);
 
-    final trigFactors = trigTerm is Mul ? trigTerm.factors : [trigTerm];
-    final trigConst = <Expr>[];
-    final trigVar = <Expr>[];
-    for (final f in trigFactors) {
-      if (f.dependsOn(variable)) {
-        trigVar.add(f);
-      } else {
-        trigConst.add(f);
+        if (!isRecip) {
+          final trigHalf = sign > 0 ? Cos(v) : Sin(v);
+          final unit = (Pow(targetPow.base, FractionNumber.half) / trigHalf)
+              .simplify(assumptions: assumptions);
+          final twoCos2M1 =
+              (IntegerNumber.two * Cos(v) * Cos(v) - IntegerNumber.one)
+                  .simplify(assumptions: assumptions);
+          final oneMTwoSin2 =
+              (IntegerNumber.one - IntegerNumber.two * Sin(v) * Sin(v))
+                  .simplify(assumptions: assumptions);
+          final twoSinCos = (IntegerNumber.two * Sin(v) * Cos(v)).simplify(
+            assumptions: assumptions,
+          );
+          final cosURepl = !isSin
+              ? (sign > 0 ? twoCos2M1 : oneMTwoSin2)
+              : (-twoSinCos).simplify(assumptions: assumptions);
+          final sinURepl = !isSin
+              ? twoSinCos
+              : (sign > 0 ? twoCos2M1 : oneMTwoSin2);
+
+          Expr replaceTrigHalf(Expr n) {
+            if (n is Sin && n.expr == uTarget) return sinURepl;
+            if (n is Cos && n.expr == uTarget) return cosURepl;
+            if (n is Tan && n.expr == uTarget) return sinURepl / cosURepl;
+            return n.mapChildren(replaceTrigHalf);
+          }
+
+          final otherProd = varOthers.length == 1
+              ? varOthers.first
+              : Mul(varOthers).simplify(assumptions: assumptions);
+          final rawRewritten =
+              (constScale *
+                      Pow(trigHalf, IntegerNumber.of(k)) *
+                      replaceTrigHalf(otherProd))
+                  .simplify(assumptions: assumptions);
+          if (!exceedsNodeBudget(rawRewritten, 220)) {
+            final rewritten = rawRewritten
+                .expand(assumptions: assumptions)
+                .simplify(assumptions: assumptions);
+            final res = antiDerivative(
+              rewritten,
+              variable,
+              depth: depth + 1,
+              assumptions: assumptions,
+            );
+            if (!hasUnevaluatedIntegral(res, variable)) {
+              return (Pow(unit, IntegerNumber.of(k)) * res).simplify(
+                assumptions: assumptions,
+              );
+            }
+          }
+          return null;
+        }
+
+        // Case B: a +- a / cos(u) or a +- a / sin(u)
+        final tName = freshIntegrationVar('_ha', expr, variable, depth);
+        final tVar = Variable(tName);
+        final tanV = Tan(v);
+        final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
+        final onePT2 = (IntegerNumber.one + tVar * tVar).simplify();
+        final oneMTanV2 = (IntegerNumber.one - tanV * tanV).simplify();
+        final unit = sign > 0
+            ? (Pow(targetPow.base, FractionNumber.half) *
+                      Pow(oneMTanV2, FractionNumber.half))
+                  .simplify(assumptions: assumptions)
+            : (Pow(targetPow.base, FractionNumber.half) *
+                      Pow(oneMTanV2, FractionNumber.half) /
+                      tanV)
+                  .simplify(assumptions: assumptions);
+        final radInT = sign > 0
+            ? Pow(oneMT2, FractionNumber(Integer(-k), Integer.two))
+            : (Pow(tVar, IntegerNumber.of(k)) *
+                      Pow(oneMT2, FractionNumber(Integer(-k), Integer.two)))
+                  .simplify();
+        final primaryExpr = oneMT2 / onePT2;
+        final secondaryExpr =
+            (IntegerNumber.two * tVar) /
+            onePT2 *
+            (isSin ? -IntegerNumber.one : IntegerNumber.one);
+        final cosExprT = isSin ? secondaryExpr : primaryExpr;
+        final sinExprT = isSin ? primaryExpr : secondaryExpr;
+
+        Expr replaceTrigT(Expr n) {
+          if (n is Cos && n.expr == uTarget) return cosExprT;
+          if (n is Sin && n.expr == uTarget) return sinExprT;
+          if (n is Tan && n.expr == uTarget) return sinExprT / cosExprT;
+          return n.mapChildren(replaceTrigT);
+        }
+
+        final otherProd = varOthers.length == 1
+            ? varOthers.first
+            : Mul(varOthers).simplify(assumptions: assumptions);
+        final dx = IntegerNumber.two / (duFactor * onePT2);
+        final transformed = (constScale * radInT * replaceTrigT(otherProd) * dx)
+            .together(assumptions: assumptions)
+            .simplify(assumptions: assumptions);
+        if (!transformed.dependsOn(variable) &&
+            !exceedsNodeBudget(transformed, 250)) {
+          final tRes = antiDerivative(
+            transformed,
+            tName,
+            depth: depth + 1,
+            assumptions: assumptions,
+          );
+          if (!hasUnevaluatedIntegral(tRes, tName)) {
+            return (Pow(unit, IntegerNumber.of(k)) *
+                    tRes.substitute(tName, tanV))
+                .simplify(assumptions: assumptions);
+          }
+        }
+        return null;
       }
     }
-    if (trigVar.length != 1) return null;
-    final trigNode = trigVar.first;
-    final bool isSin;
-    final Expr u;
-    if (trigNode case Sin(:final expr)) {
-      isSin = true;
-      u = expr;
-    } else if (trigNode case Cos(:final expr)) {
-      isSin = false;
-      u = expr;
-    } else {
+  }
+
+  if (targetPow != null && matched != null) {
+    final aExpr = matched.a;
+    final sign = matched.sign;
+    final isSin = matched.isSin;
+    final isRecip = matched.isRecip;
+    final u = matched.u;
+    final k = matched.k;
+    if (isRecip) {
+      final v = isSin
+          ? (u / IntegerNumber.two - Constant.pi / IntegerNumber.of(4))
+                .simplify(assumptions: assumptions)
+          : (u / IntegerNumber.two).simplify(assumptions: assumptions);
+      final duFactor = u
+          .matchLinear(variable)!
+          .a
+          .simplify(assumptions: assumptions);
+      final tName = freshIntegrationVar('_ha', expr, variable, depth);
+      final tVar = Variable(tName);
+      final tanV = Tan(v);
+      final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
+      final onePT2 = (IntegerNumber.one + tVar * tVar).simplify();
+      final oneMTanV2 = (IntegerNumber.one - tanV * tanV).simplify();
+      final unit = sign > 0
+          ? (Pow(targetPow.base, FractionNumber.half) *
+                    Pow(oneMTanV2, FractionNumber.half))
+                .simplify(assumptions: assumptions)
+          : (Pow(targetPow.base, FractionNumber.half) *
+                    Pow(oneMTanV2, FractionNumber.half) /
+                    tanV)
+                .simplify(assumptions: assumptions);
+      final radInT = sign > 0
+          ? Pow(oneMT2, FractionNumber(Integer(-k), Integer.two))
+          : (Pow(tVar, IntegerNumber.of(k)) *
+                    Pow(oneMT2, FractionNumber(Integer(-k), Integer.two)))
+                .simplify();
+      final dx = IntegerNumber.two / (duFactor * onePT2);
+      final transformed = (constScale * radInT * dx)
+          .together(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
+      if (!exceedsNodeBudget(transformed, 250)) {
+        final tRes = antiDerivative(
+          transformed,
+          tName,
+          depth: depth + 1,
+          assumptions: assumptions,
+        );
+        if (!hasUnevaluatedIntegral(tRes, tName)) {
+          return (Pow(unit, IntegerNumber.of(k)) * tRes.substitute(tName, tanV))
+              .simplify(assumptions: assumptions);
+        }
+      }
       return null;
     }
-    if (u.matchLinear(variable) == null) return null;
 
-    final coeff = trigConst.isEmpty
-        ? IntegerNumber.one
-        : Mul(trigConst).simplify(assumptions: assumptions);
-    final ratio = (coeff / a).simplify(assumptions: assumptions);
-    final int sign;
-    if (ratio == IntegerNumber.one) {
-      sign = 1;
-    } else if (ratio == IntegerNumber.negativeOne) {
-      sign = -1;
-    } else {
-      return null;
-    }
-
-    final aExpr = a;
     final duFactor = u
         .matchLinear(variable)!
         .a

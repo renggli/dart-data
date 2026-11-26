@@ -57,6 +57,17 @@ Expr? tryAntiDerivDiv(
       }
     }
 
+    // int c / sinh(ax + b) dx = (c / a) * (ln|e^(ax+b) - 1| - ln|e^(ax+b) + 1|)
+    if (right case Sinh(expr: final inner)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        final expU = Pow(Constant.e, inner);
+        return ((left / a) *
+                (logAntiderivative(expU - IntegerNumber.one, assumptions) -
+                    logAntiderivative(expU + IntegerNumber.one, assumptions)))
+            .simplify(assumptions: assumptions);
+      }
+    }
+
     // int c / cos(ax + b) dx = (c / a) * ln| (1 + sin(ax + b)) / cos(ax + b) |
     if (right case Cos(expr: final inner)) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
@@ -791,9 +802,13 @@ Expr? tryAntiDerivDiv(
     }
   }
 
-  // Trigonometric quotients/powers: sin^p(u) / cos^q(u), cot^n(u), etc.
+  // Trigonometric and hyperbolic quotients/powers: sin^p(u)/cos^q(u), sinh^p(u)/cosh^q(u)
   if (tryTrigPowerProduct(left, right, variable) case final trigQuot?) {
     return trigQuot;
+  }
+  if (tryHypPowerProduct(left, right, variable, assumptions: assumptions)
+      case final hypQuot?) {
+    return hypQuot;
   }
 
   // Linear trig quotient: (a1*sin(u) + b1*cos(u) + c1) / (a*sin(u) + b*cos(u) + c)

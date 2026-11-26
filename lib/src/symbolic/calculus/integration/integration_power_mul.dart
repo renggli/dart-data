@@ -649,9 +649,27 @@ Expr antiDerivMul(
       case final trigPowRes?) {
     return trigPowRes;
   }
+  if (tryHypPowerProduct(
+        original,
+        IntegerNumber.one,
+        variable,
+        assumptions: assumptions,
+      )
+      case final hypPowRes?) {
+    return hypPowRes;
+  }
   if (trySymbolicTrigPowerProduct(original, variable, assumptions: assumptions)
       case final symTrigPowRes?) {
     return symTrigPowRes;
+  }
+  if (tryOddTrigHypSubstitution(
+        original,
+        variable,
+        assumptions: assumptions,
+        depth: depth,
+      )
+      case final oddTrigHypRes?) {
+    return oddTrigHypRes;
   }
   if (tryExpandTrigBinomialProduct(
         varFactors,
