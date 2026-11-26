@@ -71,6 +71,7 @@ Expr _substituteBindings(Expr expr, Map<String, Expr> bindings) {
     Gcd() ||
     Lcm() ||
     Hypergeometric() ||
+    AppellF1() ||
     Zeta() ||
     EllipticE() ||
     EllipticPi() => expr.mapChildren(
@@ -133,6 +134,7 @@ Expr _approximateNode(Expr node) => switch (node) {
   EllipticE() ||
   Zeta() ||
   Hypergeometric() ||
+  AppellF1() ||
   Min() ||
   Max() ||
   Gcd() ||

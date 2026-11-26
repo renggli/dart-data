@@ -512,6 +512,75 @@ Complex hypergeometricPFQComplex(List<Complex> a, List<Complex> b, Complex z) {
   return sum;
 }
 
+/// Returns the Appell hypergeometric function of two variables
+/// `F_1(a; b_1, b_2; c; x, y)`.
+///
+/// Defined for `|x| < 1` and `|y| < 1` by the double series
+/// `∑_{m,n ≥ 0} ((a)_{m+n} (b_1)_m (b_2)_n) / ((c)_{m+n} m! n!) x^m y^n`,
+/// and analytically continued outside the unit bidisc via Pfaff-type Euler
+/// transformations and Picard's Euler integral representation.
+///
+/// Returns `double.nan` when [c] is a non-positive integer not preceded by
+/// termination, when any argument is `NaN` or non-finite, or along principal
+/// branch cuts `[1, ∞)` in [x] or [y] unless the series terminates there.
+double appellF1(num a, num b1, num b2, num c, num x, num y) {
+  if (a.isNaN || b1.isNaN || b2.isNaN || c.isNaN || x.isNaN || y.isNaN) {
+    return double.nan;
+  }
+  final ad = a.toDouble();
+  final b1d = b1.toDouble();
+  final b2d = b2.toDouble();
+  final cd = c.toDouble();
+  final xd = x.toDouble();
+  final yd = y.toDouble();
+  if (!ad.isFinite ||
+      !b1d.isFinite ||
+      !b2d.isFinite ||
+      !cd.isFinite ||
+      !xd.isFinite ||
+      !yd.isFinite) {
+    return double.nan;
+  }
+  if ((xd >= 1.0 && !_isNonPosInt(ad) && !_isNonPosInt(b1d)) ||
+      (yd >= 1.0 && !_isNonPosInt(ad) && !_isNonPosInt(b2d))) {
+    return double.nan;
+  }
+  final res = appellF1Complex(
+    Complex(ad),
+    Complex(b1d),
+    Complex(b2d),
+    Complex(cd),
+    Complex(xd),
+    Complex(yd),
+  );
+  if (!res.a.isFinite || !res.b.isFinite) return double.nan;
+  if (res.b.abs() > 1e-10 * max(1.0, res.a.abs())) return double.nan;
+  return res.a.toDouble();
+}
+
+/// Returns the complex Appell hypergeometric function of two variables
+/// `F_1(a; b_1, b_2; c; x, y)`.
+///
+/// Uses terminating polynomial summation, 1D reductions to
+/// [hypergeometric2F1Complex], Pfaff analytic continuation transforms, and
+/// Picard's Euler integral quadrature over complex planes slit along `[1, ∞)`.
+Complex appellF1Complex(
+  Complex a,
+  Complex b1,
+  Complex b2,
+  Complex c,
+  Complex x,
+  Complex y,
+) => _appellF1ComplexEval(
+  _normalizeZero(a),
+  _normalizeZero(b1),
+  _normalizeZero(b2),
+  _normalizeZero(c),
+  _normalizeZero(x),
+  _normalizeZero(y),
+  allowTransform: true,
+);
+
 bool _isNonPosInt(double x) => x.isFinite && x <= 0.0 && x.roundToDouble() == x;
 
 bool _isComplexNonPosInt(Complex z) =>
@@ -870,4 +939,300 @@ double _hypergeometric2F1Direct(double a, double b, double c, double z) {
     }
   }
   return sum;
+}
+
+Complex _appellF1ComplexEval(
+  Complex a,
+  Complex b1,
+  Complex b2,
+  Complex c,
+  Complex x,
+  Complex y, {
+  required bool allowTransform,
+}) {
+  if (a.isNaN ||
+      b1.isNaN ||
+      b2.isNaN ||
+      c.isNaN ||
+      x.isNaN ||
+      y.isNaN ||
+      !a.a.isFinite ||
+      !a.b.isFinite ||
+      !b1.a.isFinite ||
+      !b1.b.isFinite ||
+      !b2.a.isFinite ||
+      !b2.b.isFinite ||
+      !c.a.isFinite ||
+      !c.b.isFinite ||
+      !x.a.isFinite ||
+      !x.b.isFinite ||
+      !y.a.isFinite ||
+      !y.b.isFinite) {
+    return Complex.nan;
+  }
+
+  final isANonPosInt = _isComplexNonPosInt(a);
+  final isCNonPosInt = _isComplexNonPosInt(c);
+  if (isANonPosInt) {
+    final nMax = (-a.a).round();
+    if (isCNonPosInt && (-c.a).round() < nMax) {
+      return Complex.nan;
+    }
+    var sum = Complex.zero;
+    var rowCoeff = Complex.one;
+    for (var m = 0; m <= nMax; m++) {
+      var term = rowCoeff;
+      sum += term;
+      for (var n = 0; n < nMax - m; n++) {
+        term *=
+            (a + (m + n).toDouble()) *
+            (b2 + n.toDouble()) /
+            ((c + (m + n).toDouble()) * Complex((n + 1).toDouble())) *
+            y;
+        sum += term;
+      }
+      if (m < nMax) {
+        rowCoeff *=
+            (a + m.toDouble()) *
+            (b1 + m.toDouble()) /
+            ((c + m.toDouble()) * Complex((m + 1).toDouble())) *
+            x;
+      }
+    }
+    return sum;
+  }
+
+  if (isCNonPosInt) {
+    return Complex.nan;
+  }
+
+  if (x == Complex.zero && y == Complex.zero) return Complex.one;
+  if (x == Complex.zero || b1 == Complex.zero) {
+    return hypergeometric2F1Complex(a, b2, c, y);
+  }
+  if (y == Complex.zero || b2 == Complex.zero) {
+    return hypergeometric2F1Complex(a, b1, c, x);
+  }
+  if (x == y) {
+    return hypergeometric2F1Complex(a, b1 + b2, c, x);
+  }
+  if (a == c) {
+    return _normalizeZero(Complex.one - x).pow(-b1) *
+        _normalizeZero(Complex.one - y).pow(-b2);
+  }
+
+  if (_isComplexNonPosInt(b1)) {
+    final n1 = (-b1.a).round();
+    var sum = Complex.zero;
+    var coeff = Complex.one;
+    for (var m = 0; m <= n1; m++) {
+      sum +=
+          coeff *
+          hypergeometric2F1Complex(a + m.toDouble(), b2, c + m.toDouble(), y);
+      if (m < n1) {
+        coeff *=
+            (a + m.toDouble()) *
+            (b1 + m.toDouble()) /
+            ((c + m.toDouble()) * Complex((m + 1).toDouble())) *
+            x;
+      }
+    }
+    return sum;
+  }
+  if (_isComplexNonPosInt(b2)) {
+    final n2 = (-b2.a).round();
+    var sum = Complex.zero;
+    var coeff = Complex.one;
+    for (var n = 0; n <= n2; n++) {
+      sum +=
+          coeff *
+          hypergeometric2F1Complex(a + n.toDouble(), b1, c + n.toDouble(), x);
+      if (n < n2) {
+        coeff *=
+            (a + n.toDouble()) *
+            (b2 + n.toDouble()) /
+            ((c + n.toDouble()) * Complex((n + 1).toDouble())) *
+            y;
+      }
+    }
+    return sum;
+  }
+
+  if (x.abs() > y.abs()) {
+    return _appellF1ComplexEval(
+      a,
+      b2,
+      b1,
+      c,
+      y,
+      x,
+      allowTransform: allowTransform,
+    );
+  }
+
+  if (allowTransform && min(x.abs(), y.abs()) >= 0.75) {
+    final oneMinusX = _normalizeZero(Complex.one - x);
+    final oneMinusY = _normalizeZero(Complex.one - y);
+    var bestKind = 0;
+    var bestMinAbs = min(x.abs(), y.abs());
+    var bestMaxAbs = max(x.abs(), y.abs());
+
+    if (oneMinusX.abs() > 1e-12 && oneMinusY.abs() > 1e-12) {
+      final x1 = _normalizeZero(x / (x - Complex.one));
+      final y1 = _normalizeZero(y / (y - Complex.one));
+      final min1 = min(x1.abs(), y1.abs());
+      final max1 = max(x1.abs(), y1.abs());
+      if (min1 < bestMinAbs - 1e-12 ||
+          ((min1 - bestMinAbs).abs() <= 1e-12 && max1 < bestMaxAbs)) {
+        bestKind = 1;
+        bestMinAbs = min1;
+        bestMaxAbs = max1;
+      }
+    }
+    if (oneMinusX.abs() > 1e-12) {
+      final x2 = _normalizeZero(x / (x - Complex.one));
+      final y2 = _normalizeZero((y - x) / oneMinusX);
+      final min2 = min(x2.abs(), y2.abs());
+      final max2 = max(x2.abs(), y2.abs());
+      if (min2 < bestMinAbs - 1e-12 ||
+          ((min2 - bestMinAbs).abs() <= 1e-12 && max2 < bestMaxAbs)) {
+        bestKind = 2;
+        bestMinAbs = min2;
+        bestMaxAbs = max2;
+      }
+    }
+    if (oneMinusY.abs() > 1e-12) {
+      final x3 = _normalizeZero((x - y) / oneMinusY);
+      final y3 = _normalizeZero(y / (y - Complex.one));
+      final min3 = min(x3.abs(), y3.abs());
+      final max3 = max(x3.abs(), y3.abs());
+      if (min3 < bestMinAbs - 1e-12 ||
+          ((min3 - bestMinAbs).abs() <= 1e-12 && max3 < bestMaxAbs)) {
+        bestKind = 3;
+        bestMinAbs = min3;
+        bestMaxAbs = max3;
+      }
+    }
+
+    if (bestKind == 1) {
+      final x1 = _normalizeZero(x / (x - Complex.one));
+      final y1 = _normalizeZero(y / (y - Complex.one));
+      return oneMinusX.pow(-b1) *
+          oneMinusY.pow(-b2) *
+          _appellF1ComplexEval(
+            _normalizeZero(c - a),
+            b1,
+            b2,
+            c,
+            x1,
+            y1,
+            allowTransform: false,
+          );
+    }
+    if (bestKind == 2) {
+      final x2 = _normalizeZero(x / (x - Complex.one));
+      final y2 = _normalizeZero((y - x) / oneMinusX);
+      return oneMinusX.pow(-a) *
+          _appellF1ComplexEval(
+            a,
+            _normalizeZero(c - b1 - b2),
+            b2,
+            c,
+            x2,
+            y2,
+            allowTransform: false,
+          );
+    }
+    if (bestKind == 3) {
+      final x3 = _normalizeZero((x - y) / oneMinusY);
+      final y3 = _normalizeZero(y / (y - Complex.one));
+      return oneMinusY.pow(-a) *
+          _appellF1ComplexEval(
+            a,
+            b1,
+            _normalizeZero(c - b1 - b2),
+            c,
+            x3,
+            y3,
+            allowTransform: false,
+          );
+    }
+  }
+
+  if (x.abs() < 0.85) {
+    var sum = Complex.zero;
+    var coeff = Complex.one;
+    var smallCount = 0;
+    for (var m = 0; m < 400; m++) {
+      final f21 = hypergeometric2F1Complex(
+        a + m.toDouble(),
+        b2,
+        c + m.toDouble(),
+        y,
+      );
+      if (f21.isNaN) return Complex.nan;
+      final term = coeff * f21;
+      sum += term;
+      if (term.abs() <= 1e-15 * sum.abs()) {
+        smallCount++;
+        if (smallCount >= 2 && m >= 4) break;
+      } else {
+        smallCount = 0;
+      }
+      coeff *=
+          (a + m.toDouble()) *
+          (b1 + m.toDouble()) /
+          ((c + m.toDouble()) * Complex((m + 1).toDouble())) *
+          x;
+    }
+    return sum;
+  }
+
+  if (a.a > 0.0 && (c - a).a > 0.0) {
+    return _appellF1EulerTanhSinh(a, b1, b2, c, x, y);
+  }
+  return Complex.nan;
+}
+
+Complex _appellF1EulerTanhSinh(
+  Complex a,
+  Complex b1,
+  Complex b2,
+  Complex c,
+  Complex x,
+  Complex y,
+) {
+  const h = 0.08;
+  const steps = 40;
+  final aMinus1 = a - Complex.one;
+  final cMinusAMinus1 = c - a - Complex.one;
+  final pre = (gammaLnComplex(c) - gammaLnComplex(a) - gammaLnComplex(c - a))
+      .exp();
+  var integral = Complex.zero;
+  for (var k = -steps; k <= steps; k++) {
+    final u = k * h;
+    final expU = exp(u);
+    final invExpU = 1.0 / expU;
+    final sinhU = 0.5 * (expU - invExpU);
+    final coshU = 0.5 * (expU + invExpU);
+    final s = 0.5 * pi * sinhU;
+    final exp2s = exp(2.0 * s);
+    final expNeg2s = 1.0 / exp2s;
+    final t = 1.0 / (1.0 + expNeg2s);
+    final oneMinusT = 1.0 / (1.0 + exp2s);
+    final expS = exp(s);
+    final coshS = 0.5 * (expS + 1.0 / expS);
+    final weight = (0.5 * pi * coshU) / (coshS * coshS);
+    final omxt = _normalizeZero(Complex.one - x * t);
+    final omyt = _normalizeZero(Complex.one - y * t);
+    final integrand =
+        (aMinus1 * log(t) +
+                cMinusAMinus1 * log(oneMinusT) -
+                b1 * omxt.log() -
+                b2 * omyt.log())
+            .exp() *
+        weight;
+    integral += integrand;
+  }
+  return pre * integral * h;
 }

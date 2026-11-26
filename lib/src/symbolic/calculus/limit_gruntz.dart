@@ -431,6 +431,20 @@ Expr? _tryFactorLogAdd(List<Expr> terms, String variable) {
           scan(l);
         }
         scan(argument);
+      case AppellF1(
+        :final a,
+        :final b1,
+        :final b2,
+        :final c,
+        :final x,
+        :final y,
+      ):
+        scan(a);
+        scan(b1);
+        scan(b2);
+        scan(c);
+        scan(x);
+        scan(y);
       case Min(:final args) ||
           Max(:final args) ||
           Gcd(:final args) ||

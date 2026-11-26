@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -557,5 +560,67 @@ void main() {
         check(node.simplify()).isA<RealNumber>();
       }
     });
+
+    test(
+      'supports LogGamma, PolyGamma(-1, x), cbrt, and AppellF1 lifecycle',
+      () {
+        const x = Variable('x');
+        check(Expr.parse('cbrt(x)')).equals(Pow(x, FractionNumber.third));
+        check(Expr.parse('cbrt(-27)').simplify()).equals(IntegerNumber.of(-3));
+
+        final lg = Expr.parse('loggamma(x)');
+        check(lg).isA<LogGamma>();
+        check(Expr.parse(lg.toString())).equals(lg);
+        check(lg.toLatex()).equals(r'\ln\Gamma(x)');
+        check(lg.toMathMl()).contains('ln');
+        check(Expr.parse('loggamma(1)').simplify()).equals(IntegerNumber.zero);
+        check(Expr.parse('loggamma(2)').simplify()).equals(IntegerNumber.zero);
+        check(Expr.parse('PolyGamma(-1, x)').simplify())
+            .equals(LogGamma(x, isSimplified: true));
+        check(lg.derivative('x').simplify())
+            .equals(Digamma(x, isSimplified: true));
+        check(
+          LogGamma(const RealNumber(2.5))
+              .toBytecode(variables: const <String>[])
+              .evaluate1D(0.0),
+        ).isCloseTo(LogGamma(const RealNumber(2.5)).evaluate(), 1e-12);
+        check(LogGamma(const RealNumber(-0.5)).simplify()).isA<ComplexNumber>();
+        final lgNeg = LogGamma(const RealNumber(-0.5)).evaluateComplex();
+        check(lgNeg.a).isCloseTo(math.log(2 * math.sqrt(math.pi)), 1e-12);
+        check(lgNeg.b.abs()).isCloseTo(math.pi, 1e-12);
+
+        final f1 = Expr.parse('appellf1(1/2, 1, 2, 3/2, -2*x, -3*x)');
+        check(f1).isA<AppellF1>();
+        check(Expr.parse(f1.toString())).equals(f1);
+        check(f1.toLatex()).contains(r'F_1\left(');
+        check(f1.toMathMl()).contains('<msub><mi>F</mi><mn>1</mn></msub>');
+        check(Expr.parse('appellf1(a, b1, b2, c, 0, 0)').simplify())
+            .equals(IntegerNumber.one);
+        check(Expr.parse('appellf1(a, b1, b2, a, x, y)').simplify()).equals(
+          ((IntegerNumber.one - x).pow(-const Variable('b1')) *
+                  (IntegerNumber.one - const Variable('y')).pow(
+                    -const Variable('b2'),
+                  ))
+              .simplify(),
+        );
+
+        // Proportional c = a + 1 derivative collapses AppellF1 cleanly with Rubi factor
+        final rubiAnti = Expr.parse(
+          '(2*x)^(1/2) * appellf1(1/2, 1, 2, 3/2, -2*x, -3*x) / 1',
+        );
+        final df = rubiAnti.derivative('x');
+        final diffAtPt =
+            (df - Expr.parse('1 / (sqrt(2*x) * (1 + 2*x) * (1 + 3*x)^2)'))
+                .evaluateComplex(const {'x': Complex(0.15, 0.05)});
+        check(diffAtPt.abs()).isLessThan(1e-12);
+
+        final bc = Expr.parse('appellf1(1/2, 1, -1/2, 3/2, x, 2*x)')
+            .toBytecode(variables: const ['x']);
+        final directC = Expr.parse('appellf1(1/2, 1, -1/2, 3/2, x, 2*x)')
+            .evaluateComplex(const {'x': Complex(0.2, 0.1)});
+        check((bc.evaluateComplex1D(const Complex(0.2, 0.1)) - directC).abs())
+            .isLessThan(1e-12);
+      },
+    );
   });
 }

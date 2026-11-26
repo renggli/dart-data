@@ -18,8 +18,9 @@
 ///   [Constant] ([Constant.pi], [Constant.e], [Constant.infinity],
 ///   [Constant.undefined]), exact [IntegerNumber], [FractionNumber],
 ///   [RealNumber], [ComplexNumber] (including [ComplexNumber.i]),
-///   special functions ([Zeta], [Digamma], [Polygamma], [BesselJ],
-///   [BesselY], [BesselI], [BesselK], [EllipticK], [EllipticE]), and
+///   special functions ([Zeta], [Digamma], [Polygamma], [LogGamma], [BesselJ],
+///   [BesselY], [BesselI], [BesselK], [EllipticK], [EllipticE],
+///   [Hypergeometric], [AppellF1]), and
 ///   [Integer]. Mathematical string parsing via [Expr.parse] with [ExprSyntax].
 /// - **Algebraic Simplification & Rewriting**: Canonical simplification
 ///   ([SimplifierExtension.simplify]) combining terms and extracting radicals

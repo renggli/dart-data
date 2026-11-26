@@ -101,6 +101,18 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
           final v? => v <= 1.0,
           _ => false,
         },
+  AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
+    isProvenReal(a, assumptions) &&
+        isProvenReal(b1, assumptions) &&
+        isProvenReal(b2, assumptions) &&
+        isProvenReal(c, assumptions) &&
+        isProvenReal(x, assumptions) &&
+        isProvenReal(y, assumptions) &&
+        switch ((tryStaticRealValue(x), tryStaticRealValue(y))) {
+          (final vx?, final vy?) => vx < 1.0 && vy < 1.0,
+          _ => false,
+        },
+  LogGamma(:final expr) => isPositiveExpr(expr, assumptions: assumptions),
   Min(:final args) ||
   Max(:final args) ||
   Gcd(:final args) ||

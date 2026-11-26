@@ -41,11 +41,13 @@
 ///   [ellipticEComplex], [ellipticF], [ellipticFComplex], [ellipticPi],
 ///   [ellipticPiComplex]): Complete and incomplete Legendre elliptic integrals
 ///   of the 1st, 2nd, and 3rd kinds.
-/// - **Hypergeometric Functions** ([hypergeometric1F1],
+/// - **Hypergeometric & Appell Functions** ([hypergeometric1F1],
 ///   [hypergeometric1F1Complex], [hypergeometric2F1],
 ///   [hypergeometric2F1Complex], [hypergeometricPFQ],
-///   [hypergeometricPFQComplex]): Kummer's confluent series `1F1(a; b; z)`,
-///   Gauss's series `2F1(a, b; c; z)`, and the generalized series `pFq(a; b; z)`.
+///   [hypergeometricPFQComplex], [appellF1], [appellF1Complex]):
+///   Kummer's confluent series `1F1(a; b; z)`, Gauss's series `2F1(a, b; c; z)`,
+///   the generalized series `pFq(a; b; z)`, and Appell's two-variable series
+///   `F_1(a; b_1, b_2; c; x, y)`.
 /// - **Lambert W** ([lambertW], [lambertWComplex]): The principal and secondary
 ///   branches of the product log function solving `W(z) * exp(W(z)) = z`.
 ///

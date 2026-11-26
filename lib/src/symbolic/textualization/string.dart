@@ -97,6 +97,7 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
           ? 'zeta(${_formatExpr(expr, 0, decimalPlaces)})'
           : 'zeta(${_formatExpr(expr, 0, decimalPlaces)}, ${_formatExpr(shift, 0, decimalPlaces)})',
     Digamma(:final expr) => 'digamma(${_formatExpr(expr, 0, decimalPlaces)})',
+    LogGamma(:final expr) => 'loggamma(${_formatExpr(expr, 0, decimalPlaces)})',
     Polygamma(:final left, :final right) =>
       'polygamma(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     BesselJ(:final left, :final right) =>
@@ -136,6 +137,8 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
       'elliptic_pi(${_formatExpr(characteristic, 0, decimalPlaces)}, ${_formatExpr(amplitude, 0, decimalPlaces)}, ${_formatExpr(modulus, 0, decimalPlaces)})',
     Hypergeometric(:final upper, :final lower, :final argument) =>
       'hyper([${upper.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')}], [${lower.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')}], ${_formatExpr(argument, 0, decimalPlaces)})',
+    AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
+      'appellf1(${_formatExpr(a, 0, decimalPlaces)}, ${_formatExpr(b1, 0, decimalPlaces)}, ${_formatExpr(b2, 0, decimalPlaces)}, ${_formatExpr(c, 0, decimalPlaces)}, ${_formatExpr(x, 0, decimalPlaces)}, ${_formatExpr(y, 0, decimalPlaces)})',
     Min(:final args) =>
       'min(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
     Max(:final args) =>

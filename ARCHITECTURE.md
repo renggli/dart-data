@@ -745,6 +745,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - `hypergeometric1F1(a, b, z)` and `hypergeometric1F1Complex(a, b, z)`: Kummer confluent hypergeometric function `1F1(a; b; z)` with terminating polynomial detection, Kummer's first transformation, and log-gamma asymptotic expansion for large negative `z`.
   - `hypergeometric2F1(a, b, c, z)` and `hypergeometric2F1Complex(a, b, c, z)`: Gauss hypergeometric function `2F1(a, b; c; z)`, utilizing parameter symmetry, Pfaff/Euler linear transformations, and logarithmic `1 - z` series for integer `c - a - b` near `z = 1`.
   - `hypergeometricPFQ(a, b, z)` and `hypergeometricPFQComplex(a, b, z)`: Generalized hypergeometric series `pFq(a; b; z)` with pole precedence checking and closed-form delegation for `0F0`, `1F0`, `1F1`, and `2F1`.
+  - `appellF1(a, b1, b2, c, x, y)` and `appellF1Complex(a, b1, b2, c, x, y)`: Two-variable Appell hypergeometric function `F_1(a; b_1, b_2; c; x, y)` evaluated via terminating polynomial summation, 1D `2F1` reductions, Appell Pfaff analytic continuations, and Picard's Euler integral quadrature.
 
 ### 10.7 Lambert W Function (`lib/src/special/lambert_w.dart`)
 

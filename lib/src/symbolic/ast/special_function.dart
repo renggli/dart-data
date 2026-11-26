@@ -154,6 +154,16 @@ final class Digamma extends UnaryExpr {
   Expr _withExpr(Expr expr) => Digamma(expr);
 }
 
+/// Logarithm of the Euler gamma function node `ln(Gamma(expr))` on its
+/// principal branch.
+final class LogGamma extends UnaryExpr {
+  /// Creates a log-gamma function node `loggamma(expr)`.
+  new(super.expr, {super.isSimplified = false});
+
+  @override
+  Expr _withExpr(Expr expr) => LogGamma(expr);
+}
+
 /// Polygamma function node: `psi^{(m)}(x) = (d^m+1)/(dx^m+1) ln Gamma(x) = (d^m)/(dx^m) psi(x)`.
 final class Polygamma extends BinaryExpr {
   /// Creates a polygamma function node `psi^{(m)}(x) = Polygamma(m, x)`.
@@ -582,6 +592,94 @@ final class Hypergeometric extends Expr {
           argument == other.argument &&
           const ListEquality<Expr>().equals(upper, other.upper) &&
           const ListEquality<Expr>().equals(lower, other.lower));
+}
+
+/// Appell hypergeometric function node `F_1(a; b_1, b_2; c; x, y)`.
+final class AppellF1 extends Expr {
+  /// Creates an Appell `F_1(a; b1, b2; c; x, y)` node.
+  new(
+    this.a,
+    this.b1,
+    this.b2,
+    this.c,
+    this.x,
+    this.y, {
+    this.isSimplified = false,
+  });
+
+  /// First upper parameter `a`.
+  final Expr a;
+
+  /// First bivariate upper parameter `b_1`.
+  final Expr b1;
+
+  /// Second bivariate upper parameter `b_2`.
+  final Expr b2;
+
+  /// Lower parameter `c`.
+  final Expr c;
+
+  /// First argument `x`.
+  final Expr x;
+
+  /// Second argument `y`.
+  final Expr y;
+
+  @override
+  final bool isSimplified;
+
+  @override
+  late final int hashCode = Object.hash(runtimeType, a, b1, b2, c, x, y);
+
+  @override
+  late final Set<String> freeVariables = Set.unmodifiable({
+    ...a.freeVariables,
+    ...b1.freeVariables,
+    ...b2.freeVariables,
+    ...c.freeVariables,
+    ...x.freeVariables,
+    ...y.freeVariables,
+  });
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final na = transform(a);
+    final nb1 = transform(b1);
+    final nb2 = transform(b2);
+    final nc = transform(c);
+    final nx = transform(x);
+    final ny = transform(y);
+    return identical(na, a) &&
+            identical(nb1, b1) &&
+            identical(nb2, b2) &&
+            identical(nc, c) &&
+            identical(nx, x) &&
+            identical(ny, y)
+        ? this
+        : AppellF1(na, nb1, nb2, nc, nx, ny);
+  }
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) ||
+      a.anyNode(predicate) ||
+      b1.anyNode(predicate) ||
+      b2.anyNode(predicate) ||
+      c.anyNode(predicate) ||
+      x.anyNode(predicate) ||
+      y.anyNode(predicate);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AppellF1 &&
+          hashCode == other.hashCode &&
+          a == other.a &&
+          b1 == other.b1 &&
+          b2 == other.b2 &&
+          c == other.c &&
+          x == other.x &&
+          y == other.y);
 }
 
 /// Base class for variadic expression nodes (`min`, `max`, `gcd`, `lcm`, `tuple`).

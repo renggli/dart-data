@@ -325,6 +325,13 @@ sealed class Expr {
       upper.every(_isRealSubtree) &&
           lower.every(_isRealSubtree) &&
           _isRealSubtree(argument),
+    AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
+      _isRealSubtree(a) &&
+          _isRealSubtree(b1) &&
+          _isRealSubtree(b2) &&
+          _isRealSubtree(c) &&
+          _isRealSubtree(x) &&
+          _isRealSubtree(y),
     Min(:final args) ||
     Max(:final args) ||
     Gcd(:final args) ||

@@ -88,6 +88,8 @@ int nodeTag(Expr expr) => switch (expr) {
   Gcd() => 79,
   Lcm() => 80,
   Tuple() => 81,
+  LogGamma() => 82,
+  AppellF1() => 83,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.
@@ -148,6 +150,19 @@ int compareStructural(Expr a, Expr b) {
       final cmpL = _compareList(ha.lower, hb.lower);
       if (cmpL != 0) return cmpL;
       return compareStructural(ha.argument, hb.argument);
+    }(),
+    (final AppellF1 fa, final AppellF1 fb) => () {
+      final cmpA = compareStructural(fa.a, fb.a);
+      if (cmpA != 0) return cmpA;
+      final cmpB1 = compareStructural(fa.b1, fb.b1);
+      if (cmpB1 != 0) return cmpB1;
+      final cmpB2 = compareStructural(fa.b2, fb.b2);
+      if (cmpB2 != 0) return cmpB2;
+      final cmpC = compareStructural(fa.c, fb.c);
+      if (cmpC != 0) return cmpC;
+      final cmpX = compareStructural(fa.x, fb.x);
+      if (cmpX != 0) return cmpX;
+      return compareStructural(fa.y, fb.y);
     }(),
     (final Min ma, final Min mb) => _compareList(ma.args, mb.args),
     (final Max ma, final Max mb) => _compareList(ma.args, mb.args),

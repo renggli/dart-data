@@ -121,6 +121,8 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
         : '<mrow><mi>ζ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>,</mo>${_toMathMl(shift, decimalPlaces)}<mo>)</mo></mrow>',
   Digamma(:final expr) =>
     '<mrow><mi>ψ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  LogGamma(:final expr) =>
+    '<mrow><mi>ln</mi><mo>&#x2061;</mo><mi>Γ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Polygamma(:final left, :final right) =>
     '<mrow><msup><mi>ψ</mi><mrow><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>)</mo></mrow></msup><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
   BesselJ(:final left, :final right) =>
@@ -169,6 +171,8 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><mi>Π</mi><mo>(</mo>${_toMathMl(characteristic, decimalPlaces)}<mo>;</mo>${_toMathMl(amplitude, decimalPlaces)}<mo>|</mo>${_toMathMl(modulus, decimalPlaces)}<mo>)</mo></mrow>',
   Hypergeometric(:final upper, :final lower, :final argument) =>
     '<mrow><mmultiscripts><mi>F</mi><mn>${lower.length}</mn><none/><mprescripts/><mn>${upper.length}</mn><none/></mmultiscripts><mo>(</mo>${upper.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>;</mo>${lower.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>;</mo>${_toMathMl(argument, decimalPlaces)}<mo>)</mo></mrow>',
+  AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
+    '<mrow><msub><mi>F</mi><mn>1</mn></msub><mo>(</mo>${_toMathMl(a, decimalPlaces)}<mo>;</mo>${_toMathMl(b1, decimalPlaces)}<mo>,</mo>${_toMathMl(b2, decimalPlaces)}<mo>;</mo>${_toMathMl(c, decimalPlaces)}<mo>;</mo>${_toMathMl(x, decimalPlaces)}<mo>,</mo>${_toMathMl(y, decimalPlaces)}<mo>)</mo></mrow>',
   Min(:final args) =>
     '<mrow><mi>min</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
   Max(:final args) =>

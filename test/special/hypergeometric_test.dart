@@ -459,4 +459,82 @@ void main() {
       },
     );
   });
+
+  group('appellF1 and appellF1Complex', () {
+    test('handles degeneracies, terminating polynomials, and poles', () {
+      check(appellF1(0.5, 1.0, 2.0, 1.5, 0.0, 0.0)).equals(1.0);
+      check(appellF1(0.0, 1.0, 2.0, 1.5, 0.4, -0.7)).equals(1.0);
+      check(
+        (appellF1(0.5, 0.0, 2.0, 1.5, 0.4, 0.3) -
+                hypergeometric2F1(0.5, 2.0, 1.5, 0.3))
+            .abs(),
+      ).isLessThan(1e-13);
+      check(
+        (appellF1(0.5, 1.0, 2.0, 1.5, 0.4, 0.4) -
+                hypergeometric2F1(0.5, 3.0, 1.5, 0.4))
+            .abs(),
+      ).isLessThan(1e-13);
+      check(
+        (appellF1(1.5, 2.0, -1.5, 1.5, 0.3, -0.6) -
+                math.pow(0.7, -2.0).toDouble() * math.pow(1.6, 1.5).toDouble())
+            .abs(),
+      ).isLessThan(1e-13);
+      check(appellF1(0.5, 1.0, 2.0, -1.0, 0.2, 0.3).isNaN).isTrue;
+      check(appellF1(0.5, 1.0, 2.0, 1.5, 1.2, 0.3).isNaN).isTrue;
+
+      // Terminating polynomial in a = -2
+      check(
+        (appellF1Complex(
+                  const Complex(-2.0),
+                  const Complex(3.0),
+                  const Complex(4.0),
+                  const Complex(5.0),
+                  const Complex(0.2, 0.1),
+                  const Complex(-0.3, 0.2),
+                ) -
+                appellF1Complex(
+                  const Complex(-2.0),
+                  const Complex(4.0),
+                  const Complex(3.0),
+                  const Complex(5.0),
+                  const Complex(-0.3, 0.2),
+                  const Complex(0.2, 0.1),
+                ))
+            .abs(),
+      ).isLessThan(1e-14);
+    });
+
+    test('evaluates inside unit bidisc and analytically continues outside', () {
+      // Closed form: F1(1; 1, 1; 2; x, y) = (ln(1 - y) - ln(1 - x)) / (x - y)
+      for (final (x, y) in const [
+        (Complex(0.2, 0.15), Complex(-0.35, 0.25)),
+        (Complex(-2.4, 0.3), Complex(-1.7, -0.4)),
+        (Complex(1.5, 0.8), Complex(-0.9, 1.4)),
+        (Complex(0.4, 1.3), Complex(-1.2, 0.7)),
+      ]) {
+        final expected =
+            ((Complex.one - y).log() - (Complex.one - x).log()) / (x - y);
+        check(
+          (appellF1Complex(
+                    Complex.one,
+                    Complex.one,
+                    Complex.one,
+                    const Complex(2.0),
+                    x,
+                    y,
+                  ) -
+                  expected)
+              .abs(),
+        ).isLessThan(1e-11);
+      }
+
+      // Real negative-argument continuation matching closed form
+      const rx = -2.5;
+      const ry = -1.2;
+      final expectedReal =
+          (math.log(1.0 - ry) - math.log(1.0 - rx)) / (rx - ry);
+      check((appellF1(1.0, 1.0, 1.0, 2.0, rx, ry) - expectedReal).abs())
+          .isLessThan(1e-11);
+    });
+  });
 }

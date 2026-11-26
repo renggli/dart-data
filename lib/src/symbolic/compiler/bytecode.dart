@@ -185,6 +185,12 @@ enum Op {
   /// Generalized hypergeometric function (`hyper(upper, lower, z)`).
   hypergeometric,
 
+  /// Log-gamma function (`loggamma(a)`).
+  logGamma,
+
+  /// Appell hypergeometric function (`appellF1(a, b1, b2, c, x, y)`).
+  appellF1,
+
   /// Minimum of two values (`min(a, b)`).
   min,
 
@@ -520,6 +526,9 @@ BytecodeEvaluator compileToBytecode(
       case Digamma(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.digamma));
+      case LogGamma(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.logGamma));
       case Polygamma(:final left, :final right):
         emit(left);
         emit(right);
@@ -615,6 +624,21 @@ BytecodeEvaluator compileToBytecode(
         instructions.add(
           Instruction.hypergeometric(upper.length, lower.length),
         );
+      case AppellF1(
+        :final a,
+        :final b1,
+        :final b2,
+        :final c,
+        :final x,
+        :final y,
+      ):
+        emit(a);
+        emit(b1);
+        emit(b2);
+        emit(c);
+        emit(x);
+        emit(y);
+        instructions.add(const Instruction.op(Op.appellF1));
       case Min(:final args):
         if (args.isEmpty) {
           instructions.add(Instruction.pushReal(double.nan));
@@ -856,6 +880,13 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
         visit(l);
       }
       visit(argument);
+    case AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y):
+      visit(a);
+      visit(b1);
+      visit(b2);
+      visit(c);
+      visit(x);
+      visit(y);
     case Min(:final args) ||
         Max(:final args) ||
         Gcd(:final args) ||
@@ -943,6 +974,8 @@ int _computeMaxStack(List<Instruction> instructions) {
         final p = instr.index >> 8;
         final q = instr.index & 0xff;
         current = math.max(0, current - (p + q));
+      case Op.appellF1:
+        current = math.max(0, current - 5);
       case Op.storeReg ||
           Op.neg ||
           Op.sin ||
@@ -963,6 +996,7 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.erf ||
           Op.erfc ||
           Op.gamma ||
+          Op.logGamma ||
           Op.zeta ||
           Op.digamma ||
           Op.ellipticK ||

@@ -318,6 +318,9 @@ final class BytecodeEvaluator {
             stack[sp - 1] = special_zeta.zeta(stack[sp - 1]);
           case Op.digamma:
             stack[sp - 1] = special_digamma.digamma(stack[sp - 1]);
+          case Op.logGamma:
+            final x = stack[sp - 1];
+            stack[sp - 1] = x <= 0.0 ? double.nan : special_gamma.gammaLn(x);
           case Op.polygamma:
             final x = stack[--sp];
             final m = stack[--sp];
@@ -410,6 +413,14 @@ final class BytecodeEvaluator {
               upper[i] = stack[--sp];
             }
             stack[sp++] = special_hyper.hypergeometricPFQ(upper, lower, z);
+          case Op.appellF1:
+            final y = stack[--sp];
+            final x = stack[--sp];
+            final c = stack[--sp];
+            final b2 = stack[--sp];
+            final b1 = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = special_hyper.appellF1(a, b1, b2, c, x, y);
           case Op.min:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -693,6 +704,10 @@ final class BytecodeEvaluator {
             stack[sp - 1] = special_zeta.zetaComplex(stack[sp - 1]);
           case Op.digamma:
             stack[sp - 1] = special_digamma.digammaComplex(stack[sp - 1]);
+          case Op.logGamma:
+            stack[sp - 1] = special_gamma.gammaLnComplex(
+              normalizeComplexZero(stack[sp - 1]),
+            );
           case Op.polygamma:
             final zX = stack[--sp];
             final zM = stack[--sp];
@@ -795,6 +810,21 @@ final class BytecodeEvaluator {
               upper,
               lower,
               zArg,
+            );
+          case Op.appellF1:
+            final zY = stack[--sp];
+            final zX = stack[--sp];
+            final zC = stack[--sp];
+            final zB2 = stack[--sp];
+            final zB1 = stack[--sp];
+            final zA = stack[--sp];
+            stack[sp++] = special_hyper.appellF1Complex(
+              zA,
+              zB1,
+              zB2,
+              zC,
+              zX,
+              zY,
             );
           case Op.min || Op.max || Op.gcd || Op.lcm:
             throw UnsupportedError(

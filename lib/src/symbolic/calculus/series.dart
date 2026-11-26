@@ -719,6 +719,8 @@ PowerSeries expandToPowerSeries(
   EllipticE() ||
   EllipticPi() ||
   ExpIntegralE() ||
+  LogGamma() ||
+  AppellF1() ||
   Hypergeometric() => expandTaylorSeries(expr, variable, point, order),
   Atan2(:final left, :final right) => () {
     final y0 = left

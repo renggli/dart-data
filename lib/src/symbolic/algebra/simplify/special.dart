@@ -244,10 +244,35 @@ Expr simplifyDigamma(Expr expr) {
   return Digamma(expr, isSimplified: true);
 }
 
+/// Simplifies a log-gamma function expression `loggamma(expr)`.
+Expr simplifyLogGamma(Expr expr) {
+  if (expr == Constant.undefined) return Constant.undefined;
+  if (isFloatComplex(expr)) {
+    return complexToExpr(special_gamma.gammaLnComplex(toComplex(expr)));
+  }
+  if (expr is RealNumber) {
+    final v = expr.value;
+    if (v.isNaN) return Constant.undefined;
+    if (v <= 0.0) {
+      if (v == v.roundToDouble()) return Constant.undefined;
+      return complexToExpr(special_gamma.gammaLnComplex(Complex(v)));
+    }
+    return RealNumber.fromDouble(special_gamma.gammaLn(v));
+  }
+  if (expr is IntegerNumber) {
+    if (expr.isZero || expr.isNegative) return Constant.undefined;
+    if (expr.isOne || expr == IntegerNumber.two) return IntegerNumber.zero;
+  }
+  return LogGamma(expr, isSimplified: true);
+}
+
 /// Simplifies a polygamma function expression `polygamma(m, x)`.
 Expr simplifyPolygamma(Expr m, Expr x) {
   if (m == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
+  }
+  if (m == IntegerNumber.negativeOne) {
+    return simplifyLogGamma(x);
   }
   if (m is IntegerNumber &&
       m.asInt != null &&

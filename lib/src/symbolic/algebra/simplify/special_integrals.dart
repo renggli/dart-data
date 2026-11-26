@@ -570,3 +570,118 @@ Expr simplifyHypergeometric(List<Expr> upper, List<Expr> lower, Expr z) {
 
   return Hypergeometric(remUpper, remLower, z, isSimplified: true);
 }
+
+/// Simplifies an Appell hypergeometric function `F_1(a; b1, b2; c; x, y)`.
+Expr simplifyAppellF1(
+  Expr a,
+  Expr b1,
+  Expr b2,
+  Expr c,
+  Expr x,
+  Expr y, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  if (a == Constant.undefined ||
+      b1 == Constant.undefined ||
+      b2 == Constant.undefined ||
+      c == Constant.undefined ||
+      x == Constant.undefined ||
+      y == Constant.undefined) {
+    return Constant.undefined;
+  }
+  if (c case IntegerNumber(:final isZero, :final isNegative)
+      when isZero || isNegative) {
+    if (a is! IntegerNumber || !a.isNegative || a.value < c.value) {
+      return Constant.undefined;
+    }
+  }
+  if (a is Number && a.isZero) return IntegerNumber.one;
+  if ((x is Number && x.isZero) || (b1 is Number && b1.isZero)) {
+    return simplifyHypergeometric([a, b2], [c], y);
+  }
+  if ((y is Number && y.isZero) || (b2 is Number && b2.isZero)) {
+    return simplifyHypergeometric([a, b1], [c], x);
+  }
+  if (x == y) {
+    return simplifyHypergeometric(
+      [
+        a,
+        simplifyAdd([b1, b2], assumptions: assumptions),
+      ],
+      [c],
+      x,
+    );
+  }
+  if (a == c) {
+    final oneMinusX = simplifyAdd([
+      IntegerNumber.one,
+      simplifyNeg(x, assumptions: assumptions),
+    ], assumptions: assumptions);
+    final oneMinusY = simplifyAdd([
+      IntegerNumber.one,
+      simplifyNeg(y, assumptions: assumptions),
+    ], assumptions: assumptions);
+    return simplifyMul([
+      simplifyPow(
+        oneMinusX,
+        simplifyNeg(b1, assumptions: assumptions),
+        assumptions: assumptions,
+      ),
+      simplifyPow(
+        oneMinusY,
+        simplifyNeg(b2, assumptions: assumptions),
+        assumptions: assumptions,
+      ),
+    ], assumptions: assumptions);
+  }
+  if (a is Number &&
+      b1 is Number &&
+      b2 is Number &&
+      c is Number &&
+      x is Number &&
+      y is Number &&
+      (a is RealNumber ||
+          b1 is RealNumber ||
+          b2 is RealNumber ||
+          c is RealNumber ||
+          x is RealNumber ||
+          y is RealNumber)) {
+    if (a is ComplexNumber ||
+        b1 is ComplexNumber ||
+        b2 is ComplexNumber ||
+        c is ComplexNumber ||
+        x is ComplexNumber ||
+        y is ComplexNumber) {
+      return complexToExpr(
+        special_hyper.appellF1Complex(
+          toComplex(a),
+          toComplex(b1),
+          toComplex(b2),
+          toComplex(c),
+          toComplex(x),
+          toComplex(y),
+        ),
+      );
+    }
+    final val = special_hyper.appellF1(
+      (a as RealNumeric).toDouble(),
+      (b1 as RealNumeric).toDouble(),
+      (b2 as RealNumeric).toDouble(),
+      (c as RealNumeric).toDouble(),
+      (x as RealNumeric).toDouble(),
+      (y as RealNumeric).toDouble(),
+    );
+    if (!val.isNaN) return RealNumber.fromDouble(val);
+    return complexToExpr(
+      special_hyper.appellF1Complex(
+        toComplex(a),
+        toComplex(b1),
+        toComplex(b2),
+        toComplex(c),
+        toComplex(x),
+        toComplex(y),
+      ),
+    );
+  }
+  return AppellF1(a, b1, b2, c, x, y, isSimplified: true);
+}

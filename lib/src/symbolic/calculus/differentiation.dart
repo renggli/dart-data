@@ -1,5 +1,6 @@
 import '../algebra/expand.dart';
 import '../algebra/helpers.dart';
+import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
@@ -139,7 +140,11 @@ Expr _differentiate(
   ]),
   Digamma(expr: final inner) => Mul([
     Polygamma(IntegerNumber.one, inner),
-    _differentiate(inner, variable),
+    _differentiate(inner, variable, assumptions),
+  ]),
+  LogGamma(expr: final inner) => Mul([
+    Digamma(inner),
+    _differentiate(inner, variable, assumptions),
   ]),
   Polygamma(:final left, :final right) when !left.dependsOn(variable) => Mul([
     Polygamma(left + IntegerNumber.one, right),
@@ -443,6 +448,61 @@ Expr _differentiate(
         _differentiate(argument, variable),
       ]);
     }(),
+  AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y)
+      when !a.dependsOn(variable) &&
+          !b1.dependsOn(variable) &&
+          !b2.dependsOn(variable) &&
+          !c.dependsOn(variable) =>
+    () {
+      final dx = _differentiate(x, variable, assumptions);
+      final dy = _differentiate(y, variable, assumptions);
+      if ((c - a - IntegerNumber.one).simplify(assumptions: assumptions) ==
+              IntegerNumber.zero &&
+          !(x is Number && x.isZero) &&
+          !(y is Number && y.isZero)) {
+        final propDiff = (dx * y - dy * x).simplify(assumptions: assumptions);
+        if (propDiff == IntegerNumber.zero ||
+            propDiff.together(assumptions: assumptions) == IntegerNumber.zero) {
+          return Mul([
+            dx / x,
+            a,
+            Add([
+              Mul([
+                Pow(IntegerNumber.one - x, -b1),
+                Pow(IntegerNumber.one - y, -b2),
+              ]),
+              -AppellF1(a, b1, b2, c, x, y),
+            ]),
+          ]);
+        }
+      }
+      return Add([
+        Mul([
+          a * b1 / c,
+          AppellF1(
+            a + IntegerNumber.one,
+            b1 + IntegerNumber.one,
+            b2,
+            c + IntegerNumber.one,
+            x,
+            y,
+          ),
+          dx,
+        ]),
+        Mul([
+          a * b2 / c,
+          AppellF1(
+            a + IntegerNumber.one,
+            b1,
+            b2 + IntegerNumber.one,
+            c + IntegerNumber.one,
+            x,
+            y,
+          ),
+          dy,
+        ]),
+      ]);
+    }(),
   Min(args: [final a, final b]) => () {
     final da = _differentiate(a, variable);
     final db = _differentiate(b, variable);
@@ -464,6 +524,7 @@ Expr _differentiate(
   Zeta() ||
   ExpIntegralE() ||
   Hypergeometric() ||
+  AppellF1() ||
   Min() ||
   Max() ||
   Gcd() ||

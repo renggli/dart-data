@@ -68,6 +68,7 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
         ? '\\zeta(${_toLatex(expr, decimalPlaces)})'
         : '\\zeta(${_toLatex(expr, decimalPlaces)}, ${_toLatex(shift, decimalPlaces)})',
   Digamma(:final expr) => '\\psi(${_toLatex(expr, decimalPlaces)})',
+  LogGamma(:final expr) => '\\ln\\Gamma(${_toLatex(expr, decimalPlaces)})',
   Polygamma(:final left, :final right) =>
     '\\psi^{(${_toLatex(left, decimalPlaces)})}(${_toLatex(right, decimalPlaces)})',
   BesselJ(:final left, :final right) =>
@@ -112,6 +113,8 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
     '\\Pi(${_toLatex(characteristic, decimalPlaces)}; ${_toLatex(amplitude, decimalPlaces)} \\mid ${_toLatex(modulus, decimalPlaces)})',
   Hypergeometric(:final upper, :final lower, :final argument) =>
     '{}_{${upper.length}}F_{${lower.length}}\\left(${upper.map((e) => _toLatex(e, decimalPlaces)).join(', ')}; ${lower.map((e) => _toLatex(e, decimalPlaces)).join(', ')}; ${_toLatex(argument, decimalPlaces)}\\right)',
+  AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
+    'F_1\\left(${_toLatex(a, decimalPlaces)}; ${_toLatex(b1, decimalPlaces)}, ${_toLatex(b2, decimalPlaces)}; ${_toLatex(c, decimalPlaces)}; ${_toLatex(x, decimalPlaces)}, ${_toLatex(y, decimalPlaces)}\\right)',
   Min(:final args) =>
     '\\min\\left(${args.map((e) => _toLatex(e, decimalPlaces)).join(', ')}\\right)',
   Max(:final args) =>

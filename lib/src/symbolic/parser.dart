@@ -187,6 +187,12 @@ class ExprSyntax {
         'coshIntegralChi': CoshIntegral.new,
         'CoshIntegral': CoshIntegral.new,
         'gamma': Gamma.new,
+        'logGamma': LogGamma.new,
+        'loggamma': LogGamma.new,
+        'LogGamma': LogGamma.new,
+        'lgamma': LogGamma.new,
+        'gammaLn': LogGamma.new,
+        'cbrt': (x) => Pow(x, FractionNumber.third),
         'zeta': Zeta.new,
         'Zeta': Zeta.new,
         'digamma': Digamma.new,
@@ -230,6 +236,7 @@ class ExprSyntax {
         'beta': Beta.new,
         'polygamma': Polygamma.new,
         'Polygamma': Polygamma.new,
+        'PolyGamma': Polygamma.new,
         'besselj': BesselJ.new,
         'besselJ': BesselJ.new,
         'BesselJ': BesselJ.new,
@@ -294,6 +301,9 @@ class ExprSyntax {
       'hyper': _parseHypergeometricArgs,
       'hypergeometric': _parseHypergeometricArgs,
       'Hypergeometric': _parseHypergeometricArgs,
+      'appellF1': _parseAppellF1Args,
+      'appellf1': _parseAppellF1Args,
+      'AppellF1': _parseAppellF1Args,
       'tuple': Tuple.new,
       'min': Min.new,
       'Min': Min.new,
@@ -323,6 +333,7 @@ class ExprSyntax {
       doc: 'Absolute value or complex modulus',
     ),
     ExprFunctionInfo(name: 'sqrt', params: ['x'], doc: 'Principal square root'),
+    ExprFunctionInfo(name: 'cbrt', params: ['x'], doc: 'Principal cube root'),
     ExprFunctionInfo(
       name: 'root',
       params: ['x', 'n'],
@@ -652,7 +663,14 @@ class ExprSyntax {
       name: 'polygamma',
       params: ['n', 'z'],
       doc: 'Polygamma function psi^(n)(z)',
-      aliases: ['Polygamma'],
+      aliases: ['Polygamma', 'PolyGamma'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'logGamma',
+      params: ['z'],
+      doc: 'Natural logarithm of the gamma function ln(Gamma(z))',
+      aliases: ['loggamma', 'LogGamma', 'lgamma', 'gammaLn'],
       category: 'special',
     ),
     ExprFunctionInfo(
@@ -843,6 +861,13 @@ class ExprSyntax {
       params: ['upper', 'lower', 'z'],
       doc: 'Generalized hypergeometric function pFq',
       aliases: ['hyper', 'Hypergeometric'],
+      category: 'special',
+    ),
+    ExprFunctionInfo(
+      name: 'appellF1',
+      params: ['a', 'b1', 'b2', 'c', 'x', 'y'],
+      doc: 'Appell hypergeometric function F_1(a; b1, b2; c; x, y)',
+      aliases: ['appellf1', 'AppellF1'],
       category: 'special',
     ),
 
@@ -1551,6 +1576,15 @@ class ExprSyntax {
       _ => [e],
     };
     return Hypergeometric(unpack(args[0]), unpack(args[1]), args[2]);
+  }
+
+  static Expr _parseAppellF1Args(List<Expr> args) {
+    if (args.length != 6) {
+      throw FormatException(
+        'appellF1 requires 6 arguments, got ${args.length}',
+      );
+    }
+    return AppellF1(args[0], args[1], args[2], args[3], args[4], args[5]);
   }
 
   static Expr _parseOrthogonal(

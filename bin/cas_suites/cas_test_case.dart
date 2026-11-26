@@ -4,6 +4,7 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:data/linear.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex;
 
@@ -80,6 +81,7 @@ ExprSyntax buildCasSyntax({bool renameE = false, bool renameI = false}) =>
         'Min': (a, b) => Min([a, b]),
         'Mod': Mod.new,
         'Rational': (a, b) => a / b,
+        'real_root': (x, n) => Pow(x, IntegerNumber.one / n),
         'log': (x, b) => Ln(x) / Ln(b),
         'elliptic_f': (phi, m) => EllipticF(phi, Pow(m, FractionNumber.half)),
         'elliptic_e': (phi, m) =>
@@ -92,6 +94,10 @@ ExprSyntax buildCasSyntax({bool renameE = false, bool renameI = false}) =>
       },
       variadicFunctions: {
         'Derivative': ExprSyntax.standardVariadicFunctions['diff']!,
+        'row': Tuple.new,
+        'det': (rows) => Matrix<Expr>.fromRows([
+          for (final r in rows) (r as Tuple).args,
+        ], type: exprDataType).determinant(),
         'elliptic_pi': (args) => args.length == 3
             ? EllipticPi(args[0], args[1], Pow(args[2], FractionNumber.half))
             : throw const FormatException(

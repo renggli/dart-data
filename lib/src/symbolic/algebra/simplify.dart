@@ -189,6 +189,9 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
     Digamma(:final expr) => simplifyDigamma(
       _simplify(expr, assumptions, cache),
     ),
+    LogGamma(:final expr) => simplifyLogGamma(
+      _simplify(expr, assumptions, cache),
+    ),
     Polygamma(:final left, :final right) => simplifyPolygamma(
       _simplify(left, assumptions, cache),
       _simplify(right, assumptions, cache),
@@ -288,6 +291,16 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
         upper.map((u) => _simplify(u, assumptions, cache)).toList(),
         lower.map((l) => _simplify(l, assumptions, cache)).toList(),
         _simplify(argument, assumptions, cache),
+      ),
+    AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
+      simplifyAppellF1(
+        _simplify(a, assumptions, cache),
+        _simplify(b1, assumptions, cache),
+        _simplify(b2, assumptions, cache),
+        _simplify(c, assumptions, cache),
+        _simplify(x, assumptions, cache),
+        _simplify(y, assumptions, cache),
+        assumptions: assumptions,
       ),
     Min(:final args) => simplifyMin(
       args.map((a) => _simplify(a, assumptions, cache)).toList(),
