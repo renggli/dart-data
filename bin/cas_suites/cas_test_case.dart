@@ -80,6 +80,7 @@ ExprSyntax buildCasSyntax({bool renameE = false, bool renameI = false}) =>
         'Min': (a, b) => Min([a, b]),
         'Mod': Mod.new,
         'Rational': (a, b) => a / b,
+        'log': (x, b) => Ln(x) / Ln(b),
         'elliptic_f': (phi, m) => EllipticF(phi, Pow(m, FractionNumber.half)),
         'elliptic_e': (phi, m) =>
             EllipticE(Pow(m, FractionNumber.half), amplitude: phi),
@@ -684,6 +685,10 @@ bool verifyDerivative(
   try {
     final diff = (deriv - integrand).simplify(assumptions: assumptions);
     if (diff is Number && diff.isZero) return true;
+    if (!_exceedsNodeCount(diff, 500)) {
+      final combined = diff.together(assumptions: assumptions);
+      if (combined is Number && combined.isZero) return true;
+    }
   } on Object {
     // Fall back to numerical derivative check.
   }
@@ -1025,3 +1030,18 @@ final ExprSyntax _casSyntaxRenameEI = buildCasSyntax(
 bool _hasUnevaluatedCalculusNode(Expr expr) => expr.anyNode(
   (n) => n is Limit || n is Sum || n is Product || n is Integral,
 );
+
+bool _exceedsNodeCount(Expr expr, int limit) {
+  var count = 0;
+  void visit(Expr node) {
+    if (count > limit) return;
+    count++;
+    node.mapChildren((child) {
+      visit(child);
+      return child;
+    });
+  }
+
+  visit(expr);
+  return count > limit;
+}

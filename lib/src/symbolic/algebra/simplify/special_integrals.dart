@@ -157,6 +157,18 @@ Expr simplifyFresnelC(Expr expr, {required Assumptions assumptions}) {
 /// Simplifies an exponential integral `Ei(x)`.
 Expr simplifyExpIntegralEi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
+  if (expr == IntegerNumber.zero) {
+    return Mul(const [
+      IntegerNumber.negativeOne,
+      Constant.infinity,
+    ], isSimplified: true);
+  }
+  if (expr == Constant.infinity) return Constant.infinity;
+  if (expr case Mul(
+    factors: [IntegerNumber(isNegativeOne: true), Constant.infinity],
+  )) {
+    return IntegerNumber.zero;
+  }
   if (isFloatComplex(expr)) {
     return complexToExpr(special_exp_int.expIntegralComplex(toComplex(expr)));
   }
@@ -173,6 +185,12 @@ Expr simplifyLogIntegralLi(Expr expr) {
     return complexToExpr(special_exp_int.logIntegralComplex(toComplex(expr)));
   }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
+  if (expr == IntegerNumber.one) {
+    return Mul(const [
+      IntegerNumber.negativeOne,
+      Constant.infinity,
+    ], isSimplified: true);
+  }
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.logIntegral(expr.value));
   }

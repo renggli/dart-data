@@ -123,6 +123,7 @@ Expr? tryChainRule(
   String variable, {
   required Assumptions assumptions,
 }) {
+  if (_hasDiscontinuousOperator(candidate, variable)) return null;
   // General u(x) * u'(x) chain rule: int u * u' dx = 1/2 * u^2
   if (candidate.dependsOn(variable)) {
     final uPrime = candidate.derivative(variable).simplify();
@@ -255,6 +256,7 @@ Expr? tryUSubstitution(
   int depth = 0,
 }) {
   if (isIntegrationBudgetExhausted()) return null;
+  if (_hasDiscontinuousOperator(expr, variable)) return null;
   final candidates = <Expr>{};
   _collectUCandidates(expr, variable, candidates);
   if (candidates.isEmpty) return null;
@@ -722,6 +724,8 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
       }
       _collectUCandidates(base, variable, out);
       _collectUCandidates(exponent, variable, out);
+    case Sum() || Product() || Limit() || Integral():
+      return;
     default:
       node.mapChildren((child) {
         _collectUCandidates(child, variable, out);
@@ -729,6 +733,17 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
       });
   }
 }
+
+bool _hasDiscontinuousOperator(Expr expr, String variable) => expr.anyNode(
+  (node) =>
+      (node is Floor ||
+          node is Ceil ||
+          node is Round ||
+          node is Sign ||
+          node is Mod ||
+          node is Piecewise) &&
+      node.dependsOn(variable),
+);
 
 Expr _expandDoubleAngleTrig(Expr node) {
   if (node case Sin(:final expr)) {

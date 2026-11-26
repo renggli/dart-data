@@ -472,5 +472,66 @@ Expr? definiteIntegralUnitInterval(
     }
   }
 
+  // 3. Generalized Frullani / log-quotient on [0, 1]:
+  //    int_0^1 (sum_i c_i * x^{m_i}) / ln(x) dx = sum_i c_i * ln(m_i + 1)
+  //    when sum_i c_i == 0 and every m_i + 1 > 0.
+  if (den case Ln(expr: final lnArg) when lnArg == xVar) {
+    final expandedNum = num.expand().simplify(assumptions: assumptions);
+    final numTerms = expandedNum is Add ? expandedNum.terms : [expandedNum];
+    if (numTerms.length >= 2) {
+      final decomposed = <({Expr coeff, Expr expPlus1})>[];
+      var validFrullani = true;
+      for (final term in numTerms) {
+        final rawFactors = term is Mul ? term.factors : [term];
+        final (:constFactors, :varFactors) = partitionFactors(
+          rawFactors,
+          variable,
+        );
+        final coeff = constFactors.isEmpty
+            ? IntegerNumber.one
+            : constFactors.length == 1
+            ? constFactors.first
+            : Mul(constFactors).simplify(assumptions: assumptions);
+        Expr exponent;
+        if (varFactors.isEmpty) {
+          exponent = IntegerNumber.zero;
+        } else if (varFactors.length == 1 && varFactors.first == xVar) {
+          exponent = IntegerNumber.one;
+        } else if (varFactors.length == 1 &&
+            varFactors.first is Pow &&
+            (varFactors.first as Pow).base == xVar &&
+            !(varFactors.first as Pow).exponent.dependsOn(variable)) {
+          exponent = (varFactors.first as Pow).exponent;
+        } else {
+          validFrullani = false;
+          break;
+        }
+        final expPlus1 = (exponent + IntegerNumber.one).simplify(
+          assumptions: assumptions,
+        );
+        if (!isPositiveConstant(expPlus1) &&
+            !isPositiveExpr(expPlus1, assumptions: assumptions)) {
+          validFrullani = false;
+          break;
+        }
+        decomposed.add((coeff: coeff, expPlus1: expPlus1));
+      }
+      if (validFrullani) {
+        final coeffSum = Add([for (final item in decomposed) item.coeff])
+            .simplify(assumptions: assumptions);
+        if (coeffSum == IntegerNumber.zero) {
+          if (decomposed.length == 2) {
+            return (decomposed[0].coeff *
+                    Ln(decomposed[0].expPlus1 / decomposed[1].expPlus1))
+                .simplify(assumptions: assumptions);
+          }
+          return Add([
+            for (final item in decomposed) item.coeff * Ln(item.expPlus1),
+          ]).simplify(assumptions: assumptions);
+        }
+      }
+    }
+  }
+
   return null;
 }

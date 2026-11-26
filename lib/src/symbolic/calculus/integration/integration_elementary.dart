@@ -54,11 +54,40 @@ Expr? matchScaledSquare(Expr expr, String variable) {
 }
 
 /// Returns `ln(u)` when `u` is proven positive under [assumptions] or may
-/// evaluate to a complex value, otherwise `ln(u)`.
-Expr logAntiderivative(Expr u, Assumptions assumptions) =>
-    isPositiveExpr(u, assumptions: assumptions) || mayBeComplexExpr(u)
-    ? Ln(u)
-    : Ln(Abs(u));
+/// evaluate to a complex value, otherwise `ln(abs(u))`, factoring out always-
+/// holomorphic exponential factors `e^g` cleanly without introducing non-
+/// holomorphic `exp(re(g))` terms.
+Expr logAntiderivative(Expr u, Assumptions assumptions) {
+  if (u case Pow(base: Constant.e, :final exponent)) {
+    return exponent;
+  }
+  if (u case Mul(:final factors)) {
+    final expTerms = <Expr>[];
+    final rest = <Expr>[];
+    for (final f in factors) {
+      if (f case Pow(base: Constant.e, :final exponent)) {
+        expTerms.add(exponent);
+      } else {
+        rest.add(f);
+      }
+    }
+    if (expTerms.isNotEmpty) {
+      final linSum = expTerms.length == 1
+          ? expTerms.first
+          : Add(expTerms).simplify(assumptions: assumptions);
+      if (rest.isEmpty) return linSum;
+      final restProd = rest.length == 1
+          ? rest.first
+          : Mul(rest).simplify(assumptions: assumptions);
+      return (linSum + logAntiderivative(restProd, assumptions)).simplify(
+        assumptions: assumptions,
+      );
+    }
+  }
+  return isPositiveExpr(u, assumptions: assumptions) || mayBeComplexExpr(u)
+      ? Ln(u)
+      : Ln(Abs(u));
+}
 
 Expr? antiDerivTan(
   Expr inner,

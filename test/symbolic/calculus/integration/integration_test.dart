@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -652,5 +653,29 @@ void main() {
               .simplify();
       check(diffCi.evaluate({'x': 0.7})).isCloseTo(0.0, 1e-9);
     });
+
+    test(
+      'integrates log-exponential quotients without non-holomorphic abs',
+      () {
+        final integrand = Expr.parse('1 / (1 + exp(2 * x))');
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        final cEnv = {'x': const Complex(0.37, 0.29)};
+        check(
+          (antideriv.derivative('x').evaluateComplex(cEnv) -
+                  integrand.evaluateComplex(cEnv))
+              .abs(),
+        ).isCloseTo(0.0, 1e-12);
+
+        final tanhExpr = Expr.parse('tanh(2 * x + 1)');
+        final tanhAnti = tanhExpr.integrate('x');
+        check(tanhAnti.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (tanhAnti.derivative('x').evaluateComplex(cEnv) -
+                  tanhExpr.evaluateComplex(cEnv))
+              .abs(),
+        ).isCloseTo(0.0, 1e-12);
+      },
+    );
   });
 }

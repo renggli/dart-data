@@ -103,7 +103,15 @@ Expr _differentiate(
     inner / Abs(inner),
     _differentiate(inner, variable),
   ]),
-  Ln(expr: final inner) => _differentiate(inner, variable) / inner,
+  Ln(expr: final inner) => () {
+    if (assumptions.domainOf(variable) != VariableDomain.complex) {
+      final unwrapped = _unwrapLogAbsFactors(inner);
+      if (unwrapped != null) {
+        return _differentiate(unwrapped, variable, assumptions) / unwrapped;
+      }
+    }
+    return _differentiate(inner, variable, assumptions) / inner;
+  }(),
   OrderTerm(variable: final v, :final order, :final point) =>
     v == variable
         ? OrderTerm(v, order == 0 ? 0 : order - 1, point: point)
@@ -728,4 +736,26 @@ Expr _differentiatePow(
       (exponent * _differentiate(base, variable, assumptions)) / base,
     ]),
   ]);
+}
+
+Expr? _unwrapLogAbsFactors(Expr expr) {
+  if (expr is Abs) return expr.expr;
+  if (expr case Pow(base: Abs(:final expr), :final exponent)) {
+    return Pow(expr, exponent);
+  }
+  if (expr is Mul) {
+    var changed = false;
+    final factors = <Expr>[
+      for (final f in expr.factors)
+        if (_unwrapLogAbsFactors(f) case final unwrapped?)
+          () {
+            changed = true;
+            return unwrapped;
+          }()
+        else
+          f,
+    ];
+    if (changed) return Mul(factors);
+  }
+  return null;
 }

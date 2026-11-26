@@ -516,6 +516,18 @@ void main() {
       final nonLinTan = Expr.parse('1 / (2 + cos(x^2))')
           .integrate('x', from: 0, to: 1);
       check(nonLinTan).isNotNull();
+
+      // Generalized Frullani / log-quotient on [0, 1]
+      check(Expr.parse('(x^7 - 1) / ln(x)').integrate('x', from: 0, to: 1))
+          .equals(IntegerNumber.of(3) * Ln(IntegerNumber.two));
+      check(Expr.parse('(x^3 - x) / ln(x)').integrate('x', from: 0, to: 1))
+          .equals(Ln(IntegerNumber.two));
+
+      // Discontinuous floor integrand does not collapse to a closed form
+      final floorDef = (Expr.parse('x') - Floor(Expr.parse('x')))
+          .pow(2)
+          .integrate('x', from: 0, to: 256);
+      check(floorDef.anyNode((n) => n is Integral)).isTrue;
     });
   });
 }

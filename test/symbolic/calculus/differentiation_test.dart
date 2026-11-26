@@ -554,5 +554,30 @@ void main() {
         because: 'dTrig=$dTrig',
       ).isCloseTo(0.0, 1e-9);
     });
+
+    test(
+      'differentiates ln(abs(u)) holomorphically on non-complex domains',
+      () {
+        final f1 = Expr.parse('ln(abs(a * x + b))');
+        final d1 = f1.derivative('x').simplify();
+        check(d1.anyNode((n) => n is Abs)).isFalse;
+        final cEnv = {
+          'a': const Complex(1.4, 0.3),
+          'b': const Complex(-0.7, 0.5),
+          'x': const Complex(0.8, 0.4),
+        };
+        final expected1 = Expr.parse('a / (a * x + b)').evaluateComplex(cEnv);
+        check((d1.evaluateComplex(cEnv) - expected1).abs())
+            .isCloseTo(0.0, 1e-12);
+
+        final f2 = Expr.parse('ln(abs(x - 1) * abs(x + 2))');
+        final d2 = f2.derivative('x').simplify();
+        check(d2.anyNode((n) => n is Abs)).isFalse;
+        final expected2 = Expr.parse('1 / (x - 1) + 1 / (x + 2)')
+            .evaluateComplex(cEnv);
+        check((d2.evaluateComplex(cEnv) - expected2).abs())
+            .isCloseTo(0.0, 1e-12);
+      },
+    );
   });
 }

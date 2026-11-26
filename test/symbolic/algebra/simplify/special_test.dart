@@ -319,5 +319,16 @@ void main() {
         ).isA<ComplexNumber>();
       },
     );
+
+    test('simplifies ExpIntegral and LogIntegral boundary values', () {
+      check(ExpIntegral(IntegerNumber.zero).simplify())
+          .equals(-Constant.infinity);
+      check(ExpIntegral(Constant.infinity).simplify())
+          .equals(Constant.infinity);
+      check(ExpIntegral(-Constant.infinity).simplify())
+          .equals(IntegerNumber.zero);
+      check(LogIntegral(IntegerNumber.one).simplify())
+          .equals(-Constant.infinity);
+    });
   });
 }

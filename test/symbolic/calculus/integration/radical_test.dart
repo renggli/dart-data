@@ -400,5 +400,139 @@ void main() {
         );
       },
     );
+
+    test('integrates extended Chebyshev negative powers, equal-slope linear roots, and non-Sign complex branches', () {
+      // Chebyshev case 1 with k = -7 (< -6 bound) and positive scalar env
+      final chebExt = Expr.parse('(2 + 3 * x^2)^(9/2) / x^15').integrate('x');
+      check(chebExt.anyNode((n) => n is Integral)).isFalse;
+      check(chebExt.anyNode((n) => n is Sign)).isFalse;
+      for (final px in const [0.4, 0.9, 1.5]) {
+        final env = {'x': px};
+        check(
+          chebExt.derivative('x').evaluate(env) -
+              Expr.parse('(2 + 3 * x^2)^(9/2) / x^15').evaluate(env),
+        ).isCloseTo(0.0, 1e-8);
+      }
+
+      // Equal-slope linear radical product: 1 / (sqrt(b*x - 3) * sqrt(b*x + 1))
+      final eqSlope = Expr.parse('1 / (sqrt(2 * x - 3) * sqrt(2 * x + 1))')
+          .integrate('x');
+      check(eqSlope.anyNode((n) => n is Integral)).isFalse;
+      verifyAntiderivative(
+        Expr.parse('1 / (sqrt(2 * x - 3) * sqrt(2 * x + 1))'),
+        points: const [2.1, 3.0, 4.5],
+      );
+
+      // Negative quadratic perfect square: sqrt(-9*x^2 + 12*x - 4)
+      final negSq = Expr.parse('sqrt(-9 * x^2 + 12 * x - 4)').integrate('x');
+      check(negSq.anyNode((n) => n is Integral)).isFalse;
+      final cEnv = {'x': const Complex(0.7, 0.4)};
+      check(
+        (negSq.derivative('x').evaluateComplex(cEnv) -
+                Expr.parse('sqrt(-9 * x^2 + 12 * x - 4)').evaluateComplex(cEnv))
+            .abs(),
+      ).isCloseTo(0.0, 1e-11);
+
+      // Quadratic without Sign(x) in Case 3: 1 / (x * sqrt(-x^4 + x^2 - 1))
+      final biquad = Expr.parse('1 / (x * sqrt(-x^4 + x^2 - 1))')
+          .integrate('x');
+      check(biquad.anyNode((n) => n is Sign)).isFalse;
+      if (!biquad.anyNode((n) => n is Integral)) {
+        for (final pt in const [
+          Complex(0.3, 0.2),
+          Complex(-0.4, 0.3),
+          Complex(1.3, 0.1),
+        ]) {
+          final env = {'x': pt};
+          check(
+            (biquad.derivative('x').evaluateComplex(env) -
+                    Expr.parse('1 / (x * sqrt(-x^4 + x^2 - 1))')
+                        .evaluateComplex(env))
+                .abs(),
+          ).isCloseTo(0.0, 1e-11);
+        }
+      }
+
+      // Real-valued biquadratic Case 3 without Sign(x): 1 / (x * sqrt(1 + x^2 - x^4))
+      verifyAntiderivative(
+        Expr.parse('1 / (x * sqrt(1 + x^2 - x^4))'),
+        points: const [-0.8, 0.3, 0.7],
+      );
+
+      // Quadratic radical with symbolic coefficient prefers holomorphic log
+      final symQuad = Expr.parse('1 / sqrt(a * x^2 + b * x + c)')
+          .integrate('x');
+      check(symQuad.anyNode((n) => n is Integral)).isFalse;
+      final envSym = {
+        'a': const Complex(1.3, 0.2),
+        'b': const Complex(-0.8, 0.3),
+        'c': const Complex(2.1, -0.1),
+        'x': const Complex(0.6, 0.5),
+      };
+      check(
+        (symQuad.derivative('x').evaluateComplex(envSym) -
+                Expr.parse('1 / sqrt(a * x^2 + b * x + c)')
+                    .evaluateComplex(envSym))
+            .abs(),
+      ).isCloseTo(0.0, 1e-11);
+
+      // Chebyshev Case 2 without Sign(x): 1 / (x^4 * (x^2 - 8)^(3/2))
+      final cheb2 = Expr.parse('1 / (x^4 * (x^2 - 8)^(3/2))').integrate('x');
+      check(cheb2.anyNode((n) => n is Integral)).isFalse;
+      check(cheb2.anyNode((n) => n is Sign)).isFalse;
+      verifyAntiderivative(
+        Expr.parse('1 / (x^4 * (x^2 - 8)^(3/2))'),
+        points: const [-4.5, 4.5],
+      );
+
+      // Scaled qT in Case 3: x^3 / ((x^4 - 1) * sqrt(2*x^8 + 1))
+      final scaledQT = Expr.parse('x^3 / ((x^4 - 1) * sqrt(2 * x^8 + 1))')
+          .integrate('x');
+      check(scaledQT.anyNode((n) => n is Integral)).isFalse;
+      verifyAntiderivative(
+        Expr.parse('x^3 / ((x^4 - 1) * sqrt(2 * x^8 + 1))'),
+        points: const [-1.4, -0.6, 0.6, 1.4],
+      );
+
+      // Symbolic negative-square discriminants yield real Asin antiderivatives
+      final linPair = Expr.parse('1 / (sqrt(-b * x + 3) * sqrt(b * x + 2))')
+          .integrate('x');
+      check(linPair.anyNode((n) => n is Asin)).isTrue;
+      for (final env in const [
+        {'b': 1.7, 'x': 0.7},
+        {'b': -1.7, 'x': 0.7},
+      ]) {
+        check(
+          linPair.derivative('x').evaluate(env) -
+              Expr.parse('1 / (sqrt(-b * x + 3) * sqrt(b * x + 2))')
+                  .evaluate(env),
+        ).isCloseTo(0.0, 1e-11);
+      }
+
+      final unitPair = Expr.parse(
+        '(a * x + 1) / (sqrt(a * x) * sqrt(-a * x + 1))',
+      ).integrate('x');
+      check(unitPair.anyNode((n) => n is Asin)).isTrue;
+      for (final env in const [
+        {'a': 1.4, 'x': 0.35},
+        {'a': -1.4, 'x': -0.35},
+      ]) {
+        check(
+          unitPair.derivative('x').evaluate(env) -
+              Expr.parse('(a * x + 1) / (sqrt(a * x) * sqrt(-a * x + 1))')
+                  .evaluate(env),
+        ).isCloseTo(0.0, 1e-11);
+      }
+      final complexUnitEnv = {
+        'a': const Complex(0.63, 0.19),
+        'x': const Complex(0.37, 0.29),
+      };
+      check(
+        (unitPair.derivative('x').evaluateComplex(complexUnitEnv) -
+                Expr.parse('(a * x + 1) / (sqrt(a * x) * sqrt(-a * x + 1))')
+                    .evaluateComplex(complexUnitEnv))
+            .abs(),
+      ).isCloseTo(0.0, 1e-11);
+    });
   });
 }

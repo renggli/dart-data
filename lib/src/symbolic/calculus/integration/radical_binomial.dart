@@ -89,7 +89,7 @@ Expr? tryChebyshevBinomial(
             .substitute(uName, binomPow.base)
             .simplify(assumptions: assumptions);
       }
-    } else if (k <= 0 && k >= -6 && q >= 2) {
+    } else if (k <= 0 && k >= -10 && q >= 2) {
       final bPow = k == 0 ? IntegerNumber.one : Pow(b, IntegerNumber.of(k));
       final transformed =
           (constScale *
@@ -141,21 +141,27 @@ Expr? tryChebyshevBinomial(
       );
       if (!hasUnevaluatedIntegral(uAntideriv, uName)) {
         final xVar = Variable(variable);
-        final backRad = Pow(
-          (a * Pow(xVar, IntegerNumber.of(-n)) + b).simplify(
-            assumptions: assumptions,
-          ),
-          FractionNumber(Integer.one, Integer(q)),
-        );
-        final absXSignPow =
-            (n.isEven &&
-                p.isOdd &&
-                !isNonNegativeExpr(xVar, assumptions: assumptions))
-            ? Sign(xVar)
-            : IntegerNumber.one;
-        final backSub = (absXSignPow * backRad).simplify(
-          assumptions: assumptions,
-        );
+        final Expr backSub;
+        if (n % q == 0) {
+          backSub =
+              (Pow(binomPow.base, FractionNumber(Integer.one, Integer(q))) *
+                      Pow(xVar, IntegerNumber.of(-(n ~/ q))))
+                  .simplify(assumptions: assumptions);
+        } else {
+          final backRad = Pow(
+            (a * Pow(xVar, IntegerNumber.of(-n)) + b).simplify(
+              assumptions: assumptions,
+            ),
+            FractionNumber(Integer.one, Integer(q)),
+          );
+          final absXSignPow =
+              (n.isEven &&
+                  p.isOdd &&
+                  !isNonNegativeExpr(xVar, assumptions: assumptions))
+              ? Sign(xVar)
+              : IntegerNumber.one;
+          backSub = (absXSignPow * backRad).simplify(assumptions: assumptions);
+        }
         return uAntideriv
             .substitute(uName, backSub)
             .simplify(assumptions: assumptions);
@@ -163,7 +169,8 @@ Expr? tryChebyshevBinomial(
     }
   }
 
-  if (m != -1 && isSymbolicPositive(a)) {
+  final isNegIntAlpha = (m + 1) % n == 0 && (m + 1) ~/ n <= 0;
+  if (m != -1 && isSymbolicPositive(a) && !isNegIntAlpha) {
     final alpha = FractionNumber(Integer(m + 1), Integer(n));
     final beta = FractionNumber(Integer(-p), Integer(q));
     final alphaPlus1 = (alpha + IntegerNumber.one).simplify(
@@ -367,24 +374,59 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
                         ? IntegerNumber.one
                         : Pow(tVar, IntegerNumber.of(k - 1))))
                 .simplify();
-        final tInt = antiDerivative(
-          (numT / Pow(qT, FractionNumber.half)).simplify(),
-          tName,
-          assumptions: Assumptions.none,
-          depth: 2,
-        );
+        final tInt =
+            tryQuadraticRadical(numT, qT, -1, tName, preferLog: true) ??
+            antiDerivative(
+              (numT / Pow(qT, FractionNumber.half)).simplify(),
+              tName,
+              assumptions: Assumptions.none,
+              depth: 2,
+            );
         if (!hasUnevaluatedIntegral(tInt, tName)) {
-          final res = tInt
-              .substitute(tName, IntegerNumber.one / Variable(variable))
-              .simplify();
-          if (!isPositiveExpr(
-                Variable(variable),
-                assumptions: Assumptions.none,
-              ) &&
-              !res.anyNode((n) => n is ComplexNumber)) {
-            return (Sign(Variable(variable)) * res).simplify();
+          final xVar = Variable(variable);
+          final radBase = rad.base;
+          final qTCoeffs = extractPolynomialCoefficients(qT, tName);
+          final qTLead = qTCoeffs != null
+              ? qTCoeffs[maxPolynomialDegree(qTCoeffs)]
+              : null;
+          Expr replaceQuadT(Expr node) {
+            if (node case Pow(:final base, exponent: final FractionNumber exp)
+                when exp.denominator == Integer.two) {
+              final numInt = exp.numerator.asInt;
+              if (numInt != null) {
+                Expr? scaleFactor;
+                if (base == qT) {
+                  scaleFactor = IntegerNumber.one;
+                } else if (qTLead != null && qTCoeffs != null) {
+                  final bCoeffs = extractPolynomialCoefficients(base, tName);
+                  if (bCoeffs != null &&
+                      maxPolynomialDegree(bCoeffs) ==
+                          maxPolynomialDegree(qTCoeffs)) {
+                    final candidateScale =
+                        (bCoeffs[maxPolynomialDegree(bCoeffs)]! / qTLead)
+                            .simplify();
+                    if (!candidateScale.dependsOn(tName) &&
+                        (base - candidateScale * qT).expand().simplify() ==
+                            IntegerNumber.zero) {
+                      scaleFactor = candidateScale;
+                    }
+                  }
+                }
+                if (scaleFactor != null) {
+                  final newRadBase = scaleFactor == IntegerNumber.one
+                      ? radBase
+                      : (scaleFactor * radBase).simplify();
+                  return Pow(newRadBase, exp) *
+                      Pow(xVar, IntegerNumber.of(-numInt));
+                }
+              }
+            }
+            return node.mapChildren(replaceQuadT);
           }
-          return res;
+
+          return replaceQuadT(tInt)
+              .substitute(tName, IntegerNumber.one / xVar)
+              .simplify();
         }
       }
     }
@@ -533,13 +575,14 @@ Expr? integratePolyOverSqrtQ(
   Expr a,
   Expr b,
   Expr c,
-  String variable,
-) {
+  String variable, {
+  bool preferLog = false,
+}) {
   final coeffs = extractPolynomialCoefficients(poly, variable);
   if (coeffs == null) return null;
   final deg = maxPolynomialDegree(coeffs);
   if (deg <= 1) {
-    return tryQuadraticRadical(poly, quad, -1, variable);
+    return tryQuadraticRadical(poly, quad, -1, variable, preferLog: preferLog);
   }
   final leadCoeff = coeffs[deg]!;
   final m = deg;
@@ -572,7 +615,15 @@ Expr? integratePolyOverSqrtQ(
       (poly - leadCoeff * Pow(xVar, IntegerNumber.of(m)) + rem1 + rem2)
           .expand()
           .simplify();
-  final remInt = integratePolyOverSqrtQ(lowerPoly, quad, a, b, c, variable);
+  final remInt = integratePolyOverSqrtQ(
+    lowerPoly,
+    quad,
+    a,
+    b,
+    c,
+    variable,
+    preferLog: preferLog,
+  );
   if (remInt == null) return null;
   return (term1 + remInt).simplify();
 }

@@ -368,5 +368,23 @@ void main() {
         points: const [0.2, 2.0, 4.0],
       );
     });
+
+    test('keeps piecewise floor expressions and bound summation indices unevaluated', () {
+      check(Floor(Expr.parse('x')).integrate('x')).isA<Integral>();
+      check(
+        (Expr.parse('x') - Floor(Expr.parse('x')))
+            .pow(2)
+            .integrate('x')
+            .anyNode((n) => n is Integral),
+      ).isTrue;
+      check(
+        Sum(
+          Expr.parse('cos(2^n * x) / 2^n'),
+          'n',
+          IntegerNumber.zero,
+          Constant.infinity,
+        ).pow(2).integrate('x'),
+      ).isA<Integral>();
+    });
   });
 }
