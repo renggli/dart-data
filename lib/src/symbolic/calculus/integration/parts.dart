@@ -44,26 +44,7 @@ Expr? tryIntegrationByParts(
       n is Asinh ||
       n is Acosh ||
       n is Atanh;
-  bool isInvOrAffine(Expr n) {
-    if (isInvFn(n)) return true;
-    if (n case Add(:final terms) when terms.length == 2) {
-      final vTerms = [
-        for (final t in terms)
-          if (t.dependsOn(variable)) t,
-      ];
-      if (vTerms.length != 1) return false;
-      final vt = vTerms.first;
-      if (isInvFn(vt)) return true;
-      if (vt case Mul(:final factors)) {
-        final vfs = [
-          for (final mf in factors)
-            if (mf.dependsOn(variable)) mf,
-        ];
-        return vfs.length == 1 && isInvFn(vfs.first);
-      }
-    }
-    return false;
-  }
+  bool isInvOrAffine(Expr n) => _isAffineOf(n, variable, isInvFn);
 
   final isInverseTrigOrHyp = switch (vExpr) {
     _ when isInvOrAffine(vExpr) => true,
@@ -334,15 +315,16 @@ Expr? tryIntegrationByParts(
     }
   }
 
-  // General log rule: P(x) * ln(g(x))^k where P(x) is any integrable cofactor
+  // General log rule: P(x) * (a + b * ln(g(x)))^k where P(x) is integrable
+  bool isLogOrAffine(Expr n) => _isAffineOf(n, variable, (e) => e is Ln);
   final isLogFactor = switch (vExpr) {
-    Ln() => true,
-    Pow(base: Ln(), exponent: IntegerNumber(asInt: final k?))
-        when k >= 1 && k <= 3 =>
+    _ when isLogOrAffine(vExpr) => true,
+    Pow(:final base, exponent: IntegerNumber(asInt: final k?))
+        when k >= 1 && k <= 4 && isLogOrAffine(base) =>
       true,
     _ => false,
   };
-  if (depth < 2 && isLogFactor) {
+  if (depth < 3 && isLogFactor) {
     final result = _applySingleStepIbp(
       pExpr,
       vExpr,
@@ -521,8 +503,9 @@ Expr? _applySingleStepIbp(
   final prod = (v * uPrime).simplify(assumptions: assumptions);
   final remIntegrand = exceedsNodeBudget(prod, 250)
       ? prod
-      : prod
-            .together(assumptions: assumptions)
+      : (vExpr.anyNode((n) => n is Ln)
+                ? prod.cancel(assumptions: assumptions)
+                : prod.together(assumptions: assumptions))
             .simplify(assumptions: assumptions);
   final remIntegral = antiDerivative(
     remIntegrand,
@@ -532,4 +515,25 @@ Expr? _applySingleStepIbp(
   );
   if (hasUnevaluatedIntegral(remIntegral, variable)) return null;
   return (v * vExpr - remIntegral).simplify(assumptions: assumptions);
+}
+
+bool _isAffineOf(Expr n, String variable, bool Function(Expr) pred) {
+  if (pred(n)) return true;
+  if (n case Add(:final terms) when terms.length == 2) {
+    final vTerms = [
+      for (final t in terms)
+        if (t.dependsOn(variable)) t,
+    ];
+    if (vTerms.length != 1) return false;
+    final vt = vTerms.first;
+    if (pred(vt)) return true;
+    if (vt case Mul(:final factors)) {
+      final vfs = [
+        for (final mf in factors)
+          if (mf.dependsOn(variable)) mf,
+      ];
+      return vfs.length == 1 && pred(vfs.first);
+    }
+  }
+  return false;
 }

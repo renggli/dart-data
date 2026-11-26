@@ -10,8 +10,10 @@ import '../../ast.dart';
 import '../../compiler.dart';
 import '../../number/integer.dart';
 import '../../solver/univariate.dart';
+import '../differentiation.dart';
 import '../limit.dart';
 import '../linear_form.dart';
+import '../summation.dart';
 import 'definite_tables.dart';
 
 /// Canonical negative infinity expression `-oo`.
@@ -89,6 +91,40 @@ Expr evaluateDefiniteIntegral(
     }
   }
 
+  // Floor / Ceil piecewise splitting and summation on finite intervals
+  if (function.anyNode(
+    (n) => (n is Floor || n is Ceil) && n.dependsOn(variable),
+  )) {
+    if (_tryFloorCeilDefinite(
+          function,
+          variable,
+          fromExpr,
+          toExpr,
+          assumptions: assumptions,
+          antiDerivative: antiDerivative,
+        )
+        case final floorRes?) {
+      return floorRes;
+    }
+  }
+
+  // Abs / Min / Max piecewise region splitting on finite intervals
+  if (function.anyNode(
+    (n) => (n is Abs || n is Min || n is Max) && n.dependsOn(variable),
+  )) {
+    if (_tryPiecewiseAbsMinMax(
+          function,
+          variable,
+          fromExpr,
+          toExpr,
+          assumptions: assumptions,
+          antiDerivative: antiDerivative,
+        )
+        case final pwRes?) {
+      return pwRes;
+    }
+  }
+
   // King's property reflection symmetry: int_a^b f(x) dx = 1/2 int_a^b (f(x) + f(a+b-x)) dx
   if (_tryKingsProperty(
         function,
@@ -101,10 +137,39 @@ Expr evaluateDefiniteIntegral(
     return kingsRes;
   }
 
-  // Fast table lookup on [0, infty), [0, 1], or high-degree integrands before running
-  // general indefinite integration (e.g. Euler Beta x^s * (1 - x)^t, II x^1010 / (1 + x)^2022).
+  // Half-period anti-symmetry: f(x + (b - a)/2) = -f(x)
+  if (_tryHalfPeriodAntiSymmetry(
+        function,
+        variable,
+        fromExpr,
+        toExpr,
+        assumptions: assumptions,
+      )
+      case final halfSymRes?) {
+    return halfSymRes;
+  }
+
+  // Reciprocal inversion symmetry on [1/a, a]: x -> 1/x
+  if (_tryReciprocalSymmetry(
+        function,
+        variable,
+        fromExpr,
+        toExpr,
+        assumptions: assumptions,
+        antiDerivative: antiDerivative,
+      )
+      case final recSymRes?) {
+    return recSymRes;
+  }
+
+  // Fast table lookup on [0, infty), [0, 1], [0, pi], [0, 2*pi], or high-degree integrands
+  // before running general indefinite integration.
+  final twoPi = (IntegerNumber.two * Constant.pi).simplify();
   if ((fromExpr == IntegerNumber.zero &&
-          (toExpr == Constant.infinity || toExpr == IntegerNumber.one)) ||
+          (toExpr == Constant.infinity ||
+              toExpr == IntegerNumber.one ||
+              toExpr == Constant.pi ||
+              toExpr == twoPi)) ||
       function.anyNode(
         (n) =>
             n is Pow &&
@@ -431,52 +496,47 @@ Expr evaluateDefiniteIntegral(
         }
 
         // Try one-sided limits at finite endpoints (e.g. int_0^1 ln(x) dx)
-        try {
-          final isAscending =
-              (evaluateBoundNumeric(fromExpr) ?? 0.0) <=
-              (evaluateBoundNumeric(toExpr) ?? 1.0);
-          final upper =
-              validUpper ??
-              (isInfiniteBound(toExpr)
-                  ? effectiveAntiDeriv.limit(
-                      variable,
-                      toExpr,
-                      assumptions: assumptions,
-                    )
-                  : effectiveAntiDeriv.limit(
-                      variable,
-                      toExpr,
-                      direction: isAscending
-                          ? LimitDirection.fromBelow
-                          : LimitDirection.fromAbove,
-                      assumptions: assumptions,
-                    ));
-          final lower =
-              validLower ??
-              (isInfiniteBound(fromExpr)
-                  ? effectiveAntiDeriv.limit(
-                      variable,
-                      fromExpr,
-                      assumptions: assumptions,
-                    )
-                  : effectiveAntiDeriv.limit(
-                      variable,
-                      fromExpr,
-                      direction: isAscending
-                          ? LimitDirection.fromAbove
-                          : LimitDirection.fromBelow,
-                      assumptions: assumptions,
-                    ));
-          final diff = _subtractEndpointValues(upper, lower, assumptions);
-          if (diff != null) {
-            return diff;
+        for (final prepAnti in [
+          effectiveAntiDeriv,
+          _expandLnForEndpointLimit(effectiveAntiDeriv),
+        ]) {
+          try {
+            final isAscending =
+                (evaluateBoundNumeric(fromExpr) ?? 0.0) <=
+                (evaluateBoundNumeric(toExpr) ?? 1.0);
+            final upper = isInfiniteBound(toExpr)
+                ? prepAnti.limit(variable, toExpr, assumptions: assumptions)
+                : (prepAnti == effectiveAntiDeriv ? validUpper : null) ??
+                      prepAnti.limit(
+                        variable,
+                        toExpr,
+                        direction: isAscending
+                            ? LimitDirection.fromBelow
+                            : LimitDirection.fromAbove,
+                        assumptions: assumptions,
+                      );
+            final lower = isInfiniteBound(fromExpr)
+                ? prepAnti.limit(variable, fromExpr, assumptions: assumptions)
+                : (prepAnti == effectiveAntiDeriv ? validLower : null) ??
+                      prepAnti.limit(
+                        variable,
+                        fromExpr,
+                        direction: isAscending
+                            ? LimitDirection.fromAbove
+                            : LimitDirection.fromBelow,
+                        assumptions: assumptions,
+                      );
+            final diff = _subtractEndpointValues(upper, lower, assumptions);
+            if (diff != null) {
+              return diff;
+            }
+          } on ArgumentError {
+            // Fall through to expanded log form or special cases.
+          } on UnsupportedError {
+            // Fall through to expanded log form or special cases.
+          } on StateError {
+            // Fall through to expanded log form or special cases.
           }
-        } on ArgumentError {
-          // Fall through to definite integral special cases.
-        } on UnsupportedError {
-          // Fall through to definite integral special cases.
-        } on StateError {
-          // Fall through to definite integral special cases.
         }
       }
     }
@@ -795,7 +855,9 @@ bool _hasAnyDenominatorPole(
     }
     try {
       final realAssumptions = assumptions.copyWith(
-        domains: {variable: VariableDomain.real},
+        domains: {
+          variable: low > 0 ? VariableDomain.positive : VariableDomain.real,
+        },
       );
       if (isPositiveExpr(factor, assumptions: realAssumptions) ||
           exceedsNodeBudget(factor, 100)) {
@@ -1154,23 +1216,28 @@ Expr? _tryKingsProperty(
   if (reflected == function) return null;
 
   Expr normalizeReciprocalNegPow(Expr e) {
-    if (e case Pow(
+    final mapped = e.mapChildren(normalizeReciprocalNegPow);
+    if (mapped case Pow(
+      base: Pow(base: final innerBase, exponent: Number(isNegativeOne: true)),
+      :final exponent,
+    )) {
+      return Pow(innerBase, (-exponent).simplify(assumptions: assumptions));
+    }
+    if (mapped case Pow(
       base: Add(terms: [final t0, final t1]),
       exponent: Number(isNegativeOne: true),
     )) {
       Expr? findNegPow(Expr t) {
-        if (t case Pow(:final base, exponent: RealNumeric(:final sign))
-            when sign < 0) {
-          return Pow(base, (-t.exponent).simplify(assumptions: assumptions));
+        bool isNegExp(Expr exp) =>
+            (exp is RealNumeric && exp.sign < 0) || isNegativeConstant(exp);
+        if (t case Pow(:final base, :final exponent) when isNegExp(exponent)) {
+          return Pow(base, (-exponent).simplify(assumptions: assumptions));
         }
         if (t case Mul(:final factors)) {
           for (final f in factors) {
-            if (f case Pow(:final base, exponent: RealNumeric(:final sign))
-                when sign < 0) {
-              return Pow(
-                base,
-                (-f.exponent).simplify(assumptions: assumptions),
-              );
+            if (f case Pow(:final base, :final exponent)
+                when isNegExp(exponent)) {
+              return Pow(base, (-exponent).simplify(assumptions: assumptions));
             }
           }
         }
@@ -1185,12 +1252,73 @@ Expr? _tryKingsProperty(
         return (posPow / newDen).simplify(assumptions: assumptions);
       }
     }
-    return e;
+    return mapped;
   }
 
-  final normRefl = normalizeReciprocalNegPow(reflected);
-  var sum = (function + normRefl).simplify(assumptions: assumptions);
-  if (sum.dependsOn(variable) && sum is Add) {
+  Expr canonicalizeOddEvenTrigArgs(Expr e) {
+    final mapped = e.mapChildren(canonicalizeOddEvenTrigArgs);
+    bool isLeadingNegAdd(Expr arg) {
+      if (arg is! Add || arg.terms.isEmpty) return false;
+      final first = arg.terms.first;
+      return (first is RealNumeric && first.sign < 0) ||
+          (first is Mul &&
+              first.factors.isNotEmpty &&
+              first.factors.first is RealNumeric &&
+              (first.factors.first as RealNumeric).sign < 0);
+    }
+
+    Expr posArg(Expr e) => (-e).expand().simplify(assumptions: assumptions);
+
+    if (mapped case Sin(:final expr) when isLeadingNegAdd(expr)) {
+      return (-Sin(
+        posArg(expr),
+        isSimplified: true,
+      )).simplify(assumptions: assumptions);
+    }
+    if (mapped case Tan(:final expr) when isLeadingNegAdd(expr)) {
+      return (-Tan(
+        posArg(expr),
+        isSimplified: true,
+      )).simplify(assumptions: assumptions);
+    }
+    if (mapped case Sinh(:final expr) when isLeadingNegAdd(expr)) {
+      return (-Sinh(
+        posArg(expr),
+        isSimplified: true,
+      )).simplify(assumptions: assumptions);
+    }
+    if (mapped case Tanh(:final expr) when isLeadingNegAdd(expr)) {
+      return (-Tanh(
+        posArg(expr),
+        isSimplified: true,
+      )).simplify(assumptions: assumptions);
+    }
+    if (mapped case Cos(:final expr) when isLeadingNegAdd(expr)) {
+      return Cos(posArg(expr), isSimplified: true);
+    }
+    if (mapped case Cosh(:final expr) when isLeadingNegAdd(expr)) {
+      return Cosh(posArg(expr), isSimplified: true);
+    }
+    return mapped;
+  }
+
+  final normFunc = canonicalizeOddEvenTrigArgs(
+    function.simplify(assumptions: assumptions),
+  );
+  final normRefl = canonicalizeOddEvenTrigArgs(
+    normalizeReciprocalNegPow(reflected),
+  );
+  var sum = (normFunc + normRefl).simplify(assumptions: assumptions);
+  final hasHighIntPow = sum.anyNode(
+    (n) =>
+        n is Pow &&
+        n.exponent is IntegerNumber &&
+        ((n.exponent as IntegerNumber).asInt?.abs() ?? 0) > 20,
+  );
+  if (sum.dependsOn(variable) &&
+      sum is Add &&
+      !hasHighIntPow &&
+      !exceedsNodeBudget(sum, 160)) {
     sum = sum
         .together(assumptions: assumptions)
         .simplify(assumptions: assumptions);
@@ -1269,4 +1397,962 @@ Expr? _subtractEndpointValues(Expr upper, Expr lower, Assumptions assumptions) {
     return null;
   }
   return diff;
+}
+
+Expr _expandLnForEndpointLimit(Expr expr) {
+  if (expr case Ln(:final expr)) {
+    if (expr case Abs(:final expr)) {
+      final (num, den) = splitNumeratorDenominator(expr);
+      if (den != IntegerNumber.one) {
+        return (Ln(Abs(num)) - Ln(Abs(den))).simplify();
+      }
+    } else {
+      final (num, den) = splitNumeratorDenominator(expr);
+      if (den != IntegerNumber.one) {
+        return (Ln(Abs(num)) - Ln(Abs(den))).simplify();
+      }
+    }
+  }
+  return expr.mapChildren(_expandLnForEndpointLimit);
+}
+
+Expr? _tryHalfPeriodAntiSymmetry(
+  Expr function,
+  String variable,
+  Expr fromExpr,
+  Expr toExpr, {
+  required Assumptions assumptions,
+}) {
+  if (isInfiniteBound(fromExpr) || isInfiniteBound(toExpr)) return null;
+  final numFrom = evaluateBoundNumeric(fromExpr);
+  final numTo = evaluateBoundNumeric(toExpr);
+  if (numFrom == null ||
+      numTo == null ||
+      !numFrom.isFinite ||
+      !numTo.isFinite ||
+      exceedsNodeBudget(function, 100)) {
+    return null;
+  }
+  final halfPeriod = ((toExpr - fromExpr) / IntegerNumber.two).simplify(
+    assumptions: assumptions,
+  );
+  final shifted = function
+      .substitute(variable, Variable(variable) + halfPeriod)
+      .simplify(assumptions: assumptions);
+  if ((function + shifted).simplify(assumptions: assumptions) !=
+      IntegerNumber.zero) {
+    return null;
+  }
+  final low = math.min(numFrom, numTo);
+  final high = math.max(numFrom, numTo);
+  if (_hasAnyDenominatorPole(
+    function,
+    variable,
+    low,
+    high,
+    inclusive: true,
+    assumptions: assumptions,
+  )) {
+    return null;
+  }
+  var hasUnsafeTan = false;
+  function.anyNode((n) {
+    if (n case Tan(:final expr) when expr.dependsOn(variable)) {
+      final isBoundedTrig = switch (expr) {
+        Sin() || Cos() => true,
+        Mul(:final factors) when factors.length == 2 =>
+          factors.any((f) => f is Sin || f is Cos) &&
+              factors.whereType<Number>().every(
+                (c) => c.toDouble().abs() < 1.5,
+              ),
+        _ => false,
+      };
+      if (!isBoundedTrig) hasUnsafeTan = true;
+    }
+    return false;
+  });
+  if (hasUnsafeTan) return null;
+  return IntegerNumber.zero;
+}
+
+Expr? _tryReciprocalSymmetry(
+  Expr function,
+  String variable,
+  Expr fromExpr,
+  Expr toExpr, {
+  required Assumptions assumptions,
+  required Expr Function(
+    Expr function,
+    String variable, {
+    required Assumptions assumptions,
+  })
+  antiDerivative,
+}) {
+  if (isInfiniteBound(fromExpr) || isInfiniteBound(toExpr)) return null;
+  if (fromExpr == IntegerNumber.one ||
+      toExpr == IntegerNumber.one ||
+      !isPositiveConstant(fromExpr) ||
+      !isPositiveConstant(toExpr)) {
+    return null;
+  }
+  if ((fromExpr * toExpr).simplify(assumptions: assumptions) !=
+      IntegerNumber.one) {
+    return null;
+  }
+  if (exceedsNodeBudget(function, 120)) return null;
+
+  final xVar = Variable(variable);
+  final subst = function
+      .substitute(variable, IntegerNumber.one / xVar)
+      .simplify(assumptions: assumptions);
+  var jac = (subst / Pow(xVar, IntegerNumber.two)).simplify(
+    assumptions: assumptions,
+  );
+  {
+    final (jnRaw, jdRaw) = splitNumeratorDenominator(jac);
+    final jnExp = jnRaw.expand().simplify(assumptions: assumptions);
+    final jdExp = jdRaw.expand().simplify(assumptions: assumptions);
+    var minExp = 0;
+    void scanNeg(Expr e) {
+      e.anyNode((n) {
+        if (n case Pow(:final base, exponent: IntegerNumber(asInt: final k?))
+            when base == xVar && k < minExp) {
+          minExp = k;
+        }
+        return false;
+      });
+    }
+
+    scanNeg(jnExp);
+    scanNeg(jdExp);
+    if (minExp < 0) {
+      final scalePow = Pow(xVar, IntegerNumber.of(-minExp));
+      final jnPos = (jnExp * scalePow).expand().simplify(
+        assumptions: assumptions,
+      );
+      final jdPos = (jdExp * scalePow).expand().simplify(
+        assumptions: assumptions,
+      );
+      jac = (jnPos / jdPos).simplify(assumptions: assumptions);
+    }
+  }
+
+  // Pull common x^k factors in numerator/denominator of rational expressions
+  // like (1 + x^2) / (x^2 + x^2022) without expanding high-degree polynomials.
+  final sum = (function + jac).simplify(assumptions: assumptions);
+  Expr? avg;
+  if (sum case Add(terms: [final s0, final s1])) {
+    final (n0, d0) = splitNumeratorDenominator(s0);
+    final (n1, d1) = splitNumeratorDenominator(s1);
+    if (d0 != IntegerNumber.one && d1 != IntegerNumber.one) {
+      int minXDeg(Expr e) {
+        final coeffs = extractPolynomialCoefficients(e, variable);
+        if (coeffs == null || coeffs.isEmpty) return 0;
+        return coeffs.keys.reduce(math.min);
+      }
+
+      final min0 = minXDeg(d0);
+      final min1 = minXDeg(d1);
+      final shift = min0 - min1;
+      if (shift != 0) {
+        final sPow = Pow(xVar, IntegerNumber.of(shift.abs()));
+        final effD0 = shift < 0
+            ? (d0 * sPow).expand().simplify(assumptions: assumptions)
+            : d0;
+        final effN0 = shift < 0
+            ? (n0 * sPow).expand().simplify(assumptions: assumptions)
+            : n0;
+        final effD1 = shift > 0
+            ? (d1 * sPow).expand().simplify(assumptions: assumptions)
+            : d1;
+        final effN1 = shift > 0
+            ? (n1 * sPow).expand().simplify(assumptions: assumptions)
+            : n1;
+        if ((effD0 - effD1).simplify(assumptions: assumptions) ==
+            IntegerNumber.zero) {
+          avg = ((effN0 + effN1) / (IntegerNumber.two * effD0)).simplify(
+            assumptions: assumptions,
+          );
+        }
+      }
+      // Check if d0 / x^k == d1 / x^m or if (n0*d1 + n1*d0) has simple form.
+      final ratioD = avg == null
+          ? (d1 / d0).simplify(assumptions: assumptions)
+          : IntegerNumber.zero;
+      if (avg == null &&
+          ratioD is Pow &&
+          ratioD.base == xVar &&
+          !ratioD.exponent.dependsOn(variable)) {
+        final scaledN = (n0 * ratioD + n1).simplify(assumptions: assumptions);
+        avg = (scaledN / (IntegerNumber.two * d1)).simplify(
+          assumptions: assumptions,
+        );
+      } else if (avg == null) {
+        final ratio0 = (d0 / d1).simplify(assumptions: assumptions);
+        if (ratio0 case Pow(base: final rb, exponent: final re)
+            when rb == xVar && !re.dependsOn(variable)) {
+          final scaledN = (n0 + n1 * ratio0).simplify(assumptions: assumptions);
+          avg = (scaledN / (IntegerNumber.two * d0)).simplify(
+            assumptions: assumptions,
+          );
+        }
+      }
+    }
+  }
+  if (avg == null) {
+    final tog = sum
+        .together(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+    var maxExp = 0;
+    tog.anyNode((n) {
+      if (n case Pow(:final base, exponent: IntegerNumber(asInt: final k?))
+          when base == xVar) {
+        if (k.abs() > maxExp) maxExp = k.abs();
+      }
+      return false;
+    });
+    if (maxExp <= 12 && !exceedsNodeBudget(tog, 160)) {
+      avg = (tog.cancel(assumptions: assumptions) / IntegerNumber.two).simplify(
+        assumptions: assumptions,
+      );
+    }
+  }
+  if (avg == null) return null;
+
+  // Require sparse/algebraic reduction to actually simplify high-degree factors.
+  final (aNum, aDen) = splitNumeratorDenominator(avg);
+  if (aDen != IntegerNumber.one &&
+      aNum.freeVariables.length <= 1 &&
+      aDen.freeVariables.length <= 1) {
+    // Check factor cancellation when aNum = A * F and aDen = B * F (or common binomial factor)
+    final numFacts = aNum is Mul ? aNum.factors : [aNum];
+    final denFacts = aDen is Mul ? aDen.factors : [aDen];
+    final keptNum = List<Expr>.from(numFacts);
+    final keptDen = List<Expr>.from(denFacts);
+    for (var i = keptNum.length - 1; i >= 0; i--) {
+      for (var j = keptDen.length - 1; j >= 0; j--) {
+        if (keptNum[i] == keptDen[j]) {
+          keptNum.removeAt(i);
+          keptDen.removeAt(j);
+          break;
+        }
+        // Check factor * x^k or common factor inside simple binomials:
+        final ratio = (keptNum[i] / keptDen[j]).simplify(
+          assumptions: assumptions,
+        );
+        if (!ratio.dependsOn(variable)) {
+          keptNum[i] = ratio;
+          keptDen.removeAt(j);
+          break;
+        }
+      }
+    }
+    if (keptNum.length != numFacts.length ||
+        keptDen.length != denFacts.length) {
+      final nNew = keptNum.isEmpty
+          ? IntegerNumber.one
+          : (keptNum.length == 1
+                ? keptNum.first
+                : Mul(keptNum).simplify(assumptions: assumptions));
+      final dNew = keptDen.isEmpty
+          ? IntegerNumber.one
+          : (keptDen.length == 1
+                ? keptDen.first
+                : Mul(keptDen).simplify(assumptions: assumptions));
+      avg = (nNew / dNew).simplify(assumptions: assumptions);
+    } else if (aNum.anyNode((n) => n is Pow && n.exponent is IntegerNumber)) {
+      // Sparse polynomial divisibility check via explicit term division
+      try {
+        final nc = extractPolynomialCoefficients(aNum, variable);
+        final dc = extractPolynomialCoefficients(aDen, variable);
+        if (nc != null && dc != null && maxPolynomialDegree(nc) >= 0) {
+          // Strip common x^m monomial factor first so x^2 * (1 + x^2020) divides cleanly!
+          final minN = nc.keys.reduce(math.min);
+          final minD = dc.keys.reduce(math.min);
+          if (minD > 0 && minN == 0) {
+            // Pull x^minD out of denominator, factor remaining denominator part.
+            final remD = <int, Expr>{
+              for (final e in dc.entries) e.key - minD: e.value,
+            };
+            final dRest = buildPolynomialFromCoefficients(remD, variable);
+            final div = aNum.polynomialDivide(
+              dRest,
+              variable,
+              assumptions: assumptions,
+            );
+            if (div.remainder == IntegerNumber.zero) {
+              avg = (div.quotient / Pow(xVar, IntegerNumber.of(minD))).simplify(
+                assumptions: assumptions,
+              );
+            }
+          }
+        }
+      } on ArgumentError {
+        // Ignored.
+      }
+    }
+  }
+
+  // Only take the symmetric form if it avoids re-triggering or simplifies away the
+  // high-degree denominator cleanly.
+  if (avg == null ||
+      avg == function ||
+      avg.anyNode(
+        (n) =>
+            n is Pow &&
+            n.exponent is IntegerNumber &&
+            ((n.exponent as IntegerNumber).asInt?.abs() ?? 0) > 20,
+      )) {
+    return null;
+  }
+
+  final numFrom = evaluateBoundNumeric(fromExpr)!;
+  final numTo = evaluateBoundNumeric(toExpr)!;
+  final low = math.min(numFrom, numTo);
+  final high = math.max(numFrom, numTo);
+  if (_hasAnyDenominatorPole(
+    function,
+    variable,
+    low,
+    high,
+    inclusive: true,
+    assumptions: assumptions,
+  )) {
+    return null;
+  }
+  final res = evaluateDefiniteIntegral(
+    avg,
+    variable,
+    fromExpr,
+    toExpr,
+    assumptions: assumptions,
+    antiDerivative: antiDerivative,
+  );
+  return res.anyNode((n) => n is Integral && n.variable == variable)
+      ? null
+      : res;
+}
+
+Expr? _tryFloorCeilDefinite(
+  Expr function,
+  String variable,
+  Expr fromExpr,
+  Expr toExpr, {
+  required Assumptions assumptions,
+  required Expr Function(
+    Expr function,
+    String variable, {
+    required Assumptions assumptions,
+  })
+  antiDerivative,
+  int depth = 0,
+}) {
+  if (depth >= 3 || isInfiniteBound(fromExpr) || isInfiniteBound(toExpr)) {
+    return null;
+  }
+  final numFrom = evaluateBoundNumeric(fromExpr);
+  final numTo = evaluateBoundNumeric(toExpr);
+  if (numFrom == null ||
+      numTo == null ||
+      !numFrom.isFinite ||
+      !numTo.isFinite) {
+    return null;
+  }
+  if (numFrom > numTo) {
+    final flipped = _tryFloorCeilDefinite(
+      function,
+      variable,
+      toExpr,
+      fromExpr,
+      assumptions: assumptions,
+      antiDerivative: antiDerivative,
+      depth: depth,
+    );
+    return flipped != null
+        ? (-flipped).simplify(assumptions: assumptions)
+        : null;
+  }
+
+  final xVar = Variable(variable);
+  var allSimpleVar = true;
+  function.anyNode((n) {
+    if ((n is Floor || n is Ceil) && n.dependsOn(variable)) {
+      final arg = n is Floor ? n.expr : (n as Ceil).expr;
+      if (arg != xVar) allSimpleVar = false;
+    }
+    return false;
+  });
+
+  if (allSimpleVar && fromExpr is IntegerNumber && toExpr is IntegerNumber) {
+    final m = fromExpr.asInt;
+    final n = toExpr.asInt;
+    if (m != null && n != null && m < n) {
+      if (n - m <= 64) {
+        final parts = <Expr>[];
+        for (var k = m; k < n; k++) {
+          Expr substStep(Expr e) {
+            if (e is Floor && e.expr == xVar) return IntegerNumber.of(k);
+            if (e is Ceil && e.expr == xVar) return IntegerNumber.of(k + 1);
+            return e.mapChildren(substStep);
+          }
+
+          final pieceFn = substStep(function)
+              .simplify(assumptions: assumptions);
+          final pieceVal = evaluateDefiniteIntegral(
+            pieceFn,
+            variable,
+            IntegerNumber.of(k),
+            IntegerNumber.of(k + 1),
+            assumptions: assumptions,
+            antiDerivative: antiDerivative,
+          );
+          if (hasUnevaluatedIntegral(pieceVal, variable)) return null;
+          parts.add(pieceVal);
+        }
+        return Add(parts).simplify(assumptions: assumptions);
+      } else {
+        const kName = '_fk';
+        const tName = '_ft';
+        const kVar = Variable(kName);
+        const tVar = Variable(tName);
+        Expr substShift(Expr e) {
+          if (e is Floor && e.expr == xVar) return kVar;
+          if (e is Ceil && e.expr == xVar) return kVar + IntegerNumber.one;
+          if (e == xVar) return kVar + tVar;
+          return e.mapChildren(substShift);
+        }
+
+        final cellFn = substShift(function).simplify(assumptions: assumptions);
+        final cellVal = evaluateDefiniteIntegral(
+          cellFn,
+          tName,
+          IntegerNumber.zero,
+          IntegerNumber.one,
+          assumptions: assumptions,
+          antiDerivative: antiDerivative,
+        );
+        if (hasUnevaluatedIntegral(cellVal, tName)) return null;
+        final sumRes = cellVal.sum(
+          kName,
+          fromExpr,
+          IntegerNumber.of(n - 1),
+          assumptions: assumptions,
+        );
+        if (!sumRes.anyNode((node) => node is Sum)) {
+          return sumRes.simplify(assumptions: assumptions);
+        }
+        return null;
+      }
+    }
+  }
+
+  // Case 2: General monotone innermost Floor(g) or Ceil(g) splitting
+  Expr? innermostNode;
+  Expr? innermostArg;
+  var isFloorNode = true;
+  void findInnermost(Expr e) {
+    if (innermostNode != null) return;
+    if (e is Floor && e.expr.dependsOn(variable)) {
+      if (!e.expr.anyNode(
+        (c) => (c is Floor || c is Ceil) && c.dependsOn(variable),
+      )) {
+        innermostNode = e;
+        innermostArg = e.expr;
+        isFloorNode = true;
+        return;
+      }
+    }
+    if (e is Ceil && e.expr.dependsOn(variable)) {
+      if (!e.expr.anyNode(
+        (c) => (c is Floor || c is Ceil) && c.dependsOn(variable),
+      )) {
+        innermostNode = e;
+        innermostArg = e.expr;
+        isFloorNode = false;
+        return;
+      }
+    }
+    e.mapChildren((c) {
+      findInnermost(c);
+      return c;
+    });
+  }
+
+  findInnermost(function);
+  if (innermostNode == null || innermostArg == null) return null;
+  if (innermostArg!.anyNode(
+    (n) => n is Sin || n is Cos || n is Tan || n is Sinh || n is Cosh,
+  )) {
+    return null;
+  }
+
+  try {
+    final gPrime = innermostArg!.derivative(variable, assumptions: assumptions);
+    var sign = 0;
+    for (var s = 1; s <= 7; s++) {
+      final sx = numFrom + (numTo - numFrom) * (s / 8.0);
+      final dv = gPrime.evaluate({variable: sx});
+      if (!dv.isFinite || dv == 0.0) return null;
+      final curSign = dv > 0 ? 1 : -1;
+      if (sign == 0) {
+        sign = curSign;
+      } else if (curSign != sign) {
+        return null;
+      }
+    }
+    final gFrom = innermostArg!.evaluate({variable: numFrom});
+    final gTo = innermostArg!.evaluate({variable: numTo});
+    if (!gFrom.isFinite || !gTo.isFinite) return null;
+    final kMin = math.min(gFrom, gTo).floor() - 1;
+    final kMax = math.max(gFrom, gTo).ceil() + 1;
+    if (kMax - kMin > 24) return null;
+
+    final breaks = <({double val, Expr expr})>[];
+    for (var k = kMin; k <= kMax; k++) {
+      final roots = (innermostArg! - IntegerNumber.of(k)).solve(
+        variable,
+        assumptions: Assumptions.real,
+      );
+      for (final root in roots) {
+        if (root.anyNode((n) => n is ComplexNumber)) continue;
+        final rv = evaluateBoundNumeric(root);
+        if (rv != null && rv > numFrom + 1e-11 && rv < numTo - 1e-11) {
+          if (!breaks.any((b) => (b.val - rv).abs() < 1e-11)) {
+            breaks.add((val: rv, expr: root));
+          }
+        }
+      }
+    }
+    if (breaks.length > 24) return null;
+    breaks.sort((a, b) => a.val.compareTo(b.val));
+    final pts = <Expr>[fromExpr, for (final b in breaks) b.expr, toExpr];
+    final parts = <Expr>[];
+    for (var i = 0; i < pts.length - 1; i++) {
+      final p0 = pts[i];
+      final p1 = pts[i + 1];
+      final v0 = evaluateBoundNumeric(p0);
+      final v1 = evaluateBoundNumeric(p1);
+      if (v0 == null || v1 == null) return null;
+      final mid = 0.5 * (v0 + v1);
+      final gMid = innermostArg!.evaluate({variable: mid});
+      if (!gMid.isFinite) return null;
+      final expectedStep = isFloorNode ? gMid.floor() : gMid.ceil();
+      for (final frac in const [0.2, 0.8]) {
+        final gv = innermostArg!.evaluate({variable: v0 + (v1 - v0) * frac});
+        if (!gv.isFinite) return null;
+        final step = isFloorNode ? gv.floor() : gv.ceil();
+        if (step != expectedStep) return null;
+      }
+      final intVal = IntegerNumber.of(expectedStep);
+      Expr replaceNode(Expr e) {
+        if (e == innermostNode) return intVal;
+        return e.mapChildren(replaceNode);
+      }
+
+      final pieceFn = replaceNode(function).simplify(assumptions: assumptions);
+      final pieceVal =
+          pieceFn.anyNode(
+            (n) => (n is Floor || n is Ceil) && n.dependsOn(variable),
+          )
+          ? _tryFloorCeilDefinite(
+              pieceFn,
+              variable,
+              p0,
+              p1,
+              assumptions: assumptions,
+              antiDerivative: antiDerivative,
+              depth: depth + 1,
+            )
+          : evaluateDefiniteIntegral(
+              pieceFn,
+              variable,
+              p0,
+              p1,
+              assumptions: assumptions,
+              antiDerivative: antiDerivative,
+            );
+      if (pieceVal == null || hasUnevaluatedIntegral(pieceVal, variable)) {
+        return null;
+      }
+      parts.add(pieceVal);
+    }
+    return Add(parts).simplify(assumptions: assumptions);
+  } on ArgumentError {
+    return null;
+  } on UnsupportedError {
+    return null;
+  } on StateError {
+    return null;
+  }
+}
+
+Expr? _tryPiecewiseAbsMinMax(
+  Expr function,
+  String variable,
+  Expr fromExpr,
+  Expr toExpr, {
+  required Assumptions assumptions,
+  required Expr Function(
+    Expr function,
+    String variable, {
+    required Assumptions assumptions,
+  })
+  antiDerivative,
+  int depth = 0,
+}) {
+  if (depth >= 3 || isInfiniteBound(fromExpr) || isInfiniteBound(toExpr)) {
+    return null;
+  }
+  final numFrom = evaluateBoundNumeric(fromExpr);
+  final numTo = evaluateBoundNumeric(toExpr);
+  if (numFrom == null ||
+      numTo == null ||
+      !numFrom.isFinite ||
+      !numTo.isFinite) {
+    return null;
+  }
+  if (numFrom > numTo) {
+    final flipped = _tryPiecewiseAbsMinMax(
+      function,
+      variable,
+      toExpr,
+      fromExpr,
+      assumptions: assumptions,
+      antiDerivative: antiDerivative,
+      depth: depth,
+    );
+    return flipped != null
+        ? (-flipped).simplify(assumptions: assumptions)
+        : null;
+  }
+
+  // Fast exact antiderivative for standalone c * |sin(a*x + b)| or c * |cos(a*x + b)|
+  {
+    final (constPart, absNode) = switch (function) {
+      Abs() => (IntegerNumber.one as Expr, function),
+      Mul(:final factors)
+          when factors.where((f) => f.dependsOn(variable)).length == 1 &&
+              factors.firstWhere((f) => f.dependsOn(variable)) is Abs =>
+        (
+          Mul([
+            for (final f in factors)
+              if (f is! Abs) f,
+          ]).simplify(assumptions: assumptions),
+          factors.firstWhere((f) => f.dependsOn(variable)) as Abs,
+        ),
+      _ => (null, null),
+    };
+    if (constPart != null && absNode != null) {
+      final arg = absNode.expr;
+      Expr? linArg;
+      var shift = IntegerNumber.zero as Expr;
+      if (arg case Sin(:final expr)) {
+        linArg = expr;
+      } else if (arg case Cos(:final expr)) {
+        linArg = expr;
+        shift = (Constant.pi / IntegerNumber.two).simplify();
+      }
+      if (linArg != null) {
+        if (linArg.matchLinear(variable) case (:final a, :final b)
+            when isProvenReal(a, assumptions)) {
+          final absA = Abs(a).simplify(assumptions: assumptions);
+          final uFrom = (a * fromExpr + b + shift).simplify(
+            assumptions: assumptions,
+          );
+          final uTo = (a * toExpr + b + shift).simplify(
+            assumptions: assumptions,
+          );
+          final uLow = evaluateBoundNumeric(uFrom);
+          final uHigh = evaluateBoundNumeric(uTo);
+          if (uLow != null &&
+              uHigh != null &&
+              uLow.isFinite &&
+              uHigh.isFinite) {
+            Expr evalF(Expr uExpr, double uVal) {
+              final q = uVal / math.pi;
+              var m = q.floor();
+              if ((q - q.roundToDouble()).abs() < 1e-11) {
+                m = q.round();
+              }
+              final sign = m.isEven
+                  ? IntegerNumber.one
+                  : IntegerNumber.negativeOne;
+              return (IntegerNumber.of(2 * m) - sign * Cos(uExpr)).simplify(
+                assumptions: assumptions,
+              );
+            }
+
+            final fLow = evalF(uFrom, uLow);
+            final fHigh = evalF(uTo, uHigh);
+            final diff = (uHigh >= uLow ? (fHigh - fLow) : (fLow - fHigh))
+                .simplify(assumptions: assumptions);
+            return (constPart * diff / absA).simplify(assumptions: assumptions);
+          }
+        }
+      }
+    }
+  }
+
+  // General region splitting for Abs(g), Min(args), Max(args)
+  final zeroTargets = <Expr>[];
+  void collectTargets(Expr e) {
+    if (e case Abs(:final expr) when expr.dependsOn(variable)) {
+      zeroTargets.add(expr);
+    } else if (e case Min(:final args) when e.dependsOn(variable)) {
+      for (var i = 0; i < args.length; i++) {
+        for (var j = i + 1; j < args.length; j++) {
+          final diff = (args[i] - args[j]).simplify(assumptions: assumptions);
+          if (diff.dependsOn(variable)) zeroTargets.add(diff);
+        }
+      }
+    } else if (e case Max(:final args) when e.dependsOn(variable)) {
+      for (var i = 0; i < args.length; i++) {
+        for (var j = i + 1; j < args.length; j++) {
+          final diff = (args[i] - args[j]).simplify(assumptions: assumptions);
+          if (diff.dependsOn(variable)) zeroTargets.add(diff);
+        }
+      }
+    }
+    e.mapChildren((c) {
+      collectTargets(c);
+      return c;
+    });
+  }
+
+  collectTargets(function);
+  if (zeroTargets.isEmpty) return null;
+
+  final breaks = <({double val, Expr expr})>[];
+  void addBreak(double rv, Expr root) {
+    if (rv > numFrom + 1e-11 && rv < numTo - 1e-11) {
+      if (!breaks.any((b) => (b.val - rv).abs() < 1e-11)) {
+        breaks.add((val: rv, expr: root));
+      }
+    }
+  }
+
+  void addTrigZeroFamilies(Expr linInner, Expr targetPhase, Expr period) {
+    if (linInner.matchLinear(variable) case (:final a, :final b)) {
+      final aNum = evaluateBoundNumeric(a);
+      final bNum = evaluateBoundNumeric(b);
+      final tNum = evaluateBoundNumeric(targetPhase);
+      final pNum = evaluateBoundNumeric(period);
+      if (aNum == null ||
+          bNum == null ||
+          tNum == null ||
+          pNum == null ||
+          aNum == 0) {
+        return;
+      }
+      final kLo =
+          ((math.min(aNum * numFrom, aNum * numTo) + bNum - tNum) / pNum)
+              .floor() -
+          1;
+      final kHi =
+          ((math.max(aNum * numFrom, aNum * numTo) + bNum - tNum) / pNum)
+              .ceil() +
+          1;
+      if (kHi - kLo > 32) return;
+      for (var k = kLo; k <= kHi; k++) {
+        final root = ((targetPhase + IntegerNumber.of(k) * period - b) / a)
+            .simplify(assumptions: assumptions);
+        final rv = evaluateBoundNumeric(root);
+        if (rv != null) addBreak(rv, root);
+      }
+    }
+  }
+
+  for (final target in zeroTargets) {
+    // Handle c0 + c1 * sin(lin) = 0 or c0 + c1 * cos(lin) = 0
+    var handledTrig = false;
+    final terms = target is Add ? target.terms : [target];
+    if (terms.length == 2) {
+      final cTerms = [
+        for (final t in terms)
+          if (!t.dependsOn(variable)) t,
+      ];
+      final vTerms = [
+        for (final t in terms)
+          if (t.dependsOn(variable)) t,
+      ];
+      if (cTerms.length == 1 && vTerms.length == 1) {
+        final (cVar, fn) = switch (vTerms.first) {
+          Sin() || Cos() => (IntegerNumber.one as Expr, vTerms.first),
+          Mul(:final factors)
+              when factors.where((f) => f.dependsOn(variable)).length == 1 =>
+            (
+              Mul([
+                for (final f in factors)
+                  if (!f.dependsOn(variable)) f,
+              ]).simplify(assumptions: assumptions),
+              factors.firstWhere((f) => f.dependsOn(variable)),
+            ),
+          _ => (null, null),
+        };
+        if (cVar != null && fn is Sin) {
+          final rhs = (-cTerms.first / cVar).simplify(assumptions: assumptions);
+          final theta = Asin(rhs).simplify(assumptions: assumptions);
+          if (!theta.anyNode((n) => n is Asin)) {
+            addTrigZeroFamilies(
+              fn.expr,
+              theta,
+              IntegerNumber.two * Constant.pi,
+            );
+            addTrigZeroFamilies(
+              fn.expr,
+              (Constant.pi - theta).simplify(assumptions: assumptions),
+              IntegerNumber.two * Constant.pi,
+            );
+            handledTrig = true;
+          }
+        } else if (cVar != null && fn is Cos) {
+          final rhs = (-cTerms.first / cVar).simplify(assumptions: assumptions);
+          final theta = Acos(rhs).simplify(assumptions: assumptions);
+          if (!theta.anyNode((n) => n is Acos)) {
+            addTrigZeroFamilies(
+              fn.expr,
+              theta,
+              IntegerNumber.two * Constant.pi,
+            );
+            addTrigZeroFamilies(
+              fn.expr,
+              (-theta).simplify(assumptions: assumptions),
+              IntegerNumber.two * Constant.pi,
+            );
+            handledTrig = true;
+          }
+        }
+      } else if (vTerms.length == 2 && vTerms[0] is Sin) {
+        if (vTerms[1] case Mul(:final factors)
+            when factors.length == 2 &&
+                factors.contains(IntegerNumber.negativeOne) &&
+                factors.any((f) => f is Sin)) {
+          final u = (vTerms[0] as Sin).expr;
+          final v = (factors.firstWhere((f) => f is Sin) as Sin).expr;
+          addTrigZeroFamilies(
+            ((u - v) / IntegerNumber.two).simplify(assumptions: assumptions),
+            IntegerNumber.zero,
+            Constant.pi,
+          );
+          addTrigZeroFamilies(
+            ((u + v) / IntegerNumber.two).simplify(assumptions: assumptions),
+            (Constant.pi / IntegerNumber.two).simplify(),
+            Constant.pi,
+          );
+          handledTrig = true;
+        }
+      } else if (vTerms.length == 2 && vTerms[1] is Sin) {
+        if (vTerms[0] case Mul(:final factors)
+            when factors.length == 2 &&
+                factors.contains(IntegerNumber.negativeOne) &&
+                factors.any((f) => f is Sin)) {
+          final u = (vTerms[1] as Sin).expr;
+          final v = (factors.firstWhere((f) => f is Sin) as Sin).expr;
+          addTrigZeroFamilies(
+            ((u - v) / IntegerNumber.two).simplify(assumptions: assumptions),
+            IntegerNumber.zero,
+            Constant.pi,
+          );
+          addTrigZeroFamilies(
+            ((u + v) / IntegerNumber.two).simplify(assumptions: assumptions),
+            (Constant.pi / IntegerNumber.two).simplify(),
+            Constant.pi,
+          );
+          handledTrig = true;
+        }
+      }
+    }
+    if (!handledTrig) {
+      try {
+        for (final root in target.solve(
+          variable,
+          assumptions: Assumptions.real,
+        )) {
+          if (root.anyNode((n) => n is ComplexNumber)) continue;
+          final rv = evaluateBoundNumeric(root);
+          if (rv != null) addBreak(rv, root);
+        }
+      } on ArgumentError {
+        return null;
+      } on UnsupportedError {
+        return null;
+      } on StateError {
+        return null;
+      }
+    }
+  }
+
+  if (breaks.length > 32) return null;
+  breaks.sort((a, b) => a.val.compareTo(b.val));
+  final pts = <Expr>[fromExpr, for (final b in breaks) b.expr, toExpr];
+  final parts = <Expr>[];
+  for (var i = 0; i < pts.length - 1; i++) {
+    final p0 = pts[i];
+    final p1 = pts[i + 1];
+    final v0 = evaluateBoundNumeric(p0);
+    final v1 = evaluateBoundNumeric(p1);
+    if (v0 == null || v1 == null) return null;
+    final mid = 0.5 * (v0 + v1);
+
+    Expr resolvePiecewise(Expr e) {
+      final mChild = e.mapChildren(resolvePiecewise);
+      if (mChild case Abs(:final expr) when expr.dependsOn(variable)) {
+        final mv = expr.evaluate({variable: mid});
+        if (!mv.isFinite) return mChild;
+        return mv >= 0 ? expr : (-expr).simplify(assumptions: assumptions);
+      }
+      if (mChild case Min(:final args) when mChild.dependsOn(variable)) {
+        var best = args.first;
+        var bestVal = best.evaluate({variable: mid});
+        for (var j = 1; j < args.length; j++) {
+          final av = args[j].evaluate({variable: mid});
+          if (av < bestVal) {
+            bestVal = av;
+            best = args[j];
+          }
+        }
+        return best;
+      }
+      if (mChild case Max(:final args) when mChild.dependsOn(variable)) {
+        var best = args.first;
+        var bestVal = best.evaluate({variable: mid});
+        for (var j = 1; j < args.length; j++) {
+          final av = args[j].evaluate({variable: mid});
+          if (av > bestVal) {
+            bestVal = av;
+            best = args[j];
+          }
+        }
+        return best;
+      }
+      return mChild;
+    }
+
+    try {
+      final pieceFn = resolvePiecewise(function)
+          .simplify(assumptions: assumptions);
+      if (pieceFn.anyNode(
+        (n) => (n is Abs || n is Min || n is Max) && n.dependsOn(variable),
+      )) {
+        return null;
+      }
+      final pieceVal = evaluateDefiniteIntegral(
+        pieceFn,
+        variable,
+        p0,
+        p1,
+        assumptions: assumptions,
+        antiDerivative: antiDerivative,
+      );
+      if (hasUnevaluatedIntegral(pieceVal, variable)) return null;
+      parts.add(pieceVal);
+    } on ArgumentError {
+      return null;
+    } on UnsupportedError {
+      return null;
+    } on StateError {
+      return null;
+    }
+  }
+  return Add(parts).simplify(assumptions: assumptions);
 }

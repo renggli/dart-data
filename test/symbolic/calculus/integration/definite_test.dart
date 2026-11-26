@@ -523,11 +523,15 @@ void main() {
       check(Expr.parse('(x^3 - x) / ln(x)').integrate('x', from: 0, to: 1))
           .equals(Ln(IntegerNumber.two));
 
-      // Discontinuous floor integrand does not collapse to a closed form
+      // Piecewise floor / ceil definite integral via periodic unit summation
       final floorDef = (Expr.parse('x') - Floor(Expr.parse('x')))
           .pow(2)
           .integrate('x', from: 0, to: 256);
-      check(floorDef.anyNode((n) => n is Integral)).isTrue;
+      check(floorDef).equals(RationalNumber(256, 3));
+      // Unintegrable non-monotone floor keeps unevaluated Integral
+      final nonMonFloor = Floor(Sin(Expr.parse('x^2')))
+          .integrate('x', from: 0, to: 2);
+      check(nonMonFloor.anyNode((n) => n is Integral)).isTrue;
 
       // Euler Beta II on [0, oo)
       check(
@@ -560,5 +564,63 @@ void main() {
         check(sw2.elapsedMilliseconds).isLessThan(1000);
       },
     );
+
+    test('handles King shifts, half-period anti-symmetry, reciprocal symmetry, piecewise abs/floor, and Laplace-Dirichlet tables', () {
+      check(
+        Expr.parse('1 / (1 + tan(x)^(2 * sqrt(505)))')
+            .integrate('x', from: 0, to: Expr.parse('pi / 2')),
+      ).equals(Expr.parse('pi / 4').simplify());
+      check(
+        Expr.parse('tan(cos(x))')
+            .integrate('x', from: 0, to: Expr.parse('2 * pi')),
+      ).equals(IntegerNumber.zero);
+      check(
+        Expr.parse('sin(sin(x) - x)')
+            .integrate('x', from: 0, to: Expr.parse('2 * pi')),
+      ).equals(IntegerNumber.zero);
+      check(
+        Expr.parse('cos(x + cos(x))').integrate('x', from: 0, to: Constant.pi),
+      ).equals(IntegerNumber.zero);
+      check(
+        Expr.parse('(1 + x^2) / (x^2 + x^2022)')
+            .integrate('x', from: RationalNumber(1, 2022), to: 2022),
+      ).equals(RationalNumber(2022 * 2022 - 1, 2022));
+      check(Expr.parse('exp(abs(x))').integrate('x', from: -1, to: 3))
+          .equals(Expr.parse('exp(3) + e - 2').simplify());
+      check(Expr.parse('abs(x^3 - x)').integrate('x', from: -4, to: 4))
+          .equals(IntegerNumber.of(113));
+      check(
+        Expr.parse('abs(sin(2018 * x))')
+            .integrate('x', from: 0, to: Expr.parse('2018 * pi')),
+      ).equals(IntegerNumber.of(4036));
+      check(
+        Expr.parse('abs(1 + 2 * sin(x))')
+            .integrate('x', from: 0, to: Expr.parse('2 * pi')),
+      ).equals(Expr.parse('2 * pi / 3 + 4 * sqrt(3)').simplify());
+      check(
+        (Floor(Expr.parse('x')) * Expr.parse('x') * Ceil(Expr.parse('x')))
+            .integrate('x', from: 0, to: 100),
+      ).equals(IntegerNumber.of(24997500));
+      check(
+        Floor(Expr.parse('ln(x) / ln(2)')).integrate('x', from: 50, to: 100),
+      ).equals(IntegerNumber.of(286));
+      check(
+        Expr.parse('exp(-2 * x) * sin(3 * x) / x')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Atan(RationalNumber(3, 2)));
+      check(
+        Expr.parse('x * (exp(-x) + 1) / (exp(x) - 1)')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('pi^2 / 3 - 1').simplify());
+      final wallis2020 = Expr.parse('cos(x)^2020')
+          .integrate('x', from: 0, to: Expr.parse('2 * pi'));
+      check(wallis2020).equals(Expr.parse('2 * beta(1/2, 2021/2)').simplify());
+      check(wallis2020.evaluate()).isCloseTo(0.11152969018919087, 1e-12);
+      final wallis20 = Expr.parse('cos(x)^20')
+          .integrate('x', from: 0, to: Expr.parse('2 * pi'));
+      check(
+        wallis20.evaluate(),
+      ).isCloseTo(Expr.parse('pi * binomial(20, 10) / 2^19').evaluate(), 1e-10);
+    });
   });
 }

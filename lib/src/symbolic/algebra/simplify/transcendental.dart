@@ -107,6 +107,31 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
     return IntegerNumber.zero;
   }
 
+  // Integer and quarter-period pi shifts: sin(k*pi + rest), sin((2k+1)*pi/2 + rest)
+  if (expr case Add(:final terms)) {
+    for (var i = 0; i < terms.length; i++) {
+      final m = matchPiMultiple(terms[i]);
+      if (m == null) continue;
+      final rest = simplifyAdd([
+        for (var j = 0; j < terms.length; j++)
+          if (j != i) terms[j],
+      ], assumptions: assumptions);
+      if (m.isInteger) {
+        final sinRest = simplifySin(rest, assumptions: assumptions);
+        return m.numerator.isEven
+            ? sinRest
+            : simplifyNeg(sinRest, assumptions: assumptions);
+      }
+      if (m.denominator == Integer.two && m.numerator.isOdd) {
+        final k = (m.numerator - Integer.one) ~/ Integer.two;
+        final cosRest = simplifyCos(rest, assumptions: assumptions);
+        return k.isEven
+            ? cosRest
+            : simplifyNeg(cosRest, assumptions: assumptions);
+      }
+    }
+  }
+
   return Sin(expr, isSimplified: true);
 }
 
@@ -207,6 +232,31 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
     );
   }
 
+  // Integer and quarter-period pi shifts: cos(k*pi + rest), cos((2k+1)*pi/2 + rest)
+  if (expr case Add(:final terms)) {
+    for (var i = 0; i < terms.length; i++) {
+      final m = matchPiMultiple(terms[i]);
+      if (m == null) continue;
+      final rest = simplifyAdd([
+        for (var j = 0; j < terms.length; j++)
+          if (j != i) terms[j],
+      ], assumptions: assumptions);
+      if (m.isInteger) {
+        final cosRest = simplifyCos(rest, assumptions: assumptions);
+        return m.numerator.isEven
+            ? cosRest
+            : simplifyNeg(cosRest, assumptions: assumptions);
+      }
+      if (m.denominator == Integer.two && m.numerator.isOdd) {
+        final k = (m.numerator - Integer.one) ~/ Integer.two;
+        final sinRest = simplifySin(rest, assumptions: assumptions);
+        return k.isEven
+            ? simplifyNeg(sinRest, assumptions: assumptions)
+            : sinRest;
+      }
+    }
+  }
+
   return Cos(expr, isSimplified: true);
 }
 
@@ -273,15 +323,20 @@ Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
     return IntegerNumber.zero;
   }
 
-  // Quarter-period shift: tan(k*pi/2 + rest) = -1 / tan(rest) for odd k
+  // Integer-period and quarter-period shifts:
+  // tan(k*pi + rest) = tan(rest), tan((2k+1)*pi/2 + rest) = -1 / tan(rest)
   if (expr case Add(:final terms)) {
     for (var i = 0; i < terms.length; i++) {
       final m = matchPiMultiple(terms[i]);
-      if (m != null && m.denominator == Integer.two && m.numerator.isOdd) {
-        final rest = simplifyAdd([
-          for (var j = 0; j < terms.length; j++)
-            if (j != i) terms[j],
-        ], assumptions: assumptions);
+      if (m == null) continue;
+      final rest = simplifyAdd([
+        for (var j = 0; j < terms.length; j++)
+          if (j != i) terms[j],
+      ], assumptions: assumptions);
+      if (m.isInteger) {
+        return simplifyTan(rest, assumptions: assumptions);
+      }
+      if (m.denominator == Integer.two && m.numerator.isOdd) {
         final tanRest = simplifyTan(rest, assumptions: assumptions);
         if (tanRest is Number && tanRest.isZero) return Constant.undefined;
         return simplifyDiv(

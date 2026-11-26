@@ -14,6 +14,7 @@ import 'integration_power_mul.dart';
 import 'radical.dart';
 import 'radical_binomial.dart';
 import 'substitution.dart';
+import 'transcendental.dart';
 import 'trigonometric.dart';
 
 /// Specification of a single integration variable and optional definite bounds
@@ -97,11 +98,12 @@ extension IntegrationExtension on Expr {
 final class _IntegrationBudget {
   static const int maxSteps = 250;
   static const int maxDepth = 8;
-  static const int maxElapsedMs = 250;
+  static const int maxElapsedMs = identical(0, 0.0) ? 350 : 250;
 
   final Stopwatch _stopwatch = Stopwatch()..start();
   final Map<(Expr, String, Assumptions), Expr> memo =
       <(Expr, String, Assumptions), Expr>{};
+  final Set<(Expr, String)> triedTower = <(Expr, String)>{};
   int steps = 0;
 
   bool get isExhausted =>
@@ -112,6 +114,11 @@ _IntegrationBudget? _activeBudget;
 
 /// Whether the current [symbolicIntegrate] budget has been exhausted.
 bool isIntegrationBudgetExhausted() => _activeBudget?.isExhausted ?? false;
+
+/// Marks `(node, variable)` as attempted by [tryTranscendentalTower] within
+/// the active integration budget, returning `false` if already attempted.
+bool markTranscendentalTowerAttempt(Expr node, String variable) =>
+    _activeBudget?.triedTower.add((node, variable)) ?? true;
 
 /// Generates a fresh substitution variable name that neither equals
 /// [variable] nor collides with any free variable in [expr].
@@ -347,6 +354,15 @@ Expr _antiDerivativeCore(
           );
           if (expRes != null) return expRes;
         }
+        if (tryTranscendentalTower(
+              node,
+              variable,
+              assumptions: assumptions,
+              depth: depth,
+            )
+            case final transRes?) {
+          return transRes;
+        }
       }
       return sumRes;
     }(),
@@ -528,6 +544,15 @@ Expr _antiDerivativeCore(
     if (tryUSubstitution(node, variable, assumptions: assumptions, depth: depth)
         case final uSubRes?) {
       return uSubRes;
+    }
+    if (tryTranscendentalTower(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final transRes?) {
+      return transRes;
     }
     if (tryRewriteExpInverseTrigHyp(
           node,

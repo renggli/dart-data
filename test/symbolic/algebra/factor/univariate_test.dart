@@ -115,5 +115,23 @@ void main() {
       check(mixedDivs.first).equals(Integer.one);
       check(mixedDivs.last).equals(Integer.big(BigInt.one << 60));
     });
+
+    test('factors high-degree polynomials with large coefficients without GCD blowup', () {
+      final poly = Expr.parse(
+        '(x^8 + 256 * x^4 + 65536) * (x^8 + 512 * x^3 + 131072)',
+      ).expand();
+      final sw = Stopwatch()..start();
+      final factored = poly.factor();
+      sw.stop();
+      check(sw.elapsedMilliseconds).isLessThan(200);
+      check(factored.expand().simplify()).equals(poly.simplify());
+
+      final irred = Expr.parse('x^10 + 131072 * x^6 + 65536 * x^2 + 1');
+      final sw2 = Stopwatch()..start();
+      final irredFactored = irred.factor();
+      sw2.stop();
+      check(sw2.elapsedMilliseconds).isLessThan(200);
+      check(irredFactored.expand().simplify()).equals(irred.simplify());
+    });
   });
 }

@@ -538,8 +538,19 @@ List<RationalNumber> _polyGcd(List<RationalNumber> a, List<RationalNumber> b) {
     final dm = _polyDivMod(x, y);
     if (dm == null) break;
     final (_, rem) = dm;
-    x = y;
-    y = rem;
+    if (rem.length == 1) {
+      if (!rem[0].isZero) {
+        return [IntegerNumber.one];
+      }
+      x = y;
+      y = rem;
+    } else {
+      final prim = _toPrimitiveIntCoeffs(rem);
+      x = y;
+      y = prim != null
+          ? [for (final c in prim) IntegerNumber(c)]
+          : _makeMonic(rem);
+    }
   }
   return _makeMonic(x);
 }

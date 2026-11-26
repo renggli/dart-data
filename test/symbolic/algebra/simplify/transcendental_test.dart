@@ -322,5 +322,18 @@ void main() {
         Expr.parse('-ln(x)').simplify(assumptions: Assumptions.positive),
       );
     });
+
+    test('simplifies integer-pi and half-pi trig argument shifts', () {
+      const x = Variable('x');
+      check(Expr.parse('sin(x - 2 * pi)').simplify()).equals(Sin(x));
+      check(Expr.parse('sin(pi + x)').simplify()).equals((-Sin(x)).simplify());
+      check(Expr.parse('sin(pi / 2 + x)').simplify()).equals(Cos(x));
+      check(Expr.parse('sin(3 * pi / 2 + x)').simplify())
+          .equals((-Cos(x)).simplify());
+      check(Expr.parse('cos(pi - x)').simplify()).equals((-Cos(x)).simplify());
+      check(Expr.parse('cos(2 * pi + x)').simplify()).equals(Cos(x));
+      check(Expr.parse('cos(pi / 2 - x)').simplify()).equals(Sin(x));
+      check(Expr.parse('tan(pi + x)').simplify()).equals(Tan(x));
+    });
   });
 }

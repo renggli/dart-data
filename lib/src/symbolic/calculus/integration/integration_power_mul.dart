@@ -16,6 +16,7 @@ import 'parts.dart';
 import 'radical.dart';
 import 'rational.dart';
 import 'substitution.dart';
+import 'transcendental.dart';
 import 'trigonometric.dart';
 import 'trigonometric_helpers.dart';
 
@@ -273,12 +274,15 @@ Expr antiDerivPow(
         }
       }
     }
-    // Powers of logarithms: ln(ax + b)^k for 2 <= k <= 6 and ln(ax + b)^(-k) for 2 <= k <= 6
-    if (base case Ln(expr: final inner)) {
-      if (exponent case IntegerNumber(asInt: final k?) when k >= 2 && k <= 6) {
-        if (inner.matchLinear(variable) case (:final a, b: _)) {
+    // Powers of logarithms and affine-log forms: (A + B*ln(c*(ax+b)^n))^k
+    if (_matchAffineLogPowerBase(base, variable) case final logInfo?) {
+      final (:aConst, :bConst, :linBase, :linSlope, :logArg, :nExp) = logInfo;
+      final effB = (bConst * nExp).simplify(assumptions: assumptions);
+      if (!(effB is Number && effB.isZero)) {
+        if (exponent case IntegerNumber(asInt: final k?)
+            when k >= 2 && k <= 6) {
           final kExpr = IntegerNumber.of(k);
-          final term1 = ((inner / a) * original).simplify(
+          final term1 = ((linBase / linSlope) * original).simplify(
             assumptions: assumptions,
           );
           final rem = antiDerivative(
@@ -288,20 +292,40 @@ Expr antiDerivPow(
             ).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
+            depth: depth + 1,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 - kExpr * rem).simplify(assumptions: assumptions);
+            return (term1 - kExpr * effB * rem).simplify(
+              assumptions: assumptions,
+            );
           }
         }
-      }
-      if (exponent case IntegerNumber(asInt: final negK?)
-          when negK <= -2 && negK >= -6) {
-        if (inner.matchLinear(variable) case (:final a, b: _)) {
-          final k = -negK;
-          final km1 = IntegerNumber.of(k - 1);
-          final term1 = (-inner / (a * km1 * Pow(base, km1))).simplify(
+        if ((exponent == IntegerNumber.negativeOne ||
+                (exponent is RealNumber && exponent.value == -1.0)) &&
+            !(aConst is Number &&
+                aConst.isZero &&
+                bConst == IntegerNumber.one &&
+                nExp == IntegerNumber.one)) {
+          final p = (IntegerNumber.one / nExp).simplify(
             assumptions: assumptions,
           );
+          final scale =
+              (linBase /
+                      (linSlope * effB * Pow(logArg, p)) *
+                      Pow(Constant.e, (-p * aConst / bConst).simplify()))
+                  .simplify(assumptions: assumptions);
+          return (scale *
+                  ExpIntegral(
+                    (p * base / bConst).simplify(assumptions: assumptions),
+                  ))
+              .simplify(assumptions: assumptions);
+        }
+        if (exponent case IntegerNumber(asInt: final negK?)
+            when negK <= -2 && negK >= -6) {
+          final k = -negK;
+          final km1 = IntegerNumber.of(k - 1);
+          final term1 = (-linBase / (linSlope * effB * km1 * Pow(base, km1)))
+              .simplify(assumptions: assumptions);
           final rem = antiDerivative(
             Pow(
               base,
@@ -309,9 +333,12 @@ Expr antiDerivPow(
             ).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
+            depth: depth + 1,
           );
           if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 + rem / km1).simplify(assumptions: assumptions);
+            return (term1 + rem / (effB * km1)).simplify(
+              assumptions: assumptions,
+            );
           }
         }
       }
@@ -453,6 +480,72 @@ Expr antiDerivMul(
   // 1. Check if this product represents a quotient f(x) / g(x) where g depends on variable
   final (numExpr, denExpr) = splitNumeratorDenominator(original);
   if (denExpr != IntegerNumber.one && denExpr.dependsOn(variable)) {
+    final hasCompoundExpLnDen =
+        (denExpr is Add ||
+            (denExpr is Pow && denExpr.base is Add) ||
+            (denExpr is Mul &&
+                denExpr.factors.any(
+                  (f) => f is Add || (f is Pow && f.base is Add),
+                ))) &&
+        denExpr.anyNode(
+          (n) =>
+              (n is Ln && n.expr.dependsOn(variable)) ||
+              (n is Pow &&
+                  n.base == Constant.e &&
+                  n.exponent.dependsOn(variable)),
+        );
+    if (hasCompoundExpLnDen) {
+      if (tryTranscendentalTower(
+            original,
+            variable,
+            assumptions: assumptions,
+            depth: depth,
+          )
+          case final towerRes?) {
+        return towerRes;
+      }
+    }
+    if (depth < 2 &&
+        !original.anyNode(
+          (n) =>
+              n is Sin ||
+              n is Cos ||
+              n is Tan ||
+              n is Sinh ||
+              n is Cosh ||
+              n is Tanh ||
+              n is Asin ||
+              n is Acos ||
+              n is Atan ||
+              n is Asinh ||
+              n is Acosh ||
+              n is Atanh,
+        )) {
+      final expTerms = <Expr>[];
+      final otherFactors = <Expr>[];
+      for (final f in original.factors) {
+        if (f case Pow(:final base, :final exponent)
+            when base == Constant.e && exponent.dependsOn(variable)) {
+          expTerms.add(exponent);
+        } else {
+          otherFactors.add(f);
+        }
+      }
+      if (expTerms.isNotEmpty) {
+        final g = expTerms.length == 1
+            ? expTerms.first
+            : Add(expTerms).simplify(assumptions: assumptions);
+        final cofactor = otherFactors.isEmpty
+            ? IntegerNumber.one
+            : (otherFactors.length == 1
+                  ? otherFactors.first
+                  : Mul(otherFactors).simplify(assumptions: assumptions));
+        if (tryExpRischOde(cofactor, g, variable, assumptions: assumptions)
+            case final odeRes?) {
+          return odeRes;
+        }
+      }
+    }
     final divRes = tryAntiDerivDiv(
       numExpr,
       denExpr,
@@ -708,6 +801,28 @@ Expr antiDerivMul(
     return trigPolyRes;
   }
 
+  // 3e. Linear-power times affine-log-power: (d*x + e)^m * (A + B*ln(c*(a*x+b)^n))^k
+  if (depth < 3 && varFactors.length == 2) {
+    final affineLogMul =
+        _tryIntegrateLinearPowTimesAffineLogPow(
+          varFactors[0],
+          varFactors[1],
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        ) ??
+        _tryIntegrateLinearPowTimesAffineLogPow(
+          varFactors[1],
+          varFactors[0],
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        );
+    if (affineLogMul != null) {
+      return affineLogMul;
+    }
+  }
+
   // 4. Integration by parts (try pairing one factor with the rest):
   if (varFactors case [final left, final right]) {
     if (tryIntegrationByParts(
@@ -764,7 +879,7 @@ Expr antiDerivMul(
     }
   }
 
-  // 4b. Expand powered Add factors (2 <= m <= 4) when combined with inverse trig/hyperbolic functions:
+  // 4b. Expand powered Add factors (2 <= m <= 4) when combined with inverse trig/hyperbolic or log functions:
   if (depth < 2) {
     bool isInvTrigOrHyp(Expr n) =>
         n is Asin ||
@@ -772,20 +887,22 @@ Expr antiDerivMul(
         n is Atan ||
         n is Asinh ||
         n is Acosh ||
-        n is Atanh;
+        n is Atanh ||
+        n is Ln;
     final hasPoweredAdd = varFactors.any(
       (f) =>
           f is Pow &&
           f.base is Add &&
           f.exponent is IntegerNumber &&
           ((f.exponent as IntegerNumber).asInt ?? 0) >= 2 &&
-          ((f.exponent as IntegerNumber).asInt ?? 0) <= 4,
+          ((f.exponent as IntegerNumber).asInt ?? 0) <= 4 &&
+          !f.base.anyNode((n) => n is Ln),
     );
     if (hasPoweredAdd && varFactors.any((f) => f.anyNode(isInvTrigOrHyp))) {
       final expandedFactors = <Expr>[
         for (final f in varFactors)
           if (f case Pow(base: Add(), exponent: IntegerNumber(asInt: final m?))
-              when m >= 2 && m <= 4)
+              when m >= 2 && m <= 4 && !f.base.anyNode((n) => n is Ln))
             f.expand(assumptions: assumptions)
           else
             f,
@@ -801,11 +918,11 @@ Expr antiDerivMul(
     }
 
     // 4c. Partial-fraction decomposition of rational cofactors multiplied by
-    // inverse trig/hyperbolic factors:
+    // inverse trig/hyperbolic or logarithmic factors:
     bool isStandaloneOrAffineInvFn(Expr n) {
       var core = n;
       if (core case Pow(:final base, exponent: IntegerNumber(asInt: final k?))
-          when k >= 1 && k <= 3) {
+          when k >= 1 && k <= 4) {
         core = base;
       }
       if (core is Asin ||
@@ -813,7 +930,8 @@ Expr antiDerivMul(
           core is Atan ||
           core is Asinh ||
           core is Acosh ||
-          core is Atanh) {
+          core is Atanh ||
+          core is Ln) {
         return true;
       }
       if (core case Add(:final terms) when terms.length == 2) {
@@ -828,7 +946,8 @@ Expr antiDerivMul(
             vt is Atan ||
             vt is Asinh ||
             vt is Acosh ||
-            vt is Atanh) {
+            vt is Atanh ||
+            vt is Ln) {
           return true;
         }
         if (vt case Mul(:final factors)) {
@@ -843,7 +962,8 @@ Expr antiDerivMul(
                 f0 is Atan ||
                 f0 is Asinh ||
                 f0 is Acosh ||
-                f0 is Atanh;
+                f0 is Atanh ||
+                f0 is Ln;
           }
         }
       }
@@ -891,6 +1011,26 @@ Expr antiDerivMul(
           }
         }
       }
+    }
+  }
+
+  // 4d. Try self-power exponential tower before distributing across Add:
+  if (depth < 2 &&
+      varFactors.any(
+        (f) =>
+            f is Pow &&
+            f.base != Constant.e &&
+            f.base.dependsOn(variable) &&
+            f.exponent.dependsOn(variable),
+      )) {
+    if (tryTranscendentalTower(
+          original,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final towerRes?) {
+      return towerRes;
     }
   }
 
@@ -1342,5 +1482,285 @@ Expr? tryMonomialPowerProduct(
     }
     return (scale: scale, power: power);
   }
+  return null;
+}
+
+({
+  Expr aConst,
+  Expr bConst,
+  Expr linBase,
+  Expr linSlope,
+  Expr logArg,
+  Expr nExp,
+})?
+_matchAffineLogPowerBase(Expr expr, String variable) {
+  Expr aConst = IntegerNumber.zero;
+  Expr bConst = IntegerNumber.one;
+  Ln? lnNode;
+
+  if (expr is Ln) {
+    lnNode = expr;
+  } else if (expr is Add) {
+    final constTerms = <Expr>[];
+    final varTerms = <Expr>[];
+    for (final t in expr.terms) {
+      if (!t.dependsOn(variable)) {
+        constTerms.add(t);
+      } else {
+        varTerms.add(t);
+      }
+    }
+    if (varTerms.length != 1) return null;
+    aConst = constTerms.isEmpty
+        ? IntegerNumber.zero
+        : (constTerms.length == 1
+              ? constTerms.first
+              : Add(constTerms).simplify());
+    final vt = varTerms.first;
+    if (vt is Ln) {
+      lnNode = vt;
+    } else if (vt is Mul) {
+      final cFs = <Expr>[];
+      final vFs = <Expr>[];
+      for (final f in vt.factors) {
+        if (!f.dependsOn(variable)) {
+          cFs.add(f);
+        } else {
+          vFs.add(f);
+        }
+      }
+      if (vFs.length != 1 || vFs.first is! Ln) return null;
+      lnNode = vFs.first as Ln;
+      bConst = cFs.isEmpty
+          ? IntegerNumber.one
+          : (cFs.length == 1 ? cFs.first : Mul(cFs).simplify());
+    }
+  }
+  if (lnNode == null) return null;
+
+  final arg = lnNode.expr;
+  // Match c * (a*x + b)^n inside ln(...):
+  final argFactors = arg is Mul ? arg.factors : [arg];
+  final vFactors = [
+    for (final f in argFactors)
+      if (f.dependsOn(variable)) f,
+  ];
+  if (vFactors.length != 1) return null;
+  final vf = vFactors.first;
+  final Expr linCand;
+  final Expr nExp;
+  if (vf case Pow(:final base, :final exponent)
+      when !exponent.dependsOn(variable)) {
+    linCand = base;
+    nExp = exponent;
+  } else {
+    linCand = vf;
+    nExp = IntegerNumber.one;
+  }
+  final lin = linCand.matchLinear(variable);
+  if (lin == null) return null;
+  return (
+    aConst: aConst,
+    bConst: bConst,
+    linBase: linCand,
+    linSlope: lin.a,
+    logArg: arg,
+    nExp: nExp,
+  );
+}
+
+Expr? _tryIntegrateLinearPowTimesAffineLogPow(
+  Expr linFactor,
+  Expr logPowFactor,
+  String variable, {
+  required Assumptions assumptions,
+  required int depth,
+}) {
+  final Expr linSub;
+  final Expr mExp;
+  if (linFactor case Pow(:final base, :final exponent)
+      when !exponent.dependsOn(variable)) {
+    linSub = base;
+    mExp = exponent;
+  } else {
+    linSub = linFactor;
+    mExp = IntegerNumber.one;
+  }
+  final linSubMatch = linSub.matchLinear(variable);
+  if (linSubMatch == null) return null;
+
+  final Expr logBaseExpr;
+  final Expr kExp;
+  if (logPowFactor case Pow(:final base, :final exponent)
+      when !exponent.dependsOn(variable)) {
+    logBaseExpr = base;
+    kExp = exponent;
+  } else {
+    logBaseExpr = logPowFactor;
+    kExp = IntegerNumber.one;
+  }
+  final logInfo = _matchAffineLogPowerBase(logBaseExpr, variable);
+  if (logInfo == null) return null;
+  final (:aConst, :bConst, :linBase, :linSlope, :logArg, :nExp) = logInfo;
+
+  // Require linSub == scale * linBase with !scale.dependsOn(variable).
+  final ratio = (linSubMatch.a / linSlope).cancel(assumptions: assumptions);
+  if (ratio.dependsOn(variable)) return null;
+  final linDiff = (linSub - ratio * linBase).expand().simplify(
+    assumptions: assumptions,
+  );
+  if (linDiff != IntegerNumber.zero) return null;
+  final outerScale = (ratio == IntegerNumber.one)
+      ? IntegerNumber.one
+      : Pow(ratio, mExp).simplify(assumptions: assumptions);
+
+  final effB = (bConst * nExp).simplify(assumptions: assumptions);
+  if (effB is Number && effB.isZero) return null;
+
+  // m == -1: direct u-substitution.
+  if (mExp == IntegerNumber.negativeOne ||
+      (mExp is RealNumber && mExp.value == -1.0)) {
+    if (kExp == IntegerNumber.negativeOne ||
+        (kExp is RealNumber && kExp.value == -1.0)) {
+      return (outerScale *
+              logAntiderivative(logBaseExpr, assumptions) /
+              (linSlope * effB))
+          .simplify(assumptions: assumptions);
+    }
+    final kp1 = (kExp + IntegerNumber.one).simplify(assumptions: assumptions);
+    if (kp1 is Number && kp1.isZero) return null;
+    return (outerScale * Pow(logBaseExpr, kp1) / (linSlope * effB * kp1))
+        .simplify(assumptions: assumptions);
+  }
+
+  final mPlus1 = (mExp + IntegerNumber.one).simplify(assumptions: assumptions);
+  if (mPlus1 is Number && mPlus1.isZero) return null;
+
+  return _integrateLinBasePowTimesAffineLog(
+    outerScale,
+    linBase,
+    linSlope,
+    mExp,
+    mPlus1,
+    logBaseExpr,
+    aConst,
+    bConst,
+    logArg,
+    nExp,
+    kExp,
+    variable,
+    assumptions: assumptions,
+    depth: depth,
+  );
+}
+
+Expr? _integrateLinBasePowTimesAffineLog(
+  Expr outerScale,
+  Expr linBase,
+  Expr linSlope,
+  Expr mExp,
+  Expr mPlus1,
+  Expr logBaseExpr,
+  Expr aConst,
+  Expr bConst,
+  Expr logArg,
+  Expr nExp,
+  Expr kExp,
+  String variable, {
+  required Assumptions assumptions,
+  required int depth,
+}) {
+  final effB = (bConst * nExp).simplify(assumptions: assumptions);
+  if (effB is Number && effB.isZero) return null;
+
+  // k == -1: incomplete gamma / ExpIntegral closed form.
+  if (kExp == IntegerNumber.negativeOne ||
+      (kExp is RealNumber && kExp.value == -1.0)) {
+    final p = (mPlus1 / nExp).simplify(assumptions: assumptions);
+    final pre =
+        (outerScale *
+                Pow(linBase, mPlus1) /
+                (linSlope * effB * Pow(logArg, p)) *
+                Pow(Constant.e, (-p * aConst / bConst).simplify()))
+            .simplify(assumptions: assumptions);
+    return (pre *
+            ExpIntegral(
+              (p * logBaseExpr / bConst).simplify(assumptions: assumptions),
+            ))
+        .simplify(assumptions: assumptions);
+  }
+
+  // Negative integer k in [-6, -2]: step-up recurrence to k + 1.
+  if (kExp case IntegerNumber(asInt: final negK?)
+      when negK <= -2 && negK >= -6) {
+    final absKm1 = IntegerNumber.of(-negK - 1);
+    final term1 =
+        (-Pow(linBase, mPlus1) /
+                (linSlope * effB * absKm1 * Pow(logBaseExpr, absKm1)))
+            .simplify(assumptions: assumptions);
+    final rem = _integrateLinBasePowTimesAffineLog(
+      IntegerNumber.one,
+      linBase,
+      linSlope,
+      mExp,
+      mPlus1,
+      logBaseExpr,
+      aConst,
+      bConst,
+      logArg,
+      nExp,
+      IntegerNumber.of(negK + 1),
+      variable,
+      assumptions: assumptions,
+      depth: depth + 1,
+    );
+    if (rem == null) return null;
+    return (outerScale * (term1 + (mPlus1 / (effB * absKm1)) * rem)).simplify(
+      assumptions: assumptions,
+    );
+  }
+
+  // Positive integer k in [1, 5]: step-down recurrence to k - 1.
+  if (kExp case IntegerNumber(asInt: final k?) when k >= 1 && k <= 6) {
+    final basePow = (Pow(linBase, mPlus1) / (linSlope * mPlus1)).simplify(
+      assumptions: assumptions,
+    );
+    final term1 = (basePow * Pow(logBaseExpr, kExp)).simplify(
+      assumptions: assumptions,
+    );
+    final rem = k == 1
+        ? (mExp == IntegerNumber.zero
+              ? (linBase / linSlope).simplify(assumptions: assumptions)
+              : antiDerivative(
+                  Pow(linBase, mExp).simplify(assumptions: assumptions),
+                  variable,
+                  assumptions: assumptions,
+                  depth: depth + 1,
+                ))
+        : _integrateLinBasePowTimesAffineLog(
+            IntegerNumber.one,
+            linBase,
+            linSlope,
+            mExp,
+            mPlus1,
+            logBaseExpr,
+            aConst,
+            bConst,
+            logArg,
+            nExp,
+            IntegerNumber.of(k - 1),
+            variable,
+            assumptions: assumptions,
+            depth: depth + 1,
+          );
+    if (rem == null || hasUnevaluatedIntegral(rem, variable)) return null;
+    final coeff = (IntegerNumber.of(k) * effB / mPlus1).simplify(
+      assumptions: assumptions,
+    );
+    return (outerScale * (term1 - coeff * rem)).simplify(
+      assumptions: assumptions,
+    );
+  }
+
   return null;
 }

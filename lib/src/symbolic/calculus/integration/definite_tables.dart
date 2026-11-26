@@ -84,10 +84,11 @@ Expr? definiteIntegralSpecialCases(
     if (res != null) return res;
   }
 
-  // Domain [0, pi/2] or [0, pi]
+  // Domain [0, pi/2], [0, pi], or [0, 2*pi]
   final halfPi = (Constant.pi / IntegerNumber.two).simplify();
+  final twoPi = (IntegerNumber.two * Constant.pi).simplify();
   if (fromExpr == IntegerNumber.zero &&
-      (toExpr == halfPi || toExpr == Constant.pi)) {
+      (toExpr == halfPi || toExpr == Constant.pi || toExpr == twoPi)) {
     final trigRes = definiteIntegralTrigDomain(
       function,
       variable,
@@ -142,6 +143,119 @@ Expr? definiteIntegralZeroToInfinity(
           assumptions: assumptions,
         );
       }
+    }
+  }
+
+  // 1b. Laplace-Dirichlet integral: exp(-a*x) * sin(b*x) / x -> atan(b / a)
+  if (den == xVar) {
+    final numFactors = num is Mul ? num.factors : [num];
+    if (numFactors.length == 2) {
+      final f0 = numFactors[0];
+      final f1 = numFactors[1];
+      final expFac = f0 is Pow && f0.base == Constant.e
+          ? f0
+          : (f1 is Pow && f1.base == Constant.e ? f1 : null);
+      final sinFac = expFac == f0
+          ? (f1 is Sin ? f1 : null)
+          : (f0 is Sin ? f0 : null);
+      if (expFac != null && sinFac != null) {
+        final expLin = expFac.exponent.matchLinear(variable);
+        final sinLin = sinFac.expr.matchLinear(variable);
+        if (expLin != null &&
+            sinLin != null &&
+            expLin.b == IntegerNumber.zero &&
+            sinLin.b == IntegerNumber.zero) {
+          final posA = (-expLin.a).simplify(assumptions: assumptions);
+          if ((isPositiveConstant(posA) ||
+                  isPositiveExpr(posA, assumptions: assumptions)) &&
+              isProvenReal(sinLin.a, assumptions)) {
+            return Atan((sinLin.a / posA).simplify(assumptions: assumptions))
+                .simplify(assumptions: assumptions);
+          }
+        }
+      }
+    }
+  }
+
+  // 1c. Frullani improper integrals on [0, infty):
+  //     (e^(-a*x) - e^(-b*x)) / x = ln(b / a) for a, b > 0
+  //     (atan(a*x) - atan(b*x)) / x = pi/2 * ln(a / b) for a, b > 0
+  if (den == xVar && num is Add && num.terms.length == 2) {
+    ({Expr? expDecay, Expr? atanSlope}) matchSingle(Expr t) {
+      var sign = IntegerNumber.one as Expr;
+      var core = t;
+      if (core case Mul(:final factors) when factors.length == 2) {
+        if (factors[0] == IntegerNumber.negativeOne) {
+          sign = IntegerNumber.negativeOne;
+          core = factors[1];
+        } else if (factors[1] == IntegerNumber.negativeOne) {
+          sign = IntegerNumber.negativeOne;
+          core = factors[0];
+        }
+      }
+      if (core case Pow(base: Constant.e, :final exponent)
+          when exponent.matchLinear(variable) != null) {
+        final lin = exponent.matchLinear(variable)!;
+        if (lin.b == IntegerNumber.zero) {
+          final posA = (-lin.a).simplify(assumptions: assumptions);
+          if (isPositiveConstant(posA) ||
+              isPositiveExpr(posA, assumptions: assumptions)) {
+            return (
+              expDecay: sign == IntegerNumber.one ? posA : null,
+              atanSlope: null,
+            );
+          }
+        }
+      }
+      if (core case Atan(:final expr) when expr.matchLinear(variable) != null) {
+        final lin = expr.matchLinear(variable)!;
+        if (lin.b == IntegerNumber.zero &&
+            (isPositiveConstant(lin.a) ||
+                isPositiveExpr(lin.a, assumptions: assumptions))) {
+          return (
+            expDecay: null,
+            atanSlope: sign == IntegerNumber.one ? lin.a : null,
+          );
+        }
+      }
+      return (expDecay: null, atanSlope: null);
+    }
+
+    final t0 = num.terms[0];
+    final t1 = num.terms[1];
+    final m0Pos = matchSingle(t0);
+    final m1Neg = matchSingle((-t1).simplify(assumptions: assumptions));
+    if (m0Pos.expDecay != null && m1Neg.expDecay != null) {
+      return Ln(
+        (m1Neg.expDecay! / m0Pos.expDecay!).simplify(assumptions: assumptions),
+      ).simplify(assumptions: assumptions);
+    }
+    if (m0Pos.atanSlope != null && m1Neg.atanSlope != null) {
+      return (Constant.pi /
+              IntegerNumber.two *
+              Ln(
+                (m0Pos.atanSlope! / m1Neg.atanSlope!).simplify(
+                  assumptions: assumptions,
+                ),
+              ))
+          .simplify(assumptions: assumptions);
+    }
+    final m1Pos = matchSingle(t1);
+    final m0Neg = matchSingle((-t0).simplify(assumptions: assumptions));
+    if (m1Pos.expDecay != null && m0Neg.expDecay != null) {
+      return Ln(
+        (m0Neg.expDecay! / m1Pos.expDecay!).simplify(assumptions: assumptions),
+      ).simplify(assumptions: assumptions);
+    }
+    if (m1Pos.atanSlope != null && m0Neg.atanSlope != null) {
+      return (Constant.pi /
+              IntegerNumber.two *
+              Ln(
+                (m1Pos.atanSlope! / m0Neg.atanSlope!).simplify(
+                  assumptions: assumptions,
+                ),
+              ))
+          .simplify(assumptions: assumptions);
     }
   }
 
@@ -264,6 +378,7 @@ Expr? definiteIntegralZeroToInfinity(
   // 5. Bose-Einstein & Fermi-Dirac integrals:
   //    int_0^infty x^(s-1) / (e^x - 1) dx = Gamma(s) * zeta(s)
   //    int_0^infty x^(s-1) / (e^x + 1) dx = Gamma(s) * eta(s)
+  //    int_0^infty x^(s-1) * (1 + e^(-x)) / (e^x - 1) dx = 2*Gamma(s)*zeta(s) - Gamma(s)
   if (den case Add(terms: [final d0, final d1])) {
     final expTerm = d0 is Pow && d0.base == Constant.e && d0.exponent == xVar
         ? d0
@@ -274,17 +389,44 @@ Expr? definiteIntegralZeroToInfinity(
     if (expTerm != null &&
         (constTerm == IntegerNumber.negativeOne ||
             constTerm == IntegerNumber.one)) {
-      int? s;
-      if (num == xVar) {
-        s = 2;
-      } else if (num
-          case Pow(base: final b, exponent: IntegerNumber(asInt: final m?))
-          when b == xVar && m >= 1 && m.isOdd && m <= 15) {
-        s = m + 1;
+      int? extractEvenS(Expr nExpr) {
+        if (nExpr == xVar) return 2;
+        if (nExpr
+            case Pow(base: final b, exponent: IntegerNumber(asInt: final m?))
+            when b == xVar && m >= 1 && m.isOdd && m <= 15) {
+          return m + 1;
+        }
+        return null;
+      }
+
+      var s = extractEvenS(num);
+      var hasOnePlusExpNeg = false;
+      if (s == null && constTerm == IntegerNumber.negativeOne && num is Mul) {
+        final sParts = <Expr>[];
+        var matchedFactor = false;
+        for (final f in num.factors) {
+          if (!matchedFactor &&
+              (f - (IntegerNumber.one + Pow(Constant.e, -xVar))).simplify(
+                    assumptions: assumptions,
+                  ) ==
+                  IntegerNumber.zero) {
+            matchedFactor = true;
+          } else {
+            sParts.add(f);
+          }
+        }
+        if (matchedFactor && sParts.length == 1) {
+          s = extractEvenS(sParts.first);
+          hasOnePlusExpNeg = s != null;
+        }
       }
       if (s != null && s.isEven) {
         final factSMinus1 = IntegerNumber(Integer.from(s - 1).factorial());
         final zetaS = evenZetaValue(s);
+        if (hasOnePlusExpNeg) {
+          return (IntegerNumber.two * factSMinus1 * zetaS - factSMinus1)
+              .simplify(assumptions: assumptions);
+        }
         if (constTerm == IntegerNumber.negativeOne) {
           return (factSMinus1 * zetaS).simplify(assumptions: assumptions);
         } else {
@@ -403,9 +545,17 @@ Expr? definiteIntegralTrigDomain(
     return (-halfPi * Ln(IntegerNumber.two)).simplify(assumptions: assumptions);
   }
 
-  // 2. Wallis / Beta trigonometric integrals on [0, pi/2]:
+  // 1b. int_0^(pi/2) x * cot(x) dx = pi * ln(2) / 2
+  if (toExpr == halfPi &&
+      (function - (xVar * Cos(xVar) / Sin(xVar))).simplify() ==
+          IntegerNumber.zero) {
+    return (halfPi * Ln(IntegerNumber.two)).simplify(assumptions: assumptions);
+  }
+
+  // 2. Wallis / Beta trigonometric integrals on [0, pi/2], [0, pi], and [0, 2*pi]:
   //    int_0^(pi/2) sin(x)^m * cos(x)^n dx = 1/2 * Beta((m+1)/2, (n+1)/2)
-  if (toExpr == halfPi) {
+  final twoPi = (IntegerNumber.two * Constant.pi).simplify();
+  if (toExpr == halfPi || toExpr == Constant.pi || toExpr == twoPi) {
     final factors = function is Mul ? function.factors : [function];
     Expr mExp = IntegerNumber.zero;
     Expr nExp = IntegerNumber.zero;
@@ -444,9 +594,26 @@ Expr? definiteIntegralTrigDomain(
               isPositiveConstant(aArg)) &&
           (isPositiveExpr(bArg, assumptions: assumptions) ||
               isPositiveConstant(bArg))) {
-        return (FractionNumber.half * Beta(aArg, bArg)).simplify(
+        final qVal = (FractionNumber.half * Beta(aArg, bArg)).simplify(
           assumptions: assumptions,
         );
+        if (toExpr == halfPi) return qVal;
+        final mInt = mExp is IntegerNumber ? mExp.asInt : null;
+        final nInt = nExp is IntegerNumber ? nExp.asInt : null;
+        if (mInt != null && nInt != null && mInt >= 0 && nInt >= 0) {
+          if (toExpr == Constant.pi) {
+            return nInt.isOdd
+                ? IntegerNumber.zero
+                : (IntegerNumber.two * qVal).simplify(assumptions: assumptions);
+          }
+          if (toExpr == twoPi) {
+            return (mInt.isOdd || nInt.isOdd)
+                ? IntegerNumber.zero
+                : (IntegerNumber.of(4) * qVal).simplify(
+                    assumptions: assumptions,
+                  );
+          }
+        }
       }
     }
   }

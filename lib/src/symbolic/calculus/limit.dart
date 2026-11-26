@@ -238,10 +238,32 @@ Expr computeLimit(
         direction: direction,
         assumptions: assumptions,
       );
-      if (isPositiveInfinity(baseLim) &&
-          exponent is RealNumeric &&
-          !exponent.isZero) {
-        return exponent.isNegative ? IntegerNumber.zero : Constant.infinity;
+      int? constantExpSign() {
+        if (exponent is RealNumeric) {
+          return exponent.isZero ? null : (exponent.isNegative ? -1 : 1);
+        }
+        if (exponent.anyNode((n) => n is ComplexNumber)) return null;
+        if (isPositiveExpr(exponent, assumptions: assumptions)) return 1;
+        if (isNegativeExpr(exponent, assumptions: assumptions)) return -1;
+        if (exponent.freeVariables.isEmpty) {
+          try {
+            final v = exponent.evaluate(const {});
+            if (v.isFinite && v != 0.0) return v > 0 ? 1 : -1;
+          } on ArgumentError {
+            // Ignored.
+          } on UnsupportedError {
+            // Ignored.
+          } on StateError {
+            // Ignored.
+          }
+        }
+        return null;
+      }
+
+      if (isPositiveInfinity(baseLim)) {
+        if (constantExpSign() case final s?) {
+          return s < 0 ? IntegerNumber.zero : Constant.infinity;
+        }
       }
       if (isNegativeInfinity(baseLim) &&
           exponent is FractionNumber &&
@@ -250,11 +272,7 @@ Expr computeLimit(
           'Limit does not exist in R: even root of negative infinity',
         );
       }
-      if (baseLim is Number &&
-          baseLim.isZero &&
-          exponent is RealNumeric &&
-          !exponent.isNegative &&
-          !exponent.isZero) {
+      if (baseLim is Number && baseLim.isZero && constantExpSign() == 1) {
         if (exponent is FractionNumber && exponent.denominator.isEven) {
           final recip = (IntegerNumber.one / base).simplify(
             assumptions: assumptions,
@@ -273,6 +291,19 @@ Expr computeLimit(
           }
         }
         return exponent is RealNumber ? RealNumber.zero : IntegerNumber.zero;
+      }
+      if (isWellDefinedFinite(baseLim) &&
+          !(baseLim is Number && baseLim.isZero)) {
+        final direct = Pow(
+          baseLim,
+          exponent,
+        ).simplify(assumptions: assumptions);
+        if (isWellDefinedFinite(direct) &&
+            (baseLim is! RealNumeric ||
+                !baseLim.isNegative ||
+                !direct.anyNode((n) => n is ComplexNumber))) {
+          return direct;
+        }
       }
     } on UnsupportedError catch (e) {
       if (e.message?.contains('does not exist') ?? false) {

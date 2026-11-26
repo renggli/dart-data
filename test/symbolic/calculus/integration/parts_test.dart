@@ -184,5 +184,19 @@ void main() {
         ).isCloseTo(0.0, 1e-8);
       }
     });
+
+    test('integrates affine and powered logarithmic linear products', () {
+      for (final source in const [
+        '(1 + 2 * ln(3 * x))^2',
+        '(1 + 2 * ln(3 * x^2))^(-1)',
+        '(1 + 2 * ln(3 * x^2))^(-2)',
+        'x^2 * (1 + 2 * ln(3 * x^2))^2',
+        'x^2 * (1 + 2 * ln(3 * x^2))^(-2)',
+        '(1 + 2 * ln(3 * (2 + 5 * x) / (1 + 4 * x))) * (2 + 5 * x)^2',
+        'ln(2 * (3 + 4 * x))^4',
+      ]) {
+        verifyAntiderivative(Expr.parse(source), points: const [0.7, 1.3]);
+      }
+    });
   });
 }
