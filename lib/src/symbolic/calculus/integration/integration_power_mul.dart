@@ -25,6 +25,7 @@ Expr antiDerivPow(
   Expr original,
   String variable, {
   required Assumptions assumptions,
+  int depth = 0,
 }) {
   // Form: (ax + b)^n
   if (!exponent.dependsOn(variable)) {
@@ -39,6 +40,10 @@ Expr antiDerivPow(
       final denom = (a * nPlus1).simplify();
       final numer = Pow(base, nPlus1).simplify();
       return (numer / denom).simplify();
+    }
+    if (tryMonomialPowerProduct(original, variable, assumptions: assumptions)
+        case final monoPowRes?) {
+      return monoPowRes;
     }
     // Standard trig powers: sin^2, cos^2, tan^2, sinh^2, cosh^2, tanh^2
     if (exponent == IntegerNumber.two ||
@@ -342,8 +347,13 @@ Expr antiDerivPow(
           combinedBase,
           exponent,
         ).simplify(assumptions: assumptions);
-        if (combPow != original) {
-          return antiDerivative(combPow, variable, assumptions: assumptions);
+        if (combPow != original && depth < 4) {
+          return antiDerivative(
+            combPow,
+            variable,
+            assumptions: assumptions,
+            depth: depth + 1,
+          );
         }
       }
     }
@@ -358,8 +368,13 @@ Expr antiDerivPow(
     }
     if (exponent is IntegerNumber && exponent.value > Integer.one) {
       final expanded = original.expand().simplify(assumptions: assumptions);
-      if (expanded != original) {
-        return antiDerivative(expanded, variable, assumptions: assumptions);
+      if (expanded != original && depth < 4) {
+        return antiDerivative(
+          expanded,
+          variable,
+          assumptions: assumptions,
+          depth: depth + 1,
+        );
       }
     }
     // Check if this is 1 / g(x) represented as g(x)^(-n)
@@ -375,6 +390,7 @@ Expr antiDerivPow(
         IntegerNumber.one,
         den,
         variable,
+        depth: depth,
         assumptions: assumptions,
       );
       if (divRes != null) return divRes;
@@ -464,6 +480,11 @@ Expr antiDerivMul(
       assumptions: assumptions,
       depth: depth,
     ).scale(constPart);
+  }
+
+  if (tryMonomialPowerProduct(original, variable, assumptions: assumptions)
+      case final monoPowRes?) {
+    return monoPowRes;
   }
 
   // Fast-path for x^m * (a*x + b)^n with large integer n > 8 to avoid expansion.
@@ -986,6 +1007,56 @@ Expr rewritePowerLogIdentities(
     }
   }
   return mapped;
+}
+
+/// Integrates products of scaled monomial powers `prod_i (c_i * x^(k_i))^(e_i)`
+/// with exact branch preservation: `int f(x) dx = x * f(x) / (D + 1)` when
+/// `D = sum k_i * e_i != -1`, and `x * f(x) * ln(|x|)` when `D = -1`.
+Expr? tryMonomialPowerProduct(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  final factors = expr is Mul ? expr.factors : [expr];
+  final xVar = Variable(variable);
+  var totalDeg = IntegerNumber.zero as Expr;
+  var hasVarFactor = false;
+
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) continue;
+    hasVarFactor = true;
+    if (f is Variable && f.name == variable) {
+      totalDeg = (totalDeg + IntegerNumber.one).simplify(
+        assumptions: assumptions,
+      );
+      continue;
+    }
+    if (f case Pow(:final base, :final exponent)
+        when !exponent.dependsOn(variable)) {
+      if (_extractMonomialVarPower(base, variable)
+          case (:final scale, :final power)
+          when !power.dependsOn(variable) &&
+              !(power is Number && power.isZero) &&
+              !scale.dependsOn(variable)) {
+        totalDeg = (totalDeg + power * exponent).simplify(
+          assumptions: assumptions,
+        );
+        continue;
+      }
+    }
+    return null;
+  }
+
+  if (!hasVarFactor || totalDeg.dependsOn(variable)) return null;
+  final degPlus1 = (totalDeg + IntegerNumber.one).simplify(
+    assumptions: assumptions,
+  );
+  if (degPlus1 is Number && degPlus1.isZero) {
+    return (xVar * expr * logAntiderivative(xVar, assumptions)).simplify(
+      assumptions: assumptions,
+    );
+  }
+  return (xVar * expr / degPlus1).simplify(assumptions: assumptions);
 }
 
 ({Expr scale, Expr power})? _extractMonomialVarPower(

@@ -749,5 +749,28 @@ void main() {
             .abs(),
       ).isCloseTo(0.0, 1e-9);
     });
+
+    test('integrates monomial power products with fractional exponents', () {
+      for (final (source, env) in const [
+        (
+          '(b * x)^p * (c * x)^m',
+          {'x': 1.4, 'b': 1.7, 'c': 2.3, 'p': 0.4, 'm': 0.7},
+        ),
+        ('sqrt(b * x^2)', {'x': 1.6, 'b': 2.5}),
+        ('sqrt(b * x^2) / x^2', {'x': 1.6, 'b': 2.5}),
+        (
+          '(c * x)^m / (b * x^n)^(3/2)',
+          {'x': 1.4, 'b': 1.7, 'c': 2.3, 'm': 1.2, 'n': 1.5},
+        ),
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+              .abs(),
+        ).isCloseTo(0.0, 1e-8);
+      }
+    });
   });
 }

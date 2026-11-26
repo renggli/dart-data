@@ -113,6 +113,23 @@ _IntegrationBudget? _activeBudget;
 /// Whether the current [symbolicIntegrate] budget has been exhausted.
 bool isIntegrationBudgetExhausted() => _activeBudget?.isExhausted ?? false;
 
+/// Generates a fresh substitution variable name that neither equals
+/// [variable] nor collides with any free variable in [expr].
+String freshIntegrationVar(
+  String prefix,
+  Expr expr,
+  String variable,
+  int depth,
+) {
+  final used = expr.freeVariables;
+  var idx = depth;
+  while (true) {
+    final candidate = '$prefix$idx';
+    if (candidate != variable && !used.contains(candidate)) return candidate;
+    idx++;
+  }
+}
+
 /// Computes the symbolic indefinite or definite integral of [function] with
 /// respect to [variable].
 Expr symbolicIntegrate(
@@ -401,6 +418,7 @@ Expr _antiDerivativeCore(
       node,
       variable,
       assumptions: assumptions,
+      depth: depth,
     ),
     Mul() => antiDerivMul(
       node,
@@ -534,6 +552,14 @@ Expr _antiDerivativeCore(
         )
         case final hypSubRes?) {
       return hypSubRes;
+    }
+    if (tryLinearBinomialProductSpecial(
+          node,
+          variable,
+          assumptions: assumptions,
+        )
+        case final binomSpecRes?) {
+      return binomSpecRes;
     }
     if (node is! Tan &&
         node.anyNode((n) => n is Tan && n.dependsOn(variable))) {

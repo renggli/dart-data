@@ -623,6 +623,51 @@ Expr? tryAntiDerivDiv(
     return polySqrtRes;
   }
 
+  if (right.dependsOn(variable)) {
+    if (tryMonomialDenominator(left, right, variable, assumptions: assumptions)
+        case final monoRes?) {
+      return monoRes;
+    }
+    if (tryLinearPowerDenominator(
+          left,
+          right,
+          variable,
+          assumptions: assumptions,
+        )
+        case final linPowRes?) {
+      return linPowRes;
+    }
+    if (tryTwoLinearPowersDenominator(
+          left,
+          right,
+          variable,
+          assumptions: assumptions,
+        )
+        case final twoLinPowRes?) {
+      return twoLinPowRes;
+    }
+    if (tryFactoredBinomialPowersDenominator(
+          left,
+          right,
+          variable,
+          depth: depth,
+          assumptions: assumptions,
+        )
+        case final factoredBinomRes?) {
+      return factoredBinomRes;
+    }
+    if (tryMonomialTimesPolyDenominator(
+          left,
+          right,
+          variable,
+          depth: depth,
+          assumptions: assumptions,
+        )
+        case final monoPolyRes?) {
+      return monoPolyRes;
+    }
+  }
+
   // Repeated quadratic denominator: P(x) / (Ax^2 + Bx + C)^m (m >= 2)
   if (right case Pow(base: final quad, exponent: IntegerNumber(asInt: final m?))
       when m >= 2 && m <= 10) {
@@ -667,28 +712,6 @@ Expr? tryAntiDerivDiv(
 
   // Rational functions P(x) / Q(x): polynomial division and partial fractions
   if (right.dependsOn(variable)) {
-    if (tryMonomialDenominator(left, right, variable, assumptions: assumptions)
-        case final monoRes?) {
-      return monoRes;
-    }
-    if (tryLinearPowerDenominator(
-          left,
-          right,
-          variable,
-          assumptions: assumptions,
-        )
-        case final linPowRes?) {
-      return linPowRes;
-    }
-    if (tryTwoLinearPowersDenominator(
-          left,
-          right,
-          variable,
-          assumptions: assumptions,
-        )
-        case final twoLinPowRes?) {
-      return twoLinPowRes;
-    }
     final rawDegLeft = polynomialDegree(left, variable);
     final rawDegRight = polynomialDegree(right, variable);
     final paramCount = ({

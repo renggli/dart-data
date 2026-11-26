@@ -101,9 +101,10 @@ Expr evaluateDefiniteIntegral(
     return kingsRes;
   }
 
-  // Fast table lookup on [0, infty) or high-degree integrands before running
-  // general indefinite integration (e.g. Euler Beta II x^1010 / (1 + x)^2022).
-  if ((fromExpr == IntegerNumber.zero && toExpr == Constant.infinity) ||
+  // Fast table lookup on [0, infty), [0, 1], or high-degree integrands before running
+  // general indefinite integration (e.g. Euler Beta x^s * (1 - x)^t, II x^1010 / (1 + x)^2022).
+  if ((fromExpr == IntegerNumber.zero &&
+          (toExpr == Constant.infinity || toExpr == IntegerNumber.one)) ||
       function.anyNode(
         (n) =>
             n is Pow &&

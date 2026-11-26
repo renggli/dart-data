@@ -535,4 +535,59 @@ void main() {
       ).isCloseTo(0.0, 1e-11);
     });
   });
+
+  group('Laurent radicands and collision-free fresh variables', () {
+    test(
+      'integrates inverse cube-root completed-square radicands accurately',
+      () {
+        for (final source in const [
+          '1 / sqrt(a^2 + 2 * a * b / x^(1/3) + b^2 / x^(2/3))',
+          '1 / sqrt(a^2 - 2 * a * b / x^(1/3) + b^2 / x^(2/3))',
+        ]) {
+          final integrand = Expr.parse(source);
+          final antideriv = integrand.integrate('x');
+          check(antideriv.anyNode((n) => n is Integral)).isFalse;
+          check(antideriv == Expr.parse('x')).isFalse;
+          final env = {'x': 8.0, 'a': 3.5, 'b': 1.2};
+          check(
+            (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+                .abs(),
+          ).isCloseTo(0.0, 1e-9);
+        }
+      },
+    );
+
+    test('integrating over _u0 avoids dummy variable collision', () {
+      final integrand = Expr.parse(
+        '1 / sqrt(a^2 + 2 * a * b / _u0^(1/3) + b^2 / _u0^(2/3))',
+      );
+      final antideriv = integrand.integrate('_u0');
+      check(antideriv.anyNode((n) => n is Integral)).isFalse;
+      check(antideriv == Expr.parse('_u0')).isFalse;
+      final env = {'_u0': 8.0, 'a': 3.5, 'b': 1.2};
+      check(
+        (antideriv.derivative('_u0').evaluate(env) - integrand.evaluate(env))
+            .abs(),
+      ).isCloseTo(0.0, 1e-9);
+    });
+
+    test('pulls out power from binomial and trinomial radicands', () {
+      for (final (source, env) in const [
+        ('(a * x^2 + b * x^3)^(3/2) / x^6', {'x': 1.4, 'a': 1.8, 'b': 0.9}),
+        (
+          '(A + B * x^2) * sqrt(b * x^2 + c * x^4) / x^5',
+          {'x': 1.2, 'A': 1.3, 'B': 0.7, 'b': 2.1, 'c': 1.1},
+        ),
+        ('1 / (x^(11/2) * (a + b / x)^(3/2))', {'x': 1.5, 'a': 2.2, 'b': 1.1}),
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+              .abs(),
+        ).isCloseTo(0.0, 1e-7);
+      }
+    });
+  });
 }

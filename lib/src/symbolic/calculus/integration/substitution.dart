@@ -270,7 +270,7 @@ Expr? tryUSubstitution(
     if (splitExp != expr && splitExp != expandedTrig) splitExp,
   ];
 
-  final uName = '_u$depth';
+  final uName = freshIntegrationVar('_u', expr, variable, depth);
   final uVar = Variable(uName);
 
   var triedCandidates = 0;
