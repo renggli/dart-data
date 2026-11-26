@@ -3,7 +3,7 @@ import 'package:data/src/symbolic/solver/buchberger.dart';
 import 'package:data/src/symbolic/solver/fglm.dart';
 import 'package:data/src/symbolic/solver/multivariate_polynomial.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('FglmEngine basis conversion', () {

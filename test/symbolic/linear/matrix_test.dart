@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('SymbolicMatrixExtension', () {
@@ -24,7 +24,7 @@ void main() {
           [IntegerNumber.zero, IntegerNumber.of(4)],
         ], type: exprDataType);
         check(a.determinant()).equals(IntegerNumber.of(8));
-        check(a.characteristicPolynomial('t').toString())
+        check(a.characteristicPolynomial(lambda: 't').toString())
             .equals('8 - 6 * t + t ^ 2');
         check(a.inverse()!.get(0, 0)).equals(FractionNumber.half);
       },
@@ -242,7 +242,7 @@ void main() {
 
       check(m.determinant().toString()).equals('0');
 
-      check(m.characteristicPolynomial('lambda', posAssumptions).toString())
+      check(m.characteristicPolynomial(assumptions: posAssumptions).toString())
           .equals('lambda ^ 2 - lambda * x');
 
       final eigs = m.eigenvalues(assumptions: posAssumptions);
@@ -263,5 +263,32 @@ void main() {
       check(invMat.inverse(assumptions: posAssumptions)!.get(0, 0).toString())
           .equals('1 / x');
     });
+
+    test(
+      'validates derivative order and characteristic variable collisions',
+      () {
+        const x = Variable('x');
+        final m = Matrix<Expr>.fromRows([
+          [const Variable('t'), x],
+          [IntegerNumber.zero, IntegerNumber.one],
+        ], type: exprDataType);
+        check(() => m.characteristicPolynomial(lambda: 't'))
+            .throws<ArgumentError>();
+
+        final emptyMat = Matrix<Expr>.filled(
+          0,
+          0,
+          IntegerNumber.zero,
+          type: exprDataType,
+        );
+        check(() => emptyMat.derivative('x', order: -1)).throws<RangeError>();
+        final emptyVec = Vector<Expr>.filled(
+          0,
+          IntegerNumber.zero,
+          type: exprDataType,
+        );
+        check(() => emptyVec.derivative('x', order: -1)).throws<RangeError>();
+      },
+    );
   });
 }

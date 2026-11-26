@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   const x = Variable('x');

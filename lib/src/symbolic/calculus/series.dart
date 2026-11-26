@@ -16,9 +16,9 @@ extension SeriesExtension on Expr {
   /// around [point] up to [order], returning an [Expr] with an [OrderTerm].
   ///
   /// Conceptually, this approximates a mathematical function as a polynomial
-  /// plus an asymptotic remainder term $O((x - a)^n)$ tracking the truncation
+  /// plus an asymptotic remainder term `O((x - a)^n)` tracking the truncation
   /// error. Formally, it computes the Taylor or Laurent series in the ring
-  /// of formal power series $\mathbb{Q}\[\[x - a\]\]$.
+  /// of formal power series `Q[[x - a]]`.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -45,12 +45,19 @@ extension SeriesExtension on Expr {
     Object point = IntegerNumber.zero,
     int order = 6,
     Assumptions assumptions = Assumptions.none,
-  }) => expandToPowerSeries(
-    assumptions.isEmpty ? this : simplify(assumptions: assumptions),
-    variable,
-    wrapSeriesPoint(point),
-    order,
-  );
+  }) {
+    final pointExpr = Expr.wrap(point);
+    final result = expandToPowerSeries(
+      assumptions.isEmpty ? this : simplify(assumptions: assumptions),
+      variable,
+      pointExpr,
+      order,
+      assumptions,
+    );
+    return result.order > order
+        ? PowerSeries(variable, result.point, result.coefficients, order)
+        : result;
+  }
 
   /// Converts this symbolic expression into a [Polynomial] approximation by
   /// computing its Taylor expansion with respect to [variable] up to [order]
@@ -77,7 +84,7 @@ extension SeriesExtension on Expr {
       return Polynomial<T>.zero(type: effectiveType);
     }
     final around = point.toDouble();
-    final pointExpr = wrapSeriesPoint(point);
+    final pointExpr = Expr.wrap(point);
     final ps = toPowerSeries(variable, point: pointExpr, order: order + 1);
     if (ps.poleOrder > 0) {
       throw UnsupportedError(
@@ -138,24 +145,11 @@ extension SeriesExtension on Expr {
   }
 }
 
-/// Extension on [Polynomial] to construct polynomials from symbolic expressions.
-extension SymbolicPolynomialFactory<T> on Polynomial<T> {
-  /// Constructs a polynomial from a symbolic [expr] by computing its Taylor
-  /// expansion with respect to [variable] up to [order] around [point].
-  static Polynomial<R> fromExpr<R>(
-    Expr expr,
-    String variable, {
-    num point = 0,
-    int order = 5,
-    DataType<R>? type,
-  }) => expr.toPolynomial<R>(variable, point: point, order: order, type: type);
-}
-
 /// Truncated formal Laurent and power series:
-/// $\sum_{k=-p}^{N-1} c_k (x - a)^k + O((x - a)^N)$.
+/// `sum_{k=-p}^N-1 c_k (x - a)^k + O((x - a)^N)`.
 ///
 /// In mathematical analysis, a formal power series represents a function as an
-/// infinite polynomial. When truncated to order $N$, it provides exact local
+/// infinite polynomial. When truncated to order `N`, it provides exact local
 /// asymptotic approximations with rigorous remainder propagation.
 class PowerSeries {
   /// Creates a truncated power series with sparse [coefficients] up to [order].
@@ -165,13 +159,13 @@ class PowerSeries {
   /// Expansion variable name.
   final String variable;
 
-  /// Expansion point $a$ (defaults to [IntegerNumber.zero]).
+  /// Expansion point `a` (defaults to [IntegerNumber.zero]).
   final Expr point;
 
-  /// Sparse mapping from integer exponent $k$ to symbolic coefficient $c_k$.
+  /// Sparse mapping from integer exponent `k` to symbolic coefficient `c_k`.
   final Map<int, Expr> coefficients;
 
-  /// Truncation order $N$ such that remainder is $O((x - a)^N)$.
+  /// Truncation order `N` such that remainder is `O((x - a)^N)`.
   final int order;
 
   /// Lowest exponent with non-zero coefficient, or [order] if all zero.
@@ -184,7 +178,7 @@ class PowerSeries {
     return minExp;
   }
 
-  /// Pole order $p = \max(0, -\text{valuation})$.
+  /// Pole order `p = max(0, -valuation)`.
   int get poleOrder {
     final v = valuation;
     return v < 0 ? -v : 0;
@@ -197,10 +191,10 @@ class PowerSeries {
     return (exponent: minExp, coefficient: coefficients[minExp]!);
   }
 
-  /// Constant term $c_0$, or [IntegerNumber.zero] if absent.
+  /// Constant term `c_0`, or [IntegerNumber.zero] if absent.
   Expr get constantTerm => coefficients[0] ?? IntegerNumber.zero;
 
-  /// Addition of two power series: remainder order is $\min(N_A, N_B)$.
+  /// Addition of two power series: remainder order is `min(N_A, N_B)`.
   PowerSeries operator +(PowerSeries other) {
     _checkCompatible(other);
     final newOrder = math.min(order, other.order);
@@ -221,7 +215,7 @@ class PowerSeries {
     return PowerSeries(variable, point, newCoeffs, newOrder);
   }
 
-  /// Subtraction of two power series: remainder order is $\min(N_A, N_B)$.
+  /// Subtraction of two power series: remainder order is `min(N_A, N_B)`.
   PowerSeries operator -(PowerSeries other) {
     _checkCompatible(other);
     final newOrder = math.min(order, other.order);
@@ -265,14 +259,14 @@ class PowerSeries {
   }
 
   /// Truncated Cauchy multiplication with remainder degradation:
-  /// $A(x) B(x) = \sum e_n (x-a)^n + O((x-a)^{\min(M - p, N - q)})$.
+  /// `A(x) B(x) = sume_n (x-a)^n + O((x-a)^{min(M - p, N - q)})`.
   PowerSeries operator *(PowerSeries other) {
     _checkCompatible(other);
-    final p = poleOrder;
-    final q = other.poleOrder;
-    final newOrder = math.min(other.order - p, order - q);
+    final effP = coefficients.isEmpty ? order : valuation;
+    final effQ = other.coefficients.isEmpty ? other.order : other.valuation;
+    final newOrder = math.min(effP + other.order, effQ + order);
 
-    final newCoeffs = <int, Expr>{};
+    final buckets = <int, List<Expr>>{};
     for (final entryA in coefficients.entries) {
       final j = entryA.key;
       final cj = entryA.value;
@@ -281,17 +275,19 @@ class PowerSeries {
         final dk = entryB.value;
         final n = j + k;
         if (n < newOrder) {
-          final prod = (cj * dk).simplify();
-          final existing = newCoeffs[n];
-          newCoeffs[n] = existing == null ? prod : (existing + prod).simplify();
+          (buckets[n] ??= []).add(cj * dk);
         }
       }
     }
+    final newCoeffs = <int, Expr>{
+      for (final MapEntry(:key, :value) in buckets.entries)
+        key: value.length == 1 ? value.first : Add(value),
+    };
     return PowerSeries(variable, point, newCoeffs, newOrder);
   }
 
   /// Laurent series inversion recurrence:
-  /// $P(x) = (x - a)^m U(x) \implies P(x)^{-1} = (x - a)^{-m} U(x)^{-1} + O((x - a)^{N - 2m})$.
+  /// `P(x) = (x - a)^m U(x) => P(x)^-1 = (x - a)^-m U(x)^-1 + O((x - a)^{N - 2m})`.
   PowerSeries reciprocal() {
     if (coefficients.isEmpty) {
       throw UnsupportedError(
@@ -312,17 +308,19 @@ class PowerSeries {
     v[0] = invC0;
 
     for (var k = 1; k < nu; k++) {
-      Expr sum = IntegerNumber.zero;
+      final terms = <Expr>[];
       for (var j = 1; j <= k; j++) {
         final uj = u[j];
         final vj = v[k - j] ?? IntegerNumber.zero;
         if (!isZero(uj) && !isZero(vj)) {
-          final term = (uj * vj).simplify();
-          sum = (sum + term).simplify();
+          terms.add(uj * vj);
         }
       }
-      if (!isZero(sum)) {
-        v[k] = (-(invC0 * sum)).simplify();
+      if (terms.isNotEmpty) {
+        final sum = (terms.length == 1 ? terms.first : Add(terms)).simplify();
+        if (!isZero(sum)) {
+          v[k] = (-(invC0 * sum)).simplify();
+        }
       }
     }
 
@@ -340,7 +338,7 @@ class PowerSeries {
   /// Truncated Cauchy division.
   PowerSeries operator /(PowerSeries other) => this * other.reciprocal();
 
-  /// Power of a power series $P(x)^\alpha$.
+  /// Power of a power series `P(x)^alpha`.
   PowerSeries pow(Expr exponent) {
     if (exponent case IntegerNumber(asInt: final n?)) {
       if (n == 0) {
@@ -367,6 +365,16 @@ class PowerSeries {
 
     // Euler logarithmic derivative power recurrence for non-integer powers
     if (coefficients.isEmpty) {
+      if (exponent is RealNumeric && exponent.isNegative) {
+        throw UnsupportedError(
+          'Cannot invert a zero power series: division by zero',
+        );
+      }
+      if (exponent is RationalNumber && !exponent.isNegative && order > 0) {
+        final scaled =
+            (Integer.from(order) * exponent.numerator) ~/ exponent.denominator;
+        return PowerSeries(variable, point, const {}, scaled.toInt());
+      }
       return PowerSeries(variable, point, const {}, order);
     }
     final m = valuation;
@@ -409,7 +417,7 @@ class PowerSeries {
 
     final invC0 = (IntegerNumber.one / c0).simplify();
     for (var k = 1; k < order; k++) {
-      Expr sum = IntegerNumber.zero;
+      final terms = <Expr>[];
       for (var j = 1; j <= k; j++) {
         final cj = coefficients[j];
         final qj = q[k - j] ?? IntegerNumber.zero;
@@ -418,12 +426,14 @@ class PowerSeries {
               ((IntegerNumber.one + exponent) * IntegerNumber.of(j) -
                       IntegerNumber.of(k))
                   .simplify();
-          final term = (factor * cj * qj).simplify();
-          sum = (sum + term).simplify();
+          terms.add(factor * cj * qj);
         }
       }
-      if (!isZero(sum)) {
-        q[k] = ((invC0 * sum) / IntegerNumber.of(k)).simplify();
+      if (terms.isNotEmpty) {
+        final sum = (terms.length == 1 ? terms.first : Add(terms)).simplify();
+        if (!isZero(sum)) {
+          q[k] = ((invC0 * sum) / IntegerNumber.of(k)).simplify();
+        }
       }
     }
     return PowerSeries(variable, point, q, order);
@@ -431,7 +441,7 @@ class PowerSeries {
 
   /// Term-by-term derivative.
   PowerSeries derivative() {
-    final newOrder = order - 1;
+    final newOrder = order == 0 ? 0 : order - 1;
     final newCoeffs = <int, Expr>{};
     for (final entry in coefficients.entries) {
       final k = entry.key;
@@ -534,8 +544,9 @@ PowerSeries expandToPowerSeries(
   Expr expr,
   String variable,
   Expr point,
-  int order,
-) => switch (expr) {
+  int order, [
+  Assumptions assumptions = Assumptions.none,
+]) => switch (expr) {
   Variable(:final name) when name == variable => _expandVariable(
     variable,
     point,
@@ -547,24 +558,32 @@ PowerSeries expandToPowerSeries(
   Variable() => PowerSeries(variable, point, {0: expr}, order),
 
   _ when !expr.dependsOn(variable) => PowerSeries(variable, point, {
-    0: expr.simplify(),
+    0: expr.simplify(assumptions: assumptions),
   }, order),
 
   Add(:final terms) => () {
     var sum = PowerSeries(variable, point, const {}, order);
     for (final term in terms) {
-      sum = sum + expandToPowerSeries(term, variable, point, order);
+      sum =
+          sum + expandToPowerSeries(term, variable, point, order, assumptions);
     }
     return sum;
   }(),
 
-  Mul(:final factors) => _expandMulFactors(factors, variable, point, order),
+  Mul(:final factors) => _expandMulFactors(
+    factors,
+    variable,
+    point,
+    order,
+    assumptions,
+  ),
 
   Pow(base: Constant.e, :final exponent) => expandExp(
     exponent,
     variable,
     point,
     order,
+    assumptions,
   ),
 
   Pow(:final base, :final exponent) => expandPow(
@@ -573,16 +592,30 @@ PowerSeries expandToPowerSeries(
     variable,
     point,
     order,
+    assumptions,
   ),
 
-  Ln(:final expr) => _expandLn(expr, variable, point, order),
+  Ln(:final expr) => _expandLn(expr, variable, point, order, assumptions),
 
   Sin(:final expr) => expandSin(expr, variable, point, order),
 
   Cos(:final expr) => expandCos(expr, variable, point, order),
 
   Tan(:final expr) => () {
-    final sc = expandSinCos(expr, variable, point, order);
+    var sc = expandSinCos(expr, variable, point, order);
+    if (sc.cos.coefficients.isEmpty) {
+      var probeOrder = math.max(order, 0) + 4;
+      while (sc.cos.coefficients.isEmpty &&
+          probeOrder <= math.max(order, 0) + 32) {
+        sc = expandSinCos(expr, variable, point, probeOrder);
+        probeOrder *= 2;
+      }
+    }
+    final cosVal = sc.cos.valuation;
+    if (sc.cos.coefficients.isNotEmpty &&
+        (cosVal > 0 || sc.cos.order < order + 2 * cosVal)) {
+      sc = expandSinCos(expr, variable, point, math.max(1, order + 2 * cosVal));
+    }
     return sc.sin / sc.cos;
   }(),
 
@@ -591,7 +624,25 @@ PowerSeries expandToPowerSeries(
   Cosh(:final expr) => expandCosh(expr, variable, point, order),
 
   Tanh(:final expr) => () {
-    final sc = expandSinhCosh(expr, variable, point, order);
+    var sc = expandSinhCosh(expr, variable, point, order);
+    if (sc.cosh.coefficients.isEmpty) {
+      var probeOrder = math.max(order, 0) + 4;
+      while (sc.cosh.coefficients.isEmpty &&
+          probeOrder <= math.max(order, 0) + 32) {
+        sc = expandSinhCosh(expr, variable, point, probeOrder);
+        probeOrder *= 2;
+      }
+    }
+    final coshVal = sc.cosh.valuation;
+    if (sc.cosh.coefficients.isNotEmpty &&
+        (coshVal > 0 || sc.cosh.order < order + 2 * coshVal)) {
+      sc = expandSinhCosh(
+        expr,
+        variable,
+        point,
+        math.max(1, order + 2 * coshVal),
+      );
+    }
     return sc.sinh / sc.cosh;
   }(),
 
@@ -605,7 +656,7 @@ PowerSeries expandToPowerSeries(
 
   Atan(:final expr) => expandAtan(expr, variable, point, order),
 
-  Abs(:final expr) => expandAbs(expr, variable, point, order),
+  Abs(:final expr) => expandAbs(expr, variable, point, order, assumptions),
 
   LambertW(:final expr, :final branch) =>
     branch == 0
@@ -668,13 +719,25 @@ PowerSeries expandToPowerSeries(
   EllipticE() ||
   EllipticPi() ||
   ExpIntegralE() ||
-  Hypergeometric() ||
-  Min() ||
-  Max() ||
-  Gcd() ||
-  Lcm() ||
-  Tuple() ||
-  Atan2() => expandTaylorSeries(expr, variable, point, order),
+  Hypergeometric() => expandTaylorSeries(expr, variable, point, order),
+  Atan2(:final left, :final right) => () {
+    final y0 = left
+        .substitute(variable, point)
+        .simplify(assumptions: assumptions);
+    final x0 = right
+        .substitute(variable, point)
+        .simplify(assumptions: assumptions);
+    if ((y0 is Number && y0.isZero) &&
+        (x0 is Number && (x0 is RealNumeric && (x0.isZero || x0.isNegative)))) {
+      throw UnsupportedError(
+        'Atan2 has a branch cut or singularity at ($y0, $x0)',
+      );
+    }
+    return expandTaylorSeries(expr, variable, point, order);
+  }(),
+  Min() || Max() || Gcd() || Lcm() || Tuple() => throw UnsupportedError(
+    'Power series expansion not supported for ${expr.runtimeType}',
+  ),
 
   Asinh(:final expr) => expandAsinh(expr, variable, point, order),
 
@@ -794,16 +857,24 @@ PowerSeries _expandMulFactors(
   List<Expr> factors,
   String variable,
   Expr point,
-  int order,
-) {
+  int order, [
+  Assumptions assumptions = Assumptions.none,
+]) {
   if (factors.isEmpty) {
-    return PowerSeries(variable, point, const {}, order);
+    return PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
   }
   if (factors.length == 1) {
-    return expandToPowerSeries(factors[0], variable, point, order);
+    return expandToPowerSeries(factors[0], variable, point, order, assumptions);
   }
   if (factors.length == 2) {
-    return _expandBinaryMul(factors[0], factors[1], variable, point, order);
+    return _expandBinaryMul(
+      factors[0],
+      factors[1],
+      variable,
+      point,
+      order,
+      assumptions,
+    );
   }
 
   final seriesList = <PowerSeries>[];
@@ -811,7 +882,7 @@ PowerSeries _expandMulFactors(
   var totalPoleOrder = 0;
 
   for (final factor in factors) {
-    final s = expandToPowerSeries(factor, variable, point, order);
+    final s = expandToPowerSeries(factor, variable, point, order, assumptions);
     final p = s.poleOrder;
     seriesList.add(s);
     poleOrders.add(p);
@@ -833,7 +904,13 @@ PowerSeries _expandMulFactors(
       boostedSeriesList.add(seriesList[i]);
     } else {
       boostedSeriesList.add(
-        expandToPowerSeries(factors[i], variable, point, order + otherPoles),
+        expandToPowerSeries(
+          factors[i],
+          variable,
+          point,
+          order + otherPoles,
+          assumptions,
+        ),
       );
     }
   }
@@ -850,24 +927,37 @@ PowerSeries _expandBinaryMul(
   Expr right,
   String variable,
   Expr point,
-  int order,
-) {
-  final sLeft = expandToPowerSeries(left, variable, point, order);
-  final sRight = expandToPowerSeries(right, variable, point, order);
+  int order, [
+  Assumptions assumptions = Assumptions.none,
+]) {
+  final sLeft = expandToPowerSeries(left, variable, point, order, assumptions);
+  final sRight = expandToPowerSeries(
+    right,
+    variable,
+    point,
+    order,
+    assumptions,
+  );
   final p = sLeft.poleOrder;
   final q = sRight.poleOrder;
   if (p == 0 && q == 0) return sLeft * sRight;
   final boostedLeft = q == 0
       ? sLeft
-      : expandToPowerSeries(left, variable, point, order + q);
+      : expandToPowerSeries(left, variable, point, order + q, assumptions);
   final boostedRight = p == 0
       ? sRight
-      : expandToPowerSeries(right, variable, point, order + p);
+      : expandToPowerSeries(right, variable, point, order + p, assumptions);
   return boostedLeft * boostedRight;
 }
 
-PowerSeries expandExp(Expr inner, String variable, Expr point, int order) {
-  final u = expandToPowerSeries(inner, variable, point, order);
+PowerSeries expandExp(
+  Expr inner,
+  String variable,
+  Expr point,
+  int order, [
+  Assumptions assumptions = Assumptions.none,
+]) {
+  final u = expandToPowerSeries(inner, variable, point, order, assumptions);
   return expandExpFromSeries(u);
 }
 
@@ -881,25 +971,33 @@ PowerSeries expandExpFromSeries(PowerSeries u) {
   q[0] = IntegerNumber.one;
 
   for (var k = 1; k < order; k++) {
-    Expr sum = IntegerNumber.zero;
+    final terms = <Expr>[];
     for (var j = 1; j <= k; j++) {
       final uj = u.coefficients[j];
       final qj = q[k - j] ?? IntegerNumber.zero;
       if (uj != null && !PowerSeries.isZero(uj) && !PowerSeries.isZero(qj)) {
-        final term = (IntegerNumber.of(j) * uj * qj).simplify();
-        sum = (sum + term).simplify();
+        terms.add(IntegerNumber.of(j) * uj * qj);
       }
     }
-    if (!PowerSeries.isZero(sum)) {
-      q[k] = (sum / IntegerNumber.of(k)).simplify();
+    if (terms.isNotEmpty) {
+      final sum = (terms.length == 1 ? terms.first : Add(terms)).simplify();
+      if (!PowerSeries.isZero(sum)) {
+        q[k] = (sum / IntegerNumber.of(k)).simplify();
+      }
     }
   }
   final baseExp = PowerSeries(u.variable, u.point, q, order);
   return isU0Zero ? baseExp : baseExp.scale(Pow(Constant.e, u0).simplify());
 }
 
-PowerSeries _expandLn(Expr inner, String variable, Expr point, int order) {
-  final u = expandToPowerSeries(inner, variable, point, order);
+PowerSeries _expandLn(
+  Expr inner,
+  String variable,
+  Expr point,
+  int order, [
+  Assumptions assumptions = Assumptions.none,
+]) {
+  final u = expandToPowerSeries(inner, variable, point, order, assumptions);
   checkNoPole(u, 'ln');
   final u0 = u.constantTerm;
   if (PowerSeries.isZero(u0)) {
@@ -909,23 +1007,27 @@ PowerSeries _expandLn(Expr inner, String variable, Expr point, int order) {
   }
 
   final q = <int, Expr>{};
-  q[0] = Ln(u0).simplify();
-  final invU0 = (IntegerNumber.one / u0).simplify();
+  q[0] = Ln(u0).simplify(assumptions: assumptions);
+  final invU0 = (IntegerNumber.one / u0).simplify(assumptions: assumptions);
 
   for (var k = 1; k < order; k++) {
     final uk = u.coefficients[k] ?? IntegerNumber.zero;
-    Expr sum = IntegerNumber.zero;
+    final terms = <Expr>[];
     for (var j = 1; j < k; j++) {
       final uj = u.coefficients[j];
       final qj = q[k - j] ?? IntegerNumber.zero;
       if (uj != null && !PowerSeries.isZero(uj) && !PowerSeries.isZero(qj)) {
-        final term = (IntegerNumber.of(k - j) * uj * qj).simplify();
-        sum = (sum + term).simplify();
+        terms.add(IntegerNumber.of(k - j) * uj * qj);
       }
     }
-    final adjusted = (uk - (sum / IntegerNumber.of(k))).simplify();
+    final sum = terms.isEmpty
+        ? IntegerNumber.zero
+        : (terms.length == 1 ? terms.first : Add(terms)).simplify();
+    final adjusted = (uk - (sum / IntegerNumber.of(k))).simplify(
+      assumptions: assumptions,
+    );
     if (!PowerSeries.isZero(adjusted)) {
-      q[k] = (invU0 * adjusted).simplify();
+      q[k] = (invU0 * adjusted).simplify(assumptions: assumptions);
     }
   }
   return PowerSeries(variable, point, q, order);

@@ -71,7 +71,7 @@
 ///   // Parse an algebraic expression: f(x) = x^3 - 3*x + 1
 ///   final f = Expr.parse('x^3 - 3*x + 1');
 ///
-///   // Exact symbolic differentiation: f'(x) = 3*x^2 - 3
+///   // Exact symbolic differentiation: df/dx = 3*x^2 - 3
 ///   final df = f.derivative('x').simplify();
 ///   print('Derivative: $df');
 ///
@@ -136,14 +136,8 @@ export 'src/symbolic/calculus/integration/integration.dart'
     show IntegrationBound, IntegrationExtension;
 export 'src/symbolic/calculus/limit.dart' show LimitExtension;
 export 'src/symbolic/calculus/multivariable.dart'
-    show
-        MultivariableExtension,
-        MultivariableIterableExtension,
-        curl,
-        divergence,
-        laplacian;
-export 'src/symbolic/calculus/series.dart'
-    show PowerSeries, SeriesExtension, SymbolicPolynomialFactory;
+    show MultivariableExtension, MultivariableIterableExtension;
+export 'src/symbolic/calculus/series.dart' show PowerSeries, SeriesExtension;
 export 'src/symbolic/calculus/summation.dart' show SummationExtension;
 export 'src/symbolic/compiler.dart'
     show CompilerExtension, CompilerIterableExtension;
@@ -162,4 +156,4 @@ export 'src/symbolic/textualization/mathml.dart'
     show MathMlExtension, PowerSeriesMathMlExtension;
 export 'src/symbolic/textualization/string.dart' show TextExtension;
 export 'src/symbolic/type/expr_data_type.dart'
-    show ExprDataType, ExprField, exprDataType;
+    show ExprDataType, ExprEquality, ExprField, exprDataType;

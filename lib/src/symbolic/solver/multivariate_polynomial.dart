@@ -12,7 +12,17 @@ import '../ast.dart';
 class Monomial {
   /// Creates a monomial from an ordered list of non-negative integer [exponents].
   new(List<int> exponents)
-    : exponents = List.unmodifiable(exponents),
+    : exponents = List.unmodifiable([
+        for (final e in exponents)
+          if (e >= 0)
+            e
+          else
+            throw ArgumentError.value(
+              exponents,
+              'exponents',
+              'Exponents must be non-negative integers.',
+            ),
+      ]),
       totalDegree = exponents.fold(0, (sum, e) => sum + e);
 
   /// Creates a zero monomial of degree 0 for [numVariables] variables.
@@ -35,7 +45,11 @@ class Monomial {
 
   /// Multiplies this monomial with [other] by adding exponent vectors.
   Monomial operator *(Monomial other) {
-    assert(length == other.length, 'Variable counts must match');
+    if (length != other.length) {
+      throw ArgumentError(
+        'Variable counts must match: $length != ${other.length}.',
+      );
+    }
     final result = List<int>.generate(
       length,
       (i) => exponents[i] + other.exponents[i],
@@ -43,7 +57,7 @@ class Monomial {
     return Monomial(result);
   }
 
-  /// Returns `true` if this monomial divides [other] (all exponents $\le$ other exponents).
+  /// Returns `true` if this monomial divides [other] (all exponents `<=` other exponents).
   bool divides(Monomial other) {
     assert(length == other.length, 'Variable counts must match');
     for (var i = 0; i < length; i++) {
@@ -111,7 +125,7 @@ class Monomial {
           const ListEquality<int>().equals(exponents, other.exponents));
 
   @override
-  int get hashCode => Object.hash(totalDegree, Object.hashAll(exponents));
+  late final int hashCode = Object.hash(totalDegree, Object.hashAll(exponents));
 
   @override
   String toString() => 'Monomial$exponents';
@@ -153,15 +167,24 @@ enum MonomialOrder {
 /// Represents a polynomial in multiple variables with exact rational coefficients.
 class MultivariatePolynomial {
   /// Creates a multivariate polynomial over [variables] with rational coefficient [terms] and optional [sugar] degree bound.
-  new(this.variables, Map<Monomial, RationalNumber> terms, {int? sugar})
-    : terms = _cleanTerms(terms),
+  new(List<String> variables, Map<Monomial, RationalNumber> terms, {int? sugar})
+    : variables = List.unmodifiable(variables),
+      terms = _cleanTerms(terms),
       sugar = sugar ?? _calcInitialSugar(terms) {
-    if (this.terms.isNotEmpty) {
-      final varCount = variables.length;
-      assert(
-        this.terms.keys.every((m) => m.length == varCount),
-        'Monomial variable length must match variables count',
+    if (this.variables.toSet().length != this.variables.length) {
+      throw ArgumentError.value(
+        variables,
+        'variables',
+        'Variable list must not contain duplicates.',
       );
+    }
+    if (this.terms.isNotEmpty) {
+      final varCount = this.variables.length;
+      if (!this.terms.keys.every((m) => m.length == varCount)) {
+        throw ArgumentError(
+          'Monomial variable length must match variables count ($varCount).',
+        );
+      }
     }
   }
 
@@ -192,13 +215,13 @@ class MultivariatePolynomial {
   /// Returns the leading monomial under the specified monomial [order].
   Monomial leadingMonomial([MonomialOrder order = MonomialOrder.grevlex]) {
     if (terms.isEmpty) return Monomial.zero(variables.length);
-    Monomial? lead;
-    for (final m in terms.keys) {
-      if (lead == null || order.compare(m, lead) > 0) {
+    var lead = terms.keys.first;
+    for (final m in terms.keys.skip(1)) {
+      if (order.compare(m, lead) > 0) {
         lead = m;
       }
     }
-    return lead!;
+    return lead;
   }
 
   /// Returns the leading coefficient under the specified monomial [order].
@@ -207,7 +230,7 @@ class MultivariatePolynomial {
   ]) {
     if (terms.isEmpty) return IntegerNumber.zero;
     final lm = leadingMonomial(order);
-    return terms[lm]!;
+    return terms[lm] ?? IntegerNumber.zero;
   }
 
   /// Returns the leading term pair (monomial, coefficient) under [order].
@@ -335,32 +358,56 @@ class MultivariatePolynomial {
     MonomialOrder order = MonomialOrder.grevlex,
   }) {
     if (isZero) return this;
-    final nonZeroDivisors = divisors.where((d) => !d.isZero).toList();
-    if (nonZeroDivisors.isEmpty) return this;
+    final divisorInfo =
+        <({MultivariatePolynomial poly, Monomial lm, RationalNumber lc})>[];
+    for (final d in divisors) {
+      if (d.isZero) continue;
+      final (lm, lc) = d.leadingTerm(order);
+      divisorInfo.add((poly: d, lm: lm, lc: lc));
+    }
+    if (divisorInfo.isEmpty) return this;
 
-    var p = this;
+    final working = Map<Monomial, RationalNumber>.of(terms);
     final remainderTerms = <Monomial, RationalNumber>{};
     var currentSugar = sugar;
 
-    while (!p.isZero) {
-      final (lmP, lcP) = p.leadingTerm(order);
+    while (working.isNotEmpty) {
+      var lmP = working.keys.first;
+      for (final m in working.keys.skip(1)) {
+        if (order.compare(m, lmP) > 0) {
+          lmP = m;
+        }
+      }
+      final lcP = working[lmP];
+      if (lcP == null || lcP.isZero) {
+        working.remove(lmP);
+        continue;
+      }
+
       var reduced = false;
-      for (final g in nonZeroDivisors) {
-        final (lmG, lcG) = g.leadingTerm(order);
+      for (final (:poly, lm: lmG, lc: lcG) in divisorInfo) {
         if (lmG.divides(lmP)) {
           final quotM = lmP.divide(lmG);
           final quotC = lcP.divRational(lcG);
-          final step = g.multiplyMonomial(quotM, quotC);
-          p = p - step;
-          currentSugar = math.max(currentSugar, g.sugar + quotM.totalDegree);
+          for (final MapEntry(key: gm, value: gc) in poly.terms.entries) {
+            final targetM = gm * quotM;
+            final delta = gc.mulRational(quotC);
+            final cur = working[targetM] ?? IntegerNumber.zero;
+            final diff = cur.subRational(delta);
+            if (diff.isZero) {
+              working.remove(targetM);
+            } else {
+              working[targetM] = diff;
+            }
+          }
+          currentSugar = math.max(currentSugar, poly.sugar + quotM.totalDegree);
           reduced = true;
           break;
         }
       }
       if (!reduced) {
         remainderTerms[lmP] = lcP;
-        final remP = Map<Monomial, RationalNumber>.of(p.terms)..remove(lmP);
-        p = MultivariatePolynomial(variables, remP, sugar: currentSugar);
+        working.remove(lmP);
       }
     }
 
@@ -371,13 +418,18 @@ class MultivariatePolynomial {
     );
   }
 
-  /// Computes the S-polynomial $S(f, g)$ between two polynomials.
+  /// Computes the S-polynomial `S(f, g)` between two polynomials.
   static MultivariatePolynomial sPolynomial(
     MultivariatePolynomial f,
     MultivariatePolynomial g, {
     MonomialOrder order = MonomialOrder.grevlex,
   }) {
-    assert(const ListEquality<String>().equals(f.variables, g.variables));
+    if (!const ListEquality<String>().equals(f.variables, g.variables)) {
+      throw ArgumentError('Polynomials must share the same variable ordering.');
+    }
+    if (f.isZero || g.isZero) {
+      return MultivariatePolynomial.zero(f.variables);
+    }
     final (lmF, lcF) = f.leadingTerm(order);
     final (lmG, lcG) = g.leadingTerm(order);
     final m = lmF.lcm(lmG);
@@ -443,7 +495,8 @@ class MultivariatePolynomial {
 
     final termExprs = <Expr>[];
     for (final m in sortedMonomials) {
-      final coeff = terms[m]!;
+      final coeff = terms[m];
+      if (coeff == null) continue;
       final factors = <Expr>[
         if (!coeff.isOne || m.isZero) coeff,
         for (var i = 0; i < variables.length; i++)

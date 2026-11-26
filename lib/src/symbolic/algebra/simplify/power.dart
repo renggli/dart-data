@@ -7,6 +7,7 @@ import 'additive.dart';
 import 'complex.dart';
 import 'domain.dart';
 import 'multiplicative.dart';
+import 'special.dart';
 import 'transcendental.dart';
 
 /// Simplifies an exponentiation expression [base] ^ [exponent].
@@ -31,9 +32,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
 
   // 2. Trivial base identities: 0^e, 1^e
   if (base is Number && base.isZero) {
-    if (exponent
-        case RealNumeric(isNegative: true) ||
-            Mul(factors: [RealNumeric(isNegative: true), ...])) {
+    if (isNegativeExpr(exponent, assumptions: assumptions)) {
       return Constant.undefined;
     }
     final re = simplifyRe(exponent, assumptions: assumptions);
@@ -48,17 +47,18 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
     return Pow(base, exponent, isSimplified: true);
   }
   if (base is Number && base.isOne) {
+    if (exponent.anyNode((n) => n == Constant.infinity)) {
+      return Constant.undefined;
+    }
     return (base is RealNumber || exponent is RealNumber)
         ? const RealNumber(1.0)
         : IntegerNumber.one;
   }
   if (base == Constant.infinity) {
-    if (exponent
-        case RealNumeric(isNegative: true) ||
-            Mul(factors: [RealNumeric(isNegative: true), ...])) {
+    if (isNegativeExpr(exponent, assumptions: assumptions)) {
       return IntegerNumber.zero;
     }
-    if (exponent is RealNumeric && !exponent.isNegative) {
+    if (isPositiveExpr(exponent, assumptions: assumptions)) {
       return Constant.infinity;
     }
   }
@@ -67,6 +67,9 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
   if (base == Constant.e) {
     if (exponent is RealNumber) {
       return RealNumber.fromDouble(math.exp(exponent.value));
+    }
+    if (exponent is ComplexNumber && isFloatComplex(exponent)) {
+      return complexToExpr(exponent.toComplex().exp());
     }
     if (exponent is Ln) {
       return exponent.expr;
@@ -217,7 +220,8 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
           assumptions: assumptions,
         );
       }
-    } else if (isNonNegativeExpr(innerBase, assumptions: assumptions)) {
+    } else if (isNonNegativeExpr(innerBase, assumptions: assumptions) &&
+        isProvenReal(innerExp, assumptions)) {
       return simplifyPow(
         innerBase,
         simplifyMul([innerExp, exponent], assumptions: assumptions),
@@ -344,7 +348,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
           : simplifyMul(remainingBaseFactors, assumptions: assumptions);
       return simplifyMul([
         ...extractedFactors,
-        Pow(remBase, exponent, isSimplified: true),
+        simplifyPow(remBase, exponent, assumptions: assumptions),
       ], assumptions: assumptions);
     }
   }
@@ -454,8 +458,8 @@ Expr? _extractRationalRadical(
   return null;
 }
 
-/// Factors positive [n] into `(root, remainder)` such that $n = \text{root}^q \cdot \text{remainder}$
-/// and $\text{remainder}$ is free of prime factors $\le 997$ of multiplicity $\ge q$.
+/// Factors positive [n] into `(root, remainder)` such that `n = root^q * remainder`
+/// and `remainder` is free of prime factors `<=997` of multiplicity `>=q`.
 (Integer, Integer) _extractQthPower(Integer n, int q) {
   if (n <= Integer.one || q <= 1) return (Integer.one, n);
   var unfactored = n;
@@ -563,6 +567,13 @@ Expr? _simplifyExpInvHyperbolic(Expr exponent, Assumptions assumptions) {
 
   switch (fn) {
     case Atanh(expr: final u):
+      if (k.denominator != Integer.one) return null;
+      if (k.numerator.isOdd) {
+        if (u is ComplexNumber) return null;
+        if (tryStaticRealValue(u) case final v? when v.abs() >= 1.0) {
+          return null;
+        }
+      }
       final num = simplifyAdd([IntegerNumber.one, u], assumptions: assumptions);
       final negU = simplifyMul([
         IntegerNumber.negativeOne,
@@ -603,6 +614,8 @@ Expr? _simplifyExpInvHyperbolic(Expr exponent, Assumptions assumptions) {
           ? base
           : simplifyPow(base, absK, assumptions: assumptions);
     case Acosh(expr: final u) when k is IntegerNumber:
+      if (u is ComplexNumber) return null;
+      if (tryStaticRealValue(u) case final v? when v < 1.0) return null;
       final u2Minus1 = simplifyAdd([
         simplifyPow(u, IntegerNumber.two, assumptions: assumptions),
         IntegerNumber.negativeOne,

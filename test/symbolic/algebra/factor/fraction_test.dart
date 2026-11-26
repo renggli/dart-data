@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/factor/fraction.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Monomial detection and factored expression building', () {

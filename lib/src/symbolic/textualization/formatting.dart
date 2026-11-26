@@ -77,8 +77,8 @@ partitionMulFraction(List<Expr> factors) {
   );
 }
 
-/// Matches positive integer powers ($k \ge 2$) of standard elementary functions
-/// ($\sin^k(x)$, $\cos^k(x)$, $\tan^k(x)$, $\sinh^k(x)$, $\cosh^k(x)$, $\tanh^k(x)$, $\ln^k(x)$).
+/// Matches positive integer powers (`k >=2`) of standard elementary functions
+/// (`sin^k(x)`, `cos^k(x)`, `tan^k(x)`, `sinh^k(x)`, `cosh^k(x)`, `tanh^k(x)`, `ln^k(x)`).
 ({String name, String latexCmd, Expr argument})? matchFunctionPower(
   Expr base,
   Expr exponent,
@@ -128,6 +128,7 @@ bool startsWithNumber(Expr expr) => switch (expr) {
             exponent.numerator == Integer.one &&
             exponent.denominator >= Integer.two) &&
         startsWithNumber(base),
+  Factorial(:final expr) => startsWithNumber(expr),
   _ => false,
 };
 
@@ -139,7 +140,15 @@ Expr leftmostMulFactor(Expr expr) => switch (expr) {
 
 /// Whether [right] requires parentheses when appearing after a binary `-` sign.
 bool needsSubRightParens(Expr right) => switch (right) {
-  Add() || Mod() || RelationalExpr() => true,
+  Add() ||
+  Mod() ||
+  RelationalExpr() ||
+  Piecewise() ||
+  Integral() ||
+  Derivative() ||
+  Limit() ||
+  Sum() ||
+  Product() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(right) => true,
   _ => false,
@@ -147,14 +156,22 @@ bool needsSubRightParens(Expr right) => switch (right) {
 
 /// Whether [left] requires parentheses as the first factor of a product.
 bool needsMulLeftParens(Expr left) => switch (left) {
-  Add() || Mod() || RelationalExpr() => true,
+  Add() ||
+  Mod() ||
+  RelationalExpr() ||
+  Piecewise() ||
+  Integral() ||
+  Derivative() ||
+  Limit() ||
+  Sum() ||
+  Product() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ => false,
 };
 
 /// Whether [right] requires parentheses as a subsequent factor of a product.
 bool needsMulRightParens(Expr right) => switch (right) {
-  Add() || Mod() || RelationalExpr() => true,
+  Add() || Mod() || RelationalExpr() || Piecewise() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(right) => true,
   _ => false,
@@ -167,17 +184,33 @@ bool needsPowBaseParens(Expr base) => switch (base) {
   Mod() ||
   RelationalExpr() ||
   FractionNumber() ||
+  Factorial() ||
+  Piecewise() ||
+  Integral() ||
+  Derivative() ||
+  Limit() ||
+  Sum() ||
+  Product() ||
   RealNumeric(isNegative: true) => true,
   ComplexNumber(:final real, :final imaginary)
       when !real.isZero || !imaginary.isOne =>
     true,
+  Pow(base: != Constant.e) => true,
   Pow(:final exponent) when exponent == IntegerNumber.negativeOne => true,
   _ => false,
 };
 
 /// Whether [expr] requires parentheses when preceded by a unary `-` sign.
 bool needsNegOperandParens(Expr expr) => switch (expr) {
-  Add() || Mod() || RelationalExpr() => true,
+  Add() ||
+  Mod() ||
+  RelationalExpr() ||
+  Piecewise() ||
+  Integral() ||
+  Derivative() ||
+  Limit() ||
+  Sum() ||
+  Product() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(expr) => true,
   _ => false,
@@ -188,6 +221,9 @@ bool needsNegOperandParens(Expr expr) => switch (expr) {
 /// integer-valued doubles (e.g. `2.0`).
 String formatDouble(double value, int decimalPlaces) {
   final fixed = value.toStringAsFixed(decimalPlaces);
+  if (fixed.contains('e') || fixed.contains('E')) {
+    return fixed;
+  }
   if (fixed.contains('.')) {
     var end = fixed.length;
     while (end > 0 && fixed[end - 1] == '0') {

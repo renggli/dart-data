@@ -1,4 +1,5 @@
 import '../algebra/approximate.dart';
+import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
@@ -14,20 +15,20 @@ import 'transcendental.dart';
 
 /// Extension providing analytical equation solving on [Expr].
 extension SolverExtension on Expr {
-  /// Solves the algebraic equation $\text{this} = 0$ for [variable].
+  /// Solves the algebraic equation `this = 0` for [variable].
   ///
   /// Conceptually, this isolates the values of [variable] that satisfy the
-  /// equation $\text{this} = 0$ (such as finding roots where $2x - 6 = 0$ or
-  /// $x^2 - 5x + 6 = 0$). Formally, this isolates analytical roots of
+  /// equation `this = 0` (such as finding roots where `2*x - 6 = 0` or
+  /// `x^2 - 5*x + 6 = 0`). Formally, this isolates analytical roots of
   /// univariate equations:
-  /// - Linear equations: $a x + b = 0 \implies x = -b / a$
+  /// - Linear equations: `a * x + b = 0 -> x = -b / a`
   /// - Quadratic polynomials:
-  ///   $a x^2 + b x + c = 0 \implies x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$
+  ///   `a * x^2 + b * x + c = 0 -> x = (-b +/- sqrt(b^2 - 4*a*c)) / (2*a)`
   /// - Factored products:
-  ///   $f(x) \cdot g(x) = 0 \implies \text{solve}(f) \cup \text{solve}(g)$ via
+  ///   `f(x) * g(x) = 0 -> solve(f) union solve(g)` via
   ///   the zero-product property
-  /// - Invertible transcendental compositions: $\exp(f(x)) = c$,
-  ///   $\ln(f(x)) = c$, $\sin(f(x)) = c$, $\cos(f(x)) = c$, and isolated powers
+  /// - Invertible transcendental compositions: `exp(f(x)) = c`,
+  ///   `ln(f(x)) = c`, `sin(f(x)) = c`, `cos(f(x)) = c`, and isolated powers
   ///
   /// Returns a list of unique exact solution expressions.
   ///
@@ -70,36 +71,69 @@ bool satisfiesVariableDomain(
   final s = root.simplify(assumptions: assumptions);
   return switch (domain) {
     VariableDomain.unknown || VariableDomain.complex => true,
-    VariableDomain.integer => isIntegerExpr(s, assumptions: assumptions),
+    VariableDomain.integer =>
+      isIntegerExpr(s, assumptions: assumptions) ||
+          (s is RealNumber &&
+              s.value.isFinite &&
+              s.value == s.value.roundToDouble()),
     VariableDomain.real => _isRealRoot(s, assumptions),
     VariableDomain.positive => _isPositiveRealRoot(s, assumptions),
   };
 }
 
-/// Deduplicates roots analytically and numerically.
-List<Expr> deduplicateRoots(List<Expr> list) {
+/// Deduplicates roots analytically and numerically (for floating-point roots).
+List<Expr> deduplicateRoots(
+  List<Expr> list, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final result = <Expr>[];
   for (final item in list) {
-    final simplified = item.simplify();
+    final simplified = item.simplify(assumptions: assumptions);
     final isDup = result.any((existing) {
       if (existing == simplified) return true;
       if (existing is RationalNumber && simplified is RationalNumber) {
         return false;
       }
-      if ((existing, simplified) case (
-        final RealNumeric a,
-        final RealNumeric b,
-      )) {
-        return (a.toDouble() - b.toDouble()).abs() < 1e-12;
+      final hasFloat =
+          existing.anyNode((n) => n is RealNumber) ||
+          simplified.anyNode((n) => n is RealNumber);
+      if (existing case final RealNumeric a) {
+        if (simplified case final RealNumeric b) {
+          if (!hasFloat) return false;
+          final scale = a.toDouble().abs() > b.toDouble().abs()
+              ? a.toDouble().abs()
+              : b.toDouble().abs();
+          return (a.toDouble() - b.toDouble()).abs() <=
+              1e-12 * (scale > 1.0 ? scale : 1.0);
+        }
+      }
+      if (!hasFloat) {
+        final diff = (existing - simplified).simplify(assumptions: assumptions);
+        if (isZeroExpr(diff)) return true;
+        if (existing.freeVariables.isEmpty &&
+            simplified.freeVariables.isEmpty &&
+            !exceedsNodeBudget(diff, 200)) {
+          final expDiff = diff
+              .expand(assumptions: assumptions)
+              .simplify(assumptions: assumptions);
+          if (isZeroExpr(expDiff)) return true;
+        }
+        return false;
       }
       if (existing.freeVariables.isEmpty && simplified.freeVariables.isEmpty) {
         try {
           final c1 = existing.evaluateComplex();
           final c2 = simplified.evaluateComplex();
-          return (c1.a - c2.a).abs() < 1e-12 && (c1.b - c2.b).abs() < 1e-12;
+          final mag1 = c1.abs();
+          final mag2 = c2.abs();
+          final mag = mag1 > mag2 ? mag1 : mag2;
+          final tol = 1e-12 * (mag > 1.0 ? mag : 1.0);
+          return (c1.a - c2.a).abs() <= tol && (c1.b - c2.b).abs() <= tol;
         } on ArgumentError {
           // Ignored.
         } on UnsupportedError {
+          // Ignored.
+        } on StateError {
           // Ignored.
         }
       }
@@ -183,12 +217,12 @@ List<Expr> _solveUnfiltered(
 
   // Quadratic form: a * x^2 + b * x + c = 0
   if (matchQuadratic(expr, variable) case (:final a, :final b, :final c)) {
-    return solveQuadratic(a, b, c);
+    return solveQuadratic(a, b, c, assumptions: assumptions);
   }
 
   // Biquadratic form: a * x^4 + b * x^2 + c = 0
   if (matchBiquadratic(expr, variable) case (:final a, :final b, :final c)) {
-    return solveBiquadratic(a, b, c, variable);
+    return solveBiquadratic(a, b, c, variable, assumptions: assumptions);
   }
 
   // Factored products or unrolled factor decomposition:
@@ -225,7 +259,7 @@ List<Expr> _solveUnfiltered(
   // Transcendental isolation: f(u(x)) = C
   final trans = isolateAndInvert(expr, variable, assumptions: assumptions);
   if (trans != null) {
-    return deduplicateRoots(trans);
+    return deduplicateRoots(trans, assumptions: assumptions);
   }
 
   return const [];
@@ -247,6 +281,7 @@ List<Expr> _filterByDomain(
 bool _isRealRoot(Expr expr, Assumptions assumptions) {
   if (isProvenReal(expr, assumptions)) return true;
   if (!expr.isReal) return false;
+  if (_containsNonRealBranch(expr, assumptions)) return false;
   if (expr.freeVariables.isEmpty) {
     try {
       final c = expr.evaluateComplex();
@@ -259,6 +294,21 @@ bool _isRealRoot(Expr expr, Assumptions assumptions) {
   }
   return true;
 }
+
+bool _containsNonRealBranch(Expr expr, Assumptions assumptions) =>
+    expr.anyNode((node) {
+      if (node is ComplexNumber && !node.imaginary.isZero) return true;
+      if (node
+          case Pow(:final base, exponent: FractionNumber(:final denominator))
+          when denominator.isEven &&
+              isNegativeExpr(base, assumptions: assumptions)) {
+        return true;
+      }
+      if (node is Ln && isNegativeExpr(node.expr, assumptions: assumptions)) {
+        return true;
+      }
+      return false;
+    });
 
 bool _isPositiveRealRoot(Expr expr, Assumptions assumptions) {
   if (isPositiveExpr(expr, assumptions: assumptions)) {
@@ -308,12 +358,23 @@ bool _isValidRoot(
   Expr root,
   Assumptions assumptions,
 ) {
-  final Expr v;
+  final Expr sub;
   try {
-    v = original.substitute(variable, root).simplify(assumptions: assumptions);
-  } on Object {
+    sub = original.substitute(variable, root);
+  } on ArgumentError {
+    return false;
+  } on UnsupportedError {
+    return false;
+  } on StateError {
+    return false;
+  } on FormatException {
     return false;
   }
+  final v = (exceedsNodeBudget(sub, 500)
+      ? sub.simplify(assumptions: assumptions)
+      : sub
+            .expand(assumptions: assumptions)
+            .simplify(assumptions: assumptions));
   if (v.anyNode(
     (n) =>
         n == Constant.undefined ||
@@ -324,8 +385,29 @@ bool _isValidRoot(
   }
   if (v is Number) {
     if (v.isZero) return true;
-    if (v is RealNumeric) return v.toDouble().abs() <= 1e-9;
+    if (v is RationalNumber) return false;
+    if (v is RealNumber) {
+      final scale = original is Add && original.terms.length >= 2
+          ? original.terms.fold<double>(1.0, (acc, t) {
+              try {
+                final c = t.substitute(variable, root).evaluateComplex();
+                final mag = c.abs();
+                return c.isNaN || mag < acc ? acc : mag;
+              } on ArgumentError {
+                return acc;
+              } on UnsupportedError {
+                return acc;
+              } on StateError {
+                return acc;
+              }
+            })
+          : 1.0;
+      return v.value.abs() <= 1e-9 * scale;
+    }
     if (v is ComplexNumber) {
+      if (v.real is RationalNumber && v.imaginary is RationalNumber) {
+        return false;
+      }
       return v.real.toDouble().abs() <= 1e-9 &&
           v.imaginary.toDouble().abs() <= 1e-9;
     }
@@ -334,7 +416,9 @@ bool _isValidRoot(
       isNegativeExpr(v, assumptions: assumptions)) {
     return false;
   }
-  if (v.freeVariables.isEmpty) {
+  if (v.freeVariables.isEmpty &&
+      (root.anyNode((n) => n is RealNumber) ||
+          original.anyNode((n) => n is RealNumber))) {
     try {
       final approx = v.approximate();
       if (approx is RealNumeric) {
@@ -344,7 +428,11 @@ bool _isValidRoot(
         return approx.real.toDouble().abs() <= 1e-9 &&
             approx.imaginary.toDouble().abs() <= 1e-9;
       }
-    } on Object {
+    } on ArgumentError {
+      // Fall through if numeric approximation is unavailable.
+    } on UnsupportedError {
+      // Fall through if numeric approximation is unavailable.
+    } on StateError {
       // Fall through if numeric approximation is unavailable.
     }
   }
@@ -357,15 +445,27 @@ List<Expr> _solveProductFactors(
   String variable,
   Assumptions assumptions,
 ) {
+  if (varFactors.isEmpty) return const [];
   final allRoots = <Expr>[];
   for (final factor in varFactors) {
+    if (!factor.dependsOn(variable)) continue;
     allRoots.addAll(_solveUnfiltered(factor, variable, assumptions));
   }
+  if (allRoots.isEmpty) return const [];
   final validRoots = allRoots.where((root) {
     for (final other in allFactors) {
-      final sub = other
-          .substitute(variable, root)
-          .simplify(assumptions: assumptions);
+      final Expr sub;
+      try {
+        sub = other
+            .substitute(variable, root)
+            .simplify(assumptions: assumptions);
+      } on ArgumentError {
+        return false;
+      } on UnsupportedError {
+        return false;
+      } on StateError {
+        return false;
+      }
       if (sub == Constant.undefined ||
           sub == Constant.infinity ||
           sub == -Constant.infinity ||
@@ -380,5 +480,5 @@ List<Expr> _solveProductFactors(
     }
     return true;
   }).toList();
-  return deduplicateRoots(validRoots);
+  return deduplicateRoots(validRoots, assumptions: assumptions);
 }

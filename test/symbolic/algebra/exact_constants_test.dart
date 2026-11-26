@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/exact_constants.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('SpecialRadical construction and recognition', () {

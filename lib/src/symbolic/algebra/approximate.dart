@@ -24,10 +24,9 @@ extension ApproximationExtension on Expr {
   /// // 0.7853981633974483 + x
   /// ```
   Expr approximate([Map<String, Expr> bindings = const {}]) {
-    var target = this;
-    for (final MapEntry(:key, :value) in bindings.entries) {
-      target = target.substitute(key, value);
-    }
+    final target = bindings.isEmpty
+        ? this
+        : _substituteBindings(this, bindings);
     return _approximateNode(target).simplify();
   }
 
@@ -38,25 +37,81 @@ extension ApproximationExtension on Expr {
   /// ```dart
   /// RealNumber(0.3333333333333333).rationalize(); // 1 / 3
   /// ```
-  Expr rationalize({int maxDenominator = 1000000, double tolerance = 1e-12}) =>
-      _rationalizeNode(this, maxDenominator, tolerance).simplify();
+  Expr rationalize({int maxDenominator = 1000000, double tolerance = 1e-12}) {
+    if (maxDenominator < 1) {
+      throw ArgumentError.value(
+        maxDenominator,
+        'maxDenominator',
+        'Must be >= 1',
+      );
+    }
+    if (tolerance.isNaN || tolerance < 0.0) {
+      throw ArgumentError.value(tolerance, 'tolerance', 'Must be >= 0');
+    }
+    return _rationalizeNode(this, maxDenominator, tolerance).simplify();
+  }
+}
+
+Expr _substituteBindings(Expr expr, Map<String, Expr> bindings) {
+  if (bindings.length == 1) {
+    final entry = bindings.entries.first;
+    return expr.substitute(entry.key, entry.value);
+  }
+  return switch (expr) {
+    Variable(:final name) => bindings[name] ?? expr,
+    Add() ||
+    Mul() ||
+    Pow() ||
+    UnaryExpr() ||
+    BinaryExpr() ||
+    VariableFunction() ||
+    Tuple() ||
+    Min() ||
+    Max() ||
+    Gcd() ||
+    Lcm() ||
+    Hypergeometric() ||
+    Zeta() ||
+    EllipticE() ||
+    EllipticPi() => expr.mapChildren(
+      (child) => _substituteBindings(child, bindings),
+    ),
+    _ => () {
+      var res = expr;
+      for (final MapEntry(:key, :value) in bindings.entries) {
+        if (!res.freeVariables.any(
+          (v) => v != key && bindings.containsKey(v),
+        )) {
+          res = res.substitute(key, value);
+        }
+      }
+      if (identical(res, expr)) {
+        for (final MapEntry(:key, :value) in bindings.entries) {
+          res = res.substitute(key, value);
+        }
+      }
+      return res;
+    }(),
+  };
 }
 
 Expr _approximateNode(Expr node) => switch (node) {
   RationalNumber() => RealNumber.fromDouble(node.toDouble()),
   RealNumber() => node,
-  ComplexNumber(:final real, :final imaginary) => ComplexNumber.of(
-    RealNumber(real.toDouble()),
-    RealNumber(imaginary.toDouble()),
+  ComplexNumber(:final real, :final imaginary) => _complexToExpr(
+    Complex(real.toDouble(), imaginary.toDouble()),
   ),
   Constant() => _approximateConstant(node),
   Variable() || OrderTerm() => node,
   Add(:final terms) => Add(terms.map(_approximateNode).toList()).simplify(),
   Mul() => _approximateMul(node),
-  Pow(:final base, :final exponent) => _approximatePow(
-    _approximateNode(base),
-    _approximateNode(exponent),
-  ),
+  Pow(:final base, :final exponent) => () {
+    if (base is RationalNumber && exponent is FractionNumber) {
+      final folded = base.powNumber(exponent);
+      if (folded != null) return _approximateNode(folded);
+    }
+    return _approximatePow(_approximateNode(base), _approximateNode(exponent));
+  }(),
   UnaryExpr(:final expr) => _approximateUnary(node, _approximateNode(expr)),
   RelationalExpr() ||
   Piecewise() ||

@@ -148,7 +148,10 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
       '[${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')}]',
     Beta(:final left, :final right) =>
       'beta(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    Factorial(:final expr) => '${_formatExpr(expr, 5, decimalPlaces)}!',
+    Factorial(:final expr) =>
+      expr is Factorial
+          ? '(${_formatExpr(expr, 0, decimalPlaces)})!'
+          : '${_formatExpr(expr, 5, decimalPlaces)}!',
     Binomial(:final left, :final right) =>
       'binomial(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
     Floor(:final expr) => 'floor(${_formatExpr(expr, 0, decimalPlaces)})',
@@ -250,7 +253,12 @@ String _formatAdd(List<Expr> terms, int decimalPlaces) {
       for (var i = 1; i < terms.length; i++) {
         final term = terms[i];
         if (stripLeadingNegative(term) case final stripped?) {
-          buffer.write(' - ${_formatExpr(stripped, 2, decimalPlaces)}');
+          final inner = _formatExpr(
+            stripped,
+            startsWithNegative(stripped) ? 4 : 2,
+            decimalPlaces,
+          );
+          buffer.write(' - $inner');
         } else {
           final prec = term is Add ? 2 : 1;
           buffer.write(' + ${_formatExpr(term, prec, decimalPlaces)}');
@@ -307,10 +315,11 @@ String _formatMulNumerator(
       return _formatExpr(single, parentPrec, decimalPlaces);
     case [IntegerNumber(isNegativeOne: true), ...final rest]:
       final formatted = rest.length == 1
-          ? '-${_formatExpr(rest.single, 3, decimalPlaces)}'
-          : '-${_formatExpr(rest.first, 3, decimalPlaces)} * '
+          ? '-${_formatExpr(rest.single, startsWithNegative(rest.single) ? 4 : 3, decimalPlaces)}'
+          : '-${_formatExpr(rest.first, startsWithNegative(rest.first) ? 4 : 3, decimalPlaces)} * '
                 '${_formatMulNumerator(rest.sublist(1), 2, decimalPlaces)}';
-      return 3 < parentPrec ? '($formatted)' : formatted;
+      final prec = rest.length == 1 ? 3 : 2;
+      return prec < parentPrec ? '($formatted)' : formatted;
     default:
       final parts = <String>[];
       for (var i = 0; i < factors.length; i++) {
@@ -352,7 +361,7 @@ String _formatOrderTerm(
 ) {
   final isZero = point is Number && point.isZero;
   if (isZero) {
-    if (order == 0) return 'O(1)';
+    if (order == 0) return variable == 'x' ? 'O(1)' : 'O($variable, 0)';
     if (order == 1) return 'O($variable)';
     return 'O($variable^$order)';
   }
@@ -375,7 +384,7 @@ int _mulPrecedence(List<Expr> factors) {
     }
   }
   return switch (factors) {
-    [IntegerNumber(isNegativeOne: true), ...] => 3,
+    [IntegerNumber(isNegativeOne: true), _] => 3,
     _ => 2,
   };
 }

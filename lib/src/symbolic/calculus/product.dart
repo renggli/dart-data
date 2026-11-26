@@ -12,7 +12,7 @@ import 'limit.dart';
 import 'linear_form.dart';
 import 'summation.dart';
 
-/// Evaluates the definite product $\prod_{k=a}^b \text{factor}$.
+/// Evaluates the definite product `prod_{k=a}^b factor`.
 Expr computeProduct(
   Expr factor,
   String variable,
@@ -27,6 +27,15 @@ Expr computeProduct(
   final a = from.simplify(assumptions: assumptions);
   final b = to.simplify(assumptions: assumptions);
 
+  if ((a, b)
+      case (
+        IntegerNumber(asInt: final start?),
+        IntegerNumber(asInt: final end?),
+      )
+      when end < start) {
+    return IntegerNumber.one;
+  }
+
   if (simplifiedFactor is Number && simplifiedFactor.isOne) {
     return IntegerNumber.one;
   }
@@ -35,8 +44,8 @@ Expr computeProduct(
   }
 
   if (b == Constant.infinity) {
-    const limitVarName = '__prod_N';
-    const limitVar = Variable(limitVarName);
+    final limitVarName = freshLimitVar('_prod_N', simplifiedFactor, a);
+    final limitVar = Variable(limitVarName);
     final mergedAssumptions = assumptions.copyWith(
       domains: {limitVarName: VariableDomain.integer},
     );
@@ -202,6 +211,18 @@ Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
               Factorial(upperShifted) /
               Factorial(IntegerNumber.of(l - 1)))
           .simplify();
+    }
+    final negLowerShifted = (-lowerShifted).simplify();
+    if (slope == IntegerNumber.negativeOne &&
+        (a is IntegerNumber && a.isZero) &&
+        upperShifted is Number &&
+        upperShifted.isZero &&
+        !(negLowerShifted is Number && negLowerShifted.isZero)) {
+      // prod_{k=0}^{n-1} (n - k) = n!
+      return Factorial(negLowerShifted);
+    }
+    if (lowerShifted case IntegerNumber(asInt: final l?) when l < 0) {
+      return Product(factor, variable, a, b, isSimplified: true);
     }
     return (slopePow *
             Gamma((upperShifted + IntegerNumber.one).simplify()) /
@@ -672,8 +693,19 @@ Expr? evalTermAtInt(
 }) {
   try {
     final sub = expr.substitute(variable, IntegerNumber.of(value));
-    return sub.simplify(assumptions: assumptions);
-  } catch (_) {
+    final v = sub.simplify(assumptions: assumptions);
+    if (v == Constant.undefined ||
+        v == Constant.infinity ||
+        v == -Constant.infinity ||
+        v.anyNode((n) => n == Constant.undefined || n == Constant.infinity)) {
+      return null;
+    }
+    return v;
+  } on UnsupportedError {
+    return null;
+  } on ArgumentError {
+    return null;
+  } on StateError {
     return null;
   }
 }

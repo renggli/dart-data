@@ -10,14 +10,13 @@ class FglmEngine {
     List<MultivariatePolynomial> grevlexBasis, {
     MonomialOrder targetOrder = MonomialOrder.lex,
   }) {
-    if (grevlexBasis.isEmpty) return const [];
-    final variables = grevlexBasis.first.variables;
+    final basis = grevlexBasis.where((g) => !g.isZero).toList();
+    if (basis.isEmpty) return const [];
+    final variables = basis.first.variables;
     final n = variables.length;
 
     // Check if ideal is trivial {1}
-    if (grevlexBasis.any(
-      (g) => g.leadingMonomial(MonomialOrder.grevlex).isZero,
-    )) {
+    if (basis.any((g) => g.leadingMonomial(MonomialOrder.grevlex).isZero)) {
       return [
         MultivariatePolynomial(variables, {
           Monomial.zero(n): IntegerNumber.one,
@@ -28,7 +27,7 @@ class FglmEngine {
     // Zero-dimensional precondition check
     for (var i = 0; i < n; i++) {
       var found = false;
-      for (final g in grevlexBasis) {
+      for (final g in basis) {
         final lm = g.leadingMonomial(MonomialOrder.grevlex);
         if (lm.isPurePower(i)) {
           found = true;
@@ -43,7 +42,7 @@ class FglmEngine {
     }
 
     // 1. Compute standard monomials basis B of the quotient ring Q = k[x] / <G>
-    final standardMonomials = _computeStandardMonomials(grevlexBasis, n);
+    final standardMonomials = _computeStandardMonomials(basis, n);
     final bSize = standardMonomials.length;
 
     // 2. FGLM main loop: search for linear relations in lex order
@@ -64,7 +63,7 @@ class FglmEngine {
       // Compute normal form of m with respect to G_grevlex
       final nfPoly = MultivariatePolynomial(variables, {
         m: IntegerNumber.one,
-      }).reduce(grevlexBasis, order: MonomialOrder.grevlex);
+      }).reduce(basis, order: MonomialOrder.grevlex);
 
       // Coordinate vector in standardMonomials basis
       final coord = List<RationalNumber>.generate(
@@ -173,8 +172,11 @@ class FglmEngine {
     // Gaussian elimination over the k linearly independent columns of vLex
     for (var col = 0; col < k; col++) {
       var pivotRow = col;
-      while (matrix[pivotRow][col].isZero) {
+      while (pivotRow < d && matrix[pivotRow][col].isZero) {
         pivotRow++;
+      }
+      if (pivotRow >= d) {
+        return null;
       }
 
       final temp = matrix[pivotRow];
@@ -214,30 +216,6 @@ class FglmEngine {
       }
     }
 
-    // Extract solution c
-    final solution = List<RationalNumber>.filled(k, IntegerNumber.zero);
-    for (var col = 0; col < k; col++) {
-      var pivotRow = -1;
-      for (var r = 0; r < d; r++) {
-        if (matrix[r][col].isOne) {
-          var isLead = true;
-          for (var c = 0; c < col; c++) {
-            if (!matrix[r][c].isZero) {
-              isLead = false;
-              break;
-            }
-          }
-          if (isLead) {
-            pivotRow = r;
-            break;
-          }
-        }
-      }
-      if (pivotRow != -1) {
-        solution[col] = matrix[pivotRow][k];
-      }
-    }
-
-    return solution;
+    return List<RationalNumber>.generate(k, (col) => matrix[col][k]);
   }
 }

@@ -1,6 +1,7 @@
 import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
 import '../../algebra/simplify.dart';
+import '../../algebra/simplify/domain.dart' show isPositiveExpr, isProvenReal;
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/integer.dart';
@@ -109,7 +110,7 @@ Expr? definiteIntegralSpecialCases(
   return null;
 }
 
-/// Improper integrals evaluated over the semi-infinite interval $[0, \infty)$.
+/// Improper integrals evaluated over the semi-infinite interval `[0, oo)`.
 Expr? definiteIntegralZeroToInfinity(
   Expr function,
   String variable, {
@@ -119,10 +120,10 @@ Expr? definiteIntegralZeroToInfinity(
   final (num, den) = splitNumeratorDenominator(function);
 
   // 1. Dirichlet integral: sin(a*x) / x -> pi/2 * sign(a)
-  //    and sin(a*x)^2 / x^2 -> pi/2 * |a|
+  //    and sin(a*x)^2 / x^2 -> pi/2 * |a| (requires real a)
   if (den == xVar && num is Sin) {
     if (num.expr.matchLinear(variable) case (a: final slope, :final b)
-        when b == IntegerNumber.zero) {
+        when b == IntegerNumber.zero && isProvenReal(slope, assumptions)) {
       return (Constant.pi / IntegerNumber.two * Sign(slope)).simplify(
         assumptions: assumptions,
       );
@@ -135,7 +136,8 @@ Expr? definiteIntegralZeroToInfinity(
       exponent: IntegerNumber(asInt: 2),
     )) {
       if (inner.matchLinear(variable) case (a: final slope, b: final shift)
-          when shift == IntegerNumber.zero) {
+          when shift == IntegerNumber.zero &&
+              isProvenReal(slope, assumptions)) {
         return (Constant.pi / IntegerNumber.two * Abs(slope)).simplify(
           assumptions: assumptions,
         );
@@ -151,18 +153,21 @@ Expr? definiteIntegralZeroToInfinity(
         (coeffs[1] ?? IntegerNumber.zero) == IntegerNumber.zero &&
         (coeffs[0] ?? IntegerNumber.zero) == IntegerNumber.zero) {
       final a2 = coeffs[2] ?? IntegerNumber.zero;
-      final absA = Abs(a2).simplify(assumptions: assumptions);
-      if (isPositiveConstant(absA)) {
-        final fresnelVal =
-            (FractionNumber.quarter *
-                    Pow(
-                      (IntegerNumber.two * Constant.pi) / absA,
-                      FractionNumber.half,
-                    ))
-                .simplify(assumptions: assumptions);
-        return function is Sin
-            ? (Sign(a2) * fresnelVal).simplify(assumptions: assumptions)
-            : fresnelVal;
+      if (isProvenReal(a2, assumptions)) {
+        final absA = Abs(a2).simplify(assumptions: assumptions);
+        if (isPositiveExpr(absA, assumptions: assumptions) ||
+            isPositiveConstant(absA)) {
+          final fresnelVal =
+              (FractionNumber.quarter *
+                      Pow(
+                        (IntegerNumber.two * Constant.pi) / absA,
+                        FractionNumber.half,
+                      ))
+                  .simplify(assumptions: assumptions);
+          return function is Sin
+              ? (Sign(a2) * fresnelVal).simplify(assumptions: assumptions)
+              : fresnelVal;
+        }
       }
     }
   }
@@ -177,9 +182,8 @@ Expr? definiteIntegralZeroToInfinity(
       if (f.exponent.matchLinear(variable) case (a: final slope, :final b)
           when b == IntegerNumber.zero) {
         final posA = (-slope).simplify(assumptions: assumptions);
-        if (isPositiveConstant(posA) ||
-            (posA is Variable &&
-                assumptions.domainOf(posA.name) == VariableDomain.positive)) {
+        if (isPositiveExpr(posA, assumptions: assumptions) ||
+            isPositiveConstant(posA)) {
           expSlope = posA;
           continue;
         }
@@ -202,9 +206,8 @@ Expr? definiteIntegralZeroToInfinity(
   if (validGamma && expSlope != null) {
     final s = xExponent ?? IntegerNumber.zero;
     final sPlus1 = (s + IntegerNumber.one).simplify(assumptions: assumptions);
-    if (isPositiveConstant(sPlus1) ||
-        (s is Variable &&
-            assumptions.domainOf(s.name) == VariableDomain.positive)) {
+    if (isPositiveExpr(sPlus1, assumptions: assumptions) ||
+        isPositiveConstant(sPlus1)) {
       return (Gamma(sPlus1) / Pow(expSlope, sPlus1)).simplify(
         assumptions: assumptions,
       );
@@ -225,7 +228,8 @@ Expr? definiteIntegralZeroToInfinity(
         final posA = (-(coeffs[2] ?? IntegerNumber.zero)).simplify(
           assumptions: assumptions,
         );
-        if (isPositiveConstant(posA)) {
+        if (isPositiveExpr(posA, assumptions: assumptions) ||
+            isPositiveConstant(posA)) {
           gaussCoeff = posA;
           continue;
         }
@@ -250,7 +254,8 @@ Expr? definiteIntegralZeroToInfinity(
     final alpha = ((s + IntegerNumber.one) / IntegerNumber.two).simplify(
       assumptions: assumptions,
     );
-    if (isPositiveConstant(alpha)) {
+    if (isPositiveExpr(alpha, assumptions: assumptions) ||
+        isPositiveConstant(alpha)) {
       return (FractionNumber.half * Gamma(alpha) / Pow(gaussCoeff, alpha))
           .simplify(assumptions: assumptions);
     }
@@ -298,7 +303,7 @@ Expr? definiteIntegralZeroToInfinity(
   return null;
 }
 
-/// Definite trigonometric integrals evaluated over $[0, \pi/2]$ or $[0, \pi]$.
+/// Definite trigonometric integrals evaluated over `[0, pi/2]` or `[0, pi]`.
 Expr? definiteIntegralTrigDomain(
   Expr function,
   String variable,
@@ -359,9 +364,16 @@ Expr? definiteIntegralTrigDomain(
     }
     if (validWallis &&
         (mExp != IntegerNumber.zero || nExp != IntegerNumber.zero)) {
-      final aArg = ((mExp + IntegerNumber.one) / IntegerNumber.two).simplify();
-      final bArg = ((nExp + IntegerNumber.one) / IntegerNumber.two).simplify();
-      if (isPositiveConstant(aArg) && isPositiveConstant(bArg)) {
+      final aArg = ((mExp + IntegerNumber.one) / IntegerNumber.two).simplify(
+        assumptions: assumptions,
+      );
+      final bArg = ((nExp + IntegerNumber.one) / IntegerNumber.two).simplify(
+        assumptions: assumptions,
+      );
+      if ((isPositiveExpr(aArg, assumptions: assumptions) ||
+              isPositiveConstant(aArg)) &&
+          (isPositiveExpr(bArg, assumptions: assumptions) ||
+              isPositiveConstant(bArg))) {
         return (FractionNumber.half * Beta(aArg, bArg)).simplify(
           assumptions: assumptions,
         );
@@ -372,7 +384,7 @@ Expr? definiteIntegralTrigDomain(
   return null;
 }
 
-/// Definite integrals evaluated over the unit interval $[0, 1]$.
+/// Definite integrals evaluated over the unit interval `[0, 1]`.
 Expr? definiteIntegralUnitInterval(
   Expr function,
   String variable, {
@@ -446,9 +458,16 @@ Expr? definiteIntegralUnitInterval(
     break;
   }
   if (validBeta && hasOneMinusX) {
-    final aArg = (aMinus1 + IntegerNumber.one).simplify();
-    final bArg = (bMinus1 + IntegerNumber.one).simplify();
-    if (isPositiveConstant(aArg) && isPositiveConstant(bArg)) {
+    final aArg = (aMinus1 + IntegerNumber.one).simplify(
+      assumptions: assumptions,
+    );
+    final bArg = (bMinus1 + IntegerNumber.one).simplify(
+      assumptions: assumptions,
+    );
+    if ((isPositiveExpr(aArg, assumptions: assumptions) ||
+            isPositiveConstant(aArg)) &&
+        (isPositiveExpr(bArg, assumptions: assumptions) ||
+            isPositiveConstant(bArg))) {
       return Beta(aArg, bArg).simplify(assumptions: assumptions);
     }
   }

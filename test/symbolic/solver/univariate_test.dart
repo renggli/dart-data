@@ -4,7 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/solver/univariate.dart';
 import 'package:data/src/symbolic/type/expr_data_type.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Univariate algebraic and polynomial equations', () {
@@ -241,6 +241,95 @@ void main() {
       final roots = Expr.parse('1 / (x - 1) + 1 / (x + 1) - 2 * x / (x^2 + 1)')
           .solve('x');
       check(roots).deepEquals([IntegerNumber.zero]);
+    });
+  });
+
+  group('Domain validation, floating-point tolerances, and root filtering', () {
+    test(
+      'accepts integer-valued RealNumber under integer domain assumption',
+      () {
+        final roots = (const Variable('x') - const RealNumber(2.0)).solve(
+          'x',
+          assumptions: const Assumptions(
+            domains: {'x': VariableDomain.integer},
+          ),
+        );
+        check(roots).deepEquals([const RealNumber(2.0)]);
+
+        final nonInt = (const Variable('x') - const RealNumber(2.5)).solve(
+          'x',
+          assumptions: const Assumptions(
+            domains: {'x': VariableDomain.integer},
+          ),
+        );
+        check(nonInt).isEmpty;
+      },
+    );
+
+    test(
+      'excludes non-real branch roots like sqrt(-a) under positive assumption',
+      () {
+        const x = Variable('x');
+        const a = Variable('a');
+        final roots = (Pow(x, IntegerNumber.two) + a).solve(
+          'x',
+          assumptions: const Assumptions(
+            domains: {'x': VariableDomain.real, 'a': VariableDomain.positive},
+          ),
+        );
+        check(roots).isEmpty;
+      },
+    );
+
+    test('deduplicateRoots uses relative tolerance for RealNumber only', () {
+      const r1 = RealNumber(1000000.0);
+      const r2 = RealNumber(1000000.0 + 1e-9);
+      check(deduplicateRoots([r1, r2]).length).equals(1);
+
+      // Symbolic vs numeric approximation within 1e-12 is preserved when exact is present
+      final s2 = Pow(IntegerNumber.two, FractionNumber.half).simplify();
+      const s2Approx = RealNumber(1.4142135623730951);
+      check(deduplicateRoots([s2, s2Approx]).length).equals(1);
+
+      final bigRational = RationalNumber(1, 1000000000000);
+      final quadFloat = Expr.parse('1000000.0 * x - 1000000.0').solve('x');
+      check(quadFloat).deepEquals([const RealNumber(1.0)]);
+      check(
+        satisfiesVariableDomain(
+          bigRational,
+          VariableDomain.integer,
+          Assumptions.none,
+        ),
+      ).isFalse;
+    });
+
+    test('biquadratic equation forwards assumptions', () {
+      const a = Variable('a');
+      final roots =
+          (Pow(const Variable('x'), IntegerNumber.of(4)) -
+                  a * Pow(const Variable('x'), IntegerNumber.two))
+              .solve(
+                'x',
+                assumptions: const Assumptions(
+                  domains: {'a': VariableDomain.positive},
+                ),
+              );
+      check(roots.length).equals(3);
+    });
+
+    test('filters non-real branch roots and validates large-scale float polynomials', () {
+      const a = Variable('a');
+      const x = Variable('x');
+      const realAssump = Assumptions(
+        domains: {'x': VariableDomain.real, 'a': VariableDomain.positive},
+      );
+      check((Pow(x, IntegerNumber.two) + a).solve('x', assumptions: realAssump))
+          .isEmpty;
+      final largeRoots =
+          (const RealNumber(1000000.0) * Pow(x, IntegerNumber.two) -
+                  const RealNumber(1000000.0))
+              .solve('x');
+      check(largeRoots.length).equals(2);
     });
   });
 }

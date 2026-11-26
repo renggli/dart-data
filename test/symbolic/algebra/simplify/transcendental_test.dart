@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/simplify/additive.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Trigonometric and inverse trigonometric simplification', () {

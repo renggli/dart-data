@@ -55,19 +55,20 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
   Variable(:final name) => _formatVariableMathMl(name),
   VariableFunction(:final name, :final arguments) =>
     '<mrow><mi>${_escapeXml(name)}</mi><mo>(</mo>${arguments.map((a) => _toMathMl(a, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
-  Constant(:final mathMl) => mathMl,
+  Constant(:final name, :final mathMl) =>
+    mathMl == '<mi>$name</mi>' ? '<mi>${_escapeXml(name)}</mi>' : mathMl,
   IntegerNumber(:final value) =>
     value.isNegative
-        ? '<mrow><mo form="prefix">&minus;</mo><mn>${-value}</mn></mrow>'
+        ? '<mrow><mo form="prefix">&#x2212;</mo><mn>${-value}</mn></mrow>'
         : '<mn>$value</mn>',
   FractionNumber(:final numerator, :final denominator) =>
     numerator.isNegative
-        ? '<mrow><mo form="prefix">&minus;</mo><mfrac><mn>${-numerator}</mn><mn>$denominator</mn></mfrac></mrow>'
+        ? '<mrow><mo form="prefix">&#x2212;</mo><mfrac><mn>${-numerator}</mn><mn>$denominator</mn></mfrac></mrow>'
         : '<mfrac><mn>$numerator</mn><mn>$denominator</mn></mfrac>',
   RealNumber(:final value) => () {
-    final formatted = formatDouble(value.abs(), decimalPlaces);
-    return value < 0
-        ? '<mrow><mo form="prefix">&minus;</mo><mn>$formatted</mn></mrow>'
+    final formatted = formatDouble(value, decimalPlaces);
+    return formatted.startsWith('-')
+        ? '<mrow><mo form="prefix">&#x2212;</mo><mn>${formatted.substring(1)}</mn></mrow>'
         : '<mn>$formatted</mn>';
   }(),
   ComplexNumber() => _formatComplexMathMl(expr, decimalPlaces),
@@ -201,13 +202,13 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
   Arg(:final expr) =>
     '<mrow><mi>arg</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Conjugate(:final expr) =>
-    '<mover><mrow>${_toMathMl(expr, decimalPlaces)}</mrow><mo>&macr;</mo></mover>',
+    '<mover><mrow>${_toMathMl(expr, decimalPlaces)}</mrow><mo>&#x00AF;</mo></mover>',
   Asinh(:final expr) =>
-    '<mrow><mi>asinh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+    '<mrow><mi>arsinh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Acosh(:final expr) =>
-    '<mrow><mi>acosh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+    '<mrow><mi>arcosh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   Atanh(:final expr) =>
-    '<mrow><mi>atanh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+    '<mrow><mi>artanh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
   LessThan(:final left, :final right) =>
     '<mrow>${_toMathMl(left, decimalPlaces)}<mo>&lt;</mo>${_toMathMl(right, decimalPlaces)}</mrow>',
   LessEqual(:final left, :final right) =>
@@ -239,7 +240,7 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
         : '<mfrac><msup><mi>d</mi><mn>$order</mn></msup><mrow><mi>d</mi><msup>$vMathMl<mn>$order</mn></msup></mrow></mfrac>';
     final base = '<mrow>$diffOp${_formatMulRight(expr, decimalPlaces)}</mrow>';
     if (point != null) {
-      return '<mrow><msub><mrow><mo>|</mo>$base</mrow><mrow>$vMathMl<mo>=</mo>${_toMathMl(point, decimalPlaces)}</mrow></msub></mrow>';
+      return '<mrow><msub><mrow>$base<mo>|</mo></mrow><mrow>$vMathMl<mo>=</mo>${_toMathMl(point, decimalPlaces)}</mrow></msub></mrow>';
     }
     return base;
   }(),
@@ -250,7 +251,7 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
       LimitDirection.fromAbove =>
         '<msup>${_toMathMl(point, decimalPlaces)}<mo>+</mo></msup>',
       LimitDirection.fromBelow =>
-        '<msup>${_toMathMl(point, decimalPlaces)}<mo>&minus;</mo></msup>',
+        '<msup>${_toMathMl(point, decimalPlaces)}<mo>&#x2212;</mo></msup>',
     };
     return '<mrow><munder><mo movablelimits="false">lim</mo><mrow>$vMathMl<mo>&#x2192;</mo>$ptMathMl</mrow></munder>${_formatMulRight(expr, decimalPlaces)}</mrow>';
   }(),
@@ -266,21 +267,21 @@ String _formatComplexMathMl(ComplexNumber c, int decimalPlaces) {
   if (real.isZero) {
     if (imag.isOne) return '<mi>i</mi>';
     if (imag.isNegativeOne) {
-      return '<mrow><mo form="prefix">&minus;</mo><mi>i</mi></mrow>';
+      return '<mrow><mo form="prefix">&#x2212;</mo><mi>i</mi></mrow>';
     }
     if (imag.isNegative) {
-      return '<mrow><mo form="prefix">&minus;</mo>${_toMathMl(imag.neg(), decimalPlaces)}<mi>i</mi></mrow>';
+      return '<mrow><mo form="prefix">&#x2212;</mo>${_toMathMl(imag.neg(), decimalPlaces)}<mi>i</mi></mrow>';
     }
     return '<mrow>${_toMathMl(imag, decimalPlaces)}<mi>i</mi></mrow>';
   }
   final realStr = _toMathMl(real, decimalPlaces);
   if (imag.isOne) return '<mrow>$realStr<mo>+</mo><mi>i</mi></mrow>';
   if (imag.isNegativeOne) {
-    return '<mrow>$realStr<mo>&minus;</mo><mi>i</mi></mrow>';
+    return '<mrow>$realStr<mo>&#x2212;</mo><mi>i</mi></mrow>';
   }
   if (imag.isNegative) {
     final posImag = imag.neg();
-    return '<mrow>$realStr<mo>&minus;</mo><mrow>${_toMathMl(posImag, decimalPlaces)}<mi>i</mi></mrow></mrow>';
+    return '<mrow>$realStr<mo>&#x2212;</mo><mrow>${_toMathMl(posImag, decimalPlaces)}<mi>i</mi></mrow></mrow>';
   }
   return '<mrow>$realStr<mo>+</mo><mrow>${_toMathMl(imag, decimalPlaces)}<mi>i</mi></mrow></mrow>';
 }
@@ -298,7 +299,7 @@ String _formatAddMathMl(List<Expr> terms, int decimalPlaces) {
         final term = terms[i];
         if (stripLeadingNegative(term) case final stripped?) {
           buffer
-            ..write('<mo>&minus;</mo>')
+            ..write('<mo>&#x2212;</mo>')
             ..write(_formatSubRight(stripped, decimalPlaces));
         } else {
           buffer
@@ -333,7 +334,7 @@ String _formatMulMathMl(List<Expr> factors, int decimalPlaces) {
         final denMathMl = _formatMulProductMathMl(denominator, decimalPlaces);
         final frac = '<mfrac>$numMathMl$denMathMl</mfrac>';
         return isNegative
-            ? '<mrow><mo form="prefix">&minus;</mo>$frac</mrow>'
+            ? '<mrow><mo form="prefix">&#x2212;</mo>$frac</mrow>'
             : frac;
       }
       return _formatMulProductMathMl(factors, decimalPlaces);
@@ -351,12 +352,12 @@ String _formatMulProductMathMl(List<Expr> factors, int decimalPlaces) {
         [final single] => single,
         _ => Mul(rest),
       };
-      return '<mrow><mo form="prefix">&minus;</mo>${_formatNegOperand(operand, decimalPlaces)}</mrow>';
+      return '<mrow><mo form="prefix">&#x2212;</mo>${_formatNegOperand(operand, decimalPlaces)}</mrow>';
     default:
       final buffer = StringBuffer('<mrow>');
       var firstFactor = factors.first;
       if (firstFactor case final RealNumeric n when n.isNegative) {
-        buffer.write('<mo form="prefix">&minus;</mo>');
+        buffer.write('<mo form="prefix">&#x2212;</mo>');
         firstFactor = n.neg();
       }
       buffer.write(_formatMulLeft(firstFactor, decimalPlaces));
@@ -389,16 +390,16 @@ String _formatOrderTermMathMl(
     if (order == 1) {
       return '<mrow><mi>O</mi><mo>(</mo>$varMl<mo>)</mo></mrow>';
     }
-    return '<mrow><mi>O</mi><mo>(</mo><msup>$varMl<mn>$order</mn></msup><mo>)</mo></mrow>';
+    return '<mrow><mi>O</mi><mo>(</mo><msup>$varMl${_toMathMl(IntegerNumber.of(order), decimalPlaces)}</msup><mo>)</mo></mrow>';
   }
   final stripped = stripLeadingNegative(point);
   final diff = stripped != null
       ? '<mrow>$varMl<mo>+</mo>${_toMathMl(stripped, decimalPlaces)}</mrow>'
-      : '<mrow>$varMl<mo>&minus;</mo>${_formatSubRight(point, decimalPlaces)}</mrow>';
+      : '<mrow>$varMl<mo>&#x2212;</mo>${_formatSubRight(point, decimalPlaces)}</mrow>';
   if (order == 1) {
     return '<mrow><mi>O</mi><mo>(</mo>$diff<mo>)</mo></mrow>';
   }
-  return '<mrow><mi>O</mi><mo>(</mo><msup><mrow><mo>(</mo>$diff<mo>)</mo></mrow><mn>$order</mn></msup><mo>)</mo></mrow>';
+  return '<mrow><mi>O</mi><mo>(</mo><msup><mrow><mo>(</mo>$diff<mo>)</mo></mrow>${_toMathMl(IntegerNumber.of(order), decimalPlaces)}</msup><mo>)</mo></mrow>';
 }
 
 String _formatPow(Expr base, Expr exponent, int decimalPlaces) {

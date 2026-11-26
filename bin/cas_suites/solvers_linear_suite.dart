@@ -194,7 +194,7 @@ final CasTestSuite solversLinearSuite = CasTestSuite(
           [parseCas('a'), IntegerNumber.one],
           [IntegerNumber.zero, parseCas('b')],
         ], type: exprDataType);
-        final cp = m.characteristicPolynomial('lambda');
+        final cp = m.characteristicPolynomial();
         final exp = parseCas('(lambda - a) * (lambda - b)');
         final ok = verifyExprEquivalent(cp, exp);
         return (ok: ok, detail: ok ? null : 'got $cp');

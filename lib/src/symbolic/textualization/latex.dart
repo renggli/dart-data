@@ -25,7 +25,7 @@ extension LatexExtension on Expr {
 String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
   Variable(:final name) => _formatVariableLatex(name),
   VariableFunction(:final name, :final arguments) =>
-    '$name(${arguments.map((a) => _toLatex(a, decimalPlaces)).join(', ')})',
+    '${_escapeLatexIdent(name)}(${arguments.map((a) => _toLatex(a, decimalPlaces)).join(', ')})',
   Constant(:final latex) => latex,
   IntegerNumber(:final value) => '$value',
   FractionNumber(:final numerator, :final denominator) =>
@@ -158,8 +158,7 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
     '${_toLatex(left, decimalPlaces)} \\ne ${_toLatex(right, decimalPlaces)}',
   Piecewise(:final branches, :final otherwise) =>
     '\\begin{cases} '
-        '${branches.map((b) => '${_toLatex(b.expr, decimalPlaces)}, & \\text{if } ${_toLatex(b.relation, decimalPlaces)}').join(' \\\\ ')}'
-        '${otherwise != null ? ' \\\\ ${_toLatex(otherwise, decimalPlaces)}, & \\text{otherwise}' : ''}'
+        '${[for (final b in branches) '${_toLatex(b.expr, decimalPlaces)}, & \\text{if } ${_toLatex(b.relation, decimalPlaces)}', if (otherwise != null) '${_toLatex(otherwise, decimalPlaces)}, & \\text{otherwise}'].join(' \\\\ ')}'
         ' \\end{cases}',
   Integral(:final integrand, :final variable, :final lower, :final upper) => () {
     final varLatex = _toLatex(Variable(variable), decimalPlaces);
@@ -377,15 +376,30 @@ const _greekLetters = <String>{
   'Omega',
 };
 
+String _escapeLatexIdent(String name) => name
+    .replaceAll(r'\', r'\textbackslash{}')
+    .replaceAll('_', r'\_')
+    .replaceAll('%', r'\%')
+    .replaceAll('&', r'\&')
+    .replaceAll('#', r'\#')
+    .replaceAll(r'$', r'\$')
+    .replaceAll('{', r'\{')
+    .replaceAll('}', r'\}');
+
 String _formatVariableLatex(String name) {
   final idx = name.indexOf('_');
   if (idx > 0 && idx < name.length - 1) {
     final base = name.substring(0, idx);
     final sub = name.substring(idx + 1);
-    final baseTex = _greekLetters.contains(base) ? '\\$base' : base;
-    return '${baseTex}_{$sub}';
+    final baseTex = _greekLetters.contains(base)
+        ? '\\$base'
+        : _escapeLatexIdent(base);
+    final subTex = _greekLetters.contains(sub)
+        ? '\\$sub'
+        : _escapeLatexIdent(sub);
+    return '${baseTex}_{$subTex}';
   }
-  return _greekLetters.contains(name) ? '\\$name' : name;
+  return _greekLetters.contains(name) ? '\\$name' : _escapeLatexIdent(name);
 }
 
 String _formatPowBase(Expr base, int decimalPlaces) => needsPowBaseParens(base)

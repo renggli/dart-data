@@ -17,15 +17,15 @@ import 'summation_infinite.dart';
 
 /// Closed-form symbolic summation and product extension on [Expr].
 extension SummationExtension on Expr {
-  /// Computes the definite sum $\sum_{\text{variable}=\text{from}}^{\text{to}} \text{this}$.
+  /// Computes the definite sum `sum_{variable=from}^to this`.
   ///
   /// Supports:
-  /// - Concrete integer ranges (including empty sums when $\text{to} < \text{from}$).
-  /// - Polynomial sums $\sum k^p$ via Faulhaber / Bernoulli polynomial formulas.
-  /// - Geometric and polynomial-geometric sums $\sum P(k) r^k$.
+  /// - Concrete integer ranges (including empty sums when `to < from`).
+  /// - Polynomial sums `sumk^p` via Faulhaber / Bernoulli polynomial formulas.
+  /// - Geometric and polynomial-geometric sums `sumP(k) r^k`.
   /// - Rational telescoping sums via partial fraction decomposition (`apart`)
-  ///   and shift-difference matching (e.g. $\sum \frac{1}{k(k+1)}$).
-  /// - Factorial polynomial sums $\sum P(k) k!$ via Gosper antidifferences.
+  ///   and shift-difference matching (e.g. `sum(1)/(k(k+1))`).
+  /// - Factorial polynomial sums `sumP(k) k!` via Gosper antidifferences.
   /// - Infinite convergent series when `to` is [Constant.infinity] or
   ///   [double.infinity].
   ///
@@ -50,8 +50,8 @@ extension SummationExtension on Expr {
     assumptions: assumptions,
   );
 
-  /// Computes the indefinite antidifference $F(k)$ such that
-  /// $F(k + 1) - F(k) = \text{this}$, or returns `null` if no closed-form
+  /// Computes the indefinite antidifference `F(k)` such that
+  /// `F(k + 1) - F(k) = this`, or returns `null` if no closed-form
   /// antidifference is found.
   Expr? indefiniteSum(
     String variable, {
@@ -61,14 +61,14 @@ extension SummationExtension on Expr {
     variable,
   )?.simplify(assumptions: assumptions);
 
-  /// Computes the definite product $\prod_{\text{variable}=\text{from}}^{\text{to}} \text{this}$.
+  /// Computes the definite product `prod_{variable=from}^to this`.
   ///
   /// Supports:
-  /// - Concrete integer ranges (including empty products when $\text{to} < \text{from}$).
-  /// - Constant factors $\prod_{k=a}^b c = c^{b - a + 1}$.
-  /// - Factorial and shifted linear factors $\prod_{k=1}^n k = n!$.
-  /// - Exponential factors $\prod r^{g(k)} = r^{\sum g(k)}$.
-  /// - Telescoping rational products $\prod \frac{g(k+1)}{g(k)} = \frac{g(b+1)}{g(a)}$.
+  /// - Concrete integer ranges (including empty products when `to < from`).
+  /// - Constant factors `prod_{k=a}^b c = c^{b - a + 1}`.
+  /// - Factorial and shifted linear factors `prod_{k=1}^n k = n!`.
+  /// - Exponential factors `prodr^{g(k)} = r^{sumg(k)}`.
+  /// - Telescoping rational products `prod(g(k+1))/(g(k)) = (g(b+1))/(g(a))`.
   ///
   /// Returns an unevaluated [Product] node when no closed-form product can be
   /// determined.
@@ -91,7 +91,7 @@ extension SummationExtension on Expr {
   );
 }
 
-/// Evaluates the definite sum $\sum_{k=a}^b \text{term}$.
+/// Evaluates the definite sum `sum_{k=a}^b term`.
 Expr computeSum(
   Expr term,
   String variable,
@@ -113,8 +113,8 @@ Expr computeSum(
   // Normalize infinite series starting at k = a (integer) by shifting to k = 0 or k = 1,
   // or check known closed-form infinite series directly.
   if (b == Constant.infinity) {
-    const limitVarName = '__sum_N';
-    const limitVar = Variable(limitVarName);
+    final limitVarName = freshLimitVar('_sum_N', simplifiedTerm, a);
+    final limitVar = Variable(limitVarName);
     final mergedAssumptions = assumptions.copyWith(
       domains: {limitVarName: VariableDomain.integer},
     );
@@ -126,10 +126,10 @@ Expr computeSum(
       assumptions: mergedAssumptions,
     );
     if (finite is! Sum) {
-      final symBase = findSymbolicBasePow(finite, limitVarName);
-      if (symBase != null) {
+      final symPow = findSymbolicBasePow(finite, limitVarName, assumptions);
+      if (symPow != null) {
         try {
-          final assumedZero = zeroOutBasePow(finite, symBase, limitVarName);
+          final assumedZero = zeroOutBasePow(finite, symPow.base, limitVarName);
           final closedForm = assumedZero
               .limit(
                 limitVarName,
@@ -138,16 +138,12 @@ Expr computeSum(
               )
               .simplify(assumptions: assumptions);
           if (closedForm is! Limit && closedForm != Constant.undefined) {
+            final absBase = Abs(symPow.base, isSimplified: true);
+            final domainRel = symPow.expSign > 0
+                ? LessThan(absBase, IntegerNumber.one)
+                : GreaterThan(absBase, IntegerNumber.one);
             return Piecewise(
-              [
-                (
-                  relation: LessThan(
-                    Abs(symBase, isSimplified: true),
-                    IntegerNumber.one,
-                  ),
-                  expr: closedForm,
-                ),
-              ],
+              [(relation: domainRel, expr: closedForm)],
               otherwise: Sum(
                 simplifiedTerm,
                 variable,
@@ -250,7 +246,7 @@ Expr computeSum(
   return Sum(simplifiedTerm, variable, a, b, isSimplified: true);
 }
 
-/// Computes $\zeta(2m) = \frac{|B_{2m}| (2\pi)^{2m}}{2 (2m)!}$ for even $p = 2m \ge 2$.
+/// Computes `zeta(2m) = (|B_2m| (2pi)^2m)/(2 (2m)!)` for even `p = 2m >=2`.
 Expr evenZetaValue(int p) {
   final bernoulli = bernoulliNumbers(p);
   final bpAbs = bernoulli[p].abs();
@@ -332,9 +328,9 @@ Expr? _antidifferenceCore(Expr term, String variable) {
   }
 
   // 2. Geometric term r^(a*k + b)
-  if (_matchGeometric(term, variable) case (:final ratio, :final scale)
+  if (_matchGeometric(term, variable) case final ratio?
       when ratio != IntegerNumber.one) {
-    return (scale * term / (ratio - IntegerNumber.one)).simplify();
+    return (term / (ratio - IntegerNumber.one)).simplify();
   }
 
   // 3. Polynomial * Geometric: P(k) * r^k (Gosper polynomial-geometric)
@@ -374,8 +370,8 @@ Expr? _antidifferenceCore(Expr term, String variable) {
   return null;
 }
 
-/// Computes $F_p(k) = \frac{1}{p+1} \sum_{j=0}^p \binom{p+1}{j} B_j^- k^{p+1-j}$
-/// satisfying $F_p(k+1) - F_p(k) = k^p$.
+/// Computes `F_p(k) = (1)/(p+1) sum_{j=0}^p binomial(p+1, j) B_j^- k^p+1-j`
+/// satisfying `F_p(k+1) - F_p(k) = k^p`.
 Expr _faulhaberAntidifference(String variable, int p) {
   final kVar = Variable(variable);
   if (p == 0) return kVar;
@@ -396,7 +392,7 @@ Expr _faulhaberAntidifference(String variable, int p) {
   return simplifyAdd(terms, assumptions: Assumptions.none);
 }
 
-({Expr ratio, Expr scale})? _matchGeometric(Expr term, String variable) {
+Expr? _matchGeometric(Expr term, String variable) {
   final factors = term is Mul ? term.factors : [term];
   final ratios = <Expr>[];
   for (final f in factors) {
@@ -410,8 +406,7 @@ Expr _faulhaberAntidifference(String variable, int p) {
     return null;
   }
   if (ratios.isEmpty) return null;
-  final ratio = simplifyMul(ratios, assumptions: Assumptions.none).simplify();
-  return (ratio: ratio, scale: IntegerNumber.one);
+  return simplifyMul(ratios, assumptions: Assumptions.none).simplify();
 }
 
 ({Map<int, Expr> polyCoeffs, Expr ratio, Expr expNode})?
@@ -446,8 +441,8 @@ _matchPolynomialGeometric(Expr term, String variable) {
   return (polyCoeffs: polyCoeffs, ratio: ratio, expNode: expNode);
 }
 
-/// Solves $r \cdot Q(k + 1) - Q(k) = P(k)$ for the polynomial $Q(k)$ by
-/// upper-triangular back-substitution from degree $d$ down to $0$.
+/// Solves `r * Q(k + 1) - Q(k) = P(k)` for the polynomial `Q(k)` by
+/// upper-triangular back-substitution from degree `d` down to `0`.
 Expr? _solvePolynomialGeometricGosper(
   Map<int, Expr> pCoeffs,
   Expr r,
@@ -502,8 +497,8 @@ Expr? _solvePolynomialGeometricGosper(
   return (polyCoeffs: polyCoeffs, factNode: factNode);
 }
 
-/// Solves $(k + 1) Q(k + 1) - Q(k) = P(k)$ for polynomial $Q(k)$ of degree
-/// $\deg(P) - 1$. Returns `null` if the constant residual does not vanish.
+/// Solves `(k + 1) Q(k + 1) - Q(k) = P(k)` for polynomial `Q(k)` of degree
+/// `deg(P) - 1`. Returns `null` if the constant residual does not vanish.
 Expr? _solvePolynomialFactorialGosper(Map<int, Expr> pCoeffs, String variable) {
   var maxDeg = 0;
   for (final deg in pCoeffs.keys) {
@@ -555,7 +550,7 @@ bool isRationalIn(Expr expr, String variable) {
 }
 
 /// Checks if a partial-fraction-decomposed rational expression telescopes:
-/// $\sum_i \frac{c_i}{(k + \alpha_i)^m}$ where poles differ by integers and
+/// `sum_i (c_i)/((k + alpha_i)^m)` where poles differ by integers and
 /// residues sum to zero in each shift class.
 Expr? _tryRationalTelescoping(Expr apartExpr, String variable) {
   final rawTerms = <Expr>[];
@@ -580,8 +575,7 @@ Expr? _tryRationalTelescoping(Expr apartExpr, String variable) {
     parsedTerms.add((coeff: num, a: lin.a, b: lin.b, m: m));
   }
 
-  // Group terms by (a, m) and integer shifts of b / a:
-  // If b_j / a - b_i / a = d (integer), then a*k + b_j = a*(k + d) + b_i.
+  // Group terms by (a, m) and integer shifts of b / a where sum of coeffs == 0.
   final used = List<bool>.filled(parsedTerms.length, false);
   final antiParts = <Expr>[];
   final kVar = Variable(variable);
@@ -589,44 +583,66 @@ Expr? _tryRationalTelescoping(Expr apartExpr, String variable) {
   for (var i = 0; i < parsedTerms.length; i++) {
     if (used[i]) continue;
     final ti = parsedTerms[i];
-    // Find a partner j with the same (a, m), opposite coeff, and integer shift d = (b_j - b_i) / a
-    var matched = false;
+    final groupIndices = <int>[i];
+    final shifts = <int>[0];
     for (var j = i + 1; j < parsedTerms.length; j++) {
       if (used[j]) continue;
       final tj = parsedTerms[j];
       if (ti.m != tj.m || ti.a != tj.a) continue;
-      if ((ti.coeff + tj.coeff).simplify() != IntegerNumber.zero) continue;
-
       final shiftExpr = ((tj.b - ti.b) / ti.a).simplify();
       if (shiftExpr case IntegerNumber(asInt: final d?)
           when d != 0 && d.abs() <= 16) {
-        used[i] = true;
-        used[j] = true;
-        matched = true;
-        // If d > 0: ti is c / f(k) and tj is -c / f(k + d).
-        // Since Delta(-c * sum_{s=0..d-1} 1 / f(k + s)) = c / f(k) - c / f(k + d):
-        final absD = d.abs();
-        final baseB = d > 0 ? ti.b : tj.b;
-        final c = d > 0 ? ti.coeff : tj.coeff;
-        for (var s = 0; s < absD; s++) {
-          final shiftedDenBase = (ti.a * (kVar + IntegerNumber.of(s)) + baseB)
-              .simplify();
-          final shiftedDen = ti.m == 1
-              ? shiftedDenBase
-              : Pow(shiftedDenBase, IntegerNumber.of(ti.m));
-          antiParts.add((-c / shiftedDen).simplify());
-        }
-        break;
+        groupIndices.add(j);
+        shifts.add(d);
       }
     }
-    if (!matched) return null;
+    if (groupIndices.length < 2) return null;
+    final totalCoeff = Add([
+      for (final idx in groupIndices) parsedTerms[idx].coeff,
+    ]).simplify();
+    if (totalCoeff != IntegerNumber.zero) return null;
+
+    var minShift = 0;
+    var maxShift = 0;
+    for (final s in shifts) {
+      if (s < minShift) minShift = s;
+      if (s > maxShift) maxShift = s;
+    }
+    final span = maxShift - minShift;
+    if (span == 0 || span > 16) return null;
+
+    final coeffByShift = <int, Expr>{};
+    for (var idx = 0; idx < groupIndices.length; idx++) {
+      used[groupIndices[idx]] = true;
+      final rel = shifts[idx] - minShift;
+      final cur = coeffByShift[rel];
+      final c = parsedTerms[groupIndices[idx]].coeff;
+      coeffByShift[rel] = cur == null ? c : (cur + c).simplify();
+    }
+
+    final minTjB = (ti.b + IntegerNumber.of(minShift) * ti.a).simplify();
+    Expr prefixSum = IntegerNumber.zero;
+    for (var s = 0; s < span; s++) {
+      final cs = coeffByShift[s];
+      if (cs != null) {
+        prefixSum = (prefixSum + cs).simplify();
+      }
+      if (prefixSum != IntegerNumber.zero) {
+        final shiftedDenBase = (ti.a * (kVar + IntegerNumber.of(s)) + minTjB)
+            .simplify();
+        final shiftedDen = ti.m == 1
+            ? shiftedDenBase
+            : Pow(shiftedDenBase, IntegerNumber.of(ti.m));
+        antiParts.add((-prefixSum / shiftedDen).simplify());
+      }
+    }
   }
 
   return simplifyAdd(antiParts, assumptions: Assumptions.none);
 }
 
-/// Detects general telescoping differences $g(k + d) - g(k)$ or $g(k) - g(k + d)$
-/// for $1 \le d \le 4$.
+/// Detects general telescoping differences `g(k + d) - g(k)` or `g(k) - g(k + d)`
+/// for `1 <=d <=4`.
 Expr? _tryGeneralTelescoping(Expr expr, String variable) {
   if (expr is! Add || expr.terms.length != 2) return null;
   final t0 = expr.terms[0];

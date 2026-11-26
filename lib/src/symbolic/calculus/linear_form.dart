@@ -5,13 +5,13 @@ import '../ast.dart';
 /// Linear form matching, affine decomposition, and scalar scaling extension on
 /// [Expr].
 extension LinearFormExtension on Expr {
-  /// Decomposes this expression into affine form $a \cdot [variable] + b$,
-  /// where $a$ and $b$ do not depend on [variable], and $a \ne 0$.
+  /// Decomposes this expression into affine form `a * [variable] + b`,
+  /// where `a` and `b` do not depend on [variable], and `a !=0`.
   ///
   /// ```dart
   /// final x = Variable('x');
   /// final lin = (x * 2 + 5).matchLinear('x');
-  /// // lin?.a == RationalNumber(2), lin?.b == RationalNumber(5)
+  /// // lin?.a == IntegerNumber.two, lin?.b == IntegerNumber.of(5)
   /// ```
   ({Expr a, Expr b})? matchLinear(String variable) =>
       _matchLinear(this, variable);
@@ -19,12 +19,12 @@ extension LinearFormExtension on Expr {
   /// Tests whether this expression is an exact scalar multiple of [target] with
   /// respect to [variable].
   ///
-  /// Returns scalar factor $k$ such that $\text{this} = k \cdot target$, where
-  /// $k$ does not depend on [variable].
+  /// Returns scalar factor `k` such that `this = k * target`, where
+  /// `k` does not depend on [variable].
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final k = (x * 6).matchScalarMultiple(x * 2, 'x'); // RationalNumber(3)
+  /// final k = (x * 6).matchScalarMultiple(x * 2, 'x'); // IntegerNumber.of(3)
   /// ```
   Expr? matchScalarMultiple(Expr target, String variable) =>
       _matchScalarMultiple(this, target, variable);
@@ -33,7 +33,7 @@ extension LinearFormExtension on Expr {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final scaled = (x + 2).scale(RationalNumber(3)); // 3 * x + 6
+  /// final scaled = (x + 2).scale(IntegerNumber.of(3)); // 3 * x + 6
   /// ```
   Expr scale(Expr factor) => _scaleExpr(this, factor);
 }
@@ -78,6 +78,7 @@ extension LinearFormExtension on Expr {
     final sub = _matchLinear(singleVar, variable);
     if (sub == null) return null;
     final scale = switch (constFactors) {
+      [] => IntegerNumber.one,
       [final single] => single,
       _ => Mul(constFactors),
     };
@@ -122,13 +123,17 @@ extension LinearFormExtension on Expr {
 Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
   expr = expr.simplify();
   target = target.simplify();
+  if (target is Number && target.isZero) return null;
   if (expr == target) {
     return IntegerNumber.one;
   }
 
-  final (cExpr, vExpr) = _splitConstAndVar(expr, variable);
-  final (cTarget, vTarget) = _splitConstAndVar(target, variable);
-  if (vExpr == vTarget) {
+  final (coeff: cExpr, varPart: vExpr) = _splitConstAndVar(expr, variable);
+  final (coeff: cTarget, varPart: vTarget) = _splitConstAndVar(
+    target,
+    variable,
+  );
+  if (vExpr == vTarget && !(cTarget is Number && cTarget.isZero)) {
     return (cExpr / cTarget).simplify();
   }
 
@@ -136,9 +141,12 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
     final lin1?,
     final lin2?,
   )) {
-    final cross = (lin1.a * lin2.b - lin2.a * lin1.b).simplify();
-    if (cross is Number && cross.isZero) {
-      return (lin1.a / lin2.a).simplify();
+    final lin2a = lin2.a;
+    if (!(lin2a is Number && lin2a.isZero)) {
+      final cross = (lin1.a * lin2.b - lin2a * lin1.b).simplify();
+      if (cross is Number && cross.isZero) {
+        return (lin1.a / lin2a).simplify();
+      }
     }
   }
 
@@ -153,7 +161,7 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
   return null;
 }
 
-(Expr, Expr) _splitConstAndVar(Expr expr, String variable) {
+({Expr coeff, Expr varPart}) _splitConstAndVar(Expr expr, String variable) {
   if (expr case Mul(:final factors)) {
     final (constFactors: consts, varFactors: vars) = partitionFactors(
       factors,
@@ -169,12 +177,12 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
       [final single] => single,
       _ => Mul(vars).simplify(),
     };
-    return (c, v);
+    return (coeff: c, varPart: v);
   }
   if (!expr.dependsOn(variable)) {
-    return (expr, IntegerNumber.one);
+    return (coeff: expr, varPart: IntegerNumber.one);
   }
-  return (IntegerNumber.one, expr);
+  return (coeff: IntegerNumber.one, varPart: expr);
 }
 
 Expr _scaleExpr(Expr expr, Expr factor) {

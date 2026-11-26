@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import '../algebra/simplify.dart';
+import '../algebra/simplify/domain.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
 import '../number/integer.dart';
 import 'differentiation.dart';
-
 import 'series.dart';
 
 PowerSeries expandSin(Expr inner, String variable, Expr point, int order) =>
@@ -131,57 +134,116 @@ PowerSeries expandPow(
   Expr exponent,
   String variable,
   Expr point,
-  int order,
-) {
+  int order, [
+  Assumptions assumptions = Assumptions.none,
+]) {
   if (!exponent.dependsOn(variable)) {
-    final expSimp = exponent.simplify();
-    final sBase = expandToPowerSeries(base, variable, point, order);
-    if (expSimp is IntegerNumber) {
-      if (expSimp.isNegative) {
-        final k = -(expSimp.asInt ?? 1);
-        final m = sBase.valuation;
-        if (m > 0) {
-          final boostedBase = expandToPowerSeries(
-            base,
-            variable,
-            point,
-            order + 2 * k * m,
-          );
-          return boostedBase.pow(expSimp);
+    final expSimp = exponent.simplify(assumptions: assumptions);
+    var probeOrder = math.max(order, 4);
+    var sBase = expandToPowerSeries(
+      base,
+      variable,
+      point,
+      probeOrder,
+      assumptions,
+    );
+    while (sBase.coefficients.isEmpty && probeOrder < math.max(order, 4) + 64) {
+      probeOrder *= 2;
+      sBase = expandToPowerSeries(
+        base,
+        variable,
+        point,
+        probeOrder,
+        assumptions,
+      );
+    }
+    if (sBase.coefficients.isNotEmpty) {
+      final m = sBase.valuation;
+      if (expSimp case IntegerNumber(asInt: final intExp?)) {
+        if (intExp < 0) {
+          final k = -intExp;
+          if (m > 0) {
+            final requiredOrder = math.max(m + 1, order + (k + 1) * m);
+            if (requiredOrder > sBase.order) {
+              sBase = expandToPowerSeries(
+                base,
+                variable,
+                point,
+                requiredOrder,
+                assumptions,
+              );
+            }
+          }
+        } else if (intExp > 1 && m < 0) {
+          final requiredOrder = order + (intExp - 1) * (-m);
+          if (requiredOrder > sBase.order) {
+            sBase = expandToPowerSeries(
+              base,
+              variable,
+              point,
+              requiredOrder,
+              assumptions,
+            );
+          }
         }
-      } else {
-        final n = expSimp.asInt;
-        final m = sBase.valuation;
-        if (n != null && n > 1 && m < 0) {
-          final boostedBase = expandToPowerSeries(
-            base,
-            variable,
-            point,
-            order + (n - 1) * (-m),
-          );
-          return boostedBase.pow(expSimp);
+      } else if (expSimp is FractionNumber && m != 0) {
+        final prod = Integer.from(m) * expSimp.numerator;
+        if ((prod % expSimp.denominator).isZero) {
+          final newM = (prod ~/ expSimp.denominator).toInt();
+          final requiredOrder = math.max(m + 1, m + (order - newM));
+          if (requiredOrder > sBase.order) {
+            sBase = expandToPowerSeries(
+              base,
+              variable,
+              point,
+              requiredOrder,
+              assumptions,
+            );
+          }
         }
       }
     }
-    return sBase.pow(expSimp);
+    final res = sBase.pow(expSimp);
+    if (res.order > order) {
+      return PowerSeries(variable, point, res.coefficients, order);
+    }
+    return res;
   }
-  return expandExp(exponent * Ln(base), variable, point, order);
+  return expandExp(exponent * Ln(base), variable, point, order, assumptions);
 }
 
-PowerSeries expandAbs(Expr inner, String variable, Expr point, int order) {
-  final sInner = expandToPowerSeries(inner, variable, point, order);
+PowerSeries expandAbs(
+  Expr inner,
+  String variable,
+  Expr point,
+  int order, [
+  Assumptions assumptions = Assumptions.none,
+]) {
+  final sInner = expandToPowerSeries(
+    inner,
+    variable,
+    point,
+    order,
+    assumptions,
+  );
   checkNoPole(sInner, 'abs');
   final c0 = sInner.constantTerm;
   if (c0 is RealNumeric) {
     if (c0.sign > 0) return sInner;
     if (c0.sign < 0) return -sInner;
   }
+  if (isPositiveExpr(c0, assumptions: assumptions)) return sInner;
+  if (isNegativeExpr(c0, assumptions: assumptions)) return -sInner;
   if (!c0.dependsOn(variable) && c0.freeVariables.isEmpty) {
     try {
       final val = c0.evaluate();
       if (val > 0) return sInner;
       if (val < 0) return -sInner;
-    } on Object {
+    } on UnsupportedError {
+      // Fall through
+    } on ArgumentError {
+      // Fall through
+    } on StateError {
       // Fall through
     }
   }
@@ -472,7 +534,9 @@ PowerSeries expandAcosh(Expr inner, String variable, Expr point, int order) {
       }
     } on UnsupportedError {
       rethrow;
-    } on Object {
+    } on ArgumentError {
+      // Ignore numeric evaluation errors on symbolic constants
+    } on StateError {
       // Ignore numeric evaluation errors on symbolic constants
     }
   }
@@ -515,10 +579,11 @@ PowerSeries expandPiecewise(
   if (!point.dependsOn(variable)) {
     try {
       final ptVal = point.evaluate(const {});
+      final eps = math.max(1e-7, ptVal.abs() * 1e-7);
       for (final (:relation, :expr) in branches) {
         final atPt = relation.evaluate({variable: ptVal});
-        final leftVal = relation.evaluate({variable: ptVal - 1e-7});
-        final rightVal = relation.evaluate({variable: ptVal + 1e-7});
+        final leftVal = relation.evaluate({variable: ptVal - eps});
+        final rightVal = relation.evaluate({variable: ptVal + eps});
         if (atPt != leftVal || atPt != rightVal) {
           throw UnsupportedError(
             'Piecewise expression is not analytic at boundary point $point',
@@ -533,7 +598,9 @@ PowerSeries expandPiecewise(
       }
     } on UnsupportedError {
       rethrow;
-    } on Object {
+    } on ArgumentError {
+      // Fall through if point is not numerically evaluable
+    } on StateError {
       // Fall through if point is not numerically evaluable
     }
   }
@@ -557,7 +624,9 @@ PowerSeries expandSign(Expr inner, String variable, Expr point, int order) {
       }
     } on UnsupportedError {
       rethrow;
-    } on Object {
+    } on ArgumentError {
+      // Ignore evaluation errors
+    } on StateError {
       // Ignore evaluation errors
     }
   }
@@ -579,7 +648,9 @@ PowerSeries expandFloor(Expr inner, String variable, Expr point, int order) {
       }
     } on UnsupportedError {
       rethrow;
-    } on Object {
+    } on ArgumentError {
+      // Ignore evaluation errors
+    } on StateError {
       // Ignore evaluation errors
     }
   }
@@ -601,7 +672,9 @@ PowerSeries expandCeil(Expr inner, String variable, Expr point, int order) {
       }
     } on UnsupportedError {
       rethrow;
-    } on Object {
+    } on ArgumentError {
+      // Ignore evaluation errors
+    } on StateError {
       // Ignore evaluation errors
     }
   }
@@ -620,7 +693,9 @@ PowerSeries expandRound(Expr inner, String variable, Expr point, int order) {
       }
     } on UnsupportedError {
       rethrow;
-    } on Object {
+    } on ArgumentError {
+      // Ignore evaluation errors
+    } on StateError {
       // Ignore evaluation errors
     }
   }
@@ -679,7 +754,9 @@ PowerSeries expandGamma(Expr inner, String variable, Expr point, int order) {
         }
       } on UnsupportedError {
         rethrow;
-      } on Object {
+      } on ArgumentError {
+        // Ignore evaluation errors
+      } on StateError {
         // Ignore evaluation errors
       }
     }
@@ -712,7 +789,9 @@ PowerSeries expandDigamma(Expr inner, String variable, Expr point, int order) {
         }
       } on UnsupportedError {
         rethrow;
-      } on Object {
+      } on ArgumentError {
+        // Ignore evaluation errors
+      } on StateError {
         // Ignore evaluation errors
       }
     }
@@ -751,7 +830,9 @@ PowerSeries expandPolygamma(
         }
       } on UnsupportedError {
         rethrow;
-      } on Object {
+      } on ArgumentError {
+        // Ignore evaluation errors
+      } on StateError {
         // Ignore evaluation errors
       }
     }
@@ -780,7 +861,9 @@ PowerSeries expandZeta(Expr inner, String variable, Expr point, int order) {
         }
       } on UnsupportedError {
         rethrow;
-      } on Object {
+      } on ArgumentError {
+        // Ignore evaluation errors
+      } on StateError {
         // Ignore evaluation errors
       }
     }
@@ -813,7 +896,11 @@ PowerSeries expandBessel(
               try {
                 final v = nu.evaluate();
                 return v == v.floorToDouble();
-              } on Object {
+              } on UnsupportedError {
+                return false;
+              } on ArgumentError {
+                return false;
+              } on StateError {
                 return false;
               }
             }());
@@ -891,5 +978,3 @@ PowerSeries expandBinomial(
           .simplify();
   return expandTaylorSeries(gammaExpr, variable, point, order);
 }
-
-Expr wrapSeriesPoint(Object point) => Expr.wrap(point);

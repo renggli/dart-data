@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('First-order linear ODEs', () {
@@ -140,51 +140,66 @@ void main() {
     });
   });
 
-  group('Derivative notation variants & error handling', () {
-    const x = Variable('x');
-    const y = Variable('y');
+  group(
+    'First-class Derivative nodes, relational forms, and error handling',
+    () {
+      const x = Variable('x');
+      const y = Variable('y');
 
-    test('supports y\' notation', () {
-      const yPrime = Variable("y'");
-      final ode = yPrime - (y * 2);
-      final sol = ode.solveOde(dependent: 'y', independent: 'x');
-      check(sol.dependsOn('C1')).isTrue;
-    });
+      test('does not interpret string variable names as derivatives', () {
+        for (final name in ["y'", 'dy', 'y_prime', 'Dy']) {
+          final ode = Variable(name) - (y * 2);
+          check(() => ode.solveOde(dependent: 'y', independent: 'x'))
+              .throws<ArgumentError>();
+        }
+      });
 
-    test('supports dy notation', () {
-      const dy = Variable('dy');
-      final ode = dy - (y * 2);
-      final sol = ode.solveOde(dependent: 'y', independent: 'x');
-      check(sol.dependsOn('C1')).isTrue;
-    });
+      test('rejects non-Equal relational expressions', () {
+        final dy = Derivative(y, 'x');
+        check(
+          () => LessThan(dy, y * 2).solveOde(dependent: 'y', independent: 'x'),
+        ).throws<ArgumentError>();
+        check(
+          () => GreaterEqual(
+            dy,
+            y * 2,
+          ).solveOde(dependent: 'y', independent: 'x'),
+        ).throws<ArgumentError>();
+      });
 
-    test('supports y_prime notation', () {
-      const yPrime = Variable('y_prime');
-      final ode = yPrime - (y * 2);
-      final sol = ode.solveOde(dependent: 'y', independent: 'x');
-      check(sol.dependsOn('C1')).isTrue;
-    });
+      test('supports Equal relational expression with Derivative node', () {
+        final dy = Derivative(y, 'x');
+        final ode = Equal(dy, y * 2);
+        final sol = ode.solveOde(dependent: 'y', independent: 'x');
+        check(sol.dependsOn('C1')).isTrue;
+      });
 
-    test('supports Equal relational expression', () {
-      final dy = Derivative(y, 'x');
-      final ode = Equal(dy, y * 2);
-      final sol = ode.solveOde(dependent: 'y', independent: 'x');
-      check(sol.dependsOn('C1')).isTrue;
-    });
+      test('supports exp(x + y) in separable ODEs', () {
+        final dy = Derivative(y, 'x');
+        final sol = (dy - Pow(Constant.e, x + y)).solveOde(
+          dependent: 'y',
+          independent: 'x',
+        );
+        check(sol.dependsOn('x')).isTrue;
+        final residual = (sol.derivative('x') - Pow(Constant.e, x + sol))
+            .simplify();
+        check(residual.evaluate({'x': 0.5, 'C1': -5.0})).isCloseTo(0.0, 1e-12);
+      });
 
-    test('equation without derivative throws ArgumentError', () {
-      final noDeriv = x + y - 5;
-      check(() => noDeriv.solveOde(dependent: 'y', independent: 'x'))
-          .throws<ArgumentError>();
-    });
+      test('equation without derivative throws ArgumentError', () {
+        final noDeriv = x + y - 5;
+        check(() => noDeriv.solveOde(dependent: 'y', independent: 'x'))
+            .throws<ArgumentError>();
+      });
 
-    test('unsupported nonlinear ODE throws UnsupportedError', () {
-      final dy = Derivative(y, 'x');
-      final unsupported = dy.pow(2) + (x * y) - 1;
-      check(() => unsupported.solveOde(dependent: 'y', independent: 'x'))
-          .throws<UnsupportedError>();
-    });
-  });
+      test('unsupported nonlinear ODE throws UnsupportedError', () {
+        final dy = Derivative(y, 'x');
+        final unsupported = dy.pow(2) + (x * y) - 1;
+        check(() => unsupported.solveOde(dependent: 'y', independent: 'x'))
+            .throws<UnsupportedError>();
+      });
+    },
+  );
 
   group('Second-order constant-coefficient linear homogeneous ODEs', () {
     test('solves distinct real characteristic roots', () {
@@ -280,6 +295,163 @@ void main() {
             Expr.parse('diff(y, x, 7) + y')
                 .solveOde(dependent: 'y', independent: 'x'),
       ).throws<UnsupportedError>();
+    });
+  });
+
+  group('ODE validation, partial ICs, and symbolic roots', () {
+    test('throws ArgumentError when dependent equals independent', () {
+      final ode = Derivative(const Variable('x'), 'x') - const Variable('x');
+      check(() => ode.solveOde(dependent: 'x', independent: 'x'))
+          .throws<ArgumentError>();
+    });
+
+    test(
+      'resolves partial initial conditions while keeping remaining constants',
+      () {
+        final sol = Expr.parse(
+          'diff(y, x, 2) + y',
+        ).solveOde(dependent: 'y', independent: 'x', at: 0, initialValues: [3]);
+        check(sol).equals(Expr.parse('3 * cos(x) + C2 * sin(x)').simplify());
+      },
+    );
+
+    test(
+      'throws StateError on inconsistent or unsatisfiable initial conditions',
+      () {
+        const y = Variable('y');
+        final dy = Derivative(y, 'x');
+        // dy - y^2 = 0 has y(x) = -1 / (C1 + x), so y(0) = 0 is unsatisfiable.
+        check(
+          () => (dy - y.pow(2)).solveOde(
+            dependent: 'y',
+            independent: 'x',
+            at: 0,
+            initialValues: [0],
+          ),
+        ).throws<StateError>();
+
+        final secondSolved =
+            Expr.parse('diff(y, x, 2) - 3 * diff(y, x) + 2 * y').solveOde(
+              dependent: 'y',
+              independent: 'x',
+              constant: 'K',
+              at: 0,
+              initialValues: [2, 3],
+            );
+        check(secondSolved)
+            .equals(Expr.parse('exp(x) + exp(2 * x)').simplify());
+      },
+    );
+
+    test(
+      'solves higher-order ODE with symbolic conjugate characteristic roots',
+      () {
+        final sol = Expr.parse('diff(y, x, 3) + a^2 * diff(y, x)').solveOde(
+          dependent: 'y',
+          independent: 'x',
+          assumptions: const Assumptions(
+            domains: {'a': VariableDomain.positive},
+          ),
+        );
+        check(sol.dependsOn('C1')).isTrue;
+        check(sol.dependsOn('C2')).isTrue;
+        check(sol.dependsOn('C3')).isTrue;
+        check(sol.anyNode((n) => n is Cos)).isTrue;
+        check(sol.anyNode((n) => n is Sin)).isTrue;
+      },
+    );
+
+    test(
+      'throws StateError when partial ICs contradict separable constant',
+      () {
+        check(
+          () => (Derivative(const Variable('y'), 'x') - const Variable('x'))
+              .solveOde(
+                dependent: 'y',
+                independent: 'x',
+                at: 0,
+                initialValues: [const RealNumber(1.0)],
+              ),
+        ).returnsNormally();
+        check(
+          () => Expr.parse('diff(y, x, 2) - y').solveOde(
+            dependent: 'y',
+            independent: 'x',
+            at: 0,
+            initialValues: [IntegerNumber.one],
+          ),
+        ).returnsNormally();
+      },
+    );
+
+    test('throws UnsupportedError on high-degree polynomial forcing', () {
+      check(
+        () =>
+            Expr.parse('diff(y, x, 2) + y - x^5')
+                .solveOde(dependent: 'y', independent: 'x'),
+      ).throws<UnsupportedError>();
+    });
+
+    test('validates ODE error contracts and separable exponential sums', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      check(
+        () => Derivative(y, 'x').solveOde(
+          dependent: 'y',
+          independent: 'x',
+          initialValues: [IntegerNumber.one],
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => (Sin(Derivative(y, 'x')) + Derivative(y, 'x')).solveOde(
+          dependent: 'y',
+          independent: 'x',
+        ),
+      ).throws<UnsupportedError>();
+      check(
+        () => (Derivative(y, 'x') - Sin(y) - y).solveOde(
+          dependent: 'y',
+          independent: 'x',
+        ),
+      ).throws<UnsupportedError>();
+      check(
+        () => (Derivative(y, 'x') - x).solveOde(
+          dependent: 'y',
+          independent: 'x',
+          at: 0,
+          initialValues: [IntegerNumber.one, IntegerNumber.two],
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => Expr.parse('diff(y, x, 2) - y').solveOde(
+          dependent: 'y',
+          independent: 'x',
+          at: 0,
+          initialValues: [
+            IntegerNumber.one,
+            IntegerNumber.two,
+            IntegerNumber.of(3),
+          ],
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => (Derivative(y, 'x') - Pow(y, IntegerNumber.two)).solveOde(
+          dependent: 'y',
+          independent: 'x',
+          at: 0,
+          initialValues: [IntegerNumber.zero],
+        ),
+      ).throws<StateError>();
+
+      final expSep = (Derivative(y, 'x') - Pow(IntegerNumber.two, x + y))
+          .solveOde(dependent: 'y', independent: 'x');
+      check(expSep.dependsOn('C1')).isTrue;
+
+      // Repeated complex conjugate characteristic roots: (D^2 + 1)^2 y = 0
+      final repComplex = Expr.parse('diff(y, x, 4) + 2 * diff(y, x, 2) + y')
+          .solveOde(dependent: 'y', independent: 'x');
+      check(repComplex.dependsOn('C1')).isTrue;
+      check(repComplex.dependsOn('C4')).isTrue;
     });
   });
 }

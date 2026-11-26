@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   void verifyAntiderivative(
@@ -244,6 +244,18 @@ void main() {
           Expr.parse('sin(1 + 2 * x)^(1/3) * cos(1 + 2 * x)^3'),
           points: const [0.1, 0.3, 0.5],
         );
+
+        for (final source in [
+          'cosh(x)^2',
+          'cosh(x)^3',
+          'cosh(x)^4',
+          'sinh(x)^2',
+        ]) {
+          verifyAntiderivative(
+            Expr.parse(source),
+            points: const [0.2, 0.7, 1.3],
+          );
+        }
       },
     );
   });

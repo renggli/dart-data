@@ -4,10 +4,11 @@ import '../algebra/exact_constants.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../type/expr_data_type.dart';
 import 'transcendental.dart';
 import 'univariate.dart';
 
-/// Inverts trigonometric sine $\sin(\text{arg}) = c$ for special and general angles.
+/// Inverts trigonometric sine `sin(arg) = c` for special and general angles.
 List<Expr> invertSin(
   Expr arg,
   Expr c,
@@ -20,7 +21,7 @@ List<Expr> invertSin(
 
   final angles = switch (c) {
     RealNumber() => () {
-      final asinC = math.asin(c.value);
+      final asinC = math.asin(c.value.clamp(-1.0, 1.0));
       final a1 = asinC >= 0 ? asinC : asinC + 2 * math.pi;
       final a2 = (math.pi - asinC) % (2 * math.pi);
       return [
@@ -47,7 +48,7 @@ List<Expr> invertSin(
   return _invertAngles(arg, angles, variable, assumptions: assumptions);
 }
 
-/// Inverts trigonometric cosine $\cos(\text{arg}) = c$ for special and general angles.
+/// Inverts trigonometric cosine `cos(arg) = c` for special and general angles.
 List<Expr> invertCos(
   Expr arg,
   Expr c,
@@ -60,7 +61,7 @@ List<Expr> invertCos(
 
   final angles = switch (c) {
     RealNumber() => () {
-      final acosC = math.acos(c.value);
+      final acosC = math.acos(c.value.clamp(-1.0, 1.0));
       final a2 = (2 * math.pi - acosC) % (2 * math.pi);
       return [
         RealNumber(acosC),
@@ -88,7 +89,7 @@ List<Expr> invertCos(
   return _invertAngles(arg, angles, variable, assumptions: assumptions);
 }
 
-/// Inverts trigonometric tangent $\tan(\text{arg}) = c$ for special and general angles.
+/// Inverts trigonometric tangent `tan(arg) = c` for special and general angles.
 List<Expr> invertTan(
   Expr arg,
   Expr c,
@@ -126,7 +127,7 @@ List<Expr> invertTan(
 }
 
 /// Solves homogeneous or constant-shifted quadratic trigonometric equations
-/// $a\sin^2(u) + b\sin(u)\cos(u) + c\cos^2(u) + d = 0$.
+/// `a * sin^2(u) + b * sin(u) * cos(u) + c * cos^2(u) + d = 0`.
 List<Expr>? solveQuadraticTrig(
   Expr expr,
   String variable, {
@@ -200,12 +201,16 @@ List<Expr>? solveQuadraticTrig(
   final bigB = b.simplify(assumptions: assumptions);
   final bigC = (c + d).simplify(assumptions: assumptions);
 
+  if (isZeroExpr(bigA) && isZeroExpr(bigB) && isZeroExpr(bigC)) {
+    return null;
+  }
+
   final roots = <Expr>[];
-  if (bigA == IntegerNumber.zero) {
+  if (isZeroExpr(bigA)) {
     roots.addAll(
       invertCos(arg, IntegerNumber.zero, variable, assumptions: assumptions),
     );
-    if (bigB != IntegerNumber.zero) {
+    if (!isZeroExpr(bigB)) {
       roots.addAll(
         invertTan(
           arg,
@@ -216,15 +221,23 @@ List<Expr>? solveQuadraticTrig(
       );
     }
   } else {
-    const tVar = Variable('__tan_t');
+    var tName = '__tan_t';
+    while (tName == variable ||
+        arg.dependsOn(tName) ||
+        bigA.dependsOn(tName) ||
+        bigB.dependsOn(tName) ||
+        bigC.dependsOn(tName)) {
+      tName = '_$tName';
+    }
+    final tVar = Variable(tName);
     final quad = (bigA * Pow(tVar, IntegerNumber.two) + bigB * tVar + bigC)
         .simplify(assumptions: assumptions);
-    final tRoots = solveEquation(quad, '__tan_t', assumptions: assumptions);
+    final tRoots = solveEquation(quad, tName, assumptions: assumptions);
     for (final tRoot in tRoots) {
       roots.addAll(invertTan(arg, tRoot, variable, assumptions: assumptions));
     }
   }
-  return deduplicateRoots(roots);
+  return deduplicateRoots(roots, assumptions: assumptions);
 }
 
 Expr _piFraction(int num, int den) =>
@@ -243,4 +256,4 @@ List<Expr> _invertAngles(
           variable,
           assumptions: assumptions,
         )),
-]);
+], assumptions: assumptions);

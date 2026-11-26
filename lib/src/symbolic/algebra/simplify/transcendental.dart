@@ -10,12 +10,16 @@ import 'complex.dart';
 import 'domain.dart';
 import 'multiplicative.dart';
 import 'power.dart';
+import 'special.dart';
 
-/// Simplifies a sine expression $\sin(expr)$.
+/// Simplifies a sine expression `sin(expr)`.
 Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.sin(expr.value));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().sin());
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
@@ -35,8 +39,8 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  if (expr is Atan) {
-    final u = expr.expr;
+  if (expr case Atan(:final expr) when expr is! ComplexNumber) {
+    final u = expr;
     return simplifyMul([
       u,
       simplifyPow(
@@ -106,11 +110,14 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
   return Sin(expr, isSimplified: true);
 }
 
-/// Simplifies a cosine expression $\cos(expr)$.
+/// Simplifies a cosine expression `cos(expr)`.
 Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.cos(expr.value));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().cos());
   }
   if (expr is Number && expr.isZero) return IntegerNumber.one;
 
@@ -130,8 +137,8 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  if (expr is Atan) {
-    final u = expr.expr;
+  if (expr case Atan(:final expr) when expr is! ComplexNumber) {
+    final u = expr;
     return simplifyPow(
       simplifyAdd([
         IntegerNumber.one,
@@ -203,12 +210,15 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
   return Cos(expr, isSimplified: true);
 }
 
-/// Simplifies a tangent expression $\tan(expr)$.
+/// Simplifies a tangent expression `tan(expr)`.
 Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = math.tan(expr.value);
     return v.isFinite ? RealNumber.fromDouble(v) : Constant.undefined;
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().tan());
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
@@ -286,13 +296,16 @@ Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
   return Tan(expr, isSimplified: true);
 }
 
-/// Simplifies an arcsine expression $\arcsin(expr)$.
+/// Simplifies an arcsine expression `asin(expr)`.
 Expr simplifyAsin(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     if (v < -1.0 || v > 1.0) return Constant.undefined;
     return RealNumber.fromDouble(math.asin(v));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().asin());
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
   if (expr is Number && expr.isOne) {
@@ -333,13 +346,16 @@ Expr simplifyAsin(Expr expr, {required Assumptions assumptions}) {
   return Asin(expr, isSimplified: true);
 }
 
-/// Simplifies an arccosine expression $\arccos(expr)$.
+/// Simplifies an arccosine expression `acos(expr)`.
 Expr simplifyAcos(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     if (v < -1.0 || v > 1.0) return Constant.undefined;
     return RealNumber.fromDouble(math.acos(v));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().acos());
   }
   if (expr is Number && expr.isOne) return IntegerNumber.zero;
   if (expr is Number && expr.isZero) {
@@ -393,11 +409,14 @@ Expr simplifyAcos(Expr expr, {required Assumptions assumptions}) {
   return Acos(expr, isSimplified: true);
 }
 
-/// Simplifies an arctangent expression $\arctan(expr)$.
+/// Simplifies an arctangent expression `atan(expr)`.
 Expr simplifyAtan(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     return RealNumber.fromDouble(math.atan(expr.value));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().atan());
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
   if (expr is Number && expr.isOne) {
@@ -438,7 +457,7 @@ Expr simplifyAtan(Expr expr, {required Assumptions assumptions}) {
   return Atan(expr, isSimplified: true);
 }
 
-/// Simplifies a two-argument arctangent expression $\operatorname{atan2}(y, x)$.
+/// Simplifies a two-argument arctangent expression `atan2(y, x)`.
 Expr simplifyAtan2(Expr y, Expr x, {required Assumptions assumptions}) {
   if (y == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
@@ -484,12 +503,15 @@ Expr simplifyAtan2(Expr y, Expr x, {required Assumptions assumptions}) {
   return Atan2(y, x, isSimplified: true);
 }
 
-/// Simplifies a hyperbolic sine expression $\sinh(expr)$.
+/// Simplifies a hyperbolic sine expression `sinh(expr)`.
 Expr simplifySinh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     return RealNumber.fromDouble((math.exp(v) - math.exp(-v)) / 2.0);
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().sinh());
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
   if (expr is Asinh) return expr.expr;
@@ -506,7 +528,7 @@ Expr simplifySinh(Expr expr, {required Assumptions assumptions}) {
   return Sinh(expr, isSimplified: true);
 }
 
-/// Simplifies a hyperbolic cosine expression $\cosh(expr)$.
+/// Simplifies a hyperbolic cosine expression `cosh(expr)`.
 Expr simplifyCosh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -536,14 +558,20 @@ Expr simplifyCosh(Expr expr, {required Assumptions assumptions}) {
   return Cosh(expr, isSimplified: true);
 }
 
-/// Simplifies a hyperbolic tangent expression $\tanh(expr)$.
+/// Simplifies a hyperbolic tangent expression `tanh(expr)`.
 Expr simplifyTanh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
+    if (v.abs() > 20.0) {
+      return RealNumber(v.isNegative ? -1.0 : 1.0);
+    }
     final ep = math.exp(v);
     final em = math.exp(-v);
     return RealNumber.fromDouble((ep - em) / (ep + em));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().tanh());
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
   if (expr is Atanh) return expr.expr;
@@ -560,7 +588,7 @@ Expr simplifyTanh(Expr expr, {required Assumptions assumptions}) {
   return Tanh(expr, isSimplified: true);
 }
 
-/// Simplifies an absolute value expression $|expr|$.
+/// Simplifies an absolute value expression `|expr|`.
 Expr simplifyAbs(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RationalNumber) {
@@ -619,7 +647,7 @@ Expr simplifyAbs(Expr expr, {required Assumptions assumptions}) {
   return Abs(expr, isSimplified: true);
 }
 
-/// Simplifies an exponential expression $e^{expr}$.
+/// Simplifies an exponential expression `e^expr`.
 Expr simplifyExp(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
@@ -628,11 +656,14 @@ Expr simplifyExp(Expr expr, {required Assumptions assumptions}) {
   return simplifyPow(Constant.e, expr, assumptions: assumptions);
 }
 
-/// Simplifies a natural logarithm expression $\ln(expr)$.
+/// Simplifies a natural logarithm expression `ln(expr)`.
 Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
   if (expr is RealNumber) {
     if (expr.value <= 0.0) return Constant.undefined;
     return RealNumber.fromDouble(math.log(expr.value));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().log());
   }
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == Constant.e) return IntegerNumber.one;
@@ -690,7 +721,8 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
   if (expr is Pow) {
     final k = expr.exponent;
     final u = expr.base;
-    if (isPositiveExpr(u, assumptions: assumptions)) {
+    if (isPositiveExpr(u, assumptions: assumptions) &&
+        isProvenReal(k, assumptions)) {
       return simplifyMul([
         k,
         simplifyLn(u, assumptions: assumptions),
@@ -720,7 +752,10 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
         ),
       ], assumptions: assumptions);
     }
-    if ((k is FractionNumber && k.numerator == Integer.one) ||
+    if ((k is FractionNumber &&
+            k.numerator == Integer.one &&
+            (isNonNegativeExpr(u, assumptions: assumptions) ||
+                k.denominator.isEven)) ||
         (k == IntegerNumber.negativeOne &&
             isPositiveExpr(u, assumptions: assumptions))) {
       return simplifyMul([
@@ -758,7 +793,7 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
   _ => (expr, false),
 };
 
-/// Matches if [expr] is a rational multiple of $\pi$.
+/// Matches if [expr] is a rational multiple of `pi`.
 RationalNumber? matchPiMultiple(Expr expr) => switch (expr) {
   Constant.pi => IntegerNumber.one,
   Mul(factors: [final RationalNumber r, Constant.pi]) ||
@@ -781,7 +816,14 @@ Expr simplifyAsinh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
+    if (v < 0.0) {
+      final av = -v;
+      return RealNumber.fromDouble(-math.log(av + math.sqrt(av * av + 1.0)));
+    }
     return RealNumber.fromDouble(math.log(v + math.sqrt(v * v + 1.0)));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().asinh());
   }
   if (expr is Number && expr.isZero) {
     return IntegerNumber.zero;
@@ -797,13 +839,16 @@ Expr simplifyAsinh(Expr expr, {required Assumptions assumptions}) {
   return Asinh(expr, isSimplified: true);
 }
 
-/// Simplifies an inverse hyperbolic cosine expression $\operatorname{acosh}(expr)$.
+/// Simplifies an inverse hyperbolic cosine expression `acosh(expr)`.
 Expr simplifyAcosh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     if (v < 1.0) return Constant.undefined;
     return RealNumber.fromDouble(math.log(v + math.sqrt(v * v - 1.0)));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().acosh());
   }
   if (expr is Number && expr.isOne) {
     return IntegerNumber.zero;
@@ -814,13 +859,16 @@ Expr simplifyAcosh(Expr expr, {required Assumptions assumptions}) {
   return Acosh(expr, isSimplified: true);
 }
 
-/// Simplifies an inverse hyperbolic tangent expression $\operatorname{atanh}(expr)$.
+/// Simplifies an inverse hyperbolic tangent expression `atanh(expr)`.
 Expr simplifyAtanh(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr is RealNumber) {
     final v = expr.value;
     if (v.abs() >= 1.0) return Constant.undefined;
     return RealNumber.fromDouble(0.5 * math.log((1.0 + v) / (1.0 - v)));
+  }
+  if (expr is ComplexNumber && isFloatComplex(expr)) {
+    return complexToExpr(expr.toComplex().atanh());
   }
   if (expr is Number && expr.isZero) {
     return IntegerNumber.zero;

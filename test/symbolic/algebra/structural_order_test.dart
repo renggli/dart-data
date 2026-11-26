@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/structural_order.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Node tags and cross-type ordering', () {

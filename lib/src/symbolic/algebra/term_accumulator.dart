@@ -92,20 +92,38 @@ class MonomialAccumulator {
       hasUndefined = true;
       return;
     }
-    if (base == Constant.infinity && coeff is RealNumeric) {
-      final sign = coeff.isNegative ? -1 : 1;
-      if (infinitySign != null) {
-        if (infinitySign != sign) {
+    if (base == Constant.infinity) {
+      if (coeff is RealNumeric) {
+        final sign = coeff.isNegative ? -1 : 1;
+        if ((infinitySign == null && terms.containsKey(Constant.infinity)) ||
+            (infinitySign != null && infinitySign != sign)) {
           hasUndefined = true;
           terms.remove(Constant.infinity);
           return;
         }
+        infinitySign = sign;
+        terms[Constant.infinity] = sign == 1
+            ? IntegerNumber.one
+            : IntegerNumber.negativeOne;
         return;
       }
-      infinitySign = sign;
-      terms[Constant.infinity] = sign == 1
-          ? IntegerNumber.one
-          : IntegerNumber.negativeOne;
+      if (infinitySign != null) {
+        hasUndefined = true;
+        terms.remove(Constant.infinity);
+        return;
+      }
+      final existingInf = terms[Constant.infinity];
+      if (existingInf != null) {
+        final combined = existingInf.add(coeff);
+        if (combined.isZero) {
+          hasUndefined = true;
+          terms.remove(Constant.infinity);
+        } else {
+          terms[Constant.infinity] = combined;
+        }
+        return;
+      }
+      terms[Constant.infinity] = coeff;
       return;
     }
     if (base is Number && base.isOne) {
@@ -167,7 +185,7 @@ class MonomialAccumulator {
 
   /// Extracts polynomial coefficients with respect to [variable].
   ///
-  /// Returns a map where each key $k \ge 0$ is the power of [variable] and the
+  /// Returns a map where each key `k >=0` is the power of [variable] and the
   /// value is the coefficient expression independent of [variable].
   ///
   /// Returns `null` if the accumulated expression contains non-polynomial terms
@@ -353,10 +371,10 @@ class MonomialAccumulator {
           terms.remove(key);
           constant = IntegerNumber.zero;
           final exp = key is Pow ? key.exponent : IntegerNumber.two;
-          final cos2 = Pow(
-            Cos(uSin, isSimplified: true),
+          final cos2 = simplifyPow(
+            simplifyCos(uSin, assumptions: assumptions),
             exp,
-            isSimplified: true,
+            assumptions: assumptions,
           );
           final existing = terms[cos2];
           terms[cos2] = existing == null ? c : existing.add(c);
@@ -367,10 +385,10 @@ class MonomialAccumulator {
           terms.remove(key);
           constant = IntegerNumber.zero;
           final exp = key is Pow ? key.exponent : IntegerNumber.two;
-          final sin2 = Pow(
-            Sin(uCos, isSimplified: true),
+          final sin2 = simplifyPow(
+            simplifySin(uCos, assumptions: assumptions),
             exp,
-            isSimplified: true,
+            assumptions: assumptions,
           );
           final existing = terms[sin2];
           terms[sin2] = existing == null ? c : existing.add(c);
@@ -419,10 +437,11 @@ class MonomialAccumulator {
         if (uSinh != null && value == c) {
           terms.remove(key);
           constant = IntegerNumber.zero;
-          final cosh2 = Pow(
-            Cosh(uSinh, isSimplified: true),
-            IntegerNumber.two,
-            isSimplified: true,
+          final exp = key is Pow ? key.exponent : IntegerNumber.two;
+          final cosh2 = simplifyPow(
+            simplifyCosh(uSinh, assumptions: assumptions),
+            exp,
+            assumptions: assumptions,
           );
           final existing = terms[cosh2];
           terms[cosh2] = existing == null ? c : existing.add(c);
@@ -432,10 +451,11 @@ class MonomialAccumulator {
         if (uCosh != null && value == negC) {
           terms.remove(key);
           constant = IntegerNumber.zero;
-          final sinh2 = Pow(
-            Sinh(uCosh, isSimplified: true),
-            IntegerNumber.two,
-            isSimplified: true,
+          final exp = key is Pow ? key.exponent : IntegerNumber.two;
+          final sinh2 = simplifyPow(
+            simplifySinh(uCosh, assumptions: assumptions),
+            exp,
+            assumptions: assumptions,
           );
           final existing = terms[sinh2];
           terms[sinh2] = existing == null ? negC : existing.add(negC);
@@ -739,13 +759,18 @@ class MonomialAccumulator {
   }) {
     final placeholders = <Variable, Expr>{};
     final reverseMap = <Expr, Variable>{};
+    final existingVars = expr.freeVariables;
     var counter = 0;
 
     Expr replaceHighPowers(Expr e) {
       if (e case Pow(base: Add(), exponent: IntegerNumber(:final value))
           when value.abs() > Integer.from(maxExponent)) {
         return reverseMap.putIfAbsent(e, () {
-          final v = Variable('_hp_${counter++}');
+          var candidate = '_hp_${counter++}';
+          while (existingVars.contains(candidate)) {
+            candidate = '_hp_${counter++}';
+          }
+          final v = Variable(candidate);
           placeholders[v] = e;
           return v;
         });
@@ -769,9 +794,12 @@ class MonomialAccumulator {
   }
 
   /// Returns whether [expr] simplifies to zero after guarded expansion.
-  static bool isAlgebraicallyZero(Expr expr) {
+  static bool isAlgebraicallyZero(
+    Expr expr, {
+    Assumptions assumptions = Assumptions.none,
+  }) {
     if (expr is Number && expr.isZero) return true;
-    final s = _expandAndSimplifyGuarded(expr, assumptions: Assumptions.none);
+    final s = _expandAndSimplifyGuarded(expr, assumptions: assumptions);
     return s is Number && s.isZero;
   }
 }

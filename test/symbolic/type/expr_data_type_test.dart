@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex;
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('ExprDataType properties, casting, and ordering', () {
@@ -137,5 +137,24 @@ void main() {
       check(() => f.modInverse(a, b)).throws<UnsupportedError>();
       check(() => f.gcd(a, b)).throws<UnsupportedError>();
     });
+
+    test(
+      'ExprEquality checks structural equality, hash, and isClose tolerances',
+      () {
+        const eq = ExprEquality();
+        const x = Variable('x');
+        const y = Variable('y');
+        check(eq.isEqual(x + IntegerNumber.zero, x)).isFalse;
+        check(eq.isEqual(x + IntegerNumber.one, x + IntegerNumber.one)).isTrue;
+        check(eq.hash(x + IntegerNumber.one))
+            .equals(eq.hash(x + IntegerNumber.one));
+        check(eq.isClose(x, x, 1e-12)).isTrue;
+        check(eq.isClose(x, x, double.nan)).isFalse;
+        check(eq.isClose(x, x, -1.0)).isFalse;
+        check(eq.isClose(x, y, 1e-6)).isFalse;
+        check(eq.isClose(Constant.pi, const RealNumber(3.14159265359), 1e-9))
+            .isTrue;
+      },
+    );
   });
 }

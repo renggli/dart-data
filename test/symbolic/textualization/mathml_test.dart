@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('MathML root, display, numbers, and complex literals', () {
@@ -20,12 +20,12 @@ void main() {
         check(RationalNumber(2, 5).toMathMl())
             .equals('<math><mfrac><mn>2</mn><mn>5</mn></mfrac></math>');
         check(RationalNumber(-2, 5).toMathMl()).equals(
-          '<math><mrow><mo form="prefix">&minus;</mo><mfrac><mn>2</mn><mn>5</mn></mfrac></mrow></math>',
+          '<math><mrow><mo form="prefix">&#x2212;</mo><mfrac><mn>2</mn><mn>5</mn></mfrac></mrow></math>',
         );
         check(const RealNumber(1.5).toMathMl(root: false))
             .equals('<mn>1.5</mn>');
         check(const RealNumber(-1.5).toMathMl(root: false))
-            .equals('<mrow><mo form="prefix">&minus;</mo><mn>1.5</mn></mrow>');
+            .equals('<mrow><mo form="prefix">&#x2212;</mo><mn>1.5</mn></mrow>');
         check(const RealNumber(1.875).toMathMl(root: false))
             .equals('<mn>1.875</mn>');
         check(const RealNumber(1.0530000000000002).toMathMl(root: false))
@@ -38,14 +38,14 @@ void main() {
 
         check(ComplexNumber.i.toMathMl(root: false)).equals('<mi>i</mi>');
         check(ComplexNumber.negativeI.toMathMl(root: false))
-            .equals('<mrow><mo form="prefix">&minus;</mo><mi>i</mi></mrow>');
+            .equals('<mrow><mo form="prefix">&#x2212;</mo><mi>i</mi></mrow>');
         check(
           ComplexNumber(
             IntegerNumber.zero,
             IntegerNumber.of(-3),
           ).toMathMl(root: false),
         ).equals(
-          '<mrow><mo form="prefix">&minus;</mo><mn>3</mn><mi>i</mi></mrow>',
+          '<mrow><mo form="prefix">&#x2212;</mo><mn>3</mn><mi>i</mi></mrow>',
         );
         check(
           ComplexNumber(
@@ -64,14 +64,14 @@ void main() {
             IntegerNumber.two,
             IntegerNumber.negativeOne,
           ).toMathMl(root: false),
-        ).equals('<mrow><mn>2</mn><mo>&minus;</mo><mi>i</mi></mrow>');
+        ).equals('<mrow><mn>2</mn><mo>&#x2212;</mo><mi>i</mi></mrow>');
         check(
           ComplexNumber(
             IntegerNumber.two,
             IntegerNumber.of(-3),
           ).toMathMl(root: false),
         ).equals(
-          '<mrow><mn>2</mn><mo>&minus;</mo><mrow><mn>3</mn><mi>i</mi></mrow></mrow>',
+          '<mrow><mn>2</mn><mo>&#x2212;</mo><mrow><mn>3</mn><mi>i</mi></mrow></mrow>',
         );
         check(
           ComplexNumber(
@@ -97,11 +97,11 @@ void main() {
         check(Mul(const []).toMathMl(root: false)).equals('<mn>1</mn>');
         check(Mul([x]).toMathMl(root: false)).equals('<mi>x</mi>');
         check(Mul([IntegerNumber.of(-2), x]).toMathMl(root: false)).equals(
-          '<mrow><mo form="prefix">&minus;</mo><mn>2</mn><mi>x</mi></mrow>',
+          '<mrow><mo form="prefix">&#x2212;</mo><mn>2</mn><mi>x</mi></mrow>',
         );
         check(Mul([IntegerNumber.negativeOne, x + y]).toMathMl(root: false))
             .equals(
-              '<mrow><mo form="prefix">&minus;</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
+              '<mrow><mo form="prefix">&#x2212;</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
             );
 
         check(Expr.parse('sqrt(x)').toMathMl())
@@ -143,13 +143,13 @@ void main() {
             .equals('<mrow><mi>tanh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(
           Asinh(x).toMathMl(root: false),
-        ).equals('<mrow><mi>asinh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        ).equals('<mrow><mi>arsinh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(
           Acosh(x).toMathMl(root: false),
-        ).equals('<mrow><mi>acosh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        ).equals('<mrow><mi>arcosh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(
           Atanh(x).toMathMl(root: false),
-        ).equals('<mrow><mi>atanh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        ).equals('<mrow><mi>artanh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(Abs(x).toMathMl(root: false))
             .equals('<mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow>');
         check(Ln(x).toMathMl(root: false))
@@ -214,7 +214,7 @@ void main() {
             ]),
           ]).toMathMl(root: false),
         ).equals(
-          '<mrow><mi>x</mi><mo>&minus;</mo><mrow><mo>(</mo><mrow><mn>1</mn><mo>+</mo><mrow><mn>2</mn><mi>i</mi></mrow></mrow><mo>)</mo></mrow></mrow>',
+          '<mrow><mi>x</mi><mo>&#x2212;</mo><mrow><mo>(</mo><mrow><mn>1</mn><mo>+</mo><mrow><mn>2</mn><mi>i</mi></mrow></mrow><mo>)</mo></mrow></mrow>',
         );
         check(Re(x).toMathMl(root: false))
             .equals('<mrow><mi>Re</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
@@ -237,7 +237,7 @@ void main() {
       check(const OrderTerm('x', 4).toMathMl()).contains('<mi>O</mi>');
       check(
         const OrderTerm('x', 1, point: IntegerNumber.one).toMathMl(root: false),
-      ).contains('<mo>&minus;</mo>');
+      ).contains('<mo>&#x2212;</mo>');
       check(
         const OrderTerm('x', 3, point: IntegerNumber.one).toMathMl(root: false),
       ).contains('<msup>');
@@ -274,7 +274,7 @@ void main() {
           IntegerNumber.zero,
           direction: LimitDirection.fromBelow,
         ).toMathMl(root: false),
-      ).contains('<mo>&minus;</mo>');
+      ).contains('<mo>&#x2212;</mo>');
       check(Expr.parse('sum(2 * abs(x), x, 1, n)').toMathMl()).equals(
         '<math><mrow><munderover><mo movablelimits="false">&#x2211;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
       );
@@ -295,7 +295,7 @@ void main() {
       check(Expr.parse('(1 / 2) * x').simplify().toMathMl())
           .equals('<math><mfrac><mi>x</mi><mn>2</mn></mfrac></math>');
       check(Mul([Pow(x, IntegerNumber.of(-2))]).toMathMl(root: false)).equals(
-        '<msup><mi>x</mi><mrow><mo form="prefix">&minus;</mo><mn>2</mn></mrow></msup>',
+        '<msup><mi>x</mi><mrow><mo form="prefix">&#x2212;</mo><mn>2</mn></mrow></msup>',
       );
       check(
         Mul([IntegerNumber.one, Pow(x, IntegerNumber.of(-2))])
@@ -323,7 +323,7 @@ void main() {
       check(Expr.parse('2 * x').toMathMl())
           .equals('<math><mrow><mn>2</mn><mi>x</mi></mrow></math>');
       check(Mul([FractionNumber.negativeHalf, x]).toMathMl()).equals(
-        '<math><mrow><mo form="prefix">&minus;</mo><mfrac><mi>x</mi><mn>2</mn></mfrac></mrow></math>',
+        '<math><mrow><mo form="prefix">&#x2212;</mo><mfrac><mi>x</mi><mn>2</mn></mfrac></mrow></math>',
       );
       check(
         Add([
@@ -331,7 +331,7 @@ void main() {
           Mul([IntegerNumber.negativeOne, x + const Variable('y')]),
         ]).toMathMl(root: false),
       ).equals(
-        '<mrow><mi>x</mi><mo>&minus;</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
+        '<mrow><mi>x</mi><mo>&#x2212;</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
       );
       check(Expr.parse('2 * x * y').toMathMl())
           .equals('<math><mrow><mn>2</mn><mi>x</mi><mi>y</mi></mrow></math>');
@@ -341,11 +341,11 @@ void main() {
         '<math><mrow><mn>2</mn><mo>&#x22c5;</mo><mn>3</mn></mrow></math>',
       );
       check(Expr.parse('(x - 1) * (x + 1)').toMathMl()).equals(
-        '<math><mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&minus;</mo><mn>1</mn></mrow><mo>)</mo></mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></math>',
+        '<math><mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&#x2212;</mo><mn>1</mn></mrow><mo>)</mo></mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></math>',
       );
       check(Mul([IntegerNumber.negativeOne, x, const Variable('y')]).toMathMl())
           .equals(
-            '<math><mrow><mo form="prefix">&minus;</mo><mrow><mi>x</mi><mi>y</mi></mrow></mrow></math>',
+            '<math><mrow><mo form="prefix">&#x2212;</mo><mrow><mi>x</mi><mi>y</mi></mrow></mrow></math>',
           );
     });
 

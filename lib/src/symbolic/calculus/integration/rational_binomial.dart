@@ -222,7 +222,8 @@ Expr? tryPowerOverLogPower(
   final lnExpr = Ln(inner);
   final xVar = Variable(variable);
 
-  if (nExp == IntegerNumber.negativeOne) {
+  if (nExp == IntegerNumber.negativeOne ||
+      (nExp is RealNumber && (nExp as RealNumber).value == -1.0)) {
     final res = k == 1
         ? logAntiderivative(lnExpr, assumptions)
         : (-Pow(lnExpr, IntegerNumber.of(1 - k)) / IntegerNumber.of(k - 1));
@@ -600,7 +601,10 @@ Expr? trySumToProductTrigQuotient(
 bool isScaledVarLn(Expr node, String variable) {
   if (node case Ln(expr: final inner)) {
     if (inner.matchLinear(variable) case (a: final a, b: final b)
-        when b is Number && b.isZero && a != IntegerNumber.one) {
+        when b is Number &&
+            b.isZero &&
+            a != IntegerNumber.one &&
+            isPositiveConstant(a)) {
       return true;
     }
   }
@@ -610,7 +614,10 @@ bool isScaledVarLn(Expr node, String variable) {
 Expr splitScaledVarLn(Expr node, String variable) {
   if (node case Ln(expr: final inner)) {
     if (inner.matchLinear(variable) case (a: final a, b: final b)
-        when b is Number && b.isZero && a != IntegerNumber.one) {
+        when b is Number &&
+            b.isZero &&
+            a != IntegerNumber.one &&
+            isPositiveConstant(a)) {
       return Ln(a) + Ln(Variable(variable));
     }
   }

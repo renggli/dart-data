@@ -105,12 +105,21 @@ Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
             );
             if (m > 0) return IntegerNumber.zero;
             if (m == 0) return cm;
-            final sign = asymptoticSignAtInfinity(cm, variable);
+            final sign = asymptoticSignAtInfinity(
+              cm,
+              variable,
+              null,
+              assumptions,
+            );
             if (sign != 0) {
               return sign > 0 ? Constant.infinity : negInfinity;
             }
           }
-        } on Object {
+        } on UnsupportedError {
+          break;
+        } on ArgumentError {
+          break;
+        } on StateError {
           break;
         }
       }
@@ -129,11 +138,20 @@ Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
           if (lead.exponent == 0) {
             return lead.coefficient.simplify(assumptions: assumptions);
           }
-          final sign = asymptoticSignAtInfinity(lead.coefficient, variable);
+          final sign = asymptoticSignAtInfinity(
+            lead.coefficient,
+            variable,
+            null,
+            assumptions,
+          );
           if (sign == 0) break;
           return sign > 0 ? Constant.infinity : negInfinity;
         }
-      } on Object {
+      } on UnsupportedError {
+        break;
+      } on ArgumentError {
+        break;
+      } on StateError {
         break;
       }
     }
@@ -162,7 +180,12 @@ Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
       if (lead != null) {
         if (lead.exponent > 0) return IntegerNumber.zero;
         if (lead.exponent < 0) {
-          final sign = asymptoticSignAtInfinity(lead.coefficient, variable);
+          final sign = asymptoticSignAtInfinity(
+            lead.coefficient,
+            variable,
+            null,
+            assumptions,
+          );
           if (sign == 0) break;
           return sign > 0 ? Constant.infinity : negInfinity;
         }
@@ -173,7 +196,11 @@ Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
           assumptions: assumptions,
         );
       }
-    } on Object {
+    } on UnsupportedError {
+      break;
+    } on ArgumentError {
+      break;
+    } on StateError {
       break;
     }
   }
@@ -188,7 +215,7 @@ Expr _rewriteExpInOmega(
   String variable,
   Expr omega,
   int targetDeg,
-  RationalNumber alpha,
+  RealNumeric alpha,
 ) {
   if (!expr.dependsOn(variable)) return expr;
   if (expr case Pow(base: Constant.e, :final exponent)) {
@@ -204,12 +231,25 @@ Expr _rewriteSingleExp(
   String variable,
   Expr omega,
   int targetDeg,
-  RationalNumber alpha,
+  RealNumeric alpha,
 ) {
   if (extractDominantPolynomialTerm(inner, variable)
       case (:final degree, :final coeff, :final remainder)
       when degree == targetDeg && !coeff.isZero) {
-    if (coeff.divRational(alpha) case IntegerNumber(:final asInt?)) {
+    int? asInt;
+    if (coeff is RationalNumber && alpha is RationalNumber) {
+      if (coeff.divRational(alpha) case IntegerNumber(asInt: final k?)) {
+        asInt = k;
+      }
+    } else {
+      final ratio = coeff.toDouble() / alpha.toDouble();
+      if (ratio.isFinite &&
+          ratio == ratio.roundToDouble() &&
+          ratio.abs() <= 1e12) {
+        asInt = ratio.round();
+      }
+    }
+    if (asInt != null) {
       final omegaPower = switch (asInt) {
         1 => Pow(omega, IntegerNumber.negativeOne),
         -1 => omega,
@@ -235,21 +275,21 @@ Expr _rewriteSingleExp(
   );
 }
 
-({int degree, RationalNumber coeff, Expr remainder})?
+({int degree, RealNumeric coeff, Expr remainder})?
 extractDominantPolynomialTerm(Expr expr, String variable) {
   final expanded = expr.expand().simplify();
   final acc = MonomialAccumulator(assumptions: Assumptions.none);
   acc.add(expanded);
 
   var maxDeg = 0;
-  RationalNumber leadCoeff = IntegerNumber.zero;
+  RealNumeric leadCoeff = IntegerNumber.zero;
   Expr? leadKey;
 
   for (final entry in acc.terms.entries) {
     final deg = monomialDegree(entry.key, variable);
     if (deg == null) return null;
     if (deg > maxDeg) {
-      if (entry.value case final RationalNumber val) {
+      if (entry.value case final RealNumeric val when !val.isZero) {
         maxDeg = deg;
         leadCoeff = val;
         leadKey = entry.key;
@@ -281,31 +321,43 @@ extractDominantPolynomialTerm(Expr expr, String variable) {
   );
 }
 
-Expr _expandLogArguments(Expr expr, String variable) => switch (expr) {
-  Ln(expr: Add(terms: [final a, final b])) =>
-    _tryFactorLogAdd(a, b, variable) ?? expr,
-  _ => expr.mapChildren((c) => _expandLogArguments(c, variable)),
-};
+Expr _expandLogArguments(Expr expr, String variable) {
+  final mapped = expr.mapChildren((c) => _expandLogArguments(c, variable));
+  if (mapped case Ln(expr: Add(:final terms)) when terms.length >= 2) {
+    return _tryFactorLogAdd(terms, variable) ?? mapped;
+  }
+  return mapped;
+}
 
-Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
-  if (b case Pow(base: Constant.e, :final exponent)
-      when exponent.dependsOn(variable)) {
-    final dom = extractDominantPolynomialTerm(exponent, variable);
-    if (dom != null && dom.coeff.sign > 0) {
-      final negU = (-exponent).simplify();
-      return (exponent + Ln(IntegerNumber.one + a * Pow(Constant.e, negU)))
-          .simplify();
+Expr? _tryFactorLogAdd(List<Expr> terms, String variable) {
+  for (var i = 0; i < terms.length; i++) {
+    final t = terms[i];
+    if (t case Pow(base: Constant.e, :final exponent)
+        when exponent.dependsOn(variable)) {
+      final dom = extractDominantPolynomialTerm(exponent, variable);
+      if (dom != null && dom.coeff.sign > 0) {
+        final negU = (-exponent).simplify();
+        final restTerms = <Expr>[
+          for (var j = 0; j < terms.length; j++)
+            if (j != i) terms[j],
+        ];
+        final rest = restTerms.length == 1
+            ? restTerms.first
+            : Add(restTerms, isSimplified: true);
+        return (exponent + Ln(IntegerNumber.one + rest * Pow(Constant.e, negU)))
+            .simplify();
+      }
     }
   }
   return null;
 }
 
-({int degree, RationalNumber alpha})? _findDominantExpScale(
+({int degree, RealNumeric alpha})? _findDominantExpScale(
   Expr expr,
   String variable,
 ) {
   var maxDeg = 0;
-  final coeffsAtMax = <RationalNumber>[];
+  final coeffsAtMax = <RealNumeric>[];
 
   void scan(Expr e) {
     if (e case Pow(base: Constant.e, :final exponent)
@@ -336,17 +388,19 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
         scan(right);
       case UnaryExpr(:final expr):
         scan(expr);
-      case Piecewise(:final branches):
+      case Piecewise(:final branches, :final otherwise):
         for (final (:relation, :expr) in branches) {
           scan(relation);
           scan(expr);
         }
+        if (otherwise != null) scan(otherwise);
       case Integral(:final integrand, :final lower, :final upper):
         scan(integrand);
         if (lower != null) scan(lower);
         if (upper != null) scan(upper);
-      case Derivative(:final expr):
+      case Derivative(:final expr, :final point):
         scan(expr);
+        if (point != null) scan(point);
       case Limit(:final expr, :final point):
         scan(expr);
         scan(point);
@@ -393,13 +447,17 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
   scan(expr);
   if (maxDeg == 0 || coeffsAtMax.isEmpty) return null;
 
-  var numGcd = coeffsAtMax.first.numerator.abs();
-  var denLcm = coeffsAtMax.first.denominator;
-  for (var i = 1; i < coeffsAtMax.length; i++) {
-    final c = coeffsAtMax[i];
-    numGcd = numGcd.gcd(c.numerator.abs());
-    final g = denLcm.gcd(c.denominator);
-    denLcm = (denLcm ~/ g) * c.denominator;
+  if (coeffsAtMax.every((c) => c is RationalNumber)) {
+    final rats = coeffsAtMax.cast<RationalNumber>();
+    var numGcd = rats.first.numerator.abs();
+    var denLcm = rats.first.denominator;
+    for (var i = 1; i < rats.length; i++) {
+      final c = rats[i];
+      numGcd = numGcd.gcd(c.numerator.abs());
+      final g = denLcm.gcd(c.denominator);
+      denLcm = (denLcm ~/ g) * c.denominator;
+    }
+    return (degree: maxDeg, alpha: RationalNumber.of(numGcd, denLcm));
   }
-  return (degree: maxDeg, alpha: RationalNumber.of(numGcd, denLcm));
+  return (degree: maxDeg, alpha: coeffsAtMax.first);
 }

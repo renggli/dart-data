@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/simplify/domain.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Domain and complex decomposition helpers', () {

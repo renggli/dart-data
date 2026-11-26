@@ -16,6 +16,18 @@ Expr simplifyRelational(
 }) {
   final left = expr.left.simplify(assumptions: assumptions);
   final right = expr.right.simplify(assumptions: assumptions);
+  if (left is RealNumeric && right is RealNumeric) {
+    final cmp = left.compareTo(right);
+    final matched = switch (expr) {
+      LessThan() => cmp < 0,
+      LessEqual() => cmp <= 0,
+      GreaterThan() => cmp > 0,
+      GreaterEqual() => cmp >= 0,
+      Equal() => cmp == 0,
+      NotEqual() => cmp != 0,
+    };
+    return matched ? IntegerNumber.one : IntegerNumber.zero;
+  }
   final vL = realScalarValue(left);
   final vR = realScalarValue(right);
   if (vL != null && vR != null) {
@@ -81,11 +93,17 @@ Expr simplifyIntegral(
   required Assumptions assumptions,
 }) {
   final sIntegrand = integrand.simplify(assumptions: assumptions);
+  if (sIntegrand == Constant.undefined) {
+    return Constant.undefined;
+  }
   if (sIntegrand is Number && sIntegrand.isZero) {
     return IntegerNumber.zero;
   }
   final sLower = lower?.simplify(assumptions: assumptions);
   final sUpper = upper?.simplify(assumptions: assumptions);
+  if (sLower == Constant.undefined || sUpper == Constant.undefined) {
+    return Constant.undefined;
+  }
   if (sLower != null && sUpper != null && sLower == sUpper) {
     return IntegerNumber.zero;
   }
@@ -108,6 +126,9 @@ Expr simplifyDerivative(
 }) {
   final sExpr = expr.simplify(assumptions: assumptions);
   final sPoint = point?.simplify(assumptions: assumptions);
+  if (sExpr == Constant.undefined || sPoint == Constant.undefined) {
+    return Constant.undefined;
+  }
   if (!sExpr.dependsOn(variable)) {
     return IntegerNumber.zero;
   }
@@ -188,18 +209,21 @@ Expr simplifyFloor(Expr expr, {required Assumptions assumptions}) {
     case RealNumber(:final value):
       return RealNumber.fromDouble(value.floorToDouble());
     default:
-      if (expr.freeVariables.isEmpty) {
+      if (expr.freeVariables.isEmpty && isProvenReal(expr, assumptions)) {
         try {
           final v = expr.evaluate();
           if (v.isFinite) {
             if (expr.anyNode((n) => n is RealNumber)) {
               return RealNumber.fromDouble(v.floorToDouble());
             }
-            if ((v - v.roundToDouble()).abs() > 1e-12) {
+            if ((v - v.roundToDouble()).abs() > 1e-12 &&
+                v.abs() < 4503599627370496.0) {
               return IntegerNumber(Integer.from(v.floor()));
             }
           }
-        } on Object {
+        } on ArgumentError {
+          // Keep symbolic
+        } on UnsupportedError {
           // Keep symbolic
         }
       }
@@ -222,18 +246,21 @@ Expr simplifyCeil(Expr expr, {required Assumptions assumptions}) {
     case RealNumber(:final value):
       return RealNumber.fromDouble(value.ceilToDouble());
     default:
-      if (expr.freeVariables.isEmpty) {
+      if (expr.freeVariables.isEmpty && isProvenReal(expr, assumptions)) {
         try {
           final v = expr.evaluate();
           if (v.isFinite) {
             if (expr.anyNode((n) => n is RealNumber)) {
               return RealNumber.fromDouble(v.ceilToDouble());
             }
-            if ((v - v.roundToDouble()).abs() > 1e-12) {
+            if ((v - v.roundToDouble()).abs() > 1e-12 &&
+                v.abs() < 4503599627370496.0) {
               return IntegerNumber(Integer.from(v.ceil()));
             }
           }
-        } on Object {
+        } on ArgumentError {
+          // Keep symbolic
+        } on UnsupportedError {
           // Keep symbolic
         }
       }
@@ -254,18 +281,21 @@ Expr simplifyRound(Expr expr, {required Assumptions assumptions}) {
     case RealNumber(:final value):
       return RealNumber.fromDouble(value.roundToDouble());
     default:
-      if (expr.freeVariables.isEmpty) {
+      if (expr.freeVariables.isEmpty && isProvenReal(expr, assumptions)) {
         try {
           final v = expr.evaluate();
           if (v.isFinite) {
             if (expr.anyNode((n) => n is RealNumber)) {
               return RealNumber.fromDouble(v.roundToDouble());
             }
-            if (((v - v.floorToDouble()).abs() - 0.5).abs() > 1e-12) {
+            if (((v - v.floorToDouble()).abs() - 0.5).abs() > 1e-12 &&
+                v.abs() < 4503599627370496.0) {
               return IntegerNumber(Integer.from(v.round()));
             }
           }
-        } on Object {
+        } on ArgumentError {
+          // Keep symbolic
+        } on UnsupportedError {
           // Keep symbolic
         }
       }
@@ -298,12 +328,18 @@ Expr simplifySign(Expr expr, {required Assumptions assumptions}) {
     try {
       final v = expr.evaluate();
       if (v.isFinite) {
+        final hasReal = expr.anyNode((n) => n is RealNumber);
+        if (!hasReal && v.abs() <= 1e-12) {
+          return Sign(expr, isSimplified: true);
+        }
         final s = v == 0.0 ? 0 : (v > 0.0 ? 1 : -1);
-        return expr.anyNode((n) => n is RealNumber)
+        return hasReal
             ? RealNumber.fromDouble(s.toDouble())
             : IntegerNumber.of(s);
       }
-    } on Object {
+    } on ArgumentError {
+      // Keep symbolic
+    } on UnsupportedError {
       // Keep symbolic
     }
   }

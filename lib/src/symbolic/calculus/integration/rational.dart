@@ -230,7 +230,11 @@ Expr? tryAntiDerivDiv(
           if (val.isFinite && val != 0.0) {
             return val > 0.0 ? atanBranch() : logAbsBranch();
           }
-        } on Object {
+        } on UnsupportedError {
+          // Fall through to symbolic check below.
+        } on ArgumentError {
+          // Fall through to symbolic check below.
+        } on StateError {
           // Fall through to symbolic check below.
         }
       }
@@ -247,13 +251,15 @@ Expr? tryAntiDerivDiv(
       return atanBranch();
     }
 
-    // int c / (d + exp(ax + b)) dx = (c / d) * (x - (1 / a) * ln(d + exp(ax + b)))
+    // int c / (d + exp(ax + b)) dx = (c / d) * (x - (1 / a) * ln|d + exp(ax + b)|)
     if (right
         case Add(terms: [final rL, Pow(base: Constant.e, :final exponent)])
         when !rL.dependsOn(variable)) {
       if (exponent.matchLinear(variable) case (:final a, b: _)) {
-        final term = (Variable(variable) - (Ln(right) / a)).simplify();
-        return ((left / rL) * term).simplify();
+        final term =
+            (Variable(variable) - (logAntiderivative(right, assumptions) / a))
+                .simplify(assumptions: assumptions);
+        return ((left / rL) * term).simplify(assumptions: assumptions);
       }
     }
   }
@@ -403,24 +409,18 @@ Expr? tryAntiDerivDiv(
     }
   }
 
-  // c * exp(a*x + b) / (c1*x + d)^k -> Ei reduction
+  // c * exp(a*x + b) / (c1*x + d)^k -> Ei reduction (k >= 7)
   if (left case Pow(base: Constant.e, exponent: final expInner)) {
-    if (expInner.matchLinear(variable) case (:final a, :final b)) {
-      if (right.matchLinear(variable) case (a: final c1, b: final d1)) {
-        final shift = (b - (a * d1) / c1).simplify();
-        final eiArg = (a * right / c1).simplify();
-        return (Pow(Constant.e, shift) * ExpIntegral(eiArg) / c1).simplify();
-      }
+    if (expInner.matchLinear(variable) case (:final a, b: _)) {
       if (right
           case Pow(base: final rBase, exponent: IntegerNumber(asInt: final k?))
-          when k >= 2 && k <= 8) {
+          when k >= 7 && k <= 8) {
         if (rBase.matchLinear(variable) case (a: final c1, b: _)) {
           final kMinus1 = IntegerNumber.of(k - 1);
           final term1 = (-left / (c1 * kMinus1 * Pow(rBase, kMinus1)))
               .simplify();
           final rem = antiDerivative(
-            (a * left / (c1 * kMinus1 * (k == 2 ? rBase : Pow(rBase, kMinus1))))
-                .simplify(),
+            (a * left / (c1 * kMinus1 * Pow(rBase, kMinus1))).simplify(),
             variable,
             depth: 1,
             assumptions: assumptions,
@@ -516,13 +516,6 @@ Expr? tryAntiDerivDiv(
               )
               case final res?) {
             return res;
-          }
-        case Pow(base: Constant.e, exponent: final expInner):
-          if (expInner.matchLinear(variable) case (:final a, :final b)) {
-            final phi = (b - (a * d1) / c1).simplify();
-            final u = ((a / c1) * right).simplify();
-            return (scale * Pow(Constant.e, phi) * ExpIntegral(u) / c1)
-                .simplify();
           }
         default:
           break;

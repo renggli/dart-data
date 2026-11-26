@@ -67,9 +67,11 @@ Expr simplifyEllipticE(
         ], assumptions: assumptions)) {
       return simplifyEllipticE(expr, assumptions: assumptions);
     }
-    if (amplitude is RealNumber && expr is RealNumber) {
+    if (amplitude is RealNumeric &&
+        expr is RealNumeric &&
+        (amplitude is RealNumber || expr is RealNumber)) {
       return RealNumber.fromDouble(
-        special_elliptic.ellipticE(expr.value, phi: amplitude.value),
+        special_elliptic.ellipticE(expr.toDouble(), phi: amplitude.toDouble()),
       );
     }
     return EllipticE(expr, amplitude: amplitude, isSimplified: true);
@@ -261,8 +263,12 @@ Expr simplifyUpperGamma(Expr s, Expr x, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  if (s is RealNumber && x is RealNumber) {
-    return RealNumber.fromDouble(special_gamma.upperGamma(s.value, x.value));
+  if (s is RealNumeric &&
+      x is RealNumeric &&
+      (s is RealNumber || x is RealNumber)) {
+    return RealNumber.fromDouble(
+      special_gamma.upperGamma(s.toDouble(), x.toDouble()),
+    );
   }
   return UpperGamma(s, x, isSimplified: true);
 }
@@ -293,8 +299,12 @@ Expr simplifyLowerGamma(Expr s, Expr x, {required Assumptions assumptions}) {
       ),
     ], assumptions: assumptions);
   }
-  if (s is RealNumber && x is RealNumber) {
-    return RealNumber.fromDouble(special_gamma.lowerGamma(s.value, x.value));
+  if (s is RealNumeric &&
+      x is RealNumeric &&
+      (s is RealNumber || x is RealNumber)) {
+    return RealNumber.fromDouble(
+      special_gamma.lowerGamma(s.toDouble(), x.toDouble()),
+    );
   }
   return LowerGamma(s, x, isSimplified: true);
 }
@@ -356,8 +366,12 @@ Expr simplifyPolylog(Expr s, Expr z, {required Assumptions assumptions}) {
       ], assumptions: assumptions);
     }
   }
-  if (s is RealNumber && z is RealNumber) {
-    return RealNumber.fromDouble(special_polylog.polylog(s.value, z.value));
+  if (s is RealNumeric &&
+      z is RealNumeric &&
+      (s is RealNumber || z is RealNumber)) {
+    return RealNumber.fromDouble(
+      special_polylog.polylog(s.toDouble(), z.toDouble()),
+    );
   }
   return Polylog(s, z, isSimplified: true);
 }
@@ -381,16 +395,18 @@ Expr simplifyEllipticF(Expr phi, Expr k, {required Assumptions assumptions}) {
       ], assumptions: assumptions)) {
     return simplifyEllipticK(k, assumptions: assumptions);
   }
-  if (phi is RealNumber && k is RealNumber) {
+  if (phi is RealNumeric &&
+      k is RealNumeric &&
+      (phi is RealNumber || k is RealNumber)) {
     return RealNumber.fromDouble(
-      special_elliptic.ellipticF(phi.value, k.value),
+      special_elliptic.ellipticF(phi.toDouble(), k.toDouble()),
     );
   }
   return EllipticF(phi, k, isSimplified: true);
 }
 
 /// Simplifies an incomplete elliptic integral of the second kind `ellipticE(phi, k)`.
-/// Simplifies an incomplete elliptic integral of the third kind $\Pi(n; \phi \mid k)$.
+/// Simplifies an incomplete elliptic integral of the third kind `Pi(n; phi | k)`.
 Expr simplifyEllipticPi(
   Expr n,
   Expr phi,
@@ -457,7 +473,7 @@ Expr simplifyExpIntegralE(Expr n, Expr z) {
     }
   }
   if (n is Number && z is Number && (n is RealNumber || z is RealNumber)) {
-    if (isFloatComplex(n) || isFloatComplex(z)) {
+    if (n is ComplexNumber || z is ComplexNumber) {
       return complexToExpr(
         special_exp_int.expIntegralEComplex(toComplex(n), toComplex(z)),
       );
@@ -482,13 +498,19 @@ Expr simplifyHypergeometric(List<Expr> upper, List<Expr> lower, Expr z) {
     return Constant.undefined;
   }
   if (z is Number && z.isZero) return IntegerNumber.one;
-  if (upper.any((e) => e is Number && e.isZero)) return IntegerNumber.one;
+  if (upper.any((e) => e is Number && e.isZero)) {
+    if (lower.any((e) => e is IntegerNumber && (e.isNegative || e.isZero))) {
+      return Constant.undefined;
+    }
+    return IntegerNumber.one;
+  }
 
-  // Cancel identical upper and lower parameters.
+  // Cancel identical upper and lower parameters (skipping non-positive integer poles).
   final remUpper = <Expr>[];
   final remLower = List<Expr>.from(lower);
   for (final u in upper) {
-    final idx = remLower.indexOf(u);
+    final isPole = u is IntegerNumber && (u.isNegative || u.isZero);
+    final idx = isPole ? -1 : remLower.indexOf(u);
     if (idx != -1) {
       remLower.removeAt(idx);
     } else {
@@ -509,9 +531,9 @@ Expr simplifyHypergeometric(List<Expr> upper, List<Expr> lower, Expr z) {
       (z is RealNumber ||
           remUpper.any((e) => e is RealNumber) ||
           remLower.any((e) => e is RealNumber))) {
-    if (isFloatComplex(z) ||
-        remUpper.any(isFloatComplex) ||
-        remLower.any(isFloatComplex)) {
+    if (z is ComplexNumber ||
+        remUpper.any((e) => e is ComplexNumber) ||
+        remLower.any((e) => e is ComplexNumber)) {
       return complexToExpr(
         special_hyper.hypergeometricPFQComplex(
           remUpper.map(toComplex).toList(),
@@ -530,5 +552,3 @@ Expr simplifyHypergeometric(List<Expr> upper, List<Expr> lower, Expr z) {
 
   return Hypergeometric(remUpper, remLower, z, isSimplified: true);
 }
-
-/// Simplifies a `min(...)` expression.

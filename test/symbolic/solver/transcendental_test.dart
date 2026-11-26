@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/solver/transcendental.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Inverse trigonometric and hyperbolic equations', () {
@@ -220,8 +220,12 @@ void main() {
         // x * e^x = c in all regions: c < -1/e, c == -1/e, -1/e < c < 0, c >= 0, symbolic
         check(Expr.parse('x * exp(x) + 1').solve('x')).isEmpty;
         check(
-          (x * Pow(Constant.e, x) + const RealNumber(1.0 / math.e)).solve('x'),
+          (x * Pow(Constant.e, x) + Pow(Constant.e, IntegerNumber.negativeOne))
+              .solve('x'),
         ).deepEquals([IntegerNumber.negativeOne]);
+        check(
+          (x * Pow(Constant.e, x) + const RealNumber(1.0 / math.e)).solve('x'),
+        ).deepEquals([const RealNumber(-1.0)]);
         final twoBranch = Expr.parse('x * exp(x) + 1/4').solve('x');
         check(twoBranch.length).equals(2);
         final symBranch = Expr.parse('x * exp(x) - a').solve('x');
@@ -466,5 +470,78 @@ void main() {
       ]);
       check(Expr.parse('sin(x) + cos(x) - 3').solve('x')).isEmpty;
     });
+  });
+
+  group('Transcendental solver edge cases', () {
+    test(
+      'solves mixed-sign exponential polynomials like exp(x) + exp(-x) = 3',
+      () {
+        final roots = Expr.parse('exp(x) + exp(-x) - 3').solve('x');
+        check(roots.length).equals(2);
+        for (final r in roots) {
+          final v = r.evaluate();
+          check(math.exp(v) + math.exp(-v) - 3.0).isCloseTo(0.0, 1e-12);
+        }
+      },
+    );
+
+    test('handles negativeRealNumber odd rational powers on real domain', () {
+      const realX = Assumptions(domains: {'x': VariableDomain.real});
+      final invCube =
+          (Pow(const Variable('x'), IntegerNumber.of(-3)) +
+                  const RealNumber(0.125))
+              .solve('x', assumptions: realX);
+      check(invCube).deepEquals([const RealNumber(-2.0)]);
+
+      final invFifth =
+          (Pow(const Variable('x'), IntegerNumber.of(-5)) +
+                  const RealNumber(0.03125))
+              .solve('x', assumptions: realX);
+      check(invFifth).deepEquals([const RealNumber(-2.0)]);
+    });
+
+    test('guards harmonic addition against complex or degenerate r == 0 coefficients', () {
+      const x = Variable('x');
+      final degenerate = Sin(x) + ComplexNumber.i * Cos(x) - IntegerNumber.one;
+      check(degenerate.solve('x')).isEmpty;
+      final negA = Expr.parse('-3 * sin(x) - 4 * cos(x) + 5').solve('x');
+      check(negA.length).equals(1);
+    });
+
+    test(
+      'guards affine exponential bases and log combination negative args',
+      () {
+        const a = Variable('a');
+        const posA = Assumptions(domains: {'a': VariableDomain.positive});
+        check(Expr.parse('1^x + x - 2').solve('x'))
+            .deepEquals([IntegerNumber.one]);
+        final comb = (Ln(const Variable('x') - a) + Ln(const Variable('x') + a))
+            .solve('x', assumptions: posA);
+        // Roots x^2 - a^2 = 1 -> only +sqrt(a^2 + 1) satisfies x - a > 0 under a > 0.
+        check(comb.length).equals(1);
+      },
+    );
+
+    test(
+      'solves Ln(x)/x Lambert W branch and scaled/negative radical equations',
+      () {
+        const x = Variable('x');
+        final logDivX = (Ln(x) / x - RationalNumber(1, 10)).solve('x');
+        check(logDivX.length).equals(2);
+
+        final scaledRad =
+            (IntegerNumber.two *
+                        Pow(x + IntegerNumber.one, FractionNumber.half) -
+                    IntegerNumber.of(6))
+                .solve('x');
+        check(scaledRad).deepEquals([IntegerNumber.of(8)]);
+
+        final negRad =
+            (IntegerNumber.of(3) * Pow(x, RationalNumber(-1, 2)) -
+                    IntegerNumber.one)
+                .solve('x');
+        check(negRad).deepEquals([IntegerNumber.of(9)]);
+      },
+    );
   });
 }

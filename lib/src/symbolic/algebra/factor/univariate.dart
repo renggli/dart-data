@@ -9,15 +9,15 @@ import '../term_accumulator.dart';
 import 'fraction.dart';
 import 'multivariate.dart';
 
-/// Polynomial over $\mathbb{Q}\[x\]$ represented as a list of rational coefficients.
+/// Polynomial over `Q[x]` represented as a list of rational coefficients.
 class PolyQ {
-  /// Creates a polynomial with [coeffs] where `coeffs[k]` is coefficient of $x^k$.
+  /// Creates a polynomial with [coeffs] where `coeffs[k]` is coefficient of `x^k`.
   new(this.coeffs);
 
   /// List of rational coefficients in ascending order of degree.
   final List<RationalNumber> coeffs;
 
-  /// Degree of the polynomial ($n = coeffs.length - 1$).
+  /// Degree of the polynomial (`n = coeffs.length - 1`).
   int get degree => coeffs.length - 1;
 }
 
@@ -270,18 +270,26 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   return buildFactoredExpr(scalar: scalar, factors: factors);
 }
 
-/// Factors quadratic $a \cdot x^2 + c$.
+/// Factors quadratic `a * x^2 + c`.
 Map<Expr, int> factorQuadraticInX(Integer a, Integer c, String variable) {
   final res = <Expr, int>{};
-  final disc = -const Integer(4) * a * c;
+  if (a.isZero) {
+    res[IntegerNumber(c)] = 1;
+    return res;
+  }
+  final g = a.abs().gcd(c.abs());
+  final primA = g.isOne ? a : a ~/ g;
+  final primC = g.isOne ? c : c ~/ g;
+  final disc = -const Integer(4) * primA * primC;
   if (!disc.isNegative) {
     final s = disc.isqrt();
     if (s != null) {
-      final twoA = a * Integer.two;
+      final twoA = primA * Integer.two;
       final r1 = RationalNumber.of(s, twoA);
       final r2 = RationalNumber.of(-s, twoA);
       final f1 = buildLinearFactor(r1.denominator, r1.numerator, variable);
       final f2 = buildLinearFactor(r2.denominator, r2.numerator, variable);
+      if (!g.isOne) res[IntegerNumber(g)] = 1;
       res[f1] = (res[f1] ?? 0) + 1;
       res[f2] = (res[f2] ?? 0) + 1;
       return res;
@@ -299,7 +307,7 @@ void mergeFactorsInto(Map<Expr, int> target, Map<Expr, int> source) {
   }
 }
 
-/// Performs synthetic division of [coeffs] by linear factor $q \cdot x - p$.
+/// Performs synthetic division of [coeffs] by linear factor `q * x - p`.
 List<Integer>? syntheticDivide(List<Integer> coeffs, Integer p, Integer q) {
   final n = coeffs.length - 1;
   if (n <= 0) return null;
@@ -319,7 +327,7 @@ List<Integer>? syntheticDivide(List<Integer> coeffs, Integer p, Integer q) {
   return b;
 }
 
-/// Builds linear factor $q \cdot x - p$ in canonical simplified order.
+/// Builds linear factor `q * x - p` in canonical simplified order.
 Expr buildLinearFactor(Integer q, Integer p, String variable) =>
     buildPolyExpr([-p, q], variable);
 

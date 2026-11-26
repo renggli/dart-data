@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Standard ExprSyntax', () {
@@ -502,5 +502,23 @@ void main() {
         check(info.doc).isNotEmpty;
       }
     });
+
+    test(
+      'parses two-arg special functions, O-terms, and validates binder names',
+      () {
+        check(Expr.parse('elliptice(x, 0.5)')).isA<EllipticE>();
+        check(Expr.parse('ellipticE(x, 0.5)')).isA<EllipticE>();
+        check(Expr.parse('EllipticE(x, 0.5)')).isA<EllipticE>();
+        check(Expr.parse('Zeta(2, a)')).isA<Zeta>();
+        check(Expr.parse('O(x^3)')).equals(const OrderTerm('x', 3));
+        check(Expr.parse('O((1 - x)^2)'))
+            .equals(const OrderTerm('x', 2, point: IntegerNumber.one));
+        check(Expr.parse('O((-x + 1)^2)'))
+            .equals(const OrderTerm('x', 2, point: IntegerNumber.one));
+        check(() => Expr.parse('O(-x)')).throws<FormatException>();
+        check(() => Expr.parse('integrate(x, 1)')).throws<FormatException>();
+        check(() => Expr.parse('diff(x, 1)')).throws<FormatException>();
+      },
+    );
   });
 }

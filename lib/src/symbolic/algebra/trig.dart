@@ -13,11 +13,11 @@ import 'term_accumulator.dart';
 /// Target representation for algebraic and transcendental [TrigRewriteExtension.rewrite].
 enum RewriteTarget {
   /// Rewrites trigonometric and hyperbolic functions into exponential form
-  /// ($e^{i x}$ and $e^x$).
+  /// (`e^{i x}` and `e^x`).
   exp,
 
-  /// Rewrites complex exponentials ($e^{a + i b}$) into trigonometric form
-  /// via Euler's formula $e^{a + i b} = e^a (\cos b + i \sin b)$.
+  /// Rewrites complex exponentials (`e^{a + i b}`) into trigonometric form
+  /// via Euler's formula `e^{a + i b} = e^a (cos b + i sin b)`.
   trig,
 
   /// Rewrites tangent and hyperbolic tangent into sine/cosine and sinh/cosh
@@ -30,10 +30,10 @@ extension TrigRewriteExtension on Expr {
   /// Expands trigonometric and hyperbolic functions of sums and integer
   /// multiples into polynomials in elementary functions of single arguments.
   ///
-  /// Applies angle-addition identities ($\sin(a + b)$, $\cos(a + b)$,
-  /// $\tan(a + b)$, $\sinh(a + b)$, $\cosh(a + b)$, $\tanh(a + b)$) and
-  /// De Moivre multiple-angle expansions ($\sin(n x)$, $\cos(n x)$, etc. for
-  /// integer $n$).
+  /// Applies angle-addition identities (`sin(a + b)`, `cos(a + b)`,
+  /// `tan(a + b)`, `sinh(a + b)`, `cosh(a + b)`, `tanh(a + b)`) and
+  /// De Moivre multiple-angle expansions (`sin(n x)`, `cos(n x)`, etc. for
+  /// integer `n`).
   ///
   /// ```dart
   /// final e = Expr.parse('sin(2 * x)');
@@ -46,7 +46,7 @@ extension TrigRewriteExtension on Expr {
       ).simplify(assumptions: assumptions);
 
   /// Simplifies trigonometric and hyperbolic expressions using Pythagorean,
-  /// quotient ($\tan u = \sin u / \cos u$), double-angle, and product-to-sum
+  /// quotient (`tan u = sin u / cos u`), double-angle, and product-to-sum
   /// identities.
   ///
   /// ```dart
@@ -63,8 +63,8 @@ extension TrigRewriteExtension on Expr {
   ///
   /// - [RewriteTarget.exp]: Converts `Sin`, `Cos`, `Tan`, `Sinh`, `Cosh`, and
   ///   `Tanh` into exponential expressions.
-  /// - [RewriteTarget.trig]: Converts complex exponentials $e^{a + i b}$ into
-  ///   $e^a (\cos b + i \sin b)$ via Euler's identity.
+  /// - [RewriteTarget.trig]: Converts complex exponentials `e^{a + i b}` into
+  ///   `e^a (cos b + i sin b)` via Euler's identity.
   /// - [RewriteTarget.sinCos]: Converts `Tan(u)` to `Sin(u) / Cos(u)` and
   ///   `Tanh(u)` to `Sinh(u) / Cosh(u)`.
   ///
@@ -106,16 +106,17 @@ Expr _expandTrigExpr(Expr expr, Assumptions assumptions) {
   };
 }
 
-Expr _expandSin(Expr arg, Assumptions assumptions) {
-  if (arg case Add(:final terms) when terms.length >= 2) {
+Expr _expandSin(Expr arg, Assumptions assumptions, [int depth = 0]) {
+  if (arg case Add(:final terms)
+      when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
     final rest = terms.length == 2
         ? terms[1]
         : Add(terms.sublist(1), isSimplified: true);
-    final sinA = _expandSin(first, assumptions);
-    final cosA = _expandCos(first, assumptions);
-    final sinB = _expandSin(rest, assumptions);
-    final cosB = _expandCos(rest, assumptions);
+    final sinA = _expandSin(first, assumptions, depth + 1);
+    final cosA = _expandCos(first, assumptions, depth + 1);
+    final sinB = _expandSin(rest, assumptions, depth + 1);
+    final cosB = _expandCos(rest, assumptions, depth + 1);
     return (sinA * cosB + cosA * sinB)
         .expand(assumptions: assumptions)
         .simplify(assumptions: assumptions);
@@ -129,16 +130,17 @@ Expr _expandSin(Expr arg, Assumptions assumptions) {
   return Sin(arg).simplify(assumptions: assumptions);
 }
 
-Expr _expandCos(Expr arg, Assumptions assumptions) {
-  if (arg case Add(:final terms) when terms.length >= 2) {
+Expr _expandCos(Expr arg, Assumptions assumptions, [int depth = 0]) {
+  if (arg case Add(:final terms)
+      when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
     final rest = terms.length == 2
         ? terms[1]
         : Add(terms.sublist(1), isSimplified: true);
-    final sinA = _expandSin(first, assumptions);
-    final cosA = _expandCos(first, assumptions);
-    final sinB = _expandSin(rest, assumptions);
-    final cosB = _expandCos(rest, assumptions);
+    final sinA = _expandSin(first, assumptions, depth + 1);
+    final cosA = _expandCos(first, assumptions, depth + 1);
+    final sinB = _expandSin(rest, assumptions, depth + 1);
+    final cosB = _expandCos(rest, assumptions, depth + 1);
     return (cosA * cosB - sinA * sinB)
         .expand(assumptions: assumptions)
         .simplify(assumptions: assumptions);
@@ -150,14 +152,15 @@ Expr _expandCos(Expr arg, Assumptions assumptions) {
   return Cos(arg).simplify(assumptions: assumptions);
 }
 
-Expr _expandTan(Expr arg, Assumptions assumptions) {
-  if (arg case Add(:final terms) when terms.length >= 2) {
+Expr _expandTan(Expr arg, Assumptions assumptions, [int depth = 0]) {
+  if (arg case Add(:final terms)
+      when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
     final rest = terms.length == 2
         ? terms[1]
         : Add(terms.sublist(1), isSimplified: true);
-    final tanA = _expandTan(first, assumptions);
-    final tanB = _expandTan(rest, assumptions);
+    final tanA = _expandTan(first, assumptions, depth + 1);
+    final tanB = _expandTan(rest, assumptions, depth + 1);
     return ((tanA + tanB) / (IntegerNumber.one - tanA * tanB)).simplify(
       assumptions: assumptions,
     );
@@ -171,16 +174,17 @@ Expr _expandTan(Expr arg, Assumptions assumptions) {
   return Tan(arg).simplify(assumptions: assumptions);
 }
 
-Expr _expandSinh(Expr arg, Assumptions assumptions) {
-  if (arg case Add(:final terms) when terms.length >= 2) {
+Expr _expandSinh(Expr arg, Assumptions assumptions, [int depth = 0]) {
+  if (arg case Add(:final terms)
+      when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
     final rest = terms.length == 2
         ? terms[1]
         : Add(terms.sublist(1), isSimplified: true);
-    final sinhA = _expandSinh(first, assumptions);
-    final coshA = _expandCosh(first, assumptions);
-    final sinhB = _expandSinh(rest, assumptions);
-    final coshB = _expandCosh(rest, assumptions);
+    final sinhA = _expandSinh(first, assumptions, depth + 1);
+    final coshA = _expandCosh(first, assumptions, depth + 1);
+    final sinhB = _expandSinh(rest, assumptions, depth + 1);
+    final coshB = _expandCosh(rest, assumptions, depth + 1);
     return (sinhA * coshB + coshA * sinhB)
         .expand(assumptions: assumptions)
         .simplify(assumptions: assumptions);
@@ -194,16 +198,17 @@ Expr _expandSinh(Expr arg, Assumptions assumptions) {
   return Sinh(arg).simplify(assumptions: assumptions);
 }
 
-Expr _expandCosh(Expr arg, Assumptions assumptions) {
-  if (arg case Add(:final terms) when terms.length >= 2) {
+Expr _expandCosh(Expr arg, Assumptions assumptions, [int depth = 0]) {
+  if (arg case Add(:final terms)
+      when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
     final rest = terms.length == 2
         ? terms[1]
         : Add(terms.sublist(1), isSimplified: true);
-    final sinhA = _expandSinh(first, assumptions);
-    final coshA = _expandCosh(first, assumptions);
-    final sinhB = _expandSinh(rest, assumptions);
-    final coshB = _expandCosh(rest, assumptions);
+    final sinhA = _expandSinh(first, assumptions, depth + 1);
+    final coshA = _expandCosh(first, assumptions, depth + 1);
+    final sinhB = _expandSinh(rest, assumptions, depth + 1);
+    final coshB = _expandCosh(rest, assumptions, depth + 1);
     return (coshA * coshB + sinhA * sinhB)
         .expand(assumptions: assumptions)
         .simplify(assumptions: assumptions);
@@ -215,14 +220,15 @@ Expr _expandCosh(Expr arg, Assumptions assumptions) {
   return Cosh(arg).simplify(assumptions: assumptions);
 }
 
-Expr _expandTanh(Expr arg, Assumptions assumptions) {
-  if (arg case Add(:final terms) when terms.length >= 2) {
+Expr _expandTanh(Expr arg, Assumptions assumptions, [int depth = 0]) {
+  if (arg case Add(:final terms)
+      when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
     final rest = terms.length == 2
         ? terms[1]
         : Add(terms.sublist(1), isSimplified: true);
-    final tanhA = _expandTanh(first, assumptions);
-    final tanhB = _expandTanh(rest, assumptions);
+    final tanhA = _expandTanh(first, assumptions, depth + 1);
+    final tanhB = _expandTanh(rest, assumptions, depth + 1);
     return ((tanhA + tanhB) / (IntegerNumber.one + tanhA * tanhB)).simplify(
       assumptions: assumptions,
     );
@@ -381,18 +387,23 @@ Expr _simplifyTrigExpr(Expr expr, Assumptions assumptions) {
   ).simplify(assumptions: assumptions);
 }
 
-Expr _contractTrigNode(Expr expr, Assumptions assumptions) {
+Expr _contractTrigNode(Expr expr, Assumptions assumptions, [int depth = 0]) {
   final mapped = expr
-      .mapChildren((c) => _contractTrigNode(c, assumptions))
+      .mapChildren((c) => _contractTrigNode(c, assumptions, depth))
       .simplify(assumptions: assumptions);
   return switch (mapped) {
-    Mul(:final factors) => _contractTrigProduct(factors, assumptions),
+    Mul(:final factors) => _contractTrigProduct(factors, assumptions, depth),
     Add(:final terms) => _contractTrigSum(terms, assumptions),
     _ => mapped,
   };
 }
 
-Expr _contractTrigProduct(List<Expr> factors, Assumptions assumptions) {
+Expr _contractTrigProduct(
+  List<Expr> factors,
+  Assumptions assumptions, [
+  int depth = 0,
+]) {
+  if (depth >= 16) return simplifyMul(factors, assumptions: assumptions);
   // Look for pairs of Sin/Cos or Sinh/Cosh in the numerator factors
   final remaining = List<Expr>.of(factors);
   var changed = false;
@@ -435,6 +446,7 @@ Expr _contractTrigProduct(List<Expr> factors, Assumptions assumptions) {
     return _contractTrigNode(
       prod.expand(assumptions: assumptions).simplify(assumptions: assumptions),
       assumptions,
+      depth + 1,
     );
   }
   return prod;
@@ -758,11 +770,26 @@ Expr _expToTrig(Expr exponent, Assumptions assumptions) {
   final imagTerms = <Expr>[];
 
   for (final t in rawTerms) {
-    final imagFactor = _extractImaginaryCoeff(t, assumptions);
-    if (imagFactor != null) {
-      imagTerms.add(imagFactor);
-    } else {
-      realTerms.add(t);
+    switch (t) {
+      case ComplexNumber(:final real, :final imaginary) when !imaginary.isZero:
+        if (!real.isZero) realTerms.add(real);
+        imagTerms.add(imaginary);
+      case Mul(
+            factors: [
+              ComplexNumber(:final real, :final imaginary),
+              ...final rest,
+            ],
+          )
+          when !imaginary.isZero && rest.isNotEmpty:
+        final restExpr = rest.length == 1 ? rest.first : Mul(rest);
+        if (!real.isZero) {
+          realTerms.add((real * restExpr).simplify(assumptions: assumptions));
+        }
+        imagTerms.add(
+          (imaginary * restExpr).simplify(assumptions: assumptions),
+        );
+      default:
+        realTerms.add(t);
     }
   }
 
@@ -779,22 +806,4 @@ Expr _expToTrig(Expr exponent, Assumptions assumptions) {
   }
   final realArg = simplifyAdd(realTerms, assumptions: assumptions);
   return (Pow(Constant.e, realArg) * euler).simplify(assumptions: assumptions);
-}
-
-Expr? _extractImaginaryCoeff(Expr term, Assumptions assumptions) {
-  switch (term) {
-    case ComplexNumber(:final real, :final imaginary) when real.isZero:
-      return imaginary;
-    case Mul(
-          factors: [
-            ComplexNumber(:final real, :final imaginary),
-            ...final rest,
-          ],
-        )
-        when real.isZero && rest.isNotEmpty:
-      final restExpr = rest.length == 1 ? rest.first : Mul(rest);
-      return (imaginary * restExpr).simplify(assumptions: assumptions);
-    default:
-      return null;
-  }
 }

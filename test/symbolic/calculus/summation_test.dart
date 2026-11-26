@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Faulhaber and polynomial sums', () {
@@ -609,6 +609,11 @@ void main() {
           .equals(Expr.parse('pi^2 / 12').simplify());
       check(Expr.parse('sum((-1)^k / (2*k + 1), k, 0, infinity)').simplify())
           .equals(Expr.parse('pi / 4').simplify());
+
+      check(Expr.parse('product(2 * k, k, 1, n)').simplify())
+          .equals(Expr.parse('2^n * n!').simplify());
+      check(Expr.parse('product(0, k, 1, n)').simplify())
+          .equals(IntegerNumber.zero);
     });
   });
 }

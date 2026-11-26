@@ -3,7 +3,7 @@ import 'package:data/src/symbolic/algebra/simplify/complex.dart';
 import 'package:data/src/symbolic/algebra/simplify/discrete.dart';
 import 'package:data/src/symbolic/algebra/simplify/special.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Discrete, relational, piecewise, and calculus simplification', () {
@@ -317,9 +317,9 @@ void main() {
       check(simplifyConjugate(Erfc(z), assumptions: complexZ).toString())
           .equals('erfc(conj(z))');
       check(simplifyConjugate(Atan(z), assumptions: complexZ).toString())
-          .equals('atan(conj(z))');
+          .equals('conj(atan(z))');
       check(simplifyConjugate(Asinh(z), assumptions: complexZ).toString())
-          .equals('asinh(conj(z))');
+          .equals('conj(asinh(z))');
       const posA = Variable('a');
       const assumptionsPosA = Assumptions(
         domains: {'a': VariableDomain.positive, 'z': VariableDomain.complex},
@@ -361,6 +361,18 @@ void main() {
           .equals(Re(z, isSimplified: true));
       check(toRectangularExpr(Im(z), assumptions: complexZ))
           .equals(Im(z, isSimplified: true));
+    });
+
+    test('simplifies float relational inequalities directly', () {
+      const one = RealNumber(1.0);
+      const two = RealNumber(2.0);
+      check(LessThan(one, two).simplify()).equals(IntegerNumber.one);
+      check(LessThan(two, one).simplify()).equals(IntegerNumber.zero);
+      check(LessEqual(two, two).simplify()).equals(IntegerNumber.one);
+      check(GreaterThan(two, one).simplify()).equals(IntegerNumber.one);
+      check(GreaterEqual(one, two).simplify()).equals(IntegerNumber.zero);
+      check(Equal(two, two).simplify()).equals(IntegerNumber.one);
+      check(NotEqual(one, two).simplify()).equals(IntegerNumber.one);
     });
   });
 }

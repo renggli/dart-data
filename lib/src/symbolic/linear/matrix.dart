@@ -18,7 +18,7 @@ import 'faddeev_leverrier.dart';
 
 /// Record representing a distinct symbolic eigenvalue, its algebraic
 /// multiplicity in the characteristic polynomial, and a basis of its
-/// corresponding eigenspace $\ker(A - \lambda I)$.
+/// corresponding eigenspace `ker(A - lambda * I)`.
 typedef SymbolicEigenpair = ({
   Expr eigenvalue,
   int algebraicMultiplicity,
@@ -31,7 +31,7 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// Computes the exact symbolic determinant of this square matrix using the
   /// Bareiss fraction-free algorithm:
   ///
-  /// $$\det(A) = (-1)^\sigma M_{n, n}^{(n-1)}$$
+  /// `det(A) = (-1)^sigma * M_{n,n}^{(n-1)}`
   ///
   /// Throws [ArgumentError] if the matrix is not square.
   ///
@@ -43,53 +43,68 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// ], type: exprDataType);
   /// print(m.determinant()); // -2 + x^2
   /// ```
-  Expr determinant({Assumptions assumptions = Assumptions.none}) {
-    final det = const BareissEngine().determinant(this);
-    return assumptions.isEmpty ? det : det.simplify(assumptions: assumptions);
-  }
+  Expr determinant({Assumptions assumptions = Assumptions.none}) =>
+      const BareissEngine().determinant(this, assumptions: assumptions);
 
   /// Computes the Reduced Row Echelon Form (RREF) of this matrix using
   /// exact symbolic Gauss-Jordan elimination.
-  Matrix<Expr> rowEchelon() => const BareissEngine().rowEchelon(this);
+  Matrix<Expr> rowEchelon({Assumptions assumptions = Assumptions.none}) =>
+      const BareissEngine().rowEchelon(this, assumptions: assumptions);
 
   /// Computes the exact algebraic rank of this matrix (the number of non-zero
   /// rows in its Reduced Row Echelon Form).
-  int rank() => const BareissEngine().rank(this);
+  int rank({Assumptions assumptions = Assumptions.none}) =>
+      const BareissEngine().rank(this, assumptions: assumptions);
 
-  /// Computes a basis for the right nullspace (kernel) $\{x \mid A x = 0\}$
+  /// Computes a basis for the right nullspace (kernel) `{x | A * x = 0}`
   /// of this matrix.
   ///
   /// Returns an empty list if the matrix has full column rank.
-  List<Vector<Expr>> nullSpace() => const BareissEngine().nullSpace(this);
+  List<Vector<Expr>> nullSpace({Assumptions assumptions = Assumptions.none}) =>
+      const BareissEngine().nullSpace(this, assumptions: assumptions);
 
-  /// Computes the characteristic polynomial $p(\lambda) = \det(\lambda I - A)$
-  /// of this square matrix using the Faddeev–LeVerrier algorithm:
+  /// Computes the characteristic polynomial `p(lambda) = det(lambda * I - A)`
+  /// of this square matrix using the Faddeev-LeVerrier algorithm:
   ///
-  /// $$p(\lambda) = \lambda^n - \sum_{k=1}^n c_k \lambda^{n-k}$$
+  /// `p(lambda) = lambda^n - sum_{k=1..n} c_k * lambda^(n - k)`
   ///
-  /// Throws [ArgumentError] if the matrix is not square.
+  /// Throws [ArgumentError] if the matrix is not square or already contains
+  /// [lambda] as a free variable.
   ///
   /// ```dart
   /// final a = Matrix<Expr>.fromRows([
   ///   [IntegerNumber.two, IntegerNumber.one],
   ///   [IntegerNumber.zero, IntegerNumber.of(3)],
   /// ], type: exprDataType);
-  /// print(a.characteristicPolynomial('lambda')); // 6 - 5 * lambda + lambda^2
+  /// print(a.characteristicPolynomial()); // 6 - 5 * lambda + lambda^2
   /// ```
-  Expr characteristicPolynomial([
+  Expr characteristicPolynomial({
     String lambda = 'lambda',
     Assumptions assumptions = Assumptions.none,
-  ]) {
-    final poly = const FaddeevLeVerrierEngine().characteristicPolynomial(
+  }) {
+    if (!isSquare) {
+      throw ArgumentError(
+        'Matrix must be square to compute characteristic polynomial, got '
+        '$rowCount x $colCount.',
+      );
+    }
+    if (_matrixVariables(this).contains(lambda)) {
+      throw ArgumentError.value(
+        lambda,
+        'lambda',
+        'Characteristic variable collides with matrix free variable "$lambda".',
+      );
+    }
+    return const FaddeevLeVerrierEngine().characteristicPolynomial(
       this,
-      lambda,
+      lambda: lambda,
+      assumptions: assumptions,
     );
-    return assumptions.isEmpty ? poly : poly.simplify(assumptions: assumptions);
   }
 
   /// Computes the symbolic eigenvalues of this square matrix (repeated
   /// according to their algebraic multiplicity) by solving the characteristic
-  /// polynomial $\det(\lambda I - A) = 0$.
+  /// polynomial `det(lambda * I - A) = 0`.
   ///
   /// Throws [ArgumentError] if the matrix is not square.
   List<Expr> eigenvalues({Assumptions assumptions = Assumptions.none}) {
@@ -99,8 +114,11 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
       );
     }
     if (rowCount == 0) return const [];
-    const lambdaVar = '_lambda';
-    final charPoly = characteristicPolynomial(lambdaVar, assumptions);
+    final lambdaVar = _freshLambdaVar(this);
+    final charPoly = characteristicPolynomial(
+      lambda: lambdaVar,
+      assumptions: assumptions,
+    );
     final distinctRoots = charPoly.solve(lambdaVar, assumptions: assumptions);
     final result = <Expr>[];
     for (final root in distinctRoots) {
@@ -119,7 +137,7 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   }
 
   /// Computes the distinct symbolic eigenvalues, their algebraic multiplicities,
-  /// and a basis for each eigenspace $\ker(A - \lambda I)$ of this square matrix.
+  /// and a basis for each eigenspace `ker(A - lambda * I)` of this square matrix.
   ///
   /// Throws [ArgumentError] if the matrix is not square.
   List<SymbolicEigenpair> eigenvectors({
@@ -131,8 +149,11 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
       );
     }
     if (rowCount == 0) return const [];
-    const lambdaVar = '_lambda';
-    final charPoly = characteristicPolynomial(lambdaVar, assumptions);
+    final lambdaVar = _freshLambdaVar(this);
+    final charPoly = characteristicPolynomial(
+      lambda: lambdaVar,
+      assumptions: assumptions,
+    );
     final distinctRoots = charPoly.solve(lambdaVar, assumptions: assumptions);
     final effectiveType = type is ExprDataType ? type : exprDataType;
     final pairs = <SymbolicEigenpair>[];
@@ -157,7 +178,7 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
         eigenvalue: root.simplify(assumptions: assumptions),
         algebraicMultiplicity: mult,
         eigenvectors: [
-          for (final v in shifted.nullSpace())
+          for (final v in shifted.nullSpace(assumptions: assumptions))
             v.simplify(assumptions: assumptions),
         ],
       ));
@@ -166,9 +187,9 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   }
 
   /// Computes the exact symbolic multiplicative inverse of this square matrix,
-  /// or returns `null` if the matrix is singular ($\det(A) = 0$):
+  /// or returns `null` if the matrix is singular (`det(A) = 0`):
   ///
-  /// $$A^{-1} = \frac{1}{c_n} B_{n-1}$$
+  /// `A^-1 = (1 / c_n) * B_{n-1}`
   ///
   /// Throws [ArgumentError] if the matrix is not square.
   ///
@@ -180,18 +201,15 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// final inv = a.inverse();
   /// // inv[0][0] == 1/2, inv[1][1] == 1/4
   /// ```
-  Matrix<Expr>? inverse({Assumptions assumptions = Assumptions.none}) {
-    final inv = const FaddeevLeVerrierEngine().inverse(this);
-    if (inv == null) return null;
-    return assumptions.isEmpty ? inv : inv.simplify(assumptions: assumptions);
-  }
+  Matrix<Expr>? inverse({Assumptions assumptions = Assumptions.none}) =>
+      const FaddeevLeVerrierEngine().inverse(this, assumptions: assumptions);
 
-  /// Computes the integer matrix power $A^n$ of this square matrix using
+  /// Computes the integer matrix power `A^n` of this square matrix using
   /// binary exponentiation.
   ///
-  /// Supports $n = 0$ (returning $I$), positive $n > 0$, and negative $n < 0$
-  /// (via `(inverse())^{-n}`). Throws [ArgumentError] if this matrix is not
-  /// square, or [StateError] if $n < 0$ and this matrix is singular.
+  /// Supports `n = 0` (returning `I`), positive `n > 0`, and negative `n < 0`
+  /// (via `(inverse())^(-n)`). Throws [ArgumentError] if this matrix is not
+  /// square, or [StateError] if `n < 0` and this matrix is singular.
   Matrix<Expr> power(
     int exponent, {
     Assumptions assumptions = Assumptions.none,
@@ -211,6 +229,11 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
         throw StateError(
           'Cannot raise singular matrix to negative power ($exponent).',
         );
+      }
+      // Avoid 64-bit signed negation overflow when exponent == -2^63.
+      if (exponent == -1 << 63) {
+        return (inv * inv.power(-(exponent + 1), assumptions: assumptions))
+            .simplify(assumptions: assumptions);
       }
       return inv.power(-exponent, assumptions: assumptions);
     }
@@ -262,7 +285,7 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// Computes the element-wise partial derivative of order [order] of this
   /// matrix with respect to [variable]:
   ///
-  /// $$\frac{\partial^n A}{\partial x^n} = \left\[\frac{\partial^n A_{ij}}{\partial x^n}\right\]$$
+  /// `d^n A / dx^n = [d^n A_{ij} / dx^n]`
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -278,10 +301,14 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
     String variable, {
     int order = 1,
     Assumptions assumptions = Assumptions.none,
-  }) => _mapEntries(
-    (e) =>
-        e.derivative(variable, order: order).simplify(assumptions: assumptions),
-  );
+  }) {
+    RangeError.checkNotNegative(order, 'order');
+    return _mapEntries(
+      (e) => e
+          .derivative(variable, order: order)
+          .simplify(assumptions: assumptions),
+    );
+  }
 
   /// Computes the element-wise symbolic integral of this matrix with respect
   /// to [variable].
@@ -365,7 +392,7 @@ extension SymbolicVectorExtension on Vector<Expr> {
   /// Computes the element-wise partial derivative of order [order] of this
   /// vector with respect to [variable]:
   ///
-  /// $$\frac{\partial^n v}{\partial x^n} = \left\[\frac{\partial^n v_i}{\partial x^n}\right\]$$
+  /// `d^n v / dx^n = [d^n v_i / dx^n]`
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -377,10 +404,14 @@ extension SymbolicVectorExtension on Vector<Expr> {
     String variable, {
     int order = 1,
     Assumptions assumptions = Assumptions.none,
-  }) => _mapEntries(
-    (e) =>
-        e.derivative(variable, order: order).simplify(assumptions: assumptions),
-  );
+  }) {
+    RangeError.checkNotNegative(order, 'order');
+    return _mapEntries(
+      (e) => e
+          .derivative(variable, order: order)
+          .simplify(assumptions: assumptions),
+    );
+  }
 
   /// Computes the element-wise symbolic integral of this vector with respect
   /// to [variable].
@@ -422,6 +453,27 @@ extension SymbolicVectorExtension on Vector<Expr> {
         (i) => transform(getUnchecked(i)),
         type: type is ExprDataType ? type : exprDataType,
       );
+}
+
+Set<String> _matrixVariables(Matrix<Expr> matrix) {
+  final vars = <String>{};
+  for (var r = 0; r < matrix.rowCount; r++) {
+    for (var c = 0; c < matrix.colCount; c++) {
+      vars.addAll(matrix.getUnchecked(r, c).freeVariables);
+    }
+  }
+  return vars;
+}
+
+String _freshLambdaVar(Matrix<Expr> matrix) {
+  final used = _matrixVariables(matrix);
+  var candidate = '_lambda';
+  var index = 1;
+  while (used.contains(candidate)) {
+    candidate = '_lambda_$index';
+    index++;
+  }
+  return candidate;
 }
 
 int _algebraicMultiplicity(

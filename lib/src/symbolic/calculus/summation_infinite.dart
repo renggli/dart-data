@@ -10,8 +10,8 @@ import '../ast.dart';
 import '../compiler.dart';
 import '../number/combinatorics.dart';
 import '../number/integer.dart';
+import 'limit.dart';
 import 'linear_form.dart';
-
 import 'summation.dart';
 
 Expr? infiniteSeriesClosedForm(
@@ -108,8 +108,8 @@ Expr? _tryAdditiveInfiniteSeries(
   ).simplify(assumptions: assumptions);
 }
 
-/// Evaluates $\sum_{k=\text{startInt}}^\infty f(k)$ given a canonical series
-/// value $\sum_{k=\text{canonStart}}^\infty f(k) = \text{canonSum}$ by adding
+/// Evaluates `sum_{k=startInt}^oof(k)` given a canonical series
+/// value `sum_{k=canonStart}^oof(k) = canonSum` by adding
 /// or subtracting finite head terms, provided all head terms are finite and
 /// well-defined.
 Expr? _adjustSeriesStart(
@@ -176,7 +176,11 @@ Expr? _evalTermAtInt(
       return null;
     }
     return v;
-  } on Object {
+  } on UnsupportedError {
+    return null;
+  } on ArgumentError {
+    return null;
+  } on StateError {
     return null;
   }
 }
@@ -230,6 +234,7 @@ Expr? _matchTwoPoleDigammaSeries(
   bool isValidDigammaArg(Expr arg) {
     if (arg is IntegerNumber) return arg.value > Integer.zero;
     if (arg is RationalNumber) return !arg.isNegative && !arg.isZero;
+    if (arg is RealNumber) return arg.value.isFinite && arg.value > 0.0;
     return true;
   }
 
@@ -327,9 +332,9 @@ Expr? _matchTwoPoleDigammaSeries(
 }
 
 /// Decomposes all exponential factors `base^(a*k + b)` in [factors] into a
-/// combined effective ratio $r = \prod \text{base}_i^{a_i}$ and constant
-/// multiplier $\text{scale} = \prod \text{base}_i^{b_i}$ such that the product
-/// of those factors equals $\text{scale} \cdot r^k$.
+/// combined effective ratio `r = prodbase_i^{a_i}` and constant
+/// multiplier `scale = prodbase_i^{b_i}` such that the product
+/// of those factors equals `scale * r^k`.
 ({Expr ratio, Expr scale, List<Expr> remaining}) _extractExponentialFactors(
   List<Expr> factors,
   String variable,
@@ -555,10 +560,10 @@ Expr _extractEvenRoot(Expr expr) {
   return Pow(expr, FractionNumber.half).simplify();
 }
 
-/// Converts standard power basis polynomial coefficients $\sum_{i=0}^d p_i k^i$
-/// into falling factorial basis coefficients $c_j$ via Stirling numbers of the
-/// second kind $S(i, j)$:
-/// $$k^i = \sum_{j=0}^i S(i, j) \, k^{\underline{j}}$$
+/// Converts standard power basis polynomial coefficients `sum_{i=0}^d p_i k^i`
+/// into falling factorial basis coefficients `c_j` via Stirling numbers of the
+/// second kind `S(i, j)`:
+/// `k^i = sum_{j=0}^i S(i, j) k^{underline{j}}`
 List<Expr>? _toFallingFactorialBasis(Map<int, Expr> polyCoeffs) {
   var maxDeg = 0;
   for (final d in polyCoeffs.keys) {
@@ -581,14 +586,14 @@ List<Expr>? _toFallingFactorialBasis(Map<int, Expr> polyCoeffs) {
   return c;
 }
 
-/// Matches infinite series of the form $\frac{c \cdot r^k}{(m k + d)^p}$:
-/// - Riemann zeta $\zeta(2s) = \sum_{n=1}^\infty \frac{1}{n^{2s}}$
-/// - Odd zeta $\sum_{n=0}^\infty \frac{1}{(2n+1)^{2s}} = (1 - 2^{-2s}) \zeta(2s)$
-/// - Dirichlet eta $\eta(2s) = \sum_{n=1}^\infty \frac{(-1)^{n-1}}{n^{2s}} = (1 - 2^{1-2s}) \zeta(2s)$
-/// - Dirichlet beta $\beta(2s+1) = \sum_{n=0}^\infty \frac{(-1)^n}{(2n+1)^{2s+1}}$
-/// - Mercator / logarithm $\sum_{n=1}^\infty \frac{r^n}{n} = -\ln(1 - r)$ for $-1 \le r < 1$
-/// - Polylogarithm $\operatorname{Li}_2(1/2) = \sum_{n=1}^\infty \frac{1}{n^2 2^n} = \frac{\pi^2}{12} - \frac{1}{2}\ln(2)^2$
-/// - Gregory / arctan / atanh $\sum_{n=0}^\infty \frac{r^n}{2n+1}$ for $|r| \le 1$
+/// Matches infinite series of the form `(c * r^k)/((m k + d)^p)`:
+/// - Riemann zeta `zeta(2s) = sum_{n=1}^oo(1)/(n^2s)`
+/// - Odd zeta `sum_{n=0}^oo(1)/((2n+1)^2s) = (1 - 2^-2s) zeta(2s)`
+/// - Dirichlet eta `eta(2s) = sum_{n=1}^oo((-1)^n-1)/(n^2s) = (1 - 2^1-2s) zeta(2s)`
+/// - Dirichlet beta `beta(2s+1) = sum_{n=0}^oo((-1)^n)/((2n+1)^2s+1)`
+/// - Mercator / logarithm `sum_{n=1}^oo (r^n)/n = -ln(1 - r)` for `-1 <= r < 1`
+/// - Polylogarithm `Li_2(1/2) = sum_{n=1}^oo 1/(n^2 * 2^n) = pi^2/12 - 1/2 * ln(2)^2`
+/// - Gregory / arctan / atanh `sum_{n=0}^oo (r^n)/(2*n + 1)` for `|r| <= 1`
 Expr? _matchPowerDenominatorSeries(
   Expr term,
   String variable,
@@ -938,15 +943,19 @@ bool _isStrictlyInsideUnitDisk(Expr r) {
     try {
       final v = r.evaluate();
       return v.isFinite && v != 0.0 && v.abs() < 1.0;
-    } on Object {
+    } on UnsupportedError {
+      return false;
+    } on ArgumentError {
+      return false;
+    } on StateError {
       return false;
     }
   }
   return false;
 }
 
-/// Computes the Dirichlet beta value $\beta(2m + 1) = \sum_{n=0}^\infty \frac{(-1)^n}{(2n+1)^{2m+1}} = \frac{|E_{2m}| \pi^{2m+1}}{2^{2m+2} (2m)!}$
-/// using Euler numbers $E_{2m}$.
+/// Computes the Dirichlet beta value `beta(2m + 1) = sum_{n=0}^oo((-1)^n)/((2n+1)^2m+1) = (|E_2m| pi^2m+1)/(2^2m+2 (2m)!)`
+/// using Euler numbers `E_2m`.
 Expr _oddDirichletBetaValue(int p) {
   final twoM = p - 1;
   final m = twoM ~/ 2;
@@ -958,8 +967,8 @@ Expr _oddDirichletBetaValue(int p) {
   return (coeff * Pow(Constant.pi, IntegerNumber.of(p))).simplify();
 }
 
-/// Computes even-indexed Euler numbers $E_0, E_2, \dots, E_{2m}$ via
-/// $\sum_{k=0}^n \binom{2n}{2k} E_{2k} = 0$.
+/// Computes even-indexed Euler numbers `E_0, E_2, ..., E_2m` via
+/// `sum_{k=0}^n binomial(2n, 2k) E_2k = 0`.
 List<Integer> _eulerNumbers(int maxM) {
   final e = <Integer>[Integer.one];
   for (var n = 1; n <= maxM; n++) {
@@ -973,14 +982,20 @@ List<Integer> _eulerNumbers(int maxM) {
   return e;
 }
 
-Expr? findSymbolicBasePow(Expr expr, String limitVarName) {
-  Expr? found;
+({Expr base, int expSign})? findSymbolicBasePow(
+  Expr expr,
+  String limitVarName, [
+  Assumptions assumptions = Assumptions.none,
+]) {
+  ({Expr base, int expSign})? found;
   expr.anyNode((node) {
     if (node case Pow(:final base, exponent: final e)
         when e.dependsOn(limitVarName) &&
             base.freeVariables.isNotEmpty &&
             !base.dependsOn(limitVarName)) {
-      found = base;
+      final sign = asymptoticSignAtInfinity(e, limitVarName, null, assumptions);
+      if (sign == 0) return false;
+      found = (base: base, expSign: sign);
       return true;
     }
     return false;

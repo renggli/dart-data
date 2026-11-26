@@ -9,7 +9,7 @@ import 'package:more/math.dart';
 /// An exact integer of arbitrary size that is stored as an [int] whenever its
 /// magnitude is platform-independently safe, and as a [BigInt] otherwise.
 ///
-/// Values with $|v| \le 2^{53} - 1$ ([maxSafe]) are represented by an [int],
+/// Values with `|v| <= 2^53 - 1` ([maxSafe]) are represented by an [int],
 /// all others by a [BigInt]. Because each value has exactly one
 /// representation, the underlying `==` and `hashCode` are exact on the VM and
 /// on the web. Arithmetic uses overflow-checked [int] fast paths and promotes
@@ -24,7 +24,7 @@ import 'package:more/math.dart';
 /// ```
 extension type const Integer._(Object _value) {
   /// Creates an integer from a [value] within the safe range
-  /// $[-(2^{53} - 1), 2^{53} - 1]$.
+  /// `[-(2^53 - 1), 2^53 - 1]`.
   ///
   /// Use `Integer.from` for values that might exceed the safe range.
   const new(int value)
@@ -37,7 +37,7 @@ extension type const Integer._(Object _value) {
   /// Creates an integer from an arbitrary [int] [value], promoting it to a
   /// [BigInt] representation when it exceeds the safe range.
   factory from(int value) => -maxSafe <= value && value <= maxSafe
-      ? Integer._(value)
+      ? Integer._small(value)
       : Integer._(BigInt.from(value));
 
   /// Creates an integer from a [BigInt] [value], demoting it to an [int]
@@ -65,7 +65,7 @@ extension type const Integer._(Object _value) {
     return Integer.big(BigInt.parse(source));
   }
 
-  /// The largest magnitude $2^{53} - 1$ stored as an [int] on all platforms.
+  /// The largest magnitude `2^53 - 1` stored as an [int] on all platforms.
   static const maxSafe = 9007199254740991;
 
   /// The integer `0`.
@@ -80,7 +80,7 @@ extension type const Integer._(Object _value) {
   /// The integer `-1`.
   static const negativeOne = Integer(-1);
 
-  /// The default upper bound on the bit length of [pow] results ($2^{16}$).
+  /// The default upper bound on the bit length of [pow] results (`2^16`).
   static const defaultMaxBitLength = 65536;
 
   /// Returns this value as an [int], or `null` if it exceeds the safe range.
@@ -254,7 +254,7 @@ extension type const Integer._(Object _value) {
     return null;
   }
 
-  /// Whether this integer is a prime number ($p \ge 2$).
+  /// Whether this integer is a prime number (`p >=2`).
   ///
   /// Delegates to [ProbablyPrimeIntegerExtension.isProbablyPrime] and
   /// [ProbablyPrimeBigIntExtension.isProbablyPrime].
@@ -264,9 +264,9 @@ extension type const Integer._(Object _value) {
     return (n as BigInt).isProbablyPrime;
   }
 
-  /// Returns the factorial $n!$ of this non-negative integer.
+  /// Returns the factorial `n!` of this non-negative integer.
   ///
-  /// Delegates to [FactorialIntegerExtension.factorial] when $n \le 18$ and
+  /// Delegates to [FactorialIntegerExtension.factorial] when `n <=18` and
   /// [FactorialBigIntExtension.factorial] for larger values.
   Integer factorial() {
     final n = _value;
@@ -274,7 +274,7 @@ extension type const Integer._(Object _value) {
     return Integer.big(toBigInt().factorial());
   }
 
-  /// Returns the binomial coefficient $\binom{n}{k}$.
+  /// Returns the binomial coefficient `binomial(n, k)`.
   ///
   /// Delegates to [BinomialIntegerExtension.binomial] and
   /// [BinomialBigIntExtension.binomial].
@@ -300,9 +300,12 @@ extension type const Integer._(Object _value) {
     // A base with b bits yields a power with between e * (b - 1) + 1 and
     // e * b bits.
     final bits = abs().bitLength;
-    if (exponent * (bits - 1) + 1 > maxBitLength) return null;
+    if (exponent > maxBitLength ||
+        (bits > 1 && exponent > (maxBitLength - 1) ~/ (bits - 1))) {
+      return null;
+    }
     final Integer result;
-    if (_value case final int base when exponent * bits <= 53) {
+    if (_value case final int base when bits > 0 && exponent <= 53 ~/ bits) {
       var value = 1;
       for (var i = 0; i < exponent; i++) {
         value *= base;
@@ -348,7 +351,7 @@ const _addLimit = 4503599627370496; // 2^52
 /// loss (web).
 const _mulLimit = isJavaScript ? 67108864 : 2147483648; // 2^26 : 2^31
 
-/// The value $-2^{53}$, the only 53-bit value outside the safe range.
+/// The value `-2^53`, the only 53-bit value outside the safe range.
 final _negativeTwoPow53 = -BigInt.two.pow(53);
 
 /// Pattern of a decimal integer with an optional sign.
@@ -369,10 +372,12 @@ Integer? pollardsRho(Integer n) {
 
     Integer f(Integer val) => (val * val + c) % n;
 
-    while (d == Integer.one) {
+    var iterations = 0;
+    while (d == Integer.one && iterations < 100000) {
       x = f(x);
       y = f(f(y));
       d = (x - y).abs().gcd(n);
+      iterations++;
     }
 
     if (d > Integer.one && d < n) {

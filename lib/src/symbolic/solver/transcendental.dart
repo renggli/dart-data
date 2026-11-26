@@ -115,7 +115,7 @@ List<Expr>? isolateAndInvert(
   );
 }
 
-/// Inverts elementary and transcendental operations for equation $u = c$.
+/// Inverts elementary and transcendental operations for equation `u = c`.
 List<Expr>? invertEquation(
   Expr u,
   Expr c,
@@ -197,7 +197,7 @@ List<Expr>? invertEquation(
           variable,
           assumptions: assumptions,
         ),
-      ]);
+      ], assumptions: assumptions);
     case Tanh(:final expr):
       final cNum = tryEvalReal(c);
       if (cNum != null && cNum.abs() >= 1.0 - 1e-12) return const [];
@@ -224,7 +224,7 @@ List<Expr>? invertEquation(
           variable,
           assumptions: assumptions,
         ),
-      ]);
+      ], assumptions: assumptions);
     case LambertW(:final expr, :final branch):
       final cNum = tryEvalReal(c);
       if (cNum != null) {
@@ -337,7 +337,7 @@ List<Expr>? invertEquation(
                 variable,
                 assumptions: assumptions,
               );
-              return deduplicateRoots([...s1, ...s2]);
+              return deduplicateRoots([...s1, ...s2], assumptions: assumptions);
             } else {
               final root = rootConstant(c, n);
               return solveEquation(
@@ -353,7 +353,22 @@ List<Expr>? invertEquation(
             }
           }
           final invP = expConst.reciprocal();
-          final posRoot = Pow(c, invP).simplify(assumptions: assumptions);
+          final Expr posRoot;
+          if (expConst.numerator.isOdd &&
+              expConst.denominator.isOdd &&
+              assumptions.domainOf(variable) != VariableDomain.complex &&
+              ((cVal != null && cVal < 0.0) ||
+                  (c is RationalNumber && c.isNegative))) {
+            final absRoot = c is RealNumber
+                ? RealNumber(math.pow(-c.value, invP.toDouble()).toDouble())
+                : Pow(
+                    (-c).simplify(assumptions: assumptions),
+                    invP,
+                  ).simplify(assumptions: assumptions);
+            posRoot = (-absRoot).simplify(assumptions: assumptions);
+          } else {
+            posRoot = Pow(c, invP).simplify(assumptions: assumptions);
+          }
           if (expConst.numerator.isEven && !isZeroExpr(c)) {
             final negRoot = (-posRoot).simplify(assumptions: assumptions);
             final s1 = solveEquation(
@@ -366,7 +381,7 @@ List<Expr>? invertEquation(
               variable,
               assumptions: assumptions,
             );
-            return deduplicateRoots([...s1, ...s2]);
+            return deduplicateRoots([...s1, ...s2], assumptions: assumptions);
           }
           return solveEquation(
             (base - posRoot).simplify(assumptions: assumptions),
@@ -454,7 +469,7 @@ List<Expr>? invertEquation(
   return null;
 }
 
-/// Checks whether a real constant [c] is strictly outside $\[-maxAbs, maxAbs\]$.
+/// Checks whether a real constant [c] is strictly outside `[-maxAbs, maxAbs]`.
 bool isRealConstantOutOfRange(Expr c, double maxAbs) {
   switch (c) {
     case RationalNumber():

@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('numerator and denominator', () {
@@ -66,18 +66,18 @@ void main() {
     test('collects multivariate additive terms by powers of a variable', () {
       final e1 = Expr.parse('a * x^2 + b * x^2 + c * x + d * x + 5');
       check(e1.collect('x').toString())
-          .equals('5 + (c + d) * x + (a + b) * x ^ 2');
+          .equals('5 + x * (c + d) + x ^ 2 * (a + b)');
 
       final e2 = Expr.parse('(a + 1) * x - a * x + y');
-      check(e2.collect('x').toString()).equals('y + x');
+      check(e2.collect('x').toString()).equals('x + y');
 
       final e3 = Expr.parse('(a*x + b*x) / (c*x^2 + d*x^2 + 1)');
       check(e3.collect('x').toString())
-          .equals('x * (a + b) / (1 + (c + d) * x ^ 2)');
+          .equals('x * (a + b) / (1 + x ^ 2 * (c + d))');
 
       final e4 = Expr.parse('2 * y * x + 3 * y * x');
       final col4 = e4.collect('x');
-      check(col4.toString()).equals('5 * y * x');
+      check(col4.toString()).equals('5 * x * y');
       check(col4.anyNode((n) => n is Mul && n.factors.any((f) => f is Mul)))
           .isFalse;
     });
@@ -213,7 +213,7 @@ void main() {
         Expr.parse('sqrt(a^2) * x + x')
             .collect('x', assumptions: posAssump)
             .toString(),
-      ).equals('(1 + a) * x');
+      ).equals('x * (1 + a)');
       check(
         Expr.parse('sqrt(a^2) / (x^2 - 1)')
             .apart('x', assumptions: posAssump)

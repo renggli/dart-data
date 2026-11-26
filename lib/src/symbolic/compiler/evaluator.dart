@@ -94,7 +94,14 @@ final class BytecodeEvaluator {
   }
 
   /// Evaluates a single-variable real expression at [x].
-  double evaluate1D(double x) => _runReal((_) => x);
+  double evaluate1D(double x) {
+    if (variables.length > 1) {
+      throw StateError(
+        'evaluate1D requires at most 1 variable, got ${variables.length}',
+      );
+    }
+    return _runReal((_) => x);
+  }
 
   /// Evaluates a multivariable real expression at positional [args].
   double evaluateList(List<double> args) => _runReal((idx) => args[idx]);
@@ -114,7 +121,14 @@ final class BytecodeEvaluator {
   });
 
   /// Evaluates a single-variable complex expression at [x].
-  Complex evaluateComplex1D(Complex x) => _runComplex((_) => x);
+  Complex evaluateComplex1D(Complex x) {
+    if (variables.length > 1) {
+      throw StateError(
+        'evaluateComplex1D requires at most 1 variable, got ${variables.length}',
+      );
+    }
+    return _runComplex((_) => x);
+  }
 
   /// Evaluates a multivariable complex expression at positional [args].
   Complex evaluateComplexList(List<Complex> args) =>
@@ -149,8 +163,45 @@ final class BytecodeEvaluator {
         );
       }
     }
-    for (var i = 0; i < len; i++) {
-      output[i] = _runReal((idx) => inputs[idx][i]);
+    if (hasComplexLiterals || _realBusy) {
+      for (var i = 0; i < len; i++) {
+        output[i] = _runReal((idx) => inputs[idx][i]);
+      }
+      return;
+    }
+    _realBusy = true;
+    final stack = _realStack;
+    final instrs = instructions;
+    final numInstrs = instrs.length;
+    try {
+      for (var i = 0; i < len; i++) {
+        var sp = 0;
+        var pc = 0;
+        while (pc < numInstrs) {
+          final instr = instrs[pc++];
+          if (instr.op == Op.pushConst) {
+            stack[sp++] = instr.realValue;
+          } else if (instr.op == Op.loadVar) {
+            stack[sp++] = inputs[instr.index][i];
+          } else {
+            sp--;
+            // Fall back cleanly to general executor if non-trivial ops appear.
+            pc = 0;
+            sp = -1;
+            break;
+          }
+        }
+        if (sp < 0) {
+          _realBusy = false;
+          for (var j = i; j < len; j++) {
+            output[j] = _runReal((idx) => inputs[idx][j]);
+          }
+          return;
+        }
+        output[i] = stack[0];
+      }
+    } finally {
+      _realBusy = false;
     }
   }
 
@@ -270,7 +321,11 @@ final class BytecodeEvaluator {
           case Op.polygamma:
             final x = stack[--sp];
             final m = stack[--sp];
-            stack[sp++] = special_digamma.polygamma(m.toInt(), x);
+            if (!m.isFinite || m < 0.0 || m != m.roundToDouble()) {
+              stack[sp++] = double.nan;
+            } else {
+              stack[sp++] = special_digamma.polygamma(m.toInt(), x);
+            }
           case Op.besselJ:
             final x = stack[--sp];
             final nu = stack[--sp];
@@ -368,6 +423,8 @@ final class BytecodeEvaluator {
             final a = stack[--sp];
             if (!a.isFinite ||
                 !b.isFinite ||
+                a.abs() > 9007199254740991.0 ||
+                b.abs() > 9007199254740991.0 ||
                 a != a.roundToDouble() ||
                 b != b.roundToDouble()) {
               stack[sp++] = double.nan;
@@ -379,6 +436,8 @@ final class BytecodeEvaluator {
             final a = stack[--sp];
             if (!a.isFinite ||
                 !b.isFinite ||
+                a.abs() > 9007199254740991.0 ||
+                b.abs() > 9007199254740991.0 ||
                 a != a.roundToDouble() ||
                 b != b.roundToDouble()) {
               stack[sp++] = double.nan;
@@ -413,16 +472,21 @@ final class BytecodeEvaluator {
           case Op.mod:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = (a.isNaN || b.isNaN || b == 0.0)
-                ? double.nan
-                : a - b * (a / b).floorToDouble();
+            if (a.isNaN || b.isNaN || b == 0.0 || a.isInfinite) {
+              stack[sp++] = double.nan;
+            } else if (b.isInfinite) {
+              stack[sp++] = (a == 0.0 || (a > 0.0) == (b > 0.0)) ? a : b;
+            } else {
+              stack[sp++] = a - b * (a / b).floorToDouble();
+            }
           case Op.re || Op.conj:
             break;
           case Op.im:
-            stack[sp - 1] = 0.0;
+            final v = stack[sp - 1];
+            stack[sp - 1] = v.isNaN ? double.nan : 0.0;
           case Op.arg:
             final v = stack[sp - 1];
-            stack[sp - 1] = v < 0.0 ? math.pi : 0.0;
+            stack[sp - 1] = v.isNaN ? double.nan : (v < 0.0 ? math.pi : 0.0);
           case Op.asinh:
             stack[sp - 1] = stack[sp - 1].asinh();
           case Op.acosh:
@@ -432,19 +496,27 @@ final class BytecodeEvaluator {
           case Op.lt:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = a < b ? 1.0 : 0.0;
+            stack[sp++] = (a.isNaN || b.isNaN)
+                ? double.nan
+                : (a < b ? 1.0 : 0.0);
           case Op.le:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = a <= b ? 1.0 : 0.0;
+            stack[sp++] = (a.isNaN || b.isNaN)
+                ? double.nan
+                : (a <= b ? 1.0 : 0.0);
           case Op.gt:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = a > b ? 1.0 : 0.0;
+            stack[sp++] = (a.isNaN || b.isNaN)
+                ? double.nan
+                : (a > b ? 1.0 : 0.0);
           case Op.ge:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = a >= b ? 1.0 : 0.0;
+            stack[sp++] = (a.isNaN || b.isNaN)
+                ? double.nan
+                : (a >= b ? 1.0 : 0.0);
           case Op.eq:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -466,10 +538,14 @@ final class BytecodeEvaluator {
         }
         if (!anyVarNaN) {
           if (!reentrant) _realBusy = false;
-          final complexRes = _runComplex((idx) => Complex(loadVar(idx)));
-          if (!complexRes.isNaN &&
-              complexRes.b.abs() <= 1e-15 * (complexRes.a.abs() + 1.0)) {
-            return complexRes.a.toDouble();
+          try {
+            final complexRes = _runComplex((idx) => Complex(loadVar(idx)));
+            if (!complexRes.isNaN &&
+                complexRes.b.abs() <= 1e-15 * (complexRes.a.abs() + 1.0)) {
+              return complexRes.a.toDouble();
+            }
+          } on UnsupportedError {
+            return double.nan;
           }
           return double.nan;
         }
@@ -514,7 +590,12 @@ final class BytecodeEvaluator {
               pc = instr.index;
             }
           case Op.evalNode:
-            if (instr.node case Integral(isDefinite: true) || Derivative()) {
+            if (instr.node
+                case Integral(isDefinite: true) ||
+                    Derivative() ||
+                    Limit() ||
+                    Sum() ||
+                    Product()) {
               var allReal = true;
               final realCtx = <String, double>{};
               for (var i = 0; i < variables.length; i++) {
@@ -613,12 +694,18 @@ final class BytecodeEvaluator {
           case Op.polygamma:
             final zX = stack[--sp];
             final zM = stack[--sp];
-            if (zM.b != 0.0 || zM.a != zM.a.roundToDouble()) {
+            if (zM.isNaN || zX.isNaN) {
+              stack[sp++] = Complex.nan;
+            } else if (!zM.isFinite ||
+                zM.b != 0.0 ||
+                zM.a < 0.0 ||
+                zM.a != zM.a.roundToDouble()) {
               throw UnsupportedError(
-                'Complex Polygamma order must be a real integer',
+                'Complex Polygamma order must be a non-negative real integer',
               );
+            } else {
+              stack[sp++] = special_digamma.polygammaComplex(zM.a.toInt(), zX);
             }
-            stack[sp++] = special_digamma.polygammaComplex(zM.a.toInt(), zX);
           case Op.besselJ:
             final zX = stack[--sp];
             final zNu = stack[--sp];
@@ -775,11 +862,15 @@ final class BytecodeEvaluator {
             }
             final a = zA.a.toDouble();
             final b = zB.a.toDouble();
-            stack[sp++] = Complex(
-              (a.isNaN || b.isNaN || b == 0.0)
-                  ? double.nan
-                  : a - b * (a / b).floorToDouble(),
-            );
+            if (a.isNaN || b.isNaN || b == 0.0 || a.isInfinite) {
+              stack[sp++] = Complex.nan;
+            } else if (b.isInfinite) {
+              stack[sp++] = Complex(
+                (a == 0.0 || (a > 0.0) == (b > 0.0)) ? a : b,
+              );
+            } else {
+              stack[sp++] = Complex(a - b * (a / b).floorToDouble());
+            }
           case Op.re:
             stack[sp - 1] = Complex(stack[sp - 1].real);
           case Op.im:
@@ -840,11 +931,8 @@ final class BytecodeEvaluator {
         return compileToBytecode(
           expr,
           const [],
-          optimize: false,
+          optimize: true,
           allowDynamicVars: true,
         );
       });
 }
-
-/// Evaluates the real binomial coefficient $\binom{n}{k}$ without intermediate
-/// gamma overflow.

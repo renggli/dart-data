@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Elementary functions', () {
@@ -68,106 +68,97 @@ void main() {
   });
 
   group('Complex-part functions and normal forms', () {
-    test(
-      'Re, Im, Arg, and Conjugate simplification, formatting, and evaluation',
-      () {
-        const x = Variable('x');
-        const z = Variable('z');
+    test('Re, Im, Arg, and Conjugate simplification, formatting, and evaluation', () {
+      const x = Variable('x');
+      const z = Variable('z');
 
-        check(Expr.parse('re(3 + 4 * i)').simplify())
-            .equals(IntegerNumber.of(3));
-        check(Expr.parse('im(3 + 4 * i)').simplify())
-            .equals(IntegerNumber.of(4));
-        check(Expr.parse('conj(3 + 4 * i)').simplify())
-            .equals(Expr.parse('3 - 4 * i').simplify());
-        check(Expr.parse('abs(3 + 4 * i)').simplify())
-            .equals(IntegerNumber.of(5));
-        check(Expr.parse('arg(1 + i)').simplify().toString())
-            .equals('1/4 * pi');
-        check(Expr.parse('arg(-1)').simplify()).equals(Constant.pi);
-        check(Expr.parse('arg(i)').simplify().toString()).equals('1/2 * pi');
-        check(Expr.parse('arg(-i)').simplify().toString()).equals('-1/2 * pi');
+      check(Expr.parse('re(3 + 4 * i)').simplify()).equals(IntegerNumber.of(3));
+      check(Expr.parse('im(3 + 4 * i)').simplify()).equals(IntegerNumber.of(4));
+      check(Expr.parse('conj(3 + 4 * i)').simplify())
+          .equals(Expr.parse('3 - 4 * i').simplify());
+      check(Expr.parse('abs(3 + 4 * i)').simplify())
+          .equals(IntegerNumber.of(5));
+      check(Expr.parse('arg(1 + i)').simplify().toString()).equals('1/4 * pi');
+      check(Expr.parse('arg(-1)').simplify()).equals(Constant.pi);
+      check(Expr.parse('arg(i)').simplify().toString()).equals('1/2 * pi');
+      check(Expr.parse('arg(-i)').simplify().toString()).equals('-1/2 * pi');
 
-        // Real variables simplify directly under real assumptions
-        check(Re(x).simplify(assumptions: Assumptions.real)).equals(x);
-        check(Im(x).simplify(assumptions: Assumptions.real))
-            .equals(IntegerNumber.zero);
-        check(Conjugate(x).simplify(assumptions: Assumptions.real)).equals(x);
-        check(
-          Expr.parse('re(exp(i * x))').simplify(assumptions: Assumptions.real),
-        ).equals(Cos(x));
-        check(
-          Expr.parse('im(exp(i * x))').simplify(assumptions: Assumptions.real),
-        ).equals(Sin(x));
-        check(
-          Expr.parse('abs(exp(i * x))').simplify(assumptions: Assumptions.real),
-        ).equals(IntegerNumber.one);
+      // Real variables simplify directly under real assumptions
+      check(Re(x).simplify(assumptions: Assumptions.real)).equals(x);
+      check(Im(x).simplify(assumptions: Assumptions.real))
+          .equals(IntegerNumber.zero);
+      check(Conjugate(x).simplify(assumptions: Assumptions.real)).equals(x);
+      check(
+        Expr.parse('re(exp(i * x))').simplify(assumptions: Assumptions.real),
+      ).equals(Cos(x));
+      check(
+        Expr.parse('im(exp(i * x))').simplify(assumptions: Assumptions.real),
+      ).equals(Sin(x));
+      check(
+        Expr.parse('abs(exp(i * x))').simplify(assumptions: Assumptions.real),
+      ).equals(IntegerNumber.one);
 
-        // Complex variable remains symbolic
-        const complexZ = Assumptions(domains: {'z': VariableDomain.complex});
-        check(Re(z).simplify(assumptions: complexZ))
-            .equals(Re(z, isSimplified: true));
-        check(Im(z).simplify(assumptions: complexZ))
-            .equals(Im(z, isSimplified: true));
-        check(Conjugate(z).simplify(assumptions: complexZ))
-            .equals(Conjugate(z, isSimplified: true));
-        check(Conjugate(Conjugate(z)).simplify(assumptions: complexZ))
-            .equals(z);
-        check(Re(Conjugate(z)).simplify(assumptions: complexZ))
-            .equals(Re(z, isSimplified: true));
-        check(
-          Im(Conjugate(z)).simplify(assumptions: complexZ),
-        ).equals((-Im(z, isSimplified: true)).simplify(assumptions: complexZ));
+      // Complex variable remains symbolic
+      const complexZ = Assumptions(domains: {'z': VariableDomain.complex});
+      check(Re(z).simplify(assumptions: complexZ))
+          .equals(Re(z, isSimplified: true));
+      check(Im(z).simplify(assumptions: complexZ))
+          .equals(Im(z, isSimplified: true));
+      check(Conjugate(z).simplify(assumptions: complexZ))
+          .equals(Conjugate(z, isSimplified: true));
+      check(Conjugate(Conjugate(z)).simplify(assumptions: complexZ)).equals(z);
+      check(Re(Conjugate(z)).simplify(assumptions: complexZ))
+          .equals(Re(z, isSimplified: true));
+      check(Im(Conjugate(z)).simplify(assumptions: complexZ))
+          .equals((-Im(z, isSimplified: true)).simplify(assumptions: complexZ));
 
-        // Textualization and round-trip
-        for (final source in ['re(z)', 'im(z)', 'arg(z)', 'conj(z)']) {
-          final parsed = Expr.parse(source);
-          check(Expr.parse(parsed.toString())).equals(parsed);
-        }
-        check(Re(z).toLatex()).equals(r'\operatorname{Re}(z)');
-        check(Im(z).toLatex()).equals(r'\operatorname{Im}(z)');
-        check(Arg(z).toLatex()).equals(r'\arg(z)');
-        check(Conjugate(z).toLatex()).equals(r'\overline{z}');
-        check(Conjugate(z).toMathMl()).equals(
-          '<math><mover><mrow><mi>z</mi></mrow><mo>&macr;</mo></mover></math>',
-        );
+      // Textualization and round-trip
+      for (final source in ['re(z)', 'im(z)', 'arg(z)', 'conj(z)']) {
+        final parsed = Expr.parse(source);
+        check(Expr.parse(parsed.toString())).equals(parsed);
+      }
+      check(Re(z).toLatex()).equals(r'\operatorname{Re}(z)');
+      check(Im(z).toLatex()).equals(r'\operatorname{Im}(z)');
+      check(Arg(z).toLatex()).equals(r'\arg(z)');
+      check(Conjugate(z).toLatex()).equals(r'\overline{z}');
+      check(Conjugate(z).toMathMl()).equals(
+        '<math><mover><mrow><mi>z</mi></mrow><mo>&#x00AF;</mo></mover></math>',
+      );
 
-        // Direct AST methods: isReal, evaluate, substitute, mapChildren
-        check(Abs(x).isReal).isTrue;
-        check(Re(x).isReal).isTrue;
-        check(Im(x).isReal).isTrue;
-        check(Arg(x).isReal).isTrue;
-        check(
-          Abs(ComplexNumber.of(IntegerNumber.of(3), IntegerNumber.of(4)))
-              .evaluate({'x': 1.0}),
-        ).isCloseTo(5.0, 1e-12);
-        check(Re(x).evaluate({'x': 3.5})).equals(3.5);
-        check(Re(x + ComplexNumber.i).evaluate({'x': 3.5})).equals(3.5);
-        check(Im(x).evaluate({'x': 3.5})).equals(0.0);
-        check(
-          Im(x + ComplexNumber.i * IntegerNumber.of(4)).evaluate({'x': 3.5}),
-        ).equals(4.0);
-        check(Arg(x).evaluate({'x': -2.0})).isCloseTo(math.pi, 1e-12);
-        check(Conjugate(x).evaluate({'x': 3.5})).equals(3.5);
+      // Direct AST methods: isReal, evaluate, substitute, mapChildren
+      check(Abs(x).isReal).isTrue;
+      check(Re(x).isReal).isTrue;
+      check(Im(x).isReal).isTrue;
+      check(Arg(x).isReal).isTrue;
+      check(
+        Abs(ComplexNumber.of(IntegerNumber.of(3), IntegerNumber.of(4)))
+            .evaluate({'x': 1.0}),
+      ).isCloseTo(5.0, 1e-12);
+      check(Re(x).evaluate({'x': 3.5})).equals(3.5);
+      check(Re(x + ComplexNumber.i).evaluate({'x': 3.5})).equals(3.5);
+      check(Im(x).evaluate({'x': 3.5})).equals(0.0);
+      check(Im(x + ComplexNumber.i * IntegerNumber.of(4)).evaluate({'x': 3.5}))
+          .equals(4.0);
+      check(Arg(x).evaluate({'x': -2.0})).isCloseTo(math.pi, 1e-12);
+      check(Conjugate(x).evaluate({'x': 3.5})).equals(3.5);
 
-        check(Re(x).substitute('x', z)).equals(Re(z));
-        check(Re(x).mapChildren((_) => z)).equals(Re(z));
-        check(Im(x).substitute('x', z)).equals(Im(z));
-        check(Im(x).mapChildren((_) => z)).equals(Im(z));
-        check(Arg(x).substitute('x', z)).equals(Arg(z));
-        check(Arg(x).mapChildren((_) => z)).equals(Arg(z));
-        check(Conjugate(x).substitute('x', z)).equals(Conjugate(z));
-        check(Conjugate(x).mapChildren((_) => z)).equals(Conjugate(z));
+      check(Re(x).substitute('x', z)).equals(Re(z));
+      check(Re(x).mapChildren((_) => z)).equals(Re(z));
+      check(Im(x).substitute('x', z)).equals(Im(z));
+      check(Im(x).mapChildren((_) => z)).equals(Im(z));
+      check(Arg(x).substitute('x', z)).equals(Arg(z));
+      check(Arg(x).mapChildren((_) => z)).equals(Arg(z));
+      check(Conjugate(x).substitute('x', z)).equals(Conjugate(z));
+      check(Conjugate(x).mapChildren((_) => z)).equals(Conjugate(z));
 
-        // Bytecode compilation
-        final reFn = Re(z).toComplexFunction1D('z');
-        final imFn = Im(z).toComplexFunction1D('z');
-        final conjFn = Conjugate(z).toComplexFunction1D('z');
-        check(reFn(const Complex(3, 4))).equals(const Complex(3));
-        check(imFn(const Complex(3, 4))).equals(const Complex(4));
-        check(conjFn(const Complex(3, 4))).equals(const Complex(3, -4));
-      },
-    );
+      // Bytecode compilation
+      final reFn = Re(z).toComplexFunction1D('z');
+      final imFn = Im(z).toComplexFunction1D('z');
+      final conjFn = Conjugate(z).toComplexFunction1D('z');
+      check(reFn(const Complex(3, 4))).equals(const Complex(3));
+      check(imFn(const Complex(3, 4))).equals(const Complex(4));
+      check(conjFn(const Complex(3, 4))).equals(const Complex(3, -4));
+    });
 
     test('toRectangular and toPolar normal forms', () {
       check(

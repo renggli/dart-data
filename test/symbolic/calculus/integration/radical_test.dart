@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   void verifyAntiderivative(
@@ -382,5 +382,23 @@ void main() {
       final nestedLn = Expr.parse('1 / (x * ln(-x))').integrate('x');
       check(nestedLn.anyNode((n) => n is Abs)).isFalse;
     });
+
+    test(
+      'integrates Chebyshev case 3 negative-power binomial differentials',
+      () {
+        verifyAntiderivative(
+          Expr.parse('1 / (x^2 * sqrt(1 + x^2))'),
+          points: const [0.4, 0.9, 1.7],
+        );
+        verifyAntiderivative(
+          Expr.parse('1 / (x^4 * sqrt(1 + x^2))'),
+          points: const [0.4, 0.9, 1.7],
+        );
+        verifyAntiderivative(
+          Expr.parse('x^(-3) * (1 + x^2)^(-1/2)'),
+          points: const [0.5, 1.1, 1.8],
+        );
+      },
+    );
   });
 }

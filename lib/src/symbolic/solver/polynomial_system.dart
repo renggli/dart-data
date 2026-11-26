@@ -31,6 +31,13 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
   required Assumptions assumptions,
 }) {
   if (equations.isEmpty || variables.isEmpty) return const [];
+  if (variables.toSet().length != variables.length) {
+    throw ArgumentError.value(
+      variables,
+      'variables',
+      'Variable list must not contain duplicates.',
+    );
+  }
 
   final normalizedEqs = [
     for (final e in equations)

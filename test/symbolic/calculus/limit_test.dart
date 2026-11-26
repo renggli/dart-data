@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   const x = Variable('x');
@@ -245,10 +245,8 @@ void main() {
           ], isSimplified: true),
         ),
       ).equals(IntegerNumber.zero);
-      check(
-        Expr.parse('(3*x^2 + 1) / (x^2 - 5)')
-            .limit('x', const Variable('infinity')),
-      ).equals(IntegerNumber.of(3));
+      check(Expr.parse('(3*x^2 + 1) / (x^2 - 5)').limit('x', Constant.infinity))
+          .equals(IntegerNumber.of(3));
     });
 
     test('resolves Abs and Piecewise asymptotically at infinity', () {
@@ -651,6 +649,107 @@ void main() {
             Expr.parse('-4 * ln(abs(2 + sqrt(4 + x))) + 2 * sqrt(4 + x)')
                 .limit('x', -Constant.infinity),
       ).throws<UnsupportedError>();
+    });
+
+    test('guards negative base powers, 0^(-infinity), and complex bounded trig limits', () {
+      const x = Variable('x');
+      check(
+        () => Pow(IntegerNumber.negativeOne, x).limit('x', Constant.infinity),
+      ).throws<UnsupportedError>();
+      check(() => Pow(IntegerNumber.zero, x).limit('x', -Constant.infinity))
+          .throws<UnsupportedError>();
+      check(
+        () => Pow(
+          x,
+          FractionNumber.half,
+        ).limit('x', 0, direction: LimitDirection.fromBelow),
+      ).throws<UnsupportedError>();
+      check((Sin(x * ComplexNumber.i) / x).limit('x', Constant.infinity))
+          .isA<Limit>();
+      check(
+        Piecewise([
+          (
+            relation: GreaterEqual(x, IntegerNumber.of(5)),
+            expr: IntegerNumber.of(9),
+          ),
+        ], otherwise: IntegerNumber.zero).limit('x', Constant.infinity),
+      ).equals(IntegerNumber.of(9));
+    });
+
+    test('handles oscillating, LambertW, unknown-sign, Factorial/Gamma, bounded product, and Piecewise limits', () {
+      const x = Variable('x');
+      check(() => Pow(IntegerNumber.of(-2), x).limit('x', Constant.infinity))
+          .throws<UnsupportedError>();
+      check(() => Sin(x).limit('x', Constant.infinity))
+          .throws<UnsupportedError>();
+      check(LambertW(x).limit('x', IntegerNumber.zero))
+          .equals(IntegerNumber.zero);
+      check(
+        LambertW(x, branch: -1).limit('x', RationalNumber(-1, 4)).evaluate(),
+      ).isCloseTo(
+        LambertW(RationalNumber(-1, 4), branch: -1).evaluate(),
+        1e-12,
+      );
+
+      check((const Variable('a') * x).limit('x', Constant.infinity))
+          .isA<Limit>();
+      check(
+        (Factorial(x + IntegerNumber.one) / Factorial(x)).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(Constant.infinity);
+      check(
+        (Gamma(x + IntegerNumber.one) / (x * Gamma(x))).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(IntegerNumber.one);
+
+      check((Sin(x) * Pow(Constant.e, -x)).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check((Cos(x) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+
+      check(
+        Piecewise([
+          (relation: LessThan(x, IntegerNumber.zero), expr: IntegerNumber.one),
+          (relation: LessEqual(x, IntegerNumber.two), expr: IntegerNumber.two),
+          (relation: Equal(x, IntegerNumber.of(3)), expr: IntegerNumber.of(3)),
+          (
+            relation: GreaterThan(x * x, IntegerNumber.of(10)),
+            expr: IntegerNumber.of(7),
+          ),
+        ], otherwise: IntegerNumber.zero).limit('x', Constant.infinity),
+      ).equals(IntegerNumber.of(7));
+      check(
+        Piecewise([
+          (
+            relation: NotEqual(x, IntegerNumber.zero),
+            expr: IntegerNumber.of(4),
+          ),
+        ], otherwise: IntegerNumber.zero).limit('x', Constant.infinity),
+      ).equals(IntegerNumber.of(4));
+
+      const a = Variable('a');
+      final symFinite =
+          (a +
+              Sin(a) +
+              Cos(a) +
+              Sinh(a) +
+              Cosh(a) +
+              Atan(a) +
+              Tanh(a) +
+              Asinh(a) +
+              Erf(a) +
+              Erfc(a) +
+              Abs(a) +
+              Pow(Constant.e, a) +
+              Pow(a, IntegerNumber.two)) /
+          x;
+      check(symFinite.limit('x', Constant.infinity)).equals(IntegerNumber.zero);
+      check((Tan(a) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
     });
   });
 }

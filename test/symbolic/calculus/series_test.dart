@@ -1,6 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   const x = Variable('x');
@@ -430,7 +432,7 @@ void main() {
     });
   });
 
-  group('Expr.toPolynomial and SymbolicPolynomialFactory', () {
+  group('Expr.toPolynomial', () {
     test('exact polynomial recovery around 0.0', () {
       const x = Variable('x');
       // P(x) = 1 + 2x + 3x^2
@@ -444,17 +446,6 @@ void main() {
       check(poly[0]).isCloseTo(1.0, 1e-9);
       check(poly[1]).isCloseTo(2.0, 1e-9);
       check(poly[2]).isCloseTo(3.0, 1e-9);
-
-      // Verify via SymbolicPolynomialFactory.fromExpr as well
-      final polyFactory = SymbolicPolynomialFactory.fromExpr<double>(
-        expr,
-        'x',
-        order: 2,
-      );
-      check(polyFactory.degree).equals(2);
-      check(polyFactory[0]).isCloseTo(1.0, 1e-9);
-      check(polyFactory[1]).isCloseTo(2.0, 1e-9);
-      check(polyFactory[2]).isCloseTo(3.0, 1e-9);
     });
 
     test('Taylor expansion of exp(x) around 0.0', () {
@@ -720,6 +711,95 @@ void main() {
         (Expr.parse('fresnelc(x)').series('x', order: 4) - Expr.parse('x'))
             .simplify(),
       ).equals(const OrderTerm('x', 4));
+    });
+
+    test('handles OrderTerm derivatives, discrete errors, Tan/Tanh poles, and Piecewise', () {
+      const x = Variable('x');
+      check(const OrderTerm('x', 0).derivative('x'))
+          .equals(const OrderTerm('x', 0));
+      check(() => Floor(x).series('x')).throws<UnsupportedError>();
+      check(() => Ceil(x).series('x')).throws<UnsupportedError>();
+      check(() => Round(x).series('x', point: RationalNumber(1, 2)))
+          .throws<UnsupportedError>();
+      check(() => Sign(x).series('x')).throws<UnsupportedError>();
+      check(
+        Expr.parse('1 / cos(x)')
+            .series(
+              'x',
+              point: (Constant.pi / IntegerNumber.two).simplify(),
+              order: 2,
+            )
+            .toString(),
+      ).contains('x - 1/2 * pi');
+      check(
+        Piecewise([
+              (relation: GreaterThan(x, IntegerNumber.zero), expr: Sin(x)),
+            ], otherwise: -Sin(x))
+            .series('x', point: IntegerNumber.one, order: 3)
+            .removeOrder()
+            .evaluate({'x': 1.1}),
+      ).isCloseTo(math.sin(1.1), 1e-3);
+    });
+
+    test('expands shifted SinIntegral/SinhIntegral, zero-leading powers, order-0, and branch singularities', () {
+      const x = Variable('x');
+      final siShifted = SinIntegral(x + IntegerNumber.one)
+          .series('x', order: 3);
+      check(siShifted.removeOrder().evaluate({'x': 0.1}))
+          .isCloseTo(SinIntegral(const RealNumber(1.1)).evaluate(), 1e-3);
+      final shiShifted = SinhIntegral(x + IntegerNumber.one)
+          .series('x', order: 3);
+      check(shiShifted.removeOrder().evaluate({'x': 0.1}))
+          .isCloseTo(SinhIntegral(const RealNumber(1.1)).evaluate(), 1e-3);
+
+      final zeroLead = Pow(
+        IntegerNumber.one - Cos(x),
+        FractionNumber.half,
+      ).series('x', order: 3);
+      check(zeroLead.removeOrder().evaluate({'x': 0.1}))
+          .isCloseTo(math.sqrt(1.0 - math.cos(0.1)), 1e-4);
+
+      final ord0 = SinIntegral(x).series('x', order: 0);
+      check(ord0).equals(const OrderTerm('x', 0));
+      check(SinhIntegral(x).series('x', order: 0))
+          .equals(const OrderTerm('x', 0));
+
+      check(() => Sign(const RealNumber(0.0) + x).series('x'))
+          .throws<UnsupportedError>();
+      check(() => Floor(const RealNumber(1.0) + x).series('x'))
+          .throws<UnsupportedError>();
+      check(() => Ceil(const RealNumber(1.0) + x).series('x'))
+          .throws<UnsupportedError>();
+      check(() => Round(const RealNumber(0.5) + x).series('x'))
+          .throws<UnsupportedError>();
+      check(() => Asin(x).series('x', point: IntegerNumber.one))
+          .throws<UnsupportedError>();
+      check(() => Acos(x).series('x', point: IntegerNumber.one))
+          .throws<UnsupportedError>();
+
+      check(Digamma(x + IntegerNumber.one).series('x', order: 2)).isNotNull();
+      check(() => Digamma(x - IntegerNumber.one).series('x', order: 2))
+          .throws<UnsupportedError>();
+      check(
+        Polygamma(
+          IntegerNumber.one,
+          x + IntegerNumber.one,
+        ).series('x', order: 2),
+      ).isNotNull();
+      check(
+        () => Polygamma(
+          IntegerNumber.one,
+          x - IntegerNumber.one,
+        ).series('x', order: 2),
+      ).throws<UnsupportedError>();
+      check(
+        Binomial(
+          x + IntegerNumber.two,
+          x + IntegerNumber.one,
+        ).series('x', order: 2),
+      ).isNotNull();
+      check(() => Atan2(x, -x - IntegerNumber.one).series('x', order: 2))
+          .throws<UnsupportedError>();
     });
   });
 }

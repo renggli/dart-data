@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/helpers.dart';
@@ -9,6 +11,7 @@ import '../calculus/differentiation.dart';
 import '../calculus/integration/integration.dart';
 import '../calculus/linear_form.dart';
 import '../compiler.dart';
+import '../type/expr_data_type.dart';
 import 'system.dart';
 import 'univariate.dart';
 
@@ -18,15 +21,16 @@ extension OdeExtension on Expr {
   /// [independent].
   ///
   /// Conceptually, an ordinary differential equation (ODE) expresses the rate
-  /// of change of an unknown function $y(x)$ in terms of $x$ and $y$. Solving it
+  /// of change of an unknown function `y(x)` in terms of `x` and `y`. Solving it
   /// analytically recovers the original family of curves satisfying this rate.
   /// Formally, this solves first-order linear ODEs:
-  /// $$\frac{dy}{dx} + P(x) y = Q(x)$$
-  /// using the integrating factor $\mu(x) = \exp\left(\int P(x) dx\right)$, as
-  /// well as separable ODEs $\frac{dy}{dx} = f(x) g(y)$.
+  /// `dy/dx + P(x) * y = Q(x)`
+  /// using the integrating factor `mu(x) = exp(integrate(P(x), x))`, as
+  /// well as separable ODEs `dy/dx = f(x) * g(y)` and constant-coefficient
+  /// linear ODEs up to order 6.
   ///
   /// Optionally accepts initial value conditions at [at]:
-  /// `[y(at)]` for first-order ODEs, or `[y(at), y'(at)]` for second-order
+  /// `[y(at)]` for first-order ODEs, or `[y(at), y'(at), ...]` for higher-order
   /// ODEs, determining the integration constants (`C1`, `C2`, ...).
   ///
   /// ```dart
@@ -64,9 +68,22 @@ Expr _solveOde(
   List<Object> initialValues = const [],
   required Assumptions assumptions,
 }) {
-  var eq = equation;
-  if (eq is RelationalExpr) {
-    eq = eq.left - eq.right;
+  if (dependent == independent) {
+    throw ArgumentError(
+      'Dependent variable "$dependent" and independent variable "$independent" must be distinct.',
+    );
+  }
+  final Expr eq;
+  if (equation is Equal) {
+    eq = equation.left - equation.right;
+  } else if (equation is RelationalExpr) {
+    throw ArgumentError.value(
+      equation,
+      'equation',
+      'Expected an Equal equation or algebraic expression, got $equation.',
+    );
+  } else {
+    eq = equation;
   }
 
   var maxOrder = 0;
@@ -99,6 +116,7 @@ Expr _solveOde(
     throw ArgumentError('at must be provided when initialValues is non-empty.');
   }
 
+  final usedVars = eq.freeVariables;
   Expr ySol;
   if (maxOrder >= 2) {
     ySol = _tryNthOrderLinearOde(
@@ -107,15 +125,16 @@ Expr _solveOde(
       dependent: dependent,
       independent: independent,
       constant: constant,
+      usedVars: usedVars,
       assumptions: assumptions,
     );
   } else {
-    const sentinel = '_yPrime';
-    final normalized = _replaceDerivative(
+    final sentinel = _freshOdeVar(usedVars, '_yPrime');
+    final normalized = _replaceFirstDerivative(
       eq,
       dependent,
       independent,
-      const Variable(sentinel),
+      Variable(sentinel),
     );
     if (!normalized.dependsOn(sentinel)) {
       throw ArgumentError(
@@ -154,8 +173,8 @@ Expr _solveOde(
       } else {
         // Case 3: Separable ODE: y' = F(x) * G(y)
         final factored = yPrime.factor(assumptions: assumptions);
-        final (fx, gy) = _separateVariables(factored, independent, dependent);
-        if (fx != null && gy != null) {
+        final separated = _separateVariables(factored, independent, dependent);
+        if (separated case (:final fx, :final gy)) {
           final invG = (IntegerNumber.one / gy).simplify(
             assumptions: assumptions,
           );
@@ -182,7 +201,7 @@ Expr _solveOde(
   }
 
   if (at != null && initialValues.isNotEmpty) {
-    final atExpr = _toExpr(at);
+    final atExpr = Expr.wrap(at);
     final constNames = <String>[
       constant,
       for (var i = 2; i <= maxOrder; i++)
@@ -201,44 +220,122 @@ Expr _solveOde(
           .substitute(independent, atExpr)
           .simplify(assumptions: assumptions);
       equations.add(
-        (evaluated - _toExpr(initialValues[k])).simplify(
+        (evaluated - Expr.wrap(initialValues[k])).simplify(
           assumptions: assumptions,
         ),
       );
     }
-    if (equations.length == 1) {
-      final cRoots = equations.first.solve(
-        constNames.first,
-        assumptions: assumptions,
-      );
-      if (cRoots.isNotEmpty) {
-        ySol = ySol
-            .substitute(constNames.first, cRoots.first)
-            .simplify(assumptions: assumptions);
-      }
-    } else {
-      final solutions = equations.solve(constNames, assumptions: assumptions);
-      if (solutions.isNotEmpty) {
-        var substituted = ySol;
-        for (final entry in solutions.first.entries) {
-          substituted = substituted.substitute(entry.key, entry.value);
-        }
-        ySol = substituted.simplify(assumptions: assumptions);
-      }
-    }
+
+    ySol = _applyInitialConditions(
+      ySol,
+      equations,
+      constNames,
+      assumptions: assumptions,
+    );
   }
 
   return ySol;
 }
 
-Expr _toExpr(Object value) {
-  if (value is Expr) return value;
-  if (value is int) return IntegerNumber.of(value);
-  if (value is num) return RealNumber(value.toDouble());
-  return Variable(value.toString());
+Expr _applyInitialConditions(
+  Expr ySol,
+  List<Expr> equations,
+  List<String> constNames, {
+  required Assumptions assumptions,
+}) {
+  var result = ySol;
+  var pending = equations
+      .map((e) => e.simplify(assumptions: assumptions))
+      .toList();
+  final remainingConsts = List<String>.of(constNames);
+
+  // First resolve any equations containing a single integration constant.
+  var progress = true;
+  while (progress && pending.isNotEmpty && remainingConsts.isNotEmpty) {
+    progress = false;
+    final nextPending = <Expr>[];
+    for (final icEq in pending) {
+      final deps = remainingConsts.where(icEq.dependsOn).toList();
+      if (deps.isEmpty) {
+        if (!isZeroExpr(
+          icEq
+              .expand(assumptions: assumptions)
+              .simplify(assumptions: assumptions),
+        )) {
+          throw StateError(
+            'Inconsistent initial conditions for ODE: $icEq = 0.',
+          );
+        }
+        continue;
+      }
+      if (deps.length == 1) {
+        final cName = deps.first;
+        final cRoots = icEq.solve(cName, assumptions: assumptions);
+        if (cRoots.isEmpty) {
+          throw StateError(
+            'Inconsistent or unsolvable initial condition for $cName.',
+          );
+        }
+        final cVal = cRoots.first.simplify(assumptions: assumptions);
+        result = result
+            .substitute(cName, cVal)
+            .simplify(assumptions: assumptions);
+        remainingConsts.remove(cName);
+        nextPending.addAll(
+          pending
+              .where((p) => !identical(p, icEq))
+              .map(
+                (p) => p
+                    .substitute(cName, cVal)
+                    .simplify(assumptions: assumptions),
+              ),
+        );
+        progress = true;
+        break;
+      }
+      nextPending.add(icEq);
+    }
+    if (!progress) {
+      pending = nextPending;
+    } else {
+      pending = nextPending;
+    }
+  }
+
+  if (pending.isEmpty) return result;
+
+  final activeConsts = remainingConsts
+      .where((c) => pending.any((eq) => eq.dependsOn(c)))
+      .toList();
+  if (activeConsts.isEmpty) {
+    for (final icEq in pending) {
+      if (!isZeroExpr(
+        icEq
+            .expand(assumptions: assumptions)
+            .simplify(assumptions: assumptions),
+      )) {
+        throw StateError('Inconsistent initial conditions for ODE: $icEq = 0.');
+      }
+    }
+    return result;
+  }
+
+  final solveConsts = activeConsts.length > pending.length
+      ? activeConsts.take(pending.length).toList()
+      : activeConsts;
+  final solutions = pending.solve(solveConsts, assumptions: assumptions);
+  if (solutions.isEmpty) {
+    throw StateError(
+      'Inconsistent or unsolvable initial conditions for $solveConsts.',
+    );
+  }
+  for (final MapEntry(:key, :value) in solutions.first.entries) {
+    result = result.substitute(key, value);
+  }
+  return result.simplify(assumptions: assumptions);
 }
 
-Expr _replaceDerivative(
+Expr _replaceFirstDerivative(
   Expr expr,
   String dependent,
   String independent,
@@ -253,30 +350,39 @@ Expr _replaceDerivative(
       when variable == independent && depName == dependent) {
     return replacement;
   }
-  if (expr case Variable(:final name)) {
-    if (name == "$dependent'" ||
-        name == 'd$dependent' ||
-        name == '${dependent}_prime' ||
-        name == 'D$dependent') {
-      return replacement;
-    }
-  }
   return expr.mapChildren(
-    (child) => _replaceDerivative(child, dependent, independent, replacement),
+    (child) =>
+        _replaceFirstDerivative(child, dependent, independent, replacement),
   );
 }
 
-(Expr?, Expr?) _separateVariables(
+({Expr fx, Expr gy})? _separateVariables(
   Expr expr,
   String independent,
   String dependent,
 ) {
   final factors = <Expr>[];
-  if (expr case Mul(factors: final f)) {
-    factors.addAll(f);
-  } else {
-    factors.add(expr);
+  void collectFactor(Expr f) {
+    if (f is Mul) {
+      for (final sub in f.factors) {
+        collectFactor(sub);
+      }
+      return;
+    }
+    if (f case Pow(:final base, exponent: Add(:final terms))
+        when !base.dependsOn(independent) && !base.dependsOn(dependent)) {
+      if (base == Constant.e ||
+          isPositiveExpr(base, assumptions: Assumptions.none)) {
+        for (final t in terms) {
+          collectFactor(Pow(base, t));
+        }
+        return;
+      }
+    }
+    factors.add(f);
   }
+
+  collectFactor(expr);
 
   final xFactors = <Expr>[];
   final yFactors = <Expr>[];
@@ -285,7 +391,7 @@ Expr _replaceDerivative(
     final dependsX = factor.dependsOn(independent);
     final dependsY = factor.dependsOn(dependent);
     if (dependsX && dependsY) {
-      return (null, null);
+      return null;
     } else if (dependsY) {
       yFactors.add(factor);
     } else {
@@ -304,7 +410,17 @@ Expr _replaceDerivative(
     _ => Mul(yFactors),
   };
 
-  return (fx, gy);
+  return (fx: fx, gy: gy);
+}
+
+String _freshOdeVar(Set<String> used, String base) {
+  var name = base;
+  var idx = 1;
+  while (used.contains(name)) {
+    name = '${base}_$idx';
+    idx++;
+  }
+  return name;
 }
 
 Expr _tryNthOrderLinearOde(
@@ -313,9 +429,11 @@ Expr _tryNthOrderLinearOde(
   required String dependent,
   required String independent,
   required String constant,
+  required Set<String> usedVars,
   required Assumptions assumptions,
 }) {
-  String derivSentinel(int k) => '_yDeriv_$k';
+  final derivPrefix = _freshOdeVar(usedVars, '_yDeriv');
+  String derivSentinel(int k) => '${derivPrefix}_$k';
 
   Expr replaceHigher(Expr e) {
     if (e
@@ -382,11 +500,14 @@ Expr _tryNthOrderLinearOde(
     order: order,
     independent: independent,
     constant: constant,
+    usedVars: usedVars,
     assumptions: assumptions,
   );
 
-  final rhs = (-d).simplify(assumptions: assumptions);
-  if (rhs is Number && rhs.isZero) {
+  final rhs = (-d)
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  if (isZeroExpr(rhs)) {
     return yh;
   }
 
@@ -394,6 +515,7 @@ Expr _tryNthOrderLinearOde(
     coeffs,
     rhs,
     independent,
+    usedVars: usedVars,
     assumptions: assumptions,
   );
   return (yh + yp).simplify(assumptions: assumptions);
@@ -404,6 +526,7 @@ Expr _buildHomogeneousSolution(
   required int order,
   required String independent,
   required String constant,
+  required Set<String> usedVars,
   required Assumptions assumptions,
 }) {
   final xVar = Variable(independent);
@@ -417,11 +540,11 @@ Expr _buildHomogeneousSolution(
     final a = coeffs[2];
     final c1 = Variable(constName(1));
     final c2 = Variable(constName(2));
-    final delta = (b * b - IntegerNumber.of(4) * a * c).simplify(
-      assumptions: assumptions,
-    );
+    final delta = (b * b - IntegerNumber.of(4) * a * c)
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
 
-    if (delta is Number && delta.isZero) {
+    if (isZeroExpr(delta)) {
       final r = (-b / (IntegerNumber.two * a)).simplify(
         assumptions: assumptions,
       );
@@ -450,12 +573,12 @@ Expr _buildHomogeneousSolution(
         .simplify(assumptions: assumptions);
   }
 
-  const rName = '_r';
-  const rVar = Variable(rName);
+  final rName = _freshOdeVar(usedVars, '_r');
+  final rVar = Variable(rName);
   var charPoly = IntegerNumber.zero as Expr;
   for (var j = 0; j <= order; j++) {
     final aj = coeffs[j];
-    if (aj is Number && aj.isZero) continue;
+    if (isZeroExpr(aj)) continue;
     final rPow = j == 0
         ? IntegerNumber.one
         : (j == 1 ? rVar : Pow(rVar, IntegerNumber.of(j)));
@@ -471,8 +594,9 @@ Expr _buildHomogeneousSolution(
   }
 
   var constIdx = 1;
+  var handledMult = 0;
   var yh = IntegerNumber.zero as Expr;
-
+  final rootData = <({Expr alpha, Expr beta, int mult})>[];
   for (final root in roots) {
     final mult = _rootMultiplicity(
       charPoly,
@@ -481,11 +605,19 @@ Expr _buildHomogeneousSolution(
       maxOrder: order,
       assumptions: assumptions,
     );
-    final alpha = Re(root).simplify(assumptions: assumptions);
-    final beta = Im(root).simplify(assumptions: assumptions);
+    final (:re, :im) = decomposeComplex(root, assumptions);
+    final alpha = re.simplify(assumptions: assumptions);
+    final beta = im.simplify(assumptions: assumptions);
+    rootData.add((alpha: alpha, beta: beta, mult: mult));
+  }
 
-    if (beta is Number && beta.isZero) {
-      final expTerm = (alpha is Number && alpha.isZero)
+  final consumedIndices = <int>{};
+  for (var i = 0; i < rootData.length; i++) {
+    if (consumedIndices.contains(i)) continue;
+    final (:alpha, :beta, :mult) = rootData[i];
+    if (isZeroExpr(beta)) {
+      handledMult += mult;
+      final expTerm = isZeroExpr(alpha)
           ? IntegerNumber.one
           : Pow(Constant.e, alpha * xVar);
       for (var k = 0; k < mult; k++) {
@@ -495,15 +627,38 @@ Expr _buildHomogeneousSolution(
             : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
         yh = yh + ck * xPow * expTerm;
       }
-    } else {
-      final isPosIm =
-          isPositiveExpr(beta, assumptions: assumptions) ||
-          (beta.freeVariables.isEmpty && beta.evaluate() > 0);
-      if (!isPosIm) continue;
-      final expTerm = (alpha is Number && alpha.isZero)
+      continue;
+    }
+
+    final negBeta = (-beta).simplify(assumptions: assumptions);
+    var conjIndex = -1;
+    for (var j = i + 1; j < rootData.length; j++) {
+      if (consumedIndices.contains(j)) continue;
+      if (rootData[j].alpha == alpha &&
+          isZeroExpr(
+            (rootData[j].beta + beta)
+                .expand(assumptions: assumptions)
+                .simplify(assumptions: assumptions),
+          )) {
+        conjIndex = j;
+        break;
+      }
+    }
+
+    if (conjIndex != -1) {
+      consumedIndices.add(conjIndex);
+      final pairMult = math.min(mult, rootData[conjIndex].mult);
+      handledMult += 2 * pairMult;
+      final betaVal = _tryEvalFiniteReal(beta);
+      final chosenBeta =
+          (betaVal != null && betaVal < 0) ||
+              isNegativeExpr(beta, assumptions: assumptions)
+          ? negBeta
+          : beta;
+      final expTerm = isZeroExpr(alpha)
           ? IntegerNumber.one
           : Pow(Constant.e, alpha * xVar);
-      for (var k = 0; k < mult; k++) {
+      for (var k = 0; k < pairMult; k++) {
         final cA = Variable(constName(constIdx++));
         final cB = Variable(constName(constIdx++));
         final xPow = k == 0
@@ -511,9 +666,27 @@ Expr _buildHomogeneousSolution(
             : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
         yh =
             yh +
-            xPow * expTerm * (cA * Cos(beta * xVar) + cB * Sin(beta * xVar));
+            xPow *
+                expTerm *
+                (cA * Cos(chosenBeta * xVar) + cB * Sin(chosenBeta * xVar));
+      }
+    } else {
+      handledMult += mult;
+      final expTerm = Pow(Constant.e, (alpha + ComplexNumber.i * beta) * xVar);
+      for (var k = 0; k < mult; k++) {
+        final ck = Variable(constName(constIdx++));
+        final xPow = k == 0
+            ? IntegerNumber.one
+            : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
+        yh = yh + ck * xPow * expTerm;
       }
     }
+  }
+
+  if (handledMult != order) {
+    throw UnsupportedError(
+      'Could not account for all $order characteristic roots (resolved $handledMult).',
+    );
   }
 
   return yh.simplify(assumptions: assumptions);
@@ -529,16 +702,25 @@ int _rootMultiplicity(
   var current = poly;
   var mult = 0;
   for (var k = 0; k < maxOrder; k++) {
-    final val = current.substitute(rName, z).simplify(assumptions: assumptions);
+    final val = current
+        .substitute(rName, z)
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
     final isZero =
-        (val is Number && val.isZero) ||
+        isZeroExpr(val) ||
         (val is ComplexNumber && val.isZero) ||
-        (val.freeVariables.isEmpty &&
+        ((val.anyNode((n) => n is RealNumber) ||
+                z.anyNode((n) => n is RealNumber)) &&
+            val.freeVariables.isEmpty &&
             () {
               try {
                 final c = val.evaluateComplex();
                 return !c.isNaN && c.a.abs() < 1e-10 && c.b.abs() < 1e-10;
-              } on Object {
+              } on ArgumentError {
+                return false;
+              } on UnsupportedError {
+                return false;
+              } on StateError {
                 return false;
               }
             }());
@@ -549,16 +731,31 @@ int _rootMultiplicity(
   return mult;
 }
 
+double? _tryEvalFiniteReal(Expr expr) {
+  if (!expr.isReal || expr.freeVariables.isNotEmpty) return null;
+  try {
+    final v = expr.evaluate(const {});
+    return v.isFinite ? v : null;
+  } on ArgumentError {
+    return null;
+  } on UnsupportedError {
+    return null;
+  } on StateError {
+    return null;
+  }
+}
+
 Expr _particularSolutionNthOrder(
   List<Expr> coeffs,
   Expr rhs,
   String independent, {
+  required Set<String> usedVars,
   required Assumptions assumptions,
 }) {
   final order = coeffs.length - 1;
   final xVar = Variable(independent);
-  const rName = '_r';
-  const rVar = Variable(rName);
+  final rName = _freshOdeVar(usedVars, '_r');
+  final rVar = Variable(rName);
   var charPoly = IntegerNumber.zero as Expr;
   for (var j = 0; j <= order; j++) {
     final aj = coeffs[j];
@@ -649,14 +846,14 @@ Expr _particularSolutionNthOrder(
     var polyA = IntegerNumber.zero as Expr;
     var polyB = IntegerNumber.zero as Expr;
     for (var k = 0; k <= m; k++) {
-      final aName = '_ua_$k';
+      final aName = _freshOdeVar(usedVars, '_ua_$k');
       unknowns.add(aName);
       final xPow = k == 0
           ? IntegerNumber.one
           : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
       polyA = polyA + Variable(aName) * xPow;
       if (isTrig) {
-        final bName = '_ub_$k';
+        final bName = _freshOdeVar(usedVars, '_ub_$k');
         unknowns.add(bName);
         polyB = polyB + Variable(bName) * xPow;
       }
@@ -721,13 +918,13 @@ Expr _particularSolutionNthOrder(
         if (!(c is Number && c.isZero)) equations.add(c);
       }
     } else {
-      const ocName = '_oc';
-      const osName = '_os';
+      final ocName = _freshOdeVar(usedVars, '_oc');
+      final osName = _freshOdeVar(usedVars, '_os');
       final cosBx = Cos(beta * xVar).simplify(assumptions: assumptions);
       final sinBx = Sin(beta * xVar).simplify(assumptions: assumptions);
       Expr replaceTrig(Expr e) {
-        if (e == cosBx) return const Variable(ocName);
-        if (e == sinBx) return const Variable(osName);
+        if (e == cosBx) return Variable(ocName);
+        if (e == sinBx) return Variable(osName);
         return e.mapChildren(replaceTrig);
       }
 

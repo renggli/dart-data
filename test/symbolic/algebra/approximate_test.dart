@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Numeric approximation of numbers and constants', () {
@@ -330,6 +330,37 @@ void main() {
         check(a2.toString()).equals('atan2(y, x)');
         check(a2.toLatex()).contains('\\operatorname{atan2}');
         check(a2.toMathMl()).contains('<mi>atan2</mi>');
+      },
+    );
+
+    test(
+      'approximates Min, Max, EllipticE, and symbolic powers accurately',
+      () {
+        final eMin = Min([Constant.pi, IntegerNumber.of(4)]);
+        final eMax = Max([Constant.e, IntegerNumber.two]);
+        check((eMin.approximate() as RealNumber).value)
+            .isCloseTo(math.pi, 1e-12);
+        check((eMax.approximate() as RealNumber).value)
+            .isCloseTo(math.e, 1e-12);
+        check(
+          (EllipticE(const RealNumber(0.5)).approximate() as RealNumber).value,
+        ).isCloseTo(1.467462209339427, 1e-12);
+        check(
+          Pow(
+            const Variable('x'),
+            IntegerNumber.two,
+          ).approximate({'x': Constant.pi}),
+        ).isA<RealNumber>();
+        const x = Variable('x');
+        check(
+          Binomial(const RealNumber(5.2), const RealNumber(2.1)).approximate(),
+        ).isA<RealNumber>();
+        check(Factorial(const RealNumber(4.5)).approximate()).isA<RealNumber>();
+        check(Min([x, Constant.pi]).approximate()).isA<Min>();
+        check(Max([x, Constant.pi]).approximate()).isA<Max>();
+        check(Gcd([x, Constant.pi]).approximate()).isA<Gcd>();
+        check(Lcm([x, Constant.pi]).approximate()).isA<Lcm>();
+        check(Tuple([x, Constant.pi]).approximate()).isA<Tuple>();
       },
     );
   });

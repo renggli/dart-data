@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/solver/trigonometric.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 Expr _piFrac(int num, int den) =>
     (RationalNumber(num, den) * Constant.pi).simplify();

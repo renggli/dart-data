@@ -1,98 +1,98 @@
 part of '../ast.dart';
 
-/// Error function node: $\operatorname{erf}(x) = \frac{2}{\sqrt{\pi}} \int_0^x e^{-t^2}\,dt$.
+/// Error function node: `erf(x) = (2)/(sqrt(pi)) integrate _0^x e^{-t^2} dt`.
 final class Erf extends UnaryExpr {
-  /// Creates an error function node $\operatorname{erf}(\text{expr})$.
+  /// Creates an error function node `erf(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Erf(expr);
 }
 
-/// Complementary error function node: $\operatorname{erfc}(x) = 1 - \operatorname{erf}(x)$.
+/// Complementary error function node: `erfc(x) = 1 - erf(x)`.
 final class Erfc extends UnaryExpr {
-  /// Creates a complementary error function node $\operatorname{erfc}(\text{expr})$.
+  /// Creates a complementary error function node `erfc(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Erfc(expr);
 }
 
-/// Euler Gamma function node: $\Gamma(x) = \int_0^\infty t^{x-1} e^{-t}\,dt$.
+/// Euler Gamma function node: `Gamma(x) = integrate _0^oot^x-1 e^-t dt`.
 final class Gamma extends UnaryExpr {
-  /// Creates a Gamma function node $\Gamma(\text{expr})$.
+  /// Creates a Gamma function node `Gamma(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Gamma(expr);
 }
 
-/// Euler Beta function node: $\operatorname{B}(a, b) = \frac{\Gamma(a)\Gamma(b)}{\Gamma(a+b)}$.
+/// Euler Beta function node: `B(a, b) = (Gamma(a)Gamma(b))/(Gamma(a+b))`.
 final class Beta extends BinaryExpr {
-  /// Creates a Beta function node $\operatorname{B}(\text{left}, \text{right})$.
+  /// Creates a Beta function node `B(left, right)`.
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
   Expr _withOperands(Expr left, Expr right) => Beta(left, right);
 }
 
-/// Factorial node: $n! = \Gamma(n + 1)$.
+/// Factorial node: `n! = Gamma(n + 1)`.
 final class Factorial extends UnaryExpr {
-  /// Creates a factorial node $(\text{expr})!$.
+  /// Creates a factorial node `(expr)!`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Factorial(expr);
 }
 
-/// Binomial coefficient node: $\binom{n}{k} = \frac{\Gamma(n + 1)}{\Gamma(k + 1)\Gamma(n - k + 1)}$.
+/// Binomial coefficient node: `binomial(n, k) = (Gamma(n + 1))/(Gamma(k + 1)Gamma(n - k + 1))`.
 final class Binomial extends BinaryExpr {
-  /// Creates a binomial coefficient node $\binom{\text{left}}{\text{right}}$.
+  /// Creates a binomial coefficient node `binomial(left, right)`.
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
   Expr _withOperands(Expr left, Expr right) => Binomial(left, right);
 }
 
-/// Floor function node: $\lfloor x \rfloor$.
+/// Floor function node: `floor(x )`.
 final class Floor extends UnaryExpr {
-  /// Creates a floor function node $\lfloor \text{expr} \rfloor$.
+  /// Creates a floor function node `floor(expr )`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Floor(expr);
 }
 
-/// Ceiling function node: $\lceil x \rceil$.
+/// Ceiling function node: `ceil(x )`.
 final class Ceil extends UnaryExpr {
-  /// Creates a ceiling function node $\lceil \text{expr} \rceil$.
+  /// Creates a ceiling function node `ceil(expr )`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Ceil(expr);
 }
 
-/// Round-to-nearest-integer function node: $\operatorname{round}(x)$.
+/// Round-to-nearest-integer function node: `round(x)`.
 final class Round extends UnaryExpr {
-  /// Creates a rounding function node $\operatorname{round}(\text{expr})$.
+  /// Creates a rounding function node `round(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Round(expr);
 }
 
-/// Signum function node: $\operatorname{sgn}(x)$.
+/// Signum function node: `sgn(x)`.
 final class Sign extends UnaryExpr {
-  /// Creates a signum function node $\operatorname{sgn}(\text{expr})$.
+  /// Creates a signum function node `sgn(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Sign(expr);
 }
 
-/// Modulo function node: $a \bmod b = a - b \lfloor a / b \rfloor$.
+/// Modulo function node: `a mod b = a - b floor(a / b )`.
 final class Mod extends BinaryExpr {
-  /// Creates a modulo node $\text{left} \bmod \text{right}$.
+  /// Creates a modulo node `left mod right`.
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
@@ -145,93 +145,93 @@ final class Zeta extends Expr {
           shift == other.shift);
 }
 
-/// Digamma function node (psi function): $\psi(x) = \frac{d}{dx} \ln \Gamma(x) = \frac{\Gamma'(x)}{\Gamma(x)}$.
+/// Digamma function node (psi function): `psi(x) = (d)/(dx) ln Gamma(x) = (Gamma'(x))/(Gamma(x))`.
 final class Digamma extends UnaryExpr {
-  /// Creates a digamma function node $\psi(\text{expr})$.
+  /// Creates a digamma function node `psi(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Digamma(expr);
 }
 
-/// Polygamma function node: $\psi^{(m)}(x) = \frac{d^{m+1}}{dx^{m+1}} \ln \Gamma(x) = \frac{d^m}{dx^m} \psi(x)$.
+/// Polygamma function node: `psi^{(m)}(x) = (d^m+1)/(dx^m+1) ln Gamma(x) = (d^m)/(dx^m) psi(x)`.
 final class Polygamma extends BinaryExpr {
-  /// Creates a polygamma function node $\psi^{(m)}(x) = \text{Polygamma}(m, x)$.
+  /// Creates a polygamma function node `psi^{(m)}(x) = Polygamma(m, x)`.
   new(super.left, super.right, {super.isSimplified = false});
 
-  /// The derivative order $m$.
+  /// The derivative order `m`.
   Expr get order => left;
 
-  /// The function argument $x$.
+  /// The function argument `x`.
   Expr get argument => right;
 
   @override
   Expr _withOperands(Expr left, Expr right) => Polygamma(left, right);
 }
 
-/// Bessel function of the first kind: $J_\nu(x)$.
+/// Bessel function of the first kind: `J_nu(x)`.
 final class BesselJ extends BinaryExpr {
-  /// Creates a Bessel function node $J_\nu(x)$ of order [order] at [argument].
+  /// Creates a Bessel function node `J_nu(x)` of order [order] at [argument].
   new(super.left, super.right, {super.isSimplified = false});
 
-  /// The order parameter $\nu$.
+  /// The order parameter `nu`.
   Expr get order => left;
 
-  /// The function argument $x$.
+  /// The function argument `x`.
   Expr get argument => right;
 
   @override
   Expr _withOperands(Expr left, Expr right) => BesselJ(left, right);
 }
 
-/// Bessel function of the second kind (Weber function): $Y_\nu(x)$.
+/// Bessel function of the second kind (Weber function): `Y_nu(x)`.
 final class BesselY extends BinaryExpr {
-  /// Creates a Bessel function node $Y_\nu(x)$ of order [order] at [argument].
+  /// Creates a Bessel function node `Y_nu(x)` of order [order] at [argument].
   new(super.left, super.right, {super.isSimplified = false});
 
-  /// The order parameter $\nu$.
+  /// The order parameter `nu`.
   Expr get order => left;
 
-  /// The function argument $x$.
+  /// The function argument `x`.
   Expr get argument => right;
 
   @override
   Expr _withOperands(Expr left, Expr right) => BesselY(left, right);
 }
 
-/// Modified Bessel function of the first kind: $I_\nu(x)$.
+/// Modified Bessel function of the first kind: `I_nu(x)`.
 final class BesselI extends BinaryExpr {
-  /// Creates a modified Bessel function node $I_\nu(x)$ of order [order] at [argument].
+  /// Creates a modified Bessel function node `I_nu(x)` of order [order] at [argument].
   new(super.left, super.right, {super.isSimplified = false});
 
-  /// The order parameter $\nu$.
+  /// The order parameter `nu`.
   Expr get order => left;
 
-  /// The function argument $x$.
+  /// The function argument `x`.
   Expr get argument => right;
 
   @override
   Expr _withOperands(Expr left, Expr right) => BesselI(left, right);
 }
 
-/// Modified Bessel function of the second kind: $K_\nu(x)$.
+/// Modified Bessel function of the second kind: `K_nu(x)`.
 final class BesselK extends BinaryExpr {
-  /// Creates a modified Bessel function node $K_\nu(x)$ of order [order] at [argument].
+  /// Creates a modified Bessel function node `K_nu(x)` of order [order] at [argument].
   new(super.left, super.right, {super.isSimplified = false});
 
-  /// The order parameter $\nu$.
+  /// The order parameter `nu`.
   Expr get order => left;
 
-  /// The function argument $x$.
+  /// The function argument `x`.
   Expr get argument => right;
 
   @override
   Expr _withOperands(Expr left, Expr right) => BesselK(left, right);
 }
 
-/// Complete elliptic integral of the first kind: $K(k) = \int_0^{\pi/2} \frac{d\theta}{\sqrt{1 - k^2 \sin^2\theta}}$.
+/// Complete elliptic integral of the first kind: `K(k) = integrate _0^{pi/2} (dtheta)/(sqrt(1 - k^2 sin^2theta))`.
 final class EllipticK extends UnaryExpr {
-  /// Creates a complete elliptic integral of the first kind $K(k)$.
+  /// Creates a complete elliptic integral of the first kind `K(k)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
@@ -285,36 +285,36 @@ final class EllipticE extends Expr {
           amplitude == other.amplitude);
 }
 
-/// Imaginary error function node: $\operatorname{erfi}(x) = -i\operatorname{erf}(ix)$.
+/// Imaginary error function node: `erfi(x) = -ierf(ix)`.
 final class Erfi extends UnaryExpr {
-  /// Creates an imaginary error function node $\operatorname{erfi}(\text{expr})$.
+  /// Creates an imaginary error function node `erfi(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => Erfi(expr);
 }
 
-/// Fresnel sine integral node: $S(x) = \int_0^x \sin\!\left(\frac{\pi}{2}t^2\right)dt$.
+/// Fresnel sine integral node: `S(x) = integrate _0^x sin ((pi)/(2)t^2)dt`.
 final class FresnelS extends UnaryExpr {
-  /// Creates a Fresnel sine integral node $S(\text{expr})$.
+  /// Creates a Fresnel sine integral node `S(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => FresnelS(expr);
 }
 
-/// Fresnel cosine integral node: $C(x) = \int_0^x \cos\!\left(\frac{\pi}{2}t^2\right)dt$.
+/// Fresnel cosine integral node: `C(x) = integrate _0^x cos ((pi)/(2)t^2)dt`.
 final class FresnelC extends UnaryExpr {
-  /// Creates a Fresnel cosine integral node $C(\text{expr})$.
+  /// Creates a Fresnel cosine integral node `C(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => FresnelC(expr);
 }
 
-/// Exponential integral node: $\operatorname{Ei}(x) = -\operatorname{PV}\int_{-x}^\infty \frac{e^{-t}}{t}\,dt$.
+/// Exponential integral node: `Ei(x) = -PVintegrate _-x^oo(e^-t)/(t) dt`.
 final class ExpIntegral extends UnaryExpr {
-  /// Creates an exponential integral node $\operatorname{Ei}(\text{expr})$.
+  /// Creates an exponential integral node `Ei(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
@@ -336,114 +336,114 @@ final class ExpIntegralE extends BinaryExpr {
   Expr _withOperands(Expr left, Expr right) => ExpIntegralE(left, right);
 }
 
-/// Logarithmic integral node: $\operatorname{li}(x) = \int_0^x \frac{dt}{\ln t}$.
+/// Logarithmic integral node: `li(x) = integrate _0^x (dt)/(ln t)`.
 final class LogIntegral extends UnaryExpr {
-  /// Creates a logarithmic integral node $\operatorname{li}(\text{expr})$.
+  /// Creates a logarithmic integral node `li(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => LogIntegral(expr);
 }
 
-/// Sine integral node: $\operatorname{Si}(x) = \int_0^x \frac{\sin t}{t}\,dt$.
+/// Sine integral node: `Si(x) = integrate _0^x (sin t)/(t) dt`.
 final class SinIntegral extends UnaryExpr {
-  /// Creates a sine integral node $\operatorname{Si}(\text{expr})$.
+  /// Creates a sine integral node `Si(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => SinIntegral(expr);
 }
 
-/// Cosine integral node: $\operatorname{Ci}(x) = \gamma + \ln x + \int_0^x \frac{\cos t - 1}{t}\,dt$.
+/// Cosine integral node: `Ci(x) = gamma + ln x + integrate _0^x (cos t - 1)/(t) dt`.
 final class CosIntegral extends UnaryExpr {
-  /// Creates a cosine integral node $\operatorname{Ci}(\text{expr})$.
+  /// Creates a cosine integral node `Ci(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => CosIntegral(expr);
 }
 
-/// Hyperbolic sine integral node: $\operatorname{Shi}(x) = \int_0^x \frac{\sinh t}{t}\,dt$.
+/// Hyperbolic sine integral node: `Shi(x) = integrate _0^x (sinh t)/(t) dt`.
 final class SinhIntegral extends UnaryExpr {
-  /// Creates a hyperbolic sine integral node $\operatorname{Shi}(\text{expr})$.
+  /// Creates a hyperbolic sine integral node `Shi(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => SinhIntegral(expr);
 }
 
-/// Hyperbolic cosine integral node: $\operatorname{Chi}(x) = \gamma + \ln x + \int_0^x \frac{\cosh t - 1}{t}\,dt$.
+/// Hyperbolic cosine integral node: `Chi(x) = gamma + ln x + integrate _0^x (cosh t - 1)/(t) dt`.
 final class CoshIntegral extends UnaryExpr {
-  /// Creates a hyperbolic cosine integral node $\operatorname{Chi}(\text{expr})$.
+  /// Creates a hyperbolic cosine integral node `Chi(expr)`.
   new(super.expr, {super.isSimplified = false});
 
   @override
   Expr _withExpr(Expr expr) => CoshIntegral(expr);
 }
 
-/// Upper incomplete gamma function node: $\Gamma(s, x) = \int_x^\infty t^{s-1} e^{-t}\,dt$.
+/// Upper incomplete gamma function node: `Gamma(s, x) = integrate _x^oot^s-1 e^-t dt`.
 final class UpperGamma extends BinaryExpr {
-  /// Creates an upper incomplete gamma node $\Gamma(\text{left}, \text{right})$.
+  /// Creates an upper incomplete gamma node `Gamma(left, right)`.
   new(super.left, super.right, {super.isSimplified = false});
 
-  /// The shape parameter $s$.
+  /// The shape parameter `s`.
   Expr get order => left;
 
-  /// The lower integration bound $x$.
+  /// The lower integration bound `x`.
   Expr get argument => right;
 
   @override
   Expr _withOperands(Expr left, Expr right) => UpperGamma(left, right);
 }
 
-/// Lower incomplete gamma function node: $\gamma(s, x) = \int_0^x t^{s-1} e^{-t}\,dt$.
+/// Lower incomplete gamma function node: `gamma(s, x) = integrate _0^x t^s-1 e^-t dt`.
 final class LowerGamma extends BinaryExpr {
-  /// Creates a lower incomplete gamma node $\gamma(\text{left}, \text{right})$.
+  /// Creates a lower incomplete gamma node `gamma(left, right)`.
   new(super.left, super.right, {super.isSimplified = false});
 
-  /// The shape parameter $s$.
+  /// The shape parameter `s`.
   Expr get order => left;
 
-  /// The upper integration bound $x$.
+  /// The upper integration bound `x`.
   Expr get argument => right;
 
   @override
   Expr _withOperands(Expr left, Expr right) => LowerGamma(left, right);
 }
 
-/// Polylogarithm node: $\operatorname{Li}_s(z) = \sum_{k=1}^\infty \frac{z^k}{k^s}$.
+/// Polylogarithm node: `Li_s(z) = sum_{k=1}^oo(z^k)/(k^s)`.
 final class Polylog extends BinaryExpr {
-  /// Creates a polylogarithm node $\operatorname{Li}_{\text{left}}(\text{right})$.
+  /// Creates a polylogarithm node `Li_left(right)`.
   new(super.left, super.right, {super.isSimplified = false});
 
-  /// The order $s$.
+  /// The order `s`.
   Expr get order => left;
 
-  /// The argument $z$.
+  /// The argument `z`.
   Expr get argument => right;
 
   @override
   Expr _withOperands(Expr left, Expr right) => Polylog(left, right);
 }
 
-/// Incomplete elliptic integral of the first kind: $F(\phi, k) = \int_0^\phi \frac{d\theta}{\sqrt{1 - k^2 \sin^2\theta}}$.
+/// Incomplete elliptic integral of the first kind: `F(phi, k) = integrate _0^phi (dtheta)/(sqrt(1 - k^2 sin^2theta))`.
 final class EllipticF extends BinaryExpr {
-  /// Creates an incomplete elliptic integral of the first kind $F(\text{left}, \text{right})$.
+  /// Creates an incomplete elliptic integral of the first kind `F(left, right)`.
   new(super.left, super.right, {super.isSimplified = false});
 
-  /// The amplitude $\phi$.
+  /// The amplitude `phi`.
   Expr get amplitude => left;
 
-  /// The modulus $k$.
+  /// The modulus `k`.
   Expr get modulus => right;
 
   @override
   Expr _withOperands(Expr left, Expr right) => EllipticF(left, right);
 }
 
-/// Incomplete elliptic integral of the third kind: $\Pi(n; \phi \mid k) = \int_0^\phi \frac{d\theta}{(1 - n\sin^2\theta)\sqrt{1 - k^2\sin^2\theta}}$.
+/// Incomplete elliptic integral of the third kind: `Pi(n; phi | k) = integrate _0^phi (dtheta)/((1 - nsin^2theta)sqrt(1 - k^2sin^2theta))`.
 final class EllipticPi extends Expr {
-  /// Creates an incomplete elliptic integral of the third kind $\Pi(n; \phi \mid k)$.
+  /// Creates an incomplete elliptic integral of the third kind `Pi(n; phi | k)`.
   new(
     this.characteristic,
     this.amplitude,
@@ -451,13 +451,13 @@ final class EllipticPi extends Expr {
     this.isSimplified = false,
   });
 
-  /// The characteristic $n$.
+  /// The characteristic `n`.
   final Expr characteristic;
 
-  /// The amplitude $\phi$.
+  /// The amplitude `phi`.
   final Expr amplitude;
 
-  /// The modulus $k$.
+  /// The modulus `k`.
   final Expr modulus;
 
   @override

@@ -22,6 +22,9 @@ class BuchbergerEngine {
     var nextId = 0;
 
     for (final p in nonZero) {
+      if (p.leadingMonomial(order).isZero) {
+        return [p];
+      }
       if (p.sugar > maxDegree || p.totalDegree > maxDegree) {
         throw StateError('Buchberger degree bound ($maxDegree) exceeded.');
       }

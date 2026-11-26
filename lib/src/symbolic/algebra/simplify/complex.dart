@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../simplify.dart';
+import '../structural_order.dart';
 import 'additive.dart';
 import 'domain.dart';
 import 'multiplicative.dart';
@@ -235,12 +236,18 @@ Expr simplifyConjugate(Expr expr, {required Assumptions assumptions}) {
         simplifyConjugate(expr, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Atan(:final expr):
+    case Atan(:final expr)
+        when isProvenReal(expr, assumptions) ||
+            (expr is ComplexNumber &&
+                (!expr.real.isZero || expr.imaginary.toDouble().abs() < 1.0)):
       return simplifyAtan(
         simplifyConjugate(expr, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Asinh(:final expr):
+    case Asinh(:final expr)
+        when isProvenReal(expr, assumptions) ||
+            (expr is ComplexNumber &&
+                (!expr.real.isZero || expr.imaginary.toDouble().abs() < 1.0)):
       return simplifyAsinh(
         simplifyConjugate(expr, assumptions: assumptions),
         assumptions: assumptions,
@@ -305,6 +312,6 @@ Expr toPolarExpr(Expr expr, {required Assumptions assumptions}) {
   final factors = <Expr>[
     if (r case Mul(factors: final rf)) ...rf else r,
     expPart,
-  ];
+  ]..sort(compareStructural);
   return Mul(factors, isSimplified: true);
 }

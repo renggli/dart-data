@@ -30,7 +30,8 @@ bool isPositiveConstant(Expr expr) {
   if (expr is RealNumber) return expr.value > 0.0;
   if (expr.freeVariables.isEmpty) {
     try {
-      return expr.evaluate(const {}) > 0.0;
+      final val = expr.evaluate(const {});
+      return val.isFinite && val > 0.0;
     } on ArgumentError {
       // Ignored.
     } on UnsupportedError {
@@ -43,7 +44,7 @@ bool isPositiveConstant(Expr expr) {
 /// Returns `true` if [expr] evaluates to a strictly negative constant.
 bool isNegativeConstant(Expr expr) => isPositiveConstant((-expr).simplify());
 
-/// Evaluates a definite symbolic integral $\int_a^b f(x) dx$ with respect to
+/// Evaluates a definite symbolic integral `integrate _a^b f(x) dx` with respect to
 /// [variable] between [from] and [to].
 ///
 /// Uses the Fundamental Theorem of Calculus via [antiDerivative] and endpoint
@@ -66,6 +67,9 @@ Expr evaluateDefiniteIntegral(
   final fromExpr = Expr.wrap(from).simplify(assumptions: assumptions);
   final toExpr = Expr.wrap(to).simplify(assumptions: assumptions);
   if (fromExpr == toExpr) {
+    if (isInfiniteBound(fromExpr) || fromExpr == Constant.undefined) {
+      return Constant.undefined;
+    }
     return IntegerNumber.zero;
   }
 
@@ -159,7 +163,11 @@ Expr evaluateDefiniteIntegral(
                 try {
                   final v = expr.evaluate({variable: mid});
                   return v.isNaN || v <= 0.0;
-                } on Object {
+                } on ArgumentError {
+                  return true;
+                } on UnsupportedError {
+                  return true;
+                } on StateError {
                   return true;
                 }
               }
@@ -335,7 +343,13 @@ Expr evaluateDefiniteIntegral(
               break;
             }
             pieces.add(diff);
-          } on Object {
+          } on ArgumentError {
+            ok = false;
+            break;
+          } on UnsupportedError {
+            ok = false;
+            break;
+          } on StateError {
             ok = false;
             break;
           }
@@ -366,7 +380,11 @@ Expr evaluateDefiniteIntegral(
           if (diff != null) {
             return diff;
           }
-        } on Object {
+        } on ArgumentError {
+          // Fall through to definite integral special cases or endpoint limit.
+        } on UnsupportedError {
+          // Fall through to definite integral special cases or endpoint limit.
+        } on StateError {
           // Fall through to definite integral special cases or endpoint limit.
         }
 
@@ -407,7 +425,11 @@ Expr evaluateDefiniteIntegral(
           if (diff != null) {
             return diff;
           }
-        } on Object {
+        } on ArgumentError {
+          // Fall through to definite integral special cases.
+        } on UnsupportedError {
+          // Fall through to definite integral special cases.
+        } on StateError {
           // Fall through to definite integral special cases.
         }
       }
@@ -498,7 +520,13 @@ Expr evaluateDefiniteIntegral(
                 break;
               }
               pieces.add(diff);
-            } on Object {
+            } on ArgumentError {
+              ok = false;
+              break;
+            } on UnsupportedError {
+              ok = false;
+              break;
+            } on StateError {
               ok = false;
               break;
             }
@@ -650,23 +678,111 @@ bool isOddIntegrandWithoutInteriorPoles(
   }
 
   // Ensure no denominator vanishes on the interval
-  final poles = findDenominatorRoots(sFunc, variable);
-  if (poles.isNotEmpty) {
-    if (isInfiniteBound(fromExpr) || isInfiniteBound(toExpr)) {
-      return false;
+  final numFrom = evaluateBoundNumeric(fromExpr);
+  final numTo = evaluateBoundNumeric(toExpr);
+  if (numFrom == null || numTo == null) {
+    return extractDenominatorFactors(sFunc)
+        .every((f) => !f.dependsOn(variable));
+  }
+  final low = numFrom < numTo ? numFrom : numTo;
+  final high = numFrom < numTo ? numTo : numFrom;
+  if (_hasAnyDenominatorPole(
+    sFunc,
+    variable,
+    low,
+    high,
+    inclusive: true,
+    assumptions: assumptions,
+  )) {
+    return false;
+  }
+  return true;
+}
+
+bool _hasAnyDenominatorPole(
+  Expr expr,
+  String variable,
+  double low,
+  double high, {
+  required bool inclusive,
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final eps = inclusive ? -1e-12 : 1e-12;
+  final factors = extractDenominatorFactors(expr);
+  for (final factor in factors) {
+    if (!factor.dependsOn(variable)) continue;
+    // Periodic trig factors: Sin(arg), Cos(arg)
+    if (factor case Sin(:final expr) || Cos(:final expr)
+        when expr.dependsOn(variable)) {
+      if (low.isFinite && high.isFinite) {
+        try {
+          final u1 = expr.evaluate({variable: low});
+          final u2 = expr.evaluate({variable: high});
+          if (u1.isFinite && u2.isFinite) {
+            final uMin = math.min(u1, u2);
+            final uMax = math.max(u1, u2);
+            if (factor is Sin) {
+              final kMin = ((uMin + eps) / math.pi).ceil();
+              final kMax = ((uMax - eps) / math.pi).floor();
+              if (kMin <= kMax) return true;
+            } else {
+              final kMin = ((uMin + eps) / math.pi - 0.5).ceil();
+              final kMax = ((uMax - eps) / math.pi - 0.5).floor();
+              if (kMin <= kMax) return true;
+            }
+          }
+        } on ArgumentError {
+          // Fall through
+        } on UnsupportedError {
+          // Fall through
+        } on StateError {
+          // Fall through
+        }
+      }
     }
-    final numFrom = evaluateBoundNumeric(fromExpr);
-    final numTo = evaluateBoundNumeric(toExpr);
-    if (numFrom == null || numTo == null) return false;
-    final low = numFrom < numTo ? numFrom : numTo;
-    final high = numFrom < numTo ? numTo : numFrom;
-    for (final pole in poles) {
-      if (pole >= low - 1e-12 && pole <= high + 1e-12) {
-        return false;
+    try {
+      final realAssumptions = assumptions.copyWith(
+        domains: {variable: VariableDomain.real},
+      );
+      final solutions = factor.solve(variable, assumptions: realAssumptions);
+      for (final sol in solutions) {
+        if (sol.anyNode((n) => n is ComplexNumber)) continue;
+        final v = evaluateBoundNumeric(sol);
+        if (v == null || v.isNaN) {
+          // Symbolic parameter pole (e.g. a in x^2 - a^2) may lie in [low, high].
+          if (!isPositiveExpr(factor, assumptions: realAssumptions) &&
+              !isNegativeExpr(factor, assumptions: realAssumptions)) {
+            return true;
+          }
+          continue;
+        }
+        if (inclusive
+            ? (v >= low - 1e-12 && v <= high + 1e-12)
+            : (v > low + 1e-12 && v < high - 1e-12)) {
+          return true;
+        }
+      }
+    } on ArgumentError {
+      // Unsolvable factor; fall through to numeric endpoint check.
+    } on UnsupportedError {
+      // Unsolvable factor; fall through to numeric endpoint check.
+    } on StateError {
+      // Unsolvable factor; fall through to numeric endpoint check.
+    }
+    // Check endpoint zeros directly if finite
+    if (inclusive && low.isFinite && high.isFinite) {
+      try {
+        final vL = factor.evaluate({variable: low});
+        final vH = factor.evaluate({variable: high});
+        if (vL == 0.0 || vH == 0.0) return true;
+      } on ArgumentError {
+        // Ignored.
+      } on UnsupportedError {
+        // Ignored.
       }
     }
   }
-  return true;
+  return false;
 }
 
 /// Pattern-table lookup and closed-form evaluation of famous improper and
@@ -694,7 +810,11 @@ Expr _resolveEvenPowerOnInterval(
           r.mulRational(IntegerNumber.two),
         ).simplify(assumptions: assumptions);
       }
-    } on Object {
+    } on ArgumentError {
+      // Fall through
+    } on UnsupportedError {
+      // Fall through
+    } on StateError {
       // Fall through
     }
   }
@@ -710,20 +830,66 @@ List<({double value, Expr expr})>? _collectSymbolicInteriorPoles(
   double high,
 ) {
   final poles = <({double value, Expr expr})>[];
+  void addPole(double v, Expr rootExpr) {
+    if (v > low + 1e-12 && v < high - 1e-12) {
+      if (!poles.any((p) => (p.value - v).abs() < 1e-12)) {
+        poles.add((value: v, expr: rootExpr));
+      }
+    }
+  }
+
   for (final factor in extractDenominatorFactors(expr)) {
     if (!factor.dependsOn(variable)) continue;
+    if (factor case Sin(expr: final arg) || Cos(expr: final arg)
+        when arg.dependsOn(variable) && low.isFinite && high.isFinite) {
+      try {
+        final u1 = arg.evaluate({variable: low});
+        final u2 = arg.evaluate({variable: high});
+        if (u1.isFinite && u2.isFinite) {
+          final uMin = math.min(u1, u2);
+          final uMax = math.max(u1, u2);
+          final isSin = factor is Sin;
+          final kMin = ((uMin + 1e-9) / math.pi - (isSin ? 0.0 : 0.5)).ceil();
+          final kMax = ((uMax - 1e-9) / math.pi - (isSin ? 0.0 : 0.5)).floor();
+          if (kMax - kMin <= 16 && kMin <= kMax) {
+            for (var k = kMin; k <= kMax; k++) {
+              final target = isSin
+                  ? (IntegerNumber.of(k) * Constant.pi).simplify()
+                  : ((IntegerNumber.of(k) + FractionNumber.half) * Constant.pi)
+                        .simplify();
+              for (final root in (arg - target).solve(
+                variable,
+                assumptions: Assumptions.real,
+              )) {
+                final v = evaluateBoundNumeric(root);
+                if (v != null && v.isFinite) {
+                  addPole(v, root);
+                }
+              }
+            }
+          }
+        }
+      } on ArgumentError {
+        return null;
+      } on UnsupportedError {
+        return null;
+      } on StateError {
+        return null;
+      }
+    }
     try {
       final roots = factor.solve(variable, assumptions: Assumptions.real);
       for (final root in roots) {
+        if (root.anyNode((n) => n is ComplexNumber)) continue;
         final v = evaluateBoundNumeric(root);
         if (v == null || v.isNaN) return null;
-        if (v > low + 1e-12 && v < high - 1e-12) {
-          if (!poles.any((p) => (p.value - v).abs() < 1e-12)) {
-            poles.add((value: v, expr: root));
-          }
-        }
+        addPole(v, root);
       }
-    } on Object {
+    } on ArgumentError {
+      return null;
+    } on UnsupportedError {
+      return null;
+    } on StateError {
       return null;
     }
   }
@@ -732,11 +898,8 @@ List<({double value, Expr expr})>? _collectSymbolicInteriorPoles(
 }
 
 bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
-  final poles = findDenominatorRoots(expr, variable);
-  for (final pole in poles) {
-    if (pole > low && pole < high) {
-      return true;
-    }
+  if (_hasAnyDenominatorPole(expr, variable, low, high, inclusive: false)) {
+    return true;
   }
 
   return expr.anyNode((node) {
@@ -751,7 +914,11 @@ bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
           final kMax = ((uMax - 1e-9) / math.pi - 0.5).floor();
           if (kMin <= kMax) return true;
         }
-      } on Object {
+      } on ArgumentError {
+        // Fall back to root checking
+      } on UnsupportedError {
+        // Fall back to root checking
+      } on StateError {
         // Fall back to root checking
       }
     }
@@ -764,7 +931,11 @@ bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
           final uMax = math.max(u1, u2);
           if (uMin < 0 || (uMin == 0 && uMax == 0)) return true;
         }
-      } on Object {
+      } on ArgumentError {
+        // Ignored.
+      } on UnsupportedError {
+        // Ignored.
+      } on StateError {
         // Ignored.
       }
     }
@@ -782,9 +953,25 @@ List<({double value, Expr expr})>? _antiderivativeJumps(
   final jumps = <({double value, Expr expr})>[];
   var tooMany = false;
 
+  void addJump(double xk, Expr xExpr) {
+    if (xk > low + 1e-9 && xk < high - 1e-9) {
+      if (!jumps.any((j) => (j.value - xk).abs() <= 1e-9)) {
+        if (jumps.length >= 16) {
+          tooMany = true;
+          return;
+        }
+        jumps.add((value: xk, expr: xExpr));
+      }
+    }
+  }
+
   void collect(Expr node) {
     if (tooMany) return;
     if (node case Tan(expr: final arg) when arg.dependsOn(variable)) {
+      if (!low.isFinite || !high.isFinite) {
+        tooMany = true;
+        return;
+      }
       if (arg.matchLinear(variable) case (:final a, :final b)) {
         final aVal = evaluateBoundNumeric(a);
         final bVal = evaluateBoundNumeric(b);
@@ -793,10 +980,6 @@ List<({double value, Expr expr})>? _antiderivativeJumps(
             aVal.isFinite &&
             bVal.isFinite &&
             aVal != 0.0) {
-          if (!low.isFinite || !high.isFinite) {
-            tooMany = true;
-            return;
-          }
           final uLow = aVal * low + bVal;
           final uHigh = aVal * high + bVal;
           final uMin = math.min(uLow, uHigh);
@@ -809,24 +992,66 @@ List<({double value, Expr expr})>? _antiderivativeJumps(
           }
           for (var k = kMin; k <= kMax; k++) {
             final xk = ((k + 0.5) * math.pi - bVal) / aVal;
-            if (xk > low + 1e-9 && xk < high - 1e-9) {
-              final exists = jumps.any((j) => (j.value - xk).abs() <= 1e-9);
-              if (!exists) {
-                if (jumps.length >= 16) {
-                  tooMany = true;
-                  return;
+            final xExpr =
+                (((IntegerNumber.of(k) + FractionNumber.half) * Constant.pi -
+                            b) /
+                        a)
+                    .simplify(assumptions: assumptions);
+            addJump(xk, xExpr);
+          }
+        }
+      } else {
+        try {
+          final u1 = arg.evaluate({variable: low});
+          final u2 = arg.evaluate({variable: high});
+          if (u1.isFinite && u2.isFinite) {
+            final uMin = math.min(u1, u2);
+            final uMax = math.max(u1, u2);
+            final kMin = (uMin / math.pi - 0.5).floor() - 1;
+            final kMax = (uMax / math.pi - 0.5).ceil() + 1;
+            if (kMax - kMin <= 16) {
+              for (var k = kMin; k <= kMax; k++) {
+                final target =
+                    ((IntegerNumber.of(k) + FractionNumber.half) * Constant.pi)
+                        .simplify();
+                for (final root in (arg - target).solve(
+                  variable,
+                  assumptions: Assumptions.real,
+                )) {
+                  final xk = evaluateBoundNumeric(root);
+                  if (xk != null && xk.isFinite) {
+                    addJump(xk, root);
+                  }
                 }
-                final xExpr =
-                    (((IntegerNumber.of(k) + FractionNumber.half) *
-                                    Constant.pi -
-                                b) /
-                            a)
-                        .simplify(assumptions: assumptions);
-                jumps.add((value: xk, expr: xExpr));
               }
             }
           }
+        } on ArgumentError {
+          // Ignored.
+        } on UnsupportedError {
+          // Ignored.
+        } on StateError {
+          // Ignored.
         }
+      }
+    } else if (node case Sign(expr: final arg) when arg.dependsOn(variable)) {
+      if (!low.isFinite || !high.isFinite) {
+        tooMany = true;
+        return;
+      }
+      try {
+        for (final root in arg.solve(variable, assumptions: Assumptions.real)) {
+          final xk = evaluateBoundNumeric(root);
+          if (xk != null && xk.isFinite) {
+            addJump(xk, root);
+          }
+        }
+      } on ArgumentError {
+        // Ignored.
+      } on UnsupportedError {
+        // Ignored.
+      } on StateError {
+        // Ignored.
       }
     }
     node.mapChildren((child) {
@@ -861,7 +1086,49 @@ Expr? _tryKingsProperty(
   }
   final low = numFrom < numTo ? numFrom : numTo;
   final high = numFrom < numTo ? numTo : numFrom;
-  if (_hasInteriorPole(function, variable, low, high)) return null;
+  if (_hasInteriorPole(function, variable, low, high)) {
+    return null;
+  }
+  if (_hasAnyDenominatorPole(
+    function,
+    variable,
+    low,
+    high,
+    inclusive: true,
+    assumptions: assumptions,
+  )) {
+    final isAscending = numFrom <= numTo;
+    try {
+      final fromLim = function.limit(
+        variable,
+        fromExpr,
+        direction: isAscending
+            ? LimitDirection.fromAbove
+            : LimitDirection.fromBelow,
+        assumptions: assumptions,
+      );
+      final toLim = function.limit(
+        variable,
+        toExpr,
+        direction: isAscending
+            ? LimitDirection.fromBelow
+            : LimitDirection.fromAbove,
+        assumptions: assumptions,
+      );
+      bool isBadLimit(Expr e) => e.anyNode(
+        (n) => n is Limit || n == Constant.infinity || n == Constant.undefined,
+      );
+      if (isBadLimit(fromLim) || isBadLimit(toLim)) {
+        return null;
+      }
+    } on ArgumentError {
+      return null;
+    } on UnsupportedError {
+      return null;
+    } on StateError {
+      return null;
+    }
+  }
 
   final reflected = function
       .substitute(

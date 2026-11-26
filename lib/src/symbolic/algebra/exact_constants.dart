@@ -3,19 +3,19 @@ import '../number/integer.dart';
 
 /// Standard special radical values appearing in exact trigonometric evaluations.
 enum SpecialRadical {
-  /// $1 / 2 = \sin(\pi/6) = \cos(\pi/3)$.
+  /// `1 / 2 = sin(pi/6) = cos(pi/3)`.
   half,
 
-  /// $\sqrt{2} / 2 = \sin(\pi/4) = \cos(\pi/4)$.
+  /// `1 / 2 = sin(pi/6) = cos(pi/3)`.
   sqrt2Over2,
 
-  /// $\sqrt{3} / 2 = \sin(\pi/3) = \cos(\pi/6)$.
+  /// `sqrt(2) / 2 = sin(pi/4) = cos(pi/4)`.
   sqrt3Over2,
 
-  /// $\sqrt{3} / 3 = \tan(\pi/6)$.
+  /// `sqrt(3) / 2 = sin(pi/3) = cos(pi/6)`.
   sqrt3Over3,
 
-  /// $\sqrt{3} = \tan(\pi/3)$.
+  /// `sqrt(3) / 3 = tan(pi/6)`.
   sqrt3,
 }
 
@@ -64,7 +64,7 @@ Expr specialRadicalExpr(SpecialRadical radical, {bool negative = false}) =>
               ),
     };
 
-/// Tests whether [expr] represents $\pm\text{radical}$.
+/// Tests whether [expr] represents `+/-radical`.
 bool isSpecialAngleConstant(
   Expr expr,
   SpecialRadical radical, {
@@ -80,21 +80,21 @@ bool isSpecialAngleConstant(
   SpecialRadical.sqrt3 => negative ? isNegativeSqrt3(expr) : isSqrt3(expr),
 };
 
-/// Tests whether [expr] equals $+1/2$.
+/// Tests whether [expr] equals `+1/2`.
 bool isHalf(Expr expr) => switch (expr) {
   FractionNumber(:final numerator, :final denominator) =>
     numerator.isOne && denominator == Integer.two,
   _ => false,
 };
 
-/// Tests whether [expr] equals $-1/2$.
+/// Tests whether [expr] equals `-1/2`.
 bool isNegativeHalf(Expr expr) => switch (expr) {
   FractionNumber(:final numerator, :final denominator) =>
     numerator == Integer.negativeOne && denominator == Integer.two,
   _ => false,
 };
 
-/// Tests whether [expr] is $\sqrt{n}$ (`Pow(RationalNumber(n), RationalNumber(1, 2))`).
+/// Tests whether [expr] is `sqrt(n)` (`Pow(RationalNumber(n), RationalNumber(1, 2))`).
 bool isSqrt(Expr expr, int n) => switch (expr) {
   Pow(
     base: IntegerNumber(:final value),
@@ -104,7 +104,7 @@ bool isSqrt(Expr expr, int n) => switch (expr) {
   _ => false,
 };
 
-/// Tests whether [expr] equals $+\sqrt{2}/2 = 1/\sqrt{2}$.
+/// Tests whether [expr] equals `+1/2`.
 bool isSqrt2Over2(Expr expr) {
   if (_isRationalTimesSqrt(expr, FractionNumber.half, 2)) return true;
   if (expr case Pow(
@@ -124,7 +124,7 @@ bool isSqrt2Over2(Expr expr) {
   return false;
 }
 
-/// Tests whether [expr] equals $-\sqrt{2}/2 = -1/\sqrt{2}$.
+/// Tests whether [expr] equals `-1/2`.
 bool isNegativeSqrt2Over2(Expr expr) {
   if (_isRationalTimesSqrt(expr, FractionNumber.negativeHalf, 2)) return true;
   if (expr case Mul(
@@ -135,11 +135,11 @@ bool isNegativeSqrt2Over2(Expr expr) {
   return false;
 }
 
-/// Tests whether [expr] equals $+\sqrt{3}/2$.
+/// Tests whether [expr] equals `+sqrt(2)/2 = 1/sqrt(2)`.
 bool isSqrt3Over2(Expr expr) =>
     _isRationalTimesSqrt(expr, FractionNumber.half, 3);
 
-/// Tests whether [expr] equals $-\sqrt{3}/2$.
+/// Tests whether [expr] equals `-sqrt(2)/2 = -1/sqrt(2)`.
 bool isNegativeSqrt3Over2(Expr expr) {
   if (_isRationalTimesSqrt(expr, FractionNumber.negativeHalf, 3)) return true;
   if (expr case Mul(
@@ -150,7 +150,7 @@ bool isNegativeSqrt3Over2(Expr expr) {
   return false;
 }
 
-/// Tests whether [expr] equals $+\sqrt{3}/3 = 1/\sqrt{3}$.
+/// Tests whether [expr] equals `+sqrt(3)/2`.
 bool isSqrt3Over3(Expr expr) {
   if (_isRationalTimesSqrt(expr, FractionNumber.third, 3)) return true;
   if (expr case Pow(
@@ -170,7 +170,7 @@ bool isSqrt3Over3(Expr expr) {
   return false;
 }
 
-/// Tests whether [expr] equals $-\sqrt{3}/3 = -1/\sqrt{3}$.
+/// Tests whether [expr] equals `-sqrt(3)/2`.
 bool isNegativeSqrt3Over3(Expr expr) {
   if (_isRationalTimesSqrt(
     expr,
@@ -187,10 +187,10 @@ bool isNegativeSqrt3Over3(Expr expr) {
   return false;
 }
 
-/// Tests whether [expr] equals $+\sqrt{3}$.
+/// Tests whether [expr] equals `+sqrt(3)/3 = 1/sqrt(3)`.
 bool isSqrt3(Expr expr) => isSqrt(expr, 3);
 
-/// Tests whether [expr] equals $-\sqrt{3}$.
+/// Tests whether [expr] equals `-sqrt(3)/3 = -1/sqrt(3)`.
 bool isNegativeSqrt3(Expr expr) {
   if (expr case Mul(
     factors: [IntegerNumber(isNegativeOne: true), final inner],

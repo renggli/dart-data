@@ -8,6 +8,7 @@ import '../../type/models/field.dart';
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/factor/fraction.dart';
+import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/structural_order.dart';
 import '../ast.dart';
@@ -66,6 +67,7 @@ final class ExprEquality extends NaturalEquality<Expr> {
 
   @override
   bool isClose(Expr a, Expr b, double epsilon) {
+    if (epsilon.isNaN || epsilon < 0) return false;
     if (a == b) return true;
     final diff = (a - b).expand().simplify();
     return switch (diff) {
@@ -83,7 +85,11 @@ final class ExprEquality extends NaturalEquality<Expr> {
   static bool _evalClose(Expr diff, double epsilon) {
     try {
       return diff.evaluateComplex(const {}).abs() <= epsilon;
-    } on Object {
+    } on ArgumentError {
+      return false;
+    } on UnsupportedError {
+      return false;
+    } on StateError {
       return false;
     }
   }
@@ -157,15 +163,28 @@ final class ExprField extends ExtendedField<Expr> {
   double norm(Expr a) {
     try {
       return a.evaluate(const {}).abs();
-    } on Object {
-      try {
-        return a.evaluateComplex(const {}).abs();
-      } on Object {
-        throw UnsupportedError(
-          'Cannot compute numeric norm for symbolic expression with unresolved variables: $a',
-        );
-      }
+    } on ArgumentError {
+      return _complexNorm(a);
+    } on UnsupportedError {
+      return _complexNorm(a);
+    } on StateError {
+      return _complexNorm(a);
     }
+  }
+
+  static double _complexNorm(Expr a) {
+    try {
+      return a.evaluateComplex(const {}).abs();
+    } on ArgumentError {
+      // Rethrow as UnsupportedError below.
+    } on UnsupportedError {
+      // Rethrow as UnsupportedError below.
+    } on StateError {
+      // Rethrow as UnsupportedError below.
+    }
+    throw UnsupportedError(
+      'Cannot compute numeric norm for symbolic expression with unresolved variables: $a',
+    );
   }
 
   @override
@@ -184,7 +203,9 @@ final class ExprField extends ExtendedField<Expr> {
   Expr get infinity => Constant.infinity;
 
   @override
-  Expr get negativeInfinity => Mul(const [
+  Expr get negativeInfinity => _negativeInfinity;
+
+  static final _negativeInfinity = Mul(const [
     IntegerNumber.negativeOne,
     Constant.infinity,
   ], isSimplified: true);
@@ -201,11 +222,13 @@ bool isZeroExpr(Expr expr) {
   if (expr is Number) return expr.isZero;
   final s = expr.simplify();
   if (s is Number && s.isZero) return true;
-  final exp = expr.expand().simplify();
+  final exp = s.expand().simplify();
   if (exp is Number && exp.isZero) return true;
-  if (expr.freeVariables.isEmpty) {
+  final comb = s.together().simplify();
+  if (comb is Number && comb.isZero) return true;
+  if (s.freeVariables.isEmpty && s.anyNode((node) => node is RealNumber)) {
     try {
-      final c = expr.evaluateComplex();
+      final c = s.evaluateComplex();
       if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
     } on ArgumentError {
       // Ignored.

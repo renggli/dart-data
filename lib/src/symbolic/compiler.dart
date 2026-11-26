@@ -25,7 +25,7 @@ extension CompilerExtension on Expr {
   double evaluate([Map<String, double> context = const {}]) =>
       _cachedEvaluator().evaluateMap(context);
 
-  /// Evaluates this expression in the complex domain $\mathbb{C}$ given complex
+  /// Evaluates this expression in the complex domain C given complex
   /// variable bindings in [context].
   ///
   /// Throws an [ArgumentError] if any free variable in this expression is
@@ -58,7 +58,7 @@ extension CompilerExtension on Expr {
     Assumptions assumptions = Assumptions.none,
   }) {
     final evaluator = toBytecode(
-      variable: varName,
+      variables: [varName],
       optimize: optimize,
       assumptions: assumptions,
     )..checkRealSupported();
@@ -68,22 +68,13 @@ extension CompilerExtension on Expr {
   /// Compiles this expression into an executable [BytecodeEvaluator].
   BytecodeEvaluator toBytecode({
     List<String>? variables,
-    String? variable,
     bool optimize = true,
     Assumptions assumptions = Assumptions.none,
-  }) {
-    final varList =
-        variables ??
-        (variable != null
-            ? [variable]
-            : (simplify(assumptions: assumptions).freeVariables.toList()
-                ..sort()));
-    return _compileBytecode(
-      variables: varList,
-      optimize: optimize,
-      assumptions: assumptions,
-    );
-  }
+  }) => _compileBytecode(
+    variables: variables,
+    optimize: optimize,
+    assumptions: assumptions,
+  );
 
   /// Compiles this expression into a fast complex native Dart function
   /// `Complex Function(Complex x)`.
@@ -93,14 +84,17 @@ extension CompilerExtension on Expr {
   /// final f = (x * x + 1).toComplexFunction1D('x');
   /// final y = f(Complex(0, 1)); // i^2 + 1 = 0
   /// ```
-  Complex Function(Complex x) toComplexFunction1D([
-    String variable = 'x',
+  Complex Function(Complex x) toComplexFunction1D(
+    String variable, {
     bool optimize = true,
-  ]) {
+    Assumptions assumptions = Assumptions.none,
+  }) {
     final evaluator = _compileBytecode(
       variables: [variable],
       optimize: optimize,
-      assumptions: Assumptions(domains: {variable: VariableDomain.complex}),
+      assumptions: assumptions.copyWith(
+        domains: {variable: VariableDomain.complex},
+      ),
     );
     return evaluator.evaluateComplex1D;
   }

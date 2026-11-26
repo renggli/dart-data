@@ -12,13 +12,13 @@ sealed class Number extends Expr {
   @override
   bool get isSimplified => true;
 
-  /// Whether this number is identically zero ($0$).
+  /// Whether this number is identically zero (`0`).
   bool get isZero;
 
-  /// Whether this number is identically one ($1$).
+  /// Whether this number is identically one (`1`).
   bool get isOne;
 
-  /// Whether this number is identically negative one ($-1$).
+  /// Whether this number is identically negative one (`-1`).
   bool get isNegativeOne;
 
   /// Converts this number to a real IEEE-754 floating-point value.
@@ -30,10 +30,10 @@ sealed class Number extends Expr {
   /// Converts this number to a floating-point [Complex] value.
   Complex toComplex();
 
-  /// Returns the complex conjugate $\bar{z}$ of this number.
+  /// Returns the complex conjugate `conj(z)` of this number.
   Number get conjugate;
 
-  /// Returns the additive inverse $-z$ of this number.
+  /// Returns the additive inverse `-z` of this number.
   Number neg();
 
   /// Returns the exact or contagion-promoted sum `this + other`.
@@ -74,14 +74,48 @@ sealed class Number extends Expr {
     }
     final (ar, ai) = _components(this);
     final (br, bi) = _components(other);
-    // (ar + ai*i) / (br + bi*i) = ((ar*br + ai*bi) + (ai*br - ar*bi)*i) / (br^2 + bi^2)
-    final denom = _addReal(_mulReal(br, br), _mulReal(bi, bi));
-    if (denom.isZero) {
+    if (ar is RationalNumber &&
+        ai is RationalNumber &&
+        br is RationalNumber &&
+        bi is RationalNumber) {
+      // (ar + ai*i) / (br + bi*i) = ((ar*br + ai*bi) + (ai*br - ar*bi)*i) / (br^2 + bi^2)
+      final denom = br.mulRational(br).addRational(bi.mulRational(bi));
+      if (denom.isZero) {
+        throw UnsupportedError('Division by zero: $this / $other');
+      }
+      final realNum = ar.mulRational(br).addRational(ai.mulRational(bi));
+      final imagNum = ai.mulRational(br).subRational(ar.mulRational(bi));
+      return ComplexNumber.of(
+        realNum.divRational(denom),
+        imagNum.divRational(denom),
+      );
+    }
+    final arD = ar.toDouble();
+    final aiD = ai.toDouble();
+    final brD = br.toDouble();
+    final biD = bi.toDouble();
+    if (brD == 0.0 && biD == 0.0) {
       throw UnsupportedError('Division by zero: $this / $other');
     }
-    final realNum = _addReal(_mulReal(ar, br), _mulReal(ai, bi));
-    final imagNum = _subReal(_mulReal(ai, br), _mulReal(ar, bi));
-    return ComplexNumber.of(_divReal(realNum, denom), _divReal(imagNum, denom));
+    final double realOut;
+    final double imagOut;
+    if (brD.abs() >= biD.abs()) {
+      final ratio = biD / brD;
+      final denom = brD + biD * ratio;
+      realOut = (arD + aiD * ratio) / denom;
+      imagOut = (aiD - arD * ratio) / denom;
+    } else {
+      final ratio = brD / biD;
+      final denom = brD * ratio + biD;
+      realOut = (arD * ratio + aiD) / denom;
+      imagOut = (aiD * ratio - arD) / denom;
+    }
+    if (!realOut.isFinite || !imagOut.isFinite) {
+      throw UnsupportedError(
+        'Floating-point overflow in division: $this / $other',
+      );
+    }
+    return ComplexNumber.of(RealNumber(realOut), RealNumber(imagOut));
   }
 
   /// Evaluates `this ^ exponent` as a single [Number] if it reduces to an
@@ -190,13 +224,17 @@ sealed class Number extends Expr {
     }
     if (result == null) return null;
     if (isFloat) {
-      return switch (result) {
-        final RealNumeric r => RealNumber(r.toDouble()),
-        ComplexNumber(:final real, :final imaginary) => ComplexNumber.of(
-          RealNumber(real.toDouble()),
-          RealNumber(imaginary.toDouble()),
-        ),
-      };
+      switch (result) {
+        case final RealNumeric r:
+          final v = r.toDouble();
+          return v.isFinite ? RealNumber(v) : null;
+        case ComplexNumber(:final real, :final imaginary):
+          final vr = real.toDouble();
+          final vi = imaginary.toDouble();
+          return (vr.isFinite && vi.isFinite)
+              ? ComplexNumber.of(RealNumber(vr), RealNumber(vi))
+              : null;
+      }
     }
     return result;
   }
@@ -215,6 +253,11 @@ sealed class Number extends Expr {
       return const RealNumber(1.0);
     }
     final bVal = baseReal.toDouble();
+    if (bVal == -1.0 && exponent is IntegerNumber) {
+      return exponent.value.isEven
+          ? const RealNumber(1.0)
+          : const RealNumber(-1.0);
+    }
     final eVal = exponent.toDouble();
     if (bVal < 0 && eVal != eVal.roundToDouble()) {
       return null;
@@ -235,7 +278,11 @@ sealed class Number extends Expr {
     if (a is RationalNumber && b is RationalNumber) {
       return a.addRational(b);
     }
-    return RealNumber(a.toDouble() + b.toDouble());
+    final sum = a.toDouble() + b.toDouble();
+    if (!sum.isFinite) {
+      throw UnsupportedError('Floating-point overflow in addition: $a + $b');
+    }
+    return RealNumber(sum);
   }
 
   static RealNumeric _subReal(RealNumeric a, RealNumeric b) =>
@@ -248,7 +295,16 @@ sealed class Number extends Expr {
       }
       return a.mulRational(b);
     }
-    return RealNumber(a.toDouble() * b.toDouble());
+    if (a.isZero || b.isZero) {
+      return RealNumber.zero;
+    }
+    final prod = a.toDouble() * b.toDouble();
+    if (!prod.isFinite) {
+      throw UnsupportedError(
+        'Floating-point overflow in multiplication: $a * $b',
+      );
+    }
+    return RealNumber(prod);
   }
 
   static RealNumeric _divReal(RealNumeric a, RealNumeric b) {
@@ -256,7 +312,17 @@ sealed class Number extends Expr {
       if (a.isZero) return IntegerNumber.zero;
       return a.divRational(b);
     }
-    return RealNumber(a.toDouble() / b.toDouble());
+    if (b.isZero) {
+      throw UnsupportedError('Division by zero: $a / $b');
+    }
+    if (a.isZero) {
+      return RealNumber.zero;
+    }
+    final quot = a.toDouble() / b.toDouble();
+    if (!quot.isFinite) {
+      throw UnsupportedError('Floating-point overflow in division: $a / $b');
+    }
+    return RealNumber(quot);
   }
 
   static Number _complexIntPow(ComplexNumber base, int exponent) {
@@ -275,7 +341,7 @@ sealed class Number extends Expr {
     return exponent < 0 ? IntegerNumber.one.div(result) : result;
   }
 
-  /// If [n] can be written as $b^k$ for integer $b \ge 2$ and maximal integer $k \ge 2$,
+  /// If [n] can be written as `b^k` for integer `b >=2` and maximal integer `k >=2`,
   /// returns `(b, k)`; otherwise returns `null`.
   static (Integer, int)? integerPower(Integer n) {
     if (n.isNegative || n.isZero || n.isOne) return null;
@@ -299,6 +365,7 @@ sealed class Number extends Expr {
     if (n.isNegative || q <= 0) return null;
     if (n.isZero) return Integer.zero;
     if (n.isOne || q == 1) return n;
+    if (q >= n.bitLength) return null;
     if (!n.isBig) {
       final nInt = n.asInt;
       if (nInt != null) {
@@ -348,7 +415,7 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
   /// Creates a real-valued numeric literal.
   const new();
 
-  /// Whether this number is strictly less than zero ($< 0$).
+  /// Whether this number is strictly less than zero (`< 0`).
   bool get isNegative;
 
   /// Returns the sign of this number: `-1` if negative, `0` if zero, `1` if positive.
@@ -360,7 +427,7 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
   @override
   RealNumeric neg();
 
-  /// Returns the absolute value $|x|$ of this real number.
+  /// Returns the absolute value `|x|` of this real number.
   RealNumeric abs() => isNegative ? neg() : this;
 
   @override
@@ -378,16 +445,16 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
   };
 }
 
-/// Exact rational number $p / q \in \mathbb{Q}$, represented canonically as
-/// either an [IntegerNumber] (when $q = 1$) or a reduced [FractionNumber]
-/// (when $q > 1$ and $\gcd(|p|, q) = 1$).
+/// Exact rational number `p / q in Q`, represented canonically as
+/// either an [IntegerNumber] (when `q = 1`) or a reduced [FractionNumber]
+/// (when `q > 1` and `gcd(|p|, q) = 1`).
 sealed class RationalNumber extends RealNumeric {
   /// Creates a canonical rational number subclass.
   const new _();
 
   /// Creates an exact rational number from machine `int` [numerator] and
   /// [denominator], reducing by their greatest common divisor and returning
-  /// an [IntegerNumber] when the reduced denominator is $1$.
+  /// an [IntegerNumber] when the reduced denominator is `1`.
   factory(int numerator, [int denominator = 1]) =>
       RationalNumber.of(Integer.from(numerator), Integer.from(denominator));
 
@@ -399,7 +466,7 @@ sealed class RationalNumber extends RealNumeric {
 
   /// Creates an exact rational number from arbitrary-precision [Integer]
   /// [numerator] and [denominator], reducing by their greatest common divisor
-  /// and returning an [IntegerNumber] when the reduced denominator is $1$.
+  /// and returning an [IntegerNumber] when the reduced denominator is `1`.
   factory of(Integer numerator, [Integer denominator = Integer.one]) {
     final norm = rationalNormalize(numerator, denominator);
     return norm.denominator.isOne
@@ -411,15 +478,15 @@ sealed class RationalNumber extends RealNumeric {
       ? IntegerNumber(parts.numerator)
       : FractionNumber(parts.numerator, parts.denominator);
 
-  /// The signed numerator $p$.
+  /// The signed numerator `p`.
   Integer get numerator;
 
-  /// The positive coprime denominator $q \ge 1$.
+  /// The positive coprime denominator `q >=1`.
   Integer get denominator;
 
   RationalParts get _parts => (numerator: numerator, denominator: denominator);
 
-  /// Whether this rational number is an integer ($q = 1$).
+  /// Whether this rational number is an integer (`q = 1`).
   bool get isInteger => this is IntegerNumber;
 
   @override
@@ -462,7 +529,7 @@ sealed class RationalNumber extends RealNumeric {
   @override
   RationalNumber abs() => isNegative ? neg() : this;
 
-  /// Returns the multiplicative inverse $q / p$ of this rational number.
+  /// Returns the multiplicative inverse `q / p` of this rational number.
   RationalNumber reciprocal() =>
       RationalNumber._fromParts(rationalInvert(_parts));
 
@@ -490,7 +557,7 @@ sealed class RationalNumber extends RealNumeric {
   }
 
   /// Returns the non-negative greatest common divisor of this rational number
-  /// and [other]: $\gcd(p_1/q_1, p_2/q_2) = \frac{\gcd(p_1, p_2)}{\operatorname{lcm}(q_1, q_2)}$.
+  /// and [other]: `gcd(p_1/q_1, p_2/q_2) = (gcd(p_1, p_2))/(lcm(q_1, q_2))`.
   RationalNumber gcd(RationalNumber other) {
     if (isZero && other.isZero) return IntegerNumber.zero;
     if (isZero) return other.abs();
@@ -502,7 +569,7 @@ sealed class RationalNumber extends RealNumeric {
   }
 
   /// Returns the non-negative least common multiple of this rational number
-  /// and [other]: $\operatorname{lcm}(p_1/q_1, p_2/q_2) = \frac{\operatorname{lcm}(p_1, p_2)}{\gcd(q_1, q_2)}$.
+  /// and [other]: `lcm(p_1/q_1, p_2/q_2) = (lcm(p_1, p_2))/(gcd(q_1, q_2))`.
   RationalNumber lcm(RationalNumber other) {
     if (isZero || other.isZero) return IntegerNumber.zero;
     return RationalNumber.of(
@@ -511,14 +578,14 @@ sealed class RationalNumber extends RealNumeric {
     );
   }
 
-  /// Whether this rational number is a prime integer ($q = 1$ and $p \ge 2$ is prime).
+  /// Whether this rational number is a prime integer (`q = 1` and `p >=2` is prime).
   bool get isPrime => switch (this) {
     IntegerNumber(:final value) => value.isPrime,
     FractionNumber() => false,
   };
 }
 
-/// Exact arbitrary-precision integer literal $n \in \mathbb{Z}$.
+/// Exact arbitrary-precision integer literal `n in Z`.
 final class IntegerNumber extends RationalNumber {
   /// Creates an exact integer literal wrapping [value].
   const new(this.value) : super._();
@@ -526,16 +593,16 @@ final class IntegerNumber extends RationalNumber {
   /// Creates an exact integer literal from a machine `int`.
   factory of(int value) => IntegerNumber(Integer.from(value));
 
-  /// The additive identity $0$.
+  /// The additive identity `0`.
   static const zero = IntegerNumber(Integer.zero);
 
-  /// The multiplicative identity $1$.
+  /// The multiplicative identity `1`.
   static const one = IntegerNumber(Integer.one);
 
-  /// The integer $2$.
+  /// The integer `2`.
   static const two = IntegerNumber(Integer.two);
 
-  /// The integer $-1$.
+  /// The integer `-1`.
   static const negativeOne = IntegerNumber(Integer.negativeOne);
 
   /// The underlying arbitrary-precision integer value.
@@ -562,9 +629,9 @@ final class IntegerNumber extends RationalNumber {
   int get hashCode => Object.hash(IntegerNumber, value);
 }
 
-/// Exact reduced non-integer rational fraction $p / q$ with $q > 1$ and $\gcd(|p|, q) = 1$.
+/// Exact reduced non-integer rational fraction `p / q` with `q > 1` and `gcd(|p|, q) = 1`.
 final class FractionNumber extends RationalNumber {
-  /// Creates a reduced fraction with coprime [numerator] and [denominator] $> 1$.
+  /// Creates a reduced fraction with coprime [numerator] and [denominator] `> 1`.
   const new(this.numerator, this.denominator)
     : assert(
         denominator != Integer.zero && denominator != Integer.one,
@@ -572,16 +639,16 @@ final class FractionNumber extends RationalNumber {
       ),
       super._();
 
-  /// The fraction $1/2$.
+  /// The fraction `1/2`.
   static const half = FractionNumber(Integer.one, Integer.two);
 
-  /// The fraction $-1/2$.
+  /// The fraction `-1/2`.
   static const negativeHalf = FractionNumber(Integer.negativeOne, Integer.two);
 
-  /// The fraction $1/3$.
+  /// The fraction `1/3`.
   static const third = FractionNumber(Integer.one, Integer(3));
 
-  /// The fraction $1/4$.
+  /// The fraction `1/4`.
   static const quarter = FractionNumber(Integer.one, Integer(4));
 
   @override
@@ -591,7 +658,15 @@ final class FractionNumber extends RationalNumber {
   final Integer denominator;
 
   @override
-  double toDouble() => numerator.toDouble() / denominator.toDouble();
+  double toDouble() {
+    if (numerator.bitLength < 1024 && denominator.bitLength < 1024) {
+      return numerator.toDouble() / denominator.toDouble();
+    }
+    final shift = math.max(numerator.bitLength, denominator.bitLength) - 53;
+    final scaledNum = (numerator.toBigInt() >> shift).toDouble();
+    final scaledDen = (denominator.toBigInt() >> shift).toDouble();
+    return scaledNum / scaledDen;
+  }
 
   @override
   FractionNumber neg() => FractionNumber(-numerator, denominator);
@@ -611,7 +686,7 @@ final class FractionNumber extends RationalNumber {
 ///
 /// Non-finite IEEE-754 values (`NaN`, `Infinity`, `-Infinity`) are prohibited
 /// in [RealNumber] and are mapped via [RealNumber.fromDouble] to
-/// [Constant.undefined] and $\pm$[Constant.infinity]. Negative zero (`-0.0`)
+/// [Constant.undefined] and `+/-`[Constant.infinity]. Negative zero (`-0.0`)
 /// is canonicalized to `+0.0`.
 final class RealNumber extends RealNumeric {
   /// Creates a finite real number literal.
@@ -625,21 +700,23 @@ final class RealNumber extends RealNumeric {
       value = value == 0.0 ? 0.0 : value;
 
   /// Converts any IEEE-754 [double] into its canonical symbolic [Expr]:
-  /// - `NaN` $\to$ [Constant.undefined]
-  /// - `+Infinity` $\to$ [Constant.infinity]
-  /// - `-Infinity` $\to$ `-Constant.infinity`
-  /// - finite value $\to$ [RealNumber]
+  /// - `NaN` `->` [Constant.undefined]
+  /// - `+Infinity` `->` [Constant.infinity]
+  /// - `-Infinity` `->` `-Constant.infinity`
+  /// - finite value `->` [RealNumber]
   static Expr fromDouble(double value) {
     if (value.isNaN) return Constant.undefined;
     if (value == double.infinity) return Constant.infinity;
     if (value == double.negativeInfinity) {
-      return Mul(const [
-        IntegerNumber.negativeOne,
-        Constant.infinity,
-      ], isSimplified: true);
+      return _negativeInfinity;
     }
     return RealNumber(value);
   }
+
+  static final _negativeInfinity = Mul(const [
+    IntegerNumber.negativeOne,
+    Constant.infinity,
+  ], isSimplified: true);
 
   /// The floating-point zero `0.0`.
   static const zero = RealNumber(0.0);
@@ -682,7 +759,7 @@ final class RealNumber extends RealNumeric {
   int get hashCode => Object.hash(RealNumber, value);
 }
 
-/// Atomic complex number $a + b i$ with [RealNumeric] real and non-zero
+/// Atomic complex number `a + b i` with [RealNumeric] real and non-zero
 /// imaginary parts.
 final class ComplexNumber extends Number {
   /// Internal const constructor for canonical constants.
@@ -693,8 +770,8 @@ final class ComplexNumber extends Number {
         'ComplexNumber imaginary component must be non-zero; use ComplexNumber.of instead',
       );
 
-  /// Creates an atomic complex number with [real] part $a$ and non-zero
-  /// [imaginary] part $b$.
+  /// Creates an atomic complex number with [real] part `a` and non-zero
+  /// [imaginary] part `b`.
   new(this.real, this.imaginary)
     : assert(
         !imaginary.isZero,
@@ -718,22 +795,22 @@ final class ComplexNumber extends Number {
     return ComplexNumber(real, imaginary);
   }
 
-  /// The imaginary unit $i = 0 + 1i$.
+  /// The imaginary unit `i = 0 + 1i`.
   static const i = ComplexNumber._(IntegerNumber.zero, IntegerNumber.one);
 
-  /// The negated imaginary unit $-i = 0 - 1i$.
+  /// The negated imaginary unit `-i = 0 - 1i`.
   static const negativeI = ComplexNumber._(
     IntegerNumber.zero,
     IntegerNumber.negativeOne,
   );
 
-  /// The real component $\Re(z)$.
+  /// The real component `Re(z)`.
   final RealNumeric real;
 
-  /// The non-zero imaginary component $\Im(z)$.
+  /// The non-zero imaginary component `Im(z)`.
   final RealNumeric imaginary;
 
-  /// Whether the real component is zero ($\Re(z) = 0$).
+  /// Whether the real component is zero (`Re(z) = 0`).
   bool get isPureImaginary => real.isZero;
 
   /// Floating-point [Complex] evaluation of this number.
@@ -779,6 +856,8 @@ final class ComplexNumber extends Number {
 int _compareRationalReal(RationalNumber r, RealNumber f) =>
     _compareRationalToDoubleValue(r, f.value);
 
+final _compareByteData = ByteData(8);
+
 int _compareRationalToDoubleValue(RationalNumber r, double d) {
   if (d.isNaN) return -1;
   if (d.isInfinite) return d.isNegative ? 1 : -1;
@@ -786,9 +865,9 @@ int _compareRationalToDoubleValue(RationalNumber r, double d) {
   final dSign = d < 0 ? -1 : 1;
   if (r.sign != dSign) return r.sign.compareTo(dSign);
   // Decompose IEEE-754 double into exact m * 2^e using 32-bit reads (dart2js safe)
-  final bits = ByteData(8)..setFloat64(0, d.abs());
-  final hi = bits.getUint32(0);
-  final lo = bits.getUint32(4);
+  _compareByteData.setFloat64(0, d.abs());
+  final hi = _compareByteData.getUint32(0);
+  final lo = _compareByteData.getUint32(4);
   final biasedExp = (hi >> 20) & 0x7ff;
   final fracHi = hi & 0xfffff;
   final mantissa =

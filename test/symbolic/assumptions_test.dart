@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Assumptions with positive domain', () {
@@ -25,7 +25,17 @@ void main() {
             .equals(IntegerNumber.zero);
 
         check(Expr.parse('(x^y)^z').simplify(assumptions: posX).toString())
-            .equals('x ^ (y * z)');
+            .equals('(x ^ y) ^ z');
+        const realYZPosX = Assumptions(
+          domains: {
+            'x': VariableDomain.positive,
+            'y': VariableDomain.real,
+            'z': VariableDomain.real,
+          },
+        );
+        check(
+          Expr.parse('(x^y)^z').simplify(assumptions: realYZPosX).toString(),
+        ).equals('x ^ (y * z)');
       },
     );
   });

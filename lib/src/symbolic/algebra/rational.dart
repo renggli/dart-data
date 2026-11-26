@@ -15,7 +15,7 @@ import 'simplify/power.dart';
 import 'structural_order.dart';
 import 'term_accumulator.dart';
 
-/// Result of univariate polynomial long division $A(x) = Q(x) B(x) + R(x)$.
+/// Result of univariate polynomial long division `A(x) = Q(x) B(x) + R(x)`.
 typedef PolynomialDivisionResult = ({Expr quotient, Expr remainder});
 
 /// Rational-function and polynomial manipulation operations on [Expr].
@@ -54,7 +54,7 @@ extension RationalFunctionExtension on Expr {
   /// Combines rational subexpressions over a least common denominator.
   ///
   /// Recursively traverses the expression bottom-up and rewrites sums of
-  /// fractions into a single rational expression $N / D$.
+  /// fractions into a single rational expression `N / D`.
   ///
   /// ```dart
   /// final e = Expr.parse('1 / x + 1 / (x + 1)');
@@ -96,8 +96,8 @@ extension RationalFunctionExtension on Expr {
 
   /// Expands and collects additive terms by powers of [variable].
   ///
-  /// Rewrites a multivariate expression as $\sum_k c_k \, x^k$ where each
-  /// coefficient $c_k$ is simplified and independent of [variable]. If this
+  /// Rewrites a multivariate expression as `sum_k c_k x^k` where each
+  /// coefficient `c_k` is simplified and independent of [variable]. If this
   /// expression has a non-unit denominator, collects both numerator and
   /// denominator with respect to [variable].
   ///
@@ -120,8 +120,8 @@ extension RationalFunctionExtension on Expr {
   /// [divisor] with respect to [variable].
   ///
   /// Returns `(quotient: Q, remainder: R)` satisfying
-  /// $\text{this} = Q \cdot \text{divisor} + R$ with
-  /// $\deg_x(R) < \deg_x(\text{divisor})$ or $R = 0$.
+  /// `this = Q * divisor + R` with
+  /// `deg_x(R) < deg_x(divisor)` or `R = 0`.
   ///
   /// Throws [ArgumentError] if [divisor] is zero or if either expression is
   /// not a polynomial in [variable].
@@ -138,7 +138,9 @@ extension RationalFunctionExtension on Expr {
     Assumptions assumptions = Assumptions.none,
   }) {
     const field = ExprField.instance;
-    final simpDivisor = divisor.expand().simplify(assumptions: assumptions);
+    final simpDivisor = divisor
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
     if (field.isZero(simpDivisor)) {
       throw ArgumentError.value(
         divisor,
@@ -180,7 +182,7 @@ extension RationalFunctionExtension on Expr {
       final c0 = denCoeffs[0]!;
       final scaledCoeffs = <int, Expr>{
         for (final MapEntry(key: deg, value: coeff) in numCoeffs.entries)
-          deg: field.div(coeff, c0),
+          deg: simplifyDiv(coeff, c0, assumptions: assumptions),
       };
       return (
         quotient: buildPolynomialFromCoefficients(scaledCoeffs, variable),
@@ -200,15 +202,20 @@ extension RationalFunctionExtension on Expr {
 
     while (dRem >= dDen) {
       final shift = dRem - dDen;
-      final factor = field.div(rem[dRem]!, leadDen);
+      final factor = simplifyDiv(rem[dRem]!, leadDen, assumptions: assumptions);
       final existingQ = quot[shift];
-      quot[shift] = existingQ == null ? factor : field.add(existingQ, factor);
+      quot[shift] = existingQ == null
+          ? factor
+          : simplifyAdd([existingQ, factor], assumptions: assumptions);
 
       for (final MapEntry(key: deg, value: coeff) in denCoeffs.entries) {
         final targetDeg = deg + shift;
-        final subTerm = field.mul(factor, coeff);
+        final subTerm = simplifyMul([factor, coeff], assumptions: assumptions);
         final cur = rem[targetDeg] ?? IntegerNumber.zero;
-        rem[targetDeg] = field.sub(cur, subTerm);
+        rem[targetDeg] = simplifyAdd([
+          cur,
+          simplifyNeg(subTerm, assumptions: assumptions),
+        ], assumptions: assumptions);
       }
       rem.remove(dRem);
       dRem = maxPolynomialDegree(rem);
@@ -223,12 +230,12 @@ extension RationalFunctionExtension on Expr {
   /// Computes the partial fraction decomposition of this rational expression
   /// with respect to [variable].
   ///
-  /// Decomposes a rational function $P(x) / Q(x)$ into a polynomial quotient
-  /// plus proper partial fractions over the irreducible factors of $Q(x)$:
+  /// Decomposes a rational function `P(x) / Q(x)` into a polynomial quotient
+  /// plus proper partial fractions over the irreducible factors of `Q(x)`:
   ///
-  /// $$\frac{P(x)}{Q(x)} = Q_0(x) + \sum_{i=1}^m \sum_{k=1}^{e_i} \frac{N_{i,k}(x)}{F_i(x)^k}$$
+  /// `(P(x))/(Q(x)) = Q_0(x) + sum_{i=1}^m sum_{k=1}^{e_i} (N_{i,k}(x))/(F_i(x)^k)`
   ///
-  /// where $\deg_x(N_{i,k}) < \deg_x(F_i)$. Uses exact polynomial factorization
+  /// where `deg_x(N_{i,k}) < deg_x(F_i)`. Uses exact polynomial factorization
   /// and fraction-free linear system solving via the method of undetermined
   /// coefficients.
   ///
@@ -240,7 +247,9 @@ extension RationalFunctionExtension on Expr {
     final cancelled = cancel(assumptions: assumptions);
     final (numExpr, denExpr) = splitNumeratorDenominator(cancelled);
     if (!denExpr.dependsOn(variable)) {
-      return (numExpr / denExpr).expand().simplify(assumptions: assumptions);
+      return (numExpr / denExpr)
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
     }
 
     if (extractPolynomialCoefficients(numExpr, variable) == null ||
@@ -354,7 +363,11 @@ extension RationalFunctionExtension on Expr {
       }
     }
 
-    final scaledRemainder = field.div(remainder, c0);
+    final scaledRemainder = simplifyDiv(
+      remainder,
+      c0,
+      assumptions: assumptions,
+    );
     final remCoeffs = extractPolynomialCoefficients(scaledRemainder, variable);
     if (remCoeffs == null) return cancelled;
 
@@ -523,10 +536,11 @@ Expr _togetherAdd(List<Expr> terms, Assumptions assumptions) {
   var lcmScalar = Integer.one;
   final lcmFactors = <Expr, int>{};
   for (final item in decomposed) {
-    if (!item.denScalar.isZero) {
-      final g = lcmScalar.gcd(item.denScalar);
-      lcmScalar = (lcmScalar ~/ g) * item.denScalar;
+    if (item.denScalar.isZero) {
+      return Constant.undefined;
     }
+    final g = lcmScalar.gcd(item.denScalar);
+    lcmScalar = (lcmScalar ~/ g) * item.denScalar;
     for (final MapEntry(:key, :value) in item.denMap.entries) {
       final existing = lcmFactors[key] ?? 0;
       if (value > existing) {
@@ -609,14 +623,14 @@ Expr _collectAdditive(Expr expr, String variable, Assumptions assumptions) {
         if (sumCoeff case Mul(factors: final cf)) ...cf else sumCoeff,
         if (varPart case Mul(factors: final vf)) ...vf else varPart,
       ];
-      collectedTerms.add(Mul(factors, isSimplified: true));
+      collectedTerms.add(simplifyMul(factors, assumptions: assumptions));
     }
   }
 
   return switch (collectedTerms) {
     [] => IntegerNumber.zero,
     [final single] => single,
-    _ => Add(collectedTerms, isSimplified: true),
+    _ => simplifyAdd(collectedTerms, assumptions: assumptions),
   };
 }
 

@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Error functions (Erf and Erfc)', () {
@@ -139,7 +139,15 @@ void main() {
           .equals(IntegerNumber.of(24));
       check(lcmSym.evaluate({'x': 8.0})).equals(24.0);
       check(Expr.parse('lcm(x, 0)').simplify()).equals(IntegerNumber.zero);
-      check(Expr.parse('gcd(x, 0)').simplify()).equals(const Variable('x'));
+      check(Expr.parse('gcd(x, 0)').simplify())
+          .equals(Abs(const Variable('x'), isSimplified: true));
+      check(
+        Expr.parse('gcd(x, 0)').simplify(
+          assumptions: const Assumptions(
+            domains: {'x': VariableDomain.positive},
+          ),
+        ),
+      ).equals(const Variable('x'));
       check(lcmSym.toString()).equals('lcm(12, x)');
       check(lcmSym.toLatex()).equals(r'\operatorname{lcm}\left(12, x\right)');
       check(lcmSym.toMathMl()).equals(
@@ -495,6 +503,59 @@ void main() {
           ComplexNumber(const RealNumber(0.3), const RealNumber(0.2)),
         ).simplify(),
       ).isA<ComplexNumber>();
+    });
+
+    test(
+      'checks anyNode predicates and equality across special function nodes',
+      () {
+        const x = Variable('x');
+        const y = Variable('y');
+        final hyp = Hypergeometric([x], [IntegerNumber.two], y);
+        check(hyp.anyNode((n) => n == x)).isTrue;
+        check(hyp.anyNode((n) => n == y)).isTrue;
+        check(hyp.anyNode((n) => n == const Variable('z'))).isFalse;
+        check(hyp).equals(Hypergeometric([x], [IntegerNumber.two], y));
+        check(Min([x, y]).anyNode((n) => n == x)).isTrue;
+        check(Max([x, y]).anyNode((n) => n == y)).isTrue;
+        check(Gcd([x, y]).anyNode((n) => n == x)).isTrue;
+        check(Lcm([x, y]).anyNode((n) => n == y)).isTrue;
+      },
+    );
+
+    test('simplifies complex Erfc, Hurwitz Zeta, Bessel, and special integrals numerically', () {
+      final erfcC = Erfc(
+        ComplexNumber(const RealNumber(1.0), const RealNumber(1.0)),
+      ).simplify();
+      check(erfcC).isA<ComplexNumber>();
+
+      final hurwitz = Zeta(
+        IntegerNumber.two,
+        shift: IntegerNumber.of(3),
+      ).simplify();
+      check(hurwitz).isNotA<Zeta>();
+
+      check(BesselJ(const RealNumber(0.5), const RealNumber(1.2)).simplify())
+          .isA<RealNumber>();
+      check(BesselY(const RealNumber(0.5), const RealNumber(1.2)).simplify())
+          .isA<RealNumber>();
+      check(BesselI(const RealNumber(0.5), const RealNumber(1.2)).simplify())
+          .isA<RealNumber>();
+      check(BesselK(const RealNumber(0.5), const RealNumber(1.2)).simplify())
+          .isA<RealNumber>();
+
+      for (final node in <Expr>[
+        ExpIntegral(const RealNumber(1.2)),
+        LogIntegral(const RealNumber(2.5)),
+        SinIntegral(const RealNumber(1.2)),
+        CosIntegral(const RealNumber(1.2)),
+        SinhIntegral(const RealNumber(1.2)),
+        CoshIntegral(const RealNumber(1.2)),
+        FresnelS(const RealNumber(1.2)),
+        FresnelC(const RealNumber(1.2)),
+        Polylog(IntegerNumber.two, const RealNumber(0.5)),
+      ]) {
+        check(node.simplify()).isA<RealNumber>();
+      }
     });
   });
 }

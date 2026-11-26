@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/feature.dart' show isJavaScript;
 import 'package:more/number.dart' show Complex, Fraction;
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('RationalNumber, IntegerNumber, and FractionNumber', () {
@@ -209,8 +209,9 @@ void main() {
         RealNumber.zero,
         const RealNumber(1e-200),
       );
-      check(() => IntegerNumber.one.div(tinyComplex))
-          .throws<UnsupportedError>();
+      check(IntegerNumber.one.div(tinyComplex))
+          .equals(ComplexNumber(RealNumber.zero, const RealNumber(-1e200)));
+      check(tinyComplex.div(tinyComplex)).equals(RealNumber.one);
     });
 
     test(

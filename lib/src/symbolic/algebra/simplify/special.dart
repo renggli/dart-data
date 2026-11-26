@@ -284,9 +284,17 @@ Expr simplifyBesselJ(Expr nu, Expr x) {
       special_bessel.besselJComplex(toComplex(nu), toComplex(x)),
     );
   }
-  if (x == IntegerNumber.zero) {
-    if (nu == IntegerNumber.zero) return IntegerNumber.one;
-    if (nu is RealNumeric && !nu.isNegative) return IntegerNumber.zero;
+  if (x is Number && x.isZero) {
+    if (nu is Number && nu.isZero) {
+      return (nu is RealNumber || x is RealNumber)
+          ? const RealNumber(1.0)
+          : IntegerNumber.one;
+    }
+    if (nu is RealNumeric && !nu.isNegative) {
+      return (nu is RealNumber || x is RealNumber)
+          ? const RealNumber(0.0)
+          : IntegerNumber.zero;
+    }
   }
   if (nu is RealNumeric &&
       x is RealNumeric &&
@@ -328,9 +336,17 @@ Expr simplifyBesselI(Expr nu, Expr x) {
       special_bessel.besselIComplex(toComplex(nu), toComplex(x)),
     );
   }
-  if (x == IntegerNumber.zero) {
-    if (nu == IntegerNumber.zero) return IntegerNumber.one;
-    if (nu is RealNumeric && !nu.isNegative) return IntegerNumber.zero;
+  if (x is Number && x.isZero) {
+    if (nu is Number && nu.isZero) {
+      return (nu is RealNumber || x is RealNumber)
+          ? const RealNumber(1.0)
+          : IntegerNumber.one;
+    }
+    if (nu is RealNumeric && !nu.isNegative) {
+      return (nu is RealNumber || x is RealNumber)
+          ? const RealNumber(0.0)
+          : IntegerNumber.zero;
+    }
   }
   if (nu is RealNumeric &&
       x is RealNumeric &&
@@ -362,7 +378,7 @@ Expr simplifyBesselK(Expr nu, Expr x) {
   return BesselK(nu, x, isSimplified: true);
 }
 
-/// Simplifies a complete elliptic integral of the first kind `ellipticK(k)`.
+/// Simplifies a `min(...)` expression.
 Expr simplifyMin(List<Expr> args) => _simplifyMinMax(args, isMin: true);
 
 /// Simplifies a `max(...)` expression.
@@ -389,10 +405,11 @@ Expr _simplifyMinMax(List<Expr> args, {required bool isMin}) {
       if (bestNum == null) {
         bestNum = a;
       } else {
-        final takeA = isMin
-            ? a.toDouble() < bestNum.toDouble()
-            : a.toDouble() > bestNum.toDouble();
-        if (takeA) bestNum = a;
+        final cmp = a.compareTo(bestNum);
+        final takeA = isMin ? cmp < 0 : cmp > 0;
+        if (takeA || (cmp == 0 && a is RealNumber && bestNum is! RealNumber)) {
+          bestNum = a;
+        }
       }
     } else if (seen.add(a)) {
       other.add(a);
@@ -406,12 +423,22 @@ Expr _simplifyMinMax(List<Expr> args, {required bool isMin}) {
 }
 
 /// Simplifies a greatest common divisor `gcd(...)` expression.
-Expr simplifyGcd(List<Expr> args) => _simplifyGcdLcm(args, isGcd: true);
+Expr simplifyGcd(
+  List<Expr> args, {
+  Assumptions assumptions = Assumptions.none,
+}) => _simplifyGcdLcm(args, isGcd: true, assumptions: assumptions);
 
 /// Simplifies a least common multiple `lcm(...)` expression.
-Expr simplifyLcm(List<Expr> args) => _simplifyGcdLcm(args, isGcd: false);
+Expr simplifyLcm(
+  List<Expr> args, {
+  Assumptions assumptions = Assumptions.none,
+}) => _simplifyGcdLcm(args, isGcd: false, assumptions: assumptions);
 
-Expr _simplifyGcdLcm(List<Expr> args, {required bool isGcd}) {
+Expr _simplifyGcdLcm(
+  List<Expr> args, {
+  required bool isGcd,
+  required Assumptions assumptions,
+}) {
   if (args.isEmpty) return Constant.undefined;
   final flat = <Expr>[];
   for (final a in args) {
@@ -444,7 +471,10 @@ Expr _simplifyGcdLcm(List<Expr> args, {required bool isGcd}) {
   if (other.isEmpty) {
     return acc ?? IntegerNumber.zero;
   }
-  final merged = <Expr>[?acc, ...other]..sort(compareStructural);
+  final normalizedOther = isGcd && acc == null && other.length == 1
+      ? [simplifyAbs(other.first, assumptions: assumptions)]
+      : other;
+  final merged = <Expr>[?acc, ...normalizedOther]..sort(compareStructural);
   if (merged.length == 1) return merged.first;
   return isGcd
       ? Gcd(merged, isSimplified: true)
@@ -464,7 +494,6 @@ Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
       (a is RealNumber || b is RealNumber)) {
     final da = a.toDouble();
     final db = b.toDouble();
-    if (da <= 0.0 || db <= 0.0) return Constant.undefined;
     final res = special_beta.beta(da, db);
     return res.isNaN ? Constant.undefined : RealNumber.fromDouble(res);
   }

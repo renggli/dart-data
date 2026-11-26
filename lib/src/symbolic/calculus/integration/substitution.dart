@@ -153,7 +153,7 @@ Expr? tryChainRule(
     Tan(:final expr) when expr.dependsOn(variable) => _scaleMatch(
       factor,
       expr.derivative(variable).simplify(),
-      -Ln(Cos(expr)),
+      -logAntiderivative(Cos(expr), Assumptions.none),
       variable,
     ),
     Sinh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
@@ -403,7 +403,7 @@ Expr? trySymbolicBinomialAffine(
             .simplify();
     final newExp = (p + IntegerNumber.of(deg + 1)).simplify();
     if (newExp is Number && newExp.isZero) {
-      integrated.add((coeff * Ln(uVar)).simplify());
+      integrated.add((coeff * logAntiderivative(uVar, assumptions)).simplify());
     } else {
       integrated.add((coeff * Pow(uVar, newExp) / newExp).simplify());
     }
@@ -661,7 +661,10 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
         Atanh(:final expr) ||
         Ln(:final expr) ||
         Erf(:final expr) ||
-        Erfc(:final expr):
+        Erfc(:final expr) ||
+        Erfi(:final expr) ||
+        FresnelS(:final expr) ||
+        FresnelC(:final expr):
       if (node is Sin ||
           node is Cos ||
           node is Tan ||
@@ -747,7 +750,9 @@ Expr _replaceUCandidate(
     if (node case Pow(base: final nBase, exponent: final nExp)) {
       if (nBase == cBase) {
         final ratio = (nExp / cExp).simplify();
-        if (!ratio.dependsOn(variable)) {
+        if (!ratio.dependsOn(variable) &&
+            (ratio is IntegerNumber ||
+                !(cExp is IntegerNumber && cExp.value.isEven))) {
           return Pow(uVar, ratio);
         }
       } else if (cBase is IntegerNumber &&

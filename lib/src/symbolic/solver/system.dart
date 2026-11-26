@@ -14,11 +14,11 @@ import 'univariate.dart';
 
 /// Extension providing unified equation system solving on [Iterable] of [Expr].
 extension SystemSolverExtension on Iterable<Expr> {
-  /// Solves this system of equations $f_i(x_1, \dots, x_n) = 0$ for
+  /// Solves this system of equations `f_i(x_1, ..., x_n) = 0` for
   /// [variables].
   ///
   /// Equations may be [Equal] nodes (`lhs == rhs`) or algebraic expressions
-  /// implicitly equated to $0$, including rational equations whose denominator
+  /// implicitly equated to `0`, including rational equations whose denominator
   /// poles are automatically excluded from the solution set.
   ///
   /// When [method] is [PolynomialSystemMethod.auto] (the default), dispatches
@@ -67,8 +67,25 @@ List<Map<String, Expr>> solveEquations(
     }
     return const [];
   }
-
   final varSet = variables.toSet();
+  if (varSet.length != variables.length) {
+    throw ArgumentError.value(
+      variables,
+      'variables',
+      'Variable list must not contain duplicates.',
+    );
+  }
+
+  if (method == PolynomialSystemMethod.auto &&
+      equations.length == 1 &&
+      variables.length == 1) {
+    final v = variables.first;
+    final roots = solveEquation(equations.first, v, assumptions: assumptions);
+    return [
+      for (final r in roots) {v: r.simplify(assumptions: assumptions)},
+    ];
+  }
+
   final denominators = <Expr>[];
   final numEquations = <Expr>[];
 
@@ -99,32 +116,25 @@ List<Map<String, Expr>> solveEquations(
       method: method,
       assumptions: assumptions,
     );
-  } else if (numEquations.length == 1 && variables.length == 1) {
-    final v = variables.first;
-    final roots = solveEquation(
-      numEquations.first,
-      v,
-      assumptions: assumptions,
-    );
-    rawSolutions = [
-      for (final r in roots) {v: r.simplify(assumptions: assumptions)},
-    ];
-  } else if (_isLinearSystem(numEquations, variables)) {
-    final linearSol = solveSystemEquations(
-      numEquations,
-      variables,
-      assumptions: assumptions,
-    );
-    rawSolutions = linearSol != null
-        ? filterSolutionsByAssumptions([linearSol], assumptions)
-        : const [];
   } else {
-    rawSolutions = solvePolynomialSystemEquations(
+    final linearAttempt = _trySolveLinearSystem(
       numEquations,
       variables,
-      method: PolynomialSystemMethod.auto,
       assumptions: assumptions,
     );
+    if (linearAttempt.isLinear) {
+      final sol = linearAttempt.solution;
+      rawSolutions = sol != null
+          ? filterSolutionsByAssumptions([sol], assumptions)
+          : const [];
+    } else {
+      rawSolutions = solvePolynomialSystemEquations(
+        numEquations,
+        variables,
+        method: PolynomialSystemMethod.auto,
+        assumptions: assumptions,
+      );
+    }
   }
 
   if (denominators.isEmpty || rawSolutions.isEmpty) {
@@ -133,7 +143,7 @@ List<Map<String, Expr>> solveEquations(
 
   return [
     for (final sol in rawSolutions)
-      if (!_vanishesAnyDenominator(denominators, sol)) sol,
+      if (!_vanishesAnyDenominator(denominators, sol, assumptions)) sol,
   ];
 }
 
@@ -144,13 +154,39 @@ Map<String, Expr>? solveSystemEquations(
   List<String> variables, {
   required Assumptions assumptions,
 }) {
-  final m = equations.length;
+  if (variables.toSet().length != variables.length) {
+    throw ArgumentError.value(
+      variables,
+      'variables',
+      'Variable list must not contain duplicates.',
+    );
+  }
+  final normalized = [
+    for (final rawEq in equations)
+      (switch (rawEq) {
+        Equal(:final left, :final right) => left - right,
+        _ => rawEq,
+      }).expand(assumptions: assumptions).simplify(assumptions: assumptions),
+  ];
+  return _trySolveLinearSystem(
+    normalized,
+    variables,
+    assumptions: assumptions,
+  ).solution;
+}
+
+({bool isLinear, Map<String, Expr>? solution}) _trySolveLinearSystem(
+  List<Expr> normalizedEquations,
+  List<String> variables, {
+  required Assumptions assumptions,
+}) {
+  final m = normalizedEquations.length;
   final n = variables.length;
-  if (m < n || n == 0) {
-    return null;
+  if (n == 0) {
+    return (isLinear: false, solution: null);
   }
 
-  // Extract coefficient matrix A and right-hand side b
+  // Extract coefficient matrix A and right-hand side b while checking linearity.
   final a = Matrix<Expr>.generate(
     m,
     n,
@@ -164,30 +200,25 @@ Map<String, Expr>? solveSystemEquations(
   );
 
   for (var i = 0; i < m; i++) {
-    final rawEq = equations[i];
-    final eq = (switch (rawEq) {
-      Equal(:final left, :final right) => left - right,
-      _ => rawEq,
-    }).expand(assumptions: assumptions).simplify(assumptions: assumptions);
+    final eq = normalizedEquations[i];
     for (var j = 0; j < n; j++) {
       final aij = eq
           .derivative(variables[j])
           .simplify(assumptions: assumptions);
-      // Ensure linearity: derivative must not depend on any variable
       for (final v in variables) {
-        if (aij.dependsOn(v)) return null;
+        if (aij.dependsOn(v)) {
+          return (isLinear: false, solution: null);
+        }
       }
       a.setUnchecked(i, j, aij);
     }
 
-    // Constant term: evaluate with all variables set to 0
     var cTerm = eq;
     for (final v in variables) {
       cTerm = cTerm.substitute(v, IntegerNumber.zero);
     }
     b[i] = (-cTerm).simplify(assumptions: assumptions);
 
-    // Verify linearity: eq must equal sum(a_ij * v_j) + cTerm
     final reconstructed = Add([
       for (var j = 0; j < n; j++) a.getUnchecked(i, j) * Variable(variables[j]),
       cTerm,
@@ -195,18 +226,31 @@ Map<String, Expr>? solveSystemEquations(
     final diff = (eq - reconstructed)
         .expand(assumptions: assumptions)
         .simplify(assumptions: assumptions);
-    if (!isZeroExpr(diff)) return null;
+    if (!isZeroExpr(diff)) {
+      return (isLinear: false, solution: null);
+    }
   }
 
-  final solVector = const BareissEngine().solve<Vector<Expr>>(a, b);
+  if (m < n) {
+    return (isLinear: true, solution: null);
+  }
+
+  final solVector = const BareissEngine().solve<Vector<Expr>>(
+    a,
+    b,
+    assumptions: assumptions,
+  );
   if (solVector == null) {
-    return null;
+    return (isLinear: true, solution: null);
   }
 
-  return {
-    for (var j = 0; j < n; j++)
-      variables[j]: solVector[j].simplify(assumptions: assumptions),
-  };
+  return (
+    isLinear: true,
+    solution: {
+      for (var j = 0; j < n; j++)
+        variables[j]: solVector[j].simplify(assumptions: assumptions),
+    },
+  );
 }
 
 void _collectDenominatorBases(
@@ -227,36 +271,18 @@ void _collectDenominatorBases(
 bool _vanishesAnyDenominator(
   List<Expr> denominators,
   Map<String, Expr> solution,
+  Assumptions assumptions,
 ) {
   for (final den in denominators) {
     var sub = den;
     for (final MapEntry(:key, :value) in solution.entries) {
       sub = sub.substitute(key, value);
     }
-    if (isZeroExpr(sub.expand().simplify())) {
+    if (isZeroExpr(
+      sub.expand(assumptions: assumptions).simplify(assumptions: assumptions),
+    )) {
       return true;
     }
   }
   return false;
-}
-
-bool _isLinearSystem(List<Expr> equations, List<String> variables) {
-  for (final eq in equations) {
-    var reconstructed = IntegerNumber.zero as Expr;
-    for (final v in variables) {
-      final deriv = eq.derivative(v).simplify();
-      for (final otherV in variables) {
-        if (deriv.dependsOn(otherV)) return false;
-      }
-      reconstructed = reconstructed + deriv * Variable(v);
-    }
-    var cTerm = eq;
-    for (final v in variables) {
-      cTerm = cTerm.substitute(v, IntegerNumber.zero);
-    }
-    reconstructed = (reconstructed + cTerm).expand().simplify();
-    final residual = (eq - reconstructed).expand().simplify();
-    if (!isZeroExpr(residual)) return false;
-  }
-  return true;
 }

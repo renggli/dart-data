@@ -57,7 +57,8 @@ final class Assumptions {
   /// Whether this context specifies no domain assumptions (all variables
   /// resolve to [VariableDomain.unknown]).
   bool get isEmpty =>
-      defaultDomain == VariableDomain.unknown && domains.isEmpty;
+      defaultDomain == VariableDomain.unknown &&
+      domains.values.every((domain) => domain == VariableDomain.unknown);
 
   /// Resolves the [VariableDomain] of variable [name].
   VariableDomain domainOf(String name) => domains[name] ?? defaultDomain;
@@ -70,7 +71,10 @@ final class Assumptions {
   }) => Assumptions(
     domains: domains == null || domains.isEmpty
         ? this.domains
-        : {...this.domains, ...domains},
+        : Map<String, VariableDomain>.unmodifiable({
+            ...this.domains,
+            ...domains,
+          }),
     defaultDomain: defaultDomain ?? this.defaultDomain,
   );
 

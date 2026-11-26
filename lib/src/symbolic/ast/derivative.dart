@@ -1,7 +1,7 @@
 part of '../ast.dart';
 
 /// Symbolic derivative node representing an unevaluated derivative
-/// $\frac{d^n}{dx^n} f(x)$ or evaluated at a point $\left.\frac{d^n}{dx^n} f(x)\right|_{x=a}$.
+/// `(d^n)/(dx^n) f(x)` or evaluated at a point `.(d^n)/(dx^n) f(x)|_{x=a}`.
 final class Derivative extends Expr {
   /// Creates a symbolic derivative of [expr] with respect to [variable] of
   /// order [order], optionally evaluated at [point].
@@ -13,16 +13,16 @@ final class Derivative extends Expr {
     this.isSimplified = false,
   }) : assert(order >= 1, 'Derivative order must be at least 1.');
 
-  /// The differentiated operand expression $f(x)$.
+  /// The differentiated operand expression `f(x)`.
   final Expr expr;
 
-  /// The variable of differentiation $x$.
+  /// The variable of differentiation `x`.
   final String variable;
 
-  /// The order of differentiation $n \ge 1$.
+  /// The order of differentiation `n >=1`.
   final int order;
 
-  /// Optional evaluation point $a$ for $\left.\frac{d^n}{dx^n} f(x)\right|_{x=a}$.
+  /// Optional evaluation point `a` for `.(d^n)/(dx^n) f(x)|_{x=a}`.
   final Expr? point;
 
   @override

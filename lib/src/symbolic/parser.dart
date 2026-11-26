@@ -193,9 +193,11 @@ class ExprSyntax {
         'psi': Digamma.new,
         'elliptick': EllipticK.new,
         'ellipticK': EllipticK.new,
+        'EllipticK': EllipticK.new,
         'elliptic_k': EllipticK.new,
         'elliptice': EllipticE.new,
         'ellipticE': EllipticE.new,
+        'EllipticE': EllipticE.new,
         'elliptic_e': EllipticE.new,
         'besselj0': (x) => BesselJ(IntegerNumber.zero, x),
         'besselj1': (x) => BesselJ(IntegerNumber.one, x),
@@ -212,14 +214,11 @@ class ExprSyntax {
         'arg': Arg.new,
         'conj': Conjugate.new,
         'conjugate': Conjugate.new,
+        'lambertW': LambertW.new,
         'lambertw': LambertW.new,
         'LambertW': LambertW.new,
         'W': LambertW.new,
         'w': LambertW.new,
-        'O': _parseOrderTerm,
-        'tuple': (a) => Tuple([a]),
-        'gcd': (a) => Gcd([a]),
-        'lcm': (a) => Lcm([a]),
       });
 
   /// Standard 2-argument mathematical functions.
@@ -256,14 +255,9 @@ class ExprSyntax {
         'ellipticF': EllipticF.new,
         'EllipticF': EllipticF.new,
         'elliptic_e': (phi, k) => EllipticE(k, amplitude: phi),
+        'elliptice': (phi, k) => EllipticE(k, amplitude: phi),
         'ellipticE': (phi, k) => EllipticE(k, amplitude: phi),
         'EllipticE': (phi, k) => EllipticE(k, amplitude: phi),
-        'elliptic_pi': (n, k) =>
-            EllipticPi(n, FractionNumber.half * Constant.pi, k),
-        'ellipticPi': (n, k) =>
-            EllipticPi(n, FractionNumber.half * Constant.pi, k),
-        'EllipticPi': (n, k) =>
-            EllipticPi(n, FractionNumber.half * Constant.pi, k),
         'atan2': Atan2.new,
         'Atan2': Atan2.new,
         'zeta': (s, a) => Zeta(s, shift: a),
@@ -271,23 +265,14 @@ class ExprSyntax {
         'expint': ExpIntegralE.new,
         'expIntegralE': ExpIntegralE.new,
         'ExpIntegralE': ExpIntegralE.new,
-        'min': (a, b) => Min([a, b]),
-        'Min': (a, b) => Min([a, b]),
-        'max': (a, b) => Max([a, b]),
-        'Max': (a, b) => Max([a, b]),
         'binomial': Binomial.new,
         'nCr': Binomial.new,
         'mod': Mod.new,
-        'gcd': (a, b) => Gcd([a, b]),
-        'lcm': (a, b) => Lcm([a, b]),
-        'tuple': (a, b) => Tuple([a, b]),
+        'lambertW': _parseLambertWBinary,
         'lambertw': _parseLambertWBinary,
         'LambertW': _parseLambertWBinary,
         'W': _parseLambertWBinary,
         'w': _parseLambertWBinary,
-        'integrate': (a, b) => _parseIntegralArgs([a, b]),
-        'integral': (a, b) => _parseIntegralArgs([a, b]),
-        'O': (a, b) => _parseOrderTermArgs([a, b]),
         'chebyshevT': (n, x) =>
             _parseOrthogonal('chebyshevT', n, x, chebyshevT),
         'chebyshevU': (n, x) =>
@@ -295,7 +280,6 @@ class ExprSyntax {
         'legendreP': (n, x) => _parseOrthogonal('legendreP', n, x, legendreP),
         'hermiteH': (n, x) => _parseOrthogonal('hermiteH', n, x, hermiteH),
         'hermiteHe': (n, x) => _parseOrthogonal('hermiteHe', n, x, hermiteHe),
-        'laguerreL': (n, x) => _parseOrthogonal('laguerreL', n, x, laguerreL),
       });
 
   /// Standard variadic mathematical functions.
@@ -322,8 +306,8 @@ class ExprSyntax {
       'limit': _parseLimitArgs,
       'sum': _parseSumArgs,
       'product': _parseProductArgs,
-      'gcd': _parseGcdVariadic,
-      'lcm': _parseLcmVariadic,
+      'gcd': Gcd.new,
+      'lcm': Lcm.new,
       'O': _parseOrderTermArgs,
       'laguerreL': _parseLaguerreLArgs,
     },
@@ -1117,34 +1101,40 @@ class ExprSyntax {
       string('**'),
       anyOf('^ˆ\u0302‸＾'),
     ].toChoiceParser().trim();
+    final unarySignList = anyOf('+-').trim().plus();
     builder.group()
-      ..right(seq2(caretOp, char('-').trim()), (a, _, b) => Pow(a, -b))
-      ..right(seq2(caretOp, char('+').trim()), (a, _, b) => Pow(a, b))
+      ..right(
+        seq2(
+          caretOp,
+          unarySignList,
+        ).map2((_, signs) => signs.where((s) => s == '-').length.isOdd),
+        (a, isOddNeg, b) => Pow(a, isOddNeg ? _rawNeg(b) : b),
+      )
       ..right(caretOp, (a, _, b) => Pow(a, b));
 
     // Unary prefix operators (+, -)
     builder.group()
       ..prefix(char('+').trim(), (_, a) => a)
-      ..prefix(char('-').trim(), (_, a) => -a);
+      ..prefix(char('-').trim(), (_, a) => _rawNeg(a));
 
     // Multiplicative operators (*, /, and optional implicit juxtaposition)
     final mulGroup = builder.group()
-      ..left(char('*').trim(), (a, _, b) => a * b)
-      ..left(char('/').trim(), (a, _, b) => a / b);
+      ..left(char('*').trim(), (a, _, b) => _rawMul(a, b))
+      ..left(char('/').trim(), (a, _, b) => _rawDiv(a, b));
     if (implicitMultiplication) {
       // Negative lookahead prevents implicit multiplication from consuming a
       // leading '+' or '-' as a unary prefix on the right operand (so 'a - b'
-      // remains subtraction, not 'a * (-b)').
+      // remains subtraction, not 'a * (-b)'), or splitting malformed numbers.
       mulGroup.left(
-        anyOf('+-*/^ˆ\u0302‸＾)=<>!,;:]').trim().not(),
-        (a, _, b) => a * b,
+        anyOf('+-*/^ˆ\u0302‸＾)=<>!,;:].').trim().not(),
+        (a, _, b) => _rawMul(a, b),
       );
     }
 
     // Additive operators (+, -, left-associative)
     builder.group()
-      ..left(char('+').trim(), (a, _, b) => a + b)
-      ..left(char('-').trim(), (a, _, b) => a - b);
+      ..left(char('+').trim(), (a, _, b) => _rawAdd(a, b))
+      ..left(char('-').trim(), (a, _, b) => _rawSub(a, b));
 
     // Relational operators (<=, >=, !=, <, >, ==, =)
     builder.group()
@@ -1174,17 +1164,53 @@ class ExprSyntax {
     return Matrix<Expr>.fromRows(rows, type: exprDataType);
   }
 
-  Expr _createBinding(String name, List<Expr>? arguments) =>
-      switch (arguments) {
-        null => constants[name] ?? Variable(name),
-        [final arg] when unaryFunctions.containsKey(name) =>
-          unaryFunctions[name]!(arg),
-        [final a, final b] when binaryFunctions.containsKey(name) =>
-          binaryFunctions[name]!(a, b),
-        final args when variadicFunctions.containsKey(name) =>
-          variadicFunctions[name]!(args),
-        final args => VariableFunction(name, args),
-      };
+  Expr _createBinding(String name, List<Expr>? arguments) {
+    if (arguments == null) return constants[name] ?? Variable(name);
+    if (arguments.length == 1) {
+      if (unaryFunctions[name] case final fn?) return fn(arguments[0]);
+    } else if (arguments.length == 2) {
+      if (binaryFunctions[name] case final fn?) {
+        return fn(arguments[0], arguments[1]);
+      }
+    }
+    if (variadicFunctions[name] case final fn?) return fn(arguments);
+    return VariableFunction(name, arguments);
+  }
+
+  static Expr _rawAdd(Expr a, Expr b) {
+    if (a is ComplexNumber || b is ComplexNumber) {
+      return Add([
+        if (a case Add(:final terms, isSimplified: false)) ...terms else a,
+        if (b case Add(:final terms, isSimplified: false)) ...terms else b,
+      ]);
+    }
+    return a + b;
+  }
+
+  static Expr _rawSub(Expr a, Expr b) => _rawAdd(a, _rawNeg(b));
+
+  static Expr _rawNeg(Expr a) =>
+      a is ComplexNumber ? Mul([IntegerNumber.negativeOne, a]) : -a;
+
+  static Expr _rawMul(Expr a, Expr b) {
+    if (a is ComplexNumber || b is ComplexNumber) {
+      return Mul([
+        if (a case Mul(:final factors, isSimplified: false)) ...factors else a,
+        if (b case Mul(:final factors, isSimplified: false)) ...factors else b,
+      ]);
+    }
+    return a * b;
+  }
+
+  static Expr _rawDiv(Expr a, Expr b) {
+    if (a is ComplexNumber || b is ComplexNumber) {
+      if (a is IntegerNumber && a.isOne) {
+        return Pow(b, IntegerNumber.negativeOne);
+      }
+      return _rawMul(a, Pow(b, IntegerNumber.negativeOne));
+    }
+    return a / b;
+  }
 
   static Expr _createNumber(String value) {
     if (value.contains('.') || value.contains('e') || value.contains('E')) {
@@ -1200,26 +1226,49 @@ class ExprSyntax {
     throw FormatException('LambertW branch must be 0 or -1, got: $b');
   }
 
-  static Expr _parseOrderTerm(Expr arg) => switch (arg) {
-    IntegerNumber(isOne: true) => const OrderTerm('x', 0),
-    Variable(:final name) => OrderTerm(name, 1),
-    Pow(
-      base: Variable(:final name),
-      exponent: IntegerNumber(asInt: final n?),
-    ) =>
-      OrderTerm(name, n),
-    Pow(
-      base: Add(terms: [Variable(:final name), final shift]),
-      exponent: IntegerNumber(asInt: final n?),
-    ) =>
-      OrderTerm(name, n, point: -shift),
-    Add(terms: [Variable(:final name), final shift]) => OrderTerm(
-      name,
-      1,
-      point: -shift,
-    ),
-    _ => throw FormatException('Invalid OrderTerm syntax: O($arg)'),
-  };
+  static Expr _parseOrderTerm(Expr arg) {
+    if (arg is IntegerNumber && arg.isOne) return const OrderTerm('x', 0);
+    final (Expr baseExpr, int order) = switch (arg) {
+      Pow(:final base, exponent: IntegerNumber(asInt: final n?)) => (base, n),
+      _ => (arg, 1),
+    };
+    return switch (baseExpr) {
+      Variable(:final name) => OrderTerm(name, order),
+      Pow(
+        base: Variable(:final name),
+        exponent: IntegerNumber(asInt: final m?),
+      ) =>
+        OrderTerm(name, m * order),
+      Add(terms: [Variable(:final name), final shift]) => OrderTerm(
+        name,
+        order,
+        point: -shift,
+      ),
+      Add(
+        terms: [
+          final shift,
+          Mul(
+            factors: [
+              IntegerNumber(isNegativeOne: true),
+              Variable(:final name),
+            ],
+          ),
+        ],
+      ) ||
+      Add(
+        terms: [
+          Mul(
+            factors: [
+              IntegerNumber(isNegativeOne: true),
+              Variable(:final name),
+            ],
+          ),
+          final shift,
+        ],
+      ) => OrderTerm(name, order, point: shift),
+      _ => throw FormatException('Invalid OrderTerm syntax: O($arg)'),
+    };
+  }
 
   static Expr _parseOrderTermArgs(List<Expr> args) => switch (args) {
     [final arg] => _parseOrderTerm(arg),
@@ -1484,20 +1533,6 @@ class ExprSyntax {
     Constant.pi => 'pi',
     _ => null,
   };
-
-  static Expr _parseGcdVariadic(List<Expr> args) {
-    if (args.isEmpty) {
-      throw const FormatException('gcd requires at least 1 argument');
-    }
-    return Gcd(args);
-  }
-
-  static Expr _parseLcmVariadic(List<Expr> args) {
-    if (args.isEmpty) {
-      throw const FormatException('lcm requires at least 1 argument');
-    }
-    return Lcm(args);
-  }
 
   static Expr _parseEllipticPiArgs(List<Expr> args) => switch (args) {
     [final n, final k] => EllipticPi(n, FractionNumber.half * Constant.pi, k),

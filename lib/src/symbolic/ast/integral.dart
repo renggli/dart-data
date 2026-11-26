@@ -1,7 +1,7 @@
 part of '../ast.dart';
 
 /// Symbolic integral node representing an unevaluated indefinite integral
-/// $\int f(x) \, dx$ or definite integral $\int_{a}^{b} f(x) \, dx$.
+/// `integrate f(x) dx` or definite integral `integrate _a^b f(x) dx`.
 final class Integral extends Expr {
   /// Creates a symbolic integral of [integrand] with respect to [variable],
   /// optionally bounded from [lower] to [upper].
@@ -17,16 +17,16 @@ final class Integral extends Expr {
          'or neither for indefinite integrals.',
        );
 
-  /// The integrand expression $f(x)$.
+  /// The integrand expression `f(x)`.
   final Expr integrand;
 
-  /// The variable of integration $x$.
+  /// The variable of integration `x`.
   final String variable;
 
-  /// Optional lower bound $a$ for a definite integral.
+  /// Optional lower bound `a` for a definite integral.
   final Expr? lower;
 
-  /// Optional upper bound $b$ for a definite integral.
+  /// Optional upper bound `b` for a definite integral.
   final Expr? upper;
 
   /// Whether this represents a definite integral with [lower] and [upper] bounds.

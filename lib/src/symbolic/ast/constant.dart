@@ -1,6 +1,6 @@
 part of '../ast.dart';
 
-/// Named mathematical constant (such as $\pi$, $e$, $\infty$, or `undefined`).
+/// Named mathematical constant (such as `pi`, `e`, `oo`, or `undefined`).
 ///
 /// Named constants are opaque symbolic entities during algebraic manipulation
 /// (they do not fold into floating-point approximations during simplification),
@@ -11,7 +11,7 @@ final class Constant extends Expr {
     : latex = latex ?? name,
       mathMl = mathMl ?? '<mi>$name</mi>';
 
-  /// Archimedes' constant $\pi \approx 3.141592653589793$.
+  /// Archimedes' constant `pi ≈3.141592653589793`.
   static const pi = Constant(
     'pi',
     Complex(math.pi),
@@ -19,10 +19,10 @@ final class Constant extends Expr {
     mathMl: '<mi>π</mi>',
   );
 
-  /// Euler's number $e \approx 2.718281828459045$.
+  /// Euler's number `e ≈2.718281828459045`.
   static const e = Constant('e', Complex(math.e));
 
-  /// Positive infinity $+\infty$.
+  /// Positive infinity `+oo`.
   static const infinity = Constant(
     'infinity',
     Complex(double.infinity),
@@ -30,7 +30,7 @@ final class Constant extends Expr {
     mathMl: '<mi>∞</mi>',
   );
 
-  /// Indeterminate / undefined mathematical result (such as $0 / 0$ or $\infty - \infty$).
+  /// Indeterminate / undefined mathematical result (such as `0 / 0` or `oo- oo`).
   static const undefined = Constant(
     'undefined',
     Complex.nan,
@@ -53,7 +53,7 @@ final class Constant extends Expr {
   @override
   bool get isSimplified => true;
 
-  /// Whether this constant is strictly real-valued ($\Im(\text{value}) = 0$).
+  /// Whether this constant is strictly real-valued (`Im(value) = 0`).
   @override
   bool get isReal => !value.isNaN && !value.isInfinite && value.b == 0.0;
 

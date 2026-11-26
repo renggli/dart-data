@@ -8,8 +8,9 @@ import '../ast.dart';
 import '../type/expr_data_type.dart';
 import 'univariate.dart';
 
-/// Matches quadratic form $a x^2 + b x + c = 0$.
+/// Matches quadratic form `a * x^2 + b * x + c = 0`.
 ({Expr a, Expr b, Expr c})? matchQuadratic(Expr expr, String variable) {
+  if (_hasLargeVariableExponent(expr, variable)) return null;
   final expExpr = expr.expand().simplify();
   final coeffs = extractPolynomialCoefficients(expExpr, variable);
   if (coeffs == null) return null;
@@ -23,39 +24,54 @@ import 'univariate.dart';
   return (a: a, b: b, c: c);
 }
 
-/// Solves quadratic equation $a x^2 + b x + c = 0$.
-List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
-  final disc = ((b * b) - (IntegerNumber.of(4) * a * c)).simplify();
-  final twoA = (IntegerNumber.two * a).simplify();
+/// Solves quadratic equation `a * x^2 + b * x + c = 0`.
+List<Expr> solveQuadratic(
+  Expr a,
+  Expr b,
+  Expr c, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final disc = ((b * b) - (IntegerNumber.of(4) * a * c)).simplify(
+    assumptions: assumptions,
+  );
+  final twoA = (IntegerNumber.two * a).simplify(assumptions: assumptions);
 
   switch (disc) {
     case RationalNumber(isNegative: true):
       return _complexConjugateRoots(
-        ((-b) / twoA).simplify(),
-        (sqrtConstant(disc.neg()) / twoA).simplify(),
+        ((-b) / twoA).simplify(assumptions: assumptions),
+        (sqrtConstant(disc.neg()) / twoA).simplify(assumptions: assumptions),
+        assumptions: assumptions,
       );
     case RationalNumber(isZero: true):
-      return [((-b) / twoA).simplify()];
+      return [((-b) / twoA).simplify(assumptions: assumptions)];
     case RationalNumber():
       final sqrtDisc = sqrtConstant(disc);
-      final r1 = (((-b) + sqrtDisc) / twoA).simplify();
-      final r2 = (((-b) - sqrtDisc) / twoA).simplify();
-      return deduplicateRoots([r1, r2]);
+      final r1 = (((-b) + sqrtDisc) / twoA).simplify(assumptions: assumptions);
+      final r2 = (((-b) - sqrtDisc) / twoA).simplify(assumptions: assumptions);
+      return deduplicateRoots([r1, r2], assumptions: assumptions);
     case RealNumber(:final value) when value < 0:
       return _complexConjugateRoots(
-        ((-b) / twoA).simplify(),
-        (RealNumber(math.sqrt(-value)) / twoA).simplify(),
+        ((-b) / twoA).simplify(assumptions: assumptions),
+        (RealNumber(math.sqrt(-value)) / twoA).simplify(
+          assumptions: assumptions,
+        ),
+        assumptions: assumptions,
       );
     case _:
-      final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
-      final r1 = (((-b) + sqrtDisc) / twoA).simplify();
-      final r2 = (((-b) - sqrtDisc) / twoA).simplify();
-      return deduplicateRoots([r1, r2]);
+      final sqrtDisc = Pow(
+        disc,
+        FractionNumber.half,
+      ).simplify(assumptions: assumptions);
+      final r1 = (((-b) + sqrtDisc) / twoA).simplify(assumptions: assumptions);
+      final r2 = (((-b) - sqrtDisc) / twoA).simplify(assumptions: assumptions);
+      return deduplicateRoots([r1, r2], assumptions: assumptions);
   }
 }
 
-/// Matches biquadratic form $a x^4 + b x^2 + c = 0$.
+/// Matches biquadratic form `a * x^4 + b * x^2 + c = 0`.
 ({Expr a, Expr b, Expr c})? matchBiquadratic(Expr expr, String variable) {
+  if (_hasLargeVariableExponent(expr, variable)) return null;
   final expExpr = expr.expand().simplify();
   final coeffs = extractPolynomialCoefficients(expExpr, variable);
   if (coeffs == null) return null;
@@ -69,8 +85,14 @@ List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
   return (a: a, b: b, c: c);
 }
 
-/// Solves biquadratic equation $a x^4 + b x^2 + c = 0$.
-List<Expr> solveBiquadratic(Expr a, Expr b, Expr c, String variable) {
+/// Solves biquadratic equation `a * x^4 + b * x^2 + c = 0`.
+List<Expr> solveBiquadratic(
+  Expr a,
+  Expr b,
+  Expr c,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   var uVar = '_u';
   while (variable == uVar ||
       a.dependsOn(uVar) ||
@@ -80,17 +102,17 @@ List<Expr> solveBiquadratic(Expr a, Expr b, Expr c, String variable) {
   }
   final uVarExpr = Variable(uVar);
   final uEq = ((a * Pow(uVarExpr, IntegerNumber.two)) + (b * uVarExpr) + c)
-      .simplify();
-  final uRoots = solveEquation(uEq, uVar, assumptions: Assumptions.none);
+      .simplify(assumptions: assumptions);
+  final uRoots = solveEquation(uEq, uVar, assumptions: assumptions);
   final x = Variable(variable);
   final allRoots = <Expr>[];
   for (final u in uRoots) {
-    final xEq = (Pow(x, IntegerNumber.two) - u).simplify();
-    allRoots.addAll(
-      solveEquation(xEq, variable, assumptions: Assumptions.none),
+    final xEq = (Pow(x, IntegerNumber.two) - u).simplify(
+      assumptions: assumptions,
     );
+    allRoots.addAll(solveEquation(xEq, variable, assumptions: assumptions));
   }
-  return deduplicateRoots(allRoots);
+  return deduplicateRoots(allRoots, assumptions: assumptions);
 }
 
 /// Computes the exact square root of rational constant [c] if reducible.
@@ -109,16 +131,32 @@ Expr rootConstant(Expr c, int n) {
 
 bool _isZero(Expr expr) => isZeroExpr(expr);
 
-List<Expr> _complexConjugateRoots(Expr realPart, Expr imagPart) {
+bool _hasLargeVariableExponent(Expr expr, String variable) => expr.anyNode(
+  (node) =>
+      node is Pow &&
+      node.base.dependsOn(variable) &&
+      node.exponent is IntegerNumber &&
+      (((node.exponent as IntegerNumber).asInt?.abs() ?? 100) > 12),
+);
+
+List<Expr> _complexConjugateRoots(
+  Expr realPart,
+  Expr imagPart, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final (r1, r2) = switch (realPart) {
     Number(isZero: true) => (
-      (imagPart * ComplexNumber.i).simplify(),
-      ((-imagPart) * ComplexNumber.i).simplify(),
+      (imagPart * ComplexNumber.i).simplify(assumptions: assumptions),
+      ((-imagPart) * ComplexNumber.i).simplify(assumptions: assumptions),
     ),
     _ => (
-      (realPart + imagPart * ComplexNumber.i).simplify(),
-      (realPart - imagPart * ComplexNumber.i).simplify(),
+      (realPart + imagPart * ComplexNumber.i).simplify(
+        assumptions: assumptions,
+      ),
+      (realPart - imagPart * ComplexNumber.i).simplify(
+        assumptions: assumptions,
+      ),
     ),
   };
-  return deduplicateRoots([r1, r2]);
+  return deduplicateRoots([r1, r2], assumptions: assumptions);
 }

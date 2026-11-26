@@ -5,20 +5,20 @@ enum VariableDomain {
   /// Unspecified domain (no branch-cut or sign assumptions applied).
   unknown,
 
-  /// Complex numbers $\mathbb{C}$.
+  /// Complex numbers `C`.
   complex,
 
-  /// Real numbers $\mathbb{R}$.
+  /// Real numbers `R`.
   real,
 
-  /// Strictly positive real numbers $\mathbb{R}_{> 0}$.
+  /// Strictly positive real numbers `R_{> 0}`.
   positive,
 
-  /// Integers $\mathbb{Z}$.
+  /// Integers `Z`.
   integer,
 }
 
-/// Symbolic variable leaf node (e.g. $x$, $y$, $\theta$).
+/// Symbolic variable leaf node (e.g. `x`, `y`, `theta`).
 final class Variable extends Expr {
   /// Creates a symbolic variable with [name].
   const new(this.name);
@@ -30,7 +30,7 @@ final class Variable extends Expr {
   bool get isSimplified => true;
 
   @override
-  Set<String> get freeVariables => {name};
+  Set<String> get freeVariables => Set.unmodifiable({name});
 
   @override
   bool dependsOn(String variable) => name == variable;
@@ -47,9 +47,9 @@ final class Variable extends Expr {
   int get hashCode => Object.hash(Variable, name);
 }
 
-/// Symbolic uninterpreted function application node (e.g. $f(x)$, $g(x, y)$).
+/// Symbolic uninterpreted function application node (e.g. `f(x)`, `g(x, y)`).
 final class VariableFunction extends Expr {
-  /// Creates a symbolic function application $name(\text{arguments})$.
+  /// Creates a symbolic function application `name(arguments)`.
   new(this.name, Iterable<Expr> arguments, {this.isSimplified = false})
     : arguments = List<Expr>.unmodifiable(arguments);
 
@@ -82,9 +82,9 @@ final class VariableFunction extends Expr {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is VariableFunction &&
-          hashCode == other.hashCode &&
           name == other.name &&
           arguments.length == other.arguments.length &&
+          hashCode == other.hashCode &&
           const ListEquality<Expr>().equals(arguments, other.arguments));
 
   @override

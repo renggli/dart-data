@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/compiler/bytecode.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex;
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Real and Complex VM opcodes', () {
@@ -584,6 +584,78 @@ void main() {
       );
       check(limInf.evaluate()).isNaN;
       check(limInf.evaluateComplex().isNaN).isTrue;
+    });
+
+    test('evaluates special functions on complex inputs via bytecode and toBytecode', () {
+      const z = Variable('z');
+      for (final expr in <Expr>[
+        Gamma(z),
+        Digamma(z),
+        Zeta(z),
+        BesselJ(IntegerNumber.zero, z),
+        Hypergeometric(
+          [IntegerNumber.one, IntegerNumber.two],
+          [IntegerNumber.of(3)],
+          z,
+        ),
+        EllipticK(z),
+        EllipticE(z),
+        LambertW(z),
+      ]) {
+        final bc = expr.toBytecode(variables: const ['z']);
+        final direct = expr.evaluateComplex({'z': const Complex(0.4, 0.2)});
+        final compiled = bc.evaluateComplex1D(const Complex(0.4, 0.2));
+        check(compiled.a).isCloseTo(direct.a, 1e-10);
+        check(compiled.b).isCloseTo(direct.b, 1e-10);
+      }
+      check(
+        Constant.undefined
+            .toBytecode(variables: const <String>[])
+            .evaluate1D(0.0)
+            .isNaN,
+      ).isTrue;
+    });
+
+    test('evaluates remaining special and discrete functions via VM and direct evaluate', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      final realExprs = <Expr>[
+        BesselY(IntegerNumber.zero, x),
+        BesselI(IntegerNumber.zero, x),
+        BesselK(IntegerNumber.one, x),
+        UpperGamma(IntegerNumber.two, x),
+        LowerGamma(IntegerNumber.two, x),
+        Polygamma(IntegerNumber.one, x),
+        EllipticF(x, y),
+        EllipticPi(y, x, y),
+        ExpIntegral(x),
+        ExpIntegralE(IntegerNumber.two, x),
+        LogIntegral(x + IntegerNumber.two),
+        SinIntegral(x),
+        CosIntegral(x),
+        SinhIntegral(x),
+        CoshIntegral(x),
+        FresnelS(x),
+        FresnelC(x),
+        Polylog(IntegerNumber.two, y),
+        Erfi(x),
+        Atan2(x, y),
+        Min([x, y]),
+        Max([x, y]),
+        Gcd([IntegerNumber.of(12), IntegerNumber.of(18)]),
+        Lcm([IntegerNumber.of(4), IntegerNumber.of(6)]),
+        Mod(IntegerNumber.of(7), IntegerNumber.of(3)),
+        Floor(x),
+        Ceil(x),
+        Round(x),
+        Sign(x),
+      ];
+      const env = {'x': 0.8, 'y': 0.4};
+      for (final expr in realExprs) {
+        final expected = expr.evaluate(env);
+        final bc = expr.toBytecode(variables: const ['x', 'y']);
+        check(bc.evaluateList(const [0.8, 0.4])).isCloseTo(expected, 1e-10);
+      }
     });
   });
 }

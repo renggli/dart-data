@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/symbolic/linear/faddeev_leverrier.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('FaddeevLeVerrierEngine characteristic polynomial', () {
@@ -20,13 +20,14 @@ void main() {
       final m1 = Matrix<Expr>.fromRows([
         [IntegerNumber.of(5)],
       ], type: exprDataType);
-      check(m1.characteristicPolynomial('t').toString()).equals('-5 + t');
+      check(m1.characteristicPolynomial(lambda: 't').toString())
+          .equals('-5 + t');
 
       final a = Matrix<Expr>.fromRows([
         [IntegerNumber.of(1), IntegerNumber.of(2)],
         [IntegerNumber.of(3), IntegerNumber.of(4)],
       ], type: exprDataType);
-      check(a.characteristicPolynomial('t').simplify().toString())
+      check(a.characteristicPolynomial(lambda: 't').simplify().toString())
           .equals('-2 - 5 * t + t ^ 2');
 
       // 3x3 matrix with zero trace (c_1 == 0) to exercise _isZero(ck) skip and power > 1
@@ -35,11 +36,11 @@ void main() {
         [IntegerNumber.zero, IntegerNumber.negativeOne, IntegerNumber.one],
         [IntegerNumber.one, IntegerNumber.zero, IntegerNumber.zero],
       ], type: exprDataType);
-      check(m3.characteristicPolynomial('t').toString())
+      check(m3.characteristicPolynomial(lambda: 't').toString())
           .equals('-2 - t + t ^ 3');
 
       final id3 = Matrix<Expr>.identity(3, type: exprDataType);
-      check(id3.characteristicPolynomial('t').toString())
+      check(id3.characteristicPolynomial(lambda: 't').toString())
           .equals('-1 + 3 * t - 3 * t ^ 2 + t ^ 3');
 
       final rect = Matrix<Expr>.filled(

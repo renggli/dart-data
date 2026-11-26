@@ -9,10 +9,10 @@ import 'term_accumulator.dart';
 extension ExpandExtension on Expr {
   /// Expands multiplications over additions and integer powers of sums.
   ///
-  /// Conceptually, this distributes products such as $(A + B)(C + D) \to AC + AD + BC + BD$,
-  /// expands integer powers of sums such as $(x + y)^2 \to 1 \cdot x^2 + 2xy + y^2$, and
+  /// Conceptually, this distributes products such as `(A + B)(C + D) -> AC + AD + BC + BD`,
+  /// expands integer powers of sums such as `(x + y)^2 -> 1 * x^2 + 2xy + y^2`, and
   /// recursively expands sub-expressions within mathematical functions such as
-  /// $\sin((x + 1)^2) \to \sin(1 + 2x + x^2)$. Formally, this applies the distributive
+  /// `sin((x + 1)^2) -> sin(1 + 2x + x^2)`. Formally, this applies the distributive
   /// property of the commutative ring of algebraic expressions.
   ///
   /// ```dart
@@ -194,19 +194,26 @@ Expr _expandPow(Expr base, Expr exponent, Assumptions assumptions) {
     return Constant.undefined;
   }
   if (exponent case IntegerNumber(asInt: final intExp?)) {
-    if (intExp < 0 && base is Number && base.isZero) {
-      return Constant.undefined;
-    }
     if (intExp == 0) {
+      if (base == Constant.infinity) return Constant.undefined;
       return base.anyNode((n) => n is RealNumber)
           ? const RealNumber(1.0)
           : IntegerNumber.one;
     }
+    if (intExp < 0 && base is Number && base.isZero) {
+      return Constant.undefined;
+    }
     if (intExp == 1) return base;
     if (intExp > 1) {
+      if (intExp > 1024) {
+        return simplifyPow(base, exponent, assumptions: assumptions);
+      }
       return _expandPowInteger(base, intExp, assumptions);
     }
     if (intExp < 0) {
+      if (intExp < -1024) {
+        return simplifyPow(base, exponent, assumptions: assumptions);
+      }
       final pos = _expandPowInteger(base, -intExp, assumptions);
       return simplifyPow(
         pos,

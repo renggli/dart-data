@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/calculus/integration/definite.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   const x = Variable('x');
@@ -441,5 +441,81 @@ void main() {
         ).equals(Expr.parse('1 / ln(2)^2').simplify());
       },
     );
+
+    test(
+      'handles equal infinite bounds and even-power interior singularities',
+      () {
+        const x = Variable('x');
+        check(x.integrate('x', from: Constant.infinity, to: Constant.infinity))
+            .equals(Constant.undefined);
+        check(
+          x.integrate('x', from: -Constant.infinity, to: -Constant.infinity),
+        ).equals(Constant.undefined);
+
+        // Divergent endpoint under King's symmetry stays unevaluated
+        final divSym = Expr.parse('1 / x - 1 / (1 - x)')
+            .integrate('x', from: 0, to: 1);
+        check(divSym).isA<Integral>();
+
+        // Even-power fractional interior singularity at x = 1 splits across [0, 2]
+        final split = Pow(
+          Pow(x - IntegerNumber.one, IntegerNumber.two),
+          RationalNumber(-1, 3),
+        ).integrate('x', from: 0, to: 2);
+        check(split).equals(IntegerNumber.of(6));
+      },
+    );
+
+    test('handles descending pole bounds, interior abs splits, and Gaussian tables', () {
+      check(Expr.parse('1 / x^2').integrate('x', from: 1, to: -1))
+          .equals(-Constant.infinity);
+      check(Expr.parse('-1 / x^2').integrate('x', from: 1, to: -1))
+          .equals(Constant.infinity);
+      check(
+        Expr.parse('exp(-x)').integrate('x', from: Constant.infinity, to: 0),
+      ).equals(IntegerNumber.negativeOne);
+
+      // Even-power radical interval splitting
+      check(Abs(x).integrate('x', from: -2, to: 3))
+          .equals(RationalNumber(13, 2));
+      check(Abs(x - IntegerNumber.one).integrate('x', from: 0, to: 3))
+          .equals(RationalNumber(5, 2));
+      check(
+        Pow(
+          Pow(x, IntegerNumber.two),
+          RationalNumber(-1, 3),
+        ).integrate('x', from: -1, to: 8),
+      ).equals(IntegerNumber.of(9));
+
+      // Half-line Gaussian/Gamma table cases
+      check(
+        Expr.parse('x^3 * exp(-2 * x^2)')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(RationalNumber(1, 8));
+      check(
+        Expr.parse('x^2 * exp(-3 * x)')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(RationalNumber(2, 27));
+      check(
+        Expr.parse('5 * exp(-x^2)')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(RationalNumber(5, 2) * Pow(Constant.pi, FractionNumber.half));
+
+      // Euler Beta [0, 1] table case and non-linear Weierstrass argument
+      const s = Variable('s');
+      const t = Variable('t');
+      final eulerBeta = (Pow(x, s) * Pow(IntegerNumber.one - x, t)).integrate(
+        'x',
+        from: 0,
+        to: 1,
+        assumptions: const Assumptions(
+          domains: {'s': VariableDomain.positive, 't': VariableDomain.positive},
+        ),
+      );
+      check(eulerBeta).isA<Beta>();
+      final nonLinTan = Expr.parse('1 / (2 + cos(x^2))')
+          .integrate('x', from: 0, to: 1);
+      check(nonLinTan).isNotNull();
+    });
   });
 }

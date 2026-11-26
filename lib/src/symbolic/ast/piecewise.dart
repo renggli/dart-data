@@ -6,7 +6,7 @@ sealed class RelationalExpr extends BinaryExpr {
   new(super.left, super.right, {super.isSimplified = false});
 }
 
-/// Strict less-than relation: $\text{left} < \text{right}$.
+/// Strict less-than relation: `left < right`.
 final class LessThan extends RelationalExpr {
   /// Creates a `<` relation.
   new(super.left, super.right, {super.isSimplified = false});
@@ -15,7 +15,7 @@ final class LessThan extends RelationalExpr {
   Expr _withOperands(Expr left, Expr right) => LessThan(left, right);
 }
 
-/// Less-than-or-equal relation: $\text{left} \le \text{right}$.
+/// Less-than-or-equal relation: `left <=right`.
 final class LessEqual extends RelationalExpr {
   /// Creates a `<=` relation.
   new(super.left, super.right, {super.isSimplified = false});
@@ -24,7 +24,7 @@ final class LessEqual extends RelationalExpr {
   Expr _withOperands(Expr left, Expr right) => LessEqual(left, right);
 }
 
-/// Strict greater-than relation: $\text{left} > \text{right}$.
+/// Strict greater-than relation: `left > right`.
 final class GreaterThan extends RelationalExpr {
   /// Creates a `>` relation.
   new(super.left, super.right, {super.isSimplified = false});
@@ -33,7 +33,7 @@ final class GreaterThan extends RelationalExpr {
   Expr _withOperands(Expr left, Expr right) => GreaterThan(left, right);
 }
 
-/// Greater-than-or-equal relation: $\text{left} \ge \text{right}$.
+/// Greater-than-or-equal relation: `left >=right`.
 final class GreaterEqual extends RelationalExpr {
   /// Creates a `>=` relation.
   new(super.left, super.right, {super.isSimplified = false});
@@ -42,7 +42,7 @@ final class GreaterEqual extends RelationalExpr {
   Expr _withOperands(Expr left, Expr right) => GreaterEqual(left, right);
 }
 
-/// Equality relation: $\text{left} = \text{right}$.
+/// Equality relation: `left = right`.
 final class Equal extends RelationalExpr {
   /// Creates an `=` relation.
   new(super.left, super.right, {super.isSimplified = false});
@@ -51,7 +51,7 @@ final class Equal extends RelationalExpr {
   Expr _withOperands(Expr left, Expr right) => Equal(left, right);
 }
 
-/// Inequality relation: $\text{left} \ne \text{right}$.
+/// Inequality relation: `left !=right`.
 final class NotEqual extends RelationalExpr {
   /// Creates a `!=` relation.
   new(super.left, super.right, {super.isSimplified = false});
@@ -64,7 +64,7 @@ final class NotEqual extends RelationalExpr {
 typedef PiecewiseBranch = ({RelationalExpr relation, Expr expr});
 
 /// Piecewise conditional expression node:
-/// $$f(x) = \begin{cases} e_1 & \text{if } c_1 \\ e_2 & \text{if } c_2 \\ \text{otherwise} & \text{otherwise} \end{cases}$$
+/// `f(x) = cases( e_1 if c_1; e_2 if c_2; otherwise otherwise )`
 final class Piecewise extends Expr {
   /// Creates a piecewise expression from guarded [branches] and an optional
   /// fallback [otherwise] expression.
@@ -104,7 +104,12 @@ final class Piecewise extends Expr {
     List<PiecewiseBranch>? updated;
     for (var i = 0; i < branches.length; i++) {
       final branch = branches[i];
-      final nextRel = transform(branch.relation) as RelationalExpr;
+      final nextRel = transform(branch.relation);
+      if (nextRel is! RelationalExpr) {
+        throw StateError(
+          'Piecewise relation must transform to a RelationalExpr, got $nextRel',
+        );
+      }
       final nextExpr = transform(branch.expr);
       if (updated != null) {
         updated[i] = (relation: nextRel, expr: nextExpr);

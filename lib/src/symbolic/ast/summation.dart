@@ -10,16 +10,16 @@ sealed class IteratedExpr extends Expr {
     this.isSimplified = false,
   });
 
-  /// The inner operand expression $f(k)$.
+  /// The inner operand expression `f(k)`.
   final Expr expr;
 
-  /// The bound index variable $k$.
+  /// The bound index variable `k`.
   final String variable;
 
-  /// The lower bound $a$.
+  /// The lower bound `a`.
   final Expr lower;
 
-  /// The upper bound $b$.
+  /// The upper bound `b`.
   final Expr upper;
 
   @override
@@ -56,6 +56,7 @@ sealed class IteratedExpr extends Expr {
         expr: expr,
         lower: lower.substitute(variable, replacement),
         upper: upper.substitute(variable, replacement),
+        isSimplified: false,
       );
     }
     var boundVar = this.variable;
@@ -76,15 +77,27 @@ sealed class IteratedExpr extends Expr {
       variable: boundVar,
       lower: lower.substitute(variable, replacement),
       upper: upper.substitute(variable, replacement),
+      isSimplified: false,
     );
   }
 
   @override
-  Expr mapChildren(Expr Function(Expr) transform) => copyWith(
-    expr: transform(expr),
-    lower: transform(lower),
-    upper: transform(upper),
-  );
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final nextExpr = transform(expr);
+    final nextLower = transform(lower);
+    final nextUpper = transform(upper);
+    if (identical(nextExpr, expr) &&
+        identical(nextLower, lower) &&
+        identical(nextUpper, upper)) {
+      return this;
+    }
+    return copyWith(
+      expr: nextExpr,
+      lower: nextLower,
+      upper: nextUpper,
+      isSimplified: false,
+    );
+  }
 
   bool _equalsIterated(IteratedExpr other) =>
       variable == other.variable &&
@@ -94,7 +107,7 @@ sealed class IteratedExpr extends Expr {
 }
 
 /// Symbolic summation node representing an unevaluated definite sum
-/// $\sum_{k=a}^{b} f(k)$.
+/// `sum_{k=a}^b f(k)`.
 final class Sum extends IteratedExpr {
   /// Creates a symbolic sum of [expr] with respect to [variable] from [lower]
   /// to [upper].
@@ -131,7 +144,7 @@ final class Sum extends IteratedExpr {
 }
 
 /// Symbolic product node representing an unevaluated definite product
-/// $\prod_{k=a}^{b} f(k)$.
+/// `prod_{k=a}^b f(k)`.
 final class Product extends IteratedExpr {
   /// Creates a symbolic product of [expr] with respect to [variable] from
   /// [lower] to [upper].

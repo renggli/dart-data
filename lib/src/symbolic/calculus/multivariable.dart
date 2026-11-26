@@ -9,9 +9,7 @@ import 'differentiation.dart';
 /// Multivariable calculus extensions on [Expr].
 extension MultivariableExtension on Expr {
   /// Computes the analytical gradient vector:
-  /// $\nabla f =$
-  /// $\left(\frac{\partial f}{\partial x_1}, \dots,\right.$
-  /// $\left.\frac{\partial f}{\partial x_n}\right)$
+  /// `nabla f = (df/dx_1, ..., df/dx_n)`
   /// as a [Vector] of symbolic expressions.
   ///
   /// Conceptually, the gradient points in the direction of steepest ascent on a
@@ -29,8 +27,7 @@ extension MultivariableExtension on Expr {
     Assumptions assumptions = Assumptions.none,
   }) => _multivariableGradient(this, variables, assumptions: assumptions);
 
-  /// Computes the analytical Hessian matrix
-  /// $H_{ij} = \frac{\partial^2 f}{\partial x_i \partial x_j}$
+  /// Computes the analytical Hessian matrix `H_{ij} = d^2 f / (dx_i dx_j)`
   /// as a symmetric [Matrix] of symbolic expressions.
   ///
   /// Conceptually, the Hessian describes the local curvature or concavity of a
@@ -39,9 +36,9 @@ extension MultivariableExtension on Expr {
   /// classification.
   ///
   /// Exploits Clairaut's symmetry theorem to compute only the upper triangle
-  /// ($j \ge i$) and mirror identical expressions to the lower triangle
-  /// ($H_{ji} = H_{ij}$), halving the number of second derivative and
-  /// simplification passes from $n^2$ to $\frac{n(n+1)}{2}$.
+  /// (`j >= i`) and mirror identical expressions to the lower triangle
+  /// (`H_ji = H_ij`), halving the number of second derivative and
+  /// simplification passes from `n^2` to `n * (n + 1) / 2`.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -55,12 +52,12 @@ extension MultivariableExtension on Expr {
   }) => _multivariableHessian(this, variables, assumptions: assumptions);
 
   /// Computes the analytical Laplacian scalar field:
-  /// $\Delta f = \nabla^2 f = \sum_{i=1}^n \frac{\partial^2 f}{\partial x_i^2}$.
+  /// `Delta f = nabla ^2 f = sum_{i=1}^n (d^2 f)/(dx_i^2)`.
   ///
   /// Conceptually, the Laplacian measures the difference between the value of
   /// the function at a point and the average value in its infinitesimal
   /// neighborhood. Formally, it is the divergence of the gradient
-  /// ($\text{div}(\nabla f)$) or the trace of the Hessian matrix.
+  /// (`div(nabla f)`) or the trace of the Hessian matrix.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -77,13 +74,13 @@ extension MultivariableExtension on Expr {
 /// Multivariable calculus extensions on collections of [Expr].
 extension MultivariableIterableExtension on Iterable<Expr> {
   /// Computes the analytical Jacobian matrix
-  /// $J_{ij} = \frac{\partial f_i}{\partial x_j}$
+  /// `H_ij = (d^2 f)/(dx_i dx_j)`
   /// as a [Matrix] of symbolic expressions.
   ///
   /// Conceptually, the Jacobian shows how each component of a multivariable
   /// vector system changes with respect to each input variable. Formally, this
   /// represents the linear approximation / pushforward map of a vector-valued
-  /// function $F: \mathbb{R}^n \to \mathbb{R}^m$.
+  /// function `F: R^n -> R^m`.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -98,7 +95,7 @@ extension MultivariableIterableExtension on Iterable<Expr> {
   }) => _multivariableJacobian(toList(), variables, assumptions: assumptions);
 
   /// Computes the analytical divergence of this vector field:
-  /// $\text{div}(F) = \nabla \cdot F = \sum_{i=1}^n \frac{\partial F_i}{\partial x_i}$.
+  /// `div(F) = nabla * F = sum_{i=1}^n (dF_i)/(dx_i)`.
   ///
   /// Conceptually, divergence measures the outgoing flux density of a vector
   /// field from an infinitesimal volume around a point (source vs sink).
@@ -119,7 +116,7 @@ extension MultivariableIterableExtension on Iterable<Expr> {
   }) => _multivariableDivergence(toList(), variables, assumptions: assumptions);
 
   /// Computes the analytical curl of this 3-dimensional vector field:
-  /// $\text{curl}(F) = \nabla \times F = \left(\frac{\partial F_z}{\partial y} - \frac{\partial F_y}{\partial z}, \frac{\partial F_x}{\partial z} - \frac{\partial F_z}{\partial x}, \frac{\partial F_y}{\partial x} - \frac{\partial F_x}{\partial y}\right)$.
+  /// `curl(F) = nabla * F = ((dF_z)/(dy) - (dF_y)/(dz), (dF_x)/(dz) - (dF_z)/(dx), (dF_y)/(dx) - (dF_x)/(dy))`.
   ///
   /// Conceptually, curl measures the microscopic rotation or circulation
   /// density of a vector field around a point.
@@ -139,35 +136,6 @@ extension MultivariableIterableExtension on Iterable<Expr> {
     Assumptions assumptions = Assumptions.none,
   }) => _multivariableCurl(toList(), variables, assumptions: assumptions);
 }
-
-/// Computes the analytical Laplacian scalar field $\Delta f = \nabla^2 f$.
-Expr laplacian(
-  Expr function,
-  List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
-}) => _multivariableLaplacian(function, variables, assumptions: assumptions);
-
-/// Computes the analytical divergence $\text{div}(F) = \nabla \cdot F$.
-Expr divergence(
-  Iterable<Expr> vectorField,
-  List<String> variables, {
-  Assumptions assumptions = Assumptions.none,
-}) => _multivariableDivergence(
-  vectorField.toList(),
-  variables,
-  assumptions: assumptions,
-);
-
-/// Computes the analytical curl $\text{curl}(F) = \nabla \times F$.
-Vector<Expr> curl(
-  Iterable<Expr> vectorField,
-  List<String> variables, {
-  required Assumptions assumptions,
-}) => _multivariableCurl(
-  vectorField.toList(),
-  variables,
-  assumptions: assumptions,
-);
 
 Vector<Expr> _multivariableGradient(
   Expr function,
@@ -205,7 +173,7 @@ Matrix<Expr> _multivariableHessian(
     variables,
     assumptions: assumptions,
   );
-  final entries = List<Expr?>.filled(n * n, null);
+  final entries = List<Expr>.filled(n * n, IntegerNumber.zero);
   for (var i = 0; i < n; i++) {
     final df = grad[i];
     for (var j = i; j < n; j++) {
@@ -217,7 +185,7 @@ Matrix<Expr> _multivariableHessian(
   return Matrix<Expr>.generate(
     n,
     n,
-    (r, c) => entries[r * n + c]!,
+    (r, c) => entries[r * n + c],
     type: exprDataType,
   );
 }
@@ -230,10 +198,7 @@ Expr _multivariableLaplacian(
   if (variables.isEmpty) return IntegerNumber.zero;
   final terms = <Expr>[];
   for (final v in variables) {
-    final d2f = function
-        .derivative(v, assumptions: assumptions)
-        .derivative(v, assumptions: assumptions);
-    terms.add(d2f);
+    terms.add(function.derivative(v, order: 2, assumptions: assumptions));
   }
   return Add(terms).simplify(assumptions: assumptions);
 }

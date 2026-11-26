@@ -10,7 +10,12 @@ import 'domain.dart';
 import 'power.dart';
 
 /// Simplifies an N-ary multiplication expression across [factors].
-Expr simplifyMul(List<Expr> factors, {required Assumptions assumptions}) {
+Expr simplifyMul(
+  List<Expr> factors, {
+  required Assumptions assumptions,
+  int distributeBudget = 4,
+  int recombineBudget = 2,
+}) {
   if (factors.isEmpty) return IntegerNumber.one;
 
   final flatFactors = <Expr>[];
@@ -157,6 +162,7 @@ Expr simplifyMul(List<Expr> factors, {required Assumptions assumptions}) {
   }
 
   final remainingFactors = <Expr>[];
+  var needsRecombine = false;
   for (final MapEntry(key: base, value: exp) in baseExponents.entries) {
     final term =
         (exp == IntegerNumber.one &&
@@ -173,6 +179,7 @@ Expr simplifyMul(List<Expr> factors, {required Assumptions assumptions}) {
               : IntegerNumber.zero;
         }
       case Mul(:final factors):
+        needsRecombine = true;
         for (final sub in factors) {
           if (sub is Number) {
             coeff = coeff.mul(sub);
@@ -186,18 +193,33 @@ Expr simplifyMul(List<Expr> factors, {required Assumptions assumptions}) {
           }
         }
       default:
+        if (term is Pow && term.base != base) {
+          needsRecombine = true;
+        }
         remainingFactors.add(term);
     }
   }
 
+  if (needsRecombine && recombineBudget > 0 && remainingFactors.length > 1) {
+    return simplifyMul(
+      [if (!coeff.isOne) coeff, ...remainingFactors],
+      assumptions: assumptions,
+      distributeBudget: distributeBudget,
+      recombineBudget: recombineBudget - 1,
+    );
+  }
+
   // Check if an Add factor is cleanly divisible by negative-power factors (e.g. (x^2 + x) / x -> 1 + x)
-  final distributed = _tryDistributeExactDivision(
-    coeff,
-    remainingFactors,
-    assumptions: assumptions,
-  );
-  if (distributed != null) {
-    return distributed;
+  if (distributeBudget > 0) {
+    final distributed = _tryDistributeExactDivision(
+      coeff,
+      remainingFactors,
+      assumptions: assumptions,
+      distributeBudget: distributeBudget,
+    );
+    if (distributed != null) {
+      return distributed;
+    }
   }
 
   return simplifySymbolicProduct(coeff, remainingFactors);
@@ -372,6 +394,7 @@ Expr? _tryDistributeExactDivision(
   Number coeff,
   List<Expr> factors, {
   required Assumptions assumptions,
+  required int distributeBudget,
 }) {
   if (factors.length < 2) return null;
   final addIndices = <int>[];
@@ -393,7 +416,11 @@ Expr? _tryDistributeExactDivision(
   Expr? tryDivideAdd(Add a, Expr divisor) {
     final dividedTerms = <Expr>[];
     for (final term in a.terms) {
-      final divTerm = simplifyMul([term, divisor], assumptions: assumptions);
+      final divTerm = simplifyMul(
+        [term, divisor],
+        assumptions: assumptions,
+        distributeBudget: 0,
+      );
       if (_hasNegativePowerFactor(divTerm)) return null;
       dividedTerms.add(divTerm);
     }
@@ -431,10 +458,11 @@ Expr? _tryDistributeExactDivision(
             updatedFactors.add(factors[i]);
           }
         }
-        return simplifyMul([
-          if (!coeff.isOne) coeff,
-          ...updatedFactors,
-        ], assumptions: assumptions);
+        return simplifyMul(
+          [if (!coeff.isOne) coeff, ...updatedFactors],
+          assumptions: assumptions,
+          distributeBudget: distributeBudget - 1,
+        );
       }
     }
   }
@@ -462,6 +490,9 @@ Expr? _multiplyWithOrderTerm(
     case Number(:final isZero):
       return isZero ? IntegerNumber.zero : orderTerm;
     case Constant():
+      if (other == Constant.infinity || other == Constant.undefined) {
+        return Constant.undefined;
+      }
       return orderTerm;
     case Variable(:final name) when isZeroPoint && name == v:
       return OrderTerm(v, n + 1, point: p);
@@ -596,6 +627,8 @@ Number _reduceFactorialAndGammaFactors(
     }
   }
 
+  final initialExp = Map<Expr, int>.of(expMap);
+
   // Pairwise Binomial cancellation
   if (posBinomials.isNotEmpty && negBinomials.isNotEmpty) {
     for (final p in posBinomials) {
@@ -693,10 +726,15 @@ Number _reduceFactorialAndGammaFactors(
   }
 
   for (final MapEntry(:key, :value) in expMap.entries) {
-    if (value == 0) {
+    final delta = value - (initialExp[key] ?? 0);
+    if (delta == 0) continue;
+    final current = baseExponents[key];
+    final currentVal = current is IntegerNumber ? current.asInt ?? 0 : 0;
+    final updated = currentVal + delta;
+    if (updated == 0) {
       baseExponents.remove(key);
     } else {
-      baseExponents[key] = IntegerNumber.of(value);
+      baseExponents[key] = IntegerNumber.of(updated);
     }
   }
 

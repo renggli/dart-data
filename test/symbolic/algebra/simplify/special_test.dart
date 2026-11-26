@@ -3,7 +3,7 @@ import 'package:data/src/symbolic/algebra/simplify/domain.dart';
 import 'package:data/src/symbolic/algebra/simplify/special.dart';
 import 'package:data/src/symbolic/algebra/structural_order.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Special function simplification', () {
@@ -307,6 +307,16 @@ void main() {
         final negBinomReal = Expr.parse('binomial(-0.5, 2.0)').simplify();
         check(negBinomReal).isA<RealNumber>();
         check((negBinomReal as RealNumber).value).isCloseTo(0.375, 1e-12);
+
+        check(Beta(FractionNumber.half, RationalNumber(3, 2)).simplify())
+            .equals((Constant.pi / IntegerNumber.two).simplify());
+        check(
+          EllipticPi(
+            ComplexNumber(const RealNumber(0.2), const RealNumber(0.1)),
+            ComplexNumber(const RealNumber(0.5), const RealNumber(0.1)),
+            ComplexNumber(const RealNumber(0.4), const RealNumber(0.1)),
+          ).simplify(),
+        ).isA<ComplexNumber>();
       },
     );
   });

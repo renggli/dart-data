@@ -7,7 +7,7 @@ import 'package:data/src/symbolic/algebra/simplify/special_integrals.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
 import 'package:data/src/symbolic/algebra/structural_order.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Complex decomposition and conjugation simplification', () {
@@ -39,7 +39,7 @@ void main() {
           .equals(IntegerNumber.zero);
       check(simplifyIm(Binomial(x, y), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Beta(x, y), assumptions: realAssumptions))
+      check(simplifyIm(Beta(x, y), assumptions: Assumptions.positive))
           .equals(IntegerNumber.zero);
       check(simplifyIm(Mod(x, y), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);

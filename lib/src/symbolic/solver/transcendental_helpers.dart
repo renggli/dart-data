@@ -9,7 +9,7 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
 import '../compiler.dart';
-import '../number/integer.dart';
+import '../type/expr_data_type.dart';
 import 'transcendental.dart';
 import 'trigonometric.dart';
 import 'univariate.dart';
@@ -22,16 +22,23 @@ List<Expr>? solveLambertWEquation(
 }) {
   final cVal = tryEvalReal(cPrime);
   const invE = 1.0 / math.e;
+  final negInvE = (-Pow(Constant.e, IntegerNumber.negativeOne)).simplify();
   final List<Expr> targets;
-  switch (cVal) {
-    case final double v when v < -invE - 1e-12:
+  if (cPrime == negInvE) {
+    targets = [IntegerNumber.negativeOne];
+  } else if (cVal != null) {
+    if (cVal < -invE - 1e-12) {
       return const [];
-    case final double v when (v - (-invE)).abs() <= 1e-12:
-      targets = [IntegerNumber.negativeOne];
-    case final double v when v >= 0.0:
+    } else if (cVal >= 0.0) {
       targets = [LambertW(cPrime, branch: 0)];
-    case _:
+    } else {
       targets = [LambertW(cPrime, branch: 0), LambertW(cPrime, branch: -1)];
+    }
+  } else if (isNonNegativeExpr(cPrime, assumptions: assumptions) ||
+      cPrime.anyNode((n) => n is ComplexNumber && !n.imaginary.isZero)) {
+    targets = [LambertW(cPrime, branch: 0)];
+  } else {
+    targets = [LambertW(cPrime, branch: 0), LambertW(cPrime, branch: -1)];
   }
 
   final solutions = <Expr>[];
@@ -43,7 +50,7 @@ List<Expr>? solveLambertWEquation(
     );
     solutions.addAll(subSolutions);
   }
-  return deduplicateRoots(solutions);
+  return deduplicateRoots(solutions, assumptions: assumptions);
 }
 
 List<Expr>? solveProductTranscendental(
@@ -148,56 +155,6 @@ List<Expr>? solveAddTranscendental(
   return null;
 }
 
-void _collectAdditiveTerms(Expr expr, List<Expr> terms) {
-  switch (expr) {
-    case Add(terms: final addTerms):
-      for (final t in addTerms) {
-        _collectAdditiveTerms(t, terms);
-      }
-    case _:
-      terms.add(expr);
-  }
-}
-
-(Expr base, Expr exponent, Expr coeff)? _extractExponentialTerm(
-  Expr expr,
-  String variable,
-) {
-  switch (expr) {
-    case Pow(:final base, :final exponent)
-        when !base.dependsOn(variable) && exponent.dependsOn(variable):
-      return (base, exponent, IntegerNumber.one);
-    case Mul(:final factors):
-      final constFactors = <Expr>[];
-      final varFactors = <Expr>[];
-      for (final f in factors) {
-        if (f.dependsOn(variable)) {
-          varFactors.add(f);
-        } else {
-          constFactors.add(f);
-        }
-      }
-      if (constFactors.isNotEmpty) {
-        if (varFactors case [final singleVar]) {
-          if (_extractExponentialTerm(singleVar, variable) case (
-            final base,
-            final exponent,
-            final coeff,
-          )) {
-            final constPart = switch (constFactors) {
-              [final single] => single,
-              _ => Mul(constFactors).simplify(),
-            };
-            return (base, exponent, (constPart * coeff).simplify());
-          }
-        }
-      }
-    case _:
-      break;
-  }
-  return null;
-}
-
 List<Expr>? matchAffineExponential(
   Expr expr,
   String variable, {
@@ -207,8 +164,8 @@ List<Expr>? matchAffineExponential(
   _collectAdditiveTerms(expr, terms);
   if (terms.length < 2) return null;
 
-  (Expr base, Expr exponent, Expr coeff)? expTerm;
-  (Expr coeff, Expr constant)? linTerm;
+  ({Expr base, Expr exponent, Expr coeff})? expTerm;
+  ({Expr coeff, Expr constant})? linTerm;
   Expr constSum = IntegerNumber.zero;
 
   for (final t in terms) {
@@ -220,7 +177,7 @@ List<Expr>? matchAffineExponential(
     if (t.matchLinear(variable) case (:final a, :final b)
         when !(a is Number && a.isZero)) {
       if (linTerm != null) return null;
-      linTerm = (a, b);
+      linTerm = (coeff: a, constant: b);
       continue;
     }
 
@@ -236,8 +193,12 @@ List<Expr>? matchAffineExponential(
 
   if (expTerm == null || linTerm == null) return null;
 
-  final (base, exponent, k1) = expTerm;
-  final (k2, linConst) = linTerm;
+  final (:base, :exponent, coeff: k1) = expTerm;
+  if (isZeroExpr(base) || base == IntegerNumber.one) return null;
+  final bVal = tryEvalReal(base);
+  if (bVal != null && (bVal <= 0.0 || bVal == 1.0)) return null;
+
+  final (coeff: k2, constant: linConst) = linTerm;
   final k3 = (constSum + linConst).simplify(assumptions: assumptions);
 
   final expLin = exponent.matchLinear(variable);
@@ -252,6 +213,7 @@ List<Expr>? matchAffineExponential(
   );
 
   final lnBase = Ln(base).simplify(assumptions: assumptions);
+  if (isZeroExpr(lnBase)) return null;
   final negCdivB = (-C / B).simplify(assumptions: assumptions);
   final wArg =
       ((-lnBase / B) *
@@ -263,26 +225,35 @@ List<Expr>? matchAffineExponential(
 
   final wVal = tryEvalReal(wArg);
   const invE = 1.0 / math.e;
+  final negInvE = (-Pow(Constant.e, IntegerNumber.negativeOne)).simplify();
   final List<int> branches;
-  switch (wVal) {
-    case final double v when v < -invE - 1e-12:
+  if (wArg == negInvE) {
+    branches = const [0];
+  } else if (wVal != null) {
+    if (wVal < -invE - 1e-12) {
       return const [];
-    case final double v when (v - (-invE)).abs() <= 1e-12 || v >= 0.0:
+    } else if (wVal >= 0.0) {
       branches = const [0];
-    case _:
+    } else {
       branches = const [0, -1];
+    }
+  } else if (isNonNegativeExpr(wArg, assumptions: assumptions) ||
+      wArg.anyNode((n) => n is ComplexNumber && !n.imaginary.isZero)) {
+    branches = const [0];
+  } else {
+    branches = const [0, -1];
   }
 
   final roots = <Expr>[];
   for (final branch in branches) {
-    final wTerm = branch == 0 && wVal != null && (wVal - (-invE)).abs() <= 1e-12
+    final wTerm = wArg == negInvE
         ? IntegerNumber.negativeOne
         : LambertW(wArg, branch: branch);
     final y = (negCdivB - (wTerm / lnBase)).simplify(assumptions: assumptions);
     final x = ((y - beta) / alpha).simplify(assumptions: assumptions);
     roots.add(x);
   }
-  return deduplicateRoots(roots);
+  return deduplicateRoots(roots, assumptions: assumptions);
 }
 
 double? tryEvalReal(Expr expr) {
@@ -350,8 +321,11 @@ List<Expr>? tryCombineLogsAndSolve(
       final uVal = u
           .substitute(variable, root)
           .simplify(assumptions: assumptions);
-      if (uVal.freeVariables.isNotEmpty) continue;
+      if (isZeroExpr(uVal) || isNegativeExpr(uVal, assumptions: assumptions)) {
+        return false;
+      }
       if (isPositiveExpr(uVal, assumptions: assumptions)) continue;
+      if (uVal.freeVariables.isNotEmpty) continue;
       final numVal = tryEvalReal(uVal);
       if (numVal == null || numVal <= 0.0) return false;
     }
@@ -359,16 +333,12 @@ List<Expr>? tryCombineLogsAndSolve(
   }).toList();
 }
 
-bool _hasVariableRadical(Expr expr, String variable) => expr.anyNode(
-  (n) => n is Pow && n.exponent is FractionNumber && n.base.dependsOn(variable),
-);
-
 List<Expr>? tryIsolateRadicalAndSolve(
   List<Expr> terms,
   String variable, {
   required Assumptions assumptions,
 }) {
-  ({Expr c, Expr base, Integer p, int q})? radical;
+  ({Expr c, Expr base, int p, int q})? radical;
   final rest = <Expr>[];
 
   for (final t in terms) {
@@ -383,12 +353,15 @@ List<Expr>? tryIsolateRadicalAndSolve(
           exponent: FractionNumber(:final numerator, :final denominator),
         )
         when base.dependsOn(variable)) {
+      final p = numerator.asInt;
       final q = denominator.asInt;
-      if (q == null || q < 2 || q > 4) return null;
-      radical = (c: IntegerNumber.one, base: base, p: numerator, q: q);
+      if (p == null || p == 0 || p.abs() > 12 || q == null || q < 2 || q > 4) {
+        return null;
+      }
+      radical = (c: IntegerNumber.one, base: base, p: p, q: q);
     } else if (t case Mul(:final factors)) {
       Expr? radBase;
-      Integer? radP;
+      int? radP;
       int? radQ;
       final otherFactors = <Expr>[];
       for (final f in factors) {
@@ -399,10 +372,18 @@ List<Expr>? tryIsolateRadicalAndSolve(
             )
             when base.dependsOn(variable)) {
           if (radBase != null) return null;
+          final p = numerator.asInt;
           final q = denominator.asInt;
-          if (q == null || q < 2 || q > 4) return null;
+          if (p == null ||
+              p == 0 ||
+              p.abs() > 12 ||
+              q == null ||
+              q < 2 ||
+              q > 4) {
+            return null;
+          }
           radBase = base;
-          radP = numerator;
+          radP = p;
           radQ = q;
         } else if (_hasVariableRadical(f, variable)) {
           return null;
@@ -410,13 +391,13 @@ List<Expr>? tryIsolateRadicalAndSolve(
           otherFactors.add(f);
         }
       }
-      if (radBase == null) return null;
+      if (radBase == null || radP == null || radQ == null) return null;
       final c = switch (otherFactors) {
         [] => IntegerNumber.one,
         [final single] => single,
         _ => Mul(otherFactors).simplify(assumptions: assumptions),
       };
-      radical = (c: c, base: radBase, p: radP!, q: radQ!);
+      radical = (c: c, base: radBase, p: radP, q: radQ);
     } else {
       return null;
     }
@@ -428,11 +409,15 @@ List<Expr>? tryIsolateRadicalAndSolve(
       ? rest.single
       : Add(rest).simplify(assumptions: assumptions);
   final negR = (-r).simplify(assumptions: assumptions);
-  final poly =
-      (Pow(c, IntegerNumber.of(q)) * Pow(base, IntegerNumber(p)) -
-              Pow(negR, IntegerNumber.of(q)))
-          .expand(assumptions: assumptions)
-          .simplify(assumptions: assumptions);
+  final lhs = p > 0
+      ? Pow(c, IntegerNumber.of(q)) * Pow(base, IntegerNumber.of(p))
+      : Pow(c, IntegerNumber.of(q));
+  final rhs = p > 0
+      ? Pow(negR, IntegerNumber.of(q))
+      : Pow(negR, IntegerNumber.of(q)) * Pow(base, IntegerNumber.of(-p));
+  final poly = (lhs - rhs)
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
   return solveEquation(poly, variable, assumptions: assumptions);
 }
 
@@ -447,9 +432,11 @@ List<Expr>? tryPolynomialInExponential(
     if (e case Pow(:final base, :final exponent)) {
       if (!base.dependsOn(variable) && exponent.dependsOn(variable)) {
         final lin = exponent.matchLinear(variable);
-        if (lin?.a case final RationalNumber alpha when !alpha.isZero) {
-          expNodes.add((node: e, base: base, alpha: alpha, beta: lin!.b));
-          return;
+        if (lin != null) {
+          if (lin.a case final RationalNumber alpha when !alpha.isZero) {
+            expNodes.add((node: e, base: base, alpha: alpha, beta: lin.b));
+            return;
+          }
         }
       }
     }
@@ -463,12 +450,23 @@ List<Expr>? tryPolynomialInExponential(
   if (expNodes.isEmpty) return null;
 
   final commonBase = expNodes.first.base;
-  final firstSign = expNodes.first.alpha.sign;
-  for (final entry in expNodes) {
-    if (entry.base != commonBase || entry.alpha.sign != firstSign) return null;
-  }
+  if (isZeroExpr(commonBase) || commonBase == IntegerNumber.one) return null;
+  final baseVal = tryEvalReal(commonBase);
+  if (baseVal != null && (baseVal <= 0.0 || baseVal == 1.0)) return null;
 
-  // Fundamental rational slope alpha0 = sign * gcd(numerators) / lcm(denominators)
+  var hasPos = false;
+  var hasNeg = false;
+  for (final entry in expNodes) {
+    if (entry.base != commonBase) return null;
+    if (entry.alpha.sign > 0) {
+      hasPos = true;
+    } else if (entry.alpha.sign < 0) {
+      hasNeg = true;
+    }
+  }
+  final uniformNeg = hasNeg && !hasPos;
+
+  // Fundamental rational slope alpha0
   var gcdNum = expNodes.first.alpha.numerator.abs();
   var lcmDen = expNodes.first.alpha.denominator;
   for (var i = 1; i < expNodes.length; i++) {
@@ -477,16 +475,20 @@ List<Expr>? tryPolynomialInExponential(
     gcdNum = gcdNum.gcd(numAbs);
     lcmDen = (lcmDen ~/ lcmDen.gcd(r.denominator)) * r.denominator;
   }
-  final alpha0 = RationalNumber.of(firstSign < 0 ? -gcdNum : gcdNum, lcmDen);
+  final alpha0 = RationalNumber.of(uniformNeg ? -gcdNum : gcdNum, lcmDen);
 
   const uName = '_u_exp';
   const uVar = Variable(uName);
   final replacements = <Pow, Expr>{};
+  var minM = 0;
+  var maxM = 0;
   for (final (:node, :base, :alpha, :beta) in expNodes) {
     final ratio = alpha.divRational(alpha0);
     if (ratio is! IntegerNumber) return null;
     final m = ratio.asInt;
-    if (m == null || m < 1 || m > 6) return null;
+    if (m == null || m == 0 || m.abs() > 6) return null;
+    if (m < minM) minM = m;
+    if (m > maxM) maxM = m;
     final uPow = m == 1 ? uVar : Pow(uVar, IntegerNumber.of(m));
     final bScale = (beta is Number && beta.isZero)
         ? IntegerNumber.one
@@ -495,18 +497,29 @@ List<Expr>? tryPolynomialInExponential(
       assumptions: Assumptions.none,
     );
   }
+  if (maxM - minM > 8) return null;
 
   Expr substituteExp(Expr e) {
-    if (e is Pow && replacements.containsKey(e)) {
-      return replacements[e]!;
+    if (replacements[e] case final repl?) {
+      return repl;
     }
     return e.mapChildren(substituteExp);
   }
 
-  final polyU = substituteExp(expr).simplify(assumptions: Assumptions.none);
+  var polyU = substituteExp(expr);
+  if (minM < 0) {
+    polyU = (polyU * Pow(uVar, IntegerNumber.of(-minM))).expand(
+      assumptions: assumptions,
+    );
+  }
+  polyU = polyU.simplify(assumptions: assumptions);
   if (polyU.dependsOn(variable) || !polyU.dependsOn(uName)) return null;
 
-  final uRoots = solveEquation(polyU, uName, assumptions: Assumptions.none);
+  final uRoots = solveEquation(
+    polyU,
+    uName,
+    assumptions: assumptions,
+  ).where((r) => !isZeroExpr(r)).toList();
   if (uRoots.isEmpty) return const [];
 
   final targetPow = Pow(
@@ -515,6 +528,7 @@ List<Expr>? tryPolynomialInExponential(
   );
   final results = <Expr>[];
   final seen = <Expr>{};
+  var anyUnsolved = false;
   for (final uRoot in uRoots) {
     final roots = invertEquation(
       targetPow,
@@ -522,28 +536,17 @@ List<Expr>? tryPolynomialInExponential(
       variable,
       assumptions: assumptions,
     );
-    if (roots == null) return null;
+    if (roots == null) {
+      anyUnsolved = true;
+      continue;
+    }
     for (final r in roots) {
       if (seen.add(r)) results.add(r);
     }
   }
-  return results;
+  if (anyUnsolved && results.isEmpty) return null;
+  return deduplicateRoots(results, assumptions: assumptions);
 }
-
-bool _isElementaryFunctionNode(Expr e, String variable) => switch (e) {
-  Ln(:final expr) ||
-  Sin(:final expr) ||
-  Cos(:final expr) ||
-  Tan(:final expr) ||
-  Sinh(:final expr) ||
-  Cosh(:final expr) ||
-  Tanh(:final expr) ||
-  Asin(:final expr) ||
-  Acos(:final expr) ||
-  Atan(:final expr) ||
-  LambertW(:final expr) => expr.dependsOn(variable),
-  _ => false,
-};
 
 List<Expr>? tryPolynomialInFunction(
   Expr expr,
@@ -570,17 +573,14 @@ List<Expr>? tryPolynomialInFunction(
   const uVar = Variable(uName);
 
   List<Expr>? solveSubstituted(Expr uNode, Expr polyU) {
-    final simplified = polyU.simplify(assumptions: Assumptions.none);
+    final simplified = polyU.simplify(assumptions: assumptions);
     if (simplified.dependsOn(variable) || !simplified.dependsOn(uName)) {
       return null;
     }
-    final uRoots = solveEquation(
-      simplified,
-      uName,
-      assumptions: Assumptions.none,
-    );
+    final uRoots = solveEquation(simplified, uName, assumptions: assumptions);
     if (uRoots.isEmpty) return const [];
     final results = <Expr>[];
+    var anyUnsolved = false;
     for (final uRoot in uRoots) {
       final roots = invertEquation(
         uNode,
@@ -588,10 +588,14 @@ List<Expr>? tryPolynomialInFunction(
         variable,
         assumptions: assumptions,
       );
-      if (roots == null) return null;
+      if (roots == null) {
+        anyUnsolved = true;
+        continue;
+      }
       results.addAll(roots);
     }
-    return deduplicateRoots(results);
+    if (anyUnsolved && results.isEmpty) return null;
+    return deduplicateRoots(results, assumptions: assumptions);
   }
 
   if (fnNodes.length == 1) {
@@ -776,43 +780,52 @@ List<Expr>? tryHarmonicAddition(
   }
   final a = Add(sinCoeffs).simplify(assumptions: assumptions);
   final b = Add(cosCoeffs).simplify(assumptions: assumptions);
-  if ((a is Number && a.isZero) || (b is Number && b.isZero)) return null;
-
-  final r = Pow(
-    a * a + b * b,
-    FractionNumber.half,
-  ).simplify(assumptions: assumptions);
+  if (isZeroExpr(a) || isZeroExpr(b)) return null;
   final k = constTerms.isEmpty
       ? IntegerNumber.zero
       : Add(constTerms).simplify(assumptions: assumptions);
 
-  if (k.freeVariables.isEmpty && r.freeVariables.isEmpty) {
-    final kAbs = k.evaluate().abs();
-    final rVal = r.evaluate();
-    if (kAbs.isFinite && rVal.isFinite && kAbs > rVal + 1e-12) {
+  bool hasComplexNode(Expr e) =>
+      e.anyNode((n) => n is ComplexNumber && !n.imaginary.isZero);
+  if (hasComplexNode(a) || hasComplexNode(b) || hasComplexNode(k)) {
+    return null;
+  }
+
+  final rSq = (a * a + b * b).simplify(assumptions: assumptions);
+  if (isZeroExpr(rSq)) return null;
+  final rSqVal = tryEvalReal(rSq);
+  if (rSqVal != null && rSqVal <= 1e-18) return null;
+
+  final r = Pow(rSq, FractionNumber.half).simplify(assumptions: assumptions);
+  if (isZeroExpr(r)) return null;
+
+  final kVal = tryEvalReal(k);
+  final rVal = tryEvalReal(r);
+  if (kVal != null && rVal != null) {
+    if (kVal.abs().isFinite && rVal.isFinite && kVal.abs() > rVal + 1e-12) {
       return const [];
     }
   }
 
   final Expr phi;
-  if ((a is RealNumber || b is RealNumber) &&
-      a.freeVariables.isEmpty &&
-      b.freeVariables.isEmpty) {
-    phi = RealNumber(math.atan2(b.evaluate(), a.evaluate()));
+  final aVal = tryEvalReal(a);
+  final bVal = tryEvalReal(b);
+  if ((a is RealNumber || b is RealNumber) && aVal != null && bVal != null) {
+    phi = RealNumber(math.atan2(bVal, aVal));
   } else {
     final ratio = (b / a).simplify(assumptions: assumptions);
     final baseAtan = Atan(ratio).simplify(assumptions: assumptions);
     final aPos =
         isPositiveExpr(a, assumptions: assumptions) ||
-        (a.freeVariables.isEmpty && a.evaluate() > 0);
+        (aVal != null && aVal > 0);
     final aNeg =
         isNegativeExpr(a, assumptions: assumptions) ||
-        (a.freeVariables.isEmpty && a.evaluate() < 0);
+        (aVal != null && aVal < 0);
     if (aPos) {
       phi = baseAtan;
     } else if (aNeg) {
-      final bNonNeg = b.freeVariables.isEmpty
-          ? b.evaluate() >= 0
+      final bNonNeg = bVal != null
+          ? bVal >= 0
           : !isNegativeExpr(b, assumptions: assumptions);
       phi = (baseAtan + (bNonNeg ? Constant.pi : -Constant.pi)).simplify(
         assumptions: assumptions,
@@ -829,3 +842,76 @@ List<Expr>? tryHarmonicAddition(
     assumptions: assumptions,
   );
 }
+
+void _collectAdditiveTerms(Expr expr, List<Expr> terms) {
+  switch (expr) {
+    case Add(terms: final addTerms):
+      for (final t in addTerms) {
+        _collectAdditiveTerms(t, terms);
+      }
+    case _:
+      terms.add(expr);
+  }
+}
+
+({Expr base, Expr exponent, Expr coeff})? _extractExponentialTerm(
+  Expr expr,
+  String variable,
+) {
+  switch (expr) {
+    case Pow(:final base, :final exponent)
+        when !base.dependsOn(variable) && exponent.dependsOn(variable):
+      return (base: base, exponent: exponent, coeff: IntegerNumber.one);
+    case Mul(:final factors):
+      final constFactors = <Expr>[];
+      final varFactors = <Expr>[];
+      for (final f in factors) {
+        if (f.dependsOn(variable)) {
+          varFactors.add(f);
+        } else {
+          constFactors.add(f);
+        }
+      }
+      if (constFactors.isNotEmpty) {
+        if (varFactors case [final singleVar]) {
+          if (_extractExponentialTerm(singleVar, variable) case (
+            :final base,
+            :final exponent,
+            :final coeff,
+          )) {
+            final constPart = switch (constFactors) {
+              [final single] => single,
+              _ => Mul(constFactors).simplify(),
+            };
+            return (
+              base: base,
+              exponent: exponent,
+              coeff: (constPart * coeff).simplify(),
+            );
+          }
+        }
+      }
+    case _:
+      break;
+  }
+  return null;
+}
+
+bool _hasVariableRadical(Expr expr, String variable) => expr.anyNode(
+  (n) => n is Pow && n.exponent is FractionNumber && n.base.dependsOn(variable),
+);
+
+bool _isElementaryFunctionNode(Expr e, String variable) => switch (e) {
+  Ln(:final expr) ||
+  Sin(:final expr) ||
+  Cos(:final expr) ||
+  Tan(:final expr) ||
+  Sinh(:final expr) ||
+  Cosh(:final expr) ||
+  Tanh(:final expr) ||
+  Asin(:final expr) ||
+  Acos(:final expr) ||
+  Atan(:final expr) ||
+  LambertW(:final expr) => expr.dependsOn(variable),
+  _ => false,
+};

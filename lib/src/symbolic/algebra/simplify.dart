@@ -20,8 +20,8 @@ extension SimplifierExtension on Expr {
   /// under [assumptions].
   ///
   /// Conceptually, this simplifies expressions using algebraic identities such
-  /// as $x + x \to 2x$, $x \cdot x \to x^2$, $x + 0 \to x$, $x \cdot 1 \to x$,
-  /// evaluates constant sub-expressions such as $2 + 3 \to 5$, and canonicalizes
+  /// as `x + x -> 2x`, `x * x -> x^2`, `x + 0 -> x`, `x * 1 -> x`,
+  /// evaluates constant sub-expressions such as `2 + 3 -> 5`, and canonicalizes
   /// polynomial terms in increasing order of degree. Formally, this executes
   /// confluent rewriting rules to reduce algebraic expressions into canonical
   /// normal form.
@@ -34,13 +34,13 @@ extension SimplifierExtension on Expr {
   Expr simplify({Assumptions assumptions = Assumptions.none}) =>
       simplifyExpr(this, assumptions: assumptions);
 
-  /// Rewrites this expression into rectangular complex normal form $a + b i$,
-  /// where $a = \Re(\text{this})$ and $b = \Im(\text{this})$.
+  /// Rewrites this expression into rectangular complex normal form `a + b i`,
+  /// where `a = Re(this)` and `b = Im(this)`.
   Expr toRectangular({Assumptions assumptions = Assumptions.none}) =>
       toRectangularExpr(this, assumptions: assumptions);
 
-  /// Rewrites this expression into polar complex normal form $r e^{i \theta}$,
-  /// where $r = |\text{this}|$ and $\theta = \arg(\text{this})$.
+  /// Rewrites this expression into polar complex normal form `r e^{i theta}`,
+  /// where `r = |this|` and `theta = arg(this)`.
   Expr toPolar({Assumptions assumptions = Assumptions.none}) =>
       toPolarExpr(this, assumptions: assumptions);
 }
@@ -297,9 +297,11 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
     ),
     Gcd(:final args) => simplifyGcd(
       args.map((a) => _simplify(a, assumptions, cache)).toList(),
+      assumptions: assumptions,
     ),
     Lcm(:final args) => simplifyLcm(
       args.map((a) => _simplify(a, assumptions, cache)).toList(),
+      assumptions: assumptions,
     ),
     Tuple(:final args) => Tuple(
       args.map((a) => _simplify(a, assumptions, cache)).toList(),

@@ -9,10 +9,10 @@ import 'series.dart';
 
 /// Symbolic limit evaluation extension on [Expr].
 extension LimitExtension on Expr {
-  /// Computes the symbolic limit $\lim_{variable \to point} f(variable)$.
+  /// Computes the symbolic limit `lim_{variable -> point} f(variable)`.
   ///
-  /// Evaluates finite limits ($x \to a$), directional limits ($x \to a^+$, $x \to a^-$),
-  /// and infinite limits ($x \to \pm\infty$).
+  /// Evaluates finite limits (`x -> a`), directional limits (`x -> a^+`, `x -> a^-`),
+  /// and infinite limits (`x -> +/-oo`).
   ///
   /// Conceptually, the limit represents the value that a function approaches as
   /// the input approaches a specified target value or infinity. Formally, it computes
@@ -193,7 +193,13 @@ Expr computeLimit(
           return direct;
         }
       }
-    } on Object {
+    } on UnsupportedError catch (e) {
+      if (e.message?.contains('does not exist') ?? false) {
+        rethrow;
+      }
+    } on ArgumentError {
+      // Fall through to log-exponential form
+    } on StateError {
       // Fall through to log-exponential form
     }
     if (oscillating) {
@@ -213,7 +219,11 @@ Expr computeLimit(
       if (!innerLim.anyNode((n) => n is Limit)) {
         return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
       }
-    } on Object {
+    } on UnsupportedError {
+      // Fall through to general limit pipeline
+    } on ArgumentError {
+      // Fall through to general limit pipeline
+    } on StateError {
       // Fall through to general limit pipeline
     }
   }
@@ -245,13 +255,32 @@ Expr computeLimit(
           exponent is RealNumeric &&
           !exponent.isNegative &&
           !exponent.isZero) {
+        if (exponent is FractionNumber && exponent.denominator.isEven) {
+          final recip = (IntegerNumber.one / base).simplify(
+            assumptions: assumptions,
+          );
+          final recipLim = computeLimit(
+            recip,
+            variable,
+            point,
+            direction: direction,
+            assumptions: assumptions,
+          );
+          if (isNegativeInfinity(recipLim)) {
+            throw UnsupportedError(
+              'Limit does not exist in R: even root of negative values as $variable -> $point',
+            );
+          }
+        }
         return exponent is RealNumber ? RealNumber.zero : IntegerNumber.zero;
       }
     } on UnsupportedError catch (e) {
       if (e.message?.contains('does not exist') ?? false) {
         rethrow;
       }
-    } on Object {
+    } on ArgumentError {
+      // Fall through
+    } on StateError {
       // Fall through
     }
   }
@@ -275,20 +304,36 @@ Expr computeLimit(
       } else if (base is RealNumeric) {
         final cmpOne = base.abs().compareTo(IntegerNumber.one);
         if (isPositiveInfinity(innerLim)) {
+          if (base.isZero) return IntegerNumber.zero;
           if (cmpOne < 0) return IntegerNumber.zero;
           if (cmpOne > 0) {
             if (base.sign > 0) return Constant.infinity;
             throw UnsupportedError('Limit does not exist due to oscillation');
           }
-          return IntegerNumber.one;
+          if (base.sign > 0) {
+            return base is RealNumber
+                ? const RealNumber(1.0)
+                : IntegerNumber.one;
+          }
+          throw UnsupportedError('Limit does not exist due to oscillation');
         }
         if (isNegativeInfinity(innerLim)) {
+          if (base.isZero) {
+            throw UnsupportedError(
+              'Limit does not exist: zero raised to negative infinity',
+            );
+          }
           if (cmpOne > 0) return IntegerNumber.zero;
           if (cmpOne < 0) {
             if (base.sign > 0) return Constant.infinity;
             throw UnsupportedError('Limit does not exist due to oscillation');
           }
-          return IntegerNumber.one;
+          if (base.sign > 0) {
+            return base is RealNumber
+                ? const RealNumber(1.0)
+                : IntegerNumber.one;
+          }
+          throw UnsupportedError('Limit does not exist due to oscillation');
         }
         if (!innerLim.anyNode((n) => n is Limit)) {
           return Pow(base, innerLim).simplify(assumptions: assumptions);
@@ -298,7 +343,9 @@ Expr computeLimit(
       if (e.message?.contains('does not exist') ?? false) {
         rethrow;
       }
-    } on Object {
+    } on ArgumentError {
+      // Fall through
+    } on StateError {
       // Fall through
     }
   }
@@ -324,7 +371,9 @@ Expr computeLimit(
       if (e.message?.contains('in R:') ?? false) {
         rethrow;
       }
-    } on Object {
+    } on ArgumentError {
+      // Fall through
+    } on StateError {
       // Fall through
     }
   }
@@ -366,7 +415,9 @@ Expr computeLimit(
       if (e.message?.contains('does not exist') ?? false) {
         rethrow;
       }
-    } on Object {
+    } on ArgumentError {
+      // Fall through
+    } on StateError {
       // Fall through
     }
   }
@@ -385,7 +436,9 @@ Expr computeLimit(
       if (e.message?.contains('does not exist') ?? false) {
         rethrow;
       }
-    } on Object {
+    } on ArgumentError {
+      // Fall through
+    } on StateError {
       // Fall through
     }
   }
@@ -439,7 +492,9 @@ Expr computeLimit(
       if (e.message?.contains('does not exist') ?? false) {
         rethrow;
       }
-    } on Object {
+    } on ArgumentError {
+      // Fall through
+    } on StateError {
       // Fall through
     }
   }
@@ -500,7 +555,9 @@ Expr computeLimit(
       }
     } on UnsupportedError {
       rethrow;
-    } on Object {
+    } on ArgumentError {
+      // Fall through
+    } on StateError {
       // Fall through
     }
   }
@@ -560,7 +617,11 @@ Expr _computeFiniteLimit(
         return sub;
       }
     }
-  } on Object {
+  } on UnsupportedError {
+    // Falls through to Laurent series expansion
+  } on ArgumentError {
+    // Falls through to Laurent series expansion
+  } on StateError {
     // Falls through to Laurent series expansion
   }
 
@@ -628,14 +689,17 @@ Expr _computeFiniteLimit(
       );
       lead = series.leadingTerm;
     }
-    if (lead == null) return IntegerNumber.zero;
-    return _deduceLimitFromLaurentLeading(
-      lead.exponent,
-      lead.coefficient.simplify(assumptions: assumptions),
-      direction,
-      point,
-      assumptions,
-    );
+    if (lead == null) {
+      if (series.order > 0) return IntegerNumber.zero;
+    } else {
+      return _deduceLimitFromLaurentLeading(
+        lead.exponent,
+        lead.coefficient.simplify(assumptions: assumptions),
+        direction,
+        point,
+        assumptions,
+      );
+    }
   } on UnsupportedError catch (e) {
     if ((e.message?.contains('Two-sided limit') ?? false) ||
         (e.message?.contains('Sign of leading coefficient') ?? false)) {
@@ -768,12 +832,41 @@ bool isWellDefinedFinite(Expr expr) {
     try {
       final v = expr.evaluate(const {});
       return v.isFinite;
-    } on Object {
+    } on ArgumentError {
+      return false;
+    } on UnsupportedError {
+      return false;
+    } on StateError {
       return false;
     }
   }
-  return false;
+  return _isSymbolicFinite(expr);
 }
+
+bool _isSymbolicFinite(Expr expr) => switch (expr) {
+  RationalNumber() => true,
+  RealNumber(:final value) => value.isFinite,
+  Constant(:final isReal, :final value) => isReal && value.a.isFinite,
+  Variable() => true,
+  Add(:final terms) => terms.every(_isSymbolicFinite),
+  Mul(:final factors) => factors.every(_isSymbolicFinite),
+  Pow(:final base, :final exponent) =>
+    (base == Constant.e ||
+            (exponent is IntegerNumber && !exponent.isNegative)) &&
+        _isSymbolicFinite(base) &&
+        _isSymbolicFinite(exponent),
+  Sin(:final expr) ||
+  Cos(:final expr) ||
+  Sinh(:final expr) ||
+  Cosh(:final expr) ||
+  Atan(:final expr) ||
+  Tanh(:final expr) ||
+  Asinh(:final expr) ||
+  Erf(:final expr) ||
+  Erfc(:final expr) ||
+  Abs(:final expr) => _isSymbolicFinite(expr),
+  _ => false,
+};
 
 int getSign(Expr expr, [Assumptions assumptions = Assumptions.none]) {
   final s = expr.simplify(assumptions: assumptions);
@@ -794,28 +887,42 @@ int getSign(Expr expr, [Assumptions assumptions = Assumptions.none]) {
     try {
       final v = s.evaluate(const {});
       if (v.isFinite && v != 0.0) return v > 0.0 ? 1 : -1;
-    } on Object {
+    } on ArgumentError {
+      // Ignore
+    } on UnsupportedError {
+      // Ignore
+    } on StateError {
       // Ignore
     }
   }
   return 0;
 }
 
-int asymptoticSignAtInfinity(Expr expr, String variable, [Set<Expr>? visited]) {
-  final s = expr.simplify();
-  if (!s.dependsOn(variable)) return getSign(s);
-  if (s is Pow && s.base == Constant.e) return 1;
+int asymptoticSignAtInfinity(
+  Expr expr,
+  String variable, [
+  Set<Expr>? visited,
+  Assumptions assumptions = Assumptions.none,
+]) {
+  final s = expr.simplify(assumptions: assumptions);
+  if (!s.dependsOn(variable)) return getSign(s, assumptions);
+  if (s is Pow &&
+      s.base == Constant.e &&
+      isProvenReal(s.exponent, assumptions)) {
+    return 1;
+  }
   if (s case Mul(factors: [final RealNumeric first, ...final rest])
       when rest.isNotEmpty) {
     final restExpr = switch (rest) {
       [final single] => single,
       _ => Mul(rest),
     };
-    return first.sign * asymptoticSignAtInfinity(restExpr, variable, visited);
+    return first.sign *
+        asymptoticSignAtInfinity(restExpr, variable, visited, assumptions);
   }
 
   if (polynomialDegreeAndLead(s, variable) case (_, final leadCoeff)) {
-    return getSign(leadCoeff);
+    return getSign(leadCoeff, assumptions);
   }
 
   final seen = visited ?? <Expr>{};
@@ -825,14 +932,14 @@ int asymptoticSignAtInfinity(Expr expr, String variable, [Set<Expr>? visited]) {
         s,
         variable,
         Constant.infinity,
-        assumptions: Assumptions.none,
+        assumptions: assumptions,
       );
       if (isPositiveInfinity(lim)) return 1;
       if (isNegativeInfinity(lim)) return -1;
       if (!lim.anyNode((n) => n is Limit) &&
           lim.freeVariables.isEmpty &&
           !(lim is Number && lim.isZero)) {
-        return getSign(lim);
+        return getSign(lim, assumptions);
       }
     } on UnsupportedError {
       // Fall through to asymptotic sampling.
@@ -840,17 +947,22 @@ int asymptoticSignAtInfinity(Expr expr, String variable, [Set<Expr>? visited]) {
   }
 
   var agreedSign = 0;
-  for (final sample in const [1e3, 1e6, 1e9]) {
+  for (final sample in const [1e3, 1e6, 1e9, 1e12]) {
     try {
       final val = s.evaluate({variable: sample});
-      if (!val.isFinite || val == 0.0) return 0;
+      if (val.isNaN || val == 0.0) return 0;
+      if (!val.isFinite) continue;
       final sgn = val > 0.0 ? 1 : -1;
       if (agreedSign == 0) {
         agreedSign = sgn;
       } else if (agreedSign != sgn) {
         return 0;
       }
-    } on Object {
+    } on ArgumentError {
+      return 0;
+    } on UnsupportedError {
+      return 0;
+    } on StateError {
       return 0;
     }
   }
@@ -858,7 +970,11 @@ int asymptoticSignAtInfinity(Expr expr, String variable, [Set<Expr>? visited]) {
 }
 
 bool isPositiveInfinity(Expr expr) => switch (expr) {
-  Constant.infinity || Variable(name: '∞' || 'infinity') => true,
+  Constant.infinity => true,
+  Mul(factors: [final RealNumeric a, final b]) ||
+  Mul(
+    factors: [final b, final RealNumeric a],
+  ) when !a.isNegative && !a.isZero && b == Constant.infinity => true,
   _ => false,
 };
 

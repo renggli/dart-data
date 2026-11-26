@@ -2,18 +2,18 @@ part of '../ast.dart';
 
 /// Direction for computing directional limits of symbolic expressions.
 enum LimitDirection {
-  /// Two-sided limit $\lim_{x \to a} f(x)$. Requires left and right limits to agree.
+  /// Two-sided limit `lim_{x -> a} f(x)`. Requires left and right limits to agree.
   both,
 
-  /// Right-hand limit $\lim_{x \to a^+} f(x)$ (approaching from above).
+  /// Right-hand limit `lim_{x -> a^+} f(x)` (approaching from above).
   fromAbove,
 
-  /// Left-hand limit $\lim_{x \to a^-} f(x)$ (approaching from below).
+  /// Left-hand limit `lim_{x -> a^-} f(x)` (approaching from below).
   fromBelow,
 }
 
 /// Symbolic limit node representing an unevaluated limit
-/// $\lim_{x \to a} f(x)$.
+/// `lim_{x -> a} f(x)`.
 final class Limit extends Expr {
   /// Creates a symbolic limit of [expr] as [variable] approaches [point] from
   /// [direction].
@@ -25,13 +25,13 @@ final class Limit extends Expr {
     this.isSimplified = false,
   });
 
-  /// The operand expression $f(x)$.
+  /// The operand expression `f(x)`.
   final Expr expr;
 
-  /// The bound limit variable $x$.
+  /// The bound limit variable `x`.
   final String variable;
 
-  /// The target limit point $a$.
+  /// The target limit point `a`.
   final Expr point;
 
   /// The limit direction (two-sided, from above, or from below).

@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/textualization/formatting.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('String textualization and presentation rules', () {

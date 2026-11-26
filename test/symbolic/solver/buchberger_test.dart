@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/solver/buchberger.dart';
 import 'package:data/src/symbolic/solver/multivariate_polynomial.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('BuchbergerEngine Gröbner basis computation', () {

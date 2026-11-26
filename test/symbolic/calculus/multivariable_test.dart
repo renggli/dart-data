@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Gradient and Hessian operators', () {
@@ -42,9 +42,9 @@ void main() {
       final lap2d = f2d.laplacian(['x', 'y']);
       check(lap2d.toString()).equals('6 * x + 6 * y');
 
-      // Top-level function
+      // 3D scalar field
       final f3d = Expr.parse('x^2 * y + y^2 * z');
-      final lap3d = laplacian(f3d, ['x', 'y', 'z']);
+      final lap3d = f3d.laplacian(['x', 'y', 'z']);
       check(lap3d.toString()).equals('2 * y + 2 * z');
 
       // Harmonic function has Laplacian 0
@@ -64,11 +64,12 @@ void main() {
       ].divergence(['x', 'y']);
       check(div2d.toString()).equals('4 * x * y');
 
-      // Top-level function
-      final div3d = divergence(
-        [Expr.parse('x * y'), Expr.parse('y * z'), Expr.parse('z * x')],
-        ['x', 'y', 'z'],
-      );
+      // 3D vector field
+      final div3d = [
+        Expr.parse('x * y'),
+        Expr.parse('y * z'),
+        Expr.parse('z * x'),
+      ].divergence(['x', 'y', 'z']);
       check(div3d.toString()).equals('x + y + z');
 
       // Solenoidal field has divergence 0
@@ -103,11 +104,7 @@ void main() {
         Expr.parse('2 * y'),
         Expr.parse('2 * z'),
       ];
-      final curlGrad = curl(gradField, [
-        'x',
-        'y',
-        'z',
-      ], assumptions: Assumptions.none);
+      final curlGrad = gradField.curl(['x', 'y', 'z']);
       check(curlGrad[0]).equals(IntegerNumber.zero);
       check(curlGrad[1]).equals(IntegerNumber.zero);
       check(curlGrad[2]).equals(IntegerNumber.zero);

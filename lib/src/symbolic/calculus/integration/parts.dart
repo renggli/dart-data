@@ -73,18 +73,22 @@ Expr? tryIntegrationByParts(
       }
       if (vExpr case Sin(expr: final trigInner)) {
         if (trigInner.matchLinear(variable) case (a: final c, b: _)) {
-          final denom = (a * a + c * c).simplify();
-          final numer = (pExpr * (a * Sin(trigInner) - c * Cos(trigInner)))
-              .simplify();
-          return (numer / denom).simplify();
+          final denom = (a * a + c * c).simplify(assumptions: assumptions);
+          if (!(denom is Number && denom.isZero)) {
+            final numer = (pExpr * (a * Sin(trigInner) - c * Cos(trigInner)))
+                .simplify(assumptions: assumptions);
+            return (numer / denom).simplify(assumptions: assumptions);
+          }
         }
       }
       if (vExpr case Cos(expr: final trigInner)) {
         if (trigInner.matchLinear(variable) case (a: final c, b: _)) {
-          final denom = (a * a + c * c).simplify();
-          final numer = (pExpr * (a * Cos(trigInner) + c * Sin(trigInner)))
-              .simplify();
-          return (numer / denom).simplify();
+          final denom = (a * a + c * c).simplify(assumptions: assumptions);
+          if (!(denom is Number && denom.isZero)) {
+            final numer = (pExpr * (a * Cos(trigInner) + c * Sin(trigInner)))
+                .simplify(assumptions: assumptions);
+            return (numer / denom).simplify(assumptions: assumptions);
+          }
         }
       }
     }

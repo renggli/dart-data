@@ -12,12 +12,22 @@ import 'transcendental.dart';
 
 /// Returns `true` if [expr] is known to be real-valued under [assumptions].
 bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
-  RealNumeric() || Abs() || Re() || Im() || Arg() => true,
+  RealNumeric() => true,
+  Abs(:final expr) ||
+  Re(:final expr) ||
+  Im(:final expr) ||
+  Arg(:final expr) => !expr.anyNode((n) => n == Constant.undefined),
   Floor(:final expr) ||
   Ceil(:final expr) ||
   Round(:final expr) ||
-  Sign(:final expr) ||
-  Factorial(:final expr) => isProvenReal(expr, assumptions),
+  Sign(:final expr) => isProvenReal(expr, assumptions),
+  Factorial(:final expr) =>
+    isProvenReal(expr, assumptions) &&
+        (isNonNegativeExpr(expr, assumptions: assumptions) ||
+            switch (tryStaticRealValue(expr)) {
+              final v? => v >= 0.0 || (v != v.floorToDouble()),
+              _ => false,
+            }),
   Binomial(:final left, :final right) =>
     isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
   LambertW(:final expr, :final branch) => switch (branch) {
@@ -25,13 +35,13 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
       isProvenReal(expr, assumptions) &&
           (isNonNegativeExpr(expr, assumptions: assumptions) ||
               switch (tryStaticRealValue(expr)) {
-                final v? => v >= -1.0 / math.e - 1e-12,
+                final v? => v >= -1.0 / math.e,
                 _ => false,
               }),
     -1 =>
       isProvenReal(expr, assumptions) &&
           switch (tryStaticRealValue(expr)) {
-            final v? => v >= -1.0 / math.e - 1e-12 && v < 0.0,
+            final v? => v >= -1.0 / math.e && v < 0.0,
             _ => false,
           },
     _ => false,
@@ -75,13 +85,22 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
   SinhIntegral(:final expr) => isProvenReal(expr, assumptions),
   Zeta(:final expr, :final shift) =>
     isProvenReal(expr, assumptions) &&
+        switch (tryStaticRealValue(expr)) {
+          final v? => v != 1.0,
+          _ => false,
+        } &&
         (shift == null || isProvenReal(shift, assumptions)),
   ExpIntegralE(:final left, :final right) =>
-    isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
+    isProvenReal(left, assumptions) &&
+        isPositiveExpr(right, assumptions: assumptions),
   Hypergeometric(:final upper, :final lower, :final argument) =>
     upper.every((e) => isProvenReal(e, assumptions)) &&
         lower.every((e) => isProvenReal(e, assumptions)) &&
-        isProvenReal(argument, assumptions),
+        isProvenReal(argument, assumptions) &&
+        switch (tryStaticRealValue(argument)) {
+          final v? => v <= 1.0,
+          _ => false,
+        },
   Min(:final args) ||
   Max(:final args) ||
   Gcd(:final args) ||
@@ -148,29 +167,45 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
   Asin(:final expr) || Acos(:final expr) =>
     isProvenReal(expr, assumptions) &&
         switch (tryStaticRealValue(expr)) {
-          final v? => v.abs() <= 1.0 + 1e-12,
+          final v? => v.abs() <= 1.0,
           _ => false,
         },
   Acosh(:final expr) =>
     isProvenReal(expr, assumptions) &&
         switch (tryStaticRealValue(expr)) {
-          final v? => v >= 1.0 - 1e-12,
+          final v? => v >= 1.0,
           _ => false,
         },
   Atanh(:final expr) =>
     isProvenReal(expr, assumptions) &&
         switch (tryStaticRealValue(expr)) {
-          final v? => v.abs() < 1.0 - 1e-12,
+          final v? => v.abs() < 1.0,
           _ => false,
         },
   Ln(:final expr) => isPositiveExpr(expr, assumptions: assumptions),
-  Beta(:final left, :final right) || Mod(:final left, :final right) =>
+  Beta(:final left, :final right) =>
+    isProvenReal(left, assumptions) &&
+        isProvenReal(right, assumptions) &&
+        isPositiveExpr(left, assumptions: assumptions) &&
+        isPositiveExpr(right, assumptions: assumptions),
+  Mod(:final left, :final right) =>
     isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
   _ => false,
 };
 
 /// Returns `true` if [expr] is known to be strictly negative under [assumptions].
 bool isNegativeExpr(Expr expr, {required Assumptions assumptions}) {
+  if (expr is Add) {
+    var hasNegative = false;
+    for (final term in expr.terms) {
+      if (isNegativeExpr(term, assumptions: assumptions)) {
+        hasNegative = true;
+      } else if (term is! Number || !term.isZero) {
+        return false;
+      }
+    }
+    return hasNegative;
+  }
   final (pos, isNeg) = extractSign(expr);
   return isNeg && isPositiveExpr(pos, assumptions: assumptions);
 }
@@ -179,7 +214,8 @@ bool isNegativeExpr(Expr expr, {required Assumptions assumptions}) {
 bool isPositiveExpr(Expr expr, {required Assumptions assumptions}) =>
     switch (expr) {
       RealNumeric(:final isNegative, :final isZero) => !isNegative && !isZero,
-      Constant(:final value) => value.b == 0.0 && value.a > 0.0,
+      Constant(:final isReal, :final value) =>
+        isReal && value.b == 0.0 && value.a > 0.0,
       Variable(:final name) =>
         assumptions.domainOf(name) == VariableDomain.positive,
       Pow(base: Constant.e, :final exponent) => isProvenReal(
@@ -202,7 +238,7 @@ bool isPositiveExpr(Expr expr, {required Assumptions assumptions}) =>
               _ => false,
             },
       Sin() || Cos() => switch (tryStaticRealValue(expr)) {
-        final v? => v > 0.0,
+        final v? => v > 1e-12,
         _ => false,
       },
       Cosh(:final expr) => isProvenReal(expr, assumptions),
@@ -230,7 +266,8 @@ bool isNonNegativeExpr(
   required Assumptions assumptions,
 }) => switch (expr) {
   RealNumeric(:final isNegative) => !isNegative,
-  Constant(:final value) => value.b == 0 && value.a >= 0,
+  Constant(:final isReal, :final value) =>
+    isReal && value.b == 0 && value.a >= 0,
   Variable(:final name) =>
     assumptions.domainOf(name) == VariableDomain.positive,
   Abs(:final expr) => expr != Constant.undefined && expr != Constant.infinity,
@@ -301,7 +338,7 @@ bool isEvenIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
     };
 
 /// Decomposes an expression into its Cartesian real and imaginary components
-/// $(u, v)$ such that $expr = u + i v$.
+/// `(u, v)` such that `expr = u + i v`.
 ({Expr re, Expr im}) decomposeComplex(Expr expr, Assumptions assumptions) {
   if (isProvenReal(expr, assumptions)) {
     return (re: expr, im: IntegerNumber.zero);

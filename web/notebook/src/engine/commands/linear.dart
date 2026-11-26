@@ -91,8 +91,7 @@ final List<Command> linearCommands = [
       return ExprValue(
         args
             .matrix('matrix')
-            .characteristicPolynomial(v)
-            .simplify(assumptions: ctx.assumptions),
+            .characteristicPolynomial(lambda: v, assumptions: ctx.assumptions),
       );
     },
   ),

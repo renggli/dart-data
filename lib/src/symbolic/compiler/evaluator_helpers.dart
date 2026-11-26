@@ -13,7 +13,7 @@ import '../calculus/summation.dart';
 import 'evaluator.dart';
 
 double evalRealBinomial(double n, double k) {
-  if (n.isNaN || k.isNaN) return double.nan;
+  if (!n.isFinite || !k.isFinite) return double.nan;
   if (k == k.roundToDouble() && k < 0.0) return 0.0;
   if (n == n.roundToDouble() && k == k.roundToDouble() && n >= 0.0 && k > n) {
     return 0.0;
@@ -33,12 +33,16 @@ double evalRealBinomial(double n, double k) {
   return sign * math.exp(logAbs);
 }
 
-/// Computes $(\ln|\Gamma(z)|, \operatorname{sgn}\Gamma(z))$ for real [z].
+/// Computes (ln|Gamma(z)|, sgn Gamma(z)) for real [z].
 ///
 /// Returns `sign == 0` and `logAbs == double.infinity` at non-positive integer
 /// poles, or `logAbs == double.nan` for `NaN`.
 ({double logAbs, int sign}) logAbsGammaWithSign(double z) {
-  if (z.isNaN) return (logAbs: double.nan, sign: 0);
+  if (!z.isFinite) {
+    return z == double.infinity
+        ? (logAbs: double.infinity, sign: 1)
+        : (logAbs: double.nan, sign: 0);
+  }
   if (z <= 0.0 && z == z.roundToDouble()) {
     return (logAbs: double.infinity, sign: 0);
   }
@@ -53,10 +57,9 @@ double evalRealBinomial(double n, double k) {
   return (logAbs: logAbs, sign: s > 0.0 ? 1 : -1);
 }
 
-/// Computes $(\ln|\binom{n}{k}|, \operatorname{sgn}\binom{n}{k})$ for real
-/// [n] and [k].
+/// Computes (ln|C(n, k)|, sgn C(n, k)) for real [n] and [k].
 ({double logAbs, int sign}) logAbsBinomialWithSign(double n, double k) {
-  if (n.isNaN || k.isNaN) return (logAbs: double.nan, sign: 0);
+  if (!n.isFinite || !k.isFinite) return (logAbs: double.nan, sign: 0);
   if (k == k.roundToDouble() && k < 0.0) {
     return (logAbs: double.negativeInfinity, sign: 0);
   }
@@ -113,8 +116,7 @@ double evalNodeReal(
     return numeric_integration.integrate(
       (x) {
         localContext[variable] = x;
-        final y = integrandEval.evaluateMap(localContext);
-        return y.isFinite ? y : 0.0;
+        return integrandEval.evaluateMap(localContext);
       },
       a,
       b,
@@ -184,11 +186,13 @@ double evalNodeReal(
     final a = compileInner(lower).evaluateMap(context);
     final b = compileInner(upper).evaluateMap(context);
     if (a.isNaN || b.isNaN) return double.nan;
-    if (b < a) return 0.0;
-    if (a.isFinite &&
-        b.isFinite &&
-        a == a.roundToDouble() &&
-        b == b.roundToDouble() &&
+    final aIsInt = a.isFinite && a == a.roundToDouble();
+    final bIsInt = b.isFinite && b == b.roundToDouble();
+    if (aIsInt && bIsInt && b < a) return 0.0;
+    if (aIsInt &&
+        bIsInt &&
+        a.abs() <= 1e15 &&
+        b.abs() <= 1e15 &&
         (b - a) <= 100000) {
       final start = a.round();
       final end = b.round();
@@ -201,7 +205,14 @@ double evalNodeReal(
       }
       return total;
     }
-    final s = expr.sum(variable, Expr.wrap(a), Expr.wrap(b));
+    if ((a.isFinite && !aIsInt) || (b.isFinite && !bIsInt)) return double.nan;
+    var substituted = expr;
+    for (final MapEntry(:key, :value) in context.entries) {
+      if (key != variable) {
+        substituted = substituted.substitute(key, Expr.wrap(value));
+      }
+    }
+    final s = substituted.sum(variable, Expr.wrap(a), Expr.wrap(b));
     if (!s.anyNode((n) => n is Sum)) {
       return compileInner(s).evaluateMap(context);
     }
@@ -216,11 +227,13 @@ double evalNodeReal(
     final a = compileInner(lower).evaluateMap(context);
     final b = compileInner(upper).evaluateMap(context);
     if (a.isNaN || b.isNaN) return double.nan;
-    if (b < a) return 1.0;
-    if (a.isFinite &&
-        b.isFinite &&
-        a == a.roundToDouble() &&
-        b == b.roundToDouble() &&
+    final aIsInt = a.isFinite && a == a.roundToDouble();
+    final bIsInt = b.isFinite && b == b.roundToDouble();
+    if (aIsInt && bIsInt && b < a) return 1.0;
+    if (aIsInt &&
+        bIsInt &&
+        a.abs() <= 1e15 &&
+        b.abs() <= 1e15 &&
         (b - a) <= 100000) {
       final start = a.round();
       final end = b.round();
@@ -233,7 +246,14 @@ double evalNodeReal(
       }
       return total;
     }
-    final p = expr.product(variable, Expr.wrap(a), Expr.wrap(b));
+    if ((a.isFinite && !aIsInt) || (b.isFinite && !bIsInt)) return double.nan;
+    var substituted = expr;
+    for (final MapEntry(:key, :value) in context.entries) {
+      if (key != variable) {
+        substituted = substituted.substitute(key, Expr.wrap(value));
+      }
+    }
+    final p = substituted.product(variable, Expr.wrap(a), Expr.wrap(b));
     if (!p.anyNode((n) => n is Product)) {
       return compileInner(p).evaluateMap(context);
     }

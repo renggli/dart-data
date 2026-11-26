@@ -2,7 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/symbolic/linear/bareiss.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('BareissEngine base cases and pivoting', () {
@@ -210,5 +210,28 @@ void main() {
       check(mZeroPivot.rank()).equals(2);
       check(mZeroPivot.nullSpace().length).equals(1);
     });
+
+    test(
+      'preserves empty 0xn and nx0 matrix shapes and forwards assumptions',
+      () {
+        final zeroByThree = Matrix<Expr>.filled(
+          0,
+          3,
+          IntegerNumber.zero,
+          type: exprDataType,
+        );
+        check(zeroByThree.rowEchelon().rowCount).equals(0);
+        check(zeroByThree.rowEchelon().colCount).equals(3);
+        check(zeroByThree.rank()).equals(0);
+
+        const posX = Assumptions(domains: {'x': VariableDomain.positive});
+        final m = Matrix<Expr>.fromRows([
+          [Expr.parse('sqrt(x^2)'), Expr.parse('-abs(x)')],
+          [IntegerNumber.one, IntegerNumber.negativeOne],
+        ], type: exprDataType);
+        check(m.rank(assumptions: posX)).equals(1);
+        check(m.nullSpace(assumptions: posX).length).equals(1);
+      },
+    );
   });
 }

@@ -86,7 +86,15 @@ Expr? tryFactorRadicandPower(
       if (nonZero.length < 2) continue;
 
       final minDeg = nonZero.map((e) => e.key).reduce((a, b) => a < b ? a : b);
-      if (minDeg >= 1) {
+      final pulledExp = (IntegerNumber.of(minDeg) * exp).simplify(
+        assumptions: assumptions,
+      );
+      if (minDeg >= 1 &&
+          (exp is IntegerNumber ||
+              minDeg.isOdd ||
+              (minDeg.isEven &&
+                  !(pulledExp is IntegerNumber && pulledExp.value.isOdd)) ||
+              isPositiveExpr(xVar, assumptions: assumptions))) {
         final quotientPoly = Add([
           for (final entry in nonZero)
             entry.value * Pow(xVar, IntegerNumber.of(entry.key - minDeg)),
@@ -128,23 +136,57 @@ Expr? tryFactorRadicandPower(
             final newExp = (IntegerNumber.two * exp).simplify(
               assumptions: assumptions,
             );
-            final rewritten = rebuild(i, Pow(inner, newExp));
-            final res = antiDerivative(
-              rewritten,
-              variable,
-              depth: depth + 1,
-              assumptions: assumptions,
-            );
-            if (!hasUnevaluatedIntegral(res, variable)) {
-              final halfExp = halfIntExponent(exp);
-              if (halfExp != null &&
-                  !isPositiveExpr(inner, assumptions: assumptions) &&
-                  !inner.anyNode((n) => n is ComplexNumber) &&
-                  !isSyntacticallyNegative(a) &&
-                  !isSyntacticallyNegative(c)) {
-                return (Sign(inner) * res).simplify(assumptions: assumptions);
+            final needsAbsInner =
+                exp.denominator.isEven &&
+                newExp is FractionNumber &&
+                newExp.denominator.isEven &&
+                !isNonNegativeExpr(inner, assumptions: assumptions) &&
+                (k.isOdd ||
+                    s == IntegerNumber.negativeOne ||
+                    isSyntacticallyNegative(a) ||
+                    isSyntacticallyNegative(c));
+            if (!needsAbsInner) {
+              final rewritten = rebuild(i, Pow(inner, newExp));
+              final res = antiDerivative(
+                rewritten,
+                variable,
+                depth: depth + 1,
+                assumptions: assumptions,
+              );
+              if (!hasUnevaluatedIntegral(res, variable)) {
+                final halfExp = halfIntExponent(exp);
+                if (halfExp != null &&
+                    !isPositiveExpr(inner, assumptions: assumptions) &&
+                    !inner.anyNode((n) => n is ComplexNumber) &&
+                    !isSyntacticallyNegative(a) &&
+                    !isSyntacticallyNegative(c)) {
+                  var anchored = res;
+                  if (inner.matchLinear(variable) case (
+                    a: final linA,
+                    b: final linB,
+                  )) {
+                    final zeroPt = (-linB / linA).simplify(
+                      assumptions: assumptions,
+                    );
+                    final atZero = res
+                        .substitute(variable, zeroPt)
+                        .simplify(assumptions: assumptions);
+                    if (atZero != Constant.undefined &&
+                        !atZero.anyNode(
+                          (n) =>
+                              n == Constant.undefined || n == Constant.infinity,
+                        )) {
+                      anchored = (res - atZero).simplify(
+                        assumptions: assumptions,
+                      );
+                    }
+                  }
+                  return (Sign(inner) * anchored).simplify(
+                    assumptions: assumptions,
+                  );
+                }
+                return res;
               }
-              return res;
             }
           }
         }
@@ -484,9 +526,12 @@ Expr? tryVariableRootSubstitution(
           base: Variable(:final name),
           exponent: FractionNumber(:final denominator),
         )
-        when name == variable && denominator.toInt() >= 2) {
-      denoms.add(denominator.toInt());
-      return;
+        when name == variable) {
+      final dInt = denominator.asInt;
+      if (dInt != null && dInt >= 2) {
+        denoms.add(dInt);
+        return;
+      }
     }
     if (node is Pow &&
         node.exponent is FractionNumber &&
@@ -504,20 +549,9 @@ Expr? tryVariableRootSubstitution(
   collect(expr);
   if (denoms.isEmpty) return null;
 
-  int gcd(int a, int b) {
-    var x = a.abs();
-    var y = b.abs();
-    while (y != 0) {
-      final t = x % y;
-      x = y;
-      y = t;
-    }
-    return x;
-  }
-
   var d = 1;
   for (final q in denoms) {
-    d = (d ~/ gcd(d, q)) * q;
+    d = d.lcm(q);
     if (d > 25) return null;
   }
   if (d < 2) return null;
@@ -526,23 +560,37 @@ Expr? tryVariableRootSubstitution(
   final tName = '_rt$depth';
   final tVar = Variable(tName);
 
-  Expr replaceX(Expr node) {
+  Expr? replaceX(Expr node) {
     if (node
         case Pow(
           base: Variable(:final name),
           exponent: FractionNumber(:final numerator, :final denominator),
         )
         when name == variable) {
-      final exp = numerator.toInt() * (d ~/ denominator.toInt());
+      final numInt = numerator.asInt;
+      final denInt = denominator.asInt;
+      if (numInt == null || denInt == null) return null;
+      final exp = numInt * (d ~/ denInt);
       return Pow(tVar, IntegerNumber.of(exp));
     }
     if (node is Variable && node.name == variable) {
       return Pow(tVar, IntegerNumber.of(d));
     }
-    return node.mapChildren(replaceX);
+    var ok = true;
+    final mapped = node.mapChildren((c) {
+      final r = replaceX(c);
+      if (r == null) {
+        ok = false;
+        return c;
+      }
+      return r;
+    });
+    return ok ? mapped : null;
   }
 
-  final substituted = replaceX(expr).simplify(assumptions: assumptions);
+  final replacedExpr = replaceX(expr);
+  if (replacedExpr == null) return null;
+  final substituted = replacedExpr.simplify(assumptions: assumptions);
   if (substituted.dependsOn(variable)) return null;
 
   final dxFactor = (IntegerNumber.of(d) * Pow(tVar, IntegerNumber.of(d - 1)))

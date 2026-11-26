@@ -2,6 +2,7 @@ import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
 import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
+import '../../algebra/simplify/domain.dart';
 import '../../algebra/trig.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
@@ -331,49 +332,6 @@ Expr antiDerivPow(
     // Radical quadratic sqrt(a^2 - u^2) or sqrt(u^2 +- a^2) and (Ax^2 + Bx + C)^(n/2)
     if (exponent == FractionNumber.half ||
         (exponent is RealNumber && exponent.value == 0.5)) {
-      // Half-angle identities: sqrt(1 +- sin(a*x+b)) and sqrt(1 +- cos(a*x+b))
-      if (base case Add(terms: [final t0, final t1])) {
-        final (Expr? cTerm, Expr? trigTerm) = !t0.dependsOn(variable)
-            ? (t0, t1)
-            : (!t1.dependsOn(variable) ? (t1, t0) : (null, null));
-        if (cTerm == IntegerNumber.one && trigTerm != null) {
-          if (trigTerm case Sin(:final expr)) {
-            if (expr.matchLinear(variable) case (:final a, b: _)) {
-              final half = (expr / IntegerNumber.two).simplify();
-              return (IntegerNumber.two * (Sin(half) - Cos(half)) / a).simplify(
-                assumptions: assumptions,
-              );
-            }
-          } else if (trigTerm
-              case Mul(factors: [Number(isNegativeOne: true), Sin(:final expr)])
-              when expr.matchLinear(variable) != null) {
-            final a = expr.matchLinear(variable)!.a;
-            final half = (expr / IntegerNumber.two).simplify();
-            return (IntegerNumber.two * (Sin(half) + Cos(half)) / a).simplify(
-              assumptions: assumptions,
-            );
-          } else if (trigTerm case Cos(:final expr)) {
-            if (expr.matchLinear(variable) case (:final a, b: _)) {
-              final half = (expr / IntegerNumber.two).simplify();
-              return (IntegerNumber.two *
-                      Pow(IntegerNumber.two, FractionNumber.half) *
-                      Sin(half) /
-                      a)
-                  .simplify(assumptions: assumptions);
-            }
-          } else if (trigTerm
-              case Mul(factors: [Number(isNegativeOne: true), Cos(:final expr)])
-              when expr.matchLinear(variable) != null) {
-            final a = expr.matchLinear(variable)!.a;
-            final half = (expr / IntegerNumber.two).simplify();
-            return (-IntegerNumber.two *
-                    Pow(IntegerNumber.two, FractionNumber.half) *
-                    Cos(half) /
-                    a)
-                .simplify(assumptions: assumptions);
-          }
-        }
-      }
       final radQuad = tryRadicalQuadratic(base, variable);
       if (radQuad != null) return radQuad;
     }
@@ -881,8 +839,9 @@ Expr? tryAdditiveProductRule(
     }
   }
 
-  final candList = candidates.toList();
+  final candList = candidates.take(8).toList();
   for (final c in candList) {
+    if (isIntegrationBudgetExhausted()) return null;
     final diff = (c.derivative(variable, assumptions: assumptions) - expr)
         .expand(assumptions: assumptions)
         .simplify(assumptions: assumptions);
@@ -892,6 +851,7 @@ Expr? tryAdditiveProductRule(
   }
   for (var i = 0; i < candList.length; i++) {
     for (var j = i; j < candList.length; j++) {
+      if (isIntegrationBudgetExhausted()) return null;
       final prod = (candList[i] * candList[j]).simplify(
         assumptions: assumptions,
       );
@@ -961,10 +921,14 @@ Expr? tryExpandTrigAtan(
   return null;
 }
 
-Expr rewritePowerLogIdentities(Expr node, String variable) {
+Expr rewritePowerLogIdentities(
+  Expr node,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   if (!node.dependsOn(variable)) return node;
   final mapped = node.mapChildren(
-    (c) => rewritePowerLogIdentities(c, variable),
+    (c) => rewritePowerLogIdentities(c, variable, assumptions: assumptions),
   );
   if (mapped case Pow(:final base, :final exponent)) {
     // 1. u^(c / ln(u)) -> e^c
@@ -972,13 +936,20 @@ Expr rewritePowerLogIdentities(Expr node, String variable) {
     if (expDen case Ln(expr: final lnBase) when lnBase == base) {
       return Pow(Constant.e, expNum);
     }
-    // 2. Nested variable power: (c * x^a)^b -> c^b * x^(a*b)
+    // 2. Nested variable power: (c * x^a)^b -> c^b * x^(a*b) when sound
     if (!exponent.dependsOn(variable)) {
       if (base is Variable && base.name == variable) return mapped;
-      if (_extractMonomialVarPower(base, variable) case (
-        :final scale,
-        :final power,
-      )) {
+      if (_extractMonomialVarPower(base, variable)
+          case (:final scale, :final power)
+          when exponent is IntegerNumber ||
+              (isPositiveExpr(scale, assumptions: assumptions) &&
+                  (power == IntegerNumber.one ||
+                      power == IntegerNumber.negativeOne ||
+                      (power is FractionNumber && power.denominator.isEven) ||
+                      isPositiveExpr(
+                        Variable(variable),
+                        assumptions: assumptions,
+                      )))) {
         return (Pow(scale, exponent) *
                 Pow(Variable(variable), (power * exponent).simplify()))
             .simplify();

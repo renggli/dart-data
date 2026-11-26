@@ -314,15 +314,24 @@ Expr replaceHypWithExp(Expr node, Expr inner, Variable wVar) {
         (wVar * wVar + IntegerNumber.one);
   }
   if (node case Pow(base: Constant.e, :final exponent)) {
-    final vName = inner.freeVariables.first;
-    final linInner = inner.matchLinear(vName)!;
-    final linExp = exponent.matchLinear(vName)!;
-    final k = (linExp.a / linInner.a).simplify() as IntegerNumber;
-    final shift = (linExp.b - k * linInner.b).simplify();
-    final wPow = Pow(wVar, k);
-    return (shift is Number && shift.isZero)
-        ? wPow
-        : (Pow(Constant.e, shift) * wPow);
+    final vName = inner.freeVariables.length == 1
+        ? inner.freeVariables.first
+        : null;
+    if (vName != null && exponent.dependsOn(vName)) {
+      if ((inner.matchLinear(vName), exponent.matchLinear(vName)) case (
+        final linInner?,
+        final linExp?,
+      )) {
+        final kExpr = (linExp.a / linInner.a).simplify();
+        if (kExpr is IntegerNumber) {
+          final shift = (linExp.b - kExpr * linInner.b).simplify();
+          final wPow = Pow(wVar, kExpr);
+          return (shift is Number && shift.isZero)
+              ? wPow
+              : (Pow(Constant.e, shift) * wPow);
+        }
+      }
+    }
   }
   return node.mapChildren((c) => replaceHypWithExp(c, inner, wVar));
 }

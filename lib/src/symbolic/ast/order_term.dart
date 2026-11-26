@@ -1,20 +1,20 @@
 part of '../ast.dart';
 
-/// Landau asymptotic order remainder term: $O((x - a)^n)$.
+/// Landau asymptotic order remainder term: `O((x - a)^n)`.
 ///
 /// Represents truncated higher-order terms in a Taylor or Laurent series
-/// expansion around [point] $a$ of degree [order] $n$ in [variable] $x$.
+/// expansion around [point] `a` of degree [order] `n` in [variable] `x`.
 final class OrderTerm extends Expr {
-  /// Creates an asymptotic remainder term $O((x - a)^n)$.
+  /// Creates an asymptotic remainder term `O((x - a)^n)`.
   const new(this.variable, this.order, {this.point = IntegerNumber.zero});
 
-  /// Variable of expansion $x$.
+  /// Variable of expansion `x`.
   final String variable;
 
-  /// Expansion center point $a$ (defaults to $0$).
+  /// Expansion center point `a` (defaults to `0`).
   final Expr point;
 
-  /// Truncation degree $n$.
+  /// Truncation degree `n`.
   final int order;
 
   @override
@@ -34,14 +34,20 @@ final class OrderTerm extends Expr {
         return order > 0 ? IntegerNumber.zero : Constant.undefined;
       }
       if (replacement is Variable) {
-        return OrderTerm(replacement.name, order, point: point);
+        if (replacement.name == this.variable) return this;
+        if (!point.dependsOn(replacement.name)) {
+          return OrderTerm(replacement.name, order, point: point);
+        }
+        return this;
       }
       if (replacement.freeVariables.length == 1) {
         final newVar = replacement.freeVariables.first;
-        final shifted = (replacement - point).simplify();
-        if (shifted.matchLinear(newVar) case (:final a, :final b)) {
-          final newPoint = (-b / a).simplify();
-          return OrderTerm(newVar, order, point: newPoint);
+        if (!point.dependsOn(newVar)) {
+          final shifted = (replacement - point).simplify();
+          if (shifted.matchLinear(newVar) case (:final a, :final b)) {
+            final newPoint = (-b / a).simplify();
+            return OrderTerm(newVar, order, point: newPoint);
+          }
         }
       }
       if (replacement.freeVariables.isEmpty) {
@@ -82,6 +88,8 @@ extension OrderTermExtension on Expr {
 
 Expr _removeOrder(Expr expr) => switch (expr) {
   OrderTerm() => IntegerNumber.zero,
+  Mul(:final factors) when factors.any((f) => f is OrderTerm) =>
+    IntegerNumber.zero,
   Add(:final terms) => switch ([
     for (final term in terms)
       if (term is! OrderTerm)

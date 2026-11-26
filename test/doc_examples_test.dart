@@ -662,6 +662,9 @@ void main() {
       check(df.toLatex().isNotEmpty).isTrue;
       final fn = df.toFunction1D('x');
       check(fn(2.0)).isCloseTo(14.0, 1e-6);
+      final readmeDf = (x.pow(3) + Sin(x)).derivative('x').simplify();
+      check(readmeDf.toLatex()).equals(r'\cos(x) + 3 {x}^{2}');
+      check(readmeDf.toFunction1D('x')(0.0)).isCloseTo(1.0, 1e-6);
     });
 
     test('lib/tensor.dart quick start', () {

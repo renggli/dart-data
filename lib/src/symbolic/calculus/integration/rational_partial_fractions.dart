@@ -9,6 +9,7 @@ import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
+import 'integration_elementary.dart' show logAntiderivative;
 
 Expr? tryRepeatedQuadratic(Expr left, Expr quad, int m, String variable) {
   final quadCoeffs = extractPolynomialCoefficients(quad, variable);
@@ -100,7 +101,8 @@ Expr integrateLinearOverQuad(
   final twoA = (IntegerNumber.two * a).simplify();
   var result = IntegerNumber.zero as Expr;
   if (d != IntegerNumber.zero) {
-    result = ((d / twoA) * Ln(quad)).simplify();
+    result = ((d / twoA) * logAntiderivative(quad, Assumptions.none))
+        .simplify();
   }
   final eRem = (e - (d * b) / twoA).simplify();
   if (eRem != IntegerNumber.zero) {
@@ -132,7 +134,12 @@ Expr? tryCubicBinomialDenominator(Expr left, Expr right, String variable) {
   final p0 = ((numCoeffs[0] ?? IntegerNumber.zero) / a3).simplify();
   final c = (c0 / a3).simplify();
 
-  final r = Pow(c, const FractionNumber(Integer.one, Integer(3))).simplify();
+  final r = (c is RealNumeric && c.isNegative)
+      ? (-Pow(
+          c.neg(),
+          const FractionNumber(Integer.one, Integer(3)),
+        )).simplify()
+      : Pow(c, const FractionNumber(Integer.one, Integer(3))).simplify();
   final xVar = Variable(variable);
   final linFactor = (xVar + r).simplify();
   final quadFactor = (xVar * xVar - r * xVar + r * r).simplify();

@@ -1,6 +1,7 @@
 import '../algebra/expand.dart';
 import '../algebra/helpers.dart';
 import '../algebra/simplify.dart';
+import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import 'linear_form.dart';
@@ -12,8 +13,8 @@ extension DifferentiationExtension on Expr {
   ///
   /// Conceptually, the derivative describes the instantaneous rate of change or
   /// the slope of the tangent line to the graph at any point (such as how the
-  /// derivative of $x^3$ is $3x^2$). Formally, this executes recursive formal
-  /// differentiation $\frac{\partial^n}{\partial x^n}$ applying the product
+  /// derivative of `x^3` is `3x^2`). Formally, this executes recursive formal
+  /// differentiation `(d^n)/(dx^n)` applying the product
   /// rule, quotient rule, chain rule, and generalized power rule across the
   /// abstract syntax tree for [order] times.
   ///
@@ -35,19 +36,24 @@ extension DifferentiationExtension on Expr {
       current = _differentiate(
         current,
         variable,
+        assumptions,
       ).simplify(assumptions: assumptions);
     }
     return current;
   }
 }
 
-Expr _differentiate(Expr expr, String variable) => switch (expr) {
+Expr _differentiate(
+  Expr expr,
+  String variable, [
+  Assumptions assumptions = Assumptions.none,
+]) => switch (expr) {
   Number() || Constant() || RelationalExpr() => IntegerNumber.zero,
   Variable(:final name) =>
     name == variable ? IntegerNumber.one : IntegerNumber.zero,
   _ when !expr.dependsOn(variable) => IntegerNumber.zero,
   Add(:final terms) => Add(
-    terms.map((t) => _differentiate(t, variable)).toList(),
+    terms.map((t) => _differentiate(t, variable, assumptions)).toList(),
   ),
   Mul(:final factors) => _differentiateMul(factors, variable),
   Pow(:final base, :final exponent) => _differentiatePow(
@@ -55,6 +61,7 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     base,
     exponent,
     variable,
+    assumptions,
   ),
   Sin(expr: final inner) => Mul([Cos(inner), _differentiate(inner, variable)]),
   Cos(expr: final inner) => Mul([
@@ -99,7 +106,7 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   Ln(expr: final inner) => _differentiate(inner, variable) / inner,
   OrderTerm(variable: final v, :final order, :final point) =>
     v == variable
-        ? OrderTerm(v, order - 1, point: point)
+        ? OrderTerm(v, order == 0 ? 0 : order - 1, point: point)
         : OrderTerm(v, order, point: point),
   LambertW(expr: final inner, :final branch) =>
     _differentiate(inner, variable) /
@@ -455,11 +462,20 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   Lcm() ||
   Arg() => Derivative(expr, variable),
   Tuple(:final args) => Tuple([
-    for (final a in args) _differentiate(a, variable),
+    for (final a in args) _differentiate(a, variable, assumptions),
   ]),
-  Re(expr: final inner) => Re(_differentiate(inner, variable)),
-  Im(expr: final inner) => Im(_differentiate(inner, variable)),
-  Conjugate(expr: final inner) => Conjugate(_differentiate(inner, variable)),
+  Re(expr: final inner) =>
+    assumptions.domainOf(variable) == VariableDomain.complex
+        ? Derivative(expr, variable)
+        : Re(_differentiate(inner, variable, assumptions)),
+  Im(expr: final inner) =>
+    assumptions.domainOf(variable) == VariableDomain.complex
+        ? Derivative(expr, variable)
+        : Im(_differentiate(inner, variable, assumptions)),
+  Conjugate(expr: final inner) =>
+    assumptions.domainOf(variable) == VariableDomain.complex
+        ? Derivative(expr, variable)
+        : Conjugate(_differentiate(inner, variable, assumptions)),
   Floor() || Ceil() || Round() || Sign() => IntegerNumber.zero,
   Mod(:final left, :final right) =>
     right.dependsOn(variable)
@@ -676,25 +692,40 @@ Expr _differentiateMul(List<Expr> factors, String variable) {
   return Add(sumTerms);
 }
 
-Expr _differentiatePow(Expr expr, Expr base, Expr exponent, String variable) {
+Expr _differentiatePow(
+  Expr expr,
+  Expr base,
+  Expr exponent,
+  String variable, [
+  Assumptions assumptions = Assumptions.none,
+]) {
   if (base == Constant.e) {
-    return Mul([expr, _differentiate(exponent, variable)]);
+    return Mul([expr, _differentiate(exponent, variable, assumptions)]);
   }
   if (!exponent.dependsOn(variable)) {
     return Mul([
       exponent,
       Pow(base, exponent - IntegerNumber.one),
-      _differentiate(base, variable),
+      _differentiate(base, variable, assumptions),
     ]);
   }
   if (!base.dependsOn(variable)) {
-    return Mul([expr, Ln(base), _differentiate(exponent, variable)]);
+    if (base is Number && base.isZero) {
+      return isPositiveExpr(exponent, assumptions: assumptions)
+          ? IntegerNumber.zero
+          : Derivative(expr, variable);
+    }
+    return Mul([
+      expr,
+      Ln(base),
+      _differentiate(exponent, variable, assumptions),
+    ]);
   }
   return Mul([
     expr,
     Add([
-      Mul([_differentiate(exponent, variable), Ln(base)]),
-      (exponent * _differentiate(base, variable)) / base,
+      Mul([_differentiate(exponent, variable, assumptions), Ln(base)]),
+      (exponent * _differentiate(base, variable, assumptions)) / base,
     ]),
   ]);
 }

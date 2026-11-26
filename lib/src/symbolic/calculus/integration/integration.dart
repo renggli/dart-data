@@ -100,7 +100,8 @@ final class _IntegrationBudget {
   static const int maxElapsedMs = 250;
 
   final Stopwatch _stopwatch = Stopwatch()..start();
-  final Map<(Expr, String), Expr> memo = <(Expr, String), Expr>{};
+  final Map<(Expr, String, Assumptions), Expr> memo =
+      <(Expr, String, Assumptions), Expr>{};
   int steps = 0;
 
   bool get isExhausted =>
@@ -149,7 +150,19 @@ Expr symbolicIntegrate(
         res = stripAbsInLn(res);
       }
       return res.simplify(assumptions: assumptions);
-    } on Object {
+    } on UnsupportedError {
+      return Integral(
+        function.simplify(assumptions: assumptions),
+        variable,
+        isSimplified: true,
+      );
+    } on ArgumentError {
+      return Integral(
+        function.simplify(assumptions: assumptions),
+        variable,
+        isSimplified: true,
+      );
+    } on StateError {
       return Integral(
         function.simplify(assumptions: assumptions),
         variable,
@@ -186,7 +199,7 @@ Expr antiDerivative(
     if (budget.isExhausted) {
       return unsupportedIntegral(node, variable);
     }
-    final key = (node, variable);
+    final key = (node, variable, assumptions);
     if (budget.memo[key] case final cached?) {
       return cached;
     }
@@ -197,7 +210,8 @@ Expr antiDerivative(
       assumptions: assumptions,
       depth: depth,
     );
-    if (!budget.isExhausted) {
+    if (!budget.isExhausted &&
+        !(depth >= 2 && hasUnevaluatedIntegral(res, variable))) {
       budget.memo[key] = res;
     }
     return res;
@@ -490,15 +504,6 @@ Expr _antiDerivativeCore(
         case final halfAngleRes?) {
       return halfAngleRes;
     }
-    if (tryRealRadicalRewrite(
-          node,
-          variable,
-          assumptions: assumptions,
-          depth: depth,
-        )
-        case final realRadRes?) {
-      return realRadRes;
-    }
     if (tryUSubstitution(node, variable, assumptions: assumptions, depth: depth)
         case final uSubRes?) {
       return uSubRes;
@@ -559,6 +564,7 @@ Expr _antiDerivativeCore(
     final powLogRewritten = rewritePowerLogIdentities(
       node,
       variable,
+      assumptions: assumptions,
     ).simplify(assumptions: assumptions);
     if (powLogRewritten != node) {
       final res = antiDerivative(
@@ -677,7 +683,7 @@ bool isSymbolicPositive(Expr expr) {
   return !isSyntacticallyNegative(expr);
 }
 
-/// Extracts odd integer `k` (`|k| <= 15`) when [exponent] equals `k / 2`.
+/// Extracts odd integer `k` (`k <= 15`) when [exponent] equals `k / 2`.
 int? halfIntExponent(Expr exponent) {
   if (exponent case FractionNumber(:final numerator, denominator: final den)
       when den == Integer.two && numerator.isOdd) {

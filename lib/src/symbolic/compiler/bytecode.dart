@@ -82,7 +82,7 @@ enum Op {
   /// Hyperbolic tangent (`tanh(a)`).
   tanh,
 
-  /// Absolute value / modulus (`|a|`).
+  /// Absolute value / modulus (`a`).
   abs,
 
   /// Square root (`sqrt(a)`).
@@ -378,7 +378,7 @@ BytecodeEvaluator compileToBytecode(
     }
 
     switch (expr) {
-      case Constant(value: Complex(:final b)) when b != 0.0:
+      case Constant(value: Complex(:final b)) when !b.isNaN && b != 0.0:
         hasComplexLiterals = true;
         firstComplexLiteral ??= expr;
         instructions.add(Instruction.pushComplex(expr.value));
@@ -484,19 +484,15 @@ BytecodeEvaluator compileToBytecode(
         emit(expr);
         instructions.add(const Instruction.op(Op.abs));
       case Re(:final expr):
-        hasComplexLiterals = true;
         emit(expr);
         instructions.add(const Instruction.op(Op.re));
       case Im(:final expr):
-        hasComplexLiterals = true;
         emit(expr);
         instructions.add(const Instruction.op(Op.im));
       case Arg(:final expr):
-        hasComplexLiterals = true;
         emit(expr);
         instructions.add(const Instruction.op(Op.arg));
       case Conjugate(:final expr):
-        hasComplexLiterals = true;
         emit(expr);
         instructions.add(const Instruction.op(Op.conj));
       case LambertW(:final expr, :final branch):
@@ -751,12 +747,14 @@ BytecodeEvaluator compileToBytecode(
             ..clear()
             ..addAll(preOtherwiseRegs);
         } else {
+          branchEmittedRegs.add(Set<int>.of(emittedRegs));
           instructions.add(Instruction.pushReal(double.nan));
         }
         final endPc = instructions.length;
         for (final jmpIdx in endJumps) {
           instructions[jmpIdx] = Instruction.jump(endPc);
         }
+        emittedRegs.clear();
         if (branchEmittedRegs.isNotEmpty) {
           final commonRegs = branchEmittedRegs.first.toSet();
           for (final regs in branchEmittedRegs.skip(1)) {

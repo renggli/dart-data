@@ -278,7 +278,7 @@ final List<Command> calculusCommands = [
     run: (args, ctx) {
       final expr = args.expr('expr');
       final vars = args.symbolList('vars');
-      return ExprValue(laplacian(expr, vars, assumptions: ctx.assumptions));
+      return ExprValue(expr.laplacian(vars, assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -296,9 +296,7 @@ final List<Command> calculusCommands = [
     run: (args, ctx) {
       final field = args.exprList('field');
       final vars = args.symbolList('vars');
-      return ExprValue(
-        divergence(field, vars).simplify(assumptions: ctx.assumptions),
-      );
+      return ExprValue(field.divergence(vars, assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -320,7 +318,7 @@ final List<Command> calculusCommands = [
           'curl requires a 3-component vector field and 3 variables',
         );
       }
-      return VectorValue(curl(field, vars, assumptions: ctx.assumptions));
+      return VectorValue(field.curl(vars, assumptions: ctx.assumptions));
     },
   ),
   Command(

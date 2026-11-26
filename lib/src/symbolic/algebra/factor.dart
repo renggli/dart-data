@@ -16,9 +16,9 @@ extension FactorExtension on Expr {
   /// like powers.
   ///
   /// Conceptually, this reverses polynomial expansion, decomposing polynomial
-  /// expressions into products of irreducible factors over $\mathbb{Q}\[x\]$ (such as
-  /// factoring $x^2 - 5x + 6$ into $(-3 + x)(-2 + x)$, or $2x^3 - 8x$ into
-  /// $2x(-2 + x)(2 + x)$). Formally, this implements univariate polynomial
+  /// expressions into products of irreducible factors over `Q[x]` (such as
+  /// factoring `x^2 - 5x + 6` into `(-3 + x)(-2 + x)`, or `2x^3 - 8x` into
+  /// `2x(-2 + x)(2 + x)`). Formally, this implements univariate polynomial
   /// content extraction, Rational Root Theorem root search with synthetic
   /// division, quadratic discriminant factorization, common monomial grouping,
   /// and multivariate factoring by grouping.
@@ -89,7 +89,9 @@ Expr factorExpr(Expr expr, {required Assumptions assumptions}) {
   }
 
   // 4. Expand additive sums into canonical polynomial form
-  final expanded = expr.expand().simplify(assumptions: assumptions);
+  final expanded = expr
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
   if (expanded is RationalNumber) {
     return _factorRational(expanded);
   }
@@ -191,13 +193,22 @@ Expr factorExpr(Expr expr, {required Assumptions assumptions}) {
 Expr _factorRational(RationalNumber expr) {
   if (expr is IntegerNumber) return _factorInteger(expr.value);
   if (expr is FractionNumber) {
-    final numFact = _factorInteger(expr.numerator);
+    final numFactors = <Expr>[];
+    if (!expr.numerator.isOne) {
+      final numFact = _factorInteger(expr.numerator);
+      if (numFact case Mul(:final factors)) {
+        numFactors.addAll(factors);
+      } else {
+        numFactors.add(numFact);
+      }
+    }
     final denFact = _factorPositiveIntegerFactors(expr.denominator);
-    return Mul([
-      if (numFact != IntegerNumber.one || denFact.isEmpty) numFact,
+    final all = <Expr>[
+      ...numFactors,
       for (final (:prime, :exponent) in denFact)
         Pow(IntegerNumber(prime), IntegerNumber.of(-exponent)),
-    ]);
+    ];
+    return all.length == 1 ? all.first : Mul(all);
   }
   return expr;
 }

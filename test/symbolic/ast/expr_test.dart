@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex, Fraction;
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Expr.wrap', () {
@@ -202,6 +202,20 @@ void main() {
       check(LambertW(IntegerNumber.one, branch: -1).isReal).isFalse;
       check(LambertW(IntegerNumber.one).isReal).isTrue;
       check(Ln(IntegerNumber.of(-2)).isReal).isFalse;
+      check(Hypergeometric([IntegerNumber.one], [IntegerNumber.two], x).isReal)
+          .isTrue;
+      check(Hypergeometric([ComplexNumber.i], [IntegerNumber.two], x).isReal)
+          .isFalse;
+      check(Min([x, IntegerNumber.one]).isReal).isTrue;
+      check(Max([x, IntegerNumber.one]).isReal).isTrue;
+      check(Gcd([x, IntegerNumber.one]).isReal).isTrue;
+      check(Lcm([x, IntegerNumber.one]).isReal).isTrue;
+      check(Tuple([x, IntegerNumber.one]).isReal).isTrue;
+      check(Beta(x, IntegerNumber.two).isReal).isTrue;
+      check(Polygamma(IntegerNumber.one, x).isReal).isTrue;
+      check(EllipticF(x, FractionNumber.half).isReal).isTrue;
+      check(EllipticPi(FractionNumber.half, x, FractionNumber.half).isReal)
+          .isTrue;
     });
   });
 }

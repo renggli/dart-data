@@ -57,6 +57,7 @@ sealed class Expr {
     if (value is Complex) {
       final a = value.a;
       final b = value.b;
+      if (a.isNaN || b.isNaN) return Constant.undefined;
       if (b == 0 && b is int) {
         return a.isFinite ? _wrapNum(a) : RealNumber.fromDouble(a.toDouble());
       }
@@ -176,6 +177,10 @@ sealed class Expr {
         when !b.isZero) {
       return a.div(b);
     }
+    if ((this, rhs) case (final RealNumeric a, final ComplexNumber b)
+        when !b.isZero) {
+      return a.div(b);
+    }
     if (this is IntegerNumber && (this as IntegerNumber).isOne) {
       return Pow(rhs, IntegerNumber.negativeOne);
     }
@@ -186,11 +191,12 @@ sealed class Expr {
   Expr operator -() => switch (this) {
     final Number n => n.neg(),
     Mul(factors: [final Number n, ...final rest]) => switch (n.neg()) {
-      Number(isOne: true) => switch (rest) {
+      IntegerNumber(isOne: true) => switch (rest) {
+        [] => IntegerNumber.one,
         [final single] => single,
         _ => Mul(rest),
       },
-      final negFirst => Mul([negFirst, ...rest]),
+      final negFirst => rest.isEmpty ? negFirst : Mul([negFirst, ...rest]),
     },
     Mul(factors: final factors && [_, ...]) => Mul([
       IntegerNumber.negativeOne,
@@ -199,7 +205,7 @@ sealed class Expr {
     _ => Mul([IntegerNumber.negativeOne, this]),
   };
 
-  /// Symbolic exponentiation: $\text{this}^{\text{exponent}}$.
+  /// Symbolic exponentiation: `this^exponent`.
   ///
   /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
   /// [Complex], or `String` (variable name).
@@ -212,10 +218,22 @@ sealed class Expr {
       ? IntegerNumber(Integer.from(value))
       : RealNumber.fromDouble(value.toDouble());
 
+  static bool _isRealBoundOrPoint(Expr node) =>
+      node == Constant.infinity ||
+      (node is Mul &&
+          node.factors.length == 2 &&
+          node.factors[0] is IntegerNumber &&
+          (node.factors[0] as IntegerNumber).isNegativeOne &&
+          node.factors[1] == Constant.infinity) ||
+      _isRealSubtree(node);
+
   static bool _isRealSubtree(Expr node) => switch (node) {
     ComplexNumber(:final imaginary) => imaginary.isZero,
     Constant(:final isReal) => isReal,
-    Abs() || Re() || Im() || Arg() => true,
+    Abs(:final expr) ||
+    Re(:final expr) ||
+    Im(:final expr) ||
+    Arg(:final expr) => !expr.anyNode((n) => n == Constant.undefined),
     RealNumeric() || Variable() || OrderTerm() => true,
     Add(:final terms) => terms.every(_isRealSubtree),
     Mul(:final factors) => factors.every(_isRealSubtree),
@@ -224,6 +242,7 @@ sealed class Expr {
           _isRealSubtree(exponent) &&
           (exponent is IntegerNumber ||
               (base is RealNumeric && !base.isNegative) ||
+              (base is Constant && base.isReal && base.value.a > 0.0) ||
               base is Abs),
     Ln(:final expr) =>
       _isRealSubtree(expr) &&
@@ -282,18 +301,17 @@ sealed class Expr {
           (otherwise == null || _isRealSubtree(otherwise)),
     Integral(:final integrand, :final lower, :final upper) =>
       _isRealSubtree(integrand) &&
-          (lower == null || _isRealSubtree(lower)) &&
-          (upper == null || _isRealSubtree(upper)),
+          (lower == null || _isRealBoundOrPoint(lower)) &&
+          (upper == null || _isRealBoundOrPoint(upper)),
     Derivative(:final expr, :final point) =>
-      _isRealSubtree(expr) && (point == null || _isRealSubtree(point)),
+      _isRealSubtree(expr) && (point == null || _isRealBoundOrPoint(point)),
     Limit(:final expr, :final point) =>
-      _isRealSubtree(expr) && _isRealSubtree(point),
+      _isRealSubtree(expr) && _isRealBoundOrPoint(point),
     Sum(:final expr, :final lower, :final upper) ||
-    Product(
-      :final expr,
-      :final lower,
-      :final upper,
-    ) => _isRealSubtree(expr) && _isRealSubtree(lower) && _isRealSubtree(upper),
+    Product(:final expr, :final lower, :final upper) =>
+      _isRealSubtree(expr) &&
+          _isRealBoundOrPoint(lower) &&
+          _isRealBoundOrPoint(upper),
     VariableFunction(:final arguments) => arguments.every(_isRealSubtree),
     EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
       _isRealSubtree(characteristic) &&

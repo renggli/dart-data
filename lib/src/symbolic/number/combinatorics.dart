@@ -1,5 +1,6 @@
 import '../ast.dart';
 import 'integer.dart';
+import 'rational.dart';
 
 /// Computes the Bernoulli numbers `B_0, B_1, ..., B_maxIndex` using the
 /// first convention (`B_1 = -1/2`).
@@ -15,15 +16,28 @@ List<RationalNumber> bernoulliNumbers(int maxIndex) {
       b.add(IntegerNumber.zero);
       continue;
     }
-    var sum = IntegerNumber.zero as RationalNumber;
+    var binom = Integer.one;
+    var sum = (numerator: Integer.zero, denominator: Integer.one);
     for (var j = 0; j < m; j++) {
-      if (b[j].isZero) continue;
-      final binom = IntegerNumber(
-        Integer.from(m + 1).binomial(Integer.from(j)),
-      );
-      sum = sum.addRational(binom.mulRational(b[j]));
+      if (j > 0) {
+        binom = (binom * Integer.from(m + 2 - j)) ~/ Integer.from(j);
+      }
+      final bj = b[j];
+      if (!bj.isZero) {
+        sum = rationalAdd(
+          sum,
+          rationalMultiply(
+            (numerator: binom, denominator: Integer.one),
+            (numerator: bj.numerator, denominator: bj.denominator),
+          ),
+        );
+      }
     }
-    b.add(sum.neg().divRational(IntegerNumber.of(m + 1)));
+    final next = rationalDivide(rationalNegate(sum), (
+      numerator: Integer.from(m + 1),
+      denominator: Integer.one,
+    ));
+    b.add(RationalNumber.of(next.numerator, next.denominator));
   }
   return b;
 }

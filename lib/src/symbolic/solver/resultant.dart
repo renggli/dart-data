@@ -10,7 +10,7 @@ import 'univariate.dart';
 
 /// Sylvester resultant solver for bivariate polynomial systems.
 class SylvesterResultantSolver {
-  /// Constructs the Sylvester resultant matrix $S_x(f, g)$ eliminating [elimVariable].
+  /// Constructs the Sylvester resultant matrix `S_x(f, g)` eliminating [elimVariable].
   static Matrix<Expr> sylvesterMatrix(Expr f, Expr g, String elimVariable) {
     final expF = f.expand().simplify();
     final expG = g.expand().simplify();
@@ -26,22 +26,21 @@ class SylvesterResultantSolver {
         ));
 
     var degF = 0;
-    for (final p in fCoeffs.keys) {
-      if (p > degF && !isZeroExpr(fCoeffs[p]!)) degF = p;
+    for (final MapEntry(key: p, value: c) in fCoeffs.entries) {
+      if (p > degF && !isZeroExpr(c)) degF = p;
     }
     var degG = 0;
-    for (final p in gCoeffs.keys) {
-      if (p > degG && !isZeroExpr(gCoeffs[p]!)) degG = p;
+    for (final MapEntry(key: p, value: c) in gCoeffs.entries) {
+      if (p > degG && !isZeroExpr(c)) degG = p;
     }
 
     if (degF == 0 && degG == 0) {
-      final mat = Matrix<Expr>.filled(
-        1,
-        1,
-        IntegerNumber.one,
-        type: exprDataType,
-      );
-      return mat;
+      final cF = fCoeffs[0] ?? IntegerNumber.zero;
+      final cG = gCoeffs[0] ?? IntegerNumber.zero;
+      final val = (isZeroExpr(cF) || isZeroExpr(cG))
+          ? IntegerNumber.zero
+          : IntegerNumber.one;
+      return Matrix<Expr>.filled(1, 1, val, type: exprDataType);
     }
     if (degF == 0) {
       final mat = Matrix<Expr>.filled(

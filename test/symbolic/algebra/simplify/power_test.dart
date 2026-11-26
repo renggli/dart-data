@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/simplify/power.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Trivial and exponential base power identities', () {
@@ -46,9 +46,22 @@ void main() {
         simplifyPow(
           IntegerNumber.zero,
           Mul([IntegerNumber.of(-2), x]),
-          assumptions: Assumptions.none,
+          assumptions: Assumptions.positive,
         ),
       ).equals(Constant.undefined);
+      check(
+        simplifyPow(
+          IntegerNumber.zero,
+          Mul([IntegerNumber.of(-2), x]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(
+        Pow(
+          IntegerNumber.zero,
+          Mul([IntegerNumber.of(-2), x]),
+          isSimplified: true,
+        ),
+      );
 
       check(simplifyPow(IntegerNumber.zero, x, assumptions: Assumptions.none))
           .equals(Pow(IntegerNumber.zero, x, isSimplified: true));
@@ -412,9 +425,22 @@ void main() {
         simplifyPow(
           Constant.infinity,
           Mul([IntegerNumber.negativeOne, x]),
-          assumptions: Assumptions.none,
+          assumptions: Assumptions.positive,
         ),
       ).equals(IntegerNumber.zero);
+      check(
+        simplifyPow(
+          Constant.infinity,
+          Mul([IntegerNumber.negativeOne, x]),
+          assumptions: Assumptions.none,
+        ),
+      ).equals(
+        Pow(
+          Constant.infinity,
+          Mul([IntegerNumber.negativeOne, x]),
+          isSimplified: true,
+        ),
+      );
       check(
         simplifyPow(
           Constant.infinity,
@@ -451,6 +477,13 @@ void main() {
             FractionNumber.half,
           ).simplify(),
         ).equals(Expr.parse('1009 * sqrt(2)').simplify());
+        // Big square factor beyond small trial division limit
+        check(
+          Pow(
+            IntegerNumber.of(3 * 1000003 * 1000003),
+            FractionNumber.half,
+          ).simplify(),
+        ).equals(Expr.parse('1000003 * sqrt(3)').simplify());
       },
     );
 

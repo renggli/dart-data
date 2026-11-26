@@ -169,7 +169,7 @@ Expr? factorByGrouping4(List<Expr> terms, {required Assumptions assumptions}) {
   return null;
 }
 
-/// Matches difference of squares $A^2 - B^2 = (A - B)(A + B)$.
+/// Matches difference of squares `A^2 - B^2 = (A - B)(A + B)`.
 (Expr, Expr)? matchDifferenceOfSquares(List<Expr> terms) {
   if (terms case [final t1, final t2]) {
     final (c1, base1) = decomposeTerm(t1);
@@ -191,7 +191,7 @@ Expr? factorByGrouping4(List<Expr> terms, {required Assumptions assumptions}) {
   return null;
 }
 
-/// Computes the square root of monomial term $coeff \cdot base$.
+/// Computes the square root of monomial term `coeff * base`.
 Expr? monomialSquareRoot(RationalNumber coeff, Expr base) {
   final numSqrt = coeff.numerator.isqrt();
   final denSqrt = coeff.denominator.isqrt();
@@ -228,8 +228,8 @@ Expr? extractBaseSquareRoot(Expr expr) => switch (expr) {
 };
 
 /// Matches sum or difference of cubes:
-/// - $A^3 - B^3 = (A - B)(A^2 + A B + B^2)$
-/// - $A^3 + B^3 = (A + B)(A^2 - A B + B^2)$
+/// - `A^3 - B^3 = (A - B)(A^2 + A B + B^2)`
+/// - `A^3 + B^3 = (A + B)(A^2 - A B + B^2)`
 ({Expr a, Expr b, bool isDifference})? matchSumOrDifferenceOfCubes(
   List<Expr> terms,
 ) {
@@ -248,6 +248,11 @@ Expr? extractBaseSquareRoot(Expr expr) => switch (expr) {
           case (final cb1?, final cb2?)) {
         return (a: cb1, b: cb2, isDifference: true);
       }
+    } else if (c1.sign < 0 && c2.sign < 0) {
+      if ((monomialCubeRoot(c1.neg(), base1), monomialCubeRoot(c2.neg(), base2))
+          case (final cb1?, final cb2?)) {
+        return (a: -cb1, b: cb2, isDifference: true);
+      }
     } else if (c1.sign > 0 && c2.sign > 0) {
       if ((monomialCubeRoot(c1, base1), monomialCubeRoot(c2, base2)) case (
         final cb1?,
@@ -260,7 +265,7 @@ Expr? extractBaseSquareRoot(Expr expr) => switch (expr) {
   return null;
 }
 
-/// Computes the cube root of monomial term $coeff \cdot base$.
+/// Computes the cube root of monomial term `coeff * base`.
 Expr? monomialCubeRoot(RationalNumber coeff, Expr base) {
   final numCbrt = integerCbrt(coeff.numerator);
   final denCbrt = integerCbrt(coeff.denominator);
@@ -296,7 +301,7 @@ Expr? extractBaseCubeRoot(Expr expr) => switch (expr) {
   _ => null,
 };
 
-/// Tests whether [expr] equals scalar $1$.
+/// Tests whether [expr] equals scalar `1`.
 bool isOne(Expr expr) => expr is Number && expr.isOne;
 
 void _collectFactorPowers(Expr expr, Map<Expr, int> target) {
@@ -493,9 +498,17 @@ Expr? _factorQuadraticInVar(
     factorExpr(a, assumptions: assumptions),
   ]);
   final result = cancelFactoredFraction(prod, fourA);
-  if (result == Constant.undefined) return null;
+  if (result == Constant.undefined || _hasNegativePowerFactor(result)) {
+    return null;
+  }
   return result;
 }
+
+bool _hasNegativePowerFactor(Expr expr) => switch (expr) {
+  Pow(exponent: RealNumeric(isNegative: true)) => true,
+  Mul(:final factors) => factors.any(_hasNegativePowerFactor),
+  _ => false,
+};
 
 Expr? _factorHomogeneousBivariate(
   Expr expanded,

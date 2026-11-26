@@ -91,7 +91,7 @@ sealed class BinaryExpr extends Expr {
   Expr _withOperands(Expr left, Expr right);
 }
 
-/// N-ary addition node: $\sum_{i} t_i$.
+/// N-ary addition node: `sum_i t_i`.
 final class Add extends Expr {
   /// Creates an N-ary sum of [terms].
   new(List<Expr> terms, {this.isSimplified = false})
@@ -133,7 +133,7 @@ final class Add extends Expr {
           const ListEquality<Expr>().equals(terms, other.terms));
 }
 
-/// N-ary multiplication node: $\prod_{i} f_i$.
+/// N-ary multiplication node: `prod_i f_i`.
 final class Mul extends Expr {
   /// Creates an N-ary product of [factors].
   new(List<Expr> factors, {this.isSimplified = false})
@@ -175,9 +175,9 @@ final class Mul extends Expr {
           const ListEquality<Expr>().equals(factors, other.factors));
 }
 
-/// Exponentiation node: $\text{base}^{\text{exponent}}$.
+/// Exponentiation node: `base^exponent`.
 final class Pow extends BinaryExpr {
-  /// Creates an exponentiation node $\text{base}^{\text{exponent}}$.
+  /// Creates an exponentiation node `base^exponent`.
   new(super.base, super.exponent, {super.isSimplified = false});
 
   /// Base of the power expression.

@@ -2,6 +2,7 @@ import '../algebra/expand.dart';
 import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
+import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
@@ -103,7 +104,13 @@ Expr computeInfiniteLimit(
           }
           sign *= s;
         }
-      } on Object {
+      } on UnsupportedError {
+        allResolved = false;
+        break;
+      } on ArgumentError {
+        allResolved = false;
+        break;
+      } on StateError {
         allResolved = false;
         break;
       }
@@ -225,8 +232,9 @@ Expr _combineNumericPowers(
         final dom = extractDominantPolynomialTerm(exponent, variable);
         if (dom != null &&
             dom.degree == 1 &&
-            (base.sign > 0 || dom.coeff.denominator == 1)) {
-          numericPowers.add((base, dom.coeff, dom.remainder));
+            dom.coeff is RationalNumber &&
+            (base.sign > 0 || dom.coeff is IntegerNumber)) {
+          numericPowers.add((base, dom.coeff as RationalNumber, dom.remainder));
           continue;
         }
       }
@@ -258,7 +266,9 @@ Expr _combineNumericPowers(
           .simplify(assumptions: assumptions);
     }
   }
-  return mapped.simplify(assumptions: assumptions);
+  return identical(mapped, expr)
+      ? mapped
+      : mapped.simplify(assumptions: assumptions);
 }
 
 Expr resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
@@ -273,16 +283,16 @@ Expr resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
     return mapped;
   }
   if (mapped case Piecewise(:final branches, :final otherwise)) {
+    var undecided = false;
     for (final (:relation, :expr) in branches) {
-      try {
-        if (relation.evaluate({variable: 1e9}) == 1.0) {
-          return expr;
-        }
-      } on Object {
-        // Ignore
+      final status = _evalRelationAtPosInf(relation, variable);
+      if (status == null) {
+        undecided = true;
+        break;
       }
+      if (status) return expr;
     }
-    if (otherwise != null) {
+    if (!undecided && otherwise != null) {
       return otherwise;
     }
   }
@@ -306,28 +316,78 @@ Expr resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
   return mapped;
 }
 
-bool isBoundedFactorAtInfinity(Expr expr, String variable) => switch (expr) {
-  _ when !expr.dependsOn(variable) => isWellDefinedFinite(expr),
-  Sin() || Cos() => true,
-  Pow(base: final RealNumeric b, :final exponent) => () {
-    final cmp = b.abs().compareTo(IntegerNumber.one);
-    if (cmp == 0) return true;
+bool? _evalRelationAtPosInf(RelationalExpr relation, String variable) {
+  final diff = (relation.left - relation.right).simplify();
+  final sign = asymptoticSignAtInfinity(diff, variable);
+  if (sign != 0) {
+    return switch (relation) {
+      GreaterThan() || GreaterEqual() => sign > 0,
+      LessThan() || LessEqual() => sign < 0,
+      Equal() => false,
+      NotEqual() => true,
+    };
+  }
+  if (diff is Number && diff.isZero) {
+    return switch (relation) {
+      GreaterEqual() || LessEqual() || Equal() => true,
+      GreaterThan() || LessThan() || NotEqual() => false,
+    };
+  }
+  if (relation.freeVariables.difference({variable}).isNotEmpty) {
+    return null;
+  }
+  bool? agreed;
+  for (final sample in const [1e9, 1e15, 1e30]) {
     try {
-      final expLim = computeInfiniteLimit(
-        exponent,
-        variable,
-        isPositive: true,
-        assumptions: Assumptions.none,
-      );
-      if (cmp < 0 && isPositiveInfinity(expLim)) return true;
-      if (cmp > 0 && isNegativeInfinity(expLim)) return true;
-    } on Object {
-      // Ignore
+      final v = relation.evaluate({variable: sample});
+      if (v.isNaN) return null;
+      final res = v == 1.0;
+      if (agreed == null) {
+        agreed = res;
+      } else if (agreed != res) {
+        return null;
+      }
+    } on UnsupportedError {
+      return null;
+    } on ArgumentError {
+      return null;
+    } on StateError {
+      return null;
     }
-    return false;
-  }(),
-  _ => false,
-};
+  }
+  return agreed;
+}
+
+bool isBoundedFactorAtInfinity(Expr expr, String variable) {
+  final realVar = Assumptions(domains: {variable: VariableDomain.real});
+  return switch (expr) {
+    _ when !expr.dependsOn(variable) => isWellDefinedFinite(expr),
+    Sin(expr: final inner) ||
+    Cos(expr: final inner) => isProvenReal(inner, realVar),
+    Pow(base: final RealNumeric b, :final exponent) => () {
+      final cmp = b.abs().compareTo(IntegerNumber.one);
+      if (cmp == 0) return true;
+      try {
+        final expLim = computeInfiniteLimit(
+          exponent,
+          variable,
+          isPositive: true,
+          assumptions: Assumptions.none,
+        );
+        if (cmp < 0 && isPositiveInfinity(expLim)) return true;
+        if (cmp > 0 && isNegativeInfinity(expLim)) return true;
+      } on UnsupportedError {
+        // Ignore
+      } on ArgumentError {
+        // Ignore
+      } on StateError {
+        // Ignore
+      }
+      return false;
+    }(),
+    _ => false,
+  };
+}
 
 Expr? rationalFunctionLimitAtInfinity(
   Expr expr,
@@ -529,7 +589,10 @@ Expr rewriteHyperbolicsToExp(Expr expr, Assumptions assumptions) {
       (FractionNumber.half *
               Ln((IntegerNumber.one + u) / (IntegerNumber.one - u)))
           .simplify(assumptions: assumptions),
-    _ => mapped.simplify(assumptions: assumptions),
+    _ =>
+      identical(mapped, expr)
+          ? mapped
+          : mapped.simplify(assumptions: assumptions),
   };
 }
 
@@ -551,7 +614,11 @@ bool containsUnboundedOscillation(Expr expr, String variable) =>
             assumptions: Assumptions.none,
           );
           return isPositiveInfinity(lim) || isNegativeInfinity(lim);
-        } on Object {
+        } on UnsupportedError {
+          return true;
+        } on ArgumentError {
+          return true;
+        } on StateError {
           return true;
         }
       }
@@ -604,7 +671,11 @@ Expr? trySqueezeBoundedOscillation(Expr expr, String variable) {
     if (envLim is Number && envLim.isZero) {
       return IntegerNumber.zero;
     }
-  } on Object {
+  } on UnsupportedError {
+    // Ignore
+  } on ArgumentError {
+    // Ignore
+  } on StateError {
     // Ignore
   }
   return null;
@@ -626,8 +697,12 @@ bool _isBoundedOscillator(Expr expr, String variable) => switch (expr) {
 
 bool _isBoundedAtInfinity(Expr expr, String variable) {
   if (!expr.dependsOn(variable)) return true;
+  final realVar = Assumptions(domains: {variable: VariableDomain.real});
   return switch (expr) {
-    Sin() || Cos() || Atan() || Tanh() => true,
+    Sin(expr: final inner) ||
+    Cos(expr: final inner) ||
+    Tanh(expr: final inner) => isProvenReal(inner, realVar),
+    Atan(expr: final inner) => isProvenReal(inner, realVar),
     Add(:final terms) => terms.every((t) => _isBoundedAtInfinity(t, variable)),
     Mul(:final factors) => factors.every(
       (f) => _isBoundedAtInfinity(f, variable),
@@ -727,14 +802,16 @@ Expr? tryFiniteAddLimit(
 Expr expandSubdominantExponentials(
   Expr expr,
   String variable,
-  Assumptions assumptions,
-) {
+  Assumptions assumptions, [
+  bool inCancellingContext = false,
+]) {
   if (!expr.dependsOn(variable)) return expr;
+  final childCancel = inCancellingContext || expr is Add || expr is Ln;
   final mapped = expr.mapChildren(
-    (c) => expandSubdominantExponentials(c, variable, assumptions),
+    (c) => expandSubdominantExponentials(c, variable, assumptions, childCancel),
   );
 
-  if (mapped case Add(terms: [final t1, final t2])) {
+  if (mapped case Add(terms: [final t1, final t2]) when !inCancellingContext) {
     final m1 = _matchScaledExp(t1, variable);
     final m2 = _matchScaledExp(t2, variable);
     if (m1 != null && m2 != null) {
@@ -977,7 +1054,9 @@ Expr? tryLogVsPowerDominance(
       }(),
       _ => null,
     };
-    if (innerLn != null && isPurelyAlgebraic(innerLn)) {
+    if (innerLn != null &&
+        isPurelyAlgebraic(innerLn) &&
+        asymptoticSignAtInfinity(innerLn, variable, null, assumptions) > 0) {
       logTerms.add(t);
     } else {
       otherTerms.add(t);
@@ -999,7 +1078,11 @@ Expr? tryLogVsPowerDominance(
     );
     if (isPositiveInfinity(otherLim)) return Constant.infinity;
     if (isNegativeInfinity(otherLim)) return negInfinity;
-  } on Object {
+  } on UnsupportedError {
+    // Fall through
+  } on ArgumentError {
+    // Fall through
+  } on StateError {
     // Fall through
   }
   return null;

@@ -5,6 +5,7 @@ import '../../algebra/simplify/domain.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../differentiation.dart';
+import '../limit.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -53,7 +54,7 @@ Expr? matchScaledSquare(Expr expr, String variable) {
 }
 
 /// Returns `ln(u)` when `u` is proven positive under [assumptions] or may
-/// evaluate to a complex value, otherwise `ln(|u|)`.
+/// evaluate to a complex value, otherwise `ln(u)`.
 Expr logAntiderivative(Expr u, Assumptions assumptions) =>
     isPositiveExpr(u, assumptions: assumptions) || mayBeComplexExpr(u)
     ? Ln(u)
@@ -92,7 +93,12 @@ Expr? antiDerivAsin(Expr inner, String variable) {
       IntegerNumber.one - Pow(inner, IntegerNumber.two),
       FractionNumber.half,
     );
-    return (xVar * Asin(inner) + c * Ln((xVar * (IntegerNumber.one + s)) / c))
+    return (xVar * Asin(inner) +
+            c *
+                logAntiderivative(
+                  (xVar * (IntegerNumber.one + s)) / c,
+                  Assumptions.none,
+                ))
         .simplify();
   }
   return null;
@@ -114,7 +120,12 @@ Expr? antiDerivAcos(Expr inner, String variable) {
       IntegerNumber.one - Pow(inner, IntegerNumber.two),
       FractionNumber.half,
     );
-    return (xVar * Acos(inner) - c * Ln((xVar * (IntegerNumber.one + s)) / c))
+    return (xVar * Acos(inner) -
+            c *
+                logAntiderivative(
+                  (xVar * (IntegerNumber.one + s)) / c,
+                  Assumptions.none,
+                ))
         .simplify();
   }
   return null;
@@ -181,7 +192,9 @@ Expr? antiDerivLn(
   }
   if (depth < 2) {
     if (inner case Pow(:final base, :final exponent)
-        when !base.dependsOn(variable)) {
+        when !base.dependsOn(variable) &&
+            (base == Constant.e ||
+                isPositiveExpr(base, assumptions: assumptions))) {
       final lnBase = base == Constant.e ? IntegerNumber.one : Ln(base);
       final gInt = antiDerivative(
         exponent,
@@ -392,14 +405,26 @@ Expr antiDerivPiecewise(
       ? antiDerivative(expr.otherwise!, variable, assumptions: assumptions)
       : null;
 
+  Expr evalBoundary(Expr f, Expr pt, LimitDirection dir) {
+    final sub = f.substitute(variable, pt).simplify(assumptions: assumptions);
+    if (sub != Constant.undefined &&
+        !sub.anyNode(
+          (n) => n == Constant.undefined || n == Constant.infinity,
+        )) {
+      return sub;
+    }
+    return f.limit(variable, pt, direction: dir, assumptions: assumptions);
+  }
+
   final constants = <Expr>[IntegerNumber.zero];
   for (var k = 0; k < m - 1; k++) {
     final pt = _extractBoundaryPoint(expr.branches[k].relation, variable);
     if (pt != null) {
-      final vLeft = (rawG[k].substitute(variable, pt) + constants[k])
-          .simplify();
-      final vRight = rawG[k + 1].substitute(variable, pt).simplify();
-      constants.add((vLeft - vRight).simplify());
+      final vLeft =
+          (evalBoundary(rawG[k], pt, LimitDirection.fromBelow) + constants[k])
+              .simplify(assumptions: assumptions);
+      final vRight = evalBoundary(rawG[k + 1], pt, LimitDirection.fromAbove);
+      constants.add((vLeft - vRight).simplify(assumptions: assumptions));
     } else {
       constants.add(IntegerNumber.zero);
     }
@@ -409,10 +434,12 @@ Expr antiDerivPiecewise(
   if (rawOth != null && m > 0) {
     final pt = _extractBoundaryPoint(expr.branches[m - 1].relation, variable);
     if (pt != null) {
-      final vLeft = (rawG[m - 1].substitute(variable, pt) + constants[m - 1])
-          .simplify();
-      final vRight = rawOth.substitute(variable, pt).simplify();
-      constOth = (vLeft - vRight).simplify();
+      final vLeft =
+          (evalBoundary(rawG[m - 1], pt, LimitDirection.fromBelow) +
+                  constants[m - 1])
+              .simplify(assumptions: assumptions);
+      final vRight = evalBoundary(rawOth, pt, LimitDirection.fromAbove);
+      constOth = (vLeft - vRight).simplify(assumptions: assumptions);
     } else {
       constOth = IntegerNumber.zero;
     }
@@ -434,8 +461,12 @@ Expr antiDerivPiecewise(
 Expr? _extractBoundaryPoint(Expr cond, String variable) => switch (cond) {
   LessThan(left: Variable(:final name), right: final bound) ||
   LessEqual(left: Variable(:final name), right: final bound) ||
+  GreaterThan(left: Variable(:final name), right: final bound) ||
+  GreaterEqual(left: Variable(:final name), right: final bound) ||
   GreaterThan(left: final bound, right: Variable(:final name)) ||
-  GreaterEqual(
+  GreaterEqual(left: final bound, right: Variable(:final name)) ||
+  LessThan(left: final bound, right: Variable(:final name)) ||
+  LessEqual(
     left: final bound,
     right: Variable(:final name),
   ) when name == variable && !bound.dependsOn(variable) => bound,

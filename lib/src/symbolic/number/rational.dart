@@ -4,10 +4,10 @@ library;
 
 import 'integer.dart';
 
-/// A rational number $p/q$ as a pair of [Integer] components.
+/// A rational number `p/q` as a pair of [Integer] components.
 ///
-/// A pair is _normalized_ if $q > 0$ and $\gcd(|p|, q) = 1$; zero is
-/// normalized as $0/1$. All functions in this library expect normalized
+/// A pair is _normalized_ if `q > 0` and `gcd(|p|, q) = 1`; zero is
+/// normalized as `0/1`. All functions in this library expect normalized
 /// operands and return normalized results.
 typedef RationalParts = ({Integer numerator, Integer denominator});
 
@@ -99,7 +99,23 @@ RationalParts? rationalPow(
   int exponent, {
   int maxBitLength = Integer.defaultMaxBitLength,
 }) {
+  if (exponent == 0) {
+    return (numerator: Integer.one, denominator: Integer.one);
+  }
+  if (a.numerator.isZero) {
+    if (exponent < 0) throw UnsupportedError('Division by zero');
+    return _zero;
+  }
+  if (a.denominator.isOne) {
+    if (a.numerator.isOne) return a;
+    if (a.numerator == Integer.negativeOne) {
+      return exponent.isEven
+          ? (numerator: Integer.one, denominator: Integer.one)
+          : a;
+    }
+  }
   final base = exponent < 0 ? rationalInvert(a) : a;
+  if (exponent < 0 && -exponent < 0) return null;
   final magnitude = exponent.abs();
   final numerator = base.numerator.pow(magnitude, maxBitLength: maxBitLength);
   if (numerator == null) return null;

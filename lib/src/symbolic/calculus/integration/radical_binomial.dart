@@ -140,9 +140,21 @@ Expr? tryChebyshevBinomial(
         depth: depth + 1,
       );
       if (!hasUnevaluatedIntegral(uAntideriv, uName)) {
-        final backSub = Pow(
-          (a * Pow(Variable(variable), IntegerNumber.of(-n)) + b).simplify(),
+        final xVar = Variable(variable);
+        final backRad = Pow(
+          (a * Pow(xVar, IntegerNumber.of(-n)) + b).simplify(
+            assumptions: assumptions,
+          ),
           FractionNumber(Integer.one, Integer(q)),
+        );
+        final absXSignPow =
+            (n.isEven &&
+                p.isOdd &&
+                !isNonNegativeExpr(xVar, assumptions: assumptions))
+            ? Sign(xVar)
+            : IntegerNumber.one;
+        final backSub = (absXSignPow * backRad).simplify(
+          assumptions: assumptions,
         );
         return uAntideriv
             .substitute(uName, backSub)
@@ -473,6 +485,13 @@ Expr? tryFractionalLinearRadical(
   final (numB, denB) = splitNumeratorDenominator(targetPow!.base);
   final (:a, :b) = numB.matchLinear(variable)!;
   final (a: c, b: d) = denB.matchLinear(variable)!;
+  final det = (a * d - b * c).simplify(assumptions: assumptions);
+  if (det is Number && det.isZero) {
+    final ratio = (a / c).simplify(assumptions: assumptions);
+    return (Pow(ratio, FractionNumber(Integer(frac!.p), Integer(frac!.q))) *
+            Variable(variable))
+        .simplify(assumptions: assumptions);
+  }
   final n = frac!.q;
 
   const uName = '_fl';

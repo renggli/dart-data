@@ -6,6 +6,7 @@ import '../algebra/factor/fraction.dart';
 import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../type/expr_data_type.dart';
 
@@ -18,7 +19,10 @@ class BareissEngine {
   /// Computes the exact symbolic determinant of square [matrix].
   ///
   /// Throws [ArgumentError] if [matrix] is not square.
-  Expr determinant(Matrix<Expr> matrix) {
+  Expr determinant(
+    Matrix<Expr> matrix, {
+    Assumptions assumptions = Assumptions.none,
+  }) {
     if (!matrix.isSquare) {
       throw ArgumentError(
         'Matrix must be square to compute determinant, got '
@@ -28,13 +32,15 @@ class BareissEngine {
 
     final n = matrix.rowCount;
     if (n == 0) return IntegerNumber.one;
-    if (n == 1) return matrix.getUnchecked(0, 0).simplify();
+    if (n == 1) {
+      return matrix.getUnchecked(0, 0).simplify(assumptions: assumptions);
+    }
     if (n == 2) {
       final a = matrix.getUnchecked(0, 0);
       final b = matrix.getUnchecked(0, 1);
       final c = matrix.getUnchecked(1, 0);
       final d = matrix.getUnchecked(1, 1);
-      return (a * d - b * c).expand().simplify();
+      return (a * d - b * c).expand().simplify(assumptions: assumptions);
     }
 
     // Working mutable grid of expressions.
@@ -45,10 +51,10 @@ class BareissEngine {
     for (var k = 0; k < n - 1; k++) {
       // 1. Fraction-free row pivoting if pivot candidate vanishes.
       var pivot = m[k][k];
-      if (_isExprZero(pivot)) {
+      if (_isExprZero(pivot, assumptions)) {
         var swapRow = -1;
         for (var r = k + 1; r < n; r++) {
-          if (!_isExprZero(m[r][k])) {
+          if (!_isExprZero(m[r][k], assumptions)) {
             swapRow = r;
             break;
           }
@@ -69,10 +75,10 @@ class BareissEngine {
       // 2. Sylvester elimination step.
       for (var i = k + 1; i < n; i++) {
         for (var j = k + 1; j < n; j++) {
-          final num = (m[k][k] * m[i][j] - m[i][k] * m[k][j])
-              .expand()
-              .simplify();
-          m[i][j] = _exactDivide(num, pPrev);
+          final num = (m[k][k] * m[i][j] - m[i][k] * m[k][j]).expand().simplify(
+            assumptions: assumptions,
+          );
+          m[i][j] = _exactDivide(num, pPrev, assumptions);
         }
       }
 
@@ -81,24 +87,38 @@ class BareissEngine {
     }
 
     final det = m[n - 1][n - 1];
-    return sign == 1 ? det.simplify() : (-det).simplify();
+    return sign == 1
+        ? det.simplify(assumptions: assumptions)
+        : (-det).simplify(assumptions: assumptions);
   }
 
   /// Reduces [matrix] to Reduced Row Echelon Form (RREF) and returns the
   /// reduced matrix together with the list of 0-based pivot column indices.
   ({Matrix<Expr> rref, List<int> pivotColumns}) rowEchelonWithPivots(
-    Matrix<Expr> matrix,
-  ) {
+    Matrix<Expr> matrix, {
+    Assumptions assumptions = Assumptions.none,
+  }) {
     final rowCount = matrix.rowCount;
     final colCount = matrix.colCount;
     final effectiveType = matrix.type is ExprDataType
         ? matrix.type
         : exprDataType;
+    if (rowCount == 0 || colCount == 0) {
+      return (
+        rref: Matrix<Expr>.filled(
+          rowCount,
+          colCount,
+          IntegerNumber.zero,
+          type: effectiveType,
+        ),
+        pivotColumns: const [],
+      );
+    }
     final grid = [
       for (var r = 0; r < rowCount; r++)
         [
           for (var c = 0; c < colCount; c++)
-            matrix.getUnchecked(r, c).simplify(),
+            matrix.getUnchecked(r, c).simplify(assumptions: assumptions),
         ],
     ];
     final pivotColumns = <int>[];
@@ -109,7 +129,7 @@ class BareissEngine {
       var bestScore = -1;
       for (var r = pivotRow; r < rowCount; r++) {
         final candidate = grid[r][col];
-        if (!_isExprZero(candidate)) {
+        if (!_isExprZero(candidate, assumptions)) {
           final score = _pivotPreferenceScore(candidate);
           if (score > bestScore) {
             bestScore = score;
@@ -130,26 +150,30 @@ class BareissEngine {
       grid[pivotRow][col] = IntegerNumber.one;
       if (pivot != IntegerNumber.one) {
         for (var c = col + 1; c < colCount; c++) {
-          grid[pivotRow][c] = _simplifyRatio(grid[pivotRow][c], pivot);
+          grid[pivotRow][c] = _simplifyRatio(
+            grid[pivotRow][c],
+            pivot,
+            assumptions,
+          );
         }
       }
 
       for (var r = 0; r < rowCount; r++) {
         if (r == pivotRow) continue;
         final factor = grid[r][col];
-        if (_isExprZero(factor)) {
+        if (_isExprZero(factor, assumptions)) {
           grid[r][col] = IntegerNumber.zero;
           continue;
         }
         grid[r][col] = IntegerNumber.zero;
         for (var c = col + 1; c < colCount; c++) {
           final pivotEntry = grid[pivotRow][c];
-          if (!_isExprZero(pivotEntry)) {
+          if (!_isExprZero(pivotEntry, assumptions)) {
             final cell = grid[r][c];
             grid[r][c] =
                 (cell is Number && factor is Number && pivotEntry is Number)
                 ? cell.sub(factor.mul(pivotEntry))
-                : _simplifyDifference(cell, factor * pivotEntry);
+                : _simplifyDifference(cell, factor * pivotEntry, assumptions);
           }
         }
       }
@@ -162,17 +186,28 @@ class BareissEngine {
   }
 
   /// Computes the Reduced Row Echelon Form (RREF) of [matrix].
-  Matrix<Expr> rowEchelon(Matrix<Expr> matrix) =>
-      rowEchelonWithPivots(matrix).rref;
+  Matrix<Expr> rowEchelon(
+    Matrix<Expr> matrix, {
+    Assumptions assumptions = Assumptions.none,
+  }) => rowEchelonWithPivots(matrix, assumptions: assumptions).rref;
 
   /// Computes the exact algebraic rank of [matrix].
-  int rank(Matrix<Expr> matrix) =>
-      rowEchelonWithPivots(matrix).pivotColumns.length;
+  int rank(Matrix<Expr> matrix, {Assumptions assumptions = Assumptions.none}) =>
+      rowEchelonWithPivots(
+        matrix,
+        assumptions: assumptions,
+      ).pivotColumns.length;
 
-  /// Computes a basis for the right nullspace (kernel) $\{x \mid A x = 0\}$
+  /// Computes a basis for the right nullspace (kernel) `{x | A * x = 0}`
   /// of [matrix].
-  List<Vector<Expr>> nullSpace(Matrix<Expr> matrix) {
-    final (:rref, :pivotColumns) = rowEchelonWithPivots(matrix);
+  List<Vector<Expr>> nullSpace(
+    Matrix<Expr> matrix, {
+    Assumptions assumptions = Assumptions.none,
+  }) {
+    final (:rref, :pivotColumns) = rowEchelonWithPivots(
+      matrix,
+      assumptions: assumptions,
+    );
     final colCount = matrix.colCount;
     final effectiveType = matrix.type is ExprDataType
         ? matrix.type
@@ -187,8 +222,8 @@ class BareissEngine {
       for (var pIdx = 0; pIdx < pivotColumns.length; pIdx++) {
         final pCol = pivotColumns[pIdx];
         final entry = rref.getUnchecked(pIdx, freeCol);
-        if (!_isExprZero(entry)) {
-          coords[pCol] = (-entry).simplify();
+        if (!_isExprZero(entry, assumptions)) {
+          coords[pCol] = (-entry).simplify(assumptions: assumptions);
         }
       }
       basis.add(Vector<Expr>.fromList(coords, type: effectiveType));
@@ -196,9 +231,13 @@ class BareissEngine {
     return basis;
   }
 
-  /// Solves the symbolic linear system $A x = b$ for a [Vector] or [Matrix]
+  /// Solves the symbolic linear system `A * x = b` for a [Vector] or [Matrix]
   /// right-hand side [b], returning `null` if the system has no unique solution.
-  S? solve<S extends Object>(Matrix<Expr> matrix, S b) {
+  S? solve<S extends Object>(
+    Matrix<Expr> matrix,
+    S b, {
+    Assumptions assumptions = Assumptions.none,
+  }) {
     final m = matrix.rowCount;
     final n = matrix.colCount;
     final effectiveType = matrix.type is ExprDataType
@@ -211,7 +250,11 @@ class BareissEngine {
           'Dimension mismatch: Matrix $m x $n, Vector ${b.length}',
         );
       }
-      final solvedMat = solve<Matrix<Expr>>(matrix, b.toMatrix());
+      final solvedMat = solve<Matrix<Expr>>(
+        matrix,
+        b.toMatrix(),
+        assumptions: assumptions,
+      );
       return solvedMat?.col(0).copy() as S?;
     }
 
@@ -228,7 +271,10 @@ class BareissEngine {
         (r, c) => c < n ? matrix.getUnchecked(r, c) : b.getUnchecked(r, c - n),
         type: effectiveType,
       );
-      final (:rref, :pivotColumns) = rowEchelonWithPivots(augmented);
+      final (:rref, :pivotColumns) = rowEchelonWithPivots(
+        augmented,
+        assumptions: assumptions,
+      );
 
       // Inconsistent if any pivot column lies in the RHS columns (>= n),
       // or underdetermined if fewer than n pivots lie in the first n columns.
@@ -255,69 +301,84 @@ class BareissEngine {
     _ => 0,
   };
 
-  static Expr _simplifyRatio(Expr num, Expr den) {
+  static Expr _simplifyRatio(Expr num, Expr den, Assumptions assumptions) {
     if (num is Number && den is Number && !den.isZero) return num.div(den);
-    final sNum = num.expand().simplify();
-    if (_isExprZero(sNum)) return IntegerNumber.zero;
-    final sDen = den.expand().simplify();
+    final sNum = num.expand().simplify(assumptions: assumptions);
+    if (_isExprZero(sNum, assumptions)) return IntegerNumber.zero;
+    final sDen = den.expand().simplify(assumptions: assumptions);
     if (sDen == IntegerNumber.one) return sNum;
-    if (sDen == IntegerNumber.negativeOne) return (-sNum).simplify();
-    final direct = (sNum / sDen).simplify();
+    if (sDen == IntegerNumber.negativeOne) {
+      return (-sNum).simplify(assumptions: assumptions);
+    }
+    final direct = (sNum / sDen).simplify(assumptions: assumptions);
     if (!_hasDiv(direct)) return direct;
-    return cancelFactoredFraction(sNum.factor(), sDen.factor()).simplify();
+    return cancelFactoredFraction(
+      sNum.factor(assumptions: assumptions),
+      sDen.factor(assumptions: assumptions),
+    ).simplify(assumptions: assumptions);
   }
 
-  static Expr _simplifyDifference(Expr a, Expr b) {
+  static Expr _simplifyDifference(Expr a, Expr b, Assumptions assumptions) {
     if (a is Number && b is Number) return a.sub(b);
-    final diff = (a - b).simplify();
-    if (!_hasDiv(diff)) return diff.expand().simplify();
-    return diff.cancel().simplify();
+    final diff = (a - b).simplify(assumptions: assumptions);
+    if (!_hasDiv(diff)) return diff.expand().simplify(assumptions: assumptions);
+    return diff
+        .cancel(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
   }
 
   /// Divides [num] by [den] with guaranteed zero remainder.
-  static Expr _exactDivide(Expr num, Expr den) {
+  static Expr _exactDivide(Expr num, Expr den, Assumptions assumptions) {
     if (den == IntegerNumber.one) return num;
-    if (den == IntegerNumber.negativeOne) return (-num).expand().simplify();
-    if (_isExprZero(num)) return IntegerNumber.zero;
+    if (den == IntegerNumber.negativeOne) {
+      return (-num).expand().simplify(assumptions: assumptions);
+    }
+    if (_isExprZero(num, assumptions)) return IntegerNumber.zero;
 
     // (a) Numeric divisor: direct division
     if (den is Number) {
-      return (num / den).expand().simplify();
+      return (num / den).expand().simplify(assumptions: assumptions);
     }
 
     // (b) Polynomial long division path (univariate or multivariate)
-    final polyDiv = _polynomialLongDivide(num, den);
+    final polyDiv = _polynomialLongDivide(num, den, assumptions);
     if (polyDiv != null && !_hasDiv(polyDiv)) {
       return polyDiv;
     }
 
     // (c) Factored cancellation fallback
     final cancelled = cancelFactoredFraction(
-      num.factor(),
-      den.factor(),
-    ).expand().simplify();
+      num.factor(assumptions: assumptions),
+      den.factor(assumptions: assumptions),
+    ).expand().simplify(assumptions: assumptions);
     if (!_hasDiv(cancelled)) return cancelled;
 
     // Sequential factor division: if den factors into multiple factors, divide sequentially
     final denFactors = <Expr>[];
-    collectFactors(den.factor(), denFactors);
+    collectFactors(den.factor(assumptions: assumptions), denFactors);
     if (denFactors.length > 1) {
       var current = num;
       var allClean = true;
       for (final f in denFactors) {
-        current = _exactDivide(current, f);
+        current = _exactDivide(current, f, assumptions);
         if (_hasDiv(current)) {
           allClean = false;
           break;
         }
       }
-      if (allClean && !_hasDiv(current)) return current.expand().simplify();
+      if (allClean && !_hasDiv(current)) {
+        return current.expand().simplify(assumptions: assumptions);
+      }
     }
 
-    return (num / den).simplify();
+    return (num / den).simplify(assumptions: assumptions);
   }
 
-  static Expr? _polynomialLongDivide(Expr num, Expr den) {
+  static Expr? _polynomialLongDivide(
+    Expr num,
+    Expr den,
+    Assumptions assumptions,
+  ) {
     final vars = den.freeVariables.toList();
     if (vars.isEmpty) return null;
 
@@ -328,7 +389,8 @@ class BareissEngine {
       if (dCoeffs == null) continue;
       final m = maxPolynomialDegree(dCoeffs);
       if (m <= 0) continue;
-      final dm = dCoeffs[m]!;
+      final dm = dCoeffs[m];
+      if (dm == null) continue;
       final score =
           (switch (dm) {
             IntegerNumber(isOne: true) ||
@@ -344,7 +406,7 @@ class BareissEngine {
     candidates.sort((a, b) => b.score.compareTo(a.score));
 
     for (final (:v, score: _, :m, :dm) in candidates) {
-      final res = _divideByVariable(num, den, v, m, dm);
+      final res = _divideByVariable(num, den, v, m, dm, assumptions);
       if (res != null && !_hasDiv(res)) {
         return res;
       }
@@ -353,30 +415,40 @@ class BareissEngine {
     return null;
   }
 
-  static Expr? _divideByVariable(Expr num, Expr den, String v, int m, Expr dm) {
-    var remainder = num.expand().simplify();
+  static Expr? _divideByVariable(
+    Expr num,
+    Expr den,
+    String v,
+    int m,
+    Expr dm,
+    Assumptions assumptions,
+  ) {
+    var remainder = num.expand().simplify(assumptions: assumptions);
     Expr quotient = IntegerNumber.zero;
 
     var nCoeffs = extractPolynomialCoefficients(remainder, v);
 
-    while (!_isExprZero(remainder)) {
+    while (!_isExprZero(remainder, assumptions)) {
       if (nCoeffs == null) break;
       final k = maxPolynomialDegree(nCoeffs);
       if (k < m) {
         return null;
       }
-      final nk = nCoeffs[k]!;
+      final nk = nCoeffs[k];
+      if (nk == null) return null;
 
       final Expr qc;
       switch (dm) {
         case IntegerNumber(isOne: true):
           qc = nk;
         case IntegerNumber(isNegativeOne: true):
-          qc = (-nk).expand().simplify();
+          qc = (-nk).expand().simplify(assumptions: assumptions);
         case RationalNumber():
-          qc = (nk * dm.reciprocal()).expand().simplify();
+          qc = (nk * dm.reciprocal()).expand().simplify(
+            assumptions: assumptions,
+          );
         case _:
-          qc = _exactDivide(nk, dm);
+          qc = _exactDivide(nk, dm, assumptions);
           if (_hasDiv(qc)) return null;
       }
 
@@ -385,13 +457,22 @@ class BareissEngine {
           ? qc
           : (p == 1 ? qc * Variable(v) : qc * Variable(v).pow(p));
 
-      quotient = (quotient + qTerm).expand().simplify();
-      remainder = (remainder - (qTerm * den)).expand().simplify();
-      nCoeffs = extractPolynomialCoefficients(remainder, v);
+      quotient = (quotient + qTerm).expand().simplify(assumptions: assumptions);
+      final nextRemainder = (remainder - (qTerm * den)).expand().simplify(
+        assumptions: assumptions,
+      );
+      final nextCoeffs = extractPolynomialCoefficients(nextRemainder, v);
+      if (!_isExprZero(nextRemainder, assumptions) &&
+          nextCoeffs != null &&
+          maxPolynomialDegree(nextCoeffs) >= k) {
+        return null;
+      }
+      remainder = nextRemainder;
+      nCoeffs = nextCoeffs;
     }
 
-    if (_isExprZero(remainder)) {
-      return quotient.expand().simplify();
+    if (_isExprZero(remainder, assumptions)) {
+      return quotient.expand().simplify(assumptions: assumptions);
     }
     return null;
   }
@@ -403,10 +484,17 @@ class BareissEngine {
     },
   );
 
-  static bool _isExprZero(Expr expr) {
+  static bool _isExprZero(
+    Expr expr, [
+    Assumptions assumptions = Assumptions.none,
+  ]) {
     if (isZeroExpr(expr)) return true;
-    if (_hasDiv(expr)) {
-      final combined = expr.together().simplify();
+    final simp = expr.simplify(assumptions: assumptions);
+    if (isZeroExpr(simp)) return true;
+    if (_hasDiv(simp)) {
+      final combined = simp
+          .together(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
       return isZeroExpr(combined);
     }
     return false;

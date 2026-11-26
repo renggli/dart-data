@@ -1,19 +1,19 @@
 part of '../ast.dart';
 
-/// Lambert $W$ function (product logarithm) node: $W_k(x)$, satisfying
-/// $W_k(x) e^{W_k(x)} = x$.
+/// Lambert `W` function (product logarithm) node: `W_k(x)`, satisfying
+/// `W_k(x) e^{W_k(x)} = x`.
 ///
-/// The principal branch is $k = 0$ ($W_0(x)$ for $x \ge -1/e$), and the lower
-/// real branch is $k = -1$ ($W_{-1}(x)$ for $-1/e \le x < 0$).
+/// The principal branch is `k = 0` (`W_0(x)` for `x >=-1/e`), and the lower
+/// real branch is `k = -1` (`W_-1(x)` for `-1/e <=x < 0`).
 final class LambertW extends UnaryExpr {
-  /// Creates a Lambert $W$ node $W_{\text{branch}}(\text{expr})$.
+  /// Creates a Lambert `W` node `W_branch(expr)`.
   new(super.expr, {this.branch = 0, super.isSimplified = false})
     : assert(
         branch == 0 || branch == -1,
         'Real LambertW only supports branches 0 and -1',
       );
 
-  /// The branch index ($0$ for principal branch, $-1$ for lower real branch).
+  /// The branch index (`0` for principal branch, `-1` for lower real branch).
   final int branch;
 
   @override
