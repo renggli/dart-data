@@ -372,5 +372,91 @@ void main() {
         ).isNaN,
       ).isTrue;
     });
+
+    test(
+      'handles near-integer c - a - b, |z| > 1.25 integer a - b, and corner z',
+      () {
+        // Near-integer c - a - b = 0 within floating-point rounding near z = 1
+        const zNear1 = Complex(0.75, 0.1);
+        final epsA = const Complex(1.0 / 3.0 + 4.0 / 3.0) + const Complex(1.0);
+        const epsB = Complex(1.0 / 3.0);
+        final epsC = const Complex(3.0) - const Complex(1e-15);
+        final expectedLog = (-Complex.one + zNear1).abs() > 0
+            ? hypergeometric2F1Complex(
+                const Complex(8.0 / 3.0),
+                const Complex(1.0 / 3.0),
+                const Complex(3.0),
+                zNear1,
+              )
+            : Complex.nan;
+        check(
+          (hypergeometric2F1Complex(epsA, epsB, epsC, zNear1) - expectedLog)
+              .abs(),
+        ).isLessThan(1e-12);
+        check(
+          (hypergeometric2F1(8.0 / 3.0, 1.0 / 3.0, 3.0 - 1e-15, 0.95) -
+                  hypergeometric2F1(8.0 / 3.0, 1.0 / 3.0, 3.0, 0.95))
+              .abs(),
+        ).isLessThan(1e-12);
+
+        // |z| > 1.25 with integer a - b and integer c - b:
+        // 2F1(1, 2; 3; z) = -2/z - 2*ln(1 - z)/z^2
+        for (final z in const [
+          Complex(-2.5, 0.4),
+          Complex(0.6, 1.8),
+          Complex(2.2, -0.9),
+        ]) {
+          final expected123 =
+              const Complex(-2.0) / z -
+              const Complex(2.0) * (Complex.one - z).log() / (z * z);
+          check(
+            (hypergeometric2F1Complex(
+                      Complex.one,
+                      const Complex(2.0),
+                      const Complex(3.0),
+                      z,
+                    ) -
+                    expected123)
+                .abs(),
+          ).isLessThan(1e-11);
+        }
+
+        // |z| > 1.25 with integer a - b = 0 and non-integer c - b:
+        // 2F1(1/2, 1/2; 3/2; -z^2) = asinh(z) / z
+        const zArg = Complex(1.2, 0.7);
+        final zSqNeg = -(zArg * zArg);
+        check(
+          (hypergeometric2F1Complex(
+                    const Complex(0.5),
+                    const Complex(0.5),
+                    const Complex(1.5),
+                    zSqNeg,
+                  ) -
+                  zArg.asinh() / zArg)
+              .abs(),
+        ).isLessThan(1e-11);
+
+        // Corner near exp(±i*pi/3): |z| >= 0.8, |1 - z| >= 0.8, |w| >= 0.8, |z| <= 1.25
+        // 2F1(1, 1; 2; z) = -ln(1 - z) / z
+        for (final zCorner in const [
+          Complex(0.5, 0.8660254037844386),
+          Complex(0.45, -0.9),
+          Complex(0.95, 0.78),
+          Complex(0.08, 1.2),
+        ]) {
+          final exactCorner = -(Complex.one - zCorner).log() / zCorner;
+          check(
+            (hypergeometric2F1Complex(
+                      Complex.one,
+                      Complex.one,
+                      const Complex(2.0),
+                      zCorner,
+                    ) -
+                    exactCorner)
+                .abs(),
+          ).isLessThan(1e-12);
+        }
+      },
+    );
   });
 }

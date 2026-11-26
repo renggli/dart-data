@@ -270,7 +270,15 @@ double realPow(double base, double exponent, [int oddRootMode = 0]) {
   return math.pow(base, exponent).toDouble();
 }
 
+/// Normalizes negative zeros (`-0.0`) on real and imaginary parts to `+0.0`
+/// so complex branch-cut operations (`log`, `sqrt`, `pow`, inverse
+/// trigonometric/hyperbolic functions) follow principal-branch semantics.
+Complex normalizeComplexZero(Complex z) =>
+    Complex(z.a == 0.0 ? 0.0 : z.a, z.b == 0.0 ? 0.0 : z.b);
+
 Complex complexPow(Complex base, Complex exponent) {
+  base = normalizeComplexZero(base);
+  exponent = normalizeComplexZero(exponent);
   if (exponent == Complex.zero) return Complex.one;
   if (base == Complex.zero) {
     if (exponent.a > 0) return Complex.zero;
@@ -284,17 +292,17 @@ Complex complexPow(Complex base, Complex exponent) {
       exponent.a.abs() <= 64) {
     final n = exponent.a.round();
     if (n == 1) return base;
-    if (n == 2) return base * base;
-    if (n == -1) return Complex.one / base;
+    if (n == 2) return normalizeComplexZero(base * base);
+    if (n == -1) return normalizeComplexZero(Complex.one / base);
     var result = Complex.one;
-    var cur = n < 0 ? Complex.one / base : base;
+    var cur = n < 0 ? normalizeComplexZero(Complex.one / base) : base;
     var m = n.abs();
     while (m > 0) {
       if (m.isOdd) result *= cur;
       cur *= cur;
       m >>= 1;
     }
-    return result;
+    return normalizeComplexZero(result);
   }
   return base.pow(exponent);
 }

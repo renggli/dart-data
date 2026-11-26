@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/compiler/bytecode.dart';
 import 'package:data/symbolic.dart';
@@ -656,6 +658,33 @@ void main() {
         final bc = expr.toBytecode(variables: const ['x', 'y']);
         check(bc.evaluateList(const [0.8, 0.4])).isCloseTo(expected, 1e-10);
       }
+    });
+
+    test('normalizes signed zero for principal complex branch cuts', () {
+      const x = Variable('x');
+      final recipSqrt = Pow(IntegerNumber.one / x, FractionNumber.half);
+      final sqrtRecip = Pow(x, FractionNumber.negativeHalf);
+      final v1 = recipSqrt.evaluateComplex(const {'x': Complex(-1.0)});
+      final v2 = sqrtRecip.evaluateComplex(const {'x': Complex(-1.0)});
+      check(v1.a).isCloseTo(0.0, 1e-12);
+      check(v1.b).isCloseTo(1.0, 1e-12);
+      check((v1 + v2).abs()).isCloseTo(0.0, 1e-12);
+
+      final lnNeg = Ln(IntegerNumber.one / x);
+      final vLn = lnNeg.evaluateComplex(const {'x': Complex(-1.0)});
+      check(vLn.a).isCloseTo(0.0, 1e-12);
+      check(vLn.b).isCloseTo(math.pi, 1e-12);
+
+      final bc = Ln(-x).toBytecode(variables: const ['x']);
+      final vNegLn = bc.evaluateComplex1D(const Complex(1.0));
+      check(vNegLn.a).isCloseTo(0.0, 1e-12);
+      check(vNegLn.b).isCloseTo(math.pi, 1e-12);
+
+      final vSqrt = Pow(IntegerNumber.one / x, FractionNumber.half)
+          .toBytecode(variables: const ['x'])
+          .evaluateComplex1D(const Complex(-4.0));
+      check(vSqrt.a).isCloseTo(0.0, 1e-12);
+      check(vSqrt.b).isCloseTo(0.5, 1e-12);
     });
   });
 }

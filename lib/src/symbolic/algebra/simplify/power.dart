@@ -161,6 +161,15 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
               ),
             ], assumptions: assumptions);
           }
+          if (assumptions.defaultDomain == VariableDomain.complex) {
+            if (base == IntegerNumber.negativeOne) {
+              return Pow(base, exponent, isSimplified: true);
+            }
+            return simplifyMul([
+              Pow(IntegerNumber.negativeOne, exponent, isSimplified: true),
+              simplifyPow(base.neg(), exponent, assumptions: assumptions),
+            ], assumptions: assumptions);
+          }
         }
         final folded = base.powNumber(exponent);
         if (folded != null) return folded;

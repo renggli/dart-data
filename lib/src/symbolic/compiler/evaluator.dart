@@ -627,15 +627,17 @@ final class BytecodeEvaluator {
           case Op.div:
             final b = stack[--sp];
             final a = stack[--sp];
-            stack[sp++] = b == Complex.zero && a.b == 0.0 && a.a != 0.0
-                ? Complex(a.a / 0.0)
-                : a / b;
+            stack[sp++] = normalizeComplexZero(
+              b == Complex.zero && a.b == 0.0 && a.a != 0.0
+                  ? Complex(a.a / 0.0)
+                  : a / b,
+            );
           case Op.pow:
             final b = stack[--sp];
             final a = stack[--sp];
             stack[sp++] = complexPow(a, b);
           case Op.neg:
-            stack[sp - 1] = -stack[sp - 1];
+            stack[sp - 1] = normalizeComplexZero(-stack[sp - 1]);
           case Op.sin:
             stack[sp - 1] = stack[sp - 1].sin();
           case Op.cos:
@@ -643,15 +645,15 @@ final class BytecodeEvaluator {
           case Op.exp:
             stack[sp - 1] = stack[sp - 1].exp();
           case Op.ln:
-            stack[sp - 1] = stack[sp - 1].log();
+            stack[sp - 1] = normalizeComplexZero(stack[sp - 1]).log();
           case Op.tan:
             stack[sp - 1] = stack[sp - 1].tan();
           case Op.asin:
-            stack[sp - 1] = stack[sp - 1].asin();
+            stack[sp - 1] = normalizeComplexZero(stack[sp - 1]).asin();
           case Op.acos:
-            stack[sp - 1] = stack[sp - 1].acos();
+            stack[sp - 1] = normalizeComplexZero(stack[sp - 1]).acos();
           case Op.atan:
-            stack[sp - 1] = stack[sp - 1].atan();
+            stack[sp - 1] = normalizeComplexZero(stack[sp - 1]).atan();
           case Op.atan2:
             final zX = stack[--sp];
             final zY = stack[--sp];
@@ -673,7 +675,7 @@ final class BytecodeEvaluator {
           case Op.abs:
             stack[sp - 1] = Complex(stack[sp - 1].abs());
           case Op.sqrt:
-            stack[sp - 1] = stack[sp - 1].sqrt();
+            stack[sp - 1] = normalizeComplexZero(stack[sp - 1]).sqrt();
           case Op.lambertW0:
             stack[sp - 1] = special_lambert.lambertWComplex(stack[sp - 1]);
           case Op.lambertW1:
@@ -880,11 +882,11 @@ final class BytecodeEvaluator {
           case Op.conj:
             stack[sp - 1] = stack[sp - 1].conjugate();
           case Op.asinh:
-            stack[sp - 1] = stack[sp - 1].asinh();
+            stack[sp - 1] = normalizeComplexZero(stack[sp - 1]).asinh();
           case Op.acosh:
-            stack[sp - 1] = stack[sp - 1].acosh();
+            stack[sp - 1] = normalizeComplexZero(stack[sp - 1]).acosh();
           case Op.atanh:
-            stack[sp - 1] = stack[sp - 1].atanh();
+            stack[sp - 1] = normalizeComplexZero(stack[sp - 1]).atanh();
           case Op.lt:
             final b = stack[--sp];
             final a = stack[--sp];

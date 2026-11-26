@@ -234,10 +234,11 @@ double hypergeometric2F1(num a, num b, num c, num z) {
   }
   if (zd >= 0.9) {
     final diff = cd - ad - bd;
-    if (diff.isFinite && diff.roundToDouble() == diff) {
-      final m = diff.round();
+    final roundedDiff = diff.roundToDouble();
+    if (diff.isFinite && (diff - roundedDiff).abs() <= 1e-10) {
+      final m = roundedDiff.round();
       if (m < 0) {
-        return pow(1.0 - zd, diff) *
+        return pow(1.0 - zd, roundedDiff) *
             hypergeometric2F1(cd - ad, cd - bd, cd, zd);
       }
       return _hypergeometric2F1Logarithmic(ad, bd, cd, m, zd);
@@ -302,20 +303,21 @@ Complex hypergeometric2F1Complex(Complex a, Complex b, Complex c, Complex z) {
   if (isCNonPosInt) {
     return Complex.nan;
   }
+  z = _normalizeZero(z);
   if (z.a == 0.0 && z.b == 0.0) return Complex.one;
   if (z.abs() >= 0.8) {
-    final w = z / (z - Complex.one);
+    final w = _normalizeZero(z / (z - Complex.one));
     if (w.abs() < 0.8) {
-      return (Complex.one - z).pow(-a) *
+      return _normalizeZero(Complex.one - z).pow(-a) *
           hypergeometric2F1Complex(a, c - b, c, w);
     }
-    final oneMinusZ = Complex.one - z;
+    final oneMinusZ = _normalizeZero(Complex.one - z);
     if (oneMinusZ.abs() < 0.8) {
       final diff = c - a - b;
-      if (diff.b == 0.0 && diff.a == diff.a.roundToDouble()) {
+      if (_isNearRealInt(diff)) {
         final m = diff.a.round();
         if (m < 0) {
-          return oneMinusZ.pow(diff) *
+          return oneMinusZ.pow(Complex(m.toDouble())) *
               hypergeometric2F1Complex(c - a, c - b, c, z);
         }
         return _hypergeometric2F1LogarithmicComplex(a, b, c, m, oneMinusZ);
@@ -347,36 +349,38 @@ Complex hypergeometric2F1Complex(Complex a, Complex b, Complex c, Complex z) {
     }
     if (z.abs() > 1.25) {
       final abDiff = a - b;
-      if (abDiff.b != 0.0 || abDiff.a != abDiff.a.roundToDouble()) {
-        final invZ = z.reciprocal();
-        final negZ = -z;
-        final t1 = (_isComplexNonPosInt(b) || _isComplexNonPosInt(c - a))
-            ? Complex.zero
-            : gammaComplex(c) *
-                  gammaComplex(-abDiff) /
-                  (gammaComplex(b) * gammaComplex(c - a)) *
-                  negZ.pow(-a) *
-                  hypergeometric2F1Complex(
-                    a,
-                    a - c + Complex.one,
-                    abDiff + Complex.one,
-                    invZ,
-                  );
-        final t2 = (_isComplexNonPosInt(a) || _isComplexNonPosInt(c - b))
-            ? Complex.zero
-            : gammaComplex(c) *
-                  gammaComplex(abDiff) /
-                  (gammaComplex(a) * gammaComplex(c - b)) *
-                  negZ.pow(-b) *
-                  hypergeometric2F1Complex(
-                    b,
-                    b - c + Complex.one,
-                    -abDiff + Complex.one,
-                    invZ,
-                  );
-        return t1 + t2;
+      if (_isNearRealInt(abDiff)) {
+        return _hypergeometric2F1InvLogarithmicComplex(a, b, c, z);
       }
+      final invZ = _normalizeZero(z.reciprocal());
+      final negZ = _normalizeZero(-z);
+      final t1 = (_isComplexNonPosInt(b) || _isComplexNonPosInt(c - a))
+          ? Complex.zero
+          : gammaComplex(c) *
+                gammaComplex(-abDiff) /
+                (gammaComplex(b) * gammaComplex(c - a)) *
+                negZ.pow(-a) *
+                hypergeometric2F1Complex(
+                  a,
+                  a - c + Complex.one,
+                  abDiff + Complex.one,
+                  invZ,
+                );
+      final t2 = (_isComplexNonPosInt(a) || _isComplexNonPosInt(c - b))
+          ? Complex.zero
+          : gammaComplex(c) *
+                gammaComplex(abDiff) /
+                (gammaComplex(a) * gammaComplex(c - b)) *
+                negZ.pow(-b) *
+                hypergeometric2F1Complex(
+                  b,
+                  b - c + Complex.one,
+                  -abDiff + Complex.one,
+                  invZ,
+                );
+      return t1 + t2;
     }
+    return _hypergeometric2F1OdeTaylorComplex(a, b, c, z);
   }
   var sum = Complex.one;
   var term = Complex.one;
@@ -609,8 +613,8 @@ Complex _hypergeometric2F1LogarithmicComplex(
             .exp();
     finiteSum = pre * poly;
   }
-  if (_isComplexNonPosInt(a + m.toDouble()) ||
-      _isComplexNonPosInt(b + m.toDouble())) {
+  if ((_isNearRealInt(a + m.toDouble()) && (a.a + m).round() <= 0) ||
+      (_isNearRealInt(b + m.toDouble()) && (b.a + m).round() <= 0)) {
     return finiteSum;
   }
   final gammaRatio = gammaComplex(c) / (gammaComplex(a) * gammaComplex(b));
@@ -640,6 +644,218 @@ Complex _hypergeometric2F1LogarithmicComplex(
     if (term.abs() < 1e-15 * infSum.abs()) break;
   }
   return finiteSum + infPrefactor * infSum;
+}
+
+Complex _normalizeZero(Complex z) =>
+    Complex(z.a == 0.0 ? 0.0 : z.a, z.b == 0.0 ? 0.0 : z.b);
+
+bool _isNearRealInt(Complex z, [double tol = 1e-10]) =>
+    z.b.abs() <= tol &&
+    z.a.isFinite &&
+    (z.a - z.a.roundToDouble()).abs() <= tol;
+
+Complex _hypergeometric2F1InvLogarithmicComplex(
+  Complex a,
+  Complex b,
+  Complex c,
+  Complex z,
+) {
+  final rawDiff = (b - a).a.round();
+  if (rawDiff < 0) {
+    return _hypergeometric2F1InvLogarithmicComplex(b, a, c, z);
+  }
+  final m = rawDiff;
+  final bVal = a + Complex(m.toDouble());
+  final ca = c - a;
+  final cb = c - bVal;
+  if (_isNearRealInt(cb) && cb.a.round() <= 0) {
+    final q = cb.a.round();
+    final caArg = (_isNearRealInt(ca) && ca.a.round() <= 0)
+        ? Complex(ca.a.roundToDouble())
+        : ca;
+    return _normalizeZero(Complex.one - z).pow(c - a - b) *
+        hypergeometric2F1Complex(caArg, Complex(q.toDouble()), c, z);
+  }
+  if (_isNearRealInt(ca) && ca.a.round() <= 0) {
+    final q = ca.a.round();
+    return _normalizeZero(Complex.one - z).pow(c - a - b) *
+        hypergeometric2F1Complex(Complex(q.toDouble()), cb, c, z);
+  }
+
+  final invZ = _normalizeZero(z.reciprocal());
+  final negZ = _normalizeZero(-z);
+  final invNegZ = _normalizeZero(negZ.reciprocal());
+
+  var finiteSum = Complex.zero;
+  if (m > 0) {
+    var poly = Complex.one;
+    var term = Complex.one;
+    for (var k = 0; k < m - 1; k++) {
+      term *=
+          (a + k.toDouble()) *
+          (Complex.one + a - c + k.toDouble()) /
+          Complex(((k + 1) * (m - 1 - k)).toDouble()) *
+          invNegZ;
+      poly += term;
+    }
+    final pre =
+        (gammaLnComplex(Complex(m.toDouble())) +
+                gammaLnComplex(c) -
+                gammaLnComplex(bVal) -
+                gammaLnComplex(ca))
+            .exp() *
+        negZ.pow(-a);
+    finiteSum = pre * poly;
+  }
+
+  final lnNegZ = negZ.log();
+  final signM = Complex(m.isEven ? 1.0 : -1.0);
+  final negZPowNegB = negZ.pow(-bVal);
+
+  var infSum = Complex.zero;
+  if (_isNearRealInt(cb) && cb.a.round() >= 1) {
+    final kInt = cb.a.round();
+    var coeff =
+        signM *
+        (gammaLnComplex(c) -
+                gammaLnComplex(a) -
+                gammaLnComplex(bVal) -
+                gammaLnComplex(Complex(kInt.toDouble())) -
+                gammaLnComplex(Complex((m + 1).toDouble())))
+            .exp() *
+        negZPowNegB;
+    var h =
+        lnNegZ +
+        Complex(digamma(m + 1.0) + digamma(1.0) - digamma(kInt.toDouble())) -
+        digammaComplex(bVal);
+    for (var j = 0; j < kInt; j++) {
+      infSum += coeff * h;
+      if (j + 1 < kInt) {
+        coeff *=
+            (bVal + j.toDouble()) *
+            Complex((1 - kInt + j).toDouble()) /
+            Complex(((m + j + 1) * (j + 1)).toDouble()) *
+            invZ;
+        h +=
+            Complex(1.0 / (m + j + 1) + 1.0 / (j + 1) - 1.0 / (1 - kInt + j)) -
+            (bVal + j.toDouble()).reciprocal();
+      }
+    }
+    var tailTerm =
+        signM *
+        (gammaLnComplex(c) +
+                gammaLnComplex(bVal + kInt.toDouble()) -
+                gammaLnComplex(a) -
+                gammaLnComplex(bVal) -
+                gammaLnComplex(Complex((m + kInt + 1).toDouble())) -
+                gammaLnComplex(Complex((kInt + 1).toDouble())))
+            .exp() *
+        negZ.pow(-bVal - kInt.toDouble());
+    for (var j = kInt; j < kInt + 2000; j++) {
+      infSum += tailTerm;
+      tailTerm *=
+          Complex((j - kInt + 1).toDouble()) *
+          (bVal + j.toDouble()) /
+          Complex(((m + j + 1) * (j + 1)).toDouble()) *
+          invZ;
+      if (tailTerm.abs() <= 1e-15 * infSum.abs()) break;
+    }
+    return finiteSum + infSum;
+  }
+
+  var coeff =
+      signM *
+      (gammaLnComplex(c) -
+              gammaLnComplex(a) -
+              gammaLnComplex(bVal) -
+              gammaLnComplex(cb) -
+              gammaLnComplex(Complex((m + 1).toDouble())))
+          .exp() *
+      negZPowNegB;
+  var h =
+      lnNegZ +
+      Complex(digamma(m + 1.0) + digamma(1.0)) -
+      digammaComplex(bVal) -
+      digammaComplex(cb);
+  infSum = coeff * h;
+  for (var j = 0; j < 2000; j++) {
+    coeff *=
+        (bVal + j.toDouble()) *
+        (Complex.one - cb + j.toDouble()) /
+        Complex(((m + j + 1) * (j + 1)).toDouble()) *
+        invZ;
+    h +=
+        Complex(1.0 / (m + j + 1) + 1.0 / (j + 1)) -
+        (bVal + j.toDouble()).reciprocal() -
+        (Complex.one - cb + j.toDouble()).reciprocal();
+    final term = coeff * h;
+    infSum += term;
+    if (term.abs() <= 1e-15 * infSum.abs()) break;
+  }
+  return finiteSum + infSum;
+}
+
+Complex _hypergeometric2F1OdeTaylorComplex(
+  Complex a,
+  Complex b,
+  Complex c,
+  Complex z,
+) {
+  final z0 = Complex(0.5, z.b >= 0.0 ? 0.5 : -0.5);
+  var f = hypergeometric2F1Complex(a, b, c, z0);
+  if (f.isNaN) return Complex.nan;
+  var df =
+      (a * b / c) *
+      hypergeometric2F1Complex(
+        a + Complex.one,
+        b + Complex.one,
+        c + Complex.one,
+        z0,
+      );
+  if (df.isNaN) return Complex.nan;
+
+  final totalDist = (z - z0).abs();
+  final steps = totalDist == 0.0 ? 1 : (totalDist / 0.3).ceil().clamp(1, 6);
+  final dz = (z - z0) / steps.toDouble();
+  var curZ = z0;
+  final abSum1 = a + b + Complex.one;
+
+  for (var s = 0; s < steps; s++) {
+    var c0 = f;
+    var c1 = df;
+    var sumF = c0 + c1 * dz;
+    var sumDf = c1;
+    var dzPow = dz;
+    final p0 = curZ * (Complex.one - curZ);
+    final q0 = c - abSum1 * curZ;
+    final twoZMinus1 = const Complex(2.0) * curZ - Complex.one;
+    var smallCount = 0;
+
+    for (var n = 0; n < 120; n++) {
+      final cNext =
+          ((twoZMinus1 * n.toDouble() - q0) * (n + 1).toDouble() * c1 +
+              (a + n.toDouble()) * (b + n.toDouble()) * c0) /
+          (p0 * ((n + 1) * (n + 2)).toDouble());
+      final termDf = cNext * (n + 2).toDouble() * dzPow;
+      dzPow *= dz;
+      final termF = cNext * dzPow;
+      sumF += termF;
+      sumDf += termDf;
+      c0 = c1;
+      c1 = cNext;
+      if (termF.abs() <= 1e-16 * sumF.abs() &&
+          termDf.abs() <= 1e-16 * sumDf.abs()) {
+        smallCount++;
+        if (smallCount >= 2 && n >= 6) break;
+      } else {
+        smallCount = 0;
+      }
+    }
+    f = sumF;
+    df = sumDf;
+    curZ += dz;
+  }
+  return f;
 }
 
 double _hypergeometric2F1Direct(double a, double b, double c, double z) {

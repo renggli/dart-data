@@ -112,6 +112,30 @@ void main() {
         ).equals('-1/2 * i');
         check(Expr.parse('(-27)^(1/3) + (-1)^(1/2)').simplify())
             .equals(ComplexNumber(IntegerNumber.of(-3), IntegerNumber.one));
+        check(
+          simplifyPow(
+            IntegerNumber.negativeOne,
+            FractionNumber.third,
+            assumptions: Assumptions.complex,
+          ),
+        ).equals(
+          Pow(
+            IntegerNumber.negativeOne,
+            FractionNumber.third,
+            isSimplified: true,
+          ),
+        );
+        check(
+          simplifyPow(
+            IntegerNumber.of(-27),
+            FractionNumber.third,
+            assumptions: Assumptions.complex,
+          ).evaluateComplex(),
+        ).equals(
+          (IntegerNumber.of(3) *
+                  Pow(IntegerNumber.negativeOne, FractionNumber.third))
+              .evaluateComplex(),
+        );
         check(Expr.parse('(-8)^(2/3)').simplify()).equals(IntegerNumber.of(4));
         check(Expr.parse('(-54)^(1/3)').simplify())
             .equals(Expr.parse('-3 * 2^(1/3)').simplify());

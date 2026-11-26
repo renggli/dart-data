@@ -668,6 +668,14 @@ CasTestCase customCase(
   ({bool ok, String? detail}) Function() verify,
 ) => CasTestCase(name: name, description: description, run: verify);
 
+bool _isNegOddRoot(Expr node) =>
+    node is Pow &&
+    node.base is RationalNumber &&
+    (node.base as RationalNumber).isNegative &&
+    node.exponent is FractionNumber &&
+    (node.exponent as FractionNumber).denominator > Integer.one &&
+    (node.exponent as FractionNumber).denominator.isOdd;
+
 /// Verifies whether `d/d[variable]([antideriv]) == [integrand]` symbolically or
 /// numerically across real and complex sample points.
 bool verifyDerivative(
@@ -676,14 +684,21 @@ bool verifyDerivative(
   String variable, {
   Assumptions assumptions = Assumptions.none,
 }) {
+  final effectiveAssumptions =
+      assumptions == Assumptions.none &&
+          (integrand.anyNode(_isNegOddRoot) || antideriv.anyNode(_isNegOddRoot))
+      ? Assumptions.complex
+      : assumptions;
   final Expr deriv;
   try {
-    deriv = antideriv.derivative(variable, assumptions: assumptions);
+    deriv = antideriv.derivative(variable, assumptions: effectiveAssumptions);
   } on Object {
     return false;
   }
   try {
-    final diff = (deriv - integrand).simplify(assumptions: assumptions);
+    final diff = (deriv - integrand).simplify(
+      assumptions: effectiveAssumptions,
+    );
     if (diff is Number && diff.isZero) return true;
     if (!_exceedsNodeCount(diff, 500) &&
         !diff.anyNode(
@@ -693,8 +708,21 @@ bool verifyDerivative(
               n.exponent is RealNumeric &&
               (n.exponent as RealNumeric).toDouble().abs() > 32,
         )) {
-      final combined = diff.together(assumptions: assumptions);
+      final combined = diff.together(assumptions: effectiveAssumptions);
       if (combined is Number && combined.isZero) return true;
+      if (!_exceedsNodeCount(combined, 300) &&
+          !combined.anyNode(
+            (n) =>
+                n is Pow &&
+                n.base is Add &&
+                n.exponent is RealNumeric &&
+                (n.exponent as RealNumeric).toDouble().abs() > 16,
+          )) {
+        final expanded = combined
+            .expand(assumptions: effectiveAssumptions)
+            .simplify(assumptions: effectiveAssumptions);
+        if (expanded is Number && expanded.isZero) return true;
+      }
     }
   } on Object {
     // Fall back to numerical derivative check.
