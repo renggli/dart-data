@@ -535,6 +535,9 @@ Expr? tryFractionalLinearRadical(
         .simplify(assumptions: assumptions);
   }
   final n = frac!.q;
+  if (isIntegrationBudgetExhausted() || exceedsNodeBudget(expr, 150) || n > 4) {
+    return null;
+  }
 
   const uName = '_fl';
   const uVar = Variable(uName);
@@ -556,7 +559,11 @@ Expr? tryFractionalLinearRadical(
   final transformed = (replaceNode(expr) * dx).simplify(
     assumptions: assumptions,
   );
-  if (transformed.dependsOn(variable)) return null;
+  if (transformed.dependsOn(variable) ||
+      exceedsNodeBudget(transformed, 180) ||
+      isIntegrationBudgetExhausted()) {
+    return null;
+  }
   final uInt = antiDerivative(
     transformed,
     uName,

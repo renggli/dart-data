@@ -507,6 +507,17 @@ Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
           Integer.from(m + n - 1).binomial(Integer.from(m - 1));
       return RationalNumber.of(Integer.one, denom);
     }
+    if (b case IntegerNumber(asInt: final n?) when n > 0 && m > 1000) {
+      return simplifyMul([
+        Factorial(IntegerNumber.of(m - 1), isSimplified: true),
+        Factorial(IntegerNumber.of(n - 1), isSimplified: true),
+        simplifyPow(
+          Factorial(IntegerNumber.of(m + n - 1), isSimplified: true),
+          IntegerNumber.negativeOne,
+          assumptions: assumptions,
+        ),
+      ], assumptions: assumptions);
+    }
     if (m == 1) {
       return simplifyPow(
         b,

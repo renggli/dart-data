@@ -528,6 +528,37 @@ void main() {
           .pow(2)
           .integrate('x', from: 0, to: 256);
       check(floorDef.anyNode((n) => n is Integral)).isTrue;
+
+      // Euler Beta II on [0, oo)
+      check(
+        Expr.parse('x^2 / (1 + x)^6')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(RationalNumber(1, 30));
+      check(
+        Expr.parse('x^1010 / (1 + x)^2022')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Expr.parse('1010!^2 / 2021!').simplify());
     });
+
+    test(
+      'completes rapidly on high-degree and large-constant definite integrals',
+      () {
+        final sw1 = Stopwatch()..start();
+        final res1 = Expr.parse('x^2024 * ln(x) / ln(2024)')
+            .integrate('x', from: 0, to: 2024);
+        sw1.stop();
+        check(res1).isNotA<Integral>();
+        check(sw1.elapsedMilliseconds).isLessThan(1000);
+
+        final sw2 = Stopwatch()..start();
+        final res2 = Expr.parse(
+          '(1 + ((2026 + 2*x - x^2)^2 - 2)*(2026 + 4*x - 4*x^2)^2) / '
+          '((2025 + 2*x - x^2)*(2027 + 2*x - x^2)*(2025 + 4*x - 4*x^2)*(2027 + 4*x - 4*x^2))',
+        ).integrate('x', from: 0, to: 1);
+        sw2.stop();
+        check(res2).isNotNull();
+        check(sw2.elapsedMilliseconds).isLessThan(1000);
+      },
+    );
   });
 }

@@ -4,6 +4,7 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../number/integer.dart';
 import 'expand.dart';
+import 'helpers.dart';
 import 'simplify.dart';
 import 'simplify/additive.dart';
 import 'simplify/domain.dart';
@@ -661,7 +662,19 @@ class MonomialAccumulator {
     }
 
     for (final MapEntry(key: den, value: items) in groups.entries) {
-      if (items.length < 2) continue;
+      if (items.length < 2 ||
+          items.length > 16 ||
+          exceedsNodeBudget(den, 400)) {
+        continue;
+      }
+      var hasLargeNumerator = false;
+      for (final (_, numPart, _) in items) {
+        if (exceedsNodeBudget(numPart, 300)) {
+          hasLargeNumerator = true;
+          break;
+        }
+      }
+      if (hasLargeNumerator) continue;
 
       for (final (base, _, _) in items) {
         terms.remove(base);
@@ -757,6 +770,9 @@ class MonomialAccumulator {
     required Assumptions assumptions,
     int maxExponent = 16,
   }) {
+    if (exceedsNodeBudget(expr, 400)) {
+      return expr.simplify(assumptions: assumptions);
+    }
     final placeholders = <Variable, Expr>{};
     final reverseMap = <Expr, Variable>{};
     final existingVars = expr.freeVariables;

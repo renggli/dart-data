@@ -655,6 +655,27 @@ void main() {
     });
 
     test(
+      'terminates rapidly within budget on complex unsolvable integrands',
+      () {
+        final sw1 = Stopwatch()..start();
+        final fracLin = Expr.parse(
+          '(x^2 - c*x^2*((a*x + b)/(c*x + d))^(3/2)) / (a - b*sqrt((a*x + b)/(c*x + d)))',
+        ).integrate('x');
+        sw1.stop();
+        check(fracLin).isNotNull();
+        check(sw1.elapsedMilliseconds).isLessThan(500);
+
+        final sw2 = Stopwatch()..start();
+        final multiParam = Expr.parse(
+          '(a + b*x)^2 * (c + d*x)^3 / ((e + f*x) * (g + h*x) * sin(p + q*x))',
+        ).integrate('x');
+        sw2.stop();
+        check(multiParam).isA<Integral>();
+        check(sw2.elapsedMilliseconds).isLessThan(500);
+      },
+    );
+
+    test(
       'integrates log-exponential quotients without non-holomorphic abs',
       () {
         final integrand = Expr.parse('1 / (1 + exp(2 * x))');
@@ -677,5 +698,56 @@ void main() {
         ).isCloseTo(0.0, 1e-12);
       },
     );
+
+    test('integrates rational-derivative quotients and higher-degree Chebyshev binomials', () {
+      final quarticRad = Expr.parse('(4*x^3 - 1) / sqrt(2*x^4 - 2*x - 1)')
+          .integrate('x');
+      check(quarticRad).equals(Expr.parse('sqrt(2*x^4 - 2*x - 1)').simplify());
+
+      final cheb4 = Expr.parse('(a*x^4 - b)^(3/4)').integrate('x');
+      check(cheb4.anyNode((n) => n is Integral)).isFalse;
+      final cEnv = {
+        'x': const Complex(1.7, 0.4),
+        'a': const Complex(2.0, 0.3),
+        'b': const Complex(1.0, 0.2),
+      };
+      check(
+        (cheb4.derivative('x').evaluateComplex(cEnv) -
+                Expr.parse('(a*x^4 - b)^(3/4)').evaluateComplex(cEnv))
+            .abs(),
+      ).isCloseTo(0.0, 1e-10);
+
+      final nestedExp = Expr.parse(
+        '(2*x + 2) * ln(2) * exp(x) * exp(x * ln(2) * exp(x))^2',
+      );
+      final nestedAnti = nestedExp.integrate('x');
+      check(nestedAnti.anyNode((n) => n is Integral)).isFalse;
+      check(
+        (nestedAnti.derivative('x').evaluate({'x': 0.45}) -
+                nestedExp.evaluate({'x': 0.45}))
+            .abs(),
+      ).isCloseTo(0.0, 1e-10);
+
+      final hypProd = Expr.parse('sinh(a + b*x)^6 * cosh(a + b*x)^2');
+      final hypAnti = hypProd.integrate('x');
+      check(hypAnti.anyNode((n) => n is Integral)).isFalse;
+      final hypEnv = {'x': 0.41, 'a': 0.3, 'b': 0.7};
+      check(
+        (hypAnti.derivative('x').evaluate(hypEnv) - hypProd.evaluate(hypEnv))
+            .abs(),
+      ).isCloseTo(0.0, 1e-9);
+
+      final highRat = Expr.parse('1 / ((a + b*x) * (c + d*x)^8)');
+      final highRatAnti = highRat.integrate('x');
+      check(highRatAnti.anyNode((n) => n is Integral)).isFalse;
+      final ratEnv = {'x': 0.37, 'a': 3.1, 'b': 0.7, 'c': 1.1, 'd': 2.5};
+      check((highRatAnti.derivative('x') - highRat).together())
+          .equals(IntegerNumber.zero);
+      check(
+        (highRatAnti.derivative('x').evaluate(ratEnv) -
+                highRat.evaluate(ratEnv))
+            .abs(),
+      ).isCloseTo(0.0, 1e-9);
+    });
   });
 }

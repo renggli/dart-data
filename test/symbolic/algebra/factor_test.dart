@@ -210,5 +210,17 @@ void main() {
       check(Expr.parse('x^2 + (a + b)*x + a*b').expand().factor())
           .equals(Expr.parse('(a + x) * (b + x)').simplify());
     });
+
+    test('skips prime factorization cleanly for integers above 96 bits', () {
+      final hugePow = Pow(
+        IntegerNumber.of(2024),
+        IntegerNumber.of(100),
+      ).simplify();
+      final sw = Stopwatch()..start();
+      final res = hugePow.factor();
+      sw.stop();
+      check(res).equals(hugePow);
+      check(sw.elapsedMilliseconds).isLessThan(500);
+    });
   });
 }

@@ -300,6 +300,76 @@ Expr? definiteIntegralZeroToInfinity(
     }
   }
 
+  // 6. Euler Beta II integral on [0, infty):
+  //    int_0^infty c_n * x^s / (b * x + c)^d dx
+  //      = c_n * c^(s + 1 - d) * b^(-(s + 1)) * Beta(s + 1, d - s - 1)
+  {
+    Expr numScale = IntegerNumber.one;
+    Expr xExp = IntegerNumber.zero;
+    var validNum = true;
+    for (final f in num is Mul ? num.factors : [num]) {
+      if (!f.dependsOn(variable)) {
+        numScale = (numScale * f).simplify(assumptions: assumptions);
+      } else if (f == xVar && xExp == IntegerNumber.zero) {
+        xExp = IntegerNumber.one;
+      } else if (f is Pow &&
+          f.base == xVar &&
+          !f.exponent.dependsOn(variable) &&
+          xExp == IntegerNumber.zero) {
+        xExp = f.exponent;
+      } else {
+        validNum = false;
+        break;
+      }
+    }
+    if (validNum && den != IntegerNumber.one) {
+      Expr denScale = IntegerNumber.one;
+      Expr? linBase;
+      Expr? denExp;
+      var validDen = true;
+      for (final f in den is Mul ? den.factors : [den]) {
+        if (!f.dependsOn(variable)) {
+          denScale = (denScale * f).simplify(assumptions: assumptions);
+        } else if (linBase == null && f.matchLinear(variable) != null) {
+          linBase = f;
+          denExp = IntegerNumber.one;
+        } else if (linBase == null &&
+            f is Pow &&
+            !f.exponent.dependsOn(variable) &&
+            f.base.matchLinear(variable) != null) {
+          linBase = f.base;
+          denExp = f.exponent;
+        } else {
+          validDen = false;
+          break;
+        }
+      }
+      if (validDen && linBase != null && denExp != null) {
+        final lin = linBase.matchLinear(variable)!;
+        final b = lin.a;
+        final c = lin.b;
+        final sPlus1 = (xExp + IntegerNumber.one).simplify(
+          assumptions: assumptions,
+        );
+        final dMinusS1 = (denExp - sPlus1).simplify(assumptions: assumptions);
+        bool isPos(Expr e) =>
+            isPositiveConstant(e) ||
+            isPositiveExpr(e, assumptions: assumptions);
+        if (isPos(b) && isPos(c) && isPos(sPlus1) && isPos(dMinusS1)) {
+          final pref =
+              (numScale /
+                      denScale *
+                      Pow(c, (sPlus1 - denExp).simplify()) /
+                      Pow(b, sPlus1))
+                  .simplify(assumptions: assumptions);
+          return (pref * Beta(sPlus1, dMinusS1)).simplify(
+            assumptions: assumptions,
+          );
+        }
+      }
+    }
+  }
+
   return null;
 }
 

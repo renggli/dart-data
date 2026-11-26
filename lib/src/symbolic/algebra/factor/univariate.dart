@@ -121,7 +121,9 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   }
 
   // 4. Degree >= 2: Rational Root Theorem search
-  if (currentDeg >= 3) {
+  if (currentDeg >= 3 &&
+      primitiveCoeffs[0].bitLength <= 36 &&
+      primitiveCoeffs.last.bitLength <= 36) {
     final a0 = primitiveCoeffs[0];
     final ad = primitiveCoeffs.last;
     final pDivs = divisors(a0);
@@ -129,11 +131,13 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
 
     // Candidates (p, q) where root is p / q
     final candidates = <(Integer, Integer)>[];
+    outer:
     for (final q in qDivs) {
       for (final pAbs in pDivs) {
         for (final p in [pAbs, -pAbs]) {
           if (p.abs().gcd(q).isOne) {
             candidates.add((p, q));
+            if (candidates.length >= 512) break outer;
           }
         }
       }

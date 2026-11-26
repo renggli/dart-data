@@ -103,5 +103,12 @@ void main() {
         ((y * x + IntegerNumber.one) * (x * y + IntegerNumber.one)).expand(),
       ).equals(Expr.parse('1 + 2*x*y + x^2*y^2').simplify());
     });
+
+    test('caps additive base expansion at high exponents while expanding small powers', () {
+      check(Expr.parse('(1 + x)^4').expand().toString())
+          .equals('1 + 4 * x + 6 * x ^ 2 + 4 * x ^ 3 + x ^ 4');
+      final high = Expr.parse('(1 + x)^65').expand();
+      check(high).isA<Pow>();
+    });
   });
 }

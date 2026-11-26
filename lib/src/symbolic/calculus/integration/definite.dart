@@ -1,12 +1,14 @@
 import 'dart:math' as math;
 
 import '../../algebra/expand.dart';
+import '../../algebra/helpers.dart';
 import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/simplify/domain.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
+import '../../number/integer.dart';
 import '../../solver/univariate.dart';
 import '../limit.dart';
 import '../linear_form.dart';
@@ -97,6 +99,27 @@ Expr evaluateDefiniteIntegral(
       )
       case final kingsRes?) {
     return kingsRes;
+  }
+
+  // Fast table lookup on [0, infty) or high-degree integrands before running
+  // general indefinite integration (e.g. Euler Beta II x^1010 / (1 + x)^2022).
+  if ((fromExpr == IntegerNumber.zero && toExpr == Constant.infinity) ||
+      function.anyNode(
+        (n) =>
+            n is Pow &&
+            n.exponent is IntegerNumber &&
+            (n.exponent as IntegerNumber).value.abs() > const Integer(20),
+      )) {
+    final quickDef = definiteIntegralSpecialCases(
+      function.simplify(assumptions: assumptions),
+      variable,
+      fromExpr,
+      toExpr,
+      assumptions: assumptions,
+    );
+    if (quickDef != null) {
+      return quickDef.simplify(assumptions: assumptions);
+    }
   }
 
   final antiDeriv = antiDerivative(
@@ -361,6 +384,8 @@ Expr evaluateDefiniteIntegral(
               : (-total).simplify(assumptions: assumptions);
         }
       } else if (jumps != null) {
+        Expr? validUpper;
+        Expr? validLower;
         try {
           final upper = isInfiniteBound(toExpr)
               ? effectiveAntiDeriv.limit(
@@ -376,7 +401,23 @@ Expr evaluateDefiniteIntegral(
                   assumptions: assumptions,
                 )
               : effectiveAntiDeriv.substitute(variable, fromExpr);
-          final diff = _subtractEndpointValues(upper, lower, assumptions);
+          final upperSimp = upper.simplify(assumptions: assumptions);
+          if (!upperSimp.anyNode(
+            (n) => n is Limit || n == Constant.undefined,
+          )) {
+            validUpper = upperSimp;
+          }
+          final lowerSimp = lower.simplify(assumptions: assumptions);
+          if (!lowerSimp.anyNode(
+            (n) => n is Limit || n == Constant.undefined,
+          )) {
+            validLower = lowerSimp;
+          }
+          final diff = _subtractEndpointValues(
+            upperSimp,
+            lowerSimp,
+            assumptions,
+          );
           if (diff != null) {
             return diff;
           }
@@ -393,34 +434,38 @@ Expr evaluateDefiniteIntegral(
           final isAscending =
               (evaluateBoundNumeric(fromExpr) ?? 0.0) <=
               (evaluateBoundNumeric(toExpr) ?? 1.0);
-          final upper = isInfiniteBound(toExpr)
-              ? effectiveAntiDeriv.limit(
-                  variable,
-                  toExpr,
-                  assumptions: assumptions,
-                )
-              : effectiveAntiDeriv.limit(
-                  variable,
-                  toExpr,
-                  direction: isAscending
-                      ? LimitDirection.fromBelow
-                      : LimitDirection.fromAbove,
-                  assumptions: assumptions,
-                );
-          final lower = isInfiniteBound(fromExpr)
-              ? effectiveAntiDeriv.limit(
-                  variable,
-                  fromExpr,
-                  assumptions: assumptions,
-                )
-              : effectiveAntiDeriv.limit(
-                  variable,
-                  fromExpr,
-                  direction: isAscending
-                      ? LimitDirection.fromAbove
-                      : LimitDirection.fromBelow,
-                  assumptions: assumptions,
-                );
+          final upper =
+              validUpper ??
+              (isInfiniteBound(toExpr)
+                  ? effectiveAntiDeriv.limit(
+                      variable,
+                      toExpr,
+                      assumptions: assumptions,
+                    )
+                  : effectiveAntiDeriv.limit(
+                      variable,
+                      toExpr,
+                      direction: isAscending
+                          ? LimitDirection.fromBelow
+                          : LimitDirection.fromAbove,
+                      assumptions: assumptions,
+                    ));
+          final lower =
+              validLower ??
+              (isInfiniteBound(fromExpr)
+                  ? effectiveAntiDeriv.limit(
+                      variable,
+                      fromExpr,
+                      assumptions: assumptions,
+                    )
+                  : effectiveAntiDeriv.limit(
+                      variable,
+                      fromExpr,
+                      direction: isAscending
+                          ? LimitDirection.fromAbove
+                          : LimitDirection.fromBelow,
+                      assumptions: assumptions,
+                    ));
           final diff = _subtractEndpointValues(upper, lower, assumptions);
           if (diff != null) {
             return diff;
@@ -611,6 +656,13 @@ List<double> findDenominatorRoots(Expr expr, String variable) {
   final factors = extractDenominatorFactors(expr);
   for (final factor in factors) {
     if (factor.dependsOn(variable)) {
+      if (exceedsNodeBudget(factor, 100) ||
+          isPositiveExpr(
+            factor,
+            assumptions: Assumptions(domains: {variable: VariableDomain.real}),
+          )) {
+        continue;
+      }
       try {
         final solutions = factor.solve(variable);
         for (final sol in solutions) {
@@ -744,6 +796,10 @@ bool _hasAnyDenominatorPole(
       final realAssumptions = assumptions.copyWith(
         domains: {variable: VariableDomain.real},
       );
+      if (isPositiveExpr(factor, assumptions: realAssumptions) ||
+          exceedsNodeBudget(factor, 100)) {
+        continue;
+      }
       final solutions = factor.solve(variable, assumptions: realAssumptions);
       for (final sol in solutions) {
         if (sol.anyNode((n) => n is ComplexNumber)) continue;
@@ -1084,51 +1140,7 @@ Expr? _tryKingsProperty(
       !numTo.isFinite) {
     return null;
   }
-  final low = numFrom < numTo ? numFrom : numTo;
-  final high = numFrom < numTo ? numTo : numFrom;
-  if (_hasInteriorPole(function, variable, low, high)) {
-    return null;
-  }
-  if (_hasAnyDenominatorPole(
-    function,
-    variable,
-    low,
-    high,
-    inclusive: true,
-    assumptions: assumptions,
-  )) {
-    final isAscending = numFrom <= numTo;
-    try {
-      final fromLim = function.limit(
-        variable,
-        fromExpr,
-        direction: isAscending
-            ? LimitDirection.fromAbove
-            : LimitDirection.fromBelow,
-        assumptions: assumptions,
-      );
-      final toLim = function.limit(
-        variable,
-        toExpr,
-        direction: isAscending
-            ? LimitDirection.fromBelow
-            : LimitDirection.fromAbove,
-        assumptions: assumptions,
-      );
-      bool isBadLimit(Expr e) => e.anyNode(
-        (n) => n is Limit || n == Constant.infinity || n == Constant.undefined,
-      );
-      if (isBadLimit(fromLim) || isBadLimit(toLim)) {
-        return null;
-      }
-    } on ArgumentError {
-      return null;
-    } on UnsupportedError {
-      return null;
-    } on StateError {
-      return null;
-    }
-  }
+  if (exceedsNodeBudget(function, 120)) return null;
 
   final reflected = function
       .substitute(
@@ -1182,12 +1194,57 @@ Expr? _tryKingsProperty(
         .together(assumptions: assumptions)
         .simplify(assumptions: assumptions);
   }
-  if (!sum.dependsOn(variable)) {
-    return (sum * (toExpr - fromExpr) / IntegerNumber.two).simplify(
-      assumptions: assumptions,
-    );
+  if (sum.dependsOn(variable)) return null;
+
+  final low = numFrom < numTo ? numFrom : numTo;
+  final high = numFrom < numTo ? numTo : numFrom;
+  if (_hasInteriorPole(function, variable, low, high)) {
+    return null;
   }
-  return null;
+  if (_hasAnyDenominatorPole(
+    function,
+    variable,
+    low,
+    high,
+    inclusive: true,
+    assumptions: assumptions,
+  )) {
+    final isAscending = numFrom <= numTo;
+    try {
+      final fromLim = function.limit(
+        variable,
+        fromExpr,
+        direction: isAscending
+            ? LimitDirection.fromAbove
+            : LimitDirection.fromBelow,
+        assumptions: assumptions,
+      );
+      final toLim = function.limit(
+        variable,
+        toExpr,
+        direction: isAscending
+            ? LimitDirection.fromBelow
+            : LimitDirection.fromAbove,
+        assumptions: assumptions,
+      );
+      bool isBadLimit(Expr e) => e.anyNode(
+        (n) => n is Limit || n == Constant.infinity || n == Constant.undefined,
+      );
+      if (isBadLimit(fromLim) || isBadLimit(toLim)) {
+        return null;
+      }
+    } on ArgumentError {
+      return null;
+    } on UnsupportedError {
+      return null;
+    } on StateError {
+      return null;
+    }
+  }
+
+  return (sum * (toExpr - fromExpr) / IntegerNumber.two).simplify(
+    assumptions: assumptions,
+  );
 }
 
 Expr? _subtractEndpointValues(Expr upper, Expr lower, Assumptions assumptions) {

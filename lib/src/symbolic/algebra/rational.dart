@@ -75,7 +75,13 @@ extension RationalFunctionExtension on Expr {
   /// print(e.cancel()); // (-1 + x) / (1 + x)
   /// ```
   Expr cancel({Assumptions assumptions = Assumptions.none}) {
+    if (exceedsNodeBudget(this, 1000)) {
+      return simplify(assumptions: assumptions);
+    }
     final combined = together(assumptions: assumptions);
+    if (exceedsNodeBudget(combined, 1000)) {
+      return combined.simplify(assumptions: assumptions);
+    }
     final (rawNum, rawDen) = splitNumeratorDenominator(combined);
     if (rawDen == IntegerNumber.one) {
       return rawNum.simplify(assumptions: assumptions);
@@ -378,7 +384,11 @@ extension RationalFunctionExtension on Expr {
 
     final aMat = Matrix<Expr>.fromRows(aRows, type: exprDataType);
     final bMat = Matrix<Expr>.fromRows(bRows, type: exprDataType);
-    final uMat = const BareissEngine().solve(aMat, bMat);
+    final uMat = const BareissEngine().solveBounded(
+      aMat,
+      bMat,
+      assumptions: assumptions,
+    );
     if (uMat == null) {
       return cancelled;
     }
@@ -505,7 +515,9 @@ Expr _togetherAdd(List<Expr> terms, Assumptions assumptions) {
     if (rawDen != IntegerNumber.one) {
       hasDenominator = true;
     }
-    final factoredDen = _factorPolynomial(rawDen, assumptions);
+    final factoredDen = exceedsNodeBudget(rawDen, 1000)
+        ? rawDen
+        : _factorPolynomial(rawDen, assumptions);
     final denMap = <Expr, int>{};
     RationalNumber scalar = IntegerNumber.one;
     flattenFactored(factoredDen, denMap, (s) {
@@ -563,20 +575,29 @@ Expr _togetherAdd(List<Expr> terms, Assumptions assumptions) {
       scalar: multScalar,
       factors: diffFactors,
     );
+    final prod = item.num * multiplier;
     scaledNumerators.add(
-      (item.num * multiplier)
-          .expand(assumptions: assumptions)
-          .simplify(assumptions: assumptions),
+      exceedsNodeBudget(prod, 1000)
+          ? prod.simplify(assumptions: assumptions)
+          : prod
+                .expand(assumptions: assumptions)
+                .simplify(assumptions: assumptions),
     );
   }
 
-  final totalNum = Add(scaledNumerators)
-      .expand(assumptions: assumptions)
-      .simplify(assumptions: assumptions);
+  final sumNum = Add(scaledNumerators);
+  final totalNum = exceedsNodeBudget(sumNum, 1000)
+      ? sumNum.simplify(assumptions: assumptions)
+      : sumNum
+            .expand(assumptions: assumptions)
+            .simplify(assumptions: assumptions);
   final totalDen = buildFactoredExpr(
     scalar: IntegerNumber(lcmScalar),
     factors: lcmFactors,
   );
+  if (exceedsNodeBudget(totalNum, 1000) || exceedsNodeBudget(totalDen, 1000)) {
+    return (totalNum / totalDen).simplify(assumptions: assumptions);
+  }
   return cancelFactoredFraction(
     _factorPolynomial(totalNum, assumptions),
     totalDen,

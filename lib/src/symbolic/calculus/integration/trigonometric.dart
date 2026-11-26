@@ -548,37 +548,13 @@ Expr? tryRationalTrigSubstitution(
   // 1. Try t = tan(u) if expression is even in (sin, cos)
   const tName = '_rt';
   const tVar = Variable(tName);
-  final tanReplaced = replaceTrigWithTan(expr, inner, tVar);
-  if (!tanReplaced.dependsOn(variable)) {
-    final rawIntegrand = (tanReplaced / (k * (IntegerNumber.one + tVar * tVar)))
-        .simplify();
-    final integrand = rawIntegrand.together();
-    final tInt = antiDerivative(
-      integrand,
-      tName,
-      assumptions: assumptions,
-      depth: 2,
-    );
-    if (!hasUnevaluatedIntegral(tInt, tName)) {
-      return tInt
-          .substitute(tName, Tan(inner))
-          .simplify(assumptions: assumptions);
-    }
-  }
-
-  // 2. General Weierstrass substitution t = tan(u / 2)
-  final wReplaced = replaceTrigWithWeierstrass(expr, inner, tVar);
-  if (!wReplaced.dependsOn(variable)) {
-    final rawIntegrand =
-        ((wReplaced * IntegerNumber.two) /
-                (k * (IntegerNumber.one + tVar * tVar)))
-            .simplify();
-    final integrand = rawIntegrand.together();
-    final (_, intDen) = splitNumeratorDenominator(integrand);
-    final rawDeg = polynomialDegree(intDen, tName);
-    if (rawDeg != null && rawDeg <= 8) {
-      final deg = polynomialDegree(intDen.expand().simplify(), tName);
-      if (deg != null && deg <= 8) {
+  if (!isIntegrationBudgetExhausted()) {
+    final tanReplaced = replaceTrigWithTan(expr, inner, tVar);
+    if (!tanReplaced.dependsOn(variable)) {
+      final rawIntegrand =
+          (tanReplaced / (k * (IntegerNumber.one + tVar * tVar))).simplify();
+      if (!exceedsNodeBudget(rawIntegrand, 300)) {
+        final integrand = rawIntegrand.together();
         final tInt = antiDerivative(
           integrand,
           tName,
@@ -587,8 +563,43 @@ Expr? tryRationalTrigSubstitution(
         );
         if (!hasUnevaluatedIntegral(tInt, tName)) {
           return tInt
-              .substitute(tName, Tan((inner / IntegerNumber.two).simplify()))
+              .substitute(tName, Tan(inner))
               .simplify(assumptions: assumptions);
+        }
+      }
+    }
+  }
+
+  // 2. General Weierstrass substitution t = tan(u / 2)
+  if (!isIntegrationBudgetExhausted()) {
+    final wReplaced = replaceTrigWithWeierstrass(expr, inner, tVar);
+    if (!wReplaced.dependsOn(variable)) {
+      final rawIntegrand =
+          ((wReplaced * IntegerNumber.two) /
+                  (k * (IntegerNumber.one + tVar * tVar)))
+              .simplify();
+      if (!exceedsNodeBudget(rawIntegrand, 300)) {
+        final integrand = rawIntegrand.together();
+        final (_, intDen) = splitNumeratorDenominator(integrand);
+        final rawDeg = polynomialDegree(intDen, tName);
+        if (rawDeg != null && rawDeg <= 8) {
+          final deg = polynomialDegree(intDen.expand().simplify(), tName);
+          if (deg != null && deg <= 8) {
+            final tInt = antiDerivative(
+              integrand,
+              tName,
+              assumptions: assumptions,
+              depth: 2,
+            );
+            if (!hasUnevaluatedIntegral(tInt, tName)) {
+              return tInt
+                  .substitute(
+                    tName,
+                    Tan((inner / IntegerNumber.two).simplify()),
+                  )
+                  .simplify(assumptions: assumptions);
+            }
+          }
         }
       }
     }
@@ -605,6 +616,7 @@ Expr? tryHyperbolicRationalSubstitution(
   required Assumptions assumptions,
   int depth = 0,
 }) {
+  if (isIntegrationBudgetExhausted()) return null;
   final inner = collectAffineHypInner(expr, variable);
   if (inner == null) return null;
   final k = inner.matchLinear(variable)!.a;
@@ -612,9 +624,19 @@ Expr? tryHyperbolicRationalSubstitution(
   const wName = '_hw';
   const wVar = Variable(wName);
   final replaced = replaceHypWithExp(expr, inner, wVar);
-  if (replaced.dependsOn(variable)) return null;
+  if (replaced.dependsOn(variable) || exceedsNodeBudget(replaced, 300)) {
+    return null;
+  }
 
   final integrand = (replaced / (k * wVar)).simplify().together();
+  final (_, intDen) = splitNumeratorDenominator(integrand);
+  if (intDen.anyNode((n) => n is Add)) {
+    final rawDeg = polynomialDegree(intDen, wName);
+    final paramCount = ({...expr.freeVariables}..remove(variable)).length;
+    if (rawDeg != null && (rawDeg > 16 || (paramCount >= 5 && rawDeg > 8))) {
+      return null;
+    }
+  }
   final wInt = antiDerivative(
     integrand,
     wName,

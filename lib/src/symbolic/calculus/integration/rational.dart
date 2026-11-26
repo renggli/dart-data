@@ -691,6 +691,10 @@ Expr? tryAntiDerivDiv(
     }
     final rawDegLeft = polynomialDegree(left, variable);
     final rawDegRight = polynomialDegree(right, variable);
+    final paramCount = ({
+      ...left.freeVariables,
+      ...right.freeVariables,
+    }..remove(variable)).length;
     if (rawDegLeft != null && rawDegRight != null && rawDegRight >= 4) {
       if (tryPowerSubstitution(
             left,
@@ -715,7 +719,20 @@ Expr? tryAntiDerivDiv(
       final degLeft = polynomialDegree(leftExp, variable);
       final degRight = polynomialDegree(rightExp, variable);
       if (degLeft != null && degRight != null && degRight >= 1) {
-        if (depth < 2 && degLeft <= 12 && degRight <= 12) {
+        final withinPolyBudget =
+            !isIntegrationBudgetExhausted() &&
+            !exceedsNodeBudget(leftExp, 300) &&
+            !exceedsNodeBudget(rightExp, 300);
+        final isDenseMultivariate =
+            paramCount >= 5 &&
+            degRight >= 6 &&
+            rightExp is Add &&
+            rightExp.terms.length > 4;
+        if (depth < 2 &&
+            degLeft <= 12 &&
+            degRight <= 12 &&
+            withinPolyBudget &&
+            !isDenseMultivariate) {
           final canceled = (leftExp / rightExp).cancel(
             assumptions: assumptions,
           );
@@ -793,7 +810,10 @@ Expr? tryAntiDerivDiv(
             return pfRes;
           }
         }
-        if (degRight >= 2 && right is! Pow) {
+        if (degRight >= 2 &&
+            right is! Pow &&
+            withinPolyBudget &&
+            !isDenseMultivariate) {
           final sqFree = squareFreeFactorization(rightExp, variable);
           if (sqFree != null && sqFree.any((e) => e.mult > 1)) {
             final rightCoeffs = extractPolynomialCoefficients(
@@ -840,7 +860,10 @@ Expr? tryAntiDerivDiv(
             }
           }
         }
-        if (degRight >= 2 && degRight <= 12) {
+        if (degRight >= 2 &&
+            degRight <= 12 &&
+            withinPolyBudget &&
+            !isDenseMultivariate) {
           final originalRatio = (left / right).simplify();
           final decomposed = originalRatio.apart(variable);
           if (decomposed case Add(:final terms)) {

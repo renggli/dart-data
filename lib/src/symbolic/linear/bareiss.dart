@@ -97,92 +97,51 @@ class BareissEngine {
   ({Matrix<Expr> rref, List<int> pivotColumns}) rowEchelonWithPivots(
     Matrix<Expr> matrix, {
     Assumptions assumptions = Assumptions.none,
+  }) => _rowEchelonWithPivots(matrix, assumptions: assumptions)!;
+
+  /// Solves `A * x = b` like [solve], returning `null` if intermediate
+  /// expressions exceed [maxCellNodes] or elimination exceeds [maxElapsedMs].
+  Matrix<Expr>? solveBounded(
+    Matrix<Expr> matrix,
+    Matrix<Expr> b, {
+    Assumptions assumptions = Assumptions.none,
+    int maxCellNodes = 600,
+    int maxElapsedMs = 150,
   }) {
-    final rowCount = matrix.rowCount;
-    final colCount = matrix.colCount;
+    final m = matrix.rowCount;
+    final n = matrix.colCount;
+    if (b.rowCount != m) {
+      throw ArgumentError(
+        'Dimension mismatch: Matrix $m x $n, Matrix RHS ${b.rowCount} x ${b.colCount}',
+      );
+    }
     final effectiveType = matrix.type is ExprDataType
         ? matrix.type
         : exprDataType;
-    if (rowCount == 0 || colCount == 0) {
-      return (
-        rref: Matrix<Expr>.filled(
-          rowCount,
-          colCount,
-          IntegerNumber.zero,
-          type: effectiveType,
-        ),
-        pivotColumns: const [],
-      );
+    final k = b.colCount;
+    final augmented = Matrix<Expr>.generate(
+      m,
+      n + k,
+      (r, c) => c < n ? matrix.getUnchecked(r, c) : b.getUnchecked(r, c - n),
+      type: effectiveType,
+    );
+    final res = _rowEchelonWithPivots(
+      augmented,
+      assumptions: assumptions,
+      maxCellNodes: maxCellNodes,
+      maxElapsedMs: maxElapsedMs,
+    );
+    if (res == null) return null;
+    final (:rref, :pivotColumns) = res;
+    if (pivotColumns.any((p) => p >= n) || pivotColumns.length < n) {
+      return null;
     }
-    final grid = [
-      for (var r = 0; r < rowCount; r++)
-        [
-          for (var c = 0; c < colCount; c++)
-            matrix.getUnchecked(r, c).simplify(assumptions: assumptions),
-        ],
-    ];
-    final pivotColumns = <int>[];
-    var pivotRow = 0;
-
-    for (var col = 0; col < colCount && pivotRow < rowCount; col++) {
-      var bestRow = -1;
-      var bestScore = -1;
-      for (var r = pivotRow; r < rowCount; r++) {
-        final candidate = grid[r][col];
-        if (!_isExprZero(candidate, assumptions)) {
-          final score = _pivotPreferenceScore(candidate);
-          if (score > bestScore) {
-            bestScore = score;
-            bestRow = r;
-          }
-        }
-      }
-      if (bestRow == -1) continue;
-
-      if (bestRow != pivotRow) {
-        final temp = grid[pivotRow];
-        grid[pivotRow] = grid[bestRow];
-        grid[bestRow] = temp;
-      }
-
-      pivotColumns.add(col);
-      final pivot = grid[pivotRow][col];
-      grid[pivotRow][col] = IntegerNumber.one;
-      if (pivot != IntegerNumber.one) {
-        for (var c = col + 1; c < colCount; c++) {
-          grid[pivotRow][c] = _simplifyRatio(
-            grid[pivotRow][c],
-            pivot,
-            assumptions,
-          );
-        }
-      }
-
-      for (var r = 0; r < rowCount; r++) {
-        if (r == pivotRow) continue;
-        final factor = grid[r][col];
-        if (_isExprZero(factor, assumptions)) {
-          grid[r][col] = IntegerNumber.zero;
-          continue;
-        }
-        grid[r][col] = IntegerNumber.zero;
-        for (var c = col + 1; c < colCount; c++) {
-          final pivotEntry = grid[pivotRow][c];
-          if (!_isExprZero(pivotEntry, assumptions)) {
-            final cell = grid[r][c];
-            grid[r][c] =
-                (cell is Number && factor is Number && pivotEntry is Number)
-                ? cell.sub(factor.mul(pivotEntry))
-                : _simplifyDifference(cell, factor * pivotEntry, assumptions);
-          }
-        }
-      }
-
-      pivotRow++;
-    }
-
-    final rref = Matrix<Expr>.fromRows(grid, type: effectiveType);
-    return (rref: rref, pivotColumns: pivotColumns);
+    return Matrix<Expr>.generate(
+      n,
+      k,
+      (r, c) => rref.getUnchecked(r, n + c),
+      type: effectiveType,
+    );
   }
 
   /// Computes the Reduced Row Echelon Form (RREF) of [matrix].
@@ -293,6 +252,129 @@ class BareissEngine {
     throw ArgumentError.value(b, 'b', 'Expected Vector<Expr> or Matrix<Expr>');
   }
 
+  static ({Matrix<Expr> rref, List<int> pivotColumns})? _rowEchelonWithPivots(
+    Matrix<Expr> matrix, {
+    required Assumptions assumptions,
+    int? maxCellNodes,
+    int? maxElapsedMs,
+  }) {
+    final rowCount = matrix.rowCount;
+    final colCount = matrix.colCount;
+    final effectiveType = matrix.type is ExprDataType
+        ? matrix.type
+        : exprDataType;
+    if (rowCount == 0 || colCount == 0) {
+      return (
+        rref: Matrix<Expr>.filled(
+          rowCount,
+          colCount,
+          IntegerNumber.zero,
+          type: effectiveType,
+        ),
+        pivotColumns: const [],
+      );
+    }
+    final stopwatch = maxElapsedMs == null ? null : (Stopwatch()..start());
+    final grid = [
+      for (var r = 0; r < rowCount; r++)
+        [
+          for (var c = 0; c < colCount; c++)
+            matrix.getUnchecked(r, c).simplify(assumptions: assumptions),
+        ],
+    ];
+    final pivotColumns = <int>[];
+    var pivotRow = 0;
+
+    for (var col = 0; col < colCount && pivotRow < rowCount; col++) {
+      if (stopwatch != null && stopwatch.elapsedMilliseconds >= maxElapsedMs!) {
+        return null;
+      }
+      var bestRow = -1;
+      var bestScore = -1;
+      for (var r = pivotRow; r < rowCount; r++) {
+        final candidate = grid[r][col];
+        if (!_isExprZero(candidate, assumptions)) {
+          final score = _pivotPreferenceScore(candidate);
+          if (score > bestScore) {
+            bestScore = score;
+            bestRow = r;
+          }
+        }
+      }
+      if (bestRow == -1) continue;
+
+      if (bestRow != pivotRow) {
+        final temp = grid[pivotRow];
+        grid[pivotRow] = grid[bestRow];
+        grid[bestRow] = temp;
+      }
+
+      pivotColumns.add(col);
+      final pivot = grid[pivotRow][col];
+      if (maxCellNodes != null && exceedsNodeBudget(pivot, maxCellNodes)) {
+        return null;
+      }
+      grid[pivotRow][col] = IntegerNumber.one;
+      if (pivot != IntegerNumber.one) {
+        for (var c = col + 1; c < colCount; c++) {
+          if (stopwatch != null &&
+              stopwatch.elapsedMilliseconds >= maxElapsedMs!) {
+            return null;
+          }
+          final ratio = _simplifyRatio(
+            grid[pivotRow][c],
+            pivot,
+            assumptions,
+            maxCellNodes: maxCellNodes,
+          );
+          if (maxCellNodes != null && exceedsNodeBudget(ratio, maxCellNodes)) {
+            return null;
+          }
+          grid[pivotRow][c] = ratio;
+        }
+      }
+
+      for (var r = 0; r < rowCount; r++) {
+        if (r == pivotRow) continue;
+        if (stopwatch != null &&
+            stopwatch.elapsedMilliseconds >= maxElapsedMs!) {
+          return null;
+        }
+        final factor = grid[r][col];
+        if (_isExprZero(factor, assumptions)) {
+          grid[r][col] = IntegerNumber.zero;
+          continue;
+        }
+        grid[r][col] = IntegerNumber.zero;
+        for (var c = col + 1; c < colCount; c++) {
+          final pivotEntry = grid[pivotRow][c];
+          if (!_isExprZero(pivotEntry, assumptions)) {
+            final cell = grid[r][c];
+            final updated =
+                (cell is Number && factor is Number && pivotEntry is Number)
+                ? cell.sub(factor.mul(pivotEntry))
+                : _simplifyDifference(
+                    cell,
+                    factor * pivotEntry,
+                    assumptions,
+                    maxCellNodes: maxCellNodes,
+                  );
+            if (maxCellNodes != null &&
+                exceedsNodeBudget(updated, maxCellNodes)) {
+              return null;
+            }
+            grid[r][c] = updated;
+          }
+        }
+      }
+
+      pivotRow++;
+    }
+
+    final rref = Matrix<Expr>.fromRows(grid, type: effectiveType);
+    return (rref: rref, pivotColumns: pivotColumns);
+  }
+
   static int _pivotPreferenceScore(Expr expr) => switch (expr) {
     IntegerNumber(isOne: true) || IntegerNumber(isNegativeOne: true) => 4,
     IntegerNumber() => 3,
@@ -301,7 +383,12 @@ class BareissEngine {
     _ => 0,
   };
 
-  static Expr _simplifyRatio(Expr num, Expr den, Assumptions assumptions) {
+  static Expr _simplifyRatio(
+    Expr num,
+    Expr den,
+    Assumptions assumptions, {
+    int? maxCellNodes,
+  }) {
     if (num is Number && den is Number && !den.isZero) return num.div(den);
     final sNum = num.expand().simplify(assumptions: assumptions);
     if (_isExprZero(sNum, assumptions)) return IntegerNumber.zero;
@@ -312,16 +399,27 @@ class BareissEngine {
     }
     final direct = (sNum / sDen).simplify(assumptions: assumptions);
     if (!_hasDiv(direct)) return direct;
+    final nodeCap = maxCellNodes ?? 1000;
+    if (exceedsNodeBudget(sNum, nodeCap) || exceedsNodeBudget(sDen, nodeCap)) {
+      return direct;
+    }
     return cancelFactoredFraction(
       sNum.factor(assumptions: assumptions),
       sDen.factor(assumptions: assumptions),
     ).simplify(assumptions: assumptions);
   }
 
-  static Expr _simplifyDifference(Expr a, Expr b, Assumptions assumptions) {
+  static Expr _simplifyDifference(
+    Expr a,
+    Expr b,
+    Assumptions assumptions, {
+    int? maxCellNodes,
+  }) {
     if (a is Number && b is Number) return a.sub(b);
     final diff = (a - b).simplify(assumptions: assumptions);
     if (!_hasDiv(diff)) return diff.expand().simplify(assumptions: assumptions);
+    final nodeCap = maxCellNodes ?? 1000;
+    if (exceedsNodeBudget(diff, nodeCap)) return diff;
     return diff
         .cancel(assumptions: assumptions)
         .simplify(assumptions: assumptions);

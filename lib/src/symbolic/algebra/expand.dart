@@ -204,14 +204,16 @@ Expr _expandPow(Expr base, Expr exponent, Assumptions assumptions) {
       return Constant.undefined;
     }
     if (intExp == 1) return base;
+    final hasAdd = base is Add || base.anyNode((n) => n is Add);
+    final expCap = hasAdd ? 64 : 1024;
     if (intExp > 1) {
-      if (intExp > 1024) {
+      if (intExp > expCap) {
         return simplifyPow(base, exponent, assumptions: assumptions);
       }
       return _expandPowInteger(base, intExp, assumptions);
     }
     if (intExp < 0) {
-      if (intExp < -1024) {
+      if (intExp < -expCap) {
         return simplifyPow(base, exponent, assumptions: assumptions);
       }
       final pos = _expandPowInteger(base, -intExp, assumptions);

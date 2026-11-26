@@ -330,5 +330,10 @@ void main() {
       check(LogIntegral(IntegerNumber.one).simplify())
           .equals(-Constant.infinity);
     });
+
+    test('simplifies large positive integer Beta values via factorials', () {
+      check(Beta(IntegerNumber.of(1011), IntegerNumber.of(1011)).simplify())
+          .equals(Expr.parse('1010!^2 / 2021!').simplify());
+    });
   });
 }

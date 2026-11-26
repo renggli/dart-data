@@ -461,12 +461,18 @@ Expr? _applySingleStepIbp(
   required Assumptions assumptions,
   required int depth,
 }) {
+  if (isIntegrationBudgetExhausted()) return null;
   final v = antiDerivative(pExpr, variable, assumptions: assumptions, depth: 2);
-  if (hasUnevaluatedIntegral(v, variable)) return null;
+  if (isIntegrationBudgetExhausted() || hasUnevaluatedIntegral(v, variable)) {
+    return null;
+  }
   final uPrime = vExpr.derivative(variable).simplify(assumptions: assumptions);
-  final remIntegrand = (v * uPrime)
-      .together(assumptions: assumptions)
-      .simplify(assumptions: assumptions);
+  final prod = (v * uPrime).simplify(assumptions: assumptions);
+  final remIntegrand = exceedsNodeBudget(prod, 250)
+      ? prod
+      : prod
+            .together(assumptions: assumptions)
+            .simplify(assumptions: assumptions);
   final remIntegral = antiDerivative(
     remIntegrand,
     variable,

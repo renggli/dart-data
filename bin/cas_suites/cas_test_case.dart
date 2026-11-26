@@ -685,7 +685,14 @@ bool verifyDerivative(
   try {
     final diff = (deriv - integrand).simplify(assumptions: assumptions);
     if (diff is Number && diff.isZero) return true;
-    if (!_exceedsNodeCount(diff, 500)) {
+    if (!_exceedsNodeCount(diff, 500) &&
+        !diff.anyNode(
+          (n) =>
+              n is Pow &&
+              n.base is Add &&
+              n.exponent is RealNumeric &&
+              (n.exponent as RealNumeric).toDouble().abs() > 32,
+        )) {
       final combined = diff.together(assumptions: assumptions);
       if (combined is Number && combined.isZero) return true;
     }
@@ -765,14 +772,18 @@ bool verifyExprEquivalent(
   try {
     final diff = (sActual - sExpected).simplify(assumptions: assumptions);
     if (diff is Number && diff.isZero) return true;
-    final expDiff = diff
-        .expand(assumptions: assumptions)
-        .simplify(assumptions: assumptions);
-    if (expDiff is Number && expDiff.isZero) return true;
-    final trigDiff = expDiff.simplifyTrig(assumptions: assumptions);
-    if (trigDiff is Number && trigDiff.isZero) return true;
-    final cancelDiff = diff.together(assumptions: assumptions);
-    if (cancelDiff is Number && cancelDiff.isZero) return true;
+    if (!_exceedsNodeCount(diff, 400)) {
+      final expDiff = diff
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
+      if (expDiff is Number && expDiff.isZero) return true;
+      if (!_exceedsNodeCount(expDiff, 500)) {
+        final trigDiff = expDiff.simplifyTrig(assumptions: assumptions);
+        if (trigDiff is Number && trigDiff.isZero) return true;
+        final cancelDiff = diff.together(assumptions: assumptions);
+        if (cancelDiff is Number && cancelDiff.isZero) return true;
+      }
+    }
   } on Object {
     // Fall through to numerical probe.
   }

@@ -261,8 +261,9 @@ Expr? tryUSubstitution(
   _collectUCandidates(expr, variable, candidates);
   if (candidates.isEmpty) return null;
 
-  final expandedTrig = _expandDoubleAngleTrig(expr);
-  final splitExp = splitExpSumProduct(expr, variable);
+  final isLargeExpr = exceedsNodeBudget(expr, 400);
+  final splitExp = isLargeExpr ? expr : splitExpSumProduct(expr, variable);
+  final expandedTrig = isLargeExpr ? expr : _expandDoubleAngleTrig(expr);
   final exprVariants = <Expr>[
     expr,
     if (expandedTrig != expr) expandedTrig,
@@ -272,10 +273,14 @@ Expr? tryUSubstitution(
   final uName = '_u$depth';
   final uVar = Variable(uName);
 
+  var triedCandidates = 0;
   for (final candidate in candidates) {
     if (isIntegrationBudgetExhausted()) return null;
+    if (triedCandidates >= 64) break;
     if (!candidate.dependsOn(variable)) continue;
     if (candidate is Variable && candidate.name == variable) continue;
+    if (isLargeExpr && exceedsNodeBudget(candidate, 300)) continue;
+    triedCandidates++;
     final gPrime = candidate
         .derivative(variable)
         .simplify(assumptions: assumptions);
@@ -294,15 +299,39 @@ Expr? tryUSubstitution(
           fU = replaced.simplify(assumptions: assumptions);
         }
       }
-      if (fU.dependsOn(variable) && !exceedsNodeBudget(replaced, 350)) {
+      if (fU.dependsOn(variable) &&
+          !isIntegrationBudgetExhausted() &&
+          !exceedsNodeBudget(replaced, 350)) {
         fU = replaced.expand().simplify(assumptions: assumptions);
       }
       if (fU.dependsOn(variable) &&
+          !isIntegrationBudgetExhausted() &&
           !_hasLargeIntegerExponent(quot) &&
           !exceedsNodeBudget(quot, 350)) {
-        final normQuot = quot
-            .together(assumptions: assumptions)
-            .cancel(assumptions: assumptions);
+        final hasNestedFrac = quot.anyNode(
+          (node) =>
+              node is Add &&
+              node.terms.any(
+                (t) => t.anyNode(
+                  (n) =>
+                      n is FractionNumber ||
+                      (n is Pow &&
+                          n.exponent is RealNumeric &&
+                          (n.exponent as RealNumeric).isNegative),
+                ),
+              ),
+        );
+        final (_, qDen) = splitNumeratorDenominator(quot);
+        var normQuot = quot;
+        if (hasNestedFrac && !exceedsNodeBudget(quot, 350)) {
+          normQuot = quot
+              .together(assumptions: assumptions)
+              .cancel(assumptions: assumptions);
+        } else if (!hasNestedFrac &&
+            qDen.dependsOn(variable) &&
+            !exceedsNodeBudget(quot, 350)) {
+          normQuot = quot.cancel(assumptions: assumptions);
+        }
         if (normQuot != quot) {
           final normReplaced = _replaceUCandidate(
             normQuot,
@@ -311,11 +340,15 @@ Expr? tryUSubstitution(
             variable,
           );
           fU = normReplaced.simplify(assumptions: assumptions);
-          if (fU.dependsOn(variable) && !exceedsNodeBudget(normReplaced, 350)) {
+          if (fU.dependsOn(variable) &&
+              !isIntegrationBudgetExhausted() &&
+              !exceedsNodeBudget(normReplaced, 350)) {
             fU = normReplaced.expand().simplify(assumptions: assumptions);
           }
         }
-        if (fU.dependsOn(variable) && !exceedsNodeBudget(normQuot, 350)) {
+        if (fU.dependsOn(variable) &&
+            !isIntegrationBudgetExhausted() &&
+            !exceedsNodeBudget(normQuot, 350)) {
           fU =
               _tryLinearTranscendentalReplace(
                 normQuot: normQuot,
@@ -647,7 +680,7 @@ Expr? _tryChainRuleExponential(
 }
 
 void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
-  if (!node.dependsOn(variable)) return;
+  if (out.length >= 64 || !node.dependsOn(variable)) return;
   switch (node) {
     case Sin(:final expr) ||
         Cos(:final expr) ||
@@ -703,6 +736,7 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
           if (base is Add &&
               exponent is IntegerNumber &&
               exponent.isNegative &&
+              !exceedsNodeBudget(base, 160) &&
               _findTranscendental(base, variable) != null) {
             final xVar = Variable(variable);
             out.add((base / xVar).simplify());

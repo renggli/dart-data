@@ -233,5 +233,19 @@ void main() {
         check(m.nullSpace(assumptions: posX).length).equals(1);
       },
     );
+
+    test('BareissEngine.solveBounded matches solve on small systems and bails out under tight node bounds', () {
+      const engine = BareissEngine();
+      final syntax = ExprSyntax.standard;
+      final a = syntax.parseMatrix('[[a, b], [c, d]]');
+      final b = syntax.parseMatrix('[[1], [0]]');
+      final solved = engine.solveBounded(a, b);
+      final expected = engine.solve<Matrix<Expr>>(a, b);
+      check(solved).isNotNull();
+      check(solved!.format()).equals(expected!.format());
+
+      final bailed = engine.solveBounded(a, b, maxCellNodes: 3);
+      check(bailed).isNull;
+    });
   });
 }

@@ -214,7 +214,7 @@ Expr _factorRational(RationalNumber expr) {
 }
 
 Expr _factorInteger(Integer n) {
-  if (n.isZero || n.isOne || n == Integer.negativeOne) {
+  if (n.isZero || n.isOne || n == Integer.negativeOne || n.bitLength > 96) {
     return IntegerNumber(n);
   }
   final factors = <Expr>[];

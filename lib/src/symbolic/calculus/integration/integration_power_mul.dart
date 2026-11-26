@@ -524,6 +524,9 @@ Expr antiDerivMul(
 
   // 3. Chain-rule substitution across any factor as candidate and remaining product as factor:
   for (var i = 0; i < varFactors.length; i++) {
+    if (isIntegrationBudgetExhausted()) {
+      return unsupportedIntegral(original, variable);
+    }
     final candidate = varFactors[i];
     final others = <Expr>[
       for (var j = 0; j < varFactors.length; j++)
@@ -639,6 +642,9 @@ Expr antiDerivMul(
 
   // 3c. Linear polynomial times quadratic radical: (px + q) * (Ax^2 + Bx + C)^(k/2)
   for (var i = 0; i < varFactors.length; i++) {
+    if (isIntegrationBudgetExhausted()) {
+      return unsupportedIntegral(original, variable);
+    }
     if (varFactors[i] case Pow(:final base, :final exponent)) {
       if (halfIntExponent(exponent) case final halfExp?) {
         final others = <Expr>[
@@ -685,6 +691,9 @@ Expr antiDerivMul(
     }
   } else {
     for (var i = 0; i < varFactors.length; i++) {
+      if (isIntegrationBudgetExhausted()) {
+        return unsupportedIntegral(original, variable);
+      }
       final candidate = varFactors[i];
       final others = <Expr>[
         for (var j = 0; j < varFactors.length; j++)
@@ -763,16 +772,25 @@ Expr antiDerivMul(
           : Mul(others).simplify(assumptions: assumptions);
       final (_, otherDen) = splitNumeratorDenominator(otherExpr);
       final hasVarDen = otherDen.dependsOn(variable);
+      if (hasVarDen && terms.length > 12 && exceedsNodeBudget(otherExpr, 120)) {
+        break;
+      }
       final distDepth = hasVarDen ? (depth >= 1 ? depth : 1) : depth;
-      final distSum = Add([
-        for (final t in terms)
+      final distTerms = <Expr>[];
+      for (final t in terms) {
+        if (isIntegrationBudgetExhausted()) {
+          return unsupportedIntegral(original, variable);
+        }
+        distTerms.add(
           antiDerivative(
             (t * otherExpr).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
             depth: distDepth,
           ),
-      ]).simplify(assumptions: assumptions);
+        );
+      }
+      final distSum = Add(distTerms).simplify(assumptions: assumptions);
       if (!hasVarDen || !hasUnevaluatedIntegral(distSum, variable)) {
         return distSum;
       }
@@ -815,7 +833,11 @@ Expr? tryAdditiveProductRule(
   String variable, {
   required Assumptions assumptions,
 }) {
+  if (isIntegrationBudgetExhausted() || exceedsNodeBudget(expr, 350)) {
+    return null;
+  }
   final terms = expr is Add ? expr.terms : [expr];
+  if (terms.length > 12) return null;
   final candidates = <Expr>{};
   void addCandidate(Expr e) {
     if (e.dependsOn(variable)) candidates.add(e);
@@ -842,11 +864,18 @@ Expr? tryAdditiveProductRule(
   final candList = candidates.take(8).toList();
   for (final c in candList) {
     if (isIntegrationBudgetExhausted()) return null;
-    final diff = (c.derivative(variable, assumptions: assumptions) - expr)
-        .expand(assumptions: assumptions)
+    final rawDiff = (c.derivative(variable, assumptions: assumptions) - expr)
         .simplify(assumptions: assumptions);
-    if (diff is Number && diff.isZero) {
+    if (rawDiff is Number && rawDiff.isZero) {
       return c.simplify(assumptions: assumptions);
+    }
+    if (!exceedsNodeBudget(rawDiff, 300)) {
+      final diff = rawDiff
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
+      if (diff is Number && diff.isZero) {
+        return c.simplify(assumptions: assumptions);
+      }
     }
   }
   for (var i = 0; i < candList.length; i++) {
