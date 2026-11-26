@@ -2,6 +2,7 @@ import 'package:more/math.dart' show LcmIntegerExtension;
 
 import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
+import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/simplify/domain.dart';
 import '../../assumptions.dart';
@@ -598,16 +599,30 @@ Expr? tryFractionalLinearRadical(
 }) {
   Pow? targetPow;
   ({int p, int q})? frac;
+  Expr? foundNumB;
+  Expr? foundDenB;
   void scan(Expr n) {
     if (targetPow != null || !n.dependsOn(variable)) return;
     if (n case Pow(:final base, :final exponent)) {
       if (fractionalExponent(exponent) case final fq? when fq.q <= 4) {
-        final (numB, denB) = splitNumeratorDenominator(base);
+        var (numB, denB) = splitNumeratorDenominator(base);
+        if (numB.matchLinear(variable) == null ||
+            !denB.dependsOn(variable) ||
+            denB.matchLinear(variable) == null) {
+          final normBase = base
+              .together(assumptions: assumptions)
+              .cancel(assumptions: assumptions);
+          if (normBase != base) {
+            (numB, denB) = splitNumeratorDenominator(normBase);
+          }
+        }
         if (numB.matchLinear(variable) != null &&
             denB.dependsOn(variable) &&
             denB.matchLinear(variable) != null) {
           targetPow = n;
           frac = fq;
+          foundNumB = numB;
+          foundDenB = denB;
           return;
         }
       }
@@ -619,9 +634,15 @@ Expr? tryFractionalLinearRadical(
   }
 
   scan(expr);
-  if (targetPow == null || frac == null) return null;
+  if (targetPow == null ||
+      frac == null ||
+      foundNumB == null ||
+      foundDenB == null) {
+    return null;
+  }
 
-  final (numB, denB) = splitNumeratorDenominator(targetPow!.base);
+  final numB = foundNumB!;
+  final denB = foundDenB!;
   final (:a, :b) = numB.matchLinear(variable)!;
   final (a: c, b: d) = denB.matchLinear(variable)!;
   final det = (a * d - b * c).simplify(assumptions: assumptions);
@@ -1032,6 +1053,85 @@ Expr? tryLinearBinomialProductSpecial(
 
   final u1Item = others[0];
   final u2Item = others[1];
+  final allThree = [u0Item, u1Item, u2Item];
+  for (var intIdx = 0; intIdx < 3; intIdx++) {
+    final intItem = allThree[intIdx];
+    if (intItem.exp case IntegerNumber(asInt: final r?)
+        when r != 0 && r.abs() <= 8) {
+      final fItems = [
+        for (var j = 0; j < 3; j++)
+          if (j != intIdx) allThree[j],
+      ];
+      final fa = fItems[0];
+      final fb = fItems[1];
+      if (fa.exp case final RationalNumber mA) {
+        if (fb.exp case final RationalNumber nB) {
+          final sumExp = (mA + nB).simplify(assumptions: assumptions);
+          final q1 = mA.denominator.asInt;
+          final q2 = nB.denominator.asInt;
+          if (sumExp is IntegerNumber &&
+              sumExp.asInt != null &&
+              q1 != null &&
+              q2 != null) {
+            final q = q1.lcm(q2);
+            final k = sumExp.asInt!;
+            final bigN = (nB * IntegerNumber.of(q)).simplify(
+              assumptions: assumptions,
+            );
+            final detAB = (fa.b * fb.a - fa.a * fb.b).expand().simplify(
+              assumptions: assumptions,
+            );
+            if (!(detAB is Number && detAB.isZero) &&
+                q >= 2 &&
+                q <= 4 &&
+                k + r + 2 >= -6 &&
+                k + r + 2 <= 8 &&
+                bigN is IntegerNumber &&
+                bigN.asInt != null &&
+                (bigN.asInt! + q - 1).abs() <= 16) {
+              final uName = freshIntegrationVar('_u', expr, variable, 0);
+              final uVar = Variable(uName);
+              final qExpr = IntegerNumber.of(q);
+              final uPowQ = Pow(uVar, qExpr);
+              final bigA2 = (intItem.b * fb.a - intItem.a * fb.b)
+                  .expand()
+                  .simplify(assumptions: assumptions);
+              final bigB2 = (intItem.a * fa.b - intItem.b * fa.a)
+                  .expand()
+                  .simplify(assumptions: assumptions);
+              final uIntegrand =
+                  (-scale *
+                          qExpr *
+                          Pow(detAB, IntegerNumber.of(k + 1)) *
+                          Pow(uVar, IntegerNumber.of(bigN.asInt! + q - 1)) *
+                          Pow(bigA2 + bigB2 * uPowQ, IntegerNumber.of(r)) *
+                          Pow(
+                            fa.b * uPowQ - fb.b,
+                            IntegerNumber.of(-(k + r + 2)),
+                          ))
+                      .simplify(assumptions: assumptions);
+              if (!exceedsNodeBudget(uIntegrand, 220)) {
+                final uRes = antiDerivative(
+                  uIntegrand,
+                  uName,
+                  assumptions: assumptions,
+                  depth: 1,
+                );
+                if (!hasUnevaluatedIntegral(uRes, uName)) {
+                  final invQ = FractionNumber(Integer.one, Integer(q));
+                  final backSub = (Pow(fb.base, invQ) * Pow(fa.base, -invQ))
+                      .simplify(assumptions: assumptions);
+                  return uRes
+                      .substitute(uName, backSub)
+                      .simplify(assumptions: assumptions);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
   final n = u1Item.exp;
   final p = u2Item.exp;
   final numFactor =

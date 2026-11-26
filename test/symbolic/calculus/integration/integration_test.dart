@@ -772,5 +772,66 @@ void main() {
         ).isCloseTo(0.0, 1e-8);
       }
     });
+
+    test('integrates exp of inverse hyperbolic and inverse tangent powers', () {
+      for (final (source, env) in const [
+        ('exp(atanh(a * x) / 2)', {'x': 0.4, 'a': 0.7}),
+        ('x^2 * exp(atanh(a * x) / 2)', {'x': 0.4, 'a': 0.7}),
+        ('exp(atanh(a * x) / 2) / x', {'x': 0.4, 'a': 0.7}),
+        ('x^3 * exp(atanh(1 / (a * x)))', {'x': 1.8, 'a': 1.5}),
+        ('exp(atanh(1 / (a * x))) / x', {'x': 1.8, 'a': 1.5}),
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+              .abs(),
+        ).isCloseTo(0.0, 1e-8);
+      }
+
+      for (final source in const [
+        'x^4 * exp(i * atan(a * x))',
+        'x^2 * exp(i * atan(a * x) / 2)',
+        'exp(-3 * i * atan(a + b * x))',
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        final cEnv = {
+          'x': const Complex(0.35, 0.2),
+          'a': const Complex(0.8, 0.1),
+          'b': const Complex(0.7, 0.15),
+        };
+        check(
+          (antideriv.derivative('x').evaluateComplex(cEnv) -
+                  integrand.evaluateComplex(cEnv))
+              .abs(),
+        ).isCloseTo(0.0, 1e-8);
+      }
+    });
+
+    test(
+      'integrates reciprocal inverse hyperbolics, log-exp, and polylog forms',
+      () {
+        for (final (source, env) in const [
+          ('atanh(1 / (a * x))', {'x': 1.8, 'a': 1.5}),
+          ('asinh(1 / (c * x))', {'x': 1.2, 'c': 1.4}),
+          ('acosh(1 / (a * x))', {'x': 0.4, 'a': 1.2}),
+          ('polylog(2, a * exp(b * x))', {'x': 0.4, 'a': 0.3, 'b': 0.5}),
+          ('x * polylog(2, a * exp(b * x))', {'x': 0.4, 'a': 0.3, 'b': 0.5}),
+          ('polylog(2, c * x^2) / x', {'x': 0.5, 'c': 0.4}),
+          ('ln(a + b * exp(c * x))', {'x': 0.5, 'a': 3.2, 'b': 0.4, 'c': 0.6}),
+        ]) {
+          final integrand = Expr.parse(source);
+          final antideriv = integrand.integrate('x');
+          check(antideriv.anyNode((n) => n is Integral)).isFalse;
+          check(
+            (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+                .abs(),
+          ).isCloseTo(0.0, 1e-8);
+        }
+      },
+    );
   });
 }

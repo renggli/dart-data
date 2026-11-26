@@ -411,6 +411,9 @@ Expr _antiDerivativeCore(
       antiDerivAcosh(inner, variable) ?? unsupportedIntegral(node, variable),
     Atanh(expr: final inner) =>
       antiDerivAtanh(inner, variable) ?? unsupportedIntegral(node, variable),
+    Polylog(:final left, :final right) =>
+      antiDerivPolylog(left, right, variable, assumptions: assumptions) ??
+          unsupportedIntegral(node, variable),
     Piecewise() => antiDerivPiecewise(node, variable, assumptions: assumptions),
     Pow(:final base, :final exponent) => antiDerivPow(
       base,
@@ -525,6 +528,15 @@ Expr _antiDerivativeCore(
     if (tryUSubstitution(node, variable, assumptions: assumptions, depth: depth)
         case final uSubRes?) {
       return uSubRes;
+    }
+    if (tryRewriteExpInverseTrigHyp(
+          node,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        )
+        case final expInvRes?) {
+      return expInvRes;
     }
     if (tryExponentialSubstitution(
           node,

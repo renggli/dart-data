@@ -397,15 +397,199 @@ Expr? tryAntiDerivDiv(
     }
   }
 
-  // c * ln(x) / (a*x + b) -> (c / a) * (ln(x) * ln(1 + a*x/b) + polylog(2, -a*x/b))
-  if (left case Ln(expr: Variable(:final name)) when name == variable) {
-    if (right.matchLinear(variable) case (:final a, :final b)
-        when b != IntegerNumber.zero) {
-      final ratio = (a * Variable(variable) / b).simplify();
-      return ((Ln(Variable(variable)) * Ln(IntegerNumber.one + ratio) +
-                  Polylog(IntegerNumber.two, -ratio)) /
-              a)
-          .simplify();
+  // Linear log / atan / atanh / polylog quotients: scale * f(u) / (c + d*x)
+  final Expr leftScale;
+  final Expr leftFn;
+  if (left is Mul) {
+    final cList = <Expr>[];
+    final vList = <Expr>[];
+    for (final f in left.factors) {
+      if (f.dependsOn(variable)) {
+        vList.add(f);
+      } else {
+        cList.add(f);
+      }
+    }
+    if (vList.length == 1) {
+      leftScale = cList.isEmpty
+          ? IntegerNumber.one
+          : Mul(cList).simplify(assumptions: assumptions);
+      leftFn = vList.first;
+    } else {
+      leftScale = IntegerNumber.one;
+      leftFn = left;
+    }
+  } else {
+    leftScale = IntegerNumber.one;
+    leftFn = left;
+  }
+
+  if (right.matchLinear(variable) case (a: final d, b: final c)) {
+    switch (leftFn) {
+      case Ln(expr: final inner):
+        if (inner.matchLinear(variable) case (a: final b, b: final a)) {
+          return _integrateLinearLnOverLinear(
+            leftScale,
+            inner,
+            a,
+            b,
+            right,
+            c,
+            d,
+            variable,
+            assumptions,
+          );
+        }
+      case Atan(expr: final inner):
+        if (inner.matchLinear(variable) case (a: _, b: final a)) {
+          if (a is Number && a.isZero && c is Number && c.isZero) {
+            return ((leftScale * ComplexNumber.i / (IntegerNumber.two * d)) *
+                    (Polylog(IntegerNumber.two, -ComplexNumber.i * inner) -
+                        Polylog(IntegerNumber.two, ComplexNumber.i * inner)))
+                .simplify(assumptions: assumptions);
+          }
+          final uPlus = (IntegerNumber.one + ComplexNumber.i * inner).simplify(
+            assumptions: assumptions,
+          );
+          final uMinus = (IntegerNumber.one - ComplexNumber.i * inner).simplify(
+            assumptions: assumptions,
+          );
+          final linP = uPlus.matchLinear(variable);
+          final linM = uMinus.matchLinear(variable);
+          if (linP != null && linM != null) {
+            final lnP = _integrateLinearLnOverLinear(
+              IntegerNumber.one,
+              uPlus,
+              linP.b,
+              linP.a,
+              right,
+              c,
+              d,
+              variable,
+              assumptions,
+            );
+            final lnM = _integrateLinearLnOverLinear(
+              IntegerNumber.one,
+              uMinus,
+              linM.b,
+              linM.a,
+              right,
+              c,
+              d,
+              variable,
+              assumptions,
+            );
+            return (leftScale *
+                    (lnP - lnM) /
+                    (IntegerNumber.two * ComplexNumber.i))
+                .simplify(assumptions: assumptions);
+          }
+        }
+        final recip = (inner * Variable(variable)).simplify(
+          assumptions: assumptions,
+        );
+        if (!recip.dependsOn(variable) && c is Number && c.isZero) {
+          return ((-leftScale * ComplexNumber.i / (IntegerNumber.two * d)) *
+                  (Polylog(IntegerNumber.two, -ComplexNumber.i * inner) -
+                      Polylog(IntegerNumber.two, ComplexNumber.i * inner)))
+              .simplify(assumptions: assumptions);
+        }
+      case Atanh(expr: final inner):
+        if (inner.matchLinear(variable) case (a: _, b: final a)) {
+          if (a is Number && a.isZero && c is Number && c.isZero) {
+            return ((leftScale / (IntegerNumber.two * d)) *
+                    (Polylog(IntegerNumber.two, inner) -
+                        Polylog(IntegerNumber.two, -inner)))
+                .simplify(assumptions: assumptions);
+          }
+          final uPlus = (IntegerNumber.one + inner).simplify(
+            assumptions: assumptions,
+          );
+          final uMinus = (IntegerNumber.one - inner).simplify(
+            assumptions: assumptions,
+          );
+          final linP = uPlus.matchLinear(variable);
+          final linM = uMinus.matchLinear(variable);
+          if (linP != null && linM != null) {
+            final lnP = _integrateLinearLnOverLinear(
+              IntegerNumber.one,
+              uPlus,
+              linP.b,
+              linP.a,
+              right,
+              c,
+              d,
+              variable,
+              assumptions,
+            );
+            final lnM = _integrateLinearLnOverLinear(
+              IntegerNumber.one,
+              uMinus,
+              linM.b,
+              linM.a,
+              right,
+              c,
+              d,
+              variable,
+              assumptions,
+            );
+            return (leftScale * (lnP - lnM) / IntegerNumber.two).simplify(
+              assumptions: assumptions,
+            );
+          }
+        }
+        final recip = (inner * Variable(variable)).simplify(
+          assumptions: assumptions,
+        );
+        if (!recip.dependsOn(variable) && c is Number && c.isZero) {
+          return ((-leftScale / (IntegerNumber.two * d)) *
+                  (Polylog(IntegerNumber.two, inner) -
+                      Polylog(IntegerNumber.two, -inner)))
+              .simplify(assumptions: assumptions);
+        }
+      case Polylog(left: final order, right: final arg)
+          when !order.dependsOn(variable) && c is Number && c.isZero:
+        RationalNumber? monoExp;
+        if (arg case Variable(:final name) when name == variable) {
+          monoExp = IntegerNumber.one;
+        } else if (arg
+            case Pow(
+              base: Variable(:final name),
+              exponent: final RationalNumber m,
+            )
+            when name == variable && !m.isZero) {
+          monoExp = m;
+        } else if (arg case Mul(:final factors)) {
+          final vfs = [
+            for (final mf in factors)
+              if (mf.dependsOn(variable)) mf,
+          ];
+          if (vfs.length == 1) {
+            if (vfs.first case Variable(:final name) when name == variable) {
+              monoExp = IntegerNumber.one;
+            } else if (vfs.first
+                case Pow(
+                  base: Variable(:final name),
+                  exponent: final RationalNumber m,
+                )
+                when name == variable && !m.isZero) {
+              monoExp = m;
+            }
+          }
+        }
+        if (monoExp != null) {
+          return (leftScale *
+                  Polylog(
+                    (order + IntegerNumber.one).simplify(
+                      assumptions: assumptions,
+                    ),
+                    arg,
+                  ) /
+                  (d * monoExp))
+              .simplify(assumptions: assumptions);
+        }
+      default:
+        break;
     }
   }
 
@@ -927,4 +1111,36 @@ Expr? tryAntiDerivDiv(
   }
 
   return null;
+}
+
+Expr _integrateLinearLnOverLinear(
+  Expr scale,
+  Expr u,
+  Expr a,
+  Expr b,
+  Expr v,
+  Expr c,
+  Expr d,
+  String variable,
+  Assumptions assumptions,
+) {
+  final det = (b * c - a * d).expand().simplify(assumptions: assumptions);
+  if (det is Number && det.isZero) {
+    return (scale * Pow(Ln(u), IntegerNumber.two) / (IntegerNumber.two * d))
+        .simplify(assumptions: assumptions);
+  }
+  if (c is Number && c.isZero) {
+    final ratio = (b * Variable(variable) / a).simplify(
+      assumptions: assumptions,
+    );
+    return ((scale / d) *
+            ((Ln(u) - Ln(IntegerNumber.one + ratio)) *
+                    logAntiderivative(Variable(variable), assumptions) -
+                Polylog(IntegerNumber.two, -ratio)))
+        .simplify(assumptions: assumptions);
+  }
+  final z = (-d * u / det).simplify(assumptions: assumptions);
+  final oneMinusZ = (b * v / det).simplify(assumptions: assumptions);
+  return ((scale / d) * (Ln(u) * Ln(oneMinusZ) + Polylog(IntegerNumber.two, z)))
+      .simplify(assumptions: assumptions);
 }

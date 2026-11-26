@@ -175,6 +175,19 @@ Expr? antiDerivAtan(Expr inner, String variable) {
                 Ln(Pow(xVar, IntegerNumber.two) + Pow(c, IntegerNumber.two)))
         .simplify();
   }
+  if (_matchExpScaledLinear(inner, variable) case (
+    scale: _,
+    :final base,
+    :final a,
+    b: _,
+  )) {
+    final lnBase = base == Constant.e ? IntegerNumber.one : Ln(base);
+    final cEff = (a * lnBase).simplify();
+    return ((ComplexNumber.i / (IntegerNumber.two * cEff)) *
+            (Polylog(IntegerNumber.two, -ComplexNumber.i * inner) -
+                Polylog(IntegerNumber.two, ComplexNumber.i * inner)))
+        .simplify();
+  }
   return null;
 }
 
@@ -211,6 +224,90 @@ Expr? antiDerivLn(
 }) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
     return ((inner * Ln(inner) - inner) / a).simplify(assumptions: assumptions);
+  }
+  if (_matchLinPlusExp(inner, variable) case (
+    :final constTerm,
+    :final expTerm,
+    :final base,
+    :final slope,
+  )) {
+    final r = (expTerm / constTerm).simplify(assumptions: assumptions);
+    final lnBase = base == Constant.e
+        ? IntegerNumber.one
+        : Ln(base).simplify(assumptions: assumptions);
+    final cEff = (slope * lnBase).simplify(assumptions: assumptions);
+    return (Ln(constTerm) * Variable(variable) -
+            Polylog(IntegerNumber.two, -r) / cEff)
+        .simplify(assumptions: assumptions);
+  }
+  if (inner case Abs(expr: final sub)) {
+    if (_matchLinPlusExp(sub, variable) case (
+      :final constTerm,
+      :final expTerm,
+      :final base,
+      :final slope,
+    )) {
+      final r = (expTerm / constTerm).simplify(assumptions: assumptions);
+      final lnBase = base == Constant.e
+          ? IntegerNumber.one
+          : Ln(base).simplify(assumptions: assumptions);
+      final cEff = (slope * lnBase).simplify(assumptions: assumptions);
+      return (Ln(Abs(constTerm)) * Variable(variable) -
+              Polylog(IntegerNumber.two, -r) / cEff)
+          .simplify(assumptions: assumptions);
+    }
+  }
+  if (depth < 3 && (inner is Mul || inner is Pow)) {
+    final rawFactors = inner is Mul ? inner.factors : [inner];
+    final items = <({Expr base, int exp})>[];
+    var allPositiveOrAbs = true;
+    for (final f in rawFactors) {
+      if (f case Pow(:final base, exponent: IntegerNumber(asInt: final k?))) {
+        if (base is Abs || isPositiveExpr(base, assumptions: assumptions)) {
+          items.add((base: base, exp: k));
+        } else {
+          allPositiveOrAbs = false;
+          break;
+        }
+      } else if (f is Abs || isPositiveExpr(f, assumptions: assumptions)) {
+        items.add((base: f, exp: 1));
+      } else {
+        allPositiveOrAbs = false;
+        break;
+      }
+    }
+    if (allPositiveOrAbs &&
+        items.any((it) => it.base.dependsOn(variable)) &&
+        (items.length >= 2 || (items.length == 1 && items.first.exp != 1))) {
+      final sumTerms = <Expr>[];
+      var allOk = true;
+      for (final (:base, :exp) in items) {
+        if (!base.dependsOn(variable)) {
+          sumTerms.add(
+            (IntegerNumber.of(exp) * Ln(base) * Variable(variable)).simplify(
+              assumptions: assumptions,
+            ),
+          );
+          continue;
+        }
+        final subInt = antiDerivative(
+          Ln(base),
+          variable,
+          assumptions: assumptions,
+          depth: depth + 1,
+        );
+        if (hasUnevaluatedIntegral(subInt, variable)) {
+          allOk = false;
+          break;
+        }
+        sumTerms.add(
+          (IntegerNumber.of(exp) * subInt).simplify(assumptions: assumptions),
+        );
+      }
+      if (allOk) {
+        return Add(sumTerms).simplify(assumptions: assumptions);
+      }
+    }
   }
   if (inner case Ln(expr: final arg)) {
     if (arg.matchLinear(variable) case (:final a, b: _)) {
@@ -383,42 +480,113 @@ Expr? antiDerivCoshIntegralChi(Expr inner, String variable) =>
       null => null,
     };
 
-Expr? antiDerivAsinh(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * Asinh(inner) -
-                    Pow(
-                      Pow(inner, IntegerNumber.two) + IntegerNumber.one,
-                      FractionNumber.half,
-                    )) /
-                a)
-            .simplify(),
-      null => null,
-    };
+Expr? antiDerivAsinh(Expr inner, String variable) {
+  if (inner.matchLinear(variable) case (:final a, b: _)) {
+    return ((inner * Asinh(inner) -
+                Pow(
+                  Pow(inner, IntegerNumber.two) + IntegerNumber.one,
+                  FractionNumber.half,
+                )) /
+            a)
+        .simplify();
+  }
+  if (_matchReciprocalLinear(inner, variable) case final c?) {
+    final xVar = Variable(variable);
+    final s = Pow(
+      IntegerNumber.one + Pow(inner, IntegerNumber.two),
+      FractionNumber.half,
+    );
+    return (xVar * Asinh(inner) +
+            c *
+                logAntiderivative(
+                  (xVar * (IntegerNumber.one + s)) / c,
+                  Assumptions.none,
+                ))
+        .simplify();
+  }
+  return null;
+}
 
-Expr? antiDerivAcosh(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * Acosh(inner) -
-                    Pow(
-                      Pow(inner, IntegerNumber.two) - IntegerNumber.one,
-                      FractionNumber.half,
-                    )) /
-                a)
-            .simplify(),
-      null => null,
-    };
+Expr? antiDerivAcosh(Expr inner, String variable) {
+  if (inner.matchLinear(variable) case (:final a, b: _)) {
+    return ((inner * Acosh(inner) -
+                Pow(
+                  Pow(inner, IntegerNumber.two) - IntegerNumber.one,
+                  FractionNumber.half,
+                )) /
+            a)
+        .simplify();
+  }
+  if (_matchReciprocalLinear(inner, variable) case final c?) {
+    final xVar = Variable(variable);
+    final s =
+        Pow(inner - IntegerNumber.one, FractionNumber.half) *
+        Pow(inner + IntegerNumber.one, FractionNumber.half);
+    return (xVar * Acosh(inner) - c * Atan(s)).simplify();
+  }
+  return null;
+}
 
-Expr? antiDerivAtanh(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * Atanh(inner) +
-                    FractionNumber.half *
-                        Ln(IntegerNumber.one - Pow(inner, IntegerNumber.two))) /
-                a)
-            .simplify(),
-      null => null,
-    };
+Expr? antiDerivAtanh(Expr inner, String variable) {
+  if (inner.matchLinear(variable) case (:final a, b: _)) {
+    return ((inner * Atanh(inner) +
+                FractionNumber.half *
+                    Ln(IntegerNumber.one - Pow(inner, IntegerNumber.two))) /
+            a)
+        .simplify();
+  }
+  if (_matchReciprocalLinear(inner, variable) case final c?) {
+    final xVar = Variable(variable);
+    return (xVar * Atanh(inner) +
+            (c / IntegerNumber.two) *
+                logAntiderivative(
+                  Pow(xVar, IntegerNumber.two) - Pow(c, IntegerNumber.two),
+                  Assumptions.none,
+                ))
+        .simplify();
+  }
+  if (_matchExpScaledLinear(inner, variable) case (
+    scale: _,
+    :final base,
+    :final a,
+    b: _,
+  )) {
+    final lnBase = base == Constant.e ? IntegerNumber.one : Ln(base);
+    final cEff = (a * lnBase).simplify();
+    return ((IntegerNumber.one / (IntegerNumber.two * cEff)) *
+            (Polylog(IntegerNumber.two, inner) -
+                Polylog(IntegerNumber.two, -inner)))
+        .simplify();
+  }
+  return null;
+}
+
+/// Integrates `polylog(order, c * B^(a*x + b))` with respect to [variable].
+Expr? antiDerivPolylog(
+  Expr order,
+  Expr arg,
+  String variable, {
+  required Assumptions assumptions,
+}) {
+  if (order.dependsOn(variable)) return null;
+  if (_matchExpScaledLinear(arg, variable) case (
+    scale: _,
+    :final base,
+    :final a,
+    b: _,
+  )) {
+    final lnBase = base == Constant.e
+        ? IntegerNumber.one
+        : Ln(base).simplify(assumptions: assumptions);
+    return (Polylog(
+              (order + IntegerNumber.one).simplify(assumptions: assumptions),
+              arg,
+            ) /
+            (a * lnBase))
+        .simplify(assumptions: assumptions);
+  }
+  return null;
+}
 
 Expr antiDerivPiecewise(
   Piecewise expr,
@@ -501,3 +669,55 @@ Expr? _extractBoundaryPoint(Expr cond, String variable) => switch (cond) {
   ) when name == variable && !bound.dependsOn(variable) => bound,
   _ => null,
 };
+
+({Expr scale, Expr base, Expr a, Expr b})? _matchExpScaledLinear(
+  Expr expr,
+  String variable,
+) {
+  final factors = expr is Mul ? expr.factors : [expr];
+  final consts = <Expr>[];
+  Pow? expPow;
+  for (final f in factors) {
+    if (!f.dependsOn(variable)) {
+      consts.add(f);
+    } else if (f is Pow && expPow == null && !f.base.dependsOn(variable)) {
+      expPow = f;
+    } else {
+      return null;
+    }
+  }
+  if (expPow == null || !isValidExponentialBase(expPow.base)) return null;
+  final lin = expPow.exponent.matchLinear(variable);
+  if (lin == null) return null;
+  final scale = consts.isEmpty ? IntegerNumber.one : Mul(consts).simplify();
+  return (scale: scale, base: expPow.base, a: lin.a, b: lin.b);
+}
+
+({Expr constTerm, Expr expTerm, Expr base, Expr slope})? _matchLinPlusExp(
+  Expr expr,
+  String variable,
+) {
+  if (expr is! Add) return null;
+  final constTerms = <Expr>[];
+  final varTerms = <Expr>[];
+  for (final t in expr.terms) {
+    if (!t.dependsOn(variable)) {
+      constTerms.add(t);
+    } else {
+      varTerms.add(t);
+    }
+  }
+  if (constTerms.isEmpty || varTerms.length != 1) return null;
+  final constTerm = constTerms.length == 1
+      ? constTerms.first
+      : Add(constTerms).simplify();
+  if (constTerm is Number && constTerm.isZero) return null;
+  final expMatch = _matchExpScaledLinear(varTerms.first, variable);
+  if (expMatch == null) return null;
+  return (
+    constTerm: constTerm,
+    expTerm: varTerms.first,
+    base: expMatch.base,
+    slope: expMatch.a,
+  );
+}

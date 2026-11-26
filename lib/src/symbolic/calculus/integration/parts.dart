@@ -36,13 +36,42 @@ Expr? tryIntegrationByParts(
     }
   }
 
-  // Inverse trig / inverse hyperbolic IBP: u = f(g(x)) or f(g(x))^2, dv = pExpr dx
+  // Inverse trig / inverse hyperbolic IBP: u = f(g(x)), a + b*f(g(x)), or powered 2..3
+  bool isInvFn(Expr n) =>
+      n is Asin ||
+      n is Acos ||
+      n is Atan ||
+      n is Asinh ||
+      n is Acosh ||
+      n is Atanh;
+  bool isInvOrAffine(Expr n) {
+    if (isInvFn(n)) return true;
+    if (n case Add(:final terms) when terms.length == 2) {
+      final vTerms = [
+        for (final t in terms)
+          if (t.dependsOn(variable)) t,
+      ];
+      if (vTerms.length != 1) return false;
+      final vt = vTerms.first;
+      if (isInvFn(vt)) return true;
+      if (vt case Mul(:final factors)) {
+        final vfs = [
+          for (final mf in factors)
+            if (mf.dependsOn(variable)) mf,
+        ];
+        return vfs.length == 1 && isInvFn(vfs.first);
+      }
+    }
+    return false;
+  }
+
   final isInverseTrigOrHyp = switch (vExpr) {
-    Asin() || Acos() || Atan() || Asinh() || Acosh() || Atanh() => true,
-    Pow(
-      base: Asin() || Acos() || Atan() || Asinh() || Acosh() || Atanh(),
-      exponent: IntegerNumber(asInt: 2) || RealNumber(value: 2.0),
-    ) =>
+    _ when isInvOrAffine(vExpr) => true,
+    Pow(:final base, exponent: IntegerNumber(asInt: final k?))
+        when (k == 2 || k == 3) && isInvOrAffine(base) =>
+      true,
+    Pow(:final base, exponent: RealNumber(value: 2.0 || 3.0))
+        when isInvOrAffine(base) =>
       true,
     _ => false,
   };
@@ -324,17 +353,28 @@ Expr? tryIntegrationByParts(
     if (result != null) return result;
   }
 
-  // General polynomial fallback: P(x) of degree 1..3 times any integrable vExpr
-  if (depth < 2 &&
+  // General polynomial fallback: P(x) of degree 1..4 times any integrable vExpr
+  final allowPolyPolylogOrExpInv = switch (vExpr) {
+    Polylog(:final left, right: _) => !left.dependsOn(variable),
+    Atan(:final expr) || Atanh(:final expr) || Ln(:final expr) => expr.anyNode(
+      (n) =>
+          n is Pow &&
+          !n.base.dependsOn(variable) &&
+          n.exponent.dependsOn(variable),
+    ),
+    _ => false,
+  };
+  if (depth < (allowPolyPolylogOrExpInv ? 3 : 2) &&
       degP != null &&
       degP >= 1 &&
-      degP <= 3 &&
-      !_containsLogOrInverseTrig(vExpr)) {
+      degP <= (allowPolyPolylogOrExpInv ? 4 : 3) &&
+      (allowPolyPolylogOrExpInv ||
+          !_containsLogOrInverseTrig(vExpr, variable))) {
     final v = antiDerivative(
       vExpr,
       variable,
       assumptions: assumptions,
-      depth: 2,
+      depth: depth + 1,
     );
     if (!hasUnevaluatedIntegral(v, variable)) {
       final pPrime = pExpr.derivative(variable, assumptions: assumptions);
@@ -433,12 +473,23 @@ Expr _ibpCosh(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
   return (term1 - term2).simplify();
 }
 
-bool _containsLogOrInverseTrig(Expr expr) => switch (expr) {
+bool _containsLogOrInverseTrig(Expr expr, String variable) => switch (expr) {
   Ln() || Asin() || Acos() || Atan() || Asinh() || Acosh() || Atanh() => true,
-  Add(:final terms) => terms.any(_containsLogOrInverseTrig),
-  Mul(:final factors) => factors.any(_containsLogOrInverseTrig),
+  Add(:final terms) => terms.any((t) => _containsLogOrInverseTrig(t, variable)),
+  Mul(:final factors) => factors.any(
+    (f) => _containsLogOrInverseTrig(f, variable),
+  ),
   Pow(:final base, :final exponent) =>
-    _containsLogOrInverseTrig(base) || _containsLogOrInverseTrig(exponent),
+    (exponent is FractionNumber &&
+            base.dependsOn(variable) &&
+            !base.anyNode(
+              (n) =>
+                  n is Pow &&
+                  !n.base.dependsOn(variable) &&
+                  n.exponent.dependsOn(variable),
+            )) ||
+        _containsLogOrInverseTrig(base, variable) ||
+        _containsLogOrInverseTrig(exponent, variable),
   _ => false,
 };
 

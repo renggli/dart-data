@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -235,6 +236,43 @@ void main() {
               .simplify();
       check(diff2.evaluate({'a': 1.0, 'b': 1.0, 'c': 1.0, 'd': 2.0, 'x': 1.0}))
           .isCloseTo(0.0, 1e-6);
+    });
+
+    test('integrates linear log, atan, and atanh quotients via Polylog', () {
+      for (final (source, env) in const [
+        (
+          'ln(a + b * x) / (c + d * x)',
+          {'x': 0.4, 'a': 2.3, 'b': 0.7, 'c': 3.1, 'd': 1.2},
+        ),
+        ('ln(a + b * x) / x', {'x': 0.4, 'a': 2.3, 'b': 0.7}),
+        ('atan(c * x) / x', {'x': 0.5, 'c': 0.8}),
+        ('atan(1 / (a * x)) / x', {'x': 1.5, 'a': 2.0}),
+        ('atanh(c * x) / x', {'x': 0.5, 'c': 0.8}),
+        ('atanh(1 / (a * x)) / x', {'x': 1.5, 'a': 2.0}),
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+              .abs(),
+        ).isCloseTo(0.0, 1e-8);
+      }
+
+      final cIntegrand = Expr.parse('ln(a + b * x) / (c + d * x)');
+      final cAnti = cIntegrand.integrate('x');
+      final cEnv = {
+        'x': const Complex(0.35, 0.2),
+        'a': const Complex(2.3, 0.15),
+        'b': const Complex(0.7, 0.1),
+        'c': const Complex(3.1, 0.2),
+        'd': const Complex(1.2, 0.1),
+      };
+      check(
+        (cAnti.derivative('x').evaluateComplex(cEnv) -
+                cIntegrand.evaluateComplex(cEnv))
+            .abs(),
+      ).isCloseTo(0.0, 1e-8);
     });
   });
 }

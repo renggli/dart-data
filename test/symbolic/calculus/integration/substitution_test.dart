@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -385,6 +386,68 @@ void main() {
           Constant.infinity,
         ).pow(2).integrate('x'),
       ).isA<Integral>();
+    });
+
+    test('integrates coupled multi-base and rational-ratio exponentials', () {
+      for (final (source, env) in const [
+        (
+          'f^(a + 3 * b * x) / (c + d * f^(2 * b * x + e))',
+          {
+            'x': 0.45,
+            'a': 0.5,
+            'b': 0.7,
+            'c': 2.1,
+            'd': 1.3,
+            'e': 0.3,
+            'f': 2.2,
+          },
+        ),
+        (
+          '(a + b * (F^(e * (c + d * x)))^n)^2 * (G^(h * (f + g * x)))^(d * e * n * ln(F) / (g * h * ln(G)))',
+          {
+            'x': 0.3,
+            'a': 1.4,
+            'b': 0.7,
+            'c': 0.2,
+            'd': 0.5,
+            'e': 0.6,
+            'f': 0.4,
+            'g': 0.8,
+            'h': 0.9,
+            'n': 1.5,
+            'F': 2.3,
+            'G': 3.1,
+          },
+        ),
+        ('x * exp(x) / (1 - exp(2 * x))', {'x': -0.7}),
+        ('x^2 * exp(x) / (1 - exp(2 * x))', {'x': -0.7}),
+        (
+          'f^x * x / (a + b * f^(2 * x))',
+          {'x': -0.8, 'f': 2.3, 'a': 2.5, 'b': 0.6},
+        ),
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+              .abs(),
+        ).isCloseTo(0.0, 1e-7);
+      }
+
+      final cIntegrand = Expr.parse('f^x * x / (a + b * f^(2 * x))');
+      final cAnti = cIntegrand.integrate('x');
+      final cEnv = {
+        'x': const Complex(-0.6, 0.25),
+        'f': const Complex(2.3, 0.2),
+        'a': const Complex(2.5, 0.3),
+        'b': const Complex(0.6, 0.15),
+      };
+      check(
+        (cAnti.derivative('x').evaluateComplex(cEnv) -
+                cIntegrand.evaluateComplex(cEnv))
+            .abs(),
+      ).isCloseTo(0.0, 1e-8);
     });
   });
 }

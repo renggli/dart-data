@@ -316,9 +316,11 @@ Expr antiDerivPow(
         }
       }
     }
-    // Squares of inverse trig/hyperbolic functions: asin(ax+b)^2, acos(ax+b)^2, atan(ax+b)^2, ...
+    // Powers 2..3 of inverse trig/hyperbolic functions: asin(ax+b)^2, acos(ax+b)^3, ...
     if (exponent == IntegerNumber.two ||
-        (exponent is RealNumber && exponent.value == 2.0)) {
+        exponent == IntegerNumber.of(3) ||
+        (exponent is RealNumber &&
+            (exponent.value == 2.0 || exponent.value == 3.0))) {
       if (base is Asin ||
           base is Acos ||
           base is Atan ||
@@ -779,6 +781,99 @@ Expr antiDerivMul(
       );
       if (!hasUnevaluatedIntegral(res, variable)) return res;
     }
+
+    // 4c. Partial-fraction decomposition of rational cofactors multiplied by
+    // inverse trig/hyperbolic factors:
+    bool isStandaloneOrAffineInvFn(Expr n) {
+      var core = n;
+      if (core case Pow(:final base, exponent: IntegerNumber(asInt: final k?))
+          when k >= 1 && k <= 3) {
+        core = base;
+      }
+      if (core is Asin ||
+          core is Acos ||
+          core is Atan ||
+          core is Asinh ||
+          core is Acosh ||
+          core is Atanh) {
+        return true;
+      }
+      if (core case Add(:final terms) when terms.length == 2) {
+        final vTerms = [
+          for (final t in terms)
+            if (t.dependsOn(variable)) t,
+        ];
+        if (vTerms.length != 1) return false;
+        final vt = vTerms.first;
+        if (vt is Asin ||
+            vt is Acos ||
+            vt is Atan ||
+            vt is Asinh ||
+            vt is Acosh ||
+            vt is Atanh) {
+          return true;
+        }
+        if (vt case Mul(:final factors)) {
+          final vfs = [
+            for (final mf in factors)
+              if (mf.dependsOn(variable)) mf,
+          ];
+          if (vfs.length == 1) {
+            final f0 = vfs.first;
+            return f0 is Asin ||
+                f0 is Acos ||
+                f0 is Atan ||
+                f0 is Asinh ||
+                f0 is Acosh ||
+                f0 is Atanh;
+          }
+        }
+      }
+      return false;
+    }
+
+    for (var i = 0; i < varFactors.length; i++) {
+      final invFactor = varFactors[i];
+      if (!isStandaloneOrAffineInvFn(invFactor)) continue;
+      final rest = <Expr>[
+        ...constFactors,
+        for (var j = 0; j < varFactors.length; j++)
+          if (j != i) varFactors[j],
+      ];
+      if (rest.isEmpty) continue;
+      final rationalCofactor = rest.length == 1
+          ? rest.first
+          : Mul(rest).simplify(assumptions: assumptions);
+      final (rNum, rDen) = splitNumeratorDenominator(rationalCofactor);
+      if (!rDen.dependsOn(variable)) continue;
+      final rNumExp = rNum.expand().simplify(assumptions: assumptions);
+      final rDenExp = rDen.expand().simplify(assumptions: assumptions);
+      final degN = polynomialDegree(rNumExp, variable);
+      final degD = polynomialDegree(rDenExp, variable);
+      if (degN != null && degD != null && degN <= 8 && degD >= 1 && degD <= 8) {
+        final apartCofactor = rationalCofactor.apart(variable);
+        if (apartCofactor is Add) {
+          final partTerms = <Expr>[];
+          var allOk = true;
+          for (final t in apartCofactor.terms) {
+            final tInt = antiDerivative(
+              (invFactor * t).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+              depth: depth + 1,
+            );
+            if (hasUnevaluatedIntegral(tInt, variable)) {
+              allOk = false;
+              break;
+            }
+            partTerms.add(tInt);
+          }
+          if (allOk) {
+            return Add(partTerms).simplify(assumptions: assumptions);
+          }
+        }
+      }
+    }
   }
 
   // 5. Distributive expansion across additions:
@@ -1007,6 +1102,151 @@ Expr rewritePowerLogIdentities(
     }
   }
   return mapped;
+}
+
+/// Rewrites `exp(c + k * fn(u))` for inverse hyperbolic and inverse
+/// trigonometric functions (`atanh`, `atan`, `asinh`, `acosh`) into algebraic
+/// powers or rational factors and integrates via [antiDerivative].
+Expr? tryRewriteExpInverseTrigHyp(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2) return null;
+  var changed = false;
+
+  Expr rewriteExp(Expr node) {
+    if (!node.dependsOn(variable)) return node;
+    if (node case Pow(base: Constant.e, exponent: final exp)
+        when exp.dependsOn(variable)) {
+      final terms = exp is Add ? exp.terms : [exp];
+      final constTerms = <Expr>[];
+      final varTerms = <Expr>[];
+      for (final t in terms) {
+        if (t.dependsOn(variable)) {
+          varTerms.add(t);
+        } else {
+          constTerms.add(t);
+        }
+      }
+      if (varTerms.length == 1) {
+        var coeff = IntegerNumber.one as Expr;
+        Expr? fnNode;
+        final vt = varTerms.first;
+        if (vt is Atanh || vt is Atan || vt is Asinh || vt is Acosh) {
+          fnNode = vt;
+        } else if (vt is Mul) {
+          final cParts = <Expr>[];
+          final vParts = <Expr>[];
+          for (final mf in vt.factors) {
+            if (mf.dependsOn(variable)) {
+              vParts.add(mf);
+            } else {
+              cParts.add(mf);
+            }
+          }
+          if (vParts.length == 1) {
+            final vf = vParts.first;
+            if (vf is Atanh || vf is Atan || vf is Asinh || vf is Acosh) {
+              fnNode = vf;
+              coeff = cParts.isEmpty
+                  ? IntegerNumber.one
+                  : Mul(cParts).simplify(assumptions: assumptions);
+            }
+          }
+        }
+        if (fnNode != null) {
+          final shiftExp = constTerms.isEmpty
+              ? IntegerNumber.one
+              : Pow(
+                  Constant.e,
+                  Add(constTerms).simplify(assumptions: assumptions),
+                );
+          switch (fnNode) {
+            case Atanh(expr: final u) when u.dependsOn(variable):
+              changed = true;
+              final halfC = (coeff / IntegerNumber.two).simplify(
+                assumptions: assumptions,
+              );
+              if (u.matchLinear(variable) != null) {
+                return (shiftExp *
+                        Pow(IntegerNumber.one + u, halfC) *
+                        Pow(
+                          IntegerNumber.one - u,
+                          (-halfC).simplify(assumptions: assumptions),
+                        ))
+                    .simplify(assumptions: assumptions);
+              }
+              final ratio = ((IntegerNumber.one + u) / (IntegerNumber.one - u))
+                  .together(assumptions: assumptions)
+                  .cancel(assumptions: assumptions);
+              return (shiftExp * Pow(ratio, halfC)).simplify(
+                assumptions: assumptions,
+              );
+            case Atan(expr: final u) when u.dependsOn(variable):
+              final alpha = (-ComplexNumber.i * coeff / IntegerNumber.two)
+                  .simplify(assumptions: assumptions);
+              if (!alpha.anyNode((n) => n is ComplexNumber)) {
+                changed = true;
+                final iU = ComplexNumber.i * u;
+                if (u.matchLinear(variable) != null) {
+                  return (shiftExp *
+                          Pow(IntegerNumber.one + iU, alpha) *
+                          Pow(
+                            IntegerNumber.one - iU,
+                            (-alpha).simplify(assumptions: assumptions),
+                          ))
+                      .simplify(assumptions: assumptions);
+                }
+                final ratio =
+                    ((IntegerNumber.one + iU) / (IntegerNumber.one - iU))
+                        .together(assumptions: assumptions)
+                        .cancel(assumptions: assumptions);
+                return (shiftExp * Pow(ratio, alpha)).simplify(
+                  assumptions: assumptions,
+                );
+              }
+            case Asinh(expr: final u) when u.dependsOn(variable):
+              changed = true;
+              final inner =
+                  (u +
+                          Pow(
+                            IntegerNumber.one + Pow(u, IntegerNumber.two),
+                            FractionNumber.half,
+                          ))
+                      .simplify(assumptions: assumptions);
+              return (shiftExp * Pow(inner, coeff)).simplify(
+                assumptions: assumptions,
+              );
+            case Acosh(expr: final u) when u.dependsOn(variable):
+              changed = true;
+              final inner =
+                  (u +
+                          Pow(u - IntegerNumber.one, FractionNumber.half) *
+                              Pow(u + IntegerNumber.one, FractionNumber.half))
+                      .simplify(assumptions: assumptions);
+              return (shiftExp * Pow(inner, coeff)).simplify(
+                assumptions: assumptions,
+              );
+            default:
+              break;
+          }
+        }
+      }
+    }
+    return node.mapChildren(rewriteExp);
+  }
+
+  final rewritten = rewriteExp(expr).simplify(assumptions: assumptions);
+  if (!changed || rewritten == expr) return null;
+  final res = antiDerivative(
+    rewritten,
+    variable,
+    assumptions: assumptions,
+    depth: depth + 1,
+  );
+  return hasUnevaluatedIntegral(res, variable) ? null : res;
 }
 
 /// Integrates products of scaled monomial powers `prod_i (c_i * x^(k_i))^(e_i)`

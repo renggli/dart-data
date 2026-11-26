@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -145,5 +146,43 @@ void main() {
         );
       },
     );
+
+    test('integrates affine atan and atanh rational products by parts', () {
+      for (final source in const [
+        '(a + b * atan(c * x)) * (d + i * c * d * x) / x',
+        '(a + b * atan(c * x)) * (d + i * c * d * x)^2 / x^2',
+        '(a + b * atan(c * x)) / (x^3 * (d + i * c * d * x))',
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        final cEnv = {
+          'x': const Complex(0.4, 0.15),
+          'a': const Complex(1.3, 0.1),
+          'b': const Complex(0.7, 0.2),
+          'c': const Complex(0.6, 0.1),
+          'd': const Complex(1.5, 0.15),
+        };
+        check(
+          (antideriv.derivative('x').evaluateComplex(cEnv) -
+                  integrand.evaluateComplex(cEnv))
+              .abs(),
+        ).isCloseTo(0.0, 1e-8);
+      }
+
+      for (final source in const [
+        '(a + b * atanh(c * x)) * (d + c * d * x) / x',
+        '(a + b * atanh(c * x)) * (d + c * d * x)^2 / x^3',
+      ]) {
+        final integrand = Expr.parse(source);
+        final antideriv = integrand.integrate('x');
+        check(antideriv.anyNode((n) => n is Integral)).isFalse;
+        final env = {'x': 0.4, 'a': 1.3, 'b': 0.7, 'c': 0.6, 'd': 1.5};
+        check(
+          (antideriv.derivative('x').evaluate(env) - integrand.evaluate(env))
+              .abs(),
+        ).isCloseTo(0.0, 1e-8);
+      }
+    });
   });
 }

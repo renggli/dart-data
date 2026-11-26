@@ -1,3 +1,5 @@
+import 'package:more/math.dart' show LcmIntegerExtension;
+
 import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
 import '../../algebra/rational.dart';
@@ -10,8 +12,9 @@ import 'definite.dart';
 import 'integration.dart';
 import 'integration_elementary.dart';
 
-/// Attempts exponential substitution `u = B^(alpha_0 * x)` for rational or
-/// algebraic integrands whose variable dependence is confined to `B^(a_i*x + b_i)`.
+/// Attempts exponential substitution `u = e^(effSlope * x)` or `u = B^(alpha * x)`
+/// for rational or algebraic integrands whose variable dependence is confined
+/// to exponential atoms with commensurate linear exponents.
 Expr? tryExponentialSubstitution(
   Expr expr,
   String variable, {
@@ -20,22 +23,56 @@ Expr? tryExponentialSubstitution(
 }) {
   if (depth >= 2) return null;
 
-  Expr? commonBase;
-  final expNodes = <Pow>[];
+  final expNodes = <({Pow node, Expr base, Expr outerExp, Expr a, Expr b})>[];
   var valid = true;
 
   void collect(Expr node) {
     if (!valid) return;
-    if (node is Pow &&
-        !node.base.dependsOn(variable) &&
-        node.exponent.dependsOn(variable)) {
-      if (commonBase == null) {
-        commonBase = node.base;
-      } else if (commonBase != node.base) {
+    if (node case Pow(:final base, :final exponent)
+        when exponent.dependsOn(variable)) {
+      if (!base.dependsOn(variable)) {
+        final lin = exponent.matchLinear(variable);
+        if (lin == null || !isValidExponentialBase(base)) {
+          valid = false;
+          return;
+        }
+        expNodes.add((
+          node: node,
+          base: base,
+          outerExp: IntegerNumber.one,
+          a: lin.a,
+          b: lin.b,
+        ));
+        return;
+      }
+    }
+    if (node
+        case Pow(
+          base: Pow(base: final innerBase, exponent: final innerExp),
+          exponent: final outerExp,
+        )
+        when !innerBase.dependsOn(variable) &&
+            innerExp.dependsOn(variable) &&
+            !outerExp.dependsOn(variable)) {
+      if (!isValidExponentialBase(innerBase)) {
         valid = false;
         return;
       }
-      expNodes.add(node);
+      final combinedExp = (innerExp * outerExp).expand().simplify(
+        assumptions: assumptions,
+      );
+      final lin = combinedExp.matchLinear(variable);
+      if (lin == null) {
+        valid = false;
+        return;
+      }
+      expNodes.add((
+        node: node,
+        base: innerBase,
+        outerExp: outerExp,
+        a: lin.a,
+        b: lin.b,
+      ));
       return;
     }
     node.mapChildren((c) {
@@ -45,49 +82,68 @@ Expr? tryExponentialSubstitution(
   }
 
   collect(expr);
-  if (!valid || expNodes.isEmpty || commonBase == null) return null;
-  final base = commonBase!;
-  if (!isValidExponentialBase(base)) return null;
+  if (!valid || expNodes.isEmpty) return null;
 
-  final linearInfos = <Pow, ({Expr a, Expr b})>{};
-  for (final node in expNodes) {
-    final lin = node.exponent.matchLinear(variable);
-    if (lin == null) return null;
-    linearInfos[node] = lin;
-  }
+  Expr logBaseOf(Expr b) => b == Constant.e
+      ? IntegerNumber.one
+      : Ln(b).simplify(assumptions: assumptions);
 
-  // Choose alpha_0 with smallest string length so integer multiples are positive/clean.
-  var alpha0 = linearInfos.values.first.a;
-  var bestLen = alpha0.toString().length;
-  for (final info in linearInfos.values) {
-    final len = info.a.toString().length;
+  final logSlopes = <Expr>[
+    for (final item in expNodes)
+      (item.a * logBaseOf(item.base)).simplify(assumptions: assumptions),
+  ];
+
+  var bestIdx = 0;
+  var bestLen = logSlopes[0].toString().length;
+  for (var i = 1; i < logSlopes.length; i++) {
+    final len = logSlopes[i].toString().length;
     if (len < bestLen) {
-      alpha0 = info.a;
+      bestIdx = i;
       bestLen = len;
     }
   }
+  final logSlope0 = logSlopes[bestIdx];
 
-  final ratios = <Pow, int>{};
-  for (final MapEntry(:key, :value) in linearInfos.entries) {
-    final ratio = (value.a / alpha0).simplify(assumptions: assumptions);
-    if (ratio case IntegerNumber(asInt: final m?)
-        when m.abs() >= 1 && m.abs() <= 6) {
-      ratios[key] = m;
-    } else {
-      return null;
+  final fracRatios = <({int p, int q})>[];
+  var lcmQ = 1;
+  for (final slope in logSlopes) {
+    var ratio = (slope / logSlope0).simplify(assumptions: assumptions);
+    if (ratio is! RationalNumber) {
+      ratio = ratio.cancel(assumptions: assumptions);
     }
+    if (ratio is! RationalNumber) return null;
+    final p = ratio.numerator.asInt;
+    final q = ratio.denominator.asInt;
+    if (p == null || q == null || p == 0) return null;
+    lcmQ = lcmQ.lcm(q);
+    if (lcmQ > 6) return null;
+    fracRatios.add((p: p, q: q));
   }
 
-  const uName = '_exp_u';
-  const uVar = Variable(uName);
+  final intRatios = <int>[];
+  for (final r in fracRatios) {
+    final m = (r.p * lcmQ) ~/ r.q;
+    if (m.abs() > 8) return null;
+    intRatios.add(m);
+  }
+
+  final uName = freshIntegrationVar('_exp_u', expr, variable, depth);
+  final uVar = Variable(uName);
+  final mapByNode = <Pow, ({Expr base, Expr beta, int m})>{
+    for (var i = 0; i < expNodes.length; i++)
+      expNodes[i].node: (
+        base: expNodes[i].base,
+        beta: expNodes[i].b,
+        m: intRatios[i],
+      ),
+  };
 
   Expr rewrite(Expr node) {
-    if (node is Pow && linearInfos.containsKey(node)) {
-      final beta = linearInfos[node]!.b;
-      final m = ratios[node]!;
-      return (Pow(base, beta) * Pow(uVar, IntegerNumber.of(m))).simplify(
-        assumptions: assumptions,
-      );
+    if (node is Pow) {
+      if (mapByNode[node] case final info?) {
+        return (Pow(info.base, info.beta) * Pow(uVar, IntegerNumber.of(info.m)))
+            .simplify(assumptions: assumptions);
+      }
     }
     return node.mapChildren(rewrite);
   }
@@ -95,10 +151,10 @@ Expr? tryExponentialSubstitution(
   final rewritten = rewrite(expr).simplify(assumptions: assumptions);
   if (rewritten.dependsOn(variable)) return null;
 
-  final lnBase = base == Constant.e
-      ? IntegerNumber.one
-      : Ln(base).simplify(assumptions: assumptions);
-  final integrandU = (rewritten / (alpha0 * lnBase * uVar)).simplify(
+  final effSlope = (logSlope0 / IntegerNumber.of(lcmQ)).simplify(
+    assumptions: assumptions,
+  );
+  final integrandU = (rewritten / (effSlope * uVar)).simplify(
     assumptions: assumptions,
   );
   final resU = antiDerivative(
@@ -109,10 +165,23 @@ Expr? tryExponentialSubstitution(
   );
   if (hasUnevaluatedIntegral(resU, uName)) return null;
 
-  final uExpr = Pow(
-    base,
-    (alpha0 * Variable(variable)).simplify(assumptions: assumptions),
-  );
+  final commonBase = expNodes.first.base;
+  final allSameBase = expNodes.every((e) => e.base == commonBase);
+  final Expr uExpr;
+  if (allSameBase) {
+    final alphaEff = (expNodes[bestIdx].a / IntegerNumber.of(lcmQ)).simplify(
+      assumptions: assumptions,
+    );
+    uExpr = Pow(
+      commonBase,
+      (alphaEff * Variable(variable)).simplify(assumptions: assumptions),
+    );
+  } else {
+    uExpr = Pow(
+      Constant.e,
+      (effSlope * Variable(variable)).simplify(assumptions: assumptions),
+    );
+  }
   return resU.substitute(uName, uExpr).simplify(assumptions: assumptions);
 }
 
