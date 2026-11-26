@@ -895,7 +895,8 @@ String? findUnknownFunction(Expr? expr) {
 }
 
 /// Rewrites SymPy special forms (`Matrix([...]).det()`, `Sum(f, (k, a, b))`,
-/// `Product(f, (k, a, b))`, `Integral(f, (x, a, b))`, `hyper(...)`) into
+/// `Product(f, (k, a, b))`, `Integral(f, (x, a, b))`,
+/// `RootSum(P, Lambda(t, body))`, `hyper(...)`) into
 /// standard `package:data/symbolic.dart` syntax.
 String rewriteSympySpecialForms(String s) {
   if (s.contains('Matrix(')) {
@@ -905,6 +906,7 @@ String rewriteSympySpecialForms(String s) {
           'det(${m[1]!.replaceAllMapped(RegExp(r'\[([^\[\]]+)\]'), (r) => 'row(${r[1]})')})',
     );
   }
+  if (s.contains('RootSum(')) s = _rewriteRootSum(s);
   for (final (symName, targetName) in const [
     ('Sum', 'sum'),
     ('Product', 'product'),
@@ -916,6 +918,48 @@ String rewriteSympySpecialForms(String s) {
   }
   if (s.contains('hyper(')) s = _rewriteHyper(s);
   return s;
+}
+
+String _rewriteRootSum(String s) {
+  const token = 'RootSum(';
+  final buf = StringBuffer();
+  var idx = 0;
+  while (true) {
+    final pos = s.indexOf(token, idx);
+    if (pos == -1) {
+      buf.write(s.substring(idx));
+      return buf.toString();
+    }
+    if (pos > 0 && RegExp(r'[A-Za-z0-9_]').hasMatch(s[pos - 1])) {
+      buf.write(s.substring(idx, pos + token.length));
+      idx = pos + token.length;
+      continue;
+    }
+    buf.write(s.substring(idx, pos));
+    final closeIdx = _matchingParen(s, pos + 7);
+    final inner = _rewriteRootSum(s.substring(pos + token.length, closeIdx));
+    final args = _splitArgs(inner);
+    if (args.length == 2 &&
+        args[1].startsWith('Lambda(') &&
+        args[1].endsWith(')')) {
+      final lambdaInner = args[1].substring(7, args[1].length - 1);
+      final lambdaArgs = _splitArgs(lambdaInner);
+      if (lambdaArgs.length == 2) {
+        var varName = lambdaArgs[0].trim();
+        if (varName.startsWith('(') && varName.endsWith(')')) {
+          varName = varName.substring(1, varName.length - 1).trim();
+          if (varName.endsWith(',')) {
+            varName = varName.substring(0, varName.length - 1).trim();
+          }
+        }
+        buf.write('rootsum(${args[0]}, $varName, ${lambdaArgs[1]})');
+        idx = closeIdx + 1;
+        continue;
+      }
+    }
+    buf.write('rootsum($inner)');
+    idx = closeIdx + 1;
+  }
 }
 
 int _matchingParen(String s, int openIdx) {

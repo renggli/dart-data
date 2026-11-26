@@ -90,6 +90,7 @@ int nodeTag(Expr expr) => switch (expr) {
   Tuple() => 81,
   LogGamma() => 82,
   AppellF1() => 83,
+  RootSum() => 84,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.
@@ -219,6 +220,13 @@ int compareStructural(Expr a, Expr b) {
       final cmpUp = compareStructural(pa.upper, pb.upper);
       if (cmpUp != 0) return cmpUp;
       return compareStructural(pa.expr, pb.expr);
+    }(),
+    (final RootSum ra, final RootSum rb) => () {
+      final cmpVar = ra.variable.compareTo(rb.variable);
+      if (cmpVar != 0) return cmpVar;
+      final cmpPoly = compareStructural(ra.polynomial, rb.polynomial);
+      if (cmpPoly != 0) return cmpPoly;
+      return compareStructural(ra.body, rb.body);
     }(),
     (final OrderTerm oa, final OrderTerm ob) => () {
       final cmpVar = oa.variable.compareTo(ob.variable);

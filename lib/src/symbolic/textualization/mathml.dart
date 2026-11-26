@@ -263,6 +263,8 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     '<mrow><munderover><mo movablelimits="false">&#x2211;</mo><mrow>${_toMathMl(Variable(variable), decimalPlaces)}<mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
   Product(:final expr, :final variable, :final lower, :final upper) =>
     '<mrow><munderover><mo movablelimits="false">&#x220F;</mo><mrow>${_toMathMl(Variable(variable), decimalPlaces)}<mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
+  RootSum(:final polynomial, :final variable, :final body) =>
+    '<mrow><munder><mo movablelimits="false">&#x2211;</mo><mrow>${_toMathMl(Variable(variable), decimalPlaces)}<mo>:</mo>${_toMathMl(polynomial, decimalPlaces)}<mo>=</mo><mn>0</mn></mrow></munder>${_formatMulRight(body, decimalPlaces)}</mrow>',
 };
 
 String _formatComplexMathMl(ComplexNumber c, int decimalPlaces) {

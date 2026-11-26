@@ -23,6 +23,7 @@ part 'ast/number.dart';
 part 'ast/operator.dart';
 part 'ast/order_term.dart';
 part 'ast/piecewise.dart';
+part 'ast/root_sum.dart';
 part 'ast/special_function.dart';
 part 'ast/summation.dart';
 part 'ast/variable.dart';

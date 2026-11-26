@@ -599,6 +599,18 @@ Expr _differentiate(
             Sum(_differentiate(inner, variable) / inner, pVar, lower, upper),
           ])
         : Derivative(expr, variable),
+  RootSum(:final polynomial, variable: final rVar, :final body) => () {
+    if (rVar == variable) return IntegerNumber.zero;
+    if (!polynomial.dependsOn(variable)) {
+      return RootSum(polynomial, rVar, _differentiate(body, variable));
+    }
+    final total =
+        _differentiate(body, variable) -
+        _differentiate(body, rVar) *
+            _differentiate(polynomial, variable) /
+            _differentiate(polynomial, rVar);
+    return RootSum(polynomial, rVar, total);
+  }(),
   Limit() || VariableFunction() => Derivative(expr, variable),
 };
 

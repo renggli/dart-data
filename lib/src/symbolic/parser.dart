@@ -316,6 +316,8 @@ class ExprSyntax {
       'limit': _parseLimitArgs,
       'sum': _parseSumArgs,
       'product': _parseProductArgs,
+      'rootsum': _parseRootSumArgs,
+      'RootSum': _parseRootSumArgs,
       'gcd': Gcd.new,
       'lcm': Lcm.new,
       'O': _parseOrderTermArgs,
@@ -929,6 +931,13 @@ class ExprSyntax {
       doc: 'Ordered tuple of expressions',
       category: 'calculus',
     ),
+    ExprFunctionInfo(
+      name: 'rootsum',
+      params: ['polynomial', 'variable', 'body'],
+      doc: 'Sum of body over all complex roots of polynomial(variable) = 0',
+      aliases: ['RootSum'],
+      category: 'calculus',
+    ),
   ]);
 
   /// Registered named constants.
@@ -1474,6 +1483,23 @@ class ExprSyntax {
     throw FormatException('product requires 4 arguments, got ${args.length}');
   }
 
+  static Expr _parseRootSumArgs(List<Expr> args) {
+    if (args case [final polynomial, final v, final body]) {
+      final vName = _asVariableName(v);
+      if (vName != null) {
+        return RootSum(
+          _unbindConstant(polynomial, v, vName),
+          vName,
+          _unbindConstant(body, v, vName),
+        );
+      }
+      throw FormatException(
+        'rootsum second argument must be a variable identifier, got: $v',
+      );
+    }
+    throw FormatException('rootsum requires 3 arguments, got ${args.length}');
+  }
+
   static Expr _unbindConstant(Expr expr, Expr varToken, String varName) {
     if (varToken is Variable) return expr;
     Expr visit(Expr node) {
@@ -1542,6 +1568,9 @@ class ExprSyntax {
           visit(node.lower),
           visit(node.upper),
         );
+      }
+      if (node is RootSum && node.variable == varName) {
+        return node;
       }
       return node.mapChildren(visit);
     }

@@ -830,6 +830,7 @@ PowerSeries expandToPowerSeries(
   Limit() ||
   Sum() ||
   Product() ||
+  RootSum() ||
   VariableFunction() => throw UnsupportedError(
     'Power series expansion not supported for ${expr.runtimeType}',
   ),

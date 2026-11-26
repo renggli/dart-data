@@ -194,6 +194,8 @@ String _toLatex(Expr expr, int decimalPlaces) => switch (expr) {
     '\\sum_{${_toLatex(Variable(variable), decimalPlaces)}=${_toLatex(lower, decimalPlaces)}}^{${_toLatex(upper, decimalPlaces)}} ${_formatMulRight(expr, decimalPlaces)}',
   Product(:final expr, :final variable, :final lower, :final upper) =>
     '\\prod_{${_toLatex(Variable(variable), decimalPlaces)}=${_toLatex(lower, decimalPlaces)}}^{${_toLatex(upper, decimalPlaces)}} ${_formatMulRight(expr, decimalPlaces)}',
+  RootSum(:final polynomial, :final variable, :final body) =>
+    '\\sum_{${_toLatex(Variable(variable), decimalPlaces)} : ${_toLatex(polynomial, decimalPlaces)} = 0} ${_formatMulRight(body, decimalPlaces)}',
 };
 
 String _formatComplexLatex(ComplexNumber c, int decimalPlaces) {

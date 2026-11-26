@@ -827,7 +827,7 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
       }
       _collectUCandidates(base, variable, out);
       _collectUCandidates(exponent, variable, out);
-    case Sum() || Product() || Limit() || Integral():
+    case Sum() || Product() || RootSum() || Limit() || Integral():
       return;
     default:
       node.mapChildren((child) {

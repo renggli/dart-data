@@ -148,7 +148,8 @@ bool needsSubRightParens(Expr right) => switch (right) {
   Derivative() ||
   Limit() ||
   Sum() ||
-  Product() => true,
+  Product() ||
+  RootSum() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(right) => true,
   _ => false,
@@ -164,7 +165,8 @@ bool needsMulLeftParens(Expr left) => switch (left) {
   Derivative() ||
   Limit() ||
   Sum() ||
-  Product() => true,
+  Product() ||
+  RootSum() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ => false,
 };
@@ -191,6 +193,7 @@ bool needsPowBaseParens(Expr base) => switch (base) {
   Limit() ||
   Sum() ||
   Product() ||
+  RootSum() ||
   RealNumeric(isNegative: true) => true,
   ComplexNumber(:final real, :final imaginary)
       when !real.isZero || !imaginary.isOne =>
@@ -210,7 +213,8 @@ bool needsNegOperandParens(Expr expr) => switch (expr) {
   Derivative() ||
   Limit() ||
   Sum() ||
-  Product() => true,
+  Product() ||
+  RootSum() => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(expr) => true,
   _ => false,

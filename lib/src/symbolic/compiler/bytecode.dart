@@ -788,7 +788,12 @@ BytecodeEvaluator compileToBytecode(
         } else {
           emittedRegs.addAll(initialRegs);
         }
-      case Integral() || Derivative() || Limit() || Sum() || Product():
+      case Integral() ||
+          Derivative() ||
+          Limit() ||
+          Sum() ||
+          Product() ||
+          RootSum():
         for (final freeVar in expr.freeVariables) {
           if (!varIndices.containsKey(freeVar)) {
             if (allowDynamicVars) {
@@ -900,6 +905,7 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
         Limit() ||
         Sum() ||
         Product() ||
+        RootSum() ||
         Number() ||
         Constant() ||
         Variable() ||

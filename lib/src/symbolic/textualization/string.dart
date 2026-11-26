@@ -210,6 +210,8 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
       'sum(${_formatExpr(expr, 0, decimalPlaces)}, $variable, ${_formatExpr(lower, 0, decimalPlaces)}, ${_formatExpr(upper, 0, decimalPlaces)})',
     Product(:final expr, :final variable, :final lower, :final upper) =>
       'product(${_formatExpr(expr, 0, decimalPlaces)}, $variable, ${_formatExpr(lower, 0, decimalPlaces)}, ${_formatExpr(upper, 0, decimalPlaces)})',
+    RootSum(:final polynomial, :final variable, :final body) =>
+      'rootsum(${_formatExpr(polynomial, 0, decimalPlaces)}, $variable, ${_formatExpr(body, 0, decimalPlaces)})',
   };
   return prec < parentPrec ? '($formatted)' : formatted;
 }

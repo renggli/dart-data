@@ -601,7 +601,17 @@ final class BytecodeEvaluator {
               pc = instr.index;
             }
           case Op.evalNode:
-            if (instr.node
+            if (instr.node case final RootSum rootSum) {
+              final complexCtx = <String, Complex>{
+                for (var i = 0; i < variables.length; i++)
+                  variables[i]: loadVar(i),
+              };
+              stack[sp++] = evalRootSumComplex(
+                rootSum,
+                complexCtx,
+                _compileInner,
+              );
+            } else if (instr.node
                 case Integral(isDefinite: true) ||
                     Derivative() ||
                     Limit() ||

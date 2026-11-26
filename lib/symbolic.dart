@@ -20,7 +20,8 @@
 ///   [RealNumber], [ComplexNumber] (including [ComplexNumber.i]),
 ///   special functions ([Zeta], [Digamma], [Polygamma], [LogGamma], [BesselJ],
 ///   [BesselY], [BesselI], [BesselK], [EllipticK], [EllipticE],
-///   [Hypergeometric], [AppellF1]), and
+///   [Hypergeometric], [AppellF1]), structural/calculus nodes ([Piecewise],
+///   [Integral], [Derivative], [Limit], [Sum], [Product], [RootSum]), and
 ///   [Integer]. Mathematical string parsing via [Expr.parse] with [ExprSyntax].
 /// - **Algebraic Simplification & Rewriting**: Canonical simplification
 ///   ([SimplifierExtension.simplify]) combining terms and extracting radicals

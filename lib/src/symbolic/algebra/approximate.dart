@@ -129,6 +129,19 @@ Expr _approximateNode(Expr node) => switch (node) {
     }
     return rebuilt.simplify();
   }(),
+  RootSum() => () {
+    final rebuilt = node.mapChildren(_approximateNode) as RootSum;
+    if (rebuilt.freeVariables.isEmpty) {
+      final z = rebuilt.evaluateComplex();
+      if (z.a.isFinite && z.b.isFinite) {
+        if (z.b.abs() <= 1e-9 * math.max(1.0, z.a.abs())) {
+          return RealNumber.fromDouble(z.a.toDouble());
+        }
+        return _complexToExpr(z);
+      }
+    }
+    return rebuilt.simplify();
+  }(),
   BinaryExpr() => _approximateBinary(node),
   EllipticPi() ||
   EllipticE() ||

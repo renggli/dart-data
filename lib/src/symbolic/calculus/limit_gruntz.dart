@@ -409,6 +409,9 @@ Expr? _tryFactorLogAdd(List<Expr> terms, String variable) {
         scan(expr);
         scan(lower);
         scan(upper);
+      case RootSum(:final polynomial, :final body):
+        scan(polynomial);
+        scan(body);
       case VariableFunction(:final arguments):
         for (final argument in arguments) {
           scan(argument);

@@ -312,6 +312,8 @@ sealed class Expr {
       _isRealSubtree(expr) &&
           _isRealBoundOrPoint(lower) &&
           _isRealBoundOrPoint(upper),
+    RootSum(:final polynomial, :final body) =>
+      _isRealSubtree(polynomial) && _isRealSubtree(body),
     VariableFunction(:final arguments) => arguments.every(_isRealSubtree),
     EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
       _isRealSubtree(characteristic) &&

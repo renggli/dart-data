@@ -4,6 +4,8 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/product.dart';
 import '../calculus/summation.dart';
+import 'expand.dart';
+import 'helpers.dart';
 import 'simplify/additive.dart';
 import 'simplify/complex.dart';
 import 'simplify/discrete.dart';
@@ -402,7 +404,59 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
     ),
     Product(:final expr, :final variable, :final lower, :final upper) =>
       computeProduct(expr, variable, lower, upper, assumptions: assumptions),
+    RootSum(:final polynomial, :final variable, :final body) =>
+      _simplifyRootSum(polynomial, variable, body, assumptions),
   };
   cache[expr] = result;
   return result;
+}
+
+Expr _simplifyRootSum(
+  Expr polynomial,
+  String variable,
+  Expr body,
+  Assumptions assumptions,
+) {
+  final innerAssumptions =
+      assumptions.defaultDomain == VariableDomain.unknown &&
+          !assumptions.domains.containsKey(variable)
+      ? assumptions
+      : assumptions.copyWith(domains: {variable: VariableDomain.unknown});
+
+  final simpPoly = polynomial.simplify(assumptions: innerAssumptions);
+  final simpBody = body.simplify(assumptions: innerAssumptions);
+
+  if (simpBody is Number && simpBody.isZero) {
+    return IntegerNumber.zero;
+  }
+  if (!simpPoly.dependsOn(variable)) {
+    if (simpPoly is Number && !simpPoly.isZero) {
+      return IntegerNumber.zero;
+    }
+    return RootSum(simpPoly, variable, simpBody, isSimplified: true);
+  }
+
+  final coeffs = extractPolynomialCoefficients(
+    simpPoly.expand().simplify(assumptions: innerAssumptions),
+    variable,
+  );
+  if (coeffs != null) {
+    final deg = maxPolynomialDegree(coeffs);
+    if (deg == 0) return IntegerNumber.zero;
+    if (deg == 1) {
+      final root = (-(coeffs[0] ?? IntegerNumber.zero) / coeffs[1]!).simplify(
+        assumptions: innerAssumptions,
+      );
+      return simpBody
+          .substitute(variable, root)
+          .simplify(assumptions: assumptions);
+    }
+    if (!simpBody.dependsOn(variable) && deg > 0) {
+      return (IntegerNumber.of(deg) * simpBody).simplify(
+        assumptions: assumptions,
+      );
+    }
+  }
+
+  return RootSum(simpPoly, variable, simpBody, isSimplified: true);
 }
