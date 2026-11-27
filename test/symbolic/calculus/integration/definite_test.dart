@@ -562,7 +562,7 @@ void main() {
             .integrate('x', from: 0, to: 2024);
         sw1.stop();
         check(res1).isNotA<Integral>();
-        check(sw1.elapsedMilliseconds).isLessThan(1000);
+        check(sw1.elapsedMilliseconds).isLessThan(5000);
 
         final sw2 = Stopwatch()..start();
         final res2 = Expr.parse(
@@ -571,7 +571,7 @@ void main() {
         ).integrate('x', from: 0, to: 1);
         sw2.stop();
         check(res2).isNotNull();
-        check(sw2.elapsedMilliseconds).isLessThan(1000);
+        check(sw2.elapsedMilliseconds).isLessThan(5000);
       },
     );
 

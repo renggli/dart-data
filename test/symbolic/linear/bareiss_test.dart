@@ -246,6 +246,7 @@ void main() {
 
       final bailed = engine.solveBounded(a, b, maxCellNodes: 3);
       check(bailed).isNull;
+      check(engine.solveBounded(a, b, maxOperations: 1)).isNull;
 
       check(
         () => engine.solve<Matrix<Expr>>(

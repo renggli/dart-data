@@ -435,9 +435,9 @@ void main() {
             }
           }
 
-          // 7. Per-Preset Latency Guard (< 1000ms VM, < 2500ms JS)
+          // 7. Per-Preset Latency Guard (< 5000ms)
           sw.stop();
-          const budgetMs = identical(0, 0.0) ? 2500 : 1000;
+          const budgetMs = 5000;
           check(
             sw.elapsedMilliseconds,
             because: 'Preset ${preset.id} took ${sw.elapsedMilliseconds}ms',

@@ -104,13 +104,13 @@ class BareissEngine {
   }) => _rowEchelonWithPivots(matrix, assumptions: assumptions)!;
 
   /// Solves `A * x = b` like [solve], returning `null` if intermediate
-  /// expressions exceed [maxCellNodes] or elimination exceeds [maxElapsedMs].
+  /// expressions exceed [maxCellNodes] or elimination exceeds [maxOperations].
   Matrix<Expr>? solveBounded(
     Matrix<Expr> matrix,
     Matrix<Expr> b, {
     Assumptions assumptions = Assumptions.none,
     int maxCellNodes = 600,
-    int maxElapsedMs = 150,
+    int maxOperations = 2000,
   }) {
     final m = matrix.rowCount;
     final n = matrix.colCount;
@@ -133,7 +133,7 @@ class BareissEngine {
       augmented,
       assumptions: assumptions,
       maxCellNodes: maxCellNodes,
-      maxElapsedMs: maxElapsedMs,
+      maxOperations: maxOperations,
     );
     if (res == null) return null;
     final (:rref, :pivotColumns) = res;
@@ -260,7 +260,7 @@ class BareissEngine {
     Matrix<Expr> matrix, {
     required Assumptions assumptions,
     int? maxCellNodes,
-    int? maxElapsedMs,
+    int? maxOperations,
   }) {
     final rowCount = matrix.rowCount;
     final colCount = matrix.colCount;
@@ -278,7 +278,7 @@ class BareissEngine {
         pivotColumns: const [],
       );
     }
-    final stopwatch = maxElapsedMs == null ? null : (Stopwatch()..start());
+    var operations = 0;
     final grid = [
       for (var r = 0; r < rowCount; r++)
         [
@@ -290,9 +290,6 @@ class BareissEngine {
     var pivotRow = 0;
 
     for (var col = 0; col < colCount && pivotRow < rowCount; col++) {
-      if (stopwatch != null && stopwatch.elapsedMilliseconds >= maxElapsedMs!) {
-        return null;
-      }
       var bestRow = -1;
       var bestScore = -1;
       for (var r = pivotRow; r < rowCount; r++) {
@@ -321,8 +318,7 @@ class BareissEngine {
       grid[pivotRow][col] = IntegerNumber.one;
       if (pivot != IntegerNumber.one) {
         for (var c = col + 1; c < colCount; c++) {
-          if (stopwatch != null &&
-              stopwatch.elapsedMilliseconds >= maxElapsedMs!) {
+          if (maxOperations != null && ++operations > maxOperations) {
             return null;
           }
           final ratio = _simplifyRatio(
@@ -340,10 +336,6 @@ class BareissEngine {
 
       for (var r = 0; r < rowCount; r++) {
         if (r == pivotRow) continue;
-        if (stopwatch != null &&
-            stopwatch.elapsedMilliseconds >= maxElapsedMs!) {
-          return null;
-        }
         final factor = grid[r][col];
         if (_isExprZero(factor, assumptions)) {
           grid[r][col] = IntegerNumber.zero;
@@ -353,6 +345,9 @@ class BareissEngine {
         for (var c = col + 1; c < colCount; c++) {
           final pivotEntry = grid[pivotRow][c];
           if (!_isExprZero(pivotEntry, assumptions)) {
+            if (maxOperations != null && ++operations > maxOperations) {
+              return null;
+            }
             final cell = grid[r][c];
             final updated =
                 (cell is Number && factor is Number && pivotEntry is Number)

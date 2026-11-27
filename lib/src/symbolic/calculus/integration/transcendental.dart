@@ -1437,7 +1437,7 @@ int _intGcd(int a, int b) {
 // ---------------------------------------------------------------------------
 
 Expr? _safeCancel(Expr e, Assumptions assumptions) {
-  if (isIntegrationBudgetExhausted() || exceedsNodeBudget(e, 1000)) {
+  if (consumeIntegrationWork() || exceedsNodeBudget(e, 1000)) {
     return null;
   }
   final c = e.cancel(assumptions: assumptions);

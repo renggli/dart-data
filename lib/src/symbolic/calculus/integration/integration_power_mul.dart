@@ -764,6 +764,15 @@ Expr antiDerivMul(
       case final shiftTrigRes?) {
     return shiftTrigRes;
   }
+  if (trySumDiffSinCos2xSubstitution(
+        original,
+        variable,
+        assumptions: assumptions,
+        depth: depth,
+      )
+      case final sin2xRes?) {
+    return sin2xRes;
+  }
 
   // 3e. Linear-power times affine-log-power: (d*x + e)^m * (A + B*ln(c*(a*x+b)^n))^k
   if (depth < 3 && varFactors.length == 2) {

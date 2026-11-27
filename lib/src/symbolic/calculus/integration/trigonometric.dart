@@ -189,7 +189,9 @@ Expr? _pairTrigSumToProduct(Expr t1, Expr t2, String variable) {
   return null;
 }
 
-Expr? _trySumDiffSinCos2xSubstitution(
+/// Integrates products of `(a*cos(u) ± a*sin(u))` with expressions in `sin(2*u)`
+/// via the substitution `t = sin(u) ± cos(u)`.
+Expr? trySumDiffSinCos2xSubstitution(
   Expr expr,
   String variable, {
   required Assumptions assumptions,
@@ -747,15 +749,6 @@ Expr? tryRationalTrigSubstitution(
   if (tryDirichletKernel(expr, variable, assumptions: assumptions)
       case final dirRes?) {
     return dirRes;
-  }
-  if (_trySumDiffSinCos2xSubstitution(
-        expr,
-        variable,
-        assumptions: assumptions,
-        depth: depth,
-      )
-      case final sin2xRes?) {
-    return sin2xRes;
   }
 
   final inner = collectAffineTrigInner(expr, variable);

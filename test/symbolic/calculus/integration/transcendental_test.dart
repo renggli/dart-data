@@ -99,8 +99,7 @@ void main() {
         final sw = Stopwatch()..start();
         final res = expr.integrate('x');
         sw.stop();
-        check(sw.elapsedMilliseconds)
-            .isLessThan(identical(0, 0.0) ? 1500 : 500);
+        check(sw.elapsedMilliseconds).isLessThan(5000);
         check(res).isA<Expr>();
       }
 

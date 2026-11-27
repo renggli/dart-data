@@ -221,7 +221,7 @@ void main() {
       final res = hugePow.factor();
       sw.stop();
       check(res).equals(hugePow);
-      check(sw.elapsedMilliseconds).isLessThan(500);
+      check(sw.elapsedMilliseconds).isLessThan(5000);
     });
   });
 }

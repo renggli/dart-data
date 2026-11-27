@@ -97,22 +97,30 @@ extension IntegrationExtension on Expr {
 final class _IntegrationBudget {
   static const int maxSteps = 250;
   static const int maxDepth = 8;
-  static const int maxElapsedMs = identical(0, 0.0) ? 750 : 250;
+  static const int maxWork = 500;
 
-  final Stopwatch _stopwatch = Stopwatch()..start();
   final Map<(Expr, String, Assumptions), Expr> memo =
       <(Expr, String, Assumptions), Expr>{};
   final Set<(Expr, String)> triedTower = <(Expr, String)>{};
   int steps = 0;
+  int work = 0;
 
-  bool get isExhausted =>
-      steps >= maxSteps || _stopwatch.elapsedMilliseconds >= maxElapsedMs;
+  bool get isExhausted => steps >= maxSteps || work >= maxWork;
 }
 
 _IntegrationBudget? _activeBudget;
 
 /// Whether the current [symbolicIntegrate] budget has been exhausted.
 bool isIntegrationBudgetExhausted() => _activeBudget?.isExhausted ?? false;
+
+/// Consumes [units] of deterministic work from the active integration budget
+/// and returns whether the budget is now exhausted.
+bool consumeIntegrationWork([int units = 1]) {
+  final budget = _activeBudget;
+  if (budget == null) return false;
+  budget.work += units;
+  return budget.isExhausted;
+}
 
 /// Marks `(node, variable)` as attempted by [tryTranscendentalTower] within
 /// the active integration budget, returning `false` if already attempted.
