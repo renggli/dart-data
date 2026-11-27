@@ -91,10 +91,21 @@ Expr factorExpr(Expr expr, {required Assumptions assumptions}) {
     return combined is RationalNumber ? _factorRational(combined) : combined;
   }
 
-  // 4. Expand additive sums into canonical polynomial form
-  final expanded = expr
-      .expand(assumptions: assumptions)
-      .simplify(assumptions: assumptions);
+  // 4. Univariate fast path when already polynomial (avoids redundant expand/simplify)
+  final inputVars = expr.freeVariables;
+  if (inputVars.length == 1 && assumptions.isEmpty) {
+    final v = inputVars.first;
+    final poly = exprToPolyQ(expr, v);
+    if (poly != null) {
+      return factorPolyQToExpr(poly, v);
+    }
+  }
+
+  // 5. Expand additive sums into canonical polynomial form
+  final rawExpanded = expr.expand(assumptions: assumptions);
+  final expanded = assumptions.isEmpty
+      ? rawExpanded
+      : rawExpanded.simplify(assumptions: assumptions);
   if (expanded is RationalNumber) {
     return _factorRational(expanded);
   }
@@ -106,10 +117,10 @@ Expr factorExpr(Expr expr, {required Assumptions assumptions}) {
   }
   final vars = expanded.freeVariables;
 
-  // 5. Univariate polynomial factorization over Q[x]
+  // 6. Univariate polynomial factorization over Q[x]
   if (vars.length == 1) {
     final v = vars.first;
-    final poly = exprToPolyQ(expanded, v);
+    final poly = exprToPolyQ(expanded, v, expanded: true);
     if (poly != null) {
       return factorPolyQToExpr(poly, v);
     }

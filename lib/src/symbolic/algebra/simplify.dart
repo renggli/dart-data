@@ -55,39 +55,62 @@ extension SimplifierExtension on Expr {
 }
 
 /// Recursively evaluates and canonically simplifies [expr] under [assumptions].
-Expr simplifyExpr(Expr expr, {required Assumptions assumptions}) =>
-    _simplify(expr, assumptions, HashMap<Expr, Expr>());
+Expr simplifyExpr(Expr expr, {required Assumptions assumptions}) {
+  final isUnassumed =
+      identical(assumptions, Assumptions.none) || assumptions.isEmpty;
+  if (isUnassumed && expr.isSimplified) return expr;
+  return _simplify(
+    expr,
+    assumptions,
+    expr.nodeCount <= 16 ? null : HashMap<Expr, Expr>(),
+    isUnassumed,
+  );
+}
 
-Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
+Expr _simplifyUnassumed(Expr e) => _simplify(e, Assumptions.none, null, true);
+
+Expr _simplify(
+  Expr expr,
+  Assumptions assumptions,
+  Map<Expr, Expr>? cache,
+  bool isUnassumed,
+) {
   if (expr is Number || expr is Constant || expr is Variable) {
     return expr;
   }
-  final cached = cache[expr];
+  if (isUnassumed && expr.isSimplified) return expr;
+  final cached = cache?[expr];
   if (cached != null) return cached;
 
   final result = switch (expr) {
     Number() || Constant() || Variable() => expr,
     OrderTerm(:final variable, :final order, :final point) => () {
-      final newPoint = _simplify(point, assumptions, cache);
+      final newPoint = _simplify(point, assumptions, cache, isUnassumed);
       return identical(newPoint, point)
           ? expr
           : OrderTerm(variable, order, point: newPoint);
     }(),
     Add(:final terms) => simplifyAdd(
-      [for (final term in terms) _simplify(term, assumptions, cache)],
+      [
+        for (final term in terms)
+          _simplify(term, assumptions, cache, isUnassumed),
+      ],
       assumptions: assumptions,
-      simplify: (e) => _simplify(e, assumptions, cache),
+      simplify: cache == null && isUnassumed
+          ? _simplifyUnassumed
+          : (e) => _simplify(e, assumptions, cache, isUnassumed),
     ),
     Mul(:final factors) => simplifyMul([
-      for (final factor in factors) _simplify(factor, assumptions, cache),
+      for (final factor in factors)
+        _simplify(factor, assumptions, cache, isUnassumed),
     ], assumptions: assumptions),
     Pow(:final base, :final exponent) => simplifyPow(
-      _simplify(base, assumptions, cache),
-      _simplify(exponent, assumptions, cache),
+      _simplify(base, assumptions, cache, isUnassumed),
+      _simplify(exponent, assumptions, cache, isUnassumed),
       assumptions: assumptions,
     ),
     Call(:final id, :final args) => _simplifyCall(expr, id, [
-      for (final arg in args) _simplify(arg, assumptions, cache),
+      for (final arg in args) _simplify(arg, assumptions, cache, isUnassumed),
     ], assumptions),
     Relational() => simplifyRelational(expr, assumptions: assumptions),
     Piecewise() => simplifyPiecewise(expr, assumptions: assumptions),
@@ -127,8 +150,21 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
     RootSum(:final polynomial, :final variable, :final body) =>
       _simplifyRootSum(polynomial, variable, body, assumptions),
   };
-  cache[expr] = result;
-  return result;
+  final marked = !isUnassumed || result.isSimplified
+      ? result
+      : switch (result) {
+          Call() => Call.canonical(result.spec, result.args, simplified: true),
+          Pow() => Pow.canonical(
+            result.base,
+            result.exponent,
+            simplified: true,
+          ),
+          _ => result,
+        };
+  if (cache != null) {
+    cache[expr] = marked;
+  }
+  return marked;
 }
 
 Expr _simplifyCall(

@@ -27,7 +27,7 @@ final class Variable extends Expr {
   final String name;
 
   @override
-  int get flags => kFlagHasVariable;
+  int get flags => kFlagHasVariable | kFlagSimplified;
 
   @override
   int get nodeCount => 1;

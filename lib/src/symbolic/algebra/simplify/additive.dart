@@ -18,6 +18,20 @@ Expr simplifyAdd(
       return single;
     case [final Number left, final Number right]:
       return left.add(right);
+    case [final RationalNumber r, final other] when _isSimplePolyTerm(other):
+      if (r.isZero) return other;
+      return Add.canonical(
+        [r, other],
+        simplified:
+            identical(assumptions, Assumptions.none) || assumptions.isEmpty,
+      );
+    case [final other, final RationalNumber r] when _isSimplePolyTerm(other):
+      if (r.isZero) return other;
+      return Add.canonical(
+        [r, other],
+        simplified:
+            identical(assumptions, Assumptions.none) || assumptions.isEmpty,
+      );
   }
 
   final acc = MonomialAccumulator(
@@ -30,6 +44,12 @@ Expr simplifyAdd(
   acc.reduceIdentities();
   return acc.build();
 }
+
+bool _isSimplePolyTerm(Expr e) => switch (e) {
+  Variable() => true,
+  Pow(base: Variable(), exponent: IntegerNumber(asInt: final n?)) => n >= 2,
+  _ => false,
+};
 
 /// Simplifies a binary subtraction `left - right`.
 Expr simplifySub(Expr left, Expr right, {required Assumptions assumptions}) =>

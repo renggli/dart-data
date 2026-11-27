@@ -75,10 +75,14 @@ class BareissEngine {
       // 2. Sylvester elimination step.
       for (var i = k + 1; i < n; i++) {
         for (var j = k + 1; j < n; j++) {
-          final num = (m[k][k] * m[i][j] - m[i][k] * m[k][j]).expand().simplify(
+          final reduced = expandMulDiff(
+            m[k][k],
+            m[i][j],
+            m[i][k],
+            m[k][j],
             assumptions: assumptions,
           );
-          m[i][j] = _exactDivide(num, pPrev, assumptions);
+          m[i][j] = _exactDivide(reduced, pPrev, assumptions);
         }
       }
 
@@ -481,7 +485,8 @@ class BareissEngine {
     if (vars.isEmpty) return null;
 
     // Rank candidate variables
-    final candidates = <({String v, int score, int m, Expr dm})>[];
+    final candidates =
+        <({String v, int score, int m, Expr dm, Map<int, Expr> dCoeffs})>[];
     for (final v in vars) {
       final dCoeffs = extractPolynomialCoefficients(den, v);
       if (dCoeffs == null) continue;
@@ -498,13 +503,13 @@ class BareissEngine {
             _ => 40,
           }) -
           m;
-      candidates.add((v: v, score: score, m: m, dm: dm));
+      candidates.add((v: v, score: score, m: m, dm: dm, dCoeffs: dCoeffs));
     }
 
     candidates.sort((a, b) => b.score.compareTo(a.score));
 
-    for (final (:v, score: _, :m, :dm) in candidates) {
-      final res = _divideByVariable(num, den, v, m, dm, assumptions);
+    for (final (:v, score: _, :m, :dm, :dCoeffs) in candidates) {
+      final res = _divideByVariable(num, dCoeffs, v, m, dm, assumptions);
       if (res != null && !_hasDiv(res)) {
         return res;
       }
@@ -515,64 +520,92 @@ class BareissEngine {
 
   static Expr? _divideByVariable(
     Expr num,
-    Expr den,
+    Map<int, Expr> dCoeffs,
     String v,
     int m,
     Expr dm,
     Assumptions assumptions,
   ) {
-    var remainder = num.expand().simplify(assumptions: assumptions);
-    Expr quotient = IntegerNumber.zero;
+    final isUnassumed = assumptions.isEmpty;
+    final extracted = extractPolynomialCoefficients(
+      isUnassumed
+          ? num.expand()
+          : num.expand().simplify(assumptions: assumptions),
+      v,
+    );
+    if (extracted == null) return null;
 
-    var nCoeffs = extractPolynomialCoefficients(remainder, v);
+    final rem = <int, Expr>{
+      for (final MapEntry(:key, :value) in extracted.entries)
+        if (!(_hasDiv(value)
+            ? _isExprZero(value, assumptions)
+            : isZeroExpr(value)))
+          key: value,
+    };
+    if (rem.isEmpty) return IntegerNumber.zero;
 
-    while (!_isExprZero(remainder, assumptions)) {
-      if (nCoeffs == null) break;
-      final k = maxPolynomialDegree(nCoeffs);
-      if (k < m) {
-        return null;
+    final divLow = <({int deg, Expr coeff})>[
+      for (final MapEntry(:key, :value) in dCoeffs.entries)
+        if (key < m && !isZeroExpr(value)) (deg: key, coeff: value),
+    ];
+
+    final qCoeffs = <int, Expr>{};
+    while (rem.isNotEmpty) {
+      var k = -1;
+      for (final d in rem.keys) {
+        if (d > k) k = d;
       }
-      final nk = nCoeffs[k];
-      if (nk == null) return null;
+      if (k < m) return null;
+      final nk = rem.remove(k)!;
 
       final Expr qc;
       switch (dm) {
         case IntegerNumber(isOne: true):
           qc = nk;
         case IntegerNumber(isNegativeOne: true):
-          qc = (-nk).expand().simplify(assumptions: assumptions);
+          final negNk = (-nk).expand();
+          qc = isUnassumed ? negNk : negNk.simplify(assumptions: assumptions);
         case RationalNumber():
-          qc = (nk * dm.reciprocal()).expand().simplify(
-            assumptions: assumptions,
-          );
+          final scaledNk = (nk * dm.reciprocal()).expand();
+          qc = isUnassumed
+              ? scaledNk
+              : scaledNk.simplify(assumptions: assumptions);
         case _:
           qc = _exactDivide(nk, dm, assumptions);
           if (_hasDiv(qc)) return null;
       }
 
       final p = k - m;
-      final qTerm = p == 0
-          ? qc
-          : (p == 1 ? qc * Variable(v) : qc * Variable(v).pow(p));
-
-      quotient = (quotient + qTerm).expand().simplify(assumptions: assumptions);
-      final nextRemainder = (remainder - (qTerm * den)).expand().simplify(
-        assumptions: assumptions,
-      );
-      final nextCoeffs = extractPolynomialCoefficients(nextRemainder, v);
-      if (!_isExprZero(nextRemainder, assumptions) &&
-          nextCoeffs != null &&
-          maxPolynomialDegree(nextCoeffs) >= k) {
-        return null;
+      qCoeffs[p] = qc;
+      for (var i = 0; i < divLow.length; i++) {
+        final (:deg, :coeff) = divLow[i];
+        final targetDeg = deg + p;
+        final cur = rem[targetDeg] ?? IntegerNumber.zero;
+        final nextCoeff = expandMulDiff(
+          cur,
+          IntegerNumber.one,
+          qc,
+          coeff,
+          assumptions: assumptions,
+        );
+        final isZero = _hasDiv(nextCoeff)
+            ? _isExprZero(nextCoeff, assumptions)
+            : isZeroExpr(nextCoeff);
+        if (isZero) {
+          rem.remove(targetDeg);
+        } else {
+          rem[targetDeg] = nextCoeff;
+        }
       }
-      remainder = nextRemainder;
-      nCoeffs = nextCoeffs;
     }
 
-    if (_isExprZero(remainder, assumptions)) {
-      return quotient.expand().simplify(assumptions: assumptions);
+    if (qCoeffs.length == 1 && qCoeffs.containsKey(0)) {
+      return qCoeffs[0]!;
     }
-    return null;
+    final built = buildPolynomialFromCoefficients(qCoeffs, v);
+    return isUnassumed
+        ? built.expand()
+        : built.expand().simplify(assumptions: assumptions);
   }
 
   static bool _hasDiv(Expr e) => e.anyNode(

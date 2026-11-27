@@ -16,6 +16,19 @@ Expr simplifyMul(
 }) {
   if (factors.isEmpty) return IntegerNumber.one;
 
+  final isUnassumed =
+      identical(assumptions, Assumptions.none) || assumptions.isEmpty;
+  if (factors.length == 2) {
+    final a = factors[0];
+    final b = factors[1];
+    if (a is Number && !a.isZero && _isSimpleAtomicFactor(b)) {
+      return a.isOne ? b : Mul.canonical([a, b], simplified: isUnassumed);
+    }
+    if (b is Number && !b.isZero && _isSimpleAtomicFactor(a)) {
+      return b.isOne ? a : Mul.canonical([b, a], simplified: isUnassumed);
+    }
+  }
+
   final flatFactors = <Expr>[];
   void flatten(Expr e) {
     if (e is Mul) {
@@ -217,7 +230,53 @@ Expr simplifyMul(
     }
   }
 
-  return simplifySymbolicProduct(coeff, remainingFactors);
+  return _buildCanonicalProduct(
+    coeff,
+    remainingFactors,
+    simplified: isUnassumed,
+  );
+}
+
+bool _isSimpleAtomicFactor(Expr e) => switch (e) {
+  Variable() => true,
+  Call(:final id) =>
+    id != FunctionId.factorial &&
+        id != FunctionId.gamma &&
+        id != FunctionId.binomial,
+  Pow(base: Variable() || Call(), exponent: IntegerNumber(isNegative: false)) =>
+    true,
+  _ => false,
+};
+
+Expr _buildCanonicalProduct(
+  Number coeff,
+  List<Expr> remainingFactors, {
+  required bool simplified,
+}) {
+  if (coeff.isZero || remainingFactors.isEmpty) {
+    return coeff;
+  }
+  if (remainingFactors.length == 1) {
+    final single = remainingFactors.first;
+    if (coeff.isOne) return single;
+    if (single != Constant.infinity && single is! OrderTerm && single is! Mul) {
+      return Mul.canonical([coeff, single], simplified: simplified);
+    }
+    return Mul.of([coeff, single], simplified: simplified);
+  }
+  for (var i = 0; i < remainingFactors.length; i++) {
+    final f = remainingFactors[i];
+    if (f == Constant.infinity || f is OrderTerm || f is Mul) {
+      return coeff.isOne
+          ? Mul.of(remainingFactors, simplified: simplified)
+          : Mul.of([coeff, ...remainingFactors], simplified: simplified);
+    }
+  }
+  remainingFactors.sort(compareStructural);
+  if (coeff.isOne) {
+    return Mul.canonical(remainingFactors, simplified: simplified);
+  }
+  return Mul.canonical([coeff, ...remainingFactors], simplified: simplified);
 }
 
 /// Simplifies a binary division `left / right`.
@@ -239,28 +298,20 @@ Expr simplifyDiv(Expr left, Expr right, {required Assumptions assumptions}) {
 
 /// Canonically sorts [remainingFactors] and combines with [coeff] into a
 /// simplified product expression.
-Expr simplifySymbolicProduct(Number coeff, List<Expr> remainingFactors) {
-  if (coeff.isZero) {
+Expr simplifySymbolicProduct(
+  Number coeff,
+  List<Expr> remainingFactors, {
+  bool simplified = false,
+}) {
+  if (coeff.isZero || remainingFactors.isEmpty) {
     return coeff;
   }
-  if (remainingFactors.isEmpty) {
-    return coeff;
-  }
-
-  remainingFactors.sort((a, b) {
-    final (baseA, _) = decomposeFactor(a);
-    final (baseB, _) = decomposeFactor(b);
-    final cmpBase = compareStructural(baseA, baseB);
-    if (cmpBase != 0) return cmpBase;
-    return compareStructural(a, b);
-  });
-
   if (coeff.isOne) {
     return remainingFactors.length == 1
         ? remainingFactors.first
-        : Mul.of(remainingFactors);
+        : Mul.of(remainingFactors, simplified: simplified);
   }
-  return Mul.of([coeff, ...remainingFactors]);
+  return Mul.of([coeff, ...remainingFactors], simplified: simplified);
 }
 
 void _combineRadicalBases(

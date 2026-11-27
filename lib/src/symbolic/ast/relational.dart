@@ -71,7 +71,8 @@ final class Relational extends Expr {
   final Expr right;
 
   @override
-  int get flags => left.flags | right.flags | kFlagHasRelational;
+  int get flags =>
+      ((left.flags | right.flags) & kStructuralFlagsMask) | kFlagHasRelational;
 
   @override
   int get nodeCount => 1 + left.nodeCount + right.nodeCount;
@@ -204,9 +205,10 @@ final class Piecewise extends Expr {
           ));
 
   static int _computeFlags(List<PiecewiseBranch> branches, Expr? otherwise) {
-    var f = kFlagHasRelational | (otherwise?.flags ?? 0);
+    var f =
+        kFlagHasRelational | ((otherwise?.flags ?? 0) & kStructuralFlagsMask);
     for (final (:relation, :expr) in branches) {
-      f |= relation.flags | expr.flags;
+      f |= (relation.flags | expr.flags) & kStructuralFlagsMask;
     }
     return f;
   }

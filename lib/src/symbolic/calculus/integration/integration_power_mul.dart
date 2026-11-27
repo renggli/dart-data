@@ -58,7 +58,7 @@ Expr antiDerivPow(
               .simplify();
         }
         if (matchScaledSquare(inner, variable) != null) {
-          final half = FractionNumber.half;
+          const half = FractionNumber.half;
           final reduced =
               (half * (IntegerNumber.one - Fn.cos(IntegerNumber.two * inner)))
                   .simplify(assumptions: assumptions);
@@ -79,7 +79,7 @@ Expr antiDerivPow(
               .simplify();
         }
         if (matchScaledSquare(inner, variable) != null) {
-          final half = FractionNumber.half;
+          const half = FractionNumber.half;
           final reduced =
               (half * (IntegerNumber.one + Fn.cos(IntegerNumber.two * inner)))
                   .simplify(assumptions: assumptions);

@@ -52,6 +52,19 @@ Expr _differentiate(
     assumptions,
   ),
   Call(:final spec, :final args) => () {
+    if (spec case UnaryFunctionSpec(:final unaryDerivative?)) {
+      final du = _differentiate(args[0], variable, assumptions);
+      if (du is Number && du.isZero) return IntegerNumber.zero;
+      final df = unaryDerivative(args[0]);
+      return du is Number && du.isOne ? df : df * du;
+    }
+    if (spec.id == FunctionId.ln &&
+        args[0] is! Call &&
+        args[0] is! Mul &&
+        args[0] is! Pow) {
+      final du = _differentiate(args[0], variable, assumptions);
+      return du is Number && du.isZero ? IntegerNumber.zero : du / args[0];
+    }
     final rule = spec.derivativeRule;
     if (rule != null) {
       final res = rule(
@@ -221,53 +234,63 @@ Expr _differentiateMul(
   String variable,
   Assumptions assumptions,
 ) {
-  final numFactors = <Expr>[];
-  final denFactors = <Expr>[];
-
-  for (final f in factors) {
-    if (f case Pow(:final base, exponent: final IntegerNumber exp)
+  var hasVarDen = false;
+  for (var i = 0; i < factors.length; i++) {
+    if (factors[i] case Pow(:final base, exponent: final IntegerNumber exp)
         when exp.isNegative && base.dependsOn(variable)) {
-      denFactors.add(exp.isNegativeOne ? base : Pow.of(base, exp.neg()));
-    } else {
-      numFactors.add(f);
+      hasVarDen = true;
+      break;
     }
   }
+  if (hasVarDen) {
+    final numFactors = <Expr>[];
+    final denFactors = <Expr>[];
 
-  if (denFactors.length == 1 && numFactors.isNotEmpty) {
-    final left = Mul.of(numFactors);
-    final right = denFactors.first;
-    final degLeft = polynomialDegree(left, variable);
-    return switch (right) {
-      Pow(:final base, :final exponent) when !exponent.dependsOn(variable) =>
-        () {
-          final degBase = polynomialDegree(base, variable);
+    for (final f in factors) {
+      if (f case Pow(:final base, exponent: final IntegerNumber exp)
+          when exp.isNegative && base.dependsOn(variable)) {
+        denFactors.add(exp.isNegativeOne ? base : Pow.of(base, exp.neg()));
+      } else {
+        numFactors.add(f);
+      }
+    }
+
+    if (denFactors.length == 1 && numFactors.isNotEmpty) {
+      final left = Mul.of(numFactors);
+      final right = denFactors.first;
+      final degLeft = polynomialDegree(left, variable);
+      return switch (right) {
+        Pow(:final base, :final exponent) when !exponent.dependsOn(variable) =>
+          () {
+            final degBase = polynomialDegree(base, variable);
+            final num =
+                _differentiate(left, variable, assumptions) * base -
+                exponent * left * _differentiate(base, variable, assumptions);
+            final shouldExpand =
+                (degLeft != null &&
+                    degLeft <= 4 &&
+                    degBase != null &&
+                    degBase <= 4) ||
+                (exponent is IntegerNumber &&
+                    (exponent.asInt == null || exponent.asInt!.abs() > 16));
+            return (shouldExpand ? num.expand() : num) /
+                Pow.of(base, exponent + IntegerNumber.one);
+          }(),
+        _ => () {
+          final degRight = polynomialDegree(right, variable);
           final num =
-              _differentiate(left, variable, assumptions) * base -
-              exponent * left * _differentiate(base, variable, assumptions);
+              _differentiate(left, variable, assumptions) * right -
+              left * _differentiate(right, variable, assumptions);
           final shouldExpand =
-              (degLeft != null &&
-                  degLeft <= 4 &&
-                  degBase != null &&
-                  degBase <= 4) ||
-              (exponent is IntegerNumber &&
-                  (exponent.asInt == null || exponent.asInt!.abs() > 16));
+              degLeft != null &&
+              degLeft <= 4 &&
+              degRight != null &&
+              degRight <= 4;
           return (shouldExpand ? num.expand() : num) /
-              Pow.of(base, exponent + IntegerNumber.one);
+              Pow.of(right, IntegerNumber.two);
         }(),
-      _ => () {
-        final degRight = polynomialDegree(right, variable);
-        final num =
-            _differentiate(left, variable, assumptions) * right -
-            left * _differentiate(right, variable, assumptions);
-        final shouldExpand =
-            degLeft != null &&
-            degLeft <= 4 &&
-            degRight != null &&
-            degRight <= 4;
-        return (shouldExpand ? num.expand() : num) /
-            Pow.of(right, IntegerNumber.two);
-      }(),
-    };
+      };
+    }
   }
 
   final (:constFactors, :varFactors) = partitionFactors(factors, variable);
@@ -299,13 +322,35 @@ Expr _differentiatePow(
   String variable, [
   Assumptions assumptions = Assumptions.none,
 ]) {
+  if (base case Variable(:final name) when name == variable) {
+    if (exponent case final IntegerNumber exp) {
+      if (exp.isZero) return IntegerNumber.zero;
+      if (exp.isOne) return IntegerNumber.one;
+      if (exp == IntegerNumber.two) {
+        return Mul.canonical([IntegerNumber.two, base], simplified: true);
+      }
+      return Mul.canonical([
+        exp,
+        Pow.canonical(
+          base,
+          exp.subRational(IntegerNumber.one),
+          simplified: true,
+        ),
+      ], simplified: true);
+    }
+    if (!exponent.dependsOn(variable)) {
+      return exponent * Pow.of(base, exponent - IntegerNumber.one);
+    }
+  }
   if (base == Constant.e) {
-    return expr * _differentiate(exponent, variable, assumptions);
+    final dExp = _differentiate(exponent, variable, assumptions);
+    return dExp is Number && dExp.isOne ? expr : expr * dExp;
   }
   if (!exponent.dependsOn(variable)) {
-    return exponent *
-        Pow.of(base, exponent - IntegerNumber.one) *
-        _differentiate(base, variable, assumptions);
+    final du = _differentiate(base, variable, assumptions);
+    if (du is Number && du.isZero) return IntegerNumber.zero;
+    final powerTerm = exponent * Pow.of(base, exponent - IntegerNumber.one);
+    return du is Number && du.isOne ? powerTerm : powerTerm * du;
   }
   if (!base.dependsOn(variable)) {
     if (base is Number && base.isZero) {

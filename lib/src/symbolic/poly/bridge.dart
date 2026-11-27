@@ -1,9 +1,6 @@
 import '../../polynomial/polynomial.dart';
 import '../algebra/expand.dart';
 import '../algebra/helpers.dart';
-import '../algebra/simplify/additive.dart';
-import '../algebra/simplify/multiplicative.dart';
-import '../assumptions.dart';
 import '../ast.dart';
 import '../type/expr_data_type.dart';
 import 'univariate.dart';
@@ -11,8 +8,10 @@ import 'univariate.dart';
 /// Extracts a univariate polynomial over `Q[x]` in [variable] from [expr],
 /// or returns `null` if [expr] has non-rational coefficients, other variables,
 /// or non-polynomial operations.
-PolyQ? exprToPolyQ(Expr expr, String variable) {
-  final source = _hasExpandablePolyNode(expr, variable) ? expr.expand() : expr;
+PolyQ? exprToPolyQ(Expr expr, String variable, {bool expanded = false}) {
+  final source = (!expanded && _hasExpandablePolyNode(expr, variable))
+      ? expr.expand()
+      : expr;
   final coeffMap = _extractRationalMap(source, variable);
   if (coeffMap == null) return null;
   if (coeffMap.isEmpty) return PolyQ.zero;
@@ -30,9 +29,32 @@ Expr polyQToExpr(PolyQ poly, String variable) =>
     buildPolyExprFromRational(poly.coeffs, variable);
 
 /// Converts a univariate [PolyZ] back to a canonically ordered symbolic [Expr].
-Expr polyZToExpr(PolyZ poly, String variable) => buildPolyExprFromRational([
-  for (final c in poly.coeffs) IntegerNumber(c),
-], variable);
+Expr polyZToExpr(PolyZ poly, String variable) {
+  if (poly.isZero) return IntegerNumber.zero;
+  if (poly.isConstant) return IntegerNumber(poly.coeffs.first);
+  final x = Variable(variable);
+  final coeffs = poly.coeffs;
+  final terms = <Expr>[];
+  if (coeffs[0] != BigInt.zero) {
+    terms.add(IntegerNumber(coeffs[0]));
+  }
+  if (coeffs.length > 1 && coeffs[1] != BigInt.zero) {
+    final c = IntegerNumber(coeffs[1]);
+    terms.add(c.isOne ? x : Mul.canonical([c, x], simplified: true));
+  }
+  for (var k = 2; k < coeffs.length; k++) {
+    final raw = coeffs[k];
+    if (raw == BigInt.zero) continue;
+    final c = IntegerNumber(raw);
+    final xk = Pow.canonical(x, IntegerNumber.of(k), simplified: true);
+    terms.add(c.isOne ? xk : Mul.canonical([c, xk], simplified: true));
+  }
+  return switch (terms) {
+    [] => IntegerNumber.zero,
+    [final single] => single,
+    _ => Add.canonical(terms, simplified: true),
+  };
+}
 
 /// Builds canonical linear factor expression `q * x - p`.
 Expr buildLinearFactorExpr(BigInt q, BigInt p, String variable) =>
@@ -43,18 +65,25 @@ Expr buildLinearFactorExpr(BigInt q, BigInt p, String variable) =>
 Expr buildPolyExprFromRational(List<RationalNumber> coeffs, String variable) {
   if (coeffs.isEmpty) return IntegerNumber.zero;
   final x = Variable(variable);
-  return simplifyAdd([
-    for (var k = 0; k < coeffs.length; k++)
-      if (!coeffs[k].isZero)
-        switch (k) {
-          0 => coeffs[k],
-          1 => simplifyMul([coeffs[k], x], assumptions: Assumptions.none),
-          _ => simplifyMul([
-            coeffs[k],
-            Pow.of(x, IntegerNumber.of(k)),
-          ], assumptions: Assumptions.none),
-        },
-  ], assumptions: Assumptions.none);
+  final terms = <Expr>[];
+  if (!coeffs[0].isZero) {
+    terms.add(coeffs[0]);
+  }
+  if (coeffs.length > 1 && !coeffs[1].isZero) {
+    final c = coeffs[1];
+    terms.add(c.isOne ? x : Mul.canonical([c, x], simplified: true));
+  }
+  for (var k = 2; k < coeffs.length; k++) {
+    final c = coeffs[k];
+    if (c.isZero) continue;
+    final xk = Pow.canonical(x, IntegerNumber.of(k), simplified: true);
+    terms.add(c.isOne ? xk : Mul.canonical([c, xk], simplified: true));
+  }
+  return switch (terms) {
+    [] => IntegerNumber.zero,
+    [final single] => single,
+    _ => Add.canonical(terms, simplified: true),
+  };
 }
 
 /// Bridges symbolic expression [expr] to `package:data` [Polynomial<Expr>] in

@@ -64,10 +64,10 @@ sealed class BinderExpr extends Expr {
   int _computeBinderFlags() {
     var f = kFlagHasBinder | (bindsVariable ? 0 : kFlagHasVariable);
     for (final e in _bodyExprs) {
-      f |= e.flags;
+      f |= e.flags & kStructuralFlagsMask;
     }
     for (final e in _outerExprs) {
-      f |= e.flags;
+      f |= e.flags & kStructuralFlagsMask;
     }
     return f;
   }

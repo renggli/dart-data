@@ -13,49 +13,45 @@ Complex normalizeComplexZero(Complex z) =>
 const sinSpec = UnaryFunctionSpec(
   id: FunctionId.sin,
   name: 'sin',
-  params: ['x'],
   doc: 'Sine of x (radians)',
   category: FunctionCategory.trig,
   parity: FunctionParity.odd,
   latexName: r'\sin',
   evalReal: math.sin,
   evalComplex: _complexSin,
-  derivativeRule: _diffSin,
+  unaryDerivative: _dfSin,
 );
 
 /// Spec for `cos(x)`.
 const cosSpec = UnaryFunctionSpec(
   id: FunctionId.cos,
   name: 'cos',
-  params: ['x'],
   doc: 'Cosine of x (radians)',
   category: FunctionCategory.trig,
   parity: FunctionParity.even,
   latexName: r'\cos',
   evalReal: math.cos,
   evalComplex: _complexCos,
-  derivativeRule: _diffCos,
+  unaryDerivative: _dfCos,
 );
 
 /// Spec for `tan(x)`.
 const tanSpec = UnaryFunctionSpec(
   id: FunctionId.tan,
   name: 'tan',
-  params: ['x'],
   doc: 'Tangent of x (radians)',
   category: FunctionCategory.trig,
   parity: FunctionParity.odd,
   latexName: r'\tan',
   evalReal: math.tan,
   evalComplex: _complexTan,
-  derivativeRule: _diffTan,
+  unaryDerivative: _dfTan,
 );
 
 /// Spec for `asin(x)`.
 const asinSpec = UnaryFunctionSpec(
   id: FunctionId.asin,
   name: 'asin',
-  params: ['x'],
   doc: 'Inverse sine (arcsine)',
   category: FunctionCategory.trig,
   parity: FunctionParity.odd,
@@ -63,28 +59,26 @@ const asinSpec = UnaryFunctionSpec(
   mathMlName: 'arcsin',
   evalReal: math.asin,
   evalComplex: _complexAsin,
-  derivativeRule: _diffAsin,
+  unaryDerivative: _dfAsin,
 );
 
 /// Spec for `acos(x)`.
 const acosSpec = UnaryFunctionSpec(
   id: FunctionId.acos,
   name: 'acos',
-  params: ['x'],
   doc: 'Inverse cosine (arccosine)',
   category: FunctionCategory.trig,
   latexName: r'\arccos',
   mathMlName: 'arccos',
   evalReal: math.acos,
   evalComplex: _complexAcos,
-  derivativeRule: _diffAcos,
+  unaryDerivative: _dfAcos,
 );
 
 /// Spec for `atan(x)`.
 const atanSpec = UnaryFunctionSpec(
   id: FunctionId.atan,
   name: 'atan',
-  params: ['x'],
   doc: 'Inverse tangent (arctangent)',
   category: FunctionCategory.trig,
   parity: FunctionParity.odd,
@@ -92,7 +86,7 @@ const atanSpec = UnaryFunctionSpec(
   mathMlName: 'arctan',
   evalReal: math.atan,
   evalComplex: _complexAtan,
-  derivativeRule: _diffAtan,
+  unaryDerivative: _dfAtan,
 );
 
 /// Spec for `atan2(y, x)`.
@@ -111,49 +105,45 @@ const atan2Spec = BinaryFunctionSpec(
 const sinhSpec = UnaryFunctionSpec(
   id: FunctionId.sinh,
   name: 'sinh',
-  params: ['x'],
   doc: 'Hyperbolic sine',
   category: FunctionCategory.hyperbolic,
   parity: FunctionParity.odd,
   latexName: r'\sinh',
   evalReal: _realSinh,
   evalComplex: _complexSinh,
-  derivativeRule: _diffSinh,
+  unaryDerivative: _dfSinh,
 );
 
 /// Spec for `cosh(x)`.
 const coshSpec = UnaryFunctionSpec(
   id: FunctionId.cosh,
   name: 'cosh',
-  params: ['x'],
   doc: 'Hyperbolic cosine',
   category: FunctionCategory.hyperbolic,
   parity: FunctionParity.even,
   latexName: r'\cosh',
   evalReal: _realCosh,
   evalComplex: _complexCosh,
-  derivativeRule: _diffCosh,
+  unaryDerivative: _dfCosh,
 );
 
 /// Spec for `tanh(x)`.
 const tanhSpec = UnaryFunctionSpec(
   id: FunctionId.tanh,
   name: 'tanh',
-  params: ['x'],
   doc: 'Hyperbolic tangent',
   category: FunctionCategory.hyperbolic,
   parity: FunctionParity.odd,
   latexName: r'\tanh',
   evalReal: _realTanh,
   evalComplex: _complexTanh,
-  derivativeRule: _diffTanh,
+  unaryDerivative: _dfTanh,
 );
 
 /// Spec for `asinh(x)`.
 const asinhSpec = UnaryFunctionSpec(
   id: FunctionId.asinh,
   name: 'asinh',
-  params: ['x'],
   doc: 'Inverse hyperbolic sine',
   category: FunctionCategory.hyperbolic,
   parity: FunctionParity.odd,
@@ -161,28 +151,26 @@ const asinhSpec = UnaryFunctionSpec(
   mathMlName: 'arsinh',
   evalReal: _realAsinh,
   evalComplex: _complexAsinh,
-  derivativeRule: _diffAsinh,
+  unaryDerivative: _dfAsinh,
 );
 
 /// Spec for `acosh(x)`.
 const acoshSpec = UnaryFunctionSpec(
   id: FunctionId.acosh,
   name: 'acosh',
-  params: ['x'],
   doc: 'Inverse hyperbolic cosine',
   category: FunctionCategory.hyperbolic,
   latexName: r'\operatorname{arcosh}',
   mathMlName: 'arcosh',
   evalReal: _realAcosh,
   evalComplex: _complexAcosh,
-  derivativeRule: _diffAcosh,
+  unaryDerivative: _dfAcosh,
 );
 
 /// Spec for `atanh(x)`.
 const atanhSpec = UnaryFunctionSpec(
   id: FunctionId.atanh,
   name: 'atanh',
-  params: ['x'],
   doc: 'Inverse hyperbolic tangent',
   category: FunctionCategory.hyperbolic,
   parity: FunctionParity.odd,
@@ -190,7 +178,7 @@ const atanhSpec = UnaryFunctionSpec(
   mathMlName: 'artanh',
   evalReal: _realAtanh,
   evalComplex: _complexAtanh,
-  derivativeRule: _diffAtanh,
+  unaryDerivative: _dfAtanh,
 );
 
 /// Spec for `abs(x)`.
@@ -312,57 +300,21 @@ Complex _complexIm(Complex z) => Complex(z.imaginary);
 Complex _complexArg(Complex z) => Complex(z.arg());
 Complex _complexConj(Complex z) => z.conjugate();
 
-Expr _diffSin(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => cosSpec(args[0]) * diff(args[0]);
-
-Expr _diffCos(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => -sinSpec(args[0]) * diff(args[0]);
-
-Expr _diffTan(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => diff(args[0]) / Pow.of(cosSpec(args[0]), IntegerNumber.two);
-
-Expr _diffAsin(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
-    diff(args[0]) /
-    Pow.of(
-      IntegerNumber.one - Pow.of(args[0], IntegerNumber.two),
-      FractionNumber.half,
-    );
-
-Expr _diffAcos(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
-    (-diff(args[0])) /
-    Pow.of(
-      IntegerNumber.one - Pow.of(args[0], IntegerNumber.two),
-      FractionNumber.half,
-    );
-
-Expr _diffAtan(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => diff(args[0]) / (IntegerNumber.one + Pow.of(args[0], IntegerNumber.two));
+Expr _dfSin(Expr u) => cosSpec(u);
+Expr _dfCos(Expr u) => -sinSpec(u);
+Expr _dfTan(Expr u) => Pow.of(cosSpec(u), IntegerNumber.of(-2));
+Expr _dfAsin(Expr u) => Pow.of(
+  IntegerNumber.one - Pow.of(u, IntegerNumber.two),
+  FractionNumber.negativeHalf,
+);
+Expr _dfAcos(Expr u) => -Pow.of(
+  IntegerNumber.one - Pow.of(u, IntegerNumber.two),
+  FractionNumber.negativeHalf,
+);
+Expr _dfAtan(Expr u) => Pow.of(
+  IntegerNumber.one + Pow.of(u, IntegerNumber.two),
+  IntegerNumber.negativeOne,
+);
 
 Expr _diffAtan2(
   List<Expr> args,
@@ -376,55 +328,20 @@ Expr _diffAtan2(
       (Pow.of(x, IntegerNumber.two) + Pow.of(y, IntegerNumber.two));
 }
 
-Expr _diffSinh(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => coshSpec(args[0]) * diff(args[0]);
-
-Expr _diffCosh(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => sinhSpec(args[0]) * diff(args[0]);
-
-Expr _diffTanh(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => diff(args[0]) / Pow.of(coshSpec(args[0]), IntegerNumber.two);
-
-Expr _diffAsinh(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
-    diff(args[0]) /
-    Pow.of(
-      Pow.of(args[0], IntegerNumber.two) + IntegerNumber.one,
-      FractionNumber.half,
-    );
-
-Expr _diffAcosh(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
-    diff(args[0]) /
-    (Pow.of(args[0] - IntegerNumber.one, FractionNumber.half) *
-        Pow.of(args[0] + IntegerNumber.one, FractionNumber.half));
-
-Expr _diffAtanh(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => diff(args[0]) / (IntegerNumber.one - Pow.of(args[0], IntegerNumber.two));
+Expr _dfSinh(Expr u) => coshSpec(u);
+Expr _dfCosh(Expr u) => sinhSpec(u);
+Expr _dfTanh(Expr u) => Pow.of(coshSpec(u), IntegerNumber.of(-2));
+Expr _dfAsinh(Expr u) => Pow.of(
+  Pow.of(u, IntegerNumber.two) + IntegerNumber.one,
+  FractionNumber.negativeHalf,
+);
+Expr _dfAcosh(Expr u) =>
+    Pow.of(u - IntegerNumber.one, FractionNumber.negativeHalf) *
+    Pow.of(u + IntegerNumber.one, FractionNumber.negativeHalf);
+Expr _dfAtanh(Expr u) => Pow.of(
+  IntegerNumber.one - Pow.of(u, IntegerNumber.two),
+  IntegerNumber.negativeOne,
+);
 
 Expr _diffAbs(
   List<Expr> args,

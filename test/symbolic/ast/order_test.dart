@@ -77,7 +77,7 @@ void main() {
   group('Within-type structural comparisons', () {
     test('compares Number subtypes and ComplexNumber components', () {
       final n1 = IntegerNumber.of(-2);
-      final n2 = FractionNumber.half;
+      const n2 = FractionNumber.half;
       const n3 = RealNumber(1.5);
       final c1 = ComplexNumber.of(IntegerNumber.one, IntegerNumber.one);
       final c2 = ComplexNumber.of(IntegerNumber.one, IntegerNumber.two);

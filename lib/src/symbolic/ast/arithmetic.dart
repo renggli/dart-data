@@ -5,10 +5,52 @@ part of '../ast.dart';
 /// Always contains at least 2 canonically flattened, combined, and sorted terms.
 /// Use [Add.of] or `+` to construct canonical sums.
 final class Add extends Expr {
-  new _(Iterable<Expr> terms)
+  new _(Iterable<Expr> terms, {bool simplified = false})
     : terms = List<Expr>.unmodifiable(terms),
-      flags = _computeListFlags(terms),
+      flags = _computeListFlags(terms, simplified: simplified),
       nodeCount = _computeListNodeCount(terms);
+
+  /// Constructs a canonical [Add] node directly from an already canonically
+  /// ordered, simplified list of at least two terms.
+  new canonical(List<Expr> terms, {bool simplified = false})
+    : assert(terms.length >= 2),
+      terms = List<Expr>.unmodifiable(terms),
+      flags = _computeListFlags(terms, simplified: simplified),
+      nodeCount = _computeListNodeCount(terms);
+
+  /// Constructs a canonically flattened, combined, and sorted binary sum `a + b`
+  /// with fast paths that avoid allocating intermediate lists for common cases.
+  static Expr binary(Expr a, Expr b) {
+    if (a == Constant.undefined || b == Constant.undefined) {
+      return Constant.undefined;
+    }
+    if (a is Number && a.isZero && !a.hasReal) return b;
+    if (b is Number && b.isZero && !b.hasReal) return a;
+    if (a is Number && b is Number && a is! RealNumber && b is! RealNumber) {
+      return a.add(b);
+    }
+    if (a is! Add &&
+        b is! Add &&
+        a is! Mul &&
+        b is! Mul &&
+        a is! OrderTerm &&
+        b is! OrderTerm &&
+        a != Constant.infinity &&
+        b != Constant.infinity) {
+      if (a is Number && !a.hasReal && b is! Number) {
+        return Add._([a, b]);
+      }
+      if (b is Number && !b.hasReal && a is! Number) {
+        return Add._([b, a]);
+      }
+      if (a is! Number && b is! Number) {
+        final cmp = compareStructural(a, b);
+        if (cmp == 0) return Mul._([IntegerNumber.two, a]);
+        return cmp < 0 ? Add._([a, b]) : Add._([b, a]);
+      }
+    }
+    return Add.of([a, b]);
+  }
 
   /// Constructs a canonically flattened, combined, and sorted sum from [terms].
   ///
@@ -26,6 +68,31 @@ final class Add extends Expr {
     }
     if (flat.isEmpty) return IntegerNumber.zero;
     if (flat.length == 1) return flat.first;
+    if (flat.length == 2) {
+      final a = flat[0];
+      final b = flat[1];
+      if (a is Number && b is Number && a is! RealNumber && b is! RealNumber) {
+        return a.add(b);
+      }
+      if (a is Number &&
+          !a.hasReal &&
+          b is! Number &&
+          b is! Mul &&
+          b is! OrderTerm &&
+          b != Constant.infinity &&
+          b != Constant.undefined) {
+        return a.isZero ? b : Add._([a, b]);
+      }
+      if (b is Number &&
+          !b.hasReal &&
+          a is! Number &&
+          a is! Mul &&
+          a is! OrderTerm &&
+          a != Constant.infinity &&
+          a != Constant.undefined) {
+        return b.isZero ? a : Add._([b, a]);
+      }
+    }
 
     Number scalar = IntegerNumber.zero;
     var hasReal = false;
@@ -188,9 +255,17 @@ final class Add extends Expr {
 /// Always contains at least 2 canonically flattened, base-merged, and sorted
 /// factors. Use [Mul.of] or `*` to construct canonical products.
 final class Mul extends Expr {
-  new _(Iterable<Expr> factors)
+  new _(Iterable<Expr> factors, {bool simplified = false})
     : factors = List<Expr>.unmodifiable(factors),
-      flags = _computeListFlags(factors),
+      flags = _computeListFlags(factors, simplified: simplified),
+      nodeCount = _computeListNodeCount(factors);
+
+  /// Constructs a canonical [Mul] node directly from an already canonically
+  /// ordered list of at least two factors.
+  new canonical(List<Expr> factors, {bool simplified = false})
+    : assert(factors.length >= 2),
+      factors = List<Expr>.unmodifiable(factors),
+      flags = _computeListFlags(factors, simplified: simplified),
       nodeCount = _computeListNodeCount(factors);
 
   /// Constructs a raw product node without flattening, folding, or reordering [factors].
@@ -199,9 +274,54 @@ final class Mul extends Expr {
   /// must preserve explicit unreduced factors.
   factory raw(Iterable<Expr> factors) => Mul._(factors);
 
+  /// Constructs a canonically flattened, base-merged, and sorted binary product
+  /// `a * b` with fast paths that avoid intermediate list allocations.
+  static Expr binary(Expr a, Expr b, {bool simplified = false}) {
+    if (a == Constant.undefined || b == Constant.undefined) {
+      return Constant.undefined;
+    }
+    if ((a is Number && a.isZero) || (b is Number && b.isZero)) {
+      if (a == Constant.infinity ||
+          b == Constant.infinity ||
+          (a is Mul && a.factors.contains(Constant.infinity)) ||
+          (b is Mul && b.factors.contains(Constant.infinity))) {
+        return Constant.undefined;
+      }
+      return (a.hasReal || b.hasReal) ? RealNumber.zero : IntegerNumber.zero;
+    }
+    if (a is Number && b is Number && a is! RealNumber && b is! RealNumber) {
+      return a.mul(b);
+    }
+    if (a is! Mul &&
+        b is! Mul &&
+        a is! OrderTerm &&
+        b is! OrderTerm &&
+        a is! Pow &&
+        b is! Pow &&
+        a != Constant.infinity &&
+        b != Constant.infinity) {
+      if (a is Number && b is! Number) {
+        return a.isOne ? b : Mul._([a, b], simplified: simplified);
+      }
+      if (b is Number && a is! Number) {
+        return b.isOne ? a : Mul._([b, a], simplified: simplified);
+      }
+      if (a is! Number && b is! Number) {
+        final cmp = compareStructural(a, b);
+        if (cmp == 0) {
+          return Pow._(a, IntegerNumber.two, simplified: simplified);
+        }
+        return cmp < 0
+            ? Mul._([a, b], simplified: simplified)
+            : Mul._([b, a], simplified: simplified);
+      }
+    }
+    return Mul.of([a, b], simplified: simplified);
+  }
+
   /// Constructs a canonically flattened, base-merged, and sorted product from
   /// [factors].
-  static Expr of(Iterable<Expr> factors) {
+  static Expr of(Iterable<Expr> factors, {bool simplified = false}) {
     final flat = <Expr>[];
     var hasReal = false;
     var hasZero = false;
@@ -228,6 +348,29 @@ final class Mul extends Expr {
     if (flat.length == 1) return flat.first;
     if (hasZero && hasInfinity) return Constant.undefined;
     if (hasZero) return hasReal ? RealNumber.zero : IntegerNumber.zero;
+    if (flat.length == 2) {
+      final a = flat[0];
+      final b = flat[1];
+      if (a is Number && b is Number && a is! RealNumber && b is! RealNumber) {
+        return a.mul(b);
+      }
+      if (a is Number &&
+          b is! Number &&
+          b is! OrderTerm &&
+          b is! Pow &&
+          b != Constant.infinity &&
+          b != Constant.undefined) {
+        return a.isOne ? b : Mul._([a, b], simplified: simplified);
+      }
+      if (b is Number &&
+          a is! Number &&
+          a is! OrderTerm &&
+          a is! Pow &&
+          a != Constant.infinity &&
+          a != Constant.undefined) {
+        return b.isOne ? a : Mul._([b, a], simplified: simplified);
+      }
+    }
 
     Number coeff = IntegerNumber.one;
     final baseExps = <Expr, Expr>{};
@@ -310,7 +453,9 @@ final class Mul extends Expr {
       return coeff;
     }
 
-    return remaining.length == 1 ? remaining.first : Mul._(remaining);
+    return remaining.length == 1
+        ? remaining.first
+        : Mul._(remaining, simplified: simplified);
   }
 
   /// Canonically ordered list of multiplicative factors (always `length >= 2`).
@@ -359,7 +504,18 @@ final class Mul extends Expr {
 ///
 /// Use [Pow.of] or `pow` to construct canonical powers.
 final class Pow extends Expr {
-  new _(this.base, this.exponent);
+  new _(this.base, this.exponent, {bool simplified = false})
+    : flags =
+          ((base.flags | exponent.flags) & kStructuralFlagsMask) |
+          (simplified ? kFlagSimplified : 0),
+      nodeCount = 1 + base.nodeCount + exponent.nodeCount;
+
+  /// Constructs a canonical [Pow] node directly without re-folding.
+  new canonical(this.base, this.exponent, {bool simplified = false})
+    : flags =
+          ((base.flags | exponent.flags) & kStructuralFlagsMask) |
+          (simplified ? kFlagSimplified : 0),
+      nodeCount = 1 + base.nodeCount + exponent.nodeCount;
 
   /// Constructs a raw power node without folding [base] and [exponent].
   ///
@@ -367,7 +523,7 @@ final class Pow extends Expr {
   factory raw(Expr base, Expr exponent) => Pow._(base, exponent);
 
   /// Constructs a canonical power expression `base^exponent`.
-  static Expr of(Expr base, Expr exponent) {
+  static Expr of(Expr base, Expr exponent, {bool simplified = false}) {
     if (base == Constant.undefined || exponent == Constant.undefined) {
       return Constant.undefined;
     }
@@ -392,12 +548,12 @@ final class Pow extends Expr {
     }
     if (base is Number && exponent is Number) {
       if (base.isZero && exponent is RealNumeric && exponent.isNegative) {
-        return Pow._(base, exponent);
+        return Pow._(base, exponent, simplified: simplified);
       }
       final folded = base.powNumber(exponent);
       if (folded != null) return folded;
     }
-    return Pow._(base, exponent);
+    return Pow._(base, exponent, simplified: simplified);
   }
 
   /// Base of the power expression.
@@ -407,10 +563,10 @@ final class Pow extends Expr {
   final Expr exponent;
 
   @override
-  int get flags => base.flags | exponent.flags;
+  final int flags;
 
   @override
-  int get nodeCount => 1 + base.nodeCount + exponent.nodeCount;
+  final int nodeCount;
 
   @override
   int get structuralTag => 70;
@@ -457,10 +613,10 @@ final class Pow extends Expr {
   return (IntegerNumber.one, expr);
 }
 
-int _computeListFlags(Iterable<Expr> nodes) {
-  var f = 0;
+int _computeListFlags(Iterable<Expr> nodes, {bool simplified = false}) {
+  var f = simplified ? kFlagSimplified : 0;
   for (final n in nodes) {
-    f |= n.flags;
+    f |= n.flags & kStructuralFlagsMask;
   }
   return f;
 }

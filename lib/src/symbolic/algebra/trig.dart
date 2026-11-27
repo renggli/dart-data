@@ -452,7 +452,7 @@ Expr _contractTrigProduct(
 }
 
 Expr? _productToSumPair(Expr f1, Expr f2, Assumptions assumptions) {
-  final half = FractionNumber.half;
+  const half = FractionNumber.half;
   return switch ((f1, f2)) {
     (
       Call(id: FunctionId.sin, args: [final a]),
@@ -497,7 +497,7 @@ Expr? _productToSumPair(Expr f1, Expr f2, Assumptions assumptions) {
 }
 
 Expr? _hyperbolicProductToSumPair(Expr f1, Expr f2, Assumptions assumptions) {
-  final half = FractionNumber.half;
+  const half = FractionNumber.half;
   return switch ((f1, f2)) {
     (
       Call(id: FunctionId.sinh, args: [final a]),
@@ -737,7 +737,7 @@ Expr _rewriteToExp(Expr expr, Assumptions assumptions) {
     IntegerNumber.zero,
     FractionNumber.negativeHalf,
   );
-  final half = FractionNumber.half;
+  const half = FractionNumber.half;
   return switch (mapped) {
     Call(id: FunctionId.sin, args: [final u]) => () {
       final iu = (i * u)

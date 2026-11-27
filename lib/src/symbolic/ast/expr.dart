@@ -8,6 +8,8 @@ const int kFlagHasSpecial = 1 << 3;
 const int kFlagHasBinder = 1 << 4;
 const int kFlagHasOrder = 1 << 5;
 const int kFlagHasRelational = 1 << 6;
+const int kFlagSimplified = 1 << 7;
+const int kStructuralFlagsMask = 0x7f;
 
 /// Root of the symbolic expression Abstract Syntax Tree (AST).
 ///
@@ -94,6 +96,10 @@ sealed class Expr {
   /// Deterministic structural category tag used by [compareStructural].
   int get structuralTag;
 
+  /// Whether this expression is known to be canonically simplified with empty
+  /// assumptions.
+  bool get isSimplified => (flags & kFlagSimplified) != 0;
+
   /// Whether this subtree contains any symbolic [Variable] node.
   bool get hasVariable => (flags & kFlagHasVariable) != 0;
 
@@ -140,13 +146,13 @@ sealed class Expr {
   bool anyNode(bool Function(Expr) predicate) => predicate(this);
 
   /// Canonical symbolic addition: `this + other`.
-  Expr operator +(Object other) => Add.of([this, Expr.wrap(other)]);
+  Expr operator +(Object other) => Add.binary(this, Expr.wrap(other));
 
   /// Canonical symbolic subtraction: `this - other`.
-  Expr operator -(Object other) => Add.of([this, -Expr.wrap(other)]);
+  Expr operator -(Object other) => Add.binary(this, -Expr.wrap(other));
 
   /// Canonical symbolic multiplication: `this * other`.
-  Expr operator *(Object other) => Mul.of([this, Expr.wrap(other)]);
+  Expr operator *(Object other) => Mul.binary(this, Expr.wrap(other));
 
   /// Canonical symbolic division: `this / other`.
   Expr operator /(Object other) {
@@ -163,7 +169,7 @@ sealed class Expr {
     if (this case final RealNumeric a) {
       if (rhs case final ComplexNumber b when !b.isZero) return a.div(b);
     }
-    return Mul.of([this, Pow.of(rhs, IntegerNumber.negativeOne)]);
+    return Mul.binary(this, Pow.of(rhs, IntegerNumber.negativeOne));
   }
 
   /// Canonical symbolic unary negation: `-this`.

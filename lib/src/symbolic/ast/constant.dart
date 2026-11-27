@@ -50,7 +50,9 @@ final class Constant extends Expr {
   final String mathMl;
 
   @override
-  int get flags => (!value.isNaN && value.b != 0.0) ? kFlagHasComplex : 0;
+  int get flags =>
+      ((!value.isNaN && value.b != 0.0) ? kFlagHasComplex : 0) |
+      kFlagSimplified;
 
   @override
   int get nodeCount => 1;

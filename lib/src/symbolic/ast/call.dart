@@ -7,9 +7,15 @@ part of '../ast.dart';
 /// symbolic functions via [FunctionSpec.symbolic].
 final class Call extends Expr {
   /// Creates a function call node applying [spec] to [args].
-  new(this.spec, Iterable<Expr> args)
+  new(this.spec, Iterable<Expr> args, {bool simplified = false})
     : args = List<Expr>.unmodifiable(args),
-      flags = _computeCallFlags(spec, args),
+      flags = _computeCallFlags(spec, args, simplified: simplified),
+      nodeCount = _computeCallNodeCount(args);
+
+  /// Creates a canonically simplified call node directly from an already
+  /// immutable list [args].
+  new canonical(this.spec, this.args, {bool simplified = false})
+    : flags = _computeCallFlags(spec, args, simplified: simplified),
       nodeCount = _computeCallNodeCount(args);
 
   /// Creates an uninterpreted symbolic function call `name(args...)`.
@@ -67,10 +73,16 @@ final class Call extends Expr {
           spec == other.spec &&
           const ListEquality<Expr>().equals(args, other.args));
 
-  static int _computeCallFlags(FunctionSpec spec, Iterable<Expr> args) {
-    var f = spec.isSpecial ? kFlagHasSpecial : 0;
+  static int _computeCallFlags(
+    FunctionSpec spec,
+    Iterable<Expr> args, {
+    bool simplified = false,
+  }) {
+    var f =
+        (spec.isSpecial ? kFlagHasSpecial : 0) |
+        (simplified ? kFlagSimplified : 0);
     for (final a in args) {
-      f |= a.flags;
+      f |= a.flags & kStructuralFlagsMask;
     }
     return f;
   }

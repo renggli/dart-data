@@ -44,6 +44,9 @@ sealed class Number extends Expr {
 
   /// Returns the exact or contagion-promoted sum `this + other`.
   Number add(Number other) {
+    if (this case final RationalNumber a when other is RationalNumber) {
+      return a.addRational(other);
+    }
     if ((this, other) case (final RealNumeric a, final RealNumeric b)) {
       return _addReal(a, b);
     }
@@ -53,10 +56,18 @@ sealed class Number extends Expr {
   }
 
   /// Returns the exact or contagion-promoted difference `this - other`.
-  Number sub(Number other) => add(other.neg());
+  Number sub(Number other) {
+    if (this case final RationalNumber a when other is RationalNumber) {
+      return a.subRational(other);
+    }
+    return add(other.neg());
+  }
 
   /// Returns the exact or contagion-promoted product `this * other`.
   Number mul(Number other) {
+    if (this case final RationalNumber a when other is RationalNumber) {
+      return a.mulRational(other);
+    }
     if ((this, other) case (final RealNumeric a, final RealNumeric b)) {
       return _mulReal(a, b);
     }
@@ -422,12 +433,10 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
 
   @override
   int compareTo(RealNumeric other) => switch ((this, other)) {
-    (final RationalNumber a, final RationalNumber b) =>
-      a.denominator == b.denominator
-          ? a.numerator.compareTo(b.numerator)
-          : (a.numerator * b.denominator).compareTo(
-              b.numerator * a.denominator,
-            ),
+    (final IntegerNumber a, final IntegerNumber b)
+        when a._big == null && b._big == null =>
+      a._small.compareTo(b._small),
+    (final RationalNumber a, final RationalNumber b) => _compareRationals(a, b),
     (final RealNumber a, final RealNumber b) => a.value.compareTo(b.value),
     (final RationalNumber r, final RealNumber f) => _compareRationalReal(r, f),
     (final RealNumber f, final RationalNumber r) => -_compareRationalReal(r, f),
@@ -442,10 +451,35 @@ sealed class RationalNumber extends RealNumeric {
 
   /// Creates an exact rational number from machine `int` [numerator] and
   /// [denominator], reducing by their greatest common divisor.
-  factory(int numerator, [int denominator = 1]) => RationalNumber.of(
-    BigInt.from(numerator),
-    denominator == 1 ? null : BigInt.from(denominator),
-  );
+  factory(int numerator, [int denominator = 1]) {
+    if (numerator >= -_maxSafeInt &&
+        numerator <= _maxSafeInt &&
+        denominator >= -_maxSafeInt &&
+        denominator <= _maxSafeInt) {
+      if (denominator == 0) {
+        throw UnsupportedError('Division by zero');
+      }
+      if (numerator == 0) return IntegerNumber.zero;
+      if (denominator == 1) return IntegerNumber.of(numerator);
+      var num = numerator;
+      var den = denominator;
+      if (den < 0) {
+        num = -num;
+        den = -den;
+      }
+      if (den == 1) return IntegerNumber.of(num);
+      final g = _intGcd(num, den);
+      if (g != 1) {
+        num ~/= g;
+        den ~/= g;
+      }
+      return den == 1 ? IntegerNumber.of(num) : FractionNumber._small(num, den);
+    }
+    return RationalNumber.of(
+      BigInt.from(numerator),
+      denominator == 1 ? null : BigInt.from(denominator),
+    );
+  }
 
   /// Creates an exact rational number from a [Fraction].
   factory fromFraction(Fraction fraction) => RationalNumber.of(
@@ -468,7 +502,7 @@ sealed class RationalNumber extends RealNumeric {
     final normDen = divisor == BigInt.one ? den : den ~/ divisor;
     return normDen == BigInt.one
         ? IntegerNumber(normNum)
-        : FractionNumber._(normNum, normDen);
+        : FractionNumber(normNum, normDen);
   }
 
   /// The signed numerator `p`.
@@ -478,34 +512,44 @@ sealed class RationalNumber extends RealNumeric {
   BigInt get denominator;
 
   @override
-  int get flags => 0;
+  int get flags => kFlagSimplified;
 
   /// Whether this rational number is an integer (`q = 1`).
   bool get isInteger => this is IntegerNumber;
 
   @override
   bool get isZero => switch (this) {
-    IntegerNumber(:final value) => value == BigInt.zero,
+    IntegerNumber(:final _small, :final _big) => _big == null && _small == 0,
     FractionNumber() => false,
   };
 
   @override
   bool get isOne => switch (this) {
-    IntegerNumber(:final value) => value == BigInt.one,
+    IntegerNumber(:final _small, :final _big) => _big == null && _small == 1,
     FractionNumber() => false,
   };
 
   @override
   bool get isNegativeOne => switch (this) {
-    IntegerNumber(:final value) => value == -BigInt.one,
+    IntegerNumber(:final _small, :final _big) => _big == null && _small == -1,
     FractionNumber() => false,
   };
 
   @override
-  bool get isNegative => numerator.isNegative;
+  bool get isNegative => switch (this) {
+    IntegerNumber(:final _small, :final _big) =>
+      _big == null ? _small < 0 : _big.isNegative,
+    FractionNumber(:final _smallNum, :final _bigNum) =>
+      _bigNum == null ? _smallNum < 0 : _bigNum.isNegative,
+  };
 
   @override
-  int get sign => numerator.sign;
+  int get sign => switch (this) {
+    IntegerNumber(:final _small, :final _big) =>
+      _big == null ? _small.sign : _big.sign,
+    FractionNumber(:final _smallNum, :final _bigNum) =>
+      _bigNum == null ? _smallNum.sign : _bigNum.sign,
+  };
 
   /// Returns this rational as a platform-safe machine `int` if it is an
   /// [IntegerNumber] within `[-(2^53 - 1), 2^53 - 1]`, or `null` otherwise.
@@ -513,6 +557,10 @@ sealed class RationalNumber extends RealNumeric {
 
   /// Truncates this rational number toward zero as a platform-safe `int`.
   int toInt() {
+    if (this case IntegerNumber(:final _small, :final _big)) {
+      if (_big == null) return _small;
+      throw StateError('$_big exceeds the safe integer range');
+    }
     final q = numerator ~/ denominator;
     if (q < _negMaxSafeBig || q > _posMaxSafeBig) {
       throw StateError('$q exceeds the safe integer range');
@@ -528,22 +576,83 @@ sealed class RationalNumber extends RealNumeric {
 
   /// Returns the multiplicative inverse `q / p`.
   RationalNumber reciprocal() {
-    if (numerator == BigInt.zero) throw UnsupportedError('Division by zero');
-    return numerator.isNegative
-        ? RationalNumber._fromNormalized(-denominator, -numerator)
-        : RationalNumber._fromNormalized(denominator, numerator);
+    if (this case IntegerNumber(:final _small, :final _big)) {
+      if (_big == null) {
+        if (_small == 0) throw UnsupportedError('Division by zero');
+        if (_small == 1 || _small == -1) return this;
+        return _small < 0
+            ? FractionNumber._small(-1, -_small)
+            : FractionNumber._small(1, _small);
+      }
+      return _big.isNegative
+          ? FractionNumber._big(-BigInt.one, -_big)
+          : FractionNumber._big(BigInt.one, _big);
+    }
+    final frac = this as FractionNumber;
+    if (frac._bigDen == null) {
+      final n = frac._smallNum;
+      final d = frac._smallDen;
+      return n < 0 ? _fromSafeInts(-d, -n) : _fromSafeInts(d, n);
+    }
+    final n = frac.numerator;
+    final d = frac.denominator;
+    return n.isNegative
+        ? RationalNumber._fromNormalized(-d, -n)
+        : RationalNumber._fromNormalized(d, n);
   }
 
+  static RationalNumber _fromSafeInts(int num, int den) =>
+      den == 1 ? IntegerNumber.of(num) : FractionNumber._small(num, den);
+
   static RationalNumber _fromNormalized(BigInt num, BigInt den) =>
-      den == BigInt.one ? IntegerNumber(num) : FractionNumber._(num, den);
+      den == BigInt.one ? IntegerNumber(num) : FractionNumber(num, den);
 
   /// Exact rational sum `this + other`.
   RationalNumber addRational(RationalNumber other) {
-    if (denominator == BigInt.one && other.denominator == BigInt.one) {
-      return IntegerNumber(numerator + other.numerator);
+    if (this is IntegerNumber && other is IntegerNumber) {
+      final a = this as IntegerNumber;
+      final b = other;
+      if (a._big == null && b._big == null) {
+        if (a._small == 0) return b;
+        if (b._small == 0) return a;
+        if (a._small >= -_addSafeBound &&
+            a._small <= _addSafeBound &&
+            b._small >= -_addSafeBound &&
+            b._small <= _addSafeBound) {
+          return IntegerNumber.of(a._small + b._small);
+        }
+        return IntegerNumber(BigInt.from(a._small) + BigInt.from(b._small));
+      }
+      return IntegerNumber(a.value + b.value);
     }
     if (isZero) return other;
     if (other.isZero) return this;
+    final aSmall = _asSafePair(this);
+    final bSmall = _asSafePair(other);
+    if (aSmall != null && bSmall != null) {
+      final (an, ad) = aSmall;
+      final (bn, bd) = bSmall;
+      if (an >= -_mulSafeBound &&
+          an <= _mulSafeBound &&
+          ad <= _mulSafeBound &&
+          bn >= -_mulSafeBound &&
+          bn <= _mulSafeBound &&
+          bd <= _mulSafeBound) {
+        final div = _intGcd(ad, bd);
+        if (div == 1) {
+          final num = an * bd + bn * ad;
+          return num == 0
+              ? IntegerNumber.zero
+              : FractionNumber._small(num, ad * bd);
+        }
+        final bdDiv = bd ~/ div;
+        final adDiv = ad ~/ div;
+        final num = an * bdDiv + bn * adDiv;
+        if (num == 0) return IntegerNumber.zero;
+        final red = _intGcd(num, div);
+        return _fromSafeInts(num ~/ red, adDiv * (bd ~/ red));
+      }
+    }
     final divisor = denominator.gcd(other.denominator);
     if (divisor == BigInt.one) {
       return RationalNumber._fromNormalized(
@@ -563,13 +672,58 @@ sealed class RationalNumber extends RealNumeric {
   }
 
   /// Exact rational difference `this - other`.
-  RationalNumber subRational(RationalNumber other) => addRational(other.neg());
+  RationalNumber subRational(RationalNumber other) {
+    if (this is IntegerNumber && other is IntegerNumber) {
+      final a = this as IntegerNumber;
+      final b = other;
+      if (a._big == null &&
+          b._big == null &&
+          a._small >= -_addSafeBound &&
+          a._small <= _addSafeBound &&
+          b._small >= -_addSafeBound &&
+          b._small <= _addSafeBound) {
+        return IntegerNumber.of(a._small - b._small);
+      }
+    }
+    return addRational(other.neg());
+  }
 
   /// Exact rational product `this * other`.
   RationalNumber mulRational(RationalNumber other) {
     if (isZero || other.isZero) return IntegerNumber.zero;
-    if (denominator == BigInt.one && other.denominator == BigInt.one) {
-      return IntegerNumber(numerator * other.numerator);
+    if (this is IntegerNumber && other is IntegerNumber) {
+      final a = this as IntegerNumber;
+      final b = other;
+      if (a._big == null && b._big == null) {
+        if (a._small == 1) return b;
+        if (b._small == 1) return a;
+        if (a._small >= -_mulSafeBound &&
+            a._small <= _mulSafeBound &&
+            b._small >= -_mulSafeBound &&
+            b._small <= _mulSafeBound) {
+          return IntegerNumber.of(a._small * b._small);
+        }
+      }
+      return IntegerNumber(a.value * b.value);
+    }
+    final aSmall = _asSafePair(this);
+    final bSmall = _asSafePair(other);
+    if (aSmall != null && bSmall != null) {
+      final (an, ad) = aSmall;
+      final (bn, bd) = bSmall;
+      if (an >= -_mulSafeBound &&
+          an <= _mulSafeBound &&
+          ad <= _mulSafeBound &&
+          bn >= -_mulSafeBound &&
+          bn <= _mulSafeBound &&
+          bd <= _mulSafeBound) {
+        final first = _intGcd(an, bd);
+        final second = _intGcd(bn, ad);
+        return _fromSafeInts(
+          (an ~/ first) * (bn ~/ second),
+          (ad ~/ second) * (bd ~/ first),
+        );
+      }
     }
     final first = numerator.gcd(other.denominator);
     final second = other.numerator.gcd(denominator);
@@ -601,6 +755,15 @@ sealed class RationalNumber extends RealNumeric {
     final base = exponent < 0 ? reciprocal() : this;
     if (exponent < 0 && -exponent < 0) return null;
     final mag = exponent.abs();
+    if (mag == 1) return base;
+    if (mag == 2) {
+      if (_asSafePair(base) case (final n, final d)
+          when n >= -_mulSafeBound &&
+              n <= _mulSafeBound &&
+              d <= _mulSafeBound) {
+        return _fromSafeInts(n * n, d * d);
+      }
+    }
     final num = Number.bigIntPow(
       base.numerator,
       mag,
@@ -643,37 +806,49 @@ sealed class RationalNumber extends RealNumeric {
   };
 }
 
-/// Exact arbitrary-precision integer literal `n in Z` backed directly by [BigInt].
+/// Exact arbitrary-precision integer literal `n in Z` with unboxed fast path
+/// for safe integers and [BigInt] overflow fallback.
 final class IntegerNumber extends RationalNumber {
   /// Returns an [IntegerNumber] for [value], reusing cached singletons for
-  /// small integers in `-16..256`.
+  /// small integers in `-16..256` and unboxed storage within `+/-(2^53 - 1)`.
   factory(BigInt value) {
-    if (value >= _cacheMinBig && value <= _cacheMaxBig) {
-      return _smallCache[value.toInt() - _cacheMin];
+    if (value >= _negMaxSafeBig && value <= _posMaxSafeBig) {
+      return IntegerNumber.of(value.toInt());
     }
-    return IntegerNumber._(value);
+    return IntegerNumber._bigAlloc(value);
   }
 
-  new _(this.value) : super._();
+  const new _smallConst(this._small) : _big = null, super._();
+
+  new _bigAlloc(BigInt value) : _small = 0, _big = value, super._();
 
   /// Creates an exact integer literal from a machine `int`.
   factory of(int value) {
     if (value >= _cacheMin && value <= _cacheMax) {
       return _smallCache[value - _cacheMin];
     }
-    return IntegerNumber._(BigInt.from(value));
+    if (value >= -_maxSafeInt && value <= _maxSafeInt) {
+      return IntegerNumber._smallConst(value);
+    }
+    return IntegerNumber._bigAlloc(BigInt.from(value));
   }
 
   /// Parses an integer literal from [source].
-  factory parse(String source) => IntegerNumber(BigInt.parse(source));
+  factory parse(String source) {
+    if (source.length <= 15) {
+      final parsed = int.tryParse(source);
+      if (parsed != null && parsed >= -_maxSafeInt && parsed <= _maxSafeInt) {
+        return IntegerNumber.of(parsed);
+      }
+    }
+    return IntegerNumber(BigInt.parse(source));
+  }
 
   static const int _cacheMin = -16;
   static const int _cacheMax = 256;
-  static final BigInt _cacheMinBig = BigInt.from(_cacheMin);
-  static final BigInt _cacheMaxBig = BigInt.from(_cacheMax);
   static final List<IntegerNumber> _smallCache = List<IntegerNumber>.generate(
     _cacheMax - _cacheMin + 1,
-    (i) => IntegerNumber._(BigInt.from(i + _cacheMin)),
+    (i) => IntegerNumber._smallConst(i + _cacheMin),
     growable: false,
   );
 
@@ -689,32 +864,43 @@ final class IntegerNumber extends RationalNumber {
   /// The integer `-1`.
   static final negativeOne = IntegerNumber.of(-1);
 
+  final int _small;
+  final BigInt? _big;
+
   /// The underlying arbitrary-precision [BigInt] value.
-  final BigInt value;
+  BigInt get value => _big ?? BigInt.from(_small);
 
   @override
-  BigInt get numerator => value;
+  BigInt get numerator => _big ?? BigInt.from(_small);
 
   @override
   BigInt get denominator => BigInt.one;
 
   @override
-  int? get asInt =>
-      value >= _negMaxSafeBig && value <= _posMaxSafeBig ? value.toInt() : null;
+  int? get asInt => _big == null ? _small : null;
+
+  /// Formats this integer without allocating a [BigInt] when in safe range.
+  String formatText() => _big == null ? '$_small' : '$_big';
 
   @override
-  double toDouble() => value.toDouble();
+  double toDouble() => _big == null ? _small.toDouble() : _big.toDouble();
 
   @override
-  IntegerNumber neg() => IntegerNumber(-value);
+  IntegerNumber neg() =>
+      _big == null ? IntegerNumber.of(-_small) : IntegerNumber._bigAlloc(-_big);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is IntegerNumber && value == other.value);
+      (other is IntegerNumber &&
+          (_big == null
+              ? (other._big == null && _small == other._small)
+              : _big == other._big));
 
   @override
-  int get hashCode => Object.hash(IntegerNumber, value);
+  int get hashCode => _big == null
+      ? Object.hash(IntegerNumber, _small)
+      : Object.hash(IntegerNumber, _big);
 }
 
 /// Exact reduced non-integer rational fraction `p / q` with `q > 1` and
@@ -726,55 +912,94 @@ final class FractionNumber extends RationalNumber {
       denominator > BigInt.one && numerator.gcd(denominator) == BigInt.one,
       'FractionNumber must be reduced with denominator > 1',
     );
-    return FractionNumber._(numerator, denominator);
+    if (denominator <= _posMaxSafeBig &&
+        numerator >= _negMaxSafeBig &&
+        numerator <= _posMaxSafeBig) {
+      return FractionNumber._small(numerator.toInt(), denominator.toInt());
+    }
+    return FractionNumber._big(numerator, denominator);
   }
 
-  new _(this.numerator, this.denominator) : super._();
+  const new _small(this._smallNum, this._smallDen)
+    : _bigNum = null,
+      _bigDen = null,
+      super._();
+
+  new _big(BigInt numerator, BigInt denominator)
+    : _smallNum = 0,
+      _smallDen = 0,
+      _bigNum = numerator,
+      _bigDen = denominator,
+      super._();
 
   /// The fraction `1/2`.
-  static final half = FractionNumber._(BigInt.one, BigInt.two);
+  static const half = FractionNumber._small(1, 2);
 
   /// The fraction `-1/2`.
-  static final negativeHalf = FractionNumber._(-BigInt.one, BigInt.two);
+  static const negativeHalf = FractionNumber._small(-1, 2);
 
   /// The fraction `1/3`.
-  static final third = FractionNumber._(BigInt.one, BigInt.from(3));
+  static const third = FractionNumber._small(1, 3);
 
   /// The fraction `1/4`.
-  static final quarter = FractionNumber._(BigInt.one, BigInt.from(4));
+  static const quarter = FractionNumber._small(1, 4);
+
+  final int _smallNum;
+  final int _smallDen;
+  final BigInt? _bigNum;
+  final BigInt? _bigDen;
 
   @override
-  final BigInt numerator;
+  BigInt get numerator => _bigNum ?? BigInt.from(_smallNum);
 
   @override
-  final BigInt denominator;
+  BigInt get denominator => _bigDen ?? BigInt.from(_smallDen);
 
   @override
   int? get asInt => null;
 
+  /// Whether this fraction equals `1/2`.
+  bool get isHalf => _bigDen == null && _smallNum == 1 && _smallDen == 2;
+
+  /// Formats this fraction as `p/q` without allocating [BigInt]s when safe.
+  String formatText() =>
+      _bigDen == null ? '$_smallNum/$_smallDen' : '$_bigNum/$_bigDen';
+
   @override
   double toDouble() {
-    if (numerator.bitLength < 1024 && denominator.bitLength < 1024) {
-      return numerator.toDouble() / denominator.toDouble();
+    if (_bigDen == null) {
+      return _smallNum / _smallDen;
     }
-    final shift = math.max(numerator.bitLength, denominator.bitLength) - 53;
-    final scaledNum = (numerator >> shift).toDouble();
-    final scaledDen = (denominator >> shift).toDouble();
+    final num = _bigNum!;
+    final den = _bigDen;
+    if (num.bitLength < 1024 && den.bitLength < 1024) {
+      return num.toDouble() / den.toDouble();
+    }
+    final shift = math.max(num.bitLength, den.bitLength) - 53;
+    final scaledNum = (num >> shift).toDouble();
+    final scaledDen = (den >> shift).toDouble();
     return scaledNum / scaledDen;
   }
 
   @override
-  FractionNumber neg() => FractionNumber._(-numerator, denominator);
+  FractionNumber neg() => _bigDen == null
+      ? FractionNumber._small(-_smallNum, _smallDen)
+      : FractionNumber._big(-_bigNum!, _bigDen);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is FractionNumber &&
-          numerator == other.numerator &&
-          denominator == other.denominator);
+          (_bigDen == null
+              ? (other._bigDen == null &&
+                    _smallNum == other._smallNum &&
+                    _smallDen == other._smallDen)
+              : (_bigDen == other._bigDen && _bigNum == other._bigNum)));
 
   @override
-  int get hashCode => Object.hash(FractionNumber, numerator, denominator);
+  int get hashCode => _bigDen == null
+      ? Object.hash(FractionNumber, _smallNum, _smallDen)
+      : Object.hash(FractionNumber, _bigNum, _bigDen);
 }
 
 /// Finite IEEE-754 floating-point real number literal.
@@ -819,7 +1044,7 @@ final class RealNumber extends RealNumeric {
   final double value;
 
   @override
-  int get flags => kFlagHasReal;
+  int get flags => kFlagHasReal | kFlagSimplified;
 
   @override
   bool get isZero => value == 0.0;
@@ -903,7 +1128,9 @@ final class ComplexNumber extends Number {
 
   @override
   int get flags =>
-      (real.flags | imaginary.flags) | (imaginary.isZero ? 0 : kFlagHasComplex);
+      ((real.flags | imaginary.flags) & kStructuralFlagsMask) |
+      (imaginary.isZero ? 0 : kFlagHasComplex) |
+      kFlagSimplified;
 
   @override
   bool get isZero => real.isZero && imaginary.isZero;
@@ -942,8 +1169,51 @@ final class ComplexNumber extends Number {
   int get hashCode => Object.hash(ComplexNumber, real, imaginary);
 }
 
+const int _maxSafeInt = 9007199254740991;
+const int _addSafeBound = 4503599627370495;
+const int _mulSafeBound = 67108863;
+
 final BigInt _posMaxSafeBig = BigInt.parse('9007199254740991');
 final BigInt _negMaxSafeBig = -_posMaxSafeBig;
+
+int _intGcd(int a, int b) {
+  var x = a < 0 ? -a : a;
+  var y = b < 0 ? -b : b;
+  while (y != 0) {
+    final t = x % y;
+    x = y;
+    y = t;
+  }
+  return x;
+}
+
+(int, int)? _asSafePair(RationalNumber r) => switch (r) {
+  IntegerNumber(:final _small, :final _big) =>
+    _big == null ? (_small, 1) : null,
+  FractionNumber(:final _smallNum, :final _smallDen, :final _bigDen) =>
+    _bigDen == null ? (_smallNum, _smallDen) : null,
+};
+
+int _compareRationals(RationalNumber a, RationalNumber b) {
+  final aSafe = _asSafePair(a);
+  final bSafe = _asSafePair(b);
+  if (aSafe != null && bSafe != null) {
+    final (an, ad) = aSafe;
+    final (bn, bd) = bSafe;
+    if (ad == bd) return an.compareTo(bn);
+    if (an >= -_mulSafeBound &&
+        an <= _mulSafeBound &&
+        ad <= _mulSafeBound &&
+        bn >= -_mulSafeBound &&
+        bn <= _mulSafeBound &&
+        bd <= _mulSafeBound) {
+      return (an * bd).compareTo(bn * ad);
+    }
+  }
+  return a.denominator == b.denominator
+      ? a.numerator.compareTo(b.numerator)
+      : (a.numerator * b.denominator).compareTo(b.numerator * a.denominator);
+}
 
 int _compareRationalReal(RationalNumber r, RealNumber f) =>
     _compareRationalToDoubleValue(r, f.value);

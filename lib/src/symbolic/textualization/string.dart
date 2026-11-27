@@ -28,22 +28,18 @@ int precedence(Expr expr) => switch (expr) {
         ? 5
         : exponent == IntegerNumber.negativeOne
         ? 2
-        : exponent is FractionNumber &&
-              exponent.numerator == BigInt.one &&
-              exponent.denominator == BigInt.two
+        : exponent is FractionNumber && exponent.isHalf
         ? 5
         : 4,
   _ => 5,
 };
 
 String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
-  final prec = precedence(expr);
   final formatted = switch (expr) {
     Variable(:final name) => name,
     Constant(:final name) => name,
-    IntegerNumber(:final value) => '$value',
-    FractionNumber(:final numerator, :final denominator) =>
-      '$numerator/$denominator',
+    IntegerNumber() => expr.formatText(),
+    FractionNumber() => expr.formatText(),
     RealNumber(:final value) => formatDouble(value, decimalPlaces),
     ComplexNumber() => _formatComplex(expr, decimalPlaces),
     Call(:final spec, :final args) => spec.formatText(
@@ -97,7 +93,9 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
     RootSum(:final polynomial, :final variable, :final body) =>
       'rootsum(${_formatExpr(polynomial, 0, decimalPlaces)}, $variable, ${_formatExpr(body, 0, decimalPlaces)})',
   };
-  return prec < parentPrec ? '($formatted)' : formatted;
+  return parentPrec > 0 && precedence(expr) < parentPrec
+      ? '($formatted)'
+      : formatted;
 }
 
 String _formatComplex(ComplexNumber c, int decimalPlaces) {
@@ -124,8 +122,7 @@ String _formatPow(Expr base, Expr exponent, int decimalPlaces) => switch ((
   (Constant.e, _) => 'exp(${_formatExpr(exponent, 0, decimalPlaces)})',
   (_, IntegerNumber(isNegativeOne: true)) =>
     '1 / ${_formatExpr(base, 3, decimalPlaces)}',
-  (_, FractionNumber(:final numerator, :final denominator))
-      when numerator == BigInt.one && denominator == BigInt.two =>
+  (_, FractionNumber(:final isHalf)) when isHalf =>
     'sqrt(${_formatExpr(base, 0, decimalPlaces)})',
   _ =>
     '${_formatExpr(base, 5, decimalPlaces)} ^ ${_formatExpr(exponent, 4, decimalPlaces)}',

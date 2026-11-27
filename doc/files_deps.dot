@@ -1446,9 +1446,6 @@ digraph {
   250 -> 128 [color="#888888", arrowsize="0.7"];
   250 -> 133 [color="#888888", arrowsize="0.7"];
   250 -> 244 [color="#888888", arrowsize="0.7"];
-  250 -> 271 [color="#888888", arrowsize="0.7"];
-  250 -> 267 [color="#888888", arrowsize="0.7"];
-  250 -> 139 [color="#888888", arrowsize="0.7"];
   250 -> 140 [color="#888888", arrowsize="0.7"];
   250 -> 161 [color="#888888", arrowsize="0.7"];
   250 -> 251 [color="#888888", arrowsize="0.7"];

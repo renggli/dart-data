@@ -169,17 +169,20 @@ final class PolyZ {
     final rem = List<BigInt>.of(coeffs);
     final quot = List<BigInt>.filled(degA - degB + 1, BigInt.zero);
     final leadB = divisor.leadingCoeff;
+    final unitLead = leadB == BigInt.one;
 
     while (degA >= degB) {
       final shift = degA - degB;
       final leadA = rem[degA];
-      for (var i = 0; i < quot.length; i++) {
-        quot[i] *= leadB;
+      if (!unitLead) {
+        for (var i = 0; i < quot.length; i++) {
+          quot[i] *= leadB;
+        }
+        for (var i = 0; i < rem.length; i++) {
+          rem[i] *= leadB;
+        }
       }
       quot[shift] += leadA;
-      for (var i = 0; i < rem.length; i++) {
-        rem[i] *= leadB;
-      }
       for (var i = 0; i <= degB; i++) {
         rem[shift + i] -= leadA * divisor.coeffs[i];
       }
@@ -259,6 +262,9 @@ final class PolyZ {
     if (prim.isZero) return const [];
     if (prim.isConstant) {
       return const [];
+    }
+    if (prim.degree >= 2 && _isSquareFreeModPrime(prim.coeffs)) {
+      return [(factor: prim, multiplicity: 1)];
     }
     final deriv = prim.derivative();
     final g = prim.gcd(deriv);
@@ -383,13 +389,17 @@ final class PolyQ {
     if (isZero) {
       return (scale: IntegerNumber.zero, primitive: PolyZ.zero);
     }
+    var hasFractions = false;
     var lcmDen = BigInt.one;
     for (final c in coeffs) {
-      lcmDen = lcmDen.lcm(c.denominator);
+      if (c is FractionNumber) {
+        hasFractions = true;
+        lcmDen = lcmDen.lcm(c.denominator);
+      }
     }
-    final scaled = <BigInt>[
-      for (final c in coeffs) c.numerator * (lcmDen ~/ c.denominator),
-    ];
+    final scaled = hasFractions
+        ? [for (final c in coeffs) c.numerator * (lcmDen ~/ c.denominator)]
+        : [for (final c in coeffs) c.numerator];
     final raw = PolyZ(scaled);
     final content = raw.content();
     final sign = raw.leadingCoeff.isNegative ? -BigInt.one : BigInt.one;
@@ -620,4 +630,75 @@ final class PolyQ {
 
   @override
   String toString() => 'PolyQ($coeffs)';
+}
+
+bool _isSquareFreeModPrime(List<BigInt> coeffs) {
+  const p = 32749;
+  final bigP = BigInt.from(p);
+  final n = coeffs.length - 1;
+  if (n <= 1) return true;
+
+  final a = List<int>.filled(n + 1, 0);
+  for (var i = 0; i <= n; i++) {
+    a[i] = (coeffs[i] % bigP).toInt();
+  }
+  if (a[n] == 0) return false;
+
+  final b = List<int>.filled(n, 0);
+  for (var i = 0; i < n; i++) {
+    b[i] = (a[i + 1] * ((i + 1) % p)) % p;
+  }
+  var degB = n - 1;
+  while (degB >= 0 && b[degB] == 0) {
+    degB--;
+  }
+  if (degB < n - 1) return false;
+
+  var degA = n;
+  var curA = a;
+  var curB = b;
+  while (degB > 0) {
+    final invLeadB = _modInv(curB[degB], p);
+    var remDeg = degA;
+    while (remDeg >= degB) {
+      final shift = remDeg - degB;
+      final factor = (curA[remDeg] * invLeadB) % p;
+      if (factor != 0) {
+        for (var i = 0; i < degB; i++) {
+          var v = (curA[shift + i] - factor * curB[i]) % p;
+          if (v < 0) v += p;
+          curA[shift + i] = v;
+        }
+      }
+      curA[remDeg] = 0;
+      remDeg--;
+      while (remDeg >= 0 && curA[remDeg] == 0) {
+        remDeg--;
+      }
+    }
+    if (remDeg < 0) return false;
+    final nextA = curB;
+    curB = curA;
+    curA = nextA;
+    degA = degB;
+    degB = remDeg;
+  }
+  return degB == 0;
+}
+
+int _modInv(int a, int p) {
+  var t = 0;
+  var newT = 1;
+  var r = p;
+  var newR = a;
+  while (newR != 0) {
+    final q = r ~/ newR;
+    final tmpT = t - q * newT;
+    t = newT;
+    newT = tmpT;
+    final tmpR = r - q * newR;
+    r = newR;
+    newR = tmpR;
+  }
+  return t < 0 ? t + p : t;
 }

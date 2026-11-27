@@ -180,7 +180,7 @@ sealed class FunctionSpec {
   const new({
     required this.id,
     required this.name,
-    required this.params,
+    this.params = const ['x'],
     required this.doc,
     this.category = FunctionCategory.elementary,
     this.parity = FunctionParity.none,
@@ -323,7 +323,7 @@ final class UnaryFunctionSpec extends FunctionSpec {
   const new({
     required super.id,
     required super.name,
-    required super.params,
+    super.params = const ['x'],
     required super.doc,
     super.category,
     super.parity,
@@ -331,6 +331,7 @@ final class UnaryFunctionSpec extends FunctionSpec {
     super.mathMlName,
     required this.evalReal,
     required this.evalComplex,
+    this.unaryDerivative,
     super.derivativeRule,
     super.customText,
     super.customLatex,
@@ -342,6 +343,10 @@ final class UnaryFunctionSpec extends FunctionSpec {
 
   /// Complex-valued scalar evaluator.
   final ComplexUnaryEval evalComplex;
+
+  /// Direct chain-rule derivative `df/du` with respect to the single argument `u`,
+  /// invoked as `unaryDerivative(u) * diff(u)` without closure allocation.
+  final Expr Function(Expr u)? unaryDerivative;
 
   /// Constructs `Call(this, [arg])`.
   Call call(Expr arg) => Call(this, [arg]);

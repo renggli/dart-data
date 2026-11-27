@@ -263,6 +263,9 @@ class MonomialAccumulator {
     final sortedKeys = terms.keys.toList()..sort(compareStructural);
     final resultTerms = <Expr>[];
 
+    final isUnassumed =
+        identical(assumptions, Assumptions.none) || assumptions.isEmpty;
+
     // 1. Non-zero numeric constant first (Number has nodeTag == 0)
     if (!constant.isZero) {
       resultTerms.add(
@@ -278,9 +281,11 @@ class MonomialAccumulator {
       if (coeff.isOne) {
         resultTerms.add(base);
       } else if (base case Mul(:final factors)) {
-        resultTerms.add(Mul.of([coeff, ...factors]));
+        resultTerms.add(
+          Mul.canonical([coeff, ...factors], simplified: isUnassumed),
+        );
       } else {
-        resultTerms.add(Mul.of([coeff, base]));
+        resultTerms.add(Mul.canonical([coeff, base], simplified: isUnassumed));
       }
     }
 
@@ -305,7 +310,7 @@ class MonomialAccumulator {
     return switch (resultTerms) {
       [] => hasReal ? RealNumber.zero : IntegerNumber.zero,
       [final single] => single,
-      _ => Add.of(resultTerms),
+      _ => Add.canonical(resultTerms, simplified: isUnassumed),
     };
   }
 

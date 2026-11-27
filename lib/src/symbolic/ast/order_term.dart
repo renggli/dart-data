@@ -16,7 +16,8 @@ final class OrderTerm extends Expr {
   final int order;
 
   @override
-  int get flags => kFlagHasVariable | kFlagHasOrder | point.flags;
+  int get flags =>
+      kFlagHasVariable | kFlagHasOrder | (point.flags & kStructuralFlagsMask);
 
   @override
   int get nodeCount => 1 + point.nodeCount;
