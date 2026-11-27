@@ -8,6 +8,7 @@ import '../algebra/simplify/transcendental.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../functions/fn.dart';
+import '../oracle/domain_oracle.dart';
 import 'limit.dart';
 import 'linear_form.dart';
 import 'summation.dart';
@@ -597,8 +598,19 @@ Expr? matchQuadraticInfiniteProduct(
   return null;
 }
 
+(Expr, bool) _resolveEulerProductSign(Expr zSquared, Assumptions assumptions) {
+  final sign = DomainOracle(assumptions).signOf(zSquared);
+  if (sign == Sign.negative) {
+    return ((-zSquared).simplify(assumptions: assumptions), true);
+  }
+  if (sign == Sign.positive) {
+    return (zSquared.simplify(assumptions: assumptions), false);
+  }
+  return extractSign(zSquared);
+}
+
 Expr? eulerSineProductValue(Expr zSquared, {required Assumptions assumptions}) {
-  final (posZ2, isNeg) = extractSign(zSquared);
+  final (posZ2, isNeg) = _resolveEulerProductSign(zSquared, assumptions);
   final z = extractProductRoot(posZ2, assumptions: assumptions);
   if (!isNeg && z is IntegerNumber) {
     return null;
@@ -614,7 +626,7 @@ Expr? eulerCosineProductValue(
   Expr zSquared, {
   required Assumptions assumptions,
 }) {
-  final (posZ2, isNeg) = extractSign(zSquared);
+  final (posZ2, isNeg) = _resolveEulerProductSign(zSquared, assumptions);
   final z = extractProductRoot(posZ2, assumptions: assumptions);
   final twoZ = (IntegerNumber.two * z).simplify();
   if (!isNeg && twoZ is IntegerNumber && twoZ.value.isOdd) {
@@ -630,6 +642,7 @@ Expr? eulerCosineProductValue(
 Expr extractProductRoot(Expr posZ2, {required Assumptions assumptions}) {
   final factors = posZ2 is Mul ? posZ2.factors : [posZ2];
   final rootFactors = <Expr>[];
+  final oddFactors = <Expr>[];
   for (final f in factors) {
     if (f case Pow(:final base, exponent: IntegerNumber(:final value))
         when value.isEven) {
@@ -642,11 +655,21 @@ Expr extractProductRoot(Expr posZ2, {required Assumptions assumptions}) {
                 IntegerNumber(halfExp),
               ).simplify(assumptions: assumptions),
       );
-    } else {
+    } else if (f is IntegerNumber && !f.isNegative && f.value >= BigInt.zero) {
       rootFactors.add(
         Pow.of(f, FractionNumber.half).simplify(assumptions: assumptions),
       );
+    } else {
+      oddFactors.add(f);
     }
+  }
+  if (oddFactors.isNotEmpty) {
+    final rem = oddFactors.length == 1
+        ? oddFactors.first
+        : Mul.of(oddFactors).simplify(assumptions: assumptions);
+    rootFactors.add(
+      Pow.of(rem, FractionNumber.half).simplify(assumptions: assumptions),
+    );
   }
   return simplifyMul(rootFactors, assumptions: assumptions);
 }

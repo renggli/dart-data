@@ -5,6 +5,8 @@ import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../linear/bareiss.dart';
+import '../poly/bridge.dart';
+import '../poly/univariate.dart';
 import '../type/expr_data_type.dart';
 import 'univariate.dart';
 
@@ -102,8 +104,14 @@ class SylvesterResultantSolver {
     return mat;
   }
 
-  /// Computes the resultant Res_x(f, g) by evaluating the determinant of the Sylvester matrix.
+  /// Computes the resultant Res_x(f, g) by evaluating the determinant of the Sylvester matrix,
+  /// using exact rational [PolyQ.resultant] when both operands are univariate polynomials over Q.
   static Expr resultant(Expr f, Expr g, String elimVariable) {
+    final pF = exprToPolyQ(f, elimVariable);
+    final pG = exprToPolyQ(g, elimVariable);
+    if (pF != null && pG != null) {
+      return pF.resultant(pG);
+    }
     final mat = sylvesterMatrix(f, g, elimVariable);
     return const BareissEngine().determinant(mat).expand().simplify();
   }

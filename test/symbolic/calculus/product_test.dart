@@ -54,5 +54,23 @@ void main() {
       );
       check(res).equals(IntegerNumber.of(120));
     });
+
+    test('uses DomainOracle assumptions in Euler infinite products', () {
+      const a = Variable('a');
+      final negAssump = Assumptions.none.withNegative('a');
+      final prod = computeProduct(
+        IntegerNumber.one - a / (k * k),
+        'k',
+        IntegerNumber.one,
+        Constant.infinity,
+        assumptions: negAssump,
+      );
+      final sqrtNegA = Pow.of(-a, FractionNumber.half);
+      final expected =
+          (Fn.sinh(Constant.pi * sqrtNegA) / (Constant.pi * sqrtNegA)).simplify(
+            assumptions: negAssump,
+          );
+      check(prod).equals(expected);
+    });
   });
 }

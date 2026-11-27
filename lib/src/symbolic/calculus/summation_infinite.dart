@@ -12,6 +12,7 @@ import '../ast.dart';
 import '../compiler.dart';
 import '../functions/fn.dart';
 import '../number/combinatorics.dart';
+import '../oracle/domain_oracle.dart';
 import 'limit.dart';
 import 'linear_form.dart';
 import 'summation.dart';
@@ -753,7 +754,7 @@ Expr? _matchPowerDenominatorSeries(
     }
 
     // 1c. Mercator / Polylogarithm Li_p(r): sum_{n=1..inf} r^n / n^p for |r| < 1
-    if (_isStrictlyInsideUnitDisk(ratio)) {
+    if (_isStrictlyInsideUnitDisk(ratio, assumptions)) {
       if (p == 1) {
         // sum_{n=1..inf} r^n / n = -ln(1 - r) = ln(1 / (1 - r))
         final oneMinusR = (IntegerNumber.one - ratio).simplify();
@@ -864,7 +865,7 @@ Expr? _matchPowerDenominatorSeries(
     }
 
     // 2c. Gregory / arctan / atanh series: sum_{u=0..inf} r^u / (2u + 1) for |r| < 1
-    if (p == 1 && _isStrictlyInsideUnitDisk(ratio)) {
+    if (p == 1 && _isStrictlyInsideUnitDisk(ratio, assumptions)) {
       final (posR, isNegR) = extractSign(ratio);
       final sqrtR = switch (posR) {
         FractionNumber(isOne: _, :final numerator, :final denominator)
@@ -945,12 +946,21 @@ Expr? _matchPowerDenominatorSeries(
   return null;
 }
 
-bool _isStrictlyInsideUnitDisk(Expr r) {
+bool _isStrictlyInsideUnitDisk(
+  Expr r, [
+  Assumptions assumptions = Assumptions.none,
+]) {
   if (r is RationalNumber) {
     return !r.isZero && r.numerator.abs() < r.denominator;
   }
   if (r is RealNumber) {
     return r.value != 0.0 && r.value.abs() < 1.0;
+  }
+  final oracle = DomainOracle(assumptions);
+  if (oracle.isNonZero(r) &&
+      oracle.isPositive(IntegerNumber.one - r) &&
+      oracle.isPositive(IntegerNumber.one + r)) {
+    return true;
   }
   if (r.freeVariables.isEmpty) {
     try {

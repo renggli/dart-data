@@ -105,5 +105,16 @@ void main() {
       check(() => SylvesterResultantSolver.solve(p, q, ['x']))
           .throws<ArgumentError>();
     });
+
+    test('evaluates univariate rational resultants via PolyQ fast path', () {
+      final f = Expr.parse('x^3 - 2*x + 1');
+      final g = Expr.parse('x^2 - 1');
+      check(SylvesterResultantSolver.resultant(f, g, 'x'))
+          .equals(IntegerNumber.zero);
+
+      final h = Expr.parse('x^2 + 1');
+      check(SylvesterResultantSolver.resultant(f, h, 'x'))
+          .equals(IntegerNumber.of(10));
+    });
   });
 }

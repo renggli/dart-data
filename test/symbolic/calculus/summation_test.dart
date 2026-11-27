@@ -623,6 +623,18 @@ void main() {
           .equals(Expr.parse('2^n * n!').simplify());
       check(Expr.parse('product(0, k, 1, n)').simplify())
           .equals(IntegerNumber.zero);
+
+      final rBound = Assumptions.none.withBounds(
+        'r',
+        lower: IntegerNumber.zero,
+        upper: IntegerNumber.one,
+        lowerInclusive: false,
+        upperInclusive: false,
+      );
+      check(
+        Expr.parse('sum(r^n / n, n, 1, infinity)')
+            .simplify(assumptions: rBound),
+      ).equals(Expr.parse('-ln(1 - r)').simplify(assumptions: rBound));
     });
   });
 }
