@@ -2,6 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
+import '../../web/expressions/algebra.dart';
 import '../../web/expressions/presets.dart';
 
 Expr _sliceFor1DPlot(Expr expr) {
@@ -50,6 +51,84 @@ void main() {
         final parsed = Expr.parse(preset.formula);
         check(parsed.simplify()).isA<Expr>();
       }
+    });
+  });
+
+  group('VariableAssumption and buildAssumptions', () {
+    test(
+      'round-trips every VariableAssumption key and applies to Assumptions',
+      () {
+        for (final assumption in VariableAssumption.values) {
+          check(VariableAssumption.parse(assumption.key)).equals(assumption);
+        }
+        check(VariableAssumption.parse('bogus'))
+            .equals(VariableAssumption.unknown);
+
+        const x = Variable('x');
+        check(
+          Expr.parse('sqrt(x^2)').simplify(
+            assumptions: VariableAssumption.negative.applyTo(
+              Assumptions.none,
+              'x',
+            ),
+          ),
+        ).equals(-x);
+        check(
+          Expr.parse('sqrt(x^2)').simplify(
+            assumptions: VariableAssumption.nonNegative.applyTo(
+              Assumptions.none,
+              'x',
+            ),
+          ),
+        ).equals(x);
+        check(
+          Expr.parse('(-1)^x').simplify(
+            assumptions: VariableAssumption.odd.applyTo(Assumptions.none, 'x'),
+          ),
+        ).equals(IntegerNumber.negativeOne);
+        check(
+          Expr.parse('(-1)^x').simplify(
+            assumptions: VariableAssumption.even.applyTo(Assumptions.none, 'x'),
+          ),
+        ).equals(IntegerNumber.one);
+        check(
+          VariableAssumption.nonZero
+              .applyTo(Assumptions.none, 'x')
+              .isNonZero('x'),
+        ).isTrue;
+      },
+    );
+
+    test(
+      'parses relational constraints and folds constant variable bounds',
+      () {
+        final res = buildAssumptions({
+          'x': VariableAssumption.real,
+        }, relationsRaw: 'x > 2, y <= 10, x > y');
+        check(res.invalidRelations).isEmpty;
+        check(res.assumptions.relations.length).equals(3);
+        check(res.assumptions.boundsOf('x').lower).equals(IntegerNumber.two);
+        check(res.assumptions.boundsOf('x').lowerInclusive).isFalse;
+        check(res.assumptions.boundsOf('y').upper).equals(IntegerNumber.of(10));
+        check(res.assumptions.boundsOf('y').upperInclusive).isTrue;
+        check(
+          Expr.parse('abs(x - 2) + sqrt((x - 2)^2)')
+              .simplify(assumptions: res.assumptions)
+              .format(),
+        ).equals('-4 + 2 * x');
+      },
+    );
+
+    test('handles flipped bounds and reports non-relational inputs', () {
+      final res = buildAssumptions(
+        const {},
+        relationsRaw: '1 < x, x <= 5, not_a_relation, sin(x)',
+      );
+      check(res.invalidRelations).deepEquals(['not_a_relation', 'sin(x)']);
+      check(res.assumptions.boundsOf('x').lower).equals(IntegerNumber.one);
+      check(res.assumptions.boundsOf('x').upper).equals(IntegerNumber.of(5));
+      check(res.assumptions.boundsOf('x').lowerInclusive).isFalse;
+      check(res.assumptions.boundsOf('x').upperInclusive).isTrue;
     });
   });
 }

@@ -76,7 +76,7 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  min-width: 240px;
+  min-width: 280px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-hover);
   border-radius: 8px;
@@ -85,7 +85,7 @@
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .domain-dropdown-menu[hidden] {
@@ -103,6 +103,32 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
+}
+
+.domain-dropdown-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.domain-dropdown-reset {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+.domain-dropdown-reset:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background: var(--bg-tertiary);
 }
 
 .domain-dropdown-close {
@@ -164,6 +190,48 @@
 .domain-select {
   font-size: 12px;
   padding: 4px 8px;
+}
+
+.domain-relations-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-color);
+}
+
+.domain-relations-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.domain-relations-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.domain-relations-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.domain-relations-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.domain-relations-error {
+  font-size: 11px;
+  color: var(--accent-red);
+  padding: 2px 2px 0;
 }
 
 /* Accent-specific active tinting for maximum clarity */
@@ -274,8 +342,7 @@
 }
 
 .page-desc {
-  height: 48px;
-  overflow: hidden;
+  min-height: 44px;
 }
 
 #bytecode-pre {

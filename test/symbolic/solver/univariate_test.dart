@@ -34,6 +34,24 @@ void main() {
           IntegerNumber.two,
         ]);
 
+        // Reducible biquadratics factor first into clean quadratic roots
+        final sophieGermain = Expr.parse('x^4 + 4').solve('x');
+        check(sophieGermain).unorderedEquals([
+          IntegerNumber.one + ComplexNumber.i,
+          IntegerNumber.one - ComplexNumber.i,
+          IntegerNumber.negativeOne + ComplexNumber.i,
+          IntegerNumber.negativeOne - ComplexNumber.i,
+        ]);
+
+        final cycloQuartic = Expr.parse('x^4 + x^2 + 1').solve('x');
+        check(cycloQuartic.length).equals(4);
+        check(cycloQuartic.any((r) => r.format().contains('sqrt(3 * i)')))
+            .isFalse;
+
+        // Irreducible biquadratic falls back to biquadratic formula
+        final irreducibleBiquad = Expr.parse('x^4 - 4*x^2 + 1').solve('x');
+        check(irreducibleBiquad.length).equals(4);
+
         final cubic = Expr.parse('x^3 - 6*x^2 + 11*x - 6').solve('x');
         check(cubic).unorderedEquals([
           IntegerNumber.one,

@@ -10,7 +10,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Expressions - Symbolic Computer Algebra & Calculus</title>
+  <title>Expressions - Symbolic Computer Algebra &amp; Calculus</title>
   <meta name="description" content="Interactive symbolic mathematics engine with algebraic simplification, rational and trigonometric rewriting, exact calculus, series, summations, and equation solving.">
   <link rel="stylesheet" href="../shared/style.css">
   <link rel="stylesheet" href="style.css">
@@ -80,7 +80,7 @@
     <header class="main-header">
       <div class="header-title-container">
         <h2 class="page-title" id="display-title">Factored Cubic Polynomial</h2>
-        <span class="badge badge-symbolic" id="category-badge">Polynomial & Rational Algebra</span>
+        <span class="badge badge-symbolic" id="category-badge">Algebra &amp; Rational Functions</span>
       </div>
     </header>
     <p class="page-desc" id="display-desc">
@@ -92,17 +92,20 @@
       <div class="formula-input-bar" id="formula-input-bar">
         <div class="formula-main-row">
           <span class="formula-prefix" id="formula-prefix">f(x) =</span>
-          <input type="text" id="expr-input" class="formula-input" value="(x - 1) * (x - 2) * (x + 2)" placeholder="Enter symbolic formula, e.g. (3*x + 5) / (x^3 - x)" aria-label="Mathematical formula">
+          <input type="text" id="expr-input" class="formula-input" value="(x - 1) * (x - 2) * (x + 2)" placeholder="Enter symbolic formula, e.g. chebyshevT(5, x) or piecewise(x < 0, -x, x^2)" aria-label="Mathematical formula">
           <div class="domain-menu-container" id="domain-menu-container">
-            <button type="button" class="domain-menu-btn" id="domain-menu-btn" title="Variable domain assumptions" aria-label="Variable domain assumptions" aria-haspopup="true" aria-expanded="false">
+            <button type="button" class="domain-menu-btn" id="domain-menu-btn" title="Variable domain, property, and relational assumptions" aria-label="Assumptions" aria-haspopup="true" aria-expanded="false">
               <span class="domain-btn-icon"><math><mo>∈</mo></math></span>
-              <span class="domain-btn-label">Domain</span>
+              <span class="domain-btn-label" id="domain-btn-label">Assumptions</span>
               <span class="domain-btn-arrow">▾</span>
             </button>
             <div class="domain-dropdown-menu" id="domain-dropdown-menu" hidden>
               <div class="domain-dropdown-header">
-                <span class="domain-dropdown-title">Variable Domains</span>
-                <button type="button" class="domain-dropdown-close" id="domain-dropdown-close" aria-label="Close domain menu">✕</button>
+                <span class="domain-dropdown-title">Assumptions</span>
+                <div class="domain-dropdown-actions">
+                  <button type="button" class="domain-dropdown-reset" id="domain-dropdown-reset" title="Clear all assumptions">Reset</button>
+                  <button type="button" class="domain-dropdown-close" id="domain-dropdown-close" aria-label="Close assumptions menu">✕</button>
+                </div>
               </div>
               <div class="domain-dropdown-list" id="domain-dropdown-list">
                 <div class="domain-dropdown-row" data-var="x">
@@ -112,9 +115,23 @@
                     <option value="complex">ℂ (Complex)</option>
                     <option value="real">ℝ (Real)</option>
                     <option value="positive">ℝ⁺ (Positive)</option>
+                    <option value="nonNegative">ℝ≥0 (Non-negative)</option>
+                    <option value="negative">ℝ⁻ (Negative)</option>
+                    <option value="nonPositive">ℝ≤0 (Non-positive)</option>
+                    <option value="nonZero">≠ 0 (Non-zero)</option>
                     <option value="integer">ℤ (Integer)</option>
+                    <option value="even">2ℤ (Even)</option>
+                    <option value="odd">2ℤ+1 (Odd)</option>
                   </select>
                 </div>
+              </div>
+              <div class="domain-relations-section">
+                <div class="domain-relations-header">
+                  <label class="domain-relations-title" for="input-assumptions-relations">Constraints</label>
+                  <span class="domain-relations-hint">e.g. x &gt; 2, x &lt; pi, x &gt; y</span>
+                </div>
+                <input type="text" id="input-assumptions-relations" class="custom-text-input domain-relations-input" placeholder="e.g. x > 2" aria-label="Relational assumptions">
+                <div id="domain-relations-error" class="domain-relations-error" hidden></div>
               </div>
             </div>
           </div>
@@ -209,7 +226,7 @@
       <!-- Card 2: Rational & Polynomial Algebra -->
       <div class="card">
         <h3 class="card-title">
-          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10"/><circle cx="8" cy="4.5" r="1.2"/><circle cx="8" cy="11.5" r="1.2"/></svg> Rational & Polynomial Algebra</span>
+          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10"/><circle cx="8" cy="4.5" r="1.2"/><circle cx="8" cy="11.5" r="1.2"/></svg> Rational &amp; Polynomial Algebra</span>
         </h3>
         <div class="attributes-list">
           <div class="attr-item">
@@ -242,7 +259,7 @@
       <!-- Card 3: Trigonometric & Complex Forms -->
       <div class="card">
         <h3 class="card-title">
-          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8c1.5-4.5 4.5-4.5 6 0s4.5 4.5 6 0"/></svg> Trigonometric & Complex Forms</span>
+          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8c1.5-4.5 4.5-4.5 6 0s4.5 4.5 6 0"/></svg> Trigonometric &amp; Complex Forms</span>
         </h3>
         <div class="attributes-list">
           <div class="attr-item">
@@ -262,11 +279,11 @@
             <span class="attr-value" id="val-trig-sincos">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Rectangular (a + bi)</span>
+            <span class="attr-label">Rectangular (<math><mrow><mi>a</mi><mo>+</mo><mi>b</mi><mi>i</mi></mrow></math>)</span>
             <span class="attr-value" id="val-complex-rect">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Polar (r·e<sup>iθ</sup>)</span>
+            <span class="attr-label">Polar (<math><mrow><mi>r</mi><mo>&#x22C5;</mo><msup><mi>e</mi><mrow><mi>i</mi><mi>&#x03B8;</mi></mrow></msup></mrow></math>)</span>
             <span class="attr-value" id="val-complex-polar">-</span>
           </div>
         </div>
@@ -368,12 +385,12 @@
         </div>
       </div>
 
-      <!-- Card 7: Taylor Polynomial & Series -->
+      <!-- Card 7: Power, Laurent & Puiseux Series -->
       <div class="card">
         <h3 class="card-title">
-          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12.5C5 12 6 4 14 3.5"/><path d="M2 10.5l12-5" stroke-dasharray="2 2"/></svg> Taylor Polynomial &amp; Series</span>
+          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12.5C5 12 6 4 14 3.5"/><path d="M2 10.5l12-5" stroke-dasharray="2 2"/></svg> Power, Laurent &amp; Puiseux Series</span>
           <span class="card-actions">
-            <label class="layer-toggle" id="toggle-lbl-taylor" title="Toggle Taylor polynomial on plot">
+            <label class="layer-toggle" id="toggle-lbl-taylor" title="Toggle series approximation on plot">
               <input type="checkbox" id="toggle-taylor" class="layer-checkbox">
               <span class="layer-dot" style="background-color: var(--accent-amber);"></span>
               <span>Series</span>
@@ -382,26 +399,26 @@
         </h3>
         <div class="parameter-input-group" style="margin-bottom: 12px;">
           <div class="parameter-label-row">
-            <label class="parameter-name" for="slider-taylor-order">Order (n): <span id="taylor-order-val" style="color: var(--accent-amber); font-weight: 600;">3</span></label>
+            <label class="parameter-name" for="slider-taylor-order">Order (<math><mi>n</mi></math>): <span id="taylor-order-val" style="color: var(--accent-amber); font-weight: 600;">3</span></label>
             <div style="display: flex; align-items: center; gap: 6px;">
               <label for="select-taylor-center" style="font-size: 11px; color: var(--text-muted);">Around:</label>
-              <select id="select-taylor-center" class="custom-select" style="font-size: 11px; padding: 3px 8px;" aria-label="Taylor expansion center">
+              <select id="select-taylor-center" class="custom-select" style="font-size: 11px; padding: 3px 8px;" aria-label="Series expansion center">
                 <option value="zero" selected>0 (Maclaurin)</option>
                 <option value="x0">Point x₀</option>
               </select>
             </div>
           </div>
           <div class="parameter-control-row">
-            <input type="range" id="slider-taylor-order" class="custom-slider" min="1" max="6" step="1" value="3" style="width: 100%;" aria-label="Taylor expansion order">
+            <input type="range" id="slider-taylor-order" class="custom-slider" min="1" max="6" step="1" value="3" style="width: 100%;" aria-label="Series expansion order">
           </div>
         </div>
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label">Series + O(x<sup>n</sup>)</span>
+            <span class="attr-label">Series + <math><mrow><mi>O</mi><mo stretchy="false">(</mo><msup><mi>x</mi><mi>n</mi></msup><mo stretchy="false">)</mo></mrow></math></span>
             <span class="attr-value" id="val-formal-series">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Taylor P(x)</span>
+            <span class="attr-label">Truncated Series</span>
             <span class="attr-value" id="taylor-polynomial-str">-</span>
           </div>
         </div>
@@ -431,15 +448,15 @@
       <!-- Card 9: Evaluation & Limits -->
       <div class="card">
         <h3 class="card-title">
-          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="2"/></svg> Evaluation & Limits</span>
+          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="2"/></svg> Evaluation &amp; Limits</span>
         </h3>
         <div class="parameter-input-group" style="margin-bottom: 12px;">
           <div class="parameter-label-row" style="margin-bottom: 6px;">
-            <span class="parameter-name">Symbolic Point (x<sub>0</sub>)</span>
+            <span class="parameter-name">Symbolic Point (<math><msub><mi>x</mi><mn>0</mn></msub></math>)</span>
             <span style="font-size: 11px; color: var(--text-muted);">Supports numbers, pi, e, radicals</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
-            <span style="color: var(--text-muted); font-size: 12px;">x<sub>0</sub>:</span>
+            <span style="color: var(--text-muted); font-size: 12px;"><math><msub><mi>x</mi><mn>0</mn></msub></math>:</span>
             <input type="text" id="input-point-x" class="custom-number-input" value="0" style="flex: 1;" aria-label="Symbolic point x0">
           </div>
         </div>
@@ -471,7 +488,7 @@
       <!-- Card 10: Equations, Roots & Extrema -->
       <div class="card">
         <h3 class="card-title">
-          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4c2 9 9 9 11 0"/><circle cx="4.5" cy="8" r="1.2" fill="currentColor"/><circle cx="11.5" cy="8" r="1.2" fill="currentColor"/></svg> Equations, Roots & Extrema</span>
+          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4c2 9 9 9 11 0"/><circle cx="4.5" cy="8" r="1.2" fill="currentColor"/><circle cx="11.5" cy="8" r="1.2" fill="currentColor"/></svg> Equations, Roots &amp; Extrema</span>
           <span class="card-actions">
             <label class="layer-toggle active" id="toggle-lbl-roots" title="Toggle roots on plot">
               <input type="checkbox" id="toggle-roots" class="layer-checkbox" checked>

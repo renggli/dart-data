@@ -21,14 +21,15 @@ import 'presets.dart';
 // Current Application State
 ExpressionPreset? activePreset;
 String currentFormula = '(x - 1) * (x - 2) * (x + 2)';
-final Map<String, VariableDomain> currentVariableDomains = {
-  'x': VariableDomain.unknown,
+final Map<String, VariableAssumption> currentVariableAssumptions = {
+  'x': VariableAssumption.unknown,
 };
+String currentRelationsRaw = '';
 
-Assumptions get currentAssumptions =>
-    currentVariableDomains.values.every((d) => d == VariableDomain.unknown)
-    ? Assumptions.none
-    : Assumptions(domains: Map.of(currentVariableDomains));
+Assumptions get currentAssumptions => buildAssumptions(
+  currentVariableAssumptions,
+  relationsRaw: currentRelationsRaw,
+).assumptions;
 
 Expr? parsedExpr;
 Expr? cachedD1;
@@ -87,9 +88,13 @@ late web.HTMLElement formulaPrefix;
 late web.HTMLInputElement exprInput;
 late web.HTMLElement domainMenuContainer;
 late web.HTMLButtonElement domainMenuBtn;
+late web.HTMLElement domainBtnLabel;
 late web.HTMLElement domainDropdownMenu;
+late web.HTMLButtonElement domainDropdownReset;
 late web.HTMLButtonElement domainDropdownClose;
 late web.HTMLElement domainDropdownList;
+late web.HTMLInputElement inputAssumptionsRelations;
+late web.HTMLElement domainRelationsError;
 late web.HTMLElement parseErrorPopup;
 late web.HTMLElement parseErrorCaret;
 late web.HTMLElement parseErrorText;
@@ -230,13 +235,23 @@ void initDom() {
       web.document.querySelector('#domain-menu-container') as web.HTMLElement;
   domainMenuBtn =
       web.document.querySelector('#domain-menu-btn') as web.HTMLButtonElement;
+  domainBtnLabel =
+      web.document.querySelector('#domain-btn-label') as web.HTMLElement;
   domainDropdownMenu =
       web.document.querySelector('#domain-dropdown-menu') as web.HTMLElement;
+  domainDropdownReset = web.document.querySelector(
+    '#domain-dropdown-reset',
+  ) as web.HTMLButtonElement;
   domainDropdownClose = web.document.querySelector(
     '#domain-dropdown-close',
   ) as web.HTMLButtonElement;
   domainDropdownList =
       web.document.querySelector('#domain-dropdown-list') as web.HTMLElement;
+  inputAssumptionsRelations = web.document.querySelector(
+    '#input-assumptions-relations',
+  ) as web.HTMLInputElement;
+  domainRelationsError =
+      web.document.querySelector('#domain-relations-error') as web.HTMLElement;
   parseErrorPopup =
       web.document.querySelector('#parse-error-popup') as web.HTMLElement;
   parseErrorCaret =
@@ -463,10 +478,12 @@ void selectPreset(ExpressionPreset preset) {
   final vars = expr != null && expr.freeVariables.isNotEmpty
       ? (expr.freeVariables.toList()..sort())
       : ['x'];
-  currentVariableDomains.clear();
+  currentVariableAssumptions.clear();
   for (final v in vars) {
-    currentVariableDomains[v] = preset.defaultDomain;
+    currentVariableAssumptions[v] = preset.defaultAssumption;
   }
+  currentRelationsRaw = preset.defaultRelations;
+  inputAssumptionsRelations.value = currentRelationsRaw;
   formulaPrefix.textContent = 'f(${vars.join(', ')}) =';
   updateDomainSelectors(vars);
 
@@ -549,6 +566,17 @@ void attachEventListeners() {
     }
   });
 
+  domainDropdownReset.onClick.listen((e) {
+    e.stopPropagation();
+    for (final key in currentVariableAssumptions.keys.toList()) {
+      currentVariableAssumptions[key] = VariableAssumption.unknown;
+    }
+    currentRelationsRaw = '';
+    inputAssumptionsRelations.value = '';
+    updateAll();
+    updateUrlHash();
+  });
+
   domainDropdownClose.onClick.listen((e) {
     e.stopPropagation();
     setHidden(domainDropdownMenu, true);
@@ -568,11 +596,19 @@ void attachEventListeners() {
       final select = target as web.HTMLSelectElement;
       final variable = select.getAttribute('data-var');
       if (variable == null) return;
-      currentVariableDomains[variable] = _parseDomain(select.value);
+      currentVariableAssumptions[variable] = VariableAssumption.parse(
+        select.value,
+      );
       updateAll();
       updateUrlHash();
     }.toJS,
   );
+
+  inputAssumptionsRelations.onInput.listen((_) {
+    currentRelationsRaw = inputAssumptionsRelations.value.trim();
+    updateAll();
+    updateUrlHash();
+  });
 
   web.document.addEventListener(
     'click',
@@ -776,13 +812,32 @@ void hideParseError() {
 }
 
 void updateDomainSelectors(List<String> vars) {
-  final hasAssumptions = currentVariableDomains.entries.any(
-    (e) => vars.contains(e.key) && e.value != VariableDomain.unknown,
+  final built = buildAssumptions(
+    currentVariableAssumptions,
+    relationsRaw: currentRelationsRaw,
   );
-  if (hasAssumptions) {
+  if (built.invalidRelations.isNotEmpty) {
+    domainRelationsError.textContent =
+        'Expected relation (e.g. x > 0): ${built.invalidRelations.join(', ')}';
+    setHidden(domainRelationsError, false);
+  } else {
+    domainRelationsError.textContent = '';
+    setHidden(domainRelationsError, true);
+  }
+
+  final varAssumptionCount = currentVariableAssumptions.entries
+      .where(
+        (e) => vars.contains(e.key) && e.value != VariableAssumption.unknown,
+      )
+      .length;
+  final relationCount = built.assumptions.relations.length;
+  final totalActive = varAssumptionCount + relationCount;
+  if (totalActive > 0) {
     domainMenuBtn.classList.add('has-assumptions');
+    domainBtnLabel.textContent = 'Assumptions ($totalActive)';
   } else {
     domainMenuBtn.classList.remove('has-assumptions');
+    domainBtnLabel.textContent = 'Assumptions';
   }
 
   final existingRows = domainDropdownList.querySelectorAll(
@@ -808,8 +863,9 @@ void updateDomainSelectors(List<String> vars) {
   if (!isSame) {
     domainDropdownList.textContent = '';
     for (final v in vars) {
-      final domain = currentVariableDomains[v] ?? VariableDomain.unknown;
-      currentVariableDomains[v] = domain;
+      final assumption =
+          currentVariableAssumptions[v] ?? VariableAssumption.unknown;
+      currentVariableAssumptions[v] = assumption;
 
       final row = web.document.createElement('div') as web.HTMLDivElement
         ..className = 'domain-dropdown-row'
@@ -817,7 +873,7 @@ void updateDomainSelectors(List<String> vars) {
 
       final label = web.document.createElement('span') as web.HTMLSpanElement
         ..className = 'domain-var-label'
-        ..innerHTML = '<math><mi>$v</mi><mo>∈</mo></math>'.toJS;
+        ..innerHTML = '<math><mi>${_escapeHtml(v)}</mi><mo>∈</mo></math>'.toJS;
 
       final select =
           web.document.createElement('select') as web.HTMLSelectElement
@@ -825,21 +881,15 @@ void updateDomainSelectors(List<String> vars) {
             ..setAttribute('data-var', v)
             ..setAttribute('aria-label', 'Domain assumption for $v');
 
-      for (final option in const [
-        (value: 'unknown', label: 'Unknown'),
-        (value: 'complex', label: 'ℂ (Complex)'),
-        (value: 'real', label: 'ℝ (Real)'),
-        (value: 'positive', label: 'ℝ⁺ (Positive)'),
-        (value: 'integer', label: 'ℤ (Integer)'),
-      ]) {
+      for (final option in VariableAssumption.values) {
         final opt =
             web.document.createElement('option') as web.HTMLOptionElement
-              ..value = option.value
+              ..value = option.key
               ..textContent = option.label;
         select.append(opt);
       }
 
-      select.value = _domainToString(domain);
+      select.value = assumption.key;
 
       row.append(label);
       row.append(select);
@@ -851,8 +901,9 @@ void updateDomainSelectors(List<String> vars) {
         'select[data-var="$v"]',
       ) as web.HTMLSelectElement?;
       if (select != null) {
-        final domain = currentVariableDomains[v] ?? VariableDomain.unknown;
-        select.value = _domainToString(domain);
+        final assumption =
+            currentVariableAssumptions[v] ?? VariableAssumption.unknown;
+        select.value = assumption.key;
       }
     }
   }
@@ -905,6 +956,8 @@ void updateAll() {
 
   final vars = expr.freeVariables.toList()..sort();
   final effectiveVars = vars.isNotEmpty ? vars : ['x'];
+  final activeVar = _primaryVariable(expr);
+  final sumUpper = activeVar == 'n' ? const Variable('N') : const Variable('n');
   formulaPrefix.textContent = 'f(${effectiveVars.join(', ')}) =';
   updateDomainSelectors(effectiveVars);
 
@@ -942,12 +995,15 @@ void updateAll() {
   _trySetExpr(valAlgRationalized, () => expr!.rationalize());
 
   // Card 2: Rational & Polynomial Algebra
-  _trySetExpr(valRatApart, () => expr!.apart('x', assumptions: assumptions));
+  _trySetExpr(
+    valRatApart,
+    () => expr!.apart(activeVar, assumptions: assumptions),
+  );
   _trySetExpr(valRatTogether, () => expr!.together(assumptions: assumptions));
   _trySetExpr(valRatCancel, () => expr!.cancel(assumptions: assumptions));
   _trySetExpr(
     valRatCollect,
-    () => expr!.collect('x', assumptions: assumptions),
+    () => expr!.collect(activeVar, assumptions: assumptions),
   );
   _trySetExpr(valRatNum, () => expr!.numerator);
   _trySetExpr(valRatDen, () => expr!.denominator);
@@ -975,21 +1031,21 @@ void updateAll() {
   // Card 4: Differentiation
   try {
     cachedD1 = expr
-        .derivative('x', assumptions: assumptions)
+        .derivative(activeVar, assumptions: assumptions)
         .simplify(assumptions: assumptions);
   } catch (_) {
     cachedD1 = null;
   }
   try {
     cachedD2 = cachedD1
-        ?.derivative('x', assumptions: assumptions)
+        ?.derivative(activeVar, assumptions: assumptions)
         .simplify(assumptions: assumptions);
   } catch (_) {
     cachedD2 = null;
   }
   try {
     cachedD3 = cachedD2
-        ?.derivative('x', assumptions: assumptions)
+        ?.derivative(activeVar, assumptions: assumptions)
         .simplify(assumptions: assumptions);
   } catch (_) {
     cachedD3 = null;
@@ -1002,7 +1058,7 @@ void updateAll() {
   // Card 5: Indefinite & Improper Integration
   try {
     cachedAntideriv = expr
-        .integrate('x', assumptions: assumptions)
+        .integrate(activeVar, assumptions: assumptions)
         .simplify(assumptions: assumptions);
     setAttrExpr(valSymAntideriv, cachedAntideriv);
   } catch (_) {
@@ -1014,7 +1070,7 @@ void updateAll() {
     valIntHalfInf,
     () => expr!
         .integrate(
-          'x',
+          activeVar,
           from: IntegerNumber.zero,
           to: Constant.infinity,
           assumptions: assumptions,
@@ -1025,7 +1081,7 @@ void updateAll() {
     valIntFullInf,
     () => expr!
         .integrate(
-          'x',
+          activeVar,
           from: -Constant.infinity,
           to: Constant.infinity,
           assumptions: assumptions,
@@ -1037,16 +1093,11 @@ void updateAll() {
   _trySetExpr(
     valSymSum,
     () => expr!
-        .sum(
-          'x',
-          IntegerNumber.one,
-          const Variable('n'),
-          assumptions: assumptions,
-        )
+        .sum(activeVar, IntegerNumber.one, sumUpper, assumptions: assumptions)
         .simplify(assumptions: assumptions),
   );
   try {
-    final antidiff = expr.indefiniteSum('x', assumptions: assumptions);
+    final antidiff = expr.indefiniteSum(activeVar, assumptions: assumptions);
     if (antidiff != null) {
       setAttrExpr(valSymAntidiff, antidiff);
     } else {
@@ -1059,9 +1110,9 @@ void updateAll() {
     valSymProduct,
     () => expr!
         .product(
-          'x',
+          activeVar,
           IntegerNumber.one,
-          const Variable('n'),
+          sumUpper,
           assumptions: assumptions,
         )
         .simplify(assumptions: assumptions),
@@ -1070,11 +1121,11 @@ void updateAll() {
   // Card 7: Infinite Limits
   _trySetExpr(
     valEvalLimPosInf,
-    () => expr!.limit('x', Constant.infinity, assumptions: assumptions),
+    () => expr!.limit(activeVar, Constant.infinity, assumptions: assumptions),
   );
   _trySetExpr(
     valEvalLimNegInf,
-    () => expr!.limit('x', -Constant.infinity, assumptions: assumptions),
+    () => expr!.limit(activeVar, -Constant.infinity, assumptions: assumptions),
   );
 
   // Compile evaluation closures for plotting (slicing auxiliary variables at 1)
@@ -1214,12 +1265,15 @@ void updatePointTelemetry() {
     return;
   }
 
+  final activeVar = _primaryVariable(expr);
   final assumptions = currentAssumptions;
 
   // 1. Exact symbolic f(x0)
   Expr? fx0Sym;
   try {
-    fx0Sym = expr.substitute('x', x0Expr).simplify(assumptions: assumptions);
+    fx0Sym = expr
+        .substitute(activeVar, x0Expr)
+        .simplify(assumptions: assumptions);
     setAttrExpr(valEvalFx, fx0Sym);
   } catch (_) {
     fx0Sym = null;
@@ -1231,7 +1285,9 @@ void updatePointTelemetry() {
   final d1 = cachedD1;
   if (d1 != null) {
     try {
-      dfx0Sym = d1.substitute('x', x0Expr).simplify(assumptions: assumptions);
+      dfx0Sym = d1
+          .substitute(activeVar, x0Expr)
+          .simplify(assumptions: assumptions);
       setAttrExpr(valSymDfAtX0, dfx0Sym);
     } catch (_) {
       dfx0Sym = null;
@@ -1247,7 +1303,7 @@ void updatePointTelemetry() {
       _isUsableSymbolicValue(fx0Sym) &&
       _isUsableSymbolicValue(dfx0Sym)) {
     try {
-      final rhs = (fx0Sym + dfx0Sym * (const Variable('x') - x0Expr))
+      final rhs = (fx0Sym + dfx0Sym * (Variable(activeVar) - x0Expr))
           .expand(assumptions: assumptions)
           .simplify(assumptions: assumptions);
       setAttrExpr(valTangentEq, Relational.equal(const Variable('y'), rhs));
@@ -1261,14 +1317,14 @@ void updatePointTelemetry() {
   // 4. Two-sided and directional limits at x0
   _trySetExpr(
     valEvalLim,
-    () => expr.limit('x', x0Expr, assumptions: assumptions),
+    () => expr.limit(activeVar, x0Expr, assumptions: assumptions),
   );
 
   Expr? limLeft;
   Expr? limRight;
   try {
     limLeft = expr.limit(
-      'x',
+      activeVar,
       x0Expr,
       direction: LimitDirection.fromBelow,
       assumptions: assumptions,
@@ -1276,7 +1332,7 @@ void updatePointTelemetry() {
   } catch (_) {}
   try {
     limRight = expr.limit(
-      'x',
+      activeVar,
       x0Expr,
       direction: LimitDirection.fromAbove,
       assumptions: assumptions,
@@ -1296,11 +1352,12 @@ void updateIntegrationTelemetry() {
     return;
   }
 
+  final activeVar = _primaryVariable(expr);
   final assumptions = currentAssumptions;
   _trySetExpr(
     valIntDefinite,
     () => expr
-        .integrate('x', from: aExpr, to: bExpr, assumptions: assumptions)
+        .integrate(activeVar, from: aExpr, to: bExpr, assumptions: assumptions)
         .simplify(assumptions: assumptions),
   );
 }
@@ -1309,28 +1366,36 @@ void updateTaylorTelemetry() {
   final expr = parsedExpr;
   if (expr == null) return;
 
+  final activeVar = _primaryVariable(expr);
   final assumptions = currentAssumptions;
   final centerExpr = selectTaylorCenter.value == 'x0'
       ? (_parsePointExpr(pointXStr) ?? IntegerNumber.zero)
       : IntegerNumber.zero;
 
   try {
-    final formal = expr.series(
-      'x',
-      point: centerExpr,
-      order: taylorOrder + 1,
-      assumptions: assumptions,
-    );
+    Expr formal;
+    Expr truncated;
+    try {
+      final ps = expr.toPowerSeries(
+        activeVar,
+        point: centerExpr,
+        order: taylorOrder + 1,
+        assumptions: assumptions,
+      );
+      formal = ps.toExpr();
+      truncated = ps.toExpr(includeOrder: false);
+    } on UnsupportedError {
+      final puiseux = expr.toPuiseuxSeries(
+        activeVar,
+        point: centerExpr,
+        order: taylorOrder + 1,
+        assumptions: assumptions,
+      );
+      formal = puiseux.toExpr();
+      truncated = puiseux.toExpr(includeOrder: false);
+    }
     setAttrExpr(valFormalSeries, formal);
-    final poly = expr
-        .series(
-          'x',
-          point: centerExpr,
-          order: taylorOrder + 1,
-          includeOrder: false,
-          assumptions: assumptions,
-        )
-        .simplify(assumptions: assumptions);
+    final poly = truncated.simplify(assumptions: assumptions);
     setAttrExpr(taylorPolynomialStr, poly);
     final plotPoly = _sliceFor1DPlot(poly);
     try {
@@ -1669,12 +1734,13 @@ void detectRootsAndExtrema() {
   final expr = parsedExpr;
   if (expr == null) return;
 
+  final activeVar = _primaryVariable(expr);
   final assumptions = currentAssumptions;
 
   // 1. Exact symbolic roots f(x) = 0
   final exactSolutions = <Expr>[];
   try {
-    for (final s in expr.solve('x', assumptions: assumptions)) {
+    for (final s in expr.solve(activeVar, assumptions: assumptions)) {
       if (!exactSolutions.contains(s)) {
         exactSolutions.add(s);
       }
@@ -1701,7 +1767,7 @@ void detectRootsAndExtrema() {
   final d1 = cachedD1;
   if (d1 != null && d1 != IntegerNumber.zero) {
     try {
-      for (final s in d1.solve('x', assumptions: assumptions)) {
+      for (final s in d1.solve(activeVar, assumptions: assumptions)) {
         if (!exactCritical.contains(s)) {
           exactCritical.add(s);
         }
@@ -1715,7 +1781,7 @@ void detectRootsAndExtrema() {
   final d2 = cachedD2;
   if (d2 != null && d2 != IntegerNumber.zero) {
     try {
-      for (final s in d2.solve('x', assumptions: assumptions)) {
+      for (final s in d2.solve(activeVar, assumptions: assumptions)) {
         if (!exactInflection.contains(s)) {
           exactInflection.add(s);
         }
@@ -1744,7 +1810,7 @@ void detectRootsAndExtrema() {
       double? curv;
       if (d2 != null) {
         try {
-          final c2 = d2.substitute('x', crit).evaluateComplex();
+          final c2 = d2.substitute(activeVar, crit).evaluateComplex();
           if (c2.b.abs() < 1e-6) curv = c2.a.toDouble();
         } catch (_) {}
       }
@@ -2344,9 +2410,11 @@ void drawCharts() {
 void updateUrlHash() {
   final queryParams = <String>[
     'expr=${Uri.encodeComponent(currentFormula)}',
-    for (final entry in currentVariableDomains.entries)
-      if (entry.value != VariableDomain.unknown)
-        'domain_${entry.key}=${_domainToString(entry.value)}',
+    for (final entry in currentVariableAssumptions.entries)
+      if (entry.value != VariableAssumption.unknown)
+        'domain_${entry.key}=${entry.value.key}',
+    if (currentRelationsRaw.isNotEmpty)
+      'rel=${Uri.encodeComponent(currentRelationsRaw)}',
     'minx=$minX',
     'maxx=$maxX',
     'x0=${Uri.encodeComponent(pointXStr)}',
@@ -2362,7 +2430,8 @@ void loadFromUrlHash() {
     hash = hash.substring(1);
   }
 
-  currentVariableDomains.clear();
+  currentVariableAssumptions.clear();
+  currentRelationsRaw = '';
   if (hash.isNotEmpty) {
     final pairs = hash.split('&');
     for (final pair in pairs) {
@@ -2372,7 +2441,7 @@ void loadFromUrlHash() {
         final val = Uri.decodeComponent(kv[1]);
         if (key.startsWith('domain_')) {
           final v = key.substring('domain_'.length);
-          currentVariableDomains[v] = _parseDomain(val);
+          currentVariableAssumptions[v] = VariableAssumption.parse(val);
         } else {
           switch (key) {
             case 'expr':
@@ -2381,7 +2450,9 @@ void loadFromUrlHash() {
                 exprInput.value = val;
               }
             case 'domain':
-              currentVariableDomains['x'] = _parseDomain(val);
+              currentVariableAssumptions['x'] = VariableAssumption.parse(val);
+            case 'rel':
+              currentRelationsRaw = val;
             case 'minx':
               final parsed = double.tryParse(val);
               if (parsed != null) minX = parsed;
@@ -2420,11 +2491,19 @@ void loadFromUrlHash() {
     highlightActiveSidebarItem(null);
   }
 
+  inputAssumptionsRelations.value = currentRelationsRaw;
   inputPointX.value = pointXStr;
   inputIntA.value = intAStr;
   inputIntB.value = intBStr;
 
   updateAll();
+}
+
+String _primaryVariable(Expr expr) {
+  final free = expr.freeVariables;
+  if (free.isEmpty || free.contains('x')) return 'x';
+  final sorted = free.toList()..sort();
+  return sorted.first;
 }
 
 Expr _sliceFor1DPlot(Expr expr) {
@@ -2442,22 +2521,6 @@ Expr _sliceFor1DPlot(Expr expr) {
   }
   return sub;
 }
-
-VariableDomain _parseDomain(String value) => switch (value) {
-  'complex' => VariableDomain.complex,
-  'real' => VariableDomain.real,
-  'positive' => VariableDomain.positive,
-  'integer' => VariableDomain.integer,
-  _ => VariableDomain.unknown,
-};
-
-String _domainToString(VariableDomain domain) => switch (domain) {
-  VariableDomain.complex => 'complex',
-  VariableDomain.real => 'real',
-  VariableDomain.positive => 'positive',
-  VariableDomain.integer => 'integer',
-  VariableDomain.unknown => 'unknown',
-};
 
 void _trySetExpr(web.HTMLElement element, Expr? Function() compute) {
   try {
@@ -2526,18 +2589,7 @@ bool _isUsableSymbolicValue(Expr expr) => !expr.anyNode(
 
 Expr? _parsePointExpr(String raw) {
   final trimmed = raw.trim();
-  if (trimmed.isEmpty) return null;
-  if (trimmed == '-infinity' || trimmed == '-∞' || trimmed == '-inf') {
-    return -Constant.infinity;
-  }
-  if (trimmed == 'infinity' ||
-      trimmed == '+infinity' ||
-      trimmed == '∞' ||
-      trimmed == '+∞' ||
-      trimmed == 'inf') {
-    return Constant.infinity;
-  }
-  return Expr.tryParse(trimmed);
+  return trimmed.isEmpty ? null : Expr.tryParse(trimmed);
 }
 
 double? _currentPointPlotX() {

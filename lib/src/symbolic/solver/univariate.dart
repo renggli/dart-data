@@ -263,11 +263,6 @@ List<Expr> _solveUnfiltered(
     return solveQuadratic(a, b, c, assumptions: assumptions);
   }
 
-  // Biquadratic form: a * x^4 + b * x^2 + c = 0
-  if (matchBiquadratic(expr, variable) case (:final a, :final b, :final c)) {
-    return solveBiquadratic(a, b, c, variable, assumptions: assumptions);
-  }
-
   // Factored products or unrolled factor decomposition:
   final factors = <Expr>[];
   collectFactors(expr, factors);
@@ -297,6 +292,11 @@ List<Expr> _solveUnfiltered(
         assumptions,
       );
     }
+  }
+
+  // Biquadratic form: a * x^4 + b * x^2 + c = 0
+  if (matchBiquadratic(expr, variable) case (:final a, :final b, :final c)) {
+    return solveBiquadratic(a, b, c, variable, assumptions: assumptions);
   }
 
   // Transcendental isolation: f(u(x)) = C
