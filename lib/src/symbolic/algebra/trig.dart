@@ -4,6 +4,7 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../functions/fn.dart';
 import 'expand.dart';
+import 'helpers.dart';
 import 'rational.dart';
 import 'simplify.dart';
 import 'simplify/additive.dart';
@@ -440,7 +441,7 @@ Expr _contractTrigProduct(
   }
 
   final prod = simplifyMul(remaining, assumptions: assumptions);
-  if (changed) {
+  if (changed && !exceedsNodeBudget(prod, 600)) {
     return _contractTrigNode(
       prod.expand(assumptions: assumptions).simplify(assumptions: assumptions),
       assumptions,

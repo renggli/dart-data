@@ -7,6 +7,7 @@ import '../calculus/summation.dart';
 import '../functions/fn.dart';
 import 'expand.dart';
 import 'helpers.dart';
+import 'normalize.dart';
 import 'simplify/additive.dart';
 import 'simplify/complex.dart';
 import 'simplify/discrete.dart';
@@ -46,6 +47,11 @@ extension SimplifierExtension on Expr {
   /// where `r = |this|` and `theta = arg(this)`.
   Expr toPolar({Assumptions assumptions = Assumptions.none}) =>
       toPolarExpr(this, assumptions: assumptions);
+
+  /// Performs bounded cost-driven normalization across algebraic and
+  /// trigonometric forms, selecting the lowest-cost equivalent representation.
+  Expr normalize({Assumptions assumptions = Assumptions.none}) =>
+      normalizeExpression(this, assumptions: assumptions);
 }
 
 /// Recursively evaluates and canonically simplifies [expr] under [assumptions].
