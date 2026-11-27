@@ -89,63 +89,20 @@ Expr? tryAntiDerivDiv(
       }
     }
 
-    // int c / cos(ax + b)^2 dx = (c / a) * tan(ax + b)
+    // int c / {cos, sin, cosh, sinh}(ax + b)^2 dx
     if (right
-        case Pow(
-          base: Call(id: FunctionId.cos, args: [final inner]),
-          :final exponent,
-        )
+        case Pow(base: Call(:final id, args: [final inner]), :final exponent)
         when exponent == IntegerNumber.two ||
             (exponent is RealNumber && exponent.value == 2.0)) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((left * Fn.tan(inner)) / a).simplify();
-      }
-    }
-
-    // int c / sin(ax + b)^2 dx = -(c / a) * (cos(ax + b) / sin(ax + b))
-    if (right
-        case Pow(
-          base: Call(id: FunctionId.sin, args: [final inner]),
-          :final exponent,
-        )
-        when exponent == IntegerNumber.two ||
-            (exponent is RealNumber && exponent.value == 2.0)) {
-      if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((-left * Fn.cos(inner)) / (a * Fn.sin(inner))).simplify();
-      }
-    }
-
-    // int c / sinh(ax + b) dx = (c / a) * ln|tanh((ax + b) / 2)|
-    if (right case Call(id: FunctionId.sinh, args: [final inner])) {
-      if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((left * Fn.ln(Fn.abs(Fn.tanh(inner / IntegerNumber.two)))) / a)
-            .simplify();
-      }
-    }
-
-    // int c / cosh(ax + b)^2 dx = (c / a) * tanh(ax + b)
-    if (right
-        case Pow(
-          base: Call(id: FunctionId.cosh, args: [final inner]),
-          :final exponent,
-        )
-        when exponent == IntegerNumber.two ||
-            (exponent is RealNumber && exponent.value == 2.0)) {
-      if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((left * Fn.tanh(inner)) / a).simplify();
-      }
-    }
-
-    // int c / sinh(ax + b)^2 dx = -(c / a) * (cosh(ax + b) / sinh(ax + b))
-    if (right
-        case Pow(
-          base: Call(id: FunctionId.sinh, args: [final inner]),
-          :final exponent,
-        )
-        when exponent == IntegerNumber.two ||
-            (exponent is RealNumber && exponent.value == 2.0)) {
-      if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((-left * Fn.cosh(inner)) / (a * Fn.sinh(inner))).simplify();
+        final antideriv = switch (id) {
+          FunctionId.cos => (left * Fn.tan(inner)) / a,
+          FunctionId.sin => (-left * Fn.cos(inner)) / (a * Fn.sin(inner)),
+          FunctionId.cosh => (left * Fn.tanh(inner)) / a,
+          FunctionId.sinh => (-left * Fn.cosh(inner)) / (a * Fn.sinh(inner)),
+          _ => null,
+        };
+        if (antideriv != null) return antideriv.simplify();
       }
     }
 

@@ -5,6 +5,7 @@ import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../functions/fn.dart';
+import '../../poly/bridge.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
@@ -451,6 +452,17 @@ List<({Expr factor, int mult})>? squareFreeFactorization(
 ) {
   final deg = polynomialDegree(poly, variable);
   if (deg == null || deg < 2) return null;
+  if (exprToPolyQ(poly, variable) case final qPoly?) {
+    final sqFree = qPoly.squareFreeDecomposition();
+    if (sqFree.length <= 1 &&
+        (sqFree.isEmpty || sqFree.first.multiplicity <= 1)) {
+      return null;
+    }
+    return [
+      for (final (:factor, :multiplicity) in sqFree)
+        (factor: polyQToExpr(factor, variable), mult: multiplicity),
+    ];
+  }
   final deriv = poly.derivative(variable).simplify();
   final g0 = _polyGcd(poly, deriv, variable);
   if (g0 == null) return null;

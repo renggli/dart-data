@@ -123,42 +123,27 @@ class PuiseuxSeries {
       coefficients.keys.every((exponent) => exponent.denominator.isOdd);
 
   /// Addition of two Puiseux series: remainder order is `min(N_A, N_B)`.
-  PuiseuxSeries operator +(PuiseuxSeries other) {
-    _checkCompatible(other);
-    final newOrder = order <= other.order ? order : other.order;
-    final newCoeffs = _newSortedMap();
-    for (final entry in coefficients.entries) {
-      if (entry.key < newOrder) {
-        newCoeffs[entry.key] = entry.value;
-      }
-    }
-    for (final entry in other.coefficients.entries) {
-      if (entry.key < newOrder) {
-        final existing = newCoeffs[entry.key];
-        newCoeffs[entry.key] = existing == null
-            ? entry.value
-            : (existing + entry.value).simplify();
-      }
-    }
-    return PuiseuxSeries(variable, point, newCoeffs, newOrder);
-  }
+  PuiseuxSeries operator +(PuiseuxSeries other) =>
+      _combine(other, subtract: false);
 
   /// Subtraction of two Puiseux series: remainder order is `min(N_A, N_B)`.
-  PuiseuxSeries operator -(PuiseuxSeries other) {
+  PuiseuxSeries operator -(PuiseuxSeries other) =>
+      _combine(other, subtract: true);
+
+  PuiseuxSeries _combine(PuiseuxSeries other, {required bool subtract}) {
     _checkCompatible(other);
     final newOrder = order <= other.order ? order : other.order;
     final newCoeffs = _newSortedMap();
     for (final entry in coefficients.entries) {
-      if (entry.key < newOrder) {
-        newCoeffs[entry.key] = entry.value;
-      }
+      if (entry.key < newOrder) newCoeffs[entry.key] = entry.value;
     }
     for (final entry in other.coefficients.entries) {
       if (entry.key < newOrder) {
         final existing = newCoeffs[entry.key];
         newCoeffs[entry.key] = existing == null
-            ? (-entry.value).simplify()
-            : (existing - entry.value).simplify();
+            ? (subtract ? (-entry.value).simplify() : entry.value)
+            : (subtract ? existing - entry.value : existing + entry.value)
+                  .simplify();
       }
     }
     return PuiseuxSeries(variable, point, newCoeffs, newOrder);
@@ -241,57 +226,27 @@ class PuiseuxSeries {
     final c0 = lead.coefficient;
     final invC0 = (IntegerNumber.one / c0).simplify();
     final unitOrder = (order - m) as RationalNumber;
-    final positiveUnit = <({RationalNumber exp, Expr coeff})>[];
-    for (final entry in coefficients.entries) {
-      if (entry.key > m) {
-        positiveUnit.add((
-          exp: (entry.key - m) as RationalNumber,
-          coeff: entry.value,
-        ));
-      }
-    }
-
+    final positiveUnit = _shiftedDrivers(m);
     final v = _newSortedMap();
-    if (IntegerNumber.zero < unitOrder) {
-      v[IntegerNumber.zero] = invC0;
-    }
+    if (IntegerNumber.zero < unitOrder) v[IntegerNumber.zero] = invC0;
 
-    final pending = _newSortedSet();
-    for (final item in positiveUnit) {
-      if (item.exp < unitOrder) {
-        pending.add(item.exp);
-      }
-    }
-
-    while (pending.isNotEmpty) {
-      final k = pending.first;
-      pending.remove(k);
-      final terms = <Expr>[];
-      for (final item in positiveUnit) {
-        if (item.exp > k) break;
-        final remainder = (k - item.exp) as RationalNumber;
-        final vj = v[remainder];
-        if (vj != null && !isZeroExpr(vj)) {
-          terms.add(item.coeff * vj);
+    _runSparseRecurrence(
+      result: v,
+      drivers: positiveUnit,
+      order: unitOrder,
+      step: (k, cur, drivers) {
+        final terms = <Expr>[];
+        for (final item in drivers) {
+          if (item.exp > k) break;
+          final vj = cur[(k - item.exp) as RationalNumber];
+          if (vj != null && !isZeroExpr(vj)) terms.add(item.coeff * vj);
         }
-      }
-      if (terms.isNotEmpty) {
+        if (terms.isEmpty) return null;
         final sum = (terms.length == 1 ? terms.first : Add.of(terms))
             .simplify();
-        if (!isZeroExpr(sum)) {
-          final vk = (-(invC0 * sum)).simplify();
-          if (!isZeroExpr(vk)) {
-            v[k] = vk;
-            for (final item in positiveUnit) {
-              final next = (k + item.exp) as RationalNumber;
-              if (next < unitOrder) {
-                pending.add(next);
-              }
-            }
-          }
-        }
-      }
-    }
+        return isZeroExpr(sum) ? null : (-(invC0 * sum)).simplify();
+      },
+    );
 
     final newOrder = (order - IntegerNumber.two * m) as RationalNumber;
     final shifted = _newSortedMap();
@@ -472,56 +427,43 @@ class PuiseuxSeries {
   PuiseuxSeries _unitPowExpr(Expr exponent) {
     final c0 = coefficients[IntegerNumber.zero]!;
     final invC0 = (IntegerNumber.one / c0).simplify();
-    final positiveTerms = <({RationalNumber exp, Expr coeff})>[];
-    for (final entry in coefficients.entries) {
-      if (entry.key.isPositive) {
-        positiveTerms.add((exp: entry.key, coeff: entry.value));
-      }
-    }
-
+    final positiveTerms = _shiftedDrivers(IntegerNumber.zero);
     final q = _newSortedMap();
     q[IntegerNumber.zero] = Pow.of(c0, exponent).simplify();
-
-    final pending = _newSortedSet();
-    for (final item in positiveTerms) {
-      if (item.exp < order) {
-        pending.add(item.exp);
-      }
-    }
-
     final onePlusExp = (IntegerNumber.one + exponent).simplify();
-    while (pending.isNotEmpty) {
-      final k = pending.first;
-      pending.remove(k);
-      final terms = <Expr>[];
-      for (final item in positiveTerms) {
-        if (item.exp > k) break;
-        final remainder = (k - item.exp) as RationalNumber;
-        final qj = q[remainder];
-        if (qj != null && !isZeroExpr(qj)) {
-          final factor = (onePlusExp * item.exp - k).simplify();
-          terms.add(factor * item.coeff * qj);
-        }
-      }
-      if (terms.isNotEmpty) {
-        final sum = (terms.length == 1 ? terms.first : Add.of(terms))
-            .simplify();
-        if (!isZeroExpr(sum)) {
-          final qk = ((invC0 * sum) / k).simplify();
-          if (!isZeroExpr(qk)) {
-            q[k] = qk;
-            for (final item in positiveTerms) {
-              final next = (k + item.exp) as RationalNumber;
-              if (next < order) {
-                pending.add(next);
-              }
-            }
+
+    _runSparseRecurrence(
+      result: q,
+      drivers: positiveTerms,
+      order: order,
+      step: (k, cur, drivers) {
+        final terms = <Expr>[];
+        for (final item in drivers) {
+          if (item.exp > k) break;
+          final qj = cur[(k - item.exp) as RationalNumber];
+          if (qj != null && !isZeroExpr(qj)) {
+            terms.add((onePlusExp * item.exp - k).simplify() * item.coeff * qj);
           }
         }
-      }
-    }
+        if (terms.isEmpty) return null;
+        final sum = (terms.length == 1 ? terms.first : Add.of(terms))
+            .simplify();
+        return isZeroExpr(sum) ? null : ((invC0 * sum) / k).simplify();
+      },
+    );
     return PuiseuxSeries(variable, point, q, order);
   }
+
+  List<({RationalNumber exp, Expr coeff})> _shiftedDrivers(
+    RationalNumber shift,
+  ) => [
+    for (final entry in coefficients.entries)
+      if (entry.key > shift)
+        (
+          exp: shift.isZero ? entry.key : (entry.key - shift) as RationalNumber,
+          coeff: entry.value,
+        ),
+  ];
 
   void _checkCompatible(PuiseuxSeries other) {
     if (variable != other.variable) {
@@ -538,9 +480,6 @@ class PuiseuxSeries {
 
   static SplayTreeMap<RationalNumber, Expr> _newSortedMap() =>
       SplayTreeMap<RationalNumber, Expr>((a, b) => a.compareTo(b));
-
-  static SplayTreeSet<RationalNumber> _newSortedSet() =>
-      SplayTreeSet<RationalNumber>((a, b) => a.compareTo(b));
 
   static Map<RationalNumber, Expr> _cleanCoefficients(
     Map<RationalNumber, Expr> raw,
@@ -559,6 +498,35 @@ class PuiseuxSeries {
   }
 }
 
+void _runSparseRecurrence({
+  required SplayTreeMap<RationalNumber, Expr> result,
+  required List<({RationalNumber exp, Expr coeff})> drivers,
+  required RationalNumber order,
+  required Expr? Function(
+    RationalNumber k,
+    Map<RationalNumber, Expr> cur,
+    List<({RationalNumber exp, Expr coeff})> drivers,
+  )
+  step,
+}) {
+  final pending = SplayTreeSet<RationalNumber>((a, b) => a.compareTo(b));
+  for (final item in drivers) {
+    if (item.exp < order) pending.add(item.exp);
+  }
+  while (pending.isNotEmpty) {
+    final k = pending.first;
+    pending.remove(k);
+    final val = step(k, result, drivers);
+    if (val != null && !isZeroExpr(val)) {
+      result[k] = val;
+      for (final item in drivers) {
+        final next = (k + item.exp) as RationalNumber;
+        if (next < order) pending.add(next);
+      }
+    }
+  }
+}
+
 /// Expands [expr] as a [PuiseuxSeries] at `0`, using [PowerSeries] fast path
 /// when all exponents are integers and falling back to [expandToPuiseuxSeries]
 /// for fractional branch points.
@@ -569,6 +537,21 @@ PuiseuxSeries expandSeriesForLimit(
   Assumptions assumptions, {
   bool requireOddDenominators = false,
 }) {
+  PuiseuxSeries fallback() {
+    final puiseux = expr.toPuiseuxSeries(
+      variable,
+      point: IntegerNumber.zero,
+      order: order,
+      assumptions: assumptions,
+    );
+    if (requireOddDenominators && !puiseux.hasOnlyOddDenominators) {
+      throw UnsupportedError(
+        'Real fractional power requires right-hand limit at $variable -> 0+',
+      );
+    }
+    return puiseux;
+  }
+
   try {
     return PuiseuxSeries.fromPowerSeries(
       expr.toPowerSeries(
@@ -579,31 +562,9 @@ PuiseuxSeries expandSeriesForLimit(
       ),
     );
   } on UnsupportedError {
-    final puiseux = expr.toPuiseuxSeries(
-      variable,
-      point: IntegerNumber.zero,
-      order: order,
-      assumptions: assumptions,
-    );
-    if (requireOddDenominators && !puiseux.hasOnlyOddDenominators) {
-      throw UnsupportedError(
-        'Real fractional power requires right-hand limit at $variable -> 0+',
-      );
-    }
-    return puiseux;
+    return fallback();
   } on ArgumentError {
-    final puiseux = expr.toPuiseuxSeries(
-      variable,
-      point: IntegerNumber.zero,
-      order: order,
-      assumptions: assumptions,
-    );
-    if (requireOddDenominators && !puiseux.hasOnlyOddDenominators) {
-      throw UnsupportedError(
-        'Real fractional power requires right-hand limit at $variable -> 0+',
-      );
-    }
-    return puiseux;
+    return fallback();
   }
 }
 
@@ -780,49 +741,27 @@ PuiseuxSeries _expFromPuiseuxSeries(PuiseuxSeries u) {
     );
   }
   final u0 = u.constantTerm;
-  final positiveTerms = <({RationalNumber exp, Expr coeff})>[];
-  for (final entry in u.coefficients.entries) {
-    if (entry.key.isPositive) {
-      positiveTerms.add((exp: entry.key, coeff: entry.value));
-    }
-  }
-  final q = SplayTreeMap<RationalNumber, Expr>((a, b) => a.compareTo(b));
+  final q = PuiseuxSeries._newSortedMap();
   q[IntegerNumber.zero] = IntegerNumber.one;
 
-  final pending = SplayTreeSet<RationalNumber>((a, b) => a.compareTo(b));
-  for (final item in positiveTerms) {
-    if (item.exp < u.order) {
-      pending.add(item.exp);
-    }
-  }
-
-  while (pending.isNotEmpty) {
-    final k = pending.first;
-    pending.remove(k);
-    final terms = <Expr>[];
-    for (final item in positiveTerms) {
-      if (item.exp > k) break;
-      final qj = q[(k - item.exp) as RationalNumber];
-      if (qj != null && !isZeroExpr(qj)) {
-        terms.add(item.exp * item.coeff * qj);
-      }
-    }
-    if (terms.isNotEmpty) {
-      final sum = (terms.length == 1 ? terms.first : Add.of(terms)).simplify();
-      if (!isZeroExpr(sum)) {
-        final qk = (sum / k).simplify();
-        if (!isZeroExpr(qk)) {
-          q[k] = qk;
-          for (final item in positiveTerms) {
-            final next = (k + item.exp) as RationalNumber;
-            if (next < u.order) {
-              pending.add(next);
-            }
-          }
+  _runSparseRecurrence(
+    result: q,
+    drivers: u._shiftedDrivers(IntegerNumber.zero),
+    order: u.order,
+    step: (k, cur, drivers) {
+      final terms = <Expr>[];
+      for (final item in drivers) {
+        if (item.exp > k) break;
+        final qj = cur[(k - item.exp) as RationalNumber];
+        if (qj != null && !isZeroExpr(qj)) {
+          terms.add(item.exp * item.coeff * qj);
         }
       }
-    }
-  }
+      if (terms.isEmpty) return null;
+      final sum = (terms.length == 1 ? terms.first : Add.of(terms)).simplify();
+      return isZeroExpr(sum) ? null : (sum / k).simplify();
+    },
+  );
 
   final series = PuiseuxSeries(u.variable, u.point, q, u.order);
   return isZeroExpr(u0)
@@ -948,58 +887,36 @@ PuiseuxSeries _lnFromPuiseuxSeries(PuiseuxSeries u, Assumptions assumptions) {
     );
   }
   final c0 = u.constantTerm;
-  final positiveTerms = <({RationalNumber exp, Expr coeff})>[];
-  for (final entry in u.coefficients.entries) {
-    if (entry.key.isPositive) {
-      positiveTerms.add((exp: entry.key, coeff: entry.value));
-    }
-  }
-  final q = SplayTreeMap<RationalNumber, Expr>((a, b) => a.compareTo(b));
+  final q = PuiseuxSeries._newSortedMap();
   q[IntegerNumber.zero] = Fn.ln(c0).simplify(assumptions: assumptions);
 
-  final pending = SplayTreeSet<RationalNumber>((a, b) => a.compareTo(b));
-  for (final item in positiveTerms) {
-    if (item.exp < u.order) {
-      pending.add(item.exp);
-    }
-  }
-
-  while (pending.isNotEmpty) {
-    final k = pending.first;
-    pending.remove(k);
-    final numeratorTerms = <Expr>[];
-    final uk = u.coefficients[k];
-    if (uk != null) {
-      numeratorTerms.add(k * uk);
-    }
-    for (final item in positiveTerms) {
-      if (item.exp >= k) break;
-      final rem = (k - item.exp) as RationalNumber;
-      final qRem = q[rem];
-      if (qRem != null && !isZeroExpr(qRem)) {
-        numeratorTerms.add(-(rem * item.coeff * qRem));
+  _runSparseRecurrence(
+    result: q,
+    drivers: u._shiftedDrivers(IntegerNumber.zero),
+    order: u.order,
+    step: (k, cur, drivers) {
+      final numeratorTerms = <Expr>[];
+      final uk = u.coefficients[k];
+      if (uk != null) numeratorTerms.add(k * uk);
+      for (final item in drivers) {
+        if (item.exp >= k) break;
+        final rem = (k - item.exp) as RationalNumber;
+        final qRem = cur[rem];
+        if (qRem != null && !isZeroExpr(qRem)) {
+          numeratorTerms.add(-(rem * item.coeff * qRem));
+        }
       }
-    }
-    if (numeratorTerms.isNotEmpty) {
+      if (numeratorTerms.isEmpty) return null;
       final sum =
           (numeratorTerms.length == 1
                   ? numeratorTerms.first
                   : Add.of(numeratorTerms))
               .simplify(assumptions: assumptions);
-      if (!isZeroExpr(sum)) {
-        final qk = (sum / (k * c0)).simplify(assumptions: assumptions);
-        if (!isZeroExpr(qk)) {
-          q[k] = qk;
-          for (final item in positiveTerms) {
-            final next = (k + item.exp) as RationalNumber;
-            if (next < u.order) {
-              pending.add(next);
-            }
-          }
-        }
-      }
-    }
-  }
+      return isZeroExpr(sum)
+          ? null
+          : (sum / (k * c0)).simplify(assumptions: assumptions);
+    },
+  );
 
   return PuiseuxSeries(u.variable, u.point, q, u.order);
 }

@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/factor/multivariate.dart';
-import 'package:data/src/symbolic/algebra/factor/univariate.dart';
+import 'package:data/src/symbolic/poly/factor.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 

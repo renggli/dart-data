@@ -4,6 +4,7 @@ import 'package:more/math.dart';
 
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../poly/factor.dart';
 import '../expand.dart';
 import '../factor.dart';
 import '../helpers.dart';
@@ -12,7 +13,6 @@ import '../simplify/additive.dart';
 import '../simplify/multiplicative.dart';
 import '../term_accumulator.dart';
 import 'fraction.dart';
-import 'univariate.dart';
 
 /// Recursively flattens additive combinations into signed terms.
 void collectAdditiveTerms(Expr expr, int sign, List<Expr> result) {
