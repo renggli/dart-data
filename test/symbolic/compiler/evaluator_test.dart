@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/compiler/bytecode.dart';
@@ -310,13 +311,9 @@ void main() {
 
       final subEval = BytecodeEvaluator(
         variables: const ['x', 'y'],
-        instructions: const [
-          Instruction.loadVar(0),
-          Instruction.loadVar(1),
-          Instruction.op(Op.sub),
-        ],
-        maxStack: 4,
-        registerCount: 0,
+        code: Int32List.fromList([Op.sub.index, 2, 0, 1]),
+        registerCount: 3,
+        resultReg: 2,
       );
       check(subEval.evaluateList([7.0, 2.5])).equals(4.5);
       check(

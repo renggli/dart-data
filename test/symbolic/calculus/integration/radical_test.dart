@@ -409,12 +409,13 @@ void main() {
       check(chebExt.anyNode((n) => n is Integral)).isFalse;
       check(chebExt.anyNode((n) => n is Call && n.id == FunctionId.sign))
           .isFalse;
+      final integrand = Expr.parse('(2 + 3 * x^2)^(9/2) / x^15');
       for (final px in const [0.4, 0.9, 1.5]) {
         final env = {'x': px};
+        final expected = integrand.evaluate(env);
         check(
-          chebExt.derivative('x').evaluate(env) -
-              Expr.parse('(2 + 3 * x^2)^(9/2) / x^15').evaluate(env),
-        ).isCloseTo(0.0, 1e-8);
+          chebExt.derivative('x').evaluate(env) - expected,
+        ).isCloseTo(0.0, 1e-12 * (expected.abs() > 1.0 ? expected.abs() : 1.0));
       }
 
       // Equal-slope linear radical product: 1 / (sqrt(b*x - 3) * sqrt(b*x + 1))

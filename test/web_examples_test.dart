@@ -369,7 +369,7 @@ void main() {
               // Non-polynomial gradient system.
             }
             final bc = expr.toBytecode(variables: vars);
-            check(bc.instructions.isNotEmpty).isTrue;
+            check(bc.instructionCount).isGreaterThan(0);
           } else {
             // 6. Bytecode Compilation & Curve Sampling (including unevaluated derivatives)
             final isComplex = containsImaginary(expr);

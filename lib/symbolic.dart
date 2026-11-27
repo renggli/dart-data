@@ -24,7 +24,7 @@ export 'src/symbolic/calculus/series.dart' show PowerSeries, SeriesExtension;
 export 'src/symbolic/calculus/summation.dart' show SummationExtension;
 export 'src/symbolic/compiler.dart'
     show CompilerExtension, CompilerIterableExtension;
-export 'src/symbolic/compiler/bytecode.dart' show Instruction, Op;
+export 'src/symbolic/compiler/bytecode.dart' show Op;
 export 'src/symbolic/compiler/evaluator.dart' show BytecodeEvaluator;
 export 'src/symbolic/functions/fn.dart' show Fn;
 export 'src/symbolic/linear/matrix.dart'

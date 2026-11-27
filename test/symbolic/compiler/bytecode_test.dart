@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/compiler/bytecode.dart';
@@ -27,10 +28,10 @@ void main() {
         'x',
       ], optimize: false);
 
-      check(optEval.registerCount).isGreaterThan(0);
-      check(unoptEval.registerCount).equals(0);
-      check(optEval.instructions.length)
-          .isLessThan(unoptEval.instructions.length);
+      check(optEval.cseCount).isGreaterThan(0);
+      check(unoptEval.cseCount).equals(0);
+      check(optEval.instructionCount).isLessThan(unoptEval.instructionCount);
+      check(optEval.disassemble().length).equals(optEval.instructionCount);
 
       for (final xVal in [-1.5, 0.0, 0.75, 2.5]) {
         final expected = expr.evaluate({'x': xVal});
@@ -84,7 +85,7 @@ void main() {
   });
 
   group('Degenerate AST nodes in bytecode compilation', () {
-    test('compiles empty Add, empty Mul, and Constant leaves', () {
+    test('compiles empty Add, empty Mul, Constant, and powInt fast paths', () {
       check(compileToBytecode(Constant.pi, const []).evaluateList(const []))
           .isCloseTo(math.pi, 1e-15);
       check(
@@ -93,9 +94,15 @@ void main() {
       check(
         compileToBytecode(Mul.of(const []), const []).evaluateList(const []),
       ).equals(1.0);
+      const x = Variable('x');
+      final powEval = compileToBytecode(Pow.of(x, IntegerNumber.of(7)), const [
+        'x',
+      ]);
+      check(powEval.disassemble().single).contains('powInt');
+      check(powEval.evaluate1D(2.0)).equals(128.0);
     });
 
-    test('computes jump-aware maxStack for Piecewise branches', () {
+    test('reuses temporary registers across disjoint Piecewise branches', () {
       const x = Variable('x');
       final pw4 = Piecewise([
         (
@@ -124,8 +131,60 @@ void main() {
       ], otherwise: IntegerNumber.zero);
       final eval4 = compileToBytecode(pw4, const ['x']);
       final eval10 = compileToBytecode(pw10, const ['x']);
-      check(eval4.maxStack).equals(eval10.maxStack);
-      check(eval4.maxStack).isLessThan(5);
+      check(eval4.registerCount - eval4.constCount)
+          .equals(eval10.registerCount - eval10.constCount);
+      check(eval4.registerCount - eval4.constCount).isLessThan(5);
+      check(eval10.evaluate1D(3.5)).equals(4.0);
+      check(eval10.evaluate1D(20.0)).equals(0.0);
+    });
+
+    test('evaluates powInt for negative and complex powers cleanly', () {
+      const x = Variable('x');
+      final negCube = compileToBytecode(Pow.of(x, IntegerNumber.of(-3)), const [
+        'x',
+      ]);
+      check(negCube.disassemble().single).contains('powInt');
+      check(negCube.evaluate1D(2.0)).isCloseTo(0.125, 1e-15);
+      check(negCube.evaluate1D(0.0).isInfinite).isTrue;
+      check(negCube.evaluateComplex1D(Complex.i)).equals(Complex.i);
+      check(negCube.evaluateComplex1D(Complex.zero).a.isInfinite).isTrue;
+
+      final zeroPow = compileToBytecode(Pow.raw(x, IntegerNumber.zero), const [
+        'x',
+      ]);
+      check(zeroPow.evaluate1D(0.0)).equals(1.0);
+      check(zeroPow.evaluateComplex1D(Complex.zero)).equals(Complex.one);
+    });
+
+    test('evaluates tensor buffers and reentrant inner bytecode nodes', () {
+      const x = Variable('x');
+      final expr = Piecewise([
+        (
+          relation: Relational.greaterThan(x, IntegerNumber.zero),
+          expr: Fn.sin(x) * Pow.of(Constant.e, -x) + Fn.sin(x),
+        ),
+      ], otherwise: x * x + IntegerNumber.one);
+      final kernel = expr.compileTensorKernel(const ['x']);
+      final input = Float64List.fromList([-2.0, -0.5, 0.5, 1.5]);
+      final output = Float64List(4);
+      kernel([input], output);
+      for (var i = 0; i < input.length; i++) {
+        check(output[i]).isCloseTo(expr.evaluate({'x': input[i]}), 1e-12);
+      }
+
+      const k = Variable('k');
+      final nested = Sum(
+        Integral(
+          x + k,
+          'x',
+          lower: IntegerNumber.zero,
+          upper: IntegerNumber.one,
+        ),
+        'k',
+        IntegerNumber.one,
+        IntegerNumber.of(3),
+      );
+      check(nested.evaluate()).isCloseTo(7.5, 1e-12);
     });
   });
 }

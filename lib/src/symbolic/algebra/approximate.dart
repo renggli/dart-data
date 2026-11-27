@@ -5,7 +5,7 @@ import 'package:more/number.dart' show Complex, Fraction;
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
-import '../compiler/evaluator_helpers.dart';
+import '../functions/discrete_specs.dart';
 import 'simplify.dart';
 import 'simplify/multiplicative.dart';
 import 'term_accumulator.dart';

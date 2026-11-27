@@ -1366,16 +1366,10 @@ void updateBytecodeTelemetry() {
       optimize: true,
       assumptions: currentAssumptions,
     );
-    setAttrValue(valBcStack, evaluator.maxStack.toString());
-    setAttrValue(valBcRegs, evaluator.registerCount.toString());
+    setAttrValue(valBcStack, evaluator.registerCount.toString());
+    setAttrValue(valBcRegs, evaluator.cseCount.toString());
 
-    final buffer = StringBuffer();
-    for (var i = 0; i < evaluator.instructions.length; i++) {
-      buffer.writeln(
-        _formatInstruction(i, evaluator.instructions[i], evaluator.variables),
-      );
-    }
-    final disasm = buffer.toString().trimRight();
+    final disasm = evaluator.disassemble().join('\n');
     setAttrValue(
       bytecodePre,
       disasm.isNotEmpty ? disasm : '(empty program)',
@@ -2392,28 +2386,6 @@ double? _boundToPlotCoordinate(Expr? boundExpr) {
     }
   } catch (_) {}
   return null;
-}
-
-String _formatInstruction(int pc, Instruction instr, [List<String>? varNames]) {
-  final opName = instr.op.name.padRight(12);
-  final payload = switch (instr.op) {
-    Op.pushConst =>
-      instr.complexValue.b != 0.0
-          ? '${formatNumber(instr.complexValue.a)} + ${formatNumber(instr.complexValue.b)}i'
-          : formatNumber(instr.realValue),
-    Op.loadVar =>
-      (varNames != null && instr.index < varNames.length)
-          ? 'var[${instr.index}] (${varNames[instr.index]})'
-          : 'var[${instr.index}]',
-    Op.storeReg => 'reg[${instr.index}]',
-    Op.loadReg => 'reg[${instr.index}]',
-    Op.jump => '-> pc ${instr.index}',
-    Op.jumpIfFalse => '-> pc ${instr.index}',
-    Op.evalNode => '${instr.node}',
-    Op.pow when instr.index != 0 => 'mode:${instr.index}',
-    _ => '',
-  };
-  return '${pc.toString().padLeft(3)}: $opName $payload'.trimRight();
 }
 
 void _renderMultivariable3dSurface(Expr expr) {

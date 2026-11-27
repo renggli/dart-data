@@ -5,8 +5,6 @@ import 'package:more/number.dart' show Complex;
 import '../../numeric/calculus/derivative.dart' as numeric_derivative;
 import '../../numeric/integration/integration.dart' as numeric_integration;
 import '../../polynomial/polynomial.dart';
-import '../../special/binomial.dart' as special_binomial;
-import '../../special/gamma.dart' as special_gamma;
 import '../../type/data_type.dart';
 import '../algebra/expand.dart';
 import '../algebra/helpers.dart';
@@ -16,87 +14,6 @@ import '../calculus/differentiation.dart';
 import '../calculus/limit.dart';
 import '../calculus/summation.dart';
 import 'evaluator.dart';
-
-double evalRealBinomial(double n, double k) {
-  if (!n.isFinite || !k.isFinite) return double.nan;
-  if (k == k.roundToDouble() && k < 0.0) return 0.0;
-  if (n == n.roundToDouble() && k == k.roundToDouble() && n >= 0.0 && k > n) {
-    return 0.0;
-  }
-  if (k == 0.0) return 1.0;
-  if (n >= 0.0 && k >= 0.0 && k <= n) {
-    return special_binomial.binomial(n, k);
-  }
-  if (n <= -1.0 && k == k.roundToDouble() && k >= 0.0) {
-    final absVal = special_binomial.binomial(-n + k - 1.0, k);
-    final isOdd = (k - 2.0 * (k / 2.0).floorToDouble()) != 0.0;
-    return isOdd ? -absVal : absVal;
-  }
-  final (:logAbs, :sign) = logAbsBinomialWithSign(n, k);
-  if (logAbs.isNaN) return double.nan;
-  if (sign == 0) return 0.0;
-  return sign * math.exp(logAbs);
-}
-
-/// Computes (ln|Gamma(z)|, sgn Gamma(z)) for real [z].
-///
-/// Returns `sign == 0` and `logAbs == double.infinity` at non-positive integer
-/// poles, or `logAbs == double.nan` for `NaN`.
-({double logAbs, int sign}) logAbsGammaWithSign(double z) {
-  if (!z.isFinite) {
-    return z == double.infinity
-        ? (logAbs: double.infinity, sign: 1)
-        : (logAbs: double.nan, sign: 0);
-  }
-  if (z <= 0.0 && z == z.roundToDouble()) {
-    return (logAbs: double.infinity, sign: 0);
-  }
-  if (z > 0.0) {
-    return (logAbs: special_gamma.gammaLn(z), sign: 1);
-  }
-  final r = z - 2.0 * (z / 2.0).roundToDouble();
-  final s = math.sin(math.pi * r);
-  if (s == 0.0) return (logAbs: double.infinity, sign: 0);
-  final logAbs =
-      math.log(math.pi) - math.log(s.abs()) - special_gamma.gammaLn(1.0 - z);
-  return (logAbs: logAbs, sign: s > 0.0 ? 1 : -1);
-}
-
-/// Computes (ln|C(n, k)|, sgn C(n, k)) for real [n] and [k].
-({double logAbs, int sign}) logAbsBinomialWithSign(double n, double k) {
-  if (!n.isFinite || !k.isFinite) return (logAbs: double.nan, sign: 0);
-  if (k == k.roundToDouble() && k < 0.0) {
-    return (logAbs: double.negativeInfinity, sign: 0);
-  }
-  if (n == n.roundToDouble() && k == k.roundToDouble() && n >= 0.0 && k > n) {
-    return (logAbs: double.negativeInfinity, sign: 0);
-  }
-  if (k == 0.0) return (logAbs: 0.0, sign: 1);
-  if (n >= 0.0 && k >= 0.0 && k <= n) {
-    return (logAbs: special_binomial.binomialLn(n, k), sign: 1);
-  }
-  if (n <= -1.0 && k == k.roundToDouble() && k >= 0.0) {
-    final logAbs = special_binomial.binomialLn(-n + k - 1.0, k);
-    final isOdd = (k - 2.0 * (k / 2.0).floorToDouble()) != 0.0;
-    return (logAbs: logAbs, sign: isOdd ? -1 : 1);
-  }
-  final numG = logAbsGammaWithSign(n + 1.0);
-  final den1G = logAbsGammaWithSign(k + 1.0);
-  final den2G = logAbsGammaWithSign(n - k + 1.0);
-  if (numG.logAbs.isNaN || den1G.logAbs.isNaN || den2G.logAbs.isNaN) {
-    return (logAbs: double.nan, sign: 0);
-  }
-  if (numG.sign == 0) {
-    return (logAbs: double.nan, sign: 0);
-  }
-  if (den1G.sign == 0 || den2G.sign == 0) {
-    return (logAbs: double.negativeInfinity, sign: 0);
-  }
-  return (
-    logAbs: numG.logAbs - den1G.logAbs - den2G.logAbs,
-    sign: numG.sign * den1G.sign * den2G.sign,
-  );
-}
 
 bool isEffectivelyReal(Complex z) =>
     !z.isNaN && z.b.abs() <= 1e-15 * (z.a.abs() + 1.0);

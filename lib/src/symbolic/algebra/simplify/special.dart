@@ -13,7 +13,7 @@ import '../../../special/zeta.dart' as special_zeta;
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../calculus/summation.dart' show evenZetaValue;
-import '../../compiler/evaluator_helpers.dart';
+import '../../functions/discrete_specs.dart';
 import '../../functions/fn.dart';
 import 'additive.dart';
 import 'multiplicative.dart';

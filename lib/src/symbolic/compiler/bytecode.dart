@@ -1,340 +1,106 @@
-import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:more/number.dart' show Complex;
 
 import '../ast.dart';
 import 'evaluator.dart';
 
-/// Opcodes for the symbolic stack-and-register virtual machine.
+/// Compact operation codes for the flat 3-address register virtual machine.
 enum Op {
-  /// Pushes a constant scalar onto the stack.
-  pushConst,
+  /// Copies a register value: `regs[dst] = regs[a]`.
+  move,
 
-  /// Loads a positional variable onto the stack.
-  loadVar,
-
-  /// Stores the top-of-stack value into a CSE register without popping.
-  storeReg,
-
-  /// Pushes a previously computed CSE register value onto the stack.
-  loadReg,
-
-  /// Unconditional jump to target instruction index.
-  jump,
-
-  /// Pops condition; jumps to target instruction index if false (`0.0` or `NaN`).
-  jumpIfFalse,
-
-  /// Evaluates an embedded AST node (such as a definite [Integral]).
-  evalNode,
-
-  /// Binary addition (`a + b`).
+  /// Addition: `regs[dst] = regs[a] + regs[b]`.
   add,
 
-  /// Binary subtraction (`a - b`).
+  /// Subtraction: `regs[dst] = regs[a] - regs[b]`.
   sub,
 
-  /// Binary multiplication (`a * b`).
+  /// Multiplication: `regs[dst] = regs[a] * regs[b]`.
   mul,
 
-  /// Binary division (`a / b`).
+  /// Division: `regs[dst] = regs[a] / regs[b]`.
   div,
 
-  /// Binary exponentiation (`a ^ b`).
+  /// General exponentiation: `regs[dst] = pow(regs[a], regs[b])`.
   pow,
 
-  /// Unary negation (`-a`).
+  /// Integer exponentiation by squaring: `regs[dst] = pow(regs[a], b)` (`|b| <= 64`).
+  powInt,
+
+  /// Odd-denominator real negative-base odd-numerator root: `-pow(-base, exp)`.
+  powOddRootOdd,
+
+  /// Odd-denominator real negative-base even-numerator root: `pow(-base, exp)`.
+  powOddRootEven,
+
+  /// Unary negation: `regs[dst] = -regs[a]`.
   neg,
 
-  /// Sine (`sin(a)`).
-  sin,
-
-  /// Cosine (`cos(a)`).
-  cos,
-
-  /// Natural exponential (`exp(a)`).
-  exp,
-
-  /// Natural logarithm (`ln(a)`).
-  ln,
-
-  /// Tangent (`tan(a)`).
-  tan,
-
-  /// Arcsine (`asin(a)`).
-  asin,
-
-  /// Arccosine (`acos(a)`).
-  acos,
-
-  /// Arctangent (`atan(a)`).
-  atan,
-
-  /// Two-argument arctangent (`atan2(y, x)`).
-  atan2,
-
-  /// Hyperbolic sine (`sinh(a)`).
-  sinh,
-
-  /// Hyperbolic cosine (`cosh(a)`).
-  cosh,
-
-  /// Hyperbolic tangent (`tanh(a)`).
-  tanh,
-
-  /// Absolute value / modulus (`a`).
-  abs,
-
-  /// Square root (`sqrt(a)`).
+  /// Square root: `regs[dst] = sqrt(regs[a])`.
   sqrt,
 
-  /// Principal branch Lambert W (`W_0(a)`).
-  lambertW0,
+  /// Sine: `regs[dst] = sin(regs[a])`.
+  sin,
 
-  /// Lower branch Lambert W (`W_{-1}(a)`).
-  lambertW1,
+  /// Cosine: `regs[dst] = cos(regs[a])`.
+  cos,
 
-  /// Error function (`erf(a)`).
-  erf,
+  /// Tangent: `regs[dst] = tan(regs[a])`.
+  tan,
 
-  /// Complementary error function (`erfc(a)`).
-  erfc,
+  /// Natural exponential: `regs[dst] = exp(regs[a])`.
+  exp,
 
-  /// Gamma function (`Gamma(a)`).
-  gamma,
+  /// Natural logarithm: `regs[dst] = ln(regs[a])`.
+  ln,
 
-  /// Riemann zeta function (`zeta(a)`).
-  zeta,
+  /// Absolute value / complex modulus: `regs[dst] = |regs[a]|`.
+  abs,
 
-  /// Digamma function (`digamma(a)`).
-  digamma,
+  /// Relational less-than: `regs[dst] = regs[a] < regs[b] ? 1.0 : 0.0`.
+  relLt,
 
-  /// Polygamma function (`polygamma(m, a)`).
-  polygamma,
+  /// Relational less-than-or-equal: `regs[dst] = regs[a] <= regs[b] ? 1.0 : 0.0`.
+  relLe,
 
-  /// Bessel J function (`besselJ(nu, a)`).
-  besselJ,
+  /// Relational greater-than: `regs[dst] = regs[a] > regs[b] ? 1.0 : 0.0`.
+  relGt,
 
-  /// Bessel Y function (`besselY(nu, a)`).
-  besselY,
+  /// Relational greater-than-or-equal: `regs[dst] = regs[a] >= regs[b] ? 1.0 : 0.0`.
+  relGe,
 
-  /// Bessel I function (`besselI(nu, a)`).
-  besselI,
+  /// Relational equal: `regs[dst] = regs[a] == regs[b] ? 1.0 : 0.0`.
+  relEq,
 
-  /// Bessel K function (`besselK(nu, a)`).
-  besselK,
+  /// Relational not-equal: `regs[dst] = regs[a] != regs[b] ? 1.0 : 0.0`.
+  relNe,
 
-  /// Complete elliptic integral of the first kind (`ellipticK(a)`).
-  ellipticK,
+  /// Unconditional branch to instruction word offset `dst`.
+  jump,
 
-  /// Complete elliptic integral of the second kind (`ellipticE(a)`).
-  ellipticE,
+  /// Branches to word offset `dst` when `regs[a]` is `0.0` or `NaN`.
+  jumpIfFalse,
 
-  /// Imaginary error function (`erfi(a)`).
-  erfi,
+  /// Unary [FunctionSpec] call: `regs[dst] = specs[b].eval(regs[a])`.
+  call1,
 
-  /// Fresnel sine integral (`fresnelS(a)`).
-  fresnelS,
+  /// Binary [FunctionSpec] call: `a` = offset in `callArgs` `[r0, r1]`, `b` = `specIdx`.
+  call2,
 
-  /// Fresnel cosine integral (`fresnelC(a)`).
-  fresnelC,
+  /// Variadic/ternary [FunctionSpec] call: `a` = offset in `callArgs`, `b` = `(argc << 16) | specIdx`.
+  callN,
 
-  /// Exponential integral (`Ei(a)`).
-  expIntegralEi,
-
-  /// Logarithmic integral (`li(a)`).
-  logIntegralLi,
-
-  /// Sine integral (`Si(a)`).
-  sinIntegralSi,
-
-  /// Cosine integral (`Ci(a)`).
-  cosIntegralCi,
-
-  /// Hyperbolic sine integral (`Shi(a)`).
-  sinhIntegralShi,
-
-  /// Hyperbolic cosine integral (`Chi(a)`).
-  coshIntegralChi,
-
-  /// Upper incomplete gamma function (`upperGamma(s, a)`).
-  upperGamma,
-
-  /// Lower incomplete gamma function (`lowerGamma(s, a)`).
-  lowerGamma,
-
-  /// Polylogarithm (`polylog(s, z)`).
-  polylog,
-
-  /// Incomplete elliptic integral of the first kind (`ellipticF(phi, k)`).
-  ellipticF,
-
-  /// Incomplete elliptic integral of the second kind (`ellipticE(phi, k)`).
-  ellipticEIncomplete,
-
-  /// Incomplete elliptic integral of the third kind (`ellipticPi(n, phi, k)`).
-  ellipticPi,
-
-  /// Hurwitz zeta function (`zeta(s, a)`).
-  hurwitzZeta,
-
-  /// Generalized exponential integral (`expIntegralE(n, z)`).
-  expIntegralE,
-
-  /// Generalized hypergeometric function (`hypergeometric(upper, lower, z)`).
+  /// Generalized hypergeometric `pFq`: `a` = offset in `callArgs`, `b` = `(p << 8) | q`.
   hypergeometric,
 
-  /// Log-gamma function (`logGamma(a)`).
-  logGamma,
-
-  /// Appell hypergeometric function (`appellF1(a, b1, b2, c, x, y)`).
-  appellF1,
-
-  /// Minimum of two values (`min(a, b)`).
-  min,
-
-  /// Maximum of two values (`max(a, b)`).
-  max,
-
-  /// Greatest common divisor of two integers (`gcd(a, b)`).
-  gcd,
-
-  /// Least common multiple of two integers (`lcm(a, b)`).
-  lcm,
-
-  /// Beta function (`B(a, b)`).
-  beta,
-
-  /// Factorial (`a!`).
-  factorial,
-
-  /// Binomial coefficient (`binomial(n, k)`).
-  binomial,
-
-  /// Floor (`floor(a)`).
-  floor,
-
-  /// Ceiling (`ceil(a)`).
-  ceil,
-
-  /// Round to nearest integer (`round(a)`).
-  round,
-
-  /// Signum (`sign(a)`).
-  sign,
-
-  /// Modulo (`mod(a, b)`).
-  mod,
-
-  /// Real part (`re(a)`).
-  re,
-
-  /// Imaginary part (`im(a)`).
-  im,
-
-  /// Complex argument (`arg(a)`).
-  arg,
-
-  /// Complex conjugate (`conj(a)`).
-  conj,
-
-  /// Inverse hyperbolic sine (`asinh(a)`).
-  asinh,
-
-  /// Inverse hyperbolic cosine (`acosh(a)`).
-  acosh,
-
-  /// Inverse hyperbolic tangent (`atanh(a)`).
-  atanh,
-
-  /// Strict less-than (`a < b`).
-  lt,
-
-  /// Less-than-or-equal (`a <= b`).
-  le,
-
-  /// Strict greater-than (`a > b`).
-  gt,
-
-  /// Greater-than-or-equal (`a >= b`).
-  ge,
-
-  /// Equality (`a == b`).
-  eq,
-
-  /// Inequality (`a != b`).
-  ne,
+  /// Evaluates embedded AST node `nodes[a]` -> `regs[dst]`.
+  evalNode,
 }
 
-/// A single instruction in a compiled [BytecodeEvaluator] program.
-final class Instruction {
-  const new _(
-    this.op, {
-    this.realValue = 0.0,
-    this.complexValue = Complex.zero,
-    this.index = 0,
-    this.node,
-  });
-
-  /// Creates a constant-push instruction for a real scalar [value].
-  new pushReal(double value)
-    : this._(Op.pushConst, realValue: value, complexValue: Complex(value));
-
-  /// Creates a constant-push instruction for a complex scalar [value].
-  new pushComplex(Complex value)
-    : this._(
-        Op.pushConst,
-        realValue: value.b == 0.0 ? value.a.toDouble() : double.nan,
-        complexValue: value,
-      );
-
-  /// Creates a variable-load instruction for positional index [varIndex].
-  const new loadVar(int varIndex) : this._(Op.loadVar, index: varIndex);
-
-  /// Creates a CSE register-store instruction for [regIndex].
-  const new storeReg(int regIndex) : this._(Op.storeReg, index: regIndex);
-
-  /// Creates a generalized hypergeometric instruction with [p] upper and [q] lower parameters.
-  const new hypergeometric(int p, int q)
-    : this._(Op.hypergeometric, index: (p << 8) | q);
-
-  /// Creates a CSE register-load instruction for [regIndex].
-  const new loadReg(int regIndex) : this._(Op.loadReg, index: regIndex);
-
-  /// Creates an unconditional jump instruction to [targetPc].
-  const new jump(int targetPc) : this._(Op.jump, index: targetPc);
-
-  /// Creates a conditional jump-if-false instruction to [targetPc].
-  const new jumpIfFalse(int targetPc) : this._(Op.jumpIfFalse, index: targetPc);
-
-  /// Creates an AST node fallback evaluation instruction for [node].
-  const new evalNode(Expr node) : this._(Op.evalNode, node: node);
-
-  /// Creates an exponentiation instruction with optional [oddRootMode]
-  /// (`1` for odd/odd fraction, `2` for even/odd fraction).
-  const new pow({int oddRootMode = 0}) : this._(Op.pow, index: oddRootMode);
-
-  /// Creates a zero-operand stack instruction for [op].
-  const new op(Op op) : this._(op);
-
-  /// The operation code.
-  final Op op;
-
-  /// Real scalar constant payload for [Op.pushConst].
-  final double realValue;
-
-  /// Complex scalar constant payload for [Op.pushConst].
-  final Complex complexValue;
-
-  /// Variable index, register index, or jump target program counter.
-  final int index;
-
-  /// Embedded expression node for [Op.evalNode].
-  final Expr? node;
-}
-
-/// Compiles [simplified] into a [BytecodeEvaluator] over [variables],
-/// applying DAG Common Subexpression Elimination (CSE) when [optimize] is `true`.
+/// Compiles [simplified] into a flat register [BytecodeEvaluator] over
+/// [variables], applying DAG Common Subexpression Elimination (CSE) when
+/// [optimize] is `true`.
 BytecodeEvaluator compileToBytecode(
   Expr simplified,
   List<String> variables, {
@@ -346,482 +112,540 @@ BytecodeEvaluator compileToBytecode(
     for (var i = 0; i < varOrder.length; i++) varOrder[i]: i,
   };
 
-  final regMap = <Expr, int>{};
-  if (optimize) {
-    final counts = <Expr, int>{};
-    void countSubtrees(Expr node) {
-      if (_isCompositeCandidate(node)) {
-        final prev = counts[node] ?? 0;
-        counts[node] = prev + 1;
-        if (prev > 0) {
-          // Do not traverse children again when a shared composite node is hit;
-          // its entire subtree will be evaluated once and loaded from a register.
-          return;
-        }
-      }
-      _forEachChild(node, countSubtrees);
+  final counts = <Expr, int>{};
+  void scan(Expr node) {
+    if (optimize && _isCompositeCandidate(node)) {
+      final prev = counts[node] ?? 0;
+      counts[node] = prev + 1;
+      if (prev > 0) return;
     }
-
-    countSubtrees(simplified);
-    for (final entry in counts.entries) {
-      if (entry.value >= 2) {
-        regMap[entry.key] = regMap.length;
-      }
-    }
-  }
-
-  final instructions = <Instruction>[];
-  final emittedRegs = <int>{};
-  var hasComplexLiterals = false;
-  Expr? firstComplexLiteral;
-
-  void emit(Expr expr) {
-    final regIdx = regMap[expr];
-    if (regIdx != null && emittedRegs.contains(regIdx)) {
-      instructions.add(Instruction.loadReg(regIdx));
-      return;
-    }
-
-    switch (expr) {
-      case Constant(value: Complex(:final b)) when !b.isNaN && b != 0.0:
-        hasComplexLiterals = true;
-        firstComplexLiteral ??= expr;
-        instructions.add(Instruction.pushComplex(expr.value));
-      case Constant(:final value):
-        instructions.add(Instruction.pushReal(value.a.toDouble()));
-      case ComplexNumber():
-        hasComplexLiterals = true;
-        firstComplexLiteral ??= expr;
-        instructions.add(Instruction.pushComplex(expr.toComplex()));
-      case RealNumeric():
-        instructions.add(Instruction.pushReal(expr.toDouble()));
+    switch (node) {
       case Variable(:final name):
-        var idx = varIndices[name];
-        if (idx == null) {
+        if (!varIndices.containsKey(name)) {
           if (allowDynamicVars) {
-            idx = varOrder.length;
+            varIndices[name] = varOrder.length;
             varOrder.add(name);
-            varIndices[name] = idx;
           } else {
             throw ArgumentError('Unbound variable: "$name"');
           }
         }
-        instructions.add(Instruction.loadVar(idx));
-      case Add(terms: []):
-        instructions.add(Instruction.pushReal(0.0));
-      case Add(terms: [final first, ...final rest]):
-        emit(first);
-        for (final term in rest) {
-          emit(term);
-          instructions.add(const Instruction.op(Op.add));
+      case Call(id: FunctionId.hypergeometric, :final args):
+        final upper =
+            args[0] is Call && (args[0] as Call).id == FunctionId.tuple
+            ? (args[0] as Call).args
+            : [args[0]];
+        final lower =
+            args[1] is Call && (args[1] as Call).id == FunctionId.tuple
+            ? (args[1] as Call).args
+            : [args[1]];
+        for (final u in upper) {
+          scan(u);
         }
-      case Mul(factors: []):
-        instructions.add(Instruction.pushReal(1.0));
-      case Mul(factors: [IntegerNumber(isNegativeOne: true), final operand]):
-        emit(operand);
-        instructions.add(const Instruction.op(Op.neg));
-      case Mul(factors: [final first, ...final rest]):
-        emit(first);
-        for (final factor in rest) {
-          emit(factor);
-          instructions.add(const Instruction.op(Op.mul));
+        for (final l in lower) {
+          scan(l);
         }
-      case Pow(base: Constant.e, :final exponent):
-        emit(exponent);
-        instructions.add(const Instruction.op(Op.exp));
-      case Pow(:final base, :final exponent)
-          when exponent == FractionNumber.half ||
-              exponent == const RealNumber(0.5):
-        emit(base);
-        instructions.add(const Instruction.op(Op.sqrt));
-      case Pow(:final base, exponent: IntegerNumber(isNegativeOne: true)):
-        instructions.add(Instruction.pushReal(1.0));
-        emit(base);
-        instructions.add(const Instruction.op(Op.div));
-      case Pow(
-            :final base,
-            exponent: final exp &&
-                FractionNumber(:final numerator, :final denominator),
-          )
-          when denominator.isOdd:
-        emit(base);
-        emit(exp);
-        instructions.add(Instruction.pow(oddRootMode: numerator.isOdd ? 1 : 2));
-      case Pow(:final base, :final exponent):
-        emit(base);
-        emit(exponent);
-        instructions.add(const Instruction.pow());
-      case Call(:final id, :final args):
-        switch (id) {
-          case FunctionId.sin:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.sin));
-          case FunctionId.cos:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.cos));
-          case FunctionId.ln:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.ln));
-          case FunctionId.tan:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.tan));
-          case FunctionId.asin:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.asin));
-          case FunctionId.acos:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.acos));
-          case FunctionId.atan:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.atan));
-          case FunctionId.atan2:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.atan2));
-          case FunctionId.sinh:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.sinh));
-          case FunctionId.cosh:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.cosh));
-          case FunctionId.tanh:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.tanh));
-          case FunctionId.abs:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.abs));
-          case FunctionId.re:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.re));
-          case FunctionId.im:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.im));
-          case FunctionId.arg:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.arg));
-          case FunctionId.conj:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.conj));
-          case FunctionId.lambertW:
-            emit(args[0]);
-            final branch = args.length > 1 && args[1] is IntegerNumber
-                ? (args[1] as IntegerNumber).toInt()
-                : 0;
-            instructions.add(
-              Instruction.op(branch == 0 ? Op.lambertW0 : Op.lambertW1),
-            );
-          case FunctionId.erf:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.erf));
-          case FunctionId.erfc:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.erfc));
-          case FunctionId.gamma:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.gamma));
-          case FunctionId.zeta:
-            emit(args[0]);
-            if (args.length < 2) {
-              instructions.add(const Instruction.op(Op.zeta));
-            } else {
-              emit(args[1]);
-              instructions.add(const Instruction.op(Op.hurwitzZeta));
-            }
-          case FunctionId.digamma:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.digamma));
-          case FunctionId.logGamma:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.logGamma));
-          case FunctionId.polygamma:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.polygamma));
-          case FunctionId.besselJ:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.besselJ));
-          case FunctionId.besselY:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.besselY));
-          case FunctionId.besselI:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.besselI));
-          case FunctionId.besselK:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.besselK));
-          case FunctionId.ellipticK:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.ellipticK));
-          case FunctionId.ellipticE:
-            if (args.length < 2) {
-              emit(args[0]);
-              instructions.add(const Instruction.op(Op.ellipticE));
-            } else {
-              emit(args[0]);
-              emit(args[1]);
-              instructions.add(const Instruction.op(Op.ellipticEIncomplete));
-            }
-          case FunctionId.erfi:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.erfi));
-          case FunctionId.fresnelS:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.fresnelS));
-          case FunctionId.fresnelC:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.fresnelC));
-          case FunctionId.ei:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.expIntegralEi));
-          case FunctionId.li:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.logIntegralLi));
-          case FunctionId.si:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.sinIntegralSi));
-          case FunctionId.ci:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.cosIntegralCi));
-          case FunctionId.shi:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.sinhIntegralShi));
-          case FunctionId.chi:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.coshIntegralChi));
-          case FunctionId.upperGamma:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.upperGamma));
-          case FunctionId.lowerGamma:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.lowerGamma));
-          case FunctionId.polylog:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.polylog));
-          case FunctionId.ellipticF:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.ellipticF));
-          case FunctionId.ellipticPi:
-            emit(args[0]);
-            emit(args[1]);
-            emit(args[2]);
-            instructions.add(const Instruction.op(Op.ellipticPi));
-          case FunctionId.expIntegralE:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.expIntegralE));
-          case FunctionId.hypergeometric:
-            final upper =
-                args[0] is Call && (args[0] as Call).id == FunctionId.tuple
-                ? (args[0] as Call).args
-                : [args[0]];
-            final lower =
-                args[1] is Call && (args[1] as Call).id == FunctionId.tuple
-                ? (args[1] as Call).args
-                : [args[1]];
-            for (final u in upper) {
-              emit(u);
-            }
-            for (final l in lower) {
-              emit(l);
-            }
-            emit(args[2]);
-            instructions.add(
-              Instruction.hypergeometric(upper.length, lower.length),
-            );
-          case FunctionId.appellF1:
-            emit(args[0]);
-            emit(args[1]);
-            emit(args[2]);
-            emit(args[3]);
-            emit(args[4]);
-            emit(args[5]);
-            instructions.add(const Instruction.op(Op.appellF1));
-          case FunctionId.min:
-            if (args.isEmpty) {
-              instructions.add(Instruction.pushReal(double.nan));
-            } else {
-              emit(args.first);
-              for (var i = 1; i < args.length; i++) {
-                emit(args[i]);
-                instructions.add(const Instruction.op(Op.min));
-              }
-            }
-          case FunctionId.max:
-            if (args.isEmpty) {
-              instructions.add(Instruction.pushReal(double.nan));
-            } else {
-              emit(args.first);
-              for (var i = 1; i < args.length; i++) {
-                emit(args[i]);
-                instructions.add(const Instruction.op(Op.max));
-              }
-            }
-          case FunctionId.gcd:
-            if (args.isEmpty) {
-              instructions.add(Instruction.pushReal(double.nan));
-            } else {
-              emit(args.first);
-              for (var i = 1; i < args.length; i++) {
-                emit(args[i]);
-                instructions.add(const Instruction.op(Op.gcd));
-              }
-            }
-          case FunctionId.lcm:
-            if (args.isEmpty) {
-              instructions.add(Instruction.pushReal(double.nan));
-            } else {
-              emit(args.first);
-              for (var i = 1; i < args.length; i++) {
-                emit(args[i]);
-                instructions.add(const Instruction.op(Op.lcm));
-              }
-            }
-          case FunctionId.tuple:
-            throw UnsupportedError(
-              'Cannot compile symbolic Tuple to scalar bytecode',
-            );
-          case FunctionId.beta:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.beta));
-          case FunctionId.factorial:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.factorial));
-          case FunctionId.binomial:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.binomial));
-          case FunctionId.floor:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.floor));
-          case FunctionId.ceil:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.ceil));
-          case FunctionId.round:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.round));
-          case FunctionId.sign:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.sign));
-          case FunctionId.mod:
-            emit(args[0]);
-            emit(args[1]);
-            instructions.add(const Instruction.op(Op.mod));
-          case FunctionId.asinh:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.asinh));
-          case FunctionId.acosh:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.acosh));
-          case FunctionId.atanh:
-            emit(args[0]);
-            instructions.add(const Instruction.op(Op.atanh));
-          case FunctionId.symbolic:
-            throw UnsupportedError(
-              'Cannot compile unbound function "${expr.name}" to numeric bytecode',
-            );
-        }
-      case Relational(:final op, :final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(
-          Instruction.op(switch (op) {
-            RelOp.lessThan => Op.lt,
-            RelOp.lessEqual => Op.le,
-            RelOp.greaterThan => Op.gt,
-            RelOp.greaterEqual => Op.ge,
-            RelOp.equal => Op.eq,
-            RelOp.notEqual => Op.ne,
-          }),
+        scan(args[2]);
+        return;
+      case Call(id: FunctionId.tuple):
+        throw UnsupportedError(
+          'Cannot compile symbolic Tuple to scalar bytecode',
         );
-      case Piecewise(:final branches, :final otherwise):
-        final endJumps = <int>[];
-        final initialRegs = Set<int>.of(emittedRegs);
-        final branchEmittedRegs = <Set<int>>[];
-        for (final (:relation, :expr) in branches) {
-          emit(relation);
-          final jFalseIdx = instructions.length;
-          instructions.add(const Instruction.jumpIfFalse(0));
-          final preBranchRegs = Set<int>.of(emittedRegs);
-          emit(expr);
-          branchEmittedRegs.add(Set<int>.of(emittedRegs));
-          emittedRegs
-            ..clear()
-            ..addAll(preBranchRegs);
-          endJumps.add(instructions.length);
-          instructions.add(const Instruction.jump(0));
-          instructions[jFalseIdx] = Instruction.jumpIfFalse(
-            instructions.length,
-          );
-        }
-        if (otherwise != null) {
-          final preOtherwiseRegs = Set<int>.of(emittedRegs);
-          emit(otherwise);
-          branchEmittedRegs.add(Set<int>.of(emittedRegs));
-          emittedRegs
-            ..clear()
-            ..addAll(preOtherwiseRegs);
-        } else {
-          branchEmittedRegs.add(Set<int>.of(emittedRegs));
-          instructions.add(Instruction.pushReal(double.nan));
-        }
-        final endPc = instructions.length;
-        for (final jmpIdx in endJumps) {
-          instructions[jmpIdx] = Instruction.jump(endPc);
-        }
-        emittedRegs.clear();
-        if (branchEmittedRegs.isNotEmpty) {
-          final commonRegs = branchEmittedRegs.first.toSet();
-          for (final regs in branchEmittedRegs.skip(1)) {
-            commonRegs.retainAll(regs);
-          }
-          emittedRegs.addAll(commonRegs);
-        } else {
-          emittedRegs.addAll(initialRegs);
-        }
+      case Call(id: FunctionId.symbolic, :final name):
+        throw UnsupportedError(
+          'Cannot compile unbound function "$name" to numeric bytecode',
+        );
+      case Integral(:final lower, :final upper)
+          when allowDynamicVars && (lower == null || upper == null):
+        return;
       case Integral() ||
           Derivative() ||
           Limit() ||
           Sum() ||
           Product() ||
           RootSum():
-        for (final freeVar in expr.freeVariables) {
+        for (final freeVar in node.freeVariables) {
           if (!varIndices.containsKey(freeVar)) {
             if (allowDynamicVars) {
-              final idx = varOrder.length;
+              varIndices[freeVar] = varOrder.length;
               varOrder.add(freeVar);
-              varIndices[freeVar] = idx;
             } else {
               throw ArgumentError('Unbound variable: "$freeVar"');
             }
           }
         }
-        instructions.add(Instruction.evalNode(expr));
-      case OrderTerm():
-        instructions.add(Instruction.pushReal(0.0));
+        return;
+      default:
+        break;
     }
+    _forEachChild(node, scan);
+  }
 
-    if (regIdx != null) {
-      instructions.add(Instruction.storeReg(regIdx));
-      emittedRegs.add(regIdx);
+  scan(simplified);
+  final varCount = varOrder.length;
+
+  final cseCandidates = <Expr, int>{};
+  if (optimize) {
+    for (final entry in counts.entries) {
+      if (entry.value >= 2) {
+        cseCandidates[entry.key] = varCount + cseCandidates.length;
+      }
+    }
+  }
+  final cseCount = cseCandidates.length;
+  final tempBase = varCount + cseCount;
+  var nextTemp = tempBase;
+  var maxTempEnd = tempBase;
+
+  int allocTemp() {
+    final r = nextTemp++;
+    if (nextTemp > maxTempEnd) maxTempEnd = nextTemp;
+    return r;
+  }
+
+  // Negative tags (-1 - k) denote constant pool entries during lowering, and
+  // are relocated to [varCount .. varCount + constCount - 1] once emission ends.
+  final constMap = <_ConstKey, int>{};
+  final constReal = <double>[];
+  final constComplex = <double>[];
+
+  int internConst(double reReal, double cmpRe, double cmpIm) {
+    final key = _ConstKey(reReal, cmpRe, cmpIm);
+    final existing = constMap[key];
+    if (existing != null) return existing;
+    final idx = constReal.length;
+    constReal.add(reReal);
+    constComplex.add(cmpRe);
+    constComplex.add(cmpIm);
+    final tag = -1 - idx;
+    constMap[key] = tag;
+    return tag;
+  }
+
+  int realConstReg(double v) => internConst(v, v, 0.0);
+
+  final specs = <FunctionSpec>[];
+  final specMap = <FunctionSpec, int>{};
+  int internSpec(FunctionSpec spec) => specMap.putIfAbsent(spec, () {
+    final idx = specs.length;
+    specs.add(spec);
+    return idx;
+  });
+
+  final nodes = <Expr>[];
+  final rawCode = <int>[];
+  final rawCallArgs = <int>[];
+  final emittedCse = <int>{};
+  var hasComplexLiterals = false;
+  Expr? firstComplexLiteral;
+
+  void emitInstr(Op op, int dst, int a, int b) {
+    rawCode
+      ..add(op.index)
+      ..add(dst)
+      ..add(a)
+      ..add(b);
+  }
+
+  int pushCallArgs(List<int> args) {
+    final start = rawCallArgs.length;
+    rawCallArgs.addAll(args);
+    return start;
+  }
+
+  int resolveDst(int? preferred, Expr? cseNode) {
+    if (cseNode != null) return cseCandidates[cseNode]!;
+    return preferred ?? allocTemp();
+  }
+
+  late int Function(Expr, {int? target}) emit;
+
+  int emitIntoNew(Expr expr) => emit(expr);
+
+  int emitBinaryOp(Op op, Expr left, Expr right, int dst) {
+    final ra = emitIntoNew(left);
+    final rb = emitIntoNew(right);
+    emitInstr(op, dst, ra, rb);
+    return dst;
+  }
+
+  int emitPow(Expr base, Expr exponent, int dst) {
+    if (base == Constant.e) {
+      final re = emitIntoNew(exponent);
+      emitInstr(Op.exp, dst, re, 0);
+      return dst;
+    }
+    if (exponent == FractionNumber.half || exponent == const RealNumber(0.5)) {
+      final rb = emitIntoNew(base);
+      emitInstr(Op.sqrt, dst, rb, 0);
+      return dst;
+    }
+    if (exponent is IntegerNumber) {
+      if (exponent.isZero) return realConstReg(1.0);
+      if (exponent.isOne) return emit(base, target: dst);
+      if (exponent.isNegativeOne) {
+        final c1 = realConstReg(1.0);
+        final rb = emitIntoNew(base);
+        emitInstr(Op.div, dst, c1, rb);
+        return dst;
+      }
+      if (exponent.asInt case final e? when e.abs() <= 64) {
+        final rb = emitIntoNew(base);
+        emitInstr(Op.powInt, dst, rb, e);
+        return dst;
+      }
+    }
+    if (exponent case FractionNumber(:final numerator, :final denominator)
+        when denominator.isOdd) {
+      final rb = emitIntoNew(base);
+      final re = emitIntoNew(exponent);
+      emitInstr(
+        numerator.isOdd ? Op.powOddRootOdd : Op.powOddRootEven,
+        dst,
+        rb,
+        re,
+      );
+      return dst;
+    }
+    return emitBinaryOp(Op.pow, base, exponent, dst);
+  }
+
+  int emitCall(Call expr, int dst) {
+    final spec = expr.spec;
+    final args = expr.args;
+    switch (spec.id) {
+      case FunctionId.sin:
+        emitInstr(Op.sin, dst, emitIntoNew(args[0]), 0);
+        return dst;
+      case FunctionId.cos:
+        emitInstr(Op.cos, dst, emitIntoNew(args[0]), 0);
+        return dst;
+      case FunctionId.tan:
+        emitInstr(Op.tan, dst, emitIntoNew(args[0]), 0);
+        return dst;
+      case FunctionId.ln:
+        emitInstr(Op.ln, dst, emitIntoNew(args[0]), 0);
+        return dst;
+      case FunctionId.abs:
+        emitInstr(Op.abs, dst, emitIntoNew(args[0]), 0);
+        return dst;
+      case FunctionId.hypergeometric:
+        final upper =
+            args[0] is Call && (args[0] as Call).id == FunctionId.tuple
+            ? (args[0] as Call).args
+            : [args[0]];
+        final lower =
+            args[1] is Call && (args[1] as Call).id == FunctionId.tuple
+            ? (args[1] as Call).args
+            : [args[1]];
+        final regs = <int>[
+          for (final u in upper) emitIntoNew(u),
+          for (final l in lower) emitIntoNew(l),
+          emitIntoNew(args[2]),
+        ];
+        final argStart = pushCallArgs(regs);
+        emitInstr(
+          Op.hypergeometric,
+          dst,
+          argStart,
+          (upper.length << 8) | lower.length,
+        );
+        return dst;
+      default:
+        final specIdx = internSpec(spec);
+        if (args.length == 1) {
+          emitInstr(Op.call1, dst, emitIntoNew(args[0]), specIdx);
+          return dst;
+        }
+        if (args.length == 2) {
+          final r0 = emitIntoNew(args[0]);
+          final r1 = emitIntoNew(args[1]);
+          final argStart = pushCallArgs([r0, r1]);
+          emitInstr(Op.call2, dst, argStart, specIdx);
+          return dst;
+        }
+        final argRegs = [for (final a in args) emitIntoNew(a)];
+        final argStart = pushCallArgs(argRegs);
+        emitInstr(Op.callN, dst, argStart, (argRegs.length << 16) | specIdx);
+        return dst;
     }
   }
 
-  emit(simplified);
+  emit = (Expr expr, {int? target}) {
+    final cseReg = cseCandidates[expr];
+    if (cseReg != null && emittedCse.contains(cseReg)) {
+      if (target != null && target != cseReg) {
+        emitInstr(Op.move, target, cseReg, 0);
+        return target;
+      }
+      return cseReg;
+    }
+
+    int finishLeaf(int leafReg) {
+      if (cseReg != null) {
+        emitInstr(Op.move, cseReg, leafReg, 0);
+        emittedCse.add(cseReg);
+        if (target != null && target != cseReg) {
+          emitInstr(Op.move, target, cseReg, 0);
+          return target;
+        }
+        return cseReg;
+      }
+      if (target != null && target != leafReg) {
+        emitInstr(Op.move, target, leafReg, 0);
+        return target;
+      }
+      return leafReg;
+    }
+
+    int finishComposite(int outReg) {
+      if (cseReg != null) {
+        emittedCse.add(cseReg);
+        if (target != null && target != cseReg) {
+          emitInstr(Op.move, target, cseReg, 0);
+          return target;
+        }
+        return cseReg;
+      }
+      return outReg;
+    }
+
+    switch (expr) {
+      case Constant(value: Complex(:final b)) when !b.isNaN && b != 0.0:
+        hasComplexLiterals = true;
+        firstComplexLiteral ??= expr;
+        return finishLeaf(
+          internConst(double.nan, expr.value.a.toDouble(), b.toDouble()),
+        );
+      case Constant(:final value):
+        final a = value.a.toDouble();
+        return finishLeaf(internConst(a, a, 0.0));
+      case ComplexNumber():
+        hasComplexLiterals = true;
+        firstComplexLiteral ??= expr;
+        final z = expr.toComplex();
+        final re = z.a.toDouble();
+        final im = z.b.toDouble();
+        return finishLeaf(internConst(im == 0.0 ? re : double.nan, re, im));
+      case RealNumeric():
+        return finishLeaf(realConstReg(expr.toDouble()));
+      case Variable(:final name):
+        return finishLeaf(varIndices[name]!);
+      case OrderTerm():
+        return finishLeaf(realConstReg(0.0));
+      case Add(terms: []):
+        return finishLeaf(realConstReg(0.0));
+      case Add(terms: [final single]):
+        return finishLeaf(emit(single));
+      case Add(:final terms):
+        final dst = resolveDst(target, cseReg != null ? expr : null);
+        var acc = emitIntoNew(terms.first);
+        for (var i = 1; i < terms.length; i++) {
+          final isLast = i == terms.length - 1;
+          final out = isLast ? dst : allocTemp();
+          final term = terms[i];
+          if (term case Mul(
+            factors: [IntegerNumber(isNegativeOne: true), final negInner],
+          )) {
+            final rhs = emitIntoNew(negInner);
+            emitInstr(Op.sub, out, acc, rhs);
+          } else {
+            final rhs = emitIntoNew(term);
+            emitInstr(Op.add, out, acc, rhs);
+          }
+          acc = out;
+        }
+        return finishComposite(acc);
+      case Mul(factors: []):
+        return finishLeaf(realConstReg(1.0));
+      case Mul(factors: [final single]):
+        return finishLeaf(emit(single));
+      case Mul(factors: [IntegerNumber(isNegativeOne: true), final operand]):
+        final dst = resolveDst(target, cseReg != null ? expr : null);
+        final rOp = emitIntoNew(operand);
+        emitInstr(Op.neg, dst, rOp, 0);
+        return finishComposite(dst);
+      case Mul(:final factors):
+        final dst = resolveDst(target, cseReg != null ? expr : null);
+        var acc = emitIntoNew(factors.first);
+        for (var i = 1; i < factors.length; i++) {
+          final isLast = i == factors.length - 1;
+          final out = isLast ? dst : allocTemp();
+          final rhs = emitIntoNew(factors[i]);
+          emitInstr(Op.mul, out, acc, rhs);
+          acc = out;
+        }
+        return finishComposite(acc);
+      case Pow():
+        final dst = resolveDst(target, cseReg != null ? expr : null);
+        final out = emitPow(expr.base, expr.exponent, dst);
+        return out == dst ? finishComposite(dst) : finishLeaf(out);
+      case Call():
+        final dst = resolveDst(target, cseReg != null ? expr : null);
+        emitCall(expr, dst);
+        return finishComposite(dst);
+      case Relational(:final op, :final left, :final right):
+        final dst = resolveDst(target, cseReg != null ? expr : null);
+        emitBinaryOp(
+          switch (op) {
+            RelOp.lessThan => Op.relLt,
+            RelOp.lessEqual => Op.relLe,
+            RelOp.greaterThan => Op.relGt,
+            RelOp.greaterEqual => Op.relGe,
+            RelOp.equal => Op.relEq,
+            RelOp.notEqual => Op.relNe,
+          },
+          left,
+          right,
+          dst,
+        );
+        return finishComposite(dst);
+      case Piecewise(:final branches, :final otherwise):
+        final outReg = resolveDst(target, cseReg != null ? expr : null);
+        final endJumps = <int>[];
+        final initialCse = Set<int>.of(emittedCse);
+        final branchCse = <Set<int>>[];
+        final branchTempBase = nextTemp;
+
+        for (final (:relation, expr: body) in branches) {
+          nextTemp = branchTempBase;
+          final condReg = emitIntoNew(relation);
+          final jFalseIdx = rawCode.length;
+          emitInstr(Op.jumpIfFalse, 0, condReg, 0);
+
+          final preBranchCse = Set<int>.of(emittedCse);
+          final branchTempIn = nextTemp;
+          emit(body, target: outReg);
+          nextTemp = branchTempIn;
+          branchCse.add(Set<int>.of(emittedCse));
+          emittedCse
+            ..clear()
+            ..addAll(preBranchCse);
+
+          endJumps.add(rawCode.length);
+          emitInstr(Op.jump, 0, 0, 0);
+          rawCode[jFalseIdx + 1] = rawCode.length;
+        }
+
+        nextTemp = branchTempBase;
+        if (otherwise != null) {
+          final preOtherwiseCse = Set<int>.of(emittedCse);
+          emit(otherwise, target: outReg);
+          branchCse.add(Set<int>.of(emittedCse));
+          emittedCse
+            ..clear()
+            ..addAll(preOtherwiseCse);
+        } else {
+          branchCse.add(Set<int>.of(emittedCse));
+          final nanReg = internConst(double.nan, double.nan, double.nan);
+          emitInstr(Op.move, outReg, nanReg, 0);
+        }
+        nextTemp = branchTempBase;
+
+        final endPc = rawCode.length;
+        for (final jmpWord in endJumps) {
+          rawCode[jmpWord + 1] = endPc;
+        }
+
+        emittedCse.clear();
+        if (branchCse.isNotEmpty) {
+          final common = branchCse.first.toSet();
+          for (final regs in branchCse.skip(1)) {
+            common.retainAll(regs);
+          }
+          emittedCse.addAll(common);
+        } else {
+          emittedCse.addAll(initialCse);
+        }
+        return finishComposite(outReg);
+      case Integral(:final lower, :final upper)
+          when lower == null || upper == null:
+        return finishLeaf(internConst(double.nan, double.nan, double.nan));
+      case Integral() ||
+          Derivative() ||
+          Limit() ||
+          Sum() ||
+          Product() ||
+          RootSum():
+        final dst = resolveDst(target, cseReg != null ? expr : null);
+        final nodeIdx = nodes.length;
+        nodes.add(expr);
+        emitInstr(Op.evalNode, dst, nodeIdx, 0);
+        return finishComposite(dst);
+    }
+  };
+
+  final rawResultReg = emit(simplified);
+  final constCount = constReal.length;
+  final usedCseCount = emittedCse.length;
+
+  int remapReg(int r) {
+    if (r < 0) return varCount + (-1 - r);
+    if (r < varCount) return r;
+    return r + constCount;
+  }
+
+  for (var pc = 0; pc < rawCode.length; pc += 4) {
+    final op = Op.values[rawCode[pc]];
+    switch (op) {
+      case Op.jump:
+        break;
+      case Op.jumpIfFalse:
+        rawCode[pc + 2] = remapReg(rawCode[pc + 2]);
+      case Op.move ||
+          Op.neg ||
+          Op.sqrt ||
+          Op.sin ||
+          Op.cos ||
+          Op.tan ||
+          Op.exp ||
+          Op.ln ||
+          Op.abs ||
+          Op.powInt ||
+          Op.call1 ||
+          Op.evalNode:
+        rawCode[pc + 1] = remapReg(rawCode[pc + 1]);
+        if (op != Op.evalNode) {
+          rawCode[pc + 2] = remapReg(rawCode[pc + 2]);
+        }
+      case Op.call2 || Op.callN || Op.hypergeometric:
+        rawCode[pc + 1] = remapReg(rawCode[pc + 1]);
+      case Op.add ||
+          Op.sub ||
+          Op.mul ||
+          Op.div ||
+          Op.pow ||
+          Op.powOddRootOdd ||
+          Op.powOddRootEven ||
+          Op.relLt ||
+          Op.relLe ||
+          Op.relGt ||
+          Op.relGe ||
+          Op.relEq ||
+          Op.relNe:
+        rawCode[pc + 1] = remapReg(rawCode[pc + 1]);
+        rawCode[pc + 2] = remapReg(rawCode[pc + 2]);
+        rawCode[pc + 3] = remapReg(rawCode[pc + 3]);
+    }
+  }
+
+  for (var i = 0; i < rawCallArgs.length; i++) {
+    rawCallArgs[i] = remapReg(rawCallArgs[i]);
+  }
+
+  final resultReg = remapReg(rawResultReg);
+  final registerCount = maxTempEnd + constCount;
 
   return BytecodeEvaluator(
     variables: List.unmodifiable(varOrder),
-    instructions: List.unmodifiable(instructions),
-    maxStack: _computeMaxStack(instructions),
-    registerCount: regMap.length,
+    code: Int32List.fromList(rawCode),
+    callArgs: Int32List.fromList(rawCallArgs),
+    specs: List.unmodifiable(specs),
+    nodes: List.unmodifiable(nodes),
+    constReal: Float64List.fromList(constReal),
+    constComplex: Float64List.fromList(constComplex),
+    registerCount: registerCount < 1 ? 1 : registerCount,
+    cseCount: usedCseCount,
+    resultReg: resultReg,
     hasComplexLiterals: hasComplexLiterals,
     isRealOutput:
         !hasComplexLiterals ||
@@ -850,6 +674,22 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
     case Pow(:final base, :final exponent):
       visit(base);
       visit(exponent);
+    case Call(id: FunctionId.hypergeometric, :final args):
+      if (args[0] case Call(id: FunctionId.tuple, args: final uArgs)) {
+        for (final u in uArgs) {
+          visit(u);
+        }
+      } else {
+        visit(args[0]);
+      }
+      if (args[1] case Call(id: FunctionId.tuple, args: final lArgs)) {
+        for (final l in lArgs) {
+          visit(l);
+        }
+      } else {
+        visit(args[1]);
+      }
+      visit(args[2]);
     case Call(:final args):
       for (final a in args) {
         visit(a);
@@ -877,125 +717,26 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
   }
 }
 
-int _computeMaxStack(List<Instruction> instructions) {
-  final depthAt = List<int?>.filled(instructions.length + 1, null);
-  var current = 0;
-  var maxDepth = 0;
-  for (var pc = 0; pc < instructions.length; pc++) {
-    final recorded = depthAt[pc];
-    if (recorded != null) {
-      current = recorded;
-    }
-    final instr = instructions[pc];
-    switch (instr.op) {
-      case Op.pushConst || Op.loadVar || Op.loadReg || Op.evalNode:
-        current++;
-      case Op.jumpIfFalse:
-        current = math.max(0, current - 1);
-        final target = instr.index;
-        if (target >= 0 && target < depthAt.length) {
-          depthAt[target] ??= current;
-        }
-      case Op.jump:
-        final target = instr.index;
-        if (target >= 0 && target < depthAt.length) {
-          depthAt[target] ??= current;
-        }
-        final nextRecorded = depthAt[pc + 1];
-        if (nextRecorded != null) {
-          current = nextRecorded;
-        }
-      case Op.add ||
-          Op.sub ||
-          Op.mul ||
-          Op.div ||
-          Op.pow ||
-          Op.beta ||
-          Op.binomial ||
-          Op.polygamma ||
-          Op.besselJ ||
-          Op.besselY ||
-          Op.besselI ||
-          Op.besselK ||
-          Op.upperGamma ||
-          Op.lowerGamma ||
-          Op.polylog ||
-          Op.ellipticF ||
-          Op.ellipticEIncomplete ||
-          Op.atan2 ||
-          Op.mod ||
-          Op.hurwitzZeta ||
-          Op.expIntegralE ||
-          Op.min ||
-          Op.max ||
-          Op.gcd ||
-          Op.lcm ||
-          Op.lt ||
-          Op.le ||
-          Op.gt ||
-          Op.ge ||
-          Op.eq ||
-          Op.ne:
-        current = math.max(0, current - 1);
-      case Op.ellipticPi:
-        current = math.max(0, current - 2);
-      case Op.hypergeometric:
-        final p = instr.index >> 8;
-        final q = instr.index & 0xff;
-        current = math.max(0, current - (p + q));
-      case Op.appellF1:
-        current = math.max(0, current - 5);
-      case Op.storeReg ||
-          Op.neg ||
-          Op.sin ||
-          Op.cos ||
-          Op.exp ||
-          Op.ln ||
-          Op.tan ||
-          Op.asin ||
-          Op.acos ||
-          Op.atan ||
-          Op.sinh ||
-          Op.cosh ||
-          Op.tanh ||
-          Op.abs ||
-          Op.sqrt ||
-          Op.lambertW0 ||
-          Op.lambertW1 ||
-          Op.erf ||
-          Op.erfc ||
-          Op.gamma ||
-          Op.logGamma ||
-          Op.zeta ||
-          Op.digamma ||
-          Op.ellipticK ||
-          Op.ellipticE ||
-          Op.erfi ||
-          Op.fresnelS ||
-          Op.fresnelC ||
-          Op.expIntegralEi ||
-          Op.logIntegralLi ||
-          Op.sinIntegralSi ||
-          Op.cosIntegralCi ||
-          Op.sinhIntegralShi ||
-          Op.coshIntegralChi ||
-          Op.factorial ||
-          Op.floor ||
-          Op.ceil ||
-          Op.round ||
-          Op.sign ||
-          Op.re ||
-          Op.im ||
-          Op.arg ||
-          Op.conj ||
-          Op.asinh ||
-          Op.acosh ||
-          Op.atanh:
-        break;
-    }
-    if (current > maxDepth) {
-      maxDepth = current;
-    }
-  }
-  return math.max(maxDepth + 2, 2);
+final class _ConstKey {
+  const new(this.real, this.cmpRe, this.cmpIm);
+
+  final double real;
+  final double cmpRe;
+  final double cmpIm;
+
+  static bool _sameDouble(double a, double b) =>
+      (a.isNaN && b.isNaN) || (a == b && a.isNegative == b.isNegative);
+
+  static int _hashDouble(double v) => v.isNaN ? 0x7ff80000 : v.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _ConstKey &&
+      _sameDouble(real, other.real) &&
+      _sameDouble(cmpRe, other.cmpRe) &&
+      _sameDouble(cmpIm, other.cmpIm);
+
+  @override
+  int get hashCode =>
+      Object.hash(_hashDouble(real), _hashDouble(cmpRe), _hashDouble(cmpIm));
 }
