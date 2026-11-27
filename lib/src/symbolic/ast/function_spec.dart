@@ -307,14 +307,6 @@ sealed class FunctionSpec {
         .join('<mo>,</mo>');
     return '<mrow><mi>$mi</mi><mo>(</mo>$joined<mo>)</mo></mrow>';
   }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is FunctionSpec && id == other.id && name == other.name);
-
-  @override
-  int get hashCode => Object.hash(id, name);
 }
 
 /// Callable 1-argument built-in function descriptor.
@@ -542,4 +534,12 @@ final class SymbolicFunctionSpec extends FunctionSpec {
     final op = escaped.length == 1 ? escaped : '\\operatorname{$escaped}';
     return '$op(${args.map((a) => formatChild(a, decimalPlaces)).join(', ')})';
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SymbolicFunctionSpec && name == other.name);
+
+  @override
+  int get hashCode => Object.hash(SymbolicFunctionSpec, name);
 }

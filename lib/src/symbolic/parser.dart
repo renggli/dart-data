@@ -943,7 +943,7 @@ class ExprSyntax {
     if (varToken is Variable) return expr;
     Expr visit(Expr node) {
       if (node == varToken) return Variable(varName);
-      if (varName == 'i' && node is ComplexNumber) {
+      if (varToken == ComplexNumber.i && node is ComplexNumber) {
         final imagExpr = switch (node.imaginary) {
           IntegerNumber(isOne: true) => Variable(varName),
           IntegerNumber(isNegativeOne: true) => -Variable(varName),
@@ -951,7 +951,7 @@ class ExprSyntax {
         };
         return node.real.isZero ? imagExpr : node.real + imagExpr;
       }
-      if (varName == 'e' && node is Pow && node.base == Constant.e) {
+      if (varToken == Constant.e && node is Pow && node.base == Constant.e) {
         if (_isExpFunction[node] == true) {
           final res = Pow.of(Constant.e, visit(node.exponent));
           if (res is Pow) {

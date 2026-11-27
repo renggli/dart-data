@@ -17,9 +17,14 @@ int compareStructural(Expr a, Expr b) {
     (final Constant ca, final Constant cb) => _compareConstant(ca, cb),
     (final Variable va, final Variable vb) => va.name.compareTo(vb.name),
     (final Call ca, final Call cb) => () {
-      if (ca.id == FunctionId.symbolic) {
+      if (ca.spec != cb.spec) {
         final cmpName = ca.name.compareTo(cb.name);
         if (cmpName != 0) return cmpName;
+        final cmpType = ca.spec.runtimeType.toString().compareTo(
+          cb.spec.runtimeType.toString(),
+        );
+        if (cmpType != 0) return cmpType;
+        return identityHashCode(ca.spec).compareTo(identityHashCode(cb.spec));
       }
       return _compareExprList(ca.args, cb.args);
     }(),

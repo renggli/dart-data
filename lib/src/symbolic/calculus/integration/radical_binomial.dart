@@ -455,8 +455,12 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
         final a = coeffs[2] ?? IntegerNumber.zero;
         final b = coeffs[1] ?? IntegerNumber.zero;
         final c = coeffs[0] ?? IntegerNumber.zero;
-        const tName = '_inv';
-        const tVar = Variable(tName);
+        final tName = freshVariable('_inv', {
+          variable,
+          ...left.freeVariables,
+          ...right.freeVariables,
+        });
+        final tVar = Variable(tName);
         final qT = (c * tVar * tVar + b * tVar + a).simplify();
         final numT =
             (-left *
@@ -569,8 +573,12 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
           when !(intercept is Number && intercept.isZero)) {
         final coeffs = extractPolynomialCoefficients(rad.base, variable);
         if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
-          const uName = '_lin';
-          const uVar = Variable(uName);
+          final uName = freshVariable('_lin', {
+            variable,
+            ...left.freeVariables,
+            ...right.freeVariables,
+          });
+          final uVar = Variable(uName);
           final xOfU = ((uVar - intercept) / slope).simplify();
           final constScale = constFactors.isEmpty
               ? IntegerNumber.one

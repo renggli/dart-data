@@ -170,7 +170,7 @@ Expr simplifyConjugate(Expr expr, {required Assumptions assumptions}) {
         for (final factor in factors)
           simplifyConjugate(factor, assumptions: assumptions),
       ], assumptions: assumptions);
-    case Pow(base: Constant(name: 'e'), :final exponent):
+    case Pow(base: Constant.e, :final exponent):
       return simplifyPow(
         Constant.e,
         simplifyConjugate(exponent, assumptions: assumptions),

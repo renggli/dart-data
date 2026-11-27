@@ -150,7 +150,7 @@ BytecodeEvaluator compileToBytecode(
         throw UnsupportedError(
           'Cannot compile symbolic Tuple to scalar bytecode',
         );
-      case Call(id: FunctionId.symbolic, :final name):
+      case Call(spec: SymbolicFunctionSpec(:final name)):
         throw UnsupportedError(
           'Cannot compile unbound function "$name" to numeric bytecode',
         );

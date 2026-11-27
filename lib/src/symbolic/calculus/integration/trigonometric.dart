@@ -399,8 +399,12 @@ Expr? tryWeierstrassSubstitution(Expr left, Expr right, String variable) {
   final inner = m.inner!;
   final k = inner.matchLinear(variable)!.a;
 
-  const tName = '_wt';
-  const tVar = Variable(tName);
+  final tName = freshVariable('_wt', {
+    variable,
+    ...left.freeVariables,
+    ...right.freeVariables,
+  });
+  final tVar = Variable(tName);
   final denom =
       ((m.cConst - m.bCos) * tVar * tVar +
               IntegerNumber.two * m.aSin * tVar +

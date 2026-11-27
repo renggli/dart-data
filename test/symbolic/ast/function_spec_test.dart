@@ -44,5 +44,60 @@ void main() {
       check(Fn.atan2.evaluateComplex([Complex.zero, Complex.one]))
           .equals(Complex.zero);
     });
+
+    test('isolates symbolic and custom FunctionSpecs from built-ins', () {
+      const x = Variable('x');
+      const a = Variable('a');
+      const b = Variable('b');
+
+      final symSin = Call.symbolic('sin', [x]);
+      final symLn = Call.symbolic('ln', [x]);
+      final symAbs = Call.symbolic('abs', [x]);
+
+      check(symSin == Fn.sin(x)).isFalse;
+      check(symLn == Fn.ln(x)).isFalse;
+      check(symAbs == Fn.abs(x)).isFalse;
+
+      check(Call.symbolic('sin', [IntegerNumber.zero]).simplify())
+          .equals(Call.symbolic('sin', [IntegerNumber.zero]));
+      check(Call.symbolic('ln', [Constant.e]).simplify())
+          .equals(Call.symbolic('ln', [Constant.e]));
+      check(Call.symbolic('abs', [IntegerNumber.of(-3)]).simplify())
+          .equals(Call.symbolic('abs', [IntegerNumber.of(-3)]));
+
+      check(symSin.derivative('x')).equals(Derivative(symSin, 'x'));
+      check(symSin.integrate('x')).equals(Integral(symSin, 'x'));
+      check(symSin.approximate()).equals(symSin);
+
+      final customSin = UnaryFunctionSpec(
+        id: FunctionId.symbolic,
+        name: 'sin',
+        doc: 'Custom shifted sine-like function',
+        evalReal: (v) => v + 10.0,
+        evalComplex: (z) => z + const Complex(10.0),
+      );
+      final customCall = customSin(x);
+      check(customSin == Fn.sin).isFalse;
+      check(customSin == const SymbolicFunctionSpec('sin')).isFalse;
+      check(customCall == Fn.sin(x)).isFalse;
+      check(customCall == symSin).isFalse;
+
+      check(compareStructural(customCall, symSin))
+          .equals(-compareStructural(symSin, customCall));
+      check(compareStructural(customCall, symSin) == 0).isFalse;
+
+      check(customCall.evaluate({'x': 2.0})).equals(12.0);
+      check(customSin(IntegerNumber.two).approximate())
+          .equals(const RealNumber(12.0));
+      final compiled = customCall.compile(['x']);
+      check(compiled([2.0])).equals(12.0);
+
+      final hypDiff = Fn.hypergeometric(
+        Fn.tuple([a]),
+        Fn.tuple([b]),
+        x,
+      ).derivative('x');
+      check(hypDiff).isA<Mul>();
+    });
   });
 }

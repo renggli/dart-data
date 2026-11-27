@@ -546,5 +546,38 @@ void main() {
         check(negRad).deepEquals([IntegerNumber.of(9)]);
       },
     );
+
+    test(
+      'solves equations containing parameters matching internal scratch names',
+      () {
+        const uExp = Variable('_u_exp');
+        const uFn = Variable('_u_fn');
+        const trig0 = Variable('_t_trig_0');
+        const x = Variable('x');
+
+        final expEq =
+            (Pow.of(Constant.e, IntegerNumber.two * x) -
+                    uExp * Pow.of(Constant.e, x) +
+                    IntegerNumber.two)
+                .simplify();
+        final expRoots = expEq.solve('x');
+        check(expRoots.length).equals(2);
+        for (final r in expRoots) {
+          final v = r.evaluate({'_u_exp': 3.0});
+          check(math.exp(2 * v) - 3.0 * math.exp(v) + 2.0)
+              .isCloseTo(0.0, 1e-10);
+        }
+
+        final fnEq = (Pow.of(Fn.sin(x), IntegerNumber.two) - uFn * Fn.sin(x))
+            .simplify();
+        final fnRoots = fnEq.solve('x');
+        check(fnRoots).isNotEmpty;
+
+        final trigEq = (Fn.sin(IntegerNumber.two * x) - trig0 * Fn.cos(x))
+            .simplify();
+        final trigRoots = trigEq.solve('x');
+        check(trigRoots).isNotEmpty;
+      },
+    );
   });
 }

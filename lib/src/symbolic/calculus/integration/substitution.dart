@@ -505,8 +505,8 @@ Expr? trySymbolicBinomialAffine(
   final p = binomPow.exponent;
 
   // u = a*x + b => x = (u - b) / a, dx = du / a
-  const uName = '_sb';
-  const uVar = Variable(uName);
+  final uName = freshVariable('_sb', {variable, ...expr.freeVariables});
+  final uVar = Variable(uName);
   final expanded = (Pow.of((uVar - b) / a, IntegerNumber.of(m)) / a)
       .expand()
       .simplify(assumptions: assumptions);
@@ -543,8 +543,8 @@ Expr? tryMixedTrigLogExp(
   // 0. x^(a*ln(x) + b) -> u = ln(x), dx = e^u du -> exp(a*u^2 + (b + 1)*u)
   if (expr case Pow(base: Variable(:final name), :final exponent)
       when name == variable) {
-    const uName = '_ml';
-    const uVar = Variable(uName);
+    final uName = freshVariable('_ml', {variable, ...expr.freeVariables});
+    final uVar = Variable(uName);
     final xVar = Variable(variable);
     final expSub = _substituteExpr(exponent, Fn.ln(xVar), uVar);
     if (!expSub.dependsOn(variable)) {
@@ -609,8 +609,8 @@ Expr? tryMixedTrigLogExp(
     if (inner case Call(id: FunctionId.ln, args: [final lnInner])) {
       if (lnInner.matchLinear(variable) case (:final a, b: final b)
           when b == IntegerNumber.zero) {
-        const uName = '_ml';
-        const uVar = Variable(uName);
+        final uName = freshVariable('_ml', {variable, ...expr.freeVariables});
+        final uVar = Variable(uName);
         final expFactor = Pow.of(
           Constant.e,
           (xPower + IntegerNumber.one) * uVar,
@@ -695,8 +695,8 @@ Expr? tryMixedTrigLogExp(
           }
         }
         if (ok && atanCoeff != null && xDeg <= 2 && halfExp >= xDeg + 2) {
-          const uName = '_at';
-          const uVar = Variable(uName);
+          final uName = freshVariable('_at', {variable, ...expr.freeVariables});
+          final uVar = Variable(uName);
           final cosPow = halfExp - 2 - xDeg;
           final integrand =
               (numScale *
@@ -974,8 +974,13 @@ Expr? _tryLinearTranscendentalReplace({
 }) {
   final tNode = _findTranscendental(candidate, variable);
   if (tNode == null) return null;
-  const tName = '_lt';
-  const tVar = Variable(tName);
+  final tName = freshVariable('_lt', {
+    variable,
+    uVar.name,
+    ...normQuot.freeVariables,
+    ...candidate.freeVariables,
+  });
+  final tVar = Variable(tName);
   final linear = _substituteExpr(candidate, tNode, tVar).matchLinear(tName);
   if (linear == null) return null;
   final (:a, :b) = linear;

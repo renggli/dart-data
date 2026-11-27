@@ -245,8 +245,12 @@ Expr? tryIntegrationByParts(
           final shift = (a1 / (IntegerNumber.two * a2)).simplify(
             assumptions: assumptions,
           );
-          const wName = '_gw';
-          const wVar = Variable(wName);
+          final wName = freshVariable('_gw', {
+            variable,
+            ...pExpr.freeVariables,
+            ...exponent.freeVariables,
+          });
+          final wVar = Variable(wName);
           final xInW = (wVar - shift).simplify(assumptions: assumptions);
           final pW = pExpr
               .substitute(variable, xInW)

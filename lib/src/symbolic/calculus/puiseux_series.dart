@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import '../algebra/helpers.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
@@ -986,10 +987,14 @@ PuiseuxSeries _expandCallPuiseux(
   }
   final delta = PuiseuxSeries(variable, point, deltaCoeffs, order);
 
-  const tempVar = '_puiseux_y';
+  final tempVar = freshVariable('_puiseux_y', {
+    variable,
+    ...c0.freeVariables,
+    ...point.freeVariables,
+  });
   final outer = Call(
     spec,
-    [const Variable(tempVar)],
+    [Variable(tempVar)],
   ).toPowerSeries(tempVar, point: c0, order: deg + 1, assumptions: assumptions);
   if (outer.poleOrder > 0) {
     throw UnsupportedError(

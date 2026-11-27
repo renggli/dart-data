@@ -170,5 +170,17 @@ void main() {
         ).toPuiseuxSeries('x', order: 2).coefficients[IntegerNumber.zero],
       ).isNotNull();
     });
+
+    test(
+      'avoids collision when expanding around a parameter named _puiseux_y',
+      () {
+        const x = Variable('x');
+        const p = Variable('_puiseux_y');
+        final series = Fn.sin(p + Pow.of(x, FractionNumber.half))
+            .toPuiseuxSeries('x', order: 1);
+        check(series.coefficients[IntegerNumber.zero]).equals(Fn.sin(p));
+        check(series.coefficients[FractionNumber.half]).equals(Fn.cos(p));
+      },
+    );
   });
 }

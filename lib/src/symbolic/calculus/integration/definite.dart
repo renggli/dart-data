@@ -1707,10 +1707,16 @@ Expr? _tryFloorCeilDefinite(
         }
         return Add.of(parts).simplify(assumptions: assumptions);
       } else {
-        const kName = '_fk';
-        const tName = '_ft';
-        const kVar = Variable(kName);
-        const tVar = Variable(tName);
+        final used = <String>{
+          variable,
+          ...function.freeVariables,
+          ...fromExpr.freeVariables,
+        };
+        final kName = freshVariable('_fk', used);
+        used.add(kName);
+        final tName = freshVariable('_ft', used);
+        final kVar = Variable(kName);
+        final tVar = Variable(tName);
         Expr substShift(Expr e) {
           if (e is Call && e.id == FunctionId.floor && e.args[0] == xVar) {
             return kVar;

@@ -475,5 +475,43 @@ void main() {
       ).integrate('x');
       check(realRecip.anyNode((n) => n is Integral)).isFalse;
     });
+
+    test(
+      'integrates expressions whose variables match internal scratch names',
+      () {
+        for (final varName in const [
+          '_sb',
+          '_ml',
+          '_at',
+          '_wt',
+          '_inv',
+          '_lin',
+          '_lin_u',
+          '_t_fb',
+          '_gw',
+          '_s',
+        ]) {
+          final v = Variable(varName);
+          final f = (v * Fn.sin(v * v)).simplify();
+          final anti = f.integrate(varName);
+          check(anti).isNotA<Integral>();
+          check(anti.derivative(varName).evaluate({varName: 0.7}))
+              .isCloseTo(f.evaluate({varName: 0.7}), 1e-8);
+        }
+
+        // Parametric expressions whose parameter collides with scratch names
+        final sbExpr =
+            (const Variable('_sb') *
+                    Pow.of(
+                      IntegerNumber.two * x + IntegerNumber.one,
+                      IntegerNumber.two,
+                    ))
+                .simplify();
+        final sbAnti = sbExpr.integrate('x');
+        check(sbAnti.anyNode((n) => n is Integral)).isFalse;
+        check(sbAnti.derivative('x').evaluate({'x': 0.7, '_sb': 3.0}))
+            .isCloseTo(sbExpr.evaluate({'x': 0.7, '_sb': 3.0}), 1e-8);
+      },
+    );
   });
 }

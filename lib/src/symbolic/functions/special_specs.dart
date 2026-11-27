@@ -15,6 +15,7 @@ import '../../special/trig_integral.dart' as special_trig_int;
 import '../../special/zeta.dart' as special_zeta;
 import '../algebra/simplify.dart';
 import '../ast.dart';
+import 'discrete_specs.dart';
 import 'elementary_specs.dart';
 
 /// Spec for `erf(z)`.
@@ -833,28 +834,12 @@ Expr? _diffHypergeometric(
   }
   final numProd = Mul.of(upper);
   final denProd = Mul.of(lower);
-  final nextUpper = Call(
-    const VariadicFunctionSpec(
-      id: FunctionId.tuple,
-      name: 'tuple',
-      params: ['a', '...'],
-      doc: '',
-      category: FunctionCategory.structural,
-      evalReal: _unusedTupleReal,
-      evalComplex: _unusedTupleComplex,
-    ),
-    [for (final u in upper) u + IntegerNumber.one],
-  );
-  final nextLower = Call(nextUpper.spec, [
-    for (final l in lower) l + IntegerNumber.one,
-  ]);
+  final nextUpper = tupleSpec([for (final u in upper) u + IntegerNumber.one]);
+  final nextLower = tupleSpec([for (final l in lower) l + IntegerNumber.one]);
   return (numProd / denProd) *
       hypergeometricSpec(nextUpper, nextLower, z) *
       diff(z);
 }
-
-double _unusedTupleReal(List<double> args) => double.nan;
-Complex _unusedTupleComplex(List<Complex> args) => Complex.nan;
 
 List<Expr> _unpackTuple(Expr e) =>
     e is Call && e.id == FunctionId.tuple ? e.args : [e];

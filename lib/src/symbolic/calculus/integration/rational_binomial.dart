@@ -112,8 +112,12 @@ Expr? tryLinearPowerDenominator(
   final rawDeg = polynomialDegree(left, variable);
   if (rawDeg == null || rawDeg == 0 || rawDeg > 20) return null;
 
-  const uName = '_lin_u';
-  const uVar = Variable(uName);
+  final uName = freshVariable('_lin_u', {
+    variable,
+    ...left.freeVariables,
+    ...right.freeVariables,
+  });
+  final uVar = Variable(uName);
   final xOfU = ((uVar - b) / a).simplify(assumptions: assumptions);
   final numU = left
       .substitute(variable, xOfU)
@@ -795,8 +799,12 @@ Expr? tryFactoredBinomialPowersDenominator(
     return null;
   }
 
-  const tName = '_t_fb';
-  const tVar = Variable(tName);
+  final tName = freshVariable('_t_fb', {
+    variable,
+    ...left.freeVariables,
+    ...right.freeVariables,
+  });
+  final tVar = Variable(tName);
   final binomFactorsInT = <Expr, int>{};
   for (final MapEntry(:key, :value) in binomPowers.entries) {
     final c = extractPolynomialCoefficients(key, variable)!;

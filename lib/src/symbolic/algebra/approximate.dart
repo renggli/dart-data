@@ -253,7 +253,7 @@ Expr _approximatePow(Expr base, Expr exponent) {
 Expr _approximateCall(Call node) {
   final approxArgs = [for (final arg in node.args) _approximateNode(arg)];
   final rebuilt = Call(node.spec, approxArgs);
-  if (node.id == FunctionId.tuple || node.id == FunctionId.symbolic) {
+  if (node.id == FunctionId.tuple || node.spec is SymbolicFunctionSpec) {
     return rebuilt;
   }
   if (approxArgs.every((arg) => arg is Number) ||

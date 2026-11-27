@@ -6,6 +6,7 @@ import 'package:data/src/symbolic/algebra/simplify/special_integrals.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
 import 'package:data/src/symbolic/oracle/sign.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -602,6 +603,19 @@ void main() {
       );
       check(prodDecomp.re).equals(IntegerNumber.of(-5));
       check(prodDecomp.im).equals(IntegerNumber.of(10));
+    });
+
+    test('does not match custom Constant or Variable named e in conj', () {
+      const z = Variable('z');
+      const customE = Constant('e', Complex(10));
+      const varE = Variable('e');
+
+      final conjCustom = Fn.conj(Pow.of(customE, z)).simplify();
+      check(conjCustom == Pow.of(Constant.e, Fn.conj(z))).isFalse;
+      check(conjCustom.anyNode((n) => identical(n, Constant.e))).isFalse;
+
+      final conjVar = Fn.conj(Pow.of(varE, z)).simplify();
+      check(conjVar.anyNode((n) => n == Constant.e)).isFalse;
     });
   });
 }

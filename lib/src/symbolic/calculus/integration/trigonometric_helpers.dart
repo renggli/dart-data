@@ -598,8 +598,12 @@ Expr? tryTrigPolyDivision(
   int depth = 0,
 }) {
   if (depth >= 2) return null;
-  const sName = '_s';
-  const sVar = Variable(sName);
+  final sName = freshVariable('_s', {
+    variable,
+    ...expr.freeVariables,
+    ...inner.freeVariables,
+  });
+  final sVar = Variable(sName);
 
   Expr replaceRecipAtom(Expr node, Expr trigAtom) {
     if (node == trigAtom) return IntegerNumber.one / sVar;

@@ -135,7 +135,7 @@ class SylvesterResultantSolver {
     final yRoots = solveEquation(resY, yVar, assumptions: Assumptions.none);
 
     final solutions = <Map<String, Expr>>[];
-    final seen = <String>{};
+    final seen = <({Expr x, Expr y})>{};
 
     for (final y0 in yRoots) {
       final fAtY = expF.substitute(yVar, y0).expand().simplify();
@@ -154,9 +154,10 @@ class SylvesterResultantSolver {
         final fVal = fAtY.substitute(xVar, x0).expand().simplify();
         final gVal = gAtY.substitute(xVar, x0).expand().simplify();
         if (isZeroExpr(fVal) && isZeroExpr(gVal)) {
-          final key = '${x0.simplify()}|${y0.simplify()}';
-          if (seen.add(key)) {
-            solutions.add({xVar: x0.simplify(), yVar: y0.simplify()});
+          final xSimp = x0.simplify();
+          final ySimp = y0.simplify();
+          if (seen.add((x: xSimp, y: ySimp))) {
+            solutions.add({xVar: xSimp, yVar: ySimp});
           }
         }
       }

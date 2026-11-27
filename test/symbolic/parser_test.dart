@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -507,6 +508,35 @@ void main() {
         check(() => Expr.parse('ellipticPi(1)')).throws<FormatException>();
         check(() => Expr.parse('hypergeometric(1, 2)'))
             .throws<FormatException>();
+      },
+    );
+
+    test(
+      'unbindConstant only rewrites ComplexNumber.i and Constant.e when bound',
+      () {
+        const customI = Constant('i', Complex(5));
+        const customE = Constant('e', Complex(10));
+        final customSyntax = ExprSyntax(
+          constants: {'i': customI, 'e': customE},
+        );
+        check(() => customSyntax.parse('sum(i, i, 1, 3)'))
+            .throws<FormatException>();
+        check(() => customSyntax.parse('sum(e, e, 1, 3)'))
+            .throws<FormatException>();
+
+        final iSum = ExprSyntax.standard.parse('sum(2*i + 1, i, 1, 3)') as Sum;
+        check(iSum.variable).equals('i');
+        check(iSum.expr).equals(
+          (IntegerNumber.two * const Variable('i') + IntegerNumber.one)
+              .simplify(),
+        );
+
+        final eSum =
+            ExprSyntax.standard.parse('sum(e + exp(e), e, 1, 3)') as Sum;
+        check(eSum.variable).equals('e');
+        check(
+          eSum.expr,
+        ).equals(const Variable('e') + Pow.of(Constant.e, const Variable('e')));
       },
     );
   });

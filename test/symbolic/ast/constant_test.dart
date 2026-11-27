@@ -65,5 +65,36 @@ void main() {
         check(() => complexConst.evaluate()).throws<UnsupportedError>();
       },
     );
+
+    test(
+      'custom constants with built-in names stay isolated from built-ins',
+      () {
+        const customE = Constant('e', Complex(10));
+        const customPi = Constant('pi', Complex(42));
+        const customInf = Constant('infinity', Complex(99));
+        const customUndef = Constant('undefined', Complex(7));
+
+        check(customE == Constant.e).isFalse;
+        check(customPi == Constant.pi).isFalse;
+        check(customInf == Constant.infinity).isFalse;
+        check(customUndef == Constant.undefined).isFalse;
+
+        check(Fn.ln(customE).simplify()).equals(Fn.ln(customE));
+        check(Fn.sin(customPi).simplify()).equals(Fn.sin(customPi));
+        check((customInf - customInf).simplify()).equals(IntegerNumber.zero);
+        check((customUndef + IntegerNumber.one).simplify())
+            .equals(Add.of([IntegerNumber.one, customUndef]));
+
+        check(customE.derivative('x')).equals(IntegerNumber.zero);
+        check(customE.format()).equals('e');
+        check(customPi.toLatex()).equals('pi');
+        check(customPi.toMathMl()).equals('<math><mi>pi</mi></math>');
+
+        check(customE.approximate()).equals(const RealNumber(10.0));
+        check(customPi.approximate()).equals(const RealNumber(42.0));
+        check(customInf.approximate()).equals(const RealNumber(99.0));
+        check(customUndef.approximate()).equals(const RealNumber(7.0));
+      },
+    );
   });
 }

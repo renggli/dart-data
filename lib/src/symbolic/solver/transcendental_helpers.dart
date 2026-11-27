@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
+import '../algebra/helpers.dart';
 import '../algebra/simplify.dart';
 import '../algebra/trig.dart';
 import '../assumptions.dart';
@@ -498,8 +499,8 @@ List<Expr>? tryPolynomialInExponential(
   }
   final alpha0 = RationalNumber.of(uniformNeg ? -gcdNum : gcdNum, lcmDen);
 
-  const uName = '_u_exp';
-  const uVar = Variable(uName);
+  final uName = freshVariable('_u_exp', {variable, ...expr.freeVariables});
+  final uVar = Variable(uName);
   final replacements = <Pow, Expr>{};
   var minM = 0;
   var maxM = 0;
@@ -590,8 +591,8 @@ List<Expr>? tryPolynomialInFunction(
   collect(expr);
   if (fnNodes.isEmpty) return null;
 
-  const uName = '_u_fn';
-  const uVar = Variable(uName);
+  final uName = freshVariable('_u_fn', {variable, ...expr.freeVariables});
+  final uVar = Variable(uName);
 
   List<Expr>? solveSubstituted(Expr uNode, Expr polyU) {
     final simplified = polyU.simplify(assumptions: assumptions);
@@ -737,8 +738,11 @@ List<Expr>? tryMultipleAngleTrig(
   if (expandedAtoms.isNotEmpty) {
     final toPlaceholder = <Expr, Variable>{};
     final fromPlaceholder = <Variable, Expr>{};
+    final used = <String>{variable, ...expanded.freeVariables};
     for (var i = 0; i < expandedAtoms.length; i++) {
-      final v = Variable('_t_trig_$i');
+      final vName = freshVariable('_t_trig_$i', used);
+      used.add(vName);
+      final v = Variable(vName);
       toPlaceholder[expandedAtoms[i]] = v;
       fromPlaceholder[v] = expandedAtoms[i];
     }

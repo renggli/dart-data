@@ -265,8 +265,8 @@ digraph {
   261 [label="number/combinatorics.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   262 [label="textualization/formatting.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   263 [label="functions/special_specs.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
-  264 [label="functions/elementary_specs.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
-  265 [label="functions/discrete_specs.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
+  264 [label="functions/discrete_specs.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
+  265 [label="functions/elementary_specs.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   266 [label="calculus/product.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   267 [label="algebra/simplify/multiplicative.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
   268 [label="algebra/simplify/transcendental.dart", shape=box, style="rounded,filled", fillcolor="#ffffff"];
@@ -968,7 +968,7 @@ digraph {
   132 -> 139 [color="#888888", arrowsize="0.7"];
   132 -> 140 [color="#888888", arrowsize="0.7"];
   132 -> 148 [color="#888888", arrowsize="0.7"];
-  132 -> 265 [color="#888888", arrowsize="0.7"];
+  132 -> 264 [color="#888888", arrowsize="0.7"];
   132 -> 137 [color="#888888", arrowsize="0.7"];
   132 -> 267 [color="#888888", arrowsize="0.7"];
   132 -> 290 [color="#888888", arrowsize="0.7"];
@@ -1094,6 +1094,7 @@ digraph {
   144 -> 140 [color="#888888", arrowsize="0.7"];
   144 -> 161 [color="#888888", arrowsize="0.7"];
   144 -> 141 [color="#888888", arrowsize="0.7"];
+  145 -> 244 [color="#888888", arrowsize="0.7"];
   145 -> 137 [color="#888888", arrowsize="0.7"];
   145 -> 139 [color="#888888", arrowsize="0.7"];
   145 -> 140 [color="#888888", arrowsize="0.7"];
@@ -1139,8 +1140,8 @@ digraph {
   150 -> 149 [color="#888888", arrowsize="0.7"];
   150 -> 291 [color="#888888", arrowsize="0.7"];
   151 -> 140 [color="#888888", arrowsize="0.7"];
-  151 -> 265 [color="#888888", arrowsize="0.7"];
   151 -> 264 [color="#888888", arrowsize="0.7"];
+  151 -> 265 [color="#888888", arrowsize="0.7"];
   151 -> 263 [color="#888888", arrowsize="0.7"];
   152 -> 26 [color="#888888", arrowsize="0.7"];
   152 -> 34 [color="#888888", arrowsize="0.7"];
@@ -1490,6 +1491,7 @@ digraph {
   257 -> 157 [color="#888888", arrowsize="0.7"];
   258 -> 133 [color="#888888", arrowsize="0.7"];
   258 -> 134 [color="#888888", arrowsize="0.7"];
+  258 -> 244 [color="#888888", arrowsize="0.7"];
   258 -> 137 [color="#888888", arrowsize="0.7"];
   258 -> 138 [color="#888888", arrowsize="0.7"];
   258 -> 139 [color="#888888", arrowsize="0.7"];
@@ -1530,12 +1532,13 @@ digraph {
   263 -> 137 [color="#888888", arrowsize="0.7"];
   263 -> 140 [color="#888888", arrowsize="0.7"];
   263 -> 264 [color="#888888", arrowsize="0.7"];
+  263 -> 265 [color="#888888", arrowsize="0.7"];
+  264 -> 164 [color="#888888", arrowsize="0.7"];
+  264 -> 169 [color="#888888", arrowsize="0.7"];
+  264 -> 171 [color="#888888", arrowsize="0.7"];
   264 -> 140 [color="#888888", arrowsize="0.7"];
-  265 -> 164 [color="#888888", arrowsize="0.7"];
-  265 -> 169 [color="#888888", arrowsize="0.7"];
-  265 -> 171 [color="#888888", arrowsize="0.7"];
+  264 -> 263 [color="#888888", arrowsize="0.7"];
   265 -> 140 [color="#888888", arrowsize="0.7"];
-  265 -> 263 [color="#888888", arrowsize="0.7"];
   266 -> 133 [color="#888888", arrowsize="0.7"];
   266 -> 134 [color="#888888", arrowsize="0.7"];
   266 -> 244 [color="#888888", arrowsize="0.7"];
@@ -1892,7 +1895,7 @@ digraph {
   295 -> 139 [color="#888888", arrowsize="0.7"];
   295 -> 140 [color="#888888", arrowsize="0.7"];
   295 -> 147 [color="#888888", arrowsize="0.7"];
-  295 -> 265 [color="#888888", arrowsize="0.7"];
+  295 -> 264 [color="#888888", arrowsize="0.7"];
   295 -> 151 [color="#888888", arrowsize="0.7"];
   295 -> 271 [color="#888888", arrowsize="0.7"];
   295 -> 267 [color="#888888", arrowsize="0.7"];

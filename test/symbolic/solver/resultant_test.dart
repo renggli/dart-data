@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/solver/resultant.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -116,5 +117,21 @@ void main() {
       check(SylvesterResultantSolver.resultant(f, h, 'x'))
           .equals(IntegerNumber.of(10));
     });
+
+    test(
+      'does not conflate distinct AST solutions with identical formatting',
+      () {
+        const x = Variable('x');
+        const y = Variable('y');
+        const customZero = Constant('0', Complex(5));
+
+        final f = (x * (x - customZero)).simplify();
+        final g = (y - IntegerNumber.one).simplify();
+        final solutions = SylvesterResultantSolver.solve(f, g, ['x', 'y']);
+        check(solutions.length).equals(2);
+        check(solutions.map((s) => s['x']!).toList())
+            .unorderedEquals([IntegerNumber.zero, customZero]);
+      },
+    );
   });
 }

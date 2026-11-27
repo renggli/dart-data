@@ -7,6 +7,16 @@ import 'term_accumulator.dart';
 /// Returns whether [expr] has at least [limit] AST nodes.
 bool exceedsNodeBudget(Expr expr, [int limit = 500]) => expr.nodeCount >= limit;
 
+/// Returns a variable name based on [base] that does not appear in [used].
+String freshVariable(String base, Set<String> used) {
+  if (!used.contains(base)) return base;
+  var i = 1;
+  while (used.contains('${base}_$i')) {
+    i++;
+  }
+  return '${base}_$i';
+}
+
 /// Splits an expression into `(numerator, denominator)` by extracting
 /// [FractionNumber] denominators and negative-exponent [Pow] factors.
 ///
