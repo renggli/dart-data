@@ -6,9 +6,12 @@ import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
 import '../../functions/fn.dart';
+import '../../oracle/zero_equivalence.dart';
+import '../../poly/bridge.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
+import 'hermite.dart';
 import 'integration.dart';
 import 'integration_elementary.dart';
 import 'radical.dart';
@@ -737,6 +740,53 @@ Expr? tryAntiDerivDiv(
         default:
           break;
       }
+    } else if (varFactors case [final f0, final f1]) {
+      final scale = switch (constFactors) {
+        [] => IntegerNumber.one,
+        [final single] => single,
+        _ => Mul.of(constFactors).simplify(),
+      };
+      final Pow? expNode;
+      final Call? trigNode;
+      if (f0 is Pow && f0.base == Constant.e && f1 is Call) {
+        expNode = f0;
+        trigNode = f1;
+      } else if (f1 is Pow && f1.base == Constant.e && f0 is Call) {
+        expNode = f1;
+        trigNode = f0;
+      } else {
+        expNode = null;
+        trigNode = null;
+      }
+      if (expNode != null &&
+          trigNode != null &&
+          (trigNode.id == FunctionId.sin || trigNode.id == FunctionId.cos)) {
+        final expLin = expNode.exponent.matchLinear(variable);
+        final trigLin = trigNode.args[0].matchLinear(variable);
+        if (expLin != null && trigLin != null) {
+          final shiftVar = (Variable(variable) + d1 / c1).simplify();
+          final expConst = Pow.of(
+            Constant.e,
+            (expLin.b - (expLin.a * d1) / c1).simplify(),
+          );
+          final phi = (trigLin.b - (trigLin.a * d1) / c1).simplify();
+          final iCoeff = ComplexNumber.i;
+          final kPlus = (expLin.a + iCoeff * trigLin.a).simplify();
+          final kMinus = (expLin.a - iCoeff * trigLin.a).simplify();
+          final eiPlus = Fn.ei((kPlus * shiftVar).simplify());
+          final eiMinus = Fn.ei((kMinus * shiftVar).simplify());
+          final termPlus = (Pow.of(Constant.e, iCoeff * phi) * eiPlus)
+              .simplify();
+          final termMinus = (Pow.of(Constant.e, -iCoeff * phi) * eiMinus)
+              .simplify();
+          final trigComb = trigNode.id == FunctionId.sin
+              ? (termPlus - termMinus) / (IntegerNumber.two * iCoeff)
+              : (termPlus + termMinus) / IntegerNumber.two;
+          return (scale * expConst * trigComb / c1).simplify(
+            assumptions: assumptions,
+          );
+        }
+      }
     }
   }
 
@@ -1054,6 +1104,50 @@ Expr? tryAntiDerivDiv(
           if (tryDistinctLinearPartialFractions(left, right, variable)
               case final pfRes?) {
             return pfRes;
+          }
+        }
+        if (degRight >= 2 && withinPolyBudget && !isDenseMultivariate) {
+          if (exprToPolyQ(leftExp, variable) case final numQ?) {
+            if (exprToPolyQ(rightExp, variable) case final denQ?
+                when denQ.degree >= 2) {
+              final hermite = hermiteReduce(
+                numQ,
+                denQ,
+                variable,
+                assumptions: assumptions,
+              );
+              if (hermite.num.isZero) {
+                return hermite.rationalPart;
+              }
+              if (integrateSquareFreeRational(
+                    hermite.num,
+                    hermite.den,
+                    variable,
+                    assumptions: assumptions,
+                  )
+                  case final sfRes?) {
+                return (hermite.rationalPart + sfRes).simplify(
+                  assumptions: assumptions,
+                );
+              }
+              if (!isZeroExpr(hermite.rationalPart) && depth < 2) {
+                final remExpr =
+                    (polyQToExpr(hermite.num, variable) /
+                            polyQToExpr(hermite.den, variable))
+                        .simplify(assumptions: assumptions);
+                final remInt = antiDerivative(
+                  remExpr,
+                  variable,
+                  depth: depth + 1,
+                  assumptions: assumptions,
+                );
+                if (!hasUnevaluatedIntegral(remInt, variable)) {
+                  return (hermite.rationalPart + remInt).simplify(
+                    assumptions: assumptions,
+                  );
+                }
+              }
+            }
           }
         }
         if (degRight >= 2 &&

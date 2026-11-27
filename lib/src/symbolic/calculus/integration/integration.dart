@@ -345,6 +345,13 @@ Expr _antiDerivativeCore(
           );
           if (expRes != null) return expRes;
         }
+        final sumToProd = tryRewriteTrigSumToProductAdd(
+          terms,
+          variable,
+          assumptions: assumptions,
+          depth: depth,
+        );
+        if (sumToProd != null) return sumToProd;
         if (tryTranscendentalTower(
               node,
               variable,

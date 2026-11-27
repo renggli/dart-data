@@ -6,6 +6,7 @@ import '../../algebra/trig.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../functions/fn.dart';
+import '../../oracle/zero_equivalence.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -105,6 +106,252 @@ Expr? tryExpandTrigBinomialProduct(
     results.add(res);
   }
   return Add.of(results).simplify(assumptions: assumptions);
+}
+
+/// Rewrites trig sum/difference pairs such as `sin(A + B) - sin(A - B)` in an
+/// `Add` node into product-to-sum form and integrates the result.
+Expr? tryRewriteTrigSumToProductAdd(
+  List<Expr> terms,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2 || terms.length < 2 || terms.length > 6) return null;
+  for (var i = 0; i < terms.length; i++) {
+    for (var j = i + 1; j < terms.length; j++) {
+      final rewritten = _pairTrigSumToProduct(terms[i], terms[j], variable);
+      if (rewritten == null) continue;
+      final rest = <Expr>[
+        for (var k = 0; k < terms.length; k++)
+          if (k != i && k != j) terms[k],
+      ];
+      final combined = (rest.isEmpty ? rewritten : Add.of([rewritten, ...rest]))
+          .simplify(assumptions: assumptions);
+      final res = antiDerivative(
+        combined,
+        variable,
+        assumptions: assumptions,
+        depth: depth + 1,
+      );
+      if (!hasUnevaluatedIntegral(res, variable)) return res;
+    }
+  }
+  return null;
+}
+
+Expr? _pairTrigSumToProduct(Expr t1, Expr t2, String variable) {
+  ({Expr coeff, FunctionId id, Expr arg})? unpack(Expr e) {
+    if (e case Call(id: final id, args: [final arg])
+        when (id == FunctionId.sin || id == FunctionId.cos) &&
+            arg.dependsOn(variable)) {
+      return (coeff: IntegerNumber.one, id: id, arg: arg);
+    }
+    if (e case Mul(:final factors)) {
+      final (:constFactors, :varFactors) = partitionFactors(factors, variable);
+      if (varFactors.length == 1 && varFactors.first is Call) {
+        final call = varFactors.first as Call;
+        if ((call.id == FunctionId.sin || call.id == FunctionId.cos) &&
+            call.args[0].dependsOn(variable)) {
+          final coeff = constFactors.isEmpty
+              ? IntegerNumber.one
+              : Mul.of(constFactors).simplify();
+          return (coeff: coeff, id: call.id, arg: call.args[0]);
+        }
+      }
+    }
+    return null;
+  }
+
+  final u = unpack(t1);
+  final v = unpack(t2);
+  if (u == null || v == null || u.id != v.id) return null;
+  final halfSum = ((u.arg + v.arg) / IntegerNumber.two).simplify();
+  final halfDiff = ((u.arg - v.arg) / IntegerNumber.two).simplify();
+  if (halfSum == u.arg || halfDiff == u.arg) return null;
+  final same = (u.coeff - v.coeff).simplify();
+  final opp = (u.coeff + v.coeff).simplify();
+  if (opp is Number && opp.isZero) {
+    if (u.id == FunctionId.sin) {
+      return (IntegerNumber.two * u.coeff * Fn.cos(halfSum) * Fn.sin(halfDiff))
+          .simplify();
+    }
+    return (-IntegerNumber.two * u.coeff * Fn.sin(halfSum) * Fn.sin(halfDiff))
+        .simplify();
+  }
+  if (same is Number && same.isZero) {
+    if (u.id == FunctionId.sin) {
+      return (IntegerNumber.two * u.coeff * Fn.sin(halfSum) * Fn.cos(halfDiff))
+          .simplify();
+    }
+    return (IntegerNumber.two * u.coeff * Fn.cos(halfSum) * Fn.cos(halfDiff))
+        .simplify();
+  }
+  return null;
+}
+
+Expr? _trySumDiffSinCos2xSubstitution(
+  Expr expr,
+  String variable, {
+  required Assumptions assumptions,
+  int depth = 0,
+}) {
+  if (depth >= 2 || isIntegrationBudgetExhausted()) return null;
+  final factors = expr is Mul ? expr.factors : [expr];
+  for (var i = 0; i < factors.length; i++) {
+    final f = factors[i];
+    if (f is! Add || f.terms.length != 2) continue;
+    final sinCosMatch = _matchSinCosDiffOrSum(f, variable);
+    if (sinCosMatch == null) continue;
+    final (:u, :k, :isCosMinusSin, :scale) = sinCosMatch;
+    final rest = <Expr>[
+      for (var j = 0; j < factors.length; j++)
+        if (j != i) factors[j],
+    ];
+    final restExpr = rest.isEmpty ? IntegerNumber.one : Mul.of(rest);
+    final twoU = (IntegerNumber.two * u).simplify();
+    final tName = freshIntegrationVar('_sc', expr, variable, depth);
+    final tVar = Variable(tName);
+    final sin2uExpr = isCosMinusSin
+        ? tVar * tVar - IntegerNumber.one
+        : IntegerNumber.one - tVar * tVar;
+    final rewrittenRest = _replaceSin2u(
+      restExpr,
+      twoU,
+      sin2uExpr,
+    ).simplify(assumptions: assumptions);
+    if (rewrittenRest.dependsOn(variable)) continue;
+    final integrand = (scale * rewrittenRest / k).simplify(
+      assumptions: assumptions,
+    );
+    final tInt = antiDerivative(
+      integrand,
+      tName,
+      assumptions: assumptions,
+      depth: depth + 1,
+    );
+    if (!hasUnevaluatedIntegral(tInt, tName)) {
+      final back = isCosMinusSin
+          ? Fn.sin(u) + Fn.cos(u)
+          : Fn.sin(u) - Fn.cos(u);
+      return tInt.substitute(tName, back).simplify(assumptions: assumptions);
+    }
+  }
+  return null;
+}
+
+({Expr u, Expr k, bool isCosMinusSin, Expr scale})? _matchSinCosDiffOrSum(
+  Add add,
+  String variable,
+) {
+  Expr? u;
+  Expr cosCoeff = IntegerNumber.zero;
+  Expr sinCoeff = IntegerNumber.zero;
+  for (final term in add.terms) {
+    final parts = term is Mul ? term.factors : [term];
+    final (:constFactors, :varFactors) = partitionFactors(parts, variable);
+    if (varFactors.length != 1 || varFactors.first is! Call) return null;
+    final call = varFactors.first as Call;
+    if (call.id != FunctionId.cos && call.id != FunctionId.sin) return null;
+    final arg = call.args[0];
+    if (arg.matchLinear(variable) == null) return null;
+    if (u == null) {
+      u = arg;
+    } else if (u != arg) {
+      return null;
+    }
+    final c = constFactors.isEmpty
+        ? IntegerNumber.one
+        : Mul.of(constFactors).simplify();
+    if (call.id == FunctionId.cos) {
+      cosCoeff = (cosCoeff + c).simplify();
+    } else {
+      sinCoeff = (sinCoeff + c).simplify();
+    }
+  }
+  if (u == null) return null;
+  final k = u.matchLinear(variable)!.a;
+  if (isZeroExpr((cosCoeff + sinCoeff).simplify())) {
+    return (u: u, k: k, isCosMinusSin: true, scale: cosCoeff);
+  }
+  if (isZeroExpr((cosCoeff - sinCoeff).simplify())) {
+    return (u: u, k: k, isCosMinusSin: false, scale: cosCoeff);
+  }
+  return null;
+}
+
+Expr _replaceSin2u(Expr expr, Expr twoU, Expr replacement) {
+  if (expr is Call &&
+      expr.id == FunctionId.sin &&
+      expr.args.length == 1 &&
+      isZeroExpr((expr.args[0] - twoU).simplify())) {
+    return replacement;
+  }
+  return expr.mapChildren((child) => _replaceSin2u(child, twoU, replacement));
+}
+
+/// Integrates Chebyshev-like products `sin/cos((n+2)*u) * sin/cos(u)^n`.
+Expr? tryShiftAngleTrigPowerDerivative(
+  List<Expr> varFactors,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  if (varFactors.length != 2) return null;
+  Expr? res;
+  res =
+      _matchShiftAnglePair(
+        varFactors[0],
+        varFactors[1],
+        variable,
+        assumptions,
+      ) ??
+      _matchShiftAnglePair(varFactors[1], varFactors[0], variable, assumptions);
+  return res;
+}
+
+Expr? _matchShiftAnglePair(
+  Expr singleTrig,
+  Expr powTrig,
+  String variable,
+  Assumptions assumptions,
+) {
+  if (singleTrig is! Call ||
+      (singleTrig.id != FunctionId.sin && singleTrig.id != FunctionId.cos)) {
+    return null;
+  }
+  if (powTrig is! Pow || powTrig.base is! Call) return null;
+  final baseCall = powTrig.base as Call;
+  if (baseCall.id != FunctionId.sin && baseCall.id != FunctionId.cos) {
+    return null;
+  }
+  final n = powTrig.exponent;
+  if (n.dependsOn(variable)) return null;
+  final u = baseCall.args[0];
+  final uLin = u.matchLinear(variable);
+  if (uLin == null) return null;
+  final nPlus1 = (n + IntegerNumber.one).simplify(assumptions: assumptions);
+  if (nPlus1 is Number && nPlus1.isZero) return null;
+  final nPlus2 = (n + IntegerNumber.two).simplify(assumptions: assumptions);
+  final expectedAngle = (nPlus2 * u).simplify(assumptions: assumptions);
+  if ((singleTrig.args[0] - expectedAngle).simplify(assumptions: assumptions)
+          is! Number ||
+      !((singleTrig.args[0] - expectedAngle).simplify(
+        assumptions: assumptions,
+      ) as Number).isZero) {
+    return null;
+  }
+  final shiftAngle = (nPlus1 * u).simplify(assumptions: assumptions);
+  final nextPow = Pow.of(baseCall, nPlus1);
+  final denom = (nPlus1 * uLin.a).simplify(assumptions: assumptions);
+  final numer = switch ((singleTrig.id, baseCall.id)) {
+    (FunctionId.sin, FunctionId.sin) => Fn.sin(shiftAngle) * nextPow,
+    (FunctionId.cos, FunctionId.sin) => Fn.cos(shiftAngle) * nextPow,
+    (FunctionId.cos, FunctionId.cos) => Fn.sin(shiftAngle) * nextPow,
+    (FunctionId.sin, FunctionId.cos) => -Fn.cos(shiftAngle) * nextPow,
+    _ => null,
+  };
+  return numer == null
+      ? null
+      : (numer / denom).simplify(assumptions: assumptions);
 }
 
 /// Integrates products of two sines or cosines via product-to-sum identities.
@@ -404,6 +651,9 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
       final isReducible = others.every(
         (o) =>
             polynomialDegree(o, variable) != null ||
+            (o is Call &&
+                (o.id == FunctionId.sin || o.id == FunctionId.cos) &&
+                o.args[0].matchLinear(variable) != null) ||
             (o is Pow &&
                 !o.base.dependsOn(variable) &&
                 o.exponent.matchLinear(variable) != null),
@@ -536,6 +786,15 @@ Expr? tryRationalTrigSubstitution(
   if (tryDirichletKernel(expr, variable, assumptions: assumptions)
       case final dirRes?) {
     return dirRes;
+  }
+  if (_trySumDiffSinCos2xSubstitution(
+        expr,
+        variable,
+        assumptions: assumptions,
+        depth: depth,
+      )
+      case final sin2xRes?) {
+    return sin2xRes;
   }
 
   final inner = collectAffineTrigInner(expr, variable);

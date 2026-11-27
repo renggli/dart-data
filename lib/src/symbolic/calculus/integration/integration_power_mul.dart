@@ -787,6 +787,14 @@ Expr antiDerivMul(
   if (tryPolyTrigPowerReduction(varFactors, variable) case final trigPolyRes?) {
     return trigPolyRes;
   }
+  if (tryShiftAngleTrigPowerDerivative(
+        varFactors,
+        variable,
+        assumptions: assumptions,
+      )
+      case final shiftTrigRes?) {
+    return shiftTrigRes;
+  }
 
   // 3e. Linear-power times affine-log-power: (d*x + e)^m * (A + B*ln(c*(a*x+b)^n))^k
   if (depth < 3 && varFactors.length == 2) {
@@ -1031,20 +1039,24 @@ Expr antiDerivMul(
         );
       }
       final distSum = Add.of(distTerms).simplify(assumptions: assumptions);
-      if (!hasVarDen || !hasUnevaluatedIntegral(distSum, variable)) {
+      final distHasIntegral = hasUnevaluatedIntegral(distSum, variable);
+      if (!distHasIntegral) {
         return distSum;
       }
       if (depth == 0) {
         final distAdd = Add.of([
           for (final t in terms)
             (t * otherExpr).simplify(assumptions: assumptions),
-        ]);
+        ]).expand(assumptions: assumptions).simplify(assumptions: assumptions);
         final paired = tryAdditiveProductRule(
           distAdd,
           variable,
           assumptions: assumptions,
         );
         if (paired != null) return paired;
+      }
+      if (!hasVarDen) {
+        return distSum;
       }
       break;
     }
@@ -1078,6 +1090,10 @@ Expr? tryAdditiveProductRule(
   }
   final terms = expr is Add ? expr.terms : [expr];
   if (terms.length > 12) return null;
+  if (_tryLinearExpTranscendentalElimination(terms, variable, assumptions)
+      case final expElim?) {
+    return expElim;
+  }
   final candidates = <Expr>{};
   void addCandidate(Expr e) {
     if (e.dependsOn(variable)) candidates.add(e);
@@ -1132,6 +1148,132 @@ Expr? tryAdditiveProductRule(
         return prod;
       }
     }
+  }
+  return null;
+}
+
+Expr? _tryLinearExpTranscendentalElimination(
+  List<Expr> terms,
+  String variable,
+  Assumptions assumptions,
+) {
+  Expr? commonExp;
+  Expr? expDeriv;
+  final remainderTerms = <Expr>[];
+  for (final term in terms) {
+    final factors = term is Mul ? term.factors : [term];
+    Pow? expFactor;
+    final rest = <Expr>[];
+    for (final f in factors) {
+      if (expFactor == null &&
+          f is Pow &&
+          f.base == Constant.e &&
+          f.exponent.dependsOn(variable)) {
+        expFactor = f;
+      } else {
+        rest.add(f);
+      }
+    }
+    if (expFactor == null) return null;
+    if (commonExp == null) {
+      commonExp = expFactor;
+      expDeriv = expFactor.exponent
+          .derivative(variable, assumptions: assumptions)
+          .simplify(assumptions: assumptions);
+      if (expDeriv.dependsOn(variable) ||
+          (expDeriv is Number && expDeriv.isZero)) {
+        return null;
+      }
+    } else if (commonExp != expFactor) {
+      return null;
+    }
+    remainderTerms.add(
+      rest.isEmpty ? IntegerNumber.one : Mul.of(rest).simplify(),
+    );
+  }
+  if (commonExp == null || expDeriv == null) return null;
+
+  var remaining = Add.of(remainderTerms)
+      .expand(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  final hasTranscendental = remaining.anyNode(
+    (n) =>
+        n is Call &&
+        n.args.isNotEmpty &&
+        n.args.first.dependsOn(variable) &&
+        (n.id == FunctionId.ln ||
+            n.id == FunctionId.atan ||
+            n.id == FunctionId.asin ||
+            n.id == FunctionId.acos ||
+            n.id == FunctionId.asinh ||
+            n.id == FunctionId.acosh ||
+            n.id == FunctionId.atanh),
+  );
+  if (!hasTranscendental) return null;
+
+  Expr yAcc = IntegerNumber.zero;
+  for (var step = 0; step < 8; step++) {
+    if (remaining is Number && remaining.isZero) {
+      return (yAcc * commonExp).simplify(assumptions: assumptions);
+    }
+    final remTerms = remaining is Add ? remaining.terms : [remaining];
+    Expr? bestTerm;
+    var bestXDeg = -1;
+    var bestScore = -1;
+    for (final rt in remTerms) {
+      final hasTr = rt.anyNode(
+        (n) =>
+            n is Call &&
+            n.args.isNotEmpty &&
+            n.args.first.dependsOn(variable) &&
+            (n.id == FunctionId.ln ||
+                n.id == FunctionId.atan ||
+                n.id == FunctionId.asin ||
+                n.id == FunctionId.acos ||
+                n.id == FunctionId.asinh ||
+                n.id == FunctionId.acosh ||
+                n.id == FunctionId.atanh),
+      );
+      if (!hasTr) continue;
+      final factors = rt is Mul ? rt.factors : [rt];
+      var xDeg = 0;
+      for (final f in factors) {
+        if (f is Variable && f.name == variable) {
+          xDeg += 1;
+        } else if (f
+            case Pow(
+              base: Variable(:final name),
+              exponent: IntegerNumber(asInt: final e?),
+            )
+            when name == variable && e > 0) {
+          xDeg += e;
+        }
+      }
+      final score =
+          rt is Mul && rt.factors.any((f) => f is Call && f.id == FunctionId.ln)
+          ? 2
+          : 1;
+      if (score > bestScore || (score == bestScore && xDeg > bestXDeg)) {
+        bestScore = score;
+        bestXDeg = xDeg;
+        bestTerm = rt;
+      }
+    }
+    if (bestTerm == null) break;
+    final stepY = (bestTerm / expDeriv).simplify(assumptions: assumptions);
+    yAcc = (yAcc + stepY).simplify(assumptions: assumptions);
+    final contrib =
+        (stepY.derivative(variable, assumptions: assumptions) +
+                expDeriv * stepY)
+            .expand(assumptions: assumptions)
+            .simplify(assumptions: assumptions);
+    remaining = (remaining - contrib)
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+    if (exceedsNodeBudget(remaining, 350)) return null;
+  }
+  if (remaining is Number && remaining.isZero) {
+    return (yAcc * commonExp).simplify(assumptions: assumptions);
   }
   return null;
 }
