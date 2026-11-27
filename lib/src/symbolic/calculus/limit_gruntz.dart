@@ -7,7 +7,7 @@ import '../ast.dart';
 import '../functions/fn.dart';
 import 'limit.dart';
 import 'limit_asymptotic.dart';
-import 'series.dart';
+import 'puiseux_series.dart';
 
 Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
   if (exceedsNodeBudget(expr, 4000)) {
@@ -84,26 +84,28 @@ Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
     if (denExpr != IntegerNumber.one) {
       for (final ord in const [4, 10]) {
         try {
-          final sNum = numExpr.toPowerSeries(
+          final sNum = expandSeriesForLimit(
+            numExpr,
             omegaName,
-            point: IntegerNumber.zero,
-            order: ord,
+            ord,
+            assumptions,
           );
-          final sDen = denExpr.toPowerSeries(
+          final sDen = expandSeriesForLimit(
+            denExpr,
             omegaName,
-            point: IntegerNumber.zero,
-            order: ord,
+            ord,
+            assumptions,
           );
           if ((sNum.leadingTerm, sDen.leadingTerm) case (
             final leadNum?,
             final leadDen?,
           )) {
-            final m = leadNum.exponent - leadDen.exponent;
+            final m = (leadNum.exponent - leadDen.exponent) as RationalNumber;
             final cm = (leadNum.coefficient / leadDen.coefficient).simplify(
               assumptions: assumptions,
             );
-            if (m > 0) return IntegerNumber.zero;
-            if (m == 0) return cm;
+            if (m.sign > 0) return IntegerNumber.zero;
+            if (m.isZero) return cm;
             final sign = asymptoticSignAtInfinity(
               cm,
               variable,
@@ -126,15 +128,16 @@ Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
 
     for (final ord in const [4, 10]) {
       try {
-        final series = rewritten.toPowerSeries(
+        final series = expandSeriesForLimit(
+          rewritten,
           omegaName,
-          point: IntegerNumber.zero,
-          order: ord,
+          ord,
+          assumptions,
         );
         final lead = series.leadingTerm;
         if (lead != null) {
-          if (lead.exponent > 0) return IntegerNumber.zero;
-          if (lead.exponent == 0) {
+          if (lead.exponent.sign > 0) return IntegerNumber.zero;
+          if (lead.exponent.isZero) {
             return lead.coefficient.simplify(assumptions: assumptions);
           }
           final sign = asymptoticSignAtInfinity(
@@ -170,15 +173,16 @@ Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
 
   for (final ord in const [4, 10]) {
     try {
-      final series = rewritten.toPowerSeries(
+      final series = expandSeriesForLimit(
+        rewritten,
         omegaName,
-        point: IntegerNumber.zero,
-        order: ord,
+        ord,
+        assumptions,
       );
       final lead = series.leadingTerm;
       if (lead != null) {
-        if (lead.exponent > 0) return IntegerNumber.zero;
-        if (lead.exponent < 0) {
+        if (lead.exponent.sign > 0) return IntegerNumber.zero;
+        if (lead.exponent.isNegative) {
           final sign = asymptoticSignAtInfinity(
             lead.coefficient,
             variable,

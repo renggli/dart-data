@@ -290,8 +290,9 @@ void main() {
           .equals(Constant.infinity);
       check(Expr.parse('x - sqrt(x^4 + 1)').limit('x', Constant.infinity))
           .equals(-Constant.infinity);
-      final undetAlg = Expr.parse('sqrt(x^3 + 1) - x')
-          .limit('x', Constant.infinity);
+      check(Expr.parse('sqrt(x^3 + 1) - x').limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+      final undetAlg = Expr.parse('f(x)').limit('x', Constant.infinity);
       check(undetAlg).isA<Limit>();
       check(Expr.parse(undetAlg.toString())).equals(undetAlg);
 

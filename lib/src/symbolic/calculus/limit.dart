@@ -5,8 +5,9 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
 import '../functions/fn.dart';
+import '../oracle/domain_oracle.dart';
 import 'limit_asymptotic.dart';
-import 'series.dart';
+import 'puiseux_series.dart';
 
 /// Symbolic limit evaluation extension on [Expr].
 extension LimitExtension on Expr {
@@ -705,21 +706,25 @@ Expr _computeFiniteLimit(
   if (denExpr != IntegerNumber.one) {
     for (final ord in const [6, 14]) {
       try {
-        final sNum = numExpr.toPowerSeries(
+        final sNum = expandSeriesForLimit(
+          numExpr,
           hName,
-          point: IntegerNumber.zero,
-          order: ord,
+          ord,
+          assumptions,
+          requireOddDenominators: direction != LimitDirection.fromAbove,
         );
-        final sDen = denExpr.toPowerSeries(
+        final sDen = expandSeriesForLimit(
+          denExpr,
           hName,
-          point: IntegerNumber.zero,
-          order: ord,
+          ord,
+          assumptions,
+          requireOddDenominators: direction != LimitDirection.fromAbove,
         );
         if ((sNum.leadingTerm, sDen.leadingTerm) case (
           final leadNum?,
           final leadDen?,
         )) {
-          final m = leadNum.exponent - leadDen.exponent;
+          final m = (leadNum.exponent - leadDen.exponent) as RationalNumber;
           final cm = (leadNum.coefficient / leadDen.coefficient).simplify(
             assumptions: assumptions,
           );
@@ -732,7 +737,8 @@ Expr _computeFiniteLimit(
           );
         }
       } on UnsupportedError catch (e) {
-        if (e.message?.contains('Two-sided limit') ?? false) {
+        if ((e.message?.contains('Two-sided limit') ?? false) ||
+            (e.message?.contains('Real fractional power') ?? false)) {
           rethrow;
         }
         break;
@@ -745,22 +751,26 @@ Expr _computeFiniteLimit(
   }
 
   try {
-    var series = localExpr.toPowerSeries(
+    var series = expandSeriesForLimit(
+      localExpr,
       hName,
-      point: IntegerNumber.zero,
-      order: 6,
+      6,
+      assumptions,
+      requireOddDenominators: direction != LimitDirection.fromAbove,
     );
     var lead = series.leadingTerm;
     if (lead == null) {
-      series = localExpr.toPowerSeries(
+      series = expandSeriesForLimit(
+        localExpr,
         hName,
-        point: IntegerNumber.zero,
-        order: 14,
+        14,
+        assumptions,
+        requireOddDenominators: direction != LimitDirection.fromAbove,
       );
       lead = series.leadingTerm;
     }
     if (lead == null) {
-      if (series.order > 0) return IntegerNumber.zero;
+      if (series.order.sign > 0) return IntegerNumber.zero;
     } else {
       return _deduceLimitFromLaurentLeading(
         lead.exponent,
@@ -772,7 +782,8 @@ Expr _computeFiniteLimit(
     }
   } on UnsupportedError catch (e) {
     if ((e.message?.contains('Two-sided limit') ?? false) ||
-        (e.message?.contains('Sign of leading coefficient') ?? false)) {
+        (e.message?.contains('Sign of leading coefficient') ?? false) ||
+        (e.message?.contains('Real fractional power') ?? false)) {
       rethrow;
     }
   } on ArgumentError {
@@ -832,22 +843,31 @@ Expr _computeFiniteLimit(
 }
 
 Expr _deduceLimitFromLaurentLeading(
-  int m,
+  RationalNumber m,
   Expr cm,
   LimitDirection direction,
   Expr point,
   Assumptions assumptions,
 ) {
-  if (m > 0) return IntegerNumber.zero;
-  if (m == 0) return cm;
+  if (m.sign > 0) return IntegerNumber.zero;
+  if (m.isZero) return cm;
 
-  final poleOrder = -m;
+  final poleOrder = (-m) as RationalNumber;
   final sign = getSign(cm, assumptions);
   if (sign == 0) {
     throw UnsupportedError('Sign of leading coefficient $cm is unknown');
   }
 
-  if (poleOrder.isEven) {
+  if (poleOrder.denominator.isEven) {
+    return switch (direction) {
+      LimitDirection.fromAbove => sign > 0 ? Constant.infinity : negInfinity,
+      LimitDirection.fromBelow || LimitDirection.both => throw UnsupportedError(
+        'Real fractional power limit does not exist from below at $point',
+      ),
+    };
+  }
+
+  if (poleOrder.numerator.isEven) {
     return sign > 0 ? Constant.infinity : negInfinity;
   }
 
@@ -947,6 +967,20 @@ bool _isSymbolicFinite(Expr expr) => switch (expr) {
 };
 
 int getSign(Expr expr, [Assumptions assumptions = Assumptions.none]) {
+  final oracleSign = DomainOracle(assumptions).signOf(expr);
+  switch (oracleSign) {
+    case Sign.positive:
+      return 1;
+    case Sign.negative:
+      return -1;
+    case Sign.zero:
+      return 0;
+    case Sign.nonNegative:
+    case Sign.nonPositive:
+    case Sign.nonZero:
+    case Sign.unknown:
+      break;
+  }
   final s = expr.simplify(assumptions: assumptions);
   if (isPositiveExpr(s, assumptions: assumptions)) return 1;
   if (isNegativeExpr(s, assumptions: assumptions)) return -1;

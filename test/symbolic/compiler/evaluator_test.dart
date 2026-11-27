@@ -598,11 +598,7 @@ void main() {
     });
 
     test('unevaluated Limit returns NaN instead of recursing infinitely', () {
-      final limInf = Limit(
-        Expr.parse('(-2 + sqrt(4 + x)) / x'),
-        'x',
-        Constant.infinity,
-      );
+      final limInf = Limit(Expr.parse('f(x)'), 'x', Constant.infinity);
       check(limInf.evaluate()).isNaN;
       check(limInf.evaluateComplex().isNaN).isTrue;
     });
