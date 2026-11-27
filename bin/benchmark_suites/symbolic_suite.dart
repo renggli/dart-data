@@ -8,6 +8,7 @@ library;
 
 import 'package:data/linear.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/number.dart' show Complex;
 
 import 'benchmark_suite.dart';
 
@@ -81,6 +82,38 @@ List<BenchmarkSpec> _buildSpecs() {
     '2*a*b + 2*b*c + 2*c*d - b',
     'b^2 + 2*a*c + 2*b*d - c',
   ].map(Expr.parse).toList();
+  final eval1DExpr = Expr.parse(
+    'sin(x^2 + 1) * exp(-x / 3) + cos(2*x) / (1 + x^2) + ln(x + 2)',
+  );
+  final eval1DFn = eval1DExpr.toFunction1D('x');
+  final eval1DComplexFn = eval1DExpr.toComplexFunction1D('x');
+  final evalVecExpr = Expr.parse(
+    '(sin(x * y) + cos(x * y)) * exp(-(x^2 + y^2 + z^2) / 4) + sqrt(x^2 + y^2 + 1)',
+  );
+  final evalVecFn = evalVecExpr.toVectorFunction(['x', 'y', 'z']);
+  final evalVecArg = Vector<double>.fromList([0.7, -1.2, 0.5]);
+  final parsedDifferentiations = [
+    ...integrals,
+    'exp(sin(x^2))',
+    'ln(x + sqrt(x^2 + 1))',
+    'atan(sin(x) / cos(x^2 + 1))',
+    'x^x * sin(x)',
+    'erf(x^2) + besselJ(0, x)',
+  ].map(Expr.parse).toList();
+  final parsedLimits = [
+    (Expr.parse('exp(x) * (exp(1/x - exp(-x)) - exp(1/x))'), Constant.infinity),
+    (Expr.parse('(exp(x) + x) / exp(x)'), Constant.infinity),
+    (Expr.parse('x^3 / exp(x)'), Constant.infinity),
+    (Expr.parse('ln(x)^2 / x'), Constant.infinity),
+    (Expr.parse('(1 + 2/x)^(3*x)'), Constant.infinity),
+    (Expr.parse('sqrt(x^2 + x) - x'), Constant.infinity),
+    (Expr.parse('(exp(x) - 1) / x'), IntegerNumber.zero),
+    (Expr.parse('ln(1 + x) / x'), IntegerNumber.zero),
+    (Expr.parse('sin(x) / x'), IntegerNumber.zero),
+    (Expr.parse('(sin(x) - x) / x^3'), IntegerNumber.zero),
+    (Expr.parse('(1 - cos(x)) / x^2'), IntegerNumber.zero),
+    (Expr.parse('(tan(x) - sin(x)) / x^3'), IntegerNumber.zero),
+  ];
 
   return [
     BenchmarkSpec(
@@ -103,6 +136,22 @@ List<BenchmarkSpec> _buildSpecs() {
       runs: 9,
     ),
     BenchmarkSpec(
+      name: 'differentiate corpus (${parsedDifferentiations.length})',
+      category: 'Series & Calculus',
+      action: () => [
+        for (final input in parsedDifferentiations) input.derivative('x'),
+      ],
+      runs: 21,
+      inner: 50,
+    ),
+    BenchmarkSpec(
+      name: 'limit corpus (${parsedLimits.length})',
+      category: 'Series & Calculus',
+      action: () => [for (final (e, pt) in parsedLimits) e.limit('x', pt)],
+      runs: 15,
+      inner: 5,
+    ),
+    BenchmarkSpec(
       name: 'integrate corpus (${integrals.length})',
       category: 'Series & Calculus',
       action: () => [for (final input in parsedIntegrals) input.integrate('x')],
@@ -117,6 +166,49 @@ List<BenchmarkSpec> _buildSpecs() {
       ],
       runs: 21,
       inner: 50,
+    ),
+    BenchmarkSpec(
+      name: 'parse + format (${simplifications.length})',
+      category: 'Parsing & Formatting',
+      action: () => [for (final s in simplifications) '${Expr.parse(s)}'],
+      runs: 21,
+      inner: 10,
+    ),
+    BenchmarkSpec(
+      name: 'bytecode eval1D real (100k)',
+      category: 'Bytecode VM',
+      action: () {
+        var acc = 0.0;
+        for (var i = 0; i < 100000; i++) {
+          acc += eval1DFn(0.001 * i);
+        }
+        return acc;
+      },
+      runs: 15,
+    ),
+    BenchmarkSpec(
+      name: 'bytecode eval1D complex (10k)',
+      category: 'Bytecode VM',
+      action: () {
+        var acc = Complex.zero;
+        for (var i = 0; i < 10000; i++) {
+          acc += eval1DComplexFn(Complex(0.001 * i, 0.25));
+        }
+        return acc;
+      },
+      runs: 15,
+    ),
+    BenchmarkSpec(
+      name: 'bytecode evalVector (10k)',
+      category: 'Bytecode VM',
+      action: () {
+        var acc = 0.0;
+        for (var i = 0; i < 10000; i++) {
+          acc += evalVecFn(evalVecArg);
+        }
+        return acc;
+      },
+      runs: 15,
     ),
     BenchmarkSpec(
       name: 'factor(x^24 - 1)',
