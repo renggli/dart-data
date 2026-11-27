@@ -11,7 +11,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Distributions - Interactive Probability & Statistics</title>
-  <meta name="description" content="Interactive probability and statistics dashboard with probability density, cumulative distribution, and random sampling.">
+  <meta name="description" content="Interactive probability and statistics dashboard for continuous, discrete, and multivariate distributions with PDF/CDF plots, 2D heatmaps, 3D surfaces, and random sampling.">
   <link rel="stylesheet" href="../shared/style.css">
   <link rel="stylesheet" href="style.css">
   <script src="../shared/theme.js"></script>
@@ -70,12 +70,15 @@
 
   <!-- Navigation Sidebar -->
   <aside class="sidebar">
-    <nav class="sidebar-list" id="dist-list">
+    <nav class="sidebar-list" id="dist-list" aria-label="Probability distributions">
       <div class="group-heading">Continuous Distributions</div>
       <div id="continuous-group"></div>
       
       <div class="group-heading">Discrete Distributions</div>
       <div id="discrete-group"></div>
+
+      <div class="group-heading">Multivariate Distributions</div>
+      <div id="multivariate-group"></div>
     </nav>
   </aside>
 
@@ -102,7 +105,7 @@
 
       <div class="card">
         <h3 class="card-title"><span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 13V8M8 13V4M13 13V6"/></svg> Mathematical Properties</span></h3>
-        <div class="attributes-list properties-grid">
+        <div id="univariate-props" class="attributes-list properties-grid">
           <div class="attr-item">
             <span class="attr-label">Mean</span>
             <span class="attr-value" id="val-mean">0.00</span>
@@ -136,15 +139,45 @@
             <span class="attr-value" id="val-bounds">[-∞, ∞]</span>
           </div>
         </div>
+        <div id="multivariate-props" class="attributes-list properties-grid" hidden>
+          <div class="attr-item">
+            <span class="attr-label">Dimensions (d)</span>
+            <span class="attr-value" id="val-mv-dims">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Correlation (ρ₁₂)</span>
+            <span class="attr-value" id="val-mv-corr">-</span>
+          </div>
+          <div class="attr-item attr-full">
+            <span class="attr-label">Mean Vector (μ)</span>
+            <span class="attr-value" id="val-mv-mean">-</span>
+          </div>
+          <div class="attr-item attr-full">
+            <span class="attr-label">Covariance Matrix (Σ)</span>
+            <span class="attr-value" id="val-mv-cov">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label" id="lbl-mv-summary">Determinant |Σ|</span>
+            <span class="attr-value" id="val-mv-summary">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Support</span>
+            <span class="attr-value" id="val-mv-support">-</span>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- 3. PDF & CDF -->
+    <!-- 3. PDF & CDF / Joint Density -->
     <section class="card chart-card" style="margin-bottom: 24px;">
       <div class="chart-card-header">
         <h3 class="card-title">
-          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 13C4 13 5 3.5 8 3.5S12 13 14.5 13"/></svg> Probability Density &amp; Cumulative Distribution</span>
+          <span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 13C4 13 5 3.5 8 3.5S12 13 14.5 13"/></svg> <span id="chart-title-text">Probability Density &amp; Cumulative Distribution</span></span>
         </h3>
+        <div id="mv-view-controls" class="mv-view-controls" role="group" aria-label="Multivariate plot view" hidden>
+          <button type="button" class="view-toggle-btn" id="btn-view-2d" aria-pressed="true">2D Heatmap</button>
+          <button type="button" class="view-toggle-btn" id="btn-view-3d" aria-pressed="false">3D Surface</button>
+        </div>
       </div>
       <div id="dist-graph"></div>
     </section>
@@ -152,48 +185,88 @@
     <!-- 5. Probabilities & 6. Sampling -->
     <section class="cards-grid" style="margin-top: 24px;">
       <div class="card">
-        <h3 class="card-title"><span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="2"/></svg> Quantile &amp; Probability</span></h3>
-        <div class="parameter-input-group">
-          <div class="parameter-label-row">
-            <span class="parameter-name">Probability p ∈ [0, 1]</span>
+        <h3 class="card-title"><span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="2"/></svg> <span id="eval-card-title">Quantile &amp; Probability</span></span></h3>
+        <div id="univariate-eval-panel">
+          <div class="parameter-input-group">
+            <div class="parameter-label-row">
+              <label class="parameter-name" for="calc-p-slider">Probability p ∈ [0, 1]</label>
+            </div>
+            <div class="parameter-control-row">
+              <input type="range" class="custom-slider" id="calc-p-slider" min="0" max="1" step="0.01" value="0.5">
+              <input type="number" class="custom-number-input" id="calc-p-input" aria-label="Probability p" min="0" max="1" step="0.01" value="0.50">
+            </div>
           </div>
-          <div class="parameter-control-row">
-            <input type="range" class="custom-slider" id="calc-p-slider" min="0" max="1" step="0.01" value="0.5">
-            <input type="number" class="custom-number-input" id="calc-p-input" min="0" max="1" step="0.01" value="0.50">
+          <div class="attributes-list properties-grid">
+            <div class="attr-item">
+              <span class="attr-label">Quantile Q(p)</span>
+              <span class="attr-value" id="val-quantile">-</span>
+            </div>
+            <div class="attr-item">
+              <span class="attr-label">Upper Quantile Q(1 − p)</span>
+              <span class="attr-value" id="val-upper-quantile">-</span>
+            </div>
+            <div class="attr-item">
+              <span class="attr-label">Cumulative P(X ≤ x)</span>
+              <span class="attr-value" id="val-cdf-eval">-</span>
+            </div>
+            <div class="attr-item">
+              <span class="attr-label">Survival P(X &gt; x)</span>
+              <span class="attr-value" id="val-survival-eval">-</span>
+            </div>
+            <div class="attr-item">
+              <span class="attr-label">Density f(x) / P(k)</span>
+              <span class="attr-value" id="val-pdf-eval">-</span>
+            </div>
+            <div class="attr-item">
+              <span class="attr-label">Log-Density ln f(x)</span>
+              <span class="attr-value" id="val-log-pdf-eval">-</span>
+            </div>
+            <div class="attr-item">
+              <span class="attr-label">Hazard Rate h(x)</span>
+              <span class="attr-value" id="val-hazard-eval">-</span>
+            </div>
+            <div class="attr-item">
+              <span class="attr-label">Odds p / (1 − p)</span>
+              <span class="attr-value" id="val-odds-eval">-</span>
+            </div>
           </div>
         </div>
-        <div class="attributes-list properties-grid">
-          <div class="attr-item">
-            <span class="attr-label">Quantile Q(p)</span>
-            <span class="attr-value" id="val-quantile">-</span>
+        <div id="multivariate-eval-panel" hidden>
+          <div class="parameter-input-group">
+            <div class="parameter-label-row">
+              <label class="parameter-name" id="lbl-mv-x1" for="mv-eval-x1-slider">Coordinate x₁</label>
+            </div>
+            <div class="parameter-control-row">
+              <input type="range" class="custom-slider" id="mv-eval-x1-slider" min="-5" max="5" step="0.1" value="0">
+              <input type="number" class="custom-number-input" id="mv-eval-x1-input" aria-label="Coordinate x1" min="-5" max="5" step="0.1" value="0">
+            </div>
           </div>
-          <div class="attr-item">
-            <span class="attr-label">Upper Quantile Q(1 − p)</span>
-            <span class="attr-value" id="val-upper-quantile">-</span>
+          <div class="parameter-input-group">
+            <div class="parameter-label-row">
+              <label class="parameter-name" id="lbl-mv-x2" for="mv-eval-x2-slider">Coordinate x₂</label>
+            </div>
+            <div class="parameter-control-row">
+              <input type="range" class="custom-slider" id="mv-eval-x2-slider" min="-5" max="5" step="0.1" value="0">
+              <input type="number" class="custom-number-input" id="mv-eval-x2-input" aria-label="Coordinate x2" min="-5" max="5" step="0.1" value="0">
+            </div>
           </div>
-          <div class="attr-item">
-            <span class="attr-label">Cumulative P(X ≤ x)</span>
-            <span class="attr-value" id="val-cdf-eval">-</span>
-          </div>
-          <div class="attr-item">
-            <span class="attr-label">Survival P(X &gt; x)</span>
-            <span class="attr-value" id="val-survival-eval">-</span>
-          </div>
-          <div class="attr-item">
-            <span class="attr-label">Density f(x) / P(k)</span>
-            <span class="attr-value" id="val-pdf-eval">-</span>
-          </div>
-          <div class="attr-item">
-            <span class="attr-label">Log-Density ln f(x)</span>
-            <span class="attr-value" id="val-log-pdf-eval">-</span>
-          </div>
-          <div class="attr-item">
-            <span class="attr-label">Hazard Rate h(x)</span>
-            <span class="attr-value" id="val-hazard-eval">-</span>
-          </div>
-          <div class="attr-item">
-            <span class="attr-label">Odds p / (1 − p)</span>
-            <span class="attr-value" id="val-odds-eval">-</span>
+          <div class="attributes-list properties-grid">
+            <div class="attr-item attr-full">
+              <span class="attr-label">Evaluation Vector (x)</span>
+              <span class="attr-value" id="val-mv-point">-</span>
+            </div>
+            <div class="attr-item">
+              <span class="attr-label" id="lbl-mv-pdf">Density f(x)</span>
+              <span class="attr-value" id="val-mv-pdf">-</span>
+            </div>
+            <div class="attr-item">
+              <span class="attr-label" id="lbl-mv-log-pdf">Log-Density ln f(x)</span>
+              <span class="attr-value" id="val-mv-log-pdf">-</span>
+            </div>
+            <div class="attr-item attr-full">
+              <span class="attr-label" id="lbl-mv-extra">Mahalanobis d</span>
+              <span class="attr-value" id="val-mv-extra">-</span>
+            </div>
           </div>
         </div>
       </div>
@@ -201,11 +274,11 @@
       <div class="card sampler-card">
         <h3 class="card-title"><span class="card-title-text"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><circle cx="6" cy="6" r="0.8" fill="currentColor"/><circle cx="10" cy="10" r="0.8" fill="currentColor"/></svg> Random Sampling</span></h3>
         <div class="sampler-controls">
-          <button class="btn btn-primary btn-compact" id="btn-sample-1" title="Draw 1 sample">+1</button>
-          <button class="btn btn-primary btn-compact" id="btn-sample-10" title="Draw 10 samples">+10</button>
-          <button class="btn btn-primary btn-compact" id="btn-sample-100" title="Draw 100 samples">+100</button>
-          <button class="btn btn-primary btn-compact" id="btn-sample-1000" title="Draw 1000 samples">+1000</button>
-          <button class="btn btn-secondary btn-compact" id="btn-sample-clear" title="Clear samples">Clear</button>
+          <button type="button" class="btn btn-primary btn-compact" id="btn-sample-1" title="Draw 1 sample">+1</button>
+          <button type="button" class="btn btn-primary btn-compact" id="btn-sample-10" title="Draw 10 samples">+10</button>
+          <button type="button" class="btn btn-primary btn-compact" id="btn-sample-100" title="Draw 100 samples">+100</button>
+          <button type="button" class="btn btn-primary btn-compact" id="btn-sample-1000" title="Draw 1000 samples">+1000</button>
+          <button type="button" class="btn btn-secondary btn-compact" id="btn-sample-clear" title="Clear samples">Clear</button>
         </div>
 
         <div class="attributes-list">
@@ -214,15 +287,15 @@
             <span class="attr-value" id="sample-count-badge">0</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Sample Mean</span>
+            <span class="attr-label" id="lbl-e-mean">Sample Mean</span>
             <span class="attr-value" id="e-mean">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Sample Std Dev</span>
+            <span class="attr-label" id="lbl-e-stddev">Sample Std Dev</span>
             <span class="attr-value" id="e-stddev">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Sample Variance</span>
+            <span class="attr-label" id="lbl-e-variance">Sample Variance</span>
             <span class="attr-value" id="e-variance">-</span>
           </div>
           <div class="attr-item attr-wrap samples-box">

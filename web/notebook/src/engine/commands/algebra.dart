@@ -228,4 +228,127 @@ final List<Command> algebraCommands = [
     examples: ['trigsimplify(sin(x)^2 + cos(x)^2)'],
     run: (args, _) => ExprValue(args.expr('expr').simplifyTrig()),
   ),
+  Command(
+    name: 'rewrite',
+    category: CommandCategory.algebra,
+    signature: const FunctionSignature(
+      positional: [
+        ParamSpec.positional('expr'),
+        ParamSpec.positional(
+          'target',
+          type: ParamType.string,
+          enumValues: ['exp', 'trig', 'sinCos'],
+        ),
+      ],
+    ),
+    doc: 'Rewrites trigonometric and hyperbolic expressions into exp, trig, or sinCos forms.',
+    examples: ["rewrite(sin(x), 'exp')", "rewrite(exp(i*x), 'trig')"],
+    preserveForm: true,
+    run: (args, ctx) {
+      final target = switch (args.stringVal('target')) {
+        'exp' => RewriteTarget.exp,
+        'trig' => RewriteTarget.trig,
+        'sinCos' => RewriteTarget.sinCos,
+        final other => throw ArgumentBindingException(
+          "Unknown rewrite target '$other'",
+        ),
+      };
+      return ExprValue(
+        args.expr('expr').rewrite(target, assumptions: ctx.assumptions),
+      );
+    },
+  ),
+  Command(
+    name: 'polydiv',
+    category: CommandCategory.algebra,
+    signature: const FunctionSignature(
+      positional: [
+        ParamSpec.positional('dividend'),
+        ParamSpec.positional('divisor'),
+        ParamSpec.optional('var', type: ParamType.symbol),
+      ],
+    ),
+    doc: 'Computes polynomial Euclidean division [quotient, remainder] over the variable.',
+    examples: ['polydiv(x^3 - 1, x - 1, x)'],
+    preserveForm: true,
+    run: (args, ctx) {
+      final dividend = args.expr('dividend');
+      final divisor = args.expr('divisor');
+      final v = inferVariable(dividend, args.symbolOrNull('var'));
+      final res = dividend.polynomialDivide(
+        divisor,
+        v,
+        assumptions: ctx.assumptions,
+      );
+      return ListValue([ExprValue(res.quotient), ExprValue(res.remainder)]);
+    },
+  ),
+  Command(
+    name: 'solvesystem',
+    category: CommandCategory.algebra,
+    signature: const FunctionSignature(
+      positional: [
+        ParamSpec.positional('equations', type: ParamType.exprList),
+        ParamSpec.positional('vars', type: ParamType.symbolList),
+      ],
+      named: [
+        ParamSpec.named(
+          'method',
+          type: ParamType.string,
+          defaultValue: 'auto',
+          enumValues: ['auto', 'resultant', 'groebner'],
+        ),
+      ],
+    ),
+    doc: 'Solves a system of algebraic or polynomial equations symbolically.',
+    examples: [
+      'solvesystem([x + y = 10, x - y = 2], [x, y])',
+      'solvesystem([x^2 + y^2 = 5, x*y = 2], [x, y])',
+    ],
+    run: (args, ctx) {
+      final eqs = args.exprList('equations');
+      final vars = args.symbolList('vars');
+      final method = switch (args.stringVal('method')) {
+        'resultant' => PolynomialSystemMethod.resultant,
+        'groebner' => PolynomialSystemMethod.groebner,
+        _ => PolynomialSystemMethod.auto,
+      };
+      final sols = eqs.solve(
+        vars,
+        method: method,
+        assumptions: ctx.assumptions,
+      );
+      return ListValue([
+        for (final sol in sols)
+          ListValue([
+            for (final entry in sol.entries)
+              ExprValue(Equal(Variable(entry.key), entry.value)),
+          ]),
+      ]);
+    },
+  ),
+  Command(
+    name: 'rootsum',
+    category: CommandCategory.algebra,
+    signature: const FunctionSignature(
+      positional: [
+        ParamSpec.positional('polynomial'),
+        ParamSpec.positional('var', type: ParamType.symbol),
+        ParamSpec.positional('body'),
+      ],
+    ),
+    doc: 'Represents or evaluates the sum of body over all complex roots of polynomial(var) = 0.',
+    examples: [
+      'rootsum(t^2 - 2, t, t^2)',
+      'rootsum(t^3 + t + 1, t, t * ln(x - t))',
+    ],
+    run: (args, ctx) {
+      final poly = args.expr('polynomial');
+      final v = args.symbol('var');
+      final body = args.expr('body');
+      return ExprValue(
+        RootSum(poly, v, body).simplify(assumptions: ctx.assumptions),
+      );
+    },
+  ),
 ];

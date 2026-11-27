@@ -402,6 +402,7 @@ final class NotebookEvaluator implements EvaluatorContext {
     required Map<String, CalcValue> localScope,
     required Set<String> boundSymbols,
   }) {
+    final inheritedBound = boundSymbols;
     CalcValue evalArg(
       CalcNode argNode, {
       Set<String> boundSymbols = const {},
@@ -411,7 +412,7 @@ final class NotebookEvaluator implements EvaluatorContext {
       referencedSymbols: referencedSymbols,
       onPreserveForm: onPreserveForm,
       localScope: localScope,
-      boundSymbols: {...boundSymbols},
+      boundSymbols: {...inheritedBound, ...boundSymbols},
     );
 
     // 1. User-defined function

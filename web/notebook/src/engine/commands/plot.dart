@@ -254,8 +254,8 @@ final List<Command> plotCommands = [
         ParamSpec.named(
           'method',
           type: ParamType.string,
-          defaultValue: 'rk4',
-          enumValues: ['euler', 'rk4', 'rk45'],
+          defaultValue: 'dormandPrince45',
+          enumValues: ['dormandPrince45', 'rk4', 'bdf2'],
         ),
         ParamSpec.named('title', type: ParamType.string),
       ],
@@ -271,6 +271,7 @@ final List<Command> plotCommands = [
       final y0 = args.doubleVal('y0');
       final t0 = args.doubleVal('from');
       final t1 = args.doubleVal('to');
+      final method = args.stringVal('method');
 
       return PlotValue(
         expressions: [rhs],
@@ -281,6 +282,7 @@ final List<Command> plotCommands = [
         minY: y0 - 1.0,
         maxY: y0 + 1.0,
         odeY0: y0,
+        odeMethod: method,
         isOde: true,
         title: args.stringOrNull('title'),
         plotKind: PlotKind.ode2d,

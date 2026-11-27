@@ -1439,20 +1439,17 @@ void updateMultivariableTelemetry() {
     setAttrValue(valMvGrad, '-');
   }
 
-  // Hessian matrix H, determinant |H|, and Laplacian Δf
+  // Laplacian Δf
+  try {
+    final laplacian = expr.laplacian(vars, assumptions: assumptions);
+    setAttrExpr(valMvLaplacian, laplacian);
+  } catch (_) {
+    setAttrValue(valMvLaplacian, '-');
+  }
+
+  // Hessian matrix H and determinant |H|
   try {
     final hessian = expr.hessian(vars, assumptions: assumptions);
-
-    // Laplacian Δf = tr(H)
-    try {
-      final diagTerms = <Expr>[
-        for (var i = 0; i < hessian.rowCount; i++) hessian.getUnchecked(i, i),
-      ];
-      final laplacian = Add(diagTerms).simplify(assumptions: assumptions);
-      setAttrExpr(valMvLaplacian, laplacian);
-    } catch (_) {
-      setAttrValue(valMvLaplacian, '-');
-    }
 
     // Determinant |H|
     try {
@@ -1464,7 +1461,6 @@ void updateMultivariableTelemetry() {
 
     setAttrMatrix(valMvHessian, hessian);
   } catch (e) {
-    setAttrValue(valMvLaplacian, '-');
     setAttrValue(valMvHessian, '-');
     setAttrValue(valMvHessianDet, '-');
   }

@@ -256,6 +256,11 @@ Scene2D _reconstructScene2D(PlotValue plot) {
     final tVar = plot.variable;
     final yVar = plot.yVariable ?? 'y';
     final f = rhs.toVectorFunction([tVar, yVar]);
+    final method = switch (plot.odeMethod) {
+      'rk4' => OdeMethod.rk4,
+      'bdf2' => OdeMethod.bdf2,
+      _ => OdeMethod.dormandPrince45,
+    };
     final sol = solveOde(
       f: (double t, Vector<double> y) => Vector.fromList([
         f(Vector.fromList([t, y[0]])),
@@ -263,6 +268,7 @@ Scene2D _reconstructScene2D(PlotValue plot) {
       t0: plot.minX,
       tEnd: plot.maxX,
       y0: Vector.fromList([plot.odeY0 ?? 1.0]),
+      method: method,
     );
     return Scene2D(
       datasets: [

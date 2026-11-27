@@ -823,156 +823,158 @@ void main() {
     _PlotRect plot,
   ) {
     final n = math.min(ds.xs.length, ds.ys.length);
-    if (n == 0) return;
+    if (n == 0 && ds.markers.isEmpty && ds.references.isEmpty) return;
 
     for (final ref in ds.references) {
       _drawReferenceLine(ctx, ref, plot, ds.yAxis);
     }
 
-    if (ds.fill != null && ds.mode == CurveRenderMode.continuous) {
-      final fill = ds.fill!;
-      final basePy = _dataToPxY(fill.baseline, plot, ds.yAxis);
-      ctx.save();
-      ctx.globalAlpha = fill.opacity;
-      ctx.fillStyle = fill.color.toJS;
-      var inSeg = false;
-      var firstPx = 0.0;
-      var lastPx = 0.0;
-      for (var i = 0; i < n; i++) {
-        final x = ds.xs[i];
-        final y = ds.ys[i];
-        if (!x.isFinite || !y.isFinite) {
-          if (inSeg) {
-            ctx.lineTo(lastPx, basePy);
-            ctx.lineTo(firstPx, basePy);
-            ctx.closePath();
-            ctx.fill();
-            inSeg = false;
+    if (n > 0) {
+      if (ds.fill != null && ds.mode == CurveRenderMode.continuous) {
+        final fill = ds.fill!;
+        final basePy = _dataToPxY(fill.baseline, plot, ds.yAxis);
+        ctx.save();
+        ctx.globalAlpha = fill.opacity;
+        ctx.fillStyle = fill.color.toJS;
+        var inSeg = false;
+        var firstPx = 0.0;
+        var lastPx = 0.0;
+        for (var i = 0; i < n; i++) {
+          final x = ds.xs[i];
+          final y = ds.ys[i];
+          if (!x.isFinite || !y.isFinite) {
+            if (inSeg) {
+              ctx.lineTo(lastPx, basePy);
+              ctx.lineTo(firstPx, basePy);
+              ctx.closePath();
+              ctx.fill();
+              inSeg = false;
+            }
+            continue;
           }
-          continue;
+          final px = _dataToPxX(x, plot);
+          final py = _dataToPxY(y, plot, ds.yAxis);
+          if (!inSeg) {
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            firstPx = px;
+            inSeg = true;
+          } else {
+            ctx.lineTo(px, py);
+          }
+          lastPx = px;
         }
-        final px = _dataToPxX(x, plot);
-        final py = _dataToPxY(y, plot, ds.yAxis);
-        if (!inSeg) {
-          ctx.beginPath();
-          ctx.moveTo(px, py);
-          firstPx = px;
-          inSeg = true;
-        } else {
-          ctx.lineTo(px, py);
+        if (inSeg) {
+          ctx.lineTo(lastPx, basePy);
+          ctx.lineTo(firstPx, basePy);
+          ctx.closePath();
+          ctx.fill();
         }
-        lastPx = px;
+        ctx.restore();
       }
-      if (inSeg) {
-        ctx.lineTo(lastPx, basePy);
-        ctx.lineTo(firstPx, basePy);
-        ctx.closePath();
-        ctx.fill();
+
+      ctx.save();
+      ctx.strokeStyle = ds.color.toJS;
+      ctx.fillStyle = ds.color.toJS;
+      ctx.lineWidth = ds.width;
+      if (ds.dashed) {
+        ctx.setLineDash([6.0.toJS, 4.0.toJS].toJS);
+      }
+
+      switch (ds.mode) {
+        case CurveRenderMode.continuous:
+          var drawing = false;
+          ctx.beginPath();
+          for (var i = 0; i < n; i++) {
+            final x = ds.xs[i];
+            final y = ds.ys[i];
+            if (!x.isFinite || !y.isFinite) {
+              drawing = false;
+              continue;
+            }
+            final px = _dataToPxX(x, plot);
+            final py = _dataToPxY(y, plot, ds.yAxis);
+            if (!drawing) {
+              ctx.moveTo(px, py);
+              drawing = true;
+            } else {
+              ctx.lineTo(px, py);
+            }
+          }
+          ctx.stroke();
+        case CurveRenderMode.step:
+          ctx.beginPath();
+          var started = false;
+          var prevPy = 0.0;
+          for (var i = 0; i < n; i++) {
+            final x = ds.xs[i];
+            final y = ds.ys[i];
+            if (!x.isFinite || !y.isFinite) {
+              started = false;
+              continue;
+            }
+            final px = _dataToPxX(x, plot);
+            final py = _dataToPxY(y, plot, ds.yAxis);
+            if (!started) {
+              ctx.moveTo(px, py);
+              started = true;
+            } else {
+              ctx.lineTo(px, prevPy);
+              ctx.lineTo(px, py);
+            }
+            prevPy = py;
+          }
+          ctx.stroke();
+        case CurveRenderMode.stem:
+          final basePy = _dataToPxY(0, plot, ds.yAxis);
+          for (var i = 0; i < n; i++) {
+            final x = ds.xs[i];
+            final y = ds.ys[i];
+            if (!x.isFinite || !y.isFinite) continue;
+            final px = _dataToPxX(x, plot);
+            final py = _dataToPxY(y, plot, ds.yAxis);
+            ctx.beginPath();
+            ctx.moveTo(px, basePy);
+            ctx.lineTo(px, py);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(px, py, math.max(2.5, ds.width + 1.0), 0, math.pi * 2);
+            ctx.fill();
+          }
+        case CurveRenderMode.histogram:
+          final basePy = _dataToPxY(0, plot, ds.yAxis);
+          ctx.globalAlpha = 0.75;
+          for (var i = 0; i < n; i++) {
+            final x = ds.xs[i];
+            final y = ds.ys[i];
+            if (!x.isFinite || !y.isFinite) continue;
+            final px = _dataToPxX(x, plot);
+            final py = _dataToPxY(y, plot, ds.yAxis);
+            final nextPx = i + 1 < n
+                ? _dataToPxX(ds.xs[i + 1], plot)
+                : px + (i > 0 ? px - _dataToPxX(ds.xs[i - 1], plot) : 10.0);
+            final barW = math.max(2.0, (nextPx - px).abs() * 0.85);
+            ctx.fillRect(
+              px - barW * 0.5,
+              math.min(py, basePy),
+              barW,
+              (basePy - py).abs(),
+            );
+          }
+        case CurveRenderMode.scatter:
+          for (var i = 0; i < n; i++) {
+            final x = ds.xs[i];
+            final y = ds.ys[i];
+            if (!x.isFinite || !y.isFinite) continue;
+            final px = _dataToPxX(x, plot);
+            final py = _dataToPxY(y, plot, ds.yAxis);
+            ctx.beginPath();
+            ctx.arc(px, py, math.max(2.5, ds.width + 0.8), 0, math.pi * 2);
+            ctx.fill();
+          }
       }
       ctx.restore();
     }
-
-    ctx.save();
-    ctx.strokeStyle = ds.color.toJS;
-    ctx.fillStyle = ds.color.toJS;
-    ctx.lineWidth = ds.width;
-    if (ds.dashed) {
-      ctx.setLineDash([6.0.toJS, 4.0.toJS].toJS);
-    }
-
-    switch (ds.mode) {
-      case CurveRenderMode.continuous:
-        var drawing = false;
-        ctx.beginPath();
-        for (var i = 0; i < n; i++) {
-          final x = ds.xs[i];
-          final y = ds.ys[i];
-          if (!x.isFinite || !y.isFinite) {
-            drawing = false;
-            continue;
-          }
-          final px = _dataToPxX(x, plot);
-          final py = _dataToPxY(y, plot, ds.yAxis);
-          if (!drawing) {
-            ctx.moveTo(px, py);
-            drawing = true;
-          } else {
-            ctx.lineTo(px, py);
-          }
-        }
-        ctx.stroke();
-      case CurveRenderMode.step:
-        ctx.beginPath();
-        var started = false;
-        var prevPy = 0.0;
-        for (var i = 0; i < n; i++) {
-          final x = ds.xs[i];
-          final y = ds.ys[i];
-          if (!x.isFinite || !y.isFinite) {
-            started = false;
-            continue;
-          }
-          final px = _dataToPxX(x, plot);
-          final py = _dataToPxY(y, plot, ds.yAxis);
-          if (!started) {
-            ctx.moveTo(px, py);
-            started = true;
-          } else {
-            ctx.lineTo(px, prevPy);
-            ctx.lineTo(px, py);
-          }
-          prevPy = py;
-        }
-        ctx.stroke();
-      case CurveRenderMode.stem:
-        final basePy = _dataToPxY(0, plot, ds.yAxis);
-        for (var i = 0; i < n; i++) {
-          final x = ds.xs[i];
-          final y = ds.ys[i];
-          if (!x.isFinite || !y.isFinite) continue;
-          final px = _dataToPxX(x, plot);
-          final py = _dataToPxY(y, plot, ds.yAxis);
-          ctx.beginPath();
-          ctx.moveTo(px, basePy);
-          ctx.lineTo(px, py);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(px, py, math.max(2.5, ds.width + 1.0), 0, math.pi * 2);
-          ctx.fill();
-        }
-      case CurveRenderMode.histogram:
-        final basePy = _dataToPxY(0, plot, ds.yAxis);
-        ctx.globalAlpha = 0.75;
-        for (var i = 0; i < n; i++) {
-          final x = ds.xs[i];
-          final y = ds.ys[i];
-          if (!x.isFinite || !y.isFinite) continue;
-          final px = _dataToPxX(x, plot);
-          final py = _dataToPxY(y, plot, ds.yAxis);
-          final nextPx = i + 1 < n
-              ? _dataToPxX(ds.xs[i + 1], plot)
-              : px + (i > 0 ? px - _dataToPxX(ds.xs[i - 1], plot) : 10.0);
-          final barW = math.max(2.0, (nextPx - px).abs() * 0.85);
-          ctx.fillRect(
-            px - barW * 0.5,
-            math.min(py, basePy),
-            barW,
-            (basePy - py).abs(),
-          );
-        }
-      case CurveRenderMode.scatter:
-        for (var i = 0; i < n; i++) {
-          final x = ds.xs[i];
-          final y = ds.ys[i];
-          if (!x.isFinite || !y.isFinite) continue;
-          final px = _dataToPxX(x, plot);
-          final py = _dataToPxY(y, plot, ds.yAxis);
-          ctx.beginPath();
-          ctx.arc(px, py, math.max(2.5, ds.width + 0.8), 0, math.pi * 2);
-          ctx.fill();
-        }
-    }
-    ctx.restore();
 
     // Markers.
     for (final m in ds.markers) {
@@ -988,11 +990,16 @@ void main() {
       ctx.fill();
       ctx.stroke();
       if (m.label != null && m.label!.isNotEmpty) {
-        ctx.fillStyle = _theme.textColor.toJS;
+        final tx = px + m.radius + 4;
+        final ty = py - 2;
         ctx.font = '11px system-ui, -apple-system, sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(m.label!, px + m.radius + 4, py - 2);
+        ctx.strokeStyle = _theme.background.toJS;
+        ctx.lineWidth = 3.0;
+        ctx.strokeText(m.label!, tx, ty);
+        ctx.fillStyle = _theme.textColor.toJS;
+        ctx.fillText(m.label!, tx, ty);
       }
       ctx.restore();
     }

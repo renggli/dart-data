@@ -382,17 +382,17 @@
         </h3>
         <div class="parameter-input-group" style="margin-bottom: 12px;">
           <div class="parameter-label-row">
-            <span class="parameter-name">Order (n): <span id="taylor-order-val" style="color: var(--accent-amber); font-weight: 600;">3</span></span>
+            <label class="parameter-name" for="slider-taylor-order">Order (n): <span id="taylor-order-val" style="color: var(--accent-amber); font-weight: 600;">3</span></label>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 11px; color: var(--text-muted);">Around:</span>
-              <select id="select-taylor-center" class="custom-select" style="font-size: 11px; padding: 3px 8px;">
+              <label for="select-taylor-center" style="font-size: 11px; color: var(--text-muted);">Around:</label>
+              <select id="select-taylor-center" class="custom-select" style="font-size: 11px; padding: 3px 8px;" aria-label="Taylor expansion center">
                 <option value="zero" selected>0 (Maclaurin)</option>
                 <option value="x0">Point x₀</option>
               </select>
             </div>
           </div>
           <div class="parameter-control-row">
-            <input type="range" id="slider-taylor-order" class="custom-slider" min="1" max="6" step="1" value="3" style="width: 100%;">
+            <input type="range" id="slider-taylor-order" class="custom-slider" min="1" max="6" step="1" value="3" style="width: 100%;" aria-label="Taylor expansion order">
           </div>
         </div>
         <div class="attributes-list">

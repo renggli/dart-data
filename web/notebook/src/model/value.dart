@@ -339,6 +339,7 @@ final class PlotValue extends CalcValue {
     this.minT,
     this.maxT,
     this.odeY0,
+    this.odeMethod,
     this.title,
     this.showGrid = true,
     this.showMarkers = true,
@@ -360,6 +361,7 @@ final class PlotValue extends CalcValue {
   final double? minT;
   final double? maxT;
   final double? odeY0;
+  final String? odeMethod;
   final String? title;
   final bool showGrid;
   final bool showMarkers;
@@ -433,6 +435,7 @@ final class PlotValue extends CalcValue {
           minT == other.minT &&
           maxT == other.maxT &&
           odeY0 == other.odeY0 &&
+          odeMethod == other.odeMethod &&
           gridSize == other.gridSize &&
           isParametric == other.isParametric &&
           isComplex == other.isComplex &&
@@ -453,6 +456,7 @@ final class PlotValue extends CalcValue {
     minT,
     maxT,
     odeY0,
+    odeMethod,
     gridSize,
     isParametric,
     isComplex,

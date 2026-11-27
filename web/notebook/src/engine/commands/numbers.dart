@@ -28,7 +28,9 @@ final List<Command> numbersCommands = [
     ),
     doc: 'Converts floating-point numbers in an expression to exact rationals.',
     examples: ['exact(0.75)', 'exact(1.25 * x)'],
-    run: (args, _) => ExprValue(_rationalizeTree(args.expr('expr')).simplify()),
+    run: (args, ctx) => ExprValue(
+      args.expr('expr').rationalize().simplify(assumptions: ctx.assumptions),
+    ),
   ),
   Command(
     name: 'gcd',
@@ -179,11 +181,6 @@ final List<Command> numbersCommands = [
         ExprValue(Sign(args.expr('x')).simplify(assumptions: ctx.assumptions)),
   ),
 ];
-
-Expr _rationalizeTree(Expr expr) {
-  if (expr is RealNumber) return expr.rationalize();
-  return expr.mapChildren(_rationalizeTree);
-}
 
 bool _isPrime(int n) {
   if (n < 2) return false;

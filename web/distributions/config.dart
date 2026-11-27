@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:data/linear.dart';
 import 'package:data/stats.dart';
+import 'package:data/type.dart';
 
 /// Configuration of a single parameter.
 class ParameterConfig {
@@ -668,5 +670,234 @@ final List<DistributionConfig> distributions = [
       ),
     ],
     creator: (p) => WeibullDistribution(p[0], p[1]),
+  ),
+];
+
+/// Configuration of a single multivariate probability distribution.
+class MultivariateDistributionConfig {
+  final String id;
+  final String name;
+  final String description;
+  final bool isContinuous;
+  final int dimensions;
+  final bool isSimplex;
+  final List<ParameterConfig> parameters;
+  final MultivariateDistribution<num> Function(List<double> params) creator;
+  final String Function(List<double> params) supportLabel;
+
+  const new({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.isContinuous,
+    required this.dimensions,
+    required this.isSimplex,
+    required this.parameters,
+    required this.creator,
+    required this.supportLabel,
+  });
+}
+
+/// Enforces cross-parameter constraints on multivariate distribution sliders.
+void syncMultivariateParameters(
+  MultivariateDistributionConfig def,
+  List<double> values, {
+  int? changedIndex,
+}) {
+  if (def.id == 'multinomial' && values.length >= 3) {
+    const maxPairSum = 0.95;
+    const minP = 0.05;
+    const maxP = 0.90;
+    var p1 = values[1].clamp(minP, maxP);
+    var p2 = values[2].clamp(minP, maxP);
+    if (p1 + p2 > maxPairSum) {
+      if (changedIndex == 1) {
+        p2 = (maxPairSum - p1).clamp(minP, maxP);
+        p1 = math.min(p1, maxPairSum - p2);
+      } else if (changedIndex == 2) {
+        p1 = (maxPairSum - p2).clamp(minP, maxP);
+        p2 = math.min(p2, maxPairSum - p1);
+      } else {
+        final scale = maxPairSum / (p1 + p2);
+        p1 = (p1 * scale).clamp(minP, maxP);
+        p2 = (maxPairSum - p1).clamp(minP, maxP);
+      }
+    }
+    values[1] = (p1 * 100).roundToDouble() / 100;
+    values[2] = (p2 * 100).roundToDouble() / 100;
+  }
+}
+
+/// Registry containing all supported multivariate distributions sorted
+/// alphabetically.
+final List<MultivariateDistributionConfig> multivariateDistributions = [
+  MultivariateDistributionConfig(
+    id: 'dirichlet',
+    name: 'Dirichlet (3D Simplex)',
+    description:
+        'A continuous family over probability vectors on the 2-simplex '
+        'x₁ + x₂ + x₃ = 1, parameterized by positive concentrations α₁, α₂, α₃. '
+        'Serves as the conjugate prior for categorical and multinomial models.',
+    isContinuous: true,
+    dimensions: 3,
+    isSimplex: true,
+    parameters: [
+      const ParameterConfig(
+        name: 'alpha1',
+        label: 'Concentration (α₁)',
+        min: 0.2,
+        max: 10.0,
+        defaultValue: 2.0,
+        step: 0.1,
+      ),
+      const ParameterConfig(
+        name: 'alpha2',
+        label: 'Concentration (α₂)',
+        min: 0.2,
+        max: 10.0,
+        defaultValue: 2.0,
+        step: 0.1,
+      ),
+      const ParameterConfig(
+        name: 'alpha3',
+        label: 'Concentration (α₃)',
+        min: 0.2,
+        max: 10.0,
+        defaultValue: 2.0,
+        step: 0.1,
+      ),
+    ],
+    creator: (p) => DirichletDistribution(
+      Vector<double>.fromList([
+        math.max(0.2, p[0]),
+        math.max(0.2, p[1]),
+        math.max(0.2, p[2]),
+      ], type: DataType.float64),
+    ),
+    supportLabel: (_) => 'Δ² = {x ∈ [0, 1]³ : x₁ + x₂ + x₃ = 1}',
+  ),
+  MultivariateDistributionConfig(
+    id: 'multinomial',
+    name: 'Multinomial (3-Category)',
+    description:
+        'Generalizes the binomial distribution to k = 3 mutually exclusive '
+        'categories across n independent trials with probabilities p₁, p₂, and '
+        'p₃ = 1 − p₁ − p₂.',
+    isContinuous: false,
+    dimensions: 3,
+    isSimplex: true,
+    parameters: [
+      const ParameterConfig(
+        name: 'trials',
+        label: 'Trials (n)',
+        min: 1,
+        max: 40,
+        defaultValue: 10,
+        step: 1,
+        isInt: true,
+      ),
+      const ParameterConfig(
+        name: 'p1',
+        label: 'Category 1 Prob. (p₁)',
+        min: 0.05,
+        max: 0.90,
+        defaultValue: 0.35,
+        step: 0.05,
+      ),
+      const ParameterConfig(
+        name: 'p2',
+        label: 'Category 2 Prob. (p₂)',
+        min: 0.05,
+        max: 0.90,
+        defaultValue: 0.35,
+        step: 0.05,
+      ),
+    ],
+    creator: (p) {
+      final n = math.max(1, p[0].round());
+      var p1 = p[1].clamp(0.01, 0.94);
+      var p2 = p[2].clamp(0.01, 0.94);
+      if (p1 + p2 > 0.95) {
+        final scale = 0.95 / (p1 + p2);
+        p1 *= scale;
+        p2 *= scale;
+      }
+      final p3 = 1.0 - p1 - p2;
+      return MultinomialDistribution(
+        n,
+        Vector<double>.fromList([p1, p2, p3], type: DataType.float64),
+      );
+    },
+    supportLabel: (p) =>
+        '{k ∈ ℕ³ : k₁ + k₂ + k₃ = ${math.max(1, p[0].round())}}',
+  ),
+  MultivariateDistributionConfig(
+    id: 'multivariate_normal',
+    name: 'Multivariate Normal (2D)',
+    description:
+        'A bivariate Gaussian distribution over ℝ² characterized by mean '
+        'vector μ = [μ₁, μ₂], marginal standard deviations σ₁, σ₂, and linear '
+        'correlation ρ ∈ (−1, 1).',
+    isContinuous: true,
+    dimensions: 2,
+    isSimplex: false,
+    parameters: [
+      const ParameterConfig(
+        name: 'mu1',
+        label: 'Mean (μ₁)',
+        min: -5.0,
+        max: 5.0,
+        defaultValue: 0.0,
+        step: 0.1,
+      ),
+      const ParameterConfig(
+        name: 'mu2',
+        label: 'Mean (μ₂)',
+        min: -5.0,
+        max: 5.0,
+        defaultValue: 0.0,
+        step: 0.1,
+      ),
+      const ParameterConfig(
+        name: 'sigma1',
+        label: 'Std Dev (σ₁)',
+        min: 0.2,
+        max: 4.0,
+        defaultValue: 1.0,
+        step: 0.1,
+      ),
+      const ParameterConfig(
+        name: 'sigma2',
+        label: 'Std Dev (σ₂)',
+        min: 0.2,
+        max: 4.0,
+        defaultValue: 1.0,
+        step: 0.1,
+      ),
+      const ParameterConfig(
+        name: 'rho',
+        label: 'Correlation (ρ)',
+        min: -0.95,
+        max: 0.95,
+        defaultValue: 0.5,
+        step: 0.05,
+      ),
+    ],
+    creator: (p) {
+      final s1 = math.max(0.2, p[2]);
+      final s2 = math.max(0.2, p[3]);
+      final rho = p[4].clamp(-0.95, 0.95);
+      final cov12 = rho * s1 * s2;
+      final mean = Vector<double>.fromList([
+        p[0],
+        p[1],
+      ], type: DataType.float64);
+      final cov = Matrix<double>.fromRows([
+        [s1 * s1, cov12],
+        [cov12, s2 * s2],
+      ], type: DataType.float64);
+      return MultivariateNormalDistribution(mean, cov);
+    },
+    supportLabel: (_) => 'ℝ²',
   ),
 ];

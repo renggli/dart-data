@@ -1,4 +1,4 @@
-const CACHE_NAME = 'symbolic-notebook-v1';
+const CACHE_NAME = 'symbolic-notebook-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

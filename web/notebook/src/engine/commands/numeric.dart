@@ -105,6 +105,12 @@ final List<Command> numericCommands = [
         ParamSpec.named('from', type: ParamType.number, defaultValue: -5.0),
         ParamSpec.named('to', type: ParamType.number, defaultValue: 5.0),
         ParamSpec.named('guess', type: ParamType.number),
+        ParamSpec.named(
+          'method',
+          type: ParamType.string,
+          defaultValue: 'brent',
+          enumValues: ['brent', 'nelderMead', 'bfgs', 'lbfgs'],
+        ),
         ParamSpec.named('tol', type: ParamType.number, defaultValue: 1e-10),
       ],
     ),
@@ -117,17 +123,82 @@ final List<Command> numericCommands = [
       final from = args.doubleVal('from');
       final to = args.doubleVal('to');
       final guess = args.doubleOrNull('guess') ?? 0.5 * (from + to);
+      final method = switch (args.stringVal('method')) {
+        'nelderMead' => OptimizationMethod.nelderMead,
+        'bfgs' => OptimizationMethod.bfgs,
+        'lbfgs' => OptimizationMethod.lbfgs,
+        _ => OptimizationMethod.brent,
+      };
       final res = minimize(
         (vec) => fn(vec[0]),
         initialPoint: Vector<double>.fromList([guess], type: DataType.float64),
         a: from,
         b: to,
+        method: method,
         tolerance: args.doubleVal('tol'),
       );
       return ListValue([
         ExprValue(RealNumber.fromDouble(res.point[0])),
         ExprValue(RealNumber.fromDouble(res.value)),
       ]);
+    },
+  ),
+  Command(
+    name: 'nsolvesystem',
+    category: CommandCategory.numeric,
+    signature: const FunctionSignature(
+      positional: [
+        ParamSpec.positional('equations', type: ParamType.exprList),
+        ParamSpec.positional('vars', type: ParamType.symbolList),
+        ParamSpec.positional('guess', type: ParamType.exprList),
+      ],
+      named: [
+        ParamSpec.named('tol', type: ParamType.number, defaultValue: 1e-10),
+      ],
+    ),
+    doc: 'Solves a nonlinear system F(x) = 0 numerically via multivariate Newton-Raphson.',
+    examples: ['nsolvesystem([x^2 + y^2 - 5, x - y - 1], [x, y], [2, 1])'],
+    run: (args, _) {
+      final rawEqs = args.exprList('equations');
+      final vars = args.symbolList('vars');
+      final guessExprs = args.exprList('guess');
+      if (rawEqs.length != vars.length || guessExprs.length != vars.length) {
+        throw ArgumentBindingException(
+          'nsolvesystem requires matching counts for equations (${rawEqs.length}), '
+          'variables (${vars.length}), and initial guess (${guessExprs.length})',
+        );
+      }
+      final guessVals = <double>[];
+      for (final g in guessExprs) {
+        final approx = g.approximate();
+        final double v;
+        if (approx is RealNumber) {
+          v = approx.value;
+        } else if (approx is IntegerNumber) {
+          v = approx.value.toDouble();
+        } else {
+          throw const ArgumentBindingException(
+            'Initial guess coordinates must evaluate to real numbers',
+          );
+        }
+        guessVals.add(v);
+      }
+      final fns = [
+        for (final raw in rawEqs)
+          (raw is Equal ? raw.left - raw.right : raw).toVectorFunction(vars),
+      ];
+      final sol = solveSystem(
+        fns,
+        Vector<double>.fromList(guessVals, type: DataType.float64),
+        tolerance: args.doubleVal('tol'),
+      );
+      return VectorValue(
+        Vector<Expr>.generate(
+          sol.length,
+          (i) => RealNumber.fromDouble(sol[i]),
+          type: exprDataType,
+        ),
+      );
     },
   ),
   Command(

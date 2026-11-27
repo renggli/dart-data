@@ -30,6 +30,57 @@
   .properties-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .properties-grid .attr-full {
+    grid-column: 1 / -1;
+  }
+}
+
+.mv-view-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 7px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+
+.mv-view-controls[hidden] {
+  display: none;
+}
+
+.view-toggle-btn {
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.view-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.view-toggle-btn[aria-pressed="true"] {
+  background-color: var(--app-accent);
+  color: #fff;
+}
+
+.view-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+.attributes-list[hidden],
+#univariate-eval-panel[hidden],
+#multivariate-eval-panel[hidden] {
+  display: none;
 }
 
 .sampler-card {

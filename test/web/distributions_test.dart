@@ -108,4 +108,60 @@ void main() {
       check(hd.draws).equals(10);
     });
   });
+
+  group('Multivariate distributions configuration and parameter constraints', () {
+    test('all configured multivariate distributions instantiate with defaults and evaluate', () {
+      for (final def in multivariateDistributions) {
+        final params = def.parameters.map((p) => p.defaultValue).toList();
+        syncMultivariateParameters(def, params);
+        final dist = def.creator(params);
+        check(dist.dimensions).equals(def.dimensions);
+        check(dist.mean.length).equals(def.dimensions);
+        check(dist.covariance.rowCount).equals(def.dimensions);
+        check(dist.covariance.colCount).equals(def.dimensions);
+
+        if (def.isContinuous) {
+          check(dist).isA<MultivariateDistribution<double>>();
+          final d = dist as MultivariateDistribution<double>;
+          final pt = d.mean;
+          check(d.probability(pt).isFinite).isTrue;
+          check(d.logProbability(pt).isFinite).isTrue;
+          check(d.sample().length).equals(def.dimensions);
+        } else {
+          check(dist).isA<MultivariateDistribution<int>>();
+          final d = dist as MultivariateDistribution<int>;
+          final s = d.sample();
+          check(s.length).equals(def.dimensions);
+          check(d.probability(s).isFinite).isTrue;
+          check(d.logProbability(s).isFinite).isTrue;
+        }
+      }
+    });
+
+    test(
+      'parameter clamping and syncMultivariateParameters handle extreme values',
+      () {
+        for (final def in multivariateDistributions) {
+          final extreme = [for (final p in def.parameters) p.max];
+          syncMultivariateParameters(def, extreme, changedIndex: 1);
+          final dist = def.creator(extreme);
+          check(dist.dimensions).equals(def.dimensions);
+
+          final lowExtreme = [for (final p in def.parameters) p.min];
+          syncMultivariateParameters(def, lowExtreme, changedIndex: 2);
+          final lowDist = def.creator(lowExtreme);
+          check(lowDist.dimensions).equals(def.dimensions);
+        }
+
+        final multDef = multivariateDistributions.firstWhere(
+          (d) => d.id == 'multinomial',
+        );
+        final vals = <double>[10.0, 0.85, 0.85];
+        syncMultivariateParameters(multDef, vals, changedIndex: 1);
+        check(vals[1] + vals[2]).isLessOrEqual(0.95 + 1e-9);
+        final multDist = multDef.creator(vals) as MultinomialDistribution;
+        check(multDist.probabilities.getUnchecked(2)).isGreaterThan(0.0);
+      },
+    );
+  });
 }

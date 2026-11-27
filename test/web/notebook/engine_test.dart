@@ -83,6 +83,9 @@ void main() {
           .evaluate("ode(-y, y, t, y0: 1, from: 0, to: 2, method: 'rk4')")
           .value;
       check((pOde as PlotValue).isOde).isTrue;
+      check(pOde.odeMethod).equals('rk4');
+      final roundTripOde = valueFromJson(valueToJson(pOde)) as PlotValue;
+      check(roundTripOde.odeMethod).equals('rk4');
 
       final pVf = eval.evaluate('vectorfield(-y, x, x, y, grid: 6)').value;
       check((pVf as PlotValue).plotKind).equals(PlotKind.vectorField2d);
@@ -141,10 +144,101 @@ void main() {
           .equals(ExprValue(Expr.parse('3*sin(5*x)')));
     });
 
-    test('evaluates orthogonal polynomials via ExprSyntax', () {
+    test(
+      'evaluates orthogonal polynomials and special functions via ExprSyntax',
+      () {
+        final eval = NotebookEvaluator();
+        check(eval.evaluate('chebyshevT(3, x)').value)
+            .equals(ExprValue(chebyshevT(3)));
+        check(eval.evaluate('logGamma(5)').value)
+            .equals(ExprValue(LogGamma(IntegerNumber.of(5))));
+        final lgApprox =
+            eval.evaluate('approx(logGamma(5))').value as ExprValue;
+        check(((lgApprox.expr as RealNumber).value - 3.1780538303479458).abs())
+            .isLessThan(1e-9);
+        check(eval.evaluate('cbrt(8)').value)
+            .equals(const ExprValue(IntegerNumber.two));
+        check(eval.evaluate('appellF1(1, 2, 3, 4, x, y)').value)
+            .isA<ExprValue>();
+      },
+    );
+
+    test('evaluates taylor without O-term, exact, rewrite, polydiv, and solvesystem', () {
       final eval = NotebookEvaluator();
-      check(eval.evaluate('chebyshevT(3, x)').value)
-          .equals(ExprValue(chebyshevT(3)));
+      final tay =
+          eval.evaluate('taylor(exp(x), x, order: 4)').value as ExprValue;
+      check(tay.expr.anyNode((n) => n is OrderTerm)).isFalse;
+
+      check(eval.evaluate('exact(0.75)').value)
+          .equals(ExprValue(Expr.parse('3/4')));
+
+      final rewritten = eval.evaluate("rewrite(sin(x), 'exp')").value;
+      check(rewritten).isA<ExprValue>();
+
+      final pd = eval.evaluate('polydiv(x^3 - 1, x - 1, x)').value as ListValue;
+      check(pd.elements[0]).equals(ExprValue(Expr.parse('1 + x + x^2')));
+      check(pd.elements[1]).equals(const ExprValue(IntegerNumber.zero));
+
+      final sys =
+          eval.evaluate('solvesystem([x + y = 10, x - y = 2], [x, y])').value
+              as ListValue;
+      check(sys.elements.length).equals(1);
+      final sol0 = sys.elements.first as ListValue;
+      check(sol0.elements).unorderedEquals([
+        ExprValue(Equal(const Variable('x'), IntegerNumber.of(6))),
+        ExprValue(Equal(const Variable('y'), IntegerNumber.of(4))),
+      ]);
+    });
+
+    test('evaluates rootsum, D, dsolve, antidiff, mintegrate, nminimize method, and nsolvesystem', () {
+      final eval = NotebookEvaluator();
+      final rsVal = eval.evaluate('rootsum(t^2 - 4, t, t^2)').value;
+      check(rsVal).isA<ExprValue>();
+      check((rsVal as ExprValue).expr).isA<RootSum>();
+      final rsApprox =
+          eval.evaluate('approx(rootsum(t^2 - 4, t, t^2))').value as ExprValue;
+      check(((rsApprox.expr as RealNumber).value - 8.0).abs()).isLessThan(1e-9);
+
+      eval.evaluate('y := 42'); // Ensure dsolve scopes y properly
+      final odeSol = eval.evaluate('dsolve(D(y, x) - 2*y = 0, y, x)').value;
+      check(odeSol).isA<ExprValue>();
+      check(odeSol.toCanonicalText()).contains('exp(2 * x)');
+
+      final ivp = eval
+          .evaluate('dsolve(D(y, x) - 2*y = 0, y, x, at: 0, init: [3])')
+          .value;
+      check(ivp).equals(ExprValue(Expr.parse('3 * exp(2 * x)')));
+
+      check(eval.evaluate('antidiff(1 / (x * (x + 1)), x)').value)
+          .isA<ExprValue>();
+
+      check(
+        eval
+            .evaluate('mintegrate(x * y, [y, x], from: [0, 0], to: [x, 1])')
+            .value,
+      ).equals(ExprValue(Expr.parse('1/8')));
+
+      final nm =
+          eval
+                  .evaluate(
+                    "nminimize((x - 2)^2 + 1, x, from: 0, to: 5, method: 'brent')",
+                  )
+                  .value
+              as ListValue;
+      final xmin = ((nm.elements[0] as ExprValue).expr as RealNumber).value;
+      check((xmin - 2.0).abs() < 1e-5).isTrue;
+
+      final nsys =
+          eval
+                  .evaluate(
+                    'nsolvesystem([x + y - 10, x - y - 2], [x, y], [1, 1])',
+                  )
+                  .value
+              as VectorValue;
+      final x0 = (nsys.vector[0] as RealNumber).value;
+      final y0 = (nsys.vector[1] as RealNumber).value;
+      check((x0 - 6.0).abs() < 1e-6).isTrue;
+      check((y0 - 4.0).abs() < 1e-6).isTrue;
     });
   });
 }

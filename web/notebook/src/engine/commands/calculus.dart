@@ -35,9 +35,35 @@ final List<Command> calculusCommands = [
       }
       var cur = expr;
       for (var i = 0; i < order; i++) {
-        cur = cur.derivative(v);
+        cur = cur.derivative(v, assumptions: ctx.assumptions);
       }
       return ExprValue(cur.simplify(assumptions: ctx.assumptions));
+    },
+  ),
+  Command(
+    name: 'D',
+    aliases: ['deriv'],
+    category: CommandCategory.calculus,
+    signature: const FunctionSignature(
+      positional: [
+        ParamSpec.positional('expr'),
+        ParamSpec.positional('var', type: ParamType.symbol),
+      ],
+      named: [
+        ParamSpec.named('order', type: ParamType.integer, defaultValue: 1),
+      ],
+    ),
+    doc: 'Constructs an unevaluated symbolic derivative for ODE specification.',
+    examples: ['D(y, x)', 'dsolve(D(y, x) + 2*y = 0, y, x)'],
+    preserveForm: true,
+    run: (args, _) {
+      final expr = args.expr('expr');
+      final v = args.symbol('var');
+      final order = args.intVal('order');
+      if (order < 1) {
+        throw const ArgumentBindingException('D order must be >= 1');
+      }
+      return ExprValue(Derivative(expr, v, order: order));
     },
   ),
   Command(
@@ -76,9 +102,54 @@ final List<Command> calculusCommands = [
         );
       }
       final res = (from != null && to != null)
-          ? expr.integrate(v, from: from, to: to)
-          : expr.integrate(v);
+          ? expr.integrate(v, from: from, to: to, assumptions: ctx.assumptions)
+          : expr.integrate(v, assumptions: ctx.assumptions);
       return ExprValue(res.simplify(assumptions: ctx.assumptions));
+    },
+  ),
+  Command(
+    name: 'mintegrate',
+    category: CommandCategory.calculus,
+    signature: const FunctionSignature(
+      positional: [
+        ParamSpec.positional('expr'),
+        ParamSpec.positional('vars', type: ParamType.symbolList),
+      ],
+      named: [
+        ParamSpec.named('from', type: ParamType.exprList),
+        ParamSpec.named('to', type: ParamType.exprList),
+      ],
+    ),
+    doc: 'Computes an iterated (multiple) indefinite or definite integral.',
+    examples: [
+      'mintegrate(x * y, [x, y])',
+      'mintegrate(x * y, [y, x], from: [0, 0], to: [x, 1])',
+    ],
+    run: (args, ctx) {
+      final expr = args.expr('expr');
+      final vars = args.symbolList('vars');
+      final fromList = args.has('from') ? args.exprList('from') : null;
+      final toList = args.has('to') ? args.exprList('to') : null;
+      if ((fromList == null) != (toList == null)) {
+        throw const ArgumentBindingException(
+          'mintegrate requires both from: and to: lists when specifying bounds',
+        );
+      }
+      if (fromList != null &&
+          (fromList.length != vars.length || toList!.length != vars.length)) {
+        throw ArgumentBindingException(
+          'mintegrate from: and to: lists must match variable count (${vars.length})',
+        );
+      }
+      final bounds = <IntegrationBound>[
+        for (var i = 0; i < vars.length; i++)
+          (variable: vars[i], from: fromList?[i], to: toList?[i]),
+      ];
+      return ExprValue(
+        expr
+            .integrateMultiple(bounds, assumptions: ctx.assumptions)
+            .simplify(assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -99,12 +170,20 @@ final List<Command> calculusCommands = [
       'taylor(sin(x), x, order: 7)',
       'taylor(ln(x), x, at: 1, order: 4)',
     ],
-    run: (args, _) {
+    run: (args, ctx) {
       final expr = args.expr('expr');
       final v = inferVariable(expr, args.symbolOrNull('var'));
       final at = args.exprOrNull('at') ?? IntegerNumber.zero;
       final order = args.intVal('order');
-      return ExprValue(expr.series(v, point: at, order: order));
+      return ExprValue(
+        expr.series(
+          v,
+          point: at,
+          order: order,
+          includeOrder: false,
+          assumptions: ctx.assumptions,
+        ),
+      );
     },
   ),
   Command(
@@ -122,12 +201,19 @@ final List<Command> calculusCommands = [
     ),
     doc: 'Computes a formal PowerSeries expansion with asymptotic O-term.',
     examples: ['series(exp(x), x, order: 5)'],
-    run: (args, _) {
+    run: (args, ctx) {
       final expr = args.expr('expr');
       final v = inferVariable(expr, args.symbolOrNull('var'));
       final at = args.exprOrNull('at') ?? IntegerNumber.zero;
       final order = args.intVal('order');
-      return SeriesValue(expr.toPowerSeries(v, point: at, order: order));
+      return SeriesValue(
+        expr.toPowerSeries(
+          v,
+          point: at,
+          order: order,
+          assumptions: ctx.assumptions,
+        ),
+      );
     },
   ),
   Command(
@@ -150,7 +236,7 @@ final List<Command> calculusCommands = [
     ),
     doc: 'Computes the symbolic limit of an expression.',
     examples: ['limit(sin(x)/x, x, 0)', "limit(1/x, x, 0, direction: 'right')"],
-    run: (args, _) {
+    run: (args, ctx) {
       final expr = args.expr('expr');
       final v = args.symbol('var');
       final to = args.expr('to');
@@ -159,7 +245,9 @@ final List<Command> calculusCommands = [
         'right' => LimitDirection.fromAbove,
         _ => LimitDirection.both,
       };
-      return ExprValue(expr.limit(v, to, direction: dir));
+      return ExprValue(
+        expr.limit(v, to, direction: dir, assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(
@@ -207,8 +295,67 @@ final List<Command> calculusCommands = [
       final v = args.symbol('var');
       final from = args.expr('from');
       final to = args.expr('to');
+      return ExprValue(expr.product(v, from, to, assumptions: ctx.assumptions));
+    },
+  ),
+  Command(
+    name: 'antidiff',
+    category: CommandCategory.calculus,
+    signature: const FunctionSignature(
+      positional: [
+        ParamSpec.positional('expr'),
+        ParamSpec.optional('var', type: ParamType.symbol),
+      ],
+    ),
+    doc: 'Computes the indefinite antidifference Δ⁻¹ f(x) for discrete summation.',
+    examples: ['antidiff(x * x!, x)', 'antidiff(1 / (x * (x + 1)), x)'],
+    run: (args, ctx) {
+      final expr = args.expr('expr');
+      final v = inferVariable(expr, args.symbolOrNull('var'));
+      final res = expr.indefiniteSum(v, assumptions: ctx.assumptions);
+      if (res == null) {
+        return const InfoValue('No closed-form antidifference found.');
+      }
+      return ExprValue(res.simplify(assumptions: ctx.assumptions));
+    },
+  ),
+  Command(
+    name: 'dsolve',
+    category: CommandCategory.calculus,
+    signature: const FunctionSignature(
+      positional: [
+        ParamSpec.positional('eq', type: ParamType.equation),
+        ParamSpec.positional('y', type: ParamType.symbol),
+        ParamSpec.positional('x', type: ParamType.symbol),
+      ],
+      named: [
+        ParamSpec.named('at', type: ParamType.expr),
+        ParamSpec.named('init', type: ParamType.exprList),
+        ParamSpec.named('constant', type: ParamType.string, defaultValue: 'C1'),
+      ],
+    ),
+    doc:
+        'Solves first-order and constant-coefficient linear ODEs symbolically.',
+    examples: [
+      'dsolve(D(y, x) - 2*y = 0, y, x)',
+      'dsolve(D(y, x, order: 2) + y = 0, y, x, at: 0, init: [1, 0])',
+    ],
+    run: (args, ctx) {
+      final eq = args.expr('eq');
+      final dep = args.symbol('y');
+      final ind = args.symbol('x');
+      final at = args.exprOrNull('at');
+      final init = args.has('init') ? args.exprList('init') : const <Expr>[];
+      final cName = args.stringVal('constant');
       return ExprValue(
-        Product(expr, v, from, to).simplify(assumptions: ctx.assumptions),
+        eq.solveOde(
+          dependent: dep,
+          independent: ind,
+          constant: cName,
+          at: at,
+          initialValues: init,
+          assumptions: ctx.assumptions,
+        ),
       );
     },
   ),
@@ -224,10 +371,10 @@ final List<Command> calculusCommands = [
     ),
     doc: 'Computes the gradient vector of a scalar field.',
     examples: ['gradient(x^2 + y^2 + z^2, [x, y, z])'],
-    run: (args, _) {
+    run: (args, ctx) {
       final expr = args.expr('expr');
       final vars = args.symbolList('vars');
-      return VectorValue(expr.gradient(vars).simplify());
+      return VectorValue(expr.gradient(vars, assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -241,10 +388,10 @@ final List<Command> calculusCommands = [
     ),
     doc: 'Computes the Hessian matrix of second partial derivatives.',
     examples: ['hessian(x^2*y + sin(y), [x, y])'],
-    run: (args, _) {
+    run: (args, ctx) {
       final expr = args.expr('expr');
       final vars = args.symbolList('vars');
-      return MatrixValue(expr.hessian(vars).simplify());
+      return MatrixValue(expr.hessian(vars, assumptions: ctx.assumptions));
     },
   ),
   Command(
@@ -258,10 +405,10 @@ final List<Command> calculusCommands = [
     ),
     doc: 'Computes the Jacobian matrix of a vector-valued function.',
     examples: ['jacobian([r*cos(theta), r*sin(theta)], [r, theta])'],
-    run: (args, _) {
+    run: (args, ctx) {
       final exprs = args.exprList('exprs');
       final vars = args.symbolList('vars');
-      return MatrixValue(exprs.jacobian(vars).simplify());
+      return MatrixValue(exprs.jacobian(vars, assumptions: ctx.assumptions));
     },
   ),
   Command(

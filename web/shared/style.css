@@ -392,6 +392,12 @@ body.sidebar-collapsed .sidebar-expand-btn {
   border: 1px solid rgba(168, 85, 247, 0.2);
 }
 
+.badge-multivariate {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
 /* Main Dashboard Layout */
 .main-content {
   margin-left: 320px;
@@ -529,6 +535,15 @@ body.sidebar-collapsed .sidebar-expand-btn {
   border-radius: 3px;
   background: var(--bg-tertiary);
   outline: none;
+}
+
+.custom-slider:focus-visible,
+.btn:focus-visible,
+.copy-btn:focus-visible,
+.icon-btn:focus-visible,
+.sidebar-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
 }
 
 .custom-slider::-webkit-slider-thumb {

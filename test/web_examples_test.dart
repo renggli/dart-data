@@ -19,12 +19,13 @@ Expr _parsePresetBound(String raw) {
 
 void main() {
   group('Distributions Web Example Config', () {
-    test('contains all 24 univariate distributions', () {
+    test('contains all 24 univariate and 3 multivariate distributions', () {
       check(distributions.length).equals(24);
       final continuousCount = distributions.where((d) => d.isContinuous).length;
       final discreteCount = distributions.where((d) => !d.isContinuous).length;
       check(continuousCount).equals(16);
       check(discreteCount).equals(8);
+      check(multivariateDistributions.length).equals(3);
     });
 
     test('all distributions can be instantiated with default parameters', () {
@@ -42,10 +43,30 @@ void main() {
         final samples = dist.samples().take(5).toList();
         check(samples.length).equals(5);
       }
+
+      for (final def in multivariateDistributions) {
+        final defaultParams = def.parameters
+            .map((p) => p.defaultValue)
+            .toList();
+        final dist = def.creator(defaultParams);
+        check(dist.dimensions).equals(def.dimensions);
+        final samples = dist.samples().take(5).toList();
+        check(samples.length).equals(5);
+        for (final s in samples) {
+          check(s.length).equals(def.dimensions);
+        }
+      }
     });
 
     test('all parameter bounds are consistent', () {
       for (final def in distributions) {
+        for (final p in def.parameters) {
+          check(p.min <= p.max).isTrue;
+          check(p.defaultValue >= p.min && p.defaultValue <= p.max).isTrue;
+          check(p.step > 0).isTrue;
+        }
+      }
+      for (final def in multivariateDistributions) {
         for (final p in def.parameters) {
           check(p.min <= p.max).isTrue;
           check(p.defaultValue >= p.min && p.defaultValue <= p.max).isTrue;
