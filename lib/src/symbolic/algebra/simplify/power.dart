@@ -5,6 +5,7 @@ import 'package:more/math.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../number/combinatorics.dart';
+import '../../oracle/sign.dart' show isOddInteger;
 import 'additive.dart';
 import 'complex.dart';
 import 'domain.dart';
@@ -196,11 +197,14 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
     return Pow.of(base, exponent);
   }
 
-  // 4b. (-1)^k = 1 for even integer expression k
-  if (base is Number &&
-      base.isNegativeOne &&
-      isEvenIntegerExpr(exponent, assumptions: assumptions)) {
-    return IntegerNumber.one;
+  // 4b. (-1)^k = 1 for even integer expression k, -1 for odd integer expression k
+  if (base is Number && base.isNegativeOne) {
+    if (isEvenIntegerExpr(exponent, assumptions: assumptions)) {
+      return IntegerNumber.one;
+    }
+    if (isOddInteger(exponent, assumptions: assumptions)) {
+      return IntegerNumber.negativeOne;
+    }
   }
 
   // 5. Involution: (u^2)^(1/2) => |u| (or (u^(2*k))^(1/(2*k)) => |u| for real u)

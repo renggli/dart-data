@@ -660,6 +660,12 @@ Expr simplifyAbs(Expr expr, {required Assumptions assumptions}) {
   if (isNonNegativeExpr(expr, assumptions: assumptions)) {
     return expr;
   }
+  if (isNonPositiveExpr(expr, assumptions: assumptions)) {
+    return simplifyNeg(expr, assumptions: assumptions);
+  }
+  if (isNegativeExpr(expr, assumptions: assumptions)) {
+    return simplifyNeg(expr, assumptions: assumptions);
+  }
 
   // Multiplicative: |a * b| = |a| * |b|
   if (expr is Mul) {

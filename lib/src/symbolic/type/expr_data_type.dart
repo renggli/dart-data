@@ -8,11 +8,11 @@ import '../../type/models/field.dart';
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/factor/fraction.dart';
-import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../ast.dart';
 import '../compiler.dart';
 import '../functions/fn.dart';
+import '../oracle/zero_equivalence.dart' as oracle;
 
 /// Canonical singleton instance of [ExprDataType].
 const ExprDataType exprDataType = ExprDataType();
@@ -215,23 +215,4 @@ final class ExprField extends ExtendedField<Expr> {
 }
 
 /// Checks whether a symbolic expression [expr] simplifies or evaluates to zero.
-bool isZeroExpr(Expr expr) {
-  if (expr is Number) return expr.isZero;
-  final s = expr.simplify();
-  if (s is Number && s.isZero) return true;
-  final exp = s.expand().simplify();
-  if (exp is Number && exp.isZero) return true;
-  final comb = s.together().simplify();
-  if (comb is Number && comb.isZero) return true;
-  if (s.freeVariables.isEmpty && s.anyNode((node) => node is RealNumber)) {
-    try {
-      final c = s.evaluateComplex();
-      if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
-    } on ArgumentError {
-      // Ignored.
-    } on UnsupportedError {
-      // Ignored.
-    }
-  }
-  return false;
-}
+bool isZeroExpr(Expr expr) => oracle.isZeroExpr(expr);

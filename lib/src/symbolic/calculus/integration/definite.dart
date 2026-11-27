@@ -9,6 +9,7 @@ import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
 import '../../functions/fn.dart';
+import '../../oracle/sign.dart' as oracle;
 import '../../solver/univariate.dart';
 import '../differentiation.dart';
 import '../limit.dart';
@@ -26,24 +27,40 @@ bool isInfiniteBound(Expr bound) =>
     bound == -Constant.infinity;
 
 /// Returns `true` if [expr] evaluates to a strictly positive constant.
-bool isPositiveConstant(Expr expr) {
-  if (expr is RationalNumber) return !expr.isNegative && !expr.isZero;
-  if (expr is RealNumber) return expr.value > 0.0;
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final val = expr.evaluate(const {});
-      return val.isFinite && val > 0.0;
-    } on ArgumentError {
-      // Ignored.
-    } on UnsupportedError {
-      // Ignored.
-    }
-  }
-  return false;
-}
+bool isPositiveConstant(Expr expr) =>
+    !expr.hasVariable && oracle.isPositive(expr);
 
 /// Returns `true` if [expr] evaluates to a strictly negative constant.
-bool isNegativeConstant(Expr expr) => isPositiveConstant((-expr).simplify());
+bool isNegativeConstant(Expr expr) =>
+    !expr.hasVariable && oracle.isNegative(expr);
+
+Assumptions _withIntervalAssumptions(
+  Assumptions base,
+  String variable,
+  Expr fromExpr,
+  Expr toExpr,
+) {
+  if (base.domainOf(variable) == VariableDomain.complex) return base;
+  final numFrom = evaluateBoundNumeric(fromExpr);
+  final numTo = evaluateBoundNumeric(toExpr);
+  if (numFrom == null ||
+      numTo == null ||
+      numFrom.isNaN ||
+      numTo.isNaN ||
+      numFrom == numTo) {
+    return base;
+  }
+  final loExpr = numFrom < numTo ? fromExpr : toExpr;
+  final hiExpr = numFrom < numTo ? toExpr : fromExpr;
+  final lowerBound = isInfiniteBound(loExpr) ? null : loExpr;
+  final upperBound = isInfiniteBound(hiExpr) ? null : hiExpr;
+  if (lowerBound == null && upperBound == null) {
+    return base.domainOf(variable) == VariableDomain.unknown
+        ? base.withDomain(variable, VariableDomain.real)
+        : base;
+  }
+  return base.withBounds(variable, lower: lowerBound, upper: upperBound);
+}
 
 /// Evaluates a definite symbolic integral `integrate _a^b f(x) dx` with respect to
 /// [variable] between [from] and [to].
@@ -193,11 +210,17 @@ Expr evaluateDefiniteIntegral(
     }
   }
 
+  final interiorAssumptions = _withIntervalAssumptions(
+    assumptions,
+    variable,
+    fromExpr,
+    toExpr,
+  );
   final antiDeriv = antiDerivative(
     function,
     variable,
-    assumptions: assumptions,
-  ).simplify(assumptions: assumptions);
+    assumptions: interiorAssumptions,
+  ).simplify(assumptions: interiorAssumptions);
 
   if (!hasUnevaluatedIntegral(antiDeriv, variable)) {
     var hasInteriorPole = false;

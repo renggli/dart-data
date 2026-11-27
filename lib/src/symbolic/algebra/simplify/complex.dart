@@ -136,6 +136,9 @@ Expr simplifyArg(Expr expr, {required Assumptions assumptions}) {
       if (isNonNegativeExpr(expr, assumptions: assumptions)) {
         return IntegerNumber.zero;
       }
+      if (isNegativeExpr(expr, assumptions: assumptions)) {
+        return Constant.pi;
+      }
       return Fn.arg(expr);
   }
 }

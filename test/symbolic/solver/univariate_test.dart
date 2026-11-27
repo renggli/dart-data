@@ -335,6 +335,18 @@ void main() {
                   const RealNumber(1000000.0))
               .solve('x');
       check(largeRoots.length).equals(2);
+
+      final boundedAssump = Assumptions.none.withBounds(
+        'x',
+        lower: IntegerNumber.zero,
+        lowerInclusive: true,
+        upper: IntegerNumber.two,
+        upperInclusive: false,
+      );
+      check(
+        Expr.parse('x * (x - 1) * (x - 2) * (x + 3)')
+            .solve('x', assumptions: boundedAssump),
+      ).deepEquals([IntegerNumber.zero, IntegerNumber.one]);
     });
   });
 }

@@ -9,6 +9,7 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
 import '../compiler.dart';
+import '../oracle/domain_oracle.dart';
 import '../type/expr_data_type.dart';
 import 'polynomial.dart';
 import 'transcendental.dart';
@@ -58,7 +59,50 @@ List<Expr> solveEquation(
   final validRoots = rawRoots
       .where((root) => _isValidRoot(normalized, variable, root, assumptions))
       .toList();
-  return _filterByDomain(validRoots, effectiveDomain, assumptions);
+  final filtered = _filterByDomain(validRoots, effectiveDomain, assumptions);
+  final bound = assumptions.boundsOf(variable);
+  if (bound.isUnbounded) return filtered;
+  return filtered
+      .where((root) => satisfiesVariableBounds(root, bound, assumptions))
+      .toList();
+}
+
+/// Checks whether [root] satisfies interval [bound] under [assumptions].
+bool satisfiesVariableBounds(
+  Expr root,
+  VariableBounds bound,
+  Assumptions assumptions,
+) {
+  if (bound.isUnbounded) return true;
+  final oracle = DomainOracle(assumptions);
+  final s = root.simplify(assumptions: assumptions);
+  if (bound.lower case final lo?) {
+    final diff = (s - lo).simplify(assumptions: assumptions);
+    final sign = oracle.signOf(diff);
+    if (sign == Sign.negative) return false;
+    if (sign == Sign.zero && !bound.lowerInclusive) return false;
+    if (sign == Sign.unknown) {
+      final v = oracle.tryStaticRealValue(diff);
+      if (v != null) {
+        if (v < -1e-12) return false;
+        if (!bound.lowerInclusive && v <= 1e-12) return false;
+      }
+    }
+  }
+  if (bound.upper case final hi?) {
+    final diff = (hi - s).simplify(assumptions: assumptions);
+    final sign = oracle.signOf(diff);
+    if (sign == Sign.negative) return false;
+    if (sign == Sign.zero && !bound.upperInclusive) return false;
+    if (sign == Sign.unknown) {
+      final v = oracle.tryStaticRealValue(diff);
+      if (v != null) {
+        if (v < -1e-12) return false;
+        if (!bound.upperInclusive && v <= 1e-12) return false;
+      }
+    }
+  }
+  return true;
 }
 
 /// Checks whether [root] satisfies [domain] under [assumptions].

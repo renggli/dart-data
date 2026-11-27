@@ -629,6 +629,11 @@ void main() {
       check(
         wallis20.evaluate(),
       ).isCloseTo(Expr.parse('pi * binomial(20, 10) / 2^19').evaluate(), 1e-10);
+
+      check(Expr.parse('abs(x - 2)').integrate('x', from: 2, to: 5))
+          .equals(RationalNumber(9, 2));
+      check(Expr.parse('abs(x - 5)').integrate('x', from: 1, to: 3))
+          .equals(IntegerNumber.of(6));
     });
   });
 }

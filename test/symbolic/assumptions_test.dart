@@ -151,4 +151,78 @@ void main() {
       check(a1 == a3).isFalse;
     });
   });
+
+  group('Assumptions v2 composable properties and relations', () {
+    test(
+      'tracks negative, nonNegative, integer parity, and relational bounds',
+      () {
+        const x = Variable('x');
+        const y = Variable('y');
+
+        final negX = Assumptions.none.withNegative('x');
+        check(negX.isNegative('x')).isTrue;
+        check(negX.isNonPositive('x')).isTrue;
+        check(negX.isNonZero('x')).isTrue;
+        check(negX.isReal('x')).isTrue;
+        check(Expr.parse('sqrt(x^2)').simplify(assumptions: negX)).equals(-x);
+        check(Expr.parse('abs(x)').simplify(assumptions: negX)).equals(-x);
+        check(Expr.parse('sign(x)').simplify(assumptions: negX))
+            .equals(IntegerNumber.negativeOne);
+        check(Expr.parse('arg(x)').simplify(assumptions: negX))
+            .equals(Constant.pi);
+
+        final nonNegX = Assumptions.none.withNonNegative('x');
+        check(nonNegX.isNonNegative('x')).isTrue;
+        check(nonNegX.isReal('x')).isTrue;
+        check(nonNegX.isPositive('x')).isFalse;
+        check(Expr.parse('sqrt(x^2)').simplify(assumptions: nonNegX)).equals(x);
+        check(Expr.parse('abs(x)').simplify(assumptions: nonNegX)).equals(x);
+
+        final oddN = Assumptions.none.withOdd('n');
+        check(oddN.isOdd('n')).isTrue;
+        check(oddN.isInteger('n')).isTrue;
+        check(oddN.isNonZero('n')).isTrue;
+        check(Expr.parse('(-1)^n').simplify(assumptions: oddN))
+            .equals(IntegerNumber.negativeOne);
+
+        final evenN = Assumptions.none.withEven('n');
+        check(evenN.isEven('n')).isTrue;
+        check(Expr.parse('(-1)^n').simplify(assumptions: evenN))
+            .equals(IntegerNumber.one);
+
+        final relAssump = Assumptions.none
+            .withRelation(Relational.greaterThan(x, IntegerNumber.zero))
+            .withRelation(Relational.greaterThan(x, y));
+        check(relAssump.isPositive('x')).isTrue;
+        check(
+          Relational.greaterThan(
+            x,
+            IntegerNumber.zero,
+          ).simplify(assumptions: relAssump),
+        ).equals(IntegerNumber.one);
+        check(Relational.greaterThan(x, y).simplify(assumptions: relAssump))
+            .equals(IntegerNumber.one);
+        check(Relational.lessEqual(x, y).simplify(assumptions: relAssump))
+            .equals(IntegerNumber.zero);
+
+        final bounded = Assumptions.none.withBounds(
+          'x',
+          lower: IntegerNumber.one,
+          lowerInclusive: false,
+          upper: IntegerNumber.of(4),
+          upperInclusive: true,
+        );
+        check(bounded.isEmpty).isFalse;
+        check(bounded.domainOf('x')).equals(VariableDomain.positive);
+        check(bounded.boundsOf('x')).equals(
+          VariableBounds(
+            lower: IntegerNumber.one,
+            upper: IntegerNumber.of(4),
+            upperInclusive: true,
+          ),
+        );
+        check(bounded.boundsOf('y').isUnbounded).isTrue;
+      },
+    );
+  });
 }

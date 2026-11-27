@@ -3,6 +3,8 @@ import '../../ast.dart';
 import '../../calculus/differentiation.dart';
 import '../../compiler.dart';
 import '../../functions/fn.dart';
+import '../../oracle/domain_oracle.dart' show Sign;
+import '../../oracle/sign.dart';
 import '../simplify.dart';
 import 'additive.dart';
 import 'domain.dart';
@@ -36,6 +38,32 @@ Expr simplifyRelational(Relational expr, {required Assumptions assumptions}) {
       RelOp.notEqual => vL != vR,
     };
     return matched ? IntegerNumber.one : IntegerNumber.zero;
+  }
+  if (left != Constant.undefined &&
+      right != Constant.undefined &&
+      isProvenReal(left, assumptions) &&
+      isProvenReal(right, assumptions)) {
+    final diffSign = inferSign(left - right, assumptions: assumptions);
+    final decided = switch ((expr.op, diffSign)) {
+      (RelOp.lessThan, Sign.negative) => true,
+      (RelOp.lessThan, Sign.zero || Sign.positive || Sign.nonNegative) => false,
+      (RelOp.lessEqual, Sign.negative || Sign.zero || Sign.nonPositive) => true,
+      (RelOp.lessEqual, Sign.positive) => false,
+      (RelOp.greaterThan, Sign.positive) => true,
+      (RelOp.greaterThan, Sign.zero || Sign.negative || Sign.nonPositive) =>
+        false,
+      (RelOp.greaterEqual, Sign.positive || Sign.zero || Sign.nonNegative) =>
+        true,
+      (RelOp.greaterEqual, Sign.negative) => false,
+      (RelOp.equal, Sign.zero) => true,
+      (RelOp.equal, Sign.negative || Sign.positive || Sign.nonZero) => false,
+      (RelOp.notEqual, Sign.negative || Sign.positive || Sign.nonZero) => true,
+      (RelOp.notEqual, Sign.zero) => false,
+      _ => null,
+    };
+    if (decided != null) {
+      return decided ? IntegerNumber.one : IntegerNumber.zero;
+    }
   }
   return Relational(expr.op, left, right);
 }
@@ -271,9 +299,11 @@ Expr simplifySign(Expr expr, {required Assumptions assumptions}) {
   if (expr is RationalNumber) {
     return IntegerNumber.of(expr.sign);
   }
-  if (expr case Variable(:final name)
-      when assumptions.domainOf(name) == VariableDomain.positive) {
-    return IntegerNumber.one;
+  if (isPositive(expr, assumptions: assumptions)) {
+    return expr.hasReal ? const RealNumber(1.0) : IntegerNumber.one;
+  }
+  if (isNegative(expr, assumptions: assumptions)) {
+    return expr.hasReal ? const RealNumber(-1.0) : IntegerNumber.negativeOne;
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
