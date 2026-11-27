@@ -97,7 +97,7 @@ extension IntegrationExtension on Expr {
 final class _IntegrationBudget {
   static const int maxSteps = 250;
   static const int maxDepth = 8;
-  static const int maxElapsedMs = identical(0, 0.0) ? 350 : 250;
+  static const int maxElapsedMs = identical(0, 0.0) ? 750 : 250;
 
   final Stopwatch _stopwatch = Stopwatch()..start();
   final Map<(Expr, String, Assumptions), Expr> memo =

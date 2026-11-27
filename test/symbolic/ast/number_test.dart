@@ -47,7 +47,7 @@ void main() {
     });
 
     test('BigInt transparent handling in IntegerNumber', () {
-      final big = BigInt.two.pow(100);
+      final big = BigInt.two.pow(100) + BigInt.one;
       final expr = IntegerNumber(big);
       check(expr.value.isValidInt).isFalse;
       check(expr.asInt).isNull;

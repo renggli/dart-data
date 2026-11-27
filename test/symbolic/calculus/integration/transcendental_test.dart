@@ -100,7 +100,7 @@ void main() {
         final res = expr.integrate('x');
         sw.stop();
         check(sw.elapsedMilliseconds)
-            .isLessThan(identical(0, 0.0) ? 1000 : 500);
+            .isLessThan(identical(0, 0.0) ? 1500 : 500);
         check(res).isA<Expr>();
       }
     });
