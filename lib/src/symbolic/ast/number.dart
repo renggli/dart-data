@@ -496,13 +496,13 @@ sealed class RationalNumber extends RealNumeric {
     }
     if (numerator == BigInt.zero) return IntegerNumber.zero;
     if (den == BigInt.one) return IntegerNumber(numerator);
-    final rawDiv = numerator.gcd(den);
+    final rawDiv = _bigIntGcd(numerator, den);
     final divisor = den.isNegative ? -rawDiv : rawDiv;
     final normNum = divisor == BigInt.one ? numerator : numerator ~/ divisor;
     final normDen = divisor == BigInt.one ? den : den ~/ divisor;
     return normDen == BigInt.one
         ? IntegerNumber(normNum)
-        : FractionNumber(normNum, normDen);
+        : FractionNumber._normalized(normNum, normDen);
   }
 
   /// The signed numerator `p`.
@@ -605,7 +605,9 @@ sealed class RationalNumber extends RealNumeric {
       den == 1 ? IntegerNumber.of(num) : FractionNumber._small(num, den);
 
   static RationalNumber _fromNormalized(BigInt num, BigInt den) =>
-      den == BigInt.one ? IntegerNumber(num) : FractionNumber(num, den);
+      den == BigInt.one
+      ? IntegerNumber(num)
+      : FractionNumber._normalized(num, den);
 
   /// Exact rational sum `this + other`.
   RationalNumber addRational(RationalNumber other) {
@@ -653,7 +655,7 @@ sealed class RationalNumber extends RealNumeric {
         return _fromSafeInts(num ~/ red, adDiv * (bd ~/ red));
       }
     }
-    final divisor = denominator.gcd(other.denominator);
+    final divisor = _bigIntGcd(denominator, other.denominator);
     if (divisor == BigInt.one) {
       return RationalNumber._fromNormalized(
         numerator * other.denominator + other.numerator * denominator,
@@ -664,7 +666,7 @@ sealed class RationalNumber extends RealNumeric {
         numerator * (other.denominator ~/ divisor) +
         other.numerator * (denominator ~/ divisor);
     if (num == BigInt.zero) return IntegerNumber.zero;
-    final reduction = num.gcd(divisor);
+    final reduction = _bigIntGcd(num, divisor);
     return RationalNumber._fromNormalized(
       num ~/ reduction,
       (denominator ~/ divisor) * (other.denominator ~/ reduction),
@@ -725,12 +727,17 @@ sealed class RationalNumber extends RealNumeric {
         );
       }
     }
-    final first = numerator.gcd(other.denominator);
-    final second = other.numerator.gcd(denominator);
-    return RationalNumber._fromNormalized(
-      (numerator ~/ first) * (other.numerator ~/ second),
-      (denominator ~/ second) * (other.denominator ~/ first),
-    );
+    final first = _bigIntGcd(numerator, other.denominator);
+    final second = _bigIntGcd(other.numerator, denominator);
+    final n1 = first == BigInt.one ? numerator : numerator ~/ first;
+    final d2 = first == BigInt.one
+        ? other.denominator
+        : other.denominator ~/ first;
+    final n2 = second == BigInt.one
+        ? other.numerator
+        : other.numerator ~/ second;
+    final d1 = second == BigInt.one ? denominator : denominator ~/ second;
+    return RationalNumber._fromNormalized(n1 * n2, d1 * d2);
   }
 
   /// Exact rational quotient `this / other`.
@@ -785,7 +792,7 @@ sealed class RationalNumber extends RealNumeric {
     if (isZero) return other.abs();
     if (other.isZero) return abs();
     return RationalNumber.of(
-      numerator.gcd(other.numerator),
+      _bigIntGcd(numerator, other.numerator),
       denominator.lcm(other.denominator),
     );
   }
@@ -795,7 +802,7 @@ sealed class RationalNumber extends RealNumeric {
     if (isZero || other.isZero) return IntegerNumber.zero;
     return RationalNumber.of(
       numerator.lcm(other.numerator),
-      denominator.gcd(other.denominator),
+      _bigIntGcd(denominator, other.denominator),
     );
   }
 
@@ -909,9 +916,14 @@ final class FractionNumber extends RationalNumber {
   /// Creates a reduced fraction with coprime [numerator] and [denominator] `> 1`.
   factory(BigInt numerator, BigInt denominator) {
     assert(
-      denominator > BigInt.one && numerator.gcd(denominator) == BigInt.one,
+      denominator > BigInt.one &&
+          _bigIntGcd(numerator, denominator) == BigInt.one,
       'FractionNumber must be reduced with denominator > 1',
     );
+    return FractionNumber._normalized(numerator, denominator);
+  }
+
+  factory _normalized(BigInt numerator, BigInt denominator) {
     if (denominator <= _posMaxSafeBig &&
         numerator >= _negMaxSafeBig &&
         numerator <= _posMaxSafeBig) {
@@ -1185,6 +1197,28 @@ int _intGcd(int a, int b) {
     y = t;
   }
   return x;
+}
+
+BigInt _bigIntGcd(BigInt a, BigInt b) {
+  var x = a.isNegative ? -a : a;
+  var y = b.isNegative ? -b : b;
+  if (x == BigInt.zero) return y;
+  if (y == BigInt.zero) return x;
+  if (x == BigInt.one || y == BigInt.one) return BigInt.one;
+  if (x.bitLength < y.bitLength) {
+    final tmp = x;
+    x = y;
+    y = tmp;
+  }
+  if (x.bitLength > y.bitLength + 32 ||
+      (y.bitLength <= 53 && x.bitLength > 53)) {
+    x = x % y;
+    if (x == BigInt.zero) return y;
+  }
+  if (y.bitLength <= 53) {
+    return BigInt.from(_intGcd(y.toInt(), x.toInt()));
+  }
+  return y.gcd(x);
 }
 
 (int, int)? _asSafePair(RationalNumber r) => switch (r) {
