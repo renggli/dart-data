@@ -2,11 +2,11 @@ import 'dart:math' as math;
 
 import '../assumptions.dart';
 import '../ast.dart';
+import '../oracle/sign.dart';
 import 'expand.dart';
 import 'helpers.dart';
 import 'simplify.dart';
 import 'simplify/additive.dart';
-import 'simplify/domain.dart';
 import 'simplify/multiplicative.dart';
 import 'simplify/power.dart';
 import 'simplify/transcendental.dart';

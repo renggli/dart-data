@@ -7,7 +7,6 @@ import '../../oracle/domain_oracle.dart' show Sign;
 import '../../oracle/sign.dart';
 import '../simplify.dart';
 import 'additive.dart';
-import 'domain.dart';
 import 'transcendental.dart';
 
 /// Simplifies a relational expression.

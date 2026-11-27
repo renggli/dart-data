@@ -1,10 +1,10 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/simplify/complex.dart';
 import 'package:data/src/symbolic/algebra/simplify/discrete.dart';
-import 'package:data/src/symbolic/algebra/simplify/domain.dart';
 import 'package:data/src/symbolic/algebra/simplify/special.dart';
 import 'package:data/src/symbolic/algebra/simplify/special_integrals.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
+import 'package:data/src/symbolic/oracle/sign.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 
@@ -545,6 +545,63 @@ void main() {
           .isTrue;
       check(isProvenReal(Fn.ellipticE(IntegerNumber.two), realAssumptions))
           .isFalse;
+    });
+
+    test('decomposes expressions via decomposeComplex', () {
+      const x = Variable('x');
+      const realAssumptions = Assumptions(domains: {'x': VariableDomain.real});
+
+      final realPart = decomposeComplex(IntegerNumber.of(3), Assumptions.none);
+      check(realPart.re).equals(IntegerNumber.of(3));
+      check(realPart.im).equals(IntegerNumber.zero);
+
+      final complexPart = decomposeComplex(
+        ComplexNumber.of(IntegerNumber.two, IntegerNumber.of(5)),
+        Assumptions.none,
+      );
+      check(complexPart.re).equals(IntegerNumber.two);
+      check(complexPart.im).equals(IntegerNumber.of(5));
+
+      final conj = decomposeComplex(
+        Fn.conj(ComplexNumber.of(IntegerNumber.one, IntegerNumber.two)),
+        Assumptions.none,
+      );
+      check(conj.re).equals(IntegerNumber.one);
+      check(conj.im).equals(IntegerNumber.of(-2));
+
+      final decomp = decomposeComplex(x, Assumptions.none);
+      check(decomp.re)
+          .isA<Call>()
+          .has('id', (Call c) => c.id)
+          .equals(FunctionId.re);
+      check(decomp.im)
+          .isA<Call>()
+          .has('id', (Call c) => c.id)
+          .equals(FunctionId.im);
+
+      final realDecomp = decomposeComplex(x, realAssumptions);
+      check(realDecomp.re).equals(x);
+      check(realDecomp.im).equals(IntegerNumber.zero);
+
+      final sumDecomp = decomposeComplex(
+        Add.of([
+          ComplexNumber.of(IntegerNumber.one, IntegerNumber.two),
+          ComplexNumber.of(IntegerNumber.of(3), IntegerNumber.of(4)),
+        ]),
+        Assumptions.none,
+      );
+      check(sumDecomp.re).equals(IntegerNumber.of(4));
+      check(sumDecomp.im).equals(IntegerNumber.of(6));
+
+      final prodDecomp = decomposeComplex(
+        Mul.of([
+          ComplexNumber.of(IntegerNumber.one, IntegerNumber.two),
+          ComplexNumber.of(IntegerNumber.of(3), IntegerNumber.of(4)),
+        ]),
+        Assumptions.none,
+      );
+      check(prodDecomp.re).equals(IntegerNumber.of(-5));
+      check(prodDecomp.im).equals(IntegerNumber.of(10));
     });
   });
 }

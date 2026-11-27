@@ -1,10 +1,10 @@
 import '../algebra/expand.dart';
 import '../algebra/helpers.dart';
 import '../algebra/simplify.dart';
-import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../functions/fn.dart';
+import '../oracle/sign.dart';
 import 'linear_form.dart';
 
 /// Analytical symbolic differentiation extension on [Expr].
@@ -56,6 +56,7 @@ Expr _differentiate(
       final du = _differentiate(args[0], variable, assumptions);
       if (du is Number && du.isZero) return IntegerNumber.zero;
       final df = unaryDerivative(args[0]);
+      if (df is Number && df.isZero) return IntegerNumber.zero;
       return du is Number && du.isOne ? df : df * du;
     }
     if (spec.id == FunctionId.ln &&

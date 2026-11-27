@@ -1,11 +1,11 @@
 import '../algebra/helpers.dart';
 import '../algebra/simplify.dart';
-import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
 import '../functions/fn.dart';
 import '../oracle/domain_oracle.dart';
+import '../oracle/sign.dart';
 import 'limit_asymptotic.dart';
 import 'puiseux_series.dart';
 

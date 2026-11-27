@@ -2,11 +2,11 @@ import '../algebra/expand.dart';
 import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
-import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
 import '../functions/fn.dart';
+import '../oracle/sign.dart';
 import 'limit.dart';
 import 'limit_gruntz.dart';
 

@@ -7,6 +7,7 @@ import '../../special/binomial.dart' as special_binomial;
 import '../../special/factorial.dart' as special_factorial;
 import '../../special/gamma.dart' as special_gamma;
 import '../ast.dart';
+import 'special_specs.dart';
 
 /// Computes `(ln|Gamma(z)|, sgn Gamma(z))` for real [z].
 ({double logAbs, int sign}) logAbsGammaWithSign(double z) {
@@ -94,7 +95,7 @@ const factorialSpec = UnaryFunctionSpec(
   category: FunctionCategory.number,
   evalReal: _evalRealFactorial,
   evalComplex: special_factorial.factorialComplex,
-  derivativeRule: _diffFactorial,
+  unaryDerivative: _dfFactorial,
   customText: _textFactorial,
   customLatex: _latexFactorial,
   customMathMl: _mathMlFactorial,
@@ -118,12 +119,11 @@ const binomialSpec = BinaryFunctionSpec(
 const floorSpec = UnaryFunctionSpec(
   id: FunctionId.floor,
   name: 'floor',
-  params: ['x'],
   doc: 'Greatest integer <= x',
   category: FunctionCategory.number,
   evalReal: _evalRealFloor,
   evalComplex: _evalComplexFloor,
-  derivativeRule: _diffZero,
+  unaryDerivative: _dfZero,
   customLatex: _latexFloor,
   customMathMl: _mathMlFloor,
 );
@@ -132,12 +132,11 @@ const floorSpec = UnaryFunctionSpec(
 const ceilSpec = UnaryFunctionSpec(
   id: FunctionId.ceil,
   name: 'ceil',
-  params: ['x'],
   doc: 'Smallest integer >= x',
   category: FunctionCategory.number,
   evalReal: _evalRealCeil,
   evalComplex: _evalComplexCeil,
-  derivativeRule: _diffZero,
+  unaryDerivative: _dfZero,
   customLatex: _latexCeil,
   customMathMl: _mathMlCeil,
 );
@@ -146,19 +145,17 @@ const ceilSpec = UnaryFunctionSpec(
 const roundSpec = UnaryFunctionSpec(
   id: FunctionId.round,
   name: 'round',
-  params: ['x'],
   doc: 'Nearest integer to x',
   category: FunctionCategory.number,
   evalReal: _evalRealRound,
   evalComplex: _evalComplexRound,
-  derivativeRule: _diffZero,
+  unaryDerivative: _dfZero,
 );
 
 /// Spec for `sign(x)`.
 const signSpec = UnaryFunctionSpec(
   id: FunctionId.sign,
   name: 'sign',
-  params: ['x'],
   doc: 'Signum (-1, 0, or 1)',
   category: FunctionCategory.number,
   parity: FunctionParity.odd,
@@ -166,7 +163,7 @@ const signSpec = UnaryFunctionSpec(
   mathMlName: 'sgn',
   evalReal: _evalRealSign,
   evalComplex: _evalComplexSign,
-  derivativeRule: _diffZero,
+  unaryDerivative: _dfZero,
 );
 
 /// Spec for `mod(a, b)`.
@@ -308,29 +305,20 @@ double _evalRealLcm(List<double> args) {
   return l.toDouble();
 }
 
-Complex _evalComplexFloor(Complex z) {
+Complex _evalComplexRealOp(Complex z, String name, double Function(double) fn) {
   if (z.b != 0.0) {
-    throw UnsupportedError('Complex Floor evaluation is only supported on R');
+    throw UnsupportedError('Complex $name evaluation is only supported on R');
   }
   final v = z.a.toDouble();
-  return Complex(v.isFinite ? v.floorToDouble() : v);
+  return Complex(v.isFinite ? fn(v) : v);
 }
 
-Complex _evalComplexCeil(Complex z) {
-  if (z.b != 0.0) {
-    throw UnsupportedError('Complex Ceil evaluation is only supported on R');
-  }
-  final v = z.a.toDouble();
-  return Complex(v.isFinite ? v.ceilToDouble() : v);
-}
-
-Complex _evalComplexRound(Complex z) {
-  if (z.b != 0.0) {
-    throw UnsupportedError('Complex Round evaluation is only supported on R');
-  }
-  final v = z.a.toDouble();
-  return Complex(v.isFinite ? v.roundToDouble() : v);
-}
+Complex _evalComplexFloor(Complex z) =>
+    _evalComplexRealOp(z, 'Floor', (v) => v.floorToDouble());
+Complex _evalComplexCeil(Complex z) =>
+    _evalComplexRealOp(z, 'Ceil', (v) => v.ceilToDouble());
+Complex _evalComplexRound(Complex z) =>
+    _evalComplexRealOp(z, 'Round', (v) => v.roundToDouble());
 
 Complex _evalComplexSign(Complex z) {
   if (z == Complex.zero) return Complex.zero;
@@ -357,41 +345,8 @@ double _unsupportedRealTuple(List<double> args) =>
 Complex _unsupportedComplexTuple(List<Complex> args) =>
     throw UnsupportedError('Cannot evaluate Tuple numerically as scalar');
 
-const _digammaRef = UnaryFunctionSpec(
-  id: FunctionId.digamma,
-  name: 'digamma',
-  params: ['z'],
-  doc: 'Digamma function',
-  category: FunctionCategory.special,
-  evalReal: _unreachableReal,
-  evalComplex: _unreachableComplex,
-);
-
-const _polygammaRef = BinaryFunctionSpec(
-  id: FunctionId.polygamma,
-  name: 'polygamma',
-  params: ['n', 'z'],
-  doc: 'Polygamma function',
-  category: FunctionCategory.special,
-  evalReal: _unreachableReal2,
-  evalComplex: _unreachableComplex2,
-);
-
-double _unreachableReal(double x) => throw UnimplementedError();
-Complex _unreachableComplex(Complex z) => throw UnimplementedError();
-double _unreachableReal2(double a, double b) => throw UnimplementedError();
-Complex _unreachableComplex2(Complex a, Complex b) =>
-    throw UnimplementedError();
-
-Expr _diffFactorial(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
-    factorialSpec(args[0]) *
-    _digammaRef(args[0] + IntegerNumber.one) *
-    diff(args[0]);
+Expr _dfFactorial(Expr u) =>
+    factorialSpec(u) * digammaSpec(u + IntegerNumber.one);
 
 Expr _diffBinomial(
   List<Expr> args,
@@ -411,29 +366,24 @@ Expr _diffBinomial(
   }
   final dn = diff(left);
   final dk = diff(right);
-  final psiNK1 = _polygammaRef(
+  final psiNK1 = polygammaSpec(
     IntegerNumber.zero,
     left - right + IntegerNumber.one,
   );
   final terms = <Expr>[];
   if (dn != IntegerNumber.zero) {
-    final psiN1 = _polygammaRef(IntegerNumber.zero, left + IntegerNumber.one);
+    final psiN1 = polygammaSpec(IntegerNumber.zero, left + IntegerNumber.one);
     terms.add((psiN1 - psiNK1) * dn);
   }
   if (dk != IntegerNumber.zero) {
-    final psiK1 = _polygammaRef(IntegerNumber.zero, right + IntegerNumber.one);
+    final psiK1 = polygammaSpec(IntegerNumber.zero, right + IntegerNumber.one);
     terms.add(-(psiK1 - psiNK1) * dk);
   }
   if (terms.isEmpty) return IntegerNumber.zero;
   return binomialSpec(left, right) * Add.of(terms);
 }
 
-Expr _diffZero(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => IntegerNumber.zero;
+Expr _dfZero(Expr u) => IntegerNumber.zero;
 
 Expr? _diffMod(
   List<Expr> args,

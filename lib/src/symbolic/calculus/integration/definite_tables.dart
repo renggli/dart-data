@@ -3,13 +3,12 @@ import 'package:more/math.dart';
 import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
 import '../../algebra/simplify.dart';
-import '../../algebra/simplify/domain.dart' show isPositiveExpr, isProvenReal;
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../functions/fn.dart';
+import '../../oracle/sign.dart' show isPositiveExpr, isProvenReal;
 import '../linear_form.dart';
 import '../summation.dart';
-
 import 'definite.dart';
 
 Expr? definiteIntegralSpecialCases(

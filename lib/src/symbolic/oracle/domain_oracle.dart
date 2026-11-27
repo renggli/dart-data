@@ -625,6 +625,19 @@ final class DomainOracle {
     return res;
   }
 
+  bool _sumHasOddParity(List<Expr> terms, {required bool wantOdd}) {
+    var oddCount = 0;
+    for (final t in terms) {
+      if (isEvenInteger(t)) continue;
+      if (isOddInteger(t)) {
+        oddCount++;
+        continue;
+      }
+      return false;
+    }
+    return wantOdd ? oddCount.isOdd : oddCount.isEven;
+  }
+
   /// Returns `true` if [expr] is proven to be an even integer (`∈ 2Z`).
   bool isEvenInteger(Expr expr) {
     if (expr is IntegerNumber) return expr.value.isEven;
@@ -641,18 +654,7 @@ final class DomainOracle {
     final res = switch (expr) {
       Mul(:final factors) =>
         factors.every(isInteger) && factors.any(isEvenInteger),
-      Add(:final terms) => () {
-        var oddCount = 0;
-        for (final t in terms) {
-          if (isEvenInteger(t)) continue;
-          if (isOddInteger(t)) {
-            oddCount++;
-            continue;
-          }
-          return false;
-        }
-        return oddCount.isEven;
-      }(),
+      Add(:final terms) => _sumHasOddParity(terms, wantOdd: false),
       Pow(:final base, :final exponent) =>
         isEvenInteger(base) &&
             exponent is IntegerNumber &&
@@ -678,18 +680,7 @@ final class DomainOracle {
     if (cached != null) return cached;
     final res = switch (expr) {
       Mul(:final factors) => factors.every(isOddInteger),
-      Add(:final terms) => () {
-        var oddCount = 0;
-        for (final t in terms) {
-          if (isEvenInteger(t)) continue;
-          if (isOddInteger(t)) {
-            oddCount++;
-            continue;
-          }
-          return false;
-        }
-        return oddCount.isOdd;
-      }(),
+      Add(:final terms) => _sumHasOddParity(terms, wantOdd: true),
       Pow(:final base, exponent: IntegerNumber(:final value))
           when value >= BigInt.zero =>
         value == BigInt.zero || isOddInteger(base),
@@ -737,6 +728,18 @@ final class DomainOracle {
     return res;
   }
 
+  bool _isRealWithinBounds(
+    Expr arg,
+    bool Function(RealInterval iv) checkIv,
+    bool Function(double v) checkVal,
+  ) {
+    if (!isReal(arg)) return false;
+    final iv = intervalOf(arg);
+    if (!iv.isEmpty && checkIv(iv)) return true;
+    final v = tryStaticRealValue(arg);
+    return v != null && checkVal(v);
+  }
+
   bool _isRealCall(FunctionId id, List<Expr> args) => switch (id) {
     FunctionId.abs ||
     FunctionId.re ||
@@ -756,31 +759,24 @@ final class DomainOracle {
     FunctionId.binomial => isReal(args[0]) && isReal(args[1]),
     FunctionId.lambertW => () {
       final inner = args[0];
-      if (!isReal(inner)) return false;
       final branch = args.length == 1
           ? 0
           : (args[1] is IntegerNumber
                 ? (args[1] as IntegerNumber).asInt
                 : null);
       if (branch == 0) {
-        final iv = intervalOf(inner);
-        if (iv.isNonNegative || (!iv.isEmpty && iv.lo >= -1.0 / math.e)) {
-          return true;
-        }
-        return switch (tryStaticRealValue(inner)) {
-          final v? => v >= -1.0 / math.e,
-          _ => false,
-        };
+        return _isRealWithinBounds(
+          inner,
+          (iv) => iv.lo >= -1.0 / math.e,
+          (v) => v >= -1.0 / math.e,
+        );
       }
       if (branch == -1) {
-        final iv = intervalOf(inner);
-        if (!iv.isEmpty && iv.lo >= -1.0 / math.e && iv.hi < 0.0) {
-          return true;
-        }
-        return switch (tryStaticRealValue(inner)) {
-          final v? => v >= -1.0 / math.e && v < 0.0,
-          _ => false,
-        };
+        return _isRealWithinBounds(
+          inner,
+          (iv) => iv.lo >= -1.0 / math.e && iv.hi < 0.0,
+          (v) => v >= -1.0 / math.e && v < 0.0,
+        );
       }
       return false;
     }(),
@@ -802,10 +798,8 @@ final class DomainOracle {
     FunctionId.shi => isReal(args[0]),
     FunctionId.zeta =>
       isReal(args[0]) &&
-          switch (tryStaticRealValue(args[0])) {
-            final v? => v != 1.0,
-            _ => false,
-          } &&
+          tryStaticRealValue(args[0]) != null &&
+          tryStaticRealValue(args[0]) != 1.0 &&
           (args.length < 2 || isReal(args[1])),
     FunctionId.expIntegralE => isReal(args[0]) && isPositive(args[1]),
     FunctionId.hypergeometric => () {
@@ -815,32 +809,19 @@ final class DomainOracle {
       final lower = args[1] is Call && (args[1] as Call).id == FunctionId.tuple
           ? (args[1] as Call).args
           : [args[1]];
-      if (!upper.every(isReal) || !lower.every(isReal) || !isReal(args[2])) {
-        return false;
-      }
-      final iv = intervalOf(args[2]);
-      if (!iv.isEmpty && iv.hi <= 1.0) return true;
-      return switch (tryStaticRealValue(args[2])) {
-        final v? => v <= 1.0,
-        _ => false,
-      };
+      return upper.every(isReal) &&
+          lower.every(isReal) &&
+          _isRealWithinBounds(args[2], (iv) => iv.hi <= 1.0, (v) => v <= 1.0);
     }(),
-    FunctionId.appellF1 => () {
-      if (!args.every(isReal)) return false;
-      final ivX = intervalOf(args[4]);
-      final ivY = intervalOf(args[5]);
-      if (!ivX.isEmpty && !ivY.isEmpty && ivX.hi < 1.0 && ivY.hi < 1.0) {
-        return true;
-      }
-      return switch ((
-        tryStaticRealValue(args[4]),
-        tryStaticRealValue(args[5]),
-      )) {
-        (final vx?, final vy?) => vx < 1.0 && vy < 1.0,
-        _ => false,
-      };
-    }(),
-    FunctionId.logGamma || FunctionId.ln => isPositive(args[0]),
+    FunctionId.appellF1 =>
+      args.take(4).every(isReal) &&
+          _isRealWithinBounds(args[4], (iv) => iv.hi < 1.0, (v) => v < 1.0) &&
+          _isRealWithinBounds(args[5], (iv) => iv.hi < 1.0, (v) => v < 1.0),
+    FunctionId.logGamma ||
+    FunctionId.ln ||
+    FunctionId.li ||
+    FunctionId.ci ||
+    FunctionId.chi => isPositive(args[0]),
     FunctionId.min ||
     FunctionId.max ||
     FunctionId.gcd ||
@@ -853,29 +834,18 @@ final class DomainOracle {
                 final v? => v > 0.0 || (v != v.floorToDouble()),
                 _ => false,
               }),
-    FunctionId.li || FunctionId.ci || FunctionId.chi => isPositive(args[0]),
-    FunctionId.ellipticK => () {
-      if (!isReal(args[0])) return false;
-      final iv = intervalOf(args[0]);
-      if (!iv.isEmpty && iv.isSubsetOf(RealInterval.open(-1.0, 1.0))) {
-        return true;
-      }
-      return switch (tryStaticRealValue(args[0])) {
-        final v? => v.abs() < 1.0,
-        _ => false,
-      };
-    }(),
-    FunctionId.ellipticE => () {
-      final modArg = args.length == 1 ? args[0] : args[1];
-      if (args.length == 2 && !isReal(args[0])) return false;
-      if (!isReal(modArg)) return false;
-      final iv = intervalOf(modArg);
-      if (!iv.isEmpty && iv.isSubsetOf(RealInterval.unitClosed)) return true;
-      return switch (tryStaticRealValue(modArg)) {
-        final v? => v.abs() <= 1.0,
-        _ => false,
-      };
-    }(),
+    FunctionId.ellipticK || FunctionId.atanh => _isRealWithinBounds(
+      args[0],
+      (iv) => iv.isSubsetOf(RealInterval.open(-1.0, 1.0)),
+      (v) => v.abs() < 1.0,
+    ),
+    FunctionId.ellipticE =>
+      (args.length < 2 || isReal(args[0])) &&
+          _isRealWithinBounds(
+            args.length == 1 ? args[0] : args[1],
+            (iv) => iv.isSubsetOf(RealInterval.unitClosed),
+            (v) => v.abs() <= 1.0,
+          ),
     FunctionId.polygamma ||
     FunctionId.ellipticF ||
     FunctionId.atan2 ||
@@ -889,44 +859,19 @@ final class DomainOracle {
     FunctionId.besselK ||
     FunctionId.upperGamma ||
     FunctionId.lowerGamma => isReal(args[0]) && isPositive(args[1]),
-    FunctionId.polylog => () {
-      if (!isReal(args[0]) || !isReal(args[1])) return false;
-      final iv = intervalOf(args[1]);
-      if (!iv.isEmpty && iv.hi <= 1.0) return true;
-      return switch (tryStaticRealValue(args[1])) {
-        final v? => v <= 1.0,
-        _ => false,
-      };
-    }(),
-    FunctionId.asin || FunctionId.acos => () {
-      if (!isReal(args[0])) return false;
-      final iv = intervalOf(args[0]);
-      if (!iv.isEmpty && iv.isSubsetOf(RealInterval.unitClosed)) return true;
-      return switch (tryStaticRealValue(args[0])) {
-        final v? => v.abs() <= 1.0,
-        _ => false,
-      };
-    }(),
-    FunctionId.acosh => () {
-      if (!isReal(args[0])) return false;
-      final iv = intervalOf(args[0]);
-      if (!iv.isEmpty && iv.lo >= 1.0) return true;
-      return switch (tryStaticRealValue(args[0])) {
-        final v? => v >= 1.0,
-        _ => false,
-      };
-    }(),
-    FunctionId.atanh => () {
-      if (!isReal(args[0])) return false;
-      final iv = intervalOf(args[0]);
-      if (!iv.isEmpty && iv.isSubsetOf(RealInterval.open(-1.0, 1.0))) {
-        return true;
-      }
-      return switch (tryStaticRealValue(args[0])) {
-        final v? => v.abs() < 1.0,
-        _ => false,
-      };
-    }(),
+    FunctionId.polylog =>
+      isReal(args[0]) &&
+          _isRealWithinBounds(args[1], (iv) => iv.hi <= 1.0, (v) => v <= 1.0),
+    FunctionId.asin || FunctionId.acos => _isRealWithinBounds(
+      args[0],
+      (iv) => iv.isSubsetOf(RealInterval.unitClosed),
+      (v) => v.abs() <= 1.0,
+    ),
+    FunctionId.acosh => _isRealWithinBounds(
+      args[0],
+      (iv) => iv.lo >= 1.0,
+      (v) => v >= 1.0,
+    ),
     FunctionId.beta => isPositive(args[0]) && isPositive(args[1]),
     _ => false,
   };

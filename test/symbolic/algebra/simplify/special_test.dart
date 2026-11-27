@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
-import 'package:data/src/symbolic/algebra/simplify/domain.dart';
 import 'package:data/src/symbolic/algebra/simplify/special.dart';
+import 'package:data/src/symbolic/oracle/sign.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 

@@ -1,10 +1,10 @@
 import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
 import '../../algebra/simplify.dart';
-import '../../algebra/simplify/domain.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../functions/fn.dart';
+import '../../oracle/sign.dart';
 import '../differentiation.dart';
 import '../limit.dart';
 import '../linear_form.dart';

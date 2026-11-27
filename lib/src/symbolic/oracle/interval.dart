@@ -175,31 +175,22 @@ final class RealInterval {
   /// Set intersection `this ∩ other`.
   RealInterval intersect(RealInterval other) {
     if (isEmpty || other.isEmpty) return empty;
-    final double newLo;
-    final bool newLoInc;
-    if (lo > other.lo) {
-      newLo = lo;
-      newLoInc = loInclusive;
-    } else if (other.lo > lo) {
-      newLo = other.lo;
-      newLoInc = other.loInclusive;
-    } else {
-      newLo = lo;
-      newLoInc = loInclusive && other.loInclusive;
-    }
-
-    final double newHi;
-    final bool newHiInc;
-    if (hi < other.hi) {
-      newHi = hi;
-      newHiInc = hiInclusive;
-    } else if (other.hi < hi) {
-      newHi = other.hi;
-      newHiInc = other.hiInclusive;
-    } else {
-      newHi = hi;
-      newHiInc = hiInclusive && other.hiInclusive;
-    }
+    final (newLo, newLoInc) = _pickBound(
+      lo,
+      loInclusive,
+      other.lo,
+      other.loInclusive,
+      pickMax: true,
+      tieAnd: true,
+    );
+    final (newHi, newHiInc) = _pickBound(
+      hi,
+      hiInclusive,
+      other.hi,
+      other.hiInclusive,
+      pickMax: false,
+      tieAnd: true,
+    );
     return RealInterval.fromBounds(
       newLo,
       newHi,
@@ -212,37 +203,41 @@ final class RealInterval {
   RealInterval hull(RealInterval other) {
     if (isEmpty) return other;
     if (other.isEmpty) return this;
-    final double newLo;
-    final bool newLoInc;
-    if (lo < other.lo) {
-      newLo = lo;
-      newLoInc = loInclusive;
-    } else if (other.lo < lo) {
-      newLo = other.lo;
-      newLoInc = other.loInclusive;
-    } else {
-      newLo = lo;
-      newLoInc = loInclusive || other.loInclusive;
-    }
-
-    final double newHi;
-    final bool newHiInc;
-    if (hi > other.hi) {
-      newHi = hi;
-      newHiInc = hiInclusive;
-    } else if (other.hi > hi) {
-      newHi = other.hi;
-      newHiInc = other.hiInclusive;
-    } else {
-      newHi = hi;
-      newHiInc = hiInclusive || other.hiInclusive;
-    }
+    final (newLo, newLoInc) = _pickBound(
+      lo,
+      loInclusive,
+      other.lo,
+      other.loInclusive,
+      pickMax: false,
+      tieAnd: false,
+    );
+    final (newHi, newHiInc) = _pickBound(
+      hi,
+      hiInclusive,
+      other.hi,
+      other.hiInclusive,
+      pickMax: true,
+      tieAnd: false,
+    );
     return RealInterval.fromBounds(
       newLo,
       newHi,
       loInclusive: newLoInc,
       hiInclusive: newHiInc,
     );
+  }
+
+  static (double, bool) _pickBound(
+    double a,
+    bool aInc,
+    double b,
+    bool bInc, {
+    required bool pickMax,
+    required bool tieAnd,
+  }) {
+    if (a == b) return (a, tieAnd ? (aInc && bInc) : (aInc || bInc));
+    final chooseA = pickMax ? a > b : a < b;
+    return chooseA ? (a, aInc) : (b, bInc);
   }
 
   /// Unary negation `-this`.
@@ -458,33 +453,20 @@ final class RealInterval {
   }
 
   /// Natural exponential enclosure `exp(this)`.
-  RealInterval exp() {
-    if (isEmpty) return empty;
-    final newLo = lo == double.negativeInfinity ? 0.0 : _outLo(math.exp(lo));
-    final newHi = hi == double.infinity
-        ? double.infinity
-        : _outHi(math.exp(hi));
-    return RealInterval.fromBounds(
-      newLo,
-      newHi,
-      loInclusive: lo.isFinite && loInclusive,
-      hiInclusive: hi.isFinite && hiInclusive,
-    );
-  }
+  RealInterval exp() =>
+      _monotoneIncreasing(math.exp, negInf: 0.0, posInf: double.infinity);
 
   /// Natural logarithm enclosure `ln(this ∩ (0, +oo))`.
   RealInterval ln() {
     final dom = intersect(positive);
     if (dom.isEmpty) return empty;
-    final newLo = dom.lo == 0.0
-        ? double.negativeInfinity
-        : (dom.lo == 1.0 ? 0.0 : _outLo(math.log(dom.lo)));
-    final newHi = dom.hi.isInfinite
-        ? double.infinity
-        : (dom.hi == 1.0 ? 0.0 : _outHi(math.log(dom.hi)));
     return RealInterval.fromBounds(
-      newLo,
-      newHi,
+      dom.lo == 0.0
+          ? double.negativeInfinity
+          : (dom.lo == 1.0 ? 0.0 : _outLo(math.log(dom.lo))),
+      dom.hi.isInfinite
+          ? double.infinity
+          : (dom.hi == 1.0 ? 0.0 : _outHi(math.log(dom.hi))),
       loInclusive: dom.lo > 0.0 && dom.loInclusive,
       hiInclusive: dom.hi.isFinite && dom.hiInclusive,
     );
@@ -575,70 +557,46 @@ final class RealInterval {
   }
 
   /// Arctangent enclosure `atan(this)`.
-  RealInterval atan() {
-    if (isEmpty) return empty;
-    final newLo = lo.isInfinite ? -math.pi / 2.0 : _outLo(math.atan(lo));
-    final newHi = hi.isInfinite ? math.pi / 2.0 : _outHi(math.atan(hi));
-    return RealInterval.fromBounds(
-      newLo,
-      newHi,
-      loInclusive: lo.isFinite && loInclusive,
-      hiInclusive: hi.isFinite && hiInclusive,
-    );
-  }
+  RealInterval atan() => _monotoneIncreasing(
+    math.atan,
+    negInf: -math.pi / 2.0,
+    posInf: math.pi / 2.0,
+  );
 
   /// Hyperbolic sine enclosure `sinh(this)`.
-  RealInterval sinh() {
-    if (isEmpty) return empty;
-    final newLo = lo.isInfinite ? double.negativeInfinity : _outLo(_sinh(lo));
-    final newHi = hi.isInfinite ? double.infinity : _outHi(_sinh(hi));
-    return RealInterval.fromBounds(
-      newLo,
-      newHi,
-      loInclusive: lo.isFinite && loInclusive,
-      hiInclusive: hi.isFinite && hiInclusive,
-    );
-  }
+  RealInterval sinh() => _monotoneIncreasing(
+    _sinh,
+    negInf: double.negativeInfinity,
+    posInf: double.infinity,
+  );
 
   /// Hyperbolic cosine enclosure `cosh(this)`.
   RealInterval cosh() {
     if (isEmpty) return empty;
     final a = abs();
-    final newLo = a.lo == 0.0 ? 1.0 : _outLo(_cosh(a.lo));
-    final newHi = a.hi.isInfinite ? double.infinity : _outHi(_cosh(a.hi));
     return RealInterval.fromBounds(
-      newLo,
-      newHi,
+      a.lo == 0.0 ? 1.0 : _outLo(_cosh(a.lo)),
+      a.hi.isInfinite ? double.infinity : _outHi(_cosh(a.hi)),
       loInclusive: a.loInclusive,
       hiInclusive: a.hi.isFinite && a.hiInclusive,
     );
   }
 
   /// Hyperbolic tangent enclosure `tanh(this)`.
-  RealInterval tanh() {
-    if (isEmpty) return empty;
-    final newLo = lo.isInfinite ? -1.0 : math.max(-1.0, _outLo(_tanh(lo)));
-    final newHi = hi.isInfinite ? 1.0 : math.min(1.0, _outHi(_tanh(hi)));
-    return RealInterval.fromBounds(
-      newLo,
-      newHi,
-      loInclusive: lo.isFinite && loInclusive,
-      hiInclusive: hi.isFinite && hiInclusive,
-    );
-  }
+  RealInterval tanh() => _monotoneIncreasing(
+    _tanh,
+    negInf: -1.0,
+    posInf: 1.0,
+    clampLo: -1.0,
+    clampHi: 1.0,
+  );
 
   /// Inverse hyperbolic sine enclosure `asinh(this)`.
-  RealInterval asinh() {
-    if (isEmpty) return empty;
-    final newLo = lo.isInfinite ? double.negativeInfinity : _outLo(_asinh(lo));
-    final newHi = hi.isInfinite ? double.infinity : _outHi(_asinh(hi));
-    return RealInterval.fromBounds(
-      newLo,
-      newHi,
-      loInclusive: lo.isFinite && loInclusive,
-      hiInclusive: hi.isFinite && hiInclusive,
-    );
-  }
+  RealInterval asinh() => _monotoneIncreasing(
+    _asinh,
+    negInf: double.negativeInfinity,
+    posInf: double.infinity,
+  );
 
   /// Inverse hyperbolic cosine enclosure `acosh(this ∩ [1, +oo))`.
   RealInterval acosh() {
@@ -646,11 +604,9 @@ final class RealInterval {
       const RealInterval._(1.0, double.infinity, hiInclusive: false),
     );
     if (dom.isEmpty) return empty;
-    final newLo = dom.lo == 1.0 ? 0.0 : _outLo(_acosh(dom.lo));
-    final newHi = dom.hi.isInfinite ? double.infinity : _outHi(_acosh(dom.hi));
     return RealInterval.fromBounds(
-      newLo,
-      newHi,
+      dom.lo == 1.0 ? 0.0 : _outLo(_acosh(dom.lo)),
+      dom.hi.isInfinite ? double.infinity : _outHi(_acosh(dom.hi)),
       loInclusive: dom.loInclusive,
       hiInclusive: dom.hi.isFinite && dom.hiInclusive,
     );
@@ -660,13 +616,9 @@ final class RealInterval {
   RealInterval atanh() {
     final dom = intersect(RealInterval.open(-1.0, 1.0));
     if (dom.isEmpty) return empty;
-    final newLo = dom.lo == -1.0
-        ? double.negativeInfinity
-        : _outLo(_atanh(dom.lo));
-    final newHi = dom.hi == 1.0 ? double.infinity : _outHi(_atanh(dom.hi));
     return RealInterval.fromBounds(
-      newLo,
-      newHi,
+      dom.lo == -1.0 ? double.negativeInfinity : _outLo(_atanh(dom.lo)),
+      dom.hi == 1.0 ? double.infinity : _outHi(_atanh(dom.hi)),
       loInclusive: dom.lo > -1.0 && dom.loInclusive,
       hiInclusive: dom.hi < 1.0 && dom.hiInclusive,
     );
@@ -712,14 +664,35 @@ final class RealInterval {
   }
 
   /// Error function enclosure `erf(this)`.
-  RealInterval erf() {
+  RealInterval erf() => _monotoneIncreasing(
+    special_erf.erf,
+    negInf: -1.0,
+    posInf: 1.0,
+    clampLo: -1.0,
+    clampHi: 1.0,
+  );
+
+  /// Complementary error function enclosure `erfc(this)`.
+  RealInterval erfc() => _monotoneDecreasing(
+    special_erf.erfc,
+    negInf: 2.0,
+    posInf: 0.0,
+    clampLo: 0.0,
+    clampHi: 2.0,
+  );
+
+  RealInterval _monotoneIncreasing(
+    double Function(double) fn, {
+    required double negInf,
+    required double posInf,
+    double? clampLo,
+    double? clampHi,
+  }) {
     if (isEmpty) return empty;
-    final newLo = lo.isInfinite
-        ? -1.0
-        : math.max(-1.0, _outLo(special_erf.erf(lo)));
-    final newHi = hi.isInfinite
-        ? 1.0
-        : math.min(1.0, _outHi(special_erf.erf(hi)));
+    var newLo = lo.isInfinite ? negInf : _outLo(fn(lo));
+    var newHi = hi.isInfinite ? posInf : _outHi(fn(hi));
+    if (clampLo != null && newLo < clampLo) newLo = clampLo;
+    if (clampHi != null && newHi > clampHi) newHi = clampHi;
     return RealInterval.fromBounds(
       newLo,
       newHi,
@@ -728,15 +701,18 @@ final class RealInterval {
     );
   }
 
-  /// Complementary error function enclosure `erfc(this)`.
-  RealInterval erfc() {
+  RealInterval _monotoneDecreasing(
+    double Function(double) fn, {
+    required double negInf,
+    required double posInf,
+    double? clampLo,
+    double? clampHi,
+  }) {
     if (isEmpty) return empty;
-    final newLo = hi.isInfinite
-        ? 0.0
-        : math.max(0.0, _outLo(special_erf.erfc(hi)));
-    final newHi = lo.isInfinite
-        ? 2.0
-        : math.min(2.0, _outHi(special_erf.erfc(lo)));
+    var newLo = hi.isInfinite ? posInf : _outLo(fn(hi));
+    var newHi = lo.isInfinite ? negInf : _outHi(fn(lo));
+    if (clampLo != null && newLo < clampLo) newLo = clampLo;
+    if (clampHi != null && newHi > clampHi) newHi = clampHi;
     return RealInterval.fromBounds(
       newLo,
       newHi,

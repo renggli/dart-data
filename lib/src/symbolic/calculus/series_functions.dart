@@ -3,11 +3,11 @@ import 'dart:math' as math;
 import 'package:more/math.dart';
 
 import '../algebra/simplify.dart';
-import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
 import '../functions/fn.dart';
+import '../oracle/sign.dart';
 import 'differentiation.dart';
 import 'series.dart';
 

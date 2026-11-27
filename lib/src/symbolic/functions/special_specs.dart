@@ -27,7 +27,7 @@ const erfSpec = UnaryFunctionSpec(
   parity: FunctionParity.odd,
   evalReal: special_erf.erf,
   evalComplex: special_erf.erfComplex,
-  derivativeRule: _diffErf,
+  unaryDerivative: _dfErf,
 );
 
 /// Spec for `erfc(z)`.
@@ -39,7 +39,7 @@ const erfcSpec = UnaryFunctionSpec(
   category: FunctionCategory.special,
   evalReal: special_erf.erfc,
   evalComplex: special_erf.erfcComplex,
-  derivativeRule: _diffErfc,
+  unaryDerivative: _dfErfc,
 );
 
 /// Spec for `erfi(z)`.
@@ -52,7 +52,7 @@ const erfiSpec = UnaryFunctionSpec(
   parity: FunctionParity.odd,
   evalReal: special_erf.erfi,
   evalComplex: special_erf.erfiComplex,
-  derivativeRule: _diffErfi,
+  unaryDerivative: _dfErfi,
 );
 
 /// Spec for `fresnelS(z)`.
@@ -67,7 +67,7 @@ const fresnelSSpec = UnaryFunctionSpec(
   mathMlName: 'S',
   evalReal: special_fresnel.fresnelS,
   evalComplex: special_fresnel.fresnelSComplex,
-  derivativeRule: _diffFresnelS,
+  unaryDerivative: _dfFresnelS,
 );
 
 /// Spec for `fresnelC(z)`.
@@ -82,19 +82,18 @@ const fresnelCSpec = UnaryFunctionSpec(
   mathMlName: 'C',
   evalReal: special_fresnel.fresnelC,
   evalComplex: special_fresnel.fresnelCComplex,
-  derivativeRule: _diffFresnelC,
+  unaryDerivative: _dfFresnelC,
 );
 
 /// Spec for `Ei(x)`.
 const eiSpec = UnaryFunctionSpec(
   id: FunctionId.ei,
   name: 'Ei',
-  params: ['x'],
   doc: 'Exponential integral Ei(x)',
   category: FunctionCategory.special,
   evalReal: special_exp_int.expIntegral,
   evalComplex: special_exp_int.expIntegralComplex,
-  derivativeRule: _diffEi,
+  unaryDerivative: _dfEi,
 );
 
 /// Spec for `expIntegralE(n, x)`.
@@ -115,62 +114,57 @@ const expIntegralESpec = BinaryFunctionSpec(
 const liSpec = UnaryFunctionSpec(
   id: FunctionId.li,
   name: 'li',
-  params: ['x'],
   doc: 'Logarithmic integral li(x)',
   category: FunctionCategory.special,
   evalReal: special_exp_int.logIntegral,
   evalComplex: special_exp_int.logIntegralComplex,
-  derivativeRule: _diffLi,
+  unaryDerivative: _dfLi,
 );
 
 /// Spec for `Si(x)`.
 const siSpec = UnaryFunctionSpec(
   id: FunctionId.si,
   name: 'Si',
-  params: ['x'],
   doc: 'Sine integral Si(x)',
   category: FunctionCategory.special,
   parity: FunctionParity.odd,
   evalReal: special_trig_int.sinIntegral,
   evalComplex: special_trig_int.sinIntegralComplex,
-  derivativeRule: _diffSi,
+  unaryDerivative: _dfSi,
 );
 
 /// Spec for `Ci(x)`.
 const ciSpec = UnaryFunctionSpec(
   id: FunctionId.ci,
   name: 'Ci',
-  params: ['x'],
   doc: 'Cosine integral Ci(x)',
   category: FunctionCategory.special,
   evalReal: special_trig_int.cosIntegral,
   evalComplex: special_trig_int.cosIntegralComplex,
-  derivativeRule: _diffCi,
+  unaryDerivative: _dfCi,
 );
 
 /// Spec for `Shi(x)`.
 const shiSpec = UnaryFunctionSpec(
   id: FunctionId.shi,
   name: 'Shi',
-  params: ['x'],
   doc: 'Hyperbolic sine integral Shi(x)',
   category: FunctionCategory.special,
   parity: FunctionParity.odd,
   evalReal: special_trig_int.sinhIntegral,
   evalComplex: special_trig_int.sinhIntegralComplex,
-  derivativeRule: _diffShi,
+  unaryDerivative: _dfShi,
 );
 
 /// Spec for `Chi(x)`.
 const chiSpec = UnaryFunctionSpec(
   id: FunctionId.chi,
   name: 'Chi',
-  params: ['x'],
   doc: 'Hyperbolic cosine integral Chi(x)',
   category: FunctionCategory.special,
   evalReal: special_trig_int.coshIntegral,
   evalComplex: special_trig_int.coshIntegralComplex,
-  derivativeRule: _diffChi,
+  unaryDerivative: _dfChi,
 );
 
 /// Spec for `gamma(z)`.
@@ -184,7 +178,7 @@ const gammaSpec = UnaryFunctionSpec(
   mathMlName: 'Γ',
   evalReal: special_gamma.gamma,
   evalComplex: special_gamma.gammaComplex,
-  derivativeRule: _diffGamma,
+  unaryDerivative: _dfGamma,
 );
 
 /// Spec for `upperGamma(s, x)`.
@@ -225,7 +219,7 @@ const logGammaSpec = UnaryFunctionSpec(
   latexName: r'\ln\Gamma',
   evalReal: _evalRealLogGamma,
   evalComplex: _evalComplexLogGamma,
-  derivativeRule: _diffLogGamma,
+  unaryDerivative: _dfLogGamma,
   customMathMl: _mathMlLogGamma,
 );
 
@@ -240,7 +234,7 @@ const digammaSpec = UnaryFunctionSpec(
   mathMlName: 'ψ',
   evalReal: special_digamma.digamma,
   evalComplex: special_digamma.digammaComplex,
-  derivativeRule: _diffDigamma,
+  unaryDerivative: _dfDigamma,
 );
 
 /// Spec for `polygamma(n, z)`.
@@ -366,7 +360,7 @@ const ellipticKSpec = UnaryFunctionSpec(
   mathMlName: 'K',
   evalReal: special_elliptic.ellipticK,
   evalComplex: special_elliptic.ellipticKComplex,
-  derivativeRule: _diffEllipticK,
+  unaryDerivative: _dfEllipticK,
 );
 
 /// Spec for `ellipticE(k)` or `ellipticE(phi, k)`.
@@ -533,154 +527,61 @@ Complex _evalComplexLambertW(List<Complex> args) {
       : special_lambert.lambertWComplex(args[0], branch: branch);
 }
 
-Expr _diffErf(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
+Expr _dfErf(Expr u) =>
     (IntegerNumber.two / Pow.of(Constant.pi, FractionNumber.half)) *
-    Pow.of(Constant.e, -Pow.of(args[0], IntegerNumber.two)) *
-    diff(args[0]);
+    Pow.of(Constant.e, -Pow.of(u, IntegerNumber.two));
 
-Expr _diffErfc(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
+Expr _dfErfc(Expr u) =>
     (IntegerNumber.of(-2) / Pow.of(Constant.pi, FractionNumber.half)) *
-    Pow.of(Constant.e, -Pow.of(args[0], IntegerNumber.two)) *
-    diff(args[0]);
+    Pow.of(Constant.e, -Pow.of(u, IntegerNumber.two));
 
-Expr _diffErfi(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
+Expr _dfErfi(Expr u) =>
     (IntegerNumber.two / Pow.of(Constant.pi, FractionNumber.half)) *
-    Pow.of(Constant.e, Pow.of(args[0], IntegerNumber.two)) *
-    diff(args[0]);
+    Pow.of(Constant.e, Pow.of(u, IntegerNumber.two));
 
-Expr _diffFresnelS(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
-    sinSpec(
-      Constant.pi * Pow.of(args[0], IntegerNumber.two) / IntegerNumber.two,
-    ) *
-    diff(args[0]);
+Expr _dfFresnelS(Expr u) =>
+    sinSpec(Constant.pi * Pow.of(u, IntegerNumber.two) / IntegerNumber.two);
 
-Expr _diffFresnelC(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) =>
-    cosSpec(
-      Constant.pi * Pow.of(args[0], IntegerNumber.two) / IntegerNumber.two,
-    ) *
-    diff(args[0]);
+Expr _dfFresnelC(Expr u) =>
+    cosSpec(Constant.pi * Pow.of(u, IntegerNumber.two) / IntegerNumber.two);
 
-Expr _diffEi(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => (Pow.of(Constant.e, args[0]) / args[0]) * diff(args[0]);
+Expr _dfEi(Expr u) => Pow.of(Constant.e, u) / u;
 
 Expr? _diffExpIntegralE(
   List<Expr> args,
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  final n = args[0];
-  final x = args[1];
-  if (n.dependsOn(variable)) return null;
-  return -expIntegralESpec(n - IntegerNumber.one, x) * diff(x);
-}
+}) => args[0].dependsOn(variable)
+    ? null
+    : -expIntegralESpec(args[0] - IntegerNumber.one, args[1]) * diff(args[1]);
 
-Expr _diffLi(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => diff(args[0]) / lnSpec(args[0]);
-
-Expr _diffSi(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => (sinSpec(args[0]) / args[0]) * diff(args[0]);
-
-Expr _diffCi(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => (cosSpec(args[0]) / args[0]) * diff(args[0]);
-
-Expr _diffShi(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => (sinhSpec(args[0]) / args[0]) * diff(args[0]);
-
-Expr _diffChi(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => (coshSpec(args[0]) / args[0]) * diff(args[0]);
-
-Expr _diffGamma(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => gammaSpec(args[0]) * digammaSpec(args[0]) * diff(args[0]);
-
-Expr _diffDigamma(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => polygammaSpec(IntegerNumber.one, args[0]) * diff(args[0]);
-
-Expr _diffLogGamma(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) => digammaSpec(args[0]) * diff(args[0]);
+Expr _dfLi(Expr u) => IntegerNumber.one / lnSpec(u);
+Expr _dfSi(Expr u) => sinSpec(u) / u;
+Expr _dfCi(Expr u) => cosSpec(u) / u;
+Expr _dfShi(Expr u) => sinhSpec(u) / u;
+Expr _dfChi(Expr u) => coshSpec(u) / u;
+Expr _dfGamma(Expr u) => gammaSpec(u) * digammaSpec(u);
+Expr _dfDigamma(Expr u) => polygammaSpec(IntegerNumber.one, u);
+Expr _dfLogGamma(Expr u) => digammaSpec(u);
 
 Expr? _diffPolygamma(
   List<Expr> args,
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  if (args[0].dependsOn(variable)) return null;
-  return polygammaSpec(args[0] + IntegerNumber.one, args[1]) * diff(args[1]);
-}
+}) => args[0].dependsOn(variable)
+    ? null
+    : polygammaSpec(args[0] + IntegerNumber.one, args[1]) * diff(args[1]);
 
 Expr? _diffZeta(
   List<Expr> args,
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  if (args.length < 2 || args[0].dependsOn(variable)) return null;
-  return -args[0] *
-      zetaSpec(args[0] + IntegerNumber.one, args[1]) *
-      diff(args[1]);
-}
+}) => (args.length < 2 || args[0].dependsOn(variable))
+    ? null
+    : -args[0] * zetaSpec(args[0] + IntegerNumber.one, args[1]) * diff(args[1]);
 
 Expr _diffBeta(
   List<Expr> args,
@@ -700,24 +601,22 @@ Expr? _diffUpperGamma(
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  final s = args[0];
-  final x = args[1];
-  if (s.dependsOn(variable)) return null;
-  return -Pow.of(x, s - IntegerNumber.one) * Pow.of(Constant.e, -x) * diff(x);
-}
+}) => args[0].dependsOn(variable)
+    ? null
+    : -Pow.of(args[1], args[0] - IntegerNumber.one) *
+          Pow.of(Constant.e, -args[1]) *
+          diff(args[1]);
 
 Expr? _diffLowerGamma(
   List<Expr> args,
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  final s = args[0];
-  final x = args[1];
-  if (s.dependsOn(variable)) return null;
-  return Pow.of(x, s - IntegerNumber.one) * Pow.of(Constant.e, -x) * diff(x);
-}
+}) => args[0].dependsOn(variable)
+    ? null
+    : Pow.of(args[1], args[0] - IntegerNumber.one) *
+          Pow.of(Constant.e, -args[1]) *
+          diff(args[1]);
 
 Expr? _diffPolylog(
   List<Expr> args,
@@ -733,85 +632,89 @@ Expr? _diffPolylog(
       : (polylogSpec(s - IntegerNumber.one, z) * diff(z)) / z;
 }
 
+Expr? _diffBessel(
+  BinaryFunctionSpec spec,
+  List<Expr> args,
+  String variable,
+  Expr Function(Expr) diff, {
+  required RationalNumber zeroSign,
+  required RationalNumber scale,
+  required bool addUpper,
+}) {
+  final n = args[0];
+  final x = args[1];
+  if (n.dependsOn(variable)) return null;
+  if (n == IntegerNumber.zero) {
+    return zeroSign * spec(IntegerNumber.one, x) * diff(x);
+  }
+  final lower = spec(n - IntegerNumber.one, x);
+  final upper = spec(n + IntegerNumber.one, x);
+  return scale * (addUpper ? lower + upper : lower - upper) * diff(x);
+}
+
 Expr? _diffBesselJ(
   List<Expr> args,
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  final n = args[0];
-  final x = args[1];
-  if (n.dependsOn(variable)) return null;
-  return n == IntegerNumber.zero
-      ? -besselJSpec(IntegerNumber.one, x) * diff(x)
-      : FractionNumber.half *
-            (besselJSpec(n - IntegerNumber.one, x) -
-                besselJSpec(n + IntegerNumber.one, x)) *
-            diff(x);
-}
+}) => _diffBessel(
+  besselJSpec,
+  args,
+  variable,
+  diff,
+  zeroSign: IntegerNumber.negativeOne,
+  scale: FractionNumber.half,
+  addUpper: false,
+);
 
 Expr? _diffBesselY(
   List<Expr> args,
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  final n = args[0];
-  final x = args[1];
-  if (n.dependsOn(variable)) return null;
-  return n == IntegerNumber.zero
-      ? -besselYSpec(IntegerNumber.one, x) * diff(x)
-      : FractionNumber.half *
-            (besselYSpec(n - IntegerNumber.one, x) -
-                besselYSpec(n + IntegerNumber.one, x)) *
-            diff(x);
-}
+}) => _diffBessel(
+  besselYSpec,
+  args,
+  variable,
+  diff,
+  zeroSign: IntegerNumber.negativeOne,
+  scale: FractionNumber.half,
+  addUpper: false,
+);
 
 Expr? _diffBesselI(
   List<Expr> args,
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  final n = args[0];
-  final x = args[1];
-  if (n.dependsOn(variable)) return null;
-  return n == IntegerNumber.zero
-      ? besselISpec(IntegerNumber.one, x) * diff(x)
-      : FractionNumber.half *
-            (besselISpec(n - IntegerNumber.one, x) +
-                besselISpec(n + IntegerNumber.one, x)) *
-            diff(x);
-}
+}) => _diffBessel(
+  besselISpec,
+  args,
+  variable,
+  diff,
+  zeroSign: IntegerNumber.one,
+  scale: FractionNumber.half,
+  addUpper: true,
+);
 
 Expr? _diffBesselK(
   List<Expr> args,
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  final n = args[0];
-  final x = args[1];
-  if (n.dependsOn(variable)) return null;
-  return n == IntegerNumber.zero
-      ? -besselKSpec(IntegerNumber.one, x) * diff(x)
-      : FractionNumber.negativeHalf *
-            (besselKSpec(n - IntegerNumber.one, x) +
-                besselKSpec(n + IntegerNumber.one, x)) *
-            diff(x);
-}
+}) => _diffBessel(
+  besselKSpec,
+  args,
+  variable,
+  diff,
+  zeroSign: IntegerNumber.negativeOne,
+  scale: FractionNumber.negativeHalf,
+  addUpper: true,
+);
 
-Expr _diffEllipticK(
-  List<Expr> args,
-  String variable,
-  Expr Function(Expr) diff, {
-  required bool isComplexVar,
-}) {
-  final k = args[0];
+Expr _dfEllipticK(Expr k) {
   final oneMinusK2 = IntegerNumber.one - Pow.of(k, IntegerNumber.two);
-  return ((ellipticESpec(k) - oneMinusK2 * ellipticKSpec(k)) /
-          (k * oneMinusK2)) *
-      diff(k);
+  return (ellipticESpec(k) - oneMinusK2 * ellipticKSpec(k)) / (k * oneMinusK2);
 }
 
 Expr _diffEllipticE(
@@ -1021,110 +924,84 @@ Expr _diffLambertW(
   return diff(z) / (Pow.of(Constant.e, w) * (IntegerNumber.one + w));
 }
 
-String _formatSubscriptLatex(
-  String symbol,
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-) =>
-    '${symbol}_{${formatChild(args[0], decimalPlaces)}}(${formatChild(args[1], decimalPlaces)})';
+String _subTex(String sym, List<Expr> args, int d, RichChildFormatter fmt) =>
+    '${sym}_{${fmt(args[0], d)}}(${fmt(args[1], d)})';
 
-String _formatSubscriptMathMl(
-  String symbol,
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-) =>
-    '<mrow><msub><mi>$symbol</mi>${formatChild(args[0], decimalPlaces)}</msub><mo>(</mo>${formatChild(args[1], decimalPlaces)}<mo>)</mo></mrow>';
+String _subMml(String sym, List<Expr> args, int d, RichChildFormatter fmt) =>
+    '<mrow><msub><mi>$sym</mi>${fmt(args[0], d)}</msub><mo>(</mo>${fmt(args[1], d)}<mo>)</mo></mrow>';
 
 String _latexExpIntegralE(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptLatex('E', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subTex('E', a, d, f);
 String _mathMlExpIntegralE(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptMathMl('E', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subMml('E', a, d, f);
 String _latexPolylog(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptLatex(
-  r'\operatorname{Li}',
-  args,
-  decimalPlaces,
-  formatChild,
-);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subTex(r'\operatorname{Li}', a, d, f);
 String _mathMlPolylog(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptMathMl('Li', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subMml('Li', a, d, f);
 String _latexBesselJ(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptLatex('J', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subTex('J', a, d, f);
 String _mathMlBesselJ(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptMathMl('J', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subMml('J', a, d, f);
 String _latexBesselY(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptLatex('Y', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subTex('Y', a, d, f);
 String _mathMlBesselY(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptMathMl('Y', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subMml('Y', a, d, f);
 String _latexBesselI(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptLatex('I', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subTex('I', a, d, f);
 String _mathMlBesselI(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptMathMl('I', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subMml('I', a, d, f);
 String _latexBesselK(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptLatex('K', args, decimalPlaces, formatChild);
-
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subTex('K', a, d, f);
 String _mathMlBesselK(
-  List<Expr> args,
-  int decimalPlaces,
-  RichChildFormatter formatChild,
-  RichChildFormatter formatPowBase,
-) => _formatSubscriptMathMl('K', args, decimalPlaces, formatChild);
+  List<Expr> a,
+  int d,
+  RichChildFormatter f,
+  RichChildFormatter _,
+) => _subMml('K', a, d, f);
 
 String _mathMlLogGamma(
   List<Expr> args,

@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../oracle/sign.dart';
 import '../term_accumulator.dart';
 import 'additive.dart';
-import 'domain.dart';
 import 'power.dart';
 
 /// Simplifies an N-ary multiplication expression across [factors].
