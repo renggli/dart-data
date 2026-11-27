@@ -235,6 +235,7 @@ BytecodeEvaluator compileToBytecode(
   final rawCode = <int>[];
   final rawCallArgs = <int>[];
   final emittedCse = <int>{};
+  final usedCse = <int, Expr>{};
   var hasComplexLiterals = false;
   Expr? firstComplexLiteral;
 
@@ -384,6 +385,7 @@ BytecodeEvaluator compileToBytecode(
       if (cseReg != null) {
         emitInstr(Op.move, cseReg, leafReg, 0);
         emittedCse.add(cseReg);
+        usedCse[cseReg] = expr;
         if (target != null && target != cseReg) {
           emitInstr(Op.move, target, cseReg, 0);
           return target;
@@ -400,6 +402,7 @@ BytecodeEvaluator compileToBytecode(
     int finishComposite(int outReg) {
       if (cseReg != null) {
         emittedCse.add(cseReg);
+        usedCse[cseReg] = expr;
         if (target != null && target != cseReg) {
           emitInstr(Op.move, target, cseReg, 0);
           return target;
@@ -576,7 +579,6 @@ BytecodeEvaluator compileToBytecode(
 
   final rawResultReg = emit(simplified);
   final constCount = constReal.length;
-  final usedCseCount = emittedCse.length;
 
   int remapReg(int r) {
     if (r < 0) return varCount + (-1 - r);
@@ -634,6 +636,9 @@ BytecodeEvaluator compileToBytecode(
 
   final resultReg = remapReg(rawResultReg);
   final registerCount = maxTempEnd + constCount;
+  final sharedExpressions = <int, Expr>{
+    for (final MapEntry(:key, :value) in usedCse.entries) remapReg(key): value,
+  };
 
   return BytecodeEvaluator(
     variables: List.unmodifiable(varOrder),
@@ -644,7 +649,7 @@ BytecodeEvaluator compileToBytecode(
     constReal: Float64List.fromList(constReal),
     constComplex: Float64List.fromList(constComplex),
     registerCount: registerCount < 1 ? 1 : registerCount,
-    cseCount: usedCseCount,
+    sharedExpressions: Map<int, Expr>.unmodifiable(sharedExpressions),
     resultReg: resultReg,
     hasComplexLiterals: hasComplexLiterals,
     isRealOutput:

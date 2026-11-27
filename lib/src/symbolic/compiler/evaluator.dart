@@ -25,7 +25,7 @@ final class BytecodeEvaluator {
     Float64List? constReal,
     Float64List? constComplex,
     required this.registerCount,
-    this.cseCount = 0,
+    this.sharedExpressions = const {},
     required this.resultReg,
     this.hasComplexLiterals = false,
     this.isRealOutput = true,
@@ -55,12 +55,16 @@ final class BytecodeEvaluator {
   final Float64List _constReal;
   final Float64List _constComplex;
 
-  /// Total number of virtual registers allocated for variables, constants, CSE,
-  /// and temporaries.
+  /// Total number of virtual registers allocated for variables, constants,
+  /// shared subexpressions, and temporaries.
   final int registerCount;
 
-  /// Number of shared subtrees hoisted into CSE registers.
-  final int cseCount;
+  /// Map from register index to the shared subexpression stored in that
+  /// register.
+  final Map<int, Expr> sharedExpressions;
+
+  /// Number of repeated subtrees hoisted into shared registers.
+  int get sharedCount => sharedExpressions.length;
 
   /// Register index holding the final evaluated expression result.
   final int resultReg;
@@ -80,6 +84,15 @@ final class BytecodeEvaluator {
 
   /// Number of scalar constants stored in the preloaded constant pool.
   int get constCount => _constReal.length;
+
+  /// Preloaded scalar constants stored in registers
+  /// `variables.length .. variables.length + constCount - 1`.
+  List<Complex> get constants => _constReal.isEmpty
+      ? const []
+      : List<Complex>.unmodifiable([
+          for (var i = 0; i < _constReal.length; i++)
+            Complex(_constComplex[2 * i], _constComplex[2 * i + 1]),
+        ]);
 
   late final Float64List _realRegs = _allocRealRegs();
   late final Float64List _complexRegs = _allocComplexRegs();
@@ -127,12 +140,27 @@ final class BytecodeEvaluator {
     }
   }
 
+  /// Formats virtual register [register] with its semantic role or value.
+  String formatRegister(int register) {
+    if (register < variables.length) {
+      return 'r$register(${variables[register]})';
+    }
+    final constIdx = register - variables.length;
+    if (constIdx >= 0 && constIdx < constCount) {
+      return 'r$register(${_formatConstantAt(constIdx)})';
+    }
+    return 'r$register';
+  }
+
+  String _formatConstantAt(int index) {
+    final re = _constComplex[2 * index];
+    final im = _constComplex[2 * index + 1];
+    return _formatComplexScalar(re, im);
+  }
+
   /// Formats the compiled register program into human-readable instructions.
   List<String> disassemble() {
     final lines = <String>[];
-    String regLabel(int r) =>
-        r < variables.length ? 'r$r(${variables[r]})' : 'r$r';
-
     for (var pc = 0; pc < code.length; pc += 4) {
       final idx = pc >> 2;
       final op = Op.values[code[pc]];
@@ -142,7 +170,7 @@ final class BytecodeEvaluator {
       final opStr = op.name.padRight(14);
       final body = switch (op) {
         Op.jump => '-> #${dst >> 2}',
-        Op.jumpIfFalse => '${regLabel(a)} -> #${dst >> 2}',
+        Op.jumpIfFalse => '${formatRegister(a)} -> #${dst >> 2}',
         Op.move ||
         Op.neg ||
         Op.sqrt ||
@@ -151,26 +179,69 @@ final class BytecodeEvaluator {
         Op.tan ||
         Op.exp ||
         Op.ln ||
-        Op.abs => '${regLabel(dst)}, ${regLabel(a)}',
-        Op.powInt => '${regLabel(dst)}, ${regLabel(a)}, $b',
-        Op.call1 => '${regLabel(dst)}, ${specs[b].name}(${regLabel(a)})',
+        Op.abs => '${formatRegister(dst)}, ${formatRegister(a)}',
+        Op.powInt => '${formatRegister(dst)}, ${formatRegister(a)}, $b',
+        Op.call1 =>
+          '${formatRegister(dst)}, ${specs[b].name}(${formatRegister(a)})',
         Op.call2 =>
-          '${regLabel(dst)}, ${specs[b].name}(${regLabel(callArgs[a])}, ${regLabel(callArgs[a + 1])})',
+          '${formatRegister(dst)}, ${specs[b].name}(${formatRegister(callArgs[a])}, ${formatRegister(callArgs[a + 1])})',
         Op.callN => () {
           final argc = b >>> 16;
           final spec = specs[b & 0xFFFF];
           final argList = [
-            for (var k = 0; k < argc; k++) regLabel(callArgs[a + k]),
+            for (var k = 0; k < argc; k++) formatRegister(callArgs[a + k]),
           ].join(', ');
-          return '${regLabel(dst)}, ${spec.name}($argList)';
+          return '${formatRegister(dst)}, ${spec.name}($argList)';
         }(),
-        Op.hypergeometric => '${regLabel(dst)}, p=${b >> 8}, q=${b & 0xFF}',
-        Op.evalNode => '${regLabel(dst)}, ${nodes[a]}',
-        _ => '${regLabel(dst)}, ${regLabel(a)}, ${regLabel(b)}',
+        Op.hypergeometric => () {
+          final p = b >> 8;
+          final q = b & 0xFF;
+          final upper = [
+            for (var k = 0; k < p; k++) formatRegister(callArgs[a + k]),
+          ].join(', ');
+          final lower = [
+            for (var k = 0; k < q; k++) formatRegister(callArgs[a + p + k]),
+          ].join(', ');
+          final zReg = formatRegister(callArgs[a + p + q]);
+          return '${formatRegister(dst)}, hypergeometric([$upper], [$lower], $zReg)';
+        }(),
+        Op.evalNode => '${formatRegister(dst)}, ${nodes[a]}',
+        _ =>
+          '${formatRegister(dst)}, ${formatRegister(a)}, ${formatRegister(b)}',
       };
-      lines.add('${idx.toString().padLeft(3)}: $opStr $body');
+      final sharedExpr = op != Op.jump && op != Op.jumpIfFalse
+          ? sharedExpressions[dst]
+          : null;
+      final suffix = sharedExpr != null ? '  ; shared: $sharedExpr' : '';
+      lines.add('${idx.toString().padLeft(3)}: $opStr $body$suffix');
     }
     return lines;
+  }
+
+  static String _formatRealScalar(double v) {
+    if (v.isNaN) return 'NaN';
+    if (v == double.infinity) return 'infinity';
+    if (v == double.negativeInfinity) return '-infinity';
+    if (v == 0.0) return '0';
+    if (v == v.truncateToDouble() && v.abs() < 1e15) {
+      return v.toInt().toString();
+    }
+    return v.toString();
+  }
+
+  static String _formatComplexScalar(double re, double im) {
+    if (im == 0.0 || im.isNaN) return _formatRealScalar(re);
+    if (re == 0.0) {
+      if (im == 1.0) return 'i';
+      if (im == -1.0) return '-i';
+      return '${_formatRealScalar(im)}*i';
+    }
+    final reStr = _formatRealScalar(re);
+    if (im == 1.0) return '$reStr+i';
+    if (im == -1.0) return '$reStr-i';
+    return im < 0
+        ? '$reStr-${_formatRealScalar(-im)}*i'
+        : '$reStr+${_formatRealScalar(im)}*i';
   }
 
   /// Evaluates a single-variable real expression at [x].

@@ -278,3 +278,24 @@
   overflow: hidden;
 }
 
+#bytecode-pre {
+  max-height: 260px;
+}
+
+#bytecode-pre .bc-comment {
+  color: var(--accent-emerald);
+}
+
+#bytecode-pre .bc-op {
+  color: var(--accent-cyan);
+  font-weight: 500;
+}
+
+#bytecode-pre .bc-num {
+  color: var(--accent-purple);
+}
+
+#bytecode-pre .bc-idx {
+  color: var(--text-muted);
+}
+

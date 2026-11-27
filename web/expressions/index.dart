@@ -5,6 +5,7 @@ import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:web/web.dart' as web;
 
 import '../shared/graph/model/axis.dart';
@@ -190,8 +191,8 @@ late web.HTMLElement valExtremaMin;
 late web.HTMLElement valExtremaMax;
 
 // Card 12: Bytecode Compilation & VM
+late web.HTMLElement valBcInstrs;
 late web.HTMLElement valBcStack;
-late web.HTMLElement valBcRegs;
 late web.HTMLElement bytecodePre;
 
 // Card 11: Multivariable Calculus
@@ -397,8 +398,8 @@ void initDom() {
       web.document.querySelector('#val-extrema-max') as web.HTMLElement;
 
   // Card 12: Bytecode Compilation & VM
+  valBcInstrs = web.document.querySelector('#val-bc-instrs') as web.HTMLElement;
   valBcStack = web.document.querySelector('#val-bc-stack') as web.HTMLElement;
-  valBcRegs = web.document.querySelector('#val-bc-regs') as web.HTMLElement;
   bytecodePre = web.document.querySelector('#bytecode-pre') as web.HTMLElement;
 
   // Card 11: Multivariable Calculus
@@ -1185,8 +1186,8 @@ void clearTelemetry() {
     valInflectionExact,
     valExtremaMin,
     valExtremaMax,
+    valBcInstrs,
     valBcStack,
-    valBcRegs,
     valMvFreeVars,
     valMvGrad,
     valMvLaplacian,
@@ -1353,8 +1354,8 @@ void updateTaylorTelemetry() {
 void updateBytecodeTelemetry() {
   final expr = parsedExpr;
   if (expr == null) {
+    setAttrValue(valBcInstrs, '-');
     setAttrValue(valBcStack, '-');
-    setAttrValue(valBcRegs, '-');
     setAttrValue(bytecodePre, 'No bytecode compiled.');
     return;
   }
@@ -1366,20 +1367,195 @@ void updateBytecodeTelemetry() {
       optimize: true,
       assumptions: currentAssumptions,
     );
+    setAttrValue(valBcInstrs, evaluator.instructionCount.toString());
     setAttrValue(valBcStack, evaluator.registerCount.toString());
-    setAttrValue(valBcRegs, evaluator.cseCount.toString());
 
-    final disasm = evaluator.disassemble().join('\n');
-    setAttrValue(
-      bytecodePre,
-      disasm.isNotEmpty ? disasm : '(empty program)',
-      customCopy: disasm.isNotEmpty ? disasm : null,
-    );
+    final listing = _formatDisassemblyListing(evaluator).join('\n');
+    bytecodePre.title = listing;
+    bytecodePre.setAttribute('data-copy', listing);
+    bytecodePre.innerHTML = _highlightDisassembly(listing).toJS;
   } catch (e) {
+    setAttrValue(valBcInstrs, '-');
     setAttrValue(valBcStack, '-');
-    setAttrValue(valBcRegs, '-');
     setAttrValue(bytecodePre, 'Bytecode compilation failed: $e');
   }
+}
+
+List<String> _formatDisassemblyListing(
+  BytecodeEvaluator evaluator, {
+  String indent = '',
+  int depth = 0,
+}) {
+  final inCount = evaluator.variables.length;
+  final constCount = evaluator.constCount;
+  final inputsList = [
+    for (var i = 0; i < inCount; i++) 'r$i = ${evaluator.variables[i]}',
+  ];
+  final constsList = [
+    for (var i = 0; i < constCount; i++)
+      'r${inCount + i} = ${_formatComplexConstant(evaluator.constants[i])}',
+  ];
+  final sharedEntries = evaluator.sharedExpressions.entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+
+  final lines = <String>[
+    if (inputsList.isNotEmpty) '$indent; inputs:    ${inputsList.join(', ')}',
+    if (constsList.isNotEmpty) '$indent; constants: ${constsList.join(', ')}',
+    for (final entry in sharedEntries)
+      '$indent; shared:    r${entry.key} = ${entry.value.format()}',
+    for (final line in evaluator.disassemble()) '$indent$line',
+    '$indent; return     ${evaluator.formatRegister(evaluator.resultReg)}',
+  ];
+
+  if (depth < 2 && evaluator.nodes.isNotEmpty) {
+    for (var i = 0; i < evaluator.nodes.length; i++) {
+      final node = evaluator.nodes[i];
+      lines.add('$indent; subexpression [$i]: ${node.format()}');
+      for (final sub in _extractSubexpressions(node)) {
+        final vars = <String>{
+          ...evaluator.variables,
+          ...sub.expr.freeVariables,
+        }.toList()..sort();
+        lines.add('$indent;   ${sub.label}: ${sub.expr.format()}');
+        try {
+          final subEval = sub.expr.toBytecode(
+            variables: vars.isNotEmpty ? vars : ['x'],
+            optimize: true,
+            assumptions: currentAssumptions,
+          );
+          lines.addAll(
+            _formatDisassemblyListing(
+              subEval,
+              indent: '$indent  ',
+              depth: depth + 1,
+            ),
+          );
+        } on Object {
+          lines.add('$indent  ; (evaluated symbolically)');
+        }
+      }
+    }
+  }
+  return lines;
+}
+
+List<({String label, Expr expr})> _extractSubexpressions(Expr node) =>
+    switch (node) {
+      Integral(:final integrand, :final variable, :final lower, :final upper) =>
+        [
+          if (lower != null && lower is! Number) (label: 'lower', expr: lower),
+          if (upper != null && upper is! Number) (label: 'upper', expr: upper),
+          (label: 'integrand ($variable)', expr: integrand),
+        ],
+      Sum(:final expr, :final variable, :final lower, :final upper) ||
+      Product(:final expr, :final variable, :final lower, :final upper) => [
+        if (lower is! Number) (label: 'lower', expr: lower),
+        if (upper is! Number) (label: 'upper', expr: upper),
+        (label: 'body ($variable)', expr: expr),
+      ],
+      Derivative(:final expr, :final variable, :final point) => [
+        if (point != null && point is! Number) (label: 'point', expr: point),
+        (label: 'expr ($variable)', expr: expr),
+      ],
+      Limit(:final expr, :final variable, :final point) => [
+        if (point is! Number) (label: 'point', expr: point),
+        (label: 'expr ($variable)', expr: expr),
+      ],
+      RootSum(:final polynomial, :final variable, :final body) => [
+        (label: 'polynomial ($variable)', expr: polynomial),
+        (label: 'body ($variable)', expr: body),
+      ],
+      _ => const [],
+    };
+
+final _bcCommentLinePattern = RegExp(r'^(\s*)(;.*)$');
+final _bcInstrLinePattern = RegExp(r'^(\s*\d+:\s+)(\S+)(.*)$');
+final _bcNumPattern = RegExp(
+  r'(?<![a-zA-Z0-9_])(?:#\d+|(?<![a-zA-Z0-9_)])-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|infinity|NaN)(?![a-zA-Z0-9_])',
+);
+
+String _highlightDisassembly(String listing) {
+  final out = <String>[];
+  for (final line in listing.split('\n')) {
+    if (_bcCommentLinePattern.firstMatch(line) case final m?) {
+      out.add(
+        '${_escapeHtml(m.group(1)!)}'
+        '<span class="bc-comment">${_escapeHtml(m.group(2)!)}</span>',
+      );
+      continue;
+    }
+    if (_bcInstrLinePattern.firstMatch(line) case final m?) {
+      final idxPart = _escapeHtml(m.group(1)!);
+      final opPart = _escapeHtml(m.group(2)!);
+      final rest = m.group(3)!;
+      final semiIdx = rest.indexOf(';');
+      final codePart = semiIdx >= 0 ? rest.substring(0, semiIdx) : rest;
+      final commentPart = semiIdx >= 0 ? rest.substring(semiIdx) : '';
+      final highlightedCode = _highlightNumbers(codePart);
+      final highlightedComment = commentPart.isEmpty
+          ? ''
+          : '<span class="bc-comment">${_escapeHtml(commentPart)}</span>';
+      out.add(
+        '<span class="bc-idx">$idxPart</span>'
+        '<span class="bc-op">$opPart</span>'
+        '$highlightedCode$highlightedComment',
+      );
+      continue;
+    }
+    out.add(_escapeHtml(line));
+  }
+  return out.join('\n');
+}
+
+String _highlightNumbers(String text) {
+  final buf = StringBuffer();
+  var last = 0;
+  for (final m in _bcNumPattern.allMatches(text)) {
+    if (m.start > last) {
+      buf.write(_escapeHtml(text.substring(last, m.start)));
+    }
+    buf.write('<span class="bc-num">${_escapeHtml(m.group(0)!)}</span>');
+    last = m.end;
+  }
+  if (last < text.length) {
+    buf.write(_escapeHtml(text.substring(last)));
+  }
+  return buf.toString();
+}
+
+String _escapeHtml(String text) => text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+String _formatRealConstant(double v) {
+  if (v.isNaN) return 'NaN';
+  if (v == double.infinity) return 'infinity';
+  if (v == double.negativeInfinity) return '-infinity';
+  if (v == 0.0) return '0';
+  if (v == v.truncateToDouble() && v.abs() < 1e15) {
+    return v.toInt().toString();
+  }
+  return v.toString();
+}
+
+String _formatComplexConstant(Complex c) {
+  final re = c.a.toDouble();
+  final im = c.b.toDouble();
+  if (im == 0.0 || im.isNaN) return _formatRealConstant(re);
+  if (re == 0.0) {
+    if (im == 1.0) return 'i';
+    if (im == -1.0) return '-i';
+    return '${_formatRealConstant(im)} * i';
+  }
+  final reStr = _formatRealConstant(re);
+  if (im == 1.0) return '$reStr + i';
+  if (im == -1.0) return '$reStr - i';
+  return im < 0
+      ? '$reStr - ${_formatRealConstant(-im)} * i'
+      : '$reStr + ${_formatRealConstant(im)} * i';
 }
 
 void updateMultivariableTelemetry() {

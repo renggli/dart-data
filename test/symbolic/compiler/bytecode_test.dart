@@ -8,7 +8,7 @@ import 'package:more/number.dart' show Complex;
 import 'package:test/scaffolding.dart';
 
 void main() {
-  group('Bytecode compiler and CSE', () {
+  group('Bytecode compiler and shared subexpressions', () {
     test('deduplicates shared composite subtrees into registers', () {
       final sub = Expr.parse('sin(x^2 + 3*x + 1)');
       final pw = Piecewise([
@@ -28,8 +28,8 @@ void main() {
         'x',
       ], optimize: false);
 
-      check(optEval.cseCount).isGreaterThan(0);
-      check(unoptEval.cseCount).equals(0);
+      check(optEval.sharedCount).isGreaterThan(0);
+      check(unoptEval.sharedCount).equals(0);
       check(optEval.instructionCount).isLessThan(unoptEval.instructionCount);
       check(optEval.disassemble().length).equals(optEval.instructionCount);
 
@@ -45,7 +45,7 @@ void main() {
       }
     });
 
-    test('CSE registers in Piecewise branches are not assumed initialized across branches', () {
+    test('shared registers in Piecewise branches are not assumed initialized across branches', () {
       final pwExpr = Expr.parse('piecewise(x > 0, sin(x) + 1, sin(x) - 1)');
       final fn = pwExpr.toFunction1D('x');
       final valPos = fn(math.pi / 2);
@@ -185,6 +185,77 @@ void main() {
         IntegerNumber.of(3),
       );
       check(nested.evaluate()).isCloseTo(7.5, 1e-12);
+    });
+  });
+
+  group('Disassembly metadata and register formatting', () {
+    test(
+      'exposes preloaded constants, shared bindings, and annotated disassembly',
+      () {
+        final expr = Expr.parse('sin(x + 3) + cos(x + 3) + 2');
+        final eval = compileToBytecode(expr.simplify(), ['x'], optimize: true);
+
+        check(eval.constants)
+            .deepEquals([const Complex(2.0), const Complex(3.0)]);
+        check(eval.sharedExpressions.length).equals(eval.sharedCount);
+        check(
+          eval.sharedExpressions.values.any((e) => e == Expr.parse('3 + x')),
+        ).isTrue;
+        check(eval.formatRegister(0)).equals('r0(x)');
+        check(eval.formatRegister(1)).equals('r1(2)');
+        check(eval.formatRegister(2)).equals('r2(3)');
+
+        final lines = eval.disassemble();
+        check(lines.length).equals(eval.instructionCount);
+        check(lines.any((l) => l.contains('; shared: 3 + x'))).isTrue;
+        check(lines.any((l) => l.contains('r1(2)'))).isTrue;
+        check(lines.any((l) => l.contains('r2(3)'))).isTrue;
+      },
+    );
+
+    test('formats complex constants and special values in formatRegister and hypergeometric disassembly', () {
+      const x = Variable('x');
+      final complexExpr = Piecewise([
+        (
+          relation: Relational.lessThan(x, Constant.infinity),
+          expr:
+              ComplexNumber.i * Fn.sin(x) +
+              Fn.cos(
+                x + ComplexNumber(IntegerNumber.two, IntegerNumber.of(-3)),
+              ) +
+              const RealNumber(1.5) * Fn.tan(x),
+        ),
+      ], otherwise: IntegerNumber.zero);
+      final complexEval = compileToBytecode(complexExpr, [
+        'x',
+      ], optimize: false);
+      final labels = [
+        for (var i = 0; i < complexEval.constCount; i++)
+          complexEval.formatRegister(1 + i),
+      ];
+      check(labels.any((l) => l.contains('(i)'))).isTrue;
+      check(labels.any((l) => l.contains('(2-3*i)'))).isTrue;
+      check(labels.any((l) => l.contains('(infinity)'))).isTrue;
+      check(labels.any((l) => l.contains('(1.5)'))).isTrue;
+
+      final hypEval = compileToBytecode(
+        Fn.hypergeometric(
+          Fn.tuple([IntegerNumber.one, IntegerNumber.two]),
+          Fn.tuple([IntegerNumber.of(3)]),
+          x,
+        ),
+        ['x'],
+      );
+      final hypLine = hypEval.disassemble().single;
+      check(hypLine).contains('hypergeometric([r1(1), r2(2)], [r3(3)], r0(x))');
+
+      final pwExpr = Expr.parse(
+        'piecewise(x > 0, (x + 1)^2 + (x + 1)^3, (x + 1)^2 - 1)',
+      );
+      final pwEval = compileToBytecode(pwExpr.simplify(), [
+        'x',
+      ], optimize: true);
+      check(pwEval.sharedExpressions).isNotEmpty;
     });
   });
 }
