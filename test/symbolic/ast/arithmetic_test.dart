@@ -56,5 +56,34 @@ void main() {
         ).isTrue;
       },
     );
+
+    test(
+      'defers negative-rational fractional power folding to simplification',
+      () {
+        final pow13 = Pow.of(IntegerNumber.negativeOne, FractionNumber.third);
+        final pow23 = Pow.of(IntegerNumber.negativeOne, RationalNumber(2, 3));
+        final powNeg8 = Pow.of(IntegerNumber.of(-8), FractionNumber.third);
+
+        check(pow13).isA<Pow>();
+        check(pow23).isA<Pow>();
+        check(powNeg8).isA<Pow>();
+
+        check(pow13.simplify()).equals(IntegerNumber.negativeOne);
+        check(pow23.simplify()).equals(IntegerNumber.one);
+        check(powNeg8.simplify()).equals(IntegerNumber.of(-2));
+
+        const complexAssumptions = Assumptions(
+          defaultDomain: VariableDomain.complex,
+        );
+        check(pow13.simplify(assumptions: complexAssumptions)).equals(pow13);
+        check(pow23.simplify(assumptions: complexAssumptions)).equals(pow23);
+        check(powNeg8.simplify(assumptions: complexAssumptions))
+            .equals(Mul.of([IntegerNumber.two, pow13]));
+
+        final z = pow13.evaluateComplex();
+        check(z.a.toDouble()).isCloseTo(0.5, 1e-12);
+        check(z.b.toDouble()).isCloseTo(math.sqrt(3) / 2, 1e-12);
+      },
+    );
   });
 }

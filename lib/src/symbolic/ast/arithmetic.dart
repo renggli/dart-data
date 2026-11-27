@@ -547,6 +547,11 @@ final class Pow extends Expr {
           : IntegerNumber.one;
     }
     if (base is Number && exponent is Number) {
+      if (base is RationalNumber &&
+          base.isNegative &&
+          exponent is FractionNumber) {
+        return Pow._(base, exponent, simplified: simplified);
+      }
       if (base.isZero && exponent is RealNumeric && exponent.isNegative) {
         return Pow._(base, exponent, simplified: simplified);
       }
