@@ -2,6 +2,8 @@ import '../../linear/matrix.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../linear/bareiss.dart';
+import '../poly/bridge.dart';
+import '../poly/factor.dart';
 import '../type/expr_data_type.dart';
 import 'expand.dart';
 import 'factor.dart';
@@ -84,6 +86,32 @@ extension RationalFunctionExtension on Expr {
     if (rawDen == IntegerNumber.one) {
       return rawNum.simplify(assumptions: assumptions);
     }
+    final combinedVars = combined.freeVariables;
+    if (combinedVars.length == 1) {
+      final v = combinedVars.first;
+      final pNum = exprToPolyQ(rawNum, v);
+      final pDen = exprToPolyQ(rawDen, v);
+      if (pNum != null && pDen != null && !pDen.isZero) {
+        final (scale: nScale, primitive: nPrim) = pNum.clearDenominators();
+        final (scale: dScale, primitive: dPrim) = pDen.clearDenominators();
+        final g = nPrim.gcd(dPrim);
+        final remNum = nPrim.exactDivide(g) ?? nPrim;
+        final remDen = dPrim.exactDivide(g) ?? dPrim;
+        final totalScale = nScale.divRational(dScale);
+        final factoredNum = totalScale.numerator == BigInt.one
+            ? factorPolyQToExpr(remNum.toPolyQ(), v)
+            : (IntegerNumber(totalScale.numerator) *
+                  factorPolyQToExpr(remNum.toPolyQ(), v));
+        final factoredDen = totalScale.denominator == BigInt.one
+            ? factorPolyQToExpr(remDen.toPolyQ(), v)
+            : (IntegerNumber(totalScale.denominator) *
+                  factorPolyQToExpr(remDen.toPolyQ(), v));
+        return cancelFactoredFraction(
+          factoredNum,
+          factoredDen,
+        ).simplify(assumptions: assumptions);
+      }
+    }
     final preCancelled = cancelFactoredFraction(rawNum, rawDen);
     final (numPart, denPart) = splitNumeratorDenominator(preCancelled);
     if (denPart == IntegerNumber.one) {
@@ -153,10 +181,18 @@ extension RationalFunctionExtension on Expr {
       );
     }
 
-    final numCoeffs = extractPolynomialCoefficients(
-      simplify(assumptions: assumptions),
-      variable,
-    );
+    final simplNum = simplify(assumptions: assumptions);
+    final pNum = exprToPolyQ(simplNum, variable);
+    final pDen = exprToPolyQ(simpDivisor, variable);
+    if (pNum != null && pDen != null) {
+      final (:quotient, :remainder) = pNum.divRem(pDen);
+      return (
+        quotient: polyQToExpr(quotient, variable),
+        remainder: polyQToExpr(remainder, variable),
+      );
+    }
+
+    final numCoeffs = extractPolynomialCoefficients(simplNum, variable);
     final denCoeffs = extractPolynomialCoefficients(simpDivisor, variable);
     if (numCoeffs == null) {
       throw ArgumentError(

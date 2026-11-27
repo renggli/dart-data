@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/factor/univariate.dart';
+import 'package:data/src/symbolic/poly/univariate.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/math.dart' show LcmBigIntExtension;
 import 'package:test/scaffolding.dart';
@@ -9,7 +10,8 @@ void main() {
     test('extracts rational polynomials and rejects non-polynomials', () {
       final p0 = extractPoly(IntegerNumber.zero, 'x');
       check(p0).isNotNull();
-      check(p0!.degree).equals(0);
+      check(p0!.isZero).isTrue;
+      check(p0.degree).equals(-1);
 
       final p = extractPoly(Expr.parse('1/2 * x^2 - 3 * x + 5'), 'x');
       check(p).isNotNull();

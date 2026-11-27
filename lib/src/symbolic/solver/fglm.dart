@@ -1,7 +1,7 @@
 import 'dart:collection';
 
 import '../ast.dart';
-import 'multivariate_polynomial.dart';
+import '../poly/multivariate.dart';
 
 /// FGLM algorithm engine for Gröbner basis order conversion from `grevlex` to `lex`.
 class FglmEngine {

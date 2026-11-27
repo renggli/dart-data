@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'multivariate_polynomial.dart';
+import '../poly/multivariate.dart';
 
 /// Buchberger algorithm engine with Sugar selection strategy and Gebauer-Möller criteria.
 class BuchbergerEngine {

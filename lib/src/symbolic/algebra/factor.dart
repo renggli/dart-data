@@ -3,10 +3,11 @@ import 'package:more/math.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../number/combinatorics.dart';
+import '../poly/bridge.dart';
+import '../poly/factor.dart';
 import 'expand.dart';
 import 'factor/fraction.dart';
 import 'factor/multivariate.dart';
-import 'factor/univariate.dart';
 import 'simplify.dart';
 import 'simplify/additive.dart';
 import 'simplify/multiplicative.dart';
@@ -108,9 +109,9 @@ Expr factorExpr(Expr expr, {required Assumptions assumptions}) {
   // 5. Univariate polynomial factorization over Q[x]
   if (vars.length == 1) {
     final v = vars.first;
-    final poly = extractPoly(expanded, v);
+    final poly = exprToPolyQ(expanded, v);
     if (poly != null) {
-      return factorUnivariatePoly(poly, v);
+      return factorPolyQToExpr(poly, v);
     }
   }
 
