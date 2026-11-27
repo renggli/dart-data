@@ -100,20 +100,11 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       );
     }
 
-    final normalizedAxis = _normalizeReductionAxis(axis, rank);
-    final count = layout.shape[normalizedAxis];
+    final (:normalizedAxis, :outTensor, :outShape, :count, :axisStride) =
+        _prepareAxisFloatReduction(axis, keepDims, target);
     if (count == 0) throw StateError('Cannot compute mean of empty tensor');
 
-    final outShape = _reducedShape(layout.shape, normalizedAxis, keepDims);
-    _validateTargetShape(target, outShape);
-
-    final hasHazard = target != null && sharesMemory(target.data, data);
-    final outTensor = (target != null && !hasHazard)
-        ? target
-        : Tensor<double>.filled(0.0, shape: outShape, type: DataType.float64);
-
     final outLayout = Layout(shape: outShape);
-    final axisStride = layout.strides[normalizedAxis];
 
     for (final key in outLayout.keys) {
       final baseOffset = _fiberBaseOffset(key, normalizedAxis, keepDims);
@@ -123,7 +114,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       );
     }
 
-    if (hasHazard) {
+    if (target != null && !identical(outTensor, target)) {
       outTensor.copy(target: target);
       return target;
     }
@@ -236,21 +227,12 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       return Tensor<double>.filled(v, shape: outShape, type: DataType.float64);
     }
 
-    final normalizedAxis = _normalizeReductionAxis(axis, rank);
-    final count = layout.shape[normalizedAxis];
+    final (:normalizedAxis, :outTensor, :outShape, :count, :axisStride) =
+        _prepareAxisFloatReduction(axis, keepDims, target);
     final denom = count - ddof;
     if (denom <= 0) throw StateError('Degrees of freedom <= 0');
 
-    final outShape = _reducedShape(layout.shape, normalizedAxis, keepDims);
-    _validateTargetShape(target, outShape);
-
-    final hasHazard = target != null && sharesMemory(target.data, data);
-    final outTensor = (target != null && !hasHazard)
-        ? target
-        : Tensor<double>.filled(0.0, shape: outShape, type: DataType.float64);
-
     final outLayout = Layout(shape: outShape);
-    final axisStride = layout.strides[normalizedAxis];
 
     for (final key in outLayout.keys) {
       final baseOffset = _fiberBaseOffset(key, normalizedAxis, keepDims);
@@ -266,7 +248,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       outTensor.setValue(key, sumSq / denom);
     }
 
-    if (hasHazard) {
+    if (target != null && !identical(outTensor, target)) {
       outTensor.copy(target: target);
       return target;
     }
@@ -584,6 +566,31 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       inKey[normalizedAxis] = 0;
     }
     return layout.toIndex(inKey);
+  }
+
+  ({
+    int normalizedAxis,
+    Tensor<double> outTensor,
+    List<int> outShape,
+    int count,
+    int axisStride,
+  })
+  _prepareAxisFloatReduction(int axis, bool keepDims, Tensor<double>? target) {
+    final normalizedAxis = _normalizeReductionAxis(axis, rank);
+    final count = layout.shape[normalizedAxis];
+    final outShape = _reducedShape(layout.shape, normalizedAxis, keepDims);
+    _validateTargetShape(target, outShape);
+    final hasHazard = target != null && sharesMemory(target.data, data);
+    final outTensor = (target != null && !hasHazard)
+        ? target
+        : Tensor<double>.filled(0.0, shape: outShape, type: DataType.float64);
+    return (
+      normalizedAxis: normalizedAxis,
+      outTensor: outTensor,
+      outShape: outShape,
+      count: count,
+      axisStride: layout.strides[normalizedAxis],
+    );
   }
 }
 

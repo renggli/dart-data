@@ -498,6 +498,15 @@ void main() {
         check(() => Expr.parse('O(-x)')).throws<FormatException>();
         check(() => Expr.parse('integrate(x, 1)')).throws<FormatException>();
         check(() => Expr.parse('diff(x, 1)')).throws<FormatException>();
+        check((Expr.parse('ellipticPi(0.5, 0.3)') as Call).id)
+            .equals(FunctionId.ellipticPi);
+        check((Expr.parse('hypergeometric(1, 2, x)') as Call).id)
+            .equals(FunctionId.hypergeometric);
+        check(Expr.parse('O(x)')).equals(OrderTerm('x', 1));
+        check(() => Expr.parse('lambertW(1, 2, 3)')).throws<FormatException>();
+        check(() => Expr.parse('ellipticPi(1)')).throws<FormatException>();
+        check(() => Expr.parse('hypergeometric(1, 2)'))
+            .throws<FormatException>();
       },
     );
   });

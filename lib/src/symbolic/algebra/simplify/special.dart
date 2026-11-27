@@ -303,68 +303,49 @@ Expr simplifyPolygamma(Expr m, Expr x) {
 }
 
 /// Simplifies a Bessel function of the first kind `besselJ(nu, x)`.
-Expr simplifyBesselJ(Expr nu, Expr x) {
-  if (nu == Constant.undefined || x == Constant.undefined) {
-    return Constant.undefined;
-  }
-  if (isFloatComplexPair(nu, x)) {
-    return complexToExpr(
-      special_bessel.besselJComplex(toComplex(nu), toComplex(x)),
-    );
-  }
-  if (x is Number && x.isZero) {
-    if (nu is Number && nu.isZero) {
-      return (nu is RealNumber || x is RealNumber)
-          ? const RealNumber(1.0)
-          : IntegerNumber.one;
-    }
-    if (nu is RealNumeric && !nu.isNegative) {
-      return (nu is RealNumber || x is RealNumber)
-          ? const RealNumber(0.0)
-          : IntegerNumber.zero;
-    }
-  }
-  if (nu is RealNumeric &&
-      x is RealNumeric &&
-      (nu is RealNumber || x is RealNumber)) {
-    return RealNumber.fromDouble(
-      special_bessel.besselJ(nu.toDouble(), x.toDouble()),
-    );
-  }
-  return Fn.besselJ(nu, x);
-}
+Expr simplifyBesselJ(Expr nu, Expr x) => _simplifyBessel(
+  nu,
+  x,
+  realFn: special_bessel.besselJ,
+  complexFn: special_bessel.besselJComplex,
+  nodeBuilder: (a, b) => Fn.besselJ(a, b),
+  zeroXAtZeroNuOne: true,
+);
 
 /// Simplifies a Bessel function of the second kind `besselY(nu, x)`.
-Expr simplifyBesselY(Expr nu, Expr x) {
-  if (nu == Constant.undefined || x == Constant.undefined) {
-    return Constant.undefined;
-  }
-  if (isFloatComplexPair(nu, x)) {
-    return complexToExpr(
-      special_bessel.besselYComplex(toComplex(nu), toComplex(x)),
-    );
-  }
-  if (nu is RealNumeric &&
-      x is RealNumeric &&
-      (nu is RealNumber || x is RealNumber)) {
-    return RealNumber.fromDouble(
-      special_bessel.besselY(nu.toDouble(), x.toDouble()),
-    );
-  }
-  return Fn.besselY(nu, x);
-}
+Expr simplifyBesselY(Expr nu, Expr x) => _simplifyBessel(
+  nu,
+  x,
+  realFn: special_bessel.besselY,
+  complexFn: special_bessel.besselYComplex,
+  nodeBuilder: (a, b) => Fn.besselY(a, b),
+);
 
 /// Simplifies a modified Bessel function of the first kind `besselI(nu, x)`.
-Expr simplifyBesselI(Expr nu, Expr x) {
+Expr simplifyBesselI(Expr nu, Expr x) => _simplifyBessel(
+  nu,
+  x,
+  realFn: special_bessel.besselI,
+  complexFn: special_bessel.besselIComplex,
+  nodeBuilder: (a, b) => Fn.besselI(a, b),
+  zeroXAtZeroNuOne: true,
+);
+
+Expr _simplifyBessel(
+  Expr nu,
+  Expr x, {
+  required double Function(double, double) realFn,
+  required Complex Function(Complex, Complex) complexFn,
+  required Expr Function(Expr, Expr) nodeBuilder,
+  bool zeroXAtZeroNuOne = false,
+}) {
   if (nu == Constant.undefined || x == Constant.undefined) {
     return Constant.undefined;
   }
   if (isFloatComplexPair(nu, x)) {
-    return complexToExpr(
-      special_bessel.besselIComplex(toComplex(nu), toComplex(x)),
-    );
+    return complexToExpr(complexFn(toComplex(nu), toComplex(x)));
   }
-  if (x is Number && x.isZero) {
+  if (zeroXAtZeroNuOne && x is Number && x.isZero) {
     if (nu is Number && nu.isZero) {
       return (nu is RealNumber || x is RealNumber)
           ? const RealNumber(1.0)
@@ -379,11 +360,9 @@ Expr simplifyBesselI(Expr nu, Expr x) {
   if (nu is RealNumeric &&
       x is RealNumeric &&
       (nu is RealNumber || x is RealNumber)) {
-    return RealNumber.fromDouble(
-      special_bessel.besselI(nu.toDouble(), x.toDouble()),
-    );
+    return RealNumber.fromDouble(realFn(nu.toDouble(), x.toDouble()));
   }
-  return Fn.besselI(nu, x);
+  return nodeBuilder(nu, x);
 }
 
 /// Simplifies a modified Bessel function of the second kind `besselK(nu, x)`.

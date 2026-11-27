@@ -197,6 +197,16 @@ void main() {
       ]) {
         verifyAntiderivative(Expr.parse(source), points: const [0.7, 1.3]);
       }
+
+      // Symbolic exponent x^a * ln(2*x)
+      final symPowLog = Expr.parse('x^a * ln(2 * x)').integrate('x');
+      check(symPowLog.anyNode((n) => n is Integral)).isFalse;
+      check(
+        (symPowLog.derivative('x').evaluate(const {'x': 1.5, 'a': 2.5}) -
+                Expr.parse('x^a * ln(2 * x)')
+                    .evaluate(const {'x': 1.5, 'a': 2.5}))
+            .abs(),
+      ).isCloseTo(0.0, 1e-10);
     });
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
@@ -148,6 +150,23 @@ void main() {
         (a2.derivative('x').evaluateComplex(cEnv) - s2.evaluateComplex(cEnv))
             .abs(),
       ).isCloseTo(0.0, 1e-8);
+
+      // Zero-determinant linear-fractional radical and Chebyshev backward sub
+      final zeroDet = Expr.parse('((2 * x + 4) / (x + 2))^(1/2)')
+          .integrate('x');
+      check(zeroDet.anyNode((n) => n is Integral)).isFalse;
+      check(
+        (zeroDet.derivative('x').evaluate(const {'x': 1.0}) - math.sqrt(2.0))
+            .abs(),
+      ).isCloseTo(0.0, 1e-10);
+
+      final backCheb = Expr.parse('(1 + x^2)^(1/2) / x^2').integrate('x');
+      check(backCheb.anyNode((n) => n is Integral)).isFalse;
+      check(
+        (backCheb.derivative('x').evaluate(const {'x': 2.0}) -
+                Expr.parse('(1 + x^2)^(1/2) / x^2').evaluate(const {'x': 2.0}))
+            .abs(),
+      ).isCloseTo(0.0, 1e-10);
     });
   });
 }

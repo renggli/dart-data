@@ -549,29 +549,15 @@ Expr? tryHalfAngleTrigRadical(
         }
 
         // Case B: a +- a / cos(u) or a +- a / sin(u)
-        final tName = freshIntegrationVar('_ha', expr, variable, depth);
-        final tVar = Variable(tName);
-        final tanV = Fn.tan(v);
-        final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
-        final onePT2 = (IntegerNumber.one + tVar * tVar).simplify();
-        final oneMTanV2 = (IntegerNumber.one - tanV * tanV).simplify();
-        final unit = sign > 0
-            ? (Pow.of(targetPow.base, FractionNumber.half) *
-                      Pow.of(oneMTanV2, FractionNumber.half))
-                  .simplify(assumptions: assumptions)
-            : (Pow.of(targetPow.base, FractionNumber.half) *
-                      Pow.of(oneMTanV2, FractionNumber.half) /
-                      tanV)
-                  .simplify(assumptions: assumptions);
-        final radInT = sign > 0
-            ? Pow.of(oneMT2, RationalNumber(-k, 2))
-            : (Pow.of(tVar, IntegerNumber.of(k)) *
-                      Pow.of(oneMT2, RationalNumber(-k, 2)))
-                  .simplify();
-        final primaryExpr = oneMT2 / onePT2;
+        final tVar = Variable(
+          freshIntegrationVar('_ha', expr, variable, depth),
+        );
+        final primaryExpr =
+            (IntegerNumber.one - tVar * tVar).simplify() /
+            (IntegerNumber.one + tVar * tVar).simplify();
         final secondaryExpr =
             (IntegerNumber.two * tVar) /
-            onePT2 *
+            (IntegerNumber.one + tVar * tVar).simplify() *
             (isSin ? -IntegerNumber.one : IntegerNumber.one);
         final cosExprT = isSin ? secondaryExpr : primaryExpr;
         final sinExprT = isSin ? primaryExpr : secondaryExpr;
@@ -588,25 +574,21 @@ Expr? tryHalfAngleTrigRadical(
         final otherProd = varOthers.length == 1
             ? varOthers.first
             : Mul.of(varOthers).simplify(assumptions: assumptions);
-        final dx = IntegerNumber.two / (duFactor * onePT2);
-        final transformed = (constScale * radInT * replaceTrigT(otherProd) * dx)
-            .together(assumptions: assumptions)
-            .simplify(assumptions: assumptions);
-        if (!transformed.dependsOn(variable) &&
-            !exceedsNodeBudget(transformed, 250)) {
-          final tRes = antiDerivative(
-            transformed,
-            tName,
-            depth: depth + 1,
+        return _tryHalfAngleTangentSub(
+          tVar: tVar,
+          radBase: targetPow.base,
+          v: v,
+          duFactor: duFactor,
+          sign: sign,
+          k: k,
+          extraScale: (constScale * replaceTrigT(otherProd)).simplify(
             assumptions: assumptions,
-          );
-          if (!hasUnevaluatedIntegral(tRes, tName)) {
-            return (Pow.of(unit, IntegerNumber.of(k)) *
-                    tRes.substitute(tName, tanV))
-                .simplify(assumptions: assumptions);
-          }
-        }
-        return null;
+          ),
+          variable: variable,
+          depth: depth,
+          assumptions: assumptions,
+          checkVarFree: true,
+        );
       }
     }
   }
@@ -627,43 +609,19 @@ Expr? tryHalfAngleTrigRadical(
           .matchLinear(variable)!
           .a
           .simplify(assumptions: assumptions);
-      final tName = freshIntegrationVar('_ha', expr, variable, depth);
-      final tVar = Variable(tName);
-      final tanV = Fn.tan(v);
-      final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
-      final onePT2 = (IntegerNumber.one + tVar * tVar).simplify();
-      final oneMTanV2 = (IntegerNumber.one - tanV * tanV).simplify();
-      final unit = sign > 0
-          ? (Pow.of(targetPow.base, FractionNumber.half) *
-                    Pow.of(oneMTanV2, FractionNumber.half))
-                .simplify(assumptions: assumptions)
-          : (Pow.of(targetPow.base, FractionNumber.half) *
-                    Pow.of(oneMTanV2, FractionNumber.half) /
-                    tanV)
-                .simplify(assumptions: assumptions);
-      final radInT = sign > 0
-          ? Pow.of(oneMT2, RationalNumber(-k, 2))
-          : (Pow.of(tVar, IntegerNumber.of(k)) *
-                    Pow.of(oneMT2, RationalNumber(-k, 2)))
-                .simplify();
-      final dx = IntegerNumber.two / (duFactor * onePT2);
-      final transformed = (constScale * radInT * dx)
-          .together(assumptions: assumptions)
-          .simplify(assumptions: assumptions);
-      if (!exceedsNodeBudget(transformed, 250)) {
-        final tRes = antiDerivative(
-          transformed,
-          tName,
-          depth: depth + 1,
-          assumptions: assumptions,
-        );
-        if (!hasUnevaluatedIntegral(tRes, tName)) {
-          return (Pow.of(unit, IntegerNumber.of(k)) *
-                  tRes.substitute(tName, tanV))
-              .simplify(assumptions: assumptions);
-        }
-      }
-      return null;
+      final tVar = Variable(freshIntegrationVar('_ha', expr, variable, depth));
+      return _tryHalfAngleTangentSub(
+        tVar: tVar,
+        radBase: targetPow.base,
+        v: v,
+        duFactor: duFactor,
+        sign: sign,
+        k: k,
+        extraScale: constScale,
+        variable: variable,
+        depth: depth,
+        assumptions: assumptions,
+      );
     }
 
     final duFactor = u
@@ -1454,4 +1412,52 @@ bool _isPositiveConstantOrEvenSquare(Expr expr) {
     return factors.every(_isPositiveConstantOrEvenSquare);
   }
   return false;
+}
+
+Expr? _tryHalfAngleTangentSub({
+  required Variable tVar,
+  required Expr radBase,
+  required Expr v,
+  required Expr duFactor,
+  required int sign,
+  required int k,
+  required Expr extraScale,
+  required String variable,
+  required int depth,
+  required Assumptions assumptions,
+  bool checkVarFree = false,
+}) {
+  final tanV = Fn.tan(v);
+  final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
+  final onePT2 = (IntegerNumber.one + tVar * tVar).simplify();
+  final oneMTanV2 = (IntegerNumber.one - tanV * tanV).simplify();
+  final baseHalf =
+      Pow.of(radBase, FractionNumber.half) *
+      Pow.of(oneMTanV2, FractionNumber.half);
+  final unit = (sign > 0 ? baseHalf : baseHalf / tanV).simplify(
+    assumptions: assumptions,
+  );
+  final oneMT2Pow = Pow.of(oneMT2, RationalNumber(-k, 2));
+  final radInT = sign > 0
+      ? oneMT2Pow
+      : (Pow.of(tVar, IntegerNumber.of(k)) * oneMT2Pow).simplify();
+  final dx = IntegerNumber.two / (duFactor * onePT2);
+  final transformed = (extraScale * radInT * dx)
+      .together(assumptions: assumptions)
+      .simplify(assumptions: assumptions);
+  if ((!checkVarFree || !transformed.dependsOn(variable)) &&
+      !exceedsNodeBudget(transformed, 250)) {
+    final tRes = antiDerivative(
+      transformed,
+      tVar.name,
+      depth: depth + 1,
+      assumptions: assumptions,
+    );
+    if (!hasUnevaluatedIntegral(tRes, tVar.name)) {
+      return (Pow.of(unit, IntegerNumber.of(k)) *
+              tRes.substitute(tVar.name, tanV))
+          .simplify(assumptions: assumptions);
+    }
+  }
+  return null;
 }

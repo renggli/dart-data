@@ -862,6 +862,35 @@ void main() {
       final nodeLenPos = msg2Pos + 8 + nodesVecPos + 4;
       byteData.setInt32(nodeLenPos, -1, Endian.little);
       check(() => DataFrame.fromArrowIpc(bytes)).throws<FormatException>();
+
+      // Multi-batch ObjectSeries<String> exercises non-ArrowStringSeries path
+      final objBatch = DataFrame([
+        ObjectSeries<String?>.fromList('s', [
+          'hello',
+          null,
+          'world',
+        ], type: DataType.string),
+      ]);
+      final objRoundTrip = DataFrame.fromArrowIpc(
+        ArrowIpc.encodeBatches([objBatch]),
+      );
+      check(objRoundTrip['s'].toList()).deepEquals(['hello', null, 'world']);
+
+      // Schema validation across multi-batch encodeBatches
+      final colB1 = DataFrame.fromColumns({
+        'a': [1],
+      });
+      final colB2 = DataFrame.fromColumns({
+        'a': [1],
+        'b': [2],
+      });
+      final colB3 = DataFrame.fromColumns({
+        'x': [1],
+      });
+      check(() => ArrowIpc.encodeBatches([colB1, colB2]))
+          .throws<ArgumentError>();
+      check(() => ArrowIpc.encodeBatches([colB1, colB3]))
+          .throws<ArgumentError>();
     });
   });
 }

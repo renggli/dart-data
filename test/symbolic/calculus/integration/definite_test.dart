@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/calculus/integration/definite.dart';
 import 'package:data/symbolic.dart';
@@ -634,6 +636,59 @@ void main() {
           .equals(RationalNumber(9, 2));
       check(Expr.parse('abs(x - 5)').integrate('x', from: 1, to: 3))
           .equals(IntegerNumber.of(6));
+
+      // Trig Frullani, Fourier/damped, flipped bounds, and reversed-limit special cases
+      check(
+        Expr.parse('(atan(3*x) - atan(x)) / x')
+            .integrate('x', from: 0, to: Constant.infinity)
+            .evaluate(),
+      ).isCloseTo(math.pi / 2 * math.log(3), 1e-12);
+      check(
+        Expr.parse('(exp(-x) - exp(-3*x)) / x')
+            .integrate('x', from: Constant.infinity, to: 0)
+            .evaluate(),
+      ).isCloseTo(-math.log(3), 1e-12);
+      check(
+        Expr.parse('exp(-x) * cos(2*x) / x^0')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(RationalNumber(1, 5));
+      check(
+        Expr.parse('sin(x)^2 / (x^2 + 1) + cos(x)^2 / (x^2 + 1)')
+            .integrate('x', from: -Constant.infinity, to: Constant.infinity),
+      ).equals(Constant.pi);
+      check(
+        Expr.parse('x * cos(x) / (x^2 + 1)').integrate('x', from: -1, to: 1),
+      ).equals(IntegerNumber.zero);
+
+      // Frullani exp / atan integrals and Fourier product ordering variants
+      check(
+        Expr.parse('(exp(-2*x) - exp(-5*x)) / x')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(Fn.ln(RationalNumber(5, 2)));
+      check(
+        Expr.parse('(atan(3*x) - atan(2*x)) / x')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(
+        ((Constant.pi / IntegerNumber.two) * Fn.ln(RationalNumber(3, 2)))
+            .simplify(),
+      );
+      check(
+        Expr.parse('-(exp(-2*x) * sin(3*x))')
+            .integrate('x', from: 0, to: Constant.infinity),
+      ).equals(RationalNumber(-3, 13));
+
+      // Piecewise min/max and trig abs zero-splitting definite integrals
+      check(Expr.parse('min(x, 1 - x)').integrate('x', from: 0, to: 1))
+          .equals(RationalNumber(1, 4));
+      check(Expr.parse('max(x, 1 - x)').integrate('x', from: 0, to: 1))
+          .equals(RationalNumber(3, 4));
+      final absCosVal = Expr.parse('abs(2 * cos(x) - 1)')
+          .integrate('x', from: 0, to: Constant.pi);
+      check(absCosVal.evaluate())
+          .isCloseTo(2.0 * math.sqrt(3.0) + math.pi / 3.0, 1e-9);
+      final absSinDiffVal = Expr.parse('abs(sin(x) - sin(2 * x))')
+          .integrate('x', from: 0, to: Constant.pi);
+      check(absSinDiffVal.evaluate()).isCloseTo(2.5, 1e-9);
     });
   });
 }

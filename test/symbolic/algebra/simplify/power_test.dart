@@ -488,5 +488,40 @@ void main() {
         check(Expr.parse('((x^(2/3))^(3/2))').simplify()).isA<Pow>();
       },
     );
+
+    test(
+      'simplifies scaled inverse hyperbolic exponentials and nested sqrt sums',
+      () {
+        const x = Variable('x');
+        check(
+          (Pow.of(Constant.e, IntegerNumber.two * Fn.asinh(x)) -
+                  Pow.of(
+                    Pow.of(x * x + IntegerNumber.one, FractionNumber.half) + x,
+                    IntegerNumber.two,
+                  ))
+              .simplify()
+              .evaluate(const {'x': 1.2}),
+        ).isCloseTo(0.0, 1e-12);
+        check(
+          (Pow.of(Constant.e, IntegerNumber.two * Fn.acosh(x)) -
+                  Pow.of(
+                    Pow.of(x * x - IntegerNumber.one, FractionNumber.half) + x,
+                    IntegerNumber.two,
+                  ))
+              .simplify(assumptions: Assumptions.positive)
+              .evaluate(const {'x': 2.0}),
+        ).isCloseTo(0.0, 1e-12);
+        check(
+          Pow.of(
+            IntegerNumber.of(3) +
+                Pow.of(IntegerNumber.of(8), FractionNumber.half),
+            FractionNumber.half,
+          ).simplify(),
+        ).equals(
+          (IntegerNumber.one + Pow.of(IntegerNumber.two, FractionNumber.half))
+              .simplify(),
+        );
+      },
+    );
   });
 }

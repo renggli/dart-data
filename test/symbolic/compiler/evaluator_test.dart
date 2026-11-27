@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
+import 'package:data/src/symbolic/compiler.dart';
 import 'package:data/src/symbolic/compiler/bytecode.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex;
@@ -700,6 +701,37 @@ void main() {
           .evaluateComplex1D(const Complex(-4.0));
       check(vSqrt.a).isCloseTo(0.0, 1e-12);
       check(vSqrt.b).isCloseTo(0.5, 1e-12);
+
+      check(tryEvaluateReal(x)).isNull;
+      check(tryEvaluateReal(IntegerNumber.two)).equals(2.0);
+      check(tryEvaluateComplex(x)).isNull;
+      check(tryEvaluateComplex(ComplexNumber.i)).equals(Complex.i);
+      check(trySymbolicOp<int>(() => throw ArgumentError('a'))).isNull;
+      check(trySymbolicOp<int>(() => throw UnsupportedError('u'))).isNull;
+      check(trySymbolicOp<int>(() => throw StateError('s'))).isNull;
+
+      // Multi-variable evaluate1D errors, complex-literal real eval, and tuple rejection
+      const y = Variable('y');
+      final multiBc = (x + y).toBytecode(variables: const ['x', 'y']);
+      check(() => multiBc.evaluate1D(1.0)).throws<StateError>();
+      check(() => multiBc.evaluateComplex1D(Complex.one)).throws<StateError>();
+      check(() => Fn.tuple([x, y]).toBytecode()).throws<UnsupportedError>();
+      final complexCancelBc = (x + ComplexNumber.i - ComplexNumber.i)
+          .toBytecode(variables: const ['x']);
+      check(complexCancelBc.evaluateList(const [2.0])).isCloseTo(2.0, 1e-12);
+      check(
+        (Fn.besselJ(x, y) +
+                Fn.appellF1([
+                  FractionNumber.half,
+                  IntegerNumber.one,
+                  IntegerNumber.two,
+                  IntegerNumber.of(3),
+                  x,
+                  y,
+                ]))
+            .toBytecode(variables: const ['x', 'y'])
+            .toString(),
+      ).isNotEmpty;
     });
   });
 }

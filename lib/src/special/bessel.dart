@@ -382,31 +382,18 @@ Complex besselKComplex(Complex nu, Complex z) {
       sinPiNu;
 }
 
-double _besselJSeries(double nu, double x) {
-  final halfX = 0.5 * x;
-  double term;
-  if (nu > 100.0) {
-    final g = logAbsGammaWithSign(nu + 1.0);
-    if (g.sign == 0) return 0.0;
-    final logTerm = nu * log(halfX) - g.logAbs;
-    if (logTerm < -745.0) return 0.0;
-    term = g.sign * exp(logTerm);
-  } else {
-    final gammaVal = gamma(nu + 1.0);
-    if (gammaVal.isInfinite || gammaVal.isNaN) return 0.0;
-    term = pow(halfX, nu).toDouble() / gammaVal;
-  }
-  var sum = term;
-  final halfX2 = -halfX * halfX;
-  for (var m = 1; m <= 100; m++) {
-    term *= halfX2 / (m * (m + nu));
-    sum += term;
-    if (term.abs() <= 1.0e-16 * sum.abs()) break;
-  }
-  return sum;
-}
+double _besselJSeries(double nu, double x) =>
+    _besselJOrISeries(nu, x, alternating: true, maxTerms: 100);
 
-double _besselISeries(double nu, double x) {
+double _besselISeries(double nu, double x) =>
+    _besselJOrISeries(nu, x, alternating: false, maxTerms: 150);
+
+double _besselJOrISeries(
+  double nu,
+  double x, {
+  required bool alternating,
+  required int maxTerms,
+}) {
   final halfX = 0.5 * x;
   double term;
   if (nu > 100.0) {
@@ -421,8 +408,8 @@ double _besselISeries(double nu, double x) {
     term = pow(halfX, nu).toDouble() / gammaVal;
   }
   var sum = term;
-  final halfX2 = halfX * halfX;
-  for (var m = 1; m <= 150; m++) {
+  final halfX2 = alternating ? -halfX * halfX : halfX * halfX;
+  for (var m = 1; m <= maxTerms; m++) {
     term *= halfX2 / (m * (m + nu));
     sum += term;
     if (term.abs() <= 1.0e-16 * sum.abs()) break;

@@ -70,33 +70,24 @@ Evaluates every workload under two execution modes:
 
 ### 2. Symbolic Subsystem (`symbolic`)
 
-Evaluates exact AST manipulation, canonical simplification, Taylor series expansion, symbolic integration, polynomial factorization, symbolic determinants, and multivariate polynomial system solving (Gröbner basis via Buchberger with Sugar strategy and FGLM).
+Evaluates exact AST manipulation, canonical simplification, Taylor series expansion, symbolic differentiation/integration/limits, polynomial factorization, symbolic determinants, multivariate polynomial system solving (Gröbner basis via Buchberger with Sugar strategy and FGLM), parsing/formatting, and flat bytecode VM evaluation.
 
 | Benchmark | Category | Median (µs) | 95% CI (µs) | Min–Max (µs) |
 | --- | --- | ---: | ---: | ---: |
-| `expand((x+y+z+1)^12)` | Algebraic Expansion | 2,438 | [2,361, 2,510] | 2,163–3,249 |
-| `series(exp(sin(x)), x, 0, 20)` | Series & Calculus | 109 | [107, 110] | 101–141 |
-| `det 6x6 symbolic` | Symbolic Linear Algebra | 28,131 | [28,097, 28,303] | 27,318–29,131 |
-| `integrate corpus (45)` | Series & Calculus | 618 | [504, 735] | 474–1,149 |
-| `simplify corpus (80)` | Simplification | 96.7 | [95.4, 98.9] | 86.1–195 |
-| `factor(x^24 - 1)` | Polynomial Factorization | 19.5 | [19.0, 20.6] | 18.1–32.7 |
-| `solvePolynomialSystem katsura-2` | Gröbner Basis Systems | 1,219 | [1,176, 1,412] | 1,044–1,976 |
-| `solvePolynomialSystem katsura-3` | Gröbner Basis Systems | 7,041 | [4,707, 11,954] | 4,707–11,954 |
-
-#### Historical Comparison (Pre- vs Post-Refactoring)
-
-Comparison against the original baseline captured before the numeric-tower and N-ary AST refactoring:
-
-| Benchmark | Baseline VM (µs) | Latest VM (µs) | 95% CI (µs) | VM Speedup |
-| --- | ---: | ---: | ---: | ---: |
-| `expand((x+y+z+1)^12)` | 6,679 | 2,438 | [2,361, 2,510] | **2.7×** |
-| `series(exp(sin(x)), x, 0, 20)` | 74 | 109 | [107, 110] | **0.7×** |
-| `det` 6×6 symbolic (`(r+1)^c + x^((r+c)%3)*y`) | 638,445 | 28,131 | [28,097, 28,303] | **22.7×** |
-| `integrate` corpus (45 integrands) | 194 | 618 | [504, 735] | **0.3×** |
-| `simplify` corpus (80 expressions) | 53 | 96.7 | [95.4, 98.9] | **0.5×** |
-| `factor(x^24 - 1)` | 32 | 19.5 | [19.0, 20.6] | **1.6×** |
-| `solvePolynomialSystem` Katsura-2 | 922 | 1,219 | [1,176, 1,412] | **0.8×** |
-| `solvePolynomialSystem` Katsura-3 | 3,860,962 | 7,041 | [4,707, 11,954] | **548.4×** |
+| `expand((x+y+z+1)^12)` | Algebraic Expansion | 1,218 | [806, 1,542] | 425–3,131 |
+| `series(exp(sin(x)), x, 0, 20)` | Series & Calculus | 78.8 | [78.1, 80.9] | 74.9–147 |
+| `det 6x6 symbolic` | Symbolic Linear Algebra | 13,224 | [10,993, 14,716] | 9,485–18,459 |
+| `differentiate corpus (50)` | Series & Calculus | 227 | [216, 238] | 204–276 |
+| `limit corpus (12)` | Series & Calculus | 1,239 | [1,141, 1,573] | 1,031–1,874 |
+| `integrate corpus (45)` | Series & Calculus | 642 | [607, 758] | 556–1,254 |
+| `simplify corpus (80)` | Simplification | 102 | [100, 110] | 94.9–170 |
+| `parse + format (80)` | Parsing & Formatting | 344 | [332, 383] | 319–495 |
+| `bytecode eval1D real (100k)` | Bytecode VM | 5,851 | [5,817, 5,897] | 5,672–6,089 |
+| `bytecode eval1D complex (10k)` | Bytecode VM | 1,921 | [1,917, 1,938] | 1,874–2,009 |
+| `bytecode evalVector (10k)` | Bytecode VM | 695 | [691, 705] | 687–745 |
+| `factor(x^24 - 1)` | Polynomial Factorization | 18.9 | [17.8, 20.9] | 16.5–34.5 |
+| `solvePolynomialSystem katsura-2` | Gröbner Basis Systems | 1,300 | [1,237, 1,555] | 1,117–2,806 |
+| `solvePolynomialSystem katsura-3` | Gröbner Basis Systems | 2,784 | [2,371, 3,036] | 2,371–3,036 |
 
 ---
 

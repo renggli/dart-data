@@ -9,6 +9,7 @@ import '../functions/fn.dart';
 import '../oracle/sign.dart';
 import 'limit.dart';
 import 'limit_gruntz.dart';
+import 'linear_form.dart';
 
 Expr computeInfiniteLimit(
   Expr expr,
@@ -341,20 +342,12 @@ bool? _evalRelationAtPosInf(Relational relation, String variable) {
   }
   bool? agreed;
   for (final sample in const [1e9, 1e15, 1e30]) {
-    try {
-      final v = relation.evaluate({variable: sample});
-      if (v.isNaN) return null;
-      final res = v == 1.0;
-      if (agreed == null) {
-        agreed = res;
-      } else if (agreed != res) {
-        return null;
-      }
-    } on UnsupportedError {
-      return null;
-    } on ArgumentError {
-      return null;
-    } on StateError {
+    final v = trySymbolicOp(() => relation.evaluate({variable: sample}));
+    if (v == null || v.isNaN) return null;
+    final res = v == 1.0;
+    if (agreed == null) {
+      agreed = res;
+    } else if (agreed != res) {
       return null;
     }
   }
@@ -370,21 +363,17 @@ bool isBoundedFactorAtInfinity(Expr expr, String variable) {
     Pow(base: final RealNumeric b, :final exponent) => () {
       final cmp = b.abs().compareTo(IntegerNumber.one);
       if (cmp == 0) return true;
-      try {
-        final expLim = computeInfiniteLimit(
+      final expLim = trySymbolicOp(
+        () => computeInfiniteLimit(
           exponent,
           variable,
           isPositive: true,
           assumptions: Assumptions.none,
-        );
+        ),
+      );
+      if (expLim != null) {
         if (cmp < 0 && isPositiveInfinity(expLim)) return true;
         if (cmp > 0 && isNegativeInfinity(expLim)) return true;
-      } on UnsupportedError {
-        // Ignore
-      } on ArgumentError {
-        // Ignore
-      } on StateError {
-        // Ignore
       }
       return false;
     }(),
@@ -603,32 +592,27 @@ bool containsLogOfVariable(Expr expr, String variable) => expr.anyNode(
   (e) => e is Call && e.id == FunctionId.ln && e.args[0].dependsOn(variable),
 );
 
-bool containsUnboundedOscillation(Expr expr, String variable) =>
-    expr.anyNode((e) {
-      if (e
-          case Call(
-            id: FunctionId.sin || FunctionId.cos || FunctionId.tan,
-            args: [final inner],
-          )
-          when inner.dependsOn(variable)) {
-        try {
-          final lim = computeLimit(
-            inner,
-            variable,
-            Constant.infinity,
-            assumptions: Assumptions.none,
-          );
-          return isPositiveInfinity(lim) || isNegativeInfinity(lim);
-        } on UnsupportedError {
-          return true;
-        } on ArgumentError {
-          return true;
-        } on StateError {
-          return true;
-        }
-      }
-      return false;
-    });
+bool containsUnboundedOscillation(Expr expr, String variable) => expr.anyNode((
+  e,
+) {
+  if (e
+      case Call(
+        id: FunctionId.sin || FunctionId.cos || FunctionId.tan,
+        args: [final inner],
+      )
+      when inner.dependsOn(variable)) {
+    final lim = trySymbolicOp(
+      () => computeLimit(
+        inner,
+        variable,
+        Constant.infinity,
+        assumptions: Assumptions.none,
+      ),
+    );
+    return lim == null || isPositiveInfinity(lim) || isNegativeInfinity(lim);
+  }
+  return false;
+});
 
 Expr? trySqueezeBoundedOscillation(Expr expr, String variable) {
   final (numExpr, denExpr) = splitNumeratorDenominator(expr);
@@ -666,22 +650,16 @@ Expr? trySqueezeBoundedOscillation(Expr expr, String variable) {
   };
 
   final envelope = (numPart / denPart).simplify();
-  try {
-    final envLim = computeLimit(
+  final envLim = trySymbolicOp(
+    () => computeLimit(
       envelope,
       variable,
       Constant.infinity,
       assumptions: Assumptions.none,
-    );
-    if (envLim is Number && envLim.isZero) {
-      return IntegerNumber.zero;
-    }
-  } on UnsupportedError {
-    // Ignore
-  } on ArgumentError {
-    // Ignore
-  } on StateError {
-    // Ignore
+    ),
+  );
+  if (envLim is Number && envLim.isZero) {
+    return IntegerNumber.zero;
   }
   return null;
 }
@@ -727,15 +705,7 @@ bool _isBoundedAtInfinity(Expr expr, String variable) {
 
 Expr? tryInfiniteLimit(Expr expr, String variable, Assumptions assumptions) {
   if (expr case Mul(:final factors)) {
-    final constFactors = <Expr>[];
-    final varFactors = <Expr>[];
-    for (final f in factors) {
-      if (f.dependsOn(variable)) {
-        varFactors.add(f);
-      } else {
-        constFactors.add(f);
-      }
-    }
+    final (:constFactors, :varFactors) = partitionFactors(factors, variable);
     if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
       final varExpr = varFactors.length == 1
           ? varFactors.first
@@ -1058,21 +1028,17 @@ Expr? tryLogVsPowerDominance(
   if (!otherExpr.dependsOn(variable) || !isPurelyAlgebraic(otherExpr)) {
     return null;
   }
-  try {
-    final otherLim = computeLimit(
+  final otherLim = trySymbolicOp(
+    () => computeLimit(
       otherExpr,
       variable,
       Constant.infinity,
       assumptions: assumptions,
-    );
+    ),
+  );
+  if (otherLim != null) {
     if (isPositiveInfinity(otherLim)) return Constant.infinity;
     if (isNegativeInfinity(otherLim)) return negInfinity;
-  } on UnsupportedError {
-    // Fall through
-  } on ArgumentError {
-    // Fall through
-  } on StateError {
-    // Fall through
   }
   return null;
 }

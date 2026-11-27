@@ -1356,6 +1356,18 @@ line 2",10
           check(desc['big'][1] as double).isCloseTo(1e308, 1e294);
           check(desc['big'][2]).equals(0.0);
           check(desc['big'][4] as double).isCloseTo(1e308, 1e294);
+
+          final dfFill = DataFrame.fromColumns({
+            'i': [1, null, 3],
+          });
+          check(dfFill.fillNull('not_a_number')['i'].toList())
+              .deepEquals([1, null, 3]);
+          check(dfFill.sample(2).rowCount).equals(2);
+
+          final nonNumericObjDf = DataFrame([
+            ObjectSeries<Object?>.fromList('o', [1, 'bad']),
+          ]);
+          check(nonNumericObjDf.toTensor).throws<UnsupportedError>();
         },
       );
     });

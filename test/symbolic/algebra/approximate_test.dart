@@ -395,6 +395,28 @@ void main() {
             .isA<Call>()
             .has('id', (Call c) => c.id)
             .equals(FunctionId.tuple);
+
+        // Log-space factorial/binomial ratios, complex sqrt approximation, & errors
+        check(() => x.rationalize(maxDenominator: 0)).throws<ArgumentError>();
+        check(() => x.rationalize(tolerance: -1.0)).throws<ArgumentError>();
+        check(
+          (Fn.factorial(IntegerNumber.of(200)) /
+                  Fn.factorial(IntegerNumber.of(198)))
+              .approximate()
+              .evaluate(const {}),
+        ).isCloseTo(39800.0, 1e-6);
+        check(
+          (Fn.binomial(IntegerNumber.of(200), IntegerNumber.of(2)) /
+                  Fn.binomial(IntegerNumber.of(200), IntegerNumber.one))
+              .approximate()
+              .evaluate(const {}),
+        ).isCloseTo(99.5, 1e-6);
+        check(
+          Pow.of(
+            IntegerNumber.negativeOne,
+            FractionNumber.half,
+          ).approximate().evaluateComplex(),
+        ).equals(Complex.i);
       },
     );
   });

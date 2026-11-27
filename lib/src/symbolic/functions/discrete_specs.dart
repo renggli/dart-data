@@ -397,27 +397,28 @@ Expr? _diffMin(
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
-}) {
-  if (args.length != 2) return null;
-  final a = args[0];
-  final b = args[1];
-  final da = diff(a);
-  final db = diff(b);
-  return FractionNumber.half * ((da + db) - signSpec(a - b) * (da - db));
-}
+}) => _diffMinMax(args, diff, isMax: false);
 
 Expr? _diffMax(
   List<Expr> args,
   String variable,
   Expr Function(Expr) diff, {
   required bool isComplexVar,
+}) => _diffMinMax(args, diff, isMax: true);
+
+Expr? _diffMinMax(
+  List<Expr> args,
+  Expr Function(Expr) diff, {
+  required bool isMax,
 }) {
   if (args.length != 2) return null;
   final a = args[0];
   final b = args[1];
   final da = diff(a);
   final db = diff(b);
-  return FractionNumber.half * ((da + db) + signSpec(a - b) * (da - db));
+  final signTerm = signSpec(a - b) * (da - db);
+  return FractionNumber.half *
+      (isMax ? (da + db) + signTerm : (da + db) - signTerm);
 }
 
 Expr _diffTuple(

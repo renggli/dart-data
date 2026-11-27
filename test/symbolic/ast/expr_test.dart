@@ -224,6 +224,35 @@ void main() {
       check(Fn.ellipticF(x, FractionNumber.half).isReal).isTrue;
       check(Fn.ellipticPi(FractionNumber.half, x, FractionNumber.half).isReal)
           .isTrue;
+
+      check(Fn.gamma(x).hasSpecial).isTrue;
+      check(Integral(x, 'x').hasBinder).isTrue;
+      check(Relational.lessThan(x, IntegerNumber.one).hasRelational).isTrue;
+      check(Fn.ln(const Constant('neg', Complex(-2.0))).isReal).isFalse;
+      check(Fn.asin(const Constant('gt', Complex(2.0))).isReal).isFalse;
+      check(RootSum(x * x + IntegerNumber.one, 'x', x).isReal).isTrue;
+      check(
+        Fn.lambertW(
+          const Constant('small', Complex(-0.5)),
+          IntegerNumber.zero,
+        ).isReal,
+      ).isFalse;
+      check(
+        Fn.lambertW(
+          const Constant('small', Complex(-0.5)),
+          IntegerNumber.negativeOne,
+        ).isReal,
+      ).isFalse;
+      final renamed = Sum(
+        const Variable('y'),
+        'x',
+        IntegerNumber.zero,
+        IntegerNumber.one,
+      ).substitute('y', x);
+      check(renamed).isA<Sum>();
+      check((renamed as Sum).variable == 'x').isFalse;
+      check(Expr.wrap(BigInt.two * BigInt.from(10).pow(16)).toString())
+          .equals('20000000000000000');
     });
   });
 }

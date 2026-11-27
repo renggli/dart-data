@@ -7,6 +7,7 @@ import '../functions/fn.dart';
 import '../oracle/domain_oracle.dart';
 import '../oracle/sign.dart';
 import 'limit_asymptotic.dart';
+import 'linear_form.dart';
 import 'puiseux_series.dart';
 
 /// Symbolic limit evaluation extension on [Expr].
@@ -137,15 +138,7 @@ Expr computeLimit(
   }
 
   if (expr case Mul(:final factors)) {
-    final constFactors = <Expr>[];
-    final varFactors = <Expr>[];
-    for (final f in factors) {
-      if (f.dependsOn(variable)) {
-        varFactors.add(f);
-      } else {
-        constFactors.add(f);
-      }
-    }
+    final (:constFactors, :varFactors) = partitionFactors(factors, variable);
     if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
       final constMul = Mul.of(constFactors).simplify(assumptions: assumptions);
       final varMul = Mul.of(varFactors).simplify(assumptions: assumptions);
@@ -280,16 +273,8 @@ Expr computeLimit(
         if (isPositiveExpr(exponent, assumptions: assumptions)) return 1;
         if (isNegativeExpr(exponent, assumptions: assumptions)) return -1;
         if (exponent.freeVariables.isEmpty) {
-          try {
-            final v = exponent.evaluate(const {});
-            if (v.isFinite && v != 0.0) return v > 0 ? 1 : -1;
-          } on ArgumentError {
-            // Ignored.
-          } on UnsupportedError {
-            // Ignored.
-          } on StateError {
-            // Ignored.
-          }
+          final v = tryEvaluateReal(exponent);
+          if (v != null && v.isFinite && v != 0.0) return v > 0 ? 1 : -1;
         }
         return null;
       }
@@ -679,21 +664,13 @@ Expr _computeFiniteLimit(
   LimitDirection direction = LimitDirection.both,
   required Assumptions assumptions,
 }) {
-  try {
-    final sub = expr
-        .substitute(variable, point)
-        .simplify(assumptions: assumptions);
-    if (isWellDefinedFinite(sub)) {
-      if (isEverywhereContinuous(expr, variable)) {
-        return sub;
-      }
-    }
-  } on UnsupportedError {
-    // Falls through to Laurent series expansion
-  } on ArgumentError {
-    // Falls through to Laurent series expansion
-  } on StateError {
-    // Falls through to Laurent series expansion
+  final sub = trySymbolicOp(
+    () => expr.substitute(variable, point).simplify(assumptions: assumptions),
+  );
+  if (sub != null &&
+      isWellDefinedFinite(sub) &&
+      isEverywhereContinuous(expr, variable)) {
+    return sub;
   }
 
   final hName = freshLimitVar('_h', expr, point);
@@ -923,16 +900,8 @@ bool isWellDefinedFinite(Expr expr) {
     return true;
   }
   if (expr.freeVariables.isEmpty) {
-    try {
-      final v = expr.evaluate(const {});
-      return v.isFinite;
-    } on ArgumentError {
-      return false;
-    } on UnsupportedError {
-      return false;
-    } on StateError {
-      return false;
-    }
+    final v = tryEvaluateReal(expr);
+    return v != null && v.isFinite;
   }
   return _isSymbolicFinite(expr);
 }
@@ -996,16 +965,8 @@ int getSign(Expr expr, [Assumptions assumptions = Assumptions.none]) {
     return first.sign * getSign(restExpr, assumptions);
   }
   if (s.freeVariables.isEmpty) {
-    try {
-      final v = s.evaluate(const {});
-      if (v.isFinite && v != 0.0) return v > 0.0 ? 1 : -1;
-    } on ArgumentError {
-      // Ignore
-    } on UnsupportedError {
-      // Ignore
-    } on StateError {
-      // Ignore
-    }
+    final v = tryEvaluateReal(s);
+    if (v != null && v.isFinite && v != 0.0) return v > 0.0 ? 1 : -1;
   }
   return 0;
 }
@@ -1060,21 +1021,13 @@ int asymptoticSignAtInfinity(
 
   var agreedSign = 0;
   for (final sample in const [1e3, 1e6, 1e9, 1e12]) {
-    try {
-      final val = s.evaluate({variable: sample});
-      if (val.isNaN || val == 0.0) return 0;
-      if (!val.isFinite) continue;
-      final sgn = val > 0.0 ? 1 : -1;
-      if (agreedSign == 0) {
-        agreedSign = sgn;
-      } else if (agreedSign != sgn) {
-        return 0;
-      }
-    } on ArgumentError {
-      return 0;
-    } on UnsupportedError {
-      return 0;
-    } on StateError {
+    final val = tryEvaluateReal(s, {variable: sample});
+    if (val == null || val.isNaN || val == 0.0) return 0;
+    if (!val.isFinite) continue;
+    final sgn = val > 0.0 ? 1 : -1;
+    if (agreedSign == 0) {
+      agreedSign = sgn;
+    } else if (agreedSign != sgn) {
       return 0;
     }
   }

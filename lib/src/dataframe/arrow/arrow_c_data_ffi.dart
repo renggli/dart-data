@@ -131,26 +131,7 @@ void exportDataFrameToArrowC({
   final columnCount = dataFrame.columnCount;
 
   // Initialize pointers to nullptr for safe unwinding in case of exception
-  outSchemaPtr.ref.format = ffi.nullptr;
-  outSchemaPtr.ref.name = ffi.nullptr;
-  outSchemaPtr.ref.metadata = ffi.nullptr;
-  outSchemaPtr.ref.flags = 0;
-  outSchemaPtr.ref.n_children = 0;
-  outSchemaPtr.ref.children = ffi.nullptr;
-  outSchemaPtr.ref.dictionary = ffi.nullptr;
-  outSchemaPtr.ref.release = ffi.nullptr;
-  outSchemaPtr.ref.private_data = ffi.nullptr;
-
-  outArrayPtr.ref.length = 0;
-  outArrayPtr.ref.null_count = 0;
-  outArrayPtr.ref.offset = 0;
-  outArrayPtr.ref.n_buffers = 0;
-  outArrayPtr.ref.buffers = ffi.nullptr;
-  outArrayPtr.ref.n_children = 0;
-  outArrayPtr.ref.children = ffi.nullptr;
-  outArrayPtr.ref.dictionary = ffi.nullptr;
-  outArrayPtr.ref.release = ffi.nullptr;
-  outArrayPtr.ref.private_data = ffi.nullptr;
+  _zeroArrowDescriptors(outSchemaPtr, outArrayPtr);
 
   ffi.Pointer<ffi.Pointer<ArrowSchema>>? schemaChildren;
   ffi.Pointer<ffi.Pointer<ArrowArray>>? arrayChildren;
@@ -329,26 +310,7 @@ void exportSeriesToArrowC({
   final isNullable = nullable ?? true;
 
   // Initialize structs to nullptr for safe unwinding
-  outSchemaPtr.ref.format = ffi.nullptr;
-  outSchemaPtr.ref.name = ffi.nullptr;
-  outSchemaPtr.ref.metadata = ffi.nullptr;
-  outSchemaPtr.ref.flags = 0;
-  outSchemaPtr.ref.n_children = 0;
-  outSchemaPtr.ref.children = ffi.nullptr;
-  outSchemaPtr.ref.dictionary = ffi.nullptr;
-  outSchemaPtr.ref.release = ffi.nullptr;
-  outSchemaPtr.ref.private_data = ffi.nullptr;
-
-  outArrayPtr.ref.length = 0;
-  outArrayPtr.ref.null_count = 0;
-  outArrayPtr.ref.offset = 0;
-  outArrayPtr.ref.n_buffers = 0;
-  outArrayPtr.ref.buffers = ffi.nullptr;
-  outArrayPtr.ref.n_children = 0;
-  outArrayPtr.ref.children = ffi.nullptr;
-  outArrayPtr.ref.dictionary = ffi.nullptr;
-  outArrayPtr.ref.release = ffi.nullptr;
-  outArrayPtr.ref.private_data = ffi.nullptr;
+  _zeroArrowDescriptors(outSchemaPtr, outArrayPtr);
 
   try {
     // 1. Populate ArrowSchema
@@ -1103,4 +1065,30 @@ Uint16List _readAlignedUint16(
   final copy = Uint16List(length);
   Uint8List.sublistView(copy).setRange(0, length * 2, bytes, offset * 2);
   return copy;
+}
+
+void _zeroArrowDescriptors(
+  ffi.Pointer<ArrowSchema> outSchemaPtr,
+  ffi.Pointer<ArrowArray> outArrayPtr,
+) {
+  outSchemaPtr.ref.format = ffi.nullptr;
+  outSchemaPtr.ref.name = ffi.nullptr;
+  outSchemaPtr.ref.metadata = ffi.nullptr;
+  outSchemaPtr.ref.flags = 0;
+  outSchemaPtr.ref.n_children = 0;
+  outSchemaPtr.ref.children = ffi.nullptr;
+  outSchemaPtr.ref.dictionary = ffi.nullptr;
+  outSchemaPtr.ref.release = ffi.nullptr;
+  outSchemaPtr.ref.private_data = ffi.nullptr;
+
+  outArrayPtr.ref.length = 0;
+  outArrayPtr.ref.null_count = 0;
+  outArrayPtr.ref.offset = 0;
+  outArrayPtr.ref.n_buffers = 0;
+  outArrayPtr.ref.buffers = ffi.nullptr;
+  outArrayPtr.ref.n_children = 0;
+  outArrayPtr.ref.children = ffi.nullptr;
+  outArrayPtr.ref.dictionary = ffi.nullptr;
+  outArrayPtr.ref.release = ffi.nullptr;
+  outArrayPtr.ref.private_data = ffi.nullptr;
 }

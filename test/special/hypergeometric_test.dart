@@ -535,6 +535,167 @@ void main() {
           (math.log(1.0 - ry) - math.log(1.0 - rx)) / (rx - ry);
       check((appellF1(1.0, 1.0, 1.0, 2.0, rx, ry) - expectedReal).abs())
           .isLessThan(1e-11);
+
+      // Large negative Kummer 1F1 when b - a is a non-positive integer
+      check(
+        (hypergeometric1F1(3.5, 1.5, -120.0) -
+                math.exp(-120.0) * hypergeometric1F1(-2.0, 1.5, 120.0))
+            .abs(),
+      ).isLessThan(1e-60);
+
+      // Logarithmic 2F1 analytic continuation branches (b - a in Z, c - b integer/non-integer)
+      check(
+        hypergeometric2F1Complex(
+          const Complex(2.5),
+          const Complex(0.5),
+          const Complex(1.2),
+          const Complex(-2.5, 0.3),
+        ).a.isFinite,
+      ).isTrue;
+      check(
+        hypergeometric2F1Complex(
+          const Complex(0.5),
+          const Complex(2.5),
+          const Complex(4.5),
+          const Complex(-2.5, 0.2),
+        ).a.isFinite,
+      ).isTrue;
+      check(
+        hypergeometric2F1Complex(
+          const Complex(0.5),
+          const Complex(2.5),
+          const Complex(1.5),
+          const Complex(-2.5, 0.2),
+        ).a.isFinite,
+      ).isTrue;
+      check(
+        hypergeometric2F1Complex(
+          const Complex(2.5),
+          const Complex(0.5),
+          const Complex(1.5),
+          const Complex(-2.5, 0.2),
+        ).a.isFinite,
+      ).isTrue;
+
+      // AppellF1 terminating b1/b2, c-pole, simultaneous Pfaff, and Euler tanh-sinh
+      check(
+        appellF1Complex(
+          const Complex(-1.0),
+          const Complex(2.0),
+          const Complex(3.0),
+          Complex.zero,
+          const Complex(0.2),
+          const Complex(0.3),
+        ).isNaN,
+      ).isTrue;
+      check(
+        appellF1Complex(
+          const Complex(0.5),
+          const Complex(-2.0),
+          const Complex(0.3),
+          const Complex(1.5),
+          const Complex(0.2),
+          const Complex(0.4),
+        ).a.isFinite,
+      ).isTrue;
+      check(
+        appellF1Complex(
+          const Complex(0.5),
+          const Complex(0.3),
+          const Complex(-2.0),
+          const Complex(1.5),
+          const Complex(0.2),
+          const Complex(0.4),
+        ).a.isFinite,
+      ).isTrue;
+      check(
+        appellF1Complex(
+          const Complex(0.5),
+          const Complex(0.3),
+          const Complex(0.4),
+          const Complex(1.5),
+          const Complex(-1.5, 0.1),
+          const Complex(-2.0, -0.1),
+        ).a.isFinite,
+      ).isTrue;
+      check(
+        appellF1Complex(
+          const Complex(0.5),
+          const Complex(0.3),
+          const Complex(0.4),
+          const Complex(1.5),
+          const Complex(0.9, 0.3),
+          const Complex(0.92, 0.3),
+        ).a.isFinite,
+      ).isTrue;
+
+      // _hypergeometric2F1InvLogarithmicComplex branches: b - a < 0, c - b <= 0,
+      // c - a <= 0, m >= 2 finite sum & non-terminating logarithmic tail.
+      // Use z with |z/(z-1)| > 0.85 so Pfaff recursion lands in |z| > 1.25.
+      for (final zInv in const [Complex(2.2, 0.4), Complex(-2.5)]) {
+        check(
+          hypergeometric2F1Complex(
+            const Complex(2.3),
+            const Complex(0.3),
+            const Complex(1.5),
+            zInv,
+          ).a.isFinite,
+        ).isTrue;
+        check(
+          hypergeometric2F1Complex(
+            const Complex(0.5),
+            const Complex(2.5),
+            const Complex(1.5),
+            zInv,
+          ).a.isFinite,
+        ).isTrue;
+        check(
+          hypergeometric2F1Complex(
+            const Complex(1.5),
+            const Complex(2.5),
+            const Complex(0.5),
+            zInv,
+          ).a.isFinite,
+        ).isTrue;
+        check(
+          hypergeometric2F1Complex(
+            const Complex(0.3),
+            const Complex(3.3),
+            const Complex(1.0),
+            zInv,
+          ).a.isFinite,
+        ).isTrue;
+        check(
+          hypergeometric2F1Complex(
+            const Complex(0.3),
+            const Complex(2.3),
+            const Complex(1.2),
+            zInv,
+          ).a.isFinite,
+        ).isTrue;
+      }
+
+      // AppellF1 bestKind == 1 Mobius transform and Euler tanh-sinh quadrature
+      check(
+        appellF1Complex(
+          const Complex(0.5),
+          const Complex(0.3),
+          const Complex(0.4),
+          const Complex(1.5),
+          const Complex(-1.5),
+          const Complex(2.5, 2.5),
+        ).a.isFinite,
+      ).isTrue;
+      check(
+        appellF1Complex(
+          const Complex(0.5),
+          const Complex(0.3),
+          const Complex(0.4),
+          const Complex(1.5),
+          const Complex(0.95, 0.2),
+          const Complex(0.95, -0.2),
+        ).a.isFinite,
+      ).isTrue;
     });
   });
 }

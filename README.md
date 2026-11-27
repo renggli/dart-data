@@ -16,7 +16,7 @@
 - **Hardware Acceleration**: Dynamic native FFI discovery for BLAS (GEMM, GEMV, SYRK, SYMM, SYR2, TRMM, TRSM, TRMV, TRSV, AXPY, SCAL, DOT, NRM2), LAPACK (GESV, GELS, POTRF, SYEV, GESVD), cross-platform FFT (Apple Accelerate vDSP and FFTW3), and Apple vForce/vDSP vector math via direct leaf `@ffi.Native` bindings, with pure Dart fallbacks.
 - **Linear Algebra**: Vectors and Matrices, zero-cost `Float64Matrix` and `Float64Vector` extension types, full decompositions (Cholesky, LU, QR, SVD, Eigenvalue), matrix norms and condition numbers, plus iterative Krylov subspace solvers (GMRES, Conjugate Gradient).
 - **Columnar DataFrames & Arrow**: Apache Arrow-aligned columnar tables with zero-copy chunking, schema inference, streaming CSV parser, relational joins, grouping, aggregations, Arrow IPC streaming/file format, and the Arrow C Data interface for zero-copy memory sharing with Python, C++, DuckDB, and Polars.
-- **Exact Symbolic Mathematics**: Symbolic expression ASTs, exact numeric tower (`Integer`, `RationalNumber`, `ComplexNumber`), canonical simplification under domain assumptions, closed-form summation and products, exact calculus (derivatives, integration, limits, power series), polynomial/transcendental equation and ODE solving (`solveOde`), Gröbner bases, multivariable calculus (`gradient`, `hessian`, `jacobian`, `laplacian`, `divergence`, `curl`), exact symbolic matrix algebra, LaTeX/MathML generation, and fast bytecode VM compilation to Dart closures (`toFunction1D`, `toComplexFunction1D`).
+- **Exact Symbolic Mathematics**: Symbolic expression ASTs, exact numeric tower (`IntegerNumber`, `FractionNumber`, `RealNumber`, `ComplexNumber`), canonical simplification under domain assumptions, closed-form summation and products, exact calculus (derivatives, integration, limits, power series), polynomial/transcendental equation and ODE solving (`solveOde`), Gröbner bases, multivariable calculus (`gradient`, `hessian`, `jacobian`, `laplacian`, `divergence`, `curl`), exact symbolic matrix algebra, LaTeX/MathML generation, and fast bytecode VM compilation to Dart closures (`toFunction1D`, `toComplexFunction1D`).
 - **Probability & Statistics**: 27 continuous, discrete, and multivariate probability distributions with exact probability density, cumulative probability, and quantile calculations, random sampling, descriptive statistics, Pearson/Spearman/Kendall correlation, PCA, hypothesis testing (t-tests, ANOVA, Kruskal-Wallis, Chi-squared, Fisher's exact, Kolmogorov-Smirnov, Mann-Whitney U, Wilcoxon, Jarque-Bera, Shapiro-Wilk), and Bootstrap & Jackknife resampling.
 - **Numeric Algorithms & Special Functions**: Differential equations (`solveOde` with Dormand-Prince 45, RK4, and BDF2), non-linear optimization (`minimize` with Nelder-Mead, BFGS, L-BFGS, Brent), numerical integration (`integrate` with adaptive Simpson and Gauss-Kronrod), root finding (`solve` with Brent-Dekker, Newton-Raphson, Bisection, and `solveSystem`), 1D/2D interpolation (Linear, Cubic Spline, PCHIP, Lagrange, Nearest/Step, Bilinear, Bicubic), curve fitting (`curveFit`, `leastSquares`, `linearRegression`, `polynomialRegression`, `fitNonlinear`), coordinate sampling & adaptive curve sampling (`linearSpaced`, `sampleCurve`), cross-platform 1D/2D FFT, and real/complex special functions (Γ, B, ψ, ζ, Li_s, erf/erfc/erfi, Fresnel S/C, exponential/trig/hyperbolic integrals, Bessel J_ν/Y_ν/I_ν/K_ν, elliptic K/E/F/Π, hypergeometric 1F1/2F1/pFq, and Lambert W).
 
@@ -27,7 +27,7 @@ Explore the interactive web applications hosted on [GitHub Pages](https://renggl
 - **[Library Catalog & Showcase](https://renggli.github.io/dart-data/)**: Interactive feature catalog, component overview, and documentation portal.
 - **[Symbolic Calculator](https://renggli.github.io/dart-data/calculator/)**: Notebook & RPN symbolic calculator PWA with live MathML preview, 2D function plotting, and Gröbner basis system solving.
 - **[Symbolic Expressions Explorer](https://renggli.github.io/dart-data/expressions/)**: Interactive symbolic algebra, rational & trigonometric rewriting, exact calculus, Taylor series, summations, and equation solving.
-- **[Distributions Dashboard](https://renggli.github.io/dart-data/distributions/)**: Interactive probability density, cumulative distribution, quantile plots, and random sampling across 24 continuous and discrete distributions.
+- **[Distributions Dashboard](https://renggli.github.io/dart-data/distributions/)**: Interactive probability density, cumulative distribution, quantile plots, and random sampling across 27 continuous, discrete, and multivariate distributions.
 
 ## Tutorial & Examples
 
@@ -112,13 +112,13 @@ Differentiate and simplify mathematical expressions symbolically, or compile the
 ```dart
 final x = Variable('x');
 // Build f(x) = x^3 + sin(x)
-final f = x.pow(3) + Sin(x);
+final f = x.pow(3) + Fn.sin(x);
 
-// Analytical derivative: f'(x) = 3 * x^2 + cos(x)
+// Analytical derivative: df/dx = 3 * x^2 + cos(x)
 final df = f.derivative('x').simplify();
 print(df.toLatex()); // \cos(x) + 3 {x}^{2}
 
-// JIT-compile into a fast Dart closure
+// Compile to bytecode and wrap as a fast Dart closure
 final fastDf = df.toFunction1D('x');
 print(fastDf(0.0)); // 1.0 (since 3*(0)^2 + cos(0) = 1)
 ```

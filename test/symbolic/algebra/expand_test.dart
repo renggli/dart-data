@@ -113,6 +113,13 @@ void main() {
           .equals('1 + 4 * x + 6 * x ^ 2 + 4 * x ^ 3 + x ^ 4');
       final high = Expr.parse('(1 + x)^65').expand();
       check(high).isA<Pow>();
+      check(
+        Expr.parse('(1.0 + x)^2')
+            .expand(assumptions: Assumptions.positive)
+            .toString(),
+      ).contains('x ^ 2');
+      check(Pow.of(Constant.infinity, IntegerNumber.zero).expand())
+          .equals(Constant.undefined);
     });
   });
 }

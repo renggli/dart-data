@@ -167,20 +167,14 @@ List<Expr> deduplicateRoots(
         return false;
       }
       if (existing.freeVariables.isEmpty && simplified.freeVariables.isEmpty) {
-        try {
-          final c1 = existing.evaluateComplex();
-          final c2 = simplified.evaluateComplex();
+        final c1 = tryEvaluateComplex(existing);
+        final c2 = tryEvaluateComplex(simplified);
+        if (c1 != null && c2 != null) {
           final mag1 = c1.abs();
           final mag2 = c2.abs();
           final mag = mag1 > mag2 ? mag1 : mag2;
           final tol = 1e-12 * (mag > 1.0 ? mag : 1.0);
           return (c1.a - c2.a).abs() <= tol && (c1.b - c2.b).abs() <= tol;
-        } on ArgumentError {
-          // Ignored.
-        } on UnsupportedError {
-          // Ignored.
-        } on StateError {
-          // Ignored.
         }
       }
       return false;
@@ -332,14 +326,8 @@ bool _isRealRoot(Expr expr, Assumptions assumptions) {
   if (!expr.isReal) return false;
   if (_containsNonRealBranch(expr, assumptions)) return false;
   if (expr.freeVariables.isEmpty) {
-    try {
-      final c = expr.evaluateComplex();
-      return !c.isNaN && c.b.abs() < 1e-12;
-    } on ArgumentError {
-      return false;
-    } on UnsupportedError {
-      return false;
-    }
+    final c = tryEvaluateComplex(expr);
+    return c != null && !c.isNaN && c.b.abs() < 1e-12;
   }
   return true;
 }
@@ -370,14 +358,8 @@ bool _isPositiveRealRoot(Expr expr, Assumptions assumptions) {
     case RealNumber(:final value):
       return value > 0.0;
     case _ when expr.isReal && expr.freeVariables.isEmpty:
-      try {
-        final v = expr.evaluate();
-        return !v.isNaN && v > 0.0;
-      } on ArgumentError {
-        return false;
-      } on UnsupportedError {
-        return false;
-      }
+      final v = tryEvaluateReal(expr);
+      return v != null && !v.isNaN && v > 0.0;
     case _:
       return false;
   }
@@ -389,17 +371,11 @@ bool _isZeroAt(
   Expr value,
   Assumptions assumptions,
 ) {
-  try {
-    final sub = expr
-        .substitute(variable, value)
-        .simplify(assumptions: assumptions);
-    return isZeroExpr(sub);
-  } on ArgumentError {
-    // If evaluating the denominator at value throws (e.g. pole), exclude value.
-    return true;
-  } on UnsupportedError {
-    return true;
-  }
+  final sub = trySymbolicOp(
+    () => expr.substitute(variable, value).simplify(assumptions: assumptions),
+  );
+  // If evaluating the denominator at value throws (e.g. pole), exclude value.
+  return sub == null || isZeroExpr(sub);
 }
 
 bool _isValidRoot(
@@ -439,17 +415,12 @@ bool _isValidRoot(
     if (v is RealNumber) {
       final scale = original is Add && original.terms.length >= 2
           ? original.terms.fold<double>(1.0, (acc, t) {
-              try {
-                final c = t.substitute(variable, root).evaluateComplex();
-                final mag = c.abs();
-                return c.isNaN || mag < acc ? acc : mag;
-              } on ArgumentError {
-                return acc;
-              } on UnsupportedError {
-                return acc;
-              } on StateError {
-                return acc;
-              }
+              final c = trySymbolicOp(
+                () => t.substitute(variable, root).evaluateComplex(),
+              );
+              if (c == null) return acc;
+              final mag = c.abs();
+              return c.isNaN || mag < acc ? acc : mag;
             })
           : 1.0;
       return v.value.abs() <= 1e-9 * scale;
@@ -469,21 +440,13 @@ bool _isValidRoot(
   if (v.freeVariables.isEmpty &&
       (root.anyNode((n) => n is RealNumber) ||
           original.anyNode((n) => n is RealNumber))) {
-    try {
-      final approx = v.approximate();
-      if (approx is RealNumeric) {
-        return approx.toDouble().abs() <= 1e-9;
-      }
-      if (approx is ComplexNumber) {
-        return approx.real.toDouble().abs() <= 1e-9 &&
-            approx.imaginary.toDouble().abs() <= 1e-9;
-      }
-    } on ArgumentError {
-      // Fall through if numeric approximation is unavailable.
-    } on UnsupportedError {
-      // Fall through if numeric approximation is unavailable.
-    } on StateError {
-      // Fall through if numeric approximation is unavailable.
+    final approx = trySymbolicOp(v.approximate);
+    if (approx is RealNumeric) {
+      return approx.toDouble().abs() <= 1e-9;
+    }
+    if (approx is ComplexNumber) {
+      return approx.real.toDouble().abs() <= 1e-9 &&
+          approx.imaginary.toDouble().abs() <= 1e-9;
     }
   }
   return true;
@@ -504,18 +467,11 @@ List<Expr> _solveProductFactors(
   if (allRoots.isEmpty) return const [];
   final validRoots = allRoots.where((root) {
     for (final other in allFactors) {
-      final Expr sub;
-      try {
-        sub = other
-            .substitute(variable, root)
-            .simplify(assumptions: assumptions);
-      } on ArgumentError {
-        return false;
-      } on UnsupportedError {
-        return false;
-      } on StateError {
-        return false;
-      }
+      final sub = trySymbolicOp(
+        () =>
+            other.substitute(variable, root).simplify(assumptions: assumptions),
+      );
+      if (sub == null) return false;
       if (sub == Constant.undefined ||
           sub == Constant.infinity ||
           sub == -Constant.infinity ||

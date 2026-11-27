@@ -334,5 +334,34 @@ void main() {
         check(IntegerNumber.zero.compareTo(RealNumber.zero)).equals(0);
       },
     );
+
+    test('validates division/overflow errors, safe-int bounds, and large rationals', () {
+      check(() => ComplexNumber.i.div(IntegerNumber.zero))
+          .throws<UnsupportedError>();
+      check(() => ComplexNumber.i.div(const RealNumber(1e-309)))
+          .throws<UnsupportedError>();
+      check(() => IntegerNumber.one.div(IntegerNumber.zero))
+          .throws<UnsupportedError>();
+      check(() => RationalNumber.of(BigInt.one, BigInt.zero))
+          .throws<UnsupportedError>();
+      check(() => IntegerNumber.zero.powNumber(IntegerNumber.negativeOne))
+          .throws<UnsupportedError>();
+      check(() => const RealNumber(1e308).add(const RealNumber(1e308)))
+          .throws<UnsupportedError>();
+      check(() => const RealNumber(1e308).mul(const RealNumber(10.0)))
+          .throws<UnsupportedError>();
+      check(() => const RealNumber(1e308).div(const RealNumber(1e-10)))
+          .throws<UnsupportedError>();
+      check(() => Number.bigIntPow(BigInt.two, -1)).throws<ArgumentError>();
+
+      check(IntegerNumber.of(7).isPrime).isTrue;
+      check(FractionNumber.half.isPrime).isFalse;
+      final hugeFrac = RationalNumber.of(
+        BigInt.two.pow(1100),
+        BigInt.from(3).pow(680),
+      );
+      check(hugeFrac.toDouble()).isGreaterThan(0.0);
+      check(hugeFrac.reciprocal().isZero).isFalse;
+    });
   });
 }

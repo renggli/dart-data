@@ -795,6 +795,30 @@ void main() {
       check(symFinite.limit('x', Constant.infinity)).equals(IntegerNumber.zero);
       check((Fn.tan(a) / x).limit('x', Constant.infinity))
           .equals(IntegerNumber.zero);
+
+      // Bounded factors (sin(x), base^exponent) multiplied by 0 at infinity
+      check(
+        (Fn.sin(x) * Pow.of(IntegerNumber.two, -x)).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        (Fn.cos(x) * Pow.of(FractionNumber.half, x)).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(IntegerNumber.zero);
+      check(
+        Piecewise([
+          (relation: Relational.greaterEqual(x, x), expr: IntegerNumber.of(5)),
+        ], otherwise: IntegerNumber.zero).limit('x', Constant.infinity),
+      ).equals(IntegerNumber.of(5));
+      check(
+        Piecewise([
+          (relation: Relational.greaterThan(x, x), expr: IntegerNumber.of(5)),
+        ], otherwise: IntegerNumber.of(9)).limit('x', Constant.infinity),
+      ).equals(IntegerNumber.of(9));
     });
   });
 }

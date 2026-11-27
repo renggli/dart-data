@@ -6,14 +6,14 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 1.1 Eager Evaluation Model
 
-- **Reasoning**: The legacy architecture relied on more than 45 lazy view classes (e.g. `BinaryOperationMatrix`, `MatrixMatrixMultiplicationMatrix`, `TransposedMatrix`). While lazy views theoretically deferred evaluation, in practice they produced severe anti-patterns:
-  - Deeply nested polymorphic call trees that destroyed CPU cache locality and defeated VM inline caching.
-  - Silent repeated recomputations whenever elements were accessed multiple times.
+- **Reasoning**: Deferred or lazy wrapper graphs (e.g. expression-template views for binary operations, matrix products, and transpositions) create anti-patterns in numeric kernels:
+  - Deeply nested polymorphic call trees that destroy CPU cache locality and defeat VM inline caching.
+  - Silent repeated recomputations whenever elements are accessed multiple times.
   - Hidden memory retention chains preventing garbage collection of intermediate buffers.
 - **Implementation & Constraints**:
   - All arithmetic operators (`+`, `-`, `*`, `/`, `matmul`) across `Tensor`, `Matrix`, and `Vector` are strictly eager.
   - When an arithmetic operation is invoked, computation executes immediately into a pre-allocated target buffer or a newly allocated contiguous buffer.
-  - Structural view operations (`transpose`, `reshape`, `getRange`, `flip`) remain zero-copy by manipulating `Layout` strides and offsets, but they never wrap computation logic.
+  - Structural view operations (`transpose`, `reshape`, `getRange`, `flip`) remain zero-copy by manipulating `Layout` strides and offsets, without wrapping deferred computation logic.
 
 ### 1.2 Memory Buffer Architecture & Aliasing Safety
 
@@ -54,7 +54,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - Fast contiguous element access: inlined indexers bypass generic checks and bounds-checking cascades.
     - Implement inlined arithmetic operators (`+`, `-`, `*`, `/`, `-()`, `scale`) that bypass generic field abstraction and execute contiguous vector loops directly on `Float64List` buffers.
     - On `Float64Matrix`: matrix multiplication (`*`) routes directly to native BLAS `dgemm` when operands are contiguous, while vector multiplication (`apply`) routes directly to BLAS `dgemv`.
-    - On `Float64Vector`: algebraic inner product (`dot`) routes directly to BLAS `ddot`, and Euclidean norm (`norm([pNorm = 2])`) routes directly to BLAS `dnrm2` when $p = 2$.
+    - On `Float64Vector`: algebraic inner product (`dot`) routes directly to BLAS `ddot`, and Euclidean norm (`norm([pNorm = 2])`) routes directly to BLAS `dnrm2` when `p = 2`.
     - Seamless subtyping: `Float64Tensor implements Tensor<double>`, `Float64Matrix implements Matrix<double>`, and `Float64Vector implements Vector<double>`, enabling them to pass transparently into any existing API accepting generic floating-point containers.
 
 ---
@@ -115,7 +115,7 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Deep learning, graphics, and multivariate Kalman filters require batched matrix multiplication over arbitrary leading batch axes: `(..., M, K) x (..., K, N) -> (..., M, N)`.
 - **Implementation & Constraints**:
-  - `matmul` (`lib/src/tensor/operations/matmul.dart`) validates that inner dimensions match ($K$).
+  - `matmul` (`lib/src/tensor/operations/matmul.dart`) validates that inner dimensions match (`K`).
   - Evaluates outer batch iterations over Cartesian product of leading batch dimensions, executing 2D slice multiplications across contiguous sub-matrices.
 
 ### 2.6 Generalized Tensor Contraction & Einstein Summation (`tensordot`, `einsum`)
@@ -149,7 +149,7 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 3.2 The `LinearOperator<T>` Contract
 
-- **Reasoning**: Iterative solvers (Conjugate Gradient, GMRES) only require matrix-vector products ($y = A x$ and $y = A^T x$), not direct entry access.
+- **Reasoning**: Iterative solvers (Conjugate Gradient, GMRES) only require matrix-vector products (`y = A x` and `y = Aᵀ x`), not direct entry access.
 - **Implementation & Constraints**:
   - Defined in `lib/src/linear/operator.dart`:
 
@@ -169,7 +169,7 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 3.3 Canonical Sparse Storage Formats
 
-- **Reasoning**: Large-scale scientific and graph problems contain $>99\%$ zero entries. Dense storage wastes memory and induces $\mathcal{O}(N^2)$ operation costs.
+- **Reasoning**: Large-scale scientific and graph problems contain `>99%` zero entries. Dense storage wastes memory and induces `O(N²)` operation costs.
 - **Implementation & Constraints**:
   - **Compressed Sparse Row (`CsrMatrix`)**:
     - Stores non-zero elements in `values`, corresponding column indices in `colIndices`, and row start pointers in `rowPointers` of size `M + 1`.
@@ -182,11 +182,11 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 3.4 Tridiagonal & Matrix-Free Iterative Solvers
 
-- **Reasoning**: Solving $A x = b$ for large sparse or structured banded systems ($N > 100,000$) via dense LU factorization is computationally impossible ($\mathcal{O}(N^3)$ time, $\mathcal{O}(N^2)$ space).
+- **Reasoning**: Solving `A x = b` for large sparse or structured banded systems (`N > 100,000`) via dense LU factorization is computationally infeasible (`O(N³)` time, `O(N²)` space).
 - **Implementation & Constraints**:
-  - `solveTridiagonal`: Solves tridiagonal systems $A x = d$ in $\mathcal{O}(N)$ time and $\mathcal{O}(1)$ auxiliary space beyond a single modified superdiagonal array using the Thomas algorithm. Contains contiguous buffer fast paths and handles singular zero-pivot validation.
+  - `solveTridiagonal`: Solves tridiagonal systems `A x = d` in `O(N)` time and `O(1)` auxiliary space beyond a single modified superdiagonal array using the Thomas algorithm. Contains contiguous buffer fast paths and handles singular zero-pivot validation.
   - `conjugateGradient`: Solves symmetric positive-definite systems using Krylov subspace projection with convergence tolerance and maximum iteration limits.
-  - `gmres`: Generalized Minimal Residual method with restart parameter $m$ (GMRES(m)) and Arnoldi modified Gram-Schmidt orthogonalization for general non-symmetric square systems.
+  - `gmres`: Generalized Minimal Residual method with restart parameter `m` (`GMRES(m)`) and Arnoldi modified Gram-Schmidt orthogonalization for general non-symmetric square systems.
   - Iterative solvers consume any `LinearOperator<T>`, executing without forming or modifying matrix entries.
 
 ### 3.5 Dense Matrix Decompositions (Modular Decomposition Extensions)
@@ -342,22 +342,22 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 5.3 Unified BLAS Subsystem (`lib/src/acceleration/blas/`)
 
-- **Reasoning**: Unifies vector-vector, matrix-vector, and matrix-matrix routines under a single, coherent `Blas` interface, replacing fragmented level-specific classes.
+- **Reasoning**: Unifies vector-vector, matrix-vector, and matrix-matrix routines under a single, coherent `Blas` interface, replacing fragmented level-specific wrappers.
 - **Routines**:
-  - Level 1: `ddot`, `sdot` (dot products), `dnrm2`, `snrm2` (Euclidean norms via `ScaledNormAccumulator`), `daxpy`, `saxpy` ($y \leftarrow \alpha x + y$), `dscal`, `sscal` (vector scaling).
+  - Level 1: `ddot`, `sdot` (dot products), `dnrm2`, `snrm2` (Euclidean norms via `ScaledNormAccumulator`), `daxpy`, `saxpy` (`y <- α * x + y`), `dscal`, `sscal` (vector scaling).
   - Level 2: `dgemv`, `sgemv` (matrix-vector multiplication), `dsyr2`, `ssyr2` (symmetric rank-2 update with automatic upper/lower triangle mirroring), `dtrmv`, `strmv` (in-place triangular matrix-vector multiplication), `dtrsv`, `strsv` (in-place triangular linear solves).
-  - Level 3: `dgemm`, `sgemm` (general matrix multiplication), `dsyrk`, `ssyrk` (symmetric rank-$k$ update with automatic upper/lower triangle mirroring), `dsymm`, `ssymm` (symmetric matrix multiplication), `dtrmm`, `strmm` (in-place triangular matrix multiplication), `dtrsm`, `strsm` (in-place triangular matrix solves).
-- **Pure Dart Fallback (`BlasDart`)**: Provides high-efficiency pure Dart implementations with cache-blocked tiled GEMM ($32 \times 32$ block tiles fitting within L1 data caches) and $4\times$ loop unrolling across all four transposition combinations (`cblasNoTrans`, `cblasTrans`, `cblasConjTrans`) and accumulation scalings ($\alpha$, $\beta$), zero-allocation dependency-ordered in-place triangular multiplies (`dtrmv`, `strmv`, `dtrmm`, `strmm`) and solves (`dtrsv`, `strsv`, `dtrsm`, `strsm`), and triangle-strict symmetric indexing in `dsymm`/`ssymm`.
+  - Level 3: `dgemm`, `sgemm` (general matrix multiplication), `dsyrk`, `ssyrk` (symmetric rank-`k` update with automatic upper/lower triangle mirroring), `dsymm`, `ssymm` (symmetric matrix multiplication), `dtrmm`, `strmm` (in-place triangular matrix multiplication), `dtrsm`, `strsm` (in-place triangular matrix solves).
+- **Pure Dart Fallback (`BlasDart`)**: Provides high-efficiency pure Dart implementations with cache-blocked tiled GEMM (`32 x 32` block tiles fitting within L1 data caches) and `4x` loop unrolling across all four transposition combinations (`cblasNoTrans`, `cblasTrans`, `cblasConjTrans`) and accumulation scalings (`α`, `β`), zero-allocation dependency-ordered in-place triangular multiplies (`dtrmv`, `strmv`, `dtrmm`, `strmm`) and solves (`dtrsv`, `strsv`, `dtrsm`, `strsm`), and triangle-strict symmetric indexing in `dsymm`/`ssymm`.
 
 ### 5.4 LAPACK Solvers & Factorizations (`lib/src/acceleration/lapack/`)
 
 - **Reasoning**: Production scientific systems rely on LAPACK for numerically stable factorizations and solves.
 - **Routines**:
-  - `dgesv`: General linear system solver $A X = B$ with partial pivoting. Multi-RHS matrices ($N \times \text{nrhs}$) and strided RHS matrices transparently gather to column-major layout for Fortran LAPACK routines (`dgesv_`) or compacted LAPACKE buffers and scatter back to row-major format, with a zero-copy fast path for contiguous single RHS ($nrhs = 1, ldb = 1$).
+  - `dgesv`: General linear system solver `A * X = B` with partial pivoting. Multi-RHS matrices (`N x nrhs`) and strided RHS matrices transparently gather to column-major layout for Fortran LAPACK routines (`dgesv_`) or compacted LAPACKE buffers and scatter back to row-major format, with a zero-copy fast path for contiguous single RHS (`nrhs = 1, ldb = 1`).
   - `dpotrf`: Cholesky factorization of symmetric positive-definite matrices, reading only the referenced triangle and validating finiteness before overwriting.
-  - `dgels`: Linear least-squares solver $\min \|A X - B\|_2$ via QR (overdetermined) and LQ (underdetermined) factorizations using scale-invariant relative rank tolerances (`10 * max(m, n) * eps * maxDiag`).
-  - `dsyev`, `ssyev`: Real symmetric eigenvalue solvers computing eigenvalues in ascending order and optional orthonormal eigenvectors (`jobz: 'V'` or `'N'`). Pure Dart fallbacks equilibrate by $\max|A|$ to prevent overflow/underflow, skip eigenvector updates when `jobz == 'N'`, and read only the referenced `uplo` triangle (matching Fortran paths).
-  - `dgesvd`: Singular Value Decomposition $A = U \Sigma V^T$ without mutating input `A`, using Golub-Reinsch bidiagonalization equilibrated by $\max|A|$ with `ScaledNormAccumulator` column/row norms in pure Dart and native LAPACKE/Fortran bindings when available.
+  - `dgels`: Linear least-squares solver `min ||A * X - B||_2` via QR (overdetermined) and LQ (underdetermined) factorizations using scale-invariant relative rank tolerances (`10 * max(m, n) * eps * maxDiag`).
+  - `dsyev`, `ssyev`: Real symmetric eigenvalue solvers computing eigenvalues in ascending order and optional orthonormal eigenvectors (`jobz: 'V'` or `'N'`). Pure Dart fallbacks equilibrate by `max |A|` to prevent overflow/underflow, skip eigenvector updates when `jobz == 'N'`, and read only the referenced `uplo` triangle (matching Fortran paths).
+  - `dgesvd`: Singular Value Decomposition `A = U * Σ * Vᵀ` without mutating input `A`, using Golub-Reinsch bidiagonalization equilibrated by `max |A|` with `ScaledNormAccumulator` column/row norms in pure Dart and native LAPACKE/Fortran bindings when available.
 
 ### 5.5 Fast Fourier Transform Subsystem (`lib/src/acceleration/fft/`)
 
@@ -365,7 +365,7 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - `Float64ComplexList`: Dedicated interleaved complex typed data list implementing `TypedDataList<Complex>` backed by a single contiguous interleaved `Float64List data` storage array `[re0, im0, re1, im1, ...]`.
   - In-Place Execution: `Fft.fft` and `Fft.fft2` operate directly in-place on `Float64ComplexList` buffers without copying or intermediate allocations, accepting a boolean `inverse` flag (no redundant wrapper functions like `ifft`/`ifft2`).
-  - Cross-Platform Native Acceleration (`FftNative`): Binds directly to Apple Accelerate's interleaved double-precision DFT routines (`vDSP_DFT_Interleaved_CreateSetupD`, `vDSP_DFT_Interleaved_ExecuteD`) for supported sizes $f \cdot 2^p$ ($f \in \{1, 3, 5, 15\}$) plus four-step power-of-2 fallback on macOS/iOS, and directly to FFTW3 (`fftw_plan_dft_1d`, `fftw_plan_dft_2d`, `fftw_execute_dft`) for arbitrary 1D/2D sizes on Linux, Android, and Windows, delegating unsupported lengths to Bluestein's algorithm (`FftDart.bluestein`) and separable row/column passes (`FftDart.fft2Separable`).
+  - Cross-Platform Native Acceleration (`FftNative`): Binds directly to Apple Accelerate's interleaved double-precision DFT routines (`vDSP_DFT_Interleaved_CreateSetupD`, `vDSP_DFT_Interleaved_ExecuteD`) for supported sizes `f * 2^p` (`f ∈ {1, 3, 5, 15}`) plus four-step power-of-2 fallback on macOS/iOS, and directly to FFTW3 (`fftw_plan_dft_1d`, `fftw_plan_dft_2d`, `fftw_execute_dft`) for arbitrary 1D/2D sizes on Linux, Android, and Windows, delegating unsupported lengths to Bluestein's algorithm (`FftDart.bluestein`) and separable row/column passes (`FftDart.fft2Separable`).
   - Pure Dart Fallback (`FftDart`): Cooley-Tukey decimation-in-time radix-2 in-place 1D and separable 2D Fourier transforms using precomputed exact trigonometric twiddle tables without phase drift, Bluestein's chirp-Z algorithm for arbitrary sizes, and 32/64-bit safe `nextPowerOf2`.
 
 ### 5.6 Vectorized Functions & Signal Processing (`lib/src/acceleration/vforce/`)
@@ -396,12 +396,12 @@ This document describes the achieved architecture across all subsystems of `pack
   - `minimize`: Unified entry point for univariate and multivariate optimization selecting algorithms via `OptimizationMethod` and returning an `OptimizationResult` (with value equality and `hashCode`):
     - `OptimizationMethod.brent`: Univariate golden-section search combined with parabolic interpolation, achieving superlinear convergence without derivative requirements.
     - `OptimizationMethod.nelderMead`: Multivariate derivative-free simplex method, resilient to non-smooth or noisy objective functions.
-    - `OptimizationMethod.bfgs`: Quasi-Newton Broyden-Fletcher-Goldfarb-Shanno method utilizing numerical gradients and Armijo line search with $\mathcal{O}(N^2)$ rank-2 updates to maintain a positive-definite Hessian approximation.
-    - `OptimizationMethod.lbfgs`: Limited-memory BFGS storing a rolling history of $m$ displacement vectors, enabling multivariate optimization over thousands of parameters with $\mathcal{O}(m N)$ memory.
-  - Constrained optimization handling box bounds (`BoxBound`), general inequality constraints ($g_i(x) \le 0$), and equality constraints ($h_j(x) = 0$):
-    - Box bounds $[l_i, u_i]$ utilize coordinate-wise smooth sigmoid variable transformations ($x_i = l_i + \frac{u_i - l_i}{1 + e^{-y_i}}$) with chain-rule gradient scaling ($\nabla_y F = \nabla_x L_A \odot \Phi'(y)$), strictly preventing out-of-bounds evaluations and domain violations.
-    - General inequality and equality constraints are resolved via the Powell-Hestenes-Rockafellar Augmented Lagrangian Method (ALM) with adaptive penalty parameter scaling ($\mu$) and multiplier updates ($\lambda_j \leftarrow \max(0, \lambda_j + \mu g_j(x))$, $\nu_k \leftarrow \nu_k + \mu h_k(x)$).
-    - Accepts objective closures `double Function(Vector<double>)` and constraint functions `List<double Function(Vector<double>)>` (which may be compiled from symbolic expressions via `expr.toVectorFunction()`), supporting both equality ($h(x) = 0$) and inequality ($g(x) \le 0$) constraints with automatic Lagrange multiplier updates.
+    - `OptimizationMethod.bfgs`: Quasi-Newton Broyden-Fletcher-Goldfarb-Shanno method utilizing numerical gradients and Armijo line search with `O(N²)` rank-2 updates to maintain a positive-definite Hessian approximation.
+    - `OptimizationMethod.lbfgs`: Limited-memory BFGS storing a rolling history of `m` displacement vectors, enabling multivariate optimization over thousands of parameters with `O(m N)` memory.
+  - Constrained optimization handling box bounds (`BoxBound`), general inequality constraints (`g_i(x) <= 0`), and equality constraints (`h_j(x) = 0`):
+    - Box bounds `[l_i, u_i]` utilize coordinate-wise smooth sigmoid variable transformations (`x_i = l_i + (u_i - l_i) / (1 + e^(-y_i))`) with chain-rule gradient scaling (`∇_y F = ∇_x L_A ⊙ Φ'(y)`), strictly preventing out-of-bounds evaluations and domain violations.
+    - General inequality and equality constraints are resolved via the Powell-Hestenes-Rockafellar Augmented Lagrangian Method (ALM) with adaptive penalty parameter scaling (`μ`) and multiplier updates (`λ_j <- max(0, λ_j + μ g_j(x))`, `ν_k <- ν_k + μ h_k(x)`).
+    - Accepts objective closures `double Function(Vector<double>)` and constraint functions `List<double Function(Vector<double>)>` (which may be compiled from symbolic expressions via `expr.toVectorFunction()`), supporting both equality (`h(x) = 0`) and inequality (`g(x) <= 0`) constraints with automatic Lagrange multiplier updates.
 
 ### 6.2 Adaptive & Stiff Ordinary Differential Equation (ODE) Solvers
 
@@ -409,25 +409,25 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - `solveOde`: Unified ODE solver interface selecting methods via `OdeMethod`:
     - `OdeMethod.rk4`: Classical 4th order Runge-Kutta solver with fixed step size.
-    - `OdeMethod.dormandPrince45`: Dormand-Prince 5(4) embedded adaptive Runge-Kutta solver. Computes 4th and 5th order step estimates with First-Same-As-Last (FSAL) efficiency, dynamically adjusting step size $h$ to maintain local truncation error within user tolerances (`atol`, `rtol`).
+    - `OdeMethod.dormandPrince45`: Dormand-Prince 5(4) embedded adaptive Runge-Kutta solver. Computes 4th and 5th order step estimates with First-Same-As-Last (FSAL) efficiency, dynamically adjusting step size `h` to maintain local truncation error within user tolerances (`atol`, `rtol`).
     - `OdeMethod.bdf2`: Two-step Backward Differentiation Formula implicit solver for stiff systems using Newton-Raphson iterations and finite-difference Jacobian estimation.
-  - Supports dense continuous evaluation over optional `tEval` coordinate grids via $C^1$-continuous cubic Hermite interpolation.
+  - Supports dense continuous evaluation over optional `tEval` coordinate grids via `C¹`-continuous cubic Hermite interpolation.
 
 ### 6.3 Numerical Calculus
 
 - **Reasoning**: Many optimization, physics, and sensitivity problems require derivatives of black-box functions.
 - **Implementation & Constraints**:
   - `derivative`: Univariate differentiation supporting central and high-order finite-difference stencils (orders 1–6, up to 8 points) with adaptive step size selection.
-  - `gradient`: Computes $\nabla f(x) \in \mathbb{R}^N$ for scalar multivariate functions via central differences.
-  - `jacobian`: Computes $J \in \mathbb{R}^{M \times N}$ for vector-valued multivariate functions $F: \mathbb{R}^N \to \mathbb{R}^{M}$.
-  - `hessian`: Computes symmetric second-order partial derivative matrix $H \in \mathbb{R}^{N \times N}$.
+  - `gradient`: Computes `∇f(x) ∈ ℝⁿ` for scalar multivariate functions via central differences.
+  - `jacobian`: Computes `J ∈ ℝ^(M × N)` for vector-valued multivariate functions `F: ℝⁿ -> ℝᵐ`.
+  - `hessian`: Computes symmetric second-order partial derivative matrix `H ∈ ℝ^(N × N)`.
 
 ### 6.4 Fast Fourier Transform Suite & Signal Processing
 
 - **Reasoning**: Spectral analysis and signal filtering require fast Fourier transformations and convolutions that efficiently scale to arbitrary signal sizes.
 - **Implementation & Constraints**:
   - Operations in `lib/src/numeric/fft.dart`:
-    - `fft`: 1D complex-to-complex in-place transform on `List<Complex> buffer` with optional `inverse: true`. Leverages radix-2 Cooley-Tukey for power-of-2 lengths and Bluestein's Chirp-Z transform algorithm for arbitrary non-power-of-2 lengths in $\mathcal{O}(N \log N)$ time.
+    - `fft`: 1D complex-to-complex in-place transform on `List<Complex> buffer` with optional `inverse: true`. Leverages radix-2 Cooley-Tukey for power-of-2 lengths and Bluestein's Chirp-Z transform algorithm for arbitrary non-power-of-2 lengths in `O(N log N)` time.
     - `fft2`: 2D transforms executing row-column separable passes over 2D complex matrices with optional `inverse: true`.
     - `convolve`: 1D discrete signal convolution supporting `ConvolutionMode.full`, `ConvolutionMode.same`, and `ConvolutionMode.valid`.
     - `correlate`: 1D discrete cross-correlation supporting `ConvolutionMode.valid` (default), `ConvolutionMode.full`, and `ConvolutionMode.same`.
@@ -436,14 +436,14 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Continuous estimation from discrete empirical samples.
 - **Implementation & Constraints**:
-  - `CubicSpline`: $C^2$ continuous cubic spline interpolation supporting natural ($S''(x) = 0$) and clamped ($S'(x) = f'$) boundary conditions, with first (`derivative`) and second (`secondDerivative`) evaluation. Formulates spline second derivatives as a tridiagonal linear system solved in $\mathcal{O}(N)$ time via `solveTridiagonal`.
+  - `CubicSpline`: `C²` continuous cubic spline interpolation supporting natural (`S''(x) = 0`) and clamped (`S'(x) = f'`) boundary conditions, with first (`derivative`) and second (`secondDerivative`) evaluation. Formulates spline second derivatives as a tridiagonal linear system solved in `O(N)` time via `solveTridiagonal`.
   - `PchipInterpolation`: Piecewise Cubic Hermite Interpolating Polynomial preserving monotonicity and preventing overshoot between data points, with exact piecewise first derivative evaluation (`derivative`).
   - `BilinearInterpolation`: 2D rectilinear grid interpolation using four-point convex weighting with partial gradient evaluation.
-  - `BicubicInterpolation`: 2D surface interpolation over a rectilinear grid with $C^1$ continuity using 16-coefficient bicubic patches ($A = M F M^T$) with partial derivatives and continuous gradient extraction.
+  - `BicubicInterpolation`: 2D surface interpolation over a rectilinear grid with `C¹` continuity using 16-coefficient bicubic patches (`A = M F Mᵀ`) with partial derivatives and continuous gradient extraction.
   - `leastSquares`: General linear regression using LAPACK `dgels` for full-rank systems and SVD fallback for rank-deficient systems.
   - `polynomialRegression`: Vandermonde polynomial fitting using QR decomposition with optional Tikhonov / Ridge L2 regularization (`lambda`) suppressing high-frequency Runge oscillations and conditioning rank-deficient systems.
   - `linearRegression` and `multipleLinearRegression`: Standard univariate and multivariate ordinary least-squares regression.
-  - `curveFit` and `fitNonlinear`: Damped Gauss-Newton / Levenberg-Marquardt nonlinear least-squares curve fitting with optional parameter box bounds (`lowerBounds`, `upperBounds`), returning `CurveFitResult` (from `curveFit`) with parameter estimates, parameter covariance matrix ($(J^T J)^{-1} \cdot \text{RSE}^2$), and standard errors.
+  - `curveFit` and `fitNonlinear`: Damped Gauss-Newton / Levenberg-Marquardt nonlinear least-squares curve fitting with optional parameter box bounds (`lowerBounds`, `upperBounds`), returning `CurveFitResult` (from `curveFit`) with parameter estimates, parameter covariance matrix (`(Jᵀ J)⁻¹ · RSE²`), and standard errors.
 
 ### 6.6 Precision in Numerical Solvers
 
@@ -468,9 +468,9 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - Measures of location and dispersion: `mean`, `geometricMean`, `harmonicMean`, `quantile`, `quantiles`, `median`, `iqr`, `medianAbsoluteDeviation`, scale-normalized sample `skewness`, and excess `kurtosis`.
   - Weighted statistics: `weightedMean`, `weightedVariance` (supporting observation weights and Bessel reliability weight correction with max-weight normalization), and `weightedStandardDeviation`.
-  - Moving window aggregations: Simple moving average (`movingAverage`) over rolling windows in $\mathcal{O}(N)$ amortized time with periodic/spike-triggered exact refresh to prevent drift and `NaN` poisoning, and exponential moving average (`exponentialMovingAverage`) with smoothing parameter $\alpha \in (0, 1]$.
-  - Association matrices: `covarianceMatrix`, `correlationMatrix` (`pearsonCorrelationMatrix`, `spearmanCorrelationMatrix`, and `kendallCorrelationMatrix` / `kendallCorrelation` $\tau_b$ in $\mathcal{O}(n \log n)$).
-  - Principal Component Analysis (`pca`): Computes SVD directly on centered/standardized matrices for small-to-medium sample sizes ($n \le 512$) and symmetric covariance eigendecomposition for tall matrices, enforcing deterministic component sign orientation and returning `PcaResult` with `singularValues`, `explainedVariance`, `explainedVarianceRatio`, and `cumulativeExplainedVarianceRatio`.
+  - Moving window aggregations: Simple moving average (`movingAverage`) over rolling windows in `O(N)` amortized time with periodic/spike-triggered exact refresh to prevent drift and `NaN` poisoning, and exponential moving average (`exponentialMovingAverage`) with smoothing parameter `α ∈ (0, 1]`.
+  - Association matrices: `covarianceMatrix`, `correlationMatrix` (`pearsonCorrelationMatrix`, `spearmanCorrelationMatrix`, and `kendallCorrelationMatrix` / `kendallCorrelation` `τ_b` in `O(n log n)`).
+  - Principal Component Analysis (`pca`): Computes SVD directly on centered/standardized matrices for small-to-medium sample sizes (`n <= 512`) and symmetric covariance eigendecomposition for tall matrices, enforcing deterministic component sign orientation and returning `PcaResult` with `singularValues`, `explainedVariance`, `explainedVarianceRatio`, and `cumulativeExplainedVarianceRatio`.
 
 ### 7.2 Parametric Distributions & Maximum Likelihood Estimation (MLE)
 
@@ -480,9 +480,9 @@ This document describes the achieved architecture across all subsystems of `pack
     - Continuous: `NormalDistribution`, `StudentDistribution`, `FDistribution`, `BetaDistribution`, `GammaDistribution`, `InverseGammaDistribution`, `ExponentialDistribution`, `ChiSquaredDistribution`, `UniformDistribution`, `CauchyDistribution`, `LaplaceDistribution`, `LogisticDistribution`, `LogNormalDistribution`, `ParetoDistribution`, `WeibullDistribution`, `DegenerateDistribution`.
     - Discrete: `BernoulliDistribution`, `BinomialDistribution` (exact Bernoulli, geometric gap, and Hörmann BTRS sampling), `GeometricDistribution`, `HypergeometricDistribution`, `NegativeBinomialDistribution`, `PoissonDistribution` (exact Knuth and Hörmann PTRD sampling), `RademacherDistribution`, `UniformDiscreteDistribution`.
   - Multivariate distributions (`MultivariateDistribution<T extends num>`):
-    - `MultivariateNormalDistribution`: Correlated Gaussian density over $\mathbb{R}^k$ parameterized by mean $\mu \in \mathbb{R}^k$ and covariance matrix $\Sigma \in \mathbb{R}^{k \times k}$. Defensively copies parameter containers for strict immutability, computes Cholesky factor $\Sigma = L L^T$, evaluates $\ln \text{PDF}$ via forward triangular solve ($L y = x - \mu \implies (x-\mu)^T \Sigma^{-1} (x-\mu) = \|y\|_2^2$), and generates correlated random samples $x = \mu + L z$ with paired standard normal draws.
-    - `DirichletDistribution`: Continuous probability distribution over the open $(k-1)$-simplex parameterized by defensively copied concentration vector $\alpha \in \mathbb{R}^k$ ($\alpha_i > 0$). Evaluates log multivariate beta function via `gammaLn`, provides exact covariance matrix, and generates samples via normalized Gamma draws (with log-space fallback for small $\alpha$).
-    - `MultinomialDistribution`: Discrete distribution over $k$ categories across $n$ trials parameterized by defensively copied probability vector $p \in [0, 1]^k$ ($\sum p_i = 1$). Evaluates log PMF via `factorialLn`, provides exact covariance matrix, and draws samples in $\mathcal{O}(k)$ via sequential conditional `BinomialDistribution` sampling.
+    - `MultivariateNormalDistribution`: Correlated Gaussian density over `ℝ^k` parameterized by mean `μ ∈ ℝ^k` and covariance matrix `Σ ∈ ℝ^(k × k)`. Defensively copies parameter containers for strict immutability, computes Cholesky factor `Σ = L Lᵀ`, evaluates `ln PDF` via forward triangular solve (`L y = x - μ => (x - μ)ᵀ Σ⁻¹ (x - μ) = ||y||_2²`), and generates correlated random samples `x = μ + L z` with paired standard normal draws.
+    - `DirichletDistribution`: Continuous probability distribution over the open `(k - 1)`-simplex parameterized by defensively copied concentration vector `α ∈ ℝ^k` (`α_i > 0`). Evaluates log multivariate beta function via `gammaLn`, provides exact covariance matrix, and generates samples via normalized Gamma draws (with log-space fallback for small `α`).
+    - `MultinomialDistribution`: Discrete distribution over `k` categories across `n` trials parameterized by defensively copied probability vector `p ∈ [0, 1]^k` (`∑ p_i = 1`). Evaluates log PMF via `factorialLn`, provides exact covariance matrix, and draws samples in `O(k)` via sequential conditional `BinomialDistribution` sampling.
   - All 24 univariate distributions support analytical or numerical fitting via single-pass `factory .fit(data)` constructors (`BernoulliDistribution`, `BetaDistribution`, `BinomialDistribution`, `CauchyDistribution`, `ChiSquaredDistribution`, `DegenerateDistribution`, `ExponentialDistribution`, `FDistribution`, `GammaDistribution`, `GeometricDistribution`, `HypergeometricDistribution`, `InverseGammaDistribution`, `LaplaceDistribution`, `LogisticDistribution`, `LogNormalDistribution`, `NegativeBinomialDistribution`, `NormalDistribution`, `ParetoDistribution`, `PoissonDistribution`, `RademacherDistribution`, `StudentDistribution`, `UniformDistribution`, `UniformDiscreteDistribution`, `WeibullDistribution`).
 
 ### 7.3 Hypothesis Testing Suite
@@ -493,21 +493,21 @@ This document describes the achieved architecture across all subsystems of `pack
   - `tTestTwoSample`: Two-sample t-test supporting Student's pooled variance and Welch's t-test for unequal variances with overflow-safe Satterthwaite degrees of freedom.
   - `tTestPaired`: Paired-difference t-test supporting hypothesized difference `mu0`.
   - `oneWayAnova`: One-way Analysis of Variance testing equality of two or more group means, reporting both numerator and denominator degrees of freedom.
-  - `kruskalWallisTest`: Non-parametric k-sample rank test with tie correction against $\chi^2(k - 1)$.
-  - `chiSquaredTest` and `chiSquaredContingency`: Goodness-of-fit and contingency table test of independence with optional Yates' continuity correction for $2 \times 2$ tables.
-  - `fisherExactTest`: Exact test for independence in $2 \times 2$ `Matrix<int>` contingency tables based on `HypergeometricDistribution` without large-sample approximations.
+  - `kruskalWallisTest`: Non-parametric k-sample rank test with tie correction against `χ²(k - 1)`.
+  - `chiSquaredTest` and `chiSquaredContingency`: Goodness-of-fit and contingency table test of independence with optional Yates' continuity correction for `2 x 2` tables.
+  - `fisherExactTest`: Exact test for independence in `2 x 2` `Matrix<int>` contingency tables based on `HypergeometricDistribution` without large-sample approximations.
   - `shapiroWilkTest`: Normality test based on Royston's AS R94 with translation-invariant symmetric pairing.
   - `mannWhitneyUTest`: Non-parametric test for equality of two independent continuous distributions with exact small-sample permutation DP and tie-corrected normal approximation.
-  - `kolmogorovSmirnovTest`: One-sample Kolmogorov-Smirnov test for `ContinuousDistribution` supporting `twoSided`, `greater`, and `less` alternatives with exact small-sample ($n \le 100$) Smirnov / Marsaglia-Tsang-Wang probabilities and asymptotics.
-  - `kolmogorovSmirnovTwoSample`: Two-sample Kolmogorov-Smirnov test supporting `twoSided`, `greater`, and `less` alternatives with exact untied lattice-path DP ($n_1 n_2 \le 10000$) and asymptotic probabilities.
-  - `jarqueBeraTest`: Normality test matching scaled central-moment skewness $S$ and excess kurtosis $K - 3$, testing $JB = \frac{n}{6}(S^2 + \frac{(K-3)^2}{4}) \sim \chi^2(2)$.
-  - `wilcoxonSignedRankTest`: Non-parametric paired signed-rank test (or one-sample median against 0) with exact subset-sum DP for small untied samples ($n \le 25$) and tie-corrected normal approximation.
+  - `kolmogorovSmirnovTest`: One-sample Kolmogorov-Smirnov test for `ContinuousDistribution` supporting `twoSided`, `greater`, and `less` alternatives with exact small-sample (`n <= 100`) Smirnov / Marsaglia-Tsang-Wang probabilities and asymptotics.
+  - `kolmogorovSmirnovTwoSample`: Two-sample Kolmogorov-Smirnov test supporting `twoSided`, `greater`, and `less` alternatives with exact untied lattice-path DP (`n_1 * n_2 <= 10000`) and asymptotic probabilities.
+  - `jarqueBeraTest`: Normality test matching scaled central-moment skewness `S` and excess kurtosis `K - 3`, testing `JB = (n / 6) * (S² + (K - 3)² / 4) ~ χ²(2)`.
+  - `wilcoxonSignedRankTest`: Non-parametric paired signed-rank test (or one-sample median against 0) with exact subset-sum DP for small untied samples (`n <= 25`) and tie-corrected normal approximation.
 
 ### 7.4 Non-Parametric & Parametric Bootstrap Resampling
 
 - **Reasoning**: Estimating standard errors and confidence intervals without distribution assumptions.
 - **Implementation & Constraints**:
-  - `@immutable` `Bootstrap`: Defensively copies input samples, generates $B$ non-parametric, custom-sampler (`Bootstrap.parametric`), or distribution-sampled (`Bootstrap.distribution<T>`) resamples.
+  - `@immutable` `Bootstrap`: Defensively copies input samples, generates `B` non-parametric, custom-sampler (`Bootstrap.parametric`), or distribution-sampled (`Bootstrap.distribution<T>`) resamples.
   - `@immutable` `Jackknife`: Leave-one-out resampling computing unmodifiable `resamples`, `resampleEstimates`, `pseudoValues`, `influenceValues`, bias, standard error, and scale-normalized BCa `acceleration`.
   - Confidence interval algorithms on `Bootstrap`: `normalInterval`, `basicInterval`, `percentileInterval`, and `bcaInterval` (reusing `Jackknife.acceleration` and `NormalDistribution.standard()`).
 
@@ -517,7 +517,7 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 8.1 Immutable Value-Backed Representation
 
-- **Reasoning**: The legacy polynomial implementation used mutable coefficient buffers and `copyInto` methods, leading to aliasing bugs and state pollution.
+- **Reasoning**: Mutable shared coefficient buffers invite aliasing bugs and unexpected state mutation across algebraic pipelines. Keeping polynomial storage strictly immutable guarantees referential transparency without defensive copies on every read.
 - **Implementation & Constraints**:
   - `Polynomial<T>` is strictly immutable, backed either by an unmodifiable contiguous dense list (`DensePolynomial<T>`, degree `0..N`) or sorted sparse `(exponent, coefficient)` arrays (`CompressedPolynomial<T>`).
   - All operations return newly allocated, canonicalized `Polynomial<T>` instances with trailing zero coefficients stripped and IEEE-754 negative zeros (`-0.0`) normalized.
@@ -561,9 +561,9 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ## 9. Symbolic Computation Engine (`package:data/symbolic.dart`)
 
-### 9.1 Unified Functional AST Hierarchy, Canonical Arithmetic & BigInt Number Tower
+### 9.1 Unified Functional AST Hierarchy, Canonical Arithmetic & Exact Number Tower
 
-- **Reasoning**: Mathematical expressions require a compact, uniform abstract syntax tree (AST) for analytical manipulation, canonical simplification, calculus transformations, and high-performance compilation. Consolidating functions behind `Call`/`FunctionSpec`/`FunctionId`, relations behind `Relational`, bound operators behind `BinderExpr`, and numbers on direct `BigInt` arithmetic eliminates combinatorial class explosion across algebra and calculus rules.
+- **Reasoning**: Mathematical expressions require a compact, uniform abstract syntax tree (AST) for analytical manipulation, canonical simplification, calculus transformations, and high-performance compilation. Consolidating functions behind `Call`/`FunctionSpec`/`FunctionId`, relations behind `Relational`, bound operators behind `BinderExpr`, and numbers on an exact unboxed safe-int / `BigInt` tower eliminates combinatorial class explosion across algebra and calculus rules.
 - **Implementation & Constraints**:
   - Base class `Expr` (`lib/src/symbolic/ast/expr.dart`) is an immutable `sealed class` defining foundational properties: `flags` bitmask (including structural subtree bits masked via `kStructuralFlagsMask` and `kFlagSimplified` for O(1) idempotent empty-assumption `.simplify()` short-circuiting), `nodeCount`, `structuralTag`, `isReal`, `dependsOn`, `freeVariables`, `substitute`, generic child traversal (`mapChildren`, `anyNode`), and operator overloads (`+`, `-`, `*`, `/`, `-()`, `pow`).
   - Cached Structural Hashing & Bitmask Flags: Composite AST nodes cache structural `hashCode` and precompute structural `flags` and `nodeCount` at construction time, enabling O(1) hash short-circuiting and zero-allocation structural pruning.
@@ -578,7 +578,7 @@ This document describes the achieved architecture across all subsystems of `pack
       - `Add`: Flat sum with canonical `Add.of`/`Add.binary` folding (flattening nested `Add`, merging zero/numeric identity terms). Subtraction `a - b` is `a + (-b)`.
       - `Mul`: Flat product with canonical `Mul.of`/`Mul.binary` folding (flattening nested `Mul`, absorbing zero, folding leading `Number` scalars). Unary negation `-x` is `-1 * x`, and division `a / b` is `Mul.binary(a, Pow.of(b, -1))` (or reduced `RationalNumber` when both operands are `RationalNumber`).
       - `Pow`: Exponentiation with canonical `Pow.of` folding (`x^0 -> 1`, `x^1 -> x`, `1^y -> 1`, exact numeric power evaluation). Square roots `sqrt(x)` are `Pow.of(x, FractionNumber.half)`, reciprocals `1 / x` are `Pow.of(x, IntegerNumber.negativeOne)`, and natural exponentials `exp(x)` are `Pow.of(Constant.e, x)`.
-    - `call.dart`, `function_spec.dart`, `lib/src/symbolic/functions/fn.dart`: Single unified `Call(FunctionSpec spec, List<Expr> args)` AST node replacing per-function subclasses. Built-in functions (`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `ln`, `abs`, `re`, `im`, `arg`, `conj`, `erf`, `erfc`, `erfi`, `fresnelS`, `fresnelC`, `ei`, `li`, `si`, `ci`, `shi`, `chi`, `gamma`, `upperGamma`, `lowerGamma`, `logGamma`, `zeta`, `digamma`, `polygamma`, `polylog`, `beta`, `besselJ`, `besselY`, `besselI`, `besselK`, `ellipticK`, `ellipticE`, `ellipticF`, `ellipticPi`, `factorial`, `binomial`, `floor`, `ceil`, `round`, `sign`, `mod`, `lambertW`, `tuple`) carry typed `FunctionId` semantics, arity, evaluation, direct unary chain-rule derivatives (`unaryDerivative`), and formatting on `FunctionSpec` descriptors and are constructed canonically via static factories on `Fn` (`Fn.sin(x)`, `Fn.lambertW(x)`, `Fn.tuple([...])`). Uninterpreted symbolic functions are constructed via `Call.symbolic(name, args)`.
+    - `call.dart`, `function_spec.dart`, `lib/src/symbolic/functions/fn.dart`: Unified `Call(FunctionSpec spec, List<Expr> args)` AST node parameterized by typed function descriptors rather than per-function subclasses. Built-in functions (`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `ln`, `abs`, `re`, `im`, `arg`, `conj`, `erf`, `erfc`, `erfi`, `fresnelS`, `fresnelC`, `ei`, `li`, `si`, `ci`, `shi`, `chi`, `gamma`, `upperGamma`, `lowerGamma`, `logGamma`, `zeta`, `digamma`, `polygamma`, `polylog`, `beta`, `besselJ`, `besselY`, `besselI`, `besselK`, `ellipticK`, `ellipticE`, `ellipticF`, `ellipticPi`, `factorial`, `binomial`, `floor`, `ceil`, `round`, `sign`, `mod`, `lambertW`, `tuple`) carry typed `FunctionId` semantics, arity, evaluation, direct unary chain-rule derivatives (`unaryDerivative`), and formatting on `FunctionSpec` descriptors and are constructed canonically via static factories on `Fn` (`Fn.sin(x)`, `Fn.lambertW(x)`, `Fn.tuple([...])`). Uninterpreted symbolic functions are constructed via `Call.symbolic(name, args)`.
     - `binder.dart`: Sealed `BinderExpr` hierarchy unifying `Integral(integrand, variable, {lower, upper})`, `Derivative(expr, variable, {order = 1})`, `Limit(expr, variable, point, {direction = LimitDirection.both})`, `Sum(expr, variable, lower, upper)`, `Product(expr, variable, lower, upper)`, and `RootSum(polynomial, variable, body)`. Definite `Integral` nodes evaluate numerically via 16-point Gauss-Legendre quadrature; `RootSum` evaluates complex/real sums over polynomial roots via `Polynomial.roots` (and Aberth-Ehrlich iteration) and supports implicit differentiation via `dt/dx = -(dP/dx)/(dP/dt)`. All binders exclude their bound variable from `freeVariables` and alpha-rename automatically during substitution to prevent variable capture.
     - `relational.dart`, `piecewise.dart`, and `order_term.dart`: Unified `Relational(RelationalOp op, Expr left, Expr right)` (`lt`, `le`, `gt`, `ge`, `eq`, `ne`), conditional `Piecewise(List<PiecewiseBranch> branches, {Expr? otherwise})` (`typedef PiecewiseBranch = ({Relational relation, Expr expr})`), and asymptotic `OrderTerm` (`O((x - a)^n)`).
 

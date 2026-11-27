@@ -387,6 +387,10 @@ void main() {
           .equals(IntegerNumber.zero);
       check(Relational.equal(two, two).simplify()).equals(IntegerNumber.one);
       check(Relational.notEqual(one, two).simplify()).equals(IntegerNumber.one);
+      check(Fn.sign(two).simplify()).equals(RealNumber.one);
+      check(Fn.sign(const RealNumber(-3.0)).simplify())
+          .equals(const RealNumber(-1.0));
+      check(Fn.sign(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
     });
   });
 }

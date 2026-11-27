@@ -72,5 +72,65 @@ void main() {
           );
       check(prod).equals(expected);
     });
+
+    test(
+      'evaluates constant, degenerate, negative, and upper-shifted products',
+      () {
+        check(
+          computeProduct(
+            IntegerNumber.one,
+            'k',
+            IntegerNumber.one,
+            IntegerNumber.of(5),
+            assumptions: Assumptions.none,
+          ),
+        ).equals(IntegerNumber.one);
+        check(
+          computeProduct(
+            k,
+            'k',
+            IntegerNumber.of(5),
+            IntegerNumber.one,
+            assumptions: Assumptions.none,
+          ),
+        ).equals(IntegerNumber.one);
+        check(
+          computeProduct(
+            IntegerNumber.two * k,
+            'k',
+            IntegerNumber.of(-2),
+            IntegerNumber.two,
+            assumptions: Assumptions.none,
+          ),
+        ).equals(IntegerNumber.zero);
+        check(
+          computeProduct(
+            IntegerNumber.two * k,
+            'k',
+            IntegerNumber.of(-4),
+            IntegerNumber.negativeOne,
+            assumptions: Assumptions.none,
+          ),
+        ).equals(IntegerNumber.of(384));
+        check(
+          computeProduct(
+            IntegerNumber.two * k,
+            'k',
+            IntegerNumber.of(3),
+            const Variable('n'),
+            assumptions: Assumptions.none,
+          ).substitute('n', IntegerNumber.of(5)).simplify(),
+        ).equals(IntegerNumber.of(480));
+        check(
+          computeProduct(
+            k + IntegerNumber.of(3),
+            'k',
+            IntegerNumber.zero,
+            const Variable('n'),
+            assumptions: Assumptions.none,
+          ).substitute('n', IntegerNumber.of(4)).simplify(),
+        ).equals(IntegerNumber.of(2520));
+      },
+    );
   });
 }

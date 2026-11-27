@@ -347,6 +347,15 @@ void main() {
         Expr.parse('x * (x - 1) * (x - 2) * (x + 3)')
             .solve('x', assumptions: boundedAssump),
       ).deepEquals([IntegerNumber.zero, IntegerNumber.one]);
+
+      // Transcendental verification on complex roots and unsolvable domains
+      check(Expr.parse('sqrt(x) + 1').solve('x', assumptions: Assumptions.real))
+          .isEmpty;
+      final expComplex = Expr.parse('exp(x) - (1 + i)').solve(
+        'x',
+        assumptions: const Assumptions(domains: {'x': VariableDomain.complex}),
+      );
+      check(expComplex.length).equals(1);
     });
   });
 }

@@ -246,6 +246,22 @@ void main() {
 
       final bailed = engine.solveBounded(a, b, maxCellNodes: 3);
       check(bailed).isNull;
+
+      check(
+        () => engine.solve<Matrix<Expr>>(
+          Matrix.identity(2, type: exprDataType),
+          Matrix.identity(3, type: exprDataType),
+        ),
+      ).throws<ArgumentError>();
+
+      final mPos = syntax.parseMatrix('[[-1, x], [x, x + 1]]');
+      final rPos = syntax.parseMatrix('[[1], [x]]');
+      final solPos = engine.solve<Matrix<Expr>>(
+        mPos,
+        rPos,
+        assumptions: Assumptions.positive,
+      );
+      check(solPos).isNotNull();
     });
   });
 }

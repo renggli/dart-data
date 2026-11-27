@@ -121,6 +121,15 @@ factorPolyZ(PolyZ poly) {
     }
   }
 
+  ({RationalNumber scalar, List<({PolyZ factor, int multiplicity})> factors})
+  buildResult() => (
+    scalar: scalar,
+    factors: [
+      for (final MapEntry(:key, :value) in factorCounts.entries)
+        (factor: key, multiplicity: value),
+    ],
+  );
+
   // 3. Quadratic resolution
   if (deg == 2) {
     final a = prim[2];
@@ -135,23 +144,11 @@ factorPolyZ(PolyZ poly) {
         final r2 = RationalNumber.of(-b - s, twoA);
         addFactor(PolyZ([-r1.numerator, r1.denominator]));
         addFactor(PolyZ([-r2.numerator, r2.denominator]));
-        return (
-          scalar: scalar,
-          factors: [
-            for (final MapEntry(:key, :value) in factorCounts.entries)
-              (factor: key, multiplicity: value),
-          ],
-        );
+        return buildResult();
       }
     }
     addFactor(PolyZ(prim));
-    return (
-      scalar: scalar,
-      factors: [
-        for (final MapEntry(:key, :value) in factorCounts.entries)
-          (factor: key, multiplicity: value),
-      ],
-    );
+    return buildResult();
   }
 
   // 4. Biquadratic and Sophie Germain factorization if degree == 4
@@ -172,13 +169,7 @@ factorPolyZ(PolyZ poly) {
             addFactor(qf);
           }
         }
-        return (
-          scalar: scalar,
-          factors: [
-            for (final MapEntry(:key, :value) in factorCounts.entries)
-              (factor: key, multiplicity: value),
-          ],
-        );
+        return buildResult();
       }
     }
 
@@ -192,13 +183,7 @@ factorPolyZ(PolyZ poly) {
           if (k != null) {
             addFactor(PolyZ([sC, -k, sA]));
             addFactor(PolyZ([sC, k, sA]));
-            return (
-              scalar: scalar,
-              factors: [
-                for (final MapEntry(:key, :value) in factorCounts.entries)
-                  (factor: key, multiplicity: value),
-              ],
-            );
+            return buildResult();
           }
         }
       }
@@ -221,24 +206,12 @@ factorPolyZ(PolyZ poly) {
           addFactor(sf, sm * multiplicity);
         }
       }
-      return (
-        scalar: scalar,
-        factors: [
-          for (final MapEntry(:key, :value) in factorCounts.entries)
-            (factor: key, multiplicity: value),
-        ],
-      );
+      return buildResult();
     }
   }
 
   addFactor(PolyZ(prim));
-  return (
-    scalar: scalar,
-    factors: [
-      for (final MapEntry(:key, :value) in factorCounts.entries)
-        (factor: key, multiplicity: value),
-    ],
-  );
+  return buildResult();
 }
 
 /// Factors univariate rational polynomial [poly] in [variable] into canonical

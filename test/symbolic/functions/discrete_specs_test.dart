@@ -182,6 +182,26 @@ void main() {
       check(Expr.parse('round(x)').toFunction1D('x')(3.6)).equals(4.0);
       check(Expr.parse('sign(x)').toFunction1D('x')(-3.6)).equals(-1.0);
       check(Expr.parse('mod(x, 5)').toFunction1D('x')(-7.0)).equals(3.0);
+
+      check(Fn.factorial(Fn.factorial(x)).toLatex()).contains('!');
+      check(Fn.min([x, y]).toLatex()).contains(r'\min');
+      check(Fn.max([x, y]).toLatex()).contains(r'\max');
+      check(
+        Fn.binomial(
+          const RealNumber(-2.0),
+          IntegerNumber.of(3),
+        ).evaluate(const {}),
+      ).isCloseTo(-4.0, 1e-12);
+      check(
+        Fn.binomial(
+          const RealNumber(5.0),
+          IntegerNumber.two,
+        ).evaluate(const {}),
+      ).isCloseTo(10.0, 1e-12);
+      check(Fn.factorial(Constant.infinity).evaluate(const {}))
+          .equals(double.infinity);
+      check(Fn.binomial(x, y).derivative('y').anyNode((n) => n is Derivative))
+          .isFalse;
     });
   });
 }

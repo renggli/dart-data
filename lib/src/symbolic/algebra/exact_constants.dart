@@ -77,7 +77,7 @@ bool isNegativeHalf(Expr expr) => switch (expr) {
   _ => false,
 };
 
-/// Tests whether [expr] is `sqrt(n)` (`Pow(RationalNumber(n), RationalNumber(1, 2))`).
+/// Tests whether [expr] is `sqrt(n)` (`Pow(IntegerNumber(n), FractionNumber.half)`).
 bool isSqrt(Expr expr, int n) => switch (expr) {
   Pow(
     base: IntegerNumber(:final value),

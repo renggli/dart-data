@@ -436,6 +436,47 @@ void main() {
           .evaluateComplex(const {'x': Complex(0.2, 0.1)});
       check((bc.evaluateComplex1D(const Complex(0.2, 0.1)) - directC).abs())
           .isLessThan(1e-12);
+
+      // Additional coverage: Hurwitz zeta complex, polygamma error, polylog(1, x)',
+      // AppellF1 full derivative in both x and y, and special LaTeX/MathML rendering
+      check(
+        Fn.zeta(
+          const RealNumber(2.0),
+          const RealNumber(1.5),
+        ).evaluateComplex(const {}).a,
+      ).isCloseTo(0.9348022005446793, 1e-12);
+      check(
+        () => Fn.polygamma(
+          ComplexNumber.i,
+          IntegerNumber.two,
+        ).evaluateComplex(const {}),
+      ).throws<UnsupportedError>();
+      check(Fn.polylog(IntegerNumber.one, x).derivative('x').simplify())
+          .equals((IntegerNumber.one / (IntegerNumber.one - x)).simplify());
+      final f1Both = Fn.appellF1([
+        FractionNumber.half,
+        IntegerNumber.one,
+        IntegerNumber.two,
+        IntegerNumber.of(3),
+        x,
+        x * IntegerNumber.two,
+      ]).derivative('x');
+      check(f1Both.anyNode((n) => n is Derivative)).isFalse;
+
+      for (final expr in [
+        Fn.expIntegralE(IntegerNumber.two, x),
+        Fn.besselY(IntegerNumber.zero, x),
+        Fn.besselI(IntegerNumber.zero, x),
+        Fn.besselK(IntegerNumber.zero, x),
+        Fn.hypergeometric(
+          Fn.tuple([IntegerNumber.one]),
+          Fn.tuple([IntegerNumber.two]),
+          x,
+        ),
+      ]) {
+        check(expr.toLatex()).isNotEmpty;
+        check(expr.toMathMl()).contains('<');
+      }
     });
   });
 }

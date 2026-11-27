@@ -848,10 +848,15 @@ void main() {
           ('atanh(1 / (a * x))', {'x': 1.8, 'a': 1.5}),
           ('asinh(1 / (c * x))', {'x': 1.2, 'c': 1.4}),
           ('acosh(1 / (a * x))', {'x': 0.4, 'a': 1.2}),
+          ('asin(2 / x)', {'x': 3.5}),
           ('polylog(2, a * exp(b * x))', {'x': 0.4, 'a': 0.3, 'b': 0.5}),
+          ('polylog(2, 3 * 2^x)', {'x': -2.0}),
           ('x * polylog(2, a * exp(b * x))', {'x': 0.4, 'a': 0.3, 'b': 0.5}),
           ('polylog(2, c * x^2) / x', {'x': 0.5, 'c': 0.4}),
           ('ln(a + b * exp(c * x))', {'x': 0.5, 'a': 3.2, 'b': 0.4, 'c': 0.6}),
+          ('ln(3 + 2 * 2^x)', {'x': 0.5}),
+          ('atanh(2^x)', {'x': -1.0}),
+          ('lambertW(2 * x + 1, -1)', {'x': -0.6}),
         ]) {
           final integrand = Expr.parse(source);
           final antideriv = integrand.integrate('x');
@@ -861,6 +866,16 @@ void main() {
                 .abs(),
           ).isCloseTo(0.0, 1e-8);
         }
+
+        final posLogProd = Expr.parse('ln(2 * x * (x + 1)^2)')
+            .integrate('x', assumptions: Assumptions.positive);
+        check(posLogProd.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (posLogProd.derivative('x').evaluate(const {'x': 2.0}) -
+                  Expr.parse('ln(2 * x * (x + 1)^2)')
+                      .evaluate(const {'x': 2.0}))
+              .abs(),
+        ).isCloseTo(0.0, 1e-10);
       },
     );
   });

@@ -453,6 +453,27 @@ void main() {
                 cIntegrand.evaluateComplex(cEnv))
             .abs(),
       ).isCloseTo(0.0, 1e-8);
+
+      // Exponential-atan substitutions and RealNumber(-1.0) power reciprocal
+      for (final source in const [
+        '2 * exp(3 * atan(x)) / (x^2 + 1)',
+        '2 * x^2 * exp(3 * atan(x)) / (x^2 + 1)^2',
+      ]) {
+        final expr = Expr.parse(source);
+        final anti = expr.integrate('x');
+        check(anti.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (anti.derivative('x').evaluate(const {'x': 0.5}) -
+                  expr.evaluate(const {'x': 0.5}))
+              .abs(),
+        ).isCloseTo(0.0, 1e-9);
+      }
+
+      final realRecip = Pow.of(
+        const Variable('x'),
+        const RealNumber(-1.0),
+      ).integrate('x');
+      check(realRecip.anyNode((n) => n is Integral)).isFalse;
     });
   });
 }

@@ -222,6 +222,62 @@ void main() {
           ),
         );
         check(bounded.boundsOf('y').isUnbounded).isTrue;
+        check(Assumptions.none.withComplex('z').domainOf('z'))
+            .equals(VariableDomain.complex);
+        check(Assumptions.none.withInteger('n').domainOf('n'))
+            .equals(VariableDomain.integer);
+
+        final nonPos = Assumptions.none.withNonPositive('u');
+        check(nonPos.isNonPositive('u')).isTrue;
+        check(nonPos.isReal('u')).isTrue;
+
+        final nz = Assumptions.none.withNonZero('v');
+        check(nz.isNonZero('v')).isTrue;
+
+        final zeroRels = Assumptions.none
+            .withRelation(Relational.lessThan(IntegerNumber.zero, x))
+            .withRelation(Relational.lessEqual(IntegerNumber.zero, y))
+            .withRelation(
+              Relational.greaterThan(IntegerNumber.zero, const Variable('a')),
+            )
+            .withRelation(
+              Relational.greaterEqual(IntegerNumber.zero, const Variable('b')),
+            )
+            .withRelation(
+              Relational.notEqual(IntegerNumber.zero, const Variable('c')),
+            )
+            .withRelation(
+              Relational.equal(IntegerNumber.zero, const Variable('d')),
+            )
+            .withRelation(
+              Relational.lessThan(const Variable('p'), IntegerNumber.one),
+            );
+        check(zeroRels.isPositive('x')).isTrue;
+        check(zeroRels.isNonNegative('y')).isTrue;
+        check(zeroRels.isNegative('a')).isTrue;
+        check(zeroRels.isNonPositive('b')).isTrue;
+        check(zeroRels.isNonZero('c')).isTrue;
+        check(zeroRels.isReal('d')).isFalse;
+        check(zeroRels.isReal('p')).isTrue;
+
+        final copyRel = Assumptions.none.copyWith(
+          relations: [
+            Relational.lessEqual(x, IntegerNumber.zero),
+            Relational.notEqual(y, IntegerNumber.zero),
+            Relational.greaterEqual(IntegerNumber.zero, const Variable('q')),
+            Relational.notEqual(IntegerNumber.zero, const Variable('r')),
+            Relational.lessThan(IntegerNumber.one, const Variable('s')),
+          ],
+        );
+        check(copyRel.isNonPositive('x')).isTrue;
+        check(copyRel.isNonZero('y')).isTrue;
+        check(copyRel.isNonPositive('q')).isTrue;
+        check(copyRel.isNonZero('r')).isTrue;
+        check(copyRel.isReal('s')).isTrue;
+
+        check(bounded == bounded).isTrue;
+        check(bounded.hashCode).equals(bounded.hashCode);
+        check(bounded.boundsOf('x') == bounded.boundsOf('x')).isTrue;
       },
     );
   });

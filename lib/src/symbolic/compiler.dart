@@ -202,6 +202,32 @@ extension CompilerExtension on Expr {
   static final _cache = Expando<BytecodeEvaluator>();
 }
 
+/// Evaluates [expr] with [context], returning `null` if evaluation throws an
+/// [ArgumentError], [UnsupportedError], or [StateError].
+double? tryEvaluateReal(Expr expr, [Map<String, double> context = const {}]) =>
+    trySymbolicOp(() => expr.evaluate(context));
+
+/// Evaluates [expr] in C with [context], returning `null` if evaluation throws
+/// an [ArgumentError], [UnsupportedError], or [StateError].
+Complex? tryEvaluateComplex(
+  Expr expr, [
+  Map<String, Complex> context = const {},
+]) => trySymbolicOp(() => expr.evaluateComplex(context));
+
+/// Runs [action], returning `null` on [ArgumentError], [UnsupportedError], or
+/// [StateError].
+T? trySymbolicOp<T>(T Function() action) {
+  try {
+    return action();
+  } on ArgumentError {
+    return null;
+  } on UnsupportedError {
+    return null;
+  } on StateError {
+    return null;
+  }
+}
+
 /// Extension providing compilation of collections of symbolic expressions.
 extension CompilerIterableExtension on Iterable<Expr> {
   /// Compiles multiple expressions into a vector-valued closure

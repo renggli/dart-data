@@ -19,8 +19,8 @@ dart run example/magic_square.dart
 Demonstrates modern numerical computing algorithms:
 
 - **Fast Fourier Transform (FFT)**: 1D complex forward and inverse FFT on time-domain signals.
-- **Numerical Integration**: Adaptive Simpson and Gauss-Kronrod quadrature on $[0, \pi]$.
-- **Root Finding**: Brent-Dekker root finding for non-linear equations ($\cos(x) - x = 0$).
+- **Numerical Integration**: Adaptive Simpson and Gauss-Kronrod quadrature on `[0, π]`.
+- **Root Finding**: Brent-Dekker root finding for non-linear equations (`cos(x) - x = 0`).
 - **Non-Linear Optimization**: Quasi-Newton BFGS minimization on the 2D Rosenbrock banana function.
 - **Adaptive ODE Integration**: Runge-Kutta Dormand-Prince 45 adaptive step-size integration of an undamped harmonic oscillator.
 - **Non-Linear Curve Fitting**: Damped Gauss-Newton Levenberg-Marquardt parameter estimation (`fitNonlinear`).
@@ -36,7 +36,7 @@ Demonstrates statistical analysis and probability workflows:
 - **Descriptive Statistics & Covariance**: Sample mean, standard deviation, median, interquartile range (IQR), and Pearson/Spearman correlation coefficients.
 - **Principal Component Analysis (PCA)**: Covariance-based dimensionality reduction, explained variance ratios, and 2D coordinate projections.
 - **Hypothesis Testing**: Two-sample Welch t-test for unequal variances.
-- **Parametric Distributions**: Normal, Student-t, and Fisher-Snedecor $F$ distributions with PDF, CDF, survival, and quantile evaluation.
+- **Parametric Distributions**: Normal, Student-t, and Fisher-Snedecor `F` distributions with PDF, CDF, survival, and quantile evaluation.
 - **Non-Parametric Resampling**: Bootstrap resampling with standard error estimation, percentile intervals, and bias-corrected accelerated (BCa) confidence intervals.
 
 ```bash
@@ -50,11 +50,25 @@ Demonstrates polynomial manipulation and approximation theory:
 - **Polynomial Algebra**: Arithmetic operations, Horner polynomial evaluation, and degree analysis.
 - **Polynomial Calculus**: Analytical differentiation and formal indefinite integration.
 - **Root Finding**: Polynomial root isolation via companion matrix eigenvalues.
-- **Orthogonal Polynomial Families**: Chebyshev $T_n(x)$, Legendre $P_n(x)$, and Hermite $H_n(x)$ polynomials.
+- **Orthogonal Polynomial Families**: Chebyshev `T_n(x)`, Legendre `P_n(x)`, and Hermite `H_n(x)` polynomials.
 - **Clenshaw Algorithm**: Fast Clenshaw summation for evaluating orthogonal series expansions.
 
 ```bash
 dart run example/polynomial_demo.dart
+```
+
+### Symbolic Computation & CAS Demo (`example/symbolic_demo.dart`)
+
+Demonstrates exact symbolic computation and Computer Algebra System workflows:
+
+- **Exact Arithmetic & Simplification**: Radical extraction, polynomial expansion, and exact integer/rational factorization.
+- **Analytical Calculus**: Arbitrary-order derivatives, indefinite and definite integration, symbolic limits, and Maclaurin/Taylor power series.
+- **Multivariable Vector Calculus**: Symbolic gradient, Hessian, Laplacian, divergence, and curl over `Vector<Expr>` and `Matrix<Expr>`.
+- **Equation, System & ODE Solving**: Univariate root solving, multivariate polynomial systems, and symbolic ordinary differential equations (including initial value problems).
+- **Bytecode Compilation**: Compiling symbolic expressions via `toFunction1D` for high-speed numeric evaluation.
+
+```bash
+dart run example/symbolic_demo.dart
 ```
 
 ## Sample Datasets (`example/data/`)
@@ -78,4 +92,4 @@ dart run build_runner serve web
 - **[Catalog & Showcase](web/index.html)**: Interactive documentation portal, feature overview, and package highlights.
 - **[Symbolic Calculator](web/calculator/)**: Progressive Web App (PWA) supporting Notebook and RPN calculation modes, live MathML rendering, 2D function plotting, and multivariate system solving.
 - **[Symbolic Expressions Explorer](web/expressions/)**: Interactive algebra, calculus, Taylor series, limits, and equation solving playground.
-- **[Distributions Dashboard](web/distributions/)**: Probability density, cumulative distribution, quantile visualizations, and real-time sampling histograms for 25+ distributions.
+- **[Distributions Dashboard](web/distributions/)**: Probability density, cumulative distribution, quantile visualizations, and real-time sampling histograms for 27 continuous, discrete, and multivariate distributions.

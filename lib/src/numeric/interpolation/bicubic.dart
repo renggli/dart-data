@@ -238,26 +238,10 @@ class BicubicInterpolation implements Interpolator2D {
     final v = (yClamped - _ys[j]) / dy;
 
     final offset = (i * (_ny - 1) + j) * 16;
-    final row0 =
-        ((_coefficients[offset + 3] * v + _coefficients[offset + 2]) * v +
-                _coefficients[offset + 1]) *
-            v +
-        _coefficients[offset + 0];
-    final row1 =
-        ((_coefficients[offset + 7] * v + _coefficients[offset + 6]) * v +
-                _coefficients[offset + 5]) *
-            v +
-        _coefficients[offset + 4];
-    final row2 =
-        ((_coefficients[offset + 11] * v + _coefficients[offset + 10]) * v +
-                _coefficients[offset + 9]) *
-            v +
-        _coefficients[offset + 8];
-    final row3 =
-        ((_coefficients[offset + 15] * v + _coefficients[offset + 14]) * v +
-                _coefficients[offset + 13]) *
-            v +
-        _coefficients[offset + 12];
+    final row0 = _evalRowPoly(offset, v);
+    final row1 = _evalRowPoly(offset + 4, v);
+    final row2 = _evalRowPoly(offset + 8, v);
+    final row3 = _evalRowPoly(offset + 12, v);
 
     return ((row3 * u + row2) * u + row1) * u + row0;
   }
@@ -285,46 +269,18 @@ class BicubicInterpolation implements Interpolator2D {
     final offset = (i * (_ny - 1) + j) * 16;
 
     // Polynomial rows in v for df/du
-    final row1 =
-        ((_coefficients[offset + 7] * v + _coefficients[offset + 6]) * v +
-                _coefficients[offset + 5]) *
-            v +
-        _coefficients[offset + 4];
-    final row2 =
-        ((_coefficients[offset + 11] * v + _coefficients[offset + 10]) * v +
-                _coefficients[offset + 9]) *
-            v +
-        _coefficients[offset + 8];
-    final row3 =
-        ((_coefficients[offset + 15] * v + _coefficients[offset + 14]) * v +
-                _coefficients[offset + 13]) *
-            v +
-        _coefficients[offset + 12];
+    final row1 = _evalRowPoly(offset + 4, v);
+    final row2 = _evalRowPoly(offset + 8, v);
+    final row3 = _evalRowPoly(offset + 12, v);
 
     // df/du = 3*row3*u^2 + 2*row2*u + row1
     final dfDu = (3.0 * row3 * u + 2.0 * row2) * u + row1;
 
     // Derivative of each row with respect to v: d/dv(a3*v^3 + a2*v^2 + a1*v + a0) = 3*a3*v^2 + 2*a2*v + a1
-    final drow0 =
-        (3.0 * _coefficients[offset + 3] * v +
-                2.0 * _coefficients[offset + 2]) *
-            v +
-        _coefficients[offset + 1];
-    final drow1 =
-        (3.0 * _coefficients[offset + 7] * v +
-                2.0 * _coefficients[offset + 6]) *
-            v +
-        _coefficients[offset + 5];
-    final drow2 =
-        (3.0 * _coefficients[offset + 11] * v +
-                2.0 * _coefficients[offset + 10]) *
-            v +
-        _coefficients[offset + 9];
-    final drow3 =
-        (3.0 * _coefficients[offset + 15] * v +
-                2.0 * _coefficients[offset + 14]) *
-            v +
-        _coefficients[offset + 13];
+    final drow0 = _evalRowPolyDeriv(offset, v);
+    final drow1 = _evalRowPolyDeriv(offset + 4, v);
+    final drow2 = _evalRowPolyDeriv(offset + 8, v);
+    final drow3 = _evalRowPolyDeriv(offset + 12, v);
 
     // df/dv = drow3*u^3 + drow2*u^2 + drow1*u + drow0
     final dfDv = ((drow3 * u + drow2) * u + drow1) * u + drow0;
@@ -334,4 +290,14 @@ class BicubicInterpolation implements Interpolator2D {
 
     return Vector<double>.fromList([dfDx, dfDy], type: DataType.float64);
   }
+
+  double _evalRowPoly(int base, double v) =>
+      ((_coefficients[base + 3] * v + _coefficients[base + 2]) * v +
+              _coefficients[base + 1]) *
+          v +
+      _coefficients[base];
+
+  double _evalRowPolyDeriv(int base, double v) =>
+      (3.0 * _coefficients[base + 3] * v + 2.0 * _coefficients[base + 2]) * v +
+      _coefficients[base + 1];
 }

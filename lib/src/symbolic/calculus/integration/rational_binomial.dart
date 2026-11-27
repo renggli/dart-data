@@ -32,15 +32,7 @@ Expr? tryMonomialDenominator(
       return (scale: IntegerNumber.one, n: k);
     }
     if (e case Mul(:final factors)) {
-      final constFactors = <Expr>[];
-      final varFactors = <Expr>[];
-      for (final f in factors) {
-        if (f.dependsOn(variable)) {
-          varFactors.add(f);
-        } else {
-          constFactors.add(f);
-        }
-      }
+      final (:constFactors, :varFactors) = partitionFactors(factors, variable);
       if (varFactors.length == 1) {
         final inner = extractMonomial(varFactors.first);
         if (inner != null) {
@@ -94,15 +86,7 @@ Expr? tryLinearPowerDenominator(
       return (scale: IntegerNumber.one, linBase: linBase, q: q);
     }
     if (e case Mul(:final factors)) {
-      final constFactors = <Expr>[];
-      final varFactors = <Expr>[];
-      for (final f in factors) {
-        if (f.dependsOn(variable)) {
-          varFactors.add(f);
-        } else {
-          constFactors.add(f);
-        }
-      }
+      final (:constFactors, :varFactors) = partitionFactors(factors, variable);
       if (varFactors.length == 1) {
         final inner = extractLinPow(varFactors.first);
         if (inner != null) {

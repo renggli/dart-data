@@ -276,6 +276,8 @@ void main() {
           upperGammaComplex(Complex.zero, zSmall);
       check((ugNeg1 - expectedUgNeg1).abs()).isLessThan(1e-12);
       check(upperGammaComplex(Complex.nan, zSmall).isNaN).isTrue;
+      check(gammaPInv(0.02, 0.99)).isGreaterThan(0.0);
+      check(gammaQInv(0.02, 0.01)).isGreaterThan(0.0);
     });
   });
 }

@@ -122,5 +122,53 @@ void main() {
             .limit('x', 0, direction: LimitDirection.fromAbove),
       ).equals(Constant.infinity);
     });
+
+    test('supports subtraction, unary negation, division, zero powers, and odd denominator check', () {
+      final s1 = Expr.parse('sqrt(x) + x').toPuiseuxSeries('x', order: 2);
+      final s2 = Expr.parse('x + x^(3/2)').toPuiseuxSeries('x', order: 2);
+      check((-s1).coefficients[FractionNumber.half])
+          .equals(IntegerNumber.negativeOne);
+      check((s1 - s2).coefficients[RationalNumber(3, 2)])
+          .equals(IntegerNumber.negativeOne);
+      check((s1 / s1).coefficients[IntegerNumber.zero])
+          .equals(IntegerNumber.one);
+      check(s1.hasOnlyOddDenominators).isFalse;
+      check(
+        Expr.parse('x^(1/3)')
+            .toPuiseuxSeries('x', order: 2)
+            .hasOnlyOddDenominators,
+      ).isTrue;
+
+      final zeroS = PuiseuxSeries(
+        'x',
+        IntegerNumber.zero,
+        const {},
+        RationalNumber(2, 1),
+      );
+      check(
+        zeroS.powRational(IntegerNumber.zero).coefficients[IntegerNumber.zero],
+      ).equals(IntegerNumber.one);
+      check(() => zeroS.powRational(IntegerNumber.negativeOne))
+          .throws<UnsupportedError>();
+      check(zeroS.powRational(FractionNumber.half).coefficients.isEmpty).isTrue;
+      check(s1.scale(IntegerNumber.zero).coefficients.isEmpty).isTrue;
+      check(zeroS.pow(const Variable('a')).coefficients.isEmpty).isTrue;
+      check(() => zeroS.pow(const RealNumber(-1.0))).throws<UnsupportedError>();
+      check(() => s1.pow(const Variable('a'))).throws<UnsupportedError>();
+      final unitS = Expr.parse('1 + x^(1/2)').toPuiseuxSeries('x', order: 2);
+      check(
+        unitS
+            .pow(const Variable('a'))
+            .coefficients[FractionNumber.half]!
+            .expand()
+            .simplify(),
+      ).equals(const Variable('a'));
+      check(
+        Pow.of(
+          const Variable('x') - const Variable('x'),
+          const Variable('a'),
+        ).toPuiseuxSeries('x', order: 2).coefficients[IntegerNumber.zero],
+      ).isNotNull();
+    });
   });
 }

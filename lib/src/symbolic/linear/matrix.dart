@@ -290,11 +290,11 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// ```dart
   /// final x = Variable('x');
   /// final m = Matrix<Expr>.fromRows([
-  ///   [x * x, Sin(x)],
+  ///   [x * x, Fn.sin(x)],
   ///   [IntegerNumber.of(3) * x, Pow(Constant.e, x)],
   /// ], type: exprDataType);
   /// final dm = m.derivative('x');
-  /// // dm[0][0] == 2*x, dm[0][1] == Cos(x)
+  /// // dm[0][0] == 2*x, dm[0][1] == Fn.cos(x)
   /// // dm[1][0] == 3,   dm[1][1] == e^x
   /// ```
   Matrix<Expr> derivative(
@@ -396,9 +396,9 @@ extension SymbolicVectorExtension on Vector<Expr> {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final v = Vector<Expr>.fromList([x * x, Sin(x)], type: exprDataType);
+  /// final v = Vector<Expr>.fromList([x * x, Fn.sin(x)], type: exprDataType);
   /// final dv = v.derivative('x');
-  /// // dv[0] == 2*x, dv[1] == Cos(x)
+  /// // dv[0] == 2*x, dv[1] == Fn.cos(x)
   /// ```
   Vector<Expr> derivative(
     String variable, {

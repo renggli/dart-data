@@ -394,60 +394,17 @@ Expr? tryTrigProduct(Expr left, Expr right, String variable) {
 
 /// Integrates `c / (a + b*sin(u) + c*cos(u))` via Weierstrass half-angle substitution.
 Expr? tryWeierstrassSubstitution(Expr left, Expr right, String variable) {
-  final terms = right is Add ? right.terms : [right];
-  var aConst = IntegerNumber.zero as Expr;
-  var bSin = IntegerNumber.zero as Expr;
-  var cCos = IntegerNumber.zero as Expr;
-  Expr? inner;
-
-  for (final term in terms) {
-    if (!term.dependsOn(variable)) {
-      aConst = (aConst + term).simplify();
-      continue;
-    }
-    var coeff = IntegerNumber.one as Expr;
-    var varPart = term;
-    if (term case Mul(:final factors)) {
-      final (:constFactors, :varFactors) = partitionFactors(factors, variable);
-      if (varFactors.length != 1) return null;
-      varPart = varFactors.first;
-      coeff = switch (constFactors) {
-        [] => IntegerNumber.one,
-        [final single] => single,
-        _ => Mul.of(constFactors).simplify(),
-      };
-    }
-    switch (varPart) {
-      case Call(id: FunctionId.sin, args: [final arg]):
-        if (inner == null) {
-          inner = arg;
-        } else if (inner != arg) {
-          return null;
-        }
-        bSin = (bSin + coeff).simplify();
-      case Call(id: FunctionId.cos, args: [final arg]):
-        if (inner == null) {
-          inner = arg;
-        } else if (inner != arg) {
-          return null;
-        }
-        cCos = (cCos + coeff).simplify();
-      default:
-        return null;
-    }
-  }
-
-  if (inner == null) return null;
-  final linear = inner.matchLinear(variable);
-  if (linear == null) return null;
-  final k = linear.a;
+  final m = extractLinearTrigCombo(right, variable);
+  if (m == null) return null;
+  final inner = m.inner!;
+  final k = inner.matchLinear(variable)!.a;
 
   const tName = '_wt';
   const tVar = Variable(tName);
   final denom =
-      ((aConst - cCos) * tVar * tVar +
-              IntegerNumber.two * bSin * tVar +
-              (aConst + cCos))
+      ((m.cConst - m.bCos) * tVar * tVar +
+              IntegerNumber.two * m.aSin * tVar +
+              (m.cConst + m.bCos))
           .simplify();
   if (denom is Number && denom.isZero) return null;
 
@@ -1305,63 +1262,44 @@ Expr? _findSingleLinearTanInner(Expr expr, String variable) {
   Expr expr,
   String variable,
 ) {
-  final factors = expr is Mul ? expr.factors : [expr];
-  var scale = IntegerNumber.one as Expr;
-  var sinhExp = 0;
-  var coshExp = 0;
-  Expr? inner;
-
-  for (final f in factors) {
-    if (!f.dependsOn(variable)) {
-      scale = (scale * f).simplify();
-      continue;
-    }
-    var base = f;
-    var exp = 1;
-    if (f case Pow(base: final pBase, exponent: IntegerNumber(:final asInt))
-        when asInt != null && asInt.abs() <= 10) {
-      base = pBase;
-      exp = asInt;
-    }
-    switch (base) {
-      case Call(id: FunctionId.sinh, args: [final arg]):
-        if (inner == null) {
-          inner = arg;
-        } else if (inner != arg) {
-          return null;
-        }
-        sinhExp += exp;
-      case Call(id: FunctionId.cosh, args: [final arg]):
-        if (inner == null) {
-          inner = arg;
-        } else if (inner != arg) {
-          return null;
-        }
-        coshExp += exp;
-      case Call(id: FunctionId.tanh, args: [final arg]):
-        if (inner == null) {
-          inner = arg;
-        } else if (inner != arg) {
-          return null;
-        }
-        sinhExp += exp;
-        coshExp -= exp;
-      default:
-        return null;
-    }
-  }
-  return (scale: scale, sinhExp: sinhExp, coshExp: coshExp, inner: inner);
+  final res = _extractCircularOrHypPowers(expr, variable, hyperbolic: true);
+  if (res == null) return null;
+  return (
+    scale: res.scale,
+    sinhExp: res.primaryExp,
+    coshExp: res.secondaryExp,
+    inner: res.inner,
+  );
 }
 
 ({Expr scale, int sinExp, int cosExp, Expr? inner})? _extractTrigPowers(
   Expr expr,
   String variable,
 ) {
+  final res = _extractCircularOrHypPowers(expr, variable, hyperbolic: false);
+  if (res == null) return null;
+  return (
+    scale: res.scale,
+    sinExp: res.primaryExp,
+    cosExp: res.secondaryExp,
+    inner: res.inner,
+  );
+}
+
+({Expr scale, int primaryExp, int secondaryExp, Expr? inner})?
+_extractCircularOrHypPowers(
+  Expr expr,
+  String variable, {
+  required bool hyperbolic,
+}) {
   final factors = expr is Mul ? expr.factors : [expr];
   var scale = IntegerNumber.one as Expr;
-  var sinExp = 0;
-  var cosExp = 0;
+  var primaryExp = 0;
+  var secondaryExp = 0;
   Expr? inner;
+  final primaryId = hyperbolic ? FunctionId.sinh : FunctionId.sin;
+  final secondaryId = hyperbolic ? FunctionId.cosh : FunctionId.cos;
+  final ratioId = hyperbolic ? FunctionId.tanh : FunctionId.tan;
 
   for (final f in factors) {
     if (!f.dependsOn(variable)) {
@@ -1375,32 +1313,28 @@ Expr? _findSingleLinearTanInner(Expr expr, String variable) {
       base = pBase;
       exp = asInt;
     }
-    switch (base) {
-      case Call(id: FunctionId.sin, args: [final arg]):
-        if (inner == null) {
-          inner = arg;
-        } else if (inner != arg) {
-          return null;
-        }
-        sinExp += exp;
-      case Call(id: FunctionId.cos, args: [final arg]):
-        if (inner == null) {
-          inner = arg;
-        } else if (inner != arg) {
-          return null;
-        }
-        cosExp += exp;
-      case Call(id: FunctionId.tan, args: [final arg]):
-        if (inner == null) {
-          inner = arg;
-        } else if (inner != arg) {
-          return null;
-        }
-        sinExp += exp;
-        cosExp -= exp;
-      default:
-        return null;
+    if (base is! Call || base.args.length != 1) return null;
+    final arg = base.args.first;
+    if (inner == null) {
+      inner = arg;
+    } else if (inner != arg) {
+      return null;
+    }
+    if (base.id == primaryId) {
+      primaryExp += exp;
+    } else if (base.id == secondaryId) {
+      secondaryExp += exp;
+    } else if (base.id == ratioId) {
+      primaryExp += exp;
+      secondaryExp -= exp;
+    } else {
+      return null;
     }
   }
-  return (scale: scale, sinExp: sinExp, cosExp: cosExp, inner: inner);
+  return (
+    scale: scale,
+    primaryExp: primaryExp,
+    secondaryExp: secondaryExp,
+    inner: inner,
+  );
 }

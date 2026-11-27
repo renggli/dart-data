@@ -103,6 +103,16 @@ void main() {
       ).isTrue;
       check(tryStaticRealValue(Constant.pi)).isNotNull();
       check(tryStaticRealValue(ComplexNumber.i)).isNull;
+      check(isNonNegative(IntegerNumber.zero)).isTrue;
+      check(isNonPositive(IntegerNumber.zero)).isTrue;
+      check(isNegative(Constant.e - IntegerNumber.of(3))).isTrue;
+      check(
+        isNonNegative(ComplexNumber.of(IntegerNumber.one, IntegerNumber.zero)),
+      ).isTrue;
+      check(
+        isNonPositive(ComplexNumber.of(IntegerNumber.zero, IntegerNumber.zero)),
+      ).isTrue;
+      check(isNonPositive(Constant.e - IntegerNumber.of(3))).isTrue;
     });
   });
 }

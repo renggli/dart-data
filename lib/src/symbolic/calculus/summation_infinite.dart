@@ -15,6 +15,7 @@ import '../number/combinatorics.dart';
 import '../oracle/domain_oracle.dart';
 import 'limit.dart';
 import 'linear_form.dart';
+import 'product.dart';
 import 'summation.dart';
 
 Expr? infiniteSeriesClosedForm(
@@ -131,7 +132,7 @@ Expr? _adjustSeriesStart(
     final lo = startInt < canonStart ? startInt : canonStart;
     final hi = startInt < canonStart ? canonStart - 1 : startInt - 1;
     for (var k = lo; k <= hi; k++) {
-      final val = _evalTermAtInt(term, variable, k, assumptions: assumptions);
+      final val = evalTermAtInt(term, variable, k, assumptions: assumptions);
       if (val == null) return null;
     }
     return canonSum;
@@ -141,7 +142,7 @@ Expr? _adjustSeriesStart(
     // sum_{k=startInt..inf} = sum_{k=startInt..canonStart-1} + canonSum
     final headTerms = <Expr>[];
     for (var k = startInt; k < canonStart; k++) {
-      final val = _evalTermAtInt(term, variable, k, assumptions: assumptions);
+      final val = evalTermAtInt(term, variable, k, assumptions: assumptions);
       if (val == null) return null;
       headTerms.add(val);
     }
@@ -153,38 +154,12 @@ Expr? _adjustSeriesStart(
     // startInt > canonStart: sum_{k=startInt..inf} = canonSum - sum_{k=canonStart..startInt-1}
     final headTerms = <Expr>[];
     for (var k = canonStart; k < startInt; k++) {
-      final val = _evalTermAtInt(term, variable, k, assumptions: assumptions);
+      final val = evalTermAtInt(term, variable, k, assumptions: assumptions);
       if (val == null) return null;
       headTerms.add(val);
     }
     final headSum = simplifyAdd(headTerms, assumptions: assumptions);
     return (canonSum - headSum).simplify(assumptions: assumptions);
-  }
-}
-
-Expr? _evalTermAtInt(
-  Expr term,
-  String variable,
-  int k, {
-  required Assumptions assumptions,
-}) {
-  try {
-    final v = term
-        .substitute(variable, IntegerNumber.of(k))
-        .simplify(assumptions: assumptions);
-    if (v == Constant.undefined ||
-        v == Constant.infinity ||
-        v == -Constant.infinity ||
-        v.anyNode((n) => n == Constant.undefined || n == Constant.infinity)) {
-      return null;
-    }
-    return v;
-  } on UnsupportedError {
-    return null;
-  } on ArgumentError {
-    return null;
-  } on StateError {
-    return null;
   }
 }
 
@@ -333,43 +308,6 @@ Expr? _matchTwoPoleDigammaSeries(
   return null;
 }
 
-/// Decomposes all exponential factors `base^(a*k + b)` in [factors] into a
-/// combined effective ratio `r = prodbase_i^{a_i}` and constant
-/// multiplier `scale = prodbase_i^{b_i}` such that the product
-/// of those factors equals `scale * r^k`.
-({Expr ratio, Expr scale, List<Expr> remaining}) _extractExponentialFactors(
-  List<Expr> factors,
-  String variable,
-) {
-  final ratios = <Expr>[];
-  final scales = <Expr>[];
-  final remaining = <Expr>[];
-
-  for (final f in factors) {
-    if (f case Pow(:final base, :final exponent)
-        when !base.dependsOn(variable) && exponent.dependsOn(variable)) {
-      if (exponent.matchLinear(variable) case (:final a, :final b)) {
-        ratios.add(Pow.of(base, a).simplify());
-        if (b != IntegerNumber.zero) {
-          scales.add(Pow.of(base, b).simplify());
-        }
-        continue;
-      }
-    }
-    remaining.add(f);
-  }
-
-  return (
-    ratio: ratios.isEmpty
-        ? IntegerNumber.one
-        : simplifyMul(ratios, assumptions: Assumptions.none).simplify(),
-    scale: scales.isEmpty
-        ? IntegerNumber.one
-        : simplifyMul(scales, assumptions: Assumptions.none).simplify(),
-    remaining: remaining,
-  );
-}
-
 Expr? _matchFactorialSeries(
   Expr term,
   String variable,
@@ -408,7 +346,7 @@ Expr? _matchFactorialSeries(
     for (final d in otherDen) Pow.of(d, IntegerNumber.negativeOne).simplify(),
   ];
 
-  final (:ratio, :scale, :remaining) = _extractExponentialFactors(
+  final (:ratio, :scale, :remaining) = extractExponentialFactors(
     numFactors,
     variable,
   );
@@ -624,7 +562,7 @@ Expr? _matchPowerDenominatorSeries(
       Pow.of(df, IntegerNumber.negativeOne).simplify(),
   ];
 
-  final (:ratio, :scale, :remaining) = _extractExponentialFactors(
+  final (:ratio, :scale, :remaining) = extractExponentialFactors(
     combinedFactors,
     variable,
   );

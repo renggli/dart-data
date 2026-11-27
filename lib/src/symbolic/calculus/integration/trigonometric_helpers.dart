@@ -699,7 +699,7 @@ Expr? tryTrigPolyDivision(
 
 /// Integrates products `scale * f(u)^n * g(u)^(2*k + 1)` where `n` is symbolic
 /// (or numeric), `0 <= k <= 6`, `u` is linear in [variable], and `(f, g)` is
-/// `(Sin, Cos)`, `(Cos, Sin)`, `(Sinh, Cosh)`, or `(Cosh, Sinh)`.
+/// `(sin, cos)`, `(cos, sin)`, `(sinh, cosh)`, or `(cosh, sinh)`.
 Expr? trySymbolicTrigPowerProduct(
   Expr expr,
   String variable, {

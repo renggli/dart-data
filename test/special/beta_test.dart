@@ -135,6 +135,8 @@ void main() {
       check(betaIInv(1.1, 2.0, 3.0)).isNaN;
       check(betaIInv(double.nan, 2.0, 3.0)).isNaN;
       check(betaIInv(0.5, double.infinity, 2.0)).isNaN;
+      check(betaIInv(0.15, 0.05, 50.0)).isGreaterThan(0.0);
+      check(betaIInv(0.85, 50.0, 0.05)).isLessThan(1.0);
     });
   });
 }

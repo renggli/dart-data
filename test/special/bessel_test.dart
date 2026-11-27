@@ -326,6 +326,9 @@ void main() {
       check(besselKComplex(const Complex(0, 1), Complex.zero).isNaN).isTrue;
       check(besselKComplex(Complex.zero, Complex.zero).a)
           .equals(double.infinity);
+      // Large nu and x <= nu^2 triggering Miller backward recurrence rescaling
+      check(besselJ(20, 200.0).isFinite).isTrue;
+      check(besselJ(20.25, 200.0).isFinite).isTrue;
     });
   });
 }

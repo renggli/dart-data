@@ -126,6 +126,16 @@ void main() {
         Expr.parse('y - 2'),
       ].solve(['x', 'y'], assumptions: Assumptions.real);
       check(realSols).isEmpty;
+
+      // Validates duplicate variable rejection and Relational equations
+      check(() => [Expr.parse('x = 1')].solve(['x', 'x']))
+          .throws<ArgumentError>();
+      check(
+        [Relational.equal(const Variable('x'), IntegerNumber.of(3))]
+            .solve(['x']),
+      ).deepEquals([
+        {'x': IntegerNumber.of(3)},
+      ]);
     });
   });
 }

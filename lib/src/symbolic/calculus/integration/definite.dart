@@ -278,16 +278,8 @@ Expr evaluateDefiniteIntegral(
             final hasNegLnArg = function.anyNode((n) {
               if (n case Call(id: FunctionId.ln, args: [final expr])
                   when expr.dependsOn(variable)) {
-                try {
-                  final v = expr.evaluate({variable: mid});
-                  return v.isNaN || v <= 0.0;
-                } on ArgumentError {
-                  return true;
-                } on UnsupportedError {
-                  return true;
-                } on StateError {
-                  return true;
-                }
+                final v = tryEvaluateReal(expr, {variable: mid});
+                return v == null || v.isNaN || v <= 0.0;
               }
               return false;
             });
@@ -428,49 +420,18 @@ Expr evaluateDefiniteIntegral(
         final pieces = <Expr>[];
         var ok = true;
         for (var i = 0; i < points.length - 1; i++) {
-          final pLow = points[i];
-          final pHigh = points[i + 1];
-          try {
-            final upper = isInfiniteBound(pHigh)
-                ? effectiveAntiDeriv.limit(
-                    variable,
-                    pHigh,
-                    assumptions: assumptions,
-                  )
-                : effectiveAntiDeriv.limit(
-                    variable,
-                    pHigh,
-                    direction: LimitDirection.fromBelow,
-                    assumptions: assumptions,
-                  );
-            final lower = isInfiniteBound(pLow)
-                ? effectiveAntiDeriv.limit(
-                    variable,
-                    pLow,
-                    assumptions: assumptions,
-                  )
-                : effectiveAntiDeriv.limit(
-                    variable,
-                    pLow,
-                    direction: LimitDirection.fromAbove,
-                    assumptions: assumptions,
-                  );
-            final diff = (upper - lower).simplify(assumptions: assumptions);
-            if (diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
-              ok = false;
-              break;
-            }
-            pieces.add(diff);
-          } on ArgumentError {
-            ok = false;
-            break;
-          } on UnsupportedError {
-            ok = false;
-            break;
-          } on StateError {
+          final diff = _evalPieceLimitDiff(
+            effectiveAntiDeriv,
+            variable,
+            points[i],
+            points[i + 1],
+            assumptions: assumptions,
+          );
+          if (diff == null) {
             ok = false;
             break;
           }
+          pieces.add(diff);
         }
         if (ok) {
           final total = Add.of(pieces).simplify(assumptions: assumptions);
@@ -481,7 +442,7 @@ Expr evaluateDefiniteIntegral(
       } else if (jumps != null) {
         Expr? validUpper;
         Expr? validLower;
-        try {
+        final directDiff = trySymbolicOp(() {
           final upper = isInfiniteBound(toExpr)
               ? effectiveAntiDeriv.limit(
                   variable,
@@ -508,20 +469,10 @@ Expr evaluateDefiniteIntegral(
           )) {
             validLower = lowerSimp;
           }
-          final diff = _subtractEndpointValues(
-            upperSimp,
-            lowerSimp,
-            assumptions,
-          );
-          if (diff != null) {
-            return diff;
-          }
-        } on ArgumentError {
-          // Fall through to definite integral special cases or endpoint limit.
-        } on UnsupportedError {
-          // Fall through to definite integral special cases or endpoint limit.
-        } on StateError {
-          // Fall through to definite integral special cases or endpoint limit.
+          return _subtractEndpointValues(upperSimp, lowerSimp, assumptions);
+        });
+        if (directDiff != null) {
+          return directDiff;
         }
 
         // Try one-sided limits at finite endpoints (e.g. int_0^1 ln(x) dx)
@@ -529,7 +480,7 @@ Expr evaluateDefiniteIntegral(
           effectiveAntiDeriv,
           _expandLnForEndpointLimit(effectiveAntiDeriv),
         ]) {
-          try {
+          final diff = trySymbolicOp(() {
             final isAscending =
                 (evaluateBoundNumeric(fromExpr) ?? 0.0) <=
                 (evaluateBoundNumeric(toExpr) ?? 1.0);
@@ -555,16 +506,10 @@ Expr evaluateDefiniteIntegral(
                             : LimitDirection.fromBelow,
                         assumptions: assumptions,
                       );
-            final diff = _subtractEndpointValues(upper, lower, assumptions);
-            if (diff != null) {
-              return diff;
-            }
-          } on ArgumentError {
-            // Fall through to expanded log form or special cases.
-          } on UnsupportedError {
-            // Fall through to expanded log form or special cases.
-          } on StateError {
-            // Fall through to expanded log form or special cases.
+            return _subtractEndpointValues(upper, lower, assumptions);
+          });
+          if (diff != null) {
+            return diff;
           }
         }
       }
@@ -636,35 +581,18 @@ Expr evaluateDefiniteIntegral(
               break;
             }
             final effSub = wrapLnWithAbs(subAnti, assumptions);
-            try {
-              final upper = effSub.limit(
-                variable,
-                pHigh,
-                direction: LimitDirection.fromBelow,
-                assumptions: assumptions,
-              );
-              final lower = effSub.limit(
-                variable,
-                pLow,
-                direction: LimitDirection.fromAbove,
-                assumptions: assumptions,
-              );
-              final diff = (upper - lower).simplify(assumptions: assumptions);
-              if (diff.anyNode((n) => n is Limit || n == Constant.undefined)) {
-                ok = false;
-                break;
-              }
-              pieces.add(diff);
-            } on ArgumentError {
-              ok = false;
-              break;
-            } on UnsupportedError {
-              ok = false;
-              break;
-            } on StateError {
+            final diff = _evalPieceLimitDiff(
+              effSub,
+              variable,
+              pLow,
+              pHigh,
+              assumptions: assumptions,
+            );
+            if (diff == null) {
               ok = false;
               break;
             }
+            pieces.add(diff);
           }
           if (ok) {
             final total = Add.of(pieces).simplify(assumptions: assumptions);
@@ -696,14 +624,8 @@ double? evaluateBoundNumeric(Expr bound) {
   }
   if (bound is Number) return bound.toDouble();
   if (bound.freeVariables.isEmpty) {
-    try {
-      final v = bound.evaluate(const {});
-      if (!v.isNaN) return v;
-    } on ArgumentError {
-      // Ignored.
-    } on UnsupportedError {
-      // Ignored.
-    }
+    final v = tryEvaluateReal(bound);
+    if (v != null && !v.isNaN) return v;
   }
   return null;
 }
@@ -752,29 +674,17 @@ List<double> findDenominatorRoots(Expr expr, String variable) {
           )) {
         continue;
       }
-      try {
-        final solutions = factor.solve(variable);
+      final solutions = trySymbolicOp(() => factor.solve(variable));
+      if (solutions != null) {
         for (final sol in solutions) {
           if (sol is Number) {
             final val = sol.toDouble();
             if (val.isFinite) roots.add(val);
           } else {
-            try {
-              final val = sol.evaluate(const {});
-              if (val.isFinite) roots.add(val);
-            } on ArgumentError {
-              // Ignored.
-            } on UnsupportedError {
-              // Ignored.
-            }
+            final val = tryEvaluateReal(sol);
+            if (val != null && val.isFinite) roots.add(val);
           }
         }
-      } on ArgumentError {
-        // Ignored.
-      } on UnsupportedError {
-        // Ignored.
-      } on StateError {
-        // Ignored.
       }
     }
   }
@@ -882,17 +792,19 @@ bool _hasAnyDenominatorPole(
         }
       }
     }
-    try {
-      final realAssumptions = assumptions.copyWith(
-        domains: {
-          variable: low > 0 ? VariableDomain.positive : VariableDomain.real,
-        },
-      );
-      if (isPositiveExpr(factor, assumptions: realAssumptions) ||
-          exceedsNodeBudget(factor, 100)) {
-        continue;
-      }
-      final solutions = factor.solve(variable, assumptions: realAssumptions);
+    final realAssumptions = assumptions.copyWith(
+      domains: {
+        variable: low > 0 ? VariableDomain.positive : VariableDomain.real,
+      },
+    );
+    if (isPositiveExpr(factor, assumptions: realAssumptions) ||
+        exceedsNodeBudget(factor, 100)) {
+      continue;
+    }
+    final solutions = trySymbolicOp(
+      () => factor.solve(variable, assumptions: realAssumptions),
+    );
+    if (solutions != null) {
       for (final sol in solutions) {
         if (sol.anyNode((n) => n is ComplexNumber)) continue;
         final v = evaluateBoundNumeric(sol);
@@ -910,24 +822,12 @@ bool _hasAnyDenominatorPole(
           return true;
         }
       }
-    } on ArgumentError {
-      // Unsolvable factor; fall through to numeric endpoint check.
-    } on UnsupportedError {
-      // Unsolvable factor; fall through to numeric endpoint check.
-    } on StateError {
-      // Unsolvable factor; fall through to numeric endpoint check.
     }
     // Check endpoint zeros directly if finite
     if (inclusive && low.isFinite && high.isFinite) {
-      try {
-        final vL = factor.evaluate({variable: low});
-        final vH = factor.evaluate({variable: high});
-        if (vL == 0.0 || vH == 0.0) return true;
-      } on ArgumentError {
-        // Ignored.
-      } on UnsupportedError {
-        // Ignored.
-      }
+      final vL = tryEvaluateReal(factor, {variable: low});
+      final vH = tryEvaluateReal(factor, {variable: high});
+      if (vL == 0.0 || vH == 0.0) return true;
     }
   }
   return false;
@@ -947,23 +847,13 @@ Expr _resolveEvenPowerOnInterval(
         exponent: final r,
       )
       when r is FractionNumber && r.denominator.isOdd) {
-    try {
-      final val = u.evaluate({variable: midpoint});
-      if (val.isFinite && val != 0.0) {
-        final signedBase = val > 0
-            ? u
-            : (-u).simplify(assumptions: assumptions);
-        return Pow.of(
-          signedBase,
-          r.mulRational(IntegerNumber.two),
-        ).simplify(assumptions: assumptions);
-      }
-    } on ArgumentError {
-      // Fall through
-    } on UnsupportedError {
-      // Fall through
-    } on StateError {
-      // Fall through
+    final val = tryEvaluateReal(u, {variable: midpoint});
+    if (val != null && val.isFinite && val != 0.0) {
+      final signedBase = val > 0 ? u : (-u).simplify(assumptions: assumptions);
+      return Pow.of(
+        signedBase,
+        r.mulRational(IntegerNumber.two),
+      ).simplify(assumptions: assumptions);
     }
   }
   return expr.mapChildren(
@@ -993,7 +883,7 @@ List<({double value, Expr expr})>? _collectSymbolicInteriorPoles(
             arg.dependsOn(variable) &&
             low.isFinite &&
             high.isFinite) {
-      try {
+      final okTrig = trySymbolicOp(() {
         final u1 = arg.evaluate({variable: low});
         final u2 = arg.evaluate({variable: high});
         if (u1.isFinite && u2.isFinite) {
@@ -1020,28 +910,19 @@ List<({double value, Expr expr})>? _collectSymbolicInteriorPoles(
             }
           }
         }
-      } on ArgumentError {
-        return null;
-      } on UnsupportedError {
-        return null;
-      } on StateError {
-        return null;
-      }
+        return true;
+      });
+      if (okTrig == null) return null;
     }
-    try {
-      final roots = factor.solve(variable, assumptions: Assumptions.real);
-      for (final root in roots) {
-        if (root.anyNode((n) => n is ComplexNumber)) continue;
-        final v = evaluateBoundNumeric(root);
-        if (v == null || v.isNaN) return null;
-        addPole(v, root);
-      }
-    } on ArgumentError {
-      return null;
-    } on UnsupportedError {
-      return null;
-    } on StateError {
-      return null;
+    final roots = trySymbolicOp(
+      () => factor.solve(variable, assumptions: Assumptions.real),
+    );
+    if (roots == null) return null;
+    for (final root in roots) {
+      if (root.anyNode((n) => n is ComplexNumber)) continue;
+      final v = evaluateBoundNumeric(root);
+      if (v == null || v.isNaN) return null;
+      addPole(v, root);
     }
   }
   poles.sort((a, b) => a.value.compareTo(b.value));
@@ -1056,40 +937,24 @@ bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
   return expr.anyNode((node) {
     if (node case Call(id: FunctionId.tan, args: [final arg])
         when arg.dependsOn(variable)) {
-      try {
-        final u1 = arg.evaluate({variable: low});
-        final u2 = arg.evaluate({variable: high});
-        if (u1.isFinite && u2.isFinite) {
-          final uMin = math.min(u1, u2);
-          final uMax = math.max(u1, u2);
-          final kMin = ((uMin + 1e-9) / math.pi - 0.5).ceil();
-          final kMax = ((uMax - 1e-9) / math.pi - 0.5).floor();
-          if (kMin <= kMax) return true;
-        }
-      } on ArgumentError {
-        // Fall back to root checking
-      } on UnsupportedError {
-        // Fall back to root checking
-      } on StateError {
-        // Fall back to root checking
+      final u1 = tryEvaluateReal(arg, {variable: low});
+      final u2 = tryEvaluateReal(arg, {variable: high});
+      if (u1 != null && u2 != null && u1.isFinite && u2.isFinite) {
+        final uMin = math.min(u1, u2);
+        final uMax = math.max(u1, u2);
+        final kMin = ((uMin + 1e-9) / math.pi - 0.5).ceil();
+        final kMax = ((uMax - 1e-9) / math.pi - 0.5).floor();
+        if (kMin <= kMax) return true;
       }
     }
     if (node case Call(id: FunctionId.ln, args: [final arg])
         when arg.dependsOn(variable)) {
-      try {
-        final u1 = arg.evaluate({variable: low});
-        final u2 = arg.evaluate({variable: high});
-        if (u1.isFinite && u2.isFinite) {
-          final uMin = math.min(u1, u2);
-          final uMax = math.max(u1, u2);
-          if (uMin < 0 || (uMin == 0 && uMax == 0)) return true;
-        }
-      } on ArgumentError {
-        // Ignored.
-      } on UnsupportedError {
-        // Ignored.
-      } on StateError {
-        // Ignored.
+      final u1 = tryEvaluateReal(arg, {variable: low});
+      final u2 = tryEvaluateReal(arg, {variable: high});
+      if (u1 != null && u2 != null && u1.isFinite && u2.isFinite) {
+        final uMin = math.min(u1, u2);
+        final uMax = math.max(u1, u2);
+        if (uMin < 0 || (uMin == 0 && uMax == 0)) return true;
       }
     }
     return false;
@@ -1194,19 +1059,16 @@ List<({double value, Expr expr})>? _antiderivativeJumps(
         tooMany = true;
         return;
       }
-      try {
-        for (final root in arg.solve(variable, assumptions: Assumptions.real)) {
+      final roots = trySymbolicOp(
+        () => arg.solve(variable, assumptions: Assumptions.real),
+      );
+      if (roots != null) {
+        for (final root in roots) {
           final xk = evaluateBoundNumeric(root);
           if (xk != null && xk.isFinite) {
             addJump(xk, root);
           }
         }
-      } on ArgumentError {
-        // Ignored.
-      } on UnsupportedError {
-        // Ignored.
-      } on StateError {
-        // Ignored.
       }
     }
     node.mapChildren((child) {
@@ -2266,70 +2128,50 @@ Expr? _tryPiecewiseAbsMinMax(
             handledTrig = true;
           }
         }
-      } else if (vTerms.length == 2 &&
-          vTerms[0] is Call &&
-          (vTerms[0] as Call).id == FunctionId.sin) {
-        if (vTerms[1] case Mul(:final factors)
-            when factors.length == 2 &&
-                factors.contains(IntegerNumber.negativeOne) &&
-                factors.any((f) => f is Call && f.id == FunctionId.sin)) {
-          final u = (vTerms[0] as Call).args[0];
-          final v = (factors.firstWhere(
-            (f) => f is Call && f.id == FunctionId.sin,
-          ) as Call).args[0];
-          addTrigZeroFamilies(
-            ((u - v) / IntegerNumber.two).simplify(assumptions: assumptions),
-            IntegerNumber.zero,
-            Constant.pi,
-          );
-          addTrigZeroFamilies(
-            ((u + v) / IntegerNumber.two).simplify(assumptions: assumptions),
-            (Constant.pi / IntegerNumber.two).simplify(),
-            Constant.pi,
-          );
-          handledTrig = true;
+      } else if (vTerms.length == 2) {
+        bool matchSinTermAndNegSin(Expr posCand, Expr negCand) {
+          if (posCand case Call(id: FunctionId.sin, args: [final u])) {
+            if (negCand case Mul(:final factors)
+                when factors.length == 2 &&
+                    factors.contains(IntegerNumber.negativeOne) &&
+                    factors.any((f) => f is Call && f.id == FunctionId.sin)) {
+              final v = (factors.firstWhere(
+                (f) => f is Call && f.id == FunctionId.sin,
+              ) as Call).args[0];
+              addTrigZeroFamilies(
+                ((u - v) / IntegerNumber.two).simplify(
+                  assumptions: assumptions,
+                ),
+                IntegerNumber.zero,
+                Constant.pi,
+              );
+              addTrigZeroFamilies(
+                ((u + v) / IntegerNumber.two).simplify(
+                  assumptions: assumptions,
+                ),
+                (Constant.pi / IntegerNumber.two).simplify(),
+                Constant.pi,
+              );
+              return true;
+            }
+          }
+          return false;
         }
-      } else if (vTerms.length == 2 &&
-          vTerms[1] is Call &&
-          (vTerms[1] as Call).id == FunctionId.sin) {
-        if (vTerms[0] case Mul(:final factors)
-            when factors.length == 2 &&
-                factors.contains(IntegerNumber.negativeOne) &&
-                factors.any((f) => f is Call && f.id == FunctionId.sin)) {
-          final u = (vTerms[1] as Call).args[0];
-          final v = (factors.firstWhere(
-            (f) => f is Call && f.id == FunctionId.sin,
-          ) as Call).args[0];
-          addTrigZeroFamilies(
-            ((u - v) / IntegerNumber.two).simplify(assumptions: assumptions),
-            IntegerNumber.zero,
-            Constant.pi,
-          );
-          addTrigZeroFamilies(
-            ((u + v) / IntegerNumber.two).simplify(assumptions: assumptions),
-            (Constant.pi / IntegerNumber.two).simplify(),
-            Constant.pi,
-          );
-          handledTrig = true;
-        }
+
+        handledTrig =
+            matchSinTermAndNegSin(vTerms[0], vTerms[1]) ||
+            matchSinTermAndNegSin(vTerms[1], vTerms[0]);
       }
     }
     if (!handledTrig) {
-      try {
-        for (final root in target.solve(
-          variable,
-          assumptions: Assumptions.real,
-        )) {
-          if (root.anyNode((n) => n is ComplexNumber)) continue;
-          final rv = evaluateBoundNumeric(root);
-          if (rv != null) addBreak(rv, root);
-        }
-      } on ArgumentError {
-        return null;
-      } on UnsupportedError {
-        return null;
-      } on StateError {
-        return null;
+      final roots = trySymbolicOp(
+        () => target.solve(variable, assumptions: Assumptions.real),
+      );
+      if (roots == null) return null;
+      for (final root in roots) {
+        if (root.anyNode((n) => n is ComplexNumber)) continue;
+        final rv = evaluateBoundNumeric(root);
+        if (rv != null) addBreak(rv, root);
       }
     }
   }
@@ -2415,4 +2257,41 @@ Expr? _tryPiecewiseAbsMinMax(
     }
   }
   return Add.of(parts).simplify(assumptions: assumptions);
+}
+
+Expr? _evalPieceLimitDiff(
+  Expr anti,
+  String variable,
+  Expr pLow,
+  Expr pHigh, {
+  required Assumptions assumptions,
+}) {
+  try {
+    final upper = isInfiniteBound(pHigh)
+        ? anti.limit(variable, pHigh, assumptions: assumptions)
+        : anti.limit(
+            variable,
+            pHigh,
+            direction: LimitDirection.fromBelow,
+            assumptions: assumptions,
+          );
+    final lower = isInfiniteBound(pLow)
+        ? anti.limit(variable, pLow, assumptions: assumptions)
+        : anti.limit(
+            variable,
+            pLow,
+            direction: LimitDirection.fromAbove,
+            assumptions: assumptions,
+          );
+    final diff = (upper - lower).simplify(assumptions: assumptions);
+    return diff.anyNode((n) => n is Limit || n == Constant.undefined)
+        ? null
+        : diff;
+  } on ArgumentError {
+    return null;
+  } on UnsupportedError {
+    return null;
+  } on StateError {
+    return null;
+  }
 }

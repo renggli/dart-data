@@ -105,40 +105,18 @@ double evalNodeReal(
     return compileInner(lim).evaluateMap(context);
   }
   if (node case Sum(:final expr, :final variable, :final lower, :final upper)) {
-    final a = compileInner(lower).evaluateMap(context);
-    final b = compileInner(upper).evaluateMap(context);
-    if (a.isNaN || b.isNaN) return double.nan;
-    final aIsInt = a.isFinite && a == a.roundToDouble();
-    final bIsInt = b.isFinite && b == b.roundToDouble();
-    if (aIsInt && bIsInt && b < a) return 0.0;
-    if (aIsInt &&
-        bIsInt &&
-        a.abs() <= 1e15 &&
-        b.abs() <= 1e15 &&
-        (b - a) <= 100000) {
-      final start = a.round();
-      final end = b.round();
-      final eval = compileInner(expr);
-      final localCtx = Map<String, double>.of(context);
-      var total = 0.0;
-      for (var k = start; k <= end; k++) {
-        localCtx[variable] = k.toDouble();
-        total += eval.evaluateMap(localCtx);
-      }
-      return total;
-    }
-    if ((a.isFinite && !aIsInt) || (b.isFinite && !bIsInt)) return double.nan;
-    var substituted = expr;
-    for (final MapEntry(:key, :value) in context.entries) {
-      if (key != variable) {
-        substituted = substituted.substitute(key, Expr.wrap(value));
-      }
-    }
-    final s = substituted.sum(variable, Expr.wrap(a), Expr.wrap(b));
-    if (!s.anyNode((n) => n is Sum)) {
-      return compileInner(s).evaluateMap(context);
-    }
-    return double.nan;
+    return _evalDiscreteBinder(
+      expr: expr,
+      variable: variable,
+      lower: lower,
+      upper: upper,
+      context: context,
+      compileInner: compileInner,
+      identity: 0.0,
+      step: (acc, val) => acc + val,
+      hasBinder: (e) => e.anyNode((n) => n is Sum),
+      buildSymbolic: (s, a, b) => s.sum(variable, a, b),
+    );
   }
   if (node case Product(
     :final expr,
@@ -146,40 +124,18 @@ double evalNodeReal(
     :final lower,
     :final upper,
   )) {
-    final a = compileInner(lower).evaluateMap(context);
-    final b = compileInner(upper).evaluateMap(context);
-    if (a.isNaN || b.isNaN) return double.nan;
-    final aIsInt = a.isFinite && a == a.roundToDouble();
-    final bIsInt = b.isFinite && b == b.roundToDouble();
-    if (aIsInt && bIsInt && b < a) return 1.0;
-    if (aIsInt &&
-        bIsInt &&
-        a.abs() <= 1e15 &&
-        b.abs() <= 1e15 &&
-        (b - a) <= 100000) {
-      final start = a.round();
-      final end = b.round();
-      final eval = compileInner(expr);
-      final localCtx = Map<String, double>.of(context);
-      var total = 1.0;
-      for (var k = start; k <= end; k++) {
-        localCtx[variable] = k.toDouble();
-        total *= eval.evaluateMap(localCtx);
-      }
-      return total;
-    }
-    if ((a.isFinite && !aIsInt) || (b.isFinite && !bIsInt)) return double.nan;
-    var substituted = expr;
-    for (final MapEntry(:key, :value) in context.entries) {
-      if (key != variable) {
-        substituted = substituted.substitute(key, Expr.wrap(value));
-      }
-    }
-    final p = substituted.product(variable, Expr.wrap(a), Expr.wrap(b));
-    if (!p.anyNode((n) => n is Product)) {
-      return compileInner(p).evaluateMap(context);
-    }
-    return double.nan;
+    return _evalDiscreteBinder(
+      expr: expr,
+      variable: variable,
+      lower: lower,
+      upper: upper,
+      context: context,
+      compileInner: compileInner,
+      identity: 1.0,
+      step: (acc, val) => acc * val,
+      hasBinder: (e) => e.anyNode((n) => n is Product),
+      buildSymbolic: (s, a, b) => s.product(variable, a, b),
+    );
   }
   if (node case final RootSum rootSum) {
     final complexCtx = <String, Complex>{
@@ -381,4 +337,53 @@ List<Complex> _findComplexPolyRoots(List<Complex> coeffs) {
   }
 
   return [...zeroRoots, ...roots];
+}
+
+double _evalDiscreteBinder({
+  required Expr expr,
+  required String variable,
+  required Expr lower,
+  required Expr upper,
+  required Map<String, double> context,
+  required BytecodeEvaluator Function(Expr) compileInner,
+  required double identity,
+  required double Function(double acc, double val) step,
+  required bool Function(Expr) hasBinder,
+  required Expr Function(Expr substituted, Expr lower, Expr upper)
+  buildSymbolic,
+}) {
+  final a = compileInner(lower).evaluateMap(context);
+  final b = compileInner(upper).evaluateMap(context);
+  if (a.isNaN || b.isNaN) return double.nan;
+  final aIsInt = a.isFinite && a == a.roundToDouble();
+  final bIsInt = b.isFinite && b == b.roundToDouble();
+  if (aIsInt && bIsInt && b < a) return identity;
+  if (aIsInt &&
+      bIsInt &&
+      a.abs() <= 1e15 &&
+      b.abs() <= 1e15 &&
+      (b - a) <= 100000) {
+    final start = a.round();
+    final end = b.round();
+    final eval = compileInner(expr);
+    final localCtx = Map<String, double>.of(context);
+    var total = identity;
+    for (var k = start; k <= end; k++) {
+      localCtx[variable] = k.toDouble();
+      total = step(total, eval.evaluateMap(localCtx));
+    }
+    return total;
+  }
+  if ((a.isFinite && !aIsInt) || (b.isFinite && !bIsInt)) return double.nan;
+  var substituted = expr;
+  for (final MapEntry(:key, :value) in context.entries) {
+    if (key != variable) {
+      substituted = substituted.substitute(key, Expr.wrap(value));
+    }
+  }
+  final reduced = buildSymbolic(substituted, Expr.wrap(a), Expr.wrap(b));
+  if (!hasBinder(reduced)) {
+    return compileInner(reduced).evaluateMap(context);
+  }
+  return double.nan;
 }

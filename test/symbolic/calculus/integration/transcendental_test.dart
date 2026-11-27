@@ -103,6 +103,16 @@ void main() {
             .isLessThan(identical(0, 0.0) ? 1500 : 500);
         check(res).isA<Expr>();
       }
+
+      // Exponential Laurent-part Risch reduction (exp(x)^(-2) * D(exp(x)))
+      final laurentExp = Expr.parse('(exp(x) + 1) / (exp(x)^2 * (exp(x) + 2))');
+      final antiLaurent = laurentExp.integrate('x');
+      check(antiLaurent.anyNode((n) => n is Integral)).isFalse;
+      check(
+        (antiLaurent.derivative('x').evaluate(const {'x': 0.5}) -
+                laurentExp.evaluate(const {'x': 0.5}))
+            .abs(),
+      ).isCloseTo(0.0, 1e-10);
     });
   });
 }

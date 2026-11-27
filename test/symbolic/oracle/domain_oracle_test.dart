@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/oracle/domain_oracle.dart';
 import 'package:data/src/symbolic/oracle/interval.dart';
 import 'package:data/src/symbolic/oracle/sign.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -181,6 +184,90 @@ void main() {
       check(tryStaticRealValue(Constant.pi)).isNotNull();
       check(tryStaticRealValue(ComplexNumber.i)).isNull;
       check(tryStaticRealValue(x)).isNull;
+
+      // Interval, sign, parity, and realness branches on DomainOracle directly
+      const y = Variable('y');
+      final richAssumptions = Assumptions.none
+          .withBounds(
+            'x',
+            lower: IntegerNumber.of(-2),
+            upper: IntegerNumber.of(5),
+          )
+          .withNonNegative('x')
+          .withNegative('n')
+          .withBounds(
+            'n',
+            lower: IntegerNumber.of(-5),
+            upper: IntegerNumber.one,
+          )
+          .withNonPositive('p')
+          .withBounds(
+            'p',
+            lower: IntegerNumber.of(-3),
+            upper: IntegerNumber.two,
+          )
+          .withDomain('q', VariableDomain.real)
+          .withNonNegative('u')
+          .withRelation(Relational.greaterThan(x, y))
+          .withRelation(Relational.greaterEqual(const Variable('g'), y))
+          .withRelation(Relational.lessThan(const Variable('l'), y))
+          .withRelation(Relational.lessEqual(const Variable('le'), y))
+          .withRelation(Relational.equal(const Variable('eq'), y))
+          .withRelation(Relational.notEqual(const Variable('ne'), y));
+      final oracle = DomainOracle(richAssumptions);
+      check(oracle.intervalOf(Fn.floor(x)).lo).isGreaterOrEqual(0.0);
+      check(oracle.intervalOf(Fn.ceil(x)).lo).isGreaterOrEqual(0.0);
+      check(oracle.intervalOf(Fn.round(x)).lo).isGreaterOrEqual(0.0);
+      check(oracle.intervalOf(Fn.sign(x)).hi).isLessOrEqual(1.0);
+      check(oracle.intervalOf(Fn.erfc(x)).lo).isGreaterOrEqual(0.0);
+      check(oracle.intervalOf(Fn.atan2(x, const Variable('q'))).hi)
+          .isCloseTo(math.pi, 1e-12);
+      check(
+        oracle.signOf(
+          ComplexNumber.of(IntegerNumber.of(-3), IntegerNumber.zero),
+        ),
+      ).equals(Sign.negative);
+      check(oracle.signOf(const Constant('negConst', Complex(-2.5))))
+          .equals(Sign.negative);
+      check(oracle.signOf((x - y).simplify())).equals(Sign.positive);
+      check(oracle.signOf((y - x).simplify())).equals(Sign.negative);
+      check(oracle.signOf((const Variable('g') - y).simplify()))
+          .equals(Sign.nonNegative);
+      check(oracle.signOf((y - const Variable('g')).simplify()))
+          .equals(Sign.nonPositive);
+      check(oracle.signOf((const Variable('l') - y).simplify()))
+          .equals(Sign.negative);
+      check(oracle.signOf((y - const Variable('l')).simplify()))
+          .equals(Sign.positive);
+      check(oracle.signOf((const Variable('le') - y).simplify()))
+          .equals(Sign.nonPositive);
+      check(oracle.signOf((y - const Variable('le')).simplify()))
+          .equals(Sign.nonNegative);
+      check(oracle.signOf((const Variable('eq') - y).simplify()))
+          .equals(Sign.zero);
+      check(oracle.signOf((y - const Variable('eq')).simplify()))
+          .equals(Sign.zero);
+      check(oracle.signOf((const Variable('ne') - y).simplify()))
+          .equals(Sign.nonZero);
+      check(oracle.signOf((y - const Variable('ne')).simplify()))
+          .equals(Sign.nonZero);
+      check(oracle.isZero((const Variable('eq') - y).simplify())).isTrue;
+      check(oracle.signOf(Fn.ln(FractionNumber.half))).equals(Sign.negative);
+      check(oracle.signOf(Fn.ln(IntegerNumber.one))).equals(Sign.zero);
+      check(
+        oracle.isEvenInteger(Pow.of(IntegerNumber.two, IntegerNumber.of(3))),
+      ).isTrue;
+      check(oracle.isReal(Fn.binomial(FractionNumber.half, IntegerNumber.two)))
+          .isTrue;
+      check(
+        oracle.isReal(
+          Fn.hypergeometric(
+            Fn.tuple([IntegerNumber.one, IntegerNumber.two]),
+            Fn.tuple([IntegerNumber.of(3)]),
+            FractionNumber.half,
+          ),
+        ),
+      ).isTrue;
     });
   });
 }

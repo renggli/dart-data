@@ -527,18 +527,13 @@ PowerSeries expandAcosh(Expr inner, String variable, Expr point, int order) {
   checkNoPole(u, 'acosh');
   final u0 = u.constantTerm;
   if (!u0.dependsOn(variable)) {
-    try {
-      if (u0.evaluate(const {}) <= 1.0) {
+    if (u0.freeVariables.isEmpty) {
+      final v = tryEvaluateReal(u0);
+      if (v != null && v <= 1.0) {
         throw UnsupportedError(
           'Acosh series requires inner constant term > 1 (got $u0)',
         );
       }
-    } on UnsupportedError {
-      rethrow;
-    } on ArgumentError {
-      // Ignore numeric evaluation errors on symbolic constants
-    } on StateError {
-      // Ignore numeric evaluation errors on symbolic constants
     }
   }
   final uPrime = u.derivative();
@@ -576,13 +571,22 @@ PowerSeries expandPiecewise(
   int order,
 ) {
   if (!point.dependsOn(variable)) {
-    try {
-      final ptVal = point.evaluate(const {});
+    final ptVal = tryEvaluateReal(point);
+    if (ptVal != null) {
       final eps = math.max(1e-7, ptVal.abs() * 1e-7);
       for (final (:relation, :expr) in branches) {
-        final atPt = relation.evaluate({variable: ptVal});
-        final leftVal = relation.evaluate({variable: ptVal - eps});
-        final rightVal = relation.evaluate({variable: ptVal + eps});
+        final atPt = trySymbolicOp(() => relation.evaluate({variable: ptVal}));
+        final leftVal = trySymbolicOp(
+          () => relation.evaluate({variable: ptVal - eps}),
+        );
+        final rightVal = trySymbolicOp(
+          () => relation.evaluate({variable: ptVal + eps}),
+        );
+        if (atPt == null || leftVal == null || rightVal == null) {
+          throw UnsupportedError(
+            'Power series expansion not supported for Piecewise at $point',
+          );
+        }
         if (atPt != leftVal || atPt != rightVal) {
           throw UnsupportedError(
             'Piecewise expression is not analytic at boundary point $point',
@@ -595,12 +599,6 @@ PowerSeries expandPiecewise(
       if (otherwise != null) {
         return expandToPowerSeries(otherwise, variable, point, order);
       }
-    } on UnsupportedError {
-      rethrow;
-    } on ArgumentError {
-      // Fall through if point is not numerically evaluable
-    } on StateError {
-      // Fall through if point is not numerically evaluable
     }
   }
   throw UnsupportedError(
@@ -612,22 +610,9 @@ PowerSeries expandSign(Expr inner, String variable, Expr point, int order) {
   final sInner = expandToPowerSeries(inner, variable, point, order);
   checkNoPole(sInner, 'sign');
   final c0 = sInner.constantTerm;
-  if (PowerSeries.isZero(c0)) {
+  if (PowerSeries.isZero(c0) ||
+      (c0.freeVariables.isEmpty && tryEvaluateReal(c0) == 0.0)) {
     throw UnsupportedError('Sign is non-differentiable at zero');
-  }
-  if (c0.freeVariables.isEmpty) {
-    try {
-      final v = c0.evaluate();
-      if (v == 0.0) {
-        throw UnsupportedError('Sign is non-differentiable at zero');
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on ArgumentError {
-      // Ignore evaluation errors
-    } on StateError {
-      // Ignore evaluation errors
-    }
   }
   return PowerSeries(variable, point, {0: Fn.sign(c0).simplify()}, order);
 }
@@ -636,22 +621,9 @@ PowerSeries expandFloor(Expr inner, String variable, Expr point, int order) {
   final sInner = expandToPowerSeries(inner, variable, point, order);
   checkNoPole(sInner, 'floor');
   final c0 = sInner.constantTerm;
-  if (c0 is IntegerNumber) {
+  final v = c0.freeVariables.isEmpty ? tryEvaluateReal(c0) : null;
+  if (c0 is IntegerNumber || (v != null && v == v.floorToDouble())) {
     throw UnsupportedError('Floor is discontinuous at integers');
-  }
-  if (c0.freeVariables.isEmpty) {
-    try {
-      final v = c0.evaluate();
-      if (v == v.floorToDouble()) {
-        throw UnsupportedError('Floor is discontinuous at integers');
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on ArgumentError {
-      // Ignore evaluation errors
-    } on StateError {
-      // Ignore evaluation errors
-    }
   }
   return PowerSeries(variable, point, {0: Fn.floor(c0).simplify()}, order);
 }
@@ -660,22 +632,9 @@ PowerSeries expandCeil(Expr inner, String variable, Expr point, int order) {
   final sInner = expandToPowerSeries(inner, variable, point, order);
   checkNoPole(sInner, 'ceil');
   final c0 = sInner.constantTerm;
-  if (c0 is IntegerNumber) {
+  final v = c0.freeVariables.isEmpty ? tryEvaluateReal(c0) : null;
+  if (c0 is IntegerNumber || (v != null && v == v.ceilToDouble())) {
     throw UnsupportedError('Ceil is discontinuous at integers');
-  }
-  if (c0.freeVariables.isEmpty) {
-    try {
-      final v = c0.evaluate();
-      if (v == v.ceilToDouble()) {
-        throw UnsupportedError('Ceil is discontinuous at integers');
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on ArgumentError {
-      // Ignore evaluation errors
-    } on StateError {
-      // Ignore evaluation errors
-    }
   }
   return PowerSeries(variable, point, {0: Fn.ceil(c0).simplify()}, order);
 }
@@ -684,19 +643,9 @@ PowerSeries expandRound(Expr inner, String variable, Expr point, int order) {
   final sInner = expandToPowerSeries(inner, variable, point, order);
   checkNoPole(sInner, 'round');
   final c0 = sInner.constantTerm;
-  if (c0.freeVariables.isEmpty) {
-    try {
-      final v = c0.evaluate();
-      if ((v - 0.5) == (v - 0.5).floorToDouble()) {
-        throw UnsupportedError('Round is discontinuous at half-integers');
-      }
-    } on UnsupportedError {
-      rethrow;
-    } on ArgumentError {
-      // Ignore evaluation errors
-    } on StateError {
-      // Ignore evaluation errors
-    }
+  final v = c0.freeVariables.isEmpty ? tryEvaluateReal(c0) : null;
+  if (v != null && (v - 0.5) == (v - 0.5).floorToDouble()) {
+    throw UnsupportedError('Round is discontinuous at half-integers');
   }
   return PowerSeries(variable, point, {0: Fn.round(c0).simplify()}, order);
 }
@@ -736,73 +685,41 @@ PowerSeries expandTaylorSeries(
   return PowerSeries(variable, point, coeffs, order);
 }
 
-PowerSeries expandGamma(Expr inner, String variable, Expr point, int order) {
-  void checkGammaPole(Expr atPoint) {
-    final u0 = inner.substitute(variable, point).simplify();
-    if (u0 is IntegerNumber && u0.value <= BigInt.zero) {
-      throw UnsupportedError('Gamma has poles at non-positive integers ($u0)');
-    }
-    if (u0.freeVariables.isEmpty) {
-      try {
-        final val = u0.evaluate();
-        if (val <= 0.0 && val == val.floorToDouble()) {
-          throw UnsupportedError(
-            'Gamma has poles at non-positive integers ($val)',
-          );
-        }
-      } on UnsupportedError {
-        rethrow;
-      } on ArgumentError {
-        // Ignore evaluation errors
-      } on StateError {
-        // Ignore evaluation errors
-      }
-    }
+void _checkNonPositiveIntPole(
+  Expr inner,
+  String variable,
+  Expr point,
+  String fnName,
+) {
+  final u0 = inner.substitute(variable, point).simplify();
+  if (u0 is IntegerNumber && u0.value <= BigInt.zero) {
+    throw UnsupportedError('$fnName has poles at non-positive integers ($u0)');
   }
-
-  return expandTaylorSeries(
-    Fn.gamma(inner),
-    variable,
-    point,
-    order,
-    checkSingularity: checkGammaPole,
-  );
+  final val = u0.freeVariables.isEmpty ? tryEvaluateReal(u0) : null;
+  if (val != null && val <= 0.0 && val == val.floorToDouble()) {
+    throw UnsupportedError('$fnName has poles at non-positive integers ($val)');
+  }
 }
 
-PowerSeries expandDigamma(Expr inner, String variable, Expr point, int order) {
-  void checkDigammaPole(Expr atPoint) {
-    final u0 = inner.substitute(variable, point).simplify();
-    if (u0 is IntegerNumber && u0.value <= BigInt.zero) {
-      throw UnsupportedError(
-        'Digamma has poles at non-positive integers ($u0)',
-      );
-    }
-    if (u0.freeVariables.isEmpty) {
-      try {
-        final val = u0.evaluate();
-        if (val <= 0.0 && val == val.floorToDouble()) {
-          throw UnsupportedError(
-            'Digamma has poles at non-positive integers ($val)',
-          );
-        }
-      } on UnsupportedError {
-        rethrow;
-      } on ArgumentError {
-        // Ignore evaluation errors
-      } on StateError {
-        // Ignore evaluation errors
-      }
-    }
-  }
+PowerSeries expandGamma(Expr inner, String variable, Expr point, int order) =>
+    expandTaylorSeries(
+      Fn.gamma(inner),
+      variable,
+      point,
+      order,
+      checkSingularity: (_) =>
+          _checkNonPositiveIntPole(inner, variable, point, 'Gamma'),
+    );
 
-  return expandTaylorSeries(
-    Fn.digamma(inner),
-    variable,
-    point,
-    order,
-    checkSingularity: checkDigammaPole,
-  );
-}
+PowerSeries expandDigamma(Expr inner, String variable, Expr point, int order) =>
+    expandTaylorSeries(
+      Fn.digamma(inner),
+      variable,
+      point,
+      order,
+      checkSingularity: (_) =>
+          _checkNonPositiveIntPole(inner, variable, point, 'Digamma'),
+    );
 
 PowerSeries expandPolygamma(
   Expr m,
@@ -810,60 +727,21 @@ PowerSeries expandPolygamma(
   String variable,
   Expr point,
   int order,
-) {
-  void checkPolygammaPole(Expr atPoint) {
-    final u0 = inner.substitute(variable, point).simplify();
-    if (u0 is IntegerNumber && u0.value <= BigInt.zero) {
-      throw UnsupportedError(
-        'Polygamma has poles at non-positive integers ($u0)',
-      );
-    }
-    if (u0.freeVariables.isEmpty) {
-      try {
-        final val = u0.evaluate();
-        if (val <= 0.0 && val == val.floorToDouble()) {
-          throw UnsupportedError(
-            'Polygamma has poles at non-positive integers ($val)',
-          );
-        }
-      } on UnsupportedError {
-        rethrow;
-      } on ArgumentError {
-        // Ignore evaluation errors
-      } on StateError {
-        // Ignore evaluation errors
-      }
-    }
-  }
-
-  return expandTaylorSeries(
-    Fn.polygamma(m, inner),
-    variable,
-    point,
-    order,
-    checkSingularity: checkPolygammaPole,
-  );
-}
+) => expandTaylorSeries(
+  Fn.polygamma(m, inner),
+  variable,
+  point,
+  order,
+  checkSingularity: (_) =>
+      _checkNonPositiveIntPole(inner, variable, point, 'Polygamma'),
+);
 
 PowerSeries expandZeta(Expr inner, String variable, Expr point, int order) {
   void checkZetaPole(Expr atPoint) {
     final u0 = inner.substitute(variable, point).simplify();
-    if (u0 == IntegerNumber.one) {
+    if (u0 == IntegerNumber.one ||
+        (u0.freeVariables.isEmpty && tryEvaluateReal(u0) == 1.0)) {
       throw UnsupportedError('Zeta has a pole at 1');
-    }
-    if (u0.freeVariables.isEmpty) {
-      try {
-        final val = u0.evaluate();
-        if (val == 1.0) {
-          throw UnsupportedError('Zeta has a pole at 1');
-        }
-      } on UnsupportedError {
-        rethrow;
-      } on ArgumentError {
-        // Ignore evaluation errors
-      } on StateError {
-        // Ignore evaluation errors
-      }
     }
   }
 
@@ -887,21 +765,10 @@ PowerSeries expandBessel(
   final fnName = isModified ? 'besselI' : 'besselJ';
   void checkBesselSingularity(Expr atPoint) {
     final u0 = inner.substitute(variable, point).simplify();
+    final nuVal = nu.freeVariables.isEmpty ? tryEvaluateReal(nu) : null;
     final isNuInt =
         nu is IntegerNumber ||
-        (nu.freeVariables.isEmpty &&
-            () {
-              try {
-                final v = nu.evaluate();
-                return v == v.floorToDouble();
-              } on UnsupportedError {
-                return false;
-              } on ArgumentError {
-                return false;
-              } on StateError {
-                return false;
-              }
-            }());
+        (nuVal != null && nuVal == nuVal.floorToDouble());
     if (PowerSeries.isZero(u0) && !isNuInt) {
       throw UnsupportedError(
         '$fnName has a branch point at zero for non-integer orders',

@@ -438,27 +438,11 @@ Expr? matchVieteCosineProduct(
   int startInt, {
   required Assumptions assumptions,
 }) {
-  final factors = inner is Mul ? inner.factors : [inner];
-  final ratios = <Expr>[];
-  final scales = <Expr>[];
-  final remaining = <Expr>[];
-
-  for (final f in factors) {
-    if (f case Pow(:final base, :final exponent)
-        when !base.dependsOn(variable) && exponent.dependsOn(variable)) {
-      if (exponent.matchLinear(variable) case (:final a, :final b)) {
-        ratios.add(Pow.of(base, a).simplify());
-        if (b != IntegerNumber.zero) {
-          scales.add(Pow.of(base, b).simplify());
-        }
-        continue;
-      }
-    }
-    remaining.add(f);
-  }
-
-  final ratio = simplifyMul(ratios, assumptions: assumptions);
-  final scale = simplifyMul(scales, assumptions: assumptions);
+  final (:ratio, :scale, :remaining) = extractExponentialFactors(
+    inner is Mul ? inner.factors : [inner],
+    variable,
+    assumptions: assumptions,
+  );
   if (ratio != FractionNumber.half) return null;
   if (remaining.any((f) => f.dependsOn(variable))) return null;
   final xPart = (scale * simplifyMul(remaining, assumptions: assumptions))
@@ -732,4 +716,41 @@ Expr? evalTermAtInt(
   } on StateError {
     return null;
   }
+}
+
+/// Decomposes exponential factors `base^(a*k + b)` in [factors] into
+/// combined ratio `r = prod base_i^{a_i}`, constant multiplier `scale`,
+/// and non-exponential `remaining` factors.
+({Expr ratio, Expr scale, List<Expr> remaining}) extractExponentialFactors(
+  List<Expr> factors,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final ratios = <Expr>[];
+  final scales = <Expr>[];
+  final remaining = <Expr>[];
+
+  for (final f in factors) {
+    if (f case Pow(:final base, :final exponent)
+        when !base.dependsOn(variable) && exponent.dependsOn(variable)) {
+      if (exponent.matchLinear(variable) case (:final a, :final b)) {
+        ratios.add(Pow.of(base, a).simplify());
+        if (b != IntegerNumber.zero) {
+          scales.add(Pow.of(base, b).simplify());
+        }
+        continue;
+      }
+    }
+    remaining.add(f);
+  }
+
+  return (
+    ratio: ratios.isEmpty
+        ? IntegerNumber.one
+        : simplifyMul(ratios, assumptions: assumptions).simplify(),
+    scale: scales.isEmpty
+        ? IntegerNumber.one
+        : simplifyMul(scales, assumptions: assumptions).simplify(),
+    remaining: remaining,
+  );
 }

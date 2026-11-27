@@ -77,6 +77,38 @@ void main() {
         check(sq.length).equals(2);
         check(sq[0]).equals((factor: xPlus1, multiplicity: 1));
         check(sq[1]).equals((factor: xMinus1, multiplicity: 2));
+
+        check(PolyZ.one.isConstant).isTrue;
+        check(() => PolyZ.monomial(-1)).throws<ArgumentError>();
+        check(-PolyZ.monomial(2))
+            .equals(PolyZ([BigInt.zero, BigInt.zero, BigInt.from(-1)]));
+        check(PolyZ.monomial(1) - PolyZ.one)
+            .equals(PolyZ([BigInt.from(-1), BigInt.one]));
+        check(PolyZ.monomial(1).scale(BigInt.from(3)))
+            .equals(PolyZ([BigInt.zero, BigInt.from(3)]));
+        check(() => PolyZ.one.pseudoDivide(PolyZ.zero)).throws<ArgumentError>();
+        check(() => PolyZ.one.exactDivide(PolyZ.zero)).throws<ArgumentError>();
+        check(
+          PolyZ.constant(BigInt.two).resultant(PolyZ([BigInt.one, BigInt.one])),
+        ).equals(BigInt.two);
+        check(
+          PolyZ([BigInt.one, BigInt.one])
+              .resultant(PolyZ.constant(BigInt.from(3))),
+        ).equals(BigInt.from(3));
+        check(PolyZ.one.toString()).isNotEmpty;
+
+        check(() => PolyQ.monomial(-1)).throws<ArgumentError>();
+        check(
+          PolyQ.monomial(2, RationalNumber(1, 2)).evaluate(IntegerNumber.two),
+        ).equals(IntegerNumber.two);
+        check(PolyQ.zero.clearDenominators().primitive).equals(PolyZ.zero);
+        check(() => PolyQ.one.divRem(PolyQ.zero)).throws<ArgumentError>();
+        check(
+          PolyQ.constant(IntegerNumber.two)
+              .resultant(PolyQ([IntegerNumber.one, IntegerNumber.one])),
+        ).equals(IntegerNumber.two);
+        check(PolyQ.one.hashCode).equals(PolyQ.one.hashCode);
+        check(PolyQ.one.toString()).isNotEmpty;
       },
     );
   });

@@ -38,7 +38,8 @@ class MonomialAccumulator {
   /// Map of symbolic term bases to their numeric coefficients.
   final Map<Expr, Number> terms = {};
 
-  /// Whether any transcendental term (Sin, Cos, Sinh, Cosh, Ln, etc.) was added.
+  /// Whether any transcendental term (`sin`, `cos`, `sinh`, `cosh`, `ln`, etc.)
+  /// was added.
   bool hasTranscendental = false;
 
   /// Whether an undefined / indeterminate result was encountered.

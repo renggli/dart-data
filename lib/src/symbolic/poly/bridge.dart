@@ -32,52 +32,52 @@ Expr polyQToExpr(PolyQ poly, String variable) =>
 Expr polyZToExpr(PolyZ poly, String variable) {
   if (poly.isZero) return IntegerNumber.zero;
   if (poly.isConstant) return IntegerNumber(poly.coeffs.first);
-  final x = Variable(variable);
-  final coeffs = poly.coeffs;
-  final terms = <Expr>[];
-  if (coeffs[0] != BigInt.zero) {
-    terms.add(IntegerNumber(coeffs[0]));
-  }
-  if (coeffs.length > 1 && coeffs[1] != BigInt.zero) {
-    final c = IntegerNumber(coeffs[1]);
-    terms.add(c.isOne ? x : Mul.canonical([c, x], simplified: true));
-  }
-  for (var k = 2; k < coeffs.length; k++) {
-    final raw = coeffs[k];
-    if (raw == BigInt.zero) continue;
-    final c = IntegerNumber(raw);
-    final xk = Pow.canonical(x, IntegerNumber.of(k), simplified: true);
-    terms.add(c.isOne ? xk : Mul.canonical([c, xk], simplified: true));
-  }
-  return switch (terms) {
-    [] => IntegerNumber.zero,
-    [final single] => single,
-    _ => Add.canonical(terms, simplified: true),
-  };
+  return _buildPolyExpr(
+    poly.coeffs,
+    variable,
+    isZero: (c) => c == BigInt.zero,
+    isOne: (c) => c == BigInt.one,
+    toExpr: IntegerNumber.new,
+  );
 }
-
-/// Builds canonical linear factor expression `q * x - p`.
-Expr buildLinearFactorExpr(BigInt q, BigInt p, String variable) =>
-    polyZToExpr(PolyZ([-p, q]), variable);
 
 /// Builds canonical simplified [Expr] from ascending [RationalNumber]
 /// coefficients `[c_0, c_1, ..., c_d]`.
-Expr buildPolyExprFromRational(List<RationalNumber> coeffs, String variable) {
+Expr buildPolyExprFromRational(List<RationalNumber> coeffs, String variable) =>
+    _buildPolyExpr(
+      coeffs,
+      variable,
+      isZero: (c) => c.isZero,
+      isOne: (c) => c.isOne,
+      toExpr: (c) => c,
+    );
+
+Expr _buildPolyExpr<C>(
+  List<C> coeffs,
+  String variable, {
+  required bool Function(C) isZero,
+  required bool Function(C) isOne,
+  required Expr Function(C) toExpr,
+}) {
   if (coeffs.isEmpty) return IntegerNumber.zero;
   final x = Variable(variable);
   final terms = <Expr>[];
-  if (!coeffs[0].isZero) {
-    terms.add(coeffs[0]);
+  if (!isZero(coeffs[0])) {
+    terms.add(toExpr(coeffs[0]));
   }
-  if (coeffs.length > 1 && !coeffs[1].isZero) {
-    final c = coeffs[1];
-    terms.add(c.isOne ? x : Mul.canonical([c, x], simplified: true));
+  if (coeffs.length > 1 && !isZero(coeffs[1])) {
+    final raw = coeffs[1];
+    terms.add(
+      isOne(raw) ? x : Mul.canonical([toExpr(raw), x], simplified: true),
+    );
   }
   for (var k = 2; k < coeffs.length; k++) {
-    final c = coeffs[k];
-    if (c.isZero) continue;
+    final raw = coeffs[k];
+    if (isZero(raw)) continue;
     final xk = Pow.canonical(x, IntegerNumber.of(k), simplified: true);
-    terms.add(c.isOne ? xk : Mul.canonical([c, xk], simplified: true));
+    terms.add(
+      isOne(raw) ? xk : Mul.canonical([toExpr(raw), xk], simplified: true),
+    );
   }
   return switch (terms) {
     [] => IntegerNumber.zero,

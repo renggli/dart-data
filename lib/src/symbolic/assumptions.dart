@@ -327,50 +327,34 @@ final class Assumptions {
     ]);
     var next = copyWith(relations: nextRelations);
     if (relation case Relational(:final op, :final left, :final right)) {
-      if (left case Variable(:final name)) {
-        if (right is Number && right.isZero) {
-          switch (op) {
-            case RelOp.greaterThan:
-              next = next.withPositive(name);
-            case RelOp.greaterEqual:
-              next = next.withNonNegative(name);
-            case RelOp.lessThan:
-              next = next.withNegative(name);
-            case RelOp.lessEqual:
-              next = next.withNonPositive(name);
-            case RelOp.notEqual:
-              next = next.withNonZero(name);
-            case RelOp.equal:
-              break;
+      Assumptions applySide(
+        Assumptions curr,
+        Expr varSide,
+        Expr otherSide, {
+        required bool flipped,
+      }) {
+        if (varSide case Variable(:final name)) {
+          if (otherSide is Number && otherSide.isZero) {
+            final mask = _relationMaskOfZeroOp(op, flipped: flipped);
+            if (mask != 0) {
+              final domain =
+                  (op != RelOp.notEqual && curr.domains[name] == null)
+                  ? VariableDomain.real
+                  : null;
+              return curr._withPropertyMask(name, mask, domain: domain);
+            }
+          } else if (op != RelOp.equal &&
+              op != RelOp.notEqual &&
+              (curr.domains[name] ?? curr.defaultDomain) ==
+                  VariableDomain.unknown) {
+            return curr.withReal(name);
           }
-        } else if (op != RelOp.equal &&
-            op != RelOp.notEqual &&
-            (domains[name] ?? defaultDomain) == VariableDomain.unknown) {
-          next = next.withReal(name);
         }
+        return curr;
       }
-      if (right case Variable(:final name)) {
-        if (left is Number && left.isZero) {
-          switch (op) {
-            case RelOp.lessThan:
-              next = next.withPositive(name);
-            case RelOp.lessEqual:
-              next = next.withNonNegative(name);
-            case RelOp.greaterThan:
-              next = next.withNegative(name);
-            case RelOp.greaterEqual:
-              next = next.withNonPositive(name);
-            case RelOp.notEqual:
-              next = next.withNonZero(name);
-            case RelOp.equal:
-              break;
-          }
-        } else if (op != RelOp.equal &&
-            op != RelOp.notEqual &&
-            (domains[name] ?? defaultDomain) == VariableDomain.unknown) {
-          next = next.withReal(name);
-        }
-      }
+
+      next = applySide(next, left, right, flipped: false);
+      next = applySide(next, right, left, flipped: true);
     }
     return next;
   }
@@ -434,40 +418,51 @@ final class Assumptions {
     }
     if (relations.isNotEmpty) {
       for (final rel in relations) {
-        if (rel.left case Variable(name: final vName) when vName == name) {
-          if (rel.right is Number && (rel.right as Number).isZero) {
-            mask |= switch (rel.op) {
-              RelOp.greaterThan =>
-                _kPropReal | _kPropPositive | _kPropNonNegative | _kPropNonZero,
-              RelOp.greaterEqual => _kPropReal | _kPropNonNegative,
-              RelOp.lessThan =>
-                _kPropReal | _kPropNegative | _kPropNonPositive | _kPropNonZero,
-              RelOp.lessEqual => _kPropReal | _kPropNonPositive,
-              RelOp.notEqual => _kPropNonZero,
-              RelOp.equal => 0,
-            };
-          } else if (rel.op != RelOp.equal && rel.op != RelOp.notEqual) {
-            mask |= _kPropReal;
-          }
-        }
-        if (rel.right case Variable(name: final vName) when vName == name) {
-          if (rel.left is Number && (rel.left as Number).isZero) {
-            mask |= switch (rel.op) {
-              RelOp.lessThan =>
-                _kPropReal | _kPropPositive | _kPropNonNegative | _kPropNonZero,
-              RelOp.lessEqual => _kPropReal | _kPropNonNegative,
-              RelOp.greaterThan =>
-                _kPropReal | _kPropNegative | _kPropNonPositive | _kPropNonZero,
-              RelOp.greaterEqual => _kPropReal | _kPropNonPositive,
-              RelOp.notEqual => _kPropNonZero,
-              RelOp.equal => 0,
-            };
-          } else if (rel.op != RelOp.equal && rel.op != RelOp.notEqual) {
-            mask |= _kPropReal;
-          }
-        }
+        mask |= _relationVarPropMask(rel, name);
       }
     }
+    return mask;
+  }
+
+  static int _relationMaskOfZeroOp(RelOp op, {required bool flipped}) {
+    final effectiveOp = flipped
+        ? switch (op) {
+            RelOp.greaterThan => RelOp.lessThan,
+            RelOp.greaterEqual => RelOp.lessEqual,
+            RelOp.lessThan => RelOp.greaterThan,
+            RelOp.lessEqual => RelOp.greaterEqual,
+            RelOp.equal => RelOp.equal,
+            RelOp.notEqual => RelOp.notEqual,
+          }
+        : op;
+    return switch (effectiveOp) {
+      RelOp.greaterThan =>
+        _kPropReal | _kPropPositive | _kPropNonNegative | _kPropNonZero,
+      RelOp.greaterEqual => _kPropReal | _kPropNonNegative,
+      RelOp.lessThan =>
+        _kPropReal | _kPropNegative | _kPropNonPositive | _kPropNonZero,
+      RelOp.lessEqual => _kPropReal | _kPropNonPositive,
+      RelOp.notEqual => _kPropNonZero,
+      RelOp.equal => 0,
+    };
+  }
+
+  static int _relationVarPropMask(Relational rel, String name) {
+    var mask = 0;
+    int sideMask(Expr varSide, Expr otherSide, {required bool flipped}) {
+      if (varSide case Variable(name: final vName) when vName == name) {
+        if (otherSide is Number && otherSide.isZero) {
+          return _relationMaskOfZeroOp(rel.op, flipped: flipped);
+        }
+        if (rel.op != RelOp.equal && rel.op != RelOp.notEqual) {
+          return _kPropReal;
+        }
+      }
+      return 0;
+    }
+
+    mask |= sideMask(rel.left, rel.right, flipped: false);
+    mask |= sideMask(rel.right, rel.left, flipped: true);
     return mask;
   }
 

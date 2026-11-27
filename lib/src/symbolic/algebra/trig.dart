@@ -62,12 +62,12 @@ extension TrigRewriteExtension on Expr {
 
   /// Rewrites this expression into the specified [target] representation.
   ///
-  /// - [RewriteTarget.exp]: Converts `Sin`, `Cos`, `Tan`, `Sinh`, `Cosh`, and
-  ///   `Tanh` into exponential expressions.
+  /// - [RewriteTarget.exp]: Converts `sin`, `cos`, `tan`, `sinh`, `cosh`, and
+  ///   `tanh` into exponential expressions.
   /// - [RewriteTarget.trig]: Converts complex exponentials `e^{a + i b}` into
   ///   `e^a (cos b + i sin b)` via Euler's identity.
-  /// - [RewriteTarget.sinCos]: Converts `Tan(u)` to `Sin(u) / Cos(u)` and
-  ///   `Tanh(u)` to `Sinh(u) / Cosh(u)`.
+  /// - [RewriteTarget.sinCos]: Converts `tan(u)` to `sin(u) / cos(u)` and
+  ///   `tanh(u)` to `sinh(u) / cosh(u)`.
   ///
   /// ```dart
   /// final euler = Expr.parse('cos(x) + i * sin(x)');

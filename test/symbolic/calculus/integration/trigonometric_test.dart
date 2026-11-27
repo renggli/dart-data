@@ -349,6 +349,26 @@ void main() {
               .abs(),
         ).isCloseTo(0.0, 1e-7);
       }
+
+      // Even/odd numerator-denominator reduction, sum-to-product, and Chebyshev shift
+      for (final (source, pt) in const [
+        ('sin(x)^2 / cos(x)^3', 0.4),
+        ('cos(x)^2 / sin(x)^3', 0.7),
+        ('(sin(3*x) + sin(x)) / cos(x)', 0.4),
+        ('(cos(3*x) + cos(x)) / cos(2*x)', 0.3),
+        ('(cos(x) - cos(3*x)) / sin(x)', 0.5),
+        ('cos(x) / sin(x - 1)^2', 0.3),
+        ('cos(x) / cos(x - 1)^2', 0.3),
+        ('sin(x) / cos(x - 1)^2', 0.3),
+      ]) {
+        final expr = Expr.parse(source);
+        final anti = expr.integrate('x');
+        check(anti.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (anti.derivative('x').evaluate({'x': pt}) - expr.evaluate({'x': pt}))
+              .abs(),
+        ).isCloseTo(0.0, 1e-8);
+      }
     });
   });
 }

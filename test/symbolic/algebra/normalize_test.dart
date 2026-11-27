@@ -33,5 +33,39 @@ void main() {
       check(expressionCost(normP10) <= expressionCost(p10.simplify())).isTrue;
       check(normP10).equals(p10.simplify());
     });
+
+    test('scores OrderTerm, Relational, Piecewise, and BinderExpr nodes', () {
+      const x = Variable('x');
+      final orderCost = expressionCost(
+        OrderTerm('x', 3, point: IntegerNumber.zero),
+      );
+      final relCost = expressionCost(Relational.lessThan(x, IntegerNumber.one));
+      final pwCost = expressionCost(
+        Piecewise([
+          (relation: Relational.greaterThan(x, IntegerNumber.zero), expr: x),
+        ], otherwise: IntegerNumber.zero),
+      );
+      final intCost = expressionCost(
+        Integral(x, 'x', lower: IntegerNumber.zero, upper: IntegerNumber.one),
+      );
+      final derivCost = expressionCost(
+        Derivative(x, 'x', point: IntegerNumber.one),
+      );
+      final limCost = expressionCost(Limit(x, 'x', IntegerNumber.zero));
+      final sumCost = expressionCost(
+        Sum(x, 'x', IntegerNumber.one, IntegerNumber.of(5)),
+      );
+      final rootSumCost = expressionCost(
+        RootSum(x * x - IntegerNumber.two, 'x', x),
+      );
+      check(orderCost).isGreaterThan(1);
+      check(relCost).isGreaterThan(4);
+      check(pwCost).isGreaterThan(4);
+      check(intCost).isGreaterThan(4);
+      check(derivCost).isGreaterThan(4);
+      check(limCost).isGreaterThan(4);
+      check(sumCost).isGreaterThan(4);
+      check(rootSumCost).isGreaterThan(5);
+    });
   });
 }

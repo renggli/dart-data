@@ -124,83 +124,52 @@ Expr antiDerivPow(
     }
     // Higher trig/hyperbolic integer powers: sin^n, cos^n, sinh^n, cosh^n (3 <= n <= 10)
     if (exponent case IntegerNumber(asInt: final n?) when n >= 3 && n <= 10) {
-      if (base case Call(id: FunctionId.sin, args: [final inner])) {
+      if (base case Call(:final id, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final nExpr = IntegerNumber.of(n);
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 =
-              (-Pow.of(Fn.sin(inner), nMinus1) * Fn.cos(inner) / (nExpr * a))
-                  .simplify();
-          final rem = antiDerivative(
-            Pow.of(Fn.sin(inner), nMinus2).simplify(assumptions: assumptions),
-            variable,
-            assumptions: assumptions,
-          );
-          if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 + (nMinus1 / nExpr) * rem).simplify(
+          final (
+            Expr? coeff,
+            Expr Function(Expr)? partner,
+            Expr remSign,
+          ) = switch (id) {
+            FunctionId.sin => (
+              -IntegerNumber.one,
+              (Expr e) => Fn.cos(e),
+              IntegerNumber.one,
+            ),
+            FunctionId.cos => (
+              IntegerNumber.one,
+              (Expr e) => Fn.sin(e),
+              IntegerNumber.one,
+            ),
+            FunctionId.sinh => (
+              IntegerNumber.one,
+              (Expr e) => Fn.cosh(e),
+              IntegerNumber.negativeOne,
+            ),
+            FunctionId.cosh => (
+              IntegerNumber.one,
+              (Expr e) => Fn.sinh(e),
+              IntegerNumber.one,
+            ),
+            _ => (null, null, IntegerNumber.one),
+          };
+          if (coeff != null && partner != null) {
+            final term1 =
+                (coeff * Pow.of(base, nMinus1) * partner(inner) / (nExpr * a))
+                    .simplify(assumptions: assumptions);
+            final rem = antiDerivative(
+              Pow.of(base, nMinus2).simplify(assumptions: assumptions),
+              variable,
               assumptions: assumptions,
             );
-          }
-        }
-      }
-      if (base case Call(id: FunctionId.cos, args: [final inner])) {
-        if (inner.matchLinear(variable) case (:final a, b: _)) {
-          final nExpr = IntegerNumber.of(n);
-          final nMinus1 = IntegerNumber.of(n - 1);
-          final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 =
-              (Pow.of(Fn.cos(inner), nMinus1) * Fn.sin(inner) / (nExpr * a))
-                  .simplify(assumptions: assumptions);
-          final rem = antiDerivative(
-            Pow.of(Fn.cos(inner), nMinus2).simplify(assumptions: assumptions),
-            variable,
-            assumptions: assumptions,
-          );
-          if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 + (nMinus1 / nExpr) * rem).simplify(
-              assumptions: assumptions,
-            );
-          }
-        }
-      }
-      if (base case Call(id: FunctionId.sinh, args: [final inner])) {
-        if (inner.matchLinear(variable) case (:final a, b: _)) {
-          final nExpr = IntegerNumber.of(n);
-          final nMinus1 = IntegerNumber.of(n - 1);
-          final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 =
-              (Pow.of(Fn.sinh(inner), nMinus1) * Fn.cosh(inner) / (nExpr * a))
-                  .simplify(assumptions: assumptions);
-          final rem = antiDerivative(
-            Pow.of(Fn.sinh(inner), nMinus2).simplify(assumptions: assumptions),
-            variable,
-            assumptions: assumptions,
-          );
-          if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 - (nMinus1 / nExpr) * rem).simplify(
-              assumptions: assumptions,
-            );
-          }
-        }
-      }
-      if (base case Call(id: FunctionId.cosh, args: [final inner])) {
-        if (inner.matchLinear(variable) case (:final a, b: _)) {
-          final nExpr = IntegerNumber.of(n);
-          final nMinus1 = IntegerNumber.of(n - 1);
-          final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 =
-              (Pow.of(Fn.cosh(inner), nMinus1) * Fn.sinh(inner) / (nExpr * a))
-                  .simplify(assumptions: assumptions);
-          final rem = antiDerivative(
-            Pow.of(Fn.cosh(inner), nMinus2).simplify(assumptions: assumptions),
-            variable,
-            assumptions: assumptions,
-          );
-          if (!hasUnevaluatedIntegral(rem, variable)) {
-            return (term1 + (nMinus1 / nExpr) * rem).simplify(
-              assumptions: assumptions,
-            );
+            if (!hasUnevaluatedIntegral(rem, variable)) {
+              return (term1 + remSign * (nMinus1 / nExpr) * rem).simplify(
+                assumptions: assumptions,
+              );
+            }
           }
         }
       }
@@ -1196,7 +1165,7 @@ Expr? _tryLinearExpTranscendentalElimination(
   var remaining = Add.of(remainderTerms)
       .expand(assumptions: assumptions)
       .simplify(assumptions: assumptions);
-  final hasTranscendental = remaining.anyNode(
+  bool hasInvTrigOrLog(Expr e) => e.anyNode(
     (n) =>
         n is Call &&
         n.args.isNotEmpty &&
@@ -1209,7 +1178,7 @@ Expr? _tryLinearExpTranscendentalElimination(
             n.id == FunctionId.acosh ||
             n.id == FunctionId.atanh),
   );
-  if (!hasTranscendental) return null;
+  if (!hasInvTrigOrLog(remaining)) return null;
 
   Expr yAcc = IntegerNumber.zero;
   for (var step = 0; step < 8; step++) {
@@ -1221,20 +1190,7 @@ Expr? _tryLinearExpTranscendentalElimination(
     var bestXDeg = -1;
     var bestScore = -1;
     for (final rt in remTerms) {
-      final hasTr = rt.anyNode(
-        (n) =>
-            n is Call &&
-            n.args.isNotEmpty &&
-            n.args.first.dependsOn(variable) &&
-            (n.id == FunctionId.ln ||
-                n.id == FunctionId.atan ||
-                n.id == FunctionId.asin ||
-                n.id == FunctionId.acos ||
-                n.id == FunctionId.asinh ||
-                n.id == FunctionId.acosh ||
-                n.id == FunctionId.atanh),
-      );
-      if (!hasTr) continue;
+      if (!hasInvTrigOrLog(rt)) continue;
       final factors = rt is Mul ? rt.factors : [rt];
       var xDeg = 0;
       for (final f in factors) {

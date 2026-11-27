@@ -108,6 +108,35 @@ void main() {
             .equals(RealInterval.closed(2.0, 3.0));
         check(RealInterval.all.erf().lo >= -1.0).isTrue;
         check(RealInterval.all.erfc().hi <= 2.0).isTrue;
+        check(RealInterval.closed(-1.0, 2.0) - RealInterval.closed(1.0, 3.0))
+            .equals(RealInterval.closed(-4.0, 1.0));
+        check(
+          (RealInterval.point(1.0) / RealInterval.closed(-3.0, -1.0)).hi <= 0.0,
+        ).isTrue;
+        check(
+          RealInterval.closed(
+            0.0,
+            2.0,
+          ).pow(RealInterval.closed(2.0, 3.0)).isNonNegative,
+        ).isTrue;
+        check(RealInterval.point(0.0).pow(RealInterval.closed(1.0, 2.0)))
+            .equals(RealInterval.point(0.0));
+        check(RealInterval.closed(1.2, 2.8).round())
+            .equals(RealInterval.closed(1.0, 3.0));
+        check(RealInterval.point(0.0).sign()).equals(RealInterval.point(0.0));
+        check(RealInterval.closed(1.0, 2.0).sign())
+            .equals(RealInterval.point(1.0));
+        check(RealInterval.closed(-2.0, -1.0).sign())
+            .equals(RealInterval.point(-1.0));
+        check(RealInterval.closed(-2.0, 2.0).sign())
+            .equals(RealInterval.closed(-1.0, 1.0));
+        check(RealInterval.point(-2.0).asinh().isStrictlyNegative).isTrue;
+        check(RealInterval.empty.toString()).equals('∅');
+        check(RealInterval.open(0.0, double.infinity).toString())
+            .equals('(${0.0}, oo)');
+        check(RealInterval.closed(double.negativeInfinity, 1.0).toString())
+            .equals('(-oo, ${1.0}]');
+        check(RealInterval.empty.hashCode).equals(0);
       },
     );
   });

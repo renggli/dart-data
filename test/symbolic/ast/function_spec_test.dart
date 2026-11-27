@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -33,6 +34,15 @@ void main() {
       check(sym.id).equals(FunctionId.symbolic);
       check(sym.name).equals('custom');
       check(sym.call([x, y])).equals(Fn.symbolic('custom', [x, y]));
+      check(() => sym.evaluateReal([1.0])).throws<UnsupportedError>();
+      check(() => sym.evaluateComplex([Complex.one]))
+          .throws<UnsupportedError>();
+
+      check(Fn.sin.evaluateReal([0.0])).equals(0.0);
+      check(Fn.sin.evaluateComplex([Complex.zero])).equals(Complex.zero);
+      check(Fn.atan2.evaluateReal([0.0, 1.0])).equals(0.0);
+      check(Fn.atan2.evaluateComplex([Complex.zero, Complex.one]))
+          .equals(Complex.zero);
     });
   });
 }

@@ -4,6 +4,7 @@ import '../algebra/helpers.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../calculus/linear_form.dart';
 import '../compiler.dart';
 import '../functions/fn.dart';
 import '../type/expr_data_type.dart';
@@ -334,32 +335,27 @@ List<Expr>? invertEquation(
             return const [];
           }
           final cVal = tryEvalReal(c);
+          List<Expr> solveRootPair(Expr posRoot, {required bool bothSigns}) {
+            final s1 = solveEquation(
+              (base - posRoot).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+            );
+            if (!bothSigns) return s1;
+            final negRoot = (-posRoot).simplify(assumptions: assumptions);
+            final s2 = solveEquation(
+              (base - negRoot).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+            );
+            return deduplicateRoots([...s1, ...s2], assumptions: assumptions);
+          }
+
           if (expConst case IntegerNumber(asInt: final int n) when n > 0) {
-            if (n.isEven) {
-              if (cVal != null && cVal < 0.0) {
-                return const [];
-              }
-              final posRoot = rootConstant(c, n);
-              final negRoot = (-posRoot).simplify(assumptions: assumptions);
-              final s1 = solveEquation(
-                (base - posRoot).simplify(assumptions: assumptions),
-                variable,
-                assumptions: assumptions,
-              );
-              final s2 = solveEquation(
-                (base - negRoot).simplify(assumptions: assumptions),
-                variable,
-                assumptions: assumptions,
-              );
-              return deduplicateRoots([...s1, ...s2], assumptions: assumptions);
-            } else {
-              final root = rootConstant(c, n);
-              return solveEquation(
-                (base - root).simplify(assumptions: assumptions),
-                variable,
-                assumptions: assumptions,
-              );
+            if (n.isEven && cVal != null && cVal < 0.0) {
+              return const [];
             }
+            return solveRootPair(rootConstant(c, n), bothSigns: n.isEven);
           }
           if (expConst.denominator.isEven || expConst.numerator.isEven) {
             if (cVal != null && cVal < 0.0) {
@@ -383,24 +379,9 @@ List<Expr>? invertEquation(
           } else {
             posRoot = Pow.of(c, invP).simplify(assumptions: assumptions);
           }
-          if (expConst.numerator.isEven && !isZeroExpr(c)) {
-            final negRoot = (-posRoot).simplify(assumptions: assumptions);
-            final s1 = solveEquation(
-              (base - posRoot).simplify(assumptions: assumptions),
-              variable,
-              assumptions: assumptions,
-            );
-            final s2 = solveEquation(
-              (base - negRoot).simplify(assumptions: assumptions),
-              variable,
-              assumptions: assumptions,
-            );
-            return deduplicateRoots([...s1, ...s2], assumptions: assumptions);
-          }
-          return solveEquation(
-            (base - posRoot).simplify(assumptions: assumptions),
-            variable,
-            assumptions: assumptions,
+          return solveRootPair(
+            posRoot,
+            bothSigns: expConst.numerator.isEven && !isZeroExpr(c),
           );
         }
       }
@@ -445,15 +426,7 @@ List<Expr>? invertEquation(
   }
 
   if (u case Mul(:final factors)) {
-    final constFactors = <Expr>[];
-    final varFactors = <Expr>[];
-    for (final f in factors) {
-      if (f.dependsOn(variable)) {
-        varFactors.add(f);
-      } else {
-        constFactors.add(f);
-      }
-    }
+    final (:constFactors, :varFactors) = partitionFactors(factors, variable);
     if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
       final constPart = switch (constFactors) {
         [final single] => single,

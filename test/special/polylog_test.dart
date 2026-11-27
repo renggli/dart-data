@@ -100,6 +100,10 @@ void main() {
 
       check(polylogComplex(Complex.nan, Complex.zero).isNaN).isTrue;
       check(polylogComplex(const Complex(2), Complex.nan).isNaN).isTrue;
+      check(polylog(-1.5, -0.5)).isCloseTo(
+        polylogComplex(const Complex(-1.5), const Complex(-0.5)).a,
+        1e-12,
+      );
     });
   });
 }

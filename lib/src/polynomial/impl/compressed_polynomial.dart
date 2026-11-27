@@ -224,114 +224,12 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   }
 
   @override
-  Polynomial<T> operator +(Polynomial<T> other) {
-    checkSamePolynomialType(type, other.type);
-    final comp = other is CompressedPolynomial<T>
-        ? other
-        : other.toCompressed();
-    final field = type.field;
-    final zero = field.additiveIdentity;
-    final resExps = <int>[];
-    final resCoeffs = <T>[];
-    var i = 0;
-    var j = 0;
-    while (i < _exponents.length && j < comp._exponents.length) {
-      final e1 = _exponents[i];
-      final e2 = comp._exponents[j];
-      if (e1 == e2) {
-        final sum = normalizeCoefficient(
-          field.add(_coefficients[i], comp._coefficients[j]),
-          zero,
-        );
-        if (sum != zero) {
-          resExps.add(e1);
-          resCoeffs.add(sum);
-        }
-        i++;
-        j++;
-      } else if (e1 < e2) {
-        resExps.add(e1);
-        resCoeffs.add(_coefficients[i]);
-        i++;
-      } else {
-        resExps.add(e2);
-        resCoeffs.add(comp._coefficients[j]);
-        j++;
-      }
-    }
-    while (i < _exponents.length) {
-      resExps.add(_exponents[i]);
-      resCoeffs.add(_coefficients[i]);
-      i++;
-    }
-    while (j < comp._exponents.length) {
-      resExps.add(comp._exponents[j]);
-      resCoeffs.add(comp._coefficients[j]);
-      j++;
-    }
-    return CompressedPolynomial<T>._(
-      List.unmodifiable(resExps),
-      List.unmodifiable(resCoeffs),
-      type: type,
-    );
-  }
+  Polynomial<T> operator +(Polynomial<T> other) =>
+      _addSub(other, subtract: false);
 
   @override
-  Polynomial<T> operator -(Polynomial<T> other) {
-    checkSamePolynomialType(type, other.type);
-    final comp = other is CompressedPolynomial<T>
-        ? other
-        : other.toCompressed();
-    final field = type.field;
-    final zero = field.additiveIdentity;
-    final resExps = <int>[];
-    final resCoeffs = <T>[];
-    var i = 0;
-    var j = 0;
-    while (i < _exponents.length && j < comp._exponents.length) {
-      final e1 = _exponents[i];
-      final e2 = comp._exponents[j];
-      if (e1 == e2) {
-        final diff = normalizeCoefficient(
-          field.sub(_coefficients[i], comp._coefficients[j]),
-          zero,
-        );
-        if (diff != zero) {
-          resExps.add(e1);
-          resCoeffs.add(diff);
-        }
-        i++;
-        j++;
-      } else if (e1 < e2) {
-        resExps.add(e1);
-        resCoeffs.add(_coefficients[i]);
-        i++;
-      } else {
-        resExps.add(e2);
-        resCoeffs.add(
-          normalizeCoefficient(field.neg(comp._coefficients[j]), zero),
-        );
-        j++;
-      }
-    }
-    while (i < _exponents.length) {
-      resExps.add(_exponents[i]);
-      resCoeffs.add(_coefficients[i]);
-      i++;
-    }
-    while (j < comp._exponents.length) {
-      resExps.add(comp._exponents[j]);
-      resCoeffs.add(
-        normalizeCoefficient(field.neg(comp._coefficients[j]), zero),
-      );
-      j++;
-    }
-    return CompressedPolynomial<T>._(
-      List.unmodifiable(resExps),
-      List.unmodifiable(resCoeffs),
-      type: type,
-    );
-  }
+  Polynomial<T> operator -(Polynomial<T> other) =>
+      _addSub(other, subtract: true);
 
   @override
   Polynomial<T> operator -() {
@@ -666,6 +564,68 @@ class CompressedPolynomial<T> extends Polynomial<T> {
           resCoeffs.add(coeff);
         }
       }
+    }
+    return CompressedPolynomial<T>._(
+      List.unmodifiable(resExps),
+      List.unmodifiable(resCoeffs),
+      type: type,
+    );
+  }
+
+  Polynomial<T> _addSub(Polynomial<T> other, {required bool subtract}) {
+    checkSamePolynomialType(type, other.type);
+    final comp = other is CompressedPolynomial<T>
+        ? other
+        : other.toCompressed();
+    final field = type.field;
+    final zero = field.additiveIdentity;
+    final resExps = <int>[];
+    final resCoeffs = <T>[];
+    var i = 0;
+    var j = 0;
+    while (i < _exponents.length && j < comp._exponents.length) {
+      final e1 = _exponents[i];
+      final e2 = comp._exponents[j];
+      if (e1 == e2) {
+        final combined = normalizeCoefficient(
+          subtract
+              ? field.sub(_coefficients[i], comp._coefficients[j])
+              : field.add(_coefficients[i], comp._coefficients[j]),
+          zero,
+        );
+        if (combined != zero) {
+          resExps.add(e1);
+          resCoeffs.add(combined);
+        }
+        i++;
+        j++;
+      } else if (e1 < e2) {
+        resExps.add(e1);
+        resCoeffs.add(_coefficients[i]);
+        i++;
+      } else {
+        resExps.add(e2);
+        resCoeffs.add(
+          subtract
+              ? normalizeCoefficient(field.neg(comp._coefficients[j]), zero)
+              : comp._coefficients[j],
+        );
+        j++;
+      }
+    }
+    while (i < _exponents.length) {
+      resExps.add(_exponents[i]);
+      resCoeffs.add(_coefficients[i]);
+      i++;
+    }
+    while (j < comp._exponents.length) {
+      resExps.add(comp._exponents[j]);
+      resCoeffs.add(
+        subtract
+            ? normalizeCoefficient(field.neg(comp._coefficients[j]), zero)
+            : comp._coefficients[j],
+      );
+      j++;
     }
     return CompressedPolynomial<T>._(
       List.unmodifiable(resExps),

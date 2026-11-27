@@ -872,6 +872,36 @@ void main() {
           .deepEquals([null, 1, 3]);
       check(unmaskedNullObj.sort(nullsLast: true).toList())
           .deepEquals([1, 3, null]);
+
+      // BoolSeries, TypedSeries<double>, and ObjectSeries fill/sort/permute edge cases
+      final bNull = BoolSeries.fromList('b', [true, null, false]);
+      check(bNull.tryFillNull('not_bool')).isNull;
+      check(bNull.tryFillNull(false)!.toList())
+          .deepEquals([true, false, false]);
+
+      final dNull = TypedSeries<double>.fromList('d', [
+        2.0,
+        null,
+        double.nan,
+        1.0,
+      ]);
+      check(dNull.permute([1, 3]).toList()).deepEquals(<double?>[null, 1.0]);
+      final dSortedFirst = dNull.sort(nullsLast: false);
+      check(dSortedFirst[0]).isNull;
+      final dObj = ObjectSeries<double>.fromList('od', [1.0, null, 2.0]);
+      check(dObj.tryFillNull(5)!.toList()).deepEquals([1.0, 5.0, 2.0]);
+      final oMask = ObjectSeries<Object?>(
+        name: 'om',
+        data: ['a', '', 'b'],
+        dataType: DataType.object,
+        mask: ValidityMask(3)..setNull(1),
+      );
+      check(oMask.permute([1, 2]).toList()).deepEquals(<Object?>[null, 'b']);
+
+      check(Series<int>.fromList('ci', <Object?>['1', '2']).toList())
+          .deepEquals([1, 2]);
+      check(Series<double>.fromList('cf', <Object?>['1.5', '2.5']).toList())
+          .deepEquals([1.5, 2.5]);
     });
   });
 }

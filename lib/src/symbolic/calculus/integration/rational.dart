@@ -213,17 +213,9 @@ Expr? tryAntiDerivDiv(
         return (-left / (a * xPlus)).simplify();
       }
       if (delta.freeVariables.isEmpty && !containsComplexSubexpr(delta)) {
-        try {
-          final val = delta.evaluate(const {});
-          if (val.isFinite && val != 0.0) {
-            return val > 0.0 ? atanBranch() : logAbsBranch();
-          }
-        } on UnsupportedError {
-          // Fall through to symbolic check below.
-        } on ArgumentError {
-          // Fall through to symbolic check below.
-        } on StateError {
-          // Fall through to symbolic check below.
+        final val = tryEvaluateReal(delta);
+        if (val != null && val.isFinite && val != 0.0) {
+          return val > 0.0 ? atanBranch() : logAbsBranch();
         }
       }
       if (delta case RealNumeric(:final sign)) {
@@ -447,35 +439,18 @@ Expr? tryAntiDerivDiv(
           final uMinus = (IntegerNumber.one - ComplexNumber.i * inner).simplify(
             assumptions: assumptions,
           );
-          final linP = uPlus.matchLinear(variable);
-          final linM = uMinus.matchLinear(variable);
-          if (linP != null && linM != null) {
-            final lnP = _integrateLinearLnOverLinear(
-              IntegerNumber.one,
-              uPlus,
-              linP.b,
-              linP.a,
-              right,
-              c,
-              d,
-              variable,
-              assumptions,
-            );
-            final lnM = _integrateLinearLnOverLinear(
-              IntegerNumber.one,
-              uMinus,
-              linM.b,
-              linM.a,
-              right,
-              c,
-              d,
-              variable,
-              assumptions,
-            );
-            return (leftScale *
-                    (lnP - lnM) /
-                    (IntegerNumber.two * ComplexNumber.i))
-                .simplify(assumptions: assumptions);
+          if (_integrateSplitLogDiff(
+                uPlus,
+                uMinus,
+                right,
+                c,
+                d,
+                leftScale / (IntegerNumber.two * ComplexNumber.i),
+                variable,
+                assumptions,
+              )
+              case final res?) {
+            return res;
           }
         }
         final recip = (inner * Variable(variable)).simplify(
@@ -501,34 +476,18 @@ Expr? tryAntiDerivDiv(
           final uMinus = (IntegerNumber.one - inner).simplify(
             assumptions: assumptions,
           );
-          final linP = uPlus.matchLinear(variable);
-          final linM = uMinus.matchLinear(variable);
-          if (linP != null && linM != null) {
-            final lnP = _integrateLinearLnOverLinear(
-              IntegerNumber.one,
-              uPlus,
-              linP.b,
-              linP.a,
-              right,
-              c,
-              d,
-              variable,
-              assumptions,
-            );
-            final lnM = _integrateLinearLnOverLinear(
-              IntegerNumber.one,
-              uMinus,
-              linM.b,
-              linM.a,
-              right,
-              c,
-              d,
-              variable,
-              assumptions,
-            );
-            return (leftScale * (lnP - lnM) / IntegerNumber.two).simplify(
-              assumptions: assumptions,
-            );
+          if (_integrateSplitLogDiff(
+                uPlus,
+                uMinus,
+                right,
+                c,
+                d,
+                leftScale / IntegerNumber.two,
+                variable,
+                assumptions,
+              )
+              case final res?) {
+            return res;
           }
         }
         final recip = (inner * Variable(variable)).simplify(
@@ -1236,4 +1195,42 @@ Expr _integrateLinearLnOverLinear(
   return ((scale / d) *
           (Fn.ln(u) * Fn.ln(oneMinusZ) + Fn.polylog(IntegerNumber.two, z)))
       .simplify(assumptions: assumptions);
+}
+
+Expr? _integrateSplitLogDiff(
+  Expr uPlus,
+  Expr uMinus,
+  Expr right,
+  Expr c,
+  Expr d,
+  Expr scale,
+  String variable,
+  Assumptions assumptions,
+) {
+  final linP = uPlus.matchLinear(variable);
+  final linM = uMinus.matchLinear(variable);
+  if (linP == null || linM == null) return null;
+  final lnP = _integrateLinearLnOverLinear(
+    IntegerNumber.one,
+    uPlus,
+    linP.b,
+    linP.a,
+    right,
+    c,
+    d,
+    variable,
+    assumptions,
+  );
+  final lnM = _integrateLinearLnOverLinear(
+    IntegerNumber.one,
+    uMinus,
+    linM.b,
+    linM.a,
+    right,
+    c,
+    d,
+    variable,
+    assumptions,
+  );
+  return (scale * (lnP - lnM)).simplify(assumptions: assumptions);
 }

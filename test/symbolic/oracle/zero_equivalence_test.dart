@@ -27,6 +27,23 @@ void main() {
       final nonZeroTrig = Expr.parse('sin(x)^2 + cos(x)');
       check(testZero(nonZeroTrig)).equals(Truth.unknown);
       check(testZero(nonZeroTrig, numericDisproof: true)).equals(Truth.no);
+
+      check(
+        testZero(
+          Fn.sin(Constant.pi * IntegerNumber.of(2)) +
+              ComplexNumber.i * IntegerNumber.zero,
+          numericDisproof: true,
+        ),
+      ).equals(Truth.yes);
+      check(
+        testZero(
+          Fn.sin(const Variable('x')) * IntegerNumber.of(0) +
+              Expr.parse('sqrt(-1) - i'),
+          numericDisproof: true,
+        ),
+      ).equals(Truth.yes);
+      check(testZero(Expr.parse('1 / 0') + x - x, numericDisproof: true))
+          .equals(Truth.unknown);
     });
   });
 }

@@ -147,34 +147,6 @@ List<Map<String, Expr>> solveEquations(
   ];
 }
 
-/// Solves a linear system of [equations] in [variables] via exact fraction-free
-/// Gaussian elimination with pivoting.
-Map<String, Expr>? solveSystemEquations(
-  List<Expr> equations,
-  List<String> variables, {
-  required Assumptions assumptions,
-}) {
-  if (variables.toSet().length != variables.length) {
-    throw ArgumentError.value(
-      variables,
-      'variables',
-      'Variable list must not contain duplicates.',
-    );
-  }
-  final normalized = [
-    for (final rawEq in equations)
-      (switch (rawEq) {
-        Relational(op: RelOp.equal, :final left, :final right) => left - right,
-        _ => rawEq,
-      }).expand(assumptions: assumptions).simplify(assumptions: assumptions),
-  ];
-  return _trySolveLinearSystem(
-    normalized,
-    variables,
-    assumptions: assumptions,
-  ).solution;
-}
-
 ({bool isLinear, Map<String, Expr>? solution}) _trySolveLinearSystem(
   List<Expr> normalizedEquations,
   List<String> variables, {

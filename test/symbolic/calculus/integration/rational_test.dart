@@ -274,6 +274,25 @@ void main() {
                 cIntegrand.evaluateComplex(cEnv))
             .abs(),
       ).isCloseTo(0.0, 1e-8);
+
+      // Higher-power trig/hyperbolic reciprocals: sec^4, csc^4, csch^4
+      for (final src in [
+        '1 / cos(2*x)^4',
+        '1 / sin(2*x)^4',
+        '1 / sinh(2*x)^4',
+        '(x + 1) / (2*x + 3)^7',
+        'sinh(2*x + 1) / x',
+        'cosh(2*x + 1) / x',
+      ]) {
+        final integrand = Expr.parse(src);
+        final anti = integrand.integrate('x');
+        check(anti.anyNode((n) => n is Integral)).isFalse;
+        check(
+          (anti.derivative('x').evaluate({'x': 0.4}) -
+                  integrand.evaluate({'x': 0.4}))
+              .abs(),
+        ).isLessThan(1e-8);
+      }
     });
   });
 }

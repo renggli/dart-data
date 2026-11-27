@@ -55,7 +55,7 @@ void main() {
     });
   });
 
-  group('Phase 7 closed-form integration improvements', () {
+  group('Mixed transcendental, Chebyshev trig, and damped Ei integrals', () {
     test(
       'integrates Chebyshev shift-angle trig products without expansion',
       () {
@@ -105,6 +105,96 @@ void main() {
       final target = expr.evaluateComplex({'x': const Complex(0.7, 0)});
       check((dv.a - target.a).abs()).isLessThan(1e-10);
       check((dv.b - target.b).abs()).isLessThan(1e-10);
+    });
+
+    test('handles degenerate, quotient, and error cases in hermiteReduce', () {
+      check(() => hermiteReduce(PolyQ.one, PolyQ.zero, 'x'))
+          .throws<ArgumentError>();
+      final zeroNum = hermiteReduce(
+        PolyQ.zero,
+        PolyQ([IntegerNumber.one, IntegerNumber.one]),
+        'x',
+      );
+      check(zeroNum.rationalPart).equals(IntegerNumber.zero);
+      check(zeroNum.num).equals(PolyQ.zero);
+      check(zeroNum.den).equals(PolyQ.one);
+
+      final exactDiv = hermiteReduce(
+        PolyQ([
+          IntegerNumber.negativeOne,
+          IntegerNumber.zero,
+          IntegerNumber.one,
+        ]),
+        PolyQ([IntegerNumber.negativeOne, IntegerNumber.one]),
+        'x',
+      );
+      check(exactDiv.num).equals(PolyQ.zero);
+      check(
+        (exactDiv.rationalPart.derivative('x') - Expr.parse('x + 1')).cancel(),
+      ).equals(IntegerNumber.zero);
+
+      check(() => integrateSquareFreeRational(PolyQ.one, PolyQ.zero, 'x'))
+          .throws<ArgumentError>();
+      final polyOnly = integrateSquareFreeRational(
+        PolyQ([IntegerNumber.zero, IntegerNumber.two]),
+        PolyQ.one,
+        'x',
+      );
+      check(polyOnly).equals(Pow.of(const Variable('x'), IntegerNumber.two));
+
+      final logLin = integrateSquareFreeRational(
+        PolyQ([IntegerNumber.of(3)]),
+        PolyQ([IntegerNumber.two, IntegerNumber.one]),
+        'x',
+      );
+      check(logLin).isNotNull();
+
+      final rothstein = integrateSquareFreeRational(
+        PolyQ([IntegerNumber.of(4), IntegerNumber.zero, IntegerNumber.of(2)]),
+        PolyQ([
+          IntegerNumber.negativeOne,
+          IntegerNumber.zero,
+          IntegerNumber.zero,
+          IntegerNumber.one,
+        ]),
+        'x',
+      );
+      check(rothstein).isNotNull();
+      final badDisc = integrateSquareFreeRational(
+        PolyQ([IntegerNumber.one]),
+        PolyQ([IntegerNumber.one, IntegerNumber.zero, IntegerNumber.one]),
+        'x',
+      );
+      check(badDisc).isNotNull();
+
+      // Multi-factor Hermite reduction with quotient remainder, irrational
+      // quadratic discriminant, and degree-3 constant-ratio logarithmic case.
+      final multiFactor = Expr.parse('(x^5 + 1) / ((x - 1)^2 * (x + 1)^3)')
+          .integrate('x');
+      check(multiFactor.anyNode((n) => n is Integral)).isFalse;
+      check(
+        (multiFactor.derivative('x').evaluate(const {'x': 2.0}) - 33.0 / 27.0)
+            .abs(),
+      ).isLessThan(1e-10);
+
+      final irratQuad = integrateSquareFreeRational(
+        PolyQ([IntegerNumber.one]),
+        PolyQ([IntegerNumber.of(-2), IntegerNumber.zero, IntegerNumber.one]),
+        'x',
+      );
+      check(irratQuad).isNotNull();
+
+      final logDer = integrateSquareFreeRational(
+        PolyQ([IntegerNumber.zero, IntegerNumber.zero, IntegerNumber.of(6)]),
+        PolyQ([
+          IntegerNumber.of(-2),
+          IntegerNumber.zero,
+          IntegerNumber.zero,
+          IntegerNumber.one,
+        ]),
+        'x',
+      );
+      check(logDer).isNotNull();
     });
   });
 }
